@@ -1,0 +1,7 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+
+# CodeQL artifacts
+_codeql_detected_source_root
