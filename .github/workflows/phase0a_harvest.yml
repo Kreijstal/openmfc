@@ -1,0 +1,30 @@
+name: Phase 0A - Harvest (Stage 1)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase0/abi_stress/**'
+      - '.github/workflows/phase0a_harvest.yml'
+
+jobs:
+  harvest-msvc:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Run Harvester
+        shell: pwsh
+        run: |
+          ./phase0/abi_stress/scripts/build_stress_msvc.ps1
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0a_msvc_artifacts
+          path: phase0/abi_stress/artifacts/
