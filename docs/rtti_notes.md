@@ -45,11 +45,28 @@ Each COL is 6 dwords (x64):
   - ClassHierarchyDescriptor RVA: `0x9920`
   - ObjectBase RVA: `0x98F0`
 
-## What remains to decode
-- Parse the COL structures at `0x180009878` and `0x180009900`:
-  - Fields: signature, offset, cdOffset, pTypeDescriptor (RVA), pClassHierarchyDescriptor (RVA).
-- Follow pTypeDescriptor to capture mangled type names (`.??_R0...`, likely under `.rdata` near `type_info` region).
-- Follow pClassHierarchyDescriptor to decode attributes, number of bases, and BaseClassArray -> BaseClassDescriptors (PMD layout).
+## TypeDescriptors and names (observed)
+- Type_info vftable RVA (shared): `0x8A40`
+- Name strings:
+  - CRttiBase: RVA `0xC3E8` contains `.?\u0041VCrttiBase@@` (null-terminated), followed by pointer to type_info vftable `0x180008A40`.
+  - CRttiDerived: RVA `0xC410` contains `.?\u0041VCrttiDerived@@` (null-terminated), followed by pointer to type_info vftable `0x180008A40`.
+  - The TypeDescriptor bodies at `0xD1A8` / `0xD1D0` show the vftable RVA (0xF88A) in their payload; names reside at the RAVs above.
+
+## ClassHierarchyDescriptors and BaseClass arrays
+- CRttiBase CHD @ `0x98A8`:
+  - sig=0, attrs=0, numBases=1, BaseClassArray RVA=`0x98C0`.
+  - BaseClassArray @ `0x98C0`: entries `[0x98F0, 0, 0, 0]`.
+  - BaseClassDescriptor @ `0x98F0`: raw dwords `(0, 0, 0, 0, 1, 0, 0, 0xD1C0)` (needs mapping to TD/PMD/attrs).
+
+- CRttiDerived CHD @ `0x9920`:
+  - sig=0, attrs=0, numBases=2, BaseClassArray RVA=`0x9948`.
+  - BaseClassArray @ `0x9948`: entries `[0x9940?, 0x98F0, 0, 0]` (first entry likely self, second is CRttiBase descriptor).
+  - BaseClassDescriptor @ `0x9960`: raw dwords `(0xD1C0, 1, 0, 0xFFFFFFFF, 0, 64, 0x9920, 0)` (interpretation pending).
+
+## Remaining decode work
+- Map BaseClassDescriptor fields to the standard layout (pTypeDescriptor RVA, numContainedBases, PMD {mdisp,pdisp,vdisp}, attributes, pClassHierarchyDescriptor).
+- Confirm the self-descriptor RVA for CRttiDerived in the BaseClassArray (0x9940 vs 0x9960).
+- Validate whether the TD at `0xD1A8/0xD1D0` should be referenced directly or via the string RVAs (`0xC3E8/0xC410`) when recreating RTTI in the shim.
 
 ## Next steps
 1) Write a small parser (Python) to:
