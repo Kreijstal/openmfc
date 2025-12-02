@@ -61,7 +61,7 @@
 * Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
 * Representative MI call (`FuncB`) shows no prologue; adjustor handled by vftable slot offset (+16).
-* No evidence of shadow space allocation (`sub rsp,20h`) in trivial functions; richer probes needed for full calling convention validation.
+* Calling probes (`SumFive`, `CCStdCall`, `CCThiscall`) show 5th/6th args read from `[rsp+28h]` and `[rsp+30h]`; still no explicit `sub rsp,20h` prologue due to trivial bodies/optimisation.
 
 ## 7. RTTI / Pure Virtuals
 * Layout shows meta pointers for vftables (e.g., `&CStageX_meta`); RTTI symbols are present in object-level dump (`symbols_objects.txt`), e.g., `??_R4CStage1_Simple@@6B@` (COL) and `??_R0?AVCStage1_Simple@@@8` (type descriptor).

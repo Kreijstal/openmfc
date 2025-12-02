@@ -65,3 +65,9 @@ IPure,ctor (default),??0IPure@@QEAA@XZ,09_abstract_pure,Constructor
 IPure,ctor (copy),??0IPure@@QEAA@AEBV0@@Z,09_abstract_pure,Constructor
 IPure,vftable,??_7IPure@@6B@,09_abstract_pure,Vftable
 IPure,PureMethod,?PureMethod@IPure@@UEAAXXZ,09_abstract_pure,Pure virtual
+CCallProbe,ctor (default),??0CCallProbe@@QEAA@XZ,10_calling_convention,Constructor
+CCallProbe,ctor (copy),??0CCallProbe@@QEAA@AEBV0@@Z,10_calling_convention,Constructor
+CCallProbe,vftable,??_7CCallProbe@@6B@,10_calling_convention,Vftable
+CCallProbe,SumFive,?SumFive@CCallProbe@@QEAAHHHHHH@Z,10_calling_convention,Member (5 args)
+CCStdCall,func,CCStdCall,10_calling_convention,extern "C" (5 args)
+CCThiscall,func,CCThiscall,10_calling_convention,extern "C" (5 args)
