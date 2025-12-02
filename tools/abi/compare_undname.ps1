@@ -53,11 +53,11 @@ foreach ($dll in $TargetDlls) {
 
     $compareLog = Join-Path $OutDir ("compare_" + (Split-Path $dll -Leaf) + ".txt")
     foreach ($sym in $symbols) {
-        $und = (& undname $sym 2>&1).Trim()
-        $py  = (& python tools/abi/open_undname.py $sym 2>&1).Trim()
+        $und = ((& undname $sym 2>&1) -join "`n").Trim()
+        $py  = ((& python tools/abi/open_undname.py $sym 2>&1) -join "`n").Trim()
         $match = ($und -eq $py)
         if ($match) { $dllResult.Matches++ } else { $dllResult.Mismatches++ }
-        "$sym`n  undname: $und`n  open:   $py`n  match: $match`n" | Add-Content $compareLog
+        "$sym`n  undname: $und`n  open:   $py`n  match: $($match)`n" | Add-Content $compareLog
     }
 
     $results += $dllResult
