@@ -74,7 +74,14 @@ Each COL is 6 dwords (x64):
 
 - `0x9960` (CRttiDerived → CRttiBase):
   - `(0xD200, 1, 0, 0xFFFFFFFF, 0, 64, 0x9920, 0)`
-  - Interp: pTypeDesc ~0xD200, numContained=1, PMD.mdisp=0, pdisp=0, vdisp=0xFFFFFFFF (none), attrs=0, vtableOfs=64 bytes, chd/backref=0x9920.
+  - Interp (assuming BCD fields [pTD, numContained, PMD{mdisp,pdisp,vdisp}, attrs, pCHD, reserved]):
+    - pTypeDesc ≈ `0xD200`, numContained=1
+    - PMD: mdisp=0, pdisp=0xFFFFFFFF (no vbtable), vdisp=0
+    - attrs = 0x40 (HASCHD)
+    - pClassHierarchyDescriptor = `0x9920`
+    - reserved = 0
+
+> Field ordering for 0x98F0/0x9940 still needs confirmation; raw dwords are recorded verbatim for reference.
 
 ## Remaining decode work
 - Map BaseClassDescriptor fields to the standard layout (pTypeDescriptor RVA, numContainedBases, PMD {mdisp,pdisp,vdisp}, attributes, pClassHierarchyDescriptor).
