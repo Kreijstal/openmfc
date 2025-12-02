@@ -8,40 +8,40 @@
 
 | Class | Size (bytes) | vptr Offset | Notes |
 | :--- | :--- | :--- | :--- |
-| `CStage1_Simple` | 16 | 0 | 4-byte member padded to 8 bytes |
-| `CStage4_Multi` | ? | ? | **TODO:** Check layout.log |
+| `CStage1_Simple` | 16 | 0 | `m_value` at 8 (padding to 16) |
+| `CStage4_Multi` | 40 | 0 (A), 16 (B) | Secondary base `CStage4_B` at offset 16 |
 
 ## 2. Return Value Optimization (RVO)
 *Source: `disassembly.txt` (Search for `CStage5_RVO::Ret*`)*
 
 | Type | Size | Return Storage | Hidden Ptr? |
 | :--- | :--- | :--- | :--- |
-| `Pod8` | 8 | `RAX` (Example) | No |
-| `Pod16` | 16 | **TODO** | ? |
-| `Pod24` | 24 | **TODO** | ? |
-| `NonPod8` | 8 | **TODO** | ? |
+| `Pod8` | 8 | `RAX` (stack scratch, returned via `rax`) | No |
+| `Pod16` | 16 | Stored via `rcx` out-param | Yes |
+| `Pod24` | 24 | Stored via `rcx` out-param | Yes |
+| `NonPod8` | 8 | Stored via `rcx` out-param | Yes |
 
 **Critical Question:** Does `NonPod8` (8 bytes + dtor) return in RAX or via hidden pointer?  
-**Answer:** _______________
+**Answer:** Hidden pointer (writes to `[rcx]`, returns `rax=rcx`).
 
 ## 3. Special Member Mangling
 *Source: `exports.csv` (Output of parse_exports.py)*
 
 | Member | Signature | Mangled Name Pattern |
 | :--- | :--- | :--- |
-| Constructor | `CStage6_Modern()` | `??0CStage6_Modern@@QEAA@XZ` (Example) |
-| Dtor | `~CStage6_Modern()` | **TODO** |
-| Move Ctor | `CStage6_Modern(&&)` | **TODO** |
-| Move Assign | `operator=(&&)` | **TODO** |
+| Constructor | `CStage6_Modern()` | `??0CStage6_Modern@@QEAA@XZ` |
+| Dtor | `~CStage6_Modern()` | Not present (not defined) |
+| Move Ctor | `CStage6_Modern(&&)` | `??0CStage6_Modern@@QEAA@$$QEAV0@@Z` |
+| Move Assign | `operator=(&&)` | `??4CStage6_Modern@@QEAAAEAV0@$$QEAV0@@Z` |
 
 ## 4. Scalar Deleting Destructor
 *Source: `symbols.txt` or `exports.csv`*
 
 * Does `CStage3_Base` have a symbol containing `??_G`?
-* **Answer:** _______________
+* **Answer:** Yes (layout.log shows `__delDtor` entry for `CStage3_Base` vftable).
 
 ## 5. Multiple Inheritance Thunks
 *Source: `disassembly.txt` (Search for `CStage4_Multi::FuncB`)*
 
 * When `FuncB` is called, is there a `sub rcx, X` instruction before the jump?
-* **Answer:** _______________
+* **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry.
