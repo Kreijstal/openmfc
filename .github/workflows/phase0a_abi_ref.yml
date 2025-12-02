@@ -50,7 +50,7 @@ jobs:
           rem (we don't know exact names yet, so just demangle everything
           rem  for now and filter later in tools)
           dumpbin /SYMBOLS abi_ref_class.obj ^
-            | findstr /R "\?CReferenceTest" > abi_ref_symbols_raw.txt
+            | findstr /R /C:"CReferenceTest" > abi_ref_symbols_raw.txt
           if errorlevel 1 (
             echo (no CReferenceTest symbols found; continuing) > abi_ref_symbols_raw.txt
           )
@@ -84,6 +84,7 @@ jobs:
             phase0/abi_ref/abi_ref.dll
             phase0/abi_ref/abi_ref_exports.txt
             phase0/abi_ref/abi_ref_symbols.txt
+            phase0/abi_ref/abi_ref_symbols_raw.txt
             phase0/abi_ref/abi_ref_undname.txt
             phase0/abi_ref/abi_ref_metadata.json
           retention-days: 90
