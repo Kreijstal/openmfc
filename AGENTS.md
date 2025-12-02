@@ -37,3 +37,9 @@ Keep artifacts outside the repo (e.g., under `/tmp` or a local `artifacts/` dire
 
 ## MSVC usage policy
 - MSVC is used exclusively via GitHub Actions workflows; no local MSVC installs are assumed. Harvests and host builds run on Windows CI (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`, `phase0b_harvest_cobject.yml`, `phase0b_verify_cobject.yml`).
+
+## No-binaries rule
+- Never commit generated binaries or CI artifacts to the repo.
+- Keep downloads under `/tmp` or `artifacts/` (ignored) and out of git.
+- A pre-commit hook in `.githooks/pre-commit` blocks binary blobs; enable it locally with:
+  - `git config core.hooksPath .githooks`

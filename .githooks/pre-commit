@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Block committing binary blobs. Runs on staged files only.
+fail=0
+
+while IFS=$'\t' read -r added deleted path; do
+  # git diff --numstat shows "-" when it detects binary content
+  if [[ "$added" == "-" || "$deleted" == "-" ]]; then
+    echo "pre-commit: Binary file detected (numstat): $path"
+    fail=1
+    continue
+  fi
+
+  # Inspect MIME type of the staged blob
+  if ! git cat-file -e ":$path" 2>/dev/null; then
+    continue
+  fi
+
+  mime=$(git show ":$path" | file --mime-type - | awk -F': ' '{print $2}')
+  case "$mime" in
+    text/*|application/json|application/xml|application/javascript)
+      ;;
+    *)
+      echo "pre-commit: Refusing non-text MIME ($mime): $path"
+      fail=1
+      ;;
+  esac
+done < <(git diff --cached --numstat --diff-filter=ACM)
+
+if [[ $fail -ne 0 ]]; then
+  echo "pre-commit: Abort commit – remove binary artifacts from the index."
+  exit 1
+fi
+
+exit 0
