@@ -321,7 +321,18 @@ class Undecorator:
             func_name = self.parse_fully_qualified_name()
 
         # Parse Access, Virtual, Static, etc.
-        prefix, is_const, cc = self.parse_access_convention()
+        if self.peek() == "Y":
+            self.consume()
+            cc_char = self.consume()
+            cc = "__cdecl"
+            if cc_char == "G":
+                cc = "__stdcall"
+            elif cc_char == "I":
+                cc = "__fastcall"
+            prefix = "public"
+            is_const = False
+        else:
+            prefix, is_const, cc = self.parse_access_convention()
 
         # Return Type
         # Constructors/Destructors do NOT have a return type in mangling.
