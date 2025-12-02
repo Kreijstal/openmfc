@@ -15,7 +15,8 @@ $SrcFiles = @(
     "$SourceDir\src\05_rvo.cpp",
     "$SourceDir\src\06_modern.cpp",
     "$SourceDir\src\07_abstract.cpp",
-    "$SourceDir\src\08_covariant.cpp"
+    "$SourceDir\src\08_covariant.cpp",
+    "$SourceDir\src\09_abstract_pure.cpp"
 )
 
 # Compiler Flags
@@ -32,7 +33,8 @@ $Flags = "/nologo", "/std:c++17", "/EHsc", "/LD", "/MD", "/O1", "/Zi",
          "/d1reportSingleClassLayoutCStage3_Base",
          "/d1reportSingleClassLayoutCStage4_Multi",
          "/d1reportSingleClassLayoutCStage7_NoVtable",
-         "/d1reportSingleClassLayoutCCovariantDerived"
+         "/d1reportSingleClassLayoutCCovariantDerived",
+         "/d1reportSingleClassLayoutIPure"
 
 Write-Host "Building abi_stress.dll..."
 # We pipe the build output to a file because the /d1report flag prints to stdout
