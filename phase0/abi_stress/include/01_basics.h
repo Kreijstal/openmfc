@@ -1,18 +1,20 @@
-// 01_basics.h
-// Minimal MSVC ABI probe class to reveal:
-// 1. Vptr position and vtable layout
-// 2. MSVC name mangling for virtual methods
-// 3. Class size and padding
+#pragma once
+#include "common_macros.h"
 
-#ifndef ABI_STRESS_01_BASICS_H
-#define ABI_STRESS_01_BASICS_H
-
-class CStage1_Basics {
+// Stage 1: Basic Layout
+// Goal: Determine vptr offset and member alignment on x64.
+class ABI_STRESS_API CStage1_Simple {
 public:
-    virtual int GetInt();
-    virtual void SetInt(int value);
-private:
-    int m_data;
-};
+    CStage1_Simple();
+    virtual ~CStage1_Simple();
 
-#endif // ABI_STRESS_01_BASICS_H
+    // Virtual method ensures a vtable exists
+    virtual int GetValue() const;
+    virtual void SetValue(int v);
+
+private:
+    // We expect the vptr to be at offset 0 (8 bytes on x64).
+    // Where does this int land? Offset 8?
+    // What is the total size? 16 bytes (padding)?
+    int m_value;
+};

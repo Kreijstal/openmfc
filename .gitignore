@@ -2,6 +2,14 @@
 *.o
 *.obj
 *.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# Phase0 artifacts
+phase0/abi_stress/artifacts/
 
 # CodeQL artifacts
 _codeql_detected_source_root
