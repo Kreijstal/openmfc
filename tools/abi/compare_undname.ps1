@@ -3,13 +3,24 @@ param(
     [string] $OutDir = "undname_compare"
 )
 
-if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
+function Resolve-RedistDll([string] $name) {
     $vcRedist = "$Env:VCToolsRedistDir\x64"
-    $TargetDlls = @(
-        Join-Path -Path $vcRedist -ChildPath "msvcp140.dll"
-        Join-Path -Path $vcRedist -ChildPath "vcruntime140.dll"
-        Join-Path -Path $vcRedist -ChildPath "concrt140.dll"
-    )
+    if (-not $vcRedist) { return $null }
+    Get-ChildItem -Path $vcRedist -Filter $name -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+}
+
+$hadFailure = $false
+
+if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
+    $TargetDlls = @("msvcp140.dll", "vcruntime140.dll", "concrt140.dll") | ForEach-Object {
+        $resolved = Resolve-RedistDll $_
+        if ($null -ne $resolved) { $resolved } else {
+            Write-Error "Missing DLL: $_ under VCToolsRedistDir" -ErrorAction Continue
+            $hadFailure = $true
+            $null
+        }
+    }
+    $TargetDlls = $TargetDlls | Where-Object { $_ }
 }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
@@ -57,3 +68,7 @@ $results | Format-Table | Out-String | Set-Content $summary
 
 Write-Host "Comparison complete. Summary:"
 Get-Content $summary
+
+if ($hadFailure) {
+    Write-Error "compare_undname encountered errors (see above)" -ErrorAction Stop
+}
