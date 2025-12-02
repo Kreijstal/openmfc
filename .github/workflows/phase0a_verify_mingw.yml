@@ -57,9 +57,11 @@ jobs:
         shell: pwsh
         working-directory: phase0/capability_check/bin
         run: |
-          $log = "verify_log.txt"
+          $logDir = "verify_logs"
+          $logPath = Join-Path $logDir "verify_log.txt"
+          if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
           dir
-          cmd /c ".\msvc_host.exe" *>&1 | Tee-Object -FilePath $log
+          cmd /c ".\msvc_host.exe" *>&1 | Tee-Object -FilePath $logPath
           if ($LASTEXITCODE -ne 0) {
             Write-Error "msvc_host.exe failed with exit code $LASTEXITCODE"
             exit $LASTEXITCODE
@@ -70,4 +72,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mingw_verify_logs
-          path: phase0/capability_check/bin/verify_log.txt
+          path: phase0/capability_check/bin/verify_logs/
