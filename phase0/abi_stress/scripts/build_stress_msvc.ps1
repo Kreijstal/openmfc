@@ -75,11 +75,29 @@ if ($LASTEXITCODE -ne 0) {
     Write-Warning "dumpbin /DISASM failed, disassembly.txt may be incomplete"
 }
 
-# 4. Create Metadata
+# 4. Create Metadata and README
+$clVersion = (& cl 2>&1 | Select-String "Version").ToString().Trim()
 $metadata = @{
     timestamp = (Get-Date).ToString("o")
-    stage     = "01_basics"
+    cl_version = $clVersion
+    flags     = $Flags
+    stage     = "all"
 }
 $metadata | ConvertTo-Json | Out-File "metadata.json"
+
+@"
+ABI Stress Harvest
+Timestamp: $($metadata.timestamp)
+Compiler: $($metadata.cl_version)
+Flags: $($Flags -join " ")
+Classes: CStage1_Simple, CStage2_Signatures, CStage3_Base, CStage4_Multi, CStage5_RVO, CStage6_Modern, CStage7_NoVtable, CCovariant{Base,Derived}, IPure
+Artifacts:
+ - abi_stress.dll / .pdb
+ - exports.txt
+ - symbols.txt
+ - symbols_objects.txt
+ - disassembly.txt
+ - layout.log
+"@ | Out-File "README.txt"
 
 Write-Host "Success. Artifacts located in $OutDir"
