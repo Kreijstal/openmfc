@@ -24,6 +24,27 @@ Interpretation:
 - At `0x180008A10` (CRttiBase vptr): vptr[-1] = `0x180009878` (COL), vptr[0] = scalar deleting dtor, vptr[1] = GetRuntimeClass.
 - At `0x180008A28` (CRttiDerived vptr): vptr[-1] = `0x180009900` (COL), subsequent entries are destructor / GetRuntimeClass for the derived class.
 
+## Complete Object Locator fields (decoded from rdata)
+Each COL is 6 dwords (x64):
+1. signature
+2. offset
+3. cdOffset
+4. pTypeDescriptor (RVA)
+5. pClassHierarchyDescriptor (RVA)
+6. pObjectBase (RVA, often self)
+
+- CRttiBase COL @ RVA `0x9878`:
+  - (1, 0, 0, 0xD1A8, 0x98A8, 0x9868)
+  - TypeDescriptor RVA: `0xD1A8`
+  - ClassHierarchyDescriptor RVA: `0x98A8`
+  - ObjectBase RVA: `0x9868`
+
+- CRttiDerived COL @ RVA `0x9900`:
+  - (1, 0, 0, 0xD1D0, 0x9920, 0x98F0)
+  - TypeDescriptor RVA: `0xD1D0`
+  - ClassHierarchyDescriptor RVA: `0x9920`
+  - ObjectBase RVA: `0x98F0`
+
 ## What remains to decode
 - Parse the COL structures at `0x180009878` and `0x180009900`:
   - Fields: signature, offset, cdOffset, pTypeDescriptor (RVA), pClassHierarchyDescriptor (RVA).
