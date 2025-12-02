@@ -61,7 +61,20 @@ Each COL is 6 dwords (x64):
 - CRttiDerived CHD @ `0x9920`:
   - sig=0, attrs=0, numBases=2, BaseClassArray RVA=`0x9948`.
   - BaseClassArray @ `0x9948`: entries `[0x9940?, 0x98F0, 0, 0]` (first entry likely self, second is CRttiBase descriptor).
-  - BaseClassDescriptor @ `0x9960`: raw dwords `(0xD1C0, 1, 0, 0xFFFFFFFF, 0, 64, 0x9920, 0)` (interpretation pending).
+  - BaseClassDescriptor (self) @ `0x9940`: raw `(0, 0, 0x9940? offset blob, 0x98F0, 0, 0, 0, 0)` (see below).
+  - BaseClassDescriptor (base) @ `0x9960`: raw `(0xD200, 1, 0, 0xFFFFFFFF, 0, 64, 0x9920, 0)` (PTD likely near `0xD200` region; PMD attrs show virtual adjustments).
+
+## BaseClassDescriptor raw fields (little-endian dwords)
+- `0x98F0` (CRttiBase self):
+  - `(0, 0, 0, 0, 1, 0, 0, 0xD1C0)`
+  - Likely pTypeDesc=0?, numContained=0, PMD zeroed, attrs=1 (non-virtual), chd?=0, extra=0xD1C0 (points near TD region).
+
+- `0x9940` (CRttiDerived self):
+  - `(0, 0, 0x9940?, 0x98F0, 0, 0, 0, 0)` (offsets need mapping; looks like PMD pointing to base descriptor/VTBL adj).
+
+- `0x9960` (CRttiDerived → CRttiBase):
+  - `(0xD200, 1, 0, 0xFFFFFFFF, 0, 64, 0x9920, 0)`
+  - Interp: pTypeDesc ~0xD200, numContained=1, PMD.mdisp=0, pdisp=0, vdisp=0xFFFFFFFF (none), attrs=0, vtableOfs=64 bytes, chd/backref=0x9920.
 
 ## Remaining decode work
 - Map BaseClassDescriptor fields to the standard layout (pTypeDescriptor RVA, numContainedBases, PMD {mdisp,pdisp,vdisp}, attributes, pClassHierarchyDescriptor).
