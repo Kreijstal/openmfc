@@ -38,7 +38,14 @@ class Undecorator:
     def parse_fully_qualified_name(self):
         # Names are encoded in reverse with trailing @@
         parts = []
-        while self.peek() != "@":
+        while True:
+            if self.peek() is None:
+                break
+            if self.mangled[self.pos:self.pos + 2] == "@@":
+                self.pos += 2
+                break
+            if parts and self.peek().isupper() and self.mangled[self.pos:self.pos + 4].isupper():
+                break
             frag = self.parse_name_fragment()
             if frag:
                 if frag.isdigit():
@@ -50,8 +57,6 @@ class Undecorator:
                 parts.append(frag)
             else:
                 break
-        if self.peek() == "@":
-            self.consume()  # skip final '@'
         return "::".join(reversed(parts))
 
     def parse_type(self):
