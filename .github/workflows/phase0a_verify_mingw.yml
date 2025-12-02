@@ -54,8 +54,20 @@ jobs:
           path: phase0/capability_check/bin
 
       - name: Run Verification
-        shell: cmd
+        shell: pwsh
         working-directory: phase0/capability_check/bin
         run: |
+          $log = "verify_log.txt"
           dir
-          msvc_host.exe
+          cmd /c ".\msvc_host.exe" *>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "msvc_host.exe failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw_verify_logs
+          path: phase0/capability_check/bin/verify_log.txt
