@@ -8,7 +8,13 @@ New-Item -ItemType Directory -Path $OutDir | Out-Null
 # Define source files
 $SrcFiles = @(
     "$SourceDir\src\dllmain.cpp",
-    "$SourceDir\src\01_basics.cpp"
+    "$SourceDir\src\01_basics.cpp",
+    "$SourceDir\src\02_signatures.cpp",
+    "$SourceDir\src\03_lifecycle.cpp",
+    "$SourceDir\src\04_inheritance.cpp",
+    "$SourceDir\src\05_rvo.cpp",
+    "$SourceDir\src\06_modern.cpp",
+    "$SourceDir\src\07_abstract.cpp"
 )
 
 # Compiler Flags
@@ -20,7 +26,10 @@ $SrcFiles = @(
 $Flags = "/nologo", "/std:c++17", "/EHsc", "/LD", "/MD", "/O1", "/Zi",
          "/I", "$SourceDir\include",
          "/DABI_STRESS_EXPORTS",
-         "/d1reportSingleClassLayoutCStage1_Simple"
+         "/d1reportSingleClassLayoutCStage1_Simple",
+         "/d1reportSingleClassLayoutCStage3_Base",
+         "/d1reportSingleClassLayoutCStage4_Multi",
+         "/d1reportSingleClassLayoutCStage7_NoVtable"
 
 Write-Host "Building abi_stress.dll..."
 # We pipe the build output to a file because the /d1report flag prints to stdout
