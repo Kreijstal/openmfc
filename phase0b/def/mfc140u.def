@@ -1,6 +1,6 @@
 LIBRARY openmfc
 EXPORTS
-??0CObject@@QEAA@XZ
-??1CObject@@UEAA@XZ
-?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ
-?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z
+??0CObject@@QEAA@XZ = _ZN7CObjectC1Ev
+??1CObject@@UEAA@XZ = _ZN7CObjectD1Ev
+?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = _ZNK7CObject15GetRuntimeClassEv
+?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = _ZNK7CObject8IsKindOfEPK13CRuntimeClass

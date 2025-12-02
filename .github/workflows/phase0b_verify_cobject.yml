@@ -1,0 +1,76 @@
+name: Phase 0B - Verify CObject
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase0b/**'
+      - '.github/workflows/phase0b_verify_cobject.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  ARTIFACT_NAME: phase0b_openmfc
+  BUILD_DIR: phase0b/build
+  BIN_DIR: phase0b/bin
+
+jobs:
+  build-mingw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Build openmfc.dll (MinGW)
+        run: |
+          chmod +x phase0b/scripts/build_mingw.sh
+          BUILD_DIR="$BUILD_DIR" ./phase0b/scripts/build_mingw.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.BUILD_DIR }}/openmfc.dll
+            ${{ env.BUILD_DIR }}/libopenmfc.a
+            phase0b/def/mfc140u.def
+          retention-days: 14
+
+  verify-windows:
+    needs: build-mingw
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: artifacts
+
+      - name: Prepare build inputs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:BUILD_DIR" | Out-Null
+          Copy-Item "artifacts/openmfc.dll" "$env:BUILD_DIR/openmfc.dll"
+          Copy-Item "artifacts/libopenmfc.a" "$env:BUILD_DIR/libopenmfc.a"
+          # Generate MSVC import library from the DEF file
+          lib /def:artifacts/mfc140u.def /machine:x64 /out:"$env:BUILD_DIR/openmfc.lib"
+
+      - name: Build MSVC host
+        shell: pwsh
+        run: ./phase0b/scripts/build_msvc_test.ps1
+
+      - name: Run host test
+        shell: pwsh
+        working-directory: ${{ env.BIN_DIR }}
+        run: |
+          Copy-Item "..\build\openmfc.dll" ".\openmfc.dll"
+          .\msvc_test_cobject.exe

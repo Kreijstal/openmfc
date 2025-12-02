@@ -11,7 +11,7 @@ This repo uses GitHub Actions to build and harvest ABI data. You can pull artifa
   - `gh run list --limit 5`
   - `gh run list --workflow phase0a_harvest.yml --limit 3`
 - Watch a run until it finishes (exit status is forwarded):
-  - `gh run watch <run-id> --exit-status`
+  - `gh run watch <run-id> --exit-status --interval 10 --timeout 900` (use a longer timeout/interval to avoid premature exit)
 - Download artifacts from a run:
   - `gh run download <run-id> -D /tmp/phase0a_msvc_artifacts`
     - Use `-n <artifact-name>` to pick a specific artifact if multiple exist.
@@ -36,4 +36,4 @@ This repo uses GitHub Actions to build and harvest ABI data. You can pull artifa
 Keep artifacts outside the repo (e.g., under `/tmp` or a local `artifacts/` directory) to avoid committing binaries.***
 
 ## MSVC usage policy
-- MSVC is used exclusively via GitHub Actions workflows; no local MSVC installs are assumed. Harvests and host builds run on Windows CI (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`, `phase0b_harvest_cobject.yml`).
+- MSVC is used exclusively via GitHub Actions workflows; no local MSVC installs are assumed. Harvests and host builds run on Windows CI (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`, `phase0b_harvest_cobject.yml`, `phase0b_verify_cobject.yml`).
