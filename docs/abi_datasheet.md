@@ -52,12 +52,16 @@
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
 
 ## 7. RTTI / Pure Virtuals
-* Vftable entries show meta pointers in layout; RTTI symbols (`??_R*`) were not captured in the current `symbols.txt` due to limited dump (need object-level symbol dump in future).
+* Layout shows meta pointers for vftables (e.g., `&CStageX_meta`), but RTTI symbols (`??_R*`) are not present in the DLL-level `symbols.txt` dump; need object-level `dumpbin /SYMBOLS` for RTTI evidence.
 * `IStage7_Abstract` not instantiated; no `_purecall` observed in exports or disassembly.
 * `CStage7_NoVtable` present with vftable and size 8 despite `__declspec(novtable)`.
 
 ## 8. Covariant Returns
 * Not probed in this stage set; no covariant patterns in exports or disassembly.
+
+## 9. SEH / EH Notes
+* All functions here are trivial; disassembly shows no SEH prologues/epilogues.
+* MinGW exception sanity test (`Shim_SafeException`) catches internally; host sees return 42 (CI passes).
 
 ## Knowledge Checks (from Section 8)
 * Non-POD 8-byte return: hidden pointer (`rcx`), `rax=rcx`, data stored via pointer (`RetNonPod8`).
