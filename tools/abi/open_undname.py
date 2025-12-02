@@ -106,45 +106,137 @@ class Undecorator:
             return f"{cls}::~{cls}"
         return f"{cls}::operator?"
 
+    def parse_access_convention(self):
+        """
+        Parse the access / storage / calling convention blob that appears
+        immediately after the name (e.g., QEAA, QEBA, UEAA).
+        This is a simplified 90% mapping for the Phase 0A/0B symbols we see.
+        """
+        scope_char = self.consume()
+        scope = "public"
+        is_static = False
+        is_virtual = False
+
+        if scope_char in ("A", "B"):
+            scope = "private"
+        elif scope_char in ("C", "D"):
+            scope = "private"
+            is_static = True
+        elif scope_char in ("I", "J"):
+            scope = "protected"
+        elif scope_char in ("K", "L"):
+            scope = "protected"
+            is_static = True
+        elif scope_char in ("Q", "R", "U", "V"):
+            scope = "public"
+            if scope_char in ("U", "V"):
+                is_virtual = True
+        elif scope_char in ("S", "T"):
+            scope = "public"
+            is_static = True
+
+        prop_char = self.consume()
+        extra_prop_char = self.consume()
+        is_const = False
+
+        def apply_prop(ch):
+            nonlocal is_virtual, is_const
+            if ch is None or is_static:
+                return
+            if ch == "E":
+                is_virtual = True
+            elif ch == "B":
+                is_const = True
+            elif ch == "F":
+                is_virtual = True
+                is_const = True
+
+        apply_prop(prop_char)
+        apply_prop(extra_prop_char)
+
+        cc_char = self.consume()
+        cc = ""
+        if cc_char == "A":
+            cc = "__cdecl"
+        elif cc_char == "G":
+            cc = "__stdcall"
+        elif cc_char == "C":
+            cc = "__pascal"
+        elif cc_char == "I":
+            cc = "__fastcall"
+
+        prefix = scope
+        if is_virtual:
+            prefix += " virtual"
+        if is_static:
+            prefix += " static"
+
+        return prefix, is_const, cc
+
     def demangle(self):
         if not self.mangled.startswith("?"):
             return self.mangled
 
-        self.consume()  # skip leading '?'
+        self.consume()  # skip ?
 
-        # Special operators (ctor/dtor)
+        # Check for special operators (??0, ??1) vs Regular Names
         is_special = False
+        func_name = ""
+
         if self.peek() == "?":
-            self.consume()
+            self.consume()  # skip 2nd ?
             func_name = self.parse_special_member()
             is_special = True
         else:
             func_name = self.parse_fully_qualified_name()
 
-        # Access/convention blob (e.g., QEAA = public __cdecl)
-        access_blob = ""
-        while self.peek() and self.peek().isupper():
-            access_blob += self.consume()
-            if len(access_blob) >= 4:
-                break  # heuristic stop
+        # Parse Access, Virtual, Static, etc.
+        prefix, is_const, cc = self.parse_access_convention()
 
-        # Return type (not present for ctors/dtors)
+        # Return Type
+        # Constructors/Destructors do NOT have a return type in mangling.
         ret_type = ""
         if not is_special:
-            ret_type = self.parse_type()
+            # Special case: Type-cast operators (??B) have return type logic differently?
+            # For standard methods, return type is next.
+            # Note: 'X' = void, 'H' = int, etc.
+            # If we hit '@', it might mean something else, but usually return type is mandatory.
+            if self.peek() != "@":
+                ret_type = self.parse_type()
 
-        # Arguments until 'Z' or '@'
+        # Arguments
         args = []
-        while self.peek() not in (None, "Z", "@"):
-            args.append(self.parse_type())
-        # consume terminator if present
-        if self.peek() in ("Z", "@"):
-            self.consume()
+        # Argument list is terminated by 'Z' (End) or '@' (Varargs?)
+        # 'X' is void (void param list = no params)
+        if self.peek() == "X":
+            self.consume()  # void param
+            args.append("void")
+            if self.peek() == "Z":
+                self.consume()
+        else:
+            while self.peek() != "Z" and self.peek() is not None and self.peek() != "@":
+                t = self.parse_type()
+                args.append(t)
+            if self.peek() == "Z":
+                self.consume()
 
         arg_str = ", ".join(args)
+
+        # Assemble Result
+        # e.g. "public virtual void Class::Func(int) const"
+
+        res = f"{prefix} "
         if ret_type:
-            return f"{ret_type} {func_name}({arg_str})"
-        return f"{func_name}({arg_str})"
+            res += f"{ret_type} "
+        if cc and cc != "__cdecl":
+            res += f"{cc} "  # hide default cdecl to be cleaner
+
+        res += f"{func_name}({arg_str})"
+
+        if is_const:
+            res += " const"
+
+        return res
 
 
 def main():

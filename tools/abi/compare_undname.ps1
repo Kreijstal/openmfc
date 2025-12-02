@@ -6,9 +6,9 @@ param(
 if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
     $vcRedist = "$Env:VCToolsRedistDir\x64"
     $TargetDlls = @(
-        Join-Path $vcRedist "msvcp140.dll",
-        Join-Path $vcRedist "vcruntime140.dll",
-        Join-Path $vcRedist "concrt140.dll"
+        Join-Path -Path $vcRedist -ChildPath "msvcp140.dll"
+        Join-Path -Path $vcRedist -ChildPath "vcruntime140.dll"
+        Join-Path -Path $vcRedist -ChildPath "concrt140.dll"
     )
 }
 
