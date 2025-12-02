@@ -76,3 +76,8 @@ Get-Content $summary
 if ($hadFailure) {
     Write-Error "compare_undname encountered errors (see above)" -ErrorAction Stop
 }
+
+# Fail the job if any mismatches were found
+if ($results | Where-Object { $_.Mismatches -gt 0 }) {
+    Write-Error "compare_undname: mismatches detected" -ErrorAction Stop
+}
