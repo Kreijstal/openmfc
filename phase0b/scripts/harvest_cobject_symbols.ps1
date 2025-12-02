@@ -15,12 +15,12 @@ $Readme = Join-Path $OutDir "README.txt"
 
 Write-Host "Generating temporary source..."
 @"
-#include \"$($Root)\include\afx.h\"
+#include \"afx.h\"
 int main() { CObject o; return o.IsKindOf(o.GetRuntimeClass()) ? 0 : 1; }
 "@ | Out-File -FilePath $TmpCpp -Encoding ASCII
 
 Write-Host "Compiling with cl..."
-cl.exe /nologo /c /std:c++17 /EHsc /MD /I"$($Root)\include" "$TmpCpp" /Fo:"$TmpObj"
+cl.exe /nologo /c /std:c++17 /EHsc /MD /I"$($Root)\include" /I"$($Root)\phase0b\include" "$TmpCpp" /Fo:"$TmpObj"
 if ($LASTEXITCODE -ne 0) { Write-Error "Compile failed"; exit $LASTEXITCODE }
 
 Write-Host "Dumping symbols..."
