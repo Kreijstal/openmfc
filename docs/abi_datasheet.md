@@ -47,11 +47,19 @@
 * **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry (function body trivial so no explicit prologue).
 
 ## 6. Calling Convention Notes
-* Leaf virtuals in these probes are optimized to `ret 0`; no shadow-space allocation observed.
+* Leaf virtuals here are optimized to `ret 0`; no shadow space visible in trivial bodies.
 * Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
-* Small POD (8 bytes) can return in `rax` using stack scratch space.
+* Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
 
 ## 7. RTTI / Pure Virtuals
-* Vftable entries show meta pointers in layout, but no RTTI symbols were emitted in `symbols.txt` dump (likely due to current dump step limits).
-* `IStage7_Abstract` was not instantiated; no `_purecall` entries observed.
+* Vftable entries show meta pointers in layout; RTTI symbols (`??_R*`) were not captured in the current `symbols.txt` due to limited dump (need object-level symbol dump in future).
+* `IStage7_Abstract` not instantiated; no `_purecall` observed in exports or disassembly.
 * `CStage7_NoVtable` present with vftable and size 8 despite `__declspec(novtable)`.
+
+## 8. Covariant Returns
+* Not probed in this stage set; no covariant patterns in exports or disassembly.
+
+## Knowledge Checks (from Section 8)
+* Non-POD 8-byte return: hidden pointer (`rcx`), `rax=rcx`, data stored via pointer (`RetNonPod8`).
+* `CStage6_Modern::operator=(CStage6_Modern&&)`: `??4CStage6_Modern@@QEAAAEAV0@$$QEAV0@@Z` (exports).
+* `CStage4_Multi::FuncB` `this` adjustment: +16 (secondary base offset) per layout; vftable entry implies adjustor thunk, though function body is trivial.
