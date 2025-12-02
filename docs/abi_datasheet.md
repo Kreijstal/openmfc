@@ -52,8 +52,8 @@
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
 
 ## 7. RTTI / Pure Virtuals
-* Layout shows meta pointers for vftables (e.g., `&CStageX_meta`), but RTTI symbols (`??_R*`) are not present in the DLL-level `symbols.txt` dump; need object-level `dumpbin /SYMBOLS` for RTTI evidence.
-* `IStage7_Abstract` not instantiated; no `_purecall` observed in exports or disassembly.
+* Layout shows meta pointers for vftables (e.g., `&CStageX_meta`); RTTI symbols are present in object-level dump (`symbols_objects.txt`), e.g., `??_R4CStage1_Simple@@6B@` (COL) and `??_R0?AVCStage1_Simple@@@8` (type descriptor).
+* `IStage7_Abstract` not instantiated; `_purecall` appears as undefined import in `symbols_objects.txt`, and the IPure vftable slots pure virtuals accordingly.
 * `CStage7_NoVtable` present with vftable and size 8 despite `__declspec(novtable)`.
 
 ## 8. Covariant Returns
