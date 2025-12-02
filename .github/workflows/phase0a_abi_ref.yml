@@ -1,0 +1,86 @@
+name: Phase 0A - ABI Reference (CReferenceTest)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase0/abi_ref/**'
+      - '.github/workflows/phase0a_abi_ref.yml'
+
+jobs:
+  build-and-dump:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build abi_ref.dll
+        shell: cmd
+        run: |
+          cd phase0\abi_ref
+
+          rem Compile object files
+          cl /nologo /std:c++17 /EHsc /MD /Zi ^
+             /I include ^
+             /c src\abi_ref_class.cpp src\abi_ref_dllmain.cpp
+
+          rem Link into a DLL (no import lib needed yet, but we can create one)
+          link /nologo /DLL /DEBUG ^
+               /OUT:abi_ref.dll ^
+               abi_ref_class.obj abi_ref_dllmain.obj
+
+          dir
+
+      - name: Dump exports and symbols
+        shell: cmd
+        run: |
+          cd phase0\abi_ref
+
+          rem Dump exports
+          dumpbin /EXPORTS abi_ref.dll > abi_ref_exports.txt
+
+          rem Dump symbols (for vtable, RTTI, etc.)
+          dumpbin /SYMBOLS abi_ref_class.obj > abi_ref_symbols.txt
+
+          rem Use undname to demangle the key CReferenceTest symbols
+          rem (we don't know exact names yet, so just demangle everything
+          rem  for now and filter later in tools)
+          dumpbin /SYMBOLS abi_ref_class.obj ^
+            | findstr /R "\?CReferenceTest" > abi_ref_symbols_raw.txt
+
+          > abi_ref_undname.txt (
+            for /f "tokens=1" %%S in (abi_ref_symbols_raw.txt) do @(
+              undname %%S 2>nul
+            )
+          )
+
+      - name: Collect metadata
+        shell: pwsh
+        run: |
+          $clVersion = (& cl 2>&1 | Select-String "Version").ToString().Trim()
+          $metadata = @{
+            timestamp   = (Get-Date).ToString("o")
+            cl_version  = $clVersion
+            msvc_image  = $env:ImageOS
+            platform    = "windows"
+            phase       = "0A"
+          }
+          $outDir = "phase0/abi_ref"
+          $metaPath = Join-Path $outDir "abi_ref_metadata.json"
+          $metadata | ConvertTo-Json | Out-File $metaPath -Encoding UTF8
+
+      - name: Upload ABI reference artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi_ref_phase0a
+          path: |
+            phase0/abi_ref/abi_ref.dll
+            phase0/abi_ref/abi_ref_exports.txt
+            phase0/abi_ref/abi_ref_symbols.txt
+            phase0/abi_ref/abi_ref_undname.txt
+            phase0/abi_ref/abi_ref_metadata.json
+          retention-days: 90
