@@ -22,3 +22,11 @@
 ## Verdict (provisional)
 - MSVC ABI data collected; MinGW basic interop validated with caveats on heap.
 - Proceed to Phase 0B if comfortable with CRT ownership rules, or add targeted tests (MI covariant, negative heap case) before final GREEN.
+
+## Risk Register (snapshot)
+
+| Risk | Severity | Probability | Mitigation |
+|------|----------|-------------|------------|
+| Heap mismatch across CRTs | Med | 40% | Keep ownership within one CRT; export alloc/free. |
+| MI covariant gaps | Low | 20% | Add MI covariant probe before Phase 0B if needed. |
+| RTTI capture completeness | Low | 20% | Use object-level dumps; add flags/tests if missing. |

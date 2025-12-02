@@ -10,6 +10,11 @@
 | :--- | :--- | :--- | :--- |
 | `CStage1_Simple` | 16 | 0 | `m_value` at 8 (padding to 16) |
 | `CStage4_Multi` | 40 | 0 (A), 16 (B) | Secondary base `CStage4_B` at offset 16 |
+| `CStage7_NoVtable` | 8 | 0 | vftable present despite `__declspec(novtable)` |
+
+## Vtable Ordering (examples)
+* `CStage1_Simple`: slot0 dtor, slot1 `GetValue`, slot2 `SetValue` (layout vftable listing).
+* `CStage2_Signatures`: six overloads in declaration order (layout vftable listing).
 
 ## 2. Return Value Optimization (RVO)
 *Source: `disassembly.txt` (Search for `CStage5_RVO::Ret*`)*
@@ -40,6 +45,10 @@
 * Does `CStage3_Base` have a symbol containing `??_G`?
 * **Answer:** Yes (layout.log shows `__delDtor` entry for `CStage3_Base` vftable).
 
+## 4b. Qualifiers / noexcept
+* `ConstFunc` (`const`): `?ConstFunc@CStage6_Modern@@UEBAXXZ` (const encoded in signature).
+* `NoExceptFunc` (`noexcept`): `?NoExceptFunc@CStage6_Modern@@UEAAXXZ` (noexcept encoded).
+
 ## 5. Multiple Inheritance Thunks
 *Source: `disassembly.txt` (Search for `CStage4_Multi::FuncB`)*
 
@@ -47,7 +56,7 @@
 * **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry (function body trivial so no explicit prologue).
 
 ## 6. Calling Convention Notes
-* Leaf virtuals here are optimized to `ret 0`; no shadow space visible in trivial bodies.
+* Leaf virtuals here are optimized to `ret 0`; no shadow space visible in trivial bodies (no `sub rsp,20h`).
 * Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
 
