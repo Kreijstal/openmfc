@@ -64,7 +64,11 @@ foreach ($dll in $TargetDlls) {
 }
 
 $summary = Join-Path $OutDir "summary.txt"
-$results | Format-Table -Property Dll,Total,Matches,Mismatches -AutoSize | Out-String | Set-Content $summary
+$summaryLines = @("Dll,Total,Matches,Mismatches")
+foreach ($r in $results) {
+    $summaryLines += "$($r.Dll),$($r.Total),$($r.Matches),$($r.Mismatches)"
+}
+$summaryLines | Set-Content $summary
 
 Write-Host "Comparison complete. Summary:"
 Get-Content $summary
