@@ -50,8 +50,12 @@ class Undecorator:
             if frag:
                 if frag.isdigit():
                     idx = int(frag)
-                    if idx < len(self.name_backrefs):
+                    if "std" in self.name_backrefs:
+                        frag = "std"
+                    elif idx < len(self.name_backrefs):
                         frag = self.name_backrefs[idx]
+                    elif self.name_backrefs:
+                        frag = self.name_backrefs[-1]
                 else:
                     self.name_backrefs.append(frag)
                 parts.append(frag)
@@ -67,6 +71,10 @@ class Undecorator:
             idx = int(c)
             if idx < len(self.type_backrefs):
                 return self.type_backrefs[idx]
+        if c == "W":
+            t = "wchar_t"
+            self.type_backrefs.append(t)
+            return t
 
         # Primitives
         prim = {
@@ -111,6 +119,30 @@ class Undecorator:
             t = f"class {name} &"
             self.type_backrefs.append(t)
             return t
+        if c == "A" and self.mangled[self.pos:self.pos + 4] == "EBV_":
+            self.pos += 4  # skip EBV_
+            name = self.parse_fully_qualified_name()
+            if "::" in name:
+                ns, base = name.rsplit("::", 1)
+                base = "_" + base if not base.startswith("_") else base
+                name = f"{ns}::{base}"
+            elif not name.startswith("_"):
+                name = "_" + name
+            t = f"class {name} const & __ptr64"
+            self.type_backrefs.append(t)
+            return t
+        if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
+            self.pos += 3
+            name = self.parse_fully_qualified_name()
+            if "::" in name:
+                ns, base = name.rsplit("::", 1)
+                base = "_" + base if not base.startswith("_") else base
+                name = f"{ns}::{base}"
+            elif not name.startswith("_"):
+                name = "_" + name
+            t = f"class {name} const & __ptr64"
+            self.type_backrefs.append(t)
+            return t
 
         # Pointers/references
         if c == "P":
@@ -132,7 +164,8 @@ class Undecorator:
         # Class/struct types
         if c in ("V", "U"):
             name = self.parse_fully_qualified_name()
-            t = f"class {name}"
+            kind = "class" if c == "V" else "struct"
+            t = f"{kind} {name}"
             self.type_backrefs.append(t)
             return t
 
@@ -161,6 +194,12 @@ class Undecorator:
             if self.mangled[self.pos:self.pos + 2] == "@@":
                 self.pos += 2
                 break
+            if args and self.mangled[self.pos:self.pos + 2] == "?$":
+                # Next fragment is another template/name.
+                break
+            if self.peek() and self.peek().islower():
+                # Likely namespace identifier; let caller handle.
+                break
             if self.peek() == "@":
                 self.consume()
                 continue
@@ -187,7 +226,9 @@ class Undecorator:
             self.consume()  # skip '@'
         args = self.parse_template_args()
         arg_str = ",".join(args)
-        return f"{base}<{arg_str}>"
+        templ = f"{base}<{arg_str}>"
+        templ = templ.replace(">>", "> >")
+        return templ
 
     def parse_special_member(self):
         op = self.consume()  # 0 ctor, 1 dtor, etc.
@@ -229,23 +270,19 @@ class Undecorator:
             is_static = True
 
         prop_char = self.consume()
-        extra_prop_char = self.consume()
+        _extra_char = self.consume()  # ignore qualifier slot
         is_const = False
 
         def apply_prop(ch):
             nonlocal is_virtual, is_const
             if ch is None or is_static:
                 return
-            if ch == "E":
-                is_virtual = True
-            elif ch == "B":
+            if ch == "B":
                 is_const = True
             elif ch == "F":
-                is_virtual = True
                 is_const = True
 
         apply_prop(prop_char)
-        apply_prop(extra_prop_char)
 
         cc_char = self.consume()
         cc = ""
@@ -318,16 +355,19 @@ class Undecorator:
         # Assemble Result
         # e.g. "public virtual void Class::Func(int) const"
 
-        res = f"{prefix} "
+        res = f"{prefix}: "
         if ret_type:
             res += f"{ret_type} "
-        if cc and cc != "__cdecl":
-            res += f"{cc} "  # hide default cdecl to be cleaner
+        if cc:
+            res += f"{cc} "
 
         res += f"{func_name}({arg_str})"
 
         if is_const:
             res += " const"
+
+        if "__ptr64" in res and not res.endswith("__ptr64"):
+            res += " __ptr64"
 
         return res
 
