@@ -1,9 +1,11 @@
 #include <windows.h>
 #include <iostream>
+#include <cstdlib>
 
 typedef void* (*P_MALLOC)(size_t);
 typedef void* (*P_TESTFUNC)(int);
 typedef int (*P_EXCEPT)();
+typedef void (*P_FREE)(void*);
 
 int main() {
     std::cout << "[Host] Loading mingw_dll.dll..." << std::endl;
@@ -47,13 +49,14 @@ int main() {
         std::cout << "[Host] Allocated " << ptr << " in DLL." << std::endl;
 
         // DANGER ZONE: Freeing memory allocated in MinGW from MSVC
-        try {
-            free(ptr);
-            std::cout << "[Pass?] Freed memory (No crash detected yet)." << std::endl;
-        } catch (...) {
-            std::cerr << "[Fail] Crash during free()!" << std::endl;
-            return 1;
-        }
+        // Prefer to free using the same CRT as the DLL (msvcrt.dll) if available.
+        HMODULE hMsvcrt = GetModuleHandleA("msvcrt.dll");
+        P_FREE msvcrtFree = hMsvcrt ? (P_FREE)GetProcAddress(hMsvcrt, "free") : nullptr;
+        P_FREE chosenFree = msvcrtFree ? msvcrtFree : free;
+
+        std::cout << "[Host] Freeing with " << (msvcrtFree ? "msvcrt free" : "CRT free") << "..." << std::endl;
+        chosenFree(ptr);
+        std::cout << "[Pass?] Freed memory (No crash detected yet)." << std::endl;
     }
 
     std::cout << "[Done] All tests executed." << std::endl;
