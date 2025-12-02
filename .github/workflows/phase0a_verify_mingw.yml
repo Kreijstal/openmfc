@@ -67,9 +67,12 @@ jobs:
             exit $LASTEXITCODE
           }
 
-      - name: Upload verification log
+      - name: Upload verification artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mingw_verify_logs
-          path: phase0/capability_check/bin/verify_logs/
+          name: mingw_verify_artifacts
+          path: |
+            phase0/capability_check/bin/msvc_host.exe
+            phase0/capability_check/bin/mingw_dll.dll
+            phase0/capability_check/bin/verify_logs/
