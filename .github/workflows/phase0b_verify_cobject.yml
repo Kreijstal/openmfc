@@ -59,10 +59,10 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "$env:BUILD_DIR" | Out-Null
-          Copy-Item "artifacts/phase0b/build/openmfc.dll" "$env:BUILD_DIR/openmfc.dll"
-          Copy-Item "artifacts/phase0b/build/libopenmfc.a" "$env:BUILD_DIR/libopenmfc.a"
+          Copy-Item "artifacts/build/openmfc.dll" "$env:BUILD_DIR/openmfc.dll"
+          Copy-Item "artifacts/build/libopenmfc.a" "$env:BUILD_DIR/libopenmfc.a"
           # Generate MSVC import library from the DEF file
-          lib /def:artifacts/phase0b/def/mfc140u.def /machine:x64 /out:"$env:BUILD_DIR/openmfc.lib"
+          lib /def:artifacts/def/mfc140u.def /machine:x64 /out:"$env:BUILD_DIR/openmfc.lib"
 
       - name: Build MSVC host
         shell: pwsh
