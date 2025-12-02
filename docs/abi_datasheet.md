@@ -57,7 +57,8 @@
 * `CStage7_NoVtable` present with vftable and size 8 despite `__declspec(novtable)`.
 
 ## 8. Covariant Returns
-* Not probed in this stage set; no covariant patterns in exports or disassembly.
+* `CCovariantBase::Clone` returns `CCovariantBase*`; `CCovariantDerived::Clone` returns `CCovariantDerived*` (same slot, no thunk emitted in current build).
+* Disassembly shows direct vtable entries; no separate thunk symbol for base adjustment (single inheritance).
 
 ## 9. SEH / EH Notes
 * All functions here are trivial; disassembly shows no SEH prologues/epilogues.
