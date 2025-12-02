@@ -1,0 +1,61 @@
+name: Phase 0A.5 - MinGW Verification
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase0/capability_check/**'
+      - '.github/workflows/phase0a_verify_mingw.yml'
+
+jobs:
+  build-mingw:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: sudo apt-get install -y mingw-w64
+
+      - name: Build DLL
+        working-directory: phase0/capability_check
+        run: |
+          chmod +x build_mingw.sh
+          ./build_mingw.sh
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw_dll
+          path: phase0/capability_check/build_output/mingw_dll.dll
+
+  verify-on-windows:
+    needs: build-mingw
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build Host EXE
+        shell: pwsh
+        run: ./phase0/capability_check/scripts/build_host_msvc.ps1
+
+      - name: Download MinGW DLL
+        uses: actions/download-artifact@v4
+        with:
+          name: mingw_dll
+          path: phase0/capability_check/bin
+
+      - name: Run Verification
+        shell: cmd
+        working-directory: phase0/capability_check/bin
+        run: |
+          dir
+          msvc_host.exe

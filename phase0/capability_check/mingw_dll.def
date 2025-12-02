@@ -1,0 +1,10 @@
+LIBRARY mingw_dll
+EXPORTS
+    ; Native exports
+    Shim_Malloc
+    Shim_SafeException
+
+    ; Aliased export:
+    ; Map internal 'Shim_TestFunc' to a fake MSVC C++ mangled name
+    ; Update with a real mangled name from msvc_symbols.csv if desired.
+    ?GetValue@CTest@@UEAAPEAXH@Z = Shim_TestFunc
