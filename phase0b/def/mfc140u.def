@@ -9,3 +9,4 @@ EXPORTS
 ??3CObject@@SAXPEAX@Z = CObject_delete
 ?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = CObject_GetRuntimeClass
 ?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = CObject_IsKindOf
+?Serialize@CObject@@UEAAXAEAVCArchive@@@Z = CObject_Serialize

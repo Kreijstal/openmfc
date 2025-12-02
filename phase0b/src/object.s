@@ -19,6 +19,7 @@
 CObject_vftable:
     .quad   CObject_scalar_dtor       # slot 0: scalar deleting destructor
     .quad   CObject_GetRuntimeClass   # slot 1: GetRuntimeClass (no extra dtor slot)
+    .quad   CObject_Serialize         # slot 2: Serialize stub
 
 # ------------------------------------------------------------------
 # CODE SECTION
@@ -85,6 +86,12 @@ CObject_GetRuntimeClass:
 .global CObject_IsKindOf
 CObject_IsKindOf:
     jmp Impl_CObject_IsKindOf
+
+# Serialize thunk
+.align 16
+.global CObject_Serialize
+CObject_Serialize:
+    jmp Impl_CObject_Serialize
 
 # operator new
 .align 16

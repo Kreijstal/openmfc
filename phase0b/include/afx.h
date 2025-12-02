@@ -37,6 +37,8 @@ public:
     virtual ~CObject();
 
     virtual CRuntimeClass* GetRuntimeClass() const;
+    // Placeholder signature; real implementation will use CArchive.
+    virtual void Serialize(void* pArchive);
     BOOL IsKindOf(const CRuntimeClass* pClass) const;
 
     void* operator new(size_t nSize);
@@ -44,4 +46,3 @@ public:
 
     static CObject* AFX_PASCAL CreateObject();
 };
-

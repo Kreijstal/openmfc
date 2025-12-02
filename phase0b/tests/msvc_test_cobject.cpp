@@ -7,6 +7,24 @@ public:
     virtual ~CMyObj() = default;
 };
 
+class CMyDerived : public CObject {
+public:
+    static CRuntimeClass classMyDerived;
+    CMyDerived() = default;
+    virtual ~CMyDerived() = default;
+    virtual CRuntimeClass* GetRuntimeClass() const override {
+        return &classMyDerived;
+    }
+};
+
+CRuntimeClass CMyDerived::classMyDerived = {
+    "CMyDerived",
+    static_cast<int>(sizeof(CMyDerived)),
+    0x1234,
+    nullptr,
+    nullptr
+};
+
 int main() {
     std::cout << "[Host] allocating..." << std::endl;
     CMyObj* p = new CMyObj();
@@ -29,6 +47,16 @@ int main() {
         delete p;
         return 1;
     }
+
+    // Derived class should use its own GetRuntimeClass (virtual dispatch)
+    CMyDerived* pDer = new CMyDerived();
+    if (!pDer->IsKindOf(&CMyDerived::classMyDerived)) {
+        std::cerr << "Derived IsKindOf failed" << std::endl;
+        delete pDer;
+        delete p;
+        return 1;
+    }
+    delete pDer;
 
     std::cout << "[Host] deleting..." << std::endl;
     delete p;
