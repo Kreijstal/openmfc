@@ -72,6 +72,12 @@ class Undecorator:
             }
             return ext.get(c2, f"UNKNOWN__{c2}")
 
+        # Pointers/references (AEAVFoo@@ -> Foo&)
+        if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
+            self.pos += 3  # skip EAV
+            name = self.parse_fully_qualified_name()
+            return f"class {name} &"
+
         # Pointers/references
         if c == "P":
             qual = self.consume()  # A=ref, B=const, E=ptr, etc.
