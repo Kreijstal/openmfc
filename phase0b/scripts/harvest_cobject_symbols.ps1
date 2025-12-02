@@ -31,7 +31,7 @@ $symbols = Get-Content "$TmpLog" | Select-String "\?CObject" -CaseSensitive
 $exports = @()
 foreach ($s in $symbols) {
     $line = $s.ToString()
-    if ($line -match "(__imp_)?(\?CObject[^\s]+)") {
+    if ($line -match "(__imp_)?(\?+[^\\s]*CObject[^\s]*)") {
         $exports += $Matches[2]
     }
 }
