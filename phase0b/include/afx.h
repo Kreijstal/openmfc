@@ -31,14 +31,15 @@ struct CRuntimeClass {
     CRuntimeClass* m_pBaseClass;
 };
 
+class CArchive; // forward declaration placeholder
+
 class OPENMFC_API CObject {
 public:
     CObject();
     virtual ~CObject();
 
     virtual CRuntimeClass* GetRuntimeClass() const;
-    // Placeholder signature; real implementation will use CArchive.
-    virtual void Serialize(void* pArchive);
+    virtual void Serialize(CArchive& ar);
     BOOL IsKindOf(const CRuntimeClass* pClass) const;
 
     void* operator new(size_t nSize);

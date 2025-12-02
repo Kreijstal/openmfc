@@ -6,7 +6,8 @@ extern "C" {
     void  Impl_CObject_Delete(void* p);
     CRuntimeClass* Impl_CObject_GetRuntimeClass(const CObject* self);
     BOOL Impl_CObject_IsKindOf(const CObject* self, const CRuntimeClass* cls);
-    void Impl_CObject_Serialize(CObject* self, void* pArchive);
+    struct CArchive;
+    void Impl_CObject_Serialize(CObject* self, CArchive& ar);
 
     // Constructor from assembly (sets vptr)
     CObject* CObject_ctor(CObject* self) asm("CObject_ctor");
@@ -61,7 +62,7 @@ extern "C" BOOL Impl_CObject_IsKindOf(const CObject* self, const CRuntimeClass* 
     return FALSE;
 }
 
-extern "C" void Impl_CObject_Serialize(CObject* /*self*/, void* /*pArchive*/) {
+extern "C" void Impl_CObject_Serialize(CObject* /*self*/, CArchive& /*ar*/) {
     // Default stub: no-op
 }
 
