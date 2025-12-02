@@ -17,9 +17,8 @@
 .global CObject_vftable
 
 CObject_vftable:
-    .quad   CObject_scalar_dtor
-    .quad   CObject_vector_dtor
-    .quad   CObject_GetRuntimeClass
+    .quad   CObject_scalar_dtor       # slot 0: scalar deleting destructor
+    .quad   CObject_GetRuntimeClass   # slot 1: GetRuntimeClass (no extra dtor slot)
 
 # ------------------------------------------------------------------
 # CODE SECTION
@@ -72,7 +71,7 @@ CObject_scalar_dtor:
 .align 16
 .global CObject_vector_dtor
 CObject_vector_dtor:
-    # Reuse scalar logic
+    # Not present in vtable; keep symbol exported to match MSVC expectations
     jmp CObject_scalar_dtor
 
 # GetRuntimeClass thunk

@@ -43,7 +43,8 @@ extern "C" CRuntimeClass* Impl_CObject_GetRuntimeClass(const CObject* /*self*/) 
 }
 
 extern "C" BOOL Impl_CObject_IsKindOf(const CObject* self, const CRuntimeClass* cls) {
-    const CRuntimeClass* current = self ? self->GetRuntimeClass() : nullptr;
+    // Avoid MinGW's virtual dispatch assumptions; call implementation directly.
+    const CRuntimeClass* current = self ? Impl_CObject_GetRuntimeClass(self) : nullptr;
     while (current) {
         if (current == cls) {
             return TRUE;
