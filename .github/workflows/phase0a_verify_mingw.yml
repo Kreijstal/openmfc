@@ -37,6 +37,9 @@ jobs:
     permissions:
       contents: read
       actions: write
+    env:
+      BIN_DIR: phase0/capability_check/bin
+      ARTIFACT_DIR: phase0/capability_check/artifacts
     steps:
       - uses: actions/checkout@v4
 
@@ -51,11 +54,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mingw_dll
-          path: phase0/capability_check/bin
+          path: ${{ env.BIN_DIR }}
 
       - name: Run Verification
         shell: pwsh
-        working-directory: phase0/capability_check/bin
+        working-directory: ${{ env.BIN_DIR }}
         run: |
           $logDir = "verify_logs"
           $logPath = Join-Path $logDir "verify_log.txt"
@@ -67,12 +70,18 @@ jobs:
             exit $LASTEXITCODE
           }
 
+      - name: Stage verification artifacts
+        shell: pwsh
+        run: |
+          $artifactDir = "$env:ARTIFACT_DIR"
+          if (-not (Test-Path $artifactDir)) { New-Item -ItemType Directory -Path $artifactDir | Out-Null }
+          Copy-Item "$env:BIN_DIR\msvc_host.exe" $artifactDir -Force
+          Copy-Item "$env:BIN_DIR\mingw_dll.dll" $artifactDir -Force
+          Copy-Item "$env:BIN_DIR\verify_logs" $artifactDir -Recurse -Force
+
       - name: Upload verification artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mingw_verify_artifacts
-          path: |
-            phase0/capability_check/bin/msvc_host.exe
-            phase0/capability_check/bin/mingw_dll.dll
-            phase0/capability_check/bin/verify_logs/
+          path: ${{ env.ARTIFACT_DIR }}
