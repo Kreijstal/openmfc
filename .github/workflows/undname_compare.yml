@@ -23,7 +23,7 @@ jobs:
           ./tools/abi/compare_undname.ps1 -OutDir undname_compare
 
       - name: Upload comparison logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: undname_compare
           path: undname_compare
