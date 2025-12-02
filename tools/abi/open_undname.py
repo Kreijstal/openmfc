@@ -44,7 +44,7 @@ class Undecorator:
             if self.mangled[self.pos:self.pos + 2] == "@@":
                 self.pos += 2
                 break
-            if parts and self.peek().isupper() and self.mangled[self.pos:self.pos + 4].isupper():
+            if parts and self.peek().isupper() and self.mangled[self.pos:self.pos + 3].isupper():
                 break
             frag = self.parse_name_fragment()
             if frag:
