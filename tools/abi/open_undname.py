@@ -233,11 +233,12 @@ class Undecorator:
     def parse_special_member(self):
         op = self.consume()  # 0 ctor, 1 dtor, etc.
         fq = self.parse_fully_qualified_name()
-        cls = fq.split("::")[0] if fq else ""
+        cls = fq if fq else ""
+        leaf = fq.split("::")[-1] if fq else ""
         if op == "0":
-            return f"{cls}::{cls}"
+            return f"{cls}::{leaf}"
         if op == "1":
-            return f"{cls}::~{cls}"
+            return f"{cls}::~{leaf}"
         return f"{cls}::operator?"
 
     def parse_access_convention(self):
@@ -361,6 +362,9 @@ class Undecorator:
             if self.peek() == "Z":
                 self.consume()
 
+        if is_special and not args:
+            args.append("void")
+
         arg_str = ", ".join(args)
 
         # Assemble Result
@@ -376,6 +380,10 @@ class Undecorator:
 
         if is_const:
             res += " const"
+
+        # For ctors/dtors the mangling implies __ptr64 on the implicit this.
+        if is_special:
+            res += " __ptr64"
 
         if "__ptr64" in res and not res.endswith("__ptr64"):
             res += " __ptr64"
