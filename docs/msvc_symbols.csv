@@ -1,91 +1,67 @@
-Ordinal,RVA,MangledName,Notes
-1,00001339,??0CCovariantBase@@QEAA@AEBV0@@Z,Constructor
-2,00001294,??0CCovariantBase@@QEAA@XZ,Constructor
-3,0000102D,??0CCovariantDerived@@QEAA@AEBV0@@Z,Constructor
-4,00001366,??0CCovariantDerived@@QEAA@XZ,Constructor
-5,00001258,??0CStage1_Simple@@QEAA@AEBV0@@Z,Constructor
-6,00001145,??0CStage1_Simple@@QEAA@XZ,Constructor
-7,00001212,??0CStage2_Signatures@@QEAA@$$QEAV0@@Z,Constructor
-8,00001186,??0CStage2_Signatures@@QEAA@AEBV0@@Z,Constructor
-9,00001005,??0CStage2_Signatures@@QEAA@XZ,Constructor
-10,00001159,??0CStage3_Base@@QEAA@AEBV0@@Z,Constructor
-11,00001087,??0CStage3_Base@@QEAA@XZ,Constructor
-12,0000104B,??0CStage4_A@@QEAA@$$QEAV0@@Z,Constructor
-13,000013DE,??0CStage4_A@@QEAA@AEBV0@@Z,Constructor
-14,0000132F,??0CStage4_A@@QEAA@XZ,Constructor
-15,000012A8,??0CStage4_B@@QEAA@$$QEAV0@@Z,Constructor
-16,00001311,??0CStage4_B@@QEAA@AEBV0@@Z,Constructor
-17,000011B8,??0CStage4_B@@QEAA@XZ,Constructor
-18,00001127,??0CStage4_Multi@@QEAA@$$QEAV0@@Z,Constructor
-19,0000113B,??0CStage4_Multi@@QEAA@AEBV0@@Z,Constructor
-20,00001352,??0CStage4_Multi@@QEAA@XZ,Constructor
-21,00001073,??0CStage6_Modern@@QEAA@$$QEAV0@@Z,Constructor
-22,0000139D,??0CStage6_Modern@@QEAA@XZ,Constructor
-23,0000126C,??0CStage7_NoVtable@@QEAA@$$QEAV0@@Z,Constructor
-24,000011EA,??0CStage7_NoVtable@@QEAA@AEBV0@@Z,Constructor
-25,0000125D,??0CStage7_NoVtable@@QEAA@XZ,Constructor
-26,000013AC,??0IPure@@QEAA@AEBV0@@Z,Constructor
-27,00001122,??0IPure@@QEAA@XZ,Constructor
-28,00001262,??0IStage7_Abstract@@QEAA@AEBV0@@Z,Constructor
-29,00001154,??0IStage7_Abstract@@QEAA@XZ,Constructor
-30,000010DC,??1CCovariantBase@@UEAA@XZ,Destructor
-31,000011F9,??1CCovariantDerived@@UEAA@XZ,Destructor
-32,000011A9,??1CStage1_Simple@@UEAA@XZ,Destructor
-33,000012E9,??1CStage3_Base@@UEAA@XZ,Destructor
-34,00001375,??1IPure@@UEAA@XZ,Destructor
-35,000010B9,??1IStage7_Abstract@@UEAA@XZ,Destructor
-36,0000134D,??4CCovariantBase@@QEAAAEAV0@AEBV0@@Z,
-37,000010A5,??4CCovariantDerived@@QEAAAEAV0@AEBV0@@Z,
-38,000013D4,??4CStage1_Simple@@QEAAAEAV0@AEBV0@@Z,
-39,000010E6,??4CStage2_Signatures@@QEAAAEAV0@$$QEAV0@@Z,
-40,000010CD,??4CStage2_Signatures@@QEAAAEAV0@AEBV0@@Z,
-41,000010D2,??4CStage3_Base@@QEAAAEAV0@AEBV0@@Z,
-42,00001370,??4CStage4_A@@QEAAAEAV0@$$QEAV0@@Z,
-43,0000108C,??4CStage4_A@@QEAAAEAV0@AEBV0@@Z,
-44,000012BC,??4CStage4_B@@QEAAAEAV0@$$QEAV0@@Z,
-45,0000124E,??4CStage4_B@@QEAAAEAV0@AEBV0@@Z,
-46,0000138E,??4CStage4_Multi@@QEAAAEAV0@$$QEAV0@@Z,
-47,000011E0,??4CStage4_Multi@@QEAAAEAV0@AEBV0@@Z,
-48,0000115E,??4CStage5_RVO@@QEAAAEAV0@$$QEAV0@@Z,
-49,0000120D,??4CStage5_RVO@@QEAAAEAV0@AEBV0@@Z,
-50,00001172,??4CStage6_Modern@@QEAAAEAV0@$$QEAV0@@Z,
-51,00001136,??4CStage7_NoVtable@@QEAAAEAV0@$$QEAV0@@Z,
-52,0000112C,??4CStage7_NoVtable@@QEAAAEAV0@AEBV0@@Z,
-53,00001280,??4IPure@@QEAAAEAV0@AEBV0@@Z,
-54,0000137F,??4IStage7_Abstract@@QEAAAEAV0@AEBV0@@Z,
-55,0000110E,??4PureCaller@@QEAAAEAV0@$$QEAV0@@Z,
-56,00001014,??4PureCaller@@QEAAAEAV0@AEBV0@@Z,
-57,000089B0,??_7CCovariantBase@@6B@,
-58,000089D0,??_7CCovariantDerived@@6B@,
-59,00008888,??_7CStage1_Simple@@6B@,
-60,000088B0,??_7CStage2_Signatures@@6B@,
-61,000088F8,??_7CStage3_Base@@6B@,
-62,00008910,??_7CStage4_A@@6B@,
-63,00008928,??_7CStage4_B@@6B@,
-64,00008940,??_7CStage4_Multi@@6BCStage4_A@@@,
-65,00008958,??_7CStage4_Multi@@6BCStage4_B@@@,
-66,00008970,??_7CStage6_Modern@@6B@,
-67,000089F0,??_7IPure@@6B@,
-68,00008990,??_7IStage7_Abstract@@6B@,
-69,000011C7,?CallPure@PureCaller@@SAXPEAVIPure@@@Z,
-70,0000100A,?Clone@CCovariantBase@@UEAAPEAV1@XZ,
-71,0000123A,?Clone@CCovariantDerived@@UEAAPEAV1@XZ,
-72,000012DA,?ConstFunc@CStage6_Modern@@UEBAXXZ,
-73,0000117C,?Func@CStage2_Signatures@@UEAAXAEAH@Z,
-74,00001334,?Func@CStage2_Signatures@@UEAAXAEBH@Z,
-75,00001221,?Func@CStage2_Signatures@@UEAAXH@Z,
-76,0000106E,?Func@CStage2_Signatures@@UEAAXPEAH@Z,
-77,00001348,?Func@CStage2_Signatures@@UEAAXPEBH@Z,
-78,00001195,?Func@CStage2_Signatures@@UEAAXPECH@Z,
-79,000012FD,?FuncA@CStage4_A@@UEAAXXZ,
-80,000010E1,?FuncA@CStage4_Multi@@UEAAXXZ,
-81,0000111D,?FuncB@CStage4_B@@UEAAXXZ,
-82,00001091,?FuncB@CStage4_Multi@@UEAAXXZ,
-83,0000119A,?GetValue@CStage1_Simple@@UEBAHXZ,
-84,00001271,?Method@CStage7_NoVtable@@UEAAXXZ,
-85,0000133E,?NoExceptFunc@CStage6_Modern@@UEAAXXZ,
-86,00001389,?RetNonPod8@CStage5_RVO@@SA?AUNonPod8@@XZ,
-87,000011DB,?RetPod16@CStage5_RVO@@SA?AUPod16@@XZ,
-88,0000135C,?RetPod24@CStage5_RVO@@SA?AUPod24@@XZ,
-89,00001357,?RetPod8@CStage5_RVO@@SA?AUPod8@@XZ,
-90,00001041,?SetValue@CStage1_Simple@@UEAAXH@Z,
+Class,Signature,DecoratedName,Stage,Notes
+CStage1_Simple,ctor (default),??0CStage1_Simple@@QEAA@XZ,01_basics,Constructor
+CStage1_Simple,ctor (copy),??0CStage1_Simple@@QEAA@AEBV0@@Z,01_basics,Constructor
+CStage1_Simple,dtor,??1CStage1_Simple@@UEAA@XZ,01_basics,Destructor
+CStage1_Simple,copy assign,??4CStage1_Simple@@QEAAAEAV0@AEBV0@@Z,01_basics,Copy assign
+CStage1_Simple,vftable,??_7CStage1_Simple@@6B@,01_basics,Vftable
+CStage1_Simple,GetValue,?GetValue@CStage1_Simple@@UEBAHXZ,01_basics,Virtual
+CStage1_Simple,SetValue,?SetValue@CStage1_Simple@@UEAAXH@Z,01_basics,Virtual
+CStage2_Signatures,ctor (default),??0CStage2_Signatures@@QEAA@XZ,02_signatures,Constructor
+CStage2_Signatures,ctor (copy),??0CStage2_Signatures@@QEAA@AEBV0@@Z,02_signatures,Constructor
+CStage2_Signatures,ctor (move),??0CStage2_Signatures@@QEAA@$$QEAV0@@Z,02_signatures,Constructor
+CStage2_Signatures,vftable,??_7CStage2_Signatures@@6B@,02_signatures,Vftable
+CStage2_Signatures,Func(int),?Func@CStage2_Signatures@@UEAAXH@Z,02_signatures,Virtual
+CStage2_Signatures,Func(int*),?Func@CStage2_Signatures@@UEAAXPEAH@Z,02_signatures,Virtual
+CStage2_Signatures,Func(const int*),?Func@CStage2_Signatures@@UEAAXPEBH@Z,02_signatures,Virtual
+CStage2_Signatures,Func(int&),?Func@CStage2_Signatures@@UEAAXAEAH@Z,02_signatures,Virtual
+CStage2_Signatures,Func(const int&),?Func@CStage2_Signatures@@UEAAXAEBH@Z,02_signatures,Virtual
+CStage2_Signatures,Func(volatile int*),?Func@CStage2_Signatures@@UEAAXPEAH@Z,02_signatures,Virtual (volatile ptr)
+CStage3_Base,ctor (default),??0CStage3_Base@@QEAA@XZ,03_lifecycle,Constructor
+CStage3_Base,ctor (copy),??0CStage3_Base@@QEAA@AEBV0@@Z,03_lifecycle,Constructor
+CStage3_Base,dtor,??1CStage3_Base@@UEAA@XZ,03_lifecycle,Destructor
+CStage3_Base,copy assign,??4CStage3_Base@@QEAAAEAV0@AEBV0@@Z,03_lifecycle,Copy assign
+CStage3_Base,vftable,??_7CStage3_Base@@6B@,03_lifecycle,Vftable
+CStage4_A,ctor (default),??0CStage4_A@@QEAA@XZ,04_inheritance,Constructor
+CStage4_A,ctor (copy),??0CStage4_A@@QEAA@AEBV0@@Z,04_inheritance,Constructor
+CStage4_A,ctor (move),??0CStage4_A@@QEAA@$$QEAV0@@Z,04_inheritance,Constructor
+CStage4_A,vftable,??_7CStage4_A@@6B@,04_inheritance,Vftable
+CStage4_A,FuncA,?FuncA@CStage4_A@@UEAAXXZ,04_inheritance,Virtual
+CStage4_B,ctor (default),??0CStage4_B@@QEAA@XZ,04_inheritance,Constructor
+CStage4_B,ctor (copy),??0CStage4_B@@QEAA@AEBV0@@Z,04_inheritance,Constructor
+CStage4_B,ctor (move),??0CStage4_B@@QEAA@$$QEAV0@@Z,04_inheritance,Constructor
+CStage4_B,vftable,??_7CStage4_B@@6B@,04_inheritance,Vftable
+CStage4_B,FuncB,?FuncB@CStage4_B@@UEAAXXZ,04_inheritance,Virtual
+CStage4_Multi,ctor (default),??0CStage4_Multi@@QEAA@XZ,04_inheritance,Constructor
+CStage4_Multi,ctor (copy),??0CStage4_Multi@@QEAA@AEBV0@@Z,04_inheritance,Constructor
+CStage4_Multi,ctor (move),??0CStage4_Multi@@QEAA@$$QEAV0@@Z,04_inheritance,Constructor
+CStage4_Multi,vftable(A),??_7CStage4_Multi@@6B@,04_inheritance,Vftable (A)
+CStage4_Multi,vftable(B),??_7CStage4_Multi@@6B@,04_inheritance,Vftable (B)
+CStage4_Multi,FuncA,?FuncA@CStage4_Multi@@UEAAXXZ,04_inheritance,Virtual
+CStage4_Multi,FuncB,?FuncB@CStage4_Multi@@UEAAXXZ,04_inheritance,Virtual (this-adjust +16)
+CStage5_RVO,RetPod8,?RetPod8@CStage5_RVO@@SA?AUPod8@@XZ,05_rvo,Static
+CStage5_RVO,RetPod16,?RetPod16@CStage5_RVO@@SA?AUPod16@@XZ,05_rvo,Static
+CStage5_RVO,RetPod24,?RetPod24@CStage5_RVO@@SA?AUPod24@@XZ,05_rvo,Static
+CStage5_RVO,RetNonPod8,?RetNonPod8@CStage5_RVO@@SA?AUNonPod8@@XZ,05_rvo,Static
+CStage6_Modern,ctor (default),??0CStage6_Modern@@QEAA@XZ,06_modern,Constructor
+CStage6_Modern,ctor (move),??0CStage6_Modern@@QEAA@$$QEAV0@@Z,06_modern,Constructor
+CStage6_Modern,move assign,??4CStage6_Modern@@QEAAAEAV0@$$QEAV0@@Z,06_modern,Move assign
+CStage6_Modern,vftable,??_7CStage6_Modern@@6B@,06_modern,Vftable
+CStage6_Modern,ConstFunc,?ConstFunc@CStage6_Modern@@UEBAXXZ,06_modern,Virtual (const)
+CStage6_Modern,NoExceptFunc,?NoExceptFunc@CStage6_Modern@@UEAAXXZ,06_modern,Virtual (noexcept)
+CStage7_NoVtable,ctor (default),??0CStage7_NoVtable@@QEAA@XZ,07_abstract,Constructor
+CStage7_NoVtable,ctor (copy),??0CStage7_NoVtable@@QEAA@AEBV0@@Z,07_abstract,Constructor
+CStage7_NoVtable,ctor (move),??0CStage7_NoVtable@@QEAA@$$QEAV0@@Z,07_abstract,Constructor
+CStage7_NoVtable,vftable,??_7CStage7_NoVtable@@6B@,07_abstract,Vftable
+CStage7_NoVtable,Method,?Method@CStage7_NoVtable@@UEAAXXZ,07_abstract,Virtual
+CCovariantBase,ctor (default),??0CCovariantBase@@QEAA@XZ,08_covariant,Constructor
+CCovariantBase,ctor (copy),??0CCovariantBase@@QEAA@AEBV0@@Z,08_covariant,Constructor
+CCovariantBase,vftable,??_7CCovariantBase@@6B@,08_covariant,Vftable
+CCovariantBase,Clone,?Clone@CCovariantBase@@UEAAPEAV1@XZ,08_covariant,Virtual
+CCovariantDerived,ctor (default),??0CCovariantDerived@@QEAA@XZ,08_covariant,Constructor
+CCovariantDerived,ctor (copy),??0CCovariantDerived@@QEAA@AEBV0@@Z,08_covariant,Constructor
+CCovariantDerived,vftable,??_7CCovariantDerived@@6B@,08_covariant,Vftable
+CCovariantDerived,Clone,?Clone@CCovariantDerived@@UEAAPEAV1@XZ,08_covariant,Virtual (covariant)
+IPure,ctor (default),??0IPure@@QEAA@XZ,09_abstract_pure,Constructor
+IPure,ctor (copy),??0IPure@@QEAA@AEBV0@@Z,09_abstract_pure,Constructor
+IPure,vftable,??_7IPure@@6B@,09_abstract_pure,Vftable
+IPure,PureMethod,?PureMethod@IPure@@UEAAXXZ,09_abstract_pure,Pure virtual
