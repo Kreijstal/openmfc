@@ -14,6 +14,9 @@
 # ------------------------------------------------------------------
 .section .rdata,"dr"
 .align 8
+.global CObject_rtti_ptr
+CObject_rtti_ptr:
+    .quad 0                         # RTTI COL pointer placeholder
 .global CObject_vftable
 
 CObject_vftable:
@@ -45,9 +48,14 @@ CObject_dtor:
 .align 16
 .global CObject_scalar_dtor
 CObject_scalar_dtor:
+    .seh_proc CObject_scalar_dtor
     push rbx
+    .seh_pushreg rbx
     push rdi
+    .seh_pushreg rdi
     sub rsp, 0x28          # shadow space + alignment
+    .seh_stackalloc 0x28
+    .seh_endprologue
 
     mov rbx, rcx           # save this
     mov rdi, rdx           # save flags
@@ -67,6 +75,7 @@ CObject_scalar_dtor:
     pop rdi
     pop rbx
     ret
+    .seh_endproc
 
 # Vector deleting destructor (treat same as scalar; RDX flags)
 .align 16
