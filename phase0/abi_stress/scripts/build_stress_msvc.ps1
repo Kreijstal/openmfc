@@ -37,13 +37,22 @@ Write-Host "Harvesting ABI data..."
 Set-Location $OutDir
 
 # 1. Dump Exports (Mangling)
-cmd /c "dumpbin /EXPORTS abi_stress.dll > exports.txt"
+& dumpbin /EXPORTS abi_stress.dll > exports.txt 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "dumpbin /EXPORTS failed, exports.txt may be incomplete"
+}
 
 # 2. Dump Symbols (Vtables, RTTI)
-cmd /c "dumpbin /SYMBOLS abi_stress.dll > symbols.txt"
+& dumpbin /SYMBOLS abi_stress.dll > symbols.txt 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "dumpbin /SYMBOLS failed, symbols.txt may be incomplete"
+}
 
 # 3. Dump Disassembly (Calling convention, thunks)
-cmd /c "dumpbin /DISASM abi_stress.dll > disassembly.txt"
+& dumpbin /DISASM abi_stress.dll > disassembly.txt 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "dumpbin /DISASM failed, disassembly.txt may be incomplete"
+}
 
 # 4. Create Metadata
 $metadata = @{

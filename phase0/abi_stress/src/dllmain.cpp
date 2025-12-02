@@ -1,8 +1,8 @@
 #include <windows.h>
 
-BOOL APIENTRY DllMain(HMODULE, DWORD reason, LPVOID) {
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
-        DisableThreadLibraryCalls(GetModuleHandle(NULL));
+        DisableThreadLibraryCalls(hModule);
     }
     return TRUE;
 }
