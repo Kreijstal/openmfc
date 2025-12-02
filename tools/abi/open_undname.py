@@ -5,7 +5,6 @@ Supports common Phase 0A/0B cases: classes, basic types, pointers, ctors/dtors.
 """
 import sys
 import argparse
-import subprocess
 
 
 class Undecorator:
@@ -245,21 +244,13 @@ def main():
     ap.add_argument("symbol", help="Mangled symbol (e.g., ?GetValue@CClass@@QEBAHXZ)")
     args = ap.parse_args()
 
-    # If the platform provides Microsoft's undname, prefer that for exact fidelity.
-    def try_system_undname(sym: str):
-        try:
-            out = subprocess.check_output(["undname", sym], stderr=subprocess.STDOUT, text=True)
-            return out.strip()
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            return None
-
-    prefer = try_system_undname(args.symbol)
-    if prefer is not None:
-        print(prefer)
-        return
-
     u = Undecorator(args.symbol)
-    print(u.demangle())
+    try:
+        print(u.demangle())
+    except Exception as exc:
+        print(f"[error] failed to parse: {args.symbol}", file=sys.stderr)
+        print(f"reason: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
