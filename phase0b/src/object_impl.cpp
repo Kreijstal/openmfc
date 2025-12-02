@@ -20,7 +20,7 @@ static CRuntimeClass classCObject = {
     "CObject",
     static_cast<int>(sizeof(void*)), // only vptr
     0xFFFF,
-    reinterpret_cast<CObject* (AFX_PASCAL *)()>(&CreateCObjectInstance),
+    nullptr, // CObject is dynamic, not dyncreate; factory remains null
     nullptr
 };
 

@@ -48,6 +48,10 @@ int main() {
         return 1;
     }
 
+    std::cout << "[Host] calling Serialize..." << std::endl;
+    // Pass a null archive reference to prove symbol/vtable wiring works.
+    p->Serialize(*reinterpret_cast<CArchive*>(nullptr));
+
     // Derived class should use its own GetRuntimeClass (virtual dispatch)
     CMyDerived* pDer = new CMyDerived();
     if (!pDer->IsKindOf(&CMyDerived::classMyDerived)) {
