@@ -15,6 +15,7 @@
 ## Vtable Ordering (examples)
 * `CStage1_Simple`: slot0 dtor, slot1 `GetValue`, slot2 `SetValue` (layout vftable listing).
 * `CStage2_Signatures`: six overloads in declaration order (layout vftable listing).
+* `CCovariantBase/Derived`: slot0 Clone, slot1 dtor (per layout entries).
 
 ## 2. Return Value Optimization (RVO)
 *Source: `disassembly.txt` (Search for `CStage5_RVO::Ret*`)*
@@ -59,6 +60,7 @@
 * Leaf virtuals here are optimized to `ret 0`; no shadow space visible in trivial bodies (no `sub rsp,20h`).
 * Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
+* No evidence of shadow space allocation (`sub rsp,20h`) in trivial functions; richer probes needed for full calling convention validation.
 
 ## 7. RTTI / Pure Virtuals
 * Layout shows meta pointers for vftables (e.g., `&CStageX_meta`); RTTI symbols are present in object-level dump (`symbols_objects.txt`), e.g., `??_R4CStage1_Simple@@6B@` (COL) and `??_R0?AVCStage1_Simple@@@8` (type descriptor).

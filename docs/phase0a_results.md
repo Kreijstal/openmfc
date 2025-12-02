@@ -30,3 +30,4 @@
 | Heap mismatch across CRTs | Med | 40% | Keep ownership within one CRT; export alloc/free. |
 | MI covariant gaps | Low | 20% | Add MI covariant probe before Phase 0B if needed. |
 | RTTI capture completeness | Low | 20% | Use object-level dumps; add flags/tests if missing. |
+| Calling convention detail gaps | Med | 30% | Add non-trivial functions to observe shadow space and alignment. |
