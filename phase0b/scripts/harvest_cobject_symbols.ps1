@@ -30,8 +30,9 @@ Write-Host "Extracting CObject decorated names..."
 $symbols = Get-Content "$TmpLog" | Select-String "\?CObject" -CaseSensitive
 $exports = @()
 foreach ($s in $symbols) {
-    if ($s -match "(__imp_)?(\?CObject[^\s]+)") {
-        $exports += $matches[2]
+    $line = $s.ToString()
+    if ($line -match "(__imp_)?(\?CObject[^\s]+)") {
+        $exports += $Matches[2]
     }
 }
 $exports = $exports | Sort-Object -Unique
