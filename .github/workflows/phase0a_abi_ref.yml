@@ -56,8 +56,10 @@ jobs:
           )
 
           > abi_ref_undname.txt (
-            for /f "tokens=1" %%S in (abi_ref_symbols_raw.txt) do @(
-              undname %%S 2>nul
+            for /f "tokens=2 delims=|" %%S in (abi_ref_symbols_raw.txt) do @(
+              for /f "tokens=1" %%N in ("%%S") do @(
+                undname %%N 2>nul
+              )
             )
           )
 
