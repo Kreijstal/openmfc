@@ -4,6 +4,7 @@ EXPORTS
 ??0CObject@@QEAA@XZ = CObject_ctor
 ??1CObject@@UEAA@XZ = CObject_dtor
 ??_GCObject@@UEAAPEAXI@Z = CObject_scalar_dtor
+??_ECObject@@UEAAPEAXI@Z = CObject_vector_dtor
 ??2CObject@@SAPEAX_K@Z = CObject_new
 ??3CObject@@SAXPEAX@Z = CObject_delete
 ?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = CObject_GetRuntimeClass

@@ -18,6 +18,7 @@
 
 CObject_vftable:
     .quad   CObject_scalar_dtor
+    .quad   CObject_vector_dtor
     .quad   CObject_GetRuntimeClass
 
 # ------------------------------------------------------------------
@@ -66,6 +67,13 @@ CObject_scalar_dtor:
     pop rdi
     pop rbx
     ret
+
+# Vector deleting destructor (treat same as scalar; RDX flags)
+.align 16
+.global CObject_vector_dtor
+CObject_vector_dtor:
+    # Reuse scalar logic
+    jmp CObject_scalar_dtor
 
 # GetRuntimeClass thunk
 .align 16
