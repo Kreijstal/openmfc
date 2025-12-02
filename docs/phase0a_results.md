@@ -31,3 +31,10 @@
 | MI covariant gaps | Low | 20% | Add MI covariant probe before Phase 0B if needed. |
 | RTTI capture completeness | Low | 20% | Use object-level dumps; add flags/tests if missing. |
 | Calling convention detail gaps | Med | 30% | Add non-trivial functions to observe shadow space and alignment. |
+
+## Go / No-Go (current)
+- Status: **YELLOW** (pending deeper calling-convention evidence and MI covariant thunk coverage; heap ownership rules still a risk).
+- Actions to reach GREEN:
+  - Add non-trivial functions to observe shadow space/alignment in disassembly.
+  - Add MI covariant case if required and capture thunk behavior.
+  - Decide on CRT ownership policy (export alloc/free vs. aligned CRTs) and document in `mingw_workarounds.md`.

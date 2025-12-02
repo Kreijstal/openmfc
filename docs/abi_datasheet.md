@@ -54,12 +54,13 @@
 *Source: `disassembly.txt` (Search for `CStage4_Multi::FuncB`)*
 
 * When `FuncB` is called, is there a `sub rcx, X` instruction before the jump?
-* **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry (function body trivial so no explicit prologue).
+* **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry (function body trivial: `ret 0`, no shadow space or explicit `sub/add rcx` in disassembly).
 
 ## 6. Calling Convention Notes
 * Leaf virtuals here are optimized to `ret 0`; no shadow space visible in trivial bodies (no `sub rsp,20h`).
 * Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
 * Small POD (8 bytes) can return in `rax` using stack scratch space at `[rsp+8]`.
+* Representative MI call (`FuncB`) shows no prologue; adjustor handled by vftable slot offset (+16).
 * No evidence of shadow space allocation (`sub rsp,20h`) in trivial functions; richer probes needed for full calling convention validation.
 
 ## 7. RTTI / Pure Virtuals
