@@ -7,6 +7,10 @@ on:
       - 'phase0/abi_ref/**'
       - '.github/workflows/phase0a_abi_ref.yml'
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   build-and-dump:
     runs-on: windows-latest
@@ -51,9 +55,6 @@ jobs:
           rem  for now and filter later in tools)
           dumpbin /SYMBOLS abi_ref_class.obj ^
             | findstr /R /C:"CReferenceTest" > abi_ref_symbols_raw.txt
-          if errorlevel 1 (
-            echo (no CReferenceTest symbols found; continuing) > abi_ref_symbols_raw.txt
-          )
 
           > abi_ref_undname.txt (
             for /f "tokens=2 delims=|" %%S in (abi_ref_symbols_raw.txt) do @(
