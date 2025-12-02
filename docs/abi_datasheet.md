@@ -44,4 +44,14 @@
 *Source: `disassembly.txt` (Search for `CStage4_Multi::FuncB`)*
 
 * When `FuncB` is called, is there a `sub rcx, X` instruction before the jump?
-* **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry.
+* **Answer:** Layout shows `this adjustor: 16` for `FuncB` (secondary base at +16); adjustor thunk implied via vftable entry (function body trivial so no explicit prologue).
+
+## 6. Calling Convention Notes
+* Leaf virtuals in these probes are optimized to `ret 0`; no shadow-space allocation observed.
+* Aggregate returns >8 bytes or non-POD use hidden pointer in `rcx`; `rax` mirrors `rcx`.
+* Small POD (8 bytes) can return in `rax` using stack scratch space.
+
+## 7. RTTI / Pure Virtuals
+* Vftable entries show meta pointers in layout, but no RTTI symbols were emitted in `symbols.txt` dump (likely due to current dump step limits).
+* `IStage7_Abstract` was not instantiated; no `_purecall` entries observed.
+* `CStage7_NoVtable` present with vftable and size 8 despite `__declspec(novtable)`.
