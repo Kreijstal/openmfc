@@ -14,10 +14,10 @@ $DefOut = Join-Path $OutDir "mfc140u.generated.def"
 $Readme = Join-Path $OutDir "README.txt"
 
 Write-Host "Generating temporary source..."
-@"
-#include \"afx.h\"
+@'
+#include "afx.h"
 int main() { CObject o; return o.IsKindOf(o.GetRuntimeClass()) ? 0 : 1; }
-"@ | Out-File -FilePath $TmpCpp -Encoding ASCII
+'@ | Out-File -FilePath $TmpCpp -Encoding ASCII
 
 Write-Host "Compiling with cl..."
 cl.exe /nologo /c /std:c++17 /EHsc /MD /I"$($Root)\include" /I"$($Root)\phase0b\include" "$TmpCpp" /Fo:"$TmpObj"
