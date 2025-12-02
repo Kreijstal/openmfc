@@ -4,3 +4,5 @@ EXPORTS
 ??1CObject@@UEAA@XZ = _ZN7CObjectD1Ev
 ?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = _ZNK7CObject15GetRuntimeClassEv
 ?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = _ZNK7CObject8IsKindOfEPK13CRuntimeClass
+??2CObject@@SAPEAX_K@Z = _ZN7CObjectnwEy
+??3CObject@@SAXPEAX@Z = _ZN7CObjectdlEPv
