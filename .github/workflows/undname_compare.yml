@@ -1,0 +1,30 @@
+name: Compare Undname Implementations
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/abi/**'
+      - '.github/workflows/undname_compare.yml'
+
+jobs:
+  compare:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Run dumpbin + undname compare
+        shell: pwsh
+        run: |
+          python --version
+          ./tools/abi/compare_undname.ps1 -OutDir undname_compare
+
+      - name: Upload comparison logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: undname_compare
+          path: undname_compare
+          retention-days: 7
