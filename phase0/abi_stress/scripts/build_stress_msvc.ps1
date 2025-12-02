@@ -26,6 +26,7 @@ $SrcFiles = @(
 $Flags = "/nologo", "/std:c++17", "/EHsc", "/LD", "/MD", "/O1", "/Zi",
          "/I", "$SourceDir\include",
          "/DABI_STRESS_EXPORTS",
+         "/d1reportAllClassLayout",
          "/d1reportSingleClassLayoutCStage1_Simple",
          "/d1reportSingleClassLayoutCStage3_Base",
          "/d1reportSingleClassLayoutCStage4_Multi",
