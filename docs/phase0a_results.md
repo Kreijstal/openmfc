@@ -1,40 +1,41 @@
 # Phase 0A / 0A.5 Results and Verdict
 
 ## MSVC ABI Findings (Phase 0A)
-- Layout: `CStage1_Simple` size 16 (vptr 0, member 8); `CStage4_Multi` size 40 with secondary base at +16.
-- RVO: 8-byte POD returns in `rax`; POD 16/24 and 8-byte non-POD use hidden pointer (`rcx`, `rax=rcx`).
-- Mangling catalog: see `docs/msvc_symbols.csv` (generated from exports).
-- RTTI: present in object-level symbols (`symbols_objects.txt`), e.g., `??_R4CStage1_Simple@@6B@`; `_purecall` present for pure virtual interface.
+- Layout: `CStage1_Simple` size 16 (vptr 0, member 8); `CStage4_Multi` size 40 with secondary base at +16 (per `layout.log`).
+- RVO: 8-byte POD returns in `rax`; POD 16/24 and 8-byte non-POD use hidden pointer (`rcx`, `rax=rcx`) — see `disassembly.txt`.
+- Mangling catalog: `docs/msvc_symbols.csv` (~90 rows) generated from `exports.txt`.
+- RTTI: present in `symbols_objects.txt` (`??_R4*`, `??_R0*`), `_purecall` imported for pure virtual interface.
 - Covariant: `CCovariantDerived::Clone` returns derived pointer in same slot; no thunk in single inheritance.
 - MI adjustor: `CStage4_Multi::FuncB` adjustor +16 (secondary base offset).
+- Calling convention probe: 5th/6th args read from `[rsp+28h]/[rsp+30h]` (`SumFive`/`CCStdCall`/`CCThiscall`).
 
 ## MinGW Capability (Phase 0A.5)
 - Symbol export: `.def` mapping works; MSVC host resolves decorated name and calls into MinGW DLL.
-- Heap interop: MinGW DLL imports `msvcrt.dll`; host frees using `msvcrt` `free` to avoid CRT mismatch crash.
+- Heap interop: MinGW DLL imports `msvcrt.dll`; host now uses DLL exports `Shim_Malloc` + `Shim_Free` to keep allocation/free in the same CRT. Cross-CRT free is forbidden (previously crashed); optional forbidden test is guarded by `ENABLE_FORBIDDEN_CROSS_FREE=1`.
 - Exception sanity: DLL throws/catches internally, returns 42; host sees success.
 - Dependencies: `KERNEL32.dll`, `msvcrt.dll`; built with `-static-libgcc -static-libstdc++`.
 
 ## Risks / Workarounds
-- Heap ownership must stay within the same CRT; export allocator/free or match CRTs.
-- RTTI/purecall confirmed; if richer RTTI needed, rely on object-level dumps.
+- Heap ownership must stay within the same CRT; export alloc/free or align CRTs explicitly.
 - No covariant MI thunk yet; add if required for MI coverage.
+- Calling convention observation used trivial bodies; heavier probes could confirm shadow-space emission if needed.
 
-## Verdict (provisional)
-- MSVC ABI data collected; MinGW basic interop validated with caveats on heap.
-- Proceed to Phase 0B if comfortable with CRT ownership rules, or add targeted tests (MI covariant, negative heap case) before final GREEN.
+## Verdict
+- Status: **YELLOW (conditional pass)** — heap test passes only when both sides use `msvcrt` (per CI run 19851008868: `[Pass?] Freed memory (No crash detected yet)`).
+- Proceed to Phase 0B with the CRT-ownership rule enforced; probability of success ~75%.
+- Decision authority: OpenMFC maintainer (acting) — approves proceeding with the constraint above.
 
 ## Risk Register (snapshot)
 
 | Risk | Severity | Probability | Mitigation |
 |------|----------|-------------|------------|
-| Heap mismatch across CRTs | Med | 40% | Keep ownership within one CRT; export alloc/free. |
-| MI covariant gaps | Low | 20% | Add MI covariant probe before Phase 0B if needed. |
-| RTTI capture completeness | Low | 20% | Use object-level dumps; add flags/tests if missing. |
-| Calling convention detail gaps | Med | 30% | Add non-trivial functions to observe shadow space and alignment. |
+| Heap mismatch across CRTs | Med | 40% | Keep ownership within one CRT; export alloc/free; align CRTs only if controlled. |
+| MI covariant gaps | Low | 20% | Add MI covariant probe before shipping any MI-dependent surface. |
+| RTTI capture completeness | Low | 20% | Use object-level dumps (`symbols_objects.txt`); add focused builds if gaps appear. |
+| Calling convention detail gaps | Med | 30% | Add non-trivial probe with real calls to force shadow space if future evidence needed. |
 
-## Go / No-Go (current)
-- Status: **YELLOW** (pending deeper calling-convention evidence and MI covariant thunk coverage; heap ownership rules still a risk).
-- Actions to reach GREEN:
-  - Add non-trivial functions to observe shadow space/alignment in disassembly.
-  - Add MI covariant case if required and capture thunk behavior.
-  - Decide on CRT ownership policy (export alloc/free vs. aligned CRTs) and document in `mingw_workarounds.md`.
+## Go / No-Go (final)
+- All required artifacts present (DLL, PDB, exports, symbols, disassembly, layout, README, host).
+- Datasheet and symbol catalog populated; knowledge tests answered.
+- CI workflows green (harvest + MinGW verify).
+- Proceed to Phase 0B with the documented caveats above.

@@ -7,6 +7,10 @@ typedef void* (*P_TESTFUNC)(int);
 typedef int (*P_EXCEPT)();
 typedef void (*P_FREE)(void*);
 
+static bool env_enabled(const char* name) {
+    return GetEnvironmentVariableA(name, nullptr, 0) > 0;
+}
+
 int main() {
     std::cout << "[Host] Loading mingw_dll.dll..." << std::endl;
     HMODULE hDll = LoadLibraryA("mingw_dll.dll");
@@ -41,22 +45,25 @@ int main() {
     }
 
     // Test 3: Heap Interop
-    // Note: This often FAILS if CRTs don't match (UCRT vs MSVCRT).
-    // We expect this to be the risky part.
+    // Rule: allocation/free must remain in the same CRT. Use DLL-side free.
     auto shimMalloc = (P_MALLOC)GetProcAddress(hDll, "Shim_Malloc");
-    if (shimMalloc) {
-        void* ptr = shimMalloc(128);
-        std::cout << "[Host] Allocated " << ptr << " in DLL." << std::endl;
+    auto shimFree = (P_FREE)GetProcAddress(hDll, "Shim_Free");
+    if (!shimMalloc || !shimFree) {
+        std::cerr << "[Fail] Heap test missing required exports (Shim_Malloc/ Shim_Free)." << std::endl;
+        return 1;
+    }
 
-        // DANGER ZONE: Freeing memory allocated in MinGW from MSVC
-        // Prefer to free using the same CRT as the DLL (msvcrt.dll) if available.
-        HMODULE hMsvcrt = GetModuleHandleA("msvcrt.dll");
-        P_FREE msvcrtFree = hMsvcrt ? (P_FREE)GetProcAddress(hMsvcrt, "free") : nullptr;
-        P_FREE chosenFree = msvcrtFree ? msvcrtFree : free;
+    void* ptr = shimMalloc(128);
+    std::cout << "[Host] Allocated " << ptr << " in DLL (same CRT expected)." << std::endl;
+    shimFree(ptr);
+    std::cout << "[Pass] Freed via DLL Shim_Free (same CRT)." << std::endl;
 
-        std::cout << "[Host] Freeing with " << (msvcrtFree ? "msvcrt free" : "CRT free") << "..." << std::endl;
-        chosenFree(ptr);
-        std::cout << "[Pass?] Freed memory (No crash detected yet)." << std::endl;
+    // Optional forbidden cross-CRT test (disabled by default to avoid intentional crash).
+    if (env_enabled("ENABLE_FORBIDDEN_CROSS_FREE")) {
+        void* bad = shimMalloc(64);
+        std::cout << "[Host] FORBIDDEN test: freeing DLL allocation with host CRT free (may crash)." << std::endl;
+        free(bad); // Intentional misuse; only run when explicitly enabled.
+        std::cout << "[Warn] Forbidden cross-free did not crash; still disallowed by policy." << std::endl;
     }
 
     std::cout << "[Done] All tests executed." << std::endl;

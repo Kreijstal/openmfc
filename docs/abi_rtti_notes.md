@@ -1,8 +1,19 @@
 # RTTI Notes (Phase 0A)
 
-Current DLL-level `symbols.txt` does not include RTTI (`??_R*`) entries. With the added object-level dump (`symbols_objects.txt`), RTTI metadata can be inspected per class if needed.
+Artifacts: `/tmp/phase0a_msvc_artifacts/symbols_objects.txt`
 
-Next actions if deeper RTTI evidence is required:
-- Run `dumpbin /SYMBOLS` on object files (already emitted to `symbols_objects.txt` in artifacts).
-- Search for patterns like `??_R4ClassName@@6B@` (Complete Object Locator) and type descriptors `??_R0`.
-- If still absent, disable optimization on targeted classes or add references that force RTTI emission.
+Observed COL (`??_R4`) examples:
+- `??_R4CStage1_Simple@@6B@`
+- `??_R4CStage4_Multi@@6BCStage4_A@@@` and `??_R4CStage4_Multi@@6BCStage4_B@@@`
+- `??_R4CStage6_Modern@@6B@`
+- `??_R4CCovariantDerived@@6B@`
+- `??_R4IPure@@6B@`
+
+Observed type descriptors (`??_R0`):
+- `??_R0?AVCStage1_Simple@@@8`
+- `??_R0?AVCStage4_Multi@@@8`
+- `??_R0?AVCStage6_Modern@@@8`
+- `??_R0?AVCCovariantDerived@@@8`
+- `??_R0?AVIPure@@@8`
+
+Layout log shows vftable meta entries (slot -1) that correspond to these COLs. RTTI is present even for the pure virtual interface (`IPure`) and MI class (`CStage4_Multi`).

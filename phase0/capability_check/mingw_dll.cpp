@@ -12,6 +12,10 @@ extern "C" {
     __declspec(dllexport) void* Shim_Malloc(size_t size) {
         return malloc(size);
     }
+    // Pairing free to keep allocation/deallocation inside the DLL's CRT.
+    __declspec(dllexport) void Shim_Free(void* ptr) {
+        free(ptr);
+    }
 
     // 2. Symbol Export Test
     // We will export this via .def file with a specific mangled name.

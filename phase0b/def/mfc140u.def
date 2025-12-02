@@ -1,0 +1,10 @@
+LIBRARY openmfc
+EXPORTS
+; TODO: populate with MSVC-decorated exports for CObject once harvested.
+; Expected entries (examples, replace with harvested names):
+; ??0CObject@@QEAA@XZ
+; ??1CObject@@QEAA@XZ
+; ?GetRuntimeClass@CObject@@UEBAPEAVCRuntimeClass@@XZ
+; ??2CObject@@SAPEAX_K@Z
+; ??3CObject@@SAXPEAX@Z
+

@@ -2,6 +2,7 @@ LIBRARY mingw_dll
 EXPORTS
     ; Native exports
     Shim_Malloc
+    Shim_Free
     Shim_SafeException
 
     ; Aliased export:
