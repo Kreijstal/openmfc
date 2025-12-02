@@ -37,11 +37,17 @@ jobs:
     permissions:
       contents: read
       actions: write
-    env:
-      BIN_DIR: phase0/capability_check/bin
-      ARTIFACT_DIR: phase0/capability_check/artifacts
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up paths
+        shell: pwsh
+        id: paths
+        run: |
+          $bin = "phase0/capability_check/bin"
+          $artifact = "phase0/capability_check/artifacts"
+          echo "bin_dir=$bin"    >> $env:GITHUB_OUTPUT
+          echo "artifact_dir=$artifact" >> $env:GITHUB_OUTPUT
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -54,11 +60,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mingw_dll
-          path: ${{ env.BIN_DIR }}
+          path: ${{ steps.paths.outputs.bin_dir }}
 
       - name: Run Verification
         shell: pwsh
-        working-directory: ${{ env.BIN_DIR }}
+        working-directory: ${{ steps.paths.outputs.bin_dir }}
         run: |
           $logDir = "verify_logs"
           $logPath = Join-Path $logDir "verify_log.txt"
@@ -73,15 +79,16 @@ jobs:
       - name: Stage verification artifacts
         shell: pwsh
         run: |
-          $artifactDir = "$env:ARTIFACT_DIR"
+          $artifactDir = "${{ steps.paths.outputs.artifact_dir }}"
+          $binDir = "${{ steps.paths.outputs.bin_dir }}"
           if (-not (Test-Path $artifactDir)) { New-Item -ItemType Directory -Path $artifactDir | Out-Null }
-          Copy-Item "$env:BIN_DIR\msvc_host.exe" $artifactDir -Force
-          Copy-Item "$env:BIN_DIR\mingw_dll.dll" $artifactDir -Force
-          Copy-Item "$env:BIN_DIR\verify_logs" $artifactDir -Recurse -Force
+          Copy-Item "$binDir\msvc_host.exe" $artifactDir -Force
+          Copy-Item "$binDir\mingw_dll.dll" $artifactDir -Force
+          Copy-Item "$binDir\verify_logs" $artifactDir -Recurse -Force
 
       - name: Upload verification artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mingw_verify_artifacts
-          path: ${{ env.ARTIFACT_DIR }}
+          path: ${{ steps.paths.outputs.artifact_dir }}
