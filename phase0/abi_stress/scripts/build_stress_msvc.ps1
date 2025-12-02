@@ -14,7 +14,8 @@ $SrcFiles = @(
     "$SourceDir\src\04_inheritance.cpp",
     "$SourceDir\src\05_rvo.cpp",
     "$SourceDir\src\06_modern.cpp",
-    "$SourceDir\src\07_abstract.cpp"
+    "$SourceDir\src\07_abstract.cpp",
+    "$SourceDir\src\08_covariant.cpp"
 )
 
 # Compiler Flags
@@ -30,7 +31,8 @@ $Flags = "/nologo", "/std:c++17", "/EHsc", "/LD", "/MD", "/O1", "/Zi",
          "/d1reportSingleClassLayoutCStage1_Simple",
          "/d1reportSingleClassLayoutCStage3_Base",
          "/d1reportSingleClassLayoutCStage4_Multi",
-         "/d1reportSingleClassLayoutCStage7_NoVtable"
+         "/d1reportSingleClassLayoutCStage7_NoVtable",
+         "/d1reportSingleClassLayoutCCovariantDerived"
 
 Write-Host "Building abi_stress.dll..."
 # We pipe the build output to a file because the /d1report flag prints to stdout
@@ -56,6 +58,13 @@ if ($LASTEXITCODE -ne 0) {
 & dumpbin /SYMBOLS abi_stress.dll > symbols.txt 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "dumpbin /SYMBOLS failed, symbols.txt may be incomplete"
+}
+
+# 2a. Dump object-level symbols (captures RTTI, per-class details)
+$objSymbols = Join-Path $OutDir "symbols_objects.txt"
+& dumpbin /SYMBOLS *.obj > $objSymbols 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "dumpbin /SYMBOLS on objects failed, symbols_objects.txt may be incomplete"
 }
 
 # 3. Dump Disassembly (Calling convention, thunks)
