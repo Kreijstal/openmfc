@@ -186,7 +186,7 @@ class Undecorator:
         if self.peek() == "@":
             self.consume()  # skip '@'
         args = self.parse_template_args()
-        arg_str = ", ".join(args)
+        arg_str = ",".join(args)
         return f"{base}<{arg_str}>"
 
     def parse_special_member(self):
