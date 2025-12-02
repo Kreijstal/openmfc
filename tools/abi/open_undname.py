@@ -11,6 +11,8 @@ class Undecorator:
     def __init__(self, mangled: str):
         self.mangled = mangled
         self.pos = 0
+        self.name_backrefs = []
+        self.type_backrefs = []
 
     def peek(self):
         return self.mangled[self.pos] if self.pos < len(self.mangled) else None
@@ -22,6 +24,10 @@ class Undecorator:
         return ch
 
     def parse_name_fragment(self):
+        # Handle template name fragments (?$Foo@Args@@)
+        if self.peek() == "?" and self.mangled[self.pos:self.pos + 2] == "?$":
+            return self.parse_template_name()
+
         name = ""
         while self.peek() not in (None, "@"):
             name += self.consume()
@@ -35,6 +41,12 @@ class Undecorator:
         while self.peek() != "@":
             frag = self.parse_name_fragment()
             if frag:
+                if frag.isdigit():
+                    idx = int(frag)
+                    if idx < len(self.name_backrefs):
+                        frag = self.name_backrefs[idx]
+                else:
+                    self.name_backrefs.append(frag)
                 parts.append(frag)
             else:
                 break
@@ -46,6 +58,10 @@ class Undecorator:
         c = self.consume()
         if c is None:
             return "UNKNOWN"
+        if c.isdigit():
+            idx = int(c)
+            if idx < len(self.type_backrefs):
+                return self.type_backrefs[idx]
 
         # Primitives
         prim = {
@@ -62,39 +78,111 @@ class Undecorator:
             "N": "double",
         }
         if c in prim:
-            return prim[c]
+            t = prim[c]
+            self.type_backrefs.append(t)
+            return t
         if c == "_":
             c2 = self.consume()
             ext = {
                 "N": "bool",
                 "J": "__int64",
                 "K": "unsigned __int64",
+                "W": "wchar_t",
+                "S": "short",
+                "U": "unsigned short",
+                "L": "long",
+                "M": "unsigned long",
+                "Q": "__int128",
+                "R": "unsigned __int128",
             }
-            return ext.get(c2, f"UNKNOWN__{c2}")
+            t = ext.get(c2, f"UNKNOWN__{c2}")
+            self.type_backrefs.append(t)
+            return t
 
         # Pointers/references (AEAVFoo@@ -> Foo&)
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
             name = self.parse_fully_qualified_name()
-            return f"class {name} &"
+            t = f"class {name} &"
+            self.type_backrefs.append(t)
+            return t
 
         # Pointers/references
         if c == "P":
             qual = self.consume()  # A=ref, B=const, E=ptr, etc.
             base = self.parse_type()
             if qual == "A":
-                return f"{base} &"
+                t = f"{base} &"
+                self.type_backrefs.append(t)
+                return t
             if qual == "B":
-                return f"{base} const *"
+                t = f"{base} const *"
+                self.type_backrefs.append(t)
+                return t
             # Default to pointer
-            return f"{base} *"
+            t = f"{base} *"
+            self.type_backrefs.append(t)
+            return t
 
         # Class/struct types
         if c in ("V", "U"):
             name = self.parse_fully_qualified_name()
-            return f"class {name}"
+            t = f"class {name}"
+            self.type_backrefs.append(t)
+            return t
 
-        return f"UNK({c})"
+        # Template class types (e.g., V?$Foo@@)
+        if c == "?":
+            if self.peek() == "$":
+                name = self.parse_template_name()
+                t = f"class {name}"
+                self.type_backrefs.append(t)
+                return t
+            # Unknown ?-prefixed type
+            t = "UNKNOWN"
+            self.type_backrefs.append(t)
+            return t
+
+        t = f"UNK({c})"
+        self.type_backrefs.append(t)
+        return t
+
+    def parse_template_args(self):
+        args = []
+        # Template args are separated by '@', terminated by '@@'
+        while True:
+            if self.peek() is None:
+                break
+            if self.mangled[self.pos:self.pos + 2] == "@@":
+                self.pos += 2
+                break
+            if self.peek() == "@":
+                self.consume()
+                continue
+            # Handle template-parameter backrefs (e.g., digit)
+            if self.peek().isdigit():
+                idx = int(self.consume())
+                if idx < len(self.name_backrefs):
+                    args.append(self.name_backrefs[idx])
+                    continue
+            args.append(self.parse_type())
+            if self.peek() == "@":
+                self.consume()
+                continue
+        return args
+
+    def parse_template_name(self):
+        # Entry with current pos at "?$"
+        self.consume()  # '?'
+        self.consume()  # '$'
+        base = ""
+        while self.peek() not in (None, "@"):
+            base += self.consume()
+        if self.peek() == "@":
+            self.consume()  # skip '@'
+        args = self.parse_template_args()
+        arg_str = ", ".join(args)
+        return f"{base}<{arg_str}>"
 
     def parse_special_member(self):
         op = self.consume()  # 0 ctor, 1 dtor, etc.
@@ -183,7 +271,7 @@ class Undecorator:
         is_special = False
         func_name = ""
 
-        if self.peek() == "?":
+        if self.peek() == "?" and not (self.mangled[self.pos:self.pos + 2] == "?$"):
             self.consume()  # skip 2nd ?
             func_name = self.parse_special_member()
             is_special = True
