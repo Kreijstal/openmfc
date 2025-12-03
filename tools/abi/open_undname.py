@@ -148,7 +148,7 @@ class Undecorator:
                 args.append(self.parse_type(store_type=store_type))
         if self.peek() == "Z":
             self.consume()
-        return f"{ret} ({cc}*)({', '.join(args)})"
+        return f"{ret} ({cc}*)({','.join(args)})"
 
     def parse_type(self, store_name: bool = True, store_type: bool = True):
         c = self.consume()
