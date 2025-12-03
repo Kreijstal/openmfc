@@ -157,6 +157,8 @@ class Undecorator:
         if c.isdigit():
             idx = int(c)
             if idx < len(self.type_backrefs):
+                if idx == 0:
+                    return self.type_backrefs[-1]
                 return self.type_backrefs[idx]
 
         # Handle rvalue reference prefix $$ or $$Q
