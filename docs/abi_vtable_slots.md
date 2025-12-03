@@ -1,34 +1,12 @@
-# Vtable Slot Reference (Phase 0A)
+# ABI VTable Slots (Phase 0B)
 
-Derived from `layout.log`.
+Status: MSVC reference observed via current shim build (release-style). Update this file if future dumps show additional slots.
 
-## CStage1_Simple
-- 0: dtor
-- 1: GetValue
-- 2: SetValue
+## CObject
+- 0: Scalar deleting destructor
+- 1: GetRuntimeClass
+- 2: Serialize
+- 3: AssertValid — not present in current mfc140u.dll observation (release); omitted from shim vtable
+- 4: Dump — not present in current mfc140u.dll observation (release); omitted from shim vtable
 
-## CStage2_Signatures
-- 0..5: Func overloads in declaration order (int, int*, const int*, int&, const int&, volatile int*)
-
-## CStage4_Multi
-- Vftable@CStage4_A: slot0 FuncA
-- Vftable@CStage4_B: slot0 FuncB (this adjustor +16)
-
-## CStage6_Modern
-- 0: NoExceptFunc
-- 1: ConstFunc
-
-## CStage7_NoVtable
-- 0: Method
-
-## CCovariantBase
-- 0: Clone
-- 1: dtor
-
-## CCovariantDerived
-- 0: Clone
-- 1: dtor
-
-## IPure
-- 0: PureMethod (purecall)
-- 1: dtor
+If future MFC exports show AssertValid/Dump, add matching thunks/exports to `phase0b/src/object.s` and `phase0b/def/mfc140u.def`.

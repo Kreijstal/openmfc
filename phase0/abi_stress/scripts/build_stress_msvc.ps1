@@ -17,7 +17,8 @@ $SrcFiles = @(
     "$SourceDir\src\07_abstract.cpp",
     "$SourceDir\src\08_covariant.cpp",
     "$SourceDir\src\09_abstract_pure.cpp",
-    "$SourceDir\src\10_calling_convention.cpp"
+    "$SourceDir\src\10_calling_convention.cpp",
+    "$SourceDir\src\11_rtti_harvest.cpp"
 )
 
 # Compiler Flags
@@ -36,7 +37,9 @@ $Flags = "/nologo", "/std:c++17", "/EHsc", "/LD", "/MD", "/O1", "/Zi",
          "/d1reportSingleClassLayoutCStage7_NoVtable",
          "/d1reportSingleClassLayoutCCovariantDerived",
          "/d1reportSingleClassLayoutIPure",
-         "/d1reportSingleClassLayoutCCallProbe"
+         "/d1reportSingleClassLayoutCCallProbe",
+         "/d1reportSingleClassLayoutCRttiBase",
+         "/d1reportSingleClassLayoutCRttiDerived"
 
 Write-Host "Building abi_stress.dll..."
 # We pipe the build output to a file because the /d1report flag prints to stdout
@@ -92,7 +95,7 @@ ABI Stress Harvest
 Timestamp: $($metadata.timestamp)
 Compiler: $($metadata.cl_version)
 Flags: $($Flags -join " ")
-Classes: CStage1_Simple, CStage2_Signatures, CStage3_Base, CStage4_Multi, CStage5_RVO, CStage6_Modern, CStage7_NoVtable, CCovariant{Base,Derived}, IPure
+Classes: CStage1_Simple, CStage2_Signatures, CStage3_Base, CStage4_Multi, CStage5_RVO, CStage6_Modern, CStage7_NoVtable, CCovariant{Base,Derived}, IPure, CRtti{Base,Derived}
 Artifacts:
  - abi_stress.dll / .pdb
  - exports.txt
@@ -101,5 +104,9 @@ Artifacts:
  - disassembly.txt
  - layout.log
 "@ | Out-File "README.txt"
+
+# Additional dumps for RTTI analysis
+& dumpbin /SECTION:.rdata /RAWDATA abi_stress.dll > rdata_dump.txt 2>&1
+& dumpbin /RELOCATIONS abi_stress.dll > relocations.txt 2>&1
 
 Write-Host "Success. Artifacts located in $OutDir"

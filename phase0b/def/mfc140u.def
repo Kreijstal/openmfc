@@ -1,6 +1,12 @@
 LIBRARY openmfc
 EXPORTS
-??0CObject@@QEAA@XZ = _ZN7CObjectC1Ev
-??1CObject@@UEAA@XZ = _ZN7CObjectD1Ev
-?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = _ZNK7CObject15GetRuntimeClassEv
-?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = _ZNK7CObject8IsKindOfEPK13CRuntimeClass
+??_7CObject@@6B@ = CObject_vftable
+??0CObject@@QEAA@XZ = CObject_ctor
+??1CObject@@UEAA@XZ = CObject_dtor
+??_GCObject@@UEAAPEAXI@Z = CObject_scalar_dtor
+??_ECObject@@UEAAPEAXI@Z = CObject_vector_dtor
+??2CObject@@SAPEAX_K@Z = CObject_new
+??3CObject@@SAXPEAX@Z = CObject_delete
+?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = CObject_GetRuntimeClass
+?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = CObject_IsKindOf
+?Serialize@CObject@@UEAAXAEAVCArchive@@@Z = CObject_Serialize

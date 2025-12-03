@@ -22,20 +22,28 @@ LDFLAGS=(
   -Wl,--out-implib,"$BUILD_DIR/libopenmfc.a"
 )
 
-SRC=(
-  "$ROOT_DIR/src/mfc_dll.cpp"
-  "$ROOT_DIR/src/object.cpp"
-  "$ROOT_DIR/src/dumpcont.cpp"
-)
-
 echo "Building $DLL_NAME into $BUILD_DIR"
 
-link_inputs=("${SRC[@]}")
+# Compile C and C++
+"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/mfc_dll.cpp" -o "$BUILD_DIR/mfc_dll.o"
+"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/object_impl.cpp" -o "$BUILD_DIR/object_impl.o"
+"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/dumpcont.cpp" -o "$BUILD_DIR/dumpcont.o"
+
+# Assemble shim
+"$CXX" -c "$ROOT_DIR/src/object.s" -o "$BUILD_DIR/object.o"
+
+link_inputs=(
+  "$BUILD_DIR/mfc_dll.o"
+  "$BUILD_DIR/object_impl.o"
+  "$BUILD_DIR/dumpcont.o"
+  "$BUILD_DIR/object.o"
+)
+
 if [ -f "$DEF_FILE" ]; then
   link_inputs+=("$DEF_FILE")
 fi
 
-"$CXX" "${CXXFLAGS[@]}" "${link_inputs[@]}" "${LDFLAGS[@]}" -o "$BUILD_DIR/$DLL_NAME"
+"$CXX" "${link_inputs[@]}" "${LDFLAGS[@]}" -o "$BUILD_DIR/$DLL_NAME"
 
 echo "Output:"
 ls -l "$BUILD_DIR"/$DLL_NAME "$BUILD_DIR"/libopenmfc.a 2>/dev/null || true
