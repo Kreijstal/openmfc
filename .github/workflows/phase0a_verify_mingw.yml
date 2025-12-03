@@ -57,7 +57,7 @@ jobs:
         run: ./phase0/capability_check/scripts/build_host_msvc.ps1
 
       - name: Download MinGW DLL
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: mingw_dll
           path: ${{ steps.paths.outputs.bin_dir }}
