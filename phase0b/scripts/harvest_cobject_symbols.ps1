@@ -31,27 +31,21 @@ Write-Host "Generating temporary source..."
 #include "afx.h"
 class CArchive {};
 
-// Force references to all exported symbols so dumpbin sees the decorated names.
-#pragma comment(linker, "/include:??_7CObject@@6B@")
-#pragma comment(linker, "/include:??0CObject@@QEAA@XZ")
-#pragma comment(linker, "/include:??1CObject@@UEAA@XZ")
-#pragma comment(linker, "/include:??_GCObject@@UEAAPEAXI@Z")
-#pragma comment(linker, "/include:??_ECObject@@UEAAPEAXI@Z")
-#pragma comment(linker, "/include:??2CObject@@SAPEAX_K@Z")
-#pragma comment(linker, "/include:??3CObject@@SAXPEAX@Z")
-#pragma comment(linker, "/include:?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ")
-#pragma comment(linker, "/include:?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z")
-#pragma comment(linker, "/include:?Serialize@CObject@@UEAAXAEAVCArchive@@@Z")
-#pragma comment(linker, "/include:?CreateObject@CObject@@SAPEAV1@XZ")
-
 int main() {
+    // Static CreateObject (should be nullptr for CObject)
     CObject* p = CObject::CreateObject();
     if (!p) {
         p = new CObject();
     }
+
     p->Serialize(*reinterpret_cast<CArchive*>(nullptr));
     auto cls = p->GetRuntimeClass();
     p->IsKindOf(cls);
+
+    // Trigger vector deleting destructor symbols
+    CObject* arr = new CObject[1];
+    delete[] arr;
+
     delete p;
     return 0;
 }
