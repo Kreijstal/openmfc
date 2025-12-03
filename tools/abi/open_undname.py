@@ -643,7 +643,11 @@ class Undecorator:
                 if self.peek() in ("A", "B", "C", "D"):
                     cv_code = self.consume()
                     cv_ptr = {"A": "", "B": " const", "C": " volatile", "D": " const volatile"}[cv_code]
-                t = f"{t} * __ptr64{cv_ptr}"
+                # avoid duplicating if already a pointer
+                if t.endswith("* __ptr64") or t.endswith(" & __ptr64"):
+                    t = f"{t}{cv_ptr}"
+                else:
+                    t = f"{t} * __ptr64{cv_ptr}"
             is_const_data = False
             if self.peek() == "B":
                 is_const_data = True
