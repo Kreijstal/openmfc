@@ -1,0 +1,110 @@
+??0accelerator@Concurrency@@AEAA@V?$_Reference_counted_obj_ptr@V_Accelerator_impl@details@Concurrency@@@details@1@@Z
+  undname: private: __cdecl Concurrency::accelerator::accelerator(class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Accelerator_impl>) __ptr64
+  open:   private: __cdecl Concurrency::accelerator::accelerator(class Concurrency::details::_Reference_counted_obj_ptr<class _Accelerator_impl>,UNK(d),UNK(e),UNK(t),UNK(a),UNK(i),UNK(l),UNK(s),UNK(d)) __ptr64
+  match: False
+
+??0accelerator_view@Concurrency@@AEAA@V?$_Reference_counted_obj_ptr@V_Accelerator_view_impl@details@Concurrency@@@details@1@_N@Z
+  undname: private: __cdecl Concurrency::accelerator_view::accelerator_view(class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Accelerator_view_impl>,bool) __ptr64
+  open:   private: __cdecl Concurrency::accelerator_view::accelerator_view(class Concurrency::details::_Reference_counted_obj_ptr<class _Accelerator_view_impl>,UNK(d),UNK(e),UNK(t),UNK(a),UNK(i),UNK(l),UNK(s),UNK(d),bool) __ptr64
+  match: False
+
+?_Add_continuation@_Event@details@Concurrency@@QEAA?AV123@AEBV?$function@$$A6A?AV_Event@details@Concurrency@@XZ@std@@@Z
+  undname: public: class Concurrency::details::_Event __cdecl Concurrency::details::_Event::_Add_continuation(class std::function<class Concurrency::details::_Event __cdecl(void)> const & __ptr64) __ptr64
+  open:   public: class Concurrency::details::_Event __cdecl Concurrency::details::_Event::_Add_continuation(class std::function<UNK($),class _Event (__cdecl*)(UNK(d),UNK(e),UNK(t),UNK(a),UNK(i),UNK(l),UNK(s),UNK(o) volatile,UNK(n),UNK(c),UNK(u),UNK(r),UNK(r),UNK(e),UNK(n),UNK(c),UNK(y),void)> const & __ptr64) __ptr64
+  match: False
+
+?_Create_stage_texture@_Texture@details@Concurrency@@SAPEAV123@Vaccelerator_view@3@0I_K11II_N@Z
+  undname: public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_stage_texture(class Concurrency::accelerator_view,class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned __int64,unsigned __int64,unsigned int,unsigned int,bool)
+  open:   public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_stage_texture(class Concurrency::accelerator_view,class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned int,unsigned int,unsigned int,unsigned int,bool)
+  match: False
+
+?_Create_stage_texture@_Texture@details@Concurrency@@SAPEAV123@Vaccelerator_view@3@0I_K11IW4_Short_vector_base_type_id@23@II@Z
+  undname: public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_stage_texture(class Concurrency::accelerator_view,class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned __int64,unsigned __int64,unsigned int,enum Concurrency::details::_Short_vector_base_type_id,unsigned int,unsigned int)
+  open:   public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_stage_texture(class Concurrency::accelerator_view,class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned int,unsigned int,unsigned int,enum Concurrency::details::_Short_vector_base_type_id,unsigned int,unsigned int)
+  match: False
+
+?_Create_texture@_Texture@details@Concurrency@@SAPEAV123@Vaccelerator_view@3@I_K11IW4_Short_vector_base_type_id@23@II_N@Z
+  undname: public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_texture(class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned __int64,unsigned __int64,unsigned int,enum Concurrency::details::_Short_vector_base_type_id,unsigned int,unsigned int,bool)
+  open:   public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Create_texture(class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned int,unsigned int,unsigned int,enum Concurrency::details::_Short_vector_base_type_id,unsigned int,unsigned int,bool)
+  match: False
+
+?_Create_ubiquitous_buffer@_Ubiquitous_buffer@details@Concurrency@@SAPEAV123@V?$_Reference_counted_obj_ptr@V_Buffer@details@Concurrency@@@23@@Z
+  undname: public: static class Concurrency::details::_Ubiquitous_buffer * __ptr64 __cdecl Concurrency::details::_Ubiquitous_buffer::_Create_ubiquitous_buffer(class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Buffer>)
+  open:   public: static class Concurrency::details::_Ubiquitous_buffer * __ptr64 __cdecl Concurrency::details::_Ubiquitous_buffer::_Create_ubiquitous_buffer(class Concurrency::details::_Reference_counted_obj_ptr<class _Buffer>,UNK(2),UNK(3))
+  match: False
+
+?_Get_access_async@_Ubiquitous_buffer@details@Concurrency@@AEAA?AV_Event@23@PEAU_Buffer_descriptor@23@Vaccelerator_view@3@W4_Access_mode@@AEAV?$_Reference_counted_obj_ptr@V_Buffer@details@Concurrency@@@23@PEA_K@Z
+  undname: private: class Concurrency::details::_Event __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_access_async(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::accelerator_view,enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Buffer> & __ptr64,unsigned __int64 * __ptr64) __ptr64
+  open:   private: class Concurrency::details::_Event __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_access_async(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::accelerator_view,enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class _Buffer> & __ptr64,enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class _Buffer> & __ptr64,unsigned __int64 * __ptr64) __ptr64
+  match: False
+
+?_Get_access_async@_Ubiquitous_buffer@details@Concurrency@@QEAA?AV_Event@23@PEAU_Buffer_descriptor@23@V?$_Reference_counted_obj_ptr@V_Accelerator_view_impl@details@Concurrency@@@23@W4_Access_mode@@AEAV?$_Reference_counted_obj_ptr@V_Buffer@details@Concurrency@@@23@PEA_K@Z
+  undname: public: class Concurrency::details::_Event __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_access_async(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Accelerator_view_impl>,enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_Buffer> & __ptr64,unsigned __int64 * __ptr64) __ptr64
+  open:   public: class Concurrency::details::_Event __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_access_async(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::details::_Reference_counted_obj_ptr<class _Accelerator_view_impl>,UNK(2),UNK(3),enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class _Buffer> & __ptr64,enum _Access_mode,class Concurrency::details::_Reference_counted_obj_ptr<class _Buffer> & __ptr64,unsigned __int64 * __ptr64) __ptr64
+  match: False
+
+?_Get_src_dest_accelerator_view@details@Concurrency@@YA?AU?$pair@Vaccelerator_view@Concurrency@@V12@@std@@PEBU_Buffer_descriptor@12@0@Z
+  undname: struct std::pair<class Concurrency::accelerator_view,class Concurrency::accelerator_view> __cdecl Concurrency::details::_Get_src_dest_accelerator_view(struct Concurrency::details::_Buffer_descriptor const * __ptr64,struct Concurrency::details::_Buffer_descriptor const * __ptr64)
+  open:   struct ncurrency::pair<class accelerator_view,UNK(o) volatile> __cdecl Concurrency::details::_Get_src_dest_accelerator_view(class Concurrency::details,UNK(s),UNK(t),UNK(d),struct Concurrency::details::_Buffer_descriptor const * __ptr64,struct Concurrency::details::_Buffer_descriptor const * __ptr64)
+  match: False
+
+?_Get_temp_staging_texture@_Texture@details@Concurrency@@SAPEAV123@Vaccelerator_view@3@I_K11II@Z
+  undname: public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Get_temp_staging_texture(class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned __int64,unsigned __int64,unsigned int,unsigned int)
+  open:   public: static class Concurrency::details::_Texture * __ptr64 __cdecl Concurrency::details::_Texture::_Get_temp_staging_texture(class Concurrency::accelerator_view,unsigned int,unsigned __int64,unsigned int,unsigned int,unsigned int,unsigned int)
+  match: False
+
+?_Get_view_shape@_Ubiquitous_buffer@details@Concurrency@@QEAA?AV?$_Reference_counted_obj_ptr@V_View_shape@details@Concurrency@@@23@PEAU_Buffer_descriptor@23@@Z
+  undname: public: class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_View_shape> __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_view_shape(struct Concurrency::details::_Buffer_descriptor * __ptr64) __ptr64
+  open:   public: class Concurrency::details::_Reference_counted_obj_ptr<class _View_shape> __cdecl Concurrency::details::_Ubiquitous_buffer::_Get_view_shape(UNK(2),UNK(3),struct Concurrency::details::_Buffer_descriptor * __ptr64) __ptr64
+  match: False
+
+?_Launch_async_copy_event_helper@_Amp_runtime_trace@details@Concurrency@@QEAAKAEBU_Texture_descriptor@23@$$T_K@Z
+  undname: public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Launch_async_copy_event_helper(struct Concurrency::details::_Texture_descriptor const & __ptr64,std::nullptr_t,unsigned __int64) __ptr64
+  open:   public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Launch_async_copy_event_helper(struct Concurrency::details::_Texture_descriptor const & __ptr64,UNK(T) && __ptr64,unsigned __int64) __ptr64
+  match: False
+
+?_Recursive_array_copy@details@Concurrency@@YAJAEBU_Array_copy_desc@12@IV?$function@$$A6AJAEBU_Array_copy_desc@details@Concurrency@@@Z@std@@@Z
+  undname: long __cdecl Concurrency::details::_Recursive_array_copy(struct Concurrency::details::_Array_copy_desc const & __ptr64,unsigned int,class std::function<long __cdecl(struct Concurrency::details::_Array_copy_desc const & __ptr64)>)
+  open:   long __cdecl Concurrency::details::_Recursive_array_copy(struct Concurrency::details::_Array_copy_desc const & __ptr64,unsigned int,class std::function<UNK($),long (__cdecl*)(struct _Array_copy_desc const & __ptr64,UNK(d),UNK(e),UNK(t),UNK(a),UNK(i),UNK(l),UNK(s),UNK(o) volatile,UNK(n),UNK(c),UNK(u),UNK(r),UNK(r),UNK(e),UNK(n),UNK(c),UNK(y))>)
+  match: False
+
+?_Register_view@_Ubiquitous_buffer@details@Concurrency@@QEAAXPEAU_Buffer_descriptor@23@Vaccelerator_view@3@V?$_Reference_counted_obj_ptr@V_View_shape@details@Concurrency@@@23@QEAU423@@Z
+  undname: public: void __cdecl Concurrency::details::_Ubiquitous_buffer::_Register_view(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::accelerator_view,class Concurrency::details::_Reference_counted_obj_ptr<class Concurrency::details::_View_shape>,struct Concurrency::details::_Buffer_descriptor * __ptr64 const) __ptr64
+  open:   public: void __cdecl Concurrency::details::_Ubiquitous_buffer::_Register_view(struct Concurrency::details::_Buffer_descriptor * __ptr64,class Concurrency::accelerator_view,class Concurrency::details::_Reference_counted_obj_ptr<class _View_shape>,class Concurrency::details::_Reference_counted_obj_ptr<class _View_shape>,UNK(3),struct Concurrency::details::_Buffer_descriptor * __ptr64 const) __ptr64
+  match: False
+
+?_Start_copy_event_helper@_Amp_runtime_trace@details@Concurrency@@QEAAK$$TAEBU_Buffer_descriptor@23@_K@Z
+  undname: public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(std::nullptr_t,struct Concurrency::details::_Buffer_descriptor const & __ptr64,unsigned __int64) __ptr64
+  open:   public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(UNK(T) && __ptr64,struct Concurrency::details::_Buffer_descriptor const & __ptr64,unsigned __int64) __ptr64
+  match: False
+
+?_Start_copy_event_helper@_Amp_runtime_trace@details@Concurrency@@QEAAK$$TAEBU_Texture_descriptor@23@_K@Z
+  undname: public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(std::nullptr_t,struct Concurrency::details::_Texture_descriptor const & __ptr64,unsigned __int64) __ptr64
+  open:   public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(UNK(T) && __ptr64,struct Concurrency::details::_Texture_descriptor const & __ptr64,unsigned __int64) __ptr64
+  match: False
+
+?_Start_copy_event_helper@_Amp_runtime_trace@details@Concurrency@@QEAAKAEBU_Buffer_descriptor@23@$$T_K@Z
+  undname: public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(struct Concurrency::details::_Buffer_descriptor const & __ptr64,std::nullptr_t,unsigned __int64) __ptr64
+  open:   public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(struct Concurrency::details::_Buffer_descriptor const & __ptr64,UNK(T) && __ptr64,unsigned __int64) __ptr64
+  match: False
+
+?_Start_copy_event_helper@_Amp_runtime_trace@details@Concurrency@@QEAAKAEBU_Texture_descriptor@23@$$T_K@Z
+  undname: public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(struct Concurrency::details::_Texture_descriptor const & __ptr64,std::nullptr_t,unsigned __int64) __ptr64
+  open:   public: unsigned long __cdecl Concurrency::details::_Amp_runtime_trace::_Start_copy_event_helper(struct Concurrency::details::_Texture_descriptor const & __ptr64,UNK(T) && __ptr64,unsigned __int64) __ptr64
+  match: False
+
+?default_accelerator@accelerator@Concurrency@@2QB_WB
+  undname: public: static wchar_t const * const Concurrency::accelerator::default_accelerator
+  open:   public: static wchar_t const * __ptr64 const Concurrency::accelerator::default_accelerator
+  match: False
+
+?direct3d_ref@accelerator@Concurrency@@2QB_WB
+  undname: public: static wchar_t const * const Concurrency::accelerator::direct3d_ref
+  open:   public: static wchar_t const * __ptr64 const Concurrency::accelerator::direct3d_ref
+  match: False
+
+?direct3d_warp@accelerator@Concurrency@@2QB_WB
+  undname: public: static wchar_t const * const Concurrency::accelerator::direct3d_warp
+  open:   public: static wchar_t const * __ptr64 const Concurrency::accelerator::direct3d_warp
+  match: False
+
