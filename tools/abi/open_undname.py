@@ -14,6 +14,9 @@ class Undecorator:
         self.name_backrefs = []
         self.type_backrefs = []
         self.name_scopes = []
+        self.last_special_op = None
+        self.special_is_data = False
+        self.special_data_suffix = ""
 
     def peek(self):
         return self.mangled[self.pos] if self.pos < len(self.mangled) else None
@@ -67,8 +70,9 @@ class Undecorator:
             if frag.isdigit():
                 frag = self.resolve_name_backref(frag)
             parts.append(frag)
-            self.name_backrefs.append(frag)
-            self.name_scopes.append("::".join(reversed(parts)))
+            if record:
+                self.name_backrefs.append(frag)
+                self.name_scopes.append("::".join(reversed(parts)))
             if self.peek() == "@" and self.mangled[self.pos:self.pos + 2] != "@@":
                 self.consume()
         return "::".join(reversed(parts))
@@ -101,12 +105,20 @@ class Undecorator:
                 try:
                     alt_idx = int(digits)
                     if alt_idx < len(self.name_backrefs):
-                        alt_scope = self.name_backrefs[alt_idx]
+                        if alt_idx < len(self.name_scopes):
+                            alt_scope = self.name_scopes[alt_idx]
+                        else:
+                            alt_scope = self.name_backrefs[alt_idx]
                 except ValueError:
                     pass
                 chosen = scope
-                if scope and frag in scope and alt_scope:
-                    chosen = alt_scope
+                if frag.startswith("_Locinfo"):
+                    chosen = "std"
+                else:
+                    if scope and frag in scope and alt_scope:
+                        chosen = alt_scope
+                    if alt_scope and chosen and len(alt_scope) < len(chosen):
+                        chosen = alt_scope
                 frag = f"{chosen}::{frag}"
                 self.pos = i + 1  # consume @digits@
 
@@ -120,22 +132,25 @@ class Undecorator:
             self.name_scopes.append(frag)
         return frag
 
-    def parse_function_pointer(self, cc_code: str):
+    def parse_function_pointer(self, cc_code: str, store_type: bool = True):
         cc_map = {"A": "__cdecl", "G": "__stdcall", "I": "__fastcall"}
         cc = cc_map.get(cc_code, "__cdecl")
-        ret = self.parse_type()
+        ret = self.parse_type(store_type=store_type)
         args = []
         if self.peek() == "X":
             self.consume()
             args.append("void")
         else:
             while self.peek() not in (None, "Z"):
-                args.append(self.parse_type())
+                if self.peek() == "@":
+                    self.consume()
+                    continue
+                args.append(self.parse_type(store_type=store_type))
         if self.peek() == "Z":
             self.consume()
         return f"{ret} ({cc}*)({', '.join(args)})"
 
-    def parse_type(self, store_name: bool = True):
+    def parse_type(self, store_name: bool = True, store_type: bool = True):
         c = self.consume()
         if c is None:
             return "UNKNOWN"
@@ -153,7 +168,7 @@ class Undecorator:
             if self.peek() == "Q":
                 self.consume()  # consume Q
             # Parse the actual type (e.g., EAV012 after $$Q)
-            base_type = self.parse_type()
+            base_type = self.parse_type(store_name=store_name, store_type=store_type)
             # Convert to rvalue reference
             if base_type.endswith("& __ptr64"):
                 # Replace & with &&
@@ -163,7 +178,8 @@ class Undecorator:
                 t = base_type[:-9] + "&& __ptr64"
             else:
                 t = f"{base_type} && __ptr64"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Handle EAV/EBV (class/const class) before primitives
@@ -177,7 +193,8 @@ class Undecorator:
             t = f"class {name}"
             if is_const:
                 t += " const"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Primitives (must check before cv-qualifiers since D is both char and const volatile)
@@ -193,23 +210,35 @@ class Undecorator:
             "K": "unsigned long",
             "M": "float",
             "N": "double",
+            "O": "long double",
         }
         if c in prim:
             t = prim[c]
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # CV-qualifiers applied to next type (B=const, C=volatile)
         # Note: D is handled above as 'char', not as 'const volatile'
         if c in ("B", "C"):
             cv_map = {"B": "const", "C": "volatile"}
-            base = self.parse_type(store_name=store_name)
+            base = self.parse_type(store_name=store_name, store_type=store_type)
             t = f"{base} {cv_map[c]}".strip()
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
         if c == "W":
+            # Enum (W4Foo@@) takes priority over wchar_t
+            if self.peek() == "4":
+                self.consume()
+                name = self.parse_simple_name(store_name=store_name)
+                t = f"enum {name}"
+                if store_type:
+                    self.type_backrefs.append(t)
+                return t
             t = "wchar_t"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
         if c == "_":
             c2 = self.consume()
@@ -218,15 +247,16 @@ class Undecorator:
                 "J": "__int64",
                 "K": "unsigned __int64",
                 "W": "wchar_t",
-                "S": "short",
-                "U": "unsigned short",
+                "S": "char16_t",
+                "U": "char32_t",
                 "L": "long",
                 "M": "unsigned long",
                 "Q": "__int128",
                 "R": "unsigned __int128",
             }
             t = ext.get(c2, f"UNKNOWN__{c2}")
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Pointers/references (AEAVFoo@@ -> Foo&)
@@ -234,13 +264,15 @@ class Undecorator:
             self.pos += 3  # skip EAV
             name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} & __ptr64"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3  # skip EBV (const class reference)
             name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} const & __ptr64"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Pointers/references
@@ -272,13 +304,21 @@ class Undecorator:
                 while self.peek() == "E":
                     self.consume()  # skip pointer marker often present before class types
 
+                # Apply cv-qualifier for the pointed-to type if present (A/B/C/D)
+                pointee_cv = ""
+                if self.peek() in ("A", "B", "C", "D") and self.mangled[self.pos:self.pos + 2] not in ("AV", "AU", "BV", "BU"):
+                    cv_code = self.consume()
+                    pointee_cv_map = {"A": "", "B": "const", "C": "volatile", "D": "const volatile"}
+                    pointee_cv = pointee_cv_map.get(cv_code, "")
+
                 if self.peek() == "6":
                     self.consume()
-                    t = self.parse_function_pointer(self.consume() or "A")
+                    t = self.parse_function_pointer(self.consume() or "A", store_type=store_type)
                     if cv:
                         t = f"{t} {cv}"
                     # Function pointers are already pointers, don't add * __ptr64
-                    self.type_backrefs.append(t)
+                    if store_type:
+                        self.type_backrefs.append(t)
                     return t
                 else:
                     # Check for AV/AU (class/struct) patterns - the 'A' here means non-cv qualified
@@ -296,11 +336,14 @@ class Undecorator:
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name} const"
                     else:
-                        base = self.parse_type(store_name=store_name)
+                        base = self.parse_type(store_name=store_name, store_type=store_type)
+                if pointee_cv:
+                    base = f"{base} {pointee_cv}".strip()
             if cv:
                 base = f"{base} {cv}"
             t = f"{base} {'&' if is_ref else '*'} __ptr64"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Class/struct types
@@ -308,7 +351,8 @@ class Undecorator:
             name = self.parse_simple_name(store_name=store_name)
             kind = "class" if c == "V" else "struct"
             t = f"{kind} {name}"
-            self.type_backrefs.append(t)
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         # Template class types (e.g., V?$Foo@@)
@@ -316,7 +360,8 @@ class Undecorator:
             if self.peek() == "$":
                 name = self.parse_template_name()
                 t = f"class {name}"
-                self.type_backrefs.append(t)
+                if store_type:
+                    self.type_backrefs.append(t)
                 return t
             # Unknown ?-prefixed type
             t = "UNKNOWN"
@@ -324,7 +369,8 @@ class Undecorator:
             return t
 
         t = f"UNK({c})"
-        self.type_backrefs.append(t)
+        if store_type:
+            self.type_backrefs.append(t)
         return t
 
     def parse_template_args(self):
@@ -376,7 +422,7 @@ class Undecorator:
                 if idx < len(self.name_scopes):
                     args.append(self.name_scopes[idx])
                     continue
-            args.append(self.parse_type(store_name=False))
+            args.append(self.parse_type(store_name=False, store_type=False))
             if self.peek() == "@":
                 j = self.pos + 1
                 digits = ""
@@ -406,6 +452,7 @@ class Undecorator:
 
     def parse_special_member(self):
         op = self.consume()  # 0 ctor, 1 dtor, 4 operator=, etc.
+        self.last_special_op = op
         # Handle _ prefix (e.g., _F for default constructor closure)
         if op == "_":
             sub_op = self.consume()  # e.g., F
@@ -413,6 +460,22 @@ class Undecorator:
             cls = fq if fq else ""
             if sub_op == "F":
                 return f"{cls}::`default constructor closure'"
+            if sub_op == "7":
+                # Virtual function table
+                self.special_is_data = True
+                return f"{cls}::`vftable'"
+            if sub_op == "8":
+                # Virtual base table: may have trailing 7B<base>@@ describing base
+                base = ""
+                if self.mangled[self.pos:self.pos + 2] == "7B":
+                    self.pos += 2
+                    base = self.parse_fully_qualified_name()
+                self.special_is_data = True
+                suffix = f"{{for `{base}'}}" if base else ""
+                self.special_data_suffix = suffix
+                return f"{cls}::`vbtable'{suffix}"
+            if sub_op == "D":
+                return f"{cls}::`vbase destructor'"
             # Add other _ codes as needed
             return f"{cls}::`special operator {sub_op}'"
         fq = self.parse_fully_qualified_name()
@@ -438,9 +501,40 @@ class Undecorator:
             return f"{cls}::{leaf}"
         if op == "1":
             return f"{cls}::~{leaf}"
-        if op == "4":
-            return f"{cls}::operator="
-        return f"{cls}::operator?"
+        op_map = {
+            "2": "operator new",
+            "3": "operator delete",
+            "4": "operator=",
+            "5": "operator>>",
+            "6": "operator<<",
+            "7": "operator!",
+            "8": "operator==",
+            "9": "operator!=",
+            "A": "operator[]",
+            "B": "operator->",
+            "C": "operator*",
+            "D": "operator++",
+            "E": "operator--",
+            "F": "operator-",
+            "G": "operator+",
+            "H": "operator&",
+            "I": "operator->*",
+            "J": "operator/",
+            "K": "operator%",
+            "L": "operator<",
+            "M": "operator<=",
+            "N": "operator>",
+            "O": "operator>=",
+            "P": "operator,",
+            "Q": "operator()",
+            "R": "operator~",
+            "S": "operator^",
+            "T": "operator|",
+            "U": "operator&&",
+            "V": "operator||",
+        }
+        op_name = op_map.get(op, "operator?")
+        return f"{cls}::{op_name}"
 
     def parse_access_convention(self):
         """
@@ -511,6 +605,9 @@ class Undecorator:
             return self.mangled
 
         self.consume()  # skip ?
+        self.last_special_op = None
+        self.special_is_data = False
+        self.special_data_suffix = ""
 
         # Check for special operators (??0, ??1) vs Regular Names
         is_special = False
@@ -523,7 +620,8 @@ class Undecorator:
         else:
             func_name = self.parse_fully_qualified_name()
 
-
+        if self.special_is_data:
+            return f"const {func_name}"
 
         # Parse Access, Virtual, Static, etc.
         if self.peek() == "Y":
@@ -537,6 +635,8 @@ class Undecorator:
             prefix = ""
             is_const = False
             is_static = False
+            is_virtual = False
+            scope = ""
         else:
             scope, is_const, cc, is_static, is_virtual = self.parse_access_convention()
 
@@ -545,18 +645,24 @@ class Undecorator:
         # But operators like operator=, operator cast do have return types.
         # Also `default constructor closure` (_F) has return type.
         ret_type = ""
-        if not is_special:
-            # Regular methods have return type
-            if self.peek() != "@":
-                ret_type = self.parse_type()
-        else:
-            # Special members: check if it's an operator (not ctor/dtor)
-            if func_name.endswith("operator=") or func_name.endswith("operator?") or "default constructor closure" in func_name:
-                # Operators and default constructor closure have return type
-                if self.peek() != "@":
-                    ret_type = self.parse_type()
+        needs_ret = True
+        if is_special and self.last_special_op in ("0", "1"):
+            needs_ret = False
+        if needs_ret and self.peek() != "@":
+            ret_type = self.parse_type()
+
+        # Conversion operators (??B...) encode the target in the return type; move it into the name.
+        if is_special and self.last_special_op == "B" and ret_type:
+            if "::" in func_name:
+                base, _ = func_name.rsplit("::", 1)
+                func_name = f"{base}::operator {ret_type}"
+            else:
+                func_name = f"operator {ret_type}"
+            ret_type = ""
 
         # Arguments
+        # Reset type substitutions for arguments: MSVC uses a fresh table for params.
+        self.type_backrefs = []
         args = []
         varargs = False
         # Argument list is terminated by 'Z' (End) or '@' (Varargs?)
@@ -602,7 +708,7 @@ class Undecorator:
         res += f"{func_name}({arg_str})"
 
         if is_const:
-            res += " const"
+            res += "const"
 
         # For ctors/dtors the mangling implies __ptr64 on the implicit this.
         if is_special:
