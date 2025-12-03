@@ -49,6 +49,10 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Check DEF matches harvested symbols
+        shell: pwsh
+        run: ./phase0b/scripts/check_def_sync.ps1
+
       - name: Download artifacts
         uses: actions/download-artifact@v6
         with:
