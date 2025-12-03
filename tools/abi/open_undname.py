@@ -609,19 +609,25 @@ class Undecorator:
         # Multidimensional arrays (Y prefix)
         # Format: Y<num_dims><sizes>...<element_type>
         if c == "Y":
-            # Parse number of dimensions (encoded as a number)
+            # Parse number of dimensions (can be multi-digit)
             num_dims = 0
-            if self.peek() and self.peek().isdigit():
-                num_dims = int(self.consume())
+            num_str = ""
+            while self.peek() and self.peek().isdigit():
+                num_str += self.consume()
+            if num_str:
+                num_dims = int(num_str)
             # Parse dimension sizes
             sizes = []
             for _ in range(num_dims):
-                # Each dimension size is encoded - for now just parse a number
+                # Each dimension size is encoded
                 size = ""
                 while self.peek() and self.peek().isdigit():
                     size += self.consume()
                 if size:
                     sizes.append(size)
+                else:
+                    # No size found, use placeholder
+                    sizes.append("")
             # Parse element type
             element_type = self.parse_type(store_name=store_name, store_type=False)
             # Build array type string
