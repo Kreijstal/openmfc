@@ -50,6 +50,10 @@ class Undecorator:
                 idx = int(ch)
                 if idx < len(self.name_backrefs):
                     refs.append(self.name_backrefs[idx])
+                else:
+                    # Debug: index out of bounds
+                    # print(f"DEBUG: resolve_name_backref({digits}): idx={idx}, len(name_backrefs)={len(self.name_backrefs)}")
+                    pass
         return "::".join(refs) if refs else digits
 
     def parse_fully_qualified_name(self):
@@ -72,6 +76,33 @@ class Undecorator:
             if self.peek() == "@" and self.mangled[self.pos:self.pos + 2] != "@@":
                 self.consume()
         return "::".join(reversed(parts))
+    
+    def parse_simple_name(self):
+        # Parse a single name fragment (for class names in types)
+        # Handles optional @digits@ scope suffix
+        if self.peek() is None:
+            return ""
+        frag = self.parse_name_fragment()
+        if frag is None:
+            return ""
+        if frag.isdigit():
+            frag = self.resolve_name_backref(frag)
+        # Check for @digits@ scope suffix
+        if self.peek() == "@":
+            # Look ahead for digits then @
+            i = self.pos + 1
+            digits = ""
+            while i < len(self.mangled) and self.mangled[i].isdigit():
+                digits += self.mangled[i]
+                i += 1
+            if digits and i < len(self.mangled) and self.mangled[i] == "@":
+                # Found @digits@ scope
+                scope = self.resolve_name_backref(digits)
+                frag = f"{scope}::{frag}"
+                self.pos = i + 1  # consume @digits@
+        self.name_backrefs.append(frag)
+        self.name_scopes.append(frag)
+        return frag
 
     def parse_function_pointer(self, cc_code: str):
         cc_map = {"A": "__cdecl", "G": "__stdcall", "I": "__fastcall"}
@@ -96,6 +127,42 @@ class Undecorator:
             idx = int(c)
             if idx < len(self.type_backrefs):
                 return self.type_backrefs[idx]
+
+        # Handle rvalue reference prefix $$ or $$Q
+        if c == "$" and self.peek() == "$":
+            # Debug
+            # print(f"DEBUG: Found $$ at pos {self.pos}")
+            self.consume()  # consume second $
+            # Check if followed by Q (const for rvalue ref)
+            if self.peek() == "Q":
+                self.consume()  # consume Q
+            # Parse the actual type (e.g., EAV012 after $$Q)
+            base_type = self.parse_type()
+            # Convert to rvalue reference
+            if base_type.endswith("& __ptr64"):
+                # Replace & with &&
+                t = base_type[:-9] + "&& __ptr64"
+            elif base_type.endswith("* __ptr64"):
+                # Can't have rvalue reference to pointer? Handle anyway
+                t = base_type[:-9] + "&& __ptr64"
+            else:
+                t = f"{base_type} && __ptr64"
+            self.type_backrefs.append(t)
+            return t
+
+        # Handle EAV/EBV (class/const class) before primitives
+        if c == "E" and self.mangled[self.pos:self.pos + 2] in ("AV", "BV"):
+            # Debug
+            # print(f"DEBUG parse_type: EAV/EBV at pos {self.pos}")
+            kind_char = self.mangled[self.pos + 1]  # V
+            is_const = self.mangled[self.pos] == "B"  # B means const
+            self.pos += 2  # skip AV or BV
+            name = self.parse_simple_name()
+            t = f"class {name}"
+            if is_const:
+                t += " const"
+            self.type_backrefs.append(t)
+            return t
 
         # Primitives (must check before cv-qualifiers since D is both char and const volatile)
         prim = {
@@ -149,13 +216,13 @@ class Undecorator:
         # Pointers/references (AEAVFoo@@ -> Foo&)
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
-            name = self.parse_fully_qualified_name()
+            name = self.parse_simple_name()
             t = f"class {name} & __ptr64"
             self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3  # skip EBV (const class reference)
-            name = self.parse_fully_qualified_name()
+            name = self.parse_simple_name()
             t = f"class {name} const & __ptr64"
             self.type_backrefs.append(t)
             return t
@@ -175,45 +242,54 @@ class Undecorator:
             }
             cv = cv_map.get(c, "")
 
-            while self.peek() == "E":
-                self.consume()  # skip pointer marker often present before class types
-
-            if self.peek() == "6":
-                self.consume()
-                t = self.parse_function_pointer(self.consume() or "A")
+            # Check for EAV/EBV before consuming E markers
+            if self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
+                # Debug
+                # print(f"DEBUG: pointer/reference with EAV/EBV at pos {self.pos}")
+                is_const_cls = self.mangled[self.pos:self.pos + 3] == "EBV"
+                self.pos += 3  # skip EAV/EBV
+                name = self.parse_simple_name()
+                base = f"class {name}"
+                if is_const_cls:
+                    base += " const"
             else:
-                # Check for AV/AU (class/struct) patterns - the 'A' here means non-cv qualified
-                if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
-                    self.consume()  # A (cv qualifier)
-                    kind_char = self.consume()  # V or U
-                    name = self.parse_fully_qualified_name()
-                    kind = "class" if kind_char == "V" else "struct"
-                    base = f"{kind} {name}"
-                # Check for BV/BU (const class/struct) patterns
-                elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
-                    self.consume()  # B (const)
-                    kind_char = self.consume()  # V or U
-                    name = self.parse_fully_qualified_name()
-                    kind = "class" if kind_char == "V" else "struct"
-                    base = f"{kind} {name} const"
-                elif self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
-                    is_const_cls = self.mangled[self.pos:self.pos + 3] == "EBV"
-                    self.pos += 3  # skip EAV/EBV
-                    name = self.parse_fully_qualified_name()
-                    base = f"class {name}"
-                    if is_const_cls:
-                        base += " const"
+                while self.peek() == "E":
+                    self.consume()  # skip pointer marker often present before class types
+
+                if self.peek() == "6":
+                    self.consume()
+                    t = self.parse_function_pointer(self.consume() or "A")
+                    if cv:
+                        t = f"{t} {cv}"
+                    # Function pointers are already pointers, don't add * __ptr64
+                    self.type_backrefs.append(t)
+                    return t
                 else:
-                    base = self.parse_type()
-                if cv:
-                    base = f"{base} {cv}"
-                t = f"{base} {'&' if is_ref else '*'} __ptr64"
+                    # Check for AV/AU (class/struct) patterns - the 'A' here means non-cv qualified
+                    if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
+                        self.consume()  # A (cv qualifier)
+                        kind_char = self.consume()  # V or U
+                        name = self.parse_simple_name()
+                        kind = "class" if kind_char == "V" else "struct"
+                        base = f"{kind} {name}"
+                    # Check for BV/BU (const class/struct) patterns
+                    elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
+                        self.consume()  # B (const)
+                        kind_char = self.consume()  # V or U
+                        name = self.parse_simple_name()
+                        kind = "class" if kind_char == "V" else "struct"
+                        base = f"{kind} {name} const"
+                    else:
+                        base = self.parse_type()
+            if cv:
+                base = f"{base} {cv}"
+            t = f"{base} {'&' if is_ref else '*'} __ptr64"
             self.type_backrefs.append(t)
             return t
 
         # Class/struct types
         if c in ("V", "U"):
-            name = self.parse_fully_qualified_name()
+            name = self.parse_simple_name()
             kind = "class" if c == "V" else "struct"
             t = f"{kind} {name}"
             self.type_backrefs.append(t)
@@ -298,7 +374,16 @@ class Undecorator:
         return templ
 
     def parse_special_member(self):
-        op = self.consume()  # 0 ctor, 1 dtor, etc.
+        op = self.consume()  # 0 ctor, 1 dtor, 4 operator=, etc.
+        # Handle _ prefix (e.g., _F for default constructor closure)
+        if op == "_":
+            sub_op = self.consume()  # e.g., F
+            fq = self.parse_fully_qualified_name()
+            cls = fq if fq else ""
+            if sub_op == "F":
+                return f"{cls}::`default constructor closure'"
+            # Add other _ codes as needed
+            return f"{cls}::`special operator {sub_op}'"
         fq = self.parse_fully_qualified_name()
         cls = fq if fq else ""
         leaf = fq.split("::")[-1] if fq else ""
@@ -306,6 +391,8 @@ class Undecorator:
             return f"{cls}::{leaf}"
         if op == "1":
             return f"{cls}::~{leaf}"
+        if op == "4":
+            return f"{cls}::operator="
         return f"{cls}::operator?"
 
     def parse_access_convention(self):
@@ -329,13 +416,19 @@ class Undecorator:
         elif scope_char in ("K", "L"):
             scope = "protected"
             is_static = True
-        elif scope_char in ("Q", "R", "U", "V"):
+        elif scope_char in ("M", "N"):
+            scope = "protected"
+            is_virtual = True
+        elif scope_char in ("Q", "R"):
             scope = "public"
-            if scope_char in ("U", "V"):
-                is_virtual = True
         elif scope_char in ("S", "T"):
             scope = "public"
             is_static = True
+        elif scope_char in ("U", "V"):
+            scope = "public"
+            is_virtual = True
+        # Debug
+        # print(f"DEBUG parse_access_convention: scope_char={scope_char}, scope={scope}")
 
         prop_char = self.consume()
         extra_char = self.consume()  # cv slot
@@ -364,13 +457,7 @@ class Undecorator:
         elif cc_char == "I":
             cc = "__fastcall"
 
-        prefix = scope
-        if is_virtual:
-            prefix += " virtual"
-        if is_static:
-            prefix += " static"
-
-        return prefix, is_const, cc, is_static
+        return scope, is_const, cc, is_static, is_virtual
 
     def demangle(self):
         if not self.mangled.startswith("?"):
@@ -389,6 +476,8 @@ class Undecorator:
         else:
             func_name = self.parse_fully_qualified_name()
 
+
+
         # Parse Access, Virtual, Static, etc.
         if self.peek() == "Y":
             self.consume()
@@ -402,18 +491,23 @@ class Undecorator:
             is_const = False
             is_static = False
         else:
-            prefix, is_const, cc, is_static = self.parse_access_convention()
+            scope, is_const, cc, is_static, is_virtual = self.parse_access_convention()
 
         # Return Type
         # Constructors/Destructors do NOT have a return type in mangling.
+        # But operators like operator=, operator cast do have return types.
+        # Also `default constructor closure` (_F) has return type.
         ret_type = ""
         if not is_special:
-            # Special case: Type-cast operators (??B) have return type logic differently?
-            # For standard methods, return type is next.
-            # Note: 'X' = void, 'H' = int, etc.
-            # If we hit '@', it might mean something else, but usually return type is mandatory.
+            # Regular methods have return type
             if self.peek() != "@":
                 ret_type = self.parse_type()
+        else:
+            # Special members: check if it's an operator (not ctor/dtor)
+            if func_name.endswith("operator=") or func_name.endswith("operator?") or "default constructor closure" in func_name:
+                # Operators and default constructor closure have return type
+                if self.peek() != "@":
+                    ret_type = self.parse_type()
 
         # Arguments
         args = []
@@ -448,7 +542,11 @@ class Undecorator:
         # Assemble Result
         # e.g. "public virtual void Class::Func(int) const"
 
-        res = f"{prefix}: " if prefix else ""
+        res = f"{scope}: " if scope else ""
+        if is_virtual:
+            res += "virtual "
+        if is_static:
+            res += "static "
         if ret_type:
             res += f"{ret_type} "
         if cc:
@@ -464,7 +562,7 @@ class Undecorator:
             res += " __ptr64"
 
         # Mark implicit this-pointer width on non-static member functions only.
-        if prefix and not is_static and not res.endswith("__ptr64"):
+        if scope and not is_static and not res.endswith("__ptr64"):
             res += " __ptr64"
 
         return res
