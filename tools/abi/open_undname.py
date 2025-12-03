@@ -218,6 +218,13 @@ class Undecorator:
                 self.type_backrefs.append(t)
             return t
 
+        # Type backreference digit (0-9) into the substitution table
+        if c.isdigit():
+            idx = int(c)
+            if idx < len(self.type_backrefs):
+                return self.type_backrefs[idx]
+            return f"UNK({c})"
+
         # CV-qualifiers applied to next type (B=const, C=volatile)
         # Note: D is handled above as 'char', not as 'const volatile'
         if c in ("B", "C"):
@@ -278,7 +285,7 @@ class Undecorator:
         # Pointers/references
         if c in ("P", "Q", "R", "S", "A", "B", "C", "D"):
             is_ref = c in ("A", "B", "C", "D")
-            cv_map = {
+            pointer_cv_map = {
                 "P": "",
                 "Q": "const",
                 "R": "volatile",
@@ -288,7 +295,7 @@ class Undecorator:
                 "C": "volatile",
                 "D": "const volatile",
             }
-            cv = cv_map.get(c, "")
+            pointer_cv = pointer_cv_map.get(c, "")
 
             # Check for EAV/EBV before consuming E markers
             if self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
@@ -314,8 +321,6 @@ class Undecorator:
                 if self.peek() == "6":
                     self.consume()
                     t = self.parse_function_pointer(self.consume() or "A", store_type=store_type)
-                    if cv:
-                        t = f"{t} {cv}"
                     # Function pointers are already pointers, don't add * __ptr64
                     if store_type:
                         self.type_backrefs.append(t)
@@ -336,12 +341,12 @@ class Undecorator:
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name} const"
                     else:
-                        base = self.parse_type(store_name=store_name, store_type=store_type)
+                        base = self.parse_type(store_name=store_name, store_type=False)
                 if pointee_cv:
                     base = f"{base} {pointee_cv}".strip()
-            if cv:
-                base = f"{base} {cv}"
             t = f"{base} {'&' if is_ref else '*'} __ptr64"
+            if pointer_cv:
+                t = f"{t} {pointer_cv}"
             if store_type:
                 self.type_backrefs.append(t)
             return t
@@ -631,7 +636,7 @@ class Undecorator:
 
         # Data symbols: ?Name@@3<Type>@@[B] (static/global data)
         if (not is_special) and self.peek() and self.peek().isdigit():
-            storage = self.consume()  # storage class (unused for now)
+            storage = self.consume()  # storage class
             t = self.parse_type(store_name=False)
             # Skip namespace terminators
             while self.peek() == "@":
@@ -643,9 +648,9 @@ class Undecorator:
                 if self.peek() in ("A", "B", "C", "D"):
                     cv_code = self.consume()
                     cv_ptr = {"A": "", "B": " const", "C": " volatile", "D": " const volatile"}[cv_code]
-                # avoid duplicating if already a pointer
+                # If already a pointer/reference, annotate the pointer itself.
                 if t.endswith("* __ptr64") or t.endswith(" & __ptr64"):
-                    t = f"{t}{cv_ptr}"
+                    t = f"{t} __ptr64{cv_ptr}"
                 else:
                     t = f"{t} * __ptr64{cv_ptr}"
             is_const_data = False
@@ -654,7 +659,13 @@ class Undecorator:
                 self.consume()
             if is_const_data and not t.endswith("const"):
                 t = f"{t} const"
-            return f"{t} {func_name}"
+            scope_prefix = ""
+            if storage in ("0", "1", "2"):
+                scope_map = {"0": "private", "1": "protected", "2": "public"}
+                scope_prefix = f"{scope_map.get(storage, '')}: static ".strip()
+                if scope_prefix:
+                    scope_prefix += " "
+            return f"{scope_prefix}{t} {func_name}".strip()
 
         if self.special_is_data:
             return f"const {func_name}"
