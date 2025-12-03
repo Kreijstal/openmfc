@@ -3,6 +3,7 @@
 Minimal clean-room MSVC C++ demangler.
 Supports common Phase 0A/0B cases: classes, basic types, pointers, ctors/dtors.
 """
+import re
 import sys
 import argparse
 
@@ -17,6 +18,7 @@ class Undecorator:
         self.last_special_op = None
         self.special_is_data = False
         self.special_data_suffix = ""
+        self.local_scope = None  # For local variables: `N'
 
     def peek(self):
         return self.mangled[self.pos] if self.pos < len(self.mangled) else None
@@ -53,17 +55,35 @@ class Undecorator:
                 idx = int(ch)
                 if idx < len(self.name_backrefs):
                     refs.append(self.name_backrefs[idx])
-        return "::".join(refs) if refs else digits
+        if not refs:
+            return digits
+        # Build qualified name from innermost (last) to outermost (first)
+        # refs[0] is outermost scope, refs[-1] is innermost name
+        result = refs[-1]
+        for scope in reversed(refs[:-1]):
+            # Only add scope if result doesn't already start with it
+            if not result.startswith(f"{scope}::"):
+                result = f"{scope}::{result}"
+        return result
 
     def parse_fully_qualified_name(self, record: bool = True):
         # Names are encoded in reverse with trailing @@
         parts = []
+        local_scope = None
         while True:
             if self.peek() is None:
                 break
             if self.mangled[self.pos:self.pos + 2] == "@@":
                 self.pos += 2
                 break
+            # Check for local scope pattern: ?N?? where N is a digit
+            # This indicates a local variable in scope N+1 of the following function
+            local_match = re.match(r'\?(\d)\?\?', self.mangled[self.pos:])
+            if local_match:
+                local_scope = int(local_match.group(1)) + 1
+                self.pos += 4  # skip ?N??
+                # Continue parsing the enclosing function name
+                continue
             frag = self.parse_name_fragment()
             if frag is None:
                 break
@@ -75,6 +95,44 @@ class Undecorator:
                 self.name_scopes.append("::".join(reversed(parts)))
             if self.peek() == "@" and self.mangled[self.pos:self.pos + 2] != "@@":
                 self.consume()
+        name = "::".join(reversed(parts))
+        if local_scope is not None:
+            # Store local scope info for later use
+            self.local_scope = local_scope
+        return name
+
+    def parse_type_qualified_name(self, record: bool = True):
+        """Parse a qualified name in type context - stops at @@ or @ followed by type codes"""
+        # Type codes that signal end of a name in type context:
+        # X=void, Z=end marker, H=int, A-D=cv-qualifiers, E=unsigned char,
+        # F=short, G=unsigned short, I=unsigned int, J=long, K=unsigned long,
+        # L-O=floats, P-S=pointers, T=coclass, U=struct, V=class, W=enum,
+        # _=extended types, ?=special, $=template
+        TYPE_TERMINATORS = "XZHABCDEFGIJKLMNOPQRSTUVW_?$"
+        parts = []
+        last_was_backref = False
+        while True:
+            if self.peek() is None:
+                break
+            if self.mangled[self.pos:self.pos + 2] == "@@":
+                self.pos += 2
+                break
+            frag = self.parse_name_fragment()
+            if frag is None:
+                break
+            was_backref = frag.isdigit()
+            if was_backref:
+                frag = self.resolve_name_backref(frag)
+            parts.append(frag)
+            if record:
+                self.name_backrefs.append(frag)
+                self.name_scopes.append("::".join(reversed(parts)))
+            last_was_backref = was_backref
+            if self.peek() == "@" and self.mangled[self.pos:self.pos + 2] != "@@":
+                self.consume()
+                # After @backref@, if next is a type terminator, we're done with the name
+                if last_was_backref and self.peek() in TYPE_TERMINATORS:
+                    break
         return "::".join(reversed(parts))
     
     def parse_simple_name(self, store_name: bool = True):
@@ -119,7 +177,9 @@ class Undecorator:
                         chosen = alt_scope
                     if alt_scope and chosen and len(alt_scope) < len(chosen):
                         chosen = alt_scope
-                frag = f"{chosen}::{frag}"
+                # Don't add scope if name already starts with it (e.g., std::fpos)
+                if not frag.startswith(f"{chosen}::"):
+                    frag = f"{chosen}::{frag}"
                 self.pos = i + 1  # consume @digits@
 
         # Handle namespaces that immediately follow a template name without '@'
@@ -240,7 +300,7 @@ class Undecorator:
             # Enum (W4Foo@@) takes priority over wchar_t
             if self.peek() == "4":
                 self.consume()
-                name = self.parse_simple_name(store_name=store_name)
+                name = self.parse_type_qualified_name(record=store_name)
                 t = f"enum {name}"
                 if store_type:
                     self.type_backrefs.append(t)
@@ -644,6 +704,81 @@ class Undecorator:
             is_special = True
         else:
             func_name = self.parse_fully_qualified_name()
+
+        # Local variable in function scope: `func_sig'::`N'::varname
+        if self.local_scope is not None:
+            # Split name into variable and enclosing function
+            # Name format: namespace::func::varname
+            if "::" in func_name:
+                parts = func_name.rsplit("::", 1)
+                var_name = parts[1]
+                enclosing_func_name = parts[0]
+            else:
+                var_name = func_name
+                enclosing_func_name = ""
+            
+            # Parse the enclosing function's signature
+            scope, is_const, cc, is_static, is_virtual = self.parse_access_convention()
+            
+            # Parse return type (functions have return types)
+            ret_type = self.parse_type()
+            
+            # Reset type backrefs for arguments
+            self.type_backrefs = []
+            args = []
+            if self.peek() == "@":
+                self.consume()
+            while self.peek() and self.peek().isdigit() and self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+                self.consume()
+                self.consume()
+            if self.peek() == "X":
+                self.consume()
+                args.append("void")
+                if self.peek() == "Z":
+                    self.consume()
+            else:
+                while self.peek() is not None and self.peek() != "Z":
+                    if self.peek() == "@":
+                        self.consume()
+                        continue
+                    t = self.parse_type()
+                    args.append(t)
+                if self.peek() == "Z":
+                    self.consume()
+            
+            # Build function signature
+            func_sig = f"{scope}: " if scope else ""
+            if is_virtual:
+                func_sig += "virtual "
+            if is_static:
+                func_sig += "static "
+            if ret_type:
+                func_sig += f"{ret_type} "
+            if cc:
+                func_sig += f"{cc} "
+            func_sig += f"{enclosing_func_name}({','.join(args)})"
+            if is_const:
+                func_sig += "const"
+            func_sig += " __ptr64"
+            
+            # Now parse the variable's storage (@4) and type (QBDB)
+            if self.peek() == "@":
+                self.consume()
+            var_storage = ""
+            if self.peek() and self.peek().isdigit():
+                self.consume()  # storage class for the variable
+            # Parse the variable type
+            var_type = self.parse_type(store_name=False)
+            # For local variable types, remove __ptr64 to match MSVC undname output
+            var_type = var_type.replace(" __ptr64", "")
+            while self.peek() == "@":
+                self.consume()
+            if self.peek() == "B":
+                self.consume()
+                if not var_type.endswith("const"):
+                    var_type = f"{var_type} const"
+            
+            return f"{var_type} `{func_sig}'::`{self.local_scope}'::{var_name}"
 
         # Data symbols: ?Name@@3<Type>@@[B] (static/global data)
         if (not is_special) and self.peek() and self.peek().isdigit():
