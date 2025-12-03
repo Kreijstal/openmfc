@@ -680,7 +680,11 @@ class Undecorator:
                 # Check if this is $$ (type modifier like $$A for function type or $$T for nullptr)
                 # or $0, $1, etc. (template constant)
                 if self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "$":
-                    # This is $$, let parse_type handle it
+                    # $$V denotes an empty template parameter pack
+                    if self.pos + 2 < len(self.mangled) and self.mangled[self.pos + 2] == "V":
+                        self.pos += 3
+                        continue
+                    # Otherwise let parse_type handle it
                     pass
                 elif self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "0":
                     # This is $0 - template constant
@@ -786,6 +790,9 @@ class Undecorator:
                 return f"{cls}::`vbtable'{suffix}"
             if sub_op == "D":
                 return f"{cls}::`vbase destructor'"
+            if sub_op == "K":
+                lit = self.parse_name_fragment() or ""
+                return f"{cls}::operator \"\" {lit}"
             # Add other _ codes as needed
             return f"{cls}::`special operator {sub_op}'"
         fq = self.parse_fully_qualified_name()
