@@ -3,6 +3,7 @@
 Minimal clean-room MSVC C++ demangler.
 Supports common Phase 0A/0B cases: classes, basic types, pointers, ctors/dtors.
 """
+import re
 import sys
 import argparse
 
@@ -77,7 +78,6 @@ class Undecorator:
                 break
             # Check for local scope pattern: ?N?? where N is a digit
             # This indicates a local variable in scope N+1 of the following function
-            import re
             local_match = re.match(r'\?(\d)\?\?', self.mangled[self.pos:])
             if local_match:
                 local_scope = int(local_match.group(1)) + 1
@@ -103,7 +103,11 @@ class Undecorator:
 
     def parse_type_qualified_name(self, record: bool = True):
         """Parse a qualified name in type context - stops at @@ or @ followed by type codes"""
-        # Type codes that signal end of a name in type context
+        # Type codes that signal end of a name in type context:
+        # X=void, Z=end marker, H=int, A-D=cv-qualifiers, E=unsigned char,
+        # F=short, G=unsigned short, I=unsigned int, J=long, K=unsigned long,
+        # L-O=floats, P-S=pointers, T=coclass, U=struct, V=class, W=enum,
+        # _=extended types, ?=special, $=template
         TYPE_TERMINATORS = "XZHABCDEFGIJKLMNOPQRSTUVW_?$"
         parts = []
         last_was_backref = False
