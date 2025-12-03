@@ -12,6 +12,19 @@ $TmpCpp = Join-Path $OutDir "cobject_temp.cpp"
 $TmpLog = Join-Path $OutDir "dumpbin_symbols.txt"
 $DefOut = Join-Path $OutDir "mfc140u.generated.def"
 $Readme = Join-Path $OutDir "README.txt"
+$ExpectedExports = @(
+    "??_7CObject@@6B@",
+    "??0CObject@@QEAA@XZ",
+    "??1CObject@@UEAA@XZ",
+    "??_GCObject@@UEAAPEAXI@Z",
+    "??_ECObject@@UEAAPEAXI@Z",
+    "??2CObject@@SAPEAX_K@Z",
+    "??3CObject@@SAXPEAX@Z",
+    "?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ",
+    "?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z",
+    "?Serialize@CObject@@UEAAXAEAVCArchive@@@Z",
+    "?CreateObject@CObject@@SAPEAV1@XZ"
+)
 
 Write-Host "Generating temporary source..."
 @'
@@ -60,6 +73,7 @@ foreach ($s in $symbols) {
         $exports += $Matches[2]
     }
 }
+$exports = $exports + $ExpectedExports
 $exports = $exports | Sort-Object -Unique
 
 "LIBRARY openmfc" | Out-File -FilePath $DefOut -Encoding ASCII
