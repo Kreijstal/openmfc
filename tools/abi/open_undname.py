@@ -52,7 +52,7 @@ class Undecorator:
                     refs.append(self.name_backrefs[idx])
         return "::".join(refs) if refs else digits
 
-    def parse_fully_qualified_name(self):
+    def parse_fully_qualified_name(self, record: bool = True):
         # Names are encoded in reverse with trailing @@
         parts = []
         while True:
@@ -73,7 +73,7 @@ class Undecorator:
                 self.consume()
         return "::".join(reversed(parts))
     
-    def parse_simple_name(self):
+    def parse_simple_name(self, store_name: bool = True):
         # Parse a single name fragment (for class names in types)
         # Handles optional @digits@ scope suffix
         if self.peek() is None:
@@ -96,15 +96,26 @@ class Undecorator:
                 i += 1
             if digits and i < len(self.mangled) and self.mangled[i] == "@":
                 scope = self.resolve_name_backref(digits)
-                frag = f"{scope}::{frag}"
+                # Heuristic: prefer a scope that does not already contain the leaf name
+                alt_scope = None
+                try:
+                    alt_idx = int(digits)
+                    if alt_idx < len(self.name_backrefs):
+                        alt_scope = self.name_backrefs[alt_idx]
+                except ValueError:
+                    pass
+                chosen = scope
+                if scope and frag in scope and alt_scope:
+                    chosen = alt_scope
+                frag = f"{chosen}::{frag}"
                 self.pos = i + 1  # consume @digits@
 
         # Handle namespaces that immediately follow a template name without '@'
         if self.peek() and self.peek().islower():
-            scope = self.parse_fully_qualified_name()
+            scope = self.parse_fully_qualified_name(record=store_name)
             frag = f"{scope}::{frag}"
 
-        if store_frag is not None:
+        if store_name and store_frag is not None:
             self.name_backrefs.append(store_frag)
             self.name_scopes.append(frag)
         return frag
@@ -124,7 +135,7 @@ class Undecorator:
             self.consume()
         return f"{ret} ({cc}*)({', '.join(args)})"
 
-    def parse_type(self):
+    def parse_type(self, store_name: bool = True):
         c = self.consume()
         if c is None:
             return "UNKNOWN"
@@ -162,7 +173,7 @@ class Undecorator:
             kind_char = self.mangled[self.pos + 1]  # V
             is_const = self.mangled[self.pos] == "B"  # B means const
             self.pos += 2  # skip AV or BV
-            name = self.parse_simple_name()
+            name = self.parse_simple_name(store_name=store_name)
             t = f"class {name}"
             if is_const:
                 t += " const"
@@ -192,7 +203,7 @@ class Undecorator:
         # Note: D is handled above as 'char', not as 'const volatile'
         if c in ("B", "C"):
             cv_map = {"B": "const", "C": "volatile"}
-            base = self.parse_type()
+            base = self.parse_type(store_name=store_name)
             t = f"{base} {cv_map[c]}".strip()
             self.type_backrefs.append(t)
             return t
@@ -221,13 +232,13 @@ class Undecorator:
         # Pointers/references (AEAVFoo@@ -> Foo&)
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
-            name = self.parse_simple_name()
+            name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} & __ptr64"
             self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3  # skip EBV (const class reference)
-            name = self.parse_simple_name()
+            name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} const & __ptr64"
             self.type_backrefs.append(t)
             return t
@@ -253,7 +264,7 @@ class Undecorator:
                 # print(f"DEBUG: pointer/reference with EAV/EBV at pos {self.pos}")
                 is_const_cls = self.mangled[self.pos:self.pos + 3] == "EBV"
                 self.pos += 3  # skip EAV/EBV
-                name = self.parse_simple_name()
+                name = self.parse_simple_name(store_name=store_name)
                 base = f"class {name}"
                 if is_const_cls:
                     base += " const"
@@ -274,18 +285,18 @@ class Undecorator:
                     if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
                         self.consume()  # A (cv qualifier)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_simple_name()
+                        name = self.parse_simple_name(store_name=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name}"
                     # Check for BV/BU (const class/struct) patterns
                     elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
                         self.consume()  # B (const)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_simple_name()
+                        name = self.parse_simple_name(store_name=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name} const"
                     else:
-                        base = self.parse_type()
+                        base = self.parse_type(store_name=store_name)
             if cv:
                 base = f"{base} {cv}"
             t = f"{base} {'&' if is_ref else '*'} __ptr64"
@@ -294,7 +305,7 @@ class Undecorator:
 
         # Class/struct types
         if c in ("V", "U"):
-            name = self.parse_simple_name()
+            name = self.parse_simple_name(store_name=store_name)
             kind = "class" if c == "V" else "struct"
             t = f"{kind} {name}"
             self.type_backrefs.append(t)
@@ -332,6 +343,14 @@ class Undecorator:
                 # Likely namespace identifier; let caller handle.
                 break
             if self.peek() == "@":
+                # If we are looking at a scope suffix like @1@, stop so caller can apply it.
+                j = self.pos + 1
+                digits = ""
+                while j < len(self.mangled) and self.mangled[j].isdigit():
+                    digits += self.mangled[j]
+                    j += 1
+                if digits and j < len(self.mangled) and self.mangled[j] == "@":
+                    break
                 self.consume()
                 continue
             if self.peek() == "$":
@@ -357,8 +376,15 @@ class Undecorator:
                 if idx < len(self.name_scopes):
                     args.append(self.name_scopes[idx])
                     continue
-            args.append(self.parse_type())
+            args.append(self.parse_type(store_name=False))
             if self.peek() == "@":
+                j = self.pos + 1
+                digits = ""
+                while j < len(self.mangled) and self.mangled[j].isdigit():
+                    digits += self.mangled[j]
+                    j += 1
+                if digits and j < len(self.mangled) and self.mangled[j] == "@":
+                    break
                 self.consume()
                 continue
         return args
