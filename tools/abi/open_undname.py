@@ -355,6 +355,11 @@ class Undecorator:
                 self.type_backrefs.append(t)
             return t
 
+        # Seen in return/arg encodings like ?A?AVFoo@@ – the ?A is a wrapper; parse the nested type.
+        if c == "?" and self.peek() == "A":
+            self.consume()
+            return self.parse_type(store_name=store_name, store_type=store_type)
+
         # Template class types (e.g., V?$Foo@@)
         if c == "?":
             if self.peek() == "$":
@@ -568,26 +573,30 @@ class Undecorator:
         elif scope_char in ("U", "V"):
             scope = "public"
             is_virtual = True
-        # Debug
-        # print(f"DEBUG parse_access_convention: scope_char={scope_char}, scope={scope}")
 
-        prop_char = self.consume()
-        extra_char = self.consume()  # cv slot
-        is_const = False
+        # Static/global functions have a shorter modifier blob: the next
+        # character is the calling convention and the return type follows
+        # immediately. Avoid consuming the return-type marker (e.g., X for void).
+        if is_static:
+            is_const = False
+            cc_char = self.consume()
+        else:
+            prop_char = self.consume()
+            extra_char = self.consume()  # cv slot
+            is_const = False
 
-        def apply_prop(ch):
-            nonlocal is_virtual, is_const
-            if ch is None or is_static:
-                return
-            if ch == "B":
-                is_const = True
-            elif ch == "F":
-                is_const = True
+            def apply_prop(ch):
+                nonlocal is_virtual, is_const
+                if ch is None or is_static:
+                    return
+                if ch == "B":
+                    is_const = True
+                elif ch == "F":
+                    is_const = True
 
-        apply_prop(prop_char)
-        apply_prop(extra_char)
-
-        cc_char = self.consume()
+            apply_prop(prop_char)
+            apply_prop(extra_char)
+            cc_char = self.consume()
         cc = ""
         if cc_char == "A":
             cc = "__cdecl"
@@ -619,6 +628,20 @@ class Undecorator:
             is_special = True
         else:
             func_name = self.parse_fully_qualified_name()
+
+        # Data symbols: ?Name@@3<Type>@@[B] (static/global data)
+        if (not is_special) and self.peek() and self.peek().isdigit():
+            storage = self.consume()  # storage class (unused for now)
+            t = self.parse_type(store_name=False)
+            while self.peek() == "@":
+                self.consume()
+            is_const_data = False
+            if self.peek() == "B":
+                is_const_data = True
+                self.consume()
+            if is_const_data and not t.endswith("const"):
+                t = f"{t} const"
+            return f"{t} {func_name}"
 
         if self.special_is_data:
             return f"const {func_name}"
