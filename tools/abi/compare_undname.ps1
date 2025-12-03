@@ -53,7 +53,15 @@ foreach ($dll in $TargetDlls) {
 
     $compareLog = Join-Path $OutDir ("compare_" + (Split-Path $dll -Leaf) + ".txt")
     foreach ($sym in $symbols) {
-        $und = ((& undname $sym 2>&1) -join "`n").Trim()
+        # Extract only the undecorated payload from undname output (strip banners)
+        $undRaw = ((& undname $sym 2>&1) -join "`n")
+        $undLine = ($undRaw -split "`n" | Where-Object { $_ -match '^is :- "([^"]*)"' } | Select-Object -First 1)
+        if ($undLine) {
+            $null = ($undLine -match '^is :- "([^"]*)"')
+            $und = $Matches[1]
+        } else {
+            $und = $undRaw.Trim()
+        }
         $py  = ((& python tools/abi/open_undname.py $sym 2>&1) -join "`n").Trim()
         $match = ($und -eq $py)
         if ($match) { $dllResult.Matches++ } else { $dllResult.Mismatches++ }
