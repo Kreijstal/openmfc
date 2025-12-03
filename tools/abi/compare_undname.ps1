@@ -12,7 +12,15 @@ function Resolve-RedistDll([string] $name) {
 $hadFailure = $false
 
 if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
-    $TargetDlls = @("msvcp140.dll", "vcruntime140.dll", "concrt140.dll") | ForEach-Object {
+    $TargetDlls = @(
+        "msvcp140.dll",
+        "msvcp140_1.dll",
+        "msvcp140_2.dll",
+        "msvcp140_atomic_wait.dll",
+        "msvcp140_codecvt_ids.dll",
+        "vcruntime140.dll",
+        "concrt140.dll"
+    ) | ForEach-Object {
         $resolved = Resolve-RedistDll $_
         if ($null -ne $resolved) { $resolved } else {
             Write-Error "Missing DLL: $_ under VCToolsRedistDir" -ErrorAction Continue

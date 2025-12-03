@@ -1,0 +1,23 @@
+?id@?$codecvt@_SDU_Mbstatet@@@std@@2V0locale@2@A
+  undname: generated via winedump on linux
+
+Undecoration of :- "?id@?$codecvt@_SDU_Mbstatet@@@std@@2V0locale@2@A"
+is :- "public: static class std::locale::id std::codecvt<char16_t,char,struct _Mbstatet>::id"
+
+?id@?$codecvt@_S_QU_Mbstatet@@@std@@2V0locale@2@A
+  undname: generated via winedump on linux
+
+Undecoration of :- "?id@?$codecvt@_S_QU_Mbstatet@@@std@@2V0locale@2@A"
+is :- "public: static class std::locale::id std::codecvt<char16_t,char8_t,struct _Mbstatet>::id"
+
+?id@?$codecvt@_UDU_Mbstatet@@@std@@2V0locale@2@A
+  undname: generated via winedump on linux
+
+Undecoration of :- "?id@?$codecvt@_UDU_Mbstatet@@@std@@2V0locale@2@A"
+is :- "public: static class std::locale::id std::codecvt<char32_t,char,struct _Mbstatet>::id"
+
+?id@?$codecvt@_U_QU_Mbstatet@@@std@@2V0locale@2@A
+  undname: generated via winedump on linux
+
+Undecoration of :- "?id@?$codecvt@_U_QU_Mbstatet@@@std@@2V0locale@2@A"
+is :- "public: static class std::locale::id std::codecvt<char32_t,char8_t,struct _Mbstatet>::id"

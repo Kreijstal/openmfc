@@ -145,6 +145,12 @@ class Undecorator:
             return ""
 
         store_frag = frag  # base fragment to store in backrefs
+        leading = re.match(r"^([0-9]+)(.+)$", frag)
+        if leading and not frag.isdigit():
+            # Treat leading backref digits as a nested leaf, e.g. 0locale -> locale::<backref>
+            backref_name = self.resolve_name_backref(leading.group(1))
+            frag = f"{leading.group(2)}::{backref_name}"
+            store_frag = frag
         if frag.isdigit():
             frag = self.resolve_name_backref(frag)
             store_frag = None  # don't store resolved backrefs as new names
@@ -318,10 +324,10 @@ class Undecorator:
                 "W": "wchar_t",
                 "S": "char16_t",
                 "U": "char32_t",
-                "L": "long",
-                "M": "unsigned long",
-                "Q": "__int128",
-                "R": "unsigned __int128",
+                "L": "__int128",
+                "M": "unsigned __int128",
+                "Q": "char8_t",
+                "R": "char8_t const",
             }
             t = ext.get(c2, f"UNKNOWN__{c2}")
             if store_type:
