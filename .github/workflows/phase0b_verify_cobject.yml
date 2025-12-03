@@ -20,7 +20,7 @@ jobs:
   build-mingw:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install MinGW
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
@@ -44,7 +44,7 @@ jobs:
     needs: build-mingw
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
