@@ -1,1107 +1,319 @@
-??0?$_SpinWait@$00@details@Concurrency@@QEAA@P6AXXZ@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0?$_SpinWait@$00@details@Concurrency@@QEAA@P6AXXZ@Z"
-is :- "public: __cdecl Concurrency::details::_SpinWait<1>::_SpinWait<1>(void (__cdecl*)(void)) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0?$_SpinWait@$0A@@details@Concurrency@@QEAA@P6AXXZ@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0?$_SpinWait@$0A@@details@Concurrency@@QEAA@P6AXXZ@Z"
-is :- "public: __cdecl Concurrency::details::_SpinWait<0>::_SpinWait<0>(void (__cdecl*)(void)) __ptr64"
-  open:   public $0A::$0A(UNK(i), UNK(l), UNK(s))
-  match: False
-
-??0SchedulerPolicy@Concurrency@@QEAA@AEBV01@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@AEBV01@@Z"
-is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0SchedulerPolicy@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0SchedulerPolicy@Concurrency@@QEAA@_KZZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@_KZZ"
-is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(unsigned __int64,...) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Cancellation_beacon@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Cancellation_beacon@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_Cancellation_beacon::_Cancellation_beacon(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Concurrent_queue_base_v4@details@Concurrency@@IEAA@_K@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Concurrent_queue_base_v4@details@Concurrency@@IEAA@_K@Z"
-is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_base_v4::_Concurrent_queue_base_v4(unsigned __int64) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
-  match: False
-
-??0_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@AEBV_Concurrent_queue_base_v4@12@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@AEBV_Concurrent_queue_base_v4@12@@Z"
-is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::_Concurrent_queue_iterator_base_v4(class Concurrency::details::_Concurrent_queue_base_v4 const & __ptr64) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
-  match: False
-
-??0_Condition_variable@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Condition_variable@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_Condition_variable::_Condition_variable(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Context@details@Concurrency@@QEAA@PEAVContext@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Context@details@Concurrency@@QEAA@PEAVContext@2@@Z"
-is :- "public: __cdecl Concurrency::details::_Context::_Context(class Concurrency::Context * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Runtime_object@details@Concurrency@@QEAA@H@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Runtime_object@details@Concurrency@@QEAA@H@Z"
-is :- "public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(int) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Runtime_object@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Runtime_object@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Scheduler@details@Concurrency@@QEAA@PEAVScheduler@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Scheduler@details@Concurrency@@QEAA@PEAVScheduler@2@@Z"
-is :- "public: __cdecl Concurrency::details::_Scheduler::_Scheduler(class Concurrency::Scheduler * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z"
-is :- "public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_NonReentrantPPLLock & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z"
-is :- "public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_ReentrantPPLLock & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_SpinLock@details@Concurrency@@QEAA@AECJ@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_SpinLock@details@Concurrency@@QEAA@AECJ@Z"
-is :- "public: __cdecl Concurrency::details::_SpinLock::_SpinLock(long volatile & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_StructuredTaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_StructuredTaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z"
-is :- "public: __cdecl Concurrency::details::_StructuredTaskCollection::_StructuredTaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_TaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_TaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z"
-is :- "public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_TaskCollection@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_TaskCollection@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0_Timer@details@Concurrency@@IEAA@I_N@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0_Timer@details@Concurrency@@IEAA@I_N@Z"
-is :- "protected: __cdecl Concurrency::details::_Timer::_Timer(unsigned int,bool) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
-  match: False
-
-??0context_self_unblock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0context_self_unblock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::context_self_unblock::context_self_unblock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0context_unblock_unbalanced@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0context_unblock_unbalanced@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0context_unblock_unbalanced@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0context_unblock_unbalanced@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0critical_section@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0critical_section@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::critical_section::critical_section(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0default_scheduler_exists@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0default_scheduler_exists@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0default_scheduler_exists@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0default_scheduler_exists@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0event@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0event@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::event::event(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0improper_lock@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0improper_lock@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::improper_lock::improper_lock(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0improper_lock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0improper_lock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::improper_lock::improper_lock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0improper_scheduler_attach@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0improper_scheduler_attach@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::improper_scheduler_attach::improper_scheduler_attach(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_link_target@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_link_target@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::invalid_link_target::invalid_link_target(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_multiple_scheduling@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_multiple_scheduling@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_multiple_scheduling@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_multiple_scheduling@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_oversubscribe_operation@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_oversubscribe_operation@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_oversubscribe_operation@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_oversubscribe_operation@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_scheduler_policy_key@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_scheduler_policy_key@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_scheduler_policy_key@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_scheduler_policy_key@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0invalid_scheduler_policy_value@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0invalid_scheduler_policy_value@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::invalid_scheduler_policy_value::invalid_scheduler_policy_value(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0nested_scheduler_missing_detach@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0nested_scheduler_missing_detach@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::nested_scheduler_missing_detach::nested_scheduler_missing_detach(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0operation_timed_out@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0operation_timed_out@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::operation_timed_out::operation_timed_out(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0operation_timed_out@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0operation_timed_out@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::operation_timed_out::operation_timed_out(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0reader_writer_lock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0reader_writer_lock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::reader_writer_lock::reader_writer_lock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_not_attached@Concurrency@@QEAA@PEBD@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_not_attached@Concurrency@@QEAA@PEBD@Z"
-is :- "public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_not_attached@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_not_attached@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_resource_allocation_error@Concurrency@@QEAA@J@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_resource_allocation_error@Concurrency@@QEAA@J@Z"
-is :- "public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_resource_allocation_error@Concurrency@@QEAA@PEBDJ@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_resource_allocation_error@Concurrency@@QEAA@PEBDJ@Z"
-is :- "public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(char const * __ptr64,long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_worker_creation_error@Concurrency@@QEAA@J@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_worker_creation_error@Concurrency@@QEAA@J@Z"
-is :- "public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??0scheduler_worker_creation_error@Concurrency@@QEAA@PEBDJ@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??0scheduler_worker_creation_error@Concurrency@@QEAA@PEBDJ@Z"
-is :- "public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(char const * __ptr64,long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
-  match: False
-
-??1_Cancellation_beacon@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Cancellation_beacon@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_Cancellation_beacon::~_Cancellation_beacon(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Concurrent_queue_base_v4@details@Concurrency@@MEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Concurrent_queue_base_v4@details@Concurrency@@MEAA@XZ"
-is :- "protected: virtual __cdecl Concurrency::details::_Concurrent_queue_base_v4::~_Concurrent_queue_base_v4(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@XZ"
-is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::~_Concurrent_queue_iterator_base_v4(void) __ptr64"
-  open:   protected virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Concurrent_vector_base_v4@details@Concurrency@@IEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Concurrent_vector_base_v4@details@Concurrency@@IEAA@XZ"
-is :- "protected: __cdecl Concurrency::details::_Concurrent_vector_base_v4::~_Concurrent_vector_base_v4(void) __ptr64"
-  open:   protected virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Condition_variable@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Condition_variable@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_Condition_variable::~_Condition_variable(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_NonReentrantBlockingLock::~_NonReentrantBlockingLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_ReentrantBlockingLock::~_ReentrantBlockingLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1_SpinLock@details@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1_SpinLock@details@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::details::_SpinLock::~_SpinLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1reader_writer_lock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1reader_writer_lock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::reader_writer_lock::~reader_writer_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1scoped_lock@critical_section@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1scoped_lock@critical_section@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::critical_section::scoped_lock::~scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1scoped_lock@reader_writer_lock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1scoped_lock@reader_writer_lock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::reader_writer_lock::scoped_lock::~scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??1scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??1scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@XZ"
-is :- "public: __cdecl Concurrency::reader_writer_lock::scoped_lock_read::~scoped_lock_read(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
-  match: False
-
-??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z"
-is :- "public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> && __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class $$QEAV012::012 &)
-  match: False
-
-??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@AEBV012@@Z"
-is :- "public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class AEBV012::012 &)
-  match: False
-
-??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z"
-is :- "public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> && __ptr64) __ptr64"
-  open:   public $0A::operator?(UNK(i), UNK(l), UNK(s))
-  match: False
-
-??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@AEBV012@@Z"
-is :- "public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> const & __ptr64) __ptr64"
-  open:   public $0A::operator?(UNK(i), UNK(l), UNK(s))
-  match: False
-
-??4SchedulerPolicy@Concurrency@@QEAAAEAV01@AEBV01@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??4SchedulerPolicy@Concurrency@@QEAAAEAV01@AEBV01@@Z"
-is :- "public: class Concurrency::SchedulerPolicy & __ptr64 __cdecl Concurrency::SchedulerPolicy::operator=(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class AEBV01::01 &)
-  match: False
-
-??_F?$_SpinWait@$00@details@Concurrency@@QEAAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "??_F?$_SpinWait@$00@details@Concurrency@@QEAAXXZ"
-is :- "public: void __cdecl Concurrency::details::_SpinWait<1>::`default constructor closure'(void) __ptr64"
-  open:   public virtual Concurrency::operator?(void)
-  match: False
-
-?ChoreEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ChoreEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ChoreEventGuid"
-  open:   public class ID __stdcall Concurrency::ChoreEventGuid(UNK(B))
-  match: False
-
-?ConcRTEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ConcRTEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ConcRTEventGuid"
-  open:   public class ID __stdcall Concurrency::ConcRTEventGuid(UNK(B))
-  match: False
-
-?ConcRT_ProviderGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ConcRT_ProviderGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ConcRT_ProviderGuid"
-  open:   public class ID __stdcall Concurrency::ConcRT_ProviderGuid(UNK(B))
-  match: False
-
-?ContextEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ContextEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ContextEventGuid"
-  open:   public class ID __stdcall Concurrency::ContextEventGuid(UNK(B))
-  match: False
-
-?Create@CurrentScheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?Create@CurrentScheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z"
-is :- "public: static void __cdecl Concurrency::CurrentScheduler::Create(class Concurrency::SchedulerPolicy const & __ptr64)"
-  open:   public static unsigned char Concurrency::CurrentScheduler::Create(UNK(B), class 2::SchedulerPolicy)
-  match: False
-
-?Create@Scheduler@Concurrency@@SAPEAV12@AEBVSchedulerPolicy@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?Create@Scheduler@Concurrency@@SAPEAV12@AEBVSchedulerPolicy@2@@Z"
-is :- "public: static class Concurrency::Scheduler * __ptr64 __cdecl Concurrency::Scheduler::Create(class Concurrency::SchedulerPolicy const & __ptr64)"
-  open:   public static UNK(A) Concurrency::Scheduler::Create(class 2::AEBVSchedulerPolicy::12)
-  match: False
-
-?CreateResourceManager@Concurrency@@YAPEAUIResourceManager@1@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?CreateResourceManager@Concurrency@@YAPEAUIResourceManager@1@XZ"
-is :- "struct Concurrency::IResourceManager * __ptr64 __cdecl Concurrency::CreateResourceManager(void)"
-  open:   public UNK(A) Concurrency::CreateResourceManager(class XZ::1::IResourceManager)
-  match: False
-
-?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@AEAVlocation@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@AEAVlocation@2@@Z"
-is :- "public: static class Concurrency::ScheduleGroup * __ptr64 __cdecl Concurrency::CurrentScheduler::CreateScheduleGroup(class Concurrency::location & __ptr64)"
-  open:   public static UNK(A) Concurrency::CurrentScheduler::CreateScheduleGroup(class 2::AEAVlocation::2::ScheduleGroup)
-  match: False
-
-?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@XZ"
-is :- "public: static class Concurrency::ScheduleGroup * __ptr64 __cdecl Concurrency::CurrentScheduler::CreateScheduleGroup(void)"
-  open:   public static UNK(A) Concurrency::CurrentScheduler::CreateScheduleGroup(class XZ::2::ScheduleGroup)
-  match: False
-
-?CurrentContext@Context@Concurrency@@SAPEAV12@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?CurrentContext@Context@Concurrency@@SAPEAV12@XZ"
-is :- "public: static class Concurrency::Context * __ptr64 __cdecl Concurrency::Context::CurrentContext(void)"
-  open:   public static UNK(A) Concurrency::Context::CurrentContext(class XZ::12)
-  match: False
-
-?GetNumberOfVirtualProcessors@CurrentScheduler@Concurrency@@SAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetNumberOfVirtualProcessors@CurrentScheduler@Concurrency@@SAIXZ"
-is :- "public: static unsigned int __cdecl Concurrency::CurrentScheduler::GetNumberOfVirtualProcessors(void)"
-  open:   public static UNK(Z) Concurrency::CurrentScheduler::GetNumberOfVirtualProcessors()
-  match: False
-
-?GetOSVersion@Concurrency@@YA?AW4OSVersion@IResourceManager@1@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetOSVersion@Concurrency@@YA?AW4OSVersion@IResourceManager@1@XZ"
-is :- "enum Concurrency::IResourceManager::OSVersion __cdecl Concurrency::GetOSVersion(void)"
-  open:   public UNK(W) Concurrency::GetOSVersion(UNK(4), UNK(O), UNK(S), class XZ::1::IResourceManager::ersion)
-  match: False
-
-?GetPolicy@CurrentScheduler@Concurrency@@SA?AVSchedulerPolicy@2@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetPolicy@CurrentScheduler@Concurrency@@SA?AVSchedulerPolicy@2@XZ"
-is :- "public: static class Concurrency::SchedulerPolicy __cdecl Concurrency::CurrentScheduler::GetPolicy(void)"
-  open:   public static class XZ::2::SchedulerPolicy Concurrency::CurrentScheduler::GetPolicy()
-  match: False
-
-?GetPolicyValue@SchedulerPolicy@Concurrency@@QEBAIW4PolicyElementKey@2@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetPolicyValue@SchedulerPolicy@Concurrency@@QEBAIW4PolicyElementKey@2@@Z"
-is :- "public: unsigned int __cdecl Concurrency::SchedulerPolicy::GetPolicyValue(enum Concurrency::PolicyElementKey)const __ptr64"
-  open:   public virtual unsigned int Concurrency::SchedulerPolicy::GetPolicyValue(UNK(W), UNK(4), UNK(l) *, UNK(i), UNK(c), UNK(y), unsigned char, UNK(l), UNK(e), UNK(m), UNK(e), UNK(n), UNK(t), unsigned long, UNK(e), UNK(y)) const
-  match: False
-
-?GetProcessorCount@Concurrency@@YAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetProcessorCount@Concurrency@@YAIXZ"
-is :- "unsigned int __cdecl Concurrency::GetProcessorCount(void)"
-  open:   public UNK(Z) Concurrency::GetProcessorCount()
-  match: False
-
-?GetProcessorNodeCount@Concurrency@@YAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetProcessorNodeCount@Concurrency@@YAIXZ"
-is :- "unsigned int __cdecl Concurrency::GetProcessorNodeCount(void)"
-  open:   public UNK(Z) Concurrency::GetProcessorNodeCount()
-  match: False
-
-?GetSchedulerId@Concurrency@@YAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetSchedulerId@Concurrency@@YAIXZ"
-is :- "unsigned int __cdecl Concurrency::GetSchedulerId(void)"
-  open:   public UNK(Z) Concurrency::GetSchedulerId()
-  match: False
-
-?GetSharedTimerQueue@details@Concurrency@@YAPEAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?GetSharedTimerQueue@details@Concurrency@@YAPEAXXZ"
-is :- "void * __ptr64 __cdecl Concurrency::details::GetSharedTimerQueue(void)"
-  open:   public UNK(A) Concurrency::details::GetSharedTimerQueue(void)
-  match: False
-
-?Id@Context@Concurrency@@SAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?Id@Context@Concurrency@@SAIXZ"
-is :- "public: static unsigned int __cdecl Concurrency::Context::Id(void)"
-  open:   public static UNK(Z) Concurrency::Context::Id()
-  match: False
-
-?Id@CurrentScheduler@Concurrency@@SAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?Id@CurrentScheduler@Concurrency@@SAIXZ"
-is :- "public: static unsigned int __cdecl Concurrency::CurrentScheduler::Id(void)"
-  open:   public static UNK(Z) Concurrency::CurrentScheduler::Id()
-  match: False
-
-?NFS_GetLineSize@details@Concurrency@@YA_KXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?NFS_GetLineSize@details@Concurrency@@YA_KXZ"
-is :- "unsigned __int64 __cdecl Concurrency::details::NFS_GetLineSize(void)"
-  open:   public void Concurrency::details::NFS_GetLineSize()
-  match: False
-
-?Oversubscribe@Context@Concurrency@@SAX_N@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?Oversubscribe@Context@Concurrency@@SAX_N@Z"
-is :- "public: static void __cdecl Concurrency::Context::Oversubscribe(bool)"
-  open:   public static double Concurrency::Context::Oversubscribe()
-  match: False
-
-?PPLParallelForEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?PPLParallelForEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::PPLParallelForEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelForEventGuid(UNK(B))
-  match: False
-
-?PPLParallelForeachEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?PPLParallelForeachEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::PPLParallelForeachEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelForeachEventGuid(UNK(B))
-  match: False
-
-?PPLParallelInvokeEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?PPLParallelInvokeEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::PPLParallelInvokeEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelInvokeEventGuid(UNK(B))
-  match: False
-
-?RegisterShutdownEvent@CurrentScheduler@Concurrency@@SAXPEAX@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?RegisterShutdownEvent@CurrentScheduler@Concurrency@@SAXPEAX@Z"
-is :- "public: static void __cdecl Concurrency::CurrentScheduler::RegisterShutdownEvent(void * __ptr64)"
-  open:   public static unsigned char Concurrency::CurrentScheduler::RegisterShutdownEvent(UNK(A), void)
-  match: False
-
-?ResetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ResetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXXZ"
-is :- "public: static void __cdecl Concurrency::Scheduler::ResetDefaultSchedulerPolicy(void)"
-  open:   public static UNK(Z) Concurrency::Scheduler::ResetDefaultSchedulerPolicy()
-  match: False
-
-?ResourceManagerEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ResourceManagerEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ResourceManagerEventGuid"
-  open:   public class ID __stdcall Concurrency::ResourceManagerEventGuid(UNK(B))
-  match: False
-
-?ScheduleGroupEventGuid@Concurrency@@3U_GUID@@B
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ScheduleGroupEventGuid@Concurrency@@3U_GUID@@B"
-is :- "struct _GUID const Concurrency::ScheduleGroupEventGuid"
-  open:   public class ID __stdcall Concurrency::ScheduleGroupEventGuid(UNK(B))
-  match: False
-
-?ScheduleGroupId@Context@Concurrency@@SAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?ScheduleGroupId@Context@Concurrency@@SAIXZ"
-is :- "public: static unsigned int __cdecl Concurrency::Context::ScheduleGroupId(void)"
-  open:   public static UNK(Z) Concurrency::Context::ScheduleGroupId()
-  match: False
-
-?_Value@_SpinCount@details@Concurrency@@SAIXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?_Value@_SpinCount@details@Concurrency@@SAIXZ"
-is :- "public: static unsigned int __cdecl Concurrency::details::_SpinCount::_Value(void)"
-  open:   public static UNK(Z) Concurrency::details::_SpinCount::_Value()
-  match: False
-
-?_Yield@_Context@details@Concurrency@@SAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?_Yield@_Context@details@Concurrency@@SAXXZ"
-is :- "public: static void __cdecl Concurrency::details::_Context::_Yield(void)"
-  open:   public static UNK(Z) Concurrency::details::_Context::_Yield()
-  match: False
-
-?cancel@agent@Concurrency@@QEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?cancel@agent@Concurrency@@QEAA_NXZ"
-is :- "public: bool __cdecl Concurrency::agent::cancel(void) __ptr64"
-  open:   public virtual bool Concurrency::agent::cancel(void)
-  match: False
-
-?current@location@Concurrency@@SA?AV12@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?current@location@Concurrency@@SA?AV12@XZ"
-is :- "public: static class Concurrency::location __cdecl Concurrency::location::current(void)"
-  open:   public static class XZ::12 Concurrency::location::current()
-  match: False
-
-?done@agent@Concurrency@@IEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?done@agent@Concurrency@@IEAA_NXZ"
-is :- "protected: bool __cdecl Concurrency::agent::done(void) __ptr64"
-  open:   protected virtual bool Concurrency::agent::done(void)
-  match: False
-
-?from_numa_node@location@Concurrency@@SA?AV12@G@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?from_numa_node@location@Concurrency@@SA?AV12@G@Z"
-is :- "public: static class Concurrency::location __cdecl Concurrency::location::from_numa_node(unsigned short)"
-  open:   public static class Z::G::12 Concurrency::location::from_numa_node()
-  match: False
-
-?get_error_code@scheduler_resource_allocation_error@Concurrency@@QEBAJXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?get_error_code@scheduler_resource_allocation_error@Concurrency@@QEBAJXZ"
-is :- "public: long __cdecl Concurrency::scheduler_resource_allocation_error::get_error_code(void)const __ptr64"
-  open:   public virtual long Concurrency::scheduler_resource_allocation_error::get_error_code(void) const
-  match: False
-
-?is_current_task_group_canceling@Concurrency@@YA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?is_current_task_group_canceling@Concurrency@@YA_NXZ"
-is :- "bool __cdecl Concurrency::is_current_task_group_canceling(void)"
-  open:   public void Concurrency::is_current_task_group_canceling()
-  match: False
-
-?lock@critical_section@Concurrency@@QEAAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?lock@critical_section@Concurrency@@QEAAXXZ"
-is :- "public: void __cdecl Concurrency::critical_section::lock(void) __ptr64"
-  open:   public virtual void Concurrency::critical_section::lock(void)
-  match: False
-
-?lock@reader_writer_lock@Concurrency@@QEAAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?lock@reader_writer_lock@Concurrency@@QEAAXXZ"
-is :- "public: void __cdecl Concurrency::reader_writer_lock::lock(void) __ptr64"
-  open:   public virtual void Concurrency::reader_writer_lock::lock(void)
-  match: False
-
-?set_task_execution_resources@Concurrency@@YAXGPEAU_GROUP_AFFINITY@@@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?set_task_execution_resources@Concurrency@@YAXGPEAU_GROUP_AFFINITY@@@Z"
-is :- "void __cdecl Concurrency::set_task_execution_resources(unsigned short,struct _GROUP_AFFINITY * __ptr64)"
-  open:   public UNK(A) * __stdcall Concurrency::set_task_execution_resources(class _GROUP_AFFINITY)
-  match: False
-
-?set_task_execution_resources@Concurrency@@YAX_K@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?set_task_execution_resources@Concurrency@@YAX_K@Z"
-is :- "void __cdecl Concurrency::set_task_execution_resources(unsigned __int64)"
-  open:   public unsigned long Concurrency::set_task_execution_resources()
-  match: False
-
-?start@agent@Concurrency@@QEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?start@agent@Concurrency@@QEAA_NXZ"
-is :- "public: bool __cdecl Concurrency::agent::start(void) __ptr64"
-  open:   public virtual bool Concurrency::agent::start(void)
-  match: False
-
-?status@agent@Concurrency@@QEAA?AW4agent_status@2@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?status@agent@Concurrency@@QEAA?AW4agent_status@2@XZ"
-is :- "public: enum Concurrency::agent_status __cdecl Concurrency::agent::status(void) __ptr64"
-  open:   public virtual UNK(?) Concurrency::agent::status(UNK(A), UNK(W), UNK(4), UNK(a), UNK(g), UNK(e), UNK(n), UNK(t), UNKNOWN__s, UNK(t), UNK(a), UNK(t), UNK(u), UNK(s))
-  match: False
-
-?status_port@agent@Concurrency@@QEAAPEAV?$ISource@W4agent_status@Concurrency@@@2@XZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?status_port@agent@Concurrency@@QEAAPEAV?$ISource@W4agent_status@Concurrency@@@2@XZ"
-is :- "public: class Concurrency::ISource<enum Concurrency::agent_status> * __ptr64 __cdecl Concurrency::agent::status_port(void) __ptr64"
-  open:   public virtual UNK(A) * Concurrency::agent::status_port(class Concurrency::W4agent_status::?$ISource)
-  match: False
-
-?try_lock@critical_section@Concurrency@@QEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?try_lock@critical_section@Concurrency@@QEAA_NXZ"
-is :- "public: bool __cdecl Concurrency::critical_section::try_lock(void) __ptr64"
-  open:   public virtual bool Concurrency::critical_section::try_lock(void)
-  match: False
-
-?try_lock@reader_writer_lock@Concurrency@@QEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?try_lock@reader_writer_lock@Concurrency@@QEAA_NXZ"
-is :- "public: bool __cdecl Concurrency::reader_writer_lock::try_lock(void) __ptr64"
-  open:   public virtual bool Concurrency::reader_writer_lock::try_lock(void)
-  match: False
-
-?try_lock_for@critical_section@Concurrency@@QEAA_NI@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?try_lock_for@critical_section@Concurrency@@QEAA_NI@Z"
-is :- "public: bool __cdecl Concurrency::critical_section::try_lock_for(unsigned int) __ptr64"
-  open:   public virtual bool Concurrency::critical_section::try_lock_for(unsigned int)
-  match: False
-
-?try_lock_read@reader_writer_lock@Concurrency@@QEAA_NXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?try_lock_read@reader_writer_lock@Concurrency@@QEAA_NXZ"
-is :- "public: bool __cdecl Concurrency::reader_writer_lock::try_lock_read(void) __ptr64"
-  open:   public virtual bool Concurrency::reader_writer_lock::try_lock_read(void)
-  match: False
-
-?unlock@critical_section@Concurrency@@QEAAXXZ
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?unlock@critical_section@Concurrency@@QEAAXXZ"
-is :- "public: void __cdecl Concurrency::critical_section::unlock(void) __ptr64"
-  open:   public virtual void Concurrency::critical_section::unlock(void)
-  match: False
-
-?wait_for_all@agent@Concurrency@@SAX_KPEAPEAV12@PEAW4agent_status@2@I@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?wait_for_all@agent@Concurrency@@SAX_KPEAPEAV12@PEAW4agent_status@2@I@Z"
-is :- "public: static void __cdecl Concurrency::agent::wait_for_all(unsigned __int64,class Concurrency::agent * __ptr64 * __ptr64,enum Concurrency::agent_status * __ptr64,unsigned int)"
-  open:   public static unsigned long Concurrency::agent::wait_for_all(UNK(A) *, UNK(A) *, class Z::I::2::PEAW4agent_status::12)
-  match: False
-
-?wait_for_multiple@event@Concurrency@@SA_KPEAPEAV12@_K_NI@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?wait_for_multiple@event@Concurrency@@SA_KPEAPEAV12@_K_NI@Z"
-is :- "public: static unsigned __int64 __cdecl Concurrency::event::wait_for_multiple(class Concurrency::event * __ptr64 * __ptr64,unsigned __int64,bool,unsigned int)"
-  open:   public static UNK(A) * Concurrency::event::wait_for_multiple(UNK(A) *, class Z::_K_NI::12)
-  match: False
-
-?wait_for_one@agent@Concurrency@@SAX_KPEAPEAV12@AEAW4agent_status@2@AEA_KI@Z
-  undname: Microsoft (R) C++ Name Undecorator
-Copyright (C) Microsoft Corporation. All rights reserved.
-
-Undecoration of :- "?wait_for_one@agent@Concurrency@@SAX_KPEAPEAV12@AEAW4agent_status@2@AEA_KI@Z"
-is :- "public: static void __cdecl Concurrency::agent::wait_for_one(unsigned __int64,class Concurrency::agent * __ptr64 * __ptr64,enum Concurrency::agent_status & __ptr64,unsigned __int64 & __ptr64,unsigned int)"
-  open:   public static unsigned long Concurrency::agent::wait_for_one(UNK(A) *, UNK(A) *, class Z::AEA_KI::2::AEAW4agent_status::12)
-  match: False
-
+Microsoft (R) COFF/PE Dumper Version 14.44.35221.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\x64\Microsoft.VC143.CRT\concrt140.dll
+
+File Type: DLL
+
+  Section contains the following exports for CONCRT140.dll
+
+    00000000 characteristics
+    E6C651F0 time date stamp
+        0.00 version
+           1 ordinal base
+         291 number of functions
+         291 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00001060 ??0?$_SpinWait@$00@details@Concurrency@@QEAA@P6AXXZ@Z
+          2    1 00001060 ??0?$_SpinWait@$0A@@details@Concurrency@@QEAA@P6AXXZ@Z
+          3    2 00021380 ??0SchedulerPolicy@Concurrency@@QEAA@AEBV01@@Z
+          4    3 000213D0 ??0SchedulerPolicy@Concurrency@@QEAA@XZ
+          5    4 000213F0 ??0SchedulerPolicy@Concurrency@@QEAA@_KZZ
+          6    5 0000C120 ??0_Cancellation_beacon@details@Concurrency@@QEAA@XZ
+          7    6 0000A200 ??0_Concurrent_queue_base_v4@details@Concurrency@@IEAA@_K@Z
+          8    7 0000A2A0 ??0_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@AEBV_Concurrent_queue_base_v4@12@@Z
+          9    8 0000ECE0 ??0_Condition_variable@details@Concurrency@@QEAA@XZ
+         10    9 00001070 ??0_Context@details@Concurrency@@QEAA@PEAVContext@2@@Z
+         11    A 00014790 ??0_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ
+         12    B 000147C0 ??0_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ
+         13    C 00014800 ??0_ReaderWriterLock@details@Concurrency@@QEAA@XZ
+         14    D 00014790 ??0_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ
+         15    E 00014820 ??0_ReentrantLock@details@Concurrency@@QEAA@XZ
+         16    F 00014840 ??0_ReentrantPPLLock@details@Concurrency@@QEAA@XZ
+         17   10 00002170 ??0_Runtime_object@details@Concurrency@@QEAA@H@Z
+         18   11 00002190 ??0_Runtime_object@details@Concurrency@@QEAA@XZ
+         19   12 00001070 ??0_Scheduler@details@Concurrency@@QEAA@PEAVScheduler@2@@Z
+         20   13 00014880 ??0_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
+         21   14 00014900 ??0_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
+         22   15 0002B520 ??0_SpinLock@details@Concurrency@@QEAA@AECJ@Z
+         23   16 00025ED0 ??0_StructuredTaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
+         24   17 00026110 ??0_TaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
+         25   18 00026230 ??0_TaskCollection@details@Concurrency@@QEAA@XZ
+         26   19 00029270 ??0_Timer@details@Concurrency@@IEAA@I_N@Z
+         27   1A 000021B0 ??0agent@Concurrency@@QEAA@AEAVScheduleGroup@1@@Z
+         28   1B 00002240 ??0agent@Concurrency@@QEAA@AEAVScheduler@1@@Z
+         29   1C 000022D0 ??0agent@Concurrency@@QEAA@XZ
+         30   1D 0000FED0 ??0bad_target@Concurrency@@QEAA@PEBD@Z
+         31   1E 0000FF20 ??0bad_target@Concurrency@@QEAA@XZ
+         32   1F 0000FF40 ??0context_self_unblock@Concurrency@@QEAA@PEBD@Z
+         33   20 0000FF90 ??0context_self_unblock@Concurrency@@QEAA@XZ
+         34   21 0000FFB0 ??0context_unblock_unbalanced@Concurrency@@QEAA@PEBD@Z
+         35   22 00010000 ??0context_unblock_unbalanced@Concurrency@@QEAA@XZ
+         36   23 000147C0 ??0critical_section@Concurrency@@QEAA@XZ
+         37   24 00010020 ??0default_scheduler_exists@Concurrency@@QEAA@PEBD@Z
+         38   25 00010070 ??0default_scheduler_exists@Concurrency@@QEAA@XZ
+         39   26 0000ED10 ??0event@Concurrency@@QEAA@XZ
+         40   27 00010090 ??0improper_lock@Concurrency@@QEAA@PEBD@Z
+         41   28 000100E0 ??0improper_lock@Concurrency@@QEAA@XZ
+         42   29 00010100 ??0improper_scheduler_attach@Concurrency@@QEAA@PEBD@Z
+         43   2A 00010150 ??0improper_scheduler_attach@Concurrency@@QEAA@XZ
+         44   2B 00010170 ??0improper_scheduler_detach@Concurrency@@QEAA@PEBD@Z
+         45   2C 000101C0 ??0improper_scheduler_detach@Concurrency@@QEAA@XZ
+         46   2D 000101E0 ??0improper_scheduler_reference@Concurrency@@QEAA@PEBD@Z
+         47   2E 00010230 ??0improper_scheduler_reference@Concurrency@@QEAA@XZ
+         48   2F 00010250 ??0invalid_link_target@Concurrency@@QEAA@PEBD@Z
+         49   30 000102A0 ??0invalid_link_target@Concurrency@@QEAA@XZ
+         50   31 000102C0 ??0invalid_multiple_scheduling@Concurrency@@QEAA@PEBD@Z
+         51   32 00010310 ??0invalid_multiple_scheduling@Concurrency@@QEAA@XZ
+         52   33 00010330 ??0invalid_oversubscribe_operation@Concurrency@@QEAA@PEBD@Z
+         53   34 00010380 ??0invalid_oversubscribe_operation@Concurrency@@QEAA@XZ
+         54   35 000103A0 ??0invalid_scheduler_policy_key@Concurrency@@QEAA@PEBD@Z
+         55   36 000103F0 ??0invalid_scheduler_policy_key@Concurrency@@QEAA@XZ
+         56   37 00010410 ??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@PEBD@Z
+         57   38 00010460 ??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@XZ
+         58   39 00010480 ??0invalid_scheduler_policy_value@Concurrency@@QEAA@PEBD@Z
+         59   3A 000104D0 ??0invalid_scheduler_policy_value@Concurrency@@QEAA@XZ
+         60   3B 000104F0 ??0message_not_found@Concurrency@@QEAA@PEBD@Z
+         61   3C 00010540 ??0message_not_found@Concurrency@@QEAA@XZ
+         62   3D 00010560 ??0missing_wait@Concurrency@@QEAA@PEBD@Z
+         63   3E 000105B0 ??0missing_wait@Concurrency@@QEAA@XZ
+         64   3F 000105D0 ??0nested_scheduler_missing_detach@Concurrency@@QEAA@PEBD@Z
+         65   40 00010620 ??0nested_scheduler_missing_detach@Concurrency@@QEAA@XZ
+         66   41 00010640 ??0operation_timed_out@Concurrency@@QEAA@PEBD@Z
+         67   42 00010690 ??0operation_timed_out@Concurrency@@QEAA@XZ
+         68   43 000149B0 ??0reader_writer_lock@Concurrency@@QEAA@XZ
+         69   44 000106B0 ??0scheduler_not_attached@Concurrency@@QEAA@PEBD@Z
+         70   45 00010700 ??0scheduler_not_attached@Concurrency@@QEAA@XZ
+         71   46 00010720 ??0scheduler_resource_allocation_error@Concurrency@@QEAA@J@Z
+         72   47 00010740 ??0scheduler_resource_allocation_error@Concurrency@@QEAA@PEBDJ@Z
+         73   48 000107A0 ??0scheduler_worker_creation_error@Concurrency@@QEAA@J@Z
+         74   49 000107C0 ??0scheduler_worker_creation_error@Concurrency@@QEAA@PEBDJ@Z
+         75   4A 000149F0 ??0scoped_lock@critical_section@Concurrency@@QEAA@AEAV12@@Z
+         76   4B 00014A70 ??0scoped_lock@reader_writer_lock@Concurrency@@QEAA@AEAV12@@Z
+         77   4C 00014AF0 ??0scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@AEAV12@@Z
+         78   4D 000107F0 ??0unsupported_os@Concurrency@@QEAA@PEBD@Z
+         79   4E 00010840 ??0unsupported_os@Concurrency@@QEAA@XZ
+         80   4F 000214E0 ??1SchedulerPolicy@Concurrency@@QEAA@XZ
+         81   50 0000C2C0 ??1_Cancellation_beacon@details@Concurrency@@QEAA@XZ
+         82   51 0000A350 ??1_Concurrent_queue_base_v4@details@Concurrency@@MEAA@XZ
+         83   52 0000A370 ??1_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@XZ
+         84   53 0000AB10 ??1_Concurrent_vector_base_v4@details@Concurrency@@IEAA@XZ
+         85   54 0000EDB0 ??1_Condition_variable@details@Concurrency@@QEAA@XZ
+         86   55 00014B10 ??1_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ
+         87   56 00014B10 ??1_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ
+         88   57 00014B20 ??1_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ
+         89   58 00014B40 ??1_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@XZ
+         90   59 0002B580 ??1_SpinLock@details@Concurrency@@QEAA@XZ
+         91   5A 000263B0 ??1_StructuredTaskCollection@details@Concurrency@@QEAA@XZ
+         92   5B 00026430 ??1_TaskCollection@details@Concurrency@@QEAA@XZ
+         93   5C 00029290 ??1_Timer@details@Concurrency@@MEAA@XZ
+         94   5D 000037F0 ??1agent@Concurrency@@UEAA@XZ
+         95   5E 00001260 ??1critical_section@Concurrency@@QEAA@XZ
+         96   5F 0000EDF0 ??1event@Concurrency@@QEAA@XZ
+         97   60 00001260 ??1reader_writer_lock@Concurrency@@QEAA@XZ
+         98   61 00014B20 ??1scoped_lock@critical_section@Concurrency@@QEAA@XZ
+         99   62 00014B60 ??1scoped_lock@reader_writer_lock@Concurrency@@QEAA@XZ
+        100   63 00014B60 ??1scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@XZ
+        101   64 00001090 ??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
+        102   65 000010B0 ??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
+        103   66 00001090 ??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
+        104   67 000010B0 ??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
+        105   68 000214F0 ??4SchedulerPolicy@Concurrency@@QEAAAEAV01@AEBV01@@Z
+        106   69 000010D0 ??_F?$_SpinWait@$00@details@Concurrency@@QEAAXXZ
+        107   6A 000010D0 ??_F?$_SpinWait@$0A@@details@Concurrency@@QEAAXXZ
+        108   6B 000010F0 ??_F_Context@details@Concurrency@@QEAAXXZ
+        109   6C 000010F0 ??_F_Scheduler@details@Concurrency@@QEAAXXZ
+        110   6D 00032F90 ?AgentEventGuid@Concurrency@@3U_GUID@@B
+        111   6E 00025C10 ?Alloc@Concurrency@@YAPEAX_K@Z
+        112   6F 0000BD40 ?Block@Context@Concurrency@@SAXXZ
+        113   70 00032F20 ?ChoreEventGuid@Concurrency@@3U_GUID@@B
+        114   71 00032EE0 ?ConcRTEventGuid@Concurrency@@3U_GUID@@B
+        115   72 00032ED0 ?ConcRT_ProviderGuid@Concurrency@@3U_GUID@@B
+        116   73 00032F10 ?ContextEventGuid@Concurrency@@3U_GUID@@B
+        117   74 0000E7F0 ?Create@CurrentScheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z
+        118   75 0001D940 ?Create@Scheduler@Concurrency@@SAPEAV12@AEBVSchedulerPolicy@2@@Z
+        119   76 000165A0 ?CreateResourceManager@Concurrency@@YAPEAUIResourceManager@1@XZ
+        120   77 0000E820 ?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@AEAVlocation@2@@Z
+        121   78 0000E850 ?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@XZ
+        122   79 0000BD80 ?CurrentContext@Context@Concurrency@@SAPEAV12@XZ
+        123   7A 0000E880 ?Detach@CurrentScheduler@Concurrency@@SAXXZ
+        124   7B 0000CC80 ?DisableTracing@Concurrency@@YAJXZ
+        125   7C 0000CC80 ?EnableTracing@Concurrency@@YAJXZ
+        126   7D 00025D30 ?Free@Concurrency@@YAXPEAX@Z
+        127   7E 0000E8C0 ?Get@CurrentScheduler@Concurrency@@SAPEAVScheduler@2@XZ
+        128   7F 00017CD0 ?GetExecutionContextId@Concurrency@@YAIXZ
+        129   80 0000E8D0 ?GetNumberOfVirtualProcessors@CurrentScheduler@Concurrency@@SAIXZ
+        130   81 00017E50 ?GetOSVersion@Concurrency@@YA?AW4OSVersion@IResourceManager@1@XZ
+        131   82 0000E900 ?GetPolicy@CurrentScheduler@Concurrency@@SA?AVSchedulerPolicy@2@XZ
+        132   83 00021520 ?GetPolicyValue@SchedulerPolicy@Concurrency@@QEBAIW4PolicyElementKey@2@@Z
+        133   84 00017E60 ?GetProcessorCount@Concurrency@@YAIXZ
+        134   85 00017E70 ?GetProcessorNodeCount@Concurrency@@YAIXZ
+        135   86 00017E80 ?GetSchedulerId@Concurrency@@YAIXZ
+        136   87 0000CC80 ?GetSharedTimerQueue@details@Concurrency@@YAPEAXXZ
+        137   88 0000BDB0 ?Id@Context@Concurrency@@SAIXZ
+        138   89 0000E930 ?Id@CurrentScheduler@Concurrency@@SAIXZ
+        139   8A 0000E960 ?IsAvailableLocation@CurrentScheduler@Concurrency@@SA_NAEBVlocation@2@@Z
+        140   8B 0000BDE0 ?IsCurrentTaskCollectionCanceling@Context@Concurrency@@SA_NXZ
+        141   8C 00032F40 ?LockEventGuid@Concurrency@@3U_GUID@@B
+        142   8D 0002B6D0 ?Log2@details@Concurrency@@YAK_K@Z
+        143   8E 00009500 ?NFS_Allocate@details@Concurrency@@YAPEAX_K0PEAX@Z
+        144   8F 00009560 ?NFS_Free@details@Concurrency@@YAXPEAX@Z
+        145   90 00009580 ?NFS_GetLineSize@details@Concurrency@@YA_KXZ
+        146   91 0000BE40 ?Oversubscribe@Context@Concurrency@@SAX_N@Z
+        147   92 00032F70 ?PPLParallelForEventGuid@Concurrency@@3U_GUID@@B
+        148   93 00032F80 ?PPLParallelForeachEventGuid@Concurrency@@3U_GUID@@B
+        149   94 00032F60 ?PPLParallelInvokeEventGuid@Concurrency@@3U_GUID@@B
+        150   95 0000E990 ?RegisterShutdownEvent@CurrentScheduler@Concurrency@@SAXPEAX@Z
+        151   96 00020440 ?ResetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXXZ
+        152   97 00032F50 ?ResourceManagerEventGuid@Concurrency@@3U_GUID@@B
+        153   98 00032F00 ?ScheduleGroupEventGuid@Concurrency@@3U_GUID@@B
+        154   99 0000BE90 ?ScheduleGroupId@Context@Concurrency@@SAIXZ
+        155   9A 0000E9E0 ?ScheduleTask@CurrentScheduler@Concurrency@@SAXP6AXPEAX@Z0@Z
+        156   9B 0000EA20 ?ScheduleTask@CurrentScheduler@Concurrency@@SAXP6AXPEAX@Z0AEAVlocation@2@@Z
+        157   9C 00032EF0 ?SchedulerEventGuid@Concurrency@@3U_GUID@@B
+        158   9D 00021560 ?SetConcurrencyLimits@SchedulerPolicy@Concurrency@@QEAAXII@Z
+        159   9E 00020750 ?SetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z
+        160   9F 00021620 ?SetPolicyValue@SchedulerPolicy@Concurrency@@QEAAIW4PolicyElementKey@2@I@Z
+        161   A0 00032F30 ?VirtualProcessorEventGuid@Concurrency@@3U_GUID@@B
+        162   A1 0000BEC0 ?VirtualProcessorId@Context@Concurrency@@SAIXZ
+        163   A2 0000BEF0 ?Yield@Context@Concurrency@@SAXXZ
+        164   A3 000268B0 ?_Abort@_StructuredTaskCollection@details@Concurrency@@AEAAXXZ
+        165   A4 00014CA0 ?_Acquire@_NonReentrantBlockingLock@details@Concurrency@@QEAAXXZ
+        166   A5 00014CB0 ?_Acquire@_NonReentrantPPLLock@details@Concurrency@@QEAAXPEAX@Z
+        167   A6 00014CA0 ?_Acquire@_ReentrantBlockingLock@details@Concurrency@@QEAAXXZ
+        168   A7 00014CC0 ?_Acquire@_ReentrantLock@details@Concurrency@@QEAAXXZ
+        169   A8 00014D20 ?_Acquire@_ReentrantPPLLock@details@Concurrency@@QEAAXPEAX@Z
+        170   A9 00014D80 ?_AcquireRead@_ReaderWriterLock@details@Concurrency@@QEAAXXZ
+        171   AA 00014DC0 ?_AcquireWrite@_ReaderWriterLock@details@Concurrency@@QEAAXXZ
+        172   AB 0000A4E0 ?_Advance@_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAAXXZ
+        173   AC 0000A570 ?_Assign@_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAAXAEBV123@@Z
+        174   AD 00031990 ?_Byte_reverse_table@details@Concurrency@@3QBEB
+        175   AE 00026CB0 ?_Cancel@_StructuredTaskCollection@details@Concurrency@@QEAAXXZ
+        176   AF 00026E20 ?_Cancel@_TaskCollection@details@Concurrency@@QEAAXXZ
+        177   B0 00009720 ?_CheckTaskCollection@_UnrealizedChore@details@Concurrency@@IEAAXXZ
+        178   B1 00026FF0 ?_CleanupToken@_StructuredTaskCollection@details@Concurrency@@AEAAXXZ
+        179   B2 0002B940 ?_ConcRT_CoreAssert@details@Concurrency@@YAXPEBD0H@Z
+        180   B3 0002B950 ?_ConcRT_Trace@details@Concurrency@@YAXHPEB_WZZ
+        181   B4 0000E610 ?_Confirm_cancel@_Cancellation_beacon@details@Concurrency@@QEAA_NXZ
+        182   B5 0000BF30 ?_CurrentContext@_Context@details@Concurrency@@SA?AV123@XZ
+        183   B6 00013A20 ?_Current_node@location@Concurrency@@SA?AV12@XZ
+        184   B7 000098F0 ?_Destroy@_AsyncTaskCollection@details@Concurrency@@EEAAXXZ
+        185   B8 00001100 ?_DoYield@?$_SpinWait@$00@details@Concurrency@@IEAAXXZ
+        186   B9 0000E660 ?_DoYield@?$_SpinWait@$0A@@details@Concurrency@@IEAAXXZ
+        187   BA 0000EA70 ?_Get@_CurrentScheduler@details@Concurrency@@SA?AV_Scheduler@23@XZ
+        188   BB 00014690 ?_GetCombinableSize@details@Concurrency@@YA_KXZ
+        189   BC 00029950 ?_GetConcRTTraceInfo@Concurrency@@YAPEBU_CONCRT_TRACE_INFO@details@1@XZ
+        190   BD 00017E60 ?_GetConcurrency@details@Concurrency@@YAIXZ
+        191   BE 0000E670 ?_GetCurrentInlineDepth@_StackGuard@details@Concurrency@@CAAEA_KXZ
+        192   BF 0000EA90 ?_GetNumberOfVirtualProcessors@_CurrentScheduler@details@Concurrency@@SAIXZ
+        193   C0 00001110 ?_GetScheduler@_Scheduler@details@Concurrency@@QEAAPEAVScheduler@3@XZ
+        194   C1 0000EAC0 ?_Id@_CurrentScheduler@details@Concurrency@@SAIXZ
+        195   C2 0000AB50 ?_Internal_assign@_Concurrent_vector_base_v4@details@Concurrency@@IEAAXAEBV123@_KP6AXPEAX1@ZP6AX2PEBX1@Z5@Z
+        196   C3 0000AD60 ?_Internal_capacity@_Concurrent_vector_base_v4@details@Concurrency@@IEBA_KXZ
+        197   C4 0000ADA0 ?_Internal_clear@_Concurrent_vector_base_v4@details@Concurrency@@IEAA_KP6AXPEAX_K@Z@Z
+        198   C5 0000AE60 ?_Internal_compact@_Concurrent_vector_base_v4@details@Concurrency@@IEAAPEAX_KPEAXP6AX10@ZP6AX1PEBX0@Z@Z
+        199   C6 0000B190 ?_Internal_copy@_Concurrent_vector_base_v4@details@Concurrency@@IEAAXAEBV123@_KP6AXPEAXPEBX1@Z@Z
+        200   C7 0000A5F0 ?_Internal_empty@_Concurrent_queue_base_v4@details@Concurrency@@IEBA_NXZ
+        201   C8 0000A620 ?_Internal_finish_clear@_Concurrent_queue_base_v4@details@Concurrency@@IEAAXXZ
+        202   C9 0000B370 ?_Internal_grow_by@_Concurrent_vector_base_v4@details@Concurrency@@IEAA_K_K0P6AXPEAXPEBX0@Z2@Z
+        203   CA 0000B4D0 ?_Internal_grow_to_at_least_with_result@_Concurrent_vector_base_v4@details@Concurrency@@IEAA_K_K0P6AXPEAXPEBX0@Z2@Z
+        204   CB 0000A690 ?_Internal_move_push@_Concurrent_queue_base_v4@details@Concurrency@@IEAAXPEAX@Z
+        205   CC 0000A6E0 ?_Internal_pop_if_present@_Concurrent_queue_base_v4@details@Concurrency@@IEAA_NPEAX@Z
+        206   CD 0000A760 ?_Internal_push@_Concurrent_queue_base_v4@details@Concurrency@@IEAAXPEBX@Z
+        207   CE 0000B5F0 ?_Internal_push_back@_Concurrent_vector_base_v4@details@Concurrency@@IEAAPEAX_KAEA_K@Z
+        208   CF 0000B6E0 ?_Internal_reserve@_Concurrent_vector_base_v4@details@Concurrency@@IEAAX_K00@Z
+        209   D0 0000B7C0 ?_Internal_resize@_Concurrent_vector_base_v4@details@Concurrency@@IEAAX_K00P6AXPEAX0@ZP6AX1PEBX0@Z3@Z
+        210   D1 0000A7B0 ?_Internal_size@_Concurrent_queue_base_v4@details@Concurrency@@IEBA_KXZ
+        211   D2 0000A7D0 ?_Internal_swap@_Concurrent_queue_base_v4@details@Concurrency@@IEAAXAEAV123@@Z
+        212   D3 0000B9A0 ?_Internal_swap@_Concurrent_vector_base_v4@details@Concurrency@@IEAAXAEAV123@@Z
+        213   D4 0000A7F0 ?_Internal_throw_exception@_Concurrent_queue_base_v4@details@Concurrency@@IEBAXXZ
+        214   D5 0000BA80 ?_Internal_throw_exception@_Concurrent_vector_base_v4@details@Concurrency@@IEBAX_K@Z
+        215   D6 000272B0 ?_IsCanceling@_StructuredTaskCollection@details@Concurrency@@QEAA_NXZ
+        216   D7 00027370 ?_IsCanceling@_TaskCollection@details@Concurrency@@QEAA_NXZ
+        217   D8 0000BF70 ?_IsSynchronouslyBlocked@_Context@details@Concurrency@@QEBA_NXZ
+        218   D9 00027490 ?_NewCollection@_AsyncTaskCollection@details@Concurrency@@SAPEAV123@PEAV_CancellationTokenState@23@@Z
+        219   DA 00001120 ?_NumberOfSpins@?$_SpinWait@$00@details@Concurrency@@IEAAKXZ
+        220   DB 00001120 ?_NumberOfSpins@?$_SpinWait@$0A@@details@Concurrency@@IEAAKXZ
+        221   DC 0000BE40 ?_Oversubscribe@_Context@details@Concurrency@@SAX_N@Z
+        222   DD 0000BF70 ?_Reference@_Scheduler@details@Concurrency@@QEAAIXZ
+        223   DE 00015210 ?_Release@_NonReentrantBlockingLock@details@Concurrency@@QEAAXXZ
+        224   DF 00015220 ?_Release@_NonReentrantPPLLock@details@Concurrency@@QEAAXXZ
+        225   E0 00015210 ?_Release@_ReentrantBlockingLock@details@Concurrency@@QEAAXXZ
+        226   E1 00015230 ?_Release@_ReentrantLock@details@Concurrency@@QEAAXXZ
+        227   E2 00015270 ?_Release@_ReentrantPPLLock@details@Concurrency@@QEAAXXZ
+        228   E3 00021360 ?_Release@_Scheduler@details@Concurrency@@QEAAIXZ
+        229   E4 00015290 ?_ReleaseRead@_ReaderWriterLock@details@Concurrency@@QEAAXXZ
+        230   E5 000152A0 ?_ReleaseWrite@_ReaderWriterLock@details@Concurrency@@QEAAXXZ
+        231   E6 00001130 ?_Reset@?$_SpinWait@$00@details@Concurrency@@IEAAXXZ
+        232   E7 0000E6A0 ?_Reset@?$_SpinWait@$0A@@details@Concurrency@@IEAAXXZ
+        233   E8 00027760 ?_RunAndWait@_StructuredTaskCollection@details@Concurrency@@QEAA?AW4_TaskCollectionStatus@23@PEAV_UnrealizedChore@23@@Z
+        234   E9 00027AA0 ?_RunAndWait@_TaskCollection@details@Concurrency@@QEAA?AW4_TaskCollectionStatus@23@PEAV_UnrealizedChore@23@@Z
+        235   EA 00027F60 ?_Schedule@_StructuredTaskCollection@details@Concurrency@@QEAAXPEAV_UnrealizedChore@23@@Z
+        236   EB 00027FF0 ?_Schedule@_StructuredTaskCollection@details@Concurrency@@QEAAXPEAV_UnrealizedChore@23@PEAVlocation@3@@Z
+        237   EC 00028090 ?_Schedule@_TaskCollection@details@Concurrency@@QEAAXPEAV_UnrealizedChore@23@@Z
+        238   ED 00028190 ?_Schedule@_TaskCollection@details@Concurrency@@QEAAXPEAV_UnrealizedChore@23@PEAVlocation@3@@Z
+        239   EE 0000E9E0 ?_ScheduleTask@_CurrentScheduler@details@Concurrency@@SAXP6AXPEAX@Z0@Z
+        240   EF 0000BAD0 ?_Segment_index_of@_Concurrent_vector_base_v4@details@Concurrency@@KA_K_K@Z
+        241   F0 00001170 ?_SetSpinCount@?$_SpinWait@$00@details@Concurrency@@QEAAXI@Z
+        242   F1 0000E6E0 ?_SetSpinCount@?$_SpinWait@$0A@@details@Concurrency@@QEAAXI@Z
+        243   F2 00001190 ?_ShouldSpinAgain@?$_SpinWait@$00@details@Concurrency@@IEAA_NXZ
+        244   F3 00001190 ?_ShouldSpinAgain@?$_SpinWait@$0A@@details@Concurrency@@IEAA_NXZ
+        245   F4 000011A0 ?_SpinOnce@?$_SpinWait@$00@details@Concurrency@@QEAA_NXZ
+        246   F5 0000E700 ?_SpinOnce@?$_SpinWait@$0A@@details@Concurrency@@QEAA_NXZ
+        247   F6 0000BF90 ?_SpinYield@Context@Concurrency@@SAXXZ
+        248   F7 000293C0 ?_Start@_Timer@details@Concurrency@@IEAAXXZ
+        249   F8 00029420 ?_Stop@_Timer@details@Concurrency@@IEAAXXZ
+        250   F9 00029A40 ?_Trace_agents@Concurrency@@YAXW4Agents_EventType@1@_JZZ
+        251   FA 00029B50 ?_Trace_ppl_function@Concurrency@@YAXAEBU_GUID@@EW4ConcRT_EventType@1@@Z
+        252   FB 000154B0 ?_TryAcquire@_NonReentrantBlockingLock@details@Concurrency@@QEAA_NXZ
+        253   FC 000154B0 ?_TryAcquire@_ReentrantBlockingLock@details@Concurrency@@QEAA_NXZ
+        254   FD 000154D0 ?_TryAcquire@_ReentrantLock@details@Concurrency@@QEAA_NXZ
+        255   FE 00015500 ?_TryAcquireWrite@_ReaderWriterLock@details@Concurrency@@QEAA_NXZ
+        256   FF 0002BA60 ?_UnderlyingYield@details@Concurrency@@YAXXZ
+        257  100 00015620 ?_Value@_SpinCount@details@Concurrency@@SAIXZ
+        258  101 0000BEF0 ?_Yield@_Context@details@Concurrency@@SAXXZ
+        259  102 00005A90 ?cancel@agent@Concurrency@@QEAA_NXZ
+        260  103 00013BB0 ?current@location@Concurrency@@SA?AV12@XZ
+        261  104 00005F70 ?done@agent@Concurrency@@IEAA_NXZ
+        262  105 00013C60 ?from_numa_node@location@Concurrency@@SA?AV12@G@Z
+        263  106 000108B0 ?get_error_code@scheduler_resource_allocation_error@Concurrency@@QEBAJXZ
+        264  107 000146E0 ?is_current_task_group_canceling@Concurrency@@YA_NXZ
+        265  108 000156A0 ?lock@critical_section@Concurrency@@QEAAXXZ
+        266  109 00015720 ?lock@reader_writer_lock@Concurrency@@QEAAXXZ
+        267  10A 000157A0 ?lock_read@reader_writer_lock@Concurrency@@QEAAXXZ
+        268  10B 00015930 ?native_handle@critical_section@Concurrency@@QEAAAEAV12@XZ
+        269  10C 0000F500 ?notify_all@_Condition_variable@details@Concurrency@@QEAAXXZ
+        270  10D 0000F5A0 ?notify_one@_Condition_variable@details@Concurrency@@QEAAXXZ
+        271  10E 0000F660 ?reset@event@Concurrency@@QEAAXXZ
+        272  10F 0000F6F0 ?set@event@Concurrency@@QEAAXXZ
+        273  110 0001A7D0 ?set_task_execution_resources@Concurrency@@YAXGPEAU_GROUP_AFFINITY@@@Z
+        274  111 0001A7E0 ?set_task_execution_resources@Concurrency@@YAX_K@Z
+        275  112 00007F80 ?start@agent@Concurrency@@QEAA_NXZ
+        276  113 00008030 ?status@agent@Concurrency@@QEAA?AW4agent_status@2@XZ
+        277  114 00004930 ?status_port@agent@Concurrency@@QEAAPEAV?$ISource@W4agent_status@Concurrency@@@2@XZ
+        278  115 00015940 ?try_lock@critical_section@Concurrency@@QEAA_NXZ
+        279  116 00015A30 ?try_lock@reader_writer_lock@Concurrency@@QEAA_NXZ
+        280  117 00015B40 ?try_lock_for@critical_section@Concurrency@@QEAA_NI@Z
+        281  118 00015C00 ?try_lock_read@reader_writer_lock@Concurrency@@QEAA_NXZ
+        282  119 00015C20 ?unlock@critical_section@Concurrency@@QEAAXXZ
+        283  11A 00015D50 ?unlock@reader_writer_lock@Concurrency@@QEAAXXZ
+        284  11B 00029440 ?wait@Concurrency@@YAXI@Z
+        285  11C 0000F8D0 ?wait@_Condition_variable@details@Concurrency@@QEAAXAEAVcritical_section@3@@Z
+        286  11D 00008AE0 ?wait@agent@Concurrency@@SA?AW4agent_status@2@PEAV12@I@Z
+        287  11E 0000F950 ?wait@event@Concurrency@@QEAA_KI@Z
+        288  11F 0000FA80 ?wait_for@_Condition_variable@details@Concurrency@@QEAA_NAEAVcritical_section@3@I@Z
+        289  120 00008B90 ?wait_for_all@agent@Concurrency@@SAX_KPEAPEAV12@PEAW4agent_status@2@I@Z
+        290  121 0000FBA0 ?wait_for_multiple@event@Concurrency@@SA_KPEAPEAV12@_K_NI@Z
+        291  122 00008D80 ?wait_for_one@agent@Concurrency@@SAX_KPEAPEAV12@AEAW4agent_status@2@AEA_KI@Z
+
+  Summary
+
+        4000 .data
+        4000 .pdata
+       15000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       2E000 .text
