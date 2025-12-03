@@ -34,12 +34,16 @@ class Undecorator:
         return name
 
     def resolve_name_backref(self, digits: str) -> str:
-        try:
-            idx = int(digits)
-            if idx < len(self.name_scopes):
-                return self.name_scopes[idx]
-        except ValueError:
-            pass
+        # For single-digit backrefs, return the individual namespace name
+        # For multi-digit backrefs like "01" or "12", combine them to form a qualified name
+        if len(digits) == 1:
+            try:
+                idx = int(digits)
+                if idx < len(self.name_backrefs):
+                    return self.name_backrefs[idx]
+            except ValueError:
+                pass
+        # Multi-digit: combine namespace names in reverse order
         refs = []
         for ch in reversed(digits):
             if ch.isdigit():
@@ -82,7 +86,7 @@ class Undecorator:
                 args.append(self.parse_type())
         if self.peek() == "Z":
             self.consume()
-        return f"{ret} ({cc} *)({', '.join(args)})"
+        return f"{ret} ({cc}*)({', '.join(args)})"
 
     def parse_type(self):
         c = self.consume()
@@ -92,18 +96,8 @@ class Undecorator:
             idx = int(c)
             if idx < len(self.type_backrefs):
                 return self.type_backrefs[idx]
-        if c in ("B", "C", "D"):
-            cv_map = {"B": "const", "C": "volatile", "D": "const volatile"}
-            base = self.parse_type()
-            t = f"{base} {cv_map[c]}".strip()
-            self.type_backrefs.append(t)
-            return t
-        if c == "W":
-            t = "wchar_t"
-            self.type_backrefs.append(t)
-            return t
 
-        # Primitives
+        # Primitives (must check before cv-qualifiers since D is both char and const volatile)
         prim = {
             "X": "void",
             "D": "char",
@@ -119,6 +113,19 @@ class Undecorator:
         }
         if c in prim:
             t = prim[c]
+            self.type_backrefs.append(t)
+            return t
+
+        # CV-qualifiers applied to next type (B=const, C=volatile)
+        # Note: D is handled above as 'char', not as 'const volatile'
+        if c in ("B", "C"):
+            cv_map = {"B": "const", "C": "volatile"}
+            base = self.parse_type()
+            t = f"{base} {cv_map[c]}".strip()
+            self.type_backrefs.append(t)
+            return t
+        if c == "W":
+            t = "wchar_t"
             self.type_backrefs.append(t)
             return t
         if c == "_":
@@ -146,14 +153,8 @@ class Undecorator:
             t = f"class {name} & __ptr64"
             self.type_backrefs.append(t)
             return t
-        if c == "A" and self.mangled[self.pos:self.pos + 4] == "EBV_":
-            self.pos += 4  # skip EBV_
-            name = self.parse_fully_qualified_name()
-            t = f"class {name} const & __ptr64"
-            self.type_backrefs.append(t)
-            return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
-            self.pos += 3
+            self.pos += 3  # skip EBV (const class reference)
             name = self.parse_fully_qualified_name()
             t = f"class {name} const & __ptr64"
             self.type_backrefs.append(t)
@@ -181,12 +182,20 @@ class Undecorator:
                 self.consume()
                 t = self.parse_function_pointer(self.consume() or "A")
             else:
-                if self.peek() == "A" and self.mangled[self.pos:self.pos + 3] in ("AV", "AU"):
-                    self.consume()  # A
-                    kind_char = self.consume()
+                # Check for AV/AU (class/struct) patterns - the 'A' here means non-cv qualified
+                if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
+                    self.consume()  # A (cv qualifier)
+                    kind_char = self.consume()  # V or U
                     name = self.parse_fully_qualified_name()
                     kind = "class" if kind_char == "V" else "struct"
                     base = f"{kind} {name}"
+                # Check for BV/BU (const class/struct) patterns
+                elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
+                    self.consume()  # B (const)
+                    kind_char = self.consume()  # V or U
+                    name = self.parse_fully_qualified_name()
+                    kind = "class" if kind_char == "V" else "struct"
+                    base = f"{kind} {name} const"
                 elif self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
                     is_const_cls = self.mangled[self.pos:self.pos + 3] == "EBV"
                     self.pos += 3  # skip EAV/EBV
