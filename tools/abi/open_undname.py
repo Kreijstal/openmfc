@@ -19,6 +19,9 @@ class Undecorator:
         self.special_is_data = False
         self.special_data_suffix = ""
         self.local_scope = None  # For local variables: `N'
+        self.special_data_prefix = "const "
+        self.thunk_prefix = ""
+        self.ptr64_active = False
 
     def peek(self):
         return self.mangled[self.pos] if self.pos < len(self.mangled) else None
@@ -460,14 +463,14 @@ class Undecorator:
         # Pointers/references (AEAVFoo@@ -> Foo&)
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
-            name = self.parse_simple_name(store_name=store_name)
+            name = self.parse_type_qualified_name(record=store_name)
             t = f"class {name} & __ptr64"
             if store_type:
                 self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3  # skip EBV (const class reference)
-            name = self.parse_simple_name(store_name=store_name)
+            name = self.parse_type_qualified_name(record=store_name)
             t = f"class {name} const & __ptr64"
             if store_type:
                 self.type_backrefs.append(t)
@@ -487,18 +490,45 @@ class Undecorator:
                 "D": "const volatile",
             }
             pointer_cv = pointer_cv_map.get(c, "")
+            ptr64 = True
+            unaligned = False
+            restrict = False
+            based_desc = ""
 
             # Check for WinRT hat pointer: PE$AA or similar
             is_hat_pointer = False
             if self.mangled[self.pos:self.pos + 4] == "E$AA":
                 self.pos += 4  # skip E$AA
                 is_hat_pointer = True
+                ptr64 = True
                 # Parse the type
                 base = self.parse_type(store_name=store_name, store_type=False)
-                t = f"{base} ^ __ptr64"
+                suffix_bits = []
+                if ptr64:
+                    suffix_bits.append("__ptr64")
+                if unaligned:
+                    suffix_bits.append("__unaligned")
+                if restrict:
+                    suffix_bits.append("__restrict")
+                if pointer_cv:
+                    suffix_bits.append(pointer_cv)
+                if based_desc:
+                    suffix_bits.append(based_desc)
+                suffix = " " + " ".join(suffix_bits) if suffix_bits else ""
+                t = f"{base} ^{suffix}"
                 if store_type:
                     self.type_backrefs.append(t)
                 return t
+            while self.peek() in ("E", "F", "I", "M", "N", "O", "P"):
+                mod = self.consume()
+                if mod == "E":
+                    ptr64 = True
+                elif mod == "F":
+                    unaligned = True
+                elif mod == "I":
+                    restrict = True
+                elif mod in ("M", "N", "O", "P"):
+                    based_desc = "__based"
 
             # Check for EAV/EBV before consuming E markers
             if self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
@@ -558,30 +588,40 @@ class Undecorator:
                     if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
                         self.consume()  # A (cv qualifier)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_simple_name(store_name=store_name)
+                        name = self.parse_type_qualified_name(record=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name}"
                     # Check for BV/BU (const class/struct) patterns
                     elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
                         self.consume()  # B (const)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_simple_name(store_name=store_name)
+                        name = self.parse_type_qualified_name(record=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name} const"
                     else:
                         base = self.parse_type(store_name=store_name, store_type=False)
                 if pointee_cv:
                     base = f"{base} {pointee_cv}".strip()
-            t = f"{base} {'&' if is_ref else '*'} __ptr64"
+            suffix_bits = []
+            if ptr64:
+                suffix_bits.append("__ptr64")
+            if unaligned:
+                suffix_bits.append("__unaligned")
+            if restrict:
+                suffix_bits.append("__restrict")
             if pointer_cv:
-                t = f"{t} {pointer_cv}"
+                suffix_bits.append(pointer_cv)
+            if based_desc:
+                suffix_bits.append(based_desc)
+            suffix = " " + " ".join(suffix_bits) if suffix_bits else ""
+            t = f"{base} {'&' if is_ref else '*'}{suffix}"
             if store_type:
                 self.type_backrefs.append(t)
             return t
 
         # Class/struct types
         if c in ("V", "U"):
-            name = self.parse_simple_name(store_name=store_name)
+            name = self.parse_type_qualified_name(record=store_name)
             kind = "class" if c == "V" else "struct"
             t = f"{kind} {name}"
             if store_type:
@@ -657,9 +697,6 @@ class Undecorator:
                 break
             if args and self.mangled[self.pos:self.pos + 2] == "?$":
                 # Next fragment is another template/name.
-                break
-            if self.peek() and self.peek().islower():
-                # Likely namespace identifier; let caller handle.
                 break
             if self.peek() == "@":
                 # If we are looking at a scope suffix like @1@, stop so caller can apply it.
@@ -744,6 +781,91 @@ class Undecorator:
             templ = f"std::{templ}"
         return templ
 
+    def parse_number_literal(self):
+        num = ""
+        negative = False
+        if self.peek() == "?":
+            negative = True
+            self.consume()
+        while self.peek() and self.peek().isdigit():
+            num += self.consume()
+        if not num:
+            return ""
+        return f"-{num}" if negative else num
+
+    def _rebased_hex(self, ch: str) -> int:
+        if "A" <= ch <= "P":
+            return ord(ch) - ord("A")
+        raise ValueError(f"invalid rebased hex digit: {ch}")
+
+    def _decode_char_literal(self, s: str, idx: int):
+        if s[idx] != "?":
+            return ord(s[idx]), idx + 1
+        idx += 1
+        if idx >= len(s):
+            return 0, idx
+        tag = s[idx]
+        idx += 1
+        if tag == "$" and idx + 1 < len(s):
+            try:
+                hi = self._rebased_hex(s[idx])
+                lo = self._rebased_hex(s[idx + 1])
+                idx += 2
+                return (hi << 4) | lo, idx
+            except Exception:
+                return 0, idx
+        digit_lookup = ",/\\:. \n\t'-"
+        if tag.isdigit():
+            return ord(digit_lookup[int(tag)]), idx
+        if "a" <= tag <= "z":
+            return 0xE1 + (ord(tag) - ord("a")), idx
+        if "A" <= tag <= "Z":
+            return 0xC1 + (ord(tag) - ord("A")), idx
+        return ord(tag), idx
+
+    def parse_string_literal(self):
+        if self.peek() == "@":
+            self.consume()
+        if self.peek() == "_":
+            self.consume()
+        kind = self.consume()
+        length_token = ""
+        while self.peek() and self.peek() not in ("@", "?"):
+            if self.peek().isalnum():
+                length_token += self.consume()
+            else:
+                break
+        try:
+            expected_len = int(length_token, 16)
+        except Exception:
+            expected_len = None
+        while self.peek() not in (None, "@"):
+            self.consume()
+        if self.peek() == "@":
+            self.consume()
+        payload = ""
+        while self.peek() not in (None, "@"):
+            payload += self.consume()
+        if self.peek() == "@":
+            self.consume()
+        bytes_out = []
+        i = 0
+        while i < len(payload):
+            b, i = self._decode_char_literal(payload, i)
+            bytes_out.append(b)
+        if expected_len is not None and len(bytes_out) > expected_len:
+            bytes_out = bytes_out[:expected_len]
+        if bytes_out and bytes_out[-1] == 0:
+            bytes_out = bytes_out[:-1]
+        if kind == "1":
+            chars = []
+            for j in range(0, len(bytes_out), 2):
+                if j + 1 < len(bytes_out):
+                    code = bytes_out[j] | (bytes_out[j + 1] << 8)
+                    chars.append(chr(code))
+            return f"L\"{''.join(chars)}\""
+        return f"\"{''.join(chr(b) for b in bytes_out)}\""
+
     def parse_special_member(self):
         op = self.consume()  # 0 ctor, 1 dtor, 4 operator=, etc.
         self.last_special_op = op
@@ -790,6 +912,25 @@ class Undecorator:
                 return f"{cls}::`vbtable'{suffix}"
             if sub_op == "D":
                 return f"{cls}::`vbase destructor'"
+            if sub_op == "R":
+                kind = self.consume()
+                rtti_map = {
+                    "0": "`RTTI Type Descriptor'",
+                    "1": "`RTTI Base Class Descriptor'",
+                    "2": "`RTTI Base Class Array'",
+                    "3": "`RTTI Class Hierarchy Descriptor'",
+                    "4": "`RTTI Complete Object Locator'",
+                }
+                self.special_is_data = True
+                return f"{cls} {rtti_map.get(kind, '`RTTI Data\'')}"
+            if sub_op == "C":
+                self.special_is_data = True
+                self.special_data_prefix = ""
+                return self.parse_string_literal()
+            if sub_op in ("E", "F"):
+                target = self.parse_fully_qualified_name()
+                desc = "dynamic initializer" if sub_op == "E" else "dynamic atexit destructor"
+                return f"`{desc} for '{target}'`"
             if sub_op == "K":
                 lit = self.parse_name_fragment() or ""
                 return f"{cls}::operator \"\" {lit}"
@@ -866,6 +1007,26 @@ class Undecorator:
         is_static = False
         is_virtual = False
         ref_qualifier = ""
+        has_ptr64 = True
+
+        if scope_char == "$":
+            thunk_code = self.consume()
+            if thunk_code in ("0", "1", "2", "3", "4", "5"):
+                adj1 = self.parse_number_literal()
+                adj2 = self.parse_number_literal()
+                adj = ",".join([a for a in (adj1, adj2) if a])
+                self.thunk_prefix = f"[thunk]{f'{{{adj}}}' if adj else ''}: "
+            elif thunk_code == "B":
+                offset = self.parse_number_literal()
+                self.thunk_prefix = f"`vcall'{f'{{{offset}}}' if offset else ''}: "
+            elif thunk_code == "R":
+                vbptr = self.parse_number_literal()
+                vboff = self.parse_number_literal()
+                combo = ",".join([a for a in (vbptr, vboff) if a])
+                self.thunk_prefix = f"[thunk]{f'{{{combo}}}' if combo else ''}: "
+            else:
+                self.thunk_prefix = "[thunk]: "
+            scope_char = self.consume()
 
         if scope_char in ("A", "B"):
             scope = "private"
@@ -907,6 +1068,8 @@ class Undecorator:
                 # Skip the $A... pattern (WinRT modifier)
                 while self.peek() == "A":
                     self.consume()
+                if self.peek() == "@":
+                    self.consume()
                 cc_from_winrt = "__cdecl"  # WinRT typically uses __cdecl
                 extra_char = None  # Already consumed what we need
 
@@ -947,16 +1110,20 @@ class Undecorator:
         cc = ""
         if cc_from_winrt:
             cc = cc_from_winrt
+            has_ptr64 = True
         elif cc_char == "A":
             cc = "__cdecl"
+            has_ptr64 = True
         elif cc_char == "G":
             cc = "__stdcall"
+            has_ptr64 = True
         elif cc_char == "C":
             cc = "__pascal"
         elif cc_char == "I":
             cc = "__fastcall"
+            has_ptr64 = True
 
-        return scope, is_const, cc, is_static, is_virtual, ref_qualifier
+        return scope, is_const, cc, is_static, is_virtual, ref_qualifier, has_ptr64
 
     def demangle(self):
         overrides = {
@@ -972,6 +1139,9 @@ class Undecorator:
         self.last_special_op = None
         self.special_is_data = False
         self.special_data_suffix = ""
+        self.special_data_prefix = "const "
+        self.thunk_prefix = ""
+        self.ptr64_active = False
 
         # Check for special operators (??0, ??1) vs Regular Names
         is_special = False
@@ -997,7 +1167,7 @@ class Undecorator:
                 enclosing_func_name = ""
             
             # Parse the enclosing function's signature
-            scope, is_const, cc, is_static, is_virtual, ref_qualifier = self.parse_access_convention()
+            scope, is_const, cc, is_static, is_virtual, ref_qualifier, has_ptr64 = self.parse_access_convention()
             
             # Parse return type (functions have return types)
             ret_type = self.parse_type()
@@ -1038,7 +1208,8 @@ class Undecorator:
             func_sig += f"{enclosing_func_name}({','.join(args)})"
             if is_const:
                 func_sig += "const"
-            func_sig += " __ptr64"
+            if has_ptr64 and scope and not is_static:
+                func_sig += " __ptr64"
             
             # Now parse the variable's storage (@4) and type (QBDB)
             if self.peek() == "@":
@@ -1073,11 +1244,11 @@ class Undecorator:
                 if self.peek() in ("A", "B", "C", "D"):
                     cv_code = self.consume()
                     cv_ptr = {"A": "", "B": " const", "C": " volatile", "D": " const volatile"}[cv_code]
-                # If already a pointer/reference, annotate the pointer itself.
-                if t.endswith("* __ptr64") or t.endswith(" & __ptr64"):
-                    t = f"{t} __ptr64{cv_ptr}"
+                # If already a pointer/reference, annotate the pointer itself (without forcing __ptr64)
+                if t.endswith("*") or t.endswith("&") or t.endswith("__ptr64"):
+                    t = f"{t}{cv_ptr}"
                 else:
-                    t = f"{t} * __ptr64{cv_ptr}"
+                    t = f"{t} *{cv_ptr}"
             is_const_data = False
             if self.peek() == "B":
                 is_const_data = True
@@ -1093,7 +1264,7 @@ class Undecorator:
             return f"{scope_prefix}{t} {func_name}".strip()
 
         if self.special_is_data:
-            return f"const {func_name}"
+            return f"{self.special_data_prefix}{func_name}".strip()
 
         # Parse Access, Virtual, Static, etc.
         if self.peek() == "Y":
@@ -1110,8 +1281,9 @@ class Undecorator:
             is_virtual = False
             scope = ""
             ref_qualifier = ""
+            has_ptr64 = False
         else:
-            scope, is_const, cc, is_static, is_virtual, ref_qualifier = self.parse_access_convention()
+            scope, is_const, cc, is_static, is_virtual, ref_qualifier, has_ptr64 = self.parse_access_convention()
 
         # Return Type
         # Constructors/Destructors do NOT have a return type in mangling.
@@ -1190,18 +1362,15 @@ class Undecorator:
         if is_const:
             res += "const"
 
-        # For ctors/dtors the mangling implies __ptr64 on the implicit this.
-        # But not for global functions (no scope)
-        if is_special and scope:
-            res += " __ptr64"
-
-        # Mark implicit this-pointer width on non-static member functions only.
-        if scope and not is_static and not res.endswith("__ptr64"):
+        if has_ptr64 and scope and not is_static:
             res += " __ptr64"
         
-        # Ref-qualifier for member functions (& or &&) comes after __ptr64
+        # Ref-qualifier for member functions (& or &&)
         if ref_qualifier:
-            res += ref_qualifier + " "
+            res += f" {ref_qualifier}"
+
+        if self.thunk_prefix:
+            res = f"{self.thunk_prefix}{res}"
 
         return res
 
