@@ -137,7 +137,7 @@ class Undecorator:
     
     def parse_simple_name(self, store_name: bool = True):
         # Parse a single name fragment (for class names in types)
-        # Handles optional @digits@ scope suffix
+        # Handles optional namespace scope suffix like @digits@, @name@...@@, etc.
         if self.peek() is None:
             return ""
         frag = self.parse_name_fragment()
@@ -155,38 +155,128 @@ class Undecorator:
             frag = self.resolve_name_backref(frag)
             store_frag = None  # don't store resolved backrefs as new names
 
-        # Check for @digits@ scope suffix
+        # Check for namespace scope suffix: @digits@, @name@...@@, etc.
         if self.peek() == "@":
             i = self.pos + 1
-            digits = ""
-            while i < len(self.mangled) and self.mangled[i].isdigit():
-                digits += self.mangled[i]
-                i += 1
-            if digits and i < len(self.mangled) and self.mangled[i] == "@":
-                scope = self.resolve_name_backref(digits)
-                # Heuristic: prefer a scope that does not already contain the leaf name
-                alt_scope = None
-                try:
-                    alt_idx = int(digits)
-                    if alt_idx < len(self.name_backrefs):
-                        if alt_idx < len(self.name_scopes):
-                            alt_scope = self.name_scopes[alt_idx]
+            
+            if i < len(self.mangled):
+                first_char = self.mangled[i]
+                
+                # Case 1: @digits@ pattern
+                if first_char.isdigit():
+                    digits = ""
+                    while i < len(self.mangled) and self.mangled[i].isdigit():
+                        digits += self.mangled[i]
+                        i += 1
+                    if digits and i < len(self.mangled) and self.mangled[i] == "@":
+                        scope = self.resolve_name_backref(digits)
+                        # Heuristic: prefer a scope that does not already contain the leaf name
+                        alt_scope = None
+                        try:
+                            alt_idx = int(digits)
+                            if alt_idx < len(self.name_backrefs):
+                                if alt_idx < len(self.name_scopes):
+                                    alt_scope = self.name_scopes[alt_idx]
+                                else:
+                                    alt_scope = self.name_backrefs[alt_idx]
+                        except ValueError:
+                            pass
+                        chosen = scope
+                        if frag.startswith("_Locinfo"):
+                            chosen = "std"
                         else:
-                            alt_scope = self.name_backrefs[alt_idx]
-                except ValueError:
-                    pass
-                chosen = scope
-                if frag.startswith("_Locinfo"):
-                    chosen = "std"
-                else:
-                    if scope and frag in scope and alt_scope:
-                        chosen = alt_scope
-                    if alt_scope and chosen and len(alt_scope) < len(chosen):
-                        chosen = alt_scope
-                # Don't add scope if name already starts with it (e.g., std::fpos)
-                if not frag.startswith(f"{chosen}::"):
-                    frag = f"{chosen}::{frag}"
-                self.pos = i + 1  # consume @digits@
+                            if scope and frag in scope and alt_scope:
+                                chosen = alt_scope
+                            if alt_scope and chosen and len(alt_scope) < len(chosen):
+                                chosen = alt_scope
+                        # Don't add scope if name already starts with it (e.g., std::fpos)
+                        if not frag.startswith(f"{chosen}::"):
+                            frag = f"{chosen}::{frag}"
+                        self.pos = i + 1  # consume @digits@
+                
+                # Case 2: @name@...@@ pattern (named namespace scopes)
+                elif first_char.islower() or first_char == "_":
+                    # Parse namespace scope: sequence of @-separated names/backrefs ending with @@
+                    scope_parts = []
+                    saved_pos = self.pos
+                    self.consume()  # skip leading @
+                    
+                    while True:
+                        if self.peek() is None:
+                            # Unexpected end, restore
+                            self.pos = saved_pos
+                            scope_parts = []
+                            break
+                        
+                        # Name fragment (identifier)
+                        if self.peek() and (self.peek().isalpha() or self.peek() == "_"):
+                            # Check if this looks like a type code (_N, _K, etc.)
+                            # Type codes are _ followed by uppercase letter
+                            if self.peek() == "_" and self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1].isupper():
+                                # Looks like a type code, scope ends here
+                                break
+                            name = ""
+                            while self.peek() and self.peek() not in ("@", None):
+                                name += self.consume()
+                            scope_parts.append(name)
+                            # Check what's next
+                            if self.peek() == "@":
+                                # Check for @@ terminator
+                                if self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+                                    self.consume()  # first @
+                                    self.consume()  # second @
+                                    break
+                                else:
+                                    # Check if what follows @ looks like a type code
+                                    next_char = self.mangled[self.pos + 1] if self.pos + 1 < len(self.mangled) else None
+                                    if next_char == "_" and self.pos + 2 < len(self.mangled) and self.mangled[self.pos + 2].isupper():
+                                        # Type code follows, scope ends here (don't consume @)
+                                        break
+                                    self.consume()  # separator @
+                                    continue
+                            else:
+                                # Unexpected end, restore
+                                self.pos = saved_pos
+                                scope_parts = []
+                                break
+                        
+                        # Digit backref
+                        elif self.peek() and self.peek().isdigit():
+                            digits = ""
+                            while self.peek() and self.peek().isdigit():
+                                digits += self.consume()
+                            resolved = self.resolve_name_backref(digits)
+                            scope_parts.append(resolved)
+                            # Check what's next
+                            if self.peek() == "@":
+                                # Check for @@ terminator
+                                if self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+                                    self.consume()  # first @
+                                    self.consume()  # second @
+                                    break
+                                else:
+                                    # Check if what follows @ looks like a type code
+                                    next_char = self.mangled[self.pos + 1] if self.pos + 1 < len(self.mangled) else None
+                                    if next_char == "_" and self.pos + 2 < len(self.mangled) and self.mangled[self.pos + 2].isupper():
+                                        # Type code follows, scope ends here (don't consume @)
+                                        break
+                                    self.consume()  # separator @
+                                    continue
+                            else:
+                                # End of scope (no @@), keep parts collected so far
+                                break
+                        
+                        else:
+                            # Not a valid scope fragment, restore
+                            self.pos = saved_pos
+                            scope_parts = []
+                            break
+                    
+                    # Build scope from parts (outer->inner order, reverse for qualified name)
+                    if scope_parts:
+                        scope = "::".join(reversed(scope_parts))
+                        if not frag.startswith(f"{scope}::"):
+                            frag = f"{scope}::{frag}"
 
         # Handle namespaces that immediately follow a template name without '@'
         if self.peek() and self.peek().islower():
@@ -266,6 +356,7 @@ class Undecorator:
             return t
 
         # Primitives (must check before cv-qualifiers since D is both char and const volatile)
+        # Note: Primitive types are NOT added to the type backref table in MSVC mangling
         prim = {
             "X": "void",
             "D": "char",
@@ -282,8 +373,7 @@ class Undecorator:
         }
         if c in prim:
             t = prim[c]
-            if store_type:
-                self.type_backrefs.append(t)
+            # Don't add primitives to backref table
             return t
 
         # Type backreference digit (0-9) into the substitution table
@@ -475,6 +565,10 @@ class Undecorator:
                     j += 1
                 if digits and j < len(self.mangled) and self.mangled[j] == "@":
                     break
+                # Also check for @name@ pattern (namespace scope)
+                if j < len(self.mangled) and (self.mangled[j].islower() or self.mangled[j] == "_"):
+                    # Looks like @name... which is a namespace scope, stop
+                    break
                 self.consume()
                 continue
             if self.peek() == "$":
@@ -508,6 +602,10 @@ class Undecorator:
                     digits += self.mangled[j]
                     j += 1
                 if digits and j < len(self.mangled) and self.mangled[j] == "@":
+                    break
+                # Also check for @name@ pattern (namespace scope)
+                if j < len(self.mangled) and (self.mangled[j].islower() or self.mangled[j] == "_"):
+                    # Looks like @name... which is a namespace scope, stop
                     break
                 self.consume()
                 continue
