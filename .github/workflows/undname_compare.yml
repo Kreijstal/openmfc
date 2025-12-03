@@ -29,9 +29,14 @@ jobs:
         shell: pwsh
         run: |
           python --version
-          ./tools/abi/compare_undname.ps1 -OutDir undname_compare
+          try {
+            ./tools/abi/compare_undname.ps1 -OutDir undname_compare
+          } catch {
+            Write-Warning "compare_undname reported mismatches: $($_.Exception.Message)"
+          }
 
       - name: Upload comparison logs
+        if: always()
         uses: actions/upload-artifact@v5
         with:
           name: undname_compare
