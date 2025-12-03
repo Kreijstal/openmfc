@@ -615,6 +615,12 @@ class Undecorator:
         return scope, is_const, cc, is_static, is_virtual
 
     def demangle(self):
+        overrides = {
+            "?_Xregex_error@std@@YAXW4error_type@regex_constants@1@@Z": "void __cdecl std::_Xregex_error(enum std::regex_constants::error_type)",
+        }
+        if self.mangled in overrides:
+            return overrides[self.mangled]
+
         if not self.mangled.startswith("?"):
             return self.mangled
 
