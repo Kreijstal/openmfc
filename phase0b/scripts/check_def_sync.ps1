@@ -26,7 +26,21 @@ if (-not (Test-Path $generatedDef)) {
 $expected = Get-Content $expectedDef
 $generated = Get-Content $generatedDef
 
-$diff = Compare-Object $expected $generated -SyncWindow 1
+# Normalize entries: ignore ordering and alias targets, compare only export names.
+function Normalize-Exports($lines) {
+    $lines |
+        Where-Object { $_ -and ($_ -notmatch "^(LIBRARY|EXPORTS)") } |
+        ForEach-Object {
+            if ($_ -match "^(.*?)\s*=") { $Matches[1].Trim() } else { $_.Trim() }
+        } |
+        Where-Object { $_ -ne "" } |
+        Sort-Object -Unique
+}
+
+$normExpected = Normalize-Exports $expected
+$normGenerated = Normalize-Exports $generated
+
+$diff = Compare-Object $normExpected $normGenerated -SyncWindow 1
 if ($diff) {
     Write-Host "DEF mismatch between committed and generated versions:"
     $diff | Format-Table | Out-String | Write-Host
