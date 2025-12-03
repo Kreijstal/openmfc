@@ -8,10 +8,19 @@ on:
       - '.github/workflows/undname_compare.yml'
 
 jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run demangler regression test
+        run: |
+          python tools/abi/test_open_undname.py
+
   compare:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
