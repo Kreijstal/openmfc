@@ -528,6 +528,31 @@ class Undecorator:
                     if store_type:
                         self.type_backrefs.append(t)
                     return t
+                elif self.peek() == "8":
+                    # Member function pointer: P8ClassName@@... 
+                    self.consume()  # consume 8
+                    # Parse the class name
+                    class_name = self.parse_type_qualified_name(record=store_name)
+                    # Parse the calling convention
+                    cc_char = self.consume() or "A"
+                    cc_map = {"A": "__cdecl", "G": "__stdcall", "I": "__fastcall", "E": "__thiscall"}
+                    cc = cc_map.get(cc_char, "__thiscall")
+                    # Parse return type
+                    ret = self.parse_type(store_type=False)
+                    # Parse arguments
+                    args = []
+                    if self.peek() == "X":
+                        self.consume()
+                        args.append("void")
+                    else:
+                        while self.peek() not in (None, "Z", "@"):
+                            args.append(self.parse_type(store_type=False))
+                    if self.peek() == "Z":
+                        self.consume()
+                    t = f"{ret} ({cc} {class_name}::*)({','.join(args)})"
+                    if store_type:
+                        self.type_backrefs.append(t)
+                    return t
                 else:
                     # Check for AV/AU (class/struct) patterns - the 'A' here means non-cv qualified
                     if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
@@ -579,6 +604,31 @@ class Undecorator:
             # Unknown ?-prefixed type
             t = "UNKNOWN"
             self.type_backrefs.append(t)
+            return t
+
+        # Multidimensional arrays (Y prefix)
+        # Format: Y<num_dims><sizes>...<element_type>
+        if c == "Y":
+            # Parse number of dimensions (encoded as a number)
+            num_dims = 0
+            if self.peek() and self.peek().isdigit():
+                num_dims = int(self.consume())
+            # Parse dimension sizes
+            sizes = []
+            for _ in range(num_dims):
+                # Each dimension size is encoded - for now just parse a number
+                size = ""
+                while self.peek() and self.peek().isdigit():
+                    size += self.consume()
+                if size:
+                    sizes.append(size)
+            # Parse element type
+            element_type = self.parse_type(store_name=store_name, store_type=False)
+            # Build array type string
+            dims_str = "".join(f"[{s}]" for s in sizes)
+            t = f"{element_type}{dims_str}"
+            if store_type:
+                self.type_backrefs.append(t)
             return t
 
         t = f"UNK({c})"
@@ -690,6 +740,26 @@ class Undecorator:
         # Handle _ prefix (e.g., _F for default constructor closure)
         if op == "_":
             sub_op = self.consume()  # e.g., F
+            # Handle user-defined literal operator (__K)
+            if sub_op == "_":
+                # Double underscore prefix for special operators like __K (user-defined literals)
+                literal_op = self.consume()
+                if literal_op == "K":
+                    # User-defined literal: ??__K_name@@...
+                    # Parse the literal suffix name (e.g., _l)
+                    literal_name = ""
+                    while self.peek() not in (None, "@"):
+                        literal_name += self.consume()
+                    # Skip the @@ that ends the name
+                    if self.mangled[self.pos:self.pos + 2] == "@@":
+                        self.pos += 2
+                    elif self.peek() == "@":
+                        self.consume()
+                    return f"operator \"\" {literal_name}"
+                # Handle other __ prefixed operators
+                fq = self.parse_fully_qualified_name()
+                cls = fq if fq else ""
+                return f"{cls}::`special operator __{literal_op}'"
             fq = self.parse_fully_qualified_name()
             cls = fq if fq else ""
             if sub_op == "F":
@@ -775,11 +845,14 @@ class Undecorator:
         Parse the access / storage / calling convention blob that appears
         immediately after the name (e.g., QEAA, QEBA, UEAA).
         This is a simplified 90% mapping for the Phase 0A/0B symbols we see.
+        Returns: (scope, is_const, cc, is_static, is_virtual, ref_qualifier)
+        ref_qualifier is "" for none, "&" for lvalue, "&&" for rvalue
         """
         scope_char = self.consume()
         scope = "public"
         is_static = False
         is_virtual = False
+        ref_qualifier = ""
 
         if scope_char in ("A", "B"):
             scope = "private"
@@ -812,7 +885,7 @@ class Undecorator:
             cc_char = self.consume()
         else:
             prop_char = self.consume()
-            extra_char = self.consume()  # cv slot
+            extra_char = self.consume()  # cv slot or ref-qualifier
             is_const = False
             
             # Handle WinRT/C++/CX modifiers like $AAA
@@ -824,22 +897,40 @@ class Undecorator:
                 cc_from_winrt = "__cdecl"  # WinRT typically uses __cdecl
                 extra_char = None  # Already consumed what we need
 
-            def apply_prop(ch):
-                nonlocal is_virtual, is_const
-                if ch is None or is_static:
-                    return
-                if ch == "B":
+            # Check if extra_char is a ref-qualifier (G or H)
+            # In this case, we need to read one more byte for const/volatile
+            if extra_char in ("G", "H"):
+                if extra_char == "G":
+                    ref_qualifier = "&"
+                else:  # H
+                    ref_qualifier = "&&"
+                # Read const/volatile marker
+                cv_char = self.consume()
+                if cv_char == "B":
                     is_const = True
-                elif ch == "F":
-                    is_const = True
-
-            apply_prop(prop_char)
-            apply_prop(extra_char)
-            
-            if cc_from_winrt:
-                cc_char = None
+                # Now read calling convention
+                if cc_from_winrt:
+                    cc_char = None
+                else:
+                    cc_char = self.consume()
             else:
-                cc_char = self.consume()
+                # No ref-qualifier, normal processing
+                def apply_prop(ch):
+                    nonlocal is_virtual, is_const
+                    if ch is None or is_static:
+                        return
+                    if ch == "B":
+                        is_const = True
+                    elif ch == "F":
+                        is_const = True
+
+                apply_prop(prop_char)
+                apply_prop(extra_char)
+                
+                if cc_from_winrt:
+                    cc_char = None
+                else:
+                    cc_char = self.consume()
         cc = ""
         if cc_from_winrt:
             cc = cc_from_winrt
@@ -852,7 +943,7 @@ class Undecorator:
         elif cc_char == "I":
             cc = "__fastcall"
 
-        return scope, is_const, cc, is_static, is_virtual
+        return scope, is_const, cc, is_static, is_virtual, ref_qualifier
 
     def demangle(self):
         overrides = {
@@ -893,7 +984,7 @@ class Undecorator:
                 enclosing_func_name = ""
             
             # Parse the enclosing function's signature
-            scope, is_const, cc, is_static, is_virtual = self.parse_access_convention()
+            scope, is_const, cc, is_static, is_virtual, ref_qualifier = self.parse_access_convention()
             
             # Parse return type (functions have return types)
             ret_type = self.parse_type()
@@ -1005,8 +1096,9 @@ class Undecorator:
             is_static = False
             is_virtual = False
             scope = ""
+            ref_qualifier = ""
         else:
-            scope, is_const, cc, is_static, is_virtual = self.parse_access_convention()
+            scope, is_const, cc, is_static, is_virtual, ref_qualifier = self.parse_access_convention()
 
         # Return Type
         # Constructors/Destructors do NOT have a return type in mangling.
@@ -1086,12 +1178,17 @@ class Undecorator:
             res += "const"
 
         # For ctors/dtors the mangling implies __ptr64 on the implicit this.
-        if is_special:
+        # But not for global functions (no scope)
+        if is_special and scope:
             res += " __ptr64"
 
         # Mark implicit this-pointer width on non-static member functions only.
         if scope and not is_static and not res.endswith("__ptr64"):
             res += " __ptr64"
+        
+        # Ref-qualifier for member functions (& or &&) comes after __ptr64
+        if ref_qualifier:
+            res += ref_qualifier + " "
 
         return res
 
