@@ -488,6 +488,18 @@ class Undecorator:
             }
             pointer_cv = pointer_cv_map.get(c, "")
 
+            # Check for WinRT hat pointer: PE$AA or similar
+            is_hat_pointer = False
+            if self.mangled[self.pos:self.pos + 4] == "E$AA":
+                self.pos += 4  # skip E$AA
+                is_hat_pointer = True
+                # Parse the type
+                base = self.parse_type(store_name=store_name, store_type=False)
+                t = f"{base} ^ __ptr64"
+                if store_type:
+                    self.type_backrefs.append(t)
+                return t
+
             # Check for EAV/EBV before consuming E markers
             if self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
                 # Debug
