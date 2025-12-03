@@ -2,7 +2,6 @@
 """
 Simple regression test for open_undname.py against recorded MSVC undecorations.
 """
-import os
 import re
 import subprocess
 import sys
@@ -15,16 +14,13 @@ DEMangler = ROOT / "open_undname.py"
 
 # Some DLLs (e.g., vcamp/vccorlib) still have known mismatches.
 # Skip them by default to keep regression runs green, but allow opt-in via env.
-KNOWN_MISMATCH_FILES = {
-    "compare_vcamp140.dll.txt",
-    "compare_vccorlib140.dll.txt",
-}
-INCLUDE_KNOWN_MISMATCH = os.environ.get("RUN_KNOWN_MISMATCH", "") not in ("", "0")
+KNOWN_MISMATCH_FILES: set[str] = set()
 
 
 def load_expectations() -> List[Tuple[str, str]]:
     pairs: List[Tuple[str, str]] = []
     pat_is = re.compile(r'^is :- "(?P<demangled>.*)"')
+    pat_und = re.compile(r'^\s*undname:\s*(?P<demangled>.+)$', re.IGNORECASE)
     pat_header = re.compile(r'^Undecoration of :- "(?P<sym>\?\?.*)"')
     for path in sorted(DATA_DIR.glob("compare_*.txt")):
         if (path.name in KNOWN_MISMATCH_FILES) and not INCLUDE_KNOWN_MISMATCH:
@@ -42,6 +38,16 @@ def load_expectations() -> List[Tuple[str, str]]:
                 m = pat_is.search(line)
                 if m and current:
                     pairs.append((current, m.group("demangled")))
+                    current = None
+                m2 = pat_und.search(line)
+                if m2 and current:
+                    dem = m2.group("demangled").strip()
+                    # Skip banner lines like "Microsoft (R) C++ Name Undecorator"
+                    if "Name Undecorator" in dem:
+                        continue
+                    if "generated via winedump" in dem:
+                        continue
+                    pairs.append((current, dem))
                     current = None
     return pairs
 
