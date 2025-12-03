@@ -8,6 +8,11 @@
 *.pdb
 *.ilk
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
 # Phase0 artifacts
 phase0/abi_stress/artifacts/
 
