@@ -34,7 +34,7 @@ class Undecorator:
         return name
 
     def resolve_name_backref(self, digits: str) -> str:
-        # For single-digit backrefs, return the individual namespace name
+        # For single-digit backrefs, return the individual namespace/name
         # For multi-digit backrefs like "01" or "12", combine them to form a qualified name
         if len(digits) == 1:
             try:
@@ -43,17 +43,13 @@ class Undecorator:
                     return self.name_backrefs[idx]
             except ValueError:
                 pass
-        # Multi-digit: combine namespace names in reverse order
+
         refs = []
         for ch in reversed(digits):
             if ch.isdigit():
                 idx = int(ch)
                 if idx < len(self.name_backrefs):
                     refs.append(self.name_backrefs[idx])
-                else:
-                    # Debug: index out of bounds
-                    # print(f"DEBUG: resolve_name_backref({digits}): idx={idx}, len(name_backrefs)={len(self.name_backrefs)}")
-                    pass
         return "::".join(refs) if refs else digits
 
     def parse_fully_qualified_name(self):
@@ -85,23 +81,32 @@ class Undecorator:
         frag = self.parse_name_fragment()
         if frag is None:
             return ""
+
+        store_frag = frag  # base fragment to store in backrefs
         if frag.isdigit():
             frag = self.resolve_name_backref(frag)
+            store_frag = None  # don't store resolved backrefs as new names
+
         # Check for @digits@ scope suffix
         if self.peek() == "@":
-            # Look ahead for digits then @
             i = self.pos + 1
             digits = ""
             while i < len(self.mangled) and self.mangled[i].isdigit():
                 digits += self.mangled[i]
                 i += 1
             if digits and i < len(self.mangled) and self.mangled[i] == "@":
-                # Found @digits@ scope
                 scope = self.resolve_name_backref(digits)
                 frag = f"{scope}::{frag}"
                 self.pos = i + 1  # consume @digits@
-        self.name_backrefs.append(frag)
-        self.name_scopes.append(frag)
+
+        # Handle namespaces that immediately follow a template name without '@'
+        if self.peek() and self.peek().islower():
+            scope = self.parse_fully_qualified_name()
+            frag = f"{scope}::{frag}"
+
+        if store_frag is not None:
+            self.name_backrefs.append(store_frag)
+            self.name_scopes.append(frag)
         return frag
 
     def parse_function_pointer(self, cc_code: str):
@@ -386,7 +391,23 @@ class Undecorator:
             return f"{cls}::`special operator {sub_op}'"
         fq = self.parse_fully_qualified_name()
         cls = fq if fq else ""
-        leaf = fq.split("::")[-1] if fq else ""
+
+        def leaf_name(qualified: str) -> str:
+            # Extract the final name component while ignoring :: that appear inside template args.
+            depth = 0
+            i = len(qualified) - 1
+            while i > 0:
+                ch = qualified[i]
+                if ch == ">":
+                    depth += 1
+                elif ch == "<":
+                    depth -= 1
+                elif ch == ":" and depth == 0 and i > 0 and qualified[i - 1] == ":":
+                    return qualified[i + 1 :]
+                i -= 1
+            return qualified
+
+        leaf = leaf_name(fq) if fq else ""
         if op == "0":
             return f"{cls}::{leaf}"
         if op == "1":
