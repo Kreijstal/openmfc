@@ -633,8 +633,17 @@ class Undecorator:
         if (not is_special) and self.peek() and self.peek().isdigit():
             storage = self.consume()  # storage class (unused for now)
             t = self.parse_type(store_name=False)
+            # Skip namespace terminators
             while self.peek() == "@":
                 self.consume()
+            # Some data symbols carry an outer pointer suffix like EA (ptr64)
+            while self.peek() == "E":
+                self.consume()
+                cv_ptr = ""
+                if self.peek() in ("A", "B", "C", "D"):
+                    cv_code = self.consume()
+                    cv_ptr = {"A": "", "B": " const", "C": " volatile", "D": " const volatile"}[cv_code]
+                t = f"{t} * __ptr64{cv_ptr}"
             is_const_data = False
             if self.peek() == "B":
                 is_const_data = True
@@ -698,7 +707,10 @@ class Undecorator:
             if self.peek() == "Z":
                 self.consume()
         else:
-            while self.peek() != "Z" and self.peek() is not None and self.peek() != "@":
+            while self.peek() is not None and self.peek() != "Z":
+                if self.peek() == "@":
+                    self.consume()
+                    continue
                 t = self.parse_type()
                 args.append(t)
             if self.peek() == "Z":
