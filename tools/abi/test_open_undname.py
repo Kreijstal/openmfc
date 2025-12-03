@@ -15,15 +15,20 @@ DEMangler = ROOT / "open_undname.py"
 
 def load_expectations() -> List[Tuple[str, str]]:
     pairs: List[Tuple[str, str]] = []
-    pat = re.compile(r'^is :- "(?P<demangled>.*)"')
+    pat_is = re.compile(r'^is :- "(?P<demangled>.*)"')
+    pat_header = re.compile(r'^Undecoration of :- "(?P<sym>\?\?.*)"')
     for path in sorted(DATA_DIR.glob("compare_*.txt")):
         current = None
         with path.open("r", encoding="utf-8", errors="ignore") as f:
             for line in f:
-                line = line.rstrip("\n")
-                if line.startswith("??"):
+                # Handle CRLF files from Windows runners
+                line = line.rstrip("\r\n")
+                if line.startswith("?"):
                     current = line.strip()
-                m = pat.search(line)
+                m_hdr = pat_header.search(line)
+                if m_hdr:
+                    current = m_hdr.group("sym")
+                m = pat_is.search(line)
                 if m and current:
                     pairs.append((current, m.group("demangled")))
                     current = None
