@@ -460,6 +460,9 @@ class Undecorator:
         arg_str = ",".join(args)
         templ = f"{base}<{arg_str}>"
         templ = templ.replace(">>", "> >")
+        # Heuristic: fpos is always in std::
+        if base == "fpos":
+            templ = f"std::{templ}"
         return templ
 
     def parse_special_member(self):
@@ -724,6 +727,10 @@ class Undecorator:
         # 'X' is void (void param list = no params)
         if self.peek() == "@":
             self.consume()  # separator before args for some encodings
+        # Skip digit backref separators like "2@" that appear between return type and args
+        while self.peek() and self.peek().isdigit() and self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+            self.consume()  # digit
+            self.consume()  # '@'
         if self.peek() == "X":
             self.consume()  # void param
             args.append("void")
