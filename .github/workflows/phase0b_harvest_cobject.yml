@@ -27,7 +27,7 @@ jobs:
           ./phase0b/scripts/harvest_cobject_symbols.ps1 -OutDir $artifactDir
 
       - name: Upload harvest artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: phase0b_cobject_harvest
           path: phase0b/artifacts/harvest/**
