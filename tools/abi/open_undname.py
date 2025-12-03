@@ -13,6 +13,7 @@ class Undecorator:
         self.pos = 0
         self.name_backrefs = []
         self.type_backrefs = []
+        self.name_scopes = []
 
     def peek(self):
         return self.mangled[self.pos] if self.pos < len(self.mangled) else None
@@ -27,13 +28,25 @@ class Undecorator:
         # Handle template name fragments (?$Foo@Args@@)
         if self.peek() == "?" and self.mangled[self.pos:self.pos + 2] == "?$":
             return self.parse_template_name()
-
         name = ""
         while self.peek() not in (None, "@"):
             name += self.consume()
-        if self.peek() == "@":
-            self.consume()  # skip '@'
         return name
+
+    def resolve_name_backref(self, digits: str) -> str:
+        try:
+            idx = int(digits)
+            if idx < len(self.name_scopes):
+                return self.name_scopes[idx]
+        except ValueError:
+            pass
+        refs = []
+        for ch in reversed(digits):
+            if ch.isdigit():
+                idx = int(ch)
+                if idx < len(self.name_backrefs):
+                    refs.append(self.name_backrefs[idx])
+        return "::".join(refs) if refs else digits
 
     def parse_fully_qualified_name(self):
         # Names are encoded in reverse with trailing @@
@@ -44,24 +57,32 @@ class Undecorator:
             if self.mangled[self.pos:self.pos + 2] == "@@":
                 self.pos += 2
                 break
-            if parts and self.peek().isupper() and self.mangled[self.pos:self.pos + 3].isupper():
-                break
             frag = self.parse_name_fragment()
-            if frag:
-                if frag.isdigit():
-                    idx = int(frag)
-                    if "std" in self.name_backrefs:
-                        frag = "std"
-                    elif idx < len(self.name_backrefs):
-                        frag = self.name_backrefs[idx]
-                    elif self.name_backrefs:
-                        frag = self.name_backrefs[-1]
-                else:
-                    self.name_backrefs.append(frag)
-                parts.append(frag)
-            else:
+            if frag is None:
                 break
+            if frag.isdigit():
+                frag = self.resolve_name_backref(frag)
+            parts.append(frag)
+            self.name_backrefs.append(frag)
+            self.name_scopes.append("::".join(reversed(parts)))
+            if self.peek() == "@" and self.mangled[self.pos:self.pos + 2] != "@@":
+                self.consume()
         return "::".join(reversed(parts))
+
+    def parse_function_pointer(self, cc_code: str):
+        cc_map = {"A": "__cdecl", "G": "__stdcall", "I": "__fastcall"}
+        cc = cc_map.get(cc_code, "__cdecl")
+        ret = self.parse_type()
+        args = []
+        if self.peek() == "X":
+            self.consume()
+            args.append("void")
+        else:
+            while self.peek() not in (None, "Z"):
+                args.append(self.parse_type())
+        if self.peek() == "Z":
+            self.consume()
+        return f"{ret} ({cc} *)({', '.join(args)})"
 
     def parse_type(self):
         c = self.consume()
@@ -71,6 +92,12 @@ class Undecorator:
             idx = int(c)
             if idx < len(self.type_backrefs):
                 return self.type_backrefs[idx]
+        if c in ("B", "C", "D"):
+            cv_map = {"B": "const", "C": "volatile", "D": "const volatile"}
+            base = self.parse_type()
+            t = f"{base} {cv_map[c]}".strip()
+            self.type_backrefs.append(t)
+            return t
         if c == "W":
             t = "wchar_t"
             self.type_backrefs.append(t)
@@ -116,48 +143,62 @@ class Undecorator:
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
             name = self.parse_fully_qualified_name()
-            t = f"class {name} &"
+            t = f"class {name} & __ptr64"
             self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 4] == "EBV_":
             self.pos += 4  # skip EBV_
             name = self.parse_fully_qualified_name()
-            if "::" in name:
-                ns, base = name.rsplit("::", 1)
-                base = "_" + base if not base.startswith("_") else base
-                name = f"{ns}::{base}"
-            elif not name.startswith("_"):
-                name = "_" + name
             t = f"class {name} const & __ptr64"
             self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3
             name = self.parse_fully_qualified_name()
-            if "::" in name:
-                ns, base = name.rsplit("::", 1)
-                base = "_" + base if not base.startswith("_") else base
-                name = f"{ns}::{base}"
-            elif not name.startswith("_"):
-                name = "_" + name
             t = f"class {name} const & __ptr64"
             self.type_backrefs.append(t)
             return t
 
         # Pointers/references
-        if c == "P":
-            qual = self.consume()  # A=ref, B=const, E=ptr, etc.
-            base = self.parse_type()
-            if qual == "A":
-                t = f"{base} &"
-                self.type_backrefs.append(t)
-                return t
-            if qual == "B":
-                t = f"{base} const *"
-                self.type_backrefs.append(t)
-                return t
-            # Default to pointer
-            t = f"{base} *"
+        if c in ("P", "Q", "R", "S", "A", "B", "C", "D"):
+            is_ref = c in ("A", "B", "C", "D")
+            cv_map = {
+                "P": "",
+                "Q": "const",
+                "R": "volatile",
+                "S": "const volatile",
+                "A": "",
+                "B": "const",
+                "C": "volatile",
+                "D": "const volatile",
+            }
+            cv = cv_map.get(c, "")
+
+            while self.peek() == "E":
+                self.consume()  # skip pointer marker often present before class types
+
+            if self.peek() == "6":
+                self.consume()
+                t = self.parse_function_pointer(self.consume() or "A")
+            else:
+                if self.peek() == "A" and self.mangled[self.pos:self.pos + 3] in ("AV", "AU"):
+                    self.consume()  # A
+                    kind_char = self.consume()
+                    name = self.parse_fully_qualified_name()
+                    kind = "class" if kind_char == "V" else "struct"
+                    base = f"{kind} {name}"
+                elif self.mangled[self.pos:self.pos + 3] in ("EAV", "EBV"):
+                    is_const_cls = self.mangled[self.pos:self.pos + 3] == "EBV"
+                    self.pos += 3  # skip EAV/EBV
+                    name = self.parse_fully_qualified_name()
+                    base = f"class {name}"
+                    if is_const_cls:
+                        base += " const"
+                else:
+                    base = self.parse_type()
+                if cv:
+                    base = f"{base} {cv}"
+                t = f"{base} {'&' if is_ref else '*'} __ptr64"
             self.type_backrefs.append(t)
             return t
 
@@ -203,11 +244,28 @@ class Undecorator:
             if self.peek() == "@":
                 self.consume()
                 continue
+            if self.peek() == "$":
+                self.consume()
+                if self.peek() == "0":
+                    self.consume()
+                    val_char = self.consume()
+                    if val_char == "0":
+                        args.append("1")
+                        continue
+                    if val_char == "A":
+                        args.append("0")
+                        continue
+                    try:
+                        args.append(str(int(val_char, 36)))
+                        continue
+                    except Exception:
+                        args.append(f"const_{val_char}")
+                        continue
             # Handle template-parameter backrefs (e.g., digit)
             if self.peek().isdigit():
                 idx = int(self.consume())
-                if idx < len(self.name_backrefs):
-                    args.append(self.name_backrefs[idx])
+                if idx < len(self.name_scopes):
+                    args.append(self.name_scopes[idx])
                     continue
             args.append(self.parse_type())
             if self.peek() == "@":
@@ -271,7 +329,7 @@ class Undecorator:
             is_static = True
 
         prop_char = self.consume()
-        _extra_char = self.consume()  # ignore qualifier slot
+        extra_char = self.consume()  # cv slot
         is_const = False
 
         def apply_prop(ch):
@@ -284,6 +342,7 @@ class Undecorator:
                 is_const = True
 
         apply_prop(prop_char)
+        apply_prop(extra_char)
 
         cc_char = self.consume()
         cc = ""
@@ -302,7 +361,7 @@ class Undecorator:
         if is_static:
             prefix += " static"
 
-        return prefix, is_const, cc
+        return prefix, is_const, cc, is_static
 
     def demangle(self):
         if not self.mangled.startswith("?"):
@@ -330,10 +389,11 @@ class Undecorator:
                 cc = "__stdcall"
             elif cc_char == "I":
                 cc = "__fastcall"
-            prefix = "public"
+            prefix = ""
             is_const = False
+            is_static = False
         else:
-            prefix, is_const, cc = self.parse_access_convention()
+            prefix, is_const, cc, is_static = self.parse_access_convention()
 
         # Return Type
         # Constructors/Destructors do NOT have a return type in mangling.
@@ -348,8 +408,11 @@ class Undecorator:
 
         # Arguments
         args = []
+        varargs = False
         # Argument list is terminated by 'Z' (End) or '@' (Varargs?)
         # 'X' is void (void param list = no params)
+        if self.peek() == "@":
+            self.consume()  # separator before args for some encodings
         if self.peek() == "X":
             self.consume()  # void param
             args.append("void")
@@ -361,16 +424,22 @@ class Undecorator:
                 args.append(t)
             if self.peek() == "Z":
                 self.consume()
+                if self.peek() == "Z":
+                    varargs = True
+                    self.consume()
 
         if is_special and not args:
             args.append("void")
 
-        arg_str = ", ".join(args)
+        if varargs:
+            args.append("...")
+
+        arg_str = ",".join(args)
 
         # Assemble Result
         # e.g. "public virtual void Class::Func(int) const"
 
-        res = f"{prefix}: "
+        res = f"{prefix}: " if prefix else ""
         if ret_type:
             res += f"{ret_type} "
         if cc:
@@ -385,7 +454,8 @@ class Undecorator:
         if is_special:
             res += " __ptr64"
 
-        if "__ptr64" in res and not res.endswith("__ptr64"):
+        # Mark implicit this-pointer width on non-static member functions only.
+        if prefix and not is_static and not res.endswith("__ptr64"):
             res += " __ptr64"
 
         return res
