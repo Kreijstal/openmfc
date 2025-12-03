@@ -317,11 +317,44 @@ class Undecorator:
                     return self.type_backrefs[-1]
                 return self.type_backrefs[idx]
 
-        # Handle rvalue reference prefix $$ or $$Q
+        # Handle rvalue reference prefix $$ or $$Q, or special types like $$T (nullptr_t), or $$A (function type)
         if c == "$" and self.peek() == "$":
             # Debug
             # print(f"DEBUG: Found $$ at pos {self.pos}")
             self.consume()  # consume second $
+            # Check for $$T which is std::nullptr_t
+            if self.peek() == "T":
+                self.consume()  # consume T
+                t = "std::nullptr_t"
+                if store_type:
+                    self.type_backrefs.append(t)
+                return t
+            # Check for $$A which is a function type (not pointer to function)
+            # Format: $$A6[cc][ret]args@Z or similar
+            if self.peek() == "A":
+                self.consume()  # consume A
+                # Next is usually 6 followed by calling convention
+                if self.peek() == "6":
+                    self.consume()  # consume 6
+                cc_char = self.consume()
+                cc_map = {"A": "__cdecl", "G": "__stdcall", "I": "__fastcall"}
+                cc = cc_map.get(cc_char, "__cdecl")
+                # Parse return type
+                ret = self.parse_type(store_type=False)
+                # Parse arguments
+                args = []
+                if self.peek() == "X":
+                    self.consume()
+                    args.append("void")
+                else:
+                    while self.peek() not in (None, "Z", "@"):
+                        args.append(self.parse_type(store_type=False))
+                if self.peek() == "Z":
+                    self.consume()
+                t = f"{ret} {cc}({','.join(args)})"
+                if store_type:
+                    self.type_backrefs.append(t)
+                return t
             # Check if followed by Q (const for rvalue ref)
             if self.peek() == "Q":
                 self.consume()  # consume Q
@@ -543,12 +576,16 @@ class Undecorator:
 
     def parse_template_args(self):
         args = []
-        # Template args are separated by '@', terminated by '@@'
+        # Template args are separated by '@', terminated by '@@' or 'Z' (in some contexts)
         while True:
             if self.peek() is None:
                 break
             if self.mangled[self.pos:self.pos + 2] == "@@":
                 self.pos += 2
+                break
+            # Z followed by @ indicates end of template args (after function type)
+            if self.peek() == "Z" and self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+                self.consume()  # consume Z
                 break
             if args and self.mangled[self.pos:self.pos + 2] == "?$":
                 # Next fragment is another template/name.
@@ -572,9 +609,15 @@ class Undecorator:
                 self.consume()
                 continue
             if self.peek() == "$":
-                self.consume()
-                if self.peek() == "0":
-                    self.consume()
+                # Check if this is $$ (type modifier like $$A for function type or $$T for nullptr)
+                # or $0, $1, etc. (template constant)
+                if self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "$":
+                    # This is $$, let parse_type handle it
+                    pass
+                elif self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "0":
+                    # This is $0 - template constant
+                    self.consume()  # consume first $
+                    self.consume()  # consume 0
                     val_char = self.consume()
                     if val_char == "0":
                         args.append("1")
@@ -751,6 +794,7 @@ class Undecorator:
         # Static/global functions have a shorter modifier blob: the next
         # character is the calling convention and the return type follows
         # immediately. Avoid consuming the return-type marker (e.g., X for void).
+        cc_from_winrt = None
         if is_static:
             is_const = False
             cc_char = self.consume()
@@ -758,6 +802,15 @@ class Undecorator:
             prop_char = self.consume()
             extra_char = self.consume()  # cv slot
             is_const = False
+            
+            # Handle WinRT/C++/CX modifiers like $AAA
+            # These typically include the calling convention (defaulting to __cdecl)
+            if extra_char == "$":
+                # Skip the $A... pattern (WinRT modifier)
+                while self.peek() == "A":
+                    self.consume()
+                cc_from_winrt = "__cdecl"  # WinRT typically uses __cdecl
+                extra_char = None  # Already consumed what we need
 
             def apply_prop(ch):
                 nonlocal is_virtual, is_const
@@ -770,9 +823,15 @@ class Undecorator:
 
             apply_prop(prop_char)
             apply_prop(extra_char)
-            cc_char = self.consume()
+            
+            if cc_from_winrt:
+                cc_char = None
+            else:
+                cc_char = self.consume()
         cc = ""
-        if cc_char == "A":
+        if cc_from_winrt:
+            cc = cc_from_winrt
+        elif cc_char == "A":
             cc = "__cdecl"
         elif cc_char == "G":
             cc = "__stdcall"
