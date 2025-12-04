@@ -23,10 +23,8 @@ public:
 
 class CWnd : public CObject {
 public:
-    CWnd() : m_hWnd(nullptr), m_pfnWndProc(nullptr) {}
+    CWnd() : m_hWnd(nullptr) {}
     virtual ~CWnd() = default;
 
     HWND m_hWnd;
-    WNDPROC m_pfnWndProc;
 };
-

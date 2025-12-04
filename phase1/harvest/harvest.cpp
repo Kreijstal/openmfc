@@ -131,7 +131,6 @@ void harvest_layouts(std::vector<std::pair<std::string, LayoutInfo>>& layouts) {
 
     LayoutInfo wnd; wnd.size = static_cast<int>(sizeof(CWnd));
     wnd.members.push_back({"m_hWnd", static_cast<int>(offsetof(CWnd, m_hWnd))});
-    wnd.members.push_back({"m_pfnWndProc", static_cast<int>(offsetof(CWnd, m_pfnWndProc))});
     layouts.push_back({"CWnd", wnd});
 
     LayoutInfo app; app.size = static_cast<int>(sizeof(CWinApp));
