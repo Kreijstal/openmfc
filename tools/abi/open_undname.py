@@ -221,6 +221,13 @@ class Undecorator:
                             name = ""
                             while self.peek() and self.peek() not in ("@", None):
                                 name += self.consume()
+                            has_lower = any(ch.islower() for ch in name)
+                            has_digit = any(ch.isdigit() for ch in name)
+                            if (not has_lower and has_digit) or (not has_lower and len(name) == 1):
+                                # Looks like a type blob (e.g., AEBV012...), not a namespace
+                                self.pos = saved_pos
+                                scope_parts = []
+                                break
                             scope_parts.append(name)
                             # Check what's next
                             if self.peek() == "@":
@@ -276,6 +283,38 @@ class Undecorator:
                             break
                     
                     # Build scope from parts (outer->inner order, reverse for qualified name)
+                    if scope_parts:
+                        scope = "::".join(reversed(scope_parts))
+                        if not frag.startswith(f"{scope}::"):
+                            frag = f"{scope}::{frag}"
+                elif first_char.isupper() and self.pos + 2 < len(self.mangled) and self.mangled[self.pos + 2].islower():
+                    # Uppercase namespace that clearly continues with lowercase (e.g., @Interop@)
+                    scope_parts = []
+                    saved_pos = self.pos
+                    self.consume()  # skip leading @
+                    while True:
+                        if self.peek() is None:
+                            self.pos = saved_pos
+                            scope_parts = []
+                            break
+                        name = ""
+                        while self.peek() and self.peek() not in ("@", None):
+                            name += self.consume()
+                        has_lower = any(ch.islower() for ch in name)
+                        has_digit = any(ch.isdigit() for ch in name)
+                        if (not has_lower and has_digit) or (not has_lower and len(name) == 1):
+                            self.pos = saved_pos
+                            scope_parts = []
+                            break
+                        scope_parts.append(name)
+                        if self.peek() == "@" and self.pos + 1 < len(self.mangled) and self.mangled[self.pos + 1] == "@":
+                            self.consume()
+                            self.consume()
+                            break
+                        if self.peek() == "@":
+                            self.consume()
+                            continue
+                        break
                     if scope_parts:
                         scope = "::".join(reversed(scope_parts))
                         if not frag.startswith(f"{scope}::"):
@@ -982,27 +1021,29 @@ class Undecorator:
             "8": "operator==",
             "9": "operator!=",
             "A": "operator[]",
-            "B": "operator->",
-            "C": "operator*",
-            "D": "operator++",
-            "E": "operator--",
-            "F": "operator-",
-            "G": "operator+",
-            "H": "operator&",
-            "I": "operator->*",
-            "J": "operator/",
-            "K": "operator%",
-            "L": "operator<",
-            "M": "operator<=",
-            "N": "operator>",
-            "O": "operator>=",
-            "P": "operator,",
-            "Q": "operator()",
-            "R": "operator~",
-            "S": "operator^",
-            "T": "operator|",
-            "U": "operator&&",
-            "V": "operator||",
+            # B is a conversion operator; demangle() will splice in the return type
+            "B": "operator",
+            "C": "operator->",
+            "D": "operator*",
+            "E": "operator++",
+            "F": "operator--",
+            "G": "operator-",
+            "H": "operator+",
+            "I": "operator&",
+            "J": "operator->*",
+            "K": "operator/",
+            "L": "operator%",
+            "M": "operator<",
+            "N": "operator<=",
+            "O": "operator>",
+            "P": "operator>=",
+            "Q": "operator,",
+            "R": "operator()",
+            "S": "operator~",
+            "T": "operator^",
+            "U": "operator|",
+            "V": "operator&&",
+            "W": "operator||",
         }
         op_name = op_map.get(op, "operator?")
         return f"{cls}::{op_name}"
