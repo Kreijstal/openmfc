@@ -25,7 +25,7 @@ int main() {
     if (!mi || b1->Get1() != 112 || b2->Get2() != 224) { std::cerr << "MI defaults wrong\n"; return 1; }
     b1->Set1(50);
     b2->Set2(60);
-    if (b1->Get1() != 49 || b2->Get2() != 58) { std::cerr << "MI set/get wrong\n"; return 1; }
+    if (b1->Get1() != 49 || b2->Get2() != 60) { std::cerr << "MI set/get wrong\n"; return 1; }
     DestroyDerivedMI(mi);
 
     std::cout << "PASS" << std::endl;

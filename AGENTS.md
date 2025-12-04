@@ -13,7 +13,7 @@ This repo uses GitHub Actions to build and harvest ABI data. You can pull artifa
   - `gh run list --limit 5`
   - `gh run list --workflow phase0a_harvest.yml --limit 3`
 - Watch a run until it finishes (exit status is forwarded):
-  - `gh run watch <run-id> --exit-status` (avoid `--interval` and rely on the default polling cadence; runs can take 20+ minutes—be patient)
+  - `gh run watch <run-id> --exit-status` (avoid `--interval`; no `--timeout` flag exists; runs can take 20+ minutes—be patient)
 - Download artifacts from a run:
   - `gh run download <run-id> -D /tmp/phase0a_msvc_artifacts`
     - Use `-n <artifact-name>` to pick a specific artifact if multiple exist.
