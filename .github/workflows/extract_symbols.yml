@@ -17,12 +17,16 @@ jobs:
         shell: pwsh
         run: |
           function Find-Dll([string]$name) {
+            $vsHits = vswhere -products * -find \"**\\$name\" 2>$null
+            foreach ($h in $vsHits) { if (Test-Path $h) { return Get-Item $h } }
+            foreach ($p in @(\"C:\\Windows\\System32\\$name\", \"C:\\Windows\\SysWOW64\\$name\")) {
+              if (Test-Path $p) { return Get-Item $p }
+            }
             $roots = @(
               $env:VCToolsInstallDir,
               $env:VSINSTALLDIR,
-              'C:\Program Files\Microsoft Visual Studio',
-              'C:\Program Files (x86)\Microsoft Visual Studio',
-              'C:\Windows\WinSxS'
+              'C:\\Program Files\\Microsoft Visual Studio',
+              'C:\\Program Files (x86)\\Microsoft Visual Studio'
             ) | Where-Object { $_ -and (Test-Path $_) }
             foreach ($root in $roots) {
               $hit = Get-ChildItem -Path $root -Filter $name -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
