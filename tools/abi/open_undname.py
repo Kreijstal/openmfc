@@ -147,6 +147,7 @@ class Undecorator:
         if frag is None:
             return ""
 
+        orig_frag_is_digit = frag.isdigit()
         store_frag = frag  # base fragment to store in backrefs
         leading = re.match(r"^([0-9]+)(.+)$", frag)
         if leading and not frag.isdigit():
@@ -159,14 +160,14 @@ class Undecorator:
             store_frag = None  # don't store resolved backrefs as new names
 
         # Check for namespace scope suffix: @digits@, @name@...@@, etc.
-        if self.peek() == "@":
+        if self.peek() == "@" and not orig_frag_is_digit:
             i = self.pos + 1
             
             if i < len(self.mangled):
                 first_char = self.mangled[i]
                 
                 # Case 1: @digits@ pattern
-                if first_char.isdigit():
+                if first_char.isdigit() and not frag.isdigit():
                     digits = ""
                     while i < len(self.mangled) and self.mangled[i].isdigit():
                         digits += self.mangled[i]
@@ -529,7 +530,7 @@ class Undecorator:
                 "D": "const volatile",
             }
             pointer_cv = pointer_cv_map.get(c, "")
-            ptr64 = True
+            ptr64 = False
             unaligned = False
             restrict = False
             based_desc = ""
@@ -662,7 +663,19 @@ class Undecorator:
         if c in ("V", "U"):
             name = self.parse_simple_name(store_name=store_name)
             kind = "class" if c == "V" else "struct"
-            t = f"{kind} {name}"
+            if name.isdigit():
+                try:
+                    idx = int(name)
+                    if idx < len(self.type_backrefs):
+                        t = self.type_backrefs[idx]
+                    elif self.type_backrefs:
+                        t = self.type_backrefs[-1]
+                    else:
+                        t = f"{kind} {name}"
+                except Exception:
+                    t = f"{kind} {name}"
+            else:
+                t = f"{kind} {name}"
             if store_type:
                 self.type_backrefs.append(t)
             return t
@@ -798,7 +811,7 @@ class Undecorator:
                 if args:
                     args.append(args[-1])
                     continue
-            args.append(self.parse_type(store_name=False, store_type=False))
+            args.append(self.parse_type(store_name=True, store_type=True))
             if self.peek() == "@":
                 j = self.pos + 1
                 digits = ""
@@ -824,7 +837,13 @@ class Undecorator:
             base += self.consume()
         if self.peek() == "@":
             self.consume()  # skip '@'
+        saved_names, saved_scopes = self.name_backrefs, self.name_scopes
+        saved_types = self.type_backrefs
+        self.name_backrefs, self.name_scopes = [], []
+        self.type_backrefs = []
         args = self.parse_template_args()
+        self.name_backrefs, self.name_scopes = saved_names, saved_scopes
+        self.type_backrefs = saved_types
         arg_str = ",".join(args)
         templ = f"{base}<{arg_str}>"
         templ = templ.replace(">>", "> >")
