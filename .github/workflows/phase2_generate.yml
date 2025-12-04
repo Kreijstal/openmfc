@@ -7,11 +7,11 @@ jobs:
   build-stubs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Install mingw
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
       - name: Download Phase1 artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           name: phase1_harvest
           path: artifacts

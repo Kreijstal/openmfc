@@ -25,19 +25,17 @@ def is_ansi(symbol: str) -> bool:
 
 def emit_def(exports: List[str]) -> str:
     lines = ["LIBRARY openmfc", "EXPORTS"]
-    lines.extend(exports)
+    for idx, sym in enumerate(exports):
+        lines.append(f"stub_{idx}={sym}")
     return "\n".join(lines) + "\n"
-
-
-def stub_signature(sym: str) -> str:
-    # placeholder C linkage wrapper; real signatures need demangle parsing
-    return f"extern \"C\" void {sym}()"  # ms_abi will be added per-target
 
 
 def emit_stubs(exports: List[str]) -> str:
     lines = ["#include <cstdio>", "#ifdef _WIN32", "#define MS_ABI __attribute__((ms_abi))", "#else", "#define MS_ABI", "#endif", ""]
-    for sym in exports:
-        lines.append(f"extern \"C\" void MS_ABI {sym}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}")
+    lines.extend(
+        f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}"
+        for idx, sym in enumerate(exports)
+    )
     lines.append("")
     return "\n".join(lines)
 

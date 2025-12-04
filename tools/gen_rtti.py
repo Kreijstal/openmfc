@@ -43,8 +43,9 @@ struct ThrowInfo {
 
 def emit_header(exceptions):
     lines = [HEADER]
-    for name in exceptions:
-        lines.append(f"extern const struct ThrowInfo TI_{name};")
+    lines.extend(
+        f"extern const struct ThrowInfo* const TI_{name};" for name in exceptions
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -54,16 +55,22 @@ def emit_source(exceptions):
     for name, info in exceptions.items():
         ti_bytes = info.get("throw_info_bytes", "")
         # Store raw ThrowInfo bytes; in a real implementation we would rebuild fields.
-        lines.append(f"__attribute__((section(\".rdata\"))) static const unsigned char TI_BYTES_{name}[] = {{")
+        lines.append(
+            f"__attribute__((section(\".rdata\"), aligned(__alignof__(struct ThrowInfo)))) static const unsigned char TI_BYTES_{name}[] = {{"
+        )
         chunks = [ti_bytes[i:i+2] for i in range(0, len(ti_bytes), 2)]
         chunk_lines = []
         for i, b in enumerate(chunks):
             sep = "," if i + 1 < len(chunks) else ""
             chunk_lines.append(f"  0x{b}{sep}")
         lines.extend(chunk_lines)
-        lines.append("};")
-        lines.append(f"const struct ThrowInfo* TI_PTR_{name} = (const struct ThrowInfo*)TI_BYTES_{name};")
-        lines.append("")
+        lines.extend(
+            (
+                "};",
+                f"const struct ThrowInfo* const TI_{name} = (const struct ThrowInfo*)TI_BYTES_{name};",
+                "",
+            )
+        )
     return "\n".join(lines)
 
 

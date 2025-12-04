@@ -15,8 +15,10 @@ if [ ! -f "$EXC" ]; then
   echo "Missing exceptions.json at $EXC" >&2; exit 1;
 fi
 
-python "$ROOT/tools/gen_stubs.py" --db "$DB" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
-python "$ROOT/tools/gen_rtti.py" --exceptions "$EXC" --out-c "$BUILD/generated_rtti.c" --out-h "$BUILD/include/openmfc/eh_rtti.h"
+PYTHON=${PYTHON:-python3}
+
+"$PYTHON" "$ROOT/tools/gen_stubs.py" --db "$DB" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+"$PYTHON" "$ROOT/tools/gen_rtti.py" --exceptions "$EXC" --out-c "$BUILD/generated_rtti.c" --out-h "$BUILD/include/openmfc/eh_rtti.h"
 
 CXX=${CXX:-x86_64-w64-mingw32-g++}
 CFLAGS=( -std=c++17 -O2 -Wall -Wextra -D_UNICODE -DUNICODE -I"$ROOT/include" -I"$BUILD/include" )
@@ -27,6 +29,6 @@ LDFLAGS=( -shared -static-libgcc -static-libstdc++ -Wl,--out-implib,"$BUILD/libo
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/exceptions.c" -o "$BUILD/exceptions.o"
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/afxmem.cpp" -o "$BUILD/afxmem.o"
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"
