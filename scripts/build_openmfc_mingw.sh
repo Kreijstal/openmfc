@@ -9,10 +9,20 @@ LAYOUTS=${LAYOUTS:-$ROOT/artifacts/layouts.json}
 mkdir -p "$BUILD/src" "$BUILD/include/openmfc"
 
 if [ ! -f "$DB" ]; then
-  echo "Missing mfc_db.json at $DB" >&2; exit 1;
+  alt_db=$(find "$ROOT/artifacts" -name mfc_db.json | head -n1 || true)
+  if [ -n "$alt_db" ]; then
+    DB=$alt_db
+  else
+    echo "Missing mfc_db.json at $DB" >&2; exit 1;
+  fi
 fi
 if [ ! -f "$EXC" ]; then
-  echo "Missing exceptions.json at $EXC" >&2; exit 1;
+  alt_exc=$(find "$ROOT/artifacts" -name exceptions.json | head -n1 || true)
+  if [ -n "$alt_exc" ]; then
+    EXC=$alt_exc
+  else
+    echo "Missing exceptions.json at $EXC" >&2; exit 1;
+  fi
 fi
 
 PYTHON=${PYTHON:-python3}

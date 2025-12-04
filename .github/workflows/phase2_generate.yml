@@ -14,11 +14,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          run_id=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "Using phase1_harvest run ${run_id}"
-          gh run download "$run_id" --name phase1_harvest --dir artifacts
+          mkdir -p artifacts
+          harvest_run=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          exports_run=$(gh run list --workflow extract_symbols.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "Using phase1_harvest run ${harvest_run}"
+          gh run download "$harvest_run" --name phase1_harvest --dir artifacts/harvest
+          echo "Using extract_symbols run ${exports_run}"
+          gh run download "$exports_run" --name phase1_exports --dir artifacts/exports
+          # flatten key inputs
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json | while read -r f; do cp "$f" artifacts/; done
           ls -l artifacts
-          ls -l artifacts/* || true
       - name: Build openmfc.dll (stubs + RTTI)
         run: |
           ./scripts/build_openmfc_mingw.sh
