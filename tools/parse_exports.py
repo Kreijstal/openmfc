@@ -18,7 +18,9 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-EXPORT_LINE = re.compile(r"^\s*(?P<ordinal>\d+)\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(?P<symbol>\S+)\s*$")
+EXPORT_LINE = re.compile(
+    r"^\s*(?P<ordinal>\d+)\s+(?:[0-9A-Fa-f]+\s+)?(?P<rva>[0-9A-Fa-f]+)\s+(?P<symbol>\S+)\s*$"
+)
 DEMANGLE_LINE = re.compile(r"^(?P<raw>\S+)\s*=>\s*(?P<pretty>.+)$")
 
 
