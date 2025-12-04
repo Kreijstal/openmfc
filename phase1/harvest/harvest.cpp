@@ -197,15 +197,17 @@ int main() {
 
     std::vector<std::pair<std::string, ExceptionNode>> exceptions;
     try {
-        throw CMemoryException();
-    } catch (...) {
+        AfxThrowMemoryException();
+    } catch (CMemoryException* e) {
         exceptions.push_back({"CMemoryException", dump_exception(".?AVCMemoryException@@")});
+        if (e) e->Delete();
     }
 
     try {
-        throw CFileException();
-    } catch (...) {
+        AfxThrowFileException(CFileException::generic, 0, nullptr);
+    } catch (CFileException* e) {
         exceptions.push_back({"CFileException", dump_exception(".?AVCFileException@@")});
+        if (e) e->Delete();
     }
 
     std::vector<std::pair<std::string, LayoutInfo>> layouts;
