@@ -91,7 +91,11 @@ jobs:
           $meta.mfc_version = (Get-Item '${{ steps.locate.outputs.mfc }}').VersionInfo.ProductVersion
           $meta.vs_version = $env:VisualStudioVersion
           $meta.sha256_mfc140u = (Get-FileHash '${{ steps.locate.outputs.mfc }}' -Algorithm SHA256).Hash.ToLower()
-          $meta.sha256_atl140 = (Get-FileHash '${{ steps.locate.outputs.atl }}' -Algorithm SHA256).Hash.ToLower()
+          if ('${{ steps.locate.outputs.atl }}') {
+            $meta.sha256_atl140 = (Get-FileHash '${{ steps.locate.outputs.atl }}' -Algorithm SHA256).Hash.ToLower()
+          } else {
+            $meta.sha256_atl140 = ''
+          }
           $json = ($meta | ConvertTo-Json -Depth 4)
           $json | Out-File -FilePath artifacts/metadata.json -Encoding ASCII
 
