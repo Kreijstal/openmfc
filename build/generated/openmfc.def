@@ -1,0 +1,4 @@
+LIBRARY openmfc
+EXPORTS
+stub_0=?AfxThrowMemoryException@@YAXXZ
+stub_1=?AfxThrowFileException@@YAXW4__unnamed@0@Z

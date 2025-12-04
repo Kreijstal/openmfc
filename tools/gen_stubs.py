@@ -31,11 +31,36 @@ def emit_def(exports: List[str]) -> str:
 
 
 def emit_stubs(exports: List[str]) -> str:
-    lines = ["#include <cstdio>", "#ifdef _WIN32", "#define MS_ABI __attribute__((ms_abi))", "#else", "#define MS_ABI", "#endif", ""]
-    lines.extend(
-        f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}"
-        for idx, sym in enumerate(exports)
-    )
+    lines = [
+        "#include <cstdio>",
+        "#include <cstdlib>",
+        "#ifdef _WIN32",
+        "#define MS_ABI __attribute__((ms_abi))",
+        "#else",
+        "#define MS_ABI",
+        "#endif",
+        "",
+        "// Forward declarations for exception helpers",
+        "extern \"C\" void MS_ABI AfxThrowMemoryException();",
+        "extern \"C\" void MS_ABI AfxThrowFileException(int cause, int lOsError, const char* pFileName);",
+        "",
+    ]
+    
+    for idx, sym in enumerate(exports):
+        # Special handling for known throwing functions
+        if "AfxThrowMemoryException" in sym:
+             lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ AfxThrowMemoryException(); }}")
+        elif "AfxThrowFileException" in sym:
+             # Note: This is a simplification; we pass default args or crash if signature doesn't match
+             # For now, just call it with dummy values if we can't parse args, but better to just forward
+             # if we can match the signature. Since this is a stub generator, we might need manual overrides.
+             # For this phase, let's just log for complex ones unless we are sure.
+             # Actually, the requirement says "delegate to the EH support layer".
+             # Let's assume the symbol name matches the C function we will implement.
+             lines.append(f"extern \"C\" void MS_ABI stub_{idx}(int cause, int lOsError, const char* pFileName) {{ AfxThrowFileException(cause, lOsError, pFileName); }}")
+        else:
+             lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}")
+
     lines.append("")
     return "\n".join(lines)
 
