@@ -6,6 +6,7 @@ DB=${DB:-$ROOT/artifacts/mfc_db.json}
 EXC=${EXC:-$ROOT/artifacts/exceptions.json}
 LAYOUTS=${LAYOUTS:-$ROOT/artifacts/layouts.json}
 CRT_DEF_DIR=${CRT_DEF_DIR:-$ROOT/artifacts}
+PYTHON=${PYTHON:-python3}
 
 mkdir -p "$BUILD/src" "$BUILD/include/openmfc"
 
@@ -17,6 +18,29 @@ if [ ! -f "$DB" ]; then
     echo "Missing mfc_db.json at $DB" >&2; exit 1;
   fi
 fi
+if python3 - <<'PY' "$DB"; then
+import json,sys
+data=json.load(open(sys.argv[1]))
+exports=data.get("exports",{}).get("mfc140u",[])
+sys.exit(0 if exports else 1)
+PY
+then
+  :
+else
+  exp_file=$(find "$ROOT/artifacts" -name mfc.exports | head -n1 || true)
+  meta_file=$(find "$ROOT/artifacts" -name metadata.json | head -n1 || true)
+  demangled=$(find "$ROOT/artifacts" -name demangled.txt | head -n1 || true)
+  if [ -z "$exp_file" ] || [ -z "$meta_file" ]; then
+    echo "mfc_db.json is empty and exports/metadata not found to regenerate" >&2
+    exit 1
+  fi
+  regen_args=(--dll mfc140u --exports "$exp_file" --metadata "$meta_file" --out "$DB")
+  if [ -n "$demangled" ]; then
+    regen_args+=(--demangled "$demangled")
+  fi
+  echo "Regenerating mfc_db.json from $exp_file"
+  "$PYTHON" "$ROOT/tools/parse_exports.py" "${regen_args[@]}"
+fi
 if [ ! -f "$EXC" ]; then
   alt_exc=$(find "$ROOT/artifacts" -name exceptions.json | head -n1 || true)
   if [ -n "$alt_exc" ]; then
@@ -25,8 +49,6 @@ if [ ! -f "$EXC" ]; then
     echo "Missing exceptions.json at $EXC" >&2; exit 1;
   fi
 fi
-
-PYTHON=${PYTHON:-python3}
 
 "$PYTHON" "$ROOT/tools/gen_stubs.py" --db "$DB" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
 "$PYTHON" "$ROOT/tools/gen_rtti.py" --exceptions "$EXC" --out-c "$BUILD/generated_rtti.c" --out-h "$BUILD/include/openmfc/eh_rtti.h"
