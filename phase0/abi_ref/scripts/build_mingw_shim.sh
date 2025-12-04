@@ -21,10 +21,10 @@ LDFLAGS=(
 
 echo "Building shim_test.dll into $BUILD_DIR"
 
-"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/abi_ref_class.cpp" -o "$BUILD_DIR/abi_ref_class.o"
 "$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/abi_ref_dllmain.cpp" -o "$BUILD_DIR/abi_ref_dllmain.o"
+"$CXX" -c "$ROOT_DIR/src/shim_test.s" -o "$BUILD_DIR/shim_test.o"
 
-"$CXX" "$BUILD_DIR/abi_ref_class.o" "$BUILD_DIR/abi_ref_dllmain.o" "${LDFLAGS[@]}" -o "$BUILD_DIR/shim_test.dll"
+"$CXX" "$BUILD_DIR/shim_test.o" "$BUILD_DIR/abi_ref_dllmain.o" "${LDFLAGS[@]}" -o "$BUILD_DIR/shim_test.dll"
 
 echo "Output:"
 ls -l "$BUILD_DIR"/shim_test.dll "$BUILD_DIR"/libshim_test.a 2>/dev/null || true
