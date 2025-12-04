@@ -20,8 +20,8 @@ jobs:
         id: locate
         shell: pwsh
         run: |
+          $vswhereExe = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
           function Find-Dll([string]$name) {
-            $vswhereExe = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
             if (Test-Path $vswhereExe) {
               $vsHits = & $vswhereExe -products * -find "**\$name" 2>$null
               foreach ($h in $vsHits) { if (Test-Path $h) { return Get-Item $h } }
@@ -43,6 +43,15 @@ jobs:
             }
             return $null
           }
+
+          if (Test-Path $vswhereExe) {
+            $redist = & $vswhereExe -products * -find "VC\Redist\MSVC\*\vc_redist.x64.exe" 2>$null | Select-Object -First 1
+            if ($redist) {
+              Write-Host "Installing VC redist from $redist"
+              Start-Process -FilePath $redist -ArgumentList '/install','/quiet','/norestart' -Wait
+            }
+          }
+
           $mfc = Find-Dll -name 'mfc140u.dll'
           $atl = Find-Dll -name 'atl140.dll'
           if (-not $mfc) { Write-Error "mfc140u.dll not found"; exit 1 }
