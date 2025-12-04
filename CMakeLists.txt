@@ -68,9 +68,9 @@ if(MSVC)
 elseif(BUILD_MINGW OR MINGW)
     # MinGW options - build actual Windows DLL
     target_compile_options(openmfc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fpermissive> -Wno-attributes)
-    # Use the .def file for exports
+    # Use the .def file for exports - MinGW uses different syntax
     set_target_properties(openmfc PROPERTIES
-        LINK_FLAGS "-Wl,--def,${GEN_DEF}"
+        LINK_FLAGS "-Wl,${GEN_DEF}"
         PREFIX ""
         SUFFIX ".dll"
     )

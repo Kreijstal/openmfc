@@ -26,7 +26,9 @@ def is_ansi(symbol: str) -> bool:
 def emit_def(exports: List[str]) -> str:
     lines = ["LIBRARY openmfc", "EXPORTS"]
     for idx, sym in enumerate(exports):
-        lines.append(f"stub_{idx}={sym}")
+        # Phase0b pattern: mangled_name = simple_c_name
+        # This allows extern "C" implementations with simple names
+        lines.append(f"{sym} = stub_{idx}")
     return "\n".join(lines) + "\n"
 
 
@@ -48,15 +50,10 @@ def emit_stubs(exports: List[str]) -> str:
     
     for idx, sym in enumerate(exports):
         # Special handling for known throwing functions
+        # Use extern "C" to get simple unmangled names that match the .def aliases
         if "AfxThrowMemoryException" in sym:
              lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ AfxThrowMemoryException(); }}")
         elif "AfxThrowFileException" in sym:
-             # Note: This is a simplification; we pass default args or crash if signature doesn't match
-             # For now, just call it with dummy values if we can't parse args, but better to just forward
-             # if we can match the signature. Since this is a stub generator, we might need manual overrides.
-             # For this phase, let's just log for complex ones unless we are sure.
-             # Actually, the requirement says "delegate to the EH support layer".
-             # Let's assume the symbol name matches the C function we will implement.
              lines.append(f"extern \"C\" void MS_ABI stub_{idx}(int cause, int lOsError, const char* pFileName) {{ AfxThrowFileException(cause, lOsError, pFileName); }}")
         else:
              lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}")
