@@ -18,7 +18,7 @@ if [ ! -f "$DB" ]; then
     echo "Missing mfc_db.json at $DB" >&2; exit 1;
   fi
 fi
-if python3 - <<'PY' "$DB"; then
+if python3 - "$DB" <<'PY'; then
 import json,sys
 data=json.load(open(sys.argv[1]))
 exports=data.get("exports",{}).get("mfc140u",[])
