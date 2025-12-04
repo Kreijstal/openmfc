@@ -55,15 +55,16 @@ jobs:
           $mfc = Find-Dll -name 'mfc140u.dll'
           $atl = Find-Dll -name 'atl140.dll'
           if (-not $mfc) { Write-Error "mfc140u.dll not found"; exit 1 }
-          if (-not $atl) { Write-Error "atl140.dll not found"; exit 1 }
+          if (-not $atl) { Write-Warning "atl140.dll not found; skipping ATL export harvest" }
           "mfc=$($mfc.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "atl=$($atl.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($atl) { "atl=$($atl.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append } else { "atl=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append }
 
       - name: Dump exports
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           foreach ($pair in @(@{Name='mfc'; Path='${{ steps.locate.outputs.mfc }}'}, @{Name='atl'; Path='${{ steps.locate.outputs.atl }}'})) {
+            if (-not $pair.Path) { Write-Host "Skipping $($pair.Name); no path"; continue }
             $out = "artifacts/$($pair.Name).exports"
             & dumpbin /nologo /exports $pair.Path | Out-File -FilePath $out -Encoding ASCII
           }
@@ -97,9 +98,12 @@ jobs:
       - name: Generate mfc_db.json
         shell: bash
         run: |
+          args=(--dll mfc140u --exports artifacts/mfc.exports)
+          if [ -s artifacts/atl.exports ]; then
+            args+=(--dll atl140 --exports artifacts/atl.exports)
+          fi
           python tools/parse_exports.py \
-            --dll mfc140u --exports artifacts/mfc.exports \
-            --dll atl140 --exports artifacts/atl.exports \
+            "${args[@]}" \
             --demangled artifacts/demangled.txt \
             --metadata artifacts/metadata.json \
             --out artifacts/mfc_db.json
