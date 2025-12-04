@@ -163,13 +163,18 @@ def emit_source(exceptions: Dict) -> str:
         
         # Emit CatchableTypeArray
         cta_sym = f"CTA_{name}"
+        array_size = max(len(ct_syms), 1)  # MSVC doesn't like zero-sized arrays
         cta_lines.append(f"RDATA static const struct {{")
         cta_lines.append(f"    int n;")
-        cta_lines.append(f"    const CatchableType* types[{len(ct_syms)}];")
+        cta_lines.append(f"    const CatchableType* types[{array_size}];")
         cta_lines.append(f"}} {cta_sym}_struct = {{")
         cta_lines.append(f"    {len(ct_syms)},  /* n */")
-        cta_lines.append(f"    {{ {', '.join(['&' + s for s in ct_syms])} }}  /* types */")
+        if ct_syms:
+            cta_lines.append(f"    {{ {', '.join(['&' + s for s in ct_syms])} }}  /* types */")
+        else:
+            cta_lines.append(f"    {{ 0 }}  /* types (empty, placeholder) */")
         cta_lines.append(f"}};")
+        cta_lines.append("")
         
         # Emit ThrowInfo
         ti_sym = f"TI_{name}"
@@ -179,7 +184,7 @@ def emit_source(exceptions: Dict) -> str:
         ti_lines.append(f"    0,  /* pForwardCompat */")
         ti_lines.append(f"    (const CatchableTypeArray*)&{cta_sym}_struct  /* pCatchableTypeArray */")
         ti_lines.append(f"}};")
-
+        ti_lines.append("")
     return SOURCE_TEMPLATE % (
         "\n".join(td_lines),
         "\n".join(ct_lines),
