@@ -68,6 +68,8 @@ jobs:
               $names += $matches[1]
             }
           }
+          # Exclude data exports (vtable/RTTI) to avoid mismatched DATA entries in the import lib.
+          $names = $names | Where-Object { $_ -notmatch '^\?\?_7' }
           if ($names.Count -eq 0) {
             Write-Error "No exports found in shim_test.dll"
             exit 1
