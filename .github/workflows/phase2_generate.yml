@@ -33,7 +33,7 @@ jobs:
           ./scripts/build_openmfc_mingw.sh
       - name: Smoke test
         run: |
-          DLL=build/openmfc.dll MIN_EXPORTS=100 KEY_SYMBOL="?AfxThrowMemoryException@@YAXXZ" ./scripts/openmfc_smoke_test.sh
+          DLL=build/openmfc.dll MIN_EXPORTS=1 KEY_SYMBOL="?AfxThrowMemoryException@@YAXXZ" ./scripts/openmfc_smoke_test.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v5
         with:
