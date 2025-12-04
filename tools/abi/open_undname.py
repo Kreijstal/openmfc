@@ -463,14 +463,14 @@ class Undecorator:
         # Pointers/references (AEAVFoo@@ -> Foo&)
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EAV":
             self.pos += 3  # skip EAV
-            name = self.parse_type_qualified_name(record=store_name)
+            name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} & __ptr64"
             if store_type:
                 self.type_backrefs.append(t)
             return t
         if c == "A" and self.mangled[self.pos:self.pos + 3] == "EBV":
             self.pos += 3  # skip EBV (const class reference)
-            name = self.parse_type_qualified_name(record=store_name)
+            name = self.parse_simple_name(store_name=store_name)
             t = f"class {name} const & __ptr64"
             if store_type:
                 self.type_backrefs.append(t)
@@ -588,14 +588,14 @@ class Undecorator:
                     if self.peek() == "A" and self.mangled[self.pos:self.pos + 2] in ("AV", "AU"):
                         self.consume()  # A (cv qualifier)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_type_qualified_name(record=store_name)
+                        name = self.parse_simple_name(store_name=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name}"
                     # Check for BV/BU (const class/struct) patterns
                     elif self.peek() == "B" and self.mangled[self.pos:self.pos + 2] in ("BV", "BU"):
                         self.consume()  # B (const)
                         kind_char = self.consume()  # V or U
-                        name = self.parse_type_qualified_name(record=store_name)
+                        name = self.parse_simple_name(store_name=store_name)
                         kind = "class" if kind_char == "V" else "struct"
                         base = f"{kind} {name} const"
                     else:
@@ -621,7 +621,7 @@ class Undecorator:
 
         # Class/struct types
         if c in ("V", "U"):
-            name = self.parse_type_qualified_name(record=store_name)
+            name = self.parse_simple_name(store_name=store_name)
             kind = "class" if c == "V" else "struct"
             t = f"{kind} {name}"
             if store_type:
@@ -742,9 +742,22 @@ class Undecorator:
                         continue
             # Handle template-parameter backrefs (e.g., digit)
             if self.peek().isdigit():
-                idx = int(self.consume())
-                if idx < len(self.name_scopes):
-                    args.append(self.name_scopes[idx])
+                digits = ""
+                while self.peek() and self.peek().isdigit():
+                    digits += self.consume()
+                resolved = self.resolve_name_backref(digits)
+                if resolved != digits:
+                    args.append(resolved)
+                    continue
+                try:
+                    idx = int(digits)
+                    if idx < len(self.name_scopes):
+                        args.append(self.name_scopes[idx])
+                        continue
+                except ValueError:
+                    pass
+                if args:
+                    args.append(args[-1])
                     continue
             args.append(self.parse_type(store_name=False, store_type=False))
             if self.peek() == "@":
@@ -1245,10 +1258,12 @@ class Undecorator:
                     cv_code = self.consume()
                     cv_ptr = {"A": "", "B": " const", "C": " volatile", "D": " const volatile"}[cv_code]
                 # If already a pointer/reference, annotate the pointer itself (without forcing __ptr64)
-                if t.endswith("*") or t.endswith("&") or t.endswith("__ptr64"):
-                    t = f"{t}{cv_ptr}"
+                if t.endswith("__ptr64"):
+                    t = f"{t} __ptr64{cv_ptr}"
+                elif t.endswith("*") or t.endswith("&"):
+                    t = f"{t} __ptr64{cv_ptr}"
                 else:
-                    t = f"{t} *{cv_ptr}"
+                    t = f"{t} * __ptr64{cv_ptr}"
             is_const_data = False
             if self.peek() == "B":
                 is_const_data = True
@@ -1261,6 +1276,12 @@ class Undecorator:
                 scope_prefix = f"{scope_map.get(storage, '')}: static ".strip()
                 if scope_prefix:
                     scope_prefix += " "
+            leaf_name = func_name.split("::")[-1] if func_name else func_name
+            if leaf_name and leaf_name.startswith("_Ptr_"):
+                base = t.replace(" __ptr64", "")
+                t = f"{base} __ptr64 __ptr64"
+            else:
+                t = t.replace(" __ptr64", "")
             return f"{scope_prefix}{t} {func_name}".strip()
 
         if self.special_is_data:
