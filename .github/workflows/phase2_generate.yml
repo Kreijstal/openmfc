@@ -25,8 +25,8 @@ jobs:
           echo "Using extract_symbols run ${exports_run}"
           gh run download "$exports_run" --name phase1_exports --dir artifacts/exports
           # flatten key inputs
-          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def'
-          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' | while read -r f; do cp "$f" artifacts/; done
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt'
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt' | while read -r f; do cp "$f" artifacts/; done
           ls -l artifacts
       - name: Build openmfc.dll (stubs + RTTI)
         run: |
