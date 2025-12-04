@@ -1,3 +1,6 @@
+#ifndef _AFXDLL
+#define _AFXDLL
+#endif
 #include "shared_types.h"
 #include <afxwin.h>
 #include <Windows.h>
