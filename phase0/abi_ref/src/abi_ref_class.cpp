@@ -17,3 +17,13 @@ void CReferenceTest::SetValue(int v)
 {
     m_value = v;
 }
+
+extern "C" CReferenceTest* CreateRef()
+{
+    return new CReferenceTest();
+}
+
+extern "C" void DestroyRef(CReferenceTest* p)
+{
+    delete p;
+}

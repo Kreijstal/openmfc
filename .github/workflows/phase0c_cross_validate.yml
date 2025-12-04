@@ -1,0 +1,105 @@
+name: Phase 0C - Cross-Platform Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase0/abi_ref/**'
+      - '.github/workflows/phase0c_cross_validate.yml'
+
+env:
+  ARTIFACT_NAME: phase0c_shim
+  BUILD_DIR: phase0/abi_ref/build
+  BIN_DIR: phase0/abi_ref/bin
+
+jobs:
+  build-mingw:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Build shim_test.dll (MinGW)
+        run: |
+          chmod +x phase0/abi_ref/scripts/build_mingw_shim.sh
+          BUILD_DIR="$BUILD_DIR" ./phase0/abi_ref/scripts/build_mingw_shim.sh
+
+      - name: Upload shim artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.BUILD_DIR }}/shim_test.dll
+            ${{ env.BUILD_DIR }}/libshim_test.a
+          retention-days: 14
+
+  verify-windows:
+    needs: build-mingw
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Download shim artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: artifacts
+
+      - name: Generate DEF from shim_test.dll
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:BUILD_DIR" | Out-Null
+          Copy-Item "artifacts/shim_test.dll" "$env:BUILD_DIR/shim_test.dll"
+          $exports = & dumpbin /nologo /exports "$env:BUILD_DIR/shim_test.dll"
+          $names = @()
+          foreach ($line in $exports) {
+            if ($line -match '^\s*\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(.+)$') {
+              $names += $matches[1]
+            }
+          }
+          if ($names.Count -eq 0) {
+            Write-Error "No exports found in shim_test.dll"
+            exit 1
+          }
+          $defLines = @("LIBRARY shim_test", "EXPORTS") + $names
+          $defPath = "$env:BUILD_DIR/shim_test.def"
+          $defLines | Set-Content -Path $defPath -Encoding ASCII
+          lib /def:$defPath /machine:x64 /out:"$env:BUILD_DIR/shim_test.lib"
+
+      - name: Build MSVC consumer
+        shell: pwsh
+        run: ./phase0/abi_ref/scripts/build_msvc_consumer.ps1
+
+      - name: Run MSVC consumer against MinGW DLL
+        shell: pwsh
+        working-directory: ${{ env.BIN_DIR }}
+        run: |
+          Copy-Item "..\build\shim_test.dll" ".\shim_test.dll" -Force
+          $env:PATH = "$PWD;$env:PATH"
+          .\msvc_consumer.exe
+          $code = $LASTEXITCODE
+          Write-Host "Host exit code: $code"
+          exit $code
+
+      - name: Upload cross-validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: phase0c_cross_validate
+          path: |
+            ${{ env.BIN_DIR }}/msvc_consumer.exe
+            ${{ env.BUILD_DIR }}/shim_test.dll
+            ${{ env.BUILD_DIR }}/shim_test.def
+            ${{ env.BUILD_DIR }}/shim_test.lib
+          retention-days: 14

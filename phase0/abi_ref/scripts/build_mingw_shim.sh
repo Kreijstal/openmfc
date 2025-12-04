@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BUILD_DIR="${BUILD_DIR:-$ROOT_DIR/build}"
+
+mkdir -p "$BUILD_DIR"
+
+CXX=${CXX:-x86_64-w64-mingw32-g++}
+CXXFLAGS=(
+  -std=c++17
+  -O2
+  -Wall -Wextra
+  -I"$ROOT_DIR/include"
+)
+LDFLAGS=(
+  -shared
+  -static-libgcc -static-libstdc++
+  -Wl,--out-implib,"$BUILD_DIR/libshim_test.a"
+)
+
+echo "Building shim_test.dll into $BUILD_DIR"
+
+"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/abi_ref_class.cpp" -o "$BUILD_DIR/abi_ref_class.o"
+"$CXX" "${CXXFLAGS[@]}" -c "$ROOT_DIR/src/abi_ref_dllmain.cpp" -o "$BUILD_DIR/abi_ref_dllmain.o"
+
+"$CXX" "$BUILD_DIR/abi_ref_class.o" "$BUILD_DIR/abi_ref_dllmain.o" "${LDFLAGS[@]}" -o "$BUILD_DIR/shim_test.dll"
+
+echo "Output:"
+ls -l "$BUILD_DIR"/shim_test.dll "$BUILD_DIR"/libshim_test.a 2>/dev/null || true
