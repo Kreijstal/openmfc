@@ -10,3 +10,4 @@ EXPORTS
 ?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ = CObject_GetRuntimeClass
 ?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z = CObject_IsKindOf
 ?Serialize@CObject@@UEAAXAEAVCArchive@@@Z = CObject_Serialize
+?CreateObject@CObject@@SAPEAV1@XZ = _ZN7CObject12CreateObjectEv

@@ -45,5 +45,6 @@ public:
     void* operator new(size_t nSize);
     void operator delete(void* p);
 
+    // Not dyncreate in real MFC; returns nullptr.
     static CObject* AFX_PASCAL CreateObject();
 };

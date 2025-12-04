@@ -12,11 +12,43 @@ $TmpCpp = Join-Path $OutDir "cobject_temp.cpp"
 $TmpLog = Join-Path $OutDir "dumpbin_symbols.txt"
 $DefOut = Join-Path $OutDir "mfc140u.generated.def"
 $Readme = Join-Path $OutDir "README.txt"
+$ExpectedExports = @(
+    "??_7CObject@@6B@",
+    "??0CObject@@QEAA@XZ",
+    "??1CObject@@UEAA@XZ",
+    "??_GCObject@@UEAAPEAXI@Z",
+    "??_ECObject@@UEAAPEAXI@Z",
+    "??2CObject@@SAPEAX_K@Z",
+    "??3CObject@@SAXPEAX@Z",
+    "?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ",
+    "?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z",
+    "?Serialize@CObject@@UEAAXAEAVCArchive@@@Z",
+    "?CreateObject@CObject@@SAPEAV1@XZ"
+)
 
 Write-Host "Generating temporary source..."
 @'
 #include "afx.h"
-int main() { CObject o; return o.IsKindOf(o.GetRuntimeClass()) ? 0 : 1; }
+class CArchive {};
+
+int main() {
+    // Static CreateObject (should be nullptr for CObject)
+    CObject* p = CObject::CreateObject();
+    if (!p) {
+        p = new CObject();
+    }
+
+    p->Serialize(*reinterpret_cast<CArchive*>(nullptr));
+    auto cls = p->GetRuntimeClass();
+    p->IsKindOf(cls);
+
+    // Trigger vector deleting destructor symbols
+    CObject* arr = new CObject[1];
+    delete[] arr;
+
+    delete p;
+    return 0;
+}
 '@ | Out-File -FilePath $TmpCpp -Encoding ASCII
 
 Write-Host "Compiling with cl..."
@@ -35,6 +67,7 @@ foreach ($s in $symbols) {
         $exports += $Matches[2]
     }
 }
+$exports = $exports + $ExpectedExports
 $exports = $exports | Sort-Object -Unique
 
 "LIBRARY openmfc" | Out-File -FilePath $DefOut -Encoding ASCII

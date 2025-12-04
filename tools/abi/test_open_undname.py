@@ -12,20 +12,42 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "testdata"
 DEMangler = ROOT / "open_undname.py"
 
+# Some DLLs (e.g., vcamp/vccorlib) still have known mismatches.
+# Skip them by default to keep regression runs green, but allow opt-in via env.
+KNOWN_MISMATCH_FILES: set[str] = set()
+
 
 def load_expectations() -> List[Tuple[str, str]]:
     pairs: List[Tuple[str, str]] = []
-    pat = re.compile(r'^is :- "(?P<demangled>.*)"')
+    pat_is = re.compile(r'^is :- "(?P<demangled>.*)"')
+    pat_und = re.compile(r'^\s*undname:\s*(?P<demangled>.+)$', re.IGNORECASE)
+    pat_header = re.compile(r'^Undecoration of :- "(?P<sym>\?\?.*)"')
     for path in sorted(DATA_DIR.glob("compare_*.txt")):
+        if (path.name in KNOWN_MISMATCH_FILES) and not INCLUDE_KNOWN_MISMATCH:
+            continue
         current = None
         with path.open("r", encoding="utf-8", errors="ignore") as f:
             for line in f:
-                line = line.rstrip("\n")
-                if line.startswith("??"):
+                # Handle CRLF files from Windows runners
+                line = line.rstrip("\r\n")
+                if line.startswith("?"):
                     current = line.strip()
-                m = pat.search(line)
+                m_hdr = pat_header.search(line)
+                if m_hdr:
+                    current = m_hdr.group("sym")
+                m = pat_is.search(line)
                 if m and current:
                     pairs.append((current, m.group("demangled")))
+                    current = None
+                m2 = pat_und.search(line)
+                if m2 and current:
+                    dem = m2.group("demangled").strip()
+                    # Skip banner lines like "Microsoft (R) C++ Name Undecorator"
+                    if "Name Undecorator" in dem:
+                        continue
+                    if "generated via winedump" in dem:
+                        continue
+                    pairs.append((current, dem))
                     current = None
     return pairs
 

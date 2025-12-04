@@ -11,24 +11,15 @@ extern "C" {
 
     // Constructor from assembly (sets vptr)
     CObject* CObject_ctor(CObject* self) asm("CObject_ctor");
-
-    // Factory used by CRuntimeClass
-    void* CreateCObjectInstance();
 }
 
 static CRuntimeClass classCObject = {
     "CObject",
-    static_cast<int>(sizeof(void*)), // only vptr
+    8, // harvested layout size: vptr only
     0xFFFF,
-    nullptr, // CObject is dynamic, not dyncreate; factory remains null
+    nullptr, // real MFC: not dyncreate; CreateObject returns nullptr
     nullptr
 };
-
-extern "C" void* CreateCObjectInstance() {
-    void* mem = Impl_CObject_New(sizeof(CObject));
-    if (!mem) return nullptr;
-    return CObject_ctor(static_cast<CObject*>(mem));
-}
 
 extern "C" void* Impl_CObject_New(size_t nSize) {
     return std::malloc(nSize);
@@ -67,5 +58,6 @@ extern "C" void Impl_CObject_Serialize(CObject* /*self*/, CArchive& /*ar*/) {
 }
 
 CObject* AFX_PASCAL CObject::CreateObject() {
-    return static_cast<CObject*>(CreateCObjectInstance());
+    // Match MFC: CObject is not dyncreate.
+    return nullptr;
 }

@@ -1,0 +1,76 @@
+name: Phase 1 - Extract Symbols
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Locate reference DLLs
+        id: locate
+        shell: pwsh
+        run: |
+          $mfc = Get-ChildItem -Path "$env:VCToolsInstallDir" -Filter mfc140u.dll -Recurse | Select-Object -First 1
+          $atl = Get-ChildItem -Path "$env:VCToolsInstallDir" -Filter atl140.dll -Recurse | Select-Object -First 1
+          if (-not $mfc) { Write-Error "mfc140u.dll not found"; exit 1 }
+          if (-not $atl) { Write-Error "atl140.dll not found"; exit 1 }
+          "mfc=$($mfc.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "atl=$($atl.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Dump exports
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          foreach ($pair in @(@{Name='mfc'; Path='${{ steps.locate.outputs.mfc }}'}, @{Name='atl'; Path='${{ steps.locate.outputs.atl }}'})) {
+            $out = "artifacts/$($pair.Name).exports"
+            & dumpbin /nologo /exports $pair.Path | Out-File -FilePath $out -Encoding ASCII
+          }
+
+      - name: Demangle names
+        shell: pwsh
+        run: |
+          $out = "artifacts/demangled.txt"
+          Remove-Item -ErrorAction SilentlyContinue $out
+          Get-ChildItem artifacts -Filter "*.exports" | ForEach-Object {
+            Get-Content $_ | ForEach-Object {
+              if ($_ -match '^\s*\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(?<name>\S+)$') {
+                $name = $Matches['name']
+                $pretty = (& undname.exe $name) -join ' '
+                "$name => $pretty" | Out-File -FilePath $out -Append -Encoding ASCII
+              }
+            }
+          }
+
+      - name: Metadata and hash
+        shell: pwsh
+        run: |
+          $meta = @{}
+          $meta.mfc_version = (Get-Item '${{ steps.locate.outputs.mfc }}').VersionInfo.ProductVersion
+          $meta.vs_version = $env:VisualStudioVersion
+          $meta.sha256_mfc140u = (Get-FileHash '${{ steps.locate.outputs.mfc }}' -Algorithm SHA256).Hash.ToLower()
+          $meta.sha256_atl140 = (Get-FileHash '${{ steps.locate.outputs.atl }}' -Algorithm SHA256).Hash.ToLower()
+          $json = ($meta | ConvertTo-Json -Depth 4)
+          $json | Out-File -FilePath artifacts/metadata.json -Encoding ASCII
+
+      - name: Generate mfc_db.json
+        shell: bash
+        run: |
+          python tools/parse_exports.py \
+            --dll mfc140u --exports artifacts/mfc.exports \
+            --dll atl140 --exports artifacts/atl.exports \
+            --demangled artifacts/demangled.txt \
+            --metadata artifacts/metadata.json \
+            --out artifacts/mfc_db.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: phase1_exports
+          path: artifacts/
+          retention-days: 14

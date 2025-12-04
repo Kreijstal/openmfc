@@ -49,6 +49,10 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Check DEF matches harvested symbols
+        shell: pwsh
+        run: ./phase0b/scripts/check_def_sync.ps1
+
       - name: Download artifacts
         uses: actions/download-artifact@v6
         with:
@@ -78,3 +82,12 @@ jobs:
           $code = $LASTEXITCODE
           Write-Host "Host exit code: $code"
           exit $code
+
+      - name: Upload host test artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: phase0b_host_test
+          path: |
+            ${{ env.BIN_DIR }}/msvc_test_cobject.exe
+            ${{ env.BUILD_DIR }}/openmfc.dll
+          retention-days: 14

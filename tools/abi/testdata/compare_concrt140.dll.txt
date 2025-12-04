@@ -4,7 +4,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0?$_SpinWait@$00@details@Concurrency@@QEAA@P6AXXZ@Z"
 is :- "public: __cdecl Concurrency::details::_SpinWait<1>::_SpinWait<1>(void (__cdecl*)(void)) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_SpinWait<1>::_SpinWait<1>(void (__cdecl*)(void)) __ptr64
   match: False
 
 ??0?$_SpinWait@$0A@@details@Concurrency@@QEAA@P6AXXZ@Z
@@ -13,7 +13,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0?$_SpinWait@$0A@@details@Concurrency@@QEAA@P6AXXZ@Z"
 is :- "public: __cdecl Concurrency::details::_SpinWait<0>::_SpinWait<0>(void (__cdecl*)(void)) __ptr64"
-  open:   public $0A::$0A(UNK(i), UNK(l), UNK(s))
+  open:   public: __cdecl Concurrency::details::_SpinWait<0>::_SpinWait<0>(void (__cdecl*)(void)) __ptr64
   match: False
 
 ??0SchedulerPolicy@Concurrency@@QEAA@AEBV01@@Z
@@ -22,7 +22,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@AEBV01@@Z"
 is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64
   match: False
 
 ??0SchedulerPolicy@Concurrency@@QEAA@XZ
@@ -31,7 +31,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(void) __ptr64
   match: False
 
 ??0SchedulerPolicy@Concurrency@@QEAA@_KZZ
@@ -40,7 +40,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0SchedulerPolicy@Concurrency@@QEAA@_KZZ"
 is :- "public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(unsigned __int64,...) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::SchedulerPolicy::SchedulerPolicy(unsigned __int64,...) __ptr64
   match: False
 
 ??0_Cancellation_beacon@details@Concurrency@@QEAA@XZ
@@ -49,7 +49,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Cancellation_beacon@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_Cancellation_beacon::_Cancellation_beacon(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Cancellation_beacon::_Cancellation_beacon(void) __ptr64
   match: False
 
 ??0_Concurrent_queue_base_v4@details@Concurrency@@IEAA@_K@Z
@@ -58,7 +58,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Concurrent_queue_base_v4@details@Concurrency@@IEAA@_K@Z"
 is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_base_v4::_Concurrent_queue_base_v4(unsigned __int64) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
+  open:   protected: __cdecl Concurrency::details::_Concurrent_queue_base_v4::_Concurrent_queue_base_v4(unsigned __int64) __ptr64
   match: False
 
 ??0_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@AEBV_Concurrent_queue_base_v4@12@@Z
@@ -67,7 +67,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@AEBV_Concurrent_queue_base_v4@12@@Z"
 is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::_Concurrent_queue_iterator_base_v4(class Concurrency::details::_Concurrent_queue_base_v4 const & __ptr64) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
+  open:   protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::_Concurrent_queue_iterator_base_v4(class Concurrency::details::_Concurrent_queue_base_v4 const & __ptr64) __ptr64
   match: False
 
 ??0_Condition_variable@details@Concurrency@@QEAA@XZ
@@ -76,7 +76,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Condition_variable@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_Condition_variable::_Condition_variable(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Condition_variable::_Condition_variable(void) __ptr64
   match: False
 
 ??0_Context@details@Concurrency@@QEAA@PEAVContext@2@@Z
@@ -85,7 +85,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Context@details@Concurrency@@QEAA@PEAVContext@2@@Z"
 is :- "public: __cdecl Concurrency::details::_Context::_Context(class Concurrency::Context * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Context::_Context(class Concurrency::Context * __ptr64) __ptr64
   match: False
 
 ??0_Runtime_object@details@Concurrency@@QEAA@H@Z
@@ -94,7 +94,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Runtime_object@details@Concurrency@@QEAA@H@Z"
 is :- "public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(int) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(int) __ptr64
   match: False
 
 ??0_Runtime_object@details@Concurrency@@QEAA@XZ
@@ -103,7 +103,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Runtime_object@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Runtime_object::_Runtime_object(void) __ptr64
   match: False
 
 ??0_Scheduler@details@Concurrency@@QEAA@PEAVScheduler@2@@Z
@@ -112,7 +112,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Scheduler@details@Concurrency@@QEAA@PEAVScheduler@2@@Z"
 is :- "public: __cdecl Concurrency::details::_Scheduler::_Scheduler(class Concurrency::Scheduler * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_Scheduler::_Scheduler(class Concurrency::Scheduler * __ptr64) __ptr64
   match: False
 
 ??0_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
@@ -121,7 +121,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z"
 is :- "public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_NonReentrantPPLLock & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_NonReentrantPPLLock & __ptr64) __ptr64
   match: False
 
 ??0_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z
@@ -130,7 +130,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@AEAV123@@Z"
 is :- "public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_ReentrantPPLLock & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::_Scoped_lock(class Concurrency::details::_ReentrantPPLLock & __ptr64) __ptr64
   match: False
 
 ??0_SpinLock@details@Concurrency@@QEAA@AECJ@Z
@@ -139,7 +139,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_SpinLock@details@Concurrency@@QEAA@AECJ@Z"
 is :- "public: __cdecl Concurrency::details::_SpinLock::_SpinLock(long volatile & __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_SpinLock::_SpinLock(long volatile & __ptr64) __ptr64
   match: False
 
 ??0_StructuredTaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
@@ -148,7 +148,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_StructuredTaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z"
 is :- "public: __cdecl Concurrency::details::_StructuredTaskCollection::_StructuredTaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_StructuredTaskCollection::_StructuredTaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64
   match: False
 
 ??0_TaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z
@@ -157,7 +157,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_TaskCollection@details@Concurrency@@QEAA@PEAV_CancellationTokenState@12@@Z"
 is :- "public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(class Concurrency::details::_CancellationTokenState * __ptr64) __ptr64
   match: False
 
 ??0_TaskCollection@details@Concurrency@@QEAA@XZ
@@ -166,7 +166,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_TaskCollection@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::details::_TaskCollection::_TaskCollection(void) __ptr64
   match: False
 
 ??0_Timer@details@Concurrency@@IEAA@I_N@Z
@@ -175,7 +175,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0_Timer@details@Concurrency@@IEAA@I_N@Z"
 is :- "protected: __cdecl Concurrency::details::_Timer::_Timer(unsigned int,bool) __ptr64"
-  open:   protected virtual Concurrency::Concurrency()
+  open:   protected: __cdecl Concurrency::details::_Timer::_Timer(unsigned int,bool) __ptr64
   match: False
 
 ??0context_self_unblock@Concurrency@@QEAA@XZ
@@ -184,7 +184,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0context_self_unblock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::context_self_unblock::context_self_unblock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::context_self_unblock::context_self_unblock(void) __ptr64
   match: False
 
 ??0context_unblock_unbalanced@Concurrency@@QEAA@PEBD@Z
@@ -193,7 +193,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0context_unblock_unbalanced@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(char const * __ptr64) __ptr64
   match: False
 
 ??0context_unblock_unbalanced@Concurrency@@QEAA@XZ
@@ -202,7 +202,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0context_unblock_unbalanced@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::context_unblock_unbalanced::context_unblock_unbalanced(void) __ptr64
   match: False
 
 ??0critical_section@Concurrency@@QEAA@XZ
@@ -211,7 +211,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0critical_section@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::critical_section::critical_section(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::critical_section::critical_section(void) __ptr64
   match: False
 
 ??0default_scheduler_exists@Concurrency@@QEAA@PEBD@Z
@@ -220,7 +220,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0default_scheduler_exists@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(char const * __ptr64) __ptr64
   match: False
 
 ??0default_scheduler_exists@Concurrency@@QEAA@XZ
@@ -229,7 +229,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0default_scheduler_exists@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::default_scheduler_exists::default_scheduler_exists(void) __ptr64
   match: False
 
 ??0event@Concurrency@@QEAA@XZ
@@ -238,7 +238,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0event@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::event::event(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::event::event(void) __ptr64
   match: False
 
 ??0improper_lock@Concurrency@@QEAA@PEBD@Z
@@ -247,7 +247,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0improper_lock@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::improper_lock::improper_lock(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::improper_lock::improper_lock(char const * __ptr64) __ptr64
   match: False
 
 ??0improper_lock@Concurrency@@QEAA@XZ
@@ -256,7 +256,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0improper_lock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::improper_lock::improper_lock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::improper_lock::improper_lock(void) __ptr64
   match: False
 
 ??0improper_scheduler_attach@Concurrency@@QEAA@PEBD@Z
@@ -265,7 +265,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0improper_scheduler_attach@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::improper_scheduler_attach::improper_scheduler_attach(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::improper_scheduler_attach::improper_scheduler_attach(char const * __ptr64) __ptr64
   match: False
 
 ??0invalid_link_target@Concurrency@@QEAA@XZ
@@ -274,7 +274,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_link_target@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::invalid_link_target::invalid_link_target(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_link_target::invalid_link_target(void) __ptr64
   match: False
 
 ??0invalid_multiple_scheduling@Concurrency@@QEAA@PEBD@Z
@@ -283,7 +283,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_multiple_scheduling@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(char const * __ptr64) __ptr64
   match: False
 
 ??0invalid_multiple_scheduling@Concurrency@@QEAA@XZ
@@ -292,7 +292,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_multiple_scheduling@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_multiple_scheduling::invalid_multiple_scheduling(void) __ptr64
   match: False
 
 ??0invalid_oversubscribe_operation@Concurrency@@QEAA@PEBD@Z
@@ -301,7 +301,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_oversubscribe_operation@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(char const * __ptr64) __ptr64
   match: False
 
 ??0invalid_oversubscribe_operation@Concurrency@@QEAA@XZ
@@ -310,7 +310,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_oversubscribe_operation@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_oversubscribe_operation::invalid_oversubscribe_operation(void) __ptr64
   match: False
 
 ??0invalid_scheduler_policy_key@Concurrency@@QEAA@PEBD@Z
@@ -319,7 +319,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_scheduler_policy_key@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(char const * __ptr64) __ptr64
   match: False
 
 ??0invalid_scheduler_policy_key@Concurrency@@QEAA@XZ
@@ -328,7 +328,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_scheduler_policy_key@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_scheduler_policy_key::invalid_scheduler_policy_key(void) __ptr64
   match: False
 
 ??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@PEBD@Z
@@ -337,7 +337,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(char const * __ptr64) __ptr64
   match: False
 
 ??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@XZ
@@ -346,7 +346,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_scheduler_policy_thread_specification@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_scheduler_policy_thread_specification::invalid_scheduler_policy_thread_specification(void) __ptr64
   match: False
 
 ??0invalid_scheduler_policy_value@Concurrency@@QEAA@PEBD@Z
@@ -355,7 +355,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0invalid_scheduler_policy_value@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::invalid_scheduler_policy_value::invalid_scheduler_policy_value(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::invalid_scheduler_policy_value::invalid_scheduler_policy_value(char const * __ptr64) __ptr64
   match: False
 
 ??0nested_scheduler_missing_detach@Concurrency@@QEAA@XZ
@@ -364,7 +364,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0nested_scheduler_missing_detach@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::nested_scheduler_missing_detach::nested_scheduler_missing_detach(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::nested_scheduler_missing_detach::nested_scheduler_missing_detach(void) __ptr64
   match: False
 
 ??0operation_timed_out@Concurrency@@QEAA@PEBD@Z
@@ -373,7 +373,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0operation_timed_out@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::operation_timed_out::operation_timed_out(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::operation_timed_out::operation_timed_out(char const * __ptr64) __ptr64
   match: False
 
 ??0operation_timed_out@Concurrency@@QEAA@XZ
@@ -382,7 +382,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0operation_timed_out@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::operation_timed_out::operation_timed_out(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::operation_timed_out::operation_timed_out(void) __ptr64
   match: False
 
 ??0reader_writer_lock@Concurrency@@QEAA@XZ
@@ -391,7 +391,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0reader_writer_lock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::reader_writer_lock::reader_writer_lock(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::reader_writer_lock::reader_writer_lock(void) __ptr64
   match: False
 
 ??0scheduler_not_attached@Concurrency@@QEAA@PEBD@Z
@@ -400,7 +400,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_not_attached@Concurrency@@QEAA@PEBD@Z"
 is :- "public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(char const * __ptr64) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(char const * __ptr64) __ptr64
   match: False
 
 ??0scheduler_not_attached@Concurrency@@QEAA@XZ
@@ -409,7 +409,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_not_attached@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(void) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_not_attached::scheduler_not_attached(void) __ptr64
   match: False
 
 ??0scheduler_resource_allocation_error@Concurrency@@QEAA@J@Z
@@ -418,7 +418,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_resource_allocation_error@Concurrency@@QEAA@J@Z"
 is :- "public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(long) __ptr64
   match: False
 
 ??0scheduler_resource_allocation_error@Concurrency@@QEAA@PEBDJ@Z
@@ -427,7 +427,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_resource_allocation_error@Concurrency@@QEAA@PEBDJ@Z"
 is :- "public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(char const * __ptr64,long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_resource_allocation_error::scheduler_resource_allocation_error(char const * __ptr64,long) __ptr64
   match: False
 
 ??0scheduler_worker_creation_error@Concurrency@@QEAA@J@Z
@@ -436,7 +436,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_worker_creation_error@Concurrency@@QEAA@J@Z"
 is :- "public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(long) __ptr64
   match: False
 
 ??0scheduler_worker_creation_error@Concurrency@@QEAA@PEBDJ@Z
@@ -445,7 +445,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??0scheduler_worker_creation_error@Concurrency@@QEAA@PEBDJ@Z"
 is :- "public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(char const * __ptr64,long) __ptr64"
-  open:   public virtual Concurrency::Concurrency()
+  open:   public: __cdecl Concurrency::scheduler_worker_creation_error::scheduler_worker_creation_error(char const * __ptr64,long) __ptr64
   match: False
 
 ??1_Cancellation_beacon@details@Concurrency@@QEAA@XZ
@@ -454,7 +454,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Cancellation_beacon@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_Cancellation_beacon::~_Cancellation_beacon(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_Cancellation_beacon::~_Cancellation_beacon(void) __ptr64
   match: False
 
 ??1_Concurrent_queue_base_v4@details@Concurrency@@MEAA@XZ
@@ -463,7 +463,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Concurrent_queue_base_v4@details@Concurrency@@MEAA@XZ"
 is :- "protected: virtual __cdecl Concurrency::details::_Concurrent_queue_base_v4::~_Concurrent_queue_base_v4(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   protected: virtual __cdecl Concurrency::details::_Concurrent_queue_base_v4::~_Concurrent_queue_base_v4(void) __ptr64
   match: False
 
 ??1_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@XZ
@@ -472,7 +472,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Concurrent_queue_iterator_base_v4@details@Concurrency@@IEAA@XZ"
 is :- "protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::~_Concurrent_queue_iterator_base_v4(void) __ptr64"
-  open:   protected virtual Concurrency::~Concurrency()
+  open:   protected: __cdecl Concurrency::details::_Concurrent_queue_iterator_base_v4::~_Concurrent_queue_iterator_base_v4(void) __ptr64
   match: False
 
 ??1_Concurrent_vector_base_v4@details@Concurrency@@IEAA@XZ
@@ -481,7 +481,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Concurrent_vector_base_v4@details@Concurrency@@IEAA@XZ"
 is :- "protected: __cdecl Concurrency::details::_Concurrent_vector_base_v4::~_Concurrent_vector_base_v4(void) __ptr64"
-  open:   protected virtual Concurrency::~Concurrency()
+  open:   protected: __cdecl Concurrency::details::_Concurrent_vector_base_v4::~_Concurrent_vector_base_v4(void) __ptr64
   match: False
 
 ??1_Condition_variable@details@Concurrency@@QEAA@XZ
@@ -490,7 +490,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Condition_variable@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_Condition_variable::~_Condition_variable(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_Condition_variable::~_Condition_variable(void) __ptr64
   match: False
 
 ??1_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ
@@ -499,7 +499,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_NonReentrantBlockingLock@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_NonReentrantBlockingLock::~_NonReentrantBlockingLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_NonReentrantBlockingLock::~_NonReentrantBlockingLock(void) __ptr64
   match: False
 
 ??1_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ
@@ -508,7 +508,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_ReentrantBlockingLock@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_ReentrantBlockingLock::~_ReentrantBlockingLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_ReentrantBlockingLock::~_ReentrantBlockingLock(void) __ptr64
   match: False
 
 ??1_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ
@@ -517,7 +517,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Scoped_lock@_NonReentrantPPLLock@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_NonReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64
   match: False
 
 ??1_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@XZ
@@ -526,7 +526,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_Scoped_lock@_ReentrantPPLLock@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_ReentrantPPLLock::_Scoped_lock::~_Scoped_lock(void) __ptr64
   match: False
 
 ??1_SpinLock@details@Concurrency@@QEAA@XZ
@@ -535,7 +535,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1_SpinLock@details@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::details::_SpinLock::~_SpinLock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::details::_SpinLock::~_SpinLock(void) __ptr64
   match: False
 
 ??1reader_writer_lock@Concurrency@@QEAA@XZ
@@ -544,7 +544,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1reader_writer_lock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::reader_writer_lock::~reader_writer_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::reader_writer_lock::~reader_writer_lock(void) __ptr64
   match: False
 
 ??1scoped_lock@critical_section@Concurrency@@QEAA@XZ
@@ -553,7 +553,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1scoped_lock@critical_section@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::critical_section::scoped_lock::~scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::critical_section::scoped_lock::~scoped_lock(void) __ptr64
   match: False
 
 ??1scoped_lock@reader_writer_lock@Concurrency@@QEAA@XZ
@@ -562,7 +562,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1scoped_lock@reader_writer_lock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::reader_writer_lock::scoped_lock::~scoped_lock(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::reader_writer_lock::scoped_lock::~scoped_lock(void) __ptr64
   match: False
 
 ??1scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@XZ
@@ -571,7 +571,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??1scoped_lock_read@reader_writer_lock@Concurrency@@QEAA@XZ"
 is :- "public: __cdecl Concurrency::reader_writer_lock::scoped_lock_read::~scoped_lock_read(void) __ptr64"
-  open:   public virtual Concurrency::~Concurrency()
+  open:   public: __cdecl Concurrency::reader_writer_lock::scoped_lock_read::~scoped_lock_read(void) __ptr64
   match: False
 
 ??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
@@ -580,7 +580,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z"
 is :- "public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> && __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class $$QEAV012::012 &)
+  open:   public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> && __ptr64) __ptr64
   match: False
 
 ??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
@@ -589,7 +589,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??4?$_SpinWait@$00@details@Concurrency@@QEAAAEAV012@AEBV012@@Z"
 is :- "public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class AEBV012::012 &)
+  open:   public: class Concurrency::details::_SpinWait<1> & __ptr64 __cdecl Concurrency::details::_SpinWait<1>::operator=(class Concurrency::details::_SpinWait<1> const & __ptr64) __ptr64
   match: False
 
 ??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z
@@ -598,7 +598,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@$$QEAV012@@Z"
 is :- "public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> && __ptr64) __ptr64"
-  open:   public $0A::operator?(UNK(i), UNK(l), UNK(s))
+  open:   public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> && __ptr64) __ptr64
   match: False
 
 ??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@AEBV012@@Z
@@ -607,7 +607,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??4?$_SpinWait@$0A@@details@Concurrency@@QEAAAEAV012@AEBV012@@Z"
 is :- "public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> const & __ptr64) __ptr64"
-  open:   public $0A::operator?(UNK(i), UNK(l), UNK(s))
+  open:   public: class Concurrency::details::_SpinWait<0> & __ptr64 __cdecl Concurrency::details::_SpinWait<0>::operator=(class Concurrency::details::_SpinWait<0> const & __ptr64) __ptr64
   match: False
 
 ??4SchedulerPolicy@Concurrency@@QEAAAEAV01@AEBV01@@Z
@@ -616,7 +616,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??4SchedulerPolicy@Concurrency@@QEAAAEAV01@AEBV01@@Z"
 is :- "public: class Concurrency::SchedulerPolicy & __ptr64 __cdecl Concurrency::SchedulerPolicy::operator=(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64"
-  open:   public virtual Concurrency::operator?(class AEBV01::01 &)
+  open:   public: class Concurrency::SchedulerPolicy & __ptr64 __cdecl Concurrency::SchedulerPolicy::operator=(class Concurrency::SchedulerPolicy const & __ptr64) __ptr64
   match: False
 
 ??_F?$_SpinWait@$00@details@Concurrency@@QEAAXXZ
@@ -625,7 +625,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "??_F?$_SpinWait@$00@details@Concurrency@@QEAAXXZ"
 is :- "public: void __cdecl Concurrency::details::_SpinWait<1>::`default constructor closure'(void) __ptr64"
-  open:   public virtual Concurrency::operator?(void)
+  open:   public: void __cdecl Concurrency::details::_SpinWait<1>::`default constructor closure'(void) __ptr64
   match: False
 
 ?ChoreEventGuid@Concurrency@@3U_GUID@@B
@@ -634,7 +634,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ChoreEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ChoreEventGuid"
-  open:   public class ID __stdcall Concurrency::ChoreEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ChoreEventGuid() __ptr64
   match: False
 
 ?ConcRTEventGuid@Concurrency@@3U_GUID@@B
@@ -643,7 +643,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ConcRTEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ConcRTEventGuid"
-  open:   public class ID __stdcall Concurrency::ConcRTEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ConcRTEventGuid() __ptr64
   match: False
 
 ?ConcRT_ProviderGuid@Concurrency@@3U_GUID@@B
@@ -652,7 +652,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ConcRT_ProviderGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ConcRT_ProviderGuid"
-  open:   public class ID __stdcall Concurrency::ConcRT_ProviderGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ConcRT_ProviderGuid() __ptr64
   match: False
 
 ?ContextEventGuid@Concurrency@@3U_GUID@@B
@@ -661,7 +661,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ContextEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ContextEventGuid"
-  open:   public class ID __stdcall Concurrency::ContextEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ContextEventGuid() __ptr64
   match: False
 
 ?Create@CurrentScheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z
@@ -670,7 +670,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?Create@CurrentScheduler@Concurrency@@SAXAEBVSchedulerPolicy@2@@Z"
 is :- "public: static void __cdecl Concurrency::CurrentScheduler::Create(class Concurrency::SchedulerPolicy const & __ptr64)"
-  open:   public static unsigned char Concurrency::CurrentScheduler::Create(UNK(B), class 2::SchedulerPolicy)
+  open:   public: static class Concurrency::SchedulerPolicy const __cdecl Concurrency::CurrentScheduler::Create()
   match: False
 
 ?Create@Scheduler@Concurrency@@SAPEAV12@AEBVSchedulerPolicy@2@@Z
@@ -679,7 +679,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?Create@Scheduler@Concurrency@@SAPEAV12@AEBVSchedulerPolicy@2@@Z"
 is :- "public: static class Concurrency::Scheduler * __ptr64 __cdecl Concurrency::Scheduler::Create(class Concurrency::SchedulerPolicy const & __ptr64)"
-  open:   public static UNK(A) Concurrency::Scheduler::Create(class 2::AEBVSchedulerPolicy::12)
+  open:   public: static class Concurrency::Scheduler & __ptr64 Concurrency::Scheduler::Create(class Concurrency::SchedulerPolicy const & __ptr64)
   match: False
 
 ?CreateResourceManager@Concurrency@@YAPEAUIResourceManager@1@XZ
@@ -688,7 +688,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?CreateResourceManager@Concurrency@@YAPEAUIResourceManager@1@XZ"
 is :- "struct Concurrency::IResourceManager * __ptr64 __cdecl Concurrency::CreateResourceManager(void)"
-  open:   public UNK(A) Concurrency::CreateResourceManager(class XZ::1::IResourceManager)
+  open:   struct Concurrency::IResourceManager * __ptr64 __cdecl Concurrency::CreateResourceManager(void)
   match: False
 
 ?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@AEAVlocation@2@@Z
@@ -697,7 +697,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@AEAVlocation@2@@Z"
 is :- "public: static class Concurrency::ScheduleGroup * __ptr64 __cdecl Concurrency::CurrentScheduler::CreateScheduleGroup(class Concurrency::location & __ptr64)"
-  open:   public static UNK(A) Concurrency::CurrentScheduler::CreateScheduleGroup(class 2::AEAVlocation::2::ScheduleGroup)
+  open:   public: static class Concurrency::ScheduleGroup & __ptr64 Concurrency::CurrentScheduler::CreateScheduleGroup(class Concurrency::location & __ptr64)
   match: False
 
 ?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@XZ
@@ -706,7 +706,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?CreateScheduleGroup@CurrentScheduler@Concurrency@@SAPEAVScheduleGroup@2@XZ"
 is :- "public: static class Concurrency::ScheduleGroup * __ptr64 __cdecl Concurrency::CurrentScheduler::CreateScheduleGroup(void)"
-  open:   public static UNK(A) Concurrency::CurrentScheduler::CreateScheduleGroup(class XZ::2::ScheduleGroup)
+  open:   public: static class Concurrency::ScheduleGroup & __ptr64 Concurrency::CurrentScheduler::CreateScheduleGroup(void)
   match: False
 
 ?CurrentContext@Context@Concurrency@@SAPEAV12@XZ
@@ -715,7 +715,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?CurrentContext@Context@Concurrency@@SAPEAV12@XZ"
 is :- "public: static class Concurrency::Context * __ptr64 __cdecl Concurrency::Context::CurrentContext(void)"
-  open:   public static UNK(A) Concurrency::Context::CurrentContext(class XZ::12)
+  open:   public: static class Concurrency::Context & __ptr64 Concurrency::Context::CurrentContext(void)
   match: False
 
 ?GetNumberOfVirtualProcessors@CurrentScheduler@Concurrency@@SAIXZ
@@ -724,7 +724,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetNumberOfVirtualProcessors@CurrentScheduler@Concurrency@@SAIXZ"
 is :- "public: static unsigned int __cdecl Concurrency::CurrentScheduler::GetNumberOfVirtualProcessors(void)"
-  open:   public static UNK(Z) Concurrency::CurrentScheduler::GetNumberOfVirtualProcessors()
+  open:   public: static UNK(Z) Concurrency::CurrentScheduler::GetNumberOfVirtualProcessors()
   match: False
 
 ?GetOSVersion@Concurrency@@YA?AW4OSVersion@IResourceManager@1@XZ
@@ -733,7 +733,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetOSVersion@Concurrency@@YA?AW4OSVersion@IResourceManager@1@XZ"
 is :- "enum Concurrency::IResourceManager::OSVersion __cdecl Concurrency::GetOSVersion(void)"
-  open:   public UNK(W) Concurrency::GetOSVersion(UNK(4), UNK(O), UNK(S), class XZ::1::IResourceManager::ersion)
+  open:   UNKNOWN __cdecl Concurrency::GetOSVersion(enum OSVersion & __ptr64)
   match: False
 
 ?GetPolicy@CurrentScheduler@Concurrency@@SA?AVSchedulerPolicy@2@XZ
@@ -742,7 +742,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetPolicy@CurrentScheduler@Concurrency@@SA?AVSchedulerPolicy@2@XZ"
 is :- "public: static class Concurrency::SchedulerPolicy __cdecl Concurrency::CurrentScheduler::GetPolicy(void)"
-  open:   public static class XZ::2::SchedulerPolicy Concurrency::CurrentScheduler::GetPolicy()
+  open:   public: static class Concurrency::SchedulerPolicy __cdecl Concurrency::CurrentScheduler::GetPolicy(void)
   match: False
 
 ?GetPolicyValue@SchedulerPolicy@Concurrency@@QEBAIW4PolicyElementKey@2@@Z
@@ -751,7 +751,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetPolicyValue@SchedulerPolicy@Concurrency@@QEBAIW4PolicyElementKey@2@@Z"
 is :- "public: unsigned int __cdecl Concurrency::SchedulerPolicy::GetPolicyValue(enum Concurrency::PolicyElementKey)const __ptr64"
-  open:   public virtual unsigned int Concurrency::SchedulerPolicy::GetPolicyValue(UNK(W), UNK(4), UNK(l) *, UNK(i), UNK(c), UNK(y), unsigned char, UNK(l), UNK(e), UNK(m), UNK(e), UNK(n), UNK(t), unsigned long, UNK(e), UNK(y)) const
+  open:   public: unsigned int __cdecl Concurrency::SchedulerPolicy::GetPolicyValue(enum Concurrency::PolicyElementKey)const __ptr64
   match: False
 
 ?GetProcessorCount@Concurrency@@YAIXZ
@@ -760,7 +760,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetProcessorCount@Concurrency@@YAIXZ"
 is :- "unsigned int __cdecl Concurrency::GetProcessorCount(void)"
-  open:   public UNK(Z) Concurrency::GetProcessorCount()
+  open:   unsigned int __cdecl Concurrency::GetProcessorCount(void)
   match: False
 
 ?GetProcessorNodeCount@Concurrency@@YAIXZ
@@ -769,7 +769,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetProcessorNodeCount@Concurrency@@YAIXZ"
 is :- "unsigned int __cdecl Concurrency::GetProcessorNodeCount(void)"
-  open:   public UNK(Z) Concurrency::GetProcessorNodeCount()
+  open:   unsigned int __cdecl Concurrency::GetProcessorNodeCount(void)
   match: False
 
 ?GetSchedulerId@Concurrency@@YAIXZ
@@ -778,7 +778,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetSchedulerId@Concurrency@@YAIXZ"
 is :- "unsigned int __cdecl Concurrency::GetSchedulerId(void)"
-  open:   public UNK(Z) Concurrency::GetSchedulerId()
+  open:   unsigned int __cdecl Concurrency::GetSchedulerId(void)
   match: False
 
 ?GetSharedTimerQueue@details@Concurrency@@YAPEAXXZ
@@ -787,7 +787,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?GetSharedTimerQueue@details@Concurrency@@YAPEAXXZ"
 is :- "void * __ptr64 __cdecl Concurrency::details::GetSharedTimerQueue(void)"
-  open:   public UNK(A) Concurrency::details::GetSharedTimerQueue(void)
+  open:   void * __ptr64 __cdecl Concurrency::details::GetSharedTimerQueue(void)
   match: False
 
 ?Id@Context@Concurrency@@SAIXZ
@@ -796,7 +796,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?Id@Context@Concurrency@@SAIXZ"
 is :- "public: static unsigned int __cdecl Concurrency::Context::Id(void)"
-  open:   public static UNK(Z) Concurrency::Context::Id()
+  open:   public: static UNK(Z) Concurrency::Context::Id()
   match: False
 
 ?Id@CurrentScheduler@Concurrency@@SAIXZ
@@ -805,7 +805,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?Id@CurrentScheduler@Concurrency@@SAIXZ"
 is :- "public: static unsigned int __cdecl Concurrency::CurrentScheduler::Id(void)"
-  open:   public static UNK(Z) Concurrency::CurrentScheduler::Id()
+  open:   public: static UNK(Z) Concurrency::CurrentScheduler::Id()
   match: False
 
 ?NFS_GetLineSize@details@Concurrency@@YA_KXZ
@@ -814,7 +814,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?NFS_GetLineSize@details@Concurrency@@YA_KXZ"
 is :- "unsigned __int64 __cdecl Concurrency::details::NFS_GetLineSize(void)"
-  open:   public void Concurrency::details::NFS_GetLineSize()
+  open:   unsigned __int64 __cdecl Concurrency::details::NFS_GetLineSize(void)
   match: False
 
 ?Oversubscribe@Context@Concurrency@@SAX_N@Z
@@ -823,7 +823,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?Oversubscribe@Context@Concurrency@@SAX_N@Z"
 is :- "public: static void __cdecl Concurrency::Context::Oversubscribe(bool)"
-  open:   public static double Concurrency::Context::Oversubscribe()
+  open:   public: static double Concurrency::Context::Oversubscribe()
   match: False
 
 ?PPLParallelForEventGuid@Concurrency@@3U_GUID@@B
@@ -832,7 +832,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?PPLParallelForEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::PPLParallelForEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelForEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::PPLParallelForEventGuid() __ptr64
   match: False
 
 ?PPLParallelForeachEventGuid@Concurrency@@3U_GUID@@B
@@ -841,7 +841,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?PPLParallelForeachEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::PPLParallelForeachEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelForeachEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::PPLParallelForeachEventGuid() __ptr64
   match: False
 
 ?PPLParallelInvokeEventGuid@Concurrency@@3U_GUID@@B
@@ -850,7 +850,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?PPLParallelInvokeEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::PPLParallelInvokeEventGuid"
-  open:   public class ID __stdcall Concurrency::PPLParallelInvokeEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::PPLParallelInvokeEventGuid() __ptr64
   match: False
 
 ?RegisterShutdownEvent@CurrentScheduler@Concurrency@@SAXPEAX@Z
@@ -859,7 +859,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?RegisterShutdownEvent@CurrentScheduler@Concurrency@@SAXPEAX@Z"
 is :- "public: static void __cdecl Concurrency::CurrentScheduler::RegisterShutdownEvent(void * __ptr64)"
-  open:   public static unsigned char Concurrency::CurrentScheduler::RegisterShutdownEvent(UNK(A), void)
+  open:   public: static unsigned char Concurrency::CurrentScheduler::RegisterShutdownEvent(void & __ptr64)
   match: False
 
 ?ResetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXXZ
@@ -868,7 +868,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ResetDefaultSchedulerPolicy@Scheduler@Concurrency@@SAXXZ"
 is :- "public: static void __cdecl Concurrency::Scheduler::ResetDefaultSchedulerPolicy(void)"
-  open:   public static UNK(Z) Concurrency::Scheduler::ResetDefaultSchedulerPolicy()
+  open:   public: static UNK(Z) Concurrency::Scheduler::ResetDefaultSchedulerPolicy()
   match: False
 
 ?ResourceManagerEventGuid@Concurrency@@3U_GUID@@B
@@ -877,7 +877,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ResourceManagerEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ResourceManagerEventGuid"
-  open:   public class ID __stdcall Concurrency::ResourceManagerEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ResourceManagerEventGuid() __ptr64
   match: False
 
 ?ScheduleGroupEventGuid@Concurrency@@3U_GUID@@B
@@ -886,7 +886,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ScheduleGroupEventGuid@Concurrency@@3U_GUID@@B"
 is :- "struct _GUID const Concurrency::ScheduleGroupEventGuid"
-  open:   public class ID __stdcall Concurrency::ScheduleGroupEventGuid(UNK(B))
+  open:   public: struct ID __stdcall Concurrency::ScheduleGroupEventGuid() __ptr64
   match: False
 
 ?ScheduleGroupId@Context@Concurrency@@SAIXZ
@@ -895,7 +895,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?ScheduleGroupId@Context@Concurrency@@SAIXZ"
 is :- "public: static unsigned int __cdecl Concurrency::Context::ScheduleGroupId(void)"
-  open:   public static UNK(Z) Concurrency::Context::ScheduleGroupId()
+  open:   public: static UNK(Z) Concurrency::Context::ScheduleGroupId()
   match: False
 
 ?_Value@_SpinCount@details@Concurrency@@SAIXZ
@@ -904,7 +904,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?_Value@_SpinCount@details@Concurrency@@SAIXZ"
 is :- "public: static unsigned int __cdecl Concurrency::details::_SpinCount::_Value(void)"
-  open:   public static UNK(Z) Concurrency::details::_SpinCount::_Value()
+  open:   public: static UNK(Z) Concurrency::details::_SpinCount::_Value()
   match: False
 
 ?_Yield@_Context@details@Concurrency@@SAXXZ
@@ -913,7 +913,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?_Yield@_Context@details@Concurrency@@SAXXZ"
 is :- "public: static void __cdecl Concurrency::details::_Context::_Yield(void)"
-  open:   public static UNK(Z) Concurrency::details::_Context::_Yield()
+  open:   public: static UNK(Z) Concurrency::details::_Context::_Yield()
   match: False
 
 ?cancel@agent@Concurrency@@QEAA_NXZ
@@ -922,7 +922,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?cancel@agent@Concurrency@@QEAA_NXZ"
 is :- "public: bool __cdecl Concurrency::agent::cancel(void) __ptr64"
-  open:   public virtual bool Concurrency::agent::cancel(void)
+  open:   public: bool __cdecl Concurrency::agent::cancel(void) __ptr64
   match: False
 
 ?current@location@Concurrency@@SA?AV12@XZ
@@ -931,7 +931,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?current@location@Concurrency@@SA?AV12@XZ"
 is :- "public: static class Concurrency::location __cdecl Concurrency::location::current(void)"
-  open:   public static class XZ::12 Concurrency::location::current()
+  open:   public: static class Concurrency::location __cdecl Concurrency::location::current(void)
   match: False
 
 ?done@agent@Concurrency@@IEAA_NXZ
@@ -940,7 +940,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?done@agent@Concurrency@@IEAA_NXZ"
 is :- "protected: bool __cdecl Concurrency::agent::done(void) __ptr64"
-  open:   protected virtual bool Concurrency::agent::done(void)
+  open:   protected: bool __cdecl Concurrency::agent::done(void) __ptr64
   match: False
 
 ?from_numa_node@location@Concurrency@@SA?AV12@G@Z
@@ -949,7 +949,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?from_numa_node@location@Concurrency@@SA?AV12@G@Z"
 is :- "public: static class Concurrency::location __cdecl Concurrency::location::from_numa_node(unsigned short)"
-  open:   public static class Z::G::12 Concurrency::location::from_numa_node()
+  open:   public: static class Concurrency::location __cdecl Concurrency::location::from_numa_node(unsigned short)
   match: False
 
 ?get_error_code@scheduler_resource_allocation_error@Concurrency@@QEBAJXZ
@@ -958,7 +958,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?get_error_code@scheduler_resource_allocation_error@Concurrency@@QEBAJXZ"
 is :- "public: long __cdecl Concurrency::scheduler_resource_allocation_error::get_error_code(void)const __ptr64"
-  open:   public virtual long Concurrency::scheduler_resource_allocation_error::get_error_code(void) const
+  open:   public: long __cdecl Concurrency::scheduler_resource_allocation_error::get_error_code(void)const __ptr64
   match: False
 
 ?is_current_task_group_canceling@Concurrency@@YA_NXZ
@@ -967,7 +967,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?is_current_task_group_canceling@Concurrency@@YA_NXZ"
 is :- "bool __cdecl Concurrency::is_current_task_group_canceling(void)"
-  open:   public void Concurrency::is_current_task_group_canceling()
+  open:   bool __cdecl Concurrency::is_current_task_group_canceling(void)
   match: False
 
 ?lock@critical_section@Concurrency@@QEAAXXZ
@@ -976,7 +976,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?lock@critical_section@Concurrency@@QEAAXXZ"
 is :- "public: void __cdecl Concurrency::critical_section::lock(void) __ptr64"
-  open:   public virtual void Concurrency::critical_section::lock(void)
+  open:   public: void __cdecl Concurrency::critical_section::lock(void) __ptr64
   match: False
 
 ?lock@reader_writer_lock@Concurrency@@QEAAXXZ
@@ -985,7 +985,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?lock@reader_writer_lock@Concurrency@@QEAAXXZ"
 is :- "public: void __cdecl Concurrency::reader_writer_lock::lock(void) __ptr64"
-  open:   public virtual void Concurrency::reader_writer_lock::lock(void)
+  open:   public: void __cdecl Concurrency::reader_writer_lock::lock(void) __ptr64
   match: False
 
 ?set_task_execution_resources@Concurrency@@YAXGPEAU_GROUP_AFFINITY@@@Z
@@ -994,7 +994,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?set_task_execution_resources@Concurrency@@YAXGPEAU_GROUP_AFFINITY@@@Z"
 is :- "void __cdecl Concurrency::set_task_execution_resources(unsigned short,struct _GROUP_AFFINITY * __ptr64)"
-  open:   public UNK(A) * __stdcall Concurrency::set_task_execution_resources(class _GROUP_AFFINITY)
+  open:   void __cdecl Concurrency::set_task_execution_resources(unsigned short,struct _GROUP_AFFINITY * __ptr64)
   match: False
 
 ?set_task_execution_resources@Concurrency@@YAX_K@Z
@@ -1003,7 +1003,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?set_task_execution_resources@Concurrency@@YAX_K@Z"
 is :- "void __cdecl Concurrency::set_task_execution_resources(unsigned __int64)"
-  open:   public unsigned long Concurrency::set_task_execution_resources()
+  open:   void __cdecl Concurrency::set_task_execution_resources(unsigned __int64)
   match: False
 
 ?start@agent@Concurrency@@QEAA_NXZ
@@ -1012,7 +1012,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?start@agent@Concurrency@@QEAA_NXZ"
 is :- "public: bool __cdecl Concurrency::agent::start(void) __ptr64"
-  open:   public virtual bool Concurrency::agent::start(void)
+  open:   public: bool __cdecl Concurrency::agent::start(void) __ptr64
   match: False
 
 ?status@agent@Concurrency@@QEAA?AW4agent_status@2@XZ
@@ -1021,7 +1021,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?status@agent@Concurrency@@QEAA?AW4agent_status@2@XZ"
 is :- "public: enum Concurrency::agent_status __cdecl Concurrency::agent::status(void) __ptr64"
-  open:   public virtual UNK(?) Concurrency::agent::status(UNK(A), UNK(W), UNK(4), UNK(a), UNK(g), UNK(e), UNK(n), UNK(t), UNKNOWN__s, UNK(t), UNK(a), UNK(t), UNK(u), UNK(s))
+  open:   public: UNKNOWN __cdecl Concurrency::agent::status(enum Concurrency::agent_status & __ptr64,void) __ptr64
   match: False
 
 ?status_port@agent@Concurrency@@QEAAPEAV?$ISource@W4agent_status@Concurrency@@@2@XZ
@@ -1030,7 +1030,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?status_port@agent@Concurrency@@QEAAPEAV?$ISource@W4agent_status@Concurrency@@@2@XZ"
 is :- "public: class Concurrency::ISource<enum Concurrency::agent_status> * __ptr64 __cdecl Concurrency::agent::status_port(void) __ptr64"
-  open:   public virtual UNK(A) * Concurrency::agent::status_port(class Concurrency::W4agent_status::?$ISource)
+  open:   public: class ncurrency::ISource<enum agent_status,UNK(o) volatile> * __ptr64 __cdecl Concurrency::agent::status_port(UNK(2)) __ptr64
   match: False
 
 ?try_lock@critical_section@Concurrency@@QEAA_NXZ
@@ -1039,7 +1039,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?try_lock@critical_section@Concurrency@@QEAA_NXZ"
 is :- "public: bool __cdecl Concurrency::critical_section::try_lock(void) __ptr64"
-  open:   public virtual bool Concurrency::critical_section::try_lock(void)
+  open:   public: bool __cdecl Concurrency::critical_section::try_lock(void) __ptr64
   match: False
 
 ?try_lock@reader_writer_lock@Concurrency@@QEAA_NXZ
@@ -1048,7 +1048,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?try_lock@reader_writer_lock@Concurrency@@QEAA_NXZ"
 is :- "public: bool __cdecl Concurrency::reader_writer_lock::try_lock(void) __ptr64"
-  open:   public virtual bool Concurrency::reader_writer_lock::try_lock(void)
+  open:   public: bool __cdecl Concurrency::reader_writer_lock::try_lock(void) __ptr64
   match: False
 
 ?try_lock_for@critical_section@Concurrency@@QEAA_NI@Z
@@ -1057,7 +1057,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?try_lock_for@critical_section@Concurrency@@QEAA_NI@Z"
 is :- "public: bool __cdecl Concurrency::critical_section::try_lock_for(unsigned int) __ptr64"
-  open:   public virtual bool Concurrency::critical_section::try_lock_for(unsigned int)
+  open:   public: bool __cdecl Concurrency::critical_section::try_lock_for(unsigned int) __ptr64
   match: False
 
 ?try_lock_read@reader_writer_lock@Concurrency@@QEAA_NXZ
@@ -1066,7 +1066,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?try_lock_read@reader_writer_lock@Concurrency@@QEAA_NXZ"
 is :- "public: bool __cdecl Concurrency::reader_writer_lock::try_lock_read(void) __ptr64"
-  open:   public virtual bool Concurrency::reader_writer_lock::try_lock_read(void)
+  open:   public: bool __cdecl Concurrency::reader_writer_lock::try_lock_read(void) __ptr64
   match: False
 
 ?unlock@critical_section@Concurrency@@QEAAXXZ
@@ -1075,7 +1075,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?unlock@critical_section@Concurrency@@QEAAXXZ"
 is :- "public: void __cdecl Concurrency::critical_section::unlock(void) __ptr64"
-  open:   public virtual void Concurrency::critical_section::unlock(void)
+  open:   public: void __cdecl Concurrency::critical_section::unlock(void) __ptr64
   match: False
 
 ?wait_for_all@agent@Concurrency@@SAX_KPEAPEAV12@PEAW4agent_status@2@I@Z
@@ -1084,7 +1084,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?wait_for_all@agent@Concurrency@@SAX_KPEAPEAV12@PEAW4agent_status@2@I@Z"
 is :- "public: static void __cdecl Concurrency::agent::wait_for_all(unsigned __int64,class Concurrency::agent * __ptr64 * __ptr64,enum Concurrency::agent_status * __ptr64,unsigned int)"
-  open:   public static unsigned long Concurrency::agent::wait_for_all(UNK(A) *, UNK(A) *, class Z::I::2::PEAW4agent_status::12)
+  open:   public: static unsigned long Concurrency::agent::wait_for_all(class Concurrency::agent * __ptr64 * __ptr64)
   match: False
 
 ?wait_for_multiple@event@Concurrency@@SA_KPEAPEAV12@_K_NI@Z
@@ -1093,7 +1093,7 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?wait_for_multiple@event@Concurrency@@SA_KPEAPEAV12@_K_NI@Z"
 is :- "public: static unsigned __int64 __cdecl Concurrency::event::wait_for_multiple(class Concurrency::event * __ptr64 * __ptr64,unsigned __int64,bool,unsigned int)"
-  open:   public static UNK(A) * Concurrency::event::wait_for_multiple(UNK(A) *, class Z::_K_NI::12)
+  open:   public: static class Concurrency::event * __ptr64 * __ptr64 Concurrency::event::wait_for_multiple(unsigned __int64,bool,unsigned int)
   match: False
 
 ?wait_for_one@agent@Concurrency@@SAX_KPEAPEAV12@AEAW4agent_status@2@AEA_KI@Z
@@ -1102,6 +1102,6 @@ Copyright (C) Microsoft Corporation. All rights reserved.
 
 Undecoration of :- "?wait_for_one@agent@Concurrency@@SAX_KPEAPEAV12@AEAW4agent_status@2@AEA_KI@Z"
 is :- "public: static void __cdecl Concurrency::agent::wait_for_one(unsigned __int64,class Concurrency::agent * __ptr64 * __ptr64,enum Concurrency::agent_status & __ptr64,unsigned __int64 & __ptr64,unsigned int)"
-  open:   public static unsigned long Concurrency::agent::wait_for_one(UNK(A) *, UNK(A) *, class Z::AEA_KI::2::AEAW4agent_status::12)
+  open:   public: static unsigned long Concurrency::agent::wait_for_one(class Concurrency::agent * __ptr64 * __ptr64)
   match: False
 

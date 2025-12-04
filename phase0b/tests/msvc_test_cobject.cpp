@@ -33,6 +33,13 @@ int main() {
         return 1;
     }
 
+    std::cout << "[Host] verifying CObject::CreateObject returns nullptr..." << std::endl;
+    if (CObject::CreateObject() != nullptr) {
+        std::cerr << "CreateObject should be null for non-dyncreate CObject" << std::endl;
+        delete p;
+        return 1;
+    }
+
     std::cout << "[Host] calling GetRuntimeClass..." << std::endl;
     CRuntimeClass* cls = p->GetRuntimeClass();
     if (!cls || std::string(cls->m_lpszClassName) != "CObject") {

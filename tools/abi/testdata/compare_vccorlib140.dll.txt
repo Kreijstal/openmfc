@@ -1,0 +1,320 @@
+?<Dispose>@Exception@Platform@@UE$AAAXXZ
+  undname: public: virtual void __cdecl Platform::Exception::<Dispose>(void) __ptr64
+  open:   public: virtual void & __ptr64 __cdecl Platform::Exception::<Dispose>(void) __ptr64
+  match: False
+
+?<Dispose>@String@Platform@@UE$AAAXXZ
+  undname: public: virtual void __cdecl Platform::String::<Dispose>(void) __ptr64
+  open:   public: virtual void & __ptr64 __cdecl Platform::String::<Dispose>(void) __ptr64
+  match: False
+
+?<Dispose>@Type@Platform@@UE$AAAXXZ
+  undname: public: virtual void __cdecl Platform::Type::<Dispose>(void) __ptr64
+  open:   public: virtual void & __ptr64 __cdecl Platform::Type::<Dispose>(void) __ptr64
+  match: False
+
+??0AccessDeniedException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::AccessDeniedException::AccessDeniedException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::AccessDeniedException::AccessDeniedException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0AccessDeniedException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::AccessDeniedException::AccessDeniedException(void) __ptr64
+  open:   public: __cdecl Platform::AccessDeniedException::AccessDeniedException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0Attribute@Metadata@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::Metadata::Attribute::Attribute(void) __ptr64
+  open:   public: __cdecl Platform::Metadata::Attribute::Attribute(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0COMException@Platform@@QE$AAA@H@Z
+  undname: public: __cdecl Platform::COMException::COMException(int) __ptr64
+  open:   public: __cdecl Platform::COMException::COMException(UNK(@) & __ptr64,int) __ptr64
+  match: False
+
+??0COMException@Platform@@QE$AAA@HPE$AAVString@1@@Z
+  undname: public: __cdecl Platform::COMException::COMException(int,class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::COMException::COMException(UNK(@) & __ptr64,int,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0ChangedStateException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::ChangedStateException::ChangedStateException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::ChangedStateException::ChangedStateException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0Enum@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::Enum::Enum(void) __ptr64
+  open:   public: __cdecl Platform::Enum::Enum(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0Exception@Platform@@QE$AAA@H@Z
+  undname: public: __cdecl Platform::Exception::Exception(int) __ptr64
+  open:   public: __cdecl Platform::Exception::Exception(UNK(@) & __ptr64,int) __ptr64
+  match: False
+
+??0Exception@Platform@@QE$AAA@HPE$AAVString@1@@Z
+  undname: public: __cdecl Platform::Exception::Exception(int,class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::Exception::Exception(UNK(@) & __ptr64,int,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0FailureException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::FailureException::FailureException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::FailureException::FailureException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0FailureException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::FailureException::FailureException(void) __ptr64
+  open:   public: __cdecl Platform::FailureException::FailureException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0InvalidArgumentException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::InvalidArgumentException::InvalidArgumentException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::InvalidArgumentException::InvalidArgumentException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0InvalidArgumentException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::InvalidArgumentException::InvalidArgumentException(void) __ptr64
+  open:   public: __cdecl Platform::InvalidArgumentException::InvalidArgumentException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0NullReferenceException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::NullReferenceException::NullReferenceException(void) __ptr64
+  open:   public: __cdecl Platform::NullReferenceException::NullReferenceException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0Object@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::Object::Object(void) __ptr64
+  open:   public: __cdecl Platform::Object::Object(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0ObjectDisposedException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::ObjectDisposedException::ObjectDisposedException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::ObjectDisposedException::ObjectDisposedException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0ObjectDisposedException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::ObjectDisposedException::ObjectDisposedException(void) __ptr64
+  open:   public: __cdecl Platform::ObjectDisposedException::ObjectDisposedException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0OnePhaseConstructedAttribute@CompilerServices@Runtime@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::Runtime::CompilerServices::OnePhaseConstructedAttribute::OnePhaseConstructedAttribute(void) __ptr64
+  open:   public: __cdecl Platform::Runtime::CompilerServices::OnePhaseConstructedAttribute::OnePhaseConstructedAttribute(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0OperationCanceledException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::OperationCanceledException::OperationCanceledException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::OperationCanceledException::OperationCanceledException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0OperationCanceledException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::OperationCanceledException::OperationCanceledException(void) __ptr64
+  open:   public: __cdecl Platform::OperationCanceledException::OperationCanceledException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0OutOfBoundsException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::OutOfBoundsException::OutOfBoundsException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::OutOfBoundsException::OutOfBoundsException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0OutOfBoundsException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::OutOfBoundsException::OutOfBoundsException(void) __ptr64
+  open:   public: __cdecl Platform::OutOfBoundsException::OutOfBoundsException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0OutOfMemoryException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::OutOfMemoryException::OutOfMemoryException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::OutOfMemoryException::OutOfMemoryException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0Type@Platform@@QE$AAA@PE$AAVObject@1@@Z
+  undname: public: __cdecl Platform::Type::Type(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::Type::Type(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+??0Type@Platform@@QE$AAA@VIntPtr@1@@Z
+  undname: public: __cdecl Platform::Type::Type(class Platform::IntPtr) __ptr64
+  open:   public: __cdecl Platform::Type::Type(UNK(@) & __ptr64,class Platform::IntPtr) __ptr64
+  match: False
+
+??0Type@Platform@@QE$AAA@VTypeName@Interop@Xaml@UI@Windows@@@Z
+  undname: public: __cdecl Platform::Type::Type(class Windows::UI::Xaml::Interop::TypeName) __ptr64
+  open:   public: __cdecl Platform::Type::Type(UNK(@) & __ptr64,class TypeName,unsigned int,UNK(n),UNK(t),UNK(e),UNK(r),UNK(o),UNK(p),void,UNK(a),UNK(m),UNK(l),struct I,wchar_t,UNK(i),UNK(n),UNK(d),UNK(o),UNK(w),UNK(s)) __ptr64
+  match: False
+
+??0ValueType@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::ValueType::ValueType(void) __ptr64
+  open:   public: __cdecl Platform::ValueType::ValueType(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??0WrongThreadException@Platform@@QE$AAA@PE$AAVString@1@@Z
+  undname: public: __cdecl Platform::WrongThreadException::WrongThreadException(class Platform::String ^ __ptr64) __ptr64
+  open:   public: __cdecl Platform::WrongThreadException::WrongThreadException(UNK(@) & __ptr64,UNK($) * __ptr64,class Platform::String & __ptr64) __ptr64
+  match: False
+
+??0WrongThreadException@Platform@@QE$AAA@XZ
+  undname: public: __cdecl Platform::WrongThreadException::WrongThreadException(void) __ptr64
+  open:   public: __cdecl Platform::WrongThreadException::WrongThreadException(UNK(@) & __ptr64,void) __ptr64
+  match: False
+
+??BIntPtr@Platform@@SA?AV01@H@Z
+  undname: public: static __cdecl Platform::IntPtr::operator class Platform::IntPtr(int)
+  open:   public: static __cdecl Platform::IntPtr::operator class Platform::IntPtr(int) __ptr64
+  match: False
+
+??BIntPtr@Platform@@SA?AV01@PEAX@Z
+  undname: public: static __cdecl Platform::IntPtr::operator class Platform::IntPtr(void * __ptr64)
+  open:   public: static __cdecl Platform::IntPtr::operator class Platform::IntPtr(void * __ptr64) __ptr64
+  match: False
+
+??BIntPtr@Platform@@SAPEAXV01@@Z
+  undname: public: static __cdecl Platform::IntPtr::operator void * __ptr64(class Platform::IntPtr)
+  open:   public: static __cdecl Platform::IntPtr::operator void * __ptr64(class Platform::IntPtr) __ptr64
+  match: False
+
+??BType@Platform@@SA?AVTypeName@Interop@Xaml@UI@Windows@@PE$AAV01@@Z
+  undname: public: static __cdecl Platform::Type::operator class Windows::UI::Xaml::Interop::TypeName(class Platform::Type ^ __ptr64)
+  open:   public: static __cdecl Platform::Type::operator class TypeName(unsigned int,UNK(n),UNK(t),UNK(e),UNK(r),UNK(o),UNK(p),void,UNK(a),UNK(m),UNK(l),struct I,wchar_t,UNK(i),UNK(n),UNK(d),UNK(o),UNK(w),UNK(s),UNK($) * __ptr64,class Platform::Type & __ptr64) __ptr64
+  match: False
+
+??BType@Platform@@SAPE$AAV01@VTypeName@Interop@Xaml@UI@Windows@@@Z
+  undname: public: static __cdecl Platform::Type::operator class Platform::Type ^ __ptr64(class Windows::UI::Xaml::Interop::TypeName)
+  open:   public: static __cdecl Platform::Type::operator UNK($) * __ptr64(class Platform::Type & __ptr64,class TypeName,unsigned int,UNK(n),UNK(t),UNK(e),UNK(r),UNK(o),UNK(p),void,UNK(a),UNK(m),UNK(l),struct I,wchar_t,UNK(i),UNK(n),UNK(d),UNK(o),UNK(w),UNK(s)) __ptr64
+  match: False
+
+??DMatrix3D@Media3D@Media@Xaml@UI@Windows@@SA?AV012345@V012345@0@Z
+  undname: public: static class Windows::UI::Xaml::Media::Media3D::Matrix3D __cdecl Windows::UI::Xaml::Media::Media3D::Matrix3D::operator*(class Windows::UI::Xaml::Media::Media3D::Matrix3D,class Windows::UI::Xaml::Media::Media3D::Matrix3D)
+  open:   public: static class Windows::UI::Xaml::Media::Media3D::Matrix3D __cdecl Windows::UI::Xaml::Media::Media3D::Matrix3D::operator++(class Matrix3D::Windows::UI::Xaml::Media::Media3D::Matrix3D) __ptr64
+  match: False
+
+??GDuration@Xaml@UI@Windows@@SA?AV0123@V0123@0@Z
+  undname: public: static class Windows::UI::Xaml::Duration __cdecl Windows::UI::Xaml::Duration::operator-(class Windows::UI::Xaml::Duration,class Windows::UI::Xaml::Duration)
+  open:   public: static class Windows::UI::Xaml::Duration __cdecl Windows::UI::Xaml::Duration::operator+(class Duration::Windows::UI::Xaml::Duration) __ptr64
+  match: False
+
+??HDuration@Xaml@UI@Windows@@SA?AV0123@V0123@0@Z
+  undname: public: static class Windows::UI::Xaml::Duration __cdecl Windows::UI::Xaml::Duration::operator+(class Windows::UI::Xaml::Duration,class Windows::UI::Xaml::Duration)
+  open:   public: static class Windows::UI::Xaml::Duration __cdecl Windows::UI::Xaml::Duration::operator&(class Duration::Windows::UI::Xaml::Duration) __ptr64
+  match: False
+
+?Compare@Duration@Xaml@UI@Windows@@SAHV1234@0@Z
+  undname: public: static int __cdecl Windows::UI::Xaml::Duration::Compare(class Windows::UI::Xaml::Duration,class Windows::UI::Xaml::Duration)
+  open:   public: static int __cdecl Windows::UI::Xaml::Duration::Compare(class Compare::Windows::UI::Xaml::Duration)
+  match: False
+
+?Equals@Boolean@Platform@@QEAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::Boolean::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl Platform::Boolean::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@Delegate@Platform@@QE$AAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::Delegate::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::Delegate::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@Enum@Platform@@QE$AAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::Enum::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::Enum::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@Exception@Platform@@UE$AAA_NPE$AAVObject@2@@Z
+  undname: public: virtual bool __cdecl Platform::Exception::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: virtual bool & __ptr64 __cdecl Platform::Exception::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@MTAThreadAttribute@Platform@@QE$AAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::MTAThreadAttribute::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::MTAThreadAttribute::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@Object@Platform@@QE$AAA_NPE$AAV12@@Z
+  undname: public: bool __cdecl Platform::Object::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::Object::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@OnePhaseConstructedAttribute@CompilerServices@Runtime@Platform@@QE$AAA_NPE$AAVObject@4@@Z
+  undname: public: bool __cdecl Platform::Runtime::CompilerServices::OnePhaseConstructedAttribute::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::Runtime::CompilerServices::OnePhaseConstructedAttribute::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@STAThreadAttribute@Platform@@QE$AAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::STAThreadAttribute::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::STAThreadAttribute::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@Type@Platform@@UE$AAA_NPE$AAVObject@2@@Z
+  undname: public: virtual bool __cdecl Platform::Type::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: virtual bool & __ptr64 __cdecl Platform::Type::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@ValueType@Platform@@QE$AAA_NPE$AAVObject@2@@Z
+  undname: public: bool __cdecl Platform::ValueType::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool & __ptr64 __cdecl Platform::ValueType::Equals(UNK($) * __ptr64,class Platform::Object & __ptr64) __ptr64
+  match: False
+
+?Equals@int8@default@@QEAA_NPE$AAVObject@Platform@@@Z
+  undname: public: bool __cdecl default::int8::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl default::int8::Equals(UNK($) * __ptr64,class Object & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m)) __ptr64
+  match: False
+
+?Equals@uint16@default@@QEAA_NPE$AAVObject@Platform@@@Z
+  undname: public: bool __cdecl default::uint16::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl default::uint16::Equals(UNK($) * __ptr64,class Object & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m)) __ptr64
+  match: False
+
+?Equals@uint32@default@@QEAA_NPE$AAVObject@Platform@@@Z
+  undname: public: bool __cdecl default::uint32::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl default::uint32::Equals(UNK($) * __ptr64,class Object & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m)) __ptr64
+  match: False
+
+?Equals@uint64@default@@QEAA_NPE$AAVObject@Platform@@@Z
+  undname: public: bool __cdecl default::uint64::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl default::uint64::Equals(UNK($) * __ptr64,class Object & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m)) __ptr64
+  match: False
+
+?Equals@uint8@default@@QEAA_NPE$AAVObject@Platform@@@Z
+  undname: public: bool __cdecl default::uint8::Equals(class Platform::Object ^ __ptr64) __ptr64
+  open:   public: bool __cdecl default::uint8::Equals(UNK($) * __ptr64,class Object & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m)) __ptr64
+  match: False
+
+?EventSourceAdd@Details@Platform@@YA?AVEventRegistrationToken@Foundation@Windows@@PEAPEAXPEAUEventLock@12@PE$AAVDelegate@2@@Z
+  undname: class Windows::Foundation::EventRegistrationToken __cdecl Platform::Details::EventSourceAdd(void * __ptr64 * __ptr64,struct Platform::Details::EventLock * __ptr64,class Platform::Delegate ^ __ptr64)
+  open:   class EventRegistrationToken __cdecl Platform::Details::EventSourceAdd(short,UNK(o),UNK(u),UNK(n),UNK(d),UNK(a),UNK(t),UNK(i),UNK(o),UNK(n),wchar_t,UNK(i),UNK(n),UNK(d),UNK(o),UNK(w),UNK(s),void * __ptr64 * __ptr64,struct Platform::Details::EventLock * __ptr64,UNK($) * __ptr64,class Platform::Delegate & __ptr64)
+  match: False
+
+?GetActivationFactoryByPCWSTR@@YAJPEAXAEAVGuid@Platform@@PEAPEAX@Z
+  undname: long __cdecl GetActivationFactoryByPCWSTR(void * __ptr64,class Platform::Guid & __ptr64,void * __ptr64 * __ptr64)
+  open:   long __cdecl GetActivationFactoryByPCWSTR(void * __ptr64,class Guid & __ptr64,UNK(l) * __ptr64,UNK(a),UNK(t),UNK(f),UNK(o),UNK(r),UNK(m),void * __ptr64 * __ptr64)
+  match: False
+
+?GetHashCode@Attribute@Metadata@Platform@@QE$AAAHXZ
+  undname: public: int __cdecl Platform::Metadata::Attribute::GetHashCode(void) __ptr64
+  open:   public: int & __ptr64 __cdecl Platform::Metadata::Attribute::GetHashCode(void) __ptr64
+  match: False
+
+?GetHashCode@Delegate@Platform@@QE$AAAHXZ
+  undname: public: int __cdecl Platform::Delegate::GetHashCode(void) __ptr64
+  open:   public: int & __ptr64 __cdecl Platform::Delegate::GetHashCode(void) __ptr64
+  match: False
+
+?GetHashCode@Enum@Platform@@QE$AAAHXZ
+  undname: public: int __cdecl Platform::Enum::GetHashCode(void) __ptr64
+  open:   public: int & __ptr64 __cdecl Platform::Enum::GetHashCode(void) __ptr64
+  match: False
+
+?GetHashCode@Exception@Platform@@UE$AAAHXZ
+  undname: public: virtual int __cdecl Platform::Exception::GetHashCode(void) __ptr64
+  open:   public: virtual int & __ptr64 __cdecl Platform::Exception::GetHashCode(void) __ptr64
+  match: False
+
+?GetHashCode@MTAThreadAttribute@Platform@@QE$AAAHXZ
+  undname: public: int __cdecl Platform::MTAThreadAttribute::GetHashCode(void) __ptr64
+  open:   public: int & __ptr64 __cdecl Platform::MTAThreadAttribute::GetHashCode(void) __ptr64
+  match: False
+
+?GetHashCode@Object@Platform@@QE$AAAHXZ
+  undname: public: int __cdecl Platform::Object::GetHashCode(void) __ptr64
+  open:   public: int & __ptr64 __cdecl Platform::Object::GetHashCode(void) __ptr64
+  match: False
+

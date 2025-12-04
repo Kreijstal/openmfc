@@ -12,15 +12,33 @@ function Resolve-RedistDll([string] $name) {
 $hadFailure = $false
 
 if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
-    $TargetDlls = @("msvcp140.dll", "vcruntime140.dll", "concrt140.dll") | ForEach-Object {
-        $resolved = Resolve-RedistDll $_
-        if ($null -ne $resolved) { $resolved } else {
-            Write-Error "Missing DLL: $_ under VCToolsRedistDir" -ErrorAction Continue
-            $hadFailure = $true
-            $null
+    # Default: crawl all redist DLLs (to pick up MFC and any new STL satellites)
+    $redistRoot = $Env:VCToolsRedistDir
+    if ($redistRoot -and (Test-Path $redistRoot)) {
+        $TargetDlls = Get-ChildItem -Path (Join-Path $redistRoot "x64") -Recurse -Filter "*.dll" -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+    }
+
+    # Fallback to the prior curated list if the crawl found nothing (or VCToolsRedistDir missing)
+    if (-not $TargetDlls -or $TargetDlls.Count -eq 0) {
+        $TargetDlls = @(
+            "msvcp140.dll",
+            "msvcp140_1.dll",
+            "msvcp140_2.dll",
+            "msvcp140_atomic_wait.dll",
+            "msvcp140_codecvt_ids.dll",
+            "vcruntime140.dll",
+            "concrt140.dll"
+        ) | ForEach-Object {
+            $resolved = Resolve-RedistDll $_
+            if ($null -ne $resolved) { $resolved } else {
+                Write-Error "Missing DLL: $_ under VCToolsRedistDir" -ErrorAction Continue
+                $hadFailure = $true
+                $null
+            }
         }
     }
-    $TargetDlls = $TargetDlls | Where-Object { $_ }
+
+    $TargetDlls = $TargetDlls | Where-Object { $_ } | Sort-Object -Unique
 }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
@@ -44,6 +62,11 @@ foreach ($dll in $TargetDlls) {
         }
     }
 
+    if ($symbols.Count -eq 0) {
+        # Nothing with decorated exports – skip to keep artifacts smaller.
+        continue
+    }
+
     $dllResult = [PSCustomObject]@{
         Dll        = $dll
         Total      = $symbols.Count
@@ -52,14 +75,28 @@ foreach ($dll in $TargetDlls) {
     }
 
     $compareLog = Join-Path $OutDir ("compare_" + (Split-Path $dll -Leaf) + ".txt")
+    $mismatchLines = @()
     foreach ($sym in $symbols) {
-        $und = ((& undname $sym 2>&1) -join "`n").Trim()
+        # Extract only the undecorated payload from undname output (strip banners)
+        $undRaw = ((& undname $sym 2>&1) -join "`n")
+        $undLine = ($undRaw -split "`n" | Where-Object { $_ -match '^is :- "([^"]*)"' } | Select-Object -First 1)
+        if ($undLine) {
+            $null = ($undLine -match '^is :- "([^"]*)"')
+            $und = $Matches[1]
+        } else {
+            $und = $undRaw.Trim()
+        }
         $py  = ((& python tools/abi/open_undname.py $sym 2>&1) -join "`n").Trim()
         $match = ($und -eq $py)
         if ($match) { $dllResult.Matches++ } else { $dllResult.Mismatches++ }
-        "$sym`n  undname: $und`n  open:   $py`n  match: $($match)`n" | Add-Content $compareLog
+        if (-not $match) {
+            $mismatchLines += "$sym`n  undname: $und`n  open:   $py`n  match: $($match)`n"
+        }
     }
 
+    if ($dllResult.Mismatches -gt 0) {
+        $mismatchLines | Set-Content $compareLog
+    }
     $results += $dllResult
 }
 

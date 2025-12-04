@@ -21,3 +21,9 @@ public:
 private:
     int m_value;
 };
+
+extern "C" {
+    // Factory helpers for cross-DLL validation.
+    ABI_REF_API CReferenceTest* CreateRef();
+    ABI_REF_API void DestroyRef(CReferenceTest* p);
+}
