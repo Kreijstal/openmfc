@@ -1,7 +1,7 @@
 #include "openmfc/eh_rtti.h"
 #include <stdlib.h>
 
-__declspec(dllimport) void __stdcall _CxxThrowException(void* pExceptionObject, const struct ThrowInfo* pThrowInfo);
+extern "C" __declspec(dllimport) void _CxxThrowException(void* pExceptionObject, const struct ThrowInfo* pThrowInfo);
 
 struct CMemoryException { void* vtable; int dummy; };
 struct CFileException { void* vtable; int dummy; };
