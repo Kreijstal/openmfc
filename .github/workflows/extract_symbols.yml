@@ -12,6 +12,10 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Ensure VC Redist (for mfc/atl DLLs)
+        shell: pwsh
+        run: choco install vcredist140 -y
+
       - name: Locate reference DLLs
         id: locate
         shell: pwsh
