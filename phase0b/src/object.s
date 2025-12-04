@@ -30,17 +30,18 @@ CObject_type_descriptor:
 .align 4
 .global CObject_base_class_descriptor
 CObject_base_class_descriptor:
-    .long CObject_type_descriptor@IMGREL
+    .rva CObject_type_descriptor
     .long 1                      # numContainedBases (self only)
     .long 0                      # PMD.mdisp
     .long 0                      # PMD.pdisp (no vbtable)
     .long 0                      # PMD.vdisp
     .long 1                      # attributes: has CHD
-    .long CObject_class_hierarchy@IMGREL
+    .rva CObject_class_hierarchy
 
 .align 4
+.global CObject_base_class_array
 CObject_base_class_array:
-    .long CObject_base_class_descriptor@IMGREL
+    .rva CObject_base_class_descriptor
 
 .align 4
 .global CObject_class_hierarchy
@@ -48,7 +49,7 @@ CObject_class_hierarchy:
     .long 0                      # signature
     .long 0                      # attributes (single inheritance)
     .long 1                      # numBaseClasses
-    .long CObject_base_class_array@IMGREL
+    .rva CObject_base_class_array
 
 .align 4
 .global CObject_complete_locator
@@ -56,9 +57,9 @@ CObject_complete_locator:
     .long 1                      # signature
     .long 0                      # offset
     .long 0                      # cdOffset
-    .long CObject_type_descriptor@IMGREL
-    .long CObject_class_hierarchy@IMGREL
-    .long CObject_complete_locator@IMGREL
+    .rva CObject_type_descriptor
+    .rva CObject_class_hierarchy
+    .rva CObject_complete_locator
 
 .global CObject_rtti_ptr
 CObject_rtti_ptr:
