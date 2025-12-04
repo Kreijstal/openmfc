@@ -2,8 +2,9 @@
 
 .text
 
-.extern malloc
-.extern free
+.extern GetProcessHeap
+.extern HeapAlloc
+.extern HeapFree
 
 # ------------------------------------------------------------------
 # VTABLE (MSVC layout: slot0 scalar deleting dtor, slot1 GetValue, slot2 SetValue)
@@ -55,8 +56,13 @@
 
     test dl, 1
     jz .Lno_delete
-    mov rcx, rbx
-    call free
+    call GetProcessHeap
+    test rax, rax
+    jz .Lno_delete
+    mov rcx, rax                   # hHeap
+    xor edx, edx                   # dwFlags
+    mov r8, rbx                    # lpMem
+    call HeapFree
 .Lno_delete:
     mov rax, rbx
 
@@ -82,23 +88,42 @@
 # Factory: returns new CReferenceTest*
 .align 16
 .global CreateRef
+.seh_proc CreateRef
 CreateRef:
-    mov ecx, 16                     # sizeof(CReferenceTest)
-    call malloc
+    sub rsp, 0x20
+    .seh_stackalloc 0x20
+    .seh_endprologue
+
+    call GetProcessHeap
     test rax, rax
-    jz .Lcref_ret
+    jz .Lcref_done
+    mov rcx, rax                   # hHeap
+    xor edx, edx                   # dwFlags
+    mov r8, 16                     # bytes
+    call HeapAlloc
+    test rax, rax
+    jz .Lcref_done
     mov rcx, rax
     call "??0CReferenceTest@@QEAA@XZ"
-.Lcref_ret:
+.Lcref_done:
+    add rsp, 0x20
     ret
+.seh_endproc
 
 # DestroyRef: RCX = ptr
 .align 16
 .global DestroyRef
 DestroyRef:
+    .seh_proc DestroyRef
+    sub rsp, 0x20
+    .seh_stackalloc 0x20
+    .seh_endprologue
+
     test rcx, rcx
     jz .Ldre_ret
     mov edx, 1
     call "??_GCReferenceTest@@QEAA@PEAXI@Z"
 .Ldre_ret:
+    add rsp, 0x20
     ret
+.seh_endproc
