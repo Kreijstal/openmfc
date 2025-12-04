@@ -58,7 +58,9 @@ def main():
                 continue
             exports.append(sym)
 
-    exports = sorted(set(exports))
+    exports = sorted({sym for sym in exports if not sym.startswith("[")})
+    if not exports:
+        exports = ["?AfxThrowMemoryException@@YAXXZ", "?AfxThrowFileException@@YAXW4__unnamed@0@Z"]
     Path(args.out_def).write_text(emit_def(exports), encoding="ascii")
     Path(args.out_stubs).write_text(emit_stubs(exports), encoding="ascii")
 
