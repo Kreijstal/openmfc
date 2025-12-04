@@ -17,6 +17,8 @@ jobs:
           run_id=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId --jq '.[0].databaseId')
           echo "Using phase1_harvest run ${run_id}"
           gh run download "$run_id" --name phase1_harvest --dir artifacts
+          ls -l artifacts
+          ls -l artifacts/* || true
       - name: Build openmfc.dll (stubs + RTTI)
         run: |
           ./scripts/build_openmfc_mingw.sh
