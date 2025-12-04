@@ -12,13 +12,13 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build harvester
-        shell: pwsh
+        shell: cmd
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          cl /nologo /EHsc /MD /Zi \
-            /I"%VCToolsInstallDir%ATLMFC\include" /I"%VCToolsInstallDir%include" \
-            phase1\harvest\harvest.cpp \
-            /Fe:artifacts\harvest.exe \
+          mkdir artifacts
+          cl /nologo /EHsc /MD /Zi ^
+            /I"%VCToolsInstallDir%ATLMFC\include" /I"%VCToolsInstallDir%include" ^
+            phase1\harvest\harvest.cpp ^
+            /Fe:artifacts\harvest.exe ^
             /link /LIBPATH:"%VCToolsInstallDir%ATLMFC\lib\x64" mfc140u.lib
 
       - name: Run harvester
