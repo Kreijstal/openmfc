@@ -16,8 +16,21 @@ jobs:
         id: locate
         shell: pwsh
         run: |
-          $mfc = Get-ChildItem -Path "$env:VCToolsInstallDir" -Filter mfc140u.dll -Recurse | Select-Object -First 1
-          $atl = Get-ChildItem -Path "$env:VCToolsInstallDir" -Filter atl140.dll -Recurse | Select-Object -First 1
+          function Find-Dll([string]$name) {
+            $roots = @(
+              $env:VCToolsInstallDir,
+              $env:VSINSTALLDIR,
+              'C:\Program Files\Microsoft Visual Studio',
+              'C:\Program Files (x86)\Microsoft Visual Studio'
+            ) | Where-Object { $_ -and (Test-Path $_) }
+            foreach ($root in $roots) {
+              $hit = Get-ChildItem -Path $root -Filter $name -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($hit) { return $hit }
+            }
+            return $null
+          }
+          $mfc = Find-Dll -name 'mfc140u.dll'
+          $atl = Find-Dll -name 'atl140.dll'
           if (-not $mfc) { Write-Error "mfc140u.dll not found"; exit 1 }
           if (-not $atl) { Write-Error "atl140.dll not found"; exit 1 }
           "mfc=$($mfc.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
