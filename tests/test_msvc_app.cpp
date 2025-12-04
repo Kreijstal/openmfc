@@ -4,9 +4,8 @@
 #include <eh.h>
 
 // Forward declarations of MFC functions
-extern "C" {
-    void AfxThrowMemoryException();
-}
+// Use C++ linkage to match the mangled export names
+__declspec(dllimport) void __cdecl AfxThrowMemoryException();
 
 int main() {
     printf("OpenMFC Phase 3 Test App\\n");
