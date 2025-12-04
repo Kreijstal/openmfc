@@ -15,7 +15,7 @@ extern "C" {
 
 static CRuntimeClass classCObject = {
     "CObject",
-    static_cast<int>(sizeof(CObject)), // TODO: replace with harvested layout size
+    8, // harvested layout size: vptr only
     0xFFFF,
     nullptr, // real MFC: not dyncreate; CreateObject returns nullptr
     nullptr

@@ -10,7 +10,7 @@ Goals:
 
 Notes:
 - `CObject` matches MFC semantics for Phase 0B: it is **not** dyncreate. `CRuntimeClass::m_pfnCreateObject` is `nullptr` and `CObject::CreateObject()` returns `nullptr`; tests allocate explicitly via `new`.
-- `CRuntimeClass::m_nObjectSize` is set to `sizeof(CObject)` as a placeholder; expect to update this with harvested layout data in later phases.
+- `CRuntimeClass::m_nObjectSize` matches the harvested layout size (8 bytes, just the vptr).
 - Heap ownership stays inside the DLL (our `operator new/delete` use the DLL CRT). Do not cross-free from MSVC unless explicitly validated.
 - Export names must be generated (see `scripts/harvest_cobject_symbols.ps1`) and captured in `def/mfc140u.def`.
 - CI workflow `.github/workflows/phase0b_harvest_cobject.yml` runs the harvest script on Windows, uploads `mfc140u.generated.def`, and stores logs under `phase0b/artifacts/harvest/`.
