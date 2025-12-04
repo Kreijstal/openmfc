@@ -9,7 +9,7 @@ void Base::Set(int v) { m_val = v; }
 Derived::Derived() { m_val = 2; }
 Derived::~Derived() = default;
 int Derived::Get() const { return m_val + 10; }
-void Derived::Set(int v) { m_val = v - 10; }
+void Derived::Set(int v) { m_val = v - 20; }
 
 Base1::Base1() : m_v1(11) {}
 Base1::~Base1() = default;

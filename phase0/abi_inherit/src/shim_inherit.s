@@ -155,7 +155,7 @@
 
 .global "?Set@Derived@@QEAAXH@Z"
 "?Set@Derived@@QEAAXH@Z":
-    sub edx, 10
+    sub edx, 20
     mov dword ptr [rcx + 8], edx
     ret
 
