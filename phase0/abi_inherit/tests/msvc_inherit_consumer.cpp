@@ -30,7 +30,7 @@ int main() {
     b2->Set2(60);
     int g1 = b1->Get1();
     int g2 = b2->Get2();
-    if (g1 != 49 || g2 != 60) {
+    if (g1 != 50 || g2 != 60) {
         std::cerr << "MI set/get wrong g1=" << g1 << " g2=" << g2 << "\n";
         return 1;
     }
