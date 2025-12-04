@@ -12,30 +12,30 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Ensure VC Redist (for mfc/atl DLLs)
-        shell: pwsh
-        run: choco install vcredist140 -y
-
-      - name: Locate reference DLLs
+      - name: Locate MFC files (DLL and import library)
         id: locate
         shell: pwsh
         run: |
           $vswhereExe = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-          function Find-Dll([string]$name) {
+
+          function Find-File([string]$name, [string[]]$extraRoots = @()) {
+            # First try vswhere
             if (Test-Path $vswhereExe) {
               $vsHits = & $vswhereExe -products * -find "**\$name" 2>$null
               foreach ($h in $vsHits) { if (Test-Path $h) { return Get-Item $h } }
             }
+            # Then system paths
             foreach ($p in @("C:\Windows\System32\$name", "C:\Windows\SysWOW64\$name")) {
               if (Test-Path $p) { return Get-Item $p }
             }
+            # Then VS/VC directories
             $roots = @(
               $env:VCToolsRedistDir,
               $env:VCToolsInstallDir,
               $env:VSINSTALLDIR,
               'C:\Program Files\Microsoft Visual Studio',
               'C:\Program Files (x86)\Microsoft Visual Studio'
-            ) | Where-Object { $_ -and (Test-Path $_) }
+            ) + $extraRoots | Where-Object { $_ -and (Test-Path $_) }
             foreach ($root in $roots) {
               Write-Host "Searching $root for $name"
               $hit = Get-ChildItem -Path $root -Filter $name -Recurse -ErrorAction SilentlyContinue -File | Select-Object -First 1
@@ -44,70 +44,93 @@ jobs:
             return $null
           }
 
-          if (Test-Path $vswhereExe) {
-            $redist = & $vswhereExe -products * -find "VC\Redist\MSVC\*\vc_redist.x64.exe" 2>$null | Select-Object -First 1
-            if ($redist) {
-              Write-Host "Installing VC redist from $redist"
-              Start-Process -FilePath $redist -ArgumentList '/install','/quiet','/norestart' -Wait
-            }
-          }
+          # Find the DLL (for version info and hash)
+          $mfcDll = Find-File -name 'mfc140u.dll'
+          if (-not $mfcDll) { Write-Error "mfc140u.dll not found"; exit 1 }
+          Write-Host "Found DLL: $($mfcDll.FullName)"
 
-          $mfc = Find-Dll -name 'mfc140u.dll'
-          $atl = Find-Dll -name 'atl140.dll'
-          if (-not $mfc) { Write-Error "mfc140u.dll not found"; exit 1 }
-          if (-not $atl) { Write-Warning "atl140.dll not found; skipping ATL export harvest" }
-          "mfc=$($mfc.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          if ($atl) { "atl=$($atl.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append } else { "atl=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append }
+          # Find the import library (for symbol names - MFC exports by ordinal only!)
+          # The .lib file is typically in the ATLMFC\lib\x64 directory
+          $mfcLib = Find-File -name 'mfc140u.lib'
+          if (-not $mfcLib) { Write-Error "mfc140u.lib not found"; exit 1 }
+          Write-Host "Found LIB: $($mfcLib.FullName)"
 
-      - name: Dump exports
+          "mfc_dll=$($mfcDll.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "mfc_lib=$($mfcLib.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Dump symbols from import library
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          foreach ($pair in @(@{Name='mfc'; Path='${{ steps.locate.outputs.mfc }}'}, @{Name='atl'; Path='${{ steps.locate.outputs.atl }}'})) {
-            if (-not $pair.Path) { Write-Host "Skipping $($pair.Name); no path"; continue }
-            $out = "artifacts/$($pair.Name).exports"
-            & dumpbin /nologo /exports $pair.Path | Out-File -FilePath $out -Encoding ASCII
-          }
 
-      - name: Demangle names
+          # Dump from import library to get symbol names (DLL only has ordinals)
+          # Use /SYMBOLS to get the symbol table from the .lib file
+          $libPath = '${{ steps.locate.outputs.mfc_lib }}'
+          Write-Host "Dumping symbols from: $libPath"
+          & dumpbin /nologo /SYMBOLS $libPath | Out-File -FilePath artifacts/mfc_lib_symbols.txt -Encoding ASCII
+
+          # Also dump exports from DLL for reference (will show ordinals only)
+          $dllPath = '${{ steps.locate.outputs.mfc_dll }}'
+          & dumpbin /nologo /exports $dllPath | Out-File -FilePath artifacts/mfc.exports -Encoding ASCII
+
+      - name: Extract and demangle symbol names
         shell: pwsh
         run: |
-          $out = "artifacts/demangled.txt"
-          Remove-Item -ErrorAction SilentlyContinue $out
-          Get-ChildItem artifacts -Filter "*.exports" | ForEach-Object {
-            Get-Content $_ | ForEach-Object {
-              if ($_ -match '^\s*\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(?<name>\S+)$') {
-                $name = $Matches['name']
-                $pretty = (& undname.exe $name) -join ' '
-                "$name => $pretty" | Out-File -FilePath $out -Append -Encoding ASCII
-              }
+          $symbolsFile = "artifacts/mfc_lib_symbols.txt"
+          $outSymbols = "artifacts/mfc_symbols.txt"
+          $outDemangled = "artifacts/demangled.txt"
+
+          # Parse symbol dump to extract mangled names
+          # Format: "XXX XXXXXXXX SECT XX notype () External | ?SymbolName@@..."
+          # We want symbols marked as External that look like C++ mangled names
+          $symbols = @()
+          Get-Content $symbolsFile | ForEach-Object {
+            # Match external symbols with mangled names (starting with ?)
+            if ($_ -match 'External\s+\|\s+(\?[^\s]+)') {
+              $symbols += $Matches[1]
+            }
+            # Also match __imp_ symbols (import thunks) - strip the __imp_ prefix
+            elseif ($_ -match 'External\s+\|\s+__imp_(\?[^\s]+)') {
+              $symbols += $Matches[1]
             }
           }
+
+          # Deduplicate and sort
+          $symbols = $symbols | Sort-Object -Unique
+          Write-Host "Found $($symbols.Count) unique symbols"
+
+          # Write raw symbols
+          $symbols | Out-File -FilePath $outSymbols -Encoding ASCII
+
+          # Demangle each symbol
+          Remove-Item -ErrorAction SilentlyContinue $outDemangled
+          foreach ($sym in $symbols) {
+            $pretty = (& undname.exe $sym 2>$null) -join ' '
+            if ($pretty) {
+              "$sym => $pretty" | Out-File -FilePath $outDemangled -Append -Encoding ASCII
+            }
+          }
+
+          Write-Host "Wrote $($symbols.Count) symbols to $outSymbols"
 
       - name: Metadata and hash
         shell: pwsh
         run: |
           $meta = @{}
-          $meta.mfc_version = (Get-Item '${{ steps.locate.outputs.mfc }}').VersionInfo.ProductVersion
+          $dllPath = '${{ steps.locate.outputs.mfc_dll }}'
+          $meta.mfc_version = (Get-Item $dllPath).VersionInfo.ProductVersion
           $meta.vs_version = $env:VisualStudioVersion
-          $meta.sha256_mfc140u = (Get-FileHash '${{ steps.locate.outputs.mfc }}' -Algorithm SHA256).Hash.ToLower()
-          if ('${{ steps.locate.outputs.atl }}') {
-            $meta.sha256_atl140 = (Get-FileHash '${{ steps.locate.outputs.atl }}' -Algorithm SHA256).Hash.ToLower()
-          } else {
-            $meta.sha256_atl140 = ''
-          }
+          $meta.sha256_mfc140u = (Get-FileHash $dllPath -Algorithm SHA256).Hash.ToLower()
           $json = ($meta | ConvertTo-Json -Depth 4)
           $json | Out-File -FilePath artifacts/metadata.json -Encoding ASCII
 
       - name: Generate mfc_db.json
         shell: bash
         run: |
-          args=(--dll mfc140u --exports artifacts/mfc.exports)
-          if [ -s artifacts/atl.exports ]; then
-            args+=(--dll atl140 --exports artifacts/atl.exports)
-          fi
           python tools/parse_exports.py \
-            "${args[@]}" \
+            --dll mfc140u \
+            --exports artifacts/mfc.exports \
+            --symbols artifacts/mfc_symbols.txt \
             --demangled artifacts/demangled.txt \
             --metadata artifacts/metadata.json \
             --out artifacts/mfc_db.json
