@@ -22,10 +22,18 @@ int main() {
     DerivedMI* mi = CreateDerivedMI();
     Base1* b1 = mi;
     Base2* b2 = mi;
-    if (!mi || b1->Get1() != 112 || b2->Get2() != 224) { std::cerr << "MI defaults wrong\n"; return 1; }
+    if (!mi || b1->Get1() != 112 || b2->Get2() != 224) {
+        std::cerr << "MI defaults wrong got g1=" << (b1 ? b1->Get1() : -1) << " g2=" << (b2 ? b2->Get2() : -1) << "\n";
+        return 1;
+    }
     b1->Set1(50);
     b2->Set2(60);
-    if (b1->Get1() != 49 || b2->Get2() != 60) { std::cerr << "MI set/get wrong\n"; return 1; }
+    int g1 = b1->Get1();
+    int g2 = b2->Get2();
+    if (g1 != 49 || g2 != 60) {
+        std::cerr << "MI set/get wrong g1=" << g1 << " g2=" << g2 << "\n";
+        return 1;
+    }
     DestroyDerivedMI(mi);
 
     std::cout << "PASS" << std::endl;
