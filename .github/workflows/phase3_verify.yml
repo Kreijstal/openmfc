@@ -1,0 +1,73 @@
+name: Phase 3 - Hollow Build & Link
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase3-hollow-build]
+
+jobs:
+  build-dll:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+      
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      
+      - name: Generate stubs and RTTI
+        shell: bash
+        run: |
+          mkdir -p generated/src generated/include/openmfc
+          python tools/gen_stubs.py --db mfc_db.json --out-def generated/openmfc.def --out-stubs generated/src/stubs.cpp
+          python tools/gen_rtti.py --exceptions exceptions.json --out-c generated/src/generated_rtti.c --out-h generated/include/openmfc/eh_rtti.h
+      
+      - name: Build openmfc.dll
+        shell: cmd
+        run: |
+          cl /nologo /LD /MD ^
+            /I generated/include /I include ^
+            generated/src/stubs.cpp ^
+            generated/src/generated_rtti.c ^
+            src/mfc/exceptions.c ^
+            src/mfc/afxmem.cpp ^
+            /Fe:openmfc.dll ^
+            /link /DEF:generated/openmfc.def
+      
+      - name: Generate MSVC import library
+        shell: cmd
+        run: |
+          lib /DEF:generated/openmfc.def /OUT:openmfc.lib /MACHINE:X64
+      
+      - name: Build test application
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD tests/test_msvc_app.cpp openmfc.lib /Fe:test_app.exe
+      
+      - name: Run test application
+        shell: pwsh
+        run: |
+          $output = & .\\test_app.exe 2>&1 | Out-String
+          Write-Host $output
+          if ($output -match "Not Implemented") {
+            Write-Host "SUCCESS: Controlled failure detected"
+            exit 0
+          } else {
+            Write-Host "ERROR: Expected 'Not Implemented' message"
+            exit 1
+          }
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: phase3_openmfc
+          path: |
+            openmfc.dll
+            openmfc.lib
+            openmfc.exp
+            generated/openmfc.def
+          retention-days: 14

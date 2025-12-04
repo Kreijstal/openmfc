@@ -1,0 +1,11 @@
+{
+  "exports": {
+    "mfc140u": []
+  },
+  "metadata": {
+    "mfc_version": "14.44.35215.0",
+    "sha256_atl140": "",
+    "sha256_mfc140u": "b07b2eaf8b1e487837fc8b5cb1c3d999674b0f6706fc623d92f4c246c4b0f4a0",
+    "vs_version": "17.0"
+  }
+}

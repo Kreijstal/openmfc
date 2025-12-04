@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+385b158b5a6d278387fe41d0ce3914f9 CMakeFiles/openmfc-stubs
+6309de71b38f24767db7a6b83856c507 generated/openmfc.def
+b1c15b89174faa8420840fd6ff3888bb generated/src/generated_rtti.c

@@ -1,0 +1,12 @@
+{
+  "CMemoryException": {
+    "mangled_name": ".?AVCMemoryException@@",
+    "throw_info_bytes": "00000000000000000000000008d43a000000000000000000000000000000000004000000f0d43a00c8d13a00a0d13a0078d13a00000000000000000000000000",
+    "catchable_types": []
+  },
+  "CFileException": {
+    "mangled_name": ".?AVCFileException@@",
+    "throw_info_bytes": "00000000000000000000000008d43a000000000000000000000000000000000004000000f0d43a00c8d13a00a0d13a0078d13a00000000000000000000000000",
+    "catchable_types": []
+  }
+}

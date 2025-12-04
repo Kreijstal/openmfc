@@ -1,0 +1,4 @@
+/home/kreijstal/git/openmfc/build/CMakeFiles/openmfc.dir
+/home/kreijstal/git/openmfc/build/CMakeFiles/openmfc-stubs.dir
+/home/kreijstal/git/openmfc/build/CMakeFiles/edit_cache.dir
+/home/kreijstal/git/openmfc/build/CMakeFiles/rebuild_cache.dir
