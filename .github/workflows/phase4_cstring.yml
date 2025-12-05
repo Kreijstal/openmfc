@@ -40,8 +40,17 @@ jobs:
     - name: Build and run CWnd tests
       shell: cmd
       run: |
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_cwnd.exe tests\test_cwnd.cpp
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_cwnd.exe tests\test_cwnd.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         test_cwnd.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC CWnd tests passed!
+
+    - name: Build and run Core App tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_core_app.exe tests\test_core_app.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_core_app.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC Core App tests passed!

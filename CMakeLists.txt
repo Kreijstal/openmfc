@@ -55,7 +55,8 @@ include_directories(${GENERATED_DIR}/include)
 set(SOURCES
     ${GEN_STUBS}
     ${GEN_RTTI_C}
-    src/mfc/exceptions.c
+    src/mfc/exceptions.cpp
+    src/mfc/appcore.cpp
     src/mfc/afxmem.cpp
 )
 
