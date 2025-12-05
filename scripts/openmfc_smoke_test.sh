@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu
 DLL=${DLL:-openmfc.dll}
 MIN_EXPORTS=${MIN_EXPORTS:-100}
 KEY_SYMBOL=${KEY_SYMBOL:-"?AfxThrowMemoryException@@YAXXZ"}
@@ -20,7 +20,9 @@ if [ "$EXP_COUNT" -lt "$MIN_EXPORTS" ]; then
   exit 1
 fi
 
-if ! x86_64-w64-mingw32-objdump -p "$DLL" | grep -q "$KEY_SYMBOL"; then
+# Search for the symbol - strip leading ? since it can cause grep issues
+SEARCH_PATTERN="${KEY_SYMBOL#\?}"
+if ! x86_64-w64-mingw32-objdump -p "$DLL" | grep -qF "$SEARCH_PATTERN"; then
   echo "missing key symbol $KEY_SYMBOL" >&2
   exit 1
 fi

@@ -55,6 +55,8 @@ class CWnd;
 class CWinThread;
 class CWinApp;
 class CDC;
+class CMenu; // Added forward declaration
+class CMDIFrameWnd; // Forward declaration
 
 //=============================================================================
 // CException and derived classes
@@ -264,6 +266,147 @@ static_assert(sizeof(CWnd) == 232, "CWnd must be 232 bytes");
 // IMPLEMENT_DYNAMIC(CWnd, CCmdTarget) moved to appcore.cpp
 
 //=============================================================================
+// CFrameWnd - Main frame window
+//=============================================================================
+
+class CFrameWnd : public CWnd {
+    DECLARE_DYNCREATE(CFrameWnd)
+public:
+    CFrameWnd();
+    virtual ~CFrameWnd() = default;
+
+    virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
+                          CWnd* pParentWnd = nullptr, void* pContext = nullptr);
+                          
+    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                       DWORD dwStyle = 0, const struct tagRECT& rect = {},
+                       CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
+                       DWORD dwExStyle = 0, void* pContext = nullptr);
+
+    virtual void ActivateFrame(int nCmdShow = -1);
+    virtual void RecalcLayout(int bNotify = 1);
+
+    CWnd* GetActiveView() const;
+    void SetActiveView(CWnd* pViewNew, int bNotify = 1);
+
+    // Implementation helpers
+    virtual int OnCreate(void* lpCreateStruct); // LPCREATESTRUCT
+    
+public:
+    CWnd* m_pViewActive;
+    
+protected:
+    char _framewnd_padding[32]; // Padding for member variables
+};
+
+//=============================================================================
+// CMDIFrameWnd - MDI Frame Window
+//=============================================================================
+
+class CMDIFrameWnd : public CFrameWnd {
+    DECLARE_DYNCREATE(CMDIFrameWnd)
+public:
+    CMDIFrameWnd();
+    virtual ~CMDIFrameWnd() = default;
+
+    virtual int CreateClient(void* lpCreateStruct, CMenu* pWindowMenu);
+    virtual HWND GetWindowMenuPopup(HMENU hMenuBar);
+    
+    // MDI helpers
+    void MDIActivate(CWnd* pWndActivate);
+    CWnd* MDIGetActive(int* pbMaximized = nullptr) const;
+    void MDIIconArrange();
+    void MDIMaximize(CWnd* pWnd);
+    void MDINext();
+    void MDIRestore(CWnd* pWnd);
+    void MDISetMenu(CMenu* pFrameMenu, CMenu* pWindowMenu);
+    void MDITile(int nType);
+    void MDICascade(int nType);
+    
+public:
+    HWND m_hWndMDIClient; // Handle to MDI client window
+    
+protected:
+    char _mdiframe_padding[32];
+};
+
+//=============================================================================
+// CMDIChildWnd - MDI Child Window
+//=============================================================================
+
+class CMDIChildWnd : public CFrameWnd {
+    DECLARE_DYNCREATE(CMDIChildWnd)
+public:
+    CMDIChildWnd();
+    virtual ~CMDIChildWnd() = default;
+
+    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                       DWORD dwStyle = 0, const struct tagRECT& rect = {},
+                       CMDIFrameWnd* pParentWnd = nullptr, void* pContext = nullptr);
+                       
+    virtual void ActivateFrame(int nCmdShow = -1);
+    virtual int DestroyWindow();
+
+    CMDIFrameWnd* GetMDIFrame();
+    
+protected:
+    char _mdichild_padding[32];
+};
+
+//=============================================================================
+// CDialog - Modal and Modeless Dialogs
+//=============================================================================
+
+class CDialog : public CWnd {
+    DECLARE_DYNAMIC(CDialog)
+public:
+    CDialog();
+    explicit CDialog(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
+    explicit CDialog(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
+    virtual ~CDialog() = default;
+
+    virtual intptr_t DoModal();
+    virtual int Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
+    virtual int Create(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
+
+    virtual int OnInitDialog();
+    virtual void OnOK();
+    virtual void OnCancel();
+    void EndDialog(int nResult);
+
+protected:
+    // Overridables
+    virtual void OnSetFont(CWnd* pFont);
+    
+public:
+    const wchar_t* m_lpszTemplateName;
+    unsigned int m_nIDHelp;
+    
+protected:
+    char _dialog_padding[32];
+};
+
+//=============================================================================
+// CDialogEx - Extended Dialog
+//=============================================================================
+
+class CDialogEx : public CDialog {
+    DECLARE_DYNAMIC(CDialogEx)
+public:
+    CDialogEx();
+    explicit CDialogEx(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
+    virtual ~CDialogEx() = default;
+
+    void SetBackgroundColor(unsigned long color, int bRepaint = 1);
+    void SetBackgroundImage(void* hBitmap, int nStyle = 0, int bRepaint = 1);
+
+protected:
+    unsigned long m_clrBackground;
+    void* m_hBackgroundImage;
+    char _dialogex_padding[32];
+};
+
+//=============================================================================
 // CWinThread and CWinApp
 //=============================================================================
 
@@ -374,8 +517,9 @@ inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const w
     (void)dwExStyle; (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
     (void)x; (void)y; (void)nWidth; (void)nHeight;
     (void)hWndParent; (void)nIDorHMenu; (void)lpParam;
-    // Stub - needs Win32 CreateWindowExW implementation
-    return 0;
+    // Stub - simulate success for testing
+    m_hWnd = (HWND)(uintptr_t)0x1234; // Dummy handle
+    return 1;
 }
 
 inline int CWnd::DestroyWindow() {

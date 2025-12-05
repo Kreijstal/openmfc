@@ -71,9 +71,11 @@ fi
 
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/stubs.cpp" -o "$BUILD/stubs.o"
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
-"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/exceptions.c" -o "$BUILD/exceptions.o"
+"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/exceptions.cpp" -o "$BUILD/exceptions.o"
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/afxmem.cpp" -o "$BUILD/afxmem.o"
+"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/strcore.cpp" -o "$BUILD/strcore.o"
+"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/appcore.cpp" -o "$BUILD/appcore.o"
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/strcore.o" "$BUILD/appcore.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"

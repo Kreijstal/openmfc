@@ -46,9 +46,9 @@ def emit_stubs(exports: List[str]) -> str:
         "  #define MS_ABI",
         "#endif",
         "",
-        "// Forward declarations for exception helpers",
-        "extern \"C\" void MS_ABI AfxThrowMemoryException();",
-        "extern \"C\" void MS_ABI AfxThrowFileException(int cause, int lOsError, const char* pFileName);",
+        "// Forward declarations for exception helpers (C++ linkage)",
+        "void AfxThrowMemoryException();",
+        "void AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName);",
         "",
     ]
     
@@ -58,7 +58,7 @@ def emit_stubs(exports: List[str]) -> str:
         if "AfxThrowMemoryException" in sym:
              lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ AfxThrowMemoryException(); }}")
         elif "AfxThrowFileException" in sym:
-             lines.append(f"extern \"C\" void MS_ABI stub_{idx}(int cause, int lOsError, const char* pFileName) {{ AfxThrowFileException(cause, lOsError, pFileName); }}")
+             lines.append(f"extern \"C\" void MS_ABI stub_{idx}(int cause, long lOsError, const wchar_t* lpszFileName) {{ AfxThrowFileException(cause, lOsError, lpszFileName); }}")
         else:
              lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}")
 
