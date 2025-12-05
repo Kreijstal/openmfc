@@ -1,0 +1,41 @@
+name: Phase 4 - CString Tests
+
+on:
+  push:
+    branches: [phase4-cstring, master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  test-cstring:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build and run CString tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_cstring.exe tests\test_cstring.cpp
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_cstring.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC CString tests passed!
+
+    - name: Compare with real MFC CString layout
+      shell: cmd
+      run: |
+        echo Checking CStringData layout matches MFC...
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:check_layout.exe /c - << EOF
+        #include <openmfc/afxstr.h>
+        #include <cstdio>
+        static_assert(sizeof(CStringData) == 16, "CStringData must be 16 bytes");
+        static_assert(sizeof(CString) == sizeof(void*), "CString must be one pointer");
+        int main() { printf("Layout OK\n"); return 0; }
+        EOF
