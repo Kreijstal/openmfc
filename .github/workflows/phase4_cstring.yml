@@ -2,7 +2,7 @@ name: Phase 4 - CString Tests
 
 on:
   push:
-    branches: [phase4-cstring, phase4-cobject, master]
+    branches: [phase4-cstring, phase4-cobject, phase4-cwnd, master]
   pull_request:
     branches: [master]
   workflow_dispatch:
@@ -36,3 +36,12 @@ jobs:
         test_cobject.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC CObject tests passed!
+
+    - name: Build and run CWnd tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_cwnd.exe tests\test_cwnd.cpp
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_cwnd.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC CWnd tests passed!
