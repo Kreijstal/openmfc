@@ -54,3 +54,16 @@ jobs:
         test_core_app.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC Core App tests passed!
+
+  test-mingw-cross:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install MinGW
+      run: sudo apt-get update && sudo apt-get install -y mingw-w64
+      
+    - name: Build with MinGW
+      run: |
+        x86_64-w64-mingw32-g++ -std=c++17 -DUNICODE -D_UNICODE -I include -o test_string_funcs.exe tests/test_string_funcs.cpp src/mfc/strcore.cpp src/mfc/appcore.cpp src/mfc/exceptions.cpp src/mfc/afxmem.cpp
+        echo "MinGW Build successful"

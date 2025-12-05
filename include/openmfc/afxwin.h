@@ -2,8 +2,17 @@
 #include "afx.h"
 #include "afxstr.h"
 #include <cstring>
+#include <cstdint>
 
 // Windows types - use minimal forward declarations when possible
+#if defined(_WIN32) || defined(__MINGW32__)
+    #include <windows.h>
+    #undef LoadString
+    #ifndef _WINDOWS_
+        #define _WINDOWS_
+    #endif
+#endif
+
 #ifndef _WINDOWS_
     typedef void* HWND;
     typedef void* HDC;
@@ -28,9 +37,10 @@
     typedef LRESULT (*WNDPROC)(HWND, UINT, WPARAM, LPARAM);
     
     // Basic rect structure
-    struct RECT {
+    struct tagRECT {
         LONG left, top, right, bottom;
     };
+    typedef struct tagRECT RECT;
     typedef RECT* LPRECT;
     typedef const RECT* LPCRECT;
     
@@ -38,8 +48,6 @@
     struct POINT {
         LONG x, y;
     };
-#else
-    #include <windows.h>
 #endif
 
 // Forward declarations
@@ -55,18 +63,18 @@ class CDC;
 class CException : public CObject {
     DECLARE_DYNAMIC(CException)
 public:
-    CException(BOOL bAutoDelete = TRUE) : m_bAutoDelete(bAutoDelete) {}
+    CException(int bAutoDelete = 1) : m_bAutoDelete(bAutoDelete) {}
     virtual ~CException() = default;
     
-    virtual BOOL GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const {
+    virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr) const {
         (void)lpszError; (void)nMaxError; (void)pnHelpContext;
-        return FALSE;
+        return 0; // FALSE
     }
     
     void Delete() { if (m_bAutoDelete) delete this; }
     
 protected:
-    BOOL m_bAutoDelete;
+    int m_bAutoDelete;
 };
 
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
@@ -74,7 +82,7 @@ protected:
 class CMemoryException : public CException {
     DECLARE_DYNAMIC(CMemoryException)
 public:
-    CMemoryException() : CException(FALSE) {} // Memory exceptions are not auto-deleted
+    CMemoryException() : CException(0) {} // Memory exceptions are not auto-deleted
 };
 
 // IMPLEMENT_DYNAMIC(CMemoryException, CException) moved to appcore.cpp
@@ -100,11 +108,11 @@ public:
         endOfFile
     };
     
-    CFileException(int cause = none, LONG lOsError = -1) 
+    CFileException(int cause = none, long lOsError = -1) 
         : m_cause(cause), m_lOsError(lOsError) {}
     
     int m_cause;
-    LONG m_lOsError;
+    long m_lOsError;
     CString m_strFileName;
 };
 
@@ -121,9 +129,9 @@ public:
     virtual ~CCmdTarget() = default;
     
     // Message map support (simplified)
-    virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, void* pHandlerInfo) {
+    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
         (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo;
-        return FALSE;
+        return 0; // FALSE
     }
     
 protected:
@@ -155,38 +163,38 @@ public:
     //-------------------------------------------------------------------------
     // Window creation/destruction
     //-------------------------------------------------------------------------
-    virtual BOOL Create(LPCWSTR lpszClassName, LPCWSTR lpszWindowName, DWORD dwStyle,
-                       const RECT& rect, CWnd* pParentWnd, UINT nID, void* pContext = nullptr);
+    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+                       const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, void* pContext = nullptr);
     
-    virtual BOOL CreateEx(DWORD dwExStyle, LPCWSTR lpszClassName, LPCWSTR lpszWindowName,
+    virtual int CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                          DWORD dwStyle, int x, int y, int nWidth, int nHeight,
                          HWND hWndParent, HMENU nIDorHMenu, void* lpParam = nullptr);
     
-    virtual BOOL DestroyWindow();
+    virtual int DestroyWindow();
     
     //-------------------------------------------------------------------------
     // Window state
     //-------------------------------------------------------------------------
-    BOOL ShowWindow(int nCmdShow);
-    BOOL UpdateWindow();
-    BOOL IsWindowVisible() const;
-    BOOL IsWindowEnabled() const;
-    BOOL EnableWindow(BOOL bEnable = TRUE);
+    int ShowWindow(int nCmdShow);
+    int UpdateWindow();
+    int IsWindowVisible() const;
+    int IsWindowEnabled() const;
+    int EnableWindow(int bEnable = 1);
     
     //-------------------------------------------------------------------------
     // Window size and position
     //-------------------------------------------------------------------------
-    void GetWindowRect(LPRECT lpRect) const;
-    void GetClientRect(LPRECT lpRect) const;
-    void MoveWindow(int x, int y, int nWidth, int nHeight, BOOL bRepaint = TRUE);
-    void MoveWindow(LPCRECT lpRect, BOOL bRepaint = TRUE);
-    BOOL SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, UINT nFlags);
+    void GetWindowRect(struct tagRECT* lpRect) const;
+    void GetClientRect(struct tagRECT* lpRect) const;
+    void MoveWindow(int x, int y, int nWidth, int nHeight, int bRepaint = 1);
+    void MoveWindow(const struct tagRECT* lpRect, int bRepaint = 1);
+    int SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags);
     
     //-------------------------------------------------------------------------
     // Window text
     //-------------------------------------------------------------------------
-    void SetWindowTextW(LPCWSTR lpszString);
-    int GetWindowTextW(LPWSTR lpszStringBuf, int nMaxCount) const;
+    void SetWindowTextW(const wchar_t* lpszString);
+    int GetWindowTextW(wchar_t* lpszStringBuf, int nMaxCount) const;
     int GetWindowTextLengthW() const;
     
     //-------------------------------------------------------------------------
@@ -199,32 +207,32 @@ public:
     //-------------------------------------------------------------------------
     // Painting
     //-------------------------------------------------------------------------
-    void Invalidate(BOOL bErase = TRUE);
-    void InvalidateRect(LPCRECT lpRect, BOOL bErase = TRUE);
-    BOOL RedrawWindow(LPCRECT lpRectUpdate = nullptr, void* prgnUpdate = nullptr, UINT flags = 0);
+    void Invalidate(int bErase = 1);
+    void InvalidateRect(const struct tagRECT* lpRect, int bErase = 1);
+    int RedrawWindow(const struct tagRECT* lpRectUpdate = nullptr, void* prgnUpdate = nullptr, unsigned int flags = 0);
     
     //-------------------------------------------------------------------------
     // Message handling
     //-------------------------------------------------------------------------
-    LRESULT SendMessageW(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
-    BOOL PostMessageW(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
+    intptr_t SendMessageW(unsigned int message, uintptr_t wParam = 0, intptr_t lParam = 0);
+    int PostMessageW(unsigned int message, uintptr_t wParam = 0, intptr_t lParam = 0);
     
     //-------------------------------------------------------------------------
     // Window procedure
     //-------------------------------------------------------------------------
-    virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
-    virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
-    virtual BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult);
+    virtual intptr_t WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam);
+    virtual int OnCommand(uintptr_t wParam, intptr_t lParam);
+    virtual int OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult);
     
     //-------------------------------------------------------------------------
     // Message handlers (overridable)
     //-------------------------------------------------------------------------
-    virtual BOOL OnWndMsg(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
+    virtual int OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lParam, intptr_t* pResult);
     virtual void OnFinalRelease();
     
     // Timer
-    UINT_PTR SetTimer(UINT_PTR nIDEvent, UINT nElapse, void* lpfnTimer);
-    BOOL KillTimer(UINT_PTR nIDEvent);
+    uintptr_t SetTimer(uintptr_t nIDEvent, unsigned int nElapse, void* lpfnTimer);
+    int KillTimer(uintptr_t nIDEvent);
     
 public:
     // Window handle - at offset 64 from start of CWnd
@@ -265,7 +273,7 @@ public:
     CWinThread() : m_pMainWnd(nullptr), m_nThreadID(0) {}
     virtual ~CWinThread() = default;
     
-    virtual BOOL InitInstance() { return TRUE; }
+    virtual int InitInstance() { return 1; }
     virtual int ExitInstance() { return 0; }
     virtual int Run();
     
@@ -286,19 +294,19 @@ inline int CWinThread::Run() {
 class CWinApp : public CWinThread {
     DECLARE_DYNAMIC(CWinApp)
 public:
-    CWinApp(LPCWSTR lpszAppName = nullptr);
+    CWinApp(const wchar_t* lpszAppName = nullptr);
     virtual ~CWinApp() = default;
     
-    virtual BOOL InitApplication() { return TRUE; }
-    virtual BOOL InitInstance() override { return TRUE; }
+    virtual int InitApplication() { return 1; }
+    virtual int InitInstance() override { return 1; }
     virtual int ExitInstance() override { return 0; }
     virtual int Run() override;
     
     // Application info
-    LPCWSTR m_pszAppName;
-    LPCWSTR m_pszExeName;
-    LPCWSTR m_pszHelpFilePath;
-    LPCWSTR m_pszProfileName;
+    const wchar_t* m_pszAppName;
+    const wchar_t* m_pszExeName;
+    const wchar_t* m_pszHelpFilePath;
+    const wchar_t* m_pszProfileName;
     HINSTANCE m_hInstance;
     
 protected:
@@ -320,11 +328,11 @@ extern HINSTANCE AFXAPI AfxGetInstanceHandle();
 extern HINSTANCE AFXAPI AfxGetResourceHandle();
 extern void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource);
 extern CWnd* AFXAPI AfxGetMainWnd();
-extern BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow);
+extern int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow);
 
 // Exception helpers
 extern void AFXAPI AfxThrowMemoryException();
-extern void AFXAPI AfxThrowFileException(int cause, LONG lOsError = -1, LPCWSTR lpszFileName = nullptr);
+extern void AFXAPI AfxThrowFileException(int cause, long lOsError = -1, const wchar_t* lpszFileName = nullptr);
 extern void AFXAPI AfxThrowInvalidArgException();
 extern void AFXAPI AfxThrowNotSupportedException();
 extern void AFXAPI AfxThrowResourceException();
@@ -352,94 +360,94 @@ inline CWnd::~CWnd() {
     }
 }
 
-inline BOOL CWnd::Create(LPCWSTR lpszClassName, LPCWSTR lpszWindowName, DWORD dwStyle,
-                         const RECT& rect, CWnd* pParentWnd, UINT nID, void* pContext) {
+inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+                         const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, void* pContext) {
     (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
     (void)rect; (void)pParentWnd; (void)nID; (void)pContext;
     // Stub - needs Win32 CreateWindowExW implementation
-    return FALSE;
+    return 0;
 }
 
-inline BOOL CWnd::CreateEx(DWORD dwExStyle, LPCWSTR lpszClassName, LPCWSTR lpszWindowName,
+inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                            DWORD dwStyle, int x, int y, int nWidth, int nHeight,
                            HWND hWndParent, HMENU nIDorHMenu, void* lpParam) {
     (void)dwExStyle; (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
     (void)x; (void)y; (void)nWidth; (void)nHeight;
     (void)hWndParent; (void)nIDorHMenu; (void)lpParam;
     // Stub - needs Win32 CreateWindowExW implementation
-    return FALSE;
+    return 0;
 }
 
-inline BOOL CWnd::DestroyWindow() {
-    if (m_hWnd == nullptr) return FALSE;
+inline int CWnd::DestroyWindow() {
+    if (m_hWnd == nullptr) return 0;
     // Stub - needs Win32 DestroyWindow
     m_hWnd = nullptr;
-    return TRUE;
+    return 1;
 }
 
-inline BOOL CWnd::ShowWindow(int nCmdShow) {
+inline int CWnd::ShowWindow(int nCmdShow) {
     (void)nCmdShow;
     // Stub - needs Win32 ShowWindow
-    return TRUE;
+    return 1;
 }
 
-inline BOOL CWnd::UpdateWindow() {
+inline int CWnd::UpdateWindow() {
     // Stub - needs Win32 UpdateWindow
-    return TRUE;
+    return 1;
 }
 
-inline BOOL CWnd::IsWindowVisible() const {
+inline int CWnd::IsWindowVisible() const {
     // Stub
     return m_hWnd != nullptr;
 }
 
-inline BOOL CWnd::IsWindowEnabled() const {
+inline int CWnd::IsWindowEnabled() const {
     // Stub
-    return TRUE;
+    return 1;
 }
 
-inline BOOL CWnd::EnableWindow(BOOL bEnable) {
+inline int CWnd::EnableWindow(int bEnable) {
     (void)bEnable;
     // Stub
-    return TRUE;
+    return 1;
 }
 
-inline void CWnd::GetWindowRect(LPRECT lpRect) const {
+inline void CWnd::GetWindowRect(struct tagRECT* lpRect) const {
     if (lpRect) {
         lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
     }
 }
 
-inline void CWnd::GetClientRect(LPRECT lpRect) const {
+inline void CWnd::GetClientRect(struct tagRECT* lpRect) const {
     if (lpRect) {
         lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
     }
 }
 
-inline void CWnd::MoveWindow(int x, int y, int nWidth, int nHeight, BOOL bRepaint) {
+inline void CWnd::MoveWindow(int x, int y, int nWidth, int nHeight, int bRepaint) {
     (void)x; (void)y; (void)nWidth; (void)nHeight; (void)bRepaint;
     // Stub
 }
 
-inline void CWnd::MoveWindow(LPCRECT lpRect, BOOL bRepaint) {
+inline void CWnd::MoveWindow(const struct tagRECT* lpRect, int bRepaint) {
     if (lpRect) {
         MoveWindow(lpRect->left, lpRect->top, 
                   lpRect->right - lpRect->left, lpRect->bottom - lpRect->top, bRepaint);
     }
 }
 
-inline BOOL CWnd::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, UINT nFlags) {
+inline int CWnd::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
     (void)pWndInsertAfter; (void)x; (void)y; (void)cx; (void)cy; (void)nFlags;
     // Stub
-    return TRUE;
+    return 1;
 }
 
-inline void CWnd::SetWindowTextW(LPCWSTR lpszString) {
+inline void CWnd::SetWindowTextW(const wchar_t* lpszString) {
     (void)lpszString;
     // Stub
 }
 
-inline int CWnd::GetWindowTextW(LPWSTR lpszStringBuf, int nMaxCount) const {
+inline int CWnd::GetWindowTextW(wchar_t* lpszStringBuf, int nMaxCount) const {
     if (lpszStringBuf && nMaxCount > 0) {
         lpszStringBuf[0] = L'\0';
     }
@@ -467,69 +475,69 @@ inline CWnd* CWnd::GetDlgItem(int nID) const {
     return nullptr;
 }
 
-inline void CWnd::Invalidate(BOOL bErase) {
+inline void CWnd::Invalidate(int bErase) {
     (void)bErase;
     // Stub
 }
 
-inline void CWnd::InvalidateRect(LPCRECT lpRect, BOOL bErase) {
+inline void CWnd::InvalidateRect(const struct tagRECT* lpRect, int bErase) {
     (void)lpRect; (void)bErase;
     // Stub
 }
 
-inline BOOL CWnd::RedrawWindow(LPCRECT lpRectUpdate, void* prgnUpdate, UINT flags) {
+inline int CWnd::RedrawWindow(const struct tagRECT* lpRectUpdate, void* prgnUpdate, unsigned int flags) {
     (void)lpRectUpdate; (void)prgnUpdate; (void)flags;
     // Stub
-    return TRUE;
+    return 1;
 }
 
-inline LRESULT CWnd::SendMessageW(UINT message, WPARAM wParam, LPARAM lParam) {
+inline intptr_t CWnd::SendMessageW(unsigned int message, uintptr_t wParam, intptr_t lParam) {
     (void)message; (void)wParam; (void)lParam;
     // Stub
     return 0;
 }
 
-inline BOOL CWnd::PostMessageW(UINT message, WPARAM wParam, LPARAM lParam) {
+inline int CWnd::PostMessageW(unsigned int message, uintptr_t wParam, intptr_t lParam) {
     (void)message; (void)wParam; (void)lParam;
     // Stub  
-    return TRUE;
+    return 1;
 }
 
-inline LRESULT CWnd::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
-    LRESULT lResult = 0;
+inline intptr_t CWnd::WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam) {
+    intptr_t lResult = 0;
     if (!OnWndMsg(message, wParam, lParam, &lResult)) {
         // Default handling
     }
     return lResult;
 }
 
-inline BOOL CWnd::OnCommand(WPARAM wParam, LPARAM lParam) {
+inline int CWnd::OnCommand(uintptr_t wParam, intptr_t lParam) {
     (void)wParam; (void)lParam;
-    return FALSE;
+    return 0;
 }
 
-inline BOOL CWnd::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+inline int CWnd::OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult) {
     (void)wParam; (void)lParam; (void)pResult;
-    return FALSE;
+    return 0;
 }
 
-inline BOOL CWnd::OnWndMsg(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lParam, intptr_t* pResult) {
     (void)message; (void)wParam; (void)lParam; (void)pResult;
-    return FALSE;
+    return 0;
 }
 
 inline void CWnd::OnFinalRelease() {
     // Override in derived classes
 }
 
-inline UINT_PTR CWnd::SetTimer(UINT_PTR nIDEvent, UINT nElapse, void* lpfnTimer) {
+inline uintptr_t CWnd::SetTimer(uintptr_t nIDEvent, unsigned int nElapse, void* lpfnTimer) {
     (void)nIDEvent; (void)nElapse; (void)lpfnTimer;
     // Stub
     return 0;
 }
 
-inline BOOL CWnd::KillTimer(UINT_PTR nIDEvent) {
+inline int CWnd::KillTimer(uintptr_t nIDEvent) {
     (void)nIDEvent;
     // Stub
-    return TRUE;
+    return 1;
 }
