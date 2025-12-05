@@ -1,0 +1,6 @@
+STRINGTABLE
+BEGIN
+    123 "Resource String 123"
+    456 "Resource String 456"
+    999 "Format %1 and %2"
+END
