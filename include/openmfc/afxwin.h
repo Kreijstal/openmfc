@@ -69,7 +69,7 @@ protected:
     BOOL m_bAutoDelete;
 };
 
-IMPLEMENT_DYNAMIC(CException, CObject)
+// IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
 
 class CMemoryException : public CException {
     DECLARE_DYNAMIC(CMemoryException)
@@ -77,7 +77,7 @@ public:
     CMemoryException() : CException(FALSE) {} // Memory exceptions are not auto-deleted
 };
 
-IMPLEMENT_DYNAMIC(CMemoryException, CException)
+// IMPLEMENT_DYNAMIC(CMemoryException, CException) moved to appcore.cpp
 
 class CFileException : public CException {
     DECLARE_DYNAMIC(CFileException)
@@ -108,7 +108,7 @@ public:
     CString m_strFileName;
 };
 
-IMPLEMENT_DYNAMIC(CFileException, CException)
+// IMPLEMENT_DYNAMIC(CFileException, CException) moved to appcore.cpp
 
 //=============================================================================
 // CCmdTarget - base for command message handling
@@ -131,7 +131,7 @@ protected:
     char _padding[24];
 };
 
-IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
+// IMPLEMENT_DYNAMIC(CCmdTarget, CObject) moved to appcore.cpp
 
 //=============================================================================
 // CWnd - window wrapper class
@@ -253,7 +253,83 @@ public:
 // Verify layout
 static_assert(sizeof(CWnd) == 232, "CWnd must be 232 bytes");
 
-IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
+// IMPLEMENT_DYNAMIC(CWnd, CCmdTarget) moved to appcore.cpp
+
+//=============================================================================
+// CWinThread and CWinApp
+//=============================================================================
+
+class CWinThread : public CCmdTarget {
+    DECLARE_DYNAMIC(CWinThread)
+public:
+    CWinThread() : m_pMainWnd(nullptr), m_nThreadID(0) {}
+    virtual ~CWinThread() = default;
+    
+    virtual BOOL InitInstance() { return TRUE; }
+    virtual int ExitInstance() { return 0; }
+    virtual int Run();
+    
+    CWnd* m_pMainWnd;
+    DWORD m_nThreadID;
+    
+protected:
+    char _winthread_padding[64];
+};
+
+// IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget) moved to appcore.cpp
+
+inline int CWinThread::Run() {
+    // Simplified message loop
+    return 0;
+}
+
+class CWinApp : public CWinThread {
+    DECLARE_DYNAMIC(CWinApp)
+public:
+    CWinApp(LPCWSTR lpszAppName = nullptr);
+    virtual ~CWinApp() = default;
+    
+    virtual BOOL InitApplication() { return TRUE; }
+    virtual BOOL InitInstance() override { return TRUE; }
+    virtual int ExitInstance() override { return 0; }
+    virtual int Run() override;
+    
+    // Application info
+    LPCWSTR m_pszAppName;
+    LPCWSTR m_pszExeName;
+    LPCWSTR m_pszHelpFilePath;
+    LPCWSTR m_pszProfileName;
+    HINSTANCE m_hInstance;
+    
+protected:
+    char _winapp_padding[256];
+};
+
+// IMPLEMENT_DYNAMIC(CWinApp, CWinThread) moved to appcore.cpp
+
+// CWinApp constructor is in appcore.cpp
+
+inline int CWinApp::Run() {
+    return CWinThread::Run();
+}
+
+// Global application pointer
+extern CWinApp* AFXAPI AfxGetApp();
+extern CWinThread* AFXAPI AfxGetThread();
+extern HINSTANCE AFXAPI AfxGetInstanceHandle();
+extern HINSTANCE AFXAPI AfxGetResourceHandle();
+extern void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource);
+extern CWnd* AFXAPI AfxGetMainWnd();
+extern BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow);
+
+// Exception helpers
+extern void AFXAPI AfxThrowMemoryException();
+extern void AFXAPI AfxThrowFileException(int cause, LONG lOsError = -1, LPCWSTR lpszFileName = nullptr);
+extern void AFXAPI AfxThrowInvalidArgException();
+extern void AFXAPI AfxThrowNotSupportedException();
+extern void AFXAPI AfxThrowResourceException();
+extern void AFXAPI AfxThrowUserException();
+extern void AFXAPI AfxAbort();
 
 //=============================================================================
 // CWnd implementation (inline for header-only)
@@ -457,72 +533,3 @@ inline BOOL CWnd::KillTimer(UINT_PTR nIDEvent) {
     // Stub
     return TRUE;
 }
-
-//=============================================================================
-// CWinThread and CWinApp
-//=============================================================================
-
-class CWinThread : public CCmdTarget {
-    DECLARE_DYNAMIC(CWinThread)
-public:
-    CWinThread() : m_pMainWnd(nullptr), m_nThreadID(0) {}
-    virtual ~CWinThread() = default;
-    
-    virtual BOOL InitInstance() { return TRUE; }
-    virtual int ExitInstance() { return 0; }
-    virtual int Run();
-    
-    CWnd* m_pMainWnd;
-    DWORD m_nThreadID;
-    
-protected:
-    char _winthread_padding[64];
-};
-
-IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
-
-inline int CWinThread::Run() {
-    // Simplified message loop
-    return 0;
-}
-
-class CWinApp : public CWinThread {
-    DECLARE_DYNAMIC(CWinApp)
-public:
-    CWinApp(LPCWSTR lpszAppName = nullptr);
-    virtual ~CWinApp() = default;
-    
-    virtual BOOL InitApplication() { return TRUE; }
-    virtual BOOL InitInstance() override { return TRUE; }
-    virtual int ExitInstance() override { return 0; }
-    virtual int Run() override;
-    
-    // Application info
-    LPCWSTR m_pszAppName;
-    LPCWSTR m_pszExeName;
-    LPCWSTR m_pszHelpFilePath;
-    LPCWSTR m_pszProfileName;
-    HINSTANCE m_hInstance;
-    
-protected:
-    char _winapp_padding[256];
-};
-
-IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
-
-inline CWinApp::CWinApp(LPCWSTR lpszAppName)
-    : m_pszAppName(lpszAppName)
-    , m_pszExeName(nullptr)
-    , m_pszHelpFilePath(nullptr)
-    , m_pszProfileName(nullptr)
-    , m_hInstance(nullptr)
-{
-    memset(_winapp_padding, 0, sizeof(_winapp_padding));
-}
-
-inline int CWinApp::Run() {
-    return CWinThread::Run();
-}
-
-// Global application pointer
-extern CWinApp* AfxGetApp();
