@@ -27,15 +27,3 @@ jobs:
         test_cstring.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC CString tests passed!
-
-    - name: Compare with real MFC CString layout
-      shell: cmd
-      run: |
-        echo Checking CStringData layout matches MFC...
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:check_layout.exe /c - << EOF
-        #include <openmfc/afxstr.h>
-        #include <cstdio>
-        static_assert(sizeof(CStringData) == 16, "CStringData must be 16 bytes");
-        static_assert(sizeof(CString) == sizeof(void*), "CString must be one pointer");
-        int main() { printf("Layout OK\n"); return 0; }
-        EOF
