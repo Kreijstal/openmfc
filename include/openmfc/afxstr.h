@@ -6,9 +6,18 @@
 #include <cstdint>
 #include <cstdarg>
 
-// Windows type definition needed for LoadString
+// Windows type definitions
 #ifndef UINT
 typedef unsigned int UINT;
+#endif
+
+// Calling convention for MFC API functions
+#ifndef AFXAPI
+    #if defined(_MSC_VER) || defined(__MINGW32__)
+        #define AFXAPI __stdcall
+    #else
+        #define AFXAPI
+    #endif
 #endif
 
 // MFC CStringT ABI-compatible implementation

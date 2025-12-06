@@ -100,14 +100,79 @@ TEST(buffer) {
 TEST(sizeof_check) {
     // CString should be one pointer
     ASSERT(sizeof(CString) == sizeof(void*));
-    
+
     // CStringData should be 16 bytes
     ASSERT(sizeof(CStringData) == 16);
 }
 
+TEST(find) {
+    CString s(L"Hello World");
+
+    ASSERT(s.Find(L'o') == 4);
+    ASSERT(s.Find(L'o', 5) == 7);
+    ASSERT(s.Find(L'x') == -1);
+    ASSERT(s.Find(L"World") == 6);
+    ASSERT(s.Find(L"xyz") == -1);
+    ASSERT(s.ReverseFind(L'o') == 7);
+    ASSERT(s.FindOneOf(L"aeiou") == 1); // 'e' at position 1
+}
+
+TEST(case_conversion) {
+    CString s1(L"Hello World");
+    s1.MakeUpper();
+    ASSERT(s1 == L"HELLO WORLD");
+
+    CString s2(L"Hello World");
+    s2.MakeLower();
+    ASSERT(s2 == L"hello world");
+}
+
+TEST(trim) {
+    CString s1(L"  Hello  ");
+    s1.Trim();
+    ASSERT(s1 == L"Hello");
+
+    CString s2(L"  Hello");
+    s2.TrimLeft();
+    ASSERT(s2 == L"Hello");
+
+    CString s3(L"Hello  ");
+    s3.TrimRight();
+    ASSERT(s3 == L"Hello");
+}
+
+TEST(replace) {
+    CString s1(L"Hello World");
+    int count = s1.Replace(L'o', L'0');
+    ASSERT(count == 2);
+    ASSERT(s1 == L"Hell0 W0rld");
+
+    CString s2(L"foo bar foo");
+    count = s2.Replace(L"foo", L"baz");
+    ASSERT(count == 2);
+    ASSERT(s2 == L"baz bar baz");
+}
+
+TEST(format) {
+    CString s;
+    s.Format(L"Hello %ls", L"World");
+    ASSERT(s == L"Hello World");
+
+    CString s2;
+    s2.Format(L"Number: %d", 42);
+    ASSERT(s2 == L"Number: 42");
+}
+
+TEST(compare_nocase) {
+    CString s(L"Hello");
+    ASSERT(s.CompareNoCase(L"HELLO") == 0);
+    ASSERT(s.CompareNoCase(L"hello") == 0);
+    ASSERT(s.CompareNoCase(L"World") != 0);
+}
+
 int main() {
     std::printf("Running CString tests...\n");
-    
+
     test_construction();
     test_assignment();
     test_concatenation();
@@ -115,7 +180,13 @@ int main() {
     test_substring();
     test_buffer();
     test_sizeof_check();
-    
+    test_find();
+    test_case_conversion();
+    test_trim();
+    test_replace();
+    test_format();
+    test_compare_nocase();
+
     std::printf("Results: %d passed, %d failed\n", passed, failed);
     return failed > 0 ? 1 : 0;
 }
