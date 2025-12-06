@@ -47,23 +47,38 @@ def emit_stubs(entries: List[Dict[str, Any]]) -> str:
         "void AfxThrowMemoryException();",
         "void AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName);",
         "",
+        "// Generic stub function",
+        'extern "C" void MS_ABI generic_stub() {',
+        '    std::fprintf(stderr, "Not Implemented\\n");',
+        '}',
+        "",
+        "// Specialized stubs for known functions",
+        'extern "C" void MS_ABI stub_AfxThrowMemoryException() {',
+        '    AfxThrowMemoryException();',
+        '}',
+        "",
+        'extern "C" void MS_ABI stub_AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName) {',
+        '    AfxThrowFileException(cause, lOsError, lpszFileName);',
+        '}',
+        "",
+        "// Export directives - map mangled names to our stubs",
+        "#if defined(_MSC_VER)",
     ]
     
     for entry in entries:
         symbol = entry["symbol"]
         
-        # Extract base name for logging
-        base_name = symbol.split('@')[0] if '@' in symbol else symbol
-        
-        # Special handling for known throwing functions
+        # Map to appropriate stub based on symbol
         if "AfxThrowMemoryException" in symbol:
-             lines.append(f'extern "C" void MS_ABI {symbol}() {{ AfxThrowMemoryException(); }}')
+            stub_name = "stub_AfxThrowMemoryException"
         elif "AfxThrowFileException" in symbol:
-             lines.append(f'extern "C" void MS_ABI {symbol}(int cause, long lOsError, const wchar_t* lpszFileName) {{ AfxThrowFileException(cause, lOsError, lpszFileName); }}')
+            stub_name = "stub_AfxThrowFileException"
         else:
-             # Generic stub for unknown functions
-             lines.append(f'extern "C" void MS_ABI {symbol}() {{ std::fprintf(stderr, "Not Implemented: {base_name}\\n"); }}')
-
+            stub_name = "generic_stub"
+        
+        lines.append(f'#pragma comment(linker, "/export:{symbol}={stub_name}")')
+    
+    lines.append("#endif")
     lines.append("")
     return "\n".join(lines)
 
