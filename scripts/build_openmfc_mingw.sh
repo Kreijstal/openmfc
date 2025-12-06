@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BUILD=${BUILD:-$ROOT/build}
-DB=${DB:-$ROOT/artifacts/mfc_db.json}
+DB=${DB:-$ROOT/mfc_db_correct.json}
 EXC=${EXC:-$ROOT/artifacts/exceptions.json}
 LAYOUTS=${LAYOUTS:-$ROOT/artifacts/layouts.json}
 CRT_DEF_DIR=${CRT_DEF_DIR:-$ROOT/artifacts}
@@ -75,7 +75,9 @@ fi
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/afxmem.cpp" -o "$BUILD/afxmem.o"
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/strcore.cpp" -o "$BUILD/strcore.o"
 "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/appcore.cpp" -o "$BUILD/appcore.o"
+"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/dlgcore.cpp" -o "$BUILD/dlgcore.o"
+"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/winfrm.cpp" -o "$BUILD/winfrm.o"
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/strcore.o" "$BUILD/appcore.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/strcore.o" "$BUILD/appcore.o" "$BUILD/dlgcore.o" "$BUILD/winfrm.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"

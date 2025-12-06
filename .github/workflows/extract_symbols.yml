@@ -137,6 +137,18 @@ jobs:
           $json = ($meta | ConvertTo-Json -Depth 4)
           $json | Out-File -FilePath artifacts/metadata.json -Encoding ASCII
 
+      - name: Extract ordinal mappings
+        shell: pwsh
+        run: |
+          # Extract symbol→ordinal mappings from dumpbin /ALL output
+          # Use our Python script
+          python tools/extract_ordinals.py \
+            --dumpbin artifacts/mfc_lib_all.txt \
+            --out-symbols artifacts/mfc_symbols_corrected.txt \
+            --out-json artifacts/ordinal_map.json
+          
+          Write-Host "Extracted ordinal mappings"
+
       - name: Generate mfc_db.json
         shell: bash
         run: |
@@ -145,6 +157,7 @@ jobs:
             --exports artifacts/mfc.exports \
             --symbols artifacts/mfc_symbols.txt \
             --demangled artifacts/demangled.txt \
+            --ordinal-map artifacts/ordinal_map.json \
             --metadata artifacts/metadata.json \
             --out artifacts/mfc_db.json
 
