@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
+#include <cstdarg>
 
 // Windows type definition needed for LoadString
 #ifndef UINT
@@ -237,6 +238,211 @@ public:
         if (nCount < 0) nCount = nLen - nFirst;
         if (nFirst + nCount > nLen) nCount = nLen - nFirst;
         return CString(m_pszData + nFirst);
+    }
+
+    // Searching
+    int Find(wchar_t ch, int nStart = 0) const {
+        if (nStart < 0) nStart = 0;
+        int nLen = GetLength();
+        if (nStart >= nLen) return -1;
+        const wchar_t* p = wcschr(m_pszData + nStart, ch);
+        return p ? static_cast<int>(p - m_pszData) : -1;
+    }
+
+    int Find(const wchar_t* pszSub, int nStart = 0) const {
+        if (pszSub == nullptr || *pszSub == L'\0') return -1;
+        if (nStart < 0) nStart = 0;
+        int nLen = GetLength();
+        if (nStart >= nLen) return -1;
+        const wchar_t* p = wcsstr(m_pszData + nStart, pszSub);
+        return p ? static_cast<int>(p - m_pszData) : -1;
+    }
+
+    int ReverseFind(wchar_t ch) const {
+        const wchar_t* p = wcsrchr(m_pszData, ch);
+        return p ? static_cast<int>(p - m_pszData) : -1;
+    }
+
+    int FindOneOf(const wchar_t* pszCharSet) const {
+        if (pszCharSet == nullptr || *pszCharSet == L'\0') return -1;
+        const wchar_t* p = wcspbrk(m_pszData, pszCharSet);
+        return p ? static_cast<int>(p - m_pszData) : -1;
+    }
+
+    // Case conversion (modifies in place, returns reference)
+    CString& MakeUpper() {
+        int nLen = GetLength();
+        if (nLen > 0) {
+            wchar_t* pBuf = GetBuffer(nLen);
+            for (int i = 0; i < nLen; i++) {
+                if (pBuf[i] >= L'a' && pBuf[i] <= L'z')
+                    pBuf[i] -= 32;
+            }
+            ReleaseBuffer(nLen);
+        }
+        return *this;
+    }
+
+    CString& MakeLower() {
+        int nLen = GetLength();
+        if (nLen > 0) {
+            wchar_t* pBuf = GetBuffer(nLen);
+            for (int i = 0; i < nLen; i++) {
+                if (pBuf[i] >= L'A' && pBuf[i] <= L'Z')
+                    pBuf[i] += 32;
+            }
+            ReleaseBuffer(nLen);
+        }
+        return *this;
+    }
+
+    // Trimming
+    CString& TrimLeft() {
+        int nLen = GetLength();
+        if (nLen == 0) return *this;
+        int nStart = 0;
+        while (nStart < nLen && (m_pszData[nStart] == L' ' || m_pszData[nStart] == L'\t' ||
+               m_pszData[nStart] == L'\r' || m_pszData[nStart] == L'\n'))
+            nStart++;
+        if (nStart > 0) {
+            *this = Mid(nStart);
+        }
+        return *this;
+    }
+
+    CString& TrimRight() {
+        int nLen = GetLength();
+        if (nLen == 0) return *this;
+        int nEnd = nLen;
+        while (nEnd > 0 && (m_pszData[nEnd - 1] == L' ' || m_pszData[nEnd - 1] == L'\t' ||
+               m_pszData[nEnd - 1] == L'\r' || m_pszData[nEnd - 1] == L'\n'))
+            nEnd--;
+        if (nEnd < nLen) {
+            wchar_t* pBuf = GetBuffer(nEnd);
+            pBuf[nEnd] = L'\0';
+            ReleaseBuffer(nEnd);
+        }
+        return *this;
+    }
+
+    CString& Trim() {
+        TrimRight();
+        TrimLeft();
+        return *this;
+    }
+
+    // Replace
+    int Replace(wchar_t chOld, wchar_t chNew) {
+        int nCount = 0;
+        int nLen = GetLength();
+        if (nLen > 0 && chOld != chNew) {
+            wchar_t* pBuf = GetBuffer(nLen);
+            for (int i = 0; i < nLen; i++) {
+                if (pBuf[i] == chOld) {
+                    pBuf[i] = chNew;
+                    nCount++;
+                }
+            }
+            ReleaseBuffer(nLen);
+        }
+        return nCount;
+    }
+
+    int Replace(const wchar_t* pszOld, const wchar_t* pszNew) {
+        if (pszOld == nullptr || *pszOld == L'\0') return 0;
+        if (pszNew == nullptr) pszNew = L"";
+        int nOldLen = static_cast<int>(wcslen(pszOld));
+        int nNewLen = static_cast<int>(wcslen(pszNew));
+        int nCount = 0;
+        // Count occurrences
+        const wchar_t* pStart = m_pszData;
+        while ((pStart = wcsstr(pStart, pszOld)) != nullptr) {
+            nCount++;
+            pStart += nOldLen;
+        }
+        if (nCount == 0) return 0;
+        // Build new string
+        int nSrcLen = GetLength();
+        int nNewStrLen = nSrcLen + (nNewLen - nOldLen) * nCount;
+        CString strResult;
+        strResult.AllocBuffer(nNewStrLen);
+        wchar_t* pDest = strResult.m_pszData;
+        const wchar_t* pSrc = m_pszData;
+        while (*pSrc) {
+            if (wcsncmp(pSrc, pszOld, nOldLen) == 0) {
+                wmemcpy(pDest, pszNew, nNewLen);
+                pDest += nNewLen;
+                pSrc += nOldLen;
+            } else {
+                *pDest++ = *pSrc++;
+            }
+        }
+        *pDest = L'\0';
+        strResult.GetData()->nDataLength = nNewStrLen;
+        *this = strResult;
+        return nCount;
+    }
+
+    // Character modification
+    void SetAt(int nIndex, wchar_t ch) {
+        if (nIndex >= 0 && nIndex < GetLength()) {
+            wchar_t* pBuf = GetBuffer(GetLength());
+            pBuf[nIndex] = ch;
+            ReleaseBuffer(GetLength());
+        }
+    }
+
+    // Case-insensitive comparison
+    int CompareNoCase(const wchar_t* psz) const {
+        if (psz == nullptr) psz = L"";
+        const wchar_t* p1 = m_pszData;
+        const wchar_t* p2 = psz;
+        while (*p1 && *p2) {
+            wchar_t c1 = (*p1 >= L'A' && *p1 <= L'Z') ? *p1 + 32 : *p1;
+            wchar_t c2 = (*p2 >= L'A' && *p2 <= L'Z') ? *p2 + 32 : *p2;
+            if (c1 != c2) return c1 - c2;
+            p1++; p2++;
+        }
+        wchar_t c1 = (*p1 >= L'A' && *p1 <= L'Z') ? *p1 + 32 : *p1;
+        wchar_t c2 = (*p2 >= L'A' && *p2 <= L'Z') ? *p2 + 32 : *p2;
+        return c1 - c2;
+    }
+
+    // Printf-style formatting
+    void FormatV(const wchar_t* pszFormat, va_list args) {
+        if (pszFormat == nullptr) {
+            Empty();
+            return;
+        }
+        // Get required buffer size
+        va_list argsCopy;
+        va_copy(argsCopy, args);
+        int nLen = vswprintf(nullptr, 0, pszFormat, argsCopy);
+        va_end(argsCopy);
+        if (nLen <= 0) {
+            Empty();
+            return;
+        }
+        // Allocate and format
+        wchar_t* pBuf = GetBuffer(nLen);
+        vswprintf(pBuf, nLen + 1, pszFormat, args);
+        ReleaseBuffer(nLen);
+    }
+
+    void Format(const wchar_t* pszFormat, ...) {
+        va_list args;
+        va_start(args, pszFormat);
+        FormatV(pszFormat, args);
+        va_end(args);
+    }
+
+    void AppendFormat(const wchar_t* pszFormat, ...) {
+        CString strAppend;
+        va_list args;
+        va_start(args, pszFormat);
+        strAppend.FormatV(pszFormat, args);
+        va_end(args);
+        *this += strAppend;
     }
 
     // Resource loading
