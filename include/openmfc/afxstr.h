@@ -401,6 +401,75 @@ public:
         }
     }
 
+    // Delete characters from string
+    int Delete(int nIndex, int nCount = 1) {
+        if (nIndex < 0) nIndex = 0;
+        int nLen = GetLength();
+        if (nIndex >= nLen || nCount <= 0) return nLen;
+        if (nIndex + nCount > nLen) nCount = nLen - nIndex;
+        int nNewLen = nLen - nCount;
+        wchar_t* pBuf = GetBuffer(nLen);
+        wmemmove(pBuf + nIndex, pBuf + nIndex + nCount, nLen - nIndex - nCount + 1);
+        ReleaseBuffer(nNewLen);
+        return nNewLen;
+    }
+
+    // Insert character at position
+    int Insert(int nIndex, wchar_t ch) {
+        if (nIndex < 0) nIndex = 0;
+        int nLen = GetLength();
+        if (nIndex > nLen) nIndex = nLen;
+        wchar_t* pBuf = GetBuffer(nLen + 1);
+        wmemmove(pBuf + nIndex + 1, pBuf + nIndex, nLen - nIndex + 1);
+        pBuf[nIndex] = ch;
+        ReleaseBuffer(nLen + 1);
+        return nLen + 1;
+    }
+
+    // Insert string at position
+    int Insert(int nIndex, const wchar_t* pstr) {
+        if (pstr == nullptr || *pstr == L'\0') return GetLength();
+        if (nIndex < 0) nIndex = 0;
+        int nLen = GetLength();
+        if (nIndex > nLen) nIndex = nLen;
+        int nInsertLen = static_cast<int>(wcslen(pstr));
+        int nNewLen = nLen + nInsertLen;
+        wchar_t* pBuf = GetBuffer(nNewLen);
+        wmemmove(pBuf + nIndex + nInsertLen, pBuf + nIndex, nLen - nIndex + 1);
+        wmemcpy(pBuf + nIndex, pstr, nInsertLen);
+        ReleaseBuffer(nNewLen);
+        return nNewLen;
+    }
+
+    // Reverse string in place
+    CString& MakeReverse() {
+        int nLen = GetLength();
+        if (nLen > 1) {
+            wchar_t* pBuf = GetBuffer(nLen);
+            for (int i = 0; i < nLen / 2; i++) {
+                wchar_t tmp = pBuf[i];
+                pBuf[i] = pBuf[nLen - 1 - i];
+                pBuf[nLen - 1 - i] = tmp;
+            }
+            ReleaseBuffer(nLen);
+        }
+        return *this;
+    }
+
+    // Get span of characters matching set
+    CString SpanIncluding(const wchar_t* pszCharSet) const {
+        if (pszCharSet == nullptr || *pszCharSet == L'\0') return CString();
+        int nLen = static_cast<int>(wcsspn(m_pszData, pszCharSet));
+        return Left(nLen);
+    }
+
+    // Get span of characters NOT in set
+    CString SpanExcluding(const wchar_t* pszCharSet) const {
+        if (pszCharSet == nullptr || *pszCharSet == L'\0') return *this;
+        int nLen = static_cast<int>(wcscspn(m_pszData, pszCharSet));
+        return Left(nLen);
+    }
+
     // Case-insensitive comparison
     int CompareNoCase(const wchar_t* psz) const {
         if (psz == nullptr) psz = L"";

@@ -170,6 +170,39 @@ TEST(compare_nocase) {
     ASSERT(s.CompareNoCase(L"World") != 0);
 }
 
+TEST(delete_insert) {
+    CString s1(L"Hello World");
+    s1.Delete(5, 6); // Delete " World"
+    ASSERT(s1 == L"Hello");
+
+    CString s2(L"Hello");
+    s2.Insert(5, L'!');
+    ASSERT(s2 == L"Hello!");
+
+    CString s3(L"Hello!");
+    s3.Insert(5, L" World");
+    ASSERT(s3 == L"Hello World!");
+}
+
+TEST(reverse) {
+    CString s(L"Hello");
+    s.MakeReverse();
+    ASSERT(s == L"olleH");
+}
+
+TEST(span) {
+    CString s(L"123abc456");
+    CString digits = s.SpanIncluding(L"0123456789");
+    ASSERT(digits == L"123");
+
+    CString letters = s.SpanExcluding(L"0123456789");
+    ASSERT(letters == L"");  // starts with digit
+
+    CString s2(L"abc123");
+    CString alpha = s2.SpanExcluding(L"0123456789");
+    ASSERT(alpha == L"abc");
+}
+
 int main() {
     std::printf("Running CString tests...\n");
 
@@ -186,6 +219,9 @@ int main() {
     test_replace();
     test_format();
     test_compare_nocase();
+    test_delete_insert();
+    test_reverse();
+    test_span();
 
     std::printf("Results: %d passed, %d failed\n", passed, failed);
     return failed > 0 ? 1 : 0;
