@@ -138,7 +138,7 @@ def main():
     
     # Warn if using guessed ordinals
     if entries and entries[0].get("source") == "guessed_array_index":
-        print("\n⚠️  WARNING: Using GUESSED ordinals!")
+        print("\nWARNING: Using GUESSED ordinals!")
         print("   This is WRONG for ABI compatibility!")
         print("   Update mapping file with real ordinals from MFC .lib file")
 
