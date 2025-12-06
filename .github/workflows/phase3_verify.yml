@@ -6,7 +6,50 @@ on:
     branches: [phase3-hollow-build]
 
 jobs:
-  build-dll:
+  build-mingw-dll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Install mingw
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+      
+      - name: Download latest Phase1 artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p artifacts
+          harvest_run=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          exports_run=$(gh run list --workflow extract_symbols.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          crt_run=$harvest_run
+          echo "Using phase1_harvest run ${harvest_run}"
+          gh run download "$harvest_run" --name phase1_harvest --dir artifacts/harvest
+          echo "Using phase1_crt_imports run ${crt_run}"
+          gh run download "$crt_run" --name phase1_crt_imports --dir artifacts/crt || true
+          echo "Using extract_symbols run ${exports_run}"
+          gh run download "$exports_run" --name phase1_exports --dir artifacts/exports
+          # flatten key inputs
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt'
+          find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt' | while read -r f; do cp "$f" artifacts/; done
+          ls -l artifacts
+      
+      - name: Build openmfc.dll (stubs + RTTI)
+        run: |
+          ./scripts/build_openmfc_mingw.sh
+      
+      - name: Smoke test
+        run: |
+          DLL=build/openmfc.dll MIN_EXPORTS=100 ./scripts/openmfc_smoke_test.sh
+      
+      - name: Upload MinGW DLL
+        uses: actions/upload-artifact@v5
+        with:
+          name: phase3_mingw_dll
+          path: build/openmfc.dll
+          retention-days: 7
+
+  verify-on-windows:
+    needs: build-mingw-dll
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -25,7 +68,7 @@ jobs:
           name: phase1_exports
           path: phase1_artifacts
       
-      - name: Generate stubs and RTTI
+      - name: Generate stubs and RTTI (for .def file only)
         shell: bash
         run: |
           mkdir -p generated/src generated/include/openmfc
@@ -33,15 +76,11 @@ jobs:
           python tools/gen_stubs.py --db phase1_artifacts/mfc_db.json --out-def generated/openmfc.def --out-stubs generated/src/stubs.cpp
           python tools/gen_rtti.py --exceptions exceptions.json --out-c generated/src/generated_rtti.c --out-h generated/include/openmfc/eh_rtti.h
       
-      - name: Build openmfc.dll
-        shell: cmd
-        run: |
-          cl /nologo /LD /MD ^
-            /I generated/include /I include ^
-            generated/src/stubs.cpp ^
-            generated/src/generated_rtti.c ^
-            /Fe:openmfc.dll ^
-            /link /DEF:generated/openmfc.def
+      - name: Download MinGW-built openmfc.dll
+        uses: actions/download-artifact@v6
+        with:
+          name: phase3_mingw_dll
+          path: .
       
       - name: Generate MSVC import library
         shell: cmd
