@@ -35,7 +35,16 @@ def emit_def(entries: List[Dict[str, Any]]) -> str:
             mfc_ordinal = 256 + idx
             print(f"WARNING: Invalid ordinal for {symbol}, using {mfc_ordinal}")
         
-        lines.append(f"    {symbol} @{mfc_ordinal}")
+        # Map to appropriate stub based on symbol
+        if "AfxThrowMemoryException" in symbol:
+            stub_name = "stub_AfxThrowMemoryException"
+        elif "AfxThrowFileException" in symbol:
+            stub_name = "stub_AfxThrowFileException"
+        else:
+            stub_name = "generic_stub"
+        
+        # Use INTERNALNAME in .def file: mangled_name=internal_name @ordinal
+        lines.append(f"    {symbol}={stub_name} @{mfc_ordinal}")
     return "\n".join(lines) + "\n"
 
 
@@ -58,38 +67,23 @@ def emit_stubs(entries: List[Dict[str, Any]]) -> str:
         "void AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName);",
         "",
         "// Generic stub function",
-        'extern "C" void MS_ABI generic_stub() {',
-        '    std::fprintf(stderr, "Not Implemented\\n");',
-        '}',
+        "extern \"C\" void MS_ABI generic_stub() {",
+        "    std::fprintf(stderr, \"Not Implemented\\n\");",
+        "}",
         "",
         "// Specialized stubs for known functions",
-        'extern "C" void MS_ABI stub_AfxThrowMemoryException() {',
-        '    AfxThrowMemoryException();',
-        '}',
+        "extern \"C\" void MS_ABI stub_AfxThrowMemoryException() {",
+        "    AfxThrowMemoryException();",
+        "}",
         "",
-        'extern "C" void MS_ABI stub_AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName) {',
-        '    AfxThrowFileException(cause, lOsError, lpszFileName);',
-        '}',
+        "extern \"C\" void MS_ABI stub_AfxThrowFileException(int cause, long lOsError, const wchar_t* lpszFileName) {",
+        "    AfxThrowFileException(cause, lOsError, lpszFileName);",
+        "}",
         "",
-        "// Export directives - map mangled names to our stubs",
-        "#if defined(_MSC_VER)",
+        "// No #pragma directives needed - .def file handles export mapping",
+        "",
     ]
     
-    for entry in entries:
-        symbol = entry["symbol"]
-        
-        # Map to appropriate stub based on symbol
-        if "AfxThrowMemoryException" in symbol:
-            stub_name = "stub_AfxThrowMemoryException"
-        elif "AfxThrowFileException" in symbol:
-            stub_name = "stub_AfxThrowFileException"
-        else:
-            stub_name = "generic_stub"
-        
-        lines.append(f'#pragma comment(linker, "/export:{symbol}={stub_name}")')
-    
-    lines.append("#endif")
-    lines.append("")
     return "\n".join(lines)
 
 
