@@ -21,10 +21,20 @@ def emit_def(entries: List[Dict[str, Any]]) -> str:
     lines = ["LIBRARY openmfc", "EXPORTS"]
     for entry in entries:
         symbol = entry["symbol"]
-        ordinal = entry.get("ordinal", 0)
-        # MFC uses ordinals starting at 256
-        # JSON has 0-based ordinals, convert to MFC ordinals
-        mfc_ordinal = 256 + ordinal
+        ordinal = entry.get("ordinal", "0")
+        
+        # Handle both string and integer ordinals
+        try:
+            if isinstance(ordinal, str):
+                mfc_ordinal = int(ordinal)
+            else:
+                mfc_ordinal = int(ordinal)
+        except (ValueError, TypeError):
+            # Fallback: use array index + 256
+            idx = entries.index(entry)
+            mfc_ordinal = 256 + idx
+            print(f"WARNING: Invalid ordinal for {symbol}, using {mfc_ordinal}")
+        
         lines.append(f"    {symbol} @{mfc_ordinal}")
     return "\n".join(lines) + "\n"
 

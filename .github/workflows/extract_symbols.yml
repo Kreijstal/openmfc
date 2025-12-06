@@ -90,17 +90,21 @@ jobs:
           $outDemangled = "artifacts/demangled.txt"
 
           # Parse symbol dump to extract mangled names
-          # Format: "XXX XXXXXXXX SECT XX notype () External | ?SymbolName@@..."
-          # We want symbols marked as External that look like C++ mangled names
+          # We need to extract PRIMARY symbols (External) not aliases (WeakExternal)
           $symbols = @()
           Get-Content $symbolsFile | ForEach-Object {
-            # Match external symbols with mangled names (starting with ?)
-            if ($_ -match 'External\s+\|\s+(\?[^\s]+)') {
-              $symbols += $Matches[1]
-            }
-            # Also match __imp_ symbols (import thunks) - strip the __imp_ prefix
-            elseif ($_ -match 'External\s+\|\s+__imp_(\?[^\s]+)') {
-              $symbols += $Matches[1]
+            $line = $_
+            # Check if line contains "External" but NOT "WeakExternal"
+            if ($line -match 'External' -and $line -notmatch 'WeakExternal') {
+              # Match symbol after pipe character
+              if ($line -match '\|\s+(\?[^\s]+)') {
+                $symbol = $Matches[1]
+                # Remove __imp_ prefix if present
+                if ($symbol -match '^__imp_') {
+                  $symbol = $symbol -replace '^__imp_', ''
+                }
+                $symbols += $symbol
+              }
             }
           }
 
