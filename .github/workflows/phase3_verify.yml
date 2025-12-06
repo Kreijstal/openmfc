@@ -19,19 +19,13 @@ jobs:
         with:
           python-version: '3.x'
       
-      - name: Download MFC symbol database
-        uses: actions/download-artifact@v6
-        with:
-          name: phase1_exports
-          path: phase1_artifacts
-      
       - name: Generate stubs and RTTI
         shell: bash
         run: |
           mkdir -p generated/src generated/include/openmfc
-           # Use corrected MFC database with real ordinals (not guessed)
-           # Contains 1,619 External symbols (no WeakExternal aliases)
-           python tools/gen_stubs.py --db mfc_db_correct.json --out-def generated/openmfc.def --out-stubs generated/src/stubs.cpp
+          # Use corrected MFC database with real ordinals (not guessed)
+          # Contains 1,619 External symbols (no WeakExternal aliases)
+          python tools/gen_stubs.py --db mfc_db_correct.json --out-def generated/openmfc.def --out-stubs generated/src/stubs.cpp
           python tools/gen_rtti.py --exceptions exceptions.json --out-c generated/src/generated_rtti.c --out-h generated/include/openmfc/eh_rtti.h
       
       - name: Build openmfc.dll
