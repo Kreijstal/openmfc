@@ -5,6 +5,11 @@
 #include <cstdio>
 #include <cstdint>
 
+// Windows type definition needed for LoadString
+#ifndef UINT
+typedef unsigned int UINT;
+#endif
+
 // MFC CStringT ABI-compatible implementation
 // 
 // Layout: CStringT contains a single pointer m_pszData pointing to character data.
@@ -234,13 +239,17 @@ public:
         return CString(m_pszData + nFirst);
     }
 
+    // Resource loading
+    int LoadString(UINT nID); // Returns length, 0 on failure
+
 private:
     wchar_t* m_pszData;
 
     CStringData* GetData() const {
         return reinterpret_cast<CStringData*>(m_pszData) - 1;
     }
-
+    
+    // ... (rest of private members)
     static CStringData* AllocData(int nLength) {
         // Allocate CStringData + (nLength + 1) wchar_t characters
         size_t nSize = sizeof(CStringData) + (nLength + 1) * sizeof(wchar_t);
@@ -288,3 +297,20 @@ inline CString operator+(const wchar_t* psz, const CString& str) {
     result += str;
     return result;
 }
+
+// Global String Helpers
+// Note: These require linking with strcore.cpp
+
+// Extract substring from source string using separator
+// Returns TRUE if substring found, FALSE otherwise
+bool AFXAPI AfxExtractSubString(CString& rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep = L'\n');
+
+// Format string using resource template and one argument (%1)
+void AFXAPI AfxFormatString1(CString& rString, UINT nIDS, const wchar_t* lpsz1);
+
+// Format string using resource template and two arguments (%1, %2)
+void AFXAPI AfxFormatString2(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2);
+
+// Display message box
+int AFXAPI AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);
+int AFXAPI AfxMessageBox(UINT nIDPrompt, UINT nType = 0, UINT nIDHelp = 0);
