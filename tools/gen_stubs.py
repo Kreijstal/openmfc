@@ -8,31 +8,28 @@ Outputs:
   --out-def openmfc.def
   --out-stubs stubs.cpp
 
-Simplifications:
-- Only process Unicode exports (no 'A' suffixed ANSI).
-- Stub bodies log to stderr and return default zero/null.
+Generates ordinal-based exports matching MFC format.
 """
+
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
-def is_ansi(symbol: str) -> bool:
-    # crude filter: symbols with 'A@' or '@@YA?AW4' are not reliable; prefer 'W' suffix
-    return symbol.endswith('A') or '@YA?A' in symbol
-
-
-def emit_def(exports: List[str]) -> str:
+def emit_def(entries: List[Dict[str, Any]]) -> str:
     lines = ["LIBRARY openmfc", "EXPORTS"]
-    for idx, sym in enumerate(exports):
-        # Phase0b pattern: mangled_name = simple_c_name
-        # This allows extern "C" implementations with simple names
-        lines.append(f"{sym} = stub_{idx}")
+    for entry in entries:
+        symbol = entry["symbol"]
+        ordinal = entry.get("ordinal", 0)
+        # MFC uses ordinals starting at 256
+        # JSON has 0-based ordinals, convert to MFC ordinals
+        mfc_ordinal = 256 + ordinal
+        lines.append(f"    {symbol} @{mfc_ordinal}")
     return "\n".join(lines) + "\n"
 
 
-def emit_stubs(exports: List[str]) -> str:
+def emit_stubs(entries: List[Dict[str, Any]]) -> str:
     lines = [
         "#include <cstdio>",
         "#include <cstdlib>",
@@ -52,15 +49,20 @@ def emit_stubs(exports: List[str]) -> str:
         "",
     ]
     
-    for idx, sym in enumerate(exports):
+    for entry in entries:
+        symbol = entry["symbol"]
+        
+        # Extract base name for logging
+        base_name = symbol.split('@')[0] if '@' in symbol else symbol
+        
         # Special handling for known throwing functions
-        # Use extern "C" to get simple unmangled names that match the .def aliases
-        if "AfxThrowMemoryException" in sym:
-             lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ AfxThrowMemoryException(); }}")
-        elif "AfxThrowFileException" in sym:
-             lines.append(f"extern \"C\" void MS_ABI stub_{idx}(int cause, long lOsError, const wchar_t* lpszFileName) {{ AfxThrowFileException(cause, lOsError, lpszFileName); }}")
+        if "AfxThrowMemoryException" in symbol:
+             lines.append(f'extern "C" void MS_ABI {symbol}() {{ AfxThrowMemoryException(); }}')
+        elif "AfxThrowFileException" in symbol:
+             lines.append(f'extern "C" void MS_ABI {symbol}(int cause, long lOsError, const wchar_t* lpszFileName) {{ AfxThrowFileException(cause, lOsError, lpszFileName); }}')
         else:
-             lines.append(f"extern \"C\" void MS_ABI stub_{idx}() {{ std::fprintf(stderr, \"Not Implemented: {sym}\\n\"); }}")
+             # Generic stub for unknown functions
+             lines.append(f'extern "C" void MS_ABI {symbol}() {{ std::fprintf(stderr, "Not Implemented: {base_name}\\n"); }}')
 
     lines.append("")
     return "\n".join(lines)
@@ -73,22 +75,30 @@ def main():
     ap.add_argument("--out-stubs", required=True)
     args = ap.parse_args()
 
+    # Load database
     db: Dict = json.loads(Path(args.db).read_text())
-    exports: List[str] = []
-    for dll, entries in db.get("exports", {}).items():
+    
+    # Get MFC entries
+    entries: List[Dict[str, Any]] = []
+    for dll, dll_entries in db.get("exports", {}).items():
         if dll != "mfc140u":
             continue
-        for ent in entries:
-            sym = ent["symbol"] if isinstance(ent, dict) else ent
-            if is_ansi(sym):
-                continue
-            exports.append(sym)
-
-    exports = sorted({sym for sym in exports if not sym.startswith("[")})
-    if not exports:
-        exports = ["?AfxThrowMemoryException@@YAXXZ", "?AfxThrowFileException@@YAXW4__unnamed@0@Z"]
-    Path(args.out_def).write_text(emit_def(exports), encoding="ascii")
-    Path(args.out_stubs).write_text(emit_stubs(exports), encoding="ascii")
+        entries.extend(dll_entries)
+    
+    # If no entries, create minimal test set
+    if not entries:
+        entries = [
+            {"symbol": "?AfxThrowMemoryException@@YAXXZ", "ordinal": 0},
+            {"symbol": "?AfxThrowFileException@@YAXHJPB_W@Z", "ordinal": 1},
+            {"symbol": "?AfxGetApp@@YAPAVCWinApp@@XZ", "ordinal": 2},
+            {"symbol": "?AfxGetMainWnd@@YAPAVCWnd@@XZ", "ordinal": 3},
+            {"symbol": "?AfxWinInit@@YAHPAUHINSTANCE__@@0PA_WH@Z", "ordinal": 4},
+        ]
+    
+    Path(args.out_def).write_text(emit_def(entries), encoding="ascii")
+    Path(args.out_stubs).write_text(emit_stubs(entries), encoding="ascii")
+    
+    print(f"Generated {len(entries)} exports starting at ordinal 256")
 
 
 if __name__ == "__main__":

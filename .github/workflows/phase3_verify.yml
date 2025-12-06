@@ -33,8 +33,6 @@ jobs:
             /I generated/include /I include ^
             generated/src/stubs.cpp ^
             generated/src/generated_rtti.c ^
-            src/mfc/exceptions.c ^
-            src/mfc/afxmem.cpp ^
             /Fe:openmfc.dll ^
             /link /DEF:generated/openmfc.def
       
@@ -51,7 +49,7 @@ jobs:
       - name: Run test application
         shell: pwsh
         run: |
-          $output = & .\\test_app.exe 2>&1 | Out-String
+          $output = & .\test_app.exe 2>&1 | Out-String
           Write-Host $output
           if ($output -match "Not Implemented") {
             Write-Host "SUCCESS: Controlled failure detected"
