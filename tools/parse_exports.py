@@ -91,8 +91,12 @@ def main() -> None:
         if symbols:
             for idx, symbol in enumerate(symbols):
                 entry = {
-                    "ordinal": idx,  # We don't have real ordinals, use index
                     "symbol": symbol,
+                    # IMPORTANT: We DON'T know the real ordinal!
+                    # The JSON ordinal field is just an array index, not the real MFC ordinal
+                    # Real ordinals start at 256, not 0
+                    "ordinal_guess": idx,  # This is WRONG - just for testing
+                    "ordinal_real": None,  # We need to extract real ordinals from .lib file
                 }
                 if symbol in demap:
                     entry["demangled"] = demap[symbol]

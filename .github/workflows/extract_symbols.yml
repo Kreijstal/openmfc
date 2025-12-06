@@ -69,9 +69,18 @@ jobs:
           Write-Host "Dumping symbols from: $libPath"
           & dumpbin /nologo /SYMBOLS $libPath | Out-File -FilePath artifacts/mfc_lib_symbols.txt -Encoding ASCII
 
+          # Also dump archive members to get import thunks
+          & dumpbin /nologo /ARCHIVEMEMBERS $libPath | Out-File -FilePath artifacts/mfc_lib_members.txt -Encoding ASCII
+
+          # Dump ALL information from .lib file
+          & dumpbin /nologo /ALL $libPath | Out-File -FilePath artifacts/mfc_lib_all.txt -Encoding ASCII
+
           # Also dump exports from DLL for reference (will show ordinals only)
           $dllPath = '${{ steps.locate.outputs.mfc_dll }}'
           & dumpbin /nologo /exports $dllPath | Out-File -FilePath artifacts/mfc.exports -Encoding ASCII
+
+          # Copy the actual .lib file for offline analysis
+          Copy-Item $libPath artifacts/mfc140u.lib
 
       - name: Extract and demangle symbol names
         shell: pwsh
