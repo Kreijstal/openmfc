@@ -55,8 +55,9 @@ python3 "$ROOT/tools/gen_stubs.py" \
 # Generate RTTI stubs
 echo "Generating RTTI stubs..."
 python3 "$ROOT/tools/gen_rtti.py" \
-    --db "$ROOT/mfc_db.json" \
-    --out "$BUILD/generated_rtti.c"
+    --exceptions "$ROOT/exceptions.json" \
+    --out-c "$BUILD/generated_rtti.c" \
+    --out-h "$BUILD/generated_rtti.h"
 
 # Compile stubs only (no real implementations)
 echo "Compiling stubs..."
