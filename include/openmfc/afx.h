@@ -19,6 +19,12 @@
     #error "OpenMFC is Windows-only. Must build with MinGW or MSVC."
 #endif
 
+// OpenMFC is a Windows MFC compatibility layer
+// It requires Windows or MinGW cross-compilation
+#if !defined(_WIN32) && !defined(__MINGW32__)
+    #error "OpenMFC requires Windows or MinGW cross-compilation. Cannot build on this platform."
+#endif
+
 #include <windows.h>
 
 // Calling convention macros for cross-platform
