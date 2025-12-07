@@ -54,10 +54,14 @@ python3 "$ROOT/tools/gen_stubs.py" \
 
 # Generate RTTI stubs
 echo "Generating RTTI stubs..."
+mkdir -p "$BUILD/include/openmfc"
 python3 "$ROOT/tools/gen_rtti.py" \
     --exceptions "$ROOT/exceptions.json" \
     --out-c "$BUILD/generated_rtti.c" \
-    --out-h "$BUILD/generated_rtti.h"
+    --out-h "$BUILD/include/openmfc/eh_rtti.h"
+
+# Add generated include directory to compiler flags
+CFLAGS+=(-I"$BUILD/include")
 
 # Compile stubs only (no real implementations)
 echo "Compiling stubs..."
