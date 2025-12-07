@@ -22,11 +22,22 @@
 #include <windows.h>
 
 // Calling convention macros for cross-platform
+// Note: Most MFC global functions use __cdecl, not __stdcall
 #if defined(_MSC_VER) || defined(__MINGW32__)
-    #define AFXAPI __stdcall
+    #define AFXAPI __cdecl
 #else
     #define AFXAPI
 #endif
+
+// DLL import/export macros
+#ifdef OPENMFC_EXPORTS
+    #define AFX_IMPORT __declspec(dllexport)
+#else
+    #define AFX_IMPORT __declspec(dllimport)
+#endif
+
+// For functions that are always imported from MFC DLL
+#define AFX_IMPORT_FUNC AFX_IMPORT AFXAPI
 
 #ifndef FALSE
 #define FALSE 0
