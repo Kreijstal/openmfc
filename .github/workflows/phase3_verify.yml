@@ -19,8 +19,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p artifacts
-          harvest_run=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-          exports_run=$(gh run list --workflow extract_symbols.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          # Get latest successful phase1 run
+          harvest_run=$(gh run list --workflow phase1_harvest.yml --limit 1 --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
+          if [ -z "$harvest_run" ]; then
+            echo "ERROR: No completed phase1_harvest runs found"
+            exit 1
+          fi
+          
+          # Get latest successful extract_symbols run  
+          exports_run=$(gh run list --workflow extract_symbols.yml --limit 1 --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' | head -1)
+          if [ -z "$exports_run" ]; then
+            echo "ERROR: No completed extract_symbols runs found"
+            exit 1
+          fi
+          
           crt_run=$harvest_run
           echo "Using phase1_harvest run ${harvest_run}"
           gh run download "$harvest_run" --name phase1_harvest --dir artifacts/harvest
@@ -41,11 +53,13 @@ jobs:
         run: |
           DLL=build-phase3/openmfc.dll MIN_EXPORTS=100 ./scripts/openmfc_smoke_test.sh
       
-      - name: Upload MinGW DLL
+      - name: Upload MinGW artifacts
         uses: actions/upload-artifact@v5
         with:
-          name: phase3_mingw_dll
-          path: build-phase3/openmfc.dll
+          name: phase3_mingw_artifacts
+          path: |
+            build-phase3/openmfc.dll
+            build-phase3/openmfc.def
           retention-days: 7
 
   verify-on-windows:
@@ -53,6 +67,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+      
+      - name: Download MinGW artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: phase3_mingw_artifacts
+          path: build-phase3
       
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -62,24 +82,21 @@ jobs:
         with:
           python-version: '3.x'
       
-      - name: Generate .def file from mapping
-        shell: bash
-        run: |
-          mkdir -p generated
-          # Use complete ordinal mapping with real ordinals from MFC .lib file
-          python tools/gen_stubs.py --mapping mfc_complete_ordinal_mapping.json --out-def generated/openmfc.def --out-stubs generated/stubs.cpp
-          echo "Generated .def file with $(wc -l < generated/openmfc.def) lines"
-      
-      - name: Download MinGW-built openmfc.dll
-        uses: actions/download-artifact@v6
+      - name: Download MinGW artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: phase3_mingw_dll
+          name: phase3_mingw_artifacts
           path: .
       
-      - name: Generate MSVC import library
-        shell: cmd
+      - name: Generate import library from actual .def file
+        shell: pwsh
         run: |
-          lib /DEF:generated/openmfc.def /OUT:openmfc.lib /MACHINE:X64
+          # Use the actual .def file from the MinGW build
+          # It now has full MSVC-mangled names (fixed truncation issue)
+          lib /DEF:build-phase3/openmfc.def /OUT:openmfc.lib /MACHINE:X64
+          
+          echo "Created import library from: build-phase3/openmfc.def"
+          echo "DLL exports MSVC-mangled names, import library should match"
       
       - name: Build test application
         shell: cmd
