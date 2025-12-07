@@ -66,9 +66,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p generated
-          # Use our ordinal mapping file (has placeholder ordinals)
-          # Note: Real ordinals would come from MFC .lib file analysis
-          python tools/gen_stubs.py --mapping mfc_ordinal_mapping.json --out-def generated/openmfc.def --out-stubs generated/stubs.cpp
+          # Use complete ordinal mapping with real ordinals from MFC .lib file
+          python tools/gen_stubs.py --mapping mfc_complete_ordinal_mapping.json --out-def generated/openmfc.def --out-stubs generated/stubs.cpp
           echo "Generated .def file with $(wc -l < generated/openmfc.def) lines"
       
       - name: Download MinGW-built openmfc.dll
