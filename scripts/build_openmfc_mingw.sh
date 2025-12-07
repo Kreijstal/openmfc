@@ -51,9 +51,15 @@ if [ ! -f "$EXC" ]; then
   fi
 fi
 
-# Use mapping file if available, otherwise fall back to database
-if [ -f "$MAPPING" ]; then
-    echo "Using ordinal mapping from $MAPPING"
+# Use COMPLETE ordinal mapping if available, otherwise REAL mapping, otherwise guessed
+if [ -f "$ROOT/mfc_complete_ordinal_mapping.json" ]; then
+    echo "🔥 Using COMPLETE ordinals from mfc_complete_ordinal_mapping.json (14,109 symbols)"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$ROOT/mfc_complete_ordinal_mapping.json" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+elif [ -f "$ROOT/mfc_real_ordinal_mapping.json" ]; then
+    echo "🔥 Using REAL ordinals from mfc_real_ordinal_mapping.json"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$ROOT/mfc_real_ordinal_mapping.json" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+elif [ -f "$MAPPING" ]; then
+    echo "⚠️  Using GUESSED ordinals from $MAPPING (WRONG for ABI compatibility!)"
     "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$MAPPING" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
 else
     echo "WARNING: No mapping file found, using legacy database (ordinals will be wrong)"
@@ -79,7 +85,14 @@ fi
 
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/stubs.cpp" -o "$BUILD/stubs.o"
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
+# Compile C wrappers if they exist
+if [ -f "$ROOT/src/mfc_c_wrappers_minimal.cpp" ]; then
+    "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc_c_wrappers_minimal.cpp" -o "$BUILD/mfc_c_wrappers_minimal.o"
+    C_WRAPPER_OBJS="$BUILD/mfc_c_wrappers_minimal.o"
+else
+    C_WRAPPER_OBJS=""
+fi
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" $C_WRAPPER_OBJS "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"
