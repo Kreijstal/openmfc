@@ -39,13 +39,13 @@ jobs:
       
       - name: Smoke test
         run: |
-          DLL=build/openmfc.dll MIN_EXPORTS=100 ./scripts/openmfc_smoke_test.sh
+          DLL=build-phase3/openmfc.dll MIN_EXPORTS=100 ./scripts/openmfc_smoke_test.sh
       
       - name: Upload MinGW DLL
         uses: actions/upload-artifact@v5
         with:
           name: phase3_mingw_dll
-          path: build/openmfc.dll
+          path: build-phase3/openmfc.dll
           retention-days: 7
 
   verify-on-windows:
