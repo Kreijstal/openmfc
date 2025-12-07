@@ -35,7 +35,7 @@ jobs:
       
       - name: Build openmfc.dll (stubs + RTTI)
         run: |
-          ./scripts/build_openmfc_mingw.sh
+          ./phase3/scripts/build_phase3.sh
       
       - name: Smoke test
         run: |
