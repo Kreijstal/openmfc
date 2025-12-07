@@ -85,14 +85,9 @@ fi
 
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/stubs.cpp" -o "$BUILD/stubs.o"
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
-# Compile C wrappers if they exist
-if [ -f "$ROOT/src/mfc_c_wrappers_minimal.cpp" ]; then
-    "$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc_c_wrappers_minimal.cpp" -o "$BUILD/mfc_c_wrappers_minimal.o"
-    C_WRAPPER_OBJS="$BUILD/mfc_c_wrappers_minimal.o"
-else
-    C_WRAPPER_OBJS=""
-fi
+# Compile strcore.cpp with OPENMFC_BUILDING_DLL defined
+"$CXX" "${CFLAGS[@]}" -DOPENMFC_BUILDING_DLL -c "$ROOT/src/mfc/strcore.cpp" -o "$BUILD/strcore.o"
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" $C_WRAPPER_OBJS "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/strcore.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"

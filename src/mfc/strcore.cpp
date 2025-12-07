@@ -3,6 +3,12 @@
 #include <cstdio>
 #include <vector>
 
+// Define OPENMFC_EXPORTS when building the DLL
+// This ensures functions are exported with __declspec(dllexport)
+#ifdef OPENMFC_BUILDING_DLL
+#define OPENMFC_EXPORTS
+#endif
+
 // Windows API for LoadString
 #ifdef _WIN32
     #include <windows.h>
