@@ -129,3 +129,45 @@ cl /nologo /EHsc /MD test_msvc_app.cpp openmfc.lib /Fe:test_app.exe
 Then MSVC's linker found all the mangled symbols it needed in `openmfc.lib`, which means our .def file exports the correct MSVC-mangled names.
 
 The runtime execution is just a bonus to verify the stubs are actually callable.
+
+## MFC Smoke Test Results
+
+We run an MFC smoke test using real `#include <afx.h>` headers with CString:
+
+```cpp
+CString s1("Hello");
+CString s2(L"World");
+CString s3(s1);
+CString s4 = s1 + L" " + s2;
+int len = s4.GetLength();
+```
+
+**Actual output (CI run 2025-12-08):**
+
+```
+=== OpenMFC MFC Smoke Test ===
+
+Link test PASSED: MSVC resolved all MFC imports.
+
+Testing CString...
+  CString s1("Hello") - constructed
+  CString s2(L"World") - constructed
+  CString s3(s1) - copy constructed
+  CString s4 = s1 + L" " + s2 - concatenated
+  s4.GetLength() = 11
+
+=== All tests passed ===
+OpenMFC successfully linked with real MFC headers.
+
+Exit code: 0
+```
+
+**Why it didn't crash:**
+
+CStringT is a template class with **inline implementations** in the headers. Basic operations like constructors, `GetLength()`, `operator+` are all inline - they don't call into the DLL. The DLL exports are only for non-inline functions like:
+- String formatting (`Format`, `FormatV`)
+- Resource loading (`LoadString`)
+- Serialization
+- OLE/COM interop
+
+This means much of CString "just works" even with hollow stubs, because the actual implementation lives in the headers, not the DLL.
