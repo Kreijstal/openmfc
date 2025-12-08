@@ -1,0 +1,119 @@
+name: Phase 4 - MSVC Linking Test
+
+on:
+  push:
+    branches: [phase4-*, master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-phase4-mingw:
+    runs-on: ubuntu-latest
+    outputs:
+      dll-artifact: ${{ steps.upload.outputs.artifact-name }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install MinGW
+      run: sudo apt-get update && sudo apt-get install -y mingw-w64
+    
+    - name: Build Phase 4
+      run: |
+        ./phase4/scripts/build_phase4.sh
+        ls -la build-phase4/
+    
+    - name: Upload Phase 4 artifacts
+      id: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase4-openmfc
+        path: |
+          build-phase4/openmfc.dll
+          build-phase4/openmfc.def
+          build-phase4/libopenmfc.a
+        retention-days: 7
+  
+  test-msvc-linking:
+    runs-on: windows-latest
+    needs: build-phase4-mingw
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Phase 4 artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: phase4-openmfc
+        path: phase4-artifacts
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    
+    - name: Create MSVC import library
+      shell: cmd
+      run: |
+        echo Creating MSVC import library from .def file...
+        lib /DEF:phase4-artifacts\openmfc.def /OUT:openmfc.lib /MACHINE:X64
+        if %ERRORLEVEL% neq 0 (
+          echo Failed to create MSVC import library
+          exit /b 1
+        )
+        echo Successfully created openmfc.lib
+    
+    - name: Build MSVC test app
+      shell: cmd
+      run: |
+        echo Building MSVC test application...
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib
+        if %ERRORLEVEL% neq 0 (
+          echo Failed to build MSVC test app
+          exit /b 1
+        )
+        echo Successfully built test_msvc_linking.exe
+    
+    - name: Run MSVC linking test
+      shell: pwsh
+      run: |
+        echo "Running MSVC linking test..."
+        Copy-Item phase4-artifacts\openmfc.dll .
+        
+        $output = & .\test_msvc_linking.exe 2>&1 | Out-String
+        Write-Host $output
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✅ MSVC linking test passed!"
+        } else {
+          Write-Host "❌ MSVC linking test failed"
+          exit 1
+        }
+    
+    - name: Run comprehensive test
+      shell: pwsh
+      run: |
+        echo "Running comprehensive test..."
+        # Build comprehensive test with MinGW (cross-compile on Windows)
+        # First install MinGW on Windows runner
+        choco install mingw -y
+        
+        # Build the test
+        g++ -o test_comprehensive.exe test_comprehensive.cpp -Lphase4-artifacts -lopenmfc
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Failed to build comprehensive test"
+          exit 1
+        }
+        
+        # Run the test
+        $output = & .\test_comprehensive.exe 2>&1 | Out-String
+        Write-Host $output
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✅ Comprehensive test passed!"
+        } else {
+          Write-Host "❌ Comprehensive test failed"
+          exit 1
+        }
