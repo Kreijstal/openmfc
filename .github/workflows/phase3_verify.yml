@@ -87,12 +87,18 @@ jobs:
           echo "Created import library from: build-phase3/openmfc.def"
           echo "DLL exports MSVC-mangled names, import library should match"
       
-      - name: Build test application
+      - name: Build basic test application
         shell: cmd
         run: |
           cl /nologo /EHsc /MD tests/test_msvc_app.cpp openmfc.lib /Fe:test_app.exe
 
-      - name: Run test application
+      - name: Build MFC smoke test (uses real afx.h headers)
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /D_AFXDLL tests/test_mfc_smoke.cpp openmfc.lib /Fe:test_mfc_smoke.exe
+          echo MFC smoke test linked successfully - all CString symbols resolved
+
+      - name: Run basic test application
         shell: pwsh
         run: |
           # Copy DLL to current directory so LoadLibrary can find it
