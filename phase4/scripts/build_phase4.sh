@@ -50,7 +50,7 @@ echo ""
 echo "[1/4] Generating weak stubs..."
 
 # Symbols to exclude (already implemented)
-EXCLUDED_SYMBOLS="?AfxThrowMemoryException@@YAXXZ,?AfxThrowFileException@@YAXHJPB_W@Z,?AfxThrowResourceException@@YAXXZ,?AfxThrowNotSupportedException@@YAXXZ,?AfxThrowUserException@@YAXXZ,?AfxThrowInvalidArgException@@YAXXZ,?AfxAbort@@YAXXZ"
+EXCLUDED_SYMBOLS="?AfxThrowMemoryException@@YAXXZ,?AfxThrowFileException@@YAXHJPB_W@Z,?AfxThrowResourceException@@YAXXZ,?AfxThrowNotSupportedException@@YAXXZ,?AfxThrowUserException@@YAXXZ,?AfxThrowInvalidArgException@@YAXXZ,?AfxAbort@@YAXXZ,?AfxGetDllVersion@@YAKXZ"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -75,6 +75,7 @@ echo "[3/4] Compiling..."
 # Compile implementation files
 IMPL_SOURCES=(
     "$ROOT/phase4/src/exceptions_impl.cpp"
+    "$ROOT/phase4/src/version_impl.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -117,6 +118,7 @@ done
 echo "  Linking with ${#OBJ_FILES[@]} object files"
 "$CXX" \
     "${OBJ_FILES[@]}" \
+    "$BUILD/openmfc.def" \
     "${LDFLAGS[@]}" \
     -o "$BUILD/openmfc.dll"
 
