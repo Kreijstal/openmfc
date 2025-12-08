@@ -98,6 +98,18 @@ jobs:
           cl /nologo /EHsc /MD /D_AFXDLL tests/test_mfc_smoke.cpp openmfc.lib /Fe:test_mfc_smoke.exe
           echo MFC smoke test linked successfully - all CString symbols resolved
 
+      - name: Run MFC smoke test (expect crash - stubs not implemented)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Write-Host "Running MFC smoke test (stubs print 'Not Implemented' and return garbage)..."
+          Write-Host "This test documents what happens when real MFC code calls our hollow stubs."
+          Write-Host ""
+          $output = & .\test_mfc_smoke.exe 2>&1 | Out-String
+          Write-Host $output
+          Write-Host ""
+          Write-Host "Exit code: $LASTEXITCODE"
+
       - name: Run basic test application
         shell: pwsh
         run: |
