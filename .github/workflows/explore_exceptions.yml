@@ -7,6 +7,7 @@ on:
       - 'phase4/tests/test_cxx_throw_exploration.cpp'
       - 'phase4/tests/test_exception_catch.cpp'
       - 'phase4/tests/test_exception_simple.cpp'
+      - 'phase4/tests/test_exception_typed.cpp'
       - 'phase4/src/mfc_exceptions.cpp'
       - '.github/workflows/explore_exceptions.yml'
 
@@ -77,6 +78,34 @@ jobs:
             "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
             Write-Host "SIMPLE TEST FAILED: Exit code $LASTEXITCODE" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build typed exception test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /FA phase4\tests\test_exception_typed.cpp openmfc.lib /Fe:test_exception_typed.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run typed exception test (catch CMemoryException*)
+        shell: pwsh
+        id: typed_test
+        run: |
+          Write-Host "=== Running Typed Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing type-specific catch(CMemoryException*)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_typed.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "SUCCESS: Caught CMemoryException") {
+            Write-Host "TYPED TEST PASSED: Type-specific catching works!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "PARTIAL") {
+            Write-Host "TYPED TEST PARTIAL: Type matching failed, fell through to catch(...)" -ForegroundColor Yellow
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "TYPED TEST FAILED or CRASHED" -ForegroundColor Red
             "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
