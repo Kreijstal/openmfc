@@ -141,53 +141,56 @@ static const void* GetTypeInfoVFTable() {
 // These must be in a section that persists (static storage)
 // The RVAs are computed at runtime
 
-// Type descriptors
+// Type descriptors for pointer types
+// When throwing a pointer (CMemoryException*), we need .PEAV prefix
+// .PEAV = Pointer to class type (E=__ptr64 on x64, A=no cv-qualifiers, V=class)
 static struct {
     const void* pVFTable;
     void* spare;
-    char name[24];  // .?AVCMemoryException@@\0
-} TD_CMemoryException = { nullptr, nullptr, ".?AVCMemoryException@@" };
+    char name[28];  // .PEAVCMemoryException@@\0
+} TD_CMemoryException = { nullptr, nullptr, ".PEAVCMemoryException@@" };
 
 static struct {
     const void* pVFTable;
     void* spare;
-    char name[20];  // .?AVCException@@\0
-} TD_CException = { nullptr, nullptr, ".?AVCException@@" };
+    char name[24];  // .PEAVCException@@\0
+} TD_CException = { nullptr, nullptr, ".PEAVCException@@" };
 
 static struct {
     const void* pVFTable;
     void* spare;
-    char name[16];  // .?AVCObject@@\0
-} TD_CObject = { nullptr, nullptr, ".?AVCObject@@" };
+    char name[20];  // .PEAVCObject@@\0
+} TD_CObject = { nullptr, nullptr, ".PEAVCObject@@" };
 
-// Catchable types
+// Catchable types for pointer types
+// For pointers, size is sizeof(void*) = 8 on x64
 static CatchableType CT_CMemoryException = {
-    0,              // properties: simple type
+    1,              // properties: 1 = simple type (pointer)
     0,              // pType: RVA to TD_CMemoryException (set at runtime)
     0,              // mdisp
     -1,             // pdisp
     0,              // vdisp
-    16,             // size (sizeof CMemoryException - just vptr + m_bAutoDelete)
+    8,              // size: sizeof(CMemoryException*) = 8 on x64
     0               // copyFunction: 0 = memcpy
 };
 
 static CatchableType CT_CException = {
-    0,              // properties
+    1,              // properties: 1 = simple type (pointer)
     0,              // pType: RVA to TD_CException (set at runtime)
     0,              // mdisp
     -1,             // pdisp
     0,              // vdisp
-    16,             // size
+    8,              // size: sizeof(CException*) = 8 on x64
     0               // copyFunction
 };
 
 static CatchableType CT_CObject = {
-    0,              // properties
+    1,              // properties: 1 = simple type (pointer)
     0,              // pType: RVA to TD_CObject (set at runtime)
     0,              // mdisp
     -1,             // pdisp
     0,              // vdisp
-    8,              // size (just vptr)
+    8,              // size: sizeof(CObject*) = 8 on x64
     0               // copyFunction
 };
 
@@ -294,7 +297,11 @@ static void InitRTTI() {
 // =============================================================================
 
 // Static exception object (MFC often uses a single static instance)
-static CMemoryExceptionData g_memoryException = { VFTable_CMemoryException, 0 };
+static CMemoryExceptionData g_memoryExceptionObject = { VFTable_CMemoryException, 0 };
+
+// Pointer to the exception object - this is what we actually throw
+// When throwing a pointer type, the exception object IS the pointer value
+static CMemoryExceptionData* g_pMemoryException = &g_memoryExceptionObject;
 
 extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
     if (!InitExceptionThrowing()) {
@@ -305,11 +312,15 @@ extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
     InitRTTI();
 
     // Set up the exception object
-    g_memoryException.vptr = VFTable_CMemoryException;
-    g_memoryException.m_bAutoDelete = 0;  // Don't auto-delete static object
+    g_memoryExceptionObject.vptr = VFTable_CMemoryException;
+    g_memoryExceptionObject.m_bAutoDelete = 0;  // Don't auto-delete static object
+    g_pMemoryException = &g_memoryExceptionObject;
 
-    // Throw!
-    g_pCxxThrowException(&g_memoryException, &TI_CMemoryException);
+    // Throw the pointer!
+    // _CxxThrowException takes:
+    //   - Pointer to the exception object (which is the pointer value itself for pointer types)
+    //   - Pointer to ThrowInfo
+    g_pCxxThrowException(&g_pMemoryException, &TI_CMemoryException);
 
     // Should never reach here
     abort();
