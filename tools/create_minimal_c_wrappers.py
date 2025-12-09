@@ -72,12 +72,25 @@ extern "C" {
             # The stub function name (from stubs.cpp)
             stub_name = f"stub_{func_name}"
             
-            impl_content += f"""
+            # Only generate wrapper if we know the stub exists
+            # For now, only AfxThrowMemoryException and AfxThrowFileException have stubs
+            if func_name in ["AfxThrowMemoryException", "AfxThrowFileException"]:
+                impl_content += f"""
 // Wrapper for {symbol} (ordinal {ordinal})
 void {c_name}(void)
 {{
     extern "C" void {stub_name}(void);
     {stub_name}();
+}}
+"""
+            else:
+                # Create empty stub for now
+                impl_content += f"""
+// Wrapper stub for {symbol} (ordinal {ordinal})
+// TODO: Implement {func_name}
+void {c_name}(void)
+{{
+    // Stub implementation
 }}
 """
         else:

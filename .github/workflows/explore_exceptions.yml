@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'tests/test_cxx_throw_exploration.cpp'
+      - 'phase4/tests/test_cxx_throw_exploration.cpp'
       - 'phase4/tests/test_exception_catch.cpp'
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         shell: cmd
         run: |
           mkdir build-explore
-          cl /nologo /EHsc /MD /FA /Fabuild-explore\ tests\test_cxx_throw_exploration.cpp /Fe:build-explore\test_cxx_throw_exploration.exe
+          cl /nologo /EHsc /MD /FA /Fabuild-explore\ phase4\tests\test_cxx_throw_exploration.cpp /Fe:build-explore\test_cxx_throw_exploration.exe
           if %ERRORLEVEL% neq 0 exit /b 1
           echo Build successful
 

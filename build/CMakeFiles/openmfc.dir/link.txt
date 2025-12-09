@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,-soname,libopenmfc.so -o lib/libopenmfc.so CMakeFiles/openmfc.dir/generated/src/stubs.cpp.o CMakeFiles/openmfc.dir/generated/src/generated_rtti.c.o CMakeFiles/openmfc.dir/src/mfc/exceptions.c.o CMakeFiles/openmfc.dir/src/mfc/afxmem.cpp.o 

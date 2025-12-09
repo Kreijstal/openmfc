@@ -1,0 +1,26 @@
+{
+  "CObject": {
+    "sizeof": 8,
+    "members": {}
+  },
+  "CException": {
+    "sizeof": 16,
+    "members": {}
+  },
+  "CMemoryException": {
+    "sizeof": 160,
+    "members": {}
+  },
+  "CFileException": {
+    "sizeof": 32,
+    "members": {}
+  },
+  "CWnd": {
+    "sizeof": 232,
+    "members": {"m_hWnd": 64}
+  },
+  "CWinApp": {
+    "sizeof": 376,
+    "members": {}
+  }
+}

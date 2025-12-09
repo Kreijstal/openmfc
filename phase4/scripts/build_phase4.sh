@@ -134,3 +134,10 @@ echo "Verifying ABI exports..."
 python3 "$ROOT/scripts/verify_abi_exports.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --dll "$BUILD/openmfc.dll"
+
+# Run comprehensive safety check
+echo ""
+echo "Running comprehensive ABI safety check..."
+"$ROOT/scripts/phase4_safety_check.sh"
+
+

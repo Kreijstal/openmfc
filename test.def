@@ -1,0 +1,7 @@
+LIBRARY test
+EXPORTS
+    ; Mangled export (for ABI compatibility)
+    ?AfxThrowMemoryException@@YAXXZ @2350
+    
+    ; Unmangled alias (for MSVC linking)
+    AfxThrowMemoryException=?AfxThrowMemoryException@@YAXXZ @2351

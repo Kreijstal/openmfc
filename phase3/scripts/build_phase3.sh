@@ -42,7 +42,7 @@ LDFLAGS=(
     -Wl,--enable-auto-import
     -Wl,--whole-archive
     -Wl,--no-whole-archive
-    -Wl,--output-def,"$BUILD/openmfc.def"
+    -Wl,"$BUILD/openmfc.def"
 )
 
 # Generate stubs and .def file using complete ordinal mapping
