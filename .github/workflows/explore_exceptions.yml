@@ -6,7 +6,9 @@ on:
     paths:
       - 'phase4/tests/test_cxx_throw_exploration.cpp'
       - 'phase4/tests/test_exception_catch.cpp'
+      - 'phase4/tests/test_exception_simple.cpp'
       - 'phase4/src/mfc_exceptions.cpp'
+      - '.github/workflows/explore_exceptions.yml'
 
 jobs:
   # Job 1: Build DLL with MinGW on Linux
@@ -52,6 +54,31 @@ jobs:
         shell: cmd
         run: |
           lib /DEF:openmfc.def /OUT:openmfc.lib /MACHINE:X64
+
+      - name: Build simple exception test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD phase4\tests\test_exception_simple.cpp openmfc.lib /Fe:test_exception_simple.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run simple exception test (catch ...)
+        shell: pwsh
+        id: simple_test
+        run: |
+          Write-Host "=== Running Simple Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing basic exception throwing with catch(...)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_simple.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "SIMPLE TEST PASSED: Basic exception throwing works!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "SIMPLE TEST FAILED: Exit code $LASTEXITCODE" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
 
       - name: Build exception catch test
         shell: cmd
