@@ -1,0 +1,55 @@
+name: Explore MSVC Exceptions
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tests/test_cxx_throw_exploration.cpp'
+      - 'phase4/tests/test_exception_catch.cpp'
+
+jobs:
+  explore-exceptions:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build exploration test
+        shell: cmd
+        run: |
+          mkdir build-explore
+          cl /nologo /EHsc /MD /FA /Fabuild-explore\ tests\test_cxx_throw_exploration.cpp /Fe:build-explore\test_cxx_throw_exploration.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run exploration test
+        shell: pwsh
+        run: |
+          Write-Host "=== Running Exception Exploration Test ===" -ForegroundColor Cyan
+          $output = & .\build-explore\test_cxx_throw_exploration.exe 2>&1 | Out-String
+          Write-Host $output
+          Write-Host "=== Test Complete ===" -ForegroundColor Cyan
+
+      - name: Show generated assembly
+        shell: pwsh
+        run: |
+          Write-Host "=== Assembly listing (throw-related sections) ===" -ForegroundColor Cyan
+          if (Test-Path build-explore\test_cxx_throw_exploration.asm) {
+            # Show sections related to exception handling
+            Get-Content build-explore\test_cxx_throw_exploration.asm |
+              Select-String -Pattern "_CxxThrowException|ThrowInfo|CatchableType|type_info" -Context 3,3
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: exception-exploration
+          path: |
+            build-explore/*.exe
+            build-explore/*.asm
+            build-explore/*.obj
+          retention-days: 7
