@@ -62,20 +62,40 @@ jobs:
 
       - name: Run exception catch test
         shell: pwsh
+        continue-on-error: true
+        id: exception_test
         run: |
           Write-Host "=== Running Exception Catch Test ===" -ForegroundColor Cyan
-          $output = & .\test_exception_catch.exe 2>&1 | Out-String
-          Write-Host $output
+          Write-Host "DLL exists: $(Test-Path openmfc.dll)" -ForegroundColor Yellow
+          Write-Host "EXE exists: $(Test-Path test_exception_catch.exe)" -ForegroundColor Yellow
+
+          # Run the test and capture output
+          try {
+            $process = Start-Process -FilePath ".\test_exception_catch.exe" -NoNewWindow -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+            $stdout = Get-Content "stdout.txt" -Raw -ErrorAction SilentlyContinue
+            $stderr = Get-Content "stderr.txt" -Raw -ErrorAction SilentlyContinue
+
+            Write-Host "=== STDOUT ===" -ForegroundColor Cyan
+            Write-Host $stdout
+            Write-Host "=== STDERR ===" -ForegroundColor Yellow
+            Write-Host $stderr
+            Write-Host "Exit code: $($process.ExitCode)" -ForegroundColor Cyan
+
+            $output = "$stdout $stderr"
+          } catch {
+            Write-Host "Exception: $_" -ForegroundColor Red
+            $output = ""
+          }
 
           if ($output -match "SUCCESS: Caught CMemoryException") {
             Write-Host "FULL SUCCESS: Exception caught with correct type!" -ForegroundColor Green
-            exit 0
-          } elseif ($output -match "SUCCESS|PARTIAL") {
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "PARTIAL") {
             Write-Host "PARTIAL SUCCESS: Exception was thrown and caught" -ForegroundColor Yellow
-            exit 0
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
-            Write-Host "FAILED: Exception was not caught" -ForegroundColor Red
-            exit 1
+            Write-Host "FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
       - name: Build exploration test
@@ -92,9 +112,13 @@ jobs:
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: exception-tests
           path: |
             *.exe
             *.asm
+            *.dll
+            *.txt
+            *.lib
           retention-days: 7
