@@ -122,16 +122,64 @@ static bool InitExceptionThrowing() {
 
 // We need a pointer to type_info's vftable. This is tricky because we're
 // building with MinGW. We can get it from an existing type_info in vcruntime.
+
+// Dummy type_info vftable - just needs to be non-null
+// MSVC's exception handler might just check for non-null and then
+// directly access the type name string at offset 16
+static void* MS_ABI dummy_type_info_destructor(void* p) { return p; }
+static int MS_ABI dummy_type_info_eq(void*, void*) { return 0; }
+static int MS_ABI dummy_type_info_ne(void*, void*) { return 1; }
+static const char* MS_ABI dummy_type_info_name(void*) { return "dummy"; }
+
+// type_info vftable layout (from MSVC):
+// [0] destructor
+// [1] operator==
+// [2] operator!=
+// [3] before
+// [4] hash_code
+// [5] name
+// [6] raw_name
+static void* g_dummyTypeInfoVFTable[] = {
+    (void*)dummy_type_info_destructor,
+    (void*)dummy_type_info_eq,
+    (void*)dummy_type_info_ne,
+    nullptr,  // before - not typically called
+    nullptr,  // hash_code
+    (void*)dummy_type_info_name,
+    nullptr,  // raw_name - accessed directly
+};
+
+// Try to get vftable from runtime DLLs, fall back to dummy
 static const void* GetTypeInfoVFTable() {
-    // The type_info vftable is exported as ??_7type_info@@6B@
+    // Try vcruntime140.dll first (primary runtime)
     if (!g_hVCRuntime) {
         g_hVCRuntime = LoadLibraryA("vcruntime140.dll");
     }
     if (g_hVCRuntime) {
+        // Try the decorated name
         void* vftable = (void*)GetProcAddress(g_hVCRuntime, "??_7type_info@@6B@");
         if (vftable) return vftable;
     }
-    return nullptr;
+
+    // Try ucrtbase.dll
+    HMODULE hUCRT = LoadLibraryA("ucrtbase.dll");
+    if (hUCRT) {
+        void* vftable = (void*)GetProcAddress(hUCRT, "??_7type_info@@6B@");
+        if (vftable) return vftable;
+    }
+
+    // Try msvcrt.dll (older runtime, sometimes has it)
+    HMODULE hMSVCRT = LoadLibraryA("msvcrt.dll");
+    if (hMSVCRT) {
+        void* vftable = (void*)GetProcAddress(hMSVCRT, "??_7type_info@@6B@");
+        if (vftable) return vftable;
+    }
+
+    // Fall back to our dummy vftable
+    // This might work because MSVC's type matching uses strcmp on raw_name
+    // which is at a fixed offset in the TypeDescriptor
+    fprintf(stderr, "OpenMFC: Using dummy type_info vftable\n");
+    return &g_dummyTypeInfoVFTable[0];
 }
 
 // =============================================================================
@@ -261,11 +309,8 @@ static bool g_rttiInitialized = false;
 static void InitRTTI() {
     if (g_rttiInitialized) return;
 
+    // GetTypeInfoVFTable now has a fallback, so it always returns non-null
     const void* typeInfoVFT = GetTypeInfoVFTable();
-    if (!typeInfoVFT) {
-        fprintf(stderr, "OpenMFC: Failed to get type_info vftable\n");
-        return;
-    }
 
     // Set vftable pointers in type descriptors
     TD_CMemoryException.pVFTable = typeInfoVFT;
