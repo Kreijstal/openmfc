@@ -101,23 +101,23 @@ LONG WINAPI exception_filter(EXCEPTION_POINTERS* ep) {
         }
     }
 
-    return EXCEPTION_CONTINUE_SEARCH;  // Let C++ handler catch it
+    return EXCEPTION_EXECUTE_HANDLER;  // Handle it in SEH
 }
 
+// Helper function that throws - separated to avoid mixing C++ EH and SEH
+__declspec(noinline) void throw_my_exception() {
+    throw MyException(99, "seh test");
+}
+
+// Use SEH-only in this function (no C++ objects that need unwinding)
 void test_seh_inspection() {
     printf("\n--- Test 3: SEH inspection of C++ exception ---\n");
 
     __try {
-        try {
-            throw MyException(99, "seh test");
-        }
-        catch (...) {
-            printf("Caught in C++ handler\n");
-            throw;  // Re-throw to see it again
-        }
+        throw_my_exception();
     }
     __except (exception_filter(GetExceptionInformation())) {
-        printf("Caught in SEH handler\n");
+        printf("Caught in SEH handler after filter inspection\n");
     }
 }
 
