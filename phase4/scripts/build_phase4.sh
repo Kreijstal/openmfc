@@ -74,7 +74,7 @@ echo "[3/4] Compiling..."
 
 # Compile implementation files
 IMPL_SOURCES=(
-    "$ROOT/phase4/src/exceptions_impl.cpp"
+    "$ROOT/phase4/src/mfc_exceptions.cpp"
     "$ROOT/phase4/src/version_impl.cpp"
     # Add more implementation files here as they are created
 )

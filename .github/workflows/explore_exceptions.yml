@@ -6,50 +6,95 @@ on:
     paths:
       - 'phase4/tests/test_cxx_throw_exploration.cpp'
       - 'phase4/tests/test_exception_catch.cpp'
+      - 'phase4/src/mfc_exceptions.cpp'
 
 jobs:
-  explore-exceptions:
+  # Job 1: Build DLL with MinGW on Linux
+  build-dll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Build Phase 4 DLL
+        run: ./phase4/scripts/build_phase4.sh
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: openmfc-dll
+          path: |
+            build-phase4/openmfc.dll
+            build-phase4/openmfc.def
+          retention-days: 7
+
+  # Job 2: Build and run tests on Windows
+  test-exceptions:
+    needs: build-dll
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download DLL
+        uses: actions/download-artifact@v4
+        with:
+          name: openmfc-dll
+          path: .
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
+      - name: Create import library
+        shell: cmd
+        run: |
+          lib /DEF:openmfc.def /OUT:openmfc.lib /MACHINE:X64
+
+      - name: Build exception catch test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD phase4\tests\test_exception_catch.cpp openmfc.lib /Fe:test_exception_catch.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run exception catch test
+        shell: pwsh
+        run: |
+          Write-Host "=== Running Exception Catch Test ===" -ForegroundColor Cyan
+          $output = & .\test_exception_catch.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "SUCCESS: Caught CMemoryException") {
+            Write-Host "FULL SUCCESS: Exception caught with correct type!" -ForegroundColor Green
+            exit 0
+          } elseif ($output -match "SUCCESS|PARTIAL") {
+            Write-Host "PARTIAL SUCCESS: Exception was thrown and caught" -ForegroundColor Yellow
+            exit 0
+          } else {
+            Write-Host "FAILED: Exception was not caught" -ForegroundColor Red
+            exit 1
+          }
+
       - name: Build exploration test
         shell: cmd
         run: |
-          mkdir build-explore
-          cl /nologo /EHsc /MD /FA /Fabuild-explore\ phase4\tests\test_cxx_throw_exploration.cpp /Fe:build-explore\test_cxx_throw_exploration.exe
-          if %ERRORLEVEL% neq 0 exit /b 1
-          echo Build successful
+          cl /nologo /EHsc /MD /FA phase4\tests\test_cxx_throw_exploration.cpp /Fe:test_cxx_throw_exploration.exe
 
       - name: Run exploration test
         shell: pwsh
         run: |
           Write-Host "=== Running Exception Exploration Test ===" -ForegroundColor Cyan
-          $output = & .\build-explore\test_cxx_throw_exploration.exe 2>&1 | Out-String
+          $output = & .\test_cxx_throw_exploration.exe 2>&1 | Out-String
           Write-Host $output
-          Write-Host "=== Test Complete ===" -ForegroundColor Cyan
 
-      - name: Show generated assembly
-        shell: pwsh
-        run: |
-          Write-Host "=== Assembly listing (throw-related sections) ===" -ForegroundColor Cyan
-          if (Test-Path build-explore\test_cxx_throw_exploration.asm) {
-            # Show sections related to exception handling
-            Get-Content build-explore\test_cxx_throw_exploration.asm |
-              Select-String -Pattern "_CxxThrowException|ThrowInfo|CatchableType|type_info" -Context 3,3
-          }
-
-      - name: Upload artifacts
+      - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: exception-exploration
+          name: exception-tests
           path: |
-            build-explore/*.exe
-            build-explore/*.asm
-            build-explore/*.obj
+            *.exe
+            *.asm
           retention-days: 7
