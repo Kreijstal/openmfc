@@ -31,7 +31,7 @@ jobs:
           BUILD_DIR="$BUILD_DIR" ./phase0b/scripts/build_mingw.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -84,7 +84,7 @@ jobs:
           exit $code
 
       - name: Upload host test artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase0b_host_test
           path: |

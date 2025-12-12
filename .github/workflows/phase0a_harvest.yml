@@ -25,7 +25,7 @@ jobs:
           ./phase0/abi_stress/scripts/build_stress_msvc.ps1
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase0a_msvc_artifacts
           path: phase0/abi_stress/artifacts/
