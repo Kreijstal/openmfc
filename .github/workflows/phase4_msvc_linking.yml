@@ -75,6 +75,17 @@ jobs:
         )
         echo Successfully built test_msvc_linking.exe
     
+    - name: Build Hello World test
+      shell: cmd
+      run: |
+        echo Building Hello World test application...
+        cl.exe /nologo /EHsc /MD /D_AFXDLL /I include /Fe:test_hello_world.exe phase4\tests\test_hello_world.cpp openmfc.lib
+        if %ERRORLEVEL% neq 0 (
+          echo Failed to build Hello World test app
+          exit /b 1
+        )
+        echo Successfully built test_hello_world.exe
+    
     - name: Run MSVC linking test
       shell: pwsh
       run: |
@@ -90,17 +101,6 @@ jobs:
           Write-Host "❌ MSVC linking test failed"
           exit 1
         }
-    
-    - name: Build Hello World test
-      shell: cmd
-      run: |
-        echo Building Hello World test application...
-        cl.exe /nologo /EHsc /MD /D_AFXDLL /I include /Fe:test_hello_world.exe phase4\tests\test_hello_world.cpp openmfc.lib
-        if %ERRORLEVEL% neq 0 (
-          echo Failed to build Hello World test app
-          exit /b 1
-        )
-        echo Successfully built test_hello_world.exe
     
     - name: Run Hello World test
       shell: pwsh

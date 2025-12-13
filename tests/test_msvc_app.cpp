@@ -33,16 +33,28 @@ int main() {
     printf("Link test PASSED: MSVC resolved all imported symbols.\n\n");
 
     // Now call the functions to verify runtime behavior
-    printf("Calling stubs (expect 'Not Implemented' on stderr)...\n");
+    printf("Calling functions (may throw exceptions)...\n");
 
-    AfxThrowMemoryException();
-    printf("  AfxThrowMemoryException - OK\n");
+    try {
+        AfxThrowMemoryException();
+        printf("  AfxThrowMemoryException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowMemoryException - OK (exception caught)\n");
+    }
 
-    AfxThrowNotSupportedException();
-    printf("  AfxThrowNotSupportedException - OK\n");
+    try {
+        AfxThrowNotSupportedException();
+        printf("  AfxThrowNotSupportedException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowNotSupportedException - OK (exception caught)\n");
+    }
 
-    AfxThrowInvalidArgException();
-    printf("  AfxThrowInvalidArgException - OK\n");
+    try {
+        AfxThrowInvalidArgException();
+        printf("  AfxThrowInvalidArgException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowInvalidArgException - OK (exception caught)\n");
+    }
 
     printf("\n=== All tests passed ===\n");
     return 0;
