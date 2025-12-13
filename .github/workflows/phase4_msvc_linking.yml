@@ -91,6 +91,43 @@ jobs:
           exit 1
         }
     
+    - name: Build Hello World test
+      shell: cmd
+      run: |
+        echo Building Hello World test application...
+        cl.exe /nologo /EHsc /MD /D_AFXDLL /I include /Fe:test_hello_world.exe phase4\tests\test_hello_world.cpp openmfc.lib
+        if %ERRORLEVEL% neq 0 (
+          echo Failed to build Hello World test app
+          exit /b 1
+        )
+        echo Successfully built test_hello_world.exe
+    
+    - name: Run Hello World test
+      shell: pwsh
+      run: |
+        echo "Running Hello World test..."
+        Copy-Item phase4-artifacts\openmfc.dll .
+        
+        $output = & .\test_hello_world.exe 2>&1 | Out-String
+        Write-Host $output
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✅ Hello World test passed!"
+        } else {
+          Write-Host "❌ Hello World test failed"
+          exit 1
+        }
+
+    - name: Upload Hello World artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: phase4-hello-world
+        path: |
+          test_hello_world.exe
+          openmfc.dll
+        retention-days: 7
+
     - name: Run comprehensive test
       shell: pwsh
       run: |
