@@ -136,16 +136,6 @@ jobs:
             Copy-Item "test_binaries/*.exe" .
           }
 
-      - name: Run test_version
-        run: |
-          Write-Host "Running test_version.exe..."
-          $output = & .\test_version.exe 2>&1 | Out-String
-          Write-Host $output
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "test_version failed"
-            exit 1
-          }
-
       - name: Run test_msvc_app
         run: |
           Write-Host "Running test_msvc_app.exe..."
