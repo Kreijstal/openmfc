@@ -1047,7 +1047,7 @@ extern CWnd* AFXAPI AfxGetMainWnd();
 extern int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow);
 
 // Exception helpers
-extern AFX_IMPORT_FUNC void AfxThrowMemoryException();
+extern void AFXAPI AfxThrowMemoryException();
 extern void AFXAPI AfxThrowFileException(int cause, long lOsError = -1, const wchar_t* lpszFileName = nullptr);
 extern void AFXAPI AfxThrowInvalidArgException();
 extern void AFXAPI AfxThrowNotSupportedException();

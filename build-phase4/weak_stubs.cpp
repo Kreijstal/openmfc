@@ -1566,32 +1566,8 @@ extern "C" void MS_ABI stub___0CDHtmlElementEventSink__QAA_PAVCDHtmlEventSink__P
     STUB_LOG("??0CDHtmlElementEventSink@@QAA@PAVCDHtmlEventSink@@PAUIDispatch@@@Z");
 }
 
-extern "C" void MS_ABI stub___0CDialog__QAA_IPAVCWnd___Z() {
-    STUB_LOG("??0CDialog@@QAA@IPAVCWnd@@@Z");
-}
-
-extern "C" void MS_ABI stub___0CDialog__QAA_PB_WPAVCWnd___Z() {
-    STUB_LOG("??0CDialog@@QAA@PB_WPAVCWnd@@@Z");
-}
-
-extern "C" void MS_ABI stub___0CDialog__QAA_XZ() {
-    STUB_LOG("??0CDialog@@QAA@XZ");
-}
-
 extern "C" void MS_ABI stub___0CDialogBar__QAA_XZ() {
     STUB_LOG("??0CDialogBar@@QAA@XZ");
-}
-
-extern "C" void MS_ABI stub___0CDialogEx__QAA_IPAVCWnd___Z() {
-    STUB_LOG("??0CDialogEx@@QAA@IPAVCWnd@@@Z");
-}
-
-extern "C" void MS_ABI stub___0CDialogEx__QAA_PB_WPAVCWnd___Z() {
-    STUB_LOG("??0CDialogEx@@QAA@PB_WPAVCWnd@@@Z");
-}
-
-extern "C" void MS_ABI stub___0CDialogEx__QAA_XZ() {
-    STUB_LOG("??0CDialogEx@@QAA@XZ");
 }
 
 extern "C" void MS_ABI stub___0CDialogImpl__IAA_AAVCWnd___Z() {
@@ -1788,10 +1764,6 @@ extern "C" void MS_ABI stub___0CFormView__IAA_PB_W_Z() {
 
 extern "C" void MS_ABI stub___0CFrameImpl__QAA_PAVCFrameWnd___Z() {
     STUB_LOG("??0CFrameImpl@@QAA@PAVCFrameWnd@@@Z");
-}
-
-extern "C" void MS_ABI stub___0CFrameWnd__QAA_XZ() {
-    STUB_LOG("??0CFrameWnd@@QAA@XZ");
 }
 
 extern "C" void MS_ABI stub___0CFrameWndEx__IAA_XZ() {
@@ -3714,10 +3686,6 @@ extern "C" void MS_ABI stub___0CVSListBoxEditCtrl__QAA_XZ() {
     STUB_LOG("??0CVSListBoxEditCtrl@@QAA@XZ");
 }
 
-extern "C" void MS_ABI stub___0CWinApp__QAA_PB_W_Z() {
-    STUB_LOG("??0CWinApp@@QAA@PB_W@Z");
-}
-
 extern "C" void MS_ABI stub___0CWinAppEx__QAA_H_Z() {
     STUB_LOG("??0CWinAppEx@@QAA@H@Z");
 }
@@ -3732,10 +3700,6 @@ extern "C" void MS_ABI stub___0CWindowlessDC__QAA_PAUHDC____AAVCPoint___Z() {
 
 extern "C" void MS_ABI stub___0CWinThread__QAA_P6AIPAX_Z0_Z() {
     STUB_LOG("??0CWinThread@@QAA@P6AIPAX@Z0@Z");
-}
-
-extern "C" void MS_ABI stub___0CWinThread__QAA_XZ() {
-    STUB_LOG("??0CWinThread@@QAA@XZ");
 }
 
 extern "C" void MS_ABI stub___0CWnd__AAA_PAUHWND_____Z() {
@@ -4134,10 +4098,6 @@ extern "C" void MS_ABI stub___1CDHtmlDialog__UAA_XZ() {
     STUB_LOG("??1CDHtmlDialog@@UAA@XZ");
 }
 
-extern "C" void MS_ABI stub___1CDialog__UAA_XZ() {
-    STUB_LOG("??1CDialog@@UAA@XZ");
-}
-
 extern "C" void MS_ABI stub___1CDialogBar__UAA_XZ() {
     STUB_LOG("??1CDialogBar@@UAA@XZ");
 }
@@ -4292,10 +4252,6 @@ extern "C" void MS_ABI stub___1CFormView__UAA_XZ() {
 
 extern "C" void MS_ABI stub___1CFrameImpl__UAA_XZ() {
     STUB_LOG("??1CFrameImpl@@UAA@XZ");
-}
-
-extern "C" void MS_ABI stub___1CFrameWnd__UAA_XZ() {
-    STUB_LOG("??1CFrameWnd@@UAA@XZ");
 }
 
 extern "C" void MS_ABI stub___1CFrameWndEx__MAA_XZ() {
@@ -5578,20 +5534,12 @@ extern "C" void MS_ABI stub___1CVSListBoxEditCtrl__UAA_XZ() {
     STUB_LOG("??1CVSListBoxEditCtrl@@UAA@XZ");
 }
 
-extern "C" void MS_ABI stub___1CWinApp__UAA_XZ() {
-    STUB_LOG("??1CWinApp@@UAA@XZ");
-}
-
 extern "C" void MS_ABI stub___1CWinAppEx__UAA_XZ() {
     STUB_LOG("??1CWinAppEx@@UAA@XZ");
 }
 
 extern "C" void MS_ABI stub___1CWindowDC__UAA_XZ() {
     STUB_LOG("??1CWindowDC@@UAA@XZ");
-}
-
-extern "C" void MS_ABI stub___1CWinThread__UAA_XZ() {
-    STUB_LOG("??1CWinThread@@UAA@XZ");
 }
 
 extern "C" void MS_ABI stub___1CWnd__UAA_XZ() {
@@ -9129,11 +9077,6 @@ extern "C" int MS_ABI stub__AfxWinInit__YAHPAUHINSTANCE____0PA_WH_Z() {
     return 0;
 }
 
-extern "C" int MS_ABI stub__AfxWinMain__YAHPAUHINSTANCE____0PA_WH_Z() {
-    STUB_LOG("?AfxWinMain@@YAHPAUHINSTANCE__@@0PA_WH@Z");
-    return 0;
-}
-
 extern "C" void MS_ABI stub__AfxWinTerm__YAXXZ() {
     STUB_LOG("?AfxWinTerm@@YAXXZ");
 }
@@ -10439,10 +10382,6 @@ extern "C" void MS_ABI stub__CheckAndRemoveNonValidPane_CPaneContainerManager__Q
 
 extern "C" void MS_ABI stub__CheckArea_CMFCPopupMenu__QBA_AW4MENUAREA_TYPE_1_ABVCPoint___Z() {
     STUB_LOG("?CheckArea@CMFCPopupMenu@@QBA?AW4MENUAREA_TYPE@1@ABVCPoint@@@Z");
-}
-
-extern "C" void MS_ABI stub__CheckAutoCenter_CDialog__UAAHXZ() {
-    STUB_LOG("?CheckAutoCenter@CDialog@@UAAHXZ");
 }
 
 extern "C" void MS_ABI stub__CheckAutoCenter_CWnd__UAAHXZ() {
@@ -11938,10 +11877,6 @@ extern "C" void MS_ABI stub__Create_CDCRenderTarget__QAAHABUD2D1_RENDER_TARGET_P
     STUB_LOG("?Create@CDCRenderTarget@@QAAHABUD2D1_RENDER_TARGET_PROPERTIES@@@Z");
 }
 
-extern "C" void MS_ABI stub__Create_CDialog__UAAHPB_WPAVCWnd___Z() {
-    STUB_LOG("?Create@CDialog@@UAAHPB_WPAVCWnd@@@Z");
-}
-
 extern "C" void MS_ABI stub__Create_CDialogBar__UAAHPAVCWnd__PB_WII_Z() {
     STUB_LOG("?Create@CDialogBar@@UAAHPAVCWnd@@PB_WII@Z");
 }
@@ -11976,10 +11911,6 @@ extern "C" void MS_ABI stub__Create_CFindReplaceDialog__UAAHHPB_W0KPAVCWnd___Z()
 
 extern "C" void MS_ABI stub__Create_CFormView__MAAHPB_W0KABUtagRECT__PAVCWnd__IPAUCCreateContext___Z() {
     STUB_LOG("?Create@CFormView@@MAAHPB_W0KABUtagRECT@@PAVCWnd@@IPAUCCreateContext@@@Z");
-}
-
-extern "C" void MS_ABI stub__Create_CFrameWnd__UAAHPB_W0KABUtagRECT__PAVCWnd__0KPAUCCreateContext___Z() {
-    STUB_LOG("?Create@CFrameWnd@@UAAHPB_W0KABUtagRECT@@PAVCWnd@@0KPAUCCreateContext@@@Z");
 }
 
 extern "C" void MS_ABI stub__Create_CHeaderCtrl__UAAHKABUtagRECT__PAVCWnd__I_Z() {
@@ -12340,10 +12271,6 @@ extern "C" void MS_ABI stub__Create_CToolTipCtrl__UAAHPAVCWnd__K_Z() {
 
 extern "C" void MS_ABI stub__Create_CTreeCtrl__QAAHKABUtagRECT__PAVCWnd__I_Z() {
     STUB_LOG("?Create@CTreeCtrl@@QAAHKABUtagRECT@@PAVCWnd@@I@Z");
-}
-
-extern "C" void MS_ABI stub__Create_CWnd__UAAHPB_W0KABUtagRECT__PAV1_IPAUCCreateContext___Z() {
-    STUB_LOG("?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z");
 }
 
 extern "C" void MS_ABI stub__CreateAccessibleProxy_CWnd__UAAJIJPAJ_Z() {
@@ -14890,10 +14817,6 @@ extern "C" void MS_ABI stub__DestroyWindow_CMDIChildWnd__UAAHXZ() {
     STUB_LOG("?DestroyWindow@CMDIChildWnd@@UAAHXZ");
 }
 
-extern "C" void MS_ABI stub__DestroyWindow_CWnd__UAAHXZ() {
-    STUB_LOG("?DestroyWindow@CWnd@@UAAHXZ");
-}
-
 extern "C" void MS_ABI stub__Detach_CAsyncSocket__QAAIXZ() {
     STUB_LOG("?Detach@CAsyncSocket@@QAAIXZ");
 }
@@ -15444,10 +15367,6 @@ extern "C" void MS_ABI stub__DoMessageBox_CWinApp__UAAHPB_WII_Z() {
 
 extern "C" void MS_ABI stub__DoModal_CColorDialog__UAAHXZ() {
     STUB_LOG("?DoModal@CColorDialog@@UAAHXZ");
-}
-
-extern "C" void MS_ABI stub__DoModal_CDialog__UAAHXZ() {
-    STUB_LOG("?DoModal@CDialog@@UAAHXZ");
 }
 
 extern "C" void MS_ABI stub__DoModal_CFileDialog__UAAHXZ() {
@@ -17002,10 +16921,6 @@ extern "C" void MS_ABI stub__EndDeferErrors_COleLinkingDoc__QAAJJ_Z() {
     STUB_LOG("?EndDeferErrors@COleLinkingDoc@@QAAJJ@Z");
 }
 
-extern "C" void MS_ABI stub__EndDialog_CDialog__QAAXH_Z() {
-    STUB_LOG("?EndDialog@CDialog@@QAAXH@Z");
-}
-
 extern "C" void MS_ABI stub__EndDialog_CPropertyPage__QAAXH_Z() {
     STUB_LOG("?EndDialog@CPropertyPage@@QAAXH@Z");
 }
@@ -17410,16 +17325,8 @@ extern "C" void MS_ABI stub__ExitInstance_COleControlModule__UAAHXZ() {
     STUB_LOG("?ExitInstance@COleControlModule@@UAAHXZ");
 }
 
-extern "C" void MS_ABI stub__ExitInstance_CWinApp__UAAHXZ() {
-    STUB_LOG("?ExitInstance@CWinApp@@UAAHXZ");
-}
-
 extern "C" void MS_ABI stub__ExitInstance_CWinAppEx__UAAHXZ() {
     STUB_LOG("?ExitInstance@CWinAppEx@@UAAHXZ");
-}
-
-extern "C" void MS_ABI stub__ExitInstance_CWinThread__UAAHXZ() {
-    STUB_LOG("?ExitInstance@CWinThread@@UAAHXZ");
 }
 
 extern "C" void MS_ABI stub__Expand_CMFCPropertyGridProperty__QAAXH_Z() {
@@ -30389,10 +30296,6 @@ extern "C" void MS_ABI stub__Initialize_CDHtmlDialog__IAAXXZ() {
     STUB_LOG("?Initialize@CDHtmlDialog@@IAAXXZ");
 }
 
-extern "C" void MS_ABI stub__Initialize_CDialog__QAAXXZ() {
-    STUB_LOG("?Initialize@CDialog@@QAAXXZ");
-}
-
 extern "C" void MS_ABI stub__Initialize_CMenuImages__KAHXZ() {
     STUB_LOG("?Initialize@CMenuImages@@KAHXZ");
 }
@@ -30471,14 +30374,6 @@ extern "C" void MS_ABI stub__InitImages_CSmartDockingStandaloneGuide__MAAXAAVCSm
 
 extern "C" void MS_ABI stub__InitInstance_COleControlModule__UAAHXZ() {
     STUB_LOG("?InitInstance@COleControlModule@@UAAHXZ");
-}
-
-extern "C" void MS_ABI stub__InitInstance_CWinApp__UAAHXZ() {
-    STUB_LOG("?InitInstance@CWinApp@@UAAHXZ");
-}
-
-extern "C" void MS_ABI stub__InitInstance_CWinThread__UAAHXZ() {
-    STUB_LOG("?InitInstance@CWinThread@@UAAHXZ");
 }
 
 extern "C" void MS_ABI stub__InitKeyboardManager_CWinAppEx__QAAHXZ() {
@@ -31968,10 +31863,6 @@ extern "C" void MS_ABI stub__LoadDocumentFromStream_CDocument__UAAJPAUIStream__K
 
 extern "C" void MS_ABI stub__LoadFields_CRecordset__QAAXXZ() {
     STUB_LOG("?LoadFields@CRecordset@@QAAXXZ");
-}
-
-extern "C" void MS_ABI stub__LoadFrame_CFrameWnd__UAAHIKPAVCWnd__PAUCCreateContext___Z() {
-    STUB_LOG("?LoadFrame@CFrameWnd@@UAAHIKPAVCWnd@@PAUCCreateContext@@@Z");
 }
 
 extern "C" void MS_ABI stub__LoadFrame_CFrameWndEx__UAAHIKPAVCWnd__PAUCCreateContext___Z() {
@@ -33724,10 +33615,6 @@ extern "C" void MS_ABI stub__OnCalculateSize_CMFCToolBarSystemMenuButton__UAA_AU
 
 extern "C" void MS_ABI stub__OnCancel_CCommonDialog__MAAXXZ() {
     STUB_LOG("?OnCancel@CCommonDialog@@MAAXXZ");
-}
-
-extern "C" void MS_ABI stub__OnCancel_CDialog__MAAXXZ() {
-    STUB_LOG("?OnCancel@CDialog@@MAAXXZ");
 }
 
 extern "C" void MS_ABI stub__OnCancel_CMFCTasksPane__UAAXXZ() {
@@ -39454,10 +39341,6 @@ extern "C" void MS_ABI stub__OnInitDialog_CDHtmlDialog__UAAHXZ() {
     STUB_LOG("?OnInitDialog@CDHtmlDialog@@UAAHXZ");
 }
 
-extern "C" void MS_ABI stub__OnInitDialog_CDialog__UAAHXZ() {
-    STUB_LOG("?OnInitDialog@CDialog@@UAAHXZ");
-}
-
 extern "C" void MS_ABI stub__OnInitDialog_CMFCColorDialog__MAAHXZ() {
     STUB_LOG("?OnInitDialog@CMFCColorDialog@@MAAHXZ");
 }
@@ -41616,10 +41499,6 @@ extern "C" void MS_ABI stub__OnOcmCtlColorStatic_COleControl__IAAJIJ_Z() {
 
 extern "C" void MS_ABI stub__OnOK_CCommonDialog__MAAXXZ() {
     STUB_LOG("?OnOK@CCommonDialog@@MAAXXZ");
-}
-
-extern "C" void MS_ABI stub__OnOK_CDialog__MAAXXZ() {
-    STUB_LOG("?OnOK@CDialog@@MAAXXZ");
 }
 
 extern "C" void MS_ABI stub__OnOK_CMFCRibbonCustomizePropertyPage__UAAXXZ() {
@@ -45938,10 +45817,6 @@ extern "C" void MS_ABI stub__PreCreateWindow_CEditView__MAAHAAUtagCREATESTRUCTW_
     STUB_LOG("?PreCreateWindow@CEditView@@MAAHAAUtagCREATESTRUCTW@@@Z");
 }
 
-extern "C" void MS_ABI stub__PreCreateWindow_CFrameWnd__MAAHAAUtagCREATESTRUCTW___Z() {
-    STUB_LOG("?PreCreateWindow@CFrameWnd@@MAAHAAUtagCREATESTRUCTW@@@Z");
-}
-
 extern "C" void MS_ABI stub__PreCreateWindow_CFrameWndEx__MAAHAAUtagCREATESTRUCTW___Z() {
     STUB_LOG("?PreCreateWindow@CFrameWndEx@@MAAHAAUtagCREATESTRUCTW@@@Z");
 }
@@ -46024,10 +45899,6 @@ extern "C" void MS_ABI stub__PreCreateWindow_CTreeView__UAAHAAUtagCREATESTRUCTW_
 
 extern "C" void MS_ABI stub__PreCreateWindow_CView__MAAHAAUtagCREATESTRUCTW___Z() {
     STUB_LOG("?PreCreateWindow@CView@@MAAHAAUtagCREATESTRUCTW@@@Z");
-}
-
-extern "C" void MS_ABI stub__PreCreateWindow_CWnd__UAAHAAUtagCREATESTRUCTW___Z() {
-    STUB_LOG("?PreCreateWindow@CWnd@@UAAHAAUtagCREATESTRUCTW@@@Z");
 }
 
 extern "C" void MS_ABI stub__PreDeleteItem_CCheckListBox__IAAXPAUtagDELETEITEMSTRUCT___Z() {
@@ -46216,10 +46087,6 @@ extern "C" void MS_ABI stub__PreTranslateMessage_CBasePane__UAAHPAUtagMSG___Z() 
 
 extern "C" void MS_ABI stub__PreTranslateMessage_CControlBar__UAAHPAUtagMSG___Z() {
     STUB_LOG("?PreTranslateMessage@CControlBar@@UAAHPAUtagMSG@@@Z");
-}
-
-extern "C" void MS_ABI stub__PreTranslateMessage_CDialog__UAAHPAUtagMSG___Z() {
-    STUB_LOG("?PreTranslateMessage@CDialog@@UAAHPAUtagMSG@@@Z");
 }
 
 extern "C" void MS_ABI stub__PreTranslateMessage_CDialogEx__UAAHPAUtagMSG___Z() {
@@ -49250,14 +49117,6 @@ extern "C" void MS_ABI stub__RowFromPoint_CDockSite__IBAPAVCDockingPanesRow__VCP
 
 extern "C" void MS_ABI stub__Run_COleClientItem__QAAXXZ() {
     STUB_LOG("?Run@COleClientItem@@QAAXXZ");
-}
-
-extern "C" void MS_ABI stub__Run_CWinApp__UAAHXZ() {
-    STUB_LOG("?Run@CWinApp@@UAAHXZ");
-}
-
-extern "C" void MS_ABI stub__Run_CWinThread__UAAHXZ() {
-    STUB_LOG("?Run@CWinThread@@UAAHXZ");
 }
 
 extern "C" void MS_ABI stub__RunAutomated_CWinApp__QAAHXZ() {
@@ -54276,10 +54135,6 @@ extern "C" void MS_ABI stub__ShowWindow_CPaneDivider__QAAXH_Z() {
     STUB_LOG("?ShowWindow@CPaneDivider@@QAAXH@Z");
 }
 
-extern "C" void MS_ABI stub__ShowWindow_CWnd__QAAHH_Z() {
-    STUB_LOG("?ShowWindow@CWnd@@QAAHH@Z");
-}
-
 extern "C" void MS_ABI stub__ShowWindowsDialog_CMDIFrameWndEx__QAAXXZ() {
     STUB_LOG("?ShowWindowsDialog@CMDIFrameWndEx@@QAAXXZ");
 }
@@ -56253,5 +56108,5 @@ extern "C" void MS_ABI stub__SizeVertical_CMFCDynamicLayout__SA_AUSizeSettings_1
     STUB_LOG("?SizeVertical@CMFCDynamicLayout@@SA?AUSizeSettings@1@H@Z");
 }
 
-// Generated 13818 function stubs + 256 data stubs
-// Total: 14074 exports
+// Generated 13782 function stubs + 256 data stubs
+// Total: 14038 exports
