@@ -52,23 +52,60 @@ def extract_dll_exports(dll_path: Path) -> Dict[str, int]:
         )
 
     # Parse the export table
-    # Format: [   0] +base[ 256]  0000 ??$CopyElements@VCOleVariant@@@@...
+    # We need to handle different objdump formats
+    # Format 1 (some versions):
+    #   [Ordinal/Name Pointer] Table
+    #   [   0] +base[ 256]  0000 symbol_name
+    # Format 2 (MinGW/German locale?):
+    #   Export Address Table -- Ordinal Base 256
+    #   ...
+    #   [Name Pointer/Ordinal] Table
+    #   [   0] symbol_name
+
+    ordinal_base = 1  # Default if not found (though usually 1 or 256)
     in_name_table = False
+    
     for line in result.stdout.split('\n'):
-        if '[Ordinal/Name Pointer] Table' in line:
+        # Look for Ordinal Base
+        # "Export Address Table -- Ordinal Base 256"
+        base_match = re.search(r'Ordinal Base\s+(\d+)', line)
+        if base_match:
+            ordinal_base = int(base_match.group(1))
+            continue
+
+        # Look for Name Table header (handle both orderings)
+        if '[Ordinal/Name Pointer] Table' in line or '[Name Pointer/Ordinal] Table' in line:
             in_name_table = True
             continue
 
         if in_name_table:
-            # Match: [   0] +base[ 256]  0000 symbol_name
-            match = re.match(r'\s*\[\s*\d+\]\s*\+base\[\s*(\d+)\]\s+[0-9a-fA-F]+\s+(.+)', line)
-            if match:
-                ordinal = int(match.group(1))
-                symbol = match.group(2).strip()
+            # Format 1: [   0] +base[ 256]  0000 symbol_name
+            match1 = re.match(r'\s*\[\s*\d+\]\s*\+base\[\s*(\d+)\]\s+[0-9a-fA-F]+\s+(.+)', line)
+            
+            # Format 2: [   0] symbol_name
+            # We need to capture the index to add to base
+            match2 = re.match(r'\s*\[\s*(\d+)\]\s+(.+)', line)
+
+            if match1:
+                ordinal = int(match1.group(1))
+                symbol = match1.group(2).strip()
                 exports[symbol] = ordinal
+            elif match2:
+                # In this format, the number in brackets is the index into the table
+                # Ordinal = Base + Index
+                index = int(match2.group(1))
+                symbol = match2.group(2).strip()
+                # Skip if it looks like "Export RVA" (from Address Table)
+                if "Export RVA" in symbol or "RVA exportieren" in symbol:
+                    continue
+                exports[symbol] = ordinal_base + index
             elif line.strip() and not line.startswith('[') and exports:
-                # End of export table
-                break
+                # End of export table (heuristic: non-empty line not starting with [)
+                # But be careful, some headers might appear
+                if "Table" in line:
+                    break
+                # break # Don't break too eagerly, might be empty lines
+
 
     return exports
 

@@ -200,7 +200,7 @@ protected:
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
 
 class CMemoryException : public CException {
-    // DECLARE_DYNAMIC(CMemoryException)
+    DECLARE_DYNAMIC(CMemoryException)
 public:
     CMemoryException() : CException(0) {} // Memory exceptions are not auto-deleted
 };
@@ -208,7 +208,7 @@ public:
 // IMPLEMENT_DYNAMIC(CMemoryException, CException) moved to appcore.cpp
 
 class CFileException : public CException {
-    // DECLARE_DYNAMIC(CFileException)
+    DECLARE_DYNAMIC(CFileException)
 public:
     enum {
         none,
@@ -267,7 +267,7 @@ public:
 //=============================================================================
 
 class CCmdTarget : public CObject {
-    // DECLARE_DYNAMIC(CCmdTarget)
+    DECLARE_DYNAMIC(CCmdTarget)
 public:
     CCmdTarget() = default;
     virtual ~CCmdTarget() = default;
@@ -287,6 +287,7 @@ protected:
 
 // CWinThread - thread management class
 class CWinThread : public CCmdTarget {
+    DECLARE_DYNAMIC(CWinThread)
 public:
     CWinThread();
     virtual ~CWinThread();
@@ -366,7 +367,7 @@ private:
 //=============================================================================
 
 class CWnd : public CCmdTarget {
-    // DECLARE_DYNAMIC(CWnd)
+    DECLARE_DYNAMIC(CWnd)
     
 public:
     CWnd();
@@ -486,7 +487,7 @@ static_assert(sizeof(CWnd) == 232, "CWnd must be 232 bytes");
 //=============================================================================
 
 class CFrameWnd : public CWnd {
-    // DECLARE_DYNCREATE(CFrameWnd)
+    DECLARE_DYNCREATE(CFrameWnd)
 public:
     CFrameWnd();
     virtual ~CFrameWnd() = default;
@@ -520,7 +521,7 @@ protected:
 //=============================================================================
 
 class CMDIFrameWnd : public CFrameWnd {
-    // DECLARE_DYNCREATE(CMDIFrameWnd)
+    DECLARE_DYNCREATE(CMDIFrameWnd)
 public:
     CMDIFrameWnd();
     virtual ~CMDIFrameWnd() = default;
@@ -551,7 +552,7 @@ protected:
 //=============================================================================
 
 class CMDIChildWnd : public CFrameWnd {
-    // DECLARE_DYNCREATE(CMDIChildWnd)
+    DECLARE_DYNCREATE(CMDIChildWnd)
 public:
     CMDIChildWnd();
     virtual ~CMDIChildWnd() = default;
@@ -574,7 +575,7 @@ protected:
 //=============================================================================
 
 class CDialog : public CWnd {
-    // DECLARE_DYNAMIC(CDialog)
+    DECLARE_DYNAMIC(CDialog)
 public:
     CDialog();
     explicit CDialog(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
@@ -607,7 +608,7 @@ protected:
 //=============================================================================
 
 class CDialogEx : public CDialog {
-    // DECLARE_DYNAMIC(CDialogEx)
+    DECLARE_DYNAMIC(CDialogEx)
 public:
     CDialogEx();
     explicit CDialogEx(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
@@ -629,7 +630,7 @@ protected:
 class CPropertySheet; // Forward declaration
 
 class CPropertyPage : public CDialog {
-    // DECLARE_DYNAMIC(CPropertyPage)
+    DECLARE_DYNAMIC(CPropertyPage)
 public:
     CPropertyPage();
     explicit CPropertyPage(unsigned int nIDTemplate, unsigned int nIDCaption = 0);
@@ -668,7 +669,7 @@ protected:
 //=============================================================================
 
 class CPropertySheet : public CWnd {
-    // DECLARE_DYNAMIC(CPropertySheet)
+    DECLARE_DYNAMIC(CPropertySheet)
 public:
     CPropertySheet();
     explicit CPropertySheet(unsigned int nIDCaption, CWnd* pParentWnd = nullptr, unsigned int iSelectPage = 0);
@@ -734,7 +735,7 @@ class CFindReplaceDialog;
 
 // CFileDialog - File Open/Save dialog
 class CFileDialog : public CDialog {
-    // // DECLARE_DYNAMIC(CFileDialog)
+    // DECLARE_DYNAMIC(CFileDialog)
 public:
     // Constructor parameters based on MFC140u.dll symbols:
     // CFileDialog(int, wchar_t const *, wchar_t const *, unsigned long, wchar_t const *, class CWnd *, unsigned long, int)
@@ -809,7 +810,7 @@ protected:
 
 // CColorDialog - Color selection dialog
 class CColorDialog : public CDialog {
-    // DECLARE_DYNAMIC(CColorDialog)
+    DECLARE_DYNAMIC(CColorDialog)
 public:
     CColorDialog(unsigned long clrInit = 0, unsigned long dwFlags = 0, CWnd* pParentWnd = nullptr);
     virtual ~CColorDialog() = default;
@@ -832,7 +833,7 @@ protected:
 
 // CFontDialog - Font selection dialog  
 class CFontDialog : public CDialog {
-    // DECLARE_DYNAMIC(CFontDialog)
+    DECLARE_DYNAMIC(CFontDialog)
 public:
     CFontDialog(void* lpLogFont = nullptr, unsigned long dwFlags = 0, void* pdcPrinter = nullptr, CWnd* pParentWnd = nullptr);
     virtual ~CFontDialog() = default;
@@ -860,7 +861,7 @@ protected:
 
 // CPrintDialog - Print dialog
 class CPrintDialog : public CDialog {
-    // DECLARE_DYNAMIC(CPrintDialog)
+    DECLARE_DYNAMIC(CPrintDialog)
 public:
     CPrintDialog(int bPrintSetupOnly = 0, unsigned long dwFlags = 0, CWnd* pParentWnd = nullptr);
     virtual ~CPrintDialog() = default;
@@ -887,7 +888,7 @@ protected:
 
 // CPageSetupDialog - Page setup dialog
 class CPageSetupDialog : public CDialog {
-    // DECLARE_DYNAMIC(CPageSetupDialog)
+    DECLARE_DYNAMIC(CPageSetupDialog)
 public:
     CPageSetupDialog(unsigned long dwFlags = 0, CWnd* pParentWnd = nullptr);
     virtual ~CPageSetupDialog() = default;
@@ -911,7 +912,7 @@ protected:
 
 // CFindReplaceDialog - Find/Replace dialog (modeless)
 class CFindReplaceDialog : public CDialog {
-    // DECLARE_DYNAMIC(CFindReplaceDialog)
+    DECLARE_DYNAMIC(CFindReplaceDialog)
 public:
     CFindReplaceDialog();
     virtual ~CFindReplaceDialog() = default;
@@ -950,6 +951,7 @@ protected:
 // This is just a forward declaration to avoid circular dependencies
 
 class CWinApp : public CWinThread {
+    DECLARE_DYNAMIC(CWinApp)
 public:
     CWinApp(const wchar_t* lpszAppName = nullptr);
     virtual ~CWinApp() = default;
@@ -1127,7 +1129,7 @@ public:
 
 // CGdiObject - base class for GDI objects
 class CGdiObject : public CObject {
-    // DECLARE_DYNAMIC(CGdiObject)
+    DECLARE_DYNAMIC(CGdiObject)
 public:
     CGdiObject() : m_hObject(nullptr) {}
     virtual ~CGdiObject() { DeleteObject(); }
@@ -1158,7 +1160,7 @@ protected:
 
 // CPen - Pen GDI object
 class CPen : public CGdiObject {
-    // DECLARE_DYNAMIC(CPen)
+    DECLARE_DYNAMIC(CPen)
 public:
     CPen();
     CPen(int nPenStyle, int nWidth, unsigned long crColor);
@@ -1177,7 +1179,7 @@ protected:
 
 // CBrush - Brush GDI object
 class CBrush : public CGdiObject {
-    // DECLARE_DYNAMIC(CBrush)
+    DECLARE_DYNAMIC(CBrush)
 public:
     CBrush();
     CBrush(unsigned long crColor);
@@ -1199,7 +1201,7 @@ protected:
 
 // CFont - Font GDI object
 class CFont : public CGdiObject {
-    // DECLARE_DYNAMIC(CFont)
+    DECLARE_DYNAMIC(CFont)
 public:
     CFont();
     
@@ -1219,7 +1221,7 @@ protected:
 
 // CBitmap - Bitmap GDI object
 class CBitmap : public CGdiObject {
-    // DECLARE_DYNAMIC(CBitmap)
+    DECLARE_DYNAMIC(CBitmap)
 public:
     CBitmap();
     
@@ -1245,7 +1247,7 @@ protected:
 
 // CPalette - Palette GDI object
 class CPalette : public CGdiObject {
-    // DECLARE_DYNAMIC(CPalette)
+    DECLARE_DYNAMIC(CPalette)
 public:
     CPalette();
     
@@ -1265,7 +1267,7 @@ protected:
 
 // CRgn - Region GDI object
 class CRgn : public CGdiObject {
-    // DECLARE_DYNAMIC(CRgn)
+    DECLARE_DYNAMIC(CRgn)
 public:
     CRgn();
     
@@ -1304,7 +1306,7 @@ protected:
 
 // CDC - Device Context base class
 class CDC : public CObject {
-    // DECLARE_DYNAMIC(CDC)
+    DECLARE_DYNAMIC(CDC)
 public:
     CDC();
     virtual ~CDC();
@@ -1471,7 +1473,7 @@ protected:
 
 // CClientDC - Client area device context
 class CClientDC : public CDC {
-    // DECLARE_DYNAMIC(CClientDC)
+    DECLARE_DYNAMIC(CClientDC)
 public:
     CClientDC(CWnd* pWnd);
     virtual ~CClientDC();
@@ -1483,7 +1485,7 @@ protected:
 
 // CPaintDC - Painting device context
 class CPaintDC : public CDC {
-    // DECLARE_DYNAMIC(CPaintDC)
+    DECLARE_DYNAMIC(CPaintDC)
 public:
     CPaintDC(CWnd* pWnd);
     virtual ~CPaintDC();
@@ -1497,7 +1499,7 @@ protected:
 
 // CWindowDC - Whole window device context
 class CWindowDC : public CDC {
-    // DECLARE_DYNAMIC(CWindowDC)
+    DECLARE_DYNAMIC(CWindowDC)
 public:
     CWindowDC(CWnd* pWnd);
     virtual ~CWindowDC();
@@ -1509,7 +1511,7 @@ protected:
 
 // CMetaFileDC - Metafile device context
 class CMetaFileDC : public CDC {
-    // DECLARE_DYNAMIC(CMetaFileDC)
+    DECLARE_DYNAMIC(CMetaFileDC)
 public:
     CMetaFileDC();
     virtual ~CMetaFileDC();
@@ -1734,7 +1736,7 @@ inline int CWnd::KillTimer(uintptr_t nIDEvent) {
 
 // CButton - Button control wrapper
 class CButton : public CWnd {
-    // DECLARE_DYNAMIC(CButton)
+    DECLARE_DYNAMIC(CButton)
 public:
     CButton() = default;
     virtual ~CButton() = default;
@@ -1757,7 +1759,7 @@ public:
 
 // CEdit - Edit control wrapper
 class CEdit : public CWnd {
-    // DECLARE_DYNAMIC(CEdit)
+    DECLARE_DYNAMIC(CEdit)
 public:
     CEdit() = default;
     virtual ~CEdit() = default;
@@ -1786,7 +1788,7 @@ public:
 
 // CStatic - Static control wrapper
 class CStatic : public CWnd {
-    // DECLARE_DYNAMIC(CStatic)
+    DECLARE_DYNAMIC(CStatic)
 public:
     CStatic() = default;
     virtual ~CStatic() = default;
@@ -1805,7 +1807,7 @@ public:
 
 // CListBox - List box control wrapper
 class CListBox : public CWnd {
-    // DECLARE_DYNAMIC(CListBox)
+    DECLARE_DYNAMIC(CListBox)
 public:
     CListBox() = default;
     virtual ~CListBox() = default;
@@ -1833,7 +1835,7 @@ public:
 
 // CComboBox - Combo box control wrapper
 class CComboBox : public CWnd {
-    // DECLARE_DYNAMIC(CComboBox)
+    DECLARE_DYNAMIC(CComboBox)
 public:
     CComboBox() = default;
     virtual ~CComboBox() = default;
@@ -1861,7 +1863,7 @@ public:
 
 // CScrollBar - Scroll bar control wrapper
 class CScrollBar : public CWnd {
-    // DECLARE_DYNAMIC(CScrollBar)
+    DECLARE_DYNAMIC(CScrollBar)
 public:
     CScrollBar() = default;
     virtual ~CScrollBar() = default;
@@ -1879,7 +1881,7 @@ public:
 
 // CSliderCtrl - Slider/Trackbar control wrapper
 class CSliderCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CSliderCtrl)
+    DECLARE_DYNAMIC(CSliderCtrl)
 public:
     CSliderCtrl() = default;
     virtual ~CSliderCtrl() = default;
@@ -1905,7 +1907,7 @@ public:
 
 // CProgressCtrl - Progress bar control wrapper
 class CProgressCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CProgressCtrl)
+    DECLARE_DYNAMIC(CProgressCtrl)
 public:
     CProgressCtrl() = default;
     virtual ~CProgressCtrl() = default;
@@ -1927,7 +1929,7 @@ public:
 
 // CSpinButtonCtrl - Spin button (up-down) control wrapper
 class CSpinButtonCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CSpinButtonCtrl)
+    DECLARE_DYNAMIC(CSpinButtonCtrl)
 public:
     CSpinButtonCtrl() = default;
     virtual ~CSpinButtonCtrl() = default;
@@ -1951,7 +1953,7 @@ public:
 
 // CListCtrl - List view control wrapper
 class CListCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CListCtrl)
+    DECLARE_DYNAMIC(CListCtrl)
 public:
     CListCtrl() = default;
     virtual ~CListCtrl() = default;
@@ -1979,7 +1981,7 @@ public:
 
 // CTreeCtrl - Tree view control wrapper
 class CTreeCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CTreeCtrl)
+    DECLARE_DYNAMIC(CTreeCtrl)
 public:
     CTreeCtrl() = default;
     virtual ~CTreeCtrl() = default;
@@ -2007,7 +2009,7 @@ public:
 
 // CTabCtrl - Tab control wrapper
 class CTabCtrl : public CWnd {
-    // DECLARE_DYNAMIC(CTabCtrl)
+    DECLARE_DYNAMIC(CTabCtrl)
 public:
     CTabCtrl() = default;
     virtual ~CTabCtrl() = default;
@@ -2038,7 +2040,7 @@ class CArchive;
 
 // CDocument - Document base class
 class CDocument : public CCmdTarget {
-    // DECLARE_DYNCREATE(CDocument)
+    DECLARE_DYNCREATE(CDocument)
 public:
     CDocument();
     virtual ~CDocument();
@@ -2097,7 +2099,7 @@ protected:
 
 // CView - View base class
 class CView : public CWnd {
-    // DECLARE_DYNAMIC(CView)
+    DECLARE_DYNAMIC(CView)
 public:
     CView();
     virtual ~CView();
@@ -2132,7 +2134,7 @@ protected:
 
 // CScrollView - Scrollable view
 class CScrollView : public CView {
-    // DECLARE_DYNCREATE(CScrollView)
+    DECLARE_DYNCREATE(CScrollView)
 public:
     CScrollView();
     virtual ~CScrollView();
@@ -2167,7 +2169,7 @@ protected:
 
 // CFormView - Form-based view
 class CFormView : public CScrollView {
-    // DECLARE_DYNCREATE(CFormView)
+    DECLARE_DYNCREATE(CFormView)
 public:
     CFormView();
     CFormView(const wchar_t* lpszTemplateName);
@@ -2197,7 +2199,7 @@ protected:
 
 // CEditView - Edit control-based view
 class CEditView : public CView {
-    // DECLARE_DYNCREATE(CEditView)
+    DECLARE_DYNCREATE(CEditView)
 public:
     CEditView();
     virtual ~CEditView();
@@ -2224,7 +2226,7 @@ protected:
 
 // CListView - List control-based view
 class CListView : public CView {
-    // DECLARE_DYNCREATE(CListView)
+    DECLARE_DYNCREATE(CListView)
 public:
     CListView();
     virtual ~CListView();
@@ -2245,7 +2247,7 @@ protected:
 
 // CTreeView - Tree control-based view
 class CTreeView : public CView {
-    // DECLARE_DYNCREATE(CTreeView)
+    DECLARE_DYNCREATE(CTreeView)
 public:
     CTreeView();
     virtual ~CTreeView();
@@ -2266,7 +2268,7 @@ protected:
 
 // CDocTemplate - Document template base class
 class CDocTemplate : public CCmdTarget {
-    // DECLARE_DYNAMIC(CDocTemplate)
+    DECLARE_DYNAMIC(CDocTemplate)
 public:
     CDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
                  CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
@@ -2312,7 +2314,7 @@ protected:
 
 // CSingleDocTemplate - Single document interface template
 class CSingleDocTemplate : public CDocTemplate {
-    // DECLARE_DYNCREATE(CSingleDocTemplate)
+    DECLARE_DYNCREATE(CSingleDocTemplate)
 public:
     CSingleDocTemplate();
     CSingleDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
@@ -2334,7 +2336,7 @@ protected:
 
 // CMultiDocTemplate - Multiple document interface template
 class CMultiDocTemplate : public CDocTemplate {
-    // DECLARE_DYNCREATE(CMultiDocTemplate)
+    DECLARE_DYNCREATE(CMultiDocTemplate)
 public:
     CMultiDocTemplate();
     CMultiDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,

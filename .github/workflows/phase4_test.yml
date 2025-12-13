@@ -43,6 +43,7 @@ jobs:
 
           # Build phase4 tests
           cl /nologo /EHsc /MD phase4/tests/test_version.cpp openmfc.lib /Fe:test_binaries/test_version.exe
+          cl /nologo /EHsc /MD phase4/tests/test_exception_mfc.cpp openmfc.lib /Fe:test_binaries/test_exception_mfc.exe
 
           # Build phase3 tests (for comparison)
           cl /nologo /EHsc /MD tests/test_msvc_app.cpp openmfc.lib /Fe:test_binaries/test_msvc_app.exe
@@ -138,4 +139,14 @@ jobs:
           # This test uses stubs that print "Not Implemented" - that's expected
           if ($output -match "All tests passed") {
             Write-Host "SUCCESS"
+          }
+
+      - name: Run test_exception_mfc
+        run: |
+          Write-Host "Running test_exception_mfc.exe..."
+          $output = & .\test_exception_mfc.exe 2>&1 | Out-String
+          Write-Host $output
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "test_exception_mfc failed"
+            exit 1
           }

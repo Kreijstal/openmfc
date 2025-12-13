@@ -170,6 +170,7 @@ struct CRuntimeClass {
     unsigned int m_wSchema;           // Schema number for serialization (-1 if not serializable)
     CObject* (AFXAPI *m_pfnCreateObject)();  // Factory function (NULL if not creatable)
     CRuntimeClass* m_pBaseClass;      // Pointer to base class CRuntimeClass (NULL for CObject)
+    CRuntimeClass* m_pNextClass;      // Linked list of registered classes
     
     // Helper methods
     CObject* CreateObject() const {
@@ -211,7 +212,8 @@ public: \
         sizeof(class_name), \
         0xFFFF, \
         nullptr, \
-        &base_class_name::class##base_class_name \
+        &base_class_name::class##base_class_name, \
+        nullptr \
     };
 
 // IMPLEMENT_DYNCREATE - implements runtime class with factory
@@ -221,7 +223,8 @@ public: \
         sizeof(class_name), \
         0xFFFF, \
         &class_name::CreateObject, \
-        &base_class_name::class##base_class_name \
+        &base_class_name::class##base_class_name, \
+        nullptr \
     };
 
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
@@ -777,6 +780,7 @@ inline CRuntimeClass CObject::classCObject = {
     "CObject",
     sizeof(CObject),
     0xFFFF,
+    nullptr,
     nullptr,
     nullptr
 };

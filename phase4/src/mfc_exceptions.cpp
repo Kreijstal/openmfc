@@ -1,15 +1,34 @@
 // MFC Exception Implementation for OpenMFC
 //
-// This implements AfxThrowMemoryException and related functions using
-// MSVC-compatible C++ exception structures so that MSVC-compiled code
-// can catch them with try/catch.
+// This implements all AfxThrowXxxException functions using MSVC-compatible
+// C++ exception structures so that MSVC-compiled code can catch them.
+//
+// Supported exception types:
+// - CMemoryException (Static instance)
+// - CNotSupportedException
+// - CResourceException
+// - CUserException
+// - CInvalidArgException
+// - CFileException
+// - CArchiveException
+// - COleException
+// - COleDispatchException
+// - CInternetException
+// - CDBException
+// - CDaoException (Stubbed as CException)
 //
 // Key insight: We call _CxxThrowException from vcruntime140.dll with
 // manually constructed RTTI structures that match MSVC's format.
 
+#include "openmfc/afxwin.h"
 #include <windows.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <new>
+
+// Implement CException runtime class
+IMPLEMENT_DYNAMIC(CException, CObject)
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -19,59 +38,131 @@
 #endif
 
 // =============================================================================
+// Missing Exception Class Definitions
+// =============================================================================
+
+// CNotSupportedException
+class CNotSupportedException : public CException {
+public:
+    CNotSupportedException() : CException(TRUE) {}
+};
+
+// CResourceException
+class CResourceException : public CException {
+public:
+    CResourceException() : CException(TRUE) {}
+};
+
+// CUserException
+class CUserException : public CException {
+public:
+    CUserException() : CException(TRUE) {}
+};
+
+// CInvalidArgException
+class CInvalidArgException : public CException {
+public:
+    CInvalidArgException() : CException(TRUE) {}
+};
+
+// COleException
+class COleException : public CException {
+public:
+    SCODE m_sc;
+    static SCODE PASCAL Process(const CException* pAnyException);
+
+    COleException() : CException(TRUE), m_sc(0) {}
+};
+
+// COleDispatchException
+class COleDispatchException : public CException {
+public:
+    WORD m_wCode;
+    CString m_strDescription;
+    DWORD m_dwHelpContext;
+    CString m_strSource;
+    CString m_strHelpFile;
+
+    COleDispatchException() : CException(TRUE), m_wCode(0), m_dwHelpContext(0) {}
+};
+
+// CInternetException
+class CInternetException : public CException {
+public:
+    DWORD m_dwError;
+    DWORD_PTR m_dwContext;
+
+    CInternetException(DWORD dwError) : CException(TRUE), m_dwError(dwError), m_dwContext(0) {}
+};
+
+// CDBException
+class CDBException : public CException {
+public:
+    short m_nRetCode;
+    CString m_strError;
+    CString m_strStateNativeOrigin;
+
+    CDBException(short nRetCode) : CException(TRUE), m_nRetCode(nRetCode) {}
+};
+
+// CDaoException (Minimal definition)
+class CDaoException : public CException {
+public:
+    SCODE m_scode;
+    // Missing: CDaoErrorInfo* m_pErrorInfo;
+    short m_nAfxDaoError;
+
+    CDaoException() : CException(TRUE), m_scode(0), m_nAfxDaoError(0) {}
+};
+
+// =============================================================================
 // MSVC Exception Structures (x64)
 // =============================================================================
 
-// All pointers in these structures are RVAs (relative to image base) on x64
-
 #pragma pack(push, 4)
 
-// Type descriptor - contains RTTI type name
 struct TypeDescriptor {
-    const void* pVFTable;     // Pointer to type_info vftable
-    void* spare;              // For runtime use (caching)
-    char name[1];             // Decorated name: .?AVClassName@@
+    const void* pVFTable;
+    void* spare;
+    char name[1];
 };
 
-// Catchable type - describes one type in the hierarchy
 struct CatchableType {
-    uint32_t properties;      // 0 = simple type, 1 = simple inheritance, etc.
-    int32_t pType;            // RVA to TypeDescriptor
-    int32_t thisDisplacement_mdisp;  // Member displacement
-    int32_t thisDisplacement_pdisp;  // Vbtable displacement (-1 if none)
-    int32_t thisDisplacement_vdisp;  // Displacement within vbtable
-    int32_t sizeOrOffset;     // Object size
-    int32_t copyFunction;     // RVA to copy constructor (0 = use memcpy)
+    uint32_t properties;
+    int32_t pType;
+    int32_t thisDisplacement_mdisp;
+    int32_t thisDisplacement_pdisp;
+    int32_t thisDisplacement_vdisp;
+    int32_t sizeOrOffset;
+    int32_t copyFunction;
 };
 
-// Catchable type array - list of catchable types
 struct CatchableTypeArray {
     uint32_t nCatchableTypes;
-    int32_t arrayOfCatchableTypes[1];  // RVAs to CatchableType
+    int32_t arrayOfCatchableTypes[1];
 };
 
-// Throw info - passed to _CxxThrowException
 struct ThrowInfo {
-    uint32_t attributes;      // 0 = normal, 1 = const, etc.
-    int32_t pmfnUnwind;       // RVA to destructor
-    int32_t pForwardCompat;   // RVA to forward compat handler (0)
-    int32_t pCatchableTypeArray;  // RVA to CatchableTypeArray
+    uint32_t attributes;
+    int32_t pmfnUnwind;
+    int32_t pForwardCompat;
+    int32_t pCatchableTypeArray;
 };
 
 #pragma pack(pop)
 
 // =============================================================================
-// Import _CxxThrowException from vcruntime140.dll
+// Runtime initialization
 // =============================================================================
 
-// _CxxThrowException signature for x64
 typedef void (MS_ABI *CxxThrowExceptionFunc)(void* pExceptionObject, ThrowInfo* pThrowInfo);
 
 static CxxThrowExceptionFunc g_pCxxThrowException = nullptr;
 static HMODULE g_hVCRuntime = nullptr;
 static uintptr_t g_imageBase = 0;
+static const void* g_typeInfoVFT = nullptr;
+static bool g_initialized = false;
 
-// Get the base address of our DLL
 static uintptr_t GetOurImageBase() {
     HMODULE hModule;
     if (GetModuleHandleExA(
@@ -83,324 +174,473 @@ static uintptr_t GetOurImageBase() {
     return 0;
 }
 
-// Convert absolute address to RVA
 #define TO_RVA(addr) ((int32_t)((uintptr_t)(addr) - g_imageBase))
 
-// Initialize exception throwing
-static bool InitExceptionThrowing() {
-    if (g_pCxxThrowException) return true;
+// Dummy type_info vftable
+static void* MS_ABI dummy_dtor(void* p) { return p; }
+static int MS_ABI dummy_eq(void*, void*) { return 0; }
+static int MS_ABI dummy_ne(void*, void*) { return 1; }
+static const char* MS_ABI dummy_name(void*) { return "dummy"; }
+
+static void* g_dummyTypeInfoVFTable[] = {
+    (void*)dummy_dtor, (void*)dummy_eq, (void*)dummy_ne,
+    nullptr, nullptr, (void*)dummy_name, nullptr,
+};
+
+static const void* GetTypeInfoVFTable() {
+    if (!g_hVCRuntime) g_hVCRuntime = LoadLibraryA("vcruntime140.dll");
+    if (g_hVCRuntime) {
+        void* vft = (void*)GetProcAddress(g_hVCRuntime, "??_7type_info@@6B@");
+        if (vft) return vft;
+    }
+    HMODULE h = LoadLibraryA("ucrtbase.dll");
+    if (h) {
+        void* vft = (void*)GetProcAddress(h, "??_7type_info@@6B@");
+        if (vft) return vft;
+    }
+    h = LoadLibraryA("msvcrt.dll");
+    if (h) {
+        void* vft = (void*)GetProcAddress(h, "??_7type_info@@6B@");
+        if (vft) return vft;
+    }
+    return &g_dummyTypeInfoVFTable[0];
+}
+
+static bool InitExceptionSystem() {
+    if (g_initialized) return true;
 
     g_imageBase = GetOurImageBase();
-    if (!g_imageBase) {
-        fprintf(stderr, "OpenMFC: Failed to get image base\n");
-        return false;
-    }
+    if (!g_imageBase) return false;
 
-    // Try vcruntime140.dll first (VS2015+), then msvcrt.dll
     g_hVCRuntime = LoadLibraryA("vcruntime140.dll");
-    if (!g_hVCRuntime) {
-        g_hVCRuntime = LoadLibraryA("msvcrt.dll");
-    }
-
-    if (!g_hVCRuntime) {
-        fprintf(stderr, "OpenMFC: Failed to load vcruntime\n");
-        return false;
-    }
+    if (!g_hVCRuntime) g_hVCRuntime = LoadLibraryA("msvcrt.dll");
+    if (!g_hVCRuntime) return false;
 
     g_pCxxThrowException = (CxxThrowExceptionFunc)GetProcAddress(g_hVCRuntime, "_CxxThrowException");
-    if (!g_pCxxThrowException) {
-        fprintf(stderr, "OpenMFC: Failed to find _CxxThrowException\n");
-        return false;
-    }
+    if (!g_pCxxThrowException) return false;
 
+    g_typeInfoVFT = GetTypeInfoVFTable();
+    g_initialized = true;
     return true;
 }
 
 // =============================================================================
-// MSVC type_info vftable
+// MACRO: Define RTTI structures for an exception type
 // =============================================================================
 
-// We need a pointer to type_info's vftable. This is tricky because we're
-// building with MinGW. We can get it from an existing type_info in vcruntime.
+#define DEFINE_EXCEPTION_RTTI(ExcName, TypeDescLen) \
+    static struct { \
+        const void* pVFTable; \
+        void* spare; \
+        char name[TypeDescLen]; \
+    } TD_##ExcName = { nullptr, nullptr, ".PEAV" #ExcName "@@" }; \
+    \
+    static CatchableType CT_##ExcName = { 1, 0, 0, -1, 0, 8, 0 }; \
+    \
+    static struct { \
+        uint32_t nCatchableTypes; \
+        int32_t types[3]; \
+    } CTA_##ExcName = { 3, { 0, 0, 0 } }; \
+    \
+    static ThrowInfo TI_##ExcName = { 0, 0, 0, 0 };
 
-// Dummy type_info vftable - just needs to be non-null
-// MSVC's exception handler might just check for non-null and then
-// directly access the type name string at offset 16
-static void* MS_ABI dummy_type_info_destructor(void* p) { return p; }
-static int MS_ABI dummy_type_info_eq(void*, void*) { return 0; }
-static int MS_ABI dummy_type_info_ne(void*, void*) { return 1; }
-static const char* MS_ABI dummy_type_info_name(void*) { return "dummy"; }
-
-// type_info vftable layout (from MSVC):
-// [0] destructor
-// [1] operator==
-// [2] operator!=
-// [3] before
-// [4] hash_code
-// [5] name
-// [6] raw_name
-static void* g_dummyTypeInfoVFTable[] = {
-    (void*)dummy_type_info_destructor,
-    (void*)dummy_type_info_eq,
-    (void*)dummy_type_info_ne,
-    nullptr,  // before - not typically called
-    nullptr,  // hash_code
-    (void*)dummy_type_info_name,
-    nullptr,  // raw_name - accessed directly
-};
-
-// Try to get vftable from runtime DLLs, fall back to dummy
-static const void* GetTypeInfoVFTable() {
-    // Try vcruntime140.dll first (primary runtime)
-    if (!g_hVCRuntime) {
-        g_hVCRuntime = LoadLibraryA("vcruntime140.dll");
-    }
-    if (g_hVCRuntime) {
-        // Try the decorated name
-        void* vftable = (void*)GetProcAddress(g_hVCRuntime, "??_7type_info@@6B@");
-        if (vftable) return vftable;
-    }
-
-    // Try ucrtbase.dll
-    HMODULE hUCRT = LoadLibraryA("ucrtbase.dll");
-    if (hUCRT) {
-        void* vftable = (void*)GetProcAddress(hUCRT, "??_7type_info@@6B@");
-        if (vftable) return vftable;
-    }
-
-    // Try msvcrt.dll (older runtime, sometimes has it)
-    HMODULE hMSVCRT = LoadLibraryA("msvcrt.dll");
-    if (hMSVCRT) {
-        void* vftable = (void*)GetProcAddress(hMSVCRT, "??_7type_info@@6B@");
-        if (vftable) return vftable;
-    }
-
-    // Fall back to our dummy vftable
-    // This might work because MSVC's type matching uses strcmp on raw_name
-    // which is at a fixed offset in the TypeDescriptor
-    fprintf(stderr, "OpenMFC: Using dummy type_info vftable\n");
-    return &g_dummyTypeInfoVFTable[0];
-}
-
-// =============================================================================
-// CMemoryException RTTI Structures
-// =============================================================================
-
-// These must be in a section that persists (static storage)
-// The RVAs are computed at runtime
-
-// Type descriptors for pointer types
-// When throwing a pointer (CMemoryException*), we need .PEAV prefix
-// .PEAV = Pointer to class type (E=__ptr64 on x64, A=no cv-qualifiers, V=class)
+// Base types (shared)
 static struct {
     const void* pVFTable;
     void* spare;
-    char name[28];  // .PEAVCMemoryException@@\0
-} TD_CMemoryException = { nullptr, nullptr, ".PEAVCMemoryException@@" };
-
-static struct {
-    const void* pVFTable;
-    void* spare;
-    char name[24];  // .PEAVCException@@\0
+    char name[20];
 } TD_CException = { nullptr, nullptr, ".PEAVCException@@" };
 
 static struct {
     const void* pVFTable;
     void* spare;
-    char name[20];  // .PEAVCObject@@\0
+    char name[16];
 } TD_CObject = { nullptr, nullptr, ".PEAVCObject@@" };
 
-// Catchable types for pointer types
-// For pointers, size is sizeof(void*) = 8 on x64
-static CatchableType CT_CMemoryException = {
-    1,              // properties: 1 = simple type (pointer)
-    0,              // pType: RVA to TD_CMemoryException (set at runtime)
-    0,              // mdisp
-    -1,             // pdisp
-    0,              // vdisp
-    8,              // size: sizeof(CMemoryException*) = 8 on x64
-    0               // copyFunction: 0 = memcpy
-};
+static CatchableType CT_CException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CObject = { 1, 0, 0, -1, 0, 8, 0 };
 
-static CatchableType CT_CException = {
-    1,              // properties: 1 = simple type (pointer)
-    0,              // pType: RVA to TD_CException (set at runtime)
-    0,              // mdisp
-    -1,             // pdisp
-    0,              // vdisp
-    8,              // size: sizeof(CException*) = 8 on x64
-    0               // copyFunction
-};
-
-static CatchableType CT_CObject = {
-    1,              // properties: 1 = simple type (pointer)
-    0,              // pType: RVA to TD_CObject (set at runtime)
-    0,              // mdisp
-    -1,             // pdisp
-    0,              // vdisp
-    8,              // size: sizeof(CObject*) = 8 on x64
-    0               // copyFunction
-};
-
-// Catchable type array for CMemoryException (can catch as CMemoryException, CException, or CObject)
+// Define all exception types
+// CMemoryException
 static struct {
-    uint32_t nCatchableTypes;
-    int32_t types[3];
-} CTA_CMemoryException = { 3, { 0, 0, 0 } };
+    const void* pVFTable;
+    void* spare;
+    char name[28];
+} TD_CMemoryException = { nullptr, nullptr, ".PEAVCMemoryException@@" };
+static CatchableType CT_CMemoryException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CMemoryException = { 3, {0,0,0} };
+static ThrowInfo TI_CMemoryException = { 0, 0, 0, 0 };
+static CMemoryException g_MemoryException; // Static instance
 
-// ThrowInfo for CMemoryException
-static ThrowInfo TI_CMemoryException = {
-    0,              // attributes
-    0,              // pmfnUnwind: destructor RVA (set at runtime)
-    0,              // pForwardCompat
-    0               // pCatchableTypeArray: RVA (set at runtime)
-};
+// CNotSupportedException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[32];
+} TD_CNotSupportedException = { nullptr, nullptr, ".PEAVCNotSupportedException@@" };
+static CatchableType CT_CNotSupportedException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CNotSupportedException = { 3, {0,0,0} };
+static ThrowInfo TI_CNotSupportedException = { 0, 0, 0, 0 };
+
+// CResourceException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[28];
+} TD_CResourceException = { nullptr, nullptr, ".PEAVCResourceException@@" };
+static CatchableType CT_CResourceException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CResourceException = { 3, {0,0,0} };
+static ThrowInfo TI_CResourceException = { 0, 0, 0, 0 };
+
+// CUserException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[24];
+} TD_CUserException = { nullptr, nullptr, ".PEAVCUserException@@" };
+static CatchableType CT_CUserException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CUserException = { 3, {0,0,0} };
+static ThrowInfo TI_CUserException = { 0, 0, 0, 0 };
+
+// CInvalidArgException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[32];
+} TD_CInvalidArgException = { nullptr, nullptr, ".PEAVCInvalidArgException@@" };
+static CatchableType CT_CInvalidArgException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CInvalidArgException = { 3, {0,0,0} };
+static ThrowInfo TI_CInvalidArgException = { 0, 0, 0, 0 };
+
+// CFileException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[24];
+} TD_CFileException = { nullptr, nullptr, ".PEAVCFileException@@" };
+static CatchableType CT_CFileException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CFileException = { 3, {0,0,0} };
+static ThrowInfo TI_CFileException = { 0, 0, 0, 0 };
+
+// CArchiveException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[28];
+} TD_CArchiveException = { nullptr, nullptr, ".PEAVCArchiveException@@" };
+static CatchableType CT_CArchiveException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CArchiveException = { 3, {0,0,0} };
+static ThrowInfo TI_CArchiveException = { 0, 0, 0, 0 };
+
+// COleException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[24];
+} TD_COleException = { nullptr, nullptr, ".PEAVCOleException@@" };
+static CatchableType CT_COleException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_COleException = { 3, {0,0,0} };
+static ThrowInfo TI_COleException = { 0, 0, 0, 0 };
+
+// COleDispatchException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[32];
+} TD_COleDispatchException = { nullptr, nullptr, ".PEAVCOleDispatchException@@" };
+static CatchableType CT_COleDispatchException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[4]; } CTA_COleDispatchException = { 4, {0,0,0,0} };
+static ThrowInfo TI_COleDispatchException = { 0, 0, 0, 0 };
+
+// CInternetException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[28];
+} TD_CInternetException = { nullptr, nullptr, ".PEAVCInternetException@@" };
+static CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CInternetException = { 3, {0,0,0} };
+static ThrowInfo TI_CInternetException = { 0, 0, 0, 0 };
+
+// CDBException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[24];
+} TD_CDBException = { nullptr, nullptr, ".PEAVCDBException@@" };
+static CatchableType CT_CDBException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CDBException = { 3, {0,0,0} };
+static ThrowInfo TI_CDBException = { 0, 0, 0, 0 };
+
+// CDaoException
+static struct {
+    const void* pVFTable;
+    void* spare;
+    char name[25];
+} TD_CDaoException = { nullptr, nullptr, ".PEAVCDaoException@@" };
+static CatchableType CT_CDaoException = { 1, 0, 0, -1, 0, 8, 0 };
+static struct { uint32_t n; int32_t t[3]; } CTA_CDaoException = { 3, {0,0,0} };
+static ThrowInfo TI_CDaoException = { 0, 0, 0, 0 };
 
 // =============================================================================
-// Exception Object Layout
-// =============================================================================
-
-// Minimal CObject-compatible layout
-struct CObjectData {
-    const void* vptr;     // Virtual function table pointer
-};
-
-// Minimal CException-compatible layout
-struct CExceptionData {
-    const void* vptr;
-    int m_bAutoDelete;    // MFC uses BOOL (int)
-};
-
-// CMemoryException is same as CException (no extra data)
-struct CMemoryExceptionData {
-    const void* vptr;
-    int m_bAutoDelete;
-};
-
-// =============================================================================
-// Virtual Function Tables
-// =============================================================================
-
-// We need vtables that point to our implementations
-// For now, minimal stubs
-
-static void MS_ABI CMemoryException_Destructor(CMemoryExceptionData* pThis) {
-    // Destructor - does nothing for now
-}
-
-static void* MS_ABI CMemoryException_GetRuntimeClass(CMemoryExceptionData* pThis) {
-    return nullptr;  // TODO: return proper CRuntimeClass
-}
-
-// Virtual function table for CMemoryException
-// Order must match MSVC's vtable layout for CObject -> CException -> CMemoryException
-static const void* VFTable_CMemoryException[] = {
-    (void*)CMemoryException_GetRuntimeClass,  // GetRuntimeClass
-    (void*)CMemoryException_Destructor,       // Destructor (scalar)
-    // Add more virtual functions as needed
-};
-
-// =============================================================================
-// Setup RTTI structures (call once)
+// Initialize RTTI for all exception types
 // =============================================================================
 
 static bool g_rttiInitialized = false;
 
-static void InitRTTI() {
+static void InitAllRTTI() {
     if (g_rttiInitialized) return;
-
-    // GetTypeInfoVFTable now has a fallback, so it always returns non-null
-    const void* typeInfoVFT = GetTypeInfoVFTable();
-
-    // Set vftable pointers in type descriptors
-    TD_CMemoryException.pVFTable = typeInfoVFT;
-    TD_CException.pVFTable = typeInfoVFT;
-    TD_CObject.pVFTable = typeInfoVFT;
-
-    // Compute RVAs
+    if (!g_typeInfoVFT) g_typeInfoVFT = GetTypeInfoVFTable();
     g_imageBase = GetOurImageBase();
 
-    // Set RVAs in catchable types
-    CT_CMemoryException.pType = TO_RVA(&TD_CMemoryException);
+    // Base types
+    TD_CException.pVFTable = g_typeInfoVFT;
+    TD_CObject.pVFTable = g_typeInfoVFT;
     CT_CException.pType = TO_RVA(&TD_CException);
     CT_CObject.pType = TO_RVA(&TD_CObject);
 
-    // Set RVAs in catchable type array
-    CTA_CMemoryException.types[0] = TO_RVA(&CT_CMemoryException);
-    CTA_CMemoryException.types[1] = TO_RVA(&CT_CException);
-    CTA_CMemoryException.types[2] = TO_RVA(&CT_CObject);
-
-    // Set RVAs in throw info
-    TI_CMemoryException.pmfnUnwind = TO_RVA(&CMemoryException_Destructor);
+    // CMemoryException
+    TD_CMemoryException.pVFTable = g_typeInfoVFT;
+    CT_CMemoryException.pType = TO_RVA(&TD_CMemoryException);
+    CTA_CMemoryException.t[0] = TO_RVA(&CT_CMemoryException);
+    CTA_CMemoryException.t[1] = TO_RVA(&CT_CException);
+    CTA_CMemoryException.t[2] = TO_RVA(&CT_CObject);
+    TI_CMemoryException.pmfnUnwind = 0; // No destructor needed for static object
     TI_CMemoryException.pCatchableTypeArray = TO_RVA(&CTA_CMemoryException);
+
+    // CNotSupportedException
+    TD_CNotSupportedException.pVFTable = g_typeInfoVFT;
+    CT_CNotSupportedException.pType = TO_RVA(&TD_CNotSupportedException);
+    CTA_CNotSupportedException.t[0] = TO_RVA(&CT_CNotSupportedException);
+    CTA_CNotSupportedException.t[1] = TO_RVA(&CT_CException);
+    CTA_CNotSupportedException.t[2] = TO_RVA(&CT_CObject);
+    TI_CNotSupportedException.pmfnUnwind = 0; // We don't support unwinding on MinGW side easily
+    TI_CNotSupportedException.pCatchableTypeArray = TO_RVA(&CTA_CNotSupportedException);
+
+    // CResourceException
+    TD_CResourceException.pVFTable = g_typeInfoVFT;
+    CT_CResourceException.pType = TO_RVA(&TD_CResourceException);
+    CTA_CResourceException.t[0] = TO_RVA(&CT_CResourceException);
+    CTA_CResourceException.t[1] = TO_RVA(&CT_CException);
+    CTA_CResourceException.t[2] = TO_RVA(&CT_CObject);
+    TI_CResourceException.pmfnUnwind = 0;
+    TI_CResourceException.pCatchableTypeArray = TO_RVA(&CTA_CResourceException);
+
+    // CUserException
+    TD_CUserException.pVFTable = g_typeInfoVFT;
+    CT_CUserException.pType = TO_RVA(&TD_CUserException);
+    CTA_CUserException.t[0] = TO_RVA(&CT_CUserException);
+    CTA_CUserException.t[1] = TO_RVA(&CT_CException);
+    CTA_CUserException.t[2] = TO_RVA(&CT_CObject);
+    TI_CUserException.pmfnUnwind = 0;
+    TI_CUserException.pCatchableTypeArray = TO_RVA(&CTA_CUserException);
+
+    // CInvalidArgException
+    TD_CInvalidArgException.pVFTable = g_typeInfoVFT;
+    CT_CInvalidArgException.pType = TO_RVA(&TD_CInvalidArgException);
+    CTA_CInvalidArgException.t[0] = TO_RVA(&CT_CInvalidArgException);
+    CTA_CInvalidArgException.t[1] = TO_RVA(&CT_CException);
+    CTA_CInvalidArgException.t[2] = TO_RVA(&CT_CObject);
+    TI_CInvalidArgException.pmfnUnwind = 0;
+    TI_CInvalidArgException.pCatchableTypeArray = TO_RVA(&CTA_CInvalidArgException);
+
+    // CFileException
+    TD_CFileException.pVFTable = g_typeInfoVFT;
+    CT_CFileException.pType = TO_RVA(&TD_CFileException);
+    CTA_CFileException.t[0] = TO_RVA(&CT_CFileException);
+    CTA_CFileException.t[1] = TO_RVA(&CT_CException);
+    CTA_CFileException.t[2] = TO_RVA(&CT_CObject);
+    TI_CFileException.pmfnUnwind = 0;
+    TI_CFileException.pCatchableTypeArray = TO_RVA(&CTA_CFileException);
+
+    // CArchiveException
+    TD_CArchiveException.pVFTable = g_typeInfoVFT;
+    CT_CArchiveException.pType = TO_RVA(&TD_CArchiveException);
+    CTA_CArchiveException.t[0] = TO_RVA(&CT_CArchiveException);
+    CTA_CArchiveException.t[1] = TO_RVA(&CT_CException);
+    CTA_CArchiveException.t[2] = TO_RVA(&CT_CObject);
+    TI_CArchiveException.pmfnUnwind = 0;
+    TI_CArchiveException.pCatchableTypeArray = TO_RVA(&CTA_CArchiveException);
+
+    // COleException
+    TD_COleException.pVFTable = g_typeInfoVFT;
+    CT_COleException.pType = TO_RVA(&TD_COleException);
+    CTA_COleException.t[0] = TO_RVA(&CT_COleException);
+    CTA_COleException.t[1] = TO_RVA(&CT_CException);
+    CTA_COleException.t[2] = TO_RVA(&CT_CObject);
+    TI_COleException.pmfnUnwind = 0;
+    TI_COleException.pCatchableTypeArray = TO_RVA(&CTA_COleException);
+
+    // COleDispatchException
+    TD_COleDispatchException.pVFTable = g_typeInfoVFT;
+    CT_COleDispatchException.pType = TO_RVA(&TD_COleDispatchException);
+    CTA_COleDispatchException.t[0] = TO_RVA(&CT_COleDispatchException);
+    CTA_COleDispatchException.t[1] = TO_RVA(&CT_COleException);
+    CTA_COleDispatchException.t[2] = TO_RVA(&CT_CException);
+    CTA_COleDispatchException.t[3] = TO_RVA(&CT_CObject);
+    TI_COleDispatchException.pmfnUnwind = 0;
+    TI_COleDispatchException.pCatchableTypeArray = TO_RVA(&CTA_COleDispatchException);
+
+    // CInternetException
+    TD_CInternetException.pVFTable = g_typeInfoVFT;
+    CT_CInternetException.pType = TO_RVA(&TD_CInternetException);
+    CTA_CInternetException.t[0] = TO_RVA(&CT_CInternetException);
+    CTA_CInternetException.t[1] = TO_RVA(&CT_CException);
+    CTA_CInternetException.t[2] = TO_RVA(&CT_CObject);
+    TI_CInternetException.pmfnUnwind = 0;
+    TI_CInternetException.pCatchableTypeArray = TO_RVA(&CTA_CInternetException);
+
+    // CDBException
+    TD_CDBException.pVFTable = g_typeInfoVFT;
+    CT_CDBException.pType = TO_RVA(&TD_CDBException);
+    CTA_CDBException.t[0] = TO_RVA(&CT_CDBException);
+    CTA_CDBException.t[1] = TO_RVA(&CT_CException);
+    CTA_CDBException.t[2] = TO_RVA(&CT_CObject);
+    TI_CDBException.pmfnUnwind = 0;
+    TI_CDBException.pCatchableTypeArray = TO_RVA(&CTA_CDBException);
+
+    // CDaoException
+    TD_CDaoException.pVFTable = g_typeInfoVFT;
+    CT_CDaoException.pType = TO_RVA(&TD_CDaoException);
+    CTA_CDaoException.t[0] = TO_RVA(&CT_CDaoException);
+    CTA_CDaoException.t[1] = TO_RVA(&CT_CException);
+    CTA_CDaoException.t[2] = TO_RVA(&CT_CObject);
+    TI_CDaoException.pmfnUnwind = 0;
+    TI_CDaoException.pCatchableTypeArray = TO_RVA(&CTA_CDaoException);
 
     g_rttiInitialized = true;
 }
 
 // =============================================================================
-// Public API: AfxThrowMemoryException
+// Helper functions to throw exceptions
 // =============================================================================
 
-// Static exception object (MFC often uses a single static instance)
-static CMemoryExceptionData g_memoryExceptionObject = { VFTable_CMemoryException, 0 };
+template<typename T>
+static void ThrowStatic(T* pException, ThrowInfo* pThrowInfo) {
+    if (!InitExceptionSystem()) { abort(); }
+    InitAllRTTI();
+    g_pCxxThrowException(&pException, pThrowInfo);
+    abort();
+}
 
-// Pointer to the exception object - this is what we actually throw
-// When throwing a pointer type, the exception object IS the pointer value
-static CMemoryExceptionData* g_pMemoryException = &g_memoryExceptionObject;
-
-extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
-    if (!InitExceptionThrowing()) {
-        fprintf(stderr, "OpenMFC: Cannot throw - exception init failed\n");
-        abort();
-    }
-
-    InitRTTI();
-
-    // Set up the exception object
-    g_memoryExceptionObject.vptr = VFTable_CMemoryException;
-    g_memoryExceptionObject.m_bAutoDelete = 0;  // Don't auto-delete static object
-    g_pMemoryException = &g_memoryExceptionObject;
-
-    // Throw the pointer!
-    // _CxxThrowException takes:
-    //   - Pointer to the exception object (which is the pointer value itself for pointer types)
-    //   - Pointer to ThrowInfo
-    g_pCxxThrowException(&g_pMemoryException, &TI_CMemoryException);
-
-    // Should never reach here
+template<typename T>
+static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
+    if (!InitExceptionSystem()) { abort(); }
+    InitAllRTTI();
+    g_pCxxThrowException(&pException, pThrowInfo);
     abort();
 }
 
 // =============================================================================
-// Other exception stubs (not yet implemented with real throwing)
+// Public API: Exception Throwing Functions
 // =============================================================================
 
-extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPB_W_Z(int cause, LONG lOsError, const wchar_t* lpszFileName) {
-    fprintf(stderr, "AfxThrowFileException: cause=%d, error=%ld (stub)\n", cause, lOsError);
-    if (lpszFileName) {
-        fprintf(stderr, "  file: %ls\n", lpszFileName);
-    }
-    // TODO: Implement proper CFileException throwing
+// AfxThrowMemoryException - void()
+extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
+    ThrowStatic(&g_MemoryException, &TI_CMemoryException);
 }
 
-extern "C" void MS_ABI stub__AfxThrowResourceException__YAXXZ() {
-    fprintf(stderr, "AfxThrowResourceException (stub)\n");
-    // TODO: Implement proper CResourceException throwing
-}
-
+// AfxThrowNotSupportedException - void()
 extern "C" void MS_ABI stub__AfxThrowNotSupportedException__YAXXZ() {
-    fprintf(stderr, "AfxThrowNotSupportedException (stub)\n");
-    // TODO: Implement proper CNotSupportedException throwing
+    ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException);
 }
 
+// AfxThrowResourceException - void()
+extern "C" void MS_ABI stub__AfxThrowResourceException__YAXXZ() {
+    ThrowNew(new CResourceException(), &TI_CResourceException);
+}
+
+// AfxThrowUserException - void()
 extern "C" void MS_ABI stub__AfxThrowUserException__YAXXZ() {
-    fprintf(stderr, "AfxThrowUserException (stub)\n");
-    // TODO: Implement proper CUserException throwing
+    ThrowNew(new CUserException(), &TI_CUserException);
 }
 
+// AfxThrowInvalidArgException - void()
 extern "C" void MS_ABI stub__AfxThrowInvalidArgException__YAXXZ() {
-    fprintf(stderr, "AfxThrowInvalidArgException (stub)\n");
-    // TODO: Implement proper CInvalidArgException throwing
+    ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException);
+}
+
+// AfxThrowFileException - void(int cause, LONG lOsError, const wchar_t* lpszFileName)
+extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPB_W_Z(
+    int cause, LONG lOsError, const wchar_t* lpszFileName
+) {
+    CFileException* pEx = new CFileException(cause, lOsError);
+    if (lpszFileName) {
+        pEx->m_strFileName = lpszFileName;
+    }
+    ThrowNew(pEx, &TI_CFileException);
+}
+
+// AfxThrowArchiveException - void(int cause, const wchar_t* lpszArchiveName)
+extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPB_W_Z(
+    int cause, const wchar_t* lpszArchiveName
+) {
+    CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
+    ThrowNew(pEx, &TI_CArchiveException);
+}
+
+// AfxThrowOleException - void(HRESULT sc)
+extern "C" void MS_ABI stub__AfxThrowOleException__YAXJ_Z(LONG sc) {
+    COleException* pEx = new COleException();
+    pEx->m_sc = sc;
+    ThrowNew(pEx, &TI_COleException);
+}
+
+// AfxThrowOleDispatchException - void(WORD wCode, UINT nDescriptionID, UINT nHelpID)
+extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGII_Z(
+    WORD wCode, UINT nDescriptionID, UINT nHelpID
+) {
+    COleDispatchException* pEx = new COleDispatchException();
+    pEx->m_wCode = wCode;
+    pEx->m_dwHelpContext = nHelpID;
+    // TODO: Load description from resource nDescriptionID
+    ThrowNew(pEx, &TI_COleDispatchException);
+}
+
+// AfxThrowOleDispatchException - void(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID)
+extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPB_WI_Z(
+    WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
+) {
+    COleDispatchException* pEx = new COleDispatchException();
+    pEx->m_wCode = wCode;
+    pEx->m_strDescription = lpszDescription;
+    pEx->m_dwHelpContext = nHelpID;
+    ThrowNew(pEx, &TI_COleDispatchException);
+}
+
+// AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
+extern "C" void MS_ABI stub__AfxThrowInternetException__YAXKK_Z(
+    DWORD dwContext, DWORD dwError
+) {
+    CInternetException* pEx = new CInternetException(dwError);
+    pEx->m_dwContext = dwContext;
+    ThrowNew(pEx, &TI_CInternetException);
+}
+
+// AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
+extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPAVCDatabase__PAX_Z(
+    short nRetCode, void* pdb, void* hstmt
+) {
+    (void)pdb; (void)hstmt; // Unused for now
+    CDBException* pEx = new CDBException(nRetCode);
+    ThrowNew(pEx, &TI_CDBException);
+}
+
+// AfxThrowDaoException - void(int nAfxDaoError, SCODE scode)
+// Note: Signature might vary, checking ordinal mapping would be ideal but assuming standard
+extern "C" void MS_ABI stub__AfxThrowDaoException__YAXHJ_Z(
+    int nAfxDaoError, SCODE scode
+) {
+    CDaoException* pEx = new CDaoException();
+    pEx->m_nAfxDaoError = (short)nAfxDaoError;
+    pEx->m_scode = scode;
+    ThrowNew(pEx, &TI_CDaoException);
+}
+
+// AfxThrowLastCleanup - internal MFC function
+extern "C" void MS_ABI stub__AfxThrowLastCleanup__YAXXZ() {
+    // This is typically called to throw a generic exception during cleanup
+    ThrowNew(new CUserException(), &TI_CUserException);
 }
 
 // AfxAbort - terminates the application

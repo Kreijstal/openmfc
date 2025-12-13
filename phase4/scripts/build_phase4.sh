@@ -50,7 +50,18 @@ echo ""
 echo "[1/4] Generating weak stubs..."
 
 # Symbols to exclude (already implemented)
-EXCLUDED_SYMBOLS="?AfxThrowMemoryException@@YAXXZ,?AfxThrowFileException@@YAXHJPB_W@Z,?AfxThrowResourceException@@YAXXZ,?AfxThrowNotSupportedException@@YAXXZ,?AfxThrowUserException@@YAXXZ,?AfxThrowInvalidArgException@@YAXXZ,?AfxAbort@@YAXXZ,?AfxGetDllVersion@@YAKXZ"
+# Exception functions - simple (void())
+EXCLUDED_SYMBOLS="?AfxThrowMemoryException@@YAXXZ,?AfxThrowNotSupportedException@@YAXXZ,?AfxThrowResourceException@@YAXXZ,?AfxThrowUserException@@YAXXZ,?AfxThrowInvalidArgException@@YAXXZ,?AfxThrowLastCleanup@@YAXXZ,?AfxAbort@@YAXXZ"
+# Exception functions - with parameters
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxThrowFileException@@YAXHJPB_W@Z,?AfxThrowArchiveException@@YAXHPB_W@Z,?AfxThrowOleException@@YAXJ@Z,?AfxThrowOleDispatchException@@YAXGII@Z,?AfxThrowOleDispatchException@@YAXGPB_WI@Z,?AfxThrowInternetException@@YAXKK@Z,?AfxThrowDBException@@YAXFPAVCDatabase@@PAX@Z"
+# Version functions
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetDllVersion@@YAKXZ"
+# CObject methods
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UBAPAUCRuntimeClass@@XZ,?GetThisClass@CObject@@SAPAUCRuntimeClass@@XZ,?IsKindOf@CObject@@QBAHPBUCRuntimeClass@@@Z,?IsSerializable@CObject@@QBAHXZ"
+# CRuntimeClass methods
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QAAPAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z,?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z,?FromName@CRuntimeClass@@SAPAU1@PB_W@Z,?FromName@CRuntimeClass@@SAPAU1@PBD@Z,?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z,?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z,?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z"
+# Helper functions
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxClassInit@@YAXPAUCRuntimeClass@@@Z,?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -76,6 +87,8 @@ echo "[3/4] Compiling..."
 IMPL_SOURCES=(
     "$ROOT/phase4/src/mfc_exceptions.cpp"
     "$ROOT/phase4/src/version_impl.cpp"
+    "$ROOT/phase4/src/cobject_impl.cpp"
+    "$ROOT/phase4/src/appcore.cpp"
     # Add more implementation files here as they are created
 )
 
