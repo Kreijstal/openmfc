@@ -121,6 +121,21 @@ jobs:
           name: phase4_mingw_dll
           path: .
 
+      - name: Debug - List files
+        run: |
+          Get-ChildItem -Recurse
+
+      - name: Setup Test Environment
+        run: |
+          # Move DLLs to current directory if needed
+          if (Test-Path "build-phase4/openmfc.dll") {
+            Copy-Item "build-phase4/openmfc.dll" .
+          }
+          # Move EXEs to current directory if they are in a subdir
+          if (Test-Path "test_binaries") {
+            Copy-Item "test_binaries/*.exe" .
+          }
+
       - name: Run test_version
         run: |
           Write-Host "Running test_version.exe..."
