@@ -286,8 +286,7 @@ extern "C" void MS_ABI stub___0CWinThread__QAA_XZ(CWinThread* pThis) {
 // Symbol: ??1CWinThread@@UAA@XZ
 // Ordinal: 1453
 extern "C" void MS_ABI stub___1CWinThread__UAA_XZ(CWinThread* pThis) {
-    (void)pThis;
-    // Nothing to clean up
+    pThis->~CWinThread();
 }
 
 CWinThread* AFXAPI AfxGetThread() {

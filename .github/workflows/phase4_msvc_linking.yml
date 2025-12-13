@@ -68,7 +68,7 @@ jobs:
       shell: cmd
       run: |
         echo Building MSVC test application...
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib user32.lib
         if %ERRORLEVEL% neq 0 (
           echo Failed to build MSVC test app
           exit /b 1
@@ -79,7 +79,7 @@ jobs:
       shell: cmd
       run: |
         echo Building Hello World test application...
-        cl.exe /nologo /EHsc /std:c++17 /MD /D_AFXDLL /I include /Fe:test_hello_world.exe phase4\tests\test_hello_world.cpp openmfc.lib
+        cl.exe /nologo /EHsc /std:c++17 /MD /D_AFXDLL /I include /Fe:test_hello_world.exe phase4\tests\test_hello_world.cpp openmfc.lib user32.lib
         if %ERRORLEVEL% neq 0 (
           echo Failed to build Hello World test app
           exit /b 1
