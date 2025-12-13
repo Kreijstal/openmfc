@@ -2,6 +2,63 @@
 
 Phase 4 is where real MFC functionality gets implemented. The build system generates stubs for all 14,109 exports, and you override specific stubs with real implementations.
 
+## Implementation Checklist
+
+### Exception Throwing (`AfxThrowXxxException`)
+
+| Function | Status | Notes |
+|----------|--------|-------|
+| `AfxThrowMemoryException` | ✅ Done | Full C++ exception, catchable by MSVC |
+| `AfxThrowNotSupportedException` | ❌ Stub | |
+| `AfxThrowArchiveException` | ❌ Stub | |
+| `AfxThrowFileException` | ❌ Stub | |
+| `AfxThrowInvalidArgException` | ❌ Stub | |
+| `AfxThrowOleDispatchException` | ❌ Stub | |
+| `AfxThrowOleException` | ❌ Stub | |
+| `AfxThrowResourceException` | ❌ Stub | |
+| `AfxThrowUserException` | ❌ Stub | |
+| `AfxThrowDaoException` | ❌ Stub | |
+| `AfxThrowDBException` | ❌ Stub | |
+| `AfxThrowInternetException` | ❌ Stub | |
+
+### Exception Classes RTTI
+
+For exceptions to be catchable by type, we need MSVC-compatible RTTI structures:
+
+| Type | TypeDescriptor | CatchableType | Status |
+|------|----------------|---------------|--------|
+| `CMemoryException*` | `.PEAVCMemoryException@@` | ✅ | Pointer type |
+| `CException*` | `.PEAVCException@@` | ✅ | Base class |
+| `CObject*` | `.PEAVCObject@@` | ✅ | Root base |
+| Other exception types | - | ❌ | Not yet |
+
+### Version/Info Functions
+
+| Function | Status | Notes |
+|----------|--------|-------|
+| `AfxGetDllVersion` | ✅ Done | Returns 0x0E00 (MFC 14.0) |
+
+### Core Classes
+
+| Class | Status | Notes |
+|-------|--------|-------|
+| `CObject` | ❌ Stub | Base class, needs RTTI |
+| `CString` | ❌ Stub | String handling |
+| `CException` | ❌ Stub | Exception base |
+| `CWnd` | ❌ Stub | Window base |
+| `CWinApp` | ❌ Stub | Application class |
+
+## Test Results
+
+Tests run on Windows with MSVC-compiled test binaries:
+
+| Test | Status | Description |
+|------|--------|-------------|
+| `test_exception_simple` | ✅ Pass | `catch(...)` catches exception |
+| `test_exception_typed` | ✅ Pass | `catch(CMemoryException*)` works |
+| `test_exception_mfc` | ✅ Pass | Real MFC headers (`<afx.h>`) |
+| `test_version` | ✅ Pass | `AfxGetDllVersion()` returns 0x0E00 |
+
 ## Architecture
 
 ```
@@ -38,217 +95,89 @@ Phase 4 is where real MFC functionality gets implemented. The build system gener
 │                  ┌─────────────────┐                               │
 │                  │  openmfc.dll    │                               │
 │                  │                 │                               │
-│                  │ Real: CString   │                               │
-│                  │ Real: CObject   │                               │
+│                  │ Real: Exceptions│                               │
+│                  │ Real: Version   │                               │
 │                  │ Stub: others    │                               │
 │                  └─────────────────┘                               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Why Not Weak Symbols?
+## Key Technical Details
 
-We initially tried using `__attribute__((weak))` to allow implementations to override stubs. However, PE/COFF (Windows executable format) handles weak symbols differently than ELF:
+### Exception Throwing (MSVC ABI Compatibility)
 
-- On ELF (Linux): Weak symbols work as expected - strong definitions override weak ones
-- On PE/COFF (Windows): Weak symbols become undefined references, causing linker errors
+For MSVC-compiled code to catch exceptions thrown by OpenMFC:
 
-Instead, we use **link order** - the linker uses the first definition it finds. Link your implementations before `weak_stubs.o`.
+1. **Pointer Type Names**: Use `.PEAVClassName@@` (not `.?AVClassName@@`)
+   - `P` = pointer, `E` = __ptr64, `AV` = class type
 
-## Why extern "C" Instead of C++ Classes?
+2. **ThrowInfo Structure** (16 bytes on x64):
+   ```cpp
+   struct ThrowInfo {
+       uint32_t attributes;           // 0
+       int32_t pmfnUnwind;            // RVA to destructor (0 if none)
+       int32_t pForwardCompat;        // 0
+       int32_t pCatchableTypeArray;   // RVA to CatchableTypeArray
+   };
+   ```
 
-**GCC and MSVC have incompatible C++ ABIs:**
+3. **CatchableType Structure** (28 bytes):
+   ```cpp
+   struct CatchableType {
+       uint32_t properties;           // 1 for pointer types
+       int32_t pType;                 // RVA to TypeDescriptor
+       int32_t mdisp, pdisp, vdisp;   // Displacement (0, -1, 0)
+       int32_t sizeOrOffset;          // 8 for pointer on x64
+       int32_t copyFunction;          // 0 (use memcpy)
+   };
+   ```
+
+4. **TypeDescriptor** (variable size):
+   ```cpp
+   struct TypeDescriptor {
+       const void* pVFTable;  // type_info vftable (8 bytes)
+       void* spare;           // 0 (8 bytes)
+       char name[];           // ".PEAVCMemoryException@@"
+   };
+   ```
+
+5. **RVAs**: All pointers in exception structures are 32-bit RVAs relative to image base
+
+### Why extern "C" Instead of C++ Classes?
+
+GCC and MSVC have incompatible C++ ABIs:
 
 ```
 GCC mangles:  _ZN7CObject15GetRuntimeClassEv
 MSVC mangles: ?GetRuntimeClass@CObject@@UBEPAUCRuntimeClass@@XZ
 ```
 
-These will **never match**. The solution:
-
-1. All exports use `extern "C"` functions with stub names
-2. The `.def` file maps stub names → MSVC-mangled export names
-3. MSVC applications see correct symbols
+Solution: Use `extern "C"` + `.def` file mapping:
 
 ```cpp
-// WRONG - produces GCC-mangled symbol, won't work
-class CObject {
-    virtual CRuntimeClass* GetRuntimeClass();
-};
-
-// CORRECT - produces C symbol, .def maps to MSVC name
-extern "C" void* MS_ABI stub__GetRuntimeClass_CObject__XZ() {
-    return &CObject_classCObject;  // Return pointer to RTTI struct
-}
-```
-
-## How to Implement a Function
-
-### Step 1: Find the stub name
-
-Use the implementation status checker:
-
-```bash
-python3 scripts/check_implementation_status.py \
-    -m mfc_complete_ordinal_mapping.json \
-    --by-class --filter-class CString
-```
-
-Or search the mapping directly:
-
-```bash
-grep "AfxThrowMemoryException" mfc_complete_ordinal_mapping.json
-```
-
-### Step 2: Write the implementation
-
-Create a file in `phase4/src/` (or `src/mfc/`):
-
-```cpp
-// phase4/src/exceptions_impl.cpp
-
-#include <cstdio>
-
-// MS ABI calling convention for x64
-#if defined(__GNUC__)
-  #define MS_ABI __attribute__((ms_abi))
-#else
-  #define MS_ABI
-#endif
-
-// Implementation of AfxThrowMemoryException
-// Original: ?AfxThrowMemoryException@@YAXXZ
-// Stub name: stub__AfxThrowMemoryException__YAXXZ
+// Produces C symbol, .def maps to MSVC name
 extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
-    // Real implementation here
-    fprintf(stderr, "AfxThrowMemoryException called!\n");
-    // In real impl: allocate and throw CMemoryException
+    // Implementation
 }
 ```
 
-### Step 3: Add to build
+## Directory Structure
 
-Edit `phase4/scripts/build_phase4.sh` to include your implementation:
-
-```bash
-IMPL_SOURCES=(
-    "$ROOT/phase4/src/exceptions_impl.cpp"
-    # Add more as implemented
-)
 ```
-
-### Step 4: Verify
-
-```bash
-./phase4/scripts/build_phase4.sh
+phase4/
+├── README.md           # This file
+├── include/            # Headers (if needed)
+├── src/
+│   ├── mfc_exceptions.cpp   # Exception throwing implementation
+│   └── version_impl.cpp     # AfxGetDllVersion
+├── scripts/
+│   └── build_phase4.sh      # Build script
+└── tests/
+    ├── test_exception_simple.cpp  # catch(...) test
+    ├── test_exception_typed.cpp   # catch(CMemoryException*) test
+    ├── test_exception_mfc.cpp     # Real MFC headers test
+    └── test_version.cpp           # Version function test
 ```
-
-The ABI verification will confirm all symbols are still present.
-
-## Stub Name Convention
-
-MSVC-mangled names are converted to valid C identifiers:
-
-| Character | Replacement |
-|-----------|-------------|
-| `?` | `_` |
-| `@` | `_` |
-| Other special | `_` |
-
-Examples:
-
-| MSVC Symbol | Stub Name |
-|-------------|-----------|
-| `?AfxThrowMemoryException@@YAXXZ` | `stub__AfxThrowMemoryException__YAXXZ` |
-| `??0CString@@QAE@XZ` | `stub___0CString__QAE_XZ` |
-| `?GetLength@CString@@QBEHXZ` | `stub__GetLength_CString__QBEHXZ` |
-
-## Data Exports
-
-Some exports are data (static members, globals), not functions:
-
-```cpp
-// Data export: ?AFX_WM_DRAW2D@@3IA (global unsigned int)
-unsigned int stub__AFX_WM_DRAW2D__3IA = 0;
-
-// Data export: ?rectDefault@CFrameWnd@@2VCRect@@B (static const CRect)
-void* stub__rectDefault_CFrameWnd__2VCRect__B = 0;
-```
-
-The `.def` file marks these with `DATA`:
-
-```def
-?AFX_WM_DRAW2D@@3IA=stub__AFX_WM_DRAW2D__3IA @2112 DATA
-```
-
-## Tools
-
-### verify_abi_exports.py
-
-Verifies the built DLL has all required symbols:
-
-```bash
-python3 scripts/verify_abi_exports.py \
-    --mapping mfc_complete_ordinal_mapping.json \
-    --dll build-phase4/openmfc.dll
-```
-
-### check_implementation_status.py
-
-Shows implementation progress:
-
-```bash
-# Summary by category
-python3 scripts/check_implementation_status.py \
-    -m mfc_complete_ordinal_mapping.json --summary
-
-# Group by class
-python3 scripts/check_implementation_status.py \
-    -m mfc_complete_ordinal_mapping.json --by-class
-
-# Filter to specific class
-python3 scripts/check_implementation_status.py \
-    -m mfc_complete_ordinal_mapping.json --by-class --filter-class CWnd
-```
-
-### gen_weak_stubs.py
-
-Generates stubs and .def file:
-
-```bash
-python3 tools/gen_weak_stubs.py \
-    --mapping mfc_complete_ordinal_mapping.json \
-    --out-def build-phase4/openmfc.def \
-    --out-stubs build-phase4/weak_stubs.cpp
-```
-
-## Symbol Categories
-
-From the 14,109 exports:
-
-| Category | Count | Description |
-|----------|-------|-------------|
-| Constructors | 765 | `??0ClassName@@...` |
-| Destructors | 459 | `??1ClassName@@...` |
-| Operators | 192 | `??BClassName@@...` (conversion), etc. |
-| Virtual methods | 4,209 | `@@U...` or `@@V...` in signature |
-| Static methods | 827 | `@@S...` in signature |
-| Member functions | 3,731 | `@@Q...` or `@@A...` in signature |
-| Global functions | 366 | `@@Y...` in signature |
-| Data | 115 | `@@2...` or `@@3...` (static/global data) |
-| Other | 3,445 | Templates, special members, etc. |
-
-## Priority Classes for Implementation
-
-Based on typical MFC application usage:
-
-1. **CString** - String handling (heavily used)
-2. **CObject** - RTTI base class
-3. **CException** family - Exception handling
-4. **CWnd** - Window base class
-5. **CWinApp** - Application class
-6. **CDialog** - Dialog windows
-7. **CFrameWnd** - Frame windows
-8. **CDC/CGdiObject** - GDI drawing
 
 ## Build
 
@@ -264,9 +193,10 @@ Based on typical MFC application usage:
 
 ## Testing with MSVC
 
-The CI workflow will:
+The CI workflow:
 
-1. Download `openmfc.dll` and `openmfc.def`
-2. Generate import library: `lib /DEF:openmfc.def /OUT:openmfc.lib`
-3. Build test apps with MSVC
-4. Verify linking and basic functionality
+1. Builds DLL with MinGW on Linux
+2. Downloads DLL on Windows runner
+3. Creates import library: `lib /DEF:openmfc.def /OUT:openmfc.lib`
+4. Builds test apps with MSVC (including real MFC headers)
+5. Runs tests and verifies exception catching works
