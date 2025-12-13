@@ -95,6 +95,11 @@ jobs:
           # If DLL exists, continue
           test -f build-phase4/openmfc.dll && echo "DLL built successfully"
 
+          # Bundle MinGW runtime DLLs
+          cp /usr/lib/gcc/x86_64-w64-mingw32/*/libgcc_s_seh-1.dll build-phase4/ || echo "libgcc not found"
+          cp /usr/lib/gcc/x86_64-w64-mingw32/*/libstdc++-6.dll build-phase4/ || echo "libstdc++ not found"
+          cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll build-phase4/ || echo "libwinpthread not found"
+
       - name: Upload DLL artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -102,6 +107,7 @@ jobs:
           path: |
             build-phase4/openmfc.dll
             build-phase4/openmfc.def
+            build-phase4/*.dll
           retention-days: 30
 
   # Job 3: Run tests on Windows
@@ -129,7 +135,7 @@ jobs:
         run: |
           # Move DLLs to current directory if needed
           if (Test-Path "build-phase4/openmfc.dll") {
-            Copy-Item "build-phase4/openmfc.dll" .
+            Copy-Item "build-phase4/*.dll" .
           }
           # Move EXEs to current directory if they are in a subdir
           if (Test-Path "test_binaries") {
