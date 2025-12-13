@@ -142,16 +142,6 @@ jobs:
             Copy-Item "test_binaries/*.exe" .
           }
 
-      - name: Run test_msvc_app
-        run: |
-          Write-Host "Running test_msvc_app.exe..."
-          $output = & .\test_msvc_app.exe 2>&1 | Out-String
-          Write-Host $output
-          # This test uses stubs that print "Not Implemented" - that's expected
-          if ($output -match "All tests passed") {
-            Write-Host "SUCCESS"
-          }
-
       - name: Run test_exception_mfc
         run: |
           Write-Host "Running test_exception_mfc.exe..."
@@ -160,4 +150,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             Write-Error "test_exception_mfc failed"
             exit 1
+          }
+
+      - name: Run test_msvc_app
+        run: |
+          Write-Host "Running test_msvc_app.exe..."
+          $output = & .\test_msvc_app.exe 2>&1 | Out-String
+          Write-Host $output
+          # This test uses stubs that print "Not Implemented" - that's expected
+          if ($output -match "All tests passed") {
+            Write-Host "SUCCESS"
           }
