@@ -11,10 +11,22 @@
 typedef unsigned int UINT;
 #endif
 
+#ifndef BOOL
+typedef int BOOL;
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 // Calling convention for MFC API functions
 #ifndef AFXAPI
     #if defined(_MSC_VER) || defined(__MINGW32__)
-        #define AFXAPI __stdcall
+        #define AFXAPI __cdecl
     #else
         #define AFXAPI
     #endif
@@ -246,7 +258,13 @@ public:
         if (nFirst >= nLen) return CString();
         if (nCount < 0) nCount = nLen - nFirst;
         if (nFirst + nCount > nLen) nCount = nLen - nFirst;
-        return CString(m_pszData + nFirst);
+        
+        CString dest;
+        dest.AllocBuffer(nCount);
+        wmemcpy(dest.m_pszData, m_pszData + nFirst, nCount);
+        dest.m_pszData[nCount] = L'\0';
+        dest.GetData()->nDataLength = nCount;
+        return dest;
     }
 
     // Searching
@@ -587,14 +605,14 @@ inline CString operator+(const wchar_t* psz, const CString& str) {
 
 // Extract substring from source string using separator
 // Returns TRUE if substring found, FALSE otherwise
-bool AFXAPI AfxExtractSubString(CString& rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep = L'\n');
+BOOL AfxExtractSubString(CString& rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep = L'\n');
 
 // Format string using resource template and one argument (%1)
-void AFXAPI AfxFormatString1(CString& rString, UINT nIDS, const wchar_t* lpsz1);
+void AfxFormatString1(CString& rString, UINT nIDS, const wchar_t* lpsz1);
 
 // Format string using resource template and two arguments (%1, %2)
-void AFXAPI AfxFormatString2(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2);
+void AfxFormatString2(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2);
 
 // Display message box
-int AFXAPI AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);
-int AFXAPI AfxMessageBox(UINT nIDPrompt, UINT nType = 0, UINT nIDHelp = 0);
+int AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);
+int AfxMessageBox(UINT nIDPrompt, UINT nType = 0, UINT nIDHelp = 0);

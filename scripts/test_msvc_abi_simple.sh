@@ -27,9 +27,15 @@ if ! command -v x86_64-w64-mingw32-objdump >/dev/null 2>&1; then
 fi
 
 # Extract exports
+# Extract exports
+# Handle both formats:
+# 1. [   0] +base[ 256] 00001480 symbol_name
+# 2. [   0] symbol_name
 EXPORTS=$(x86_64-w64-mingw32-objdump -p "$DLL" 2>/dev/null | \
-    grep -E '^[[:space:]]+\[[[:space:]]*[0-9]+\][[:space:]]*\+base\[[[:space:]]*[0-9]+\][[:space:]]+[0-9a-fA-F]+[[:space:]]+' | \
-    sed 's/.*[0-9a-fA-F]\+[[:space:]]\+//' || true)
+    grep -E '^[[:space:]]+\[[[:space:]]*[0-9]+\][[:space:]]+' | \
+    sed -E 's/.*base\[[[:space:]]*[0-9]+\][[:space:]]+[0-9a-fA-F]+[[:space:]]+//' | \
+    sed -E 's/^[[:space:]]+\[[[:space:]]*[0-9]+\][[:space:]]+//' | \
+    grep -v "RVA exportieren" | grep -v "Export RVA" || true)
 
 if [[ -z "$EXPORTS" ]]; then
     echo "❌ ERROR: Could not extract exports from DLL"

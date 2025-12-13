@@ -13,6 +13,18 @@ This tracks actual implementations in phase4 (not stubs).
 ### Version Functions
 - [x] `AfxGetDllVersion` - Returns 0x0E00 (MFC 14.0)
 
+### CObject and CRuntimeClass
+- [x] `CObject::GetRuntimeClass()` - Returns CRuntimeClass* for object
+- [x] `CObject::GetThisClass()` - Static method returning CRuntimeClass*
+- [x] `CObject::IsKindOf()` - Type checking using inheritance chain
+- [x] `CObject::IsSerializable()` - Check serialization support
+- [x] `CRuntimeClass::CreateObject()` - Factory method (3 overloads)
+- [x] `CRuntimeClass::FromName()` - Lookup by class name (2 overloads)
+- [x] `CRuntimeClass::IsDerivedFrom()` - Inheritance checking
+- [x] `CRuntimeClass::Load()` / `Store()` - Serialization (stub)
+- [x] `AfxClassInit()` - Class registration
+- [x] `AfxDynamicDownCast()` - MFC dynamic_cast equivalent
+
 ---
 
 ## In Progress 🔄
@@ -42,7 +54,7 @@ This tracks actual implementations in phase4 (not stubs).
 - [ ] `AfxThrowInternetException`
 
 ### Core Classes
-- [ ] `CObject` - Base class with RTTI
+- [x] `CObject` - Base class with RTTI (GetRuntimeClass, IsKindOf, etc.)
 - [ ] `CString` - String handling
 - [ ] `CException` - Exception base class
 - [ ] `CCmdTarget` - Command target
@@ -94,6 +106,8 @@ This tracks actual implementations in phase4 (not stubs).
 | `test_exception_typed` | ✅ Pass | `catch(CMemoryException*)` works |
 | `test_exception_mfc` | ✅ Pass | Real MFC headers (`<afx.h>`) |
 | `test_version` | ✅ Pass | `AfxGetDllVersion()` returns 0x0E00 |
+| `test_cobject_rtti` | 🟡 Pending | CObject RTTI methods |
+| `test_openmfc_suite` | 🟡 Pending | Comprehensive test (all features) |
 
 ---
 
@@ -103,13 +117,14 @@ This tracks actual implementations in phase4 (not stubs).
 |----------|-------------|-------|--------|
 | Exception Throwing | 1 | 12 | 8% |
 | Version/Info | 1 | 1 | 100% |
-| Core Classes | 0 | 6 | 0% |
+| Core Classes | 1 | 6 | 17% |
+| CRuntimeClass | 8 | 8 | 100% |
 | App Functions | 0 | 8 | 0% |
 | Window/Dialog | 0 | 20+ | 0% |
 | GDI | 0 | 15+ | 0% |
 | Collections | 0 | 11 | 0% |
 
-**Overall: ~2% complete (2 functions with real implementations)**
+**Overall: ~15 functions with real implementations**
 
 ---
 
@@ -117,5 +132,5 @@ This tracks actual implementations in phase4 (not stubs).
 
 - [ ] All `AfxThrowXxxException` functions work
 - [ ] Basic CString operations work
-- [ ] CObject RTTI works (`IsKindOf`, `GetRuntimeClass`)
+- [x] CObject RTTI works (`IsKindOf`, `GetRuntimeClass`)
 - [ ] Simple MFC app links and runs basic code

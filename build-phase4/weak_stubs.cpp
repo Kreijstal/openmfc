@@ -8231,10 +8231,6 @@ extern "C" void MS_ABI stub__AfxCheckError__YAXJ_Z() {
     STUB_LOG("?AfxCheckError@@YAXJ@Z");
 }
 
-extern "C" void MS_ABI stub__AfxClassInit__YAXPAUCRuntimeClass___Z() {
-    STUB_LOG("?AfxClassInit@@YAXPAUCRuntimeClass@@@Z");
-}
-
 extern "C" int MS_ABI stub__AfxComparePath__YAHPB_W0_Z() {
     STUB_LOG("?AfxComparePath@@YAHPB_W0@Z");
     return 0;
@@ -8323,11 +8319,6 @@ extern "C" void MS_ABI stub__AfxDrawGrayBitmap__YAXPAVCDC__HHABVCBitmap__K_Z() {
     STUB_LOG("?AfxDrawGrayBitmap@@YAXPAVCDC@@HHABVCBitmap@@K@Z");
 }
 
-extern "C" void* MS_ABI stub__AfxDynamicDownCast__YAPAVCObject__PAUCRuntimeClass__PAV1__Z() {
-    STUB_LOG("?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z");
-    return nullptr;
-}
-
 extern "C" void MS_ABI stub__AfxEditviewTerm__YAXXZ() {
     STUB_LOG("?AfxEditviewTerm@@YAXXZ");
 }
@@ -8347,11 +8338,6 @@ extern "C" void MS_ABI stub__AfxEndThread__YAXIH_Z() {
 
 extern "C" int MS_ABI stub__AfxEnumMetaFileProc__YAHPAUHDC____PAUtagHANDLETABLE__PAUtagMETARECORD__HJ_Z() {
     STUB_LOG("?AfxEnumMetaFileProc@@YAHPAUHDC__@@PAUtagHANDLETABLE@@PAUtagMETARECORD@@HJ@Z");
-    return 0;
-}
-
-extern "C" int MS_ABI stub__AfxExtractSubString__YAHAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PB_WH_W_Z() {
-    STUB_LOG("?AfxExtractSubString@@YAHAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z");
     return 0;
 }
 
@@ -8381,14 +8367,6 @@ extern "C" void* MS_ABI stub__AfxFindResourceHandle__YAPAUHINSTANCE____PB_W0_Z()
 extern "C" void* MS_ABI stub__AfxFindStringResourceHandle__YAPAUHINSTANCE____I_Z() {
     STUB_LOG("?AfxFindStringResourceHandle@@YAPAUHINSTANCE__@@I@Z");
     return nullptr;
-}
-
-extern "C" void MS_ABI stub__AfxFormatString1__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPB_W_Z() {
-    STUB_LOG("?AfxFormatString1@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W@Z");
-}
-
-extern "C" void MS_ABI stub__AfxFormatString2__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPB_W1_Z() {
-    STUB_LOG("?AfxFormatString2@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W1@Z");
 }
 
 extern "C" void MS_ABI stub__AfxFormatStrings__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPBQB_WH_Z() {
@@ -8762,16 +8740,6 @@ extern "C" void* MS_ABI stub__AfxMergeMenus__YAPAUHMENU____PAU1_0PAJHH_Z() {
     return nullptr;
 }
 
-extern "C" int MS_ABI stub__AfxMessageBox__YAHIII_Z() {
-    STUB_LOG("?AfxMessageBox@@YAHIII@Z");
-    return 0;
-}
-
-extern "C" int MS_ABI stub__AfxMessageBox__YAHPB_WII_Z() {
-    STUB_LOG("?AfxMessageBox@@YAHPB_WII@Z");
-    return 0;
-}
-
 extern "C" int MS_ABI stub__AfxOleCanExitApp__YAHXZ() {
     STUB_LOG("?AfxOleCanExitApp@@YAHXZ");
     return 0;
@@ -9088,34 +9056,6 @@ extern "C" void MS_ABI stub__AfxTermThread__YAXPAUHINSTANCE_____Z() {
 
 extern "C" void MS_ABI stub__AfxTextFloatFormat__YAXPAVCDataExchange__HPAXNH_Z() {
     STUB_LOG("?AfxTextFloatFormat@@YAXPAVCDataExchange@@HPAXNH@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPB_W_Z() {
-    STUB_LOG("?AfxThrowArchiveException@@YAXHPB_W@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPAVCDatabase__PAX_Z() {
-    STUB_LOG("?AfxThrowDBException@@YAXFPAVCDatabase@@PAX@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowInternetException__YAXKK_Z() {
-    STUB_LOG("?AfxThrowInternetException@@YAXKK@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowLastCleanup__YAXXZ() {
-    STUB_LOG("?AfxThrowLastCleanup@@YAXXZ");
-}
-
-extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGII_Z() {
-    STUB_LOG("?AfxThrowOleDispatchException@@YAXGII@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPB_WI_Z() {
-    STUB_LOG("?AfxThrowOleDispatchException@@YAXGPB_WI@Z");
-}
-
-extern "C" void MS_ABI stub__AfxThrowOleException__YAXJ_Z() {
-    STUB_LOG("?AfxThrowOleException@@YAXJ@Z");
 }
 
 extern "C" void MS_ABI stub__AfxTimeToFileTime__YAXABVCTime_ATL__PAU_FILETIME___Z() {
@@ -13648,18 +13588,6 @@ extern "C" void MS_ABI stub__CreateObject_CRichEditCntrItem__SAPAVCObject__XZ() 
 
 extern "C" void MS_ABI stub__CreateObject_CRichEditView__SAPAVCObject__XZ() {
     STUB_LOG("?CreateObject@CRichEditView@@SAPAVCObject@@XZ");
-}
-
-extern "C" void MS_ABI stub__CreateObject_CRuntimeClass__QAAPAVCObject__XZ() {
-    STUB_LOG("?CreateObject@CRuntimeClass@@QAAPAVCObject@@XZ");
-}
-
-extern "C" void MS_ABI stub__CreateObject_CRuntimeClass__SAPAVCObject__PB_W_Z() {
-    STUB_LOG("?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z");
-}
-
-extern "C" void MS_ABI stub__CreateObject_CRuntimeClass__SAPAVCObject__PBD_Z() {
-    STUB_LOG("?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z");
 }
 
 extern "C" void MS_ABI stub__CreateObject_CSettingsStore__SAPAVCObject__XZ() {
@@ -18628,14 +18556,6 @@ extern "C" void MS_ABI stub__FromHandlePermanent_CWnd__SAPAV1_PAUHWND_____Z() {
 
 extern "C" void MS_ABI stub__FromIDispatch_CCmdTarget__SAPAV1_PAUIDispatch___Z() {
     STUB_LOG("?FromIDispatch@CCmdTarget@@SAPAV1@PAUIDispatch@@@Z");
-}
-
-extern "C" void MS_ABI stub__FromName_CRuntimeClass__SAPAU1_PB_W_Z() {
-    STUB_LOG("?FromName@CRuntimeClass@@SAPAU1@PB_W@Z");
-}
-
-extern "C" void MS_ABI stub__FromName_CRuntimeClass__SAPAU1_PBD_Z() {
-    STUB_LOG("?FromName@CRuntimeClass@@SAPAU1@PBD@Z");
 }
 
 extern "C" void MS_ABI stub__GenerateAutosaveFileName_CDataRecoveryHandler__UBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__ABV23__Z() {
@@ -25721,10 +25641,6 @@ extern "C" void MS_ABI stub__GetRuntimeClass_CObArray__UBAPAUCRuntimeClass__XZ()
     STUB_LOG("?GetRuntimeClass@CObArray@@UBAPAUCRuntimeClass@@XZ");
 }
 
-extern "C" void MS_ABI stub__GetRuntimeClass_CObject__UBAPAUCRuntimeClass__XZ() {
-    STUB_LOG("?GetRuntimeClass@CObject@@UBAPAUCRuntimeClass@@XZ");
-}
-
 extern "C" void MS_ABI stub__GetRuntimeClass_CObList__UBAPAUCRuntimeClass__XZ() {
     STUB_LOG("?GetRuntimeClass@CObList@@UBAPAUCRuntimeClass@@XZ");
 }
@@ -27971,10 +27887,6 @@ extern "C" void MS_ABI stub__GetThisClass_CNotSupportedException__SAPAUCRuntimeC
 
 extern "C" void MS_ABI stub__GetThisClass_CObArray__SAPAUCRuntimeClass__XZ() {
     STUB_LOG("?GetThisClass@CObArray@@SAPAUCRuntimeClass@@XZ");
-}
-
-extern "C" void MS_ABI stub__GetThisClass_CObject__SAPAUCRuntimeClass__XZ() {
-    STUB_LOG("?GetThisClass@CObject@@SAPAUCRuntimeClass@@XZ");
 }
 
 extern "C" void MS_ABI stub__GetThisClass_CObList__SAPAUCRuntimeClass__XZ() {
@@ -31185,10 +31097,6 @@ extern "C" void MS_ABI stub__IsDefaultWinXPPopupButton_CMFCVisualManagerWindows_
     STUB_LOG("?IsDefaultWinXPPopupButton@CMFCVisualManagerWindows@@UBAHPAVCMFCDesktopAlertWndButton@@@Z");
 }
 
-extern "C" void MS_ABI stub__IsDerivedFrom_CRuntimeClass__QBAHPBU1__Z() {
-    STUB_LOG("?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z");
-}
-
 extern "C" void MS_ABI stub__IsDialogMessageW_COccManager__UAAHPAVCWnd__PAUtagMSG___Z() {
     STUB_LOG("?IsDialogMessageW@COccManager@@UAAHPAVCWnd@@PAUtagMSG@@@Z");
 }
@@ -31408,10 +31316,6 @@ extern "C" void MS_ABI stub__IsKeyHandled_CKeyboardManager__SAHGEPAVCFrameWnd__H
 
 extern "C" void MS_ABI stub__IsKeyPrintable_CKeyboardManager__SAHI_Z() {
     STUB_LOG("?IsKeyPrintable@CKeyboardManager@@SAHI@Z");
-}
-
-extern "C" void MS_ABI stub__IsKindOf_CObject__QBAHPBUCRuntimeClass___Z() {
-    STUB_LOG("?IsKindOf@CObject@@QBAHPBUCRuntimeClass@@@Z");
 }
 
 extern "C" void MS_ABI stub__IsLabelControl_COccManager__SAHPAUCOleControlSiteOrWnd___Z() {
@@ -31718,10 +31622,6 @@ extern "C" void MS_ABI stub__IsSelectQueryUpdatable_CRecordset__QAAHPB_W_Z() {
     STUB_LOG("?IsSelectQueryUpdatable@CRecordset@@QAAHPB_W@Z");
 }
 
-extern "C" void MS_ABI stub__IsSerializable_CObject__QBAHXZ() {
-    STUB_LOG("?IsSerializable@CObject@@QBAHXZ");
-}
-
 extern "C" void MS_ABI stub__IsSignificantMessage_COleMessageFilter__UAAHPAUtagMSG___Z() {
     STUB_LOG("?IsSignificantMessage@COleMessageFilter@@UAAHPAUtagMSG@@@Z");
 }
@@ -31988,10 +31888,6 @@ extern "C" void MS_ABI stub__Load_CPngImage__QAAHIPAUHINSTANCE_____Z() {
 
 extern "C" void MS_ABI stub__Load_CPngImage__QAAHPB_WPAUHINSTANCE_____Z() {
     STUB_LOG("?Load@CPngImage@@QAAHPB_WPAUHINSTANCE__@@@Z");
-}
-
-extern "C" void MS_ABI stub__Load_CRuntimeClass__SAPAU1_AAVCArchive__PAI_Z() {
-    STUB_LOG("?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z");
 }
 
 extern "C" void MS_ABI stub__Load_XPersistFile_COleLinkingDoc__UAAJPB_WK_Z() {
@@ -32336,10 +32232,6 @@ extern "C" void MS_ABI stub__LoadStdProfileSettings_CWinApp__IAAXI_Z() {
 
 extern "C" void MS_ABI stub__LoadStr_CMFCToolBarImages__QAAHPB_WPAUHINSTANCE____H_Z() {
     STUB_LOG("?LoadStr@CMFCToolBarImages@@QAAHPB_WPAUHINSTANCE__@@H@Z");
-}
-
-extern "C" void MS_ABI stub__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QAAHI_Z() {
-    STUB_LOG("?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z");
 }
 
 extern "C" void MS_ABI stub__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QAAHPAUHINSTANCE____I_Z() {
@@ -54604,10 +54496,6 @@ extern "C" void MS_ABI stub__StopTracking_CSplitterWnd__MAAXH_Z() {
     STUB_LOG("?StopTracking@CSplitterWnd@@MAAXH@Z");
 }
 
-extern "C" void MS_ABI stub__Store_CRuntimeClass__QBAXAAVCArchive___Z() {
-    STUB_LOG("?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z");
-}
-
 extern "C" void MS_ABI stub__StoreDockInfo_CRecentDockSiteInfo__UAAXPAVCPaneContainer__PAVCDockablePane___Z() {
     STUB_LOG("?StoreDockInfo@CRecentDockSiteInfo@@UAAXPAVCPaneContainer@@PAVCDockablePane@@@Z");
 }
@@ -56365,5 +56253,5 @@ extern "C" void MS_ABI stub__SizeVertical_CMFCDynamicLayout__SA_AUSizeSettings_1
     STUB_LOG("?SizeVertical@CMFCDynamicLayout@@SA?AUSizeSettings@1@H@Z");
 }
 
-// Generated 13845 function stubs + 256 data stubs
-// Total: 14101 exports
+// Generated 13818 function stubs + 256 data stubs
+// Total: 14074 exports

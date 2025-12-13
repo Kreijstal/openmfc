@@ -9,7 +9,11 @@ on:
       - 'phase4/tests/test_exception_simple.cpp'
       - 'phase4/tests/test_exception_typed.cpp'
       - 'phase4/tests/test_exception_mfc.cpp'
+      - 'phase4/tests/test_cobject_rtti.cpp'
+      - 'phase4/tests/test_openmfc_suite.cpp'
       - 'phase4/src/mfc_exceptions.cpp'
+      - 'phase4/src/cobject_impl.cpp'
+      - 'phase4/src/version_impl.cpp'
       - '.github/workflows/explore_exceptions.yml'
 
 jobs:
@@ -183,6 +187,56 @@ jobs:
             "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
             Write-Host "FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build CObject RTTI test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_cobject_rtti.cpp openmfc.lib /Fe:test_cobject_rtti.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run CObject RTTI test
+        shell: pwsh
+        id: cobject_test
+        run: |
+          Write-Host "=== Running CObject RTTI Test ===" -ForegroundColor Cyan
+          Write-Host "Testing CObject::GetRuntimeClass, IsKindOf, etc." -ForegroundColor Yellow
+
+          $output = & .\test_cobject_rtti.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "All Tests Passed") {
+            Write-Host "COBJECT RTTI TEST PASSED!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "COBJECT RTTI TEST FAILED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build comprehensive test suite
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_openmfc_suite.cpp openmfc.lib /Fe:test_openmfc_suite.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run comprehensive test suite
+        shell: pwsh
+        id: suite_test
+        run: |
+          Write-Host "=== Running OpenMFC Comprehensive Test Suite ===" -ForegroundColor Cyan
+          Write-Host "Testing ALL implemented Phase 4 features" -ForegroundColor Yellow
+
+          $output = & .\test_openmfc_suite.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "ALL TESTS PASSED") {
+            Write-Host "COMPREHENSIVE TEST SUITE PASSED!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "COMPREHENSIVE TEST SUITE FAILED" -ForegroundColor Red
             "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 

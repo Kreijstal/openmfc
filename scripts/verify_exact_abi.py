@@ -34,37 +34,54 @@ def extract_dll_exports(dll_path: Path) -> Dict[str, int]:
         print("  Install: sudo apt-get install mingw-w64")
         sys.exit(1)
     
-    # Parse export table - look for the actual export section
-    output = result.stdout
-    export_section_start = output.find("Export Address Table -- Ordinal Base")
+    # Parse export table
+    # We need to handle different objdump formats
+    import re
     
-    if export_section_start == -1:
-        # Try alternative format
-        export_section_start = output.find("[Ordinal/Name Pointer] Table")
+    ordinal_base = 1  # Default
+    in_name_table = False
     
-    if export_section_start != -1:
-        lines = output[export_section_start:].split('\n')
-        for line in lines:
-            # Look for: [   0] +base[ 256] 00001480 symbol_name
-            if '+base[' in line:
-                try:
-                    # Extract ordinal
-                    start = line.find('+base[') + 6
-                    end = line.find(']', start)
-                    ordinal = int(line[start:end].strip())
-                    
-                    # Extract symbol - it's after the address
-                    parts = line.split()
-                    # Find the part after the hex address
-                    for i, part in enumerate(parts):
-                        if len(part) >= 4 and all(c in '0123456789abcdefABCDEF' for c in part):
-                            # This is the hex address, symbol is next
-                            if i + 1 < len(parts):
-                                symbol = parts[i + 1]
-                                exports[symbol] = ordinal
-                            break
-                except (ValueError, IndexError):
+    for line in result.stdout.split('\n'):
+        # Look for Ordinal Base
+        # "Export Address Table -- Ordinal Base 256"
+        base_match = re.search(r'Ordinal Base\s+(\d+)', line)
+        if base_match:
+            ordinal_base = int(base_match.group(1))
+            continue
+
+        # Look for Name Table header (handle both orderings)
+        if '[Ordinal/Name Pointer] Table' in line or '[Name Pointer/Ordinal] Table' in line:
+            in_name_table = True
+            continue
+
+        if in_name_table:
+            # Format 1: [   0] +base[ 256]  0000 symbol_name
+            match1 = re.match(r'\s*\[\s*\d+\]\s*\+base\[\s*(\d+)\]\s+[0-9a-fA-F]+\s+(.+)', line)
+            
+            # Format 2: [   0] symbol_name
+            # We need to capture the index to add to base
+            match2 = re.match(r'\s*\[\s*(\d+)\]\s+(.+)', line)
+
+            if match1:
+                ordinal = int(match1.group(1))
+                symbol = match1.group(2).strip()
+                # Clean up symbol if it has extra info
+                if ' ' in symbol:
+                    symbol = symbol.split()[0]
+                exports[symbol] = ordinal
+            elif match2:
+                # In this format, the number in brackets is the index into the table
+                # Ordinal = Base + Index
+                index = int(match2.group(1))
+                symbol = match2.group(2).strip()
+                # Skip if it looks like "Export RVA" (from Address Table)
+                if "Export RVA" in symbol or "RVA exportieren" in symbol:
                     continue
+                exports[symbol] = ordinal_base + index
+            elif line.strip() and not line.startswith('[') and exports:
+                # End of export table (heuristic: non-empty line not starting with [)
+                if "Table" in line:
+                    break
     
     # If still no exports, check if DLL might be exporting stub_* names
     # and we need to check the .def file mapping

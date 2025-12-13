@@ -62,6 +62,12 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UBAPAUCRuntimeClas
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QAAPAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z,?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z,?FromName@CRuntimeClass@@SAPAU1@PB_W@Z,?FromName@CRuntimeClass@@SAPAU1@PBD@Z,?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z,?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z,?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z"
 # Helper functions
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxClassInit@@YAXPAUCRuntimeClass@@@Z,?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z"
+# String functions
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadStringW@?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxExtractSubString@@YAHAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString1@@YAXAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString2@@YAXAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W1@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxMessageBox@@YAHPB_WII@Z,?AfxMessageBox@@YAHIII@Z"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -89,6 +95,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/version_impl.cpp"
     "$ROOT/phase4/src/cobject_impl.cpp"
     "$ROOT/phase4/src/appcore.cpp"
+    "$ROOT/phase4/src/strcore.cpp"
     # Add more implementation files here as they are created
 )
 

@@ -69,6 +69,39 @@ int main() {
         return 1;
     }
 
+    printf("\nTest 3: Catch CFileException* (Heap Allocated)\n");
+    fflush(stdout);
+
+    try {
+        printf("  Calling AfxThrowFileException(CFileException::fileNotFound, -1, L\"test.txt\")...\n");
+        fflush(stdout);
+
+        AfxThrowFileException(CFileException::fileNotFound, -1, L"test.txt");
+
+        printf("  ERROR: Should have thrown!\n");
+        fflush(stdout);
+        return 1;
+    }
+    catch (CFileException* e) {
+        printf("  SUCCESS: Caught CFileException*!\n");
+        printf("    Exception pointer: %p\n", (void*)e);
+        printf("    Cause: %d (Expected: %d)\n", e->m_cause, CFileException::fileNotFound);
+        // In real MFC, we should delete the exception. 
+        // Our implementation allocates with 'new', so this is safe and correct.
+        e->Delete(); 
+        fflush(stdout);
+    }
+    catch (CException* e) {
+        printf("  PARTIAL: Caught as CException* (base class)\n");
+        e->Delete();
+        fflush(stdout);
+    }
+    catch (...) {
+        printf("  FAILED: Caught with ... (type matching failed)\n");
+        fflush(stdout);
+        return 1;
+    }
+
     printf("\n=== All Tests Passed ===\n");
     fflush(stdout);
     return 0;

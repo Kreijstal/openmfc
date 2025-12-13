@@ -42,7 +42,8 @@ For exceptions to be catchable by type, we need MSVC-compatible RTTI structures:
 
 | Class | Status | Notes |
 |-------|--------|-------|
-| `CObject` | ❌ Stub | Base class, needs RTTI |
+| `CObject` | ✅ Done | Base class with RTTI (GetRuntimeClass, IsKindOf) |
+| `CRuntimeClass` | ✅ Done | CreateObject, FromName, IsDerivedFrom |
 | `CString` | ❌ Stub | String handling |
 | `CException` | ❌ Stub | Exception base |
 | `CWnd` | ❌ Stub | Window base |
@@ -58,6 +59,8 @@ Tests run on Windows with MSVC-compiled test binaries:
 | `test_exception_typed` | ✅ Pass | `catch(CMemoryException*)` works |
 | `test_exception_mfc` | ✅ Pass | Real MFC headers (`<afx.h>`) |
 | `test_version` | ✅ Pass | `AfxGetDllVersion()` returns 0x0E00 |
+| `test_cobject_rtti` | 🟡 Pending | CObject RTTI methods |
+| `test_openmfc_suite` | 🟡 Pending | **Comprehensive test** (all features) |
 
 ## Architecture
 
@@ -169,13 +172,16 @@ phase4/
 ├── include/            # Headers (if needed)
 ├── src/
 │   ├── mfc_exceptions.cpp   # Exception throwing implementation
-│   └── version_impl.cpp     # AfxGetDllVersion
+│   ├── version_impl.cpp     # AfxGetDllVersion
+│   └── cobject_impl.cpp     # CObject and CRuntimeClass implementation
 ├── scripts/
 │   └── build_phase4.sh      # Build script
 └── tests/
+    ├── test_openmfc_suite.cpp     # ** Comprehensive test suite **
     ├── test_exception_simple.cpp  # catch(...) test
     ├── test_exception_typed.cpp   # catch(CMemoryException*) test
     ├── test_exception_mfc.cpp     # Real MFC headers test
+    ├── test_cobject_rtti.cpp      # CObject RTTI test
     └── test_version.cpp           # Version function test
 ```
 
@@ -190,6 +196,37 @@ phase4/
 #   build-phase4/libopenmfc.a   - MinGW import library
 #   build-phase4/openmfc.def    - Export definitions
 ```
+
+## Checking Implementation Progress
+
+Use `scripts/check_implementation_status.py` to analyze which symbols are implemented vs stubbed:
+
+```bash
+# Summary by category
+python3 scripts/check_implementation_status.py \
+    --mapping mfc_complete_ordinal_mapping.json \
+    --summary
+
+# Group by class name (top 30 classes)
+python3 scripts/check_implementation_status.py \
+    --mapping mfc_complete_ordinal_mapping.json \
+    --by-class
+
+# List all symbols for a specific class
+python3 scripts/check_implementation_status.py \
+    --mapping mfc_complete_ordinal_mapping.json \
+    --by-class --filter-class CWnd
+
+# With DLL analysis (shows weak vs strong symbols)
+python3 scripts/check_implementation_status.py \
+    --mapping mfc_complete_ordinal_mapping.json \
+    --obj build-phase4/weak_stubs.o \
+    --impl-objs build-phase4/mfc_exceptions.o build-phase4/version_impl.o
+```
+
+The script uses `x86_64-w64-mingw32-nm` to identify:
+- **Weak symbols**: Stubs that haven't been implemented yet
+- **Strong symbols**: Real implementations that override stubs
 
 ## Testing with MSVC
 
