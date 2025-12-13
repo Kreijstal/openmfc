@@ -15,9 +15,8 @@
 //   6. Window is closed after a short timeout
 //   7. ExitInstance returns 0
 
-#define _AFXDLL
-#include <afx.h>
 #include <cstdio>
+#include "openmfc/afxwin.h"
 
 // Test application class
 class CTestApp : public CWinApp {
