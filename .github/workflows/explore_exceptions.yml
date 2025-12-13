@@ -8,6 +8,7 @@ on:
       - 'phase4/tests/test_exception_catch.cpp'
       - 'phase4/tests/test_exception_simple.cpp'
       - 'phase4/tests/test_exception_typed.cpp'
+      - 'phase4/tests/test_exception_mfc.cpp'
       - 'phase4/src/mfc_exceptions.cpp'
       - '.github/workflows/explore_exceptions.yml'
 
@@ -106,6 +107,37 @@ jobs:
             "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
             Write-Host "TYPED TEST FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build MFC headers exception test
+        shell: cmd
+        run: |
+          REM Build with real MFC headers but link against our openmfc.lib
+          REM /D_AFXDLL tells MFC to use DLL version
+          REM We explicitly link openmfc.lib and avoid linking real MFC
+          cl /nologo /EHsc /MD /D_AFXDLL /FA phase4\tests\test_exception_mfc.cpp openmfc.lib /Fe:test_exception_mfc.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run MFC headers exception test
+        shell: pwsh
+        id: mfc_test
+        run: |
+          Write-Host "=== Running MFC Headers Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing with real MFC headers (afx.h)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_mfc.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "All Tests Passed") {
+            Write-Host "MFC TEST PASSED: Works with real MFC headers!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "SUCCESS") {
+            Write-Host "MFC TEST PARTIAL: Some tests passed" -ForegroundColor Yellow
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "MFC TEST FAILED or CRASHED" -ForegroundColor Red
             "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
