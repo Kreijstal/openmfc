@@ -62,6 +62,28 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UBAPAUCRuntimeClas
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QAAPAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z,?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z,?FromName@CRuntimeClass@@SAPAU1@PB_W@Z,?FromName@CRuntimeClass@@SAPAU1@PBD@Z,?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z,?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z,?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z"
 # Helper functions
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxClassInit@@YAXPAUCRuntimeClass@@@Z,?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z"
+# CWinApp/CWinThread constructors and destructors
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CWinApp@@QAA@PB_W@Z,??1CWinApp@@UAA@XZ,??0CWinThread@@QAA@XZ,??1CWinThread@@UAA@XZ"
+# CWinApp/CWinThread methods
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Run@CWinThread@@UAAHXZ,?Run@CWinApp@@UAAHXZ,?InitInstance@CWinApp@@UAAHXZ,?InitInstance@CWinThread@@UAAHXZ,?ExitInstance@CWinThread@@UAAHXZ,?ExitInstance@CWinApp@@UAAHXZ"
+# AfxWinMain
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxWinMain@@YAHPAUHINSTANCE__@@0PA_WH@Z"
+# CFrameWnd constructor/destructor
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CFrameWnd@@QAA@XZ,??1CFrameWnd@@UAA@XZ"
+# CWnd/CFrameWnd window methods
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CFrameWnd@@UAAHPB_W0KABUtagRECT@@PAVCWnd@@0KPAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?ShowWindow@CWnd@@QAAHH@Z,?UpdateWindow@CWnd@@QAAXXZ,?DestroyWindow@CWnd@@UAAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?PreCreateWindow@CWnd@@UAAHAAUtagCREATESTRUCTW@@@Z,?PreCreateWindow@CFrameWnd@@MAAHAAUtagCREATESTRUCTW@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadFrame@CFrameWnd@@UAAHIKPAVCWnd@@PAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DefWindowProc@CWnd@@MAAJAIH_J@Z,?WindowProc@CWnd@@MAAJAIH_J@Z,?GetSafeHwnd@CWnd@@QBAPAUHWND__@@XZ"
+# CDialog methods
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialog@@QAA@XZ,??0CDialog@@QAA@IPAVCWnd@@@Z,??0CDialog@@QAA@PB_WPAVCWnd@@@Z,??1CDialog@@UAA@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DoModal@CDialog@@UAAHXZ,?Create@CDialog@@UAAHPB_WPAVCWnd@@@Z,?EndDialog@CDialog@@QAAXH@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?OnInitDialog@CDialog@@UAAHXZ,?OnOK@CDialog@@MAAXXZ,?OnCancel@CDialog@@MAAXXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CheckAutoCenter@CDialog@@UAAHXZ,?PreTranslateMessage@CDialog@@UAAHPAUtagMSG@@@Z,?Initialize@CDialog@@QAAXXZ"
+# CDialogEx constructors
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialogEx@@QAA@XZ,??0CDialogEx@@QAA@IPAVCWnd@@@Z,??0CDialogEx@@QAA@PB_WPAVCWnd@@@Z"
 # String functions
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadStringW@?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxExtractSubString@@YAHAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z"
@@ -96,6 +118,8 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/cobject_impl.cpp"
     "$ROOT/phase4/src/appcore.cpp"
     "$ROOT/phase4/src/strcore.cpp"
+    "$ROOT/phase4/src/wincore.cpp"
+    "$ROOT/phase4/src/dlgcore.cpp"
     # Add more implementation files here as they are created
 )
 

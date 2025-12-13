@@ -21,6 +21,69 @@
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 
+// =============================================================================
+// CCmdTarget Implementation
+// =============================================================================
+
+// CCmdTarget message map (root)
+const AFX_MSGMAP* AFXAPI CCmdTarget::GetThisMessageMap()
+{
+    return &CCmdTarget::messageMap;
+}
+
+const AFX_MSGMAP* CCmdTarget::GetMessageMap() const
+{
+    return GetThisMessageMap();
+}
+
+const AFX_MSGMAP CCmdTarget::messageMap =
+{
+    nullptr, // No base class with message map
+    &CCmdTarget::_messageEntries[0]
+};
+
+const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
+{
+    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 }
+};
+
+int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo)
+{
+    // Simple command routing
+    const AFX_MSGMAP* pMap = GetMessageMap();
+    
+    for (; pMap != nullptr; pMap = (*pMap->pfnGetBaseMap)())
+    {
+        const AFX_MSGMAP_ENTRY* lpEntry = pMap->lpEntries;
+        while (lpEntry->nSig != AfxSig_end)
+        {
+            if (lpEntry->nID == nID && lpEntry->nCode == (UINT)nCode)
+            {
+                // Found a match
+                return DispatchCmdMsg(this, nID, nCode, lpEntry->pfn, pExtra, lpEntry->nSig, pHandlerInfo);
+            }
+            lpEntry++;
+        }
+    }
+    
+    return FALSE; // Not handled
+}
+
+int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
+                                      AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo)
+{
+    (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo;
+    
+    switch (nSig)
+    {
+    case AfxSig_vv:
+        (pTarget->*pfn)();
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 // Exception implementations
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
@@ -62,7 +125,69 @@ int CWinThread::ExitInstance() {
 }
 
 int CWinThread::Run() {
+    // Real message loop implementation
+    MSG msg;
+
+    // Main message loop
+    while (GetMessageW(&msg, nullptr, 0, 0)) {
+        // Allow PreTranslateMessage to filter
+        if (!PreTranslateMessage(&msg)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        // Idle processing
+        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!OnIdle(0)) {
+                break;  // No more idle work
+            }
+        }
+    }
+
+    m_msgCur = msg;
     return ExitInstance();
+}
+
+// CWinThread::Run - exported stub
+// Symbol: ?Run@CWinThread@@UAAHXZ
+// Ordinal: 12614
+extern "C" int MS_ABI stub__Run_CWinThread__UAAHXZ(CWinThread* pThis) {
+    return pThis->Run();
+}
+
+// CWinApp::Run - exported stub (delegates to CWinThread::Run)
+// Symbol: ?Run@CWinApp@@UAAHXZ
+// Ordinal: 12613
+extern "C" int MS_ABI stub__Run_CWinApp__UAAHXZ(CWinApp* pThis) {
+    return pThis->Run();
+}
+
+// CWinApp::InitInstance - exported stub
+// Symbol: ?InitInstance@CWinApp@@UAAHXZ
+// Ordinal: 7726
+extern "C" int MS_ABI stub__InitInstance_CWinApp__UAAHXZ(CWinApp* pThis) {
+    return pThis->InitInstance();
+}
+
+// CWinThread::InitInstance - exported stub
+// Symbol: ?InitInstance@CWinThread@@UAAHXZ
+// Ordinal: 7727
+extern "C" int MS_ABI stub__InitInstance_CWinThread__UAAHXZ(CWinThread* pThis) {
+    return pThis->InitInstance();
+}
+
+// CWinThread::ExitInstance - exported stub
+// Symbol: ?ExitInstance@CWinThread@@UAAHXZ
+// Ordinal: 4457
+extern "C" int MS_ABI stub__ExitInstance_CWinThread__UAAHXZ(CWinThread* pThis) {
+    return pThis->ExitInstance();
+}
+
+// CWinApp::ExitInstance - exported stub
+// Symbol: ?ExitInstance@CWinApp@@UAAHXZ
+// Ordinal: 4455
+extern "C" int MS_ABI stub__ExitInstance_CWinApp__UAAHXZ(CWinApp* pThis) {
+    return pThis->ExitInstance();
 }
 
 BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
@@ -102,11 +227,67 @@ IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
 // We only need the runtime class implementation here
 
 
-// Global application pointer (stub)
-static CWinApp* g_pApp = nullptr;
+// Global application pointer
+CWinApp* g_pApp = nullptr;
 
 CWinApp* AFXAPI AfxGetApp() {
     return g_pApp;
+}
+
+// =============================================================================
+// CWinApp Constructor/Destructor
+// =============================================================================
+
+// CWinApp constructor
+// Symbol: ??0CWinApp@@QAA@PB_W@Z
+// Ordinal: 983
+extern "C" void MS_ABI stub___0CWinApp__QAA_PB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
+    // Initialize base class (CWinThread)
+    pThis->m_pMainWnd = nullptr;
+    pThis->m_nThreadID = GetCurrentThreadId();
+    pThis->m_hThread = GetCurrentThread();
+    pThis->m_bAutoDelete = FALSE;  // App object should not auto-delete
+
+    // Initialize CWinApp members
+    pThis->m_hInstance = nullptr;
+    pThis->m_lpCmdLine = nullptr;
+    pThis->m_nCmdShow = SW_SHOW;
+    pThis->m_pszAppName = lpszAppName;
+    pThis->m_pszExeName = nullptr;
+    pThis->m_pszHelpFilePath = nullptr;
+    pThis->m_pszProfileName = nullptr;
+    pThis->m_pszRegistryKey = nullptr;
+
+    // Register as the global app instance
+    g_pApp = pThis;
+}
+
+// CWinApp destructor
+// Symbol: ??1CWinApp@@UAA@XZ
+// Ordinal: 1450
+extern "C" void MS_ABI stub___1CWinApp__UAA_XZ(CWinApp* pThis) {
+    if (g_pApp == pThis) {
+        g_pApp = nullptr;
+    }
+}
+
+// CWinThread default constructor
+// Symbol: ??0CWinThread@@QAA@XZ
+// Ordinal: 988
+extern "C" void MS_ABI stub___0CWinThread__QAA_XZ(CWinThread* pThis) {
+    pThis->m_pMainWnd = nullptr;
+    pThis->m_nThreadID = 0;
+    pThis->m_hThread = nullptr;
+    pThis->m_bAutoDelete = TRUE;
+    memset(&pThis->m_msgCur, 0, sizeof(pThis->m_msgCur));
+}
+
+// CWinThread destructor
+// Symbol: ??1CWinThread@@UAA@XZ
+// Ordinal: 1453
+extern "C" void MS_ABI stub___1CWinThread__UAA_XZ(CWinThread* pThis) {
+    (void)pThis;
+    // Nothing to clean up
 }
 
 CWinThread* AFXAPI AfxGetThread() {

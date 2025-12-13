@@ -263,20 +263,81 @@ public:
 // IMPLEMENT_DYNAMIC(CFileException, CException) moved to appcore.cpp
 
 //=============================================================================
+// Message Map Definitions
+//=============================================================================
+
+class CCmdTarget;
+
+typedef void (AFXAPI CCmdTarget::*AFX_PMSG)(void);
+
+struct AFX_MSGMAP_ENTRY
+{
+    UINT nMessage;   // windows message
+    UINT nCode;      // control code or WM_NOTIFY code
+    UINT nID;        // control ID (or 0 for windows messages)
+    UINT nLastID;    // used for entries specifying a range of control id's
+    UINT_PTR nSig;   // signature type (action) or pointer to message #
+    AFX_PMSG pfn;    // routine to call (or special value)
+};
+
+struct AFX_MSGMAP
+{
+    const AFX_MSGMAP* (AFXAPI *pfnGetBaseMap)();
+    const AFX_MSGMAP_ENTRY* lpEntries;
+};
+
+#define DECLARE_MESSAGE_MAP() \
+protected: \
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap(); \
+    virtual const AFX_MSGMAP* GetMessageMap() const; \
+    static const AFX_MSGMAP messageMap; \
+    static const AFX_MSGMAP_ENTRY _messageEntries[]; \
+
+#define BEGIN_MESSAGE_MAP(theClass, baseClass) \
+    const AFX_MSGMAP* AFXAPI theClass::GetThisMessageMap() \
+    { \
+        return &theClass::messageMap; \
+    } \
+    const AFX_MSGMAP* theClass::GetMessageMap() const \
+    { \
+        return GetThisMessageMap(); \
+    } \
+    const AFX_MSGMAP theClass::messageMap = \
+    { \
+        &baseClass::GetThisMessageMap, \
+        &theClass::_messageEntries[0] \
+    }; \
+    const AFX_MSGMAP_ENTRY theClass::_messageEntries[] = \
+    { \
+
+#define END_MESSAGE_MAP() \
+        {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 } \
+    }; \
+
+// Message map signature values
+enum AfxSig
+{
+    AfxSig_end = 0,     // [marks end of message map]
+    AfxSig_vv = 1,      // void (void)
+};
+
+//=============================================================================
 // CCmdTarget - base for command message handling
 //=============================================================================
 
 class CCmdTarget : public CObject {
     DECLARE_DYNAMIC(CCmdTarget)
+    DECLARE_MESSAGE_MAP()
 public:
     CCmdTarget() = default;
     virtual ~CCmdTarget() = default;
     
     // Message map support (simplified)
-    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
-        (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo;
-        return 0; // FALSE
-    }
+    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
+    
+    // Static helper for dispatching
+    static int PASCAL DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
+                                     AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo);
     
 protected:
     // Padding to reach correct size
@@ -326,33 +387,24 @@ public:
     // Auto-delete control
     void SetAutoDelete(BOOL bAutoDelete) { m_bAutoDelete = bAutoDelete; }
     BOOL GetAutoDelete() const { return m_bAutoDelete; }
-    
+
     // Public members for compatibility
     CWnd* m_pMainWnd;
     DWORD m_nThreadID;
-    
+    HANDLE m_hThread;
+    BOOL m_bAutoDelete;
+    MSG m_msgCur;
+
 protected:
     // Thread procedure (static wrapper)
     static UINT AFXAPI _ThreadEntry(LPVOID pParam);
-    
-    // Thread handle and ID
-#ifdef _WIN32
-    HANDLE m_hThread;
-#else
-    pthread_t m_hThread;
-    pid_t m_dwThreadId;
-#endif
-    
+
     // Thread state
     int m_nThreadPriority;
     UINT m_nThreadStackSize;
     DWORD m_dwThreadCreateFlags;
-    BOOL m_bAutoDelete;
     BOOL m_bRunning;
     BOOL m_bSuspended;
-    
-    // Message queue (for UI threads)
-    MSG m_msgCur;
     
 private:
     // Disable copy constructor and assignment
@@ -388,7 +440,9 @@ public:
     virtual int CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                          DWORD dwStyle, int x, int y, int nWidth, int nHeight,
                          HWND hWndParent, HMENU nIDorHMenu, void* lpParam = nullptr);
-    
+
+    virtual int PreCreateWindow(CREATESTRUCTW& cs) { (void)cs; return TRUE; }
+
     virtual int DestroyWindow();
     
     //-------------------------------------------------------------------------
@@ -966,10 +1020,13 @@ public:
     const wchar_t* m_pszExeName;
     const wchar_t* m_pszHelpFilePath;
     const wchar_t* m_pszProfileName;
+    const wchar_t* m_pszRegistryKey;
     HINSTANCE m_hInstance;
-    
+    wchar_t* m_lpCmdLine;
+    int m_nCmdShow;
+
 protected:
-    char _winapp_padding[256];
+    char _winapp_padding[232];
 };
 
 // IMPLEMENT_DYNAMIC(CWinApp, CWinThread) moved to appcore.cpp

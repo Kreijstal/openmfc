@@ -4,33 +4,43 @@ Phase 4 is where real MFC functionality gets implemented. The build system gener
 
 ## Implementation Checklist
 
-### Exception Throwing (`AfxThrowXxxException`)
+### Exception Throwing (`AfxThrowXxxException`) - ALL COMPLETE ✅
 
 | Function | Status | Notes |
 |----------|--------|-------|
-| `AfxThrowMemoryException` | ✅ Done | Full C++ exception, catchable by MSVC |
-| `AfxThrowNotSupportedException` | ❌ Stub | |
-| `AfxThrowArchiveException` | ❌ Stub | |
-| `AfxThrowFileException` | ❌ Stub | |
-| `AfxThrowInvalidArgException` | ❌ Stub | |
-| `AfxThrowOleDispatchException` | ❌ Stub | |
-| `AfxThrowOleException` | ❌ Stub | |
-| `AfxThrowResourceException` | ❌ Stub | |
-| `AfxThrowUserException` | ❌ Stub | |
-| `AfxThrowDaoException` | ❌ Stub | |
-| `AfxThrowDBException` | ❌ Stub | |
-| `AfxThrowInternetException` | ❌ Stub | |
+| `AfxThrowMemoryException` | ✅ Done | Catchable as `CMemoryException*` |
+| `AfxThrowNotSupportedException` | ✅ Done | Catchable as `CNotSupportedException*` |
+| `AfxThrowResourceException` | ✅ Done | Catchable as `CResourceException*` |
+| `AfxThrowUserException` | ✅ Done | Catchable as `CUserException*` |
+| `AfxThrowInvalidArgException` | ✅ Done | Catchable as `CInvalidArgException*` |
+| `AfxThrowFileException` | ✅ Done | Catchable as `CFileException*` |
+| `AfxThrowArchiveException` | ✅ Done | Catchable as `CArchiveException*` |
+| `AfxThrowOleException` | ✅ Done | Catchable as `COleException*` |
+| `AfxThrowOleDispatchException` | ✅ Done | Catchable as `COleDispatchException*` (2 overloads) |
+| `AfxThrowInternetException` | ✅ Done | Catchable as `CInternetException*` |
+| `AfxThrowDBException` | ✅ Done | Catchable as `CDBException*` |
+| `AfxAbort` | ✅ Done | Calls abort() |
+| `AfxThrowLastCleanup` | ✅ Done | Abort cleanup |
 
-### Exception Classes RTTI
+### Exception Classes RTTI - ALL COMPLETE ✅
 
-For exceptions to be catchable by type, we need MSVC-compatible RTTI structures:
+All exception types have full MSVC-compatible RTTI structures:
 
-| Type | TypeDescriptor | CatchableType | Status |
-|------|----------------|---------------|--------|
-| `CMemoryException*` | `.PEAVCMemoryException@@` | ✅ | Pointer type |
-| `CException*` | `.PEAVCException@@` | ✅ | Base class |
-| `CObject*` | `.PEAVCObject@@` | ✅ | Root base |
-| Other exception types | - | ❌ | Not yet |
+| Type | TypeDescriptor | Status |
+|------|----------------|--------|
+| `CMemoryException*` | `.PEAVCMemoryException@@` | ✅ |
+| `CNotSupportedException*` | `.PEAVCNotSupportedException@@` | ✅ |
+| `CResourceException*` | `.PEAVCResourceException@@` | ✅ |
+| `CUserException*` | `.PEAVCUserException@@` | ✅ |
+| `CInvalidArgException*` | `.PEAVCInvalidArgException@@` | ✅ |
+| `CFileException*` | `.PEAVCFileException@@` | ✅ |
+| `CArchiveException*` | `.PEAVCArchiveException@@` | ✅ |
+| `COleException*` | `.PEAVCOleException@@` | ✅ |
+| `COleDispatchException*` | `.PEAVCOleDispatchException@@` | ✅ |
+| `CInternetException*` | `.PEAVCInternetException@@` | ✅ |
+| `CDBException*` | `.PEAVCDBException@@` | ✅ |
+| `CException*` | `.PEAVCException@@` | ✅ (base class) |
+| `CObject*` | `.PEAVCObject@@` | ✅ (root base) |
 
 ### Version/Info Functions
 
@@ -46,8 +56,8 @@ For exceptions to be catchable by type, we need MSVC-compatible RTTI structures:
 | `CRuntimeClass` | ✅ Done | CreateObject, FromName, IsDerivedFrom |
 | `CString` | ❌ Stub | String handling |
 | `CException` | ❌ Stub | Exception base |
-| `CWnd` | ❌ Stub | Window base |
-| `CWinApp` | ❌ Stub | Application class |
+| `CWnd` | 🟡 Partial | Window base with Create, ShowWindow, message routing |
+| `CWinApp` | 🟡 Partial | Application class with constructor, AfxWinMain, message loop |
 
 ## Test Results
 

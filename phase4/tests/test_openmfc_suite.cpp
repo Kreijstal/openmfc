@@ -538,6 +538,7 @@ int main() {
     test_version_functions();
     test_exception_basic();
     test_exception_typed();
+    test_all_exception_types();
     test_cobject_static();
     test_cruntimeclass_methods();
     test_cruntimeclass_fromname();
