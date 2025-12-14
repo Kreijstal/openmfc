@@ -49,47 +49,47 @@ CFLAGS=(
 echo ""
 echo "[1/4] Generating weak stubs..."
 
-# Symbols to exclude (already implemented)
+# Symbols to exclude (already implemented) - x64 format
 # Exception functions - simple (void())
 EXCLUDED_SYMBOLS="?AfxThrowMemoryException@@YAXXZ,?AfxThrowNotSupportedException@@YAXXZ,?AfxThrowResourceException@@YAXXZ,?AfxThrowUserException@@YAXXZ,?AfxThrowInvalidArgException@@YAXXZ,?AfxThrowLastCleanup@@YAXXZ,?AfxAbort@@YAXXZ"
-# Exception functions - with parameters
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxThrowFileException@@YAXHJPB_W@Z,?AfxThrowArchiveException@@YAXHPB_W@Z,?AfxThrowOleException@@YAXJ@Z,?AfxThrowOleDispatchException@@YAXGII@Z,?AfxThrowOleDispatchException@@YAXGPB_WI@Z,?AfxThrowInternetException@@YAXKK@Z,?AfxThrowDBException@@YAXFPAVCDatabase@@PAX@Z"
+# Exception functions - with parameters (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxThrowFileException@@YAXHJPEB_W@Z,?AfxThrowArchiveException@@YAXHPEB_W@Z,?AfxThrowOleException@@YAXJ@Z,?AfxThrowOleDispatchException@@YAXGII@Z,?AfxThrowOleDispatchException@@YAXGPEB_WI@Z,?AfxThrowInternetException@@YAX_KK@Z,?AfxThrowDBException@@YAXFPEAVCDatabase@@PEAX@Z"
 # Version functions
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetDllVersion@@YAKXZ"
-# CObject methods
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UBAPAUCRuntimeClass@@XZ,?GetThisClass@CObject@@SAPAUCRuntimeClass@@XZ,?IsKindOf@CObject@@QBAHPBUCRuntimeClass@@@Z,?IsSerializable@CObject@@QBAHXZ"
-# CRuntimeClass methods
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QAAPAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z,?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z,?FromName@CRuntimeClass@@SAPAU1@PB_W@Z,?FromName@CRuntimeClass@@SAPAU1@PBD@Z,?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z,?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z,?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z"
-# Helper functions
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxClassInit@@YAXPAUCRuntimeClass@@@Z,?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z"
-# CWinApp/CWinThread constructors and destructors
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CWinApp@@QAA@PB_W@Z,??1CWinApp@@UAA@XZ,??0CWinThread@@QAA@XZ,??1CWinThread@@UAA@XZ"
-# CWinApp/CWinThread methods
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Run@CWinThread@@UAAHXZ,?Run@CWinApp@@UAAHXZ,?InitInstance@CWinApp@@UAAHXZ,?InitInstance@CWinThread@@UAAHXZ,?ExitInstance@CWinThread@@UAAHXZ,?ExitInstance@CWinApp@@UAAHXZ"
-# AfxWinMain
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxWinMain@@YAHPAUHINSTANCE__@@0PA_WH@Z"
-# CFrameWnd constructor/destructor
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CFrameWnd@@QAA@XZ,??1CFrameWnd@@UAA@XZ"
-# CWnd/CFrameWnd window methods
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CFrameWnd@@UAAHPB_W0KABUtagRECT@@PAVCWnd@@0KPAUCCreateContext@@@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?ShowWindow@CWnd@@QAAHH@Z,?UpdateWindow@CWnd@@QAAXXZ,?DestroyWindow@CWnd@@UAAHXZ"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?PreCreateWindow@CWnd@@UAAHAAUtagCREATESTRUCTW@@@Z,?PreCreateWindow@CFrameWnd@@MAAHAAUtagCREATESTRUCTW@@@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadFrame@CFrameWnd@@UAAHIKPAVCWnd@@PAUCCreateContext@@@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DefWindowProc@CWnd@@MAAJAIH_J@Z,?WindowProc@CWnd@@MAAJAIH_J@Z,?GetSafeHwnd@CWnd@@QBAPAUHWND__@@XZ"
-# CDialog methods
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialog@@QAA@XZ,??0CDialog@@QAA@IPAVCWnd@@@Z,??0CDialog@@QAA@PB_WPAVCWnd@@@Z,??1CDialog@@UAA@XZ"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DoModal@CDialog@@UAAHXZ,?Create@CDialog@@UAAHPB_WPAVCWnd@@@Z,?EndDialog@CDialog@@QAAXH@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?OnInitDialog@CDialog@@UAAHXZ,?OnOK@CDialog@@MAAXXZ,?OnCancel@CDialog@@MAAXXZ"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CheckAutoCenter@CDialog@@UAAHXZ,?PreTranslateMessage@CDialog@@UAAHPAUtagMSG@@@Z,?Initialize@CDialog@@QAAXXZ"
-# CDialogEx constructors
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialogEx@@QAA@XZ,??0CDialogEx@@QAA@IPAVCWnd@@@Z,??0CDialogEx@@QAA@PB_WPAVCWnd@@@Z"
-# String functions
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadStringW@?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxExtractSubString@@YAHAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString1@@YAXAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString2@@YAXAAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W1@Z"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxMessageBox@@YAHPB_WII@Z,?AfxMessageBox@@YAHIII@Z"
+# CObject methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ,?GetThisClass@CObject@@SAPEAUCRuntimeClass@@XZ,?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z,?IsSerializable@CObject@@QEBAHXZ"
+# CRuntimeClass methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z,?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z,?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z,?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z,?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z,?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z"
+# Helper functions (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxClassInit@@YAXPEAUCRuntimeClass@@@Z,?AfxDynamicDownCast@@YAPEAVCObject@@PEAUCRuntimeClass@@PEAV1@@Z"
+# CWinApp/CWinThread constructors and destructors (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CWinApp@@QEAA@PEB_W@Z,??1CWinApp@@UEAA@XZ,??0CWinThread@@QEAA@XZ,??1CWinThread@@UEAA@XZ"
+# CWinApp/CWinThread methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Run@CWinThread@@UEAAHXZ,?Run@CWinApp@@UEAAHXZ,?InitInstance@CWinApp@@UEAAHXZ,?InitInstance@CWinThread@@UEAAHXZ,?ExitInstance@CWinThread@@UEAAHXZ,?ExitInstance@CWinApp@@UEAAHXZ"
+# AfxWinMain (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxWinMain@@YAHPEAUHINSTANCE__@@0PEA_WH@Z"
+# CFrameWnd constructor/destructor (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CFrameWnd@@QEAA@XZ,??1CFrameWnd@@UEAA@XZ"
+# CWnd/CFrameWnd window methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAV1@IPEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CFrameWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@0KPEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?ShowWindow@CWnd@@QEAAHH@Z,?UpdateWindow@CWnd@@QEAAXXZ,?DestroyWindow@CWnd@@UEAAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z,?PreCreateWindow@CFrameWnd@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadFrame@CFrameWnd@@UEAAHIKPEAVCWnd@@PEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DefWindowProc@CWnd@@MEAA_JI_K_J@Z,?WindowProc@CWnd@@MEAA_JI_K_J@Z,?GetSafeHwnd@CWnd@@QEBAPEAUHWND__@@XZ"
+# CDialog methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialog@@QEAA@XZ,??0CDialog@@QEAA@IPEAVCWnd@@@Z,??0CDialog@@QEAA@PEB_WPEAVCWnd@@@Z,??1CDialog@@UEAA@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DoModal@CDialog@@UEAA_JXZ,?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z,?EndDialog@CDialog@@QEAAXH@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?OnInitDialog@CDialog@@UEAAHXZ,?OnOK@CDialog@@MEAAXXZ,?OnCancel@CDialog@@MEAAXXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CheckAutoCenter@CDialog@@UEAAHXZ,?PreTranslateMessage@CDialog@@UEAAHPEAUtagMSG@@@Z,?Initialize@CDialog@@QEAAXXZ"
+# CDialogEx constructors (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialogEx@@QEAA@XZ,??0CDialogEx@@QEAA@IPEAVCWnd@@@Z,??0CDialogEx@@QEAA@PEB_WPEAVCWnd@@@Z"
+# String functions (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadStringW@?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHI@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxExtractSubString@@YAHAEAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_WH_W@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString1@@YAXAEAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString2@@YAXAEAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W1@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxMessageBox@@YAHPEB_WII@Z,?AfxMessageBox@@YAHIII@Z"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
