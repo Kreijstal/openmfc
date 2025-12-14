@@ -1,3 +1,5 @@
+// Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxstr.h"
 #include "openmfc/afxwin.h"
 #include <windows.h>

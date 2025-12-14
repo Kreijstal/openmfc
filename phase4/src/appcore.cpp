@@ -3,6 +3,8 @@
 // Implements core application and thread classes.
 // Currently stubs to satisfy linker dependencies.
 
+// Define OPENMFC_APPCORE_IMPL to use extern declarations instead of inline stubs
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
 
@@ -338,6 +340,49 @@ extern "C" void MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
 // Ordinal: 1453
 extern "C" void MS_ABI stub___1CWinThread__UEAA_XZ(CWinThread* pThis) {
     pThis->~CWinThread();
+}
+
+// Additional global state needed for AfxGetInstanceHandle, etc.
+static HINSTANCE g_hInstance = nullptr;
+static HINSTANCE g_hResource = nullptr;
+
+// AfxGetInstanceHandle implementation
+HINSTANCE AFXAPI AfxGetInstanceHandle() {
+    return g_hInstance;
+}
+
+// AfxGetResourceHandle implementation
+HINSTANCE AFXAPI AfxGetResourceHandle() {
+    return g_hResource ? g_hResource : g_hInstance;
+}
+
+// AfxSetResourceHandle implementation
+void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
+    g_hResource = hInstResource;
+}
+
+// AfxWinInit implementation
+BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                       LPWSTR lpCmdLine, int nCmdShow) {
+    (void)hPrevInstance; (void)lpCmdLine; (void)nCmdShow;
+
+    g_hInstance = hInstance;
+    g_hResource = hInstance;
+
+    // Set global app pointer if it exists
+    // CWinApp constructor sets itself as the global app usually,
+    // but we ensure it here if needed.
+    if (g_pApp == nullptr && AfxGetApp() != nullptr) {
+        g_pApp = AfxGetApp();
+    }
+
+    return TRUE;
+}
+
+// AfxGetMainWnd implementation
+CWnd* AFXAPI AfxGetMainWnd() {
+    CWinThread* pThread = AfxGetThread();
+    return pThread ? pThread->m_pMainWnd : nullptr;
 }
 
 // Note: AfxGetThread, AfxGetInstanceHandle, AfxGetResourceHandle,

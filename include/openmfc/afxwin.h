@@ -2437,7 +2437,9 @@ protected:
 // when not linking with the full implementation files.
 //=============================================================================
 
-// CCmdTarget implementations
+// CCmdTarget and CWinThread implementations
+// Guard against redefinition when linking with appcore.cpp
+#ifndef OPENMFC_APPCORE_IMPL
 inline CCmdTarget::~CCmdTarget() {}
 inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
 inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
@@ -2460,6 +2462,7 @@ inline BOOL CWinThread::PostPumpMessage() { return TRUE; }
 inline BOOL CWinThread::InitInstance() { return FALSE; }
 inline int CWinThread::ExitInstance() { return 0; }
 
+#endif // OPENMFC_APPCORE_IMPL
 //=============================================================================
 // End of inline implementations
 //=============================================================================

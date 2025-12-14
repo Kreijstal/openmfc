@@ -10,6 +10,8 @@
 // - CObject::IsSerializable() - check if class supports serialization
 // - CRuntimeClass methods for dynamic object creation and type lookup
 
+// Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include <windows.h>
 #include <cstdint>
 #include <cstring>
@@ -143,10 +145,8 @@ extern "C" void MS_ABI stub__Serialize_CObject__UEAAXAEAVCArchive___Z(
     // Base CObject::Serialize does nothing
 }
 
-// C++ implementation of Serialize (needed for vtable)
-void CObject::Serialize(CArchive& ar) {
-    (void)ar;
-}
+// C++ implementation of Serialize is already provided inline in afx.h
+// The stub above handles the ABI export with mangled name
 
 // =============================================================================
 // CRuntimeClass Methods

@@ -3,6 +3,8 @@
 // Implements CWnd, CFrameWnd, and related window creation/management.
 // This is essential for Hello World applications.
 
+// Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
 #include <cstring>

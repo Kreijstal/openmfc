@@ -542,9 +542,12 @@ public:
     }
 
     // Resource loading
+    // Note: Windows defines LoadString as a macro to LoadStringW/LoadStringA
+    // We undef it here to declare our own method, then redefine if needed
+#ifdef LoadString
+#undef LoadString
+#endif
     int LoadString(UINT nID); // Returns length, 0 on failure
-    // Alias for Windows API macro compatibility (LoadString -> LoadStringW)
-    int LoadStringW(UINT nID) { return LoadString(nID); }
 
 private:
     wchar_t* m_pszData;

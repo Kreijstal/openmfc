@@ -13,6 +13,8 @@
 //
 // The .def file additions in build_phase4.sh map these stub names to MSVC symbols.
 
+// Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
 
