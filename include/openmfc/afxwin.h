@@ -1037,16 +1037,27 @@ inline int CWinApp::Run() {
     return CWinThread::Run();
 }
 
-// Global application pointer (defined in appcore.cpp)
-extern CWinApp* g_pApp;
+// Helper functions - these are DLL exports in real MFC
+// Symbol: ?AfxGetThread@@YAPEAVCWinThread@@XZ
+extern CWinThread* AFXAPI AfxGetThread();
 
-// Inline helper functions (match real MFC behavior - these are not DLL exports)
-inline CWinApp* AFXAPI AfxGetApp() { return g_pApp; }
-inline CWinThread* AFXAPI AfxGetThread() { return static_cast<CWinThread*>(g_pApp); }
-inline HINSTANCE AFXAPI AfxGetInstanceHandle() { return g_pApp ? g_pApp->m_hInstance : nullptr; }
-inline HINSTANCE AFXAPI AfxGetResourceHandle() { return g_pApp ? g_pApp->m_hInstance : nullptr; }
+// AfxGetApp is typically inline in real MFC, casting AfxGetThread result
+inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
+
+// These call AfxGetThread/AfxGetApp to avoid global variable dependencies
+inline HINSTANCE AFXAPI AfxGetInstanceHandle() {
+    CWinApp* pApp = AfxGetApp();
+    return pApp ? pApp->m_hInstance : nullptr;
+}
+inline HINSTANCE AFXAPI AfxGetResourceHandle() {
+    CWinApp* pApp = AfxGetApp();
+    return pApp ? pApp->m_hInstance : nullptr;
+}
 inline void AFXAPI AfxSetResourceHandle(HINSTANCE) { /* TODO */ }
-inline CWnd* AFXAPI AfxGetMainWnd() { return g_pApp ? g_pApp->m_pMainWnd : nullptr; }
+inline CWnd* AFXAPI AfxGetMainWnd() {
+    CWinApp* pApp = AfxGetApp();
+    return pApp ? pApp->m_pMainWnd : nullptr;
+}
 inline int AFXAPI AfxWinInit(HINSTANCE, HINSTANCE, LPWSTR, int) { return TRUE; }
 
 // Exception helpers

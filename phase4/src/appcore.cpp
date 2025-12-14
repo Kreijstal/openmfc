@@ -21,6 +21,17 @@
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 
+// Create MSVC symbol aliases for static class members
+// These are needed because MSVC client code expects MSVC-mangled names
+#ifdef __GNUC__
+// CCmdTarget::classCCmdTarget
+asm(".globl \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\", _ZN10CCmdTarget15classCCmdTargetE\n");
+// CWnd::classCWnd
+asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
+#endif
+
 // =============================================================================
 // CCmdTarget Implementation
 // =============================================================================
@@ -118,6 +129,12 @@ int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT*
 }
 
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
+
+#ifdef __GNUC__
+// CWinThread::classCWinThread - MSVC symbol alias
+asm(".globl \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\", _ZN10CWinThread15classCWinThreadE\n");
+#endif
 
 CWinThread::CWinThread() {
     m_pMainWnd = nullptr;
@@ -236,12 +253,30 @@ BOOL CWinThread::PostPumpMessage() {
 
 IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
 
+#ifdef __GNUC__
+// CWinApp::classCWinApp - MSVC symbol alias
+asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\", _ZN7CWinApp12classCWinAppE\n");
+#endif
+
 // CWinApp methods are defined inline in afxwin.h
 // We only need the runtime class implementation here
 
 
-// Global application pointer (used by inline functions in afxwin.h)
-CWinApp* g_pApp = nullptr;
+// Global application pointer (internal use only)
+static CWinApp* g_pApp = nullptr;
+
+// AfxGetThread - returns current thread (or app for main thread)
+// C++ implementation for internal use
+CWinThread* AfxGetThread() {
+    return static_cast<CWinThread*>(g_pApp);
+}
+
+// AfxGetThread - exported stub for MSVC
+// Symbol: ?AfxGetThread@@YAPEAVCWinThread@@XZ
+extern "C" CWinThread* MS_ABI stub__AfxGetThread__YAPEAVCWinThread__XZ() {
+    return AfxGetThread();
+}
 
 // =============================================================================
 // CWinApp Constructor/Destructor

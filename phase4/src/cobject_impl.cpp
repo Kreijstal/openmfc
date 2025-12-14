@@ -23,6 +23,13 @@
   #define MS_ABI
 #endif
 
+// CObject::classCObject - MSVC symbol alias
+// The inline static member is defined in afx.h with GCC mangling
+#ifdef __GNUC__
+asm(".globl \"?classCObject@CObject@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCObject@CObject@@2UCRuntimeClass@@A\", _ZN7CObject12classCObjectE\n");
+#endif
+
 // =============================================================================
 // CRuntimeClass Structure (must match MSVC MFC layout exactly)
 // =============================================================================
