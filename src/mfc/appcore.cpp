@@ -83,3 +83,149 @@ CWnd* AFXAPI AfxGetMainWnd() {
     CWinThread* pThread = AfxGetThread();
     return pThread ? pThread->m_pMainWnd : nullptr;
 }
+
+// =============================================================================
+// CCmdTarget Implementation
+// =============================================================================
+
+CCmdTarget::~CCmdTarget() {
+    // Base class destructor - nothing specific to clean up
+}
+
+// CCmdTarget message map (root)
+const AFX_MSGMAP* AFXAPI CCmdTarget::GetThisMessageMap()
+{
+    return &CCmdTarget::messageMap;
+}
+
+const AFX_MSGMAP* CCmdTarget::GetMessageMap() const
+{
+    return GetThisMessageMap();
+}
+
+const AFX_MSGMAP CCmdTarget::messageMap =
+{
+    nullptr, // No base class with message map
+    &CCmdTarget::_messageEntries[0]
+};
+
+const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
+{
+    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 }
+};
+
+int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo)
+{
+    // Simple command routing
+    const AFX_MSGMAP* pMap = GetMessageMap();
+    
+    while (pMap != nullptr)
+    {
+        const AFX_MSGMAP_ENTRY* lpEntry = pMap->lpEntries;
+        while (lpEntry->nSig != AfxSig_end)
+        {
+            if (lpEntry->nID == nID && lpEntry->nCode == (UINT)nCode)
+            {
+                // Found a match
+                return DispatchCmdMsg(this, nID, nCode, lpEntry->pfn, pExtra, lpEntry->nSig, pHandlerInfo);
+            }
+            lpEntry++;
+        }
+        
+        // Get base class message map
+        if (pMap->pfnGetBaseMap != nullptr)
+            pMap = (*pMap->pfnGetBaseMap)();
+        else
+            pMap = nullptr;
+    }
+    
+    return FALSE; // Not handled
+}
+
+int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
+                                      AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo)
+{
+    (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo;
+    
+    switch (nSig)
+    {
+    case AfxSig_vv:
+        (pTarget->*pfn)();
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+// =============================================================================
+// CWinThread Implementation
+// =============================================================================
+
+CWinThread::CWinThread() {
+    m_pMainWnd = nullptr;
+    m_nThreadID = 0;
+    m_hThread = nullptr;
+    m_bAutoDelete = TRUE;
+    memset(&m_msgCur, 0, sizeof(m_msgCur));
+}
+
+CWinThread::~CWinThread() {
+}
+
+BOOL CWinThread::InitInstance() {
+    return TRUE;
+}
+
+int CWinThread::ExitInstance() {
+    return static_cast<int>(m_msgCur.wParam);
+}
+
+int CWinThread::Run() {
+    MSG msg;
+
+    // Main message loop
+    while (GetMessageW(&msg, nullptr, 0, 0)) {
+        // Allow PreTranslateMessage to filter
+        if (!PreTranslateMessage(&msg)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        // Idle processing
+        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!OnIdle(0)) {
+                break;  // No more idle work
+            }
+        }
+    }
+
+    m_msgCur = msg;
+    return ExitInstance();
+}
+
+BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
+    (void)pMsg;
+    return FALSE;
+}
+
+BOOL CWinThread::OnIdle(LONG lCount) {
+    (void)lCount;
+    return lCount == 0; // More work to do?
+}
+
+BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
+    (void)pMsg;
+    return TRUE;
+}
+
+BOOL CWinThread::PumpMessage() {
+    return FALSE;
+}
+
+BOOL CWinThread::PrePumpMessage() {
+    return TRUE;
+}
+
+BOOL CWinThread::PostPumpMessage() {
+    return TRUE;
+}
