@@ -1,10 +1,17 @@
 // MFC Exception test - uses real MFC headers
 //
 // Build with MSVC:
-//   cl /nologo /EHsc /MD /D_AFXDLL test_exception_mfc.cpp openmfc.lib
+//   cl /nologo /EHsc /MD /D_AFXDLL /DUNICODE /D_UNICODE test_exception_mfc.cpp openmfc.lib
 //
 // This test uses the real MFC headers to ensure our exception throwing
 // is compatible with actual MFC code.
+
+#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
+#define _UNICODE
+#endif
 
 #define _AFXDLL
 #include <afx.h>
