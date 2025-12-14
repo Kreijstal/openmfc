@@ -561,7 +561,7 @@ extern "C" void MS_ABI stub__AfxThrowInvalidArgException__YAXXZ() {
 }
 
 // AfxThrowFileException - void(int cause, LONG lOsError, const wchar_t* lpszFileName)
-extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPB_W_Z(
+extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPEB_W_Z(
     int cause, LONG lOsError, const wchar_t* lpszFileName
 ) {
     CFileException* pEx = new CFileException(cause, lOsError);
@@ -572,7 +572,7 @@ extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPB_W_Z(
 }
 
 // AfxThrowArchiveException - void(int cause, const wchar_t* lpszArchiveName)
-extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPB_W_Z(
+extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName
 ) {
     CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
@@ -598,7 +598,7 @@ extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGII_Z(
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID)
-extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPB_WI_Z(
+extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
 ) {
     COleDispatchException* pEx = new COleDispatchException();
@@ -609,7 +609,8 @@ extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPB_WI_Z(
 }
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
-extern "C" void MS_ABI stub__AfxThrowInternetException__YAXKK_Z(
+// Symbol: ?AfxThrowInternetException@@YAX_KK@Z (x64: uses DWORD_PTR/_K)
+extern "C" void MS_ABI stub__AfxThrowInternetException__YAX_KK_Z(
     DWORD dwContext, DWORD dwError
 ) {
     CInternetException* pEx = new CInternetException(dwError);
@@ -618,7 +619,7 @@ extern "C" void MS_ABI stub__AfxThrowInternetException__YAXKK_Z(
 }
 
 // AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
-extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPAVCDatabase__PAX_Z(
+extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
     short nRetCode, void* pdb, void* hstmt
 ) {
     (void)pdb; (void)hstmt; // Unused for now

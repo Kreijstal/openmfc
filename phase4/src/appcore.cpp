@@ -25,6 +25,19 @@ IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 // CCmdTarget Implementation
 // =============================================================================
 
+// CCmdTarget destructor
+// Symbol: ??1CCmdTarget@@UEAA@XZ (x64)
+CCmdTarget::~CCmdTarget() {
+    // Base class destructor - nothing specific to clean up
+}
+
+// Exported stub for CCmdTarget destructor
+extern "C" void MS_ABI stub___1CCmdTarget__UEAA_XZ(CCmdTarget* pThis) {
+    if (pThis) {
+        pThis->~CCmdTarget();
+    }
+}
+
 // CCmdTarget message map (root)
 const AFX_MSGMAP* AFXAPI CCmdTarget::GetThisMessageMap()
 {
@@ -151,42 +164,42 @@ int CWinThread::Run() {
 // CWinThread::Run - exported stub
 // Symbol: ?Run@CWinThread@@UAAHXZ
 // Ordinal: 12614
-extern "C" int MS_ABI stub__Run_CWinThread__UAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI stub__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->Run();
 }
 
 // CWinApp::Run - exported stub (delegates to CWinThread::Run)
 // Symbol: ?Run@CWinApp@@UAAHXZ
 // Ordinal: 12613
-extern "C" int MS_ABI stub__Run_CWinApp__UAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI stub__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->Run();
 }
 
 // CWinApp::InitInstance - exported stub
 // Symbol: ?InitInstance@CWinApp@@UAAHXZ
 // Ordinal: 7726
-extern "C" int MS_ABI stub__InitInstance_CWinApp__UAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI stub__InitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->InitInstance();
 }
 
 // CWinThread::InitInstance - exported stub
 // Symbol: ?InitInstance@CWinThread@@UAAHXZ
 // Ordinal: 7727
-extern "C" int MS_ABI stub__InitInstance_CWinThread__UAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI stub__InitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->InitInstance();
 }
 
 // CWinThread::ExitInstance - exported stub
 // Symbol: ?ExitInstance@CWinThread@@UAAHXZ
 // Ordinal: 4457
-extern "C" int MS_ABI stub__ExitInstance_CWinThread__UAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI stub__ExitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->ExitInstance();
 }
 
 // CWinApp::ExitInstance - exported stub
 // Symbol: ?ExitInstance@CWinApp@@UAAHXZ
 // Ordinal: 4455
-extern "C" int MS_ABI stub__ExitInstance_CWinApp__UAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI stub__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->ExitInstance();
 }
 
@@ -241,7 +254,7 @@ CWinApp* AFXAPI AfxGetApp() {
 // CWinApp constructor
 // Symbol: ??0CWinApp@@QAA@PB_W@Z
 // Ordinal: 983
-extern "C" void MS_ABI stub___0CWinApp__QAA_PB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
+extern "C" void MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
     // Initialize base class (CWinThread)
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = GetCurrentThreadId();
@@ -265,7 +278,7 @@ extern "C" void MS_ABI stub___0CWinApp__QAA_PB_W_Z(CWinApp* pThis, const wchar_t
 // CWinApp destructor
 // Symbol: ??1CWinApp@@UAA@XZ
 // Ordinal: 1450
-extern "C" void MS_ABI stub___1CWinApp__UAA_XZ(CWinApp* pThis) {
+extern "C" void MS_ABI stub___1CWinApp__UEAA_XZ(CWinApp* pThis) {
     if (g_pApp == pThis) {
         g_pApp = nullptr;
     }
@@ -274,7 +287,7 @@ extern "C" void MS_ABI stub___1CWinApp__UAA_XZ(CWinApp* pThis) {
 // CWinThread default constructor
 // Symbol: ??0CWinThread@@QAA@XZ
 // Ordinal: 988
-extern "C" void MS_ABI stub___0CWinThread__QAA_XZ(CWinThread* pThis) {
+extern "C" void MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = 0;
     pThis->m_hThread = nullptr;
@@ -285,7 +298,7 @@ extern "C" void MS_ABI stub___0CWinThread__QAA_XZ(CWinThread* pThis) {
 // CWinThread destructor
 // Symbol: ??1CWinThread@@UAA@XZ
 // Ordinal: 1453
-extern "C" void MS_ABI stub___1CWinThread__UAA_XZ(CWinThread* pThis) {
+extern "C" void MS_ABI stub___1CWinThread__UEAA_XZ(CWinThread* pThis) {
     pThis->~CWinThread();
 }
 

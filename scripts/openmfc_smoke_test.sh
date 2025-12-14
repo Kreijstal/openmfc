@@ -2,8 +2,8 @@
 set -eu
 DLL=${DLL:-openmfc.dll}
 MIN_EXPORTS=${MIN_EXPORTS:-100}
-# Default to AfxThrowArchiveException (wchar_t version) - a symbol that exists in mfc140u.dll
-KEY_SYMBOL=${KEY_SYMBOL:-"?AfxThrowArchiveException@@YAXHPB_W@Z"}
+# Default to AfxThrowArchiveException (wchar_t version) - x64 symbol format from mfc140u.dll
+KEY_SYMBOL=${KEY_SYMBOL:-"?AfxThrowArchiveException@@YAXHPEB_W@Z"}
 
 if ! command -v x86_64-w64-mingw32-objdump >/dev/null 2>&1; then
   echo "objdump (mingw) required" >&2

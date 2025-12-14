@@ -43,7 +43,7 @@ IMPLEMENT_DYNAMIC(CFrameWnd, CWnd)
 // CWnd::Create
 // Symbol: ?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z
 // Ordinal: 3182
-extern "C" int MS_ABI stub__Create_CWnd__UAAHPB_W0KABUtagRECT__PAV1_IPAUCCreateContext___Z(
+extern "C" int MS_ABI stub__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
     CWnd* pThis,
     const wchar_t* lpszClassName,
     const wchar_t* lpszWindowName,
@@ -112,7 +112,7 @@ extern "C" int MS_ABI stub__Create_CWnd__UAAHPB_W0KABUtagRECT__PAV1_IPAUCCreateC
 // CWnd::ShowWindow
 // Symbol: ?ShowWindow@CWnd@@QAAHH@Z
 // Ordinal: 13870
-extern "C" int MS_ABI stub__ShowWindow_CWnd__QAAHH_Z(CWnd* pThis, int nCmdShow) {
+extern "C" int MS_ABI stub__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow) {
     if (!pThis || !pThis->m_hWnd) {
         return FALSE;
     }
@@ -121,7 +121,7 @@ extern "C" int MS_ABI stub__ShowWindow_CWnd__QAAHH_Z(CWnd* pThis, int nCmdShow) 
 
 // CWnd::UpdateWindow
 // Symbol: ?UpdateWindow@CWnd@@QAAXXZ
-extern "C" void MS_ABI stub__UpdateWindow_CWnd__QAAXXZ(CWnd* pThis) {
+extern "C" void MS_ABI stub__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::UpdateWindow(pThis->m_hWnd);
     }
@@ -129,7 +129,7 @@ extern "C" void MS_ABI stub__UpdateWindow_CWnd__QAAXXZ(CWnd* pThis) {
 
 // CWnd::DestroyWindow
 // Symbol: ?DestroyWindow@CWnd@@UAAHXZ
-extern "C" int MS_ABI stub__DestroyWindow_CWnd__UAAHXZ(CWnd* pThis) {
+extern "C" int MS_ABI stub__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     if (!pThis || !pThis->m_hWnd) {
         return FALSE;
     }
@@ -144,7 +144,7 @@ extern "C" int MS_ABI stub__DestroyWindow_CWnd__UAAHXZ(CWnd* pThis) {
 // CWnd::PreCreateWindow
 // Symbol: ?PreCreateWindow@CWnd@@UAAHAAUtagCREATESTRUCTW@@@Z
 // Ordinal: 11813
-extern "C" int MS_ABI stub__PreCreateWindow_CWnd__UAAHAAUtagCREATESTRUCTW___Z(
+extern "C" int MS_ABI stub__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
     CWnd* pThis, CREATESTRUCTW& cs)
 {
     (void)pThis;
@@ -153,9 +153,9 @@ extern "C" int MS_ABI stub__PreCreateWindow_CWnd__UAAHAAUtagCREATESTRUCTW___Z(
     return TRUE;
 }
 
-// CWnd::DefWindowProc
-// Symbol: ?DefWindowProc@CWnd@@MAAJAIH_J@Z
-extern "C" LRESULT MS_ABI stub__DefWindowProc_CWnd__MAAJAIH_J_Z(
+// CWnd::DefWindowProcW
+// Symbol: ?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z (x64)
+extern "C" LRESULT MS_ABI stub__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
     if (pThis && pThis->m_hWnd) {
@@ -165,17 +165,17 @@ extern "C" LRESULT MS_ABI stub__DefWindowProc_CWnd__MAAJAIH_J_Z(
 }
 
 // CWnd::WindowProc
-// Symbol: ?WindowProc@CWnd@@MAAJAIH_J@Z
-extern "C" LRESULT MS_ABI stub__WindowProc_CWnd__MAAJAIH_J_Z(
+// Symbol: ?WindowProc@CWnd@@MEAA_JI_K_J@Z (x64)
+extern "C" LRESULT MS_ABI stub__WindowProc_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    // Default - just call DefWindowProc
-    return stub__DefWindowProc_CWnd__MAAJAIH_J_Z(pThis, message, wParam, lParam);
+    // Default - just call DefWindowProcW
+    return stub__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(pThis, message, wParam, lParam);
 }
 
 // CWnd::GetSafeHwnd
 // Symbol: ?GetSafeHwnd@CWnd@@QBAPAUHWND__@@XZ
-extern "C" HWND MS_ABI stub__GetSafeHwnd_CWnd__QBAPAUHWND____XZ(const CWnd* pThis) {
+extern "C" HWND MS_ABI stub__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pThis) {
     return pThis ? pThis->m_hWnd : nullptr;
 }
 
@@ -186,7 +186,7 @@ extern "C" HWND MS_ABI stub__GetSafeHwnd_CWnd__QBAPAUHWND____XZ(const CWnd* pThi
 // CFrameWnd constructor
 // Symbol: ??0CFrameWnd@@QAA@XZ
 // Ordinal: 502
-extern "C" void MS_ABI stub___0CFrameWnd__QAA_XZ(CFrameWnd* pThis) {
+extern "C" void MS_ABI stub___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
     // Zero initialize
     memset(pThis, 0, sizeof(CFrameWnd));
     // Set up vtable pointer would happen automatically in real MFC
@@ -195,7 +195,7 @@ extern "C" void MS_ABI stub___0CFrameWnd__QAA_XZ(CFrameWnd* pThis) {
 // CFrameWnd destructor
 // Symbol: ??1CFrameWnd@@UAA@XZ
 // Ordinal: 1129
-extern "C" void MS_ABI stub___1CFrameWnd__UAA_XZ(CFrameWnd* pThis) {
+extern "C" void MS_ABI stub___1CFrameWnd__UEAA_XZ(CFrameWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
         g_hwndMap.erase(pThis->m_hWnd);
         ::DestroyWindow(pThis->m_hWnd);
@@ -206,7 +206,7 @@ extern "C" void MS_ABI stub___1CFrameWnd__UAA_XZ(CFrameWnd* pThis) {
 // CFrameWnd::Create
 // Symbol: ?Create@CFrameWnd@@UAAHPB_W0KABUtagRECT@@PAVCWnd@@0KPAUCCreateContext@@@Z
 // Ordinal: 3091
-extern "C" int MS_ABI stub__Create_CFrameWnd__UAAHPB_W0KABUtagRECT__PAVCWnd__0KPAUCCreateContext___Z(
+extern "C" int MS_ABI stub__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
     CFrameWnd* pThis,
     const wchar_t* lpszClassName,
     const wchar_t* lpszWindowName,
@@ -294,7 +294,7 @@ extern "C" int MS_ABI stub__Create_CFrameWnd__UAAHPB_W0KABUtagRECT__PAVCWnd__0KP
 // CFrameWnd::PreCreateWindow
 // Symbol: ?PreCreateWindow@CFrameWnd@@MAAHAAUtagCREATESTRUCTW@@@Z
 // Ordinal: 11791
-extern "C" int MS_ABI stub__PreCreateWindow_CFrameWnd__MAAHAAUtagCREATESTRUCTW___Z(
+extern "C" int MS_ABI stub__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(
     CFrameWnd* pThis, CREATESTRUCTW& cs)
 {
     (void)pThis;
@@ -305,7 +305,7 @@ extern "C" int MS_ABI stub__PreCreateWindow_CFrameWnd__MAAHAAUtagCREATESTRUCTW__
 // CFrameWnd::LoadFrame
 // Symbol: ?LoadFrame@CFrameWnd@@UAAHIKPAVCWnd@@PAUCCreateContext@@@Z
 // Ordinal: 8105
-extern "C" int MS_ABI stub__LoadFrame_CFrameWnd__UAAHIKPAVCWnd__PAUCCreateContext___Z(
+extern "C" int MS_ABI stub__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
     CFrameWnd* pThis,
     UINT nIDResource,
     DWORD dwDefaultStyle,
@@ -317,7 +317,7 @@ extern "C" int MS_ABI stub__LoadFrame_CFrameWnd__UAAHIKPAVCWnd__PAUCCreateContex
 
     RECT rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT};
 
-    return stub__Create_CFrameWnd__UAAHPB_W0KABUtagRECT__PAVCWnd__0KPAUCCreateContext___Z(
+    return stub__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
         pThis,
         nullptr,           // Default class
         L"OpenMFC Window", // Default title
@@ -398,7 +398,7 @@ static ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 
 // Symbol: ?AfxWinMain@@YAHPAUHINSTANCE__@@0PA_WH@Z
 // Ordinal: 2374
-extern "C" int MS_ABI stub__AfxWinMain__YAHPAUHINSTANCE____0PA_WH_Z(
+extern "C" int MS_ABI stub__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
     wchar_t* lpCmdLine,

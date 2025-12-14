@@ -330,7 +330,7 @@ class CCmdTarget : public CObject {
     DECLARE_MESSAGE_MAP()
 public:
     CCmdTarget() = default;
-    virtual ~CCmdTarget() = default;
+    virtual ~CCmdTarget();
     
     // Message map support (simplified)
     virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
