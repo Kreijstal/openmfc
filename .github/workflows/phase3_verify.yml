@@ -20,7 +20,7 @@ jobs:
           python-version: '3.x'
       
       - name: Download MFC symbol database
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: phase1_exports
           path: phase1_artifacts

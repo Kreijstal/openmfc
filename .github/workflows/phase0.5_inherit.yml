@@ -51,7 +51,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Download shim artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifacts

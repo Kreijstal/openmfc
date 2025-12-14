@@ -54,7 +54,7 @@ jobs:
         run: ./phase0b/scripts/check_def_sync.ps1
 
       - name: Download artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifacts
