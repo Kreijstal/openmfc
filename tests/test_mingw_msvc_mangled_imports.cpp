@@ -1,49 +1,37 @@
-// MinGW test for OpenMFC (MSVC-mangled exports)
+// MinGW link-time test for OpenMFC (MSVC-mangled exports)
 //
-// This test is intentionally *not* using MFC C++ classes, because MinGW uses
-// the Itanium C++ ABI. Instead, it resolves selected MSVC-mangled exports by
-// name using Win32 APIs and calls a few "safe" ones.
+// This test intentionally avoids MFC C++ classes (MinGW uses the Itanium C++
+// ABI). Instead, CI generates a tiny *alias import library* that maps clean C
+// names (no '?' / '@') to the real MSVC-mangled exports in openmfc.dll.
 //
-// Goal: verify the DLL export table is usable from MinGW when names are
-// provided explicitly.
+// Goal: verify we can link and run without GetProcAddress.
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+extern "C" {
+__declspec(dllimport) std::uint32_t __cdecl AfxGetDllVersion();
+__declspec(dllimport) void* __cdecl AfxGetThread();
 
-static FARPROC must_get(HMODULE dll, const char* name) {
-    FARPROC p = GetProcAddress(dll, name);
-    if (!p) {
-        std::printf("FAIL: GetProcAddress(%s) (err=%lu)\n", name, (unsigned long)GetLastError());
-    }
-    return p;
+// These are mapped to MSVC's exported global operator new/delete by the alias
+// import library generated in CI.
+__declspec(dllimport) void* __cdecl mfc_operator_new(std::size_t size);
+__declspec(dllimport) void __cdecl mfc_operator_delete(void* ptr);
 }
-
-using AfxGetDllVersionFn = std::uint32_t(__cdecl*)();
-using AfxGetThreadFn = void*(__cdecl*)();
-using OperatorNewFn = void*(__cdecl*)(std::size_t);
-using OperatorDeleteFn = void(__cdecl*)(void*);
-
-static AfxGetDllVersionFn pAfxGetDllVersion = nullptr;
-static AfxGetThreadFn pAfxGetThread = nullptr;
-static OperatorNewFn pOperatorNew = nullptr;
-static OperatorDeleteFn pOperatorDelete = nullptr;
 
 static int test_operator_new_delete() {
     std::printf("Test: MFC exported operator new/delete... ");
 
-    void* ptr = pOperatorNew(64);
+    void* ptr = mfc_operator_new(64);
     if (!ptr) {
         std::printf("FAIL (null)\n");
         return 1;
     }
 
     std::memset(ptr, 0xA5, 64);
-    pOperatorDelete(ptr);
+    mfc_operator_delete(ptr);
 
     std::printf("OK\n");
     return 0;
@@ -51,7 +39,7 @@ static int test_operator_new_delete() {
 
 static int test_version() {
     std::printf("Test: AfxGetDllVersion... ");
-    const std::uint32_t v = pAfxGetDllVersion();
+    const std::uint32_t v = AfxGetDllVersion();
     std::printf("0x%08X ", v);
     if (v != 0x00000E00u) {
         std::printf("FAIL (expected 0x00000E00)\n");
@@ -63,7 +51,7 @@ static int test_version() {
 
 static int test_afx_get_thread() {
     std::printf("Test: AfxGetThread import... ");
-    void* p = pAfxGetThread();
+    void* p = AfxGetThread();
     // In this test there's no global CWinApp instance, so nullptr is fine.
     std::printf("OK (%p)\n", p);
     return 0;
@@ -71,22 +59,6 @@ static int test_afx_get_thread() {
 
 int main() {
     std::printf("=== OpenMFC MinGW MSVC-mangled import test ===\n");
-
-    HMODULE dll = LoadLibraryW(L"openmfc.dll");
-    if (!dll) {
-        std::printf("FAIL: LoadLibraryW(openmfc.dll) (err=%lu)\n", (unsigned long)GetLastError());
-        return 1;
-    }
-
-    // Resolve by MSVC-mangled export name.
-    pAfxGetDllVersion = reinterpret_cast<AfxGetDllVersionFn>(must_get(dll, "?AfxGetDllVersion@@YAKXZ"));
-    pAfxGetThread = reinterpret_cast<AfxGetThreadFn>(must_get(dll, "?AfxGetThread@@YAPEAVCWinThread@@XZ"));
-    pOperatorNew = reinterpret_cast<OperatorNewFn>(must_get(dll, "??2@YAPEAX_K@Z"));
-    pOperatorDelete = reinterpret_cast<OperatorDeleteFn>(must_get(dll, "??3@YAXPEAX@Z"));
-
-    if (!pAfxGetDllVersion || !pAfxGetThread || !pOperatorNew || !pOperatorDelete) {
-        return 1;
-    }
 
     int fails = 0;
     fails += test_operator_new_delete();

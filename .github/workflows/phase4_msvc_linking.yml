@@ -131,13 +131,30 @@ jobs:
     - name: Run comprehensive test
       shell: pwsh
       run: |
-        echo "Running MinGW comprehensive test (manual MSVC-mangled name lookup)..."
+        echo "Running MinGW comprehensive test (alias import lib -> MSVC mangled exports)..."
         # Install MinGW on Windows runner
         choco install mingw -y
         refreshenv
         
-        # Build the test (uses asm labels for MSVC-mangled exports)
-        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp
+        # Create an alias import library for MinGW that maps clean C names to the
+        # real MSVC-mangled exports in openmfc.dll.
+        @"
+        LIBRARY openmfc.dll
+        EXPORTS
+          AfxGetDllVersion=?AfxGetDllVersion@@YAKXZ
+          AfxGetThread=?AfxGetThread@@YAPEAVCWinThread@@XZ
+          mfc_operator_new=??2@YAPEAX_K@Z
+          mfc_operator_delete=??3@YAXPEAX@Z
+        "@ | Out-File -Encoding ASCII openmfc_alias.def
+
+        dlltool -d openmfc_alias.def -l openmfc_alias.a
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Failed to create alias import library"
+          exit 1
+        }
+
+        # Build the test (normal link; no GetProcAddress)
+        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_alias.a -lkernel32
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
