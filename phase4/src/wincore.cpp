@@ -57,7 +57,7 @@ extern "C" int MS_ABI stub__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCr
     const RECT& rect,
     CWnd* pParentWnd,
     UINT nID,
-    void* pContext)
+    CCreateContext* pContext)
 {
     (void)pContext;
 
@@ -231,7 +231,7 @@ extern "C" int MS_ABI stub__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     CWnd* pParentWnd,
     const wchar_t* lpszMenuName,
     DWORD dwExStyle,
-    void* pContext)
+    CCreateContext* pContext)
 {
     (void)lpszMenuName;  // Menu support not yet implemented
     (void)dwExStyle;     // Extended style could be used
@@ -327,7 +327,7 @@ extern "C" int MS_ABI stub__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateCon
     UINT nIDResource,
     DWORD dwDefaultStyle,
     CWnd* pParentWnd,
-    void* pContext)
+    CCreateContext* pContext)
 {
     (void)nIDResource;  // Resource loading not yet implemented
     (void)pContext;

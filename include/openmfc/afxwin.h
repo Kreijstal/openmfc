@@ -164,6 +164,7 @@ class CWinApp;
 class CDC;
 class CMenu; // Added forward declaration
 class CMDIFrameWnd; // Forward declaration
+struct CCreateContext; // MFC create context (affects MSVC mangling)
 class CGdiObject;
 class CPen;
 class CBrush;
@@ -435,7 +436,7 @@ public:
     // Window creation/destruction
     //-------------------------------------------------------------------------
     virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-                       const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, void* pContext = nullptr);
+                       const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr);
     
     virtual int CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                          DWORD dwStyle, int x, int y, int nWidth, int nHeight,
@@ -547,12 +548,12 @@ public:
     virtual ~CFrameWnd() = default;
 
     virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
-                          CWnd* pParentWnd = nullptr, void* pContext = nullptr);
+                          CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
                           
     virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle = 0, const struct tagRECT& rect = {},
                        CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
-                       DWORD dwExStyle = 0, void* pContext = nullptr);
+                       DWORD dwExStyle = 0, CCreateContext* pContext = nullptr);
 
     virtual void ActivateFrame(int nCmdShow = -1);
     virtual void RecalcLayout(int bNotify = 1);
@@ -613,7 +614,7 @@ public:
 
     virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle = 0, const struct tagRECT& rect = {},
-                       CMDIFrameWnd* pParentWnd = nullptr, void* pContext = nullptr);
+                       CMDIFrameWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
                        
     virtual void ActivateFrame(int nCmdShow = -1);
     virtual int DestroyWindow();
@@ -1628,7 +1629,7 @@ inline CWnd::~CWnd() {
 }
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-                         const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, void* pContext) {
+                         const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext) {
     (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
     (void)rect; (void)pParentWnd; (void)nID; (void)pContext;
     // Stub - needs Win32 CreateWindowExW implementation
@@ -2259,7 +2260,7 @@ public:
     // Creation
     virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle, const struct tagRECT& rect,
-                       CWnd* pParentWnd, unsigned int nID, void* pContext = nullptr) override;
+                       CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr) override;
     
     // Dialog data exchange
     virtual void DoDataExchange(void* pDX); // CDataExchange* pDX
