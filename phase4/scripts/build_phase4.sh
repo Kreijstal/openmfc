@@ -105,22 +105,24 @@ python3 "$ROOT/tools/gen_weak_stubs.py" \
 sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
 
 # Add OpenMFC-specific exports (static class members with MSVC-mangled names)
-# These map GCC-mangled internal names to MSVC-mangled export names.
-# Format: MSVC_mangled_name=GCC_mangled_name DATA
+# These use the .def alias syntax (MSVC_name=GCC_name) to export MSVC-compatible
+# names from GCC-mangled internal symbols. This is required because multiple
+# translation units may instantiate the inline static members, and the linker
+# may pick a version without the asm alias.
+# IMPORTANT: Entries must be indented to be part of the EXPORTS section!
 cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
-
-; OpenMFC-specific static class member exports
-; These are required for MSVC code that uses MFC RTTI macros (IMPLEMENT_DYNAMIC, etc.)
-; Format: MSVC_name=GCC_name DATA
-?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE DATA
-?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE DATA
-?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE DATA
-?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE DATA
-?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE DATA
-?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE DATA
-?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE DATA
-?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE DATA
-?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE DATA
+    ; OpenMFC-specific static class member exports (CRuntimeClass statics)
+    ; These are required for MSVC code that uses MFC RTTI macros
+    ; Format: MSVC_mangled=GCC_mangled DATA
+    ?classCObject@CObject@@2UCRuntimeClass@@A = _ZN7CObject12classCObjectE DATA
+    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A = _ZN10CCmdTarget15classCCmdTargetE DATA
+    ?classCWnd@CWnd@@2UCRuntimeClass@@A = _ZN4CWnd9classCWndE DATA
+    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A = _ZN10CWinThread15classCWinThreadE DATA
+    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A = _ZN7CWinApp12classCWinAppE DATA
+    ?classCException@CException@@2UCRuntimeClass@@A = _ZN10CException15classCExceptionE DATA
+    ?classCFileException@CFileException@@2UCRuntimeClass@@A = _ZN14CFileException19classCFileExceptionE DATA
+    ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A = _ZN16CMemoryException21classCMemoryExceptionE DATA
+    ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A = _ZN17CArchiveException22classCArchiveExceptionE DATA
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
