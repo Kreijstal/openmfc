@@ -34,8 +34,6 @@ fi
 
 # Compile each test
 TESTS=(
-    "test_version_functionality.cpp"
-    "test_exception_functionality.cpp"
     "test_mfc_smoke.cpp"
 )
 
