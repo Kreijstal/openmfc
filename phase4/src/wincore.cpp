@@ -188,9 +188,9 @@ extern "C" HWND MS_ABI stub__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pT
 // CFrameWnd constructor
 // Symbol: ??0CFrameWnd@@QAA@XZ
 // Ordinal: 502
-extern "C" void MS_ABI stub___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
+extern "C" CFrameWnd* MS_ABI stub___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
     if (!pThis) {
-        return;
+        return nullptr;
     }
 
     // Do NOT memset the full object: MSVC may set the vptr in the caller thunk
@@ -199,6 +199,7 @@ extern "C" void MS_ABI stub___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
     void* savedVptr = *reinterpret_cast<void**>(pThis);
     std::memset(reinterpret_cast<unsigned char*>(pThis) + sizeof(void*), 0, sizeof(CFrameWnd) - sizeof(void*));
     *reinterpret_cast<void**>(pThis) = savedVptr;
+    return pThis;
 }
 
 // CFrameWnd destructor

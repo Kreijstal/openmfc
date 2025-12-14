@@ -307,7 +307,7 @@ extern "C" CWinThread* MS_ABI stub__AfxGetThread__YAPEAVCWinThread__XZ() {
 // CWinApp constructor
 // Symbol: ??0CWinApp@@QAA@PB_W@Z
 // Ordinal: 983
-extern "C" void MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
+extern "C" CWinApp* MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
     // Initialize base class (CWinThread)
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = GetCurrentThreadId();
@@ -326,6 +326,7 @@ extern "C" void MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar
 
     // Register as the global app instance
     g_pApp = pThis;
+    return pThis;
 }
 
 // CWinApp destructor
@@ -340,12 +341,13 @@ extern "C" void MS_ABI stub___1CWinApp__UEAA_XZ(CWinApp* pThis) {
 // CWinThread default constructor
 // Symbol: ??0CWinThread@@QAA@XZ
 // Ordinal: 988
-extern "C" void MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
+extern "C" CWinThread* MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = 0;
     pThis->m_hThread = nullptr;
     pThis->m_bAutoDelete = TRUE;
     memset(&pThis->m_msgCur, 0, sizeof(pThis->m_msgCur));
+    return pThis;
 }
 
 // CWinThread destructor
@@ -401,4 +403,3 @@ CWnd* AFXAPI AfxGetMainWnd() {
 // Note: AfxGetThread, AfxGetInstanceHandle, AfxGetResourceHandle,
 // AfxSetResourceHandle, AfxGetMainWnd, and AfxWinInit are now
 // inline functions defined in afxwin.h
-
