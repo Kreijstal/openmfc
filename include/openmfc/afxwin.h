@@ -2437,8 +2437,6 @@ protected:
 // when not linking with the full implementation files.
 //=============================================================================
 
-#ifndef OPENMFC_FULL_IMPL
-
 // CCmdTarget implementations
 inline CCmdTarget::~CCmdTarget() {}
 inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
@@ -2462,4 +2460,6 @@ inline BOOL CWinThread::PostPumpMessage() { return TRUE; }
 inline BOOL CWinThread::InitInstance() { return FALSE; }
 inline int CWinThread::ExitInstance() { return 0; }
 
-#endif // OPENMFC_FULL_IMPL
+//=============================================================================
+// End of inline implementations
+//=============================================================================

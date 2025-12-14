@@ -1,7 +1,5 @@
 // Define OPENMFC_APPCORE_IMPL since we link with appcore.cpp
-// Define OPENMFC_FULL_IMPL to use full implementations instead of inline stubs
 #define OPENMFC_APPCORE_IMPL
-#define OPENMFC_FULL_IMPL
 #include "openmfc/afxwin.h"
 #include <new>
 

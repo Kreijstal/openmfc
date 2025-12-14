@@ -1,7 +1,5 @@
 // Define OPENMFC_APPCORE_IMPL to use extern declarations instead of inline stubs
-// Define OPENMFC_FULL_IMPL to use full implementations instead of inline stubs
 #define OPENMFC_APPCORE_IMPL
-#define OPENMFC_FULL_IMPL
 #include "openmfc/afxwin.h"
 #include <vector>
 
@@ -59,14 +57,6 @@ BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
     
     return TRUE;
-}
-
-// CWinThread constructor implementation
-CWinThread::CWinThread()
-    : m_pMainWnd(nullptr), m_nThreadID(0), m_hThread(nullptr), 
-      m_bAutoDelete(FALSE), m_nThreadPriority(0), m_nThreadStackSize(0),
-      m_dwThreadCreateFlags(0), m_bRunning(FALSE), m_bSuspended(FALSE) {
-    memset(&m_msgCur, 0, sizeof(m_msgCur));
 }
 
 // CWinApp constructor implementation
