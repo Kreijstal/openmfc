@@ -30,7 +30,7 @@ jobs:
           BUILD_DIR="$BUILD_DIR" ./phase0/abi_ref/scripts/build_mingw_shim.sh
 
       - name: Upload shim artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -51,7 +51,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Download shim artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifacts
@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload cross-validation artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase0c_cross_validate
           path: |

@@ -35,7 +35,7 @@ jobs:
         run: |
           DLL=build/openmfc.dll MIN_EXPORTS=100 ./scripts/openmfc_smoke_test.sh
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase2_stub_build
           path: build/openmfc.dll

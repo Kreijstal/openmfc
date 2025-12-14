@@ -44,6 +44,19 @@ jobs:
           find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt'
           find artifacts -name mfc_db.json -o -name exceptions.json -o -name layouts.json -o -name 'ucrtbase.def' -o -name 'vcruntime140.def' -o -name 'mfc.exports' -o -name 'metadata.json' -o -name 'demangled.txt' | while read -r f; do cp "$f" artifacts/; done
           ls -l artifacts
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+      
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      
+      - name: Download MFC symbol database
+        uses: actions/download-artifact@v7
+        with:
+          name: phase1_exports
+          path: phase1_artifacts
       
       - name: Build openmfc.dll (stubs + RTTI)
         run: |
@@ -137,7 +150,7 @@ jobs:
           }
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase3_openmfc
           path: |

@@ -43,7 +43,7 @@ jobs:
           Get-Content artifacts\golden_trace.json -ErrorAction SilentlyContinue
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase1_harvest
           path: artifacts/
@@ -60,7 +60,7 @@ jobs:
           mkdir -p artifacts
           x86_64-w64-mingw32-gcc -shared -O2 tools/tracer/wine/tracer_wine.c -o artifacts/tracer_wine.dll
       - name: Upload wine tracer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase1_wine_tracer
           path: artifacts/tracer_wine.dll
@@ -89,7 +89,7 @@ jobs:
             lib /def:$def /machine:x64 /out:"artifacts/$($pair.Name).lib"
           }
       - name: Upload CRT import libs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: phase1_crt_imports
           path: artifacts/

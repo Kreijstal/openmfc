@@ -80,7 +80,7 @@ jobs:
           $metadata | ConvertTo-Json | Out-File $metaPath -Encoding UTF8
 
       - name: Upload ABI reference artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: abi_ref_phase0a
           path: |
