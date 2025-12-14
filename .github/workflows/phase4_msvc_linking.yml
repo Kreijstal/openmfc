@@ -134,7 +134,24 @@ jobs:
         echo "Running MinGW comprehensive test (alias import lib -> MSVC mangled exports)..."
         # Install MinGW on Windows runner
         choco install mingw -y
-        refreshenv
+        
+        # Avoid `refreshenv` (it uses `wmic`, which is missing on newer runners).
+        # Instead, prepend the known MinGW bin locations.
+        $mingwBins = @(
+          "C:\\ProgramData\\mingw64\\mingw64\\bin",
+          "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin"
+        )
+        foreach ($p in $mingwBins) {
+          if (Test-Path $p) { $env:Path = "$p;$env:Path" }
+        }
+
+        $dlltool = (Get-Command dlltool.exe -ErrorAction SilentlyContinue).Source
+        if (-not $dlltool) { $dlltool = (Get-Command x86_64-w64-mingw32-dlltool.exe -ErrorAction SilentlyContinue).Source }
+        $gpp = (Get-Command g++.exe -ErrorAction SilentlyContinue).Source
+        if (-not $dlltool -or -not $gpp) {
+          Write-Host "MinGW toolchain not found on PATH"
+          exit 1
+        }
         
         # Create an alias import library for MinGW that maps clean C names to the
         # real MSVC-mangled exports in openmfc.dll.
@@ -147,14 +164,14 @@ jobs:
           mfc_operator_delete=??3@YAXPEAX@Z
         "@ | Out-File -Encoding ASCII openmfc_alias.def
 
-        dlltool -d openmfc_alias.def -l openmfc_alias.a
+        & $dlltool -d openmfc_alias.def -l openmfc_alias.a
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to create alias import library"
           exit 1
         }
 
         # Build the test (normal link; no GetProcAddress)
-        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_alias.a -lkernel32
+        & $gpp -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_alias.a
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
