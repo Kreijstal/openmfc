@@ -38,7 +38,44 @@ This repo uses GitHub Actions to build and harvest ABI data. You can pull artifa
 Keep artifacts outside the repo (e.g., under `/tmp` or a local `artifacts/` directory) to avoid committing binaries.***
 
 ## MSVC usage policy
-- MSVC is used exclusively via GitHub Actions workflows; no local MSVC installs are assumed. Harvests and host builds run on Windows CI (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`, `phase0b_harvest_cobject.yml`, `phase0b_verify_cobject.yml`).
+- OpenMFC uses **Windows/MSVC ABI** (not Itanium/GCC ABI)
+- **Do NOT use MinGW g++ for C++ code** - MinGW uses Itanium ABI which is incompatible
+- For local testing, use **msvc-wine** to get real MSVC on Linux
+- CI runs on Windows with real MSVC (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`)
+
+## Local MSVC Testing with msvc-wine
+To test MSVC linking locally on Linux:
+
+```bash
+# Install prerequisites
+sudo apt-get install -y wine64 python3 msitools ca-certificates
+
+# Clone msvc-wine
+git clone --depth=1 https://github.com/mstorsjo/msvc-wine.git /tmp/msvc-wine
+
+# Download and install MSVC (accepts license automatically)
+cd /tmp/msvc-wine
+./vsdownload.py --dest /tmp/msvc --accept-license
+./install.sh /tmp/msvc
+
+# Add MSVC to PATH
+export PATH=/tmp/msvc/bin/x64:$PATH
+
+# Create import library from .def file
+lib.exe /DEF:build-phase4/openmfc.def /OUT:openmfc.lib /MACHINE:X64
+
+# Compile and link test with MSVC
+cl.exe /nologo /EHsc tests/test_mfc_smoke.cpp openmfc.lib /Fe:test_mfc_smoke.exe
+
+# Run with Wine (copy DLL to same directory)
+cp build-phase4/openmfc.dll .
+wine test_mfc_smoke.exe
+```
+
+**Why MSVC is required for tests:**
+- Tests use `__declspec(dllimport)` which generates MSVC-mangled names
+- OpenMFC DLL exports MSVC-mangled symbols (e.g., `?AfxThrowMemoryException@@YAXXZ`)
+- MinGW would generate Itanium-mangled names (e.g., `_Z23AfxThrowMemoryExceptionv`) - incompatible!
 
 ## No-binaries rule
 - Never commit generated binaries or CI artifacts to the repo.
