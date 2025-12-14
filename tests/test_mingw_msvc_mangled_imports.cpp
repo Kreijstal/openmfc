@@ -1,8 +1,8 @@
 // MinGW link-time test for OpenMFC (MSVC-mangled exports)
 //
 // This test intentionally avoids MFC C++ classes (MinGW uses the Itanium C++
-// ABI). Instead, CI generates a tiny *alias import library* that maps clean C
-// names (no '?' / '@') to the real MSVC-mangled exports in openmfc.dll.
+// ABI). Instead, CI generates a tiny *ordinal-only import library* that maps
+// clean C names to specific ordinals in openmfc.dll.
 //
 // Goal: verify we can link and run without GetProcAddress.
 
@@ -15,8 +15,8 @@ extern "C" {
 __declspec(dllimport) std::uint32_t __cdecl AfxGetDllVersion();
 __declspec(dllimport) void* __cdecl AfxGetThread();
 
-// These are mapped to MSVC's exported global operator new/delete by the alias
-// import library generated in CI.
+// These are mapped to MSVC's exported global operator new/delete by the
+// ordinal-only import library generated in CI.
 __declspec(dllimport) void* __cdecl mfc_operator_new(std::size_t size);
 __declspec(dllimport) void __cdecl mfc_operator_delete(void* ptr);
 }

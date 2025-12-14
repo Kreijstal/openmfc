@@ -131,7 +131,7 @@ jobs:
     - name: Run comprehensive test
       shell: pwsh
       run: |
-        echo "Running MinGW comprehensive test (alias import lib -> MSVC mangled exports)..."
+        echo "Running MinGW comprehensive test (ordinal-only import lib -> MSVC exports)..."
         # Install MinGW on Windows runner
         choco install mingw -y
         
@@ -152,26 +152,48 @@ jobs:
           Write-Host "MinGW toolchain not found on PATH"
           exit 1
         }
-        
-        # Create an alias import library for MinGW that maps clean C names to the
-        # real MSVC-mangled exports in openmfc.dll.
+
+        # Build an import library that imports by ordinal only. This avoids:
+        # - embedding MSVC-mangled names (`?Foo@@...`) into MinGW object files
+        # - relying on dlltool "alias name" mapping, which still imports by name
+        #
+        # We read ordinals from the produced openmfc.def so the test tracks the
+        # repo's canonical mapping.
+        $defPath = "phase4-artifacts\\openmfc.def"
+        if (-not (Test-Path $defPath)) {
+          Write-Host "Missing def file: $defPath"
+          exit 1
+        }
+
+        function Get-Ordinal([string]$symbol) {
+          $hit = Select-String -Path $defPath -Pattern ([regex]::Escape($symbol)) | Select-Object -First 1
+          if (-not $hit) { throw "Symbol not found in def: $symbol" }
+          if ($hit.Line -match "@(\\d+)") { return [int]$matches[1] }
+          throw "No ordinal found in def line: $($hit.Line)"
+        }
+
+        $ordAfxGetDllVersion = Get-Ordinal "?AfxGetDllVersion@@YAKXZ"
+        $ordAfxGetThread     = Get-Ordinal "?AfxGetThread@@YAPEAVCWinThread@@XZ"
+        $ordOpNew            = Get-Ordinal "??2@YAPEAX_K@Z"
+        $ordOpDelete         = Get-Ordinal "??3@YAXPEAX@Z"
+
         @"
         LIBRARY openmfc.dll
         EXPORTS
-          AfxGetDllVersion=?AfxGetDllVersion@@YAKXZ
-          AfxGetThread=?AfxGetThread@@YAPEAVCWinThread@@XZ
-          mfc_operator_new=??2@YAPEAX_K@Z
-          mfc_operator_delete=??3@YAXPEAX@Z
-        "@ | Out-File -Encoding ASCII openmfc_alias.def
+          AfxGetDllVersion @$ordAfxGetDllVersion NONAME
+          AfxGetThread @$ordAfxGetThread NONAME
+          mfc_operator_new @$ordOpNew NONAME
+          mfc_operator_delete @$ordOpDelete NONAME
+        "@ | Out-File -Encoding ASCII openmfc_ordinal_imports.def
 
-        & $dlltool -d openmfc_alias.def -l openmfc_alias.a
+        & $dlltool -d openmfc_ordinal_imports.def -l openmfc_ordinal_imports.a
         if ($LASTEXITCODE -ne 0) {
-          Write-Host "Failed to create alias import library"
+          Write-Host "Failed to create ordinal import library"
           exit 1
         }
 
         # Build the test (normal link; no GetProcAddress)
-        & $gpp -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_alias.a
+        & $gpp -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_ordinal_imports.a
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
