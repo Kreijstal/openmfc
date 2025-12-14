@@ -110,22 +110,29 @@ The verification scripts specifically check for MSVC-mangled symbols:
 
 ### Workarounds:
 
-1. **Load by ordinal** (recommended for testing):
-   ```cpp
-   // Get function by ordinal 2350
-   auto func = (AfxThrowMemoryExceptionFunc)GetProcAddress(
-       hModule, MAKEINTRESOURCEA(2350));
-   ```
-
-2. **Use MSVC compiler** for linking (real MFC apps):
+1. **Use MSVC compiler** for linking (recommended):
    ```bash
    # On Windows with MSVC
    lib /DEF:msvc_openmfc.def /OUT:openmfc.lib
    cl test_msvc_app.cpp openmfc.lib
    ```
 
-3. **Create MinGW import library with aliases** (not implemented):
-   Would need GCC→MSVC mangling translation in import library.
+2. **Use msvc-wine on Linux** for local MSVC testing:
+   ```bash
+   # Install msvc-wine (see AGENTS.md for full setup)
+   git clone https://github.com/mstorsjo/msvc-wine.git /tmp/msvc-wine
+   cd /tmp/msvc-wine && ./vsdownload.py --dest /tmp/msvc --accept-license
+   ./install.sh /tmp/msvc
+   export PATH=/tmp/msvc/bin/x64:$PATH
+   
+   # Build and test
+   lib.exe /DEF:openmfc.def /OUT:openmfc.lib /MACHINE:X64
+   cl.exe /EHsc test_msvc_app.cpp openmfc.lib
+   wine test_msvc_app.exe
+   ```
+
+3. **NEVER use MinGW g++ for C++ test code** - it uses Itanium ABI which is incompatible.
+   MinGW can only be used for C code with `extern "C"` linkage.
 
 ### Verification Scripts
 
