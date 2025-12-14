@@ -129,16 +129,14 @@ jobs:
         retention-days: 7
 
     - name: Run comprehensive test
-      if: false  # TODO: Re-enable once this is ported to MSVC/Wine; MinGW g++ uses the wrong C++ ABI for MFC.
       shell: pwsh
       run: |
-        echo "Running comprehensive test..."
-        # Build comprehensive test with MinGW (cross-compile on Windows)
-        # First install MinGW on Windows runner
+        echo "Running MinGW comprehensive test (manual MSVC-mangled imports)..."
+        # Install MinGW on Windows runner
         choco install mingw -y
         
-        # Build the test
-        g++ -o test_comprehensive.exe test_comprehensive.cpp -Lphase4-artifacts -lopenmfc
+        # Build the test (uses asm labels for MSVC-mangled exports)
+        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp -Lphase4-artifacts -lopenmfc
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
@@ -146,6 +144,7 @@ jobs:
         }
         
         # Run the test
+        Copy-Item phase4-artifacts\openmfc.dll .
         $output = & .\test_comprehensive.exe 2>&1 | Out-String
         Write-Host $output
         
