@@ -119,7 +119,7 @@ int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandl
     // Simple command routing
     const AFX_MSGMAP* pMap = GetMessageMap();
     
-    for (; pMap != nullptr; pMap = (*pMap->pfnGetBaseMap)())
+    while (pMap != nullptr)
     {
         const AFX_MSGMAP_ENTRY* lpEntry = pMap->lpEntries;
         while (lpEntry->nSig != AfxSig_end)
@@ -131,6 +131,12 @@ int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandl
             }
             lpEntry++;
         }
+        
+        // Get base class message map
+        if (pMap->pfnGetBaseMap != nullptr)
+            pMap = (*pMap->pfnGetBaseMap)();
+        else
+            pMap = nullptr;
     }
     
     return FALSE; // Not handled

@@ -61,8 +61,6 @@ private:
         test("Version non-zero", version != 0);
         
         uint16_t major = (version >> 16) & 0xFFFF;
-        uint16_t minor = version & 0xFFFF;
-        (void)minor; // unused
         
         test("Version format valid", 
              (major >= 0x000C && major <= 0x000F) || (major == 0x000E));
