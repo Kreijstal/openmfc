@@ -44,8 +44,7 @@ jobs:
         echo ""
         echo "3. Implementation safety validation..."
         python3 scripts/validate_implementation_safety.py \
-          --src-dir src/mfc \
-          --src-dir phase4/src
+          "phase4/src/*.cpp"
         
         # 4. ABI regression detection
         echo ""

@@ -1037,14 +1037,17 @@ inline int CWinApp::Run() {
     return CWinThread::Run();
 }
 
-// Global application pointer
-extern CWinApp* AFXAPI AfxGetApp();
-extern CWinThread* AFXAPI AfxGetThread();
-extern HINSTANCE AFXAPI AfxGetInstanceHandle();
-extern HINSTANCE AFXAPI AfxGetResourceHandle();
-extern void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource);
-extern CWnd* AFXAPI AfxGetMainWnd();
-extern int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow);
+// Global application pointer (defined in appcore.cpp)
+extern CWinApp* g_pApp;
+
+// Inline helper functions (match real MFC behavior - these are not DLL exports)
+inline CWinApp* AFXAPI AfxGetApp() { return g_pApp; }
+inline CWinThread* AFXAPI AfxGetThread() { return static_cast<CWinThread*>(g_pApp); }
+inline HINSTANCE AFXAPI AfxGetInstanceHandle() { return g_pApp ? g_pApp->m_hInstance : nullptr; }
+inline HINSTANCE AFXAPI AfxGetResourceHandle() { return g_pApp ? g_pApp->m_hInstance : nullptr; }
+inline void AFXAPI AfxSetResourceHandle(HINSTANCE) { /* TODO */ }
+inline CWnd* AFXAPI AfxGetMainWnd() { return g_pApp ? g_pApp->m_pMainWnd : nullptr; }
+inline int AFXAPI AfxWinInit(HINSTANCE, HINSTANCE, LPWSTR, int) { return TRUE; }
 
 // Exception helpers
 extern void AFXAPI AfxThrowMemoryException();

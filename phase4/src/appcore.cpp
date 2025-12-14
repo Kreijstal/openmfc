@@ -240,12 +240,8 @@ IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
 // We only need the runtime class implementation here
 
 
-// Global application pointer
+// Global application pointer (used by inline functions in afxwin.h)
 CWinApp* g_pApp = nullptr;
-
-CWinApp* AFXAPI AfxGetApp() {
-    return g_pApp;
-}
 
 // =============================================================================
 // CWinApp Constructor/Destructor
@@ -302,29 +298,7 @@ extern "C" void MS_ABI stub___1CWinThread__UEAA_XZ(CWinThread* pThis) {
     pThis->~CWinThread();
 }
 
-CWinThread* AFXAPI AfxGetThread() {
-    return (CWinThread*)g_pApp;
-}
-
-HINSTANCE AFXAPI AfxGetInstanceHandle() {
-    return g_pApp ? g_pApp->m_hInstance : nullptr;
-}
-
-HINSTANCE AFXAPI AfxGetResourceHandle() {
-    return g_pApp ? g_pApp->m_hInstance : nullptr;
-}
-
-void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
-    // TODO
-    (void)hInstResource;
-}
-
-CWnd* AFXAPI AfxGetMainWnd() {
-    return g_pApp ? g_pApp->m_pMainWnd : nullptr;
-}
-
-int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
-    (void)hInstance; (void)hPrevInstance; (void)lpCmdLine; (void)nCmdShow;
-    return TRUE;
-}
+// Note: AfxGetThread, AfxGetInstanceHandle, AfxGetResourceHandle,
+// AfxSetResourceHandle, AfxGetMainWnd, and AfxWinInit are now
+// inline functions defined in afxwin.h
 
