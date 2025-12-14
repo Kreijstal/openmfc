@@ -104,9 +104,25 @@ python3 "$ROOT/tools/gen_weak_stubs.py" \
 # Remove the "; Total exports:" comment line if present (causes .def syntax errors)
 sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
 
-# Note: OpenMFC-specific exports (static class members) are handled via
-# asm symbol aliases in the source files, which create MSVC-mangled names
-# that get exported automatically via the .def file entries.
+# Add OpenMFC-specific exports (static class members with MSVC-mangled names)
+# These map GCC-mangled internal names to MSVC-mangled export names.
+# Format: MSVC_mangled_name=GCC_mangled_name DATA
+cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
+
+; OpenMFC-specific static class member exports
+; These are required for MSVC code that uses MFC RTTI macros (IMPLEMENT_DYNAMIC, etc.)
+; Format: MSVC_name=GCC_name DATA
+?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE DATA
+?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE DATA
+?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE DATA
+?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE DATA
+?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE DATA
+?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE DATA
+?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE DATA
+?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE DATA
+?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE DATA
+EOF_OPENMFC_EXPORTS
+echo "Added OpenMFC-specific static class member exports to .def file"
 
 # Step 2: Generate RTTI metadata
 echo ""

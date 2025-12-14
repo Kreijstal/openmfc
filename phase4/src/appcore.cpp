@@ -115,12 +115,25 @@ IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
 
 #ifdef __GNUC__
+// CMemoryException::classCMemoryException - MSVC symbol alias
+// Note: GCC mangling uses 21 for the member name length (includes the full count)
+asm(".globl \"?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A\", _ZN16CMemoryException21classCMemoryExceptionE\n");
+
 // CFileException::classCFileException - MSVC symbol alias
+// Note: GCC mangling uses 19 for the member name length
 asm(".globl \"?classCFileException@CFileException@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCFileException@CFileException@@2UCRuntimeClass@@A\", _ZN14CFileException18classCFileExceptionE\n");
+    ".set \"?classCFileException@CFileException@@2UCRuntimeClass@@A\", _ZN14CFileException19classCFileExceptionE\n");
 #endif
 
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
+
+#ifdef __GNUC__
+// CArchiveException::classCArchiveException - MSVC symbol alias
+// Note: GCC mangling uses 22 for the member name length
+asm(".globl \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\", _ZN17CArchiveException22classCArchiveExceptionE\n");
+#endif
 
 CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
     : m_cause(cause)
