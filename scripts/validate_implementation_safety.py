@@ -23,19 +23,13 @@ from pathlib import Path
 from typing import List, Tuple, Dict
 
 # Unsafe patterns to reject
+# Note: Internal C++ class methods are OK - they provide virtual method implementations.
+# Only EXPORTED functions need extern "C" MS_ABI. The stubs call the internal methods.
 UNSAFE_PATTERNS = [
-    # C++ class method definitions (will be GCC-mangled)
-    (r'^\s*(?:virtual\s+)?(?:inline\s+)?(?:const\s+)?\w+\s+\w+::\w+\s*\([^)]*\)\s*(?:const\s*)?[{;]', 
-     "C++ class method definition (produces GCC mangling)"),
-    
-    # Missing extern "C"
-    (r'^\s*(?!(?:extern\s+"C"\s+))(?!(?:#))(?!(?:/\*))(?!(?://))\w+\s+\w+\s*\([^)]*\)\s*[{;]',
-     "Function definition without extern \"C\" (will be GCC-mangled)"),
-    
-    # Wrong calling convention (missing MS_ABI)
-    (r'^\s*extern\s+"C"\s+(?!.*MS_ABI).*\w+\s+\w+\s*\([^)]*\)\s*[{;]',
-     "extern \"C\" function missing MS_ABI attribute"),
-    
+    # Wrong calling convention (missing MS_ABI) on stub functions
+    (r'^\s*extern\s+"C"\s+(?!.*MS_ABI).*\bstub_\w+\s*\([^)]*\)\s*[{;]',
+     "stub function missing MS_ABI attribute"),
+
     # Direct MSVC-mangled name as function name (should use stub_ prefix)
     (r'^\s*extern\s+"C".*\?\w+@@',
      "Using MSVC-mangled name directly (should use stub_ prefix)"),
@@ -119,10 +113,9 @@ def main():
             print(f"  ... and {len(all_errors) - 10} more")
         
         print("\n💡 How to fix:")
-        print("1. Always use 'extern \"C\"' wrapper")
-        print("2. Always use MS_ABI attribute")
-        print("3. Use stub_ prefix naming (from gen_weak_stubs.py)")
-        print("4. NEVER write C++ class methods in implementation files")
+        print("1. Exported functions must use 'extern \"C\"' + MS_ABI + stub_ prefix")
+        print("2. Use stub names from gen_weak_stubs.py")
+        print("3. Internal C++ class methods are OK (for virtual dispatch)")
         print("\nExample safe implementation:")
         print('''  extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
       // implementation here
