@@ -168,7 +168,7 @@ jobs:
         function Get-Ordinal([string]$symbol) {
           $hit = Select-String -Path $defPath -Pattern ([regex]::Escape($symbol)) | Select-Object -First 1
           if (-not $hit) { throw "Symbol not found in def: $symbol" }
-          if ($hit.Line -match "@(\\d+)") { return [int]$matches[1] }
+          if ($hit.Line -match "@(\d+)") { return [int]$matches[1] }
           throw "No ordinal found in def line: $($hit.Line)"
         }
 
