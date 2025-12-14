@@ -68,7 +68,7 @@ jobs:
       shell: cmd
       run: |
         echo Building MSVC test application...
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib user32.lib
+        cl.exe /nologo /EHsc /std:c++17 /I include /DOPENMFC_APPCORE_IMPL /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib user32.lib
         if %ERRORLEVEL% neq 0 (
           echo Failed to build MSVC test app
           exit /b 1
