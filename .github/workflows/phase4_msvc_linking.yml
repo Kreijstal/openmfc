@@ -131,12 +131,13 @@ jobs:
     - name: Run comprehensive test
       shell: pwsh
       run: |
-        echo "Running MinGW comprehensive test (manual MSVC-mangled imports)..."
+        echo "Running MinGW comprehensive test (manual MSVC-mangled name lookup)..."
         # Install MinGW on Windows runner
         choco install mingw -y
+        refreshenv
         
         # Build the test (uses asm labels for MSVC-mangled exports)
-        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp -Lphase4-artifacts -lopenmfc
+        g++ -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp
         
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
