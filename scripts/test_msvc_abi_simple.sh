@@ -69,10 +69,10 @@ if [[ $GCC_COUNT -gt 0 ]]; then
 fi
 
 # Check 3: Key MSVC symbols must be present
-# Using symbols we know should be in mfc_complete_ordinal_mapping.json
+# Using x64 symbols from mfc_complete_ordinal_mapping.json
 KEY_SYMBOLS=(
     "?AfxThrowMemoryException@@YAXXZ"
-    "?AfxThrowFileException@@YAXHJPB_W@Z"
+    "?AfxThrowFileException@@YAXHJPEB_W@Z"  # x64: PEB_W instead of PB_W
     "?AfxThrowNotSupportedException@@YAXXZ"
     "?AfxThrowInvalidArgException@@YAXXZ"
     "?AfxAbort@@YAXXZ"
