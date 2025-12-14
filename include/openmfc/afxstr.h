@@ -543,6 +543,8 @@ public:
 
     // Resource loading
     int LoadString(UINT nID); // Returns length, 0 on failure
+    // Alias for Windows API macro compatibility (LoadString -> LoadStringW)
+    int LoadStringW(UINT nID) { return LoadString(nID); }
 
 private:
     wchar_t* m_pszData;

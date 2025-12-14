@@ -784,4 +784,9 @@ inline CRuntimeClass CObject::classCObject = {
     nullptr,
     nullptr
 };
+
+// CObject::Serialize default implementation (does nothing for base class)
+inline void CObject::Serialize(CArchive& ar) {
+    (void)ar;  // Base CObject::Serialize does nothing
+}
 #endif

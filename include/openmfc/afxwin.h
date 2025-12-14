@@ -1044,7 +1044,9 @@ extern CWinThread* AFXAPI AfxGetThread();
 // AfxGetApp is typically inline in real MFC, casting AfxGetThread result
 inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
 
-// These call AfxGetThread/AfxGetApp to avoid global variable dependencies
+// These functions are declared extern and defined in appcore.cpp when linking with implementation
+// For header-only use, they fall back to inline stubs
+#ifndef OPENMFC_APPCORE_IMPL
 inline HINSTANCE AFXAPI AfxGetInstanceHandle() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_hInstance : nullptr;
@@ -1059,6 +1061,13 @@ inline CWnd* AFXAPI AfxGetMainWnd() {
     return pApp ? pApp->m_pMainWnd : nullptr;
 }
 inline int AFXAPI AfxWinInit(HINSTANCE, HINSTANCE, LPWSTR, int) { return TRUE; }
+#else
+extern HINSTANCE AFXAPI AfxGetInstanceHandle();
+extern HINSTANCE AFXAPI AfxGetResourceHandle();
+extern void AFXAPI AfxSetResourceHandle(HINSTANCE);
+extern CWnd* AFXAPI AfxGetMainWnd();
+extern BOOL AFXAPI AfxWinInit(HINSTANCE, HINSTANCE, LPWSTR, int);
+#endif
 
 // Exception helpers
 extern void AFXAPI AfxThrowMemoryException();
@@ -2421,3 +2430,36 @@ protected:
     // Padding for ABI compatibility
     char _multidoctemplate_padding[64];
 };
+
+//=============================================================================
+// Inline stub implementations for header-only use
+// These provide minimal implementations to satisfy linking requirements
+// when not linking with the full implementation files.
+//=============================================================================
+
+#ifndef OPENMFC_FULL_IMPL
+
+// CCmdTarget implementations
+inline CCmdTarget::~CCmdTarget() {}
+inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
+inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
+
+// CWinThread implementations
+inline CWinThread::CWinThread()
+    : m_pMainWnd(nullptr), m_nThreadID(0), m_hThread(nullptr), 
+      m_bAutoDelete(FALSE), m_nThreadPriority(0), m_nThreadStackSize(0),
+      m_dwThreadCreateFlags(0), m_bRunning(FALSE), m_bSuspended(FALSE) {
+    memset(&m_msgCur, 0, sizeof(m_msgCur));
+}
+inline CWinThread::~CWinThread() {}
+inline int CWinThread::Run() { return 0; }
+inline BOOL CWinThread::PreTranslateMessage(MSG*) { return FALSE; }
+inline BOOL CWinThread::OnIdle(LONG) { return FALSE; }
+inline BOOL CWinThread::IsIdleMessage(MSG*) { return FALSE; }
+inline BOOL CWinThread::PumpMessage() { return FALSE; }
+inline BOOL CWinThread::PrePumpMessage() { return TRUE; }
+inline BOOL CWinThread::PostPumpMessage() { return TRUE; }
+inline BOOL CWinThread::InitInstance() { return FALSE; }
+inline int CWinThread::ExitInstance() { return 0; }
+
+#endif // OPENMFC_FULL_IMPL
