@@ -99,6 +99,24 @@ python3 "$ROOT/tools/gen_weak_stubs.py" \
     --out-stubs "$BUILD/weak_stubs.cpp" \
     --exclude "$EXCLUDED_SYMBOLS"
 
+# Add OpenMFC-specific exports (not in mfc140u.dll but needed by OpenMFC headers)
+# These use high ordinals to avoid conflicts with the real MFC ordinals
+# GCC-mangled names are used as the internal symbols
+# Remove the "; Total exports:" comment line if present (causes .def syntax errors)
+sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
+cat >> "$BUILD/openmfc.def" << 'OPENMFC_EXPORTS'
+    ?g_pApp@@3PEAVCWinApp@@EA=g_pApp @20001 DATA
+    ?Serialize@CObject@@UEAAXAEAVCArchive@@@Z=stub___Serialize_CObject__UEAAXAEAVCArchive___Z @20002
+    ?OnCmdMsg@CCmdTarget@@UEAAHIHPEAX0@Z=stub___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z @20003
+    ?PrePumpMessage@CWinThread@@UEAAHXZ=stub___PrePumpMessage_CWinThread__UEAAHXZ @20004
+    ?PostPumpMessage@CWinThread@@UEAAHXZ=stub___PostPumpMessage_CWinThread__UEAAHXZ @20005
+    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE @20006 DATA
+    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE @20007 DATA
+    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE @20008 DATA
+    ?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE @20009 DATA
+    ?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE @20010 DATA
+OPENMFC_EXPORTS
+
 # Step 2: Generate RTTI metadata
 echo ""
 echo "[2/4] Generating RTTI metadata..."
@@ -122,6 +140,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/strcore.cpp"
     "$ROOT/phase4/src/wincore.cpp"
     "$ROOT/phase4/src/dlgcore.cpp"
+    "$ROOT/phase4/src/openmfc_exports.cpp"
     # Add more implementation files here as they are created
 )
 
