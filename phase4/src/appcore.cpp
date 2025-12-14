@@ -111,6 +111,13 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
 // Exception implementations
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
+
+#ifdef __GNUC__
+// CFileException::classCFileException - MSVC symbol alias
+asm(".globl \"?classCFileException@CFileException@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCFileException@CFileException@@2UCRuntimeClass@@A\", _ZN14CFileException18classCFileExceptionE\n");
+#endif
+
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 
 CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)

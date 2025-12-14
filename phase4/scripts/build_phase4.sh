@@ -57,7 +57,7 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxThrowFileException@@YAXHJPEB_W@Z,?AfxThr
 # Version functions
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetDllVersion@@YAKXZ"
 # CObject methods (x64)
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ,?GetThisClass@CObject@@SAPEAUCRuntimeClass@@XZ,?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z,?IsSerializable@CObject@@QEBAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeClass@@XZ,?GetThisClass@CObject@@SAPEAUCRuntimeClass@@XZ,?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z,?IsSerializable@CObject@@QEBAHXZ,?Serialize@CObject@@UEAAXAEAVCArchive@@@Z"
 # CRuntimeClass methods (x64)
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z,?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z,?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z,?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z,?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z,?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z"
 # Helper functions (x64)

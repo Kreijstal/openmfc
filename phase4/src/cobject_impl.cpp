@@ -132,9 +132,9 @@ extern "C" int MS_ABI stub__IsSerializable_CObject__QEBAHXZ(
 }
 
 // CObject::Serialize() - virtual member function
-// Symbol: ?Serialize@CObject@@UAXAAVCArchive@@@Z
+// Symbol: ?Serialize@CObject@@UEAAXAEAVCArchive@@@Z (x64)
 // Base implementation does nothing
-extern "C" void MS_ABI stub__Serialize_CObject__UAXAEAVCArchive___Z(
+extern "C" void MS_ABI stub__Serialize_CObject__UEAAXAEAVCArchive___Z(
     CObject* pThis,      // RCX = this pointer
     CArchive* ar         // RDX = archive
 ) {

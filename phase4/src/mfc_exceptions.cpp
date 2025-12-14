@@ -30,6 +30,12 @@
 // Implement CException runtime class
 IMPLEMENT_DYNAMIC(CException, CObject)
 
+// Create MSVC symbol alias for CException::classCException
+#ifdef __GNUC__
+asm(".globl \"?classCException@CException@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCException@CException@@2UCRuntimeClass@@A\", _ZN10CException15classCExceptionE\n");
+#endif
+
 // MS ABI calling convention
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
