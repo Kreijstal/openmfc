@@ -21,6 +21,10 @@
 static LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 static ATOM RegisterOpenMFCClass(HINSTANCE hInstance);
 
+// Exported stubs used internally (avoid virtual dispatch)
+extern "C" int MS_ABI stub__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW& cs);
+extern "C" int MS_ABI stub__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(CFrameWnd* pThis, CREATESTRUCTW& cs);
+
 // =============================================================================
 // Global State
 // =============================================================================
@@ -84,7 +88,9 @@ extern "C" int MS_ABI stub__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCr
     cs.hMenu = (HMENU)(UINT_PTR)nID;
     cs.hInstance = hInst;
 
-    if (!pThis->PreCreateWindow(cs)) {
+    // Avoid virtual dispatch: our exported methods are ABI-compatible entrypoints,
+    // but we do not rely on any MSVC vtable layout in this phase.
+    if (!stub__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(pThis, cs)) {
         return FALSE;
     }
 
@@ -274,7 +280,8 @@ extern "C" int MS_ABI stub__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     cs.dwExStyle = dwExStyle;
 
     // Call PreCreateWindow (virtual)
-    if (!pThis->PreCreateWindow(cs)) {
+    // Avoid virtual dispatch: see note in CWnd::Create.
+    if (!stub__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(pThis, cs)) {
         return FALSE;
     }
 

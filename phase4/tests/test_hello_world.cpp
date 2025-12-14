@@ -37,7 +37,10 @@ public:
 
         // Create the window
         RECT rect = {100, 100, 500, 400};
-        if (!pFrame->Create(nullptr, L"OpenMFC Hello World", WS_OVERLAPPEDWINDOW, rect)) {
+        // Avoid virtual dispatch here: our Phase 4 implementation exports MSVC-mangled
+        // methods via a .def alias table, but we don't (yet) provide a reliable MSVC
+        // vtable for CFrameWnd.
+        if (!pFrame->CFrameWnd::Create(nullptr, L"OpenMFC Hello World", WS_OVERLAPPEDWINDOW, rect)) {
             printf("Failed to create window\n");
             delete pFrame;
             return FALSE;
