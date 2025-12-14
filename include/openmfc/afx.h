@@ -27,6 +27,12 @@
 
 #include <windows.h>
 
+// Undefine Windows macros that conflict with MFC method names
+// Windows defines LoadString as LoadStringW/LoadStringA which conflicts with CString::LoadString
+#ifdef LoadString
+#undef LoadString
+#endif
+
 // Calling convention macros
 // Note: Most MFC global functions use __cdecl, not __stdcall
 #define AFXAPI __cdecl
