@@ -95,6 +95,11 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString1@@YAXAEAV?\$CStringT@_WV?\$
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxFormatString2@@YAXAEAV?\$CStringT@_WV?\$StrTraitMFC_DLL@_WV?\$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W1@Z"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxMessageBox@@YAHPEB_WII@Z,?AfxMessageBox@@YAHIII@Z"
 
+# Global operator new/delete are used by real MFC clients and by our MSVC hello-world
+# test. The auto-stub generator doesn't know signatures and would emit `void` stubs,
+# which produces garbage pointers and immediate crashes.
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??2@YAPEAX_K@Z,??3@YAXPEAX@Z,??_U@YAPEAX_K@Z,??_V@YAXPEAX@Z"
+
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --out-def "$BUILD/openmfc.def" \
@@ -147,6 +152,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/version_impl.cpp"
     "$ROOT/phase4/src/cobject_impl.cpp"
     "$ROOT/phase4/src/appcore.cpp"
+    "$ROOT/phase4/src/memcore.cpp"
     "$ROOT/phase4/src/strcore.cpp"
     "$ROOT/phase4/src/wincore.cpp"
     "$ROOT/phase4/src/dlgcore.cpp"
@@ -219,5 +225,3 @@ if [[ -x "$ROOT/scripts/phase4_safety_check.sh" ]]; then
     echo "Running comprehensive ABI safety check..."
     "$ROOT/scripts/phase4_safety_check.sh" || echo "Warning: Safety check had issues"
 fi
-
-
