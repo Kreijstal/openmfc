@@ -21,84 +21,56 @@ def parse_dumpbin_all(content: str) -> List[Tuple[str, int]]:
     Parse dumpbin /ALL output to extract symbol→ordinal mappings.
 
     The output contains entries like:
-        Symbol name  : ?AfxGetApp@@YAPAVCWinApp@@XZ
+        Symbol name  : ?AfxGetApp@@YAPAVCWinApp@@XZ (...)
         Type         : code
+        Name type    : ordinal
         Ordinal      : 2344
 
-    Or in import thunk format:
-        ?AfxGetApp@@YAPEAVCWinApp@@XZ (ordinal 2344)
+    We look for "Symbol name" followed by "Ordinal" within the same import thunk block.
     """
     mappings = []
 
-    # Pattern 1: Multi-line format from dumpbin /ALL
-    # Symbol name  : ?Something@@XXX
-    # ...
-    # Ordinal      : 1234
-    symbol_pattern = re.compile(r'Symbol name\s*:\s*(\?[^\s]+)', re.MULTILINE)
-    ordinal_pattern = re.compile(r'Ordinal\s*:\s*(\d+)', re.MULTILINE)
+    # Split by Archive member sections
+    sections = content.split('Archive member name at')
+    print(f"Found {len(sections)} archive sections")
 
-    # Pattern 2: Import thunk format
-    # ?Symbol@@XXX (ordinal 1234)
-    thunk_pattern = re.compile(r'(\?[^\s]+)\s*\(ordinal\s+(\d+)\)', re.MULTILINE | re.IGNORECASE)
+    # Pattern to match import thunk blocks
+    # Each block has: Symbol name, Type, Name type, Ordinal
+    block_pattern = re.compile(
+        r'Symbol name\s*:\s*(\?[^\s(]+).*?'  # Symbol name (mangled, before any space or paren)
+        r'Name type\s*:\s*ordinal\s*'        # Must be ordinal type
+        r'Ordinal\s*:\s*(\d+)',              # Ordinal value
+        re.DOTALL | re.IGNORECASE
+    )
 
-    # Pattern 3: Archive member with import descriptor
-    # __IMPORT_DESCRIPTOR_mfc140u or similar
-    # Usually followed by ordinal info
-
-    # Pattern 4: Direct ordinal reference in archive member listing
-    # Looking for lines like:
-    #   Ordinal  1234
-    # near symbol definitions
-
-    # Try pattern 2 first (most reliable)
-    for match in thunk_pattern.finditer(content):
-        symbol = match.group(1)
+    for match in block_pattern.finditer(content):
+        symbol = match.group(1).strip()
         ordinal = int(match.group(2))
         mappings.append((symbol, ordinal))
 
-    if mappings:
-        print(f"Found {len(mappings)} mappings using thunk pattern")
-        return mappings
+    print(f"Found {len(mappings)} mappings using block pattern")
 
-    # Try parsing section by section
-    # Look for Archive member sections
-    sections = content.split('Archive member name at')
-
-    for section in sections[1:]:  # Skip first (before any archive member)
-        # Look for symbol + ordinal pairs in each section
-
-        # Try to find lines with ordinal info
-        lines = section.split('\n')
+    if not mappings:
+        # Fallback: try line-by-line parsing
+        lines = content.split('\n')
         current_symbol = None
 
-        for line in lines:
-            # Check for symbol definition
-            sym_match = re.search(r'\|\s+(\?[^\s|]+)', line)
+        for i, line in enumerate(lines):
+            # Check for symbol name
+            sym_match = re.search(r'Symbol name\s*:\s*(\?[^\s(]+)', line)
             if sym_match:
-                current_symbol = sym_match.group(1)
-                # Remove __imp_ prefix if present
-                if current_symbol.startswith('__imp_'):
-                    current_symbol = current_symbol[6:]
+                current_symbol = sym_match.group(1).strip()
 
-            # Check for ordinal
-            ord_match = re.search(r'ordinal\s*[:\s]+(\d+)', line, re.IGNORECASE)
-            if ord_match and current_symbol:
-                ordinal = int(ord_match.group(1))
-                mappings.append((current_symbol, ordinal))
-                current_symbol = None
+            # Check for ordinal (within 5 lines of symbol)
+            if current_symbol:
+                ord_match = re.search(r'^\s*Ordinal\s*:\s*(\d+)', line)
+                if ord_match:
+                    ordinal = int(ord_match.group(1))
+                    mappings.append((current_symbol, ordinal))
+                    current_symbol = None
 
-    if mappings:
-        print(f"Found {len(mappings)} mappings using section parsing")
-        return mappings
+        print(f"Found {len(mappings)} mappings using line-by-line parsing")
 
-    # Last resort: look for any symbol + ordinal on the same line
-    simple_pattern = re.compile(r'(\?[A-Za-z0-9_@$?]+)\s+.*?ordinal\s+(\d+)', re.IGNORECASE)
-    for match in simple_pattern.finditer(content):
-        symbol = match.group(1)
-        ordinal = int(match.group(2))
-        mappings.append((symbol, ordinal))
-
-    print(f"Found {len(mappings)} total mappings")
     return mappings
 
 
