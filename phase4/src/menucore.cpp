@@ -39,9 +39,15 @@ extern "C" CMenu* MS_ABI stub___0CMenu__QEAA_XZ(CMenu* pThis) {
 
 // CMenu destructor
 // Symbol: ??1CMenu@@UEAA@XZ
+//
+// NOTE: Unlike real MFC, this destructor does NOT automatically destroy the menu.
+// This allows CMenu to be used as a non-owning wrapper for menus obtained via
+// GetMenu(), GetSubMenu(), or Attach(). Callers who create menus with CreateMenu(),
+// CreatePopupMenu(), or LoadMenu() should explicitly call DestroyMenu() before
+// destruction, or use Detach() if transferring ownership.
 extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis) {
-    if (pThis && pThis->m_hMenu) {
-        ::DestroyMenu(pThis->m_hMenu);
+    if (pThis) {
+        // Don't destroy - caller is responsible for menu lifetime
         pThis->m_hMenu = nullptr;
     }
 }

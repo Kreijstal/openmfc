@@ -76,10 +76,16 @@ extern "C" CDC* MS_ABI stub___0CDC__QEAA_XZ(CDC* pThis) {
 // CDC destructor
 // Symbol: ??1CDC@@UEAA@XZ
 // Ordinal: 1086
+//
+// NOTE: Base CDC destructor does NOT delete the DC. Derived classes (CClientDC, CPaintDC,
+// CWindowDC) handle releasing their own DCs appropriately. If a raw CDC owns a DC (e.g.,
+// from CreateCompatibleDC), the caller must explicitly call DeleteDC() before destruction.
+// This matches real MFC behavior where CDC is often used as a wrapper for DCs it doesn't own.
 extern "C" void MS_ABI stub___1CDC__UEAA_XZ(CDC* pThis) {
-    if (pThis && pThis->m_hDC) {
-        ::DeleteDC(pThis->m_hDC);
+    if (pThis) {
+        // Don't delete - caller is responsible for DC lifetime
         pThis->m_hDC = nullptr;
+        pThis->m_hAttribDC = nullptr;
     }
 }
 
@@ -411,6 +417,8 @@ extern "C" int MS_ABI stub__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
     lf.lfWeight = FW_NORMAL;
     if (lpszFaceName) {
         wcsncpy(lf.lfFaceName, lpszFaceName, LF_FACESIZE - 1);
+        // Ensure null termination - wcsncpy doesn't guarantee it
+        lf.lfFaceName[LF_FACESIZE - 1] = L'\0';
     }
 
     if (pThis->m_hObject) {
@@ -530,6 +538,7 @@ extern "C" void MS_ABI stub___1CPaintDC__UEAA_XZ(CPaintDC* pThis) {
             ::EndPaint(hWnd, &pThis->m_ps);
         }
         pThis->m_hDC = nullptr;
+        pThis->m_hAttribDC = nullptr;  // Also reset attrib DC
     }
 }
 
@@ -544,6 +553,7 @@ extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pTh
 
     pThis->m_hDC = nullptr;
     pThis->m_hAttribDC = nullptr;
+    pThis->m_pWnd = pWnd;  // Store window pointer for destructor
 
     HWND hWnd = pWnd ? pWnd->GetSafeHwnd() : nullptr;
     pThis->m_hDC = ::GetWindowDC(hWnd);
@@ -556,8 +566,10 @@ extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pTh
 // Symbol: ??1CWindowDC@@UEAA@XZ
 extern "C" void MS_ABI stub___1CWindowDC__UEAA_XZ(CWindowDC* pThis) {
     if (pThis && pThis->m_hDC) {
-        // Note: Need CWnd pointer to release properly, but simplified here
-        ::ReleaseDC(nullptr, pThis->m_hDC);
+        // Use stored m_pWnd to get the correct HWND for ReleaseDC
+        HWND hWnd = pThis->m_pWnd ? pThis->m_pWnd->GetSafeHwnd() : nullptr;
+        ::ReleaseDC(hWnd, pThis->m_hDC);
         pThis->m_hDC = nullptr;
+        pThis->m_hAttribDC = nullptr;
     }
 }

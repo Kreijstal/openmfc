@@ -65,13 +65,19 @@ extern "C" int MS_ABI stub__AfxRegisterClass__YAHPEAUtagWNDCLASSW___Z(WNDCLASSW*
 // AfxRegisterWndClass
 // =============================================================================
 
-// Buffer for generated class names
-static wchar_t g_szWndClassName[64];
+// Buffer for generated class names - sized for 64-bit hex pointers
+// Format: "OpenMfc:0x0000000000000000:XXXXXXXX:0x0000000000000000:0x0000000000000000"
+// Max ~80 chars needed, use 128 for safety
+static wchar_t g_szWndClassName[128];
 static int g_nWndClassIndex = 0;
 
 // AfxRegisterWndClass - Create and register a window class with given style/cursor/brush/icon
 // Symbol: ?AfxRegisterWndClass@@YAPEB_WIPEAUHICON__@@PEAUHBRUSH__@@0@Z
 // Ordinal: 2316
+//
+// NOTE: This uses a single global buffer. The returned pointer is only valid until the
+// next call to AfxRegisterWndClass. Callers needing to cache multiple class names should
+// copy the returned string. This matches real MFC behavior.
 extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON____PEAUHBRUSH____0_Z(
     UINT nClassStyle, HCURSOR hCursor, HBRUSH hbrBackground, HICON hIcon)
 {
@@ -82,8 +88,13 @@ extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON___
 
     // Generate a unique class name based on parameters
     // This mimics MFC's approach of creating class names like "Afx:00400000:b:XXXX:YYYY"
-    swprintf(g_szWndClassName, 64, L"OpenMfc:%p:%x:%p:%p",
+    // Use _snwprintf for safety (truncates if buffer too small)
+    int written = _snwprintf(g_szWndClassName, 128, L"OpenMfc:%p:%x:%p:%p",
              (void*)hInst, nClassStyle, (void*)hCursor, (void*)hIcon);
+    // Ensure null termination in case of truncation
+    if (written < 0 || written >= 128) {
+        g_szWndClassName[127] = L'\0';
+    }
 
     // Check if already registered
     WNDCLASSW existingClass;
