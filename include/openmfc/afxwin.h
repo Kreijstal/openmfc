@@ -1231,10 +1231,12 @@ public:
     // Attributes
     int Attach(HGDIOBJ hObject);
     HGDIOBJ Detach();
-    
-protected:
+
+public:
+    // Made public for extern "C" stub functions access
     HGDIOBJ m_hObject;
-    
+
+protected:
     // Padding for ABI compatibility
     char _gdiobject_padding[24];
 };
@@ -1558,9 +1560,11 @@ class CClientDC : public CDC {
 public:
     CClientDC(CWnd* pWnd);
     virtual ~CClientDC();
-    
-protected:
+
+    // Made public for extern "C" stub functions access
     CWnd* m_pWnd;
+
+protected:
     char _clientdc_padding[24];
 };
 
@@ -1570,11 +1574,13 @@ class CPaintDC : public CDC {
 public:
     CPaintDC(CWnd* pWnd);
     virtual ~CPaintDC();
-    
+
     PAINTSTRUCT m_ps;
-    
-protected:
+
+    // Made public for extern "C" stub functions access
     CWnd* m_pWnd;
+
+protected:
     char _paintdc_padding[24];
 };
 
@@ -1584,9 +1590,11 @@ class CWindowDC : public CDC {
 public:
     CWindowDC(CWnd* pWnd);
     virtual ~CWindowDC();
-    
-protected:
+
+    // Made public for extern "C" stub functions access
     CWnd* m_pWnd;
+
+protected:
     char _windowdc_padding[24];
 };
 
