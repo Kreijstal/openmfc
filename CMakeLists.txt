@@ -30,10 +30,10 @@ set(GEN_RTTI_H ${GENERATED_DIR}/include/openmfc/eh_rtti.h)
 add_custom_command(
     OUTPUT ${GEN_DEF} ${GEN_STUBS}
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/gen_stubs.py
-            --db ${CMAKE_SOURCE_DIR}/mfc_db.json
+            --db ${CMAKE_SOURCE_DIR}/mfc_db_correct.json
             --out-def ${GEN_DEF}
             --out-stubs ${GEN_STUBS}
-    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_stubs.py ${CMAKE_SOURCE_DIR}/mfc_db.json
+    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_stubs.py ${CMAKE_SOURCE_DIR}/mfc_db_correct.json
     COMMENT "Generating stubs and def file"
 )
 
@@ -57,7 +57,19 @@ set(SOURCES
     ${GEN_RTTI_C}
     src/mfc/exceptions.cpp
     src/mfc/appcore.cpp
+    src/mfc/strcore.cpp
     src/mfc/afxmem.cpp
+    src/mfc/dlgcore.cpp
+    src/mfc/commondlgs.cpp
+    src/mfc/winfrm.cpp
+    src/mfc/controls.cpp
+    src/mfc/docview.cpp
+    src/mfc/archive.cpp
+    src/mfc/file.cpp
+    src/mfc/collections.cpp
+    src/mfc/sync.cpp
+    src/mfc/lock.cpp
+    src/mfc/thread.cpp
 )
 
 # Target
@@ -68,7 +80,7 @@ if(MSVC)
     # MSVC specific options
 elseif(BUILD_MINGW OR MINGW)
     # MinGW options - build actual Windows DLL
-    target_compile_options(openmfc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fpermissive> -Wno-attributes)
+    target_compile_options(openmfc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fpermissive> -Wno-attributes -DUNICODE -D_UNICODE)
     # Use the .def file for exports - MinGW uses different syntax
     set_target_properties(openmfc PROPERTIES
         LINK_FLAGS "-Wl,${GEN_DEF}"

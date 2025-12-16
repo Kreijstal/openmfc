@@ -1,0 +1,266 @@
+name: Explore MSVC Exceptions
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'phase4/tests/test_cxx_throw_exploration.cpp'
+      - 'phase4/tests/test_exception_catch.cpp'
+      - 'phase4/tests/test_exception_simple.cpp'
+      - 'phase4/tests/test_exception_typed.cpp'
+      - 'phase4/tests/test_exception_mfc.cpp'
+      - 'phase4/tests/test_cobject_rtti.cpp'
+      - 'phase4/tests/test_openmfc_suite.cpp'
+      - 'phase4/src/mfc_exceptions.cpp'
+      - 'phase4/src/cobject_impl.cpp'
+      - 'phase4/src/version_impl.cpp'
+      - '.github/workflows/explore_exceptions.yml'
+
+jobs:
+  # Job 1: Build DLL with MinGW on Linux
+  build-dll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Build Phase 4 DLL
+        run: ./phase4/scripts/build_phase4.sh
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: openmfc-dll
+          path: |
+            build-phase4/openmfc.dll
+            build-phase4/openmfc.def
+          retention-days: 7
+
+  # Job 2: Build and run tests on Windows
+  test-exceptions:
+    needs: build-dll
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download DLL
+        uses: actions/download-artifact@v4
+        with:
+          name: openmfc-dll
+          path: .
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Create import library
+        shell: cmd
+        run: |
+          lib /DEF:openmfc.def /OUT:openmfc.lib /MACHINE:X64
+
+      - name: Build simple exception test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD phase4\tests\test_exception_simple.cpp openmfc.lib /Fe:test_exception_simple.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run simple exception test (catch ...)
+        shell: pwsh
+        id: simple_test
+        run: |
+          Write-Host "=== Running Simple Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing basic exception throwing with catch(...)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_simple.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "SIMPLE TEST PASSED: Basic exception throwing works!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "SIMPLE TEST FAILED: Exit code $LASTEXITCODE" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build typed exception test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /FA phase4\tests\test_exception_typed.cpp openmfc.lib /Fe:test_exception_typed.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run typed exception test (catch CMemoryException*)
+        shell: pwsh
+        id: typed_test
+        run: |
+          Write-Host "=== Running Typed Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing type-specific catch(CMemoryException*)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_typed.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "SUCCESS: Caught CMemoryException") {
+            Write-Host "TYPED TEST PASSED: Type-specific catching works!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "PARTIAL") {
+            Write-Host "TYPED TEST PARTIAL: Type matching failed, fell through to catch(...)" -ForegroundColor Yellow
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "TYPED TEST FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build MFC headers exception test
+        shell: cmd
+        run: |
+          REM Build with real MFC headers but link against our openmfc.lib
+          REM /D_AFXDLL tells MFC to use DLL version
+          REM We explicitly link openmfc.lib and avoid linking real MFC
+          cl /nologo /EHsc /MD /D_AFXDLL /FA phase4\tests\test_exception_mfc.cpp openmfc.lib /Fe:test_exception_mfc.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run MFC headers exception test
+        shell: pwsh
+        id: mfc_test
+        run: |
+          Write-Host "=== Running MFC Headers Exception Test ===" -ForegroundColor Cyan
+          Write-Host "Testing with real MFC headers (afx.h)" -ForegroundColor Yellow
+
+          $output = & .\test_exception_mfc.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "All Tests Passed") {
+            Write-Host "MFC TEST PASSED: Works with real MFC headers!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "SUCCESS") {
+            Write-Host "MFC TEST PARTIAL: Some tests passed" -ForegroundColor Yellow
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "MFC TEST FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build exception catch test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD phase4\tests\test_exception_catch.cpp openmfc.lib /Fe:test_exception_catch.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run exception catch test
+        shell: pwsh
+        continue-on-error: true
+        id: exception_test
+        run: |
+          Write-Host "=== Running Exception Catch Test ===" -ForegroundColor Cyan
+          Write-Host "DLL exists: $(Test-Path openmfc.dll)" -ForegroundColor Yellow
+          Write-Host "EXE exists: $(Test-Path test_exception_catch.exe)" -ForegroundColor Yellow
+
+          # Run the test and capture output
+          try {
+            $process = Start-Process -FilePath ".\test_exception_catch.exe" -NoNewWindow -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+            $stdout = Get-Content "stdout.txt" -Raw -ErrorAction SilentlyContinue
+            $stderr = Get-Content "stderr.txt" -Raw -ErrorAction SilentlyContinue
+
+            Write-Host "=== STDOUT ===" -ForegroundColor Cyan
+            Write-Host $stdout
+            Write-Host "=== STDERR ===" -ForegroundColor Yellow
+            Write-Host $stderr
+            Write-Host "Exit code: $($process.ExitCode)" -ForegroundColor Cyan
+
+            $output = "$stdout $stderr"
+          } catch {
+            Write-Host "Exception: $_" -ForegroundColor Red
+            $output = ""
+          }
+
+          if ($output -match "SUCCESS: Caught CMemoryException") {
+            Write-Host "FULL SUCCESS: Exception caught with correct type!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($output -match "PARTIAL") {
+            Write-Host "PARTIAL SUCCESS: Exception was thrown and caught" -ForegroundColor Yellow
+            "result=partial" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "FAILED or CRASHED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build CObject RTTI test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_cobject_rtti.cpp openmfc.lib /Fe:test_cobject_rtti.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run CObject RTTI test
+        shell: pwsh
+        id: cobject_test
+        run: |
+          Write-Host "=== Running CObject RTTI Test ===" -ForegroundColor Cyan
+          Write-Host "Testing CObject::GetRuntimeClass, IsKindOf, etc." -ForegroundColor Yellow
+
+          $output = & .\test_cobject_rtti.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "All Tests Passed") {
+            Write-Host "COBJECT RTTI TEST PASSED!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "COBJECT RTTI TEST FAILED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build comprehensive test suite
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_openmfc_suite.cpp openmfc.lib /Fe:test_openmfc_suite.exe /link /NODEFAULTLIB:mfc140u.lib
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build successful
+
+      - name: Run comprehensive test suite
+        shell: pwsh
+        id: suite_test
+        run: |
+          Write-Host "=== Running OpenMFC Comprehensive Test Suite ===" -ForegroundColor Cyan
+          Write-Host "Testing ALL implemented Phase 4 features" -ForegroundColor Yellow
+
+          $output = & .\test_openmfc_suite.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "ALL TESTS PASSED") {
+            Write-Host "COMPREHENSIVE TEST SUITE PASSED!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "COMPREHENSIVE TEST SUITE FAILED" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build exploration test
+        shell: cmd
+        run: |
+          cl /nologo /EHsc /MD /FA phase4\tests\test_cxx_throw_exploration.cpp /Fe:test_cxx_throw_exploration.exe
+
+      - name: Run exploration test
+        shell: pwsh
+        run: |
+          Write-Host "=== Running Exception Exploration Test ===" -ForegroundColor Cyan
+          $output = & .\test_cxx_throw_exploration.exe 2>&1 | Out-String
+          Write-Host $output
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exception-tests
+          path: |
+            *.exe
+            *.asm
+            *.dll
+            *.txt
+            *.lib
+          retention-days: 7

@@ -9,10 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup MSVC
+      - name: Setup MSVC (x64)
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Locate MFC files (DLL and import library)
+      - name: Locate MFC files (DLL and import library - x64)
         id: locate
         shell: pwsh
         run: |
@@ -50,13 +52,30 @@ jobs:
           Write-Host "Found DLL: $($mfcDll.FullName)"
 
           # Find the import library (for symbol names - MFC exports by ordinal only!)
-          # The .lib file is typically in the ATLMFC\lib\x64 directory
-          $mfcLib = Find-File -name 'mfc140u.lib'
-          if (-not $mfcLib) { Write-Error "mfc140u.lib not found"; exit 1 }
-          Write-Host "Found LIB: $($mfcLib.FullName)"
+          # IMPORTANT: Must use x64 version for 64-bit symbol names
+          $mfcLibPath = Join-Path $env:VCToolsInstallDir "ATLMFC\lib\x64\mfc140u.lib"
+          if (-not (Test-Path $mfcLibPath)) {
+            # Fallback to search
+            $mfcLib = Find-File -name 'mfc140u.lib'
+            if (-not $mfcLib) { Write-Error "mfc140u.lib not found"; exit 1 }
+            $mfcLibPath = $mfcLib.FullName
+          }
+          Write-Host "Found LIB: $mfcLibPath"
+
+          # Verify it's x64 by checking for x64 symbol patterns
+          $testDump = & dumpbin /nologo /SYMBOLS $mfcLibPath 2>$null | Select-String "@@QEAA" | Select-Object -First 1
+          if (-not $testDump) {
+            Write-Warning "Library may not be x64 - checking for x86 patterns..."
+            $x86Test = & dumpbin /nologo /SYMBOLS $mfcLibPath 2>$null | Select-String "@@QAA" | Select-Object -First 1
+            if ($x86Test) {
+              Write-Error "Found x86 library instead of x64! Path: $mfcLibPath"
+              exit 1
+            }
+          }
+          Write-Host "Verified x64 library"
 
           "mfc_dll=$($mfcDll.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "mfc_lib=$($mfcLib.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "mfc_lib=$mfcLibPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Dump symbols from import library
         shell: pwsh
@@ -90,17 +109,21 @@ jobs:
           $outDemangled = "artifacts/demangled.txt"
 
           # Parse symbol dump to extract mangled names
-          # Format: "XXX XXXXXXXX SECT XX notype () External | ?SymbolName@@..."
-          # We want symbols marked as External that look like C++ mangled names
+          # We need to extract PRIMARY symbols (External) not aliases (WeakExternal)
           $symbols = @()
           Get-Content $symbolsFile | ForEach-Object {
-            # Match external symbols with mangled names (starting with ?)
-            if ($_ -match 'External\s+\|\s+(\?[^\s]+)') {
-              $symbols += $Matches[1]
-            }
-            # Also match __imp_ symbols (import thunks) - strip the __imp_ prefix
-            elseif ($_ -match 'External\s+\|\s+__imp_(\?[^\s]+)') {
-              $symbols += $Matches[1]
+            $line = $_
+            # Check if line contains "External" but NOT "WeakExternal"
+            if ($line -match 'External' -and $line -notmatch 'WeakExternal') {
+              # Match symbol after pipe character
+              if ($line -match '\|\s+(\?[^\s]+)') {
+                $symbol = $Matches[1]
+                # Remove __imp_ prefix if present
+                if ($symbol -match '^__imp_') {
+                  $symbol = $symbol -replace '^__imp_', ''
+                }
+                $symbols += $symbol
+              }
             }
           }
 
@@ -133,6 +156,18 @@ jobs:
           $json = ($meta | ConvertTo-Json -Depth 4)
           $json | Out-File -FilePath artifacts/metadata.json -Encoding ASCII
 
+      - name: Extract ordinal mappings
+        shell: bash
+        run: |
+          # Extract symbol→ordinal mappings from dumpbin /ALL output
+          # Use our Python script
+          python tools/extract_ordinals.py \
+            --dumpbin artifacts/mfc_lib_all.txt \
+            --out-symbols artifacts/mfc_symbols_corrected.txt \
+            --out-json artifacts/ordinal_map.json
+
+          echo "Extracted ordinal mappings"
+
       - name: Generate mfc_db.json
         shell: bash
         run: |
@@ -141,6 +176,7 @@ jobs:
             --exports artifacts/mfc.exports \
             --symbols artifacts/mfc_symbols.txt \
             --demangled artifacts/demangled.txt \
+            --ordinal-map artifacts/ordinal_map.json \
             --metadata artifacts/metadata.json \
             --out artifacts/mfc_db.json
 

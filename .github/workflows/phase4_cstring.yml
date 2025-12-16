@@ -40,7 +40,7 @@ jobs:
     - name: Build and run CWnd tests
       shell: cmd
       run: |
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_cwnd.exe tests\test_cwnd.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp
+        cl.exe /nologo /EHsc /std:c++17 /I include /DOPENMFC_APPCORE_IMPL /Fe:test_cwnd.exe tests\test_cwnd.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp user32.lib
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         test_cwnd.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
@@ -49,7 +49,7 @@ jobs:
     - name: Build and run Core App tests
       shell: cmd
       run: |
-        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_core_app.exe tests\test_core_app.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp
+        cl.exe /nologo /EHsc /std:c++17 /I include /DOPENMFC_APPCORE_IMPL /Fe:test_core_app.exe tests\test_core_app.cpp src\mfc\appcore.cpp src\mfc\exceptions.cpp src\mfc\afxmem.cpp user32.lib
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         test_core_app.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
@@ -65,5 +65,5 @@ jobs:
       
     - name: Build with MinGW
       run: |
-        x86_64-w64-mingw32-g++ -std=c++17 -DUNICODE -D_UNICODE -I include -o test_string_funcs.exe tests/test_string_funcs.cpp src/mfc/strcore.cpp src/mfc/appcore.cpp src/mfc/exceptions.cpp src/mfc/afxmem.cpp
+        x86_64-w64-mingw32-g++ -std=c++17 -DUNICODE -D_UNICODE -DOPENMFC_APPCORE_IMPL -I include -o test_string_funcs.exe tests/test_string_funcs.cpp src/mfc/strcore.cpp src/mfc/appcore.cpp src/mfc/exceptions.cpp src/mfc/afxmem.cpp
         echo "MinGW Build successful"

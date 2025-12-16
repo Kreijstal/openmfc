@@ -2,7 +2,8 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BUILD=${BUILD:-$ROOT/build}
-DB=${DB:-$ROOT/artifacts/mfc_db.json}
+DB=${DB:-$ROOT/mfc_db_correct.json}
+MAPPING=${MAPPING:-$ROOT/mfc_ordinal_mapping.json}
 EXC=${EXC:-$ROOT/artifacts/exceptions.json}
 LAYOUTS=${LAYOUTS:-$ROOT/artifacts/layouts.json}
 CRT_DEF_DIR=${CRT_DEF_DIR:-$ROOT/artifacts}
@@ -50,7 +51,20 @@ if [ ! -f "$EXC" ]; then
   fi
 fi
 
-"$PYTHON" "$ROOT/tools/gen_stubs.py" --db "$DB" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+# Use COMPLETE ordinal mapping if available, otherwise REAL mapping, otherwise guessed
+if [ -f "$ROOT/mfc_complete_ordinal_mapping.json" ]; then
+    echo "🔥 Using COMPLETE ordinals from mfc_complete_ordinal_mapping.json (14,109 symbols)"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$ROOT/mfc_complete_ordinal_mapping.json" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+elif [ -f "$ROOT/mfc_real_ordinal_mapping.json" ]; then
+    echo "🔥 Using REAL ordinals from mfc_real_ordinal_mapping.json"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$ROOT/mfc_real_ordinal_mapping.json" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+elif [ -f "$MAPPING" ]; then
+    echo "⚠️  Using GUESSED ordinals from $MAPPING (WRONG for ABI compatibility!)"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --mapping "$MAPPING" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+else
+    echo "WARNING: No mapping file found, using legacy database (ordinals will be wrong)"
+    "$PYTHON" "$ROOT/tools/gen_stubs.py" --db "$DB" --out-def "$BUILD/openmfc.def" --out-stubs "$BUILD/stubs.cpp"
+fi
 "$PYTHON" "$ROOT/tools/gen_rtti.py" --exceptions "$EXC" --out-c "$BUILD/generated_rtti.c" --out-h "$BUILD/include/openmfc/eh_rtti.h"
 
 CXX=${CXX:-x86_64-w64-mingw32-g++}
@@ -71,11 +85,9 @@ fi
 
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/stubs.cpp" -o "$BUILD/stubs.o"
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
-"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/exceptions.cpp" -o "$BUILD/exceptions.o"
-"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/afxmem.cpp" -o "$BUILD/afxmem.o"
-"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/strcore.cpp" -o "$BUILD/strcore.o"
-"$CXX" "${CFLAGS[@]}" -c "$ROOT/src/mfc/appcore.cpp" -o "$BUILD/appcore.o"
+# Compile strcore.cpp with OPENMFC_BUILDING_DLL defined
+"$CXX" "${CFLAGS[@]}" -DOPENMFC_BUILDING_DLL -c "$ROOT/src/mfc/strcore.cpp" -o "$BUILD/strcore.o"
 
-"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/exceptions.o" "$BUILD/afxmem.o" "$BUILD/strcore.o" "$BUILD/appcore.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
+"$CXX" "$BUILD/stubs.o" "$BUILD/generated_rtti.o" "$BUILD/strcore.o" "$BUILD/openmfc.def" "${LDFLAGS[@]}" -o "$BUILD/openmfc.dll"
 
 echo "Built $BUILD/openmfc.dll"

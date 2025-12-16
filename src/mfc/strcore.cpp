@@ -1,7 +1,15 @@
+// Define OPENMFC_APPCORE_IMPL since we link with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <cwchar>
 #include <cstdio>
 #include <vector>
+
+// Define OPENMFC_EXPORTS when building the DLL
+// This ensures functions are exported with __declspec(dllexport)
+#ifdef OPENMFC_BUILDING_DLL
+#define OPENMFC_EXPORTS
+#endif
 
 // Windows API for LoadString
 #ifdef _WIN32
@@ -63,15 +71,15 @@ int CString::LoadString(UINT nID) {
 
 // Global String Helpers
 
-bool AFXAPI AfxExtractSubString(CString& rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep) {
-    if (lpszFullString == nullptr) return false;
+BOOL AFXAPI AfxExtractSubString(CString& rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep) {
+    if (lpszFullString == nullptr) return FALSE;
     
     int iCurrent = 0;
     const wchar_t* pStart = lpszFullString;
     
     while (iCurrent < iSubString) {
         const wchar_t* pSep = wcschr(pStart, chSep);
-        if (pSep == nullptr) return false; // Not enough substrings
+        if (pSep == nullptr) return FALSE; // Not enough substrings
         pStart = pSep + 1;
         iCurrent++;
     }
@@ -89,7 +97,7 @@ bool AFXAPI AfxExtractSubString(CString& rString, const wchar_t* lpszFullString,
         rString.ReleaseBuffer(nLen);
     }
     
-    return true;
+    return TRUE;
 }
 
 static void AfxFormatString(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2) {

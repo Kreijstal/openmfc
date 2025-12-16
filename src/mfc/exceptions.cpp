@@ -1,3 +1,5 @@
+// Define OPENMFC_APPCORE_IMPL since we link with appcore.cpp
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <new>
 

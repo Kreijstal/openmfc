@@ -25,4 +25,5 @@ downloaded_artifacts/
 # Capability check build outputs
 phase0/capability_check/build_output/
 phase0/capability_check/bin/
+build-phase4
 quasi-msys2/

@@ -3,9 +3,8 @@
 #include <stdio.h>
 
 // Forward declarations of MFC functions we'll test
-extern "C" {
-    void AfxThrowMemoryException();
-}
+// MFC exports use C++ mangled names
+extern "C" void __declspec(dllimport) AfxThrowMemoryException();
 
 int main() {
     printf("OpenMFC Test App Starting...\\n");
