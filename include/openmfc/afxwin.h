@@ -1608,6 +1608,73 @@ protected:
 };
 
 //=============================================================================
+// CMenu - Menu wrapper class
+//=============================================================================
+
+class CMenu : public CObject {
+    DECLARE_DYNAMIC(CMenu)
+public:
+    CMenu() : m_hMenu(nullptr) {}
+    virtual ~CMenu();
+
+    // Initialization
+    int CreateMenu();
+    int CreatePopupMenu();
+    int LoadMenu(UINT nIDResource);
+    int LoadMenu(const wchar_t* lpszResourceName);
+    int DestroyMenu();
+
+    // Handle operations
+    HMENU GetSafeHmenu() const { return m_hMenu; }
+    operator HMENU() const { return m_hMenu; }
+    static CMenu* FromHandle(HMENU hMenu);
+    static void DeleteTempMap();
+    int Attach(HMENU hMenu);
+    HMENU Detach();
+
+    // Menu item operations
+    int AppendMenu(UINT nFlags, UINT_PTR nIDNewItem = 0, const wchar_t* lpszNewItem = nullptr);
+    int AppendMenu(UINT nFlags, UINT_PTR nIDNewItem, CBitmap* pBmp);
+    int InsertMenu(UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem = 0, const wchar_t* lpszNewItem = nullptr);
+    int ModifyMenu(UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem = 0, const wchar_t* lpszNewItem = nullptr);
+    int DeleteMenu(UINT nPosition, UINT nFlags);
+    int RemoveMenu(UINT nPosition, UINT nFlags);
+
+    // Menu item state
+    UINT EnableMenuItem(UINT nIDEnableItem, UINT nEnable);
+    UINT CheckMenuItem(UINT nIDCheckItem, UINT nCheck);
+    int CheckMenuRadioItem(UINT nIDFirst, UINT nIDLast, UINT nIDItem, UINT nFlags);
+    int SetMenuItemBitmaps(UINT nPosition, UINT nFlags, HBITMAP hBmpUnchecked, HBITMAP hBmpChecked);
+
+    // Menu info
+    int GetMenuItemCount() const;
+    UINT GetMenuItemID(int nPos) const;
+    CMenu* GetSubMenu(int nPos) const;
+    int GetMenuString(UINT nIDItem, wchar_t* lpString, int nMaxCount, UINT nFlags) const;
+    UINT GetMenuState(UINT nID, UINT nFlags) const;
+
+    // Default item
+    int SetDefaultItem(UINT uItem, UINT fByPos = FALSE);
+    UINT GetDefaultItem(UINT gmdiFlags, UINT fByPos = TRUE) const;
+
+    // Popup menu
+    int TrackPopupMenu(UINT nFlags, int x, int y, CWnd* pWnd, const RECT* lpRect = nullptr);
+    int TrackPopupMenuEx(UINT nFlags, int x, int y, CWnd* pWnd, LPTPMPARAMS lpParams);
+
+    // Drawing (for owner-draw)
+    virtual void DrawItem(void* lpDrawItemStruct);
+    virtual void MeasureItem(void* lpMeasureItemStruct);
+
+public:
+    HMENU m_hMenu;
+
+protected:
+    char _menu_padding[24];
+};
+
+// IMPLEMENT_DYNAMIC(CMenu, CObject) in menucore.cpp
+
+//=============================================================================
 // CWnd implementation (inline for header-only)
 //=============================================================================
 

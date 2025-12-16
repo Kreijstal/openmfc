@@ -46,6 +46,12 @@ static ATOM g_atomOpenMFCClass = 0;
 
 IMPLEMENT_DYNAMIC(CFrameWnd, CWnd)
 
+#ifdef __GNUC__
+// CFrameWnd::classCFrameWnd - MSVC symbol alias
+asm(".globl \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\", _ZN10CFrameWnd15classCFrameWndE\n");
+#endif
+
 // CWnd::Create
 // Symbol: ?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z
 // Ordinal: 3182

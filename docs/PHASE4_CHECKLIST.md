@@ -64,16 +64,21 @@ All exceptions are:
 - [x] `AfxGetMainWnd` - Get main window
 - [x] `AfxGetInstanceHandle` - Get instance handle
 - [x] `AfxGetResourceHandle` - Get resource handle
+- [x] `AfxSetResourceHandle` - Set resource handle
 - [x] `AfxGetThread` - Get current thread
 - [x] `AfxWinInit` - Initialize MFC
 - [x] `AfxWinMain` - Application entry point
-- [ ] `AfxRegisterClass`
-- [ ] `AfxMessageBox`
+- [x] `AfxRegisterClass` - Register window class
+- [x] `AfxRegisterWndClass` - Register MFC window class with defaults
+- [x] `AfxMessageBox` - Message box (text and ID versions)
+- [x] `AfxGetModuleState` - Module state management
+- [x] `AfxGetStaticModuleState` - Static module state
 
 ### Window/Dialog Classes
 - [x] `CFrameWnd` - Frame window (Create, LoadFrame)
 - [x] `CDialog` - Dialog class (DoModal, Create, EndDialog, OnInitDialog, OnOK, OnCancel)
 - [x] `CDialogEx` - Extended dialog (inherits from CDialog)
+- [x] `CMenu` - Menu class (Create, Load, Append, Insert, Track, etc.)
 - [ ] `CMDIFrameWnd`
 - [ ] `CMDIChildWnd`
 - [ ] All control classes (CButton, CEdit, CListBox, etc.)
@@ -84,9 +89,14 @@ All exceptions are:
 - [ ] `CDocTemplate`
 
 ### GDI
-- [ ] `CDC`
-- [ ] `CGdiObject` and subclasses
-- [ ] `CPoint`, `CSize`, `CRect`
+- [x] `CPoint`, `CSize`, `CRect` - Inline implementations in header
+- [x] `CGdiObject` - Base class with Attach/Detach/DeleteObject
+- [x] `CPen` - CreatePen, constructor
+- [x] `CBrush` - CreateSolidBrush, CreateHatchBrush
+- [x] `CFont` - CreateFontIndirect, CreatePointFont
+- [x] `CBitmap` - CreateCompatibleBitmap, LoadBitmap
+- [x] `CDC` - Constructor, destructor, basic drawing ops
+- [x] `CClientDC`, `CPaintDC`, `CWindowDC` - DC wrappers
 
 ### Collections
 - [ ] `CArray`, `CList`, `CMap`
@@ -119,14 +129,15 @@ All exceptions are:
 | Exception Throwing | 13 | 13 | 100% |
 | Exception RTTI | 11 | 11 | 100% |
 | Version/Info | 1 | 1 | 100% |
-| Core Classes | 6 | 8 | 75% |
+| Core Classes | 8 | 8 | 100% |
 | CRuntimeClass | 8 | 8 | 100% |
-| App Functions | 7 | 9 | 78% |
-| Window/Dialog | 3 | 20+ | 15% |
-| GDI | 0 | 15+ | 0% |
+| App Functions | 13 | 13 | 100% |
+| Window/Dialog | 5 | 20+ | 25% |
+| GDI | 12 | 15+ | 80% |
+| Menu | 8 | 10 | 80% |
 | Collections | 0 | 11 | 0% |
 
-**Overall: ~55+ functions with real implementations**
+**Overall: ~80+ functions with real implementations**
 
 **Hello World Support: YES** - Basic MFC Hello World app can now work!
 

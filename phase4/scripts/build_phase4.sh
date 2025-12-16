@@ -100,6 +100,40 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxMessageBox@@YAHPEB_WII@Z,?AfxMessageBox@
 # which produces garbage pointers and immediate crashes.
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??2@YAPEAX_K@Z,??3@YAXPEAX@Z,??_U@YAPEAX_K@Z,??_V@YAXPEAX@Z"
 
+# CDC constructor/destructor (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDC@@QEAA@XZ,??1CDC@@UEAA@XZ"
+# CDC methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateCompatibleDC@CDC@@QEAAHPEAV1@@Z,?DeleteDC@CDC@@QEAAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?SaveDC@CDC@@QEAAHXZ,?RestoreDC@CDC@@QEAAHH@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?MoveTo@CDC@@QEAA?AVCPoint@@HH@Z,?LineTo@CDC@@QEAAHHH@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?SelectStockObject@CDC@@QEAAHH@Z"
+# CClientDC/CPaintDC/CWindowDC (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CClientDC@@QEAA@PEAVCWnd@@@Z,??1CClientDC@@UEAA@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CPaintDC@@QEAA@PEAVCWnd@@@Z,??1CPaintDC@@UEAA@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CWindowDC@@QEAA@PEAVCWnd@@@Z,??1CWindowDC@@UEAA@XZ"
+# CPen/CBrush/CFont/CBitmap constructors (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CPen@@QEAA@XZ,??0CPen@@QEAA@HHK@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CBrush@@QEAA@XZ,??0CBrush@@QEAA@K@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CFont@@QEAA@XZ,??0CBitmap@@QEAA@XZ"
+
+# CMenu constructor/destructor (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CMenu@@QEAA@XZ,??1CMenu@@UEAA@XZ"
+# CMenu methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateMenu@CMenu@@QEAAHXZ,?CreatePopupMenu@CMenu@@QEAAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DestroyMenu@CMenu@@QEAAHXZ,?Attach@CMenu@@QEAAHPEAUHMENU__@@@Z,?Detach@CMenu@@QEAAPEAUHMENU__@@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?TrackPopupMenu@CMenu@@QEAAHIHHPEAVCWnd@@PEBUtagRECT@@@Z"
+# CWnd menu methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetMenu@CWnd@@UEBAPEAVCMenu@@XZ,?SetMenu@CWnd@@UEAAHPEAVCMenu@@@Z"
+
+# AfxRegisterClass and AfxRegisterWndClass (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxRegisterClass@@YAHPEAUtagWNDCLASSW@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxRegisterWndClass@@YAPEB_WIPEAUHICON__@@PEAUHBRUSH__@@0@Z"
+# Afx global functions (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetInstanceHandle@@YAPEAUHINSTANCE__@@XZ,?AfxGetResourceHandle@@YAPEAUHINSTANCE__@@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxSetResourceHandle@@YAXPEAUHINSTANCE__@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetMainWnd@@YAPEAVCWnd@@XZ,?AfxGetApp@@YAPEAVCWinApp@@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAUAFX_MODULE_STATE@@XZ,?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ"
+
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --out-def "$BUILD/openmfc.def" \
@@ -129,6 +163,22 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE
     ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE
     ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE
+    ; GDI class runtime classes
+    ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE
+    ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE
+    ?classCBrush@CBrush@@2UCRuntimeClass@@A=_ZN6CBrush11classCBrushE
+    ?classCFont@CFont@@2UCRuntimeClass@@A=_ZN5CFont10classCFontE
+    ?classCBitmap@CBitmap@@2UCRuntimeClass@@A=_ZN7CBitmap12classCBitmapE
+    ?classCPalette@CPalette@@2UCRuntimeClass@@A=_ZN8CPalette13classCPaletteE
+    ?classCRgn@CRgn@@2UCRuntimeClass@@A=_ZN4CRgn9classCRgnE
+    ?classCDC@CDC@@2UCRuntimeClass@@A=_ZN3CDC8classCDCE
+    ?classCClientDC@CClientDC@@2UCRuntimeClass@@A=_ZN9CClientDC14classCClientDCE
+    ?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A=_ZN8CPaintDC13classCPaintDCE
+    ?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A=_ZN9CWindowDC14classCWindowDCE
+    ; CMenu runtime class
+    ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE
+    ; CFrameWnd runtime class
+    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN10CFrameWnd15classCFrameWndE
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
@@ -156,6 +206,9 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/strcore.cpp"
     "$ROOT/phase4/src/wincore.cpp"
     "$ROOT/phase4/src/dlgcore.cpp"
+    "$ROOT/phase4/src/gdicore.cpp"
+    "$ROOT/phase4/src/menucore.cpp"
+    "$ROOT/phase4/src/regcore.cpp"
     # Add more implementation files here as they are created
 )
 
