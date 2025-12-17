@@ -38,6 +38,7 @@ jobs:
   test-msvc-linking:
     runs-on: windows-latest
     needs: build-phase4-mingw
+    timeout-minutes: 20
     
     steps:
     - uses: actions/checkout@v4
@@ -107,14 +108,34 @@ jobs:
       run: |
         echo "Running Hello World test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        
-        $output = & .\test_hello_world.exe 2>&1 | Out-String
-        Write-Host $output
-        
-        if ($LASTEXITCODE -eq 0) {
+
+        $timeoutSeconds = 30
+        $stdoutPath = "hello_world_stdout.txt"
+        $stderrPath = "hello_world_stderr.txt"
+
+        $proc = Start-Process -FilePath ".\\test_hello_world.exe" -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        Start-Sleep -Milliseconds 200
+        $proc.Refresh()
+
+        Start-Sleep -Seconds 1
+        Wait-Process -Id $proc.Id -Timeout $timeoutSeconds -ErrorAction SilentlyContinue
+        $proc.Refresh()
+
+        if (-not $proc.HasExited) {
+          Write-Host "❌ Hello World test timed out after ${timeoutSeconds}s; terminating process."
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw | Write-Host }
+          if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw | Write-Host }
+          exit 1
+        }
+
+        if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw | Write-Host }
+        if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw | Write-Host }
+
+        if ($proc.ExitCode -eq 0) {
           Write-Host "✅ Hello World test passed!"
         } else {
-          Write-Host "❌ Hello World test failed"
+          Write-Host "❌ Hello World test failed with exit code $($proc.ExitCode)"
           exit 1
         }
 
