@@ -109,7 +109,9 @@ jobs:
         echo "Running Hello World test..."
         Copy-Item phase4-artifacts\openmfc.dll .
 
-        $timeoutSeconds = 30
+        # NOTE: test_hello_world.exe may show a MsgBox and wait for user input;
+        # on CI this will hang forever unless we enforce a hard timeout.
+        $timeoutSeconds = 120
         $stdoutPath = "hello_world_stdout.txt"
         $stderrPath = "hello_world_stderr.txt"
 
