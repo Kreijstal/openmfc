@@ -5,6 +5,10 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -29,6 +33,61 @@ asm(".globl \"?classCMenu@CMenu@@2UCRuntimeClass@@A\"\n"
 // CMenu Implementation
 // =============================================================================
 
+extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis);
+
+namespace {
+std::mutex g_ownedMenusMutex;
+std::unordered_set<HMENU> g_ownedMenus;
+
+bool IsOwnedMenu(HMENU hMenu) {
+    if (!hMenu) return false;
+    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
+    return g_ownedMenus.find(hMenu) != g_ownedMenus.end();
+}
+
+void MarkOwnedMenu(HMENU hMenu) {
+    if (!hMenu) return;
+    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
+    g_ownedMenus.insert(hMenu);
+}
+
+void UnmarkOwnedMenu(HMENU hMenu) {
+    if (!hMenu) return;
+    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
+    g_ownedMenus.erase(hMenu);
+}
+
+thread_local std::unordered_map<HMENU, CMenu*> g_tempMenuMap;
+
+CMenu* FromHandleTemp(HMENU hMenu) {
+    if (!hMenu) return nullptr;
+
+    if (auto it = g_tempMenuMap.find(hMenu); it != g_tempMenuMap.end()) {
+        return it->second;
+    }
+
+    auto* wrapper = new CMenu();
+    wrapper->m_hMenu = hMenu;
+    g_tempMenuMap.emplace(hMenu, wrapper);
+    return wrapper;
+}
+
+void DeleteTempMenuMap() {
+    for (auto& [_, menu] : g_tempMenuMap) {
+        delete menu;
+    }
+    g_tempMenuMap.clear();
+}
+} // namespace
+
+CMenu::~CMenu() {
+    stub___1CMenu__UEAA_XZ(this);
+}
+
+void CMenu::DrawItem(void*) {}
+
+void CMenu::MeasureItem(void*) {}
+
 // CMenu default constructor
 // Symbol: ??0CMenu@@QEAA@XZ
 extern "C" CMenu* MS_ABI stub___0CMenu__QEAA_XZ(CMenu* pThis) {
@@ -39,24 +98,26 @@ extern "C" CMenu* MS_ABI stub___0CMenu__QEAA_XZ(CMenu* pThis) {
 
 // CMenu destructor
 // Symbol: ??1CMenu@@UEAA@XZ
-//
-// NOTE: Unlike real MFC, this destructor does NOT automatically destroy the menu.
-// This allows CMenu to be used as a non-owning wrapper for menus obtained via
-// GetMenu(), GetSubMenu(), or Attach(). Callers who create menus with CreateMenu(),
-// CreatePopupMenu(), or LoadMenu() should explicitly call DestroyMenu() before
-// destruction, or use Detach() if transferring ownership.
 extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis) {
-    if (pThis) {
-        // Don't destroy - caller is responsible for menu lifetime
-        pThis->m_hMenu = nullptr;
+    if (!pThis || !pThis->m_hMenu) return;
+
+    if (IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
     }
+    pThis->m_hMenu = nullptr;
 }
 
 // CMenu::CreateMenu
 // Symbol: ?CreateMenu@CMenu@@QEAAHXZ
 extern "C" int MS_ABI stub__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
+    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
+    }
     pThis->m_hMenu = ::CreateMenu();
+    MarkOwnedMenu(pThis->m_hMenu);
     return pThis->m_hMenu != nullptr;
 }
 
@@ -64,7 +125,12 @@ extern "C" int MS_ABI stub__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 // Symbol: ?CreatePopupMenu@CMenu@@QEAAHXZ
 extern "C" int MS_ABI stub__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
+    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
+    }
     pThis->m_hMenu = ::CreatePopupMenu();
+    MarkOwnedMenu(pThis->m_hMenu);
     return pThis->m_hMenu != nullptr;
 }
 
@@ -72,8 +138,13 @@ extern "C" int MS_ABI stub__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 // Symbol: ?LoadMenuW@CMenu@@QEAAHPEB_W@Z
 extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
+    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
+    }
     HINSTANCE hInst = AfxGetInstanceHandle();
     pThis->m_hMenu = ::LoadMenuW(hInst, lpszResourceName);
+    MarkOwnedMenu(pThis->m_hMenu);
     return pThis->m_hMenu != nullptr;
 }
 
@@ -81,8 +152,13 @@ extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wc
 // Symbol: ?LoadMenuW@CMenu@@QEAAHI@Z
 extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDResource) {
     if (!pThis) return FALSE;
+    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
+    }
     HINSTANCE hInst = AfxGetInstanceHandle();
     pThis->m_hMenu = ::LoadMenuW(hInst, MAKEINTRESOURCEW(nIDResource));
+    MarkOwnedMenu(pThis->m_hMenu);
     return pThis->m_hMenu != nullptr;
 }
 
@@ -92,6 +168,7 @@ extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDReso
 extern "C" int MS_ABI stub__DestroyMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     int result = ::DestroyMenu(pThis->m_hMenu);
+    UnmarkOwnedMenu(pThis->m_hMenu);
     pThis->m_hMenu = nullptr;
     return result;
 }
@@ -99,9 +176,14 @@ extern "C" int MS_ABI stub__DestroyMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 // CMenu::Attach
 // Symbol: ?Attach@CMenu@@QEAAHPEAUHMENU__@@@Z
 // Ordinal: 2479
-extern "C" int MS_ABI stub__Attach_CMenu__QEAAHPEAUHMENU____Z(CMenu* pThis, HMENU hMenu) {
+extern "C" int MS_ABI stub__Attach_CMenu__QEAAHPEAUHMENU_____Z(CMenu* pThis, HMENU hMenu) {
     if (!pThis) return FALSE;
+    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
+        ::DestroyMenu(pThis->m_hMenu);
+        UnmarkOwnedMenu(pThis->m_hMenu);
+    }
     pThis->m_hMenu = hMenu;
+    MarkOwnedMenu(pThis->m_hMenu);
     return TRUE;
 }
 
@@ -111,6 +193,7 @@ extern "C" int MS_ABI stub__Attach_CMenu__QEAAHPEAUHMENU____Z(CMenu* pThis, HMEN
 extern "C" HMENU MS_ABI stub__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu* pThis) {
     if (!pThis) return nullptr;
     HMENU h = pThis->m_hMenu;
+    UnmarkOwnedMenu(h);
     pThis->m_hMenu = nullptr;
     return h;
 }
@@ -121,13 +204,24 @@ extern "C" HMENU MS_ABI stub__GetSafeHmenu_CMenu__QEBAPEAUHMENU____XZ(const CMen
     return pThis ? pThis->m_hMenu : nullptr;
 }
 
+// CMenu::FromHandle
+// Symbol: ?FromHandle@CMenu@@SAPEAV1@PEAUHMENU__@@@Z
+extern "C" CMenu* MS_ABI stub__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu) {
+    return FromHandleTemp(hMenu);
+}
+
+// CMenu::DeleteTempMap
+// Symbol: ?DeleteTempMap@CMenu@@SAXXZ
+extern "C" void MS_ABI stub__DeleteTempMap_CMenu__SAXXZ() {
+    DeleteTempMenuMap();
+}
+
 // CMenu::GetSubMenu
 // Symbol: ?GetSubMenu@CMenu@@QEBAPEAVCMenu@@H@Z
 extern "C" CMenu* MS_ABI stub__GetSubMenu_CMenu__QEBAPEAVCMenu__H_Z(const CMenu* pThis, int nPos) {
-    // Note: Real MFC would maintain a mapping, simplified here
-    (void)pThis;
-    (void)nPos;
-    return nullptr; // Simplified - returns null, real impl would wrap HMENU
+    if (!pThis || !pThis->m_hMenu) return nullptr;
+    HMENU hSub = ::GetSubMenu(pThis->m_hMenu, nPos);
+    return FromHandleTemp(hSub);
 }
 
 // CMenu::GetMenuItemCount
@@ -270,7 +364,7 @@ extern "C" UINT MS_ABI stub__GetDefaultItem_CMenu__QEBAIIH_Z(const CMenu* pThis,
 // CWnd::GetMenu
 // Symbol: ?GetMenu@CWnd@@UEBAPEAVCMenu@@XZ
 // Ordinal: 5723
-extern "C" CMenu* MS_ABI stub__GetMenu_CWnd__UEBAPEAVCMenu____XZ(const CWnd* pThis) {
+extern "C" CMenu* MS_ABI stub__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis) {
     // Note: Real MFC would maintain a mapping of HWND->CMenu*
     // Simplified - returns null
     (void)pThis;

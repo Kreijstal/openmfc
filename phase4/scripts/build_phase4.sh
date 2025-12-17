@@ -134,6 +134,26 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxSetResourceHandle@@YAXPEAUHINSTANCE__@@@
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetMainWnd@@YAPEAVCWnd@@XZ,?AfxGetApp@@YAPEAVCWinApp@@XZ"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAUAFX_MODULE_STATE@@XZ,?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ"
 
+# Automatically exclude any symbols that have a real implementation in Phase 4.
+# The weak stubs generator can't rely on PE/COFF weak symbols, so duplicates
+# must be excluded up-front.
+AUTO_EXCLUDES=""
+if command -v rg >/dev/null 2>&1; then
+    AUTO_EXCLUDES="$(rg -N --no-heading --no-line-number --no-filename '^// Symbol: ' "$ROOT/phase4/src"/*.cpp \
+        | sed -E 's%^// Symbol: %%' \
+        | tr -d '\r' \
+        | paste -sd, - || true)"
+else
+    AUTO_EXCLUDES="$(grep -hE '^// Symbol: ' "$ROOT/phase4/src"/*.cpp 2>/dev/null \
+        | sed -E 's%^// Symbol: %%' \
+        | tr -d '\r' \
+        | paste -sd, - || true)"
+fi
+
+if [[ -n "$AUTO_EXCLUDES" ]]; then
+    EXCLUDED_SYMBOLS="${EXCLUDED_SYMBOLS},${AUTO_EXCLUDES}"
+fi
+
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --out-def "$BUILD/openmfc.def" \
@@ -178,7 +198,7 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ; CMenu runtime class
     ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE
     ; CFrameWnd runtime class
-    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN10CFrameWnd15classCFrameWndE
+    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
@@ -234,6 +254,13 @@ LDFLAGS=(
     -Wl,--out-implib,"$BUILD/libopenmfc.a"
 )
 
+# Win32 import libs required by current implementations.
+# Keep this list minimal and add as implementations grow.
+LDLIBS=(
+    -lgdi32
+    -luser32
+)
+
 # Collect all object files
 OBJ_FILES=(
     "$BUILD/generated_rtti.o"
@@ -251,8 +278,8 @@ done
 echo "  Linking with ${#OBJ_FILES[@]} object files"
 "$CXX" \
     "${OBJ_FILES[@]}" \
-    "$BUILD/openmfc.def" \
     "${LDFLAGS[@]}" \
+    "${LDLIBS[@]}" \
     -o "$BUILD/openmfc.dll"
 
 echo ""

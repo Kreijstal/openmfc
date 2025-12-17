@@ -429,7 +429,7 @@ public:
     //-------------------------------------------------------------------------
     // Window handle access
     //-------------------------------------------------------------------------
-    HWND GetSafeHwnd() const { return this != nullptr ? m_hWnd : nullptr; }
+    HWND GetSafeHwnd() const { return m_hWnd; }
     operator HWND() const { return m_hWnd; }
     
     //-------------------------------------------------------------------------
@@ -1233,10 +1233,8 @@ public:
     HGDIOBJ Detach();
 
 public:
-    // Made public for extern "C" stub functions access
     HGDIOBJ m_hObject;
 
-protected:
     // Padding for ABI compatibility
     char _gdiobject_padding[24];
 };
@@ -1561,7 +1559,7 @@ public:
     CClientDC(CWnd* pWnd);
     virtual ~CClientDC();
 
-    // Made public for extern "C" stub functions access
+public:
     CWnd* m_pWnd;
 
 protected:
@@ -1577,7 +1575,7 @@ public:
 
     PAINTSTRUCT m_ps;
 
-    // Made public for extern "C" stub functions access
+public:
     CWnd* m_pWnd;
 
 protected:
@@ -1591,7 +1589,7 @@ public:
     CWindowDC(CWnd* pWnd);
     virtual ~CWindowDC();
 
-    // Made public for extern "C" stub functions access
+public:
     CWnd* m_pWnd;
 
 protected:

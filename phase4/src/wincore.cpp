@@ -49,7 +49,7 @@ IMPLEMENT_DYNAMIC(CFrameWnd, CWnd)
 #ifdef __GNUC__
 // CFrameWnd::classCFrameWnd - MSVC symbol alias
 asm(".globl \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\", _ZN10CFrameWnd15classCFrameWndE\n");
+    ".set \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\", _ZN9CFrameWnd14classCFrameWndE\n");
 #endif
 
 // CWnd::Create

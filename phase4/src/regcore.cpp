@@ -65,19 +65,25 @@ extern "C" int MS_ABI stub__AfxRegisterClass__YAHPEAUtagWNDCLASSW___Z(WNDCLASSW*
 // AfxRegisterWndClass
 // =============================================================================
 
-// Buffer for generated class names - sized for 64-bit hex pointers
-// Format: "OpenMfc:0x0000000000000000:XXXXXXXX:0x0000000000000000:0x0000000000000000"
-// Max ~80 chars needed, use 128 for safety
-static wchar_t g_szWndClassName[128];
-static int g_nWndClassIndex = 0;
+namespace {
+constexpr size_t kWndClassNameSlots = 16;
+constexpr size_t kWndClassNameLen = 128;
+
+thread_local wchar_t g_wndClassNames[kWndClassNameSlots][kWndClassNameLen];
+thread_local size_t g_wndClassNameIndex = 0;
+
+wchar_t* NextWndClassNameBuffer() {
+    auto& slot = g_wndClassNames[g_wndClassNameIndex++ % kWndClassNameSlots];
+    slot[0] = L'\0';
+    return slot;
+}
+} // namespace
 
 // AfxRegisterWndClass - Create and register a window class with given style/cursor/brush/icon
 // Symbol: ?AfxRegisterWndClass@@YAPEB_WIPEAUHICON__@@PEAUHBRUSH__@@0@Z
 // Ordinal: 2316
-//
-// NOTE: This uses a single global buffer. The returned pointer is only valid until the
-// next call to AfxRegisterWndClass. Callers needing to cache multiple class names should
-// copy the returned string. This matches real MFC behavior.
+// NOTE: The returned pointer is valid for a small number of subsequent calls on the
+// same thread (thread-local ring buffer). Callers that cache class names should copy.
 extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON____PEAUHBRUSH____0_Z(
     UINT nClassStyle, HCURSOR hCursor, HBRUSH hbrBackground, HICON hIcon)
 {
@@ -88,18 +94,17 @@ extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON___
 
     // Generate a unique class name based on parameters
     // This mimics MFC's approach of creating class names like "Afx:00400000:b:XXXX:YYYY"
-    // Use _snwprintf for safety (truncates if buffer too small)
-    int written = _snwprintf(g_szWndClassName, 128, L"OpenMfc:%p:%x:%p:%p",
-             (void*)hInst, nClassStyle, (void*)hCursor, (void*)hIcon);
-    // Ensure null termination in case of truncation
-    if (written < 0 || written >= 128) {
-        g_szWndClassName[127] = L'\0';
+    wchar_t* className = NextWndClassNameBuffer();
+    int written = _snwprintf(className, kWndClassNameLen, L"OpenMfc:%p:%x:%p:%p:%p",
+             (void*)hInst, nClassStyle, (void*)hCursor, (void*)hbrBackground, (void*)hIcon);
+    if (written < 0 || written >= (int)kWndClassNameLen) {
+        className[kWndClassNameLen - 1] = L'\0';
     }
 
     // Check if already registered
     WNDCLASSW existingClass;
-    if (::GetClassInfoW(hInst, g_szWndClassName, &existingClass)) {
-        return g_szWndClassName;  // Already registered
+    if (::GetClassInfoW(hInst, className, &existingClass)) {
+        return className;  // Already registered
     }
 
     // Fill in the WNDCLASS structure
@@ -113,14 +118,14 @@ extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON___
     wndClass.hCursor = hCursor ? hCursor : ::LoadCursorW(nullptr, IDC_ARROW);
     wndClass.hbrBackground = hbrBackground;
     wndClass.lpszMenuName = nullptr;
-    wndClass.lpszClassName = g_szWndClassName;
+    wndClass.lpszClassName = className;
 
     // Register the class
     ATOM atom = ::RegisterClassW(&wndClass);
     if (atom == 0) {
         DWORD err = ::GetLastError();
         if (err == ERROR_CLASS_ALREADY_EXISTS) {
-            return g_szWndClassName;  // That's fine
+            return className;  // That's fine
         }
         return nullptr;  // Registration failed
     }
@@ -130,7 +135,7 @@ extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON___
         g_registeredClasses[g_numRegisteredClasses++] = atom;
     }
 
-    return g_szWndClassName;
+    return className;
 }
 
 // =============================================================================

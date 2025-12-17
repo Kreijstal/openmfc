@@ -553,7 +553,7 @@ extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pTh
 
     pThis->m_hDC = nullptr;
     pThis->m_hAttribDC = nullptr;
-    pThis->m_pWnd = pWnd;  // Store window pointer for destructor
+    pThis->m_pWnd = pWnd;
 
     HWND hWnd = pWnd ? pWnd->GetSafeHwnd() : nullptr;
     pThis->m_hDC = ::GetWindowDC(hWnd);
@@ -566,10 +566,12 @@ extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pTh
 // Symbol: ??1CWindowDC@@UEAA@XZ
 extern "C" void MS_ABI stub___1CWindowDC__UEAA_XZ(CWindowDC* pThis) {
     if (pThis && pThis->m_hDC) {
-        // Use stored m_pWnd to get the correct HWND for ReleaseDC
         HWND hWnd = pThis->m_pWnd ? pThis->m_pWnd->GetSafeHwnd() : nullptr;
         ::ReleaseDC(hWnd, pThis->m_hDC);
         pThis->m_hDC = nullptr;
         pThis->m_hAttribDC = nullptr;
+    }
+    if (pThis) {
+        pThis->m_pWnd = nullptr;
     }
 }
