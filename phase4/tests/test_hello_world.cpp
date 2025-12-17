@@ -57,7 +57,7 @@ public:
 
         // Post quit message after a short delay (for automated testing)
         // In a real app, this would not be done
-        SetTimer(pFrame->GetSafeHwnd(), 1, 1000, nullptr);  // 1 second timeout
+        ::MessageBoxW(NULL, L"Click OK to exit", L"OpenMFC Hello World", MB_OK);
 
         return TRUE;
     }
