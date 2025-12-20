@@ -7,6 +7,37 @@
 #include "openmfc/afxwin.h"
 #include <windows.h>
 #include <cstring>
+#include <unordered_map>
+
+// Thread-local temporary GDI object map for SelectObject return values
+// This allows the common pattern: pOld = dc.SelectObject(&newPen); ... dc.SelectObject(pOld);
+namespace {
+thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
+
+CGdiObject* GetTempGdiObject(HGDIOBJ hObj) {
+    if (!hObj) return nullptr;
+
+    auto it = g_tempGdiMap.find(hObj);
+    if (it != g_tempGdiMap.end()) {
+        return it->second;
+    }
+
+    // Create a temporary wrapper for the old object
+    auto* wrapper = new CGdiObject();
+    wrapper->m_hObject = hObj;
+    g_tempGdiMap.emplace(hObj, wrapper);
+    return wrapper;
+}
+
+void DeleteTempGdiMap() {
+    for (auto& [_, obj] : g_tempGdiMap) {
+        // Don't delete the underlying GDI object - we don't own it
+        obj->m_hObject = nullptr;
+        delete obj;
+    }
+    g_tempGdiMap.clear();
+}
+} // namespace
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -266,8 +297,8 @@ extern "C" CGdiObject* MS_ABI stub__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2_
     CDC* pThis, CGdiObject* pObject) {
     if (!pThis || !pThis->m_hDC || !pObject) return nullptr;
     HGDIOBJ hOld = ::SelectObject(pThis->m_hDC, pObject->GetSafeHandle());
-    (void)hOld; // In real MFC, this would look up or create a CGdiObject wrapper
-    return nullptr; // Simplified - just select, don't return old object
+    // Return a temporary wrapper for the old object so callers can restore it
+    return GetTempGdiObject(hOld);
 }
 
 // CDC::SelectStockObject
@@ -281,6 +312,13 @@ extern "C" int MS_ABI stub__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nInd
 // =============================================================================
 // CGdiObject Implementation
 // =============================================================================
+
+// CGdiObject::DeleteTempMap (static)
+// Symbol: ?DeleteTempMap@CGdiObject@@SAXXZ
+// Called during idle processing to clean up temporary GDI object wrappers
+extern "C" void MS_ABI stub__DeleteTempMap_CGdiObject__SAXXZ() {
+    DeleteTempGdiMap();
+}
 
 // CGdiObject::DeleteObject
 // Symbol: ?DeleteObject@CGdiObject@@QEAAHXZ
@@ -503,6 +541,7 @@ extern "C" void MS_ABI stub___1CClientDC__UEAA_XZ(CClientDC* pThis) {
         HWND hWnd = pThis->m_pWnd ? pThis->m_pWnd->GetSafeHwnd() : nullptr;
         ::ReleaseDC(hWnd, pThis->m_hDC);
         pThis->m_hDC = nullptr;
+        pThis->m_hAttribDC = nullptr;
     }
 }
 
