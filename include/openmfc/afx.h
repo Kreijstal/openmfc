@@ -170,14 +170,15 @@ struct CFileStatus {
 
 // CRuntimeClass - runtime type information structure
 // This structure is used for MFC's own RTTI system (separate from C++ RTTI)
+// IMPORTANT: Layout must match real MFC exactly for ABI compatibility!
 struct CRuntimeClass {
     const char* m_lpszClassName;      // Class name string
     int m_nObjectSize;                // sizeof(class)
-    unsigned int m_wSchema;           // Schema number for serialization (-1 if not serializable)
+    CRuntimeClass* m_pBaseClass;      // Pointer to base class (for static linking)
     CObject* (AFXAPI *m_pfnCreateObject)();  // Factory function (NULL if not creatable)
-    CRuntimeClass* m_pBaseClass;      // Pointer to base class CRuntimeClass (NULL for CObject)
-    CRuntimeClass* m_pNextClass;      // Linked list of registered classes
-    
+    CRuntimeClass* (AFXAPI *m_pfnGetBaseClass)(); // Get base class (for DLL linking)
+    unsigned int m_wSchema;           // Schema number for serialization (-1 if not serializable)
+
     // Helper methods
     CObject* CreateObject() const {
         if (m_pfnCreateObject != nullptr) {
@@ -185,14 +186,19 @@ struct CRuntimeClass {
         }
         return nullptr;
     }
-    
+
     bool IsDerivedFrom(const CRuntimeClass* pBaseClass) const {
         const CRuntimeClass* pClassThis = this;
         while (pClassThis != nullptr) {
             if (pClassThis == pBaseClass) {
                 return true;
             }
-            pClassThis = pClassThis->m_pBaseClass;
+            // Use m_pfnGetBaseClass if available (DLL linking), otherwise m_pBaseClass
+            if (pClassThis->m_pfnGetBaseClass) {
+                pClassThis = pClassThis->m_pfnGetBaseClass();
+            } else {
+                pClassThis = pClassThis->m_pBaseClass;
+            }
         }
         return false;
     }
@@ -212,14 +218,15 @@ public: \
     static CObject* AFXAPI CreateObject() { return new class_name; }
 
 // IMPLEMENT_DYNAMIC - implements runtime class (put in .cpp file)
+// Order must match CRuntimeClass layout: lpszClassName, nObjectSize, pBaseClass, pfnCreateObject, pfnGetBaseClass, wSchema
 #define IMPLEMENT_DYNAMIC(class_name, base_class_name) \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
-        0xFFFF, \
-        nullptr, \
         &base_class_name::class##base_class_name, \
-        nullptr \
+        nullptr, \
+        nullptr, \
+        0xFFFF \
     };
 
 // IMPLEMENT_DYNCREATE - implements runtime class with factory
@@ -227,10 +234,10 @@ public: \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
-        0xFFFF, \
-        &class_name::CreateObject, \
         &base_class_name::class##base_class_name, \
-        nullptr \
+        &class_name::CreateObject, \
+        nullptr, \
+        0xFFFF \
     };
 
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
