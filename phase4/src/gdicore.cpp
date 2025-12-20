@@ -31,13 +31,27 @@ CGdiObject* GetTempGdiObject(HGDIOBJ hObj) {
 
 void DeleteTempGdiMap() {
     for (auto& [_, obj] : g_tempGdiMap) {
-        // Don't delete the underlying GDI object - we don't own it
+        // Null out the handle so the destructor doesn't try to delete it
+        // (we don't own these GDI objects)
         obj->m_hObject = nullptr;
         delete obj;
     }
     g_tempGdiMap.clear();
 }
 } // namespace
+
+// =============================================================================
+// CGdiObject member function implementations
+// =============================================================================
+// These are required because the inline destructor in the header calls
+// DeleteObject(), so we need to provide a proper C++ member function.
+
+int CGdiObject::DeleteObject() {
+    if (!m_hObject) return FALSE;
+    int result = ::DeleteObject(m_hObject);
+    m_hObject = nullptr;
+    return result;
+}
 
 // MS ABI calling convention
 #ifdef __GNUC__
