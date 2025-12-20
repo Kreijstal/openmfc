@@ -86,6 +86,12 @@ int main() {
 
         if (pCException) {
             TEST("CException class exists", pCException != nullptr);
+            printf("    DEBUG: pCException = %p\n", (void*)pCException);
+            printf("    DEBUG: m_lpszClassName ptr = %p\n", (void*)pCException->m_lpszClassName);
+            printf("    DEBUG: m_lpszClassName = '%s'\n", pCException->m_lpszClassName ? pCException->m_lpszClassName : "(null)");
+            printf("    DEBUG: m_nObjectSize = %d\n", pCException->m_nObjectSize);
+            printf("    DEBUG: m_wSchema = 0x%X\n", pCException->m_wSchema);
+            fflush(stdout);
             TEST("CException name is 'CException'",
                  pCException->m_lpszClassName != nullptr &&
                  strcmp(pCException->m_lpszClassName, "CException") == 0);
