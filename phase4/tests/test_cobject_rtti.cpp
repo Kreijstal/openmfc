@@ -83,6 +83,10 @@ int main() {
     {
         CRuntimeClass* pCObject = RUNTIME_CLASS(CObject);
         CRuntimeClass* pCException = RUNTIME_CLASS(CException);
+        printf("    DEBUG: pCObject    = %p (name='%s')\n", (void*)pCObject, pCObject ? pCObject->m_lpszClassName : "(null)");
+        printf("    DEBUG: pCException = %p (name='%s')\n", (void*)pCException, pCException ? pCException->m_lpszClassName : "(null)");
+        printf("    DEBUG: Same pointer? %s\n", pCObject == pCException ? "YES" : "NO");
+        fflush(stdout);
 
         if (pCException) {
             TEST("CException class exists", pCException != nullptr);
