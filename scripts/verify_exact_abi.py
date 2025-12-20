@@ -83,7 +83,7 @@ def extract_dll_exports(dll_path: Path) -> Dict[str, int]:
                 if "Table" in line:
                     break
     
-    # If still no exports, check if DLL might be exporting stub_* names
+    # If still no exports, check if DLL might be exporting impl_* names
     # and we need to check the .def file mapping
     if not exports:
         print("   ⚠️  Could not parse exports from objdump")
@@ -167,11 +167,11 @@ def verify_exact_compatibility(
                 f"{symbol}: expected {real_ordinal}, got {our_exports[symbol]}"
             )
     
-    # Check for extra exports (should only be our stub_* names)
+    # Check for extra exports (should only be our impl_* names)
     extra = []
     for symbol in our_exports:
         if symbol not in real_exports:
-            # Allow stub_* names (our implementation)
+            # Allow impl_* names (our implementation)
             if not symbol.startswith('stub_'):
                 extra.append(symbol)
     
@@ -196,7 +196,7 @@ def main():
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Fail on extra exports (not just stub_*)"
+        help="Fail on extra exports (not just impl_*)"
     )
     
     args = parser.parse_args()

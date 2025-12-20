@@ -41,7 +41,7 @@ static std::map<HWND, CDialog*> g_dlgMap;
 // Default constructor
 // Symbol: ??0CDialog@@QAA@XZ
 // Ordinal: 448
-extern "C" void MS_ABI stub___0CDialog__QEAA_XZ(CDialog* pThis) {
+extern "C" void MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
     // Zero initialize the object
     pThis->m_hWnd = nullptr;
     pThis->m_lpszTemplateName = nullptr;
@@ -51,7 +51,7 @@ extern "C" void MS_ABI stub___0CDialog__QEAA_XZ(CDialog* pThis) {
 // Constructor with resource ID
 // Symbol: ??0CDialog@@QAA@IPAVCWnd@@@Z
 // Ordinal: 446
-extern "C" void MS_ABI stub___0CDialog__QEAA_IPEAVCWnd___Z(
+extern "C" void MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
     (void)pParentWnd;
@@ -63,7 +63,7 @@ extern "C" void MS_ABI stub___0CDialog__QEAA_IPEAVCWnd___Z(
 // Constructor with template name
 // Symbol: ??0CDialog@@QAA@PB_WPAVCWnd@@@Z
 // Ordinal: 447
-extern "C" void MS_ABI stub___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
+extern "C" void MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
     (void)pParentWnd;
@@ -75,7 +75,7 @@ extern "C" void MS_ABI stub___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
 // Destructor
 // Symbol: ??1CDialog@@UAA@XZ
 // Ordinal: 1089
-extern "C" void MS_ABI stub___1CDialog__UEAA_XZ(CDialog* pThis) {
+extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
     if (pThis && pThis->m_hWnd) {
         g_dlgMap.erase(pThis->m_hWnd);
         // Don't destroy - dialog should already be destroyed
@@ -89,7 +89,7 @@ extern "C" void MS_ABI stub___1CDialog__UEAA_XZ(CDialog* pThis) {
 
 // Symbol: ?DoModal@CDialog@@UEAA_JXZ (x64: returns intptr_t/_J)
 // Ordinal: 3961
-extern "C" intptr_t MS_ABI stub__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
+extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     if (!pThis || !pThis->m_lpszTemplateName) {
         return -1;  // IDABORT
     }
@@ -127,7 +127,7 @@ extern "C" intptr_t MS_ABI stub__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
 
 // Symbol: ?Create@CDialog@@UAAHPB_WPAVCWnd@@@Z
 // Ordinal: 3081
-extern "C" int MS_ABI stub__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
+extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
     if (!pThis) return FALSE;
@@ -162,10 +162,10 @@ extern "C" int MS_ABI stub__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
 }
 
 // Create with resource ID
-extern "C" int MS_ABI stub__Create_CDialog__UEAAHI_PEAVCWnd___Z(
+extern "C" int MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
-    return stub__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
+    return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
         pThis, MAKEINTRESOURCEW(nIDTemplate), pParentWnd);
 }
 
@@ -175,7 +175,7 @@ extern "C" int MS_ABI stub__Create_CDialog__UEAAHI_PEAVCWnd___Z(
 
 // Symbol: ?EndDialog@CDialog@@QAAXH@Z
 // Ordinal: 4353
-extern "C" void MS_ABI stub__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nResult) {
+extern "C" void MS_ABI impl__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nResult) {
     if (pThis && pThis->m_hWnd) {
         ::EndDialog(pThis->m_hWnd, nResult);
     }
@@ -187,7 +187,7 @@ extern "C" void MS_ABI stub__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nRe
 
 // Symbol: ?OnInitDialog@CDialog@@UAAHXZ
 // Ordinal: 10170
-extern "C" int MS_ABI stub__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
+extern "C" int MS_ABI impl__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
     (void)pThis;
     // Default implementation - return TRUE to set focus to first control
     return TRUE;
@@ -199,16 +199,16 @@ extern "C" int MS_ABI stub__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
 
 // Symbol: ?OnOK@CDialog@@MAAXXZ
 // Ordinal: 10711
-extern "C" void MS_ABI stub__OnOK_CDialog__MEAAXXZ(CDialog* pThis) {
+extern "C" void MS_ABI impl__OnOK_CDialog__MEAAXXZ(CDialog* pThis) {
     // Call stub directly to avoid needing member function implementation
-    stub__EndDialog_CDialog__QEAAXH_Z(pThis, IDOK);
+    impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDOK);
 }
 
 // Symbol: ?OnCancel@CDialog@@MAAXXZ
 // Ordinal: 8738
-extern "C" void MS_ABI stub__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
+extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
     // Call stub directly to avoid needing member function implementation
-    stub__EndDialog_CDialog__QEAAXH_Z(pThis, IDCANCEL);
+    impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDCANCEL);
 }
 
 // =============================================================================
@@ -217,7 +217,7 @@ extern "C" void MS_ABI stub__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
 
 // Symbol: ?CheckAutoCenter@CDialog@@UAAHXZ
 // Ordinal: 2701
-extern "C" int MS_ABI stub__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
+extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
     (void)pThis;
     return TRUE;  // Default: auto-center is enabled
 }
@@ -228,7 +228,7 @@ extern "C" int MS_ABI stub__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
 
 // Symbol: ?PreTranslateMessage@CDialog@@UAAHPAUtagMSG@@@Z
 // Ordinal: 11861
-extern "C" int MS_ABI stub__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
+extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
     CDialog* pThis, MSG* pMsg)
 {
     if (pThis && pThis->m_hWnd && pMsg) {
@@ -246,7 +246,7 @@ extern "C" int MS_ABI stub__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
 
 // Symbol: ?Initialize@CDialog@@QAAXXZ
 // Ordinal: 7705
-extern "C" void MS_ABI stub__Initialize_CDialog__QEAAXXZ(CDialog* pThis) {
+extern "C" void MS_ABI impl__Initialize_CDialog__QEAAXXZ(CDialog* pThis) {
     (void)pThis;
     // Default initialization - nothing to do
 }
@@ -314,23 +314,23 @@ static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 // =============================================================================
 
 // CDialogEx default constructor
-extern "C" void MS_ABI stub___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
-    stub___0CDialog__QEAA_XZ(pThis);
+extern "C" void MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
+    impl___0CDialog__QEAA_XZ(pThis);
     // Additional CDialogEx initialization
 }
 
 // CDialogEx constructor with ID
-extern "C" void MS_ABI stub___0CDialogEx__QEAA_IPEAVCWnd___Z(
+extern "C" void MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
     CDialogEx* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
-    stub___0CDialog__QEAA_IPEAVCWnd___Z(pThis, nIDTemplate, pParentWnd);
+    impl___0CDialog__QEAA_IPEAVCWnd___Z(pThis, nIDTemplate, pParentWnd);
 }
 
 // CDialogEx constructor with template name
-extern "C" void MS_ABI stub___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
+extern "C" void MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
     CDialogEx* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
-    stub___0CDialog__QEAA_PEB_WPEAVCWnd___Z(pThis, lpszTemplateName, pParentWnd);
+    impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(pThis, lpszTemplateName, pParentWnd);
 }
 
 // =============================================================================
@@ -339,7 +339,7 @@ extern "C" void MS_ABI stub___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
 
 // CWnd::GetDlgItem
 // Symbol: ?GetDlgItem@CWnd@@QBAPAVCWnd@@H@Z
-extern "C" CWnd* MS_ABI stub__GetDlgItem_CWnd__QEBAPEAVCWnd__H_Z(const CWnd* pThis, int nID) {
+extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAVCWnd__H_Z(const CWnd* pThis, int nID) {
     if (!pThis || !pThis->m_hWnd) {
         return nullptr;
     }
@@ -359,7 +359,7 @@ extern "C" CWnd* MS_ABI stub__GetDlgItem_CWnd__QEBAPEAVCWnd__H_Z(const CWnd* pTh
 // =============================================================================
 
 // Get text from dialog control
-extern "C" int MS_ABI stub__GetDlgItemText_CWnd__QEAAHHAEAV_CStringT___Z(
+extern "C" int MS_ABI impl__GetDlgItemText_CWnd__QEAAHHAEAV_CStringT___Z(
     CWnd* pThis, int nID, CString* rString)
 {
     if (!pThis || !pThis->m_hWnd || !rString) {
@@ -385,7 +385,7 @@ extern "C" int MS_ABI stub__GetDlgItemText_CWnd__QEAAHHAEAV_CStringT___Z(
 }
 
 // Set text on dialog control
-extern "C" void MS_ABI stub__SetDlgItemText_CWnd__QEAAXHPEB_W_Z(
+extern "C" void MS_ABI impl__SetDlgItemText_CWnd__QEAAXHPEB_W_Z(
     CWnd* pThis, int nID, const wchar_t* lpszString)
 {
     if (!pThis || !pThis->m_hWnd) {

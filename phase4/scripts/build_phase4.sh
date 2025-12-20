@@ -8,7 +8,7 @@ set -eu
 #
 # Strategy:
 # 1. Generate weak stubs for ALL 14k exports (ABI safety net)
-# 2. Implement specific functions by overriding their stub_xxx names
+# 2. Implement specific functions by overriding their impl_xxx names
 # 3. The .def file maps stub names → MSVC-mangled exports
 # 4. Verify all required exports are present
 

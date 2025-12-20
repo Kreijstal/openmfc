@@ -33,7 +33,7 @@ asm(".globl \"?classCMenu@CMenu@@2UCRuntimeClass@@A\"\n"
 // CMenu Implementation
 // =============================================================================
 
-extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis);
+extern "C" void MS_ABI impl___1CMenu__UEAA_XZ(CMenu* pThis);
 
 namespace {
 std::mutex g_ownedMenusMutex;
@@ -81,7 +81,7 @@ void DeleteTempMenuMap() {
 } // namespace
 
 CMenu::~CMenu() {
-    stub___1CMenu__UEAA_XZ(this);
+    impl___1CMenu__UEAA_XZ(this);
 }
 
 void CMenu::DrawItem(void*) {}
@@ -90,7 +90,7 @@ void CMenu::MeasureItem(void*) {}
 
 // CMenu default constructor
 // Symbol: ??0CMenu@@QEAA@XZ
-extern "C" CMenu* MS_ABI stub___0CMenu__QEAA_XZ(CMenu* pThis) {
+extern "C" CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hMenu = nullptr;
     return pThis;
@@ -98,7 +98,7 @@ extern "C" CMenu* MS_ABI stub___0CMenu__QEAA_XZ(CMenu* pThis) {
 
 // CMenu destructor
 // Symbol: ??1CMenu@@UEAA@XZ
-extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis) {
+extern "C" void MS_ABI impl___1CMenu__UEAA_XZ(CMenu* pThis) {
     if (!pThis || !pThis->m_hMenu) return;
 
     if (IsOwnedMenu(pThis->m_hMenu)) {
@@ -110,7 +110,7 @@ extern "C" void MS_ABI stub___1CMenu__UEAA_XZ(CMenu* pThis) {
 
 // CMenu::CreateMenu
 // Symbol: ?CreateMenu@CMenu@@QEAAHXZ
-extern "C" int MS_ABI stub__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
+extern "C" int MS_ABI impl__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
     if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
         ::DestroyMenu(pThis->m_hMenu);
@@ -123,7 +123,7 @@ extern "C" int MS_ABI stub__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 
 // CMenu::CreatePopupMenu
 // Symbol: ?CreatePopupMenu@CMenu@@QEAAHXZ
-extern "C" int MS_ABI stub__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
+extern "C" int MS_ABI impl__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
     if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
         ::DestroyMenu(pThis->m_hMenu);
@@ -136,7 +136,7 @@ extern "C" int MS_ABI stub__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 
 // CMenu::LoadMenuW
 // Symbol: ?LoadMenuW@CMenu@@QEAAHPEB_W@Z
-extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wchar_t* lpszResourceName) {
+extern "C" int MS_ABI impl__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
     if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
         ::DestroyMenu(pThis->m_hMenu);
@@ -150,7 +150,7 @@ extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wc
 
 // CMenu::LoadMenuW (ID version)
 // Symbol: ?LoadMenuW@CMenu@@QEAAHI@Z
-extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDResource) {
+extern "C" int MS_ABI impl__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDResource) {
     if (!pThis) return FALSE;
     if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
         ::DestroyMenu(pThis->m_hMenu);
@@ -165,7 +165,7 @@ extern "C" int MS_ABI stub__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDReso
 // CMenu::DestroyMenu
 // Symbol: ?DestroyMenu@CMenu@@QEAAHXZ
 // Ordinal: 3803
-extern "C" int MS_ABI stub__DestroyMenu_CMenu__QEAAHXZ(CMenu* pThis) {
+extern "C" int MS_ABI impl__DestroyMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     int result = ::DestroyMenu(pThis->m_hMenu);
     UnmarkOwnedMenu(pThis->m_hMenu);
@@ -176,7 +176,7 @@ extern "C" int MS_ABI stub__DestroyMenu_CMenu__QEAAHXZ(CMenu* pThis) {
 // CMenu::Attach
 // Symbol: ?Attach@CMenu@@QEAAHPEAUHMENU__@@@Z
 // Ordinal: 2479
-extern "C" int MS_ABI stub__Attach_CMenu__QEAAHPEAUHMENU_____Z(CMenu* pThis, HMENU hMenu) {
+extern "C" int MS_ABI impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(CMenu* pThis, HMENU hMenu) {
     if (!pThis) return FALSE;
     if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
         ::DestroyMenu(pThis->m_hMenu);
@@ -190,7 +190,7 @@ extern "C" int MS_ABI stub__Attach_CMenu__QEAAHPEAUHMENU_____Z(CMenu* pThis, HME
 // CMenu::Detach
 // Symbol: ?Detach@CMenu@@QEAAPEAUHMENU__@@XZ
 // Ordinal: 3832
-extern "C" HMENU MS_ABI stub__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu* pThis) {
+extern "C" HMENU MS_ABI impl__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu* pThis) {
     if (!pThis) return nullptr;
     HMENU h = pThis->m_hMenu;
     UnmarkOwnedMenu(h);
@@ -200,25 +200,25 @@ extern "C" HMENU MS_ABI stub__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu* pThis) {
 
 // CMenu::GetSafeHmenu
 // Symbol: ?GetSafeHmenu@CMenu@@QEBAPEAUHMENU__@@XZ
-extern "C" HMENU MS_ABI stub__GetSafeHmenu_CMenu__QEBAPEAUHMENU____XZ(const CMenu* pThis) {
+extern "C" HMENU MS_ABI impl__GetSafeHmenu_CMenu__QEBAPEAUHMENU____XZ(const CMenu* pThis) {
     return pThis ? pThis->m_hMenu : nullptr;
 }
 
 // CMenu::FromHandle
 // Symbol: ?FromHandle@CMenu@@SAPEAV1@PEAUHMENU__@@@Z
-extern "C" CMenu* MS_ABI stub__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu) {
+extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu) {
     return FromHandleTemp(hMenu);
 }
 
 // CMenu::DeleteTempMap
 // Symbol: ?DeleteTempMap@CMenu@@SAXXZ
-extern "C" void MS_ABI stub__DeleteTempMap_CMenu__SAXXZ() {
+extern "C" void MS_ABI impl__DeleteTempMap_CMenu__SAXXZ() {
     DeleteTempMenuMap();
 }
 
 // CMenu::GetSubMenu
 // Symbol: ?GetSubMenu@CMenu@@QEBAPEAVCMenu@@H@Z
-extern "C" CMenu* MS_ABI stub__GetSubMenu_CMenu__QEBAPEAVCMenu__H_Z(const CMenu* pThis, int nPos) {
+extern "C" CMenu* MS_ABI impl__GetSubMenu_CMenu__QEBAPEAVCMenu__H_Z(const CMenu* pThis, int nPos) {
     if (!pThis || !pThis->m_hMenu) return nullptr;
     HMENU hSub = ::GetSubMenu(pThis->m_hMenu, nPos);
     return FromHandleTemp(hSub);
@@ -226,84 +226,84 @@ extern "C" CMenu* MS_ABI stub__GetSubMenu_CMenu__QEBAPEAVCMenu__H_Z(const CMenu*
 
 // CMenu::GetMenuItemCount
 // Symbol: ?GetMenuItemCount@CMenu@@QEBAHXZ
-extern "C" int MS_ABI stub__GetMenuItemCount_CMenu__QEBAHXZ(const CMenu* pThis) {
+extern "C" int MS_ABI impl__GetMenuItemCount_CMenu__QEBAHXZ(const CMenu* pThis) {
     if (!pThis || !pThis->m_hMenu) return 0;
     return ::GetMenuItemCount(pThis->m_hMenu);
 }
 
 // CMenu::GetMenuItemID
 // Symbol: ?GetMenuItemID@CMenu@@QEBAIH@Z
-extern "C" UINT MS_ABI stub__GetMenuItemID_CMenu__QEBAIH_Z(const CMenu* pThis, int nPos) {
+extern "C" UINT MS_ABI impl__GetMenuItemID_CMenu__QEBAIH_Z(const CMenu* pThis, int nPos) {
     if (!pThis || !pThis->m_hMenu) return 0;
     return ::GetMenuItemID(pThis->m_hMenu, nPos);
 }
 
 // CMenu::AppendMenuW
 // Symbol: ?AppendMenuW@CMenu@@QEAAHIPEB_W@Z
-extern "C" int MS_ABI stub__AppendMenuW_CMenu__QEAAHIPEB_W_Z(CMenu* pThis, UINT nFlags, const wchar_t* lpszNewItem) {
+extern "C" int MS_ABI impl__AppendMenuW_CMenu__QEAAHIPEB_W_Z(CMenu* pThis, UINT nFlags, const wchar_t* lpszNewItem) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::AppendMenuW(pThis->m_hMenu, nFlags, 0, lpszNewItem);
 }
 
 // CMenu::AppendMenuW (with ID)
 // Symbol: ?AppendMenuW@CMenu@@QEAAHI_KPEB_W@Z
-extern "C" int MS_ABI stub__AppendMenuW_CMenu__QEAAHI_KPEB_W_Z(CMenu* pThis, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
+extern "C" int MS_ABI impl__AppendMenuW_CMenu__QEAAHI_KPEB_W_Z(CMenu* pThis, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::AppendMenuW(pThis->m_hMenu, nFlags, nIDNewItem, lpszNewItem);
 }
 
 // CMenu::InsertMenuW
 // Symbol: ?InsertMenuW@CMenu@@QEAAHII_KPEB_W@Z
-extern "C" int MS_ABI stub__InsertMenuW_CMenu__QEAAHII_KPEB_W_Z(CMenu* pThis, UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
+extern "C" int MS_ABI impl__InsertMenuW_CMenu__QEAAHII_KPEB_W_Z(CMenu* pThis, UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::InsertMenuW(pThis->m_hMenu, nPosition, nFlags, nIDNewItem, lpszNewItem);
 }
 
 // CMenu::ModifyMenuW
 // Symbol: ?ModifyMenuW@CMenu@@QEAAHII_KPEB_W@Z
-extern "C" int MS_ABI stub__ModifyMenuW_CMenu__QEAAHII_KPEB_W_Z(CMenu* pThis, UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
+extern "C" int MS_ABI impl__ModifyMenuW_CMenu__QEAAHII_KPEB_W_Z(CMenu* pThis, UINT nPosition, UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::ModifyMenuW(pThis->m_hMenu, nPosition, nFlags, nIDNewItem, lpszNewItem);
 }
 
 // CMenu::DeleteMenu
 // Symbol: ?DeleteMenu@CMenu@@QEAAHII@Z
-extern "C" int MS_ABI stub__DeleteMenu_CMenu__QEAAHII_Z(CMenu* pThis, UINT nPosition, UINT nFlags) {
+extern "C" int MS_ABI impl__DeleteMenu_CMenu__QEAAHII_Z(CMenu* pThis, UINT nPosition, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::DeleteMenu(pThis->m_hMenu, nPosition, nFlags);
 }
 
 // CMenu::RemoveMenu
 // Symbol: ?RemoveMenu@CMenu@@QEAAHII@Z
-extern "C" int MS_ABI stub__RemoveMenu_CMenu__QEAAHII_Z(CMenu* pThis, UINT nPosition, UINT nFlags) {
+extern "C" int MS_ABI impl__RemoveMenu_CMenu__QEAAHII_Z(CMenu* pThis, UINT nPosition, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::RemoveMenu(pThis->m_hMenu, nPosition, nFlags);
 }
 
 // CMenu::EnableMenuItem
 // Symbol: ?EnableMenuItem@CMenu@@QEAAIIH@Z
-extern "C" UINT MS_ABI stub__EnableMenuItem_CMenu__QEAAIIH_Z(CMenu* pThis, UINT nIDEnableItem, UINT nEnable) {
+extern "C" UINT MS_ABI impl__EnableMenuItem_CMenu__QEAAIIH_Z(CMenu* pThis, UINT nIDEnableItem, UINT nEnable) {
     if (!pThis || !pThis->m_hMenu) return (UINT)-1;
     return ::EnableMenuItem(pThis->m_hMenu, nIDEnableItem, nEnable);
 }
 
 // CMenu::CheckMenuItem
 // Symbol: ?CheckMenuItem@CMenu@@QEAAIIH@Z
-extern "C" UINT MS_ABI stub__CheckMenuItem_CMenu__QEAAIIH_Z(CMenu* pThis, UINT nIDCheckItem, UINT nCheck) {
+extern "C" UINT MS_ABI impl__CheckMenuItem_CMenu__QEAAIIH_Z(CMenu* pThis, UINT nIDCheckItem, UINT nCheck) {
     if (!pThis || !pThis->m_hMenu) return (UINT)-1;
     return ::CheckMenuItem(pThis->m_hMenu, nIDCheckItem, nCheck);
 }
 
 // CMenu::CheckMenuRadioItem
 // Symbol: ?CheckMenuRadioItem@CMenu@@QEAAHHHHH@Z
-extern "C" int MS_ABI stub__CheckMenuRadioItem_CMenu__QEAAHHHHH_Z(CMenu* pThis, UINT nIDFirst, UINT nIDLast, UINT nIDItem, UINT nFlags) {
+extern "C" int MS_ABI impl__CheckMenuRadioItem_CMenu__QEAAHHHHH_Z(CMenu* pThis, UINT nIDFirst, UINT nIDLast, UINT nIDItem, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::CheckMenuRadioItem(pThis->m_hMenu, nIDFirst, nIDLast, nIDItem, nFlags);
 }
 
 // CMenu::SetMenuItemBitmaps
 // Symbol: ?SetMenuItemBitmaps@CMenu@@QEAAHIPEAUHBITMAP__@@0@Z
-extern "C" int MS_ABI stub__SetMenuItemBitmaps_CMenu__QEAAHIPEAUHBITMAP____0_Z(
+extern "C" int MS_ABI impl__SetMenuItemBitmaps_CMenu__QEAAHIPEAUHBITMAP____0_Z(
     CMenu* pThis, UINT nPosition, UINT nFlags, HBITMAP hBmpUnchecked, HBITMAP hBmpChecked) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::SetMenuItemBitmaps(pThis->m_hMenu, nPosition, nFlags, hBmpUnchecked, hBmpChecked);
@@ -312,7 +312,7 @@ extern "C" int MS_ABI stub__SetMenuItemBitmaps_CMenu__QEAAHIPEAUHBITMAP____0_Z(
 // CMenu::TrackPopupMenu
 // Symbol: ?TrackPopupMenu@CMenu@@QEAAHIHHPEAVCWnd@@PEBUtagRECT@@@Z
 // Ordinal: 13999
-extern "C" int MS_ABI stub__TrackPopupMenu_CMenu__QEAAHIHHPEAVCWnd__PEBUtagRECT___Z(
+extern "C" int MS_ABI impl__TrackPopupMenu_CMenu__QEAAHIHHPEAVCWnd__PEBUtagRECT___Z(
     CMenu* pThis, UINT nFlags, int x, int y, CWnd* pWnd, const RECT* lpRect) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     HWND hWnd = pWnd ? pWnd->GetSafeHwnd() : nullptr;
@@ -322,7 +322,7 @@ extern "C" int MS_ABI stub__TrackPopupMenu_CMenu__QEAAHIHHPEAVCWnd__PEBUtagRECT_
 // CMenu::TrackPopupMenuEx
 // Symbol: ?TrackPopupMenuEx@CMenu@@QEAAHIHHPEAVCWnd@@PEAUtagTPMPARAMS@@@Z
 // Ordinal: 14000
-extern "C" int MS_ABI stub__TrackPopupMenuEx_CMenu__QEAAHIHHPEAVCWnd__PEAUtagTPMPARAMS___Z(
+extern "C" int MS_ABI impl__TrackPopupMenuEx_CMenu__QEAAHIHHPEAVCWnd__PEAUtagTPMPARAMS___Z(
     CMenu* pThis, UINT nFlags, int x, int y, CWnd* pWnd, LPTPMPARAMS lpParams) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     HWND hWnd = pWnd ? pWnd->GetSafeHwnd() : nullptr;
@@ -331,28 +331,28 @@ extern "C" int MS_ABI stub__TrackPopupMenuEx_CMenu__QEAAHIHHPEAVCWnd__PEAUtagTPM
 
 // CMenu::GetMenuStringW
 // Symbol: ?GetMenuStringW@CMenu@@QEBAHIPEA_WHI@Z
-extern "C" int MS_ABI stub__GetMenuStringW_CMenu__QEBAHIPEA_WHI_Z(const CMenu* pThis, UINT nIDItem, wchar_t* lpString, int nMaxCount, UINT nFlags) {
+extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIPEA_WHI_Z(const CMenu* pThis, UINT nIDItem, wchar_t* lpString, int nMaxCount, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return 0;
     return ::GetMenuStringW(pThis->m_hMenu, nIDItem, lpString, nMaxCount, nFlags);
 }
 
 // CMenu::GetMenuState
 // Symbol: ?GetMenuState@CMenu@@QEBAIII@Z
-extern "C" UINT MS_ABI stub__GetMenuState_CMenu__QEBAIII_Z(const CMenu* pThis, UINT nID, UINT nFlags) {
+extern "C" UINT MS_ABI impl__GetMenuState_CMenu__QEBAIII_Z(const CMenu* pThis, UINT nID, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return (UINT)-1;
     return ::GetMenuState(pThis->m_hMenu, nID, nFlags);
 }
 
 // CMenu::SetDefaultItem
 // Symbol: ?SetDefaultItem@CMenu@@QEAAHIH@Z
-extern "C" int MS_ABI stub__SetDefaultItem_CMenu__QEAAHIH_Z(CMenu* pThis, UINT uItem, UINT fByPos) {
+extern "C" int MS_ABI impl__SetDefaultItem_CMenu__QEAAHIH_Z(CMenu* pThis, UINT uItem, UINT fByPos) {
     if (!pThis || !pThis->m_hMenu) return FALSE;
     return ::SetMenuDefaultItem(pThis->m_hMenu, uItem, fByPos);
 }
 
 // CMenu::GetDefaultItem
 // Symbol: ?GetDefaultItem@CMenu@@QEBAIIH@Z
-extern "C" UINT MS_ABI stub__GetDefaultItem_CMenu__QEBAIIH_Z(const CMenu* pThis, UINT gmdiFlags, UINT fByPos) {
+extern "C" UINT MS_ABI impl__GetDefaultItem_CMenu__QEBAIIH_Z(const CMenu* pThis, UINT gmdiFlags, UINT fByPos) {
     if (!pThis || !pThis->m_hMenu) return (UINT)-1;
     return ::GetMenuDefaultItem(pThis->m_hMenu, fByPos, gmdiFlags);
 }
@@ -364,7 +364,7 @@ extern "C" UINT MS_ABI stub__GetDefaultItem_CMenu__QEBAIIH_Z(const CMenu* pThis,
 // CWnd::GetMenu
 // Symbol: ?GetMenu@CWnd@@UEBAPEAVCMenu@@XZ
 // Ordinal: 5723
-extern "C" CMenu* MS_ABI stub__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis) {
+extern "C" CMenu* MS_ABI impl__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis) {
     // Note: Real MFC would maintain a mapping of HWND->CMenu*
     // Simplified - returns null
     (void)pThis;
@@ -374,7 +374,7 @@ extern "C" CMenu* MS_ABI stub__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis
 // CWnd::SetMenu
 // Symbol: ?SetMenu@CWnd@@UEAAHPEAVCMenu@@@Z
 // Ordinal: 13354
-extern "C" int MS_ABI stub__SetMenu_CWnd__UEAAHPEAVCMenu___Z(CWnd* pThis, CMenu* pMenu) {
+extern "C" int MS_ABI impl__SetMenu_CWnd__UEAAHPEAVCMenu___Z(CWnd* pThis, CMenu* pMenu) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     HMENU hMenu = pMenu ? pMenu->m_hMenu : nullptr;
     return ::SetMenu(pThis->m_hWnd, hMenu);
@@ -382,7 +382,7 @@ extern "C" int MS_ABI stub__SetMenu_CWnd__UEAAHPEAVCMenu___Z(CWnd* pThis, CMenu*
 
 // CWnd::DrawMenuBar
 // Symbol: ?DrawMenuBar@CWnd@@QEAAXXZ
-extern "C" void MS_ABI stub__DrawMenuBar_CWnd__QEAAXXZ(CWnd* pThis) {
+extern "C" void MS_ABI impl__DrawMenuBar_CWnd__QEAAXXZ(CWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::DrawMenuBar(pThis->m_hWnd);
     }
@@ -390,7 +390,7 @@ extern "C" void MS_ABI stub__DrawMenuBar_CWnd__QEAAXXZ(CWnd* pThis) {
 
 // CWnd::GetSystemMenu
 // Symbol: ?GetSystemMenu@CWnd@@QEBAPEAVCMenu@@H@Z
-extern "C" CMenu* MS_ABI stub__GetSystemMenu_CWnd__QEBAPEAVCMenu__H_Z(const CWnd* pThis, int bRevert) {
+extern "C" CMenu* MS_ABI impl__GetSystemMenu_CWnd__QEBAPEAVCMenu__H_Z(const CWnd* pThis, int bRevert) {
     // Note: Real MFC would create a temporary CMenu wrapper
     // Simplified - returns null
     (void)pThis;
@@ -400,7 +400,7 @@ extern "C" CMenu* MS_ABI stub__GetSystemMenu_CWnd__QEBAPEAVCMenu__H_Z(const CWnd
 
 // CWnd::HiliteMenuItem
 // Symbol: ?HiliteMenuItem@CWnd@@QEAAHPEAVCMenu@@II@Z
-extern "C" int MS_ABI stub__HiliteMenuItem_CWnd__QEAAHPEAVCMenu__II_Z(CWnd* pThis, CMenu* pMenu, UINT nIDHiliteItem, UINT nHilite) {
+extern "C" int MS_ABI impl__HiliteMenuItem_CWnd__QEAAHPEAVCMenu__II_Z(CWnd* pThis, CMenu* pMenu, UINT nIDHiliteItem, UINT nHilite) {
     if (!pThis || !pThis->m_hWnd || !pMenu || !pMenu->m_hMenu) return FALSE;
     return ::HiliteMenuItem(pThis->m_hWnd, pMenu->m_hMenu, nIDHiliteItem, nHilite);
 }

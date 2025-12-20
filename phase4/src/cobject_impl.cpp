@@ -74,7 +74,7 @@ static void InitializeClasses() {
 // Symbol: ?GetRuntimeClass@CObject@@UBAPAUCRuntimeClass@@XZ
 // Returns pointer to this object's CRuntimeClass
 // Note: This is virtual, so derived classes override it
-extern "C" CRuntimeClass* MS_ABI stub__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(
     const CObject* pThis  // RCX = this pointer
 ) {
     (void)pThis;  // For CObject base, we return classCObject
@@ -85,7 +85,7 @@ extern "C" CRuntimeClass* MS_ABI stub__GetRuntimeClass_CObject__UEBAPEAUCRuntime
 // CObject::GetThisClass() - static method
 // Symbol: ?GetThisClass@CObject@@SAPAUCRuntimeClass@@XZ
 // Returns pointer to CObject's CRuntimeClass (not virtual dispatch)
-extern "C" CRuntimeClass* MS_ABI stub__GetThisClass_CObject__SAPEAUCRuntimeClass__XZ() {
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CObject__SAPEAUCRuntimeClass__XZ() {
     InitializeClasses();
     return &CObject::classCObject;
 }
@@ -93,7 +93,7 @@ extern "C" CRuntimeClass* MS_ABI stub__GetThisClass_CObject__SAPEAUCRuntimeClass
 // CObject::IsKindOf() - const member function
 // Symbol: ?IsKindOf@CObject@@QBAHPBUCRuntimeClass@@@Z
 // Checks if this object is an instance of the given class or derived from it
-extern "C" int MS_ABI stub__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis,           // RCX = this pointer
     const CRuntimeClass* pClass     // RDX = class to check against
 ) {
@@ -123,7 +123,7 @@ extern "C" int MS_ABI stub__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
 // CObject::IsSerializable() - const member function
 // Symbol: ?IsSerializable@CObject@@QBAHXZ
 // Returns TRUE if this class supports serialization
-extern "C" int MS_ABI stub__IsSerializable_CObject__QEBAHXZ(
+extern "C" int MS_ABI impl__IsSerializable_CObject__QEBAHXZ(
     const CObject* pThis  // RCX = this pointer
 ) {
     (void)pThis;
@@ -136,7 +136,7 @@ extern "C" int MS_ABI stub__IsSerializable_CObject__QEBAHXZ(
 // CObject::Serialize() - virtual member function
 // Symbol: ?Serialize@CObject@@UEAAXAEAVCArchive@@@Z (x64)
 // Base implementation does nothing
-extern "C" void MS_ABI stub__Serialize_CObject__UEAAXAEAVCArchive___Z(
+extern "C" void MS_ABI impl__Serialize_CObject__UEAAXAEAVCArchive___Z(
     CObject* pThis,      // RCX = this pointer
     CArchive* ar         // RDX = archive
 ) {
@@ -155,7 +155,7 @@ extern "C" void MS_ABI stub__Serialize_CObject__UEAAXAEAVCArchive___Z(
 // CRuntimeClass::CreateObject() - instance method
 // Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ (x64)
 // Creates a new instance of this class using the factory function
-extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
     CRuntimeClass* pThis  // RCX = this (CRuntimeClass*)
 ) {
     if (!pThis || !pThis->m_pfnCreateObject) {
@@ -167,7 +167,7 @@ extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ
 // CRuntimeClass::CreateObject(const wchar_t*) - static method
 // Symbol: ?CreateObject@CRuntimeClass@@SAPAVCObject@@PB_W@Z
 // Creates object by class name (wide string)
-extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)
 ) {
     if (!lpszClassName) {
@@ -201,7 +201,7 @@ extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_
 // CRuntimeClass::CreateObject(const char*) - static method
 // Symbol: ?CreateObject@CRuntimeClass@@SAPAVCObject@@PBD@Z
 // Creates object by class name (narrow string)
-extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD_Z(
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD_Z(
     const char* lpszClassName  // RCX = class name (narrow)
 ) {
     if (!lpszClassName) {
@@ -226,7 +226,7 @@ extern "C" CObject* MS_ABI stub__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD
 // CRuntimeClass::FromName(const wchar_t*) - static method
 // Symbol: ?FromName@CRuntimeClass@@SAPAU1@PB_W@Z
 // Finds CRuntimeClass by class name (wide string)
-extern "C" CRuntimeClass* MS_ABI stub__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
+extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)
 ) {
     if (!lpszClassName) {
@@ -257,7 +257,7 @@ extern "C" CRuntimeClass* MS_ABI stub__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
 // CRuntimeClass::FromName(const char*) - static method
 // Symbol: ?FromName@CRuntimeClass@@SAPAU1@PBD@Z
 // Finds CRuntimeClass by class name (narrow string)
-extern "C" CRuntimeClass* MS_ABI stub__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
+extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
     const char* lpszClassName  // RCX = class name (narrow)
 ) {
     if (!lpszClassName) {
@@ -279,7 +279,7 @@ extern "C" CRuntimeClass* MS_ABI stub__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
 // CRuntimeClass::IsDerivedFrom() - const member function
 // Symbol: ?IsDerivedFrom@CRuntimeClass@@QBAHPBU1@@Z
 // Checks if this class is derived from another class
-extern "C" int MS_ABI stub__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
+extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
     const CRuntimeClass* pThis,     // RCX = this (CRuntimeClass*)
     const CRuntimeClass* pBaseClass // RDX = base class to check
 ) {
@@ -302,7 +302,7 @@ extern "C" int MS_ABI stub__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
 // CRuntimeClass::Load() - static method
 // Symbol: ?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z
 // Loads CRuntimeClass from archive (for serialization)
-extern "C" CRuntimeClass* MS_ABI stub__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
+extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
     CArchive* ar,           // RCX = archive
     unsigned int* pwSchemaNum  // RDX = schema number output
 ) {
@@ -316,7 +316,7 @@ extern "C" CRuntimeClass* MS_ABI stub__Load_CRuntimeClass__SAPEAU1_AEAVCArchive_
 // CRuntimeClass::Store() - const member function
 // Symbol: ?Store@CRuntimeClass@@QBAXAAVCArchive@@@Z
 // Stores CRuntimeClass to archive (for serialization)
-extern "C" void MS_ABI stub__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
+extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
     const CRuntimeClass* pThis,  // RCX = this
     CArchive* ar                 // RDX = archive
 ) {
@@ -332,7 +332,7 @@ extern "C" void MS_ABI stub__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
 
 // AfxClassInit - called during static initialization to register classes
 // Symbol: ?AfxClassInit@@YAXPAUCRuntimeClass@@@Z
-extern "C" void MS_ABI stub__AfxClassInit__YAXPEAUCRuntimeClass___Z(
+extern "C" void MS_ABI impl__AfxClassInit__YAXPEAUCRuntimeClass___Z(
     CRuntimeClass* pNewClass  // RCX = class to register
 ) {
     RegisterRuntimeClass(pNewClass);
@@ -341,7 +341,7 @@ extern "C" void MS_ABI stub__AfxClassInit__YAXPEAUCRuntimeClass___Z(
 // AfxDynamicDownCast - dynamic_cast equivalent for MFC
 // Symbol: ?AfxDynamicDownCast@@YAPAVCObject@@PAUCRuntimeClass@@PAV1@@Z
 // Note: This is already in the mapping but we implement it here for completeness
-extern "C" CObject* MS_ABI stub__AfxDynamicDownCast__YAPEAVCObject__PEAUCRuntimeClass__PEAV1__Z(
+extern "C" CObject* MS_ABI impl__AfxDynamicDownCast__YAPEAVCObject__PEAUCRuntimeClass__PEAV1__Z(
     CRuntimeClass* pClass,  // RCX = target class
     CObject* pObject        // RDX = object to cast
 ) {

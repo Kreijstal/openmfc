@@ -96,7 +96,7 @@ asm(".globl \"?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A\"\n"
 // CDC default constructor
 // Symbol: ??0CDC@@QEAA@XZ
 // Ordinal: 438
-extern "C" CDC* MS_ABI stub___0CDC__QEAA_XZ(CDC* pThis) {
+extern "C" CDC* MS_ABI impl___0CDC__QEAA_XZ(CDC* pThis) {
     if (!pThis) return nullptr;
 
     // Initialize members
@@ -113,7 +113,7 @@ extern "C" CDC* MS_ABI stub___0CDC__QEAA_XZ(CDC* pThis) {
 // CWindowDC) handle releasing their own DCs appropriately. If a raw CDC owns a DC (e.g.,
 // from CreateCompatibleDC), the caller must explicitly call DeleteDC() before destruction.
 // This matches real MFC behavior where CDC is often used as a wrapper for DCs it doesn't own.
-extern "C" void MS_ABI stub___1CDC__UEAA_XZ(CDC* pThis) {
+extern "C" void MS_ABI impl___1CDC__UEAA_XZ(CDC* pThis) {
     if (pThis) {
         // Don't delete - caller is responsible for DC lifetime
         pThis->m_hDC = nullptr;
@@ -123,7 +123,7 @@ extern "C" void MS_ABI stub___1CDC__UEAA_XZ(CDC* pThis) {
 
 // CDC::CreateCompatibleDC
 // Symbol: ?CreateCompatibleDC@CDC@@QEAAHPEAV1@@Z
-extern "C" int MS_ABI stub__CreateCompatibleDC_CDC__QEAAHPEAV1__Z(CDC* pThis, CDC* pDC) {
+extern "C" int MS_ABI impl__CreateCompatibleDC_CDC__QEAAHPEAV1__Z(CDC* pThis, CDC* pDC) {
     if (!pThis) return FALSE;
 
     HDC hDC = pDC ? pDC->m_hDC : nullptr;
@@ -134,7 +134,7 @@ extern "C" int MS_ABI stub__CreateCompatibleDC_CDC__QEAAHPEAV1__Z(CDC* pThis, CD
 
 // CDC::DeleteDC
 // Symbol: ?DeleteDC@CDC@@QEAAHXZ
-extern "C" int MS_ABI stub__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
+extern "C" int MS_ABI impl__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return FALSE;
 
     int result = ::DeleteDC(pThis->m_hDC);
@@ -145,14 +145,14 @@ extern "C" int MS_ABI stub__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
 
 // CDC::SaveDC
 // Symbol: ?SaveDC@CDC@@QEAAHXZ
-extern "C" int MS_ABI stub__SaveDC_CDC__QEAAHXZ(CDC* pThis) {
+extern "C" int MS_ABI impl__SaveDC_CDC__QEAAHXZ(CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::SaveDC(pThis->m_hDC);
 }
 
 // CDC::RestoreDC
 // Symbol: ?RestoreDC@CDC@@QEAAHH@Z
-extern "C" int MS_ABI stub__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC) {
+extern "C" int MS_ABI impl__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::RestoreDC(pThis->m_hDC, nSavedDC);
 }
@@ -160,7 +160,7 @@ extern "C" int MS_ABI stub__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC) {
 // CDC::MoveTo (returns CPoint)
 // Symbol: ?MoveTo@CDC@@QEAA?AVCPoint@@HH@Z
 // Ordinal: 8501
-extern "C" CPoint MS_ABI stub__MoveTo_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int x, int y) {
+extern "C" CPoint MS_ABI impl__MoveTo_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int x, int y) {
     CPoint pt(0, 0);
     if (pThis && pThis->m_hDC) {
         POINT oldPt;
@@ -174,28 +174,28 @@ extern "C" CPoint MS_ABI stub__MoveTo_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int x
 // CDC::LineTo
 // Symbol: ?LineTo@CDC@@QEAAHHH@Z
 // Ordinal: 8063
-extern "C" int MS_ABI stub__LineTo_CDC__QEAAHHH_Z(CDC* pThis, int x, int y) {
+extern "C" int MS_ABI impl__LineTo_CDC__QEAAHHH_Z(CDC* pThis, int x, int y) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::LineTo(pThis->m_hDC, x, y);
 }
 
 // CDC::Rectangle
 // Symbol: ?Rectangle@CDC@@QEAAHHHHH@Z
-extern "C" int MS_ABI stub__Rectangle_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
+extern "C" int MS_ABI impl__Rectangle_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::Rectangle(pThis->m_hDC, x1, y1, x2, y2);
 }
 
 // CDC::Ellipse
 // Symbol: ?Ellipse@CDC@@QEAAHHHHH@Z
-extern "C" int MS_ABI stub__Ellipse_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
+extern "C" int MS_ABI impl__Ellipse_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::Ellipse(pThis->m_hDC, x1, y1, x2, y2);
 }
 
 // CDC::TextOutW
 // Symbol: ?TextOutW@CDC@@QEAAHHPEB_WH@Z
-extern "C" int MS_ABI stub__TextOutW_CDC__QEAAHHPEB_WH_Z(CDC* pThis, int x, int y, const wchar_t* lpszString, int nCount) {
+extern "C" int MS_ABI impl__TextOutW_CDC__QEAAHHPEB_WH_Z(CDC* pThis, int x, int y, const wchar_t* lpszString, int nCount) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     if (nCount < 0 && lpszString) {
         nCount = (int)wcslen(lpszString);
@@ -205,49 +205,49 @@ extern "C" int MS_ABI stub__TextOutW_CDC__QEAAHHPEB_WH_Z(CDC* pThis, int x, int 
 
 // CDC::SetBkColor
 // Symbol: ?SetBkColor@CDC@@QEAAKK@Z
-extern "C" unsigned long MS_ABI stub__SetBkColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
+extern "C" unsigned long MS_ABI impl__SetBkColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::SetBkColor(pThis->m_hDC, crColor);
 }
 
 // CDC::GetBkColor
 // Symbol: ?GetBkColor@CDC@@QEBAKXZ
-extern "C" unsigned long MS_ABI stub__GetBkColor_CDC__QEBAKXZ(const CDC* pThis) {
+extern "C" unsigned long MS_ABI impl__GetBkColor_CDC__QEBAKXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::GetBkColor(pThis->m_hDC);
 }
 
 // CDC::SetTextColor
 // Symbol: ?SetTextColor@CDC@@QEAAKK@Z
-extern "C" unsigned long MS_ABI stub__SetTextColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
+extern "C" unsigned long MS_ABI impl__SetTextColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::SetTextColor(pThis->m_hDC, crColor);
 }
 
 // CDC::GetTextColor
 // Symbol: ?GetTextColor@CDC@@QEBAHXZ
-extern "C" int MS_ABI stub__GetTextColor_CDC__QEBAHXZ(const CDC* pThis) {
+extern "C" int MS_ABI impl__GetTextColor_CDC__QEBAHXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return (int)::GetTextColor(pThis->m_hDC);
 }
 
 // CDC::SetBkMode
 // Symbol: ?SetBkMode@CDC@@QEAAHH@Z
-extern "C" int MS_ABI stub__SetBkMode_CDC__QEAAHH_Z(CDC* pThis, int nBkMode) {
+extern "C" int MS_ABI impl__SetBkMode_CDC__QEAAHH_Z(CDC* pThis, int nBkMode) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::SetBkMode(pThis->m_hDC, nBkMode);
 }
 
 // CDC::GetBkMode
 // Symbol: ?GetBkMode@CDC@@QEBAHXZ
-extern "C" int MS_ABI stub__GetBkMode_CDC__QEBAHXZ(const CDC* pThis) {
+extern "C" int MS_ABI impl__GetBkMode_CDC__QEBAHXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::GetBkMode(pThis->m_hDC);
 }
 
 // CDC::BitBlt
 // Symbol: ?BitBlt@CDC@@QEAAHHHHHHPEAV1@HHK@Z
-extern "C" int MS_ABI stub__BitBlt_CDC__QEAAHHHHHHPEAV1_HHK_Z(
+extern "C" int MS_ABI impl__BitBlt_CDC__QEAAHHHHHHPEAV1_HHK_Z(
     CDC* pThis, int x, int y, int nWidth, int nHeight,
     CDC* pSrcDC, int xSrc, int ySrc, unsigned long dwRop) {
     if (!pThis || !pThis->m_hDC) return FALSE;
@@ -257,7 +257,7 @@ extern "C" int MS_ABI stub__BitBlt_CDC__QEAAHHHHHHPEAV1_HHK_Z(
 
 // CDC::StretchBlt
 // Symbol: ?StretchBlt@CDC@@QEAAHHHHHHPEAV1@HHHHK@Z
-extern "C" int MS_ABI stub__StretchBlt_CDC__QEAAHHHHHHPEAV1_HHHHK_Z(
+extern "C" int MS_ABI impl__StretchBlt_CDC__QEAAHHHHHHPEAV1_HHHHK_Z(
     CDC* pThis, int x, int y, int nWidth, int nHeight,
     CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, unsigned long dwRop) {
     if (!pThis || !pThis->m_hDC) return FALSE;
@@ -268,7 +268,7 @@ extern "C" int MS_ABI stub__StretchBlt_CDC__QEAAHHHHHHPEAV1_HHHHK_Z(
 
 // CDC::FillRect
 // Symbol: ?FillRect@CDC@@QEAAHPEBUtagRECT@@PEAVCBrush@@@Z
-extern "C" int MS_ABI stub__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
+extern "C" int MS_ABI impl__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     CDC* pThis, const RECT* lpRect, CBrush* pBrush) {
     if (!pThis || !pThis->m_hDC || !lpRect) return FALSE;
     HBRUSH hBrush = pBrush ? (HBRUSH)pBrush->GetSafeHandle() : nullptr;
@@ -277,7 +277,7 @@ extern "C" int MS_ABI stub__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
 
 // CDC::FrameRect
 // Symbol: ?FrameRect@CDC@@QEAAHPEBUtagRECT@@PEAVCBrush@@@Z
-extern "C" int MS_ABI stub__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
+extern "C" int MS_ABI impl__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     CDC* pThis, const RECT* lpRect, CBrush* pBrush) {
     if (!pThis || !pThis->m_hDC || !lpRect) return FALSE;
     HBRUSH hBrush = pBrush ? (HBRUSH)pBrush->GetSafeHandle() : nullptr;
@@ -286,7 +286,7 @@ extern "C" int MS_ABI stub__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
 
 // CDC::DrawText
 // Symbol: ?DrawTextW@CDC@@QEAAHPEB_WHPEAUTAGRECT@@I@Z
-extern "C" int MS_ABI stub__DrawTextW_CDC__QEAAHPEB_WHPEAUTAGRECT__I_Z(
+extern "C" int MS_ABI impl__DrawTextW_CDC__QEAAHPEB_WHPEAUTAGRECT__I_Z(
     CDC* pThis, const wchar_t* lpszString, int nCount, RECT* lpRect, unsigned int nFormat) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::DrawTextW(pThis->m_hDC, lpszString, nCount, lpRect, nFormat);
@@ -294,7 +294,7 @@ extern "C" int MS_ABI stub__DrawTextW_CDC__QEAAHPEB_WHPEAUTAGRECT__I_Z(
 
 // CDC::SelectObject (CGdiObject)
 // Symbol: ?SelectObject@CDC@@QEAAPEAVCGdiObject@@PEAV2@@Z
-extern "C" CGdiObject* MS_ABI stub__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2__Z(
+extern "C" CGdiObject* MS_ABI impl__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2__Z(
     CDC* pThis, CGdiObject* pObject) {
     if (!pThis || !pThis->m_hDC || !pObject) return nullptr;
     HGDIOBJ hOld = ::SelectObject(pThis->m_hDC, pObject->GetSafeHandle());
@@ -304,7 +304,7 @@ extern "C" CGdiObject* MS_ABI stub__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2_
 
 // CDC::SelectStockObject
 // Symbol: ?SelectStockObject@CDC@@QEAAHH@Z
-extern "C" int MS_ABI stub__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nIndex) {
+extern "C" int MS_ABI impl__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nIndex) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     HGDIOBJ hObj = ::GetStockObject(nIndex);
     return ::SelectObject(pThis->m_hDC, hObj) != nullptr;
@@ -317,13 +317,13 @@ extern "C" int MS_ABI stub__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nInd
 // CGdiObject::DeleteTempMap (static)
 // Symbol: ?DeleteTempMap@CGdiObject@@SAXXZ
 // Called during idle processing to clean up temporary GDI object wrappers
-extern "C" void MS_ABI stub__DeleteTempMap_CGdiObject__SAXXZ() {
+extern "C" void MS_ABI impl__DeleteTempMap_CGdiObject__SAXXZ() {
     DeleteTempGdiMap();
 }
 
 // CGdiObject::DeleteObject
 // Symbol: ?DeleteObject@CGdiObject@@QEAAHXZ
-extern "C" int MS_ABI stub__DeleteObject_CGdiObject__QEAAHXZ(CGdiObject* pThis) {
+extern "C" int MS_ABI impl__DeleteObject_CGdiObject__QEAAHXZ(CGdiObject* pThis) {
     if (!pThis || !pThis->m_hObject) return FALSE;
     int result = ::DeleteObject(pThis->m_hObject);
     pThis->m_hObject = nullptr;
@@ -331,14 +331,14 @@ extern "C" int MS_ABI stub__DeleteObject_CGdiObject__QEAAHXZ(CGdiObject* pThis) 
 }
 
 #ifdef __GNUC__
-// Alias for MinGW internal calls (Itanium mangling -> stub)
+// Alias for MinGW internal calls (Itanium mangling -> impl)
 asm(".globl _ZN10CGdiObject12DeleteObjectEv\n"
-    ".set _ZN10CGdiObject12DeleteObjectEv, stub__DeleteObject_CGdiObject__QEAAHXZ\n");
+    ".set _ZN10CGdiObject12DeleteObjectEv, impl__DeleteObject_CGdiObject__QEAAHXZ\n");
 #endif
 
 // CGdiObject::Attach
 // Symbol: ?Attach@CGdiObject@@QEAAHPEAX@Z
-extern "C" int MS_ABI stub__Attach_CGdiObject__QEAAHPEAX_Z(CGdiObject* pThis, HGDIOBJ hObject) {
+extern "C" int MS_ABI impl__Attach_CGdiObject__QEAAHPEAX_Z(CGdiObject* pThis, HGDIOBJ hObject) {
     if (!pThis) return FALSE;
     pThis->m_hObject = hObject;
     return TRUE;
@@ -346,7 +346,7 @@ extern "C" int MS_ABI stub__Attach_CGdiObject__QEAAHPEAX_Z(CGdiObject* pThis, HG
 
 // CGdiObject::Detach
 // Symbol: ?Detach@CGdiObject@@QEAAPEAXXZ
-extern "C" HGDIOBJ MS_ABI stub__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis) {
+extern "C" HGDIOBJ MS_ABI impl__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis) {
     if (!pThis) return nullptr;
     HGDIOBJ h = pThis->m_hObject;
     pThis->m_hObject = nullptr;
@@ -359,7 +359,7 @@ extern "C" HGDIOBJ MS_ABI stub__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis)
 
 // CPen default constructor
 // Symbol: ??0CPen@@QEAA@XZ
-extern "C" CPen* MS_ABI stub___0CPen__QEAA_XZ(CPen* pThis) {
+extern "C" CPen* MS_ABI impl___0CPen__QEAA_XZ(CPen* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
     return pThis;
@@ -367,7 +367,7 @@ extern "C" CPen* MS_ABI stub___0CPen__QEAA_XZ(CPen* pThis) {
 
 // CPen constructor with parameters
 // Symbol: ??0CPen@@QEAA@HHK@Z
-extern "C" CPen* MS_ABI stub___0CPen__QEAA_HHK_Z(CPen* pThis, int nPenStyle, int nWidth, unsigned long crColor) {
+extern "C" CPen* MS_ABI impl___0CPen__QEAA_HHK_Z(CPen* pThis, int nPenStyle, int nWidth, unsigned long crColor) {
     if (!pThis) return nullptr;
     pThis->m_hObject = ::CreatePen(nPenStyle, nWidth, crColor);
     return pThis;
@@ -375,7 +375,7 @@ extern "C" CPen* MS_ABI stub___0CPen__QEAA_HHK_Z(CPen* pThis, int nPenStyle, int
 
 // CPen::CreatePen
 // Symbol: ?CreatePen@CPen@@QEAAHHHI@Z
-extern "C" int MS_ABI stub__CreatePen_CPen__QEAAHHHI_Z(CPen* pThis, int nPenStyle, int nWidth, unsigned int crColor) {
+extern "C" int MS_ABI impl__CreatePen_CPen__QEAAHHHI_Z(CPen* pThis, int nPenStyle, int nWidth, unsigned int crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -390,7 +390,7 @@ extern "C" int MS_ABI stub__CreatePen_CPen__QEAAHHHI_Z(CPen* pThis, int nPenStyl
 
 // CBrush default constructor
 // Symbol: ??0CBrush@@QEAA@XZ
-extern "C" CBrush* MS_ABI stub___0CBrush__QEAA_XZ(CBrush* pThis) {
+extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_XZ(CBrush* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
     return pThis;
@@ -398,7 +398,7 @@ extern "C" CBrush* MS_ABI stub___0CBrush__QEAA_XZ(CBrush* pThis) {
 
 // CBrush constructor with color
 // Symbol: ??0CBrush@@QEAA@K@Z
-extern "C" CBrush* MS_ABI stub___0CBrush__QEAA_K_Z(CBrush* pThis, unsigned long crColor) {
+extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_K_Z(CBrush* pThis, unsigned long crColor) {
     if (!pThis) return nullptr;
     pThis->m_hObject = ::CreateSolidBrush(crColor);
     return pThis;
@@ -406,7 +406,7 @@ extern "C" CBrush* MS_ABI stub___0CBrush__QEAA_K_Z(CBrush* pThis, unsigned long 
 
 // CBrush::CreateSolidBrush
 // Symbol: ?CreateSolidBrush@CBrush@@QEAAHK@Z
-extern "C" int MS_ABI stub__CreateSolidBrush_CBrush__QEAAHK_Z(CBrush* pThis, unsigned long crColor) {
+extern "C" int MS_ABI impl__CreateSolidBrush_CBrush__QEAAHK_Z(CBrush* pThis, unsigned long crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -417,7 +417,7 @@ extern "C" int MS_ABI stub__CreateSolidBrush_CBrush__QEAAHK_Z(CBrush* pThis, uns
 
 // CBrush::CreateHatchBrush
 // Symbol: ?CreateHatchBrush@CBrush@@QEAAHHK@Z
-extern "C" int MS_ABI stub__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, int nIndex, unsigned long crColor) {
+extern "C" int MS_ABI impl__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, int nIndex, unsigned long crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -432,7 +432,7 @@ extern "C" int MS_ABI stub__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, in
 
 // CFont default constructor
 // Symbol: ??0CFont@@QEAA@XZ
-extern "C" CFont* MS_ABI stub___0CFont__QEAA_XZ(CFont* pThis) {
+extern "C" CFont* MS_ABI impl___0CFont__QEAA_XZ(CFont* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
     return pThis;
@@ -440,7 +440,7 @@ extern "C" CFont* MS_ABI stub___0CFont__QEAA_XZ(CFont* pThis) {
 
 // CFont::CreateFontIndirectW
 // Symbol: ?CreateFontIndirectW@CFont@@QEAAHPEBUtagLOGFONTW@@@Z
-extern "C" int MS_ABI stub__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(CFont* pThis, const LOGFONTW* lpLogFont) {
+extern "C" int MS_ABI impl__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(CFont* pThis, const LOGFONTW* lpLogFont) {
     if (!pThis || !lpLogFont) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -451,7 +451,7 @@ extern "C" int MS_ABI stub__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(
 
 // CFont::CreatePointFont
 // Symbol: ?CreatePointFont@CFont@@QEAAHHPEB_WPEAV1@@Z
-extern "C" int MS_ABI stub__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
+extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
     CFont* pThis, int nPointSize, const wchar_t* lpszFaceName, CDC* pDC) {
     if (!pThis) return FALSE;
 
@@ -479,7 +479,7 @@ extern "C" int MS_ABI stub__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
 
 // CBitmap default constructor
 // Symbol: ??0CBitmap@@QEAA@XZ
-extern "C" CBitmap* MS_ABI stub___0CBitmap__QEAA_XZ(CBitmap* pThis) {
+extern "C" CBitmap* MS_ABI impl___0CBitmap__QEAA_XZ(CBitmap* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
     return pThis;
@@ -487,7 +487,7 @@ extern "C" CBitmap* MS_ABI stub___0CBitmap__QEAA_XZ(CBitmap* pThis) {
 
 // CBitmap::CreateCompatibleBitmap
 // Symbol: ?CreateCompatibleBitmap@CBitmap@@QEAAHPEAVCDC@@HH@Z
-extern "C" int MS_ABI stub__CreateCompatibleBitmap_CBitmap__QEAAHPEAVCDC__HH_Z(
+extern "C" int MS_ABI impl__CreateCompatibleBitmap_CBitmap__QEAAHPEAVCDC__HH_Z(
     CBitmap* pThis, CDC* pDC, int nWidth, int nHeight) {
     if (!pThis || !pDC || !pDC->m_hDC) return FALSE;
     if (pThis->m_hObject) {
@@ -499,7 +499,7 @@ extern "C" int MS_ABI stub__CreateCompatibleBitmap_CBitmap__QEAAHPEAVCDC__HH_Z(
 
 // CBitmap::LoadBitmapW
 // Symbol: ?LoadBitmapW@CBitmap@@QEAAHPEB_W@Z
-extern "C" int MS_ABI stub__LoadBitmapW_CBitmap__QEAAHPEB_W_Z(CBitmap* pThis, const wchar_t* lpszResourceName) {
+extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHPEB_W_Z(CBitmap* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -511,7 +511,7 @@ extern "C" int MS_ABI stub__LoadBitmapW_CBitmap__QEAAHPEB_W_Z(CBitmap* pThis, co
 
 // CBitmap::LoadBitmapW (ID version)
 // Symbol: ?LoadBitmapW@CBitmap@@QEAAHI@Z
-extern "C" int MS_ABI stub__LoadBitmapW_CBitmap__QEAAHI_Z(CBitmap* pThis, UINT nIDResource) {
+extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHI_Z(CBitmap* pThis, UINT nIDResource) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
@@ -527,7 +527,7 @@ extern "C" int MS_ABI stub__LoadBitmapW_CBitmap__QEAAHI_Z(CBitmap* pThis, UINT n
 
 // CClientDC constructor
 // Symbol: ??0CClientDC@@QEAA@PEAVCWnd@@@Z
-extern "C" CClientDC* MS_ABI stub___0CClientDC__QEAA_PEAVCWnd___Z(CClientDC* pThis, CWnd* pWnd) {
+extern "C" CClientDC* MS_ABI impl___0CClientDC__QEAA_PEAVCWnd___Z(CClientDC* pThis, CWnd* pWnd) {
     if (!pThis) return nullptr;
 
     pThis->m_hDC = nullptr;
@@ -543,7 +543,7 @@ extern "C" CClientDC* MS_ABI stub___0CClientDC__QEAA_PEAVCWnd___Z(CClientDC* pTh
 
 // CClientDC destructor
 // Symbol: ??1CClientDC@@UEAA@XZ
-extern "C" void MS_ABI stub___1CClientDC__UEAA_XZ(CClientDC* pThis) {
+extern "C" void MS_ABI impl___1CClientDC__UEAA_XZ(CClientDC* pThis) {
     if (pThis && pThis->m_hDC) {
         HWND hWnd = pThis->m_pWnd ? pThis->m_pWnd->GetSafeHwnd() : nullptr;
         ::ReleaseDC(hWnd, pThis->m_hDC);
@@ -558,7 +558,7 @@ extern "C" void MS_ABI stub___1CClientDC__UEAA_XZ(CClientDC* pThis) {
 
 // CPaintDC constructor
 // Symbol: ??0CPaintDC@@QEAA@PEAVCWnd@@@Z
-extern "C" CPaintDC* MS_ABI stub___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis, CWnd* pWnd) {
+extern "C" CPaintDC* MS_ABI impl___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis, CWnd* pWnd) {
     if (!pThis) return nullptr;
 
     pThis->m_hDC = nullptr;
@@ -577,7 +577,7 @@ extern "C" CPaintDC* MS_ABI stub___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis,
 
 // CPaintDC destructor
 // Symbol: ??1CPaintDC@@UEAA@XZ
-extern "C" void MS_ABI stub___1CPaintDC__UEAA_XZ(CPaintDC* pThis) {
+extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis) {
     if (pThis && pThis->m_pWnd) {
         HWND hWnd = pThis->m_pWnd->GetSafeHwnd();
         if (hWnd) {
@@ -594,7 +594,7 @@ extern "C" void MS_ABI stub___1CPaintDC__UEAA_XZ(CPaintDC* pThis) {
 
 // CWindowDC constructor
 // Symbol: ??0CWindowDC@@QEAA@PEAVCWnd@@@Z
-extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pThis, CWnd* pWnd) {
+extern "C" CWindowDC* MS_ABI impl___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pThis, CWnd* pWnd) {
     if (!pThis) return nullptr;
 
     pThis->m_hDC = nullptr;
@@ -610,7 +610,7 @@ extern "C" CWindowDC* MS_ABI stub___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pTh
 
 // CWindowDC destructor
 // Symbol: ??1CWindowDC@@UEAA@XZ
-extern "C" void MS_ABI stub___1CWindowDC__UEAA_XZ(CWindowDC* pThis) {
+extern "C" void MS_ABI impl___1CWindowDC__UEAA_XZ(CWindowDC* pThis) {
     if (pThis && pThis->m_hDC) {
         HWND hWnd = pThis->m_pWnd ? pThis->m_pWnd->GetSafeHwnd() : nullptr;
         ::ReleaseDC(hWnd, pThis->m_hDC);

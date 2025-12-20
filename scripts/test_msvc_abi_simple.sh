@@ -114,7 +114,7 @@ else
     echo "4. Using wrong stub names"
     echo ""
     echo "CORRECT PATTERN:"
-    echo "  extern \"C\" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {"
+    echo "  extern \"C\" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {"
     echo "      // implementation"
     echo "  }"
     echo ""

@@ -544,32 +544,32 @@ static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
 // =============================================================================
 
 // AfxThrowMemoryException - void()
-extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
     ThrowStatic(&g_MemoryException, &TI_CMemoryException);
 }
 
 // AfxThrowNotSupportedException - void()
-extern "C" void MS_ABI stub__AfxThrowNotSupportedException__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() {
     ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException);
 }
 
 // AfxThrowResourceException - void()
-extern "C" void MS_ABI stub__AfxThrowResourceException__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {
     ThrowNew(new CResourceException(), &TI_CResourceException);
 }
 
 // AfxThrowUserException - void()
-extern "C" void MS_ABI stub__AfxThrowUserException__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ() {
     ThrowNew(new CUserException(), &TI_CUserException);
 }
 
 // AfxThrowInvalidArgException - void()
-extern "C" void MS_ABI stub__AfxThrowInvalidArgException__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
     ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException);
 }
 
 // AfxThrowFileException - void(int cause, LONG lOsError, const wchar_t* lpszFileName)
-extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPEB_W_Z(
+extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     int cause, LONG lOsError, const wchar_t* lpszFileName
 ) {
     CFileException* pEx = new CFileException(cause, lOsError);
@@ -580,7 +580,7 @@ extern "C" void MS_ABI stub__AfxThrowFileException__YAXHJPEB_W_Z(
 }
 
 // AfxThrowArchiveException - void(int cause, const wchar_t* lpszArchiveName)
-extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPEB_W_Z(
+extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName
 ) {
     CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
@@ -588,14 +588,14 @@ extern "C" void MS_ABI stub__AfxThrowArchiveException__YAXHPEB_W_Z(
 }
 
 // AfxThrowOleException - void(HRESULT sc)
-extern "C" void MS_ABI stub__AfxThrowOleException__YAXJ_Z(LONG sc) {
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
     COleException* pEx = new COleException();
     pEx->m_sc = sc;
     ThrowNew(pEx, &TI_COleException);
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, UINT nDescriptionID, UINT nHelpID)
-extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGII_Z(
+extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     WORD wCode, UINT nDescriptionID, UINT nHelpID
 ) {
     COleDispatchException* pEx = new COleDispatchException();
@@ -606,7 +606,7 @@ extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGII_Z(
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID)
-extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
+extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
 ) {
     COleDispatchException* pEx = new COleDispatchException();
@@ -618,7 +618,7 @@ extern "C" void MS_ABI stub__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
 // Symbol: ?AfxThrowInternetException@@YAX_KK@Z (x64: uses DWORD_PTR/_K)
-extern "C" void MS_ABI stub__AfxThrowInternetException__YAX_KK_Z(
+extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     DWORD dwContext, DWORD dwError
 ) {
     CInternetException* pEx = new CInternetException(dwError);
@@ -627,7 +627,7 @@ extern "C" void MS_ABI stub__AfxThrowInternetException__YAX_KK_Z(
 }
 
 // AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
-extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
+extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
     short nRetCode, void* pdb, void* hstmt
 ) {
     (void)pdb; (void)hstmt; // Unused for now
@@ -637,7 +637,7 @@ extern "C" void MS_ABI stub__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
 
 // AfxThrowDaoException - void(int nAfxDaoError, SCODE scode)
 // Note: Signature might vary, checking ordinal mapping would be ideal but assuming standard
-extern "C" void MS_ABI stub__AfxThrowDaoException__YAXHJ_Z(
+extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     int nAfxDaoError, SCODE scode
 ) {
     CDaoException* pEx = new CDaoException();
@@ -647,13 +647,13 @@ extern "C" void MS_ABI stub__AfxThrowDaoException__YAXHJ_Z(
 }
 
 // AfxThrowLastCleanup - internal MFC function
-extern "C" void MS_ABI stub__AfxThrowLastCleanup__YAXXZ() {
+extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
     // This is typically called to throw a generic exception during cleanup
     ThrowNew(new CUserException(), &TI_CUserException);
 }
 
 // AfxAbort - terminates the application
-extern "C" void MS_ABI stub__AfxAbort__YAXXZ() {
+extern "C" void MS_ABI impl__AfxAbort__YAXXZ() {
     fprintf(stderr, "AfxAbort: Terminating application\n");
     abort();
 }

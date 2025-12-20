@@ -34,7 +34,7 @@ static const wchar_t* AFX_WNDCLASS_CTRL = L"AfxControlBar140u";
 // AfxRegisterClass - Register a window class with MFC-style defaults
 // Symbol: ?AfxRegisterClass@@YAHPEAUtagWNDCLASSW@@@Z
 // Ordinal: 2311
-extern "C" int MS_ABI stub__AfxRegisterClass__YAHPEAUtagWNDCLASSW___Z(WNDCLASSW* lpWndClass) {
+extern "C" int MS_ABI impl__AfxRegisterClass__YAHPEAUtagWNDCLASSW___Z(WNDCLASSW* lpWndClass) {
     if (!lpWndClass) return FALSE;
 
     // Set default instance handle if not specified
@@ -84,7 +84,7 @@ wchar_t* NextWndClassNameBuffer() {
 // Ordinal: 2316
 // NOTE: The returned pointer is valid for a small number of subsequent calls on the
 // same thread (thread-local ring buffer). Callers that cache class names should copy.
-extern "C" const wchar_t* MS_ABI stub__AfxRegisterWndClass__YAPEB_WIPEAUHICON____PEAUHBRUSH____0_Z(
+extern "C" const wchar_t* MS_ABI impl__AfxRegisterWndClass__YAPEB_WIPEAUHICON____PEAUHBRUSH____0_Z(
     UINT nClassStyle, HCURSOR hCursor, HBRUSH hbrBackground, HICON hIcon)
 {
     HINSTANCE hInst = AfxGetInstanceHandle();
@@ -157,7 +157,7 @@ void AfxUnregisterAllClasses() {
 
 // AfxRegisterClass (Ex version) - Extended register
 // Symbol: ?AfxRegisterClass@@YAHPEAUtagWNDCLASSEXW@@@Z
-extern "C" int MS_ABI stub__AfxRegisterClass__YAHPEAUtagWNDCLASSEXW___Z(WNDCLASSEXW* lpWndClass) {
+extern "C" int MS_ABI impl__AfxRegisterClass__YAHPEAUtagWNDCLASSEXW___Z(WNDCLASSEXW* lpWndClass) {
     if (!lpWndClass) return FALSE;
 
     // Set default instance handle if not specified
@@ -193,19 +193,19 @@ extern "C" int MS_ABI stub__AfxRegisterClass__YAHPEAUtagWNDCLASSEXW___Z(WNDCLASS
 
 // AfxGetInstanceHandle - Get the application instance handle
 // Symbol: ?AfxGetInstanceHandle@@YAPEAUHINSTANCE__@@XZ
-extern "C" HINSTANCE MS_ABI stub__AfxGetInstanceHandle__YAPEAUHINSTANCE____XZ() {
+extern "C" HINSTANCE MS_ABI impl__AfxGetInstanceHandle__YAPEAUHINSTANCE____XZ() {
     return AfxGetInstanceHandle();
 }
 
 // AfxGetResourceHandle - Get the resource module handle
 // Symbol: ?AfxGetResourceHandle@@YAPEAUHINSTANCE__@@XZ
-extern "C" HINSTANCE MS_ABI stub__AfxGetResourceHandle__YAPEAUHINSTANCE____XZ() {
+extern "C" HINSTANCE MS_ABI impl__AfxGetResourceHandle__YAPEAUHINSTANCE____XZ() {
     return AfxGetResourceHandle();
 }
 
 // AfxSetResourceHandle - Set the resource module handle
 // Symbol: ?AfxSetResourceHandle@@YAXPEAUHINSTANCE__@@@Z
-extern "C" void MS_ABI stub__AfxSetResourceHandle__YAXPEAUHINSTANCE____Z(HINSTANCE hInstResource) {
+extern "C" void MS_ABI impl__AfxSetResourceHandle__YAXPEAUHINSTANCE____Z(HINSTANCE hInstResource) {
     AfxSetResourceHandle(hInstResource);
 }
 
@@ -215,13 +215,13 @@ extern "C" void MS_ABI stub__AfxSetResourceHandle__YAXPEAUHINSTANCE____Z(HINSTAN
 
 // AfxGetMainWnd - Get the main window
 // Symbol: ?AfxGetMainWnd@@YAPEAVCWnd@@XZ
-extern "C" CWnd* MS_ABI stub__AfxGetMainWnd__YAPEAVCWnd__XZ() {
+extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ() {
     return AfxGetMainWnd();
 }
 
 // AfxGetApp - Get the application object
 // Symbol: ?AfxGetApp@@YAPEAVCWinApp@@XZ
-extern "C" CWinApp* MS_ABI stub__AfxGetApp__YAPEAVCWinApp__XZ() {
+extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ() {
     return AfxGetApp();
 }
 
@@ -243,7 +243,7 @@ static AFX_MODULE_STATE g_moduleState;
 
 // AfxGetModuleState
 // Symbol: ?AfxGetModuleState@@YAPEAUAFX_MODULE_STATE@@XZ
-extern "C" AFX_MODULE_STATE* MS_ABI stub__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
     // Populate from global state
     g_moduleState.m_hCurrentInstanceHandle = AfxGetInstanceHandle();
     g_moduleState.m_hCurrentResourceHandle = AfxGetResourceHandle();
@@ -253,8 +253,8 @@ extern "C" AFX_MODULE_STATE* MS_ABI stub__AfxGetModuleState__YAPEAUAFX_MODULE_ST
 
 // AfxGetStaticModuleState
 // Symbol: ?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ
-extern "C" AFX_MODULE_STATE* MS_ABI stub__AfxGetStaticModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
-    return stub__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ();
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
+    return impl__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ();
 }
 
 // =============================================================================
@@ -270,6 +270,6 @@ static AFX_MODULE_THREAD_STATE g_moduleThreadState;
 
 // AfxGetModuleThreadState
 // Symbol: ?AfxGetModuleThreadState@@YAPEAUAFX_MODULE_THREAD_STATE@@XZ
-extern "C" AFX_MODULE_THREAD_STATE* MS_ABI stub__AfxGetModuleThreadState__YAPEAUAFX_MODULE_THREAD_STATE__XZ() {
+extern "C" AFX_MODULE_THREAD_STATE* MS_ABI impl__AfxGetModuleThreadState__YAPEAUAFX_MODULE_THREAD_STATE__XZ() {
     return &g_moduleThreadState;
 }
