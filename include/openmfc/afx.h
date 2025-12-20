@@ -789,13 +789,14 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 // Note: This should be in a .cpp file normally, but for header-only we inline it
 #ifndef COBJECT_IMPL_DEFINED
 #define COBJECT_IMPL_DEFINED
+// Order: lpszClassName, nObjectSize, pBaseClass, pfnCreateObject, pfnGetBaseClass, wSchema
 inline CRuntimeClass CObject::classCObject = {
     "CObject",
     sizeof(CObject),
-    0xFFFF,
-    nullptr,
-    nullptr,
-    nullptr
+    nullptr,        // m_pBaseClass - CObject is root
+    nullptr,        // m_pfnCreateObject
+    nullptr,        // m_pfnGetBaseClass
+    0xFFFF          // m_wSchema
 };
 
 // CObject::Serialize default implementation (does nothing for base class)
