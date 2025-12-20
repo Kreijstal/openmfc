@@ -109,19 +109,66 @@ jobs:
         echo "Running Hello World test..."
         Copy-Item phase4-artifacts\openmfc.dll .
 
-        # NOTE: test_hello_world.exe may show a MsgBox and wait for user input;
-        # on CI this will hang forever unless we enforce a hard timeout.
-        $timeoutSeconds = 120
+        $timeoutSeconds = 30
         $stdoutPath = "hello_world_stdout.txt"
         $stderrPath = "hello_world_stderr.txt"
 
+        # Start the test process
         $proc = Start-Process -FilePath ".\\test_hello_world.exe" -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-        Start-Sleep -Milliseconds 200
-        $proc.Refresh()
 
-        Start-Sleep -Seconds 1
+        # Background job to find and click the MessageBox
+        $clickerJob = Start-Job -ScriptBlock {
+          Add-Type @"
+            using System;
+            using System.Runtime.InteropServices;
+            public class Win32 {
+              [DllImport("user32.dll", SetLastError = true)]
+              public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+              [DllImport("user32.dll", CharSet = CharSet.Auto)]
+              public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+              [DllImport("user32.dll")]
+              public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+              [DllImport("user32.dll")]
+              public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+            }
+        "@
+          $WM_CLOSE = 0x0010
+          $BM_CLICK = 0x00F5
+
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Milliseconds 500
+            # Find MessageBox by title
+            $hwnd = [Win32]::FindWindow("#32770", "OpenMFC Hello World")
+            if ($hwnd -ne [IntPtr]::Zero) {
+              # Found it! Get the text to verify
+              $sb = New-Object System.Text.StringBuilder 512
+              [Win32]::GetWindowText($hwnd, $sb, $sb.Capacity) | Out-Null
+              Write-Host "Found MessageBox: '$($sb.ToString())'"
+
+              # Find OK button and click it
+              $btnHwnd = [Win32]::FindWindowEx($hwnd, [IntPtr]::Zero, "Button", "OK")
+              if ($btnHwnd -ne [IntPtr]::Zero) {
+                Write-Host "Clicking OK button..."
+                [Win32]::PostMessage($btnHwnd, $BM_CLICK, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+                return "OK"
+              } else {
+                # Fallback: close the window
+                Write-Host "No OK button found, closing window..."
+                [Win32]::PostMessage($hwnd, $WM_CLOSE, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+                return "CLOSED"
+              }
+            }
+          }
+          return "NOT_FOUND"
+        }
+
+        # Wait for the process to complete
         Wait-Process -Id $proc.Id -Timeout $timeoutSeconds -ErrorAction SilentlyContinue
         $proc.Refresh()
+
+        # Get clicker job result
+        $clickerResult = Receive-Job -Job $clickerJob -Wait -AutoRemoveJob -ErrorAction SilentlyContinue
+        Write-Host "Clicker result: $clickerResult"
 
         if (-not $proc.HasExited) {
           Write-Host "❌ Hello World test timed out after ${timeoutSeconds}s; terminating process."
