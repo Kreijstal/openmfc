@@ -40,19 +40,6 @@ void DeleteTempGdiMap() {
 }
 } // namespace
 
-// =============================================================================
-// CGdiObject member function implementations
-// =============================================================================
-// These are required because the inline destructor in the header calls
-// DeleteObject(), so we need to provide a proper C++ member function.
-
-int CGdiObject::DeleteObject() {
-    if (!m_hObject) return FALSE;
-    int result = ::DeleteObject(m_hObject);
-    m_hObject = nullptr;
-    return result;
-}
-
 // MS ABI calling convention
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -342,6 +329,12 @@ extern "C" int MS_ABI stub__DeleteObject_CGdiObject__QEAAHXZ(CGdiObject* pThis) 
     pThis->m_hObject = nullptr;
     return result;
 }
+
+#ifdef __GNUC__
+// Alias for MinGW internal calls (Itanium mangling -> stub)
+asm(".globl _ZN10CGdiObject12DeleteObjectEv\n"
+    ".set _ZN10CGdiObject12DeleteObjectEv, stub__DeleteObject_CGdiObject__QEAAHXZ\n");
+#endif
 
 // CGdiObject::Attach
 // Symbol: ?Attach@CGdiObject@@QEAAHPEAX@Z
