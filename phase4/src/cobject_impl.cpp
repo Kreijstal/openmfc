@@ -47,14 +47,24 @@ typedef CObject* (__cdecl *PFNCREATEOBJECT)();
 // =============================================================================
 // Global CRuntimeClass Registry (for FromName lookups)
 // =============================================================================
+// Note: Real MFC doesn't have m_pNextClass in CRuntimeClass struct.
+// We use a separate array to track registered classes.
 
-static CRuntimeClass* g_pFirstClass = nullptr;
+#include <vector>
+static std::vector<CRuntimeClass*>& GetClassRegistry() {
+    static std::vector<CRuntimeClass*> registry;
+    return registry;
+}
 
 // Register a class in the global list
 static void RegisterRuntimeClass(CRuntimeClass* pClass) {
     if (pClass) {
-        pClass->m_pNextClass = g_pFirstClass;
-        g_pFirstClass = pClass;
+        auto& registry = GetClassRegistry();
+        // Avoid duplicates
+        for (auto* c : registry) {
+            if (c == pClass) return;
+        }
+        registry.push_back(pClass);
     }
 }
 
@@ -186,7 +196,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_
     narrowName[i] = '\0';
 
     // Search the registered classes
-    for (CRuntimeClass* pClass = g_pFirstClass; pClass; pClass = pClass->m_pNextClass) {
+    for (CRuntimeClass* pClass : GetClassRegistry()) {
         if (pClass->m_lpszClassName && strcmp(pClass->m_lpszClassName, narrowName) == 0) {
             if (pClass->m_pfnCreateObject) {
                 return pClass->m_pfnCreateObject();
@@ -211,7 +221,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD
     InitializeClasses();
 
     // Search the registered classes
-    for (CRuntimeClass* pClass = g_pFirstClass; pClass; pClass = pClass->m_pNextClass) {
+    for (CRuntimeClass* pClass : GetClassRegistry()) {
         if (pClass->m_lpszClassName && strcmp(pClass->m_lpszClassName, lpszClassName) == 0) {
             if (pClass->m_pfnCreateObject) {
                 return pClass->m_pfnCreateObject();
@@ -245,7 +255,7 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
     narrowName[i] = '\0';
 
     // Search the registered classes
-    for (CRuntimeClass* pClass = g_pFirstClass; pClass; pClass = pClass->m_pNextClass) {
+    for (CRuntimeClass* pClass : GetClassRegistry()) {
         if (pClass->m_lpszClassName && strcmp(pClass->m_lpszClassName, narrowName) == 0) {
             return pClass;
         }
@@ -267,7 +277,7 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
     InitializeClasses();
 
     // Search the registered classes
-    for (CRuntimeClass* pClass = g_pFirstClass; pClass; pClass = pClass->m_pNextClass) {
+    for (CRuntimeClass* pClass : GetClassRegistry()) {
         if (pClass->m_lpszClassName && strcmp(pClass->m_lpszClassName, lpszClassName) == 0) {
             return pClass;
         }
