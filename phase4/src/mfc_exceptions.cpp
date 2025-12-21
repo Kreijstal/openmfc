@@ -46,6 +46,18 @@ asm(".globl \"?classCException@CException@@2UCRuntimeClass@@A\"\n"
 #endif
 
 // =============================================================================
+// CException::GetThisClass Implementation
+// =============================================================================
+
+// Symbol: ?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CException__SAPEAUCRuntimeClass__XZ() {
+    return &CException::classCException;
+}
+
+asm(".globl \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CException__SAPEAUCRuntimeClass__XZ\n");
+
+// =============================================================================
 // Missing Exception Class Definitions
 // =============================================================================
 

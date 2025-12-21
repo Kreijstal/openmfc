@@ -114,6 +114,25 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
 
+// Define MS_ABI if not defined
+#ifdef __GNUC__
+  #ifndef MS_ABI
+    #define MS_ABI __attribute__((ms_abi))
+  #endif
+#else
+  #define MS_ABI
+#endif
+
+// Symbol: ?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() {
+    return &CMemoryException::classCMemoryException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
 #ifdef __GNUC__
 // CMemoryException::classCMemoryException - MSVC symbol alias
 // Note: GCC mangling uses 21 for the member name length (includes the full count)
