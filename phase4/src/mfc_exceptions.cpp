@@ -614,8 +614,23 @@ static void* g_vtbl_CArchiveException[] = {
 template<typename T>
 static void PatchVPtr(T* pObj, void** vtable) {
     // The vptr is at offset 0 in the object
+    void** currentVptr = *reinterpret_cast<void***>(pObj);
+    (void)currentVptr; // For debugging: we're replacing this
     *reinterpret_cast<void***>(pObj) = vtable;
 }
+
+// Alternative: A pre-constructed exception object with the correct vtable
+// This avoids issues with copy constructors potentially resetting the vptr
+struct ManualCMemoryException {
+    void* vptr;           // Offset 0: points to our MSVC-compatible vtable
+    int m_bAutoDelete;    // CException::m_bAutoDelete
+    // Note: CMemoryException doesn't add any members beyond CException
+};
+
+static ManualCMemoryException g_ManualMemoryException = {
+    g_vtbl_CMemoryException,  // Pre-set vptr
+    0                         // m_bAutoDelete = 0 (memory exceptions not auto-deleted)
+};
 
 // =============================================================================
 // Helper functions to throw exceptions
@@ -651,7 +666,10 @@ static void ThrowNew(T* pException, ThrowInfo* pThrowInfo, void** msvcVtable) {
 
 // AfxThrowMemoryException - void()
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
-    ThrowStatic(&g_MemoryException, &TI_CMemoryException, g_vtbl_CMemoryException);
+    // Use the manually constructed exception with pre-set MSVC vtable
+    // This avoids any issues with MinGW vtable layout
+    CMemoryException* pEx = reinterpret_cast<CMemoryException*>(&g_ManualMemoryException);
+    ThrowStatic(pEx, &TI_CMemoryException, nullptr);  // vtable already set
 }
 
 // AfxThrowNotSupportedException - void()
