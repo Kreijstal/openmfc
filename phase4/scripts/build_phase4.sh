@@ -87,8 +87,31 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?ShowWindow@CWnd@@QEAAHH@Z,?UpdateWindow@CWn
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z,?PreCreateWindow@CFrameWnd@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadFrame@CFrameWnd@@UEAAHIKPEAVCWnd@@PEAUCCreateContext@@@Z"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z,?WindowProc@CWnd@@MEAA_JI_K_J@Z,?GetSafeHwnd@CWnd@@QEBAPEAUHWND__@@XZ"
-# CCmdTarget destructor (x64)
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??1CCmdTarget@@UEAA@XZ"
+# CCmdTarget destructor (x64) and GetThisClass
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??1CCmdTarget@@UEAA@XZ,?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ"
+
+# CWinApp/CWinThread constructors and destructors (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CWinApp@@QEAA@PEB_W@Z,??1CWinApp@@UEAA@XZ,??0CWinThread@@QEAA@XZ,??1CWinThread@@UEAA@XZ"
+# CWinApp/CWinThread methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Run@CWinThread@@UEAAHXZ,?Run@CWinApp@@UEAAHXZ,?InitInstance@CWinApp@@UEAAHXZ,?InitInstance@CWinThread@@UEAAHXZ,?ExitInstance@CWinThread@@UEAAHXZ,?ExitInstance@CWinApp@@UEAAHXZ"
+# CWinApp/CWinThread GetThisClass
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ,?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ"
+
+# AfxWinMain (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxWinMain@@YAHPEAUHINSTANCE__@@0PEA_WH@Z"
+# AfxGetThread (x64) - implemented in appcore.cpp
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetThread@@YAPEAVCWinThread@@XZ"
+# CFrameWnd constructor/destructor (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CFrameWnd@@QEAA@XZ,??1CFrameWnd@@UEAA@XZ"
+# CWnd/CFrameWnd window methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAV1@IPEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?Create@CFrameWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@0KPEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?ShowWindow@CWnd@@QEAAHH@Z,?UpdateWindow@CWnd@@QEAAXXZ,?DestroyWindow@CWnd@@UEAAHXZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z,?PreCreateWindow@CFrameWnd@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?LoadFrame@CFrameWnd@@UEAAHIKPEAVCWnd@@PEAUCCreateContext@@@Z"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z,?WindowProc@CWnd@@MEAA_JI_K_J@Z,?GetSafeHwnd@CWnd@@QEBAPEAUHWND__@@XZ"
+# CWnd/CFrameWnd GetThisClass
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ,?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ"
 # CDialog methods (x64)
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,??0CDialog@@QEAA@XZ,??0CDialog@@QEAA@IPEAVCWnd@@@Z,??0CDialog@@QEAA@PEB_WPEAVCWnd@@@Z,??1CDialog@@UEAA@XZ"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?DoModal@CDialog@@UEAA_JXZ,?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z,?EndDialog@CDialog@@QEAAXH@Z"
@@ -161,6 +184,21 @@ fi
 if [[ -n "$AUTO_EXCLUDES" ]]; then
     EXCLUDED_SYMBOLS="${EXCLUDED_SYMBOLS},${AUTO_EXCLUDES}"
 fi
+
+# Static Class Members (Data Exports)
+# We implement these manually (via IMPLEMENT_DYNAMIC or manual definition) so we must exclude them from stubs
+# CObject
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCObject@CObject@@2UCRuntimeClass@@A"
+# CException and derived
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCException@CException@@2UCRuntimeClass@@A,?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A,?classCFileException@CFileException@@2UCRuntimeClass@@A,?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A"
+# Application Core
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A,?classCWinThread@CWinThread@@2UCRuntimeClass@@A,?classCWinApp@CWinApp@@2UCRuntimeClass@@A"
+# Windowing
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCWnd@CWnd@@2UCRuntimeClass@@A,?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A"
+# Menus
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCMenu@CMenu@@2UCRuntimeClass@@A"
+# GDI
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A,?classCPen@CPen@@2UCRuntimeClass@@A,?classCBrush@CBrush@@2UCRuntimeClass@@A,?classCFont@CFont@@2UCRuntimeClass@@A,?classCBitmap@CBitmap@@2UCRuntimeClass@@A,?classCPalette@CPalette@@2UCRuntimeClass@@A,?classCRgn@CRgn@@2UCRuntimeClass@@A,?classCDC@CDC@@2UCRuntimeClass@@A,?classCClientDC@CClientDC@@2UCRuntimeClass@@A,?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A,?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \

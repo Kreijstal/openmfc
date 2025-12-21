@@ -44,12 +44,40 @@ static ATOM g_atomOpenMFCClass = 0;
 // CWnd Implementation
 // =============================================================================
 
+IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
+
+#ifdef __GNUC__
+// CWnd::classCWnd - MSVC symbol alias
+asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
+#endif
+
+// Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
+    return &CWnd::classCWnd;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
 IMPLEMENT_DYNAMIC(CFrameWnd, CWnd)
 
 #ifdef __GNUC__
 // CFrameWnd::classCFrameWnd - MSVC symbol alias
 asm(".globl \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\", _ZN9CFrameWnd14classCFrameWndE\n");
+#endif
+
+// Symbol: ?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ() {
+    return &CFrameWnd::classCFrameWnd;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
 // CWnd::Create

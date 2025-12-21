@@ -21,7 +21,8 @@
 
 // Core class implementations
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
-IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
+// CWnd moved to wincore.cpp
+// CWinThread and CWinApp implementations are further down
 
 // Create MSVC symbol aliases for static class members
 // These are needed because MSVC client code expects MSVC-mangled names
@@ -29,9 +30,42 @@ IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 // CCmdTarget::classCCmdTarget
 asm(".globl \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\", _ZN10CCmdTarget15classCCmdTargetE\n");
-// CWnd::classCWnd
-asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
+// CWinThread::classCWinThread
+asm(".globl \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\", _ZN10CWinThread15classCWinThreadE\n");
+// CWinApp::classCWinApp
+asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\", _ZN7CWinApp12classCWinAppE\n");
+#endif
+
+// Symbol: ?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinThread__SAPEAUCRuntimeClass__XZ() {
+    return &CWinThread::classCWinThread;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWinThread__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
+// Symbol: ?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinApp__SAPEAUCRuntimeClass__XZ() {
+    return &CWinApp::classCWinApp;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWinApp__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
+// Symbol: ?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CCmdTarget__SAPEAUCRuntimeClass__XZ() {
+    return &CCmdTarget::classCCmdTarget;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CCmdTarget__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
 // =============================================================================
