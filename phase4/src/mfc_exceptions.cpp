@@ -567,9 +567,15 @@ extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned
 // MSVC vtable for CMemoryException
 // Note: In real MFC, CObject declares GetRuntimeClass BEFORE the destructor.
 // So the layout is: [GetRuntimeClass, dtor, Serialize, AssertValid, Dump, GetErrorMessage]
+
+// We call the GetThisClass function which we export with MSVC mangling.
+// This ensures we return the exact same address that RUNTIME_CLASS(CMemoryException) uses.
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
+
 extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
     (void)pThis;
-    return &CMemoryException::classCMemoryException;
+    // Call our exported GetThisClass - this returns the exact address MSVC expects
+    return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 }
 
 static void* g_vtbl_CMemoryException[] = {

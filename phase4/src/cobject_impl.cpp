@@ -111,13 +111,24 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
         return FALSE;
     }
 
-    // Get this object's runtime class by calling through the vtable
-    // In a real scenario, we'd call pThis->GetRuntimeClass() virtually
-    // But since this IS CObject's implementation, we need to be careful
-    // The actual virtual dispatch happens at the call site
+    // Get this object's runtime class by calling GetRuntimeClass() through the vtable
+    // MSVC vtable layout: GetRuntimeClass is at vtable[0]
+    // We need to call through the vtable to get the actual runtime class
+    typedef CRuntimeClass* (MS_ABI *GetRuntimeClassFn)(const CObject*);
 
-    // For now, assume pThis is exactly a CObject (caller handles vtable dispatch)
-    const CRuntimeClass* pThisClass = &CObject::classCObject;
+    // Get vptr (first pointer in the object)
+    void** vptr = *(void***)pThis;
+    if (!vptr) {
+        return FALSE;
+    }
+
+    // vtable[0] is GetRuntimeClass
+    GetRuntimeClassFn getRuntimeClass = (GetRuntimeClassFn)vptr[0];
+    const CRuntimeClass* pThisClass = getRuntimeClass(pThis);
+
+    if (!pThisClass) {
+        return FALSE;
+    }
 
     // Walk the inheritance chain
     while (pThisClass != nullptr) {
