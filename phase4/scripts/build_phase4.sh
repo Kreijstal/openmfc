@@ -62,6 +62,10 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetRuntimeClass@CObject@@UEBAPEAUCRuntimeCl
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ"
 # CMemoryException methods (x64)
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ"
+# CFileException methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ"
+# CArchiveException methods (x64)
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ"
 # CRuntimeClass methods (x64)
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z,?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z,?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z,?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z,?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z,?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z,?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z"
 # Helper functions (x64)

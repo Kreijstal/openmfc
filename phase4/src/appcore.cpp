@@ -145,6 +145,16 @@ asm(".globl \"?classCFileException@CFileException@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCFileException@CFileException@@2UCRuntimeClass@@A\", _ZN14CFileException19classCFileExceptionE\n");
 #endif
 
+// Symbol: ?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ() {
+    return &CFileException::classCFileException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 
 #ifdef __GNUC__
@@ -152,6 +162,16 @@ IMPLEMENT_DYNAMIC(CArchiveException, CException)
 // Note: GCC mangling uses 22 for the member name length
 asm(".globl \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\", _ZN17CArchiveException22classCArchiveExceptionE\n");
+#endif
+
+// Symbol: ?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CArchiveException__SAPEAUCRuntimeClass__XZ() {
+    return &CArchiveException::classCArchiveException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CArchiveException__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
 CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
