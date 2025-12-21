@@ -565,19 +565,20 @@ extern "C" void MS_ABI stub_Dump(const CObject*) {}
 extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned int, unsigned int*) { return 0; }
 
 // MSVC vtable for CMemoryException
-// Layout: [dtor, GetRuntimeClass, Serialize, AssertValid, Dump, GetErrorMessage]
+// Note: In real MFC, CObject declares GetRuntimeClass BEFORE the destructor.
+// So the layout is: [GetRuntimeClass, dtor, Serialize, AssertValid, Dump, GetErrorMessage]
 extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
     (void)pThis;
     return &CMemoryException::classCMemoryException;
 }
 
 static void* g_vtbl_CMemoryException[] = {
-    (void*)stub_dtor,
-    (void*)vtbl_CMemoryException_GetRuntimeClass,
-    (void*)stub_Serialize,
-    (void*)stub_AssertValid,
-    (void*)stub_Dump,
-    (void*)stub_GetErrorMessage
+    (void*)vtbl_CMemoryException_GetRuntimeClass,  // [0] GetRuntimeClass
+    (void*)stub_dtor,                               // [1] destructor
+    (void*)stub_Serialize,                          // [2] Serialize
+    (void*)stub_AssertValid,                        // [3] AssertValid
+    (void*)stub_Dump,                               // [4] Dump
+    (void*)stub_GetErrorMessage                     // [5] GetErrorMessage
 };
 
 // MSVC vtable for CFileException
@@ -587,12 +588,12 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObje
 }
 
 static void* g_vtbl_CFileException[] = {
-    (void*)stub_dtor,
-    (void*)vtbl_CFileException_GetRuntimeClass,
-    (void*)stub_Serialize,
-    (void*)stub_AssertValid,
-    (void*)stub_Dump,
-    (void*)stub_GetErrorMessage
+    (void*)vtbl_CFileException_GetRuntimeClass,   // [0] GetRuntimeClass
+    (void*)stub_dtor,                              // [1] destructor
+    (void*)stub_Serialize,                         // [2] Serialize
+    (void*)stub_AssertValid,                       // [3] AssertValid
+    (void*)stub_Dump,                              // [4] Dump
+    (void*)stub_GetErrorMessage                    // [5] GetErrorMessage
 };
 
 // MSVC vtable for CArchiveException
@@ -602,12 +603,12 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CO
 }
 
 static void* g_vtbl_CArchiveException[] = {
-    (void*)stub_dtor,
-    (void*)vtbl_CArchiveException_GetRuntimeClass,
-    (void*)stub_Serialize,
-    (void*)stub_AssertValid,
-    (void*)stub_Dump,
-    (void*)stub_GetErrorMessage
+    (void*)vtbl_CArchiveException_GetRuntimeClass, // [0] GetRuntimeClass
+    (void*)stub_dtor,                              // [1] destructor
+    (void*)stub_Serialize,                         // [2] Serialize
+    (void*)stub_AssertValid,                       // [3] AssertValid
+    (void*)stub_Dump,                              // [4] Dump
+    (void*)stub_GetErrorMessage                    // [5] GetErrorMessage
 };
 
 // Patch vptr to point to our MSVC-compatible vtable
