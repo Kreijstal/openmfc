@@ -12,7 +12,7 @@ Unsafe patterns:
 4. Wrong stub naming convention
 
 Safe patterns:
-1. extern "C" void MS_ABI stub__Name__Mangled() { ... }
+1. extern "C" void MS_ABI impl__Name__Mangled() { ... }
 2. extern "C" int variable = 0;  // data exports
 """
 
@@ -117,7 +117,7 @@ def main():
         print("2. Use stub names from gen_weak_stubs.py")
         print("3. Internal C++ class methods are OK (for virtual dispatch)")
         print("\nExample safe implementation:")
-        print('''  extern "C" void MS_ABI stub__AfxThrowMemoryException__YAXXZ() {
+        print('''  extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
       // implementation here
   }''')
         

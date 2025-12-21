@@ -21,7 +21,8 @@
 
 // Core class implementations
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
-IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
+// CWnd moved to wincore.cpp
+// CWinThread and CWinApp implementations are further down
 
 // Create MSVC symbol aliases for static class members
 // These are needed because MSVC client code expects MSVC-mangled names
@@ -29,9 +30,42 @@ IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 // CCmdTarget::classCCmdTarget
 asm(".globl \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A\", _ZN10CCmdTarget15classCCmdTargetE\n");
-// CWnd::classCWnd
-asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
+// CWinThread::classCWinThread
+asm(".globl \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinThread@CWinThread@@2UCRuntimeClass@@A\", _ZN10CWinThread15classCWinThreadE\n");
+// CWinApp::classCWinApp
+asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\", _ZN7CWinApp12classCWinAppE\n");
+#endif
+
+// Symbol: ?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinThread__SAPEAUCRuntimeClass__XZ() {
+    return &CWinThread::classCWinThread;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CWinThread@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWinThread__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
+// Symbol: ?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinApp__SAPEAUCRuntimeClass__XZ() {
+    return &CWinApp::classCWinApp;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CWinApp@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWinApp__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
+// Symbol: ?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CCmdTarget__SAPEAUCRuntimeClass__XZ() {
+    return &CCmdTarget::classCCmdTarget;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CCmdTarget__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
 // =============================================================================
@@ -45,7 +79,7 @@ CCmdTarget::~CCmdTarget() {
 }
 
 // Exported stub for CCmdTarget destructor
-extern "C" void MS_ABI stub___1CCmdTarget__UEAA_XZ(CCmdTarget* pThis) {
+extern "C" void MS_ABI impl___1CCmdTarget__UEAA_XZ(CCmdTarget* pThis) {
     if (pThis) {
         pThis->~CCmdTarget();
     }
@@ -114,6 +148,25 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
 
+// Define MS_ABI if not defined
+#ifdef __GNUC__
+  #ifndef MS_ABI
+    #define MS_ABI __attribute__((ms_abi))
+  #endif
+#else
+  #define MS_ABI
+#endif
+
+// Symbol: ?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() {
+    return &CMemoryException::classCMemoryException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
 #ifdef __GNUC__
 // CMemoryException::classCMemoryException - MSVC symbol alias
 // Note: GCC mangling uses 21 for the member name length (includes the full count)
@@ -126,6 +179,16 @@ asm(".globl \"?classCFileException@CFileException@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCFileException@CFileException@@2UCRuntimeClass@@A\", _ZN14CFileException19classCFileExceptionE\n");
 #endif
 
+// Symbol: ?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ() {
+    return &CFileException::classCFileException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ\n");
+#endif
+
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 
 #ifdef __GNUC__
@@ -133,6 +196,16 @@ IMPLEMENT_DYNAMIC(CArchiveException, CException)
 // Note: GCC mangling uses 22 for the member name length
 asm(".globl \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A\", _ZN17CArchiveException22classCArchiveExceptionE\n");
+#endif
+
+// Symbol: ?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CArchiveException__SAPEAUCRuntimeClass__XZ() {
+    return &CArchiveException::classCArchiveException;
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ\"\n"
+    ".set \"?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CArchiveException__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
 CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
@@ -203,42 +276,42 @@ int CWinThread::Run() {
 // CWinThread::Run - exported stub
 // Symbol: ?Run@CWinThread@@UAAHXZ
 // Ordinal: 12614
-extern "C" int MS_ABI stub__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI impl__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->Run();
 }
 
 // CWinApp::Run - exported stub (delegates to CWinThread::Run)
 // Symbol: ?Run@CWinApp@@UAAHXZ
 // Ordinal: 12613
-extern "C" int MS_ABI stub__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI impl__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->Run();
 }
 
 // CWinApp::InitInstance - exported stub
 // Symbol: ?InitInstance@CWinApp@@UAAHXZ
 // Ordinal: 7726
-extern "C" int MS_ABI stub__InitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI impl__InitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->InitInstance();
 }
 
 // CWinThread::InitInstance - exported stub
 // Symbol: ?InitInstance@CWinThread@@UAAHXZ
 // Ordinal: 7727
-extern "C" int MS_ABI stub__InitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI impl__InitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->InitInstance();
 }
 
 // CWinThread::ExitInstance - exported stub
 // Symbol: ?ExitInstance@CWinThread@@UAAHXZ
 // Ordinal: 4457
-extern "C" int MS_ABI stub__ExitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI impl__ExitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->ExitInstance();
 }
 
 // CWinApp::ExitInstance - exported stub
 // Symbol: ?ExitInstance@CWinApp@@UAAHXZ
 // Ordinal: 4455
-extern "C" int MS_ABI stub__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
+extern "C" int MS_ABI impl__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->ExitInstance();
 }
 
@@ -296,7 +369,7 @@ CWinThread* AfxGetThread() {
 
 // AfxGetThread - exported stub for MSVC
 // Symbol: ?AfxGetThread@@YAPEAVCWinThread@@XZ
-extern "C" CWinThread* MS_ABI stub__AfxGetThread__YAPEAVCWinThread__XZ() {
+extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ() {
     return AfxGetThread();
 }
 
@@ -307,7 +380,7 @@ extern "C" CWinThread* MS_ABI stub__AfxGetThread__YAPEAVCWinThread__XZ() {
 // CWinApp constructor
 // Symbol: ??0CWinApp@@QAA@PB_W@Z
 // Ordinal: 983
-extern "C" CWinApp* MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
+extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
     // Initialize base class (CWinThread)
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = GetCurrentThreadId();
@@ -332,7 +405,7 @@ extern "C" CWinApp* MS_ABI stub___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const w
 // CWinApp destructor
 // Symbol: ??1CWinApp@@UAA@XZ
 // Ordinal: 1450
-extern "C" void MS_ABI stub___1CWinApp__UEAA_XZ(CWinApp* pThis) {
+extern "C" void MS_ABI impl___1CWinApp__UEAA_XZ(CWinApp* pThis) {
     if (g_pApp == pThis) {
         g_pApp = nullptr;
     }
@@ -341,7 +414,7 @@ extern "C" void MS_ABI stub___1CWinApp__UEAA_XZ(CWinApp* pThis) {
 // CWinThread default constructor
 // Symbol: ??0CWinThread@@QAA@XZ
 // Ordinal: 988
-extern "C" CWinThread* MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
+extern "C" CWinThread* MS_ABI impl___0CWinThread__QEAA_XZ(CWinThread* pThis) {
     pThis->m_pMainWnd = nullptr;
     pThis->m_nThreadID = 0;
     pThis->m_hThread = nullptr;
@@ -353,7 +426,7 @@ extern "C" CWinThread* MS_ABI stub___0CWinThread__QEAA_XZ(CWinThread* pThis) {
 // CWinThread destructor
 // Symbol: ??1CWinThread@@UAA@XZ
 // Ordinal: 1453
-extern "C" void MS_ABI stub___1CWinThread__UEAA_XZ(CWinThread* pThis) {
+extern "C" void MS_ABI impl___1CWinThread__UEAA_XZ(CWinThread* pThis) {
     pThis->~CWinThread();
 }
 

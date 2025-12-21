@@ -39,12 +39,12 @@ extern CWinApp* g_pApp;
 // =============================================================================
 // CObject::Serialize Export
 // MSVC symbol: ?Serialize@CObject@@UEAAXAEAVCArchive@@@Z
-// Stub name: stub___Serialize_CObject__UEAAXAEAVCArchive___Z
+// Stub name: impl___Serialize_CObject__UEAAXAEAVCArchive___Z
 // =============================================================================
 
 // CObject::Serialize is defined in cobject_impl.cpp
 // This stub provides the exported function with MS ABI calling convention
-extern "C" void MS_ABI stub___Serialize_CObject__UEAAXAEAVCArchive___Z(CObject* pThis, CArchive* pAr) {
+extern "C" void MS_ABI impl___Serialize_CObject__UEAAXAEAVCArchive___Z(CObject* pThis, CArchive* pAr) {
     if (pThis && pAr) {
         pThis->Serialize(*pAr);
     }
@@ -53,11 +53,11 @@ extern "C" void MS_ABI stub___Serialize_CObject__UEAAXAEAVCArchive___Z(CObject* 
 // =============================================================================
 // CCmdTarget::OnCmdMsg Export
 // MSVC symbol: ?OnCmdMsg@CCmdTarget@@UEAAHIHPEAX0@Z
-// Stub name: stub___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z
+// Stub name: impl___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z
 // =============================================================================
 
 // OnCmdMsg is already implemented in appcore.cpp, but we need to export it
-extern "C" int MS_ABI stub___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z(
+extern "C" int MS_ABI impl___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z(
     CCmdTarget* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
     if (pThis) {
         return pThis->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
@@ -68,10 +68,10 @@ extern "C" int MS_ABI stub___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z(
 // =============================================================================
 // CWinThread::PrePumpMessage Export
 // MSVC symbol: ?PrePumpMessage@CWinThread@@UEAAHXZ
-// Stub name: stub___PrePumpMessage_CWinThread__UEAAHXZ
+// Stub name: impl___PrePumpMessage_CWinThread__UEAAHXZ
 // =============================================================================
 
-extern "C" int MS_ABI stub___PrePumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI impl___PrePumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
     if (pThis) {
         return pThis->PrePumpMessage();
     }
@@ -81,10 +81,10 @@ extern "C" int MS_ABI stub___PrePumpMessage_CWinThread__UEAAHXZ(CWinThread* pThi
 // =============================================================================
 // CWinThread::PostPumpMessage Export
 // MSVC symbol: ?PostPumpMessage@CWinThread@@UEAAHXZ
-// Stub name: stub___PostPumpMessage_CWinThread__UEAAHXZ
+// Stub name: impl___PostPumpMessage_CWinThread__UEAAHXZ
 // =============================================================================
 
-extern "C" int MS_ABI stub___PostPumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
+extern "C" int MS_ABI impl___PostPumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
     if (pThis) {
         return pThis->PostPumpMessage();
     }

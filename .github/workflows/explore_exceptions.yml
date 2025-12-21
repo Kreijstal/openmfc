@@ -190,28 +190,55 @@ jobs:
             "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
-      - name: Build CObject RTTI test
+      - name: Build CObject RTTI test (REAL MFC)
         shell: cmd
         run: |
+          REM First build against REAL MFC to validate test correctness
+          cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_cobject_rtti.cpp /Fe:test_cobject_rtti_real_mfc.exe
+          if %ERRORLEVEL% neq 0 exit /b 1
+          echo Build with real MFC successful
+
+      - name: Run CObject RTTI test (REAL MFC)
+        shell: pwsh
+        id: cobject_test_real
+        run: |
+          Write-Host "=== Running CObject RTTI Test (REAL MFC) ===" -ForegroundColor Cyan
+          Write-Host "Validating test against real mfc140u.dll first" -ForegroundColor Yellow
+
+          $output = & .\test_cobject_rtti_real_mfc.exe 2>&1 | Out-String
+          Write-Host $output
+
+          if ($output -match "All Tests Passed") {
+            Write-Host "REAL MFC TEST PASSED - test is valid!" -ForegroundColor Green
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "REAL MFC TEST FAILED - test may have issues" -ForegroundColor Red
+            "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build CObject RTTI test (OpenMFC)
+        shell: cmd
+        run: |
+          REM Now build against OpenMFC - results should match real MFC
           cl /nologo /EHsc /MD /D_AFXDLL phase4\tests\test_cobject_rtti.cpp openmfc.lib /Fe:test_cobject_rtti.exe /link /NODEFAULTLIB:mfc140u.lib
           if %ERRORLEVEL% neq 0 exit /b 1
-          echo Build successful
+          echo Build with OpenMFC successful
 
-      - name: Run CObject RTTI test
+      - name: Run CObject RTTI test (OpenMFC)
         shell: pwsh
         id: cobject_test
         run: |
-          Write-Host "=== Running CObject RTTI Test ===" -ForegroundColor Cyan
+          Write-Host "=== Running CObject RTTI Test (OpenMFC) ===" -ForegroundColor Cyan
           Write-Host "Testing CObject::GetRuntimeClass, IsKindOf, etc." -ForegroundColor Yellow
 
           $output = & .\test_cobject_rtti.exe 2>&1 | Out-String
           Write-Host $output
 
           if ($output -match "All Tests Passed") {
-            Write-Host "COBJECT RTTI TEST PASSED!" -ForegroundColor Green
+            Write-Host "OPENMFC COBJECT RTTI TEST PASSED!" -ForegroundColor Green
             "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
-            Write-Host "COBJECT RTTI TEST FAILED" -ForegroundColor Red
+            Write-Host "OPENMFC COBJECT RTTI TEST FAILED" -ForegroundColor Red
             "result=failed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 

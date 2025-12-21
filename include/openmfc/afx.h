@@ -170,14 +170,17 @@ struct CFileStatus {
 
 // CRuntimeClass - runtime type information structure
 // This structure is used for MFC's own RTTI system (separate from C++ RTTI)
+// IMPORTANT: Layout must match real MFC exactly for ABI compatibility!
 struct CRuntimeClass {
-    const char* m_lpszClassName;      // Class name string
-    int m_nObjectSize;                // sizeof(class)
-    unsigned int m_wSchema;           // Schema number for serialization (-1 if not serializable)
-    CObject* (AFXAPI *m_pfnCreateObject)();  // Factory function (NULL if not creatable)
-    CRuntimeClass* m_pBaseClass;      // Pointer to base class CRuntimeClass (NULL for CObject)
-    CRuntimeClass* m_pNextClass;      // Linked list of registered classes
-    
+    // IMPORTANT: Field order must match real MFC exactly for ABI compatibility!
+    const char* m_lpszClassName;      // Class name string (offset 0)
+    int m_nObjectSize;                // sizeof(class) (offset 8)
+    unsigned int m_wSchema;           // Schema number for serialization (offset 12)
+    CObject* (AFXAPI *m_pfnCreateObject)();  // Factory function (offset 16)
+    CRuntimeClass* (AFXAPI *m_pfnGetBaseClass)(); // Get base class for DLL (offset 24)
+    CRuntimeClass* m_pBaseClass;      // Pointer to base class (offset 32)
+    CRuntimeClass* m_pNextClass;      // Linked list of registered classes (offset 40)
+
     // Helper methods
     CObject* CreateObject() const {
         if (m_pfnCreateObject != nullptr) {
@@ -185,14 +188,19 @@ struct CRuntimeClass {
         }
         return nullptr;
     }
-    
+
     bool IsDerivedFrom(const CRuntimeClass* pBaseClass) const {
         const CRuntimeClass* pClassThis = this;
         while (pClassThis != nullptr) {
             if (pClassThis == pBaseClass) {
                 return true;
             }
-            pClassThis = pClassThis->m_pBaseClass;
+            // Use m_pfnGetBaseClass if available (DLL linking), otherwise m_pBaseClass
+            if (pClassThis->m_pfnGetBaseClass) {
+                pClassThis = pClassThis->m_pfnGetBaseClass();
+            } else {
+                pClassThis = pClassThis->m_pBaseClass;
+            }
         }
         return false;
     }
@@ -212,11 +220,13 @@ public: \
     static CObject* AFXAPI CreateObject() { return new class_name; }
 
 // IMPLEMENT_DYNAMIC - implements runtime class (put in .cpp file)
+// Order must match CRuntimeClass layout: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pBaseClass, pNextClass
 #define IMPLEMENT_DYNAMIC(class_name, base_class_name) \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
         0xFFFF, \
+        nullptr, \
         nullptr, \
         &base_class_name::class##base_class_name, \
         nullptr \
@@ -229,6 +239,7 @@ public: \
         sizeof(class_name), \
         0xFFFF, \
         &class_name::CreateObject, \
+        nullptr, \
         &base_class_name::class##base_class_name, \
         nullptr \
     };
@@ -782,13 +793,15 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 // Note: This should be in a .cpp file normally, but for header-only we inline it
 #ifndef COBJECT_IMPL_DEFINED
 #define COBJECT_IMPL_DEFINED
+// Order: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pBaseClass, pNextClass
 inline CRuntimeClass CObject::classCObject = {
     "CObject",
     sizeof(CObject),
-    0xFFFF,
-    nullptr,
-    nullptr,
-    nullptr
+    0xFFFF,         // m_wSchema
+    nullptr,        // m_pfnCreateObject
+    nullptr,        // m_pfnGetBaseClass
+    nullptr,        // m_pBaseClass - CObject is root
+    nullptr         // m_pNextClass
 };
 
 // CObject::Serialize default implementation (does nothing for base class)

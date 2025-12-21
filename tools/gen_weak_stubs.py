@@ -32,7 +32,7 @@ def generate_stub_name(symbol: str) -> str:
         stub = '_' + stub
     if len(stub) > 200:
         stub = stub[:100] + '_' + stub[-100:]
-    return 'stub_' + stub
+    return 'impl_' + stub
 
 
 def is_data_export(symbol: str) -> bool:
@@ -197,7 +197,7 @@ def emit_weak_stubs(entries: List[Dict[str, Any]]) -> str:
         '// symbols behave differently than ELF. Instead, to override a stub:',
         '// 1. Add the function name to an exclusion list in gen_weak_stubs.py',
         '// 2. Regenerate stubs (the excluded function will not be generated)',
-        '// 3. Provide your own implementation with the same stub_xxx name',
+        '// 3. Provide your own implementation with the same impl_xxx name',
         '',
         '#include <cstdio>',
         '#include <cstdlib>',
