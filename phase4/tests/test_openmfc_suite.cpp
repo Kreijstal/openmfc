@@ -22,8 +22,8 @@
 #include <cstring>
 
 // AfxGetDllVersion is exported by MFC but not declared in public headers
-// We declare it ourselves to test it
-extern "C" __declspec(dllimport) unsigned long __cdecl AfxGetDllVersion();
+// We declare it ourselves to test it (C++ linkage, not extern "C")
+__declspec(dllimport) unsigned long __cdecl AfxGetDllVersion();
 
 // =============================================================================
 // Test Framework
