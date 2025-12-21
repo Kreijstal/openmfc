@@ -21,6 +21,10 @@
 #include <cstdio>
 #include <cstring>
 
+// AfxGetDllVersion is exported by MFC but not declared in public headers
+// We declare it ourselves to test it
+extern "C" __declspec(dllimport) unsigned long __cdecl AfxGetDllVersion();
+
 // =============================================================================
 // Test Framework
 // =============================================================================
@@ -69,13 +73,14 @@ static const char* g_currentSection = nullptr;
 // Test 1: Version Functions
 // =============================================================================
 
-// Note: AfxGetDllVersion is not declared in real MFC headers, so we skip this test
-// when building against real MFC. We export the symbol but can't test it here.
 void test_version_functions() {
     SECTION("Version Functions");
 
-    // AfxGetDllVersion is not declared in afx.h, skip for now
-    TEST_SKIP("AfxGetDllVersion()", "Function not declared in MFC headers");
+    // AfxGetDllVersion returns the MFC DLL version
+    // MFC 14.0 (VS 2015+) returns 0x0E00
+    unsigned long version = AfxGetDllVersion();
+    TEST("AfxGetDllVersion() returns valid version", version == 0x0E00);
+    INFO("AfxGetDllVersion() = 0x%04lX (expected 0x0E00)", version);
 }
 
 // =============================================================================
