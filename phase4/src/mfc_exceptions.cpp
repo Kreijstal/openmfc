@@ -532,21 +532,115 @@ static void InitAllRTTI() {
 }
 
 // =============================================================================
+// MSVC-compatible vtable for exception classes
+// =============================================================================
+//
+// Problem: MinGW uses Itanium ABI which has 2 destructor entries in vtable.
+// MSVC has only 1 destructor entry. So the virtual function offsets differ:
+//   MSVC:   vtable[0]=dtor, vtable[1]=GetRuntimeClass, vtable[2]=Serialize, ...
+//   MinGW:  vtable[0]=dtor1, vtable[1]=dtor2, vtable[2]=GetRuntimeClass, ...
+//
+// When MSVC code catches our exception and calls pException->GetRuntimeClass(),
+// it looks at vtable[1], but in MinGW's vtable that's the deleting destructor!
+//
+// Solution: Create MSVC-compatible vtables and patch the vptr before throwing.
+
+// Forward declarations of GetRuntimeClass implementations
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemoryException(const CMemoryException* pThis);
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CException(const CException* pThis);
+
+// Destructor that does nothing (exceptions are static or manually managed)
+extern "C" void* MS_ABI stub_dtor(void* pThis) { return pThis; }
+
+// Serialize does nothing for exceptions
+extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
+
+// AssertValid does nothing
+extern "C" void MS_ABI stub_AssertValid(const CObject*) {}
+
+// Dump does nothing
+extern "C" void MS_ABI stub_Dump(const CObject*) {}
+
+// GetErrorMessage returns 0 (not implemented)
+extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned int, unsigned int*) { return 0; }
+
+// MSVC vtable for CMemoryException
+// Layout: [dtor, GetRuntimeClass, Serialize, AssertValid, Dump, GetErrorMessage]
+extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    return &CMemoryException::classCMemoryException;
+}
+
+static void* g_vtbl_CMemoryException[] = {
+    (void*)stub_dtor,
+    (void*)vtbl_CMemoryException_GetRuntimeClass,
+    (void*)stub_Serialize,
+    (void*)stub_AssertValid,
+    (void*)stub_Dump,
+    (void*)stub_GetErrorMessage
+};
+
+// MSVC vtable for CFileException
+extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    return &CFileException::classCFileException;
+}
+
+static void* g_vtbl_CFileException[] = {
+    (void*)stub_dtor,
+    (void*)vtbl_CFileException_GetRuntimeClass,
+    (void*)stub_Serialize,
+    (void*)stub_AssertValid,
+    (void*)stub_Dump,
+    (void*)stub_GetErrorMessage
+};
+
+// MSVC vtable for CArchiveException
+extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    return &CArchiveException::classCArchiveException;
+}
+
+static void* g_vtbl_CArchiveException[] = {
+    (void*)stub_dtor,
+    (void*)vtbl_CArchiveException_GetRuntimeClass,
+    (void*)stub_Serialize,
+    (void*)stub_AssertValid,
+    (void*)stub_Dump,
+    (void*)stub_GetErrorMessage
+};
+
+// Patch vptr to point to our MSVC-compatible vtable
+template<typename T>
+static void PatchVPtr(T* pObj, void** vtable) {
+    // The vptr is at offset 0 in the object
+    *reinterpret_cast<void***>(pObj) = vtable;
+}
+
+// =============================================================================
 // Helper functions to throw exceptions
 // =============================================================================
 
 template<typename T>
-static void ThrowStatic(T* pException, ThrowInfo* pThrowInfo) {
+static void ThrowStatic(T* pException, ThrowInfo* pThrowInfo, void** msvcVtable) {
     if (!InitExceptionSystem()) { abort(); }
     InitAllRTTI();
+    // Patch vptr to MSVC-compatible vtable before throwing
+    if (msvcVtable) {
+        PatchVPtr(pException, msvcVtable);
+    }
     g_pCxxThrowException(&pException, pThrowInfo);
     abort();
 }
 
 template<typename T>
-static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
+static void ThrowNew(T* pException, ThrowInfo* pThrowInfo, void** msvcVtable) {
     if (!InitExceptionSystem()) { abort(); }
     InitAllRTTI();
+    // Patch vptr to MSVC-compatible vtable before throwing
+    if (msvcVtable) {
+        PatchVPtr(pException, msvcVtable);
+    }
     g_pCxxThrowException(&pException, pThrowInfo);
     abort();
 }
@@ -557,27 +651,27 @@ static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
 
 // AfxThrowMemoryException - void()
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
-    ThrowStatic(&g_MemoryException, &TI_CMemoryException);
+    ThrowStatic(&g_MemoryException, &TI_CMemoryException, g_vtbl_CMemoryException);
 }
 
 // AfxThrowNotSupportedException - void()
 extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() {
-    ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException);
+    ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException, nullptr);
 }
 
 // AfxThrowResourceException - void()
 extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {
-    ThrowNew(new CResourceException(), &TI_CResourceException);
+    ThrowNew(new CResourceException(), &TI_CResourceException, nullptr);
 }
 
 // AfxThrowUserException - void()
 extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ() {
-    ThrowNew(new CUserException(), &TI_CUserException);
+    ThrowNew(new CUserException(), &TI_CUserException, nullptr);
 }
 
 // AfxThrowInvalidArgException - void()
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
-    ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException);
+    ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException, nullptr);
 }
 
 // AfxThrowFileException - void(int cause, LONG lOsError, const wchar_t* lpszFileName)
@@ -588,7 +682,7 @@ extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     if (lpszFileName) {
         pEx->m_strFileName = lpszFileName;
     }
-    ThrowNew(pEx, &TI_CFileException);
+    ThrowNew(pEx, &TI_CFileException, g_vtbl_CFileException);
 }
 
 // AfxThrowArchiveException - void(int cause, const wchar_t* lpszArchiveName)
@@ -596,14 +690,14 @@ extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName
 ) {
     CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
-    ThrowNew(pEx, &TI_CArchiveException);
+    ThrowNew(pEx, &TI_CArchiveException, g_vtbl_CArchiveException);
 }
 
 // AfxThrowOleException - void(HRESULT sc)
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
     COleException* pEx = new COleException();
     pEx->m_sc = sc;
-    ThrowNew(pEx, &TI_COleException);
+    ThrowNew(pEx, &TI_COleException, nullptr);
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, UINT nDescriptionID, UINT nHelpID)
@@ -614,7 +708,7 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     pEx->m_wCode = wCode;
     pEx->m_dwHelpContext = nHelpID;
     // TODO: Load description from resource nDescriptionID
-    ThrowNew(pEx, &TI_COleDispatchException);
+    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID)
@@ -625,7 +719,7 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     pEx->m_wCode = wCode;
     pEx->m_strDescription = lpszDescription;
     pEx->m_dwHelpContext = nHelpID;
-    ThrowNew(pEx, &TI_COleDispatchException);
+    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
@@ -635,7 +729,7 @@ extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
 ) {
     CInternetException* pEx = new CInternetException(dwError);
     pEx->m_dwContext = dwContext;
-    ThrowNew(pEx, &TI_CInternetException);
+    ThrowNew(pEx, &TI_CInternetException, nullptr);
 }
 
 // AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
@@ -644,7 +738,7 @@ extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
 ) {
     (void)pdb; (void)hstmt; // Unused for now
     CDBException* pEx = new CDBException(nRetCode);
-    ThrowNew(pEx, &TI_CDBException);
+    ThrowNew(pEx, &TI_CDBException, nullptr);
 }
 
 // AfxThrowDaoException - void(int nAfxDaoError, SCODE scode)
@@ -655,13 +749,13 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     CDaoException* pEx = new CDaoException();
     pEx->m_nAfxDaoError = (short)nAfxDaoError;
     pEx->m_scode = scode;
-    ThrowNew(pEx, &TI_CDaoException);
+    ThrowNew(pEx, &TI_CDaoException, nullptr);
 }
 
 // AfxThrowLastCleanup - internal MFC function
 extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
     // This is typically called to throw a generic exception during cleanup
-    ThrowNew(new CUserException(), &TI_CUserException);
+    ThrowNew(new CUserException(), &TI_CUserException, nullptr);
 }
 
 // AfxAbort - terminates the application

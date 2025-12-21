@@ -389,17 +389,46 @@ void test_exception_object() {
     TEST("Exception object is caught", pException != nullptr);
 
     if (pException) {
+        // Check that it's a valid object with a vtable
         INFO("Exception object at %p", (void*)pException);
 
-        // Note: Virtual method calls through the vtable (GetRuntimeClass, IsKindOf)
-        // require exact vtable layout match between MinGW-compiled DLL and MSVC-compiled test.
-        // This is a known cross-compiler ABI compatibility issue that requires more work.
-        // For now, we skip these tests as they test vtable compatibility, not core functionality.
+        // Get runtime class (this calls through vtable)
+        // Note: We use C++ try/catch only - can't mix with __try/__except
+        CRuntimeClass* pClass = nullptr;
+        try {
+            pClass = pException->GetRuntimeClass();
+        }
+        catch (...) {
+            INFO("GetRuntimeClass() threw exception");
+        }
 
-        TEST_SKIP("Exception->GetRuntimeClass()", "Cross-compiler vtable ABI - future work");
-        TEST_SKIP("Exception->IsKindOf(CMemoryException)", "Cross-compiler vtable ABI - future work");
-        TEST_SKIP("Exception->IsKindOf(CException)", "Cross-compiler vtable ABI - future work");
-        TEST_SKIP("Exception->IsKindOf(CObject)", "Cross-compiler vtable ABI - future work");
+        if (pClass) {
+            TEST("Exception->GetRuntimeClass() returns valid pointer", pClass != nullptr);
+            if (pClass->m_lpszClassName) {
+                INFO("Runtime class: %s", pClass->m_lpszClassName);
+                TEST("Exception runtime class is CMemoryException",
+                     strcmp(pClass->m_lpszClassName, "CMemoryException") == 0);
+            }
+        } else {
+            TEST_SKIP("Exception->GetRuntimeClass()", "Returns nullptr");
+        }
+
+        // Test IsKindOf
+        bool isKindOfMemory = false;
+        bool isKindOfException = false;
+        bool isKindOfObject = false;
+        try {
+            isKindOfMemory = pException->IsKindOf(RUNTIME_CLASS(CMemoryException)) != 0;
+            isKindOfException = pException->IsKindOf(RUNTIME_CLASS(CException)) != 0;
+            isKindOfObject = pException->IsKindOf(RUNTIME_CLASS(CObject)) != 0;
+        }
+        catch (...) {
+            INFO("IsKindOf() threw exception");
+        }
+
+        TEST("Exception->IsKindOf(CMemoryException)", isKindOfMemory);
+        TEST("Exception->IsKindOf(CException)", isKindOfException);
+        TEST("Exception->IsKindOf(CObject)", isKindOfObject);
     }
 }
 
