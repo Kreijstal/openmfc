@@ -208,10 +208,9 @@ struct CRuntimeClass {
 
 // DECLARE_DYNAMIC - adds runtime class support to a class
 // Use in class declaration (public section)
-// Note: AFX_IMPORT ensures the static member is properly dllimport'd when used from applications
 #define DECLARE_DYNAMIC(class_name) \
 public: \
-    AFX_IMPORT static CRuntimeClass class##class_name; \
+    static CRuntimeClass class##class_name; \
     static CRuntimeClass* GetThisClass() { return &class##class_name; } \
     virtual CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
 
@@ -278,7 +277,7 @@ public:
     virtual void Dump() const {}
     
     // Static CRuntimeClass for CObject
-    AFX_IMPORT static CRuntimeClass classCObject;
+    static CRuntimeClass classCObject;
     
 protected:
     // Protected constructors (CObject shouldn't be directly instantiated in MFC)
