@@ -24,6 +24,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -545,7 +546,30 @@ static void InitAllRTTI() {
 //
 // Solution: Create MSVC-compatible vtables and patch the vptr before throwing.
 
-// Destructor that does nothing (exceptions are static or manually managed)
+// =============================================================================
+// MSVC-compatible vtable stubs
+// =============================================================================
+//
+// IMPORTANT: Auto-delete behavior and memory management
+// -----------------------------------------------------
+// MFC exceptions have an m_bAutoDelete member that controls whether Delete()
+// should call 'delete this'. Our vtable uses stub_dtor which does nothing.
+//
+// This is SAFE for:
+// - CMemoryException: Uses static instance (g_ManualMemoryException), m_bAutoDelete=0
+// - CResourceException: Uses static instance, m_bAutoDelete=0
+// - CUserException: Uses static instance, m_bAutoDelete=0
+//
+// POTENTIAL LEAK for heap-allocated exceptions:
+// - CFileException, CArchiveException: Created with 'new', m_bAutoDelete=1
+//   If MSVC code calls pException->Delete() and m_bAutoDelete is true,
+//   the real destructor won't run and memory won't be freed.
+//
+// Mitigation: These exceptions are typically caught, processed, and re-thrown
+// or the process exits. For long-running apps, consider implementing proper
+// destructor shims that call the real destructor and operator delete.
+//
+// Destructor stub - returns 'this' as MSVC destructors do
 extern "C" void* MS_ABI stub_dtor(void* pThis) { return pThis; }
 
 // Serialize does nothing for exceptions
@@ -564,8 +588,19 @@ extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned
 // Note: In real MFC, CObject declares GetRuntimeClass BEFORE the destructor.
 // So the layout is: [GetRuntimeClass, dtor, Serialize, AssertValid, Dump, GetErrorMessage]
 
-// We call the GetThisClass function which we export with MSVC mangling.
-// This ensures we return the exact same address that RUNTIME_CLASS(CMemoryException) uses.
+// =============================================================================
+// MSVC-compatible vtable arrays
+// =============================================================================
+// These arrays serve as vtable pointers for exception objects thrown to MSVC code.
+// Each entry is explicitly cast to void* to make the ABI assumptions clear:
+// - Index 0: GetRuntimeClass (virtual method declared first in CObject)
+// - Index 1: Destructor
+// - Index 2+: Other virtual methods in declaration order
+//
+// When we set an object's vptr to point to these arrays, MSVC code can call
+// virtual methods correctly even though the object was created by MinGW.
+
+// Forward declaration of exported GetThisClass
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 
 extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
@@ -574,43 +609,44 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const COb
     return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 }
 
+// CMemoryException vtable - used by g_ManualMemoryException and patched exceptions
 static void* g_vtbl_CMemoryException[] = {
-    (void*)vtbl_CMemoryException_GetRuntimeClass,  // [0] GetRuntimeClass
-    (void*)stub_dtor,                               // [1] destructor
-    (void*)stub_Serialize,                          // [2] Serialize
-    (void*)stub_AssertValid,                        // [3] AssertValid
-    (void*)stub_Dump,                               // [4] Dump
-    (void*)stub_GetErrorMessage                     // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(stub_dtor),                               // [1] destructor
+    reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                     // [5] GetErrorMessage
 };
 
-// MSVC vtable for CFileException
+// CFileException vtable
 extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObject* pThis) {
     (void)pThis;
     return &CFileException::classCFileException;
 }
 
 static void* g_vtbl_CFileException[] = {
-    (void*)vtbl_CFileException_GetRuntimeClass,   // [0] GetRuntimeClass
-    (void*)stub_dtor,                              // [1] destructor
-    (void*)stub_Serialize,                         // [2] Serialize
-    (void*)stub_AssertValid,                       // [3] AssertValid
-    (void*)stub_Dump,                              // [4] Dump
-    (void*)stub_GetErrorMessage                    // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(stub_dtor),                             // [1] destructor
+    reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                             // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                   // [5] GetErrorMessage
 };
 
-// MSVC vtable for CArchiveException
+// CArchiveException vtable
 extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CObject* pThis) {
     (void)pThis;
     return &CArchiveException::classCArchiveException;
 }
 
 static void* g_vtbl_CArchiveException[] = {
-    (void*)vtbl_CArchiveException_GetRuntimeClass, // [0] GetRuntimeClass
-    (void*)stub_dtor,                              // [1] destructor
-    (void*)stub_Serialize,                         // [2] Serialize
-    (void*)stub_AssertValid,                       // [3] AssertValid
-    (void*)stub_Dump,                              // [4] Dump
-    (void*)stub_GetErrorMessage                    // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(stub_dtor),                                // [1] destructor
+    reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                                // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                      // [5] GetErrorMessage
 };
 
 // Patch vptr to point to our MSVC-compatible vtable
@@ -622,21 +658,47 @@ static void PatchVPtr(T* pObj, void** vtable) {
     *reinterpret_cast<void***>(pObj) = vtable;
 }
 
-// Alternative: A pre-constructed exception object with the correct vtable
-// This avoids issues with copy constructors potentially resetting the vptr
+// =============================================================================
+// ManualCMemoryException - ABI-compatible static exception object
+// =============================================================================
+//
+// This struct mirrors CMemoryException's memory layout exactly so we can
+// pre-construct an exception object with our MSVC-compatible vtable.
+// This avoids issues with copy constructors potentially resetting the vptr.
+//
+// Layout assumptions (verified by static_assert):
+// - vptr at offset 0 (standard for polymorphic classes)
+// - m_bAutoDelete immediately after vptr
+// - CMemoryException adds no members beyond CException
+//
 struct ManualCMemoryException {
     void* vptr;           // Offset 0: points to our MSVC-compatible vtable
     int m_bAutoDelete;    // CException::m_bAutoDelete
     // Note: CMemoryException doesn't add any members beyond CException
 };
 
-// Verify ManualCMemoryException matches CMemoryException ABI
+// Comprehensive ABI compatibility verification
+// These static_asserts catch layout drift at compile time
 static_assert(sizeof(ManualCMemoryException) == sizeof(CMemoryException),
               "ManualCMemoryException must match CMemoryException size for ABI compatibility");
+static_assert(alignof(ManualCMemoryException) == alignof(CMemoryException),
+              "ManualCMemoryException must match CMemoryException alignment for ABI compatibility");
+// Note: offsetof on m_bAutoDelete can't be checked directly (protected member in non-POD class)
+// but our layout is correct because:
+// - vptr is at offset 0 (standard for polymorphic classes, same as CObject)
+// - m_bAutoDelete immediately follows (sizeof(void*) offset), same as CException
+// - CMemoryException adds no additional members
+static_assert(offsetof(ManualCMemoryException, vptr) == 0,
+              "ManualCMemoryException vptr must be at offset 0");
+static_assert(offsetof(ManualCMemoryException, m_bAutoDelete) == sizeof(void*),
+              "ManualCMemoryException m_bAutoDelete must immediately follow vptr");
 
+// Pre-constructed exception with MSVC-compatible vtable
+// Note: g_vtbl_CMemoryException is intentionally cast to void* - this array serves
+// as the vtable pointer that MSVC code will use to resolve virtual method calls.
 static ManualCMemoryException g_ManualMemoryException = {
-    g_vtbl_CMemoryException,  // Pre-set vptr
-    0                         // m_bAutoDelete = 0 (memory exceptions not auto-deleted)
+    static_cast<void*>(g_vtbl_CMemoryException),  // vptr: explicit cast to MSVC vtable
+    0                                              // m_bAutoDelete = 0 (static, not auto-deleted)
 };
 
 // =============================================================================

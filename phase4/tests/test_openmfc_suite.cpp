@@ -77,10 +77,17 @@ void test_version_functions() {
     SECTION("Version Functions");
 
     // AfxGetDllVersion returns the MFC DLL version
-    // MFC 14.0 (VS 2015+) returns 0x0E00
+    // MFC 14.0 (VS 2015+) returns 0x0E00; higher versions are 0x0F00, 0x1000, etc.
     unsigned long version = AfxGetDllVersion();
-    TEST("AfxGetDllVersion() returns valid version", version == 0x0E00);
-    INFO("AfxGetDllVersion() = 0x%04lX (expected 0x0E00)", version);
+    unsigned long major = version & 0xFF00;
+    unsigned long minor = version & 0x00FF;
+
+    // Ensure we report a non-zero, at-least-14.0 version with zero minor component
+    TEST("AfxGetDllVersion() returns non-zero version", version != 0);
+    TEST("AfxGetDllVersion() returns supported major version", major >= 0x0E00);
+    TEST("AfxGetDllVersion() returns zero minor version", minor == 0);
+    INFO("AfxGetDllVersion() = 0x%04lX (major=0x%04lX, minor=0x%02lX, expected major>=0x0E00, minor==0)",
+         version, major, minor);
 }
 
 // =============================================================================
