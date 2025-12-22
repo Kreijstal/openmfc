@@ -545,10 +545,6 @@ static void InitAllRTTI() {
 //
 // Solution: Create MSVC-compatible vtables and patch the vptr before throwing.
 
-// Forward declarations of GetRuntimeClass implementations
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemoryException(const CMemoryException* pThis);
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CException(const CException* pThis);
-
 // Destructor that does nothing (exceptions are static or manually managed)
 extern "C" void* MS_ABI stub_dtor(void* pThis) { return pThis; }
 
@@ -633,6 +629,10 @@ struct ManualCMemoryException {
     int m_bAutoDelete;    // CException::m_bAutoDelete
     // Note: CMemoryException doesn't add any members beyond CException
 };
+
+// Verify ManualCMemoryException matches CMemoryException ABI
+static_assert(sizeof(ManualCMemoryException) == sizeof(CMemoryException),
+              "ManualCMemoryException must match CMemoryException size for ABI compatibility");
 
 static ManualCMemoryException g_ManualMemoryException = {
     g_vtbl_CMemoryException,  // Pre-set vptr
