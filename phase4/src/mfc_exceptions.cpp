@@ -547,30 +547,63 @@ static void InitAllRTTI() {
 // Solution: Create MSVC-compatible vtables and patch the vptr before throwing.
 
 // =============================================================================
-// MSVC-compatible vtable stubs
+// MSVC-compatible vtable stubs and destructor shims
 // =============================================================================
 //
-// IMPORTANT: Auto-delete behavior and memory management
-// -----------------------------------------------------
+// Auto-delete behavior and memory management
+// -------------------------------------------
 // MFC exceptions have an m_bAutoDelete member that controls whether Delete()
-// should call 'delete this'. Our vtable uses stub_dtor which does nothing.
+// should call 'delete this'. We handle this correctly for all exception types:
 //
-// This is SAFE for:
-// - CMemoryException: Uses static instance (g_ManualMemoryException), m_bAutoDelete=0
-// - CResourceException: Uses static instance, m_bAutoDelete=0
-// - CUserException: Uses static instance, m_bAutoDelete=0
+// Static exceptions (m_bAutoDelete=0, never deleted):
+// - CMemoryException: Uses static instance (g_ManualMemoryException)
+// - CResourceException, CUserException: Use static instances
+// - These use stub_dtor_static which does nothing (safe, no cleanup needed)
 //
-// POTENTIAL LEAK for heap-allocated exceptions:
-// - CFileException, CArchiveException: Created with 'new', m_bAutoDelete=1
-//   If MSVC code calls pException->Delete() and m_bAutoDelete is true,
-//   the real destructor won't run and memory won't be freed.
+// Heap-allocated exceptions (m_bAutoDelete=1, may be deleted by MSVC):
+// - CFileException, CArchiveException: Created with 'new'
+// - These use proper destructor shims (dtor_CFileException, dtor_CArchiveException)
+// - The shims call the actual C++ destructor to clean up members
+// - Memory deallocation uses MinGW's operator delete (via the same heap)
 //
-// Mitigation: These exceptions are typically caught, processed, and re-thrown
-// or the process exits. For long-running apps, consider implementing proper
-// destructor shims that call the real destructor and operator delete.
+// Destructor stub for static exceptions (CMemoryException, etc.) - no cleanup needed
+// Returns 'this' as MSVC destructors do; caller won't deallocate since m_bAutoDelete=0
+extern "C" void* MS_ABI stub_dtor_static(void* pThis) { return pThis; }
+
+// =============================================================================
+// Proper destructor shims for heap-allocated exceptions
+// =============================================================================
+// These shims handle exceptions allocated with MinGW's 'new' that may be
+// deleted by MSVC code. They call the C++ destructor and use MinGW's
+// operator delete to ensure correct heap deallocation.
 //
-// Destructor stub - returns 'this' as MSVC destructors do
-extern "C" void* MS_ABI stub_dtor(void* pThis) { return pThis; }
+// MSVC virtual destructor ABI:
+// - Takes 'this' pointer in RCX
+// - Returns 'this' pointer (for chaining)
+// - After return, the caller may call operator delete if deleting
+
+// CFileException destructor shim - properly destroys and can be deleted
+extern "C" void* MS_ABI dtor_CFileException(CFileException* pThis) {
+    if (pThis) {
+        // Call the actual C++ destructor to clean up members (e.g., m_strFileName)
+        pThis->~CFileException();
+    }
+    return pThis;
+}
+
+// CArchiveException destructor shim
+extern "C" void* MS_ABI dtor_CArchiveException(CArchiveException* pThis) {
+    if (pThis) {
+        pThis->~CArchiveException();
+    }
+    return pThis;
+}
+
+// Operator delete shim - ensures MinGW heap is used for deallocation
+// This is called after the destructor when MSVC code calls 'delete pException'
+extern "C" void MS_ABI opdelete_shim(void* pThis) {
+    ::operator delete(pThis);
+}
 
 // Serialize does nothing for exceptions
 extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
@@ -609,10 +642,10 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const COb
     return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 }
 
-// CMemoryException vtable - used by g_ManualMemoryException and patched exceptions
+// CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
 static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(stub_dtor),                               // [1] destructor
+    reinterpret_cast<void*>(stub_dtor_static),                        // [1] destructor (no-op, static instance)
     reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
     reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
@@ -625,9 +658,10 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObje
     return &CFileException::classCFileException;
 }
 
+// CFileException vtable - heap-allocated, needs proper destructor
 static void* g_vtbl_CFileException[] = {
     reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(stub_dtor),                             // [1] destructor
+    reinterpret_cast<void*>(dtor_CFileException),                   // [1] destructor (calls ~CFileException)
     reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid
     reinterpret_cast<void*>(stub_Dump),                             // [4] Dump
@@ -640,9 +674,10 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CO
     return &CArchiveException::classCArchiveException;
 }
 
+// CArchiveException vtable - heap-allocated, needs proper destructor
 static void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(stub_dtor),                                // [1] destructor
+    reinterpret_cast<void*>(dtor_CArchiveException),                   // [1] destructor (calls ~CArchiveException)
     reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid
     reinterpret_cast<void*>(stub_Dump),                                // [4] Dump
