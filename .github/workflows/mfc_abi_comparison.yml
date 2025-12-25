@@ -48,7 +48,7 @@ jobs:
         shell: cmd
         run: |
           echo Building test_mfc_abi_compat against REAL MFC...
-          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_REAL_MFC ^
+          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_REAL_MFC /DUNICODE /D_UNICODE ^
              /I"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\ATLMFC\include" ^
              /Fe:test_real_mfc.exe ^
              phase4\tests\test_mfc_abi_compat.cpp ^
@@ -115,7 +115,7 @@ jobs:
         shell: cmd
         run: |
           echo Building test_mfc_abi_compat against OpenMFC...
-          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_OPENMFC ^
+          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_OPENMFC /DUNICODE /D_UNICODE ^
              /I include ^
              /Fe:test_openmfc.exe ^
              phase4\tests\test_mfc_abi_compat.cpp ^
