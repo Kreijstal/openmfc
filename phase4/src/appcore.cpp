@@ -16,6 +16,13 @@
 #endif
 
 // =============================================================================
+// Forward declarations from wincore.cpp
+// =============================================================================
+
+// Cleanup stale temporary CWnd wrappers (called during idle processing)
+void OpenMfcCleanupTempWrappers();
+
+// =============================================================================
 // CWinThread Implementation
 // =============================================================================
 
@@ -321,8 +328,13 @@ BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
 }
 
 BOOL CWinThread::OnIdle(LONG lCount) {
-    (void)lCount;
-    return lCount == 0; // More work to do?
+    if (lCount == 0) {
+        // First idle pass - cleanup temporary CWnd wrappers for destroyed windows
+        // This handles wrappers created by OpenMfcAttachCWnd for windows that don't
+        // use our window procedure (e.g., dialog controls from GetDlgItem)
+        OpenMfcCleanupTempWrappers();
+    }
+    return lCount == 0; // More work to do on first pass
 }
 
 BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
@@ -349,8 +361,12 @@ BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
 BOOL CWinThread::PumpMessage() {
     MSG msg;
     int result = ::GetMessageW(&msg, nullptr, 0, 0);
-    if (result <= 0) { // 0 = WM_QUIT, -1 = error
-        m_msgCur = msg;
+    if (result <= 0) {
+        if (result == 0) {
+            // WM_QUIT received - msg is valid, store it for ExitInstance()
+            m_msgCur = msg;
+        }
+        // result == -1 is an error - msg has undefined content, don't use it
         return FALSE;
     }
 

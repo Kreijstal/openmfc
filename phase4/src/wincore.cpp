@@ -31,7 +31,13 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 
 // Map HWND to CWnd* for message routing
 #include <map>
+#include <set>
+#include <vector>
 static std::map<HWND, CWnd*> g_hwndMap;
+
+// Track temporary CWnd wrappers allocated by OpenMfcAttachCWnd
+// These need to be deleted when the underlying window is destroyed
+static std::set<CWnd*> g_tempWrappers;
 
 // Helper to reuse/attach CWnd wrappers for existing HWNDs.
 CWnd* OpenMfcLookupCWnd(HWND hWnd) {
@@ -45,6 +51,24 @@ CWnd* OpenMfcLookupCWnd(HWND hWnd) {
     return nullptr;
 }
 
+// Detach and optionally delete a CWnd wrapper when window is destroyed
+// Called from AfxWndProc on WM_NCDESTROY (the final cleanup message)
+void OpenMfcDetachCWnd(HWND hWnd) {
+    auto it = g_hwndMap.find(hWnd);
+    if (it != g_hwndMap.end()) {
+        CWnd* pWnd = it->second;
+        g_hwndMap.erase(it);
+
+        // Delete if this was a temporary wrapper allocated by OpenMfcAttachCWnd
+        auto tempIt = g_tempWrappers.find(pWnd);
+        if (tempIt != g_tempWrappers.end()) {
+            g_tempWrappers.erase(tempIt);
+            pWnd->m_hWnd = nullptr;  // Clear before delete to prevent double-detach
+            delete pWnd;
+        }
+    }
+}
+
 CWnd* OpenMfcAttachCWnd(HWND hWnd) {
     if (!hWnd) {
         return nullptr;
@@ -52,10 +76,32 @@ CWnd* OpenMfcAttachCWnd(HWND hWnd) {
     if (CWnd* existing = OpenMfcLookupCWnd(hWnd)) {
         return existing;
     }
+
+    // Create a temporary wrapper - tracked for cleanup on window destruction
     CWnd* wrapper = new CWnd();
     wrapper->m_hWnd = hWnd;
     g_hwndMap[hWnd] = wrapper;
+    g_tempWrappers.insert(wrapper);  // Track for deletion
     return wrapper;
+}
+
+// Cleanup stale temporary wrappers for destroyed windows
+// Called during idle processing to handle windows not using our window procedure
+// (e.g., dialog controls obtained via GetDlgItem)
+void OpenMfcCleanupTempWrappers() {
+    // Build list of stale entries (can't modify map while iterating)
+    std::vector<HWND> staleHandles;
+    for (auto& pair : g_hwndMap) {
+        // Check if the window still exists
+        if (!::IsWindow(pair.first)) {
+            staleHandles.push_back(pair.first);
+        }
+    }
+
+    // Clean up stale entries
+    for (HWND hWnd : staleHandles) {
+        OpenMfcDetachCWnd(hWnd);
+    }
 }
 
 // Global app pointer (defined in appcore.cpp)
@@ -522,14 +568,17 @@ static LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 
     // Route to CWnd::WindowProc if we have a CWnd
     if (pWnd) {
-        // Special handling for WM_DESTROY
-        if (message == WM_DESTROY) {
-            g_hwndMap.erase(hWnd);
-        }
-
         // Call through virtual WindowProc
         // In real MFC this would use the vtable, but for now use default
-        return DefWindowProcW(hWnd, message, wParam, lParam);
+        LRESULT result = DefWindowProcW(hWnd, message, wParam, lParam);
+
+        // WM_NCDESTROY is the final message - clean up the wrapper
+        // This must come after DefWindowProc since the window is still valid during the call
+        if (message == WM_NCDESTROY) {
+            OpenMfcDetachCWnd(hWnd);
+        }
+
+        return result;
     }
 
     return DefWindowProcW(hWnd, message, wParam, lParam);
