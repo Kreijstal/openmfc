@@ -22,11 +22,16 @@ void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescript
 }
 
 int main() {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    std::printf("INFO: COM dispatch integration test starting\n");
+
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    if (FAILED(hr)) {
+    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
         std::printf("FAIL: CoInitializeEx 0x%lx\n", static_cast<unsigned long>(hr));
         return 1;
     }
+
+    std::printf("INFO: CoInitializeEx ok (0x%lx)\n", static_cast<unsigned long>(hr));
 
     CLSID clsid;
     hr = CLSIDFromProgID(L"Scripting.Dictionary", &clsid);
@@ -36,6 +41,8 @@ int main() {
         return 1;
     }
 
+    std::printf("INFO: CLSIDFromProgID ok\n");
+
     LPDISPATCH disp = nullptr;
     hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IDispatch,
                           reinterpret_cast<void**>(&disp));
@@ -44,6 +51,8 @@ int main() {
         CoUninitialize();
         return 1;
     }
+
+    std::printf("INFO: CoCreateInstance ok\n");
 
     COleDispatchDriver driver(disp, TRUE);
 
@@ -65,12 +74,17 @@ int main() {
         return 1;
     }
 
+    std::printf("INFO: GetIDsOfNames ok (Add=%ld, Count=%ld)\n", dispidAdd, dispidCount);
+
     static const unsigned char addParams[] = {VT_BSTR, VT_VARIANT, 0};
     COleVariant value(42L);
+    std::printf("INFO: Invoking Add...\n");
     driver.InvokeHelper(dispidAdd, DISPATCH_METHOD, VT_EMPTY, nullptr,
                         addParams, L"answer", static_cast<VARIANT*>(&value));
+    std::printf("INFO: Add ok\n");
 
     long count = 0;
+    std::printf("INFO: Invoking Count...\n");
     driver.InvokeHelper(dispidCount, DISPATCH_PROPERTYGET, VT_I4, &count, nullptr);
     if (count != 1) {
         std::printf("FAIL: Count expected 1, got %ld\n", count);
