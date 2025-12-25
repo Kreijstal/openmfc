@@ -46,6 +46,15 @@ jobs:
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC OLE Dispatch tests passed!
 
+    - name: Build and run OLE Dispatch integration tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_ole_dispatch_integration.exe tests\test_ole_dispatch_integration.cpp ole32.lib oleaut32.lib
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_ole_dispatch_integration.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC OLE Dispatch integration tests passed!
+
     - name: Build and run CWnd tests
       shell: cmd
       run: |
