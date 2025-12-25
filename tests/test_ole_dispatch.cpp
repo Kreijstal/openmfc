@@ -1,6 +1,7 @@
 // Minimal test for COleDispatchDriver InvokeHelper behavior.
 #include "openmfc/afxdisp.h"
 #include <cstdio>
+#include <cstdlib>
 
 class FakeDispatch : public IDispatch {
 public:
@@ -114,6 +115,24 @@ private:
     LONG m_ref;
     long m_value;
 };
+
+// Test-only stubs: the helper calls these even though the happy path won't.
+void AFXAPI AfxThrowOleException(LONG sc) {
+    std::fprintf(stderr, "AfxThrowOleException called: 0x%lx\n", static_cast<unsigned long>(sc));
+    std::abort();
+}
+
+void AFXAPI AfxThrowOleDispatchException(WORD wCode, UINT nDescriptionID, UINT nHelpID) {
+    (void)nDescriptionID;
+    std::fprintf(stderr, "AfxThrowOleDispatchException called: %u help=%u\n", wCode, nHelpID);
+    std::abort();
+}
+
+void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID) {
+    (void)lpszDescription;
+    std::fprintf(stderr, "AfxThrowOleDispatchException called: %u help=%u\n", wCode, nHelpID);
+    std::abort();
+}
 
 int main() {
     FakeDispatch* dispatch = new FakeDispatch();
