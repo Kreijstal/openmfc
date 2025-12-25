@@ -370,6 +370,9 @@ BOOL CWinThread::PumpMessage() {
         return FALSE;
     }
 
+    // Store the current message so callers can access it via m_msgCur
+    m_msgCur = msg;
+
     if (!PreTranslateMessage(&msg)) {
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);

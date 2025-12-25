@@ -392,7 +392,8 @@ extern "C" int MS_ABI impl__GetDlgItemText_CWnd__QEAAHHAEAV_CStringT___Z(
         return 0;
     }
 
-    wchar_t* pBuf = rString->GetBuffer(nLen);
+    // GetBuffer(nLen + 1) to accommodate null terminator for GetWindowTextW
+    wchar_t* pBuf = rString->GetBuffer(nLen + 1);
     nLen = ::GetWindowTextW(hCtrl, pBuf, nLen + 1);
     rString->ReleaseBuffer(nLen);
     return nLen;

@@ -368,7 +368,8 @@ extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTr
         rString->Empty();
         return;
     }
-    wchar_t* buffer = rString->GetBuffer(length);
+    // GetBuffer(length + 1) to accommodate null terminator for GetWindowTextW
+    wchar_t* buffer = rString->GetBuffer(length + 1);
     int actual = ::GetWindowTextW(pThis->m_hWnd, buffer, length + 1);
     rString->ReleaseBuffer(actual);
 }
