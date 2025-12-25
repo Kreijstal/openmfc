@@ -25,9 +25,7 @@
 #include "openmfc/afxwin.h"
 
 // Declarations missing from OpenMFC headers but exported by the DLL
-extern "C" {
-    __declspec(dllimport) unsigned long __cdecl AfxGetDllVersion();
-}
+__declspec(dllimport) DWORD AFXAPI AfxGetDllVersion();
 
 // Exception classes not yet in OpenMFC headers (but may be in MFC)
 // Define placeholders if not defined
