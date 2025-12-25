@@ -38,10 +38,18 @@
 #define AFXAPI __cdecl
 
 // DLL import/export macros
-#ifdef OPENMFC_EXPORTS
-    #define AFX_IMPORT __declspec(dllexport)
-#else
+// - Avoid dllimport for app-defined classes when not using _AFXDLL.
+// - Avoid dllexport under MinGW; exports are driven by the .def file.
+#if defined(OPENMFC_EXPORTS)
+    #if defined(__MINGW32__)
+        #define AFX_IMPORT
+    #else
+        #define AFX_IMPORT __declspec(dllexport)
+    #endif
+#elif defined(_AFXDLL)
     #define AFX_IMPORT __declspec(dllimport)
+#else
+    #define AFX_IMPORT
 #endif
 
 // For functions that are always imported from MFC DLL
