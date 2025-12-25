@@ -830,10 +830,10 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 }
 
 // Implementation of CObject's static runtime class
-// Note: This should be in a .cpp file normally, but for header-only we inline it
+// Note: Provide an inline definition unless we're consuming the DLL (_AFXDLL).
 #ifndef COBJECT_IMPL_DEFINED
 #define COBJECT_IMPL_DEFINED
-#if defined(OPENMFC_EXPORTS)
+#if defined(OPENMFC_EXPORTS) || !defined(_AFXDLL)
 #if !defined(OPENMFC_INLINE_VAR)
 #if defined(__cpp_inline_variables) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 #define OPENMFC_INLINE_VAR inline
