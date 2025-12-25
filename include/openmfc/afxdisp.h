@@ -190,7 +190,12 @@ public:
         if (vtRet != VT_EMPTY && pvRet) {
             CopyResult(vtRet, pvRet, &result);
         }
-        VariantClear(&result);
+        if (vtRet != VT_BSTR && vtRet != VT_DISPATCH && vtRet != VT_UNKNOWN &&
+            vtRet != VT_VARIANT && vtRet != VT_BYREF) {
+            VariantClear(&result);
+        } else {
+            VariantInit(&result);
+        }
     }
 
 private:
