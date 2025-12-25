@@ -538,6 +538,27 @@ void test_fileexception_properties() {
 // =============================================================================
 
 void print_json_results() {
+    auto json_escape = [](const char* s) {
+        if (!s) {
+            return;
+        }
+        for (const unsigned char* p = reinterpret_cast<const unsigned char*>(s); *p; ++p) {
+            switch (*p) {
+                case '\\': printf("\\\\"); break;
+                case '\"': printf("\\\""); break;
+                case '\n': printf("\\n"); break;
+                case '\r': printf("\\r"); break;
+                case '\t': printf("\\t"); break;
+                default:
+                    if (*p < 0x20) {
+                        printf("\\u%04x", *p);
+                    } else {
+                        putchar(*p);
+                    }
+            }
+        }
+    };
+
     printf("\n--- BEGIN JSON RESULTS ---\n");
     printf("{\n");
     printf("  \"implementation\": ");
@@ -553,9 +574,13 @@ void print_json_results() {
     
     for (int i = 0; i < g_resultCount; i++) {
         TestResult& r = g_results[i];
-        printf("    {\"section\": \"%s\", \"name\": \"%s\", \"passed\": %s, \"actual\": \"%s\"}%s\n",
-               r.section, r.name, r.passed ? "true" : "false", r.actual,
-               (i < g_resultCount - 1) ? "," : "");
+        printf("    {\"section\": \"");
+        json_escape(r.section);
+        printf("\", \"name\": \"");
+        json_escape(r.name);
+        printf("\", \"passed\": %s, \"actual\": \"", r.passed ? "true" : "false");
+        json_escape(r.actual);
+        printf("\"}%s\n", (i < g_resultCount - 1) ? "," : "");
     }
     
     printf("  ]\n");
