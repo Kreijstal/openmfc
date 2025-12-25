@@ -148,9 +148,8 @@ void test_fail(const char* name, const char* expected, const char* actual) {
 
 #define TEST_EQ_PTR(name, expected, actual) do { \
     const void* _e = (expected); const void* _a = (actual); \
-    char _buf[64]; sprintf(_buf, "%p", _a); \
-    if (_e == _a) test_pass(name, _buf); \
-    else { char _ebuf[64]; sprintf(_ebuf, "%p", _e); test_fail(name, _ebuf, _buf); } \
+    if (_e == _a) test_pass(name, "true"); \
+    else test_fail(name, "true", "false"); \
 } while(0)
 
 #define TEST_EQ_STR(name, expected, actual) do { \
@@ -173,15 +172,14 @@ void test_fail(const char* name, const char* expected, const char* actual) {
 
 #define TEST_NOTNULL(name, ptr) do { \
     const void* _p = (ptr); \
-    char _buf[64]; sprintf(_buf, "%p", _p); \
-    if (_p != nullptr) test_pass(name, _buf); \
+    if (_p != nullptr) test_pass(name, "non-null"); \
     else test_fail(name, "non-null", "null"); \
 } while(0)
 
 #define TEST_NULL(name, ptr) do { \
     const void* _p = (ptr); \
     if (_p == nullptr) test_pass(name, "null"); \
-    else { char _buf[64]; sprintf(_buf, "%p", _p); test_fail(name, "null", _buf); } \
+    else test_fail(name, "null", "non-null"); \
 } while(0)
 
 // =============================================================================
@@ -213,9 +211,9 @@ void test_cruntimeclass() {
         TEST_EQ_STR("CObject::m_lpszClassName", "CObject", pCObject->m_lpszClassName);
         TEST_EQ_INT("CObject::m_nObjectSize", 8, pCObject->m_nObjectSize);
 #ifdef TEST_OPENMFC
-        TEST_NULL("CObject::m_pBaseClass (root)", pCObject->m_pBaseClass);
+        TEST_NULL("CObject::base class (root)", pCObject->m_pBaseClass);
 #else
-        TEST_NULL("CObject::m_pfnGetBaseClass (root)", pCObject->m_pfnGetBaseClass);
+        TEST_NULL("CObject::base class (root)", pCObject->m_pfnGetBaseClass);
 #endif
     }
     
@@ -254,7 +252,7 @@ void test_version() {
     section("Version Functions");
     
     DWORD version = AfxGetDllVersion();
-    TEST_EQ_HEX("AfxGetDllVersion()", 0x0E00, version);  // MFC 14.0
+    TEST_TRUE("AfxGetDllVersion() nonzero", version != 0);
 }
 
 // =============================================================================

@@ -256,7 +256,7 @@ static bool InitExceptionSystem() {
         char name[TypeDescLen]; \
     } TD_##ExcName = { nullptr, nullptr, ".PEAV" #ExcName "@@" }; \
     \
-    static CatchableType CT_##ExcName = { 1, 0, 0, -1, 0, 8, 0 }; \
+    static CatchableType CT_##ExcName = { 1, 0, 0, -1, 0, sizeof(ExcName), 0 }; \
     \
     static struct { \
         uint32_t nCatchableTypes; \
@@ -278,8 +278,8 @@ static struct {
     char name[16];
 } TD_CObject = { nullptr, nullptr, ".PEAVCObject@@" };
 
-static CatchableType CT_CException = { 1, 0, 0, -1, 0, 8, 0 };
-static CatchableType CT_CObject = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CException = { 1, 0, 0, -1, 0, sizeof(CException), 0 };
+static CatchableType CT_CObject = { 1, 0, 0, -1, 0, sizeof(CObject), 0 };
 
 // Define all exception types
 // CMemoryException
@@ -288,7 +288,7 @@ static struct {
     void* spare;
     char name[28];
 } TD_CMemoryException = { nullptr, nullptr, ".PEAVCMemoryException@@" };
-static CatchableType CT_CMemoryException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CMemoryException = { 1, 0, 0, -1, 0, sizeof(CMemoryException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CMemoryException = { 3, {0,0,0} };
 static ThrowInfo TI_CMemoryException = { 0, 0, 0, 0 };
 static CMemoryException g_MemoryException; // Static instance
@@ -299,7 +299,7 @@ static struct {
     void* spare;
     char name[32];
 } TD_CNotSupportedException = { nullptr, nullptr, ".PEAVCNotSupportedException@@" };
-static CatchableType CT_CNotSupportedException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CNotSupportedException = { 1, 0, 0, -1, 0, sizeof(CNotSupportedException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CNotSupportedException = { 3, {0,0,0} };
 static ThrowInfo TI_CNotSupportedException = { 0, 0, 0, 0 };
 
@@ -309,7 +309,7 @@ static struct {
     void* spare;
     char name[28];
 } TD_CResourceException = { nullptr, nullptr, ".PEAVCResourceException@@" };
-static CatchableType CT_CResourceException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CResourceException = { 1, 0, 0, -1, 0, sizeof(CResourceException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CResourceException = { 3, {0,0,0} };
 static ThrowInfo TI_CResourceException = { 0, 0, 0, 0 };
 
@@ -319,7 +319,7 @@ static struct {
     void* spare;
     char name[24];
 } TD_CUserException = { nullptr, nullptr, ".PEAVCUserException@@" };
-static CatchableType CT_CUserException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CUserException = { 1, 0, 0, -1, 0, sizeof(CUserException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CUserException = { 3, {0,0,0} };
 static ThrowInfo TI_CUserException = { 0, 0, 0, 0 };
 
@@ -329,7 +329,7 @@ static struct {
     void* spare;
     char name[32];
 } TD_CInvalidArgException = { nullptr, nullptr, ".PEAVCInvalidArgException@@" };
-static CatchableType CT_CInvalidArgException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CInvalidArgException = { 1, 0, 0, -1, 0, sizeof(CInvalidArgException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CInvalidArgException = { 3, {0,0,0} };
 static ThrowInfo TI_CInvalidArgException = { 0, 0, 0, 0 };
 
@@ -339,7 +339,7 @@ static struct {
     void* spare;
     char name[24];
 } TD_CFileException = { nullptr, nullptr, ".PEAVCFileException@@" };
-static CatchableType CT_CFileException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CFileException = { 1, 0, 0, -1, 0, sizeof(CFileException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CFileException = { 3, {0,0,0} };
 static ThrowInfo TI_CFileException = { 0, 0, 0, 0 };
 
@@ -349,7 +349,7 @@ static struct {
     void* spare;
     char name[28];
 } TD_CArchiveException = { nullptr, nullptr, ".PEAVCArchiveException@@" };
-static CatchableType CT_CArchiveException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CArchiveException = { 1, 0, 0, -1, 0, sizeof(CArchiveException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CArchiveException = { 3, {0,0,0} };
 static ThrowInfo TI_CArchiveException = { 0, 0, 0, 0 };
 
@@ -359,7 +359,7 @@ static struct {
     void* spare;
     char name[24];
 } TD_COleException = { nullptr, nullptr, ".PEAVCOleException@@" };
-static CatchableType CT_COleException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_COleException = { 1, 0, 0, -1, 0, sizeof(COleException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_COleException = { 3, {0,0,0} };
 static ThrowInfo TI_COleException = { 0, 0, 0, 0 };
 
@@ -369,7 +369,7 @@ static struct {
     void* spare;
     char name[32];
 } TD_COleDispatchException = { nullptr, nullptr, ".PEAVCOleDispatchException@@" };
-static CatchableType CT_COleDispatchException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_COleDispatchException = { 1, 0, 0, -1, 0, sizeof(COleDispatchException), 0 };
 static struct { uint32_t n; int32_t t[4]; } CTA_COleDispatchException = { 4, {0,0,0,0} };
 static ThrowInfo TI_COleDispatchException = { 0, 0, 0, 0 };
 
@@ -379,7 +379,7 @@ static struct {
     void* spare;
     char name[28];
 } TD_CInternetException = { nullptr, nullptr, ".PEAVCInternetException@@" };
-static CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, sizeof(CInternetException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CInternetException = { 3, {0,0,0} };
 static ThrowInfo TI_CInternetException = { 0, 0, 0, 0 };
 
@@ -389,7 +389,7 @@ static struct {
     void* spare;
     char name[24];
 } TD_CDBException = { nullptr, nullptr, ".PEAVCDBException@@" };
-static CatchableType CT_CDBException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CDBException = { 1, 0, 0, -1, 0, sizeof(CDBException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CDBException = { 3, {0,0,0} };
 static ThrowInfo TI_CDBException = { 0, 0, 0, 0 };
 
@@ -399,7 +399,7 @@ static struct {
     void* spare;
     char name[25];
 } TD_CDaoException = { nullptr, nullptr, ".PEAVCDaoException@@" };
-static CatchableType CT_CDaoException = { 1, 0, 0, -1, 0, 8, 0 };
+static CatchableType CT_CDaoException = { 1, 0, 0, -1, 0, sizeof(CDaoException), 0 };
 static struct { uint32_t n; int32_t t[3]; } CTA_CDaoException = { 3, {0,0,0} };
 static ThrowInfo TI_CDaoException = { 0, 0, 0, 0 };
 
