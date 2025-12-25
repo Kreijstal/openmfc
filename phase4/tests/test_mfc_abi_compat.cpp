@@ -15,7 +15,9 @@
 //   0 = All tests passed
 //   N = N tests failed
 
+#ifndef _AFXDLL
 #define _AFXDLL
+#endif
 
 #ifdef TEST_OPENMFC
 // Use OpenMFC headers
@@ -70,6 +72,7 @@ inline CRuntimeClass* FromName_Stub(const char*) { return nullptr; }
 #include <cstdio>
 #include <cstring>
 #include <cstdarg>
+#include <tchar.h>
 
 // =============================================================================
 // Test Framework - Outputs structured, comparable results
@@ -211,7 +214,11 @@ void test_cruntimeclass() {
     if (pCObject) {
         TEST_EQ_STR("CObject::m_lpszClassName", "CObject", pCObject->m_lpszClassName);
         TEST_EQ_INT("CObject::m_nObjectSize", 8, pCObject->m_nObjectSize);
+#ifdef TEST_OPENMFC
         TEST_NULL("CObject::m_pBaseClass (root)", pCObject->m_pBaseClass);
+#else
+        TEST_NULL("CObject::m_pfnGetBaseClass (root)", pCObject->m_pfnGetBaseClass);
+#endif
     }
     
     // CException class info
@@ -351,17 +358,17 @@ void test_cstring() {
     TEST_TRUE("CString() is empty", s1.IsEmpty());
     TEST_EQ_INT("CString().GetLength()", 0, s1.GetLength());
     
-    CString s2(L"Hello");
+    CString s2(_T("Hello"));
     TEST_FALSE("CString(L\"Hello\") not empty", s2.IsEmpty());
     TEST_EQ_INT("CString(L\"Hello\").GetLength()", 5, s2.GetLength());
     
     // Comparison
-    CString s3(L"Hello");
+    CString s3(_T("Hello"));
     TEST_TRUE("CString equality", s2 == s3);
     TEST_FALSE("CString inequality", s2 != s3);
     
     // Concatenation
-    CString s4 = s2 + L" World";
+    CString s4 = s2 + _T(" World");
     TEST_EQ_INT("Concatenation length", 11, s4.GetLength());
     
     // Substring
@@ -375,16 +382,16 @@ void test_cstring() {
     TEST_EQ_INT("Right(5) length", 5, s7.GetLength());
     
     // Find
-    int pos = s4.Find(L"World");
+    int pos = s4.Find(_T("World"));
     TEST_EQ_INT("Find(L\"World\")", 6, pos);
     
-    int notFound = s4.Find(L"xyz");
+    int notFound = s4.Find(_T("xyz"));
     TEST_EQ_INT("Find(L\"xyz\") not found", -1, notFound);
     
     // Case conversion
-    CString s8(L"Hello World");
+    CString s8(_T("Hello World"));
     s8.MakeUpper();
-    CString s9(L"Hello World");
+    CString s9(_T("Hello World"));
     s9.MakeLower();
     TEST_EQ_INT("MakeUpper() length preserved", 11, s8.GetLength());
     TEST_EQ_INT("MakeLower() length preserved", 11, s9.GetLength());
@@ -515,7 +522,7 @@ void test_fileexception_properties() {
     // Throw and verify properties
     CFileException* pEx = nullptr;
     try {
-        AfxThrowFileException(CFileException::accessDenied, 42, L"test.txt");
+        AfxThrowFileException(CFileException::accessDenied, 42, _T("test.txt"));
     }
     catch (CFileException* e) {
         pEx = e;

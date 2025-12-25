@@ -823,8 +823,17 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 // Note: This should be in a .cpp file normally, but for header-only we inline it
 #ifndef COBJECT_IMPL_DEFINED
 #define COBJECT_IMPL_DEFINED
+#if !defined(OPENMFC_INLINE_VAR)
+#if defined(__cpp_inline_variables) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#define OPENMFC_INLINE_VAR inline
+#elif defined(_MSC_VER)
+#define OPENMFC_INLINE_VAR __declspec(selectany)
+#else
+#define OPENMFC_INLINE_VAR __attribute__((weak))
+#endif
+#endif
 // Order: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pBaseClass, pNextClass
-inline CRuntimeClass CObject::classCObject = {
+OPENMFC_INLINE_VAR CRuntimeClass CObject::classCObject = {
     "CObject",
     sizeof(CObject),
     0xFFFF,         // m_wSchema
