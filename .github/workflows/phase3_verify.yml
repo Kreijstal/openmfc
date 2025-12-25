@@ -103,7 +103,7 @@ jobs:
       - name: Build basic test application
         shell: cmd
         run: |
-          cl /nologo /EHsc /MD tests/test_msvc_app.cpp openmfc.lib /Fe:test_app.exe
+          cl /nologo /EHsc /MD /D_AFXDLL tests/test_msvc_app.cpp openmfc.lib /Fe:test_app.exe
 
       - name: Build MFC smoke test (uses real afx.h headers)
         shell: cmd

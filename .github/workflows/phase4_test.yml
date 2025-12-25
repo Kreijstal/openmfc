@@ -46,7 +46,7 @@ jobs:
           cl /nologo /EHsc /MD phase4/tests/test_exception_mfc.cpp openmfc.lib /Fe:test_binaries/test_exception_mfc.exe
 
           # Build phase3 tests (for comparison)
-          cl /nologo /EHsc /MD tests/test_msvc_app.cpp openmfc.lib /Fe:test_binaries/test_msvc_app.exe
+          cl /nologo /EHsc /MD /D_AFXDLL tests/test_msvc_app.cpp openmfc.lib /Fe:test_binaries/test_msvc_app.exe
 
           # List what we built
           dir test_binaries
