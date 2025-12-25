@@ -138,10 +138,9 @@ int main() {
     FakeDispatch* dispatch = new FakeDispatch();
     COleDispatchDriver driver(dispatch, FALSE);
 
+    static const unsigned char addParams[] = {VT_I4, VT_I4, 0};
     long sum = 0;
-    driver.InvokeHelper(1, DISPATCH_METHOD, VT_I4, &sum,
-                        reinterpret_cast<const unsigned char*>(VTS_I4 VTS_I4),
-                        10L, 32L);
+    driver.InvokeHelper(1, DISPATCH_METHOD, VT_I4, &sum, addParams, 10L, 32L);
     if (sum != 42) {
         std::printf("FAIL: Add expected 42, got %ld\n", sum);
         dispatch->Release();
@@ -156,9 +155,8 @@ int main() {
         return 1;
     }
 
-    driver.InvokeHelper(2, DISPATCH_PROPERTYPUT, VT_EMPTY, nullptr,
-                        reinterpret_cast<const unsigned char*>(VTS_I4),
-                        7L);
+    static const unsigned char putParams[] = {VT_I4, 0};
+    driver.InvokeHelper(2, DISPATCH_PROPERTYPUT, VT_EMPTY, nullptr, putParams, 7L);
     driver.InvokeHelper(2, DISPATCH_PROPERTYGET, VT_I4, &value, nullptr);
     if (value != 7) {
         std::printf("FAIL: Value expected 7, got %ld\n", value);

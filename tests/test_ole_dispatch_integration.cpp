@@ -65,10 +65,10 @@ int main() {
         return 1;
     }
 
+    static const unsigned char addParams[] = {VT_BSTR, VT_VARIANT, 0};
     COleVariant value(42L);
     driver.InvokeHelper(dispidAdd, DISPATCH_METHOD, VT_EMPTY, nullptr,
-                        reinterpret_cast<const unsigned char*>(VTS_BSTR VTS_VARIANT),
-                        L"answer", static_cast<VARIANT*>(&value));
+                        addParams, L"answer", static_cast<VARIANT*>(&value));
 
     long count = 0;
     driver.InvokeHelper(dispidCount, DISPATCH_PROPERTYGET, VT_I4, &count, nullptr);
