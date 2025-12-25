@@ -219,66 +219,64 @@ sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
 
 # Add OpenMFC-specific exports (static class members with MSVC-mangled names)
 # These use the .def alias syntax (MSVC_name=GCC_name) to export MSVC-compatible
-# names from GCC-mangled internal symbols. This is required because multiple
-# translation units may instantiate the inline static members, and the linker
-# may pick a version without the asm alias.
+# names from GCC-mangled internal symbols. DATA is required so MSVC import libs
+# treat these as variables (not functions) for _AFXDLL consumers.
 # IMPORTANT: Entries must be indented to be part of the EXPORTS section!
 cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ; OpenMFC-specific static class member exports (CRuntimeClass statics)
     ; These are required for MSVC code that uses MFC RTTI macros
     ; Using aliasing: external_name=internal_name
-    ; Note: DATA keyword omitted - lib.exe may not handle aliased DATA exports correctly
-    ?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE
-    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE
-    ?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE
-    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE
-    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE
-    ?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE
-    ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE
-    ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE
-    ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE
+    ?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE DATA
+    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE DATA
+    ?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE DATA
+    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE DATA
+    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE DATA
+    ?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE DATA
+    ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE DATA
+    ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE DATA
+    ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE DATA
     ; GDI class runtime classes
-    ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE
-    ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE
-    ?classCBrush@CBrush@@2UCRuntimeClass@@A=_ZN6CBrush11classCBrushE
-    ?classCFont@CFont@@2UCRuntimeClass@@A=_ZN5CFont10classCFontE
-    ?classCBitmap@CBitmap@@2UCRuntimeClass@@A=_ZN7CBitmap12classCBitmapE
-    ?classCPalette@CPalette@@2UCRuntimeClass@@A=_ZN8CPalette13classCPaletteE
-    ?classCRgn@CRgn@@2UCRuntimeClass@@A=_ZN4CRgn9classCRgnE
-    ?classCDC@CDC@@2UCRuntimeClass@@A=_ZN3CDC8classCDCE
-    ?classCClientDC@CClientDC@@2UCRuntimeClass@@A=_ZN9CClientDC14classCClientDCE
-    ?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A=_ZN8CPaintDC13classCPaintDCE
-    ?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A=_ZN9CWindowDC14classCWindowDCE
+    ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE DATA
+    ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE DATA
+    ?classCBrush@CBrush@@2UCRuntimeClass@@A=_ZN6CBrush11classCBrushE DATA
+    ?classCFont@CFont@@2UCRuntimeClass@@A=_ZN5CFont10classCFontE DATA
+    ?classCBitmap@CBitmap@@2UCRuntimeClass@@A=_ZN7CBitmap12classCBitmapE DATA
+    ?classCPalette@CPalette@@2UCRuntimeClass@@A=_ZN8CPalette13classCPaletteE DATA
+    ?classCRgn@CRgn@@2UCRuntimeClass@@A=_ZN4CRgn9classCRgnE DATA
+    ?classCDC@CDC@@2UCRuntimeClass@@A=_ZN3CDC8classCDCE DATA
+    ?classCClientDC@CClientDC@@2UCRuntimeClass@@A=_ZN9CClientDC14classCClientDCE DATA
+    ?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A=_ZN8CPaintDC13classCPaintDCE DATA
+    ?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A=_ZN9CWindowDC14classCWindowDCE DATA
     ; CMenu runtime class
-    ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE
+    ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE DATA
     ; CFrameWnd runtime class
-    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE
+    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE DATA
     ; Control runtime classes
-    ?classCButton@CButton@@2UCRuntimeClass@@A=_ZN7CButton12classCButtonE
-    ?classCEdit@CEdit@@2UCRuntimeClass@@A=_ZN5CEdit10classCEditE
-    ?classCStatic@CStatic@@2UCRuntimeClass@@A=_ZN7CStatic12classCStaticE
-    ?classCListBox@CListBox@@2UCRuntimeClass@@A=_ZN8CListBox13classCListBoxE
-    ?classCComboBox@CComboBox@@2UCRuntimeClass@@A=_ZN9CComboBox14classCComboBoxE
-    ?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A=_ZN10CScrollBar15classCScrollBarE
+    ?classCButton@CButton@@2UCRuntimeClass@@A=_ZN7CButton12classCButtonE DATA
+    ?classCEdit@CEdit@@2UCRuntimeClass@@A=_ZN5CEdit10classCEditE DATA
+    ?classCStatic@CStatic@@2UCRuntimeClass@@A=_ZN7CStatic12classCStaticE DATA
+    ?classCListBox@CListBox@@2UCRuntimeClass@@A=_ZN8CListBox13classCListBoxE DATA
+    ?classCComboBox@CComboBox@@2UCRuntimeClass@@A=_ZN9CComboBox14classCComboBoxE DATA
+    ?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A=_ZN10CScrollBar15classCScrollBarE DATA
     ; Common control runtime classes
-    ?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A=_ZN11CSliderCtrl16classCSliderCtrlE
-    ?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A=_ZN13CProgressCtrl18classCProgressCtrlE
-    ?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A=_ZN15CSpinButtonCtrl20classCSpinButtonCtrlE
-    ?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A=_ZN9CListCtrl14classCListCtrlE
-    ?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A=_ZN9CTreeCtrl14classCTreeCtrlE
-    ?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A=_ZN8CTabCtrl13classCTabCtrlE
+    ?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A=_ZN11CSliderCtrl16classCSliderCtrlE DATA
+    ?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A=_ZN13CProgressCtrl18classCProgressCtrlE DATA
+    ?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A=_ZN15CSpinButtonCtrl20classCSpinButtonCtrlE DATA
+    ?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A=_ZN9CListCtrl14classCListCtrlE DATA
+    ?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A=_ZN9CTreeCtrl14classCTreeCtrlE DATA
+    ?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A=_ZN8CTabCtrl13classCTabCtrlE DATA
     ; Document-View runtime classes
-    ?classCDocument@CDocument@@2UCRuntimeClass@@A=_ZN9CDocument14classCDocumentE
-    ?classCView@CView@@2UCRuntimeClass@@A=_ZN5CView10classCViewE
-    ?classCScrollView@CScrollView@@2UCRuntimeClass@@A=_ZN11CScrollView16classCScrollViewE
-    ?classCFormView@CFormView@@2UCRuntimeClass@@A=_ZN9CFormView14classCFormViewE
-    ?classCEditView@CEditView@@2UCRuntimeClass@@A=_ZN9CEditView14classCEditViewE
-    ?classCListView@CListView@@2UCRuntimeClass@@A=_ZN9CListView14classCListViewE
-    ?classCTreeView@CTreeView@@2UCRuntimeClass@@A=_ZN9CTreeView14classCTreeViewE
+    ?classCDocument@CDocument@@2UCRuntimeClass@@A=_ZN9CDocument14classCDocumentE DATA
+    ?classCView@CView@@2UCRuntimeClass@@A=_ZN5CView10classCViewE DATA
+    ?classCScrollView@CScrollView@@2UCRuntimeClass@@A=_ZN11CScrollView16classCScrollViewE DATA
+    ?classCFormView@CFormView@@2UCRuntimeClass@@A=_ZN9CFormView14classCFormViewE DATA
+    ?classCEditView@CEditView@@2UCRuntimeClass@@A=_ZN9CEditView14classCEditViewE DATA
+    ?classCListView@CListView@@2UCRuntimeClass@@A=_ZN9CListView14classCListViewE DATA
+    ?classCTreeView@CTreeView@@2UCRuntimeClass@@A=_ZN9CTreeView14classCTreeViewE DATA
     ; Doc template runtime classes
-    ?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A=_ZN12CDocTemplate17classCDocTemplateE
-    ?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A=_ZN18CSingleDocTemplate23classCSingleDocTemplateE
-    ?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A=_ZN17CMultiDocTemplate22classCMultiDocTemplateE
+    ?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A=_ZN12CDocTemplate17classCDocTemplateE DATA
+    ?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A=_ZN18CSingleDocTemplate23classCSingleDocTemplateE DATA
+    ?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A=_ZN17CMultiDocTemplate22classCMultiDocTemplateE DATA
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
