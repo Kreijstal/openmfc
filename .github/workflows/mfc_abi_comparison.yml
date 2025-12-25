@@ -106,6 +106,22 @@ jobs:
         with:
           arch: x64
 
+      - name: Install MinGW runtime
+        shell: pwsh
+        run: |
+          choco install mingw -y
+          $mingwBins = @(
+            "C:\\ProgramData\\mingw64\\mingw64\\bin",
+            "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin"
+          )
+          foreach ($p in $mingwBins) {
+            if (Test-Path $p) {
+              Copy-Item "$p\\libstdc++-6.dll" -Destination . -Force -ErrorAction SilentlyContinue
+              Copy-Item "$p\\libgcc_s_seh-1.dll" -Destination . -Force -ErrorAction SilentlyContinue
+              Copy-Item "$p\\libwinpthread-1.dll" -Destination . -Force -ErrorAction SilentlyContinue
+            }
+          }
+
       - name: Create import library
         shell: cmd
         run: |
