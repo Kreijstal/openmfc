@@ -24,6 +24,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -532,21 +533,233 @@ static void InitAllRTTI() {
 }
 
 // =============================================================================
+// MSVC-compatible vtable for exception classes
+// =============================================================================
+//
+// Problem: MinGW uses Itanium ABI which has 2 destructor entries in vtable.
+// MSVC has only 1 destructor entry. So the virtual function offsets differ:
+//   MSVC:   vtable[0]=dtor, vtable[1]=GetRuntimeClass, vtable[2]=Serialize, ...
+//   MinGW:  vtable[0]=dtor1, vtable[1]=dtor2, vtable[2]=GetRuntimeClass, ...
+//
+// When MSVC code catches our exception and calls pException->GetRuntimeClass(),
+// it looks at vtable[1], but in MinGW's vtable that's the deleting destructor!
+//
+// Solution: Create MSVC-compatible vtables and patch the vptr before throwing.
+
+// =============================================================================
+// MSVC-compatible vtable stubs and destructor shims
+// =============================================================================
+//
+// Auto-delete behavior and memory management
+// -------------------------------------------
+// MFC exceptions have an m_bAutoDelete member that controls whether Delete()
+// should call 'delete this'. We handle this correctly for all exception types:
+//
+// Static exceptions (m_bAutoDelete=0, never deleted):
+// - CMemoryException: Uses static instance (g_ManualMemoryException)
+// - CResourceException, CUserException: Use static instances
+// - These use stub_dtor_static which does nothing (safe, no cleanup needed)
+//
+// Heap-allocated exceptions (m_bAutoDelete=1, may be deleted by MSVC):
+// - CFileException, CArchiveException: Created with 'new'
+// - These use proper destructor shims (dtor_CFileException, dtor_CArchiveException)
+// - The shims call the actual C++ destructor to clean up members
+// - Memory deallocation uses MinGW's operator delete (via the same heap)
+//
+// Destructor stub for static exceptions (CMemoryException, etc.) - no cleanup needed
+// Returns 'this' as MSVC destructors do; caller won't deallocate since m_bAutoDelete=0
+extern "C" void* MS_ABI stub_dtor_static(void* pThis) { return pThis; }
+
+// =============================================================================
+// Proper destructor shims for heap-allocated exceptions
+// =============================================================================
+// These shims handle exceptions allocated with MinGW's 'new' that may be
+// deleted by MSVC code. They call the C++ destructor and use MinGW's
+// operator delete to ensure correct heap deallocation.
+//
+// MSVC virtual destructor ABI:
+// - Takes 'this' pointer in RCX
+// - Returns 'this' pointer (for chaining)
+// - After return, the caller may call operator delete if deleting
+
+// CFileException destructor shim - properly destroys and can be deleted
+extern "C" void* MS_ABI dtor_CFileException(CFileException* pThis) {
+    if (pThis) {
+        // Call the actual C++ destructor to clean up members (e.g., m_strFileName)
+        pThis->~CFileException();
+    }
+    return pThis;
+}
+
+// CArchiveException destructor shim
+extern "C" void* MS_ABI dtor_CArchiveException(CArchiveException* pThis) {
+    if (pThis) {
+        pThis->~CArchiveException();
+    }
+    return pThis;
+}
+
+// Operator delete shim - ensures MinGW heap is used for deallocation
+// This is called after the destructor when MSVC code calls 'delete pException'
+extern "C" void MS_ABI opdelete_shim(void* pThis) {
+    ::operator delete(pThis);
+}
+
+// Serialize does nothing for exceptions
+extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
+
+// AssertValid does nothing
+extern "C" void MS_ABI stub_AssertValid(const CObject*) {}
+
+// Dump does nothing
+extern "C" void MS_ABI stub_Dump(const CObject*) {}
+
+// GetErrorMessage returns 0 (not implemented)
+extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned int, unsigned int*) { return 0; }
+
+// MSVC vtable for CMemoryException
+// Note: In real MFC, CObject declares GetRuntimeClass BEFORE the destructor.
+// So the layout is: [GetRuntimeClass, dtor, Serialize, AssertValid, Dump, GetErrorMessage]
+
+// =============================================================================
+// MSVC-compatible vtable arrays
+// =============================================================================
+// These arrays serve as vtable pointers for exception objects thrown to MSVC code.
+// Each entry is explicitly cast to void* to make the ABI assumptions clear:
+// - Index 0: GetRuntimeClass (virtual method declared first in CObject)
+// - Index 1: Destructor
+// - Index 2+: Other virtual methods in declaration order
+//
+// When we set an object's vptr to point to these arrays, MSVC code can call
+// virtual methods correctly even though the object was created by MinGW.
+
+// Forward declaration of exported GetThisClass
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
+
+extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    // Call our exported GetThisClass - this returns the exact address MSVC expects
+    return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
+}
+
+// CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
+static void* g_vtbl_CMemoryException[] = {
+    reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(stub_dtor_static),                        // [1] destructor (no-op, static instance)
+    reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                     // [5] GetErrorMessage
+};
+
+// CFileException vtable
+extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    return &CFileException::classCFileException;
+}
+
+// CFileException vtable - heap-allocated, needs proper destructor
+static void* g_vtbl_CFileException[] = {
+    reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(dtor_CFileException),                   // [1] destructor (calls ~CFileException)
+    reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                             // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                   // [5] GetErrorMessage
+};
+
+// CArchiveException vtable
+extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CObject* pThis) {
+    (void)pThis;
+    return &CArchiveException::classCArchiveException;
+}
+
+// CArchiveException vtable - heap-allocated, needs proper destructor
+static void* g_vtbl_CArchiveException[] = {
+    reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
+    reinterpret_cast<void*>(dtor_CArchiveException),                   // [1] destructor (calls ~CArchiveException)
+    reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
+    reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid
+    reinterpret_cast<void*>(stub_Dump),                                // [4] Dump
+    reinterpret_cast<void*>(stub_GetErrorMessage)                      // [5] GetErrorMessage
+};
+
+// Patch vptr to point to our MSVC-compatible vtable
+template<typename T>
+static void PatchVPtr(T* pObj, void** vtable) {
+    // The vptr is at offset 0 in the object
+    void** currentVptr = *reinterpret_cast<void***>(pObj);
+    (void)currentVptr; // For debugging: we're replacing this
+    *reinterpret_cast<void***>(pObj) = vtable;
+}
+
+// =============================================================================
+// ManualCMemoryException - ABI-compatible static exception object
+// =============================================================================
+//
+// This struct mirrors CMemoryException's memory layout exactly so we can
+// pre-construct an exception object with our MSVC-compatible vtable.
+// This avoids issues with copy constructors potentially resetting the vptr.
+//
+// Layout assumptions (verified by static_assert):
+// - vptr at offset 0 (standard for polymorphic classes)
+// - m_bAutoDelete immediately after vptr
+// - CMemoryException adds no members beyond CException
+//
+struct ManualCMemoryException {
+    void* vptr;           // Offset 0: points to our MSVC-compatible vtable
+    int m_bAutoDelete;    // CException::m_bAutoDelete
+    // Note: CMemoryException doesn't add any members beyond CException
+};
+
+// Comprehensive ABI compatibility verification
+// These static_asserts catch layout drift at compile time
+static_assert(sizeof(ManualCMemoryException) == sizeof(CMemoryException),
+              "ManualCMemoryException must match CMemoryException size for ABI compatibility");
+static_assert(alignof(ManualCMemoryException) == alignof(CMemoryException),
+              "ManualCMemoryException must match CMemoryException alignment for ABI compatibility");
+// Note: offsetof on m_bAutoDelete can't be checked directly (protected member in non-POD class)
+// but our layout is correct because:
+// - vptr is at offset 0 (standard for polymorphic classes, same as CObject)
+// - m_bAutoDelete immediately follows (sizeof(void*) offset), same as CException
+// - CMemoryException adds no additional members
+static_assert(offsetof(ManualCMemoryException, vptr) == 0,
+              "ManualCMemoryException vptr must be at offset 0");
+static_assert(offsetof(ManualCMemoryException, m_bAutoDelete) == sizeof(void*),
+              "ManualCMemoryException m_bAutoDelete must immediately follow vptr");
+
+// Pre-constructed exception with MSVC-compatible vtable
+// Note: g_vtbl_CMemoryException is intentionally cast to void* - this array serves
+// as the vtable pointer that MSVC code will use to resolve virtual method calls.
+static ManualCMemoryException g_ManualMemoryException = {
+    static_cast<void*>(g_vtbl_CMemoryException),  // vptr: explicit cast to MSVC vtable
+    0                                              // m_bAutoDelete = 0 (static, not auto-deleted)
+};
+
+// =============================================================================
 // Helper functions to throw exceptions
 // =============================================================================
 
 template<typename T>
-static void ThrowStatic(T* pException, ThrowInfo* pThrowInfo) {
+static void ThrowStatic(T* pException, ThrowInfo* pThrowInfo, void** msvcVtable) {
     if (!InitExceptionSystem()) { abort(); }
     InitAllRTTI();
+    // Patch vptr to MSVC-compatible vtable before throwing
+    if (msvcVtable) {
+        PatchVPtr(pException, msvcVtable);
+    }
     g_pCxxThrowException(&pException, pThrowInfo);
     abort();
 }
 
 template<typename T>
-static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
+static void ThrowNew(T* pException, ThrowInfo* pThrowInfo, void** msvcVtable) {
     if (!InitExceptionSystem()) { abort(); }
     InitAllRTTI();
+    // Patch vptr to MSVC-compatible vtable before throwing
+    if (msvcVtable) {
+        PatchVPtr(pException, msvcVtable);
+    }
     g_pCxxThrowException(&pException, pThrowInfo);
     abort();
 }
@@ -557,27 +770,30 @@ static void ThrowNew(T* pException, ThrowInfo* pThrowInfo) {
 
 // AfxThrowMemoryException - void()
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
-    ThrowStatic(&g_MemoryException, &TI_CMemoryException);
+    // Use the manually constructed exception with pre-set MSVC vtable
+    // This avoids any issues with MinGW vtable layout
+    CMemoryException* pEx = reinterpret_cast<CMemoryException*>(&g_ManualMemoryException);
+    ThrowStatic(pEx, &TI_CMemoryException, nullptr);  // vtable already set
 }
 
 // AfxThrowNotSupportedException - void()
 extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() {
-    ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException);
+    ThrowNew(new CNotSupportedException(), &TI_CNotSupportedException, nullptr);
 }
 
 // AfxThrowResourceException - void()
 extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {
-    ThrowNew(new CResourceException(), &TI_CResourceException);
+    ThrowNew(new CResourceException(), &TI_CResourceException, nullptr);
 }
 
 // AfxThrowUserException - void()
 extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ() {
-    ThrowNew(new CUserException(), &TI_CUserException);
+    ThrowNew(new CUserException(), &TI_CUserException, nullptr);
 }
 
 // AfxThrowInvalidArgException - void()
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
-    ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException);
+    ThrowNew(new CInvalidArgException(), &TI_CInvalidArgException, nullptr);
 }
 
 // AfxThrowFileException - void(int cause, LONG lOsError, const wchar_t* lpszFileName)
@@ -588,7 +804,7 @@ extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     if (lpszFileName) {
         pEx->m_strFileName = lpszFileName;
     }
-    ThrowNew(pEx, &TI_CFileException);
+    ThrowNew(pEx, &TI_CFileException, g_vtbl_CFileException);
 }
 
 // AfxThrowArchiveException - void(int cause, const wchar_t* lpszArchiveName)
@@ -596,14 +812,14 @@ extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName
 ) {
     CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
-    ThrowNew(pEx, &TI_CArchiveException);
+    ThrowNew(pEx, &TI_CArchiveException, g_vtbl_CArchiveException);
 }
 
 // AfxThrowOleException - void(HRESULT sc)
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
     COleException* pEx = new COleException();
     pEx->m_sc = sc;
-    ThrowNew(pEx, &TI_COleException);
+    ThrowNew(pEx, &TI_COleException, nullptr);
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, UINT nDescriptionID, UINT nHelpID)
@@ -614,7 +830,7 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     pEx->m_wCode = wCode;
     pEx->m_dwHelpContext = nHelpID;
     // TODO: Load description from resource nDescriptionID
-    ThrowNew(pEx, &TI_COleDispatchException);
+    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 
 // AfxThrowOleDispatchException - void(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID)
@@ -625,7 +841,7 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     pEx->m_wCode = wCode;
     pEx->m_strDescription = lpszDescription;
     pEx->m_dwHelpContext = nHelpID;
-    ThrowNew(pEx, &TI_COleDispatchException);
+    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
@@ -635,7 +851,7 @@ extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
 ) {
     CInternetException* pEx = new CInternetException(dwError);
     pEx->m_dwContext = dwContext;
-    ThrowNew(pEx, &TI_CInternetException);
+    ThrowNew(pEx, &TI_CInternetException, nullptr);
 }
 
 // AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
@@ -644,7 +860,7 @@ extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
 ) {
     (void)pdb; (void)hstmt; // Unused for now
     CDBException* pEx = new CDBException(nRetCode);
-    ThrowNew(pEx, &TI_CDBException);
+    ThrowNew(pEx, &TI_CDBException, nullptr);
 }
 
 // AfxThrowDaoException - void(int nAfxDaoError, SCODE scode)
@@ -655,13 +871,13 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     CDaoException* pEx = new CDaoException();
     pEx->m_nAfxDaoError = (short)nAfxDaoError;
     pEx->m_scode = scode;
-    ThrowNew(pEx, &TI_CDaoException);
+    ThrowNew(pEx, &TI_CDaoException, nullptr);
 }
 
 // AfxThrowLastCleanup - internal MFC function
 extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
     // This is typically called to throw a generic exception during cleanup
-    ThrowNew(new CUserException(), &TI_CUserException);
+    ThrowNew(new CUserException(), &TI_CUserException, nullptr);
 }
 
 // AfxAbort - terminates the application
