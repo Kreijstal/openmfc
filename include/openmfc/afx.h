@@ -46,6 +46,8 @@
 
 // For functions that are always imported from MFC DLL
 #define AFX_IMPORT_FUNC AFX_IMPORT AFXAPI
+// For data imported/exported from the DLL (runtime class statics, globals)
+#define AFX_DATA AFX_IMPORT
 
 #ifndef FALSE
 #define FALSE 0
@@ -210,7 +212,7 @@ struct CRuntimeClass {
 // Use in class declaration (public section)
 #define DECLARE_DYNAMIC(class_name) \
 public: \
-    static CRuntimeClass class##class_name; \
+    static AFX_DATA CRuntimeClass class##class_name; \
     static CRuntimeClass* GetThisClass() { return &class##class_name; } \
     virtual CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
 
@@ -307,7 +309,7 @@ public:
     virtual void Dump() const {}
     
     // Static CRuntimeClass for CObject
-    static CRuntimeClass classCObject;
+    static AFX_DATA CRuntimeClass classCObject;
     
 protected:
     // Protected constructors (CObject shouldn't be directly instantiated in MFC)
@@ -823,6 +825,7 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 // Note: This should be in a .cpp file normally, but for header-only we inline it
 #ifndef COBJECT_IMPL_DEFINED
 #define COBJECT_IMPL_DEFINED
+#if defined(OPENMFC_EXPORTS)
 #if !defined(OPENMFC_INLINE_VAR)
 #if defined(__cpp_inline_variables) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
 #define OPENMFC_INLINE_VAR inline
@@ -847,4 +850,5 @@ OPENMFC_INLINE_VAR CRuntimeClass CObject::classCObject = {
 inline void CObject::Serialize(CArchive& ar) {
     (void)ar;  // Base CObject::Serialize does nothing
 }
+#endif
 #endif
