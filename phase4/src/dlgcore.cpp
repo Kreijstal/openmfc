@@ -337,9 +337,11 @@ extern "C" void MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
 // Helper: GetDlgItem wrapper
 // =============================================================================
 
+extern CWnd* OpenMfcAttachCWnd(HWND hWnd);
+
 // CWnd::GetDlgItem
-// Symbol: ?GetDlgItem@CWnd@@QBAPAVCWnd@@H@Z
-extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAVCWnd__H_Z(const CWnd* pThis, int nID) {
+// Symbol: ?GetDlgItem@CWnd@@QEBAPEAV1@H@Z
+extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID) {
     if (!pThis || !pThis->m_hWnd) {
         return nullptr;
     }
@@ -349,9 +351,21 @@ extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAVCWnd__H_Z(const CWnd* pTh
         return nullptr;
     }
 
-    // In real MFC, this would return a temporary CWnd
-    // For simplicity, we return nullptr (caller should use GetDlgItemText etc.)
-    return nullptr;
+    return OpenMfcAttachCWnd(hCtrl);
+}
+
+// CWnd::GetDlgItem (HWND** overload)
+// Symbol: ?GetDlgItem@CWnd@@QEBAXHPEAPEAUHWND__@@@Z
+extern "C" void MS_ABI impl__GetDlgItem_CWnd__QEBAXHPEAPEAUHWND_____Z(
+    const CWnd* pThis, int nID, HWND* pWnd) {
+    if (!pWnd) {
+        return;
+    }
+    *pWnd = nullptr;
+    if (!pThis || !pThis->m_hWnd) {
+        return;
+    }
+    *pWnd = ::GetDlgItem(pThis->m_hWnd, nID);
 }
 
 // =============================================================================

@@ -33,6 +33,31 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 #include <map>
 static std::map<HWND, CWnd*> g_hwndMap;
 
+// Helper to reuse/attach CWnd wrappers for existing HWNDs.
+CWnd* OpenMfcLookupCWnd(HWND hWnd) {
+    if (!hWnd) {
+        return nullptr;
+    }
+    auto it = g_hwndMap.find(hWnd);
+    if (it != g_hwndMap.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+CWnd* OpenMfcAttachCWnd(HWND hWnd) {
+    if (!hWnd) {
+        return nullptr;
+    }
+    if (CWnd* existing = OpenMfcLookupCWnd(hWnd)) {
+        return existing;
+    }
+    CWnd* wrapper = new CWnd();
+    wrapper->m_hWnd = hWnd;
+    g_hwndMap[hWnd] = wrapper;
+    return wrapper;
+}
+
 // Global app pointer (defined in appcore.cpp)
 extern CWinApp* g_pApp;
 
@@ -169,6 +194,24 @@ extern "C" void MS_ABI impl__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
     }
 }
 
+// CWnd::EnableWindow
+// Symbol: ?EnableWindow@CWnd@@QEAAHH@Z
+extern "C" int MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    return ::EnableWindow(pThis->m_hWnd, bEnable);
+}
+
+// CWnd::IsWindowEnabled
+// Symbol: ?IsWindowEnabled@CWnd@@QEBAHXZ
+extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    return ::IsWindowEnabled(pThis->m_hWnd);
+}
+
 // CWnd::DestroyWindow
 // Symbol: ?DestroyWindow@CWnd@@UAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
@@ -219,6 +262,78 @@ extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
 // Symbol: ?GetSafeHwnd@CWnd@@QBAPAUHWND__@@XZ
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pThis) {
     return pThis ? pThis->m_hWnd : nullptr;
+}
+
+// CWnd::MoveWindow
+// Symbol: ?MoveWindow@CWnd@@QEAAXHHHHH@Z
+extern "C" void MS_ABI impl__MoveWindow_CWnd__QEAAXHHHHH_Z(
+    CWnd* pThis, int x, int y, int nWidth, int nHeight, int bRepaint) {
+    if (pThis && pThis->m_hWnd) {
+        ::MoveWindow(pThis->m_hWnd, x, y, nWidth, nHeight, bRepaint);
+    }
+}
+
+// CWnd::SetWindowPos
+// Symbol: ?SetWindowPos@CWnd@@QEAAHPEBV1@HHHHI@Z
+extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
+    CWnd* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    HWND hInsert = pWndInsertAfter ? pWndInsertAfter->m_hWnd : nullptr;
+    return ::SetWindowPos(pThis->m_hWnd, hInsert, x, y, cx, cy, nFlags);
+}
+
+// CWnd::SetWindowTextW
+// Symbol: ?SetWindowTextW@CWnd@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(
+    CWnd* pThis, const wchar_t* lpszString) {
+    if (pThis && pThis->m_hWnd) {
+        ::SetWindowTextW(pThis->m_hWnd, lpszString ? lpszString : L"");
+    }
+}
+
+// CWnd::GetWindowTextW
+// Symbol: ?GetWindowTextW@CWnd@@QEBAHPEA_WH@Z
+extern "C" int MS_ABI impl__GetWindowTextW_CWnd__QEBAHPEA_WH_Z(
+    const CWnd* pThis, wchar_t* lpszStringBuf, int nMaxCount) {
+    if (!pThis || !pThis->m_hWnd || !lpszStringBuf || nMaxCount <= 0) {
+        if (lpszStringBuf && nMaxCount > 0) {
+            lpszStringBuf[0] = L'\0';
+        }
+        return 0;
+    }
+    return ::GetWindowTextW(pThis->m_hWnd, lpszStringBuf, nMaxCount);
+}
+
+// CWnd::GetWindowTextW (CString& overload)
+// Symbol: ?GetWindowTextW@CWnd@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CWnd* pThis, CString* rString) {
+    if (!rString) {
+        return;
+    }
+    if (!pThis || !pThis->m_hWnd) {
+        rString->Empty();
+        return;
+    }
+    int length = ::GetWindowTextLengthW(pThis->m_hWnd);
+    if (length <= 0) {
+        rString->Empty();
+        return;
+    }
+    wchar_t* buffer = rString->GetBuffer(length);
+    int actual = ::GetWindowTextW(pThis->m_hWnd, buffer, length + 1);
+    rString->ReleaseBuffer(actual);
+}
+
+// CWnd::GetWindowTextLengthW
+// Symbol: ?GetWindowTextLengthW@CWnd@@QEBAHXZ
+extern "C" int MS_ABI impl__GetWindowTextLengthW_CWnd__QEBAHXZ(const CWnd* pThis) {
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+    return ::GetWindowTextLengthW(pThis->m_hWnd);
 }
 
 // =============================================================================

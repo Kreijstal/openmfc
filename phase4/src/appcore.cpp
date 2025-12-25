@@ -326,12 +326,39 @@ BOOL CWinThread::OnIdle(LONG lCount) {
 }
 
 BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
-    (void)pMsg;
-    return TRUE;
+    if (!pMsg) {
+        return TRUE;
+    }
+    switch (pMsg->message) {
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE:
+    case WM_MOUSEWHEEL:
+#ifdef WM_NCMOUSEWHEEL
+    case WM_NCMOUSEWHEEL:
+#endif
+    case WM_PAINT:
+#ifdef WM_SYSTIMER
+    case WM_SYSTIMER:
+#endif
+        return FALSE;
+    default:
+        return TRUE;
+    }
 }
 
 BOOL CWinThread::PumpMessage() {
-    return FALSE;
+    MSG msg;
+    int result = ::GetMessageW(&msg, nullptr, 0, 0);
+    if (result <= 0) { // 0 = WM_QUIT, -1 = error
+        m_msgCur = msg;
+        return FALSE;
+    }
+
+    if (!PreTranslateMessage(&msg)) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessageW(&msg);
+    }
+    return TRUE;
 }
 
 BOOL CWinThread::PrePumpMessage() {
@@ -358,8 +385,8 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 // We only need the runtime class implementation here
 
 
-// Global application pointer (internal use only)
-static CWinApp* g_pApp = nullptr;
+// Global application pointer (exported via openmfc_exports.cpp)
+CWinApp* g_pApp = nullptr;
 
 // AfxGetThread - returns current thread (or app for main thread)
 // C++ implementation for internal use
