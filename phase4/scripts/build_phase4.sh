@@ -199,6 +199,14 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCWnd@CWnd@@2UCRuntimeClass@@A,?classCF
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCMenu@CMenu@@2UCRuntimeClass@@A"
 # GDI
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A,?classCPen@CPen@@2UCRuntimeClass@@A,?classCBrush@CBrush@@2UCRuntimeClass@@A,?classCFont@CFont@@2UCRuntimeClass@@A,?classCBitmap@CBitmap@@2UCRuntimeClass@@A,?classCPalette@CPalette@@2UCRuntimeClass@@A,?classCRgn@CRgn@@2UCRuntimeClass@@A,?classCDC@CDC@@2UCRuntimeClass@@A,?classCClientDC@CClientDC@@2UCRuntimeClass@@A,?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A,?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A"
+# Controls
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCButton@CButton@@2UCRuntimeClass@@A,?classCEdit@CEdit@@2UCRuntimeClass@@A,?classCStatic@CStatic@@2UCRuntimeClass@@A,?classCListBox@CListBox@@2UCRuntimeClass@@A,?classCComboBox@CComboBox@@2UCRuntimeClass@@A,?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A"
+# Common Controls
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A,?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A,?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A,?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A,?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A,?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A"
+# Document-View
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocument@CDocument@@2UCRuntimeClass@@A,?classCView@CView@@2UCRuntimeClass@@A,?classCScrollView@CScrollView@@2UCRuntimeClass@@A,?classCFormView@CFormView@@2UCRuntimeClass@@A,?classCEditView@CEditView@@2UCRuntimeClass@@A,?classCListView@CListView@@2UCRuntimeClass@@A,?classCTreeView@CTreeView@@2UCRuntimeClass@@A"
+# Doc Templates
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A,?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A,?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -245,6 +253,32 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE
     ; CFrameWnd runtime class
     ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE
+    ; Control runtime classes
+    ?classCButton@CButton@@2UCRuntimeClass@@A=_ZN7CButton12classCButtonE
+    ?classCEdit@CEdit@@2UCRuntimeClass@@A=_ZN5CEdit10classCEditE
+    ?classCStatic@CStatic@@2UCRuntimeClass@@A=_ZN7CStatic12classCStaticE
+    ?classCListBox@CListBox@@2UCRuntimeClass@@A=_ZN8CListBox13classCListBoxE
+    ?classCComboBox@CComboBox@@2UCRuntimeClass@@A=_ZN9CComboBox14classCComboBoxE
+    ?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A=_ZN10CScrollBar15classCScrollBarE
+    ; Common control runtime classes
+    ?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A=_ZN11CSliderCtrl16classCSliderCtrlE
+    ?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A=_ZN13CProgressCtrl18classCProgressCtrlE
+    ?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A=_ZN15CSpinButtonCtrl20classCSpinButtonCtrlE
+    ?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A=_ZN9CListCtrl14classCListCtrlE
+    ?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A=_ZN9CTreeCtrl14classCTreeCtrlE
+    ?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A=_ZN8CTabCtrl13classCTabCtrlE
+    ; Document-View runtime classes
+    ?classCDocument@CDocument@@2UCRuntimeClass@@A=_ZN9CDocument14classCDocumentE
+    ?classCView@CView@@2UCRuntimeClass@@A=_ZN5CView10classCViewE
+    ?classCScrollView@CScrollView@@2UCRuntimeClass@@A=_ZN11CScrollView16classCScrollViewE
+    ?classCFormView@CFormView@@2UCRuntimeClass@@A=_ZN9CFormView14classCFormViewE
+    ?classCEditView@CEditView@@2UCRuntimeClass@@A=_ZN9CEditView14classCEditViewE
+    ?classCListView@CListView@@2UCRuntimeClass@@A=_ZN9CListView14classCListViewE
+    ?classCTreeView@CTreeView@@2UCRuntimeClass@@A=_ZN9CTreeView14classCTreeViewE
+    ; Doc template runtime classes
+    ?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A=_ZN12CDocTemplate17classCDocTemplateE
+    ?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A=_ZN18CSingleDocTemplate23classCSingleDocTemplateE
+    ?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A=_ZN17CMultiDocTemplate22classCMultiDocTemplateE
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
@@ -275,6 +309,9 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/gdicore.cpp"
     "$ROOT/phase4/src/menucore.cpp"
     "$ROOT/phase4/src/regcore.cpp"
+    "$ROOT/phase4/src/ctrlcore.cpp"
+    "$ROOT/phase4/src/docview.cpp"
+    "$ROOT/phase4/src/filecore.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -305,6 +342,7 @@ LDFLAGS=(
 LDLIBS=(
     -lgdi32
     -luser32
+    -lcomctl32
 )
 
 # Collect all object files

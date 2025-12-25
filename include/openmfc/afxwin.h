@@ -6,6 +6,7 @@
 
 // Windows types - OpenMFC is Windows-only
 #include <windows.h>
+#include <commctrl.h>
 
 #ifndef _WINDOWS_
     typedef void* HWND;
@@ -1899,16 +1900,36 @@ public:
         return CWnd::Create(L"BUTTON", lpszCaption, dwStyle, rect, pParentWnd, nID);
     }
 
-    unsigned int GetState() const { return 0; }
-    void SetState(int bHighlight) { (void)bHighlight; }
-    int GetCheck() const { return 0; }
-    void SetCheck(int nCheck) { (void)nCheck; }
-    unsigned int GetButtonStyle() const { return 0; }
-    void SetButtonStyle(unsigned int nStyle, int bRedraw = 1) { (void)nStyle; (void)bRedraw; }
-    void* GetBitmap() const { return nullptr; }
-    void* SetBitmap(void* hBitmap) { (void)hBitmap; return nullptr; }
-    void* GetIcon() const { return nullptr; }
-    void* SetIcon(void* hIcon) { (void)hIcon; return nullptr; }
+    unsigned int GetState() const {
+        return m_hWnd ? (unsigned int)::SendMessageW(m_hWnd, BM_GETSTATE, 0, 0) : 0;
+    }
+    void SetState(int bHighlight) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, BM_SETSTATE, bHighlight ? TRUE : FALSE, 0);
+    }
+    int GetCheck() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, BM_GETCHECK, 0, 0) : 0;
+    }
+    void SetCheck(int nCheck) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, BM_SETCHECK, nCheck, 0);
+    }
+    unsigned int GetButtonStyle() const {
+        return m_hWnd ? (unsigned int)(::GetWindowLongW(m_hWnd, GWL_STYLE) & 0xFFFF) : 0;
+    }
+    void SetButtonStyle(unsigned int nStyle, int bRedraw = 1) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, BM_SETSTYLE, nStyle, MAKELPARAM(bRedraw, 0));
+    }
+    void* GetBitmap() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, BM_GETIMAGE, IMAGE_BITMAP, 0) : nullptr;
+    }
+    void* SetBitmap(void* hBitmap) {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap) : nullptr;
+    }
+    void* GetIcon() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, BM_GETIMAGE, IMAGE_ICON, 0) : nullptr;
+    }
+    void* SetIcon(void* hIcon) {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon) : nullptr;
+    }
 };
 
 // CEdit - Edit control wrapper
@@ -1922,22 +1943,51 @@ public:
         return CWnd::Create(L"EDIT", L"", dwStyle, rect, pParentWnd, nID);
     }
 
-    int GetLineCount() const { return 1; }
-    int GetLine(int nIndex, wchar_t* lpszBuffer, int nMaxLength) const { (void)nIndex; (void)lpszBuffer; (void)nMaxLength; return 0; }
-    void GetSel(int& nStartChar, int& nEndChar) const { nStartChar = nEndChar = 0; }
-    void SetSel(int nStartChar, int nEndChar, int bNoScroll = 0) { (void)nStartChar; (void)nEndChar; (void)bNoScroll; }
-    void ReplaceSel(const wchar_t* lpszNewText, int bCanUndo = 0) { (void)lpszNewText; (void)bCanUndo; }
-    void Clear() {}
-    void Copy() {}
-    void Cut() {}
-    void Paste() {}
-    int Undo() { return 0; }
-    void SetReadOnly(int bReadOnly = 1) { (void)bReadOnly; }
-    int GetModify() const { return 0; }
-    void SetModify(int bModified = 1) { (void)bModified; }
-    void LimitText(int nChars = 0) { (void)nChars; }
-    int GetLimitText() const { return 0; }
-    void SetPasswordChar(wchar_t ch) { (void)ch; }
+    int GetLineCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, EM_GETLINECOUNT, 0, 0) : 1;
+    }
+    int GetLine(int nIndex, wchar_t* lpszBuffer, int nMaxLength) const {
+        if (!m_hWnd || !lpszBuffer || nMaxLength <= 0) return 0;
+        *(WORD*)lpszBuffer = (WORD)nMaxLength;
+        return (int)::SendMessageW(m_hWnd, EM_GETLINE, nIndex, (LPARAM)lpszBuffer);
+    }
+    void GetSel(int& nStartChar, int& nEndChar) const {
+        DWORD dwStart = 0, dwEnd = 0;
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+        nStartChar = (int)dwStart; nEndChar = (int)dwEnd;
+    }
+    void SetSel(int nStartChar, int nEndChar, int bNoScroll = 0) {
+        if (m_hWnd) {
+            ::SendMessageW(m_hWnd, EM_SETSEL, nStartChar, nEndChar);
+            if (!bNoScroll) ::SendMessageW(m_hWnd, EM_SCROLLCARET, 0, 0);
+        }
+    }
+    void ReplaceSel(const wchar_t* lpszNewText, int bCanUndo = 0) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_REPLACESEL, bCanUndo ? TRUE : FALSE, (LPARAM)lpszNewText);
+    }
+    void Clear() { if (m_hWnd) ::SendMessageW(m_hWnd, WM_CLEAR, 0, 0); }
+    void Copy() { if (m_hWnd) ::SendMessageW(m_hWnd, WM_COPY, 0, 0); }
+    void Cut() { if (m_hWnd) ::SendMessageW(m_hWnd, WM_CUT, 0, 0); }
+    void Paste() { if (m_hWnd) ::SendMessageW(m_hWnd, WM_PASTE, 0, 0); }
+    int Undo() { return m_hWnd ? (int)::SendMessageW(m_hWnd, EM_UNDO, 0, 0) : 0; }
+    void SetReadOnly(int bReadOnly = 1) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_SETREADONLY, bReadOnly ? TRUE : FALSE, 0);
+    }
+    int GetModify() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, EM_GETMODIFY, 0, 0) : 0;
+    }
+    void SetModify(int bModified = 1) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_SETMODIFY, bModified ? TRUE : FALSE, 0);
+    }
+    void LimitText(int nChars = 0) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_LIMITTEXT, nChars, 0);
+    }
+    int GetLimitText() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, EM_GETLIMITTEXT, 0, 0) : 0;
+    }
+    void SetPasswordChar(wchar_t ch) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, EM_SETPASSWORDCHAR, ch, 0);
+    }
 };
 
 // CStatic - Static control wrapper
@@ -1951,12 +2001,24 @@ public:
         return CWnd::Create(L"STATIC", lpszText, dwStyle, rect, pParentWnd, nID);
     }
 
-    void* GetBitmap() const { return nullptr; }
-    void* SetBitmap(void* hBitmap) { (void)hBitmap; return nullptr; }
-    void* GetIcon() const { return nullptr; }
-    void* SetIcon(void* hIcon) { (void)hIcon; return nullptr; }
-    void* GetEnhMetaFile() const { return nullptr; }
-    void* SetEnhMetaFile(void* hMetaFile) { (void)hMetaFile; return nullptr; }
+    void* GetBitmap() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_GETIMAGE, IMAGE_BITMAP, 0) : nullptr;
+    }
+    void* SetBitmap(void* hBitmap) {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap) : nullptr;
+    }
+    void* GetIcon() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_GETICON, 0, 0) : nullptr;
+    }
+    void* SetIcon(void* hIcon) {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_SETICON, (WPARAM)hIcon, 0) : nullptr;
+    }
+    void* GetEnhMetaFile() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_GETIMAGE, IMAGE_ENHMETAFILE, 0) : nullptr;
+    }
+    void* SetEnhMetaFile(void* hMetaFile) {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, STM_SETIMAGE, IMAGE_ENHMETAFILE, (LPARAM)hMetaFile) : nullptr;
+    }
 };
 
 // CListBox - List box control wrapper
@@ -1970,21 +2032,51 @@ public:
         return CWnd::Create(L"LISTBOX", L"", dwStyle, rect, pParentWnd, nID);
     }
 
-    int GetCount() const { return 0; }
-    int GetCurSel() const { return -1; }
-    int SetCurSel(int nSelect) { (void)nSelect; return -1; }
-    int GetText(int nIndex, wchar_t* lpszBuffer) const { (void)nIndex; (void)lpszBuffer; return 0; }
-    int GetTextLen(int nIndex) const { (void)nIndex; return 0; }
-    int AddString(const wchar_t* lpszItem) { (void)lpszItem; return 0; }
-    int InsertString(int nIndex, const wchar_t* lpszItem) { (void)nIndex; (void)lpszItem; return 0; }
-    int DeleteString(unsigned int nIndex) { (void)nIndex; return 0; }
-    void ResetContent() {}
-    int FindString(int nStartAfter, const wchar_t* lpszItem) const { (void)nStartAfter; (void)lpszItem; return -1; }
-    int SelectString(int nStartAfter, const wchar_t* lpszItem) { (void)nStartAfter; (void)lpszItem; return -1; }
-    uintptr_t GetItemData(int nIndex) const { (void)nIndex; return 0; }
-    int SetItemData(int nIndex, uintptr_t dwItemData) { (void)nIndex; (void)dwItemData; return 0; }
-    void* GetItemDataPtr(int nIndex) const { (void)nIndex; return nullptr; }
-    int SetItemDataPtr(int nIndex, void* pData) { (void)nIndex; (void)pData; return 0; }
+    int GetCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_GETCOUNT, 0, 0) : 0;
+    }
+    int GetCurSel() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_GETCURSEL, 0, 0) : LB_ERR;
+    }
+    int SetCurSel(int nSelect) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_SETCURSEL, nSelect, 0) : LB_ERR;
+    }
+    int GetText(int nIndex, wchar_t* lpszBuffer) const {
+        return (m_hWnd && lpszBuffer) ? (int)::SendMessageW(m_hWnd, LB_GETTEXT, nIndex, (LPARAM)lpszBuffer) : LB_ERR;
+    }
+    int GetTextLen(int nIndex) const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_GETTEXTLEN, nIndex, 0) : LB_ERR;
+    }
+    int AddString(const wchar_t* lpszItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_ADDSTRING, 0, (LPARAM)lpszItem) : LB_ERR;
+    }
+    int InsertString(int nIndex, const wchar_t* lpszItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_INSERTSTRING, nIndex, (LPARAM)lpszItem) : LB_ERR;
+    }
+    int DeleteString(unsigned int nIndex) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_DELETESTRING, nIndex, 0) : LB_ERR;
+    }
+    void ResetContent() {
+        if (m_hWnd) ::SendMessageW(m_hWnd, LB_RESETCONTENT, 0, 0);
+    }
+    int FindString(int nStartAfter, const wchar_t* lpszItem) const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_FINDSTRING, nStartAfter, (LPARAM)lpszItem) : LB_ERR;
+    }
+    int SelectString(int nStartAfter, const wchar_t* lpszItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_SELECTSTRING, nStartAfter, (LPARAM)lpszItem) : LB_ERR;
+    }
+    uintptr_t GetItemData(int nIndex) const {
+        return m_hWnd ? (uintptr_t)::SendMessageW(m_hWnd, LB_GETITEMDATA, nIndex, 0) : 0;
+    }
+    int SetItemData(int nIndex, uintptr_t dwItemData) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_SETITEMDATA, nIndex, (LPARAM)dwItemData) : LB_ERR;
+    }
+    void* GetItemDataPtr(int nIndex) const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, LB_GETITEMDATA, nIndex, 0) : nullptr;
+    }
+    int SetItemDataPtr(int nIndex, void* pData) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LB_SETITEMDATA, nIndex, (LPARAM)pData) : LB_ERR;
+    }
 };
 
 // CComboBox - Combo box control wrapper
@@ -1998,21 +2090,51 @@ public:
         return CWnd::Create(L"COMBOBOX", L"", dwStyle, rect, pParentWnd, nID);
     }
 
-    int GetCount() const { return 0; }
-    int GetCurSel() const { return -1; }
-    int SetCurSel(int nSelect) { (void)nSelect; return -1; }
-    int GetLBText(int nIndex, wchar_t* lpszText) const { (void)nIndex; (void)lpszText; return 0; }
-    int GetLBTextLen(int nIndex) const { (void)nIndex; return 0; }
-    int AddString(const wchar_t* lpszString) { (void)lpszString; return 0; }
-    int InsertString(int nIndex, const wchar_t* lpszString) { (void)nIndex; (void)lpszString; return 0; }
-    int DeleteString(unsigned int nIndex) { (void)nIndex; return 0; }
-    void ResetContent() {}
-    int FindString(int nStartAfter, const wchar_t* lpszString) const { (void)nStartAfter; (void)lpszString; return -1; }
-    int SelectString(int nStartAfter, const wchar_t* lpszString) { (void)nStartAfter; (void)lpszString; return -1; }
-    uintptr_t GetItemData(int nIndex) const { (void)nIndex; return 0; }
-    int SetItemData(int nIndex, uintptr_t dwItemData) { (void)nIndex; (void)dwItemData; return 0; }
-    void ShowDropDown(int bShowIt = 1) { (void)bShowIt; }
-    int GetDroppedState() const { return 0; }
+    int GetCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETCOUNT, 0, 0) : 0;
+    }
+    int GetCurSel() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETCURSEL, 0, 0) : CB_ERR;
+    }
+    int SetCurSel(int nSelect) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_SETCURSEL, nSelect, 0) : CB_ERR;
+    }
+    int GetLBText(int nIndex, wchar_t* lpszText) const {
+        return (m_hWnd && lpszText) ? (int)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)lpszText) : CB_ERR;
+    }
+    int GetLBTextLen(int nIndex) const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETLBTEXTLEN, nIndex, 0) : CB_ERR;
+    }
+    int AddString(const wchar_t* lpszString) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_ADDSTRING, 0, (LPARAM)lpszString) : CB_ERR;
+    }
+    int InsertString(int nIndex, const wchar_t* lpszString) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_INSERTSTRING, nIndex, (LPARAM)lpszString) : CB_ERR;
+    }
+    int DeleteString(unsigned int nIndex) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_DELETESTRING, nIndex, 0) : CB_ERR;
+    }
+    void ResetContent() {
+        if (m_hWnd) ::SendMessageW(m_hWnd, CB_RESETCONTENT, 0, 0);
+    }
+    int FindString(int nStartAfter, const wchar_t* lpszString) const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_FINDSTRING, nStartAfter, (LPARAM)lpszString) : CB_ERR;
+    }
+    int SelectString(int nStartAfter, const wchar_t* lpszString) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_SELECTSTRING, nStartAfter, (LPARAM)lpszString) : CB_ERR;
+    }
+    uintptr_t GetItemData(int nIndex) const {
+        return m_hWnd ? (uintptr_t)::SendMessageW(m_hWnd, CB_GETITEMDATA, nIndex, 0) : 0;
+    }
+    int SetItemData(int nIndex, uintptr_t dwItemData) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_SETITEMDATA, nIndex, (LPARAM)dwItemData) : CB_ERR;
+    }
+    void ShowDropDown(int bShowIt = 1) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, CB_SHOWDROPDOWN, bShowIt ? TRUE : FALSE, 0);
+    }
+    int GetDroppedState() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETDROPPEDSTATE, 0, 0) : FALSE;
+    }
 };
 
 // CScrollBar - Scroll bar control wrapper
@@ -2026,11 +2148,26 @@ public:
         return CWnd::Create(L"SCROLLBAR", L"", dwStyle, rect, pParentWnd, nID);
     }
 
-    int GetScrollPos() const { return 0; }
-    int SetScrollPos(int nPos, int bRedraw = 1) { (void)nPos; (void)bRedraw; return 0; }
-    void GetScrollRange(int* lpMinPos, int* lpMaxPos) const { if (lpMinPos) *lpMinPos = 0; if (lpMaxPos) *lpMaxPos = 0; }
-    void SetScrollRange(int nMinPos, int nMaxPos, int bRedraw = 1) { (void)nMinPos; (void)nMaxPos; (void)bRedraw; }
-    int EnableScrollBar(unsigned int nArrowFlags = 3) { (void)nArrowFlags; return 1; }
+    int GetScrollPos() const {
+        return m_hWnd ? ::GetScrollPos(m_hWnd, SB_CTL) : 0;
+    }
+    int SetScrollPos(int nPos, int bRedraw = 1) {
+        return m_hWnd ? ::SetScrollPos(m_hWnd, SB_CTL, nPos, bRedraw ? TRUE : FALSE) : 0;
+    }
+    void GetScrollRange(int* lpMinPos, int* lpMaxPos) const {
+        if (m_hWnd) {
+            ::GetScrollRange(m_hWnd, SB_CTL, lpMinPos, lpMaxPos);
+        } else {
+            if (lpMinPos) *lpMinPos = 0;
+            if (lpMaxPos) *lpMaxPos = 0;
+        }
+    }
+    void SetScrollRange(int nMinPos, int nMaxPos, int bRedraw = 1) {
+        if (m_hWnd) ::SetScrollRange(m_hWnd, SB_CTL, nMinPos, nMaxPos, bRedraw ? TRUE : FALSE);
+    }
+    int EnableScrollBar(unsigned int nArrowFlags = ESB_ENABLE_BOTH) {
+        return m_hWnd ? ::EnableScrollBar(m_hWnd, SB_CTL, nArrowFlags) : FALSE;
+    }
 };
 
 // CSliderCtrl - Slider/Trackbar control wrapper
@@ -2041,22 +2178,47 @@ public:
     virtual ~CSliderCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"msctls_trackbar32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"msctls_trackbar32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    int GetPos() const { return 0; }
-    void SetPos(int nPos) { (void)nPos; }
-    void SetRange(int nMin, int nMax, int bRedraw = 0) { (void)nMin; (void)nMax; (void)bRedraw; }
-    void SetRangeMin(int nMin, int bRedraw = 0) { (void)nMin; (void)bRedraw; }
-    void SetRangeMax(int nMax, int bRedraw = 0) { (void)nMax; (void)bRedraw; }
-    int GetRangeMin() const { return 0; }
-    int GetRangeMax() const { return 100; }
-    void SetTicFreq(int nFreq) { (void)nFreq; }
-    void SetPageSize(int nSize) { (void)nSize; }
-    int GetPageSize() const { return 1; }
-    void SetLineSize(int nSize) { (void)nSize; }
-    int GetLineSize() const { return 1; }
+    int GetPos() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TBM_GETPOS, 0, 0) : 0;
+    }
+    void SetPos(int nPos) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETPOS, TRUE, nPos);
+    }
+    void SetRange(int nMin, int nMax, int bRedraw = 0) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETRANGE, bRedraw ? TRUE : FALSE, MAKELPARAM(nMin, nMax));
+    }
+    void SetRangeMin(int nMin, int bRedraw = 0) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETRANGEMIN, bRedraw ? TRUE : FALSE, nMin);
+    }
+    void SetRangeMax(int nMax, int bRedraw = 0) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETRANGEMAX, bRedraw ? TRUE : FALSE, nMax);
+    }
+    int GetRangeMin() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TBM_GETRANGEMIN, 0, 0) : 0;
+    }
+    int GetRangeMax() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TBM_GETRANGEMAX, 0, 0) : 100;
+    }
+    void SetTicFreq(int nFreq) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETTICFREQ, nFreq, 0);
+    }
+    void SetPageSize(int nSize) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETPAGESIZE, 0, nSize);
+    }
+    int GetPageSize() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TBM_GETPAGESIZE, 0, 0) : 1;
+    }
+    void SetLineSize(int nSize) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, TBM_SETLINESIZE, 0, nSize);
+    }
+    int GetLineSize() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TBM_GETLINESIZE, 0, 0) : 1;
+    }
 };
 
 // CProgressCtrl - Progress bar control wrapper
@@ -2067,18 +2229,35 @@ public:
     virtual ~CProgressCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"msctls_progress32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"msctls_progress32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    int GetPos() const { return 0; }
-    int SetPos(int nPos) { (void)nPos; return 0; }
-    void SetRange(short nLower, short nUpper) { (void)nLower; (void)nUpper; }
-    void SetRange32(int nLower, int nUpper) { (void)nLower; (void)nUpper; }
-    int OffsetPos(int nPos) { (void)nPos; return 0; }
-    int SetStep(int nStep) { (void)nStep; return 1; }
-    int StepIt() { return 0; }
-    void SetMarquee(int fMarqueeMode, int nInterval) { (void)fMarqueeMode; (void)nInterval; }
+    int GetPos() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, PBM_GETPOS, 0, 0) : 0;
+    }
+    int SetPos(int nPos) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, PBM_SETPOS, nPos, 0) : 0;
+    }
+    void SetRange(short nLower, short nUpper) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, PBM_SETRANGE, 0, MAKELPARAM(nLower, nUpper));
+    }
+    void SetRange32(int nLower, int nUpper) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, PBM_SETRANGE32, nLower, nUpper);
+    }
+    int OffsetPos(int nPos) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, PBM_DELTAPOS, nPos, 0) : 0;
+    }
+    int SetStep(int nStep) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, PBM_SETSTEP, nStep, 0) : 1;
+    }
+    int StepIt() {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, PBM_STEPIT, 0, 0) : 0;
+    }
+    void SetMarquee(int fMarqueeMode, int nInterval) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, PBM_SETMARQUEE, fMarqueeMode ? TRUE : FALSE, nInterval);
+    }
 };
 
 // CSpinButtonCtrl - Spin button (up-down) control wrapper
@@ -2089,20 +2268,54 @@ public:
     virtual ~CSpinButtonCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"msctls_updown32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"msctls_updown32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    int GetPos() const { return 0; }
-    int SetPos(int nPos) { (void)nPos; return 0; }
-    void SetRange(short nLower, short nUpper) { (void)nLower; (void)nUpper; }
-    void SetRange32(int nLower, int nUpper) { (void)nLower; (void)nUpper; }
-    void GetRange(int& lower, int& upper) const { lower = 0; upper = 100; }
-    void GetRange32(int& lower, int& upper) const { lower = 0; upper = 100; }
-    CWnd* SetBuddy(CWnd* pWndBuddy) { (void)pWndBuddy; return nullptr; }
-    CWnd* GetBuddy() const { return nullptr; }
-    unsigned int SetBase(int nBase) { (void)nBase; return 10; }
-    unsigned int GetBase() const { return 10; }
+    int GetPos() const {
+        return m_hWnd ? (int)LOWORD(::SendMessageW(m_hWnd, UDM_GETPOS, 0, 0)) : 0;
+    }
+    int SetPos(int nPos) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, UDM_SETPOS, 0, MAKELPARAM(nPos, 0)) : 0;
+    }
+    void SetRange(short nLower, short nUpper) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, UDM_SETRANGE, 0, MAKELPARAM(nUpper, nLower));
+    }
+    void SetRange32(int nLower, int nUpper) {
+        if (m_hWnd) ::SendMessageW(m_hWnd, UDM_SETRANGE32, nLower, nUpper);
+    }
+    void GetRange(int& lower, int& upper) const {
+        if (m_hWnd) {
+            DWORD dwRange = (DWORD)::SendMessageW(m_hWnd, UDM_GETRANGE, 0, 0);
+            lower = (short)HIWORD(dwRange);
+            upper = (short)LOWORD(dwRange);
+        } else {
+            lower = 0; upper = 100;
+        }
+    }
+    void GetRange32(int& lower, int& upper) const {
+        if (m_hWnd) {
+            ::SendMessageW(m_hWnd, UDM_GETRANGE32, (WPARAM)&lower, (LPARAM)&upper);
+        } else {
+            lower = 0; upper = 100;
+        }
+    }
+    CWnd* SetBuddy(CWnd* pWndBuddy) {
+        // Returns previous buddy - we don't track it
+        if (m_hWnd) ::SendMessageW(m_hWnd, UDM_SETBUDDY, (WPARAM)(pWndBuddy ? pWndBuddy->GetSafeHwnd() : nullptr), 0);
+        return nullptr;
+    }
+    CWnd* GetBuddy() const {
+        // Would need to wrap the HWND - return nullptr for now
+        return nullptr;
+    }
+    unsigned int SetBase(int nBase) {
+        return m_hWnd ? (unsigned int)::SendMessageW(m_hWnd, UDM_SETBASE, nBase, 0) : 10;
+    }
+    unsigned int GetBase() const {
+        return m_hWnd ? (unsigned int)::SendMessageW(m_hWnd, UDM_GETBASE, 0, 0) : 10;
+    }
 };
 
 // CListCtrl - List view control wrapper
@@ -2113,24 +2326,84 @@ public:
     virtual ~CListCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"SysListView32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"SysListView32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    int GetItemCount() const { return 0; }
-    int InsertItem(int nItem, const wchar_t* lpszItem) { (void)nItem; (void)lpszItem; return -1; }
-    int DeleteItem(int nItem) { (void)nItem; return 0; }
-    int DeleteAllItems() { return 0; }
-    int GetItemText(int nItem, int nSubItem, wchar_t* lpszText, int nLen) const { (void)nItem; (void)nSubItem; (void)lpszText; (void)nLen; return 0; }
-    int SetItemText(int nItem, int nSubItem, const wchar_t* lpszText) { (void)nItem; (void)nSubItem; (void)lpszText; return 0; }
-    uintptr_t GetItemData(int nItem) const { (void)nItem; return 0; }
-    int SetItemData(int nItem, uintptr_t dwData) { (void)nItem; (void)dwData; return 0; }
-    int GetSelectedCount() const { return 0; }
-    int GetNextItem(int nItem, int nFlags) const { (void)nItem; (void)nFlags; return -1; }
-    int GetSelectionMark() const { return -1; }
-    int SetSelectionMark(int iIndex) { (void)iIndex; return -1; }
-    int InsertColumn(int nCol, const wchar_t* lpszColumnHeading, int nFormat = 0, int nWidth = -1, int nSubItem = -1) { (void)nCol; (void)lpszColumnHeading; (void)nFormat; (void)nWidth; (void)nSubItem; return -1; }
-    int DeleteColumn(int nCol) { (void)nCol; return 0; }
+    int GetItemCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_GETITEMCOUNT, 0, 0) : 0;
+    }
+    int InsertItem(int nItem, const wchar_t* lpszItem) {
+        if (!m_hWnd) return -1;
+        LVITEMW lvi = {};
+        lvi.mask = LVIF_TEXT;
+        lvi.iItem = nItem;
+        lvi.pszText = const_cast<wchar_t*>(lpszItem);
+        return (int)::SendMessageW(m_hWnd, LVM_INSERTITEMW, 0, (LPARAM)&lvi);
+    }
+    int DeleteItem(int nItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_DELETEITEM, nItem, 0) : 0;
+    }
+    int DeleteAllItems() {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_DELETEALLITEMS, 0, 0) : 0;
+    }
+    int GetItemText(int nItem, int nSubItem, wchar_t* lpszText, int nLen) const {
+        if (!m_hWnd || !lpszText) return 0;
+        LVITEMW lvi = {};
+        lvi.iSubItem = nSubItem;
+        lvi.cchTextMax = nLen;
+        lvi.pszText = lpszText;
+        return (int)::SendMessageW(m_hWnd, LVM_GETITEMTEXTW, nItem, (LPARAM)&lvi);
+    }
+    int SetItemText(int nItem, int nSubItem, const wchar_t* lpszText) {
+        if (!m_hWnd) return 0;
+        LVITEMW lvi = {};
+        lvi.iSubItem = nSubItem;
+        lvi.pszText = const_cast<wchar_t*>(lpszText);
+        return (int)::SendMessageW(m_hWnd, LVM_SETITEMTEXTW, nItem, (LPARAM)&lvi);
+    }
+    uintptr_t GetItemData(int nItem) const {
+        if (!m_hWnd) return 0;
+        LVITEMW lvi = {};
+        lvi.mask = LVIF_PARAM;
+        lvi.iItem = nItem;
+        ::SendMessageW(m_hWnd, LVM_GETITEMW, 0, (LPARAM)&lvi);
+        return (uintptr_t)lvi.lParam;
+    }
+    int SetItemData(int nItem, uintptr_t dwData) {
+        if (!m_hWnd) return 0;
+        LVITEMW lvi = {};
+        lvi.mask = LVIF_PARAM;
+        lvi.iItem = nItem;
+        lvi.lParam = (LPARAM)dwData;
+        return (int)::SendMessageW(m_hWnd, LVM_SETITEMW, 0, (LPARAM)&lvi);
+    }
+    int GetSelectedCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_GETSELECTEDCOUNT, 0, 0) : 0;
+    }
+    int GetNextItem(int nItem, int nFlags) const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_GETNEXTITEM, nItem, MAKELPARAM(nFlags, 0)) : -1;
+    }
+    int GetSelectionMark() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_GETSELECTIONMARK, 0, 0) : -1;
+    }
+    int SetSelectionMark(int iIndex) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_SETSELECTIONMARK, 0, iIndex) : -1;
+    }
+    int InsertColumn(int nCol, const wchar_t* lpszColumnHeading, int nFormat = 0, int nWidth = -1, int nSubItem = -1) {
+        if (!m_hWnd) return -1;
+        LVCOLUMNW lvc = {};
+        lvc.mask = LVCF_TEXT | LVCF_FMT;
+        lvc.pszText = const_cast<wchar_t*>(lpszColumnHeading);
+        lvc.fmt = nFormat;
+        if (nWidth >= 0) { lvc.mask |= LVCF_WIDTH; lvc.cx = nWidth; }
+        if (nSubItem >= 0) { lvc.mask |= LVCF_SUBITEM; lvc.iSubItem = nSubItem; }
+        return (int)::SendMessageW(m_hWnd, LVM_INSERTCOLUMNW, nCol, (LPARAM)&lvc);
+    }
+    int DeleteColumn(int nCol) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, LVM_DELETECOLUMN, nCol, 0) : 0;
+    }
 };
 
 // CTreeCtrl - Tree view control wrapper
@@ -2141,24 +2414,80 @@ public:
     virtual ~CTreeCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"SysTreeView32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"SysTreeView32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    void* InsertItem(const wchar_t* lpszItem, void* hParent = (void*)-0x10000, void* hInsertAfter = (void*)-0xFFFF) { (void)lpszItem; (void)hParent; (void)hInsertAfter; return nullptr; }
-    int DeleteItem(void* hItem) { (void)hItem; return 0; }
-    int DeleteAllItems() { return 0; }
-    int GetItemText(void* hItem, wchar_t* lpszText, int nLen) const { (void)hItem; (void)lpszText; (void)nLen; return 0; }
-    int SetItemText(void* hItem, const wchar_t* lpszText) { (void)hItem; (void)lpszText; return 0; }
-    void* GetSelectedItem() const { return nullptr; }
-    int SelectItem(void* hItem) { (void)hItem; return 0; }
-    int Expand(void* hItem, unsigned int nCode) { (void)hItem; (void)nCode; return 0; }
-    void* GetRootItem() const { return nullptr; }
-    void* GetChildItem(void* hItem) const { (void)hItem; return nullptr; }
-    void* GetNextSiblingItem(void* hItem) const { (void)hItem; return nullptr; }
-    void* GetParentItem(void* hItem) const { (void)hItem; return nullptr; }
-    uintptr_t GetItemData(void* hItem) const { (void)hItem; return 0; }
-    int SetItemData(void* hItem, uintptr_t dwData) { (void)hItem; (void)dwData; return 0; }
+    void* InsertItem(const wchar_t* lpszItem, void* hParent = TVI_ROOT, void* hInsertAfter = TVI_LAST) {
+        if (!m_hWnd) return nullptr;
+        TVINSERTSTRUCTW tvis = {};
+        tvis.hParent = (HTREEITEM)hParent;
+        tvis.hInsertAfter = (HTREEITEM)hInsertAfter;
+        tvis.item.mask = TVIF_TEXT;
+        tvis.item.pszText = const_cast<wchar_t*>(lpszItem);
+        return (void*)::SendMessageW(m_hWnd, TVM_INSERTITEMW, 0, (LPARAM)&tvis);
+    }
+    int DeleteItem(void* hItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TVM_DELETEITEM, 0, (LPARAM)hItem) : 0;
+    }
+    int DeleteAllItems() {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TVM_DELETEITEM, 0, (LPARAM)TVI_ROOT) : 0;
+    }
+    int GetItemText(void* hItem, wchar_t* lpszText, int nLen) const {
+        if (!m_hWnd || !lpszText) return 0;
+        TVITEMW tvi = {};
+        tvi.mask = TVIF_TEXT;
+        tvi.hItem = (HTREEITEM)hItem;
+        tvi.pszText = lpszText;
+        tvi.cchTextMax = nLen;
+        return ::SendMessageW(m_hWnd, TVM_GETITEMW, 0, (LPARAM)&tvi) ? (int)wcslen(lpszText) : 0;
+    }
+    int SetItemText(void* hItem, const wchar_t* lpszText) {
+        if (!m_hWnd) return 0;
+        TVITEMW tvi = {};
+        tvi.mask = TVIF_TEXT;
+        tvi.hItem = (HTREEITEM)hItem;
+        tvi.pszText = const_cast<wchar_t*>(lpszText);
+        return (int)::SendMessageW(m_hWnd, TVM_SETITEMW, 0, (LPARAM)&tvi);
+    }
+    void* GetSelectedItem() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_CARET, 0) : nullptr;
+    }
+    int SelectItem(void* hItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TVM_SELECTITEM, TVGN_CARET, (LPARAM)hItem) : 0;
+    }
+    int Expand(void* hItem, unsigned int nCode) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TVM_EXPAND, nCode, (LPARAM)hItem) : 0;
+    }
+    void* GetRootItem() const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_ROOT, 0) : nullptr;
+    }
+    void* GetChildItem(void* hItem) const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)hItem) : nullptr;
+    }
+    void* GetNextSiblingItem(void* hItem) const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)hItem) : nullptr;
+    }
+    void* GetParentItem(void* hItem) const {
+        return m_hWnd ? (void*)::SendMessageW(m_hWnd, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)hItem) : nullptr;
+    }
+    uintptr_t GetItemData(void* hItem) const {
+        if (!m_hWnd) return 0;
+        TVITEMW tvi = {};
+        tvi.mask = TVIF_PARAM;
+        tvi.hItem = (HTREEITEM)hItem;
+        ::SendMessageW(m_hWnd, TVM_GETITEMW, 0, (LPARAM)&tvi);
+        return (uintptr_t)tvi.lParam;
+    }
+    int SetItemData(void* hItem, uintptr_t dwData) {
+        if (!m_hWnd) return 0;
+        TVITEMW tvi = {};
+        tvi.mask = TVIF_PARAM;
+        tvi.hItem = (HTREEITEM)hItem;
+        tvi.lParam = (LPARAM)dwData;
+        return (int)::SendMessageW(m_hWnd, TVM_SETITEMW, 0, (LPARAM)&tvi);
+    }
 };
 
 // CTabCtrl - Tab control wrapper
@@ -2169,17 +2498,36 @@ public:
     virtual ~CTabCtrl() = default;
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
-        (void)dwStyle; (void)rect; (void)pParentWnd; (void)nID;
-        return CWnd::CreateEx(0, L"SysTabControl32", L"", dwStyle, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+        return CWnd::CreateEx(0, L"SysTabControl32", L"", dwStyle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
     }
 
-    int GetItemCount() const { return 0; }
-    int GetCurSel() const { return -1; }
-    int SetCurSel(int nItem) { (void)nItem; return -1; }
-    long InsertItem(int nItem, const wchar_t* lpszItem) { (void)nItem; (void)lpszItem; return -1; }
-    int DeleteItem(int nItem) { (void)nItem; return 0; }
-     int DeleteAllItems() { return 0; }
-    void AdjustRect(int bLarger, struct tagRECT* lpRect) { (void)bLarger; (void)lpRect; }
+    int GetItemCount() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TCM_GETITEMCOUNT, 0, 0) : 0;
+    }
+    int GetCurSel() const {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TCM_GETCURSEL, 0, 0) : -1;
+    }
+    int SetCurSel(int nItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TCM_SETCURSEL, nItem, 0) : -1;
+    }
+    long InsertItem(int nItem, const wchar_t* lpszItem) {
+        if (!m_hWnd) return -1;
+        TCITEMW tci = {};
+        tci.mask = TCIF_TEXT;
+        tci.pszText = const_cast<wchar_t*>(lpszItem);
+        return (long)::SendMessageW(m_hWnd, TCM_INSERTITEMW, nItem, (LPARAM)&tci);
+    }
+    int DeleteItem(int nItem) {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TCM_DELETEITEM, nItem, 0) : 0;
+    }
+    int DeleteAllItems() {
+        return m_hWnd ? (int)::SendMessageW(m_hWnd, TCM_DELETEALLITEMS, 0, 0) : 0;
+    }
+    void AdjustRect(int bLarger, struct tagRECT* lpRect) {
+        if (m_hWnd && lpRect) ::SendMessageW(m_hWnd, TCM_ADJUSTRECT, bLarger ? TRUE : FALSE, (LPARAM)lpRect);
+    }
 };
 
 //=============================================================================
@@ -2233,19 +2581,16 @@ public:
 public:
     CString m_strTitle;           // Document title
     CString m_strPathName;        // Full path to document file
-    
-protected:
     int m_bModified;              // Modified flag
     int m_bAutoDelete;            // Auto-delete flag
-    
+
     // View list (simplified - real MFC uses CPtrList)
     CView* m_pFirstView;          // First view in list
     CView* m_pLastView;           // Last view in list
-    
-public:
+
     // For template's document list
     CDocument* m_pNextDoc;        // Next document in template's list
-    
+
 protected:
     // Padding for ABI compatibility
     char _document_padding[56];
@@ -2311,12 +2656,13 @@ public:
     virtual void OnInitialUpdate() override;
     virtual void OnUpdate(CView* pSender, unsigned long lHint = 0, CObject* pHint = nullptr) override;
     
-protected:
+public:
     SIZE m_totalLog;    // Total logical size
     SIZE m_pageDev;     // Page size in device units
     SIZE m_lineDev;     // Line size in device units
     int m_nMapMode;               // Mapping mode
-    
+
+protected:
     // Padding for ABI compatibility
     char _scrollview_padding[64];
 };
@@ -2370,10 +2716,11 @@ public:
     
     // Edit control access
     CEdit* GetEditCtrl() const;
-    
-protected:
+
+public:
     CEdit* m_pEditCtrl;           // Embedded edit control
-    
+
+protected:
     // Padding for ABI compatibility
     char _editview_padding[64];
 };
@@ -2387,14 +2734,15 @@ public:
 
     // List control access
     CListCtrl* GetListCtrl() const;
-    
+
     // Overrides
     virtual void OnDraw(void* pDC) override;
     virtual void OnInitialUpdate() override;
-    
-protected:
+
+public:
     CListCtrl* m_pListCtrl;       // Embedded list control
-    
+
+protected:
     // Padding for ABI compatibility
     char _listview_padding[64];
 };
@@ -2408,14 +2756,15 @@ public:
 
     // Tree control access
     CTreeCtrl* GetTreeCtrl() const;
-    
+
     // Overrides
     virtual void OnDraw(void* pDC) override;
     virtual void OnInitialUpdate() override;
-    
-protected:
+
+public:
     CTreeCtrl* m_pTreeCtrl;       // Embedded tree control
-    
+
+protected:
     // Padding for ABI compatibility
     char _treeview_padding[64];
 };
@@ -2430,6 +2779,11 @@ public:
 
     // Document creation
     virtual CDocument* CreateNewDocument();
+
+protected:
+    CDocTemplate();  // Default constructor for derived classes
+
+public:
     virtual CFrameWnd* CreateNewFrame(CDocument* pDoc = nullptr, CFrameWnd* pOther = nullptr);
     virtual int CreateAndReplaceFrame(CFrameWnd* pTargetFrame, CDocument* pDoc);
     

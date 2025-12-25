@@ -244,6 +244,34 @@ public: \
         nullptr \
     };
 
+// DECLARE_SERIAL - adds serialization support to a class
+// Extends DECLARE_DYNCREATE with archive extraction operator
+#define DECLARE_SERIAL(class_name) \
+    DECLARE_DYNCREATE(class_name) \
+    friend CArchive& operator>>(CArchive& ar, class_name*& pOb);
+
+// IMPLEMENT_SERIAL - implements runtime class with serialization
+// Sets a specific schema version for versioned serialization
+#define IMPLEMENT_SERIAL(class_name, base_class_name, wSchema) \
+    CObject* AFXAPI _AfxGetObject##class_name(CArchive& ar) { \
+        (void)ar; \
+        return class_name::CreateObject(); \
+    } \
+    CArchive& operator>>(CArchive& ar, class_name*& pOb) { \
+        pOb = static_cast<class_name*>(_AfxGetObject##class_name(ar)); \
+        if (pOb != nullptr) pOb->Serialize(ar); \
+        return ar; \
+    } \
+    CRuntimeClass class_name::class##class_name = { \
+        #class_name, \
+        sizeof(class_name), \
+        wSchema, \
+        &class_name::CreateObject, \
+        nullptr, \
+        &base_class_name::class##base_class_name, \
+        nullptr \
+    };
+
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
 #define RUNTIME_CLASS(class_name) (&class_name::class##class_name)
 
