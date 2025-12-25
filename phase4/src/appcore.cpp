@@ -257,27 +257,29 @@ int CWinThread::ExitInstance() {
 }
 
 int CWinThread::Run() {
-    // Real message loop implementation
     MSG msg;
+    LONG idleCount = 0;
 
-    // Main message loop
-    while (GetMessageW(&msg, nullptr, 0, 0)) {
-        // Allow PreTranslateMessage to filter
-        if (!PreTranslateMessage(&msg)) {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
+    for (;;) {
+        // Idle processing when no messages are pending
+        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!OnIdle(idleCount++)) {
+                idleCount = 0;
+                ::WaitMessage();
+                break;
+            }
         }
 
-        // Idle processing
-        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-            if (!OnIdle(0)) {
-                break;  // No more idle work
+        // Pump all queued messages
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!PumpMessage()) {
+                return ExitInstance();
+            }
+            if (IsIdleMessage(&m_msgCur)) {
+                idleCount = 0;
             }
         }
     }
-
-    m_msgCur = msg;
-    return ExitInstance();
 }
 
 // CWinThread::Run - exported stub
@@ -360,6 +362,9 @@ BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
 
 BOOL CWinThread::PumpMessage() {
     MSG msg;
+    if (!PrePumpMessage()) {
+        return FALSE;
+    }
     int result = ::GetMessageW(&msg, nullptr, 0, 0);
     if (result <= 0) {
         if (result == 0) {
@@ -377,7 +382,7 @@ BOOL CWinThread::PumpMessage() {
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
     }
-    return TRUE;
+    return PostPumpMessage();
 }
 
 BOOL CWinThread::PrePumpMessage() {

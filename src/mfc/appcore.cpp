@@ -182,25 +182,28 @@ int CWinThread::ExitInstance() {
 
 int CWinThread::Run() {
     MSG msg;
+    LONG idleCount = 0;
 
-    // Main message loop
-    while (GetMessageW(&msg, nullptr, 0, 0)) {
-        // Allow PreTranslateMessage to filter
-        if (!PreTranslateMessage(&msg)) {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
+    for (;;) {
+        // Idle processing when no messages are pending
+        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!OnIdle(idleCount++)) {
+                idleCount = 0;
+                ::WaitMessage();
+                break;
+            }
         }
 
-        // Idle processing
-        while (!PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-            if (!OnIdle(0)) {
-                break;  // No more idle work
+        // Pump all queued messages
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!PumpMessage()) {
+                return ExitInstance();
+            }
+            if (IsIdleMessage(&m_msgCur)) {
+                idleCount = 0;
             }
         }
     }
-
-    m_msgCur = msg;
-    return ExitInstance();
 }
 
 BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
@@ -210,16 +213,50 @@ BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
 
 BOOL CWinThread::OnIdle(LONG lCount) {
     (void)lCount;
-    return lCount == 0; // More work to do?
+    return lCount == 0; // More work to do on the first pass
 }
 
 BOOL CWinThread::IsIdleMessage(MSG* pMsg) {
-    (void)pMsg;
-    return TRUE;
+    if (!pMsg) {
+        return TRUE;
+    }
+    switch (pMsg->message) {
+    case WM_MOUSEMOVE:
+    case WM_NCMOUSEMOVE:
+    case WM_MOUSEWHEEL:
+#ifdef WM_NCMOUSEWHEEL
+    case WM_NCMOUSEWHEEL:
+#endif
+    case WM_PAINT:
+#ifdef WM_SYSTIMER
+    case WM_SYSTIMER:
+#endif
+        return FALSE;
+    default:
+        return TRUE;
+    }
 }
 
 BOOL CWinThread::PumpMessage() {
-    return FALSE;
+    MSG msg;
+    if (!PrePumpMessage()) {
+        return FALSE;
+    }
+
+    int result = ::GetMessageW(&msg, nullptr, 0, 0);
+    if (result <= 0) {
+        if (result == 0) {
+            m_msgCur = msg;
+        }
+        return FALSE;
+    }
+
+    m_msgCur = msg;
+    if (!PreTranslateMessage(&msg)) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessageW(&msg);
+    }
+    return PostPumpMessage();
 }
 
 BOOL CWinThread::PrePumpMessage() {
