@@ -846,9 +846,9 @@ OPENMFC_INLINE_VAR CRuntimeClass CObject::classCObject = {
     nullptr         // m_pNextClass
 };
 
+#endif
 // CObject::Serialize default implementation (does nothing for base class)
 inline void CObject::Serialize(CArchive& ar) {
     (void)ar;  // Base CObject::Serialize does nothing
 }
-#endif
 #endif
