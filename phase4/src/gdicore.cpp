@@ -121,6 +121,14 @@ extern "C" void MS_ABI impl___1CDC__UEAA_XZ(CDC* pThis) {
     }
 }
 
+CDC::CDC() {
+    impl___0CDC__QEAA_XZ(this);
+}
+
+CDC::~CDC() {
+    impl___1CDC__UEAA_XZ(this);
+}
+
 // CDC::CreateCompatibleDC
 // Symbol: ?CreateCompatibleDC@CDC@@QEAAHPEAV1@@Z
 extern "C" int MS_ABI impl__CreateCompatibleDC_CDC__QEAAHPEAV1__Z(CDC* pThis, CDC* pDC) {

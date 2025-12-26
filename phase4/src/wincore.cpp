@@ -129,6 +129,10 @@ extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPAV1_PAUHWND_____Z(HWND hWnd) {
     return OpenMfcAttachCWnd(hWnd);
 }
 
+CWnd* CWnd::FromHandle(HWND hWnd) {
+    return OpenMfcAttachCWnd(hWnd);
+}
+
 // Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
     return &CWnd::classCWnd;
@@ -590,6 +594,51 @@ extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateCon
     }
 
     return result;
+}
+
+CFrameWnd::CFrameWnd() {
+    impl___0CFrameWnd__QEAA_XZ(this);
+}
+
+CFrameWnd::~CFrameWnd() {
+    impl___1CFrameWnd__UEAA_XZ(this);
+}
+
+int CFrameWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                      DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
+                      const wchar_t* lpszMenuName, DWORD dwExStyle, CCreateContext* pContext) {
+    return impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
+        this, lpszClassName, lpszWindowName, dwStyle, rect, pParentWnd, lpszMenuName, dwExStyle, pContext);
+}
+
+int CFrameWnd::PreCreateWindow(CREATESTRUCTW& cs) {
+    return impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(this, cs);
+}
+
+int CFrameWnd::LoadFrame(UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext) {
+    return impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
+        this, nIDResource, dwDefaultStyle, pParentWnd, pContext);
+}
+
+void CFrameWnd::ActivateFrame(int nCmdShow) {
+    if (!m_hWnd) {
+        return;
+    }
+    int cmd = (nCmdShow == -1) ? SW_SHOW : nCmdShow;
+    ::ShowWindow(m_hWnd, cmd);
+    ::UpdateWindow(m_hWnd);
+}
+
+void CFrameWnd::RecalcLayout(int bNotify) {
+    (void)bNotify;
+    if (m_hWnd) {
+        ::SendMessageW(m_hWnd, WM_SIZE, 0, 0);
+    }
+}
+
+int CFrameWnd::OnCreate(void* lpCreateStruct) {
+    (void)lpCreateStruct;
+    return 0;
 }
 
 // =============================================================================
