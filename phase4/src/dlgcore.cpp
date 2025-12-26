@@ -551,14 +551,14 @@ void CPropertyPage::SetModified(int bChanged) {
     // Notify parent property sheet
     CPropertySheet* pSheet = GetParentSheet();
     if (pSheet && pSheet->m_hWnd) {
-        PropSheet_Changed(pSheet->m_hWnd, m_hWnd);
+        ::SendMessageW(pSheet->m_hWnd, PSM_CHANGED, (WPARAM)m_hWnd, 0);
     }
 }
 
 int CPropertyPage::QuerySiblings(uintptr_t wParam, intptr_t lParam) {
     CPropertySheet* pSheet = GetParentSheet();
     if (pSheet && pSheet->m_hWnd) {
-        return (int)PropSheet_QuerySiblings(pSheet->m_hWnd, wParam, lParam);
+        return (int)::SendMessageW(pSheet->m_hWnd, PSM_QUERYSIBLINGS, wParam, lParam);
     }
     return 0;
 }
@@ -566,7 +566,7 @@ int CPropertyPage::QuerySiblings(uintptr_t wParam, intptr_t lParam) {
 void CPropertyPage::CancelToClose() {
     CPropertySheet* pSheet = GetParentSheet();
     if (pSheet && pSheet->m_hWnd) {
-        PropSheet_CancelToClose(pSheet->m_hWnd);
+        ::PostMessageW(pSheet->m_hWnd, PSM_CANCELTOCLOSE, 0, 0);
     }
 }
 
@@ -769,13 +769,13 @@ void CPropertySheet::SetWizardMode() {
 
 void CPropertySheet::SetWizardButtons(unsigned long dwFlags) {
     if (m_hWnd) {
-        PropSheet_SetWizButtons(m_hWnd, dwFlags);
+        ::SendMessageW(m_hWnd, PSM_SETWIZBUTTONS, 0, (LPARAM)dwFlags);
     }
 }
 
 void CPropertySheet::SetFinishText(const wchar_t* lpszText) {
     if (m_hWnd) {
-        PropSheet_SetFinishTextW(m_hWnd, lpszText);
+        ::SendMessageW(m_hWnd, PSM_SETFINISHTEXT, 0, (LPARAM)lpszText);
     }
 }
 
@@ -821,7 +821,7 @@ void CPropertySheet::RemovePage(int nPage) {
 
 void CPropertySheet::PressButton(int nButton) {
     if (m_hWnd) {
-        PropSheet_PressButton(m_hWnd, nButton);
+        ::PostMessageW(m_hWnd, PSM_PRESSBUTTON, (WPARAM)nButton, 0);
     }
 }
 
@@ -829,9 +829,9 @@ void CPropertySheet::EndDialog(int nEndID) {
     if (m_hWnd) {
         // For modal property sheets, post a message to close
         if (nEndID == IDOK) {
-            PropSheet_PressButton(m_hWnd, PSBTN_OK);
+            ::PostMessageW(m_hWnd, PSM_PRESSBUTTON, (WPARAM)PSBTN_OK, 0);
         } else {
-            PropSheet_PressButton(m_hWnd, PSBTN_CANCEL);
+            ::PostMessageW(m_hWnd, PSM_PRESSBUTTON, (WPARAM)PSBTN_CANCEL, 0);
         }
     }
 }
