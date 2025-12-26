@@ -207,6 +207,10 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSliderCtrl@CSliderCtrl@@2UCRuntimeCla
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocument@CDocument@@2UCRuntimeClass@@A,?classCView@CView@@2UCRuntimeClass@@A,?classCScrollView@CScrollView@@2UCRuntimeClass@@A,?classCFormView@CFormView@@2UCRuntimeClass@@A,?classCEditView@CEditView@@2UCRuntimeClass@@A,?classCListView@CListView@@2UCRuntimeClass@@A,?classCTreeView@CTreeView@@2UCRuntimeClass@@A"
 # Doc Templates
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A,?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A,?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A"
+# Sync classes
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSyncObject@CSyncObject@@2UCRuntimeClass@@A,?classCCriticalSection@CCriticalSection@@2UCRuntimeClass@@A,?classCMutex@CMutex@@2UCRuntimeClass@@A,?classCSemaphore@CSemaphore@@2UCRuntimeClass@@A,?classCEvent@CEvent@@2UCRuntimeClass@@A"
+# Common dialogs
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCColorDialog@CColorDialog@@2UCRuntimeClass@@A,?classCFontDialog@CFontDialog@@2UCRuntimeClass@@A,?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A,?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A,?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -277,6 +281,18 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A=_ZN12CDocTemplate17classCDocTemplateE DATA
     ?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A=_ZN18CSingleDocTemplate23classCSingleDocTemplateE DATA
     ?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A=_ZN17CMultiDocTemplate22classCMultiDocTemplateE DATA
+    ; Sync class runtime classes
+    ?classCSyncObject@CSyncObject@@2UCRuntimeClass@@A=_ZN11CSyncObject16classCSyncObjectE DATA
+    ?classCCriticalSection@CCriticalSection@@2UCRuntimeClass@@A=_ZN16CCriticalSection21classCCriticalSectionE DATA
+    ?classCMutex@CMutex@@2UCRuntimeClass@@A=_ZN6CMutex11classCMutexE DATA
+    ?classCSemaphore@CSemaphore@@2UCRuntimeClass@@A=_ZN10CSemaphore15classCSemaphoreE DATA
+    ?classCEvent@CEvent@@2UCRuntimeClass@@A=_ZN6CEvent11classCEventE DATA
+    ; Common dialog runtime classes
+    ?classCColorDialog@CColorDialog@@2UCRuntimeClass@@A=_ZN12CColorDialog17classCColorDialogE DATA
+    ?classCFontDialog@CFontDialog@@2UCRuntimeClass@@A=_ZN11CFontDialog16classCFontDialogE DATA
+    ?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A=_ZN12CPrintDialog17classCPrintDialogE DATA
+    ?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A=_ZN16CPageSetupDialog21classCPageSetupDialogE DATA
+    ?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A=_ZN18CFindReplaceDialog23classCFindReplaceDialogE DATA
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
@@ -310,6 +326,8 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/ctrlcore.cpp"
     "$ROOT/phase4/src/docview.cpp"
     "$ROOT/phase4/src/filecore.cpp"
+    "$ROOT/phase4/src/synccore.cpp"
+    "$ROOT/phase4/src/dlgcommon.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -341,6 +359,7 @@ LDLIBS=(
     -lgdi32
     -luser32
     -lcomctl32
+    -lcomdlg32
 )
 
 # Collect all object files

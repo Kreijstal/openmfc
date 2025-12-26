@@ -412,3 +412,69 @@ extern "C" void MS_ABI impl__SetDlgItemText_CWnd__QEAAXHPEB_W_Z(
         ::SetWindowTextW(hCtrl, lpszString ? lpszString : L"");
     }
 }
+
+// =============================================================================
+// CDialog member functions (for vtable usage)
+// These are needed by derived classes (CColorDialog, CFileDialog, etc.)
+// =============================================================================
+
+CDialog::CDialog() {
+    m_hWnd = nullptr;
+    m_lpszTemplateName = nullptr;
+    m_nIDHelp = 0;
+}
+
+CDialog::CDialog(UINT nIDTemplate, CWnd* pParentWnd) {
+    (void)pParentWnd;
+    m_hWnd = nullptr;
+    m_lpszTemplateName = MAKEINTRESOURCEW(nIDTemplate);
+    m_nIDHelp = nIDTemplate;
+}
+
+CDialog::CDialog(const wchar_t* lpszTemplateName, CWnd* pParentWnd) {
+    (void)pParentWnd;
+    m_hWnd = nullptr;
+    m_lpszTemplateName = lpszTemplateName;
+    m_nIDHelp = 0;
+}
+
+CDialog::~CDialog() {
+    if (m_hWnd) {
+        g_dlgMap.erase(m_hWnd);
+        m_hWnd = nullptr;
+    }
+}
+
+intptr_t CDialog::DoModal() {
+    return impl__DoModal_CDialog__UEAA_JXZ(this);
+}
+
+int CDialog::Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd) {
+    return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(this, lpszTemplateName, pParentWnd);
+}
+
+int CDialog::Create(UINT nIDTemplate, CWnd* pParentWnd) {
+    return impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(this, nIDTemplate, pParentWnd);
+}
+
+int CDialog::OnInitDialog() {
+    return TRUE;
+}
+
+void CDialog::OnOK() {
+    EndDialog(IDOK);
+}
+
+void CDialog::OnCancel() {
+    EndDialog(IDCANCEL);
+}
+
+void CDialog::OnSetFont(CWnd* /* pFont */) {
+    // Default: do nothing
+}
+
+void CDialog::EndDialog(int nResult) {
+    if (m_hWnd) {
+        ::EndDialog(m_hWnd, nResult);
+    }
+}

@@ -217,12 +217,115 @@ void CScrollView::SetScrollSizes(int nMapMode, const SIZE& sizeTotal, const SIZE
 void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ(this); }
 void CScrollView::OnDraw(void* pDC) { impl__OnDraw_CScrollView__UEAAXPEAX_Z(this, pDC); }
 void CScrollView::OnUpdate(CView* pSender, unsigned long lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
-void CScrollView::GetScrollBarSizes(SIZE& sizeSb) const { sizeSb.cx = 0; sizeSb.cy = 0; }
-void CScrollView::GetTrueClientSize(SIZE& size, SIZE& sizeSb) const { size.cx = 0; size.cy = 0; sizeSb.cx = 0; sizeSb.cy = 0; }
-void CScrollView::ScrollToPosition(POINT pt) { (void)pt; }
-void CScrollView::GetScrollPosition(POINT& pt) const { pt.x = 0; pt.y = 0; }
-void CScrollView::FillOutsideRect(void* pDC, void* pBrush) { (void)pDC; (void)pBrush; }
-void CScrollView::ResizeParentToFit(int bShrinkOnly) { (void)bShrinkOnly; }
+
+void CScrollView::GetScrollBarSizes(SIZE& sizeSb) const {
+    sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
+    sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
+}
+
+void CScrollView::GetTrueClientSize(SIZE& size, SIZE& sizeSb) const {
+    if (m_hWnd) {
+        RECT rc;
+        ::GetClientRect(m_hWnd, &rc);
+        size.cx = rc.right - rc.left;
+        size.cy = rc.bottom - rc.top;
+    } else {
+        size.cx = 0;
+        size.cy = 0;
+    }
+    GetScrollBarSizes(sizeSb);
+}
+
+void CScrollView::ScrollToPosition(POINT pt) {
+    if (!m_hWnd) return;
+
+    // Clamp to valid range
+    if (pt.x < 0) pt.x = 0;
+    if (pt.y < 0) pt.y = 0;
+    if (pt.x > m_totalLog.cx) pt.x = m_totalLog.cx;
+    if (pt.y > m_totalLog.cy) pt.y = m_totalLog.cy;
+
+    // Set scroll positions
+    ::SetScrollPos(m_hWnd, SB_HORZ, pt.x, TRUE);
+    ::SetScrollPos(m_hWnd, SB_VERT, pt.y, TRUE);
+
+    // Scroll the window content
+    ::ScrollWindow(m_hWnd, 0, 0, nullptr, nullptr);
+    ::InvalidateRect(m_hWnd, nullptr, TRUE);
+}
+
+void CScrollView::GetScrollPosition(POINT& pt) const {
+    if (m_hWnd) {
+        pt.x = ::GetScrollPos(m_hWnd, SB_HORZ);
+        pt.y = ::GetScrollPos(m_hWnd, SB_VERT);
+    } else {
+        pt.x = 0;
+        pt.y = 0;
+    }
+}
+
+void CScrollView::FillOutsideRect(void* pDC, void* pBrush) {
+    if (!m_hWnd || !pDC) return;
+
+    HDC hDC = static_cast<HDC>(pDC);
+    HBRUSH hBrush = pBrush ? static_cast<HBRUSH>(pBrush) :
+                            static_cast<HBRUSH>(::GetStockObject(WHITE_BRUSH));
+
+    RECT rcClient;
+    ::GetClientRect(m_hWnd, &rcClient);
+
+    // Fill areas outside the scroll view content
+    RECT rcFill;
+
+    // Right of content
+    if (rcClient.right > m_totalLog.cx) {
+        rcFill.left = m_totalLog.cx;
+        rcFill.top = rcClient.top;
+        rcFill.right = rcClient.right;
+        rcFill.bottom = rcClient.bottom;
+        ::FillRect(hDC, &rcFill, hBrush);
+    }
+
+    // Below content
+    if (rcClient.bottom > m_totalLog.cy) {
+        rcFill.left = rcClient.left;
+        rcFill.top = m_totalLog.cy;
+        rcFill.right = m_totalLog.cx;
+        rcFill.bottom = rcClient.bottom;
+        ::FillRect(hDC, &rcFill, hBrush);
+    }
+}
+
+void CScrollView::ResizeParentToFit(int bShrinkOnly) {
+    if (!m_hWnd) return;
+
+    HWND hWndParent = ::GetParent(m_hWnd);
+    if (!hWndParent) return;
+
+    // Calculate desired parent size based on scroll view content
+    SIZE sizeSb;
+    GetScrollBarSizes(sizeSb);
+
+    int nWidth = m_totalLog.cx + sizeSb.cx +
+                 ::GetSystemMetrics(SM_CXFRAME) * 2;
+    int nHeight = m_totalLog.cy + sizeSb.cy +
+                  ::GetSystemMetrics(SM_CYFRAME) * 2 +
+                  ::GetSystemMetrics(SM_CYCAPTION);
+
+    RECT rcParent;
+    ::GetWindowRect(hWndParent, &rcParent);
+    int nCurrentWidth = rcParent.right - rcParent.left;
+    int nCurrentHeight = rcParent.bottom - rcParent.top;
+
+    // Apply shrink-only constraint
+    if (bShrinkOnly) {
+        if (nWidth > nCurrentWidth) nWidth = nCurrentWidth;
+        if (nHeight > nCurrentHeight) nHeight = nCurrentHeight;
+    }
+
+    ::SetWindowPos(hWndParent, nullptr, 0, 0, nWidth, nHeight,
+                   SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
 
 // =============================================================================
 // CFormView Member Function Implementations (vtable entries)
@@ -230,17 +333,157 @@ void CScrollView::ResizeParentToFit(int bShrinkOnly) { (void)bShrinkOnly; }
 void CFormView::OnDraw(void* pDC) { impl__OnDraw_CFormView__UEAAXPEAX_Z(this, pDC); }
 void CFormView::OnInitialUpdate() { impl__OnInitialUpdate_CFormView__UEAAXXZ(this); }
 void CFormView::DoDataExchange(void* pDX) { impl__DoDataExchange_CFormView__UEAAXPEAX_Z(this, pDX); }
-int CFormView::Create(const wchar_t*, const wchar_t*, DWORD, const struct tagRECT&, CWnd*, unsigned int, CCreateContext*) { return FALSE; }
+int CFormView::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                      DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd,
+                      unsigned int nID, CCreateContext* pContext) {
+    (void)lpszClassName;
+    (void)lpszWindowName;
+    (void)dwStyle;
+    (void)pContext;
+
+    if (!pParentWnd || !pParentWnd->m_hWnd) return FALSE;
+
+    // Get resource handle
+    HINSTANCE hInst = ::GetModuleHandleW(nullptr);
+
+    // Create the form view as a dialog-based child window
+    m_hWnd = ::CreateDialogParamW(
+        hInst,
+        m_lpszTemplateName,
+        pParentWnd->m_hWnd,
+        nullptr,  // Dialog proc not needed - we're using it as a child window
+        0
+    );
+
+    if (!m_hWnd) return FALSE;
+
+    // Set the control ID
+    ::SetWindowLongPtrW(m_hWnd, GWLP_ID, nID);
+
+    // Position the window
+    ::SetWindowPos(m_hWnd, nullptr, rect.left, rect.top,
+                   rect.right - rect.left, rect.bottom - rect.top,
+                   SWP_NOZORDER | SWP_NOACTIVATE);
+
+    // Show the window
+    ::ShowWindow(m_hWnd, SW_SHOW);
+
+    return TRUE;
+}
 
 // =============================================================================
 // CEditView Member Function Implementations (vtable entries)
 // =============================================================================
 CEdit* CEditView::GetEditCtrl() const { return impl__GetEditCtrl_CEditView__QEBAPEAVCEdit__XZ(this); }
 void CEditView::OnDraw(void* pDC) { impl__OnDraw_CEditView__UEAAXPEAX_Z(this, pDC); }
-void CEditView::Serialize(CArchive&) { }
-void CEditView::GetSelectedText(CString&) const { }
-int CEditView::FindText(const wchar_t*, int, int) { return -1; }
-int CEditView::PrintInsideRect(void*, struct tagRECT&, struct tagRECT&, int) { return 0; }
+
+void CEditView::Serialize(CArchive& ar) {
+    if (!m_hWnd) return;
+
+    if (ar.IsStoring()) {
+        // Get text from edit control and write to archive
+        int nLen = ::GetWindowTextLengthW(m_hWnd);
+        if (nLen > 0) {
+            wchar_t* pBuf = new wchar_t[nLen + 1];
+            ::GetWindowTextW(m_hWnd, pBuf, nLen + 1);
+            CString str(pBuf);
+            ar << str;
+            delete[] pBuf;
+        } else {
+            CString str;
+            ar << str;
+        }
+    } else {
+        // Read text from archive and set in edit control
+        CString str;
+        ar >> str;
+        ::SetWindowTextW(m_hWnd, (const wchar_t*)str);
+    }
+}
+
+void CEditView::GetSelectedText(CString& strResult) const {
+    strResult.Empty();
+    if (!m_hWnd) return;
+
+    DWORD dwStart = 0, dwEnd = 0;
+    ::SendMessageW(m_hWnd, EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+
+    if (dwEnd > dwStart) {
+        int nLen = ::GetWindowTextLengthW(m_hWnd);
+        if (nLen > 0) {
+            wchar_t* pBuf = new wchar_t[nLen + 1];
+            ::GetWindowTextW(m_hWnd, pBuf, nLen + 1);
+
+            // Extract selected portion
+            int nSelLen = dwEnd - dwStart;
+            wchar_t* pSel = new wchar_t[nSelLen + 1];
+            wcsncpy(pSel, pBuf + dwStart, nSelLen);
+            pSel[nSelLen] = L'\0';
+
+            strResult = pSel;
+            delete[] pSel;
+            delete[] pBuf;
+        }
+    }
+}
+
+int CEditView::FindText(const wchar_t* lpszFind, int nStart, int nDirection) {
+    if (!m_hWnd || !lpszFind || !lpszFind[0]) return -1;
+
+    int nLen = ::GetWindowTextLengthW(m_hWnd);
+    if (nLen <= 0 || nStart >= nLen) return -1;
+
+    wchar_t* pBuf = new wchar_t[nLen + 1];
+    ::GetWindowTextW(m_hWnd, pBuf, nLen + 1);
+
+    int nFindLen = (int)wcslen(lpszFind);
+    int nResult = -1;
+
+    if (nDirection >= 0) {
+        // Search forward
+        for (int i = nStart; i <= nLen - nFindLen; i++) {
+            if (wcsncmp(pBuf + i, lpszFind, nFindLen) == 0) {
+                nResult = i;
+                break;
+            }
+        }
+    } else {
+        // Search backward
+        for (int i = nStart - nFindLen; i >= 0; i--) {
+            if (wcsncmp(pBuf + i, lpszFind, nFindLen) == 0) {
+                nResult = i;
+                break;
+            }
+        }
+    }
+
+    delete[] pBuf;
+    return nResult;
+}
+
+int CEditView::PrintInsideRect(void* pDC, struct tagRECT& rectLayout, struct tagRECT& rectDraw, int nPage) {
+    (void)nPage;
+    if (!m_hWnd || !pDC) return 0;
+
+    HDC hDC = static_cast<HDC>(pDC);
+
+    // Get text from edit control
+    int nLen = ::GetWindowTextLengthW(m_hWnd);
+    if (nLen <= 0) return 0;
+
+    wchar_t* pBuf = new wchar_t[nLen + 1];
+    ::GetWindowTextW(m_hWnd, pBuf, nLen + 1);
+
+    // Draw text in the specified rectangle
+    int nHeight = ::DrawTextW(hDC, pBuf, nLen, &rectDraw,
+                              DT_LEFT | DT_TOP | DT_WORDBREAK);
+
+    // Update layout rect with text height
+    rectLayout.bottom = rectLayout.top + nHeight;
+
+    delete[] pBuf;
+    return nHeight;
+}
 
 // =============================================================================
 // CListView Member Function Implementations (vtable entries)
@@ -261,7 +504,32 @@ void CTreeView::OnInitialUpdate() { impl__OnInitialUpdate_CTreeView__UEAAXXZ(thi
 // =============================================================================
 CDocument* CDocTemplate::CreateNewDocument() { return impl__CreateNewDocument_CDocTemplate__UEAAPEAVCDocument__XZ(this); }
 CFrameWnd* CDocTemplate::CreateNewFrame(CDocument* pDoc, CFrameWnd* pOther) { return impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWnd__PEAVCDocument__PEAV2__Z(this, pDoc, pOther); }
-int CDocTemplate::CreateAndReplaceFrame(CFrameWnd*, CDocument*) { return FALSE; }
+int CDocTemplate::CreateAndReplaceFrame(CFrameWnd* pFrame, CDocument* pDoc) {
+    if (!pFrame || !pDoc) return FALSE;
+
+    // Create a new frame to replace the existing one
+    CFrameWnd* pNewFrame = CreateNewFrame(pDoc, pFrame);
+    if (!pNewFrame) return FALSE;
+
+    // Copy window position from old frame
+    if (pFrame->m_hWnd && pNewFrame->m_hWnd) {
+        RECT rc;
+        ::GetWindowRect(pFrame->m_hWnd, &rc);
+        ::SetWindowPos(pNewFrame->m_hWnd, nullptr,
+                       rc.left, rc.top,
+                       rc.right - rc.left, rc.bottom - rc.top,
+                       SWP_NOZORDER | SWP_NOACTIVATE);
+
+        // Destroy the old frame
+        ::DestroyWindow(pFrame->m_hWnd);
+        pFrame->m_hWnd = nullptr;
+    }
+
+    // Initialize the new frame
+    InitialUpdateFrame(pNewFrame, pDoc, TRUE);
+
+    return TRUE;
+}
 CDocument* CDocTemplate::OpenDocumentFile(const wchar_t* lpszPathName, int bMakeVisible) { return impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(this, lpszPathName, bMakeVisible); }
 void CDocTemplate::InitialUpdateFrame(CFrameWnd* pFrame, CDocument* pDoc, int bMakeVisible) { impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd__PEAVCDocument__H_Z(this, pFrame, pDoc, bMakeVisible); }
 void CDocTemplate::SetDefaultTitle(CDocument* pDoc) { impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }

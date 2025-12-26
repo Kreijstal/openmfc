@@ -429,8 +429,6 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     DWORD dwExStyle,
     CCreateContext* pContext)
 {
-    (void)lpszMenuName;  // Menu support not yet implemented
-    (void)dwExStyle;     // Extended style could be used
     (void)pContext;
 
     HINSTANCE hInst = AfxGetInstanceHandle();
@@ -461,6 +459,12 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
         useRect.bottom = CW_USEDEFAULT;
     }
 
+    // Load menu if specified
+    HMENU hMenu = nullptr;
+    if (lpszMenuName) {
+        hMenu = ::LoadMenuW(hInst, lpszMenuName);
+    }
+
     // Set up CREATESTRUCT for PreCreateWindow
     CREATESTRUCTW cs = {};
     cs.lpszClass = className;
@@ -471,7 +475,7 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     cs.cx = (useRect.right == CW_USEDEFAULT) ? CW_USEDEFAULT : (useRect.right - useRect.left);
     cs.cy = (useRect.bottom == CW_USEDEFAULT) ? CW_USEDEFAULT : (useRect.bottom - useRect.top);
     cs.hwndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
-    cs.hMenu = nullptr;  // TODO: Load menu from resource
+    cs.hMenu = hMenu;
     cs.hInstance = hInst;
     cs.dwExStyle = dwExStyle;
 
@@ -525,22 +529,61 @@ extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateCon
     CWnd* pParentWnd,
     CCreateContext* pContext)
 {
-    (void)nIDResource;  // Resource loading not yet implemented
-    (void)pContext;
+    HINSTANCE hInst = AfxGetInstanceHandle();
+    if (!hInst) {
+        hInst = ::GetModuleHandleW(nullptr);
+    }
+
+    // Try to load window title from string table
+    wchar_t szTitle[256] = L"OpenMFC Window";
+    ::LoadStringW(hInst, nIDResource, szTitle, 256);
+
+    // Try to load menu from resource
+    HMENU hMenu = ::LoadMenuW(hInst, MAKEINTRESOURCEW(nIDResource));
+
+    // Try to load icon from resource
+    HICON hIcon = ::LoadIconW(hInst, MAKEINTRESOURCEW(nIDResource));
+    if (!hIcon) {
+        hIcon = ::LoadIconW(nullptr, IDI_APPLICATION);
+    }
+
+    // Try to load accelerator table
+    HACCEL hAccel = ::LoadAcceleratorsW(hInst, MAKEINTRESOURCEW(nIDResource));
+    if (hAccel) {
+        pThis->m_hAccelTable = hAccel;
+    }
+
+    // Store menu resource ID
+    pThis->m_nIDHelp = nIDResource;
 
     RECT rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT};
 
-    return impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
+    // Create the window with the loaded menu
+    int result = impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
         pThis,
         nullptr,           // Default class
-        L"OpenMFC Window", // Default title
+        szTitle,           // Title from resource
         dwDefaultStyle ? dwDefaultStyle : WS_OVERLAPPEDWINDOW,
         rect,
         pParentWnd,
-        nullptr,           // No menu
+        MAKEINTRESOURCEW(nIDResource),  // Menu resource ID
         0,                 // No extended style
         pContext
     );
+
+    // Set the menu if window was created successfully
+    if (result && pThis->m_hWnd) {
+        if (hMenu) {
+            ::SetMenu(pThis->m_hWnd, hMenu);
+        }
+        // Set icon
+        if (hIcon) {
+            ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+            ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        }
+    }
+
+    return result;
 }
 
 // =============================================================================

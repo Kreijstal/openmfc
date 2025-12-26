@@ -139,13 +139,130 @@ int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandl
 int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                       AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo)
 {
-    (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo;
-    
+    (void)nID; (void)nCode; (void)pHandlerInfo;
+
+    // Define member function pointer types for various signatures
+    typedef void (CCmdTarget::*AFX_PMSG_v)();
+    typedef int (CCmdTarget::*AFX_PMSG_b)();
+    typedef void (CCmdTarget::*AFX_PMSG_vw)(UINT);
+    typedef void (CCmdTarget::*AFX_PMSG_vww)(UINT, UINT);
+    typedef void (CCmdTarget::*AFX_PMSG_vwww)(UINT, UINT, UINT);
+    typedef void (CCmdTarget::*AFX_PMSG_vwl)(UINT, LONG);
+    typedef LRESULT (CCmdTarget::*AFX_PMSG_lwl)(WPARAM, LPARAM);
+    typedef void (CCmdTarget::*AFX_PMSG_vb)(BOOL);
+    typedef int (CCmdTarget::*AFX_PMSG_bh)(HANDLE);
+    typedef void (CCmdTarget::*AFX_PMSG_cmdui)(void*);
+    typedef int (CCmdTarget::*AFX_PMSG_bwl)(UINT, LONG);
+    typedef void (CCmdTarget::*AFX_PMSG_vwwh)(UINT, UINT, HANDLE);
+    typedef int (CCmdTarget::*AFX_PMSG_iw)(UINT);
+    typedef int (CCmdTarget::*AFX_PMSG_iww)(UINT, UINT);
+
+    union MessageMapFunctions {
+        AFX_PMSG pfn;
+        AFX_PMSG_v pfn_v;
+        AFX_PMSG_b pfn_b;
+        AFX_PMSG_vw pfn_vw;
+        AFX_PMSG_vww pfn_vww;
+        AFX_PMSG_vwww pfn_vwww;
+        AFX_PMSG_vwl pfn_vwl;
+        AFX_PMSG_lwl pfn_lwl;
+        AFX_PMSG_vb pfn_vb;
+        AFX_PMSG_bh pfn_bh;
+        AFX_PMSG_cmdui pfn_cmdui;
+        AFX_PMSG_bwl pfn_bwl;
+        AFX_PMSG_vwwh pfn_vwwh;
+        AFX_PMSG_iw pfn_iw;
+        AFX_PMSG_iww pfn_iww;
+    };
+
+    MessageMapFunctions mmf;
+    mmf.pfn = pfn;
+
     switch (nSig)
     {
     case AfxSig_vv:
-        (pTarget->*pfn)();
+        (pTarget->*mmf.pfn_v)();
         return TRUE;
+
+    case AfxSig_bv:
+        return (pTarget->*mmf.pfn_b)();
+
+    case AfxSig_vw:
+        (pTarget->*mmf.pfn_vw)(nID);
+        return TRUE;
+
+    case AfxSig_vww:
+        {
+            UINT* pParams = static_cast<UINT*>(pExtra);
+            (pTarget->*mmf.pfn_vww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0);
+        }
+        return TRUE;
+
+    case AfxSig_vwww:
+        {
+            UINT* pParams = static_cast<UINT*>(pExtra);
+            (pTarget->*mmf.pfn_vwww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0, pParams ? pParams[2] : 0);
+        }
+        return TRUE;
+
+    case AfxSig_vwl:
+        {
+            LONG* pParam = static_cast<LONG*>(pExtra);
+            (pTarget->*mmf.pfn_vwl)(nID, pParam ? *pParam : 0);
+        }
+        return TRUE;
+
+    case AfxSig_lwl:
+        {
+            WPARAM wParam = static_cast<WPARAM>(nID);
+            LPARAM lParam = pExtra ? *static_cast<LPARAM*>(pExtra) : 0;
+            return static_cast<int>((pTarget->*mmf.pfn_lwl)(wParam, lParam));
+        }
+
+    case AfxSig_v_b:
+    case AfxSig_vb:
+        (pTarget->*mmf.pfn_vb)(pExtra ? *static_cast<BOOL*>(pExtra) : FALSE);
+        return TRUE;
+
+    case AfxSig_bh:
+        {
+            HANDLE h = pExtra ? *static_cast<HANDLE*>(pExtra) : nullptr;
+            return (pTarget->*mmf.pfn_bh)(h);
+        }
+
+    case AfxSig_cmdui:
+        (pTarget->*mmf.pfn_cmdui)(pExtra);
+        return TRUE;
+
+    case AfxSig_bwl:
+        {
+            LONG* pParam = static_cast<LONG*>(pExtra);
+            return (pTarget->*mmf.pfn_bwl)(nID, pParam ? *pParam : 0);
+        }
+
+    case AfxSig_vwwh:
+        {
+            void** pParams = static_cast<void**>(pExtra);
+            UINT u1 = pParams ? static_cast<UINT>(reinterpret_cast<UINT_PTR>(pParams[0])) : 0;
+            UINT u2 = pParams ? static_cast<UINT>(reinterpret_cast<UINT_PTR>(pParams[1])) : 0;
+            HANDLE h = pParams ? static_cast<HANDLE>(pParams[2]) : nullptr;
+            (pTarget->*mmf.pfn_vwwh)(u1, u2, h);
+        }
+        return TRUE;
+
+    case AfxSig_iw:
+        return (pTarget->*mmf.pfn_iw)(nID);
+
+    case AfxSig_iww:
+        {
+            UINT* pParams = static_cast<UINT*>(pExtra);
+            return (pTarget->*mmf.pfn_iww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0);
+        }
+
+    case AfxSig_vv_i:
+        (pTarget->*mmf.pfn_v)();
+        return TRUE;
+
     default:
         return FALSE;
     }
@@ -154,6 +271,79 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
 // Exception implementations
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
+
+// CFileException::GetErrorMessage implementation
+int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) const {
+    if (pnHelpContext != nullptr) {
+        *pnHelpContext = 0;
+    }
+
+    if (lpszError == nullptr || nMaxError == 0) {
+        return 0;
+    }
+
+    const wchar_t* pszMessage = nullptr;
+
+    switch (m_cause) {
+    case none:
+        pszMessage = L"No error";
+        break;
+    case genericException:
+        pszMessage = L"Generic file error";
+        break;
+    case fileNotFound:
+        pszMessage = L"File not found";
+        break;
+    case badPath:
+        pszMessage = L"Invalid path";
+        break;
+    case tooManyOpenFiles:
+        pszMessage = L"Too many open files";
+        break;
+    case accessDenied:
+        pszMessage = L"Access denied";
+        break;
+    case invalidFile:
+        pszMessage = L"Invalid file";
+        break;
+    case removeCurrentDir:
+        pszMessage = L"Cannot remove current directory";
+        break;
+    case directoryFull:
+        pszMessage = L"Directory is full";
+        break;
+    case badSeek:
+        pszMessage = L"Invalid seek operation";
+        break;
+    case hardIO:
+        pszMessage = L"Hardware I/O error";
+        break;
+    case sharingViolation:
+        pszMessage = L"File sharing violation";
+        break;
+    case lockViolation:
+        pszMessage = L"File lock violation";
+        break;
+    case diskFull:
+        pszMessage = L"Disk is full";
+        break;
+    case endOfFile:
+        pszMessage = L"Unexpected end of file";
+        break;
+    default:
+        pszMessage = L"Unknown file error";
+        break;
+    }
+
+    if (pszMessage) {
+        wcsncpy(lpszError, pszMessage, nMaxError - 1);
+        lpszError[nMaxError - 1] = L'\0';
+        return 1;  // TRUE - message provided
+    }
+
+    lpszError[0] = L'\0';
+    return 0;
+}
 
 // Define MS_ABI if not defined
 #ifdef __GNUC__
@@ -223,10 +413,56 @@ CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
 }
 
 int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) const {
-    // Stub implementation
-    if (lpszError && nMaxError > 0) {
-        lpszError[0] = 0;
+    if (pnHelpContext != nullptr) {
+        *pnHelpContext = 0;
     }
+
+    if (lpszError == nullptr || nMaxError == 0) {
+        return 0;
+    }
+
+    const wchar_t* pszMessage = nullptr;
+
+    switch (m_cause) {
+    case none:
+        pszMessage = L"No error";
+        break;
+    case generic:
+        pszMessage = L"Archive error";
+        break;
+    case readOnly:
+        pszMessage = L"Cannot write to read-only archive";
+        break;
+    case endOfFile:
+        pszMessage = L"Unexpected end of file";
+        break;
+    case writeOnly:
+        pszMessage = L"Cannot read from write-only archive";
+        break;
+    case badIndex:
+        pszMessage = L"Invalid object index";
+        break;
+    case badClass:
+        pszMessage = L"Invalid class found in archive";
+        break;
+    case badSchema:
+        pszMessage = L"Schema mismatch in archive";
+        break;
+    case badFormat:
+        pszMessage = L"Bad archive format";
+        break;
+    default:
+        pszMessage = L"Unknown archive error";
+        break;
+    }
+
+    if (pszMessage) {
+        wcsncpy(lpszError, pszMessage, nMaxError - 1);
+        lpszError[nMaxError - 1] = L'\0';
+        return 1;  // TRUE - message provided
+    }
+
+    lpszError[0] = L'\0';
     return 0;
 }
 
@@ -412,9 +648,18 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 // Global application pointer (exported via openmfc_exports.cpp)
 CWinApp* g_pApp = nullptr;
 
+// Thread-local storage for current thread (used by worker threads)
+// This is set by AfxBeginThread in synccore.cpp for worker threads
+__thread CWinThread* g_pCurrentThread = nullptr;
+
 // AfxGetThread - returns current thread (or app for main thread)
 // C++ implementation for internal use
 CWinThread* AfxGetThread() {
+    // For worker threads, return the thread-local pointer
+    if (g_pCurrentThread != nullptr) {
+        return g_pCurrentThread;
+    }
+    // For main thread, return the app
     return static_cast<CWinThread*>(g_pApp);
 }
 

@@ -229,10 +229,12 @@ public:
         diskFull,
         endOfFile
     };
-    
-    CFileException(int cause = none, long lOsError = -1) 
+
+    CFileException(int cause = none, long lOsError = -1)
         : m_cause(cause), m_lOsError(lOsError) {}
-    
+
+    virtual int GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const override;
+
     int m_cause;
     long m_lOsError;
     CString m_strFileName;
@@ -319,8 +321,28 @@ protected: \
 // Message map signature values
 enum AfxSig
 {
-    AfxSig_end = 0,     // [marks end of message map]
-    AfxSig_vv = 1,      // void (void)
+    AfxSig_end = 0,       // [marks end of message map]
+    AfxSig_vv = 1,        // void (void)
+    AfxSig_bv = 2,        // BOOL (void)
+    AfxSig_vw = 3,        // void (UINT)
+    AfxSig_vww = 4,       // void (UINT, UINT)
+    AfxSig_vwww = 5,      // void (UINT, UINT, UINT)
+    AfxSig_vwl = 6,       // void (UINT, LONG)
+    AfxSig_lwl = 7,       // LRESULT (WPARAM, LPARAM)
+    AfxSig_v_b = 8,       // void (BOOL)
+    AfxSig_v_b_v = 8,     // alias for AfxSig_v_b
+    AfxSig_vb = 9,        // void (BOOL)
+    AfxSig_bh = 10,       // BOOL (HANDLE)
+    AfxSig_cmdui = 11,    // void (CCmdUI*)
+    AfxSig_vwp = 12,      // void (CWnd*, CPoint)
+    AfxSig_is = 13,       // int (LPTSTR)
+    AfxSig_vs = 14,       // void (LPTSTR)
+    AfxSig_bwl = 15,      // BOOL (UINT, LONG)
+    AfxSig_vwwh = 16,     // void (UINT, UINT, HANDLE)
+    AfxSig_iw = 17,       // int (UINT)
+    AfxSig_iww = 18,      // int (UINT, UINT)
+    AfxSig_v_u_p = 19,    // void (UINT, CPoint)
+    AfxSig_vv_i = 20,     // void (void) - returns int
 };
 
 //=============================================================================
@@ -567,9 +589,11 @@ public:
     
 public:
     CWnd* m_pViewActive;
-    
+    HACCEL m_hAccelTable;
+    UINT m_nIDHelp;
+
 protected:
-    char _framewnd_padding[32]; // Padding for member variables
+    char _framewnd_padding[16]; // Padding for member variables
 };
 
 //=============================================================================
@@ -636,7 +660,7 @@ public:
     CDialog();
     explicit CDialog(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
     explicit CDialog(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
-    virtual ~CDialog() = default;
+    virtual ~CDialog();
 
     virtual intptr_t DoModal();
     virtual int Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
@@ -818,30 +842,9 @@ public:
     
     // Multiple file selection
     CString GetNextPathName(void*& pos) const;
-    
+
     // Customization
     void SetDefExt(const wchar_t* lpszDefExt);
-    void SetControlText(int nID, const wchar_t* lpszText);
-    
-    // Vista-style customization
-    long AddCheckButton(unsigned long dwIDCtl, const CString& strLabel, int bChecked);
-    long AddControlItem(unsigned long dwIDCtl, unsigned long dwIDItem, const CString& strLabel);
-    long AddEditBox(unsigned long dwIDCtl, const CString& strText);
-    long AddMenu(unsigned long dwIDCtl, const CString& strLabel);
-    long AddPushButton(unsigned long dwIDCtl, const CString& strLabel);
-    long AddText(unsigned long dwIDCtl, const CString& strLabel);
-    void AddPlace(const wchar_t* lpszFolder, int fdap);
-    
-    long GetEditBoxText(unsigned long dwIDCtl, CString& strText);
-    long SetControlItemText(unsigned long dwIDCtl, unsigned long dwIDItem, const CString& strText);
-    long SetControlLabel(unsigned long dwIDCtl, const CString& strLabel);
-    long SetEditBoxText(unsigned long dwIDCtl, const CString& strText);
-    
-    int SetProperties(const wchar_t* lpszPropList);
-    void SetTemplate(const wchar_t* lpWin3ID, const wchar_t* lpWin4ID);
-    
-    // Overridables
-    virtual unsigned int OnShareViolation(const wchar_t* lpszPathName);
     
 protected:
     int m_bOpenFileDialog;
@@ -887,15 +890,15 @@ protected:
     char _colordialog_padding[64];
 };
 
-// CFontDialog - Font selection dialog  
+// CFontDialog - Font selection dialog
 class CFontDialog : public CDialog {
     DECLARE_DYNAMIC(CFontDialog)
 public:
     CFontDialog(void* lpLogFont = nullptr, unsigned long dwFlags = 0, void* pdcPrinter = nullptr, CWnd* pParentWnd = nullptr);
     virtual ~CFontDialog() = default;
-    
+
     virtual intptr_t DoModal();
-    
+
     // Font information
     void* GetCurrentFont() const;
     CString GetFaceName() const;
@@ -907,12 +910,15 @@ public:
     int IsUnderline() const;
     int IsBold() const;
     int IsItalic() const;
-    
+
 protected:
-    void* m_lpLogFont;
+    unsigned char m_lf[96];  // LOGFONTW storage (92 bytes + padding)
+    void* m_lpLogFont;       // Points to m_lf or user-provided buffer
     unsigned long m_dwFlags;
-    
-    char _fontdialog_padding[64];
+    unsigned long m_clrResult;
+    int m_nPointSize;
+
+    char _fontdialog_padding[32];
 };
 
 // CPrintDialog - Print dialog
@@ -920,26 +926,36 @@ class CPrintDialog : public CDialog {
     DECLARE_DYNAMIC(CPrintDialog)
 public:
     CPrintDialog(int bPrintSetupOnly = 0, unsigned long dwFlags = 0, CWnd* pParentWnd = nullptr);
-    virtual ~CPrintDialog() = default;
-    
+    virtual ~CPrintDialog();
+
     virtual intptr_t DoModal();
-    
+
     // Printer information
     CString GetDeviceName() const;
     CString GetDriverName() const;
     CString GetPortName() const;
-    
+
     // Print settings
     int GetCopies() const;
     int GetFromPage() const;
     int GetToPage() const;
     int GetPortrait() const;
-    
+
+    // DC access
+    void* GetPrinterDC() const;
+    void* GetDevMode() const;
+
 protected:
     int m_bPrintSetupOnly;
     unsigned long m_dwFlags;
-    
-    char _printdialog_padding[64];
+    void* m_hDevMode;   // HGLOBAL
+    void* m_hDevNames;  // HGLOBAL
+    void* m_hDC;        // HDC
+    int m_nCopies;
+    int m_nFromPage;
+    int m_nToPage;
+
+    char _printdialog_padding[32];
 };
 
 // CPageSetupDialog - Page setup dialog
@@ -947,23 +963,30 @@ class CPageSetupDialog : public CDialog {
     DECLARE_DYNAMIC(CPageSetupDialog)
 public:
     CPageSetupDialog(unsigned long dwFlags = 0, CWnd* pParentWnd = nullptr);
-    virtual ~CPageSetupDialog() = default;
-    
+    virtual ~CPageSetupDialog();
+
     virtual intptr_t DoModal();
-    
+
     // Printer information
     CString GetDeviceName() const;
     CString GetDriverName() const;
     CString GetPortName() const;
-    
-    // Page setup
-    void* GetMargins() const;
-    void* GetPaperSize() const;
-    
+
+    // Page setup - returns RECT with margins in 1/1000 inch or 1/100 mm
+    void GetMarginRect(RECT* pRect) const;
+    void GetPaperSize(SIZE* pSize) const;
+
+    // DC and DevMode access
+    void* GetDevMode() const;
+
 protected:
     unsigned long m_dwFlags;
-    
-    char _pagesetupdialog_padding[64];
+    void* m_hDevMode;   // HGLOBAL
+    void* m_hDevNames;  // HGLOBAL
+    RECT m_rtMargin;
+    SIZE m_sizePaper;
+
+    char _pagesetupdialog_padding[16];
 };
 
 // CFindReplaceDialog - Find/Replace dialog (modeless)
@@ -971,16 +994,16 @@ class CFindReplaceDialog : public CDialog {
     DECLARE_DYNAMIC(CFindReplaceDialog)
 public:
     CFindReplaceDialog();
-    virtual ~CFindReplaceDialog() = default;
-    
+    virtual ~CFindReplaceDialog();
+
     // Modeless creation
-    virtual int Create(int bFindDialogOnly, 
+    virtual int Create(int bFindDialogOnly,
                       const wchar_t* lpszFindWhat = nullptr,
                       const wchar_t* lpszReplaceWith = nullptr,
                       unsigned long dwFlags = 0,
                       CWnd* pParentWnd = nullptr);
-    
-    // Find/Replace information
+
+    // Find/Replace information - reads from FINDREPLACE structure
     CString GetFindString() const;
     CString GetReplaceString() const;
     int SearchDown() const;
@@ -989,14 +1012,19 @@ public:
     int MatchWholeWord() const;
     int ReplaceCurrent() const;
     int ReplaceAll() const;
-    
+    int IsTerminating() const;
+
+    // Static helper to get dialog from notification
+    static CFindReplaceDialog* GetNotifier(LPARAM lParam);
+
+    // Get the registered message for find/replace notifications
+    static unsigned int GetFindReplaceMessage();
+
 protected:
-    int m_bFindDialogOnly;
-    CString m_strFindWhat;
-    CString m_strReplaceWith;
-    unsigned long m_dwFlags;
-    
-    char _findreplacedialog_padding[64];
+    // FINDREPLACEW structure (must persist for modeless dialog lifetime)
+    unsigned char m_fr[64];  // sizeof(FINDREPLACEW) = 56 on x64, plus padding
+    wchar_t m_szFindWhat[256];
+    wchar_t m_szReplaceWith[256];
 };
 
 //=============================================================================
@@ -2891,6 +2919,148 @@ inline BOOL CWinThread::InitInstance() { return FALSE; }
 inline int CWinThread::ExitInstance() { return 0; }
 
 #endif // OPENMFC_APPCORE_IMPL
+
+//=============================================================================
+// Synchronization Classes (afxmt.h functionality)
+//=============================================================================
+
+// Forward declarations
+class CSyncObject;
+class CSingleLock;
+class CMultiLock;
+
+// CSyncObject - base class for synchronization objects
+class CSyncObject : public CObject {
+    DECLARE_DYNAMIC(CSyncObject)
+public:
+    CSyncObject(const wchar_t* pstrName = nullptr);
+    virtual ~CSyncObject();
+
+    // Operations
+    virtual BOOL Lock(DWORD dwTimeout = INFINITE);
+    virtual BOOL Unlock() = 0;
+    virtual BOOL Unlock(LONG lCount, LPLONG lpPrevCount = nullptr);
+
+    // Attributes
+    operator HANDLE() const { return m_hObject; }
+    HANDLE m_hObject;
+
+protected:
+    CString m_strName;
+};
+
+// CCriticalSection - lightweight mutex for single process
+class CCriticalSection : public CSyncObject {
+    DECLARE_DYNAMIC(CCriticalSection)
+public:
+    CCriticalSection();
+    virtual ~CCriticalSection();
+
+    // Operations
+    virtual BOOL Lock();
+    virtual BOOL Lock(DWORD dwTimeout);
+    virtual BOOL Unlock();
+
+    // Data
+    CRITICAL_SECTION m_sect;
+};
+
+// CMutex - inter-process mutex
+class CMutex : public CSyncObject {
+    DECLARE_DYNAMIC(CMutex)
+public:
+    CMutex(BOOL bInitiallyOwn = FALSE, const wchar_t* lpszName = nullptr,
+           LPSECURITY_ATTRIBUTES lpsaAttribute = nullptr);
+    virtual ~CMutex();
+
+    virtual BOOL Unlock();
+};
+
+// CSemaphore - counting semaphore
+class CSemaphore : public CSyncObject {
+    DECLARE_DYNAMIC(CSemaphore)
+public:
+    CSemaphore(LONG lInitialCount = 1, LONG lMaxCount = 1,
+               const wchar_t* pstrName = nullptr,
+               LPSECURITY_ATTRIBUTES lpsaAttributes = nullptr);
+    virtual ~CSemaphore();
+
+    virtual BOOL Unlock();
+    virtual BOOL Unlock(LONG lCount, LPLONG lpPrevCount = nullptr);
+};
+
+// CEvent - event synchronization object
+class CEvent : public CSyncObject {
+    DECLARE_DYNAMIC(CEvent)
+public:
+    CEvent(BOOL bInitiallyOwn = FALSE, BOOL bManualReset = FALSE,
+           const wchar_t* lpszName = nullptr,
+           LPSECURITY_ATTRIBUTES lpsaAttribute = nullptr);
+    virtual ~CEvent();
+
+    // Operations
+    BOOL SetEvent();
+    BOOL PulseEvent();
+    BOOL ResetEvent();
+    virtual BOOL Unlock();
+};
+
+// CSingleLock - RAII lock for single sync object
+class CSingleLock {
+public:
+    CSingleLock(CSyncObject* pObject, BOOL bInitialLock = FALSE);
+    ~CSingleLock();
+
+    BOOL Lock(DWORD dwTimeOut = INFINITE);
+    BOOL Unlock();
+    BOOL Unlock(LONG lCount, LPLONG lpPrevCount = nullptr);
+    BOOL IsLocked() const { return m_bAcquired; }
+
+protected:
+    CSyncObject* m_pObject;
+    HANDLE m_hObject;
+    BOOL m_bAcquired;
+};
+
+// CMultiLock - RAII lock for multiple sync objects
+class CMultiLock {
+public:
+    CMultiLock(CSyncObject* ppObjects[], DWORD dwCount,
+               BOOL bInitialLock = FALSE);
+    ~CMultiLock();
+
+    DWORD Lock(DWORD dwTimeOut = INFINITE, BOOL bWaitForAll = TRUE,
+               DWORD dwWakeMask = 0);
+    BOOL Unlock();
+    BOOL Unlock(LONG lCount, LPLONG lpPrevCount = nullptr);
+    BOOL IsLocked(DWORD dwItem) const;
+
+protected:
+    HANDLE* m_pHandleArray;
+    BOOL* m_bLockedArray;
+    CSyncObject** m_ppObjectArray;
+    DWORD m_dwCount;
+};
+
+// Thread function pointer type
+typedef UINT (AFXAPI *AFX_THREADPROC)(void* pParam);
+
+// Thread creation functions
+CWinThread* AfxBeginThread(AFX_THREADPROC pfnThreadProc, void* pParam,
+                           int nPriority = 0, UINT nStackSize = 0,
+                           DWORD dwCreateFlags = 0,
+                           LPSECURITY_ATTRIBUTES lpSecurityAttrs = nullptr);
+
+CWinThread* AfxBeginThread(CRuntimeClass* pThreadClass,
+                           int nPriority = 0, UINT nStackSize = 0,
+                           DWORD dwCreateFlags = 0,
+                           LPSECURITY_ATTRIBUTES lpSecurityAttrs = nullptr);
+
+void AfxEndThread(UINT nExitCode, BOOL bDelete = TRUE);
+
+// Thread-local storage for current thread
+CWinThread* AfxGetThread();
+
 //=============================================================================
 // End of inline implementations
 //=============================================================================
