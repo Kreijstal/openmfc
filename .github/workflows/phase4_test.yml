@@ -52,7 +52,7 @@ jobs:
           dir test_binaries
 
       - name: Upload test executables
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: phase4_msvc_tests
           path: test_binaries/*.exe
@@ -101,7 +101,7 @@ jobs:
           cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll build-phase4/ || echo "libwinpthread not found"
 
       - name: Upload DLL artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: phase4_mingw_dll
           path: |
