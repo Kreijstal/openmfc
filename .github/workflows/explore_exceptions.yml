@@ -21,7 +21,7 @@ jobs:
   build-dll:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install MinGW
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
@@ -43,7 +43,7 @@ jobs:
     needs: build-dll
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download DLL
         uses: actions/download-artifact@v4
