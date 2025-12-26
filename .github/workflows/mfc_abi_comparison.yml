@@ -1,0 +1,308 @@
+name: MFC ABI Compatibility Comparison
+
+on:
+  push:
+    branches: [phase4-*, master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Build OpenMFC DLL with MinGW on Linux
+  build-openmfc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Build OpenMFC
+        run: |
+          ./phase4/scripts/build_phase4.sh
+          ls -la build-phase4/
+
+      - name: Upload OpenMFC artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openmfc-dll
+          path: |
+            build-phase4/openmfc.dll
+            build-phase4/openmfc.def
+          retention-days: 7
+
+  # Job 2: Run tests against REAL MFC
+  test-real-mfc:
+    runs-on: windows-latest
+    outputs:
+      results-artifact: real-mfc-results
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build test with Real MFC
+        shell: cmd
+        run: |
+          echo Building test_mfc_abi_compat against REAL MFC...
+          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_REAL_MFC /DUNICODE /D_UNICODE ^
+             /I"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\ATLMFC\include" ^
+             /Fe:test_real_mfc.exe ^
+             phase4\tests\test_mfc_abi_compat.cpp ^
+             /link ^
+             /LIBPATH:"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\ATLMFC\lib\x64"
+          if %ERRORLEVEL% neq 0 (
+            echo Build failed
+            exit /b 1
+          )
+          echo Build succeeded
+
+      - name: Run test against Real MFC
+        shell: pwsh
+        run: |
+          Write-Host "Running ABI compatibility test against REAL MFC..."
+          $output = & .\test_real_mfc.exe 2>&1 | Out-String
+          Write-Host $output
+
+          # Extract JSON results
+          $jsonStart = $output.IndexOf("--- BEGIN JSON RESULTS ---")
+          $jsonEnd = $output.IndexOf("--- END JSON RESULTS ---")
+          if ($jsonStart -ge 0 -and $jsonEnd -gt $jsonStart) {
+            $jsonContent = $output.Substring($jsonStart + 28, $jsonEnd - $jsonStart - 28)
+            $jsonContent | Out-File -FilePath "real_mfc_results.json" -Encoding UTF8
+            Write-Host "Saved results to real_mfc_results.json"
+          }
+
+          # Don't fail on test failures - we want to compare results
+          exit 0
+
+      - name: Upload Real MFC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-mfc-results
+          path: real_mfc_results.json
+          retention-days: 7
+
+  # Job 3: Run tests against OpenMFC
+  test-openmfc:
+    runs-on: windows-latest
+    needs: build-openmfc
+    outputs:
+      results-artifact: openmfc-results
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download OpenMFC artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: openmfc-dll
+          path: openmfc-artifacts
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install MinGW runtime
+        shell: pwsh
+        run: |
+          choco install mingw -y
+          $mingwBins = @(
+            "C:\\ProgramData\\mingw64\\mingw64\\bin",
+            "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin"
+          )
+          foreach ($p in $mingwBins) {
+            if (Test-Path $p) {
+              Copy-Item "$p\\libstdc++-6.dll" -Destination . -Force -ErrorAction SilentlyContinue
+              Copy-Item "$p\\libgcc_s_seh-1.dll" -Destination . -Force -ErrorAction SilentlyContinue
+              Copy-Item "$p\\libwinpthread-1.dll" -Destination . -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Create import library
+        shell: cmd
+        run: |
+          lib /DEF:openmfc-artifacts\openmfc.def /OUT:openmfc.lib /MACHINE:X64
+
+      - name: Build test with OpenMFC
+        shell: cmd
+        run: |
+          echo Building test_mfc_abi_compat against OpenMFC...
+          cl /nologo /EHsc /MD /D_AFXDLL /DTEST_OPENMFC /DUNICODE /D_UNICODE ^
+             /I include ^
+             /Fe:test_openmfc.exe ^
+             phase4\tests\test_mfc_abi_compat.cpp ^
+             openmfc.lib ^
+             user32.lib
+          if %ERRORLEVEL% neq 0 (
+            echo Build failed
+            exit /b 1
+          )
+          echo Build succeeded
+
+      - name: Run test against OpenMFC
+        shell: pwsh
+        run: |
+          Write-Host "Running ABI compatibility test against OpenMFC..."
+          Copy-Item openmfc-artifacts\openmfc.dll .
+
+          $output = & .\test_openmfc.exe 2>&1 | Out-String
+          Write-Host $output
+
+          # Extract JSON results
+          $jsonStart = $output.IndexOf("--- BEGIN JSON RESULTS ---")
+          $jsonEnd = $output.IndexOf("--- END JSON RESULTS ---")
+          if ($jsonStart -ge 0 -and $jsonEnd -gt $jsonStart) {
+            $jsonContent = $output.Substring($jsonStart + 28, $jsonEnd - $jsonStart - 28)
+            $jsonContent | Out-File -FilePath "openmfc_results.json" -Encoding UTF8
+            Write-Host "Saved results to openmfc_results.json"
+          }
+
+          # Don't fail on test failures - we want to compare results
+          exit 0
+
+      - name: Upload OpenMFC results
+        uses: actions/upload-artifact@v4
+        with:
+          name: openmfc-results
+          path: openmfc_results.json
+          retention-days: 7
+
+  # Job 4: Compare results
+  compare-results:
+    runs-on: ubuntu-latest
+    needs: [test-real-mfc, test-openmfc]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Real MFC results
+        uses: actions/download-artifact@v4
+        with:
+          name: real-mfc-results
+          path: .
+
+      - name: Download OpenMFC results
+        uses: actions/download-artifact@v4
+        with:
+          name: openmfc-results
+          path: .
+
+      - name: Compare results
+        run: |
+          echo "=== Comparing MFC ABI Compatibility Results ==="
+          echo ""
+
+          if [ ! -f real_mfc_results.json ] || [ ! -f openmfc_results.json ]; then
+            echo "ERROR: Missing result files"
+            ls -la
+            exit 1
+          fi
+
+          echo "--- Real MFC Results ---"
+          cat real_mfc_results.json
+          echo ""
+          echo "--- OpenMFC Results ---"
+          cat openmfc_results.json
+          echo ""
+
+          # Parse and compare using Python
+          python3 << 'EOF'
+          import json
+          import sys
+
+          with open('real_mfc_results.json') as f:
+              real_mfc = json.load(f)
+
+          with open('openmfc_results.json') as f:
+              openmfc = json.load(f)
+
+          print("=" * 60)
+          print("COMPARISON REPORT")
+          print("=" * 60)
+          print()
+
+          # Compare totals
+          print(f"Real MFC:  {real_mfc['passed']}/{real_mfc['total']} passed")
+          print(f"OpenMFC:   {openmfc['passed']}/{openmfc['total']} passed")
+          print()
+
+          # Build lookup tables
+          real_results = {(r['section'], r['name']): r for r in real_mfc['results']}
+          open_results = {(r['section'], r['name']): r for r in openmfc['results']}
+
+          # Find differences
+          differences = []
+          matches = 0
+
+          all_keys = set(real_results.keys()) | set(open_results.keys())
+
+          for key in sorted(all_keys):
+              section, name = key
+              real = real_results.get(key)
+              opened = open_results.get(key)
+
+              if real is None:
+                  differences.append({
+                      'section': section,
+                      'name': name,
+                      'issue': 'Missing in Real MFC',
+                      'openmfc': opened['actual']
+                  })
+              elif opened is None:
+                  differences.append({
+                      'section': section,
+                      'name': name,
+                      'issue': 'Missing in OpenMFC',
+                      'real_mfc': real['actual']
+                  })
+              elif real['actual'] != opened['actual']:
+                  differences.append({
+                      'section': section,
+                      'name': name,
+                      'issue': 'Value mismatch',
+                      'real_mfc': real['actual'],
+                      'openmfc': opened['actual']
+                  })
+              else:
+                  matches += 1
+
+          print(f"Matching results: {matches}")
+          print(f"Differences: {len(differences)}")
+          print()
+
+          if differences:
+              print("DIFFERENCES FOUND:")
+              print("-" * 60)
+              for d in differences:
+                  print(f"[{d['section']}] {d['name']}")
+                  print(f"  Issue: {d['issue']}")
+                  if 'real_mfc' in d:
+                      print(f"  Real MFC: {d['real_mfc']}")
+                  if 'openmfc' in d:
+                      print(f"  OpenMFC:  {d['openmfc']}")
+                  print()
+
+              print("=" * 60)
+              print(f"RESULT: {len(differences)} DIFFERENCE(S) FOUND")
+              print("=" * 60)
+              sys.exit(1)
+          else:
+              print("=" * 60)
+              print("RESULT: ALL TESTS MATCH!")
+              print("OpenMFC is ABI-compatible with Real MFC")
+              print("=" * 60)
+              sys.exit(0)
+          EOF
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-report
+          path: |
+            real_mfc_results.json
+            openmfc_results.json
+          retention-days: 30

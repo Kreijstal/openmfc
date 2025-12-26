@@ -365,10 +365,11 @@ extern "C" UINT MS_ABI impl__GetDefaultItem_CMenu__QEBAIIH_Z(const CMenu* pThis,
 // Symbol: ?GetMenu@CWnd@@UEBAPEAVCMenu@@XZ
 // Ordinal: 5723
 extern "C" CMenu* MS_ABI impl__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis) {
-    // Note: Real MFC would maintain a mapping of HWND->CMenu*
-    // Simplified - returns null
-    (void)pThis;
-    return nullptr;
+    if (!pThis || !pThis->m_hWnd) {
+        return nullptr;
+    }
+    HMENU hMenu = ::GetMenu(pThis->m_hWnd);
+    return FromHandleTemp(hMenu);
 }
 
 // CWnd::SetMenu
@@ -391,11 +392,11 @@ extern "C" void MS_ABI impl__DrawMenuBar_CWnd__QEAAXXZ(CWnd* pThis) {
 // CWnd::GetSystemMenu
 // Symbol: ?GetSystemMenu@CWnd@@QEBAPEAVCMenu@@H@Z
 extern "C" CMenu* MS_ABI impl__GetSystemMenu_CWnd__QEBAPEAVCMenu__H_Z(const CWnd* pThis, int bRevert) {
-    // Note: Real MFC would create a temporary CMenu wrapper
-    // Simplified - returns null
-    (void)pThis;
-    (void)bRevert;
-    return nullptr;
+    if (!pThis || !pThis->m_hWnd) {
+        return nullptr;
+    }
+    HMENU hMenu = ::GetSystemMenu(pThis->m_hWnd, bRevert);
+    return FromHandleTemp(hMenu);
 }
 
 // CWnd::HiliteMenuItem

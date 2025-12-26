@@ -68,6 +68,21 @@ static void RegisterRuntimeClass(CRuntimeClass* pClass) {
     }
 }
 
+// Find a runtime class by name
+static CRuntimeClass* FindRuntimeClass(const char* lpszClassName) {
+    if (!lpszClassName) return nullptr;
+
+    auto& registry = GetClassRegistry();
+    for (auto* pClass : registry) {
+        if (pClass && pClass->m_lpszClassName) {
+            if (strcmp(pClass->m_lpszClassName, lpszClassName) == 0) {
+                return pClass;
+            }
+        }
+    }
+    return nullptr;
+}
+
 // Initialize on first use
 static bool g_classesInitialized = false;
 static void InitializeClasses() {
@@ -344,14 +359,37 @@ extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
 // Symbol: ?Load@CRuntimeClass@@SAPAU1@AAVCArchive@@PAI@Z
 // Loads CRuntimeClass from archive (for serialization)
 extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
-    CArchive* ar,           // RCX = archive
+    CArchive* ar,              // RCX = archive
     unsigned int* pwSchemaNum  // RDX = schema number output
 ) {
-    (void)ar;
-    (void)pwSchemaNum;
-    // Stub: serialization not yet implemented
-    // Real implementation would read class name from archive and look it up
-    return nullptr;
+    if (!ar || !ar->IsLoading()) return nullptr;
+
+    // Read schema number
+    unsigned short wSchema = 0;
+    *ar >> wSchema;
+
+    if (pwSchemaNum) {
+        *pwSchemaNum = wSchema;
+    }
+
+    // Read class name length
+    unsigned short wNameLen = 0;
+    *ar >> wNameLen;
+
+    if (wNameLen == 0 || wNameLen > 64) {
+        return nullptr;  // Invalid name length
+    }
+
+    // Read class name
+    char szClassName[65];
+    ar->Read(szClassName, wNameLen);
+    szClassName[wNameLen] = '\0';
+
+    // Look up the class
+    InitializeClasses();
+    CRuntimeClass* pClass = FindRuntimeClass(szClassName);
+
+    return pClass;
 }
 
 // CRuntimeClass::Store() - const member function
@@ -361,10 +399,25 @@ extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
     const CRuntimeClass* pThis,  // RCX = this
     CArchive* ar                 // RDX = archive
 ) {
-    (void)pThis;
-    (void)ar;
-    // Stub: serialization not yet implemented
-    // Real implementation would write class name and schema to archive
+    if (!pThis || !ar || !ar->IsStoring()) return;
+
+    // Write schema number
+    unsigned short wSchema = (unsigned short)pThis->m_wSchema;
+    *ar << wSchema;
+
+    // Write class name
+    if (pThis->m_lpszClassName) {
+        size_t nLen = strlen(pThis->m_lpszClassName);
+        if (nLen > 64) nLen = 64;
+
+        unsigned short wNameLen = (unsigned short)nLen;
+        *ar << wNameLen;
+
+        ar->Write(pThis->m_lpszClassName, (UINT)nLen);
+    } else {
+        unsigned short wNameLen = 0;
+        *ar << wNameLen;
+    }
 }
 
 // =============================================================================

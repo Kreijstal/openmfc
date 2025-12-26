@@ -199,6 +199,18 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCWnd@CWnd@@2UCRuntimeClass@@A,?classCF
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCMenu@CMenu@@2UCRuntimeClass@@A"
 # GDI
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A,?classCPen@CPen@@2UCRuntimeClass@@A,?classCBrush@CBrush@@2UCRuntimeClass@@A,?classCFont@CFont@@2UCRuntimeClass@@A,?classCBitmap@CBitmap@@2UCRuntimeClass@@A,?classCPalette@CPalette@@2UCRuntimeClass@@A,?classCRgn@CRgn@@2UCRuntimeClass@@A,?classCDC@CDC@@2UCRuntimeClass@@A,?classCClientDC@CClientDC@@2UCRuntimeClass@@A,?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A,?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A"
+# Controls
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCButton@CButton@@2UCRuntimeClass@@A,?classCEdit@CEdit@@2UCRuntimeClass@@A,?classCStatic@CStatic@@2UCRuntimeClass@@A,?classCListBox@CListBox@@2UCRuntimeClass@@A,?classCComboBox@CComboBox@@2UCRuntimeClass@@A,?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A"
+# Common Controls
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A,?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A,?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A,?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A,?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A,?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A"
+# Document-View
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocument@CDocument@@2UCRuntimeClass@@A,?classCView@CView@@2UCRuntimeClass@@A,?classCScrollView@CScrollView@@2UCRuntimeClass@@A,?classCFormView@CFormView@@2UCRuntimeClass@@A,?classCEditView@CEditView@@2UCRuntimeClass@@A,?classCListView@CListView@@2UCRuntimeClass@@A,?classCTreeView@CTreeView@@2UCRuntimeClass@@A"
+# Doc Templates
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A,?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A,?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A"
+# Sync classes
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSyncObject@CSyncObject@@2UCRuntimeClass@@A,?classCCriticalSection@CCriticalSection@@2UCRuntimeClass@@A,?classCMutex@CMutex@@2UCRuntimeClass@@A,?classCSemaphore@CSemaphore@@2UCRuntimeClass@@A,?classCEvent@CEvent@@2UCRuntimeClass@@A"
+# Common dialogs
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCColorDialog@CColorDialog@@2UCRuntimeClass@@A,?classCFontDialog@CFontDialog@@2UCRuntimeClass@@A,?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A,?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A,?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A"
 
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
@@ -211,40 +223,76 @@ sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
 
 # Add OpenMFC-specific exports (static class members with MSVC-mangled names)
 # These use the .def alias syntax (MSVC_name=GCC_name) to export MSVC-compatible
-# names from GCC-mangled internal symbols. This is required because multiple
-# translation units may instantiate the inline static members, and the linker
-# may pick a version without the asm alias.
+# names from GCC-mangled internal symbols. DATA is required so MSVC import libs
+# treat these as variables (not functions) for _AFXDLL consumers.
 # IMPORTANT: Entries must be indented to be part of the EXPORTS section!
 cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ; OpenMFC-specific static class member exports (CRuntimeClass statics)
     ; These are required for MSVC code that uses MFC RTTI macros
     ; Using aliasing: external_name=internal_name
-    ; Note: DATA keyword omitted - lib.exe may not handle aliased DATA exports correctly
-    ?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE
-    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE
-    ?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE
-    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE
-    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE
-    ?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE
-    ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE
-    ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE
-    ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE
+    ?classCObject@CObject@@2UCRuntimeClass@@A=_ZN7CObject12classCObjectE DATA
+    ?classCCmdTarget@CCmdTarget@@2UCRuntimeClass@@A=_ZN10CCmdTarget15classCCmdTargetE DATA
+    ?classCWnd@CWnd@@2UCRuntimeClass@@A=_ZN4CWnd9classCWndE DATA
+    ?classCWinThread@CWinThread@@2UCRuntimeClass@@A=_ZN10CWinThread15classCWinThreadE DATA
+    ?classCWinApp@CWinApp@@2UCRuntimeClass@@A=_ZN7CWinApp12classCWinAppE DATA
+    ?classCException@CException@@2UCRuntimeClass@@A=_ZN10CException15classCExceptionE DATA
+    ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE DATA
+    ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE DATA
+    ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE DATA
     ; GDI class runtime classes
-    ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE
-    ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE
-    ?classCBrush@CBrush@@2UCRuntimeClass@@A=_ZN6CBrush11classCBrushE
-    ?classCFont@CFont@@2UCRuntimeClass@@A=_ZN5CFont10classCFontE
-    ?classCBitmap@CBitmap@@2UCRuntimeClass@@A=_ZN7CBitmap12classCBitmapE
-    ?classCPalette@CPalette@@2UCRuntimeClass@@A=_ZN8CPalette13classCPaletteE
-    ?classCRgn@CRgn@@2UCRuntimeClass@@A=_ZN4CRgn9classCRgnE
-    ?classCDC@CDC@@2UCRuntimeClass@@A=_ZN3CDC8classCDCE
-    ?classCClientDC@CClientDC@@2UCRuntimeClass@@A=_ZN9CClientDC14classCClientDCE
-    ?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A=_ZN8CPaintDC13classCPaintDCE
-    ?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A=_ZN9CWindowDC14classCWindowDCE
+    ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE DATA
+    ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE DATA
+    ?classCBrush@CBrush@@2UCRuntimeClass@@A=_ZN6CBrush11classCBrushE DATA
+    ?classCFont@CFont@@2UCRuntimeClass@@A=_ZN5CFont10classCFontE DATA
+    ?classCBitmap@CBitmap@@2UCRuntimeClass@@A=_ZN7CBitmap12classCBitmapE DATA
+    ?classCPalette@CPalette@@2UCRuntimeClass@@A=_ZN8CPalette13classCPaletteE DATA
+    ?classCRgn@CRgn@@2UCRuntimeClass@@A=_ZN4CRgn9classCRgnE DATA
+    ?classCDC@CDC@@2UCRuntimeClass@@A=_ZN3CDC8classCDCE DATA
+    ?classCClientDC@CClientDC@@2UCRuntimeClass@@A=_ZN9CClientDC14classCClientDCE DATA
+    ?classCPaintDC@CPaintDC@@2UCRuntimeClass@@A=_ZN8CPaintDC13classCPaintDCE DATA
+    ?classCWindowDC@CWindowDC@@2UCRuntimeClass@@A=_ZN9CWindowDC14classCWindowDCE DATA
     ; CMenu runtime class
-    ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE
+    ?classCMenu@CMenu@@2UCRuntimeClass@@A=_ZN5CMenu10classCMenuE DATA
     ; CFrameWnd runtime class
-    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE
+    ?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A=_ZN9CFrameWnd14classCFrameWndE DATA
+    ; Control runtime classes
+    ?classCButton@CButton@@2UCRuntimeClass@@A=_ZN7CButton12classCButtonE DATA
+    ?classCEdit@CEdit@@2UCRuntimeClass@@A=_ZN5CEdit10classCEditE DATA
+    ?classCStatic@CStatic@@2UCRuntimeClass@@A=_ZN7CStatic12classCStaticE DATA
+    ?classCListBox@CListBox@@2UCRuntimeClass@@A=_ZN8CListBox13classCListBoxE DATA
+    ?classCComboBox@CComboBox@@2UCRuntimeClass@@A=_ZN9CComboBox14classCComboBoxE DATA
+    ?classCScrollBar@CScrollBar@@2UCRuntimeClass@@A=_ZN10CScrollBar15classCScrollBarE DATA
+    ; Common control runtime classes
+    ?classCSliderCtrl@CSliderCtrl@@2UCRuntimeClass@@A=_ZN11CSliderCtrl16classCSliderCtrlE DATA
+    ?classCProgressCtrl@CProgressCtrl@@2UCRuntimeClass@@A=_ZN13CProgressCtrl18classCProgressCtrlE DATA
+    ?classCSpinButtonCtrl@CSpinButtonCtrl@@2UCRuntimeClass@@A=_ZN15CSpinButtonCtrl20classCSpinButtonCtrlE DATA
+    ?classCListCtrl@CListCtrl@@2UCRuntimeClass@@A=_ZN9CListCtrl14classCListCtrlE DATA
+    ?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A=_ZN9CTreeCtrl14classCTreeCtrlE DATA
+    ?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A=_ZN8CTabCtrl13classCTabCtrlE DATA
+    ; Document-View runtime classes
+    ?classCDocument@CDocument@@2UCRuntimeClass@@A=_ZN9CDocument14classCDocumentE DATA
+    ?classCView@CView@@2UCRuntimeClass@@A=_ZN5CView10classCViewE DATA
+    ?classCScrollView@CScrollView@@2UCRuntimeClass@@A=_ZN11CScrollView16classCScrollViewE DATA
+    ?classCFormView@CFormView@@2UCRuntimeClass@@A=_ZN9CFormView14classCFormViewE DATA
+    ?classCEditView@CEditView@@2UCRuntimeClass@@A=_ZN9CEditView14classCEditViewE DATA
+    ?classCListView@CListView@@2UCRuntimeClass@@A=_ZN9CListView14classCListViewE DATA
+    ?classCTreeView@CTreeView@@2UCRuntimeClass@@A=_ZN9CTreeView14classCTreeViewE DATA
+    ; Doc template runtime classes
+    ?classCDocTemplate@CDocTemplate@@2UCRuntimeClass@@A=_ZN12CDocTemplate17classCDocTemplateE DATA
+    ?classCSingleDocTemplate@CSingleDocTemplate@@2UCRuntimeClass@@A=_ZN18CSingleDocTemplate23classCSingleDocTemplateE DATA
+    ?classCMultiDocTemplate@CMultiDocTemplate@@2UCRuntimeClass@@A=_ZN17CMultiDocTemplate22classCMultiDocTemplateE DATA
+    ; Sync class runtime classes
+    ?classCSyncObject@CSyncObject@@2UCRuntimeClass@@A=_ZN11CSyncObject16classCSyncObjectE DATA
+    ?classCCriticalSection@CCriticalSection@@2UCRuntimeClass@@A=_ZN16CCriticalSection21classCCriticalSectionE DATA
+    ?classCMutex@CMutex@@2UCRuntimeClass@@A=_ZN6CMutex11classCMutexE DATA
+    ?classCSemaphore@CSemaphore@@2UCRuntimeClass@@A=_ZN10CSemaphore15classCSemaphoreE DATA
+    ?classCEvent@CEvent@@2UCRuntimeClass@@A=_ZN6CEvent11classCEventE DATA
+    ; Common dialog runtime classes
+    ?classCColorDialog@CColorDialog@@2UCRuntimeClass@@A=_ZN12CColorDialog17classCColorDialogE DATA
+    ?classCFontDialog@CFontDialog@@2UCRuntimeClass@@A=_ZN11CFontDialog16classCFontDialogE DATA
+    ?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A=_ZN12CPrintDialog17classCPrintDialogE DATA
+    ?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A=_ZN16CPageSetupDialog21classCPageSetupDialogE DATA
+    ?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A=_ZN18CFindReplaceDialog23classCFindReplaceDialogE DATA
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
@@ -275,6 +323,11 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/gdicore.cpp"
     "$ROOT/phase4/src/menucore.cpp"
     "$ROOT/phase4/src/regcore.cpp"
+    "$ROOT/phase4/src/ctrlcore.cpp"
+    "$ROOT/phase4/src/docview.cpp"
+    "$ROOT/phase4/src/filecore.cpp"
+    "$ROOT/phase4/src/synccore.cpp"
+    "$ROOT/phase4/src/dlgcommon.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -305,6 +358,8 @@ LDFLAGS=(
 LDLIBS=(
     -lgdi32
     -luser32
+    -lcomctl32
+    -lcomdlg32
 )
 
 # Collect all object files

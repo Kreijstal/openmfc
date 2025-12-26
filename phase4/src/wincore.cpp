@@ -31,7 +31,78 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 
 // Map HWND to CWnd* for message routing
 #include <map>
+#include <set>
+#include <vector>
 static std::map<HWND, CWnd*> g_hwndMap;
+
+// Track temporary CWnd wrappers allocated by OpenMfcAttachCWnd
+// These need to be deleted when the underlying window is destroyed
+static std::set<CWnd*> g_tempWrappers;
+
+// Helper to reuse/attach CWnd wrappers for existing HWNDs.
+CWnd* OpenMfcLookupCWnd(HWND hWnd) {
+    if (!hWnd) {
+        return nullptr;
+    }
+    auto it = g_hwndMap.find(hWnd);
+    if (it != g_hwndMap.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+// Detach and optionally delete a CWnd wrapper when window is destroyed
+// Called from AfxWndProc on WM_NCDESTROY (the final cleanup message)
+void OpenMfcDetachCWnd(HWND hWnd) {
+    auto it = g_hwndMap.find(hWnd);
+    if (it != g_hwndMap.end()) {
+        CWnd* pWnd = it->second;
+        g_hwndMap.erase(it);
+
+        // Delete if this was a temporary wrapper allocated by OpenMfcAttachCWnd
+        auto tempIt = g_tempWrappers.find(pWnd);
+        if (tempIt != g_tempWrappers.end()) {
+            g_tempWrappers.erase(tempIt);
+            pWnd->m_hWnd = nullptr;  // Clear before delete to prevent double-detach
+            delete pWnd;
+        }
+    }
+}
+
+CWnd* OpenMfcAttachCWnd(HWND hWnd) {
+    if (!hWnd) {
+        return nullptr;
+    }
+    if (CWnd* existing = OpenMfcLookupCWnd(hWnd)) {
+        return existing;
+    }
+
+    // Create a temporary wrapper - tracked for cleanup on window destruction
+    CWnd* wrapper = new CWnd();
+    wrapper->m_hWnd = hWnd;
+    g_hwndMap[hWnd] = wrapper;
+    g_tempWrappers.insert(wrapper);  // Track for deletion
+    return wrapper;
+}
+
+// Cleanup stale temporary wrappers for destroyed windows
+// Called during idle processing to handle windows not using our window procedure
+// (e.g., dialog controls obtained via GetDlgItem)
+void OpenMfcCleanupTempWrappers() {
+    // Build list of stale entries (can't modify map while iterating)
+    std::vector<HWND> staleHandles;
+    for (auto& pair : g_hwndMap) {
+        // Check if the window still exists
+        if (!::IsWindow(pair.first)) {
+            staleHandles.push_back(pair.first);
+        }
+    }
+
+    // Clean up stale entries
+    for (HWND hWnd : staleHandles) {
+        OpenMfcDetachCWnd(hWnd);
+    }
+}
 
 // Global app pointer (defined in appcore.cpp)
 extern CWinApp* g_pApp;
@@ -51,6 +122,16 @@ IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
 #endif
+
+// CWnd::FromHandle
+// Symbol: ?FromHandle@CWnd@@SAPAV1@PAUHWND__@@@Z
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPAV1_PAUHWND_____Z(HWND hWnd) {
+    return OpenMfcAttachCWnd(hWnd);
+}
+
+CWnd* CWnd::FromHandle(HWND hWnd) {
+    return OpenMfcAttachCWnd(hWnd);
+}
 
 // Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
@@ -169,6 +250,24 @@ extern "C" void MS_ABI impl__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
     }
 }
 
+// CWnd::EnableWindow
+// Symbol: ?EnableWindow@CWnd@@QEAAHH@Z
+extern "C" int MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    return ::EnableWindow(pThis->m_hWnd, bEnable);
+}
+
+// CWnd::IsWindowEnabled
+// Symbol: ?IsWindowEnabled@CWnd@@QEBAHXZ
+extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    return ::IsWindowEnabled(pThis->m_hWnd);
+}
+
 // CWnd::DestroyWindow
 // Symbol: ?DestroyWindow@CWnd@@UAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
@@ -221,6 +320,79 @@ extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pT
     return pThis ? pThis->m_hWnd : nullptr;
 }
 
+// CWnd::MoveWindow
+// Symbol: ?MoveWindow@CWnd@@QEAAXHHHHH@Z
+extern "C" void MS_ABI impl__MoveWindow_CWnd__QEAAXHHHHH_Z(
+    CWnd* pThis, int x, int y, int nWidth, int nHeight, int bRepaint) {
+    if (pThis && pThis->m_hWnd) {
+        ::MoveWindow(pThis->m_hWnd, x, y, nWidth, nHeight, bRepaint);
+    }
+}
+
+// CWnd::SetWindowPos
+// Symbol: ?SetWindowPos@CWnd@@QEAAHPEBV1@HHHHI@Z
+extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
+    CWnd* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
+    if (!pThis || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    HWND hInsert = pWndInsertAfter ? pWndInsertAfter->m_hWnd : nullptr;
+    return ::SetWindowPos(pThis->m_hWnd, hInsert, x, y, cx, cy, nFlags);
+}
+
+// CWnd::SetWindowTextW
+// Symbol: ?SetWindowTextW@CWnd@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(
+    CWnd* pThis, const wchar_t* lpszString) {
+    if (pThis && pThis->m_hWnd) {
+        ::SetWindowTextW(pThis->m_hWnd, lpszString ? lpszString : L"");
+    }
+}
+
+// CWnd::GetWindowTextW
+// Symbol: ?GetWindowTextW@CWnd@@QEBAHPEA_WH@Z
+extern "C" int MS_ABI impl__GetWindowTextW_CWnd__QEBAHPEA_WH_Z(
+    const CWnd* pThis, wchar_t* lpszStringBuf, int nMaxCount) {
+    if (!pThis || !pThis->m_hWnd || !lpszStringBuf || nMaxCount <= 0) {
+        if (lpszStringBuf && nMaxCount > 0) {
+            lpszStringBuf[0] = L'\0';
+        }
+        return 0;
+    }
+    return ::GetWindowTextW(pThis->m_hWnd, lpszStringBuf, nMaxCount);
+}
+
+// CWnd::GetWindowTextW (CString& overload)
+// Symbol: ?GetWindowTextW@CWnd@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CWnd* pThis, CString* rString) {
+    if (!rString) {
+        return;
+    }
+    if (!pThis || !pThis->m_hWnd) {
+        rString->Empty();
+        return;
+    }
+    int length = ::GetWindowTextLengthW(pThis->m_hWnd);
+    if (length <= 0) {
+        rString->Empty();
+        return;
+    }
+    // GetBuffer(length + 1) to accommodate null terminator for GetWindowTextW
+    wchar_t* buffer = rString->GetBuffer(length + 1);
+    int actual = ::GetWindowTextW(pThis->m_hWnd, buffer, length + 1);
+    rString->ReleaseBuffer(actual);
+}
+
+// CWnd::GetWindowTextLengthW
+// Symbol: ?GetWindowTextLengthW@CWnd@@QEBAHXZ
+extern "C" int MS_ABI impl__GetWindowTextLengthW_CWnd__QEBAHXZ(const CWnd* pThis) {
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+    return ::GetWindowTextLengthW(pThis->m_hWnd);
+}
+
 // =============================================================================
 // CFrameWnd Implementation
 // =============================================================================
@@ -267,8 +439,6 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     DWORD dwExStyle,
     CCreateContext* pContext)
 {
-    (void)lpszMenuName;  // Menu support not yet implemented
-    (void)dwExStyle;     // Extended style could be used
     (void)pContext;
 
     HINSTANCE hInst = AfxGetInstanceHandle();
@@ -299,6 +469,12 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
         useRect.bottom = CW_USEDEFAULT;
     }
 
+    // Load menu if specified
+    HMENU hMenu = nullptr;
+    if (lpszMenuName) {
+        hMenu = ::LoadMenuW(hInst, lpszMenuName);
+    }
+
     // Set up CREATESTRUCT for PreCreateWindow
     CREATESTRUCTW cs = {};
     cs.lpszClass = className;
@@ -309,7 +485,7 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
     cs.cx = (useRect.right == CW_USEDEFAULT) ? CW_USEDEFAULT : (useRect.right - useRect.left);
     cs.cy = (useRect.bottom == CW_USEDEFAULT) ? CW_USEDEFAULT : (useRect.bottom - useRect.top);
     cs.hwndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
-    cs.hMenu = nullptr;  // TODO: Load menu from resource
+    cs.hMenu = hMenu;
     cs.hInstance = hInst;
     cs.dwExStyle = dwExStyle;
 
@@ -363,22 +539,106 @@ extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateCon
     CWnd* pParentWnd,
     CCreateContext* pContext)
 {
-    (void)nIDResource;  // Resource loading not yet implemented
-    (void)pContext;
+    HINSTANCE hInst = AfxGetInstanceHandle();
+    if (!hInst) {
+        hInst = ::GetModuleHandleW(nullptr);
+    }
+
+    // Try to load window title from string table
+    wchar_t szTitle[256] = L"OpenMFC Window";
+    ::LoadStringW(hInst, nIDResource, szTitle, 256);
+
+    // Try to load menu from resource
+    HMENU hMenu = ::LoadMenuW(hInst, MAKEINTRESOURCEW(nIDResource));
+
+    // Try to load icon from resource
+    HICON hIcon = ::LoadIconW(hInst, MAKEINTRESOURCEW(nIDResource));
+    if (!hIcon) {
+        hIcon = ::LoadIconW(nullptr, IDI_APPLICATION);
+    }
+
+    // Try to load accelerator table
+    HACCEL hAccel = ::LoadAcceleratorsW(hInst, MAKEINTRESOURCEW(nIDResource));
+    if (hAccel) {
+        pThis->m_hAccelTable = hAccel;
+    }
+
+    // Store menu resource ID
+    pThis->m_nIDHelp = nIDResource;
 
     RECT rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT};
 
-    return impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
+    // Create the window with the loaded menu
+    int result = impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
         pThis,
         nullptr,           // Default class
-        L"OpenMFC Window", // Default title
+        szTitle,           // Title from resource
         dwDefaultStyle ? dwDefaultStyle : WS_OVERLAPPEDWINDOW,
         rect,
         pParentWnd,
-        nullptr,           // No menu
+        MAKEINTRESOURCEW(nIDResource),  // Menu resource ID
         0,                 // No extended style
         pContext
     );
+
+    // Set the menu if window was created successfully
+    if (result && pThis->m_hWnd) {
+        if (hMenu) {
+            ::SetMenu(pThis->m_hWnd, hMenu);
+        }
+        // Set icon
+        if (hIcon) {
+            ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+            ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        }
+    }
+
+    return result;
+}
+
+CFrameWnd::CFrameWnd() {
+    impl___0CFrameWnd__QEAA_XZ(this);
+}
+
+CFrameWnd::~CFrameWnd() {
+    impl___1CFrameWnd__UEAA_XZ(this);
+}
+
+int CFrameWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                      DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
+                      const wchar_t* lpszMenuName, DWORD dwExStyle, CCreateContext* pContext) {
+    return impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
+        this, lpszClassName, lpszWindowName, dwStyle, rect, pParentWnd, lpszMenuName, dwExStyle, pContext);
+}
+
+int CFrameWnd::PreCreateWindow(CREATESTRUCTW& cs) {
+    return impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(this, cs);
+}
+
+int CFrameWnd::LoadFrame(UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext) {
+    return impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
+        this, nIDResource, dwDefaultStyle, pParentWnd, pContext);
+}
+
+void CFrameWnd::ActivateFrame(int nCmdShow) {
+    if (!m_hWnd) {
+        return;
+    }
+    int cmd = (nCmdShow == -1) ? SW_SHOW : nCmdShow;
+    ::ShowWindow(m_hWnd, cmd);
+    ::UpdateWindow(m_hWnd);
+}
+
+void CFrameWnd::RecalcLayout(int bNotify) {
+    (void)bNotify;
+    if (m_hWnd) {
+        ::SendMessageW(m_hWnd, WM_SIZE, 0, 0);
+    }
+}
+
+int CFrameWnd::OnCreate(void* lpCreateStruct) {
+    (void)lpCreateStruct;
+    return 0;
 }
 
 // =============================================================================
@@ -407,14 +667,17 @@ static LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 
     // Route to CWnd::WindowProc if we have a CWnd
     if (pWnd) {
-        // Special handling for WM_DESTROY
-        if (message == WM_DESTROY) {
-            g_hwndMap.erase(hWnd);
-        }
-
         // Call through virtual WindowProc
         // In real MFC this would use the vtable, but for now use default
-        return DefWindowProcW(hWnd, message, wParam, lParam);
+        LRESULT result = DefWindowProcW(hWnd, message, wParam, lParam);
+
+        // WM_NCDESTROY is the final message - clean up the wrapper
+        // This must come after DefWindowProc since the window is still valid during the call
+        if (message == WM_NCDESTROY) {
+            OpenMfcDetachCWnd(hWnd);
+        }
+
+        return result;
     }
 
     return DefWindowProcW(hWnd, message, wParam, lParam);
@@ -482,4 +745,194 @@ extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
     int nReturnCode = pApp->Run();
 
     return nReturnCode;
+}
+
+// =============================================================================
+// CMDIFrameWnd Implementation
+// =============================================================================
+
+IMPLEMENT_DYNCREATE(CMDIFrameWnd, CFrameWnd)
+
+CMDIFrameWnd::CMDIFrameWnd() : m_hWndMDIClient(nullptr) {
+    memset(_mdiframe_padding, 0, sizeof(_mdiframe_padding));
+}
+
+// CMDIFrameWnd::CreateClient
+// Creates the MDI client window
+int CMDIFrameWnd::CreateClient(void* lpCreateStruct, CMenu* pWindowMenu) {
+    (void)lpCreateStruct;
+
+    if (!m_hWnd) return FALSE;
+
+    CLIENTCREATESTRUCT ccs = {};
+    ccs.hWindowMenu = pWindowMenu ? pWindowMenu->m_hMenu : nullptr;
+    ccs.idFirstChild = 0xFF00;  // First MDI child ID
+
+    m_hWndMDIClient = ::CreateWindowExW(
+        0,
+        L"MDICLIENT",
+        nullptr,
+        WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL | WS_VISIBLE,
+        0, 0, 0, 0,
+        m_hWnd,
+        nullptr,
+        AfxGetInstanceHandle(),
+        &ccs
+    );
+
+    return m_hWndMDIClient != nullptr;
+}
+
+// CMDIFrameWnd::GetWindowMenuPopup
+HWND CMDIFrameWnd::GetWindowMenuPopup(HMENU hMenuBar) {
+    if (!hMenuBar) return nullptr;
+
+    // Find the Window menu by looking for one with MDI child items
+    int nCount = ::GetMenuItemCount(hMenuBar);
+    for (int i = 0; i < nCount; i++) {
+        HMENU hSubMenu = ::GetSubMenu(hMenuBar, i);
+        if (hSubMenu) {
+            // Check if this submenu has the tile/cascade commands
+            if (::GetMenuState(hSubMenu, 0xFF00, MF_BYCOMMAND) != (UINT)-1) {
+                return (HWND)(UINT_PTR)hSubMenu;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// MDI helper functions
+void CMDIFrameWnd::MDIActivate(CWnd* pWndActivate) {
+    if (m_hWndMDIClient && pWndActivate && pWndActivate->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIACTIVATE, (WPARAM)pWndActivate->m_hWnd, 0);
+    }
+}
+
+CWnd* CMDIFrameWnd::MDIGetActive(int* pbMaximized) const {
+    if (!m_hWndMDIClient) return nullptr;
+
+    BOOL bMaximized = FALSE;
+    HWND hWnd = (HWND)::SendMessageW(m_hWndMDIClient, WM_MDIGETACTIVE, 0, (LPARAM)&bMaximized);
+
+    if (pbMaximized) {
+        *pbMaximized = bMaximized ? 1 : 0;
+    }
+
+    return hWnd ? CWnd::FromHandle(hWnd) : nullptr;
+}
+
+void CMDIFrameWnd::MDIIconArrange() {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIICONARRANGE, 0, 0);
+    }
+}
+
+void CMDIFrameWnd::MDIMaximize(CWnd* pWnd) {
+    if (m_hWndMDIClient && pWnd && pWnd->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIMAXIMIZE, (WPARAM)pWnd->m_hWnd, 0);
+    }
+}
+
+void CMDIFrameWnd::MDINext() {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDINEXT, 0, 0);
+    }
+}
+
+void CMDIFrameWnd::MDIRestore(CWnd* pWnd) {
+    if (m_hWndMDIClient && pWnd && pWnd->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIRESTORE, (WPARAM)pWnd->m_hWnd, 0);
+    }
+}
+
+void CMDIFrameWnd::MDISetMenu(CMenu* pFrameMenu, CMenu* pWindowMenu) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDISETMENU,
+                       (WPARAM)(pFrameMenu ? pFrameMenu->m_hMenu : nullptr),
+                       (LPARAM)(pWindowMenu ? pWindowMenu->m_hMenu : nullptr));
+        ::DrawMenuBar(m_hWnd);
+    }
+}
+
+void CMDIFrameWnd::MDITile(int nType) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDITILE, nType, 0);
+    }
+}
+
+void CMDIFrameWnd::MDICascade(int nType) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDICASCADE, nType, 0);
+    }
+}
+
+// =============================================================================
+// CMDIChildWnd Implementation
+// =============================================================================
+
+IMPLEMENT_DYNCREATE(CMDIChildWnd, CFrameWnd)
+
+CMDIChildWnd::CMDIChildWnd() {
+    memset(_mdichild_padding, 0, sizeof(_mdichild_padding));
+}
+
+int CMDIChildWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                         DWORD dwStyle, const struct tagRECT& rect,
+                         CMDIFrameWnd* pParentWnd, CCreateContext* pContext) {
+    (void)lpszClassName;
+    (void)pContext;
+
+    if (!pParentWnd || !pParentWnd->m_hWndMDIClient) {
+        return FALSE;
+    }
+
+    MDICREATESTRUCTW mcs = {};
+    mcs.szClass = lpszClassName ? lpszClassName : L"MDICHILD";
+    mcs.szTitle = lpszWindowName;
+    mcs.hOwner = AfxGetInstanceHandle();
+    mcs.x = rect.left ? rect.left : CW_USEDEFAULT;
+    mcs.y = rect.top ? rect.top : CW_USEDEFAULT;
+    mcs.cx = (rect.right - rect.left) ? (rect.right - rect.left) : CW_USEDEFAULT;
+    mcs.cy = (rect.bottom - rect.top) ? (rect.bottom - rect.top) : CW_USEDEFAULT;
+    mcs.style = dwStyle ? dwStyle : (WS_CHILD | WS_VISIBLE | WS_OVERLAPPEDWINDOW);
+    mcs.lParam = (LPARAM)this;
+
+    m_hWnd = (HWND)::SendMessageW(pParentWnd->m_hWndMDIClient, WM_MDICREATE, 0, (LPARAM)&mcs);
+
+    if (m_hWnd) {
+        g_hwndMap[m_hWnd] = this;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void CMDIChildWnd::ActivateFrame(int nCmdShow) {
+    CMDIFrameWnd* pFrame = GetMDIFrame();
+    if (pFrame) {
+        pFrame->MDIActivate(this);
+        if (nCmdShow != -1) {
+            ::ShowWindow(m_hWnd, nCmdShow);
+        }
+    }
+}
+
+int CMDIChildWnd::DestroyWindow() {
+    CMDIFrameWnd* pFrame = GetMDIFrame();
+    if (pFrame && pFrame->m_hWndMDIClient && m_hWnd) {
+        ::SendMessageW(pFrame->m_hWndMDIClient, WM_MDIDESTROY, (WPARAM)m_hWnd, 0);
+        m_hWnd = nullptr;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+CMDIFrameWnd* CMDIChildWnd::GetMDIFrame() {
+    HWND hWndParent = ::GetParent(m_hWnd);  // MDI client
+    if (hWndParent) {
+        hWndParent = ::GetParent(hWndParent);  // MDI frame
+        CWnd* pWnd = CWnd::FromHandle(hWndParent);
+        return dynamic_cast<CMDIFrameWnd*>(pWnd);
+    }
+    return nullptr;
 }
