@@ -44,7 +44,7 @@ jobs:
     - uses: actions/checkout@v6
     
     - name: Download Phase 4 artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: phase4-openmfc
         path: phase4-artifacts

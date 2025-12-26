@@ -116,13 +116,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Download test executables
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: phase4_msvc_tests
           path: .
 
       - name: Download DLL
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: phase4_mingw_dll
           path: .
