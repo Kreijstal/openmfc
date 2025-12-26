@@ -203,7 +203,7 @@ public:
             CopyResult(vtRet, pvRet, &result);
         }
         if (vtRet != VT_BSTR && vtRet != VT_DISPATCH && vtRet != VT_UNKNOWN &&
-            vtRet != VT_VARIANT && vtRet != VT_BYREF) {
+            vtRet != VT_BYREF) {
             VariantClear(&result);
         } else {
             VariantInit(&result);
