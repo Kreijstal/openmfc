@@ -354,6 +354,28 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
   #define MS_ABI
 #endif
 
+// Symbol: ?GetErrorMessage@CFileException@@UEBAHPEA_WIPEAI@Z
+extern "C" int MS_ABI impl__GetErrorMessage_CFileException__UEBAHPEA_WIPEAI_Z(
+    const CFileException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) {
+    return pThis->GetErrorMessage(lpszError, nMaxError, pnHelpContext);
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetErrorMessage@CFileException@@UEBAHPEA_WIPEAI@Z\"\n"
+    ".set \"?GetErrorMessage@CFileException@@UEBAHPEA_WIPEAI@Z\", impl__GetErrorMessage_CFileException__UEBAHPEA_WIPEAI_Z\n");
+#endif
+
+// Symbol: ?GetErrorMessage@CArchiveException@@UEBAHPEA_WIPEAI@Z
+extern "C" int MS_ABI impl__GetErrorMessage_CArchiveException__UEBAHPEA_WIPEAI_Z(
+    const CArchiveException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) {
+    return pThis->GetErrorMessage(lpszError, nMaxError, pnHelpContext);
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetErrorMessage@CArchiveException@@UEBAHPEA_WIPEAI@Z\"\n"
+    ".set \"?GetErrorMessage@CArchiveException@@UEBAHPEA_WIPEAI@Z\", impl__GetErrorMessage_CArchiveException__UEBAHPEA_WIPEAI_Z\n");
+#endif
+
 // Symbol: ?GetThisClass@CMemoryException@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() {
     return &CMemoryException::classCMemoryException;
