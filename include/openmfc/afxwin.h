@@ -1360,17 +1360,19 @@ class CPalette : public CGdiObject {
     DECLARE_DYNAMIC(CPalette)
 public:
     CPalette();
-    
-    int CreatePalette(const void* lpLogPalette);
-    int CreateHalftonePalette(void* pDC);
-    
-    unsigned int GetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries, void* lpPaletteColors) const;
-    unsigned int SetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries, const void* lpPaletteColors);
-    
-    void AnimatePalette(unsigned int nStartIndex, unsigned int nNumEntries, const void* lpPaletteColors);
+    virtual ~CPalette();
+
+    int CreatePalette(const LOGPALETTE* lpLogPalette);
+    int CreateHalftonePalette(CDC* pDC);
+
+    int GetEntryCount() const;
+    unsigned int GetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries, PALETTEENTRY* lpPaletteColors) const;
+    unsigned int SetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries, PALETTEENTRY* lpPaletteColors);
+
+    void AnimatePalette(unsigned int nStartIndex, unsigned int nNumEntries, PALETTEENTRY* lpPaletteColors);
     unsigned int GetNearestPaletteIndex(unsigned long crColor) const;
     int ResizePalette(unsigned int nNumEntries);
-    
+
 protected:
     char _palette_padding[24];
 };
@@ -1380,7 +1382,8 @@ class CRgn : public CGdiObject {
     DECLARE_DYNAMIC(CRgn)
 public:
     CRgn();
-    
+    virtual ~CRgn();
+
     // Creation methods
     int CreateRectRgn(int x1, int y1, int x2, int y2);
     int CreateRectRgnIndirect(const RECT* lpRect);
@@ -1389,27 +1392,27 @@ public:
     int CreatePolygonRgn(const POINT* lpPoints, int nCount, int nMode);
     int CreatePolyPolygonRgn(const POINT* lpPoints, const int* lpPolyCounts, int nCount, int nMode);
     int CreateRoundRectRgn(int x1, int y1, int x2, int y2, int x3, int y3);
-    int CreateFromPath(void* pDC);
+    int CreateFromPath(CDC* pDC);
     int CreateFromData(const void* lpXForm, const void* lpRgnData, int nCount);
-    
+
     // Operations
-    int CombineRgn(const CRgn* pRgn1, const CRgn* pRgn2, int nCombineMode);
-    int CopyRgn(const CRgn* pRgnSrc);
-    int EqualRgn(const CRgn* pRgn) const;
-    
+    int CombineRgn(CRgn* pRgn1, CRgn* pRgn2, int nCombineMode);
+    int CopyRgn(CRgn* pRgnSrc);
+    int EqualRgn(CRgn* pRgn) const;
+
     // Region info
     int GetRgnBox(RECT* pRect) const;
     int OffsetRgn(int x, int y);
-    int OffsetRgn(const POINT& point);
+    int OffsetRgn(POINT point);
     int PtInRegion(int x, int y) const;
-    int PtInRegion(const POINT& point) const;
+    int PtInRegion(POINT point) const;
     int RectInRegion(const RECT* pRect) const;
-    
-    int SetRectRgn(int x1, int y1, int x2, int y2);
-    int SetRectRgn(const RECT* lpRect);
-    
-    int GetRegionData(void* lpRgnData, unsigned long dwCount) const;
-    
+
+    void SetRectRgn(int x1, int y1, int x2, int y2);
+    void SetRectRgn(const RECT* lpRect);
+
+    int GetRegionData(RGNDATA* lpRgnData, int nCount) const;
+
 protected:
     char _rgn_padding[24];
 };

@@ -621,3 +621,299 @@ extern "C" void MS_ABI impl___1CWindowDC__UEAA_XZ(CWindowDC* pThis) {
         pThis->m_pWnd = nullptr;
     }
 }
+
+// =============================================================================
+// CMetaFileDC Implementation
+// =============================================================================
+
+IMPLEMENT_DYNAMIC(CMetaFileDC, CDC)
+
+#ifdef __GNUC__
+asm(".globl \"?classCMetaFileDC@CMetaFileDC@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCMetaFileDC@CMetaFileDC@@2UCRuntimeClass@@A\", _ZN11CMetaFileDC16classCMetaFileDCE\n");
+#endif
+
+// CMetaFileDC default constructor
+CMetaFileDC::CMetaFileDC() : CDC() {
+    memset(_metafiledc_padding, 0, sizeof(_metafiledc_padding));
+}
+
+// CMetaFileDC destructor
+CMetaFileDC::~CMetaFileDC() {
+    // If DC is still open, close it
+    if (m_hDC) {
+        // Check if it's an enhanced metafile DC
+        HENHMETAFILE hMF = CloseEnhMetaFile(m_hDC);
+        if (hMF) {
+            DeleteEnhMetaFile(hMF);
+        }
+        m_hDC = nullptr;
+        m_hAttribDC = nullptr;
+    }
+}
+
+// CMetaFileDC::Create - Create a Windows metafile DC
+int CMetaFileDC::Create(const wchar_t* lpszFilename) {
+    // Windows metafiles (WMF) are legacy format
+    // CreateMetaFileW returns a DC for recording metafile commands
+    m_hDC = ::CreateMetaFileW(lpszFilename);
+    m_hAttribDC = m_hDC;
+    return m_hDC != nullptr;
+}
+
+// CMetaFileDC::CreateEnhanced - Create an enhanced metafile DC
+int CMetaFileDC::CreateEnhanced(void* pDC, const wchar_t* lpszFilename,
+                                 const RECT* lpBounds, const wchar_t* lpszDescription)
+{
+    HDC hRefDC = pDC ? static_cast<CDC*>(pDC)->m_hDC : nullptr;
+    m_hDC = ::CreateEnhMetaFileW(hRefDC, lpszFilename, lpBounds, lpszDescription);
+    m_hAttribDC = m_hDC;
+    return m_hDC != nullptr;
+}
+
+// CMetaFileDC::Close - Close metafile DC and return HMETAFILE
+void* CMetaFileDC::Close() {
+    if (!m_hDC) return nullptr;
+
+    // CloseMetaFile returns an HMETAFILE
+    HMETAFILE hMF = ::CloseMetaFile(m_hDC);
+    m_hDC = nullptr;
+    m_hAttribDC = nullptr;
+    return hMF;
+}
+
+// CMetaFileDC::CloseEnhanced - Close enhanced metafile DC and return HENHMETAFILE
+void* CMetaFileDC::CloseEnhanced() {
+    if (!m_hDC) return nullptr;
+
+    // CloseEnhMetaFile returns an HENHMETAFILE
+    HENHMETAFILE hMF = ::CloseEnhMetaFile(m_hDC);
+    m_hDC = nullptr;
+    m_hAttribDC = nullptr;
+    return hMF;
+}
+
+// =============================================================================
+// CPalette Implementation
+// =============================================================================
+
+// CPalette default constructor
+CPalette::CPalette() : CGdiObject() {
+}
+
+// CPalette destructor
+CPalette::~CPalette() {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+        m_hObject = nullptr;
+    }
+}
+
+// CPalette::CreatePalette
+int CPalette::CreatePalette(const LOGPALETTE* lpLogPalette) {
+    if (!lpLogPalette) return FALSE;
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreatePalette(lpLogPalette);
+    return m_hObject != nullptr;
+}
+
+// CPalette::CreateHalftonePalette
+int CPalette::CreateHalftonePalette(CDC* pDC) {
+    if (!pDC || !pDC->m_hDC) return FALSE;
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreateHalftonePalette(pDC->m_hDC);
+    return m_hObject != nullptr;
+}
+
+// CPalette::GetEntryCount
+int CPalette::GetEntryCount() const {
+    if (!m_hObject) return 0;
+    WORD nEntries = 0;
+    ::GetObject(m_hObject, sizeof(WORD), &nEntries);
+    return nEntries;
+}
+
+// CPalette::GetPaletteEntries
+unsigned int CPalette::GetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries,
+                                          PALETTEENTRY* lpPaletteColors) const {
+    if (!m_hObject) return 0;
+    return ::GetPaletteEntries((HPALETTE)m_hObject, nStartIndex, nNumEntries, lpPaletteColors);
+}
+
+// CPalette::SetPaletteEntries
+unsigned int CPalette::SetPaletteEntries(unsigned int nStartIndex, unsigned int nNumEntries,
+                                          PALETTEENTRY* lpPaletteColors) {
+    if (!m_hObject) return 0;
+    return ::SetPaletteEntries((HPALETTE)m_hObject, nStartIndex, nNumEntries, lpPaletteColors);
+}
+
+// CPalette::AnimatePalette
+void CPalette::AnimatePalette(unsigned int nStartIndex, unsigned int nNumEntries,
+                              PALETTEENTRY* lpPaletteColors) {
+    if (m_hObject) {
+        ::AnimatePalette((HPALETTE)m_hObject, nStartIndex, nNumEntries, lpPaletteColors);
+    }
+}
+
+// CPalette::ResizePalette
+int CPalette::ResizePalette(unsigned int nNumEntries) {
+    if (!m_hObject) return FALSE;
+    return ::ResizePalette((HPALETTE)m_hObject, nNumEntries);
+}
+
+// CPalette::GetNearestPaletteIndex
+unsigned int CPalette::GetNearestPaletteIndex(unsigned long crColor) const {
+    if (!m_hObject) return CLR_INVALID;
+    return ::GetNearestPaletteIndex((HPALETTE)m_hObject, crColor);
+}
+
+// =============================================================================
+// CRgn Implementation
+// =============================================================================
+
+// CRgn default constructor
+CRgn::CRgn() : CGdiObject() {
+}
+
+// CRgn destructor
+CRgn::~CRgn() {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+        m_hObject = nullptr;
+    }
+}
+
+// CRgn::CreateRectRgn
+int CRgn::CreateRectRgn(int x1, int y1, int x2, int y2) {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreateRectRgn(x1, y1, x2, y2);
+    return m_hObject != nullptr;
+}
+
+// CRgn::CreateRectRgnIndirect
+int CRgn::CreateRectRgnIndirect(const RECT* lpRect) {
+    if (!lpRect) return FALSE;
+    return CreateRectRgn(lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+}
+
+// CRgn::CreateEllipticRgn
+int CRgn::CreateEllipticRgn(int x1, int y1, int x2, int y2) {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreateEllipticRgn(x1, y1, x2, y2);
+    return m_hObject != nullptr;
+}
+
+// CRgn::CreateEllipticRgnIndirect
+int CRgn::CreateEllipticRgnIndirect(const RECT* lpRect) {
+    if (!lpRect) return FALSE;
+    return CreateEllipticRgn(lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+}
+
+// CRgn::CreatePolygonRgn
+int CRgn::CreatePolygonRgn(const POINT* lpPoints, int nCount, int nMode) {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreatePolygonRgn(lpPoints, nCount, nMode);
+    return m_hObject != nullptr;
+}
+
+// CRgn::CreateRoundRectRgn
+int CRgn::CreateRoundRectRgn(int x1, int y1, int x2, int y2, int x3, int y3) {
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::CreateRoundRectRgn(x1, y1, x2, y2, x3, y3);
+    return m_hObject != nullptr;
+}
+
+// CRgn::CreateFromPath
+int CRgn::CreateFromPath(CDC* pDC) {
+    if (!pDC || !pDC->m_hDC) return FALSE;
+    if (m_hObject) {
+        ::DeleteObject(m_hObject);
+    }
+    m_hObject = ::PathToRegion(pDC->m_hDC);
+    return m_hObject != nullptr;
+}
+
+// CRgn::SetRectRgn
+void CRgn::SetRectRgn(int x1, int y1, int x2, int y2) {
+    if (m_hObject) {
+        ::SetRectRgn((HRGN)m_hObject, x1, y1, x2, y2);
+    }
+}
+
+// CRgn::SetRectRgn with RECT
+void CRgn::SetRectRgn(const RECT* lpRect) {
+    if (lpRect && m_hObject) {
+        ::SetRectRgn((HRGN)m_hObject, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+    }
+}
+
+// CRgn::CombineRgn
+int CRgn::CombineRgn(CRgn* pRgn1, CRgn* pRgn2, int nCombineMode) {
+    if (!m_hObject || !pRgn1 || !pRgn1->m_hObject) return ERROR;
+    HRGN hRgn2 = pRgn2 ? (HRGN)pRgn2->m_hObject : nullptr;
+    return ::CombineRgn((HRGN)m_hObject, (HRGN)pRgn1->m_hObject, hRgn2, nCombineMode);
+}
+
+// CRgn::CopyRgn
+int CRgn::CopyRgn(CRgn* pRgnSrc) {
+    if (!m_hObject || !pRgnSrc || !pRgnSrc->m_hObject) return ERROR;
+    return ::CombineRgn((HRGN)m_hObject, (HRGN)pRgnSrc->m_hObject, nullptr, RGN_COPY);
+}
+
+// CRgn::EqualRgn
+int CRgn::EqualRgn(CRgn* pRgn) const {
+    if (!m_hObject || !pRgn || !pRgn->m_hObject) return FALSE;
+    return ::EqualRgn((HRGN)m_hObject, (HRGN)pRgn->m_hObject);
+}
+
+// CRgn::OffsetRgn
+int CRgn::OffsetRgn(int x, int y) {
+    if (!m_hObject) return ERROR;
+    return ::OffsetRgn((HRGN)m_hObject, x, y);
+}
+
+// CRgn::OffsetRgn with POINT
+int CRgn::OffsetRgn(POINT point) {
+    return OffsetRgn(point.x, point.y);
+}
+
+// CRgn::GetRgnBox
+int CRgn::GetRgnBox(RECT* lpRect) const {
+    if (!m_hObject || !lpRect) return ERROR;
+    return ::GetRgnBox((HRGN)m_hObject, lpRect);
+}
+
+// CRgn::PtInRegion
+int CRgn::PtInRegion(int x, int y) const {
+    if (!m_hObject) return FALSE;
+    return ::PtInRegion((HRGN)m_hObject, x, y);
+}
+
+// CRgn::PtInRegion with POINT
+int CRgn::PtInRegion(POINT point) const {
+    return PtInRegion(point.x, point.y);
+}
+
+// CRgn::RectInRegion
+int CRgn::RectInRegion(const RECT* lpRect) const {
+    if (!m_hObject || !lpRect) return FALSE;
+    return ::RectInRegion((HRGN)m_hObject, lpRect);
+}
+
+// CRgn::GetRegionData
+int CRgn::GetRegionData(RGNDATA* lpRgnData, int nDataSize) const {
+    if (!m_hObject) return 0;
+    return ::GetRegionData((HRGN)m_hObject, nDataSize, lpRgnData);
+}

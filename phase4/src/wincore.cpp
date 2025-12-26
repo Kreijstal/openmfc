@@ -691,3 +691,193 @@ extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
 
     return nReturnCode;
 }
+
+// =============================================================================
+// CMDIFrameWnd Implementation
+// =============================================================================
+
+IMPLEMENT_DYNCREATE(CMDIFrameWnd, CFrameWnd)
+
+CMDIFrameWnd::CMDIFrameWnd() : m_hWndMDIClient(nullptr) {
+    memset(_mdiframe_padding, 0, sizeof(_mdiframe_padding));
+}
+
+// CMDIFrameWnd::CreateClient
+// Creates the MDI client window
+int CMDIFrameWnd::CreateClient(void* lpCreateStruct, CMenu* pWindowMenu) {
+    (void)lpCreateStruct;
+
+    if (!m_hWnd) return FALSE;
+
+    CLIENTCREATESTRUCT ccs = {};
+    ccs.hWindowMenu = pWindowMenu ? pWindowMenu->m_hMenu : nullptr;
+    ccs.idFirstChild = 0xFF00;  // First MDI child ID
+
+    m_hWndMDIClient = ::CreateWindowExW(
+        0,
+        L"MDICLIENT",
+        nullptr,
+        WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL | WS_VISIBLE,
+        0, 0, 0, 0,
+        m_hWnd,
+        nullptr,
+        AfxGetInstanceHandle(),
+        &ccs
+    );
+
+    return m_hWndMDIClient != nullptr;
+}
+
+// CMDIFrameWnd::GetWindowMenuPopup
+HWND CMDIFrameWnd::GetWindowMenuPopup(HMENU hMenuBar) {
+    if (!hMenuBar) return nullptr;
+
+    // Find the Window menu by looking for one with MDI child items
+    int nCount = ::GetMenuItemCount(hMenuBar);
+    for (int i = 0; i < nCount; i++) {
+        HMENU hSubMenu = ::GetSubMenu(hMenuBar, i);
+        if (hSubMenu) {
+            // Check if this submenu has the tile/cascade commands
+            if (::GetMenuState(hSubMenu, 0xFF00, MF_BYCOMMAND) != (UINT)-1) {
+                return (HWND)(UINT_PTR)hSubMenu;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// MDI helper functions
+void CMDIFrameWnd::MDIActivate(CWnd* pWndActivate) {
+    if (m_hWndMDIClient && pWndActivate && pWndActivate->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIACTIVATE, (WPARAM)pWndActivate->m_hWnd, 0);
+    }
+}
+
+CWnd* CMDIFrameWnd::MDIGetActive(int* pbMaximized) const {
+    if (!m_hWndMDIClient) return nullptr;
+
+    BOOL bMaximized = FALSE;
+    HWND hWnd = (HWND)::SendMessageW(m_hWndMDIClient, WM_MDIGETACTIVE, 0, (LPARAM)&bMaximized);
+
+    if (pbMaximized) {
+        *pbMaximized = bMaximized ? 1 : 0;
+    }
+
+    return hWnd ? CWnd::FromHandle(hWnd) : nullptr;
+}
+
+void CMDIFrameWnd::MDIIconArrange() {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIICONARRANGE, 0, 0);
+    }
+}
+
+void CMDIFrameWnd::MDIMaximize(CWnd* pWnd) {
+    if (m_hWndMDIClient && pWnd && pWnd->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIMAXIMIZE, (WPARAM)pWnd->m_hWnd, 0);
+    }
+}
+
+void CMDIFrameWnd::MDINext() {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDINEXT, 0, 0);
+    }
+}
+
+void CMDIFrameWnd::MDIRestore(CWnd* pWnd) {
+    if (m_hWndMDIClient && pWnd && pWnd->m_hWnd) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDIRESTORE, (WPARAM)pWnd->m_hWnd, 0);
+    }
+}
+
+void CMDIFrameWnd::MDISetMenu(CMenu* pFrameMenu, CMenu* pWindowMenu) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDISETMENU,
+                       (WPARAM)(pFrameMenu ? pFrameMenu->m_hMenu : nullptr),
+                       (LPARAM)(pWindowMenu ? pWindowMenu->m_hMenu : nullptr));
+        ::DrawMenuBar(m_hWnd);
+    }
+}
+
+void CMDIFrameWnd::MDITile(int nType) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDITILE, nType, 0);
+    }
+}
+
+void CMDIFrameWnd::MDICascade(int nType) {
+    if (m_hWndMDIClient) {
+        ::SendMessageW(m_hWndMDIClient, WM_MDICASCADE, nType, 0);
+    }
+}
+
+// =============================================================================
+// CMDIChildWnd Implementation
+// =============================================================================
+
+IMPLEMENT_DYNCREATE(CMDIChildWnd, CFrameWnd)
+
+CMDIChildWnd::CMDIChildWnd() {
+    memset(_mdichild_padding, 0, sizeof(_mdichild_padding));
+}
+
+int CMDIChildWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                         DWORD dwStyle, const struct tagRECT& rect,
+                         CMDIFrameWnd* pParentWnd, CCreateContext* pContext) {
+    (void)lpszClassName;
+    (void)pContext;
+
+    if (!pParentWnd || !pParentWnd->m_hWndMDIClient) {
+        return FALSE;
+    }
+
+    MDICREATESTRUCTW mcs = {};
+    mcs.szClass = lpszClassName ? lpszClassName : L"MDICHILD";
+    mcs.szTitle = lpszWindowName;
+    mcs.hOwner = AfxGetInstanceHandle();
+    mcs.x = rect.left ? rect.left : CW_USEDEFAULT;
+    mcs.y = rect.top ? rect.top : CW_USEDEFAULT;
+    mcs.cx = (rect.right - rect.left) ? (rect.right - rect.left) : CW_USEDEFAULT;
+    mcs.cy = (rect.bottom - rect.top) ? (rect.bottom - rect.top) : CW_USEDEFAULT;
+    mcs.style = dwStyle ? dwStyle : (WS_CHILD | WS_VISIBLE | WS_OVERLAPPEDWINDOW);
+    mcs.lParam = (LPARAM)this;
+
+    m_hWnd = (HWND)::SendMessageW(pParentWnd->m_hWndMDIClient, WM_MDICREATE, 0, (LPARAM)&mcs);
+
+    if (m_hWnd) {
+        g_hwndMap[m_hWnd] = this;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void CMDIChildWnd::ActivateFrame(int nCmdShow) {
+    CMDIFrameWnd* pFrame = GetMDIFrame();
+    if (pFrame) {
+        pFrame->MDIActivate(this);
+        if (nCmdShow != -1) {
+            ::ShowWindow(m_hWnd, nCmdShow);
+        }
+    }
+}
+
+int CMDIChildWnd::DestroyWindow() {
+    CMDIFrameWnd* pFrame = GetMDIFrame();
+    if (pFrame && pFrame->m_hWndMDIClient && m_hWnd) {
+        ::SendMessageW(pFrame->m_hWndMDIClient, WM_MDIDESTROY, (WPARAM)m_hWnd, 0);
+        m_hWnd = nullptr;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+CMDIFrameWnd* CMDIChildWnd::GetMDIFrame() {
+    HWND hWndParent = ::GetParent(m_hWnd);  // MDI client
+    if (hWndParent) {
+        hWndParent = ::GetParent(hWndParent);  // MDI frame
+        CWnd* pWnd = CWnd::FromHandle(hWndParent);
+        return dynamic_cast<CMDIFrameWnd*>(pWnd);
+    }
+    return nullptr;
+}
