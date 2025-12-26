@@ -12,7 +12,7 @@ jobs:
   build-openmfc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install MinGW
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
@@ -37,7 +37,7 @@ jobs:
     outputs:
       results-artifact: real-mfc-results
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -93,7 +93,7 @@ jobs:
     outputs:
       results-artifact: openmfc-results
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download OpenMFC artifacts
         uses: actions/download-artifact@v4
@@ -176,7 +176,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-real-mfc, test-openmfc]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download Real MFC results
         uses: actions/download-artifact@v4

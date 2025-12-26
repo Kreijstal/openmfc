@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Install dependencies
       run: |
@@ -74,7 +74,7 @@ jobs:
     needs: abi-safety-checks
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v4
@@ -154,7 +154,7 @@ jobs:
     needs: abi-safety-checks
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v4

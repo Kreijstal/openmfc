@@ -14,7 +14,7 @@ jobs:
       dll-artifact: ${{ steps.upload.outputs.artifact-name }}
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Install MinGW
       run: sudo apt-get update && sudo apt-get install -y mingw-w64
@@ -41,7 +41,7 @@ jobs:
     timeout-minutes: 20
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v4

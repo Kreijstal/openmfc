@@ -10,7 +10,7 @@ jobs:
   build-msvc-tests:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -62,7 +62,7 @@ jobs:
   build-mingw-dll:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install mingw
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
