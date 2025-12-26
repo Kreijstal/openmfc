@@ -123,6 +123,12 @@ asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCWnd@CWnd@@2UCRuntimeClass@@A\", _ZN4CWnd9classCWndE\n");
 #endif
 
+// CWnd::FromHandle
+// Symbol: ?FromHandle@CWnd@@SAPAV1@PAUHWND__@@@Z
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPAV1_PAUHWND_____Z(HWND hWnd) {
+    return OpenMfcAttachCWnd(hWnd);
+}
+
 // Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
     return &CWnd::classCWnd;

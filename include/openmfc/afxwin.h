@@ -454,6 +454,7 @@ public:
     //-------------------------------------------------------------------------
     HWND GetSafeHwnd() const { return m_hWnd; }
     operator HWND() const { return m_hWnd; }
+    static CWnd* FromHandle(HWND hWnd);
     
     //-------------------------------------------------------------------------
     // Window creation/destruction
