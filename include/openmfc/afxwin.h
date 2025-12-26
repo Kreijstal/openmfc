@@ -569,7 +569,7 @@ class CFrameWnd : public CWnd {
     DECLARE_DYNCREATE(CFrameWnd)
 public:
     CFrameWnd();
-    virtual ~CFrameWnd() = default;
+    virtual ~CFrameWnd();
 
     virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
                           CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
@@ -581,6 +581,7 @@ public:
 
     virtual void ActivateFrame(int nCmdShow = -1);
     virtual void RecalcLayout(int bNotify = 1);
+    virtual int PreCreateWindow(CREATESTRUCTW& cs) override;
 
     CWnd* GetActiveView() const;
     void SetActiveView(CWnd* pViewNew, int bNotify = 1);
