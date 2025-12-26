@@ -833,10 +833,16 @@ void CArray<TYPE, ARG_TYPE>::InsertAt(int nIndex, ARG_TYPE newElement, int nCoun
 
 template<class TYPE, class ARG_TYPE>
 void CArray<TYPE, ARG_TYPE>::RemoveAt(int nIndex, int nCount) {
+    if (nCount <= 0) {
+        return;
+    }
+    int nOldSize = m_nSize;
     int nMoveCount = m_nSize - (nIndex + nCount);
     for (int i = 0; i < nMoveCount; i++)
         m_pData[nIndex + i] = m_pData[nIndex + nCount + i];
-    m_nSize -= nCount;
+    for (int i = nOldSize - nCount; i < nOldSize; i++)
+        m_pData[i].~TYPE();
+    m_nSize = nOldSize - nCount;
 }
 
 template<class TYPE, class ARG_TYPE>

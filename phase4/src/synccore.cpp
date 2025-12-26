@@ -338,8 +338,9 @@ static unsigned int __stdcall AfxThreadEntry(void* pParam) {
         // For CWinThread-derived classes, call InitInstance/Run/ExitInstance
         if (pParams->pThread->InitInstance()) {
             nResult = pParams->pThread->Run();
+        } else {
+            nResult = pParams->pThread->ExitInstance();
         }
-        nResult = pParams->pThread->ExitInstance();
     }
 
     // Clean up

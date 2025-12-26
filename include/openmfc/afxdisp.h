@@ -1,6 +1,7 @@
 #pragma once
 #include "afxwin.h"
 #include <cstdarg>
+#include <string>
 #include <vector>
 
 // OLE/COM Dispatch support (minimal)
@@ -178,11 +179,22 @@ public:
 
         if (FAILED(hr)) {
             if (hr == DISP_E_EXCEPTION) {
-                const wchar_t* desc = excep.bstrDescription ? excep.bstrDescription : L"";
-                AfxThrowOleDispatchException(excep.wCode, desc, excep.dwHelpContext);
+                std::wstring desc;
                 if (excep.bstrDescription) {
+                    desc.assign(excep.bstrDescription, SysStringLen(excep.bstrDescription));
                     SysFreeString(excep.bstrDescription);
+                    excep.bstrDescription = nullptr;
                 }
+                if (excep.bstrSource) {
+                    SysFreeString(excep.bstrSource);
+                    excep.bstrSource = nullptr;
+                }
+                if (excep.bstrHelpFile) {
+                    SysFreeString(excep.bstrHelpFile);
+                    excep.bstrHelpFile = nullptr;
+                }
+                const wchar_t* descPtr = desc.empty() ? L"" : desc.c_str();
+                AfxThrowOleDispatchException(excep.wCode, descPtr, excep.dwHelpContext);
             }
             AfxThrowOleException(hr);
         }

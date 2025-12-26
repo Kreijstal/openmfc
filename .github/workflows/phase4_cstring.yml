@@ -37,6 +37,15 @@ jobs:
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC CObject tests passed!
 
+    - name: Build and run CArray tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_carray_removeat.exe tests\test_carray_removeat.cpp
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_carray_removeat.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC CArray tests passed!
+
     - name: Build and run OLE Dispatch tests
       shell: cmd
       run: |
@@ -45,6 +54,15 @@ jobs:
         test_ole_dispatch.exe
         if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
         echo MSVC OLE Dispatch tests passed!
+
+    - name: Build and run OLE Dispatch exception tests
+      shell: cmd
+      run: |
+        cl.exe /nologo /EHsc /std:c++17 /I include /Fe:test_ole_dispatch_exception.exe tests\test_ole_dispatch_exception.cpp oleaut32.lib
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        test_ole_dispatch_exception.exe
+        if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+        echo MSVC OLE Dispatch exception tests passed!
 
     - name: Build and run OLE Dispatch integration tests
       shell: cmd
