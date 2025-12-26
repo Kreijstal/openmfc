@@ -30,7 +30,7 @@ jobs:
         run: ./phase4/scripts/build_phase4.sh
 
       - name: Upload DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: openmfc-dll
           path: |
@@ -280,7 +280,7 @@ jobs:
           Write-Host $output
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: exception-tests

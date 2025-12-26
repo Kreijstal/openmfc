@@ -23,7 +23,7 @@ jobs:
           ls -la build-phase4/
 
       - name: Upload OpenMFC artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: openmfc-dll
           path: |
@@ -80,7 +80,7 @@ jobs:
           exit 0
 
       - name: Upload Real MFC results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: real-mfc-results
           path: real_mfc_results.json
@@ -165,7 +165,7 @@ jobs:
           exit 0
 
       - name: Upload OpenMFC results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: openmfc-results
           path: openmfc_results.json
@@ -299,7 +299,7 @@ jobs:
 
       - name: Upload comparison report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: comparison-report
           path: |
