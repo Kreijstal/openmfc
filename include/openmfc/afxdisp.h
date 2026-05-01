@@ -63,6 +63,7 @@ public:
         boolVal = value ? VARIANT_TRUE : VARIANT_FALSE;
     }
     ~COleVariant() { VariantClear(this); }
+    void Clear() { VariantClear(this); VariantInit(this); }
 };
 
 class COleDispatchDriver {

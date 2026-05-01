@@ -34,6 +34,9 @@ public:
     CDBException() : CException(1), m_nRetCode(0),
         m_strErrorNativeOrigin(nullptr), m_strError(nullptr),
         m_strStateNativeOrigin(nullptr) {}
+    CDBException(RETCODE nRetCode) : CException(1), m_nRetCode(nRetCode),
+        m_strErrorNativeOrigin(nullptr), m_strError(nullptr),
+        m_strStateNativeOrigin(nullptr) {}
     virtual ~CDBException() {}
 
     RETCODE m_nRetCode;

@@ -268,14 +268,14 @@
 
 ### Tier 2 — DAO Database (~170 stubs)
 
-- [ ] **CDaoDatabase** — DAO database connection (Open/Close/Execute)
-- [ ] **CDaoRecordset** — DAO recordset navigation and editing
-- [ ] **CDaoWorkspace** — DAO workspace/transaction management
-- [ ] **CDaoTableDef** — DAO table definition
-- [ ] **CDaoQueryDef** — DAO query definition
-- [ ] **CDaoException** — DAO error handling
-- [ ] **CDaoFieldExchange** — DAO field exchange (DFX)
-- [ ] **CDaoRecordView** — DAO record view
+- [x] **CDaoDatabase** — DAO database connection (Open/Close/Execute)
+- [x] **CDaoRecordset** — DAO recordset navigation and editing
+- [x] **CDaoWorkspace** — DAO workspace/transaction management
+- [x] **CDaoTableDef** — DAO table definition
+- [x] **CDaoQueryDef** — DAO query definition
+- [x] **CDaoException** — DAO error handling
+- [x] **CDaoFieldExchange** — DAO field exchange (DFX)
+- [x] **CDaoRecordView** — DAO record view
 
 ### Tier 3 — Fill in OLE/COM exports (~550 stubs)
 

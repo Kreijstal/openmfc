@@ -23,6 +23,8 @@
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxdb.h"
+#include "openmfc/afxdao.h"
 #include "openmfc/afxinet.h"
 #include <windows.h>
 #include <cstddef>
@@ -85,49 +87,6 @@ public:
 class CInvalidArgException : public CException {
 public:
     CInvalidArgException() : CException(TRUE) {}
-};
-
-// COleException
-class COleException : public CException {
-public:
-    SCODE m_sc;
-    static SCODE PASCAL Process(const CException* pAnyException);
-
-    COleException() : CException(TRUE), m_sc(0) {}
-};
-
-// COleDispatchException
-class COleDispatchException : public CException {
-public:
-    WORD m_wCode;
-    CString m_strDescription;
-    DWORD m_dwHelpContext;
-    CString m_strSource;
-    CString m_strHelpFile;
-
-    COleDispatchException() : CException(TRUE), m_wCode(0), m_dwHelpContext(0) {}
-};
-
-// CInternetException - defined in afxinet.h
-
-// CDBException
-class CDBException : public CException {
-public:
-    short m_nRetCode;
-    CString m_strError;
-    CString m_strStateNativeOrigin;
-
-    CDBException(short nRetCode) : CException(TRUE), m_nRetCode(nRetCode) {}
-};
-
-// CDaoException (Minimal definition)
-class CDaoException : public CException {
-public:
-    SCODE m_scode;
-    // Missing: CDaoErrorInfo* m_pErrorInfo;
-    short m_nAfxDaoError;
-
-    CDaoException() : CException(TRUE), m_scode(0), m_nAfxDaoError(0) {}
 };
 
 // =============================================================================

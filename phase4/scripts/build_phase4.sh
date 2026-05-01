@@ -334,6 +334,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/dbcore.cpp"
     "$ROOT/phase4/src/cbarcore.cpp"
     "$ROOT/phase4/src/viewrich.cpp"
+    "$ROOT/phase4/src/daocore.cpp"
     # Add more implementation files here as they are created
 )
 
