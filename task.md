@@ -169,6 +169,11 @@
 ## Priority 8: Advanced (Lower Priority)
 
 ### Internet/Sockets
+- [x] CInternetSession (WinInet session management, GetHttpConnection, GetFtpConnection, OpenURL)
+- [x] CHttpConnection (HTTP connections, OpenRequest with multiple overloads)
+- [x] CFtpConnection (FTP connections, GetFile, PutFile, directory ops)
+- [x] CInternetFile / CHttpFile (Internet-based file I/O, HTTP request/response)
+- [x] CInternetException (WinInet error handling)
 - [ ] CAsyncSocket
 - [ ] CSocket
 - [ ] AfxSocketInit

@@ -23,6 +23,7 @@
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxinet.h"
 #include <windows.h>
 #include <cstddef>
 #include <cstdint>
@@ -107,14 +108,7 @@ public:
     COleDispatchException() : CException(TRUE), m_wCode(0), m_dwHelpContext(0) {}
 };
 
-// CInternetException
-class CInternetException : public CException {
-public:
-    DWORD m_dwError;
-    DWORD_PTR m_dwContext;
-
-    CInternetException(DWORD dwError) : CException(TRUE), m_dwError(dwError), m_dwContext(0) {}
-};
+// CInternetException - defined in afxinet.h
 
 // CDBException
 class CDBException : public CException {
