@@ -31,9 +31,9 @@ from demangle_msvc import demangle
 
 def scan_implemented_methods(source_dir: str) -> dict:
     """Scan C++ source files for class method implementations.
-    Returns dict: className -> set of methodNames."""
+    Returns dict: className -> {methodName: return_type or None}."""
     
-    implemented = defaultdict(set)
+    implemented = defaultdict(dict)
     
     for root, dirs, files in os.walk(source_dir):
         for fn in files:
@@ -55,8 +55,11 @@ def scan_implemented_methods(source_dir: str) -> dict:
             #   ClassName::MethodName(
             #   ClassName::~ClassName(
             #   ReturnType NS::ClassName::MethodName(
-            for m in re.finditer(r'(?:^|\n)\s*(?:[\w:<>*&\s]+?\s+)?(\w+)::(\w+)\s*\(', content):
-                cls, method = m.group(1), m.group(2)
+            for m in re.finditer(r'(?:^|\n)\s*((?:[\w:<>*&\s]+?)\s+)?(\w+)::(\w+)\s*\(', content):
+                ret_type = (m.group(1) or 'void').strip()
+                # Strip common qualifiers
+                ret_type = ret_type.split()[-1] if ret_type else 'void'
+                cls, method = m.group(2), m.group(3)
                 # Skip macros and common false positives
                 if cls in ('if', 'while', 'for', 'switch', 'return', 'sizeof',
                            'decltype', 'static_cast', 'reinterpret_cast',
@@ -66,7 +69,7 @@ def scan_implemented_methods(source_dir: str) -> dict:
                     continue
                 if method in ('cpp', 'h', 'c', 'NULL', 'nullptr'):
                     continue
-                implemented[cls].add(method)
+                implemented[cls][method] = ret_type
     
     return implemented
 
@@ -282,15 +285,20 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         method_name = msvc_method.lstrip('?$')
         
         # Check if we've implemented this method
+        method_is_void = False
         if method_name not in implemented[class_name]:
             # Try constructor (??0 = ctor)
             if symbol.startswith('??0') and class_name in implemented[class_name]:
                 method_name = class_name
             # Try destructor (??1 = dtor)
-            elif symbol.startswith('??1') and ('~' + class_name) in [m for m in implemented[class_name]]:
+            elif symbol.startswith('??1') and ('~' + class_name) in implemented[class_name]:
                 method_name = '~' + class_name
             else:
                 continue
+        
+        # Check if the actual C++ method returns void (vs what MSVC demangling says)
+        method_ret = implemented[class_name].get(method_name, '')
+        method_is_void = (method_ret == 'void')
         
         # Build parameter list for the thunk
         param_decls = []
@@ -399,8 +407,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             
             thunk_params = params_str
             lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
-            if ret == 'void':
+            if ret == 'void' or method_is_void:
                 lines.append(f'    {class_name}::{method_name}({call_str});')
+                if ret != 'void':
+                    lines.append(f'    return {{}};')
             else:
                 lines.append(f'    return ({c_ret}){class_name}::{method_name}({call_str});')
             lines.append(f'}}')
@@ -410,8 +420,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             lines.append(f'// Symbol: {symbol}')
             thunk_params = params_str
             lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
-            if ret == 'void':
+            if ret == 'void' or method_is_void:
                 lines.append(f'    {method_name}({call_str});')
+                if ret != 'void':
+                    lines.append(f'    return {{}};')
             else:
                 lines.append(f'    return ({c_ret}){method_name}({call_str});')
             lines.append(f'}}')
@@ -429,8 +441,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
                 thunk_params = f'{this_type} pThis'
             
             lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
-            if ret == 'void':
+            if ret == 'void' or method_is_void:
                 lines.append(f'    pThis->{method_name}({call_str});')
+                if ret != 'void':
+                    lines.append(f'    return {{}};')
             elif '*' in ret:
                 lines.append(f'    return ({c_ret})pThis->{method_name}({call_str});')
             else:

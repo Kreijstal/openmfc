@@ -36,6 +36,7 @@ CFLAGS=(
     -O2
     -Wall
     -fPIC
+    -fpermissive
     -D_WIN32_WINNT=0x0601
     -DUNICODE
     -D_UNICODE
