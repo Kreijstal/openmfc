@@ -45,6 +45,9 @@ class FuncInfo:
     params: List[ParamInfo] = field(default_factory=list)
     is_data: bool = False
     data_type: str = "unsigned int"
+    is_static: bool = False
+    is_virtual: bool = False
+    is_const_method: bool = False
 
 
 #=============================================================================
@@ -288,13 +291,23 @@ def demangle(symbol: str) -> FuncInfo:
     if not cc_found:
         return result
     
+    # Set flags based on calling convention
+    matched_cc = tail[:pos]
+    if matched_cc.startswith('S'):
+        result.is_static = True
+    if matched_cc.startswith('U'):
+        result.is_virtual = True
+    
     # After calling convention, skip x64 'A' markers and 'B' const qualifiers.
     # In x64 MSVC, after UE/QE/SA/etc., there are up to 3 marker chars (A, B)
     # before the return type begins. Reference types (AA, AEA, AEB) only appear
     # as actual types, never as markers.
     # Strategy: greedily skip all consecutive A and B characters.
+    # Track if we saw 'B' (const method)
     
     while pos < len(tail) and tail[pos] in 'AB':
+        if tail[pos] == 'B':
+            result.is_const_method = True
         pos += 1
     
     # Parse return type
