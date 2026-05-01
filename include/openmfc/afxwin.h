@@ -378,6 +378,7 @@ class CWinThread : public CCmdTarget {
     DECLARE_DYNAMIC(CWinThread)
 public:
     CWinThread();
+    CWinThread(unsigned int (*)(void*), void*, int = 0, unsigned int = 0) : CWinThread() {}
     virtual ~CWinThread();
     
     // Thread operations
@@ -720,6 +721,14 @@ public:
     CPropertyPage();
     explicit CPropertyPage(unsigned int nIDTemplate, unsigned int nIDCaption = 0);
     explicit CPropertyPage(const wchar_t* lpszTemplateName, unsigned int nIDCaption = 0);
+    CPropertyPage(unsigned int nIDTemplate, unsigned int nIDCaption, unsigned int, unsigned int, unsigned long)
+        : CPropertyPage(nIDTemplate, nIDCaption) {}
+    CPropertyPage(unsigned int nIDTemplate, unsigned int nIDCaption, unsigned long)
+        : CPropertyPage(nIDTemplate, nIDCaption) {}
+    CPropertyPage(const wchar_t* lpszTemplateName, unsigned int nIDCaption, unsigned int, unsigned int, unsigned long)
+        : CPropertyPage(lpszTemplateName, nIDCaption) {}
+    CPropertyPage(const wchar_t* lpszTemplateName, unsigned int nIDCaption, unsigned long)
+        : CPropertyPage(lpszTemplateName, nIDCaption) {}
     virtual ~CPropertyPage() = default;
 
     // Overridables
@@ -3235,7 +3244,7 @@ public:
 
     // Operations
     virtual BOOL Lock(DWORD dwTimeout = INFINITE);
-    virtual BOOL Unlock() = 0;
+    virtual BOOL Unlock();
     virtual BOOL Unlock(LONG lCount, LPLONG lpPrevCount = nullptr);
 
     // Attributes

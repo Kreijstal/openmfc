@@ -93,6 +93,7 @@ public:
     enum AFX_BUTTON_STATE { ButtonsIsRegular = 0, ButtonsIsHighlighted = 1, ButtonsIsPressed = 2, ButtonsIsDisabled = 3 };
 
     CMFCVisualManager();
+    CMFCVisualManager(int) : CMFCVisualManager() {}
     virtual ~CMFCVisualManager();
 
     static CMFCVisualManager* GetInstance();
@@ -190,7 +191,7 @@ class CMFCVisualManagerOffice2003 : public CMFCVisualManager { DECLARE_DYNAMIC(C
 class CMFCVisualManagerOffice2007 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOffice2007) public: CMFCVisualManagerOffice2007(); virtual ~CMFCVisualManagerOffice2007(); protected: char _pad[64]; };
 class CMFCVisualManagerOfficeXP : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOfficeXP) public: CMFCVisualManagerOfficeXP(); virtual ~CMFCVisualManagerOfficeXP(); protected: char _pad[64]; };
 class CMFCVisualManagerVS2005 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerVS2005) public: CMFCVisualManagerVS2005(); virtual ~CMFCVisualManagerVS2005(); protected: char _pad[64]; };
-class CMFCVisualManagerWindows : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows) public: CMFCVisualManagerWindows(); virtual ~CMFCVisualManagerWindows(); protected: char _pad[64]; };
+class CMFCVisualManagerWindows : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows) public: CMFCVisualManagerWindows(); CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {} virtual ~CMFCVisualManagerWindows(); protected: char _pad[64]; };
 class CMFCVisualManagerWindows7 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows7) public: CMFCVisualManagerWindows7(); virtual ~CMFCVisualManagerWindows7(); protected: char _pad[64]; };
 class CMFCVisualManagerAero : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerAero) public: CMFCVisualManagerAero(); virtual ~CMFCVisualManagerAero(); protected: char _pad[64]; };
 
@@ -598,6 +599,7 @@ protected:
 class CDockingManager : public CObject {
     DECLARE_DYNAMIC(CDockingManager)
 public:
+    CDockingManager();
     CDockingManager(CFrameWnd* pParentFrameWnd);
     virtual ~CDockingManager();
 
@@ -679,10 +681,10 @@ public:
 
 class CMFCToolBarComboBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarComboBoxButton)
-public: CMFCToolBarComboBoxButton(); virtual ~CMFCToolBarComboBoxButton(); char _pad[32]; };
+public: CMFCToolBarComboBoxButton(); CMFCToolBarComboBoxButton(UINT, int, ULONG, int) : CMFCToolBarComboBoxButton() {} virtual ~CMFCToolBarComboBoxButton(); char _pad[32]; };
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarEditBoxButton)
-public: CMFCToolBarEditBoxButton(); virtual ~CMFCToolBarEditBoxButton(); char _pad[32]; };
+public: CMFCToolBarEditBoxButton(); CMFCToolBarEditBoxButton(UINT, int, ULONG, int) : CMFCToolBarEditBoxButton() {} virtual ~CMFCToolBarEditBoxButton(); char _pad[32]; };
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarMenuButton)
 public: CMFCToolBarMenuButton(); virtual ~CMFCToolBarMenuButton(); HMENU m_hMenu; char _pad[64]; };
@@ -701,14 +703,14 @@ class CMFCRibbonButtonsGroup : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CM
 class CMFCRibbonCaptionButton : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCaptionButton) public: CMFCRibbonCaptionButton(); virtual ~CMFCRibbonCaptionButton(); char _pad[32]; };
 class CMFCRibbonCategoryScroll : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCategoryScroll) public: CMFCRibbonCategoryScroll(); virtual ~CMFCRibbonCategoryScroll(); char _pad[32]; };
 class CMFCRibbonTab : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonTab) public: CMFCRibbonTab(); virtual ~CMFCRibbonTab(); char _pad[32]; };
-class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
-class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); virtual ~CMFCRibbonEdit(); char _pad[32]; };
-class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); virtual ~CMFCRibbonGallery(); char _pad[32]; };
-class CMFCRibbonLabel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonLabel) public: CMFCRibbonLabel(); virtual ~CMFCRibbonLabel(); char _pad[32]; };
+class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); CMFCRibbonCheckBox(UINT, const wchar_t*) : CMFCRibbonCheckBox() {} virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
+class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT, int, const wchar_t*, int) : CMFCRibbonEdit() {} virtual ~CMFCRibbonEdit(); char _pad[32]; };
+class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT, const wchar_t*, int, int, UINT, int) : CMFCRibbonGallery() {} virtual ~CMFCRibbonGallery(); char _pad[32]; };
+class CMFCRibbonLabel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonLabel) public: CMFCRibbonLabel(); CMFCRibbonLabel(const wchar_t*, int) : CMFCRibbonLabel() {} virtual ~CMFCRibbonLabel(); char _pad[32]; };
 class CMFCRibbonMainPanel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonMainPanel) public: CMFCRibbonMainPanel(); virtual ~CMFCRibbonMainPanel(); char _pad[32]; };
-class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); virtual ~CMFCRibbonProgressBar(); char _pad[32]; };
-class CMFCRibbonSeparator : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSeparator) public: CMFCRibbonSeparator(); virtual ~CMFCRibbonSeparator(); char _pad[32]; };
-class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSlider) public: CMFCRibbonSlider(); virtual ~CMFCRibbonSlider(); char _pad[32]; };
+class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); CMFCRibbonProgressBar(UINT, int, int) : CMFCRibbonProgressBar() {} virtual ~CMFCRibbonProgressBar(); char _pad[32]; };
+class CMFCRibbonSeparator : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSeparator) public: CMFCRibbonSeparator(); CMFCRibbonSeparator(int) : CMFCRibbonSeparator() {} virtual ~CMFCRibbonSeparator(); char _pad[32]; };
+class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSlider) public: CMFCRibbonSlider(); CMFCRibbonSlider(UINT, int) : CMFCRibbonSlider() {} virtual ~CMFCRibbonSlider(); char _pad[32]; };
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };
 class CMFCRibbonStatusBarPane : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonStatusBarPane) public: CMFCRibbonStatusBarPane(); virtual ~CMFCRibbonStatusBarPane(); char _pad[32]; };
 class CMFCTasksPaneTaskGroup : public CObject { DECLARE_DYNAMIC(CMFCTasksPaneTaskGroup) public: CMFCTasksPaneTaskGroup(); virtual ~CMFCTasksPaneTaskGroup(); char _pad[32]; };

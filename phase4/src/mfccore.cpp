@@ -523,6 +523,11 @@ void CPaneFrameWnd::RemovePane(CBasePane*, BOOL) {}
 //=============================================================================
 IMPLEMENT_DYNAMIC(CDockingManager, CObject)
 
+CDockingManager::CDockingManager()
+    : m_pParentWnd(nullptr) {
+    memset(_dockingmanager_padding, 0, sizeof(_dockingmanager_padding));
+}
+
 CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
     : m_pParentWnd(pParentFrameWnd) {
     memset(_dockingmanager_padding, 0, sizeof(_dockingmanager_padding));

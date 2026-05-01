@@ -23,6 +23,9 @@
 CFile::CFile() : m_hFile(INVALID_HANDLE_VALUE) {
 }
 
+CFile::CFile(HANDLE hFile) : m_hFile(hFile) {
+}
+
 CFile::CFile(const wchar_t* lpszFileName, UINT nOpenFlags) : m_hFile(INVALID_HANDLE_VALUE) {
     CommonInit(lpszFileName, nOpenFlags, nullptr);
 }

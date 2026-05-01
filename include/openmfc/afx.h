@@ -432,6 +432,7 @@ public:
     enum { hFileNull = -1 };
     
     CFile();
+    CFile(HANDLE hFile);
     CFile(const wchar_t* lpszFileName, UINT nOpenFlags);
     virtual ~CFile();
     

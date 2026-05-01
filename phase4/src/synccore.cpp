@@ -60,6 +60,10 @@ BOOL CSyncObject::Lock(DWORD dwTimeout) {
     return (dwRet == WAIT_OBJECT_0 || dwRet == WAIT_ABANDONED);
 }
 
+BOOL CSyncObject::Unlock() {
+    return TRUE;
+}
+
 BOOL CSyncObject::Unlock(LONG /* lCount */, LPLONG /* lpPrevCount */) {
     // Default implementation - derived classes override
     return TRUE;

@@ -1605,6 +1605,13 @@ protected:
 class COleControl : public CWnd {
     DECLARE_DYNAMIC(COleControl)
 public:
+    // Nested control data source
+    class CControlDataSource {
+    public:
+        CControlDataSource(COleControl*) {}
+        char _pad[16];
+    };
+
     COleControl();
     virtual ~COleControl();
 
