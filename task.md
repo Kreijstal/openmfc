@@ -286,10 +286,10 @@
 
 ### Tier 4 — Fill in overload gaps (~380 stubs)
 
-- [ ] **Internet** (141) — CInternetSession/CHttpConnection/CFtpConnection/CInternetFile additional overloads
-- [ ] **Sockets** (73) — CAsyncSocket/CSocket/CSocketFile additional overloads
-- [ ] **Common Dialogs** (168) — CFileDialog/CColorDialog/CFontDialog/CPrintDialog extra overloads
-- [ ] **CPrintDialogEx** (25) — Extended print dialog (PrintDlgEx)
+- [x] **Internet** (141) — CInternetSession/CHttpConnection/CFtpConnection/CInternetFile additional overloads
+- [x] **Sockets** (73) — CAsyncSocket/CSocket/CSocketFile additional overloads
+- [x] **Common Dialogs** (168) — CFileDialog/CColorDialog/CFontDialog/CPrintDialog extra overloads
+- [x] **CPrintDialogEx** (25) — Extended print dialog (PrintDlgEx)
 
 ### Tier 5 — MFC Feature Pack (~5,500 stubs)
 

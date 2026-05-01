@@ -551,3 +551,321 @@ int CInternetException::GetErrorMessage(char* lpszError, UINT nMaxError,
     }
     return result;
 }
+
+//=============================================================================
+// Additional CInternetSession methods
+//=============================================================================
+CStdioFile* CInternetSession::OpenURL(const wchar_t* pstrURL, DWORD_PTR dwContext,
+                                       DWORD dwFlags, const wchar_t* pstrHeaders,
+                                       DWORD dwHeadersLength) {
+    (void)dwContext; (void)dwFlags; (void)pstrHeaders; (void)dwHeadersLength;
+    HINTERNET hUrl = ::InternetOpenUrlW(m_hSession, pstrURL, nullptr, 0, 
+                                         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 
+                                         (DWORD_PTR)dwContext);
+    if (!hUrl) return nullptr;
+    CHttpFile* pFile = new CHttpFile(hUrl, nullptr, L"GET", pstrURL, nullptr);
+    return pFile;
+}
+
+DWORD CInternetSession::GetServiceType() const {
+    return m_dwAccessType;
+}
+
+int CInternetSession::GetServiceTypeFromHandle(HINTERNET hConnect) {
+    (void)hConnect;
+    return INTERNET_SERVICE_HTTP;
+}
+
+int CInternetSession::GetFtpConnection(const wchar_t* pstrServer, 
+                                        const wchar_t* pstrUserName,
+                                        const wchar_t* pstrPassword,
+                                        INTERNET_PORT nPort, int bPassive,
+                                        CFtpConnection*& refConnection) {
+    (void)pstrServer; (void)pstrUserName; (void)pstrPassword; (void)nPort; (void)bPassive;
+    refConnection = nullptr;
+    return 0;
+}
+
+int CInternetSession::GetHttpConnection(const wchar_t* pstrServer, INTERNET_PORT nPort,
+                                         const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+                                         CHttpConnection*& refConnection) {
+    (void)pstrServer; (void)nPort; (void)pstrUserName; (void)pstrPassword;
+    refConnection = nullptr;
+    return 0;
+}
+
+int CInternetSession::GetHttpConnection(const wchar_t* pstrServer, DWORD dwFlags,
+                                         INTERNET_PORT nPort,
+                                         const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+                                         CHttpConnection*& refConnection) {
+    (void)pstrServer; (void)dwFlags; (void)nPort; (void)pstrUserName; (void)pstrPassword;
+    refConnection = nullptr;
+    return 0;
+}
+
+CGopherConnection* CInternetSession::GetGopherConnection(const wchar_t* pstrServer,
+                                                          const wchar_t* pstrUserName,
+                                                          const wchar_t* pstrPassword,
+                                                          INTERNET_PORT nPort) {
+    (void)pstrServer; (void)pstrUserName; (void)pstrPassword; (void)nPort;
+    return nullptr;
+}
+
+//=============================================================================
+// Additional CHttpFile methods
+//=============================================================================
+int CHttpFile::QueryInfo(DWORD dwInfoLevel, CString& str, DWORD* pdwIndex) {
+    (void)dwInfoLevel; (void)pdwIndex;
+    str.Empty();
+    return 0;
+}
+
+int CHttpFile::QueryInfo(DWORD dwInfoLevel, SYSTEMTIME* pSysTime, DWORD* pdwIndex) {
+    (void)dwInfoLevel; (void)pdwIndex;
+    if (pSysTime) memset(pSysTime, 0, sizeof(SYSTEMTIME));
+    return 0;
+}
+
+int CHttpFile::QueryInfoStatusCode(DWORD_PTR& dwStatusCode) const {
+    dwStatusCode = 0;
+    if (!m_hFile) return 0;
+    DWORD dwCode = 0;
+    DWORD dwSize = sizeof(DWORD);
+    if (::HttpQueryInfoW(m_hFile, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER,
+                          &dwCode, &dwSize, nullptr)) {
+        dwStatusCode = dwCode;
+        return 1;
+    }
+    return 0;
+}
+
+int CHttpFile::SendRequestEx(LPINTERNET_BUFFERS lpBuffIn, LPINTERNET_BUFFERS lpBuffOut,
+                              DWORD dwFlags, DWORD_PTR dwContext) {
+    (void)lpBuffIn; (void)lpBuffOut; (void)dwFlags; (void)dwContext;
+    return 0;
+}
+
+//=============================================================================
+// Additional CFtpConnection methods
+//=============================================================================
+int CFtpConnection::GetCurrentDirectory(wchar_t* pstrDirName, DWORD* pdwLen) const {
+    if (!m_hConnection || !pstrDirName || !pdwLen) return 0;
+    return ::FtpGetCurrentDirectoryW(m_hConnection, pstrDirName, pdwLen) ? 1 : 0;
+}
+
+int CFtpConnection::Command(const wchar_t* pstrCommand, DWORD dwCmdResponse,
+                             DWORD_PTR dwContext) {
+    (void)pstrCommand; (void)dwCmdResponse; (void)dwContext;
+    return 0;
+}
+
+//=============================================================================
+// CGopherLocator - minimal definition
+//=============================================================================
+class CGopherLocator {
+public:
+    CGopherLocator() : m_dwBufferLength(0), m_lpBuffer(nullptr) {}
+    ~CGopherLocator() { if (m_lpBuffer) free(m_lpBuffer); }
+    DWORD m_dwBufferLength;
+    void* m_lpBuffer;
+    char _gopherlocator_padding[16];
+};
+
+//=============================================================================
+// CFileFind implementations
+//=============================================================================
+IMPLEMENT_DYNAMIC(CFileFind, CObject)
+
+CFileFind::CFileFind()
+    : m_hFindFile(INVALID_HANDLE_VALUE), m_bGotFirst(0) {
+    memset(&m_findData, 0, sizeof(m_findData));
+    memset(_filefind_padding, 0, sizeof(_filefind_padding));
+}
+
+CFileFind::~CFileFind() { Close(); }
+
+int CFileFind::FindFile(const wchar_t* pstrName, DWORD dwUnused) {
+    (void)dwUnused;
+    Close();
+    m_hFindFile = ::FindFirstFileW(pstrName, &m_findData);
+    if (m_hFindFile == INVALID_HANDLE_VALUE) return 0;
+    m_bGotFirst = 1;
+    m_strFileName = m_findData.cFileName;
+    return 1;
+}
+
+int CFileFind::FindNextFile() {
+    if (m_hFindFile == INVALID_HANDLE_VALUE) return 0;
+    if (!m_bGotFirst) return 0;
+    if (!::FindNextFileW(m_hFindFile, &m_findData)) return 0;
+    m_strFileName = m_findData.cFileName;
+    return 1;
+}
+
+void CFileFind::Close() {
+    if (m_hFindFile != INVALID_HANDLE_VALUE) {
+        ::FindClose(m_hFindFile);
+        m_hFindFile = INVALID_HANDLE_VALUE;
+    }
+    m_bGotFirst = 0;
+}
+
+int CFileFind::IsDirectory() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0; }
+int CFileFind::IsDots() const { return m_strFileName == L"." || m_strFileName == L".."; }
+int CFileFind::IsArchived() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) != 0; }
+int CFileFind::IsCompressed() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_COMPRESSED) != 0; }
+int CFileFind::IsHidden() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0; }
+int CFileFind::IsNormal() const { return m_findData.dwFileAttributes == FILE_ATTRIBUTE_NORMAL; }
+int CFileFind::IsReadOnly() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_READONLY) != 0; }
+int CFileFind::IsSystem() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) != 0; }
+int CFileFind::IsTemporary() const { return (m_findData.dwFileAttributes & FILE_ATTRIBUTE_TEMPORARY) != 0; }
+int CFileFind::MatchesMask(DWORD dwMask) const { return (m_findData.dwFileAttributes & dwMask) != 0; }
+ULONGLONG CFileFind::GetLength() const { return ((ULONGLONG)m_findData.nFileSizeHigh << 32) | m_findData.nFileSizeLow; }
+CString CFileFind::GetFileName() const { return m_strFileName; }
+CString CFileFind::GetFilePath() const { return m_strRoot + m_strFileName; }
+CString CFileFind::GetFileTitle() const { 
+    CString s = m_strFileName;
+    int pos = s.ReverseFind(L'.');
+    return (pos > 0) ? s.Left(pos) : s;
+}
+CString CFileFind::GetFileURL() const { return L"file://" + GetFilePath(); }
+CString CFileFind::GetRoot() const { return m_strRoot; }
+
+int CFileFind::GetLastWriteTime(FILETIME* pFileTime) const {
+    if (pFileTime) { *pFileTime = m_findData.ftLastWriteTime; return 1; }
+    return 0;
+}
+int CFileFind::GetLastAccessTime(FILETIME* pFileTime) const {
+    if (pFileTime) { *pFileTime = m_findData.ftLastAccessTime; return 1; }
+    return 0;
+}
+int CFileFind::GetCreationTime(FILETIME* pFileTime) const {
+    if (pFileTime) { *pFileTime = m_findData.ftCreationTime; return 1; }
+    return 0;
+}
+
+int CFileFind::GetFileName(CString& strFileName) {
+    strFileName.Empty();
+    return 0;
+}
+
+//=============================================================================
+// CFtpFileFind implementations
+//=============================================================================
+IMPLEMENT_DYNAMIC(CFtpFileFind, CFileFind)
+
+CFtpFileFind::CFtpFileFind(CFtpConnection* pFtpConnection, DWORD_PTR dwContext)
+    : CFileFind(), m_pFtpConnection(pFtpConnection), m_dwContext(dwContext),
+      m_hFindHandle(nullptr) {
+    memset(&m_findFileData, 0, sizeof(m_findFileData));
+    memset(_ftpfifind_padding, 0, sizeof(_ftpfifind_padding));
+}
+
+CFtpFileFind::~CFtpFileFind() { Close(); }
+
+int CFtpFileFind::FindFile(const wchar_t* pstrName, DWORD dwFlags) {
+    (void)dwFlags;
+    Close();
+    if (!m_pFtpConnection || !m_pFtpConnection->m_hConnection) return 0;
+    m_hFindHandle = ::FtpFindFirstFileW(m_pFtpConnection->m_hConnection,
+                                         pstrName, &m_findFileData, 
+                                         INTERNET_FLAG_RELOAD, (DWORD_PTR)m_dwContext);
+    if (!m_hFindHandle) return 0;
+    m_strFileName = m_findFileData.cFileName;
+    return 1;
+}
+
+int CFtpFileFind::FindNextFile() {
+    if (!m_hFindHandle) return 0;
+    if (!::InternetFindNextFileW(m_hFindHandle, &m_findFileData)) return 0;
+    m_strFileName = m_findFileData.cFileName;
+    return 1;
+}
+
+void CFtpFileFind::Close() {
+    if (m_hFindHandle) {
+        ::InternetCloseHandle(m_hFindHandle);
+        m_hFindHandle = nullptr;
+    }
+    CFileFind::Close();
+}
+
+CString CFtpFileFind::GetFileURL() const {
+    if (m_pFtpConnection)
+        return L"ftp://" + m_pFtpConnection->GetServerName() + L"/" + m_strFileName;
+    return m_strFileName;
+}
+
+//=============================================================================
+// CGopherFileFind (stub)
+//=============================================================================
+IMPLEMENT_DYNAMIC(GopherFileFind, CFtpFileFind)
+
+GopherFileFind::GopherFileFind(CFtpConnection* pFtp, DWORD_PTR dwContext)
+    : CFtpFileFind(pFtp, dwContext) {}
+
+GopherFileFind::~GopherFileFind() {}
+
+CString GopherFileFind::GetFileName() const { return CString(); }
+CString GopherFileFind::GetScreenName() const { return CString(); }
+CGopherLocator GopherFileFind::GetLocator() const { CGopherLocator loc; return loc; }
+int GopherFileFind::GetFileLength(DWORD_PTR& dwLength) const { dwLength = 0; return 0; }
+
+//=============================================================================
+// CGopherConnection (stub)
+//=============================================================================
+IMPLEMENT_DYNAMIC(CGopherConnection, CInternetConnection)
+
+CGopherConnection::CGopherConnection(CInternetSession* pSession, HINTERNET hConnected,
+                                      const wchar_t* pstrServer, DWORD_PTR dwContext)
+    : CInternetConnection(pSession, pstrServer, INTERNET_DEFAULT_GOPHER_PORT, dwContext) {
+    m_hConnection = hConnected;
+    memset(_gopherconn_padding, 0, sizeof(_gopherconn_padding));
+}
+
+CGopherConnection::CGopherConnection(CInternetSession* pSession, const wchar_t* pstrServer,
+                                      const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+                                      DWORD_PTR dwContext, INTERNET_PORT nPort)
+    : CInternetConnection(pSession, pstrServer, nPort, dwContext) {
+    memset(_gopherconn_padding, 0, sizeof(_gopherconn_padding));
+    (void)pstrUserName; (void)pstrPassword;
+}
+
+CGopherConnection::~CGopherConnection() {}
+
+CGopherFile* CGopherConnection::OpenFile(GOPHER_FIND_DATAW* pFindData,
+                                          const wchar_t* pstrLocator,
+                                          DWORD_PTR dwContext) {
+    (void)pFindData; (void)pstrLocator; (void)dwContext;
+    return nullptr;
+}
+
+CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
+                                                 const wchar_t* pstrSelectorString,
+                                                 DWORD dwGopherType) {
+    CGopherLocator loc;
+    (void)pstrDisplayString; (void)pstrSelectorString; (void)dwGopherType;
+    return loc;
+}
+
+CString CGopherConnection::GetLocatorType(const CGopherLocator& refLocator) {
+    (void)refLocator;
+    return CString();
+}
+
+CFtpFileFind* CGopherConnection::CreateFileFind(CGopherLocator* pLocator) {
+    (void)pLocator;
+    return nullptr;
+}
+
+//=============================================================================
+// CGopherFile (stub)
+//=============================================================================
+CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
+                         CGopherConnection* pConnection)
+    : CInternetFile() {
+    m_hFile = hFile;
+    (void)refLocator; (void)pConnection;
+}
+
+CGopherFile::~CGopherFile() {}

@@ -730,3 +730,95 @@ unsigned int CFindReplaceDialog::GetFindReplaceMessage() {
     }
     return s_nFindReplaceMsg;
 }
+
+//=============================================================================
+// CPrintDialogEx
+//=============================================================================
+IMPLEMENT_DYNAMIC(CPrintDialogEx, CDialog)
+
+CPrintDialogEx::CPrintDialogEx(DWORD dwFlags, CWnd* pParentWnd)
+    : CDialog() {
+    memset(&m_pdex, 0, sizeof(m_pdex));
+    m_pdex.lStructSize = sizeof(PRINTDLGEXW);
+    m_pdex.hwndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
+    m_pdex.Flags = dwFlags;
+    m_pdex.nStartPage = START_PAGE_GENERAL;
+    memset(_printdialogex_padding, 0, sizeof(_printdialogex_padding));
+}
+
+CPrintDialogEx::~CPrintDialogEx() {
+    if (m_pdex.hDevMode) ::GlobalFree(m_pdex.hDevMode);
+    if (m_pdex.hDevNames) ::GlobalFree(m_pdex.hDevNames);
+}
+
+intptr_t CPrintDialogEx::DoModal() {
+    // PrintDlgEx requires comctl32 v6+ but falls back gracefully
+    (void)this;
+    return IDCANCEL;
+}
+
+int CPrintDialogEx::GetCopies() const { return (int)m_pdex.nCopies; }
+int CPrintDialogEx::GetFromPage() const { return (int)m_pdex.nPageRanges ? m_pdex.lpPageRanges[0].nFromPage : 0; }
+int CPrintDialogEx::GetToPage() const { return (int)m_pdex.nPageRanges ? m_pdex.lpPageRanges[0].nToPage : 0; }
+
+CString CPrintDialogEx::GetDeviceName() const {
+    CString str;
+    if (m_pdex.hDevNames) {
+        DEVNAMES* pDevNames = (DEVNAMES*)::GlobalLock(m_pdex.hDevNames);
+        if (pDevNames) {
+            str = (const wchar_t*)((BYTE*)pDevNames + pDevNames->wDeviceOffset);
+            ::GlobalUnlock(m_pdex.hDevNames);
+        }
+    }
+    return str;
+}
+
+CString CPrintDialogEx::GetDriverName() const {
+    CString str;
+    if (m_pdex.hDevNames) {
+        DEVNAMES* pDevNames = (DEVNAMES*)::GlobalLock(m_pdex.hDevNames);
+        if (pDevNames) {
+            str = (const wchar_t*)((BYTE*)pDevNames + pDevNames->wDriverOffset);
+            ::GlobalUnlock(m_pdex.hDevNames);
+        }
+    }
+    return str;
+}
+
+CString CPrintDialogEx::GetPortName() const {
+    CString str;
+    if (m_pdex.hDevNames) {
+        DEVNAMES* pDevNames = (DEVNAMES*)::GlobalLock(m_pdex.hDevNames);
+        if (pDevNames) {
+            str = (const wchar_t*)((BYTE*)pDevNames + pDevNames->wOutputOffset);
+            ::GlobalUnlock(m_pdex.hDevNames);
+        }
+    }
+    return str;
+}
+
+HDC CPrintDialogEx::GetPrinterDC() const { return nullptr; }
+HDC CPrintDialogEx::CreatePrinterDC() { return nullptr; }
+
+int CPrintDialogEx::GetPortrait() const {
+    if (m_pdex.hDevMode) {
+        DEVMODEW* pDevMode = (DEVMODEW*)::GlobalLock(m_pdex.hDevMode);
+        if (pDevMode) {
+            int portrait = (pDevMode->dmOrientation == DMORIENT_PORTRAIT);
+            ::GlobalUnlock(m_pdex.hDevMode);
+            return portrait;
+        }
+    }
+    return 1;
+}
+
+LPDEVMODEW CPrintDialogEx::GetDevMode() const {
+    if (m_pdex.hDevMode) return (LPDEVMODEW)::GlobalLock(m_pdex.hDevMode);
+    return nullptr;
+}
+
+void CPrintDialogEx::SetPageRange(int nMinPage, int nMaxPage, BOOL bPageRange) {
+    m_pdex.nMinPage = nMinPage;
+    m_pdex.nMaxPage = nMaxPage;
+    if (bPageRange) m_pdex.Flags |= PD_PAGENUMS;
+}

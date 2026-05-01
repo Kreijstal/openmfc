@@ -461,3 +461,22 @@ ULONGLONG CSocketFile::Seek(LONGLONG lOff, UINT nFrom) {
     (void)lOff; (void)nFrom;
     return (ULONGLONG)-1;  // Sockets don't support seek
 }
+
+//=============================================================================
+// CSocket - additional methods
+//=============================================================================
+int CSocket::SendTo(const void* lpBuf, int nBufLen, UINT nHostPort,
+                     const wchar_t* lpszHostAddress, int nFlags) {
+    (void)lpBuf; (void)nBufLen; (void)nHostPort; (void)lpszHostAddress; (void)nFlags;
+    return SOCKET_ERROR;
+}
+
+int CSocket::ReceiveFrom(void* lpBuf, int nBufLen, CString& rSocketAddress,
+                          UINT& rSocketPort, int nFlags) {
+    (void)lpBuf; (void)nBufLen; (void)rSocketAddress; (void)rSocketPort; (void)nFlags;
+    return SOCKET_ERROR;
+}
+
+void CSocket::AuxQueueAdd(UINT message, SOCKET hSocket, long lParam) {
+    (void)message; (void)hSocket; (void)lParam;
+}

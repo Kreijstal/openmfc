@@ -963,6 +963,36 @@ protected:
     char _printdialog_padding[32];
 };
 
+//=============================================================================
+// CPrintDialogEx - Extended Print dialog (PrintDlgEx)
+//=============================================================================
+class CPrintDialogEx : public CDialog {
+    DECLARE_DYNAMIC(CPrintDialogEx)
+public:
+    CPrintDialogEx(DWORD dwFlags = PD_ALLPAGES, CWnd* pParentWnd = nullptr);
+    virtual ~CPrintDialogEx();
+
+    virtual intptr_t DoModal() override;
+
+    int GetCopies() const;
+    int GetFromPage() const;
+    int GetToPage() const;
+    CString GetDeviceName() const;
+    CString GetDriverName() const;
+    CString GetPortName() const;
+    HDC GetPrinterDC() const;
+    HDC CreatePrinterDC();
+    int GetPortrait() const;
+    LPDEVMODEW GetDevMode() const;
+    void SetPageRange(int nMinPage, int nMaxPage, BOOL bPageRange = TRUE);
+
+public:
+    PRINTDLGEXW m_pdex;
+
+protected:
+    char _printdialogex_padding[64];
+};
+
 // CPageSetupDialog - Page setup dialog
 class CPageSetupDialog : public CDialog {
     DECLARE_DYNAMIC(CPageSetupDialog)
