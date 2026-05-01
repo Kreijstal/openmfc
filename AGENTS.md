@@ -44,8 +44,25 @@ Keep artifacts outside the repo (e.g., under `/tmp` or a local `artifacts/` dire
 - CI runs on Windows with real MSVC (e.g., `phase0a_harvest.yml`, `phase0a_verify_mingw.yml`)
 
 ## Local MSVC Testing with msvc-wine
-To test MSVC linking locally on Linux:
 
+### Option A: clang-cl + Wine (fastest, no MSVC required)
+```bash
+# Prerequisites: clang >= 18 with MSVC target, lld, wine
+# Already available on most Linux distros
+
+# Build DLL
+./phase4/scripts/build_phase4.sh
+
+# Download MSVC SDK headers/libs only (no cl.exe needed):
+git clone --depth=1 https://github.com/mstorsjo/msvc-wine.git /tmp/msvc-wine
+python3 /tmp/msvc-wine/vsdownload.py --accept-license --dest /tmp/msvc-dl
+/tmp/msvc-wine/install.sh /tmp/msvc-dl
+
+# Build & run test (handles case-sensitivity automatically)
+MSVC_DIR=/tmp/msvc-dl ./scripts/build_msvc_clang_test.sh phase4/tests/test_mfc_abi_compat.cpp
+```
+
+### Option B: Full msvc-wine (cl.exe)
 ```bash
 # Install prerequisites
 sudo apt-get install -y wine64 python3 msitools ca-certificates

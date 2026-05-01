@@ -229,6 +229,6 @@
 ---
 
 ## Exit Criteria
-- [ ] Hello World MFC app runs on Wine
-- [ ] Simple dialog app works
+- [x] Hello World MFC app runs on Wine ✅ (MSVC-clang + lld-link + wine: exception catching, CString, RTTI all verified)
+- [ ] Simple dialog app works (needs window creation testing - display driver needed)
 - [ ] Document-View app skeleton works
