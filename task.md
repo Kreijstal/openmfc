@@ -249,12 +249,65 @@
 3. **CFileDialog multi-select** - GetNextPathName now iterates through selected files
 4. **CException::GetErrorMessage** - CFileException and CArchiveException provide error messages
 
-## Remaining Stubs (Low Priority)
+## Remaining Stubs (13,677 of 14,103 exports)
 
-### Debug/Diagnostic
-1. **CObject::Serialize/AssertValid/Dump** - Empty stubs
-2. **AfxWinInit** - Returns TRUE without real initialization
-3. **AfxSetResourceHandle** - No-op
+### Current state: 426 real implementations, 13,677 weak stubs
+
+---
+
+### Tier 1 — High Impact, Moderate Effort (~1,600 stubs)
+
+- [ ] **CToolBar** (1,047) — Toolbar creation, button management, docking, LoadToolBar
+- [ ] **CStatusBar** (127) — Status bar panes, indicators, SetPaneText
+- [ ] **CDialogBar** (11) — Dialog-based control bar
+- [ ] **CRichEditView** (115) — Rich edit 2.0 view with formatting, printing
+- [ ] **CHtmlView** (103) — WebBrowser control-based view
+- [ ] **CDHtmlDialog** (105) — DHTML-based dialog
+- [ ] **CSplitterWnd** (77) — Splitter window (dynamic/static panes)
+- [ ] **CTaskDialog** (65) — Vista+ task dialog (TaskDialogIndirect)
+
+### Tier 2 — DAO Database (~170 stubs)
+
+- [ ] **CDaoDatabase** — DAO database connection (Open/Close/Execute)
+- [ ] **CDaoRecordset** — DAO recordset navigation and editing
+- [ ] **CDaoWorkspace** — DAO workspace/transaction management
+- [ ] **CDaoTableDef** — DAO table definition
+- [ ] **CDaoQueryDef** — DAO query definition
+- [ ] **CDaoException** — DAO error handling
+- [ ] **CDaoFieldExchange** — DAO field exchange (DFX)
+- [ ] **CDaoRecordView** — DAO record view
+
+### Tier 3 — Fill in OLE/COM exports (~550 stubs)
+
+- [ ] **COleControl** additional methods (375) — FireEvent, DoPropExchange, ambient properties, licensing, persistence
+- [ ] **COleClientItem** additional methods (146) — CreateFromData, Draw, GetExtent, DoVerb overrides
+- [ ] **COleDocObjectItem** (24) — DocObject (Active Document) support
+- [ ] **CEnumFormatEtc** (6) — FORMATETC enumerator for clipboard
+
+### Tier 4 — Fill in overload gaps (~380 stubs)
+
+- [ ] **Internet** (141) — CInternetSession/CHttpConnection/CFtpConnection/CInternetFile additional overloads
+- [ ] **Sockets** (73) — CAsyncSocket/CSocket/CSocketFile additional overloads
+- [ ] **Common Dialogs** (168) — CFileDialog/CColorDialog/CFontDialog/CPrintDialog extra overloads
+- [ ] **CPrintDialogEx** (25) — Extended print dialog (PrintDlgEx)
+
+### Tier 5 — MFC Feature Pack (~5,500 stubs)
+
+_These are Visual Studio 2008+ MFC Feature Pack classes — ribbon, docking, visual styles. Lower priority: rarely used by real MFC consumers._
+
+- [ ] **CMFCToolBar** (239) — Feature pack toolbar
+- [ ] **CMFCVisualManager** (157) + Office 2003/2007/XP variants (286)
+- [ ] **CMFCRibbonBar** (132) + Panel (82) + Category (68) + Elements (62)
+- [ ] **Docking system** — CPane (69), CDockablePane (101), CBasePane (64), CDockingManager (73), CPaneFrameWnd (120)
+- [ ] **CMFCPropertyGridCtrl** (111) + CMFCPropertyGridProperty (62)
+- [ ] **CMFCTasksPane** (113)
+- [ ] **CMFCBaseTabCtrl** (100) + CMFCTabCtrl (69)
+- [ ] **CMFCPopupMenu** (90), CMFCButton (66)
+- [ ] **Frame extensions** — CFrameWndEx (75), CMDIFrameWndEx (92), CMDIChildWndEx (80)
+
+### Impractical — Compiler-generated (~5,900 stubs)
+
+_These cannot be hand-written: vtable dispatch thunks, CStringT<wchar_t> template instantiations, ATL:: internal exports, QEAA/UEAA mangled name fragments. Generated automatically by MSVC when building real MFC._
 
 ---
 
