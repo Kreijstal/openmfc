@@ -261,8 +261,8 @@
 - [x] **CStatusBar** (127) — Status bar: Create, SetIndicators, SetPaneText/GetPaneText, SetPaneInfo, CommandToIndex
 - [x] **CDialogBar** (11) — Dialog-based control bar: Create with dialog template, UpdateData
 - [x] **CRichEditView** (115) — Rich edit 2.0 view with formatting, printing
-- [ ] **CHtmlView** (103) — WebBrowser control-based view
-- [ ] **CDHtmlDialog** (105) — DHTML-based dialog
+- [x] **CHtmlView** (103) — WebBrowser control-based view
+- [x] **CDHtmlDialog** (105) — DHTML-based dialog
 - [x] **CSplitterWnd** (77) — Splitter window (dynamic/static panes)
 - [x] **CTaskDialog** (65) — Vista+ task dialog (TaskDialogIndirect)
 

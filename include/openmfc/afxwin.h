@@ -8,6 +8,8 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <richedit.h>
+#include <exdisp.h>
+#include <shlobj.h>
 
 #ifndef _WINDOWS_
     typedef void* HWND;
@@ -2936,6 +2938,130 @@ public:
 
 protected:
     char _richeditview_padding[96];
+};
+
+//=============================================================================
+// CHtmlView - WebBrowser-based HTML View
+//=============================================================================
+class CHtmlView : public CView {
+    DECLARE_DYNCREATE(CHtmlView)
+public:
+    CHtmlView();
+    virtual ~CHtmlView();
+
+    // Creation
+    virtual BOOL Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName,
+                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
+                       UINT nID, CCreateContext* pContext = nullptr) override;
+    void OnDraw(void* pDC) override;
+
+    // Navigation
+    void Navigate(const wchar_t* lpszURL, DWORD dwFlags = 0,
+                  const wchar_t* lpszTargetFrameName = nullptr,
+                  const wchar_t* lpszHeaders = nullptr,
+                  void* lpvPostData = nullptr, DWORD dwPostDataLen = 0);
+    void Navigate2(LPITEMIDLIST pIDL, DWORD dwFlags = 0,
+                   const wchar_t* lpszTargetFrameName = nullptr);
+    void Navigate2(const wchar_t* lpszURL, DWORD dwFlags = 0,
+                   const wchar_t* lpszTargetFrameName = nullptr,
+                   const wchar_t* lpszHeaders = nullptr,
+                   void* lpvPostData = nullptr, DWORD dwPostDataLen = 0);
+    void GoBack();
+    void GoForward();
+    void GoHome();
+    void GoSearch();
+    void Stop();
+    void Refresh();
+    void Refresh2(int nLevel = 0);
+
+    // Properties
+    BOOL GetBusy() const;
+    long GetReadyState() const;
+    CString GetLocationName() const;
+    CString GetLocationURL() const;
+    CString GetFullName() const;
+    CString GetType() const;
+    LPDISPATCH GetHtmlDocument() const;
+
+    // Commands
+    void ExecWB(OLECMDID cmdID, OLECMDEXECOPT cmdexecopt,
+                VARIANT* pvaIn = nullptr, VARIANT* pvaOut = nullptr);
+    void LoadFromResource(const wchar_t* lpszResource);
+    void LoadFromResource(UINT nRes);
+
+    // Printing
+    void Print();
+    void PrintPreview();
+
+    // Control access
+    IWebBrowser2* GetWebBrowser() const { return m_pBrowser; }
+    CWnd* GetControlWindow() const { return m_pControlWnd; }
+
+    // Events (virtual overrides)
+    virtual void OnBeforeNavigate2(LPDISPATCH pDisp, VARIANT* URL, VARIANT* Flags,
+                                   VARIANT* TargetFrameName, VARIANT* PostData,
+                                   VARIANT* Headers, BOOL* Cancel);
+    virtual void OnNavigateComplete2(LPDISPATCH pDisp, VARIANT* URL);
+    virtual void OnDocumentComplete(LPDISPATCH pDisp, VARIANT* URL);
+    virtual void OnProgressChange(long Progress, long ProgressMax);
+    virtual void OnTitleChange(const wchar_t* lpszText);
+    virtual void OnStatusTextChange(const wchar_t* lpszText);
+
+public:
+    IWebBrowser2* m_pBrowser;
+    CWnd* m_pControlWnd;
+    BOOL m_bCreated;
+
+protected:
+    char _htmlview_padding[128];
+};
+
+//=============================================================================
+// CDHtmlDialog - DHTML-based Dialog
+//=============================================================================
+class CDHtmlDialog : public CDialog {
+public:
+    CDHtmlDialog();
+    CDHtmlDialog(UINT nIDTemplate, UINT nHtmlResID = 0, CWnd* pParentWnd = nullptr);
+    CDHtmlDialog(const wchar_t* lpszTemplateName, const wchar_t* lpszHtmlResID = nullptr,
+                 CWnd* pParentWnd = nullptr);
+    virtual ~CDHtmlDialog();
+
+    // Dialog initialization
+    virtual BOOL Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr) override;
+    virtual BOOL OnInitDialog() override;
+
+    // HTML loading
+    void LoadFromResource(UINT nHtmlResID);
+    void LoadFromResource(const wchar_t* lpszHtmlResID);
+    void Navigate(const wchar_t* lpszURL, DWORD dwFlags = 0,
+                  const wchar_t* lpszTargetFrameName = nullptr,
+                  const wchar_t* lpszHeaders = nullptr,
+                  void* lpvPostData = nullptr, DWORD dwPostDataLen = 0);
+
+    // DHTML element access
+    HRESULT GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp);
+    HRESULT SetElementProperty(const wchar_t* lpszElementId, DISPID dispId,
+                               VARIANT* pVar);
+    HRESULT GetElementProperty(const wchar_t* lpszElementId, DISPID dispId,
+                               VARIANT* pVar);
+
+    // Control access
+    IWebBrowser2* GetBrowser() const { return m_pBrowser; }
+    CWnd* GetControlWindow() const { return m_pCtrlWnd; }
+
+    // DHTML events
+    virtual HRESULT OnDDXError(const wchar_t* lpszId, const wchar_t* lpszError);
+
+public:
+    UINT m_nHtmlResID;
+    CString m_strHtmlResID;
+    IWebBrowser2* m_pBrowser;
+    CWnd* m_pCtrlWnd;
+    BOOL m_bCreated;
+
+protected:
+    char _dhtmldialog_padding[128];
 };
 
 // CDocTemplate - Document template base class

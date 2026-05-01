@@ -9,6 +9,7 @@
 #include <commctrl.h>
 #include <cstring>
 #include <cstdio>
+#include <mshtml.h>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -473,4 +474,509 @@ CRect CRichEditView::GetPrintRect() const {
 
 CRect CRichEditView::GetPageRect() const {
     return CRect(0, 0, m_sizePaper.cx, m_sizePaper.cy);
+}
+
+//=============================================================================
+// CHtmlView - WebBrowser-based HTML View
+//=============================================================================
+
+// Minimal IOleClientSite for hosting the WebBrowser control
+class CHtmlViewClientSite : public IOleClientSite, public IOleInPlaceSite {
+public:
+    CHtmlViewClientSite(HWND hWnd) : m_hWnd(hWnd), m_refCount(1), m_pBrowser(nullptr) {}
+    virtual ~CHtmlViewClientSite() {}
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(REFIID riid, void** ppv) override {
+        if (riid == IID_IUnknown || riid == IID_IOleClientSite) {
+            *ppv = static_cast<IOleClientSite*>(this);
+        } else if (riid == IID_IOleInPlaceSite) {
+            *ppv = static_cast<IOleInPlaceSite*>(this);
+        } else {
+            *ppv = nullptr;
+            return E_NOINTERFACE;
+        }
+        AddRef();
+        return S_OK;
+    }
+    STDMETHOD_(ULONG, AddRef)() override { return ++m_refCount; }
+    STDMETHOD_(ULONG, Release)() override {
+        if (--m_refCount == 0) { delete this; return 0; }
+        return m_refCount;
+    }
+
+    // IOleClientSite
+    STDMETHOD(SaveObject)() override { return E_NOTIMPL; }
+    STDMETHOD(GetMoniker)(DWORD, DWORD, IMoniker**) override { return E_NOTIMPL; }
+    STDMETHOD(GetContainer)(IOleContainer** ppContainer) override { *ppContainer = nullptr; return E_NOINTERFACE; }
+    STDMETHOD(ShowObject)() override { return S_OK; }
+    STDMETHOD(OnShowWindow)(BOOL) override { return S_OK; }
+    STDMETHOD(RequestNewObjectLayout)() override { return E_NOTIMPL; }
+
+    // IOleInPlaceSite
+    STDMETHOD(GetWindow)(HWND* phWnd) override { *phWnd = m_hWnd; return S_OK; }
+    STDMETHOD(ContextSensitiveHelp)(BOOL) override { return E_NOTIMPL; }
+    STDMETHOD(CanInPlaceActivate)() override { return S_OK; }
+    STDMETHOD(OnInPlaceActivate)() override { return S_OK; }
+    STDMETHOD(OnUIActivate)() override { return S_OK; }
+    STDMETHOD(GetWindowContext)(IOleInPlaceFrame** ppFrame, IOleInPlaceUIWindow** ppDoc,
+                                 LPRECT lprcPosRect, LPRECT lprcClipRect, LPOLEINPLACEFRAMEINFO lpFrameInfo) override {
+        *ppFrame = nullptr;
+        *ppDoc = nullptr;
+        ::GetClientRect(m_hWnd, lprcPosRect);
+        ::GetClientRect(m_hWnd, lprcClipRect);
+        if (lpFrameInfo) {
+            lpFrameInfo->cb = sizeof(OLEINPLACEFRAMEINFO);
+            lpFrameInfo->fMDIApp = FALSE;
+            lpFrameInfo->hwndFrame = ::GetParent(m_hWnd);
+            lpFrameInfo->haccel = nullptr;
+            lpFrameInfo->cAccelEntries = 0;
+        }
+        return S_OK;
+    }
+    STDMETHOD(Scroll)(SIZE) override { return S_OK; }
+    STDMETHOD(OnUIDeactivate)(BOOL) override { return S_OK; }
+    STDMETHOD(OnInPlaceDeactivate)() override { return S_OK; }
+    STDMETHOD(DiscardUndoState)() override { return S_OK; }
+    STDMETHOD(DeactivateAndUndo)() override { return E_NOTIMPL; }
+    STDMETHOD(OnPosRectChange)(LPCRECT lprcPosRect) override {
+        if (m_pBrowser) {
+            m_pBrowser->put_Left(lprcPosRect->left);
+            m_pBrowser->put_Top(lprcPosRect->top);
+            m_pBrowser->put_Width(lprcPosRect->right - lprcPosRect->left);
+            m_pBrowser->put_Height(lprcPosRect->bottom - lprcPosRect->top);
+        }
+        return S_OK;
+    }
+
+    void SetBrowser(IWebBrowser2* pBrowser) { m_pBrowser = pBrowser; }
+
+private:
+    HWND m_hWnd;
+    ULONG m_refCount;
+    IWebBrowser2* m_pBrowser;
+};
+
+IMPLEMENT_DYNCREATE(CHtmlView, CView)
+
+CHtmlView::CHtmlView()
+    : m_pBrowser(nullptr), m_pControlWnd(nullptr), m_bCreated(FALSE) {
+    memset(_htmlview_padding, 0, sizeof(_htmlview_padding));
+}
+
+CHtmlView::~CHtmlView() {
+    if (m_pBrowser) {
+        m_pBrowser->Stop();
+        m_pBrowser->put_Visible(VARIANT_FALSE);
+        m_pBrowser->Release();
+        m_pBrowser = nullptr;
+    }
+}
+
+BOOL CHtmlView::Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName,
+                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
+                       UINT nID, CCreateContext* pContext) {
+    if (!CView::Create(lpszClassName, lpszWindowName, dwStyle, rect, pParentWnd, nID, pContext))
+        return FALSE;
+
+    // Create WebBrowser control via COM
+    HRESULT hr = CoCreateInstance(CLSID_WebBrowser, nullptr, CLSCTX_INPROC_SERVER,
+                                   IID_IWebBrowser2, (void**)&m_pBrowser);
+    if (FAILED(hr) || !m_pBrowser) return FALSE;
+
+    // Set up client site for in-place activation
+    CHtmlViewClientSite* pSite = new CHtmlViewClientSite(m_hWnd);
+    pSite->SetBrowser(m_pBrowser);
+
+    IOleObject* pOleObject = nullptr;
+    hr = m_pBrowser->QueryInterface(IID_IOleObject, (void**)&pOleObject);
+    if (SUCCEEDED(hr)) {
+        pOleObject->SetClientSite(pSite);
+        OleSetContainedObject(pOleObject, TRUE);
+
+        RECT rcClient;
+        ::GetClientRect(m_hWnd, &rcClient);
+        pOleObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, pSite, 0, m_hWnd, &rcClient);
+        pOleObject->Release();
+    }
+
+    // Release site (browser holds a ref via AddRef)
+    pSite->Release();
+
+    m_pBrowser->put_Visible(VARIANT_TRUE);
+    m_bCreated = TRUE;
+    return TRUE;
+}
+
+void CHtmlView::OnDraw(void* pDC) {
+    // WebBrowser renders itself
+    (void)pDC;
+}
+
+void CHtmlView::Navigate(const wchar_t* lpszURL, DWORD dwFlags,
+                         const wchar_t* lpszTargetFrameName,
+                         const wchar_t* lpszHeaders,
+                         void* lpvPostData, DWORD dwPostDataLen) {
+    if (!m_pBrowser) return;
+    VARIANT vFlags, vTarget, vPostData, vHeaders;
+    VariantInit(&vFlags); VariantInit(&vTarget); VariantInit(&vPostData); VariantInit(&vHeaders);
+
+    vFlags.vt = VT_I4; vFlags.lVal = dwFlags;
+
+    if (lpszTargetFrameName) { vTarget.vt = VT_BSTR; vTarget.bstrVal = SysAllocString(lpszTargetFrameName); }
+    if (lpszHeaders) { vHeaders.vt = VT_BSTR; vHeaders.bstrVal = SysAllocString(lpszHeaders); }
+    if (lpvPostData && dwPostDataLen > 0) {
+        vPostData.vt = VT_ARRAY | VT_UI1;
+        SAFEARRAYBOUND sab = { dwPostDataLen, 0 };
+        SAFEARRAY* psa = SafeArrayCreate(VT_UI1, 1, &sab);
+        if (psa) {
+            void* pvData = nullptr;
+            SafeArrayAccessData(psa, &pvData);
+            if (pvData) memcpy(pvData, lpvPostData, dwPostDataLen);
+            SafeArrayUnaccessData(psa);
+            vPostData.parray = psa;
+        }
+    }
+
+    BSTR bstrUrl = SysAllocString(lpszURL);
+    m_pBrowser->Navigate(bstrUrl, &vFlags, &vTarget, &vPostData, &vHeaders);
+    SysFreeString(bstrUrl);
+
+    VariantClear(&vFlags); VariantClear(&vTarget); VariantClear(&vPostData); VariantClear(&vHeaders);
+}
+
+void CHtmlView::Navigate2(LPITEMIDLIST pIDL, DWORD dwFlags, const wchar_t* lpszTargetFrameName) {
+    if (!m_pBrowser) return;
+    VARIANT vFlags, vTarget, vEmpty;
+    VariantInit(&vFlags); VariantInit(&vTarget); VariantInit(&vEmpty);
+    vFlags.vt = VT_I4; vFlags.lVal = dwFlags;
+    if (lpszTargetFrameName) { vTarget.vt = VT_BSTR; vTarget.bstrVal = SysAllocString(lpszTargetFrameName); }
+    // For PIDL navigation: pass empty URL; PIDL needs CoTaskMemAlloc + ILSaveToStream
+    (void)pIDL;
+    VARIANT vUrl;
+    vUrl.vt = VT_BSTR;
+    vUrl.bstrVal = SysAllocString(L"");
+    m_pBrowser->Navigate2(&vUrl, &vFlags, &vTarget, &vEmpty, &vEmpty);
+    VariantClear(&vUrl);
+    VariantClear(&vFlags); VariantClear(&vTarget); VariantClear(&vEmpty);
+}
+
+void CHtmlView::Navigate2(const wchar_t* lpszURL, DWORD dwFlags,
+                          const wchar_t* lpszTargetFrameName,
+                          const wchar_t* lpszHeaders,
+                          void* lpvPostData, DWORD dwPostDataLen) {
+    if (!m_pBrowser) return;
+    VARIANT vFlags, vTarget, vPostData, vHeaders;
+    VariantInit(&vFlags); VariantInit(&vTarget); VariantInit(&vPostData); VariantInit(&vHeaders);
+    vFlags.vt = VT_I4; vFlags.lVal = dwFlags;
+    if (lpszTargetFrameName) { vTarget.vt = VT_BSTR; vTarget.bstrVal = SysAllocString(lpszTargetFrameName); }
+    if (lpszHeaders) { vHeaders.vt = VT_BSTR; vHeaders.bstrVal = SysAllocString(lpszHeaders); }
+    VARIANT vUrl;
+    vUrl.vt = VT_BSTR;
+    vUrl.bstrVal = SysAllocString(lpszURL);
+    m_pBrowser->Navigate2(&vUrl, &vFlags, &vTarget, &vPostData, &vHeaders);
+    VariantClear(&vUrl);
+    VariantClear(&vFlags); VariantClear(&vTarget); VariantClear(&vPostData); VariantClear(&vHeaders);
+    (void)lpvPostData; (void)dwPostDataLen;
+}
+
+void CHtmlView::GoBack() { if (m_pBrowser) m_pBrowser->GoBack(); }
+void CHtmlView::GoForward() { if (m_pBrowser) m_pBrowser->GoForward(); }
+void CHtmlView::GoHome() { if (m_pBrowser) m_pBrowser->GoHome(); }
+void CHtmlView::GoSearch() { if (m_pBrowser) m_pBrowser->GoSearch(); }
+void CHtmlView::Stop() { if (m_pBrowser) m_pBrowser->Stop(); }
+void CHtmlView::Refresh() { if (m_pBrowser) m_pBrowser->Refresh(); }
+void CHtmlView::Refresh2(int nLevel) { if (m_pBrowser) { VARIANT v; v.vt = VT_I4; v.lVal = nLevel; m_pBrowser->Refresh2(&v); } }
+
+BOOL CHtmlView::GetBusy() const {
+    if (!m_pBrowser) return FALSE;
+    VARIANT_BOOL b = VARIANT_FALSE;
+    m_pBrowser->get_Busy(&b);
+    return b != VARIANT_FALSE;
+}
+
+long CHtmlView::GetReadyState() const {
+    if (!m_pBrowser) return 0;
+    READYSTATE rs = READYSTATE_UNINITIALIZED;
+    m_pBrowser->get_ReadyState(&rs);
+    return (long)rs;
+}
+
+CString CHtmlView::GetLocationName() const {
+    CString str;
+    if (m_pBrowser) {
+        BSTR bstr = nullptr;
+        if (SUCCEEDED(m_pBrowser->get_LocationName(&bstr)) && bstr) {
+            str = bstr;
+            SysFreeString(bstr);
+        }
+    }
+    return str;
+}
+
+CString CHtmlView::GetLocationURL() const {
+    CString str;
+    if (m_pBrowser) {
+        BSTR bstr = nullptr;
+        if (SUCCEEDED(m_pBrowser->get_LocationURL(&bstr)) && bstr) {
+            str = bstr;
+            SysFreeString(bstr);
+        }
+    }
+    return str;
+}
+
+CString CHtmlView::GetFullName() const {
+    CString str;
+    if (m_pBrowser) {
+        BSTR bstr = nullptr;
+        if (SUCCEEDED(m_pBrowser->get_FullName(&bstr)) && bstr) {
+            str = bstr;
+            SysFreeString(bstr);
+        }
+    }
+    return str;
+}
+
+CString CHtmlView::GetType() const {
+    CString str;
+    if (m_pBrowser) {
+        BSTR bstr = nullptr;
+        if (SUCCEEDED(m_pBrowser->get_Type(&bstr)) && bstr) {
+            str = bstr;
+            SysFreeString(bstr);
+        }
+    }
+    return str;
+}
+
+LPDISPATCH CHtmlView::GetHtmlDocument() const {
+    LPDISPATCH pDisp = nullptr;
+    if (m_pBrowser) m_pBrowser->get_Document(&pDisp);
+    return pDisp;
+}
+
+void CHtmlView::ExecWB(OLECMDID cmdID, OLECMDEXECOPT cmdexecopt,
+                       VARIANT* pvaIn, VARIANT* pvaOut) {
+    if (m_pBrowser) m_pBrowser->ExecWB(cmdID, cmdexecopt, pvaIn, pvaOut);
+}
+
+void CHtmlView::LoadFromResource(const wchar_t* lpszResource) {
+    if (lpszResource && m_pBrowser) {
+        CString strUrl = L"res://";
+        // Try to get module path for res:// protocol
+        wchar_t buf[MAX_PATH];
+        if (::GetModuleFileNameW(AfxGetInstanceHandle(), buf, MAX_PATH)) {
+            strUrl += buf;
+            strUrl += L"/";
+            strUrl += lpszResource;
+            Navigate(strUrl);
+        }
+    }
+}
+
+void CHtmlView::LoadFromResource(UINT nRes) {
+    wchar_t buf[32];
+    swprintf(buf, 32, L"%u", nRes);
+    LoadFromResource(buf);
+}
+
+void CHtmlView::Print() {
+    if (m_pBrowser) {
+        VARIANT vIn, vOut;
+        VariantInit(&vIn); VariantInit(&vOut);
+        m_pBrowser->ExecWB(OLECMDID_PRINT, OLECMDEXECOPT_DONTPROMPTUSER, &vIn, &vOut);
+    }
+}
+
+void CHtmlView::PrintPreview() {
+    if (m_pBrowser) {
+        VARIANT vIn, vOut;
+        VariantInit(&vIn); VariantInit(&vOut);
+        m_pBrowser->ExecWB(OLECMDID_PRINTPREVIEW, OLECMDEXECOPT_DONTPROMPTUSER, &vIn, &vOut);
+    }
+}
+
+// Event stubs (override in derived class)
+void CHtmlView::OnBeforeNavigate2(LPDISPATCH, VARIANT*, VARIANT*, VARIANT*, VARIANT*, VARIANT*, BOOL*) {}
+void CHtmlView::OnNavigateComplete2(LPDISPATCH, VARIANT*) {}
+void CHtmlView::OnDocumentComplete(LPDISPATCH, VARIANT*) {}
+void CHtmlView::OnProgressChange(long, long) {}
+void CHtmlView::OnTitleChange(const wchar_t*) {}
+void CHtmlView::OnStatusTextChange(const wchar_t*) {}
+
+//=============================================================================
+// CDHtmlDialog - DHTML-based Dialog
+//=============================================================================
+CDHtmlDialog::CDHtmlDialog()
+    : m_nHtmlResID(0), m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+    memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
+}
+
+CDHtmlDialog::CDHtmlDialog(UINT nIDTemplate, UINT nHtmlResID, CWnd* pParentWnd)
+    : CDialog(nIDTemplate, pParentWnd), m_nHtmlResID(nHtmlResID),
+      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+    memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
+}
+
+CDHtmlDialog::CDHtmlDialog(const wchar_t* lpszTemplateName, const wchar_t* lpszHtmlResID, CWnd* pParentWnd)
+    : CDialog(lpszTemplateName, pParentWnd), m_nHtmlResID(0),
+      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+    if (lpszHtmlResID) m_strHtmlResID = lpszHtmlResID;
+    memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
+}
+
+CDHtmlDialog::~CDHtmlDialog() {
+    if (m_pBrowser) {
+        m_pBrowser->Stop();
+        m_pBrowser->put_Visible(VARIANT_FALSE);
+        m_pBrowser->Release();
+        m_pBrowser = nullptr;
+    }
+}
+
+BOOL CDHtmlDialog::Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd) {
+    return CDialog::Create(lpszTemplateName, pParentWnd);
+}
+
+BOOL CDHtmlDialog::OnInitDialog() {
+    BOOL bRet = CDialog::OnInitDialog();
+
+    // Create WebBrowser control in the dialog
+    HRESULT hr = CoCreateInstance(CLSID_WebBrowser, nullptr, CLSCTX_INPROC_SERVER,
+                                   IID_IWebBrowser2, (void**)&m_pBrowser);
+    if (SUCCEEDED(hr) && m_pBrowser) {
+        // Set up client site
+        CHtmlViewClientSite* pSite = new CHtmlViewClientSite(m_hWnd);
+        pSite->SetBrowser(m_pBrowser);
+
+        IOleObject* pOleObject = nullptr;
+        hr = m_pBrowser->QueryInterface(IID_IOleObject, (void**)&pOleObject);
+        if (SUCCEEDED(hr)) {
+            pOleObject->SetClientSite(pSite);
+            OleSetContainedObject(pOleObject, TRUE);
+
+            RECT rcClient;
+            ::GetClientRect(m_hWnd, &rcClient);
+            pOleObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, pSite, 0, m_hWnd, &rcClient);
+            pOleObject->Release();
+        }
+        pSite->Release();
+
+        m_pBrowser->put_Visible(VARIANT_TRUE);
+        m_bCreated = TRUE;
+
+        // Load HTML if specified
+        if (m_nHtmlResID)
+            LoadFromResource(m_nHtmlResID);
+        else if (!m_strHtmlResID.IsEmpty())
+            LoadFromResource(m_strHtmlResID);
+    }
+
+    return bRet;
+}
+
+void CDHtmlDialog::LoadFromResource(UINT nHtmlResID) {
+    if (m_pBrowser) {
+        CString strUrl = L"res://";
+        wchar_t buf[MAX_PATH];
+        if (::GetModuleFileNameW(AfxGetInstanceHandle(), buf, MAX_PATH)) {
+            strUrl += buf;
+            strUrl += L"/";
+            wchar_t numBuf[32];
+            swprintf(numBuf, 32, L"%u", nHtmlResID);
+            strUrl += numBuf;
+            BSTR bstrUrl = SysAllocString(strUrl);
+            m_pBrowser->Navigate(bstrUrl, nullptr, nullptr, nullptr, nullptr);
+            SysFreeString(bstrUrl);
+        }
+    }
+}
+
+void CDHtmlDialog::LoadFromResource(const wchar_t* lpszHtmlResID) {
+    if (m_pBrowser && lpszHtmlResID) {
+        CString strUrl = L"res://";
+        wchar_t buf[MAX_PATH];
+        if (::GetModuleFileNameW(AfxGetInstanceHandle(), buf, MAX_PATH)) {
+            strUrl += buf;
+            strUrl += L"/";
+            strUrl += lpszHtmlResID;
+            BSTR bstrUrl = SysAllocString(strUrl);
+            m_pBrowser->Navigate(bstrUrl, nullptr, nullptr, nullptr, nullptr);
+            SysFreeString(bstrUrl);
+        }
+    }
+}
+
+void CDHtmlDialog::Navigate(const wchar_t* lpszURL, DWORD dwFlags,
+                            const wchar_t* lpszTargetFrameName,
+                            const wchar_t* lpszHeaders,
+                            void* lpvPostData, DWORD dwPostDataLen) {
+    if (!m_pBrowser) return;
+    BSTR bstrUrl = SysAllocString(lpszURL);
+    m_pBrowser->Navigate(bstrUrl, nullptr, nullptr, nullptr, nullptr);
+    SysFreeString(bstrUrl);
+    (void)dwFlags; (void)lpszTargetFrameName; (void)lpszHeaders;
+    (void)lpvPostData; (void)dwPostDataLen;
+}
+
+HRESULT CDHtmlDialog::GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp) {
+    if (!m_pBrowser || !lpszElementId || !ppDisp) return E_POINTER;
+    *ppDisp = nullptr;
+
+    LPDISPATCH pDocDisp = nullptr;
+    HRESULT hr = m_pBrowser->get_Document(&pDocDisp);
+    if (FAILED(hr) || !pDocDisp) return hr;
+
+    IHTMLDocument3* pDoc3 = nullptr;
+    hr = pDocDisp->QueryInterface(IID_IHTMLDocument3, (void**)&pDoc3);
+    pDocDisp->Release();
+
+    if (SUCCEEDED(hr) && pDoc3) {
+        BSTR bstrId = SysAllocString(lpszElementId);
+        IHTMLElement* pElem = nullptr;
+        hr = pDoc3->getElementById(bstrId, &pElem);
+        SysFreeString(bstrId);
+        if (SUCCEEDED(hr) && pElem) {
+            hr = pElem->QueryInterface(IID_IDispatch, (void**)ppDisp);
+            pElem->Release();
+        }
+        pDoc3->Release();
+    }
+
+    return hr;
+}
+
+HRESULT CDHtmlDialog::SetElementProperty(const wchar_t* lpszElementId,
+                                         DISPID dispId, VARIANT* pVar) {
+    if (!m_pBrowser || !lpszElementId || !pVar) return E_POINTER;
+
+    LPDISPATCH pDisp = nullptr;
+    HRESULT hr = GetElement(lpszElementId, &pDisp);
+    if (FAILED(hr) || !pDisp) return hr;
+
+    DISPPARAMS dp = { pVar, nullptr, 1, 0 };
+    hr = pDisp->Invoke(dispId, IID_NULL, LOCALE_USER_DEFAULT,
+                       DISPATCH_PROPERTYPUT, &dp, nullptr, nullptr, nullptr);
+    pDisp->Release();
+    return hr;
+}
+
+HRESULT CDHtmlDialog::GetElementProperty(const wchar_t* lpszElementId,
+                                         DISPID dispId, VARIANT* pVar) {
+    if (!m_pBrowser || !lpszElementId || !pVar) return E_POINTER;
+
+    LPDISPATCH pDisp = nullptr;
+    HRESULT hr = GetElement(lpszElementId, &pDisp);
+    if (FAILED(hr) || !pDisp) return hr;
+
+    DISPPARAMS dp = { nullptr, nullptr, 0, 0 };
+    hr = pDisp->Invoke(dispId, IID_NULL, LOCALE_USER_DEFAULT,
+                       DISPATCH_PROPERTYGET, &dp, pVar, nullptr, nullptr);
+    pDisp->Release();
+    return hr;
+}
+
+HRESULT CDHtmlDialog::OnDDXError(const wchar_t*, const wchar_t*) {
+    return S_OK;
 }
