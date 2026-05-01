@@ -174,12 +174,10 @@
 - [x] CFtpConnection (FTP connections, GetFile, PutFile, directory ops)
 - [x] CInternetFile / CHttpFile (Internet-based file I/O, HTTP request/response)
 - [x] CInternetException (WinInet error handling)
-- [ ] CAsyncSocket
-- [ ] CSocket
-- [ ] AfxSocketInit
-- [ ] CInternetSession
-- [ ] CHttpConnection
-- [ ] CFtpConnection
+- [x] CAsyncSocket (Real WinSock2 wrappers - Create, Bind, Listen, Accept, Connect, Send, Receive, etc.)
+- [x] CSocket (Blocking socket with message pump - Accept, Send, Receive, CancelBlockingCall)
+- [x] CSocketFile (CFile interface for sockets - Read, Write)
+- [x] AfxSocketInit (WSAStartup singleton)
 
 ### OLE/COM
 - [ ] DECLARE_OLECREATE / IMPLEMENT_OLECREATE

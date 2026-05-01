@@ -329,6 +329,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/synccore.cpp"
     "$ROOT/phase4/src/dlgcommon.cpp"
     "$ROOT/phase4/src/inetcore.cpp"
+    "$ROOT/phase4/src/sockcore.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -362,6 +363,7 @@ LDLIBS=(
     -lcomctl32
     -lcomdlg32
     -lwininet
+    -lws2_32
 )
 
 # Collect all object files
