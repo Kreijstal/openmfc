@@ -24,6 +24,8 @@ from pathlib import Path
 from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).parent))
+import demangle_msvc
+demangle_msvc.RESOLVE_TYPE_NAMES = True
 from demangle_msvc import demangle
 
 
@@ -121,6 +123,41 @@ def clean_type(t: str) -> str:
 def generate_thunks(all_exports, implemented, include_dir) -> str:
     """Generate the thunks .cpp file."""
     
+    # Load skip list from file (symbols that fail to compile as auto-generated thunks)
+    _skip_file = Path(__file__).parent / 'thunks_skip.txt'
+    SKIP_SYMBOLS = set()
+    if _skip_file.exists():
+        SKIP_SYMBOLS = set(line.strip() for line in _skip_file.read_text().splitlines() if line.strip() and not line.startswith('#'))
+    
+    # Also skip symbols that are already manually implemented in other source files
+    # (they have // Symbol: comments in other phase4/src/*.cpp files)
+    SOURCE_DIR = Path(__file__).parent.parent / 'phase4' / 'src'
+    for src_file in SOURCE_DIR.glob('*.cpp'):
+        if src_file.name == 'thunks.cpp':
+            continue
+        try:
+            content = src_file.read_text(encoding='utf-8', errors='replace')
+            for m in re.finditer(r'^// Symbol: (.+)$', content, re.MULTILINE):
+                SKIP_SYMBOLS.add(m.group(1).strip())
+            # Also extract stub names from extern "C" MS_ABI declarations
+            for m in re.finditer(r'extern\s+"C".*?\b(impl_\w+)\s*\(', content):
+                # We'll check against generated stub names later
+                pass
+        except:
+            pass
+    
+    # Pre-compute set of existing stub names from manual source files
+    EXISTING_STUBS = set()
+    for src_file in SOURCE_DIR.glob('*.cpp'):
+        if src_file.name == 'thunks.cpp':
+            continue
+        try:
+            content = src_file.read_text(encoding='utf-8', errors='replace')
+            for m in re.finditer(r'(impl_[A-Za-z0-9_]+)\s*\(', content):
+                EXISTING_STUBS.add(m.group(1))
+        except:
+            pass
+    
     # Collect which headers we need
     needed_headers = set()
     
@@ -142,6 +179,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
     for entry in all_exports:
         symbol = entry.get('symbol', '')
         if not symbol.endswith('Z'):
+            continue
+        
+        # Skip symbols that need manual thunks
+        if symbol in SKIP_SYMBOLS:
             continue
         
         info = demangle(symbol)
@@ -194,6 +235,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         if not symbol.endswith('Z'):
             continue
         
+        # Skip symbols that need manual thunks
+        if symbol in SKIP_SYMBOLS:
+            continue
+        
         info = demangle(symbol)
         if not info.params and info.ret_type == 'void' and '?' in info.symbol:
             error_count += 1
@@ -221,6 +266,10 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         if len(stub) > 200:
             stub = stub[:100] + '_' + stub[-100:]
         stub_name = 'impl_' + stub
+        
+        # Skip if this stub name already exists in manual source files
+        if stub_name in EXISTING_STUBS:
+            continue
         
         # Figure out the C++ method name from the MSVC name
         # Extract method name (between initial ? and @)
@@ -296,12 +345,11 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         # Build the parameter names for calling
         call_params = []
         for i, p in enumerate(info.params):
-            ct = clean_type(p.c_type)
             pname = f'p{i}'
-            if '*' in ct:
-                call_params.append(pname)
-            elif ct in DIRECT_PARAM_TYPES:
-                call_params.append(pname)
+            ct = clean_type(p.c_type)
+            if p.is_reference and ct not in ('void*', 'const void*', 'void'):
+                # Reference params arrive as pointers in extern "C", dereference for C++ call
+                call_params.append(f'(*{pname})')
             else:
                 call_params.append(pname)
         

@@ -35,6 +35,7 @@ from typing import List, Tuple, Optional
 class ParamInfo:
     """Simple parameter info — just enough to generate a stub."""
     c_type: str  # C type to use in stub declaration
+    is_reference: bool = False  # True if originally a C++ reference (AEA/AEB)
 
 
 @dataclass
@@ -50,9 +51,10 @@ class FuncInfo:
     is_const_method: bool = False
 
 
-#=============================================================================
-# Type parser state machine
-#=============================================================================
+# Module-level flag: when True, V/U/W4 handlers try to resolve type names.
+# Set by thunk generators that need proper C++ types.
+# Default False (safe for typed stub generators that work with void*).
+RESOLVE_TYPE_NAMES = False
 
 # Type code to C type mapping
 TYPE_MAP = {
@@ -87,6 +89,38 @@ def _consume_class_name(s: str, pos: int) -> int:
     return pos + 1
 
 
+def _extract_type_name(s: str, pos: int) -> Tuple[str, int]:
+    """Extract a C++ type name from the mangled string at pos.
+    Returns (type_name, new_pos), or ('void', new_pos) if unresolvable.
+    Uses 'void' (not 'void*') so pointer/reference wrappers add their own *."""
+    # Back-reference digit (0-9) — unresolvable without context
+    if pos < len(s) and s[pos].isdigit():
+        return 'void', pos + 1
+    # Template names start with ? — can't use as C++ identifiers
+    if pos < len(s) and s[pos] in '?$':
+        idx = s.find('@@', pos)
+        if idx != -1:
+            return 'void', idx + 2
+        return 'void', pos + 1
+    # Find the terminating @@
+    idx = s.find('@@', pos)
+    if idx != -1:
+        name = s[pos:idx]
+        # Names containing @ are namespace-qualified (e.g., CTime@ATL)
+        # Names starting with __ are MSVC-internal (e.g., __POSITION)
+        if '@' in name or name.startswith('__'):
+            return 'void', idx + 2
+        return name, idx + 2
+    # No @@ found — single-@ termination (for simple names or W4 enums)
+    idx = s.find('@', pos)
+    if idx != -1:
+        name = s[pos:idx]
+        if '@' in name or name.startswith('__') or '?' in name:
+            return 'void', idx + 1
+        return name, idx + 1
+    return 'void', pos + 1
+
+
 def _parse_params(s: str, pos: int) -> Tuple[List[ParamInfo], int]:
     """Parse parameter list starting at pos. Returns (params, new_pos).
     Stops at @Z or Z (end of function) or end of string."""
@@ -105,10 +139,18 @@ def _parse_params(s: str, pos: int) -> Tuple[List[ParamInfo], int]:
             pos += 1
             continue
         
+        # Check if this parameter is a reference
+        # Reference markers: AEA, AEB, AA, AB (A followed by A/E, then A/B)
+        is_ref = False
+        if c == 'A':
+            nxt = s[pos + 1] if pos + 1 < len(s) else ''
+            if nxt in ('A', 'E'):
+                is_ref = True
+        
         # Parse one parameter type
         param_str, pos = _parse_one_type(s, pos)
         if param_str and param_str != 'void':
-            params.append(ParamInfo(c_type=param_str))
+            params.append(ParamInfo(c_type=param_str, is_reference=is_ref))
         
         # Skip @ separators between params
         while pos < len(s) and s[pos] == '@':
@@ -162,9 +204,6 @@ def _parse_one_type(s: str, pos: int) -> Tuple[str, int]:
             const = False
         
         prefix = "const " if const else ""
-        # If inner is a class type, simplify to void*
-        if '/*' in inner:
-            inner = 'void'
         return f"{prefix}{inner}*", new_pos
     
     # Reference types
@@ -190,23 +229,34 @@ def _parse_one_type(s: str, pos: int) -> Tuple[str, int]:
         
         # References are passed as pointers in extern "C" stubs
         prefix = "const " if const else ""
-        if '/*' in inner:
-            inner = 'void'
         return f"{prefix}{inner}*", new_pos
     
     # Class type (V)
     if c == 'V':
+        if RESOLVE_TYPE_NAMES:
+            type_name, new_pos = _extract_type_name(s, pos + 1)
+            return type_name, new_pos
         new_pos = _consume_class_name(s, pos + 1)
         return f"void* /*class*/", new_pos
     
     # Struct type (U)
     if c == 'U':
+        if RESOLVE_TYPE_NAMES:
+            type_name, new_pos = _extract_type_name(s, pos + 1)
+            if type_name.startswith('tag') and type_name != 'void':
+                type_name = type_name[3:]
+            return type_name, new_pos
         new_pos = _consume_class_name(s, pos + 1)
         return f"void* /*struct*/", new_pos
     
-    # Enum type (W4)
+    # Enum type (W4) - enums are int-sized in MSVC
     if c == 'W':
         if pos + 1 < len(s) and s[pos + 1] == '4':
+            if RESOLVE_TYPE_NAMES:
+                type_name, new_pos = _extract_type_name(s, pos + 2)
+                if type_name == 'void':
+                    return 'int', new_pos
+                return type_name, new_pos
             return 'int /*enum*/', pos + 2
         new_pos = _consume_class_name(s, pos + 1)
         return 'int /*enum*/', new_pos
