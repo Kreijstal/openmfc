@@ -55,8 +55,8 @@
 - [/] CMDIChildWnd - MDI child (partial)
 - [x] CDialog - Modal/modeless dialogs
 - [/] CDialogEx - Extended dialog (partial)
-- [ ] CPropertySheet - Property sheets
-- [ ] CPropertyPage - Property pages
+- [x] CPropertySheet - Property sheets (PropertySheetW-based, supports modal/modeless/wizard)
+- [x] CPropertyPage - Property pages (full PS notifications, SetModified, QuerySiblings, CancelToClose)
 
 ### Controls
 - [x] CButton (GetState, SetState, GetCheck, SetCheck, GetButtonStyle, SetButtonStyle, bitmap/icon)
@@ -105,7 +105,7 @@
 - [x] CClientDC
 - [x] CPaintDC
 - [x] CWindowDC
-- [ ] CMetaFileDC
+- [x] CMetaFileDC (Create, CreateEnhanced, Close, CloseEnhanced)
 
 ### GDI Objects
 - [x] CGdiObject (DeleteObject, Attach, Detach)
@@ -187,20 +187,20 @@
 - [ ] CDaoRecordset
 
 ### Resource Management
-- [ ] AfxLoadLibrary / AfxFreeLibrary
-- [ ] AfxFindResourceHandle
+- [x] AfxLoadLibrary / AfxFreeLibrary
+- [x] AfxFindResourceHandle
 - [/] AfxSetResourceHandle - No-op stub
 
 ---
 
 ## Diagnostic Functions (Debug Only)
+- [x] AfxIsValidAddress - Memory validity check via VirtualQuery
+- [x] AfxIsValidString - String validity check (wide + narrow)
+- [x] AfxIsValidAtom - Atom validity check (WORD + string)
 - [ ] AfxCheckMemory
 - [ ] AfxDebugBreak
 - [ ] AfxDump
 - [ ] AfxDumpStack
-- [ ] AfxIsValidAddress
-- [ ] AfxIsValidString
-- [ ] afxDump / afxMemDF globals
 
 ---
 
