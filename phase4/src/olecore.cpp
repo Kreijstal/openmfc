@@ -8,6 +8,17 @@
 #include <cstring>
 #include <cstdio>
 
+// MinGW compat: Ambient property DISPIDs
+#ifndef DISPID_AMBIENT_BACKCOLOR
+#define DISPID_AMBIENT_BACKCOLOR    (-701)
+#define DISPID_AMBIENT_FORECOLOR    (-705)
+#define DISPID_AMBIENT_FONT         (-703)
+#define DISPID_AMBIENT_USERMODE     (-709)
+#endif
+#ifndef VT_COLOR
+#define VT_COLOR 0x0000000CL
+#endif
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
@@ -1804,3 +1815,192 @@ MS_ABI int impl__AfxOleUnregisterTypeLib(REFGUID guid, WORD wVerMajor, WORD wVer
 }
 
 } // extern "C"
+
+//=============================================================================
+// COleClientItem - additional methods
+//=============================================================================
+void COleClientItem::Serialize(CArchive& ar) { (void)ar; }
+void COleClientItem::AssertValid() const {}
+void COleClientItem::OnShowItem() {}
+void COleClientItem::OnOpen() {}
+void COleClientItem::OnClose() {}
+BOOL COleClientItem::OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow) { (void)pFrameWnd; (void)bShow; return TRUE; }
+HGLOBAL COleClientItem::GetIconicMetafile() { return nullptr; }
+BOOL COleClientItem::SetIconicMetafile(HGLOBAL hMetaPict) { (void)hMetaPict; return FALSE; }
+HGLOBAL COleClientItem::GetMetaFile() { return nullptr; }
+BOOL COleClientItem::SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) { (void)lpszHost; (void)lpszHostObj; return TRUE; }
+BOOL COleClientItem::ConvertTo(REFCLSID clsidNew) { (void)clsidNew; return FALSE; }
+BOOL COleClientItem::ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld) { (void)clsidNew; (void)clsidOld; return FALSE; }
+BOOL COleClientItem::Reload() { return FALSE; }
+void COleClientItem::UpdateLink() {}
+BOOL COleClientItem::IsLinkUpToDate() const { return TRUE; }
+BOOL COleClientItem::CanActivate() { return TRUE; }
+BOOL COleClientItem::IsOpen() const { return m_nStatus == OLE_OPEN; }
+BOOL COleClientItem::IsRunning() const { return m_nStatus == OLE_RUNNING; }
+HRESULT COleClientItem::EnumVerbs(IEnumOLEVERB** ppEnumOleVerb) { *ppEnumOleVerb = nullptr; return E_NOTIMPL; }
+LONG COleClientItem::GetActiveVerb() const { return OLEIVERB_PRIMARY; }
+void COleClientItem::SetActiveVerb(LONG nVerb) { (void)nVerb; }
+BOOL COleClientItem::IsModified() const { return FALSE; }
+void COleClientItem::SetModifiedFlag(BOOL bModified) { (void)bModified; }
+void COleClientItem::AttachDataObject(COleDataObject& dataObject) const { (void)dataObject; }
+
+//=============================================================================
+// COleControl - additional methods
+//=============================================================================
+BOOL COleControl::VerifyUserLicense() { return TRUE; }
+BOOL COleControl::VerifyLicenseKey(BSTR bstrKey) { (void)bstrKey; return TRUE; }
+BOOL COleControl::SetLicenseKey(const wchar_t* lpszLicenseKey) { (void)lpszLicenseKey; return TRUE; }
+void COleControl::DoDataExchange(void* pDX) { (void)pDX; }
+void COleControl::OnResetState() {}
+DWORD COleControl::GetControlFlags() { return 0; }
+BOOL COleControl::OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size) { (void)dwDrawAspect; (void)size; return TRUE; }
+BOOL COleControl::OnGetExtent(DVASPECT dwDrawAspect, SIZE& size) { (void)dwDrawAspect; size.cx = 0; size.cy = 0; return TRUE; }
+BOOL COleControl::OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional) { (void)dispid; (void)pclsid; (void)pbPageOptional; return FALSE; }
+
+COLORREF COleControl::AmbientBackColor() { COLORREF cr = RGB(255,255,255); GetAmbientProperty(DISPID_AMBIENT_BACKCOLOR, VT_COLOR, &cr); return cr; }
+COLORREF COleControl::AmbientForeColor() { COLORREF cr = RGB(0,0,0); GetAmbientProperty(DISPID_AMBIENT_FORECOLOR, VT_COLOR, &cr); return cr; }
+COLORREF COleControl::AmbientAppearance() { return RGB(255,255,255); }
+OLE_COLOR COleControl::AmbientBackColorOle() { return (OLE_COLOR)AmbientBackColor(); }
+OLE_COLOR COleControl::AmbientForeColorOle() { return (OLE_COLOR)AmbientForeColor(); }
+IFontDisp* COleControl::AmbientFont() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return (IFontDisp*)p; }
+IDispatch* COleControl::AmbientFontDisp() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return p; }
+short COleControl::AmbientTextAlign() { return 0; }
+BOOL COleControl::AmbientUserMode() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_USERMODE, VT_BOOL, &b); return b; }
+BOOL COleControl::AmbientUIDead() { return FALSE; }
+BOOL COleControl::AmbientShowGrabHandles() { return TRUE; }
+BOOL COleControl::AmbientShowHatching() { return TRUE; }
+BOOL COleControl::AmbientDisplayName(CString& strDisplayName) { strDisplayName = L""; return TRUE; }
+BOOL COleControl::AmbientDisplayAsDefault() { return FALSE; }
+BOOL COleControl::AmbientAutoClip() { return TRUE; }
+BOOL COleControl::AmbientSupportsMnemonics() { return TRUE; }
+BOOL COleControl::AmbientScaleUnits(CString& strUnitName) { strUnitName = L""; return TRUE; }
+CString COleControl::AmbientLocaleID() { return L"0"; }
+
+void COleControl::FireClick() {}
+void COleControl::FireDblClick() {}
+void COleControl::FireKeyDown(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
+void COleControl::FireKeyPress(USHORT* pnChar) { (void)pnChar; }
+void COleControl::FireKeyUp(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
+void COleControl::FireMouseDown(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
+void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
+void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
+void COleControl::FireReadyStateChange() {}
+
+COLORREF COleControl::GetBackColor() const { return RGB(255,255,255); }
+void COleControl::SetBackColor(COLORREF clr) { (void)clr; }
+COLORREF COleControl::GetForeColor() const { return RGB(0,0,0); }
+void COleControl::SetForeColor(COLORREF clr) { (void)clr; }
+BOOL COleControl::GetEnabled() const { return TRUE; }
+void COleControl::SetEnabled(BOOL bEnabled) { (void)bEnabled; }
+void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
+void COleControl::SetFont(CFont* pFont) { (void)pFont; }
+HWND COleControl::GetHwnd() const { return m_hWnd; }
+void COleControl::SetHwnd(HWND hWnd) { m_hWnd = hWnd; }
+OLE_COLOR COleControl::GetBackColorOle() const { return (OLE_COLOR)GetBackColor(); }
+OLE_COLOR COleControl::GetForeColorOle() const { return (OLE_COLOR)GetForeColor(); }
+void COleControl::SetBackColorOle(OLE_COLOR clr) { SetBackColor((COLORREF)clr); }
+void COleControl::SetForeColorOle(OLE_COLOR clr) { SetForeColor((COLORREF)clr); }
+short COleControl::GetAppearance() const { return 0; }
+void COleControl::SetAppearance(short nAppearance) { (void)nAppearance; }
+short COleControl::GetBorderStyle() const { return 0; }
+void COleControl::SetBorderStyle(short nBorderStyle) { (void)nBorderStyle; }
+CString COleControl::GetText() const { return CString(); }
+void COleControl::SetText(const wchar_t* lpszText) { (void)lpszText; }
+void COleControl::GetText(CString& strText) const { strText = CString(); }
+long COleControl::GetReadyState() const { return 4; }
+
+BOOL COleControl::IsSubclassedControl() { return FALSE; }
+void COleControl::SetModifiedFlag(BOOL bModified) { (void)bModified; }
+BOOL COleControl::GetModifiedFlag() const { return FALSE; }
+ULONG COleControl::InternalAddRef() { return 1; }
+ULONG COleControl::InternalRelease() { return 1; }
+ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) { (void)riid; *ppv = nullptr; return E_NOINTERFACE; }
+void COleControl::GetControlSize(int* pCX, int* pCY) { if(pCX) *pCX = 0; if(pCY) *pCY = 0; }
+void COleControl::SetControlSize(int cx, int cy) { (void)cx; (void)cy; }
+void COleControl::OnSetClientSite() {}
+void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) { (void)pControlInfo; }
+BOOL COleControl::OnMnemonic(LPMSG pMsg) { (void)pMsg; return FALSE; }
+void COleControl::OnAmbientPropertyChange(DISPID dispid) { (void)dispid; }
+void COleControl::BoundPropertyChanged(DISPID dispid) { (void)dispid; }
+void COleControl::BoundPropertyRequestEdit(DISPID dispid) { (void)dispid; }
+void COleControl::InvalidateControl(LPCRECT lpRect) { (void)lpRect; }
+void COleControl::OnProperties(wchar_t* pszPropPage) { (void)pszPropPage; }
+void COleControl::ShowPropertyPages() {}
+int COleControl::GetPropertyPageCount() const { return 0; }
+BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) { (void)lpUnk; return FALSE; }
+BOOL COleControl::CanCreateConnectionPoints() { return FALSE; }
+void COleControl::EnableConnectionPoints() {}
+BOOL COleControl::IsConnectionPointEnabled(REFIID riid) { (void)riid; return FALSE; }
+void COleControl::FirePropChanged(DISPID dispid) { (void)dispid; }
+BOOL COleControl::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return FALSE; }
+LONG COleControl::OnPosRectChange(LPCRECT lprcPosRect) { (void)lprcPosRect; return 0; }
+BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) { (void)lprcPosRect; (void)lprcClipRect; return TRUE; }
+void COleControl::OnClose(DWORD dwSaveOption) { (void)dwSaveOption; }
+void COleControl::SetCapture() { if(m_hWnd) ::SetCapture(m_hWnd); }
+void COleControl::ReleaseCapture() { ::ReleaseCapture(); }
+void COleControl::BringWindowToTop() { if(m_hWnd) ::BringWindowToTop(m_hWnd); }
+void COleControl::MoveWindow(int X, int Y, int nWidth, int nHeight, BOOL bRepaint) { if(m_hWnd) ::MoveWindow(m_hWnd, X, Y, nWidth, nHeight, bRepaint); }
+void COleControl::MoveWindow(LPCRECT lpRect, BOOL bRepaint) { if(m_hWnd && lpRect) ::MoveWindow(m_hWnd, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top, bRepaint); }
+
+//=============================================================================
+// COleDocObjectItem
+//=============================================================================
+IMPLEMENT_DYNAMIC(COleDocObjectItem, COleClientItem)
+
+COleDocObjectItem::COleDocObjectItem(COleDocument* pContainerDoc) : COleClientItem(pContainerDoc) { memset(_coledocobjectitem_padding, 0, sizeof(_coledocobjectitem_padding)); }
+COleDocObjectItem::~COleDocObjectItem() {}
+BOOL COleDocObjectItem::IsDocObject() const { return FALSE; }
+BOOL COleDocObjectItem::IsActive() const { return m_bInPlaceActive && IsOpen(); }
+HRESULT COleDocObjectItem::GetActiveView(IOleDocumentView** ppView) { *ppView = nullptr; return E_NOTIMPL; }
+HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) { *ppDocument = nullptr; return E_NOTIMPL; }
+void COleDocObjectItem::ActivateAndShow() {}
+BOOL COleDocObjectItem::IsOpen() const { return m_nStatus == OLE_OPEN; }
+void COleDocObjectItem::OnActivateView() {}
+BOOL COleDocObjectItem::OnPreparePrinting(void* pInfo) { (void)pInfo; return TRUE; }
+void COleDocObjectItem::OnBeginPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
+void COleDocObjectItem::OnPrint(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
+void COleDocObjectItem::OnEndPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
+HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, VARIANT* pvaIn, VARIANT* pvaOut) { (void)nCmdID; (void)nCmdExecOpt; (void)pvaIn; (void)pvaOut; return E_NOTIMPL; }
+
+//=============================================================================
+// CEnumFormatEtc
+//=============================================================================
+CEnumFormatEtc::CEnumFormatEtc() : m_refCount(1), m_formats(nullptr), m_count(0), m_capacity(0), m_position(0) { memset(_cenumformatetc_padding, 0, sizeof(_cenumformatetc_padding)); }
+CEnumFormatEtc::~CEnumFormatEtc() { if (m_formats) free(m_formats); }
+
+STDMETHODIMP CEnumFormatEtc::QueryInterface(REFIID riid, void** ppv) {
+    if (riid == IID_IUnknown || riid == IID_IEnumFORMATETC) { *ppv = this; AddRef(); return S_OK; }
+    *ppv = nullptr; return E_NOINTERFACE;
+}
+STDMETHODIMP_(ULONG) CEnumFormatEtc::AddRef() { return ++m_refCount; }
+STDMETHODIMP_(ULONG) CEnumFormatEtc::Release() {
+    ULONG ref = --m_refCount;
+    if (ref == 0) delete this;
+    return ref;
+}
+STDMETHODIMP CEnumFormatEtc::Next(ULONG celt, FORMATETC* rgelt, ULONG* pceltFetched) {
+    ULONG fetched = 0;
+    while (m_position < m_count && fetched < celt) {
+        rgelt[fetched] = m_formats[m_position];
+        if (rgelt[fetched].ptd) rgelt[fetched].ptd = nullptr; // Don't copy DVTARGETDEVICE
+        m_position++;
+        fetched++;
+    }
+    if (pceltFetched) *pceltFetched = fetched;
+    return (fetched == celt) ? S_OK : S_FALSE;
+}
+STDMETHODIMP CEnumFormatEtc::Skip(ULONG celt) {
+    if (m_position + celt > m_count) { m_position = m_count; return S_FALSE; }
+    m_position += celt;
+    return S_OK;
+}
+STDMETHODIMP CEnumFormatEtc::Reset() { m_position = 0; return S_OK; }
+STDMETHODIMP CEnumFormatEtc::Clone(IEnumFORMATETC** ppEnum) { *ppEnum = nullptr; return E_NOTIMPL; }
+
+void CEnumFormatEtc::AddFormat(const FORMATETC& formatEtc) {
+    if (m_count >= m_capacity) {
+        m_capacity = m_capacity ? m_capacity * 2 : 8;
+        m_formats = (FORMATETC*)realloc(m_formats, m_capacity * sizeof(FORMATETC));
+    }
+    if (m_formats) m_formats[m_count++] = formatEtc;
+}

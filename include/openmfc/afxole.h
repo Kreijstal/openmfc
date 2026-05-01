@@ -498,6 +498,7 @@ class COleDocIPFrameWnd;
 class COleCntrFrameWnd;
 class COleControlSiteOrWnd;
 class CEnumOleVerb;
+class COleDocObjectItem;
 
 //=============================================================================
 // COleCurrency - OLE Automation Currency type
@@ -1028,10 +1029,42 @@ public:
     virtual void OnGetItemPosition(CRect& rPosition);
     virtual BOOL OnChangeItemPosition(const CRect& rectPos);
     virtual void OnDiscardUndoState();
+    virtual void OnShowItem();
+    virtual void OnOpen();
+    virtual void OnClose();
+    virtual BOOL OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow);
+
+    // Additional drawing / rendering
+    HGLOBAL GetIconicMetafile();
+    BOOL SetIconicMetafile(HGLOBAL hMetaPict);
+    HGLOBAL GetMetaFile();
+    BOOL SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj);
+
+    // Conversion
+    BOOL ConvertTo(REFCLSID clsidNew);
+    BOOL ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld);
+    BOOL Reload();
+    void UpdateLink();
+    BOOL IsLinkUpToDate() const;
+    BOOL CanActivate();
+    BOOL IsOpen() const;
+    BOOL IsRunning() const;
+
+    // Verb operations
+    HRESULT EnumVerbs(IEnumOLEVERB** ppEnumOleVerb);
+    LONG GetActiveVerb() const;
+    void SetActiveVerb(LONG nVerb);
+
+    // Misc
+    void AssertValid() const;
+    void Serialize(CArchive& ar) override;
+    BOOL IsModified() const;
+    void SetModifiedFlag(BOOL bModified = TRUE);
 
     // OLE Control support
     void SetControlSite(COleControlSite* pSite);
     COleControlSite* GetControlSite() const;
+    void AttachDataObject(COleDataObject& dataObject) const;
 
 public:
     COleDocument* m_pContainerDoc;
@@ -1047,6 +1080,33 @@ public:
 
 protected:
     char _oleclientitem_padding[96];
+};
+
+//=============================================================================
+// COleDocObjectItem - Active Document Container Item
+//=============================================================================
+class COleDocObjectItem : public COleClientItem {
+    DECLARE_DYNAMIC(COleDocObjectItem)
+public:
+    COleDocObjectItem(COleDocument* pContainerDoc = nullptr);
+    virtual ~COleDocObjectItem();
+
+    BOOL IsDocObject() const;
+    BOOL IsActive() const;
+    HRESULT GetActiveView(IOleDocumentView** ppView);
+    HRESULT GetDocument(IUnknown** ppDocument);
+    void ActivateAndShow();
+    BOOL IsOpen() const;
+    void OnActivateView();
+    virtual BOOL OnPreparePrinting(void* pInfo);
+    virtual void OnBeginPrinting(CDC* pDC, void* pInfo);
+    virtual void OnPrint(CDC* pDC, void* pInfo);
+    virtual void OnEndPrinting(CDC* pDC, void* pInfo);
+    HRESULT ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt = OLECMDEXECOPT_DONTPROMPTUSER,
+                        VARIANT* pvaIn = nullptr, VARIANT* pvaOut = nullptr);
+
+protected:
+    char _coledocobjectitem_padding[48];
 };
 
 //=============================================================================
@@ -1272,6 +1332,36 @@ public:
     CEnumOleVerb();
     ~CEnumOleVerb();
     char _cenumoleverb_padding[16];
+};
+
+//=============================================================================
+// CEnumFormatEtc - FORMATETC Enumerator
+//=============================================================================
+class CEnumFormatEtc : public IEnumFORMATETC {
+public:
+    CEnumFormatEtc();
+    virtual ~CEnumFormatEtc();
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(REFIID riid, void** ppv) override;
+    STDMETHOD_(ULONG, AddRef)() override;
+    STDMETHOD_(ULONG, Release)() override;
+
+    // IEnumFORMATETC
+    STDMETHOD(Next)(ULONG celt, FORMATETC* rgelt, ULONG* pceltFetched) override;
+    STDMETHOD(Skip)(ULONG celt) override;
+    STDMETHOD(Reset)() override;
+    STDMETHOD(Clone)(IEnumFORMATETC** ppEnum) override;
+
+    void AddFormat(const FORMATETC& formatEtc);
+
+private:
+    ULONG m_refCount;
+    FORMATETC* m_formats;
+    ULONG m_count;
+    ULONG m_capacity;
+    ULONG m_position;
+    char _cenumformatetc_padding[16];
 };
 
 //=============================================================================
@@ -1531,24 +1621,123 @@ public:
     // Licensing
     BOOL GetLicenseKey(DWORD dwReserved, BSTR* pbstrKey);
     static BSTR PASCAL GetLicenseKey(REFCLSID clsid);
+    virtual BOOL VerifyUserLicense();
+    virtual BOOL VerifyLicenseKey(BSTR bstrKey);
+    BOOL SetLicenseKey(const wchar_t* lpszLicenseKey);
 
     // Persistence
     void Serialize(CArchive& ar) override;
     BOOL DoPropExchange(CPropExchange* pPX);
+    virtual void DoDataExchange(void* pDX);
+    virtual void OnResetState();
+    virtual DWORD GetControlFlags();
+    virtual BOOL OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size);
+    virtual BOOL OnGetExtent(DVASPECT dwDrawAspect, SIZE& size);
+    virtual BOOL OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional);
 
     // Ambient properties
     BOOL GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp);
+    COLORREF AmbientBackColor();
+    COLORREF AmbientForeColor();
+    COLORREF AmbientAppearance();
+    OLE_COLOR AmbientBackColorOle();
+    OLE_COLOR AmbientForeColorOle();
+    IFontDisp* AmbientFont();
+    IDispatch* AmbientFontDisp();
+    short AmbientTextAlign();
+    BOOL AmbientUserMode();
+    BOOL AmbientUIDead();
+    BOOL AmbientShowGrabHandles();
+    BOOL AmbientShowHatching();
+    BOOL AmbientDisplayName(CString& strDisplayName);
+    BOOL AmbientDisplayAsDefault();
+    BOOL AmbientAutoClip();
+    BOOL AmbientSupportsMnemonics();
+    BOOL AmbientScaleUnits(CString& strUnitName);
+    CString AmbientLocaleID();
 
     // Events
     void FireEvent(DISPID dispId, BYTE* pbParams, ...);
     void FireEventV(DISPID dispId, BYTE* pbParams, va_list argList);
+    void FireClick();
+    void FireDblClick();
+    void FireKeyDown(USHORT* pnChar, short nShiftState);
+    void FireKeyPress(USHORT* pnChar);
+    void FireKeyUp(USHORT* pnChar, short nShiftState);
+    void FireMouseDown(short nButton, short nShiftState, long x, long y);
+    void FireMouseMove(short nButton, short nShiftState, long x, long y);
+    void FireMouseUp(short nButton, short nShiftState, long x, long y);
+    void FireReadyStateChange();
+
+    // Stock properties
+    COLORREF GetBackColor() const;
+    void SetBackColor(COLORREF clr);
+    COLORREF GetForeColor() const;
+    void SetForeColor(COLORREF clr);
+    BOOL GetEnabled() const;
+    void SetEnabled(BOOL bEnabled);
+    void* InternalGetFont() { return nullptr; }
+    void SetFont(LPFONTDISP pFontDisp);
+    void SetFont(CFont* pFont);
+    HWND GetHwnd() const;
+    void SetHwnd(HWND hWnd);
+    OLE_COLOR GetBackColorOle() const;
+    OLE_COLOR GetForeColorOle() const;
+    void SetBackColorOle(OLE_COLOR clr);
+    void SetForeColorOle(OLE_COLOR clr);
+    short GetAppearance() const;
+    void SetAppearance(short nAppearance);
+    short GetBorderStyle() const;
+    void SetBorderStyle(short nBorderStyle);
+    CString GetText() const;
+    void SetText(const wchar_t* lpszText);
+    void GetText(CString& strText) const;
+    long GetReadyState() const;
 
     // Control state
     BOOL IsOptimizedDraw() const;
     void SetInitialSize(int cx, int cy);
+    BOOL IsSubclassedControl();
+    void SetModifiedFlag(BOOL bModified = TRUE);
+    BOOL GetModifiedFlag() const;
+    ULONG InternalAddRef();
+    ULONG InternalRelease();
+    ULONG InternalQueryInterface(REFIID riid, void** ppv);
+    void GetControlSize(int* pCX, int* pCY);
+    void SetControlSize(int cx, int cy);
+    virtual void OnSetClientSite();
+    virtual void OnGetControlInfo(LPCONTROLINFO pControlInfo);
+    virtual BOOL OnMnemonic(LPMSG pMsg);
+    virtual void OnAmbientPropertyChange(DISPID dispid);
+    void BoundPropertyChanged(DISPID dispid);
+    void BoundPropertyRequestEdit(DISPID dispid);
+    void InvalidateControl(LPCRECT lpRect = nullptr);
 
-    // Overrides
+    // Property pages
+    virtual void OnProperties(wchar_t* pszPropPage = nullptr);
+    void ShowPropertyPages();
+    int GetPropertyPageCount() const;
+    BOOL IsPropertyPage(LPUNKNOWN lpUnk);
+
+    // Connection points
+    BOOL CanCreateConnectionPoints();
+    void EnableConnectionPoints();
+    BOOL IsConnectionPointEnabled(REFIID riid);
+    void FirePropChanged(DISPID dispid);
+
+    // Message handling
+    virtual BOOL PreTranslateMessage(MSG* pMsg);
     virtual void OnDraw(CDC* pDC, const CRect& rcBounds, const CRect& rcInvalid);
+
+    // Window
+    virtual LONG OnPosRectChange(LPCRECT lprcPosRect);
+    virtual BOOL OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect);
+    virtual void OnClose(DWORD dwSaveOption);
+    void SetCapture();
+    void ReleaseCapture();
+    void BringWindowToTop();
+    void MoveWindow(int X, int Y, int nWidth, int nHeight, BOOL bRepaint = TRUE);
+    void MoveWindow(LPCRECT lpRect, BOOL bRepaint = TRUE);
 
 public:
     COleControlSite* m_pControlSite;

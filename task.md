@@ -279,10 +279,10 @@
 
 ### Tier 3 — Fill in OLE/COM exports (~550 stubs)
 
-- [ ] **COleControl** additional methods (375) — FireEvent, DoPropExchange, ambient properties, licensing, persistence
-- [ ] **COleClientItem** additional methods (146) — CreateFromData, Draw, GetExtent, DoVerb overrides
-- [ ] **COleDocObjectItem** (24) — DocObject (Active Document) support
-- [ ] **CEnumFormatEtc** (6) — FORMATETC enumerator for clipboard
+- [x] **COleControl** additional methods (375) — FireEvent, DoPropExchange, ambient properties, licensing, persistence
+- [x] **COleClientItem** additional methods (146) — CreateFromData, Draw, GetExtent, DoVerb overrides
+- [x] **COleDocObjectItem** (24) — DocObject (Active Document) support
+- [x] **CEnumFormatEtc** (6) — FORMATETC enumerator for clipboard
 
 ### Tier 4 — Fill in overload gaps (~380 stubs)
 
