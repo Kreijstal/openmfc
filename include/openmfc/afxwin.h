@@ -7,6 +7,7 @@
 // Windows types - OpenMFC is Windows-only
 #include <windows.h>
 #include <commctrl.h>
+#include <richedit.h>
 
 #ifndef _WINDOWS_
     typedef void* HWND;
@@ -2800,6 +2801,141 @@ public:
 protected:
     // Padding for ABI compatibility
     char _treeview_padding[64];
+};
+
+//=============================================================================
+// CRichEditCtrl - Rich Edit 2.0 Control
+//=============================================================================
+#ifndef AFX_IDW_PANE_FIRST
+#define AFX_IDW_PANE_FIRST 0xE900
+#endif
+
+class CRichEditCtrl : public CWnd {
+public:
+    CRichEditCtrl();
+    virtual ~CRichEditCtrl();
+
+    BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
+
+    // Character/paragraph formatting
+    DWORD GetDefaultCharFormat(CHARFORMAT2W& cf) const;
+    BOOL SetDefaultCharFormat(const CHARFORMAT2W& cf);
+    DWORD GetSelectionCharFormat(CHARFORMAT2W& cf) const;
+    BOOL SetSelectionCharFormat(const CHARFORMAT2W& cf);
+    DWORD GetParaFormat(PARAFORMAT2& pf) const;
+    BOOL SetParaFormat(const PARAFORMAT2& pf);
+
+    // Text operations
+    BOOL SetSel(int nStartChar, int nEndChar);
+    void GetSel(int& nStartChar, int& nEndChar) const;
+    int GetTextLength() const;
+    void ReplaceSel(const wchar_t* lpszNewText, BOOL bCanUndo = FALSE);
+    int GetLine(int nIndex, wchar_t* lpszBuffer, int nMaxLength) const;
+    int LineIndex(int nLine = -1) const;
+    int LineFromChar(int nIndex = -1) const;
+    int LineLength(int nLine = -1) const;
+    int GetLineCount() const;
+
+    // Undo/redo
+    BOOL CanUndo() const;
+    BOOL CanRedo() const;
+    BOOL Undo();
+    BOOL Redo();
+    void EmptyUndoBuffer();
+
+    // Clipboard
+    void Cut();
+    void Copy();
+    void Paste();
+    void Clear();
+
+    // Streaming (RTF)
+    LONG StreamIn(int nFormat, EDITSTREAM& es);
+    LONG StreamOut(int nFormat, EDITSTREAM& es);
+
+    // Find
+    LONG FindText(DWORD dwFlags, FINDTEXTEXW& ft) const;
+
+    // Read-only
+    BOOL SetReadOnly(BOOL bReadOnly = TRUE);
+    BOOL IsModify() const;
+    void SetModify(BOOL bModified = TRUE);
+
+    // Events mask
+    DWORD SetEventMask(DWORD dwEventMask);
+    DWORD GetEventMask() const;
+
+    // Margins
+    void SetMargins(UINT nLeft, UINT nRight);
+
+    CRichEditCtrl& GetRichEditCtrl() { return *this; }
+
+protected:
+    char _richeditctrl_padding[64];
+};
+
+//=============================================================================
+// CRichEditView - Rich Edit View
+//=============================================================================
+class CRichEditView : public CView {
+    DECLARE_DYNCREATE(CRichEditView)
+public:
+    CRichEditView();
+    virtual ~CRichEditView();
+
+    // Creation
+    virtual BOOL Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName,
+                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
+                       UINT nID, CCreateContext* pContext = nullptr) override;
+
+    // Rich edit control access
+    CRichEditCtrl& GetRichEditCtrl() const;
+
+    // Character formatting
+    void SetCharFormat(const CHARFORMAT2W& cf);
+    void GetCharFormat(CHARFORMAT2W& cf) const;
+
+    // Paragraph formatting
+    void SetParaFormat(const PARAFORMAT2& pf);
+    void GetParaFormat(PARAFORMAT2& pf) const;
+
+    // Printing
+    void PrintInsideRect(CDC* pDC, RECT& rectLayout, LONG nIndexStart,
+                         LONG nIndexEnd, BOOL bOutput);
+    LONG PrintPage(CDC* pDC, LONG nIndexStart, LONG nIndexEnd);
+    void PrintReplaceSel(const wchar_t* lpszNewText, BOOL bCanUndo = FALSE);
+
+    // Text operations
+    BOOL FindText(const wchar_t* lpszFind, BOOL bNext = TRUE, BOOL bCase = TRUE);
+    BOOL FindTextSimple(const wchar_t* lpszFind, BOOL bNext = TRUE, BOOL bCase = TRUE);
+    LONG GetFindString(const wchar_t* lpszFind, FINDTEXTEXW& ft) const;
+    void OnInitialUpdate() override;
+    void OnDraw(void* pDC) override;
+
+    // Stream in/out (RTF support)
+    void Serialize(CArchive& ar) override;
+
+    // Wrap/word break
+    void WrapChanged();
+    WORD GetWordWrapMode() const;
+    void SetWordWrapMode(WORD nWordWrap);
+
+    // Margins
+    void SetPaperSize(CSize sizePaper);
+    CSize GetPaperSize() const;
+    void SetMargins(const CRect& rectMargins);
+    CRect GetMargins() const;
+    CRect GetPrintRect() const;
+    CRect GetPageRect() const;
+
+public:
+    CRichEditCtrl m_richEdit;
+    CRect m_rectMargins;
+    CSize m_sizePaper;
+    WORD m_nWordWrapMode;
+
+protected:
+    char _richeditview_padding[96];
 };
 
 // CDocTemplate - Document template base class

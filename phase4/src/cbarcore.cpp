@@ -624,3 +624,267 @@ BOOL CDialogBar::IsVisible() const {
 void CDialogBar::SetOccDialogInfo(void* pDialogInfo) {
     m_pOccDialogInfo = pDialogInfo;
 }
+
+//=============================================================================
+// CSplitterWnd
+//=============================================================================
+IMPLEMENT_DYNAMIC(CSplitterWnd, CWnd)
+
+CSplitterWnd::CSplitterWnd()
+    : m_nRows(0), m_nCols(0), m_cxSplitter(4), m_cySplitter(4),
+      m_cxBorderShare(0), m_cyBorderShare(0),
+      m_cxSplitterGap(4), m_cySplitterGap(4),
+      m_nMaxRows(0), m_nMaxCols(0),
+      m_nId(0), m_bHasHScroll(FALSE), m_bHasVScroll(FALSE),
+      m_pActivePane(nullptr), m_nActiveRow(0), m_nActiveCol(0) {
+    m_sizeMin.cx = 0; m_sizeMin.cy = 0;
+    memset(_splitterwnd_padding, 0, sizeof(_splitterwnd_padding));
+}
+
+CSplitterWnd::~CSplitterWnd() {
+    if (m_hWnd) ::DestroyWindow(m_hWnd);
+}
+
+BOOL CSplitterWnd::Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols,
+                           SIZE sizeMin, CCreateContext* pContext, DWORD dwStyle, UINT nID) {
+    if (!pParentWnd) return FALSE;
+    m_nMaxRows = nMaxRows;
+    m_nMaxCols = nMaxCols;
+    m_sizeMin = sizeMin;
+
+    m_hWnd = ::CreateWindowExW(0, L"AfxSplitterWnd", nullptr,
+                                dwStyle | WS_CLIPCHILDREN,
+                                0, 0, 0, 0,
+                                pParentWnd->GetSafeHwnd(),
+                                (HMENU)(UINT_PTR)nID,
+                                AfxGetInstanceHandle(), pContext);
+    if (!m_hWnd) return FALSE;
+    m_nId = nID;
+    return TRUE;
+}
+
+BOOL CSplitterWnd::CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
+                                 DWORD dwStyle, UINT nID) {
+    m_nRows = nRows;
+    m_nCols = nCols;
+    m_nMaxRows = nRows;
+    m_nMaxCols = nCols;
+
+    m_hWnd = ::CreateWindowExW(0, L"AfxSplitterWnd", nullptr,
+                                dwStyle | WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
+                                0, 0, 0, 0,
+                                pParentWnd->GetSafeHwnd(),
+                                (HMENU)(UINT_PTR)nID,
+                                AfxGetInstanceHandle(), nullptr);
+    return m_hWnd != nullptr;
+}
+
+BOOL CSplitterWnd::CreateView(int row, int col, CRuntimeClass* pViewClass,
+                               SIZE sizeInit, CCreateContext* pContext) {
+    (void)row; (void)col; (void)pViewClass; (void)sizeInit; (void)pContext;
+    return FALSE;
+}
+
+CWnd* CSplitterWnd::GetPane(int row, int col) const {
+    (void)row; (void)col;
+    return nullptr;
+}
+
+void CSplitterWnd::GetRowInfo(int row, int& cyCur, int& cyMin) const {
+    cyCur = 0; cyMin = 0;
+    if (!m_hWnd) return;
+    (void)row;
+}
+
+void CSplitterWnd::SetRowInfo(int row, int cyIdeal, int cyMin) {
+    (void)row; (void)cyIdeal; (void)cyMin;
+}
+
+void CSplitterWnd::GetColumnInfo(int col, int& cxCur, int& cxMin) const {
+    cxCur = 0; cxMin = 0;
+    (void)col;
+}
+
+void CSplitterWnd::SetColumnInfo(int col, int cxIdeal, int cxMin) {
+    (void)col; (void)cxIdeal; (void)cxMin;
+}
+
+void CSplitterWnd::RecalcLayout() {
+}
+
+void CSplitterWnd::SetSplitCursor(int ht) {
+    (void)ht;
+}
+
+int CSplitterWnd::GetActivePane(int* pRow, int* pCol) const {
+    if (pRow) *pRow = m_nActiveRow;
+    if (pCol) *pCol = m_nActiveCol;
+    return 0;
+}
+
+void CSplitterWnd::SetActivePane(int row, int col, CWnd* pWnd) {
+    m_nActiveRow = row;
+    m_nActiveCol = col;
+    m_pActivePane = pWnd;
+}
+
+CWnd* CSplitterWnd::GetActivePane() {
+    return m_pActivePane;
+}
+
+BOOL CSplitterWnd::CanActivateNext(BOOL bPrev) {
+    return FALSE;
+}
+
+void CSplitterWnd::ActivateNext(BOOL bPrev) {
+}
+
+BOOL CSplitterWnd::DoKeyboardSplit() {
+    return FALSE;
+}
+
+void CSplitterWnd::OnDrawSplitter(CDC* pDC, int nType, const CRect& rect) {
+    if (pDC && pDC->m_hDC) {
+        HBRUSH hBrush = ::GetSysColorBrush(COLOR_3DFACE);
+        ::FillRect(pDC->m_hDC, (const RECT*)rect, hBrush);
+    }
+}
+
+void CSplitterWnd::OnInvertTracker(const CRect& rect) {
+}
+
+BOOL CSplitterWnd::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext) {
+    return FALSE;
+}
+
+//=============================================================================
+// CTaskDialog
+//=============================================================================
+CTaskDialog::CTaskDialog(const wchar_t* pszContent, const wchar_t* pszMainInstruction,
+                          const wchar_t* pszWindowTitle, int nCommonButtons, int nTaskDialogOptions)
+    : m_nCommonButtons(nCommonButtons), m_nTaskDialogOptions(nTaskDialogOptions),
+      m_nDialogWidth(0), m_hMainIcon(nullptr), m_hFooterIcon(nullptr),
+      m_nProgressMin(0), m_nProgressMax(100), m_nProgressPos(0),
+      m_bProgressMarquee(FALSE), m_bVerificationChecked(FALSE),
+      m_nSelectedCommandID(0), m_nSelectedRadioButtonID(0), m_bExpanded(FALSE) {
+    if (pszContent) m_strContent = pszContent;
+    if (pszMainInstruction) m_strMainInstruction = pszMainInstruction;
+    if (pszWindowTitle) m_strWindowTitle = pszWindowTitle;
+    memset(_taskdialog_padding, 0, sizeof(_taskdialog_padding));
+}
+
+CTaskDialog::~CTaskDialog() {
+}
+
+void CTaskDialog::SetDialogWidth(int nWidth) {
+    m_nDialogWidth = nWidth;
+}
+
+void CTaskDialog::SetMainIcon(HICON hMainIcon) {
+    m_hMainIcon = hMainIcon;
+}
+
+void CTaskDialog::SetMainIcon(UINT nMainIconID) {
+    m_hMainIcon = ::LoadIconW(nullptr, MAKEINTRESOURCEW(nMainIconID));
+}
+
+void CTaskDialog::SetFooterIcon(HICON hFooterIcon) {
+    m_hFooterIcon = hFooterIcon;
+}
+
+void CTaskDialog::SetFooterText(const wchar_t* pszFooterText) {
+    if (pszFooterText) m_strFooterText = pszFooterText;
+}
+
+void CTaskDialog::SetVerificationCheckboxText(const wchar_t* pszText) {
+    if (pszText) m_strVerificationText = pszText;
+}
+
+void CTaskDialog::SetExpandedInformation(const wchar_t* pszText) {
+    if (pszText) m_strExpandedInfo = pszText;
+}
+
+void CTaskDialog::SetExpandedControlText(const wchar_t* pszText) {
+    if (pszText) m_strExpandedControlText = pszText;
+}
+
+void CTaskDialog::SetCollapsedControlText(const wchar_t* pszText) {
+    if (pszText) m_strCollapsedControlText = pszText;
+}
+
+void CTaskDialog::SetProgressBarRange(int nMin, int nMax) {
+    m_nProgressMin = nMin;
+    m_nProgressMax = nMax;
+}
+
+void CTaskDialog::SetProgressBarPosition(int nPos) {
+    m_nProgressPos = nPos;
+}
+
+void CTaskDialog::SetProgressBarMarquee(BOOL bMarquee, int nSpeed) {
+    m_bProgressMarquee = bMarquee;
+    (void)nSpeed;
+}
+
+HRESULT CTaskDialog::AddCommandControl(int nCommandID, const wchar_t* pszLabel) {
+    (void)nCommandID; (void)pszLabel;
+    return S_OK;
+}
+
+HRESULT CTaskDialog::AddRadioButton(int nRadioButtonID, const wchar_t* pszLabel) {
+    (void)nRadioButtonID; (void)pszLabel;
+    return S_OK;
+}
+
+HRESULT CTaskDialog::AddPushButton(int nButtonID, const wchar_t* pszLabel) {
+    (void)nButtonID; (void)pszLabel;
+    return S_OK;
+}
+
+int CTaskDialog::DoModal(HWND hWndParent) {
+    // Use TaskDialogIndirect if available (Vista+), otherwise fallback to MessageBox
+    TASKDIALOGCONFIG tc = {};
+    tc.cbSize = sizeof(TASKDIALOGCONFIG);
+    tc.hwndParent = hWndParent;
+    tc.dwFlags = m_nTaskDialogOptions;
+    tc.dwCommonButtons = m_nCommonButtons;
+    tc.pszWindowTitle = m_strWindowTitle;
+    tc.pszMainInstruction = m_strMainInstruction;
+    tc.pszContent = m_strContent;
+    tc.hMainIcon = m_hMainIcon;
+    tc.hFooterIcon = m_hFooterIcon;
+    tc.pszFooter = m_strFooterText.IsEmpty() ? nullptr : (const wchar_t*)m_strFooterText;
+    tc.pszVerificationText = m_strVerificationText.IsEmpty() ? nullptr : (const wchar_t*)m_strVerificationText;
+    tc.pszExpandedInformation = m_strExpandedInfo.IsEmpty() ? nullptr : (const wchar_t*)m_strExpandedInfo;
+    tc.pszExpandedControlText = m_strExpandedControlText.IsEmpty() ? nullptr : (const wchar_t*)m_strExpandedControlText;
+    tc.pszCollapsedControlText = m_strCollapsedControlText.IsEmpty() ? nullptr : (const wchar_t*)m_strCollapsedControlText;
+
+    if (m_nDialogWidth > 0) tc.cxWidth = m_nDialogWidth;
+
+    int nButton = 0;
+    int nRadio = 0;
+    BOOL bVerification = FALSE;
+
+    HRESULT hr = ::TaskDialogIndirect(&tc, &nButton, &nRadio, &bVerification);
+    if (SUCCEEDED(hr)) {
+        m_bVerificationChecked = bVerification;
+        m_nSelectedRadioButtonID = nRadio;
+        return nButton;
+    }
+
+    // Fallback to simple MessageBox
+    UINT uType = MB_OK;
+    if (m_nCommonButtons & CTaskDialog::TDCBF_OK_BUTTON) uType = MB_OK;
+    else if (m_nCommonButtons & CTaskDialog::TDCBF_YES_BUTTON) uType = MB_YESNO;
+    else if (m_nCommonButtons & CTaskDialog::TDCBF_RETRY_BUTTON) uType = MB_RETRYCANCEL;
+
+    int result = ::MessageBoxW(hWndParent, m_strContent, m_strWindowTitle, uType);
+    switch (result) {
+        case IDOK: return IDOK;
+        case IDYES: return IDYES;
+        case IDNO: return IDNO;
+        case IDCANCEL: return IDCANCEL;
+        case IDRETRY: return IDRETRY;
+        default: return IDOK;
+    }
+}

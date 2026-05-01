@@ -303,6 +303,151 @@ protected:
     char _dialogbar_padding[48];
 };
 
+//=============================================================================
+// CSplitterWnd - Splitter Window
+//=============================================================================
+#ifndef AFX_IDW_PANE_FIRST
+#define AFX_IDW_PANE_FIRST 0xE900
+#endif
+
+class CSplitterWnd : public CWnd {
+    DECLARE_DYNAMIC(CSplitterWnd)
+public:
+    CSplitterWnd();
+    virtual ~CSplitterWnd();
+
+    // Creation
+    BOOL Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols, SIZE sizeMin,
+                CCreateContext* pContext = nullptr, DWORD dwStyle = WS_CHILD | WS_VISIBLE,
+                UINT nID = AFX_IDW_PANE_FIRST);
+    BOOL CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
+                      DWORD dwStyle = WS_CHILD | WS_VISIBLE, UINT nID = AFX_IDW_PANE_FIRST);
+    BOOL CreateView(int row, int col, CRuntimeClass* pViewClass, SIZE sizeInit,
+                    CCreateContext* pContext = nullptr);
+
+    // Pane management
+    CWnd* GetPane(int row, int col) const;
+    int GetRowCount() const { return m_nRows; }
+    int GetColumnCount() const { return m_nCols; }
+    void GetRowInfo(int row, int& cyCur, int& cyMin) const;
+    void SetRowInfo(int row, int cyIdeal, int cyMin);
+    void GetColumnInfo(int col, int& cxCur, int& cxMin) const;
+    void SetColumnInfo(int col, int cxIdeal, int cxMin);
+    void RecalcLayout();
+
+    // Splitter bar
+    void SetSplitCursor(int ht);
+    int GetActivePane(int* pRow = nullptr, int* pCol = nullptr) const;
+    void SetActivePane(int row, int col, CWnd* pWnd = nullptr);
+    CWnd* GetActivePane();
+
+    // Scrolling
+    BOOL CanActivateNext(BOOL bPrev = FALSE);
+    void ActivateNext(BOOL bPrev = FALSE);
+    BOOL DoKeyboardSplit();
+
+    // Overrides
+    virtual void OnDrawSplitter(CDC* pDC, int nType, const CRect& rect);
+    virtual void OnInvertTracker(const CRect& rect);
+    virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
+
+public:
+    int m_nRows;
+    int m_nCols;
+    int m_cxSplitter;
+    int m_cySplitter;
+    int m_cxBorderShare;
+    int m_cyBorderShare;
+    int m_cxSplitterGap;
+    int m_cySplitterGap;
+    int m_nMaxRows;
+    int m_nMaxCols;
+    SIZE m_sizeMin;
+    int m_nId;
+    int m_bHasHScroll;
+    int m_bHasVScroll;
+    CWnd* m_pActivePane;
+    int m_nActiveRow;
+    int m_nActiveCol;
+
+protected:
+    char _splitterwnd_padding[128];
+};
+
+//=============================================================================
+// CTaskDialog - Vista+ Task Dialog
+//=============================================================================
+class CTaskDialog {
+public:
+    // Button IDs
+    enum {
+        TDCBF_OK_BUTTON = 0x0001,
+        TDCBF_YES_BUTTON = 0x0002,
+        TDCBF_NO_BUTTON = 0x0004,
+        TDCBF_CANCEL_BUTTON = 0x0008,
+        TDCBF_RETRY_BUTTON = 0x0010,
+        TDCBF_CLOSE_BUTTON = 0x0020
+    };
+
+    CTaskDialog(const wchar_t* pszContent, const wchar_t* pszMainInstruction,
+                const wchar_t* pszWindowTitle, int nCommonButtons = TDCBF_OK_BUTTON,
+                int nTaskDialogOptions = 0);
+    virtual ~CTaskDialog();
+
+    // Configuration
+    void SetDialogWidth(int nWidth = 0);
+    void SetMainIcon(HICON hMainIcon);
+    void SetMainIcon(UINT nMainIconID);
+    void SetFooterIcon(HICON hFooterIcon);
+    void SetFooterText(const wchar_t* pszFooterText);
+    void SetVerificationCheckboxText(const wchar_t* pszText);
+    void SetExpandedInformation(const wchar_t* pszText);
+    void SetExpandedControlText(const wchar_t* pszText);
+    void SetCollapsedControlText(const wchar_t* pszText);
+    void SetProgressBarRange(int nMin, int nMax);
+    void SetProgressBarPosition(int nPos);
+    void SetProgressBarMarquee(BOOL bMarquee = TRUE, int nSpeed = 0);
+
+    // Adding controls
+    HRESULT AddCommandControl(int nCommandID, const wchar_t* pszLabel);
+    HRESULT AddRadioButton(int nRadioButtonID, const wchar_t* pszLabel);
+    HRESULT AddPushButton(int nButtonID, const wchar_t* pszLabel);
+
+    // Display
+    int DoModal(HWND hWndParent = nullptr);
+    BOOL GetVerificationCheckboxState() const { return m_bVerificationChecked; }
+    int GetSelectedCommandControlID() const { return m_nSelectedCommandID; }
+    int GetSelectedRadioButtonID() const { return m_nSelectedRadioButtonID; }
+    BOOL IsExpanded() const { return m_bExpanded; }
+
+public:
+    CString m_strContent;
+    CString m_strMainInstruction;
+    CString m_strWindowTitle;
+    CString m_strFooterText;
+    CString m_strVerificationText;
+    CString m_strExpandedInfo;
+    CString m_strExpandedControlText;
+    CString m_strCollapsedControlText;
+
+    int m_nCommonButtons;
+    int m_nTaskDialogOptions;
+    int m_nDialogWidth;
+    HICON m_hMainIcon;
+    HICON m_hFooterIcon;
+    int m_nProgressMin;
+    int m_nProgressMax;
+    int m_nProgressPos;
+    BOOL m_bProgressMarquee;
+    BOOL m_bVerificationChecked;
+    int m_nSelectedCommandID;
+    int m_nSelectedRadioButtonID;
+    BOOL m_bExpanded;
+
+protected:
+    char _taskdialog_padding[64];
+};
+
 // CDocItem - base for OLE client/server items
 class CDocItem : public CObject {
     DECLARE_DYNAMIC(CDocItem)

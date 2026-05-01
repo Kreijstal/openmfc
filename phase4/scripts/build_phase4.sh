@@ -333,6 +333,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/olecore.cpp"
     "$ROOT/phase4/src/dbcore.cpp"
     "$ROOT/phase4/src/cbarcore.cpp"
+    "$ROOT/phase4/src/viewrich.cpp"
     # Add more implementation files here as they are created
 )
 
@@ -372,6 +373,7 @@ LDLIBS=(
     -luuid
     -loledlg
     -lodbc32
+    -lriched20
 )
 
 # Collect all object files
