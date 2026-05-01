@@ -295,15 +295,15 @@
 
 _These are Visual Studio 2008+ MFC Feature Pack classes — ribbon, docking, visual styles. Lower priority: rarely used by real MFC consumers._
 
-- [ ] **CMFCToolBar** (239) — Feature pack toolbar
-- [ ] **CMFCVisualManager** (157) + Office 2003/2007/XP variants (286)
-- [ ] **CMFCRibbonBar** (132) + Panel (82) + Category (68) + Elements (62)
-- [ ] **Docking system** — CPane (69), CDockablePane (101), CBasePane (64), CDockingManager (73), CPaneFrameWnd (120)
-- [ ] **CMFCPropertyGridCtrl** (111) + CMFCPropertyGridProperty (62)
-- [ ] **CMFCTasksPane** (113)
-- [ ] **CMFCBaseTabCtrl** (100) + CMFCTabCtrl (69)
-- [ ] **CMFCPopupMenu** (90), CMFCButton (66)
-- [ ] **Frame extensions** — CFrameWndEx (75), CMDIFrameWndEx (92), CMDIChildWndEx (80)
+- [x] **CMFCToolBar** (239) — Feature pack toolbar
+- [x] **CMFCVisualManager** (157) + Office 2003/2007/XP variants (286)
+- [x] **CMFCRibbonBar** (132) + Panel (82) + Category (68) + Elements (62)
+- [x] **Docking system** — CPane (69), CDockablePane (101), CBasePane (64), CDockingManager (73), CPaneFrameWnd (120)
+- [x] **CMFCPropertyGridCtrl** (111) + CMFCPropertyGridProperty (62)
+- [x] **CMFCTasksPane** (113)
+- [x] **CMFCBaseTabCtrl** (100) + CMFCTabCtrl (69)
+- [x] **CMFCPopupMenu** (90), CMFCButton (66)
+- [x] **Frame extensions** — CFrameWndEx (75), CMDIFrameWndEx (92), CMDIChildWndEx (80)
 
 ### Impractical — Compiler-generated (~5,900 stubs)
 
