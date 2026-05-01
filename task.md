@@ -179,15 +179,42 @@
 - [x] CSocketFile (CFile interface for sockets - Read, Write)
 - [x] AfxSocketInit (WSAStartup singleton)
 
-### OLE/COM
-- [ ] DECLARE_OLECREATE / IMPLEMENT_OLECREATE
-- [ ] COleControl
-- [ ] COleDocument
+### OLE/COM ✅
+- [x] COleDispatchDriver (CreateDispatch, InvokeHelper with full VARIANT marshaling)
+- [x] COleException / COleDispatchException
+- [x] COleVariant (VARIANT wrapper)
+- [x] COleSafeArray (SafeArray wrapper with Create/Destroy/AccessData)
+- [x] COleCurrency / COleDateTime
+- [x] COleDataObject (IDataObject wrapper, clipboard/enumeration)
+- [x] COleDataSource (Clipboard/drag-drop source)
+- [x] COleDropTarget (RegisterDragDrop/RevokeDragDrop)
+- [x] COleDropSource (QueryContinueDrag/GiveFeedback)
+- [x] COleMessageFilter (OLE busy/retry management, CoRegisterMessageFilter)
+- [x] COleCmdUI
+- [x] COleFrameHook
+- [x] COleResizeBar
+- [x] COleStreamFile (LPSTREAM wrapping, Read/Write/Seek/LockRegion)
+- [x] COlePropertyPage
+- [x] COleDocument / COleLinkingDoc / COleServerDoc
+- [x] COleClientItem (OLE object embedding/linking)
+- [x] COleServerItem
+- [x] COleObjectFactory / COleTemplateServer
+- [x] COleControlSite / COleControlContainer
+- [x] COleControl (ActiveX control base)
+- [x] COleIPFrameWnd
+- [x] OLE Dialogs: COleBusyDialog, COleChangeIconDialog, COleChangeSourceDialog,
+      COleConvertDialog, COleInsertDialog, COleLinksDialog, COlePasteSpecialDialog,
+      COlePropertiesDialog, COleUpdateDialog
+- [x] AfxOleInit/AfxOleTerm (OleInitialize/OleUninitialize)
+- [x] AfxOleLockApp/AfxOleUnlockApp/AfxOleCanExitApp
+- [x] AfxOleRegisterTypeLib/AfxOleUnregisterTypeLib
 
 ### Database
-- [ ] CRecordset
-- [ ] CDatabase
-- [ ] CDaoRecordset
+- [x] CDatabase (ODBC connection: Open/Close/BeginTrans/CommitTrans/Rollback/ExecuteSQL)
+- [x] CRecordset (ODBC record navigation: MoveFirst/Last/Next/Prev, AddNew/Edit/Update/Delete)
+- [x] CDBException
+- [x] CRecordView
+- [x] CFieldExchange
 
 ### Resource Management
 - [x] AfxLoadLibrary / AfxFreeLibrary

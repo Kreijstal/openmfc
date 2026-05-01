@@ -2704,9 +2704,9 @@ protected:
 class CFormView : public CScrollView {
     DECLARE_DYNCREATE(CFormView)
 public:
-    CFormView();
-    CFormView(const wchar_t* lpszTemplateName);
-    CFormView(unsigned int nIDTemplate);
+    CFormView() : CScrollView(), m_lpszTemplateName(nullptr), m_nIDHelp(0) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
+    CFormView(const wchar_t* lpszTemplateName) : CScrollView(), m_lpszTemplateName(lpszTemplateName), m_nIDHelp(0) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
+    CFormView(unsigned int nIDTemplate) : CScrollView(), m_lpszTemplateName(nullptr), m_nIDHelp(nIDTemplate) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
     virtual ~CFormView();
 
     // Creation

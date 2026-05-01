@@ -73,7 +73,7 @@ CScrollView::CScrollView() { impl___0CScrollView__QEAA_XZ(this); }
 CScrollView::~CScrollView() { impl___1CScrollView__UEAA_XZ(this); }
 
 // CFormView constructors
-CFormView::CFormView() { impl___0CFormView__QEAA_XZ(this); }
+// CFormView constructor is inline in the header; extern "C" thunk below if needed
 CFormView::~CFormView() { impl___1CFormView__UEAA_XZ(this); }
 
 // CEditView constructors
