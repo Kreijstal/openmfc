@@ -346,6 +346,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/daocore.cpp"
     "$ROOT/phase4/src/mfccore.cpp"
     "$ROOT/phase4/src/thunks.cpp"
+    "$ROOT/phase4/src/manual_thunks.cpp"
     # Add more implementation files here as they are created
 )
 
