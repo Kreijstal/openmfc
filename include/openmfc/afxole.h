@@ -95,6 +95,214 @@ public:
     char _controlbar_padding[64];
 };
 
+// AFX_IDW_* and CBRS_* constants (must be before CToolBar/CStatusBar usage)
+#ifndef AFX_IDW_TOOLBAR
+#define AFX_IDW_TOOLBAR 0xE800
+#endif
+#ifndef AFX_IDW_STATUS_BAR
+#define AFX_IDW_STATUS_BAR 0xE801
+#endif
+#ifndef AFX_IDW_DIALOGBAR
+#define AFX_IDW_DIALOGBAR 0xE802
+#endif
+#ifndef CBRS_TOP
+#define CBRS_TOP 0x0001
+#define CBRS_BOTTOM 0x0002
+#define CBRS_LEFT 0x0004
+#define CBRS_RIGHT 0x0008
+#define CBRS_ALIGN_ANY 0x000F
+#define CBRS_FLOATING 0x0010
+#define CBRS_SIZE_DYNAMIC 0x0020
+#define CBRS_SIZE_FIXED 0x0040
+#define CBRS_HIDE_INPLACE 0x0080
+#endif
+
+//=============================================================================
+// CToolTipCtrl - Tooltip control (must be before CToolBar)
+//=============================================================================
+class CToolTipCtrl : public CWnd {
+public:
+    CToolTipCtrl() {}
+    virtual ~CToolTipCtrl() {}
+    BOOL Create(CWnd* pParentWnd, DWORD dwStyle = 0);
+    BOOL AddTool(CWnd* pWnd, const wchar_t* pszText, LPCRECT lpRectTool = nullptr, UINT_PTR nIDTool = 0);
+    void UpdateTipText(const wchar_t* pszText, CWnd* pWnd, UINT_PTR nIDTool = 0);
+    void Activate(BOOL bActivate = TRUE);
+    void SetMaxTipWidth(int iWidth);
+    int GetText(CWnd* pWnd, UINT_PTR nIDTool, wchar_t* pszText, int cchMax) const;
+    char _tooltip_padding[64];
+};
+
+//=============================================================================
+// CToolBar - Toolbar Control Bar
+//=============================================================================
+class CToolBar : public CControlBar {
+    DECLARE_DYNAMIC(CToolBar)
+public:
+    CToolBar();
+    virtual ~CToolBar();
+
+    // Creation
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP,
+                        UINT nID = AFX_IDW_TOOLBAR);
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle = TBSTYLE_FLAT,
+                          DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP,
+                          CRect rcBorders = CRect(0, 0, 0, 0),
+                          UINT nID = AFX_IDW_TOOLBAR);
+
+    // Loading
+    BOOL LoadToolBar(UINT nIDResource);
+    BOOL LoadToolBar(const wchar_t* lpszResourceName);
+    BOOL LoadBitmap(UINT nIDResource);
+    BOOL LoadBitmap(const wchar_t* lpszResourceName);
+
+    // Button management
+    BOOL SetButtons(const UINT* lpIDArray, int nIDCount);
+    BOOL SetButtonInfo(int nIndex, UINT nID, UINT nStyle, int iImage);
+    void GetButtonInfo(int nIndex, UINT& nID, UINT& nStyle, int& iImage) const;
+    int CommandToIndex(UINT nIDFind) const;
+    UINT GetItemID(int nIndex) const;
+    void GetItemRect(int nIndex, LPRECT lpRect) const;
+    int GetButtonCount() const { return m_nCount; }
+
+    // Sizing
+    void SetSizes(SIZE sizeButton, SIZE sizeImage);
+    CSize GetButtonSize() const;
+    SIZE GetToolBarCtrlSize() const;
+    void SetHeight(int cyHeight);
+    int GetHeight() const;
+
+    // Appearance
+    void SetButtonStyle(int nIndex, UINT nStyle);
+    UINT GetButtonStyle(int nIndex) const;
+    void SetButtonText(int nIndex, const wchar_t* lpszText);
+    CString GetButtonText(int nIndex) const;
+    void GetButtonText(int nIndex, CString& rString) const;
+    BOOL SetBitmap(HBITMAP hbmImageWell);
+
+    // Tooltip support
+    void SetToolTips(CToolTipCtrl* pToolTip);
+    CToolTipCtrl* GetToolTips() const;
+
+    // Docking support
+    void EnableDocking(DWORD dwDockStyle);
+    void DockControlBar(UINT nBarID, DWORD dwFlags = 0);
+
+    // State
+    BOOL IsVisible() const;
+    BOOL IsFloating() const;
+    DWORD GetBarStyle() const { return m_dwStyle; }
+    void SetBarStyle(DWORD dwStyle) { m_dwStyle = dwStyle; }
+
+    // Internal access
+    HWND GetToolBarCtrl() const { return m_hWnd; }
+
+    // Toolbar buttons structure
+    struct TBBUTTON {
+        int iBitmap;
+        int idCommand;
+        BYTE fsState;
+        BYTE fsStyle;
+        DWORD_PTR dwData;
+        INT_PTR iString;
+    };
+
+public:
+    int m_nCount;
+    SIZE m_sizeButton;
+    SIZE m_sizeImage;
+    HBITMAP m_hbmImageWell;
+    CToolTipCtrl* m_pToolTip;
+    CWnd* m_pDockBar;
+    CWnd* m_pDockSite;
+    void* m_pDockContext;
+    BOOL m_bInRecalcLayout;
+    BOOL m_bDelayedButtonLayout;
+
+protected:
+    char _toolbar_padding[128];
+};
+
+//=============================================================================
+// CStatusBar - Status Bar Control Bar
+//=============================================================================
+class CStatusBar : public CControlBar {
+    DECLARE_DYNAMIC(CStatusBar)
+public:
+    CStatusBar();
+    virtual ~CStatusBar();
+
+    // Creation
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_BOTTOM,
+                        UINT nID = AFX_IDW_STATUS_BAR);
+
+    // Pane management
+    BOOL SetIndicators(const UINT* lpIDArray, int nIDCount);
+    BOOL SetPaneInfo(int nIndex, UINT nID, UINT nStyle, int cxWidth);
+    void GetPaneInfo(int nIndex, UINT& nID, UINT& nStyle, int& cxWidth) const;
+    int CommandToIndex(UINT nIDFind) const;
+    UINT GetItemID(int nIndex) const;
+    void GetItemRect(int nIndex, LPRECT lpRect) const;
+    int GetCount() const { return m_nCount; }
+
+    // Text and appearance
+    BOOL SetPaneText(int nIndex, const wchar_t* lpszNewText, BOOL bUpdate = TRUE);
+    CString GetPaneText(int nIndex) const;
+    void GetPaneText(int nIndex, CString& rString) const;
+    void SetPaneStyle(int nIndex, UINT nStyle);
+    UINT GetPaneStyle(int nIndex) const;
+
+    // Sizing
+    CSize GetPaneSize(int nIndex) const;
+    CSize GetBorders() const;
+
+    // Tooltip
+    void SetToolTips(CToolTipCtrl* pToolTip);
+    CToolTipCtrl* GetToolTips() const;
+
+    // Docking
+    void EnableDocking(DWORD dwDockStyle);
+    BOOL IsSimple() const;
+
+public:
+    int m_nCount;
+    UINT* m_pData;
+    int m_cxLeftBorder;
+    int m_cxRightBorder;
+    CToolTipCtrl* m_pToolTip;
+
+protected:
+    char _statusbar_padding[96];
+};
+
+//=============================================================================
+// CDialogBar - Dialog-based Control Bar
+//=============================================================================
+class CDialogBar : public CControlBar {
+    DECLARE_DYNAMIC(CDialogBar)
+public:
+    CDialogBar();
+    virtual ~CDialogBar();
+
+    // Creation
+    virtual BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle,
+                        UINT nID = AFX_IDW_DIALOGBAR);
+    virtual BOOL Create(CWnd* pParentWnd, const wchar_t* lpszTemplateName,
+                        UINT nStyle, UINT nID = AFX_IDW_DIALOGBAR);
+
+    // Dialog data
+    void UpdateData(BOOL bSaveAndValidate = TRUE);
+    BOOL IsVisible() const;
+    void SetOccDialogInfo(void* pDialogInfo);
+
+public:
+    BOOL m_bAutoDelete;
+    void* m_pOccDialogInfo;
+
+protected:
+    char _dialogbar_padding[48];
+};
+
 // CDocItem - base for OLE client/server items
 class CDocItem : public CObject {
     DECLARE_DYNAMIC(CDocItem)

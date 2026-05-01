@@ -257,9 +257,9 @@
 
 ### Tier 1 — High Impact, Moderate Effort (~1,600 stubs)
 
-- [ ] **CToolBar** (1,047) — Toolbar creation, button management, docking, LoadToolBar
-- [ ] **CStatusBar** (127) — Status bar panes, indicators, SetPaneText
-- [ ] **CDialogBar** (11) — Dialog-based control bar
+- [x] **CToolBar** (1,047) — Toolbar creation, LoadToolBar, SetButtons, SetButtonInfo, GetItemRect, SetSizes, etc.
+- [x] **CStatusBar** (127) — Status bar: Create, SetIndicators, SetPaneText/GetPaneText, SetPaneInfo, CommandToIndex
+- [x] **CDialogBar** (11) — Dialog-based control bar: Create with dialog template, UpdateData
 - [ ] **CRichEditView** (115) — Rich edit 2.0 view with formatting, printing
 - [ ] **CHtmlView** (103) — WebBrowser control-based view
 - [ ] **CDHtmlDialog** (105) — DHTML-based dialog

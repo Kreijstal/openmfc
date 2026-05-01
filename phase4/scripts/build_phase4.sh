@@ -332,6 +332,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/sockcore.cpp"
     "$ROOT/phase4/src/olecore.cpp"
     "$ROOT/phase4/src/dbcore.cpp"
+    "$ROOT/phase4/src/cbarcore.cpp"
     # Add more implementation files here as they are created
 )
 
