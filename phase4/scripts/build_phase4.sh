@@ -221,6 +221,14 @@ python3 "$ROOT/tools/gen_weak_stubs.py" \
 # Remove the "; Total exports:" comment line if present (causes .def syntax errors)
 sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
 
+# Generate TYPED stubs (replaces generic void() stubs with properly-typed ones)
+echo ""
+echo "[1b/4] Generating typed stubs..."
+python3 "$ROOT/tools/gen_typed_stubs.py" \
+    --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
+    --out "$BUILD/typed_stubs.cpp" \
+    --exclude "$EXCLUDED_SYMBOLS"
+
 # Add OpenMFC-specific exports (static class members with MSVC-mangled names)
 # These use the .def alias syntax (MSVC_name=GCC_name) to export MSVC-compatible
 # names from GCC-mangled internal symbols. DATA is required so MSVC import libs
@@ -307,7 +315,7 @@ python3 "$ROOT/tools/gen_rtti.py" \
 # Step 3: Compile everything
 echo ""
 echo "[3/4] Compiling..."
-"$CXX" "${CFLAGS[@]}" -c "$BUILD/weak_stubs.cpp" -o "$BUILD/weak_stubs.o"
+"$CXX" "${CFLAGS[@]}" -c "$BUILD/typed_stubs.cpp" -o "$BUILD/typed_stubs.o"
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
 
 # Compile implementation files
@@ -381,7 +389,7 @@ LDLIBS=(
 # Collect all object files
 OBJ_FILES=(
     "$BUILD/generated_rtti.o"
-    "$BUILD/weak_stubs.o"
+    "$BUILD/typed_stubs.o"
 )
 
 # Add implementation object files
