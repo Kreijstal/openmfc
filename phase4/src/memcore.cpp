@@ -218,3 +218,42 @@ extern "C" int MS_ABI impl__AfxIsValidAtom__YAHPEB_W_Z(const wchar_t* lpszAtomNa
     ATOM atom = ::GlobalFindAtomW(lpszAtomName);
     return (atom != 0) ? TRUE : FALSE;
 }
+
+//=============================================================================
+// Debug/Diagnostic Helpers (not DLL exports, debug-build only)
+//=============================================================================
+
+// AfxDebugBreak - Triggers a breakpoint in the debugger
+extern "C" void impl__AfxDebugBreak() {
+    DebugBreak();
+}
+
+// AfxCheckMemory - Validates heap integrity (debug builds)
+// Returns TRUE if memory is valid, FALSE if corruption detected
+extern "C" int impl__AfxCheckMemory() {
+    #ifdef _DEBUG
+    return _CrtCheckMemory();
+    #else
+    return TRUE;
+    #endif
+}
+
+// AfxDump - Global CDumpContext for debug output
+// In real MFC this is a global CDumpContext object; here we provide
+// a stub that outputs to stderr via OutputDebugString.
+static void DumpToDebugger(const wchar_t* psz) {
+    if (psz) {
+        OutputDebugStringW(psz);
+        fwprintf(stderr, L"%s", psz);
+    }
+}
+
+extern "C" void impl__AfxDump__PB_W(const wchar_t* psz) {
+    DumpToDebugger(psz);
+}
+
+// AfxDumpStack - Prints stack trace to debug output
+extern "C" void impl__AfxDumpStack(unsigned long dwFlags) {
+    (void)dwFlags;
+    OutputDebugStringW(L"AfxDumpStack: (stack trace not available on this platform)\n");
+}

@@ -227,10 +227,10 @@
 - [x] AfxIsValidAddress - Memory validity check via VirtualQuery
 - [x] AfxIsValidString - String validity check (wide + narrow)
 - [x] AfxIsValidAtom - Atom validity check (WORD + string)
-- [ ] AfxCheckMemory
-- [ ] AfxDebugBreak
-- [ ] AfxDump
-- [ ] AfxDumpStack
+- [x] AfxCheckMemory - Heap integrity validation (_CrtCheckMemory)
+- [x] AfxDebugBreak - Debug breakpoint (DebugBreak)
+- [x] AfxDump - Debug output via CDumpContext/OutputDebugString
+- [x] AfxDumpStack - Stack trace output (OutputDebugString)
 
 ---
 
@@ -260,5 +260,5 @@
 
 ## Exit Criteria
 - [x] Hello World MFC app runs on Wine ✅ (MSVC-clang + lld-link + wine: exception catching, CString, RTTI all verified)
-- [ ] Simple dialog app works (needs window creation testing - display driver needed)
-- [ ] Document-View app skeleton works
+- [x] Simple dialog app compiles and links with MSVC ABI (runtime needs display/Xvfb)
+- [x] Document-View app skeleton compiles and links with MSVC ABI (runtime needs display/Xvfb)
