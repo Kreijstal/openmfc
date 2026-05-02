@@ -428,17 +428,6 @@ extern "C" int MS_ABI impl__CreateStream_COleStreamFile__QEAAHPEAUIStorage__PEB_
     return 0;
 }
 
-// Symbol: ?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
-extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-}
-
 // Symbol: ?Detach@COleSafeArray@@QEAA?AUtagVARIANT@@XZ
 extern "C" void* MS_ABI impl__Detach_COleSafeArray__QEAA_AUtagVARIANT__XZ(void* pThis, void* p0) {
     (void)pThis;
@@ -1214,13 +1203,6 @@ extern "C" void MS_ABI impl__InvalidateControl_COleControl__QEAAXPEBUtagRECT__H_
     (void)p1;
 }
 
-// Symbol: ?IsFieldNullable@CRecordset@@QEBAHK@Z
-extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
-}
-
 // Symbol: ?LoadToolBar@CMFCToolBar@@UEAAHIIIHIII@Z
 extern "C" int MS_ABI impl__LoadToolBar_CMFCToolBar__UEAAHIIIHIII_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6) {
     (void)pThis;
@@ -1618,17 +1600,6 @@ extern "C" int MS_ABI impl__OnSetObjectRects_COleControl__UEAAHPEBUtagRECT__0_Z(
     (void)pThis;
     (void)p0;
     (void)p1;
-    return 0;
-}
-
-// Symbol: ?Open@CDatabase@@UEAAHPEB_WHH0H@Z
-extern "C" int MS_ABI impl__Open_CDatabase__UEAAHPEB_WHH0H_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
     return 0;
 }
 
@@ -2114,4 +2085,4 @@ extern "C" void MS_ABI impl__UpdateTipText_CToolTipCtrl__QEAAXIPEAVCWnd___K_Z(vo
     (void)p2;
 }
 
-// Generated 228 manual thunks
+// Generated 225 manual thunks

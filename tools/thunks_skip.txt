@@ -44,7 +44,6 @@
 ?CreateLocator@CGopherConnection@@SA?AVCGopherLocator@@PEB_W00KG@Z
 ?CreateLocator@CGopherConnection@@SA?AVCGopherLocator@@PEB_W@Z
 ?CreateStream@COleStreamFile@@QEAAHPEAUIStorage@@PEB_WKPEAVCFileException@@@Z
-?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
 ?Detach@COleSafeArray@@QEAA?AUtagVARIANT@@XZ
 ?DoModal@COleInsertDialog@@QEAA_JK@Z
 ?DoVerb@COleClientItem@@UEAAHJPEAVCView@@PEAUtagMSG@@@Z
@@ -131,7 +130,6 @@
 ?GetWindow@XOleIPSite@COleControlSite@@UEAAJPEAPEAUHWND__@@@Z
 ?GetWindowMenuPopup@CMDIFrameWnd@@UEAAPEAUHMENU__@@PEAU2@@Z
 ?InvalidateControl@COleControl@@QEAAXPEBUtagRECT@@H@Z
-?IsFieldNullable@CRecordset@@QEBAHK@Z
 ?LoadToolBar@CMFCToolBar@@UEAAHIIIHIII@Z
 ?LockRange@COleStreamFile@@UEAAX_K0@Z
 ?MatchDocType@CDocTemplate@@UEAA?AW4Confidence@1@PEB_WAEAPEAVCDocument@@@Z
@@ -173,7 +171,6 @@
 ?OnSetExtent@COleControl@@UEAAHPEAUtagSIZE@@@Z
 ?OnSetFont@CDialog@@UEAAXPEAVCFont@@@Z
 ?OnSetObjectRects@COleControl@@UEAAHPEBUtagRECT@@0@Z
-?Open@CDatabase@@UEAAHPEB_WHH0H@Z
 ?OpenDocumentFile@CMultiDocTemplate@@UEAAPEAVCDocument@@PEB_WHH@Z
 ?OpenDocumentFile@CSingleDocTemplate@@UEAAPEAVCDocument@@PEB_WHH@Z
 ?OpenFile@CGopherConnection@@QEAAPEAVCGopherFile@@AEAVCGopherLocator@@KPEB_W_K@Z

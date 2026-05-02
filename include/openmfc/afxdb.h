@@ -59,6 +59,10 @@ public:
     BOOL Open(const wchar_t* lpszDSN, BOOL bExclusive = FALSE,
               BOOL bReadOnly = FALSE, const wchar_t* lpszConnect = L"ODBC;",
               BOOL bUseCursorLib = TRUE);
+    BOOL Open(const wchar_t* lpszDSN, int bExclusive, int bReadOnly,
+              void* lpszConnect, int bUseCursorLib)
+        { return Open(lpszDSN, (BOOL)bExclusive, (BOOL)bReadOnly,
+                      (const wchar_t*)lpszConnect, (BOOL)bUseCursorLib); }
     void Close();
     BOOL IsOpen() const { return m_hdbc != SQL_NULL_HDBC; }
 
@@ -118,7 +122,7 @@ public:
 
     BOOL IsFieldType(UINT* pnField);
     void SetFieldType(UINT* pnField);
-    void Default(const wchar_t* lpszName, void* pv, int* pnLen, int nSQLType, int nLen, int nPrecision, int nScale);
+    void Default(const wchar_t* lpszName, void* pv, __int64* pnLen, int nSQLType, unsigned __int64 nLen, void* pvPrecision);
     void SetNull(const wchar_t* lpszName);
 
 public:
@@ -151,7 +155,7 @@ public:
     BOOL IsDeleted() const;
     BOOL IsFieldDirty(void* pvField);
     BOOL IsFieldNull(void* pvField);
-    BOOL IsFieldNullable(void* pvField);
+    BOOL IsFieldNullable(unsigned long dwField);
 
     // Navigation
     virtual void MoveFirst();

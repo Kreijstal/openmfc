@@ -976,6 +976,12 @@ extern "C" int MS_ABI impl__CreateView_CSplitterWnd__UEAAHHHPEAUCRuntimeClass__U
     return (int)pThis->CreateView(p0, p1, p2, p3, p4);
 }
 
+// Symbol: ?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
+// CFieldExchange::Default
+extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(CFieldExchange* pThis, const wchar_t* p0, void* p1, __int64* p2, int p3, unsigned __int64 p4, void* p5) {
+    pThis->Default(p0, p1, p2, p3, p4, p5);
+}
+
 // Symbol: ?DelayRenderData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
 // COleDataSource::DelayRenderData
 extern "C" void MS_ABI impl__DelayRenderData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, FORMATETC* p1) {
@@ -1760,6 +1766,12 @@ extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z(CRecordset* 
     return (int)pThis->IsFieldNullable(p0);
 }
 
+// Symbol: ?IsFieldNullable@CRecordset@@QEBAHK@Z
+// CRecordset::IsFieldNullable
+extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(const CRecordset* pThis, unsigned long p0) {
+    return (int)pThis->IsFieldNullable(p0);
+}
+
 // Symbol: ?IsFieldType@CFieldExchange@@QEAAHPEAI@Z
 // CFieldExchange::IsFieldType
 extern "C" int MS_ABI impl__IsFieldType_CFieldExchange__QEAAHPEAI_Z(CFieldExchange* pThis, unsigned int* p0) {
@@ -2471,6 +2483,12 @@ extern "C" int MS_ABI impl__OnWizardFinish_CPropertyPage__UEAAHXZ(CPropertyPage*
 // CPropertyPage::OnWizardNext
 extern "C" __int64 MS_ABI impl__OnWizardNext_CPropertyPage__UEAA_JXZ(CPropertyPage* pThis) {
     return (__int64)pThis->OnWizardNext();
+}
+
+// Symbol: ?Open@CDatabase@@UEAAHPEB_WHH0H@Z
+// CDatabase::Open
+extern "C" int MS_ABI impl__Open_CDatabase__UEAAHPEB_WHH0H_Z(CDatabase* pThis, const wchar_t* p0, int p1, int p2, void* p3, int p4) {
+    return (int)pThis->Open(p0, p1, p2, p3, p4);
 }
 
 // Symbol: ?Open@CRecordset@@UEAAHIPEB_WK@Z
@@ -3308,5 +3326,5 @@ extern "C" void MS_ABI impl__WriteString_CStdioFile__UEAAXPEB_W_Z(CStdioFile* pT
     pThis->WriteString(p0);
 }
 
-// Generated 544 thunks
+// Generated 547 thunks
 // Errors (could not parse): 4498

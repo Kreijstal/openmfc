@@ -188,10 +188,10 @@ void CFieldExchange::SetFieldType(UINT* pnField) {
     (void)pnField;
 }
 
-void CFieldExchange::Default(const wchar_t* lpszName, void* pv, int* pnLen,
-                              int nSQLType, int nLen, int nPrecision, int nScale) {
+void CFieldExchange::Default(const wchar_t* lpszName, void* pv, __int64* pnLen,
+                              int nSQLType, unsigned __int64 nLen, void* pvPrecision) {
     (void)lpszName; (void)pv; (void)pnLen;
-    (void)nSQLType; (void)nLen; (void)nPrecision; (void)nScale;
+    (void)nSQLType; (void)nLen; (void)pvPrecision;
 }
 
 void CFieldExchange::SetNull(const wchar_t* lpszName) {
@@ -285,8 +285,8 @@ BOOL CRecordset::IsFieldNull(void* pvField) {
     return FALSE;
 }
 
-BOOL CRecordset::IsFieldNullable(void* pvField) {
-    (void)pvField;
+BOOL CRecordset::IsFieldNullable(unsigned long dwField) {
+    (void)dwField;
     return TRUE;
 }
 
