@@ -218,7 +218,7 @@ void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ
 void CScrollView::OnDraw(void* pDC) { impl__OnDraw_CScrollView__UEAAXPEAX_Z(this, pDC); }
 void CScrollView::OnUpdate(CView* pSender, unsigned long lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
 
-void CScrollView::GetScrollBarSizes(SIZE& sizeSb) const {
+void CScrollView::GetScrollBarSizes(SIZE& sizeSb) {
     sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
     sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
 }

@@ -49,6 +49,7 @@ class FuncInfo:
     is_static: bool = False
     is_virtual: bool = False
     is_const_method: bool = False
+    success: bool = False   # True if the demangler successfully parsed the symbol
 
 
 # Module-level flag: when True, V/U/W4 handlers try to resolve type names.
@@ -125,6 +126,7 @@ def _parse_params(s: str, pos: int) -> Tuple[List[ParamInfo], int]:
     """Parse parameter list starting at pos. Returns (params, new_pos).
     Stops at @Z or Z (end of function) or end of string."""
     params = []
+    type_table = []  # MSVC back-reference table (index 0 = first unique type)
     
     while pos < len(s):
         c = s[pos]
@@ -147,10 +149,26 @@ def _parse_params(s: str, pos: int) -> Tuple[List[ParamInfo], int]:
             if nxt in ('A', 'E'):
                 is_ref = True
         
-        # Parse one parameter type
-        param_str, pos = _parse_one_type(s, pos)
-        if param_str and param_str != 'void':
-            params.append(ParamInfo(c_type=param_str, is_reference=is_ref))
+        # Back-reference (0-9): reuse a type from the type table
+        if c.isdigit():
+            ref_idx = int(c)
+            if ref_idx < len(type_table):
+                ref_type, ref_is_ref = type_table[ref_idx]
+                params.append(ParamInfo(c_type=ref_type, is_reference=ref_is_ref))
+            else:
+                # Back-reference to unknown type — fall back to void*
+                params.append(ParamInfo(c_type='void*', is_reference=False))
+            pos += 1
+        else:
+            # Parse one parameter type
+            param_str, pos = _parse_one_type(s, pos)
+            if param_str and param_str != 'void':
+                params.append(ParamInfo(c_type=param_str, is_reference=is_ref))
+                # Add to type table for back-reference resolution
+                # Only add if not already in table (MSVC deduplicates)
+                entry = (param_str, is_ref)
+                if entry not in type_table:
+                    type_table.append(entry)
         
         # Skip @ separators between params
         while pos < len(s) and s[pos] == '@':
@@ -292,6 +310,7 @@ def demangle(symbol: str) -> FuncInfo:
         data_match = re.search(r'@@([0-9])([A-Z][A-Z0-9_]*)', symbol)
         if data_match:
             result.is_data = True
+            result.success = True
             type_code = data_match.group(2)
             if type_code.startswith('I'): result.data_type = 'unsigned int'
             elif type_code.startswith('H'): result.data_type = 'int'
@@ -307,11 +326,16 @@ def demangle(symbol: str) -> FuncInfo:
     # Pattern: @@YA..., @@QE..., @@UE..., @@SA..., @@SE..., @@YG..., @@YI...
     # The boundary @@ is followed by [YQUS] [AEIG] 
     
-    cc_pattern = re.compile(r'@@([YQUS])([AEIG])')
+    # Access: Q=public, A=private, C=protected, I=internal, E=private virtual,
+    #         M=protected virtual, S=static, U=public virtual, Y=global,
+    #         K=static __based/__ptr64
+    # Convention: A=x64, E=x64 virtual, G=vectorcall, I=clrcall
+    # Single-letter legacy: Q=member, U=virtual, S=static
+    cc_pattern = re.compile(r'@@([YQUSIMACEBK])([AEIG]?)')
     match = cc_pattern.search(symbol)
     if not match:
-        # Try older style: @@Q..., @@U..., @@S... (single letter)
-        cc_pattern2 = re.compile(r'@@([QUS])([^@A-Za-z]|$)')
+        # Try older style / operators without @@: ?name@YA..., ??N@YA...
+        cc_pattern2 = re.compile(r'(?:@|@@)([YQUSIMACEBK])([AEIG]?)')
         match = cc_pattern2.search(symbol)
     
     if not match:
@@ -325,7 +349,9 @@ def demangle(symbol: str) -> FuncInfo:
     cc_found = False
     
     # Two-letter markers
-    two_letter = ['YA', 'YG', 'YI', 'QE', 'UE', 'SE', 'SA']
+    two_letter = ['YA', 'YG', 'YI', 'QE', 'UE', 'SE', 'SA', 'IE', 'ME',
+                  'AE', 'AA', 'CE', 'CA', 'EE', 'EA',
+                  'KE', 'KA', 'KI', 'KG']
     for marker in two_letter:
         if tail.startswith(marker):
             pos = len(marker)
@@ -333,8 +359,8 @@ def demangle(symbol: str) -> FuncInfo:
             break
     
     if not cc_found:
-        # Single-letter markers: Q, U, S
-        if tail and tail[0] in 'QUS':
+        # Single-letter markers: Q, U, S, A, B, C, E, I, M, K
+        if tail and tail[0] in 'QUSABCEIMK':
             pos = 1
             cc_found = True
     
@@ -343,7 +369,7 @@ def demangle(symbol: str) -> FuncInfo:
     
     # Set flags based on calling convention
     matched_cc = tail[:pos]
-    if matched_cc.startswith('S'):
+    if matched_cc.startswith('S') or matched_cc.startswith('K'):
         result.is_static = True
     if matched_cc.startswith('U'):
         result.is_virtual = True
@@ -368,6 +394,7 @@ def demangle(symbol: str) -> FuncInfo:
     # Parse parameters
     result.params, _ = _parse_params(tail, pos)
     
+    result.success = True
     return result
 
 

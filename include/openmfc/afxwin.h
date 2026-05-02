@@ -795,10 +795,10 @@ public:
     // Modal/Modeless
     virtual intptr_t DoModal();
     virtual int Create(CWnd* pParentWnd = nullptr, unsigned long dwStyle = 0xFFFFFFFF, unsigned long dwExStyle = 0);
+    virtual int OnInitDialog();
 
 protected:
     // Overridables
-    virtual int OnInitDialog();
     virtual void OnPageChanged();
 
 public:
@@ -894,7 +894,7 @@ public:
     void SetCurrentColor(unsigned long clr);
     
     // Color customization
-    void* GetSavedCustomColors();
+    static unsigned long* GetSavedCustomColors();
     
 protected:
     unsigned long m_clrInit;
@@ -2717,7 +2717,7 @@ public:
     virtual void SetScrollSizes(int nMapMode, const SIZE& sizeTotal,
                                 const SIZE& sizePage = {0, 0},
                                 const SIZE& sizeLine = {0, 0});
-    virtual void GetScrollBarSizes(SIZE& sizeSb) const;
+    virtual void GetScrollBarSizes(SIZE& sizeSb);
     virtual void GetTrueClientSize(SIZE& size, SIZE& sizeSb) const;
     
     virtual void ScrollToPosition(POINT pt);

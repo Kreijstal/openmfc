@@ -88,17 +88,6 @@ extern "C" void* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCateg
     return nullptr;
 }
 
-// Symbol: ?AddCommandControl@CTaskDialog@@QEAAXHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z
-extern "C" void MS_ABI impl__AddCommandControl_CTaskDialog__QEAAXHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-}
-
 // Symbol: ?AddFormat@CEnumFormatEtc@@QEAAXPEBUtagFORMATETC@@@Z
 extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(void* pThis, void* p0) {
     (void)pThis;
@@ -137,26 +126,6 @@ extern "C" int MS_ABI impl__AddProperty_CMFCPropertyGridCtrl__QEAAHPEAVCMFCPrope
     (void)p0;
     (void)p1;
     (void)p2;
-    return 0;
-}
-
-// Symbol: ?AddRadioButton@CTaskDialog@@QEAAXHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
-extern "C" void MS_ABI impl__AddRadioButton_CTaskDialog__QEAAXHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-}
-
-// Symbol: ?AddRequestHeaders@CHttpFile@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@K@Z
-extern "C" int MS_ABI impl__AddRequestHeaders_CHttpFile__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
     return 0;
 }
 
@@ -216,6 +185,7 @@ extern "C" int MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__IPEBUtagRECT___
 }
 
 // Symbol: ?AmbientDisplayName@COleControl@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+// Note: our C++ method is BOOL AmbientDisplayName(CString&) but MSVC exports CString AmbientDisplayName()
 extern "C" void* MS_ABI impl__AmbientDisplayName_COleControl__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
     (void)pThis;
     (void)p0;
@@ -224,13 +194,8 @@ extern "C" void* MS_ABI impl__AmbientDisplayName_COleControl__QEAA_AV__CStringT_
     return nullptr;
 }
 
-// Symbol: ?AmbientLocaleID@COleControl@@QEAAKXZ
-extern "C" unsigned long MS_ABI impl__AmbientLocaleID_COleControl__QEAAKXZ(void* unused) {
-    (void)unused;
-    return 0UL;
-}
-
 // Symbol: ?AmbientScaleUnits@COleControl@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+// Note: our C++ method is BOOL AmbientScaleUnits(CString&) but MSVC exports CString AmbientScaleUnits()
 extern "C" void* MS_ABI impl__AmbientScaleUnits_COleControl__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
     (void)pThis;
     (void)p0;
@@ -520,33 +485,8 @@ extern "C" void* MS_ABI impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(
     return nullptr;
 }
 
-// Symbol: ?GetActiveView@COleDocObjectItem@@QEBAPEAUIOleDocumentView@@XZ
-extern "C" void* MS_ABI impl__GetActiveView_COleDocObjectItem__QEBAPEAUIOleDocumentView__XZ(void* unused) {
-    (void)unused;
-    return nullptr;
-}
-
 // Symbol: ?GetButtonInfo@CToolBar@@QEBAXHAEAI0AEAH@Z
 extern "C" void MS_ABI impl__GetButtonInfo_CToolBar__QEBAXHAEAI0AEAH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-}
-
-// Symbol: ?GetButtonText@CToolBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
-extern "C" void* MS_ABI impl__GetButtonText_CToolBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return nullptr;
-}
-
-// Symbol: ?GetButtonText@CToolBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
     (void)pThis;
     (void)p0;
     (void)p1;
@@ -600,31 +540,6 @@ extern "C" unsigned long MS_ABI impl__GetDefaultCharFormat_CRichEditCtrl__QEBAKA
     (void)pThis;
     (void)p0;
     return 0UL;
-}
-
-// Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4DocStringIndex@1@@Z
-extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4DocStringIndex_1__Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-    (void)p6;
-    (void)p7;
-    (void)p8;
-    (void)p9;
-    (void)p10;
-    (void)p11;
-    (void)p12;
-    (void)p13;
-    (void)p14;
-    (void)p15;
-    (void)p16;
-    (void)p17;
-    (void)p18;
-    return 0;
 }
 
 // Symbol: ?GetElement@CDHtmlDialog@@QEAAJPEB_WPEAPEAUIDispatch@@PEAH@Z
@@ -707,12 +622,6 @@ extern "C" void* MS_ABI impl__GetHttpConnection_CInternetSession__QEAAPEAVCHttpC
     return nullptr;
 }
 
-// Symbol: ?GetHwnd@COleControl@@QEAAIXZ
-extern "C" unsigned int MS_ABI impl__GetHwnd_COleControl__QEAAIXZ(void* unused) {
-    (void)unused;
-    return 0u;
-}
-
 // Symbol: ?GetLastAccessTime@CFileFind@@UEBAHAEAVCTime@ATL@@@Z
 extern "C" int MS_ABI impl__GetLastAccessTime_CFileFind__UEBAHAEAVCTime_ATL___Z(void* pThis, void* p0) {
     (void)pThis;
@@ -735,37 +644,8 @@ extern "C" int MS_ABI impl__GetLine_CRichEditCtrl__QEBAHHPEA_W_Z(void* pThis, vo
     return 0;
 }
 
-// Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
-extern "C" void* MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAU__POSITION___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return nullptr;
-}
-
 // Symbol: ?GetPaneInfo@CStatusBar@@QEBAXHAEAI0AEAH@Z
 extern "C" void MS_ABI impl__GetPaneInfo_CStatusBar__QEBAXHAEAI0AEAH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-}
-
-// Symbol: ?GetPaneText@CStatusBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
-extern "C" void* MS_ABI impl__GetPaneText_CStatusBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return nullptr;
-}
-
-// Symbol: ?GetPaneText@CStatusBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
     (void)pThis;
     (void)p0;
     (void)p1;
@@ -778,16 +658,6 @@ extern "C" unsigned long MS_ABI impl__GetParaFormat_CRichEditCtrl__QEBAKAEAU_par
     (void)pThis;
     (void)p0;
     return 0UL;
-}
-
-// Symbol: ?GetPeerName@CAsyncSocket@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
-extern "C" int MS_ABI impl__GetPeerName_CAsyncSocket__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
 }
 
 // Symbol: ?GetProperty@COleControlSite@@UEBAXJGPEAX@Z
@@ -824,12 +694,6 @@ extern "C" void MS_ABI impl__GetRowInfo_CSplitterWnd__QEBAXHAEAH0_Z(void* pThis,
     (void)p2;
 }
 
-// Symbol: ?GetSavedCustomColors@CColorDialog@@SAPEAKXZ
-extern "C" void* MS_ABI impl__GetSavedCustomColors_CColorDialog__SAPEAKXZ(void* unused) {
-    (void)unused;
-    return nullptr;
-}
-
 // Symbol: ?GetScrollPosition@CScrollView@@QEBA?AVCPoint@@XZ
 extern "C" void* MS_ABI impl__GetScrollPosition_CScrollView__QEBA_AVCPoint__XZ(void* pThis, void* p0) {
     (void)pThis;
@@ -844,29 +708,11 @@ extern "C" void MS_ABI impl__GetSel_CRichEditCtrl__QEBAXAEAJ0_Z(void* pThis, voi
     (void)p1;
 }
 
-// Symbol: ?GetSelectedText@CEditView@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__GetSelectedText_CEditView__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-}
-
 // Symbol: ?GetSelectionCharFormat@CRichEditCtrl@@QEBAKAEAU_charformatw@@@Z
 extern "C" unsigned long MS_ABI impl__GetSelectionCharFormat_CRichEditCtrl__QEBAKAEAU_charformatw___Z(void* pThis, void* p0) {
     (void)pThis;
     (void)p0;
     return 0UL;
-}
-
-// Symbol: ?GetSockName@CAsyncSocket@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
-extern "C" int MS_ABI impl__GetSockName_CAsyncSocket__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
 }
 
 // Symbol: ?GetStatus@CFile@@QEBAHAEAUCFileStatus@@@Z
@@ -882,16 +728,6 @@ extern "C" int MS_ABI impl__GetStatus_CFile__SAHPEB_WAEAUCFileStatus__PEAVCAtlTr
     (void)p1;
     (void)p2;
     return 0;
-}
-
-// Symbol: ?GetText@CToolTipCtrl@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCWnd@@_K@Z
-extern "C" void MS_ABI impl__GetText_CToolTipCtrl__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCWnd___K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
 }
 
 // Symbol: ?GetWindow@XOleIPSite@COleControlSite@@UEAAJPEAPEAUHWND__@@@Z
@@ -1242,12 +1078,6 @@ extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC
     (void)p4;
 }
 
-// Symbol: ?OnInitDialog@CPropertySheet@@UEAAHXZ
-extern "C" int MS_ABI impl__OnInitDialog_CPropertySheet__UEAAHXZ(void* unused) {
-    (void)unused;
-    return 0;
-}
-
 // Symbol: ?OnNavigateComplete2@CHtmlView@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__OnNavigateComplete2_CHtmlView__UEAAXPEB_W_Z(void* pThis, void* p0) {
     (void)pThis;
@@ -1419,17 +1249,6 @@ extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKAEAKPEAK_Z(void* pThis, v
     return 0;
 }
 
-// Symbol: ?QueryInfo@CHttpFile@@QEBAHKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAK@Z
-extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    return 0;
-}
-
 // Symbol: ?QueryInfo@CHttpFile@@QEBAHKPEAU_SYSTEMTIME@@PEAK@Z
 extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKPEAU_SYSTEMTIME__PEAK_Z(void* pThis, void* p0, void* p1, void* p2) {
     (void)pThis;
@@ -1457,15 +1276,6 @@ extern "C" int MS_ABI impl__QueryOption_CInternetSession__QEBAHKAEAK_Z(void* pTh
     return 0;
 }
 
-// Symbol: ?ReadString@CArchive@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
-
 // Symbol: ?ReadString@CArchive@@QEAAPEA_WPEA_WI@Z
 extern "C" void* MS_ABI impl__ReadString_CArchive__QEAAPEA_WPEA_WI_Z(void* pThis, void* p0, void* p1) {
     (void)pThis;
@@ -1474,44 +1284,10 @@ extern "C" void* MS_ABI impl__ReadString_CArchive__QEAAPEA_WPEA_WI_Z(void* pThis
     return nullptr;
 }
 
-// Symbol: ?ReadString@CStdioFile@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" int MS_ABI impl__ReadString_CStdioFile__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
-
 // Symbol: ?RecalcLayout@CDockingManager@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_CDockingManager__UEAAXH_Z(void* pThis, void* p0) {
     (void)pThis;
     (void)p0;
-}
-
-// Symbol: ?ReceiveFrom@CAsyncSocket@@QEAAHPEAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAIH@Z
-extern "C" int MS_ABI impl__ReceiveFrom_CAsyncSocket__QEAAHPEAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAIH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-    (void)p6;
-    return 0;
-}
-
-// Symbol: ?Register@COleMessageFilter@@QEAAHXZ
-extern "C" int MS_ABI impl__Register_COleMessageFilter__QEAAHXZ(void* unused) {
-    (void)unused;
-    return 0;
-}
-
-// Symbol: ?RegisterAll@COleObjectFactory@@SAHXZ
-extern "C" int MS_ABI impl__RegisterAll_COleObjectFactory__SAHXZ(void* unused) {
-    (void)unused;
-    return 0;
 }
 
 // Symbol: ?Remove@CFile@@SAXPEB_WPEAVCAtlTransactionManager@ATL@@@Z
@@ -1563,17 +1339,6 @@ extern "C" int MS_ABI impl__Rename_CFtpConnection__QEAAHPEB_W0_Z(void* pThis, vo
     return 0;
 }
 
-// Symbol: ?SendRequest@CHttpFile@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAXK@Z
-extern "C" int MS_ABI impl__SendRequest_CHttpFile__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAXK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    return 0;
-}
-
 // Symbol: ?SendRequestEx@CHttpFile@@QEAAHPEAU_INTERNET_BUFFERSW@@0K_K@Z
 extern "C" int MS_ABI impl__SendRequestEx_CHttpFile__QEAAHPEAU_INTERNET_BUFFERSW__0K_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
     (void)pThis;
@@ -1620,14 +1385,6 @@ extern "C" int MS_ABI impl__SetDefaultCharFormat_CRichEditCtrl__QEAAHAEAU_charfo
 extern "C" void MS_ABI impl__SetFooterIcon_CTaskDialog__QEAAXPEB_W_Z(void* pThis, void* p0) {
     (void)pThis;
     (void)p0;
-}
-
-// Symbol: ?SetFooterText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__SetFooterText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
 }
 
 // Symbol: ?SetHelpInfo@COlePropertyPage@@QEAAXPEB_W0K@Z
@@ -1732,14 +1489,6 @@ extern "C" void MS_ABI impl__SetStatus_CFile__SAXPEB_WAEBUCFileStatus__PEAVCAtlT
     (void)p2;
 }
 
-// Symbol: ?SetVerificationCheckboxText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__SetVerificationCheckboxText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-}
-
 // Symbol: ?SetWindowPos@CBasePane@@UEAAPEAXPEBVCWnd@@HHHHIPEAX@Z
 extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6) {
     (void)pThis;
@@ -1797,4 +1546,4 @@ extern "C" void MS_ABI impl__UpdateTipText_CToolTipCtrl__QEAAXIPEAVCWnd___K_Z(vo
     (void)p2;
 }
 
-// Generated 193 manual thunks
+// Generated 166 manual thunks

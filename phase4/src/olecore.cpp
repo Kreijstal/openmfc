@@ -487,12 +487,7 @@ COleMessageFilter::COleMessageFilter()
 COleMessageFilter::~COleMessageFilter() {
 }
 
-COleMessageFilter* COleMessageFilter::Register() {
-    COleMessageFilter* pFilter = new COleMessageFilter();
-    CoRegisterMessageFilter((IMessageFilter*)pFilter, nullptr);
-    g_pMessageFilter = pFilter;
-    return pFilter;
-}
+int COleMessageFilter::Register() { return 0; }
 
 void COleMessageFilter::Revoke() {
     CoRegisterMessageFilter(nullptr, nullptr);
@@ -1151,8 +1146,8 @@ BOOL COleObjectFactory::IsLicenseValid() {
     return TRUE;
 }
 
-BOOL COleObjectFactory::RegisterAll() {
-    return TRUE;
+int COleObjectFactory::RegisterAll() {
+    return 0;
 }
 
 BOOL COleObjectFactory::UpdateRegistryAll(BOOL bRegister) {
@@ -1874,7 +1869,7 @@ BOOL COleControl::AmbientDisplayAsDefault() { return FALSE; }
 BOOL COleControl::AmbientAutoClip() { return TRUE; }
 BOOL COleControl::AmbientSupportsMnemonics() { return TRUE; }
 BOOL COleControl::AmbientScaleUnits(CString& strUnitName) { strUnitName = L""; return TRUE; }
-CString COleControl::AmbientLocaleID() { return L"0"; }
+unsigned long COleControl::AmbientLocaleID() { return 0; }
 
 void COleControl::FireClick() {}
 void COleControl::FireDblClick() {}
@@ -1894,7 +1889,7 @@ BOOL COleControl::GetEnabled() const { return TRUE; }
 void COleControl::SetEnabled(BOOL bEnabled) { (void)bEnabled; }
 void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
 void COleControl::SetFont(CFont* pFont) { (void)pFont; }
-HWND COleControl::GetHwnd() const { return m_hWnd; }
+unsigned int COleControl::GetHwnd() { return (unsigned int)(uintptr_t)m_hWnd; }
 void COleControl::SetHwnd(HWND hWnd) { m_hWnd = hWnd; }
 OLE_COLOR COleControl::GetBackColorOle() const { return (OLE_COLOR)GetBackColor(); }
 OLE_COLOR COleControl::GetForeColorOle() const { return (OLE_COLOR)GetForeColor(); }
@@ -1951,7 +1946,7 @@ COleDocObjectItem::COleDocObjectItem(COleDocument* pContainerDoc) : COleClientIt
 COleDocObjectItem::~COleDocObjectItem() {}
 BOOL COleDocObjectItem::IsDocObject() const { return FALSE; }
 BOOL COleDocObjectItem::IsActive() const { return m_bInPlaceActive && IsOpen(); }
-HRESULT COleDocObjectItem::GetActiveView(IOleDocumentView** ppView) { *ppView = nullptr; return E_NOTIMPL; }
+IOleDocumentView* COleDocObjectItem::GetActiveView() const { return nullptr; }
 HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) { *ppDocument = nullptr; return E_NOTIMPL; }
 void COleDocObjectItem::ActivateAndShow() {}
 BOOL COleDocObjectItem::IsOpen() const { return m_nStatus == OLE_OPEN; }

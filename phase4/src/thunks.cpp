@@ -33,6 +33,12 @@ extern "C" void* MS_ABI impl___0CBasePane__QEAA_XZ(void* pThis) {
     return new(pThis) CBasePane();
 }
 
+// Symbol: ??0CControlBar@@IEAA@XZ
+// Constructor: CControlBar::CControlBar
+extern "C" void* MS_ABI impl___0CControlBar__IEAA_XZ(void* pThis) {
+    return new(pThis) CControlBar();
+}
+
 // Symbol: ??0CDatabase@@QEAA@XZ
 // Constructor: CDatabase::CDatabase
 extern "C" void* MS_ABI impl___0CDatabase__QEAA_XZ(void* pThis) {
@@ -49,6 +55,12 @@ extern "C" void* MS_ABI impl___0CDHtmlDialog__QEAA_XZ(void* pThis) {
 // Constructor: CDialogBar::CDialogBar
 extern "C" void* MS_ABI impl___0CDialogBar__QEAA_XZ(void* pThis) {
     return new(pThis) CDialogBar();
+}
+
+// Symbol: ??0CDocItem@@IEAA@XZ
+// Constructor: CDocItem::CDocItem
+extern "C" void* MS_ABI impl___0CDocItem__IEAA_XZ(void* pThis) {
+    return new(pThis) CDocItem();
 }
 
 // Symbol: ??0CDockablePane@@QEAA@XZ
@@ -99,6 +111,18 @@ extern "C" void* MS_ABI impl___0CFindReplaceDialog__QEAA_XZ(void* pThis) {
     return new(pThis) CFindReplaceDialog();
 }
 
+// Symbol: ??0CFrameWndEx@@IEAA@XZ
+// Constructor: CFrameWndEx::CFrameWndEx
+extern "C" void* MS_ABI impl___0CFrameWndEx__IEAA_XZ(void* pThis) {
+    return new(pThis) CFrameWndEx();
+}
+
+// Symbol: ??0CHtmlView@@IEAA@XZ
+// Constructor: CHtmlView::CHtmlView
+extern "C" void* MS_ABI impl___0CHtmlView__IEAA_XZ(void* pThis) {
+    return new(pThis) CHtmlView();
+}
+
 // Symbol: ??0CInternetException@@QEAA@K@Z
 // Constructor: CInternetException::CInternetException
 extern "C" void* MS_ABI impl___0CInternetException__QEAA_K_Z(void* pThis, unsigned long p0) {
@@ -111,10 +135,22 @@ extern "C" void* MS_ABI impl___0CMDIChildWnd__QEAA_XZ(void* pThis) {
     return new(pThis) CMDIChildWnd();
 }
 
+// Symbol: ??0CMDIChildWndEx@@IEAA@XZ
+// Constructor: CMDIChildWndEx::CMDIChildWndEx
+extern "C" void* MS_ABI impl___0CMDIChildWndEx__IEAA_XZ(void* pThis) {
+    return new(pThis) CMDIChildWndEx();
+}
+
 // Symbol: ??0CMDIFrameWnd@@QEAA@XZ
 // Constructor: CMDIFrameWnd::CMDIFrameWnd
 extern "C" void* MS_ABI impl___0CMDIFrameWnd__QEAA_XZ(void* pThis) {
     return new(pThis) CMDIFrameWnd();
+}
+
+// Symbol: ??0CMDIFrameWndEx@@IEAA@XZ
+// Constructor: CMDIFrameWndEx::CMDIFrameWndEx
+extern "C" void* MS_ABI impl___0CMDIFrameWndEx__IEAA_XZ(void* pThis) {
+    return new(pThis) CMDIFrameWndEx();
 }
 
 // Symbol: ??0CMemFile@@QEAA@I@Z
@@ -189,6 +225,12 @@ extern "C" void* MS_ABI impl___0CMFCRibbonButtonsGroup__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCRibbonButtonsGroup();
 }
 
+// Symbol: ??0CMFCRibbonCategory@@IEAA@XZ
+// Constructor: CMFCRibbonCategory::CMFCRibbonCategory
+extern "C" void* MS_ABI impl___0CMFCRibbonCategory__IEAA_XZ(void* pThis) {
+    return new(pThis) CMFCRibbonCategory();
+}
+
 // Symbol: ??0CMFCRibbonCheckBox@@QEAA@IPEB_W@Z
 // Constructor: CMFCRibbonCheckBox::CMFCRibbonCheckBox
 extern "C" void* MS_ABI impl___0CMFCRibbonCheckBox__QEAA_IPEB_W_Z(void* pThis, unsigned int p0, const wchar_t* p1) {
@@ -199,6 +241,12 @@ extern "C" void* MS_ABI impl___0CMFCRibbonCheckBox__QEAA_IPEB_W_Z(void* pThis, u
 // Constructor: CMFCRibbonCheckBox::CMFCRibbonCheckBox
 extern "C" void* MS_ABI impl___0CMFCRibbonCheckBox__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCRibbonCheckBox();
+}
+
+// Symbol: ??0CMFCRibbonEdit@@IEAA@XZ
+// Constructor: CMFCRibbonEdit::CMFCRibbonEdit
+extern "C" void* MS_ABI impl___0CMFCRibbonEdit__IEAA_XZ(void* pThis) {
+    return new(pThis) CMFCRibbonEdit();
 }
 
 // Symbol: ??0CMFCRibbonEdit@@QEAA@IHPEB_WH@Z
@@ -217,6 +265,12 @@ extern "C" void* MS_ABI impl___0CMFCRibbonGallery__QEAA_IPEB_WHHIH_Z(void* pThis
 // Constructor: CMFCRibbonGallery::CMFCRibbonGallery
 extern "C" void* MS_ABI impl___0CMFCRibbonGallery__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCRibbonGallery();
+}
+
+// Symbol: ??0CMFCRibbonLabel@@IEAA@XZ
+// Constructor: CMFCRibbonLabel::CMFCRibbonLabel
+extern "C" void* MS_ABI impl___0CMFCRibbonLabel__IEAA_XZ(void* pThis) {
+    return new(pThis) CMFCRibbonLabel();
 }
 
 // Symbol: ??0CMFCRibbonLabel@@QEAA@PEB_WH@Z
@@ -357,6 +411,12 @@ extern "C" void* MS_ABI impl___0CMFCVisualManagerOffice2003__QEAA_XZ(void* pThis
     return new(pThis) CMFCVisualManagerOffice2003();
 }
 
+// Symbol: ??0CMFCVisualManagerOffice2007@@IEAA@XZ
+// Constructor: CMFCVisualManagerOffice2007::CMFCVisualManagerOffice2007
+extern "C" void* MS_ABI impl___0CMFCVisualManagerOffice2007__IEAA_XZ(void* pThis) {
+    return new(pThis) CMFCVisualManagerOffice2007();
+}
+
 // Symbol: ??0CMFCVisualManagerVS2005@@QEAA@XZ
 // Constructor: CMFCVisualManagerVS2005::CMFCVisualManagerVS2005
 extern "C" void* MS_ABI impl___0CMFCVisualManagerVS2005__QEAA_XZ(void* pThis) {
@@ -465,6 +525,12 @@ extern "C" void* MS_ABI impl___0COleTemplateServer__QEAA_XZ(void* pThis) {
     return new(pThis) COleTemplateServer();
 }
 
+// Symbol: ??0CPane@@IEAA@XZ
+// Constructor: CPane::CPane
+extern "C" void* MS_ABI impl___0CPane__IEAA_XZ(void* pThis) {
+    return new(pThis) CPane();
+}
+
 // Symbol: ??0CPaneFrameWnd@@QEAA@XZ
 // Constructor: CPaneFrameWnd::CPaneFrameWnd
 extern "C" void* MS_ABI impl___0CPaneFrameWnd__QEAA_XZ(void* pThis) {
@@ -507,10 +573,28 @@ extern "C" void* MS_ABI impl___0CPropertySheet__QEAA_XZ(void* pThis) {
     return new(pThis) CPropertySheet();
 }
 
+// Symbol: ??0CRecordView@@IEAA@I@Z
+// Constructor: CRecordView::CRecordView
+extern "C" void* MS_ABI impl___0CRecordView__IEAA_I_Z(void* pThis, unsigned int p0) {
+    return new(pThis) CRecordView(p0);
+}
+
+// Symbol: ??0CRecordView@@IEAA@PEB_W@Z
+// Constructor: CRecordView::CRecordView
+extern "C" void* MS_ABI impl___0CRecordView__IEAA_PEB_W_Z(void* pThis, const wchar_t* p0) {
+    return new(pThis) CRecordView(p0);
+}
+
 // Symbol: ??0CRichEditView@@QEAA@XZ
 // Constructor: CRichEditView::CRichEditView
 extern "C" void* MS_ABI impl___0CRichEditView__QEAA_XZ(void* pThis) {
     return new(pThis) CRichEditView();
+}
+
+// Symbol: ??0CScrollView@@IEAA@XZ
+// Constructor: CScrollView::CScrollView
+extern "C" void* MS_ABI impl___0CScrollView__IEAA_XZ(void* pThis) {
+    return new(pThis) CScrollView();
 }
 
 // Symbol: ??0CSocket@@QEAA@XZ
@@ -555,6 +639,12 @@ extern "C" void* MS_ABI impl___0CToolBar__QEAA_XZ(void* pThis) {
     return new(pThis) CToolBar();
 }
 
+// Symbol: ?Abort@CArchive@@QEAAXXZ
+// CArchive::Abort
+extern "C" void MS_ABI impl__Abort_CArchive__QEAAXXZ(CArchive* pThis) {
+    pThis->Abort();
+}
+
 // Symbol: ?Accept@CSocket@@UEAAHAEAVCAsyncSocket@@PEAUsockaddr@@PEAH@Z
 // CSocket::Accept
 extern "C" int MS_ABI impl__Accept_CSocket__UEAAHAEAVCAsyncSocket__PEAUsockaddr__PEAH_Z(CSocket* pThis, CAsyncSocket* p0, sockaddr* p1, int* p2) {
@@ -565,6 +655,12 @@ extern "C" int MS_ABI impl__Accept_CSocket__UEAAHAEAVCAsyncSocket__PEAUsockaddr_
 // COleSafeArray::AccessData
 extern "C" void MS_ABI impl__AccessData_COleSafeArray__QEAAXPEAPEAX_Z(COleSafeArray* pThis, void** p0) {
     pThis->AccessData(p0);
+}
+
+// Symbol: ?ActivateAndShow@COleDocObjectItem@@IEAAXXZ
+// COleDocObjectItem::ActivateAndShow
+extern "C" void MS_ABI impl__ActivateAndShow_COleDocObjectItem__IEAAXXZ(COleDocObjectItem* pThis) {
+    pThis->ActivateAndShow();
 }
 
 // Symbol: ?ActivateFrame@CFrameWnd@@UEAAXH@Z
@@ -591,6 +687,12 @@ extern "C" void MS_ABI impl__Add_CMFCRibbonPanel__UEAAXPEAVCMFCRibbonBaseElement
     pThis->Add(p0);
 }
 
+// Symbol: ?AddNew@CRecordset@@UEAAXXZ
+// CRecordset::AddNew
+extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* pThis) {
+    pThis->AddNew();
+}
+
 // Symbol: ?AddPage@CPropertySheet@@QEAAXPEAVCPropertyPage@@@Z
 // CPropertySheet::AddPage
 extern "C" void MS_ABI impl__AddPage_CPropertySheet__QEAAXPEAVCPropertyPage___Z(CPropertySheet* pThis, CPropertyPage* p0) {
@@ -601,6 +703,18 @@ extern "C" void MS_ABI impl__AddPage_CPropertySheet__QEAAXPEAVCPropertyPage___Z(
 // CPaneFrameWnd::AddPane
 extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(CPaneFrameWnd* pThis, CBasePane* p0) {
     pThis->AddPane(p0);
+}
+
+// Symbol: ?AddRequestHeaders@CHttpFile@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@K@Z
+// CHttpFile::AddRequestHeaders
+extern "C" int MS_ABI impl__AddRequestHeaders_CHttpFile__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__K_Z(CHttpFile* pThis, CString* p0, unsigned long p3) {
+    return (int)pThis->AddRequestHeaders((*p0), p3);
+}
+
+// Symbol: ?AddSeparator@CMFCRibbonPanel@@UEAAXXZ
+// CMFCRibbonPanel::AddSeparator
+extern "C" void MS_ABI impl__AddSeparator_CMFCRibbonPanel__UEAAXXZ(CMFCRibbonPanel* pThis) {
+    pThis->AddSeparator();
 }
 
 // Symbol: ?AddTool@CToolTipCtrl@@QEAAHPEAVCWnd@@PEB_WPEBUtagRECT@@_K@Z
@@ -619,6 +733,12 @@ extern "C" void MS_ABI impl__AddToTabs_CMFCRibbonBar__QEAAXPEAVCMFCRibbonBaseEle
 // CDocument::AddView
 extern "C" void MS_ABI impl__AddView_CDocument__QEAAXPEAVCView___Z(CDocument* pThis, CView* p0) {
     pThis->AddView(p0);
+}
+
+// Symbol: ?AdjustLayout@CMFCPropertyGridCtrl@@UEAAXXZ
+// CMFCPropertyGridCtrl::AdjustLayout
+extern "C" void MS_ABI impl__AdjustLayout_CMFCPropertyGridCtrl__UEAAXXZ(CMFCPropertyGridCtrl* pThis) {
+    pThis->AdjustLayout();
 }
 
 // Symbol: ?AmbientAppearance@COleControl@@QEAAFXZ
@@ -643,6 +763,12 @@ extern "C" IFontDisp* MS_ABI impl__AmbientFont_COleControl__QEAAPEAUIFontDisp__X
 // COleControl::AmbientForeColor
 extern "C" unsigned long MS_ABI impl__AmbientForeColor_COleControl__QEAAKXZ(COleControl* pThis) {
     return (unsigned long)pThis->AmbientForeColor();
+}
+
+// Symbol: ?AmbientLocaleID@COleControl@@QEAAKXZ
+// COleControl::AmbientLocaleID
+extern "C" unsigned long MS_ABI impl__AmbientLocaleID_COleControl__QEAAKXZ(COleControl* pThis) {
+    return (unsigned long)pThis->AmbientLocaleID();
 }
 
 // Symbol: ?AmbientShowGrabHandles@COleControl@@QEAAHXZ
@@ -711,6 +837,24 @@ extern "C" void MS_ABI impl__AttachDataObject_COleClientItem__QEBAXAEAVCOleDataO
     pThis->AttachDataObject((*p0));
 }
 
+// Symbol: ?AuxQueueAdd@CSocket@@KAXI_K_J@Z
+// Static: CSocket::AuxQueueAdd
+extern "C" void MS_ABI impl__AuxQueueAdd_CSocket__KAXI_K_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2) {
+    CSocket::AuxQueueAdd(p0, p1, p2);
+}
+
+// Symbol: ?BeginBusyState@COleMessageFilter@@UEAAXXZ
+// COleMessageFilter::BeginBusyState
+extern "C" void MS_ABI impl__BeginBusyState_COleMessageFilter__UEAAXXZ(COleMessageFilter* pThis) {
+    pThis->BeginBusyState();
+}
+
+// Symbol: ?BeginEnumFormats@COleDataObject@@QEAAXXZ
+// COleDataObject::BeginEnumFormats
+extern "C" void MS_ABI impl__BeginEnumFormats_COleDataObject__QEAAXXZ(COleDataObject* pThis) {
+    pThis->BeginEnumFormats();
+}
+
 // Symbol: ?BeginTrans@CDatabase@@QEAAHXZ
 // CDatabase::BeginTrans
 extern "C" int MS_ABI impl__BeginTrans_CDatabase__QEAAHXZ(CDatabase* pThis) {
@@ -748,6 +892,12 @@ extern "C" void MS_ABI impl__CacheGlobalData_COleDataSource__QEAAXGPEAXPEAUtagFO
     pThis->CacheGlobalData(p0, p1, p2);
 }
 
+// Symbol: ?CanActivate@COleClientItem@@MEAAHXZ
+// COleClientItem::CanActivate
+extern "C" int MS_ABI impl__CanActivate_COleClientItem__MEAAHXZ(COleClientItem* pThis) {
+    return (int)pThis->CanActivate();
+}
+
 // Symbol: ?CanActivateNext@CSplitterWnd@@UEAAHH@Z
 // CSplitterWnd::CanActivateNext
 extern "C" int MS_ABI impl__CanActivateNext_CSplitterWnd__UEAAHH_Z(CSplitterWnd* pThis, int p0) {
@@ -758,6 +908,30 @@ extern "C" int MS_ABI impl__CanActivateNext_CSplitterWnd__UEAAHH_Z(CSplitterWnd*
 // CDockablePane::CanAutoHide
 extern "C" int MS_ABI impl__CanAutoHide_CDockablePane__UEBAHXZ(const CDockablePane* pThis) {
     return (int)pThis->CanAutoHide();
+}
+
+// Symbol: ?Cancel@CDatabase@@QEAAXXZ
+// CDatabase::Cancel
+extern "C" void MS_ABI impl__Cancel_CDatabase__QEAAXXZ(CDatabase* pThis) {
+    pThis->Cancel();
+}
+
+// Symbol: ?CancelBlockingCall@CSocket@@QEAAXXZ
+// CSocket::CancelBlockingCall
+extern "C" void MS_ABI impl__CancelBlockingCall_CSocket__QEAAXXZ(CSocket* pThis) {
+    pThis->CancelBlockingCall();
+}
+
+// Symbol: ?CancelToClose@CPropertyPage@@QEAAXXZ
+// CPropertyPage::CancelToClose
+extern "C" void MS_ABI impl__CancelToClose_CPropertyPage__QEAAXXZ(CPropertyPage* pThis) {
+    pThis->CancelToClose();
+}
+
+// Symbol: ?CancelUpdate@CRecordset@@QEAAXXZ
+// CRecordset::CancelUpdate
+extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) {
+    pThis->CancelUpdate();
 }
 
 // Symbol: ?CanFloat@CBasePane@@UEBAHXZ
@@ -772,10 +946,70 @@ extern "C" void MS_ABI impl__ClearDirtyFieldStatus_CRecordset__QEAAXK_Z(CRecords
     pThis->ClearDirtyFieldStatus(p0);
 }
 
+// Symbol: ?Close@CArchive@@QEAAXXZ
+// CArchive::Close
+extern "C" void MS_ABI impl__Close_CArchive__QEAAXXZ(CArchive* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CAsyncSocket@@UEAAXXZ
+// CAsyncSocket::Close
+extern "C" void MS_ABI impl__Close_CAsyncSocket__UEAAXXZ(CAsyncSocket* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CDatabase@@UEAAXXZ
+// CDatabase::Close
+extern "C" void MS_ABI impl__Close_CDatabase__UEAAXXZ(CDatabase* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CFile@@UEAAXXZ
+// CFile::Close
+extern "C" void MS_ABI impl__Close_CFile__UEAAXXZ(CFile* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CFileFind@@QEAAXXZ
+// CFileFind::Close
+extern "C" void MS_ABI impl__Close_CFileFind__QEAAXXZ(CFileFind* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CInternetSession@@UEAAXXZ
+// CInternetSession::Close
+extern "C" void MS_ABI impl__Close_CInternetSession__UEAAXXZ(CInternetSession* pThis) {
+    pThis->Close();
+}
+
 // Symbol: ?Close@COleClientItem@@QEAAXW4tagOLECLOSE@@@Z
 // COleClientItem::Close
 extern "C" void MS_ABI impl__Close_COleClientItem__QEAAXW4tagOLECLOSE___Z(COleClientItem* pThis, tagOLECLOSE p0) {
     pThis->Close(p0);
+}
+
+// Symbol: ?Close@CRecordset@@UEAAXXZ
+// CRecordset::Close
+extern "C" void MS_ABI impl__Close_CRecordset__UEAAXXZ(CRecordset* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CSocket@@UEAAXXZ
+// CSocket::Close
+extern "C" void MS_ABI impl__Close_CSocket__UEAAXXZ(CSocket* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CSocketFile@@UEAAXXZ
+// CSocketFile::Close
+extern "C" void MS_ABI impl__Close_CSocketFile__UEAAXXZ(CSocketFile* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Close@CStdioFile@@UEAAXXZ
+// CStdioFile::Close
+extern "C" void MS_ABI impl__Close_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
+    pThis->Close();
 }
 
 // Symbol: ?CommandToIndex@CStatusBar@@QEBAHI@Z
@@ -800,6 +1034,12 @@ extern "C" int MS_ABI impl__CommitTrans_CDatabase__QEAAHXZ(CDatabase* pThis) {
 // CAsyncSocket::Connect
 extern "C" int MS_ABI impl__Connect_CAsyncSocket__QEAAHPEB_WI_Z(CAsyncSocket* pThis, const wchar_t* p0, unsigned int p1) {
     return (int)pThis->Connect(p0, p1);
+}
+
+// Symbol: ?ConnectHelper@CAsyncSocket@@MEAAHPEBUsockaddr@@H@Z
+// CAsyncSocket::ConnectHelper
+extern "C" int MS_ABI impl__ConnectHelper_CAsyncSocket__MEAAHPEBUsockaddr__H_Z(CAsyncSocket* pThis, const sockaddr* p0, int p1) {
+    return (int)pThis->ConnectHelper(p0, p1);
 }
 
 // Symbol: ?ConvertTo@COleClientItem@@UEAAHAEBU_GUID@@@Z
@@ -830,6 +1070,12 @@ extern "C" int MS_ABI impl__Create_CAsyncSocket__QEAAHIHJPEB_W_Z(CAsyncSocket* p
 // CDialogBar::Create
 extern "C" int MS_ABI impl__Create_CDialogBar__UEAAHPEAVCWnd__PEB_WII_Z(CDialogBar* pThis, CWnd* p0, const wchar_t* p1, unsigned int p2, unsigned int p3) {
     return (int)pThis->Create(p0, p1, p2, p3);
+}
+
+// Symbol: ?Create@CFormView@@MEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z
+// CFormView::Create
+extern "C" int MS_ABI impl__Create_CFormView__MEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(CFormView* pThis, const wchar_t* p0, const wchar_t* p1, unsigned long p2, const RECT* p3, CWnd* p4, unsigned int p5, CCreateContext* p6) {
+    return (int)pThis->Create(p0, p1, p2, (*p3), p4, p5, p6);
 }
 
 // Symbol: ?Create@CMFCPopupMenu@@UEAAHPEAVCWnd@@HHPEAUHMENU__@@HH@Z
@@ -976,9 +1222,15 @@ extern "C" int MS_ABI impl__CreateView_CSplitterWnd__UEAAHHHPEAUCRuntimeClass__U
     return (int)pThis->CreateView(p0, p1, p2, p3, p4);
 }
 
+// Symbol: ?Deactivate@COleClientItem@@QEAAXXZ
+// COleClientItem::Deactivate
+extern "C" void MS_ABI impl__Deactivate_COleClientItem__QEAAXXZ(COleClientItem* pThis) {
+    pThis->Deactivate();
+}
+
 // Symbol: ?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
 // CFieldExchange::Default
-extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(CFieldExchange* pThis, const wchar_t* p0, void* p1, __int64* p2, int p3, unsigned __int64 p4, void* p5) {
+extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(CFieldExchange* pThis, const wchar_t* p0, void* p1, __int64* p2, int p3, unsigned __int64 p4, int p5) {
     pThis->Default(p0, p1, p2, p3, p4, p5);
 }
 
@@ -992,6 +1244,18 @@ extern "C" void MS_ABI impl__DelayRenderData_COleDataSource__QEAAXGPEAUtagFORMAT
 // COleDataSource::DelayRenderFileData
 extern "C" void MS_ABI impl__DelayRenderFileData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, FORMATETC* p1) {
     pThis->DelayRenderFileData(p0, p1);
+}
+
+// Symbol: ?Delete@CRecordset@@UEAAXXZ
+// CRecordset::Delete
+extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* pThis) {
+    pThis->Delete();
+}
+
+// Symbol: ?Destroy@COleSafeArray@@QEAAXXZ
+// COleSafeArray::Destroy
+extern "C" void MS_ABI impl__Destroy_COleSafeArray__QEAAXXZ(COleSafeArray* pThis) {
+    pThis->Destroy();
 }
 
 // Symbol: ?DestroyControl@COleControlSite@@UEAAHXZ
@@ -1187,6 +1451,18 @@ extern "C" void MS_ABI impl__DrawItem_CMenu__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CMen
     pThis->DrawItem(p0);
 }
 
+// Symbol: ?Edit@CRecordset@@UEAAXXZ
+// CRecordset::Edit
+extern "C" void MS_ABI impl__Edit_CRecordset__UEAAXXZ(CRecordset* pThis) {
+    pThis->Edit();
+}
+
+// Symbol: ?Empty@COleDataSource@@QEAAXXZ
+// COleDataSource::Empty
+extern "C" void MS_ABI impl__Empty_COleDataSource__QEAAXXZ(COleDataSource* pThis) {
+    pThis->Empty();
+}
+
 // Symbol: ?Enable@CCmdUI@@UEAAXH@Z
 // CCmdUI::Enable
 extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
@@ -1223,6 +1499,12 @@ extern "C" void MS_ABI impl__EnableFullTextTooltip_CMFCButton__QEAAXH_Z(CMFCButt
 // CInternetSession::EnableStatusCallback
 extern "C" int MS_ABI impl__EnableStatusCallback_CInternetSession__QEAAHH_Z(CInternetSession* pThis, int p0) {
     return (int)pThis->EnableStatusCallback(p0);
+}
+
+// Symbol: ?EndBusyState@COleMessageFilter@@UEAAXXZ
+// COleMessageFilter::EndBusyState
+extern "C" void MS_ABI impl__EndBusyState_COleMessageFilter__UEAAXXZ(COleMessageFilter* pThis) {
+    pThis->EndBusyState();
 }
 
 // Symbol: ?EndDialog@CPropertySheet@@QEAAXH@Z
@@ -1285,6 +1567,36 @@ extern "C" void MS_ABI impl__FireEvent_COleControl__QEAAXJPEAEZZ(COleControl* pT
     pThis->FireEvent(p0, p1);
 }
 
+// Symbol: ?FireEventV@COleControl@@IEAAXJPEAEPEAD@Z
+// COleControl::FireEventV
+extern "C" void MS_ABI impl__FireEventV_COleControl__IEAAXJPEAEPEAD_Z(COleControl* pThis, long p0, unsigned char* p1, char* p2) {
+    pThis->FireEventV(p0, p1, p2);
+}
+
+// Symbol: ?Flush@CArchive@@QEAAXXZ
+// CArchive::Flush
+extern "C" void MS_ABI impl__Flush_CArchive__QEAAXXZ(CArchive* pThis) {
+    pThis->Flush();
+}
+
+// Symbol: ?Flush@CFile@@UEAAXXZ
+// CFile::Flush
+extern "C" void MS_ABI impl__Flush_CFile__UEAAXXZ(CFile* pThis) {
+    pThis->Flush();
+}
+
+// Symbol: ?Flush@CMemFile@@UEAAXXZ
+// CMemFile::Flush
+extern "C" void MS_ABI impl__Flush_CMemFile__UEAAXXZ(CMemFile* pThis) {
+    pThis->Flush();
+}
+
+// Symbol: ?Flush@CStdioFile@@UEAAXXZ
+// CStdioFile::Flush
+extern "C" void MS_ABI impl__Flush_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
+    pThis->Flush();
+}
+
 // Symbol: ?FromHandle@CWnd@@SAPEAV1@PEAUHWND__@@@Z
 // Static: CWnd::FromHandle
 extern "C" void* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND__* p0) {
@@ -1301,6 +1613,12 @@ extern "C" int MS_ABI impl__GetActiveIndex_CPropertySheet__QEBAHXZ(const CProper
 // CPropertySheet::GetActivePage
 extern "C" CPropertyPage* MS_ABI impl__GetActivePage_CPropertySheet__QEBAPEAVCPropertyPage__XZ(const CPropertySheet* pThis) {
     return (CPropertyPage*)pThis->GetActivePage();
+}
+
+// Symbol: ?GetActiveView@COleDocObjectItem@@QEBAPEAUIOleDocumentView@@XZ
+// COleDocObjectItem::GetActiveView
+extern "C" IOleDocumentView* MS_ABI impl__GetActiveView_COleDocObjectItem__QEBAPEAUIOleDocumentView__XZ(const COleDocObjectItem* pThis) {
+    return (IOleDocumentView*)pThis->GetActiveView();
 }
 
 // Symbol: ?GetAmbientProperty@COleControl@@QEAAHJGPEAX@Z
@@ -1343,6 +1661,18 @@ extern "C" CMFCToolBarButton* MS_ABI impl__GetButton_CMFCToolBar__QEBAPEAVCMFCTo
 // CToolBar::GetButtonStyle
 extern "C" unsigned int MS_ABI impl__GetButtonStyle_CToolBar__QEBAIH_Z(const CToolBar* pThis, int p0) {
     return (unsigned int)pThis->GetButtonStyle(p0);
+}
+
+// Symbol: ?GetButtonText@CToolBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+// CToolBar::GetButtonText  [CString retval]
+extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(const CToolBar* pThis, CString* __ret, int p0) {
+    *__ret = pThis->GetButtonText(p0);
+}
+
+// Symbol: ?GetButtonText@CToolBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CToolBar::GetButtonText
+extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CToolBar* pThis, int p0, CString* p1) {
+    pThis->GetButtonText(p0, (*p1));
 }
 
 // Symbol: ?GetCategory@CMFCRibbonBar@@QEBAPEAVCMFCRibbonCategory@@H@Z
@@ -1463,6 +1793,12 @@ extern "C" _devicemodeW* MS_ABI impl__GetDevMode_CPrintDialog__QEBAPEAU_devicemo
 // CPrintDialogEx::GetDevMode
 extern "C" _devicemodeW* MS_ABI impl__GetDevMode_CPrintDialogEx__QEBAPEAU_devicemodeW__XZ(const CPrintDialogEx* pThis) {
     return (_devicemodeW*)pThis->GetDevMode();
+}
+
+// Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4DocStringIndex@1@@Z
+// CDocTemplate::GetDocString
+extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4DocStringIndex_1__Z(const CDocTemplate* pThis, CString* p0, int p3) {
+    return (int)pThis->GetDocString((*p0), p3);
 }
 
 // Symbol: ?GetDriverName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -1621,6 +1957,12 @@ extern "C" IDispatch* MS_ABI impl__GetHtmlDocument_CHtmlView__QEBAPEAUIDispatch_
     return (IDispatch*)pThis->GetHtmlDocument();
 }
 
+// Symbol: ?GetHwnd@COleControl@@QEAAIXZ
+// COleControl::GetHwnd
+extern "C" unsigned int MS_ABI impl__GetHwnd_COleControl__QEAAIXZ(COleControl* pThis) {
+    return (unsigned int)pThis->GetHwnd();
+}
+
 // Symbol: ?GetIconicMetafile@COleClientItem@@QEAAPEAXXZ
 // COleClientItem::GetIconicMetafile
 extern "C" void* MS_ABI impl__GetIconicMetafile_COleClientItem__QEAAPEAXXZ(COleClientItem* pThis) {
@@ -1735,6 +2077,12 @@ extern "C" int MS_ABI impl__GetNextFormat_COleDataObject__QEAAHPEAUtagFORMATETC_
     return (int)pThis->GetNextFormat(p0);
 }
 
+// Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
+// CFileDialog::GetNextPathName  [CString retval]
+extern "C" void MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAU__POSITION___Z(const CFileDialog* pThis, CString* __ret, void** p0) {
+    *__ret = pThis->GetNextPathName((*p0));
+}
+
 // Symbol: ?GetNextView@CDocument@@UEBAPEAVCView@@AEAPEAU__POSITION@@@Z
 // CDocument::GetNextView
 extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAU__POSITION___Z(const CDocument* pThis, void** p0) {
@@ -1783,6 +2131,18 @@ extern "C" unsigned int MS_ABI impl__GetPaneStyle_CStatusBar__QEBAIH_Z(const CSt
     return (unsigned int)pThis->GetPaneStyle(p0);
 }
 
+// Symbol: ?GetPaneText@CStatusBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+// CStatusBar::GetPaneText  [CString retval]
+extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(const CStatusBar* pThis, CString* __ret, int p0) {
+    *__ret = pThis->GetPaneText(p0);
+}
+
+// Symbol: ?GetPaneText@CStatusBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CStatusBar::GetPaneText
+extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CStatusBar* pThis, int p0, CString* p1) {
+    pThis->GetPaneText(p0, (*p1));
+}
+
 // Symbol: ?GetParaFormat@CRichEditCtrl@@QEBAKAEAUPARAFORMAT2@@@Z
 // CRichEditCtrl::GetParaFormat
 extern "C" unsigned long MS_ABI impl__GetParaFormat_CRichEditCtrl__QEBAKAEAUPARAFORMAT2___Z(const CRichEditCtrl* pThis, PARAFORMAT2* p0) {
@@ -1799,6 +2159,12 @@ extern "C" CPropertySheet* MS_ABI impl__GetParentSheet_CPropertyPage__UEAAPEAVCP
 // CFileDialog::GetPathName  [CString retval]
 extern "C" void MS_ABI impl__GetPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(const CFileDialog* pThis, CString* __ret) {
     *__ret = pThis->GetPathName();
+}
+
+// Symbol: ?GetPeerName@CAsyncSocket@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
+// CAsyncSocket::GetPeerName
+extern "C" int MS_ABI impl__GetPeerName_CAsyncSocket__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(CAsyncSocket* pThis, CString* p0, unsigned int* p3) {
+    return (int)pThis->GetPeerName((*p0), (*p3));
 }
 
 // Symbol: ?GetPortName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -1843,10 +2209,28 @@ extern "C" void MS_ABI impl__GetRoot_CFileFind__UEBA_AV__CStringT__WV__StrTraitM
     *__ret = pThis->GetRoot();
 }
 
+// Symbol: ?GetSavedCustomColors@CColorDialog@@SAPEAKXZ
+// Static: CColorDialog::GetSavedCustomColors
+extern "C" unsigned long* MS_ABI impl__GetSavedCustomColors_CColorDialog__SAPEAKXZ() {
+    return (unsigned long*)CColorDialog::GetSavedCustomColors();
+}
+
+// Symbol: ?GetSelectedText@CEditView@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CEditView::GetSelectedText
+extern "C" void MS_ABI impl__GetSelectedText_CEditView__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CEditView* pThis, CString* p0) {
+    pThis->GetSelectedText((*p0));
+}
+
 // Symbol: ?GetSelectionCharFormat@CRichEditCtrl@@QEBAKAEAUCHARFORMAT2W@@@Z
 // CRichEditCtrl::GetSelectionCharFormat
 extern "C" unsigned long MS_ABI impl__GetSelectionCharFormat_CRichEditCtrl__QEBAKAEAUCHARFORMAT2W___Z(const CRichEditCtrl* pThis, CHARFORMAT2W* p0) {
     return (unsigned long)pThis->GetSelectionCharFormat((*p0));
+}
+
+// Symbol: ?GetSockName@CAsyncSocket@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
+// CAsyncSocket::GetSockName
+extern "C" int MS_ABI impl__GetSockName_CAsyncSocket__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(CAsyncSocket* pThis, CString* p0, unsigned int* p3) {
+    return (int)pThis->GetSockName((*p0), (*p3));
 }
 
 // Symbol: ?GetStartPosition@COleDocument@@UEBAPEAU__POSITION@@XZ
@@ -2106,6 +2490,18 @@ extern "C" void MS_ABI impl__NotifyRename_COleServerDoc__QEAAXPEB_W_Z(COleServer
     pThis->NotifyRename(p0);
 }
 
+// Symbol: ?OnActivate@COleClientItem@@UEAAXXZ
+// COleClientItem::OnActivate
+extern "C" void MS_ABI impl__OnActivate_COleClientItem__UEAAXXZ(COleClientItem* pThis) {
+    pThis->OnActivate();
+}
+
+// Symbol: ?OnActivateView@CView@@MEAAXHPEAV1@0@Z
+// CView::OnActivateView
+extern "C" void MS_ABI impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(CView* pThis, int p0, void* p1, int p2) {
+    pThis->OnActivateView(p0, p1, p2);
+}
+
 // Symbol: ?OnAmbientPropertyChange@COleControl@@UEAAXJ@Z
 // COleControl::OnAmbientPropertyChange
 extern "C" void MS_ABI impl__OnAmbientPropertyChange_COleControl__UEAAXJ_Z(COleControl* pThis, long p0) {
@@ -2131,16 +2527,58 @@ extern "C" int MS_ABI impl__OnBusyDialog_COleMessageFilter__UEAAHPEAUHTASK_____Z
     return (int)pThis->OnBusyDialog(p0);
 }
 
+// Symbol: ?OnCancel@CPropertyPage@@UEAAXXZ
+// CPropertyPage::OnCancel
+extern "C" void MS_ABI impl__OnCancel_CPropertyPage__UEAAXXZ(CPropertyPage* pThis) {
+    pThis->OnCancel();
+}
+
 // Symbol: ?OnChange@COleClientItem@@UEAAXW4OLE_NOTIFICATION@@K@Z
 // COleClientItem::OnChange
 extern "C" void MS_ABI impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(COleClientItem* pThis, OLE_NOTIFICATION p0, unsigned long p1) {
     pThis->OnChange(p0, p1);
 }
 
+// Symbol: ?OnChangeItemPosition@COleClientItem@@MEAAHAEBVCRect@@@Z
+// COleClientItem::OnChangeItemPosition
+extern "C" int MS_ABI impl__OnChangeItemPosition_COleClientItem__MEAAHAEBVCRect___Z(COleClientItem* pThis, const CRect* p0) {
+    return (int)pThis->OnChangeItemPosition((*p0));
+}
+
 // Symbol: ?OnClose@COleControl@@UEAAXK@Z
 // COleControl::OnClose
 extern "C" void MS_ABI impl__OnClose_COleControl__UEAAXK_Z(COleControl* pThis, unsigned long p0) {
     pThis->OnClose(p0);
+}
+
+// Symbol: ?OnClose@XAdviseSink@COleClientItem@@UEAAXXZ
+// COleClientItem::OnClose
+extern "C" void MS_ABI impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ(COleClientItem* pThis) {
+    pThis->OnClose();
+}
+
+// Symbol: ?OnCreate@CFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+// CFrameWnd::OnCreate
+extern "C" int MS_ABI impl__OnCreate_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(CFrameWnd* pThis, CREATESTRUCTW* p0) {
+    return (int)pThis->OnCreate(p0);
+}
+
+// Symbol: ?OnCreateObject@COleObjectFactory@@MEAAPEAVCCmdTarget@@XZ
+// COleObjectFactory::OnCreateObject
+extern "C" CCmdTarget* MS_ABI impl__OnCreateObject_COleObjectFactory__MEAAPEAVCCmdTarget__XZ(COleObjectFactory* pThis) {
+    return (CCmdTarget*)pThis->OnCreateObject();
+}
+
+// Symbol: ?OnDeactivate@COleClientItem@@UEAAXXZ
+// COleClientItem::OnDeactivate
+extern "C" void MS_ABI impl__OnDeactivate_COleClientItem__UEAAXXZ(COleClientItem* pThis) {
+    pThis->OnDeactivate();
+}
+
+// Symbol: ?OnDiscardUndoState@COleClientItem@@MEAAXXZ
+// COleClientItem::OnDiscardUndoState
+extern "C" void MS_ABI impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(COleClientItem* pThis) {
+    pThis->OnDiscardUndoState();
 }
 
 // Symbol: ?OnDocActivate@COleFrameHook@@UEAAHH@Z
@@ -2171,6 +2609,12 @@ extern "C" unsigned long MS_ABI impl__OnDragOver_COleDropTarget__UEAAKPEAVCWnd__
 // COleDropTarget::OnDragScroll
 extern "C" unsigned long MS_ABI impl__OnDragScroll_COleDropTarget__UEAAKPEAVCWnd__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, unsigned long p1, CPoint p2) {
     return (unsigned long)pThis->OnDragScroll(p0, p1, p2);
+}
+
+// Symbol: ?OnDraw@CFormView@@MEAAXPEAVCDC@@@Z
+// CFormView::OnDraw
+extern "C" void MS_ABI impl__OnDraw_CFormView__MEAAXPEAVCDC___Z(CFormView* pThis, CDC* p0) {
+    pThis->OnDraw(p0);
 }
 
 // Symbol: ?OnDraw@CHtmlView@@UEAAXPEAVCDC@@@Z
@@ -2537,6 +2981,12 @@ extern "C" unsigned long MS_ABI impl__OnDropEx_COleDropTarget__UEAAKPEAVCWnd__PE
     return (unsigned long)pThis->OnDropEx(p0, p1, p2, p3, p4);
 }
 
+// Symbol: ?OnEditLinks@COleDocument@@IEAAXXZ
+// COleDocument::OnEditLinks
+extern "C" void MS_ABI impl__OnEditLinks_COleDocument__IEAAXXZ(COleDocument* pThis) {
+    pThis->OnEditLinks();
+}
+
 // Symbol: ?OnEditProperty@COlePropertyPage@@UEAAHJ@Z
 // COlePropertyPage::OnEditProperty
 extern "C" int MS_ABI impl__OnEditProperty_COlePropertyPage__UEAAHJ_Z(COlePropertyPage* pThis, long p0) {
@@ -2556,6 +3006,12 @@ extern "C" int MS_ABI impl__OnGetExtent_COleServerItem__UEAAHW4tagDVASPECT__AEAV
     return (int)pThis->OnGetExtent(p0, (*p1));
 }
 
+// Symbol: ?OnGetItemPosition@COleClientItem@@MEAAXAEAVCRect@@@Z
+// COleClientItem::OnGetItemPosition
+extern "C" void MS_ABI impl__OnGetItemPosition_COleClientItem__MEAAXAEAVCRect___Z(COleClientItem* pThis, CRect* p0) {
+    pThis->OnGetItemPosition((*p0));
+}
+
 // Symbol: ?OnIdle@CWinThread@@UEAAHJ@Z
 // CWinThread::OnIdle
 extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long p0) {
@@ -2566,6 +3022,24 @@ extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long 
 // CDHtmlDialog::OnInitDialog
 extern "C" int MS_ABI impl__OnInitDialog_CDHtmlDialog__UEAAHXZ(CDHtmlDialog* pThis) {
     return (int)pThis->OnInitDialog();
+}
+
+// Symbol: ?OnInitDialog@CPropertySheet@@UEAAHXZ
+// CPropertySheet::OnInitDialog
+extern "C" int MS_ABI impl__OnInitDialog_CPropertySheet__UEAAHXZ(CPropertySheet* pThis) {
+    return (int)pThis->OnInitDialog();
+}
+
+// Symbol: ?OnInitialUpdate@CRichEditView@@MEAAXXZ
+// CRichEditView::OnInitialUpdate
+extern "C" void MS_ABI impl__OnInitialUpdate_CRichEditView__MEAAXXZ(CRichEditView* pThis) {
+    pThis->OnInitialUpdate();
+}
+
+// Symbol: ?OnInvertTracker@CSplitterWnd@@MEAAXAEBVCRect@@@Z
+// CSplitterWnd::OnInvertTracker
+extern "C" void MS_ABI impl__OnInvertTracker_CSplitterWnd__MEAAXAEBVCRect___Z(CSplitterWnd* pThis, const CRect* p0) {
+    pThis->OnInvertTracker((*p0));
 }
 
 // Symbol: ?OnKillActive@CPropertyPage@@UEAAHXZ
@@ -2604,6 +3078,18 @@ extern "C" int MS_ABI impl__OnMove_CRecordView__UEAAHI_Z(CRecordView* pThis, uns
     return (int)pThis->OnMove(p0);
 }
 
+// Symbol: ?OnObjectsChanged@COlePropertyPage@@UEAAXXZ
+// COlePropertyPage::OnObjectsChanged
+extern "C" void MS_ABI impl__OnObjectsChanged_COlePropertyPage__UEAAXXZ(COlePropertyPage* pThis) {
+    pThis->OnObjectsChanged();
+}
+
+// Symbol: ?OnOK@CPropertyPage@@UEAAXXZ
+// CPropertyPage::OnOK
+extern "C" void MS_ABI impl__OnOK_CPropertyPage__UEAAXXZ(CPropertyPage* pThis) {
+    pThis->OnOK();
+}
+
 // Symbol: ?OnProgressChange@CHtmlView@@UEAAXJJ@Z
 // CHtmlView::OnProgressChange
 extern "C" void MS_ABI impl__OnProgressChange_CHtmlView__UEAAXJJ_Z(CHtmlView* pThis, long p0, long p1) {
@@ -2616,10 +3102,34 @@ extern "C" int MS_ABI impl__OnQueryCancel_CPropertyPage__UEAAHXZ(CPropertyPage* 
     return (int)pThis->OnQueryCancel();
 }
 
+// Symbol: ?OnRequestPositionChange@COleIPFrameWnd@@MEAAXPEBUtagRECT@@@Z
+// COleIPFrameWnd::OnRequestPositionChange
+extern "C" void MS_ABI impl__OnRequestPositionChange_COleIPFrameWnd__MEAAXPEBUtagRECT___Z(COleIPFrameWnd* pThis, const RECT* p0) {
+    pThis->OnRequestPositionChange(p0);
+}
+
+// Symbol: ?OnReset@CPropertyPage@@UEAAXXZ
+// CPropertyPage::OnReset
+extern "C" void MS_ABI impl__OnReset_CPropertyPage__UEAAXXZ(CPropertyPage* pThis) {
+    pThis->OnReset();
+}
+
+// Symbol: ?OnResetState@COleControl@@UEAAXXZ
+// COleControl::OnResetState
+extern "C" void MS_ABI impl__OnResetState_COleControl__UEAAXXZ(COleControl* pThis) {
+    pThis->OnResetState();
+}
+
 // Symbol: ?OnSetActive@CPropertyPage@@UEAAHXZ
 // CPropertyPage::OnSetActive
 extern "C" int MS_ABI impl__OnSetActive_CPropertyPage__UEAAHXZ(CPropertyPage* pThis) {
     return (int)pThis->OnSetActive();
+}
+
+// Symbol: ?OnSetClientSite@COleControl@@UEAAXXZ
+// COleControl::OnSetClientSite
+extern "C" void MS_ABI impl__OnSetClientSite_COleControl__UEAAXXZ(COleControl* pThis) {
+    pThis->OnSetClientSite();
 }
 
 // Symbol: ?OnSetExtent@COleServerItem@@UEAAHW4tagDVASPECT@@AEBVCSize@@@Z
@@ -2629,16 +3139,34 @@ extern "C" int MS_ABI impl__OnSetExtent_COleServerItem__UEAAHW4tagDVASPECT__AEBV
     return {};
 }
 
+// Symbol: ?OnSetHostNames@COleServerDoc@@MEAAXPEB_W0@Z
+// COleServerDoc::OnSetHostNames
+extern "C" void MS_ABI impl__OnSetHostNames_COleServerDoc__MEAAXPEB_W0_Z(COleServerDoc* pThis, const wchar_t* p0, const wchar_t* p1) {
+    pThis->OnSetHostNames(p0, p1);
+}
+
 // Symbol: ?OnSetOptions@CRecordset@@UEAAXPEAX@Z
 // CRecordset::OnSetOptions
 extern "C" void MS_ABI impl__OnSetOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pThis, void* p0) {
     pThis->OnSetOptions(p0);
 }
 
+// Symbol: ?OnSetPageSite@COlePropertyPage@@UEAAXXZ
+// COlePropertyPage::OnSetPageSite
+extern "C" void MS_ABI impl__OnSetPageSite_COlePropertyPage__UEAAXXZ(COlePropertyPage* pThis) {
+    pThis->OnSetPageSite();
+}
+
 // Symbol: ?OnShowControlBars@COleClientItem@@UEAAHPEAVCFrameWnd@@H@Z
 // COleClientItem::OnShowControlBars
 extern "C" int MS_ABI impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(COleClientItem* pThis, CFrameWnd* p0, int p1) {
     return (int)pThis->OnShowControlBars(p0, p1);
+}
+
+// Symbol: ?OnShowItem@COleClientItem@@MEAAXXZ
+// COleClientItem::OnShowItem
+extern "C" void MS_ABI impl__OnShowItem_COleClientItem__MEAAXXZ(COleClientItem* pThis) {
+    pThis->OnShowItem();
 }
 
 // Symbol: ?OnShowViews@COleDocument@@UEAAXH@Z
@@ -2657,6 +3185,12 @@ extern "C" void MS_ABI impl__OnStatusTextChange_CHtmlView__UEAAXPEB_W_Z(CHtmlVie
 // CHtmlView::OnTitleChange
 extern "C" void MS_ABI impl__OnTitleChange_CHtmlView__UEAAXPEB_W_Z(CHtmlView* pThis, const wchar_t* p0) {
     pThis->OnTitleChange(p0);
+}
+
+// Symbol: ?OnUpdate@CView@@MEAAXPEAV1@_JPEAVCObject@@@Z
+// CView::OnUpdate
+extern "C" void MS_ABI impl__OnUpdate_CView__MEAAXPEAV1__JPEAVCObject___Z(CView* pThis, void* p0, __int64 p1, CObject* p2) {
+    pThis->OnUpdate(p0, p1, p2);
 }
 
 // Symbol: ?OnWizardBack@CPropertyPage@@UEAA_JXZ
@@ -2679,7 +3213,7 @@ extern "C" __int64 MS_ABI impl__OnWizardNext_CPropertyPage__UEAA_JXZ(CPropertyPa
 
 // Symbol: ?Open@CDatabase@@UEAAHPEB_WHH0H@Z
 // CDatabase::Open
-extern "C" int MS_ABI impl__Open_CDatabase__UEAAHPEB_WHH0H_Z(CDatabase* pThis, const wchar_t* p0, int p1, int p2, void* p3, int p4) {
+extern "C" int MS_ABI impl__Open_CDatabase__UEAAHPEB_WHH0H_Z(CDatabase* pThis, const wchar_t* p0, int p1, int p2, const wchar_t* p3, int p4) {
     return (int)pThis->Open(p0, p1, p2, p3, p4);
 }
 
@@ -2730,6 +3264,12 @@ extern "C" long MS_ABI impl__QueryContinueDrag_COleDropSource__UEAAJHK_Z(COleDro
 // COleDropSource::QueryContinueDrag
 extern "C" long MS_ABI impl__QueryContinueDrag_XDropSource_COleDropSource__UEAAJHK_Z(COleDropSource* pThis, int p0, unsigned long p1) {
     return (long)pThis->QueryContinueDrag(p0, p1);
+}
+
+// Symbol: ?QueryInfo@CHttpFile@@QEBAHKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAK@Z
+// CHttpFile::QueryInfo
+extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAK_Z(const CHttpFile* pThis, unsigned long p0, CString* p1, unsigned long* p4) {
+    return (int)pThis->QueryInfo(p0, (*p1), p4);
 }
 
 // Symbol: ?QueryInfoStatusCode@CHttpFile@@QEBAHAEAK@Z
@@ -2792,6 +3332,18 @@ extern "C" unsigned int MS_ABI impl__Read_CStdioFile__UEAAIPEAXI_Z(CStdioFile* p
     return (unsigned int)pThis->Read(p0, p1);
 }
 
+// Symbol: ?ReadString@CArchive@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CArchive::ReadString
+extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CArchive* pThis, CString* p0) {
+    return (int)pThis->ReadString((*p0));
+}
+
+// Symbol: ?ReadString@CStdioFile@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CStdioFile::ReadString
+extern "C" int MS_ABI impl__ReadString_CStdioFile__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStdioFile* pThis, CString* p0) {
+    return (int)pThis->ReadString((*p0));
+}
+
 // Symbol: ?ReadString@CStdioFile@@UEAAPEA_WPEA_WI@Z
 // CStdioFile::ReadString
 extern "C" wchar_t* MS_ABI impl__ReadString_CStdioFile__UEAAPEA_WPEA_WI_Z(CStdioFile* pThis, wchar_t* p0, unsigned int p1) {
@@ -2802,6 +3354,18 @@ extern "C" wchar_t* MS_ABI impl__ReadString_CStdioFile__UEAAPEA_WPEA_WI_Z(CStdio
 // CFrameWnd::RecalcLayout
 extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int p0) {
     pThis->RecalcLayout(p0);
+}
+
+// Symbol: ?RecalcLayout@CPane@@UEAAXXZ
+// CPane::RecalcLayout
+extern "C" void MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis) {
+    pThis->RecalcLayout();
+}
+
+// Symbol: ?RecalcLayout@CSplitterWnd@@UEAAXXZ
+// CSplitterWnd::RecalcLayout
+extern "C" void MS_ABI impl__RecalcLayout_CSplitterWnd__UEAAXXZ(CSplitterWnd* pThis) {
+    pThis->RecalcLayout();
 }
 
 // Symbol: ?Receive@CAsyncSocket@@UEAAHPEAXHH@Z
@@ -2816,16 +3380,46 @@ extern "C" int MS_ABI impl__Receive_CSocket__UEAAHPEAXHH_Z(CSocket* pThis, void*
     return (int)pThis->Receive(p0, p1, p2);
 }
 
+// Symbol: ?ReceiveFrom@CAsyncSocket@@QEAAHPEAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAIH@Z
+// CAsyncSocket::ReceiveFrom
+extern "C" int MS_ABI impl__ReceiveFrom_CAsyncSocket__QEAAHPEAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAIH_Z(CAsyncSocket* pThis, void* p0, int p1, CString* p2, unsigned int* p5, int p6) {
+    return (int)pThis->ReceiveFrom(p0, p1, (*p2), (*p5), p6);
+}
+
 // Symbol: ?Register@COleDropTarget@@QEAAHPEAVCWnd@@@Z
 // COleDropTarget::Register
 extern "C" int MS_ABI impl__Register_COleDropTarget__QEAAHPEAVCWnd___Z(COleDropTarget* pThis, CWnd* p0) {
     return (int)pThis->Register(p0);
 }
 
+// Symbol: ?Register@COleMessageFilter@@QEAAHXZ
+// COleMessageFilter::Register
+extern "C" int MS_ABI impl__Register_COleMessageFilter__QEAAHXZ(COleMessageFilter* pThis) {
+    return (int)pThis->Register();
+}
+
 // Symbol: ?Register@COleObjectFactory@@UEAAHXZ
 // COleObjectFactory::Register
 extern "C" int MS_ABI impl__Register_COleObjectFactory__UEAAHXZ(COleObjectFactory* pThis) {
     return (int)pThis->Register();
+}
+
+// Symbol: ?RegisterAll@COleObjectFactory@@SAHXZ
+// Static: COleObjectFactory::RegisterAll
+extern "C" int MS_ABI impl__RegisterAll_COleObjectFactory__SAHXZ() {
+    return (int)COleObjectFactory::RegisterAll();
+}
+
+// Symbol: ?RegisterIfServerAttached@COleLinkingDoc@@MEAAHPEB_WH@Z
+// COleLinkingDoc::RegisterIfServerAttached
+extern "C" int MS_ABI impl__RegisterIfServerAttached_COleLinkingDoc__MEAAHPEB_WH_Z(COleLinkingDoc* pThis, const wchar_t* p0, int p1) {
+    return (int)pThis->RegisterIfServerAttached(p0, p1);
+}
+
+// Symbol: ?Release@COleDataObject@@QEAAXXZ
+// COleDataObject::Release
+extern "C" void MS_ABI impl__Release_COleDataObject__QEAAXXZ(COleDataObject* pThis) {
+    pThis->Release();
 }
 
 // Symbol: ?ReleaseCapture@COleControl@@QEAAHXZ
@@ -2845,6 +3439,12 @@ extern "C" int MS_ABI impl__Reload_COleClientItem__QEAAHXZ(COleClientItem* pThis
 // CFtpConnection::Remove
 extern "C" int MS_ABI impl__Remove_CFtpConnection__QEAAHPEB_W_Z(CFtpConnection* pThis, const wchar_t* p0) {
     return (int)pThis->Remove(p0);
+}
+
+// Symbol: ?RemoveAll@CMFCPropertyGridCtrl@@QEAAXXZ
+// CMFCPropertyGridCtrl::RemoveAll
+extern "C" void MS_ABI impl__RemoveAll_CMFCPropertyGridCtrl__QEAAXXZ(CMFCPropertyGridCtrl* pThis) {
+    pThis->RemoveAll();
 }
 
 // Symbol: ?RemovePage@CPropertySheet@@QEAAXH@Z
@@ -2877,10 +3477,46 @@ extern "C" void MS_ABI impl__ResizeParentToFit_CScrollView__QEAAXH_Z(CScrollView
     pThis->ResizeParentToFit(p0);
 }
 
+// Symbol: ?Revoke@COleDropTarget@@UEAAXXZ
+// COleDropTarget::Revoke
+extern "C" void MS_ABI impl__Revoke_COleDropTarget__UEAAXXZ(COleDropTarget* pThis) {
+    pThis->Revoke();
+}
+
+// Symbol: ?Revoke@COleLinkingDoc@@QEAAXXZ
+// COleLinkingDoc::Revoke
+extern "C" void MS_ABI impl__Revoke_COleLinkingDoc__QEAAXXZ(COleLinkingDoc* pThis) {
+    pThis->Revoke();
+}
+
+// Symbol: ?Revoke@COleMessageFilter@@QEAAXXZ
+// COleMessageFilter::Revoke
+extern "C" void MS_ABI impl__Revoke_COleMessageFilter__QEAAXXZ(COleMessageFilter* pThis) {
+    pThis->Revoke();
+}
+
+// Symbol: ?Revoke@COleObjectFactory@@QEAAXXZ
+// COleObjectFactory::Revoke
+extern "C" void MS_ABI impl__Revoke_COleObjectFactory__QEAAXXZ(COleObjectFactory* pThis) {
+    pThis->Revoke();
+}
+
+// Symbol: ?RevokeAll@COleObjectFactory@@SAXXZ
+// Static: COleObjectFactory::RevokeAll
+extern "C" void MS_ABI impl__RevokeAll_COleObjectFactory__SAXXZ() {
+    COleObjectFactory::RevokeAll();
+}
+
 // Symbol: ?Rollback@CDatabase@@QEAAHXZ
 // CDatabase::Rollback
 extern "C" int MS_ABI impl__Rollback_CDatabase__QEAAHXZ(CDatabase* pThis) {
     return (int)pThis->Rollback();
+}
+
+// Symbol: ?SaveEmbedding@COleServerDoc@@QEAAXXZ
+// COleServerDoc::SaveEmbedding
+extern "C" void MS_ABI impl__SaveEmbedding_COleServerDoc__QEAAXXZ(COleServerDoc* pThis) {
+    pThis->SaveEmbedding();
 }
 
 // Symbol: ?ScrollToPosition@CScrollView@@QEAAXUtagPOINT@@@Z
@@ -2970,6 +3606,12 @@ extern "C" void MS_ABI impl__Serialize_CEditView__UEAAXAEAVCArchive___Z(CEditVie
 // Symbol: ?Serialize@COleClientItem@@UEAAXAEAVCArchive@@@Z
 // COleClientItem::Serialize
 extern "C" void MS_ABI impl__Serialize_COleClientItem__UEAAXAEAVCArchive___Z(COleClientItem* pThis, CArchive* p0) {
+    pThis->Serialize((*p0));
+}
+
+// Symbol: ?Serialize@COleControl@@MEAAXAEAVCArchive@@@Z
+// COleControl::Serialize
+extern "C" void MS_ABI impl__Serialize_COleControl__MEAAXAEAVCArchive___Z(COleControl* pThis, CArchive* p0) {
     pThis->Serialize((*p0));
 }
 
@@ -3077,6 +3719,12 @@ extern "C" void MS_ABI impl__SetCheck_COleCmdUI__UEAAXH_Z(COleCmdUI* pThis, int 
     pThis->SetCheck(p0);
 }
 
+// Symbol: ?SetClipboard@COleDataSource@@QEAAXXZ
+// COleDataSource::SetClipboard
+extern "C" void MS_ABI impl__SetClipboard_COleDataSource__QEAAXXZ(COleDataSource* pThis) {
+    pThis->SetClipboard();
+}
+
 // Symbol: ?SetColumnInfo@CSplitterWnd@@QEAAXHHH@Z
 // CSplitterWnd::SetColumnInfo
 extern "C" void MS_ABI impl__SetColumnInfo_CSplitterWnd__QEAAXHHH_Z(CSplitterWnd* pThis, int p0, int p1, int p2) {
@@ -3138,6 +3786,12 @@ extern "C" void MS_ABI impl__SetDirtyFieldStatus_CRecordset__QEAAXK_Z(CRecordset
     pThis->SetDirtyFieldStatus(p0);
 }
 
+// Symbol: ?SetDockState@CDockingManager@@UEAAXXZ
+// CDockingManager::SetDockState
+extern "C" void MS_ABI impl__SetDockState_CDockingManager__UEAAXXZ(CDockingManager* pThis) {
+    pThis->SetDockState();
+}
+
 // Symbol: ?SetElementProperty@CDHtmlDialog@@QEAAXPEB_WJPEAUtagVARIANT@@@Z
 // CDHtmlDialog::SetElementProperty
 extern "C" void MS_ABI impl__SetElementProperty_CDHtmlDialog__QEAAXPEB_WJPEAUtagVARIANT___Z(CDHtmlDialog* pThis, const wchar_t* p0, long p1, VARIANT* p2) {
@@ -3178,6 +3832,12 @@ extern "C" void MS_ABI impl__SetFont_COleControl__QEAAXPEAUIFontDisp___Z(COleCon
 // CTaskDialog::SetFooterIcon
 extern "C" void MS_ABI impl__SetFooterIcon_CTaskDialog__QEAAXPEAUHICON_____Z(CTaskDialog* pThis, HICON__* p0) {
     pThis->SetFooterIcon(p0);
+}
+
+// Symbol: ?SetFooterText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CTaskDialog::SetFooterText
+extern "C" void MS_ABI impl__SetFooterText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CTaskDialog* pThis, const CString* p0) {
+    pThis->SetFooterText((*p0));
 }
 
 // Symbol: ?SetForeColor@COleControl@@QEAAXK@Z
@@ -3349,6 +4009,12 @@ extern "C" int MS_ABI impl__SetSelectionCharFormat_CRichEditCtrl__QEAAHAEAUCHARF
     return (int)pThis->SetSelectionCharFormat((*p0));
 }
 
+// Symbol: ?SetSplitCursor@CSplitterWnd@@MEAAXH@Z
+// CSplitterWnd::SetSplitCursor
+extern "C" void MS_ABI impl__SetSplitCursor_CSplitterWnd__MEAAXH_Z(CSplitterWnd* pThis, int p0) {
+    pThis->SetSplitCursor(p0);
+}
+
 // Symbol: ?SetText@CCmdUI@@UEAAXPEB_W@Z
 // CCmdUI::SetText
 extern "C" void MS_ABI impl__SetText_CCmdUI__UEAAXPEB_W_Z(CCmdUI* pThis, const wchar_t* p0) {
@@ -3391,10 +4057,28 @@ extern "C" void MS_ABI impl__SetValue_CMFCPropertyGridProperty__UEAAXAEBVCOleVar
     pThis->SetValue((*p0));
 }
 
+// Symbol: ?SetVerificationCheckboxText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CTaskDialog::SetVerificationCheckboxText
+extern "C" void MS_ABI impl__SetVerificationCheckboxText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CTaskDialog* pThis, const CString* p0) {
+    pThis->SetVerificationCheckboxText((*p0));
+}
+
 // Symbol: ?SetWriteBufferSize@CInternetFile@@QEAAHI@Z
 // CInternetFile::SetWriteBufferSize
 extern "C" int MS_ABI impl__SetWriteBufferSize_CInternetFile__QEAAHI_Z(CInternetFile* pThis, unsigned int p0) {
     return (int)pThis->SetWriteBufferSize(p0);
+}
+
+// Symbol: ?ToggleMimimizeState@CMFCRibbonBar@@QEAAXXZ
+// CMFCRibbonBar::ToggleMimimizeState
+extern "C" void MS_ABI impl__ToggleMimimizeState_CMFCRibbonBar__QEAAXXZ(CMFCRibbonBar* pThis) {
+    pThis->ToggleMimimizeState();
+}
+
+// Symbol: ?UnaccessData@COleSafeArray@@QEAAXXZ
+// COleSafeArray::UnaccessData
+extern "C" void MS_ABI impl__UnaccessData_COleSafeArray__QEAAXXZ(COleSafeArray* pThis) {
+    pThis->UnaccessData();
 }
 
 // Symbol: ?Unlock@CEvent@@UEAAHXZ
@@ -3458,6 +4142,13 @@ extern "C" int MS_ABI impl__UpdateLink_COleClientItem__QEAAHXZ(COleClientItem* p
     return {};
 }
 
+// Symbol: ?UpdateRegistry@COleObjectFactory@@MEAAHH@Z
+// COleObjectFactory::UpdateRegistry
+extern "C" int MS_ABI impl__UpdateRegistry_COleObjectFactory__MEAAHH_Z(COleObjectFactory* pThis, int p0) {
+    pThis->UpdateRegistry(p0);
+    return {};
+}
+
 // Symbol: ?UpdateRegistryAll@COleObjectFactory@@SAHH@Z
 // Static: COleObjectFactory::UpdateRegistryAll
 extern "C" int MS_ABI impl__UpdateRegistryAll_COleObjectFactory__SAHH_Z(int p0) {
@@ -3468,6 +4159,12 @@ extern "C" int MS_ABI impl__UpdateRegistryAll_COleObjectFactory__SAHH_Z(int p0) 
 // CToolTipCtrl::UpdateTipText
 extern "C" void MS_ABI impl__UpdateTipText_CToolTipCtrl__QEAAXPEB_WPEAVCWnd___K_Z(CToolTipCtrl* pThis, const wchar_t* p0, CWnd* p1, unsigned __int64 p2) {
     pThis->UpdateTipText(p0, p1, p2);
+}
+
+// Symbol: ?WrapChanged@CRichEditView@@MEAAXXZ
+// CRichEditView::WrapChanged
+extern "C" void MS_ABI impl__WrapChanged_CRichEditView__MEAAXXZ(CRichEditView* pThis) {
+    pThis->WrapChanged();
 }
 
 // Symbol: ?Write@CArchive@@QEAAXPEBXI@Z
@@ -3518,5 +4215,5 @@ extern "C" void MS_ABI impl__WriteString_CStdioFile__UEAAXPEB_W_Z(CStdioFile* pT
     pThis->WriteString(p0);
 }
 
-// Generated 579 thunks
-// Errors (could not parse): 4498
+// Generated 695 thunks
+// Errors (could not parse): 0

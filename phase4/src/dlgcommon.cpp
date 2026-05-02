@@ -248,7 +248,7 @@ void CColorDialog::SetCurrentColor(unsigned long clr) {
     m_clrInit = clr;
 }
 
-void* CColorDialog::GetSavedCustomColors() {
+unsigned long* CColorDialog::GetSavedCustomColors() {
     return s_acrCustClr;
 }
 

@@ -243,7 +243,7 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             continue
         
         info = demangle(symbol)
-        if not info.params and info.ret_type == 'void' and '?' in info.symbol:
+        if not info.success:
             error_count += 1
             continue
         
@@ -274,17 +274,23 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         if stub_name in EXISTING_STUBS:
             continue
         
-        # Check if this is a CString return-by-value.
-        # In MSVC x64 ABI, structs returned by value get a hidden return pointer
-        # passed in RDX (after 'this' in RCX).  Our C++ methods return CString
-        # directly, so we need a thunk that receives the hidden pointer and
-        # assigns the result.
+        # CString return-by-value detection: @@<convention><ret>...?AV?$CStringT...
+        # CString ref params: @@<convention><ret>...AEAV?$CStringT... or ...AEBV?$CStringT...
         is_cstring_retval = False
+        has_cstring_ref = False
         tail_match = re.search(r'@@([A-Z].*)$', symbol)
         if tail_match:
             tail = tail_match.group(1)
-            if '?AV?$CStringT' in tail or '?AV?$' in tail[:4]:
+            # CString in return type: appears RIGHT after calling convention markers,
+            # as ?AV?$CStringT... before any parameter separators (@)
+            if '?AV?$CStringT' in tail:
                 is_cstring_retval = True
+            # CString reference param: AEAV?$CStringT or AEBV?$CStringT in params area
+            if 'AEAV?$CStringT' in tail or 'AEBV?$CStringT' in tail:
+                has_cstring_ref = True
+        # Also check full symbol for ref params (in case tail match fails)
+        if 'AEAV?$CStringT' in symbol or 'AEBV?$CStringT' in symbol:
+            has_cstring_ref = True
 
         # Figure out the C++ method name from the MSVC name
         # Extract method name (between initial ? and @)
@@ -320,6 +326,43 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             pname = f'p{i}'
             param_decls.append(f'{ct} {pname}')
             param_names.append(pname)
+        
+        # Collapse CString reference artifact triplets (void*, void**, void*)
+        # into a single CString& parameter.
+        cstring_call_names = None  # if set, use these for call_params
+        if has_cstring_ref and not is_cstring_retval:
+            new_decls = []
+            new_names = []
+            call_names = []
+            i = 0
+            param_idx = 0  # index into original info.params
+            while i < len(param_decls):
+                # Check for (void*, void**, void*) triplet
+                if (i + 2 < len(param_decls) and
+                    'void*' in param_decls[i] and
+                    'void**' in param_decls[i+1] and
+                    'void*' in param_decls[i+2]):
+                    is_const_cstring = 'AEBV?$CStringT' in symbol
+                    ct_str = 'const CString*' if is_const_cstring else 'CString*'
+                    new_decls.append(f'{ct_str} p{i}')
+                    new_names.append(f'p{i}')
+                    call_names.append(f'(*p{i})')
+                    i += 3
+                    param_idx += 3
+                else:
+                    new_decls.append(param_decls[i])
+                    new_names.append(param_names[i])
+                    # For non-CString params, dereference if original was a reference
+                    if param_idx < len(info.params) and info.params[param_idx].is_reference:
+                        call_names.append(f'(*{param_names[i]})')
+                    else:
+                        call_names.append(param_names[i])
+                    i += 1
+                    param_idx += 1
+            
+            param_decls = new_decls
+            param_names = new_names
+            cstring_call_names = call_names
         
         params_str = ', '.join(param_decls)
         
@@ -363,15 +406,17 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         is_global = symbol.startswith('??$') and '@@YA' in symbol
         
         # Build the parameter names for calling
-        call_params = []
-        for i, p in enumerate(info.params):
-            pname = f'p{i}'
-            ct = clean_type(p.c_type)
-            if p.is_reference and ct not in ('void*', 'const void*', 'void'):
-                # Reference params arrive as pointers in extern "C", dereference for C++ call
-                call_params.append(f'(*{pname})')
-            else:
-                call_params.append(pname)
+        if cstring_call_names is not None:
+            call_params = list(cstring_call_names)
+        else:
+            call_params = []
+            for i, p in enumerate(info.params):
+                pname = f'p{i}'
+                ct = clean_type(p.c_type)
+                if p.is_reference and ct not in ('void*', 'const void*', 'void'):
+                    call_params.append(f'(*{pname})')
+                else:
+                    call_params.append(pname)
         
         call_str = ', '.join(call_params)
         
@@ -443,15 +488,33 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         elif class_name:
             # Regular member function
             
-            # CString return-by-value: hidden return pointer in RDX
+            # CString return-by-value: hidden return pointer in RDX.
+            # The demangler produces artifact params (void*, void**, void*) from the
+            # CString template name.  Real explicit params come after those.
             if is_cstring_retval:
                 lines.append(f'// Symbol: {symbol}')
                 lines.append(f'// {class_name}::{method_name}  [CString retval]')
                 this_type = f'const {class_name}*' if info.is_const_method else f'{class_name}*'
-                lines.append(f'extern "C" void MS_ABI {stub_name}({this_type} pThis, CString* __ret) {{')
-                if method_is_void:
-                    lines.append(f'    pThis->{method_name}();')
-                    lines.append(f'    *__ret = CString();')
+                
+                # Skip CString template artifact params (first 3)
+                real_params = info.params[3:] if len(info.params) >= 3 else []
+                
+                # Build explicit param declarations and call args
+                cstring_param_parts = [f'{this_type} pThis', 'CString* __ret']
+                cstring_call_args = []
+                for i, p in enumerate(real_params):
+                    ct = clean_type(p.c_type)
+                    cstring_param_parts.append(f'{ct} p{i}')
+                    if p.is_reference and ct not in ('void*', 'const void*', 'void'):
+                        cstring_call_args.append(f'(*p{i})')
+                    else:
+                        cstring_call_args.append(f'p{i}')
+                cstring_params_str = ', '.join(cstring_param_parts)
+                cstring_call_str = ', '.join(cstring_call_args)
+                
+                lines.append(f'extern "C" void MS_ABI {stub_name}({cstring_params_str}) {{')
+                if cstring_call_str:
+                    lines.append(f'    *__ret = pThis->{method_name}({cstring_call_str});')
                 else:
                     lines.append(f'    *__ret = pThis->{method_name}();')
                 lines.append(f'}}')

@@ -712,7 +712,7 @@ public:
     virtual ~COleMessageFilter();
 
     // Registration
-    static COleMessageFilter* PASCAL Register();
+    int Register();
     static void PASCAL Revoke();
 
     // Busy dialog
@@ -1093,7 +1093,7 @@ public:
 
     BOOL IsDocObject() const;
     BOOL IsActive() const;
-    HRESULT GetActiveView(IOleDocumentView** ppView);
+    IOleDocumentView* GetActiveView() const;
     HRESULT GetDocument(IUnknown** ppDocument);
     void ActivateAndShow();
     BOOL IsOpen() const;
@@ -1159,7 +1159,7 @@ public:
     void Revoke();
     BOOL IsRegistered() const;
     BOOL IsLicenseValid();
-    BOOL RegisterAll();
+    static int RegisterAll();
     static BOOL PASCAL UpdateRegistryAll(BOOL bRegister = TRUE);
     static void PASCAL RevokeAll();
 
@@ -1661,7 +1661,7 @@ public:
     BOOL AmbientAutoClip();
     BOOL AmbientSupportsMnemonics();
     BOOL AmbientScaleUnits(CString& strUnitName);
-    CString AmbientLocaleID();
+    unsigned long AmbientLocaleID();
 
     // Events
     void FireEvent(DISPID dispId, BYTE* pbParams, ...);
@@ -1686,7 +1686,7 @@ public:
     void* InternalGetFont() { return nullptr; }
     void SetFont(LPFONTDISP pFontDisp);
     void SetFont(CFont* pFont);
-    HWND GetHwnd() const;
+    unsigned int GetHwnd();
     void SetHwnd(HWND hWnd);
     OLE_COLOR GetBackColorOle() const;
     OLE_COLOR GetForeColorOle() const;
