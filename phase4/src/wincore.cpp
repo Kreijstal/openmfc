@@ -936,3 +936,1321 @@ CMDIFrameWnd* CMDIChildWnd::GetMDIFrame() {
     }
     return nullptr;
 }
+void CWnd::CancelToolTips(int p0)
+{
+    (void)p0;
+}
+
+CObject* CWnd::CreateObject()
+{
+    return nullptr;
+}
+
+void CWnd::DeleteTempMap()
+{
+}
+
+void* CWnd::FromHandlePermanent(HWND p0)
+{
+    (void)p0;
+    return nullptr;
+}
+
+const MSG* CWnd::GetCurrentMessage()
+{
+    return nullptr;
+}
+
+void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return nullptr;
+}
+
+void* CWnd::GetSafeOwner(void* p0, HWND* p1)
+{
+    (void)p0;
+    (void)p1;
+    return nullptr;
+}
+
+HWND CWnd::GetSafeOwner_(void* p0, void** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+const AFX_INTERFACEMAP* CWnd::GetThisInterfaceMap()
+{
+    return nullptr;
+}
+
+const AFX_MSGMAP* CWnd::GetThisMessageMap()
+{
+    return nullptr;
+}
+
+int CWnd::GrayCtlColor(HDC p0, HWND p1, UINT p2, HBRUSH p3, DWORD p4)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0;
+}
+
+int CWnd::ModifyStyle(HWND p0, DWORD p1, DWORD p2, UINT p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::ModifyStyleEx(HWND p0, DWORD p1, DWORD p2, UINT p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::ReflectLastMsg(HWND p0, LONGLONG* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::SendMessageToDescendants(HWND p0, UINT p1, ULONGLONG p2, LONGLONG p3, int p4, int p5)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+}
+
+int CWnd::WalkPreTranslateTree(HWND p0, MSG* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::accDoDefaultAction(VARIANT p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::accHitTest(long p0, long p1, VARIANT* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+long CWnd::accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0;
+}
+
+long CWnd::accNavigate(long p0, VARIANT p1, void* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+long CWnd::accSelect(long p0, VARIANT p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::CalcWindowRect(RECT* p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+int CWnd::CheckAutoCenter()
+{
+    return 0;
+}
+
+int CWnd::ContinueModal()
+{
+    return 0;
+}
+
+long CWnd::CreateAccessibleProxy(ULONGLONG p0, LONGLONG p1, LONGLONG* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+void CWnd::EndModalLoop(int p0)
+{
+    (void)p0;
+}
+
+long CWnd::EnsureStdObj()
+{
+    return 0;
+}
+
+long CWnd::get_accChild(VARIANT p0, IDispatch** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accChildCount(long* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::get_accDefaultAction(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accDescription(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accFocus(VARIANT* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::get_accHelp(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accHelpTopic(WCHAR** p0, VARIANT p1, long* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+long CWnd::get_accKeyboardShortcut(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accName(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accParent(IDispatch** p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::get_accRole(VARIANT p0, VARIANT* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accSelection(VARIANT* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::get_accState(VARIANT p0, VARIANT* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::get_accValue(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+CScrollBar* CWnd::GetScrollBarCtrl(int p0) const
+{
+    (void)p0;
+    return nullptr;
+}
+
+void CWnd::HtmlHelpW(ULONGLONG p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+int CWnd::IsFrameWnd() const
+{
+    return 0;
+}
+
+int CWnd::OnAmbientProperty(COleControlSite* p0, long p1, VARIANT* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+LONGLONG CWnd::OnToolHitTest(CPoint p0, TOOLINFOW* p1) const
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::PreSubclassWindow()
+{
+}
+
+int CWnd::PreTranslateMessage(MSG* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::put_accName(VARIANT p0, WCHAR* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::put_accValue(VARIANT p0, WCHAR* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::SetProxy(IAccessibleProxy* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::WinHelpInternal(ULONGLONG p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::WinHelpW(ULONGLONG p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::ActivateTopParent()
+{
+}
+
+int CWnd::Attach(HWND p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::AttachControlSite(CHandleMap* p0)
+{
+    (void)p0;
+}
+
+void CWnd::AttachControlSite(COleControlSite* p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::BindDefaultProperty(long p0, WORD p1, const WCHAR* p2, void* p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+void CWnd::BindProperty(long p0, void* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::CenterWindow(void* p0)
+{
+    (void)p0;
+}
+
+void CWnd::CheckDlgButton(int p0, UINT p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::CheckRadioButton(int p0, int p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+void CWnd::ClientToScreen(RECT* p0) const
+{
+    (void)p0;
+}
+
+int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const RECT*& p3, void* p4, UINT p5, CFile* p6, int p7, WCHAR* p8)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    (void)p7;
+    (void)p8;
+    return 0;
+}
+
+int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const POINT* p3, const SIZE* p4, void* p5, UINT p6, CFile* p7, int p8, WCHAR* p9)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    (void)p7;
+    (void)p8;
+    (void)p9;
+    return 0;
+}
+
+int CWnd::CreateControl(const CControlCreationInfo*& p0, DWORD p1, const POINT* p2, const SIZE* p3, void* p4, UINT p5)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    return 0;
+}
+
+int CWnd::CreateControl(const WCHAR* p0, const WCHAR* p1, DWORD p2, const RECT*& p3, void* p4, UINT p5, CFile* p6, int p7, WCHAR* p8)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    (void)p7;
+    (void)p8;
+    return 0;
+}
+
+int CWnd::CreateControlContainer(COleControlContainer** p0)
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::CreateControlSite(COleControlContainer* p0, COleControlSite** p1, UINT p2, const GUID*& p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::CreateDlg(const WCHAR* p0, void* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::CreateDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+LONGLONG CWnd::Default()
+{
+    return 0;
+}
+
+LONGLONG CWnd::DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+HWND CWnd::Detach()
+{
+    return 0;
+}
+
+int CWnd::DoD2DPaint()
+{
+    return 0;
+}
+
+void CWnd::EnableScrollBarCtrl(int p0, int p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+int CWnd::EnableToolTips(int p0)
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::EnableTrackingToolTips(int p0)
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::ExecuteDlgInit(void* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::ExecuteDlgInit(const WCHAR* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::FilterToolTipMessage(MSG* p0)
+{
+    (void)p0;
+}
+
+void* CWnd::FindSiteOrWnd(const COleControlSiteOrWnd* p0) const
+{
+    (void)p0;
+    return nullptr;
+}
+
+void* CWnd::FindSiteOrWndWithFocus() const
+{
+    return nullptr;
+}
+
+long CWnd::GetAccessibilityHitTest(long p0, long p1, VARIANT* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+long CWnd::GetAccessibilityLocation(VARIANT p0, long* p1, long* p2, long* p3, long* p4)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0;
+}
+
+long CWnd::GetAccessibleChild(VARIANT p0, IDispatch** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+long CWnd::GetAccessibleChildCount()
+{
+    return 0;
+}
+
+long CWnd::GetAccessibleName(VARIANT p0, WCHAR** p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::GetCheckedRadioButton(int p0, int p1) const
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+COleControlContainer* CWnd::GetControlContainer()
+{
+    return nullptr;
+}
+
+IUnknown* CWnd::GetControlUnknown()
+{
+    return nullptr;
+}
+
+int CWnd::GetDlgCtrlID() const
+{
+    return 0;
+}
+
+UINT CWnd::GetDlgItemInt(int p0, int* p1, int p2) const
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::GetDlgItemTextW(int p0, void*& p1, void** p2, void* p3) const
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::GetDlgItemTextW(int p0, WCHAR* p1, int p2) const
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+IUnknown* CWnd::GetDSCCursor()
+{
+    return nullptr;
+}
+
+DWORD CWnd::GetExStyle() const
+{
+    return 0;
+}
+
+int CWnd::GetGestureConfig(CGestureConfig* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+DWORD CWnd::GetGestureStatus(CPoint p0)
+{
+    (void)p0;
+    return 0;
+}
+
+const AFX_INTERFACEMAP* CWnd::GetInterfaceMap() const
+{
+    return nullptr;
+}
+
+const AFX_MSGMAP* CWnd::GetMessageMap() const
+{
+    return nullptr;
+}
+
+COleControlSiteOrWnd* CWnd::GetNextDlgGroupItem(void* p0) const
+{
+    (void)p0;
+    return nullptr;
+}
+
+COleControlSiteOrWnd* CWnd::GetNextDlgTabItem(void* p0, int p1) const
+{
+    (void)p0;
+    (void)p1;
+    return nullptr;
+}
+
+_AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo()
+{
+    return nullptr;
+}
+
+COleControlSite* CWnd::GetOleControlSite(UINT p0) const
+{
+    (void)p0;
+    return nullptr;
+}
+
+CFrameWnd* CWnd::GetParentFrame() const
+{
+    return nullptr;
+}
+
+void* CWnd::GetParentOwner() const
+{
+    return nullptr;
+}
+
+COleControlSiteOrWnd* CWnd::GetPrevDlgGroupItem(void* p0) const
+{
+    (void)p0;
+    return nullptr;
+}
+
+void CWnd::GetProperty(long p0, WORD p1, void* p2) const
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+CHwndRenderTarget* CWnd::GetRenderTarget()
+{
+    return nullptr;
+}
+
+DWORD CWnd::GetStyle() const
+{
+    return 0;
+}
+
+void* CWnd::GetSuperWndProcAddr()
+{
+    return nullptr;
+}
+
+CFrameWnd* CWnd::GetTopLevelFrame() const
+{
+    return nullptr;
+}
+
+void* CWnd::GetTopLevelOwner() const
+{
+    return nullptr;
+}
+
+void* CWnd::GetTopLevelParent() const
+{
+    return nullptr;
+}
+
+long CWnd::GetWindowLessChildCount()
+{
+    return 0;
+}
+
+int CWnd::GetWindowPlacement(WINDOWPLACEMENT* p0) const
+{
+    (void)p0;
+    return 0;
+}
+
+long CWnd::GetWindowedChildCount()
+{
+    return 0;
+}
+
+int CWnd::HandleFloatingSysCommand(UINT p0, INT_PTR p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::InitControlContainer(int p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::InvokeHelper(long p0, WORD p1, void* p2, VARIANT* p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+UINT CWnd::IsDlgButtonChecked(int p0) const
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::IsTopParentActive() const
+{
+    return 0;
+}
+
+int CWnd::IsTouchWindow() const
+{
+    return 0;
+}
+
+int CWnd::MessageBoxW(const WCHAR* p0, const WCHAR* p1, UINT p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+LONGLONG CWnd::OnActivateTopLevel(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnCharToItem(UINT p0, CListBox* p1, UINT p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::OnChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::OnCompareItem(int p0, COMPAREITEMSTRUCT* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+HBRUSH CWnd::OnCtlColor(CDC* p0, void* p1, UINT p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::OnDeleteItem(int p0, DELETEITEMSTRUCT* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::OnDestroy()
+{
+}
+
+void CWnd::OnDevModeChange(void* p0, const WCHAR* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::OnDisplayChange(UINT p0, int p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+LONGLONG CWnd::OnDragList(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnDrawItem(int p0, DRAWITEMSTRUCT* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::OnEnterIdle(UINT p0, void* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::OnGesture(void* p0, ULONGLONG p1, LONGLONG p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+int CWnd::OnGesturePan(void* p0, CPoint p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnGesturePressAndTap(void* p0, CPoint p1, DWORD p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::OnGestureRotate(void* p0, CPoint p1, DWORD p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::OnGestureTwoFingerTap(void* p0, CPoint p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnGestureZoom(void* p0, CPoint p1, DWORD p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+LONGLONG CWnd::OnGetObject(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::OnHScroll(UINT p0, UINT p1, CScrollBar* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+void CWnd::OnHelp()
+{
+}
+
+void CWnd::OnHelpFinder()
+{
+}
+
+void CWnd::OnHelpIndex()
+{
+}
+
+void CWnd::OnHelpInfo(HELPINFO* p0)
+{
+    (void)p0;
+}
+
+void CWnd::OnHelpUsing()
+{
+}
+
+void CWnd::OnMeasureItem(int p0, MEASUREITEMSTRUCT* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+LONGLONG CWnd::OnNTCtlColor(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnNcDestroy()
+{
+    return 0;
+}
+
+void CWnd::OnPaint()
+{
+}
+
+int CWnd::OnParentNotify(UINT p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::OnSetFocus(void* p0)
+{
+    (void)p0;
+}
+
+void CWnd::OnSettingChange(UINT p0, const WCHAR* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::OnSysColorChange()
+{
+}
+
+LONGLONG CWnd::OnTabletQuerySystemGestureStatus(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+void CWnd::OnTouchInput(ULONGLONG p0, ULONGLONG p1, TOUCHINPUT* p2, UINT p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+int CWnd::OnTouchInputs(ULONGLONG p0, ULONGLONG p1, TOUCHINPUT* p2, UINT p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+LONGLONG CWnd::OnTouchMessage(ULONGLONG p0, LONGLONG p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::OnVKeyToItem(UINT p0, CListBox* p1, UINT p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+void CWnd::OnVScroll(UINT p0, UINT p1, CScrollBar* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+void CWnd::PaintWindowlessControls(CDC* p0)
+{
+    (void)p0;
+}
+
+void CWnd::PostNcDestroy()
+{
+}
+
+void CWnd::PreTranslateInput(MSG* p0)
+{
+    (void)p0;
+}
+
+void CWnd::PrepareForHelp()
+{
+}
+
+int CWnd::ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+int CWnd::RegisterTouchWindow(ULONGLONG p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::RemoveRadioCheckFromGroup(const CObject* p0)
+{
+    (void)p0;
+}
+
+void CWnd::RepositionBars(UINT p0, UINT p1, UINT p2, UINT p3, RECT* p4, RECT* p5, int p6)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+}
+
+LONGLONG CWnd::RunModalLoop(DWORD p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::ScreenToClient(RECT* p0) const
+{
+    (void)p0;
+}
+
+void CWnd::ScrollWindow(int p0, int p1, const RECT* p2, const RECT* p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+int CWnd::ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p4, RECT* p5, UINT p6)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    return 0;
+}
+
+int CWnd::SendChildNotifyLastMsg(LONGLONG* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+LONGLONG CWnd::SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+void CWnd::SetDlgCtrlID(int p0)
+{
+    (void)p0;
+}
+
+void CWnd::SetDlgItemInt(int p0, UINT p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+void CWnd::SetDlgItemTextW(int p0, const WCHAR* p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void* CWnd::SetFocus()
+{
+    return nullptr;
+}
+
+int CWnd::SetGestureConfig(CGestureConfig* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* p0)
+{
+    (void)p0;
+}
+
+int CWnd::SetProperty(long p0, WORD p1, void* p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::SetScrollInfo(int p0, SCROLLINFO* p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+int CWnd::SetScrollPos(int p0, int p1, int p2)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+void CWnd::SetScrollRange(int p0, int p1, int p2, int p3)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+int CWnd::SetWindowPlacement(const WINDOWPLACEMENT* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+int CWnd::SubclassDlgItem(UINT p0, void* p1)
+{
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+int CWnd::SubclassWindow(HWND p0)
+{
+    (void)p0;
+    return 0;
+}
+
+HWND CWnd::UnsubclassWindow()
+{
+    return 0;
+}
+
+int CWnd::UpdateData(int p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::UpdateDialogControls(void* p0, int p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::EnableD2DSupport(int p0, int p1)
+{
+    (void)p0;
+    (void)p1;
+}
+
+void CWnd::EnableDynamicLayout(int p0)
+{
+    (void)p0;
+}
+
+CDCRenderTarget* CWnd::GetDCRenderTarget()
+{
+    return nullptr;
+}
+
+void CWnd::InitDynamicLayout()
+{
+}
+
+int CWnd::LoadDynamicLayoutResource(const WCHAR* p0)
+{
+    (void)p0;
+    return 0;
+}
+
+void CWnd::ResizeDynamicLayout()
+{
+}
+
+int CWnd::IsD2DSupportEnabled()
+{
+    return 0;
+}
+
+void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int p3, int*& p4)
+{
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+}
+

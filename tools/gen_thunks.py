@@ -320,7 +320,7 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
 
         # Figure out the C++ method name from the MSVC name
         # Extract method name (between initial ? and @)
-        method_match = re.match(r'\?(\??\$?\w+)@', symbol)
+        method_match = re.match(r'\?(\??[$]?\w+)@', symbol)
         if not method_match:
             continue
         msvc_method = method_match.group(1)
