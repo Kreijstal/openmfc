@@ -631,12 +631,9 @@ public:
     DROPEFFECT DoDragDrop(DWORD dwEffects = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK,
                           LPCRECT lpRectStartDrag = nullptr,
                           COleDropSource* pDropSource = nullptr);
-    void OnRenderGlobalData(FORMATETC* lpFormatEtc, HGLOBAL* phGlobal);
-    void OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile);
-
     // Data provision
-    virtual HGLOBAL OnRenderGlobalData(LPFORMATETC lpFormatEtc);
-    virtual HGLOBAL OnRenderFileData(LPFORMATETC lpFormatEtc);
+    virtual int OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal);
+    virtual int OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile);
     void Empty();
 
     // IDataObject interface
@@ -997,7 +994,7 @@ public:
                   LPCRECT lpRect = nullptr, LPCRECT lpClipRect = nullptr,
                   BOOL bSplit = FALSE);
     void Deactivate();
-    void DoVerb(LONG nVerb, CView* pView = nullptr, LPCRECT lpRect = nullptr);
+    int DoVerb(LONG nVerb, CView* pView = nullptr, MSG* lpMsg = nullptr);
     BOOL IsInPlaceActive() const;
 
     // State
@@ -1038,7 +1035,7 @@ public:
     HGLOBAL GetIconicMetafile();
     BOOL SetIconicMetafile(HGLOBAL hMetaPict);
     HGLOBAL GetMetaFile();
-    BOOL SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj);
+    void SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj);
 
     // Conversion
     BOOL ConvertTo(REFCLSID clsidNew);
@@ -1103,7 +1100,7 @@ public:
     virtual void OnPrint(CDC* pDC, void* pInfo);
     virtual void OnEndPrinting(CDC* pDC, void* pInfo);
     HRESULT ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt = OLECMDEXECOPT_DONTPROMPTUSER,
-                        VARIANT* pvaIn = nullptr, VARIANT* pvaOut = nullptr);
+                        const GUID* pguidCmdGroup = nullptr);
 
 protected:
     char _coledocobjectitem_padding[48];
@@ -1250,7 +1247,9 @@ public:
 
     // CWnd wrapper
     CWnd* GetWindow() const;
+    long GetWindow(HWND__** phWnd);
     COleControlContainer* GetContainer() const;
+    long GetContainer(IOleContainer** ppContainer);
     COleControl* GetControl() const;
 
     // IOleControlSite / IDispatch support
@@ -1489,7 +1488,8 @@ public:
                      CWnd* pParentWnd = nullptr);
     virtual ~COleInsertDialog();
 
-    intptr_t DoModal();
+    virtual __int64 DoModal();
+    __int64 DoModal(unsigned long);
     OLEUIINSERTOBJECTW* GetOleUIInsertObject() { return &m_io; }
 
     // Helpers
@@ -1497,6 +1497,7 @@ public:
     CString GetPathName() const;
     BOOL IsCreateNew() const;
     BOOL IsDisplayAsIcon() const;
+    int CreateItem(COleClientItem* pItem);
     COleClientItem* CreateItem(COleDocument* pDoc = nullptr);
     void GetIconMetafile(HGLOBAL* phMetaPict);
 
@@ -1547,6 +1548,7 @@ public:
     // Helpers
     CLSID GetClassID() const;
     BOOL IsPasteLink() const;
+    int CreateItem(COleClientItem* pItem);
     COleClientItem* CreateItem(COleDocument* pDoc);
 
 public:
@@ -1608,7 +1610,7 @@ public:
     // Nested control data source
     class CControlDataSource {
     public:
-        CControlDataSource(COleControl*) {}
+        CControlDataSource(COleControl*);
         char _pad[16];
     };
 
@@ -1656,11 +1658,11 @@ public:
     BOOL AmbientUIDead();
     BOOL AmbientShowGrabHandles();
     BOOL AmbientShowHatching();
-    BOOL AmbientDisplayName(CString& strDisplayName);
+    CString AmbientDisplayName();
     BOOL AmbientDisplayAsDefault();
     BOOL AmbientAutoClip();
     BOOL AmbientSupportsMnemonics();
-    BOOL AmbientScaleUnits(CString& strUnitName);
+    CString AmbientScaleUnits();
     unsigned long AmbientLocaleID();
 
     // Events
@@ -1721,7 +1723,7 @@ public:
     void InvalidateControl(LPCRECT lpRect = nullptr);
 
     // Property pages
-    virtual void OnProperties(wchar_t* pszPropPage = nullptr);
+    virtual int OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect);
     void ShowPropertyPages();
     int GetPropertyPageCount() const;
     BOOL IsPropertyPage(LPUNKNOWN lpUnk);

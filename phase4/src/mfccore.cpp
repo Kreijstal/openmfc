@@ -66,18 +66,18 @@ void CMFCVisualManager::OnDrawMiniFrameBorder(CDC*, CPaneFrameWnd*, CRect, CRect
 void CMFCVisualManager::OnDrawOutlookBarSplitter(CDC*, CRect) {}
 void CMFCVisualManager::OnDrawOutlookPageButtonBorder(CDC*, CRect&, BOOL, BOOL) {}
 void CMFCVisualManager::OnDrawPaneBorder(CDC*, CBasePane*, CRect&) {}
-void CMFCVisualManager::OnDrawPaneCaption(CDC*, CDockablePane*, CRect) {}
+unsigned long CMFCVisualManager::OnDrawPaneCaption(CDC*, CDockablePane*, int, CRect, int) { return 0; }
 void CMFCVisualManager::OnDrawPaneDivider(CDC*, CPaneDivider*, CRect, BOOL) {}
 void CMFCVisualManager::OnDrawPopupWindowBorder(CDC*, CRect) {}
 void CMFCVisualManager::OnDrawPopupWindowButtonBorder(CDC*, CRect, CMFCDesktopAlertWndButton*) {}
 void CMFCVisualManager::OnDrawPopupWindowCaption(CDC*, CRect, CMFCDesktopAlertWnd*) {}
 void CMFCVisualManager::OnDrawRibbonApplicationButton(CDC*, CMFCRibbonButton*) {}
 void CMFCVisualManager::OnDrawRibbonButtonBorder(CDC*, CMFCRibbonButton*) {}
-void CMFCVisualManager::OnDrawRibbonButtonsGroup(CDC*, CMFCRibbonButtonsGroup*) {}
+unsigned long CMFCVisualManager::OnDrawRibbonButtonsGroup(CDC*, CMFCRibbonButtonsGroup*, CRect) { return 0; }
 void CMFCVisualManager::OnDrawRibbonCaption(CDC*, CMFCRibbonBar*, CRect, CRect) {}
 void CMFCVisualManager::OnDrawRibbonCaptionButton(CDC*, CMFCRibbonCaptionButton*) {}
 void CMFCVisualManager::OnDrawRibbonCategory(CDC*, CMFCRibbonCategory*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonCategoryCaption(CDC*, CMFCRibbonCategory*) {}
+unsigned long CMFCVisualManager::OnDrawRibbonCategoryCaption(CDC*, CMFCRibbonContextCaption*) { return 0; }
 void CMFCVisualManager::OnDrawRibbonCategoryScroll(CDC*, CMFCRibbonCategoryScroll*) {}
 void CMFCVisualManager::OnDrawRibbonCategoryTab(CDC*, CMFCRibbonTab*, BOOL) {}
 void CMFCVisualManager::OnDrawRibbonCheckBoxOnList(CDC*, CMFCRibbonCheckBox*, CRect, BOOL, BOOL) {}
@@ -172,7 +172,7 @@ BOOL CBasePane::HasGripper() const { return FALSE; }
 BOOL CBasePane::IsAccessibilityCompatible() { return TRUE; }
 void CBasePane::SetPaneAlignment(DWORD) {}
 DWORD CBasePane::GetPaneAlignment() const { return 0; }
-void CBasePane::SetWindowPos(CWnd*, int, int, int, int, UINT) {}
+void* CBasePane::SetWindowPos(const CWnd*, int, int, int, int, unsigned int, void*) { return nullptr; }
 void CBasePane::CalcFixedLayout(BOOL, BOOL) {}
 void CBasePane::RecalcLayout() {}
 
@@ -203,7 +203,8 @@ CDockablePane::~CDockablePane() {}
 BOOL CDockablePane::CanBeAttached() const { return TRUE; }
 BOOL CDockablePane::CanAutoHide() const { return TRUE; }
 void CDockablePane::EnableAutohideAll() {}
-void CDockablePane::SetAutoHideMode(BOOL, DWORD) {}
+CMFCAutoHideBar* CDockablePane::SetAutoHideMode(int, unsigned long, void*, int) { return nullptr; }
+// Old convenience overloads (non-MSDN API)
 BOOL CDockablePane::IsAutoHideMode() const { return FALSE; }
 BOOL CDockablePane::IsTabbed() const { return FALSE; }
 
@@ -323,6 +324,8 @@ CMFCRibbonCategory::CMFCRibbonCategory(const wchar_t* lpszName, UINT, UINT) {
 }
 CMFCRibbonCategory::~CMFCRibbonCategory() {}
 
+CMFCRibbonPanel* CMFCRibbonCategory::AddPanel(const wchar_t*, HICON, CRuntimeClass*) { return nullptr; }
+// Old convenience overloads (non-MSDN API)
 void CMFCRibbonCategory::AddPanel(CMFCRibbonPanel*) {}
 int CMFCRibbonCategory::GetPanelCount() const { return 0; }
 CMFCRibbonPanel* CMFCRibbonCategory::GetPanel(int) const { return nullptr; }
@@ -341,6 +344,8 @@ CMFCRibbonBar::~CMFCRibbonBar() {}
 BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
     (void)pParentWnd; (void)dwStyle; (void)nID; return TRUE;
 }
+CMFCRibbonCategory* CMFCRibbonBar::AddCategory(const wchar_t*, unsigned int, unsigned int, CSize, unsigned int, int, CRuntimeClass*) { return nullptr; }
+// Old convenience overloads (non-MSDN API)
 BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory*) { return TRUE; }
 int CMFCRibbonBar::GetCategoryCount() const { return 0; }
 CMFCRibbonCategory* CMFCRibbonBar::GetCategory(int) const { return nullptr; }
@@ -405,7 +410,7 @@ CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {}
 BOOL CMFCBaseTabCtrl::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
 int CMFCBaseTabCtrl::GetTabsCount() const { return 0; }
 void CMFCBaseTabCtrl::AddTab(CWnd*, const wchar_t*, UINT) {}
-void CMFCBaseTabCtrl::RemoveTab(int) {}
+int CMFCBaseTabCtrl::RemoveTab(int, int) { return 0; }
 void CMFCBaseTabCtrl::SetActiveTab(int) {}
 int CMFCBaseTabCtrl::GetActiveTab() const { return -1; }
 CWnd* CMFCBaseTabCtrl::GetTabWnd(int) const { return nullptr; }
@@ -448,7 +453,7 @@ BOOL CMFCPropertyGridProperty::IsEnabled() const { return m_bEnabled; }
 void CMFCPropertyGridProperty::SetEnabled(BOOL bEnable) { m_bEnabled = bEnable; }
 BOOL CMFCPropertyGridProperty::IsVisible() const { return m_bVisible; }
 void CMFCPropertyGridProperty::Show(BOOL bShow) { m_bVisible = bShow; }
-void CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty*) {}
+int CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty*) { return 0; }
 int CMFCPropertyGridProperty::GetSubItemsCount() const { return 0; }
 CMFCPropertyGridProperty* CMFCPropertyGridProperty::GetSubItem(int) const { return nullptr; }
 void CMFCPropertyGridProperty::RemoveAllSubItems() {}
@@ -468,7 +473,7 @@ CMFCPropertyGridCtrl::CMFCPropertyGridCtrl() {
 CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() {}
 
 BOOL CMFCPropertyGridCtrl::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
-void CMFCPropertyGridCtrl::AddProperty(CMFCPropertyGridProperty*) {}
+int CMFCPropertyGridCtrl::AddProperty(CMFCPropertyGridProperty*, int, int) { return 0; }
 int CMFCPropertyGridCtrl::GetPropertyCount() const { return 0; }
 CMFCPropertyGridProperty* CMFCPropertyGridCtrl::GetProperty(int) const { return nullptr; }
 void CMFCPropertyGridCtrl::RemoveAll() {}
@@ -498,6 +503,8 @@ CMFCTasksPane::CMFCTasksPane() {
 CMFCTasksPane::~CMFCTasksPane() {}
 
 BOOL CMFCTasksPane::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
+int CMFCTasksPane::AddTask(int, const wchar_t*, int, unsigned int, unsigned __int64) { return 0; }
+// Old convenience overloads (non-MSDN API)
 void CMFCTasksPane::AddTask(int, CMFCTasksPaneTask*) {}
 void CMFCTasksPane::RemoveAllTasks() {}
 void CMFCTasksPane::SetCaption(int, const wchar_t*) {}

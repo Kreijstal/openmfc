@@ -379,6 +379,7 @@ class CWinThread : public CCmdTarget {
 public:
     CWinThread();
     CWinThread(unsigned int (*)(void*), void*, int = 0, unsigned int = 0) : CWinThread() {}
+    CWinThread(unsigned int (*pfn1)(void*), unsigned int (*pfn2)(void*)) : CWinThread() { (void)pfn1; (void)pfn2; }
     virtual ~CWinThread();
     
     // Thread operations
@@ -914,7 +915,7 @@ public:
     virtual intptr_t DoModal();
 
     // Font information
-    void* GetCurrentFont() const;
+    void GetCurrentFont(LOGFONTW* lpLogFont);
     CString GetFaceName() const;
     CString GetStyleName() const;
     int GetSize() const;
@@ -2721,7 +2722,7 @@ public:
     virtual void GetTrueClientSize(SIZE& size, SIZE& sizeSb) const;
     
     virtual void ScrollToPosition(POINT pt);
-    virtual void GetScrollPosition(POINT& pt) const;
+    virtual CPoint GetScrollPosition() const;
     
     virtual void FillOutsideRect(void* pDC, void* pBrush); // CDC* pDC, CBrush* pBrush
     virtual void ResizeParentToFit(int bShrinkOnly = 1);
@@ -3058,6 +3059,10 @@ protected:
 //=============================================================================
 // CDHtmlDialog - DHTML-based Dialog
 //=============================================================================
+#ifndef __IHTMLElement_FWD_DEFINED
+#define __IHTMLElement_FWD_DEFINED
+struct IHTMLElement;
+#endif
 class CDHtmlDialog : public CDialog {
 public:
     CDHtmlDialog();
@@ -3079,10 +3084,11 @@ public:
                   void* lpvPostData = nullptr, DWORD dwPostDataLen = 0);
 
     // DHTML element access
-    HRESULT GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp);
+    long GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp, int* pfCollection = nullptr);
+    long GetElement(const wchar_t* lpszElementId, IHTMLElement** ppElement);
+    VARIANT GetElementProperty(const wchar_t* lpszElementId, long lCookie);
+    HRESULT GetElementProperty(const wchar_t* lpszElementId, DISPID dispId, VARIANT* pVar);
     HRESULT SetElementProperty(const wchar_t* lpszElementId, DISPID dispId,
-                               VARIANT* pVar);
-    HRESULT GetElementProperty(const wchar_t* lpszElementId, DISPID dispId,
                                VARIANT* pVar);
 
     // Control access

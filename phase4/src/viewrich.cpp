@@ -920,7 +920,8 @@ void CDHtmlDialog::Navigate(const wchar_t* lpszURL, DWORD dwFlags,
     (void)lpvPostData; (void)dwPostDataLen;
 }
 
-HRESULT CDHtmlDialog::GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp) {
+long CDHtmlDialog::GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp, int* pfCollection) {
+    (void)pfCollection;
     if (!m_pBrowser || !lpszElementId || !ppDisp) return E_POINTER;
     *ppDisp = nullptr;
 
@@ -947,12 +948,18 @@ HRESULT CDHtmlDialog::GetElement(const wchar_t* lpszElementId, IDispatch** ppDis
     return hr;
 }
 
+long CDHtmlDialog::GetElement(const wchar_t* lpszElementId, IHTMLElement** ppElement) {
+    (void)lpszElementId;
+    if (ppElement) *ppElement = nullptr;
+    return E_NOTIMPL;
+}
+
 HRESULT CDHtmlDialog::SetElementProperty(const wchar_t* lpszElementId,
                                          DISPID dispId, VARIANT* pVar) {
     if (!m_pBrowser || !lpszElementId || !pVar) return E_POINTER;
 
     LPDISPATCH pDisp = nullptr;
-    HRESULT hr = GetElement(lpszElementId, &pDisp);
+    HRESULT hr = GetElement(lpszElementId, &pDisp, nullptr);
     if (FAILED(hr) || !pDisp) return hr;
 
     DISPPARAMS dp = { pVar, nullptr, 1, 0 };
@@ -962,9 +969,14 @@ HRESULT CDHtmlDialog::SetElementProperty(const wchar_t* lpszElementId,
     return hr;
 }
 
+VARIANT CDHtmlDialog::GetElementProperty(const wchar_t* lpszElementId, long lCookie) {
+    (void)lpszElementId; (void)lCookie;
+    VARIANT v; VariantInit(&v); return v;
+}
+
+// Legacy overload
 HRESULT CDHtmlDialog::GetElementProperty(const wchar_t* lpszElementId,
-                                         DISPID dispId, VARIANT* pVar) {
-    if (!m_pBrowser || !lpszElementId || !pVar) return E_POINTER;
+                                          DISPID dispId, VARIANT* pVar) {
 
     LPDISPATCH pDisp = nullptr;
     HRESULT hr = GetElement(lpszElementId, &pDisp);

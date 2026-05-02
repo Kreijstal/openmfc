@@ -52,16 +52,22 @@ def scan_implemented_methods(source_dir: str) -> dict:
             
             # Find patterns like:
             #   ReturnType ClassName::MethodName(
-            #   ClassName::MethodName(
+            #   ReturnType OuterClass::InnerClass::InnerClass(  (nested class ctor)
             #   ClassName::~ClassName(
-            #   ReturnType NS::ClassName::MethodName(
-            for m in re.finditer(r'(?:^|\n)\s*((?:[\w:<>*&\s]+?)\s+)?(\w+)::(\w+)\s*\(', content):
+            for m in re.finditer(r'(?:^|\n)\s*((?:[\w:<>*&\s]+?)\s+)?([\w:]+)::(\w+|~\w+)\s*\(', content):
+                full_cls = m.group(2)  # may contain :: for nested classes
+                method = m.group(3)
                 ret_type = (m.group(1) or 'void').strip()
                 # Strip common qualifiers
                 ret_type = ret_type.split()[-1] if ret_type else 'void'
-                cls, method = m.group(2), m.group(3)
+                # For nested classes, use the simple (last) class name for lookup
+                simple_cls = full_cls.split('::')[-1]
+                # Also store qualified version
+                if '::' in full_cls:
+                    implemented[full_cls][method] = ret_type
+                implemented[simple_cls][method] = ret_type
                 # Skip macros and common false positives
-                if cls in ('if', 'while', 'for', 'switch', 'return', 'sizeof',
+                if simple_cls in ('if', 'while', 'for', 'switch', 'return', 'sizeof',
                            'decltype', 'static_cast', 'reinterpret_cast',
                            'dynamic_cast', 'const_cast', 'IMPLEMENT', 'DECLARE',
                            'BEGIN', 'END', 'AFX', 'ON_COMMAND', 'ON_WM',
@@ -69,13 +75,14 @@ def scan_implemented_methods(source_dir: str) -> dict:
                     continue
                 if method in ('cpp', 'h', 'c', 'NULL', 'nullptr'):
                     continue
-                implemented[cls][method] = ret_type
     
     return implemented
 
 
 def find_header_for_class(include_dir: str, class_name: str) -> str:
-    """Find which header declares a given class."""
+    """Find which header declares a given class.
+    For nested classes (Outer::Inner), searches for the Outer class."""
+    search_name = class_name.split('::')[-1]  # Use simple name for lookup
     for root, dirs, files in os.walk(include_dir):
         for fn in files:
             if not fn.endswith('.h'):
@@ -86,7 +93,7 @@ def find_header_for_class(include_dir: str, class_name: str) -> str:
                     content = f.read()
             except:
                 continue
-            if re.search(rf'\bclass\s+{class_name}\s*[:{{\s]', content):
+            if re.search(rf'\bclass\s+{search_name}\s*[:{{\s]', content):
                 return os.path.relpath(filepath, include_dir)
     return None
 
@@ -247,17 +254,21 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             error_count += 1
             continue
         
-        # Extract class name
-        match = re.search(r'@(\w+)@@', symbol)
-        if not match:
-            match = re.search(r'\?\?0(\w+)@@', symbol)
-        if not match:
-            match = re.search(r'\?\?1(\w+)@@', symbol)
+        # Extract class name (supports nested classes: Outer::Inner)
+        match = re.search(r'@(\w+)@(\w+)@@', symbol)  # nested: Inner@Outer@@
+        if match:
+            class_name = match.group(2) + '::' + match.group(1)  # Outer::Inner
+        else:
+            match = re.search(r'@(\w+)@@', symbol)
+            if not match:
+                match = re.search(r'\?\?0(\w+)@@', symbol)
+            if not match:
+                match = re.search(r'\?\?1(\w+)@@', symbol)
+            if match:
+                class_name = match.group(1)
         
         if not match:
             continue
-        
-        class_name = match.group(1)
         if class_name not in implemented:
             continue
         
@@ -278,6 +289,8 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         # CString ref params: @@<convention><ret>...AEAV?$CStringT... or ...AEBV?$CStringT...
         is_cstring_retval = False
         has_cstring_ref = False
+        is_retval = False  # General return-by-value (enum, struct, class by value)
+        retval_ctype = ''  # C++ type name for the return value
         tail_match = re.search(r'@@([A-Z].*)$', symbol)
         if tail_match:
             tail = tail_match.group(1)
@@ -288,6 +301,19 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             # CString reference param: AEAV?$CStringT or AEBV?$CStringT in params area
             if 'AEAV?$CStringT' in tail or 'AEBV?$CStringT' in tail:
                 has_cstring_ref = True
+            # General return-by-value: ?AV (class), ?AU (struct), ?AW4 (enum) in return position
+            # Pattern: @@<access/digits>?A<V|U|W4><type>...
+            if not is_cstring_retval:
+                retval_pattern = re.match(r'[A-Z0-9]+\?A([VUW]\d?)', tail)
+                if retval_pattern:
+                    is_retval = True
+                    # Extract the C++ type name from the mangled symbol
+                    # Look for the class/struct/enum name after ?AV/?AU/?AW4
+                    type_match = re.search(r'\?A[VUW]\d?(.+?)@', tail)
+                    if type_match:
+                        raw_type = type_match.group(1)
+                        # Clean up: $ for templates, simple names pass through
+                        retval_ctype = raw_type.replace('$', '')
         # Also check full symbol for ref params (in case tail match fails)
         if 'AEAV?$CStringT' in symbol or 'AEBV?$CStringT' in symbol:
             has_cstring_ref = True
@@ -459,18 +485,50 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         
         elif is_static and class_name:
             # Static method
-            lines.append(f'// Symbol: {symbol}')
-            lines.append(f'// Static: {class_name}::{method_name}')
-            
-            thunk_params = params_str
-            lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
-            if ret == 'void' or method_is_void:
-                lines.append(f'    {class_name}::{method_name}({call_str});')
-                if ret != 'void':
-                    lines.append(f'    return {{}};')
+            if is_retval:
+                # Static with return-by-value: hidden return pointer is first param
+                lines.append(f'// Symbol: {symbol}')
+                lines.append(f'// Static: {class_name}::{method_name}  [retval]')
+                
+                # Determine the C++ return type name
+                cpp_ret_type = retval_ctype
+                if not cpp_ret_type and info.params:
+                    ptype = info.params[0].c_type
+                    cpp_ret_type = ptype.replace('*', '').replace(' /*class*/', '').replace(' /*struct*/', '').replace(' /*enum*/', '').replace(' ', '').strip()
+                
+                # Skip hidden return pointer (index 0), rest are real params
+                real_params = info.params[1:] if len(info.params) >= 1 else []
+                retval_param_parts = [f'{cpp_ret_type}* __ret']
+                retval_call_args = []
+                for i, p in enumerate(real_params):
+                    ct = clean_type(p.c_type)
+                    retval_param_parts.append(f'{ct} p{i}')
+                    if p.is_reference and ct not in ('void*', 'const void*', 'void'):
+                        retval_call_args.append(f'(*p{i})')
+                    else:
+                        retval_call_args.append(f'p{i}')
+                retval_params_str = ', '.join(retval_param_parts)
+                retval_call_str = ', '.join(retval_call_args)
+                
+                lines.append(f'extern "C" void MS_ABI {stub_name}({retval_params_str}) {{')
+                if retval_call_str:
+                    lines.append(f'    *__ret = {class_name}::{method_name}({retval_call_str});')
+                else:
+                    lines.append(f'    *__ret = {class_name}::{method_name}();')
+                lines.append(f'}}')
             else:
-                lines.append(f'    return ({c_ret}){class_name}::{method_name}({call_str});')
-            lines.append(f'}}')
+                lines.append(f'// Symbol: {symbol}')
+                lines.append(f'// Static: {class_name}::{method_name}')
+                
+                thunk_params = params_str
+                lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
+                if ret == 'void' or method_is_void:
+                    lines.append(f'    {class_name}::{method_name}({call_str});')
+                    if ret != 'void':
+                        lines.append(f'    return {{}};')
+                else:
+                    lines.append(f'    return ({c_ret}){class_name}::{method_name}({call_str});')
+                lines.append(f'}}')
         
         elif is_global:
             # Global function
@@ -515,6 +573,45 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
                 lines.append(f'extern "C" void MS_ABI {stub_name}({cstring_params_str}) {{')
                 if cstring_call_str:
                     lines.append(f'    *__ret = pThis->{method_name}({cstring_call_str});')
+                else:
+                    lines.append(f'    *__ret = pThis->{method_name}();')
+                lines.append(f'}}')
+            
+            elif is_retval:
+                # General return-by-value (enum, struct, class): hidden return pointer
+                # is the first parameter. Real explicit params start at index 1.
+                lines.append(f'// Symbol: {symbol}')
+                lines.append(f'// {class_name}::{method_name}  [retval]')
+                this_type = f'const {class_name}*' if info.is_const_method else f'{class_name}*'
+                
+                # Determine the actual C++ return type name
+                cpp_ret_type = retval_ctype
+                if not cpp_ret_type and info.params:
+                    # Fallback: extract from demangler param comment
+                    ptype = info.params[0].c_type
+                    cpp_ret_type = ptype.replace('*', '').replace(' /*class*/', '').replace(' /*struct*/', '').replace(' /*enum*/', '').replace(' ', '').strip()
+                    if cpp_ret_type == 'void':
+                        cpp_ret_type = 'void'
+                
+                # Skip the hidden return pointer param (index 0)
+                real_params = info.params[1:] if len(info.params) >= 1 else []
+                
+                # Build explicit param declarations and call args
+                retval_param_parts = [f'{this_type} pThis', f'{cpp_ret_type}* __ret']
+                retval_call_args = []
+                for i, p in enumerate(real_params):
+                    ct = clean_type(p.c_type)
+                    retval_param_parts.append(f'{ct} p{i}')
+                    if p.is_reference and ct not in ('void*', 'const void*', 'void'):
+                        retval_call_args.append(f'(*p{i})')
+                    else:
+                        retval_call_args.append(f'p{i}')
+                retval_params_str = ', '.join(retval_param_parts)
+                retval_call_str = ', '.join(retval_call_args)
+                
+                lines.append(f'extern "C" void MS_ABI {stub_name}({retval_params_str}) {{')
+                if retval_call_str:
+                    lines.append(f'    *__ret = pThis->{method_name}({retval_call_str});')
                 else:
                     lines.append(f'    *__ret = pThis->{method_name}();')
                 lines.append(f'}}')

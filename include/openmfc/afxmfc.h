@@ -28,6 +28,7 @@ class CMFCPopupMenu;
 class CMFCPropertyGridCtrl;
 class CMFCPropertyGridProperty;
 class CMFCTasksPane;
+class CMFCAutoHideBar;
 class CPane;
 class CDockablePane;
 class CBasePane;
@@ -51,6 +52,7 @@ class CMenuImages;
 class CMFCRibbonButtonsGroup;
 class CMFCRibbonCaptionButton;
 class CMFCRibbonCategoryScroll;
+class CMFCRibbonContextCaption;
 class CMFCRibbonTab;
 class CMFCRibbonCheckBox;
 class CMFCRibbonEdit;
@@ -128,18 +130,18 @@ public:
     virtual void OnDrawOutlookBarSplitter(CDC* pDC, CRect rectSplitter);
     virtual void OnDrawOutlookPageButtonBorder(CDC* pDC, CRect& rect, BOOL bIsHighlighted, BOOL bIsPressed);
     virtual void OnDrawPaneBorder(CDC* pDC, CBasePane* pBar, CRect& rect);
-    virtual void OnDrawPaneCaption(CDC* pDC, CDockablePane* pBar, CRect rectCaption);
+    virtual unsigned long OnDrawPaneCaption(CDC* pDC, CDockablePane* pBar, int n1, CRect rectCaption, int n2);
     virtual void OnDrawPaneDivider(CDC* pDC, CPaneDivider* pSlider, CRect rect, BOOL bAutoHideMode);
     virtual void OnDrawPopupWindowBorder(CDC* pDC, CRect rect);
     virtual void OnDrawPopupWindowButtonBorder(CDC* pDC, CRect rectClient, CMFCDesktopAlertWndButton* pButton);
     virtual void OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd* pPopupWnd);
     virtual void OnDrawRibbonApplicationButton(CDC* pDC, CMFCRibbonButton* pButton);
     virtual void OnDrawRibbonButtonBorder(CDC* pDC, CMFCRibbonButton* pButton);
-    virtual void OnDrawRibbonButtonsGroup(CDC* pDC, CMFCRibbonButtonsGroup* pGroup);
+    virtual unsigned long OnDrawRibbonButtonsGroup(CDC* pDC, CMFCRibbonButtonsGroup* pGroup, CRect rectGroup);
     virtual void OnDrawRibbonCaption(CDC* pDC, CMFCRibbonBar* pBar, CRect rectCaption, CRect rectText);
     virtual void OnDrawRibbonCaptionButton(CDC* pDC, CMFCRibbonCaptionButton* pButton);
     virtual void OnDrawRibbonCategory(CDC* pDC, CMFCRibbonCategory* pCategory, CRect rectCategory);
-    virtual void OnDrawRibbonCategoryCaption(CDC* pDC, CMFCRibbonCategory* pCategory);
+    virtual unsigned long OnDrawRibbonCategoryCaption(CDC* pDC, CMFCRibbonContextCaption* pCaption);
     virtual void OnDrawRibbonCategoryScroll(CDC* pDC, CMFCRibbonCategoryScroll* pScroll);
     virtual void OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab* pTab, BOOL bIsActive);
     virtual void OnDrawRibbonCheckBoxOnList(CDC* pDC, CMFCRibbonCheckBox* pCheckBox, CRect rect, BOOL bIsSelected, BOOL bHighlighted);
@@ -217,7 +219,7 @@ public:
     virtual BOOL IsAccessibilityCompatible();
     void SetPaneAlignment(DWORD dwAlignment);
     DWORD GetPaneAlignment() const;
-    void SetWindowPos(CWnd* pWndInsertAfter, int x, int y, int cx, int cy, UINT nFlags);
+    virtual void* SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags, void* pExtra);
     virtual void CalcFixedLayout(BOOL bStretch, BOOL bHorz);
     virtual void RecalcLayout();
 
@@ -254,7 +256,7 @@ public:
     virtual BOOL CanBeAttached() const override;
     virtual BOOL CanAutoHide() const override;
     void EnableAutohideAll();
-    void SetAutoHideMode(BOOL bAutoHideMode, DWORD dwAlignment);
+    virtual CMFCAutoHideBar* SetAutoHideMode(int bAutoHideMode, unsigned long dwAlignment, void* pAutoHideBar = nullptr, int bSetFocus = 0);
     BOOL IsAutoHideMode() const;
     BOOL IsTabbed() const;
 
@@ -372,6 +374,7 @@ public:
     CMFCRibbonCategory(const wchar_t* lpszName = nullptr, UINT uiSmallImageResID = 0, UINT uiLargeImageResID = 0);
     virtual ~CMFCRibbonCategory();
 
+    CMFCRibbonPanel* AddPanel(const wchar_t* lpszLabel, HICON hIcon, CRuntimeClass* pRTI = nullptr);
     void AddPanel(CMFCRibbonPanel* pPanel);
     int GetPanelCount() const;
     CMFCRibbonPanel* GetPanel(int nIndex) const;
@@ -392,6 +395,7 @@ public:
     virtual ~CMFCRibbonBar();
 
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_RIBBON_BAR);
+    CMFCRibbonCategory* AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage, CSize sizeSmall, unsigned int uiAnimLargeImage, int nInsertAt = -1, CRuntimeClass* pRTI = nullptr);
     BOOL AddCategory(CMFCRibbonCategory* pCategory);
     int GetCategoryCount() const;
     CMFCRibbonCategory* GetCategory(int nIndex) const;
@@ -455,7 +459,7 @@ public:
     virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
     int GetTabsCount() const;
     void AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId = (UINT)-1);
-    void RemoveTab(int nIndex);
+    int RemoveTab(int nIndex, int nOption = 0);
     void SetActiveTab(int nIndex);
     int GetActiveTab() const;
     CWnd* GetTabWnd(int nIndex) const;
@@ -500,7 +504,7 @@ public:
     void SetEnabled(BOOL bEnable = TRUE);
     BOOL IsVisible() const;
     void Show(BOOL bShow = TRUE);
-    void AddSubItem(CMFCPropertyGridProperty* pProp);
+    int AddSubItem(CMFCPropertyGridProperty* pProp);
     int GetSubItemsCount() const;
     CMFCPropertyGridProperty* GetSubItem(int nIndex) const;
     void RemoveAllSubItems();
@@ -531,7 +535,7 @@ public:
     virtual ~CMFCPropertyGridCtrl();
 
     virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
-    void AddProperty(CMFCPropertyGridProperty* pProp);
+    int AddProperty(CMFCPropertyGridProperty* pProp, int nPos = -1, int bRedraw = TRUE);
     int GetPropertyCount() const;
     CMFCPropertyGridProperty* GetProperty(int nIndex) const;
     void RemoveAll();
@@ -566,6 +570,7 @@ public:
     virtual ~CMFCTasksPane();
 
     virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
+    int AddTask(int nGroup, const wchar_t* lpszName, int nIcon = -1, unsigned int uiCmdID = 0, unsigned __int64 dwUserData = 0);
     void AddTask(int nGroup, CMFCTasksPaneTask* pTask);
     void RemoveAllTasks();
     void SetCaption(int nGroup, const wchar_t* lpszCaption);
@@ -703,6 +708,8 @@ class CMFCRibbonButtonsGroup : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CM
 class CMFCRibbonCaptionButton : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCaptionButton) public: CMFCRibbonCaptionButton(); virtual ~CMFCRibbonCaptionButton(); char _pad[32]; };
 class CMFCRibbonCategoryScroll : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCategoryScroll) public: CMFCRibbonCategoryScroll(); virtual ~CMFCRibbonCategoryScroll(); char _pad[32]; };
 class CMFCRibbonTab : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonTab) public: CMFCRibbonTab(); virtual ~CMFCRibbonTab(); char _pad[32]; };
+class CMFCRibbonContextCaption : public CObject { DECLARE_DYNAMIC(CMFCRibbonContextCaption) public: CMFCRibbonContextCaption(); virtual ~CMFCRibbonContextCaption(); char _pad[32]; };
+class CMFCAutoHideBar : public CPane { DECLARE_DYNAMIC(CMFCAutoHideBar) public: CMFCAutoHideBar(); virtual ~CMFCAutoHideBar(); char _pad[32]; };
 class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); CMFCRibbonCheckBox(UINT, const wchar_t*) : CMFCRibbonCheckBox() {} virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
 class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT, int, const wchar_t*, int) : CMFCRibbonEdit() {} virtual ~CMFCRibbonEdit(); char _pad[32]; };
 class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT, const wchar_t*, int, int, UINT, int) : CMFCRibbonGallery() {} virtual ~CMFCRibbonGallery(); char _pad[32]; };

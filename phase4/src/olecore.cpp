@@ -363,22 +363,14 @@ DROPEFFECT COleDataSource::DoDragDrop(DWORD dwEffects, LPCRECT lpRectStartDrag,
     return DROPEFFECT_NONE; // Stub
 }
 
-void COleDataSource::OnRenderGlobalData(FORMATETC* lpFormatEtc, HGLOBAL* phGlobal) {
+int COleDataSource::OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal) {
     (void)lpFormatEtc; (void)phGlobal;
+    return 0;
 }
 
-void COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
+int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
     (void)lpFormatEtc; (void)pFile;
-}
-
-HGLOBAL COleDataSource::OnRenderGlobalData(LPFORMATETC lpFormatEtc) {
-    (void)lpFormatEtc;
-    return nullptr;
-}
-
-HGLOBAL COleDataSource::OnRenderFileData(LPFORMATETC lpFormatEtc) {
-    (void)lpFormatEtc;
-    return nullptr;
+    return 0;
 }
 
 void COleDataSource::Empty() {
@@ -962,10 +954,11 @@ void COleClientItem::Deactivate() {
     m_bInPlaceActive = FALSE;
 }
 
-void COleClientItem::DoVerb(LONG nVerb, CView* pView, LPCRECT lpRect) {
+int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) { (void)lpMsg;
     if (m_lpObject) {
-        m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, nullptr, lpRect);
+        m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, nullptr, nullptr);
     }
+    return 0;
 }
 
 BOOL COleClientItem::IsInPlaceActive() const {
@@ -1277,8 +1270,18 @@ BOOL COleControlSite::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* 
     return FALSE;
 }
 
+long COleControlSite::GetWindow(HWND__** phWnd) {
+    (void)phWnd;
+    return E_NOTIMPL;
+}
+
 CWnd* COleControlSite::GetWindow() const {
     return CWnd::FromHandle(m_hWnd);
+}
+
+long COleControlSite::GetContainer(IOleContainer** ppContainer) {
+    (void)ppContainer;
+    return E_NOTIMPL;
 }
 
 COleControlContainer* COleControlSite::GetContainer() const {
@@ -1535,7 +1538,11 @@ COleInsertDialog::COleInsertDialog(DWORD dwFlags, CWnd* pParentWnd)
 COleInsertDialog::~COleInsertDialog() {
 }
 
-intptr_t COleInsertDialog::DoModal() {
+__int64 COleInsertDialog::DoModal() {
+    return DoModal(0UL);
+}
+
+__int64 COleInsertDialog::DoModal(unsigned long) {
     UINT result = OleUIInsertObjectW(&m_io);
     return (result == OLEUI_OK) ? IDOK : IDCANCEL;
 }
@@ -1554,6 +1561,11 @@ BOOL COleInsertDialog::IsCreateNew() const {
 
 BOOL COleInsertDialog::IsDisplayAsIcon() const {
     return m_io.dwFlags & IOF_CHECKDISPLAYASICON;
+}
+
+int COleInsertDialog::CreateItem(COleClientItem* pItem) {
+    (void)pItem;
+    return 0;
 }
 
 COleClientItem* COleInsertDialog::CreateItem(COleDocument* pDoc) {
@@ -1618,6 +1630,11 @@ BOOL COlePasteSpecialDialog::IsPasteLink() const {
     return FALSE;
 }
 
+int COlePasteSpecialDialog::CreateItem(COleClientItem* pItem) {
+    (void)pItem;
+    return 0;
+}
+
 COleClientItem* COlePasteSpecialDialog::CreateItem(COleDocument* pDoc) {
     return nullptr;
 }
@@ -1663,6 +1680,10 @@ intptr_t COleUpdateDialog::DoModal() {
 // COleControl
 //=============================================================================
 IMPLEMENT_DYNAMIC(COleControl, CWnd)
+
+COleControl::CControlDataSource::CControlDataSource(COleControl* pCtrl) {
+    (void)pCtrl;
+}
 
 COleControl::COleControl()
     : m_pControlSite(nullptr), m_pContainer(nullptr),
@@ -1823,7 +1844,7 @@ BOOL COleClientItem::OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow) { (void
 HGLOBAL COleClientItem::GetIconicMetafile() { return nullptr; }
 BOOL COleClientItem::SetIconicMetafile(HGLOBAL hMetaPict) { (void)hMetaPict; return FALSE; }
 HGLOBAL COleClientItem::GetMetaFile() { return nullptr; }
-BOOL COleClientItem::SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) { (void)lpszHost; (void)lpszHostObj; return TRUE; }
+void COleClientItem::SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) { (void)lpszHost; (void)lpszHostObj; }
 BOOL COleClientItem::ConvertTo(REFCLSID clsidNew) { (void)clsidNew; return FALSE; }
 BOOL COleClientItem::ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld) { (void)clsidNew; (void)clsidOld; return FALSE; }
 BOOL COleClientItem::Reload() { return FALSE; }
@@ -1864,11 +1885,11 @@ BOOL COleControl::AmbientUserMode() { BOOL b = TRUE; GetAmbientProperty(DISPID_A
 BOOL COleControl::AmbientUIDead() { return FALSE; }
 BOOL COleControl::AmbientShowGrabHandles() { return TRUE; }
 BOOL COleControl::AmbientShowHatching() { return TRUE; }
-BOOL COleControl::AmbientDisplayName(CString& strDisplayName) { strDisplayName = L""; return TRUE; }
+CString COleControl::AmbientDisplayName() { return CString(); }
 BOOL COleControl::AmbientDisplayAsDefault() { return FALSE; }
 BOOL COleControl::AmbientAutoClip() { return TRUE; }
 BOOL COleControl::AmbientSupportsMnemonics() { return TRUE; }
-BOOL COleControl::AmbientScaleUnits(CString& strUnitName) { strUnitName = L""; return TRUE; }
+CString COleControl::AmbientScaleUnits() { return CString(); }
 unsigned long COleControl::AmbientLocaleID() { return 0; }
 
 void COleControl::FireClick() {}
@@ -1919,7 +1940,7 @@ void COleControl::OnAmbientPropertyChange(DISPID dispid) { (void)dispid; }
 void COleControl::BoundPropertyChanged(DISPID dispid) { (void)dispid; }
 void COleControl::BoundPropertyRequestEdit(DISPID dispid) { (void)dispid; }
 void COleControl::InvalidateControl(LPCRECT lpRect) { (void)lpRect; }
-void COleControl::OnProperties(wchar_t* pszPropPage) { (void)pszPropPage; }
+int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) { (void)pMsg; (void)hWnd; (void)lpRect; return 0; }
 void COleControl::ShowPropertyPages() {}
 int COleControl::GetPropertyPageCount() const { return 0; }
 BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) { (void)lpUnk; return FALSE; }
@@ -1955,7 +1976,7 @@ BOOL COleDocObjectItem::OnPreparePrinting(void* pInfo) { (void)pInfo; return TRU
 void COleDocObjectItem::OnBeginPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
 void COleDocObjectItem::OnPrint(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
 void COleDocObjectItem::OnEndPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
-HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, VARIANT* pvaIn, VARIANT* pvaOut) { (void)nCmdID; (void)nCmdExecOpt; (void)pvaIn; (void)pvaOut; return E_NOTIMPL; }
+HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GUID* pguidCmdGroup) { (void)nCmdID; (void)nCmdExecOpt; (void)pguidCmdGroup; return E_NOTIMPL; }
 
 //=============================================================================
 // CEnumFormatEtc

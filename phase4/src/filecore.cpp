@@ -212,12 +212,17 @@ void CFile::Remove(const wchar_t* lpszFileName) {
     }
 }
 
-bool CFile::GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus) {
-    if (!lpszFileName) return false;
+int CFile::GetStatus(CFileStatus& rStatus) const {
+    (void)rStatus;
+    return 0;
+}
+
+int CFile::GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM) { (void)pTM;
+    if (!lpszFileName) return 0;
 
     WIN32_FILE_ATTRIBUTE_DATA data;
     if (!GetFileAttributesExW(lpszFileName, GetFileExInfoStandard, &data)) {
-        return false;
+        return 0;
     }
 
     // Convert FILETIME to ULONGLONG
@@ -244,7 +249,7 @@ bool CFile::GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus) {
     wcsncpy(rStatus.m_szFullName, lpszFileName, _MAX_PATH - 1);
     rStatus.m_szFullName[_MAX_PATH - 1] = L'\0';
 
-    return true;
+    return 1;
 }
 
 void CFile::SetStatus(const wchar_t* lpszFileName, const CFileStatus& status) {

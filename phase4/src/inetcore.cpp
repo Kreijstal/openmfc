@@ -653,6 +653,13 @@ int CFtpConnection::GetCurrentDirectory(wchar_t* pstrDirName, DWORD* pdwLen) con
     return ::FtpGetCurrentDirectoryW(m_hConnection, pstrDirName, pdwLen) ? 1 : 0;
 }
 
+CInternetFile* CFtpConnection::Command(const wchar_t* pstrCommand, CmdResponseType eResponse,
+                                        CmdResponseType eResponse2, unsigned long dwContext,
+                                        unsigned __int64 dwFlags) {
+    (void)pstrCommand; (void)eResponse; (void)eResponse2; (void)dwContext; (void)dwFlags;
+    return nullptr;
+}
+
 int CFtpConnection::Command(const wchar_t* pstrCommand, DWORD dwCmdResponse,
                              DWORD_PTR dwContext) {
     (void)pstrCommand; (void)dwCmdResponse; (void)dwContext;
@@ -660,16 +667,8 @@ int CFtpConnection::Command(const wchar_t* pstrCommand, DWORD dwCmdResponse,
 }
 
 //=============================================================================
-// CGopherLocator - minimal definition
+// CGopherLocator — defined in include/openmfc/afxinet.h
 //=============================================================================
-class CGopherLocator {
-public:
-    CGopherLocator() : m_dwBufferLength(0), m_lpBuffer(nullptr) {}
-    ~CGopherLocator() { if (m_lpBuffer) free(m_lpBuffer); }
-    DWORD m_dwBufferLength;
-    void* m_lpBuffer;
-    char _gopherlocator_padding[16];
-};
 
 //=============================================================================
 // CFileFind implementations
@@ -840,6 +839,28 @@ CGopherFile* CGopherConnection::OpenFile(GOPHER_FIND_DATAW* pFindData,
     return nullptr;
 }
 
+CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
+                                                 CGopherLocator* pLocator,
+                                                 unsigned long dwContext) {
+    (void)pstrDisplayString; (void)pLocator; (void)dwContext;
+    CGopherLocator loc; return loc;
+}
+
+CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrLocator) {
+    (void)pstrLocator;
+    CGopherLocator loc; return loc;
+}
+
+CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
+                                                 CGopherLocator* pLocator1,
+                                                 CGopherLocator* pLocator2,
+                                                 unsigned long dwContext,
+                                                 unsigned short nGopherType) {
+    (void)pstrDisplayString; (void)pLocator1; (void)pLocator2; (void)dwContext; (void)nGopherType;
+    CGopherLocator loc; return loc;
+}
+
+// Convenience overload
 CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
                                                  const wchar_t* pstrSelectorString,
                                                  DWORD dwGopherType) {

@@ -298,8 +298,9 @@ intptr_t CFontDialog::DoModal() {
     return IDCANCEL;
 }
 
-void* CFontDialog::GetCurrentFont() const {
-    return const_cast<unsigned char*>(m_lf);
+void CFontDialog::GetCurrentFont(LOGFONTW* lpLogFont) {
+    (void)lpLogFont;
+    // Fill lpLogFont from m_lf in real implementation
 }
 
 CString CFontDialog::GetFaceName() const {

@@ -205,6 +205,16 @@ def _parse_one_type(s: str, pos: int) -> Tuple[str, int]:
         c2 = s[pos + 1]
         const = False
         
+        # Function pointer: P6...Z or P8...Z
+        # These should NOT get another * appended — P6/P8 already denotes
+        # a function pointer (itself a valid C type like `void(*)(void*)`).
+        if c2 == '6' or c2 == '8':
+            # Skip to the Z that closes the function type (P6 rtype params @Z)
+            idx = s.find('Z', pos + 2)
+            if idx != -1:
+                return 'void* /*fnptr*/', idx + 1
+            return 'void*', pos + 2
+        
         if c2 == 'E' and pos + 2 < len(s) and s[pos + 2] == 'A':  # PEA
             inner, new_pos = _parse_one_type(s, pos + 3)
             const = False
@@ -279,17 +289,18 @@ def _parse_one_type(s: str, pos: int) -> Tuple[str, int]:
         new_pos = _consume_class_name(s, pos + 1)
         return 'int /*enum*/', new_pos
     
-    # Back-reference (0-9)
-    if c.isdigit():
-        return 'void*', pos + 1
-    
     # Function pointer (P6...Z)
     # P6 = function pointer prefix, then return type, params, @Z, then the actual Z
+    # NOTE: must be checked before digit (back-reference) because 6 and 8 are digits too
     if c == '6' or c == '8':
         # Just skip to the next Z
         idx = s.find('Z', pos)
         if idx != -1:
             return 'void* /*fnptr*/', idx + 1
+        return 'void*', pos + 1
+    
+    # Back-reference (0-9) — must come after 6/8 check above
+    if c.isdigit():
         return 'void*', pos + 1
     
     # Unknown — skip

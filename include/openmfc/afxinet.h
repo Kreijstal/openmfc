@@ -244,6 +244,13 @@ protected:
 class CFtpConnection : public CInternetConnection {
     DECLARE_DYNAMIC(CFtpConnection)
 public:
+    // Internal command response type enum (for internal use)
+    enum CmdResponseType {
+        CmdRespNone = 0,
+        CmdRespRead = 1,
+        CmdRespWrite = 2
+    };
+
     CFtpConnection(CInternetSession* pSession, HINTERNET hConnected,
                     const wchar_t* pstrServer, DWORD_PTR dwContext);
     CFtpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
@@ -278,6 +285,11 @@ public:
                              DWORD_PTR dwContext = 1);
 
     // Command
+    CInternetFile* Command(const wchar_t* pstrCommand,
+                            CmdResponseType eResponse = CmdRespNone,
+                            CmdResponseType eResponse2 = CmdRespNone,
+                            unsigned long dwContext = 0,
+                            unsigned __int64 dwFlags = 0);
     int Command(const wchar_t* pstrCommand,
                  DWORD dwCmdResponse = FTP_TRANSFER_TYPE_ASCII,
                  DWORD_PTR dwContext = 1);
@@ -287,6 +299,8 @@ public:
 protected:
     char _ftpconn_padding[32];
 };
+
+typedef CFtpConnection::CmdResponseType CmdResponseType;
 
 //=============================================================================
 // CGopherConnection - Gopher protocol connection
@@ -306,6 +320,17 @@ public:
     CGopherFile* OpenFile(GOPHER_FIND_DATAW* pFindData,
                            const wchar_t* pstrLocator = nullptr,
                            DWORD_PTR dwContext = 1);
+    // MSVC-compatible CreateLocator overloads
+    CGopherLocator CreateLocator(const wchar_t* pstrDisplayString,
+                                  CGopherLocator* pLocator,
+                                  unsigned long dwContext);
+    static CGopherLocator CreateLocator(const wchar_t* pstrLocator);
+    static CGopherLocator CreateLocator(const wchar_t* pstrDisplayString,
+                                         CGopherLocator* pLocator1,
+                                         CGopherLocator* pLocator2,
+                                         unsigned long dwContext,
+                                         unsigned short nGopherType);
+    // Convenience overload
     CGopherLocator CreateLocator(const wchar_t* pstrDisplayString,
                                   const wchar_t* pstrSelectorString,
                                   DWORD dwGopherType);
@@ -314,6 +339,18 @@ public:
 
 protected:
     char _gopherconn_padding[32];
+};
+
+//=============================================================================
+// CGopherLocator - minimal definition (needed for retval thunks)
+//=============================================================================
+class CGopherLocator {
+public:
+    CGopherLocator() : m_dwBufferLength(0), m_lpBuffer(nullptr) {}
+    ~CGopherLocator() { if (m_lpBuffer) free(m_lpBuffer); }
+    DWORD m_dwBufferLength;
+    void* m_lpBuffer;
+    char _gopherlocator_padding[16];
 };
 
 //=============================================================================

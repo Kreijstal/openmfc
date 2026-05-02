@@ -454,7 +454,8 @@ public:
     // Static operations
     static void Rename(const wchar_t* lpszOldName, const wchar_t* lpszNewName);
     static void Remove(const wchar_t* lpszFileName);
-    static bool GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus);
+    int GetStatus(CFileStatus& rStatus) const;
+    static int GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM = nullptr);
     static void SetStatus(const wchar_t* lpszFileName, const CFileStatus& status);
     
 protected:

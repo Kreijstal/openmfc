@@ -254,15 +254,7 @@ void CScrollView::ScrollToPosition(POINT pt) {
     ::InvalidateRect(m_hWnd, nullptr, TRUE);
 }
 
-void CScrollView::GetScrollPosition(POINT& pt) const {
-    if (m_hWnd) {
-        pt.x = ::GetScrollPos(m_hWnd, SB_HORZ);
-        pt.y = ::GetScrollPos(m_hWnd, SB_VERT);
-    } else {
-        pt.x = 0;
-        pt.y = 0;
-    }
-}
+CPoint CScrollView::GetScrollPosition() const { return CPoint(0, 0); }
 
 void CScrollView::FillOutsideRect(void* pDC, void* pBrush) {
     if (!m_hWnd || !pDC) return;
