@@ -7,11 +7,11 @@
 | Category | Count | % of Total |
 |----------|-------|------------|
 | **Total MSVC exports** | 14,103 | 100% |
-| **Real implementations** | 1,325 | 9.4% |
-| ├─ Auto-generated thunks (`thunks.cpp`) | 988 | 7.0% |
-| └─ Manual implementations (other `phase4/src/*.cpp`) | 337 | 2.4% |
+| **Real implementations** | 1,428 | 10.1% |
+| ├─ Auto-generated thunks (`thunks.cpp`) | 1,095 | 7.8% |
+| └─ Manual implementations (other `phase4/src/*.cpp`) | 333 | 2.4% |
 | **Skip list** (signature mismatch, return defaults) | 157 | 1.1% |
-| **Remaining stubs** (return 0/nullptr/void) | ~11,773 | 83.5% |
+| **Remaining stubs** (return 0/nullptr/void) | ~12,518 | 88.8% |
 
 ## Per-File Breakdown
 
@@ -37,6 +37,7 @@
 | Class | Implemented | Skip list |
 |-------|-------------|-----------|
 | **CWnd** | 200 | 33 |
+| **CFrameWnd** | 110 | 0 |
 | **CMFCVisualManager** | 65 | 8 |
 | **COleControl** | 50 | 0 |
 | **CMenu** | 31 | 0 |
