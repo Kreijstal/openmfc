@@ -568,15 +568,6 @@ extern "C" void MS_ABI impl__GetColumnInfo_CSplitterWnd__QEBAXHAEAH0_Z(void* pTh
     (void)p2;
 }
 
-// Symbol: ?GetConnect@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetConnect_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
 // Symbol: ?GetContainer@XOleClientSite@COleControlSite@@UEAAJPEAPEAUIOleContainer@@@Z
 extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleControlSite__UEAAJPEAPEAUIOleContainer___Z(void* pThis, void* p0) {
     (void)pThis;
@@ -611,51 +602,6 @@ extern "C" unsigned long MS_ABI impl__GetDefaultCharFormat_CRichEditCtrl__QEBAKA
     return 0UL;
 }
 
-// Symbol: ?GetDefaultConnect@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDefaultConnect_CRecordset__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDefaultSQL@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDefaultSQL_CRecordset__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDeviceName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDeviceName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDeviceName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDeviceName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDeviceName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDeviceName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
 // Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4DocStringIndex@1@@Z
 extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4DocStringIndex_1__Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18) {
     (void)pThis;
@@ -679,33 +625,6 @@ extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__
     (void)p17;
     (void)p18;
     return 0;
-}
-
-// Symbol: ?GetDriverName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDriverName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDriverName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDriverName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetDriverName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetDriverName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
 }
 
 // Symbol: ?GetElement@CDHtmlDialog@@QEAAJPEB_WPEAPEAUIDispatch@@PEAH@Z
@@ -746,123 +665,6 @@ extern "C" int MS_ABI impl__GetFile_CFtpConnection__QEAAHPEB_W0HKK_K_Z(void* pTh
     return 0;
 }
 
-// Symbol: ?GetFileExt@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileExt_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileName@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileName_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileName@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileName_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFilePath@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFilePath_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFilePath@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFilePath_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileTitle@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileTitle_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileTitle@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileTitle_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileTitle@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileTitle_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileURL@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileURL_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileURL@CFtpFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileURL_CFtpFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFileURL@CHttpFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFileURL_CHttpFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetFolderPath@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFolderPath_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
 // Symbol: ?GetFtpConnection@CInternetSession@@QEAAPEAVCFtpConnection@@PEB_W00GH@Z
 extern "C" void* MS_ABI impl__GetFtpConnection_CInternetSession__QEAAPEAVCFtpConnection__PEB_W00GH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
     (void)pThis;
@@ -871,15 +673,6 @@ extern "C" void* MS_ABI impl__GetFtpConnection_CInternetSession__QEAAPEAVCFtpCon
     (void)p2;
     (void)p3;
     (void)p4;
-    return nullptr;
-}
-
-// Symbol: ?GetFullName@CHtmlView@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetFullName_CHtmlView__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
     return nullptr;
 }
 
@@ -942,24 +735,6 @@ extern "C" int MS_ABI impl__GetLine_CRichEditCtrl__QEBAHHPEA_W_Z(void* pThis, vo
     return 0;
 }
 
-// Symbol: ?GetLocationName@CHtmlView@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetLocationName_CHtmlView__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetLocationURL@CHtmlView@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetLocationURL_CHtmlView__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
 // Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
 extern "C" void* MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAU__POSITION___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
     (void)pThis;
@@ -1005,15 +780,6 @@ extern "C" unsigned long MS_ABI impl__GetParaFormat_CRichEditCtrl__QEBAKAEAU_par
     return 0UL;
 }
 
-// Symbol: ?GetPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
 // Symbol: ?GetPeerName@CAsyncSocket@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
 extern "C" int MS_ABI impl__GetPeerName_CAsyncSocket__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
     (void)pThis;
@@ -1022,33 +788,6 @@ extern "C" int MS_ABI impl__GetPeerName_CAsyncSocket__QEAAHAEAV__CStringT__WV__S
     (void)p2;
     (void)p3;
     return 0;
-}
-
-// Symbol: ?GetPortName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetPortName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetPortName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetPortName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetPortName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetPortName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
 }
 
 // Symbol: ?GetProperty@COleControlSite@@UEBAXJGPEAX@Z
@@ -1074,15 +813,6 @@ extern "C" void* MS_ABI impl__GetReadyState_CHtmlView__QEBA_AW4tagREADYSTATE__XZ
     (void)p9;
     (void)p10;
     (void)p11;
-    return nullptr;
-}
-
-// Symbol: ?GetRoot@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetRoot_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
     return nullptr;
 }
 
@@ -1162,24 +892,6 @@ extern "C" void MS_ABI impl__GetText_CToolTipCtrl__QEBAXAEAV__CStringT__WV__StrT
     (void)p2;
     (void)p3;
     (void)p4;
-}
-
-// Symbol: ?GetType@CHtmlView@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetType_CHtmlView__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
-}
-
-// Symbol: ?GetVerb@CHttpFile@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void* MS_ABI impl__GetVerb_CHttpFile__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return nullptr;
 }
 
 // Symbol: ?GetWindow@XOleIPSite@COleControlSite@@UEAAJPEAPEAUHWND__@@@Z
@@ -2085,4 +1797,4 @@ extern "C" void MS_ABI impl__UpdateTipText_CToolTipCtrl__QEAAXIPEAVCWnd___K_Z(vo
     (void)p2;
 }
 
-// Generated 225 manual thunks
+// Generated 193 manual thunks

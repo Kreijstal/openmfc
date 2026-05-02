@@ -274,6 +274,18 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         if stub_name in EXISTING_STUBS:
             continue
         
+        # Check if this is a CString return-by-value.
+        # In MSVC x64 ABI, structs returned by value get a hidden return pointer
+        # passed in RDX (after 'this' in RCX).  Our C++ methods return CString
+        # directly, so we need a thunk that receives the hidden pointer and
+        # assigns the result.
+        is_cstring_retval = False
+        tail_match = re.search(r'@@([A-Z].*)$', symbol)
+        if tail_match:
+            tail = tail_match.group(1)
+            if '?AV?$CStringT' in tail or '?AV?$' in tail[:4]:
+                is_cstring_retval = True
+
         # Figure out the C++ method name from the MSVC name
         # Extract method name (between initial ? and @)
         method_match = re.match(r'\?(\??\$?\w+)@', symbol)
@@ -430,26 +442,41 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         
         elif class_name:
             # Regular member function
-            lines.append(f'// Symbol: {symbol}')
-            lines.append(f'// {class_name}::{method_name}')
             
-            this_type = f'const {class_name}*' if info.is_const_method else f'{class_name}*'
+            # CString return-by-value: hidden return pointer in RDX
+            if is_cstring_retval:
+                lines.append(f'// Symbol: {symbol}')
+                lines.append(f'// {class_name}::{method_name}  [CString retval]')
+                this_type = f'const {class_name}*' if info.is_const_method else f'{class_name}*'
+                lines.append(f'extern "C" void MS_ABI {stub_name}({this_type} pThis, CString* __ret) {{')
+                if method_is_void:
+                    lines.append(f'    pThis->{method_name}();')
+                    lines.append(f'    *__ret = CString();')
+                else:
+                    lines.append(f'    *__ret = pThis->{method_name}();')
+                lines.append(f'}}')
             
-            if params_str:
-                thunk_params = f'{this_type} pThis, {params_str}'
             else:
-                thunk_params = f'{this_type} pThis'
+                lines.append(f'// Symbol: {symbol}')
+                lines.append(f'// {class_name}::{method_name}')
             
-            lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
-            if ret == 'void' or method_is_void:
-                lines.append(f'    pThis->{method_name}({call_str});')
-                if ret != 'void':
-                    lines.append(f'    return {{}};')
-            elif '*' in ret:
-                lines.append(f'    return ({c_ret})pThis->{method_name}({call_str});')
-            else:
-                lines.append(f'    return ({c_ret})pThis->{method_name}({call_str});')
-            lines.append(f'}}')
+                this_type = f'const {class_name}*' if info.is_const_method else f'{class_name}*'
+                
+                if params_str:
+                    thunk_params = f'{this_type} pThis, {params_str}'
+                else:
+                    thunk_params = f'{this_type} pThis'
+                
+                lines.append(f'extern "C" {c_ret} MS_ABI {stub_name}({thunk_params}) {{')
+                if ret == 'void' or method_is_void:
+                    lines.append(f'    pThis->{method_name}({call_str});')
+                    if ret != 'void':
+                        lines.append(f'    return {{}};')
+                elif '*' in ret:
+                    lines.append(f'    return ({c_ret})pThis->{method_name}({call_str});')
+                else:
+                    lines.append(f'    return ({c_ret})pThis->{method_name}({call_str});')
+                lines.append(f'}}')
         
         lines.append('')
         thunk_count += 1
