@@ -196,8 +196,18 @@ class CSize;
 class CHwndRenderTarget;
 class CDCRenderTarget;
 class IAccessibleProxy;
+class CControlBar;
+class CDockBar;
+class CDockState;
+class CView;
+class CDocument;
+class CCmdUI;
+class CPrintPreviewState;
+class CMiniDockFrameWnd;
+class CFrameWnd;
 struct _AFX_OCC_DIALOG_INFO;
 struct AFX_INTERFACEMAP;
+struct AFX_CMDHANDLERINFO;
 
 //=============================================================================
 // CException and derived classes
@@ -804,25 +814,160 @@ public:
     CFrameWnd();
     virtual ~CFrameWnd();
 
+    // Construction
     virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
                           CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
-                          
     virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle = 0, const struct tagRECT& rect = {},
                        CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
                        DWORD dwExStyle = 0, CCreateContext* pContext = nullptr);
+    virtual int PreCreateWindow(CREATESTRUCTW& cs) override;
+    virtual int OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext);
 
+    // Operations
     virtual void ActivateFrame(int nCmdShow = -1);
     virtual void RecalcLayout(int bNotify = 1);
-    virtual int PreCreateWindow(CREATESTRUCTW& cs) override;
+    void InitialUpdateFrame(CDocument* pDoc, int bMakeVisible);
+    CWnd* CreateView(CCreateContext* pContext, unsigned int nID);
 
-    CWnd* GetActiveView() const;
-    void SetActiveView(CWnd* pViewNew, int bNotify = 1);
+    // Frame window management
+    void AddFrameWnd();
+    void RemoveFrameWnd();
+    int CanEnterHelpMode();
+    void ExitHelpMode();
+    virtual void OnContextHelp();
+    void BringToTop(int nCmdShow);
+    int IsTracking();
+
+    // Docking support
+    void EnableDocking(DWORD dwDockStyle);
+    void DockControlBar(CControlBar* pBar, unsigned int nDockBarID, const RECT* lpRect);
+    void DockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect);
+    void FloatControlBar(CControlBar* pBar, CPoint pt, DWORD dwStyle);
+    CMiniDockFrameWnd* CreateFloatingFrame(DWORD dwStyle);
+    void ShowControlBar(CControlBar* pBar, int bShow, int bDelay);
+    void RemoveControlBar(CControlBar* pBar);
+    void ReDockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect);
+    DWORD CanDock(CRect rect, DWORD dwDockStyle, CDockBar** ppDockBar);
+    void DestroyDockBars();
+    void GetDockState(CDockState& state) const;
+    void SetDockState(const CDockState& state);
+
+    // Menu and command handling
+    virtual CMenu* GetMenu() const;
+    virtual int SetMenu(CMenu* pMenu);
+    virtual void OnUpdateFrameMenu(HMENU hMenuAlt);
+    virtual void OnUpdateFrameTitle(int bAddToTitle);
+    virtual void DelayUpdateFrameMenu(HMENU hMenuAlt);
+    void OnUpdateControlBarMenu(CCmdUI* pCmdUI);
+    int GetMenuBarInfo(long id, long lParam, MENUBARINFO* pmbi) const;
+    virtual DWORD GetMenuBarState() const;
+    virtual int SetMenuBarState(DWORD dwState);
+    virtual DWORD GetMenuBarVisibility() const;
+    virtual void SetMenuBarVisibility(DWORD dwStyle);
+    void OnHideMenuBar();
+    void OnShowMenuBar();
+    void LoadAccelTable(const wchar_t* lpszAccelTable);
+
+    // View management
+    virtual CView* GetActiveView() const;
+    void SetActiveView(CView* pViewNew, int bNotify = 1);
+    void SetActivePreviewView(CView* pViewNew);
+    virtual CDocument* GetActiveDocument();
+    virtual CFrameWnd* GetActiveFrame();
+
+    // Control bar
+    CControlBar* GetControlBar(unsigned int nID);
+    virtual CWnd* GetMessageBar();
+    virtual HACCEL GetDefaultAccelerator();
+
+    // Help
+    int OnBarCheck(unsigned int nID);
+    void OnHelp();
+    HWND SetHelpCapture(POINT pt, int* pHit);
+    int ProcessHelpMsg(MSG& msg, DWORD* pContext);
+
+    // Progress bar (taskbar)
+    void SetProgressBarPosition(int nPos);
+    void SetProgressBarRange(int nLower, int nUpper);
+    void SetProgressBarState(TBPFLAG tbpFlags);
+    int SetTaskbarOverlayIcon(unsigned int nTaskbarButtonCreatedMsg, const wchar_t* lpszDescription);
+    int SetTaskbarOverlayIcon(HICON hIcon, const wchar_t* lpszDescription);
+
+    // Message text
+    void SetMessageText(unsigned int nStringID);
+    void SetMessageText(const wchar_t* lpszText);
+    virtual void GetMessageString(unsigned int nID, CString& rMessage) const;
+
+    // State persistence
+    void LoadBarState(const wchar_t* lpszProfileName);
+    void SaveBarState(const wchar_t* lpszProfileName) const;
+
+    // Modal state
+    virtual void BeginModalState();
+    virtual void EndModalState();
+
+    // Window state
+    void ShowOwnedWindows(int bShow);
+    virtual int IsFrameWnd() const;
+    void NotifyFloatingWindows(DWORD dwFlags);
+    virtual void OnSetPreviewMode(int bPreview, CPrintPreviewState* pState);
+    virtual int NegotiateBorderSpace(unsigned int nBorderCmd, RECT* lpRectBorder);
+
+    // Message handlers
+    void OnClose();
+    void OnDestroy();
+    int OnQueryEndSession();
+    void OnEndSession(int bEnding);
+    void OnActivate(unsigned int nState, CWnd* pWndOther, int bMinimized);
+    __int64 OnActivateTopLevel(unsigned __int64 wParam, __int64 lParam);
+    void OnEnable(int bEnable);
+    void OnSetFocus(CWnd* pOldWnd);
+    int OnSetCursor(CWnd* pWnd, unsigned int nHitTest, unsigned int message);
+    int OnEraseBkgnd(CDC* pDC);
+    void OnSize(unsigned int nType, int cx, int cy);
+    int OnNcActivate(int bActive);
+    int OnCommand(unsigned __int64 wParam, __int64 lParam);
+    __int64 OnCommandHelp(unsigned __int64 wParam, __int64 lParam);
+    void OnPaletteChanged(CWnd* pFocusWnd);
+    int OnQueryNewPalette();
+    void OnHScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar);
+    void OnVScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar);
+    void OnSysCommand(unsigned int nID, __int64 lParam);
+    void OnDropFiles(HDROP hDropInfo);
+    void OnInitMenu(CMenu* pMenu);
+    void OnInitMenuPopup(CMenu* pPopupMenu, unsigned int nIndex, int bSysMenu);
+    __int64 OnMenuChar(unsigned int nChar, unsigned int nFlags, CMenu* pMenu);
+    void OnMenuSelect(unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu);
+    void OnEnterIdle(unsigned int nWhy, CWnd* pWho);
+    void OnDDEExecute(CWnd* pWnd, void* pData);
+    void OnDDEInitiate(CWnd* pWnd, unsigned int nAtomApp, unsigned int nAtomTopic);
+    void OnDDETerminate(CWnd* pWnd);
+    void OnIdleUpdateCmdUI();
+    __int64 OnHelpHitTest(unsigned __int64 wParam, __int64 lParam);
+    __int64 OnHelpPromptAddr(unsigned __int64 wParam, __int64 lParam);
+    __int64 OnPopMessageString(unsigned __int64 wParam, __int64 lParam);
+    __int64 OnSetMessageString(unsigned __int64 wParam, __int64 lParam);
+    void PostNcDestroy();
+    void OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult);
+    void OnToolTipText(unsigned int nID, NMHDR* pNMHDR, __int64* lResult);
+    void OnUpdateContextHelp(CCmdUI* pCmdUI);
+    void OnUpdateKeyIndicator(CCmdUI* pCmdUI);
+
+    // PreTranslate
+    virtual int PreTranslateMessage(MSG* pMsg);
 
     // Implementation helpers
-    virtual int OnCreate(void* lpCreateStruct); // LPCREATESTRUCT
-    
+    virtual int OnCreate(void* lpCreateStruct);
+    int OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext);
+    const wchar_t* GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource);
+    void UpdateFrameTitleForDocument(const wchar_t* lpszDocName);
+
+    // Overrides from CCmdTarget
+    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
+
 public:
+    static const CRect rectDefault;
     CWnd* m_pViewActive;
     HACCEL m_hAccelTable;
     UINT m_nIDHelp;

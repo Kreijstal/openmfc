@@ -151,7 +151,6 @@ asm(".globl \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCFrameWnd@CFrameWnd@@2UCRuntimeClass@@A\", _ZN9CFrameWnd14classCFrameWndE\n");
 #endif
 
-// Symbol: ?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ() {
     return &CFrameWnd::classCFrameWnd;
 }
@@ -426,7 +425,6 @@ extern "C" void MS_ABI impl___1CFrameWnd__UEAA_XZ(CFrameWnd* pThis) {
 }
 
 // CFrameWnd::Create
-// Symbol: ?Create@CFrameWnd@@UAAHPB_W0KABUtagRECT@@PAVCWnd@@0KPAUCCreateContext@@@Z
 // Ordinal: 3091
 extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd__0KPEAUCCreateContext___Z(
     CFrameWnd* pThis,
@@ -519,7 +517,6 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
 }
 
 // CFrameWnd::PreCreateWindow
-// Symbol: ?PreCreateWindow@CFrameWnd@@MAAHAAUtagCREATESTRUCTW@@@Z
 // Ordinal: 11791
 extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(
     CFrameWnd* pThis, CREATESTRUCTW& cs)
@@ -530,7 +527,6 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 }
 
 // CFrameWnd::LoadFrame
-// Symbol: ?LoadFrame@CFrameWnd@@UAAHIKPAVCWnd@@PAUCCreateContext@@@Z
 // Ordinal: 8105
 extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
     CFrameWnd* pThis,
@@ -2253,4 +2249,118 @@ void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int 
     (void)p3;
     (void)p4;
 }
+
+//=============================================================================
+// CFrameWnd implementations
+//=============================================================================
+const CRect CFrameWnd::rectDefault = {};
+
+void CFrameWnd::AddFrameWnd() {}
+void CFrameWnd::BeginModalState() {}
+void CFrameWnd::BringToTop(int nCmdShow) { (void)nCmdShow; }
+DWORD CFrameWnd::CanDock(CRect rect, DWORD dwDockStyle, CDockBar** ppDockBar) { (void)rect; (void)dwDockStyle; (void)ppDockBar; return 0; }
+int CFrameWnd::CanEnterHelpMode() { return 0; }
+CMiniDockFrameWnd* CFrameWnd::CreateFloatingFrame(DWORD dwStyle) { (void)dwStyle; return nullptr; }
+CWnd* CFrameWnd::CreateView(CCreateContext* pContext, unsigned int nID) { (void)pContext; (void)nID; return nullptr; }
+void CFrameWnd::DelayUpdateFrameMenu(HMENU hMenuAlt) { (void)hMenuAlt; }
+void CFrameWnd::DestroyDockBars() {}
+void CFrameWnd::DockControlBar(CControlBar* pBar, unsigned int nDockBarID, const RECT* lpRect) { (void)pBar; (void)nDockBarID; (void)lpRect; }
+void CFrameWnd::DockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) { (void)pBar; (void)pDockBar; (void)lpRect; }
+void CFrameWnd::EnableDocking(DWORD dwDockStyle) { (void)dwDockStyle; }
+void CFrameWnd::EndModalState() {}
+void CFrameWnd::ExitHelpMode() {}
+void CFrameWnd::FloatControlBar(CControlBar* pBar, CPoint pt, DWORD dwStyle) { (void)pBar; (void)pt; (void)dwStyle; }
+CDocument* CFrameWnd::GetActiveDocument() { return nullptr; }
+CFrameWnd* CFrameWnd::GetActiveFrame() { return nullptr; }
+CView* CFrameWnd::GetActiveView() const { return nullptr; }
+CControlBar* CFrameWnd::GetControlBar(unsigned int nID) { (void)nID; return nullptr; }
+HACCEL CFrameWnd::GetDefaultAccelerator() { return nullptr; }
+void CFrameWnd::GetDockState(CDockState& state) const { (void)state; }
+const wchar_t* CFrameWnd::GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource) { (void)dwDefaultStyle; (void)nIDResource; return nullptr; }
+CMenu* CFrameWnd::GetMenu() const { return nullptr; }
+int CFrameWnd::GetMenuBarInfo(long id, long lParam, MENUBARINFO* pmbi) const { (void)id; (void)lParam; (void)pmbi; return 0; }
+DWORD CFrameWnd::GetMenuBarState() const { return 0; }
+DWORD CFrameWnd::GetMenuBarVisibility() const { return 0; }
+CWnd* CFrameWnd::GetMessageBar() { return nullptr; }
+void CFrameWnd::GetMessageString(unsigned int nID, CString& rMessage) const { (void)nID; (void)rMessage; }
+void CFrameWnd::InitialUpdateFrame(CDocument* pDoc, int bMakeVisible) { (void)pDoc; (void)bMakeVisible; }
+int CFrameWnd::IsFrameWnd() const { return 1; }
+int CFrameWnd::IsTracking() { return 0; }
+void CFrameWnd::LoadAccelTable(const wchar_t* lpszAccelTable) { (void)lpszAccelTable; }
+void CFrameWnd::LoadBarState(const wchar_t* lpszProfileName) { (void)lpszProfileName; }
+int CFrameWnd::NegotiateBorderSpace(unsigned int nBorderCmd, RECT* lpRectBorder) { (void)nBorderCmd; (void)lpRectBorder; return 0; }
+void CFrameWnd::NotifyFloatingWindows(DWORD dwFlags) { (void)dwFlags; }
+void CFrameWnd::OnActivate(unsigned int nState, CWnd* pWndOther, int bMinimized) { (void)nState; (void)pWndOther; (void)bMinimized; }
+__int64 CFrameWnd::OnActivateTopLevel(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+int CFrameWnd::OnBarCheck(unsigned int nID) { (void)nID; return 0; }
+void CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult) { (void)nIndex; (void)pNMHDR; (void)lResult; }
+void CFrameWnd::OnClose() {}
+int CFrameWnd::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) { (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo; return 0; }
+int CFrameWnd::OnCommand(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+__int64 CFrameWnd::OnCommandHelp(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+void CFrameWnd::OnContextHelp() {}
+int CFrameWnd::OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext) { (void)lpcs; (void)pContext; return 0; }
+int CFrameWnd::OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext) { (void)lpcs; (void)pContext; return 0; }
+void CFrameWnd::OnDDEExecute(CWnd* pWnd, void* pData) { (void)pWnd; (void)pData; }
+void CFrameWnd::OnDDEInitiate(CWnd* pWnd, unsigned int nAtomApp, unsigned int nAtomTopic) { (void)pWnd; (void)nAtomApp; (void)nAtomTopic; }
+void CFrameWnd::OnDDETerminate(CWnd* pWnd) { (void)pWnd; }
+void CFrameWnd::OnDestroy() {}
+void CFrameWnd::OnDropFiles(HDROP hDropInfo) { (void)hDropInfo; }
+void CFrameWnd::OnEnable(int bEnable) { (void)bEnable; }
+void CFrameWnd::OnEndSession(int bEnding) { (void)bEnding; }
+void CFrameWnd::OnEnterIdle(unsigned int nWhy, CWnd* pWho) { (void)nWhy; (void)pWho; }
+int CFrameWnd::OnEraseBkgnd(CDC* pDC) { (void)pDC; return 0; }
+void CFrameWnd::OnHelp() {}
+__int64 CFrameWnd::OnHelpHitTest(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+__int64 CFrameWnd::OnHelpPromptAddr(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+void CFrameWnd::OnHideMenuBar() {}
+void CFrameWnd::OnHScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar) { (void)nSBCode; (void)nPos; (void)pScrollBar; }
+void CFrameWnd::OnIdleUpdateCmdUI() {}
+void CFrameWnd::OnInitMenu(CMenu* pMenu) { (void)pMenu; }
+void CFrameWnd::OnInitMenuPopup(CMenu* pPopupMenu, unsigned int nIndex, int bSysMenu) { (void)pPopupMenu; (void)nIndex; (void)bSysMenu; }
+__int64 CFrameWnd::OnMenuChar(unsigned int nChar, unsigned int nFlags, CMenu* pMenu) { (void)nChar; (void)nFlags; (void)pMenu; return 0; }
+void CFrameWnd::OnMenuSelect(unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) { (void)nItemID; (void)nFlags; (void)hSysMenu; }
+int CFrameWnd::OnNcActivate(int bActive) { (void)bActive; return 0; }
+void CFrameWnd::OnPaletteChanged(CWnd* pFocusWnd) { (void)pFocusWnd; }
+__int64 CFrameWnd::OnPopMessageString(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+int CFrameWnd::OnQueryEndSession() { return 1; }
+int CFrameWnd::OnQueryNewPalette() { return 0; }
+int CFrameWnd::OnSetCursor(CWnd* pWnd, unsigned int nHitTest, unsigned int message) { (void)pWnd; (void)nHitTest; (void)message; return 0; }
+void CFrameWnd::OnSetFocus(CWnd* pOldWnd) { (void)pOldWnd; }
+__int64 CFrameWnd::OnSetMessageString(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+void CFrameWnd::OnSetPreviewMode(int bPreview, CPrintPreviewState* pState) { (void)bPreview; (void)pState; }
+void CFrameWnd::OnShowMenuBar() {}
+void CFrameWnd::OnSize(unsigned int nType, int cx, int cy) { (void)nType; (void)cx; (void)cy; }
+void CFrameWnd::OnSysCommand(unsigned int nID, __int64 lParam) { (void)nID; (void)lParam; }
+void CFrameWnd::OnToolTipText(unsigned int nID, NMHDR* pNMHDR, __int64* lResult) { (void)nID; (void)pNMHDR; (void)lResult; }
+void CFrameWnd::OnUpdateContextHelp(CCmdUI* pCmdUI) { (void)pCmdUI; }
+void CFrameWnd::OnUpdateControlBarMenu(CCmdUI* pCmdUI) { (void)pCmdUI; }
+void CFrameWnd::OnUpdateFrameMenu(HMENU hMenuAlt) { (void)hMenuAlt; }
+void CFrameWnd::OnUpdateFrameTitle(int bAddToTitle) { (void)bAddToTitle; }
+void CFrameWnd::OnUpdateKeyIndicator(CCmdUI* pCmdUI) { (void)pCmdUI; }
+void CFrameWnd::OnVScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar) { (void)nSBCode; (void)nPos; (void)pScrollBar; }
+void CFrameWnd::PostNcDestroy() {}
+int CFrameWnd::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return 0; }
+int CFrameWnd::ProcessHelpMsg(MSG& msg, DWORD* pContext) { (void)msg; (void)pContext; return 0; }
+void CFrameWnd::ReDockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) { (void)pBar; (void)pDockBar; (void)lpRect; }
+void CFrameWnd::RemoveControlBar(CControlBar* pBar) { (void)pBar; }
+void CFrameWnd::RemoveFrameWnd() {}
+void CFrameWnd::SaveBarState(const wchar_t* lpszProfileName) const { (void)lpszProfileName; }
+void CFrameWnd::SetActivePreviewView(CView* pViewNew) { (void)pViewNew; }
+void CFrameWnd::SetActiveView(CView* pViewNew, int bNotify) { (void)pViewNew; (void)bNotify; }
+void CFrameWnd::SetDockState(const CDockState& state) { (void)state; }
+HWND CFrameWnd::SetHelpCapture(POINT pt, int* pHit) { (void)pt; (void)pHit; return nullptr; }
+int CFrameWnd::SetMenu(CMenu* pMenu) { (void)pMenu; return 0; }
+int CFrameWnd::SetMenuBarState(DWORD dwState) { (void)dwState; return 0; }
+void CFrameWnd::SetMenuBarVisibility(DWORD dwStyle) { (void)dwStyle; }
+void CFrameWnd::SetMessageText(unsigned int nStringID) { (void)nStringID; }
+void CFrameWnd::SetMessageText(const wchar_t* lpszText) { (void)lpszText; }
+void CFrameWnd::SetProgressBarPosition(int nPos) { (void)nPos; }
+void CFrameWnd::SetProgressBarRange(int nLower, int nUpper) { (void)nLower; (void)nUpper; }
+void CFrameWnd::SetProgressBarState(TBPFLAG tbpFlags) { (void)tbpFlags; }
+int CFrameWnd::SetTaskbarOverlayIcon(unsigned int nTaskbarButtonCreatedMsg, const wchar_t* lpszDescription) { (void)nTaskbarButtonCreatedMsg; (void)lpszDescription; return 0; }
+int CFrameWnd::SetTaskbarOverlayIcon(HICON hIcon, const wchar_t* lpszDescription) { (void)hIcon; (void)lpszDescription; return 0; }
+void CFrameWnd::ShowControlBar(CControlBar* pBar, int bShow, int bDelay) { (void)pBar; (void)bShow; (void)bDelay; }
+void CFrameWnd::ShowOwnedWindows(int bShow) { (void)bShow; }
+void CFrameWnd::UpdateFrameTitleForDocument(const wchar_t* lpszDocName) { (void)lpszDocName; }
 
