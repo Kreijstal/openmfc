@@ -142,7 +142,7 @@ asm(".globl \"?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ\"\n"
     ".set \"?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
-IMPLEMENT_DYNAMIC(CFrameWnd, CWnd)
+IMPLEMENT_DYNCREATE(CFrameWnd, CWnd)
 
 #ifdef __GNUC__
 // CFrameWnd::classCFrameWnd - MSVC symbol alias
