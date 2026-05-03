@@ -841,3 +841,101 @@ void CArchive::WriteString(const wchar_t* lpsz) {
     UINT nLen = (UINT)wcslen(lpsz);
     Write(lpsz, nLen * sizeof(wchar_t));
 }
+
+// =============================================================================
+// CFile extern "C" MS_ABI Thunks
+// These are cross-ABI vtable entry points for CFile virtual methods.
+// =============================================================================
+
+// Symbol: ?GetLength@CFile@@UEBA_KXZ
+extern "C" unsigned long long MS_ABI impl_GetLength_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    LARGE_INTEGER li;
+    li.QuadPart = 0;
+    if (GetFileSizeEx((HANDLE)self->m_hFile, &li))
+        return li.QuadPart;
+    return 0;
+}
+
+// Symbol: ?Seek@CFile@@UEAA_K_KH@Z
+extern "C" unsigned long long MS_ABI impl_Seek_CFile(void* pThis, unsigned long long lOff, unsigned int nFrom) {
+    CFile* self = static_cast<CFile*>(pThis);
+    LARGE_INTEGER li;
+    li.QuadPart = lOff;
+    LARGE_INTEGER result;
+    if (SetFilePointerEx((HANDLE)self->m_hFile, li, &result, nFrom))
+        return result.QuadPart;
+    return 0;
+}
+
+// Symbol: ?Read@CFile@@UEAA_KPEAX_K@Z
+extern "C" unsigned long long MS_ABI impl_Read_CFile(void* pThis, void* lpBuf, unsigned long long nCount) {
+    CFile* self = static_cast<CFile*>(pThis);
+    DWORD dwRead = 0;
+    ReadFile((HANDLE)self->m_hFile, lpBuf, (DWORD)nCount, &dwRead, nullptr);
+    return dwRead;
+}
+
+// Symbol: ?Write@CFile@@UEAA_KPEBX_K@Z
+extern "C" unsigned long long MS_ABI impl_Write_CFile(void* pThis, const void* lpBuf, unsigned long long nCount) {
+    CFile* self = static_cast<CFile*>(pThis);
+    DWORD dwWritten = 0;
+    WriteFile((HANDLE)self->m_hFile, lpBuf, (DWORD)nCount, &dwWritten, nullptr);
+    return dwWritten;
+}
+
+// Symbol: ?GetPosition@CFile@@UEBA_KXZ
+extern "C" unsigned long long MS_ABI impl_GetPosition_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    LARGE_INTEGER li, result;
+    li.QuadPart = 0;
+    if (SetFilePointerEx((HANDLE)self->m_hFile, li, &result, FILE_CURRENT))
+        return result.QuadPart;
+    return 0;
+}
+
+// Symbol: ?Flush@CFile@@UEAAXXZ
+extern "C" void MS_ABI impl_Flush_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    FlushFileBuffers((HANDLE)self->m_hFile);
+}
+
+// Symbol: ?Close@CFile@@UEAAXXZ
+extern "C" void MS_ABI impl_Close_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    if (self->m_hFile != (void*)INVALID_HANDLE_VALUE) {
+        CloseHandle((HANDLE)self->m_hFile);
+        self->m_hFile = (void*)INVALID_HANDLE_VALUE;
+    }
+}
+
+// Symbol: ?Abort@CFile@@UEAAXXZ
+extern "C" void MS_ABI impl_Abort_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    if (self->m_hFile != (void*)INVALID_HANDLE_VALUE) {
+        CloseHandle((HANDLE)self->m_hFile);
+        self->m_hFile = (void*)INVALID_HANDLE_VALUE;
+    }
+}
+
+// Symbol: ?GetFileName@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl_GetFileName_CFile(void* pThis, void* ret) {
+    CFile* self = static_cast<CFile*>(pThis);
+    // CString is laid out as a pointer to the string data
+    // For the return value, we need to construct a CString from the filename
+    // Simple approach: use the internal CString copy
+    new(ret) CString(self->m_strFileName);
+}
+
+// Symbol: ?Duplicate@CFile@@UEBAPEAV1@XZ
+extern "C" void* MS_ABI impl_Duplicate_CFile(void* pThis) {
+    CFile* self = static_cast<CFile*>(pThis);
+    CFile* pDup = new CFile();
+    HANDLE hDup = INVALID_HANDLE_VALUE;
+    if (self->m_hFile != (void*)INVALID_HANDLE_VALUE) {
+        HANDLE hProc = GetCurrentProcess();
+        DuplicateHandle(hProc, (HANDLE)self->m_hFile, hProc, &hDup, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    }
+    pDup->m_hFile = hDup;
+    return pDup;
+}

@@ -463,6 +463,18 @@ protected:
     CString m_strFileName;
     
     void CommonInit(const wchar_t* lpszFileName, UINT nOpenFlags, void* pTM = nullptr);
+
+    // Friends: extern "C" MS_ABI thunks for cross-ABI vtable dispatch
+    friend unsigned long long impl_GetLength_CFile(void*);
+    friend unsigned long long impl_Seek_CFile(void*, unsigned long long, unsigned int);
+    friend unsigned long long impl_Read_CFile(void*, void*, unsigned long long);
+    friend unsigned long long impl_Write_CFile(void*, const void*, unsigned long long);
+    friend unsigned long long impl_GetPosition_CFile(void*);
+    friend void impl_Flush_CFile(void*);
+    friend void impl_Close_CFile(void*);
+    friend void impl_Abort_CFile(void*);
+    friend void impl_GetFileName_CFile(void*, void*);
+    friend void* impl_Duplicate_CFile(void*);
 };
 
 // CMemFile - memory file
