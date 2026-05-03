@@ -645,7 +645,6 @@ extern "C" void MS_ABI impl__DeleteContents_CDocument__UEAAXXZ(CDocument* pThis)
 }
 
 // SetModifiedFlag
-// Symbol: ?SetModifiedFlag@CDocument@@UEAAXH@Z
 extern "C" void MS_ABI impl__SetModifiedFlag_CDocument__UEAAXH_Z(
     CDocument* pThis, int bModified)
 {
@@ -655,7 +654,6 @@ extern "C" void MS_ABI impl__SetModifiedFlag_CDocument__UEAAXH_Z(
 }
 
 // IsModified
-// Symbol: ?IsModified@CDocument@@UEBAHXZ
 extern "C" int MS_ABI impl__IsModified_CDocument__UEBAHXZ(const CDocument* pThis) {
     return pThis ? pThis->m_bModified : FALSE;
 }
@@ -671,7 +669,6 @@ extern "C" void MS_ABI impl__SetTitle_CDocument__UEAAXPEB_W_Z(
 }
 
 // GetTitle
-// Symbol: ?GetTitle@CDocument@@UEBAPEB_WXZ
 extern "C" const wchar_t* MS_ABI impl__GetTitle_CDocument__UEBAPEB_WXZ(
     const CDocument* pThis)
 {
@@ -690,7 +687,6 @@ extern "C" void MS_ABI impl__SetPathName_CDocument__UEAAXPEB_WH_Z(
 }
 
 // GetPathName
-// Symbol: ?GetPathName@CDocument@@UEBAPEB_WXZ
 extern "C" const wchar_t* MS_ABI impl__GetPathName_CDocument__UEBAPEB_WXZ(
     const CDocument* pThis)
 {
@@ -698,7 +694,6 @@ extern "C" const wchar_t* MS_ABI impl__GetPathName_CDocument__UEBAPEB_WXZ(
 }
 
 // AddView
-// Symbol: ?AddView@CDocument@@UEAAXPEAVCView@@@Z
 extern "C" void MS_ABI impl__AddView_CDocument__UEAAXPEAVCView___Z(
     CDocument* pThis, CView* pView)
 {
@@ -719,7 +714,6 @@ extern "C" void MS_ABI impl__AddView_CDocument__UEAAXPEAVCView___Z(
 }
 
 // RemoveView
-// Symbol: ?RemoveView@CDocument@@UEAAXPEAVCView@@@Z
 extern "C" void MS_ABI impl__RemoveView_CDocument__UEAAXPEAVCView___Z(
     CDocument* pThis, CView* pView)
 {
@@ -748,7 +742,6 @@ extern "C" void MS_ABI impl__RemoveView_CDocument__UEAAXPEAVCView___Z(
 }
 
 // GetFirstViewPosition
-// Symbol: ?GetFirstViewPosition@CDocument@@UEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetFirstViewPosition_CDocument__UEBAPEAXXZ(
     const CDocument* pThis)
 {
@@ -756,7 +749,6 @@ extern "C" void* MS_ABI impl__GetFirstViewPosition_CDocument__UEBAPEAXXZ(
 }
 
 // GetNextView
-// Symbol: ?GetNextView@CDocument@@UEBAPEAVCView@@AEAPEAX@Z
 extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(
     const CDocument* pThis, void*& pos)
 {
@@ -768,7 +760,6 @@ extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(
 }
 
 // UpdateAllViews
-// Symbol: ?UpdateAllViews@CDocument@@UEAAXPEAVCView@@KPEAVCObject@@@Z
 extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObject___Z(
     CDocument* pThis, CView* pSender, unsigned long lHint, CObject* pHint)
 {
@@ -810,7 +801,6 @@ extern "C" int MS_ABI impl__DoFileSave_CDocument__UEAAHXZ(CDocument* pThis) {
 }
 
 // Serialize (CDocument override)
-// Symbol: ?Serialize@CDocument@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(
     CDocument* pThis, CArchive* ar)
 {
@@ -824,7 +814,6 @@ extern "C" void MS_ABI impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CView@@QEAA@XZ
 extern "C" void MS_ABI impl___0CView__QEAA_XZ(CView* pThis) {
     if (!pThis) return;
     pThis->m_hWnd = nullptr;
@@ -842,7 +831,6 @@ extern "C" void MS_ABI impl___1CView__UEAA_XZ(CView* pThis) {
 }
 
 // GetDocument
-// Symbol: ?GetDocument@CView@@UEBAPEAVCDocument@@XZ
 extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
     const CView* pThis)
 {
@@ -850,7 +838,6 @@ extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
 }
 
 // OnUpdate
-// Symbol: ?OnUpdate@CView@@UEAAXPEAV1@KPEAVCObject@@@Z
 extern "C" void MS_ABI impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(
     CView* pThis, CView* pSender, unsigned long lHint, CObject* pHint)
 {
@@ -873,7 +860,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CView__UEAAXXZ(CView* pThis) {
 }
 
 // OnPreparePrinting
-// Symbol: ?OnPreparePrinting@CView@@UEAAHPEAX@Z
 extern "C" int MS_ABI impl__OnPreparePrinting_CView__UEAAHPEAX_Z(
     CView* pThis, void* pInfo)
 {
@@ -883,7 +869,6 @@ extern "C" int MS_ABI impl__OnPreparePrinting_CView__UEAAHPEAX_Z(
 }
 
 // OnBeginPrinting
-// Symbol: ?OnBeginPrinting@CView@@UEAAXPEAX0@Z
 extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(
     CView* pThis, void* pDC, void* pInfo)
 {
@@ -893,7 +878,6 @@ extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(
 }
 
 // OnEndPrinting
-// Symbol: ?OnEndPrinting@CView@@UEAAXPEAX0@Z
 extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(
     CView* pThis, void* pDC, void* pInfo)
 {
@@ -903,7 +887,6 @@ extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(
 }
 
 // OnActivateView
-// Symbol: ?OnActivateView@CView@@UEAAXHPEAV1@0@Z
 extern "C" void MS_ABI impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(
     CView* pThis, int bActivate, CView* pActivateView, CView* pDeactiveView)
 {
@@ -914,7 +897,6 @@ extern "C" void MS_ABI impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(
 }
 
 // GetParentFrame
-// Symbol: ?GetParentFrame@CView@@UEBAPEAVCFrameWnd@@XZ
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(
     const CView* pThis)
 {
@@ -932,7 +914,6 @@ extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CScrollView@@QEAA@XZ
 extern "C" void MS_ABI impl___0CScrollView__QEAA_XZ(CScrollView* pThis) {
     if (!pThis) return;
     impl___0CView__QEAA_XZ(pThis);
@@ -952,7 +933,6 @@ extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView* pThis) {
 }
 
 // SetScrollSizes
-// Symbol: ?SetScrollSizes@CScrollView@@UEAAXHAEBUtagSIZE@@00@Z
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(
     CScrollView* pThis, int nMapMode, const SIZE* sizeTotal,
     const SIZE* sizePage, const SIZE* sizeLine)
@@ -992,7 +972,6 @@ extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z
 }
 
 // OnInitialUpdate (CScrollView override)
-// Symbol: ?OnInitialUpdate@CScrollView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* pThis) {
     if (pThis) {
         // Set default scroll sizes if not set
@@ -1006,7 +985,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* p
 }
 
 // OnDraw (CScrollView) - pure virtual in CView, needs implementation
-// Symbol: ?OnDraw@CScrollView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnDraw_CScrollView__UEAAXPEAX_Z(
     CScrollView* pThis, void* pDC)
 {
@@ -1020,7 +998,6 @@ extern "C" void MS_ABI impl__OnDraw_CScrollView__UEAAXPEAX_Z(
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CFormView@@QEAA@XZ
 extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis) {
     if (!pThis) return;
     impl___0CScrollView__QEAA_XZ(pThis);
@@ -1029,7 +1006,6 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis) {
 }
 
 // Constructor with template name
-// Symbol: ??0CFormView@@QEAA@PEB_W@Z
 extern "C" void MS_ABI impl___0CFormView__QEAA_PEB_W_Z(
     CFormView* pThis, const wchar_t* lpszTemplateName)
 {
@@ -1040,7 +1016,6 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_PEB_W_Z(
 }
 
 // Constructor with resource ID
-// Symbol: ??0CFormView@@QEAA@I@Z
 extern "C" void MS_ABI impl___0CFormView__QEAA_I_Z(
     CFormView* pThis, unsigned int nIDTemplate)
 {
@@ -1057,7 +1032,6 @@ extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis) {
 }
 
 // OnDraw (CFormView) - form views don't draw, the dialog template does
-// Symbol: ?OnDraw@CFormView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnDraw_CFormView__UEAAXPEAX_Z(
     CFormView* pThis, void* pDC)
 {
@@ -1073,7 +1047,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CFormView__UEAAXXZ(CFormView* pThis
 }
 
 // DoDataExchange
-// Symbol: ?DoDataExchange@CFormView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__DoDataExchange_CFormView__UEAAXPEAX_Z(
     CFormView* pThis, void* pDX)
 {
@@ -1101,7 +1074,6 @@ extern "C" void MS_ABI impl___1CEditView__UEAA_XZ(CEditView* pThis) {
 }
 
 // GetEditCtrl
-// Symbol: ?GetEditCtrl@CEditView@@QEBAPEAVCEdit@@XZ
 extern "C" CEdit* MS_ABI impl__GetEditCtrl_CEditView__QEBAPEAVCEdit__XZ(
     const CEditView* pThis)
 {
@@ -1109,7 +1081,6 @@ extern "C" CEdit* MS_ABI impl__GetEditCtrl_CEditView__QEBAPEAVCEdit__XZ(
 }
 
 // OnDraw (CEditView)
-// Symbol: ?OnDraw@CEditView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnDraw_CEditView__UEAAXPEAX_Z(
     CEditView* pThis, void* pDC)
 {
@@ -1123,7 +1094,6 @@ extern "C" void MS_ABI impl__OnDraw_CEditView__UEAAXPEAX_Z(
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CListView@@QEAA@XZ
 extern "C" void MS_ABI impl___0CListView__QEAA_XZ(CListView* pThis) {
     if (!pThis) return;
     impl___0CView__QEAA_XZ(pThis);
@@ -1131,13 +1101,11 @@ extern "C" void MS_ABI impl___0CListView__QEAA_XZ(CListView* pThis) {
 }
 
 // Destructor
-// Symbol: ??1CListView@@UEAA@XZ
 extern "C" void MS_ABI impl___1CListView__UEAA_XZ(CListView* pThis) {
     impl___1CView__UEAA_XZ(pThis);
 }
 
 // GetListCtrl
-// Symbol: ?GetListCtrl@CListView@@QEBAPEAVCListCtrl@@XZ
 extern "C" CListCtrl* MS_ABI impl__GetListCtrl_CListView__QEBAPEAVCListCtrl__XZ(
     const CListView* pThis)
 {
@@ -1145,7 +1113,6 @@ extern "C" CListCtrl* MS_ABI impl__GetListCtrl_CListView__QEBAPEAVCListCtrl__XZ(
 }
 
 // OnDraw (CListView)
-// Symbol: ?OnDraw@CListView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnDraw_CListView__UEAAXPEAX_Z(
     CListView* pThis, void* pDC)
 {
@@ -1155,7 +1122,6 @@ extern "C" void MS_ABI impl__OnDraw_CListView__UEAAXPEAX_Z(
 }
 
 // OnInitialUpdate (CListView)
-// Symbol: ?OnInitialUpdate@CListView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnInitialUpdate_CListView__UEAAXXZ(CListView* pThis) {
     impl__OnInitialUpdate_CView__UEAAXXZ(pThis);
 }
@@ -1165,7 +1131,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CListView__UEAAXXZ(CListView* pThis
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CTreeView@@QEAA@XZ
 extern "C" void MS_ABI impl___0CTreeView__QEAA_XZ(CTreeView* pThis) {
     if (!pThis) return;
     impl___0CView__QEAA_XZ(pThis);
@@ -1173,13 +1138,11 @@ extern "C" void MS_ABI impl___0CTreeView__QEAA_XZ(CTreeView* pThis) {
 }
 
 // Destructor
-// Symbol: ??1CTreeView@@UEAA@XZ
 extern "C" void MS_ABI impl___1CTreeView__UEAA_XZ(CTreeView* pThis) {
     impl___1CView__UEAA_XZ(pThis);
 }
 
 // GetTreeCtrl
-// Symbol: ?GetTreeCtrl@CTreeView@@QEBAPEAVCTreeCtrl@@XZ
 extern "C" CTreeCtrl* MS_ABI impl__GetTreeCtrl_CTreeView__QEBAPEAVCTreeCtrl__XZ(
     const CTreeView* pThis)
 {
@@ -1187,7 +1150,6 @@ extern "C" CTreeCtrl* MS_ABI impl__GetTreeCtrl_CTreeView__QEBAPEAVCTreeCtrl__XZ(
 }
 
 // OnDraw (CTreeView)
-// Symbol: ?OnDraw@CTreeView@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnDraw_CTreeView__UEAAXPEAX_Z(
     CTreeView* pThis, void* pDC)
 {
@@ -1197,7 +1159,6 @@ extern "C" void MS_ABI impl__OnDraw_CTreeView__UEAAXPEAX_Z(
 }
 
 // OnInitialUpdate (CTreeView)
-// Symbol: ?OnInitialUpdate@CTreeView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnInitialUpdate_CTreeView__UEAAXXZ(CTreeView* pThis) {
     impl__OnInitialUpdate_CView__UEAAXXZ(pThis);
 }
@@ -1207,7 +1168,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CTreeView__UEAAXXZ(CTreeView* pThis
 // =============================================================================
 
 // Constructor
-// Symbol: ??0CDocTemplate@@QEAA@IPEAUCRuntimeClass@@00@Z
 extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
     CDocTemplate* pThis, unsigned int nIDResource,
     CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass)
@@ -1269,7 +1229,6 @@ extern "C" CFrameWnd* MS_ABI impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWn
 }
 
 // OpenDocumentFile
-// Symbol: ?OpenDocumentFile@CDocTemplate@@UEAAPEAVCDocument@@PEB_WH@Z
 extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
     CDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible)
 {
@@ -1341,7 +1300,6 @@ extern "C" void MS_ABI impl__RemoveDocument_CDocTemplate__UEAAXPEAVCDocument___Z
 }
 
 // GetFirstDocPosition
-// Symbol: ?GetFirstDocPosition@CDocTemplate@@UEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetFirstDocPosition_CDocTemplate__UEBAPEAXXZ(
     const CDocTemplate* pThis)
 {
@@ -1349,7 +1307,6 @@ extern "C" void* MS_ABI impl__GetFirstDocPosition_CDocTemplate__UEBAPEAXXZ(
 }
 
 // GetNextDoc
-// Symbol: ?GetNextDoc@CDocTemplate@@UEBAPEAVCDocument@@AEAPEAX@Z
 extern "C" CDocument* MS_ABI impl__GetNextDoc_CDocTemplate__UEBAPEAVCDocument__AEAPEAX_Z(
     const CDocTemplate* pThis, void*& pos)
 {
@@ -1386,7 +1343,6 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd
 }
 
 // SetDefaultTitle
-// Symbol: ?SetDefaultTitle@CDocTemplate@@UEAAXPEAVCDocument@@@Z
 extern "C" void MS_ABI impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(
     CDocTemplate* pThis, CDocument* pDoc)
 {
@@ -1397,7 +1353,6 @@ extern "C" void MS_ABI impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___
 }
 
 // GetDocString
-// Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAVCString@@H@Z
 extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(
     const CDocTemplate* pThis, CString* rString, int nID)
 {
@@ -1410,7 +1365,6 @@ extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(
 }
 
 // MatchDocType
-// Symbol: ?MatchDocType@CDocTemplate@@UEAAHPEB_WAEAPEAVCDocument@@@Z
 extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocument___Z(
     CDocTemplate* pThis, const wchar_t* lpszPathName, CDocument*& rpDocMatch)
 {
@@ -1425,7 +1379,6 @@ extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocumen
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CSingleDocTemplate@@QEAA@XZ
 extern "C" void MS_ABI impl___0CSingleDocTemplate__QEAA_XZ(CSingleDocTemplate* pThis) {
     if (!pThis) return;
     pThis->m_nIDResource = 0;
@@ -1516,7 +1469,6 @@ extern "C" void MS_ABI impl__RemoveDocument_CSingleDocTemplate__UEAAXPEAVCDocume
 // =============================================================================
 
 // Default Constructor
-// Symbol: ??0CMultiDocTemplate@@QEAA@XZ
 extern "C" void MS_ABI impl___0CMultiDocTemplate__QEAA_XZ(CMultiDocTemplate* pThis) {
     if (!pThis) return;
     pThis->m_nIDResource = 0;

@@ -130,7 +130,6 @@ CDC::~CDC() {
 }
 
 // CDC::CreateCompatibleDC
-// Symbol: ?CreateCompatibleDC@CDC@@QEAAHPEAV1@@Z
 extern "C" int MS_ABI impl__CreateCompatibleDC_CDC__QEAAHPEAV1__Z(CDC* pThis, CDC* pDC) {
     if (!pThis) return FALSE;
 
@@ -152,14 +151,12 @@ extern "C" int MS_ABI impl__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
 }
 
 // CDC::SaveDC
-// Symbol: ?SaveDC@CDC@@QEAAHXZ
 extern "C" int MS_ABI impl__SaveDC_CDC__QEAAHXZ(CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::SaveDC(pThis->m_hDC);
 }
 
 // CDC::RestoreDC
-// Symbol: ?RestoreDC@CDC@@QEAAHH@Z
 extern "C" int MS_ABI impl__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::RestoreDC(pThis->m_hDC, nSavedDC);
@@ -188,21 +185,18 @@ extern "C" int MS_ABI impl__LineTo_CDC__QEAAHHH_Z(CDC* pThis, int x, int y) {
 }
 
 // CDC::Rectangle
-// Symbol: ?Rectangle@CDC@@QEAAHHHHH@Z
 extern "C" int MS_ABI impl__Rectangle_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::Rectangle(pThis->m_hDC, x1, y1, x2, y2);
 }
 
 // CDC::Ellipse
-// Symbol: ?Ellipse@CDC@@QEAAHHHHH@Z
 extern "C" int MS_ABI impl__Ellipse_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::Ellipse(pThis->m_hDC, x1, y1, x2, y2);
 }
 
 // CDC::TextOutW
-// Symbol: ?TextOutW@CDC@@QEAAHHPEB_WH@Z
 extern "C" int MS_ABI impl__TextOutW_CDC__QEAAHHPEB_WH_Z(CDC* pThis, int x, int y, const wchar_t* lpszString, int nCount) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     if (nCount < 0 && lpszString) {
@@ -212,28 +206,24 @@ extern "C" int MS_ABI impl__TextOutW_CDC__QEAAHHPEB_WH_Z(CDC* pThis, int x, int 
 }
 
 // CDC::SetBkColor
-// Symbol: ?SetBkColor@CDC@@QEAAKK@Z
 extern "C" unsigned long MS_ABI impl__SetBkColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::SetBkColor(pThis->m_hDC, crColor);
 }
 
 // CDC::GetBkColor
-// Symbol: ?GetBkColor@CDC@@QEBAKXZ
 extern "C" unsigned long MS_ABI impl__GetBkColor_CDC__QEBAKXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::GetBkColor(pThis->m_hDC);
 }
 
 // CDC::SetTextColor
-// Symbol: ?SetTextColor@CDC@@QEAAKK@Z
 extern "C" unsigned long MS_ABI impl__SetTextColor_CDC__QEAAKK_Z(CDC* pThis, unsigned long crColor) {
     if (!pThis || !pThis->m_hDC) return CLR_INVALID;
     return ::SetTextColor(pThis->m_hDC, crColor);
 }
 
 // CDC::GetTextColor
-// Symbol: ?GetTextColor@CDC@@QEBAHXZ
 extern "C" int MS_ABI impl__GetTextColor_CDC__QEBAHXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return (int)::GetTextColor(pThis->m_hDC);
@@ -247,14 +237,12 @@ extern "C" int MS_ABI impl__SetBkMode_CDC__QEAAHH_Z(CDC* pThis, int nBkMode) {
 }
 
 // CDC::GetBkMode
-// Symbol: ?GetBkMode@CDC@@QEBAHXZ
 extern "C" int MS_ABI impl__GetBkMode_CDC__QEBAHXZ(const CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::GetBkMode(pThis->m_hDC);
 }
 
 // CDC::BitBlt
-// Symbol: ?BitBlt@CDC@@QEAAHHHHHHPEAV1@HHK@Z
 extern "C" int MS_ABI impl__BitBlt_CDC__QEAAHHHHHHPEAV1_HHK_Z(
     CDC* pThis, int x, int y, int nWidth, int nHeight,
     CDC* pSrcDC, int xSrc, int ySrc, unsigned long dwRop) {
@@ -264,7 +252,6 @@ extern "C" int MS_ABI impl__BitBlt_CDC__QEAAHHHHHHPEAV1_HHK_Z(
 }
 
 // CDC::StretchBlt
-// Symbol: ?StretchBlt@CDC@@QEAAHHHHHHPEAV1@HHHHK@Z
 extern "C" int MS_ABI impl__StretchBlt_CDC__QEAAHHHHHHPEAV1_HHHHK_Z(
     CDC* pThis, int x, int y, int nWidth, int nHeight,
     CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, unsigned long dwRop) {
@@ -275,7 +262,6 @@ extern "C" int MS_ABI impl__StretchBlt_CDC__QEAAHHHHHHPEAV1_HHHHK_Z(
 }
 
 // CDC::FillRect
-// Symbol: ?FillRect@CDC@@QEAAHPEBUtagRECT@@PEAVCBrush@@@Z
 extern "C" int MS_ABI impl__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     CDC* pThis, const RECT* lpRect, CBrush* pBrush) {
     if (!pThis || !pThis->m_hDC || !lpRect) return FALSE;
@@ -284,7 +270,6 @@ extern "C" int MS_ABI impl__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
 }
 
 // CDC::FrameRect
-// Symbol: ?FrameRect@CDC@@QEAAHPEBUtagRECT@@PEAVCBrush@@@Z
 extern "C" int MS_ABI impl__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     CDC* pThis, const RECT* lpRect, CBrush* pBrush) {
     if (!pThis || !pThis->m_hDC || !lpRect) return FALSE;
@@ -293,7 +278,6 @@ extern "C" int MS_ABI impl__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
 }
 
 // CDC::DrawText
-// Symbol: ?DrawTextW@CDC@@QEAAHPEB_WHPEAUTAGRECT@@I@Z
 extern "C" int MS_ABI impl__DrawTextW_CDC__QEAAHPEB_WHPEAUTAGRECT__I_Z(
     CDC* pThis, const wchar_t* lpszString, int nCount, RECT* lpRect, unsigned int nFormat) {
     if (!pThis || !pThis->m_hDC) return 0;
@@ -301,7 +285,6 @@ extern "C" int MS_ABI impl__DrawTextW_CDC__QEAAHPEB_WHPEAUTAGRECT__I_Z(
 }
 
 // CDC::SelectObject (CGdiObject)
-// Symbol: ?SelectObject@CDC@@QEAAPEAVCGdiObject@@PEAV2@@Z
 extern "C" CGdiObject* MS_ABI impl__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2__Z(
     CDC* pThis, CGdiObject* pObject) {
     if (!pThis || !pThis->m_hDC || !pObject) return nullptr;
@@ -311,7 +294,6 @@ extern "C" CGdiObject* MS_ABI impl__SelectObject_CDC__QEAAPEAVCGdiObject__PEAV2_
 }
 
 // CDC::SelectStockObject
-// Symbol: ?SelectStockObject@CDC@@QEAAHH@Z
 extern "C" int MS_ABI impl__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nIndex) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     HGDIOBJ hObj = ::GetStockObject(nIndex);
@@ -366,7 +348,6 @@ extern "C" HGDIOBJ MS_ABI impl__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis)
 // =============================================================================
 
 // CPen default constructor
-// Symbol: ??0CPen@@QEAA@XZ
 extern "C" CPen* MS_ABI impl___0CPen__QEAA_XZ(CPen* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
@@ -382,7 +363,6 @@ extern "C" CPen* MS_ABI impl___0CPen__QEAA_HHK_Z(CPen* pThis, int nPenStyle, int
 }
 
 // CPen::CreatePen
-// Symbol: ?CreatePen@CPen@@QEAAHHHI@Z
 extern "C" int MS_ABI impl__CreatePen_CPen__QEAAHHHI_Z(CPen* pThis, int nPenStyle, int nWidth, unsigned int crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
@@ -397,7 +377,6 @@ extern "C" int MS_ABI impl__CreatePen_CPen__QEAAHHHI_Z(CPen* pThis, int nPenStyl
 // =============================================================================
 
 // CBrush default constructor
-// Symbol: ??0CBrush@@QEAA@XZ
 extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_XZ(CBrush* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
@@ -413,7 +392,6 @@ extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_K_Z(CBrush* pThis, unsigned long 
 }
 
 // CBrush::CreateSolidBrush
-// Symbol: ?CreateSolidBrush@CBrush@@QEAAHK@Z
 extern "C" int MS_ABI impl__CreateSolidBrush_CBrush__QEAAHK_Z(CBrush* pThis, unsigned long crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
@@ -424,7 +402,6 @@ extern "C" int MS_ABI impl__CreateSolidBrush_CBrush__QEAAHK_Z(CBrush* pThis, uns
 }
 
 // CBrush::CreateHatchBrush
-// Symbol: ?CreateHatchBrush@CBrush@@QEAAHHK@Z
 extern "C" int MS_ABI impl__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, int nIndex, unsigned long crColor) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
@@ -439,7 +416,6 @@ extern "C" int MS_ABI impl__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, in
 // =============================================================================
 
 // CFont default constructor
-// Symbol: ??0CFont@@QEAA@XZ
 extern "C" CFont* MS_ABI impl___0CFont__QEAA_XZ(CFont* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
@@ -447,7 +423,6 @@ extern "C" CFont* MS_ABI impl___0CFont__QEAA_XZ(CFont* pThis) {
 }
 
 // CFont::CreateFontIndirectW
-// Symbol: ?CreateFontIndirectW@CFont@@QEAAHPEBUtagLOGFONTW@@@Z
 extern "C" int MS_ABI impl__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(CFont* pThis, const LOGFONTW* lpLogFont) {
     if (!pThis || !lpLogFont) return FALSE;
     if (pThis->m_hObject) {
@@ -458,7 +433,6 @@ extern "C" int MS_ABI impl__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(
 }
 
 // CFont::CreatePointFont
-// Symbol: ?CreatePointFont@CFont@@QEAAHHPEB_WPEAV1@@Z
 extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
     CFont* pThis, int nPointSize, const wchar_t* lpszFaceName, CDC* pDC) {
     if (!pThis) return FALSE;
@@ -486,7 +460,6 @@ extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
 // =============================================================================
 
 // CBitmap default constructor
-// Symbol: ??0CBitmap@@QEAA@XZ
 extern "C" CBitmap* MS_ABI impl___0CBitmap__QEAA_XZ(CBitmap* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hObject = nullptr;
@@ -494,7 +467,6 @@ extern "C" CBitmap* MS_ABI impl___0CBitmap__QEAA_XZ(CBitmap* pThis) {
 }
 
 // CBitmap::CreateCompatibleBitmap
-// Symbol: ?CreateCompatibleBitmap@CBitmap@@QEAAHPEAVCDC@@HH@Z
 extern "C" int MS_ABI impl__CreateCompatibleBitmap_CBitmap__QEAAHPEAVCDC__HH_Z(
     CBitmap* pThis, CDC* pDC, int nWidth, int nHeight) {
     if (!pThis || !pDC || !pDC->m_hDC) return FALSE;
@@ -506,7 +478,6 @@ extern "C" int MS_ABI impl__CreateCompatibleBitmap_CBitmap__QEAAHPEAVCDC__HH_Z(
 }
 
 // CBitmap::LoadBitmapW
-// Symbol: ?LoadBitmapW@CBitmap@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHPEB_W_Z(CBitmap* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {
@@ -518,7 +489,6 @@ extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHPEB_W_Z(CBitmap* pThis, co
 }
 
 // CBitmap::LoadBitmapW (ID version)
-// Symbol: ?LoadBitmapW@CBitmap@@QEAAHI@Z
 extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHI_Z(CBitmap* pThis, UINT nIDResource) {
     if (!pThis) return FALSE;
     if (pThis->m_hObject) {

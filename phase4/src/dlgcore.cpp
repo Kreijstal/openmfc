@@ -39,7 +39,6 @@ static std::map<HWND, CDialog*> g_dlgMap;
 // =============================================================================
 
 // Default constructor
-// Symbol: ??0CDialog@@QAA@XZ
 // Ordinal: 448
 extern "C" void MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
     // Zero initialize the object
@@ -49,7 +48,6 @@ extern "C" void MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
 }
 
 // Constructor with resource ID
-// Symbol: ??0CDialog@@QAA@IPAVCWnd@@@Z
 // Ordinal: 446
 extern "C" void MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
@@ -61,7 +59,6 @@ extern "C" void MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
 }
 
 // Constructor with template name
-// Symbol: ??0CDialog@@QAA@PB_WPAVCWnd@@@Z
 // Ordinal: 447
 extern "C" void MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
@@ -73,7 +70,6 @@ extern "C" void MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
 }
 
 // Destructor
-// Symbol: ??1CDialog@@UAA@XZ
 // Ordinal: 1089
 extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
     if (pThis && pThis->m_hWnd) {
@@ -87,7 +83,6 @@ extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
 // CDialog::DoModal - Modal Dialog
 // =============================================================================
 
-// Symbol: ?DoModal@CDialog@@UEAA_JXZ (x64: returns intptr_t/_J)
 // Ordinal: 3961
 extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     if (!pThis || !pThis->m_lpszTemplateName) {
@@ -125,7 +120,6 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
 // CDialog::Create - Modeless Dialog
 // =============================================================================
 
-// Symbol: ?Create@CDialog@@UAAHPB_WPAVCWnd@@@Z
 // Ordinal: 3081
 extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
@@ -173,7 +167,6 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(
 // CDialog::EndDialog
 // =============================================================================
 
-// Symbol: ?EndDialog@CDialog@@QAAXH@Z
 // Ordinal: 4353
 extern "C" void MS_ABI impl__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nResult) {
     if (pThis && pThis->m_hWnd) {
@@ -185,7 +178,6 @@ extern "C" void MS_ABI impl__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nRe
 // CDialog::OnInitDialog
 // =============================================================================
 
-// Symbol: ?OnInitDialog@CDialog@@UAAHXZ
 // Ordinal: 10170
 extern "C" int MS_ABI impl__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
     (void)pThis;
@@ -197,14 +189,12 @@ extern "C" int MS_ABI impl__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
 // CDialog::OnOK / OnCancel
 // =============================================================================
 
-// Symbol: ?OnOK@CDialog@@MAAXXZ
 // Ordinal: 10711
 extern "C" void MS_ABI impl__OnOK_CDialog__MEAAXXZ(CDialog* pThis) {
     // Call stub directly to avoid needing member function implementation
     impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDOK);
 }
 
-// Symbol: ?OnCancel@CDialog@@MAAXXZ
 // Ordinal: 8738
 extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
     // Call stub directly to avoid needing member function implementation
@@ -215,7 +205,6 @@ extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
 // CDialog::CheckAutoCenter
 // =============================================================================
 
-// Symbol: ?CheckAutoCenter@CDialog@@UAAHXZ
 // Ordinal: 2701
 extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
     (void)pThis;
@@ -226,7 +215,6 @@ extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
 // CDialog::PreTranslateMessage
 // =============================================================================
 
-// Symbol: ?PreTranslateMessage@CDialog@@UAAHPAUtagMSG@@@Z
 // Ordinal: 11861
 extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
     CDialog* pThis, MSG* pMsg)
@@ -244,7 +232,6 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
 // CDialog::Initialize
 // =============================================================================
 
-// Symbol: ?Initialize@CDialog@@QAAXXZ
 // Ordinal: 7705
 extern "C" void MS_ABI impl__Initialize_CDialog__QEAAXXZ(CDialog* pThis) {
     (void)pThis;

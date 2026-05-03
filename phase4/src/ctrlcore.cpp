@@ -128,14 +128,12 @@ asm(".globl \"?SetScrollPos@CScrollBar@@QEAAHHH@Z\"\n"
 // =============================================================================
 
 // CButton::GetState
-// Symbol: ?GetState@CButton@@QEBAIXZ
 extern "C" unsigned int MS_ABI impl__GetState_CButton__QEBAIXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (unsigned int)::SendMessageW(pThis->m_hWnd, BM_GETSTATE, 0, 0);
 }
 
 // CButton::SetState
-// Symbol: ?SetState@CButton@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetState_CButton__QEAAXH_Z(CButton* pThis, int bHighlight) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, BM_SETSTATE, bHighlight ? TRUE : FALSE, 0);
@@ -143,14 +141,12 @@ extern "C" void MS_ABI impl__SetState_CButton__QEAAXH_Z(CButton* pThis, int bHig
 }
 
 // CButton::GetCheck
-// Symbol: ?GetCheck@CButton@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCheck_CButton__QEBAHXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (int)::SendMessageW(pThis->m_hWnd, BM_GETCHECK, 0, 0);
 }
 
 // CButton::SetCheck
-// Symbol: ?SetCheck@CButton@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetCheck_CButton__QEAAXH_Z(CButton* pThis, int nCheck) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, BM_SETCHECK, nCheck, 0);
@@ -158,14 +154,12 @@ extern "C" void MS_ABI impl__SetCheck_CButton__QEAAXH_Z(CButton* pThis, int nChe
 }
 
 // CButton::GetButtonStyle
-// Symbol: ?GetButtonStyle@CButton@@QEBAIXZ
 extern "C" unsigned int MS_ABI impl__GetButtonStyle_CButton__QEBAIXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (unsigned int)(::GetWindowLongW(pThis->m_hWnd, GWL_STYLE) & 0xFFFF);
 }
 
 // CButton::SetButtonStyle
-// Symbol: ?SetButtonStyle@CButton@@QEAAXIH@Z
 extern "C" void MS_ABI impl__SetButtonStyle_CButton__QEAAXIH_Z(CButton* pThis, unsigned int nStyle, int bRedraw) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, BM_SETSTYLE, nStyle, MAKELPARAM(bRedraw, 0));
@@ -173,28 +167,24 @@ extern "C" void MS_ABI impl__SetButtonStyle_CButton__QEAAXIH_Z(CButton* pThis, u
 }
 
 // CButton::GetBitmap
-// Symbol: ?GetBitmap@CButton@@QEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetBitmap_CButton__QEBAPEAXXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, BM_GETIMAGE, IMAGE_BITMAP, 0);
 }
 
 // CButton::SetBitmap
-// Symbol: ?SetBitmap@CButton@@QEAAPEAXPEAX@Z
 extern "C" void* MS_ABI impl__SetBitmap_CButton__QEAAPEAXPEAX_Z(CButton* pThis, void* hBitmap) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap);
 }
 
 // CButton::GetIcon
-// Symbol: ?GetIcon@CButton@@QEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetIcon_CButton__QEBAPEAXXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, BM_GETIMAGE, IMAGE_ICON, 0);
 }
 
 // CButton::SetIcon
-// Symbol: ?SetIcon@CButton@@QEAAPEAXPEAX@Z
 extern "C" void* MS_ABI impl__SetIcon_CButton__QEAAPEAXPEAX_Z(CButton* pThis, void* hIcon) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, BM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
@@ -205,14 +195,12 @@ extern "C" void* MS_ABI impl__SetIcon_CButton__QEAAPEAXPEAX_Z(CButton* pThis, vo
 // =============================================================================
 
 // CEdit::GetLineCount
-// Symbol: ?GetLineCount@CEdit@@QEBAHXZ
 extern "C" int MS_ABI impl__GetLineCount_CEdit__QEBAHXZ(const CEdit* pThis) {
     if (!pThis || !pThis->m_hWnd) return 1;
     return (int)::SendMessageW(pThis->m_hWnd, EM_GETLINECOUNT, 0, 0);
 }
 
 // CEdit::GetLine
-// Symbol: ?GetLine@CEdit@@QEBAHPEA_WH@Z
 extern "C" int MS_ABI impl__GetLine_CEdit__QEBAHPEA_WH_Z(const CEdit* pThis, int nIndex, wchar_t* lpszBuffer, int nMaxLength) {
     if (!pThis || !pThis->m_hWnd || !lpszBuffer || nMaxLength <= 0) return 0;
     // First word of buffer must contain the max length
@@ -221,7 +209,6 @@ extern "C" int MS_ABI impl__GetLine_CEdit__QEBAHPEA_WH_Z(const CEdit* pThis, int
 }
 
 // CEdit::GetSel
-// Symbol: ?GetSel@CEdit@@QEBAXAEAH0@Z
 extern "C" void MS_ABI impl__GetSel_CEdit__QEBAXAEAH0_Z(const CEdit* pThis, int* nStartChar, int* nEndChar) {
     if (!pThis || !pThis->m_hWnd) {
         if (nStartChar) *nStartChar = 0;
@@ -235,7 +222,6 @@ extern "C" void MS_ABI impl__GetSel_CEdit__QEBAXAEAH0_Z(const CEdit* pThis, int*
 }
 
 // CEdit::SetSel
-// Symbol: ?SetSel@CEdit@@QEAAXHHH@Z
 extern "C" void MS_ABI impl__SetSel_CEdit__QEAAXHHH_Z(CEdit* pThis, int nStartChar, int nEndChar, int bNoScroll) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_SETSEL, nStartChar, nEndChar);
@@ -246,7 +232,6 @@ extern "C" void MS_ABI impl__SetSel_CEdit__QEAAXHHH_Z(CEdit* pThis, int nStartCh
 }
 
 // CEdit::ReplaceSel
-// Symbol: ?ReplaceSel@CEdit@@QEAAXPEB_WH@Z
 extern "C" void MS_ABI impl__ReplaceSel_CEdit__QEAAXPEB_WH_Z(CEdit* pThis, const wchar_t* lpszNewText, int bCanUndo) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_REPLACESEL, bCanUndo ? TRUE : FALSE, (LPARAM)lpszNewText);
@@ -254,7 +239,6 @@ extern "C" void MS_ABI impl__ReplaceSel_CEdit__QEAAXPEB_WH_Z(CEdit* pThis, const
 }
 
 // CEdit::Clear
-// Symbol: ?Clear@CEdit@@QEAAXXZ
 extern "C" void MS_ABI impl__Clear_CEdit__QEAAXXZ(CEdit* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, WM_CLEAR, 0, 0);
@@ -262,7 +246,6 @@ extern "C" void MS_ABI impl__Clear_CEdit__QEAAXXZ(CEdit* pThis) {
 }
 
 // CEdit::Copy
-// Symbol: ?Copy@CEdit@@QEAAXXZ
 extern "C" void MS_ABI impl__Copy_CEdit__QEAAXXZ(CEdit* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, WM_COPY, 0, 0);
@@ -270,7 +253,6 @@ extern "C" void MS_ABI impl__Copy_CEdit__QEAAXXZ(CEdit* pThis) {
 }
 
 // CEdit::Cut
-// Symbol: ?Cut@CEdit@@QEAAXXZ
 extern "C" void MS_ABI impl__Cut_CEdit__QEAAXXZ(CEdit* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, WM_CUT, 0, 0);
@@ -278,7 +260,6 @@ extern "C" void MS_ABI impl__Cut_CEdit__QEAAXXZ(CEdit* pThis) {
 }
 
 // CEdit::Paste
-// Symbol: ?Paste@CEdit@@QEAAXXZ
 extern "C" void MS_ABI impl__Paste_CEdit__QEAAXXZ(CEdit* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, WM_PASTE, 0, 0);
@@ -286,14 +267,12 @@ extern "C" void MS_ABI impl__Paste_CEdit__QEAAXXZ(CEdit* pThis) {
 }
 
 // CEdit::Undo
-// Symbol: ?Undo@CEdit@@QEAAHXZ
 extern "C" int MS_ABI impl__Undo_CEdit__QEAAHXZ(CEdit* pThis) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return (int)::SendMessageW(pThis->m_hWnd, EM_UNDO, 0, 0);
 }
 
 // CEdit::SetReadOnly
-// Symbol: ?SetReadOnly@CEdit@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetReadOnly_CEdit__QEAAXH_Z(CEdit* pThis, int bReadOnly) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_SETREADONLY, bReadOnly ? TRUE : FALSE, 0);
@@ -301,14 +280,12 @@ extern "C" void MS_ABI impl__SetReadOnly_CEdit__QEAAXH_Z(CEdit* pThis, int bRead
 }
 
 // CEdit::GetModify
-// Symbol: ?GetModify@CEdit@@QEBAHXZ
 extern "C" int MS_ABI impl__GetModify_CEdit__QEBAHXZ(const CEdit* pThis) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return (int)::SendMessageW(pThis->m_hWnd, EM_GETMODIFY, 0, 0);
 }
 
 // CEdit::SetModify
-// Symbol: ?SetModify@CEdit@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetModify_CEdit__QEAAXH_Z(CEdit* pThis, int bModified) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_SETMODIFY, bModified ? TRUE : FALSE, 0);
@@ -316,7 +293,6 @@ extern "C" void MS_ABI impl__SetModify_CEdit__QEAAXH_Z(CEdit* pThis, int bModifi
 }
 
 // CEdit::LimitText
-// Symbol: ?LimitText@CEdit@@QEAAXH@Z
 extern "C" void MS_ABI impl__LimitText_CEdit__QEAAXH_Z(CEdit* pThis, int nChars) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_LIMITTEXT, nChars, 0);
@@ -324,14 +300,12 @@ extern "C" void MS_ABI impl__LimitText_CEdit__QEAAXH_Z(CEdit* pThis, int nChars)
 }
 
 // CEdit::GetLimitText
-// Symbol: ?GetLimitText@CEdit@@QEBAHXZ
 extern "C" int MS_ABI impl__GetLimitText_CEdit__QEBAHXZ(const CEdit* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (int)::SendMessageW(pThis->m_hWnd, EM_GETLIMITTEXT, 0, 0);
 }
 
 // CEdit::SetPasswordChar
-// Symbol: ?SetPasswordChar@CEdit@@QEAAX_W@Z
 extern "C" void MS_ABI impl__SetPasswordChar_CEdit__QEAAX_W_Z(CEdit* pThis, wchar_t ch) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, EM_SETPASSWORDCHAR, ch, 0);
@@ -343,42 +317,36 @@ extern "C" void MS_ABI impl__SetPasswordChar_CEdit__QEAAX_W_Z(CEdit* pThis, wcha
 // =============================================================================
 
 // CStatic::GetBitmap
-// Symbol: ?GetBitmap@CStatic@@QEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetBitmap_CStatic__QEBAPEAXXZ(const CStatic* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_GETIMAGE, IMAGE_BITMAP, 0);
 }
 
 // CStatic::SetBitmap
-// Symbol: ?SetBitmap@CStatic@@QEAAPEAXPEAX@Z
 extern "C" void* MS_ABI impl__SetBitmap_CStatic__QEAAPEAXPEAX_Z(CStatic* pThis, void* hBitmap) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap);
 }
 
 // CStatic::GetIcon
-// Symbol: ?GetIcon@CStatic@@QEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetIcon_CStatic__QEBAPEAXXZ(const CStatic* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_GETICON, 0, 0);
 }
 
 // CStatic::SetIcon
-// Symbol: ?SetIcon@CStatic@@QEAAPEAXPEAX@Z
 extern "C" void* MS_ABI impl__SetIcon_CStatic__QEAAPEAXPEAX_Z(CStatic* pThis, void* hIcon) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_SETICON, (WPARAM)hIcon, 0);
 }
 
 // CStatic::GetEnhMetaFile
-// Symbol: ?GetEnhMetaFile@CStatic@@QEBAPEAXXZ
 extern "C" void* MS_ABI impl__GetEnhMetaFile_CStatic__QEBAPEAXXZ(const CStatic* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_GETIMAGE, IMAGE_ENHMETAFILE, 0);
 }
 
 // CStatic::SetEnhMetaFile
-// Symbol: ?SetEnhMetaFile@CStatic@@QEAAPEAXPEAX@Z
 extern "C" void* MS_ABI impl__SetEnhMetaFile_CStatic__QEAAPEAXPEAX_Z(CStatic* pThis, void* hMetaFile) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, STM_SETIMAGE, IMAGE_ENHMETAFILE, (LPARAM)hMetaFile);
@@ -389,63 +357,54 @@ extern "C" void* MS_ABI impl__SetEnhMetaFile_CStatic__QEAAPEAXPEAX_Z(CStatic* pT
 // =============================================================================
 
 // CListBox::GetCount
-// Symbol: ?GetCount@CListBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCount_CListBox__QEBAHXZ(const CListBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (int)::SendMessageW(pThis->m_hWnd, LB_GETCOUNT, 0, 0);
 }
 
 // CListBox::GetCurSel
-// Symbol: ?GetCurSel@CListBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCurSel_CListBox__QEBAHXZ(const CListBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_GETCURSEL, 0, 0);
 }
 
 // CListBox::SetCurSel
-// Symbol: ?SetCurSel@CListBox@@QEAAHH@Z
 extern "C" int MS_ABI impl__SetCurSel_CListBox__QEAAHH_Z(CListBox* pThis, int nSelect) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_SETCURSEL, nSelect, 0);
 }
 
 // CListBox::GetText
-// Symbol: ?GetText@CListBox@@QEBAHPEA_WH@Z
 extern "C" int MS_ABI impl__GetText_CListBox__QEBAHPEA_WH_Z(const CListBox* pThis, int nIndex, wchar_t* lpszBuffer) {
     if (!pThis || !pThis->m_hWnd || !lpszBuffer) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_GETTEXT, nIndex, (LPARAM)lpszBuffer);
 }
 
 // CListBox::GetTextLen
-// Symbol: ?GetTextLen@CListBox@@QEBAHH@Z
 extern "C" int MS_ABI impl__GetTextLen_CListBox__QEBAHH_Z(const CListBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_GETTEXTLEN, nIndex, 0);
 }
 
 // CListBox::AddString
-// Symbol: ?AddString@CListBox@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__AddString_CListBox__QEAAHPEB_W_Z(CListBox* pThis, const wchar_t* lpszItem) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_ADDSTRING, 0, (LPARAM)lpszItem);
 }
 
 // CListBox::InsertString
-// Symbol: ?InsertString@CListBox@@QEAAHHPEB_W@Z
 extern "C" int MS_ABI impl__InsertString_CListBox__QEAAHHPEB_W_Z(CListBox* pThis, int nIndex, const wchar_t* lpszItem) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_INSERTSTRING, nIndex, (LPARAM)lpszItem);
 }
 
 // CListBox::DeleteString
-// Symbol: ?DeleteString@CListBox@@QEAAHI@Z
 extern "C" int MS_ABI impl__DeleteString_CListBox__QEAAHI_Z(CListBox* pThis, unsigned int nIndex) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_DELETESTRING, nIndex, 0);
 }
 
 // CListBox::ResetContent
-// Symbol: ?ResetContent@CListBox@@QEAAXXZ
 extern "C" void MS_ABI impl__ResetContent_CListBox__QEAAXXZ(CListBox* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, LB_RESETCONTENT, 0, 0);
@@ -453,42 +412,36 @@ extern "C" void MS_ABI impl__ResetContent_CListBox__QEAAXXZ(CListBox* pThis) {
 }
 
 // CListBox::FindString
-// Symbol: ?FindString@CListBox@@QEBAHPEB_WH@Z
 extern "C" int MS_ABI impl__FindString_CListBox__QEBAHPEB_WH_Z(const CListBox* pThis, int nStartAfter, const wchar_t* lpszItem) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_FINDSTRING, nStartAfter, (LPARAM)lpszItem);
 }
 
 // CListBox::SelectString
-// Symbol: ?SelectString@CListBox@@QEAAHPEB_WH@Z
 extern "C" int MS_ABI impl__SelectString_CListBox__QEAAHPEB_WH_Z(CListBox* pThis, int nStartAfter, const wchar_t* lpszItem) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_SELECTSTRING, nStartAfter, (LPARAM)lpszItem);
 }
 
 // CListBox::GetItemData
-// Symbol: ?GetItemData@CListBox@@QEBA_KH@Z
 extern "C" uintptr_t MS_ABI impl__GetItemData_CListBox__QEBA_KH_Z(const CListBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (uintptr_t)::SendMessageW(pThis->m_hWnd, LB_GETITEMDATA, nIndex, 0);
 }
 
 // CListBox::SetItemData
-// Symbol: ?SetItemData@CListBox@@QEAAHH_K@Z
 extern "C" int MS_ABI impl__SetItemData_CListBox__QEAAHH_K_Z(CListBox* pThis, int nIndex, uintptr_t dwItemData) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_SETITEMDATA, nIndex, (LPARAM)dwItemData);
 }
 
 // CListBox::GetItemDataPtr
-// Symbol: ?GetItemDataPtr@CListBox@@QEBAPEAXH@Z
 extern "C" void* MS_ABI impl__GetItemDataPtr_CListBox__QEBAPEAXH_Z(const CListBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
     return (void*)::SendMessageW(pThis->m_hWnd, LB_GETITEMDATA, nIndex, 0);
 }
 
 // CListBox::SetItemDataPtr
-// Symbol: ?SetItemDataPtr@CListBox@@QEAAHHPEAX@Z
 extern "C" int MS_ABI impl__SetItemDataPtr_CListBox__QEAAHHPEAX_Z(CListBox* pThis, int nIndex, void* pData) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_SETITEMDATA, nIndex, (LPARAM)pData);
@@ -499,63 +452,54 @@ extern "C" int MS_ABI impl__SetItemDataPtr_CListBox__QEAAHHPEAX_Z(CListBox* pThi
 // =============================================================================
 
 // CComboBox::GetCount
-// Symbol: ?GetCount@CComboBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCount_CComboBox__QEBAHXZ(const CComboBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETCOUNT, 0, 0);
 }
 
 // CComboBox::GetCurSel
-// Symbol: ?GetCurSel@CComboBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCurSel_CComboBox__QEBAHXZ(const CComboBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETCURSEL, 0, 0);
 }
 
 // CComboBox::SetCurSel
-// Symbol: ?SetCurSel@CComboBox@@QEAAHH@Z
 extern "C" int MS_ABI impl__SetCurSel_CComboBox__QEAAHH_Z(CComboBox* pThis, int nSelect) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_SETCURSEL, nSelect, 0);
 }
 
 // CComboBox::GetLBText
-// Symbol: ?GetLBText@CComboBox@@QEBAHPEA_WH@Z
 extern "C" int MS_ABI impl__GetLBText_CComboBox__QEBAHPEA_WH_Z(const CComboBox* pThis, int nIndex, wchar_t* lpszText) {
     if (!pThis || !pThis->m_hWnd || !lpszText) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)lpszText);
 }
 
 // CComboBox::GetLBTextLen
-// Symbol: ?GetLBTextLen@CComboBox@@QEBAHH@Z
 extern "C" int MS_ABI impl__GetLBTextLen_CComboBox__QEBAHH_Z(const CComboBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETLBTEXTLEN, nIndex, 0);
 }
 
 // CComboBox::AddString
-// Symbol: ?AddString@CComboBox@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__AddString_CComboBox__QEAAHPEB_W_Z(CComboBox* pThis, const wchar_t* lpszString) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_ADDSTRING, 0, (LPARAM)lpszString);
 }
 
 // CComboBox::InsertString
-// Symbol: ?InsertString@CComboBox@@QEAAHHPEB_W@Z
 extern "C" int MS_ABI impl__InsertString_CComboBox__QEAAHHPEB_W_Z(CComboBox* pThis, int nIndex, const wchar_t* lpszString) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_INSERTSTRING, nIndex, (LPARAM)lpszString);
 }
 
 // CComboBox::DeleteString
-// Symbol: ?DeleteString@CComboBox@@QEAAHI@Z
 extern "C" int MS_ABI impl__DeleteString_CComboBox__QEAAHI_Z(CComboBox* pThis, unsigned int nIndex) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_DELETESTRING, nIndex, 0);
 }
 
 // CComboBox::ResetContent
-// Symbol: ?ResetContent@CComboBox@@QEAAXXZ
 extern "C" void MS_ABI impl__ResetContent_CComboBox__QEAAXXZ(CComboBox* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, CB_RESETCONTENT, 0, 0);
@@ -563,35 +507,30 @@ extern "C" void MS_ABI impl__ResetContent_CComboBox__QEAAXXZ(CComboBox* pThis) {
 }
 
 // CComboBox::FindString
-// Symbol: ?FindString@CComboBox@@QEBAHPEB_WH@Z
 extern "C" int MS_ABI impl__FindString_CComboBox__QEBAHPEB_WH_Z(const CComboBox* pThis, int nStartAfter, const wchar_t* lpszString) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_FINDSTRING, nStartAfter, (LPARAM)lpszString);
 }
 
 // CComboBox::SelectString
-// Symbol: ?SelectString@CComboBox@@QEAAHPEB_WH@Z
 extern "C" int MS_ABI impl__SelectString_CComboBox__QEAAHPEB_WH_Z(CComboBox* pThis, int nStartAfter, const wchar_t* lpszString) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_SELECTSTRING, nStartAfter, (LPARAM)lpszString);
 }
 
 // CComboBox::GetItemData
-// Symbol: ?GetItemData@CComboBox@@QEBA_KH@Z
 extern "C" uintptr_t MS_ABI impl__GetItemData_CComboBox__QEBA_KH_Z(const CComboBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return (uintptr_t)::SendMessageW(pThis->m_hWnd, CB_GETITEMDATA, nIndex, 0);
 }
 
 // CComboBox::SetItemData
-// Symbol: ?SetItemData@CComboBox@@QEAAHH_K@Z
 extern "C" int MS_ABI impl__SetItemData_CComboBox__QEAAHH_K_Z(CComboBox* pThis, int nIndex, uintptr_t dwItemData) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_SETITEMDATA, nIndex, (LPARAM)dwItemData);
 }
 
 // CComboBox::ShowDropDown
-// Symbol: ?ShowDropDown@CComboBox@@QEAAXH@Z
 extern "C" void MS_ABI impl__ShowDropDown_CComboBox__QEAAXH_Z(CComboBox* pThis, int bShowIt) {
     if (pThis && pThis->m_hWnd) {
         ::SendMessageW(pThis->m_hWnd, CB_SHOWDROPDOWN, bShowIt ? TRUE : FALSE, 0);
@@ -599,7 +538,6 @@ extern "C" void MS_ABI impl__ShowDropDown_CComboBox__QEAAXH_Z(CComboBox* pThis, 
 }
 
 // CComboBox::GetDroppedState
-// Symbol: ?GetDroppedState@CComboBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetDroppedState_CComboBox__QEBAHXZ(const CComboBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETDROPPEDSTATE, 0, 0);
@@ -610,21 +548,18 @@ extern "C" int MS_ABI impl__GetDroppedState_CComboBox__QEBAHXZ(const CComboBox* 
 // =============================================================================
 
 // CScrollBar::GetScrollPos
-// Symbol: ?GetScrollPos@CScrollBar@@QEBAHXZ
 extern "C" int MS_ABI impl__GetScrollPos_CScrollBar__QEBAHXZ(const CScrollBar* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return ::GetScrollPos(pThis->m_hWnd, SB_CTL);
 }
 
 // CScrollBar::SetScrollPos
-// Symbol: ?SetScrollPos@CScrollBar@@QEAAHHH@Z
 extern "C" int MS_ABI impl__SetScrollPos_CScrollBar__QEAAHHH_Z(CScrollBar* pThis, int nPos, int bRedraw) {
     if (!pThis || !pThis->m_hWnd) return 0;
     return ::SetScrollPos(pThis->m_hWnd, SB_CTL, nPos, bRedraw ? TRUE : FALSE);
 }
 
 // CScrollBar::GetScrollRange
-// Symbol: ?GetScrollRange@CScrollBar@@QEBAXPEAH0@Z
 extern "C" void MS_ABI impl__GetScrollRange_CScrollBar__QEBAXPEAH0_Z(const CScrollBar* pThis, int* lpMinPos, int* lpMaxPos) {
     if (!pThis || !pThis->m_hWnd) {
         if (lpMinPos) *lpMinPos = 0;
@@ -635,7 +570,6 @@ extern "C" void MS_ABI impl__GetScrollRange_CScrollBar__QEBAXPEAH0_Z(const CScro
 }
 
 // CScrollBar::SetScrollRange
-// Symbol: ?SetScrollRange@CScrollBar@@QEAAXHHH@Z
 extern "C" void MS_ABI impl__SetScrollRange_CScrollBar__QEAAXHHH_Z(CScrollBar* pThis, int nMinPos, int nMaxPos, int bRedraw) {
     if (pThis && pThis->m_hWnd) {
         ::SetScrollRange(pThis->m_hWnd, SB_CTL, nMinPos, nMaxPos, bRedraw ? TRUE : FALSE);
@@ -643,7 +577,6 @@ extern "C" void MS_ABI impl__SetScrollRange_CScrollBar__QEAAXHHH_Z(CScrollBar* p
 }
 
 // CScrollBar::GetScrollInfo
-// Symbol: ?GetScrollInfo@CScrollBar@@QEBAHPEAUSCROLLINFO@@I@Z
 extern "C" int MS_ABI impl__GetScrollInfo_CScrollBar__QEBAHPEAUSCROLLINFO__I_Z(const CScrollBar* pThis, SCROLLINFO* lpScrollInfo, unsigned int nMask) {
     if (!pThis || !pThis->m_hWnd || !lpScrollInfo) return FALSE;
     lpScrollInfo->cbSize = sizeof(SCROLLINFO);
@@ -652,7 +585,6 @@ extern "C" int MS_ABI impl__GetScrollInfo_CScrollBar__QEBAHPEAUSCROLLINFO__I_Z(c
 }
 
 // CScrollBar::SetScrollInfo
-// Symbol: ?SetScrollInfo@CScrollBar@@QEAAHPEAUSCROLLINFO@@H@Z
 extern "C" int MS_ABI impl__SetScrollInfo_CScrollBar__QEAAHPEAUSCROLLINFO__H_Z(CScrollBar* pThis, SCROLLINFO* lpScrollInfo, int bRedraw) {
     if (!pThis || !pThis->m_hWnd || !lpScrollInfo) return 0;
     lpScrollInfo->cbSize = sizeof(SCROLLINFO);
@@ -660,7 +592,6 @@ extern "C" int MS_ABI impl__SetScrollInfo_CScrollBar__QEAAHPEAUSCROLLINFO__H_Z(C
 }
 
 // CScrollBar::EnableScrollBar
-// Symbol: ?EnableScrollBar@CScrollBar@@QEAAHI@Z
 extern "C" int MS_ABI impl__EnableScrollBar_CScrollBar__QEAAHI_Z(CScrollBar* pThis, unsigned int nArrowFlags) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return ::EnableScrollBar(pThis->m_hWnd, SB_CTL, nArrowFlags);

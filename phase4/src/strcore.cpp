@@ -22,7 +22,6 @@ static HINSTANCE GetResourceHandle() {
 }
 
 // CString::LoadString(UINT nID)
-// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z
 extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(CString* pThis, UINT nID)
 {
     // Try fixed buffer first (usually enough)
@@ -60,7 +59,6 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
 }
 
 // AfxExtractSubString
-// Symbol: ?AfxExtractSubString@@YAHAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z
 extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WH_W_Z(
     CString* rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep)
 {
@@ -93,7 +91,6 @@ extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTrait
 }
 
 // AfxFormatString1
-// Symbol: ?AfxFormatString1@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W@Z
 extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1)
 {
@@ -126,7 +123,6 @@ extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMF
 }
 
 // AfxFormatString2
-// Symbol: ?AfxFormatString2@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W1@Z
 extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W1_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2)
 {
@@ -158,7 +154,6 @@ extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMF
 }
 
 // AfxMessageBox (text)
-// Symbol: ?AfxMessageBox@@YAHPB_WII@Z
 extern "C" int MS_ABI impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t* lpszText, UINT nType, UINT nIDHelp)
 {
     CWnd* pMainWnd = AfxGetMainWnd();

@@ -124,7 +124,6 @@ asm(".globl \"?classCWnd@CWnd@@2UCRuntimeClass@@A\"\n"
 #endif
 
 // CWnd::FromHandle
-// Symbol: ?FromHandle@CWnd@@SAPAV1@PAUHWND__@@@Z
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPAV1_PAUHWND_____Z(HWND hWnd) {
     return OpenMfcAttachCWnd(hWnd);
 }
@@ -161,7 +160,6 @@ asm(".globl \"?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ\"\n"
 #endif
 
 // CWnd::Create
-// Symbol: ?Create@CWnd@@UAAHPB_W0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z
 // Ordinal: 3182
 extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
     CWnd* pThis,
@@ -232,7 +230,6 @@ extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCr
 }
 
 // CWnd::ShowWindow
-// Symbol: ?ShowWindow@CWnd@@QAAHH@Z
 // Ordinal: 13870
 extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow) {
     if (!pThis || !pThis->m_hWnd) {
@@ -242,7 +239,6 @@ extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow)
 }
 
 // CWnd::UpdateWindow
-// Symbol: ?UpdateWindow@CWnd@@QAAXXZ
 extern "C" void MS_ABI impl__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
         ::UpdateWindow(pThis->m_hWnd);
@@ -268,7 +264,6 @@ extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis) {
 }
 
 // CWnd::DestroyWindow
-// Symbol: ?DestroyWindow@CWnd@@UAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     if (!pThis || !pThis->m_hWnd) {
         return FALSE;
@@ -282,7 +277,6 @@ extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
 }
 
 // CWnd::PreCreateWindow
-// Symbol: ?PreCreateWindow@CWnd@@UAAHAAUtagCREATESTRUCTW@@@Z
 // Ordinal: 11813
 extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
     CWnd* pThis, CREATESTRUCTW& cs)
@@ -294,7 +288,6 @@ extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
 }
 
 // CWnd::DefWindowProcW
-// Symbol: ?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z (x64)
 extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -305,7 +298,6 @@ extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
 }
 
 // CWnd::WindowProc
-// Symbol: ?WindowProc@CWnd@@MEAA_JI_K_J@Z (x64)
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -314,7 +306,6 @@ extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
 }
 
 // CWnd::GetSafeHwnd
-// Symbol: ?GetSafeHwnd@CWnd@@QBAPAUHWND__@@XZ
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pThis) {
     return pThis ? pThis->m_hWnd : nullptr;
 }
@@ -397,7 +388,6 @@ extern "C" int MS_ABI impl__GetWindowTextLengthW_CWnd__QEBAHXZ(const CWnd* pThis
 // =============================================================================
 
 // CFrameWnd constructor
-// Symbol: ??0CFrameWnd@@QAA@XZ
 // Ordinal: 502
 extern "C" CFrameWnd* MS_ABI impl___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
     if (!pThis) {
@@ -414,7 +404,6 @@ extern "C" CFrameWnd* MS_ABI impl___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
 }
 
 // CFrameWnd destructor
-// Symbol: ??1CFrameWnd@@UAA@XZ
 // Ordinal: 1129
 extern "C" void MS_ABI impl___1CFrameWnd__UEAA_XZ(CFrameWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
@@ -706,7 +695,6 @@ static ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 // AfxWinMain - Application Entry Point
 // =============================================================================
 
-// Symbol: ?AfxWinMain@@YAHPAUHINSTANCE__@@0PA_WH@Z
 // Ordinal: 2374
 extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
     HINSTANCE hInstance,

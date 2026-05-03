@@ -798,7 +798,6 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
 }
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
-// Symbol: ?AfxThrowInternetException@@YAX_KK@Z (x64: uses DWORD_PTR/_K)
 extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     DWORD dwContext, DWORD dwError
 ) {
