@@ -1794,12 +1794,6 @@ extern "C" void MS_ABI impl__Close_CDatabase__UEAAXXZ(CDatabase* pThis) {
     pThis->Close();
 }
 
-// Symbol: ?Close@CFile@@UEAAXXZ
-// CFile::Close
-extern "C" void MS_ABI impl__Close_CFile__UEAAXXZ(CFile* pThis) {
-    pThis->Close();
-}
-
 // Symbol: ?Close@CFileFind@@QEAAXXZ
 // CFileFind::Close
 extern "C" void MS_ABI impl__Close_CFileFind__QEAAXXZ(CFileFind* pThis) {
@@ -2656,12 +2650,6 @@ extern "C" void MS_ABI impl__Flush_CArchive__QEAAXXZ(CArchive* pThis) {
     pThis->Flush();
 }
 
-// Symbol: ?Flush@CFile@@UEAAXXZ
-// CFile::Flush
-extern "C" void MS_ABI impl__Flush_CFile__UEAAXXZ(CFile* pThis) {
-    pThis->Flush();
-}
-
 // Symbol: ?Flush@CMemFile@@UEAAXXZ
 // CMemFile::Flush
 extern "C" void MS_ABI impl__Flush_CMemFile__UEAAXXZ(CMemFile* pThis) {
@@ -3218,12 +3206,6 @@ extern "C" int MS_ABI impl__GetLastAccessTime_CFileFind__UEBAHPEAU_FILETIME___Z(
 // CFileFind::GetLastWriteTime
 extern "C" int MS_ABI impl__GetLastWriteTime_CFileFind__UEBAHPEAU_FILETIME___Z(const CFileFind* pThis, _FILETIME* p0) {
     return (int)pThis->GetLastWriteTime(p0);
-}
-
-// Symbol: ?GetLength@CFile@@UEBA_KXZ
-// CFile::GetLength
-extern "C" unsigned __int64 MS_ABI impl__GetLength_CFile__UEBA_KXZ(const CFile* pThis) {
-    return (unsigned __int64)pThis->GetLength();
 }
 
 // Symbol: ?GetLength@CFileFind@@QEBA_KXZ
@@ -5339,12 +5321,6 @@ extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis
     return (unsigned int)pThis->Read(p0, p1);
 }
 
-// Symbol: ?Read@CFile@@UEAAIPEAXI@Z
-// CFile::Read
-extern "C" unsigned int MS_ABI impl__Read_CFile__UEAAIPEAXI_Z(CFile* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
-}
-
 // Symbol: ?Read@CInternetFile@@UEAAIPEAXI@Z
 // CInternetFile::Read
 extern "C" unsigned int MS_ABI impl__Read_CInternetFile__UEAAIPEAXI_Z(CInternetFile* pThis, void* p0, unsigned int p1) {
@@ -5632,12 +5608,6 @@ extern "C" void MS_ABI impl__ScrollWindow_CWnd__QEAAXHHPEBUtagRECT__0_Z(CWnd* pT
 // CWnd::ScrollWindowEx
 extern "C" int MS_ABI impl__ScrollWindowEx_CWnd__QEAAHHHPEBUtagRECT__0PEAVCRgn__PEAU2_I_Z(CWnd* pThis, int p0, int p1, const RECT* p2, int p3, CRgn* p4, void* p5, unsigned int p6) {
     return (int)pThis->ScrollWindowEx(p0, p1, p2, p3, p4, p5, p6);
-}
-
-// Symbol: ?Seek@CFile@@UEAA_K_JI@Z
-// CFile::Seek
-extern "C" unsigned __int64 MS_ABI impl__Seek_CFile__UEAA_K_JI_Z(CFile* pThis, __int64 p0, unsigned int p1) {
-    return (unsigned __int64)pThis->Seek(p0, p1);
 }
 
 // Symbol: ?Seek@CInternetFile@@UEAA_K_JI@Z
@@ -6548,12 +6518,6 @@ extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const
     pThis->Write(p0, p1);
 }
 
-// Symbol: ?Write@CFile@@UEAAXPEBXI@Z
-// CFile::Write
-extern "C" void MS_ABI impl__Write_CFile__UEAAXPEBXI_Z(CFile* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
-}
-
 // Symbol: ?Write@CMemFile@@UEAAXPEBXI@Z
 // CMemFile::Write
 extern "C" void MS_ABI impl__Write_CMemFile__UEAAXPEBXI_Z(CMemFile* pThis, const void* p0, unsigned int p1) {
@@ -6626,5 +6590,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1095 thunks
+// Generated 1089 thunks
 // Errors (could not parse): 0
