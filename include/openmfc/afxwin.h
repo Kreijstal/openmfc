@@ -492,12 +492,12 @@ public:
     //-------------------------------------------------------------------------
     // Window creation/destruction
     //-------------------------------------------------------------------------
-    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-                       const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr);
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+                        const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr);
     
-    virtual int CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-                         DWORD dwStyle, int x, int y, int nWidth, int nHeight,
-                         HWND hWndParent, HMENU nIDorHMenu, void* lpParam = nullptr);
+    virtual BOOL CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                          DWORD dwStyle, int x, int y, int nWidth, int nHeight,
+                          HWND hWndParent, HMENU nIDorHMenu, void* lpParam = nullptr);
 
     virtual int PreCreateWindow(CREATESTRUCTW& cs) { (void)cs; return TRUE; }
 
@@ -817,7 +817,7 @@ public:
     // Construction
     virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
                           CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
-    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle = 0, const struct tagRECT& rect = {},
                        CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
                        DWORD dwExStyle = 0, CCreateContext* pContext = nullptr);
@@ -1017,7 +1017,7 @@ public:
     CMDIChildWnd();
     virtual ~CMDIChildWnd() = default;
 
-    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle = 0, const struct tagRECT& rect = {},
                        CMDIFrameWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
                        
@@ -1043,8 +1043,8 @@ public:
     virtual ~CDialog();
 
     virtual intptr_t DoModal();
-    virtual int Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
-    virtual int Create(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
+    virtual BOOL Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
+    virtual BOOL Create(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
 
     virtual int OnInitDialog();
     virtual void OnOK();
@@ -1168,7 +1168,7 @@ public:
 
     // Modal/Modeless
     virtual intptr_t DoModal();
-    virtual int Create(CWnd* pParentWnd = nullptr, unsigned long dwStyle = 0xFFFFFFFF, unsigned long dwExStyle = 0);
+    virtual BOOL Create(CWnd* pParentWnd = nullptr, unsigned long dwStyle = 0xFFFFFFFF, unsigned long dwExStyle = 0);
     virtual int OnInitDialog();
 
 protected:
@@ -1415,7 +1415,7 @@ public:
     virtual ~CFindReplaceDialog();
 
     // Modeless creation
-    virtual int Create(int bFindDialogOnly,
+    virtual BOOL Create(int bFindDialogOnly,
                       const wchar_t* lpszFindWhat = nullptr,
                       const wchar_t* lpszReplaceWith = nullptr,
                       unsigned long dwFlags = 0,
@@ -3126,7 +3126,7 @@ public:
     virtual ~CFormView();
 
     // Creation
-    virtual int Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                        DWORD dwStyle, const struct tagRECT& rect,
                        CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr) override;
     
@@ -3299,9 +3299,9 @@ public:
     virtual ~CRichEditView();
 
     // Creation
-    virtual BOOL Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName,
-                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
-                       UINT nID, CCreateContext* pContext = nullptr) override;
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                       DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd,
+                       UINT nID, CCreateContext* pContext = nullptr);
 
     // Rich edit control access
     CRichEditCtrl& GetRichEditCtrl() const;
@@ -3363,9 +3363,9 @@ public:
     virtual ~CHtmlView();
 
     // Creation
-    virtual BOOL Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName,
-                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
-                       UINT nID, CCreateContext* pContext = nullptr) override;
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+                       DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd,
+                       UINT nID, CCreateContext* pContext = nullptr);
     void OnDraw(void* pDC) override;
 
     // Navigation
