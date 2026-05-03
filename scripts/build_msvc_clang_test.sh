@@ -51,7 +51,11 @@ LIB_UM="$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64"
 # Ensure case-insensitive symlinks exist on Linux
 ensure_case_symlinks() {
     local dir="$1"
-    for f in "$dir"/*.h "$dir"/*.idl "$dir"/*.Lib "$dir"/*.lib 2>/dev/null; do
+    local all_files=()
+    shopt -s nullglob
+    all_files=("$dir"/*.h "$dir"/*.idl "$dir"/*.Lib "$dir"/*.lib)
+    shopt -u nullglob
+    for f in "${all_files[@]}"; do
         [ -f "$f" ] || continue
         local base lower upper
         base=$(basename "$f")

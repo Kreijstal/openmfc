@@ -458,23 +458,12 @@ public:
     static int GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM = nullptr);
     static void SetStatus(const wchar_t* lpszFileName, const CFileStatus& status);
     
-protected:
+// Public for extern "C" thunk access (MSVC ABI cross-compilation)
     void* m_hFile;  // Platform-specific file handle
     CString m_strFileName;
-    
-    void CommonInit(const wchar_t* lpszFileName, UINT nOpenFlags, void* pTM = nullptr);
 
-    // Friends: extern "C" MS_ABI thunks for cross-ABI vtable dispatch
-    friend unsigned long long impl_GetLength_CFile(void*);
-    friend unsigned long long impl_Seek_CFile(void*, unsigned long long, unsigned int);
-    friend unsigned long long impl_Read_CFile(void*, void*, unsigned long long);
-    friend unsigned long long impl_Write_CFile(void*, const void*, unsigned long long);
-    friend unsigned long long impl_GetPosition_CFile(void*);
-    friend void impl_Flush_CFile(void*);
-    friend void impl_Close_CFile(void*);
-    friend void impl_Abort_CFile(void*);
-    friend void impl_GetFileName_CFile(void*, void*);
-    friend void* impl_Duplicate_CFile(void*);
+protected:
+    void CommonInit(const wchar_t* lpszFileName, UINT nOpenFlags, void* pTM = nullptr);
 };
 
 // CMemFile - memory file

@@ -1,0 +1,30 @@
+=== OpenMFC Export Manifest ===
+
+Total exports:           14103
+
+Real implementations:     1188  (  8.4%)
+Skip-listed:               145  (  1.0%)
+Remaining stubs:         12770  ( 90.5%)
+
+
+=== Top Classes by Real Implementations ===
+  CWnd                                      188
+  CFrameWnd                                 110
+  CMFCVisualManager                          65
+  COleControl                                50
+  COleClientItem                             30
+  CRecordset                                 17
+  CSplitterWnd                               15
+  CDocument                                  15
+  CPropertySheet                             14
+  CPropertyPage                              14
+  CToolBar                                   14
+  CAsyncSocket                               13
+  CHtmlView                                  13
+  CRichEditCtrl                              11
+  COleDataSource                             10
+  CMenu                                       9
+  COleDataObject                              9
+  CStatusBar                                  9
+  CMemFile                                    8
+  COleStreamFile                              8
