@@ -101,6 +101,18 @@ asm(".globl \"?SetCurSel@CListBox@@QEAAHH@Z\"\n"
     ".set \"?SetCurSel@CListBox@@QEAAHH@Z\", impl__SetCurSel_CListBox__QEAAHH_Z\n");
 asm(".globl \"?ResetContent@CListBox@@QEAAXXZ\"\n"
     ".set \"?ResetContent@CListBox@@QEAAXXZ\", impl__ResetContent_CListBox__QEAAXXZ\n");
+// Symbol: ?AddString@CListBox@@QEAAHPEB_W@Z
+asm(".globl \"?AddString@CListBox@@QEAAHPEB_W@Z\"\n"
+    ".set \"?AddString@CListBox@@QEAAHPEB_W@Z\", impl__AddString_CListBox__QEAAHPEB_W_Z\n");
+// Symbol: ?DeleteString@CListBox@@QEAAHI@Z
+asm(".globl \"?DeleteString@CListBox@@QEAAHI@Z\"\n"
+    ".set \"?DeleteString@CListBox@@QEAAHI@Z\", impl__DeleteString_CListBox__QEAAHI_Z\n");
+// Symbol: ?InsertString@CListBox@@QEAAHHPEB_W@Z
+asm(".globl \"?InsertString@CListBox@@QEAAHHPEB_W@Z\"\n"
+    ".set \"?InsertString@CListBox@@QEAAHHPEB_W@Z\", impl__InsertString_CListBox__QEAAHHPEB_W_Z\n");
+// Symbol: ?FindString@CListBox@@QEBAHPEB_WH@Z
+asm(".globl \"?FindString@CListBox@@QEBAHPEB_WH@Z\"\n"
+    ".set \"?FindString@CListBox@@QEBAHPEB_WH@Z\", impl__FindString_CListBox__QEBAHPEB_WH_Z\n");
 
 // MSVC symbol aliases for CComboBox methods
 asm(".globl \"?GetCount@CComboBox@@QEBAHXZ\"\n"
@@ -115,6 +127,18 @@ asm(".globl \"?ShowDropDown@CComboBox@@QEAAXH@Z\"\n"
     ".set \"?ShowDropDown@CComboBox@@QEAAXH@Z\", impl__ShowDropDown_CComboBox__QEAAXH_Z\n");
 asm(".globl \"?GetDroppedState@CComboBox@@QEBAHXZ\"\n"
     ".set \"?GetDroppedState@CComboBox@@QEBAHXZ\", impl__GetDroppedState_CComboBox__QEBAHXZ\n");
+// Symbol: ?AddString@CComboBox@@QEAAHPEB_W@Z
+asm(".globl \"?AddString@CComboBox@@QEAAHPEB_W@Z\"\n"
+    ".set \"?AddString@CComboBox@@QEAAHPEB_W@Z\", impl__AddString_CComboBox__QEAAHPEB_W_Z\n");
+// Symbol: ?DeleteString@CComboBox@@QEAAHI@Z
+asm(".globl \"?DeleteString@CComboBox@@QEAAHI@Z\"\n"
+    ".set \"?DeleteString@CComboBox@@QEAAHI@Z\", impl__DeleteString_CComboBox__QEAAHI_Z\n");
+// Symbol: ?InsertString@CComboBox@@QEAAHHPEB_W@Z
+asm(".globl \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\"\n"
+    ".set \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\", impl__InsertString_CComboBox__QEAAHHPEB_W_Z\n");
+// Symbol: ?FindString@CComboBox@@QEBAHPEB_WH@Z
+asm(".globl \"?FindString@CComboBox@@QEBAHPEB_WH@Z\"\n"
+    ".set \"?FindString@CComboBox@@QEBAHPEB_WH@Z\", impl__FindString_CComboBox__QEBAHPEB_WH_Z\n");
 
 // MSVC symbol aliases for CScrollBar methods
 asm(".globl \"?GetScrollPos@CScrollBar@@QEBAHXZ\"\n"
@@ -412,7 +436,7 @@ extern "C" void MS_ABI impl__ResetContent_CListBox__QEAAXXZ(CListBox* pThis) {
 }
 
 // CListBox::FindString
-extern "C" int MS_ABI impl__FindString_CListBox__QEBAHPEB_WH_Z(const CListBox* pThis, int nStartAfter, const wchar_t* lpszItem) {
+extern "C" int MS_ABI impl__FindString_CListBox__QEBAHPEB_WH_Z(const CListBox* pThis, const wchar_t* lpszItem, int nStartAfter) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, LB_FINDSTRING, nStartAfter, (LPARAM)lpszItem);
 }
@@ -507,7 +531,7 @@ extern "C" void MS_ABI impl__ResetContent_CComboBox__QEAAXXZ(CComboBox* pThis) {
 }
 
 // CComboBox::FindString
-extern "C" int MS_ABI impl__FindString_CComboBox__QEBAHPEB_WH_Z(const CComboBox* pThis, int nStartAfter, const wchar_t* lpszString) {
+extern "C" int MS_ABI impl__FindString_CComboBox__QEBAHPEB_WH_Z(const CComboBox* pThis, const wchar_t* lpszString, int nStartAfter) {
     if (!pThis || !pThis->m_hWnd) return CB_ERR;
     return (int)::SendMessageW(pThis->m_hWnd, CB_FINDSTRING, nStartAfter, (LPARAM)lpszString);
 }
