@@ -149,9 +149,29 @@ jobs:
           $err = $kernel32::GetLastError()
           echo "LoadLibrary(openmfc.dll) FAILED: error $err"
           
-          # Detailed import analysis
-          echo "--- dumpbin /imports openmfc.dll (first 100 lines) ---"
-          dumpbin /imports openmfc.dll 2>&1 | Select-Object -First 100 | ForEach-Object { $_.Trim() }
+          # Check which specific msvcrt functions may be missing
+          echo "--- Checking msvcrt.dll exports for MinGW-specific functions ---"
+          $mingwFuncs = @("_initterm", "__iob_func", "___lc_codepage_func", "___mb_cur_max_func", "_amsg_exit", "_beginthreadex", "_lock", "_unlock", "_wfopen", "_snwprintf")
+          $msvcrtDLL = [Environment]::SystemDirectory + "\msvcrt.dll"
+          foreach ($f in $mingwFuncs) {
+            $result = dumpbin /exports $msvcrtDLL 2>&1 | Select-String -SimpleMatch $f
+            if ($result) {
+              echo "  msvcrt.dll: $f -> FOUND"
+            } else {
+              echo "  msvcrt.dll: $f -> MISSING"
+            }
+          }
+          
+          echo "--- Checking libwinpthread-1.dll exports ---"
+          $pthreadFuncs = @("pthread_mutex_init", "pthread_mutex_lock", "pthread_once", "pthread_key_create", "pthread_cond_wait")
+          foreach ($f in $pthreadFuncs) {
+            $result = dumpbin /exports libwinpthread-1.dll 2>&1 | Select-String -SimpleMatch $f
+            if ($result) {
+              echo "  libwinpthread-1.dll: $f -> FOUND"
+            } else {
+              echo "  libwinpthread-1.dll: $f -> MISSING"
+            }
+          }
           
           exit 1
         } else {
