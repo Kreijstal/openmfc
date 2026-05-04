@@ -88,12 +88,21 @@ jobs:
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        $output = & .\test_msvc_linking.exe 2>&1 | Out-String
-        Write-Host $output
-        if ($LASTEXITCODE -eq 0) {
+        # Copy libwinpthread-1.dll if needed (UCRT MinGW builds)
+        if (Test-Path C:\mingw64\bin\libwinpthread-1.dll) {
+          Copy-Item C:\mingw64\bin\libwinpthread-1.dll .
+          echo "Copied libwinpthread-1.dll"
+        }
+        # Use Start-Process to capture both stdout and stderr
+        $stdoutPath = "test_stdout.txt"
+        $stderrPath = "test_stderr.txt"
+        $proc = Start-Process -FilePath ".\\test_msvc_linking.exe" -PassThru -Wait -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        if (Test-Path $stdoutPath) { Write-Host "STDOUT:"; Get-Content $stdoutPath -Raw | Write-Host }
+        if (Test-Path $stderrPath) { Write-Host "STDERR:"; Get-Content $stderrPath -Raw | Write-Host }
+        if ($proc.ExitCode -eq 0) {
           Write-Host "MSVC linking test passed!"
         } else {
-          Write-Host "MSVC linking test failed"
+          Write-Host "MSVC linking test failed with exit code $($proc.ExitCode)"
           exit 1
         }
     - name: Run Hello World test
