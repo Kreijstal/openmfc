@@ -31,9 +31,11 @@ jobs:
     - name: Build Phase 4
       run: |
         export PATH="/opt/llvm-mingw/bin:$PATH"
-        # llvm-mingw uses clang; adjust flags for clang (no -static-libgcc/-static-libstdc++)
+        # llvm-mingw uses clang; adjust flags for clang compatibility
         sed -i 's/-static-libgcc/-static/' phase4/scripts/build_phase4.sh
         sed -i '/-static-libstdc++/d' phase4/scripts/build_phase4.sh
+        # Add MSVC extensions support needed for __int64, etc. in typed stubs
+        sed -i 's/-std=c++17/-std=c++17 -fms-extensions/' phase4/scripts/build_phase4.sh
         ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
     
