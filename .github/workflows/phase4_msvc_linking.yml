@@ -9,28 +9,18 @@ on:
 
 jobs:
   build-phase4-mingw:
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     outputs:
       dll-artifact: ${{ steps.upload.outputs.artifact-name }}
-    
     steps:
     - uses: actions/checkout@v6
-    
-    - name: Install MinGW (posix threads)
+    - name: Build Phase 4 (UCRT MinGW)
+      shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y g++-mingw-w64-x86-64-posix
-        x86_64-w64-mingw32-g++ --version
-    
-    - name: Build Phase 4
-      run: |
-        ./phase4/scripts/build_phase4.sh
+        export PATH="/c/mingw64/bin:$PATH"
+        g++ --version
+        bash ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
-        # Copy the build machine's libwinpthread-1.dll for runtime use
-        cp /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll build-phase4/ || true
-        x86_64-w64-mingw32-g++ -print-file-name=libwinpthread-1.dll | xargs -I{} cp {} build-phase4/ 2>/dev/null || true
-        ls -la build-phase4/libwinpthread-1.dll 2>/dev/null || echo "NOTE: libwinpthread-1.dll not found for bundling" 
-    
     - name: Upload Phase 4 artifacts
       id: upload
       uses: actions/upload-artifact@v6
@@ -40,28 +30,23 @@ jobs:
           build-phase4/openmfc.dll
           build-phase4/openmfc.def
           build-phase4/libopenmfc.a
-          build-phase4/libwinpthread-1.dll
         retention-days: 7
-  
+
   test-msvc-linking:
     runs-on: windows-latest
     needs: build-phase4-mingw
     timeout-minutes: 20
-    
     steps:
     - uses: actions/checkout@v6
-    
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v7
       with:
         name: phase4-openmfc
         path: phase4-artifacts
-    
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-
     - name: Create MSVC import library
       shell: cmd
       run: |
@@ -72,7 +57,6 @@ jobs:
           exit /b 1
         )
         echo Successfully created openmfc.lib
-    
     - name: Build MSVC test app
       shell: cmd
       run: |
@@ -83,7 +67,6 @@ jobs:
           exit /b 1
         )
         echo Successfully built test_msvc_linking.exe
-    
     - name: Build Hello World test
       shell: cmd
       run: |
@@ -94,152 +77,17 @@ jobs:
           exit /b 1
         )
         echo Successfully built test_hello_world.exe
-    
     - name: Run MSVC linking test
       shell: pwsh
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-
-        # Try to find and copy libwinpthread-1.dll from MinGW installation
-        $mingwPaths = @(
-          "C:\mingw64\bin\libwinpthread-1.dll",
-          "C:\ProgramData\mingw64\mingw64\bin\libwinpthread-1.dll",
-          "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\libwinpthread-1.dll"
-        )
-        $pthreadFound = $false
-        # First try the bundled version from the artifact (exact match for linked version)
-        if (Test-Path phase4-artifacts\libwinpthread-1.dll) {
-          Copy-Item phase4-artifacts\libwinpthread-1.dll .
-          echo "Copied bundled libwinpthread-1.dll from artifact"
-          $pthreadFound = $true
+        $output = & .\test_msvc_linking.exe 2>&1 | Out-String
+        Write-Host $output
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "MSVC linking test passed!"
         } else {
-          # Fallback to local MinGW (may be version-mismatched!)
-          foreach ($p in $mingwPaths) {
-            if (Test-Path $p) {
-              Copy-Item $p .
-              echo "Copied libwinpthread-1.dll from $p (WARNING: may be version-mismatched)"
-              $pthreadFound = $true
-              break
-            }
-          }
-        }
-        if (-not $pthreadFound) {
-          echo "WARNING: libwinpthread-1.dll not found"
-        }
-
-        # Diagnostic: check DLLs present
-        if (Test-Path openmfc.dll) {
-          echo "openmfc.dll present ($((Get-Item openmfc.dll).Length) bytes)"
-        }
-        if (Test-Path libwinpthread-1.dll) {
-          echo "libwinpthread-1.dll present ($((Get-Item libwinpthread-1.dll).Length) bytes)"
-        }
-
-        # Show full dependency tree
-        echo "--- openmfc.dll dependencies ---"
-        dumpbin /dependents openmfc.dll 2>&1 | Select-String -Pattern "\.dll" | ForEach-Object { $_.Line.Trim() }
-
-        # Try loading each dependency individually to find the broken one
-        echo "--- Dependency load test ---"
-        $kernel32 = Add-Type -MemberDefinition '[DllImport("kernel32.dll", SetLastError=true)] public static extern IntPtr LoadLibrary(string lpLibFileName); [DllImport("kernel32.dll")] public static extern uint GetLastError();' -Name 'Kernel32' -Namespace 'Win32' -PassThru
-        
-        $dlls = @("msvcrt.dll", "libwinpthread-1.dll", "COMCTL32.dll", "ODBC32.dll", "WININET.dll")
-        foreach ($dll in $dlls) {
-          $h = $kernel32::LoadLibrary($dll)
-          if ($h -eq [IntPtr]::Zero) {
-            $err = $kernel32::GetLastError()
-            echo "  $dll -> FAILED (error $err)"
-          } else {
-            echo "  $dll -> OK"
-          }
-        }
-        
-        # Now try the actual openmfc.dll
-        echo "--- openmfc.dll load ---"
-        $hModule = $kernel32::LoadLibrary((Resolve-Path "openmfc.dll").Path)
-        if ($hModule -eq [IntPtr]::Zero) {
-          $err = $kernel32::GetLastError()
-          echo "LoadLibrary(openmfc.dll) FAILED: error $err"
-          
-          # Check which specific msvcrt functions may be missing
-          echo "--- Checking msvcrt.dll exports for MinGW-specific functions ---"
-          $mingwFuncs = @("_initterm", "__iob_func", "___lc_codepage_func", "___mb_cur_max_func", "_amsg_exit", "_beginthreadex", "_lock", "_unlock", "_wfopen", "_snwprintf")
-          $msvcrtDLL = [Environment]::SystemDirectory + "\msvcrt.dll"
-          foreach ($f in $mingwFuncs) {
-            $result = dumpbin /exports $msvcrtDLL 2>&1 | Select-String -SimpleMatch $f
-            if ($result) {
-              echo "  msvcrt.dll: $f -> FOUND"
-            } else {
-              echo "  msvcrt.dll: $f -> MISSING"
-            }
-          }
-          
-          echo "--- Checking libwinpthread-1.dll exports ---"
-          $pthreadFuncs = @("pthread_mutex_init", "pthread_mutex_lock", "pthread_once", "pthread_key_create", "pthread_cond_wait")
-          foreach ($f in $pthreadFuncs) {
-            $result = dumpbin /exports libwinpthread-1.dll 2>&1 | Select-String -SimpleMatch $f
-            if ($result) {
-              echo "  libwinpthread-1.dll: $f -> FOUND"
-            } else {
-              echo "  libwinpthread-1.dll: $f -> MISSING"
-            }
-          }
-
-          # Check the KERNEL32 imports that are less common
-          echo "--- Checking KERNEL32.dll for unusual imports ---"
-          $k32Funcs = @("GetModuleHandleExA", "GetModuleHandleExW", "IsDBCSLeadByteEx", "PulseEvent",
-                        "InitializeCriticalSection", "RtlCaptureContext", "RtlLookupFunctionEntry",
-                        "RtlUnwindEx", "RtlVirtualUnwind", "TlsGetValue")
-          $k32DLL = [Environment]::SystemDirectory + "\kernel32.dll"
-          foreach ($f in $k32Funcs) {
-            $result = dumpbin /exports $k32DLL 2>&1 | Select-String -SimpleMatch $f
-            if ($result) {
-              echo "  kernel32.dll: $f -> FOUND"
-            } else {
-              echo "  kernel32.dll: $f -> MISSING"
-            }
-          }
-
-          # Brute-force: try loading each dependency DLL individually to find which one actually fails
-          echo "--- Loading ALL dependency DLLs individually ---"
-          $allDeps = @("COMCTL32.dll", "comdlg32.dll", "GDI32.dll", "KERNEL32.dll", "msvcrt.dll",
-                       "ODBC32.dll", "ole32.dll", "OLEAUT32.dll", "oledlg.dll", "USER32.dll",
-                       "WININET.dll", "WS2_32.dll")
-          foreach ($dll in $allDeps) {
-            $h = $kernel32::LoadLibrary($dll)
-            if ($h -eq [IntPtr]::Zero) {
-              $err = $kernel32::GetLastError()
-              echo "  $dll -> FAILED (error $err)"
-            } else {
-              echo "  $dll -> OK"
-            }
-          }
-          
-          exit 1
-        } else {
-          echo "LoadLibrary(openmfc.dll) OK, handle=$hModule"
-        }
-
-        # Run the test
-        echo "--- Test output ---"
-        $stdoutPath = "test_stdout.txt"
-        $stderrPath = "test_stderr.txt"
-        $proc = Start-Process -FilePath ".\test_msvc_linking.exe" -PassThru -Wait -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-
-        if (Test-Path $stdoutPath) {
-          echo "--- stdout ---"
-          Get-Content $stdoutPath -Raw | Write-Host
-        }
-        if (Test-Path $stderrPath) {
-          echo "--- stderr ---"
-          Get-Content $stderrPath -Raw | Write-Host
-        }
-
-        if ($proc.ExitCode -eq 0) {
-          Write-Host "✅ MSVC linking test passed!"
-        } else {
-          Write-Host "❌ MSVC linking test failed with exit code $($proc.ExitCode)"
+          Write-Host "MSVC linking test failed"
           exit 1
         }
     - name: Run Hello World test
@@ -247,15 +95,10 @@ jobs:
       run: |
         echo "Running Hello World test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-
         $timeoutSeconds = 30
         $stdoutPath = "hello_world_stdout.txt"
         $stderrPath = "hello_world_stderr.txt"
-
-        # Start the test process
         $proc = Start-Process -FilePath ".\\test_hello_world.exe" -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-
-        # Background job to find and click the MessageBox
         $clickerJob = Start-Job -ScriptBlock {
           Add-Type @"
             using System;
@@ -273,25 +116,19 @@ jobs:
         "@
           $WM_CLOSE = 0x0010
           $BM_CLICK = 0x00F5
-
           for ($i = 0; $i -lt 60; $i++) {
             Start-Sleep -Milliseconds 500
-            # Find MessageBox by title
             $hwnd = [Win32]::FindWindow("#32770", "OpenMFC Hello World")
             if ($hwnd -ne [IntPtr]::Zero) {
-              # Found it! Get the text to verify
               $sb = New-Object System.Text.StringBuilder 512
               [Win32]::GetWindowText($hwnd, $sb, $sb.Capacity) | Out-Null
               Write-Host "Found MessageBox: '$($sb.ToString())'"
-
-              # Find OK button and click it
               $btnHwnd = [Win32]::FindWindowEx($hwnd, [IntPtr]::Zero, "Button", "OK")
               if ($btnHwnd -ne [IntPtr]::Zero) {
                 Write-Host "Clicking OK button..."
                 [Win32]::PostMessage($btnHwnd, $BM_CLICK, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
                 return "OK"
               } else {
-                # Fallback: close the window
                 Write-Host "No OK button found, closing window..."
                 [Win32]::PostMessage($hwnd, $WM_CLOSE, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
                 return "CLOSED"
@@ -300,33 +137,25 @@ jobs:
           }
           return "NOT_FOUND"
         }
-
-        # Wait for the process to complete
         Wait-Process -Id $proc.Id -Timeout $timeoutSeconds -ErrorAction SilentlyContinue
         $proc.Refresh()
-
-        # Get clicker job result
         $clickerResult = Receive-Job -Job $clickerJob -Wait -AutoRemoveJob -ErrorAction SilentlyContinue
         Write-Host "Clicker result: $clickerResult"
-
         if (-not $proc.HasExited) {
-          Write-Host "❌ Hello World test timed out after ${timeoutSeconds}s; terminating process."
+          Write-Host "Hello World test timed out after ${timeoutSeconds}s; terminating process."
           Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw | Write-Host }
           if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw | Write-Host }
           exit 1
         }
-
         if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw | Write-Host }
         if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw | Write-Host }
-
         if ($proc.ExitCode -eq 0) {
-          Write-Host "✅ Hello World test passed!"
+          Write-Host "Hello World test passed!"
         } else {
-          Write-Host "❌ Hello World test failed with exit code $($proc.ExitCode)"
+          Write-Host "Hello World test failed with exit code $($proc.ExitCode)"
           exit 1
         }
-
     - name: Upload Hello World artifact
       uses: actions/upload-artifact@v6
       if: always()
@@ -336,16 +165,10 @@ jobs:
           test_hello_world.exe
           openmfc.dll
         retention-days: 7
-
     - name: Run comprehensive test
       shell: pwsh
       run: |
         echo "Running MinGW comprehensive test (ordinal-only import lib -> MSVC exports)..."
-        # Install MinGW on Windows runner
-        choco install mingw -y
-        
-        # Avoid `refreshenv` (it uses `wmic`, which is missing on newer runners).
-        # Instead, prepend the known MinGW bin locations.
         $mingwBins = @(
           "C:\\ProgramData\\mingw64\\mingw64\\bin",
           "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin"
@@ -353,7 +176,6 @@ jobs:
         foreach ($p in $mingwBins) {
           if (Test-Path $p) { $env:Path = "$p;$env:Path" }
         }
-
         $dlltool = (Get-Command dlltool.exe -ErrorAction SilentlyContinue).Source
         if (-not $dlltool) { $dlltool = (Get-Command x86_64-w64-mingw32-dlltool.exe -ErrorAction SilentlyContinue).Source }
         $gpp = (Get-Command g++.exe -ErrorAction SilentlyContinue).Source
@@ -361,31 +183,21 @@ jobs:
           Write-Host "MinGW toolchain not found on PATH"
           exit 1
         }
-
-        # Build an import library that imports by ordinal only. This avoids:
-        # - embedding MSVC-mangled names (`?Foo@@...`) into MinGW object files
-        # - relying on dlltool "alias name" mapping, which still imports by name
-        #
-        # We read ordinals from the produced openmfc.def so the test tracks the
-        # repo's canonical mapping.
         $defPath = "phase4-artifacts\\openmfc.def"
         if (-not (Test-Path $defPath)) {
           Write-Host "Missing def file: $defPath"
           exit 1
         }
-
         function Get-Ordinal([string]$symbol) {
           $hit = Select-String -Path $defPath -Pattern ([regex]::Escape($symbol)) | Select-Object -First 1
           if (-not $hit) { throw "Symbol not found in def: $symbol" }
           if ($hit.Line -match "@(\d+)") { return [int]$matches[1] }
           throw "No ordinal found in def line: $($hit.Line)"
         }
-
         $ordAfxGetDllVersion = Get-Ordinal "?AfxGetDllVersion@@YAKXZ"
         $ordAfxGetThread     = Get-Ordinal "?AfxGetThread@@YAPEAVCWinThread@@XZ"
         $ordOpNew            = Get-Ordinal "??2@YAPEAX_K@Z"
         $ordOpDelete         = Get-Ordinal "??3@YAXPEAX@Z"
-
         @"
         LIBRARY openmfc.dll
         EXPORTS
@@ -394,29 +206,22 @@ jobs:
           mfc_operator_new @$ordOpNew NONAME
           mfc_operator_delete @$ordOpDelete NONAME
         "@ | Out-File -Encoding ASCII openmfc_ordinal_imports.def
-
         & $dlltool -d openmfc_ordinal_imports.def -l openmfc_ordinal_imports.a
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to create ordinal import library"
           exit 1
         }
-
-        # Build the test (normal link; no GetProcAddress)
         & $gpp -std=c++17 -O2 -o test_comprehensive.exe tests\\test_mingw_msvc_mangled_imports.cpp openmfc_ordinal_imports.a
-        
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Failed to build comprehensive test"
           exit 1
         }
-        
-        # Run the test
         Copy-Item phase4-artifacts\openmfc.dll .
         $output = & .\test_comprehensive.exe 2>&1 | Out-String
         Write-Host $output
-        
         if ($LASTEXITCODE -eq 0) {
-          Write-Host "✅ Comprehensive test passed!"
+          Write-Host "Comprehensive test passed!"
         } else {
-          Write-Host "❌ Comprehensive test failed"
+          Write-Host "Comprehensive test failed"
           exit 1
         }
