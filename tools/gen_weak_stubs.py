@@ -322,6 +322,10 @@ def main():
         "--exclude",
         help="Comma-separated list of symbols to exclude from stub generation"
     )
+    parser.add_argument(
+        "--exclude-file",
+        help="File with one symbol per line to exclude from stub generation"
+    )
     args = parser.parse_args()
 
     mapping_path = Path(args.mapping)
@@ -334,8 +338,16 @@ def main():
     
     # Filter excluded symbols for stub generation only
     stub_entries = all_entries
+    excluded_symbols = set()
     if args.exclude:
-        excluded_symbols = set(args.exclude.split(','))
+        excluded_symbols.update(args.exclude.split(','))
+    if args.exclude_file:
+        with open(args.exclude_file) as f:
+            for line in f:
+                sym = line.strip()
+                if sym:
+                    excluded_symbols.add(sym)
+    if excluded_symbols:
         original_count = len(stub_entries)
         stub_entries = [e for e in stub_entries if e.get("symbol") not in excluded_symbols]
         print(f"Excluded {original_count - len(stub_entries)} symbols from stub generation")
