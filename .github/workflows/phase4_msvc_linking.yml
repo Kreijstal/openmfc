@@ -96,22 +96,69 @@ jobs:
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
 
-        # Diagnostic: check DLL exists
-        if (Test-Path openmfc.dll) {
-          echo "openmfc.dll present ($((Get-Item openmfc.dll).Length) bytes)"
-        } else {
-          echo "ERROR: openmfc.dll not found!"
-          exit 1
+        # Try to find and copy libwinpthread-1.dll from MinGW installation
+        $mingwPaths = @(
+          "C:\mingw64\bin\libwinpthread-1.dll",
+          "C:\ProgramData\mingw64\mingw64\bin\libwinpthread-1.dll",
+          "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\libwinpthread-1.dll"
+        )
+        $pthreadFound = $false
+        foreach ($p in $mingwPaths) {
+          if (Test-Path $p) {
+            Copy-Item $p .
+            echo "Copied libwinpthread-1.dll from $p"
+            $pthreadFound = $true
+            break
+          }
+        }
+        if (-not $pthreadFound) {
+          echo "WARNING: libwinpthread-1.dll not found in known MinGW paths"
         }
 
-        # Check DLL and EXE dependencies
-        echo "--- DLL dependencies ---"
+        # Diagnostic: check DLLs present
+        if (Test-Path openmfc.dll) {
+          echo "openmfc.dll present ($((Get-Item openmfc.dll).Length) bytes)"
+        }
+        if (Test-Path libwinpthread-1.dll) {
+          echo "libwinpthread-1.dll present ($((Get-Item libwinpthread-1.dll).Length) bytes)"
+        }
+
+        # Show full dependency tree
+        echo "--- openmfc.dll dependencies ---"
         dumpbin /dependents openmfc.dll 2>&1 | Select-String -Pattern "\.dll" | ForEach-Object { $_.Line.Trim() }
 
-        echo "--- Test EXE dependencies ---"
-        dumpbin /dependents test_msvc_linking.exe 2>&1 | Select-String -Pattern "\.dll" | ForEach-Object { $_.Line.Trim() }
+        # Try loading each dependency individually to find the broken one
+        echo "--- Dependency load test ---"
+        $kernel32 = Add-Type -MemberDefinition '[DllImport("kernel32.dll", SetLastError=true)] public static extern IntPtr LoadLibrary(string lpLibFileName); [DllImport("kernel32.dll")] public static extern uint GetLastError();' -Name 'Kernel32' -Namespace 'Win32' -PassThru
+        
+        $dlls = @("msvcrt.dll", "libwinpthread-1.dll", "COMCTL32.dll", "ODBC32.dll", "WININET.dll")
+        foreach ($dll in $dlls) {
+          $h = $kernel32::LoadLibrary($dll)
+          if ($h -eq [IntPtr]::Zero) {
+            $err = $kernel32::GetLastError()
+            echo "  $dll -> FAILED (error $err)"
+          } else {
+            echo "  $dll -> OK"
+          }
+        }
+        
+        # Now try the actual openmfc.dll
+        echo "--- openmfc.dll load ---"
+        $hModule = $kernel32::LoadLibrary((Resolve-Path "openmfc.dll").Path)
+        if ($hModule -eq [IntPtr]::Zero) {
+          $err = $kernel32::GetLastError()
+          echo "LoadLibrary(openmfc.dll) FAILED: error $err"
+          
+          # Detailed import analysis
+          echo "--- dumpbin /imports openmfc.dll (first 100 lines) ---"
+          dumpbin /imports openmfc.dll 2>&1 | Select-Object -First 100 | ForEach-Object { $_.Trim() }
+          
+          exit 1
+        } else {
+          echo "LoadLibrary(openmfc.dll) OK, handle=$hModule"
+        }
 
-        # Run test with Start-Process for proper stderr capture
+        # Run the test
         echo "--- Test output ---"
         $stdoutPath = "test_stdout.txt"
         $stderrPath = "test_stderr.txt"
@@ -130,19 +177,6 @@ jobs:
           Write-Host "✅ MSVC linking test passed!"
         } else {
           Write-Host "❌ MSVC linking test failed with exit code $($proc.ExitCode)"
-
-          # Try LoadLibrary to see if DLL loads
-          echo "--- LoadLibrary test ---"
-          # Use .NET reflection to call LoadLibrary without needing Add-Type C# compilation
-          $kernel32 = Add-Type -MemberDefinition '[DllImport("kernel32.dll", SetLastError=true)] public static extern IntPtr LoadLibrary(string lpLibFileName); [DllImport("kernel32.dll")] public static extern uint GetLastError();' -Name 'Kernel32' -Namespace 'Win32' -PassThru
-          $hModule = $kernel32::LoadLibrary((Resolve-Path "openmfc.dll").Path)
-          if ($hModule -eq [IntPtr]::Zero) {
-            $err = $kernel32::GetLastError()
-            echo "LoadLibrary failed with error: $err"
-          } else {
-            echo "LoadLibrary succeeded, handle: $hModule"
-          }
-
           exit 1
         }
     - name: Run Hello World test
