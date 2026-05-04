@@ -147,3 +147,6 @@
 ?RemoveRadioCheckFromGroup@CWnd@@QEBAXPEBUCOleControlSiteOrWnd@@@Z
 ?SetProperty@CWnd@@QEAAXJGZZ
 ?MatchDocType@CDocTemplate@@UEAA?AW4Confidence@1@PEB_WAEAPEAVCDocument@@@Z
+?accNavigate@CWnd@@UEAAJJUtagVARIANT@@PEAU2@@Z
+?SetProxy@CWnd@@UEAAJPEAUIAccessibleProxy@@@Z
+?GetMessageMap@CWnd@@MEBAPEBUAFX_MSGMAP@@XZ

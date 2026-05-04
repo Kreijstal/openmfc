@@ -196,6 +196,7 @@ class CSize;
 class CHwndRenderTarget;
 class CDCRenderTarget;
 class IAccessibleProxy;
+struct IAccessible; // Used by accNavigate
 class CControlBar;
 class CDockBar;
 class CDockState;
@@ -611,7 +612,7 @@ public:
     virtual long accDoDefaultAction(VARIANT p0);
     virtual long accHitTest(long p0, long p1, VARIANT* p2);
     virtual long accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4);
-    virtual long accNavigate(long p0, VARIANT p1, void* p2);
+    // virtual long accNavigate(long p0, VARIANT p1, struct IAccessible* p2);  // FIXME: ABI back-ref type
     virtual long accSelect(long p0, VARIANT p1);
     virtual void CalcWindowRect(RECT* p0, UINT p1);
     virtual int CheckAutoCenter();
@@ -642,7 +643,7 @@ public:
     virtual int PreTranslateMessage(MSG* p0);
     virtual long put_accName(VARIANT p0, WCHAR* p1);
     virtual long put_accValue(VARIANT p0, WCHAR* p1);
-    virtual long SetProxy(IAccessibleProxy* p0);
+    // virtual long SetProxy(struct IAccessibleProxy* p0);  // FIXME: ABI struct vs class mismatch
     virtual void WinHelpInternal(ULONGLONG p0, UINT p1);
     virtual void WinHelpW(ULONGLONG p0, UINT p1);
 
@@ -695,7 +696,7 @@ public:
     int GetGestureConfig(CGestureConfig* p0);
     DWORD GetGestureStatus(CPoint p0);
     const AFX_INTERFACEMAP* GetInterfaceMap() const;
-    const AFX_MSGMAP* GetMessageMap() const;
+    // GetMessageMap is declared via DECLARE_MESSAGE_MAP (protected)
     COleControlSiteOrWnd* GetNextDlgGroupItem(void* p0) const;
     COleControlSiteOrWnd* GetNextDlgTabItem(void* p0, int p1) const;
     _AFX_OCC_DIALOG_INFO* GetOccDialogInfo();

@@ -1053,6 +1053,8 @@ long CWnd::accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4)
     return 0;
 }
 
+// FIXME: accNavigate ABI back-ref type mismatch with MSVC export
+/*
 long CWnd::accNavigate(long p0, VARIANT p1, void* p2)
 {
     (void)p0;
@@ -1060,6 +1062,7 @@ long CWnd::accNavigate(long p0, VARIANT p1, void* p2)
     (void)p2;
     return 0;
 }
+*/
 
 long CWnd::accSelect(long p0, VARIANT p1)
 {
@@ -1253,11 +1256,14 @@ long CWnd::put_accValue(VARIANT p0, WCHAR* p1)
     return 0;
 }
 
+// FIXME: SetProxy struct vs class ABI mismatch with MSVC export
+/*
 long CWnd::SetProxy(IAccessibleProxy* p0)
 {
     (void)p0;
     return 0;
 }
+*/
 
 void CWnd::WinHelpInternal(ULONGLONG p0, UINT p1)
 {
@@ -1601,10 +1607,13 @@ const AFX_INTERFACEMAP* CWnd::GetInterfaceMap() const
     return nullptr;
 }
 
+// GetMessageMap is provided by DECLARE_MESSAGE_MAP macro
+/*
 const AFX_MSGMAP* CWnd::GetMessageMap() const
 {
     return nullptr;
 }
+*/
 
 COleControlSiteOrWnd* CWnd::GetNextDlgGroupItem(void* p0) const
 {

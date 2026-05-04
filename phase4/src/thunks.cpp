@@ -1341,12 +1341,6 @@ extern "C" long MS_ABI impl__accLocation_CWnd__UEAAJPEAJ000UtagVARIANT___Z(CWnd*
     return (long)pThis->accLocation(p0, p1, p2, p3, p4);
 }
 
-// Symbol: ?accNavigate@CWnd@@UEAAJJUtagVARIANT@@PEAU2@@Z
-// CWnd::accNavigate
-extern "C" long MS_ABI impl__accNavigate_CWnd__UEAAJJUtagVARIANT__PEAU2__Z(CWnd* pThis, long p0, VARIANT p1, void* p2) {
-    return (long)pThis->accNavigate(p0, p1, p2);
-}
-
 // Symbol: ?accSelect@CWnd@@UEAAJJUtagVARIANT@@@Z
 // CWnd::accSelect
 extern "C" long MS_ABI impl__accSelect_CWnd__UEAAJJUtagVARIANT___Z(CWnd* pThis, long p0, VARIANT p1) {
@@ -3266,12 +3260,6 @@ extern "C" unsigned long MS_ABI impl__GetMenuBarVisibility_CFrameWnd__UEBAKXZ(co
 // CFrameWnd::GetMessageBar
 extern "C" CWnd* MS_ABI impl__GetMessageBar_CFrameWnd__UEAAPEAVCWnd__XZ(CFrameWnd* pThis) {
     return (CWnd*)pThis->GetMessageBar();
-}
-
-// Symbol: ?GetMessageMap@CWnd@@MEBAPEBUAFX_MSGMAP@@XZ
-// CWnd::GetMessageMap
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWnd__MEBAPEBUAFX_MSGMAP__XZ(const CWnd* pThis) {
-    return (const AFX_MSGMAP*)pThis->GetMessageMap();
 }
 
 // Symbol: ?GetMoniker@COleLinkingDoc@@UEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z
@@ -6198,12 +6186,6 @@ extern "C" void MS_ABI impl__SetProperty_COleControlSite__UEAAXJGZZ(COleControlS
     pThis->SetProperty(p0, p1);
 }
 
-// Symbol: ?SetProxy@CWnd@@UEAAJPEAUIAccessibleProxy@@@Z
-// CWnd::SetProxy
-extern "C" long MS_ABI impl__SetProxy_CWnd__UEAAJPEAUIAccessibleProxy___Z(CWnd* pThis, IAccessibleProxy* p0) {
-    return (long)pThis->SetProxy(p0);
-}
-
 // Symbol: ?SetReadBufferSize@CInternetFile@@QEAAHI@Z
 // CInternetFile::SetReadBufferSize
 extern "C" int MS_ABI impl__SetReadBufferSize_CInternetFile__QEAAHI_Z(CInternetFile* pThis, unsigned int p0) {
@@ -6590,5 +6572,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1089 thunks
+// Generated 1086 thunks
 // Errors (could not parse): 0
