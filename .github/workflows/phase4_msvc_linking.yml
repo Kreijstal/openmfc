@@ -19,8 +19,10 @@ jobs:
     - name: Install MinGW (UCRT, posix threads)
       run: |
         sudo apt-get update
-        sudo apt-get install -y g++-mingw-w64-x86-64-posix || sudo apt-get install -y mingw-w64
-        echo "Using compiler: $(x86_64-w64-mingw32-g++ --version | head -1)"
+        sudo apt-get install -y gcc-mingw-w64-ucrt-x86-64 g++-mingw-w64-ucrt-x86-64 2>/dev/null || \
+        sudo apt-get install -y g++-mingw-w64-x86-64-posix || \
+        sudo apt-get install -y mingw-w64
+        echo "Compiler: $(x86_64-w64-mingw32-g++ --version 2>/dev/null || echo 'not found')"
     
     - name: Build Phase 4
       run: |
@@ -72,7 +74,7 @@ jobs:
       shell: cmd
       run: |
         echo Building MSVC test application...
-        cl.exe /nologo /EHsc /std:c++17 /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp
+        cl.exe /nologo /EHsc /std:c++17 -D_AFXDLL /Fe:test_msvc_linking.exe tests\test_msvc_app.cpp openmfc.lib user32.lib
         if %ERRORLEVEL% neq 0 (
           echo Failed to build MSVC test app
           exit /b 1

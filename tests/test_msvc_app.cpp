@@ -1,77 +1,57 @@
 // MSVC Linking Test for OpenMFC
 //
-// This test verifies that the OpenMFC DLL can be loaded and its
-// key functions work correctly at runtime.
-//
-// Uses LoadLibrary/GetProcAddress for maximum diagnostic visibility.
-// The real ABI linking test (using __declspec(dllimport)) will be
-// re-enabled once the DLL load issue on CI is resolved.
+// This test verifies MSVC can LINK against OpenMFC at compile time.
+// Uses __declspec(dllimport) for true static linking test.
 
 #include <cstdio>
 #include <windows.h>
 
-typedef void (__cdecl *PFN_VoidVoid)();
+// =============================================================================
+// MFC-style declarations - C++ linkage produces MSVC-mangled names
+// =============================================================================
+
+__declspec(dllimport) void __cdecl AfxThrowMemoryException();
+__declspec(dllimport) void __cdecl AfxThrowNotSupportedException();
+__declspec(dllimport) void __cdecl AfxThrowInvalidArgException();
 
 int main() {
-    fprintf(stderr, "=== OpenMFC MSVC Link Test ===\n\n");
-    fflush(stderr);
+    // Use MessageBox for guaranteed visible output even if stdout is lost
+    MessageBoxA(NULL, "MSVC test starting", "Test", MB_OK);
+    
+    printf("=== OpenMFC MSVC Link Test ===\n\n");
+    fflush(stdout);
+    
+    printf("Link test PASSED: MSVC resolved all imported symbols.\n\n");
+    fflush(stdout);
 
-    // Phase 1: Load the DLL
-    fprintf(stderr, "[Phase 1] Loading openmfc.dll...\n");
-    fflush(stderr);
-    HMODULE hDll = LoadLibraryW(L"openmfc.dll");
-    if (!hDll) {
-        fprintf(stderr, "FAIL: Cannot load openmfc.dll (error %lu)\n", GetLastError());
-        fflush(stderr);
-        return 1;
+    printf("Calling functions (may throw exceptions)...\n");
+    fflush(stdout);
+
+    try {
+        AfxThrowMemoryException();
+        printf("  AfxThrowMemoryException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowMemoryException - OK (exception caught)\n");
     }
-    fprintf(stderr, "PASS: openmfc.dll loaded (handle=%p)\n\n", (void*)hDll);
-    fflush(stderr);
+    fflush(stdout);
 
-    // Phase 2: Verify key symbols are exported
-    fprintf(stderr, "[Phase 2] Verifying exports via GetProcAddress...\n");
-    fflush(stderr);
-    const char* syms[] = {
-        "?AfxThrowMemoryException@@YAXXZ",
-        "?AfxThrowNotSupportedException@@YAXXZ",
-        "?AfxThrowInvalidArgException@@YAXXZ"
-    };
-    PFN_VoidVoid funcs[3] = {nullptr, nullptr, nullptr};
-    for (int i = 0; i < 3; i++) {
-        FARPROC p = GetProcAddress(hDll, syms[i]);
-        if (!p) {
-            fprintf(stderr, "FAIL: GetProcAddress(%s) failed (error %lu)\n", syms[i], GetLastError());
-            fflush(stderr);
-            return 1;
-        }
-        funcs[i] = (PFN_VoidVoid)p;
-        fprintf(stderr, "  GetProcAddress(%s) -> %p\n", syms[i], (void*)p);
-        fflush(stderr);
+    try {
+        AfxThrowNotSupportedException();
+        printf("  AfxThrowNotSupportedException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowNotSupportedException - OK (exception caught)\n");
     }
-    fprintf(stderr, "PASS: All 3 symbols found\n\n");
-    fflush(stderr);
+    fflush(stdout);
 
-    // Phase 3: Call the functions (they throw exceptions)
-    fprintf(stderr, "[Phase 3] Calling functions (they should throw exceptions)...\n");
-    fflush(stderr);
-
-    struct { const char* name; PFN_VoidVoid fn; } tests[] = {
-        {"AfxThrowMemoryException", funcs[0]},
-        {"AfxThrowNotSupportedException", funcs[1]},
-        {"AfxThrowInvalidArgException", funcs[2]},
-    };
-
-    for (int i = 0; i < 3; i++) {
-        try {
-            tests[i].fn();
-            fprintf(stderr, "  %s - OK (no exception)\n", tests[i].name);
-        } catch (...) {
-            fprintf(stderr, "  %s - OK (exception caught)\n", tests[i].name);
-        }
-        fflush(stderr);
+    try {
+        AfxThrowInvalidArgException();
+        printf("  AfxThrowInvalidArgException - OK (no exception)\n");
+    } catch (...) {
+        printf("  AfxThrowInvalidArgException - OK (exception caught)\n");
     }
+    fflush(stdout);
 
-    fprintf(stderr, "\n=== All tests passed ===\n");
-    fflush(stderr);
+    printf("\n=== All tests passed ===\n");
+    fflush(stdout);
     return 0;
 }
