@@ -1311,12 +1311,6 @@ extern "C" void MS_ABI impl__Abort_CArchive__QEAAXXZ(CArchive* pThis) {
     pThis->Abort();
 }
 
-// Symbol: ?accDoDefaultAction@CWnd@@UEAAJUtagVARIANT@@@Z
-// CWnd::accDoDefaultAction
-extern "C" long MS_ABI impl__accDoDefaultAction_CWnd__UEAAJUtagVARIANT___Z(CWnd* pThis, VARIANT p0) {
-    return (long)pThis->accDoDefaultAction(p0);
-}
-
 // Symbol: ?Accept@CSocket@@UEAAHAEAVCAsyncSocket@@PEAUsockaddr@@PEAH@Z
 // CSocket::Accept
 extern "C" int MS_ABI impl__Accept_CSocket__UEAAHAEAVCAsyncSocket__PEAUsockaddr__PEAH_Z(CSocket* pThis, CAsyncSocket* p0, sockaddr* p1, int* p2) {
@@ -1327,24 +1321,6 @@ extern "C" int MS_ABI impl__Accept_CSocket__UEAAHAEAVCAsyncSocket__PEAUsockaddr_
 // COleSafeArray::AccessData
 extern "C" void MS_ABI impl__AccessData_COleSafeArray__QEAAXPEAPEAX_Z(COleSafeArray* pThis, void** p0) {
     pThis->AccessData(p0);
-}
-
-// Symbol: ?accHitTest@CWnd@@UEAAJJJPEAUtagVARIANT@@@Z
-// CWnd::accHitTest
-extern "C" long MS_ABI impl__accHitTest_CWnd__UEAAJJJPEAUtagVARIANT___Z(CWnd* pThis, long p0, long p1, VARIANT* p2) {
-    return (long)pThis->accHitTest(p0, p1, p2);
-}
-
-// Symbol: ?accLocation@CWnd@@UEAAJPEAJ000UtagVARIANT@@@Z
-// CWnd::accLocation
-extern "C" long MS_ABI impl__accLocation_CWnd__UEAAJPEAJ000UtagVARIANT___Z(CWnd* pThis, long* p0, long* p1, long* p2, long* p3, VARIANT p4) {
-    return (long)pThis->accLocation(p0, p1, p2, p3, p4);
-}
-
-// Symbol: ?accSelect@CWnd@@UEAAJJUtagVARIANT@@@Z
-// CWnd::accSelect
-extern "C" long MS_ABI impl__accSelect_CWnd__UEAAJJUtagVARIANT___Z(CWnd* pThis, long p0, VARIANT p1) {
-    return (long)pThis->accSelect(p0, p1);
 }
 
 // Symbol: ?ActivateAndShow@COleDocObjectItem@@IEAAXXZ
@@ -1662,12 +1638,6 @@ extern "C" void MS_ABI impl__CacheGlobalData_COleDataSource__QEAAXGPEAXPEAUtagFO
     pThis->CacheGlobalData(p0, p1, p2);
 }
 
-// Symbol: ?CalcWindowRect@CWnd@@UEAAXPEAUtagRECT@@I@Z
-// CWnd::CalcWindowRect
-extern "C" void MS_ABI impl__CalcWindowRect_CWnd__UEAAXPEAUtagRECT__I_Z(CWnd* pThis, RECT* p0, unsigned int p1) {
-    pThis->CalcWindowRect(p0, p1);
-}
-
 // Symbol: ?CanActivate@COleClientItem@@MEAAHXZ
 // COleClientItem::CanActivate
 extern "C" int MS_ABI impl__CanActivate_COleClientItem__MEAAHXZ(COleClientItem* pThis) {
@@ -1738,12 +1708,6 @@ extern "C" int MS_ABI impl__CanFloat_CBasePane__UEBAHXZ(const CBasePane* pThis) 
 // CWnd::CenterWindow
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd* pThis, void* p0) {
     pThis->CenterWindow(p0);
-}
-
-// Symbol: ?CheckAutoCenter@CWnd@@UEAAHXZ
-// CWnd::CheckAutoCenter
-extern "C" int MS_ABI impl__CheckAutoCenter_CWnd__UEAAHXZ(CWnd* pThis) {
-    return (int)pThis->CheckAutoCenter();
 }
 
 // Symbol: ?CheckDlgButton@CWnd@@QEAAXHI@Z
@@ -1866,12 +1830,6 @@ extern "C" int MS_ABI impl__ConnectHelper_CAsyncSocket__MEAAHPEBUsockaddr__H_Z(C
     return (int)pThis->ConnectHelper(p0, p1);
 }
 
-// Symbol: ?ContinueModal@CWnd@@UEAAHXZ
-// CWnd::ContinueModal
-extern "C" int MS_ABI impl__ContinueModal_CWnd__UEAAHXZ(CWnd* pThis) {
-    return (int)pThis->ContinueModal();
-}
-
 // Symbol: ?ConvertTo@COleClientItem@@UEAAHAEBU_GUID@@@Z
 // COleClientItem::ConvertTo
 extern "C" int MS_ABI impl__ConvertTo_COleClientItem__UEAAHAEBU_GUID___Z(COleClientItem* pThis, const _GUID* p0) {
@@ -1990,12 +1948,6 @@ extern "C" int MS_ABI impl__Create_CToolBar__UEAAHPEAVCWnd__KI_Z(CToolBar* pThis
 // CToolTipCtrl::Create
 extern "C" int MS_ABI impl__Create_CToolTipCtrl__UEAAHPEAVCWnd__K_Z(CToolTipCtrl* pThis, CWnd* p0, unsigned long p1) {
     return (int)pThis->Create(p0, p1);
-}
-
-// Symbol: ?CreateAccessibleProxy@CWnd@@UEAAJ_K_JPEA_J@Z
-// CWnd::CreateAccessibleProxy
-extern "C" long MS_ABI impl__CreateAccessibleProxy_CWnd__UEAAJ_K_JPEA_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1, __int64* p2) {
-    return (long)pThis->CreateAccessibleProxy(p0, p1, p2);
 }
 
 // Symbol: ?CreateClient@CMDIFrameWnd@@UEAAHPEAUtagCREATESTRUCTW@@PEAVCMenu@@@Z
@@ -2506,12 +2458,6 @@ extern "C" void MS_ABI impl__EndDialog_CPropertySheet__QEAAXH_Z(CPropertySheet* 
     pThis->EndDialog(p0);
 }
 
-// Symbol: ?EndModalLoop@CWnd@@UEAAXH@Z
-// CWnd::EndModalLoop
-extern "C" void MS_ABI impl__EndModalLoop_CWnd__UEAAXH_Z(CWnd* pThis, int p0) {
-    pThis->EndModalLoop(p0);
-}
-
 // Symbol: ?EndModalState@CFrameWnd@@UEAAXXZ
 // CFrameWnd::EndModalState
 extern "C" void MS_ABI impl__EndModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis) {
@@ -2522,12 +2468,6 @@ extern "C" void MS_ABI impl__EndModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis) 
 // CHttpFile::EndRequest
 extern "C" int MS_ABI impl__EndRequest_CHttpFile__QEAAHKPEAU_INTERNET_BUFFERSW___K_Z(CHttpFile* pThis, unsigned long p0, _INTERNET_BUFFERSW* p1, unsigned __int64 p2) {
     return (int)pThis->EndRequest(p0, p1, p2);
-}
-
-// Symbol: ?EnsureStdObj@CWnd@@UEAAJXZ
-// CWnd::EnsureStdObj
-extern "C" long MS_ABI impl__EnsureStdObj_CWnd__UEAAJXZ(CWnd* pThis) {
-    return (long)pThis->EnsureStdObj();
 }
 
 // Symbol: ?ExecCommand@COleDocObjectItem@@QEAAJKKPEBU_GUID@@@Z
@@ -2654,90 +2594,6 @@ extern "C" void MS_ABI impl__Flush_CMemFile__UEAAXXZ(CMemFile* pThis) {
 // CStdioFile::Flush
 extern "C" void MS_ABI impl__Flush_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
     pThis->Flush();
-}
-
-// Symbol: ?get_accChild@CWnd@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
-// CWnd::get_accChild
-extern "C" long MS_ABI impl__get_accChild_CWnd__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(CWnd* pThis, VARIANT p0, IDispatch** p1) {
-    return (long)pThis->get_accChild(p0, p1);
-}
-
-// Symbol: ?get_accChildCount@CWnd@@UEAAJPEAJ@Z
-// CWnd::get_accChildCount
-extern "C" long MS_ABI impl__get_accChildCount_CWnd__UEAAJPEAJ_Z(CWnd* pThis, long* p0) {
-    return (long)pThis->get_accChildCount(p0);
-}
-
-// Symbol: ?get_accDefaultAction@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accDefaultAction
-extern "C" long MS_ABI impl__get_accDefaultAction_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accDefaultAction(p0, p1);
-}
-
-// Symbol: ?get_accDescription@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accDescription
-extern "C" long MS_ABI impl__get_accDescription_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accDescription(p0, p1);
-}
-
-// Symbol: ?get_accFocus@CWnd@@UEAAJPEAUtagVARIANT@@@Z
-// CWnd::get_accFocus
-extern "C" long MS_ABI impl__get_accFocus_CWnd__UEAAJPEAUtagVARIANT___Z(CWnd* pThis, VARIANT* p0) {
-    return (long)pThis->get_accFocus(p0);
-}
-
-// Symbol: ?get_accHelp@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accHelp
-extern "C" long MS_ABI impl__get_accHelp_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accHelp(p0, p1);
-}
-
-// Symbol: ?get_accHelpTopic@CWnd@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
-// CWnd::get_accHelpTopic
-extern "C" long MS_ABI impl__get_accHelpTopic_CWnd__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(CWnd* pThis, wchar_t** p0, VARIANT p1, long* p2) {
-    return (long)pThis->get_accHelpTopic(p0, p1, p2);
-}
-
-// Symbol: ?get_accKeyboardShortcut@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accKeyboardShortcut
-extern "C" long MS_ABI impl__get_accKeyboardShortcut_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accKeyboardShortcut(p0, p1);
-}
-
-// Symbol: ?get_accName@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accName
-extern "C" long MS_ABI impl__get_accName_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accName(p0, p1);
-}
-
-// Symbol: ?get_accParent@CWnd@@UEAAJPEAPEAUIDispatch@@@Z
-// CWnd::get_accParent
-extern "C" long MS_ABI impl__get_accParent_CWnd__UEAAJPEAPEAUIDispatch___Z(CWnd* pThis, IDispatch** p0) {
-    return (long)pThis->get_accParent(p0);
-}
-
-// Symbol: ?get_accRole@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
-// CWnd::get_accRole
-extern "C" long MS_ABI impl__get_accRole_CWnd__UEAAJUtagVARIANT__PEAU2__Z(CWnd* pThis, VARIANT p0, void* p1) {
-    return (long)pThis->get_accRole(p0, p1);
-}
-
-// Symbol: ?get_accSelection@CWnd@@UEAAJPEAUtagVARIANT@@@Z
-// CWnd::get_accSelection
-extern "C" long MS_ABI impl__get_accSelection_CWnd__UEAAJPEAUtagVARIANT___Z(CWnd* pThis, VARIANT* p0) {
-    return (long)pThis->get_accSelection(p0);
-}
-
-// Symbol: ?get_accState@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
-// CWnd::get_accState
-extern "C" long MS_ABI impl__get_accState_CWnd__UEAAJUtagVARIANT__PEAU2__Z(CWnd* pThis, VARIANT p0, void* p1) {
-    return (long)pThis->get_accState(p0, p1);
-}
-
-// Symbol: ?get_accValue@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-// CWnd::get_accValue
-extern "C" long MS_ABI impl__get_accValue_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t** p1) {
-    return (long)pThis->get_accValue(p0, p1);
 }
 
 // Symbol: ?GetAccessibilityHitTest@CWnd@@QEAAJJJPEAUtagVARIANT@@@Z
@@ -3430,12 +3286,6 @@ extern "C" unsigned long* MS_ABI impl__GetSavedCustomColors_CColorDialog__SAPEAK
     return (unsigned long*)CColorDialog::GetSavedCustomColors();
 }
 
-// Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
-// CWnd::GetScrollBarCtrl
-extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd* pThis, int p0) {
-    return (CScrollBar*)pThis->GetScrollBarCtrl(p0);
-}
-
 // Symbol: ?GetScrollPosition@CScrollView@@QEBA?AVCPoint@@XZ
 // CScrollView::GetScrollPosition  [retval]
 extern "C" void MS_ABI impl__GetScrollPosition_CScrollView__QEBA_AVCPoint__XZ(const CScrollView* pThis, CPoint* __ret) {
@@ -3575,12 +3425,6 @@ extern "C" int MS_ABI impl__HasBlankItems_COleDocument__QEBAHXZ(const COleDocume
     return (int)pThis->HasBlankItems();
 }
 
-// Symbol: ?HtmlHelpW@CWnd@@UEAAX_KI@Z
-// CWnd::HtmlHelpW
-extern "C" void MS_ABI impl__HtmlHelpW_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned __int64 p0, unsigned int p1) {
-    pThis->HtmlHelpW(p0, p1);
-}
-
 // Symbol: ?InitControlContainer@CWnd@@IEAAHH@Z
 // CWnd::InitControlContainer
 extern "C" int MS_ABI impl__InitControlContainer_CWnd__IEAAHH_Z(CWnd* pThis, int p0) {
@@ -3656,12 +3500,6 @@ extern "C" int MS_ABI impl__IsFieldType_CFieldExchange__QEAAHPEAI_Z(CFieldExchan
 // Symbol: ?IsFrameWnd@CFrameWnd@@UEBAHXZ
 // CFrameWnd::IsFrameWnd
 extern "C" int MS_ABI impl__IsFrameWnd_CFrameWnd__UEBAHXZ(const CFrameWnd* pThis) {
-    return (int)pThis->IsFrameWnd();
-}
-
-// Symbol: ?IsFrameWnd@CWnd@@UEBAHXZ
-// CWnd::IsFrameWnd
-extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) {
     return (int)pThis->IsFrameWnd();
 }
 
@@ -3908,12 +3746,6 @@ extern "C" __int64 MS_ABI impl__OnActivateTopLevel_CFrameWnd__IEAA_J_K_J_Z(CFram
 // CWnd::OnActivateTopLevel
 extern "C" __int64 MS_ABI impl__OnActivateTopLevel_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
     return (__int64)pThis->OnActivateTopLevel(p0, p1);
-}
-
-// Symbol: ?OnAmbientProperty@CWnd@@UEAAHPEAVCOleControlSite@@JPEAUtagVARIANT@@@Z
-// CWnd::OnAmbientProperty
-extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(CWnd* pThis, COleControlSite* p0, long p1, VARIANT* p2) {
-    return (int)pThis->OnAmbientProperty(p0, p1, p2);
 }
 
 // Symbol: ?OnAmbientPropertyChange@COleControl@@UEAAXJ@Z
@@ -5065,12 +4897,6 @@ extern "C" void MS_ABI impl__OnTitleChange_CHtmlView__UEAAXPEB_W_Z(CHtmlView* pT
     pThis->OnTitleChange(p0);
 }
 
-// Symbol: ?OnToolHitTest@CWnd@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
-// CWnd::OnToolHitTest
-extern "C" __int64 MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(const CWnd* pThis, CPoint p0, TOOLINFOW* p1) {
-    return (__int64)pThis->OnToolHitTest(p0, p1);
-}
-
 // Symbol: ?OnToolTipText@CFrameWnd@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
 // CFrameWnd::OnToolTipText
 extern "C" int MS_ABI impl__OnToolTipText_CFrameWnd__IEAAHIPEAUtagNMHDR__PEA_J_Z(CFrameWnd* pThis, unsigned int p0, NMHDR* p1, __int64* p2) {
@@ -5205,12 +5031,6 @@ extern "C" void MS_ABI impl__PrepareForHelp_CWnd__QEAAXXZ(CWnd* pThis) {
     pThis->PrepareForHelp();
 }
 
-// Symbol: ?PreSubclassWindow@CWnd@@UEAAXXZ
-// CWnd::PreSubclassWindow
-extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) {
-    pThis->PreSubclassWindow();
-}
-
 // Symbol: ?PreTranslateInput@CWnd@@QEAAHPEAUtagMSG@@@Z
 // CWnd::PreTranslateInput
 extern "C" int MS_ABI impl__PreTranslateInput_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* p0) {
@@ -5227,12 +5047,6 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(C
 // Symbol: ?PreTranslateMessage@CWinThread@@UEAAHPEAUtagMSG@@@Z
 // CWinThread::PreTranslateMessage
 extern "C" int MS_ABI impl__PreTranslateMessage_CWinThread__UEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* p0) {
-    return (int)pThis->PreTranslateMessage(p0);
-}
-
-// Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
-// CWnd::PreTranslateMessage
-extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* p0) {
     return (int)pThis->PreTranslateMessage(p0);
 }
 
@@ -5259,18 +5073,6 @@ extern "C" int MS_ABI impl__ProcessHelpMsg_CFrameWnd__IEAAHAEAUtagMSG__PEAK_Z(CF
 // CWinThread::PumpMessage
 extern "C" int MS_ABI impl__PumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return (int)pThis->PumpMessage();
-}
-
-// Symbol: ?put_accName@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
-// CWnd::put_accName
-extern "C" long MS_ABI impl__put_accName_CWnd__UEAAJUtagVARIANT__PEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t* p1) {
-    return (long)pThis->put_accName(p0, p1);
-}
-
-// Symbol: ?put_accValue@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
-// CWnd::put_accValue
-extern "C" long MS_ABI impl__put_accValue_CWnd__UEAAJUtagVARIANT__PEA_W_Z(CWnd* pThis, VARIANT p0, wchar_t* p1) {
-    return (long)pThis->put_accValue(p0, p1);
 }
 
 // Symbol: ?PutFile@CFtpConnection@@QEAAHPEB_W0K_K@Z
@@ -6476,18 +6278,6 @@ extern "C" int MS_ABI impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG
     return (int)CWnd::WalkPreTranslateTree(p0, p1);
 }
 
-// Symbol: ?WinHelpInternal@CWnd@@UEAAX_KI@Z
-// CWnd::WinHelpInternal
-extern "C" void MS_ABI impl__WinHelpInternal_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned __int64 p0, unsigned int p1) {
-    pThis->WinHelpInternal(p0, p1);
-}
-
-// Symbol: ?WinHelpW@CWnd@@UEAAX_KI@Z
-// CWnd::WinHelpW
-extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned __int64 p0, unsigned int p1) {
-    pThis->WinHelpW(p0, p1);
-}
-
 // Symbol: ?WrapChanged@CRichEditView@@MEAAXXZ
 // CRichEditView::WrapChanged
 extern "C" void MS_ABI impl__WrapChanged_CRichEditView__MEAAXXZ(CRichEditView* pThis) {
@@ -6572,5 +6362,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1086 thunks
+// Generated 1051 thunks
 // Errors (could not parse): 0

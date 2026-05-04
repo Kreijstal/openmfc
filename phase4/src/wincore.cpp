@@ -1029,29 +1029,8 @@ int CWnd::WalkPreTranslateTree(HWND p0, MSG* p1)
     return 0;
 }
 
-long CWnd::accDoDefaultAction(VARIANT p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::accHitTest(long p0, long p1, VARIANT* p2)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
 
-long CWnd::accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    return 0;
-}
 
 // FIXME: accNavigate ABI back-ref type mismatch with MSVC export
 /*
@@ -1064,197 +1043,35 @@ long CWnd::accNavigate(long p0, VARIANT p1, void* p2)
 }
 */
 
-long CWnd::accSelect(long p0, VARIANT p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-void CWnd::CalcWindowRect(RECT* p0, UINT p1)
-{
-    (void)p0;
-    (void)p1;
-}
 
-int CWnd::CheckAutoCenter()
-{
-    return 0;
-}
 
-int CWnd::ContinueModal()
-{
-    return 0;
-}
 
-long CWnd::CreateAccessibleProxy(ULONGLONG p0, LONGLONG p1, LONGLONG* p2)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
 
-void CWnd::EndModalLoop(int p0)
-{
-    (void)p0;
-}
 
-long CWnd::EnsureStdObj()
-{
-    return 0;
-}
 
-long CWnd::get_accChild(VARIANT p0, IDispatch** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accChildCount(long* p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::get_accDefaultAction(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accDescription(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accFocus(VARIANT* p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::get_accHelp(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accHelpTopic(WCHAR** p0, VARIANT p1, long* p2)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
 
-long CWnd::get_accKeyboardShortcut(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accName(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accParent(IDispatch** p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::get_accRole(VARIANT p0, VARIANT* p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accSelection(VARIANT* p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::get_accState(VARIANT p0, VARIANT* p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::get_accValue(VARIANT p0, WCHAR** p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-CScrollBar* CWnd::GetScrollBarCtrl(int p0) const
-{
-    (void)p0;
-    return nullptr;
-}
 
-void CWnd::HtmlHelpW(ULONGLONG p0, UINT p1)
-{
-    (void)p0;
-    (void)p1;
-}
 
-int CWnd::IsFrameWnd() const
-{
-    return 0;
-}
 
-int CWnd::OnAmbientProperty(COleControlSite* p0, long p1, VARIANT* p2)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
-}
 
-LONGLONG CWnd::OnToolHitTest(CPoint p0, TOOLINFOW* p1) const
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-void CWnd::PreSubclassWindow()
-{
-}
 
-int CWnd::PreTranslateMessage(MSG* p0)
-{
-    (void)p0;
-    return 0;
-}
 
-long CWnd::put_accName(VARIANT p0, WCHAR* p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
-long CWnd::put_accValue(VARIANT p0, WCHAR* p1)
-{
-    (void)p0;
-    (void)p1;
-    return 0;
-}
 
 // FIXME: SetProxy struct vs class ABI mismatch with MSVC export
 /*
@@ -1265,17 +1082,7 @@ long CWnd::SetProxy(IAccessibleProxy* p0)
 }
 */
 
-void CWnd::WinHelpInternal(ULONGLONG p0, UINT p1)
-{
-    (void)p0;
-    (void)p1;
-}
 
-void CWnd::WinHelpW(ULONGLONG p0, UINT p1)
-{
-    (void)p0;
-    (void)p1;
-}
 
 void CWnd::ActivateTopParent()
 {

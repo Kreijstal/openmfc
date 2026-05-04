@@ -608,7 +608,9 @@ public:
     static void SendMessageToDescendants(HWND p0, UINT p1, ULONGLONG p2, LONGLONG p3, int p4, int p5);
     static int WalkPreTranslateTree(HWND p0, MSG* p1);
 
-    // Virtual methods
+    // Virtual methods (commented out due to MSVC ABI type mismatches)
+    // See thunks_skip.txt for properly-typed stub exports
+    /*
     virtual long accDoDefaultAction(VARIANT p0);
     virtual long accHitTest(long p0, long p1, VARIANT* p2);
     virtual long accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4);
@@ -643,9 +645,10 @@ public:
     virtual int PreTranslateMessage(MSG* p0);
     virtual long put_accName(VARIANT p0, WCHAR* p1);
     virtual long put_accValue(VARIANT p0, WCHAR* p1);
-    // virtual long SetProxy(struct IAccessibleProxy* p0);  // FIXME: ABI struct vs class mismatch
+    // virtual long SetProxy(struct IAccessibleProxy* p0);
     virtual void WinHelpInternal(ULONGLONG p0, UINT p1);
     virtual void WinHelpW(ULONGLONG p0, UINT p1);
+    */
 
     // Instance methods
     void ActivateTopParent();
