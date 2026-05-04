@@ -92,17 +92,65 @@ jobs:
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        
-        $output = & .\test_msvc_linking.exe 2>&1 | Out-String
-        Write-Host $output
-        
-        if ($LASTEXITCODE -eq 0) {
-          Write-Host "✅ MSVC linking test passed!"
+
+        # Diagnostic: check DLL exists
+        if (Test-Path openmfc.dll) {
+          echo "openmfc.dll present ($((Get-Item openmfc.dll).Length) bytes)"
         } else {
-          Write-Host "❌ MSVC linking test failed"
+          echo "ERROR: openmfc.dll not found!"
           exit 1
         }
-    
+
+        # Check DLL and EXE dependencies
+        echo "--- DLL dependencies ---"
+        dumpbin /dependents openmfc.dll 2>&1 | Select-String -Pattern "\.dll" | ForEach-Object { $_.Line.Trim() }
+
+        echo "--- Test EXE dependencies ---"
+        dumpbin /dependents test_msvc_linking.exe 2>&1 | Select-String -Pattern "\.dll" | ForEach-Object { $_.Line.Trim() }
+
+        # Run test with Start-Process for proper stderr capture
+        echo "--- Test output ---"
+        $stdoutPath = "test_stdout.txt"
+        $stderrPath = "test_stderr.txt"
+        $proc = Start-Process -FilePath ".\test_msvc_linking.exe" -PassThru -Wait -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+
+        if (Test-Path $stdoutPath) {
+          echo "--- stdout ---"
+          Get-Content $stdoutPath -Raw | Write-Host
+        }
+        if (Test-Path $stderrPath) {
+          echo "--- stderr ---"
+          Get-Content $stderrPath -Raw | Write-Host
+        }
+
+        if ($proc.ExitCode -eq 0) {
+          Write-Host "✅ MSVC linking test passed!"
+        } else {
+          Write-Host "❌ MSVC linking test failed with exit code $($proc.ExitCode)"
+
+          # Try LoadLibrary to see if DLL loads
+          echo "--- LoadLibrary test ---"
+          $csharp = @"
+          using System;
+          using System.Runtime.InteropServices;
+          public class Kernel32 {
+              [DllImport("kernel32.dll", SetLastError=true)]
+              public static extern IntPtr LoadLibrary(string lpLibFileName);
+              [DllImport("kernel32.dll")]
+              public static extern uint GetLastError();
+          }
+          "@
+          Add-Type -TypeDefinition $csharp
+          $hModule = [Kernel32]::LoadLibrary((Resolve-Path "openmfc.dll").Path)
+          if ($hModule -eq [IntPtr]::Zero) {
+            $err = [Kernel32]::GetLastError()
+            echo "LoadLibrary failed with error: $err"
+          } else {
+            echo "LoadLibrary succeeded, handle: $hModule"
+          }
+
+          exit 1
+        }
     - name: Run Hello World test
       shell: pwsh
       run: |
