@@ -18,12 +18,15 @@ jobs:
     
     - name: Install llvm-mingw (UCRT)
       run: |
+        set -e
         LLVM_MINGW_VER=20260407
         curl -L -o /tmp/llvm-mingw.tar.xz "https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_VER}/llvm-mingw-${LLVM_MINGW_VER}-ucrt-ubuntu-22.04-x86_64.tar.xz"
         mkdir -p /opt/llvm-mingw
         tar xf /tmp/llvm-mingw.tar.xz -C /opt/llvm-mingw --strip-components=1
         echo "/opt/llvm-mingw/bin" >> "$GITHUB_PATH"
+        export PATH="/opt/llvm-mingw/bin:$PATH"
         x86_64-w64-mingw32-g++ --version
+        echo "llvm-mingw installed successfully"
     
     - name: Build Phase 4
       run: |
