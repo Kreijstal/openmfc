@@ -93,6 +93,11 @@ jobs:
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
         
+        echo ""
+        echo "--- DLL diagnostics ---"
+        dumpbin /DEPENDENTS openmfc.dll 2>&1 | Select-Object -First 30
+        echo ""
+        
         $output = & .\test_msvc_linking.exe 2>&1 | Out-String
         Write-Host $output
         
