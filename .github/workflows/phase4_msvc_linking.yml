@@ -21,8 +21,10 @@ jobs:
         g++ --version
         # Patch build script: write excluded symbols to file to avoid
         # Windows 32K command-line limit, then pass --exclude-file instead
-        sed -i 's|--exclude "$EXCLUDED_SYMBOLS"|--exclude-file "$BUILD/excluded.txt"|' phase4/scripts/build_phase4.sh
-        sed -i '/python3.*gen_weak_stubs/i echo "$EXCLUDED_SYMBOLS" | tr "," "\\n" > "$BUILD/excluded.txt"' phase4/scripts/build_phase4.sh
+        # Replace BOTH gen_weak_stubs AND gen_typed_stubs --exclude args
+        sed -i 's|--exclude "$EXCLUDED_SYMBOLS"|--exclude-file "$BUILD/excluded.txt"|g' phase4/scripts/build_phase4.sh
+        # Insert file generation before the first python3 call
+        sed -i '/^python3.*gen_weak_stubs/i echo "$EXCLUDED_SYMBOLS" | tr "," "\\n" > "$BUILD/excluded.txt"' phase4/scripts/build_phase4.sh
         bash ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
     - name: Upload Phase 4 artifacts

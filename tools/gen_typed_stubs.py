@@ -190,6 +190,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate typed stubs for OpenMFC")
     parser.add_argument("--mapping", required=True, help="Path to ordinal mapping JSON")
     parser.add_argument("--exclude", default="", help="Comma-separated list of symbols to exclude")
+    parser.add_argument("--exclude-file", help="File with one symbol per line to exclude")
     parser.add_argument("--out", required=True, help="Output .cpp file path")
     args = parser.parse_args()
     
@@ -202,6 +203,12 @@ def main():
     all_entries = data.get("exports", {}).get("mfc140u", [])
     
     excluded = [s.strip() for s in args.exclude.split(',') if s.strip()]
+    if args.exclude_file:
+        with open(args.exclude_file) as f:
+            for line in f:
+                sym = line.strip()
+                if sym:
+                    excluded.append(sym)
     
     print(f"Loaded {len(all_entries)} entries")
     print(f"Excluded {len(excluded)} symbols")
