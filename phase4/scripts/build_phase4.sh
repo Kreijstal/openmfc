@@ -364,7 +364,8 @@ echo "[4/4] Linking openmfc.dll..."
 
 LDFLAGS=(
     -shared
-    -static
+    -static-libgcc
+    -static-libstdc++
     -Wl,--enable-stdcall-fixup
     -Wl,--enable-auto-import
     -Wl,"$BUILD/openmfc.def"

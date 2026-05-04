@@ -16,13 +16,8 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     
-    - name: Install MinGW (UCRT, posix threads)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-mingw-w64-ucrt-x86-64 g++-mingw-w64-ucrt-x86-64 2>/dev/null || \
-        sudo apt-get install -y g++-mingw-w64-x86-64-posix || \
-        sudo apt-get install -y mingw-w64
-        echo "Compiler: $(x86_64-w64-mingw32-g++ --version 2>/dev/null || echo 'not found')"
+    - name: Install MinGW
+      run: sudo apt-get update && sudo apt-get install -y mingw-w64
     
     - name: Build Phase 4
       run: |
@@ -97,18 +92,6 @@ jobs:
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        
-        if (-not (Test-Path openmfc.dll)) {
-          Write-Host "ERROR: openmfc.dll not found!"
-          ls phase4-artifacts\
-          exit 1
-        }
-        Write-Host "DLL size: $((Get-Item openmfc.dll).Length) bytes"
-        
-        echo ""
-        echo "--- DLL diagnostics ---"
-        dumpbin /DEPENDENTS openmfc.dll 2>&1 | Select-Object -First 30
-        echo ""
         
         $output = & .\test_msvc_linking.exe 2>&1 | Out-String
         Write-Host $output
