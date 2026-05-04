@@ -172,6 +172,36 @@ jobs:
               echo "  libwinpthread-1.dll: $f -> MISSING"
             }
           }
+
+          # Check the KERNEL32 imports that are less common
+          echo "--- Checking KERNEL32.dll for unusual imports ---"
+          $k32Funcs = @("GetModuleHandleExA", "GetModuleHandleExW", "IsDBCSLeadByteEx", "PulseEvent",
+                        "InitializeCriticalSection", "RtlCaptureContext", "RtlLookupFunctionEntry",
+                        "RtlUnwindEx", "RtlVirtualUnwind", "TlsGetValue")
+          $k32DLL = [Environment]::SystemDirectory + "\kernel32.dll"
+          foreach ($f in $k32Funcs) {
+            $result = dumpbin /exports $k32DLL 2>&1 | Select-String -SimpleMatch $f
+            if ($result) {
+              echo "  kernel32.dll: $f -> FOUND"
+            } else {
+              echo "  kernel32.dll: $f -> MISSING"
+            }
+          }
+
+          # Brute-force: try loading each dependency DLL individually to find which one actually fails
+          echo "--- Loading ALL dependency DLLs individually ---"
+          $allDeps = @("COMCTL32.dll", "comdlg32.dll", "GDI32.dll", "KERNEL32.dll", "msvcrt.dll",
+                       "ODBC32.dll", "ole32.dll", "OLEAUT32.dll", "oledlg.dll", "USER32.dll",
+                       "WININET.dll", "WS2_32.dll")
+          foreach ($dll in $allDeps) {
+            $h = $kernel32::LoadLibrary($dll)
+            if ($h -eq [IntPtr]::Zero) {
+              $err = $kernel32::GetLastError()
+              echo "  $dll -> FAILED (error $err)"
+            } else {
+              echo "  $dll -> OK"
+            }
+          }
           
           exit 1
         } else {
