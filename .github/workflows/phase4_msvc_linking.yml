@@ -16,11 +16,21 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     
-    - name: Install MinGW
-      run: sudo apt-get update && sudo apt-get install -y mingw-w64
+    - name: Install llvm-mingw (UCRT)
+      run: |
+        LLVM_MINGW_VER=20260407
+        curl -L -o /tmp/llvm-mingw.tar.xz "https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_VER}/llvm-mingw-${LLVM_MINGW_VER}-ucrt-ubuntu-22.04-x86_64.tar.xz"
+        mkdir -p /opt/llvm-mingw
+        tar xf /tmp/llvm-mingw.tar.xz -C /opt/llvm-mingw --strip-components=1
+        echo "/opt/llvm-mingw/bin" >> "$GITHUB_PATH"
+        x86_64-w64-mingw32-g++ --version
     
     - name: Build Phase 4
       run: |
+        export PATH="/opt/llvm-mingw/bin:$PATH"
+        # llvm-mingw uses clang; adjust flags for clang (no -static-libgcc/-static-libstdc++)
+        sed -i 's/-static-libgcc/-static/' phase4/scripts/build_phase4.sh
+        sed -i '/-static-libstdc++/d' phase4/scripts/build_phase4.sh
         ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
     
