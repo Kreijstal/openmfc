@@ -26,6 +26,10 @@ jobs:
       run: |
         ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
+        # Copy the build machine's libwinpthread-1.dll for runtime use
+        cp /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll build-phase4/ || true
+        x86_64-w64-mingw32-g++ -print-file-name=libwinpthread-1.dll | xargs -I{} cp {} build-phase4/ 2>/dev/null || true
+        ls -la build-phase4/libwinpthread-1.dll 2>/dev/null || echo "NOTE: libwinpthread-1.dll not found for bundling" 
     
     - name: Upload Phase 4 artifacts
       id: upload
@@ -36,6 +40,7 @@ jobs:
           build-phase4/openmfc.dll
           build-phase4/openmfc.def
           build-phase4/libopenmfc.a
+          build-phase4/libwinpthread-1.dll
         retention-days: 7
   
   test-msvc-linking:
@@ -103,16 +108,24 @@ jobs:
           "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin\libwinpthread-1.dll"
         )
         $pthreadFound = $false
-        foreach ($p in $mingwPaths) {
-          if (Test-Path $p) {
-            Copy-Item $p .
-            echo "Copied libwinpthread-1.dll from $p"
-            $pthreadFound = $true
-            break
+        # First try the bundled version from the artifact (exact match for linked version)
+        if (Test-Path phase4-artifacts\libwinpthread-1.dll) {
+          Copy-Item phase4-artifacts\libwinpthread-1.dll .
+          echo "Copied bundled libwinpthread-1.dll from artifact"
+          $pthreadFound = $true
+        } else {
+          # Fallback to local MinGW (may be version-mismatched!)
+          foreach ($p in $mingwPaths) {
+            if (Test-Path $p) {
+              Copy-Item $p .
+              echo "Copied libwinpthread-1.dll from $p (WARNING: may be version-mismatched)"
+              $pthreadFound = $true
+              break
+            }
           }
         }
         if (-not $pthreadFound) {
-          echo "WARNING: libwinpthread-1.dll not found in known MinGW paths"
+          echo "WARNING: libwinpthread-1.dll not found"
         }
 
         # Diagnostic: check DLLs present
