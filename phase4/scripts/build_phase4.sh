@@ -41,6 +41,7 @@ CFLAGS=(
     -DUNICODE
     -D_UNICODE
     -DOPENMFC_EXPORTS
+    -fms-extensions
     -I"$ROOT/include"
     -I"$BUILD/include"
     -Wno-attributes
