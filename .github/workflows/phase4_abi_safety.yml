@@ -81,6 +81,7 @@ jobs:
         mkdir -p /opt/llvm-mingw
         tar xf /tmp/llvm-mingw.tar.xz -C /opt/llvm-mingw --strip-components=1
         echo "/opt/llvm-mingw/bin" >> "$GITHUB_PATH"
+        export PATH="/opt/llvm-mingw/bin:$PATH"
         x86_64-w64-mingw32-clang++ --version
 
     - name: Build Phase 4 (llvm-mingw UCRT)
