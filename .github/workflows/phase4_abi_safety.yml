@@ -74,13 +74,18 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Build Phase 4 (UCRT MinGW)
-      shell: bash
+    - name: Setup MSYS2 MinGW64
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        install: mingw-w64-x86_64-gcc
+
+    - name: Build Phase 4 (MSVCRT MinGW)
+      shell: msys2 {0}
       run: |
-        export PATH="/c/mingw64/bin:$PATH"
         g++ --version
-        bash ./phase4/scripts/build_phase4.sh
-        cp /c/mingw64/bin/libwinpthread-1.dll build-phase4/ || true
+        CXX=g++ bash ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
 
     - name: Upload Windows-built Phase 4 artifacts
@@ -90,7 +95,6 @@ jobs:
         path: |
           build-phase4/openmfc.dll
           build-phase4/openmfc.def
-          build-phase4/libwinpthread-1.dll
         retention-days: 7
   
   msvc-linking-test:
@@ -138,10 +142,6 @@ jobs:
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        if (Test-Path phase4-artifacts\libwinpthread-1.dll) {
-          Copy-Item phase4-artifacts\libwinpthread-1.dll .
-          echo "Copied bundled libwinpthread-1.dll"
-        }
         
         $output = & .\test_msvc_linking.exe 2>&1 | Out-String
         Write-Host $output

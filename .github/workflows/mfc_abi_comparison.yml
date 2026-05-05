@@ -8,19 +8,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Job 1: Build OpenMFC DLL with MinGW on Linux
+  # Job 1: Build OpenMFC DLL with MinGW
   build-openmfc:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build OpenMFC (UCRT MinGW)
-        shell: bash
+      - name: Setup MSYS2 MinGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: mingw-w64-x86_64-gcc
+
+      - name: Build OpenMFC (MSVCRT MinGW)
+        shell: msys2 {0}
         run: |
-          export PATH="/c/mingw64/bin:$PATH"
           g++ --version
-          bash ./phase4/scripts/build_phase4.sh
-          cp /c/mingw64/bin/libwinpthread-1.dll build-phase4/ || true
+          CXX=g++ bash ./phase4/scripts/build_phase4.sh
           ls -la build-phase4/
 
       - name: Upload OpenMFC artifacts
@@ -30,7 +35,6 @@ jobs:
           path: |
             build-phase4/openmfc.dll
             build-phase4/openmfc.def
-            build-phase4/libwinpthread-1.dll
           retention-days: 7
 
   # Job 2: Run tests against REAL MFC
@@ -107,14 +111,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-
-      - name: Copy OpenMFC runtime dependencies
-        shell: pwsh
-        run: |
-          if (Test-Path openmfc-artifacts\libwinpthread-1.dll) {
-            Copy-Item openmfc-artifacts\libwinpthread-1.dll -Destination . -Force
-            Write-Host "Copied bundled libwinpthread-1.dll"
-          }
 
       - name: Create import library
         shell: cmd
