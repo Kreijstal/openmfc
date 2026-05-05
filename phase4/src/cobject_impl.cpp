@@ -28,7 +28,7 @@
 // CObject::classCObject - MSVC symbol alias
 // The inline static member is defined in afx.h with GCC mangling
 #ifdef __clang__
-extern "C" CRuntimeClass _ZN7CObject12classCObjectE = {
+extern "C" __attribute__((weak)) CRuntimeClass _ZN7CObject12classCObjectE = {
     "CObject",
     sizeof(CObject),
     0xFFFF,
