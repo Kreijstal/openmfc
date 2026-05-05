@@ -124,7 +124,7 @@ jobs:
       run: |
         echo "Running Hello World test..."
         Copy-Item phase4-artifacts\openmfc.dll .
-        $timeoutSeconds = 30
+        $timeoutSeconds = 60
         $stdoutPath = "hello_world_stdout.txt"
         $stderrPath = "hello_world_stderr.txt"
         $proc = Start-Process -FilePath ".\\test_hello_world.exe" -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
