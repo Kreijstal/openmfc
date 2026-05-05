@@ -3611,15 +3611,57 @@ inline CWinThread::CWinThread()
     memset(&m_msgCur, 0, sizeof(m_msgCur));
 }
 inline CWinThread::~CWinThread() {}
-inline int CWinThread::Run() { return 0; }
+inline int CWinThread::Run() {
+    MSG msg;
+    LONG idleCount = 0;
+
+    for (;;) {
+        while (!::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!OnIdle(idleCount++)) {
+                idleCount = 0;
+                ::WaitMessage();
+                break;
+            }
+        }
+
+        while (::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+            if (!PumpMessage()) {
+                return ExitInstance();
+            }
+            if (IsIdleMessage(&m_msgCur)) {
+                idleCount = 0;
+            }
+        }
+    }
+}
 inline BOOL CWinThread::PreTranslateMessage(MSG*) { return FALSE; }
 inline BOOL CWinThread::OnIdle(LONG) { return FALSE; }
 inline BOOL CWinThread::IsIdleMessage(MSG*) { return FALSE; }
-inline BOOL CWinThread::PumpMessage() { return FALSE; }
+inline BOOL CWinThread::PumpMessage() {
+    MSG msg;
+    if (!PrePumpMessage()) {
+        return FALSE;
+    }
+
+    int result = ::GetMessageW(&msg, nullptr, 0, 0);
+    if (result <= 0) {
+        if (result == 0) {
+            m_msgCur = msg;
+        }
+        return FALSE;
+    }
+
+    m_msgCur = msg;
+    if (!PreTranslateMessage(&msg)) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessageW(&msg);
+    }
+    return PostPumpMessage();
+}
 inline BOOL CWinThread::PrePumpMessage() { return TRUE; }
 inline BOOL CWinThread::PostPumpMessage() { return TRUE; }
 inline BOOL CWinThread::InitInstance() { return FALSE; }
-inline int CWinThread::ExitInstance() { return 0; }
+inline int CWinThread::ExitInstance() { return static_cast<int>(m_msgCur.wParam); }
 
 #endif // OPENMFC_APPCORE_IMPL
 
