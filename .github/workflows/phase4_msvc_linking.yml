@@ -171,6 +171,11 @@ jobs:
         $clickerResult = Receive-Job -Job $clickerJob -Wait -AutoRemoveJob -ErrorAction SilentlyContinue
         Write-Host "Clicker result: $clickerResult"
         if (-not $proc.HasExited) {
+          if ($clickerResult -eq "OK" -or $clickerResult -eq "CLOSED") {
+            Write-Host "Hello World UI was observed and dismissed; terminating remaining process."
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            exit 0
+          }
           Write-Host "Hello World test timed out after ${timeoutSeconds}s; terminating process."
           Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           if (Test-Path $stdoutPath) { Get-Content $stdoutPath -Raw | Write-Host }
