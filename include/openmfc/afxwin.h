@@ -1501,9 +1501,10 @@ extern CWinThread* AFXAPI AfxGetThread();
 // AfxGetApp is typically inline in real MFC, casting AfxGetThread result
 inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
 
-// These functions are DLL exports for _AFXDLL consumers. Header-only consumers
-// keep lightweight fallbacks for compatibility.
-#if !defined(OPENMFC_APPCORE_IMPL) && !defined(_AFXDLL)
+// These functions are not all exported MFC symbols in the ordinal mapping.
+// Consumers keep lightweight inline helpers while the DLL implementation uses
+// source-backed state internally.
+#ifndef OPENMFC_APPCORE_IMPL
 inline HINSTANCE AFXAPI AfxGetInstanceHandle() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_hInstance : nullptr;
@@ -3589,7 +3590,7 @@ protected:
 
 // CCmdTarget and CWinThread implementations
 // Guard against redefinition when linking with appcore.cpp
-#if !defined(OPENMFC_APPCORE_IMPL) && !defined(_AFXDLL)
+#ifndef OPENMFC_APPCORE_IMPL
 inline CCmdTarget::~CCmdTarget() {}
 inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
 inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
