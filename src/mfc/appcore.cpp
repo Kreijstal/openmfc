@@ -67,7 +67,10 @@ CWinApp::CWinApp(LPCWSTR lpszAppName)
     , m_pszExeName(nullptr)
     , m_pszHelpFilePath(nullptr)
     , m_pszProfileName(nullptr)
+    , m_pszRegistryKey(nullptr)
     , m_hInstance(nullptr)
+    , m_lpCmdLine(nullptr)
+    , m_nCmdShow(SW_SHOW)
 {
     memset(_winapp_padding, 0, sizeof(_winapp_padding));
     
@@ -76,6 +79,22 @@ CWinApp::CWinApp(LPCWSTR lpszAppName)
         g_pApp = this;
         g_pThread = this;
     }
+}
+
+int CWinApp::InitApplication() {
+    return TRUE;
+}
+
+BOOL CWinApp::InitInstance() {
+    return TRUE;
+}
+
+int CWinApp::ExitInstance() {
+    return CWinThread::ExitInstance();
+}
+
+int CWinApp::Run() {
+    return CWinThread::Run();
 }
 
 // Global helper to get main window
