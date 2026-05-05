@@ -543,14 +543,14 @@ int CWinThread::Run() {
 // Symbol: ?Run@CWinThread@@UEAAHXZ
 // Ordinal: 12614
 extern "C" int MS_ABI impl__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
-    return pThis->Run();
+    return pThis->CWinThread::Run();
 }
 
 // CWinApp::Run - exported lifecycle implementation
 // Symbol: ?Run@CWinApp@@UEAAHXZ
 // Ordinal: 12613
 extern "C" int MS_ABI impl__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
-    return pThis->Run();
+    return pThis->CWinThread::Run();
 }
 
 // CWinApp::InitInstance - exported lifecycle implementation
