@@ -222,4 +222,36 @@ jobs:
           Write-Host "❌ Comprehensive ABI test failed"
           exit 1
         }
+
+  wine-runtime-test:
+    runs-on: ubuntu-latest
+    needs: abi-safety-checks
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download Phase 4 artifacts
+      uses: actions/download-artifact@v7
+      with:
+        name: abi-safety-report
+        path: build-phase4
+
+    - name: Install Wine
+      timeout-minutes: 5
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wine64
+
+    - name: Run Wine runtime test
+      timeout-minutes: 2
+      run: |
+        chmod +x scripts/test_wine_runtime.sh
+        timeout 90s ./scripts/test_wine_runtime.sh
+
+    - name: Run MFC functionality tests
+      timeout-minutes: 3
+      run: |
+        chmod +x tests/run_functionality_tests.sh
+        timeout 150s ./tests/run_functionality_tests.sh
   
