@@ -24,9 +24,20 @@ mkdir -p "$BUILD/include/openmfc"
 
 # Compiler setup
 CXX="${CXX:-x86_64-w64-mingw32-g++}"
+if [[ -z "${CC:-}" ]]; then
+    case "$CXX" in
+        *clang++) CC="${CXX%++}" ;;
+        *g++) CC="${CXX%g++}gcc" ;;
+        *) CC="$CXX" ;;
+    esac
+fi
 
 if ! command -v "$CXX" >/dev/null 2>&1; then
     echo "Error: MinGW compiler not found: $CXX"
+    exit 1
+fi
+if ! command -v "$CC" >/dev/null 2>&1; then
+    echo "Error: MinGW C compiler not found: $CC"
     exit 1
 fi
 
@@ -46,6 +57,8 @@ CFLAGS=(
     -I"$BUILD/include"
     -Wno-attributes
 )
+CFLAGS_C=("${CFLAGS[@]}")
+CFLAGS_C[0]="-std=gnu11"
 
 # Step 1: Generate weak stubs
 echo ""
@@ -321,7 +334,7 @@ python3 "$ROOT/tools/gen_rtti.py" \
 echo ""
 echo "[3/4] Compiling..."
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/typed_stubs.cpp" -o "$BUILD/typed_stubs.o"
-"$CXX" "${CFLAGS[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
+"$CC" "${CFLAGS_C[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
 
 # Compile implementation files
 IMPL_SOURCES=(
