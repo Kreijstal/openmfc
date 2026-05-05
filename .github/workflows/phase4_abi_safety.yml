@@ -77,6 +77,42 @@ jobs:
           build-phase4/openmfc.def
         retention-days: 7
 
+  mingw-gcc-abi-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install MinGW GCC
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64 python3-pip
+        x86_64-w64-mingw32-g++ --version
+
+    - name: Build Phase 4 with MinGW GCC
+      run: |
+        CXX=x86_64-w64-mingw32-g++ ./phase4/scripts/build_phase4.sh
+
+    - name: Verify GCC-built DLL ABI and imports
+      run: |
+        ./scripts/test_msvc_abi_simple.sh build-phase4/openmfc.dll
+        x86_64-w64-mingw32-objdump -p build-phase4/openmfc.dll > build-phase4/openmfc.imports.txt
+        if grep -E 'api-ms-win-crt-private|libwinpthread|libstdc\\+\\+|libgcc|libc\\+\\+|libunwind|TaskDialogIndirect' build-phase4/openmfc.imports.txt; then
+          echo "GCC-built DLL has a blocked import"
+          exit 1
+        fi
+
+    - name: Upload GCC-built Phase 4 artifacts
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: abi-safety-mingw-gcc-artifact
+        path: |
+          build-phase4/openmfc.dll
+          build-phase4/openmfc.def
+          build-phase4/openmfc.imports.txt
+        retention-days: 7
+
   build-phase4-windows:
     runs-on: ubuntu-latest
     steps:
