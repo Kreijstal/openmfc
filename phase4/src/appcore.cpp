@@ -782,10 +782,16 @@ void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
 // Symbol: ?AfxWinInit@@YAHPEAUHINSTANCE__@@0PEA_WH@Z
 BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                        LPWSTR lpCmdLine, int nCmdShow) {
-    (void)hPrevInstance; (void)lpCmdLine; (void)nCmdShow;
+    (void)hPrevInstance;
 
     g_hInstance = hInstance;
     g_hResource = hInstance;
+
+    if (g_pApp != nullptr) {
+        g_pApp->m_hInstance = hInstance;
+        g_pApp->m_lpCmdLine = lpCmdLine;
+        g_pApp->m_nCmdShow = nCmdShow;
+    }
 
     // Set global app pointer if it exists
     // CWinApp constructor sets itself as the global app usually,
