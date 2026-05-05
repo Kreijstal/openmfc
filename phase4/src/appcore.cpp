@@ -544,18 +544,46 @@ int CWinThread::Run() {
     }
 }
 
+static int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
+    MSG msg;
+
+    for (;;) {
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            pThis->m_msgCur = msg;
+            if (msg.message == WM_QUIT) {
+                return static_cast<int>(msg.wParam);
+            }
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        const BOOL result = GetMessageW(&msg, nullptr, 0, 0);
+        pThis->m_msgCur = msg;
+
+        if (result == 0) {
+            return static_cast<int>(msg.wParam);
+        }
+        if (result < 0) {
+            return -1;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+}
+
 // CWinThread::Run - exported lifecycle implementation
 // Symbol: ?Run@CWinThread@@UEAAHXZ
 // Ordinal: 12614
 extern "C" int MS_ABI impl__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
-    return pThis->CWinThread::Run();
+    return OpenMfcRunExportedMessageLoop(pThis);
 }
 
 // CWinApp::Run - exported lifecycle implementation
 // Symbol: ?Run@CWinApp@@UEAAHXZ
 // Ordinal: 12613
 extern "C" int MS_ABI impl__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
-    return pThis->CWinThread::Run();
+    return OpenMfcRunExportedMessageLoop(pThis);
 }
 
 // CWinApp::InitInstance - exported lifecycle implementation
