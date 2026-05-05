@@ -37,7 +37,19 @@ EXPORTS=$(x86_64-w64-mingw32-objdump -p "$DLL" 2>/dev/null | \
     ' || true)
 
 if [[ -z "$EXPORTS" ]]; then
-    echo "❌ ERROR: Could not extract exports from DLL"
+    DEF="${DLL%.dll}.def"
+    if [[ -f "$DEF" ]]; then
+        echo "Could not extract exports from DLL; checking $DEF instead"
+        EXPORTS=$(awk '
+            /^[[:space:]]*EXPORTS[[:space:]]*$/ { in_exports = 1; next }
+            in_exports && /^[[:space:]]*;/ { next }
+            in_exports && NF >= 1 { print $1 }
+        ' "$DEF" || true)
+    fi
+fi
+
+if [[ -z "$EXPORTS" ]]; then
+    echo "❌ ERROR: Could not extract exports from DLL or .def file"
     exit 1
 fi
 

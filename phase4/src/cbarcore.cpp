@@ -865,7 +865,18 @@ int CTaskDialog::DoModal(HWND hWndParent) {
     int nRadio = 0;
     BOOL bVerification = FALSE;
 
-    HRESULT hr = ::TaskDialogIndirect(&tc, &nButton, &nRadio, &bVerification);
+    using TaskDialogIndirectFn = HRESULT (WINAPI *)(const TASKDIALOGCONFIG*, int*, int*, BOOL*);
+    HMODULE hComctl = ::GetModuleHandleW(L"comctl32.dll");
+    if (!hComctl) {
+        hComctl = ::LoadLibraryW(L"comctl32.dll");
+    }
+    TaskDialogIndirectFn pTaskDialogIndirect = hComctl
+        ? reinterpret_cast<TaskDialogIndirectFn>(::GetProcAddress(hComctl, "TaskDialogIndirect"))
+        : nullptr;
+
+    HRESULT hr = pTaskDialogIndirect
+        ? pTaskDialogIndirect(&tc, &nButton, &nRadio, &bVerification)
+        : E_NOTIMPL;
     if (SUCCEEDED(hr)) {
         m_bVerificationChecked = bVerification;
         m_nSelectedRadioButtonID = nRadio;
