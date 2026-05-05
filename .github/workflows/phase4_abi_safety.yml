@@ -70,22 +70,23 @@ jobs:
         retention-days: 7
 
   build-phase4-windows:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
 
-    - name: Setup MSYS2 MinGW64
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: false
-        install: mingw-w64-x86_64-gcc python
-
-    - name: Build Phase 4 (MSVCRT MinGW)
-      shell: msys2 {0}
+    - name: Install llvm-mingw (UCRT)
       run: |
-        g++ --version
-        CXX=g++ bash ./phase4/scripts/build_phase4.sh
+        LLVM_MINGW_VER=20260407
+        curl -L -o /tmp/llvm-mingw.tar.xz "https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_VER}/llvm-mingw-${LLVM_MINGW_VER}-ucrt-ubuntu-22.04-x86_64.tar.xz"
+        mkdir -p /opt/llvm-mingw
+        tar xf /tmp/llvm-mingw.tar.xz -C /opt/llvm-mingw --strip-components=1
+        echo "/opt/llvm-mingw/bin" >> "$GITHUB_PATH"
+        x86_64-w64-mingw32-g++ --version
+
+    - name: Build Phase 4 (llvm-mingw UCRT)
+      run: |
+        export PATH="/opt/llvm-mingw/bin:$PATH"
+        ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
 
     - name: Upload Windows-built Phase 4 artifacts
