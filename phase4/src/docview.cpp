@@ -233,7 +233,8 @@ void CScrollView::GetTrueClientSize(SIZE& size, SIZE& sizeSb) const {
         size.cx = 0;
         size.cy = 0;
     }
-    GetScrollBarSizes(sizeSb);
+    sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
+    sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
 }
 
 void CScrollView::ScrollToPosition(POINT pt) {
