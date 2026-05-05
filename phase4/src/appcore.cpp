@@ -539,37 +539,43 @@ int CWinThread::Run() {
     }
 }
 
-// CWinThread::Run - exported stub
+// CWinThread::Run - exported lifecycle implementation
+// Symbol: ?Run@CWinThread@@UEAAHXZ
 // Ordinal: 12614
 extern "C" int MS_ABI impl__Run_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->Run();
 }
 
-// CWinApp::Run - exported stub (delegates to CWinThread::Run)
+// CWinApp::Run - exported lifecycle implementation
+// Symbol: ?Run@CWinApp@@UEAAHXZ
 // Ordinal: 12613
 extern "C" int MS_ABI impl__Run_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->Run();
 }
 
-// CWinApp::InitInstance - exported stub
+// CWinApp::InitInstance - exported lifecycle implementation
+// Symbol: ?InitInstance@CWinApp@@UEAAHXZ
 // Ordinal: 7726
 extern "C" int MS_ABI impl__InitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->InitInstance();
 }
 
-// CWinThread::InitInstance - exported stub
+// CWinThread::InitInstance - exported lifecycle implementation
+// Symbol: ?InitInstance@CWinThread@@UEAAHXZ
 // Ordinal: 7727
 extern "C" int MS_ABI impl__InitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->InitInstance();
 }
 
-// CWinThread::ExitInstance - exported stub
+// CWinThread::ExitInstance - exported lifecycle implementation
+// Symbol: ?ExitInstance@CWinThread@@UEAAHXZ
 // Ordinal: 4457
 extern "C" int MS_ABI impl__ExitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) {
     return pThis->ExitInstance();
 }
 
-// CWinApp::ExitInstance - exported stub
+// CWinApp::ExitInstance - exported lifecycle implementation
+// Symbol: ?ExitInstance@CWinApp@@UEAAHXZ
 // Ordinal: 4455
 extern "C" int MS_ABI impl__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->ExitInstance();
@@ -657,7 +663,23 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 #endif
 
 // CWinApp methods are defined inline in afxwin.h
-// We only need the runtime class implementation here
+// Source-backed defaults are provided here for _AFXDLL consumers.
+
+int CWinApp::InitApplication() {
+    return TRUE;
+}
+
+BOOL CWinApp::InitInstance() {
+    return TRUE;
+}
+
+int CWinApp::ExitInstance() {
+    return CWinThread::ExitInstance();
+}
+
+int CWinApp::Run() {
+    return CWinThread::Run();
+}
 
 
 // Global application pointer (exported via openmfc_exports.cpp)
@@ -757,6 +779,7 @@ void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
 }
 
 // AfxWinInit implementation
+// Symbol: ?AfxWinInit@@YAHPEAUHINSTANCE__@@0PEA_WH@Z
 BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                        LPWSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance; (void)lpCmdLine; (void)nCmdShow;
@@ -774,10 +797,24 @@ BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return TRUE;
 }
 
+extern "C" int MS_ABI impl__AfxWinInit__YAHPEAUHINSTANCE____0PEA_WH_Z(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    wchar_t* lpCmdLine,
+    int nCmdShow)
+{
+    return AfxWinInit(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+}
+
 // AfxGetMainWnd implementation
+// Symbol: ?AfxGetMainWnd@@YAPEAVCWnd@@XZ
 CWnd* AFXAPI AfxGetMainWnd() {
     CWinThread* pThread = AfxGetThread();
     return pThread ? pThread->m_pMainWnd : nullptr;
+}
+
+extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ() {
+    return AfxGetMainWnd();
 }
 
 // Note: AfxGetThread, AfxGetInstanceHandle, AfxGetResourceHandle,

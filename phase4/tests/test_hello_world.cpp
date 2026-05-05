@@ -55,9 +55,9 @@ public:
         // Set as main window
         m_pMainWnd = pFrame;
 
-        // Post quit message after a short delay (for automated testing)
-        // In a real app, this would not be done
-        ::MessageBoxW(NULL, L"Click OK to exit", L"OpenMFC Hello World", MB_OK);
+        // Exit deterministically for automated testing. This validates that
+        // CWinThread::Run observes WM_QUIT and returns the posted exit code.
+        ::PostQuitMessage(23);
 
         return TRUE;
     }
@@ -105,6 +105,17 @@ LRESULT CALLBACK TestWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 int main() {
     printf("=== OpenMFC Hello World Test ===\n\n");
 
+    HINSTANCE hInstance = GetModuleHandleW(nullptr);
+    if (!AfxWinInit(hInstance, nullptr, GetCommandLineW(), SW_SHOW)) {
+        printf("FAIL: AfxWinInit failed\n");
+        return 1;
+    }
+    if (AfxGetInstanceHandle() != hInstance || AfxGetResourceHandle() != hInstance) {
+        printf("FAIL: instance/resource handle state mismatch\n");
+        return 1;
+    }
+    printf("PASS: AfxWinInit stored instance/resource handles\n");
+
     // Get the app instance
     CWinApp* pApp = AfxGetApp();
     if (!pApp) {
@@ -134,6 +145,12 @@ int main() {
     printf("\n=== Test Complete ===\n");
     printf("Exit code: %d\n", result);
 
-    return result;
+    if (result != 23) {
+        printf("FAIL: expected Run() to return posted quit code 23\n");
+        return 1;
+    }
+    printf("PASS: Run() returned posted quit code\n");
+
+    return 0;
 }
 #endif

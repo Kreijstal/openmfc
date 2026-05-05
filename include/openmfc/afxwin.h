@@ -1462,9 +1462,9 @@ public:
     CWinApp(const wchar_t* lpszAppName = nullptr);
     virtual ~CWinApp() = default;
     
-    virtual int InitApplication() { return 1; }
-    virtual BOOL InitInstance() override { return TRUE; }
-    virtual int ExitInstance() override { return 0; }
+    virtual int InitApplication();
+    virtual BOOL InitInstance() override;
+    virtual int ExitInstance() override;
     virtual int Run() override;
     
     // Application info
@@ -1485,9 +1485,14 @@ protected:
 
 // CWinApp constructor is in appcore.cpp
 
+#if !defined(OPENMFC_APPCORE_IMPL) && !defined(_AFXDLL)
+inline int CWinApp::InitApplication() { return 1; }
+inline BOOL CWinApp::InitInstance() { return TRUE; }
+inline int CWinApp::ExitInstance() { return CWinThread::ExitInstance(); }
 inline int CWinApp::Run() {
     return CWinThread::Run();
 }
+#endif
 
 // Helper functions - these are DLL exports in real MFC
 // Symbol: ?AfxGetThread@@YAPEAVCWinThread@@XZ
@@ -1496,9 +1501,9 @@ extern CWinThread* AFXAPI AfxGetThread();
 // AfxGetApp is typically inline in real MFC, casting AfxGetThread result
 inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
 
-// These functions are declared extern and defined in appcore.cpp when linking with implementation
-// For header-only use, they fall back to inline stubs
-#ifndef OPENMFC_APPCORE_IMPL
+// These functions are DLL exports for _AFXDLL consumers. Header-only consumers
+// keep lightweight fallbacks for compatibility.
+#if !defined(OPENMFC_APPCORE_IMPL) && !defined(_AFXDLL)
 inline HINSTANCE AFXAPI AfxGetInstanceHandle() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_hInstance : nullptr;
@@ -3584,7 +3589,7 @@ protected:
 
 // CCmdTarget and CWinThread implementations
 // Guard against redefinition when linking with appcore.cpp
-#ifndef OPENMFC_APPCORE_IMPL
+#if !defined(OPENMFC_APPCORE_IMPL) && !defined(_AFXDLL)
 inline CCmdTarget::~CCmdTarget() {}
 inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
 inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }

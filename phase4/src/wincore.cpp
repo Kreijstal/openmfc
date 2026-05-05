@@ -695,6 +695,7 @@ static ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 // AfxWinMain - Application Entry Point
 // =============================================================================
 
+// Symbol: ?AfxWinMain@@YAHPEAUHINSTANCE__@@0PEA_WH@Z
 // Ordinal: 2374
 extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
     HINSTANCE hInstance,
@@ -2167,4 +2168,3 @@ int CFrameWnd::SetTaskbarOverlayIcon(HICON hIcon, const wchar_t* lpszDescription
 void CFrameWnd::ShowControlBar(CControlBar* pBar, int bShow, int bDelay) { (void)pBar; (void)bShow; (void)bDelay; }
 void CFrameWnd::ShowOwnedWindows(int bShow) { (void)bShow; }
 void CFrameWnd::UpdateFrameTitleForDocument(const wchar_t* lpszDocName) { (void)lpszDocName; }
-
