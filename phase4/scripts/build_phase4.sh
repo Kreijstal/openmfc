@@ -213,11 +213,14 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCSyncObject@CSyncObject@@2UCRuntimeCla
 # Common dialogs
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?classCColorDialog@CColorDialog@@2UCRuntimeClass@@A,?classCFontDialog@CFontDialog@@2UCRuntimeClass@@A,?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A,?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A,?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A"
 
+EXCLUDE_FILE="$BUILD/excluded_symbols.txt"
+printf '%s' "$EXCLUDED_SYMBOLS" | tr ',' '\n' > "$EXCLUDE_FILE"
+
 python3 "$ROOT/tools/gen_weak_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --out-def "$BUILD/openmfc.def" \
     --out-stubs "$BUILD/weak_stubs.cpp" \
-    --exclude "$EXCLUDED_SYMBOLS"
+    --exclude-file "$EXCLUDE_FILE"
 
 # Remove the "; Total exports:" comment line if present (causes .def syntax errors)
 sed -i '/; Total exports:/d' "$BUILD/openmfc.def"
@@ -228,7 +231,7 @@ echo "[1b/4] Generating typed stubs..."
 python3 "$ROOT/tools/gen_typed_stubs.py" \
     --mapping "$ROOT/mfc_complete_ordinal_mapping.json" \
     --out "$BUILD/typed_stubs.cpp" \
-    --exclude "$EXCLUDED_SYMBOLS"
+    --exclude-file "$EXCLUDE_FILE"
 
 # Add OpenMFC-specific exports (static class members with MSVC-mangled names)
 # These use the .def alias syntax (MSVC_name=GCC_name) to export MSVC-compatible

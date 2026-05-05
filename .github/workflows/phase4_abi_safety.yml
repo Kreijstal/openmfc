@@ -68,10 +68,34 @@ jobs:
           build-phase4/openmfc.dll
           build-phase4/openmfc.def
         retention-days: 7
+
+  build-phase4-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Build Phase 4 (UCRT MinGW)
+      shell: bash
+      run: |
+        export PATH="/c/mingw64/bin:$PATH"
+        g++ --version
+        bash ./phase4/scripts/build_phase4.sh
+        cp /c/mingw64/bin/libwinpthread-1.dll build-phase4/ || true
+        ls -la build-phase4/
+
+    - name: Upload Windows-built Phase 4 artifacts
+      uses: actions/upload-artifact@v6
+      with:
+        name: abi-safety-msvc-artifact
+        path: |
+          build-phase4/openmfc.dll
+          build-phase4/openmfc.def
+          build-phase4/libwinpthread-1.dll
+        retention-days: 7
   
   msvc-linking-test:
     runs-on: windows-latest
-    needs: abi-safety-checks
+    needs: [abi-safety-checks, build-phase4-windows]
     
     steps:
     - uses: actions/checkout@v6
@@ -79,7 +103,7 @@ jobs:
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v7
       with:
-        name: abi-safety-report
+        name: abi-safety-msvc-artifact
         path: phase4-artifacts
     
     - name: Setup MSVC
@@ -114,6 +138,10 @@ jobs:
       run: |
         echo "Running MSVC linking test..."
         Copy-Item phase4-artifacts\openmfc.dll .
+        if (Test-Path phase4-artifacts\libwinpthread-1.dll) {
+          Copy-Item phase4-artifacts\libwinpthread-1.dll .
+          echo "Copied bundled libwinpthread-1.dll"
+        }
         
         $output = & .\test_msvc_linking.exe 2>&1 | Out-String
         Write-Host $output
