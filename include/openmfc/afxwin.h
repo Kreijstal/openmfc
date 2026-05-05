@@ -3626,7 +3626,7 @@ inline int CWinThread::Run() {
 
         while (::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
             if (!PumpMessage()) {
-                return ExitInstance();
+                return static_cast<int>(m_msgCur.wParam);
             }
             if (IsIdleMessage(&m_msgCur)) {
                 idleCount = 0;
