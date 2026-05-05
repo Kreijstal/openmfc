@@ -22,12 +22,12 @@ jobs:
         mkdir -p /opt/llvm-mingw
         tar xf /tmp/llvm-mingw.tar.xz -C /opt/llvm-mingw --strip-components=1
         echo "/opt/llvm-mingw/bin" >> "$GITHUB_PATH"
-        x86_64-w64-mingw32-g++ --version
+        x86_64-w64-mingw32-clang++ --version
 
     - name: Build Phase 4 (llvm-mingw UCRT)
       run: |
         export PATH="/opt/llvm-mingw/bin:$PATH"
-        ./phase4/scripts/build_phase4.sh
+        CXX=x86_64-w64-mingw32-clang++ ./phase4/scripts/build_phase4.sh
         ls -la build-phase4/
     - name: Upload Phase 4 artifacts
       id: upload
