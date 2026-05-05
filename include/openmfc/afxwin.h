@@ -1518,7 +1518,15 @@ inline CWnd* AFXAPI AfxGetMainWnd() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_pMainWnd : nullptr;
 }
-inline int AFXAPI AfxWinInit(HINSTANCE, HINSTANCE, LPWSTR, int) { return TRUE; }
+inline int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int nCmdShow) {
+    CWinApp* pApp = AfxGetApp();
+    if (pApp != nullptr) {
+        pApp->m_hInstance = hInstance;
+        pApp->m_lpCmdLine = lpCmdLine;
+        pApp->m_nCmdShow = nCmdShow;
+    }
+    return TRUE;
+}
 #else
 extern HINSTANCE AFXAPI AfxGetInstanceHandle();
 extern HINSTANCE AFXAPI AfxGetResourceHandle();
