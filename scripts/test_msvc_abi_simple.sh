@@ -32,8 +32,8 @@ fi
 EXPORTS=$(x86_64-w64-mingw32-objdump -p "$DLL" 2>/dev/null | \
     awk '
         /^\[Ordinal\/Name Pointer\] Table/ { in_exports = 1; next }
-        in_exports && /^[[:space:]]+\[[[:space:]]*[0-9]+\]/ { print $NF; next }
-        in_exports && NF == 0 { exit }
+        in_exports && /^[[:space:]]+\[[[:space:]]*[0-9]+\]/ { saw_export = 1; print $NF; next }
+        in_exports && saw_export && NF == 0 { exit }
     ' || true)
 
 if [[ -z "$EXPORTS" ]]; then

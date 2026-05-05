@@ -339,6 +339,7 @@ echo "[3/4] Compiling..."
 # Compile implementation files
 IMPL_SOURCES=(
     "$ROOT/phase4/src/mfc_exceptions.cpp"
+    "$ROOT/phase4/src/crt_memory.cpp"
     "$ROOT/phase4/src/version_impl.cpp"
     "$ROOT/phase4/src/cobject_impl.cpp"
     "$ROOT/phase4/src/appcore.cpp"
@@ -384,6 +385,7 @@ LDFLAGS=(
     -static
     -Wl,--enable-stdcall-fixup
     -Wl,--enable-auto-import
+    -Wl,--allow-multiple-definition
     -Wl,"$BUILD/openmfc.def"
     -Wl,--out-implib,"$BUILD/libopenmfc.a"
 )
