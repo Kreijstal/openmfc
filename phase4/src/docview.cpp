@@ -56,8 +56,14 @@ extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
     CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
 extern "C" void MS_ABI impl___1CDocTemplate__UEAA_XZ(CDocTemplate* pThis);
 extern "C" void MS_ABI impl___0CSingleDocTemplate__QEAA_XZ(CSingleDocTemplate* pThis);
+extern "C" void MS_ABI impl___0CSingleDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+    CSingleDocTemplate* pThis, unsigned int nIDResource,
+    CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
 extern "C" void MS_ABI impl___1CSingleDocTemplate__UEAA_XZ(CSingleDocTemplate* pThis);
 extern "C" void MS_ABI impl___0CMultiDocTemplate__QEAA_XZ(CMultiDocTemplate* pThis);
+extern "C" void MS_ABI impl___0CMultiDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+    CMultiDocTemplate* pThis, unsigned int nIDResource,
+    CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
 extern "C" void MS_ABI impl___1CMultiDocTemplate__UEAA_XZ(CMultiDocTemplate* pThis);
 
 // CDocument constructors
@@ -107,10 +113,20 @@ CDocTemplate::~CDocTemplate() { impl___1CDocTemplate__UEAA_XZ(this); }
 
 // CSingleDocTemplate constructors
 CSingleDocTemplate::CSingleDocTemplate() { impl___0CSingleDocTemplate__QEAA_XZ(this); }
+CSingleDocTemplate::CSingleDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
+                                       CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass) {
+    impl___0CSingleDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+        this, nIDResource, pDocClass, pFrameClass, pViewClass);
+}
 CSingleDocTemplate::~CSingleDocTemplate() { impl___1CSingleDocTemplate__UEAA_XZ(this); }
 
 // CMultiDocTemplate constructors
 CMultiDocTemplate::CMultiDocTemplate() { impl___0CMultiDocTemplate__QEAA_XZ(this); }
+CMultiDocTemplate::CMultiDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
+                                     CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass) {
+    impl___0CMultiDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+        this, nIDResource, pDocClass, pFrameClass, pViewClass);
+}
 CMultiDocTemplate::~CMultiDocTemplate() { impl___1CMultiDocTemplate__UEAA_XZ(this); }
 
 // =============================================================================
@@ -1217,12 +1233,47 @@ extern "C" CFrameWnd* MS_ABI impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWn
 
     CFrameWnd* pFrame = static_cast<CFrameWnd*>(pObj);
 
-    // Create view if we have a view class and document
+    if (!pFrame->m_hWnd) {
+        int frameCreated = FALSE;
+        if (pThis->m_nIDResource != 0) {
+            frameCreated = pFrame->CFrameWnd::LoadFrame(
+                pThis->m_nIDResource, WS_OVERLAPPEDWINDOW, nullptr, nullptr);
+        }
+
+        if (!frameCreated) {
+            RECT rect = { CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT };
+            const wchar_t* title = (pDoc && pDoc->GetTitle() && pDoc->GetTitle()[0])
+                ? pDoc->GetTitle()
+                : L"OpenMFC Document";
+            frameCreated = pFrame->CFrameWnd::Create(
+                nullptr, title, WS_OVERLAPPEDWINDOW, rect, nullptr, nullptr, 0, nullptr);
+        }
+
+        if (!frameCreated) {
+            return nullptr;
+        }
+    }
+
     if (pThis->m_pViewClass && pDoc) {
         CObject* pViewObj = pThis->m_pViewClass->CreateObject();
         if (pViewObj) {
             CView* pView = static_cast<CView*>(pViewObj);
             pDoc->AddView(pView);
+
+            if (!pView->m_hWnd && pFrame->m_hWnd) {
+                RECT rcClient = {};
+                ::GetClientRect(pFrame->m_hWnd, &rcClient);
+                pView->CWnd::Create(
+                    nullptr,
+                    nullptr,
+                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                    rcClient,
+                    pFrame,
+                    AFX_IDW_PANE_FIRST,
+                    nullptr);
+            }
+
+            pFrame->m_pViewActive = pView;
         }
     }
 
@@ -1233,7 +1284,6 @@ extern "C" CFrameWnd* MS_ABI impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWn
 extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
     CDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible)
 {
-    (void)bMakeVisible;
     if (!pThis) return nullptr;
 
     CDocument* pDoc = impl__CreateNewDocument_CDocTemplate__UEAAPEAVCDocument__XZ(pThis);
@@ -1250,7 +1300,18 @@ extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocum
             pDoc->OnCloseDocument();
             return nullptr;
         }
+        pThis->SetDefaultTitle(pDoc);
     }
+
+    CFrameWnd* pFrame = impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWnd__PEAVCDocument__PEAV2__Z(
+        pThis, pDoc, nullptr);
+    if (!pFrame) {
+        pDoc->OnCloseDocument();
+        return nullptr;
+    }
+
+    impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd__PEAVCDocument__H_Z(
+        pThis, pFrame, pDoc, bMakeVisible);
 
     return pDoc;
 }
@@ -1324,7 +1385,6 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd
     CDocTemplate* pThis, CFrameWnd* pFrame, CDocument* pDoc, int bMakeVisible)
 {
     (void)pThis;
-    (void)pFrame;
 
     if (pDoc) {
         // Call OnInitialUpdate on all views
@@ -1337,9 +1397,11 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd
         }
     }
 
-    if (bMakeVisible && pFrame && pFrame->m_hWnd) {
-        ::ShowWindow(pFrame->m_hWnd, SW_SHOW);
-        ::UpdateWindow(pFrame->m_hWnd);
+    if (pFrame && pFrame->m_hWnd) {
+        pFrame->CFrameWnd::RecalcLayout(TRUE);
+        if (bMakeVisible) {
+            pFrame->CFrameWnd::ActivateFrame(SW_SHOW);
+        }
     }
 }
 
@@ -1430,6 +1492,16 @@ extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAV
         } else {
             if (!pThis->m_pOnlyDoc->OnNewDocument()) {
                 return nullptr;
+            }
+            pThis->SetDefaultTitle(pThis->m_pOnlyDoc);
+        }
+
+        if (!pThis->m_pOnlyDoc->GetFirstViewPosition()) {
+            CFrameWnd* pFrame = impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWnd__PEAVCDocument__PEAV2__Z(
+                pThis, pThis->m_pOnlyDoc, nullptr);
+            if (pFrame) {
+                impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd__PEAVCDocument__H_Z(
+                    pThis, pFrame, pThis->m_pOnlyDoc, bMakeVisible);
             }
         }
 
