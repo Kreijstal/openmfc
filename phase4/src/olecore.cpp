@@ -7,6 +7,7 @@
 #include "openmfc/afxole.h"
 #include <cstring>
 #include <cstdio>
+#include <vector>
 
 // MinGW compat: Ambient property DISPIDs
 #ifndef DISPID_AMBIENT_BACKCOLOR
@@ -52,6 +53,378 @@ CDocItem::~CDocItem() {}
 static int g_bOleInitialized = FALSE;
 static int g_nOleLockCount = 0;
 static COleMessageFilter* g_pMessageFilter = nullptr;
+
+namespace {
+
+struct DataCacheEntry {
+    FORMATETC format = {};
+    STGMEDIUM medium = {};
+    bool hasMedium = false;
+    bool delayRender = false;
+    bool delayRenderFile = false;
+};
+
+static FORMATETC MakeFormatEtc(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
+    if (lpFormatEtc) {
+        FORMATETC fmt = *lpFormatEtc;
+        fmt.cfFormat = cfFormat ? cfFormat : fmt.cfFormat;
+        return fmt;
+    }
+
+    FORMATETC fmt = {};
+    fmt.cfFormat = cfFormat;
+    fmt.ptd = nullptr;
+    fmt.dwAspect = DVASPECT_CONTENT;
+    fmt.lindex = -1;
+    fmt.tymed = TYMED_HGLOBAL;
+    return fmt;
+}
+
+static bool FormatMatches(const FORMATETC& cached, const FORMATETC& requested) {
+    if (cached.cfFormat != requested.cfFormat) return false;
+    if ((cached.tymed & requested.tymed) == 0) return false;
+    if (requested.dwAspect != 0 && cached.dwAspect != requested.dwAspect) return false;
+    if (requested.lindex != -1 && cached.lindex != requested.lindex) return false;
+    return true;
+}
+
+static HGLOBAL DuplicateGlobalMemory(HGLOBAL source) {
+    if (!source) return nullptr;
+
+    SIZE_T size = GlobalSize(source);
+    HGLOBAL copy = GlobalAlloc(GMEM_MOVEABLE, size);
+    if (!copy) return nullptr;
+
+    void* src = GlobalLock(source);
+    void* dst = GlobalLock(copy);
+    if (!src || !dst) {
+        if (src) GlobalUnlock(source);
+        if (dst) GlobalUnlock(copy);
+        GlobalFree(copy);
+        return nullptr;
+    }
+
+    memcpy(dst, src, size);
+    GlobalUnlock(copy);
+    GlobalUnlock(source);
+    return copy;
+}
+
+static bool CopyStorageMedium(const STGMEDIUM& source, STGMEDIUM* dest) {
+    if (!dest) return false;
+    memset(dest, 0, sizeof(*dest));
+    dest->tymed = source.tymed;
+    dest->pUnkForRelease = nullptr;
+
+    switch (source.tymed) {
+    case TYMED_HGLOBAL:
+        dest->hGlobal = DuplicateGlobalMemory(source.hGlobal);
+        return dest->hGlobal != nullptr;
+    case TYMED_ISTREAM:
+        dest->pstm = source.pstm;
+        if (dest->pstm) dest->pstm->AddRef();
+        return dest->pstm != nullptr;
+    case TYMED_ISTORAGE:
+        dest->pstg = source.pstg;
+        if (dest->pstg) dest->pstg->AddRef();
+        return dest->pstg != nullptr;
+    case TYMED_GDI:
+        dest->hBitmap = static_cast<HBITMAP>(CopyImage(source.hBitmap, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+        return dest->hBitmap != nullptr;
+    case TYMED_MFPICT:
+        dest->hMetaFilePict = source.hMetaFilePict;
+        return dest->hMetaFilePict != nullptr;
+    case TYMED_ENHMF:
+        dest->hEnhMetaFile = CopyEnhMetaFileW(source.hEnhMetaFile, nullptr);
+        return dest->hEnhMetaFile != nullptr;
+    case TYMED_FILE:
+        dest->lpszFileName = source.lpszFileName ? static_cast<LPOLESTR>(CoTaskMemAlloc((wcslen(source.lpszFileName) + 1) * sizeof(OLECHAR))) : nullptr;
+        if (source.lpszFileName && !dest->lpszFileName) return false;
+        if (source.lpszFileName) wcscpy(dest->lpszFileName, source.lpszFileName);
+        return true;
+    default:
+        dest->tymed = TYMED_NULL;
+        return false;
+    }
+}
+
+static int CountDispatchParams(const BYTE* pbParamInfo) {
+    if (!pbParamInfo) return 0;
+    int count = 0;
+    while (pbParamInfo[count] != 0) ++count;
+    return count;
+}
+
+static HRESULT MakeDispatchVariant(VARTYPE vt, va_list* args, VARIANTARG* var) {
+    if (!var) return E_POINTER;
+    VariantInit(var);
+    switch (vt) {
+    case VT_I2:
+        var->vt = VT_I2;
+        var->iVal = static_cast<SHORT>(va_arg(*args, int));
+        return S_OK;
+    case VT_I4:
+        var->vt = VT_I4;
+        var->lVal = va_arg(*args, long);
+        return S_OK;
+    case VT_R4:
+        var->vt = VT_R4;
+        var->fltVal = static_cast<float>(va_arg(*args, double));
+        return S_OK;
+    case VT_R8:
+        var->vt = VT_R8;
+        var->dblVal = va_arg(*args, double);
+        return S_OK;
+    case VT_BOOL:
+        var->vt = VT_BOOL;
+        var->boolVal = va_arg(*args, int) ? VARIANT_TRUE : VARIANT_FALSE;
+        return S_OK;
+    case VT_BSTR:
+        var->vt = VT_BSTR;
+        var->bstrVal = SysAllocString(va_arg(*args, const wchar_t*));
+        return var->bstrVal ? S_OK : E_OUTOFMEMORY;
+    case VT_DISPATCH:
+        var->vt = VT_DISPATCH;
+        var->pdispVal = va_arg(*args, LPDISPATCH);
+        return S_OK;
+    case VT_UNKNOWN:
+        var->vt = VT_UNKNOWN;
+        var->punkVal = va_arg(*args, LPUNKNOWN);
+        return S_OK;
+    case VT_VARIANT: {
+        VARIANT* src = va_arg(*args, VARIANT*);
+        return src ? VariantCopy(var, src) : S_OK;
+    }
+    case VT_UI1:
+        var->vt = VT_UI1;
+        var->bVal = static_cast<BYTE>(va_arg(*args, int));
+        return S_OK;
+    case VT_UI2:
+        var->vt = VT_UI2;
+        var->uiVal = static_cast<USHORT>(va_arg(*args, int));
+        return S_OK;
+    case VT_UI4:
+        var->vt = VT_UI4;
+        var->ulVal = va_arg(*args, unsigned long);
+        return S_OK;
+    default:
+        return DISP_E_TYPEMISMATCH;
+    }
+}
+
+static HRESULT CopyDispatchResult(VARTYPE vt, void* pvRet, VARIANT* result) {
+    if (vt == VT_EMPTY || !pvRet) return S_OK;
+    switch (vt) {
+    case VT_I2:
+        *static_cast<short*>(pvRet) = result->iVal;
+        return S_OK;
+    case VT_I4:
+        *static_cast<long*>(pvRet) = result->lVal;
+        return S_OK;
+    case VT_R4:
+        *static_cast<float*>(pvRet) = result->fltVal;
+        return S_OK;
+    case VT_R8:
+        *static_cast<double*>(pvRet) = result->dblVal;
+        return S_OK;
+    case VT_BOOL:
+        *static_cast<BOOL*>(pvRet) = (result->boolVal == VARIANT_TRUE);
+        return S_OK;
+    case VT_BSTR:
+        *static_cast<BSTR*>(pvRet) = result->bstrVal;
+        result->vt = VT_EMPTY;
+        return S_OK;
+    case VT_DISPATCH:
+        *static_cast<LPDISPATCH*>(pvRet) = result->pdispVal;
+        result->vt = VT_EMPTY;
+        return S_OK;
+    case VT_UNKNOWN:
+        *static_cast<LPUNKNOWN*>(pvRet) = result->punkVal;
+        result->vt = VT_EMPTY;
+        return S_OK;
+    case VT_VARIANT:
+        return VariantCopy(static_cast<VARIANT*>(pvRet), result);
+    case VT_UI1:
+        *static_cast<BYTE*>(pvRet) = result->bVal;
+        return S_OK;
+    case VT_UI2:
+        *static_cast<USHORT*>(pvRet) = result->uiVal;
+        return S_OK;
+    case VT_UI4:
+        *static_cast<ULONG*>(pvRet) = result->ulVal;
+        return S_OK;
+    default:
+        return DISP_E_TYPEMISMATCH;
+    }
+}
+
+struct DataCacheState;
+
+class DataSourceDataObject : public IDataObject {
+public:
+    explicit DataSourceDataObject(DataCacheState* state) : m_refCount(1), m_state(state) {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        return ref;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium) override;
+    HRESULT STDMETHODCALLTYPE GetDataHere(FORMATETC*, STGMEDIUM*) override { return DATA_E_FORMATETC; }
+    HRESULT STDMETHODCALLTYPE QueryGetData(FORMATETC* pformatetc) override;
+    HRESULT STDMETHODCALLTYPE GetCanonicalFormatEtc(FORMATETC*, FORMATETC* pformatetcOut) override {
+        if (!pformatetcOut) return E_POINTER;
+        pformatetcOut->ptd = nullptr;
+        return DATA_S_SAMEFORMATETC;
+    }
+    HRESULT STDMETHODCALLTYPE SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease) override;
+    HRESULT STDMETHODCALLTYPE EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFormatEtc) override;
+    HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override { return OLE_E_ADVISENOTSUPPORTED; }
+    HRESULT STDMETHODCALLTYPE DUnadvise(DWORD) override { return OLE_E_ADVISENOTSUPPORTED; }
+    HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA**) override { return OLE_E_ADVISENOTSUPPORTED; }
+
+private:
+    LONG m_refCount;
+    DataCacheState* m_state;
+};
+
+struct DataCacheState {
+    explicit DataCacheState(COleDataSource* source) : owner(source), dataObject(this) {}
+    ~DataCacheState() {
+        for (DataCacheEntry& entry : entries) {
+            if (entry.hasMedium) ReleaseStgMedium(&entry.medium);
+        }
+    }
+
+    COleDataSource* owner;
+    DataSourceDataObject dataObject;
+    std::vector<DataCacheEntry> entries;
+};
+
+static DataCacheState* GetDataCacheState(COleDataSource* source, bool create) {
+    if (!source) return nullptr;
+    DataCacheState* state = static_cast<DataCacheState*>(source->m_pDataCache);
+    if (!state && create) {
+        state = new DataCacheState(source);
+        source->m_pDataCache = state;
+    }
+    return state;
+}
+
+static DataCacheEntry* FindCacheEntry(DataCacheState* state, const FORMATETC& format) {
+    if (!state) return nullptr;
+    for (DataCacheEntry& entry : state->entries) {
+        if (FormatMatches(entry.format, format)) return &entry;
+    }
+    return nullptr;
+}
+
+HRESULT DataSourceDataObject::QueryInterface(REFIID riid, void** ppvObject) {
+    if (!ppvObject) return E_POINTER;
+    if (riid == IID_IUnknown || riid == IID_IDataObject) {
+        *ppvObject = static_cast<IDataObject*>(this);
+        AddRef();
+        return S_OK;
+    }
+    *ppvObject = nullptr;
+    return E_NOINTERFACE;
+}
+
+HRESULT DataSourceDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium) {
+    if (!pformatetcIn || !pmedium) return E_POINTER;
+    DataCacheEntry* entry = FindCacheEntry(m_state, *pformatetcIn);
+    if (!entry) return DATA_E_FORMATETC;
+
+    if (!entry->hasMedium) {
+        if (entry->delayRender && m_state->owner->OnRenderGlobalData(&entry->format, reinterpret_cast<void**>(&entry->medium.hGlobal))) {
+            entry->medium.tymed = TYMED_HGLOBAL;
+            entry->medium.pUnkForRelease = nullptr;
+            entry->hasMedium = true;
+        } else {
+            return DATA_E_FORMATETC;
+        }
+    }
+
+    return CopyStorageMedium(entry->medium, pmedium) ? S_OK : STG_E_MEDIUMFULL;
+}
+
+HRESULT DataSourceDataObject::QueryGetData(FORMATETC* pformatetc) {
+    if (!pformatetc) return E_POINTER;
+    return FindCacheEntry(m_state, *pformatetc) ? S_OK : DATA_E_FORMATETC;
+}
+
+HRESULT DataSourceDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease) {
+    if (!pformatetc || !pmedium) return E_POINTER;
+
+    DataCacheEntry* existing = FindCacheEntry(m_state, *pformatetc);
+    if (!existing) {
+        m_state->entries.push_back(DataCacheEntry());
+        existing = &m_state->entries.back();
+    } else if (existing->hasMedium) {
+        ReleaseStgMedium(&existing->medium);
+        existing->hasMedium = false;
+    }
+
+    existing->format = *pformatetc;
+    existing->delayRender = false;
+    existing->delayRenderFile = false;
+    if (fRelease) {
+        existing->medium = *pmedium;
+        memset(pmedium, 0, sizeof(*pmedium));
+        existing->hasMedium = true;
+        return S_OK;
+    }
+    existing->hasMedium = CopyStorageMedium(*pmedium, &existing->medium);
+    return existing->hasMedium ? S_OK : STG_E_MEDIUMFULL;
+}
+
+HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFormatEtc) {
+    if (!ppenumFormatEtc) return E_POINTER;
+    *ppenumFormatEtc = nullptr;
+    if (dwDirection != DATADIR_GET) return E_NOTIMPL;
+
+    CEnumFormatEtc* enumerator = new CEnumFormatEtc();
+    for (const DataCacheEntry& entry : m_state->entries) {
+        enumerator->AddFormat(entry.format);
+    }
+    *ppenumFormatEtc = enumerator;
+    return S_OK;
+}
+
+class DropSourceAdapter : public IDropSource {
+public:
+    explicit DropSourceAdapter(COleDropSource* source) : m_refCount(1), m_source(source) {}
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IDropSource) {
+            *ppvObject = static_cast<IDropSource*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        if (ref == 0) delete this;
+        return ref;
+    }
+    HRESULT STDMETHODCALLTYPE QueryContinueDrag(BOOL fEscapePressed, DWORD grfKeyState) override {
+        return m_source ? m_source->QueryContinueDrag(fEscapePressed, grfKeyState) : DRAGDROP_S_CANCEL;
+    }
+    HRESULT STDMETHODCALLTYPE GiveFeedback(DWORD dwEffect) override {
+        return m_source ? m_source->GiveFeedback(dwEffect) : DRAGDROP_S_USEDEFAULTCURSORS;
+    }
+
+private:
+    LONG m_refCount;
+    COleDropSource* m_source;
+};
+
+} // namespace
 
 //=============================================================================
 // OLE Initialization / Termination
@@ -330,41 +703,85 @@ COleDataSource::~COleDataSource() {
 }
 
 void COleDataSource::CacheGlobalData(CLIPFORMAT cfFormat, HGLOBAL hGlobal, FORMATETC* lpFormatEtc) {
-    (void)lpFormatEtc;
-    // Stub: store in cache
-    m_pDataCache = hGlobal;
+    STGMEDIUM medium = {};
+    medium.tymed = TYMED_HGLOBAL;
+    medium.hGlobal = hGlobal;
+    medium.pUnkForRelease = nullptr;
+    CacheData(cfFormat, &medium, lpFormatEtc);
 }
 
 void COleDataSource::CacheData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, FORMATETC* lpFormatEtc) {
-    (void)cfFormat; (void)lpStorageMedium; (void)lpFormatEtc;
+    if (!lpStorageMedium) return;
+
+    DataCacheState* state = GetDataCacheState(this, true);
+    if (!state) return;
+
+    FORMATETC format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    DataCacheEntry* entry = FindCacheEntry(state, format);
+    if (!entry) {
+        state->entries.push_back(DataCacheEntry());
+        entry = &state->entries.back();
+    } else if (entry->hasMedium) {
+        ReleaseStgMedium(&entry->medium);
+        entry->hasMedium = false;
+    }
+
+    entry->format = format;
+    entry->delayRender = false;
+    entry->delayRenderFile = false;
+    entry->hasMedium = CopyStorageMedium(*lpStorageMedium, &entry->medium);
 }
 
 void COleDataSource::DelayRenderData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    (void)cfFormat; (void)lpFormatEtc;
+    DataCacheState* state = GetDataCacheState(this, true);
+    if (!state) return;
+    state->entries.push_back(DataCacheEntry());
+    DataCacheEntry& entry = state->entries.back();
+    entry.format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    entry.delayRender = true;
 }
 
 void COleDataSource::DelayRenderFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    (void)cfFormat; (void)lpFormatEtc;
+    DataCacheState* state = GetDataCacheState(this, true);
+    if (!state) return;
+    state->entries.push_back(DataCacheEntry());
+    DataCacheEntry& entry = state->entries.back();
+    entry.format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    entry.delayRender = true;
+    entry.delayRenderFile = true;
 }
 
 void COleDataSource::SetClipboard() {
-    if (m_pDataCache) {
+    IDataObject* dataObject = GetInterface(TRUE);
+    if (dataObject && SUCCEEDED(OleSetClipboard(dataObject))) {
         m_bClipboardOwner = TRUE;
     }
+    if (dataObject) dataObject->Release();
 }
 
 COleDataSource* COleDataSource::GetClipboardOwner() {
-    return nullptr; // Stub
+    return nullptr;
 }
 
 DROPEFFECT COleDataSource::DoDragDrop(DWORD dwEffects, LPCRECT lpRectStartDrag,
                                        COleDropSource* pDropSource) {
-    (void)lpRectStartDrag; (void)pDropSource;
-    return DROPEFFECT_NONE; // Stub
+    (void)lpRectStartDrag;
+    IDataObject* dataObject = GetInterface(TRUE);
+    if (!dataObject) return DROPEFFECT_NONE;
+
+    COleDropSource defaultDropSource;
+    COleDropSource* source = pDropSource ? pDropSource : &defaultDropSource;
+    DropSourceAdapter* adapter = new DropSourceAdapter(source);
+    DWORD effect = DROPEFFECT_NONE;
+    HRESULT hr = ::DoDragDrop(dataObject, adapter, dwEffects, &effect);
+    adapter->Release();
+    dataObject->Release();
+    return SUCCEEDED(hr) ? effect : DROPEFFECT_NONE;
 }
 
 int COleDataSource::OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal) {
-    (void)lpFormatEtc; (void)phGlobal;
+    (void)lpFormatEtc;
+    if (phGlobal) *phGlobal = nullptr;
     return 0;
 }
 
@@ -374,10 +791,16 @@ int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
 }
 
 void COleDataSource::Empty() {
-    if (m_pDataCache) {
-        GlobalFree((HGLOBAL)m_pDataCache);
-        m_pDataCache = nullptr;
-    }
+    delete static_cast<DataCacheState*>(m_pDataCache);
+    m_pDataCache = nullptr;
+    m_bClipboardOwner = FALSE;
+}
+
+LPDATAOBJECT COleDataSource::GetInterface(BOOL bAddRef) {
+    DataCacheState* state = GetDataCacheState(this, true);
+    if (!state) return nullptr;
+    if (bAddRef) state->dataObject.AddRef();
+    return &state->dataObject;
 }
 
 //=============================================================================
@@ -919,24 +1342,70 @@ COleClientItem::~COleClientItem() {
 }
 
 BOOL COleClientItem::CreateFromClipboard(OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    (void)render; (void)cfFormat; (void)lpFormatEtc;
-    return FALSE;
+    IDataObject* dataObject = nullptr;
+    HRESULT hr = OleGetClipboard(&dataObject);
+    if (FAILED(hr) || !dataObject) return FALSE;
+    COleDataObject wrapper;
+    wrapper.Attach(dataObject, TRUE);
+    return CreateFromData(&wrapper, render, cfFormat, lpFormatEtc);
 }
 
 BOOL COleClientItem::CreateNewItem(REFCLSID clsid, OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    (void)clsid; (void)render; (void)cfFormat; (void)lpFormatEtc;
+    (void)render; (void)cfFormat; (void)lpFormatEtc;
+    Close(OLECLOSE_NOSAVE);
+    HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_ALL, IID_IOleObject,
+                                  reinterpret_cast<void**>(&m_lpObject));
+    if (SUCCEEDED(hr) && m_lpObject) {
+        OleSetContainedObject(m_lpObject, TRUE);
+        m_nStatus = OLE_LOADED;
+        return TRUE;
+    }
+    m_lpObject = nullptr;
     return FALSE;
 }
 
 BOOL COleClientItem::CreateStaticFromClipboard(OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    return FALSE;
+    return CreateFromClipboard(render, cfFormat, lpFormatEtc);
 }
 
 BOOL COleClientItem::CreateFromData(COleDataObject* pDataObject, OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
+    if (!pDataObject) return FALSE;
+    IDataObject* dataObject = pDataObject->GetIDataObject(TRUE);
+    if (!dataObject) return FALSE;
+
+    Close(OLECLOSE_NOSAVE);
+    FORMATETC format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    HRESULT hr = OleCreateFromData(dataObject, IID_IOleObject, render,
+                                   cfFormat || lpFormatEtc ? &format : nullptr,
+                                   nullptr, nullptr,
+                                   reinterpret_cast<void**>(&m_lpObject));
+    dataObject->Release();
+    if (SUCCEEDED(hr) && m_lpObject) {
+        m_nStatus = OLE_LOADED;
+        return TRUE;
+    }
+    m_lpObject = nullptr;
     return FALSE;
 }
 
 BOOL COleClientItem::CreateLinkFromClipboard(OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
+    IDataObject* dataObject = nullptr;
+    HRESULT hr = OleGetClipboard(&dataObject);
+    if (FAILED(hr) || !dataObject) return FALSE;
+
+    Close(OLECLOSE_NOSAVE);
+    FORMATETC format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    hr = OleCreateLinkFromData(dataObject, IID_IOleObject, render,
+                               cfFormat || lpFormatEtc ? &format : nullptr,
+                               nullptr, nullptr,
+                               reinterpret_cast<void**>(&m_lpObject));
+    dataObject->Release();
+    if (SUCCEEDED(hr) && m_lpObject) {
+        m_lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&m_lpLink));
+        m_nStatus = OLE_LOADED;
+        return TRUE;
+    }
+    m_lpObject = nullptr;
     return FALSE;
 }
 
@@ -990,28 +1459,40 @@ void COleClientItem::Close(OLE_CLOSE dwCloseOption) {
 }
 
 BOOL COleClientItem::Draw(CDC* pDC, LPCRECT lpBounds, DVASPECT nDrawAspect) {
-    (void)pDC; (void)lpBounds; (void)nDrawAspect;
-    return FALSE;
+    if (!m_lpObject || !pDC || !pDC->GetSafeHdc() || !lpBounds) return FALSE;
+    return SUCCEEDED(OleDraw(m_lpObject, nDrawAspect, pDC->GetSafeHdc(), lpBounds));
 }
 
 BOOL COleClientItem::GetExtent(LPSIZE lpSize, DVASPECT nDrawAspect) {
-    (void)lpSize; (void)nDrawAspect;
-    return FALSE;
+    if (!m_lpObject || !lpSize) return FALSE;
+    SIZEL sizel = {};
+    HRESULT hr = m_lpObject->GetExtent(nDrawAspect, &sizel);
+    if (FAILED(hr)) return FALSE;
+    lpSize->cx = sizel.cx;
+    lpSize->cy = sizel.cy;
+    return TRUE;
 }
 
 BOOL COleClientItem::SetExtent(const CSize& size, DVASPECT nDrawAspect) {
-    (void)size; (void)nDrawAspect;
-    return FALSE;
+    if (!m_lpObject) return FALSE;
+    SIZEL sizel = { size.cx, size.cy };
+    return SUCCEEDED(m_lpObject->SetExtent(nDrawAspect, &sizel));
 }
 
 void COleClientItem::GetClassID(CLSID* pClassID) {
-    if (m_lpObject && pClassID) {
-        m_lpObject->GetUserClassID(pClassID);
-    }
+    if (!pClassID) return;
+    *pClassID = CLSID_NULL;
+    if (m_lpObject) m_lpObject->GetUserClassID(pClassID);
 }
 
 void COleClientItem::CopyToClipboard(BOOL bIncludeLink) {
     (void)bIncludeLink;
+    if (!m_lpObject) return;
+    IDataObject* dataObject = nullptr;
+    if (SUCCEEDED(m_lpObject->QueryInterface(IID_IDataObject, reinterpret_cast<void**>(&dataObject)))) {
+        OleSetClipboard(dataObject);
+        dataObject->Release();
+    }
 }
 
 void COleClientItem::OnChange(OLE_NOTIFICATION nCode, DWORD dwParam) {
@@ -1243,11 +1724,16 @@ BOOL COleControlSite::IsInPlaceActive() const {
 }
 
 void COleControlSite::SetProperty(DISPID dwDispID, VARTYPE vtProp, ...) {
-    (void)dwDispID; (void)vtProp;
+    BYTE params[2] = { static_cast<BYTE>(vtProp), 0 };
+    va_list args;
+    va_start(args, vtProp);
+    InvokeHelperV(dwDispID, DISPATCH_PROPERTYPUT, VT_EMPTY, nullptr,
+                  params, args);
+    va_end(args);
 }
 
 void COleControlSite::GetProperty(DISPID dwDispID, VARTYPE vtProp, void* pvProp) {
-    (void)dwDispID; (void)vtProp; (void)pvProp;
+    InvokeHelper(dwDispID, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr);
 }
 
 HRESULT COleControlSite::InvokeHelper(DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
@@ -1261,18 +1747,68 @@ HRESULT COleControlSite::InvokeHelper(DISPID dwDispID, WORD wFlags, VARTYPE vtRe
 
 HRESULT COleControlSite::InvokeHelperV(DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
                                         void* pvRet, const BYTE* pbParamInfo, va_list argList) {
-    (void)dwDispID; (void)wFlags; (void)vtRet; (void)pvRet; (void)pbParamInfo; (void)argList;
-    return E_NOTIMPL;
+    if (!m_lpDispatch) return E_POINTER;
+
+    int cParams = CountDispatchParams(pbParamInfo);
+    std::vector<VARIANTARG> params(static_cast<size_t>(cParams));
+    for (int i = 0; i < cParams; ++i) {
+        HRESULT hr = MakeDispatchVariant(static_cast<VARTYPE>(pbParamInfo[i]), &argList, &params[static_cast<size_t>(i)]);
+        if (FAILED(hr)) {
+            for (int j = 0; j < i; ++j) VariantClear(&params[static_cast<size_t>(j)]);
+            return hr;
+        }
+    }
+
+    std::vector<VARIANTARG> reversed(static_cast<size_t>(cParams));
+    for (int i = 0; i < cParams; ++i) {
+        reversed[static_cast<size_t>(i)] = params[static_cast<size_t>(cParams - i - 1)];
+    }
+
+    DISPPARAMS dispParams = {};
+    dispParams.cArgs = cParams;
+    dispParams.rgvarg = cParams ? reversed.data() : nullptr;
+    DISPID dispidNamed = DISPID_PROPERTYPUT;
+    if (wFlags & (DISPATCH_PROPERTYPUT | DISPATCH_PROPERTYPUTREF)) {
+        dispParams.cNamedArgs = 1;
+        dispParams.rgdispidNamedArgs = &dispidNamed;
+    }
+
+    VARIANT result;
+    VariantInit(&result);
+    EXCEPINFO excep = {};
+    UINT argErr = 0;
+    HRESULT hr = m_lpDispatch->Invoke(dwDispID, IID_NULL, LOCALE_USER_DEFAULT, wFlags,
+                                      &dispParams, &result, &excep, &argErr);
+
+    for (int i = 0; i < cParams; ++i) {
+        reversed[static_cast<size_t>(i)].vt = VT_EMPTY;
+        VariantClear(&params[static_cast<size_t>(i)]);
+    }
+
+    if (FAILED(hr)) {
+        if (excep.bstrDescription) SysFreeString(excep.bstrDescription);
+        if (excep.bstrSource) SysFreeString(excep.bstrSource);
+        if (excep.bstrHelpFile) SysFreeString(excep.bstrHelpFile);
+        VariantClear(&result);
+        return hr;
+    }
+
+    hr = CopyDispatchResult(vtRet, pvRet, &result);
+    VariantClear(&result);
+    return hr;
 }
 
 BOOL COleControlSite::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
-    (void)dwDispid; (void)vtProp; (void)pvProp;
-    return FALSE;
+    IDispatch* ambient = m_lpDispatch;
+    if (!ambient) return FALSE;
+
+    return SUCCEEDED(InvokeHelper(dwDispid, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr));
 }
 
 long COleControlSite::GetWindow(HWND__** phWnd) {
-    (void)phWnd;
-    return E_NOTIMPL;
+    if (!phWnd) return E_POINTER;
+    *phWnd = m_hWnd;
+    return m_hWnd ? S_OK : E_FAIL;
 }
 
 CWnd* COleControlSite::GetWindow() const {
@@ -1280,8 +1816,9 @@ CWnd* COleControlSite::GetWindow() const {
 }
 
 long COleControlSite::GetContainer(IOleContainer** ppContainer) {
-    (void)ppContainer;
-    return E_NOTIMPL;
+    if (!ppContainer) return E_POINTER;
+    *ppContainer = nullptr;
+    return E_NOINTERFACE;
 }
 
 COleControlContainer* COleControlSite::GetContainer() const {
@@ -1845,15 +2382,41 @@ HGLOBAL COleClientItem::GetIconicMetafile() { return nullptr; }
 BOOL COleClientItem::SetIconicMetafile(HGLOBAL hMetaPict) { (void)hMetaPict; return FALSE; }
 HGLOBAL COleClientItem::GetMetaFile() { return nullptr; }
 void COleClientItem::SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) { (void)lpszHost; (void)lpszHostObj; }
-BOOL COleClientItem::ConvertTo(REFCLSID clsidNew) { (void)clsidNew; return FALSE; }
-BOOL COleClientItem::ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld) { (void)clsidNew; (void)clsidOld; return FALSE; }
-BOOL COleClientItem::Reload() { return FALSE; }
-void COleClientItem::UpdateLink() {}
-BOOL COleClientItem::IsLinkUpToDate() const { return TRUE; }
-BOOL COleClientItem::CanActivate() { return TRUE; }
+BOOL COleClientItem::ConvertTo(REFCLSID clsidNew) {
+    if (!m_lpObject) return FALSE;
+    CLSID clsidOld = CLSID_NULL;
+    if (FAILED(m_lpObject->GetUserClassID(&clsidOld))) return FALSE;
+    return SUCCEEDED(CoTreatAsClass(clsidOld, clsidNew));
+}
+BOOL COleClientItem::ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld) {
+    return SUCCEEDED(CoTreatAsClass(clsidOld, clsidNew));
+}
+BOOL COleClientItem::Reload() {
+    IPersistStorage* persist = nullptr;
+    if (!m_lpObject || FAILED(m_lpObject->QueryInterface(IID_IPersistStorage, reinterpret_cast<void**>(&persist)))) {
+        return FALSE;
+    }
+    HRESULT hr = persist->HandsOffStorage();
+    persist->Release();
+    return SUCCEEDED(hr);
+}
+void COleClientItem::UpdateLink() { if (m_lpLink) m_lpLink->Update(nullptr); }
+BOOL COleClientItem::IsLinkUpToDate() const {
+    if (!m_lpObject) return TRUE;
+    return m_lpObject->IsUpToDate() == S_OK;
+}
+BOOL COleClientItem::CanActivate() { return m_lpObject != nullptr; }
 BOOL COleClientItem::IsOpen() const { return m_nStatus == OLE_OPEN; }
 BOOL COleClientItem::IsRunning() const { return m_nStatus == OLE_RUNNING; }
-HRESULT COleClientItem::EnumVerbs(IEnumOLEVERB** ppEnumOleVerb) { *ppEnumOleVerb = nullptr; return E_NOTIMPL; }
+HRESULT COleClientItem::EnumVerbs(IEnumOLEVERB** ppEnumOleVerb) {
+    if (!ppEnumOleVerb) return E_POINTER;
+    *ppEnumOleVerb = nullptr;
+    if (!m_lpObject) return OLE_E_NOTRUNNING;
+    CLSID clsid = CLSID_NULL;
+    HRESULT hr = m_lpObject->GetUserClassID(&clsid);
+    if (FAILED(hr)) return hr;
+    return OleRegEnumVerbs(clsid, ppEnumOleVerb);
+}
 LONG COleClientItem::GetActiveVerb() const { return OLEIVERB_PRIMARY; }
 void COleClientItem::SetActiveVerb(LONG nVerb) { (void)nVerb; }
 BOOL COleClientItem::IsModified() const { return FALSE; }
@@ -2011,7 +2574,16 @@ STDMETHODIMP CEnumFormatEtc::Skip(ULONG celt) {
     return S_OK;
 }
 STDMETHODIMP CEnumFormatEtc::Reset() { m_position = 0; return S_OK; }
-STDMETHODIMP CEnumFormatEtc::Clone(IEnumFORMATETC** ppEnum) { *ppEnum = nullptr; return E_NOTIMPL; }
+STDMETHODIMP CEnumFormatEtc::Clone(IEnumFORMATETC** ppEnum) {
+    if (!ppEnum) return E_POINTER;
+    CEnumFormatEtc* clone = new CEnumFormatEtc();
+    for (ULONG i = 0; i < m_count; ++i) {
+        clone->AddFormat(m_formats[i]);
+    }
+    clone->m_position = m_position;
+    *ppEnum = clone;
+    return S_OK;
+}
 
 void CEnumFormatEtc::AddFormat(const FORMATETC& formatEtc) {
     if (m_count >= m_capacity) {
