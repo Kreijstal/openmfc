@@ -5,6 +5,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxole.h"
+#include <algorithm>
 #include <cstring>
 #include <cstdio>
 #include <vector>
@@ -53,6 +54,7 @@ CDocItem::~CDocItem() {}
 static int g_bOleInitialized = FALSE;
 static int g_nOleLockCount = 0;
 static COleMessageFilter* g_pMessageFilter = nullptr;
+static COleDataSource* g_pClipboardOwner = nullptr;
 
 namespace {
 
@@ -146,6 +148,43 @@ static bool CopyStorageMedium(const STGMEDIUM& source, STGMEDIUM* dest) {
         dest->tymed = TYMED_NULL;
         return false;
     }
+}
+
+static LPOLESTR CopyOleString(const wchar_t* text) {
+    if (!text) return nullptr;
+    const size_t bytes = (wcslen(text) + 1) * sizeof(OLECHAR);
+    LPOLESTR copy = static_cast<LPOLESTR>(CoTaskMemAlloc(bytes));
+    if (copy) memcpy(copy, text, bytes);
+    return copy;
+}
+
+static bool MakeRenderedFileMedium(COleDataSource* source, FORMATETC* format, STGMEDIUM* medium) {
+    if (!source || !medium) return false;
+
+    wchar_t tempPath[MAX_PATH] = {};
+    wchar_t tempName[MAX_PATH] = {};
+    if (!GetTempPathW(MAX_PATH, tempPath)) return false;
+    if (!GetTempFileNameW(tempPath, L"omf", 0, tempName)) return false;
+
+    bool ok = false;
+    {
+        CFile file(tempName, CFile::modeCreate | CFile::modeWrite | CFile::shareDenyNone | CFile::typeBinary);
+        ok = source->OnRenderFileData(format, &file) != 0;
+    }
+
+    if (!ok) {
+        DeleteFileW(tempName);
+        return false;
+    }
+
+    memset(medium, 0, sizeof(*medium));
+    medium->tymed = TYMED_FILE;
+    medium->lpszFileName = CopyOleString(tempName);
+    if (!medium->lpszFileName) {
+        DeleteFileW(tempName);
+        return false;
+    }
+    return true;
 }
 
 static int CountDispatchParams(const BYTE* pbParamInfo) {
@@ -303,6 +342,134 @@ struct DataCacheState {
     std::vector<DataCacheEntry> entries;
 };
 
+class DropTargetAdapter : public IDropTarget {
+public:
+    explicit DropTargetAdapter(COleDropTarget* target) : m_refCount(1), m_target(target) {}
+    virtual ~DropTargetAdapter() {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IDropTarget) {
+            *ppvObject = static_cast<IDropTarget*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        if (ref == 0) delete this;
+        return ref;
+    }
+
+    HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) override;
+    HRESULT STDMETHODCALLTYPE DragOver(DWORD keyState, POINTL point, DWORD* effect) override;
+    HRESULT STDMETHODCALLTYPE DragLeave() override;
+    HRESULT STDMETHODCALLTYPE Drop(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) override;
+
+private:
+    CPoint MakePoint(POINTL point) const { return CPoint(static_cast<int>(point.x), static_cast<int>(point.y)); }
+
+    LONG m_refCount;
+    COleDropTarget* m_target;
+    COleDataObject m_dataObject;
+};
+
+struct DropTargetState {
+    COleDropTarget* target = nullptr;
+    DropTargetAdapter* adapter = nullptr;
+};
+
+struct DocumentState {
+    COleDocument* document = nullptr;
+    std::vector<COleClientItem*> items;
+};
+
+struct ClientItemState {
+    COleClientItem* item = nullptr;
+    LONG activeVerb = OLEIVERB_PRIMARY;
+    BOOL modified = FALSE;
+};
+
+static std::vector<DropTargetState> g_dropTargetStates;
+static std::vector<DocumentState> g_documentStates;
+static std::vector<ClientItemState> g_clientItemStates;
+
+static DropTargetState* GetDropTargetState(COleDropTarget* target, bool create) {
+    if (!target) return nullptr;
+    for (DropTargetState& state : g_dropTargetStates) {
+        if (state.target == target) return &state;
+    }
+    if (!create) return nullptr;
+    g_dropTargetStates.push_back(DropTargetState{target, nullptr});
+    return &g_dropTargetStates.back();
+}
+
+static void RemoveDropTargetState(COleDropTarget* target) {
+    g_dropTargetStates.erase(
+        std::remove_if(g_dropTargetStates.begin(), g_dropTargetStates.end(),
+                       [target](const DropTargetState& state) { return state.target == target; }),
+        g_dropTargetStates.end());
+}
+
+static DocumentState* GetDocumentState(COleDocument* document, bool create) {
+    if (!document) return nullptr;
+    for (DocumentState& state : g_documentStates) {
+        if (state.document == document) return &state;
+    }
+    if (!create) return nullptr;
+    g_documentStates.push_back(DocumentState());
+    g_documentStates.back().document = document;
+    return &g_documentStates.back();
+}
+
+static void RemoveDocumentState(COleDocument* document) {
+    g_documentStates.erase(
+        std::remove_if(g_documentStates.begin(), g_documentStates.end(),
+                       [document](const DocumentState& state) { return state.document == document; }),
+        g_documentStates.end());
+}
+
+static ClientItemState* GetClientItemState(COleClientItem* item, bool create) {
+    if (!item) return nullptr;
+    for (ClientItemState& state : g_clientItemStates) {
+        if (state.item == item) return &state;
+    }
+    if (!create) return nullptr;
+    g_clientItemStates.push_back(ClientItemState());
+    g_clientItemStates.back().item = item;
+    return &g_clientItemStates.back();
+}
+
+static void RemoveClientItemState(COleClientItem* item) {
+    g_clientItemStates.erase(
+        std::remove_if(g_clientItemStates.begin(), g_clientItemStates.end(),
+                       [item](const ClientItemState& state) { return state.item == item; }),
+        g_clientItemStates.end());
+}
+
+static void AddDocumentItem(COleDocument* document, COleClientItem* item) {
+    DocumentState* state = GetDocumentState(document, true);
+    if (!state || !item) return;
+    if (std::find(state->items.begin(), state->items.end(), item) == state->items.end()) {
+        state->items.push_back(item);
+    }
+    item->m_pContainerDoc = document;
+    item->m_pDocument = document;
+}
+
+static void RemoveDocumentItem(COleDocument* document, COleClientItem* item) {
+    DocumentState* state = GetDocumentState(document, false);
+    if (!state || !item) return;
+    state->items.erase(std::remove(state->items.begin(), state->items.end(), item), state->items.end());
+    if (item->m_pContainerDoc == document) item->m_pContainerDoc = nullptr;
+    if (item->m_pDocument == document) item->m_pDocument = nullptr;
+}
+
 static DataCacheState* GetDataCacheState(COleDataSource* source, bool create) {
     if (!source) return nullptr;
     DataCacheState* state = static_cast<DataCacheState*>(source->m_pDataCache);
@@ -341,6 +508,8 @@ HRESULT DataSourceDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmediu
         if (entry->delayRender && m_state->owner->OnRenderGlobalData(&entry->format, reinterpret_cast<void**>(&entry->medium.hGlobal))) {
             entry->medium.tymed = TYMED_HGLOBAL;
             entry->medium.pUnkForRelease = nullptr;
+            entry->hasMedium = true;
+        } else if (entry->delayRenderFile && MakeRenderedFileMedium(m_state->owner, &entry->format, &entry->medium)) {
             entry->hasMedium = true;
         } else {
             return DATA_E_FORMATETC;
@@ -396,6 +565,7 @@ HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** 
 class DropSourceAdapter : public IDropSource {
 public:
     explicit DropSourceAdapter(COleDropSource* source) : m_refCount(1), m_source(source) {}
+    virtual ~DropSourceAdapter() {}
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
         if (!ppvObject) return E_POINTER;
         if (riid == IID_IUnknown || riid == IID_IDropSource) {
@@ -423,6 +593,50 @@ private:
     LONG m_refCount;
     COleDropSource* m_source;
 };
+
+HRESULT DropTargetAdapter::DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
+    if (!effect) return E_POINTER;
+    *effect = DROPEFFECT_NONE;
+    if (!m_target) return S_OK;
+
+    m_dataObject.Release();
+    if (dataObject) m_dataObject.Attach(dataObject, FALSE);
+    *effect = m_target->OnDragEnter(m_target->m_pWnd, &m_dataObject, keyState, MakePoint(point));
+    return S_OK;
+}
+
+HRESULT DropTargetAdapter::DragOver(DWORD keyState, POINTL point, DWORD* effect) {
+    if (!effect) return E_POINTER;
+    *effect = m_target ? m_target->OnDragOver(m_target->m_pWnd, &m_dataObject, keyState, MakePoint(point)) : DROPEFFECT_NONE;
+    return S_OK;
+}
+
+HRESULT DropTargetAdapter::DragLeave() {
+    if (m_target) m_target->OnDragLeave(m_target->m_pWnd);
+    m_dataObject.Release();
+    return S_OK;
+}
+
+HRESULT DropTargetAdapter::Drop(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
+    if (!effect) return E_POINTER;
+    DROPEFFECT requested = *effect;
+    *effect = DROPEFFECT_NONE;
+    if (!m_target) return S_OK;
+
+    COleDataObject dropData;
+    COleDataObject* data = &m_dataObject;
+    if (dataObject) {
+        dropData.Attach(dataObject, FALSE);
+        data = &dropData;
+    }
+
+    if (m_target->OnDrop(m_target->m_pWnd, data, requested, MakePoint(point))) {
+        *effect = requested;
+    }
+    m_dataObject.Release();
+    (void)keyState;
+    return S_OK;
+}
 
 } // namespace
 
@@ -735,32 +949,52 @@ void COleDataSource::CacheData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, 
 void COleDataSource::DelayRenderData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
     DataCacheState* state = GetDataCacheState(this, true);
     if (!state) return;
-    state->entries.push_back(DataCacheEntry());
-    DataCacheEntry& entry = state->entries.back();
-    entry.format = MakeFormatEtc(cfFormat, lpFormatEtc);
-    entry.delayRender = true;
+    FORMATETC format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    DataCacheEntry* entry = FindCacheEntry(state, format);
+    if (!entry) {
+        state->entries.push_back(DataCacheEntry());
+        entry = &state->entries.back();
+    } else if (entry->hasMedium) {
+        ReleaseStgMedium(&entry->medium);
+        entry->hasMedium = false;
+    }
+    entry->format = format;
+    entry->delayRender = true;
+    entry->delayRenderFile = false;
 }
 
 void COleDataSource::DelayRenderFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
     DataCacheState* state = GetDataCacheState(this, true);
     if (!state) return;
-    state->entries.push_back(DataCacheEntry());
-    DataCacheEntry& entry = state->entries.back();
-    entry.format = MakeFormatEtc(cfFormat, lpFormatEtc);
-    entry.delayRender = true;
-    entry.delayRenderFile = true;
+    FORMATETC format = MakeFormatEtc(cfFormat, lpFormatEtc);
+    format.tymed = TYMED_FILE;
+    DataCacheEntry* entry = FindCacheEntry(state, format);
+    if (!entry) {
+        state->entries.push_back(DataCacheEntry());
+        entry = &state->entries.back();
+    } else if (entry->hasMedium) {
+        ReleaseStgMedium(&entry->medium);
+        entry->hasMedium = false;
+    }
+    entry->format = format;
+    entry->delayRender = false;
+    entry->delayRenderFile = true;
 }
 
 void COleDataSource::SetClipboard() {
     IDataObject* dataObject = GetInterface(TRUE);
     if (dataObject && SUCCEEDED(OleSetClipboard(dataObject))) {
+        if (g_pClipboardOwner && g_pClipboardOwner != this) {
+            g_pClipboardOwner->m_bClipboardOwner = FALSE;
+        }
+        g_pClipboardOwner = this;
         m_bClipboardOwner = TRUE;
     }
     if (dataObject) dataObject->Release();
 }
 
 COleDataSource* COleDataSource::GetClipboardOwner() {
-    return nullptr;
+    return g_pClipboardOwner;
 }
 
 DROPEFFECT COleDataSource::DoDragDrop(DWORD dwEffects, LPCRECT lpRectStartDrag,
@@ -791,6 +1025,7 @@ int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
 }
 
 void COleDataSource::Empty() {
+    if (g_pClipboardOwner == this) g_pClipboardOwner = nullptr;
     delete static_cast<DataCacheState*>(m_pDataCache);
     m_pDataCache = nullptr;
     m_bClipboardOwner = FALSE;
@@ -821,19 +1056,32 @@ BOOL COleDropTarget::Register(CWnd* pWnd) {
     if (m_bRegistered) return TRUE;
     if (!pWnd || !pWnd->GetSafeHwnd()) return FALSE;
     m_pWnd = pWnd;
-    HRESULT hr = RegisterDragDrop(pWnd->GetSafeHwnd(), (IDropTarget*)this);
+    DropTargetState* state = GetDropTargetState(this, true);
+    if (!state) return FALSE;
+    state->adapter = new DropTargetAdapter(this);
+    HRESULT hr = RegisterDragDrop(pWnd->GetSafeHwnd(), state->adapter);
     if (SUCCEEDED(hr)) {
         m_bRegistered = TRUE;
         return TRUE;
     }
+    state->adapter->Release();
+    state->adapter = nullptr;
+    RemoveDropTargetState(this);
+    m_pWnd = nullptr;
     return FALSE;
 }
 
 void COleDropTarget::Revoke() {
+    DropTargetState* state = GetDropTargetState(this, false);
     if (m_bRegistered && m_pWnd) {
         RevokeDragDrop(m_pWnd->GetSafeHwnd());
         m_bRegistered = FALSE;
     }
+    if (state && state->adapter) {
+        state->adapter->Release();
+        state->adapter = nullptr;
+    }
+    RemoveDropTargetState(this);
     m_pWnd = nullptr;
 }
 
@@ -1177,30 +1425,53 @@ COleDocument::COleDocument()
 }
 
 COleDocument::~COleDocument() {
+    DocumentState* state = GetDocumentState(this, false);
+    if (state) {
+        for (COleClientItem* item : state->items) {
+            if (item && item->m_pContainerDoc == this) item->m_pContainerDoc = nullptr;
+            if (item && item->m_pDocument == this) item->m_pDocument = nullptr;
+        }
+    }
+    RemoveDocumentState(this);
 }
 
 void COleDocument::AddItem(COleClientItem* pItem) {
-    (void)pItem;
+    if (pItem) AddDocumentItem(this, pItem);
 }
 
 void COleDocument::RemoveItem(COleClientItem* pItem) {
-    (void)pItem;
+    RemoveDocumentItem(this, pItem);
 }
 
 COleClientItem* COleDocument::GetStartPosition() const {
-    return nullptr;
+    DocumentState* state = GetDocumentState(const_cast<COleDocument*>(this), false);
+    if (!state || state->items.empty()) return nullptr;
+    return reinterpret_cast<COleClientItem*>(static_cast<uintptr_t>(1));
 }
 
 COleClientItem* COleDocument::GetNextClientItem(POSITION& pos) const {
-    return nullptr;
+    DocumentState* state = GetDocumentState(const_cast<COleDocument*>(this), false);
+    uintptr_t index = reinterpret_cast<uintptr_t>(pos);
+    if (!state || index == 0 || index > state->items.size()) {
+        pos = nullptr;
+        return nullptr;
+    }
+    COleClientItem* item = state->items[index - 1];
+    pos = (index < state->items.size())
+        ? reinterpret_cast<POSITION>(index + 1)
+        : nullptr;
+    return item;
 }
 
 COleClientItem* COleDocument::GetPrimarySelectedItem(CView* pView) const {
-    return nullptr;
+    (void)pView;
+    POSITION pos = reinterpret_cast<POSITION>(GetStartPosition());
+    return GetNextClientItem(pos);
 }
 
 int COleDocument::GetItemCount() const {
-    return 0;
+    DocumentState* state = GetDocumentState(const_cast<COleDocument*>(this), false);
+    return state ? static_cast<int>(state->items.size()) : 0;
 }
 
 void COleDocument::EnableCompoundFile(BOOL bEnable) {
@@ -1208,10 +1479,20 @@ void COleDocument::EnableCompoundFile(BOOL bEnable) {
 }
 
 BOOL COleDocument::HasBlankItems() const {
+    DocumentState* state = GetDocumentState(const_cast<COleDocument*>(this), false);
+    if (!state) return FALSE;
+    for (COleClientItem* item : state->items) {
+        if (item && item->GetItemState() == OLE_EMPTY) return TRUE;
+    }
     return FALSE;
 }
 
 BOOL COleDocument::IsInPlaceActive() const {
+    DocumentState* state = GetDocumentState(const_cast<COleDocument*>(this), false);
+    if (!state) return FALSE;
+    for (COleClientItem* item : state->items) {
+        if (item && item->IsInPlaceActive()) return TRUE;
+    }
     return FALSE;
 }
 
@@ -1223,7 +1504,7 @@ COleClientItem* COleDocument::OnGetLinkedItem(const wchar_t* lpszItemName) {
 }
 
 COleClientItem* COleDocument::OnGetEmbeddedItem() {
-    return nullptr;
+    return GetPrimarySelectedItem(nullptr);
 }
 
 void COleDocument::OnEditChangeIcon(COleClientItem* pItem) {
@@ -1335,10 +1616,15 @@ COleClientItem::COleClientItem(COleDocument* pContainerDoc)
       m_pControlSite(nullptr), m_lpFrame(nullptr), m_lpDocFrame(nullptr),
       m_bInPlaceActive(FALSE) {
     memset(_oleclientitem_padding, 0, sizeof(_oleclientitem_padding));
+    m_pDocument = pContainerDoc;
+    GetClientItemState(this, true);
+    if (pContainerDoc) AddDocumentItem(pContainerDoc, this);
 }
 
 COleClientItem::~COleClientItem() {
+    if (m_pContainerDoc) RemoveDocumentItem(m_pContainerDoc, this);
     Close(OLECLOSE_NOSAVE);
+    RemoveClientItemState(this);
 }
 
 BOOL COleClientItem::CreateFromClipboard(OLERENDER render, CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
@@ -1410,9 +1696,34 @@ BOOL COleClientItem::CreateLinkFromClipboard(OLERENDER render, CLIPFORMAT cfForm
 }
 
 void COleClientItem::Activate(LONG nVerb, CView* pView, HWND hwndParent, LPCRECT lpRect, LPCRECT lpClipRect, BOOL bSplit) {
-    (void)nVerb; (void)pView; (void)hwndParent; (void)lpRect; (void)lpClipRect; (void)bSplit;
-    if (m_lpObject) {
-        m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, nullptr, nullptr);
+    (void)lpClipRect; (void)bSplit;
+    if (!m_lpObject) return;
+    HWND parent = hwndParent;
+    if (!parent && pView) parent = pView->GetSafeHwnd();
+    RECT rect = {};
+    LPCRECT rectToUse = lpRect;
+    if (!rectToUse) {
+        CRect itemRect;
+        OnGetItemPosition(itemRect);
+        rect.left = itemRect.left;
+        rect.top = itemRect.top;
+        rect.right = itemRect.right;
+        rect.bottom = itemRect.bottom;
+        rectToUse = &rect;
+    }
+    HRESULT hr = m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, parent, rectToUse);
+    if (SUCCEEDED(hr)) {
+        ClientItemState* state = GetClientItemState(this, true);
+        if (state) state->activeVerb = nVerb;
+        if (m_lpInPlaceObject) {
+            m_lpInPlaceObject->Release();
+            m_lpInPlaceObject = nullptr;
+        }
+        if (SUCCEEDED(m_lpObject->QueryInterface(IID_IOleInPlaceObject, reinterpret_cast<void**>(&m_lpInPlaceObject)))) {
+            m_bInPlaceActive = TRUE;
+        }
+        m_nStatus = OLE_RUNNING;
+        OnActivate();
     }
 }
 
@@ -1423,10 +1734,23 @@ void COleClientItem::Deactivate() {
     m_bInPlaceActive = FALSE;
 }
 
-int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) { (void)lpMsg;
-    if (m_lpObject) {
-        m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, nullptr, nullptr);
+int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) {
+    if (!m_lpObject) return -1;
+    HWND parent = pView ? pView->GetSafeHwnd() : nullptr;
+    CRect rect;
+    OnGetItemPosition(rect);
+    HRESULT hr = m_lpObject->DoVerb(nVerb, lpMsg, nullptr, 0, parent, rect);
+    if (FAILED(hr)) return static_cast<int>(hr);
+    ClientItemState* state = GetClientItemState(this, true);
+    if (state) state->activeVerb = nVerb;
+    if (m_lpInPlaceObject) {
+        m_lpInPlaceObject->Release();
+        m_lpInPlaceObject = nullptr;
     }
+    if (SUCCEEDED(m_lpObject->QueryInterface(IID_IOleInPlaceObject, reinterpret_cast<void**>(&m_lpInPlaceObject)))) {
+        m_bInPlaceActive = TRUE;
+    }
+    m_nStatus = OLE_RUNNING;
     return 0;
 }
 
@@ -1456,6 +1780,8 @@ void COleClientItem::Close(OLE_CLOSE dwCloseOption) {
         m_lpInPlaceObject->Release();
         m_lpInPlaceObject = nullptr;
     }
+    m_bInPlaceActive = FALSE;
+    m_nStatus = OLE_EMPTY;
 }
 
 BOOL COleClientItem::Draw(CDC* pDC, LPCRECT lpBounds, DVASPECT nDrawAspect) {
@@ -1508,7 +1834,9 @@ void COleClientItem::OnGetItemPosition(CRect& rPosition) {
 }
 
 BOOL COleClientItem::OnChangeItemPosition(const CRect& rectPos) {
-    return FALSE;
+    if (!m_lpInPlaceObject) return FALSE;
+    RECT rect = { rectPos.left, rectPos.top, rectPos.right, rectPos.bottom };
+    return SUCCEEDED(m_lpInPlaceObject->SetObjectRects(&rect, &rect));
 }
 
 void COleClientItem::OnDiscardUndoState() {
@@ -2417,10 +2745,25 @@ HRESULT COleClientItem::EnumVerbs(IEnumOLEVERB** ppEnumOleVerb) {
     if (FAILED(hr)) return hr;
     return OleRegEnumVerbs(clsid, ppEnumOleVerb);
 }
-LONG COleClientItem::GetActiveVerb() const { return OLEIVERB_PRIMARY; }
-void COleClientItem::SetActiveVerb(LONG nVerb) { (void)nVerb; }
-BOOL COleClientItem::IsModified() const { return FALSE; }
-void COleClientItem::SetModifiedFlag(BOOL bModified) { (void)bModified; }
+LONG COleClientItem::GetActiveVerb() const {
+    ClientItemState* state = GetClientItemState(const_cast<COleClientItem*>(this), false);
+    return state ? state->activeVerb : OLEIVERB_PRIMARY;
+}
+
+void COleClientItem::SetActiveVerb(LONG nVerb) {
+    ClientItemState* state = GetClientItemState(this, true);
+    if (state) state->activeVerb = nVerb;
+}
+
+BOOL COleClientItem::IsModified() const {
+    ClientItemState* state = GetClientItemState(const_cast<COleClientItem*>(this), false);
+    return state ? state->modified : FALSE;
+}
+
+void COleClientItem::SetModifiedFlag(BOOL bModified) {
+    ClientItemState* state = GetClientItemState(this, true);
+    if (state) state->modified = bModified;
+}
 void COleClientItem::AttachDataObject(COleDataObject& dataObject) const { (void)dataObject; }
 
 //=============================================================================

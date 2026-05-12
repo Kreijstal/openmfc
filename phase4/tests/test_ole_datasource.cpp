@@ -23,6 +23,22 @@ static bool CheckGlobalText(HGLOBAL h, const char* expected) {
     return ok;
 }
 
+class RenderSource : public COleDataSource {
+public:
+    int OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal) override {
+        if (!lpFormatEtc || !phGlobal || lpFormatEtc->cfFormat != CF_TEXT) return 0;
+        *phGlobal = MakeTextGlobal("rendered-data");
+        return *phGlobal != nullptr;
+    }
+
+    int OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) override {
+        if (!lpFormatEtc || !pFile || lpFormatEtc->cfFormat != CF_TEXT) return 0;
+        const char payload[] = "rendered-file";
+        pFile->Write(payload, sizeof(payload));
+        return 1;
+    }
+};
+
 int main() {
     COleDataSource source;
     HGLOBAL sourceData = MakeTextGlobal("openmfc-data");
@@ -66,6 +82,23 @@ int main() {
     }
     ReleaseStgMedium(&medium);
 
+    HGLOBAL replacementData = MakeTextGlobal("replacement-data");
+    if (!replacementData) {
+        std::printf("FAIL: replacement GlobalAlloc failed\n");
+        dataObject->Release();
+        return 1;
+    }
+    source.CacheGlobalData(CF_TEXT, replacementData);
+    GlobalFree(replacementData);
+    memset(&medium, 0, sizeof(medium));
+    if (dataObject->GetData(&fmt, &medium) != S_OK || !CheckGlobalText(medium.hGlobal, "replacement-data")) {
+        std::printf("FAIL: cache replacement did not return newest data\n");
+        if (medium.tymed) ReleaseStgMedium(&medium);
+        dataObject->Release();
+        return 1;
+    }
+    ReleaseStgMedium(&medium);
+
     IEnumFORMATETC* enumFormats = nullptr;
     if (dataObject->EnumFormatEtc(DATADIR_GET, &enumFormats) != S_OK || !enumFormats) {
         std::printf("FAIL: EnumFormatEtc failed\n");
@@ -103,6 +136,54 @@ int main() {
     cloned->Release();
     enumFormats->Release();
     dataObject->Release();
+
+    RenderSource renderSource;
+    renderSource.DelayRenderData(CF_TEXT);
+    IDataObject* renderObject = renderSource.GetInterface(TRUE);
+    if (!renderObject) {
+        std::printf("FAIL: delayed render GetInterface returned null\n");
+        return 1;
+    }
+    memset(&medium, 0, sizeof(medium));
+    if (renderObject->GetData(&fmt, &medium) != S_OK || !CheckGlobalText(medium.hGlobal, "rendered-data")) {
+        std::printf("FAIL: delayed global render did not return expected data\n");
+        if (medium.tymed) ReleaseStgMedium(&medium);
+        renderObject->Release();
+        return 1;
+    }
+    ReleaseStgMedium(&medium);
+    renderObject->Release();
+
+    RenderSource fileSource;
+    FORMATETC fileFmt = fmt;
+    fileFmt.tymed = TYMED_FILE;
+    fileSource.DelayRenderFileData(CF_TEXT, &fileFmt);
+    IDataObject* fileObject = fileSource.GetInterface(TRUE);
+    if (!fileObject) {
+        std::printf("FAIL: delayed file GetInterface returned null\n");
+        return 1;
+    }
+    memset(&medium, 0, sizeof(medium));
+    if (fileObject->GetData(&fileFmt, &medium) != S_OK || medium.tymed != TYMED_FILE || !medium.lpszFileName) {
+        std::printf("FAIL: delayed file render did not return TYMED_FILE\n");
+        if (medium.tymed) ReleaseStgMedium(&medium);
+        fileObject->Release();
+        return 1;
+    }
+    HANDLE hFile = CreateFileW(medium.lpszFileName, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    char fileBuffer[32] = {};
+    DWORD read = 0;
+    BOOL readOk = hFile != INVALID_HANDLE_VALUE && ReadFile(hFile, fileBuffer, sizeof(fileBuffer), &read, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
+    DeleteFileW(medium.lpszFileName);
+    if (!readOk || strcmp(fileBuffer, "rendered-file") != 0) {
+        std::printf("FAIL: delayed file render contents mismatch\n");
+        ReleaseStgMedium(&medium);
+        fileObject->Release();
+        return 1;
+    }
+    ReleaseStgMedium(&medium);
+    fileObject->Release();
 
     std::printf("OK: COleDataSource IDataObject tests passed\n");
     return 0;
