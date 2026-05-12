@@ -151,7 +151,7 @@ jobs:
     - uses: actions/checkout@v6
     
     - name: Download Phase 4 artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: abi-safety-msvc-artifact
         path: phase4-artifacts
@@ -232,7 +232,7 @@ jobs:
     - uses: actions/checkout@v6
 
     - name: Download Phase 4 artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: abi-safety-report
         path: build-phase4
