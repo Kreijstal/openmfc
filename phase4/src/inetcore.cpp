@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cwchar>
 #include <new>
+#include <vector>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -432,20 +433,21 @@ int CInternetFile::SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen, DWO
 
 wchar_t* CInternetFile::ReadString(wchar_t* pstr, UINT nMax) {
     if (!pstr || nMax == 0) return nullptr;
-    UINT i = 0;
-    for (; i + 1 < nMax; ++i) {
+    std::vector<char> bytes;
+    bytes.reserve(nMax);
+    for (UINT i = 0; i + 1 < nMax; ++i) {
         char ch = 0;
-        if (Read(&ch, 1) != 1) {
-            break;
-        }
-        pstr[i] = (wchar_t)(unsigned char)ch;
-        if (ch == '\n') {
-            ++i;
-            break;
-        }
+        if (Read(&ch, 1) != 1) break;
+        bytes.push_back(ch);
+        if (ch == '\n') break;
     }
-    if (i == 0) return nullptr;
-    pstr[i] = L'\0';
+    if (bytes.empty()) return nullptr;
+    bytes.push_back('\0');
+    int converted = MultiByteToWideChar(CP_ACP, 0, bytes.data(), -1, pstr, (int)nMax);
+    if (converted <= 0) {
+        pstr[0] = L'\0';
+        return nullptr;
+    }
     return pstr;
 }
 
@@ -462,7 +464,13 @@ int CInternetFile::ReadString(CString& rString) {
 
 void CInternetFile::WriteString(const wchar_t* pstr) {
     if (!pstr) return;
-    Write(pstr, (UINT)(wcslen(pstr) * sizeof(wchar_t)));
+    int bytesNeeded = WideCharToMultiByte(CP_ACP, 0, pstr, -1, nullptr, 0, nullptr, nullptr);
+    if (bytesNeeded <= 1) return;
+    std::vector<char> bytes((size_t)bytesNeeded);
+    if (!WideCharToMultiByte(CP_ACP, 0, pstr, -1, bytes.data(), bytesNeeded, nullptr, nullptr)) {
+        return;
+    }
+    Write(bytes.data(), (UINT)(bytesNeeded - 1));
 }
 
 int CInternetFile::SetReadBufferSize(UINT nReadSize) {
@@ -696,8 +704,7 @@ int CFtpConnection::GetCurrentDirectoryAsURL(wchar_t* pstrDirName, DWORD* pdwLen
         *pdwLen = needed;
         return FALSE;
     }
-    wcsncpy(pstrDirName, (const wchar_t*)strDirName, needed);
-    pstrDirName[needed - 1] = L'\0';
+    wmemcpy(pstrDirName, (const wchar_t*)strDirName, needed);
     *pdwLen = needed;
     return TRUE;
 }
@@ -864,15 +871,13 @@ int CInternetSession::GetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCooki
         strCookieData.Empty();
         return FALSE;
     }
-    wchar_t* buf = (wchar_t*)malloc(dwLen * sizeof(wchar_t));
-    if (!buf) return FALSE;
-    int ok = GetCookie(pstrUrl, pstrCookieName, buf, dwLen);
+    std::vector<wchar_t> buf(dwLen, L'\0');
+    int ok = GetCookie(pstrUrl, pstrCookieName, buf.data(), dwLen);
     if (ok) {
-        strCookieData = buf;
+        strCookieData = buf.data();
     } else {
         strCookieData.Empty();
     }
-    free(buf);
     return ok;
 }
 
