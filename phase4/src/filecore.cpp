@@ -8,6 +8,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+#include <cerrno>
+#include <io.h>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -497,14 +499,14 @@ void CStdioFile::Close() {
     }
 }
 
-bool CStdioFile::ReadString(wchar_t* lpsz, UINT nMax) {
-    if (!m_pStream || !lpsz || nMax == 0) return false;
-    return fgetws(lpsz, nMax, m_pStream) != nullptr;
+wchar_t* CStdioFile::ReadString(wchar_t* lpsz, UINT nMax) {
+    if (!m_pStream || !lpsz || nMax == 0) return nullptr;
+    return fgetws(lpsz, nMax, m_pStream);
 }
 
-bool CStdioFile::ReadString(CString& rString) {
+int CStdioFile::ReadString(CString& rString) {
     rString.Empty();
-    if (!m_pStream) return false;
+    if (!m_pStream) return 0;
 
     wchar_t buf[256];
     while (fgetws(buf, 256, m_pStream)) {
@@ -515,7 +517,7 @@ bool CStdioFile::ReadString(CString& rString) {
             break;
         }
     }
-    return rString.GetLength() > 0;
+    return rString.GetLength() > 0 ? 1 : 0;
 }
 
 void CStdioFile::WriteString(const wchar_t* lpsz) {
@@ -920,7 +922,7 @@ extern "C" void MS_ABI impl__Abort_CFile__UEAAXXZ(void* pThis) {
 // Symbol: ?GetFileName@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" void MS_ABI impl__GetFileName_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* ret) {
     CFile* self = static_cast<CFile*>(pThis);
-    new(ret) CString(self->m_strFileName);
+    new(ret) CString(self->GetFileName());
 }
 
 // Symbol: ?Duplicate@CFile@@UEBAPEAV1@XZ
@@ -934,4 +936,408 @@ extern "C" void* MS_ABI impl__Duplicate_CFile__UEBAPEAV1_XZ(void* pThis) {
     }
     pDup->m_hFile = hDup;
     return pDup;
+}
+
+struct CFileAccessor : CFile {
+    static void CommonInitImpl(CFile* pFile, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
+        static_cast<CFileAccessor*>(pFile)->CommonInit(lpszFileName, nOpenFlags, pTM);
+    }
+};
+
+struct CMemFileAccessor : CMemFile {
+    static UINT& Position(CMemFile* pFile) { return static_cast<CMemFileAccessor*>(pFile)->m_nPosition; }
+    static UINT Position(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nPosition; }
+    static UINT GrowBytes(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nGrowBytes; }
+    static BYTE* Buffer(CMemFile* pFile) { return static_cast<CMemFileAccessor*>(pFile)->m_lpBuffer; }
+    static const BYTE* Buffer(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_lpBuffer; }
+    static UINT BufferSize(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nBufferSize; }
+};
+
+struct CStdioFileAccessor : CStdioFile {
+    static FILE*& Stream(CStdioFile* pFile) { return static_cast<CStdioFileAccessor*>(pFile)->m_pStream; }
+    static FILE* Stream(const CStdioFile* pFile) { return static_cast<const CStdioFileAccessor*>(pFile)->m_pStream; }
+};
+
+// Symbol: ?GetFilePath@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFilePath_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* ret) {
+    CFile* self = static_cast<CFile*>(pThis);
+    new(ret) CString(self->GetFilePath());
+}
+
+// Symbol: ?GetFileTitle@CFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileTitle_CFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* pThis, void* ret) {
+    CFile* self = static_cast<CFile*>(pThis);
+    new(ret) CString(self->GetFileTitle());
+}
+
+// Symbol: ?GetBufferPtr@CFile@@UEAAIIIPEAPEAX0@Z
+extern "C" unsigned int MS_ABI impl__GetBufferPtr_CFile__UEAAIIIPEAPEAX0_Z(
+    void* /*pThis*/, unsigned int /*nCommand*/, unsigned int /*nCount*/, void** ppBufStart, void** ppBufMax) {
+    if (ppBufStart) *ppBufStart = nullptr;
+    if (ppBufMax) *ppBufMax = nullptr;
+    return 0;
+}
+
+// Symbol: ?CommonBaseInit@CFile@@IEAAXPEAXPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__CommonBaseInit_CFile__IEAAXPEAXPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, void* hFile, void* /*pTM*/) {
+    CFile* self = static_cast<CFile*>(pThis);
+    self->m_hFile = hFile ? hFile : (void*)INVALID_HANDLE_VALUE;
+}
+
+// Symbol: ?Open@CFile@@UEAAHPEB_WIPEAVCFileException@@@Z
+extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* /*pException*/) {
+    CFile* self = static_cast<CFile*>(pThis);
+    CFileAccessor::CommonInitImpl(self, lpszFileName, nOpenFlags, nullptr);
+    return self->m_hFile != (void*)INVALID_HANDLE_VALUE ? 1 : 0;
+}
+
+// Symbol: ?Open@CFile@@UEAAHPEB_WIPEAVCAtlTransactionManager@ATL@@PEAVCFileException@@@Z
+extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM, void* pException) {
+    (void)pTM;
+    return impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(pThis, lpszFileName, nOpenFlags, pException);
+}
+
+// Symbol: ?LockRange@CFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__LockRange_CFile__UEAAX_K0_Z(void* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    CFile* self = static_cast<CFile*>(pThis);
+    if (self->m_hFile == (void*)INVALID_HANDLE_VALUE) return;
+    OVERLAPPED ov = {};
+    ov.Offset = static_cast<DWORD>(dwPos & 0xFFFFFFFFULL);
+    ov.OffsetHigh = static_cast<DWORD>(dwPos >> 32);
+    LockFileEx((HANDLE)self->m_hFile, LOCKFILE_EXCLUSIVE_LOCK, 0,
+               static_cast<DWORD>(dwCount & 0xFFFFFFFFULL), static_cast<DWORD>(dwCount >> 32), &ov);
+}
+
+// Symbol: ?UnlockRange@CFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__UnlockRange_CFile__UEAAX_K0_Z(void* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    CFile* self = static_cast<CFile*>(pThis);
+    if (self->m_hFile == (void*)INVALID_HANDLE_VALUE) return;
+    OVERLAPPED ov = {};
+    ov.Offset = static_cast<DWORD>(dwPos & 0xFFFFFFFFULL);
+    ov.OffsetHigh = static_cast<DWORD>(dwPos >> 32);
+    UnlockFileEx((HANDLE)self->m_hFile, 0,
+                 static_cast<DWORD>(dwCount & 0xFFFFFFFFULL), static_cast<DWORD>(dwCount >> 32), &ov);
+}
+
+// Symbol: ?GetStatus@CFile@@SAHPEB_WAEAUCFileStatus@@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" int MS_ABI impl__GetStatus_CFile__SAHPEB_WAEAUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(
+    const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM) {
+    return CFile::GetStatus(lpszFileName, rStatus, pTM);
+}
+
+// Symbol: ?GetThisClass@CFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFile__SAPEAUCRuntimeClass__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFile__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+extern "C" void* openmfc_cfile_hFileNull = (void*)INVALID_HANDLE_VALUE;
+// Symbol: ?hFileNull@CFile@@2QEAXEA
+#ifdef __GNUC__
+asm(".globl \"?hFileNull@CFile@@2QEAXEA\"\n"
+    ".set \"?hFileNull@CFile@@2QEAXEA\", openmfc_cfile_hFileNull\n");
+#endif
+
+// Symbol: ?GetPosition@CMemFile@@UEBA_KXZ
+extern "C" unsigned long long MS_ABI impl__GetPosition_CMemFile__UEBA_KXZ(const CMemFile* pThis) {
+    return pThis ? CMemFileAccessor::Position(pThis) : 0;
+}
+
+// Symbol: ?Abort@CMemFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Abort_CMemFile__UEAAXXZ(CMemFile* pThis) {
+    if (!pThis) return;
+    CMemFileAccessor::Position(pThis) = 0;
+}
+
+// Symbol: ?Close@CMemFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Close_CMemFile__UEAAXXZ(CMemFile* pThis) {
+    if (!pThis) return;
+    CMemFileAccessor::Position(pThis) = 0;
+}
+
+// Symbol: ?Duplicate@CMemFile@@UEBAPEAVCFile@@XZ
+extern "C" CFile* MS_ABI impl__Duplicate_CMemFile__UEBAPEAVCFile__XZ(const CMemFile* pThis) {
+    if (!pThis) return nullptr;
+    CMemFile* pDup = new CMemFile(CMemFileAccessor::GrowBytes(pThis));
+    ULONGLONG len = pThis->GetLength();
+    if (len > 0) {
+        pDup->SetLength(len);
+        memcpy(CMemFileAccessor::Buffer(pDup), CMemFileAccessor::Buffer(pThis), static_cast<size_t>(len));
+    }
+    CMemFileAccessor::Position(pDup) = CMemFileAccessor::Position(pThis);
+    return pDup;
+}
+
+// Symbol: ?GetBufferPtr@CMemFile@@UEAAIIIPEAPEAX0@Z
+extern "C" unsigned int MS_ABI impl__GetBufferPtr_CMemFile__UEAAIIIPEAPEAX0_Z(
+    CMemFile* pThis, unsigned int /*nCommand*/, unsigned int nCount, void** ppBufStart, void** ppBufMax) {
+    if (!pThis) return 0;
+    if (ppBufStart) {
+        BYTE* buf = CMemFileAccessor::Buffer(pThis);
+        UINT pos = CMemFileAccessor::Position(pThis);
+        UINT size = CMemFileAccessor::BufferSize(pThis);
+        *ppBufStart = (buf && pos < size) ? (void*)(buf + pos) : nullptr;
+    }
+    if (ppBufMax) {
+        BYTE* buf = CMemFileAccessor::Buffer(pThis);
+        *ppBufMax = buf ? (void*)(buf + CMemFileAccessor::BufferSize(pThis)) : nullptr;
+    }
+    UINT pos = CMemFileAccessor::Position(pThis);
+    UINT size = CMemFileAccessor::BufferSize(pThis);
+    UINT nAvail = (pos < size) ? (size - pos) : 0;
+    return (nCount < nAvail) ? nCount : nAvail;
+}
+
+// Symbol: ?GetStatus@CMemFile@@QEBAHAEAUCFileStatus@@@Z
+extern "C" int MS_ABI impl__GetStatus_CMemFile__QEBAHAEAUCFileStatus___Z(const CMemFile* pThis, CFileStatus& rStatus) {
+    if (!pThis) return 0;
+    memset(&rStatus, 0, sizeof(rStatus));
+    rStatus.m_size = pThis->GetLength();
+    return 1;
+}
+
+// Symbol: ?Alloc@CMemFile@@MEAAPEAE_K@Z
+extern "C" unsigned char* MS_ABI impl__Alloc_CMemFile__MEAAPEAE_K_Z(CMemFile* /*pThis*/, unsigned long long nBytes) {
+    return static_cast<unsigned char*>(malloc(static_cast<size_t>(nBytes)));
+}
+
+// Symbol: ?Realloc@CMemFile@@MEAAPEAEPEAE_K@Z
+extern "C" unsigned char* MS_ABI impl__Realloc_CMemFile__MEAAPEAEPEAE_K_Z(
+    CMemFile* /*pThis*/, unsigned char* pMem, unsigned long long nBytes) {
+    return static_cast<unsigned char*>(realloc(pMem, static_cast<size_t>(nBytes)));
+}
+
+// Symbol: ?Free@CMemFile@@MEAAXPEAE@Z
+extern "C" void MS_ABI impl__Free_CMemFile__MEAAXPEAE_Z(CMemFile* /*pThis*/, unsigned char* pMem) {
+    free(pMem);
+}
+
+// Symbol: ?Memcpy@CMemFile@@MEAAPEAEPEAEPEBE_K@Z
+extern "C" unsigned char* MS_ABI impl__Memcpy_CMemFile__MEAAPEAEPEAEPEBE_K_Z(
+    CMemFile* /*pThis*/, unsigned char* pDest, unsigned char* pOrigDest, const unsigned char* pSrc, unsigned long long nBytes) {
+    (void)pOrigDest;
+    if (!pDest || !pSrc) return pDest;
+    return static_cast<unsigned char*>(memcpy(pDest, pSrc, static_cast<size_t>(nBytes)));
+}
+
+// Symbol: ?GrowFile@CMemFile@@MEAAX_K@Z
+extern "C" void MS_ABI impl__GrowFile_CMemFile__MEAAX_K_Z(CMemFile* pThis, unsigned long long dwNewLen) {
+    if (!pThis) return;
+    pThis->SetLength(dwNewLen);
+}
+
+// Symbol: ?LockRange@CMemFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/, unsigned long long /*dwPos*/, unsigned long long /*dwCount*/) {}
+
+// Symbol: ?UnlockRange@CMemFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/, unsigned long long /*dwPos*/, unsigned long long /*dwCount*/) {}
+
+// Symbol: ?GetThisClass@CMemFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemFile__SAPEAUCRuntimeClass__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CMemFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemFile__UEBAPEAUCRuntimeClass__XZ(const CMemFile* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+static void OpenStdioFile(CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags) {
+    if (!pThis) return;
+    FILE*& stream = CStdioFileAccessor::Stream(pThis);
+    if (stream) {
+        fclose(stream);
+        stream = nullptr;
+    }
+    if (!lpszFileName) return;
+    wchar_t szMode[4] = {0};
+    int idx = 0;
+    bool bText = (nOpenFlags & CFile::typeText) != 0;
+    unsigned int accessMode = nOpenFlags & 0x0003;
+    if (accessMode == CFile::modeRead) szMode[idx++] = L'r';
+    else if (accessMode == CFile::modeWrite) szMode[idx++] = L'w';
+    else { szMode[idx++] = (nOpenFlags & CFile::modeCreate) ? L'w' : L'r'; szMode[idx++] = L'+'; }
+    if (!bText) szMode[idx++] = L'b';
+    stream = _wfopen(lpszFileName, szMode);
+    pThis->m_hFile = (void*)INVALID_HANDLE_VALUE;
+    if (stream) {
+        int fd = _fileno(stream);
+        if (fd >= 0) {
+            pThis->m_hFile = (void*)_get_osfhandle(fd);
+        }
+    }
+    pThis->m_strFileName = lpszFileName;
+}
+
+// Symbol: ?CommonBaseInit@CStdioFile@@IEAAXPEAU_iobuf@@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(
+    CStdioFile* pThis, FILE* pStream, void* /*pTM*/) {
+    if (!pThis) return;
+    CStdioFileAccessor::Stream(pThis) = pStream;
+    pThis->m_hFile = (void*)INVALID_HANDLE_VALUE;
+    if (CStdioFileAccessor::Stream(pThis)) {
+        int fd = _fileno(CStdioFileAccessor::Stream(pThis));
+        if (fd >= 0) pThis->m_hFile = (void*)_get_osfhandle(fd);
+    }
+}
+
+// Symbol: ?CommonInit@CStdioFile@@IEAAXPEB_WIPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* /*pTM*/) {
+    OpenStdioFile(pThis, lpszFileName, nOpenFlags);
+}
+
+// Symbol: ?Open@CStdioFile@@UEAAHPEB_WIPEAVCFileException@@@Z
+extern "C" int MS_ABI impl__Open_CStdioFile__UEAAHPEB_WIPEAVCFileException___Z(
+    CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* /*pException*/) {
+    OpenStdioFile(pThis, lpszFileName, nOpenFlags);
+    return (pThis && CStdioFileAccessor::Stream(pThis)) ? 1 : 0;
+}
+
+// Symbol: ?Open@CStdioFile@@UEAAHPEB_WIPEAVCAtlTransactionManager@ATL@@PEAVCFileException@@@Z
+extern "C" int MS_ABI impl__Open_CStdioFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+    CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM, void* pException) {
+    (void)pTM;
+    return impl__Open_CStdioFile__UEAAHPEB_WIPEAVCFileException___Z(pThis, lpszFileName, nOpenFlags, pException);
+}
+
+// Symbol: ?Abort@CStdioFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Abort_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
+    if (pThis) pThis->Close();
+}
+
+// Symbol: ?Duplicate@CStdioFile@@UEBAPEAVCFile@@XZ
+extern "C" CFile* MS_ABI impl__Duplicate_CStdioFile__UEBAPEAVCFile__XZ(const CStdioFile* pThis) {
+    if (!pThis || !CStdioFileAccessor::Stream(pThis)) return nullptr;
+    int fd = _fileno(CStdioFileAccessor::Stream(pThis));
+    if (fd < 0) return nullptr;
+    int dupFd = _dup(fd);
+    if (dupFd < 0) return nullptr;
+    FILE* dupStream = _fdopen(dupFd, "rb+");
+    if (!dupStream) return nullptr;
+    CStdioFile* pDup = new CStdioFile();
+    CStdioFileAccessor::Stream(pDup) = dupStream;
+    pDup->m_hFile = (void*)_get_osfhandle(dupFd);
+    pDup->m_strFileName = pThis->m_strFileName;
+    return pDup;
+}
+
+// Symbol: ?GetLength@CStdioFile@@UEBA_KXZ
+extern "C" unsigned long long MS_ABI impl__GetLength_CStdioFile__UEBA_KXZ(const CStdioFile* pThis) {
+    if (!pThis || !CStdioFileAccessor::Stream(pThis)) return 0;
+    FILE* stream = CStdioFileAccessor::Stream(pThis);
+    __int64 cur = _ftelli64(stream);
+    if (cur < 0) return 0;
+    if (_fseeki64(stream, 0, SEEK_END) != 0) return 0;
+    __int64 len = _ftelli64(stream);
+    _fseeki64(stream, cur, SEEK_SET);
+    return len > 0 ? static_cast<unsigned long long>(len) : 0;
+}
+
+// Symbol: ?GetPosition@CStdioFile@@UEBA_KXZ
+extern "C" unsigned long long MS_ABI impl__GetPosition_CStdioFile__UEBA_KXZ(const CStdioFile* pThis) {
+    if (!pThis || !CStdioFileAccessor::Stream(pThis)) return 0;
+    __int64 pos = _ftelli64(CStdioFileAccessor::Stream(pThis));
+    return pos > 0 ? static_cast<unsigned long long>(pos) : 0;
+}
+
+// Symbol: ?ReadString@CStdioFile@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__ReadString_CStdioFile__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CStdioFile* pThis, CString& rString) {
+    return pThis ? pThis->ReadString(rString) : 0;
+}
+
+// Symbol: ?LockRange@CStdioFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__LockRange_CStdioFile__UEAAX_K0_Z(CStdioFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    if (!pThis || !CStdioFileAccessor::Stream(pThis)) return;
+    HANDLE h = (HANDLE)_get_osfhandle(_fileno(CStdioFileAccessor::Stream(pThis)));
+    if (h == INVALID_HANDLE_VALUE) return;
+    OVERLAPPED ov = {};
+    ov.Offset = static_cast<DWORD>(dwPos & 0xFFFFFFFFULL);
+    ov.OffsetHigh = static_cast<DWORD>(dwPos >> 32);
+    LockFileEx(h, LOCKFILE_EXCLUSIVE_LOCK, 0,
+               static_cast<DWORD>(dwCount & 0xFFFFFFFFULL), static_cast<DWORD>(dwCount >> 32), &ov);
+}
+
+// Symbol: ?UnlockRange@CStdioFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__UnlockRange_CStdioFile__UEAAX_K0_Z(CStdioFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    if (!pThis || !CStdioFileAccessor::Stream(pThis)) return;
+    HANDLE h = (HANDLE)_get_osfhandle(_fileno(CStdioFileAccessor::Stream(pThis)));
+    if (h == INVALID_HANDLE_VALUE) return;
+    OVERLAPPED ov = {};
+    ov.Offset = static_cast<DWORD>(dwPos & 0xFFFFFFFFULL);
+    ov.OffsetHigh = static_cast<DWORD>(dwPos >> 32);
+    UnlockFileEx(h, 0,
+                 static_cast<DWORD>(dwCount & 0xFFFFFFFFULL), static_cast<DWORD>(dwCount >> 32), &ov);
+}
+
+// Symbol: ?GetThisClass@CStdioFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CStdioFile__SAPEAUCRuntimeClass__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CStdioFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CStdioFile__UEBAPEAUCRuntimeClass__XZ(const CStdioFile* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ();
+extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(int cause, long lOsError, const wchar_t* lpszFileName);
+
+static int FileExceptionFromErrno(int nErrno) {
+    switch (nErrno) {
+        case ENOENT: return 2;
+        case EACCES: return 5;
+        case EMFILE: return 4;
+        case ENOSPC: return 13;
+        default: return 1;
+    }
+}
+
+static int FileExceptionFromOsError(long lOsError) {
+    switch (lOsError) {
+        case ERROR_FILE_NOT_FOUND:
+        case ERROR_PATH_NOT_FOUND: return 2;
+        case ERROR_ACCESS_DENIED: return 5;
+        case ERROR_SHARING_VIOLATION: return 10;
+        case ERROR_LOCK_VIOLATION: return 11;
+        case ERROR_DISK_FULL: return 13;
+        default: return 1;
+    }
+}
+
+// Symbol: ?ErrnoToException@CFileException@@SAHH@Z
+extern "C" int MS_ABI impl__ErrnoToException_CFileException__SAHH_Z(int nErrno) {
+    return FileExceptionFromErrno(nErrno);
+}
+
+// Symbol: ?OsErrorToException@CFileException@@SAHJ@Z
+extern "C" int MS_ABI impl__OsErrorToException_CFileException__SAHJ_Z(long lOsError) {
+    return FileExceptionFromOsError(lOsError);
+}
+
+// Symbol: ?ThrowErrno@CFileException@@SAXHPEB_W@Z
+extern "C" void MS_ABI impl__ThrowErrno_CFileException__SAXHPEB_W_Z(int nErrno, const wchar_t* lpszFileName) {
+    impl__AfxThrowFileException__YAXHJPEB_W_Z(FileExceptionFromErrno(nErrno), static_cast<long>(nErrno), lpszFileName);
+}
+
+// Symbol: ?ThrowOsError@CFileException@@SAXJPEB_W@Z
+extern "C" void MS_ABI impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long lOsError, const wchar_t* lpszFileName) {
+    impl__AfxThrowFileException__YAXHJPEB_W_Z(FileExceptionFromOsError(lOsError), lOsError, lpszFileName);
+}
+
+// Symbol: ?GetRuntimeClass@CFileException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileException__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {
+    (void)pThis;
+    return impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ();
 }
