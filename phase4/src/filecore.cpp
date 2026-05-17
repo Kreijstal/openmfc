@@ -1039,11 +1039,11 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFile__UEBAPEAUCRuntimeCl
     return nullptr;
 }
 
-extern "C" void* openmfc_cfile_hFileNull = (void*)INVALID_HANDLE_VALUE;
+extern "C" void* impl__hFileNull_CFile__2QEAXEA = (void*)INVALID_HANDLE_VALUE;
 // Symbol: ?hFileNull@CFile@@2QEAXEA
 #ifdef __GNUC__
 asm(".globl \"?hFileNull@CFile@@2QEAXEA\"\n"
-    ".set \"?hFileNull@CFile@@2QEAXEA\", openmfc_cfile_hFileNull\n");
+    ".set \"?hFileNull@CFile@@2QEAXEA\", impl__hFileNull_CFile__2QEAXEA\n");
 #endif
 
 // Symbol: ?GetPosition@CMemFile@@UEBA_KXZ
