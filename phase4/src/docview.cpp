@@ -44,6 +44,8 @@ extern "C" void MS_ABI impl___1CView__UEAA_XZ(CView* pThis);
 extern "C" void MS_ABI impl___0CScrollView__QEAA_XZ(CScrollView* pThis);
 extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView* pThis);
 extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis);
+extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(CFormView* pThis, const wchar_t* lpszTemplateName);
+extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(CFormView* pThis, unsigned int nIDTemplate);
 extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis);
 extern "C" void MS_ABI impl___0CEditView__QEAA_XZ(CEditView* pThis);
 extern "C" void MS_ABI impl___1CEditView__UEAA_XZ(CEditView* pThis);
@@ -52,6 +54,9 @@ extern "C" void MS_ABI impl___1CListView__UEAA_XZ(CListView* pThis);
 extern "C" void MS_ABI impl___0CTreeView__QEAA_XZ(CTreeView* pThis);
 extern "C" void MS_ABI impl___1CTreeView__UEAA_XZ(CTreeView* pThis);
 extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+    CDocTemplate* pThis, unsigned int nIDResource,
+    CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
+extern "C" void MS_ABI impl___0CDocTemplate__IEAA_IPEAUCRuntimeClass__00_Z(
     CDocTemplate* pThis, unsigned int nIDResource,
     CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
 extern "C" void MS_ABI impl___1CDocTemplate__UEAA_XZ(CDocTemplate* pThis);
@@ -167,11 +172,14 @@ extern "C" void MS_ABI impl__OnDraw_CFormView__UEAAXPEAX_Z(CFormView* pThis, voi
 extern "C" void MS_ABI impl__OnInitialUpdate_CFormView__UEAAXXZ(CFormView* pThis);
 extern "C" void MS_ABI impl__DoDataExchange_CFormView__UEAAXPEAX_Z(CFormView* pThis, void* pDX);
 extern "C" CEdit* MS_ABI impl__GetEditCtrl_CEditView__QEBAPEAVCEdit__XZ(const CEditView* pThis);
+extern "C" CObject* MS_ABI impl__CreateObject_CEditView__SAPEAVCObject__XZ();
 extern "C" void MS_ABI impl__OnDraw_CEditView__UEAAXPEAX_Z(CEditView* pThis, void* pDC);
 extern "C" CListCtrl* MS_ABI impl__GetListCtrl_CListView__QEBAPEAVCListCtrl__XZ(const CListView* pThis);
+extern "C" CObject* MS_ABI impl__CreateObject_CListView__SAPEAVCObject__XZ();
 extern "C" void MS_ABI impl__OnDraw_CListView__UEAAXPEAX_Z(CListView* pThis, void* pDC);
 extern "C" void MS_ABI impl__OnInitialUpdate_CListView__UEAAXXZ(CListView* pThis);
 extern "C" CTreeCtrl* MS_ABI impl__GetTreeCtrl_CTreeView__QEBAPEAVCTreeCtrl__XZ(const CTreeView* pThis);
+extern "C" CObject* MS_ABI impl__CreateObject_CTreeView__SAPEAVCObject__XZ();
 extern "C" void MS_ABI impl__OnDraw_CTreeView__UEAAXPEAX_Z(CTreeView* pThis, void* pDC);
 extern "C" void MS_ABI impl__OnInitialUpdate_CTreeView__UEAAXXZ(CTreeView* pThis);
 extern "C" CDocument* MS_ABI impl__CreateNewDocument_CDocTemplate__UEAAPEAVCDocument__XZ(CDocTemplate* pThis);
@@ -188,7 +196,15 @@ extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocumen
 extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(CSingleDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible);
 extern "C" void MS_ABI impl__AddDocument_CSingleDocTemplate__UEAAXPEAVCDocument___Z(CSingleDocTemplate* pThis, CDocument* pDoc);
 extern "C" void MS_ABI impl__RemoveDocument_CSingleDocTemplate__UEAAXPEAVCDocument___Z(CSingleDocTemplate* pThis, CDocument* pDoc);
+extern "C" void* MS_ABI impl__GetFirstDocPosition_CSingleDocTemplate__UEBAPEAU__POSITION__XZ(const CSingleDocTemplate* pThis);
+extern "C" CDocument* MS_ABI impl__GetNextDoc_CSingleDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(const CSingleDocTemplate* pThis, void*& pos);
+extern "C" void MS_ABI impl__SetDefaultTitle_CSingleDocTemplate__UEAAXPEAVCDocument___Z(CSingleDocTemplate* pThis, CDocument* pDoc);
 extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(CMultiDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible);
+extern "C" void MS_ABI impl__AddDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(CMultiDocTemplate* pThis, CDocument* pDoc);
+extern "C" void MS_ABI impl__RemoveDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(CMultiDocTemplate* pThis, CDocument* pDoc);
+extern "C" void* MS_ABI impl__GetFirstDocPosition_CMultiDocTemplate__UEBAPEAU__POSITION__XZ(const CMultiDocTemplate* pThis);
+extern "C" CDocument* MS_ABI impl__GetNextDoc_CMultiDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(const CMultiDocTemplate* pThis, void*& pos);
+extern "C" void MS_ABI impl__SetDefaultTitle_CMultiDocTemplate__UEAAXPEAVCDocument___Z(CMultiDocTemplate* pThis, CDocument* pDoc);
 
 // =============================================================================
 // CDocument Member Function Implementations (vtable entries)
@@ -555,11 +571,19 @@ CDocument* CDocTemplate::GetNextDoc(void*& rPos) const { return impl__GetNextDoc
 CDocument* CSingleDocTemplate::OpenDocumentFile(const wchar_t* lpszPathName, int bMakeVisible) { return impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(this, lpszPathName, bMakeVisible); }
 void CSingleDocTemplate::AddDocument(CDocument* pDoc) { impl__AddDocument_CSingleDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
 void CSingleDocTemplate::RemoveDocument(CDocument* pDoc) { impl__RemoveDocument_CSingleDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
+void* CSingleDocTemplate::GetFirstDocPosition() const { return impl__GetFirstDocPosition_CSingleDocTemplate__UEBAPEAU__POSITION__XZ(this); }
+CDocument* CSingleDocTemplate::GetNextDoc(void*& rPos) const { return impl__GetNextDoc_CSingleDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(this, rPos); }
+void CSingleDocTemplate::SetDefaultTitle(CDocument* pDoc) { impl__SetDefaultTitle_CSingleDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
 
 // =============================================================================
 // CMultiDocTemplate Member Function Implementations (vtable entries)
 // =============================================================================
 CDocument* CMultiDocTemplate::OpenDocumentFile(const wchar_t* lpszPathName, int bMakeVisible) { return impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(this, lpszPathName, bMakeVisible); }
+void CMultiDocTemplate::AddDocument(CDocument* pDoc) { impl__AddDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
+void CMultiDocTemplate::RemoveDocument(CDocument* pDoc) { impl__RemoveDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
+void* CMultiDocTemplate::GetFirstDocPosition() const { return impl__GetFirstDocPosition_CMultiDocTemplate__UEBAPEAU__POSITION__XZ(this); }
+CDocument* CMultiDocTemplate::GetNextDoc(void*& rPos) const { return impl__GetNextDoc_CMultiDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(this, rPos); }
+void CMultiDocTemplate::SetDefaultTitle(CDocument* pDoc) { impl__SetDefaultTitle_CMultiDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
 
 // NOTE: No asm aliases needed here - the .def file handles the MSVC symbol aliasing
 // The runtime class symbols are emitted with GCC mangling and the .def file maps them
@@ -1042,6 +1066,20 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_I_Z(
     pThis->m_nIDHelp = nIDTemplate;
 }
 
+// Symbol: ??0CFormView@@IEAA@PEB_W@Z
+extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(
+    CFormView* pThis, const wchar_t* lpszTemplateName)
+{
+    impl___0CFormView__QEAA_PEB_W_Z(pThis, lpszTemplateName);
+}
+
+// Symbol: ??0CFormView@@IEAA@I@Z
+extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(
+    CFormView* pThis, unsigned int nIDTemplate)
+{
+    impl___0CFormView__QEAA_I_Z(pThis, nIDTemplate);
+}
+
 // Destructor
 // Symbol: ??1CFormView@@UEAA@XZ
 extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis) {
@@ -1097,6 +1135,11 @@ extern "C" CEdit* MS_ABI impl__GetEditCtrl_CEditView__QEBAPEAVCEdit__XZ(
     return pThis ? pThis->m_pEditCtrl : nullptr;
 }
 
+// Symbol: ?CreateObject@CEditView@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CEditView__SAPEAVCObject__XZ() {
+    return new CEditView();
+}
+
 // OnDraw (CEditView)
 extern "C" void MS_ABI impl__OnDraw_CEditView__UEAAXPEAX_Z(
     CEditView* pThis, void* pDC)
@@ -1127,6 +1170,11 @@ extern "C" CListCtrl* MS_ABI impl__GetListCtrl_CListView__QEBAPEAVCListCtrl__XZ(
     const CListView* pThis)
 {
     return pThis ? pThis->m_pListCtrl : nullptr;
+}
+
+// Symbol: ?CreateObject@CListView@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CListView__SAPEAVCObject__XZ() {
+    return new CListView();
 }
 
 // OnDraw (CListView)
@@ -1166,6 +1214,11 @@ extern "C" CTreeCtrl* MS_ABI impl__GetTreeCtrl_CTreeView__QEBAPEAVCTreeCtrl__XZ(
     return pThis ? pThis->m_pTreeCtrl : nullptr;
 }
 
+// Symbol: ?CreateObject@CTreeView@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CTreeView__SAPEAVCObject__XZ() {
+    return new CTreeView();
+}
+
 // OnDraw (CTreeView)
 extern "C" void MS_ABI impl__OnDraw_CTreeView__UEAAXPEAX_Z(
     CTreeView* pThis, void* pDC)
@@ -1196,6 +1249,15 @@ extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
     pThis->m_pViewClass = pViewClass;
     pThis->m_pFirstDoc = nullptr;
     pThis->m_pLastDoc = nullptr;
+}
+
+// Symbol: ??0CDocTemplate@@IEAA@IPEAUCRuntimeClass@@00@Z
+extern "C" void MS_ABI impl___0CDocTemplate__IEAA_IPEAUCRuntimeClass__00_Z(
+    CDocTemplate* pThis, unsigned int nIDResource,
+    CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass)
+{
+    impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
+        pThis, nIDResource, pDocClass, pFrameClass, pViewClass);
 }
 
 // Destructor
@@ -1537,6 +1599,27 @@ extern "C" void MS_ABI impl__RemoveDocument_CSingleDocTemplate__UEAAXPEAVCDocume
     impl__RemoveDocument_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
 }
 
+// Symbol: ?GetFirstDocPosition@CSingleDocTemplate@@UEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetFirstDocPosition_CSingleDocTemplate__UEBAPEAU__POSITION__XZ(
+    const CSingleDocTemplate* pThis)
+{
+    return impl__GetFirstDocPosition_CDocTemplate__UEBAPEAXXZ(pThis);
+}
+
+// Symbol: ?GetNextDoc@CSingleDocTemplate@@UEBAPEAVCDocument@@AEAPEAU__POSITION@@@Z
+extern "C" CDocument* MS_ABI impl__GetNextDoc_CSingleDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(
+    const CSingleDocTemplate* pThis, void*& pos)
+{
+    return impl__GetNextDoc_CDocTemplate__UEBAPEAVCDocument__AEAPEAX_Z(pThis, pos);
+}
+
+// Symbol: ?SetDefaultTitle@CSingleDocTemplate@@UEAAXPEAVCDocument@@@Z
+extern "C" void MS_ABI impl__SetDefaultTitle_CSingleDocTemplate__UEAAXPEAVCDocument___Z(
+    CSingleDocTemplate* pThis, CDocument* pDoc)
+{
+    impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
+}
+
 // =============================================================================
 // CMultiDocTemplate Implementation
 // =============================================================================
@@ -1576,4 +1659,39 @@ extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVC
     // MDI always creates a new document
     return impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
         pThis, lpszPathName, bMakeVisible);
+}
+
+// Symbol: ?AddDocument@CMultiDocTemplate@@UEAAXPEAVCDocument@@@Z
+extern "C" void MS_ABI impl__AddDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(
+    CMultiDocTemplate* pThis, CDocument* pDoc)
+{
+    impl__AddDocument_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
+}
+
+// Symbol: ?RemoveDocument@CMultiDocTemplate@@UEAAXPEAVCDocument@@@Z
+extern "C" void MS_ABI impl__RemoveDocument_CMultiDocTemplate__UEAAXPEAVCDocument___Z(
+    CMultiDocTemplate* pThis, CDocument* pDoc)
+{
+    impl__RemoveDocument_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
+}
+
+// Symbol: ?GetFirstDocPosition@CMultiDocTemplate@@UEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetFirstDocPosition_CMultiDocTemplate__UEBAPEAU__POSITION__XZ(
+    const CMultiDocTemplate* pThis)
+{
+    return impl__GetFirstDocPosition_CDocTemplate__UEBAPEAXXZ(pThis);
+}
+
+// Symbol: ?GetNextDoc@CMultiDocTemplate@@UEBAPEAVCDocument@@AEAPEAU__POSITION@@@Z
+extern "C" CDocument* MS_ABI impl__GetNextDoc_CMultiDocTemplate__UEBAPEAVCDocument__AEAPEAU__POSITION___Z(
+    const CMultiDocTemplate* pThis, void*& pos)
+{
+    return impl__GetNextDoc_CDocTemplate__UEBAPEAVCDocument__AEAPEAX_Z(pThis, pos);
+}
+
+// Symbol: ?SetDefaultTitle@CMultiDocTemplate@@UEAAXPEAVCDocument@@@Z
+extern "C" void MS_ABI impl__SetDefaultTitle_CMultiDocTemplate__UEAAXPEAVCDocument___Z(
+    CMultiDocTemplate* pThis, CDocument* pDoc)
+{
+    impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
 }

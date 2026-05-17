@@ -3564,6 +3564,9 @@ public:
     virtual CDocument* OpenDocumentFile(const wchar_t* lpszPathName = nullptr, int bMakeVisible = 1) override;
     virtual void AddDocument(CDocument* pDoc) override;
     virtual void RemoveDocument(CDocument* pDoc) override;
+    virtual void* GetFirstDocPosition() const override;
+    virtual CDocument* GetNextDoc(void*& rPos) const override;
+    virtual void SetDefaultTitle(CDocument* pDocument) override;
     
 public:
     CDocument* m_pOnlyDoc;        // Single document
@@ -3584,6 +3587,11 @@ public:
 
     // Overrides
     virtual CDocument* OpenDocumentFile(const wchar_t* lpszPathName = nullptr, int bMakeVisible = 1) override;
+    virtual void AddDocument(CDocument* pDoc) override;
+    virtual void RemoveDocument(CDocument* pDoc) override;
+    virtual void* GetFirstDocPosition() const override;
+    virtual CDocument* GetNextDoc(void*& rPos) const override;
+    virtual void SetDefaultTitle(CDocument* pDocument) override;
     
 protected:
     // Padding for ABI compatibility
