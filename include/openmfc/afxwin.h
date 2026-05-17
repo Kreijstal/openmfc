@@ -11,8 +11,8 @@
 #include <exdisp.h>
 #include <shlobj.h>
 
-#ifndef __IRichEditOle_FWD_DEFINED__
-#define __IRichEditOle_FWD_DEFINED__
+#ifndef OPENMFC_IRICHEDITOLE_FWD_DECLARED
+#define OPENMFC_IRICHEDITOLE_FWD_DECLARED
 struct IRichEditOle;
 #endif
 
