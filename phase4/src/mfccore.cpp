@@ -249,14 +249,64 @@ BOOL CMFCToolBar::CreateEx(CWnd* pParentWnd, DWORD, DWORD dwStyle, CRect, UINT n
     return Create(pParentWnd, dwStyle, nID);
 }
 
-BOOL CMFCToolBar::LoadToolBar(UINT) { return TRUE; }
+BOOL CMFCToolBar::LoadToolBar(UINT, UINT, UINT, BOOL, UINT, UINT, UINT) { return TRUE; }
 BOOL CMFCToolBar::LoadBitmap(UINT) { return TRUE; }
-BOOL CMFCToolBar::SetButtons(const UINT*, int) { return TRUE; }
+BOOL CMFCToolBar::SetButtons(const UINT*, int, BOOL) { return TRUE; }
 BOOL CMFCToolBar::ReplaceButton(UINT, const CMFCToolBarButton&, BOOL) { return FALSE; }
 int CMFCToolBar::GetCount() const { return 0; }
 CMFCToolBarButton* CMFCToolBar::GetButton(int) const { return nullptr; }
 void CMFCToolBar::SetSizes(SIZE, SIZE) {}
 CSize CMFCToolBar::GetButtonSize() const { return CSize(23, 22); }
+void CMFCToolBar::EnableDocking(DWORD) {}
+void CMFCToolBar::AdjustLayout() {}
+void CMFCToolBar::AdjustSize() {}
+CString CMFCToolBar::GetButtonText(int) const { return CString(); }
+void CMFCToolBar::GetButtonText(int, CString& rString) const { rString = CString(); }
+
+// Symbol: ?LoadToolBar@CMFCToolBar@@UEAAHIIIHIII@Z
+extern "C" int MS_ABI impl__LoadToolBar_CMFCToolBar__UEAAHIIIHIII_Z(
+    CMFCToolBar* pThis, unsigned int p0, unsigned int p1, unsigned int p2,
+    int p3, unsigned int p4, unsigned int p5, unsigned int p6) {
+    return (int)pThis->LoadToolBar(p0, p1, p2, p3, p4, p5, p6);
+}
+
+// Symbol: ?SetButtons@CMFCToolBar@@UEAAHPEBIHH@Z
+extern "C" int MS_ABI impl__SetButtons_CMFCToolBar__UEAAHPEBIHH_Z(
+    CMFCToolBar* pThis, const unsigned int* p0, int p1, int p2) {
+    return (int)pThis->SetButtons(p0, p1, p2);
+}
+
+// Symbol: ?SetSizes@CMFCToolBar@@SAXUtagSIZE@@0@Z
+extern "C" void MS_ABI impl__SetSizes_CMFCToolBar__SAXUtagSIZE__0_Z(SIZE p0, SIZE p1) {
+    CMFCToolBar::SetSizes(p0, p1);
+}
+
+// Symbol: ?EnableDocking@CMFCToolBar@@UEAAXK@Z
+extern "C" void MS_ABI impl__EnableDocking_CMFCToolBar__UEAAXK_Z(CMFCToolBar* pThis, unsigned long p0) {
+    pThis->EnableDocking(p0);
+}
+
+// Symbol: ?AdjustLayout@CMFCToolBar@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis) {
+    pThis->AdjustLayout();
+}
+
+// Symbol: ?AdjustSize@CMFCToolBar@@QEAAXXZ
+extern "C" void MS_ABI impl__AdjustSize_CMFCToolBar__QEAAXXZ(CMFCToolBar* pThis) {
+    pThis->AdjustSize();
+}
+
+// Symbol: ?GetButtonText@CMFCToolBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetButtonText_CMFCToolBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* pRet, const CMFCToolBar* pThis, int nIndex) {
+    new (pRet) CString(pThis->GetButtonText(nIndex));
+}
+
+// Symbol: ?GetButtonText@CMFCToolBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetButtonText_CMFCToolBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CMFCToolBar* pThis, int nIndex, CString* pStr) {
+    pThis->GetButtonText(nIndex, *pStr);
+}
 
 //=============================================================================
 // CMFCRibbonBaseElement

@@ -296,14 +296,19 @@ public:
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR);
     virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR);
 
-    BOOL LoadToolBar(UINT nIDResource);
+    virtual BOOL LoadToolBar(UINT uiResID, UINT uiColdResID = 0, UINT uiMenuResID = 0, BOOL bLocked = FALSE, UINT uiDisabledResID = 0, UINT uiMenuDisabledResID = 0, UINT uiHotResID = 0);
     BOOL LoadBitmap(UINT nIDResource);
-    BOOL SetButtons(const UINT* lpIDArray, int nIDCount);
+    virtual BOOL SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages = TRUE);
     BOOL ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL bNotify = FALSE);
     int GetCount() const;
     CMFCToolBarButton* GetButton(int nIndex) const;
-    void SetSizes(SIZE sizeButton, SIZE sizeImage);
+    static void SetSizes(SIZE sizeButton, SIZE sizeImage);
     CSize GetButtonSize() const;
+    virtual void EnableDocking(DWORD dwDockStyle);
+    virtual void AdjustLayout();
+    void AdjustSize();
+    CString GetButtonText(int nIndex) const;
+    void GetButtonText(int nIndex, CString& rString) const;
 
 protected:
     char _mfctoolbar_padding[128];
