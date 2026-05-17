@@ -13,6 +13,7 @@
 // This allows the common pattern: pOld = dc.SelectObject(&newPen); ... dc.SelectObject(pOld);
 namespace {
 thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
+thread_local std::unordered_map<HDC, CDC*> g_tempDCMap;
 
 CGdiObject* GetTempGdiObject(HGDIOBJ hObj) {
     if (!hObj) return nullptr;
@@ -37,6 +38,30 @@ void DeleteTempGdiMap() {
         delete obj;
     }
     g_tempGdiMap.clear();
+}
+
+CDC* GetTempDC(HDC hDC) {
+    if (!hDC) return nullptr;
+
+    auto it = g_tempDCMap.find(hDC);
+    if (it != g_tempDCMap.end()) {
+        return it->second;
+    }
+
+    auto* wrapper = new CDC();
+    wrapper->m_hDC = hDC;
+    wrapper->m_hAttribDC = hDC;
+    g_tempDCMap.emplace(hDC, wrapper);
+    return wrapper;
+}
+
+void DeleteTempDCMap() {
+    for (auto& [_, dc] : g_tempDCMap) {
+        dc->m_hDC = nullptr;
+        dc->m_hAttribDC = nullptr;
+        delete dc;
+    }
+    g_tempDCMap.clear();
 }
 } // namespace
 
@@ -151,12 +176,14 @@ extern "C" int MS_ABI impl__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
 }
 
 // CDC::SaveDC
+// Symbol: ?SaveDC@CDC@@QEAAHXZ
 extern "C" int MS_ABI impl__SaveDC_CDC__QEAAHXZ(CDC* pThis) {
     if (!pThis || !pThis->m_hDC) return 0;
     return ::SaveDC(pThis->m_hDC);
 }
 
 // CDC::RestoreDC
+// Symbol: ?RestoreDC@CDC@@QEAAHH@Z
 extern "C" int MS_ABI impl__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC) {
     if (!pThis || !pThis->m_hDC) return FALSE;
     return ::RestoreDC(pThis->m_hDC, nSavedDC);
@@ -269,6 +296,14 @@ extern "C" int MS_ABI impl__FillRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     return ::FillRect(pThis->m_hDC, lpRect, hBrush);
 }
 
+// CDC::PatBlt
+// Symbol: ?PatBlt@CDC@@QEAAHHHHHK@Z
+extern "C" int MS_ABI impl__PatBlt_CDC__QEAAHHHHHK_Z(
+    CDC* pThis, int x, int y, int nWidth, int nHeight, unsigned long dwRop) {
+    if (!pThis || !pThis->m_hDC) return FALSE;
+    return ::PatBlt(pThis->m_hDC, x, y, nWidth, nHeight, dwRop);
+}
+
 // CDC::FrameRect
 extern "C" int MS_ABI impl__FrameRect_CDC__QEAAHPEBUtagRECT__PEAVCBrush___Z(
     CDC* pThis, const RECT* lpRect, CBrush* pBrush) {
@@ -300,6 +335,138 @@ extern "C" int MS_ABI impl__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nInd
     return ::SelectObject(pThis->m_hDC, hObj) != nullptr;
 }
 
+// CDC::SelectClipRgn
+// Symbol: ?SelectClipRgn@CDC@@QEAAHPEAVCRgn@@@Z
+extern "C" int MS_ABI impl__SelectClipRgn_CDC__QEAAHPEAVCRgn___Z(CDC* pThis, CRgn* pRgn) {
+    if (!pThis || !pThis->m_hDC) return ERROR;
+    HRGN hRgn = pRgn ? (HRGN)pRgn->GetSafeHandle() : nullptr;
+    return ::SelectClipRgn(pThis->m_hDC, hRgn);
+}
+
+// CDC::SelectClipRgn (mode)
+// Symbol: ?SelectClipRgn@CDC@@QEAAHPEAVCRgn@@H@Z
+extern "C" int MS_ABI impl__SelectClipRgn_CDC__QEAAHPEAVCRgn__H_Z(CDC* pThis, CRgn* pRgn, int nMode) {
+    if (!pThis || !pThis->m_hDC) return ERROR;
+    HRGN hRgn = pRgn ? (HRGN)pRgn->GetSafeHandle() : nullptr;
+    return ::ExtSelectClipRgn(pThis->m_hDC, hRgn, nMode);
+}
+
+// CDC::ExcludeClipRect
+// Symbol: ?ExcludeClipRect@CDC@@QEAAHHHHH@Z
+extern "C" int MS_ABI impl__ExcludeClipRect_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
+    if (!pThis || !pThis->m_hDC) return ERROR;
+    return ::ExcludeClipRect(pThis->m_hDC, x1, y1, x2, y2);
+}
+
+// CDC::ExcludeClipRect (RECT)
+// Symbol: ?ExcludeClipRect@CDC@@QEAAHPEBUtagRECT@@@Z
+extern "C" int MS_ABI impl__ExcludeClipRect_CDC__QEAAHPEBUtagRECT___Z(CDC* pThis, const RECT* lpRect) {
+    if (!pThis || !pThis->m_hDC || !lpRect) return ERROR;
+    return ::ExcludeClipRect(pThis->m_hDC, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+}
+
+// CDC::IntersectClipRect
+// Symbol: ?IntersectClipRect@CDC@@QEAAHHHHH@Z
+extern "C" int MS_ABI impl__IntersectClipRect_CDC__QEAAHHHHH_Z(CDC* pThis, int x1, int y1, int x2, int y2) {
+    if (!pThis || !pThis->m_hDC) return ERROR;
+    return ::IntersectClipRect(pThis->m_hDC, x1, y1, x2, y2);
+}
+
+// CDC::IntersectClipRect (RECT)
+// Symbol: ?IntersectClipRect@CDC@@QEAAHPEBUtagRECT@@@Z
+extern "C" int MS_ABI impl__IntersectClipRect_CDC__QEAAHPEBUtagRECT___Z(CDC* pThis, const RECT* lpRect) {
+    if (!pThis || !pThis->m_hDC || !lpRect) return ERROR;
+    return ::IntersectClipRect(pThis->m_hDC, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+}
+
+// CDC::OffsetClipRgn
+// Symbol: ?OffsetClipRgn@CDC@@QEAAHHH@Z
+extern "C" int MS_ABI impl__OffsetClipRgn_CDC__QEAAHHH_Z(CDC* pThis, int x, int y) {
+    if (!pThis || !pThis->m_hDC) return ERROR;
+    return ::OffsetClipRgn(pThis->m_hDC, x, y);
+}
+
+// CDC::OffsetClipRgn (SIZE)
+// Symbol: ?OffsetClipRgn@CDC@@QEAAHUtagSIZE@@@Z
+extern "C" int MS_ABI impl__OffsetClipRgn_CDC__QEAAHUtagSIZE___Z(CDC* pThis, SIZE size) {
+    return impl__OffsetClipRgn_CDC__QEAAHHH_Z(pThis, size.cx, size.cy);
+}
+
+// CDC::FillSolidRect
+// Symbol: ?FillSolidRect@CDC@@QEAAXHHHHK@Z
+extern "C" void MS_ABI impl__FillSolidRect_CDC__QEAAXHHHHK_Z(
+    CDC* pThis, int x, int y, int cx, int cy, unsigned long clr) {
+    if (!pThis || !pThis->m_hDC) return;
+    RECT rc = {x, y, x + cx, y + cy};
+    ::SetBkColor(pThis->m_hDC, clr);
+    ::ExtTextOutW(pThis->m_hDC, 0, 0, ETO_OPAQUE, &rc, nullptr, 0, nullptr);
+}
+
+// CDC::FillSolidRect (RECT)
+// Symbol: ?FillSolidRect@CDC@@QEAAXPEBUtagRECT@@K@Z
+extern "C" void MS_ABI impl__FillSolidRect_CDC__QEAAXPEBUtagRECT__K_Z(
+    CDC* pThis, const RECT* lpRect, unsigned long clr) {
+    if (!lpRect) return;
+    impl__FillSolidRect_CDC__QEAAXHHHHK_Z(
+        pThis,
+        lpRect->left,
+        lpRect->top,
+        lpRect->right - lpRect->left,
+        lpRect->bottom - lpRect->top,
+        clr);
+}
+
+// CDC::Attach
+// Symbol: ?Attach@CDC@@QEAAHPEAUHDC__@@@Z
+extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC___Z(CDC* pThis, HDC hDC) {
+    if (!pThis) return FALSE;
+    pThis->m_hDC = hDC;
+    pThis->m_hAttribDC = hDC;
+    return TRUE;
+}
+
+// CDC::Detach
+// Symbol: ?Detach@CDC@@QEAAPEAUHDC__@@XZ
+extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC___XZ(CDC* pThis) {
+    if (!pThis) return nullptr;
+    HDC hDC = pThis->m_hDC;
+    pThis->m_hDC = nullptr;
+    pThis->m_hAttribDC = nullptr;
+    return hDC;
+}
+
+// CDC::FromHandle
+// Symbol: ?FromHandle@CDC@@SAPEAV1@PEAUHDC__@@@Z
+extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC___Z(HDC hDC) {
+    return GetTempDC(hDC);
+}
+
+// CDC::DeleteTempMap
+// Symbol: ?DeleteTempMap@CDC@@SAXXZ
+extern "C" void MS_ABI impl__DeleteTempMap_CDC__SAXXZ() {
+    DeleteTempDCMap();
+}
+
+// CDC::DPtoLP (SIZE)
+// Symbol: ?DPtoLP@CDC@@QEBAXPEAUtagSIZE@@@Z
+extern "C" void MS_ABI impl__DPtoLP_CDC__QEBAXPEAUtagSIZE___Z(const CDC* pThis, SIZE* lpSize) {
+    if (!pThis || !pThis->m_hDC || !lpSize) return;
+    POINT pt = {lpSize->cx, lpSize->cy};
+    ::DPtoLP(pThis->m_hDC, &pt, 1);
+    lpSize->cx = pt.x;
+    lpSize->cy = pt.y;
+}
+
+// CDC::LPtoDP (SIZE)
+// Symbol: ?LPtoDP@CDC@@QEBAXPEAUtagSIZE@@@Z
+extern "C" void MS_ABI impl__LPtoDP_CDC__QEBAXPEAUtagSIZE___Z(const CDC* pThis, SIZE* lpSize) {
+    if (!pThis || !pThis->m_hDC || !lpSize) return;
+    POINT pt = {lpSize->cx, lpSize->cy};
+    ::LPtoDP(pThis->m_hDC, &pt, 1);
+    lpSize->cx = pt.x;
+    lpSize->cy = pt.y;
+}
+
 // =============================================================================
 // CGdiObject Implementation
 // =============================================================================
@@ -309,6 +476,12 @@ extern "C" int MS_ABI impl__SelectStockObject_CDC__QEAAHH_Z(CDC* pThis, int nInd
 // Called during idle processing to clean up temporary GDI object wrappers
 extern "C" void MS_ABI impl__DeleteTempMap_CGdiObject__SAXXZ() {
     DeleteTempGdiMap();
+}
+
+// CGdiObject::FromHandle
+// Symbol: ?FromHandle@CGdiObject@@SAPEAV1@PEAX@Z
+extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ hObject) {
+    return GetTempGdiObject(hObject);
 }
 
 // CGdiObject::DeleteObject
@@ -411,6 +584,18 @@ extern "C" int MS_ABI impl__CreateHatchBrush_CBrush__QEAAHHK_Z(CBrush* pThis, in
     return pThis->m_hObject != nullptr;
 }
 
+// CBrush::CreateDIBPatternBrush
+// Symbol: ?CreateDIBPatternBrush@CBrush@@QEAAHPEAXI@Z
+extern "C" int MS_ABI impl__CreateDIBPatternBrush_CBrush__QEAAHPEAXI_Z(
+    CBrush* pThis, void* lpPackedDIB, unsigned int nUsage) {
+    if (!pThis || !lpPackedDIB) return FALSE;
+    if (pThis->m_hObject) {
+        ::DeleteObject(pThis->m_hObject);
+    }
+    pThis->m_hObject = ::CreateDIBPatternBrushPt(lpPackedDIB, nUsage);
+    return pThis->m_hObject != nullptr;
+}
+
 // =============================================================================
 // CFont Implementation
 // =============================================================================
@@ -433,6 +618,7 @@ extern "C" int MS_ABI impl__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(
 }
 
 // CFont::CreatePointFont
+// Symbol: ?CreatePointFont@CFont@@QEAAHHPEB_WPEAVCDC@@@Z
 extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
     CFont* pThis, int nPointSize, const wchar_t* lpszFaceName, CDC* pDC) {
     if (!pThis) return FALSE;
@@ -447,6 +633,23 @@ extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
         // Ensure null termination - wcsncpy doesn't guarantee it
         lf.lfFaceName[LF_FACESIZE - 1] = L'\0';
     }
+
+    if (pThis->m_hObject) {
+        ::DeleteObject(pThis->m_hObject);
+    }
+    pThis->m_hObject = ::CreateFontIndirectW(&lf);
+    return pThis->m_hObject != nullptr;
+}
+
+// CFont::CreatePointFontIndirect
+// Symbol: ?CreatePointFontIndirect@CFont@@QEAAHPEBUtagLOGFONTW@@PEAVCDC@@@Z
+extern "C" int MS_ABI impl__CreatePointFontIndirect_CFont__QEAAHPEBUtagLOGFONTW__PEAVCDC___Z(
+    CFont* pThis, const LOGFONTW* lpLogFont, CDC* pDC) {
+    if (!pThis || !lpLogFont) return FALSE;
+
+    LOGFONTW lf = *lpLogFont;
+    int dpiY = (pDC && pDC->m_hDC) ? ::GetDeviceCaps(pDC->m_hDC, LOGPIXELSY) : 96;
+    lf.lfHeight = -MulDiv(lf.lfHeight, dpiY, 720);
 
     if (pThis->m_hObject) {
         ::DeleteObject(pThis->m_hObject);
