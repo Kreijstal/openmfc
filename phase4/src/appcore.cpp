@@ -744,6 +744,7 @@ extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ() {
 // =============================================================================
 
 // CWinApp constructor
+// Symbol: ??0CWinApp@@QEAA@PEB_W@Z
 // Ordinal: 983
 extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
     // Initialize base class (CWinThread)
@@ -768,6 +769,7 @@ extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const w
 }
 
 // CWinApp destructor
+// Symbol: ??1CWinApp@@UEAA@XZ
 // Ordinal: 1450
 extern "C" void MS_ABI impl___1CWinApp__UEAA_XZ(CWinApp* pThis) {
     if (g_pApp == pThis) {
@@ -776,6 +778,7 @@ extern "C" void MS_ABI impl___1CWinApp__UEAA_XZ(CWinApp* pThis) {
 }
 
 // CWinThread default constructor
+// Symbol: ??0CWinThread@@QEAA@XZ
 // Ordinal: 988
 extern "C" CWinThread* MS_ABI impl___0CWinThread__QEAA_XZ(CWinThread* pThis) {
     pThis->m_pMainWnd = nullptr;
@@ -787,6 +790,7 @@ extern "C" CWinThread* MS_ABI impl___0CWinThread__QEAA_XZ(CWinThread* pThis) {
 }
 
 // CWinThread destructor
+// Symbol: ??1CWinThread@@UEAA@XZ
 // Ordinal: 1453
 extern "C" void MS_ABI impl___1CWinThread__UEAA_XZ(CWinThread* pThis) {
     pThis->~CWinThread();
@@ -795,6 +799,8 @@ extern "C" void MS_ABI impl___1CWinThread__UEAA_XZ(CWinThread* pThis) {
 // Additional global state needed for AfxGetInstanceHandle, etc.
 static HINSTANCE g_hInstance = nullptr;
 static HINSTANCE g_hResource = nullptr;
+static void* g_appModuleStateStorage[32] = {};
+static __thread void* g_threadStateStorage[32] = {};
 
 // AfxGetInstanceHandle implementation
 HINSTANCE AFXAPI AfxGetInstanceHandle() {
@@ -806,9 +812,24 @@ HINSTANCE AFXAPI AfxGetResourceHandle() {
     return g_hResource ? g_hResource : g_hInstance;
 }
 
+// Symbol: ?AfxGetInstanceHandleHelper@@YAPEAUHINSTANCE__@@XZ
+HINSTANCE AFXAPI AfxGetInstanceHandleHelper() {
+    return AfxGetInstanceHandle();
+}
+
 // AfxSetResourceHandle implementation
 void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
     g_hResource = hInstResource;
+}
+
+// Symbol: ?AfxGetAppModuleState@@YAPEAVAFX_MODULE_STATE@@XZ
+AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState() {
+    return reinterpret_cast<AFX_MODULE_STATE*>(g_appModuleStateStorage);
+}
+
+// Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
+_AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
+    return reinterpret_cast<_AFX_THREAD_STATE*>(g_threadStateStorage);
 }
 
 // AfxWinInit implementation
