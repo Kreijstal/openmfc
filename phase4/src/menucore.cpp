@@ -393,6 +393,12 @@ extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(const C
     return (copied >= 0) ? copied : 0;
 }
 
+// CMenu::GetMenuStringW (CString overload, full mangled form used by exports)
+extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__I_Z(
+    const CMenu* pThis, UINT nIDItem, CString& rString, UINT nFlags) {
+    return impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(pThis, nIDItem, rString, nFlags);
+}
+
 // CMenu::GetMenuState
 extern "C" UINT MS_ABI impl__GetMenuState_CMenu__QEBAIII_Z(const CMenu* pThis, UINT nID, UINT nFlags) {
     if (!pThis || !pThis->m_hMenu) return (UINT)-1;
@@ -481,7 +487,7 @@ extern "C" int MS_ABI impl__DoUpdate_CCmdUI__QEAAHPEAVCCmdTarget__H_Z(CCmdUI* pT
         } else {
             enableFlags |= MF_ENABLED;
         }
-        pMenu->EnableMenuItem(ui->m_nID, enableFlags);
+        ::EnableMenuItem(pMenu->m_hMenu, ui->m_nID, enableFlags);
     }
 
     return TRUE;
@@ -497,5 +503,18 @@ extern "C" void MS_ABI impl__SetRadio_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int bOn) {
     if (!pMenu || ui->m_nID == 0U || ui->m_nID == static_cast<UINT>(-1)) return;
 
     const UINT checkState = MF_BYCOMMAND | (bOn ? MF_CHECKED : MF_UNCHECKED);
-    pMenu->CheckMenuItem(ui->m_nID, checkState);
+    ::CheckMenuItem(pMenu->m_hMenu, ui->m_nID, checkState);
+}
+
+// CMenu dynamic runtime wrappers needed by exported impl__* symbols
+extern "C" CObject* MS_ABI impl__CreateObject_CMenu__SAPEAVCObject__XZ() {
+    return CMenu::GetThisClass()->CreateObject();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMenu__UEBAPEAUCRuntimeClass__XZ(const CMenu* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : nullptr;
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMenu__SAPEAUCRuntimeClass__XZ() {
+    return CMenu::GetThisClass();
 }
