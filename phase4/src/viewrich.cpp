@@ -492,7 +492,7 @@ int CRichEditView::FindTextW(const wchar_t* lpszFind, int bNext, int bCase, int 
     }
     if (nFound < 0) return FALSE;
 
-    m_richEdit.SetSel((int)nFound, (int)(nFound + (LONG)wcslen(lpszFind)));
+    m_richEdit.SetSel((int)ft.chrgText.cpMin, (int)ft.chrgText.cpMax);
     return TRUE;
 }
 
@@ -507,14 +507,14 @@ int CRichEditView::CanPaste() const {
 }
 
 CHARFORMAT2W& CRichEditView::GetCharFormatSelection() {
-    static CHARFORMAT2W cf = {};
+    static thread_local CHARFORMAT2W cf = {};
     cf.cbSize = sizeof(CHARFORMAT2W);
     m_richEdit.GetSelectionCharFormat(cf);
     return cf;
 }
 
 PARAFORMAT2& CRichEditView::GetParaFormatSelection() {
-    static PARAFORMAT2 pf = {};
+    static thread_local PARAFORMAT2 pf = {};
     pf.cbSize = sizeof(PARAFORMAT2);
     m_richEdit.GetParaFormat(pf);
     return pf;
@@ -578,18 +578,28 @@ void CRichEditView::Stream(CArchive& ar, int bSelection) {
     if (ar.IsStoring()) {
         es.pfnCallback = [](DWORD_PTR dwCookie, PBYTE pbBuff, LONG cb, PLONG pcb) -> DWORD {
             CArchive* pAr = (CArchive*)dwCookie;
-            pAr->Write(pbBuff, cb);
-            *pcb = cb;
-            return 0;
+            try {
+                pAr->Write(pbBuff, cb);
+                *pcb = cb;
+                return 0;
+            } catch (...) {
+                *pcb = 0;
+                return 1;
+            }
         };
         es.dwCookie = (DWORD_PTR)&ar;
         m_richEdit.StreamOut(nFormat, es);
     } else {
         es.pfnCallback = [](DWORD_PTR dwCookie, PBYTE pbBuff, LONG cb, PLONG pcb) -> DWORD {
             CArchive* pAr = (CArchive*)dwCookie;
-            UINT nRead = pAr->Read(pbBuff, cb);
-            *pcb = (LONG)nRead;
-            return (nRead < (UINT)cb) ? 1 : 0;
+            try {
+                UINT nRead = pAr->Read(pbBuff, cb);
+                *pcb = (LONG)nRead;
+                return (nRead < (UINT)cb) ? 1 : 0;
+            } catch (...) {
+                *pcb = 0;
+                return 1;
+            }
         };
         es.dwCookie = (DWORD_PTR)&ar;
         m_richEdit.StreamIn(nFormat, es);
