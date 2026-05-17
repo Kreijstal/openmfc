@@ -752,7 +752,7 @@ public:
     virtual void Enable(BOOL bOn = TRUE) override;
     virtual void SetCheck(int nCheck = 1) override;
     virtual void SetText(const wchar_t* lpszText) override;
-    virtual int DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHndler);
+    virtual int DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHandler);
 
 public:
     OLECMD* m_pCmd;

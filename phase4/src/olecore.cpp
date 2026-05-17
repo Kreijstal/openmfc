@@ -948,11 +948,6 @@ CFile* COleDataObject::GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) 
     CoTaskMemFree(stg.lpszFileName);
     stg.lpszFileName = nullptr;
 
-    CFileStatus status = {};
-    if (!CFile::GetStatus(filePath, status, nullptr)) {
-        return nullptr;
-    }
-
     return new CFile(filePath, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
 }
 
@@ -1284,14 +1279,16 @@ void COleCmdUI::SetText(const wchar_t* lpszText) {
     (void)lpszText;
 }
 
-int COleCmdUI::DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHndler) {
+int COleCmdUI::DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHandler) {
+    // Minimal fallback implementation: expose command as supported/enabled
+    // without invoking full MFC command-routing.
     (void)pTarget;
     if (!m_rgCmds || m_cCmds == 0) {
         return FALSE;
     }
 
     m_rgCmds[0].cmdf |= OLECMDF_SUPPORTED;
-    if (bDisableIfNoHndler) {
+    if (bDisableIfNoHandler) {
         Enable(FALSE);
     }
     return TRUE;
