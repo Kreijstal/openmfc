@@ -457,3 +457,117 @@ BOOL CRecordView::IsOnFirstRecord() {
 BOOL CRecordView::IsOnLastRecord() {
     return m_bOnLastRecord;
 }
+
+// Symbol: ??0CRecordset@@QEAA@PEAVCDatabase@@@Z
+extern "C" void* MS_ABI impl___0CRecordset__QEAA_PEAVCDatabase___Z(void* pThis, CDatabase* pDatabase) {
+    return new(pThis) CRecordset(pDatabase);
+}
+
+// Symbol: ??0CFieldExchange@@QEAA@IPEAVCRecordset@@PEAX@Z
+extern "C" void* MS_ABI impl___0CFieldExchange__QEAA_IPEAVCRecordset__PEAX_Z(
+    void* pThis, UINT op, CRecordset* pRecordset, void* /*pMapField*/) {
+    return new(pThis) CFieldExchange((CFieldExchange::RFX_Operation)op, pRecordset);
+}
+
+// Symbol: ?GetRuntimeClass@CDatabase@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDatabase__UEBAPEAUCRuntimeClass__XZ(const CDatabase* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CDatabase::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CDatabase@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDatabase__SAPEAUCRuntimeClass__XZ() {
+    return CDatabase::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CRecordset@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordset__UEBAPEAUCRuntimeClass__XZ(const CRecordset* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CRecordset::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CRecordset@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeClass__XZ() {
+    return CRecordset::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CRecordView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordView__UEBAPEAUCRuntimeClass__XZ(const CRecordView* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CRecordView::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CRecordView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordView__SAPEAUCRuntimeClass__XZ() {
+    return CRecordView::GetThisClass();
+}
+
+// Symbol: ?GetMessageMap@CRecordView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CRecordView__MEBAPEBUAFX_MSGMAP__XZ(const CRecordView* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetThisMessageMap@CRecordView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CRecordView__KAPEBUAFX_MSGMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?IsOpen@CRecordset@@QEBAHXZ
+extern "C" int MS_ABI impl__IsOpen_CRecordset__QEBAHXZ(const CRecordset* pThis) {
+    return (pThis && pThis->IsOpen()) ? TRUE : FALSE;
+}
+
+// Symbol: ?OpenEx@CDatabase@@UEAAHPEB_WK@Z
+extern "C" int MS_ABI impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(CDatabase* pThis, const wchar_t* lpszConnectString, DWORD dwOptions) {
+    if (!pThis) return FALSE;
+    const BOOL bReadOnly = (dwOptions & 0x00000001UL) ? TRUE : FALSE;
+    return pThis->Open(nullptr, FALSE, bReadOnly, lpszConnectString, TRUE);
+}
+
+// Symbol: ?OnSetOptions@CDatabase@@UEAAXPEAX@Z
+extern "C" void MS_ABI impl__OnSetOptions_CDatabase__UEAAXPEAX_Z(CDatabase* /*pThis*/, void* /*hstmt*/) {
+}
+
+// Symbol: ?ReplaceBrackets@CDatabase@@QEAAXPEA_W@Z
+extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase* /*pThis*/, wchar_t* lpszSQL) {
+    if (!lpszSQL) return;
+    for (wchar_t* p = lpszSQL; *p; ++p) {
+        if (*p == L'[' || *p == L']') {
+            *p = L'"';
+        }
+    }
+}
+
+// Symbol: ?Requery@CRecordset@@UEAAHXZ
+extern "C" int MS_ABI impl__Requery_CRecordset__UEAAHXZ(CRecordset* pThis) {
+    if (!pThis || !pThis->IsOpen()) return FALSE;
+    RETCODE rc = SQLCloseCursor(pThis->GetHSTMT());
+    return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) ? TRUE : FALSE;
+}
+
+// Symbol: ?GetDefaultFieldType@CRecordset@@SAFF@Z
+extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLType) {
+    return nSQLType;
+}
+
+// Symbol: ?OnInitialUpdate@CRecordView@@UEAAXXZ
+extern "C" void MS_ABI impl__OnInitialUpdate_CRecordView__UEAAXXZ(CRecordView* pThis) {
+    if (!pThis) return;
+    pThis->m_pSet = pThis->OnGetRecordset();
+    pThis->m_bOnFirstRecord = TRUE;
+    pThis->m_bOnLastRecord = FALSE;
+}
+
+// Symbol: ?OnUpdateRecordFirst@CRecordView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateRecordFirst_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+}
+
+// Symbol: ?OnUpdateRecordLast@CRecordView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateRecordLast_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+}
+
+// Symbol: ?OnUpdateRecordNext@CRecordView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateRecordNext_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+}
+
+// Symbol: ?OnUpdateRecordPrev@CRecordView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateRecordPrev_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+}
