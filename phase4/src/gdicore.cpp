@@ -5,6 +5,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxmfc.h"
 #include <windows.h>
 #include <cstring>
 #include <unordered_map>
@@ -63,6 +64,20 @@ void DeleteTempDCMap() {
     }
     g_tempDCMap.clear();
 }
+} // namespace
+
+namespace {
+struct CRenderTargetState {
+    void* resource = nullptr;
+    bool drawing = false;
+};
+
+struct CAnimationVariableState {
+    double value = 0.0;
+};
+
+thread_local std::unordered_map<const CRenderTarget*, CRenderTargetState> g_renderTargetState;
+thread_local std::unordered_map<const CAnimationVariable*, CAnimationVariableState> g_animationVariableState;
 } // namespace
 
 // MS ABI calling convention
@@ -1097,4 +1112,315 @@ int CRgn::RectInRegion(const RECT* lpRect) const {
 int CRgn::GetRegionData(RGNDATA* lpRgnData, int nDataSize) const {
     if (!m_hObject) return 0;
     return ::GetRegionData((HRGN)m_hObject, nDataSize, lpRgnData);
+}
+
+// =============================================================================
+// Wave 2 D2D/Animation minimal implementations
+// =============================================================================
+
+IMPLEMENT_DYNAMIC(CRenderTarget, CObject)
+IMPLEMENT_DYNAMIC(CDCRenderTarget, CRenderTarget)
+IMPLEMENT_DYNAMIC(CAnimationVariable, CObject)
+
+CD2DPointF::CD2DPointF() : x(0.0f), y(0.0f) {}
+CD2DPointF::CD2DPointF(float xValue, float yValue) : x(xValue), y(yValue) {}
+CD2DPointF::CD2DPointF(const CPoint& point) : x((float)point.x), y((float)point.y) {}
+
+CD2DSizeF::CD2DSizeF() : width(0.0f), height(0.0f) {}
+CD2DSizeF::CD2DSizeF(float widthValue, float heightValue) : width(widthValue), height(heightValue) {}
+CD2DSizeF::CD2DSizeF(const CSize& size) : width((float)size.cx), height((float)size.cy) {}
+
+CD2DRectF::CD2DRectF() : left(0.0f), top(0.0f), right(0.0f), bottom(0.0f) {}
+CD2DRectF::CD2DRectF(float leftValue, float topValue, float rightValue, float bottomValue)
+    : left(leftValue), top(topValue), right(rightValue), bottom(bottomValue) {}
+CD2DRectF::CD2DRectF(const CRect& rect)
+    : left((float)rect.left), top((float)rect.top), right((float)rect.right), bottom((float)rect.bottom) {}
+
+CD2DEllipse::CD2DEllipse() : point(), radius() {}
+CD2DEllipse::CD2DEllipse(const CD2DPointF& pointValue, const CD2DSizeF& radiusValue)
+    : point(pointValue), radius(radiusValue) {}
+CD2DEllipse::CD2DEllipse(const CD2DRectF& rect)
+    : point((rect.left + rect.right) * 0.5f, (rect.top + rect.bottom) * 0.5f),
+      radius((rect.right - rect.left) * 0.5f, (rect.bottom - rect.top) * 0.5f) {}
+
+CD2DRoundedRect::CD2DRoundedRect() : rect(), radius() {}
+CD2DRoundedRect::CD2DRoundedRect(const CD2DRectF& rectValue, const CD2DSizeF& radiusValue)
+    : rect(rectValue), radius(radiusValue) {}
+
+// Symbol: ??0CRenderTarget@@QEAA@XZ
+extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* pThis) {
+    if (!pThis) return nullptr;
+    g_renderTargetState[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??1CRenderTarget@@UEAA@XZ
+extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* pThis) {
+    if (!pThis) return;
+    g_renderTargetState.erase(pThis);
+}
+
+CRenderTarget::CRenderTarget() {
+    impl___0CRenderTarget__QEAA_XZ(this);
+    memset(_rendertarget_padding, 0, sizeof(_rendertarget_padding));
+}
+
+CRenderTarget::~CRenderTarget() {
+    impl___1CRenderTarget__UEAA_XZ(this);
+}
+
+// Symbol: ?Attach@CRenderTarget@@QEAAXPEAUID2D1RenderTarget@@@Z
+extern "C" void MS_ABI impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(CRenderTarget* pThis, void* pRenderTarget) {
+    if (!pThis) return;
+    g_renderTargetState[pThis].resource = pRenderTarget;
+}
+
+void CRenderTarget::Attach(void* pRenderTarget) {
+    impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(this, pRenderTarget);
+}
+
+// Symbol: ?Detach@CRenderTarget@@QEAAPEAUID2D1RenderTarget@@XZ
+extern "C" void* MS_ABI impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(CRenderTarget* pThis) {
+    if (!pThis) return nullptr;
+    auto& state = g_renderTargetState[pThis];
+    void* old = state.resource;
+    state.resource = nullptr;
+    return old;
+}
+
+void* CRenderTarget::Detach() {
+    return impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(this);
+}
+
+// Symbol: ?BeginDraw@CRenderTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__BeginDraw_CRenderTarget__QEAAXXZ(CRenderTarget* pThis) {
+    if (!pThis) return;
+    g_renderTargetState[pThis].drawing = true;
+}
+
+void CRenderTarget::BeginDraw() {
+    impl__BeginDraw_CRenderTarget__QEAAXXZ(this);
+}
+
+// Symbol: ?EndDraw@CRenderTarget@@QEAAJXZ
+extern "C" long MS_ABI impl__EndDraw_CRenderTarget__QEAAJXZ(CRenderTarget* pThis) {
+    if (!pThis) return E_POINTER;
+    g_renderTargetState[pThis].drawing = false;
+    return S_OK;
+}
+
+long CRenderTarget::EndDraw() {
+    return impl__EndDraw_CRenderTarget__QEAAJXZ(this);
+}
+
+// Symbol: ?Destroy@CRenderTarget@@QEAAHH@Z
+extern "C" int MS_ABI impl__Destroy_CRenderTarget__QEAAHH_Z(CRenderTarget* pThis, int bReleasing) {
+    (void)bReleasing;
+    if (!pThis) return FALSE;
+    auto& state = g_renderTargetState[pThis];
+    state.resource = nullptr;
+    state.drawing = false;
+    return TRUE;
+}
+
+int CRenderTarget::Destroy(int bReleasing) {
+    return impl__Destroy_CRenderTarget__QEAAHH_Z(this, bReleasing);
+}
+
+// Symbol: ?Clear@CRenderTarget@@QEAAXU_D3DCOLORVALUE@@@Z
+extern "C" void MS_ABI impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(CRenderTarget* pThis, CD2DColorF color) {
+    (void)pThis;
+    (void)color;
+}
+
+void CRenderTarget::Clear(CD2DColorF color) {
+    impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(this, color);
+}
+
+void CRenderTarget::DrawLine(const CD2DPointF& p0, const CD2DPointF& p1) { (void)p0; (void)p1; }
+void CRenderTarget::DrawRectangle(const CD2DRectF& rect) { (void)rect; }
+void CRenderTarget::DrawEllipse(const CD2DEllipse& ellipse) { (void)ellipse; }
+void CRenderTarget::DrawRoundedRectangle(const CD2DRoundedRect& rect) { (void)rect; }
+void CRenderTarget::FillRectangle(const CD2DRectF& rect) { (void)rect; }
+void CRenderTarget::FillEllipse(const CD2DEllipse& ellipse) { (void)ellipse; }
+void CRenderTarget::FillRoundedRectangle(const CD2DRoundedRect& rect) { (void)rect; }
+
+// Symbol: ?COLORREF_TO_D2DCOLOR@CRenderTarget@@SA?AU_D3DCOLORVALUE@@KH@Z
+extern "C" CD2DColorF MS_ABI impl__COLORREF_TO_D2DCOLOR_CRenderTarget__SA_AU_D3DCOLORVALUE__KH_Z(
+    unsigned long color, int alpha) {
+    CD2DColorF result = {};
+    result.r = (float)GetRValue(color) / 255.0f;
+    result.g = (float)GetGValue(color) / 255.0f;
+    result.b = (float)GetBValue(color) / 255.0f;
+    if (alpha < 0) alpha = 0;
+    if (alpha > 255) alpha = 255;
+    result.a = (float)alpha / 255.0f;
+    return result;
+}
+
+CD2DColorF CRenderTarget::COLORREF_TO_D2DCOLOR(COLORREF color, int alpha) {
+    return impl__COLORREF_TO_D2DCOLOR_CRenderTarget__SA_AU_D3DCOLORVALUE__KH_Z(color, alpha);
+}
+
+// Symbol: ??0CDCRenderTarget@@QEAA@XZ
+extern "C" CDCRenderTarget* MS_ABI impl___0CDCRenderTarget__QEAA_XZ(CDCRenderTarget* pThis) {
+    if (!pThis) return nullptr;
+    impl___0CRenderTarget__QEAA_XZ(pThis);
+    return pThis;
+}
+
+CDCRenderTarget::CDCRenderTarget() {
+    impl___0CDCRenderTarget__QEAA_XZ(this);
+}
+
+// Symbol: ?Attach@CDCRenderTarget@@QEAAXPEAUID2D1DCRenderTarget@@@Z
+extern "C" void MS_ABI impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(CDCRenderTarget* pThis, void* pRenderTarget) {
+    if (!pThis) return;
+    g_renderTargetState[pThis].resource = pRenderTarget;
+}
+
+void CDCRenderTarget::Attach(void* pRenderTarget) {
+    impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(this, pRenderTarget);
+}
+
+// Symbol: ?Detach@CDCRenderTarget@@QEAAPEAUID2D1DCRenderTarget@@XZ
+extern "C" void* MS_ABI impl__Detach_CDCRenderTarget__QEAAPEAUID2D1DCRenderTarget__XZ(CDCRenderTarget* pThis) {
+    return impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(pThis);
+}
+
+void* CDCRenderTarget::Detach() {
+    return impl__Detach_CDCRenderTarget__QEAAPEAUID2D1DCRenderTarget__XZ(this);
+}
+
+// Symbol: ?Create@CDCRenderTarget@@QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES@@@Z
+extern "C" int MS_ABI impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(
+    CDCRenderTarget* pThis, const void* pRenderTargetProperties) {
+    (void)pRenderTargetProperties;
+    if (!pThis) return FALSE;
+    g_renderTargetState[pThis].drawing = false;
+    return TRUE;
+}
+
+int CDCRenderTarget::Create(const void* pRenderTargetProperties) {
+    return impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(this, pRenderTargetProperties);
+}
+
+// Symbol: ?BindDC@CDCRenderTarget@@QEAAHAEBVCDC@@AEBVCRect@@@Z
+extern "C" int MS_ABI impl__BindDC_CDCRenderTarget__QEAAHAEBVCDC__AEBVCRect___Z(
+    CDCRenderTarget* pThis, const CDC* pDC, const CRect* pRect) {
+    (void)pRect;
+    if (!pThis || !pDC || !pDC->GetSafeHdc()) return FALSE;
+    return TRUE;
+}
+
+int CDCRenderTarget::BindDC(const CDC& dc, const CRect& rect) {
+    return impl__BindDC_CDCRenderTarget__QEAAHAEBVCDC__AEBVCRect___Z(this, &dc, &rect);
+}
+
+// Symbol: ??0CAnimationVariable@@QEAA@N@Z
+extern "C" CAnimationVariable* MS_ABI impl___0CAnimationVariable__QEAA_N_Z(CAnimationVariable* pThis, double defaultValue) {
+    if (!pThis) return nullptr;
+    g_animationVariableState[pThis].value = defaultValue;
+    return pThis;
+}
+
+// Symbol: ??1CAnimationVariable@@UEAA@XZ
+extern "C" void MS_ABI impl___1CAnimationVariable__UEAA_XZ(CAnimationVariable* pThis) {
+    if (!pThis) return;
+    g_animationVariableState.erase(pThis);
+}
+
+CAnimationVariable::CAnimationVariable(double defaultValue) {
+    impl___0CAnimationVariable__QEAA_N_Z(this, defaultValue);
+    memset(_animationvariable_padding, 0, sizeof(_animationvariable_padding));
+}
+
+CAnimationVariable::~CAnimationVariable() {
+    impl___1CAnimationVariable__UEAA_XZ(this);
+}
+
+// Symbol: ?Create@CAnimationVariable@@UEAAHPEAUIUIAnimationManager@@@Z
+extern "C" int MS_ABI impl__Create_CAnimationVariable__UEAAHPEAUIUIAnimationManager___Z(CAnimationVariable* pThis, void* pAnimationManager) {
+    (void)pAnimationManager;
+    return pThis ? TRUE : FALSE;
+}
+
+int CAnimationVariable::Create(void* pAnimationManager) {
+    return impl__Create_CAnimationVariable__UEAAHPEAUIUIAnimationManager___Z(this, pAnimationManager);
+}
+
+// Symbol: ?AddTransition@CAnimationVariable@@QEAAXPEAVCBaseTransition@@@Z
+extern "C" void MS_ABI impl__AddTransition_CAnimationVariable__QEAAXPEAVCBaseTransition___Z(CAnimationVariable* pThis, void* pTransition) {
+    (void)pThis;
+    (void)pTransition;
+}
+
+void CAnimationVariable::AddTransition(void* pTransition) {
+    impl__AddTransition_CAnimationVariable__QEAAXPEAVCBaseTransition___Z(this, pTransition);
+}
+
+// Symbol: ?ClearTransitions@CAnimationVariable@@QEAAXH@Z
+extern "C" void MS_ABI impl__ClearTransitions_CAnimationVariable__QEAAXH_Z(CAnimationVariable* pThis, int bAutodestroy) {
+    (void)pThis;
+    (void)bAutodestroy;
+}
+
+void CAnimationVariable::ClearTransitions(int bAutodestroy) {
+    impl__ClearTransitions_CAnimationVariable__QEAAXH_Z(this, bAutodestroy);
+}
+
+// Symbol: ?EnableValueChangedEvent@CAnimationVariable@@QEAAXPEAVCAnimationController@@H@Z
+extern "C" void MS_ABI impl__EnableValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(
+    CAnimationVariable* pThis, void* pController, int bEnable) {
+    (void)pThis;
+    (void)pController;
+    (void)bEnable;
+}
+
+void CAnimationVariable::EnableValueChangedEvent(void* pController, int bEnable) {
+    impl__EnableValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(this, pController, bEnable);
+}
+
+// Symbol: ?EnableIntegerValueChangedEvent@CAnimationVariable@@QEAAXPEAVCAnimationController@@H@Z
+extern "C" void MS_ABI impl__EnableIntegerValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(
+    CAnimationVariable* pThis, void* pController, int bEnable) {
+    (void)pThis;
+    (void)pController;
+    (void)bEnable;
+}
+
+void CAnimationVariable::EnableIntegerValueChangedEvent(void* pController, int bEnable) {
+    impl__EnableIntegerValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(this, pController, bEnable);
+}
+
+// Symbol: ?SetDefaultValue@CAnimationVariable@@QEAAXN@Z
+extern "C" void MS_ABI impl__SetDefaultValue_CAnimationVariable__QEAAXN_Z(CAnimationVariable* pThis, double value) {
+    if (!pThis) return;
+    g_animationVariableState[pThis].value = value;
+}
+
+void CAnimationVariable::SetDefaultValue(double value) {
+    impl__SetDefaultValue_CAnimationVariable__QEAAXN_Z(this, value);
+}
+
+// Symbol: ?GetValue@CAnimationVariable@@QEAAJAEAN@Z
+extern "C" long MS_ABI impl__GetValue_CAnimationVariable__QEAAJAEAN_Z(CAnimationVariable* pThis, double* pValue) {
+    if (!pThis || !pValue) return E_POINTER;
+    *pValue = g_animationVariableState[pThis].value;
+    return S_OK;
+}
+
+long CAnimationVariable::GetValue(double& value) {
+    return impl__GetValue_CAnimationVariable__QEAAJAEAN_Z(this, &value);
+}
+
+// Symbol: ?GetValue@CAnimationVariable@@QEAAJAEAH@Z
+extern "C" long MS_ABI impl__GetValue_CAnimationVariable__QEAAJAEAH_Z(CAnimationVariable* pThis, int* pValue) {
+    if (!pThis || !pValue) return E_POINTER;
+    *pValue = (int)g_animationVariableState[pThis].value;
+    return S_OK;
+}
+
+long CAnimationVariable::GetValue(int& value) {
+    return impl__GetValue_CAnimationVariable__QEAAJAEAH_Z(this, &value);
 }

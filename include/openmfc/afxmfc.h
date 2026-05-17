@@ -721,3 +721,121 @@ class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibb
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };
 class CMFCRibbonStatusBarPane : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonStatusBarPane) public: CMFCRibbonStatusBarPane(); virtual ~CMFCRibbonStatusBarPane(); char _pad[32]; };
 class CMFCTasksPaneTaskGroup : public CObject { DECLARE_DYNAMIC(CMFCTasksPaneTaskGroup) public: CMFCTasksPaneTaskGroup(); virtual ~CMFCTasksPaneTaskGroup(); char _pad[32]; };
+
+//=============================================================================
+// Wave 2 D2D/Animation minimal declarations
+//=============================================================================
+struct CD2DColorF {
+    float r;
+    float g;
+    float b;
+    float a;
+};
+
+class CD2DPointF {
+public:
+    CD2DPointF();
+    CD2DPointF(float x, float y);
+    CD2DPointF(const CPoint& point);
+
+    float x;
+    float y;
+};
+
+class CD2DSizeF {
+public:
+    CD2DSizeF();
+    CD2DSizeF(float width, float height);
+    CD2DSizeF(const CSize& size);
+
+    float width;
+    float height;
+};
+
+class CD2DRectF {
+public:
+    CD2DRectF();
+    CD2DRectF(float left, float top, float right, float bottom);
+    CD2DRectF(const CRect& rect);
+
+    float left;
+    float top;
+    float right;
+    float bottom;
+};
+
+class CD2DEllipse {
+public:
+    CD2DEllipse();
+    CD2DEllipse(const CD2DPointF& point, const CD2DSizeF& radius);
+    CD2DEllipse(const CD2DRectF& rect);
+
+    CD2DPointF point;
+    CD2DSizeF radius;
+};
+
+class CD2DRoundedRect {
+public:
+    CD2DRoundedRect();
+    CD2DRoundedRect(const CD2DRectF& rect, const CD2DSizeF& radius);
+
+    CD2DRectF rect;
+    CD2DSizeF radius;
+};
+
+class CRenderTarget : public CObject {
+    DECLARE_DYNAMIC(CRenderTarget)
+public:
+    CRenderTarget();
+    virtual ~CRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    void BeginDraw();
+    long EndDraw();
+    int Destroy(int bReleasing = TRUE);
+    void Clear(CD2DColorF color);
+
+    void DrawLine(const CD2DPointF& p0, const CD2DPointF& p1);
+    void DrawRectangle(const CD2DRectF& rect);
+    void DrawEllipse(const CD2DEllipse& ellipse);
+    void DrawRoundedRectangle(const CD2DRoundedRect& rect);
+    void FillRectangle(const CD2DRectF& rect);
+    void FillEllipse(const CD2DEllipse& ellipse);
+    void FillRoundedRectangle(const CD2DRoundedRect& rect);
+
+    static CD2DColorF COLORREF_TO_D2DCOLOR(COLORREF color, int alpha = 255);
+
+protected:
+    char _rendertarget_padding[32];
+};
+
+class CDCRenderTarget : public CRenderTarget {
+    DECLARE_DYNAMIC(CDCRenderTarget)
+public:
+    CDCRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    int Create(const void* pRenderTargetProperties);
+    int BindDC(const CDC& dc, const CRect& rect);
+};
+
+class CAnimationVariable : public CObject {
+    DECLARE_DYNAMIC(CAnimationVariable)
+public:
+    explicit CAnimationVariable(double defaultValue = 0.0);
+    virtual ~CAnimationVariable();
+
+    int Create(void* pAnimationManager);
+    void AddTransition(void* pTransition);
+    void ClearTransitions(int bAutodestroy = TRUE);
+    void EnableValueChangedEvent(void* pController, int bEnable);
+    void EnableIntegerValueChangedEvent(void* pController, int bEnable);
+    void SetDefaultValue(double value);
+    long GetValue(double& value);
+    long GetValue(int& value);
+
+protected:
+    char _animationvariable_padding[32];
+};
