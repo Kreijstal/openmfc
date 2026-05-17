@@ -1495,8 +1495,14 @@ inline int CWinApp::Run() {
 #endif
 
 // Helper functions - these are DLL exports in real MFC
+class AFX_MODULE_STATE;
+class _AFX_THREAD_STATE;
+
 // Symbol: ?AfxGetThread@@YAPEAVCWinThread@@XZ
 extern CWinThread* AFXAPI AfxGetThread();
+extern AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState();
+extern _AFX_THREAD_STATE* AFXAPI AfxGetThreadState();
+extern HINSTANCE AFXAPI AfxGetInstanceHandleHelper();
 
 // AfxGetApp is typically inline in real MFC, casting AfxGetThread result
 inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
