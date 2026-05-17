@@ -14,6 +14,16 @@
   #define MS_ABI
 #endif
 
+extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+    CWnd* pThis,
+    const wchar_t* lpszClassName,
+    const wchar_t* lpszWindowName,
+    DWORD dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    UINT nID,
+    CCreateContext* pContext);
+
 // =============================================================================
 // CRuntimeClass implementations for control classes
 // =============================================================================
@@ -57,6 +67,44 @@ asm(".globl \"?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCTreeCtrl@CTreeCtrl@@2UCRuntimeClass@@A\", _ZN9CTreeCtrl14classCTreeCtrlE\n");
 asm(".globl \"?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCTabCtrl@CTabCtrl@@2UCRuntimeClass@@A\", _ZN8CTabCtrl13classCTabCtrlE\n");
+
+// MSVC symbol aliases for Create methods
+// Symbol: ?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CButton__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CStatic__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CScrollBar__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSliderCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CProgressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSpinButtonCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTreeCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
 
 // MSVC symbol aliases for CButton methods
 asm(".globl \"?GetState@CButton@@QEBAIXZ\"\n"
@@ -151,6 +199,13 @@ asm(".globl \"?SetScrollPos@CScrollBar@@QEAAHHH@Z\"\n"
 // CButton Implementation
 // =============================================================================
 
+extern "C" int MS_ABI impl__Create_CButton__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z(
+    CButton* pThis, const wchar_t* lpszCaption, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"BUTTON", lpszCaption, dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
 // CButton::GetState
 extern "C" unsigned int MS_ABI impl__GetState_CButton__QEBAIXZ(const CButton* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
@@ -217,6 +272,13 @@ extern "C" void* MS_ABI impl__SetIcon_CButton__QEAAPEAXPEAX_Z(CButton* pThis, vo
 // =============================================================================
 // CEdit Implementation
 // =============================================================================
+
+extern "C" int MS_ABI impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CEdit* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"EDIT", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
 
 // CEdit::GetLineCount
 extern "C" int MS_ABI impl__GetLineCount_CEdit__QEBAHXZ(const CEdit* pThis) {
@@ -340,6 +402,13 @@ extern "C" void MS_ABI impl__SetPasswordChar_CEdit__QEAAX_W_Z(CEdit* pThis, wcha
 // CStatic Implementation
 // =============================================================================
 
+extern "C" int MS_ABI impl__Create_CStatic__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z(
+    CStatic* pThis, const wchar_t* lpszText, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"STATIC", lpszText, dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
 // CStatic::GetBitmap
 extern "C" void* MS_ABI impl__GetBitmap_CStatic__QEBAPEAXXZ(const CStatic* pThis) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
@@ -379,6 +448,13 @@ extern "C" void* MS_ABI impl__SetEnhMetaFile_CStatic__QEAAPEAXPEAX_Z(CStatic* pT
 // =============================================================================
 // CListBox Implementation
 // =============================================================================
+
+extern "C" int MS_ABI impl__Create_CListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CListBox* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"LISTBOX", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
 
 // CListBox::GetCount
 extern "C" int MS_ABI impl__GetCount_CListBox__QEBAHXZ(const CListBox* pThis) {
@@ -474,6 +550,13 @@ extern "C" int MS_ABI impl__SetItemDataPtr_CListBox__QEAAHHPEAX_Z(CListBox* pThi
 // =============================================================================
 // CComboBox Implementation
 // =============================================================================
+
+extern "C" int MS_ABI impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CComboBox* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"COMBOBOX", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
 
 // CComboBox::GetCount
 extern "C" int MS_ABI impl__GetCount_CComboBox__QEBAHXZ(const CComboBox* pThis) {
@@ -571,6 +654,13 @@ extern "C" int MS_ABI impl__GetDroppedState_CComboBox__QEBAHXZ(const CComboBox* 
 // CScrollBar Implementation
 // =============================================================================
 
+extern "C" int MS_ABI impl__Create_CScrollBar__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CScrollBar* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"SCROLLBAR", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
 // CScrollBar::GetScrollPos
 extern "C" int MS_ABI impl__GetScrollPos_CScrollBar__QEBAHXZ(const CScrollBar* pThis) {
     if (!pThis || !pThis->m_hWnd) return 0;
@@ -619,4 +709,46 @@ extern "C" int MS_ABI impl__SetScrollInfo_CScrollBar__QEAAHPEAUSCROLLINFO__H_Z(C
 extern "C" int MS_ABI impl__EnableScrollBar_CScrollBar__QEAAHI_Z(CScrollBar* pThis, unsigned int nArrowFlags) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return ::EnableScrollBar(pThis->m_hWnd, SB_CTL, nArrowFlags);
+}
+
+extern "C" int MS_ABI impl__Create_CSliderCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CSliderCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"msctls_trackbar32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+extern "C" int MS_ABI impl__Create_CProgressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CProgressCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"msctls_progress32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+extern "C" int MS_ABI impl__Create_CSpinButtonCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CSpinButtonCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"msctls_updown32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+extern "C" int MS_ABI impl__Create_CListCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CListCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"SysListView32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+extern "C" int MS_ABI impl__Create_CTreeCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CTreeCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"SysTreeView32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+extern "C" int MS_ABI impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CTabCtrl* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, L"SysTabControl32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
 }
