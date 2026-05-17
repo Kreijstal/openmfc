@@ -1047,7 +1047,6 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis) {
 }
 
 // Constructor with template name
-// Symbol: ??0CFormView@@IEAA@PEB_W@Z
 extern "C" void MS_ABI impl___0CFormView__QEAA_PEB_W_Z(
     CFormView* pThis, const wchar_t* lpszTemplateName)
 {
@@ -1058,7 +1057,6 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_PEB_W_Z(
 }
 
 // Constructor with resource ID
-// Symbol: ??0CFormView@@IEAA@I@Z
 extern "C" void MS_ABI impl___0CFormView__QEAA_I_Z(
     CFormView* pThis, unsigned int nIDTemplate)
 {
@@ -1068,12 +1066,14 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_I_Z(
     pThis->m_nIDHelp = nIDTemplate;
 }
 
+// Symbol: ??0CFormView@@IEAA@PEB_W@Z
 extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(
     CFormView* pThis, const wchar_t* lpszTemplateName)
 {
     impl___0CFormView__QEAA_PEB_W_Z(pThis, lpszTemplateName);
 }
 
+// Symbol: ??0CFormView@@IEAA@I@Z
 extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(
     CFormView* pThis, unsigned int nIDTemplate)
 {
@@ -1238,7 +1238,6 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CTreeView__UEAAXXZ(CTreeView* pThis
 // =============================================================================
 
 // Constructor
-// Symbol: ??0CDocTemplate@@IEAA@IPEAUCRuntimeClass@@00@Z
 extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
     CDocTemplate* pThis, unsigned int nIDResource,
     CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass)
@@ -1252,6 +1251,7 @@ extern "C" void MS_ABI impl___0CDocTemplate__QEAA_IPEAUCRuntimeClass__00_Z(
     pThis->m_pLastDoc = nullptr;
 }
 
+// Symbol: ??0CDocTemplate@@IEAA@IPEAUCRuntimeClass@@00@Z
 extern "C" void MS_ABI impl___0CDocTemplate__IEAA_IPEAUCRuntimeClass__00_Z(
     CDocTemplate* pThis, unsigned int nIDResource,
     CRuntimeClass* pDocClass, CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass)
