@@ -513,7 +513,7 @@ public:
         constexpr int kInitialFormatBuffer = 256;
         constexpr int kMaxFormatBuffer = 32768;
         int nBufLen = kInitialFormatBuffer;
-        while (nBufLen <= kMaxFormatBuffer) {
+        while (true) {
             wchar_t* pBuf = GetBuffer(nBufLen);
             va_list argsCopy;
             va_copy(argsCopy, args);
@@ -526,10 +526,16 @@ public:
             }
 
             ReleaseBuffer(0);
-            if (nWritten >= nBufLen) {
+            if (nBufLen >= kMaxFormatBuffer) {
+                break;
+            }
+            if (nWritten >= nBufLen && nWritten > 0) {
                 nBufLen = nWritten + 1;
             } else {
                 nBufLen *= 2;
+            }
+            if (nBufLen > kMaxFormatBuffer) {
+                nBufLen = kMaxFormatBuffer;
             }
         }
         Empty();
