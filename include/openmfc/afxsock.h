@@ -130,6 +130,15 @@ public:
     static void AuxQueueAdd(UINT message, SOCKET hSocket, long lParam);
     static int ProcessAuxQueue();
     int SendChunk(const void* lpBuf, int nBufLen, int nFlags);
+    int _OpenMfcReceiveFromHelper(void* lpBuf, int nBufLen, struct sockaddr* lpSockAddr, int* lpSockAddrLen, int nFlags) {
+        return ReceiveFromHelper(lpBuf, nBufLen, lpSockAddr, lpSockAddrLen, nFlags);
+    }
+    int _OpenMfcSendToHelper(const void* lpBuf, int nBufLen, const struct sockaddr* lpSockAddr, int nSockAddrLen, int nFlags) {
+        return SendToHelper(lpBuf, nBufLen, lpSockAddr, nSockAddrLen, nFlags);
+    }
+    int _OpenMfcOnMessagePending() {
+        return OnMessagePending();
+    }
 
 protected:
     virtual int ConnectHelper(const struct sockaddr* lpSockAddr, int nSockAddrLen) override;
@@ -187,6 +196,18 @@ class CSocketWnd : public CWnd {
     DECLARE_MESSAGE_MAP()
 public:
     CSocketWnd();
+    const AFX_MSGMAP* _OpenMfcGetMessageMap() const {
+        return GetMessageMap();
+    }
+    static const AFX_MSGMAP* _OpenMfcGetThisMessageMap() {
+        return GetThisMessageMap();
+    }
+    LRESULT _OpenMfcOnSocketNotify(WPARAM wParam, LPARAM lParam) {
+        return OnSocketNotify(wParam, lParam);
+    }
+    LRESULT _OpenMfcOnSocketDead(WPARAM wParam, LPARAM lParam) {
+        return OnSocketDead(wParam, lParam);
+    }
 
 private:
     LRESULT OnSocketNotify(WPARAM wParam, LPARAM lParam);

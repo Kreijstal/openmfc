@@ -771,19 +771,19 @@ extern "C" int MS_ABI impl__SendChunk_CSocket__QEAAHPEBXHH_Z(
 extern "C" int MS_ABI impl__ReceiveFromHelper_CSocket__MEAAHPEAXHPEAUsockaddr__PEAHH_Z(
         CSocket* pThis, void* lpBuf, int nBufLen,
         sockaddr* lpSockAddr, int* lpSockAddrLen, int nFlags) {
-    return pThis->ReceiveFromHelper(lpBuf, nBufLen, lpSockAddr, lpSockAddrLen, nFlags);
+    return pThis->_OpenMfcReceiveFromHelper(lpBuf, nBufLen, lpSockAddr, lpSockAddrLen, nFlags);
 }
 
 // Symbol: ?SendToHelper@CSocket@@MEAAHPEBXHPEBUsockaddr@@HH@Z
 extern "C" int MS_ABI impl__SendToHelper_CSocket__MEAAHPEBXHPEBUsockaddr__HH_Z(
         CSocket* pThis, const void* lpBuf, int nBufLen,
         const sockaddr* lpSockAddr, int nSockAddrLen, int nFlags) {
-    return pThis->SendToHelper(lpBuf, nBufLen, lpSockAddr, nSockAddrLen, nFlags);
+    return pThis->_OpenMfcSendToHelper(lpBuf, nBufLen, lpSockAddr, nSockAddrLen, nFlags);
 }
 
 // Symbol: ?OnMessagePending@CSocket@@MEAAHXZ
 extern "C" int MS_ABI impl__OnMessagePending_CSocket__MEAAHXZ(CSocket* pThis) {
-    return pThis->OnMessagePending();
+    return pThis->_OpenMfcOnMessagePending();
 }
 
 // Symbol: ?ProcessAuxQueue@CSocket@@SAHXZ
@@ -891,22 +891,22 @@ extern "C" void* MS_ABI impl___0CSocketWnd__QEAA_XZ(CSocketWnd* pThis) {
 // Symbol: ?GetMessageMap@CSocketWnd@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CSocketWnd__MEBAPEBUAFX_MSGMAP__XZ(
         const CSocketWnd* pThis) {
-    return pThis->GetMessageMap();
+    return pThis->_OpenMfcGetMessageMap();
 }
 
 // Symbol: ?GetThisMessageMap@CSocketWnd@@KAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CSocketWnd__KAPEBUAFX_MSGMAP__XZ() {
-    return CSocketWnd::GetThisMessageMap();
+    return CSocketWnd::_OpenMfcGetThisMessageMap();
 }
 
 // Symbol: ?OnSocketNotify@CSocketWnd@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnSocketNotify_CSocketWnd__IEAA_J_K_J_Z(
         CSocketWnd* pThis, WPARAM wParam, LPARAM lParam) {
-    return pThis->OnSocketNotify(wParam, lParam);
+    return pThis->_OpenMfcOnSocketNotify(wParam, lParam);
 }
 
 // Symbol: ?OnSocketDead@CSocketWnd@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnSocketDead_CSocketWnd__IEAA_J_K_J_Z(
         CSocketWnd* pThis, WPARAM wParam, LPARAM lParam) {
-    return pThis->OnSocketDead(wParam, lParam);
+    return pThis->_OpenMfcOnSocketDead(wParam, lParam);
 }
