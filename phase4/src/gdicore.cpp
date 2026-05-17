@@ -8,6 +8,7 @@
 #include "openmfc/afxmfc.h"
 #include <windows.h>
 #include <cstring>
+#include <mutex>
 #include <unordered_map>
 
 // Thread-local temporary GDI object map for SelectObject return values
@@ -76,8 +77,9 @@ struct CAnimationVariableState {
     double value = 0.0;
 };
 
-thread_local std::unordered_map<const CRenderTarget*, CRenderTargetState> g_renderTargetState;
-thread_local std::unordered_map<const CAnimationVariable*, CAnimationVariableState> g_animationVariableState;
+std::unordered_map<const CRenderTarget*, CRenderTargetState> g_renderTargetState;
+std::unordered_map<const CAnimationVariable*, CAnimationVariableState> g_animationVariableState;
+std::mutex g_wave2StateMutex;
 } // namespace
 
 // MS ABI calling convention
@@ -1150,6 +1152,7 @@ CD2DRoundedRect::CD2DRoundedRect(const CD2DRectF& rectValue, const CD2DSizeF& ra
 // Symbol: ??0CRenderTarget@@QEAA@XZ
 extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* pThis) {
     if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis] = {};
     return pThis;
 }
@@ -1157,6 +1160,7 @@ extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* p
 // Symbol: ??1CRenderTarget@@UEAA@XZ
 extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* pThis) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState.erase(pThis);
 }
 
@@ -1172,6 +1176,7 @@ CRenderTarget::~CRenderTarget() {
 // Symbol: ?Attach@CRenderTarget@@QEAAXPEAUID2D1RenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(CRenderTarget* pThis, void* pRenderTarget) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis].resource = pRenderTarget;
 }
 
@@ -1182,6 +1187,7 @@ void CRenderTarget::Attach(void* pRenderTarget) {
 // Symbol: ?Detach@CRenderTarget@@QEAAPEAUID2D1RenderTarget@@XZ
 extern "C" void* MS_ABI impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(CRenderTarget* pThis) {
     if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto& state = g_renderTargetState[pThis];
     void* old = state.resource;
     state.resource = nullptr;
@@ -1195,6 +1201,7 @@ void* CRenderTarget::Detach() {
 // Symbol: ?BeginDraw@CRenderTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__BeginDraw_CRenderTarget__QEAAXXZ(CRenderTarget* pThis) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis].drawing = true;
 }
 
@@ -1205,6 +1212,7 @@ void CRenderTarget::BeginDraw() {
 // Symbol: ?EndDraw@CRenderTarget@@QEAAJXZ
 extern "C" long MS_ABI impl__EndDraw_CRenderTarget__QEAAJXZ(CRenderTarget* pThis) {
     if (!pThis) return E_POINTER;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis].drawing = false;
     return S_OK;
 }
@@ -1217,6 +1225,7 @@ long CRenderTarget::EndDraw() {
 extern "C" int MS_ABI impl__Destroy_CRenderTarget__QEAAHH_Z(CRenderTarget* pThis, int bReleasing) {
     (void)bReleasing;
     if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto& state = g_renderTargetState[pThis];
     state.resource = nullptr;
     state.drawing = false;
@@ -1237,13 +1246,102 @@ void CRenderTarget::Clear(CD2DColorF color) {
     impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(this, color);
 }
 
-void CRenderTarget::DrawLine(const CD2DPointF& p0, const CD2DPointF& p1) { (void)p0; (void)p1; }
-void CRenderTarget::DrawRectangle(const CD2DRectF& rect) { (void)rect; }
-void CRenderTarget::DrawEllipse(const CD2DEllipse& ellipse) { (void)ellipse; }
-void CRenderTarget::DrawRoundedRectangle(const CD2DRoundedRect& rect) { (void)rect; }
-void CRenderTarget::FillRectangle(const CD2DRectF& rect) { (void)rect; }
-void CRenderTarget::FillEllipse(const CD2DEllipse& ellipse) { (void)ellipse; }
-void CRenderTarget::FillRoundedRectangle(const CD2DRoundedRect& rect) { (void)rect; }
+// Symbol: ?DrawLine@CRenderTarget@@QEAAXAEBVCD2DPointF@@0PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
+extern "C" void MS_ABI impl__DrawLine_CRenderTarget__QEAAXAEBVCD2DPointF__0PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+    CRenderTarget* pThis, const CD2DPointF* p0, const CD2DPointF* p1, void* pBrush, float strokeWidth, void* pStrokeStyle) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)pBrush;
+    (void)strokeWidth;
+    (void)pStrokeStyle;
+}
+
+void CRenderTarget::DrawLine(const CD2DPointF& p0, const CD2DPointF& p1) {
+    impl__DrawLine_CRenderTarget__QEAAXAEBVCD2DPointF__0PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+        this, &p0, &p1, nullptr, 1.0f, nullptr);
+}
+
+// Symbol: ?DrawRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
+extern "C" void MS_ABI impl__DrawRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+    CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
+    (void)pThis;
+    (void)pRect;
+    (void)pBrush;
+    (void)strokeWidth;
+    (void)pStrokeStyle;
+}
+
+void CRenderTarget::DrawRectangle(const CD2DRectF& rect) {
+    impl__DrawRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+        this, &rect, nullptr, 1.0f, nullptr);
+}
+
+// Symbol: ?DrawEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
+extern "C" void MS_ABI impl__DrawEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+    CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush, float strokeWidth, void* pStrokeStyle) {
+    (void)pThis;
+    (void)pEllipse;
+    (void)pBrush;
+    (void)strokeWidth;
+    (void)pStrokeStyle;
+}
+
+void CRenderTarget::DrawEllipse(const CD2DEllipse& ellipse) {
+    impl__DrawEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+        this, &ellipse, nullptr, 1.0f, nullptr);
+}
+
+// Symbol: ?DrawRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
+extern "C" void MS_ABI impl__DrawRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+    CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
+    (void)pThis;
+    (void)pRect;
+    (void)pBrush;
+    (void)strokeWidth;
+    (void)pStrokeStyle;
+}
+
+void CRenderTarget::DrawRoundedRectangle(const CD2DRoundedRect& rect) {
+    impl__DrawRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
+        this, &rect, nullptr, 1.0f, nullptr);
+}
+
+// Symbol: ?FillRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@@Z
+extern "C" void MS_ABI impl__FillRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush___Z(
+    CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush) {
+    (void)pThis;
+    (void)pRect;
+    (void)pBrush;
+}
+
+void CRenderTarget::FillRectangle(const CD2DRectF& rect) {
+    impl__FillRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush___Z(this, &rect, nullptr);
+}
+
+// Symbol: ?FillEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@@Z
+extern "C" void MS_ABI impl__FillEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush___Z(
+    CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush) {
+    (void)pThis;
+    (void)pEllipse;
+    (void)pBrush;
+}
+
+void CRenderTarget::FillEllipse(const CD2DEllipse& ellipse) {
+    impl__FillEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush___Z(this, &ellipse, nullptr);
+}
+
+// Symbol: ?FillRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@@Z
+extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush___Z(
+    CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush) {
+    (void)pThis;
+    (void)pRect;
+    (void)pBrush;
+}
+
+void CRenderTarget::FillRoundedRectangle(const CD2DRoundedRect& rect) {
+    impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush___Z(this, &rect, nullptr);
+}
 
 // Symbol: ?COLORREF_TO_D2DCOLOR@CRenderTarget@@SA?AU_D3DCOLORVALUE@@KH@Z
 extern "C" CD2DColorF MS_ABI impl__COLORREF_TO_D2DCOLOR_CRenderTarget__SA_AU_D3DCOLORVALUE__KH_Z(
@@ -1276,6 +1374,7 @@ CDCRenderTarget::CDCRenderTarget() {
 // Symbol: ?Attach@CDCRenderTarget@@QEAAXPEAUID2D1DCRenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(CDCRenderTarget* pThis, void* pRenderTarget) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis].resource = pRenderTarget;
 }
 
@@ -1297,6 +1396,7 @@ extern "C" int MS_ABI impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_
     CDCRenderTarget* pThis, const void* pRenderTargetProperties) {
     (void)pRenderTargetProperties;
     if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[pThis].drawing = false;
     return TRUE;
 }
@@ -1320,6 +1420,7 @@ int CDCRenderTarget::BindDC(const CDC& dc, const CRect& rect) {
 // Symbol: ??0CAnimationVariable@@QEAA@N@Z
 extern "C" CAnimationVariable* MS_ABI impl___0CAnimationVariable__QEAA_N_Z(CAnimationVariable* pThis, double defaultValue) {
     if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_animationVariableState[pThis].value = defaultValue;
     return pThis;
 }
@@ -1327,6 +1428,7 @@ extern "C" CAnimationVariable* MS_ABI impl___0CAnimationVariable__QEAA_N_Z(CAnim
 // Symbol: ??1CAnimationVariable@@UEAA@XZ
 extern "C" void MS_ABI impl___1CAnimationVariable__UEAA_XZ(CAnimationVariable* pThis) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_animationVariableState.erase(pThis);
 }
 
@@ -1396,6 +1498,7 @@ void CAnimationVariable::EnableIntegerValueChangedEvent(void* pController, int b
 // Symbol: ?SetDefaultValue@CAnimationVariable@@QEAAXN@Z
 extern "C" void MS_ABI impl__SetDefaultValue_CAnimationVariable__QEAAXN_Z(CAnimationVariable* pThis, double value) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_animationVariableState[pThis].value = value;
 }
 
@@ -1406,6 +1509,7 @@ void CAnimationVariable::SetDefaultValue(double value) {
 // Symbol: ?GetValue@CAnimationVariable@@QEAAJAEAN@Z
 extern "C" long MS_ABI impl__GetValue_CAnimationVariable__QEAAJAEAN_Z(CAnimationVariable* pThis, double* pValue) {
     if (!pThis || !pValue) return E_POINTER;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     *pValue = g_animationVariableState[pThis].value;
     return S_OK;
 }
@@ -1417,6 +1521,7 @@ long CAnimationVariable::GetValue(double& value) {
 // Symbol: ?GetValue@CAnimationVariable@@QEAAJAEAH@Z
 extern "C" long MS_ABI impl__GetValue_CAnimationVariable__QEAAJAEAH_Z(CAnimationVariable* pThis, int* pValue) {
     if (!pThis || !pValue) return E_POINTER;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     *pValue = (int)g_animationVariableState[pThis].value;
     return S_OK;
 }
