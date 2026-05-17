@@ -11,6 +11,11 @@
 #include <exdisp.h>
 #include <shlobj.h>
 
+#ifndef __IRichEditOle_FWD_DEFINED__
+#define __IRichEditOle_FWD_DEFINED__
+struct IRichEditOle;
+#endif
+
 #ifndef _WINDOWS_
     typedef void* HWND;
     typedef void* HDC;
