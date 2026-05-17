@@ -32,6 +32,8 @@ static const wchar_t* g_pszRichEditClass = RICHEDIT_CLASS;
 //=============================================================================
 // CRichEditCtrl
 //=============================================================================
+IMPLEMENT_DYNAMIC(CRichEditCtrl, CWnd)
+
 CRichEditCtrl::CRichEditCtrl() {
     memset(_richeditctrl_padding, 0, sizeof(_richeditctrl_padding));
 }
@@ -41,8 +43,12 @@ CRichEditCtrl::~CRichEditCtrl() {
 }
 
 BOOL CRichEditCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
+    return CreateEx(0, dwStyle, rect, pParentWnd, nID);
+}
+
+BOOL CRichEditCtrl::CreateEx(DWORD dwExStyle, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
     if (!pParentWnd) return FALSE;
-    m_hWnd = ::CreateWindowExW(0, g_pszRichEditClass, nullptr,
+    m_hWnd = ::CreateWindowExW(dwExStyle, g_pszRichEditClass, nullptr,
                                 dwStyle | WS_CHILD | WS_VISIBLE,
                                 rect.left, rect.top,
                                 rect.right - rect.left, rect.bottom - rect.top,
@@ -168,12 +174,25 @@ void CRichEditCtrl::Cut() {
     if (m_hWnd) ::SendMessageW(m_hWnd, WM_CUT, 0, 0);
 }
 
+int CRichEditCtrl::CanPaste(UINT nFormat) const {
+    if (!m_hWnd) return FALSE;
+    return (int)::SendMessageW(m_hWnd, EM_CANPASTE, nFormat, 0);
+}
+
 void CRichEditCtrl::Copy() {
     if (m_hWnd) ::SendMessageW(m_hWnd, WM_COPY, 0, 0);
 }
 
 void CRichEditCtrl::Paste() {
     if (m_hWnd) ::SendMessageW(m_hWnd, WM_PASTE, 0, 0);
+}
+
+void CRichEditCtrl::PasteSpecial(UINT nClipFormat, DWORD dwAspect, HMETAFILE hMF) {
+    if (!m_hWnd) return;
+    REPASTESPECIAL rps = {};
+    rps.dwAspect = dwAspect;
+    rps.dwParam = reinterpret_cast<DWORD_PTR>(hMF);
+    ::SendMessageW(m_hWnd, EM_PASTESPECIAL, nClipFormat, (LPARAM)&rps);
 }
 
 void CRichEditCtrl::Clear() {
@@ -190,9 +209,61 @@ LONG CRichEditCtrl::StreamOut(int nFormat, EDITSTREAM& es) {
     return (LONG)::SendMessageW(m_hWnd, EM_STREAMOUT, nFormat, (LPARAM)&es);
 }
 
+IRichEditOle* CRichEditCtrl::GetIRichEditOle() const {
+    if (!m_hWnd) return nullptr;
+    IRichEditOle* pOle = nullptr;
+    ::SendMessageW(m_hWnd, EM_GETOLEINTERFACE, 0, (LPARAM)&pOle);
+    return pOle;
+}
+
 LONG CRichEditCtrl::FindText(DWORD dwFlags, FINDTEXTEXW& ft) const {
     if (!m_hWnd) return -1;
     return (LONG)::SendMessageW(m_hWnd, EM_FINDTEXTEXW, dwFlags, (LPARAM)&ft);
+}
+
+CString CRichEditCtrl::GetSelText() const {
+    CString str;
+    if (!m_hWnd) return str;
+
+    int nStart = 0, nEnd = 0;
+    GetSel(nStart, nEnd);
+    if (nEnd <= nStart) return str;
+
+    int nMax = (nEnd - nStart) + 1;
+    wchar_t* pBuf = str.GetBuffer(nMax);
+    int nCopied = (int)::SendMessageW(m_hWnd, EM_GETSELTEXT, 0, (LPARAM)pBuf);
+    if (nCopied < 0) nCopied = 0;
+    str.ReleaseBuffer(nCopied);
+    return str;
+}
+
+LONG CRichEditCtrl::GetTextLengthEx(DWORD dwFlags, UINT uCodePage) const {
+    if (!m_hWnd) return 0;
+    GETTEXTLENGTHEX gtl = {};
+    gtl.flags = dwFlags;
+    gtl.codepage = uCodePage;
+    return (LONG)::SendMessageW(m_hWnd, EM_GETTEXTLENGTHEX, (WPARAM)&gtl, 0);
+}
+
+int CRichEditCtrl::GetTextRange(int nFirst, int nLast, CString& refString) const {
+    refString.Empty();
+    if (!m_hWnd || nLast <= nFirst) return 0;
+
+    TEXTRANGEW tr = {};
+    tr.chrg.cpMin = nFirst;
+    tr.chrg.cpMax = nLast;
+
+    int nMax = (nLast - nFirst) + 1;
+    wchar_t* pBuf = refString.GetBuffer(nMax);
+    tr.lpstrText = pBuf;
+    int nCopied = (int)::SendMessageW(m_hWnd, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
+    if (nCopied < 0) nCopied = 0;
+    refString.ReleaseBuffer(nCopied);
+    return nCopied;
+}
+
+void CRichEditCtrl::LineScroll(int nLines, int nChars) {
+    if (m_hWnd) ::SendMessageW(m_hWnd, EM_LINESCROLL, nChars, nLines);
 }
 
 BOOL CRichEditCtrl::SetReadOnly(BOOL bReadOnly) {
@@ -223,6 +294,16 @@ void CRichEditCtrl::SetMargins(UINT nLeft, UINT nRight) {
         ::SendMessageW(m_hWnd, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN,
                        MAKELPARAM(nLeft, nRight));
     }
+}
+
+int CRichEditCtrl::SetWordCharFormat(CHARFORMAT2W& cf) {
+    if (!m_hWnd) return FALSE;
+    return (int)::SendMessageW(m_hWnd, EM_SETCHARFORMAT, SCF_SELECTION | SCF_WORD, (LPARAM)&cf);
+}
+
+int CRichEditCtrl::SetWordCharFormat(CHARFORMATW& cf) {
+    if (!m_hWnd) return FALSE;
+    return (int)::SendMessageW(m_hWnd, EM_SETCHARFORMAT, SCF_SELECTION | SCF_WORD, (LPARAM)&cf);
 }
 
 //=============================================================================
@@ -375,10 +456,68 @@ BOOL CRichEditView::FindTextSimple(const wchar_t* lpszFind, BOOL bNext, BOOL bCa
     return FALSE;
 }
 
+int CRichEditView::FindTextW(const wchar_t* lpszFind, int bNext, int bCase, int bWholeWord) {
+    if (!lpszFind || !m_richEdit.m_hWnd) return FALSE;
+
+    FINDTEXTEXW ft = {};
+    ft.lpstrText = (LPWSTR)lpszFind;
+    int nStart = 0, nEnd = 0;
+    m_richEdit.GetSel(nStart, nEnd);
+    int nLength = m_richEdit.GetTextLength();
+    BOOL bForward = (bNext != FALSE);
+
+    DWORD dwFlags = 0;
+    if (bCase) dwFlags |= FR_MATCHCASE;
+    if (bWholeWord) dwFlags |= FR_WHOLEWORD;
+    if (bForward) dwFlags |= FR_DOWN;
+
+    if (bForward) {
+        ft.chrg.cpMin = nEnd;
+        ft.chrg.cpMax = nLength;
+    } else {
+        ft.chrg.cpMin = nStart;
+        ft.chrg.cpMax = 0;
+    }
+
+    LONG nFound = m_richEdit.FindText(dwFlags, ft);
+    if (nFound < 0) {
+        if (bForward) {
+            ft.chrg.cpMin = 0;
+            ft.chrg.cpMax = nStart;
+        } else {
+            ft.chrg.cpMin = nLength;
+            ft.chrg.cpMax = nEnd;
+        }
+        nFound = m_richEdit.FindText(dwFlags, ft);
+    }
+    if (nFound < 0) return FALSE;
+
+    m_richEdit.SetSel((int)nFound, (int)(nFound + (LONG)wcslen(lpszFind)));
+    return TRUE;
+}
+
 LONG CRichEditView::GetFindString(const wchar_t* lpszFind, FINDTEXTEXW& ft) const {
     memset(&ft, 0, sizeof(ft));
     ft.lpstrText = (LPWSTR)lpszFind;
     return 0;
+}
+
+int CRichEditView::CanPaste() const {
+    return m_richEdit.CanPaste(CF_UNICODETEXT);
+}
+
+CHARFORMAT2W& CRichEditView::GetCharFormatSelection() {
+    static CHARFORMAT2W cf = {};
+    cf.cbSize = sizeof(CHARFORMAT2W);
+    m_richEdit.GetSelectionCharFormat(cf);
+    return cf;
+}
+
+PARAFORMAT2& CRichEditView::GetParaFormatSelection() {
+    static PARAFORMAT2 pf = {};
+    pf.cbSize = sizeof(PARAFORMAT2);
+    m_richEdit.GetParaFormat(pf);
+    return pf;
 }
 
 void CRichEditView::OnInitialUpdate() {
@@ -431,6 +570,32 @@ void CRichEditView::Serialize(CArchive& ar) {
     }
 }
 
+void CRichEditView::Stream(CArchive& ar, int bSelection) {
+    int nFormat = SF_TEXT;
+    if (bSelection) nFormat |= SFF_SELECTION;
+
+    EDITSTREAM es = {};
+    if (ar.IsStoring()) {
+        es.pfnCallback = [](DWORD_PTR dwCookie, PBYTE pbBuff, LONG cb, PLONG pcb) -> DWORD {
+            CArchive* pAr = (CArchive*)dwCookie;
+            pAr->Write(pbBuff, cb);
+            *pcb = cb;
+            return 0;
+        };
+        es.dwCookie = (DWORD_PTR)&ar;
+        m_richEdit.StreamOut(nFormat, es);
+    } else {
+        es.pfnCallback = [](DWORD_PTR dwCookie, PBYTE pbBuff, LONG cb, PLONG pcb) -> DWORD {
+            CArchive* pAr = (CArchive*)dwCookie;
+            UINT nRead = pAr->Read(pbBuff, cb);
+            *pcb = (LONG)nRead;
+            return (nRead < (UINT)cb) ? 1 : 0;
+        };
+        es.dwCookie = (DWORD_PTR)&ar;
+        m_richEdit.StreamIn(nFormat, es);
+    }
+}
+
 void CRichEditView::WrapChanged() {
     if (!m_richEdit.m_hWnd) return;
     // Recalculate layout after word wrap change
@@ -474,6 +639,14 @@ CRect CRichEditView::GetPrintRect() const {
 
 CRect CRichEditView::GetPageRect() const {
     return CRect(0, 0, m_sizePaper.cx, m_sizePaper.cy);
+}
+
+void CRichEditView::TextNotFound(const wchar_t* lpszFind) {
+    (void)lpszFind;
+}
+
+void CRichEditView::OnTextNotFound(const wchar_t* lpszFind) {
+    TextNotFound(lpszFind);
 }
 
 //=============================================================================

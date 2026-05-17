@@ -3244,11 +3244,13 @@ protected:
 #endif
 
 class CRichEditCtrl : public CWnd {
+    DECLARE_DYNAMIC(CRichEditCtrl)
 public:
     CRichEditCtrl();
     virtual ~CRichEditCtrl();
 
     BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
+    BOOL CreateEx(DWORD dwExStyle, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 
     // Character/paragraph formatting
     DWORD GetDefaultCharFormat(CHARFORMAT2W& cf) const;
@@ -3277,17 +3279,24 @@ public:
     void EmptyUndoBuffer();
 
     // Clipboard
+    int CanPaste(UINT nFormat = 0) const;
     void Cut();
     void Copy();
     void Paste();
+    void PasteSpecial(UINT nClipFormat, DWORD dwAspect = 0, HMETAFILE hMF = nullptr);
     void Clear();
 
     // Streaming (RTF)
     LONG StreamIn(int nFormat, EDITSTREAM& es);
     LONG StreamOut(int nFormat, EDITSTREAM& es);
+    IRichEditOle* GetIRichEditOle() const;
 
     // Find
     LONG FindText(DWORD dwFlags, FINDTEXTEXW& ft) const;
+    CString GetSelText() const;
+    LONG GetTextLengthEx(DWORD dwFlags, UINT uCodePage = 1200) const;
+    int GetTextRange(int nFirst, int nLast, CString& refString) const;
+    void LineScroll(int nLines, int nChars = 0);
 
     // Read-only
     BOOL SetReadOnly(BOOL bReadOnly = TRUE);
@@ -3300,6 +3309,8 @@ public:
 
     // Margins
     void SetMargins(UINT nLeft, UINT nRight);
+    int SetWordCharFormat(CHARFORMAT2W& cf);
+    int SetWordCharFormat(CHARFORMATW& cf);
 
     CRichEditCtrl& GetRichEditCtrl() { return *this; }
 
@@ -3341,7 +3352,14 @@ public:
     // Text operations
     BOOL FindText(const wchar_t* lpszFind, BOOL bNext = TRUE, BOOL bCase = TRUE);
     BOOL FindTextSimple(const wchar_t* lpszFind, BOOL bNext = TRUE, BOOL bCase = TRUE);
+    int FindTextW(const wchar_t* lpszFind, int bNext = TRUE, int bCase = TRUE, int bWholeWord = FALSE);
     LONG GetFindString(const wchar_t* lpszFind, FINDTEXTEXW& ft) const;
+    int CanPaste() const;
+    CHARFORMAT2W& GetCharFormatSelection();
+    PARAFORMAT2& GetParaFormatSelection();
+    void Stream(CArchive& ar, int bSelection);
+    void TextNotFound(const wchar_t* lpszFind);
+    virtual void OnTextNotFound(const wchar_t* lpszFind);
     void OnInitialUpdate() override;
     void OnDraw(void* pDC) override;
 
