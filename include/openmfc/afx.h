@@ -506,8 +506,8 @@ public:
     virtual void Close() override;
     
     // String operations
-    bool ReadString(wchar_t* lpsz, UINT nMax);
-    bool ReadString(CString& rString);
+    wchar_t* ReadString(wchar_t* lpsz, UINT nMax);
+    int ReadString(CString& rString);
     void WriteString(const wchar_t* lpsz);
     
 protected:
