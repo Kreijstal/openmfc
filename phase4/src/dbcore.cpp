@@ -471,7 +471,8 @@ extern "C" void* MS_ABI impl___0CFieldExchange__QEAA_IPEAVCRecordset__PEAX_Z(
 
 // Symbol: ?GetRuntimeClass@CDatabase@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDatabase__UEBAPEAUCRuntimeClass__XZ(const CDatabase* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CDatabase::GetThisClass();
+    (void)pThis;
+    return CDatabase::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CDatabase@@SAPEAUCRuntimeClass@@XZ
@@ -481,7 +482,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDatabase__SAPEAUCRuntimeCla
 
 // Symbol: ?GetRuntimeClass@CRecordset@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordset__UEBAPEAUCRuntimeClass__XZ(const CRecordset* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CRecordset::GetThisClass();
+    (void)pThis;
+    return CRecordset::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CRecordset@@SAPEAUCRuntimeClass@@XZ
@@ -491,7 +493,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeCl
 
 // Symbol: ?GetRuntimeClass@CRecordView@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordView__UEBAPEAUCRuntimeClass__XZ(const CRecordView* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CRecordView::GetThisClass();
+    (void)pThis;
+    return CRecordView::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CRecordView@@SAPEAUCRuntimeClass@@XZ
@@ -518,7 +521,8 @@ extern "C" int MS_ABI impl__IsOpen_CRecordset__QEBAHXZ(const CRecordset* pThis) 
 // Symbol: ?OpenEx@CDatabase@@UEAAHPEB_WK@Z
 extern "C" int MS_ABI impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(CDatabase* pThis, const wchar_t* lpszConnectString, DWORD dwOptions) {
     if (!pThis) return FALSE;
-    const BOOL bReadOnly = (dwOptions & 0x00000001UL) ? TRUE : FALSE;
+    constexpr DWORD kOpenReadOnlyOption = 0x00000001UL;
+    const BOOL bReadOnly = (dwOptions & kOpenReadOnlyOption) ? TRUE : FALSE;
     return pThis->Open(nullptr, FALSE, bReadOnly, lpszConnectString, TRUE);
 }
 
@@ -540,12 +544,64 @@ extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase* 
 extern "C" int MS_ABI impl__Requery_CRecordset__UEAAHXZ(CRecordset* pThis) {
     if (!pThis || !pThis->IsOpen()) return FALSE;
     RETCODE rc = SQLCloseCursor(pThis->GetHSTMT());
+    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
+        return FALSE;
+    }
+
+    rc = SQLExecute(pThis->GetHSTMT());
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        return TRUE;
+    }
+
+    CString sql = pThis->GetDefaultSQL();
+    if (sql.IsEmpty()) {
+        return FALSE;
+    }
+    rc = SQLExecDirectW(pThis->GetHSTMT(), (SQLWCHAR*)(const wchar_t*)sql, SQL_NTS);
     return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) ? TRUE : FALSE;
 }
 
 // Symbol: ?GetDefaultFieldType@CRecordset@@SAFF@Z
 extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLType) {
-    return nSQLType;
+    switch (nSQLType) {
+    case SQL_CHAR:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
+        return SQL_C_CHAR;
+    case SQL_WCHAR:
+    case SQL_WVARCHAR:
+    case SQL_WLONGVARCHAR:
+        return SQL_C_WCHAR;
+    case SQL_SMALLINT:
+        return SQL_C_SSHORT;
+    case SQL_INTEGER:
+        return SQL_C_SLONG;
+    case SQL_REAL:
+        return SQL_C_FLOAT;
+    case SQL_DOUBLE:
+    case SQL_FLOAT:
+        return SQL_C_DOUBLE;
+    case SQL_BIT:
+        return SQL_C_BIT;
+    case SQL_DECIMAL:
+    case SQL_NUMERIC:
+        return SQL_C_CHAR;
+    case SQL_TYPE_DATE:
+    case SQL_DATE:
+        return SQL_C_TYPE_DATE;
+    case SQL_TYPE_TIME:
+    case SQL_TIME:
+        return SQL_C_TYPE_TIME;
+    case SQL_TYPE_TIMESTAMP:
+    case SQL_TIMESTAMP:
+        return SQL_C_TYPE_TIMESTAMP;
+    case SQL_BINARY:
+    case SQL_VARBINARY:
+    case SQL_LONGVARBINARY:
+        return SQL_C_BINARY;
+    default:
+        return nSQLType;
+    }
 }
 
 // Symbol: ?OnInitialUpdate@CRecordView@@UEAAXXZ
