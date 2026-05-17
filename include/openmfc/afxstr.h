@@ -544,9 +544,9 @@ public:
     // Resource loading
     // Note: Windows defines LoadString as a macro to LoadStringW/LoadStringA
     // We undef it here to declare our own method, then redefine if needed
-#ifdef LoadString
-#undef LoadString
-#endif
+    #ifdef LoadString
+    #undef LoadString
+    #endif
     int LoadString(UINT nID); // Returns length, 0 on failure
 
 private:
@@ -617,6 +617,13 @@ void AfxFormatString1(CString& rString, UINT nIDS, const wchar_t* lpsz1);
 
 // Format string using resource template and two arguments (%1, %2)
 void AfxFormatString2(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2);
+void AfxFormatStrings(CString& rString, UINT nIDS, const wchar_t* const* rglpsz, int nString);
+void AfxFormatStrings(CString& rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString);
+
+wchar_t* AfxA2WHelper(wchar_t* lpw, const char* lpa, int nChars);
+char* AfxW2AHelper(char* lpa, const wchar_t* lpw, int nChars);
+void AfxBSTR2CString(CString* pStr, wchar_t* bstr);
+int AfxComparePath(const wchar_t* pszPath1, const wchar_t* pszPath2);
 
 // Display message box
 int AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);

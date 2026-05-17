@@ -4,6 +4,7 @@
 #include "openmfc/afxwin.h"
 #include <windows.h>
 #include <cstdint>
+#include <cwctype>
 
 // MS ABI calling convention for x64
 #if defined(__GNUC__)
@@ -21,14 +22,16 @@ static HINSTANCE GetResourceHandle() {
     return hInst;
 }
 
-// CString::LoadString(UINT nID)
-extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(CString* pThis, UINT nID)
-{
-    // Try fixed buffer first (usually enough)
+static int CStringLoadStringImpl(CString* pThis, HINSTANCE hInst, UINT nID) {
+    if (pThis == nullptr) {
+        return 0;
+    }
+    if (hInst == nullptr) {
+        hInst = GetResourceHandle();
+    }
+
     const int nFixedBuffer = 256;
     wchar_t szFixedBuffer[nFixedBuffer];
-    
-    HINSTANCE hInst = GetResourceHandle();
 
     int nLen = ::LoadStringW(hInst, nID, szFixedBuffer, nFixedBuffer);
     if (nLen == 0) {
@@ -41,7 +44,6 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
         return nLen;
     }
 
-    // Too big, try larger buffer
     int nSize = nFixedBuffer * 2;
     while (nSize < 32768) {
         wchar_t* pBuf = pThis->GetBuffer(nSize);
@@ -53,12 +55,36 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
         pThis->ReleaseBuffer(0);
         nSize *= 2;
     }
-    
+
     pThis->Empty();
     return 0;
 }
 
+// CString::LoadString(UINT nID)
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHI@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(CString* pThis, UINT nID)
+{
+    return CStringLoadStringImpl(pThis, GetResourceHandle(), nID);
+}
+
+// CString::LoadString(HINSTANCE, UINT)
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@I@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
+    CString* pThis, HINSTANCE hInst, UINT nID)
+{
+    return CStringLoadStringImpl(pThis, hInst, nID);
+}
+
+// CString::LoadString(HINSTANCE, UINT, LANGID)
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@IG@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____IG_Z(
+    CString* pThis, HINSTANCE hInst, UINT nID, unsigned short /*wLanguageID*/)
+{
+    return CStringLoadStringImpl(pThis, hInst, nID);
+}
+
 // AfxExtractSubString
+// Symbol: ?AfxExtractSubString@@YAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_WH_W@Z
 extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WH_W_Z(
     CString* rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep)
 {
@@ -91,6 +117,7 @@ extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTrait
 }
 
 // AfxFormatString1
+// Symbol: ?AfxFormatString1@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W@Z
 extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1)
 {
@@ -123,6 +150,7 @@ extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMF
 }
 
 // AfxFormatString2
+// Symbol: ?AfxFormatString2@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W1@Z
 extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W1_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2)
 {
@@ -153,7 +181,139 @@ extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMF
     }
 }
 
+static void AfxFormatStringsCore(CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString)
+{
+    if (rString == nullptr) {
+        return;
+    }
+    if (lpszFormat == nullptr) {
+        rString->Empty();
+        return;
+    }
+
+    CString strResult;
+    const wchar_t* p = lpszFormat;
+    while (*p != L'\0')
+    {
+        if (*p == L'%' && p[1] >= L'1' && p[1] <= L'9')
+        {
+            int nIndex = static_cast<int>(p[1] - L'1');
+            if (rglpsz != nullptr && nIndex >= 0 && nIndex < nString && rglpsz[nIndex] != nullptr) {
+                strResult += rglpsz[nIndex];
+            }
+            p += 2;
+            continue;
+        }
+        wchar_t ch[2] = { *p, L'\0' };
+        strResult += ch;
+        ++p;
+    }
+
+    *rString = strResult;
+}
+
+// AfxFormatStrings(CString&, UINT, const wchar_t* const*, int)
+// Symbol: ?AfxFormatStrings@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEBQEB_WH@Z
+extern "C" void MS_ABI impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEBQEB_WH_Z(
+    CString* rString, UINT nIDS, const wchar_t* const* rglpsz, int nString)
+{
+    CString strFormat;
+    CStringLoadStringImpl(&strFormat, GetResourceHandle(), nIDS);
+    AfxFormatStringsCore(rString, strFormat.GetString(), rglpsz, nString);
+}
+
+// AfxFormatStrings(CString&, const wchar_t*, const wchar_t* const*, int)
+// Symbol: ?AfxFormatStrings@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_WPEBQEB_WH@Z
+extern "C" void MS_ABI impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WPEBQEB_WH_Z(
+    CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString)
+{
+    AfxFormatStringsCore(rString, lpszFormat, rglpsz, nString);
+}
+
+// AfxA2WHelper
+// Symbol: ?AfxA2WHelper@@YAPEA_WPEA_WPEBDH@Z
+extern "C" wchar_t* MS_ABI impl__AfxA2WHelper__YAPEA_WPEA_WPEBDH_Z(wchar_t* lpw, const char* lpa, int nChars)
+{
+    if (lpw == nullptr) return nullptr;
+    if (lpa == nullptr || nChars <= 0) {
+        lpw[0] = L'\0';
+        return lpw;
+    }
+
+    int nRet = ::MultiByteToWideChar(CP_ACP, 0, lpa, -1, lpw, nChars);
+    if (nRet == 0) {
+        lpw[0] = L'\0';
+    }
+    return lpw;
+}
+
+// AfxW2AHelper
+// Symbol: ?AfxW2AHelper@@YAPEADPEADPEB_WH@Z
+extern "C" char* MS_ABI impl__AfxW2AHelper__YAPEADPEADPEB_WH_Z(char* lpa, const wchar_t* lpw, int nChars)
+{
+    if (lpa == nullptr) return nullptr;
+    if (lpw == nullptr || nChars <= 0) {
+        lpa[0] = '\0';
+        return lpa;
+    }
+
+    int nRet = ::WideCharToMultiByte(CP_ACP, 0, lpw, -1, lpa, nChars, nullptr, nullptr);
+    if (nRet == 0) {
+        lpa[0] = '\0';
+    }
+    return lpa;
+}
+
+// AfxBSTR2CString
+// Symbol: ?AfxBSTR2CString@@YAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEA_W@Z
+extern "C" void MS_ABI impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
+    CString* pStr, wchar_t* bstr)
+{
+    if (pStr == nullptr) {
+        return;
+    }
+    if (bstr == nullptr) {
+        pStr->Empty();
+        return;
+    }
+    *pStr = bstr;
+}
+
+static wchar_t NormalizePathChar(wchar_t ch)
+{
+    if (ch == L'/') return L'\\';
+    return static_cast<wchar_t>(std::towlower(static_cast<wint_t>(ch)));
+}
+
+// AfxComparePath
+// Symbol: ?AfxComparePath@@YAHPEB_W0@Z
+extern "C" int MS_ABI impl__AfxComparePath__YAHPEB_W0_Z(const wchar_t* pszPath1, const wchar_t* pszPath2)
+{
+    if (pszPath1 == nullptr || pszPath2 == nullptr) {
+        if (pszPath1 == pszPath2) return 0;
+        return pszPath1 ? 1 : -1;
+    }
+
+    int nLen1 = static_cast<int>(wcslen(pszPath1));
+    int nLen2 = static_cast<int>(wcslen(pszPath2));
+    while (nLen1 > 0 && (pszPath1[nLen1 - 1] == L'\\' || pszPath1[nLen1 - 1] == L'/')) --nLen1;
+    while (nLen2 > 0 && (pszPath2[nLen2 - 1] == L'\\' || pszPath2[nLen2 - 1] == L'/')) --nLen2;
+
+    int nCommon = (nLen1 < nLen2) ? nLen1 : nLen2;
+    for (int i = 0; i < nCommon; ++i) {
+        wchar_t c1 = NormalizePathChar(pszPath1[i]);
+        wchar_t c2 = NormalizePathChar(pszPath2[i]);
+        if (c1 != c2) {
+            return (c1 < c2) ? -1 : 1;
+        }
+    }
+
+    if (nLen1 == nLen2) return 0;
+    return (nLen1 < nLen2) ? -1 : 1;
+}
+
 // AfxMessageBox (text)
+// Symbol: ?AfxMessageBox@@YAHPEB_WII@Z
 extern "C" int MS_ABI impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t* lpszText, UINT nType, UINT nIDHelp)
 {
     CWnd* pMainWnd = AfxGetMainWnd();
