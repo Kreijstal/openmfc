@@ -820,6 +820,10 @@ HINSTANCE AFXAPI AfxGetInstanceHandleHelper() {
     return AfxGetInstanceHandle();
 }
 
+extern "C" HINSTANCE MS_ABI impl__AfxGetInstanceHandleHelper__YAPEAUHINSTANCE____XZ() {
+    return AfxGetInstanceHandleHelper();
+}
+
 // AfxSetResourceHandle implementation
 void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
     g_hResource = hInstResource;
@@ -830,9 +834,17 @@ AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState() {
     return reinterpret_cast<AFX_MODULE_STATE*>(g_appModuleStateStorage);
 }
 
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetAppModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
+    return AfxGetAppModuleState();
+}
+
 // Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
     return reinterpret_cast<_AFX_THREAD_STATE*>(g_threadStateStorage);
+}
+
+extern "C" _AFX_THREAD_STATE* MS_ABI impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ() {
+    return AfxGetThreadState();
 }
 
 // AfxWinInit implementation
