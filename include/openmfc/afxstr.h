@@ -510,19 +510,35 @@ public:
             Empty();
             return;
         }
-        // Get required buffer size
-        va_list argsCopy;
-        va_copy(argsCopy, args);
-        int nLen = vswprintf(nullptr, 0, pszFormat, argsCopy);
-        va_end(argsCopy);
-        if (nLen <= 0) {
-            Empty();
-            return;
+        constexpr int kInitialFormatBuffer = 256;
+        constexpr int kMaxFormatBuffer = 32768;
+        int nBufLen = kInitialFormatBuffer;
+        while (true) {
+            wchar_t* pBuf = GetBuffer(nBufLen);
+            va_list argsCopy;
+            va_copy(argsCopy, args);
+            int nWritten = vswprintf(pBuf, nBufLen, pszFormat, argsCopy);
+            va_end(argsCopy);
+
+            if (nWritten >= 0 && nWritten < nBufLen) {
+                ReleaseBuffer(nWritten);
+                return;
+            }
+
+            ReleaseBuffer(0);
+            if (nBufLen >= kMaxFormatBuffer) {
+                break;
+            }
+            if (nWritten >= nBufLen && nWritten > 0) {
+                nBufLen = nWritten + 1;
+            } else {
+                nBufLen *= 2;
+            }
+            if (nBufLen > kMaxFormatBuffer) {
+                nBufLen = kMaxFormatBuffer;
+            }
         }
-        // Allocate and format
-        wchar_t* pBuf = GetBuffer(nLen);
-        vswprintf(pBuf, nLen + 1, pszFormat, args);
-        ReleaseBuffer(nLen);
+        Empty();
     }
 
     void Format(const wchar_t* pszFormat, ...) {
@@ -544,9 +560,9 @@ public:
     // Resource loading
     // Note: Windows defines LoadString as a macro to LoadStringW/LoadStringA
     // We undef it here to declare our own method, then redefine if needed
-#ifdef LoadString
-#undef LoadString
-#endif
+    #ifdef LoadString
+    #undef LoadString
+    #endif
     int LoadString(UINT nID); // Returns length, 0 on failure
 
 private:
@@ -617,6 +633,13 @@ void AfxFormatString1(CString& rString, UINT nIDS, const wchar_t* lpsz1);
 
 // Format string using resource template and two arguments (%1, %2)
 void AfxFormatString2(CString& rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2);
+void AfxFormatStrings(CString& rString, UINT nIDS, const wchar_t* const* rglpsz, int nString);
+void AfxFormatStrings(CString& rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString);
+
+wchar_t* AfxA2WHelper(wchar_t* lpw, const char* lpa, int nChars);
+char* AfxW2AHelper(char* lpa, const wchar_t* lpw, int nChars);
+void AfxBSTR2CString(CString* pStr, wchar_t* bstr);
+int AfxComparePath(const wchar_t* pszPath1, const wchar_t* pszPath2);
 
 // Display message box
 int AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);
