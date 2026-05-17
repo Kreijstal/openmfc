@@ -595,6 +595,9 @@ public:
     // Data retrieval
     HGLOBAL GetGlobalData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc = nullptr);
     BOOL GetData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, FORMATETC* lpFormatEtc = nullptr);
+    BOOL AttachClipboard();
+    void EnsureClipboardObject();
+    CFile* GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc = nullptr);
 
     // IDataObject access
     LPDATAOBJECT GetIDataObject(BOOL bAddRef = FALSE) const;
@@ -749,6 +752,7 @@ public:
     virtual void Enable(BOOL bOn = TRUE) override;
     virtual void SetCheck(int nCheck = 1) override;
     virtual void SetText(const wchar_t* lpszText) override;
+    virtual int DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHandler);
 
 public:
     OLECMD* m_pCmd;
@@ -1368,6 +1372,7 @@ private:
 //=============================================================================
 class COleControlSiteOrWnd {
 public:
+    DWORD GetStyle() const;
     COleControlSite* m_pSite;
     CWnd* m_pWnd;
     char _olecontrolsiteorwnd_padding[16];
@@ -1381,6 +1386,7 @@ class COleDialog : public CDialog {
 public:
     COleDialog(UINT nIDTemplate, CWnd* pParentWnd = nullptr);
     virtual ~COleDialog();
+    int MapResult(UINT nResult);
     char _olediag_padding[32];
 };
 
@@ -1416,6 +1422,7 @@ public:
     virtual ~COleChangeIconDialog();
 
     intptr_t DoModal();
+    int DoChangeIcon(COleClientItem* pItem);
     OLEUICHANGEICONW* GetOleUIChangeIcon() { return &m_ci; }
 
 public:
@@ -1442,6 +1449,7 @@ public:
     CString GetDisplayName();
     CString GetFrom();
     CString GetTo();
+    virtual void PreInitDialog();
 
 public:
     OLEUICHANGESOURCEW m_cs;
@@ -1468,6 +1476,8 @@ public:
     BOOL IsConvertTo() const;
     BOOL IsActivateAs() const;
     CString GetDisplayIcon() const;
+    int DoConvert(COleClientItem* pItem);
+    UINT GetSelectionType() const;
 
 public:
     OLEUICONVERTW m_cv;

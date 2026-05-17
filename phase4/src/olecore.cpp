@@ -902,6 +902,55 @@ LPDATAOBJECT COleDataObject::GetIDataObject(BOOL bAddRef) const {
     return m_lpDataObject;
 }
 
+BOOL COleDataObject::AttachClipboard() {
+    EnsureClipboardObject();
+    return m_lpDataObject != nullptr;
+}
+
+void COleDataObject::EnsureClipboardObject() {
+    if (m_lpDataObject) {
+        return;
+    }
+
+    LPDATAOBJECT lpDataObject = nullptr;
+    if (SUCCEEDED(OleGetClipboard(&lpDataObject)) && lpDataObject) {
+        Attach(lpDataObject, TRUE);
+    }
+}
+
+CFile* COleDataObject::GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
+    EnsureClipboardObject();
+    if (!m_lpDataObject) {
+        return nullptr;
+    }
+
+    FORMATETC fmt = {};
+    if (!lpFormatEtc) {
+        fmt.cfFormat = cfFormat;
+        fmt.ptd = nullptr;
+        fmt.dwAspect = DVASPECT_CONTENT;
+        fmt.lindex = -1;
+        fmt.tymed = TYMED_FILE;
+        lpFormatEtc = &fmt;
+    }
+
+    STGMEDIUM stg = {};
+    if (m_lpDataObject->GetData(lpFormatEtc, &stg) != S_OK) {
+        return nullptr;
+    }
+
+    if (stg.tymed != TYMED_FILE || !stg.lpszFileName) {
+        ReleaseStgMedium(&stg);
+        return nullptr;
+    }
+
+    CString filePath = stg.lpszFileName;
+    CoTaskMemFree(stg.lpszFileName);
+    stg.lpszFileName = nullptr;
+
+    return new CFile(filePath, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+}
+
 //=============================================================================
 // COleDataSource
 //=============================================================================
@@ -1228,6 +1277,21 @@ void COleCmdUI::SetCheck(int nCheck) {
 
 void COleCmdUI::SetText(const wchar_t* lpszText) {
     (void)lpszText;
+}
+
+int COleCmdUI::DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHandler) {
+    // Minimal fallback implementation: expose command as supported/enabled
+    // without invoking full MFC command-routing.
+    (void)pTarget;
+    if (!m_rgCmds || m_cCmds == 0) {
+        return FALSE;
+    }
+
+    m_rgCmds[0].cmdf |= OLECMDF_SUPPORTED;
+    if (bDisableIfNoHandler) {
+        Enable(FALSE);
+    }
+    return TRUE;
 }
 
 //=============================================================================
@@ -2252,6 +2316,13 @@ CEnumOleVerb::CEnumOleVerb() {
 CEnumOleVerb::~CEnumOleVerb() {
 }
 
+DWORD COleControlSiteOrWnd::GetStyle() const {
+    if (!m_pWnd || !m_pWnd->GetSafeHwnd()) {
+        return 0;
+    }
+    return static_cast<DWORD>(GetWindowLongPtrW(m_pWnd->GetSafeHwnd(), GWL_STYLE));
+}
+
 //=============================================================================
 // COleDialog
 //=============================================================================
@@ -2263,6 +2334,17 @@ COleDialog::COleDialog(UINT nIDTemplate, CWnd* pParentWnd)
 }
 
 COleDialog::~COleDialog() {
+}
+
+int COleDialog::MapResult(UINT nResult) {
+    switch (nResult) {
+    case OLEUI_OK:
+        return IDOK;
+    case OLEUI_CANCEL:
+        return IDCANCEL;
+    default:
+        return static_cast<int>(nResult);
+    }
 }
 
 //=============================================================================
@@ -2311,6 +2393,13 @@ intptr_t COleChangeIconDialog::DoModal() {
     return (result == OLEUI_OK) ? IDOK : IDCANCEL;
 }
 
+int COleChangeIconDialog::DoChangeIcon(COleClientItem* pItem) {
+    if (pItem) {
+        m_pItem = pItem;
+    }
+    return DoModal() == IDOK;
+}
+
 //=============================================================================
 // COleChangeSourceDialog
 //=============================================================================
@@ -2343,6 +2432,9 @@ CString COleChangeSourceDialog::GetFrom() {
 
 CString COleChangeSourceDialog::GetTo() {
     return m_cs.lpszTo ? m_cs.lpszTo : L"";
+}
+
+void COleChangeSourceDialog::PreInitDialog() {
 }
 
 //=============================================================================
@@ -2384,6 +2476,23 @@ BOOL COleConvertDialog::IsActivateAs() const {
 
 CString COleConvertDialog::GetDisplayIcon() const {
     return L"";
+}
+
+int COleConvertDialog::DoConvert(COleClientItem* pItem) {
+    if (pItem) {
+        m_pItem = pItem;
+    }
+    return DoModal() == IDOK;
+}
+
+UINT COleConvertDialog::GetSelectionType() const {
+    if (m_cv.dwFlags & CF_SELECTACTIVATEAS) {
+        return CF_SELECTACTIVATEAS;
+    }
+    if (m_cv.dwFlags & CF_SELECTCONVERTTO) {
+        return CF_SELECTCONVERTTO;
+    }
+    return 0;
 }
 
 //=============================================================================
