@@ -7,12 +7,48 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxdao.h"
 #include <cstring>
+#include <mutex>
+#include <unordered_map>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+namespace {
+struct DaoWorkspaceState {
+    BOOL inTransaction = FALSE;
+};
+
+struct DaoDatabaseState {
+    CString name;
+    CString connect;
+    BOOL inTransaction = FALSE;
+};
+
+struct DaoTableDefState {
+    CString name;
+    CString connect;
+    CString sourceTableName;
+    long attributes = 0;
+};
+
+struct DaoQueryDefState {
+    CString name;
+    CString connect;
+    long timeout = 60;
+    long recordsAffected = 0;
+    BOOL returnsRecords = TRUE;
+    long type = 0;
+};
+
+std::mutex g_daoStateMutex;
+std::unordered_map<const CDaoWorkspace*, DaoWorkspaceState> g_workspaceStates;
+std::unordered_map<const CDaoDatabase*, DaoDatabaseState> g_databaseStates;
+std::unordered_map<const CDaoTableDef*, DaoTableDefState> g_tableDefStates;
+std::unordered_map<const CDaoQueryDef*, DaoQueryDefState> g_queryDefStates;
+}
 
 //=============================================================================
 // CDaoException - IMPLEMENT_DYNAMIC (class declared in header with inline methods)
@@ -27,16 +63,22 @@ IMPLEMENT_DYNAMIC(CDaoWorkspace, CObject)
 CDaoWorkspace::CDaoWorkspace()
     : m_pDAOWorkspace(nullptr), m_bOpen(FALSE) {
     memset(_daoworkspace_padding, 0, sizeof(_daoworkspace_padding));
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this] = DaoWorkspaceState{};
 }
 
 CDaoWorkspace::CDaoWorkspace(CDaoDatabase* pDatabase)
     : m_pDAOWorkspace(nullptr), m_bOpen(FALSE) {
     (void)pDatabase;
     memset(_daoworkspace_padding, 0, sizeof(_daoworkspace_padding));
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this] = DaoWorkspaceState{};
 }
 
 CDaoWorkspace::~CDaoWorkspace() {
     Close();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates.erase(this);
 }
 
 CString CDaoWorkspace::GetName() const {
@@ -61,21 +103,31 @@ int CDaoWorkspace::GetDatabaseCount() const {
 }
 
 void CDaoWorkspace::BeginTrans() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this].inTransaction = TRUE;
 }
 
 void CDaoWorkspace::CommitTrans() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this].inTransaction = FALSE;
 }
 
 void CDaoWorkspace::Rollback() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this].inTransaction = FALSE;
 }
 
 BOOL CDaoWorkspace::GetInTransaction() const {
-    return FALSE;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_workspaceStates.find(this);
+    return (it != g_workspaceStates.end()) ? it->second.inTransaction : FALSE;
 }
 
 void CDaoWorkspace::Close() {
     m_bOpen = FALSE;
     m_pDAOWorkspace = nullptr;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_workspaceStates[this].inTransaction = FALSE;
 }
 
 CDaoWorkspace* CDaoWorkspace::GetDefaultWorkspace() {
@@ -98,21 +150,32 @@ CDaoDatabase::CDaoDatabase(CDaoWorkspace* pWorkspace)
       m_lRecordsAffected(0) {
     memset(_daodatabase_padding, 0, sizeof(_daodatabase_padding));
     if (!m_pWorkspace) m_pWorkspace = CDaoWorkspace::GetDefaultWorkspace();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates[this] = DaoDatabaseState{};
 }
 
 CDaoDatabase::~CDaoDatabase() {
     Close();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates.erase(this);
 }
 
 void CDaoDatabase::Open(const wchar_t* lpszName, BOOL bExclusive,
                         BOOL bReadOnly, const wchar_t* lpszConnect) {
-    (void)lpszName; (void)bExclusive; (void)bReadOnly; (void)lpszConnect;
+    (void)bExclusive; (void)bReadOnly;
     m_bOpen = TRUE;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoDatabaseState& state = g_databaseStates[this];
+    state.name = lpszName ? CString(lpszName) : CString();
+    state.connect = lpszConnect ? CString(lpszConnect) : CString();
+    state.inTransaction = FALSE;
 }
 
 void CDaoDatabase::Close() {
     m_bOpen = FALSE;
     m_pDAODatabase = nullptr;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates[this].inTransaction = FALSE;
 }
 
 BOOL CDaoDatabase::IsOpen() const {
@@ -120,11 +183,15 @@ BOOL CDaoDatabase::IsOpen() const {
 }
 
 CString CDaoDatabase::GetName() const {
-    return CString();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    return (it != g_databaseStates.end()) ? it->second.name : CString();
 }
 
 CString CDaoDatabase::GetConnect() const {
-    return CString();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    return (it != g_databaseStates.end()) ? it->second.connect : CString();
 }
 
 long CDaoDatabase::GetRecordsAffected() const {
@@ -173,16 +240,24 @@ void CDaoDatabase::DeleteQueryDef(const wchar_t* lpszName) {
 }
 
 void CDaoDatabase::BeginTrans() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates[this].inTransaction = TRUE;
 }
 
 void CDaoDatabase::CommitTrans() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates[this].inTransaction = FALSE;
 }
 
 void CDaoDatabase::Rollback() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_databaseStates[this].inTransaction = FALSE;
 }
 
 BOOL CDaoDatabase::GetInTransaction() const {
-    return FALSE;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    return (it != g_databaseStates.end()) ? it->second.inTransaction : FALSE;
 }
 
 void CDaoDatabase::Execute(const wchar_t* lpszSQL, int nOptions) {
@@ -381,20 +456,30 @@ IMPLEMENT_DYNAMIC(CDaoTableDef, CObject)
 CDaoTableDef::CDaoTableDef(CDaoDatabase* pDatabase)
     : m_pDatabase(pDatabase), m_pDAOTableDef(nullptr), m_bOpen(FALSE) {
     memset(_daotabledef_padding, 0, sizeof(_daotabledef_padding));
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this] = DaoTableDefState{};
 }
 
 CDaoTableDef::~CDaoTableDef() {
     Close();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates.erase(this);
 }
 
 void CDaoTableDef::Open(const wchar_t* lpszName) {
-    (void)lpszName;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this].name = lpszName ? CString(lpszName) : CString();
     m_bOpen = TRUE;
 }
 
 void CDaoTableDef::Create(const wchar_t* lpszName, long lAttributes,
                           const wchar_t* lpszSrcTable, const wchar_t* lpszConnect) {
-    (void)lpszName; (void)lAttributes; (void)lpszSrcTable; (void)lpszConnect;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoTableDefState& state = g_tableDefStates[this];
+    state.name = lpszName ? CString(lpszName) : CString();
+    state.attributes = lAttributes;
+    state.sourceTableName = lpszSrcTable ? CString(lpszSrcTable) : CString();
+    state.connect = lpszConnect ? CString(lpszConnect) : CString();
     m_bOpen = TRUE;
 }
 
@@ -404,13 +489,38 @@ void CDaoTableDef::Close() {
 }
 
 BOOL CDaoTableDef::IsOpen() const { return m_bOpen; }
-CString CDaoTableDef::GetName() const { return CString(); }
-void CDaoTableDef::SetName(const wchar_t* lpszName) { (void)lpszName; }
-CString CDaoTableDef::GetConnect() const { return CString(); }
-CString CDaoTableDef::GetSourceTableName() const { return CString(); }
-void CDaoTableDef::SetSourceTableName(const wchar_t* lpszSrcTable) { (void)lpszSrcTable; }
-long CDaoTableDef::GetAttributes() const { return 0; }
-void CDaoTableDef::SetAttributes(long lAttributes) { (void)lAttributes; }
+CString CDaoTableDef::GetName() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.name : CString();
+}
+void CDaoTableDef::SetName(const wchar_t* lpszName) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this].name = lpszName ? CString(lpszName) : CString();
+}
+CString CDaoTableDef::GetConnect() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.connect : CString();
+}
+CString CDaoTableDef::GetSourceTableName() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.sourceTableName : CString();
+}
+void CDaoTableDef::SetSourceTableName(const wchar_t* lpszSrcTable) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this].sourceTableName = lpszSrcTable ? CString(lpszSrcTable) : CString();
+}
+long CDaoTableDef::GetAttributes() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.attributes : 0;
+}
+void CDaoTableDef::SetAttributes(long lAttributes) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this].attributes = lAttributes;
+}
 BOOL CDaoTableDef::CanUpdate() const { return TRUE; }
 
 void CDaoTableDef::CreateField(const wchar_t* lpszName, short nType, long lSize,
@@ -460,14 +570,19 @@ IMPLEMENT_DYNAMIC(CDaoQueryDef, CObject)
 CDaoQueryDef::CDaoQueryDef(CDaoDatabase* pDatabase)
     : m_pDatabase(pDatabase), m_pDAOQueryDef(nullptr), m_bOpen(FALSE) {
     memset(_daoquerydef_padding, 0, sizeof(_daoquerydef_padding));
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates[this] = DaoQueryDefState{};
 }
 
 CDaoQueryDef::~CDaoQueryDef() {
     Close();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates.erase(this);
 }
 
 void CDaoQueryDef::Open(const wchar_t* lpszName) {
-    (void)lpszName;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    if (lpszName) g_queryDefStates[this].name = CString(lpszName);
     m_bOpen = TRUE;
 }
 
@@ -483,19 +598,55 @@ void CDaoQueryDef::Close() {
 }
 
 BOOL CDaoQueryDef::IsOpen() const { return m_bOpen; }
-CString CDaoQueryDef::GetName() const { return CString(); }
-void CDaoQueryDef::SetName(const wchar_t* lpszName) { (void)lpszName; }
+CString CDaoQueryDef::GetName() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.name : CString();
+}
+void CDaoQueryDef::SetName(const wchar_t* lpszName) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates[this].name = lpszName ? CString(lpszName) : CString();
+}
 CString CDaoQueryDef::GetSQL() const { return m_strSQL; }
 void CDaoQueryDef::SetSQL(const wchar_t* lpszSQL) { if (lpszSQL) m_strSQL = lpszSQL; }
 BOOL CDaoQueryDef::CanUpdate() const { return TRUE; }
-long CDaoQueryDef::GetType() const { return 0; }
-CString CDaoQueryDef::GetConnect() const { return CString(); }
-void CDaoQueryDef::SetConnect(const wchar_t* lpszConnect) { (void)lpszConnect; }
-long CDaoQueryDef::GetODBCTimeout() const { return 60; }
-void CDaoQueryDef::SetODBCTimeout(long lODBCTimeout) { (void)lODBCTimeout; }
-long CDaoQueryDef::GetRecordsAffected() const { return 0; }
-BOOL CDaoQueryDef::GetReturnsRecords() const { return TRUE; }
-void CDaoQueryDef::SetReturnsRecords(BOOL bReturnsRecords) { (void)bReturnsRecords; }
+long CDaoQueryDef::GetType() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.type : 0;
+}
+CString CDaoQueryDef::GetConnect() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.connect : CString();
+}
+void CDaoQueryDef::SetConnect(const wchar_t* lpszConnect) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates[this].connect = lpszConnect ? CString(lpszConnect) : CString();
+}
+long CDaoQueryDef::GetODBCTimeout() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.timeout : 60;
+}
+void CDaoQueryDef::SetODBCTimeout(long lODBCTimeout) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates[this].timeout = lODBCTimeout;
+}
+long CDaoQueryDef::GetRecordsAffected() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.recordsAffected : 0;
+}
+BOOL CDaoQueryDef::GetReturnsRecords() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? it->second.returnsRecords : TRUE;
+}
+void CDaoQueryDef::SetReturnsRecords(BOOL bReturnsRecords) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_queryDefStates[this].returnsRecords = bReturnsRecords;
+}
 
 int CDaoQueryDef::GetFieldCount() const { return 0; }
 
