@@ -11,10 +11,7 @@
 #include <exdisp.h>
 #include <shlobj.h>
 
-#ifndef OPENMFC_IRICHEDITOLE_FWD_DECLARED
-#define OPENMFC_IRICHEDITOLE_FWD_DECLARED
 struct IRichEditOle;
-#endif
 
 #ifndef _WINDOWS_
     typedef void* HWND;
