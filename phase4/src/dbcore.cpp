@@ -7,12 +7,19 @@
 #include "openmfc/afxwin.h"
 #include "openmfc/afxdb.h"
 #include <cstring>
+#include <mutex>
+#include <unordered_map>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+namespace {
+std::mutex g_recordsetStateMutex;
+std::unordered_map<const CRecordset*, CString> g_recordsetSql;
+}
 
 //=============================================================================
 // CDBException
@@ -215,6 +222,8 @@ CRecordset::CRecordset(CDatabase* pDatabase)
 
 CRecordset::~CRecordset() {
     Close();
+    std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
+    g_recordsetSql.erase(this);
 }
 
 BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
@@ -238,6 +247,8 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     // Get SQL string
     CString strSQL = lpszSQL ? CString(lpszSQL) : GetDefaultSQL();
     if (strSQL.IsEmpty()) {
+        SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+        m_hstmt = SQL_NULL_HSTMT;
         return FALSE;
     }
 
@@ -259,6 +270,10 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     m_bEOF = FALSE;
     m_nAbsolutePosition = 0;
     m_nRecordCount = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
+        g_recordsetSql[this] = strSQL;
+    }
 
     return TRUE;
 }
@@ -269,6 +284,8 @@ void CRecordset::Close() {
         m_hstmt = SQL_NULL_HSTMT;
     }
     m_bOpen = FALSE;
+    std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
+    g_recordsetSql.erase(this);
 }
 
 BOOL CRecordset::IsDeleted() const {
@@ -521,7 +538,7 @@ extern "C" int MS_ABI impl__IsOpen_CRecordset__QEBAHXZ(const CRecordset* pThis) 
 // Symbol: ?OpenEx@CDatabase@@UEAAHPEB_WK@Z
 extern "C" int MS_ABI impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(CDatabase* pThis, const wchar_t* lpszConnectString, DWORD dwOptions) {
     if (!pThis) return FALSE;
-    constexpr DWORD kOpenReadOnlyOption = 0x00000001UL;
+    constexpr DWORD kOpenReadOnlyOption = 0x00000004UL;
     const BOOL bReadOnly = (dwOptions & kOpenReadOnlyOption) ? TRUE : FALSE;
     return pThis->Open(nullptr, FALSE, bReadOnly, lpszConnectString, TRUE);
 }
@@ -553,7 +570,17 @@ extern "C" int MS_ABI impl__Requery_CRecordset__UEAAHXZ(CRecordset* pThis) {
         return TRUE;
     }
 
-    CString sql = pThis->GetDefaultSQL();
+    CString sql;
+    {
+        std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
+        auto it = g_recordsetSql.find(pThis);
+        if (it != g_recordsetSql.end()) {
+            sql = it->second;
+        }
+    }
+    if (sql.IsEmpty()) {
+        sql = pThis->GetDefaultSQL();
+    }
     if (sql.IsEmpty()) {
         return FALSE;
     }

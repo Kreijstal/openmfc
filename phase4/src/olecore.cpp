@@ -945,8 +945,7 @@ CFile* COleDataObject::GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) 
     }
 
     CString filePath = stg.lpszFileName;
-    CoTaskMemFree(stg.lpszFileName);
-    stg.lpszFileName = nullptr;
+    ReleaseStgMedium(&stg);
 
     return new CFile(filePath, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
 }
@@ -2317,6 +2316,9 @@ CEnumOleVerb::~CEnumOleVerb() {
 }
 
 DWORD COleControlSiteOrWnd::GetStyle() const {
+    if (m_pSite) {
+        return m_pSite->m_dwStyle;
+    }
     if (!m_pWnd || !m_pWnd->GetSafeHwnd()) {
         return 0;
     }
