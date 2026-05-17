@@ -510,19 +510,27 @@ public:
             Empty();
             return;
         }
-        // Get required buffer size
-        va_list argsCopy;
-        va_copy(argsCopy, args);
-        int nLen = vswprintf(nullptr, 0, pszFormat, argsCopy);
-        va_end(argsCopy);
-        if (nLen <= 0) {
-            Empty();
-            return;
+        int nBufLen = 256;
+        while (nBufLen < 32768) {
+            wchar_t* pBuf = GetBuffer(nBufLen);
+            va_list argsCopy;
+            va_copy(argsCopy, args);
+            int nWritten = vswprintf(pBuf, nBufLen + 1, pszFormat, argsCopy);
+            va_end(argsCopy);
+
+            if (nWritten >= 0 && nWritten <= nBufLen) {
+                ReleaseBuffer(nWritten);
+                return;
+            }
+
+            ReleaseBuffer(0);
+            if (nWritten > nBufLen) {
+                nBufLen = nWritten;
+            } else {
+                nBufLen *= 2;
+            }
         }
-        // Allocate and format
-        wchar_t* pBuf = GetBuffer(nLen);
-        vswprintf(pBuf, nLen + 1, pszFormat, args);
-        ReleaseBuffer(nLen);
+        Empty();
     }
 
     void Format(const wchar_t* pszFormat, ...) {
