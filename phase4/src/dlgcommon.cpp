@@ -15,6 +15,7 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <cstring>
+#include <new>
 
 // MS ABI for x64 Windows
 #ifdef __GNUC__
@@ -62,6 +63,7 @@ CFileDialog::CFileDialog(int bOpenFileDialog,
     memset(_filedialog_padding, 0, sizeof(_filedialog_padding));
 }
 
+// Symbol: ?DoModal@CFileDialog@@UEAA_JXZ
 intptr_t CFileDialog::DoModal() {
     // Allocate buffer for multiple file selection
     const size_t nBufferSize = 65536;
@@ -156,26 +158,57 @@ intptr_t CFileDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetPathName() const {
     return m_strPathName;
 }
 
+extern "C" void MS_ABI impl__GetPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CFileDialog* pThis) {
+    new(__ret) CString(pThis->GetPathName());
+}
+
+// Symbol: ?GetFileName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileName() const {
     return m_strFileNameOnly;
 }
 
+extern "C" void MS_ABI impl__GetFileName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CFileDialog* pThis) {
+    new(__ret) CString(pThis->GetFileName());
+}
+
+// Symbol: ?GetFileExt@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileExt() const {
     return m_strFileExt;
 }
 
+extern "C" void MS_ABI impl__GetFileExt_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CFileDialog* pThis) {
+    new(__ret) CString(pThis->GetFileExt());
+}
+
+// Symbol: ?GetFileTitle@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileTitle() const {
     return m_strFileTitle;
 }
 
+extern "C" void MS_ABI impl__GetFileTitle_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CFileDialog* pThis) {
+    new(__ret) CString(pThis->GetFileTitle());
+}
+
+// Symbol: ?GetFolderPath@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFolderPath() const {
     return m_strFolderPath;
 }
 
+extern "C" void MS_ABI impl__GetFolderPath_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CFileDialog* pThis) {
+    new(__ret) CString(pThis->GetFolderPath());
+}
+
+// Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
 CString CFileDialog::GetNextPathName(void*& pos) const {
     // Multiple file selection: files are null-separated in the buffer
     // pos should point to the current position in the null-separated list
@@ -199,6 +232,11 @@ CString CFileDialog::GetNextPathName(void*& pos) const {
     pos = (void*)(pCurrent + wcslen(pCurrent) + 1);
 
     return strResult;
+}
+
+extern "C" void MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAU__POSITION___Z(
+    CString* __ret, const CFileDialog* pThis, void** p0) {
+    new(__ret) CString(pThis->GetNextPathName(*p0));
 }
 
 void CFileDialog::SetDefExt(const wchar_t* lpszDefExt) {
@@ -299,8 +337,9 @@ intptr_t CFontDialog::DoModal() {
 }
 
 void CFontDialog::GetCurrentFont(LOGFONTW* lpLogFont) {
-    (void)lpLogFont;
-    // Fill lpLogFont from m_lf in real implementation
+    if (lpLogFont != nullptr) {
+        memcpy(lpLogFont, m_lf, sizeof(LOGFONTW));
+    }
 }
 
 CString CFontDialog::GetFaceName() const {
@@ -417,6 +456,7 @@ intptr_t CPrintDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetDeviceName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetDeviceName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -432,6 +472,12 @@ CString CPrintDialog::GetDeviceName() const {
     return result;
 }
 
+extern "C" void MS_ABI impl__GetDeviceName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPrintDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetDeviceName());
+}
+
+// Symbol: ?GetDriverName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetDriverName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -447,6 +493,12 @@ CString CPrintDialog::GetDriverName() const {
     return result;
 }
 
+extern "C" void MS_ABI impl__GetDriverName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPrintDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetDriverName());
+}
+
+// Symbol: ?GetPortName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetPortName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -460,6 +512,11 @@ CString CPrintDialog::GetPortName() const {
     CString result(reinterpret_cast<const wchar_t*>(pdn) + pdn->wOutputOffset);
     GlobalUnlock(m_hDevNames);
     return result;
+}
+
+extern "C" void MS_ABI impl__GetPortName_CPrintDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPrintDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetPortName());
 }
 
 int CPrintDialog::GetCopies() const {
@@ -520,6 +577,7 @@ CPageSetupDialog::~CPageSetupDialog() {
     }
 }
 
+// Symbol: ?DoModal@CPageSetupDialog@@UEAA_JXZ
 intptr_t CPageSetupDialog::DoModal() {
     PAGESETUPDLGW psd;
     memset(&psd, 0, sizeof(psd));
@@ -544,6 +602,7 @@ intptr_t CPageSetupDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetDeviceName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetDeviceName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -559,6 +618,12 @@ CString CPageSetupDialog::GetDeviceName() const {
     return result;
 }
 
+extern "C" void MS_ABI impl__GetDeviceName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPageSetupDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetDeviceName());
+}
+
+// Symbol: ?GetDriverName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetDriverName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -574,6 +639,12 @@ CString CPageSetupDialog::GetDriverName() const {
     return result;
 }
 
+extern "C" void MS_ABI impl__GetDriverName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPageSetupDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetDriverName());
+}
+
+// Symbol: ?GetPortName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetPortName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -587,6 +658,11 @@ CString CPageSetupDialog::GetPortName() const {
     CString result(reinterpret_cast<const wchar_t*>(pdn) + pdn->wOutputOffset);
     GlobalUnlock(m_hDevNames);
     return result;
+}
+
+extern "C" void MS_ABI impl__GetPortName_CPageSetupDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const CPageSetupDialog* pThis, CString* __ret) {
+    new(__ret) CString(pThis->GetPortName());
 }
 
 void CPageSetupDialog::GetMarginRect(RECT* pRect) const {
@@ -627,6 +703,7 @@ CFindReplaceDialog::~CFindReplaceDialog() {
     }
 }
 
+// Symbol: ?Create@CFindReplaceDialog@@UEAAHHPEB_W0KPEAVCWnd@@@Z
 int CFindReplaceDialog::Create(int bFindDialogOnly,
                                const wchar_t* lpszFindWhat,
                                const wchar_t* lpszReplaceWith,
@@ -672,6 +749,16 @@ int CFindReplaceDialog::Create(int bFindDialogOnly,
     }
 
     return FALSE;
+}
+
+extern "C" int MS_ABI impl__Create_CFindReplaceDialog__UEAAHHPEB_W0KPEAVCWnd___Z(
+    CFindReplaceDialog* pThis,
+    int bFindDialogOnly,
+    const wchar_t* lpszFindWhat,
+    const wchar_t* lpszReplaceWith,
+    unsigned long dwFlags,
+    CWnd* pParentWnd) {
+    return pThis->Create(bFindDialogOnly, lpszFindWhat, lpszReplaceWith, dwFlags, pParentWnd);
 }
 
 CString CFindReplaceDialog::GetFindString() const {

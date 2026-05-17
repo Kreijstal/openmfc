@@ -432,10 +432,12 @@ CDialog::~CDialog() {
     }
 }
 
+// Symbol: ?DoModal@CDialog@@UEAA_JXZ
 intptr_t CDialog::DoModal() {
     return impl__DoModal_CDialog__UEAA_JXZ(this);
 }
 
+// Symbol: ?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z
 int CDialog::Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd) {
     return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(this, lpszTemplateName, pParentWnd);
 }
@@ -444,14 +446,17 @@ int CDialog::Create(UINT nIDTemplate, CWnd* pParentWnd) {
     return impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(this, nIDTemplate, pParentWnd);
 }
 
+// Symbol: ?OnInitDialog@CDialog@@UEAAHXZ
 int CDialog::OnInitDialog() {
     return TRUE;
 }
 
+// Symbol: ?OnOK@CDialog@@MEAAXXZ
 void CDialog::OnOK() {
     EndDialog(IDOK);
 }
 
+// Symbol: ?OnCancel@CDialog@@MEAAXXZ
 void CDialog::OnCancel() {
     EndDialog(IDCANCEL);
 }
@@ -460,6 +465,7 @@ void CDialog::OnSetFont(CWnd* /* pFont */) {
     // Default: do nothing
 }
 
+// Symbol: ?EndDialog@CDialog@@QEAAXH@Z
 void CDialog::EndDialog(int nResult) {
     if (m_hWnd) {
         ::EndDialog(m_hWnd, nResult);
