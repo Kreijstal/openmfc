@@ -510,22 +510,24 @@ public:
             Empty();
             return;
         }
-        int nBufLen = 256;
-        while (nBufLen < 32768) {
+        constexpr int kInitialFormatBuffer = 256;
+        constexpr int kMaxFormatBuffer = 32768;
+        int nBufLen = kInitialFormatBuffer;
+        while (nBufLen <= kMaxFormatBuffer) {
             wchar_t* pBuf = GetBuffer(nBufLen);
             va_list argsCopy;
             va_copy(argsCopy, args);
-            int nWritten = vswprintf(pBuf, nBufLen + 1, pszFormat, argsCopy);
+            int nWritten = vswprintf(pBuf, nBufLen, pszFormat, argsCopy);
             va_end(argsCopy);
 
-            if (nWritten >= 0 && nWritten <= nBufLen) {
+            if (nWritten >= 0 && nWritten < nBufLen) {
                 ReleaseBuffer(nWritten);
                 return;
             }
 
             ReleaseBuffer(0);
-            if (nWritten > nBufLen) {
-                nBufLen = nWritten;
+            if (nWritten >= nBufLen) {
+                nBufLen = nWritten + 1;
             } else {
                 nBufLen *= 2;
             }
