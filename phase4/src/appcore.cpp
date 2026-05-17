@@ -799,8 +799,9 @@ extern "C" void MS_ABI impl___1CWinThread__UEAA_XZ(CWinThread* pThis) {
 // Additional global state needed for AfxGetInstanceHandle, etc.
 static HINSTANCE g_hInstance = nullptr;
 static HINSTANCE g_hResource = nullptr;
-static void* g_appModuleStateStorage[32] = {};
-static __thread void* g_threadStateStorage[32] = {};
+constexpr size_t kOpaqueStateWordCount = 32;
+static void* g_appModuleStateStorage[kOpaqueStateWordCount] = {};
+static __thread void* g_threadStateStorage[kOpaqueStateWordCount] = {};
 
 // AfxGetInstanceHandle implementation
 HINSTANCE AFXAPI AfxGetInstanceHandle() {
@@ -814,6 +815,8 @@ HINSTANCE AFXAPI AfxGetResourceHandle() {
 
 // Symbol: ?AfxGetInstanceHandleHelper@@YAPEAUHINSTANCE__@@XZ
 HINSTANCE AFXAPI AfxGetInstanceHandleHelper() {
+    // Real MFC exposes a helper symbol used by some import libraries.
+    // OpenMFC keeps it aligned with AfxGetInstanceHandle state.
     return AfxGetInstanceHandle();
 }
 
