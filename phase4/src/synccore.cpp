@@ -178,6 +178,12 @@ BOOL CCriticalSection::Unlock() {
 //=============================================================================
 
 // Symbol: ??0CMutex@@QEAA@HPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
+extern "C" void* MS_ABI
+impl___0CMutex__QEAA_HPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
+    void* pThis, int p0, const wchar_t* p1, LPSECURITY_ATTRIBUTES p2) {
+    return new(pThis) CMutex(p0, p1, p2);
+}
+
 CMutex::CMutex(BOOL bInitiallyOwn, const wchar_t* lpszName,
                LPSECURITY_ATTRIBUTES lpsaAttribute)
     : CSyncObject(lpszName) {
@@ -197,6 +203,12 @@ BOOL CMutex::Unlock() {
 //=============================================================================
 
 // Symbol: ??0CSemaphore@@QEAA@JJPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
+extern "C" void* MS_ABI
+impl___0CSemaphore__QEAA_JJPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
+    void* pThis, long p0, long p1, const wchar_t* p2, LPSECURITY_ATTRIBUTES p3) {
+    return new(pThis) CSemaphore(p0, p1, p2, p3);
+}
+
 CSemaphore::CSemaphore(LONG lInitialCount, LONG lMaxCount,
                        const wchar_t* pstrName,
                        LPSECURITY_ATTRIBUTES lpsaAttributes)
@@ -221,6 +233,12 @@ BOOL CSemaphore::Unlock(LONG lCount, LPLONG lpPrevCount) {
 //=============================================================================
 
 // Symbol: ??0CEvent@@QEAA@HHPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
+extern "C" void* MS_ABI
+impl___0CEvent__QEAA_HHPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
+    void* pThis, int p0, int p1, const wchar_t* p2, LPSECURITY_ATTRIBUTES p3) {
+    return new(pThis) CEvent(p0, p1, p2, p3);
+}
+
 CEvent::CEvent(BOOL bInitiallyOwn, BOOL bManualReset,
                const wchar_t* lpszName,
                LPSECURITY_ATTRIBUTES lpsaAttribute)
@@ -253,6 +271,12 @@ BOOL CEvent::Unlock() {
 //=============================================================================
 
 // Symbol: ??0CSingleLock@@QEAA@PEAVCSyncObject@@H@Z
+extern "C" void* MS_ABI
+impl___0CSingleLock__QEAA_PEAVCSyncObject__H_Z(
+    void* pThis, CSyncObject* p0, int p1) {
+    return new(pThis) CSingleLock(p0, p1);
+}
+
 CSingleLock::CSingleLock(CSyncObject* pObject, BOOL bInitialLock)
     : m_pObject(pObject), m_hObject(nullptr), m_bAcquired(FALSE) {
     if (m_pObject != nullptr) {
@@ -304,6 +328,12 @@ BOOL CSingleLock::Unlock(LONG lCount, LPLONG lpPrevCount) {
 //=============================================================================
 
 // Symbol: ??0CMultiLock@@QEAA@QEAPEAVCSyncObject@@KH@Z
+extern "C" void* MS_ABI
+impl___0CMultiLock__QEAA_QEAPEAVCSyncObject__KH_Z(
+    void* pThis, CSyncObject** p0, unsigned long p1, int p2) {
+    return new(pThis) CMultiLock(p0, p1, p2);
+}
+
 CMultiLock::CMultiLock(CSyncObject* ppObjects[], DWORD dwCount, BOOL bInitialLock)
     : m_dwCount(dwCount) {
     m_pHandleArray = new HANDLE[dwCount];
