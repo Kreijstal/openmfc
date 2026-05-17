@@ -2102,6 +2102,7 @@ public:
     HMENU GetSafeHmenu() const { return m_hMenu; }
     operator HMENU() const { return m_hMenu; }
     static CMenu* FromHandle(HMENU hMenu);
+    static CMenu* FromHandlePermanent(HMENU hMenu);
     static void DeleteTempMap();
     int Attach(HMENU hMenu);
     HMENU Detach();
@@ -2125,6 +2126,7 @@ public:
     UINT GetMenuItemID(int nPos) const;
     CMenu* GetSubMenu(int nPos) const;
     int GetMenuString(UINT nIDItem, wchar_t* lpString, int nMaxCount, UINT nFlags) const;
+    int GetMenuString(UINT nIDItem, CString& rString, UINT nFlags) const;
     UINT GetMenuState(UINT nID, UINT nFlags) const;
 
     // Default item
