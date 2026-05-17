@@ -62,6 +62,7 @@ CFileDialog::CFileDialog(int bOpenFileDialog,
     memset(_filedialog_padding, 0, sizeof(_filedialog_padding));
 }
 
+// Symbol: ?DoModal@CFileDialog@@UEAA_JXZ
 intptr_t CFileDialog::DoModal() {
     // Allocate buffer for multiple file selection
     const size_t nBufferSize = 65536;
@@ -156,26 +157,32 @@ intptr_t CFileDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetPathName() const {
     return m_strPathName;
 }
 
+// Symbol: ?GetFileName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileName() const {
     return m_strFileNameOnly;
 }
 
+// Symbol: ?GetFileExt@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileExt() const {
     return m_strFileExt;
 }
 
+// Symbol: ?GetFileTitle@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFileTitle() const {
     return m_strFileTitle;
 }
 
+// Symbol: ?GetFolderPath@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetFolderPath() const {
     return m_strFolderPath;
 }
 
+// Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
 CString CFileDialog::GetNextPathName(void*& pos) const {
     // Multiple file selection: files are null-separated in the buffer
     // pos should point to the current position in the null-separated list
@@ -299,8 +306,9 @@ intptr_t CFontDialog::DoModal() {
 }
 
 void CFontDialog::GetCurrentFont(LOGFONTW* lpLogFont) {
-    (void)lpLogFont;
-    // Fill lpLogFont from m_lf in real implementation
+    if (lpLogFont != nullptr) {
+        memcpy(lpLogFont, m_lf, sizeof(LOGFONTW));
+    }
 }
 
 CString CFontDialog::GetFaceName() const {
@@ -417,6 +425,7 @@ intptr_t CPrintDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetDeviceName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetDeviceName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -432,6 +441,7 @@ CString CPrintDialog::GetDeviceName() const {
     return result;
 }
 
+// Symbol: ?GetDriverName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetDriverName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -447,6 +457,7 @@ CString CPrintDialog::GetDriverName() const {
     return result;
 }
 
+// Symbol: ?GetPortName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPrintDialog::GetPortName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -520,6 +531,7 @@ CPageSetupDialog::~CPageSetupDialog() {
     }
 }
 
+// Symbol: ?DoModal@CPageSetupDialog@@UEAA_JXZ
 intptr_t CPageSetupDialog::DoModal() {
     PAGESETUPDLGW psd;
     memset(&psd, 0, sizeof(psd));
@@ -544,6 +556,7 @@ intptr_t CPageSetupDialog::DoModal() {
     return IDCANCEL;
 }
 
+// Symbol: ?GetDeviceName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetDeviceName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -559,6 +572,7 @@ CString CPageSetupDialog::GetDeviceName() const {
     return result;
 }
 
+// Symbol: ?GetDriverName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetDriverName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -574,6 +588,7 @@ CString CPageSetupDialog::GetDriverName() const {
     return result;
 }
 
+// Symbol: ?GetPortName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CPageSetupDialog::GetPortName() const {
     if (m_hDevNames == nullptr) {
         return CString();
@@ -627,6 +642,7 @@ CFindReplaceDialog::~CFindReplaceDialog() {
     }
 }
 
+// Symbol: ?Create@CFindReplaceDialog@@UEAAHHPEB_W0KPEAVCWnd@@@Z
 int CFindReplaceDialog::Create(int bFindDialogOnly,
                                const wchar_t* lpszFindWhat,
                                const wchar_t* lpszReplaceWith,
