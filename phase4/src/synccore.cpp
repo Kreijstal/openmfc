@@ -34,10 +34,76 @@ IMPLEMENT_DYNAMIC(CMutex, CSyncObject)
 IMPLEMENT_DYNAMIC(CSemaphore, CSyncObject)
 IMPLEMENT_DYNAMIC(CEvent, CSyncObject)
 
+// Symbol: ?GetRuntimeClass@CSyncObject@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetRuntimeClass_CSyncObject__UEBAPEAUCRuntimeClass__XZ(
+    const CSyncObject* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : &CSyncObject::classCSyncObject;
+}
+
+// Symbol: ?GetThisClass@CSyncObject@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetThisClass_CSyncObject__SAPEAUCRuntimeClass__XZ() {
+    return &CSyncObject::classCSyncObject;
+}
+
+// Symbol: ?GetRuntimeClass@CCriticalSection@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetRuntimeClass_CCriticalSection__UEBAPEAUCRuntimeClass__XZ(
+    const CCriticalSection* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : &CCriticalSection::classCCriticalSection;
+}
+
+// Symbol: ?GetThisClass@CCriticalSection@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetThisClass_CCriticalSection__SAPEAUCRuntimeClass__XZ() {
+    return &CCriticalSection::classCCriticalSection;
+}
+
+// Symbol: ?GetRuntimeClass@CMutex@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetRuntimeClass_CMutex__UEBAPEAUCRuntimeClass__XZ(
+    const CMutex* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : &CMutex::classCMutex;
+}
+
+// Symbol: ?GetThisClass@CMutex@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetThisClass_CMutex__SAPEAUCRuntimeClass__XZ() {
+    return &CMutex::classCMutex;
+}
+
+// Symbol: ?GetRuntimeClass@CSemaphore@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetRuntimeClass_CSemaphore__UEBAPEAUCRuntimeClass__XZ(
+    const CSemaphore* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : &CSemaphore::classCSemaphore;
+}
+
+// Symbol: ?GetThisClass@CSemaphore@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetThisClass_CSemaphore__SAPEAUCRuntimeClass__XZ() {
+    return &CSemaphore::classCSemaphore;
+}
+
+// Symbol: ?GetRuntimeClass@CEvent@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetRuntimeClass_CEvent__UEBAPEAUCRuntimeClass__XZ(
+    const CEvent* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : &CEvent::classCEvent;
+}
+
+// Symbol: ?GetThisClass@CEvent@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI
+impl__GetThisClass_CEvent__SAPEAUCRuntimeClass__XZ() {
+    return &CEvent::classCEvent;
+}
+
 //=============================================================================
 // CSyncObject implementation
 //=============================================================================
 
+// Symbol: ??0CSyncObject@@QEAA@PEB_W@Z
 CSyncObject::CSyncObject(const wchar_t* pstrName)
     : m_hObject(nullptr) {
     if (pstrName != nullptr) {
@@ -111,6 +177,7 @@ BOOL CCriticalSection::Unlock() {
 // CMutex implementation
 //=============================================================================
 
+// Symbol: ??0CMutex@@QEAA@HPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
 CMutex::CMutex(BOOL bInitiallyOwn, const wchar_t* lpszName,
                LPSECURITY_ATTRIBUTES lpsaAttribute)
     : CSyncObject(lpszName) {
@@ -129,6 +196,7 @@ BOOL CMutex::Unlock() {
 // CSemaphore implementation
 //=============================================================================
 
+// Symbol: ??0CSemaphore@@QEAA@JJPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
 CSemaphore::CSemaphore(LONG lInitialCount, LONG lMaxCount,
                        const wchar_t* pstrName,
                        LPSECURITY_ATTRIBUTES lpsaAttributes)
@@ -152,6 +220,7 @@ BOOL CSemaphore::Unlock(LONG lCount, LPLONG lpPrevCount) {
 // CEvent implementation
 //=============================================================================
 
+// Symbol: ??0CEvent@@QEAA@HHPEB_WPEAU_SECURITY_ATTRIBUTES@@@Z
 CEvent::CEvent(BOOL bInitiallyOwn, BOOL bManualReset,
                const wchar_t* lpszName,
                LPSECURITY_ATTRIBUTES lpsaAttribute)
@@ -183,6 +252,7 @@ BOOL CEvent::Unlock() {
 // CSingleLock implementation
 //=============================================================================
 
+// Symbol: ??0CSingleLock@@QEAA@PEAVCSyncObject@@H@Z
 CSingleLock::CSingleLock(CSyncObject* pObject, BOOL bInitialLock)
     : m_pObject(pObject), m_hObject(nullptr), m_bAcquired(FALSE) {
     if (m_pObject != nullptr) {
@@ -233,6 +303,7 @@ BOOL CSingleLock::Unlock(LONG lCount, LPLONG lpPrevCount) {
 // CMultiLock implementation
 //=============================================================================
 
+// Symbol: ??0CMultiLock@@QEAA@QEAPEAVCSyncObject@@KH@Z
 CMultiLock::CMultiLock(CSyncObject* ppObjects[], DWORD dwCount, BOOL bInitialLock)
     : m_dwCount(dwCount) {
     m_pHandleArray = new HANDLE[dwCount];
