@@ -32,7 +32,7 @@ jobs:
         ls -la build-phase4/
     - name: Upload Phase 4 artifacts
       id: upload
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: phase4-openmfc
         path: |
@@ -191,7 +191,7 @@ jobs:
           exit 1
         }
     - name: Upload Hello World artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: phase4-hello-world
