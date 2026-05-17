@@ -393,7 +393,8 @@ extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(const C
     return (copied >= 0) ? copied : 0;
 }
 
-// CMenu::GetMenuStringW (CString overload, full mangled form used by exports)
+// CMenu::GetMenuStringW (CString overload, full ATL CStringT mangled export name)
+// The export map references this exact thunk name; forward to the shared implementation.
 extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__I_Z(
     const CMenu* pThis, UINT nIDItem, CString& rString, UINT nFlags) {
     return impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(pThis, nIDItem, rString, nFlags);
@@ -512,7 +513,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CMenu__SAPEAVCObject__XZ() {
 }
 
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMenu__UEBAPEAUCRuntimeClass__XZ(const CMenu* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : nullptr;
+    return pThis->GetRuntimeClass();
 }
 
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMenu__SAPEAUCRuntimeClass__XZ() {
