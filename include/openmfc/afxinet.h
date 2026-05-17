@@ -77,6 +77,15 @@ public:
                                   const wchar_t*, const wchar_t*, CHttpConnection*&);
     static int GetHttpConnection(const wchar_t*, DWORD, INTERNET_PORT,
                                   const wchar_t*, const wchar_t*, CHttpConnection*&);
+    static DWORD GetCookieLength(const wchar_t* pstrUrl, const wchar_t* pstrCookieName);
+    static int GetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                         wchar_t* pstrCookieData, DWORD dwLen);
+    static int GetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                         CString& strCookieData);
+    static int SetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                         const wchar_t* pstrCookieData);
+    virtual void OnStatusCallback(DWORD_PTR dwContext, DWORD dwInternetStatus,
+                                  void* lpvStatusInformation, DWORD dwStatusInformationLength);
 
     // Service type
     DWORD GetServiceType() const;
@@ -108,6 +117,10 @@ public:
     HINTERNET GetHandle() const { return m_hConnection; }
     CInternetSession* GetSession() const { return m_pSession; }
     const CString& GetServerName() const { return m_strServerName; }
+    virtual void Close();
+    int QueryOption(DWORD dwOption, void* lpBuffer, DWORD* pdwBufLen) const;
+    int QueryOption(DWORD dwOption, DWORD& dwValue) const;
+    int SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen, DWORD dwReserved = 0);
 
 public:
     HINTERNET m_hConnection;
@@ -132,7 +145,14 @@ public:
                     INTERNET_PORT nPort = INTERNET_DEFAULT_HTTP_PORT,
                     DWORD_PTR dwContext = 1);
     CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
+                    INTERNET_PORT nPort, const wchar_t* pstrUserName,
+                    const wchar_t* pstrPassword, DWORD_PTR dwContext = 1);
+    CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
                     DWORD dwFlags, INTERNET_PORT nPort = INTERNET_DEFAULT_HTTP_PORT,
+                    DWORD_PTR dwContext = 1);
+    CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
+                    DWORD dwFlags, INTERNET_PORT nPort,
+                    const wchar_t* pstrUserName, const wchar_t* pstrPassword,
                     DWORD_PTR dwContext = 1);
     virtual ~CHttpConnection();
 
@@ -167,6 +187,8 @@ class CInternetFile : public CStdioFile {
     // RTTI symbols provided manually in inetcore.cpp
 public:
     CInternetFile();
+    CInternetFile(HINTERNET hFile, const wchar_t* pstrFileName,
+                  CInternetConnection* pConnection, int nErrorCode = 0);
     virtual ~CInternetFile();
 
     HINTERNET GetHandle() const { return m_hFile; }
@@ -175,6 +197,20 @@ public:
 
     // Read/Write override
     virtual UINT Read(void* lpBuf, UINT nCount) override;
+    virtual void Write(const void* lpBuf, UINT nCount) override;
+    virtual void SetLength(ULONGLONG dwNewLen) override;
+    virtual void Flush() override;
+    virtual void Close() override;
+    virtual CFile* Duplicate() const;
+    virtual void LockRange(ULONGLONG dwPos, ULONGLONG dwCount);
+    virtual void UnlockRange(ULONGLONG dwPos, ULONGLONG dwCount);
+    virtual void Abort();
+    int QueryOption(DWORD dwOption, void* lpBuffer, DWORD* pdwBufLen) const;
+    int QueryOption(DWORD dwOption, DWORD& dwValue) const;
+    int SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen, DWORD dwReserved = 0);
+    wchar_t* ReadString(wchar_t* pstr, UINT nMax);
+    int ReadString(CString& rString);
+    void WriteString(const wchar_t* pstr);
 
     // Internet-specific
     int SetReadBufferSize(UINT nReadSize);
@@ -194,6 +230,8 @@ protected:
 class CHttpFile : public CInternetFile {
     // RTTI handled via extern "C" exports
 public:
+    CHttpFile(HINTERNET hFile, const wchar_t* pstrVerb,
+              const wchar_t* pstrObjectName, CHttpConnection* pConnection);
     CHttpFile(HINTERNET hFile, HINTERNET hConnect,
               const wchar_t* pstrVerb, const wchar_t* pstrObjectName,
               CHttpConnection* pConnection);
@@ -224,7 +262,9 @@ public:
     int QueryInfoStatusCode(DWORD_PTR& dwStatusCode) const;
     CString GetVerb() const;
     CString GetObject() const;
+    CString GetObjectW() const;
     CString GetFileURL() const;
+    DWORD ErrorDlg(CWnd* pParentWnd, DWORD dwError, DWORD dwFlags, void** ppvData);
     void Close();
 
 public:
@@ -265,8 +305,15 @@ public:
     int GetCurrentDirectory(CString& strDirName) const;
     int GetCurrentDirectory(wchar_t* pstrDirName, DWORD* pdwLen) const;
     int SetCurrentDirectory(const wchar_t* pstrDirName);
+    int SetCurrentDirectoryW(const wchar_t* pstrDirName);
     int CreateDirectory(const wchar_t* pstrDirName);
+    int CreateDirectoryW(const wchar_t* pstrDirName);
     int RemoveDirectory(const wchar_t* pstrDirName);
+    int RemoveDirectoryW(const wchar_t* pstrDirName);
+    int GetCurrentDirectoryW(CString& strDirName) const;
+    int GetCurrentDirectoryW(wchar_t* pstrDirName, DWORD* pdwLen) const;
+    int GetCurrentDirectoryAsURL(CString& strDirName) const;
+    int GetCurrentDirectoryAsURL(wchar_t* pstrDirName, DWORD* pdwLen) const;
 
     // File operations
     int GetFile(const wchar_t* pstrRemoteFile, const wchar_t* pstrLocalFile,

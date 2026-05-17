@@ -11,6 +11,8 @@
 #include <wininet.h>
 #include <cstring>
 #include <cstdlib>
+#include <cwchar>
+#include <new>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -124,10 +126,30 @@ CInternetConnection::CInternetConnection(CInternetSession* pSession,
 }
 
 CInternetConnection::~CInternetConnection() {
+    Close();
+}
+
+void CInternetConnection::Close() {
     if (m_hConnection) {
         InternetCloseHandle(m_hConnection);
         m_hConnection = nullptr;
     }
+}
+
+int CInternetConnection::QueryOption(DWORD dwOption, void* lpBuffer, DWORD* pdwBufLen) const {
+    if (!m_hConnection) return FALSE;
+    return InternetQueryOptionW(m_hConnection, dwOption, lpBuffer, pdwBufLen);
+}
+
+int CInternetConnection::QueryOption(DWORD dwOption, DWORD& dwValue) const {
+    DWORD dwSize = sizeof(dwValue);
+    return QueryOption(dwOption, &dwValue, &dwSize);
+}
+
+int CInternetConnection::SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen, DWORD dwReserved) {
+    (void)dwReserved;
+    if (!m_hConnection) return FALSE;
+    return InternetSetOptionW(m_hConnection, dwOption, lpBuffer, dwBufLen);
 }
 
 //=============================================================================
@@ -165,6 +187,27 @@ CHttpConnection::CHttpConnection(CInternetSession* pSession, const wchar_t* pstr
 }
 
 CHttpConnection::CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
+                                   INTERNET_PORT nPort, const wchar_t* pstrUserName,
+                                   const wchar_t* pstrPassword, DWORD_PTR dwContext)
+    : CInternetConnection(pSession, pstrServer, nPort, dwContext)
+{
+    memset(_httpconn_padding, 0, sizeof(_httpconn_padding));
+
+    if (m_pSession && m_pSession->GetHandle()) {
+        m_hConnection = InternetConnectW(
+            m_pSession->GetHandle(),
+            pstrServer,
+            nPort,
+            pstrUserName,
+            pstrPassword,
+            INTERNET_SERVICE_HTTP,
+            0,
+            dwContext
+        );
+    }
+}
+
+CHttpConnection::CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
                                    DWORD dwFlags, INTERNET_PORT nPort, DWORD_PTR dwContext)
     : CInternetConnection(pSession, pstrServer, nPort, dwContext)
 {
@@ -177,6 +220,28 @@ CHttpConnection::CHttpConnection(CInternetSession* pSession, const wchar_t* pstr
             nPort,
             nullptr,
             nullptr,
+            INTERNET_SERVICE_HTTP,
+            dwFlags,
+            dwContext
+        );
+    }
+}
+
+CHttpConnection::CHttpConnection(CInternetSession* pSession, const wchar_t* pstrServer,
+                                   DWORD dwFlags, INTERNET_PORT nPort,
+                                   const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+                                   DWORD_PTR dwContext)
+    : CInternetConnection(pSession, pstrServer, nPort, dwContext)
+{
+    memset(_httpconn_padding, 0, sizeof(_httpconn_padding));
+
+    if (m_pSession && m_pSession->GetHandle()) {
+        m_hConnection = InternetConnectW(
+            m_pSession->GetHandle(),
+            pstrServer,
+            nPort,
+            pstrUserName,
+            pstrPassword,
             INTERNET_SERVICE_HTTP,
             dwFlags,
             dwContext
@@ -250,6 +315,10 @@ __attribute__((used)) static CRuntimeClass g_classCInternetException = {
     "CInternetException", sizeof(CInternetException), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
 
+__attribute__((used)) static CRuntimeClass g_classCHttpFile = {
+    "CHttpFile", sizeof(CHttpFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
+};
+
 //=============================================================================
 // CInternetFile
 //=============================================================================
@@ -258,6 +327,20 @@ __attribute__((used)) static CRuntimeClass g_classCInternetException = {
 CInternetFile::CInternetFile()
     : CStdioFile(), m_hFile(nullptr), m_dwContext(0)
 {
+    memset(_inetfile_padding, 0, sizeof(_inetfile_padding));
+}
+
+CInternetFile::CInternetFile(HINTERNET hFile, const wchar_t* pstrFileName,
+                             CInternetConnection* pConnection, int nErrorCode)
+    : CStdioFile(), m_hFile(hFile), m_dwContext(0)
+{
+    (void)nErrorCode;
+    if (pstrFileName) {
+        m_strFileName = pstrFileName;
+    }
+    if (pConnection) {
+        m_dwContext = pConnection->m_dwContext;
+    }
     memset(_inetfile_padding, 0, sizeof(_inetfile_padding));
 }
 
@@ -293,6 +376,95 @@ UINT CInternetFile::Read(void* lpBuf, UINT nCount) {
     return 0;
 }
 
+void CInternetFile::Write(const void* lpBuf, UINT nCount) {
+    if (!m_hFile || !lpBuf) return;
+    DWORD dwWritten = 0;
+    InternetWriteFile(m_hFile, lpBuf, nCount, &dwWritten);
+}
+
+void CInternetFile::SetLength(ULONGLONG dwNewLen) {
+    (void)dwNewLen;
+}
+
+void CInternetFile::Flush() {
+}
+
+void CInternetFile::Close() {
+    if (m_hFile) {
+        InternetCloseHandle(m_hFile);
+        m_hFile = nullptr;
+    }
+}
+
+CFile* CInternetFile::Duplicate() const {
+    return nullptr;
+}
+
+void CInternetFile::LockRange(ULONGLONG dwPos, ULONGLONG dwCount) {
+    (void)dwPos;
+    (void)dwCount;
+}
+
+void CInternetFile::UnlockRange(ULONGLONG dwPos, ULONGLONG dwCount) {
+    (void)dwPos;
+    (void)dwCount;
+}
+
+void CInternetFile::Abort() {
+    Close();
+}
+
+int CInternetFile::QueryOption(DWORD dwOption, void* lpBuffer, DWORD* pdwBufLen) const {
+    if (!m_hFile) return FALSE;
+    return InternetQueryOptionW(m_hFile, dwOption, lpBuffer, pdwBufLen);
+}
+
+int CInternetFile::QueryOption(DWORD dwOption, DWORD& dwValue) const {
+    DWORD dwSize = sizeof(dwValue);
+    return QueryOption(dwOption, &dwValue, &dwSize);
+}
+
+int CInternetFile::SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen, DWORD dwReserved) {
+    (void)dwReserved;
+    if (!m_hFile) return FALSE;
+    return InternetSetOptionW(m_hFile, dwOption, lpBuffer, dwBufLen);
+}
+
+wchar_t* CInternetFile::ReadString(wchar_t* pstr, UINT nMax) {
+    if (!pstr || nMax == 0) return nullptr;
+    UINT i = 0;
+    for (; i + 1 < nMax; ++i) {
+        char ch = 0;
+        if (Read(&ch, 1) != 1) {
+            break;
+        }
+        pstr[i] = (wchar_t)(unsigned char)ch;
+        if (ch == '\n') {
+            ++i;
+            break;
+        }
+    }
+    if (i == 0) return nullptr;
+    pstr[i] = L'\0';
+    return pstr;
+}
+
+int CInternetFile::ReadString(CString& rString) {
+    wchar_t buf[1024];
+    wchar_t* p = ReadString(buf, 1024);
+    if (!p) {
+        rString.Empty();
+        return FALSE;
+    }
+    rString = p;
+    return TRUE;
+}
+
+void CInternetFile::WriteString(const wchar_t* pstr) {
+    if (!pstr) return;
+    Write(pstr, (UINT)(wcslen(pstr) * sizeof(wchar_t)));
+}
+
 int CInternetFile::SetReadBufferSize(UINT nReadSize) {
     if (!m_hFile) return FALSE;
     return InternetSetOptionW(m_hFile, INTERNET_OPTION_READ_BUFFER_SIZE,
@@ -310,6 +482,12 @@ int CInternetFile::SetWriteBufferSize(UINT nWriteSize) {
 //=============================================================================
 
 // CHttpFile RTTI provided manually (CInternetFile doesn't have DECLARE_DYNAMIC)
+CHttpFile::CHttpFile(HINTERNET hFile, const wchar_t* pstrVerb, const wchar_t* pstrObjectName,
+                     CHttpConnection* pConnection)
+    : CHttpFile(hFile, pConnection ? pConnection->GetHandle() : nullptr,
+                pstrVerb, pstrObjectName, pConnection) {
+}
+
 CHttpFile::CHttpFile(HINTERNET hFile, HINTERNET hConnect,
                      const wchar_t* pstrVerb, const wchar_t* pstrObjectName,
                      CHttpConnection* pConnection)
@@ -379,6 +557,10 @@ CString CHttpFile::GetObject() const {
     return m_strObject;
 }
 
+CString CHttpFile::GetObjectW() const {
+    return m_strObject;
+}
+
 CString CHttpFile::GetFileURL() const {
     CString url = L"http";
     if (m_bHttps) url += L"s";
@@ -393,7 +575,17 @@ CString CHttpFile::GetFileURL() const {
 void CHttpFile::Close() {
     if (m_hFile) {
         InternetCloseHandle(m_hFile);
+        m_hFile = nullptr;
     }
+}
+
+DWORD CHttpFile::ErrorDlg(CWnd* pParentWnd, DWORD dwError, DWORD dwFlags, void** ppvData) {
+    HWND hWnd = nullptr;
+    if (pParentWnd) {
+        hWnd = pParentWnd->GetSafeHwnd();
+    }
+    return InternetErrorDlg(hWnd, m_hFile, dwError, dwFlags,
+                            ppvData ? (LPVOID*)ppvData : nullptr);
 }
 
 //=============================================================================
@@ -450,14 +642,64 @@ int CFtpConnection::SetCurrentDirectory(const wchar_t* pstrDirName) {
     return FtpSetCurrentDirectoryW(m_hConnection, pstrDirName);
 }
 
+int CFtpConnection::SetCurrentDirectoryW(const wchar_t* pstrDirName) {
+    return SetCurrentDirectory(pstrDirName);
+}
+
 int CFtpConnection::CreateDirectory(const wchar_t* pstrDirName) {
     if (!m_hConnection) return FALSE;
     return FtpCreateDirectoryW(m_hConnection, pstrDirName);
 }
 
+int CFtpConnection::CreateDirectoryW(const wchar_t* pstrDirName) {
+    return CreateDirectory(pstrDirName);
+}
+
 int CFtpConnection::RemoveDirectory(const wchar_t* pstrDirName) {
     if (!m_hConnection) return FALSE;
     return FtpRemoveDirectoryW(m_hConnection, pstrDirName);
+}
+
+int CFtpConnection::RemoveDirectoryW(const wchar_t* pstrDirName) {
+    return RemoveDirectory(pstrDirName);
+}
+
+int CFtpConnection::GetCurrentDirectoryW(CString& strDirName) const {
+    return GetCurrentDirectory(strDirName);
+}
+
+int CFtpConnection::GetCurrentDirectoryW(wchar_t* pstrDirName, DWORD* pdwLen) const {
+    return GetCurrentDirectory(pstrDirName, pdwLen);
+}
+
+int CFtpConnection::GetCurrentDirectoryAsURL(CString& strDirName) const {
+    CString dir;
+    if (!GetCurrentDirectory(dir)) {
+        strDirName.Empty();
+        return FALSE;
+    }
+    strDirName = L"ftp://";
+    strDirName += GetServerName();
+    if (!dir.IsEmpty() && dir[0] != L'/') {
+        strDirName += L"/";
+    }
+    strDirName += dir;
+    return TRUE;
+}
+
+int CFtpConnection::GetCurrentDirectoryAsURL(wchar_t* pstrDirName, DWORD* pdwLen) const {
+    if (!pstrDirName || !pdwLen || *pdwLen == 0) return FALSE;
+    CString strDirName;
+    if (!GetCurrentDirectoryAsURL(strDirName)) return FALSE;
+    DWORD needed = (DWORD)strDirName.GetLength() + 1;
+    if (*pdwLen < needed) {
+        *pdwLen = needed;
+        return FALSE;
+    }
+    wcsncpy(pstrDirName, (const wchar_t*)strDirName, needed);
+    pstrDirName[needed - 1] = L'\0';
+    *pdwLen = needed;
+    return TRUE;
 }
 
 int CFtpConnection::GetFile(const wchar_t* pstrRemoteFile, const wchar_t* pstrLocalFile,
@@ -601,6 +843,50 @@ int CInternetSession::GetHttpConnection(const wchar_t* pstrServer, DWORD dwFlags
     (void)pstrServer; (void)dwFlags; (void)nPort; (void)pstrUserName; (void)pstrPassword;
     refConnection = nullptr;
     return 0;
+}
+
+DWORD CInternetSession::GetCookieLength(const wchar_t* pstrUrl, const wchar_t* pstrCookieName) {
+    DWORD dwLen = 0;
+    InternetGetCookieW(pstrUrl, pstrCookieName, nullptr, &dwLen);
+    return dwLen;
+}
+
+int CInternetSession::GetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                                 wchar_t* pstrCookieData, DWORD dwLen) {
+    DWORD actual = dwLen;
+    return InternetGetCookieW(pstrUrl, pstrCookieName, pstrCookieData, &actual) ? TRUE : FALSE;
+}
+
+int CInternetSession::GetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                                 CString& strCookieData) {
+    DWORD dwLen = GetCookieLength(pstrUrl, pstrCookieName);
+    if (dwLen == 0) {
+        strCookieData.Empty();
+        return FALSE;
+    }
+    wchar_t* buf = (wchar_t*)malloc(dwLen * sizeof(wchar_t));
+    if (!buf) return FALSE;
+    int ok = GetCookie(pstrUrl, pstrCookieName, buf, dwLen);
+    if (ok) {
+        strCookieData = buf;
+    } else {
+        strCookieData.Empty();
+    }
+    free(buf);
+    return ok;
+}
+
+int CInternetSession::SetCookie(const wchar_t* pstrUrl, const wchar_t* pstrCookieName,
+                                 const wchar_t* pstrCookieData) {
+    return InternetSetCookieW(pstrUrl, pstrCookieName, pstrCookieData) ? TRUE : FALSE;
+}
+
+void CInternetSession::OnStatusCallback(DWORD_PTR dwContext, DWORD dwInternetStatus,
+                                        void* lpvStatusInformation, DWORD dwStatusInformationLength) {
+    (void)dwContext;
+    (void)dwInternetStatus;
+    (void)lpvStatusInformation;
+    (void)dwStatusInformationLength;
 }
 
 CGopherConnection* CInternetSession::GetGopherConnection(const wchar_t* pstrServer,
@@ -890,3 +1176,355 @@ CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
 }
 
 CGopherFile::~CGopherFile() {}
+
+//=============================================================================
+// Manual WinInet thunk implementations for remaining exports in this unit
+//=============================================================================
+
+// Symbol: ??0CInternetConnection@@QEAA@PEAVCInternetSession@@PEB_WG_K@Z
+extern "C" void* MS_ABI impl___0CInternetConnection__QEAA_PEAVCInternetSession__PEB_WG_K_Z(
+    void* pThis, CInternetSession* pSession, const wchar_t* pstrServer, unsigned short nPort, unsigned __int64 dwContext) {
+    return new (pThis) CInternetConnection(pSession, pstrServer, (INTERNET_PORT)nPort, (DWORD_PTR)dwContext);
+}
+
+// Symbol: ?Close@CInternetConnection@@UEAAXXZ
+extern "C" void MS_ABI impl__Close_CInternetConnection__UEAAXXZ(CInternetConnection* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?QueryOption@CInternetConnection@@QEBAHKPEAXPEAK@Z
+extern "C" int MS_ABI impl__QueryOption_CInternetConnection__QEBAHKPEAXPEAK_Z(
+    const CInternetConnection* pThis, unsigned long dwOption, void* lpBuffer, const unsigned long* pdwLenIn) {
+    if (!pdwLenIn) return FALSE;
+    unsigned long dwLen = *pdwLenIn;
+    return pThis->QueryOption(dwOption, lpBuffer, &dwLen);
+}
+
+// Symbol: ?QueryOption@CInternetConnection@@QEBAHKAEAK@Z
+extern "C" int MS_ABI impl__QueryOption_CInternetConnection__QEBAHKAEAK_Z(
+    const CInternetConnection* pThis, unsigned long dwOption, unsigned long& dwValue) {
+    return pThis->QueryOption(dwOption, dwValue);
+}
+
+// Symbol: ?SetOption@CInternetConnection@@QEAAHKPEAXKK@Z
+extern "C" int MS_ABI impl__SetOption_CInternetConnection__QEAAHKPEAXKK_Z(
+    CInternetConnection* pThis, unsigned long dwOption, void* lpBuffer, unsigned long dwBufLen, unsigned long dwReserved) {
+    return pThis->SetOption(dwOption, lpBuffer, dwBufLen, dwReserved);
+}
+
+// Symbol: ?GetRuntimeClass@CInternetConnection@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetConnection__UEBAPEAUCRuntimeClass__XZ(
+    const CInternetConnection* pThis) {
+    return pThis->GetRuntimeClass();
+}
+
+// Symbol: ?GetThisClass@CInternetConnection@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInternetConnection__SAPEAUCRuntimeClass__XZ() {
+    return CInternetConnection::GetThisClass();
+}
+
+// Symbol: ??0CFtpConnection@@QEAA@PEAVCInternetSession@@PEAXPEB_W_K@Z
+extern "C" void* MS_ABI impl___0CFtpConnection__QEAA_PEAVCInternetSession__PEAXPEB_W_K_Z(
+    void* pThis, CInternetSession* pSession, void* hConnected, const wchar_t* pstrServer, unsigned __int64 dwContext) {
+    return new (pThis) CFtpConnection(pSession, (HINTERNET)hConnected, pstrServer, (DWORD_PTR)dwContext);
+}
+
+// Symbol: ??0CFtpConnection@@QEAA@PEAVCInternetSession@@PEB_W11_KGH@Z
+extern "C" void* MS_ABI impl___0CFtpConnection__QEAA_PEAVCInternetSession__PEB_W11_KGH_Z(
+    void* pThis, CInternetSession* pSession, const wchar_t* pstrServer,
+    const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+    unsigned __int64 dwContext, unsigned short nPort, int bPassive) {
+    return new (pThis) CFtpConnection(pSession, pstrServer, pstrUserName, pstrPassword,
+                                      (DWORD_PTR)dwContext, (INTERNET_PORT)nPort, bPassive);
+}
+
+// Symbol: ??0CHttpConnection@@QEAA@PEAVCInternetSession@@PEAXPEB_W_K@Z
+extern "C" void* MS_ABI impl___0CHttpConnection__QEAA_PEAVCInternetSession__PEAXPEB_W_K_Z(
+    void* pThis, CInternetSession* pSession, void* hConnected, const wchar_t* pstrServer, unsigned __int64 dwContext) {
+    return new (pThis) CHttpConnection(pSession, (HINTERNET)hConnected, pstrServer, (DWORD_PTR)dwContext);
+}
+
+// Symbol: ??0CHttpConnection@@QEAA@PEAVCInternetSession@@PEB_WG11_K@Z
+extern "C" void* MS_ABI impl___0CHttpConnection__QEAA_PEAVCInternetSession__PEB_WG11_K_Z(
+    void* pThis, CInternetSession* pSession, const wchar_t* pstrServer,
+    unsigned short nPort, const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+    unsigned __int64 dwContext) {
+    return new (pThis) CHttpConnection(pSession, pstrServer, (INTERNET_PORT)nPort,
+                                       pstrUserName, pstrPassword, (DWORD_PTR)dwContext);
+}
+
+// Symbol: ??0CHttpConnection@@QEAA@PEAVCInternetSession@@PEB_WKG11_K@Z
+extern "C" void* MS_ABI impl___0CHttpConnection__QEAA_PEAVCInternetSession__PEB_WKG11_K_Z(
+    void* pThis, CInternetSession* pSession, const wchar_t* pstrServer, unsigned long dwFlags,
+    unsigned short nPort, const wchar_t* pstrUserName, const wchar_t* pstrPassword,
+    unsigned __int64 dwContext) {
+    return new (pThis) CHttpConnection(pSession, pstrServer, dwFlags, (INTERNET_PORT)nPort,
+                                       pstrUserName, pstrPassword, (DWORD_PTR)dwContext);
+}
+
+// Symbol: ??0CHttpFile@@IEAA@PEAXPEB_W1PEAVCHttpConnection@@@Z
+extern "C" void* MS_ABI impl___0CHttpFile__IEAA_PEAXPEB_W1PEAVCHttpConnection___Z(
+    void* pThis, void* hFile, const wchar_t* pstrVerb, const wchar_t* pstrObjectName, CHttpConnection* pConnection) {
+    return new (pThis) CHttpFile((HINTERNET)hFile, pstrVerb, pstrObjectName, pConnection);
+}
+
+// Symbol: ??0CInternetFile@@IEAA@PEAXPEB_WPEAVCInternetConnection@@H@Z
+extern "C" void* MS_ABI impl___0CInternetFile__IEAA_PEAXPEB_WPEAVCInternetConnection__H_Z(
+    void* pThis, void* hFile, const wchar_t* pstrFileName, CInternetConnection* pConnection, int nErrorCode) {
+    return new (pThis) CInternetFile((HINTERNET)hFile, pstrFileName, pConnection, nErrorCode);
+}
+
+// Symbol: ?GetRuntimeClass@CInternetSession@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetSession__UEBAPEAUCRuntimeClass__XZ(
+    const CInternetSession* pThis) {
+    return pThis->GetRuntimeClass();
+}
+
+// Symbol: ?GetThisClass@CInternetSession@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInternetSession__SAPEAUCRuntimeClass__XZ() {
+    return CInternetSession::GetThisClass();
+}
+
+// Symbol: ?OnStatusCallback@CInternetSession@@UEAAX_KKPEAXK@Z
+extern "C" void MS_ABI impl__OnStatusCallback_CInternetSession__UEAAX_KKPEAXK_Z(
+    CInternetSession* pThis, unsigned __int64 dwContext, unsigned long dwInternetStatus,
+    void* lpvStatusInformation, unsigned long dwStatusInformationLength) {
+    pThis->OnStatusCallback((DWORD_PTR)dwContext, dwInternetStatus, lpvStatusInformation, dwStatusInformationLength);
+}
+
+// Symbol: ?GetCookieLength@CInternetSession@@SAKPEB_W0@Z
+extern "C" unsigned long MS_ABI impl__GetCookieLength_CInternetSession__SAKPEB_W0_Z(
+    const wchar_t* pstrUrl, const wchar_t* pstrCookieName) {
+    return CInternetSession::GetCookieLength(pstrUrl, pstrCookieName);
+}
+
+// Symbol: ?GetCookie@CInternetSession@@SAHPEB_W0PEA_WK@Z
+extern "C" int MS_ABI impl__GetCookie_CInternetSession__SAHPEB_W0PEA_WK_Z(
+    const wchar_t* pstrUrl, const wchar_t* pstrCookieName, wchar_t* pstrCookieData, unsigned long dwLen) {
+    return CInternetSession::GetCookie(pstrUrl, pstrCookieName, pstrCookieData, dwLen);
+}
+
+// Symbol: ?GetCookie@CInternetSession@@SAHPEB_W0AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetCookie_CInternetSession__SAHPEB_W0AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const wchar_t* pstrUrl, const wchar_t* pstrCookieName, CString& strCookieData) {
+    return CInternetSession::GetCookie(pstrUrl, pstrCookieName, strCookieData);
+}
+
+// Symbol: ?SetCookie@CInternetSession@@SAHPEB_W00@Z
+extern "C" int MS_ABI impl__SetCookie_CInternetSession__SAHPEB_W00_Z(
+    const wchar_t* pstrUrl, const wchar_t* pstrCookieName, const wchar_t* pstrCookieData) {
+    return CInternetSession::SetCookie(pstrUrl, pstrCookieName, pstrCookieData);
+}
+
+// Symbol: ?GetRuntimeClass@CHttpConnection@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CHttpConnection__UEBAPEAUCRuntimeClass__XZ(
+    const CHttpConnection* pThis) {
+    return pThis->GetRuntimeClass();
+}
+
+// Symbol: ?GetThisClass@CHttpConnection@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHttpConnection__SAPEAUCRuntimeClass__XZ() {
+    return CHttpConnection::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CFtpConnection@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFtpConnection__UEBAPEAUCRuntimeClass__XZ(
+    const CFtpConnection* pThis) {
+    return pThis->GetRuntimeClass();
+}
+
+// Symbol: ?GetThisClass@CFtpConnection@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFtpConnection__SAPEAUCRuntimeClass__XZ() {
+    return CFtpConnection::GetThisClass();
+}
+
+// Symbol: ?CreateDirectoryW@CFtpConnection@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__CreateDirectoryW_CFtpConnection__QEAAHPEB_W_Z(
+    CFtpConnection* pThis, const wchar_t* pstrDirName) {
+    return pThis->CreateDirectoryW(pstrDirName);
+}
+
+// Symbol: ?RemoveDirectoryW@CFtpConnection@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__RemoveDirectoryW_CFtpConnection__QEAAHPEB_W_Z(
+    CFtpConnection* pThis, const wchar_t* pstrDirName) {
+    return pThis->RemoveDirectoryW(pstrDirName);
+}
+
+// Symbol: ?SetCurrentDirectoryW@CFtpConnection@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__SetCurrentDirectoryW_CFtpConnection__QEAAHPEB_W_Z(
+    CFtpConnection* pThis, const wchar_t* pstrDirName) {
+    return pThis->SetCurrentDirectoryW(pstrDirName);
+}
+
+// Symbol: ?GetCurrentDirectoryW@CFtpConnection@@QEBAHPEA_WPEAK@Z
+extern "C" int MS_ABI impl__GetCurrentDirectoryW_CFtpConnection__QEBAHPEA_WPEAK_Z(
+    const CFtpConnection* pThis, wchar_t* pstrDirName, const unsigned long* pdwLenIn) {
+    if (!pdwLenIn) return FALSE;
+    unsigned long len = *pdwLenIn;
+    return pThis->GetCurrentDirectoryW(pstrDirName, &len);
+}
+
+// Symbol: ?GetCurrentDirectoryW@CFtpConnection@@QEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetCurrentDirectoryW_CFtpConnection__QEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CFtpConnection* pThis, CString& strDirName) {
+    return pThis->GetCurrentDirectoryW(strDirName);
+}
+
+// Symbol: ?GetCurrentDirectoryAsURL@CFtpConnection@@QEBAHPEA_WPEAK@Z
+extern "C" int MS_ABI impl__GetCurrentDirectoryAsURL_CFtpConnection__QEBAHPEA_WPEAK_Z(
+    const CFtpConnection* pThis, wchar_t* pstrDirName, const unsigned long* pdwLenIn) {
+    if (!pdwLenIn) return FALSE;
+    unsigned long len = *pdwLenIn;
+    return pThis->GetCurrentDirectoryAsURL(pstrDirName, &len);
+}
+
+// Symbol: ?GetCurrentDirectoryAsURL@CFtpConnection@@QEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetCurrentDirectoryAsURL_CFtpConnection__QEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CFtpConnection* pThis, CString& strDirName) {
+    return pThis->GetCurrentDirectoryAsURL(strDirName);
+}
+
+// Symbol: ?Abort@CInternetFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Abort_CInternetFile__UEAAXXZ(CInternetFile* pThis) {
+    pThis->Abort();
+}
+
+// Symbol: ?Close@CInternetFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Close_CInternetFile__UEAAXXZ(CInternetFile* pThis) {
+    pThis->Close();
+}
+
+// Symbol: ?Duplicate@CInternetFile@@UEBAPEAVCFile@@XZ
+extern "C" CFile* MS_ABI impl__Duplicate_CInternetFile__UEBAPEAVCFile__XZ(const CInternetFile* pThis) {
+    return pThis->Duplicate();
+}
+
+// Symbol: ?Flush@CInternetFile@@UEAAXXZ
+extern "C" void MS_ABI impl__Flush_CInternetFile__UEAAXXZ(CInternetFile* pThis) {
+    pThis->Flush();
+}
+
+// Symbol: ?LockRange@CInternetFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__LockRange_CInternetFile__UEAAX_K0_Z(
+    CInternetFile* pThis, unsigned __int64 dwPos, unsigned __int64 dwCount) {
+    pThis->LockRange(dwPos, dwCount);
+}
+
+// Symbol: ?UnlockRange@CInternetFile@@UEAAX_K0@Z
+extern "C" void MS_ABI impl__UnlockRange_CInternetFile__UEAAX_K0_Z(
+    CInternetFile* pThis, unsigned __int64 dwPos, unsigned __int64 dwCount) {
+    pThis->UnlockRange(dwPos, dwCount);
+}
+
+// Symbol: ?SetLength@CInternetFile@@UEAAX_K@Z
+extern "C" void MS_ABI impl__SetLength_CInternetFile__UEAAX_K_Z(CInternetFile* pThis, unsigned __int64 dwNewLen) {
+    pThis->SetLength(dwNewLen);
+}
+
+// Symbol: ?Write@CInternetFile@@UEAAXPEBXI@Z
+extern "C" void MS_ABI impl__Write_CInternetFile__UEAAXPEBXI_Z(
+    CInternetFile* pThis, const void* lpBuf, unsigned int nCount) {
+    pThis->Write(lpBuf, nCount);
+}
+
+// Symbol: ?WriteString@CInternetFile@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__WriteString_CInternetFile__UEAAXPEB_W_Z(CInternetFile* pThis, const wchar_t* pstr) {
+    pThis->WriteString(pstr);
+}
+
+// Symbol: ?ReadString@CInternetFile@@UEAAPEA_WPEA_WI@Z
+extern "C" wchar_t* MS_ABI impl__ReadString_CInternetFile__UEAAPEA_WPEA_WI_Z(
+    CInternetFile* pThis, wchar_t* pstr, unsigned int nMax) {
+    return pThis->ReadString(pstr, nMax);
+}
+
+// Symbol: ?ReadString@CInternetFile@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__ReadString_CInternetFile__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CInternetFile* pThis, CString& str) {
+    return pThis->ReadString(str);
+}
+
+// Symbol: ?SetOption@CInternetFile@@QEAAHKPEAXKK@Z
+extern "C" int MS_ABI impl__SetOption_CInternetFile__QEAAHKPEAXKK_Z(
+    CInternetFile* pThis, unsigned long dwOption, void* lpBuffer, unsigned long dwBufLen, unsigned long dwReserved) {
+    return pThis->SetOption(dwOption, lpBuffer, dwBufLen, dwReserved);
+}
+
+// Symbol: ?QueryOption@CInternetFile@@QEBAHKPEAXPEAK@Z
+extern "C" int MS_ABI impl__QueryOption_CInternetFile__QEBAHKPEAXPEAK_Z(
+    const CInternetFile* pThis, unsigned long dwOption, void* lpBuffer, const unsigned long* pdwLenIn) {
+    if (!pdwLenIn) return FALSE;
+    unsigned long dwLen = *pdwLenIn;
+    return pThis->QueryOption(dwOption, lpBuffer, &dwLen);
+}
+
+// Symbol: ?QueryOption@CInternetFile@@QEBAHKAEAK@Z
+extern "C" int MS_ABI impl__QueryOption_CInternetFile__QEBAHKAEAK_Z(
+    const CInternetFile* pThis, unsigned long dwOption, unsigned long& dwValue) {
+    return pThis->QueryOption(dwOption, dwValue);
+}
+
+// Symbol: ?GetRuntimeClass@CInternetFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetFile__UEBAPEAUCRuntimeClass__XZ(
+    const CInternetFile* pThis) {
+    (void)pThis;
+    return &g_classCInternetFile;
+}
+
+// Symbol: ?GetThisClass@CInternetFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInternetFile__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCInternetFile;
+}
+
+// Symbol: ?AddRequestHeaders@CHttpFile@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@K@Z
+extern "C" int MS_ABI impl__AddRequestHeaders_CHttpFile__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__K_Z(
+    CHttpFile* pThis, CString& strHeaders, unsigned long dwFlags) {
+    return pThis->AddRequestHeaders(strHeaders, dwFlags);
+}
+
+// Symbol: ?ErrorDlg@CHttpFile@@QEAAKPEAVCWnd@@KKPEAPEAX@Z
+extern "C" unsigned long MS_ABI impl__ErrorDlg_CHttpFile__QEAAKPEAVCWnd__KKPEAPEAX_Z(
+    CHttpFile* pThis, CWnd* pParentWnd, unsigned long dwError, unsigned long dwFlags, void** ppvData) {
+    return pThis->ErrorDlg(pParentWnd, dwError, dwFlags, ppvData);
+}
+
+// Symbol: ?GetObjectW@CHttpFile@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetObjectW_CHttpFile__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CHttpFile* pThis) {
+    new (pRet) CString(pThis->GetObjectW());
+}
+
+// Symbol: ?GetVerb@CHttpFile@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetVerb_CHttpFile__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CHttpFile* pThis) {
+    new (pRet) CString(pThis->GetVerb());
+}
+
+// Symbol: ?GetFileURL@CHttpFile@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileURL_CHttpFile__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CHttpFile* pThis) {
+    new (pRet) CString(pThis->GetFileURL());
+}
+
+// Symbol: ?GetRuntimeClass@CHttpFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CHttpFile__UEBAPEAUCRuntimeClass__XZ(
+    const CHttpFile* pThis) {
+    (void)pThis;
+    return &g_classCHttpFile;
+}
+
+// Symbol: ?GetThisClass@CHttpFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHttpFile__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCHttpFile;
+}
+
+// Symbol: ?GetRuntimeClass@CInternetException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetException__UEBAPEAUCRuntimeClass__XZ(
+    const CInternetException* pThis) {
+    return pThis->GetRuntimeClass();
+}
+
+// Symbol: ?GetThisClass@CInternetException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInternetException__SAPEAUCRuntimeClass__XZ() {
+    return CInternetException::GetThisClass();
+}
