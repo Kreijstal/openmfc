@@ -8,6 +8,23 @@
 #include "afx.h"
 #include <wininet.h>
 
+// Avoid Win32 UNICODE alias macros colliding with member function names.
+#ifdef GetObject
+#undef GetObject
+#endif
+#ifdef SetCurrentDirectory
+#undef SetCurrentDirectory
+#endif
+#ifdef CreateDirectory
+#undef CreateDirectory
+#endif
+#ifdef RemoveDirectory
+#undef RemoveDirectory
+#endif
+#ifdef GetCurrentDirectory
+#undef GetCurrentDirectory
+#endif
+
 //=============================================================================
 // Forward declarations
 //=============================================================================

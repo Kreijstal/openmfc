@@ -15,6 +15,22 @@
 #include <new>
 #include <vector>
 
+#ifdef GetObject
+#undef GetObject
+#endif
+#ifdef SetCurrentDirectory
+#undef SetCurrentDirectory
+#endif
+#ifdef CreateDirectory
+#undef CreateDirectory
+#endif
+#ifdef RemoveDirectory
+#undef RemoveDirectory
+#endif
+#ifdef GetCurrentDirectory
+#undef GetCurrentDirectory
+#endif
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
