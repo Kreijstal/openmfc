@@ -939,7 +939,7 @@ extern "C" void* MS_ABI impl__Duplicate_CFile__UEBAPEAV1_XZ(void* pThis) {
 }
 
 struct CFileAccessor : CFile {
-    static void CommonInitImpl(CFile* pFile, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
+    static void InvokeCommonInit(CFile* pFile, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
         static_cast<CFileAccessor*>(pFile)->CommonInit(lpszFileName, nOpenFlags, pTM);
     }
 };
@@ -989,7 +989,7 @@ extern "C" void MS_ABI impl__CommonBaseInit_CFile__IEAAXPEAXPEAVCAtlTransactionM
 extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(
     void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* /*pException*/) {
     CFile* self = static_cast<CFile*>(pThis);
-    CFileAccessor::CommonInitImpl(self, lpszFileName, nOpenFlags, nullptr);
+    CFileAccessor::InvokeCommonInit(self, lpszFileName, nOpenFlags, nullptr);
     return self->m_hFile != (void*)INVALID_HANDLE_VALUE ? 1 : 0;
 }
 
@@ -1123,6 +1123,7 @@ extern "C" void MS_ABI impl__Free_CMemFile__MEAAXPEAE_Z(CMemFile* /*pThis*/, uns
 // Symbol: ?Memcpy@CMemFile@@MEAAPEAEPEAEPEBE_K@Z
 extern "C" unsigned char* MS_ABI impl__Memcpy_CMemFile__MEAAPEAEPEAEPEBE_K_Z(
     CMemFile* /*pThis*/, unsigned char* pDest, unsigned char* pOrigDest, const unsigned char* pSrc, unsigned long long nBytes) {
+    // pOrigDest is part of the exported ABI signature.
     (void)pOrigDest;
     if (!pDest || !pSrc) return pDest;
     return static_cast<unsigned char*>(memcpy(pDest, pSrc, static_cast<size_t>(nBytes)));
@@ -1295,24 +1296,41 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileException__SAPEAUCRunti
 extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(int cause, long lOsError, const wchar_t* lpszFileName);
 
 static int FileExceptionFromErrno(int nErrno) {
+    enum FileCause {
+        kGenericException = 1,
+        kFileNotFound = 2,
+        kTooManyOpenFiles = 4,
+        kAccessDenied = 5,
+        kSharingViolation = 10,
+        kLockViolation = 11,
+        kDiskFull = 13
+    };
     switch (nErrno) {
-        case ENOENT: return 2;
-        case EACCES: return 5;
-        case EMFILE: return 4;
-        case ENOSPC: return 13;
-        default: return 1;
+        case ENOENT: return kFileNotFound;
+        case EACCES: return kAccessDenied;
+        case EMFILE: return kTooManyOpenFiles;
+        case ENOSPC: return kDiskFull;
+        default: return kGenericException;
     }
 }
 
 static int FileExceptionFromOsError(long lOsError) {
+    enum FileCause {
+        kGenericException = 1,
+        kFileNotFound = 2,
+        kAccessDenied = 5,
+        kSharingViolation = 10,
+        kLockViolation = 11,
+        kDiskFull = 13
+    };
     switch (lOsError) {
         case ERROR_FILE_NOT_FOUND:
-        case ERROR_PATH_NOT_FOUND: return 2;
-        case ERROR_ACCESS_DENIED: return 5;
-        case ERROR_SHARING_VIOLATION: return 10;
-        case ERROR_LOCK_VIOLATION: return 11;
-        case ERROR_DISK_FULL: return 13;
-        default: return 1;
+        case ERROR_PATH_NOT_FOUND: return kFileNotFound;
+        case ERROR_ACCESS_DENIED: return kAccessDenied;
+        case ERROR_SHARING_VIOLATION: return kSharingViolation;
+        case ERROR_LOCK_VIOLATION: return kLockViolation;
+        case ERROR_DISK_FULL: return kDiskFull;
+        default: return kGenericException;
     }
 }
 
