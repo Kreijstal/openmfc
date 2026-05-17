@@ -1756,8 +1756,8 @@ public:
                    unsigned char bItalic, unsigned char bUnderline, unsigned char cStrikeOut,
                    unsigned char nCharSet, unsigned char nOutPrecision, unsigned char nClipPrecision,
                    unsigned char nQuality, unsigned char nPitchAndFamily, const wchar_t* lpszFacename);
-    int CreatePointFont(int nPointSize, const wchar_t* lpszFaceName, void* pDC = nullptr);
-    int CreatePointFontIndirect(const void* lpLogFont, void* pDC = nullptr);
+    int CreatePointFont(int nPointSize, const wchar_t* lpszFaceName, CDC* pDC = nullptr);
+    int CreatePointFontIndirect(const void* lpLogFont, CDC* pDC = nullptr);
     
     int GetLogFont(void* pLogFont) const;
     

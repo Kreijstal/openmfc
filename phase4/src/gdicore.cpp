@@ -418,7 +418,7 @@ extern "C" void MS_ABI impl__FillSolidRect_CDC__QEAAXPEBUtagRECT__K_Z(
 
 // CDC::Attach
 // Symbol: ?Attach@CDC@@QEAAHPEAUHDC__@@@Z
-extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC___Z(CDC* pThis, HDC hDC) {
+extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC_____Z(CDC* pThis, HDC hDC) {
     if (!pThis) return FALSE;
     pThis->m_hDC = hDC;
     pThis->m_hAttribDC = hDC;
@@ -427,7 +427,7 @@ extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC___Z(CDC* pThis, HDC hDC) {
 
 // CDC::Detach
 // Symbol: ?Detach@CDC@@QEAAPEAUHDC__@@XZ
-extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC___XZ(CDC* pThis) {
+extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC____XZ(CDC* pThis) {
     if (!pThis) return nullptr;
     HDC hDC = pThis->m_hDC;
     pThis->m_hDC = nullptr;
@@ -437,7 +437,7 @@ extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC___XZ(CDC* pThis) {
 
 // CDC::FromHandle
 // Symbol: ?FromHandle@CDC@@SAPEAV1@PEAUHDC__@@@Z
-extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC___Z(HDC hDC) {
+extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(HDC hDC) {
     return GetTempDC(hDC);
 }
 
@@ -619,7 +619,7 @@ extern "C" int MS_ABI impl__CreateFontIndirectW_CFont__QEAAHPEBUtagLOGFONTW___Z(
 
 // CFont::CreatePointFont
 // Symbol: ?CreatePointFont@CFont@@QEAAHHPEB_WPEAVCDC@@@Z
-extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAV1__Z(
+extern "C" int MS_ABI impl__CreatePointFont_CFont__QEAAHHPEB_WPEAVCDC___Z(
     CFont* pThis, int nPointSize, const wchar_t* lpszFaceName, CDC* pDC) {
     if (!pThis) return FALSE;
 
