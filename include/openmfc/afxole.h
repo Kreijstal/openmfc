@@ -427,9 +427,9 @@ public:
 
     // Display
     int DoModal(HWND hWndParent = nullptr);
-    BOOL GetVerificationCheckboxState() const;
-    int GetSelectedCommandControlID() const;
-    int GetSelectedRadioButtonID() const;
+    BOOL GetVerificationCheckboxState() const { return m_bVerificationChecked; }
+    int GetSelectedCommandControlID() const { return m_nSelectedCommandID; }
+    int GetSelectedRadioButtonID() const { return m_nSelectedRadioButtonID; }
     BOOL IsExpanded() const { return m_bExpanded; }
     void SetOptions(int nTaskDialogOptions);
     int GetOptions() const;

@@ -2620,7 +2620,7 @@ class CCheckListBox : public CListBox {
     DECLARE_DYNAMIC(CCheckListBox)
 public:
     CCheckListBox() = default;
-    virtual ~CCheckListBox() = default;
+    virtual ~CCheckListBox();
 
     int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
     void SetCheck(int nIndex, int nCheck);
@@ -2634,7 +2634,7 @@ class CDragListBox : public CListBox {
     DECLARE_DYNAMIC(CDragListBox)
 public:
     CDragListBox() = default;
-    virtual ~CDragListBox() = default;
+    virtual ~CDragListBox();
 
     virtual int BeginDrag(CPoint pt);
     virtual void CancelDrag(CPoint pt);
@@ -2649,7 +2649,7 @@ class CSplitButton : public CButton {
     DECLARE_DYNAMIC(CSplitButton)
 public:
     CSplitButton() = default;
-    virtual ~CSplitButton() = default;
+    virtual ~CSplitButton();
 
     int Create(const wchar_t* lpszCaption, DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
     void SetDropDownMenu(unsigned int nMenuId, unsigned int nSubMenu = 0);

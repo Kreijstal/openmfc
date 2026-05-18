@@ -700,6 +700,11 @@ int CCheckListBox::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, uns
     return CWnd::Create(L"LISTBOX", L"", dwStyle, rect, pParentWnd, nID);
 }
 
+CCheckListBox::~CCheckListBox() {
+    g_checkStates.erase(this);
+    g_itemEnabledStates.erase(this);
+}
+
 void CCheckListBox::SetCheck(int nIndex, int nCheck) {
     if (nIndex < 0) return;
     g_checkStates[this][nIndex] = (nCheck != 0) ? 1 : 0;
@@ -734,6 +739,10 @@ int CDragListBox::BeginDrag(CPoint pt) {
     return TRUE;
 }
 
+CDragListBox::~CDragListBox() {
+    g_dragSourceItem.erase(this);
+}
+
 void CDragListBox::CancelDrag(CPoint) {
     g_dragSourceItem.erase(this);
 }
@@ -763,6 +772,10 @@ void CDragListBox::DrawSingle(int nItem) {
 
 int CSplitButton::Create(const wchar_t* lpszCaption, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned int nID) {
     return CButton::Create(lpszCaption, dwStyle | BS_SPLITBUTTON, rect, pParentWnd, nID);
+}
+
+CSplitButton::~CSplitButton() {
+    g_splitMenus.erase(this);
 }
 
 void CSplitButton::SetDropDownMenu(unsigned int nMenuId, unsigned int) {
@@ -830,6 +843,11 @@ extern "C" void MS_ABI impl__Cleanup_CSplitButton__IEAAXXZ(CSplitButton* pThis) 
     g_splitMenus.erase(pThis);
 }
 
+// Symbol: ??1CSplitButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CSplitButton__UEAA_XZ(CSplitButton* pThis) {
+    if (pThis) pThis->~CSplitButton();
+}
+
 // Symbol: ?BeginDrag@CDragListBox@@UEAAHVCPoint@@@Z
 extern "C" int MS_ABI impl__BeginDrag_CDragListBox__UEAAHVCPoint___Z(CDragListBox* pThis, CPoint pt) {
     return pThis ? pThis->BeginDrag(pt) : FALSE;
@@ -858,6 +876,11 @@ extern "C" void MS_ABI impl__DrawInsert_CDragListBox__UEAAXH_Z(CDragListBox* pTh
 // Symbol: ?DrawSingle@CDragListBox@@QEAAXH@Z
 extern "C" void MS_ABI impl__DrawSingle_CDragListBox__QEAAXH_Z(CDragListBox* pThis, int nItem) {
     if (pThis) pThis->DrawSingle(nItem);
+}
+
+// Symbol: ??1CDragListBox@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDragListBox__UEAA_XZ(CDragListBox* pThis) {
+    if (pThis) pThis->~CDragListBox();
 }
 
 // =============================================================================

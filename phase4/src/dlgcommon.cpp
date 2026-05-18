@@ -954,18 +954,6 @@ void CTaskDialog::AddRadioButton(int nRadioButtonID, const CString& strLabel, in
     (void)AddRadioButton(nRadioButtonID, (const wchar_t*)strLabel);
 }
 
-BOOL CTaskDialog::GetVerificationCheckboxState() const {
-    return m_bVerificationChecked;
-}
-
-int CTaskDialog::GetSelectedCommandControlID() const {
-    return m_nSelectedCommandID;
-}
-
-int CTaskDialog::GetSelectedRadioButtonID() const {
-    return m_nSelectedRadioButtonID;
-}
-
 void CTaskDialog::SetOptions(int nTaskDialogOptions) {
     m_nTaskDialogOptions = nTaskDialogOptions;
 }
