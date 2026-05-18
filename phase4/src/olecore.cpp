@@ -2315,7 +2315,6 @@ COleControlContainer::~COleControlContainer() {
     // Cleanup sites without using POSITION
     while (!m_listSites.IsEmpty()) {
         COleControlSite* pSite = (COleControlSite*)m_listSites.RemoveHead();
-        RemoveControlSiteState(pSite);
         delete pSite;
     }
 }
@@ -2331,7 +2330,6 @@ BOOL COleControlContainer::DeleteSite(COleControlSite* pSite) {
     CPtrList::POSITION pos = m_listSites.Find(pSite);
     if (pos != CPtrList::POSITION(nullptr)) {
         m_listSites.RemoveAt(pos);
-        RemoveControlSiteState(pSite);
         delete pSite;
         return TRUE;
     }
@@ -2339,10 +2337,9 @@ BOOL COleControlContainer::DeleteSite(COleControlSite* pSite) {
 }
 
 COleControlSite* COleControlContainer::FindItem(UINT nID) const {
-    CPtrList& sites = const_cast<CPtrList&>(m_listSites);
-    CPtrList::POSITION pos = sites.GetHeadPosition();
+    CPtrList::POSITION pos = m_listSites.GetHeadPosition();
     while (pos != CPtrList::POSITION(nullptr)) {
-        COleControlSite* pSite = static_cast<COleControlSite*>(sites.GetNext(pos));
+        COleControlSite* pSite = static_cast<COleControlSite*>(m_listSites.GetNext(pos));
         if (!pSite) {
             continue;
         }
@@ -2413,14 +2410,7 @@ HWND COleControlSiteOrWnd::GetSafeHwnd() const {
 
 DWORD COleControlSiteOrWnd::GetStyle() const {
     if (m_pSite) {
-        if (m_pSite->m_dwStyle != 0) {
-            return m_pSite->m_dwStyle;
-        }
-        HWND hSiteWnd = m_pSite->m_hWnd;
-        if (hSiteWnd) {
-            return static_cast<DWORD>(GetWindowLongPtrW(hSiteWnd, GWL_STYLE));
-        }
-        return 0;
+        return m_pSite->m_dwStyle;
     }
     HWND hWnd = GetSafeHwnd();
     if (!hWnd) {
