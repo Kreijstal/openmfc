@@ -2865,6 +2865,13 @@ std::vector<CMFCToolBarComboBoxButton*> GetComboButtonsByCmd(UINT uiCmd) {
     return it->second;
 }
 
+int CompareComboText(const wchar_t* s1, const wchar_t* s2) {
+    if (!s1 && !s2) return 0;
+    if (!s1) return -1;
+    if (!s2) return 1;
+    return ::CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, s1, -1, s2, -1) - 2;
+}
+
 void RegisterEditButton(CMFCToolBarEditBoxButton* pButton) {
     if (!pButton || pButton->m_nID == 0) return;
     auto& buttons = g_editByCmd[pButton->m_nID];
@@ -2910,7 +2917,7 @@ INT_PTR CMFCToolBarComboBoxButton::AddSortedItem(const wchar_t* lpszItem, DWORD_
     ComboButtonState& state = EnsureComboState(this);
     auto insertPos = state.items.begin();
     while (insertPos != state.items.end() &&
-           Compare(static_cast<const wchar_t*>(insertPos->first), lpszItem) <= 0) {
+           CompareComboText(static_cast<const wchar_t*>(insertPos->first), lpszItem) <= 0) {
         ++insertPos;
     }
     const int index = static_cast<int>(insertPos - state.items.begin());
@@ -2921,10 +2928,7 @@ INT_PTR CMFCToolBarComboBoxButton::AddSortedItem(const wchar_t* lpszItem, DWORD_
 
 // Symbol: ?Compare@CMFCToolBarComboBoxButton@@UEAAHPEB_W0@Z
 int CMFCToolBarComboBoxButton::Compare(const wchar_t* s1, const wchar_t* s2) {
-    if (!s1 && !s2) return 0;
-    if (!s1) return -1;
-    if (!s2) return 1;
-    return ::CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, s1, -1, s2, -1) - 2;
+    return CompareComboText(s1, s2);
 }
 
 // Symbol: ?DeleteItem@CMFCToolBarComboBoxButton@@QEAAHH@Z
@@ -2966,7 +2970,7 @@ int CMFCToolBarComboBoxButton::FindItem(const wchar_t* lpszText) const {
     const ComboButtonState* state = FindComboState(this);
     if (!state) return CB_ERR;
     for (int i = 0; i < static_cast<int>(state->items.size()); ++i) {
-        if (Compare(static_cast<const wchar_t*>(state->items[i].first), lpszText) == 0) {
+        if (CompareComboText(static_cast<const wchar_t*>(state->items[i].first), lpszText) == 0) {
             return i;
         }
     }
