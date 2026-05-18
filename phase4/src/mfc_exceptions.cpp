@@ -31,7 +31,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <new>
+#include <string>
+#include <unordered_map>
 
 // Implement CException runtime class
 IMPLEMENT_DYNAMIC(CException, CObject)
@@ -48,6 +51,40 @@ asm(".globl \"?classCException@CException@@2UCRuntimeClass@@A\"\n"
 #else
   #define MS_ABI
 #endif
+
+namespace {
+
+std::mutex g_oleDispatchDescriptionMutex;
+std::unordered_map<const COleDispatchException*, std::wstring> g_oleDispatchDescriptions;
+
+static void CopyErrorText(wchar_t* out, UINT maxLen, const wchar_t* text) {
+    if (!out || maxLen == 0) return;
+    const wchar_t* src = text ? text : L"";
+    wcsncpy(out, src, maxLen - 1);
+    out[maxLen - 1] = L'\0';
+}
+
+} // namespace
+
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc);
+extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
+    WORD wCode, UINT nDescriptionID, UINT nHelpID
+);
+extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
+    WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
+);
+
+void AFXAPI AfxThrowOleException(LONG sc) {
+    impl__AfxThrowOleException__YAXJ_Z(sc);
+}
+
+void AFXAPI AfxThrowOleDispatchException(WORD wCode, UINT nDescriptionID, UINT nHelpID) {
+    impl__AfxThrowOleDispatchException__YAXGII_Z(wCode, nDescriptionID, nHelpID);
+}
+
+void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID) {
+    impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(wCode, lpszDescription, nHelpID);
+}
 
 // =============================================================================
 // CException::GetThisClass Implementation
@@ -792,9 +829,83 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
 ) {
     COleDispatchException* pEx = new COleDispatchException();
     pEx->m_wCode = wCode;
-    pEx->m_strDescription = lpszDescription;
     pEx->m_dwHelpContext = nHelpID;
+    {
+        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
+        g_oleDispatchDescriptions[pEx] = lpszDescription ? lpszDescription : L"";
+        pEx->m_strDescription = g_oleDispatchDescriptions[pEx].c_str();
+    }
     ThrowNew(pEx, &TI_COleDispatchException, nullptr);
+}
+
+// Symbol: ??1COleDispatchException@@UEAA@XZ
+extern "C" COleDispatchException* MS_ABI impl___1COleDispatchException__UEAA_XZ(
+    COleDispatchException* pThis
+) {
+    if (!pThis) return nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
+        g_oleDispatchDescriptions.erase(pThis);
+    }
+    pThis->~COleDispatchException();
+    return pThis;
+}
+
+// Symbol: ?GetErrorMessage@COleException@@UEBAHPEA_WIPEAI@Z
+extern "C" int MS_ABI impl__GetErrorMessage_COleException__UEBAHPEA_WIPEAI_Z(
+    const COleException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext
+) {
+    if (!lpszError || nMaxError == 0) return 0;
+    if (pnHelpContext) *pnHelpContext = 0;
+    if (!pThis) {
+        lpszError[0] = L'\0';
+        return 0;
+    }
+
+    const DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    DWORD len = FormatMessageW(
+        flags, nullptr, static_cast<DWORD>(pThis->m_sc), 0, lpszError, nMaxError, nullptr
+    );
+    if (len != 0) {
+        while (len > 0 && (lpszError[len - 1] == L'\r' || lpszError[len - 1] == L'\n')) {
+            lpszError[len - 1] = L'\0';
+            --len;
+        }
+        return 1;
+    }
+
+    swprintf(lpszError, nMaxError, L"OLE exception 0x%08lX", static_cast<unsigned long>(pThis->m_sc));
+    return 1;
+}
+
+// Symbol: ?GetErrorMessage@COleDispatchException@@UEBAHPEA_WIPEAI@Z
+extern "C" int MS_ABI impl__GetErrorMessage_COleDispatchException__UEBAHPEA_WIPEAI_Z(
+    const COleDispatchException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext
+) {
+    if (!lpszError || nMaxError == 0) return 0;
+    if (pnHelpContext) *pnHelpContext = pThis ? pThis->m_dwHelpContext : 0;
+    if (!pThis) {
+        lpszError[0] = L'\0';
+        return 0;
+    }
+
+    std::wstring desc;
+    {
+        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
+        auto it = g_oleDispatchDescriptions.find(pThis);
+        if (it != g_oleDispatchDescriptions.end()) {
+            desc = it->second;
+        }
+    }
+    if (desc.empty() && pThis->m_strDescription) {
+        desc = pThis->m_strDescription;
+    }
+    if (desc.empty()) {
+        swprintf(lpszError, nMaxError, L"OLE dispatch exception (code %u)", pThis->m_wCode);
+        return 1;
+    }
+    CopyErrorText(lpszError, nMaxError, desc.c_str());
+    return 1;
 }
 
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
