@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdio>
 #include <map>
+#include <new>
 #include <vector>
 
 // MinGW compat: Ambient property DISPIDs
@@ -296,6 +297,471 @@ static HRESULT CopyDispatchResult(VARTYPE vt, void* pvRet, VARIANT* result) {
     default:
         return DISP_E_TYPEMISMATCH;
     }
+}
+
+static void ResetOleVariant(COleVariant* pThis) {
+    if (!pThis) return;
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    VariantClear(var);
+    VariantInit(var);
+}
+
+static void AssignI2Variant(COleVariant* pThis, short value, VARTYPE vt) {
+    if (!pThis) return;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_I2 || vt == VT_EMPTY) {
+        var->vt = VT_I2;
+        var->iVal = value;
+        return;
+    }
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_I2;
+    src.iVal = value;
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+    }
+}
+
+static void AssignI4Variant(COleVariant* pThis, long value, VARTYPE vt) {
+    if (!pThis) return;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_I4 || vt == VT_EMPTY) {
+        var->vt = VT_I4;
+        var->lVal = value;
+        return;
+    }
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_I4;
+    src.lVal = value;
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+    }
+}
+
+static void SetOleVariantString(COleVariant* pThis, const wchar_t* text, VARTYPE vt) {
+    if (!pThis) return;
+    const wchar_t* srcText = text ? text : L"";
+    if (vt == VT_EMPTY) vt = VT_BSTR;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_BSTR) {
+        var->vt = VT_BSTR;
+        var->bstrVal = SysAllocString(srcText);
+        return;
+    }
+
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_BSTR;
+    src.bstrVal = SysAllocString(srcText);
+    if (!src.bstrVal && srcText[0] != L'\0') {
+        return;
+    }
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+        return;
+    }
+    VariantClear(&src);
+}
+
+static const COleVariant* AssignOleVariant(COleVariant* pThis, const VARIANT* pSrc) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    if (pSrc) {
+        VariantCopy(static_cast<VARIANT*>(pThis), const_cast<VARIANT*>(pSrc));
+    }
+    return pThis;
+}
+
+struct OleDispatchDriverLayout {
+    LPDISPATCH m_lpDispatch;
+    BOOL m_bAutoRelease;
+};
+
+static OleDispatchDriverLayout* DispatchDriverLayout(COleDispatchDriver* pThis) {
+    return reinterpret_cast<OleDispatchDriverLayout*>(pThis);
+}
+
+static const OleDispatchDriverLayout* DispatchDriverLayout(const COleDispatchDriver* pThis) {
+    return reinterpret_cast<const OleDispatchDriverLayout*>(pThis);
+}
+
+// Symbol: ??0COleVariant@@QEAA@AEBUtagVARIANT@@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignOleVariant(pThis, pSrc);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@AEBV0@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_AEBV0__Z(
+    COleVariant* pThis, const COleVariant* pSrc
+) {
+    return impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(
+        pThis, reinterpret_cast<const VARIANT*>(pSrc)
+    );
+}
+
+// Symbol: ??0COleVariant@@QEAA@FG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_FG_Z(
+    COleVariant* pThis, short value, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignI2Variant(pThis, value, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@JG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_JG_Z(
+    COleVariant* pThis, long value, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignI4Variant(pThis, value, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@PEB_WG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_PEB_WG_Z(
+    COleVariant* pThis, const wchar_t* text, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    SetOleVariantString(pThis, text, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@PEBUtagVARIANT@@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_PEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@AEBV0@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_AEBV0__Z(
+    COleVariant* pThis, const COleVariant* pSrc
+) {
+    return AssignOleVariant(pThis, reinterpret_cast<const VARIANT*>(pSrc));
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@AEBUtagVARIANT@@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_AEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return AssignOleVariant(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@PEBUtagVARIANT@@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_PEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return AssignOleVariant(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@F@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_F_Z(
+    COleVariant* pThis, short value
+) {
+    AssignI2Variant(pThis, value, VT_I2);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@J@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_J_Z(
+    COleVariant* pThis, long value
+) {
+    AssignI4Variant(pThis, value, VT_I4);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@M@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_M_Z(
+    COleVariant* pThis, float value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_R4;
+    pThis->fltVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@N@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_N_Z(
+    COleVariant* pThis, double value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_R8;
+    pThis->dblVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@QEB_W@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_QEB_W_Z(
+    COleVariant* pThis, const wchar_t* text
+) {
+    SetOleVariantString(pThis, text, VT_BSTR);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@_J@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0__J_Z(
+    COleVariant* pThis, __int64 value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_I8;
+    pThis->llVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@_K@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0__K_Z(
+    COleVariant* pThis, unsigned __int64 value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_UI8;
+    pThis->ullVal = value;
+    return pThis;
+}
+
+// Symbol: ?SetString@COleVariant@@QEAAXPEB_WG@Z
+extern "C" void MS_ABI impl__SetString_COleVariant__QEAAXPEB_WG_Z(
+    COleVariant* pThis, const wchar_t* text, VARTYPE vt
+) {
+    SetOleVariantString(pThis, text, vt);
+}
+
+// Symbol: ?Attach@COleVariant@@QEAAXAEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__Attach_COleVariant__QEAAXAEAUtagVARIANT___Z(
+    COleVariant* pThis, VARIANT* pSrc
+) {
+    if (!pThis || !pSrc) return;
+    ResetOleVariant(pThis);
+    *static_cast<VARIANT*>(pThis) = *pSrc;
+    VariantInit(pSrc);
+}
+
+// Symbol: ?Detach@COleVariant@@QEAA?AUtagVARIANT@@XZ
+extern "C" VARIANT* MS_ABI impl__Detach_COleVariant__QEAA_AUtagVARIANT__XZ(
+    VARIANT* pRet, COleVariant* pThis
+) {
+    if (!pRet) return nullptr;
+    VariantInit(pRet);
+    if (!pThis) return pRet;
+    *pRet = *static_cast<VARIANT*>(pThis);
+    VariantInit(static_cast<VARIANT*>(pThis));
+    return pRet;
+}
+
+// Symbol: ?ChangeType@COleVariant@@QEAAXGPEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__ChangeType_COleVariant__QEAAXGPEAUtagVARIANT___Z(
+    COleVariant* pThis, VARTYPE vtNew, VARIANT* pSrc
+) {
+    if (!pThis) return;
+    VARIANT converted;
+    VariantInit(&converted);
+    VARIANT* source = pSrc ? pSrc : static_cast<VARIANT*>(pThis);
+    if (FAILED(VariantChangeType(&converted, source, 0, vtNew))) {
+        return;
+    }
+    ResetOleVariant(pThis);
+    *static_cast<VARIANT*>(pThis) = converted;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@XZ
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_XZ(
+    COleDispatchDriver* pThis
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleDispatchDriver();
+    return pThis;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@PEAUIDispatch@@H@Z
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_PEAUIDispatch__H_Z(
+    COleDispatchDriver* pThis, LPDISPATCH lpDispatch, BOOL bAutoRelease
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleDispatchDriver(lpDispatch, bAutoRelease);
+    return pThis;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@AEBV0@@Z
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_AEBV0__Z(
+    COleDispatchDriver* pThis, const COleDispatchDriver* pSrc
+) {
+    if (!pThis) return nullptr;
+    if (!pSrc) return impl___0COleDispatchDriver__QEAA_XZ(pThis);
+    const OleDispatchDriverLayout* src = DispatchDriverLayout(pSrc);
+    new (pThis) COleDispatchDriver(src->m_lpDispatch, src->m_bAutoRelease);
+    OleDispatchDriverLayout* dst = DispatchDriverLayout(pThis);
+    if (dst->m_lpDispatch && dst->m_bAutoRelease) {
+        dst->m_lpDispatch->AddRef();
+    }
+    return pThis;
+}
+
+// Symbol: ??4COleDispatchDriver@@QEAAAEBV0@AEBV0@@Z
+extern "C" const COleDispatchDriver* MS_ABI impl___4COleDispatchDriver__QEAAAEBV0_AEBV0__Z(
+    COleDispatchDriver* pThis, const COleDispatchDriver* pSrc
+) {
+    if (!pThis || !pSrc || pThis == pSrc) return pThis;
+    const OleDispatchDriverLayout* src = DispatchDriverLayout(pSrc);
+    LPDISPATCH srcDispatch = src->m_lpDispatch;
+    if (srcDispatch && src->m_bAutoRelease) {
+        srcDispatch->AddRef();
+    }
+    pThis->ReleaseDispatch();
+    OleDispatchDriverLayout* dst = DispatchDriverLayout(pThis);
+    dst->m_lpDispatch = srcDispatch;
+    dst->m_bAutoRelease = src->m_bAutoRelease;
+    return pThis;
+}
+
+// Symbol: ?AttachDispatch@COleDispatchDriver@@QEAAXPEAUIDispatch@@H@Z
+extern "C" void MS_ABI impl__AttachDispatch_COleDispatchDriver__QEAAXPEAUIDispatch__H_Z(
+    COleDispatchDriver* pThis, LPDISPATCH lpDispatch, BOOL bAutoRelease
+) {
+    if (!pThis) return;
+    pThis->AttachDispatch(lpDispatch, bAutoRelease);
+}
+
+// Symbol: ?DetachDispatch@COleDispatchDriver@@QEAAPEAUIDispatch@@XZ
+extern "C" LPDISPATCH MS_ABI impl__DetachDispatch_COleDispatchDriver__QEAAPEAUIDispatch__XZ(
+    COleDispatchDriver* pThis
+) {
+    return pThis ? pThis->DetachDispatch() : nullptr;
+}
+
+// Symbol: ?ReleaseDispatch@COleDispatchDriver@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseDispatch_COleDispatchDriver__QEAAXXZ(
+    COleDispatchDriver* pThis
+) {
+    if (!pThis) return;
+    pThis->ReleaseDispatch();
+}
+
+// Symbol: ?CreateDispatch@COleDispatchDriver@@QEAAHAEBU_GUID@@PEAVCOleException@@@Z
+extern "C" int MS_ABI impl__CreateDispatch_COleDispatchDriver__QEAAHAEBU_GUID__PEAVCOleException___Z(
+    COleDispatchDriver* pThis, REFCLSID clsid, COleException* pError
+) {
+    return pThis ? pThis->CreateDispatch(clsid, pError) : FALSE;
+}
+
+// Symbol: ?CreateDispatch@COleDispatchDriver@@QEAAHPEB_WPEAVCOleException@@@Z
+extern "C" int MS_ABI impl__CreateDispatch_COleDispatchDriver__QEAAHPEB_WPEAVCOleException___Z(
+    COleDispatchDriver* pThis, const wchar_t* progId, COleException* pError
+) {
+    return pThis ? pThis->CreateDispatch(progId, pError) : FALSE;
+}
+
+// Symbol: ?InvokeHelper@COleDispatchDriver@@QEAAXJGGPEAXPEBEZZ
+extern "C" void MS_ABI impl__InvokeHelper_COleDispatchDriver__QEAAXJGGPEAXPEBEZZ(
+    COleDispatchDriver* pThis, DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
+    void* pvRet, const BYTE* pbParamInfo, ...
+) {
+    if (!pThis) return;
+    va_list args;
+    va_start(args, pbParamInfo);
+    pThis->InvokeHelperV(dwDispID, wFlags, vtRet, pvRet, pbParamInfo, args);
+    va_end(args);
+}
+
+// Symbol: ?InvokeHelperV@COleDispatchDriver@@QEAAXJGGPEAXPEBEPEAD@Z
+extern "C" void MS_ABI impl__InvokeHelperV_COleDispatchDriver__QEAAXJGGPEAXPEBEPEAD_Z(
+    COleDispatchDriver* pThis, DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
+    void* pvRet, const BYTE* pbParamInfo, va_list args
+) {
+    if (!pThis) return;
+    pThis->InvokeHelperV(dwDispID, wFlags, vtRet, pvRet, pbParamInfo, args);
+}
+
+// Symbol: ?SetProperty@COleDispatchDriver@@QEAAXJGZZ
+extern "C" void MS_ABI impl__SetProperty_COleDispatchDriver__QEAAXJGZZ(
+    COleDispatchDriver* pThis, DISPID dwDispID, VARTYPE vtProp, ...
+) {
+    if (!pThis) return;
+    BYTE params[2] = { static_cast<BYTE>(vtProp), 0 };
+    va_list args;
+    va_start(args, vtProp);
+    pThis->InvokeHelperV(dwDispID, DISPATCH_PROPERTYPUT, VT_EMPTY, nullptr, params, args);
+    va_end(args);
+}
+
+// Symbol: ?GetProperty@COleDispatchDriver@@QEBAXJGPEAX@Z
+extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(
+    const COleDispatchDriver* pThis, DISPID dwDispID, VARTYPE vtProp, void* pvProp
+) {
+    if (!pThis) return;
+    const_cast<COleDispatchDriver*>(pThis)->InvokeHelper(
+        dwDispID, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr
+    );
+}
+
+// Symbol: ?QueryInterface@COleConnPtContainer@@UEAAJAEBU_GUID@@PEAPEAX@Z
+extern "C" ULONG MS_ABI impl__AddRef_COleConnPtContainer__UEAAKXZ(COleConnPtContainer* pThis);
+extern "C" HRESULT MS_ABI impl__QueryInterface_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAX_Z(
+    COleConnPtContainer* pThis, REFIID riid, void** ppv
+) {
+    if (!ppv) return E_POINTER;
+    *ppv = nullptr;
+    if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IConnectionPointContainer)) {
+        *ppv = pThis;
+        impl__AddRef_COleConnPtContainer__UEAAKXZ(pThis);
+        return S_OK;
+    }
+    return E_NOINTERFACE;
+}
+
+// Symbol: ?AddRef@COleConnPtContainer@@UEAAKXZ
+extern "C" ULONG MS_ABI impl__AddRef_COleConnPtContainer__UEAAKXZ(
+    COleConnPtContainer* pThis
+) {
+    (void)pThis;
+    return 1;
+}
+
+// Symbol: ?Release@COleConnPtContainer@@UEAAKXZ
+extern "C" ULONG MS_ABI impl__Release_COleConnPtContainer__UEAAKXZ(
+    COleConnPtContainer* pThis
+) {
+    (void)pThis;
+    return 1;
+}
+
+// Symbol: ?EnumConnectionPoints@COleConnPtContainer@@UEAAJPEAPEAUIEnumConnectionPoints@@@Z
+extern "C" HRESULT MS_ABI impl__EnumConnectionPoints_COleConnPtContainer__UEAAJPEAPEAUIEnumConnectionPoints___Z(
+    COleConnPtContainer* pThis, IEnumConnectionPoints** ppEnum
+) {
+    (void)pThis;
+    if (!ppEnum) return E_POINTER;
+    *ppEnum = nullptr;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?FindConnectionPoint@COleConnPtContainer@@UEAAJAEBU_GUID@@PEAPEAUIConnectionPoint@@@Z
+extern "C" HRESULT MS_ABI impl__FindConnectionPoint_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAUIConnectionPoint___Z(
+    COleConnPtContainer* pThis, REFIID riid, IConnectionPoint** ppCP
+) {
+    (void)pThis;
+    (void)riid;
+    if (!ppCP) return E_POINTER;
+    *ppCP = nullptr;
+    return OLE_E_NOCONNECTION;
 }
 
 struct DataCacheState;
