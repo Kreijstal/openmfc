@@ -392,15 +392,25 @@ public:
     CTaskDialog(const wchar_t* pszContent, const wchar_t* pszMainInstruction,
                 const wchar_t* pszWindowTitle, int nCommonButtons = TDCBF_OK_BUTTON,
                 int nTaskDialogOptions = 0);
+    CTaskDialog(const CString& strContent, const CString& strMainInstruction,
+                const CString& strWindowTitle, int nCommonButtons = TDCBF_OK_BUTTON,
+                int nTaskDialogOptions = 0, const CString& strFooter = CString());
+    CTaskDialog(const CString& strContent, const CString& strMainInstruction,
+                const CString& strWindowTitle, int nCommonButtons, int nTaskDialogOptions,
+                int, int, const CString& strFooter);
     virtual ~CTaskDialog();
 
     // Configuration
     void SetDialogWidth(int nWidth = 0);
     void SetMainIcon(HICON hMainIcon);
+    void SetMainIcon(const wchar_t* pszMainIcon);
     void SetMainIcon(UINT nMainIconID);
     void SetFooterIcon(HICON hFooterIcon);
+    void SetFooterIcon(const wchar_t* pszFooterIcon);
     void SetFooterText(const wchar_t* pszFooterText);
+    void SetFooterText(const CString& strFooterText);
     void SetVerificationCheckboxText(const wchar_t* pszText);
+    void SetVerificationCheckboxText(const CString& strText);
     void SetExpandedInformation(const wchar_t* pszText);
     void SetExpandedControlText(const wchar_t* pszText);
     void SetCollapsedControlText(const wchar_t* pszText);
@@ -410,15 +420,20 @@ public:
 
     // Adding controls
     HRESULT AddCommandControl(int nCommandID, const wchar_t* pszLabel);
+    void AddCommandControl(int nCommandID, const CString& strLabel, int nReserved0 = 0, int nReserved1 = 0);
     HRESULT AddRadioButton(int nRadioButtonID, const wchar_t* pszLabel);
+    void AddRadioButton(int nRadioButtonID, const CString& strLabel, int nReserved = 0);
     HRESULT AddPushButton(int nButtonID, const wchar_t* pszLabel);
 
     // Display
     int DoModal(HWND hWndParent = nullptr);
-    BOOL GetVerificationCheckboxState() const { return m_bVerificationChecked; }
-    int GetSelectedCommandControlID() const { return m_nSelectedCommandID; }
-    int GetSelectedRadioButtonID() const { return m_nSelectedRadioButtonID; }
+    BOOL GetVerificationCheckboxState() const;
+    int GetSelectedCommandControlID() const;
+    int GetSelectedRadioButtonID() const;
     BOOL IsExpanded() const { return m_bExpanded; }
+    void SetOptions(int nTaskDialogOptions);
+    int GetOptions() const;
+    static BOOL IsSupported();
 
 public:
     CString m_strContent;

@@ -791,3 +791,38 @@ class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibb
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };
 class CMFCRibbonStatusBarPane : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonStatusBarPane) public: CMFCRibbonStatusBarPane(); virtual ~CMFCRibbonStatusBarPane(); char _pad[32]; };
 class CMFCTasksPaneTaskGroup : public CObject { DECLARE_DYNAMIC(CMFCTasksPaneTaskGroup) public: CMFCTasksPaneTaskGroup(); virtual ~CMFCTasksPaneTaskGroup(); char _pad[32]; };
+
+//=============================================================================
+// Visual Studio list box wrappers
+//=============================================================================
+class CVSListBoxBase : public CStatic {
+    DECLARE_DYNAMIC(CVSListBoxBase)
+public:
+    CVSListBoxBase() = default;
+    virtual ~CVSListBoxBase() = default;
+};
+
+class CVSListBoxEditCtrl : public CEdit {
+    DECLARE_DYNAMIC(CVSListBoxEditCtrl)
+public:
+    CVSListBoxEditCtrl() = default;
+    virtual ~CVSListBoxEditCtrl() = default;
+};
+
+class CVSListBox : public CListBox {
+    DECLARE_DYNAMIC(CVSListBox)
+public:
+    CVSListBox() = default;
+    virtual ~CVSListBox() = default;
+
+    virtual int AddItem(const CString& strText, uintptr_t dwData = 0, int bSelect = 1);
+    virtual int RemoveItem(int nIndex);
+    virtual int GetCount() const;
+    virtual int GetSelItem() const;
+    virtual int SelectItem(int nIndex);
+    virtual int EditItem(int nIndex);
+    virtual uintptr_t GetItemData(int nIndex) const;
+    virtual void SetItemData(int nIndex, uintptr_t dwData);
+    virtual CString GetItemText(int nIndex) const;
+    virtual void SetItemText(int nIndex, const CString& strText);
+};
