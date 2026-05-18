@@ -9,7 +9,11 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
+#include <algorithm>
 #include <cstring>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -24,6 +28,92 @@ IMPLEMENT_DYNAMIC(CMFCVisualManager, CObject)
 
 static CMFCVisualManager* g_pVisualManager = nullptr;
 static CRuntimeClass* g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
+
+namespace {
+
+struct DockingManagerState {
+    std::vector<CBasePane*> panes;
+    std::vector<void*> miniFrames;
+    std::unordered_set<CBasePane*> hiddenPanes;
+    std::unordered_set<CBasePane*> floatingPanes;
+    DWORD enabledAlignment = 0;
+    bool lockUpdate = false;
+    bool paneContextMenu = false;
+    UINT paneContextMenuID = 0;
+    CString paneContextMenuName;
+};
+
+thread_local std::unordered_map<const CDockingManager*, DockingManagerState> g_dockingStates;
+
+DockingManagerState& EnsureDockingState(const CDockingManager* pManager) {
+    return g_dockingStates[pManager];
+}
+
+const DockingManagerState* FindDockingState(const CDockingManager* pManager) {
+    auto it = g_dockingStates.find(pManager);
+    return it == g_dockingStates.end() ? nullptr : &it->second;
+}
+
+void RemoveDockingState(const CDockingManager* pManager) {
+    g_dockingStates.erase(pManager);
+}
+
+template <typename T>
+bool ContainsPtr(const std::vector<T*>& values, T* value) {
+    return std::find(values.begin(), values.end(), value) != values.end();
+}
+
+void AddDockingPane(CDockingManager* pManager, CBasePane* pPane, CBasePane* pInsertAfter = nullptr) {
+    if (!pManager || !pPane) return;
+
+    DockingManagerState& state = EnsureDockingState(pManager);
+    if (ContainsPtr(state.panes, pPane)) return;
+
+    if (pInsertAfter) {
+        auto it = std::find(state.panes.begin(), state.panes.end(), pInsertAfter);
+        if (it != state.panes.end()) {
+            state.panes.insert(std::next(it), pPane);
+            return;
+        }
+    }
+
+    state.panes.push_back(pPane);
+}
+
+void RemoveDockingPane(CDockingManager* pManager, CBasePane* pPane) {
+    if (!pManager || !pPane) return;
+
+    DockingManagerState& state = EnsureDockingState(pManager);
+    state.panes.erase(std::remove(state.panes.begin(), state.panes.end(), pPane), state.panes.end());
+    state.hiddenPanes.erase(pPane);
+    state.floatingPanes.erase(pPane);
+}
+
+bool IsPaneVisibleForDocking(const DockingManagerState& state, CBasePane* pPane) {
+    return pPane != nullptr && state.hiddenPanes.find(pPane) == state.hiddenPanes.end();
+}
+
+CBasePane* FirstDockingPane(const CDockingManager* pManager, bool visibleOnly = false) {
+    const DockingManagerState* state = FindDockingState(pManager);
+    if (!state) return nullptr;
+
+    for (CBasePane* pane : state->panes) {
+        if (!visibleOnly || IsPaneVisibleForDocking(*state, pane)) {
+            return pane;
+        }
+    }
+
+    return nullptr;
+}
+
+UINT PaneCommandID(const CBasePane* pPane) {
+    if (!pPane) return 0;
+    HWND hwnd = pPane->GetSafeHwnd();
+    if (!hwnd) return 0;
+    return static_cast<UINT>(::GetDlgCtrlID(hwnd));
+}
+
+} // namespace
 
 static CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRTI) {
     CRuntimeClass* pClass = pRTI;
@@ -839,16 +929,310 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
     : m_pParentWnd(pParentFrameWnd) {
     memset(_dockingmanager_padding, 0, sizeof(_dockingmanager_padding));
 }
-CDockingManager::~CDockingManager() {}
+CDockingManager::~CDockingManager() {
+    RemoveDockingState(this);
+}
 
-void CDockingManager::DockPane(CBasePane*, UINT, LPCRECT) {}
-void CDockingManager::DockPaneLeftOf(CBasePane*, CBasePane*) {}
-void CDockingManager::EnableDocking(DWORD) {}
-void CDockingManager::FloatPane(CBasePane*, CPoint, DWORD) {}
-void CDockingManager::HidePane(CBasePane*) {}
-void CDockingManager::ShowPane(CBasePane*, BOOL) {}
+void CDockingManager::DockPane(CBasePane* pBar, UINT, LPCRECT) {
+    AddDockingPane(this, pBar);
+    DockingManagerState& state = EnsureDockingState(this);
+    state.hiddenPanes.erase(pBar);
+    state.floatingPanes.erase(pBar);
+}
+
+BOOL CDockingManager::DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar) {
+    if (!pBarToDock) return FALSE;
+
+    DockingManagerState& state = EnsureDockingState(this);
+    state.panes.erase(std::remove(state.panes.begin(), state.panes.end(), pBarToDock), state.panes.end());
+
+    auto it = std::find(state.panes.begin(), state.panes.end(), pBar);
+    if (it != state.panes.end()) {
+        state.panes.insert(it, pBarToDock);
+    } else {
+        state.panes.push_back(pBarToDock);
+    }
+
+    state.hiddenPanes.erase(pBarToDock);
+    state.floatingPanes.erase(pBarToDock);
+    return TRUE;
+}
+
+BOOL CDockingManager::EnableDocking(DWORD dwDockStyle) {
+    EnsureDockingState(this).enabledAlignment = dwDockStyle;
+    return TRUE;
+}
+
+void CDockingManager::FloatPane(CBasePane* pBar, CPoint, DWORD) {
+    AddDockingPane(this, pBar);
+    DockingManagerState& state = EnsureDockingState(this);
+    state.hiddenPanes.erase(pBar);
+    state.floatingPanes.insert(pBar);
+}
+
+void CDockingManager::HidePane(CBasePane* pBar) {
+    if (!pBar) return;
+    AddDockingPane(this, pBar);
+    EnsureDockingState(this).hiddenPanes.insert(pBar);
+}
+
+void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
+    if (!pBar) return;
+    AddDockingPane(this, pBar);
+    EnsureDockingState(this).hiddenPanes.erase(pBar);
+}
 void CDockingManager::RecalcLayout() {}
 void CDockingManager::SetDockState() {}
+
+// Symbol: ?AddMiniFrame@CDockingManager@@UEAAHPEAVCPaneFrameWnd@@@Z
+extern "C" int MS_ABI impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(CDockingManager* pThis, void* pFrame) {
+    if (!pThis || !pFrame) return FALSE;
+    auto& frames = EnsureDockingState(pThis).miniFrames;
+    if (std::find(frames.begin(), frames.end(), pFrame) == frames.end()) {
+        frames.push_back(pFrame);
+    }
+    return TRUE;
+}
+
+// Symbol: ?AddPane@CDockingManager@@QEAAHPEAVCBasePane@@HHH@Z
+extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
+    CDockingManager* pThis, CBasePane* pPane, int, int, int) {
+    if (!pThis || !pPane) return FALSE;
+    AddDockingPane(pThis, pPane);
+    return TRUE;
+}
+
+// Symbol: ?AdjustDockingLayout@CDockingManager@@UEAAXPEAX@Z
+extern "C" void MS_ABI impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(CDockingManager* pThis, void*) {
+    if (pThis) pThis->RecalcLayout();
+}
+
+// Symbol: ?AdjustPaneFrames@CDockingManager@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustPaneFrames_CDockingManager__UEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?AdjustRectToClientArea@CDockingManager@@UEAAHAEAVCRect@@K@Z
+extern "C" int MS_ABI impl__AdjustRectToClientArea_CDockingManager__UEAAHAEAVCRect__K_Z(CDockingManager*, CRect*, unsigned long) {
+    return TRUE;
+}
+
+// Symbol: ?AlignAutoHidePane@CDockingManager@@QEAAXPEAVCPaneDivider@@H@Z
+extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(CDockingManager*, void*, int) {}
+
+// Symbol: ?AutoHidePane@CDockingManager@@QEAAPEAVCMFCAutoHideBar@@PEAVCDockablePane@@PEAV2@@Z
+extern "C" CMFCAutoHideBar* MS_ABI impl__AutoHidePane_CDockingManager__QEAAPEAVCMFCAutoHideBar__PEAVCDockablePane__PEAV2__Z(
+    CDockingManager* pThis, CDockablePane* pPane, CDockablePane*) {
+    AddDockingPane(pThis, pPane);
+    return nullptr;
+}
+
+// Symbol: ?BringBarsToTop@CDockingManager@@QEAAXKH@Z
+extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(CDockingManager*, unsigned long, int) {}
+
+// Symbol: ?BuildPanesMenu@CDockingManager@@QEAAXAEAVCMenu@@H@Z
+extern "C" void MS_ABI impl__BuildPanesMenu_CDockingManager__QEAAXAEAVCMenu__H_Z(CDockingManager*, CMenu*, int) {}
+
+// Symbol: ?CalcExpectedDockedRect@CDockingManager@@QEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+    CDockingManager*, CWnd*, CPoint ptMouse, CRect* rectResult, int* pnAlignment, CDockablePane** ppTargetBar) {
+    if (rectResult) *rectResult = CRect(ptMouse.x, ptMouse.y, ptMouse.x, ptMouse.y);
+    if (pnAlignment) *pnAlignment = 0;
+    if (ppTargetBar) *ppTargetBar = nullptr;
+}
+
+// Symbol: ?DeterminePaneAndStatus@CDockingManager@@UEAA?AW4AFX_CS_STATUS@@VCPoint@@HKPEAPEAVCBasePane@@PEBV4@2@Z
+extern "C" int MS_ABI impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_CS_STATUS__VCPoint__HKPEAPEAVCBasePane__PEBV4_2_Z(
+    CDockingManager* pThis, CPoint, int, unsigned long, CBasePane** ppTargetBar, const CDockingManager*, const CDockingManager*) {
+    if (ppTargetBar) *ppTargetBar = FirstDockingPane(pThis);
+    return 0;
+}
+
+// Symbol: ?EnableAutoHidePanes@CDockingManager@@QEAAHK@Z
+extern "C" int MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwStyle) {
+    if (pThis) EnsureDockingState(pThis).enabledAlignment |= dwStyle;
+    return TRUE;
+}
+
+// Symbol: ?EnablePaneContextMenu@CDockingManager@@QEAAXHIAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__EnablePaneContextMenu_CDockingManager__QEAAXHIAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CDockingManager* pThis, int bEnable, unsigned int uiCustomizeCmd, const CString* strCustomizeText, int) {
+    if (!pThis) return;
+    DockingManagerState& state = EnsureDockingState(pThis);
+    state.paneContextMenu = bEnable != FALSE;
+    state.paneContextMenuID = uiCustomizeCmd;
+    state.paneContextMenuName = strCustomizeText ? *strCustomizeText : CString();
+}
+
+// Symbol: ?FindPaneByID@CDockingManager@@UEAAPEAVCBasePane@@IH@Z
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames) {
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return nullptr;
+
+    for (CBasePane* pane : state->panes) {
+        if (PaneCommandID(pane) == nID) return pane;
+    }
+
+    (void)bSearchMiniFrames;
+    return nullptr;
+}
+
+// Symbol: ?FixupVirtualRects@CDockingManager@@UEAAXXZ
+extern "C" void MS_ABI impl__FixupVirtualRects_CDockingManager__UEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?FloatPane@CDockingManager@@QEAAXPEAVCBasePane@@VCPoint@@K@Z
+extern "C" void MS_ABI impl__FloatPane_CDockingManager__QEAAXPEAVCBasePane__VCPoint__K_Z(
+    CDockingManager* pThis, CBasePane* pPane, CPoint ptOffset, unsigned long dwAlignment) {
+    if (pThis) pThis->FloatPane(pPane, ptOffset, dwAlignment);
+}
+
+// Symbol: ?FrameFromPoint@CDockingManager@@UEBAPEAVCPaneFrameWnd@@VCPoint@@PEAV2@H@Z
+extern "C" void* MS_ABI impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(
+    const CDockingManager* pThis, CPoint, void*, int) {
+    const DockingManagerState* state = FindDockingState(pThis);
+    return (state && !state->miniFrames.empty()) ? state->miniFrames.front() : nullptr;
+}
+
+// Symbol: ?GetPaneList@CDockingManager@@QEAAXAEAVCObList@@HPEAUCRuntimeClass@@H@Z
+extern "C" void MS_ABI impl__GetPaneList_CDockingManager__QEAAXAEAVCObList__HPEAUCRuntimeClass__H_Z(
+    CDockingManager* pThis, CObList* pList, int bIncludeHidden, CRuntimeClass* pRTCFilter, int) {
+    if (!pList) return;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return;
+
+    for (CBasePane* pane : state->panes) {
+        if (!pane) continue;
+        if (!bIncludeHidden && state->hiddenPanes.find(pane) != state->hiddenPanes.end()) continue;
+        if (pRTCFilter && !pane->IsKindOf(pRTCFilter)) continue;
+        pList->AddTail(static_cast<CObject*>(pane));
+    }
+}
+
+// Symbol: ?HideAutoHidePanes@CDockingManager@@QEAAXPEAVCDockablePane@@H@Z
+extern "C" void MS_ABI impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
+    CDockingManager* pThis, CDockablePane* pPane, int) {
+    if (pThis && pPane) pThis->HidePane(pPane);
+}
+
+// Symbol: ?InsertPane@CDockingManager@@QEAAHPEAVCBasePane@@0H@Z
+extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
+    CDockingManager* pThis, CBasePane* pPane, CBasePane* pTarget, int) {
+    if (!pThis || !pPane) return FALSE;
+    AddDockingPane(pThis, pPane, pTarget);
+    return TRUE;
+}
+
+// Symbol: ?LoadState@CDockingManager@@UEAAHPEB_WI@Z
+extern "C" int MS_ABI impl__LoadState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t*, unsigned int) {
+    if (pThis) EnsureDockingState(pThis);
+    return TRUE;
+}
+
+// Symbol: ?LockUpdate@CDockingManager@@QEAAXH@Z
+extern "C" void MS_ABI impl__LockUpdate_CDockingManager__QEAAXH_Z(CDockingManager* pThis, int bLock) {
+    if (pThis) EnsureDockingState(pThis).lockUpdate = bLock != FALSE;
+}
+
+// Symbol: ?OnActivateFrame@CDockingManager@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnActivateFrame_CDockingManager__UEAAXH_Z(CDockingManager*, int) {}
+
+// Symbol: ?OnClosePopupMenu@CDockingManager@@QEAAXXZ
+extern "C" void MS_ABI impl__OnClosePopupMenu_CDockingManager__QEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?OnMoveMiniFrame@CDockingManager@@UEAAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager*, CWnd*) {
+    return TRUE;
+}
+
+// Symbol: ?OnPaneContextMenu@CDockingManager@@QEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnPaneContextMenu_CDockingManager__QEAAXVCPoint___Z(CDockingManager*, CPoint) {}
+
+// Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@HPEBV2@@Z
+extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+    const CDockingManager* pThis, CPoint, int bIncludeHidden, int, CRuntimeClass* pRTCFilter, int, const CDockingManager*) {
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return nullptr;
+
+    for (CBasePane* pane : state->panes) {
+        if (!pane) continue;
+        if (!bIncludeHidden && state->hiddenPanes.find(pane) != state->hiddenPanes.end()) continue;
+        if (pRTCFilter && !pane->IsKindOf(pRTCFilter)) continue;
+        return pane;
+    }
+
+    return nullptr;
+}
+
+// Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@PEBV2@@Z
+extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
+    const CDockingManager* pThis, CPoint point, int bIncludeHidden, unsigned long* dwAlignment, CRuntimeClass* pRTCFilter, const CDockingManager* pDockManager) {
+    if (dwAlignment) *dwAlignment = 0;
+    return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        pThis, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pDockManager);
+}
+
+// Symbol: ?ProcessPaneContextMenuCommand@CDockingManager@@QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__ProcessPaneContextMenuCommand_CDockingManager__QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CDockingManager*, unsigned int, int, void*, void*) {
+    return FALSE;
+}
+
+// Symbol: ?RecalcLayout@CDockingManager@@UEAAXH@Z
+extern "C" void MS_ABI impl__RecalcLayout_CDockingManager__UEAAXH_Z(CDockingManager* pThis, int) {
+    if (pThis) pThis->RecalcLayout();
+}
+
+// Symbol: ?RedrawAllMiniFrames@CDockingManager@@QEAAXXZ
+extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?ReleaseEmptyPaneContainers@CDockingManager@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?RemoveHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__RemoveHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(CDockingManager* pThis, CDockablePane* pPane) {
+    RemoveDockingPane(pThis, pPane);
+}
+
+// Symbol: ?RemoveMiniFrame@CDockingManager@@UEAAHPEAVCPaneFrameWnd@@@Z
+extern "C" int MS_ABI impl__RemoveMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(CDockingManager* pThis, void* pFrame) {
+    if (!pThis || !pFrame) return FALSE;
+    auto& frames = EnsureDockingState(pThis).miniFrames;
+    auto oldSize = frames.size();
+    frames.erase(std::remove(frames.begin(), frames.end(), pFrame), frames.end());
+    return frames.size() != oldSize;
+}
+
+// Symbol: ?RemovePaneFromDockManager@CDockingManager@@QEAAXPEAVCBasePane@@HHH0@Z
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+    CDockingManager* pThis, CBasePane* pPane, int, int, int, CBasePane*) {
+    RemoveDockingPane(pThis, pPane);
+}
+
+// Symbol: ?ReplacePane@CDockingManager@@QEAAHPEAVCDockablePane@@0@Z
+extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(
+    CDockingManager* pThis, CDockablePane* pOldPane, CDockablePane* pNewPane) {
+    if (!pThis || !pOldPane || !pNewPane) return FALSE;
+    DockingManagerState& state = EnsureDockingState(pThis);
+    auto it = std::find(state.panes.begin(), state.panes.end(), static_cast<CBasePane*>(pOldPane));
+    if (it == state.panes.end()) return FALSE;
+    *it = pNewPane;
+    state.hiddenPanes.erase(pOldPane);
+    state.floatingPanes.erase(pOldPane);
+    return TRUE;
+}
+
+// Symbol: ?ResortMiniFramesForZOrder@CDockingManager@@QEAAXXZ
+extern "C" void MS_ABI impl__ResortMiniFramesForZOrder_CDockingManager__QEAAXXZ(CDockingManager*) {}
+
+// Symbol: ?SaveState@CDockingManager@@UEAAHPEB_WI@Z
+extern "C" int MS_ABI impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t*, unsigned int) {
+    if (pThis) EnsureDockingState(pThis);
+    return TRUE;
+}
+
+// Symbol: ?SendMessageToMiniFrames@CDockingManager@@QEAAHI_K_J@Z
+extern "C" int MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_J_Z(CDockingManager*, unsigned int, unsigned __int64, __int64) {
+    return 0;
+}
 
 //=============================================================================
 // CFrameWndEx

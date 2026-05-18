@@ -722,8 +722,8 @@ public:
     virtual ~CDockingManager();
 
     void DockPane(CBasePane* pBar, UINT nDockBarID = 0, LPCRECT lpRect = nullptr);
-    void DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar);
-    void EnableDocking(DWORD dwDockStyle);
+    BOOL DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar);
+    BOOL EnableDocking(DWORD dwDockStyle);
     void FloatPane(CBasePane* pBar, CPoint ptOffset, DWORD dwAlignment);
     void HidePane(CBasePane* pBar);
     void ShowPane(CBasePane* pBar, BOOL bDelay = FALSE);
