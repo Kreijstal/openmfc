@@ -1600,3 +1600,374 @@ extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBAXHAEAV__CStringT__WV__S
     const CStatusBar* pThis, int nIndex, CString* pStr) {
     pThis->GetPaneText(nIndex, *pStr);
 }
+
+namespace {
+struct PaneCoreState {
+    CWnd* parent = nullptr;
+    CSize minSize = CSize(0, 0);
+    CRect recentRect = CRect(0, 0, 0, 0);
+    BOOL visible = FALSE;
+};
+
+struct DockSiteCoreState {
+    CWnd* parent = nullptr;
+    CRect recentRect = CRect(0, 0, 0, 0);
+};
+
+std::mutex g_paneCoreStateMutex;
+std::unordered_map<const void*, PaneCoreState> g_paneCoreState;
+std::unordered_map<const void*, DockSiteCoreState> g_dockSiteCoreState;
+
+static CRect NormalizeRect(const RECT* rect, int fallbackWidth = 200, int fallbackHeight = 120) {
+    if (rect != nullptr) {
+        CRect out(*rect);
+        if (out.Width() <= 0) out.right = out.left + fallbackWidth;
+        if (out.Height() <= 0) out.bottom = out.top + fallbackHeight;
+        return out;
+    }
+    return CRect(0, 0, fallbackWidth, fallbackHeight);
+}
+
+static BOOL TryCreatePaneWindow(CWnd* paneWnd, const wchar_t* className, DWORD style, const CRect& rect, CWnd* parentWnd, UINT id, CCreateContext* context) {
+    if (paneWnd == nullptr || parentWnd == nullptr) return FALSE;
+    if (paneWnd->GetSafeHwnd() != nullptr) return TRUE;
+    const wchar_t* useClass = className != nullptr ? className : AfxRegisterWndClass(0);
+    if (useClass == nullptr) useClass = L"STATIC";
+    const DWORD useStyle = style != 0 ? style : (WS_CHILD | WS_VISIBLE);
+    return paneWnd->Create(useClass, L"", useStyle, rect, parentWnd, id, context);
+}
+} // namespace
+
+// Symbol: ?CreateEx@CBasePane@@UEAAHKPEB_W0KAEBUtagRECT@@PEAVCWnd@@IKPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CBasePane__UEAAHKPEB_W0KAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+    CBasePane* pThis, unsigned long, const wchar_t* lpszClassName, const wchar_t*, unsigned long dwStyle,
+    const RECT& rect, CWnd* pParentWnd, unsigned int nID, unsigned long, CCreateContext* pContext) {
+    if (pThis == nullptr) return FALSE;
+    CRect useRect = NormalizeRect(&rect);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        PaneCoreState& state = g_paneCoreState[pThis];
+        state.parent = pParentWnd;
+        state.recentRect = useRect;
+        if (state.minSize.cx <= 0) state.minSize.cx = 32;
+        if (state.minSize.cy <= 0) state.minSize.cy = 32;
+    }
+    return TryCreatePaneWindow(static_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, nID, pContext);
+}
+
+// Symbol: ?ShowPane@CBasePane@@UEAAXHHH@Z
+extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(CBasePane* pThis, int bShow, int, int) {
+    if (pThis == nullptr) return;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        g_paneCoreState[pThis].visible = bShow ? TRUE : FALSE;
+    }
+    if (pThis->GetSafeHwnd() != nullptr) {
+        pThis->ShowWindow(bShow ? SW_SHOW : SW_HIDE);
+    }
+}
+
+// Symbol: ?GetRuntimeClass@CBasePane@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CBasePane__UEBAPEAUCRuntimeClass__XZ(const CBasePane*) {
+    return CBasePane::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CBasePane@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ() {
+    return CBasePane::GetThisClass();
+}
+
+// Symbol: ?CreateObject@CPane@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CPane__SAPEAVCObject__XZ() {
+    return new CPane();
+}
+
+// Symbol: ?GetRuntimeClass@CPane@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPane__UEBAPEAUCRuntimeClass__XZ(const CPane*) {
+    return CPane::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CPane@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ() {
+    return CPane::GetThisClass();
+}
+
+// Symbol: ?Create@CPane@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@IKPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__Create_CPane__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+    CPane* pThis, const wchar_t* lpszClassName, unsigned long dwStyle, const RECT& rect,
+    CWnd* pParentWnd, unsigned int nID, unsigned long, CCreateContext* pContext) {
+    if (pThis == nullptr) return FALSE;
+    CRect useRect = NormalizeRect(&rect);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        PaneCoreState& state = g_paneCoreState[pThis];
+        state.parent = pParentWnd;
+        state.recentRect = useRect;
+        if (state.minSize.cx <= 0) state.minSize.cx = 64;
+        if (state.minSize.cy <= 0) state.minSize.cy = 64;
+    }
+    return TryCreatePaneWindow(static_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, nID, pContext);
+}
+
+// Symbol: ?CreateEx@CPane@@UEAAHKPEB_WKAEBUtagRECT@@PEAVCWnd@@IKPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CPane__UEAAHKPEB_WKAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+    CPane* pThis, unsigned long, const wchar_t* lpszClassName, unsigned long dwStyle, const RECT& rect,
+    CWnd* pParentWnd, unsigned int nID, unsigned long cbStyle, CCreateContext* pContext) {
+    return impl__Create_CPane__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+        pThis, lpszClassName, dwStyle | cbStyle, rect, pParentWnd, nID, cbStyle, pContext);
+}
+
+// Symbol: ?Dock@CPane@@MEAAHPEAVCBasePane@@PEBUtagRECT@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__Dock_CPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+    CPane* pThis, CBasePane* pTargetBar, const RECT* lpRect, int) {
+    if (pThis == nullptr || pTargetBar == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[pThis];
+    state.parent = static_cast<CWnd*>(pTargetBar);
+    state.recentRect = NormalizeRect(lpRect);
+    return TRUE;
+}
+
+// Symbol: ?DockPane@CPane@@UEAAHPEAVCBasePane@@PEBUtagRECT@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__DockPane_CPane__UEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+    CPane* pThis, CBasePane* pTargetBar, const RECT* lpRect, int dockMethod) {
+    return impl__Dock_CPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+        pThis, pTargetBar, lpRect, dockMethod);
+}
+
+// Symbol: ?OnBeforeFloat@CPane@@UEAAHAEAVCRect@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__OnBeforeFloat_CPane__UEAAHAEAVCRect__W4AFX_DOCK_METHOD___Z(CPane* pThis, CRect& rect, int) {
+    if (pThis == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[pThis].recentRect = rect;
+    return TRUE;
+}
+
+// Symbol: ?OnAfterFloat@CPane@@UEAAXXZ
+extern "C" void MS_ABI impl__OnAfterFloat_CPane__UEAAXXZ(CPane* pThis) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[pThis].visible = TRUE;
+}
+
+// Symbol: ?CalcRecentDockedRect@CPane@@QEAAXXZ
+extern "C" void MS_ABI impl__CalcRecentDockedRect_CPane__QEAAXXZ(CPane* pThis) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[pThis];
+    if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
+        state.recentRect = CRect(0, 0, 200, 120);
+    }
+}
+
+// Symbol: ?AdjustSizeImmediate@CPane@@UEAAXH@Z
+extern "C" void MS_ABI impl__AdjustSizeImmediate_CPane__UEAAXH_Z(CPane* pThis, int nLength) {
+    if (pThis == nullptr || nLength <= 0) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[pThis];
+    if (state.minSize.cx < nLength) state.minSize.cx = nLength;
+    if (state.minSize.cy < nLength) state.minSize.cy = nLength;
+}
+
+// Symbol: ?CreateObject@CDockablePane@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CDockablePane__SAPEAVCObject__XZ() {
+    return new CDockablePane();
+}
+
+// Symbol: ?GetRuntimeClass@CDockablePane@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDockablePane__UEBAPEAUCRuntimeClass__XZ(const CDockablePane*) {
+    return CDockablePane::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CDockablePane@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ() {
+    return CDockablePane::GetThisClass();
+}
+
+// Symbol: ?Create@CDockablePane@@UEAAHPEB_WPEAVCWnd@@AEBUtagRECT@@HIKKKPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+    CDockablePane* pThis, const wchar_t* lpszCaption, CWnd* pParentWnd, const RECT& rect,
+    int, unsigned int nID, unsigned long dwStyle, unsigned long, unsigned long, CCreateContext* pContext) {
+    if (pThis == nullptr) return FALSE;
+    CRect useRect = NormalizeRect(&rect, 240, 140);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        PaneCoreState& state = g_paneCoreState[pThis];
+        state.parent = pParentWnd;
+        state.recentRect = useRect;
+        if (state.minSize.cx <= 0) state.minSize.cx = 120;
+        if (state.minSize.cy <= 0) state.minSize.cy = 80;
+    }
+    return TryCreatePaneWindow(static_cast<CWnd*>(pThis), L"STATIC", dwStyle, useRect, pParentWnd, nID, pContext);
+}
+
+// Symbol: ?Create@CDockablePane@@UEAAHPEB_WPEAVCWnd@@VCSize@@HIKKK@Z
+extern "C" int MS_ABI impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__VCSize__HIKKK_Z(
+    CDockablePane* pThis, const wchar_t* lpszCaption, CWnd* pParentWnd, CSize sizeDefault,
+    int bHasGripper, unsigned int nID, unsigned long dwStyle, unsigned long dwTabbedStyle, unsigned long dwControlBarStyle) {
+    CRect rect(0, 0, sizeDefault.cx > 0 ? sizeDefault.cx : 240, sizeDefault.cy > 0 ? sizeDefault.cy : 140);
+    int created = impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+        pThis, lpszCaption, pParentWnd, rect, bHasGripper, nID, dwStyle, dwTabbedStyle, dwControlBarStyle, nullptr);
+    if (created && pThis != nullptr) {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        g_paneCoreState[pThis].minSize = sizeDefault;
+    }
+    return created;
+}
+
+// Symbol: ?CreateEx@CDockablePane@@UEAAHKPEB_WPEAVCWnd@@AEBUtagRECT@@HIKKKPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CDockablePane__UEAAHKPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+    CDockablePane* pThis, unsigned long, const wchar_t* lpszCaption, CWnd* pParentWnd, const RECT& rect,
+    int bHasGripper, unsigned int nID, unsigned long dwStyle, unsigned long dwTabbedStyle,
+    unsigned long dwControlBarStyle, CCreateContext* pContext) {
+    return impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+        pThis, lpszCaption, pParentWnd, rect, bHasGripper, nID, dwStyle, dwTabbedStyle, dwControlBarStyle, pContext);
+}
+
+// Symbol: ?Dock@CDockablePane@@MEAAHPEAVCBasePane@@PEBUtagRECT@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__Dock_CDockablePane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+    CDockablePane* pThis, CBasePane* pTargetBar, const RECT* lpRect, int dockMethod) {
+    return impl__Dock_CPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+        reinterpret_cast<CPane*>(pThis), pTargetBar, lpRect, dockMethod);
+}
+
+// Symbol: ?OnBeforeFloat@CDockablePane@@UEAAHAEAVCRect@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__OnBeforeFloat_CDockablePane__UEAAHAEAVCRect__W4AFX_DOCK_METHOD___Z(
+    CDockablePane* pThis, CRect& rect, int dockMethod) {
+    return impl__OnBeforeFloat_CPane__UEAAHAEAVCRect__W4AFX_DOCK_METHOD___Z(
+        reinterpret_cast<CPane*>(pThis), rect, dockMethod);
+}
+
+// Symbol: ?DockToFrameWindow@CDockablePane@@UEAAHKPEBUtagRECT@@KPEAVCBasePane@@HH@Z
+extern "C" int MS_ABI impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__KPEAVCBasePane__HH_Z(
+    CDockablePane* pThis, unsigned long, const RECT* lpRect, unsigned long, CBasePane* pTargetBar, int, int) {
+    if (pThis == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[pThis];
+    state.parent = pTargetBar != nullptr ? static_cast<CWnd*>(pTargetBar) : state.parent;
+    state.recentRect = NormalizeRect(lpRect, 240, 140);
+    return TRUE;
+}
+
+// Symbol: ?ShowPane@CDockablePane@@UEAAXHHH@Z
+extern "C" void MS_ABI impl__ShowPane_CDockablePane__UEAAXHHH_Z(CDockablePane* pThis, int bShow, int bDelay, int bActivate) {
+    impl__ShowPane_CBasePane__UEAAXHHH_Z(reinterpret_cast<CBasePane*>(pThis), bShow, bDelay, bActivate);
+}
+
+static CObject* AFXAPI CreateDockSiteObject() {
+    return nullptr;
+}
+
+static CRuntimeClass g_runtimeClassDockSite = {
+    "CDockSite",
+    0,
+    0xFFFF,
+    &CreateDockSiteObject,
+    nullptr,
+    &CObject::classCObject,
+    nullptr
+};
+
+// Symbol: ?CreateObject@CDockSite@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CDockSite__SAPEAVCObject__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CDockSite@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDockSite__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &g_runtimeClassDockSite;
+}
+
+// Symbol: ?GetThisClass@CDockSite@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockSite__SAPEAUCRuntimeClass__XZ() {
+    return &g_runtimeClassDockSite;
+}
+
+// Symbol: ?Create@CDockSite@@UEAAHKAEBUtagRECT@@PEAVCWnd@@KPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
+    void* pThis, unsigned long, const RECT& rect, CWnd* pParentWnd, unsigned long, CCreateContext*) {
+    if (pThis == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    state.parent = pParentWnd;
+    state.recentRect = NormalizeRect(&rect, 320, 220);
+    return TRUE;
+}
+
+// Symbol: ?CreateEx@CDockSite@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@KPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CDockSite__UEAAHKKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
+    void* pThis, unsigned long, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned long nID, CCreateContext* pContext) {
+    return impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
+        pThis, dwStyle, rect, pParentWnd, nID, pContext);
+}
+
+// Symbol: ?DockPane@CDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
+extern "C" void MS_ABI impl__DockPane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(
+    void* pThis, CPane* pPane, int, const RECT* lpRect) {
+    if (pThis == nullptr || pPane == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_dockSiteCoreState[pThis].recentRect = NormalizeRect(lpRect, 320, 220);
+    g_paneCoreState[pPane].parent = reinterpret_cast<CWnd*>(pThis);
+}
+
+// Symbol: ?DockPaneLeftOf@CDockSite@@UEAAHPEAVCPane@@0@Z
+extern "C" int MS_ABI impl__DockPaneLeftOf_CDockSite__UEAAHPEAVCPane__0_Z(void* pThis, CPane* pPaneToDock, CPane* pLeftOf) {
+    if (pThis == nullptr || pPaneToDock == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[pPaneToDock];
+    state.parent = pLeftOf != nullptr ? g_paneCoreState[pLeftOf].parent : reinterpret_cast<CWnd*>(pThis);
+    return TRUE;
+}
+
+// Symbol: ?OnSetWindowPos@CDockSite@@UEAAHPEBVCWnd@@AEBVCRect@@I@Z
+extern "C" int MS_ABI impl__OnSetWindowPos_CDockSite__UEAAHPEBVCWnd__AEBVCRect__I_Z(void* pThis, const CWnd*, const CRect& rect, unsigned int) {
+    if (pThis == nullptr) return FALSE;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_dockSiteCoreState[pThis].recentRect = rect;
+    return TRUE;
+}
+
+// Symbol: ?ResizeDockSite@CDockSite@@QEAAXHH@Z
+extern "C" void MS_ABI impl__ResizeDockSite_CDockSite__QEAAXHH_Z(void* pThis, int cx, int cy) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    CRect& rect = g_dockSiteCoreState[pThis].recentRect;
+    rect.right = rect.left + (cx > 0 ? cx : rect.Width());
+    rect.bottom = rect.top + (cy > 0 ? cy : rect.Height());
+}
+
+// Symbol: ?ResizeDockSiteByOffset@CDockSite@@IEAAXHH@Z
+extern "C" void MS_ABI impl__ResizeDockSiteByOffset_CDockSite__IEAAXHH_Z(void* pThis, int cx, int cy) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    CRect& rect = g_dockSiteCoreState[pThis].recentRect;
+    rect.right += cx;
+    rect.bottom += cy;
+}
+
+// Symbol: ?ResizeRow@CDockSite@@QEAAHPEAVCDockingPanesRow@@HH@Z
+extern "C" int MS_ABI impl__ResizeRow_CDockSite__QEAAHPEAVCDockingPanesRow__HH_Z(void*, void*, int, int) {
+    return TRUE;
+}
+
+// Symbol: ?ShowPane@CDockSite@@UEAAHPEAVCBasePane@@HHH@Z
+extern "C" int MS_ABI impl__ShowPane_CDockSite__UEAAHPEAVCBasePane__HHH_Z(void* pThis, CBasePane* pPane, int bShow, int bDelay, int bActivate) {
+    if (pThis == nullptr || pPane == nullptr) return FALSE;
+    impl__ShowPane_CBasePane__UEAAXHHH_Z(pPane, bShow, bDelay, bActivate);
+    return TRUE;
+}
+
+// Symbol: ?AdjustDockingLayout@CDockSite@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustDockingLayout_CDockSite__UEAAXXZ(void*) {}
+
+// Symbol: ?AdjustLayout@CDockSite@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CDockSite__UEAAXXZ(void*) {}
+
+// Symbol: ?FixupVirtualRects@CDockSite@@UEAAXXZ
+extern "C" void MS_ABI impl__FixupVirtualRects_CDockSite__UEAAXXZ(void*) {}
+
+// Symbol: ?OnInsertRow@CDockSite@@UEAAXPEAU__POSITION@@@Z
+extern "C" void MS_ABI impl__OnInsertRow_CDockSite__UEAAXPEAU__POSITION___Z(void*, void*) {}
+
+// Symbol: ?OnRemoveRow@CDockSite@@UEAAXPEAU__POSITION@@H@Z
+extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void*, void*, int) {}
