@@ -4,11 +4,12 @@
 // All exports use MSVC ABI via extern "C" + .def aliasing.
 
 #define OPENMFC_APPCORE_IMPL
-#include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
+#include "openmfc/afxole.h"
 #include <commctrl.h>
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -48,6 +49,63 @@ std::mutex g_ribbonMutex;
 std::unordered_map<CMFCRibbonPanel*, RibbonPanelState> g_ribbonPanels;
 std::unordered_map<CMFCRibbonCategory*, RibbonCategoryState> g_ribbonCategories;
 std::unordered_map<CMFCRibbonBar*, RibbonBarState> g_ribbonBars;
+constexpr int kApproxRibbonCharPx = 6;
+
+std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
+std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
+std::unordered_map<UINT, int> g_galleryLastSelectedByID;
+
+struct RibbonSliderState {
+    int nMin = 0;
+    int nMax = 100;
+    int nPos = 0;
+    bool bShowZoomButtons = false;
+    int nZoomIncrement = 1;
+};
+std::unordered_map<UINT, RibbonSliderState> g_sliderStates;
+
+struct RibbonProgressState {
+    int nMin = 0;
+    int nMax = 100;
+    int nPos = 0;
+    bool bInfinite = false;
+};
+std::unordered_map<UINT, RibbonProgressState> g_progressStates;
+
+struct RibbonStatusPaneState {
+    bool bAnimating = false;
+    UINT nAnimationFrame = 0;
+    UINT nAnimationCount = 0;
+    DWORD dwAnimationDelay = 0;
+    HBITMAP hAnimationBitmap = nullptr;
+    int cxAnimation = 0;
+};
+std::unordered_map<UINT, RibbonStatusPaneState> g_statusPaneStates;
+
+inline UINT RibbonElementID(const CMFCRibbonBaseElement* pElem) {
+    return (pElem != nullptr) ? pElem->GetID() : 0;
+}
+
+inline void NormalizeRange(int nMin, int nMax, int& outMin, int& outMax) {
+    outMin = std::min(nMin, nMax);
+    outMax = std::max(nMin, nMax);
+}
+
+inline int RibbonTextPixels(const CMFCRibbonBaseElement* pElem) {
+    if (!pElem) return 0;
+    return std::max(0, pElem->GetText().GetLength()) * kApproxRibbonCharPx;
+}
+
+inline void BuildCStringResult(void* pRet, const std::wstring& value) {
+    if (!pRet) return;
+    new(pRet) CString(value.c_str());
+}
+
+inline void BuildCSizeResult(void* pRet, int cx, int cy) {
+    if (!pRet) return;
+    new(pRet) CSize(cx, cy);
+}
+
 } // namespace
 
 extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
@@ -1170,6 +1228,348 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         case IDRETRY: return IDRETRY;
         default: return IDOK;
     }
+}
+
+// Ribbon element wrappers (Wave 2 retry)
+//=============================================================================
+
+// Symbol: ??0CMFCRibbonButton@@QEAA@IPEB_WPEAUHICON__@@H1HH@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonButton__QEAA_IPEB_WPEAUHICON____H1HH_Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, HICON hIcon, int bAlwaysShowDescription,
+    HICON hIconSmall, int bAutoDestroyIcon, int bAlphaBlendIcon) {
+    if (!pThis) return nullptr;
+    return new(pThis) CMFCRibbonButton(nID, lpszText, hIcon, bAlwaysShowDescription, hIconSmall, bAutoDestroyIcon, bAlphaBlendIcon);
+}
+
+// Symbol: ??0CMFCRibbonGallery@@QEAA@IPEB_WHHAEAVCMFCToolBarImages@@@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonGallery__QEAA_IPEB_WHHAEAVCMFCToolBarImages___Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, int nSmallImageIndex, int nLargeImageIndex, CMFCToolBarImages* /*pImages*/) {
+    if (!pThis) return nullptr;
+    auto* pGallery = new(pThis) CMFCRibbonGallery();
+    pGallery->SetID(nID);
+    pGallery->SetText(lpszText);
+    (void)nSmallImageIndex;
+    (void)nLargeImageIndex;
+    return pGallery;
+}
+
+// Symbol: ??0CMFCRibbonGallery@@QEAA@IPEB_WHHVCSize@@HH@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonGallery__QEAA_IPEB_WHHVCSize__HH_Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, int nSmallImageIndex, int nLargeImageIndex,
+    CSize /*sizeIcon*/, int /*nIconsInRow*/, int /*nRows*/) {
+    if (!pThis) return nullptr;
+    auto* pGallery = new(pThis) CMFCRibbonGallery();
+    pGallery->SetID(nID);
+    pGallery->SetText(lpszText);
+    (void)nSmallImageIndex;
+    (void)nLargeImageIndex;
+    return pGallery;
+}
+
+// Symbol: ??0CMFCRibbonStatusBarPane@@QEAA@IPEB_WHPEAUHICON__@@0H@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonStatusBarPane__QEAA_IPEB_WHPEAUHICON____0H_Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, int /*bIsStatic*/, HICON /*hIcon*/, HICON /*hIconDisabled*/, int /*nTextAlign*/) {
+    if (!pThis) return nullptr;
+    auto* pPane = new(pThis) CMFCRibbonStatusBarPane();
+    pPane->SetID(nID);
+    pPane->SetText(lpszText);
+    return pPane;
+}
+
+// Symbol: ??0CMFCRibbonStatusBarPane@@QEAA@IPEB_WIHKPEAUHICON__@@HH@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonStatusBarPane__QEAA_IPEB_WIHKPEAUHICON____HH_Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, UINT /*cxText*/, int /*bAlmostLargeText*/, DWORD /*dwStyle*/,
+    HICON /*hIcon*/, int /*nTextAlign*/, int /*bIsExtended*/) {
+    if (!pThis) return nullptr;
+    auto* pPane = new(pThis) CMFCRibbonStatusBarPane();
+    pPane->SetID(nID);
+    pPane->SetText(lpszText);
+    return pPane;
+}
+
+// Symbol: ??0CMFCRibbonStatusBarPane@@QEAA@IPEB_WPEAUHBITMAP__@@HKPEAUHICON__@@HH@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonStatusBarPane__QEAA_IPEB_WPEAUHBITMAP____HKPEAUHICON____HH_Z(
+    void* pThis, UINT nID, const wchar_t* lpszText, HBITMAP hBmpAnimation, int cxAnimation, DWORD dwAnimationSpeed,
+    HICON /*hIcon*/, int /*nTextAlign*/, int /*bIsExtended*/) {
+    if (!pThis) return nullptr;
+    auto* pPane = new(pThis) CMFCRibbonStatusBarPane();
+    pPane->SetID(nID);
+    pPane->SetText(lpszText);
+    auto& state = g_statusPaneStates[pPane->GetID()];
+    state.hAnimationBitmap = hBmpAnimation;
+    state.cxAnimation = cxAnimation;
+    state.dwAnimationDelay = dwAnimationSpeed;
+    return pPane;
+}
+
+// Symbol: ?SetToolTipText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetToolTipText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
+    if (!pThis) return;
+    g_ribbonToolTips[RibbonElementID(pThis)] = (lpszText != nullptr) ? lpszText : L"";
+}
+
+// Symbol: ?GetToolTipText@CMFCRibbonBaseElement@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonBaseElement__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    void* pRet, const CMFCRibbonBaseElement* pThis) {
+    if (!pThis) {
+        BuildCStringResult(pRet, L"");
+        return;
+    }
+    auto it = g_ribbonToolTips.find(RibbonElementID(pThis));
+    if (it != g_ribbonToolTips.end()) {
+        BuildCStringResult(pRet, it->second);
+        return;
+    }
+    CString text = pThis->GetText();
+    BuildCStringResult(pRet, (const wchar_t*)text);
+}
+
+// Symbol: ?SetDescription@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetDescription_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
+    if (!pThis) return;
+    g_ribbonDescriptions[RibbonElementID(pThis)] = (lpszText != nullptr) ? lpszText : L"";
+}
+
+// Symbol: ?GetDescription@CMFCRibbonBaseElement@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetDescription_CMFCRibbonBaseElement__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    void* pRet, const CMFCRibbonBaseElement* pThis) {
+    if (!pThis) {
+        BuildCStringResult(pRet, L"");
+        return;
+    }
+    auto it = g_ribbonDescriptions.find(RibbonElementID(pThis));
+    if (it != g_ribbonDescriptions.end()) {
+        BuildCStringResult(pRet, it->second);
+        return;
+    }
+    CString text = pThis->GetText();
+    BuildCStringResult(pRet, (const wchar_t*)text);
+}
+
+// Symbol: ?SetText@CMFCRibbonButton@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetText_CMFCRibbonButton__UEAAXPEB_W_Z(CMFCRibbonButton* pThis, const wchar_t* lpszText) {
+    if (!pThis) return;
+    pThis->CMFCRibbonBaseElement::SetText(lpszText);
+}
+
+// Symbol: ?CanBeStretched@CMFCRibbonButton@@UEAAHXZ
+extern "C" int MS_ABI impl__CanBeStretched_CMFCRibbonButton__UEAAHXZ(CMFCRibbonButton* /*pThis*/) {
+    return FALSE;
+}
+
+// Symbol: ?GetRegularSize@CMFCRibbonButton@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonButton* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 32 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?GetCompactSize@CMFCRibbonButton@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetCompactSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonButton* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 22 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?GetIntermediateSize@CMFCRibbonButton@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonButton* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 26 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?OnCalcTextSize@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnDraw@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnDrawBorder@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDrawBorder_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnFillBackground@CMFCRibbonButton@@UEAAKPEAVCDC@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonButton__UEAAKPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {
+    return 0;
+}
+
+// Symbol: ?GetRegularSize@CMFCRibbonGallery@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonGallery__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonGallery* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 96 + RibbonTextPixels(pThis), 42);
+}
+
+// Symbol: ?GetCompactSize@CMFCRibbonGallery@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetCompactSize_CMFCRibbonGallery__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonGallery* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 64 + RibbonTextPixels(pThis), 32);
+}
+
+// Symbol: ?OnDraw@CMFCRibbonGallery@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibbonGallery* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnEnable@CMFCRibbonGallery@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnEnable_CMFCRibbonGallery__UEAAXH_Z(CMFCRibbonGallery* pThis, int bEnable) {
+    if (!pThis) return;
+    (void)bEnable;
+}
+
+// Symbol: ?SelectItem@CMFCRibbonGallery@@QEAAXH@Z
+extern "C" void MS_ABI impl__SelectItem_CMFCRibbonGallery__QEAAXH_Z(CMFCRibbonGallery* pThis, int nItem) {
+    if (!pThis) return;
+    g_galleryLastSelectedByID[pThis->GetID()] = nItem;
+}
+
+// Symbol: ?GetLastSelectedItem@CMFCRibbonGallery@@SAHI@Z
+extern "C" int MS_ABI impl__GetLastSelectedItem_CMFCRibbonGallery__SAHI_Z(UINT nGalleryID) {
+    auto it = g_galleryLastSelectedByID.find(nGalleryID);
+    return (it != g_galleryLastSelectedByID.end()) ? it->second : -1;
+}
+
+// Symbol: ?GetCompactSize@CMFCRibbonEdit@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetCompactSize_CMFCRibbonEdit__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonEdit* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 80 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?GetIntermediateSize@CMFCRibbonEdit@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonEdit__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonEdit* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 120 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?OnDraw@CMFCRibbonEdit@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonEdit* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnEnable@CMFCRibbonEdit@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnEnable_CMFCRibbonEdit__UEAAXH_Z(CMFCRibbonEdit* pThis, int bEnable) {
+    if (!pThis) return;
+    (void)bEnable;
+}
+
+// Symbol: ?GetRegularSize@CMFCRibbonSlider@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonSlider__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonSlider* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 96 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?OnDraw@CMFCRibbonSlider@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonSlider__UEAAXPEAVCDC___Z(CMFCRibbonSlider* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?SetRange@CMFCRibbonSlider@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetRange_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nMin, int nMax) {
+    if (!pThis) return;
+    auto& state = g_sliderStates[pThis->GetID()];
+    NormalizeRange(nMin, nMax, state.nMin, state.nMax);
+    state.nPos = std::clamp(state.nPos, state.nMin, state.nMax);
+}
+
+// Symbol: ?SetPos@CMFCRibbonSlider@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetPos_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nPos, int /*bRedraw*/) {
+    if (!pThis) return;
+    auto& state = g_sliderStates[pThis->GetID()];
+    state.nPos = std::clamp(nPos, state.nMin, state.nMax);
+}
+
+// Symbol: ?SetZoomButtons@CMFCRibbonSlider@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetZoomButtons_CMFCRibbonSlider__QEAAXH_Z(CMFCRibbonSlider* pThis, int bSet) {
+    if (!pThis) return;
+    g_sliderStates[pThis->GetID()].bShowZoomButtons = (bSet != FALSE);
+}
+
+// Symbol: ?SetZoomIncrement@CMFCRibbonSlider@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetZoomIncrement_CMFCRibbonSlider__QEAAXH_Z(CMFCRibbonSlider* pThis, int nDelta) {
+    if (!pThis) return;
+    g_sliderStates[pThis->GetID()].nZoomIncrement = std::max(1, nDelta);
+}
+
+// Symbol: ?GetRegularSize@CMFCRibbonProgressBar@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonProgressBar__UEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonProgressBar* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 96 + RibbonTextPixels(pThis), 16);
+}
+
+// Symbol: ?OnDraw@CMFCRibbonProgressBar@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonProgressBar__UEAAXPEAVCDC___Z(CMFCRibbonProgressBar* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?SetRange@CMFCRibbonProgressBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetRange_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonProgressBar* pThis, int nMin, int nMax) {
+    if (!pThis) return;
+    auto& state = g_progressStates[pThis->GetID()];
+    NormalizeRange(nMin, nMax, state.nMin, state.nMax);
+    state.nPos = std::clamp(state.nPos, state.nMin, state.nMax);
+}
+
+// Symbol: ?SetPos@CMFCRibbonProgressBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetPos_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonProgressBar* pThis, int nPos, int /*bRedraw*/) {
+    if (!pThis) return;
+    auto& state = g_progressStates[pThis->GetID()];
+    state.nPos = std::clamp(nPos, state.nMin, state.nMax);
+}
+
+// Symbol: ?SetInfiniteMode@CMFCRibbonProgressBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetInfiniteMode_CMFCRibbonProgressBar__QEAAXH_Z(CMFCRibbonProgressBar* pThis, int bSet) {
+    if (!pThis) return;
+    g_progressStates[pThis->GetID()].bInfinite = (bSet != FALSE);
+}
+
+// Symbol: ?GetIntermediateSize@CMFCRibbonStatusBarPane@@MEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonStatusBarPane__MEAA_AVCSize__PEAVCDC___Z(void* pRet, const CMFCRibbonStatusBarPane* pThis, CDC* /*pDC*/) {
+    BuildCSizeResult(pRet, 96 + RibbonTextPixels(pThis), 22);
+}
+
+// Symbol: ?OnCalcTextSize@CMFCRibbonStatusBarPane@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnDraw@CMFCRibbonStatusBarPane@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {}
+
+// Symbol: ?OnFillBackground@CMFCRibbonStatusBarPane@@UEAAKPEAVCDC@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonStatusBarPane__UEAAKPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {
+    return 0;
+}
+
+// Symbol: ?GetToolTipText@CMFCRibbonStatusBarPane@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonStatusBarPane__MEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    void* pRet, const CMFCRibbonStatusBarPane* pThis) {
+    if (!pThis) {
+        BuildCStringResult(pRet, L"");
+        return;
+    }
+    auto it = g_ribbonToolTips.find(RibbonElementID(pThis));
+    if (it != g_ribbonToolTips.end()) {
+        BuildCStringResult(pRet, it->second);
+        return;
+    }
+    CString text = pThis->GetText();
+    BuildCStringResult(pRet, (const wchar_t*)text);
+}
+
+// Symbol: ?SetAnimationList@CMFCRibbonStatusBarPane@@QEAAHIHK@Z
+extern "C" int MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAHIHK_Z(
+    CMFCRibbonStatusBarPane* pThis, UINT nAnimationListResID, int cxAnimation, DWORD dwAnimationSpeed) {
+    if (!pThis) return FALSE;
+    auto& state = g_statusPaneStates[pThis->GetID()];
+    state.hAnimationBitmap = nullptr;
+    state.cxAnimation = cxAnimation;
+    state.dwAnimationDelay = dwAnimationSpeed;
+    state.nAnimationCount = 0;
+    return (nAnimationListResID != 0);
+}
+
+// Symbol: ?SetAnimationList@CMFCRibbonStatusBarPane@@QEAAXPEAUHBITMAP__@@HK@Z
+extern "C" void MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAXPEAUHBITMAP____HK_Z(
+    CMFCRibbonStatusBarPane* pThis, HBITMAP hAnimationList, int cxAnimation, DWORD dwAnimationSpeed) {
+    if (!pThis) return;
+    auto& state = g_statusPaneStates[pThis->GetID()];
+    state.hAnimationBitmap = hAnimationList;
+    state.cxAnimation = cxAnimation;
+    state.dwAnimationDelay = dwAnimationSpeed;
+    state.nAnimationCount = 0;
+}
+
+// Symbol: ?StartAnimation@CMFCRibbonStatusBarPane@@QEAAXII@Z
+extern "C" void MS_ABI impl__StartAnimation_CMFCRibbonStatusBarPane__QEAAXII_Z(
+    CMFCRibbonStatusBarPane* pThis, UINT nAnimationDuration, UINT nAnimationDelay) {
+    if (!pThis) return;
+    auto& state = g_statusPaneStates[pThis->GetID()];
+    state.bAnimating = true;
+    state.nAnimationFrame = 0;
+    state.nAnimationCount = nAnimationDuration;
+    if (nAnimationDelay != 0) state.dwAnimationDelay = nAnimationDelay;
+}
+
+// Symbol: ?StopAnimation@CMFCRibbonStatusBarPane@@QEAAXXZ
+extern "C" void MS_ABI impl__StopAnimation_CMFCRibbonStatusBarPane__QEAAXXZ(CMFCRibbonStatusBarPane* pThis) {
+    if (!pThis) return;
+    g_statusPaneStates[pThis->GetID()].bAnimating = false;
 }
 
 //=============================================================================
