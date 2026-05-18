@@ -23,19 +23,50 @@
 IMPLEMENT_DYNAMIC(CMFCVisualManager, CObject)
 
 static CMFCVisualManager* g_pVisualManager = nullptr;
+static CRuntimeClass* g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
+
+static CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRTI) {
+    CRuntimeClass* pClass = pRTI;
+    if (pClass == nullptr || !pClass->IsDerivedFrom(RUNTIME_CLASS(CMFCVisualManager))) {
+        pClass = RUNTIME_CLASS(CMFCVisualManager);
+    }
+
+    CObject* pObject = pClass->CreateObject();
+    if (pObject != nullptr && pObject->IsKindOf(RUNTIME_CLASS(CMFCVisualManager))) {
+        return static_cast<CMFCVisualManager*>(pObject);
+    }
+
+    delete pObject;
+    return new CMFCVisualManager();
+}
 
 CMFCVisualManager::CMFCVisualManager() {
     memset(_visualmanager_padding, 0, sizeof(_visualmanager_padding));
+    if (g_pVisualManager == nullptr) {
+        g_pVisualManager = this;
+    }
 }
 
-CMFCVisualManager::~CMFCVisualManager() {}
+CMFCVisualManager::~CMFCVisualManager() {
+    if (g_pVisualManager == this) {
+        g_pVisualManager = nullptr;
+    }
+}
 
 CMFCVisualManager* CMFCVisualManager::GetInstance() {
-    if (!g_pVisualManager) g_pVisualManager = new CMFCVisualManager();
+    if (!g_pVisualManager) {
+        g_pVisualManager = CreateVisualManagerFromRuntimeClass(g_pDefaultVisualManagerClass);
+    }
     return g_pVisualManager;
 }
 
-void CMFCVisualManager::SetDefaultManager(CRuntimeClass* pRTI) { (void)pRTI; }
+void CMFCVisualManager::SetDefaultManager(CRuntimeClass* pRTI) {
+    g_pDefaultVisualManagerClass = pRTI;
+    if (g_pDefaultVisualManagerClass == nullptr ||
+        !g_pDefaultVisualManagerClass->IsDerivedFrom(RUNTIME_CLASS(CMFCVisualManager))) {
+        g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
+    }
+}
 
 void CMFCVisualManager::OnDrawMenuBorder(CDC*, CMFCPopupMenu*, CRect) {}
 void CMFCVisualManager::OnDrawMenuImage(CDC*, const CRect&, const CRect&) {}
@@ -117,8 +148,140 @@ void CMFCVisualManager::OnDrawTasksGroupAreaBorder(CDC*, CRect, BOOL, BOOL) {}
 void CMFCVisualManager::OnDrawTearOffCaption(CDC*, CRect, BOOL) {}
 void CMFCVisualManager::OnDrawToolBoxFrame(CDC*, const CRect&) {}
 
-COLORREF CMFCVisualManager::GetHighlightedColor(UINT) const { return RGB(0, 120, 215); }
-COLORREF CMFCVisualManager::GetThemeColor(COLORREF, int) { return RGB(0, 0, 0); }
+COLORREF CMFCVisualManager::GetHighlightedColor(UINT nColorIndex) const {
+    COLORREF clr = ::GetSysColor(static_cast<int>(nColorIndex));
+    if (clr == 0) {
+        clr = RGB(0, 120, 215);
+    }
+    return clr;
+}
+COLORREF CMFCVisualManager::GetThemeColor(COLORREF clrBase, int nIntensity) {
+    auto clampByte = [](int v) -> BYTE {
+        if (v < 0) return 0;
+        if (v > 255) return 255;
+        return static_cast<BYTE>(v);
+    };
+    const int delta = (nIntensity * 255) / 100;
+    return RGB(
+        clampByte(static_cast<int>(GetRValue(clrBase)) + delta),
+        clampByte(static_cast<int>(GetGValue(clrBase)) + delta),
+        clampByte(static_cast<int>(GetBValue(clrBase)) + delta));
+}
+
+// Symbol: ?AdjustFrames@CMFCVisualManager@@SAXXZ
+extern "C" void MS_ABI impl__AdjustFrames_CMFCVisualManager__SAXXZ() {
+}
+
+// Symbol: ?AdjustToolbars@CMFCVisualManager@@SAXXZ
+extern "C" void MS_ABI impl__AdjustToolbars_CMFCVisualManager__SAXXZ() {
+}
+
+// Symbol: ?CreateVisualManager@CMFCVisualManager@@KAPEAV1@PEAUCRuntimeClass@@@Z
+extern "C" CMFCVisualManager* MS_ABI impl__CreateVisualManager_CMFCVisualManager__KAPEAV1_PEAUCRuntimeClass___Z(CRuntimeClass* pRTI) {
+    return CreateVisualManagerFromRuntimeClass(pRTI);
+}
+
+// Symbol: ?DestroyInstance@CMFCVisualManager@@SAXH@Z
+extern "C" void MS_ABI impl__DestroyInstance_CMFCVisualManager__SAXH_Z(int) {
+    delete g_pVisualManager;
+    g_pVisualManager = nullptr;
+}
+
+// Symbol: ?CreateObject@CMFCVisualManager@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManager__SAPEAVCObject__XZ() { return new CMFCVisualManager(); }
+// Symbol: ?CreateObject@CMFCVisualManagerOffice2003@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOffice2003__SAPEAVCObject__XZ() { return new CMFCVisualManagerOffice2003(); }
+// Symbol: ?CreateObject@CMFCVisualManagerOffice2007@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOffice2007__SAPEAVCObject__XZ() { return new CMFCVisualManagerOffice2007(); }
+// Symbol: ?CreateObject@CMFCVisualManagerOfficeXP@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOfficeXP__SAPEAVCObject__XZ() { return new CMFCVisualManagerOfficeXP(); }
+// Symbol: ?CreateObject@CMFCVisualManagerVS2005@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerVS2005__SAPEAVCObject__XZ() { return new CMFCVisualManagerVS2005(); }
+// Symbol: ?CreateObject@CMFCVisualManagerWindows@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerWindows__SAPEAVCObject__XZ() { return new CMFCVisualManagerWindows(); }
+// Symbol: ?CreateObject@CMFCVisualManagerWindows7@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerWindows7__SAPEAVCObject__XZ() { return new CMFCVisualManagerWindows7(); }
+
+// Symbol: ?GetThisClass@CMFCVisualManager@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManager__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManager::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerOffice2003@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOffice2003__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerOffice2003::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerOffice2007@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOffice2007__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerOffice2007::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerOfficeXP@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOfficeXP__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerOfficeXP::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerVS2005@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerVS2005__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerVS2005::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerWindows@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerWindows__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerWindows::GetThisClass(); }
+// Symbol: ?GetThisClass@CMFCVisualManagerWindows7@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerWindows7__SAPEAUCRuntimeClass__XZ() { return CMFCVisualManagerWindows7::GetThisClass(); }
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManager@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManager__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManager* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManager::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOffice2003@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOffice2003__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerOffice2003* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerOffice2003::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOffice2007@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOffice2007__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerOffice2007* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerOffice2007::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOfficeXP@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOfficeXP__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerOfficeXP* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerOfficeXP::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerVS2005@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerVS2005__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerVS2005* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerVS2005::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerWindows@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerWindows__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerWindows* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerWindows::GetThisClass(); }
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerWindows7@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerWindows7__UEBAPEAUCRuntimeClass__XZ(CMFCVisualManagerWindows7* pThis) { return pThis ? pThis->GetRuntimeClass() : CMFCVisualManagerWindows7::GetThisClass(); }
+
+// Symbol: ?GetToolbarDisabledTextColor@CMFCVisualManager@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetToolbarDisabledTextColor_CMFCVisualManager__UEAAKXZ(CMFCVisualManager* pThis) {
+    return pThis ? pThis->GetHighlightedColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_GRAYTEXT);
+}
+
+// Symbol: ?GetToolbarHighlightColor@CMFCVisualManager@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetToolbarHighlightColor_CMFCVisualManager__UEAAKXZ(CMFCVisualManager* pThis) {
+    return pThis ? pThis->GetHighlightedColor(COLOR_HIGHLIGHT) : ::GetSysColor(COLOR_HIGHLIGHT);
+}
+
+// Symbol: ?GetShowAllMenuItemsHeight@CMFCVisualManager@@UEAAHPEAVCDC@@AEBVCSize@@@Z
+extern "C" int MS_ABI impl__GetShowAllMenuItemsHeight_CMFCVisualManager__UEAAHPEAVCDC__AEBVCSize___Z(
+    CMFCVisualManager* pThis, CDC* pDC, const CSize* pSize) {
+    (void)pThis;
+    (void)pDC;
+    return (pSize != nullptr && pSize->cy > 0) ? pSize->cy : 16;
+}
+
+// Symbol: ?OnDrawButtonBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
+extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(
+    void* /*class*/*, void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/) {}
+
+// Symbol: ?OnDrawButtonSeparator@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@H@Z
+extern "C" void MS_ABI impl__OnDrawButtonSeparator_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1_H_Z(
+    void* /*class*/*, void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/,
+    void*, void*, double, int, void*, void*, void**, unsigned char, void* /*class*/, int) {}
+
+// Symbol: ?OnDrawCaptionButton@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCCaptionButton@@HHHHH@Z
+extern "C" void MS_ABI impl__OnDrawCaptionButton_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCCaptionButton__HHHHH_Z(
+    void* /*class*/*, void* /*class*/*, int, int, int, int, int) {}
+
+// Symbol: ?OnDrawFloatingToolbarBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCBaseToolBar@@VCRect@@2@Z
+extern "C" void MS_ABI impl__OnDrawFloatingToolbarBorder_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCBaseToolBar__VCRect__2_Z(
+    void* /*class*/*, void* /*class*/*, void* /*class*/, void*) {}
+
+// Symbol: ?OnDrawMenuShadow@CMFCVisualManager@@UEAAXPEAVCDC@@AEBVCRect@@1HHHPEAVCBitmap@@2H@Z
+extern "C" void MS_ABI impl__OnDrawMenuShadow_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__1HHHPEAVCBitmap__2H_Z(
+    void* /*class*/*, const void* /*class*/*, const void* /*class*/*, int, int, int, void* /*class*/*, int, int) {}
+
+// Symbol: ?OnDrawRibbonCategoryScroll@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCRibbonCategoryScroll@@@Z
+extern "C" void MS_ABI impl__OnDrawRibbonCategoryScroll_CMFCVisualManager__UEAAXPEAVCDC__PEAVCRibbonCategoryScroll___Z(
+    void* /*class*/*, void* /*class*/*) {}
+
+// Symbol: ?OnDrawShowAllMenuItems@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
+extern "C" void MS_ABI impl__OnDrawShowAllMenuItems_CMFCVisualManager__UEAAXPEAVCDC__VCRect__W4AFX_BUTTON_STATE_1__Z(
+    void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/) {}
+
+// Symbol: ?OnDrawSpinButtons@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@HHPEAVCMFCSpinButtonCtrl@@@Z
+extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHPEAVCMFCSpinButtonCtrl___Z(
+    void* /*class*/*, void* /*class*/, int, int, void* /*class*/*) {}
 
 // Office variant visual managers
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2003, CMFCVisualManager)
