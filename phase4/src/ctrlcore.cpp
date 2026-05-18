@@ -38,6 +38,9 @@ IMPLEMENT_DYNAMIC(CEdit, CWnd)
 IMPLEMENT_DYNAMIC(CStatic, CWnd)
 IMPLEMENT_DYNAMIC(CListBox, CWnd)
 IMPLEMENT_DYNAMIC(CComboBox, CWnd)
+IMPLEMENT_DYNAMIC(CCheckListBox, CListBox)
+IMPLEMENT_DYNAMIC(CDragListBox, CListBox)
+IMPLEMENT_DYNAMIC(CSplitButton, CButton)
 IMPLEMENT_DYNAMIC(CScrollBar, CWnd)
 IMPLEMENT_DYNAMIC(CSliderCtrl, CWnd)
 IMPLEMENT_DYNAMIC(CProgressCtrl, CWnd)
@@ -653,6 +656,231 @@ extern "C" void MS_ABI impl__ShowDropDown_CComboBox__QEAAXH_Z(CComboBox* pThis, 
 extern "C" int MS_ABI impl__GetDroppedState_CComboBox__QEBAHXZ(const CComboBox* pThis) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
     return (int)::SendMessageW(pThis->m_hWnd, CB_GETDROPPEDSTATE, 0, 0);
+}
+
+void CComboBox::GetLBText(int nIndex, CString& rString) const {
+    rString.Empty();
+    if (!m_hWnd) return;
+    int nLen = (int)::SendMessageW(m_hWnd, CB_GETLBTEXTLEN, nIndex, 0);
+    if (nLen < 0) return;
+    wchar_t* pBuf = rString.GetBuffer(nLen + 1);
+    int nCopied = (int)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)pBuf);
+    rString.ReleaseBuffer(nCopied >= 0 ? nCopied : 0);
+}
+
+// Symbol: ?GetLBText@CComboBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CComboBox* pThis, int nIndex, CString* pText) {
+    if (!pText) return;
+    if (!pThis) {
+        pText->Empty();
+        return;
+    }
+    pThis->GetLBText(nIndex, *pText);
+}
+
+namespace {
+using ItemStateMap = std::unordered_map<int, int>;
+static std::unordered_map<const CCheckListBox*, ItemStateMap> g_checkStates;
+static std::unordered_map<const CCheckListBox*, ItemStateMap> g_itemEnabledStates;
+static std::unordered_map<const CSplitButton*, HMENU> g_splitMenus;
+static std::unordered_map<const CDragListBox*, int> g_dragSourceItem;
+
+static int ListBoxItemFromPoint(HWND hWnd, CPoint pt) {
+    if (!hWnd) return LB_ERR;
+    DWORD hit = (DWORD)::SendMessageW(hWnd, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
+    if (HIWORD(hit) != 0) return LB_ERR;
+    return (int)LOWORD(hit);
+}
+}  // namespace
+
+int CCheckListBox::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned int nID) {
+    g_checkStates.erase(this);
+    g_itemEnabledStates.erase(this);
+    return CWnd::Create(L"LISTBOX", L"", dwStyle, rect, pParentWnd, nID);
+}
+
+CCheckListBox::~CCheckListBox() {
+    g_checkStates.erase(this);
+    g_itemEnabledStates.erase(this);
+}
+
+void CCheckListBox::SetCheck(int nIndex, int nCheck) {
+    if (nIndex < 0) return;
+    g_checkStates[this][nIndex] = (nCheck != 0) ? 1 : 0;
+}
+
+int CCheckListBox::GetCheck(int nIndex) {
+    if (nIndex < 0) return 0;
+    auto itBox = g_checkStates.find(this);
+    if (itBox == g_checkStates.end()) return 0;
+    auto itItem = itBox->second.find(nIndex);
+    return (itItem == itBox->second.end()) ? 0 : itItem->second;
+}
+
+void CCheckListBox::Enable(int nIndex, int bEnabled) {
+    if (nIndex < 0) return;
+    g_itemEnabledStates[this][nIndex] = (bEnabled != 0) ? 1 : 0;
+}
+
+int CCheckListBox::IsEnabled(int nIndex) {
+    if (nIndex < 0) return FALSE;
+    auto itBox = g_itemEnabledStates.find(this);
+    if (itBox == g_itemEnabledStates.end()) return TRUE;
+    auto itItem = itBox->second.find(nIndex);
+    return (itItem == itBox->second.end()) ? TRUE : itItem->second;
+}
+
+int CDragListBox::BeginDrag(CPoint pt) {
+    int nIndex = ListBoxItemFromPoint(m_hWnd, pt);
+    if (nIndex == LB_ERR) nIndex = GetCurSel();
+    if (nIndex == LB_ERR) return FALSE;
+    g_dragSourceItem[this] = nIndex;
+    return TRUE;
+}
+
+CDragListBox::~CDragListBox() {
+    g_dragSourceItem.erase(this);
+}
+
+void CDragListBox::CancelDrag(CPoint) {
+    g_dragSourceItem.erase(this);
+}
+
+unsigned int CDragListBox::Dragging(CPoint pt) {
+    return (unsigned int)ListBoxItemFromPoint(m_hWnd, pt);
+}
+
+void CDragListBox::Dropped(int nSrcIndex, CPoint pt) {
+    int nDst = ListBoxItemFromPoint(m_hWnd, pt);
+    if (nDst == LB_ERR) nDst = nSrcIndex;
+    if (nDst != LB_ERR) SetCurSel(nDst);
+    g_dragSourceItem.erase(this);
+}
+
+void CDragListBox::DrawInsert(int nItem) {
+    if (m_hWnd && nItem >= 0) ::SendMessageW(m_hWnd, LB_SETTOPINDEX, nItem, 0);
+}
+
+void CDragListBox::DrawSingle(int nItem) {
+    if (!m_hWnd || nItem < 0) return;
+    RECT rc = {};
+    if (::SendMessageW(m_hWnd, LB_GETITEMRECT, nItem, (LPARAM)&rc) != LB_ERR) {
+        ::InvalidateRect(m_hWnd, &rc, TRUE);
+    }
+}
+
+int CSplitButton::Create(const wchar_t* lpszCaption, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned int nID) {
+    return CButton::Create(lpszCaption, dwStyle | BS_SPLITBUTTON, rect, pParentWnd, nID);
+}
+
+CSplitButton::~CSplitButton() {
+    g_splitMenus.erase(this);
+}
+
+void CSplitButton::SetDropDownMenu(unsigned int nMenuId, unsigned int) {
+    g_splitMenus[this] = ::LoadMenuW(::GetModuleHandleW(nullptr), MAKEINTRESOURCEW(nMenuId));
+}
+
+void CSplitButton::SetDropDownMenu(CMenu* pMenu) {
+    g_splitMenus[this] = pMenu ? pMenu->m_hMenu : nullptr;
+}
+
+// Symbol: ?Create@CCheckListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CCheckListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CCheckListBox* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    return (pThis && pRect) ? pThis->Create(dwStyle, *pRect, pParentWnd, nID) : FALSE;
+}
+
+// Symbol: ?SetCheck@CCheckListBox@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetCheck_CCheckListBox__QEAAXHH_Z(CCheckListBox* pThis, int nIndex, int nCheck) {
+    if (pThis) pThis->SetCheck(nIndex, nCheck);
+}
+
+// Symbol: ?GetCheck@CCheckListBox@@QEAAHH@Z
+extern "C" int MS_ABI impl__GetCheck_CCheckListBox__QEAAHH_Z(CCheckListBox* pThis, int nIndex) {
+    return pThis ? pThis->GetCheck(nIndex) : 0;
+}
+
+// Symbol: ?SetSelectionCheck@CCheckListBox@@IEAAXH@Z
+extern "C" void MS_ABI impl__SetSelectionCheck_CCheckListBox__IEAAXH_Z(CCheckListBox* pThis, int nCheck) {
+    if (!pThis || !pThis->m_hWnd) return;
+    int nSel = (int)::SendMessageW(pThis->m_hWnd, LB_GETCURSEL, 0, 0);
+    if (nSel != LB_ERR) {
+        impl__SetCheck_CCheckListBox__QEAAXHH_Z(pThis, nSel, nCheck);
+    }
+}
+
+// Symbol: ?Enable@CCheckListBox@@QEAAXHH@Z
+extern "C" void MS_ABI impl__Enable_CCheckListBox__QEAAXHH_Z(CCheckListBox* pThis, int nIndex, int bEnabled) {
+    if (pThis) pThis->Enable(nIndex, bEnabled);
+}
+
+// Symbol: ?IsEnabled@CCheckListBox@@QEAAHH@Z
+extern "C" int MS_ABI impl__IsEnabled_CCheckListBox__QEAAHH_Z(CCheckListBox* pThis, int nIndex) {
+    return pThis ? pThis->IsEnabled(nIndex) : FALSE;
+}
+
+// Symbol: ?Create@CSplitButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CSplitButton__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z(
+    CSplitButton* pThis, const wchar_t* lpszCaption, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    return (pThis && pRect) ? pThis->Create(lpszCaption, dwStyle, *pRect, pParentWnd, nID) : FALSE;
+}
+
+// Symbol: ?SetDropDownMenu@CSplitButton@@QEAAXII@Z
+extern "C" void MS_ABI impl__SetDropDownMenu_CSplitButton__QEAAXII_Z(CSplitButton* pThis, unsigned int nMenuId, unsigned int nSubMenu) {
+    if (pThis) pThis->SetDropDownMenu(nMenuId, nSubMenu);
+}
+
+// Symbol: ?SetDropDownMenu@CSplitButton@@QEAAXPEAVCMenu@@@Z
+extern "C" void MS_ABI impl__SetDropDownMenu_CSplitButton__QEAAXPEAVCMenu___Z(CSplitButton* pThis, CMenu* pMenu) {
+    if (pThis) pThis->SetDropDownMenu(pMenu);
+}
+
+// Symbol: ?Cleanup@CSplitButton@@IEAAXXZ
+extern "C" void MS_ABI impl__Cleanup_CSplitButton__IEAAXXZ(CSplitButton* pThis) {
+    if (!pThis) return;
+    g_splitMenus.erase(pThis);
+}
+
+// Symbol: ??1CSplitButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CSplitButton__UEAA_XZ(CSplitButton* pThis) {
+    if (pThis) pThis->~CSplitButton();
+}
+
+// Symbol: ?BeginDrag@CDragListBox@@UEAAHVCPoint@@@Z
+extern "C" int MS_ABI impl__BeginDrag_CDragListBox__UEAAHVCPoint___Z(CDragListBox* pThis, CPoint pt) {
+    return pThis ? pThis->BeginDrag(pt) : FALSE;
+}
+
+// Symbol: ?CancelDrag@CDragListBox@@UEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__CancelDrag_CDragListBox__UEAAXVCPoint___Z(CDragListBox* pThis, CPoint pt) {
+    if (pThis) pThis->CancelDrag(pt);
+}
+
+// Symbol: ?Dragging@CDragListBox@@UEAAIVCPoint@@@Z
+extern "C" unsigned int MS_ABI impl__Dragging_CDragListBox__UEAAIVCPoint___Z(CDragListBox* pThis, CPoint pt) {
+    return pThis ? pThis->Dragging(pt) : (unsigned int)LB_ERR;
+}
+
+// Symbol: ?Dropped@CDragListBox@@UEAAXHVCPoint@@@Z
+extern "C" void MS_ABI impl__Dropped_CDragListBox__UEAAXHVCPoint___Z(CDragListBox* pThis, int nSrcIndex, CPoint pt) {
+    if (pThis) pThis->Dropped(nSrcIndex, pt);
+}
+
+// Symbol: ?DrawInsert@CDragListBox@@UEAAXH@Z
+extern "C" void MS_ABI impl__DrawInsert_CDragListBox__UEAAXH_Z(CDragListBox* pThis, int nItem) {
+    if (pThis) pThis->DrawInsert(nItem);
+}
+
+// Symbol: ?DrawSingle@CDragListBox@@QEAAXH@Z
+extern "C" void MS_ABI impl__DrawSingle_CDragListBox__QEAAXH_Z(CDragListBox* pThis, int nItem) {
+    if (pThis) pThis->DrawSingle(nItem);
+}
+
+// Symbol: ??1CDragListBox@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDragListBox__UEAA_XZ(CDragListBox* pThis) {
+    if (pThis) pThis->~CDragListBox();
 }
 
 // =============================================================================
