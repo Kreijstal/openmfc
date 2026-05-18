@@ -1976,3 +1976,307 @@ extern "C" void MS_ABI impl__OnInsertRow_CDockSite__UEAAXPEAU__POSITION___Z(void
 
 // Symbol: ?OnRemoveRow@CDockSite@@UEAAXPEAU__POSITION@@H@Z
 extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void*, void*, int) {}
+
+namespace {
+struct FrameImplState {
+    CFrameWnd* ownerFrame = nullptr;
+    void* menuBar = nullptr;
+};
+
+std::mutex g_featurePackStateMutex;
+std::unordered_map<void*, FrameImplState> g_frameImplStates;
+std::unordered_map<void*, std::wstring> g_taskbarTabText;
+
+CRuntimeClass g_cmdiClientAreaRuntimeClass = {
+    "CMDIClientAreaWnd",
+    sizeof(void*),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    &CWnd::classCWnd,
+    nullptr
+};
+} // namespace
+
+// Symbol: ??0CFrameImpl@@QEAA@PEAVCFrameWnd@@@Z
+extern "C" void* MS_ABI impl___0CFrameImpl__QEAA_PEAVCFrameWnd___Z(void* pThis, CFrameWnd* pFrame) {
+    if (pThis == nullptr) {
+        return nullptr;
+    }
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    g_frameImplStates[pThis] = FrameImplState{pFrame, nullptr};
+    return pThis;
+}
+
+// Symbol: ??1CFrameImpl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CFrameImpl__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    g_frameImplStates.erase(pThis);
+}
+
+// Symbol: ??0CMDIClientAreaWnd@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMDIClientAreaWnd__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??1CMDIClientAreaWnd@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMDIClientAreaWnd__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?CreateObject@CFrameWndEx@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CFrameWndEx__SAPEAVCObject__XZ() {
+    return new CFrameWndEx();
+}
+
+// Symbol: ?GetThisClass@CFrameWndEx@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWndEx__SAPEAUCRuntimeClass__XZ() {
+    return &CFrameWndEx::classCFrameWndEx;
+}
+
+// Symbol: ?GetRuntimeClass@CFrameWndEx@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFrameWndEx__UEBAPEAUCRuntimeClass__XZ(CFrameWndEx* pThis) {
+    return pThis ? &CFrameWndEx::classCFrameWndEx : nullptr;
+}
+
+// Symbol: ?CreateObject@CMDIFrameWndEx@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMDIFrameWndEx__SAPEAVCObject__XZ() {
+    return new CMDIFrameWndEx();
+}
+
+// Symbol: ?GetThisClass@CMDIFrameWndEx@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIFrameWndEx__SAPEAUCRuntimeClass__XZ() {
+    return &CMDIFrameWndEx::classCMDIFrameWndEx;
+}
+
+// Symbol: ?GetRuntimeClass@CMDIFrameWndEx@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIFrameWndEx__UEBAPEAUCRuntimeClass__XZ(CMDIFrameWndEx* pThis) {
+    return pThis ? &CMDIFrameWndEx::classCMDIFrameWndEx : nullptr;
+}
+
+// Symbol: ?CreateObject@CMDIChildWndEx@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMDIChildWndEx__SAPEAVCObject__XZ() {
+    return new CMDIChildWndEx();
+}
+
+// Symbol: ?GetThisClass@CMDIChildWndEx@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIChildWndEx__SAPEAUCRuntimeClass__XZ() {
+    return &CMDIChildWndEx::classCMDIChildWndEx;
+}
+
+// Symbol: ?GetRuntimeClass@CMDIChildWndEx@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIChildWndEx__UEBAPEAUCRuntimeClass__XZ(CMDIChildWndEx* pThis) {
+    return pThis ? &CMDIChildWndEx::classCMDIChildWndEx : nullptr;
+}
+
+// Symbol: ?GetThisClass@CMDIClientAreaWnd@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIClientAreaWnd__SAPEAUCRuntimeClass__XZ() {
+    return &g_cmdiClientAreaRuntimeClass;
+}
+
+// Symbol: ?GetRuntimeClass@CMDIClientAreaWnd@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIClientAreaWnd__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
+    return pThis ? &g_cmdiClientAreaRuntimeClass : nullptr;
+}
+
+// Symbol: ?LoadFrame@CMDIFrameWndEx@@UEAAHIKPEAVCWnd@@PEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__LoadFrame_CMDIFrameWndEx__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
+    CMDIFrameWndEx* pThis, UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext) {
+    return pThis ? pThis->CFrameWnd::LoadFrame(nIDResource, dwDefaultStyle, pParentWnd, pContext) : FALSE;
+}
+
+// Symbol: ?EnableDocking@CMDIFrameWndEx@@QEAAHK@Z
+extern "C" int MS_ABI impl__EnableDocking_CMDIFrameWndEx__QEAAHK_Z(CMDIFrameWndEx* pThis, DWORD dwDockStyle) {
+    if (!pThis) {
+        return FALSE;
+    }
+    pThis->CFrameWnd::EnableDocking(dwDockStyle);
+    return TRUE;
+}
+
+// Symbol: ?EnableDocking@CMDIChildWndEx@@QEAAHK@Z
+extern "C" int MS_ABI impl__EnableDocking_CMDIChildWndEx__QEAAHK_Z(CMDIChildWndEx* pThis, DWORD dwDockStyle) {
+    if (!pThis) {
+        return FALSE;
+    }
+    pThis->CFrameWnd::EnableDocking(dwDockStyle);
+    return TRUE;
+}
+
+// Symbol: ?OnShowPopupMenu@CFrameWndEx@@UEAAHPEAVCMFCPopupMenu@@@Z
+extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameWndEx__UEAAHPEAVCMFCPopupMenu___Z(CFrameWndEx* pThis, void* pPopup) {
+    (void)pThis;
+    (void)pPopup;
+    return FALSE;
+}
+
+// Symbol: ?OnClosePopupMenu@CFrameWndEx@@UEAAXPEAVCMFCPopupMenu@@@Z
+extern "C" void MS_ABI impl__OnClosePopupMenu_CFrameWndEx__UEAAXPEAVCMFCPopupMenu___Z(CFrameWndEx* pThis, void* pPopup) {
+    (void)pThis;
+    (void)pPopup;
+}
+
+// Symbol: ?OnShowPanes@CFrameWndEx@@UEAAHH@Z
+extern "C" int MS_ABI impl__OnShowPanes_CFrameWndEx__UEAAHH_Z(CFrameWndEx* pThis, int bShow) {
+    (void)pThis;
+    (void)bShow;
+    return TRUE;
+}
+
+// Symbol: ?OnToolbarCreateNew@CFrameWndEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_CFrameWndEx__QEAA_J_K_J_Z(CFrameWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnShowPopupMenu@CMDIFrameWndEx@@UEAAHPEAVCMFCPopupMenu@@@Z
+extern "C" int MS_ABI impl__OnShowPopupMenu_CMDIFrameWndEx__UEAAHPEAVCMFCPopupMenu___Z(CMDIFrameWndEx* pThis, void* pPopup) {
+    (void)pThis;
+    (void)pPopup;
+    return FALSE;
+}
+
+// Symbol: ?OnClosePopupMenu@CMDIFrameWndEx@@UEAAXPEAVCMFCPopupMenu@@@Z
+extern "C" void MS_ABI impl__OnClosePopupMenu_CMDIFrameWndEx__UEAAXPEAVCMFCPopupMenu___Z(CMDIFrameWndEx* pThis, void* pPopup) {
+    (void)pThis;
+    (void)pPopup;
+}
+
+// Symbol: ?OnShowPanes@CMDIFrameWndEx@@UEAAHH@Z
+extern "C" int MS_ABI impl__OnShowPanes_CMDIFrameWndEx__UEAAHH_Z(CMDIFrameWndEx* pThis, int bShow) {
+    (void)pThis;
+    (void)bShow;
+    return TRUE;
+}
+
+// Symbol: ?OnToolbarCreateNew@CMDIFrameWndEx@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_CMDIFrameWndEx__IEAA_J_K_J_Z(CMDIFrameWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnShowMDITabContextMenu@CMDIFrameWndEx@@UEAAHVCPoint@@KH@Z
+extern "C" int MS_ABI impl__OnShowMDITabContextMenu_CMDIFrameWndEx__UEAAHVCPoint__KH_Z(
+    CMDIFrameWndEx* pThis, const CPoint& point, DWORD dwAllowedItems, int bDrop) {
+    (void)pThis;
+    (void)point;
+    (void)dwAllowedItems;
+    (void)bDrop;
+    return FALSE;
+}
+
+// Symbol: ?RegisterTaskbarTab@CMDIChildWndEx@@UEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__RegisterTaskbarTab_CMDIChildWndEx__UEAAXPEAV1__Z(CMDIChildWndEx* pThis, CMDIChildWndEx* pTabWnd) {
+    (void)pThis;
+    (void)pTabWnd;
+}
+
+// Symbol: ?UnregisterTaskbarTab@CMDIChildWndEx@@QEAAXH@Z
+extern "C" void MS_ABI impl__UnregisterTaskbarTab_CMDIChildWndEx__QEAAXH_Z(CMDIChildWndEx* pThis, int bCheckRegisteredTab) {
+    (void)pThis;
+    (void)bCheckRegisteredTab;
+}
+
+// Symbol: ?SetTaskbarTabActive@CMDIChildWndEx@@QEAAXXZ
+extern "C" void MS_ABI impl__SetTaskbarTabActive_CMDIChildWndEx__QEAAXXZ(CMDIChildWndEx* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SetTaskbarTabOrder@CMDIChildWndEx@@QEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__SetTaskbarTabOrder_CMDIChildWndEx__QEAAXPEAV1__Z(CMDIChildWndEx* pThis, CMDIChildWndEx* pWndInsertBefore) {
+    (void)pThis;
+    (void)pWndInsertBefore;
+}
+
+// Symbol: ?SetTaskbarTabProperties@CMDIChildWndEx@@QEAAXK@Z
+extern "C" void MS_ABI impl__SetTaskbarTabProperties_CMDIChildWndEx__QEAAXK_Z(CMDIChildWndEx* pThis, DWORD dwFlags) {
+    (void)pThis;
+    (void)dwFlags;
+}
+
+// Symbol: ?SetTaskbarTabText@CMDIChildWndEx@@MEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetTaskbarTabText_CMDIChildWndEx__MEAAXPEB_W_Z(CMDIChildWndEx* pThis, const wchar_t* lpszTabText) {
+    if (!pThis) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    g_taskbarTabText[pThis] = lpszTabText ? lpszTabText : L"";
+}
+
+// Symbol: ?SetTaskbarThumbnailClipRect@CMDIChildWndEx@@MEAAHVCRect@@@Z
+extern "C" int MS_ABI impl__SetTaskbarThumbnailClipRect_CMDIChildWndEx__MEAAHVCRect___Z(CMDIChildWndEx* pThis, const CRect& rectClip) {
+    (void)pThis;
+    (void)rectClip;
+    return TRUE;
+}
+
+// Symbol: ?CanShowOnMDITabs@CMDIChildWndEx@@UEAAHXZ
+extern "C" int MS_ABI impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(CMDIChildWndEx* pThis) {
+    (void)pThis;
+    return TRUE;
+}
+
+// Symbol: ?OnShowPopupMenu@CFrameImpl@@IEAAHPEAVCMFCPopupMenu@@PEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
+    void* pThis, void* pPopupMenu, CFrameWnd* pWnd) {
+    (void)pThis;
+    (void)pPopupMenu;
+    (void)pWnd;
+    return FALSE;
+}
+
+// Symbol: ?OnShowCustomizePane@CFrameImpl@@IEAAHPEAVCMFCPopupMenu@@I@Z
+extern "C" int MS_ABI impl__OnShowCustomizePane_CFrameImpl__IEAAHPEAVCMFCPopupMenu__I_Z(
+    void* pThis, void* pMenuPopup, UINT uiToolbarID) {
+    (void)pThis;
+    (void)pMenuPopup;
+    (void)uiToolbarID;
+    return FALSE;
+}
+
+// Symbol: ?OnCloseFrame@CFrameImpl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCloseFrame_CFrameImpl__IEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnLoadFrame@CFrameImpl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnLoadFrame_CFrameImpl__IEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnChangeVisualManager@CFrameImpl@@QEAAXXZ
+extern "C" void MS_ABI impl__OnChangeVisualManager_CFrameImpl__QEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SetMenuBar@CFrameImpl@@IEAAXPEAVCMFCMenuBar@@@Z
+extern "C" void MS_ABI impl__SetMenuBar_CFrameImpl__IEAAXPEAVCMFCMenuBar___Z(void* pThis, void* pMenuBar) {
+    if (!pThis) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    g_frameImplStates[pThis].menuBar = pMenuBar;
+}
+
+// Symbol: ?OnUpdateTabs@CMDIClientAreaWnd@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnUpdateTabs_CMDIClientAreaWnd__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wParam, __int64 lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?UpdateTabs@CMDIClientAreaWnd@@QEAAXH@Z
+extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int bSetActiveTabVisible) {
+    (void)pThis;
+    (void)bSetActiveTabVisible;
+}
+
+// Symbol: ?SetTaskbarTabOrder@CMDIClientAreaWnd@@QEAAXXZ
+extern "C" void MS_ABI impl__SetTaskbarTabOrder_CMDIClientAreaWnd__QEAAXXZ(void* pThis) {
+    (void)pThis;
+}
