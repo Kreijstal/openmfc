@@ -4,8 +4,8 @@
 // All exports use MSVC ABI via extern "C" + .def aliasing.
 
 #define OPENMFC_APPCORE_IMPL
-#include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
+#include "openmfc/afxole.h"
 #include <commctrl.h>
 #include <algorithm>
 #include <cstring>
@@ -1572,8 +1572,6 @@ extern "C" void MS_ABI impl__StopAnimation_CMFCRibbonStatusBarPane__QEAAXXZ(CMFC
     g_statusPaneStates[pThis->GetID()].bAnimating = false;
 }
 
-
-//=============================================================================
 //=============================================================================
 // CToolBar / CStatusBar ABI wrappers
 // These provide proper // Symbol: exclusions for CString-returning methods.
