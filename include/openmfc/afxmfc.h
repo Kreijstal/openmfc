@@ -339,11 +339,17 @@ public:
     CMFCToolBarButton(UINT uiCmdID, int iImage, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE, BOOL bLocked = FALSE);
     virtual ~CMFCToolBarButton();
 
+    static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
+
     UINT m_nID;
     int m_iImage;
     CString m_strText;
     BOOL m_bUserButton;
     BOOL m_bLocked;
+
+    static CString m_strClipboardFormatName;
+    static BOOL m_bWrapText;
+    static BOOL m_bUpdateImages;
 
 protected:
     char _mfctoolbarbutton_padding[32];
@@ -377,6 +383,43 @@ public:
 
 protected:
     char _mfctoolbar_padding[128];
+};
+
+//=============================================================================
+// CMFCToolBarImages - Feature Pack toolbar image collection
+//=============================================================================
+class CMFCToolBarImages {
+public:
+    CMFCToolBarImages();
+    explicit CMFCToolBarImages(BOOL bReadOnly);
+    virtual ~CMFCToolBarImages();
+
+    BOOL Load(UINT nIDResource, HINSTANCE hInstRes = nullptr, BOOL bAdd = FALSE);
+    BOOL Load(const wchar_t* lpszBitmapFileName, DWORD dwMaxFileSize = 0);
+    BOOL LoadStr(const wchar_t* lpszResourceName, HINSTANCE hInstRes, BOOL bAdd = FALSE);
+    BOOL Save(const wchar_t* lpszBitmapFileName = nullptr);
+
+    int AddImage(HBITMAP hbmp, BOOL bSetBitmapSize = FALSE);
+    int AddImage(const CMFCToolBarImages& images, BOOL bSetBitmapSize = FALSE);
+    int AddIcon(HICON hIcon, BOOL bAutoDestroy = FALSE);
+
+    void Clear();
+    void Initialize();
+    void CommonInit(BOOL bFreeImageList = TRUE);
+
+    int GetCount() const;
+    BOOL IsValid() const;
+
+    BOOL m_bIsRTL;
+    BYTE m_nDisabledImageAlpha;
+    BYTE m_nFadedImageAlpha;
+
+    static BOOL m_bDisableTrueColorAlpha;
+    static BOOL m_bIsDrawOnGlass;
+    static BOOL m_bMultiThreaded;
+
+protected:
+    char _mfctoolbarimages_padding[64];
 };
 
 //=============================================================================
@@ -756,13 +799,72 @@ public:
 
 class CMFCToolBarComboBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarComboBoxButton)
-public: CMFCToolBarComboBoxButton(); CMFCToolBarComboBoxButton(UINT, int, ULONG, int) : CMFCToolBarComboBoxButton() {} virtual ~CMFCToolBarComboBoxButton(); char _pad[32]; };
+public:
+    CMFCToolBarComboBoxButton();
+    CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0) : CMFCToolBarComboBoxButton() {}
+    virtual ~CMFCToolBarComboBoxButton();
+
+    virtual INT_PTR AddItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
+    virtual INT_PTR AddSortedItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
+    virtual int Compare(const wchar_t* lpszItem1, const wchar_t* lpszItem2);
+    BOOL DeleteItem(int nIndex);
+    BOOL DeleteItem(DWORD_PTR dwData);
+    BOOL DeleteItem(const wchar_t* lpszText);
+    int FindItem(const wchar_t* lpszText) const;
+    const wchar_t* GetItem(int nIndex = -1) const;
+    INT_PTR GetCount() const;
+    DWORD_PTR GetItemData(int nIndex = -1) const;
+    BOOL SelectItem(const wchar_t* lpszItem);
+    BOOL SelectItem(int nIndex, BOOL bNotify = TRUE);
+    BOOL SelectItem(DWORD_PTR dwData);
+    void SetText(const wchar_t* lpszText);
+
+    static CMFCToolBarComboBoxButton* GetByCmd(UINT uiCmd, BOOL bIsFocus = FALSE);
+    static int GetCountAll(UINT uiCmd);
+    static int GetCurSelAll(UINT uiCmd);
+    static const wchar_t* GetItemAll(UINT uiCmd, int iIndex);
+    static DWORD_PTR GetItemDataAll(UINT uiCmd, int iIndex);
+    static const wchar_t* GetTextAll(UINT uiCmd);
+    static BOOL SelectItemAll(UINT uiCmd, const wchar_t* lpszText);
+    static BOOL SelectItemAll(UINT uiCmd, int nIndex);
+    static BOOL SelectItemAll(UINT uiCmd, DWORD_PTR dwData);
+
+    BOOL m_bFlat;
+    BOOL m_bCenterVert;
+
+    char _pad[32];
+};
+
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarEditBoxButton)
-public: CMFCToolBarEditBoxButton(); CMFCToolBarEditBoxButton(UINT, int, ULONG, int) : CMFCToolBarEditBoxButton() {} virtual ~CMFCToolBarEditBoxButton(); char _pad[32]; };
+public:
+    CMFCToolBarEditBoxButton();
+    CMFCToolBarEditBoxButton(UINT uiID, int iImage, ULONG dwStyle = ES_AUTOHSCROLL, int iWidth = 0) : CMFCToolBarEditBoxButton() {}
+    virtual ~CMFCToolBarEditBoxButton();
+
+    virtual void SetContents(const CString& sContents);
+
+    static CMFCToolBarEditBoxButton* GetByCmd(UINT uiCmd);
+    static CString GetContentsAll(UINT uiCmd);
+    static BOOL SetContentsAll(UINT uiCmd, const CString& sContents);
+
+    BOOL m_bFlat;
+
+    char _pad[32];
+};
+
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarMenuButton)
-public: CMFCToolBarMenuButton(); virtual ~CMFCToolBarMenuButton(); HMENU m_hMenu; char _pad[64]; };
+public:
+    CMFCToolBarMenuButton();
+    CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE);
+    virtual ~CMFCToolBarMenuButton();
+
+    void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
+
+    HMENU m_hMenu;
+    char _pad[64];
+};
 
 class CMFCDesktopAlertWnd : public CWnd {
 public: CMFCDesktopAlertWnd() {} char _pad[16]; };
