@@ -1372,7 +1372,9 @@ private:
 //=============================================================================
 class COleControlSiteOrWnd {
 public:
+    HWND GetSafeHwnd() const;
     DWORD GetStyle() const;
+    DWORD GetExStyle() const;
     COleControlSite* m_pSite;
     CWnd* m_pWnd;
     char _olecontrolsiteorwnd_padding[16];
