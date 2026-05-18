@@ -5,8 +5,14 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxole.h"
+#include "openmfc/afxmfc.h"
 #include <commctrl.h>
+#include <algorithm>
 #include <cstring>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -21,6 +27,272 @@
 #ifndef ID_SEPARATOR
 #define ID_SEPARATOR 0
 #endif
+
+namespace {
+struct RibbonPanelState {
+    std::vector<CMFCRibbonBaseElement*> elements;
+};
+
+struct RibbonCategoryState {
+    std::vector<CMFCRibbonPanel*> panels;
+    std::unordered_set<CMFCRibbonPanel*> ownedPanels;
+};
+
+struct RibbonBarState {
+    std::vector<CMFCRibbonCategory*> categories;
+    std::unordered_set<CMFCRibbonCategory*> ownedCategories;
+    CMFCRibbonCategory* activeCategory = nullptr;
+};
+
+std::mutex g_ribbonMutex;
+std::unordered_map<CMFCRibbonPanel*, RibbonPanelState> g_ribbonPanels;
+std::unordered_map<CMFCRibbonCategory*, RibbonCategoryState> g_ribbonCategories;
+std::unordered_map<CMFCRibbonBar*, RibbonBarState> g_ribbonBars;
+} // namespace
+
+extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
+    if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    CMFCRibbonBar* bar = new(pThis) CMFCRibbonBar(bReplaceFrameCaption);
+    g_ribbonBars[bar] = RibbonBarState{};
+    return bar;
+}
+
+extern "C" void* MS_ABI impl___0CMFCRibbonCategory__IEAA_XZ(void* pThis) {
+    if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    CMFCRibbonCategory* category = new(pThis) CMFCRibbonCategory();
+    g_ribbonCategories[category] = RibbonCategoryState{};
+    return category;
+}
+
+extern "C" void MS_ABI impl___1CMFCRibbonPanel__UEAA_XZ(void* pThis) {
+    auto* panel = reinterpret_cast<CMFCRibbonPanel*>(pThis);
+    if (!panel) return;
+
+    {
+        std::lock_guard<std::mutex> lock(g_ribbonMutex);
+        g_ribbonPanels.erase(panel);
+        for (auto& [_, categoryState] : g_ribbonCategories) {
+            categoryState.ownedPanels.erase(panel);
+            auto& panels = categoryState.panels;
+            panels.erase(std::remove(panels.begin(), panels.end(), panel), panels.end());
+        }
+    }
+
+    panel->~CMFCRibbonPanel();
+}
+
+extern "C" void MS_ABI impl___1CMFCRibbonCategory__UEAA_XZ(void* pThis) {
+    auto* category = reinterpret_cast<CMFCRibbonCategory*>(pThis);
+    if (!category) return;
+
+    std::vector<CMFCRibbonPanel*> ownedPanels;
+    {
+        std::lock_guard<std::mutex> lock(g_ribbonMutex);
+        if (auto it = g_ribbonCategories.find(category); it != g_ribbonCategories.end()) {
+            ownedPanels.assign(it->second.ownedPanels.begin(), it->second.ownedPanels.end());
+            g_ribbonCategories.erase(it);
+        }
+        for (auto& [_, barState] : g_ribbonBars) {
+            if (barState.activeCategory == category) {
+                barState.activeCategory = nullptr;
+            }
+            barState.ownedCategories.erase(category);
+            auto& categories = barState.categories;
+            categories.erase(std::remove(categories.begin(), categories.end(), category), categories.end());
+        }
+    }
+
+    for (CMFCRibbonPanel* panel : ownedPanels) {
+        if (panel) {
+            impl___1CMFCRibbonPanel__UEAA_XZ(panel);
+            ::operator delete(panel);
+        }
+    }
+
+    category->~CMFCRibbonCategory();
+}
+
+extern "C" void MS_ABI impl___1CMFCRibbonBar__UEAA_XZ(void* pThis) {
+    auto* bar = reinterpret_cast<CMFCRibbonBar*>(pThis);
+    if (!bar) return;
+
+    std::vector<CMFCRibbonCategory*> ownedCategories;
+    {
+        std::lock_guard<std::mutex> lock(g_ribbonMutex);
+        if (auto it = g_ribbonBars.find(bar); it != g_ribbonBars.end()) {
+            ownedCategories.assign(it->second.ownedCategories.begin(), it->second.ownedCategories.end());
+            g_ribbonBars.erase(it);
+        }
+    }
+
+    for (CMFCRibbonCategory* category : ownedCategories) {
+        if (category) {
+            impl___1CMFCRibbonCategory__UEAA_XZ(category);
+            ::operator delete(category);
+        }
+    }
+
+    bar->~CMFCRibbonBar();
+}
+
+extern "C" void MS_ABI impl__Add_CMFCRibbonPanel__UEAAXPEAVCMFCRibbonBaseElement___Z(
+    CMFCRibbonPanel* pThis, CMFCRibbonBaseElement* pElement) {
+    if (!pThis || !pElement) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonPanels[pThis].elements.push_back(pElement);
+}
+
+extern "C" void MS_ABI impl__AddSeparator_CMFCRibbonPanel__UEAAXXZ(CMFCRibbonPanel* pThis) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonPanels[pThis].elements.push_back(nullptr);
+}
+
+extern "C" int MS_ABI impl__GetCount_CMFCRibbonPanel__QEBAHXZ(const CMFCRibbonPanel* pThis) {
+    if (!pThis) return 0;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonPanels.find(const_cast<CMFCRibbonPanel*>(pThis));
+    return (it == g_ribbonPanels.end()) ? 0 : static_cast<int>(it->second.elements.size());
+}
+
+extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetElement_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__H_Z(
+    const CMFCRibbonPanel* pThis, int nIndex) {
+    if (!pThis || nIndex < 0) return nullptr;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonPanels.find(const_cast<CMFCRibbonPanel*>(pThis));
+    if (it == g_ribbonPanels.end()) return nullptr;
+    const auto& elements = it->second.elements;
+    if (nIndex >= static_cast<int>(elements.size())) return nullptr;
+    return elements[static_cast<size_t>(nIndex)];
+}
+
+extern "C" CMFCRibbonPanel* MS_ABI impl__AddPanel_CMFCRibbonCategory__QEAAPEAVCMFCRibbonPanel__PEB_WPEAUHICON____PEAUCRuntimeClass___Z(
+    CMFCRibbonCategory* pThis, const wchar_t* lpszLabel, HICON__* hIcon, CRuntimeClass*) {
+    if (!pThis) return nullptr;
+
+    auto* panel = new CMFCRibbonPanel(lpszLabel, hIcon);
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto& state = g_ribbonCategories[pThis];
+    state.panels.push_back(panel);
+    state.ownedPanels.insert(panel);
+    g_ribbonPanels.try_emplace(panel);
+    return panel;
+}
+
+extern "C" CMFCRibbonPanel* MS_ABI impl__GetPanel_CMFCRibbonCategory__QEAAPEAVCMFCRibbonPanel__H_Z(
+    CMFCRibbonCategory* pThis, int nIndex) {
+    if (!pThis || nIndex < 0) return nullptr;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonCategories.find(pThis);
+    if (it == g_ribbonCategories.end()) return nullptr;
+    const auto& panels = it->second.panels;
+    if (nIndex >= static_cast<int>(panels.size())) return nullptr;
+    return panels[static_cast<size_t>(nIndex)];
+}
+
+extern "C" int MS_ABI impl__GetPanelCount_CMFCRibbonCategory__QEBAHXZ(const CMFCRibbonCategory* pThis) {
+    if (!pThis) return 0;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonCategories.find(const_cast<CMFCRibbonCategory*>(pThis));
+    return (it == g_ribbonCategories.end()) ? 0 : static_cast<int>(it->second.panels.size());
+}
+
+extern "C" CMFCRibbonCategory* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIIVCSize__1HPEAUCRuntimeClass___Z(
+    CMFCRibbonBar* pThis, const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage,
+    CSize sizeSmall, unsigned int uiAnimLargeImage, int nInsertAt, CRuntimeClass*) {
+    if (!pThis) return nullptr;
+
+    auto* category = new CMFCRibbonCategory(lpszName, uiSmallImage, uiLargeImage);
+    (void)sizeSmall;
+    (void)uiAnimLargeImage;
+
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto& state = g_ribbonBars[pThis];
+    auto insertPos = state.categories.end();
+    if (nInsertAt >= 0 && nInsertAt < static_cast<int>(state.categories.size())) {
+        insertPos = state.categories.begin() + nInsertAt;
+    }
+    state.categories.insert(insertPos, category);
+    state.ownedCategories.insert(category);
+    if (state.activeCategory == nullptr) {
+        state.activeCategory = category;
+    }
+    g_ribbonCategories.try_emplace(category);
+    return category;
+}
+
+extern "C" CMFCRibbonCategory* MS_ABI impl__GetCategory_CMFCRibbonBar__QEBAPEAVCMFCRibbonCategory__H_Z(
+    const CMFCRibbonBar* pThis, int nIndex) {
+    if (!pThis || nIndex < 0) return nullptr;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonBars.find(const_cast<CMFCRibbonBar*>(pThis));
+    if (it == g_ribbonBars.end()) return nullptr;
+    const auto& categories = it->second.categories;
+    if (nIndex >= static_cast<int>(categories.size())) return nullptr;
+    return categories[static_cast<size_t>(nIndex)];
+}
+
+extern "C" int MS_ABI impl__GetCategoryCount_CMFCRibbonBar__QEBAHXZ(const CMFCRibbonBar* pThis) {
+    if (!pThis) return 0;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto it = g_ribbonBars.find(const_cast<CMFCRibbonBar*>(pThis));
+    return (it == g_ribbonBars.end()) ? 0 : static_cast<int>(it->second.categories.size());
+}
+
+extern "C" int MS_ABI impl__SetActiveCategory_CMFCRibbonBar__UEAAHPEAVCMFCRibbonCategory__H_Z(
+    CMFCRibbonBar* pThis, CMFCRibbonCategory* pCategory, int) {
+    if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto& state = g_ribbonBars[pThis];
+    if (pCategory == nullptr) {
+        state.activeCategory = nullptr;
+        return TRUE;
+    }
+    auto it = std::find(state.categories.begin(), state.categories.end(), pCategory);
+    if (it == state.categories.end()) return FALSE;
+    state.activeCategory = pCategory;
+    return TRUE;
+}
+
+extern "C" void MS_ABI impl__AddToTabs_CMFCRibbonBar__QEAAXPEAVCMFCRibbonBaseElement___Z(
+    CMFCRibbonBar*, CMFCRibbonBaseElement*) {}
+
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonCategory__SAPEAVCObject__XZ() {
+    return CMFCRibbonCategory::GetThisClass()->CreateObject();
+}
+
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonPanel__SAPEAVCObject__XZ() {
+    return CMFCRibbonPanel::GetThisClass()->CreateObject();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonBar__UEBAPEAUCRuntimeClass__XZ(
+    const CMFCRibbonBar* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonBar::GetThisClass();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonCategory__UEBAPEAUCRuntimeClass__XZ(
+    const CMFCRibbonCategory* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonCategory::GetThisClass();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonPanel__UEBAPEAUCRuntimeClass__XZ(
+    const CMFCRibbonPanel* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonPanel::GetThisClass();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonBar__SAPEAUCRuntimeClass__XZ() {
+    return CMFCRibbonBar::GetThisClass();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonCategory__SAPEAUCRuntimeClass__XZ() {
+    return CMFCRibbonCategory::GetThisClass();
+}
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonPanel__SAPEAUCRuntimeClass__XZ() {
+    return CMFCRibbonPanel::GetThisClass();
+}
 
 //=============================================================================
 // CToolTipCtrl
