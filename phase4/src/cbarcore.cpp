@@ -11,6 +11,7 @@
 #include <cstring>
 #include <string>
 #include <mutex>
+#include <new>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -2282,5 +2283,102 @@ extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis,
 
 // Symbol: ?SetTaskbarTabOrder@CMDIClientAreaWnd@@QEAAXXZ
 extern "C" void MS_ABI impl__SetTaskbarTabOrder_CMDIClientAreaWnd__QEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+namespace {
+std::mutex g_statusBarTextMutex;
+std::unordered_map<const CMFCStatusBar*, std::unordered_map<int, std::wstring>> g_statusBarPaneText;
+
+std::mutex g_captionBarTextMutex;
+std::unordered_map<const void*, std::wstring> g_captionBarText;
+
+static CString GetStoredPaneText(const CMFCStatusBar* pThis, int nIndex) {
+    std::lock_guard<std::mutex> lock(g_statusBarTextMutex);
+    auto itBar = g_statusBarPaneText.find(pThis);
+    if (itBar == g_statusBarPaneText.end()) {
+        return CString();
+    }
+
+    auto itText = itBar->second.find(nIndex);
+    if (itText == itBar->second.end()) {
+        return CString();
+    }
+
+    return CString(itText->second.c_str());
+}
+} // namespace
+
+// Symbol: ?SetPaneText@CMFCStatusBar@@UEAAHHPEB_WH@Z
+extern "C" int MS_ABI impl__SetPaneText_CMFCStatusBar__UEAAHHPEB_WH_Z(
+    CMFCStatusBar* pThis, int nIndex, const wchar_t* lpszNewText, int bUpdate) {
+    if (!pThis) {
+        return FALSE;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(g_statusBarTextMutex);
+        g_statusBarPaneText[pThis][nIndex] = lpszNewText ? lpszNewText : L"";
+    }
+
+    return (int)static_cast<CStatusBar*>(pThis)->SetPaneText(nIndex, lpszNewText, bUpdate ? TRUE : FALSE);
+}
+
+// Symbol: ?GetPaneText@CMFCStatusBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetPaneText_CMFCStatusBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* __ret, const CMFCStatusBar* pThis, int nIndex) {
+    if (!__ret) {
+        return;
+    }
+
+    CString text;
+    if (pThis) {
+        text = static_cast<const CStatusBar*>(pThis)->GetPaneText(nIndex);
+    }
+
+    if (text.IsEmpty() && pThis) {
+        text = GetStoredPaneText(pThis, nIndex);
+    }
+
+    new(__ret) CString(text);
+}
+
+// Symbol: ?GetPaneText@CMFCStatusBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetPaneText_CMFCStatusBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CMFCStatusBar* pThis, int nIndex, CString* rString) {
+    if (!rString) {
+        return;
+    }
+
+    if (pThis) {
+        static_cast<const CStatusBar*>(pThis)->GetPaneText(nIndex, *rString);
+    } else {
+        *rString = CString();
+    }
+
+    if (rString->IsEmpty() && pThis) {
+        *rString = GetStoredPaneText(pThis, nIndex);
+    }
+}
+
+// Symbol: ?SetText@CMFCCaptionBar@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4BarElementAlignment@1@@Z
+extern "C" void MS_ABI impl__SetText_CMFCCaptionBar__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4BarElementAlignment_1__Z(
+    void* pThis, const CString* pText, int nAlignment) {
+    if (!pThis) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(g_captionBarTextMutex);
+    g_captionBarText[pThis] = pText ? (const wchar_t*)(*pText) : L"";
+    (void)nAlignment;
+}
+
+// Symbol: ?AdjustLayout@CMFCCaptionBar@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CMFCCaptionBar__MEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?RecalcLayout@CMFCCaptionBar@@MEAAXXZ
+extern "C" void MS_ABI impl__RecalcLayout_CMFCCaptionBar__MEAAXXZ(void* pThis) {
     (void)pThis;
 }

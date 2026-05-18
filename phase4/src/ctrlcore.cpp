@@ -5,7 +5,12 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxmfc.h"
 #include <windows.h>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -751,4 +756,90 @@ extern "C" int MS_ABI impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
     if (!pThis || !pRect) return FALSE;
     return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
         pThis, L"SysTabControl32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
+}
+
+namespace {
+struct TasksPaneGroupState {
+    std::wstring name;
+    int hasGripper;
+    int isSpecial;
+    void* icon;
+};
+
+struct TasksPaneState {
+    std::wstring caption;
+    std::vector<TasksPaneGroupState> groups;
+};
+
+std::mutex g_tasksPaneStateMutex;
+std::unordered_map<const CMFCTasksPane*, TasksPaneState> g_tasksPaneState;
+} // namespace
+
+// Symbol: ?AddGroup@CMFCTasksPane@@QEAAHHPEB_WHHPEAUHICON__@@@Z
+extern "C" int MS_ABI impl__AddGroup_CMFCTasksPane__QEAAHHPEB_WHHPEAUHICON_____Z(
+    CMFCTasksPane* pThis, int nGroup, const wchar_t* lpszName, int bBottomHasGripper, int bSpecial, void* hIcon) {
+    if (!pThis) {
+        return -1;
+    }
+
+    std::lock_guard<std::mutex> lock(g_tasksPaneStateMutex);
+    TasksPaneState& state = g_tasksPaneState[pThis];
+
+    TasksPaneGroupState group = {
+        lpszName ? lpszName : L"",
+        bBottomHasGripper ? TRUE : FALSE,
+        bSpecial ? TRUE : FALSE,
+        hIcon
+    };
+
+    if (nGroup >= 0 && nGroup <= (int)state.groups.size()) {
+        state.groups.insert(state.groups.begin() + nGroup, group);
+        return nGroup;
+    }
+
+    state.groups.push_back(group);
+    return (int)state.groups.size() - 1;
+}
+
+// Symbol: ?RemoveAllTasks@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__RemoveAllTasks_CMFCTasksPane__QEAAXH_Z(CMFCTasksPane* pThis, int nGroup) {
+    if (!pThis) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(g_tasksPaneStateMutex);
+    auto it = g_tasksPaneState.find(pThis);
+    if (it == g_tasksPaneState.end()) {
+        return;
+    }
+
+    if (nGroup < 0) {
+        it->second.groups.clear();
+        return;
+    }
+
+    if (nGroup < (int)it->second.groups.size()) {
+        it->second.groups.erase(it->second.groups.begin() + nGroup);
+    }
+}
+
+// Symbol: ?SetCaption@CMFCTasksPane@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetCaption_CMFCTasksPane__QEAAXPEB_W_Z(CMFCTasksPane* pThis, const wchar_t* lpszCaption) {
+    if (!pThis) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(g_tasksPaneStateMutex);
+    g_tasksPaneState[pThis].caption = lpszCaption ? lpszCaption : L"";
+}
+
+// Symbol: ?Show@CMFCPropertyGridProperty@@QEAAXHH@Z
+extern "C" void MS_ABI impl__Show_CMFCPropertyGridProperty__QEAAXHH_Z(
+    CMFCPropertyGridProperty* pThis, int bShow, int bAdjustLayout) {
+    if (!pThis) {
+        return;
+    }
+
+    pThis->Show(bShow ? TRUE : FALSE);
+    (void)bAdjustLayout;
 }
