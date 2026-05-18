@@ -3896,6 +3896,7 @@ static std::unordered_map<void*, PaneState> g_dividerPanes;
 static std::unordered_map<void*, PaneState> g_autoHideBarWindows;
 static std::unordered_map<void*, void*> g_paneToContainer;
 static std::unordered_map<void*, void*> g_paneToAutoHideButton;
+static std::unordered_map<void*, std::unique_ptr<int>> g_autoHideButtonStorage;
 static std::unordered_map<void*, AutoHideButtonState> g_autoHideButtons;
 
 static void AddUniquePane(PaneState& state, void* pane) {
@@ -3938,19 +3939,21 @@ extern "C" void* MS_ABI impl___0CMultiPaneFrameWnd__QEAA_XZ(void* pThis) {
 
 // Symbol: ??0CPaneContainer@@QEAA@PEAVCPaneContainerManager@@PEAVCDockablePane@@1PEAVCPaneDivider@@@Z
 extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
-    void* pThis, void* pManager, void* pLeftPane, void* pDivider) {
+    void* pThis, void* pManager, void* pFirstPane, void* pSecondPane, void* pDivider) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     PaneState& state = g_containerPanes[pThis];
-    AddUniquePane(state, pLeftPane);
+    AddUniquePane(state, pFirstPane);
+    AddUniquePane(state, pSecondPane);
     if (pManager) {
-        AddUniquePane(g_containerManagerPanes[pManager], pLeftPane);
+        AddUniquePane(g_containerManagerPanes[pManager], pFirstPane);
+        AddUniquePane(g_containerManagerPanes[pManager], pSecondPane);
     }
     if (pDivider) {
-        AddUniquePane(g_dividerPanes[pDivider], pLeftPane);
+        AddUniquePane(g_dividerPanes[pDivider], pFirstPane);
+        AddUniquePane(g_dividerPanes[pDivider], pSecondPane);
     }
-    if (pLeftPane) {
-        g_paneToContainer[pLeftPane] = pThis;
-    }
+    if (pFirstPane) g_paneToContainer[pFirstPane] = pThis;
+    if (pSecondPane) g_paneToContainer[pSecondPane] = pThis;
     return pThis;
 }
 
@@ -3978,7 +3981,18 @@ extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_XZ(void* pThis) {
 // Symbol: ??1CMFCAutoHideBar@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCAutoHideBar__UEAA_XZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_autoHideBarWindows.erase(pThis);
+    auto it = g_autoHideBarWindows.find(pThis);
+    if (it != g_autoHideBarWindows.end()) {
+        for (void* pane : it->second.panes) {
+            auto buttonIt = g_paneToAutoHideButton.find(pane);
+            if (buttonIt != g_paneToAutoHideButton.end()) {
+                g_autoHideButtons.erase(buttonIt->second);
+                g_paneToAutoHideButton.erase(buttonIt);
+            }
+            g_autoHideButtonStorage.erase(pane);
+        }
+        g_autoHideBarWindows.erase(it);
+    }
     return pThis;
 }
 
@@ -4024,8 +4038,11 @@ extern "C" void* MS_ABI impl__AddAutoHideWindow_CMFCAutoHideBar__QEAAPEAVCMFCAut
     (void)dwAlignment;
     AddUniquePane(g_autoHideBarWindows[pThis], pPane);
     if (pPane && g_paneToAutoHideButton.find(pPane) == g_paneToAutoHideButton.end()) {
-        g_paneToAutoHideButton[pPane] = pPane;
-        g_autoHideButtons[pPane] = { FALSE, FALSE };
+        auto storage = std::make_unique<int>(0);
+        void* buttonPtr = storage.get();
+        g_autoHideButtonStorage[pPane] = std::move(storage);
+        g_paneToAutoHideButton[pPane] = buttonPtr;
+        g_autoHideButtons[buttonPtr] = { FALSE, FALSE };
     }
     return pPane ? g_paneToAutoHideButton[pPane] : nullptr;
 }
@@ -4041,7 +4058,9 @@ extern "C" void* MS_ABI impl__ButtonFromAutoHideWindow_CMFCAutoHideBar__IEAAPEAV
 // Symbol: ?ButtonFromPoint@CMFCAutoHideBar@@IEAAPEAVCMFCAutoHideButton@@VCPoint@@@Z
 extern "C" void* MS_ABI impl__ButtonFromPoint_CMFCAutoHideBar__IEAAPEAVCMFCAutoHideButton__VCPoint___Z(void* pThis, CPoint) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    return FirstPane(g_autoHideBarWindows[pThis]);
+    void* pane = FirstPane(g_autoHideBarWindows[pThis]);
+    auto it = g_paneToAutoHideButton.find(pane);
+    return it == g_paneToAutoHideButton.end() ? nullptr : it->second;
 }
 
 // Symbol: ?GetFirstAHWindow@CMFCAutoHideBar@@QEAAPEAVCDockablePane@@XZ
