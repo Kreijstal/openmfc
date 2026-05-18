@@ -1978,14 +1978,15 @@ extern "C" void MS_ABI impl__OnInsertRow_CDockSite__UEAAXPEAU__POSITION___Z(void
 extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void*, void*, int) {}
 
 namespace {
+class CFrameImpl;
 struct FrameImplState {
     CFrameWnd* ownerFrame = nullptr;
     void* menuBar = nullptr;
 };
 
 std::mutex g_featurePackStateMutex;
-std::unordered_map<void*, FrameImplState> g_frameImplStates;
-std::unordered_map<void*, std::wstring> g_taskbarTabText;
+std::unordered_map<CFrameImpl*, FrameImplState> g_frameImplStates;
+std::unordered_map<CMDIChildWndEx*, std::wstring> g_taskbarTabText;
 
 CRuntimeClass g_cmdiClientAreaRuntimeClass = {
     "CMDIClientAreaWnd",
@@ -2003,15 +2004,17 @@ extern "C" void* MS_ABI impl___0CFrameImpl__QEAA_PEAVCFrameWnd___Z(void* pThis, 
     if (pThis == nullptr) {
         return nullptr;
     }
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
     std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
-    g_frameImplStates[pThis] = FrameImplState{pFrame, nullptr};
+    g_frameImplStates.insert_or_assign(frameImpl, FrameImplState{pFrame, nullptr});
     return pThis;
 }
 
 // Symbol: ??1CFrameImpl@@UEAA@XZ
 extern "C" void MS_ABI impl___1CFrameImpl__UEAA_XZ(void* pThis) {
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
     std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
-    g_frameImplStates.erase(pThis);
+    (void)g_frameImplStates.erase(frameImpl);
 }
 
 // Symbol: ??0CMDIClientAreaWnd@@QEAA@XZ
@@ -2258,8 +2261,9 @@ extern "C" void MS_ABI impl__SetMenuBar_CFrameImpl__IEAAXPEAVCMFCMenuBar___Z(voi
     if (!pThis) {
         return;
     }
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
     std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
-    g_frameImplStates[pThis].menuBar = pMenuBar;
+    g_frameImplStates[frameImpl].menuBar = pMenuBar;
 }
 
 // Symbol: ?OnUpdateTabs@CMDIClientAreaWnd@@IEAA_J_K_J@Z
