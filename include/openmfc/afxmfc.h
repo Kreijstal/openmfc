@@ -189,12 +189,76 @@ protected:
 };
 
 // Office variant visual managers (minimal stubs)
-class CMFCVisualManagerOffice2003 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOffice2003) public: CMFCVisualManagerOffice2003(); virtual ~CMFCVisualManagerOffice2003(); protected: char _pad[64]; };
-class CMFCVisualManagerOffice2007 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOffice2007) public: CMFCVisualManagerOffice2007(); virtual ~CMFCVisualManagerOffice2007(); protected: char _pad[64]; };
-class CMFCVisualManagerOfficeXP : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOfficeXP) public: CMFCVisualManagerOfficeXP(); virtual ~CMFCVisualManagerOfficeXP(); protected: char _pad[64]; };
-class CMFCVisualManagerVS2005 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerVS2005) public: CMFCVisualManagerVS2005(); virtual ~CMFCVisualManagerVS2005(); protected: char _pad[64]; };
-class CMFCVisualManagerWindows : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows) public: CMFCVisualManagerWindows(); CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {} virtual ~CMFCVisualManagerWindows(); protected: char _pad[64]; };
-class CMFCVisualManagerWindows7 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows7) public: CMFCVisualManagerWindows7(); virtual ~CMFCVisualManagerWindows7(); protected: char _pad[64]; };
+class CMFCVisualManagerOffice2003 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOffice2003)
+public:
+    CMFCVisualManagerOffice2003();
+    virtual ~CMFCVisualManagerOffice2003();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerOffice2007 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOffice2007)
+public:
+    enum Style {
+        Office2007_LunaBlue = 0,
+        Office2007_ObsidianBlack = 1,
+        Office2007_Silver = 2,
+        Office2007_Aqua = 3
+    };
+    CMFCVisualManagerOffice2007();
+    virtual ~CMFCVisualManagerOffice2007();
+    static CObject* AFXAPI CreateObject();
+    static int SetStyle(Style style, const wchar_t* lpszPath = nullptr);
+    static Style GetStyle();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerOfficeXP : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOfficeXP)
+public:
+    CMFCVisualManagerOfficeXP();
+    CMFCVisualManagerOfficeXP(int) : CMFCVisualManagerOfficeXP() {}
+    virtual ~CMFCVisualManagerOfficeXP();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerVS2005 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerVS2005)
+public:
+    CMFCVisualManagerVS2005();
+    virtual ~CMFCVisualManagerVS2005();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerWindows : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerWindows)
+public:
+    CMFCVisualManagerWindows();
+    CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {}
+    virtual ~CMFCVisualManagerWindows();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerWindows7 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerWindows7)
+public:
+    CMFCVisualManagerWindows7();
+    virtual ~CMFCVisualManagerWindows7();
+    static CObject* AFXAPI CreateObject();
+    static int SetStyle(const wchar_t* lpszPath);
+protected:
+    char _pad[64];
+};
 class CMFCVisualManagerAero : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerAero) public: CMFCVisualManagerAero(); virtual ~CMFCVisualManagerAero(); protected: char _pad[64]; };
 
 //=============================================================================

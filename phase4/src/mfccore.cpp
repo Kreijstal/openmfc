@@ -287,30 +287,207 @@ extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManager__UEAAXPEAVCDC__
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2003, CMFCVisualManager)
 CMFCVisualManagerOffice2003::CMFCVisualManagerOffice2003() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerOffice2003::~CMFCVisualManagerOffice2003() {}
+CObject* CMFCVisualManagerOffice2003::CreateObject() { return new CMFCVisualManagerOffice2003(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2007, CMFCVisualManager)
+static CMFCVisualManagerOffice2007::Style g_office2007Style = CMFCVisualManagerOffice2007::Office2007_LunaBlue;
 CMFCVisualManagerOffice2007::CMFCVisualManagerOffice2007() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerOffice2007::~CMFCVisualManagerOffice2007() {}
+CObject* CMFCVisualManagerOffice2007::CreateObject() { return new CMFCVisualManagerOffice2007(); }
+int CMFCVisualManagerOffice2007::SetStyle(CMFCVisualManagerOffice2007::Style style, const wchar_t*) {
+    g_office2007Style = style;
+    return TRUE;
+}
+CMFCVisualManagerOffice2007::Style CMFCVisualManagerOffice2007::GetStyle() { return g_office2007Style; }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOfficeXP, CMFCVisualManager)
 CMFCVisualManagerOfficeXP::CMFCVisualManagerOfficeXP() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerOfficeXP::~CMFCVisualManagerOfficeXP() {}
+CObject* CMFCVisualManagerOfficeXP::CreateObject() { return new CMFCVisualManagerOfficeXP(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerVS2005, CMFCVisualManager)
 CMFCVisualManagerVS2005::CMFCVisualManagerVS2005() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerVS2005::~CMFCVisualManagerVS2005() {}
+CObject* CMFCVisualManagerVS2005::CreateObject() { return new CMFCVisualManagerVS2005(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerWindows, CMFCVisualManager)
 CMFCVisualManagerWindows::CMFCVisualManagerWindows() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerWindows::~CMFCVisualManagerWindows() {}
+CObject* CMFCVisualManagerWindows::CreateObject() { return new CMFCVisualManagerWindows(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerWindows7, CMFCVisualManager)
 CMFCVisualManagerWindows7::CMFCVisualManagerWindows7() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerWindows7::~CMFCVisualManagerWindows7() {}
+CObject* CMFCVisualManagerWindows7::CreateObject() { return new CMFCVisualManagerWindows7(); }
+int CMFCVisualManagerWindows7::SetStyle(const wchar_t*) { return TRUE; }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerAero, CMFCVisualManager)
 CMFCVisualManagerAero::CMFCVisualManagerAero() { memset(_pad, 0, sizeof(_pad)); }
 CMFCVisualManagerAero::~CMFCVisualManagerAero() {}
+
+// Symbol: ??0CMFCVisualManagerOfficeXP@@IEAA@H@Z
+extern "C" void* MS_ABI impl___0CMFCVisualManagerOfficeXP__IEAA_H_Z(void* pThis, int) {
+    return new(pThis) CMFCVisualManagerOfficeXP();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerOffice2003@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOffice2003__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerOffice2003::CreateObject();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerOffice2007@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOffice2007__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerOffice2007::CreateObject();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerOfficeXP@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerOfficeXP__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerOfficeXP::CreateObject();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerVS2005@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerVS2005__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerVS2005::CreateObject();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerWindows@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerWindows__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerWindows::CreateObject();
+}
+
+// Symbol: ?CreateObject@CMFCVisualManagerWindows7@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManagerWindows7__SAPEAVCObject__XZ() {
+    return CMFCVisualManagerWindows7::CreateObject();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerOffice2003@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOffice2003__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerOffice2003::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerOffice2007@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOffice2007__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerOffice2007::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerOfficeXP@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerOfficeXP__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerOfficeXP::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerVS2005@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerVS2005__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerVS2005::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerWindows@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerWindows__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerWindows::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CMFCVisualManagerWindows7@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerWindows7__SAPEAUCRuntimeClass__XZ() {
+    return CMFCVisualManagerWindows7::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOffice2003@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOffice2003__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerOffice2003* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerOffice2003::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOffice2007@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOffice2007__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerOffice2007* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerOffice2007::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerOfficeXP@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerOfficeXP__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerOfficeXP* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerOfficeXP::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerVS2005@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerVS2005__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerVS2005* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerVS2005::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerWindows@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerWindows__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerWindows* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerWindows::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CMFCVisualManagerWindows7@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerWindows7__UEBAPEAUCRuntimeClass__XZ(const CMFCVisualManagerWindows7* pThis) {
+    return pThis != nullptr ? pThis->GetRuntimeClass() : CMFCVisualManagerWindows7::GetThisClass();
+}
+
+// Symbol: ?SetStyle@CMFCVisualManagerOffice2007@@SAHW4Style@1@PEB_W@Z
+extern "C" int MS_ABI impl__SetStyle_CMFCVisualManagerOffice2007__SAHW4Style_1_PEB_W_Z(int style, const wchar_t* lpszPath) {
+    return CMFCVisualManagerOffice2007::SetStyle((CMFCVisualManagerOffice2007::Style)style, lpszPath);
+}
+
+// Symbol: ?GetStyle@CMFCVisualManagerOffice2007@@SA?AW4Style@1@XZ
+extern "C" int MS_ABI impl__GetStyle_CMFCVisualManagerOffice2007__SA_AW4Style_1_XZ() {
+    return (int)CMFCVisualManagerOffice2007::GetStyle();
+}
+
+// Symbol: ?SetStyle@CMFCVisualManagerWindows7@@SAHPEB_W@Z
+extern "C" int MS_ABI impl__SetStyle_CMFCVisualManagerWindows7__SAHPEB_W_Z(const wchar_t* lpszPath) {
+    return CMFCVisualManagerWindows7::SetStyle(lpszPath);
+}
+
+// Symbol: ?OnDrawButtonBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    pThis->CMFCVisualManager::OnDrawButtonBorder(pDC, pButton, rect, state);
+}
+
+// Symbol: ?OnDrawButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    pThis->CMFCVisualManager::OnDrawButtonBorder(pDC, pButton, rect, state);
+}
+
+// Symbol: ?OnDrawButtonBorder@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    pThis->CMFCVisualManager::OnDrawButtonBorder(pDC, pButton, rect, state);
+}
+
+// Symbol: ?OnDrawComboDropButton@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CRect rect, int bDisabled, int bIsDropped, int bIsHighlighted, CMFCToolBarComboBoxButton* pButton) {
+    pThis->CMFCVisualManager::OnDrawComboDropButton(pDC, rect, bDisabled, bIsDropped, bIsHighlighted, pButton);
+}
+
+// Symbol: ?OnDrawComboDropButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect, int bDisabled, int bIsDropped, int bIsHighlighted, CMFCToolBarComboBoxButton* pButton) {
+    pThis->CMFCVisualManager::OnDrawComboDropButton(pDC, rect, bDisabled, bIsDropped, bIsHighlighted, pButton);
+}
+
+// Symbol: ?OnDrawComboDropButton@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerWindows7__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CRect rect, int bDisabled, int bIsDropped, int bIsHighlighted, CMFCToolBarComboBoxButton* pButton) {
+    pThis->CMFCVisualManager::OnDrawComboDropButton(pDC, rect, bDisabled, bIsDropped, bIsHighlighted, pButton);
+}
+
+// Symbol: ?OnDrawMenuBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCPopupMenu@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCPopupMenu__VCRect___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCPopupMenu* pMenu, CRect rect) {
+    pThis->CMFCVisualManager::OnDrawMenuBorder(pDC, pMenu, rect);
+}
+
+// Symbol: ?OnDrawMenuBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCPopupMenu@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCPopupMenu__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCPopupMenu* pMenu, CRect rect) {
+    pThis->CMFCVisualManager::OnDrawMenuBorder(pDC, pMenu, rect);
+}
+
+// Symbol: ?OnDrawMenuBorder@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCPopupMenu@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCPopupMenu__VCRect___Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCPopupMenu* pMenu, CRect rect) {
+    pThis->CMFCVisualManager::OnDrawMenuBorder(pDC, pMenu, rect);
+}
 
 //=============================================================================
 // CBasePane
