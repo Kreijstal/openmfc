@@ -697,6 +697,24 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 
 // CWinApp methods are defined inline in afxwin.h
 // Source-backed defaults are provided here for _AFXDLL consumers.
+extern CWinApp* g_pApp;
+
+CWinApp::CWinApp(const wchar_t* lpszAppName) {
+    m_pMainWnd = nullptr;
+    m_nThreadID = ::GetCurrentThreadId();
+    m_hThread = ::GetCurrentThread();
+    m_bAutoDelete = FALSE;
+    m_hInstance = nullptr;
+    m_lpCmdLine = nullptr;
+    m_nCmdShow = SW_SHOW;
+    m_pszAppName = lpszAppName;
+    m_pszExeName = nullptr;
+    m_pszHelpFilePath = nullptr;
+    m_pszProfileName = nullptr;
+    m_pszRegistryKey = nullptr;
+    memset(&m_msgCur, 0, sizeof(m_msgCur));
+    g_pApp = this;
+}
 
 int CWinApp::InitApplication() {
     return TRUE;
@@ -762,6 +780,7 @@ extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const w
     pThis->m_pszHelpFilePath = nullptr;
     pThis->m_pszProfileName = nullptr;
     pThis->m_pszRegistryKey = nullptr;
+    memset(&pThis->m_msgCur, 0, sizeof(pThis->m_msgCur));
 
     // Register as the global app instance
     g_pApp = pThis;

@@ -10,7 +10,10 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
 #include <algorithm>
+#include <cwctype>
 #include <cstring>
+#include <cstdlib>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -145,11 +148,38 @@ struct MenuButtonState {
     bool userButton = false;
 };
 
+struct ContextMenuState {
+    std::unordered_map<UINT, HMENU> menusById;
+    std::unordered_map<UINT, HMENU> ownedMenusById;
+    std::unordered_map<std::wstring, UINT> idsByName;
+};
+
+struct TooltipManagerState {
+    UINT types = 0;
+    CRuntimeClass* runtimeClass = nullptr;
+    CMFCToolTipInfo* params = nullptr;
+};
+
+struct MenuHashState {
+    std::unordered_map<HMENU, CMFCToolBar*> barsByMenu;
+};
+
+struct WinAppExState {
+    std::unordered_map<std::wstring, int> ints;
+    std::unordered_map<std::wstring, CString> strings;
+    std::unordered_set<std::wstring> states;
+};
+
 thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
 thread_local std::unordered_map<const CMFCMenuBar*, MenuBarState> g_menuBarStates;
 thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_popupMenuBarStates;
 thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
+thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_contextMenuStates;
+thread_local std::unordered_map<const CTooltipManager*, TooltipManagerState> g_tooltipManagerStates;
+thread_local std::unordered_map<const CMenuHash*, MenuHashState> g_menuHashStates;
+std::unordered_map<const CWinAppEx*, WinAppExState> g_winAppExStates;
 static BOOL g_forceMenuFocus = FALSE;
+static BOOL g_showAllAccelerators = FALSE;
 alignas(CFont) static unsigned char g_menuFontStorage[sizeof(CFont)] = {};
 static CFont* g_menuFontPtr = nullptr;
 
@@ -228,6 +258,38 @@ CFont& EnsureMenuFont() {
         g_menuFontPtr->m_hObject = nullptr;
     }
     return *g_menuFontPtr;
+}
+
+std::wstring WideKey(const wchar_t* value) {
+    return value ? std::wstring(value) : std::wstring();
+}
+
+std::wstring AppEntryKey(const wchar_t* section, const wchar_t* entry) {
+    std::wstring key = WideKey(section);
+    key.push_back(L'/');
+    key += WideKey(entry);
+    return key;
+}
+
+HMENU LoadMenuResource(UINT uiMenuResId, HMENU* pOwnedMenu) {
+    HMENU hMenu = ::LoadMenuW(AfxGetResourceHandle(), MAKEINTRESOURCEW(uiMenuResId));
+    if (hMenu) {
+        if (pOwnedMenu) *pOwnedMenu = hMenu;
+        HMENU hSubMenu = ::GetSubMenu(hMenu, 0);
+        return hSubMenu ? hSubMenu : hMenu;
+    }
+    hMenu = ::CreatePopupMenu();
+    if (pOwnedMenu) *pOwnedMenu = hMenu;
+    return hMenu;
+}
+
+void DestroyContextMenus(ContextMenuState& state) {
+    for (auto& entry : state.ownedMenusById) {
+        if (entry.second) ::DestroyMenu(entry.second);
+    }
+    state.menusById.clear();
+    state.ownedMenusById.clear();
+    state.idsByName.clear();
 }
 
 } // namespace
@@ -1891,6 +1953,326 @@ extern "C" void* MS_ABI impl___0CMFCToolBarMenuButtonsButton__QEAA_I_Z(void* pTh
 extern "C" void MS_ABI impl___1CMFCToolBarMenuButtonsButton__UEAA_XZ(CMFCToolBarMenuButtonsButton* pThis) {
     if (pThis) pThis->~CMFCToolBarMenuButtonsButton();
 }
+
+//=============================================================================
+// Feature Pack managers/settings helpers
+//=============================================================================
+IMPLEMENT_DYNAMIC(CContextMenuManager, CObject)
+
+CContextMenuManager::CContextMenuManager() { memset(_contextmenumanager_padding, 0, sizeof(_contextmenumanager_padding)); }
+CContextMenuManager::~CContextMenuManager() {
+    auto it = g_contextMenuStates.find(this);
+    if (it != g_contextMenuStates.end()) {
+        DestroyContextMenus(it->second);
+        g_contextMenuStates.erase(it);
+    }
+}
+
+BOOL CContextMenuManager::AddMenu(UINT uiMenuNameResId, UINT uiMenuResId) {
+    wchar_t buffer[32] = {};
+    _snwprintf(buffer, 32, L"%u", uiMenuNameResId);
+    return AddMenu(buffer, uiMenuResId);
+}
+
+BOOL CContextMenuManager::AddMenu(const wchar_t* lpszName, UINT uiMenuResId) {
+    ContextMenuState& state = g_contextMenuStates[this];
+    HMENU hOwnedMenu = nullptr;
+    HMENU hMenu = LoadMenuResource(uiMenuResId, &hOwnedMenu);
+    auto itOld = state.ownedMenusById.find(uiMenuResId);
+    if (itOld != state.ownedMenusById.end() && itOld->second && itOld->second != hOwnedMenu) {
+        ::DestroyMenu(itOld->second);
+    }
+    state.menusById[uiMenuResId] = hMenu;
+    state.ownedMenusById[uiMenuResId] = hOwnedMenu;
+    if (lpszName) state.idsByName[lpszName] = uiMenuResId;
+    return hMenu != nullptr;
+}
+
+HMENU CContextMenuManager::GetMenuById(UINT uiMenuResId) const {
+    auto itState = g_contextMenuStates.find(this);
+    if (itState == g_contextMenuStates.end()) return nullptr;
+    auto it = itState->second.menusById.find(uiMenuResId);
+    return it == itState->second.menusById.end() ? nullptr : it->second;
+}
+
+HMENU CContextMenuManager::GetMenuByName(const wchar_t* lpszName, UINT* puiMenuResId) const {
+    auto itState = g_contextMenuStates.find(this);
+    if (itState == g_contextMenuStates.end()) return nullptr;
+    auto it = itState->second.idsByName.find(WideKey(lpszName));
+    if (it == itState->second.idsByName.end()) return nullptr;
+    if (puiMenuResId) *puiMenuResId = it->second;
+    return GetMenuById(it->second);
+}
+
+void CContextMenuManager::GetMenuNames(CStringList& listOfNames) const {
+    auto itState = g_contextMenuStates.find(this);
+    if (itState == g_contextMenuStates.end()) return;
+    for (const auto& entry : itState->second.idsByName) {
+        listOfNames.AddTail(CString(entry.first.c_str()));
+    }
+}
+
+BOOL CContextMenuManager::ShowPopupMenu(UINT uiMenuResId, int x, int y, CWnd* pWndOwner, BOOL bOwnMessage, BOOL bRightAlign) {
+    HMENU hMenu = GetMenuById(uiMenuResId);
+    if (!hMenu) return FALSE;
+    return ShowPopupMenu(hMenu, x, y, pWndOwner, bOwnMessage, TRUE, bRightAlign) != nullptr;
+}
+
+CMFCPopupMenu* CContextMenuManager::ShowPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL, BOOL bAutoDestroy, BOOL) {
+    (void)bAutoDestroy;
+    if (!hmenuPopup) return nullptr;
+    CMFCPopupMenu* pPopup = new CMFCPopupMenu();
+    if (!pPopup->Create(pWndOwner, x, y, hmenuPopup, FALSE, FALSE)) {
+        delete pPopup;
+        return nullptr;
+    }
+    CMFCPopupMenu::ActivatePopupMenu(nullptr, pPopup);
+    return pPopup;
+}
+
+UINT CContextMenuManager::TrackPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL) {
+    if (!hmenuPopup) return 0;
+    return static_cast<UINT>(::TrackPopupMenu(hmenuPopup, TPM_RETURNCMD, x, y, 0, pWndOwner ? pWndOwner->GetSafeHwnd() : nullptr, nullptr));
+}
+
+BOOL CContextMenuManager::LoadState(const wchar_t*) { return TRUE; }
+BOOL CContextMenuManager::SaveState(const wchar_t*) { return TRUE; }
+BOOL CContextMenuManager::ResetState() {
+    auto& state = g_contextMenuStates[this];
+    DestroyContextMenus(state);
+    return TRUE;
+}
+
+// Symbol: ??0CContextMenuManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CContextMenuManager__QEAA_XZ(void* pThis) { return new (pThis) CContextMenuManager(); }
+// Symbol: ??1CContextMenuManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CContextMenuManager__UEAA_XZ(CContextMenuManager* pThis) { if (pThis) pThis->~CContextMenuManager(); }
+// Symbol: ?AddMenu@CContextMenuManager@@QEAAHII@Z
+extern "C" int MS_ABI impl__AddMenu_CContextMenuManager__QEAAHII_Z(CContextMenuManager* pThis, unsigned int nameId, unsigned int menuId) { return pThis ? pThis->AddMenu(nameId, menuId) : FALSE; }
+// Symbol: ?AddMenu@CContextMenuManager@@QEAAHPEB_WI@Z
+extern "C" int MS_ABI impl__AddMenu_CContextMenuManager__QEAAHPEB_WI_Z(CContextMenuManager* pThis, const wchar_t* name, unsigned int menuId) { return pThis ? pThis->AddMenu(name, menuId) : FALSE; }
+// Symbol: ?GetMenuById@CContextMenuManager@@QEBAPEAUHMENU__@@I@Z
+extern "C" HMENU MS_ABI impl__GetMenuById_CContextMenuManager__QEBAPEAUHMENU____I_Z(const CContextMenuManager* pThis, unsigned int id) { return pThis ? pThis->GetMenuById(id) : nullptr; }
+// Symbol: ?GetMenuByName@CContextMenuManager@@QEBAPEAUHMENU__@@PEB_WPEAI@Z
+extern "C" HMENU MS_ABI impl__GetMenuByName_CContextMenuManager__QEBAPEAUHMENU____PEB_WPEAI_Z(const CContextMenuManager* pThis, const wchar_t* name, unsigned int* id) { return pThis ? pThis->GetMenuByName(name, id) : nullptr; }
+// Symbol: ?GetMenuNames@CContextMenuManager@@QEBAXAEAVCStringList@@@Z
+extern "C" void MS_ABI impl__GetMenuNames_CContextMenuManager__QEBAXAEAVCStringList___Z(const CContextMenuManager* pThis, CStringList* list) { if (pThis && list) pThis->GetMenuNames(*list); }
+// Symbol: ?ShowPopupMenu@CContextMenuManager@@UEAAHIHHPEAVCWnd@@HH@Z
+extern "C" int MS_ABI impl__ShowPopupMenu_CContextMenuManager__UEAAHIHHPEAVCWnd__HH_Z(CContextMenuManager* pThis, unsigned int id, int x, int y, CWnd* owner, int own, int right) { return pThis ? pThis->ShowPopupMenu(id, x, y, owner, own, right) : FALSE; }
+// Symbol: ?ShowPopupMenu@CContextMenuManager@@UEAAPEAVCMFCPopupMenu@@PEAUHMENU__@@HHPEAVCWnd@@HHH@Z
+extern "C" CMFCPopupMenu* MS_ABI impl__ShowPopupMenu_CContextMenuManager__UEAAPEAVCMFCPopupMenu__PEAUHMENU____HHPEAVCWnd__HHH_Z(CContextMenuManager* pThis, HMENU menu, int x, int y, CWnd* owner, int own, int destroy, int right) { return pThis ? pThis->ShowPopupMenu(menu, x, y, owner, own, destroy, right) : nullptr; }
+// Symbol: ?TrackPopupMenu@CContextMenuManager@@UEAAIPEAUHMENU__@@HHPEAVCWnd@@H@Z
+extern "C" unsigned int MS_ABI impl__TrackPopupMenu_CContextMenuManager__UEAAIPEAUHMENU____HHPEAVCWnd__H_Z(CContextMenuManager* pThis, HMENU menu, int x, int y, CWnd* owner, int right) { return pThis ? pThis->TrackPopupMenu(menu, x, y, owner, right) : 0; }
+// Symbol: ?ResetState@CContextMenuManager@@UEAAHXZ
+extern "C" int MS_ABI impl__ResetState_CContextMenuManager__UEAAHXZ(CContextMenuManager* pThis) { return pThis ? pThis->ResetState() : FALSE; }
+// Symbol: ?LoadState@CContextMenuManager@@UEAAHPEB_W@Z
+extern "C" int MS_ABI impl__LoadState_CContextMenuManager__UEAAHPEB_W_Z(CContextMenuManager* pThis, const wchar_t* profile) { return pThis ? pThis->LoadState(profile) : FALSE; }
+// Symbol: ?SaveState@CContextMenuManager@@UEAAHPEB_W@Z
+extern "C" int MS_ABI impl__SaveState_CContextMenuManager__UEAAHPEB_W_Z(CContextMenuManager* pThis, const wchar_t* profile) { return pThis ? pThis->SaveState(profile) : FALSE; }
+
+IMPLEMENT_DYNAMIC(CKeyboardManager, CObject)
+CKeyboardManager::CKeyboardManager() { memset(_keyboardmanager_padding, 0, sizeof(_keyboardmanager_padding)); }
+CKeyboardManager::~CKeyboardManager() {}
+BOOL CKeyboardManager::IsKeyPrintable(UINT nChar) { return nChar >= 0x20 && nChar < 0x7f; }
+UINT CKeyboardManager::TranslateCharToUpper(UINT nChar) { return static_cast<UINT>(std::towupper(static_cast<wint_t>(nChar))); }
+void CKeyboardManager::ShowAllAccelerators(BOOL bShowAll) { g_showAllAccelerators = bShowAll; }
+void CKeyboardManager::CleanUp() { g_showAllAccelerators = FALSE; }
+void CKeyboardManager::ResetAll() { g_showAllAccelerators = FALSE; }
+BOOL CKeyboardManager::LoadState(const wchar_t*, CFrameWnd*) { return TRUE; }
+BOOL CKeyboardManager::SaveState(const wchar_t*, CFrameWnd*) { return TRUE; }
+// Symbol: ??0CKeyboardManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CKeyboardManager__QEAA_XZ(void* pThis) { return new (pThis) CKeyboardManager(); }
+// Symbol: ??1CKeyboardManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CKeyboardManager__UEAA_XZ(CKeyboardManager* pThis) { if (pThis) pThis->~CKeyboardManager(); }
+// Symbol: ?IsKeyPrintable@CKeyboardManager@@SAHI@Z
+extern "C" int MS_ABI impl__IsKeyPrintable_CKeyboardManager__SAHI_Z(unsigned int ch) { return CKeyboardManager::IsKeyPrintable(ch); }
+// Symbol: ?TranslateCharToUpper@CKeyboardManager@@SAII@Z
+extern "C" unsigned int MS_ABI impl__TranslateCharToUpper_CKeyboardManager__SAII_Z(unsigned int ch) { return CKeyboardManager::TranslateCharToUpper(ch); }
+// Symbol: ?ShowAllAccelerators@CKeyboardManager@@SAXH@Z
+extern "C" void MS_ABI impl__ShowAllAccelerators_CKeyboardManager__SAXH_Z(int show) { CKeyboardManager::ShowAllAccelerators(show); }
+// Symbol: ?CleanUp@CKeyboardManager@@SAXXZ
+extern "C" void MS_ABI impl__CleanUp_CKeyboardManager__SAXXZ() { CKeyboardManager::CleanUp(); }
+// Symbol: ?ResetAll@CKeyboardManager@@QEAAXXZ
+extern "C" void MS_ABI impl__ResetAll_CKeyboardManager__QEAAXXZ(CKeyboardManager* pThis) { if (pThis) pThis->ResetAll(); }
+// Symbol: ?LoadState@CKeyboardManager@@QEAAHPEB_WPEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__LoadState_CKeyboardManager__QEAAHPEB_WPEAVCFrameWnd___Z(CKeyboardManager* pThis, const wchar_t* profile, CFrameWnd* frame) { return pThis ? pThis->LoadState(profile, frame) : FALSE; }
+// Symbol: ?SaveState@CKeyboardManager@@QEAAHPEB_WPEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__SaveState_CKeyboardManager__QEAAHPEB_WPEAVCFrameWnd___Z(CKeyboardManager* pThis, const wchar_t* profile, CFrameWnd* frame) { return pThis ? pThis->SaveState(profile, frame) : FALSE; }
+
+IMPLEMENT_DYNAMIC(CTooltipManager, CObject)
+CTooltipManager::CTooltipManager() { memset(_tooltipmanager_padding, 0, sizeof(_tooltipmanager_padding)); }
+CTooltipManager::~CTooltipManager() { g_tooltipManagerStates.erase(this); }
+BOOL CTooltipManager::CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, UINT nType) {
+    const bool allocated = pToolTip == nullptr;
+    if (allocated) pToolTip = new CToolTipCtrl();
+    BOOL created = pToolTip->Create(pWndParent, nType);
+    if (!created && allocated) {
+        delete pToolTip;
+        pToolTip = nullptr;
+    }
+    return created;
+}
+void CTooltipManager::DeleteToolTip(CToolTipCtrl*& pToolTip) {
+    if (pToolTip) {
+        pToolTip->DestroyWindow();
+        delete pToolTip;
+        pToolTip = nullptr;
+    }
+}
+void CTooltipManager::SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC, CMFCToolTipInfo* pParams) {
+    TooltipManagerState& state = g_tooltipManagerStates[this];
+    state.types = nTypes; state.runtimeClass = pRTC; state.params = pParams;
+}
+void CTooltipManager::UpdateTooltips() {}
+// Symbol: ??0CTooltipManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CTooltipManager__QEAA_XZ(void* pThis) { return new (pThis) CTooltipManager(); }
+// Symbol: ??1CTooltipManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CTooltipManager__UEAA_XZ(CTooltipManager* pThis) { if (pThis) pThis->~CTooltipManager(); }
+// Symbol: ?CreateToolTip@CTooltipManager@@SAHAEAPEAVCToolTipCtrl@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(CToolTipCtrl** ppToolTip, CWnd* parent, unsigned int type) { return ppToolTip ? CTooltipManager::CreateToolTip(*ppToolTip, parent, type) : FALSE; }
+// Symbol: ?DeleteToolTip@CTooltipManager@@SAXAEAPEAVCToolTipCtrl@@@Z
+extern "C" void MS_ABI impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCtrl___Z(CToolTipCtrl** ppToolTip) { if (ppToolTip) CTooltipManager::DeleteToolTip(*ppToolTip); }
+// Symbol: ?UpdateTooltips@CTooltipManager@@QEAAXXZ
+extern "C" void MS_ABI impl__UpdateTooltips_CTooltipManager__QEAAXXZ(CTooltipManager* pThis) { if (pThis) pThis->UpdateTooltips(); }
+// Symbol: ?SetTooltipParams@CTooltipManager@@QEAAXIPEAUCRuntimeClass@@PEAVCMFCToolTipInfo@@@Z
+extern "C" void MS_ABI impl__SetTooltipParams_CTooltipManager__QEAAXIPEAUCRuntimeClass__PEAVCMFCToolTipInfo___Z(CTooltipManager* pThis, unsigned int types, CRuntimeClass* rtc, CMFCToolTipInfo* params) { if (pThis) pThis->SetTooltipParams(types, rtc, params); }
+
+IMPLEMENT_DYNAMIC(CMenuHash, CObject)
+CMenuHash::CMenuHash() { memset(_menuhash_padding, 0, sizeof(_menuhash_padding)); }
+CMenuHash::~CMenuHash() { g_menuHashStates.erase(this); }
+BOOL CMenuHash::LoadMenuBar(HMENU hMenu, CMFCToolBar* pBar) { g_menuHashStates[this].barsByMenu[hMenu] = pBar; return TRUE; }
+BOOL CMenuHash::SaveMenuBar(HMENU hMenu, CMFCToolBar* pBar) { g_menuHashStates[this].barsByMenu[hMenu] = pBar; return TRUE; }
+BOOL CMenuHash::RemoveMenu(HMENU hMenu) { return g_menuHashStates[this].barsByMenu.erase(hMenu) != 0; }
+void CMenuHash::CleanUp() { g_menuHashStates[this].barsByMenu.clear(); }
+// Symbol: ??0CMenuHash@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMenuHash__QEAA_XZ(void* pThis) { return new (pThis) CMenuHash(); }
+// Symbol: ??1CMenuHash@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMenuHash__UEAA_XZ(CMenuHash* pThis) { if (pThis) pThis->~CMenuHash(); }
+// Symbol: ?LoadMenuBar@CMenuHash@@QEAAHPEAUHMENU__@@PEAVCMFCToolBar@@@Z
+extern "C" int MS_ABI impl__LoadMenuBar_CMenuHash__QEAAHPEAUHMENU____PEAVCMFCToolBar___Z(CMenuHash* pThis, HMENU menu, CMFCToolBar* bar) { return pThis ? pThis->LoadMenuBar(menu, bar) : FALSE; }
+// Symbol: ?SaveMenuBar@CMenuHash@@QEAAHPEAUHMENU__@@PEAVCMFCToolBar@@@Z
+extern "C" int MS_ABI impl__SaveMenuBar_CMenuHash__QEAAHPEAUHMENU____PEAVCMFCToolBar___Z(CMenuHash* pThis, HMENU menu, CMFCToolBar* bar) { return pThis ? pThis->SaveMenuBar(menu, bar) : FALSE; }
+// Symbol: ?RemoveMenu@CMenuHash@@QEAAHPEAUHMENU__@@@Z
+extern "C" int MS_ABI impl__RemoveMenu_CMenuHash__QEAAHPEAUHMENU_____Z(CMenuHash* pThis, HMENU menu) { return pThis ? pThis->RemoveMenu(menu) : FALSE; }
+// Symbol: ?CleanUp@CMenuHash@@QEAAXXZ
+extern "C" void MS_ABI impl__CleanUp_CMenuHash__QEAAXXZ(CMenuHash* pThis) { if (pThis) pThis->CleanUp(); }
+
+CGlobalUtils::CGlobalUtils() { memset(_globalutils_padding, 0, sizeof(_globalutils_padding)); }
+CGlobalUtils::~CGlobalUtils() {}
+void CGlobalUtils::AdjustRectToWorkArea(CRect& rect, CRect* pRectDelta) {
+    CRect old = rect;
+    rect.NormalizeRect();
+    RECT workArea = {};
+    if (!::SystemParametersInfoW(SPI_GETWORKAREA, 0, &workArea, 0)) {
+        workArea.left = 0;
+        workArea.top = 0;
+        workArea.right = ::GetSystemMetrics(SM_CXSCREEN);
+        workArea.bottom = ::GetSystemMetrics(SM_CYSCREEN);
+    }
+    if (rect.right > workArea.right) rect.OffsetRect(workArea.right - rect.right, 0);
+    if (rect.bottom > workArea.bottom) rect.OffsetRect(0, workArea.bottom - rect.bottom);
+    if (rect.left < workArea.left) rect.OffsetRect(workArea.left - rect.left, 0);
+    if (rect.top < workArea.top) rect.OffsetRect(0, workArea.top - rect.top);
+    if (pRectDelta) *pRectDelta = CRect(rect.left - old.left, rect.top - old.top, rect.right - old.right, rect.bottom - old.bottom);
+}
+void CGlobalUtils::FlipRect(CRect& rect, BOOL bHorz) { if (bHorz) std::swap(rect.left, rect.right); else std::swap(rect.top, rect.bottom); rect.NormalizeRect(); }
+DWORD CGlobalUtils::GetOppositeAlignment(DWORD dwAlign) {
+    if (dwAlign & CBRS_LEFT) return CBRS_RIGHT;
+    if (dwAlign & CBRS_RIGHT) return CBRS_LEFT;
+    if (dwAlign & CBRS_TOP) return CBRS_BOTTOM;
+    if (dwAlign & CBRS_BOTTOM) return CBRS_TOP;
+    return dwAlign;
+}
+CSize CGlobalUtils::GetSystemBorders(DWORD dwStyle) { (void)dwStyle; return CSize(::GetSystemMetrics(SM_CXFRAME), ::GetSystemMetrics(SM_CYFRAME)); }
+CSize CGlobalUtils::GetSystemBorders(CWnd* pWnd) { return GetSystemBorders(pWnd ? static_cast<DWORD>(::GetWindowLongPtrW(pWnd->GetSafeHwnd(), GWL_STYLE)) : 0); }
+HICON CGlobalUtils::GetWndIcon(CWnd* pWnd) { return pWnd ? reinterpret_cast<HICON>(::SendMessageW(pWnd->GetSafeHwnd(), WM_GETICON, ICON_SMALL, 0)) : nullptr; }
+BOOL CGlobalUtils::CanBeAttached(CWnd* pWnd) const { return pWnd != nullptr; }
+BOOL CGlobalUtils::CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const { return pWnd != nullptr; }
+CDockingManager* CGlobalUtils::GetDockingManager(CWnd* pWnd) { return pWnd && pWnd->IsKindOf(RUNTIME_CLASS(CFrameWndEx)) ? static_cast<CFrameWndEx*>(pWnd)->GetDockingManager() : nullptr; }
+// Symbol: ??0CGlobalUtils@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CGlobalUtils__QEAA_XZ(void* pThis) { return new (pThis) CGlobalUtils(); }
+// Symbol: ??1CGlobalUtils@@UEAA@XZ
+extern "C" void MS_ABI impl___1CGlobalUtils__UEAA_XZ(CGlobalUtils* pThis) { if (pThis) pThis->~CGlobalUtils(); }
+// Symbol: ?AdjustRectToWorkArea@CGlobalUtils@@QEAAXAEAVCRect@@PEAV2@@Z
+extern "C" void MS_ABI impl__AdjustRectToWorkArea_CGlobalUtils__QEAAXAEAVCRect__PEAV2__Z(CGlobalUtils* pThis, CRect* rect, CRect* delta) { if (pThis && rect) pThis->AdjustRectToWorkArea(*rect, delta); }
+// Symbol: ?FlipRect@CGlobalUtils@@QEAAXAEAVCRect@@H@Z
+extern "C" void MS_ABI impl__FlipRect_CGlobalUtils__QEAAXAEAVCRect__H_Z(CGlobalUtils* pThis, CRect* rect, int horz) { if (pThis && rect) pThis->FlipRect(*rect, horz); }
+// Symbol: ?GetOppositeAlignment@CGlobalUtils@@QEAAKK@Z
+extern "C" unsigned long MS_ABI impl__GetOppositeAlignment_CGlobalUtils__QEAAKK_Z(CGlobalUtils* pThis, unsigned long align) { return pThis ? pThis->GetOppositeAlignment(align) : align; }
+// Symbol: ?GetSystemBorders@CGlobalUtils@@QEAA?AVCSize@@K@Z
+extern "C" void MS_ABI impl__GetSystemBorders_CGlobalUtils__QEAA_AVCSize__K_Z(CSize* ret, CGlobalUtils* pThis, unsigned long style) { new (ret) CSize(pThis ? pThis->GetSystemBorders(style) : CSize()); }
+// Symbol: ?GetSystemBorders@CGlobalUtils@@QEAA?AVCSize@@PEAVCWnd@@@Z
+extern "C" void MS_ABI impl__GetSystemBorders_CGlobalUtils__QEAA_AVCSize__PEAVCWnd___Z(CSize* ret, CGlobalUtils* pThis, CWnd* wnd) { new (ret) CSize(pThis ? pThis->GetSystemBorders(wnd) : CSize()); }
+// Symbol: ?GetWndIcon@CGlobalUtils@@QEAAPEAUHICON__@@PEAVCWnd@@@Z
+extern "C" HICON MS_ABI impl__GetWndIcon_CGlobalUtils__QEAAPEAUHICON____PEAVCWnd___Z(CGlobalUtils* pThis, CWnd* wnd) { return pThis ? pThis->GetWndIcon(wnd) : nullptr; }
+// Symbol: ?CanBeAttached@CGlobalUtils@@QEBAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__CanBeAttached_CGlobalUtils__QEBAHPEAVCWnd___Z(const CGlobalUtils* pThis, CWnd* wnd) { return pThis ? pThis->CanBeAttached(wnd) : FALSE; }
+// Symbol: ?CanPaneBeInFloatingMultiPaneFrameWnd@CGlobalUtils@@QEBAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__CanPaneBeInFloatingMultiPaneFrameWnd_CGlobalUtils__QEBAHPEAVCWnd___Z(const CGlobalUtils* pThis, CWnd* wnd) { return pThis ? pThis->CanPaneBeInFloatingMultiPaneFrameWnd(wnd) : FALSE; }
+// Symbol: ?GetDockingManager@CGlobalUtils@@QEAAPEAVCDockingManager@@PEAVCWnd@@@Z
+extern "C" CDockingManager* MS_ABI impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(CGlobalUtils* pThis, CWnd* wnd) { return pThis ? pThis->GetDockingManager(wnd) : nullptr; }
+
+IMPLEMENT_DYNAMIC(CWinAppEx, CWinApp)
+CWinAppEx::CWinAppEx(BOOL) : CWinApp(nullptr), m_pContextMenuManager(nullptr), m_pKeyboardManager(nullptr), m_pTooltipManager(nullptr), m_nDataVersion(1) { memset(_winappex_padding, 0, sizeof(_winappex_padding)); }
+CWinAppEx::~CWinAppEx() { delete m_pContextMenuManager; delete m_pKeyboardManager; delete m_pTooltipManager; g_winAppExStates.erase(this); }
+BOOL CWinAppEx::InitContextMenuManager() { if (!m_pContextMenuManager) m_pContextMenuManager = new CContextMenuManager(); return TRUE; }
+BOOL CWinAppEx::InitKeyboardManager() { if (!m_pKeyboardManager) m_pKeyboardManager = new CKeyboardManager(); return TRUE; }
+BOOL CWinAppEx::InitTooltipManager() { if (!m_pTooltipManager) m_pTooltipManager = new CTooltipManager(); return TRUE; }
+CContextMenuManager* CWinAppEx::GetContextMenuManager() { InitContextMenuManager(); return m_pContextMenuManager; }
+CKeyboardManager* CWinAppEx::GetKeyboardManager() { InitKeyboardManager(); return m_pKeyboardManager; }
+CTooltipManager* CWinAppEx::GetTooltipManager() { InitTooltipManager(); return m_pTooltipManager; }
+int CWinAppEx::GetDataVersion() const { return m_nDataVersion; }
+const wchar_t* CWinAppEx::SetRegistryBase(const wchar_t* lpszSectionName) { m_strRegSection = lpszSectionName ? lpszSectionName : L""; return static_cast<const wchar_t*>(m_strRegSection); }
+CString CWinAppEx::GetRegSectionPath(const wchar_t* lpszSectionAdd) { CString path = m_strRegSection; if (lpszSectionAdd && *lpszSectionAdd) { if (static_cast<const wchar_t*>(path)[0] != 0) path += L"\\"; path += lpszSectionAdd; } return path; }
+int CWinAppEx::GetInt(const wchar_t* lpszEntry, int nDefault) { auto& state = g_winAppExStates[this]; auto it = state.ints.find(AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)); return it == state.ints.end() ? nDefault : it->second; }
+BOOL CWinAppEx::WriteInt(const wchar_t* lpszEntry, int nValue) { g_winAppExStates[this].ints[AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)] = nValue; return TRUE; }
+CString CWinAppEx::GetString(const wchar_t* lpszEntry, const wchar_t* lpszDefault) { auto& state = g_winAppExStates[this]; auto it = state.strings.find(AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)); return it == state.strings.end() ? CString(lpszDefault ? lpszDefault : L"") : it->second; }
+BOOL CWinAppEx::WriteString(const wchar_t* lpszEntry, const wchar_t* lpszValue) { g_winAppExStates[this].strings[AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)] = CString(lpszValue ? lpszValue : L""); return TRUE; }
+BOOL CWinAppEx::LoadState(const wchar_t* lpszSectionName, void*) { g_winAppExStates[this].states.insert(WideKey(lpszSectionName)); return TRUE; }
+BOOL CWinAppEx::SaveState(const wchar_t* lpszSectionName, void*) { g_winAppExStates[this].states.insert(WideKey(lpszSectionName)); return TRUE; }
+BOOL CWinAppEx::CleanState(const wchar_t* lpszSectionName) { g_winAppExStates[this].states.erase(WideKey(lpszSectionName)); return TRUE; }
+BOOL CWinAppEx::IsStateExists(const wchar_t* lpszSectionName) { return g_winAppExStates[this].states.count(WideKey(lpszSectionName)) != 0; }
+int CWinAppEx::ExitInstance() { delete m_pContextMenuManager; m_pContextMenuManager = nullptr; delete m_pKeyboardManager; m_pKeyboardManager = nullptr; delete m_pTooltipManager; m_pTooltipManager = nullptr; return CWinApp::ExitInstance(); }
+// Symbol: ??0CWinAppEx@@QEAA@H@Z
+extern "C" void* MS_ABI impl___0CWinAppEx__QEAA_H_Z(void* pThis, int smart) { return new (pThis) CWinAppEx(smart); }
+// Symbol: ??1CWinAppEx@@UEAA@XZ
+extern "C" void MS_ABI impl___1CWinAppEx__UEAA_XZ(CWinAppEx* pThis) { if (pThis) pThis->~CWinAppEx(); }
+// Symbol: ?InitContextMenuManager@CWinAppEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InitContextMenuManager_CWinAppEx__QEAAHXZ(CWinAppEx* pThis) { return pThis ? pThis->InitContextMenuManager() : FALSE; }
+// Symbol: ?InitKeyboardManager@CWinAppEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InitKeyboardManager_CWinAppEx__QEAAHXZ(CWinAppEx* pThis) { return pThis ? pThis->InitKeyboardManager() : FALSE; }
+// Symbol: ?InitTooltipManager@CWinAppEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InitTooltipManager_CWinAppEx__QEAAHXZ(CWinAppEx* pThis) { return pThis ? pThis->InitTooltipManager() : FALSE; }
+// Symbol: ?GetContextMenuManager@CWinAppEx@@QEAAPEAVCContextMenuManager@@XZ
+extern "C" CContextMenuManager* MS_ABI impl__GetContextMenuManager_CWinAppEx__QEAAPEAVCContextMenuManager__XZ(CWinAppEx* pThis) { return pThis ? pThis->GetContextMenuManager() : nullptr; }
+// Symbol: ?GetKeyboardManager@CWinAppEx@@QEAAPEAVCKeyboardManager@@XZ
+extern "C" CKeyboardManager* MS_ABI impl__GetKeyboardManager_CWinAppEx__QEAAPEAVCKeyboardManager__XZ(CWinAppEx* pThis) { return pThis ? pThis->GetKeyboardManager() : nullptr; }
+// Symbol: ?GetTooltipManager@CWinAppEx@@QEAAPEAVCTooltipManager@@XZ
+extern "C" CTooltipManager* MS_ABI impl__GetTooltipManager_CWinAppEx__QEAAPEAVCTooltipManager__XZ(CWinAppEx* pThis) { return pThis ? pThis->GetTooltipManager() : nullptr; }
+// Symbol: ?GetDataVersion@CWinAppEx@@QEBAHXZ
+extern "C" int MS_ABI impl__GetDataVersion_CWinAppEx__QEBAHXZ(const CWinAppEx* pThis) { return pThis ? pThis->GetDataVersion() : 0; }
+// Symbol: ?SetRegistryBase@CWinAppEx@@QEAAPEB_WPEB_W@Z
+extern "C" const wchar_t* MS_ABI impl__SetRegistryBase_CWinAppEx__QEAAPEB_WPEB_W_Z(CWinAppEx* pThis, const wchar_t* section) { return pThis ? pThis->SetRegistryBase(section) : nullptr; }
+// Symbol: ?GetRegSectionPath@CWinAppEx@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
+extern "C" void MS_ABI impl__GetRegSectionPath_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CString* ret, CWinAppEx* pThis, const wchar_t* add) { new (ret) CString(pThis ? pThis->GetRegSectionPath(add) : CString()); }
+// Symbol: ?GetInt@CWinAppEx@@QEAAHPEB_WH@Z
+extern "C" int MS_ABI impl__GetInt_CWinAppEx__QEAAHPEB_WH_Z(CWinAppEx* pThis, const wchar_t* entry, int defVal) { return pThis ? pThis->GetInt(entry, defVal) : defVal; }
+// Symbol: ?WriteInt@CWinAppEx@@QEAAHPEB_WH@Z
+extern "C" int MS_ABI impl__WriteInt_CWinAppEx__QEAAHPEB_WH_Z(CWinAppEx* pThis, const wchar_t* entry, int value) { return pThis ? pThis->WriteInt(entry, value) : FALSE; }
+// Symbol: ?GetString@CWinAppEx@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W0@Z
+extern "C" void MS_ABI impl__GetString_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(CString* ret, CWinAppEx* pThis, const wchar_t* entry, const wchar_t* defVal) { new (ret) CString(pThis ? pThis->GetString(entry, defVal) : CString(defVal ? defVal : L"")); }
+// Symbol: ?WriteString@CWinAppEx@@QEAAHPEB_W0@Z
+extern "C" int MS_ABI impl__WriteString_CWinAppEx__QEAAHPEB_W0_Z(CWinAppEx* pThis, const wchar_t* entry, const wchar_t* value) { return pThis ? pThis->WriteString(entry, value) : FALSE; }
+// Symbol: ?LoadState@CWinAppEx@@UEAAHPEB_WPEAVCFrameImpl@@@Z
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__UEAAHPEB_WPEAVCFrameImpl___Z(CWinAppEx* pThis, const wchar_t* section, void* frame) { return pThis ? pThis->LoadState(section, frame) : FALSE; }
+// Symbol: ?SaveState@CWinAppEx@@UEAAHPEB_WPEAVCFrameImpl@@@Z
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__UEAAHPEB_WPEAVCFrameImpl___Z(CWinAppEx* pThis, const wchar_t* section, void* frame) { return pThis ? pThis->SaveState(section, frame) : FALSE; }
+// Symbol: ?CleanState@CWinAppEx@@UEAAHPEB_W@Z
+extern "C" int MS_ABI impl__CleanState_CWinAppEx__UEAAHPEB_W_Z(CWinAppEx* pThis, const wchar_t* section) { return pThis ? pThis->CleanState(section) : FALSE; }
+// Symbol: ?IsStateExists@CWinAppEx@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__IsStateExists_CWinAppEx__QEAAHPEB_W_Z(CWinAppEx* pThis, const wchar_t* section) { return pThis ? pThis->IsStateExists(section) : FALSE; }
+// Symbol: ?ExitInstance@CWinAppEx@@UEAAHXZ
+extern "C" int MS_ABI impl__ExitInstance_CWinAppEx__UEAAHXZ(CWinAppEx* pThis) { return pThis ? pThis->ExitInstance() : 0; }
 
 IMPLEMENT_DYNAMIC(CMFCStatusBar, CStatusBar)
 CMFCStatusBar::CMFCStatusBar() { memset(_pad, 0, sizeof(_pad)); }

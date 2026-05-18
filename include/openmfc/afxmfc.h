@@ -48,6 +48,16 @@ class CMFCToolBarMenuButtonsButton;
 class CMFCToolBarComboBoxButton;
 class CMFCToolBarEditBoxButton;
 class CMFCPopupMenuBar;
+class CContextMenuManager;
+class CKeyboardManager;
+class CTooltipManager;
+class CMenuHash;
+class CGlobalUtils;
+class CWinAppEx;
+class CMFCToolTipInfo;
+class CMouseManager;
+class CShellManager;
+class CUserToolsManager;
 class CMFCDesktopAlertWnd;
 class CMFCDesktopAlertWndButton;
 class CMFCStatusBar;
@@ -939,6 +949,138 @@ public:
 
     UINT m_uiSystemCommand;
     char _padButtons[32];
+};
+
+//=============================================================================
+// Feature Pack managers and app settings helpers
+//=============================================================================
+class CContextMenuManager : public CObject {
+    DECLARE_DYNAMIC(CContextMenuManager)
+public:
+    CContextMenuManager();
+    virtual ~CContextMenuManager();
+
+    BOOL AddMenu(UINT uiMenuNameResId, UINT uiMenuResId);
+    BOOL AddMenu(const wchar_t* lpszName, UINT uiMenuResId);
+    HMENU GetMenuById(UINT uiMenuResId) const;
+    HMENU GetMenuByName(const wchar_t* lpszName, UINT* puiMenuResId = nullptr) const;
+    void GetMenuNames(CStringList& listOfNames) const;
+    virtual BOOL ShowPopupMenu(UINT uiMenuResId, int x, int y, CWnd* pWndOwner, BOOL bOwnMessage = FALSE, BOOL bRightAlign = FALSE);
+    virtual CMFCPopupMenu* ShowPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL bOwnMessage = FALSE, BOOL bAutoDestroy = TRUE, BOOL bRightAlign = FALSE);
+    virtual UINT TrackPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL bRightAlign = FALSE);
+    virtual BOOL LoadState(const wchar_t* lpszProfileName = nullptr);
+    virtual BOOL SaveState(const wchar_t* lpszProfileName = nullptr);
+    virtual BOOL ResetState();
+
+protected:
+    char _contextmenumanager_padding[64];
+};
+
+class CKeyboardManager : public CObject {
+    DECLARE_DYNAMIC(CKeyboardManager)
+public:
+    CKeyboardManager();
+    virtual ~CKeyboardManager();
+
+    static BOOL IsKeyPrintable(UINT nChar);
+    static UINT TranslateCharToUpper(UINT nChar);
+    static void ShowAllAccelerators(BOOL bShowAll = TRUE);
+    static void CleanUp();
+    void ResetAll();
+    BOOL LoadState(const wchar_t* lpszProfileName = nullptr, CFrameWnd* pDefaultFrame = nullptr);
+    BOOL SaveState(const wchar_t* lpszProfileName = nullptr, CFrameWnd* pDefaultFrame = nullptr);
+
+protected:
+    char _keyboardmanager_padding[64];
+};
+
+class CMFCToolTipInfo {
+public:
+    CMFCToolTipInfo() { memset(_pad, 0, sizeof(_pad)); }
+    char _pad[64];
+};
+
+class CTooltipManager : public CObject {
+    DECLARE_DYNAMIC(CTooltipManager)
+public:
+    CTooltipManager();
+    virtual ~CTooltipManager();
+
+    static BOOL CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, UINT nType = 0);
+    static void DeleteToolTip(CToolTipCtrl*& pToolTip);
+    void SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC = nullptr, CMFCToolTipInfo* pParams = nullptr);
+    void UpdateTooltips();
+
+protected:
+    char _tooltipmanager_padding[64];
+};
+
+class CMenuHash : public CObject {
+    DECLARE_DYNAMIC(CMenuHash)
+public:
+    CMenuHash();
+    virtual ~CMenuHash();
+
+    BOOL LoadMenuBar(HMENU hMenu, CMFCToolBar* pBar);
+    BOOL SaveMenuBar(HMENU hMenu, CMFCToolBar* pBar);
+    BOOL RemoveMenu(HMENU hMenu);
+    void CleanUp();
+
+protected:
+    char _menuhash_padding[64];
+};
+
+class CGlobalUtils {
+public:
+    CGlobalUtils();
+    virtual ~CGlobalUtils();
+
+    void AdjustRectToWorkArea(CRect& rect, CRect* pRectDelta = nullptr);
+    void FlipRect(CRect& rect, BOOL bHorz);
+    DWORD GetOppositeAlignment(DWORD dwAlign);
+    CSize GetSystemBorders(DWORD dwStyle);
+    CSize GetSystemBorders(CWnd* pWnd);
+    HICON GetWndIcon(CWnd* pWnd);
+    BOOL CanBeAttached(CWnd* pWnd) const;
+    BOOL CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const;
+    CDockingManager* GetDockingManager(CWnd* pWnd);
+
+protected:
+    char _globalutils_padding[32];
+};
+
+class CWinAppEx : public CWinApp {
+    DECLARE_DYNAMIC(CWinAppEx)
+public:
+    explicit CWinAppEx(BOOL bResourceSmartUpdate = FALSE);
+    virtual ~CWinAppEx();
+
+    BOOL InitContextMenuManager();
+    BOOL InitKeyboardManager();
+    BOOL InitTooltipManager();
+    CContextMenuManager* GetContextMenuManager();
+    CKeyboardManager* GetKeyboardManager();
+    CTooltipManager* GetTooltipManager();
+    int GetDataVersion() const;
+    const wchar_t* SetRegistryBase(const wchar_t* lpszSectionName);
+    CString GetRegSectionPath(const wchar_t* lpszSectionAdd = nullptr);
+    int GetInt(const wchar_t* lpszEntry, int nDefault = 0);
+    BOOL WriteInt(const wchar_t* lpszEntry, int nValue);
+    CString GetString(const wchar_t* lpszEntry, const wchar_t* lpszDefault = nullptr);
+    BOOL WriteString(const wchar_t* lpszEntry, const wchar_t* lpszValue);
+    virtual BOOL LoadState(const wchar_t* lpszSectionName = nullptr, void* pFrameImpl = nullptr);
+    virtual BOOL SaveState(const wchar_t* lpszSectionName = nullptr, void* pFrameImpl = nullptr);
+    virtual BOOL CleanState(const wchar_t* lpszSectionName = nullptr);
+    BOOL IsStateExists(const wchar_t* lpszSectionName);
+    virtual int ExitInstance() override;
+
+protected:
+    CContextMenuManager* m_pContextMenuManager;
+    CKeyboardManager* m_pKeyboardManager;
+    CTooltipManager* m_pTooltipManager;
+    CString m_strRegSection;
+    int m_nDataVersion;
+    char _winappex_padding[96];
 };
 
 class CMFCDesktopAlertWnd : public CWnd {
