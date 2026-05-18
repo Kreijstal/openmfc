@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
+#include <map>
 #include <vector>
 
 // MinGW compat: Ambient property DISPIDs
@@ -2069,6 +2070,37 @@ void COleTemplateServer::UpdateRegistry(OLE_APPTYPE nAppType,
 //=============================================================================
 IMPLEMENT_DYNAMIC(COleControlSite, CCmdTarget)
 
+namespace {
+struct OleControlSiteState {
+    UINT controlId;
+};
+
+static std::map<const COleControlSite*, OleControlSiteState> g_oleControlSiteState;
+
+static void SetControlSiteId(const COleControlSite* pSite, UINT controlId) {
+    if (!pSite) {
+        return;
+    }
+    g_oleControlSiteState[pSite] = { controlId };
+}
+
+static void RemoveControlSiteState(const COleControlSite* pSite) {
+    g_oleControlSiteState.erase(pSite);
+}
+
+static BOOL TryGetControlSiteId(const COleControlSite* pSite, UINT* pControlId) {
+    if (!pSite || !pControlId) {
+        return FALSE;
+    }
+    auto it = g_oleControlSiteState.find(pSite);
+    if (it == g_oleControlSiteState.end()) {
+        return FALSE;
+    }
+    *pControlId = it->second.controlId;
+    return TRUE;
+}
+} // namespace
+
 COleControlSite::COleControlSite(COleControlContainer* pCtrlCont)
     : m_pCtrlCont(pCtrlCont), m_pControl(nullptr),
       m_lpObject(nullptr), m_lpInPlaceObject(nullptr), m_lpDispatch(nullptr),
@@ -2078,13 +2110,17 @@ COleControlSite::COleControlSite(COleControlContainer* pCtrlCont)
 
 COleControlSite::~COleControlSite() {
     DestroyControl();
+    RemoveControlSiteState(this);
 }
 
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_t* lpszWindowName,
                                      DWORD dwStyle, const RECT& rect, UINT nID, CFile* pPersist,
                                      BOOL bStorage, BSTR bstrLicKey) {
-    (void)pWndCtrl; (void)clsid; (void)lpszWindowName; (void)dwStyle; (void)rect;
-    (void)nID; (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    (void)clsid; (void)lpszWindowName; (void)rect;
+    (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    m_dwStyle = dwStyle;
+    m_hWnd = pWndCtrl ? pWndCtrl->GetSafeHwnd() : nullptr;
+    SetControlSiteId(this, nID);
     return FALSE;
 }
 
@@ -2101,13 +2137,17 @@ void COleControlSite::DestroyControl() {
     if (m_lpObject) { m_lpObject->Release(); m_lpObject = nullptr; }
     if (m_lpInPlaceObject) { m_lpInPlaceObject->Release(); m_lpInPlaceObject = nullptr; }
     if (m_lpDispatch) { m_lpDispatch->Release(); m_lpDispatch = nullptr; }
+    m_pControl = nullptr;
+    m_hWnd = nullptr;
+    m_bInPlaceActive = FALSE;
 }
 
 void COleControlSite::Activate(BOOL bActivate) {
-    (void)bActivate;
+    m_bInPlaceActive = bActivate ? TRUE : FALSE;
 }
 
 void COleControlSite::Deactivate() {
+    m_bInPlaceActive = FALSE;
 }
 
 BOOL COleControlSite::IsInPlaceActive() const {
@@ -2190,10 +2230,39 @@ HRESULT COleControlSite::InvokeHelperV(DISPID dwDispID, WORD wFlags, VARTYPE vtR
 }
 
 BOOL COleControlSite::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
-    IDispatch* ambient = m_lpDispatch;
-    if (!ambient) return FALSE;
+    if (!pvProp) {
+        return FALSE;
+    }
 
-    return SUCCEEDED(InvokeHelper(dwDispid, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr));
+    if (m_lpDispatch &&
+        SUCCEEDED(InvokeHelper(dwDispid, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr))) {
+        return TRUE;
+    }
+
+    switch (dwDispid) {
+    case DISPID_AMBIENT_USERMODE:
+        if (vtProp == VT_BOOL) {
+            *static_cast<VARIANT_BOOL*>(pvProp) = VARIANT_TRUE;
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_BACKCOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOW));
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_FORECOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOWTEXT));
+            return TRUE;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return FALSE;
 }
 
 long COleControlSite::GetWindow(HWND__** phWnd) {
@@ -2246,6 +2315,7 @@ COleControlContainer::~COleControlContainer() {
     // Cleanup sites without using POSITION
     while (!m_listSites.IsEmpty()) {
         COleControlSite* pSite = (COleControlSite*)m_listSites.RemoveHead();
+        RemoveControlSiteState(pSite);
         delete pSite;
     }
 }
@@ -2261,6 +2331,7 @@ BOOL COleControlContainer::DeleteSite(COleControlSite* pSite) {
     CPtrList::POSITION pos = m_listSites.Find(pSite);
     if (pos != CPtrList::POSITION(nullptr)) {
         m_listSites.RemoveAt(pos);
+        RemoveControlSiteState(pSite);
         delete pSite;
         return TRUE;
     }
@@ -2268,6 +2339,24 @@ BOOL COleControlContainer::DeleteSite(COleControlSite* pSite) {
 }
 
 COleControlSite* COleControlContainer::FindItem(UINT nID) const {
+    CPtrList& sites = const_cast<CPtrList&>(m_listSites);
+    CPtrList::POSITION pos = sites.GetHeadPosition();
+    while (pos != CPtrList::POSITION(nullptr)) {
+        COleControlSite* pSite = static_cast<COleControlSite*>(sites.GetNext(pos));
+        if (!pSite) {
+            continue;
+        }
+
+        UINT siteId = 0;
+        if (TryGetControlSiteId(pSite, &siteId) && siteId == nID) {
+            return pSite;
+        }
+
+        HWND hWnd = pSite->m_hWnd;
+        if (hWnd && ::IsWindow(hWnd) && static_cast<UINT>(::GetDlgCtrlID(hWnd)) == nID) {
+            return pSite;
+        }
+    }
     return nullptr;
 }
 
@@ -2315,14 +2404,37 @@ CEnumOleVerb::CEnumOleVerb() {
 CEnumOleVerb::~CEnumOleVerb() {
 }
 
+HWND COleControlSiteOrWnd::GetSafeHwnd() const {
+    if (m_pSite) {
+        return m_pSite->m_hWnd;
+    }
+    return m_pWnd ? m_pWnd->GetSafeHwnd() : nullptr;
+}
+
 DWORD COleControlSiteOrWnd::GetStyle() const {
     if (m_pSite) {
-        return m_pSite->m_dwStyle;
-    }
-    if (!m_pWnd || !m_pWnd->GetSafeHwnd()) {
+        if (m_pSite->m_dwStyle != 0) {
+            return m_pSite->m_dwStyle;
+        }
+        HWND hSiteWnd = m_pSite->m_hWnd;
+        if (hSiteWnd) {
+            return static_cast<DWORD>(GetWindowLongPtrW(hSiteWnd, GWL_STYLE));
+        }
         return 0;
     }
-    return static_cast<DWORD>(GetWindowLongPtrW(m_pWnd->GetSafeHwnd(), GWL_STYLE));
+    HWND hWnd = GetSafeHwnd();
+    if (!hWnd) {
+        return 0;
+    }
+    return static_cast<DWORD>(GetWindowLongPtrW(hWnd, GWL_STYLE));
+}
+
+DWORD COleControlSiteOrWnd::GetExStyle() const {
+    HWND hWnd = GetSafeHwnd();
+    if (!hWnd) {
+        return 0;
+    }
+    return static_cast<DWORD>(GetWindowLongPtrW(hWnd, GWL_EXSTYLE));
 }
 
 //=============================================================================
