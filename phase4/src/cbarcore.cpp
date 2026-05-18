@@ -15,6 +15,7 @@
 #include <new>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #ifdef __GNUC__
@@ -2828,6 +2829,52 @@ extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CS
 // CMFCToolBarButton - static members and additional methods
 //=============================================================================
 
+namespace {
+struct ComboButtonState {
+    std::vector<std::pair<CString, DWORD_PTR>> items;
+    int curSel = -1;
+};
+
+thread_local std::unordered_map<const CMFCToolBarComboBoxButton*, ComboButtonState> g_comboStates;
+thread_local std::unordered_map<UINT, std::vector<CMFCToolBarComboBoxButton*>> g_comboByCmd;
+
+thread_local std::unordered_map<UINT, CString> g_editContentsByCmd;
+thread_local std::unordered_map<UINT, std::vector<CMFCToolBarEditBoxButton*>> g_editByCmd;
+
+ComboButtonState& EnsureComboState(const CMFCToolBarComboBoxButton* pButton) {
+    return g_comboStates[pButton];
+}
+
+const ComboButtonState* FindComboState(const CMFCToolBarComboBoxButton* pButton) {
+    auto it = g_comboStates.find(pButton);
+    return (it != g_comboStates.end()) ? &it->second : nullptr;
+}
+
+void RegisterComboButton(CMFCToolBarComboBoxButton* pButton) {
+    if (!pButton || pButton->m_nID == 0) return;
+    auto& buttons = g_comboByCmd[pButton->m_nID];
+    for (CMFCToolBarComboBoxButton* existing : buttons) {
+        if (existing == pButton) return;
+    }
+    buttons.push_back(pButton);
+}
+
+std::vector<CMFCToolBarComboBoxButton*> GetComboButtonsByCmd(UINT uiCmd) {
+    auto it = g_comboByCmd.find(uiCmd);
+    if (it == g_comboByCmd.end()) return {};
+    return it->second;
+}
+
+void RegisterEditButton(CMFCToolBarEditBoxButton* pButton) {
+    if (!pButton || pButton->m_nID == 0) return;
+    auto& buttons = g_editByCmd[pButton->m_nID];
+    for (CMFCToolBarEditBoxButton* existing : buttons) {
+        if (existing == pButton) return;
+    }
+    buttons.push_back(pButton);
+}
+} // namespace
+
 // Static members - provided without // Symbol: comments so typed_stubs handles
 // the MSVC-named exports. Definitions needed for C++ ODR completeness.
 CString CMFCToolBarButton::m_strClipboardFormatName;
@@ -2848,10 +2895,29 @@ extern "C" void MS_ABI impl__SetClipboardFormatName_CMFCToolBarButton__SAXPEB_W_
 //=============================================================================
 
 // Symbol: ?AddItem@CMFCToolBarComboBoxButton@@UEAA_JPEB_W_K@Z
-INT_PTR CMFCToolBarComboBoxButton::AddItem(const wchar_t*, DWORD_PTR) { return CB_ERR; }
+INT_PTR CMFCToolBarComboBoxButton::AddItem(const wchar_t* lpszItem, DWORD_PTR dwData) {
+    if (!lpszItem) return CB_ERR;
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    state.items.emplace_back(CString(lpszItem), dwData);
+    return static_cast<INT_PTR>(state.items.size() - 1);
+}
 
 // Symbol: ?AddSortedItem@CMFCToolBarComboBoxButton@@UEAA_JPEB_W_K@Z
-INT_PTR CMFCToolBarComboBoxButton::AddSortedItem(const wchar_t*, DWORD_PTR) { return CB_ERR; }
+INT_PTR CMFCToolBarComboBoxButton::AddSortedItem(const wchar_t* lpszItem, DWORD_PTR dwData) {
+    if (!lpszItem) return CB_ERR;
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    auto insertPos = state.items.begin();
+    while (insertPos != state.items.end() &&
+           Compare(static_cast<const wchar_t*>(insertPos->first), lpszItem) <= 0) {
+        ++insertPos;
+    }
+    const int index = static_cast<int>(insertPos - state.items.begin());
+    state.items.insert(insertPos, std::make_pair(CString(lpszItem), dwData));
+    if (state.curSel >= index) ++state.curSel;
+    return index;
+}
 
 // Symbol: ?Compare@CMFCToolBarComboBoxButton@@UEAAHPEB_W0@Z
 int CMFCToolBarComboBoxButton::Compare(const wchar_t* s1, const wchar_t* s2) {
@@ -2862,67 +2928,174 @@ int CMFCToolBarComboBoxButton::Compare(const wchar_t* s1, const wchar_t* s2) {
 }
 
 // Symbol: ?DeleteItem@CMFCToolBarComboBoxButton@@QEAAHH@Z
-BOOL CMFCToolBarComboBoxButton::DeleteItem(int) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::DeleteItem(int nIndex) {
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.items.size())) return FALSE;
+    state.items.erase(state.items.begin() + nIndex);
+    if (state.curSel == nIndex) {
+        state.curSel = -1;
+        m_strText.Empty();
+    } else if (state.curSel > nIndex) {
+        --state.curSel;
+    }
+    return TRUE;
+}
 
 // Symbol: ?DeleteItem@CMFCToolBarComboBoxButton@@QEAAH_K@Z
-BOOL CMFCToolBarComboBoxButton::DeleteItem(DWORD_PTR) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::DeleteItem(DWORD_PTR dwData) {
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    for (int i = 0; i < static_cast<int>(state.items.size()); ++i) {
+        if (state.items[i].second == dwData) {
+            return DeleteItem(i);
+        }
+    }
+    return FALSE;
+}
 
 // Symbol: ?DeleteItem@CMFCToolBarComboBoxButton@@QEAAHPEB_W@Z
-BOOL CMFCToolBarComboBoxButton::DeleteItem(const wchar_t*) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::DeleteItem(const wchar_t* lpszText) {
+    const int index = FindItem(lpszText);
+    return (index != CB_ERR) ? DeleteItem(index) : FALSE;
+}
 
 // Symbol: ?FindItem@CMFCToolBarComboBoxButton@@QEBAHPEB_W@Z
-int CMFCToolBarComboBoxButton::FindItem(const wchar_t*) const { return CB_ERR; }
+int CMFCToolBarComboBoxButton::FindItem(const wchar_t* lpszText) const {
+    if (!lpszText) return CB_ERR;
+    const ComboButtonState* state = FindComboState(this);
+    if (!state) return CB_ERR;
+    for (int i = 0; i < static_cast<int>(state->items.size()); ++i) {
+        if (Compare(static_cast<const wchar_t*>(state->items[i].first), lpszText) == 0) {
+            return i;
+        }
+    }
+    return CB_ERR;
+}
 
 // Symbol: ?GetItem@CMFCToolBarComboBoxButton@@QEBAPEB_WH@Z
-const wchar_t* CMFCToolBarComboBoxButton::GetItem(int) const { return nullptr; }
+const wchar_t* CMFCToolBarComboBoxButton::GetItem(int nIndex) const {
+    const ComboButtonState* state = FindComboState(this);
+    if (!state) return nullptr;
+    if (nIndex < 0) nIndex = state->curSel;
+    if (nIndex < 0 || nIndex >= static_cast<int>(state->items.size())) return nullptr;
+    return state->items[nIndex].first;
+}
 
 // Symbol: ?GetCount@CMFCToolBarComboBoxButton@@QEBA_JXZ
-INT_PTR CMFCToolBarComboBoxButton::GetCount() const { return 0; }
+INT_PTR CMFCToolBarComboBoxButton::GetCount() const {
+    const ComboButtonState* state = FindComboState(this);
+    return state ? static_cast<INT_PTR>(state->items.size()) : 0;
+}
 
 // Symbol: ?GetItemData@CMFCToolBarComboBoxButton@@QEBA_KH@Z
-DWORD_PTR CMFCToolBarComboBoxButton::GetItemData(int) const { return 0; }
+DWORD_PTR CMFCToolBarComboBoxButton::GetItemData(int nIndex) const {
+    const ComboButtonState* state = FindComboState(this);
+    if (!state) return 0;
+    if (nIndex < 0) nIndex = state->curSel;
+    if (nIndex < 0 || nIndex >= static_cast<int>(state->items.size())) return 0;
+    return state->items[nIndex].second;
+}
 
 // Symbol: ?SelectItem@CMFCToolBarComboBoxButton@@QEAAHPEB_W@Z
-BOOL CMFCToolBarComboBoxButton::SelectItem(const wchar_t*) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItem(const wchar_t* lpszItem) {
+    const int index = FindItem(lpszItem);
+    return (index != CB_ERR) ? SelectItem(index, TRUE) : FALSE;
+}
 
 // Symbol: ?SelectItem@CMFCToolBarComboBoxButton@@QEAAHHH@Z
-BOOL CMFCToolBarComboBoxButton::SelectItem(int, BOOL) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItem(int nIndex, BOOL) {
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.items.size())) return FALSE;
+    state.curSel = nIndex;
+    m_strText = state.items[nIndex].first;
+    return TRUE;
+}
 
 // Symbol: ?SelectItem@CMFCToolBarComboBoxButton@@QEAAH_K@Z
-BOOL CMFCToolBarComboBoxButton::SelectItem(DWORD_PTR) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItem(DWORD_PTR dwData) {
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    for (int i = 0; i < static_cast<int>(state.items.size()); ++i) {
+        if (state.items[i].second == dwData) {
+            return SelectItem(i, TRUE);
+        }
+    }
+    return FALSE;
+}
 
 // Symbol: ?SetText@CMFCToolBarComboBoxButton@@QEAAXPEB_W@Z
 void CMFCToolBarComboBoxButton::SetText(const wchar_t* lpszText) {
-    if (lpszText) m_strText = lpszText;
+    RegisterComboButton(this);
+    m_strText = lpszText ? lpszText : L"";
 }
 
 // Static methods
 // Symbol: ?GetByCmd@CMFCToolBarComboBoxButton@@SAPEAV1@IH@Z
-CMFCToolBarComboBoxButton* CMFCToolBarComboBoxButton::GetByCmd(UINT, BOOL) { return nullptr; }
+CMFCToolBarComboBoxButton* CMFCToolBarComboBoxButton::GetByCmd(UINT uiCmd, BOOL) {
+    const auto buttons = GetComboButtonsByCmd(uiCmd);
+    return buttons.empty() ? nullptr : buttons.front();
+}
 
 // Symbol: ?GetCountAll@CMFCToolBarComboBoxButton@@SAHI@Z
-int CMFCToolBarComboBoxButton::GetCountAll(UINT) { return 0; }
+int CMFCToolBarComboBoxButton::GetCountAll(UINT uiCmd) {
+    CMFCToolBarComboBoxButton* pButton = GetByCmd(uiCmd, FALSE);
+    return pButton ? static_cast<int>(pButton->GetCount()) : 0;
+}
 
 // Symbol: ?GetCurSelAll@CMFCToolBarComboBoxButton@@SAHI@Z
-int CMFCToolBarComboBoxButton::GetCurSelAll(UINT) { return CB_ERR; }
+int CMFCToolBarComboBoxButton::GetCurSelAll(UINT uiCmd) {
+    CMFCToolBarComboBoxButton* pButton = GetByCmd(uiCmd, FALSE);
+    if (!pButton) return CB_ERR;
+    const ComboButtonState* state = FindComboState(pButton);
+    return state ? state->curSel : CB_ERR;
+}
 
 // Symbol: ?GetItemAll@CMFCToolBarComboBoxButton@@SAPEB_WIH@Z
-const wchar_t* CMFCToolBarComboBoxButton::GetItemAll(UINT, int) { return nullptr; }
+const wchar_t* CMFCToolBarComboBoxButton::GetItemAll(UINT uiCmd, int iIndex) {
+    CMFCToolBarComboBoxButton* pButton = GetByCmd(uiCmd, FALSE);
+    return pButton ? pButton->GetItem(iIndex) : nullptr;
+}
 
 // Symbol: ?GetItemDataAll@CMFCToolBarComboBoxButton@@SA_KIH@Z
-DWORD_PTR CMFCToolBarComboBoxButton::GetItemDataAll(UINT, int) { return 0; }
+DWORD_PTR CMFCToolBarComboBoxButton::GetItemDataAll(UINT uiCmd, int iIndex) {
+    CMFCToolBarComboBoxButton* pButton = GetByCmd(uiCmd, FALSE);
+    return pButton ? pButton->GetItemData(iIndex) : 0;
+}
 
 // Symbol: ?GetTextAll@CMFCToolBarComboBoxButton@@SAPEB_WI@Z
-const wchar_t* CMFCToolBarComboBoxButton::GetTextAll(UINT) { return nullptr; }
+const wchar_t* CMFCToolBarComboBoxButton::GetTextAll(UINT uiCmd) {
+    CMFCToolBarComboBoxButton* pButton = GetByCmd(uiCmd, FALSE);
+    return pButton ? static_cast<const wchar_t*>(pButton->m_strText) : nullptr;
+}
 
 // Symbol: ?SelectItemAll@CMFCToolBarComboBoxButton@@SAHIPEB_W@Z
-BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT, const wchar_t*) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT uiCmd, const wchar_t* lpszText) {
+    BOOL result = FALSE;
+    for (CMFCToolBarComboBoxButton* button : GetComboButtonsByCmd(uiCmd)) {
+        if (button && button->SelectItem(lpszText)) result = TRUE;
+    }
+    return result;
+}
 
 // Symbol: ?SelectItemAll@CMFCToolBarComboBoxButton@@SAHIH@Z
-BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT, int) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT uiCmd, int nIndex) {
+    BOOL result = FALSE;
+    for (CMFCToolBarComboBoxButton* button : GetComboButtonsByCmd(uiCmd)) {
+        if (button && button->SelectItem(nIndex, TRUE)) result = TRUE;
+    }
+    return result;
+}
 
 // Symbol: ?SelectItemAll@CMFCToolBarComboBoxButton@@SAHI_K@Z
-BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT, DWORD_PTR) { return FALSE; }
+BOOL CMFCToolBarComboBoxButton::SelectItemAll(UINT uiCmd, DWORD_PTR dwData) {
+    BOOL result = FALSE;
+    for (CMFCToolBarComboBoxButton* button : GetComboButtonsByCmd(uiCmd)) {
+        if (button && button->SelectItem(dwData)) result = TRUE;
+    }
+    return result;
+}
 
 // --- extern "C" MS_ABI thunks for CMFCToolBarComboBoxButton ---
 
@@ -3047,17 +3220,43 @@ extern "C" void MS_ABI impl__SetText_CMFCToolBarComboBoxButton__QEAAXPEB_W_Z(CMF
 
 // Symbol: ?SetContents@CMFCToolBarEditBoxButton@@UEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 void CMFCToolBarEditBoxButton::SetContents(const CString& sContents) {
+    RegisterEditButton(this);
     m_strText = sContents;
+    if (m_nID != 0) {
+        g_editContentsByCmd[m_nID] = sContents;
+    }
 }
 
 // Symbol: ?GetByCmd@CMFCToolBarEditBoxButton@@SAPEAV1@I@Z
-CMFCToolBarEditBoxButton* CMFCToolBarEditBoxButton::GetByCmd(UINT) { return nullptr; }
+CMFCToolBarEditBoxButton* CMFCToolBarEditBoxButton::GetByCmd(UINT uiCmd) {
+    auto it = g_editByCmd.find(uiCmd);
+    if (it == g_editByCmd.end() || it->second.empty()) return nullptr;
+    return it->second.front();
+}
 
 // Symbol: ?GetContentsAll@CMFCToolBarEditBoxButton@@SA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@I@Z
-CString CMFCToolBarEditBoxButton::GetContentsAll(UINT) { return CString(); }
+CString CMFCToolBarEditBoxButton::GetContentsAll(UINT uiCmd) {
+    if (CMFCToolBarEditBoxButton* pButton = GetByCmd(uiCmd)) {
+        return pButton->m_strText;
+    }
+    auto it = g_editContentsByCmd.find(uiCmd);
+    return (it != g_editContentsByCmd.end()) ? it->second : CString();
+}
 
 // Symbol: ?SetContentsAll@CMFCToolBarEditBoxButton@@SAHIAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-BOOL CMFCToolBarEditBoxButton::SetContentsAll(UINT, const CString&) { return FALSE; }
+BOOL CMFCToolBarEditBoxButton::SetContentsAll(UINT uiCmd, const CString& sContents) {
+    BOOL updated = FALSE;
+    g_editContentsByCmd[uiCmd] = sContents;
+    auto it = g_editByCmd.find(uiCmd);
+    if (it != g_editByCmd.end()) {
+        for (CMFCToolBarEditBoxButton* button : it->second) {
+            if (!button) continue;
+            button->m_strText = sContents;
+            updated = TRUE;
+        }
+    }
+    return updated;
+}
 
 // --- extern "C" MS_ABI thunks for CMFCToolBarEditBoxButton ---
 

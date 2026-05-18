@@ -9,6 +9,7 @@
 #include <windows.h>
 #include <cstring>
 #include <unordered_map>
+#include <vector>
 
 // Thread-local temporary GDI object map for SelectObject return values
 // This allows the common pattern: pOld = dc.SelectObject(&newPen); ... dc.SelectObject(pOld);
@@ -1104,6 +1105,49 @@ int CRgn::GetRegionData(RGNDATA* lpRgnData, int nDataSize) const {
 // CMFCToolBarImages
 //=============================================================================
 
+namespace {
+struct ToolBarImagesState {
+    int count = 0;
+    BOOL isValid = FALSE;
+    std::vector<HICON> ownedIcons;
+};
+
+thread_local std::unordered_map<const CMFCToolBarImages*, ToolBarImagesState> g_toolbarImagesState;
+
+ToolBarImagesState& EnsureToolBarImagesState(const CMFCToolBarImages* pImages) {
+    return g_toolbarImagesState[pImages];
+}
+
+const ToolBarImagesState* FindToolBarImagesState(const CMFCToolBarImages* pImages) {
+    auto it = g_toolbarImagesState.find(pImages);
+    return (it != g_toolbarImagesState.end()) ? &it->second : nullptr;
+}
+
+void ClearToolBarImagesState(CMFCToolBarImages* pImages, BOOL bDestroyIcons) {
+    if (!pImages) return;
+    auto it = g_toolbarImagesState.find(pImages);
+    if (it == g_toolbarImagesState.end()) return;
+    if (bDestroyIcons) {
+        for (HICON hIcon : it->second.ownedIcons) {
+            if (hIcon) ::DestroyIcon(hIcon);
+        }
+    }
+    it->second.ownedIcons.clear();
+    it->second.count = 0;
+    it->second.isValid = FALSE;
+}
+
+void RemoveToolBarImagesState(CMFCToolBarImages* pImages) {
+    if (!pImages) return;
+    auto it = g_toolbarImagesState.find(pImages);
+    if (it == g_toolbarImagesState.end()) return;
+    for (HICON hIcon : it->second.ownedIcons) {
+        if (hIcon) ::DestroyIcon(hIcon);
+    }
+    g_toolbarImagesState.erase(it);
+}
+} // namespace
+
 // Static member definitions - provided without // Symbol: comments so typed_stubs
 // handles the MSVC-named exports. We define them here for C++ completeness but
 // the linker uses the impl__ symbols from typed_stubs for the MSVC exports.
@@ -1124,63 +1168,125 @@ CMFCToolBarImages::CMFCToolBarImages(BOOL)
 }
 
 // Symbol: ??1CMFCToolBarImages@@UEAA@XZ
-CMFCToolBarImages::~CMFCToolBarImages() {}
+CMFCToolBarImages::~CMFCToolBarImages() {
+    RemoveToolBarImagesState(this);
+}
 
 // Symbol: ?Load@CMFCToolBarImages@@QEAAHIPEAUHINSTANCE__@@H@Z
-BOOL CMFCToolBarImages::Load(UINT nIDResource, HINSTANCE hInstRes, BOOL) {
+BOOL CMFCToolBarImages::Load(UINT nIDResource, HINSTANCE hInstRes, BOOL bAdd) {
     if (!hInstRes) hInstRes = AfxGetInstanceHandle();
     HBITMAP hbm = ::LoadBitmapW(hInstRes, MAKEINTRESOURCEW(nIDResource));
     if (!hbm) return FALSE;
     ::DeleteObject(hbm);
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    if (!bAdd) state.count = 0;
+    ++state.count;
+    state.isValid = TRUE;
     return TRUE;
 }
 
 // Symbol: ?Load@CMFCToolBarImages@@QEAAHPEB_WK@Z
 BOOL CMFCToolBarImages::Load(const wchar_t* lpszBitmapFileName, DWORD) {
-    return lpszBitmapFileName != nullptr;
+    if (!lpszBitmapFileName || lpszBitmapFileName[0] == 0) return FALSE;
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    state.count = 1;
+    state.isValid = TRUE;
+    return TRUE;
 }
 
 // Symbol: ?LoadStr@CMFCToolBarImages@@QEAAHPEB_WPEAUHINSTANCE__@@H@Z
-BOOL CMFCToolBarImages::LoadStr(const wchar_t* lpszResourceName, HINSTANCE hInstRes, BOOL) {
+BOOL CMFCToolBarImages::LoadStr(const wchar_t* lpszResourceName, HINSTANCE hInstRes, BOOL bAdd) {
     if (!lpszResourceName) return FALSE;
     if (!hInstRes) hInstRes = AfxGetInstanceHandle();
     HBITMAP hbm = ::LoadBitmapW(hInstRes, lpszResourceName);
     if (!hbm) return FALSE;
     ::DeleteObject(hbm);
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    if (!bAdd) state.count = 0;
+    ++state.count;
+    state.isValid = TRUE;
     return TRUE;
 }
 
 // Symbol: ?Save@CMFCToolBarImages@@QEAAHPEB_W@Z
 BOOL CMFCToolBarImages::Save(const wchar_t*) {
-    return TRUE;
+    return IsValid();
 }
 
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHPEAUHBITMAP__@@H@Z
-int CMFCToolBarImages::AddImage(HBITMAP, BOOL) { return 0; }
+int CMFCToolBarImages::AddImage(HBITMAP hBitmap, BOOL) {
+    if (!hBitmap) return -1;
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    const int index = state.count;
+    ++state.count;
+    state.isValid = TRUE;
+    return index;
+}
 
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHAEBV1@H@Z
-int CMFCToolBarImages::AddImage(const CMFCToolBarImages&, BOOL) { return 0; }
+int CMFCToolBarImages::AddImage(const CMFCToolBarImages& images, BOOL) {
+    const int addCount = images.GetCount();
+    if (addCount <= 0) return -1;
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    const int index = state.count;
+    state.count += addCount;
+    state.isValid = TRUE;
+    return index;
+}
 
 // Symbol: ?AddIcon@CMFCToolBarImages@@QEAAHPEAUHICON__@@H@Z
-int CMFCToolBarImages::AddIcon(HICON, BOOL) { return 0; }
+int CMFCToolBarImages::AddIcon(HICON hIcon, BOOL bAutoDestroy) {
+    if (!hIcon) return -1;
+    ToolBarImagesState& state = EnsureToolBarImagesState(this);
+    const int index = state.count;
+    ++state.count;
+    state.isValid = TRUE;
+    if (bAutoDestroy) {
+        state.ownedIcons.push_back(hIcon);
+    }
+    return index;
+}
 
 // Symbol: ?Clear@CMFCToolBarImages@@QEAAXXZ
 void CMFCToolBarImages::Clear() {
     memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+    ClearToolBarImagesState(this, TRUE);
 }
 
 // Symbol: ?Initialize@CMFCToolBarImages@@QEAAXXZ
-void CMFCToolBarImages::Initialize() {}
+void CMFCToolBarImages::Initialize() {
+    CommonInit(TRUE);
+}
 
 // Symbol: ?CommonInit@CMFCToolBarImages@@QEAAXH@Z
-void CMFCToolBarImages::CommonInit(BOOL) {}
+void CMFCToolBarImages::CommonInit(BOOL bFreeImageList) {
+    m_bIsRTL = FALSE;
+    m_nDisabledImageAlpha = 127;
+    m_nFadedImageAlpha = 127;
+    memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+    ClearToolBarImagesState(this, bFreeImageList);
+}
 
 // Symbol: ?CleanUp@CMFCToolBarImages@@SAXXZ
 // (static)
-void CMFCToolBarImages__CleanUp() {}
+void CMFCToolBarImages__CleanUp() {
+    for (auto& entry : g_toolbarImagesState) {
+        for (HICON hIcon : entry.second.ownedIcons) {
+            if (hIcon) ::DestroyIcon(hIcon);
+        }
+    }
+    g_toolbarImagesState.clear();
+}
 
-int CMFCToolBarImages::GetCount() const { return 0; }
-BOOL CMFCToolBarImages::IsValid() const { return FALSE; }
+int CMFCToolBarImages::GetCount() const {
+    const ToolBarImagesState* state = FindToolBarImagesState(this);
+    return state ? state->count : 0;
+}
+
+BOOL CMFCToolBarImages::IsValid() const {
+    const ToolBarImagesState* state = FindToolBarImagesState(this);
+    return state ? state->isValid : FALSE;
+}
 
 // --- extern "C" MS_ABI thunks ---
 
@@ -1250,4 +1356,6 @@ extern "C" void MS_ABI impl__CommonInit_CMFCToolBarImages__QEAAXH_Z(CMFCToolBarI
 }
 
 // Symbol: ?CleanUp@CMFCToolBarImages@@SAXXZ
-extern "C" void MS_ABI impl__CleanUp_CMFCToolBarImages__SAXXZ() {}
+extern "C" void MS_ABI impl__CleanUp_CMFCToolBarImages__SAXXZ() {
+    CMFCToolBarImages__CleanUp();
+}
