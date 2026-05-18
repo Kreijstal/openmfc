@@ -3876,3 +3876,424 @@ extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_IPEAUHMENU____HPEB_W
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(CMFCToolBarMenuButton* pThis, unsigned int p0, HMENU p1, int p2, const wchar_t* p3, int p4) {
     pThis->Initialize(p0, p1, (BOOL)p2, p3, (BOOL)p4);
 }
+
+namespace {
+struct PaneState {
+    std::vector<void*> panes;
+};
+
+struct AutoHideButtonState {
+    BOOL highlighted;
+    BOOL horizontal;
+};
+
+static std::mutex g_wave2Mutex;
+static std::unordered_map<void*, PaneState> g_framePanes;
+static std::unordered_map<void*, PaneState> g_multiFramePanes;
+static std::unordered_map<void*, PaneState> g_containerPanes;
+static std::unordered_map<void*, PaneState> g_containerManagerPanes;
+static std::unordered_map<void*, PaneState> g_dividerPanes;
+static std::unordered_map<void*, PaneState> g_autoHideBarWindows;
+static std::unordered_map<void*, void*> g_paneToContainer;
+static std::unordered_map<void*, void*> g_paneToAutoHideButton;
+static std::unordered_map<void*, AutoHideButtonState> g_autoHideButtons;
+
+static void AddUniquePane(PaneState& state, void* pane) {
+    if (!pane) return;
+    if (std::find(state.panes.begin(), state.panes.end(), pane) == state.panes.end()) {
+        state.panes.push_back(pane);
+    }
+}
+
+static void RemovePane(PaneState& state, void* pane) {
+    if (!pane) return;
+    state.panes.erase(std::remove(state.panes.begin(), state.panes.end(), pane), state.panes.end());
+}
+
+static void* FirstPane(const PaneState& state) {
+    return state.panes.empty() ? nullptr : state.panes.front();
+}
+} // namespace
+
+// Symbol: ??0CMFCAutoHideBar@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMFCAutoHideBar__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_autoHideBarWindows[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??0CMFCAutoHideButton@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMFCAutoHideButton__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_autoHideButtons[pThis] = { FALSE, FALSE };
+    return pThis;
+}
+
+// Symbol: ??0CMultiPaneFrameWnd@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMultiPaneFrameWnd__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_multiFramePanes[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??0CPaneContainer@@QEAA@PEAVCPaneContainerManager@@PEAVCDockablePane@@1PEAVCPaneDivider@@@Z
+extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
+    void* pThis, void* pManager, void* pLeftPane, void* pDivider) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    PaneState& state = g_containerPanes[pThis];
+    AddUniquePane(state, pLeftPane);
+    if (pManager) {
+        AddUniquePane(g_containerManagerPanes[pManager], pLeftPane);
+    }
+    if (pDivider) {
+        AddUniquePane(g_dividerPanes[pDivider], pLeftPane);
+    }
+    if (pLeftPane) {
+        g_paneToContainer[pLeftPane] = pThis;
+    }
+    return pThis;
+}
+
+// Symbol: ??0CPaneContainerManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CPaneContainerManager__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_containerManagerPanes[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??0CPaneDivider@@QEAA@HPEAVCWnd@@@Z
+extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_HPEAVCWnd___Z(void* pThis, int, void*) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_dividerPanes[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??0CPaneDivider@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_dividerPanes[pThis] = {};
+    return pThis;
+}
+
+// Symbol: ??1CMFCAutoHideBar@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCAutoHideBar__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_autoHideBarWindows.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??1CMFCAutoHideButton@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCAutoHideButton__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_autoHideButtons.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??1CMultiPaneFrameWnd@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMultiPaneFrameWnd__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_multiFramePanes.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??1CPaneContainer@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CPaneContainer__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_containerPanes.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??1CPaneContainerManager@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CPaneContainerManager__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_containerManagerPanes.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??1CPaneDivider@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CPaneDivider__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_dividerPanes.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ?AddAutoHideWindow@CMFCAutoHideBar@@QEAAPEAVCMFCAutoHideButton@@PEAVCDockablePane@@K@Z
+extern "C" void* MS_ABI impl__AddAutoHideWindow_CMFCAutoHideBar__QEAAPEAVCMFCAutoHideButton__PEAVCDockablePane__K_Z(
+    void* pThis, void* pPane, unsigned long dwAlignment) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    (void)dwAlignment;
+    AddUniquePane(g_autoHideBarWindows[pThis], pPane);
+    if (pPane && g_paneToAutoHideButton.find(pPane) == g_paneToAutoHideButton.end()) {
+        g_paneToAutoHideButton[pPane] = pPane;
+        g_autoHideButtons[pPane] = { FALSE, FALSE };
+    }
+    return pPane ? g_paneToAutoHideButton[pPane] : nullptr;
+}
+
+// Symbol: ?ButtonFromAutoHideWindow@CMFCAutoHideBar@@IEAAPEAVCMFCAutoHideButton@@PEAVCDockablePane@@@Z
+extern "C" void* MS_ABI impl__ButtonFromAutoHideWindow_CMFCAutoHideBar__IEAAPEAVCMFCAutoHideButton__PEAVCDockablePane___Z(
+    void*, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    auto it = g_paneToAutoHideButton.find(pPane);
+    return it == g_paneToAutoHideButton.end() ? nullptr : it->second;
+}
+
+// Symbol: ?ButtonFromPoint@CMFCAutoHideBar@@IEAAPEAVCMFCAutoHideButton@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__ButtonFromPoint_CMFCAutoHideBar__IEAAPEAVCMFCAutoHideButton__VCPoint___Z(void* pThis, CPoint) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_autoHideBarWindows[pThis]);
+}
+
+// Symbol: ?GetFirstAHWindow@CMFCAutoHideBar@@QEAAPEAVCDockablePane@@XZ
+extern "C" void* MS_ABI impl__GetFirstAHWindow_CMFCAutoHideBar__QEAAPEAVCDockablePane__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_autoHideBarWindows[pThis]);
+}
+
+// Symbol: ?GetVisibleCount@CMFCAutoHideBar@@QEAAHXZ
+extern "C" int MS_ABI impl__GetVisibleCount_CMFCAutoHideBar__QEAAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return static_cast<int>(g_autoHideBarWindows[pThis].panes.size());
+}
+
+// Symbol: ?HighlightButton@CMFCAutoHideButton@@UEAAXH@Z
+extern "C" void MS_ABI impl__HighlightButton_CMFCAutoHideButton__UEAAXH_Z(void* pThis, int bHighlight) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_autoHideButtons[pThis].highlighted = bHighlight ? TRUE : FALSE;
+}
+
+// Symbol: ?IsHorizontal@CMFCAutoHideButton@@QEBAHXZ
+extern "C" int MS_ABI impl__IsHorizontal_CMFCAutoHideButton__QEBAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return g_autoHideButtons[pThis].horizontal;
+}
+
+// Symbol: ?GetSize@CMFCAutoHideButton@@QEBA?AVCSize@@XZ
+extern "C" void MS_ABI impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
+    if (!pRet) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const AutoHideButtonState& s = g_autoHideButtons[pThis];
+    pRet->cx = s.highlighted ? 96 : 80;
+    pRet->cy = 22;
+}
+
+// Symbol: ?GetTextSize@CMFCAutoHideButton@@UEBA?AVCSize@@XZ
+extern "C" void MS_ABI impl__GetTextSize_CMFCAutoHideButton__UEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
+    if (!pRet) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const AutoHideButtonState& s = g_autoHideButtons[pThis];
+    pRet->cx = s.highlighted ? 88 : 72;
+    pRet->cy = 16;
+}
+
+// Symbol: ?AddPane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
+extern "C" void MS_ABI impl__AddPane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_multiFramePanes[pThis], pPane);
+}
+
+// Symbol: ?RemovePane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
+extern "C" void MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    RemovePane(g_multiFramePanes[pThis], pPane);
+}
+
+// Symbol: ?GetPane@CMultiPaneFrameWnd@@UEBAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetPane_CMultiPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_multiFramePanes[pThis]);
+}
+
+// Symbol: ?GetCaptionText@CMultiPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetCaptionText_CMultiPaneFrameWnd__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, void* pThis) {
+    if (!pRet) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    pRet->Format(L"Pane group (%d)", static_cast<int>(g_multiFramePanes[pThis].panes.size()));
+}
+
+// Symbol: ?CalcExpectedDockedRect@CMultiPaneFrameWnd@@UEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+    void*, void*, CPoint, CRect* pRect, int* pnAlign, void** ppBar) {
+    if (pRect) pRect->SetRectEmpty();
+    if (pnAlign) *pnAlign = 0;
+    if (ppBar) *ppBar = nullptr;
+}
+
+// Symbol: ?AddPane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
+extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_framePanes[pThis], pPane);
+}
+
+// Symbol: ?RemovePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
+extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    RemovePane(g_framePanes[pThis], pPane);
+}
+
+// Symbol: ?AdjustLayout@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void*) {}
+
+// Symbol: ?CalcBorderSize@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(void*, CRect* pRect) {
+    if (pRect) pRect->SetRectEmpty();
+}
+
+// Symbol: ?CalcMinSize@CPaneFrameWnd@@MEAAXAEAVCSize@@PEAUtagMINMAXINFO@@@Z
+extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void*, CSize* pSize, MINMAXINFO*) {
+    if (pSize) {
+        pSize->cx = 0;
+        pSize->cy = 0;
+    }
+}
+
+// Symbol: ?GetCaptionRect@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void*, CRect* pRect) {
+    if (pRect) pRect->SetRectEmpty();
+}
+
+// Symbol: ?GetCaptionText@CPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetCaptionText_CPaneFrameWnd__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, void* pThis) {
+    if (!pRet) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    pRet->Format(L"Pane frame (%d)", static_cast<int>(g_framePanes[pThis].panes.size()));
+}
+
+// Symbol: ?GetFirstVisiblePane@CPaneFrameWnd@@UEBAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_framePanes[pThis]);
+}
+
+// Symbol: ?GetPane@CPaneFrameWnd@@UEBAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_framePanes[pThis]);
+}
+
+// Symbol: ?IsRollDown@CPaneFrameWnd@@UEBAHXZ
+extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void*) {
+    return FALSE;
+}
+
+// Symbol: ?IsRollUp@CPaneFrameWnd@@UEBAHXZ
+extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void*) {
+    return FALSE;
+}
+
+// Symbol: ?AddPane@CPaneContainer@@QEAAPEAVCDockablePane@@PEAV2@@Z
+extern "C" void* MS_ABI impl__AddPane_CPaneContainer__QEAAPEAVCDockablePane__PEAV2__Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_containerPanes[pThis], pPane);
+    if (pPane) g_paneToContainer[pPane] = pThis;
+    return pPane;
+}
+
+// Symbol: ?RemovePane@CPaneContainer@@UEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__RemovePane_CPaneContainer__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    RemovePane(g_containerPanes[pThis], pPane);
+    if (pPane) g_paneToContainer.erase(pPane);
+}
+
+// Symbol: ?AddPane@CPaneContainerManager@@UEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__AddPane_CPaneContainerManager__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_containerManagerPanes[pThis], pPane);
+}
+
+// Symbol: ?FindPane@CPaneContainerManager@@IEAAIVCPoint@@PEAPEAVCPane@@AEAPEAU__POSITION@@@Z
+extern "C" unsigned int MS_ABI impl__FindPane_CPaneContainerManager__IEAAIVCPoint__PEAPEAVCPane__AEAPEAU__POSITION___Z(
+    void* pThis, CPoint, void** ppPane, void** ppPos) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    void* foundPane = FirstPane(g_containerManagerPanes[pThis]);
+    if (ppPane) *ppPane = foundPane;
+    if (ppPos) *ppPos = nullptr;
+    return foundPane != nullptr ? 1U : 0U;
+}
+
+// Symbol: ?FindPane@CPaneContainerManager@@IEAAIVCRect@@PEAPEAVCPane@@AEAPEAU__POSITION@@@Z
+extern "C" unsigned int MS_ABI impl__FindPane_CPaneContainerManager__IEAAIVCRect__PEAPEAVCPane__AEAPEAU__POSITION___Z(
+    void* pThis, const CRect&, void** ppPane, void** ppPos) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    void* foundPane = FirstPane(g_containerManagerPanes[pThis]);
+    if (ppPane) *ppPane = foundPane;
+    if (ppPos) *ppPos = nullptr;
+    return foundPane != nullptr ? 1U : 0U;
+}
+
+// Symbol: ?FindPaneContainer@CPaneContainerManager@@UEAAPEAVCPaneContainer@@PEAVCDockablePane@@AEAH@Z
+extern "C" void* MS_ABI impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+    void* pThis, void* pPane, int* pIndex) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    (void)pThis;
+    if (pIndex) *pIndex = 0;
+    auto it = g_paneToContainer.find(pPane);
+    return it == g_paneToContainer.end() ? nullptr : it->second;
+}
+
+// Symbol: ?GetFirstPane@CPaneContainerManager@@UEBAPEAVCBasePane@@XZ
+extern "C" void* MS_ABI impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBasePane__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_containerManagerPanes[pThis]);
+}
+
+// Symbol: ?GetFirstVisiblePane@CPaneContainerManager@@UEBAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEAVCWnd__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_containerManagerPanes[pThis]);
+}
+
+// Symbol: ?AddPane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_dividerPanes[pThis], pPane);
+}
+
+// Symbol: ?RemovePane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    RemovePane(g_dividerPanes[pThis], pPane);
+}
+
+// Symbol: ?CheckVisibility@CPaneDivider@@UEAAHXZ
+extern "C" int MS_ABI impl__CheckVisibility_CPaneDivider__UEAAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return g_dividerPanes[pThis].panes.empty() ? FALSE : TRUE;
+}
+
+// Symbol: ?FindPaneContainer@CPaneDivider@@QEAAPEAVCPaneContainer@@PEAVCDockablePane@@AEAH@Z
+extern "C" void* MS_ABI impl__FindPaneContainer_CPaneDivider__QEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+    void* pThis, void* pPane, int* pIndex) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    (void)pThis;
+    if (pIndex) *pIndex = 0;
+    auto it = g_paneToContainer.find(pPane);
+    return it == g_paneToContainer.end() ? nullptr : it->second;
+}
+
+// Symbol: ?GetFirstPane@CPaneDivider@@QEBAPEBVCBasePane@@XZ
+extern "C" void* MS_ABI impl__GetFirstPane_CPaneDivider__QEBAPEBVCBasePane__XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return FirstPane(g_dividerPanes[pThis]);
+}
+
+// Symbol: ?GetPaneDividers@CPaneDivider@@QEAAXAEAVCObList@@@Z
+extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+
+// Symbol: ?GetPanes@CPaneDivider@@QEAAXAEAVCObList@@@Z
+extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+
+// Symbol: ?GetRootContainerRect@CPaneDivider@@QEAA?AVCRect@@XZ
+extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void*) {
+    if (pRet) pRet->SetRectEmpty();
+}
+
+// Symbol: ?CalcFixedLayout@CPaneDivider@@UEAA?AVCSize@@HH@Z
+extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CSize* pRet, void*, int, int) {
+    if (!pRet) return;
+    pRet->cx = 0;
+    pRet->cy = 0;
+}
