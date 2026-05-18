@@ -928,3 +928,143 @@ public:
     virtual CString GetItemText(int nIndex) const;
     virtual void SetItemText(int nIndex, const CString& strText);
 };
+
+//=============================================================================
+// Wave 2 D2D/Animation minimal declarations
+//=============================================================================
+struct CD2DColorF {
+    float r;
+    float g;
+    float b;
+    float a;
+};
+struct D2D_POINT_2F;
+struct D2D_SIZE_F;
+struct D2D_RECT_F;
+struct D2D1_ELLIPSE;
+struct D2D1_ROUNDED_RECT;
+
+class CD2DPointF {
+public:
+    CD2DPointF();
+    CD2DPointF(float x, float y);
+    CD2DPointF(const CPoint& point);
+    CD2DPointF(const D2D_POINT_2F& point);
+    CD2DPointF(const D2D_POINT_2F* point);
+
+    float x;
+    float y;
+};
+
+class CD2DSizeF {
+public:
+    CD2DSizeF();
+    CD2DSizeF(float width, float height);
+    CD2DSizeF(const CSize& size);
+    CD2DSizeF(const D2D_SIZE_F& size);
+    CD2DSizeF(const D2D_SIZE_F* size);
+
+    float width;
+    float height;
+};
+
+class CD2DRectF {
+public:
+    CD2DRectF();
+    CD2DRectF(float left, float top, float right, float bottom);
+    CD2DRectF(const CRect& rect);
+    CD2DRectF(const D2D_RECT_F& rect);
+    CD2DRectF(const D2D_RECT_F* rect);
+
+    float left;
+    float top;
+    float right;
+    float bottom;
+};
+
+class CD2DEllipse {
+public:
+    CD2DEllipse();
+    CD2DEllipse(const CD2DPointF& point, const CD2DSizeF& radius);
+    CD2DEllipse(const CD2DRectF& rect);
+    CD2DEllipse(const D2D1_ELLIPSE& ellipse);
+    CD2DEllipse(const D2D1_ELLIPSE* ellipse);
+
+    CD2DPointF point;
+    CD2DSizeF radius;
+};
+
+class CD2DRoundedRect {
+public:
+    CD2DRoundedRect();
+    CD2DRoundedRect(const CD2DRectF& rect, const CD2DSizeF& radius);
+    CD2DRoundedRect(const D2D1_ROUNDED_RECT& roundedRect);
+    CD2DRoundedRect(const D2D1_ROUNDED_RECT* roundedRect);
+
+    CD2DRectF rect;
+    CD2DSizeF radius;
+};
+
+class CRenderTarget : public CObject {
+    DECLARE_DYNAMIC(CRenderTarget)
+public:
+    CRenderTarget();
+    virtual ~CRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    void BeginDraw();
+    long EndDraw();
+    int Destroy(int bReleasing = TRUE);
+    void Clear(CD2DColorF color);
+
+    void DrawLine(const CD2DPointF& p0, const CD2DPointF& p1);
+    void DrawRectangle(const CD2DRectF& rect);
+    void DrawEllipse(const CD2DEllipse& ellipse);
+    void DrawRoundedRectangle(const CD2DRoundedRect& rect);
+    void FillRectangle(const CD2DRectF& rect);
+    void FillEllipse(const CD2DEllipse& ellipse);
+    void FillRoundedRectangle(const CD2DRoundedRect& rect);
+
+    static CD2DColorF COLORREF_TO_D2DCOLOR(COLORREF color, int alpha = 255);
+    CD2DSizeF GetDpi() const;
+    void SetDpi(const CD2DSizeF& dpi);
+    CD2DSizeF GetSize() const;
+    void GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) const;
+    void SetTags(unsigned __int64 tag1, unsigned __int64 tag2);
+
+protected:
+    char _rendertarget_padding[32];
+};
+
+class CDCRenderTarget : public CRenderTarget {
+    DECLARE_DYNAMIC(CDCRenderTarget)
+public:
+    CDCRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    int Create(const void* pRenderTargetProperties);
+    int BindDC(const CDC& dc, const CRect& rect);
+};
+
+class CAnimationVariable : public CObject {
+    DECLARE_DYNAMIC(CAnimationVariable)
+public:
+    explicit CAnimationVariable(double defaultValue = 0.0);
+    virtual ~CAnimationVariable();
+
+    int Create(void* pAnimationManager);
+    void AddTransition(void* pTransition);
+    void ClearTransitions(int bAutodestroy = TRUE);
+    void EnableValueChangedEvent(void* pController, int bEnable);
+    void EnableIntegerValueChangedEvent(void* pController, int bEnable);
+    void SetDefaultValue(double value);
+    long GetValue(double& value);
+    long GetValue(int& value);
+    int CreateTransitions(void* pTransitionLibrary, void* pTransitionFactory);
+    void ApplyTransitions(void* pController, void* pStoryboard, int bAutodestroy = TRUE);
+
+protected:
+    char _animationvariable_padding[32];
+};
