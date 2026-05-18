@@ -899,3 +899,32 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         default: return IDOK;
     }
 }
+
+//=============================================================================
+// CToolBar / CStatusBar ABI wrappers
+// These provide proper // Symbol: exclusions for CString-returning methods.
+//=============================================================================
+
+// Symbol: ?GetButtonText@CToolBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* pRet, const CToolBar* pThis, int nIndex) {
+    new (pRet) CString(pThis->GetButtonText(nIndex));
+}
+
+// Symbol: ?GetButtonText@CToolBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CToolBar* pThis, int nIndex, CString* pStr) {
+    pThis->GetButtonText(nIndex, *pStr);
+}
+
+// Symbol: ?GetPaneText@CStatusBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* pRet, const CStatusBar* pThis, int nIndex) {
+    new (pRet) CString(pThis->GetPaneText(nIndex));
+}
+
+// Symbol: ?GetPaneText@CStatusBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CStatusBar* pThis, int nIndex, CString* pStr) {
+    pThis->GetPaneText(nIndex, *pStr);
+}
