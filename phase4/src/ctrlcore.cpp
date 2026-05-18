@@ -787,8 +787,8 @@ extern "C" int MS_ABI impl__AddGroup_CMFCTasksPane__QEAAHHPEB_WHHPEAUHICON_____Z
 
     TasksPaneGroupState group = {
         lpszName ? lpszName : L"",
-        bBottomHasGripper ? TRUE : FALSE,
-        bSpecial ? TRUE : FALSE,
+        bBottomHasGripper,
+        bSpecial,
         hIcon
     };
 
@@ -807,20 +807,7 @@ extern "C" void MS_ABI impl__RemoveAllTasks_CMFCTasksPane__QEAAXH_Z(CMFCTasksPan
         return;
     }
 
-    std::lock_guard<std::mutex> lock(g_tasksPaneStateMutex);
-    auto it = g_tasksPaneState.find(pThis);
-    if (it == g_tasksPaneState.end()) {
-        return;
-    }
-
-    if (nGroup < 0) {
-        it->second.groups.clear();
-        return;
-    }
-
-    if (nGroup < (int)it->second.groups.size()) {
-        it->second.groups.erase(it->second.groups.begin() + nGroup);
-    }
+    (void)nGroup;
 }
 
 // Symbol: ?SetCaption@CMFCTasksPane@@QEAAXPEB_W@Z

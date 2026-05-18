@@ -2291,7 +2291,7 @@ std::mutex g_statusBarTextMutex;
 std::unordered_map<const CMFCStatusBar*, std::unordered_map<int, std::wstring>> g_statusBarPaneText;
 
 std::mutex g_captionBarTextMutex;
-std::unordered_map<const void*, std::wstring> g_captionBarText;
+std::unordered_map<const CMFCCaptionBar*, std::wstring> g_captionBarText;
 
 static CString GetStoredPaneText(const CMFCStatusBar* pThis, int nIndex) {
     std::lock_guard<std::mutex> lock(g_statusBarTextMutex);
@@ -2321,7 +2321,7 @@ extern "C" int MS_ABI impl__SetPaneText_CMFCStatusBar__UEAAHHPEB_WH_Z(
         g_statusBarPaneText[pThis][nIndex] = lpszNewText ? lpszNewText : L"";
     }
 
-    return (int)static_cast<CStatusBar*>(pThis)->SetPaneText(nIndex, lpszNewText, bUpdate ? TRUE : FALSE);
+    return (int)static_cast<CStatusBar*>(pThis)->SetPaneText(nIndex, lpszNewText, bUpdate);
 }
 
 // Symbol: ?GetPaneText@CMFCStatusBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
@@ -2363,7 +2363,7 @@ extern "C" void MS_ABI impl__GetPaneText_CMFCStatusBar__QEBAXHAEAV__CStringT__WV
 
 // Symbol: ?SetText@CMFCCaptionBar@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4BarElementAlignment@1@@Z
 extern "C" void MS_ABI impl__SetText_CMFCCaptionBar__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4BarElementAlignment_1__Z(
-    void* pThis, const CString* pText, int nAlignment) {
+    CMFCCaptionBar* pThis, const CString* pText, int nAlignment) {
     if (!pThis) {
         return;
     }
@@ -2374,11 +2374,11 @@ extern "C" void MS_ABI impl__SetText_CMFCCaptionBar__QEAAXAEBV__CStringT__WV__St
 }
 
 // Symbol: ?AdjustLayout@CMFCCaptionBar@@MEAAXXZ
-extern "C" void MS_ABI impl__AdjustLayout_CMFCCaptionBar__MEAAXXZ(void* pThis) {
+extern "C" void MS_ABI impl__AdjustLayout_CMFCCaptionBar__MEAAXXZ(CMFCCaptionBar* pThis) {
     (void)pThis;
 }
 
 // Symbol: ?RecalcLayout@CMFCCaptionBar@@MEAAXXZ
-extern "C" void MS_ABI impl__RecalcLayout_CMFCCaptionBar__MEAAXXZ(void* pThis) {
+extern "C" void MS_ABI impl__RecalcLayout_CMFCCaptionBar__MEAAXXZ(CMFCCaptionBar* pThis) {
     (void)pThis;
 }

@@ -27,6 +27,7 @@ class CMFCButton;
 class CMFCPopupMenu;
 class CMFCPropertyGridCtrl;
 class CMFCPropertyGridProperty;
+class CMFCCaptionBar;
 class CMFCTasksPane;
 class CMFCAutoHideBar;
 class CPane;
