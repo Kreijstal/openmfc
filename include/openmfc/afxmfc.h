@@ -16,6 +16,7 @@ class CMFCToolBar;
 class CMFCToolBarButton;
 class CMFCToolBarImages;
 class CMFCVisualManager;
+class CMFCMenuBar;
 class CMFCRibbonBar;
 class CMFCRibbonPanel;
 class CMFCRibbonCategory;
@@ -43,8 +44,10 @@ class CMDIChildWndEx;
 class CMFCCaptionButton;
 class CMFCHeaderCtrl;
 class CMFCToolBarMenuButton;
+class CMFCToolBarMenuButtonsButton;
 class CMFCToolBarComboBoxButton;
 class CMFCToolBarEditBoxButton;
+class CMFCPopupMenuBar;
 class CMFCDesktopAlertWnd;
 class CMFCDesktopAlertWndButton;
 class CMFCStatusBar;
@@ -386,6 +389,27 @@ protected:
 };
 
 //=============================================================================
+// CMFCMenuBar - Feature Pack menu bar
+//=============================================================================
+class CMFCMenuBar : public CMFCToolBar {
+    DECLARE_DYNAMIC(CMFCMenuBar)
+public:
+    CMFCMenuBar();
+    virtual ~CMFCMenuBar();
+
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual void CreateFromMenu(HMENU hMenu, BOOL bDefaultMenu = FALSE, BOOL bForceUpdate = FALSE);
+    CMFCToolBarButton* GetMenuItem(int nIndex) const;
+    virtual CSize CalcLayout(DWORD dwMode, int nLength = -1);
+    virtual void AdjustLocations();
+    static CFont& GetMenuFont(BOOL bHorz = TRUE);
+
+protected:
+    char _mfcmenubar_padding[96];
+};
+
+//=============================================================================
 // CMFCToolBarImages - Feature Pack toolbar image collection
 //=============================================================================
 class CMFCToolBarImages {
@@ -553,11 +577,46 @@ public:
     virtual ~CMFCPopupMenu();
 
     static CMFCPopupMenu* GetActiveMenu();
+    static CMFCPopupMenu* GetSafeActivePopupMenu();
     static void SetForceMenuFocus(BOOL bForceFocus = TRUE);
+    static BOOL ActivatePopupMenu(CFrameWnd* pTopFrame, CMFCPopupMenu* pPopupMenu);
     BOOL Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked = FALSE, BOOL bIsMainMenu = FALSE);
+    void CloseMenu(BOOL bSetFocusToBar = FALSE);
+    int GetMenuItemCount() const;
+    CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
+    CMFCToolBarMenuButton* GetSelItem();
+    CMFCToolBarMenuButton* FindSubItemByCommand(UINT uiCmd) const;
+    BOOL InsertItem(const CMFCToolBarMenuButton& button, int iInsertAt = -1);
+    BOOL InsertSeparator(int iInsertAt = -1);
+    void EnableResize(CSize sizeMinResize);
+    void EnableVertResize(BOOL bEnable = TRUE);
+    BOOL HideRarelyUsedCommands() const;
 
 protected:
     char _mfcpopupmenu_padding[64];
+};
+
+//=============================================================================
+// CMFCPopupMenuBar - Toolbar hosted inside popup menus
+//=============================================================================
+class CMFCPopupMenuBar : public CMFCToolBar {
+    DECLARE_DYNAMIC(CMFCPopupMenuBar)
+public:
+    CMFCPopupMenuBar();
+    virtual ~CMFCPopupMenuBar();
+
+    virtual BOOL ImportFromMenu(HMENU hMenu, BOOL bShowAllCommands = FALSE);
+    virtual HMENU ExportToMenu() const;
+    BOOL BuildOrigItems(UINT uiMenuResID);
+    CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
+    int GetGutterWidth() const;
+    virtual CSize CalcSize(BOOL bVertDock);
+    virtual void AdjustLayout();
+    virtual void AdjustLocations();
+    virtual void CloseDelayedSubMenu();
+
+protected:
+    char _mfcpopupmenubar_padding[96];
 };
 
 //=============================================================================
@@ -858,12 +917,28 @@ class CMFCToolBarMenuButton : public CMFCToolBarButton {
 public:
     CMFCToolBarMenuButton();
     CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE);
+    CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src);
     virtual ~CMFCToolBarMenuButton();
 
     void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
+    virtual void CreateFromMenu(HMENU hMenu);
+    virtual HMENU CreateMenu() const;
+    virtual void CopyFrom(const CMFCToolBarButton& src);
+    virtual int CompareWith(const CMFCToolBarButton& other) const;
 
     HMENU m_hMenu;
     char _pad[64];
+};
+
+class CMFCToolBarMenuButtonsButton : public CMFCToolBarMenuButton {
+    DECLARE_DYNAMIC(CMFCToolBarMenuButtonsButton)
+public:
+    CMFCToolBarMenuButtonsButton();
+    explicit CMFCToolBarMenuButtonsButton(UINT uiSystemCommand);
+    virtual ~CMFCToolBarMenuButtonsButton();
+
+    UINT m_uiSystemCommand;
+    char _padButtons[32];
 };
 
 class CMFCDesktopAlertWnd : public CWnd {

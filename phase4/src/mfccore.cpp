@@ -113,6 +113,123 @@ UINT PaneCommandID(const CBasePane* pPane) {
     return static_cast<UINT>(::GetDlgCtrlID(hwnd));
 }
 
+struct PopupMenuState {
+    CWnd* parent = nullptr;
+    int x = 0;
+    int y = 0;
+    HMENU menu = nullptr;
+    bool locked = false;
+    bool mainMenu = false;
+    bool vertResize = false;
+    CSize minResize = CSize(0, 0);
+    int selected = -1;
+    std::vector<CMFCToolBarMenuButton*> items;
+    std::unordered_set<CMFCToolBarMenuButton*> ownedItems;
+};
+
+struct MenuBarState {
+    CWnd* parent = nullptr;
+    HMENU menu = nullptr;
+    std::vector<CMFCToolBarButton*> items;
+    std::unordered_set<CMFCToolBarButton*> ownedItems;
+};
+
+struct PopupMenuBarState {
+    HMENU menu = nullptr;
+    std::vector<CMFCToolBarMenuButton*> items;
+    std::unordered_set<CMFCToolBarMenuButton*> ownedItems;
+};
+
+struct MenuButtonState {
+    bool hasDropDownArrow = false;
+    bool userButton = false;
+};
+
+thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
+thread_local std::unordered_map<const CMFCMenuBar*, MenuBarState> g_menuBarStates;
+thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_popupMenuBarStates;
+thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
+static BOOL g_forceMenuFocus = FALSE;
+alignas(CFont) static unsigned char g_menuFontStorage[sizeof(CFont)] = {};
+static CFont* g_menuFontPtr = nullptr;
+
+void ClearPopupMenuState(const CMFCPopupMenu* pMenu) {
+    auto it = g_popupMenuStates.find(pMenu);
+    if (it == g_popupMenuStates.end()) return;
+    for (CMFCToolBarMenuButton* item : it->second.ownedItems) {
+        delete item;
+    }
+    g_popupMenuStates.erase(it);
+}
+
+void ClearMenuBarState(const CMFCMenuBar* pMenuBar) {
+    auto it = g_menuBarStates.find(pMenuBar);
+    if (it == g_menuBarStates.end()) return;
+    for (CMFCToolBarButton* item : it->second.ownedItems) {
+        delete item;
+    }
+    g_menuBarStates.erase(it);
+}
+
+void ClearPopupMenuBarState(const CMFCPopupMenuBar* pMenuBar) {
+    auto it = g_popupMenuBarStates.find(pMenuBar);
+    if (it == g_popupMenuBarStates.end()) return;
+    for (CMFCToolBarMenuButton* item : it->second.ownedItems) {
+        delete item;
+    }
+    g_popupMenuBarStates.erase(it);
+}
+
+CString GetMenuItemText(HMENU hMenu, int index) {
+    wchar_t buffer[256] = {};
+    if (hMenu) {
+        ::GetMenuStringW(hMenu, static_cast<UINT>(index), buffer, 256, MF_BYPOSITION);
+    }
+    return CString(buffer);
+}
+
+UINT GetMenuItemCommand(HMENU hMenu, int index) {
+    if (!hMenu) return 0;
+    UINT id = ::GetMenuItemID(hMenu, index);
+    return id == static_cast<UINT>(-1) ? 0 : id;
+}
+
+HMENU GetMenuItemSubMenu(HMENU hMenu, int index) {
+    return hMenu ? ::GetSubMenu(hMenu, index) : nullptr;
+}
+
+CMFCToolBarMenuButton* CreateMenuButtonFromMenu(HMENU hMenu, int index) {
+    const UINT id = GetMenuItemCommand(hMenu, index);
+    HMENU subMenu = GetMenuItemSubMenu(hMenu, index);
+    CString text = GetMenuItemText(hMenu, index);
+    return new CMFCToolBarMenuButton(id, subMenu, subMenu != nullptr, static_cast<const wchar_t*>(text), FALSE);
+}
+
+void ImportMenuIntoPopupItems(HMENU hMenu, std::vector<CMFCToolBarMenuButton*>& items,
+                              std::unordered_set<CMFCToolBarMenuButton*>& ownedItems) {
+    for (CMFCToolBarMenuButton* item : ownedItems) {
+        delete item;
+    }
+    items.clear();
+    ownedItems.clear();
+
+    if (!hMenu) return;
+    int count = ::GetMenuItemCount(hMenu);
+    for (int i = 0; i < count; ++i) {
+        CMFCToolBarMenuButton* button = CreateMenuButtonFromMenu(hMenu, i);
+        items.push_back(button);
+        ownedItems.insert(button);
+    }
+}
+
+CFont& EnsureMenuFont() {
+    if (!g_menuFontPtr) {
+        g_menuFontPtr = reinterpret_cast<CFont*>(g_menuFontStorage);
+        g_menuFontPtr->m_hObject = nullptr;
+    }
+    return *g_menuFontPtr;
+}
+
 } // namespace
 
 static CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRTI) {
@@ -603,6 +720,115 @@ void CMFCToolBar::AdjustSize() {}
 CString CMFCToolBar::GetButtonText(int) const { return CString(); }
 void CMFCToolBar::GetButtonText(int, CString& rString) const { rString = CString(); }
 
+//=============================================================================
+// CMFCMenuBar
+//=============================================================================
+IMPLEMENT_DYNAMIC(CMFCMenuBar, CMFCToolBar)
+
+CMFCMenuBar::CMFCMenuBar() {
+    memset(_mfcmenubar_padding, 0, sizeof(_mfcmenubar_padding));
+}
+
+CMFCMenuBar::~CMFCMenuBar() {
+    ClearMenuBarState(this);
+}
+
+BOOL CMFCMenuBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
+    g_menuBarStates[this].parent = pParentWnd;
+    return CMFCToolBar::Create(pParentWnd, dwStyle, nID);
+}
+
+BOOL CMFCMenuBar::CreateEx(CWnd* pParentWnd, DWORD, DWORD dwStyle, CRect, UINT nID) {
+    return Create(pParentWnd, dwStyle, nID);
+}
+
+void CMFCMenuBar::CreateFromMenu(HMENU hMenu, BOOL, BOOL) {
+    MenuBarState& state = g_menuBarStates[this];
+    for (CMFCToolBarButton* item : state.ownedItems) {
+        delete item;
+    }
+    state.items.clear();
+    state.ownedItems.clear();
+    state.menu = hMenu;
+
+    if (!hMenu) return;
+    int count = ::GetMenuItemCount(hMenu);
+    for (int i = 0; i < count; ++i) {
+        CMFCToolBarMenuButton* button = CreateMenuButtonFromMenu(hMenu, i);
+        state.items.push_back(button);
+        state.ownedItems.insert(button);
+    }
+}
+
+CMFCToolBarButton* CMFCMenuBar::GetMenuItem(int nIndex) const {
+    auto it = g_menuBarStates.find(this);
+    if (it == g_menuBarStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.items.size())) return nullptr;
+    return it->second.items[nIndex];
+}
+
+static CSize CalcMenuBarFixedLayout(const CMFCMenuBar* pMenuBar) {
+    if (!pMenuBar) return CSize();
+    const auto it = g_menuBarStates.find(pMenuBar);
+    const int count = it == g_menuBarStates.end() ? 0 : static_cast<int>(it->second.items.size());
+    return CSize(std::max(23, count * 80), 22);
+}
+
+CSize CMFCMenuBar::CalcLayout(DWORD, int nLength) {
+    CSize size = CalcMenuBarFixedLayout(this);
+    if (nLength > 0) size.cx = nLength;
+    return size;
+}
+
+void CMFCMenuBar::AdjustLocations() {}
+
+CFont& CMFCMenuBar::GetMenuFont(BOOL) {
+    return EnsureMenuFont();
+}
+
+// Symbol: ?Create@CMFCMenuBar@@UEAAHPEAVCWnd@@KI@Z
+extern "C" int MS_ABI impl__Create_CMFCMenuBar__UEAAHPEAVCWnd__KI_Z(CMFCMenuBar* pThis, CWnd* pParentWnd, unsigned long dwStyle, unsigned int nID) {
+    return pThis ? pThis->Create(pParentWnd, dwStyle, nID) : FALSE;
+}
+
+// Symbol: ?CreateEx@CMFCMenuBar@@UEAAHPEAVCWnd@@KKVCRect@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CMFCMenuBar__UEAAHPEAVCWnd__KKVCRect__I_Z(
+    CMFCMenuBar* pThis, CWnd* pParentWnd, unsigned long dwCtrlStyle, unsigned long dwStyle, CRect rcBorders, unsigned int nID) {
+    return pThis ? pThis->CreateEx(pParentWnd, dwCtrlStyle, dwStyle, rcBorders, nID) : FALSE;
+}
+
+// Symbol: ?CreateFromMenu@CMFCMenuBar@@UEAAXPEAUHMENU__@@HH@Z
+extern "C" void MS_ABI impl__CreateFromMenu_CMFCMenuBar__UEAAXPEAUHMENU____HH_Z(CMFCMenuBar* pThis, HMENU hMenu, int bDefaultMenu, int bForceUpdate) {
+    if (pThis) pThis->CreateFromMenu(hMenu, bDefaultMenu, bForceUpdate);
+}
+
+// Symbol: ?GetMenuItem@CMFCMenuBar@@QEBAPEAVCMFCToolBarButton@@H@Z
+extern "C" CMFCToolBarButton* MS_ABI impl__GetMenuItem_CMFCMenuBar__QEBAPEAVCMFCToolBarButton__H_Z(const CMFCMenuBar* pThis, int nIndex) {
+    return pThis ? pThis->GetMenuItem(nIndex) : nullptr;
+}
+
+// Symbol: ?CalcFixedLayout@CMFCMenuBar@@UEAA?AVCSize@@HH@Z
+extern "C" void MS_ABI impl__CalcFixedLayout_CMFCMenuBar__UEAA_AVCSize__HH_Z(CSize* pRet, CMFCMenuBar* pThis, int bStretch, int bHorz) {
+    (void)bStretch;
+    (void)bHorz;
+    new (pRet) CSize(CalcMenuBarFixedLayout(pThis));
+}
+
+// Symbol: ?CalcLayout@CMFCMenuBar@@UEAA?AVCSize@@KH@Z
+extern "C" void MS_ABI impl__CalcLayout_CMFCMenuBar__UEAA_AVCSize__KH_Z(CSize* pRet, CMFCMenuBar* pThis, unsigned long dwMode, int nLength) {
+    new (pRet) CSize(pThis ? pThis->CalcLayout(dwMode, nLength) : CSize());
+}
+
+// Symbol: ?AdjustLocations@CMFCMenuBar@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustLocations_CMFCMenuBar__UEAAXXZ(CMFCMenuBar* pThis) {
+    if (pThis) pThis->AdjustLocations();
+}
+
+// Symbol: ?GetMenuFont@CMFCMenuBar@@SAAEBVCFont@@H@Z
+extern "C" CFont* MS_ABI impl__GetMenuFont_CMFCMenuBar__SAAEBVCFont__H_Z(int bHorz) {
+    return &CMFCMenuBar::GetMenuFont(bHorz);
+}
+
 // Symbol: ?LoadToolBar@CMFCToolBar@@UEAAHIIIHIII@Z
 extern "C" int MS_ABI impl__LoadToolBar_CMFCToolBar__UEAAHIIIHIII_Z(
     CMFCToolBar* pThis, unsigned int p0, unsigned int p1, unsigned int p2,
@@ -781,11 +1007,254 @@ static CMFCPopupMenu* g_pActivePopupMenu = nullptr;
 CMFCPopupMenu::CMFCPopupMenu() {
     memset(_mfcpopupmenu_padding, 0, sizeof(_mfcpopupmenu_padding));
 }
-CMFCPopupMenu::~CMFCPopupMenu() {}
+CMFCPopupMenu::~CMFCPopupMenu() {
+    if (g_pActivePopupMenu == this) {
+        g_pActivePopupMenu = nullptr;
+    }
+    ClearPopupMenuState(this);
+}
 
 CMFCPopupMenu* CMFCPopupMenu::GetActiveMenu() { return g_pActivePopupMenu; }
-void CMFCPopupMenu::SetForceMenuFocus(BOOL) {}
-BOOL CMFCPopupMenu::Create(CWnd*, int, int, HMENU, BOOL, BOOL) { return TRUE; }
+CMFCPopupMenu* CMFCPopupMenu::GetSafeActivePopupMenu() { return g_pActivePopupMenu; }
+void CMFCPopupMenu::SetForceMenuFocus(BOOL bForceFocus) { g_forceMenuFocus = bForceFocus; }
+BOOL CMFCPopupMenu::ActivatePopupMenu(CFrameWnd*, CMFCPopupMenu* pPopupMenu) {
+    g_pActivePopupMenu = pPopupMenu;
+    return pPopupMenu != nullptr;
+}
+
+BOOL CMFCPopupMenu::Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked, BOOL bIsMainMenu) {
+    PopupMenuState& state = g_popupMenuStates[this];
+    state.parent = pParentWnd;
+    state.x = x;
+    state.y = y;
+    state.menu = hMenu;
+    state.locked = bLocked != FALSE;
+    state.mainMenu = bIsMainMenu != FALSE;
+    state.selected = -1;
+    ImportMenuIntoPopupItems(hMenu, state.items, state.ownedItems);
+    g_pActivePopupMenu = this;
+    return TRUE;
+}
+
+void CMFCPopupMenu::CloseMenu(BOOL) {
+    if (g_pActivePopupMenu == this) {
+        g_pActivePopupMenu = nullptr;
+    }
+}
+
+int CMFCPopupMenu::GetMenuItemCount() const {
+    auto it = g_popupMenuStates.find(this);
+    return it == g_popupMenuStates.end() ? 0 : static_cast<int>(it->second.items.size());
+}
+
+CMFCToolBarMenuButton* CMFCPopupMenu::GetMenuItem(int nIndex) const {
+    auto it = g_popupMenuStates.find(this);
+    if (it == g_popupMenuStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.items.size())) return nullptr;
+    return it->second.items[nIndex];
+}
+
+CMFCToolBarMenuButton* CMFCPopupMenu::GetSelItem() {
+    auto it = g_popupMenuStates.find(this);
+    if (it == g_popupMenuStates.end()) return nullptr;
+    return GetMenuItem(it->second.selected);
+}
+
+CMFCToolBarMenuButton* CMFCPopupMenu::FindSubItemByCommand(UINT uiCmd) const {
+    auto it = g_popupMenuStates.find(this);
+    if (it == g_popupMenuStates.end()) return nullptr;
+    for (CMFCToolBarMenuButton* item : it->second.items) {
+        if (item && item->m_nID == uiCmd) return item;
+    }
+    return nullptr;
+}
+
+BOOL CMFCPopupMenu::InsertItem(const CMFCToolBarMenuButton& button, int iInsertAt) {
+    PopupMenuState& state = g_popupMenuStates[this];
+    CMFCToolBarMenuButton* copy = new CMFCToolBarMenuButton(button);
+    if (iInsertAt < 0 || iInsertAt >= static_cast<int>(state.items.size())) {
+        state.items.push_back(copy);
+    } else {
+        state.items.insert(state.items.begin() + iInsertAt, copy);
+    }
+    state.ownedItems.insert(copy);
+    return TRUE;
+}
+
+BOOL CMFCPopupMenu::InsertSeparator(int iInsertAt) {
+    CMFCToolBarMenuButton separator(0, nullptr, FALSE, nullptr, FALSE);
+    return InsertItem(separator, iInsertAt);
+}
+
+void CMFCPopupMenu::EnableResize(CSize sizeMinResize) {
+    g_popupMenuStates[this].minResize = sizeMinResize;
+}
+
+void CMFCPopupMenu::EnableVertResize(BOOL bEnable) {
+    g_popupMenuStates[this].vertResize = bEnable != FALSE;
+}
+
+BOOL CMFCPopupMenu::HideRarelyUsedCommands() const {
+    return FALSE;
+}
+
+// Symbol: ?ActivatePopupMenu@CMFCPopupMenu@@SAHPEAVCFrameWnd@@PEAV1@@Z
+extern "C" int MS_ABI impl__ActivatePopupMenu_CMFCPopupMenu__SAHPEAVCFrameWnd__PEAV1__Z(CFrameWnd* pTopFrame, CMFCPopupMenu* pPopupMenu) {
+    return CMFCPopupMenu::ActivatePopupMenu(pTopFrame, pPopupMenu);
+}
+
+// Symbol: ?GetSafeActivePopupMenu@CMFCPopupMenu@@SAPEAV1@XZ
+extern "C" CMFCPopupMenu* MS_ABI impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ() {
+    return CMFCPopupMenu::GetSafeActivePopupMenu();
+}
+
+// Symbol: ?GetMenuItemCount@CMFCPopupMenu@@QEBAHXZ
+extern "C" int MS_ABI impl__GetMenuItemCount_CMFCPopupMenu__QEBAHXZ(const CMFCPopupMenu* pThis) {
+    return pThis ? pThis->GetMenuItemCount() : 0;
+}
+
+// Symbol: ?GetMenuItem@CMFCPopupMenu@@QEBAPEAVCMFCToolBarMenuButton@@H@Z
+extern "C" CMFCToolBarMenuButton* MS_ABI impl__GetMenuItem_CMFCPopupMenu__QEBAPEAVCMFCToolBarMenuButton__H_Z(const CMFCPopupMenu* pThis, int nIndex) {
+    return pThis ? pThis->GetMenuItem(nIndex) : nullptr;
+}
+
+// Symbol: ?GetSelItem@CMFCPopupMenu@@QEAAPEAVCMFCToolBarMenuButton@@XZ
+extern "C" CMFCToolBarMenuButton* MS_ABI impl__GetSelItem_CMFCPopupMenu__QEAAPEAVCMFCToolBarMenuButton__XZ(CMFCPopupMenu* pThis) {
+    return pThis ? pThis->GetSelItem() : nullptr;
+}
+
+// Symbol: ?FindSubItemByCommand@CMFCPopupMenu@@QEBAPEAVCMFCToolBarMenuButton@@I@Z
+extern "C" CMFCToolBarMenuButton* MS_ABI impl__FindSubItemByCommand_CMFCPopupMenu__QEBAPEAVCMFCToolBarMenuButton__I_Z(const CMFCPopupMenu* pThis, unsigned int uiCmd) {
+    return pThis ? pThis->FindSubItemByCommand(uiCmd) : nullptr;
+}
+
+// Symbol: ?InsertItem@CMFCPopupMenu@@QEAAHAEBVCMFCToolBarMenuButton@@H@Z
+extern "C" int MS_ABI impl__InsertItem_CMFCPopupMenu__QEAAHAEBVCMFCToolBarMenuButton__H_Z(CMFCPopupMenu* pThis, const CMFCToolBarMenuButton* pButton, int iInsertAt) {
+    return (pThis && pButton) ? pThis->InsertItem(*pButton, iInsertAt) : FALSE;
+}
+
+// Symbol: ?InsertSeparator@CMFCPopupMenu@@QEAAHH@Z
+extern "C" int MS_ABI impl__InsertSeparator_CMFCPopupMenu__QEAAHH_Z(CMFCPopupMenu* pThis, int iInsertAt) {
+    return pThis ? pThis->InsertSeparator(iInsertAt) : FALSE;
+}
+
+// Symbol: ?CloseMenu@CMFCPopupMenu@@QEAAXH@Z
+extern "C" void MS_ABI impl__CloseMenu_CMFCPopupMenu__QEAAXH_Z(CMFCPopupMenu* pThis, int bSetFocusToBar) {
+    if (pThis) pThis->CloseMenu(bSetFocusToBar);
+}
+
+// Symbol: ?EnableResize@CMFCPopupMenu@@QEAAXVCSize@@@Z
+extern "C" void MS_ABI impl__EnableResize_CMFCPopupMenu__QEAAXVCSize___Z(CMFCPopupMenu* pThis, CSize sizeMinResize) {
+    if (pThis) pThis->EnableResize(sizeMinResize);
+}
+
+// Symbol: ?EnableVertResize@CMFCPopupMenu@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableVertResize_CMFCPopupMenu__QEAAXH_Z(CMFCPopupMenu* pThis, int bEnable) {
+    if (pThis) pThis->EnableVertResize(bEnable);
+}
+
+// Symbol: ?HideRarelyUsedCommands@CMFCPopupMenu@@QEBAHXZ
+extern "C" int MS_ABI impl__HideRarelyUsedCommands_CMFCPopupMenu__QEBAHXZ(const CMFCPopupMenu* pThis) {
+    return pThis ? pThis->HideRarelyUsedCommands() : FALSE;
+}
+
+//=============================================================================
+// CMFCPopupMenuBar
+//=============================================================================
+IMPLEMENT_DYNAMIC(CMFCPopupMenuBar, CMFCToolBar)
+
+CMFCPopupMenuBar::CMFCPopupMenuBar() {
+    memset(_mfcpopupmenubar_padding, 0, sizeof(_mfcpopupmenubar_padding));
+}
+
+CMFCPopupMenuBar::~CMFCPopupMenuBar() {
+    ClearPopupMenuBarState(this);
+}
+
+BOOL CMFCPopupMenuBar::ImportFromMenu(HMENU hMenu, BOOL) {
+    PopupMenuBarState& state = g_popupMenuBarStates[this];
+    state.menu = hMenu;
+    ImportMenuIntoPopupItems(hMenu, state.items, state.ownedItems);
+    return TRUE;
+}
+
+HMENU CMFCPopupMenuBar::ExportToMenu() const {
+    auto it = g_popupMenuBarStates.find(this);
+    if (it == g_popupMenuBarStates.end()) return nullptr;
+    if (it->second.menu) return it->second.menu;
+
+    HMENU hMenu = ::CreatePopupMenu();
+    for (CMFCToolBarMenuButton* item : it->second.items) {
+        if (!item) continue;
+        if (item->m_hMenu) {
+            ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(item->m_hMenu), static_cast<const wchar_t*>(item->m_strText));
+        } else {
+            ::AppendMenuW(hMenu, MF_STRING, static_cast<UINT_PTR>(item->m_nID), static_cast<const wchar_t*>(item->m_strText));
+        }
+    }
+    return hMenu;
+}
+
+BOOL CMFCPopupMenuBar::BuildOrigItems(UINT) { return TRUE; }
+
+CMFCToolBarMenuButton* CMFCPopupMenuBar::GetMenuItem(int nIndex) const {
+    auto it = g_popupMenuBarStates.find(this);
+    if (it == g_popupMenuBarStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.items.size())) return nullptr;
+    return it->second.items[nIndex];
+}
+
+int CMFCPopupMenuBar::GetGutterWidth() const { return 22; }
+
+CSize CMFCPopupMenuBar::CalcSize(BOOL) {
+    auto it = g_popupMenuBarStates.find(this);
+    const int count = it == g_popupMenuBarStates.end() ? 0 : static_cast<int>(it->second.items.size());
+    return CSize(160, std::max(22, count * 22));
+}
+
+void CMFCPopupMenuBar::AdjustLayout() {}
+void CMFCPopupMenuBar::AdjustLocations() {}
+void CMFCPopupMenuBar::CloseDelayedSubMenu() {}
+
+// Symbol: ?ImportFromMenu@CMFCPopupMenuBar@@UEAAHPEAUHMENU__@@H@Z
+extern "C" int MS_ABI impl__ImportFromMenu_CMFCPopupMenuBar__UEAAHPEAUHMENU____H_Z(CMFCPopupMenuBar* pThis, HMENU hMenu, int bShowAllCommands) {
+    return pThis ? pThis->ImportFromMenu(hMenu, bShowAllCommands) : FALSE;
+}
+
+// Symbol: ?ExportToMenu@CMFCPopupMenuBar@@UEBAPEAUHMENU__@@XZ
+extern "C" HMENU MS_ABI impl__ExportToMenu_CMFCPopupMenuBar__UEBAPEAUHMENU____XZ(const CMFCPopupMenuBar* pThis) {
+    return pThis ? pThis->ExportToMenu() : nullptr;
+}
+
+// Symbol: ?BuildOrigItems@CMFCPopupMenuBar@@QEAAHI@Z
+extern "C" int MS_ABI impl__BuildOrigItems_CMFCPopupMenuBar__QEAAHI_Z(CMFCPopupMenuBar* pThis, unsigned int uiMenuResID) {
+    return pThis ? pThis->BuildOrigItems(uiMenuResID) : FALSE;
+}
+
+// Symbol: ?GetGutterWidth@CMFCPopupMenuBar@@QEAAHXZ
+extern "C" int MS_ABI impl__GetGutterWidth_CMFCPopupMenuBar__QEAAHXZ(CMFCPopupMenuBar* pThis) {
+    return pThis ? pThis->GetGutterWidth() : 0;
+}
+
+// Symbol: ?CalcSize@CMFCPopupMenuBar@@MEAA?AVCSize@@H@Z
+extern "C" void MS_ABI impl__CalcSize_CMFCPopupMenuBar__MEAA_AVCSize__H_Z(CSize* pRet, CMFCPopupMenuBar* pThis, int bVertDock) {
+    new (pRet) CSize(pThis ? pThis->CalcSize(bVertDock) : CSize());
+}
+
+// Symbol: ?AdjustLayout@CMFCPopupMenuBar@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CMFCPopupMenuBar__MEAAXXZ(CMFCPopupMenuBar* pThis) {
+    if (pThis) pThis->AdjustLayout();
+}
+
+// Symbol: ?AdjustLocations@CMFCPopupMenuBar@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustLocations_CMFCPopupMenuBar__MEAAXXZ(CMFCPopupMenuBar* pThis) {
+    if (pThis) pThis->AdjustLocations();
+}
+
+// Symbol: ?CloseDelayedSubMenu@CMFCPopupMenuBar@@UEAAXXZ
+extern "C" void MS_ABI impl__CloseDelayedSubMenu_CMFCPopupMenuBar__UEAAXXZ(CMFCPopupMenuBar* pThis) {
+    if (pThis) pThis->CloseDelayedSubMenu();
+}
 
 //=============================================================================
 // CMFCBaseTabCtrl
@@ -1302,7 +1771,126 @@ CMFCToolBarEditBoxButton::~CMFCToolBarEditBoxButton() {}
 
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButton, CMFCToolBarButton)
 CMFCToolBarMenuButton::CMFCToolBarMenuButton() : m_hMenu(nullptr) { memset(_pad, 0, sizeof(_pad)); }
-CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {}
+CMFCToolBarMenuButton::CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton)
+    : CMFCToolBarMenuButton() {
+    Initialize(uiID, hMenu, bHasDropDownArrow, lpszText, bUserButton);
+}
+CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
+    : CMFCToolBarButton(src.m_nID, src.m_iImage, static_cast<const wchar_t*>(src.m_strText), src.m_bUserButton, src.m_bLocked),
+      m_hMenu(src.m_hMenu) {
+    memset(_pad, 0, sizeof(_pad));
+    g_menuButtonStates[this] = g_menuButtonStates[&src];
+}
+CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
+    g_menuButtonStates.erase(this);
+}
+
+void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton) {
+    m_nID = uiID;
+    m_hMenu = hMenu;
+    m_bUserButton = bUserButton;
+    if (lpszText) m_strText = lpszText;
+    MenuButtonState& state = g_menuButtonStates[this];
+    state.hasDropDownArrow = bHasDropDownArrow != FALSE;
+    state.userButton = bUserButton != FALSE;
+}
+
+void CMFCToolBarMenuButton::CreateFromMenu(HMENU hMenu) {
+    m_hMenu = hMenu;
+}
+
+HMENU CMFCToolBarMenuButton::CreateMenu() const {
+    return m_hMenu ? m_hMenu : ::CreatePopupMenu();
+}
+
+void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
+    m_nID = src.m_nID;
+    m_iImage = src.m_iImage;
+    m_strText = src.m_strText;
+    m_bUserButton = src.m_bUserButton;
+    m_bLocked = src.m_bLocked;
+    if (src.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+        const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
+        m_hMenu = menuSrc.m_hMenu;
+        g_menuButtonStates[this] = g_menuButtonStates[&menuSrc];
+    }
+}
+
+int CMFCToolBarMenuButton::CompareWith(const CMFCToolBarButton& other) const {
+    if (m_nID != other.m_nID) {
+        return m_nID < other.m_nID ? -1 : 1;
+    }
+    return m_strText.Compare(other.m_strText);
+}
+
+IMPLEMENT_DYNAMIC(CMFCToolBarMenuButtonsButton, CMFCToolBarMenuButton)
+CMFCToolBarMenuButtonsButton::CMFCToolBarMenuButtonsButton()
+    : m_uiSystemCommand(0) {
+    memset(_padButtons, 0, sizeof(_padButtons));
+}
+CMFCToolBarMenuButtonsButton::CMFCToolBarMenuButtonsButton(UINT uiSystemCommand)
+    : CMFCToolBarMenuButtonsButton() {
+    m_uiSystemCommand = uiSystemCommand;
+    m_nID = uiSystemCommand;
+}
+CMFCToolBarMenuButtonsButton::~CMFCToolBarMenuButtonsButton() {}
+
+// Symbol: ??0CMFCToolBarMenuButton@@QEAA@IPEAUHMENU__@@HPEB_WH@Z
+extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_IPEAUHMENU____HPEB_WH_Z(
+    void* pThis, unsigned int uiID, HMENU hMenu, int bHasDropDownArrow, const wchar_t* lpszText, int bUserButton) {
+    return new (pThis) CMFCToolBarMenuButton(uiID, hMenu, bHasDropDownArrow, lpszText, bUserButton);
+}
+
+// Symbol: ??0CMFCToolBarMenuButton@@QEAA@AEBV0@@Z
+extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_AEBV0__Z(void* pThis, const CMFCToolBarMenuButton* pSrc) {
+    return new (pThis) CMFCToolBarMenuButton(*pSrc);
+}
+
+// Symbol: ?Initialize@CMFCToolBarMenuButton@@IEAAXIPEAUHMENU__@@HPEB_WH@Z
+extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(
+    CMFCToolBarMenuButton* pThis, unsigned int uiID, HMENU hMenu, int bHasDropDownArrow, const wchar_t* lpszText, int bUserButton) {
+    if (pThis) pThis->Initialize(uiID, hMenu, bHasDropDownArrow, lpszText, bUserButton);
+}
+
+// Symbol: ?Initialize@CMFCToolBarMenuButton@@IEAAXXZ
+extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXXZ(CMFCToolBarMenuButton* pThis) {
+    if (pThis) pThis->Initialize(0, nullptr, FALSE, nullptr, FALSE);
+}
+
+// Symbol: ?CreateFromMenu@CMFCToolBarMenuButton@@UEAAXPEAUHMENU__@@@Z
+extern "C" void MS_ABI impl__CreateFromMenu_CMFCToolBarMenuButton__UEAAXPEAUHMENU_____Z(CMFCToolBarMenuButton* pThis, HMENU hMenu) {
+    if (pThis) pThis->CreateFromMenu(hMenu);
+}
+
+// Symbol: ?CreateMenu@CMFCToolBarMenuButton@@UEBAPEAUHMENU__@@XZ
+extern "C" HMENU MS_ABI impl__CreateMenu_CMFCToolBarMenuButton__UEBAPEAUHMENU____XZ(const CMFCToolBarMenuButton* pThis) {
+    return pThis ? pThis->CreateMenu() : nullptr;
+}
+
+// Symbol: ?CopyFrom@CMFCToolBarMenuButton@@UEAAXAEBVCMFCToolBarButton@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarMenuButton__UEAAXAEBVCMFCToolBarButton___Z(CMFCToolBarMenuButton* pThis, const CMFCToolBarButton* pSrc) {
+    if (pThis && pSrc) pThis->CopyFrom(*pSrc);
+}
+
+// Symbol: ?CompareWith@CMFCToolBarMenuButton@@UEBAHAEBVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__CompareWith_CMFCToolBarMenuButton__UEBAHAEBVCMFCToolBarButton___Z(const CMFCToolBarMenuButton* pThis, const CMFCToolBarButton* pOther) {
+    return (pThis && pOther) ? pThis->CompareWith(*pOther) : 0;
+}
+
+// Symbol: ??0CMFCToolBarMenuButtonsButton@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMFCToolBarMenuButtonsButton__QEAA_XZ(void* pThis) {
+    return new (pThis) CMFCToolBarMenuButtonsButton();
+}
+
+// Symbol: ??0CMFCToolBarMenuButtonsButton@@QEAA@I@Z
+extern "C" void* MS_ABI impl___0CMFCToolBarMenuButtonsButton__QEAA_I_Z(void* pThis, unsigned int uiSystemCommand) {
+    return new (pThis) CMFCToolBarMenuButtonsButton(uiSystemCommand);
+}
+
+// Symbol: ??1CMFCToolBarMenuButtonsButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCToolBarMenuButtonsButton__UEAA_XZ(CMFCToolBarMenuButtonsButton* pThis) {
+    if (pThis) pThis->~CMFCToolBarMenuButtonsButton();
+}
 
 IMPLEMENT_DYNAMIC(CMFCStatusBar, CStatusBar)
 CMFCStatusBar::CMFCStatusBar() { memset(_pad, 0, sizeof(_pad)); }
