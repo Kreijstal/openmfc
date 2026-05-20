@@ -9,14 +9,25 @@
 #include <cstring>
 #include <cwchar>
 #include <cstdio>
+#include <map>
+#include <new>
 #include <vector>
 
 // MinGW compat: Ambient property DISPIDs
 #ifndef DISPID_AMBIENT_BACKCOLOR
 #define DISPID_AMBIENT_BACKCOLOR    (-701)
-#define DISPID_AMBIENT_FORECOLOR    (-705)
+#define DISPID_AMBIENT_DISPLAYNAME  (-702)
 #define DISPID_AMBIENT_FONT         (-703)
+#define DISPID_AMBIENT_FORECOLOR    (-704)
+#define DISPID_AMBIENT_LOCALEID     (-705)
 #define DISPID_AMBIENT_USERMODE     (-709)
+#define DISPID_AMBIENT_UIDEAD       (-710)
+#define DISPID_AMBIENT_SHOWGRABHANDLES (-711)
+#define DISPID_AMBIENT_SHOWHATCHING (-712)
+#define DISPID_AMBIENT_DISPLAYASDEFAULT (-713)
+#define DISPID_AMBIENT_SUPPORTSMNEMONICS (-714)
+#define DISPID_AMBIENT_APPEARANCE   (-716)
+#define DISPID_AMBIENT_SCALEUNITS   (-807)
 #endif
 #ifndef VT_COLOR
 #define VT_COLOR 0x0000000CL
@@ -298,6 +309,471 @@ static HRESULT CopyDispatchResult(VARTYPE vt, void* pvRet, VARIANT* result) {
     }
 }
 
+static void ResetOleVariant(COleVariant* pThis) {
+    if (!pThis) return;
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    VariantClear(var);
+    VariantInit(var);
+}
+
+static void AssignI2Variant(COleVariant* pThis, short value, VARTYPE vt) {
+    if (!pThis) return;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_I2 || vt == VT_EMPTY) {
+        var->vt = VT_I2;
+        var->iVal = value;
+        return;
+    }
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_I2;
+    src.iVal = value;
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+    }
+}
+
+static void AssignI4Variant(COleVariant* pThis, long value, VARTYPE vt) {
+    if (!pThis) return;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_I4 || vt == VT_EMPTY) {
+        var->vt = VT_I4;
+        var->lVal = value;
+        return;
+    }
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_I4;
+    src.lVal = value;
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+    }
+}
+
+static void SetOleVariantString(COleVariant* pThis, const wchar_t* text, VARTYPE vt) {
+    if (!pThis) return;
+    const wchar_t* srcText = text ? text : L"";
+    if (vt == VT_EMPTY) vt = VT_BSTR;
+    ResetOleVariant(pThis);
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if (vt == VT_BSTR) {
+        var->vt = VT_BSTR;
+        var->bstrVal = SysAllocString(srcText);
+        return;
+    }
+
+    VARIANT src;
+    VariantInit(&src);
+    src.vt = VT_BSTR;
+    src.bstrVal = SysAllocString(srcText);
+    if (!src.bstrVal && srcText[0] != L'\0') {
+        return;
+    }
+    if (FAILED(VariantChangeType(var, &src, 0, vt))) {
+        *var = src;
+        VariantInit(&src);
+        return;
+    }
+    VariantClear(&src);
+}
+
+static const COleVariant* AssignOleVariant(COleVariant* pThis, const VARIANT* pSrc) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    if (pSrc) {
+        VariantCopy(static_cast<VARIANT*>(pThis), const_cast<VARIANT*>(pSrc));
+    }
+    return pThis;
+}
+
+struct OleDispatchDriverLayout {
+    LPDISPATCH m_lpDispatch;
+    BOOL m_bAutoRelease;
+};
+
+static OleDispatchDriverLayout* DispatchDriverLayout(COleDispatchDriver* pThis) {
+    return reinterpret_cast<OleDispatchDriverLayout*>(pThis);
+}
+
+static const OleDispatchDriverLayout* DispatchDriverLayout(const COleDispatchDriver* pThis) {
+    return reinterpret_cast<const OleDispatchDriverLayout*>(pThis);
+}
+
+// Symbol: ??0COleVariant@@QEAA@AEBUtagVARIANT@@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignOleVariant(pThis, pSrc);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@AEBV0@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_AEBV0__Z(
+    COleVariant* pThis, const COleVariant* pSrc
+) {
+    return impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(
+        pThis, reinterpret_cast<const VARIANT*>(pSrc)
+    );
+}
+
+// Symbol: ??0COleVariant@@QEAA@FG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_FG_Z(
+    COleVariant* pThis, short value, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignI2Variant(pThis, value, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@JG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_JG_Z(
+    COleVariant* pThis, long value, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    AssignI4Variant(pThis, value, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@PEB_WG@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_PEB_WG_Z(
+    COleVariant* pThis, const wchar_t* text, VARTYPE vt
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleVariant();
+    SetOleVariantString(pThis, text, vt);
+    return pThis;
+}
+
+// Symbol: ??0COleVariant@@QEAA@PEBUtagVARIANT@@@Z
+extern "C" COleVariant* MS_ABI impl___0COleVariant__QEAA_PEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return impl___0COleVariant__QEAA_AEBUtagVARIANT___Z(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@AEBV0@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_AEBV0__Z(
+    COleVariant* pThis, const COleVariant* pSrc
+) {
+    return AssignOleVariant(pThis, reinterpret_cast<const VARIANT*>(pSrc));
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@AEBUtagVARIANT@@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_AEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return AssignOleVariant(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@PEBUtagVARIANT@@@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_PEBUtagVARIANT___Z(
+    COleVariant* pThis, const VARIANT* pSrc
+) {
+    return AssignOleVariant(pThis, pSrc);
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@F@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_F_Z(
+    COleVariant* pThis, short value
+) {
+    AssignI2Variant(pThis, value, VT_I2);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@J@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_J_Z(
+    COleVariant* pThis, long value
+) {
+    AssignI4Variant(pThis, value, VT_I4);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@M@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_M_Z(
+    COleVariant* pThis, float value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_R4;
+    pThis->fltVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@N@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_N_Z(
+    COleVariant* pThis, double value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_R8;
+    pThis->dblVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@QEB_W@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0_QEB_W_Z(
+    COleVariant* pThis, const wchar_t* text
+) {
+    SetOleVariantString(pThis, text, VT_BSTR);
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@_J@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0__J_Z(
+    COleVariant* pThis, __int64 value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_I8;
+    pThis->llVal = value;
+    return pThis;
+}
+
+// Symbol: ??4COleVariant@@QEAAAEBV0@_K@Z
+extern "C" const COleVariant* MS_ABI impl___4COleVariant__QEAAAEBV0__K_Z(
+    COleVariant* pThis, unsigned __int64 value
+) {
+    if (!pThis) return nullptr;
+    ResetOleVariant(pThis);
+    pThis->vt = VT_UI8;
+    pThis->ullVal = value;
+    return pThis;
+}
+
+// Symbol: ?SetString@COleVariant@@QEAAXPEB_WG@Z
+extern "C" void MS_ABI impl__SetString_COleVariant__QEAAXPEB_WG_Z(
+    COleVariant* pThis, const wchar_t* text, VARTYPE vt
+) {
+    SetOleVariantString(pThis, text, vt);
+}
+
+// Symbol: ?Attach@COleVariant@@QEAAXAEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__Attach_COleVariant__QEAAXAEAUtagVARIANT___Z(
+    COleVariant* pThis, VARIANT* pSrc
+) {
+    if (!pThis || !pSrc) return;
+    ResetOleVariant(pThis);
+    *static_cast<VARIANT*>(pThis) = *pSrc;
+    VariantInit(pSrc);
+}
+
+// Symbol: ?Detach@COleVariant@@QEAA?AUtagVARIANT@@XZ
+extern "C" VARIANT* MS_ABI impl__Detach_COleVariant__QEAA_AUtagVARIANT__XZ(
+    VARIANT* pRet, COleVariant* pThis
+) {
+    if (!pRet) return nullptr;
+    VariantInit(pRet);
+    if (!pThis) return pRet;
+    *pRet = *static_cast<VARIANT*>(pThis);
+    VariantInit(static_cast<VARIANT*>(pThis));
+    return pRet;
+}
+
+// Symbol: ?ChangeType@COleVariant@@QEAAXGPEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__ChangeType_COleVariant__QEAAXGPEAUtagVARIANT___Z(
+    COleVariant* pThis, VARTYPE vtNew, VARIANT* pSrc
+) {
+    if (!pThis) return;
+    VARIANT converted;
+    VariantInit(&converted);
+    VARIANT* source = pSrc ? pSrc : static_cast<VARIANT*>(pThis);
+    if (FAILED(VariantChangeType(&converted, source, 0, vtNew))) {
+        return;
+    }
+    ResetOleVariant(pThis);
+    *static_cast<VARIANT*>(pThis) = converted;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@XZ
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_XZ(
+    COleDispatchDriver* pThis
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleDispatchDriver();
+    return pThis;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@PEAUIDispatch@@H@Z
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_PEAUIDispatch__H_Z(
+    COleDispatchDriver* pThis, LPDISPATCH lpDispatch, BOOL bAutoRelease
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleDispatchDriver(lpDispatch, bAutoRelease);
+    return pThis;
+}
+
+// Symbol: ??0COleDispatchDriver@@QEAA@AEBV0@@Z
+extern "C" COleDispatchDriver* MS_ABI impl___0COleDispatchDriver__QEAA_AEBV0__Z(
+    COleDispatchDriver* pThis, const COleDispatchDriver* pSrc
+) {
+    if (!pThis) return nullptr;
+    if (!pSrc) return impl___0COleDispatchDriver__QEAA_XZ(pThis);
+    const OleDispatchDriverLayout* src = DispatchDriverLayout(pSrc);
+    new (pThis) COleDispatchDriver(src->m_lpDispatch, src->m_bAutoRelease);
+    OleDispatchDriverLayout* dst = DispatchDriverLayout(pThis);
+    if (dst->m_lpDispatch && dst->m_bAutoRelease) {
+        dst->m_lpDispatch->AddRef();
+    }
+    return pThis;
+}
+
+// Symbol: ??4COleDispatchDriver@@QEAAAEBV0@AEBV0@@Z
+extern "C" const COleDispatchDriver* MS_ABI impl___4COleDispatchDriver__QEAAAEBV0_AEBV0__Z(
+    COleDispatchDriver* pThis, const COleDispatchDriver* pSrc
+) {
+    if (!pThis || !pSrc || pThis == pSrc) return pThis;
+    const OleDispatchDriverLayout* src = DispatchDriverLayout(pSrc);
+    LPDISPATCH srcDispatch = src->m_lpDispatch;
+    if (srcDispatch && src->m_bAutoRelease) {
+        srcDispatch->AddRef();
+    }
+    pThis->ReleaseDispatch();
+    OleDispatchDriverLayout* dst = DispatchDriverLayout(pThis);
+    dst->m_lpDispatch = srcDispatch;
+    dst->m_bAutoRelease = src->m_bAutoRelease;
+    return pThis;
+}
+
+// Symbol: ?AttachDispatch@COleDispatchDriver@@QEAAXPEAUIDispatch@@H@Z
+extern "C" void MS_ABI impl__AttachDispatch_COleDispatchDriver__QEAAXPEAUIDispatch__H_Z(
+    COleDispatchDriver* pThis, LPDISPATCH lpDispatch, BOOL bAutoRelease
+) {
+    if (!pThis) return;
+    pThis->AttachDispatch(lpDispatch, bAutoRelease);
+}
+
+// Symbol: ?DetachDispatch@COleDispatchDriver@@QEAAPEAUIDispatch@@XZ
+extern "C" LPDISPATCH MS_ABI impl__DetachDispatch_COleDispatchDriver__QEAAPEAUIDispatch__XZ(
+    COleDispatchDriver* pThis
+) {
+    return pThis ? pThis->DetachDispatch() : nullptr;
+}
+
+// Symbol: ?ReleaseDispatch@COleDispatchDriver@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseDispatch_COleDispatchDriver__QEAAXXZ(
+    COleDispatchDriver* pThis
+) {
+    if (!pThis) return;
+    pThis->ReleaseDispatch();
+}
+
+// Symbol: ?CreateDispatch@COleDispatchDriver@@QEAAHAEBU_GUID@@PEAVCOleException@@@Z
+extern "C" int MS_ABI impl__CreateDispatch_COleDispatchDriver__QEAAHAEBU_GUID__PEAVCOleException___Z(
+    COleDispatchDriver* pThis, REFCLSID clsid, COleException* pError
+) {
+    return pThis ? pThis->CreateDispatch(clsid, pError) : FALSE;
+}
+
+// Symbol: ?CreateDispatch@COleDispatchDriver@@QEAAHPEB_WPEAVCOleException@@@Z
+extern "C" int MS_ABI impl__CreateDispatch_COleDispatchDriver__QEAAHPEB_WPEAVCOleException___Z(
+    COleDispatchDriver* pThis, const wchar_t* progId, COleException* pError
+) {
+    return pThis ? pThis->CreateDispatch(progId, pError) : FALSE;
+}
+
+// Symbol: ?InvokeHelper@COleDispatchDriver@@QEAAXJGGPEAXPEBEZZ
+extern "C" void MS_ABI impl__InvokeHelper_COleDispatchDriver__QEAAXJGGPEAXPEBEZZ(
+    COleDispatchDriver* pThis, DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
+    void* pvRet, const BYTE* pbParamInfo, ...
+) {
+    if (!pThis) return;
+    va_list args;
+    va_start(args, pbParamInfo);
+    pThis->InvokeHelperV(dwDispID, wFlags, vtRet, pvRet, pbParamInfo, args);
+    va_end(args);
+}
+
+// Symbol: ?InvokeHelperV@COleDispatchDriver@@QEAAXJGGPEAXPEBEPEAD@Z
+extern "C" void MS_ABI impl__InvokeHelperV_COleDispatchDriver__QEAAXJGGPEAXPEBEPEAD_Z(
+    COleDispatchDriver* pThis, DISPID dwDispID, WORD wFlags, VARTYPE vtRet,
+    void* pvRet, const BYTE* pbParamInfo, va_list args
+) {
+    if (!pThis) return;
+    pThis->InvokeHelperV(dwDispID, wFlags, vtRet, pvRet, pbParamInfo, args);
+}
+
+// Symbol: ?SetProperty@COleDispatchDriver@@QEAAXJGZZ
+extern "C" void MS_ABI impl__SetProperty_COleDispatchDriver__QEAAXJGZZ(
+    COleDispatchDriver* pThis, DISPID dwDispID, VARTYPE vtProp, ...
+) {
+    if (!pThis) return;
+    BYTE params[2] = { static_cast<BYTE>(vtProp), 0 };
+    va_list args;
+    va_start(args, vtProp);
+    pThis->InvokeHelperV(dwDispID, DISPATCH_PROPERTYPUT, VT_EMPTY, nullptr, params, args);
+    va_end(args);
+}
+
+// Symbol: ?GetProperty@COleDispatchDriver@@QEBAXJGPEAX@Z
+extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(
+    const COleDispatchDriver* pThis, DISPID dwDispID, VARTYPE vtProp, void* pvProp
+) {
+    if (!pThis) return;
+    const_cast<COleDispatchDriver*>(pThis)->InvokeHelper(
+        dwDispID, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr
+    );
+}
+
+// Symbol: ?QueryInterface@COleConnPtContainer@@UEAAJAEBU_GUID@@PEAPEAX@Z
+extern "C" ULONG MS_ABI impl__AddRef_COleConnPtContainer__UEAAKXZ(COleConnPtContainer* pThis);
+extern "C" HRESULT MS_ABI impl__QueryInterface_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAX_Z(
+    COleConnPtContainer* pThis, REFIID riid, void** ppv
+) {
+    if (!ppv) return E_POINTER;
+    *ppv = nullptr;
+    if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IConnectionPointContainer)) {
+        *ppv = pThis;
+        impl__AddRef_COleConnPtContainer__UEAAKXZ(pThis);
+        return S_OK;
+    }
+    return E_NOINTERFACE;
+}
+
+// Symbol: ?AddRef@COleConnPtContainer@@UEAAKXZ
+extern "C" ULONG MS_ABI impl__AddRef_COleConnPtContainer__UEAAKXZ(
+    COleConnPtContainer* pThis
+) {
+    (void)pThis;
+    return 1;
+}
+
+// Symbol: ?Release@COleConnPtContainer@@UEAAKXZ
+extern "C" ULONG MS_ABI impl__Release_COleConnPtContainer__UEAAKXZ(
+    COleConnPtContainer* pThis
+) {
+    (void)pThis;
+    return 1;
+}
+
+// Symbol: ?EnumConnectionPoints@COleConnPtContainer@@UEAAJPEAPEAUIEnumConnectionPoints@@@Z
+extern "C" HRESULT MS_ABI impl__EnumConnectionPoints_COleConnPtContainer__UEAAJPEAPEAUIEnumConnectionPoints___Z(
+    COleConnPtContainer* pThis, IEnumConnectionPoints** ppEnum
+) {
+    (void)pThis;
+    if (!ppEnum) return E_POINTER;
+    *ppEnum = nullptr;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?FindConnectionPoint@COleConnPtContainer@@UEAAJAEBU_GUID@@PEAPEAUIConnectionPoint@@@Z
+extern "C" HRESULT MS_ABI impl__FindConnectionPoint_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAUIConnectionPoint___Z(
+    COleConnPtContainer* pThis, REFIID riid, IConnectionPoint** ppCP
+) {
+    (void)pThis;
+    (void)riid;
+    if (!ppCP) return E_POINTER;
+    *ppCP = nullptr;
+    return OLE_E_NOCONNECTION;
+}
+
 struct DataCacheState;
 
 class DataSourceDataObject : public IDataObject {
@@ -411,11 +887,24 @@ struct ServerItemState {
     ~ServerItemState() { delete dataSource; }
 };
 
+struct OleControlState {
+    COleControl* control = nullptr;
+    COLORREF backColor = RGB(255, 255, 255);
+    COLORREF foreColor = RGB(0, 0, 0);
+    BOOL enabled = TRUE;
+    short appearance = 0;
+    short borderStyle = 0;
+    CString text;
+    long readyState = 4;
+    BOOL modified = FALSE;
+};
+
 static std::vector<DropTargetState> g_dropTargetStates;
 static std::vector<DocumentState> g_documentStates;
 static std::vector<ClientItemState> g_clientItemStates;
 static std::vector<ServerDocState> g_serverDocStates;
 static std::vector<ServerItemState> g_serverItemStates;
+static std::vector<OleControlState> g_oleControlStates;
 
 static DropTargetState* GetDropTargetState(COleDropTarget* target, bool create) {
     if (!target) return nullptr;
@@ -531,6 +1020,24 @@ static BOOL EnsureLinkingDocMoniker(COleLinkingDoc* document, const wchar_t* fil
     document->m_bRegistered = TRUE;
     if (setModified) document->SetModifiedFlag(TRUE);
     return TRUE;
+}
+
+static OleControlState* GetOleControlState(COleControl* control, bool create) {
+    if (!control) return nullptr;
+    for (OleControlState& state : g_oleControlStates) {
+        if (state.control == control) return &state;
+    }
+    if (!create) return nullptr;
+    g_oleControlStates.push_back(OleControlState());
+    g_oleControlStates.back().control = control;
+    return &g_oleControlStates.back();
+}
+
+static void RemoveOleControlState(COleControl* control) {
+    g_oleControlStates.erase(
+        std::remove_if(g_oleControlStates.begin(), g_oleControlStates.end(),
+                       [control](const OleControlState& state) { return state.control == control; }),
+        g_oleControlStates.end());
 }
 
 static void AddDocumentItem(COleDocument* document, COleClientItem* item) {
@@ -2252,6 +2759,37 @@ void COleTemplateServer::UpdateRegistry(OLE_APPTYPE nAppType,
 //=============================================================================
 IMPLEMENT_DYNAMIC(COleControlSite, CCmdTarget)
 
+namespace {
+struct OleControlSiteState {
+    UINT controlId;
+};
+
+static std::map<const COleControlSite*, OleControlSiteState> g_oleControlSiteState;
+
+static void SetControlSiteId(const COleControlSite* pSite, UINT controlId) {
+    if (!pSite) {
+        return;
+    }
+    g_oleControlSiteState[pSite] = { controlId };
+}
+
+static void RemoveControlSiteState(const COleControlSite* pSite) {
+    g_oleControlSiteState.erase(pSite);
+}
+
+static BOOL TryGetControlSiteId(const COleControlSite* pSite, UINT* pControlId) {
+    if (!pSite || !pControlId) {
+        return FALSE;
+    }
+    auto it = g_oleControlSiteState.find(pSite);
+    if (it == g_oleControlSiteState.end()) {
+        return FALSE;
+    }
+    *pControlId = it->second.controlId;
+    return TRUE;
+}
+} // namespace
+
 COleControlSite::COleControlSite(COleControlContainer* pCtrlCont)
     : m_pCtrlCont(pCtrlCont), m_pControl(nullptr),
       m_lpObject(nullptr), m_lpInPlaceObject(nullptr), m_lpDispatch(nullptr),
@@ -2261,13 +2799,17 @@ COleControlSite::COleControlSite(COleControlContainer* pCtrlCont)
 
 COleControlSite::~COleControlSite() {
     DestroyControl();
+    RemoveControlSiteState(this);
 }
 
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_t* lpszWindowName,
                                      DWORD dwStyle, const RECT& rect, UINT nID, CFile* pPersist,
                                      BOOL bStorage, BSTR bstrLicKey) {
-    (void)pWndCtrl; (void)clsid; (void)lpszWindowName; (void)dwStyle; (void)rect;
-    (void)nID; (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    (void)clsid; (void)lpszWindowName; (void)rect;
+    (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    m_dwStyle = dwStyle;
+    m_hWnd = pWndCtrl ? pWndCtrl->GetSafeHwnd() : nullptr;
+    SetControlSiteId(this, nID);
     return FALSE;
 }
 
@@ -2284,13 +2826,17 @@ void COleControlSite::DestroyControl() {
     if (m_lpObject) { m_lpObject->Release(); m_lpObject = nullptr; }
     if (m_lpInPlaceObject) { m_lpInPlaceObject->Release(); m_lpInPlaceObject = nullptr; }
     if (m_lpDispatch) { m_lpDispatch->Release(); m_lpDispatch = nullptr; }
+    m_pControl = nullptr;
+    m_hWnd = nullptr;
+    m_bInPlaceActive = FALSE;
 }
 
 void COleControlSite::Activate(BOOL bActivate) {
-    (void)bActivate;
+    m_bInPlaceActive = bActivate ? TRUE : FALSE;
 }
 
 void COleControlSite::Deactivate() {
+    m_bInPlaceActive = FALSE;
 }
 
 BOOL COleControlSite::IsInPlaceActive() const {
@@ -2373,10 +2919,39 @@ HRESULT COleControlSite::InvokeHelperV(DISPID dwDispID, WORD wFlags, VARTYPE vtR
 }
 
 BOOL COleControlSite::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
-    IDispatch* ambient = m_lpDispatch;
-    if (!ambient) return FALSE;
+    if (!pvProp) {
+        return FALSE;
+    }
 
-    return SUCCEEDED(InvokeHelper(dwDispid, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr));
+    if (m_lpDispatch &&
+        SUCCEEDED(InvokeHelper(dwDispid, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr))) {
+        return TRUE;
+    }
+
+    switch (dwDispid) {
+    case DISPID_AMBIENT_USERMODE:
+        if (vtProp == VT_BOOL) {
+            *static_cast<VARIANT_BOOL*>(pvProp) = VARIANT_TRUE;
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_BACKCOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOW));
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_FORECOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOWTEXT));
+            return TRUE;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return FALSE;
 }
 
 long COleControlSite::GetWindow(HWND__** phWnd) {
@@ -2451,6 +3026,23 @@ BOOL COleControlContainer::DeleteSite(COleControlSite* pSite) {
 }
 
 COleControlSite* COleControlContainer::FindItem(UINT nID) const {
+    CPtrList::POSITION pos = m_listSites.GetHeadPosition();
+    while (pos != CPtrList::POSITION(nullptr)) {
+        COleControlSite* pSite = static_cast<COleControlSite*>(m_listSites.GetNext(pos));
+        if (!pSite) {
+            continue;
+        }
+
+        UINT siteId = 0;
+        if (TryGetControlSiteId(pSite, &siteId) && siteId == nID) {
+            return pSite;
+        }
+
+        HWND hWnd = pSite->m_hWnd;
+        if (hWnd && ::IsWindow(hWnd) && static_cast<UINT>(::GetDlgCtrlID(hWnd)) == nID) {
+            return pSite;
+        }
+    }
     return nullptr;
 }
 
@@ -2498,14 +3090,30 @@ CEnumOleVerb::CEnumOleVerb() {
 CEnumOleVerb::~CEnumOleVerb() {
 }
 
+HWND COleControlSiteOrWnd::GetSafeHwnd() const {
+    if (m_pSite) {
+        return m_pSite->m_hWnd;
+    }
+    return m_pWnd ? m_pWnd->GetSafeHwnd() : nullptr;
+}
+
 DWORD COleControlSiteOrWnd::GetStyle() const {
     if (m_pSite) {
         return m_pSite->m_dwStyle;
     }
-    if (!m_pWnd || !m_pWnd->GetSafeHwnd()) {
+    HWND hWnd = GetSafeHwnd();
+    if (!hWnd) {
         return 0;
     }
-    return static_cast<DWORD>(GetWindowLongPtrW(m_pWnd->GetSafeHwnd(), GWL_STYLE));
+    return static_cast<DWORD>(GetWindowLongPtrW(hWnd, GWL_STYLE));
+}
+
+DWORD COleControlSiteOrWnd::GetExStyle() const {
+    HWND hWnd = GetSafeHwnd();
+    if (!hWnd) {
+        return 0;
+    }
+    return static_cast<DWORD>(GetWindowLongPtrW(hWnd, GWL_EXSTYLE));
 }
 
 //=============================================================================
@@ -2852,18 +3460,37 @@ COleControl::COleControl()
     m_cxExtent.cy = 0;
     m_cyExtent.cx = 0;
     m_cyExtent.cy = 0;
+    GetOleControlState(this, true);
     memset(_olecontrol_padding, 0, sizeof(_olecontrol_padding));
 }
 
 COleControl::~COleControl() {
+    RemoveOleControlState(this);
 }
 
 BOOL COleControl::CreateControl(REFCLSID clsid, const wchar_t* lpszWindowName,
                                  DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
                                  UINT nID, CFile* pPersist, BOOL bStorage, BSTR bstrLicKey) {
-    (void)clsid; (void)lpszWindowName; (void)dwStyle; (void)rect; (void)pParentWnd;
-    (void)nID; (void)pPersist; (void)bStorage; (void)bstrLicKey;
-    return FALSE;
+    if (!pParentWnd) return FALSE;
+
+    COleControlContainer* container = pParentWnd->GetControlContainer();
+    if (!container) {
+        if (!pParentWnd->CreateControlContainer(&container) || !container) return FALSE;
+    }
+
+    COleControlSite* site = container->CreateSite(container);
+    if (!site) return FALSE;
+
+    if (!site->CreateControl(this, clsid, lpszWindowName, dwStyle, rect, nID, pPersist, bStorage, bstrLicKey)) {
+        container->DeleteSite(site);
+        return FALSE;
+    }
+
+    m_pContainer = container;
+    m_pControlSite = site;
+    site->m_pControl = this;
+    m_bInitialized = TRUE;
+    return TRUE;
 }
 
 BOOL COleControl::CreateControl(const wchar_t* lpszProgID, const wchar_t* lpszWindowName,
@@ -2896,8 +3523,8 @@ BOOL COleControl::DoPropExchange(CPropExchange* pPX) {
 }
 
 BOOL COleControl::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
-    (void)dwDispid; (void)vtProp; (void)pvProp;
-    return FALSE;
+    if (!pvProp) return FALSE;
+    return m_pControlSite ? m_pControlSite->GetAmbientProperty(dwDispid, vtProp, pvProp) : FALSE;
 }
 
 void COleControl::FireEvent(DISPID dispId, BYTE* pbParams, ...) {
@@ -2916,8 +3543,7 @@ BOOL COleControl::IsOptimizedDraw() const {
 }
 
 void COleControl::SetInitialSize(int cx, int cy) {
-    m_cxExtent.cx = cx;
-    m_cyExtent.cy = cy;
+    SetControlSize(cx, cy);
 }
 
 void COleControl::OnDraw(CDC* pDC, const CRect& rcBounds, const CRect& rcInvalid) {
@@ -3067,30 +3693,70 @@ BOOL COleControl::VerifyUserLicense() { return TRUE; }
 BOOL COleControl::VerifyLicenseKey(BSTR bstrKey) { (void)bstrKey; return TRUE; }
 BOOL COleControl::SetLicenseKey(const wchar_t* lpszLicenseKey) { (void)lpszLicenseKey; return TRUE; }
 void COleControl::DoDataExchange(void* pDX) { (void)pDX; }
-void COleControl::OnResetState() {}
+void COleControl::OnResetState() {
+    OleControlState* state = GetOleControlState(this, true);
+    if (state) {
+        state->backColor = RGB(255, 255, 255);
+        state->foreColor = RGB(0, 0, 0);
+        state->enabled = TRUE;
+        state->appearance = 0;
+        state->borderStyle = 0;
+        state->text.Empty();
+        state->readyState = 4;
+        state->modified = FALSE;
+    }
+    m_cxExtent.cx = 0;
+    m_cxExtent.cy = 0;
+    m_cyExtent.cx = 0;
+    m_cyExtent.cy = 0;
+}
 DWORD COleControl::GetControlFlags() { return 0; }
-BOOL COleControl::OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size) { (void)dwDrawAspect; (void)size; return TRUE; }
-BOOL COleControl::OnGetExtent(DVASPECT dwDrawAspect, SIZE& size) { (void)dwDrawAspect; size.cx = 0; size.cy = 0; return TRUE; }
+BOOL COleControl::OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size) {
+    if (dwDrawAspect != DVASPECT_CONTENT) return FALSE;
+    m_cxExtent.cx = size.cx;
+    m_cxExtent.cy = size.cy;
+    m_cyExtent.cx = size.cx;
+    m_cyExtent.cy = size.cy;
+    return TRUE;
+}
+BOOL COleControl::OnGetExtent(DVASPECT dwDrawAspect, SIZE& size) {
+    if (dwDrawAspect != DVASPECT_CONTENT) return FALSE;
+    size.cx = m_cxExtent.cx;
+    size.cy = m_cxExtent.cy;
+    return TRUE;
+}
 BOOL COleControl::OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional) { (void)dispid; (void)pclsid; (void)pbPageOptional; return FALSE; }
 
 COLORREF COleControl::AmbientBackColor() { COLORREF cr = RGB(255,255,255); GetAmbientProperty(DISPID_AMBIENT_BACKCOLOR, VT_COLOR, &cr); return cr; }
 COLORREF COleControl::AmbientForeColor() { COLORREF cr = RGB(0,0,0); GetAmbientProperty(DISPID_AMBIENT_FORECOLOR, VT_COLOR, &cr); return cr; }
-COLORREF COleControl::AmbientAppearance() { return RGB(255,255,255); }
+COLORREF COleControl::AmbientAppearance() { short appearance = 0; GetAmbientProperty(DISPID_AMBIENT_APPEARANCE, VT_I2, &appearance); return static_cast<COLORREF>(appearance); }
 OLE_COLOR COleControl::AmbientBackColorOle() { return (OLE_COLOR)AmbientBackColor(); }
 OLE_COLOR COleControl::AmbientForeColorOle() { return (OLE_COLOR)AmbientForeColor(); }
 IFontDisp* COleControl::AmbientFont() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return (IFontDisp*)p; }
 IDispatch* COleControl::AmbientFontDisp() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return p; }
 short COleControl::AmbientTextAlign() { return 0; }
 BOOL COleControl::AmbientUserMode() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_USERMODE, VT_BOOL, &b); return b; }
-BOOL COleControl::AmbientUIDead() { return FALSE; }
-BOOL COleControl::AmbientShowGrabHandles() { return TRUE; }
-BOOL COleControl::AmbientShowHatching() { return TRUE; }
-CString COleControl::AmbientDisplayName() { return CString(); }
-BOOL COleControl::AmbientDisplayAsDefault() { return FALSE; }
+BOOL COleControl::AmbientUIDead() { BOOL b = FALSE; GetAmbientProperty(DISPID_AMBIENT_UIDEAD, VT_BOOL, &b); return b; }
+BOOL COleControl::AmbientShowGrabHandles() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_SHOWGRABHANDLES, VT_BOOL, &b); return b; }
+BOOL COleControl::AmbientShowHatching() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_SHOWHATCHING, VT_BOOL, &b); return b; }
+CString COleControl::AmbientDisplayName() {
+    BSTR bstr = nullptr;
+    if (!GetAmbientProperty(DISPID_AMBIENT_DISPLAYNAME, VT_BSTR, &bstr) || !bstr) return CString();
+    CString text(bstr);
+    SysFreeString(bstr);
+    return text;
+}
+BOOL COleControl::AmbientDisplayAsDefault() { BOOL b = FALSE; GetAmbientProperty(DISPID_AMBIENT_DISPLAYASDEFAULT, VT_BOOL, &b); return b; }
 BOOL COleControl::AmbientAutoClip() { return TRUE; }
-BOOL COleControl::AmbientSupportsMnemonics() { return TRUE; }
-CString COleControl::AmbientScaleUnits() { return CString(); }
-unsigned long COleControl::AmbientLocaleID() { return 0; }
+BOOL COleControl::AmbientSupportsMnemonics() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_SUPPORTSMNEMONICS, VT_BOOL, &b); return b; }
+CString COleControl::AmbientScaleUnits() {
+    BSTR bstr = nullptr;
+    if (!GetAmbientProperty(DISPID_AMBIENT_SCALEUNITS, VT_BSTR, &bstr) || !bstr) return CString();
+    CString text(bstr);
+    SysFreeString(bstr);
+    return text;
+}
+unsigned long COleControl::AmbientLocaleID() { unsigned long locale = static_cast<unsigned long>(::GetUserDefaultLCID()); GetAmbientProperty(DISPID_AMBIENT_LOCALEID, VT_I4, &locale); return locale; }
 
 void COleControl::FireClick() {}
 void COleControl::FireDblClick() {}
@@ -3102,12 +3768,39 @@ void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y
 void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
 void COleControl::FireReadyStateChange() {}
 
-COLORREF COleControl::GetBackColor() const { return RGB(255,255,255); }
-void COleControl::SetBackColor(COLORREF clr) { (void)clr; }
-COLORREF COleControl::GetForeColor() const { return RGB(0,0,0); }
-void COleControl::SetForeColor(COLORREF clr) { (void)clr; }
-BOOL COleControl::GetEnabled() const { return TRUE; }
-void COleControl::SetEnabled(BOOL bEnabled) { (void)bEnabled; }
+COLORREF COleControl::GetBackColor() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->backColor : RGB(255, 255, 255);
+}
+void COleControl::SetBackColor(COLORREF clr) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state || state->backColor == clr) return;
+    state->backColor = clr;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
+COLORREF COleControl::GetForeColor() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->foreColor : RGB(0, 0, 0);
+}
+void COleControl::SetForeColor(COLORREF clr) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state || state->foreColor == clr) return;
+    state->foreColor = clr;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
+BOOL COleControl::GetEnabled() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->enabled : TRUE;
+}
+void COleControl::SetEnabled(BOOL bEnabled) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state || state->enabled == bEnabled) return;
+    state->enabled = bEnabled;
+    if (m_hWnd) ::EnableWindow(m_hWnd, bEnabled);
+    SetModifiedFlag(TRUE);
+}
 void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
 void COleControl::SetFont(CFont* pFont) { (void)pFont; }
 unsigned int COleControl::GetHwnd() { return (unsigned int)(uintptr_t)m_hWnd; }
@@ -3116,30 +3809,96 @@ OLE_COLOR COleControl::GetBackColorOle() const { return (OLE_COLOR)GetBackColor(
 OLE_COLOR COleControl::GetForeColorOle() const { return (OLE_COLOR)GetForeColor(); }
 void COleControl::SetBackColorOle(OLE_COLOR clr) { SetBackColor((COLORREF)clr); }
 void COleControl::SetForeColorOle(OLE_COLOR clr) { SetForeColor((COLORREF)clr); }
-short COleControl::GetAppearance() const { return 0; }
-void COleControl::SetAppearance(short nAppearance) { (void)nAppearance; }
-short COleControl::GetBorderStyle() const { return 0; }
-void COleControl::SetBorderStyle(short nBorderStyle) { (void)nBorderStyle; }
-CString COleControl::GetText() const { return CString(); }
-void COleControl::SetText(const wchar_t* lpszText) { (void)lpszText; }
-void COleControl::GetText(CString& strText) const { strText = CString(); }
-long COleControl::GetReadyState() const { return 4; }
+short COleControl::GetAppearance() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->appearance : 0;
+}
+void COleControl::SetAppearance(short nAppearance) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state || state->appearance == nAppearance) return;
+    state->appearance = nAppearance;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
+short COleControl::GetBorderStyle() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->borderStyle : 0;
+}
+void COleControl::SetBorderStyle(short nBorderStyle) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state || state->borderStyle == nBorderStyle) return;
+    state->borderStyle = nBorderStyle;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
+CString COleControl::GetText() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->text : CString();
+}
+void COleControl::SetText(const wchar_t* lpszText) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state) return;
+    CString newText = lpszText ? lpszText : L"";
+    if (state->text == newText) return;
+    state->text = newText;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
+void COleControl::GetText(CString& strText) const { strText = GetText(); }
+long COleControl::GetReadyState() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->readyState : 4;
+}
 
 BOOL COleControl::IsSubclassedControl() { return FALSE; }
-void COleControl::SetModifiedFlag(BOOL bModified) { (void)bModified; }
-BOOL COleControl::GetModifiedFlag() const { return FALSE; }
+void COleControl::SetModifiedFlag(BOOL bModified) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (state) state->modified = bModified;
+}
+BOOL COleControl::GetModifiedFlag() const {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
+    return state ? state->modified : FALSE;
+}
 ULONG COleControl::InternalAddRef() { return 1; }
 ULONG COleControl::InternalRelease() { return 1; }
 ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) { (void)riid; *ppv = nullptr; return E_NOINTERFACE; }
-void COleControl::GetControlSize(int* pCX, int* pCY) { if(pCX) *pCX = 0; if(pCY) *pCY = 0; }
-void COleControl::SetControlSize(int cx, int cy) { (void)cx; (void)cy; }
-void COleControl::OnSetClientSite() {}
+void COleControl::GetControlSize(int* pCX, int* pCY) {
+    if (pCX) *pCX = m_cxExtent.cx;
+    if (pCY) *pCY = m_cxExtent.cy;
+}
+void COleControl::SetControlSize(int cx, int cy) {
+    SIZE size = { cx, cy };
+    if (OnSetExtent(DVASPECT_CONTENT, size)) {
+        SetModifiedFlag(TRUE);
+    }
+}
+void COleControl::OnSetClientSite() {
+    m_bInitialized = (m_pControlSite != nullptr);
+    m_pContainer = m_pControlSite ? m_pControlSite->GetContainer() : nullptr;
+}
 void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) { (void)pControlInfo; }
 BOOL COleControl::OnMnemonic(LPMSG pMsg) { (void)pMsg; return FALSE; }
-void COleControl::OnAmbientPropertyChange(DISPID dispid) { (void)dispid; }
-void COleControl::BoundPropertyChanged(DISPID dispid) { (void)dispid; }
+void COleControl::OnAmbientPropertyChange(DISPID dispid) {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state) return;
+    if (dispid == DISPID_AMBIENT_BACKCOLOR || dispid == DISPID_UNKNOWN) {
+        state->backColor = AmbientBackColor();
+        InvalidateControl();
+    }
+    if (dispid == DISPID_AMBIENT_FORECOLOR || dispid == DISPID_UNKNOWN) {
+        state->foreColor = AmbientForeColor();
+        InvalidateControl();
+    }
+}
+void COleControl::BoundPropertyChanged(DISPID dispid) {
+    (void)dispid;
+    SetModifiedFlag(TRUE);
+    InvalidateControl();
+}
 void COleControl::BoundPropertyRequestEdit(DISPID dispid) { (void)dispid; }
-void COleControl::InvalidateControl(LPCRECT lpRect) { (void)lpRect; }
+void COleControl::InvalidateControl(LPCRECT lpRect) {
+    if (m_hWnd) ::InvalidateRect(m_hWnd, lpRect, TRUE);
+}
 int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) { (void)pMsg; (void)hWnd; (void)lpRect; return 0; }
 void COleControl::ShowPropertyPages() {}
 int COleControl::GetPropertyPageCount() const { return 0; }

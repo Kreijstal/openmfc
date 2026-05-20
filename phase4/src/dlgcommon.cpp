@@ -11,7 +11,7 @@
 // Skip inline implementations from afxwin.h
 #define OPENMFC_APPCORE_IMPL
 
-#include <openmfc/afxwin.h>
+#include <openmfc/afxmfc.h>
 #include <windows.h>
 #include <commdlg.h>
 #include <cstring>
@@ -909,4 +909,284 @@ void CPrintDialogEx::SetPageRange(int nMinPage, int nMaxPage, BOOL bPageRange) {
     m_pdex.nMinPage = nMinPage;
     m_pdex.nMaxPage = nMaxPage;
     if (bPageRange) m_pdex.Flags |= PD_PAGENUMS;
+}
+
+//=============================================================================
+// CTaskDialog overloads and wrappers
+//=============================================================================
+
+CTaskDialog::CTaskDialog(const CString& strContent, const CString& strMainInstruction,
+                         const CString& strWindowTitle, int nCommonButtons,
+                         int nTaskDialogOptions, const CString& strFooter)
+    : CTaskDialog((const wchar_t*)strContent, (const wchar_t*)strMainInstruction,
+                  (const wchar_t*)strWindowTitle, nCommonButtons, nTaskDialogOptions) {
+    if (!strFooter.IsEmpty()) {
+        m_strFooterText = strFooter;
+    }
+}
+
+CTaskDialog::CTaskDialog(const CString& strContent, const CString& strMainInstruction,
+                         const CString& strWindowTitle, int nCommonButtons,
+                         int nTaskDialogOptions, int, int, const CString& strFooter)
+    : CTaskDialog(strContent, strMainInstruction, strWindowTitle, nCommonButtons, nTaskDialogOptions, strFooter) {}
+
+void CTaskDialog::SetMainIcon(const wchar_t* pszMainIcon) {
+    m_hMainIcon = pszMainIcon ? ::LoadIconW(nullptr, pszMainIcon) : nullptr;
+}
+
+void CTaskDialog::SetFooterIcon(const wchar_t* pszFooterIcon) {
+    m_hFooterIcon = pszFooterIcon ? ::LoadIconW(nullptr, pszFooterIcon) : nullptr;
+}
+
+void CTaskDialog::SetFooterText(const CString& strFooterText) {
+    m_strFooterText = strFooterText;
+}
+
+void CTaskDialog::SetVerificationCheckboxText(const CString& strText) {
+    m_strVerificationText = strText;
+}
+
+void CTaskDialog::AddCommandControl(int nCommandID, const CString& strLabel, int, int) {
+    (void)AddCommandControl(nCommandID, (const wchar_t*)strLabel);
+}
+
+void CTaskDialog::AddRadioButton(int nRadioButtonID, const CString& strLabel, int) {
+    (void)AddRadioButton(nRadioButtonID, (const wchar_t*)strLabel);
+}
+
+void CTaskDialog::SetOptions(int nTaskDialogOptions) {
+    m_nTaskDialogOptions = nTaskDialogOptions;
+}
+
+int CTaskDialog::GetOptions() const {
+    return m_nTaskDialogOptions;
+}
+
+BOOL CTaskDialog::IsSupported() {
+    HMODULE hComctl = ::GetModuleHandleW(L"comctl32.dll");
+    if (!hComctl) {
+        hComctl = ::LoadLibraryW(L"comctl32.dll");
+    }
+    return hComctl && (::GetProcAddress(hComctl, "TaskDialogIndirect") != nullptr);
+}
+
+// Symbol: ??0CTaskDialog@@QEAA@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@00HH0@Z
+extern "C" void MS_ABI impl___0CTaskDialog__QEAA_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__00HH0_Z(
+    CTaskDialog* pThis, const CString* p0, const CString* p1, const CString* p2, int p3, int p4, const CString* p5) {
+    new(pThis) CTaskDialog(*p0, *p1, *p2, p3, p4, p5 ? *p5 : CString());
+}
+
+// Symbol: ??0CTaskDialog@@QEAA@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@00HHHH0@Z
+extern "C" void MS_ABI impl___0CTaskDialog__QEAA_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__00HHHH0_Z(
+    CTaskDialog* pThis, const CString* p0, const CString* p1, const CString* p2, int p3, int p4, int p5, int p6, const CString* p7) {
+    new(pThis) CTaskDialog(*p0, *p1, *p2, p3, p4, p5, p6, p7 ? *p7 : CString());
+}
+
+// Symbol: ?SetContent@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetContent_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog* pThis, const CString* p0) {
+    if (pThis && p0) pThis->m_strContent = *p0;
+}
+
+// Symbol: ?SetMainInstruction@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetMainInstruction_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog* pThis, const CString* p0) {
+    if (pThis && p0) pThis->m_strMainInstruction = *p0;
+}
+
+// Symbol: ?SetWindowTitle@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetWindowTitle_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog* pThis, const CString* p0) {
+    if (pThis && p0) pThis->m_strWindowTitle = *p0;
+}
+
+// Symbol: ?SetOptions@CTaskDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetOptions_CTaskDialog__QEAAXH_Z(CTaskDialog* pThis, int p0) {
+    if (pThis) pThis->SetOptions(p0);
+}
+
+// Symbol: ?GetOptions@CTaskDialog@@QEBAHXZ
+extern "C" int MS_ABI impl__GetOptions_CTaskDialog__QEBAHXZ(const CTaskDialog* pThis) {
+    return pThis ? pThis->GetOptions() : 0;
+}
+
+// Symbol: ?GetVerificationCheckboxState@CTaskDialog@@QEBAHXZ
+extern "C" int MS_ABI impl__GetVerificationCheckboxState_CTaskDialog__QEBAHXZ(const CTaskDialog* pThis) {
+    return pThis ? pThis->GetVerificationCheckboxState() : FALSE;
+}
+
+// Symbol: ?GetSelectedCommandControlID@CTaskDialog@@QEBAHXZ
+extern "C" int MS_ABI impl__GetSelectedCommandControlID_CTaskDialog__QEBAHXZ(const CTaskDialog* pThis) {
+    return pThis ? pThis->GetSelectedCommandControlID() : 0;
+}
+
+// Symbol: ?GetSelectedRadioButtonID@CTaskDialog@@QEBAHXZ
+extern "C" int MS_ABI impl__GetSelectedRadioButtonID_CTaskDialog__QEBAHXZ(const CTaskDialog* pThis) {
+    return pThis ? pThis->GetSelectedRadioButtonID() : 0;
+}
+
+// Symbol: ?SetFooterText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetFooterText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog* pThis, const CString* p0) {
+    if (pThis && p0) pThis->SetFooterText(*p0);
+}
+
+// Symbol: ?SetVerificationCheckboxText@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetVerificationCheckboxText_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog* pThis, const CString* p0) {
+    if (pThis && p0) pThis->SetVerificationCheckboxText(*p0);
+}
+
+// Symbol: ?SetMainIcon@CTaskDialog@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetMainIcon_CTaskDialog__QEAAXPEB_W_Z(CTaskDialog* pThis, const wchar_t* p0) {
+    if (pThis) pThis->SetMainIcon(p0);
+}
+
+// Symbol: ?SetFooterIcon@CTaskDialog@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetFooterIcon_CTaskDialog__QEAAXPEB_W_Z(CTaskDialog* pThis, const wchar_t* p0) {
+    if (pThis) pThis->SetFooterIcon(p0);
+}
+
+// Symbol: ?AddCommandControl@CTaskDialog@@QEAAXHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z
+extern "C" void MS_ABI impl__AddCommandControl_CTaskDialog__QEAAXHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HH_Z(
+    CTaskDialog* pThis, int p0, const CString* p1, int p2, int p3) {
+    if (pThis && p1) pThis->AddCommandControl(p0, *p1, p2, p3);
+}
+
+// Symbol: ?AddRadioButton@CTaskDialog@@QEAAXHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__AddRadioButton_CTaskDialog__QEAAXHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CTaskDialog* pThis, int p0, const CString* p1, int p2) {
+    if (pThis && p1) pThis->AddRadioButton(p0, *p1, p2);
+}
+
+// Symbol: ?IsSupported@CTaskDialog@@SAHXZ
+extern "C" int MS_ABI impl__IsSupported_CTaskDialog__SAHXZ() {
+    return CTaskDialog::IsSupported();
+}
+
+// Symbol: ?ShowDialog@CTaskDialog@@SA_JAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@00HHHH0@Z
+extern "C" __int64 MS_ABI impl__ShowDialog_CTaskDialog__SA_JAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__00HHHH0_Z(
+    const CString* p0, const CString* p1, const CString* p2, int p3, int p4, int p5, int p6, const CString* p7) {
+    CTaskDialog td(*p0, *p1, *p2, p3, p4, p5, p6, p7 ? *p7 : CString());
+    return td.DoModal(nullptr);
+}
+
+//=============================================================================
+// VS list box wrappers
+//=============================================================================
+
+IMPLEMENT_DYNAMIC(CVSListBoxBase, CStatic)
+IMPLEMENT_DYNAMIC(CVSListBoxEditCtrl, CEdit)
+IMPLEMENT_DYNAMIC(CVSListBox, CListBox)
+
+int CVSListBox::AddItem(const CString& strText, uintptr_t dwData, int bSelect) {
+    int nIndex = CListBox::AddString((const wchar_t*)strText);
+    if (nIndex >= 0) {
+        CListBox::SetItemData(nIndex, dwData);
+        if (bSelect) CListBox::SetCurSel(nIndex);
+    }
+    return nIndex;
+}
+
+int CVSListBox::RemoveItem(int nIndex) {
+    return CListBox::DeleteString((unsigned int)nIndex);
+}
+
+int CVSListBox::GetCount() const {
+    return CListBox::GetCount();
+}
+
+int CVSListBox::GetSelItem() const {
+    return CListBox::GetCurSel();
+}
+
+int CVSListBox::SelectItem(int nIndex) {
+    return CListBox::SetCurSel(nIndex);
+}
+
+int CVSListBox::EditItem(int nIndex) {
+    return CListBox::SetCurSel(nIndex);
+}
+
+uintptr_t CVSListBox::GetItemData(int nIndex) const {
+    return CListBox::GetItemData(nIndex);
+}
+
+void CVSListBox::SetItemData(int nIndex, uintptr_t dwData) {
+    (void)CListBox::SetItemData(nIndex, dwData);
+}
+
+CString CVSListBox::GetItemText(int nIndex) const {
+    int nLen = CListBox::GetTextLen(nIndex);
+    if (nLen < 0) return CString();
+    CString str;
+    wchar_t* pBuf = str.GetBuffer(nLen + 1);
+    int nCopied = CListBox::GetText(nIndex, pBuf);
+    str.ReleaseBuffer(nCopied >= 0 ? nCopied : 0);
+    return str;
+}
+
+void CVSListBox::SetItemText(int nIndex, const CString& strText) {
+    uintptr_t dwData = CListBox::GetItemData(nIndex);
+    int nSel = CListBox::GetCurSel();
+    if (CListBox::DeleteString((unsigned int)nIndex) >= 0) {
+        int nNew = CListBox::InsertString(nIndex, (const wchar_t*)strText);
+        if (nNew >= 0) {
+            CListBox::SetItemData(nNew, dwData);
+            if (nSel == nIndex) CListBox::SetCurSel(nNew);
+        }
+    }
+}
+
+// Symbol: ?AddItem@CVSListBox@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@_KH@Z
+extern "C" int MS_ABI impl__AddItem_CVSListBox__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___KH_Z(
+    CVSListBox* pThis, const CString* p0, uintptr_t p1, int p2) {
+    return pThis && p0 ? pThis->AddItem(*p0, p1, p2) : LB_ERR;
+}
+
+// Symbol: ?RemoveItem@CVSListBox@@UEAAHH@Z
+extern "C" int MS_ABI impl__RemoveItem_CVSListBox__UEAAHH_Z(CVSListBox* pThis, int p0) {
+    return pThis ? pThis->RemoveItem(p0) : LB_ERR;
+}
+
+// Symbol: ?GetCount@CVSListBox@@UEBAHXZ
+extern "C" int MS_ABI impl__GetCount_CVSListBox__UEBAHXZ(const CVSListBox* pThis) {
+    return pThis ? pThis->GetCount() : 0;
+}
+
+// Symbol: ?GetSelItem@CVSListBox@@UEBAHXZ
+extern "C" int MS_ABI impl__GetSelItem_CVSListBox__UEBAHXZ(const CVSListBox* pThis) {
+    return pThis ? pThis->GetSelItem() : LB_ERR;
+}
+
+// Symbol: ?SelectItem@CVSListBox@@UEAAHH@Z
+extern "C" int MS_ABI impl__SelectItem_CVSListBox__UEAAHH_Z(CVSListBox* pThis, int p0) {
+    return pThis ? pThis->SelectItem(p0) : LB_ERR;
+}
+
+// Symbol: ?EditItem@CVSListBox@@UEAAHH@Z
+extern "C" int MS_ABI impl__EditItem_CVSListBox__UEAAHH_Z(CVSListBox* pThis, int p0) {
+    return pThis ? pThis->EditItem(p0) : LB_ERR;
+}
+
+// Symbol: ?GetItemData@CVSListBox@@UEBA_KH@Z
+extern "C" uintptr_t MS_ABI impl__GetItemData_CVSListBox__UEBA_KH_Z(const CVSListBox* pThis, int p0) {
+    return pThis ? pThis->GetItemData(p0) : 0;
+}
+
+// Symbol: ?SetItemData@CVSListBox@@UEAAXH_K@Z
+extern "C" void MS_ABI impl__SetItemData_CVSListBox__UEAAXH_K_Z(CVSListBox* pThis, int p0, uintptr_t p1) {
+    if (pThis) pThis->SetItemData(p0, p1);
+}
+
+// Symbol: ?GetItemText@CVSListBox@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetItemText_CVSListBox__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* __ret, const CVSListBox* pThis, int p0) {
+    new(__ret) CString(pThis ? pThis->GetItemText(p0) : CString());
+}
+
+// Symbol: ?SetItemText@CVSListBox@@MEAAXHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetItemText_CVSListBox__MEAAXHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CVSListBox* pThis, int p0, const CString* p1) {
+    if (pThis && p1) pThis->SetItemText(p0, *p1);
 }

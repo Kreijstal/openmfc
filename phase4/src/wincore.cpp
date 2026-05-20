@@ -6,9 +6,11 @@
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxole.h"
 #include <windows.h>
 #include <cstring>
 #include <cstdio>
+#include <new>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -34,6 +36,7 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 #include <set>
 #include <vector>
 static std::map<HWND, CWnd*> g_hwndMap;
+static std::map<const CWnd*, COleControlContainer*> g_controlContainerMap;
 
 // Track temporary CWnd wrappers allocated by OpenMfcAttachCWnd
 // These need to be deleted when the underlying window is destroyed
@@ -58,6 +61,12 @@ void OpenMfcDetachCWnd(HWND hWnd) {
     if (it != g_hwndMap.end()) {
         CWnd* pWnd = it->second;
         g_hwndMap.erase(it);
+
+        auto ccIt = g_controlContainerMap.find(pWnd);
+        if (ccIt != g_controlContainerMap.end()) {
+            delete ccIt->second;
+            g_controlContainerMap.erase(ccIt);
+        }
 
         // Delete if this was a temporary wrapper allocated by OpenMfcAttachCWnd
         auto tempIt = g_tempWrappers.find(pWnd);
@@ -1199,8 +1208,25 @@ int CWnd::CreateControl(const WCHAR* p0, const WCHAR* p1, DWORD p2, const RECT*&
 
 int CWnd::CreateControlContainer(COleControlContainer** p0)
 {
-    (void)p0;
-    return 0;
+    if (!p0) {
+        return FALSE;
+    }
+
+    auto it = g_controlContainerMap.find(this);
+    if (it != g_controlContainerMap.end()) {
+        *p0 = it->second;
+        return TRUE;
+    }
+
+    COleControlContainer* pContainer = new(std::nothrow) COleControlContainer(this);
+    if (!pContainer) {
+        *p0 = nullptr;
+        return FALSE;
+    }
+
+    g_controlContainerMap[this] = pContainer;
+    *p0 = pContainer;
+    return TRUE;
 }
 
 int CWnd::CreateControlSite(COleControlContainer* p0, COleControlSite** p1, UINT p2, const GUID*& p3)
@@ -1350,6 +1376,10 @@ int CWnd::GetCheckedRadioButton(int p0, int p1) const
 
 COleControlContainer* CWnd::GetControlContainer()
 {
+    auto it = g_controlContainerMap.find(this);
+    if (it != g_controlContainerMap.end()) {
+        return it->second;
+    }
     return nullptr;
 }
 
@@ -1360,7 +1390,10 @@ IUnknown* CWnd::GetControlUnknown()
 
 int CWnd::GetDlgCtrlID() const
 {
-    return 0;
+    if (!m_hWnd) {
+        return 0;
+    }
+    return static_cast<int>(::GetDlgCtrlID(m_hWnd));
 }
 
 UINT CWnd::GetDlgItemInt(int p0, int* p1, int p2) const
@@ -1395,7 +1428,10 @@ IUnknown* CWnd::GetDSCCursor()
 
 DWORD CWnd::GetExStyle() const
 {
-    return 0;
+    if (!m_hWnd) {
+        return 0;
+    }
+    return static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE));
 }
 
 int CWnd::GetGestureConfig(CGestureConfig* p0)
@@ -1443,8 +1479,11 @@ _AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo()
 
 COleControlSite* CWnd::GetOleControlSite(UINT p0) const
 {
-    (void)p0;
-    return nullptr;
+    COleControlContainer* pContainer = const_cast<CWnd*>(this)->GetControlContainer();
+    if (!pContainer) {
+        return nullptr;
+    }
+    return pContainer->FindItem(p0);
 }
 
 CFrameWnd* CWnd::GetParentFrame() const
@@ -1477,7 +1516,10 @@ CHwndRenderTarget* CWnd::GetRenderTarget()
 
 DWORD CWnd::GetStyle() const
 {
-    return 0;
+    if (!m_hWnd) {
+        return 0;
+    }
+    return static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_STYLE));
 }
 
 void* CWnd::GetSuperWndProcAddr()

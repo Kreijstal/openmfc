@@ -2579,6 +2579,7 @@ public:
     int GetLBText(int nIndex, wchar_t* lpszText) const {
         return (m_hWnd && lpszText) ? (int)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)lpszText) : CB_ERR;
     }
+    void GetLBText(int nIndex, CString& rString) const;
     int GetLBTextLen(int nIndex) const {
         return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETLBTEXTLEN, nIndex, 0) : CB_ERR;
     }
@@ -2612,6 +2613,47 @@ public:
     int GetDroppedState() const {
         return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETDROPPEDSTATE, 0, 0) : FALSE;
     }
+};
+
+// CCheckListBox - checkable list box wrapper
+class CCheckListBox : public CListBox {
+    DECLARE_DYNAMIC(CCheckListBox)
+public:
+    CCheckListBox() = default;
+    virtual ~CCheckListBox();
+
+    int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
+    void SetCheck(int nIndex, int nCheck);
+    int GetCheck(int nIndex);
+    void Enable(int nIndex, int bEnabled = 1);
+    int IsEnabled(int nIndex);
+};
+
+// CDragListBox - drag-enabled list box wrapper
+class CDragListBox : public CListBox {
+    DECLARE_DYNAMIC(CDragListBox)
+public:
+    CDragListBox() = default;
+    virtual ~CDragListBox();
+
+    virtual int BeginDrag(CPoint pt);
+    virtual void CancelDrag(CPoint pt);
+    virtual unsigned int Dragging(CPoint pt);
+    virtual void Dropped(int nSrcIndex, CPoint pt);
+    virtual void DrawInsert(int nItem);
+    void DrawSingle(int nItem);
+};
+
+// CSplitButton - split drop-down button wrapper
+class CSplitButton : public CButton {
+    DECLARE_DYNAMIC(CSplitButton)
+public:
+    CSplitButton() = default;
+    virtual ~CSplitButton();
+
+    int Create(const wchar_t* lpszCaption, DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
+    void SetDropDownMenu(unsigned int nMenuId, unsigned int nSubMenu = 0);
+    void SetDropDownMenu(CMenu* pMenu);
 };
 
 // CScrollBar - Scroll bar control wrapper
@@ -3433,20 +3475,47 @@ public:
     void Refresh();
     void Refresh2(int nLevel = 0);
 
-    // Properties
+    // Properties (browser window)
     BOOL GetBusy() const;
-    long GetReadyState() const;
+    READYSTATE GetReadyState() const;
     CString GetLocationName() const;
     CString GetLocationURL() const;
     CString GetFullName() const;
     CString GetType() const;
     LPDISPATCH GetHtmlDocument() const;
+    LPDISPATCH GetApplication() const;
+    LPDISPATCH GetContainer() const;
+    LPDISPATCH GetParentBrowser() const;
+
+    // Window dimension / visibility properties
+    long GetLeft() const;
+    long GetTop() const;
+    long GetWidth() const;
+    long GetHeight() const;
+    BOOL GetVisible() const;
+    BOOL GetFullScreen() const;
+    BOOL GetMenuBar() const;
+    BOOL GetAddressBar() const;
+    BOOL GetStatusBar() const;
+    BOOL GetToolBar() const;
+    BOOL GetOffline() const;
+    BOOL GetSilent() const;
+    BOOL GetTheaterMode() const;
+    BOOL GetRegisterAsBrowser() const;
+    BOOL GetRegisterAsDropTarget() const;
+    BOOL GetTopLevelContainer() const;
+
+    // Property bag helpers
+    BOOL GetProperty(const wchar_t* lpszProperty, CString& strValue);
+    void PutProperty(const wchar_t* lpszProperty, const VARIANT& vtValue);
 
     // Commands
     void ExecWB(OLECMDID cmdID, OLECMDEXECOPT cmdexecopt,
                 VARIANT* pvaIn = nullptr, VARIANT* pvaOut = nullptr);
-    void LoadFromResource(const wchar_t* lpszResource);
-    void LoadFromResource(UINT nRes);
+    BOOL LoadFromResource(const wchar_t* lpszResource);
+    BOOL LoadFromResource(UINT nRes);
+    virtual BOOL GetSource(CString& strRef);
+    virtual HRESULT OnGetOptionKeyPath(wchar_t** ppszKey, DWORD dwReserved);
 
     // Printing
     void Print();
@@ -3457,14 +3526,30 @@ public:
     CWnd* GetControlWindow() const { return m_pControlWnd; }
 
     // Events (virtual overrides)
-    virtual void OnBeforeNavigate2(LPDISPATCH pDisp, VARIANT* URL, VARIANT* Flags,
-                                   VARIANT* TargetFrameName, VARIANT* PostData,
-                                   VARIANT* Headers, BOOL* Cancel);
-    virtual void OnNavigateComplete2(LPDISPATCH pDisp, VARIANT* URL);
-    virtual void OnDocumentComplete(LPDISPATCH pDisp, VARIANT* URL);
+    virtual void OnBeforeNavigate2(const wchar_t* lpszURL, DWORD nFlags,
+                                   const wchar_t* lpszTargetFrameName,
+                                   CByteArray& baPostData,
+                                   const wchar_t* lpszHeaders, BOOL* pbCancel);
+    virtual void OnNavigateComplete2(const wchar_t* lpszURL);
+    virtual void OnDocumentComplete(const wchar_t* lpszURL);
     virtual void OnProgressChange(long Progress, long ProgressMax);
     virtual void OnTitleChange(const wchar_t* lpszText);
     virtual void OnStatusTextChange(const wchar_t* lpszText);
+    virtual void OnCommandStateChange(long lCommand, BOOL bEnable);
+    virtual void OnDownloadBegin();
+    virtual void OnDownloadComplete();
+    virtual void OnFullScreen(BOOL bFullScreen);
+    virtual void OnMenuBar(BOOL bMenuBar);
+    virtual void OnNavigateError(const wchar_t* lpszURL, const wchar_t* lpszFrame,
+                                 DWORD dwError, BOOL* pbCancel);
+    virtual void OnNewWindow2(LPDISPATCH* ppDisp, BOOL* bCancel);
+    virtual void OnPropertyChange(const wchar_t* lpszProperty);
+    virtual void OnQuit();
+    virtual void OnStatusBar(BOOL bStatusBar);
+    virtual void OnTheaterMode(BOOL bTheaterMode);
+    virtual void OnToolBar(BOOL bToolBar);
+    virtual void OnVisible(BOOL bVisible);
+    virtual HRESULT OnTranslateUrl(DWORD dwTranslate, wchar_t* pchURLIn, wchar_t** ppchURLOut);
 
 public:
     IWebBrowser2* m_pBrowser;
@@ -3478,6 +3563,8 @@ protected:
 //=============================================================================
 // CDHtmlDialog - DHTML-based Dialog
 //=============================================================================
+#include <mshtml.h>
+#include <mshtmhst.h>
 #ifndef __IHTMLElement_FWD_DEFINED
 #define __IHTMLElement_FWD_DEFINED
 struct IHTMLElement;
@@ -3495,27 +3582,88 @@ public:
     virtual BOOL OnInitDialog() override;
 
     // HTML loading
-    void LoadFromResource(UINT nHtmlResID);
-    void LoadFromResource(const wchar_t* lpszHtmlResID);
+    BOOL LoadFromResource(UINT nHtmlResID);
+    BOOL LoadFromResource(const wchar_t* lpszHtmlResID);
     void Navigate(const wchar_t* lpszURL, DWORD dwFlags = 0,
                   const wchar_t* lpszTargetFrameName = nullptr,
                   const wchar_t* lpszHeaders = nullptr,
                   void* lpvPostData = nullptr, DWORD dwPostDataLen = 0);
+    void GetCurrentUrl(CString& strUrl);
 
     // DHTML element access
     long GetElement(const wchar_t* lpszElementId, IDispatch** ppDisp, int* pfCollection = nullptr);
     long GetElement(const wchar_t* lpszElementId, IHTMLElement** ppElement);
+    long GetElementInterface(const wchar_t* lpszElementId, REFIID riid, void** ppUnk);
     VARIANT GetElementProperty(const wchar_t* lpszElementId, long lCookie);
     HRESULT GetElementProperty(const wchar_t* lpszElementId, DISPID dispId, VARIANT* pVar);
     HRESULT SetElementProperty(const wchar_t* lpszElementId, DISPID dispId,
                                VARIANT* pVar);
+    wchar_t* GetElementText(const wchar_t* lpszElementId);
+    void SetElementText(const wchar_t* lpszElementId, wchar_t* lpszText);
+    wchar_t* GetElementHtml(const wchar_t* lpszElementId);
+    void SetElementHtml(const wchar_t* lpszElementId, wchar_t* lpszHtml);
+    void SetElementHtml(IUnknown* punkElem, wchar_t* lpszHtml);
+    void SetElementText(IUnknown* punkElem, wchar_t* lpszText);
+
+    // Control (ActiveX) property helpers
+    long GetControlDispatch(const wchar_t* lpszId, IDispatch** ppDisp);
+    VARIANT GetControlProperty(const wchar_t* lpszId, const wchar_t* lpszPropName);
+    VARIANT GetControlProperty(const wchar_t* lpszId, DISPID dispId);
+    void SetControlProperty(const wchar_t* lpszId, const wchar_t* lpszPropName, VARIANT* pVar);
+    void SetControlProperty(const wchar_t* lpszId, DISPID dispId, VARIANT* pVar);
+    void SetControlProperty(IDispatch* pDisp, DISPID dispId, VARIANT* pVar);
+
+    // Event / document access
+    long GetEvent(IHTMLEventObj** ppEventObj);
+    HRESULT GetDHtmlDocument(IHTMLDocument2** ppDocument);
+
+    // IOleDocumentSite / IDocHostUIHandler stubs
+    virtual HRESULT GetHostInfo(DOCHOSTUIINFO* pInfo);
+    virtual HRESULT GetOptionKeyPath(wchar_t** ppszKey, DWORD dwReserved);
+    virtual HRESULT TranslateUrl(DWORD dwTranslate, wchar_t* pchURLIn, wchar_t** ppchURLOut);
+    virtual HRESULT ShowContextMenu(DWORD dwID, POINT* ppt, IUnknown* pcmdtReserved,
+                                    IDispatch* pdispReserved);
+    virtual HRESULT ShowUI(DWORD dwID, IOleInPlaceActiveObject* pActiveObject,
+                           IOleCommandTarget* pCommandTarget,
+                           IOleInPlaceFrame* pFrame, IOleInPlaceUIWindow* pDoc);
+    virtual HRESULT HideUI();
+    virtual HRESULT UpdateUI();
+    virtual HRESULT EnableModeless(BOOL fEnable);
+    virtual HRESULT OnDocWindowActivate(BOOL fActivate);
+    virtual HRESULT OnFrameWindowActivate(BOOL fActivate);
+    virtual HRESULT ResizeBorder(LPCRECT prcBorder, IOleInPlaceUIWindow* pUIWindow,
+                                  BOOL fRameWindow);
+    virtual HRESULT TranslateAcceleratorW(LPMSG lpMsg, const GUID* pguidCmdGroup, DWORD nCmdID);
+    virtual HRESULT GetDropTarget(IDropTarget* pDropTarget, IDropTarget** ppDropTarget);
+    virtual HRESULT GetExternal(IDispatch** ppDispatch);
+    virtual HRESULT FilterDataObject(IDataObject* pDO, IDataObject** ppDORet);
+    virtual HRESULT IsExternalDispatchSafe();
+    virtual HRESULT CanAccessExternal();
+    virtual HRESULT CreateControlSite(COleControlContainer* pContainer,
+                                       COleControlSite** ppSite, UINT nID, REFCLSID clsid);
+
+    // Navigation events (virtual - override in derived class)
+    virtual void OnBeforeNavigate(IDispatch* pDisp, const wchar_t* lpszURL);
+    virtual void OnNavigateComplete(IDispatch* pDisp, const wchar_t* lpszURL);
+    virtual void OnDocumentComplete(IDispatch* pDisp, const wchar_t* lpszURL);
+
+    // DHTML events
+    virtual HRESULT OnDDXError(const wchar_t* lpszId, const wchar_t* lpszError);
+
+    void SetExternalDispatch(IDispatch* pDisp);
+    void SetHostFlags(DWORD dwFlags);
 
     // Control access
     IWebBrowser2* GetBrowser() const { return m_pBrowser; }
     CWnd* GetControlWindow() const { return m_pCtrlWnd; }
 
-    // DHTML events
-    virtual HRESULT OnDDXError(const wchar_t* lpszId, const wchar_t* lpszError);
+protected:
+    // CDialog DDX and destroy handlers exported through MSVC ABI wrappers.
+    void OnDDXError(const wchar_t* lpszId, UINT nErrorID, int bSaveAndValidate);
+    void OnDestroy();
+    int FindSinkForObject(const wchar_t* lpszId);
+    void SetFocusToElement(const wchar_t* lpszId);
+    long Select_FindString(IHTMLSelectElement* pSelect, wchar_t* lpszFind, int bExact);
 
 public:
     UINT m_nHtmlResID;

@@ -16,6 +16,7 @@ class CMFCToolBar;
 class CMFCToolBarButton;
 class CMFCToolBarImages;
 class CMFCVisualManager;
+class CMFCMenuBar;
 class CMFCRibbonBar;
 class CMFCRibbonPanel;
 class CMFCRibbonCategory;
@@ -27,6 +28,7 @@ class CMFCButton;
 class CMFCPopupMenu;
 class CMFCPropertyGridCtrl;
 class CMFCPropertyGridProperty;
+class CMFCCaptionBar;
 class CMFCTasksPane;
 class CMFCAutoHideBar;
 class CPane;
@@ -42,8 +44,20 @@ class CMDIChildWndEx;
 class CMFCCaptionButton;
 class CMFCHeaderCtrl;
 class CMFCToolBarMenuButton;
+class CMFCToolBarMenuButtonsButton;
 class CMFCToolBarComboBoxButton;
 class CMFCToolBarEditBoxButton;
+class CMFCPopupMenuBar;
+class CContextMenuManager;
+class CKeyboardManager;
+class CTooltipManager;
+class CMenuHash;
+class CGlobalUtils;
+class CWinAppEx;
+class CMFCToolTipInfo;
+class CMouseManager;
+class CShellManager;
+class CUserToolsManager;
 class CMFCDesktopAlertWnd;
 class CMFCDesktopAlertWndButton;
 class CMFCStatusBar;
@@ -189,12 +203,76 @@ protected:
 };
 
 // Office variant visual managers (minimal stubs)
-class CMFCVisualManagerOffice2003 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOffice2003) public: CMFCVisualManagerOffice2003(); virtual ~CMFCVisualManagerOffice2003(); protected: char _pad[64]; };
-class CMFCVisualManagerOffice2007 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOffice2007) public: CMFCVisualManagerOffice2007(); virtual ~CMFCVisualManagerOffice2007(); protected: char _pad[64]; };
-class CMFCVisualManagerOfficeXP : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerOfficeXP) public: CMFCVisualManagerOfficeXP(); virtual ~CMFCVisualManagerOfficeXP(); protected: char _pad[64]; };
-class CMFCVisualManagerVS2005 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerVS2005) public: CMFCVisualManagerVS2005(); virtual ~CMFCVisualManagerVS2005(); protected: char _pad[64]; };
-class CMFCVisualManagerWindows : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows) public: CMFCVisualManagerWindows(); CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {} virtual ~CMFCVisualManagerWindows(); protected: char _pad[64]; };
-class CMFCVisualManagerWindows7 : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerWindows7) public: CMFCVisualManagerWindows7(); virtual ~CMFCVisualManagerWindows7(); protected: char _pad[64]; };
+class CMFCVisualManagerOffice2003 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOffice2003)
+public:
+    CMFCVisualManagerOffice2003();
+    virtual ~CMFCVisualManagerOffice2003();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerOffice2007 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOffice2007)
+public:
+    enum Style {
+        Office2007_LunaBlue = 0,
+        Office2007_ObsidianBlack = 1,
+        Office2007_Silver = 2,
+        Office2007_Aqua = 3
+    };
+    CMFCVisualManagerOffice2007();
+    virtual ~CMFCVisualManagerOffice2007();
+    static CObject* AFXAPI CreateObject();
+    static int SetStyle(Style style, const wchar_t* lpszPath = nullptr);
+    static Style GetStyle();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerOfficeXP : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerOfficeXP)
+public:
+    CMFCVisualManagerOfficeXP();
+    CMFCVisualManagerOfficeXP(int) : CMFCVisualManagerOfficeXP() {}
+    virtual ~CMFCVisualManagerOfficeXP();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerVS2005 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerVS2005)
+public:
+    CMFCVisualManagerVS2005();
+    virtual ~CMFCVisualManagerVS2005();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerWindows : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerWindows)
+public:
+    CMFCVisualManagerWindows();
+    CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {}
+    virtual ~CMFCVisualManagerWindows();
+    static CObject* AFXAPI CreateObject();
+protected:
+    char _pad[64];
+};
+
+class CMFCVisualManagerWindows7 : public CMFCVisualManager {
+    DECLARE_DYNAMIC(CMFCVisualManagerWindows7)
+public:
+    CMFCVisualManagerWindows7();
+    virtual ~CMFCVisualManagerWindows7();
+    static CObject* AFXAPI CreateObject();
+    static int SetStyle(const wchar_t* lpszPath);
+protected:
+    char _pad[64];
+};
 class CMFCVisualManagerAero : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerAero) public: CMFCVisualManagerAero(); virtual ~CMFCVisualManagerAero(); protected: char _pad[64]; };
 
 //=============================================================================
@@ -274,11 +352,17 @@ public:
     CMFCToolBarButton(UINT uiCmdID, int iImage, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE, BOOL bLocked = FALSE);
     virtual ~CMFCToolBarButton();
 
+    static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
+
     UINT m_nID;
     int m_iImage;
     CString m_strText;
     BOOL m_bUserButton;
     BOOL m_bLocked;
+
+    static CString m_strClipboardFormatName;
+    static BOOL m_bWrapText;
+    static BOOL m_bUpdateImages;
 
 protected:
     char _mfctoolbarbutton_padding[32];
@@ -296,17 +380,80 @@ public:
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR);
     virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR);
 
-    BOOL LoadToolBar(UINT nIDResource);
+    virtual BOOL LoadToolBar(UINT uiResID, UINT uiColdResID = 0, UINT uiMenuResID = 0, BOOL bLocked = FALSE, UINT uiDisabledResID = 0, UINT uiMenuDisabledResID = 0, UINT uiHotResID = 0);
     BOOL LoadBitmap(UINT nIDResource);
-    BOOL SetButtons(const UINT* lpIDArray, int nIDCount);
+    virtual BOOL SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages = TRUE);
     BOOL ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL bNotify = FALSE);
     int GetCount() const;
     CMFCToolBarButton* GetButton(int nIndex) const;
-    void SetSizes(SIZE sizeButton, SIZE sizeImage);
+    static void SetSizes(SIZE sizeButton, SIZE sizeImage);
     CSize GetButtonSize() const;
+    virtual void EnableDocking(DWORD dwDockStyle);
+    virtual void AdjustLayout();
+    void AdjustSize();
+    CString GetButtonText(int nIndex) const;
+    void GetButtonText(int nIndex, CString& rString) const;
 
 protected:
     char _mfctoolbar_padding[128];
+};
+
+//=============================================================================
+// CMFCMenuBar - Feature Pack menu bar
+//=============================================================================
+class CMFCMenuBar : public CMFCToolBar {
+    DECLARE_DYNAMIC(CMFCMenuBar)
+public:
+    CMFCMenuBar();
+    virtual ~CMFCMenuBar();
+
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual void CreateFromMenu(HMENU hMenu, BOOL bDefaultMenu = FALSE, BOOL bForceUpdate = FALSE);
+    CMFCToolBarButton* GetMenuItem(int nIndex) const;
+    virtual CSize CalcLayout(DWORD dwMode, int nLength = -1);
+    virtual void AdjustLocations();
+    static CFont& GetMenuFont(BOOL bHorz = TRUE);
+
+protected:
+    char _mfcmenubar_padding[96];
+};
+
+//=============================================================================
+// CMFCToolBarImages - Feature Pack toolbar image collection
+//=============================================================================
+class CMFCToolBarImages {
+public:
+    CMFCToolBarImages();
+    explicit CMFCToolBarImages(BOOL bReadOnly);
+    virtual ~CMFCToolBarImages();
+
+    BOOL Load(UINT nIDResource, HINSTANCE hInstRes = nullptr, BOOL bAdd = FALSE);
+    BOOL Load(const wchar_t* lpszBitmapFileName, DWORD dwMaxFileSize = 0);
+    BOOL LoadStr(const wchar_t* lpszResourceName, HINSTANCE hInstRes, BOOL bAdd = FALSE);
+    BOOL Save(const wchar_t* lpszBitmapFileName = nullptr);
+
+    int AddImage(HBITMAP hbmp, BOOL bSetBitmapSize = FALSE);
+    int AddImage(const CMFCToolBarImages& images, BOOL bSetBitmapSize = FALSE);
+    int AddIcon(HICON hIcon, BOOL bAutoDestroy = FALSE);
+
+    void Clear();
+    void Initialize();
+    void CommonInit(BOOL bFreeImageList = TRUE);
+
+    int GetCount() const;
+    BOOL IsValid() const;
+
+    BOOL m_bIsRTL;
+    BYTE m_nDisabledImageAlpha;
+    BYTE m_nFadedImageAlpha;
+
+    static BOOL m_bDisableTrueColorAlpha;
+    static BOOL m_bIsDrawOnGlass;
+    static BOOL m_bMultiThreaded;
+
+protected:
+    char _mfctoolbarimages_padding[64];
 };
 
 //=============================================================================
@@ -440,11 +587,46 @@ public:
     virtual ~CMFCPopupMenu();
 
     static CMFCPopupMenu* GetActiveMenu();
+    static CMFCPopupMenu* GetSafeActivePopupMenu();
     static void SetForceMenuFocus(BOOL bForceFocus = TRUE);
+    static BOOL ActivatePopupMenu(CFrameWnd* pTopFrame, CMFCPopupMenu* pPopupMenu);
     BOOL Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked = FALSE, BOOL bIsMainMenu = FALSE);
+    void CloseMenu(BOOL bSetFocusToBar = FALSE);
+    int GetMenuItemCount() const;
+    CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
+    CMFCToolBarMenuButton* GetSelItem();
+    CMFCToolBarMenuButton* FindSubItemByCommand(UINT uiCmd) const;
+    BOOL InsertItem(const CMFCToolBarMenuButton& button, int iInsertAt = -1);
+    BOOL InsertSeparator(int iInsertAt = -1);
+    void EnableResize(CSize sizeMinResize);
+    void EnableVertResize(BOOL bEnable = TRUE);
+    BOOL HideRarelyUsedCommands() const;
 
 protected:
     char _mfcpopupmenu_padding[64];
+};
+
+//=============================================================================
+// CMFCPopupMenuBar - Toolbar hosted inside popup menus
+//=============================================================================
+class CMFCPopupMenuBar : public CMFCToolBar {
+    DECLARE_DYNAMIC(CMFCPopupMenuBar)
+public:
+    CMFCPopupMenuBar();
+    virtual ~CMFCPopupMenuBar();
+
+    virtual BOOL ImportFromMenu(HMENU hMenu, BOOL bShowAllCommands = FALSE);
+    virtual HMENU ExportToMenu() const;
+    BOOL BuildOrigItems(UINT uiMenuResID);
+    CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
+    int GetGutterWidth() const;
+    virtual CSize CalcSize(BOOL bVertDock);
+    virtual void AdjustLayout();
+    virtual void AdjustLocations();
+    virtual void CloseDelayedSubMenu();
+
+protected:
+    char _mfcpopupmenubar_padding[96];
 };
 
 //=============================================================================
@@ -609,8 +791,8 @@ public:
     virtual ~CDockingManager();
 
     void DockPane(CBasePane* pBar, UINT nDockBarID = 0, LPCRECT lpRect = nullptr);
-    void DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar);
-    void EnableDocking(DWORD dwDockStyle);
+    BOOL DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar);
+    BOOL EnableDocking(DWORD dwDockStyle);
     void FloatPane(CBasePane* pBar, CPoint ptOffset, DWORD dwAlignment);
     void HidePane(CBasePane* pBar);
     void ShowPane(CBasePane* pBar, BOOL bDelay = FALSE);
@@ -686,13 +868,220 @@ public:
 
 class CMFCToolBarComboBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarComboBoxButton)
-public: CMFCToolBarComboBoxButton(); CMFCToolBarComboBoxButton(UINT, int, ULONG, int) : CMFCToolBarComboBoxButton() {} virtual ~CMFCToolBarComboBoxButton(); char _pad[32]; };
+public:
+    CMFCToolBarComboBoxButton();
+    CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0) : CMFCToolBarComboBoxButton() {}
+    virtual ~CMFCToolBarComboBoxButton();
+
+    virtual INT_PTR AddItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
+    virtual INT_PTR AddSortedItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
+    virtual int Compare(const wchar_t* lpszItem1, const wchar_t* lpszItem2);
+    BOOL DeleteItem(int nIndex);
+    BOOL DeleteItem(DWORD_PTR dwData);
+    BOOL DeleteItem(const wchar_t* lpszText);
+    int FindItem(const wchar_t* lpszText) const;
+    const wchar_t* GetItem(int nIndex = -1) const;
+    INT_PTR GetCount() const;
+    DWORD_PTR GetItemData(int nIndex = -1) const;
+    BOOL SelectItem(const wchar_t* lpszItem);
+    BOOL SelectItem(int nIndex, BOOL bNotify = TRUE);
+    BOOL SelectItem(DWORD_PTR dwData);
+    void SetText(const wchar_t* lpszText);
+
+    static CMFCToolBarComboBoxButton* GetByCmd(UINT uiCmd, BOOL bIsFocus = FALSE);
+    static int GetCountAll(UINT uiCmd);
+    static int GetCurSelAll(UINT uiCmd);
+    static const wchar_t* GetItemAll(UINT uiCmd, int iIndex);
+    static DWORD_PTR GetItemDataAll(UINT uiCmd, int iIndex);
+    static const wchar_t* GetTextAll(UINT uiCmd);
+    static BOOL SelectItemAll(UINT uiCmd, const wchar_t* lpszText);
+    static BOOL SelectItemAll(UINT uiCmd, int nIndex);
+    static BOOL SelectItemAll(UINT uiCmd, DWORD_PTR dwData);
+
+    BOOL m_bFlat;
+    BOOL m_bCenterVert;
+
+    char _pad[32];
+};
+
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarEditBoxButton)
-public: CMFCToolBarEditBoxButton(); CMFCToolBarEditBoxButton(UINT, int, ULONG, int) : CMFCToolBarEditBoxButton() {} virtual ~CMFCToolBarEditBoxButton(); char _pad[32]; };
+public:
+    CMFCToolBarEditBoxButton();
+    CMFCToolBarEditBoxButton(UINT uiID, int iImage, ULONG dwStyle = ES_AUTOHSCROLL, int iWidth = 0) : CMFCToolBarEditBoxButton() {}
+    virtual ~CMFCToolBarEditBoxButton();
+
+    virtual void SetContents(const CString& sContents);
+
+    static CMFCToolBarEditBoxButton* GetByCmd(UINT uiCmd);
+    static CString GetContentsAll(UINT uiCmd);
+    static BOOL SetContentsAll(UINT uiCmd, const CString& sContents);
+
+    BOOL m_bFlat;
+
+    char _pad[32];
+};
+
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarMenuButton)
-public: CMFCToolBarMenuButton(); virtual ~CMFCToolBarMenuButton(); HMENU m_hMenu; char _pad[64]; };
+public:
+    CMFCToolBarMenuButton();
+    CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE);
+    CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src);
+    virtual ~CMFCToolBarMenuButton();
+
+    void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
+    virtual void CreateFromMenu(HMENU hMenu);
+    virtual HMENU CreateMenu() const;
+    virtual void CopyFrom(const CMFCToolBarButton& src);
+    virtual int CompareWith(const CMFCToolBarButton& other) const;
+
+    HMENU m_hMenu;
+    char _pad[64];
+};
+
+class CMFCToolBarMenuButtonsButton : public CMFCToolBarMenuButton {
+    DECLARE_DYNAMIC(CMFCToolBarMenuButtonsButton)
+public:
+    CMFCToolBarMenuButtonsButton();
+    explicit CMFCToolBarMenuButtonsButton(UINT uiSystemCommand);
+    virtual ~CMFCToolBarMenuButtonsButton();
+
+    UINT m_uiSystemCommand;
+    char _padButtons[32];
+};
+
+//=============================================================================
+// Feature Pack managers and app settings helpers
+//=============================================================================
+class CContextMenuManager : public CObject {
+    DECLARE_DYNAMIC(CContextMenuManager)
+public:
+    CContextMenuManager();
+    virtual ~CContextMenuManager();
+
+    BOOL AddMenu(UINT uiMenuNameResId, UINT uiMenuResId);
+    BOOL AddMenu(const wchar_t* lpszName, UINT uiMenuResId);
+    HMENU GetMenuById(UINT uiMenuResId) const;
+    HMENU GetMenuByName(const wchar_t* lpszName, UINT* puiMenuResId = nullptr) const;
+    void GetMenuNames(CStringList& listOfNames) const;
+    virtual BOOL ShowPopupMenu(UINT uiMenuResId, int x, int y, CWnd* pWndOwner, BOOL bOwnMessage = FALSE, BOOL bRightAlign = FALSE);
+    virtual CMFCPopupMenu* ShowPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL bOwnMessage = FALSE, BOOL bAutoDestroy = TRUE, BOOL bRightAlign = FALSE);
+    virtual UINT TrackPopupMenu(HMENU hmenuPopup, int x, int y, CWnd* pWndOwner, BOOL bRightAlign = FALSE);
+    virtual BOOL LoadState(const wchar_t* lpszProfileName = nullptr);
+    virtual BOOL SaveState(const wchar_t* lpszProfileName = nullptr);
+    virtual BOOL ResetState();
+
+protected:
+    char _contextmenumanager_padding[64];
+};
+
+class CKeyboardManager : public CObject {
+    DECLARE_DYNAMIC(CKeyboardManager)
+public:
+    CKeyboardManager();
+    virtual ~CKeyboardManager();
+
+    static BOOL IsKeyPrintable(UINT nChar);
+    static UINT TranslateCharToUpper(UINT nChar);
+    static void ShowAllAccelerators(BOOL bShowAll = TRUE);
+    static void CleanUp();
+    void ResetAll();
+    BOOL LoadState(const wchar_t* lpszProfileName = nullptr, CFrameWnd* pDefaultFrame = nullptr);
+    BOOL SaveState(const wchar_t* lpszProfileName = nullptr, CFrameWnd* pDefaultFrame = nullptr);
+
+protected:
+    char _keyboardmanager_padding[64];
+};
+
+class CMFCToolTipInfo {
+public:
+    CMFCToolTipInfo() { memset(_pad, 0, sizeof(_pad)); }
+    char _pad[64];
+};
+
+class CTooltipManager : public CObject {
+    DECLARE_DYNAMIC(CTooltipManager)
+public:
+    CTooltipManager();
+    virtual ~CTooltipManager();
+
+    static BOOL CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, UINT nType = 0);
+    static void DeleteToolTip(CToolTipCtrl*& pToolTip);
+    void SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC = nullptr, CMFCToolTipInfo* pParams = nullptr);
+    void UpdateTooltips();
+
+protected:
+    char _tooltipmanager_padding[64];
+};
+
+class CMenuHash : public CObject {
+    DECLARE_DYNAMIC(CMenuHash)
+public:
+    CMenuHash();
+    virtual ~CMenuHash();
+
+    BOOL LoadMenuBar(HMENU hMenu, CMFCToolBar* pBar);
+    BOOL SaveMenuBar(HMENU hMenu, CMFCToolBar* pBar);
+    BOOL RemoveMenu(HMENU hMenu);
+    void CleanUp();
+
+protected:
+    char _menuhash_padding[64];
+};
+
+class CGlobalUtils {
+public:
+    CGlobalUtils();
+    virtual ~CGlobalUtils();
+
+    void AdjustRectToWorkArea(CRect& rect, CRect* pRectDelta = nullptr);
+    void FlipRect(CRect& rect, BOOL bHorz);
+    DWORD GetOppositeAlignment(DWORD dwAlign);
+    CSize GetSystemBorders(DWORD dwStyle);
+    CSize GetSystemBorders(CWnd* pWnd);
+    HICON GetWndIcon(CWnd* pWnd);
+    BOOL CanBeAttached(CWnd* pWnd) const;
+    BOOL CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const;
+    CDockingManager* GetDockingManager(CWnd* pWnd);
+
+protected:
+    char _globalutils_padding[32];
+};
+
+class CWinAppEx : public CWinApp {
+    DECLARE_DYNAMIC(CWinAppEx)
+public:
+    explicit CWinAppEx(BOOL bResourceSmartUpdate = FALSE);
+    virtual ~CWinAppEx();
+
+    BOOL InitContextMenuManager();
+    BOOL InitKeyboardManager();
+    BOOL InitTooltipManager();
+    CContextMenuManager* GetContextMenuManager();
+    CKeyboardManager* GetKeyboardManager();
+    CTooltipManager* GetTooltipManager();
+    int GetDataVersion() const;
+    const wchar_t* SetRegistryBase(const wchar_t* lpszSectionName);
+    CString GetRegSectionPath(const wchar_t* lpszSectionAdd = nullptr);
+    int GetInt(const wchar_t* lpszEntry, int nDefault = 0);
+    BOOL WriteInt(const wchar_t* lpszEntry, int nValue);
+    CString GetString(const wchar_t* lpszEntry, const wchar_t* lpszDefault = nullptr);
+    BOOL WriteString(const wchar_t* lpszEntry, const wchar_t* lpszValue);
+    virtual BOOL LoadState(const wchar_t* lpszSectionName = nullptr, void* pFrameImpl = nullptr);
+    virtual BOOL SaveState(const wchar_t* lpszSectionName = nullptr, void* pFrameImpl = nullptr);
+    virtual BOOL CleanState(const wchar_t* lpszSectionName = nullptr);
+    BOOL IsStateExists(const wchar_t* lpszSectionName);
+    virtual int ExitInstance() override;
+
+protected:
+    CContextMenuManager* m_pContextMenuManager;
+    CKeyboardManager* m_pKeyboardManager;
+    CTooltipManager* m_pTooltipManager;
+    CString m_strRegSection;
+    int m_nDataVersion;
+    char _winappex_padding[96];
+};
 
 class CMFCDesktopAlertWnd : public CWnd {
 public: CMFCDesktopAlertWnd() {} char _pad[16]; };
@@ -721,3 +1110,178 @@ class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibb
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };
 class CMFCRibbonStatusBarPane : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonStatusBarPane) public: CMFCRibbonStatusBarPane(); virtual ~CMFCRibbonStatusBarPane(); char _pad[32]; };
 class CMFCTasksPaneTaskGroup : public CObject { DECLARE_DYNAMIC(CMFCTasksPaneTaskGroup) public: CMFCTasksPaneTaskGroup(); virtual ~CMFCTasksPaneTaskGroup(); char _pad[32]; };
+
+//=============================================================================
+// Visual Studio list box wrappers
+//=============================================================================
+class CVSListBoxBase : public CStatic {
+    DECLARE_DYNAMIC(CVSListBoxBase)
+public:
+    CVSListBoxBase() = default;
+    virtual ~CVSListBoxBase() = default;
+};
+
+class CVSListBoxEditCtrl : public CEdit {
+    DECLARE_DYNAMIC(CVSListBoxEditCtrl)
+public:
+    CVSListBoxEditCtrl() = default;
+    virtual ~CVSListBoxEditCtrl() = default;
+};
+
+class CVSListBox : public CListBox {
+    DECLARE_DYNAMIC(CVSListBox)
+public:
+    CVSListBox() = default;
+    virtual ~CVSListBox() = default;
+
+    virtual int AddItem(const CString& strText, uintptr_t dwData = 0, int bSelect = 1);
+    virtual int RemoveItem(int nIndex);
+    virtual int GetCount() const;
+    virtual int GetSelItem() const;
+    virtual int SelectItem(int nIndex);
+    virtual int EditItem(int nIndex);
+    virtual uintptr_t GetItemData(int nIndex) const;
+    virtual void SetItemData(int nIndex, uintptr_t dwData);
+    virtual CString GetItemText(int nIndex) const;
+    virtual void SetItemText(int nIndex, const CString& strText);
+};
+
+//=============================================================================
+// Wave 2 D2D/Animation minimal declarations
+//=============================================================================
+struct CD2DColorF {
+    float r;
+    float g;
+    float b;
+    float a;
+};
+struct D2D_POINT_2F;
+struct D2D_SIZE_F;
+struct D2D_RECT_F;
+struct D2D1_ELLIPSE;
+struct D2D1_ROUNDED_RECT;
+
+class CD2DPointF {
+public:
+    CD2DPointF();
+    CD2DPointF(float x, float y);
+    CD2DPointF(const CPoint& point);
+    CD2DPointF(const D2D_POINT_2F& point);
+    CD2DPointF(const D2D_POINT_2F* point);
+
+    float x;
+    float y;
+};
+
+class CD2DSizeF {
+public:
+    CD2DSizeF();
+    CD2DSizeF(float width, float height);
+    CD2DSizeF(const CSize& size);
+    CD2DSizeF(const D2D_SIZE_F& size);
+    CD2DSizeF(const D2D_SIZE_F* size);
+
+    float width;
+    float height;
+};
+
+class CD2DRectF {
+public:
+    CD2DRectF();
+    CD2DRectF(float left, float top, float right, float bottom);
+    CD2DRectF(const CRect& rect);
+    CD2DRectF(const D2D_RECT_F& rect);
+    CD2DRectF(const D2D_RECT_F* rect);
+
+    float left;
+    float top;
+    float right;
+    float bottom;
+};
+
+class CD2DEllipse {
+public:
+    CD2DEllipse();
+    CD2DEllipse(const CD2DPointF& point, const CD2DSizeF& radius);
+    CD2DEllipse(const CD2DRectF& rect);
+    CD2DEllipse(const D2D1_ELLIPSE& ellipse);
+    CD2DEllipse(const D2D1_ELLIPSE* ellipse);
+
+    CD2DPointF point;
+    CD2DSizeF radius;
+};
+
+class CD2DRoundedRect {
+public:
+    CD2DRoundedRect();
+    CD2DRoundedRect(const CD2DRectF& rect, const CD2DSizeF& radius);
+    CD2DRoundedRect(const D2D1_ROUNDED_RECT& roundedRect);
+    CD2DRoundedRect(const D2D1_ROUNDED_RECT* roundedRect);
+
+    CD2DRectF rect;
+    CD2DSizeF radius;
+};
+
+class CRenderTarget : public CObject {
+    DECLARE_DYNAMIC(CRenderTarget)
+public:
+    CRenderTarget();
+    virtual ~CRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    void BeginDraw();
+    long EndDraw();
+    int Destroy(int bReleasing = TRUE);
+    void Clear(CD2DColorF color);
+
+    void DrawLine(const CD2DPointF& p0, const CD2DPointF& p1);
+    void DrawRectangle(const CD2DRectF& rect);
+    void DrawEllipse(const CD2DEllipse& ellipse);
+    void DrawRoundedRectangle(const CD2DRoundedRect& rect);
+    void FillRectangle(const CD2DRectF& rect);
+    void FillEllipse(const CD2DEllipse& ellipse);
+    void FillRoundedRectangle(const CD2DRoundedRect& rect);
+
+    static CD2DColorF COLORREF_TO_D2DCOLOR(COLORREF color, int alpha = 255);
+    CD2DSizeF GetDpi() const;
+    void SetDpi(const CD2DSizeF& dpi);
+    CD2DSizeF GetSize() const;
+    void GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) const;
+    void SetTags(unsigned __int64 tag1, unsigned __int64 tag2);
+
+protected:
+    char _rendertarget_padding[32];
+};
+
+class CDCRenderTarget : public CRenderTarget {
+    DECLARE_DYNAMIC(CDCRenderTarget)
+public:
+    CDCRenderTarget();
+
+    void Attach(void* pRenderTarget);
+    void* Detach();
+    int Create(const void* pRenderTargetProperties);
+    int BindDC(const CDC& dc, const CRect& rect);
+};
+
+class CAnimationVariable : public CObject {
+    DECLARE_DYNAMIC(CAnimationVariable)
+public:
+    explicit CAnimationVariable(double defaultValue = 0.0);
+    virtual ~CAnimationVariable();
+
+    int Create(void* pAnimationManager);
+    void AddTransition(void* pTransition);
+    void ClearTransitions(int bAutodestroy = TRUE);
+    void EnableValueChangedEvent(void* pController, int bEnable);
+    void EnableIntegerValueChangedEvent(void* pController, int bEnable);
+    void SetDefaultValue(double value);
+    long GetValue(double& value);
+    long GetValue(int& value);
+    int CreateTransitions(void* pTransitionLibrary, void* pTransitionFactory);
+    void ApplyTransitions(void* pController, void* pStoryboard, int bAutodestroy = TRUE);
+
+protected:
+    char _animationvariable_padding[32];
+};
