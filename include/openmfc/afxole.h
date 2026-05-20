@@ -1154,6 +1154,8 @@ public:
     COleObjectFactory();
     COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
                       BOOL bMultiInstance, const wchar_t* lpszProgID);
+    COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
+                      BOOL bMultiInstance, BOOL bFreeOnRelease, const wchar_t* lpszProgID);
     virtual ~COleObjectFactory();
 
     BOOL Register();
@@ -1163,10 +1165,15 @@ public:
     static int RegisterAll();
     static BOOL PASCAL UpdateRegistryAll(BOOL bRegister = TRUE);
     static void PASCAL RevokeAll();
+    BOOL Unregister();
+    static BOOL PASCAL UnregisterAll();
 
     virtual CCmdTarget* OnCreateObject();
     virtual BOOL OnVerifyFile(LPCTSTR lpszFileName);
     virtual void UpdateRegistry(BOOL bRegister = TRUE);
+    virtual BOOL VerifyUserLicense();
+    virtual BOOL VerifyLicenseKey(BSTR bstrKey);
+    virtual BOOL GetLicenseKey(DWORD dwReserved, BSTR* pbstrKey);
 
     CLSID GetClassID() const { return m_clsid; }
     const wchar_t* GetProgID() const { return m_strProgID; }
@@ -1174,6 +1181,9 @@ public:
     // Connection points
     void ConnectTemplate(COleTemplateServer* pTemplate);
     COleTemplateServer* GetTemplate() const { return m_pTemplate; }
+
+    void CommonConstruct(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
+                         BOOL bMultiInstance, BOOL bFreeOnRelease, const wchar_t* lpszProgID);
 
 public:
     CLSID m_clsid;
@@ -1200,10 +1210,14 @@ public:
     CDocTemplate* GetDocTemplate() const { return m_pDocTemplate; }
 
     // Registration
+    BOOL Register();
+    BOOL Unregister();
     virtual void UpdateRegistry(OLE_APPTYPE nAppType = OAT_INPLACE_SERVER,
                                const wchar_t** rglpszRegister = nullptr,
                                const wchar_t** rglpszOverwrite = nullptr,
                                BOOL bRegister = TRUE);
+    virtual CCmdTarget* OnCreateObject();
+    virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
 
 public:
     CDocTemplate* m_pDocTemplate;
@@ -1385,6 +1399,7 @@ class COleDialog : public CDialog {
     DECLARE_DYNAMIC(COleDialog)
 public:
     COleDialog(UINT nIDTemplate, CWnd* pParentWnd = nullptr);
+    explicit COleDialog(CWnd* pParentWnd);
     virtual ~COleDialog();
     int MapResult(UINT nResult);
     char _olediag_padding[32];
@@ -1510,6 +1525,8 @@ public:
     int CreateItem(COleClientItem* pItem);
     COleClientItem* CreateItem(COleDocument* pDoc = nullptr);
     void GetIconMetafile(HGLOBAL* phMetaPict);
+    UINT GetSelectionType() const;
+    void AddClassIDToList(CLSID*& rgclsid, int& nCount, int& nAlloc, CLSID* pClassID);
 
 public:
     OLEUIINSERTOBJECTW m_io;
@@ -1560,6 +1577,13 @@ public:
     BOOL IsPasteLink() const;
     int CreateItem(COleClientItem* pItem);
     COleClientItem* CreateItem(COleDocument* pDoc);
+    UINT GetSelectionType() const;
+    void AddFormat(const FORMATETC& formatEtc, wchar_t* lpszFormat,
+                   wchar_t* lpszResult, DWORD flags);
+    void AddFormat(UINT cfFormat, TYMED tymed, UINT nFormatID,
+                   BOOL bEnableIcon, BOOL bLink);
+    OLEUIPASTEFLAGE AddLinkEntry(UINT nFormatID);
+    void AddStandardFormats(BOOL bEnableLink = TRUE);
 
 public:
     OLEUIPASTESPECIALW m_ps;
@@ -1805,10 +1829,33 @@ BOOL AFXAPI AfxOleRegisterControlClass(REFCLSID clsid, const wchar_t* lpszClassN
                                         DWORD dwMiscStatus, DWORD dwFlags, DWORD dwVersion);
 BOOL AFXAPI AfxOleUnregisterClass(REFCLSID clsid, const wchar_t* lpszClassName);
 
+// HINSTANCE-based registration helpers (used by MFC control/server registration)
+BOOL AFXAPI AfxOleRegisterServerClass(REFCLSID clsid, const wchar_t* lpszClassName,
+                                       const wchar_t* lpszShortTypeName,
+                                       const wchar_t* lpszLongTypeName,
+                                       OLE_APPTYPE nAppType, const wchar_t** rglpszRegister,
+                                       const wchar_t** rglpszOverwrite,
+                                       int nFlags, const wchar_t* lpszLocalServerPath);
+BOOL AFXAPI AfxOleRegisterControlClass(HINSTANCE hInstance, REFCLSID clsid,
+                                        const wchar_t* lpszProgID, UINT idTypeName,
+                                        UINT idBitmap, int nRegFlags,
+                                        DWORD dwMiscStatus, REFGUID tlid,
+                                        WORD wVerMajor, WORD wVerMinor);
+BOOL AFXAPI AfxOleRegisterPropertyPageClass(HINSTANCE hInstance, REFCLSID clsid, UINT idTypeName);
+BOOL AFXAPI AfxOleRegisterPropertyPageClass(HINSTANCE hInstance, REFCLSID clsid,
+                                             UINT idTypeName, int nHelpContext);
+BOOL AFXAPI AfxOleRegisterTypeLib(HINSTANCE hInstance, REFGUID tlid,
+                                   const wchar_t* lpszFileName = nullptr,
+                                   const wchar_t* lpszHelpDir = nullptr);
+BOOL AFXAPI AfxOleRegisterHelper(const wchar_t* const* rglpszRegister,
+                                  const wchar_t* const* rglpszOverwrite,
+                                  int nRegFlags, BOOL bRegister,
+                                  HKEY hkey = nullptr);
+
 // OLE utilities
 BOOL AFXAPI AfxOleSetEditMenu(COleClientItem* pItem, CMenu* pMenu, UINT iMenuItem,
                                UINT nIDVerbMin, UINT nIDVerbMax = 0, UINT nIDConvert = 0);
-BOOL AFXAPI AfxOleSetUserCtrl(BOOL bUserCtrl);
+void AFXAPI AfxOleSetUserCtrl(BOOL bUserCtrl);
 
 // In-place activation helpers
 BOOL AFXAPI AfxOleInProcessRegister(COleObjectFactory* pFactory);
