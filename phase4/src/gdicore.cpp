@@ -2592,13 +2592,8 @@ extern "C" void MS_ABI impl__DrawDragRect_CDC__QEAAXPEBUtagRECT__UtagSIZE__01PEA
 // CDC::GetHalftoneBrush (static)
 // Symbol: ?GetHalftoneBrush@CDC@@SAPEAVCBrush@@XZ
 extern "C" CBrush* MS_ABI impl__GetHalftoneBrush_CDC__SAPEAVCBrush__XZ() {
-    // Return a thread-local halftone brush wrapper
-    static thread_local CBrush* s_halftoneBrush = nullptr;
-    if (!s_halftoneBrush) {
-        s_halftoneBrush = new CBrush();
-        s_halftoneBrush->m_hObject = ::GetStockObject(DKGRAY_BRUSH);
-    }
-    return s_halftoneBrush;
+    HGDIOBJ hBrush = ::GetStockObject(DKGRAY_BRUSH);
+    return (CBrush*)GetTempGdiObject(hBrush);
 }
 
 // CDC::DPtoHIMETRIC
@@ -2680,7 +2675,6 @@ CImageList* GetTempImageList(HIMAGELIST hImageList) {
 extern "C" CImageList* MS_ABI impl___0CImageList__QEAA_XZ(CImageList* pThis) {
     if (!pThis) return nullptr;
     pThis->m_hImageList = nullptr;
-    memset(pThis->_imagelist_padding, 0, sizeof(pThis->_imagelist_padding));
     return pThis;
 }
 
@@ -3063,8 +3057,4 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CImageList__SAPEAUCRuntimeCl
 // Symbol: ?CreateObject@CImageList@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CImageList__SAPEAVCObject__XZ() {
     return new CImageList();
-}
-
-CRuntimeClass* CImageList::GetThisClass() {
-    return &CImageList::classCImageList;
 }
