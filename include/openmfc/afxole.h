@@ -1582,7 +1582,7 @@ public:
                    wchar_t* lpszResult, DWORD flags);
     void AddFormat(UINT cfFormat, TYMED tymed, UINT nFormatID,
                    BOOL bEnableIcon, BOOL bLink);
-    OLEUIPASTEFLAGE AddLinkEntry(UINT nFormatID);
+    OLEUIPASTEFLAG AddLinkEntry(UINT nFormatID);
     void AddStandardFormats(BOOL bEnableLink = TRUE);
 
 public:
