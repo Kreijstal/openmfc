@@ -65,6 +65,67 @@ int main() {
         return 1;
     }
 
+    COleServerDoc serverDoc;
+    COleClientItem embeddedClient(&serverDoc);
+    if (serverDoc.GetEmbeddedItem() != &embeddedClient) {
+        std::printf("FAIL: COleServerDoc embedded client lookup mismatch\n");
+        return 1;
+    }
+    if (serverDoc.GetEmbeddedServerItem() != nullptr || serverDoc.GetLinkedServerItem(nullptr) != nullptr) {
+        std::printf("FAIL: new COleServerDoc should not have server items\n");
+        return 1;
+    }
+
+    {
+        COleServerItem serverItem(&serverDoc);
+        if (serverItem.GetDocument() != &serverDoc || serverItem.m_pDocument != &serverDoc) {
+            std::printf("FAIL: COleServerItem constructor did not attach to server doc\n");
+            return 1;
+        }
+        if (serverDoc.GetEmbeddedServerItem() != &serverItem ||
+            serverDoc.GetLinkedServerItem(nullptr) != &serverItem ||
+            serverDoc.GetLinkedServerItem(L"AnyName") != &serverItem) {
+            std::printf("FAIL: COleServerDoc server item lookup mismatch\n");
+            return 1;
+        }
+    }
+
+    if (serverDoc.GetEmbeddedServerItem() != nullptr || serverDoc.GetLinkedServerItem(nullptr) != nullptr) {
+        std::printf("FAIL: COleServerItem destructor did not detach from server doc\n");
+        return 1;
+    }
+    if (serverDoc.IsModified()) {
+        std::printf("FAIL: new COleServerDoc should start unmodified\n");
+        return 1;
+    }
+    serverDoc.NotifyChanged();
+    if (!serverDoc.IsModified()) {
+        std::printf("FAIL: COleServerDoc::NotifyChanged should set modified\n");
+        return 1;
+    }
+    serverDoc.NotifySaved();
+    if (serverDoc.IsModified()) {
+        std::printf("FAIL: COleServerDoc::NotifySaved should clear modified\n");
+        return 1;
+    }
+    serverDoc.NotifyRename(nullptr);
+    if (serverDoc.GetTitle()[0] != L'\0') {
+        std::printf("FAIL: COleServerDoc::NotifyRename(nullptr) should clear title\n");
+        return 1;
+    }
+
+    {
+        COleServerItem serverItemA(&serverDoc);
+        COleServerItem serverItemB(&serverDoc);
+        if (serverDoc.GetLinkedServerItem(L"1") != &serverItemA ||
+            serverDoc.GetLinkedServerItem(L"2") != &serverItemB ||
+            serverDoc.GetLinkedServerItem(L"3") != nullptr ||
+            serverDoc.GetLinkedServerItem(L"AnyName") != nullptr) {
+            std::printf("FAIL: COleServerDoc linked server item index lookup mismatch\n");
+            return 1;
+        }
+    }
+
     std::printf("OK: COleDocument/COleClientItem tests passed\n");
     return 0;
 }
