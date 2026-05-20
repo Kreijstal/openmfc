@@ -3005,7 +3005,7 @@ CString COleControl::AmbientScaleUnits() {
     SysFreeString(bstr);
     return text;
 }
-unsigned long COleControl::AmbientLocaleID() { unsigned long locale = LOCALE_USER_DEFAULT; GetAmbientProperty(DISPID_AMBIENT_LOCALEID, VT_I4, &locale); return locale; }
+unsigned long COleControl::AmbientLocaleID() { unsigned long locale = static_cast<unsigned long>(::GetUserDefaultLCID()); GetAmbientProperty(DISPID_AMBIENT_LOCALEID, VT_I4, &locale); return locale; }
 
 void COleControl::FireClick() {}
 void COleControl::FireDblClick() {}
@@ -3099,7 +3099,7 @@ long COleControl::GetReadyState() const {
     return state ? state->readyState : 4;
 }
 
-BOOL COleControl::IsSubclassedControl() { return m_hWnd != nullptr; }
+BOOL COleControl::IsSubclassedControl() { return FALSE; }
 void COleControl::SetModifiedFlag(BOOL bModified) {
     OleControlState* state = GetOleControlState(this, true);
     if (state) state->modified = bModified;
