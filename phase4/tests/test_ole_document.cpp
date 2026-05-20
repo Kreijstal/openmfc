@@ -4,6 +4,8 @@
 #include <cstdio>
 
 int main() {
+    AfxOleInit();
+
     COleDocument doc;
     if (doc.GetItemCount() != 0 || doc.GetStartPosition() != nullptr) {
         std::printf("FAIL: new COleDocument should have no items\n");
@@ -65,6 +67,41 @@ int main() {
         return 1;
     }
 
+    COleServerDoc serverDoc;
+    COleServerItem serverItemA(&serverDoc);
+    COleServerItem serverItemB(&serverDoc);
+    if (serverDoc.GetEmbeddedServerItem() != &serverItemA) {
+        std::printf("FAIL: COleServerDoc did not track first server item\n");
+        return 1;
+    }
+    if (serverDoc.GetLinkedServerItem(nullptr) != &serverItemA) {
+        std::printf("FAIL: GetLinkedServerItem(nullptr) should return first server item\n");
+        return 1;
+    }
+    CSize size(120, 80);
+    serverItemA.OnSetExtent(DVASPECT_CONTENT, size);
+    CSize gotSize(0, 0);
+    if (!serverItemA.OnGetExtent(DVASPECT_CONTENT, gotSize) || gotSize.cx != 120 || gotSize.cy != 80) {
+        std::printf("FAIL: COleServerItem extent lifecycle mismatch\n");
+        return 1;
+    }
+    serverDoc.NotifyChanged();
+    if (!serverDoc.IsModified()) {
+        std::printf("FAIL: NotifyChanged should mark server doc modified\n");
+        return 1;
+    }
+    serverDoc.NotifySaved();
+    if (serverDoc.IsModified()) {
+        std::printf("FAIL: NotifySaved should clear modified flag\n");
+        return 1;
+    }
+    if (!serverDoc.OnSetHostNames(L"HostApp", L"DocObj")) {
+        std::printf("FAIL: OnSetHostNames should succeed\n");
+        return 1;
+    }
+
+    const BOOL bJustThisThread = FALSE;
+    AfxOleTerm(bJustThisThread);
     std::printf("OK: COleDocument/COleClientItem tests passed\n");
     return 0;
 }
