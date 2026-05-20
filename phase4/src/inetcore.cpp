@@ -823,10 +823,8 @@ int CInternetException::GetErrorMessage(char* lpszError, UINT nMaxError,
 CStdioFile* CInternetSession::OpenURL(const wchar_t* pstrURL, DWORD_PTR dwContext,
                                        DWORD dwFlags, const wchar_t* pstrHeaders,
                                        DWORD dwHeadersLength) {
-    (void)dwContext; (void)dwFlags; (void)pstrHeaders; (void)dwHeadersLength;
-    HINTERNET hUrl = ::InternetOpenUrlW(m_hSession, pstrURL, nullptr, 0, 
-                                         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 
-                                         (DWORD_PTR)dwContext);
+    HINTERNET hUrl = ::InternetOpenUrlW(m_hSession, pstrURL, pstrHeaders,
+                                         dwHeadersLength, dwFlags, (DWORD_PTR)dwContext);
     if (!hUrl) return nullptr;
     CHttpFile* pFile = new CHttpFile(hUrl, nullptr, L"GET", pstrURL, nullptr);
     return pFile;
@@ -837,8 +835,25 @@ DWORD CInternetSession::GetServiceType() const {
 }
 
 int CInternetSession::GetServiceTypeFromHandle(HINTERNET hConnect) {
-    (void)hConnect;
-    return INTERNET_SERVICE_HTTP;
+    if (!hConnect) return 0;
+    DWORD handleType = 0;
+    DWORD cb = sizeof(handleType);
+    if (!::InternetQueryOptionW(hConnect, INTERNET_OPTION_HANDLE_TYPE, &handleType, &cb)) {
+        return 0;
+    }
+    switch (handleType) {
+    case INTERNET_HANDLE_TYPE_CONNECT_HTTP:
+    case INTERNET_HANDLE_TYPE_HTTP_REQUEST:
+        return INTERNET_SERVICE_HTTP;
+    case INTERNET_HANDLE_TYPE_CONNECT_FTP:
+    case INTERNET_HANDLE_TYPE_FTP_FILE:
+    case INTERNET_HANDLE_TYPE_FTP_FIND:
+        return INTERNET_SERVICE_FTP;
+    case INTERNET_HANDLE_TYPE_CONNECT_GOPHER:
+        return INTERNET_SERVICE_GOPHER;
+    default:
+        return 0;
+    }
 }
 
 int CInternetSession::GetFtpConnection(const wchar_t* pstrServer, 
@@ -914,23 +929,40 @@ CGopherConnection* CInternetSession::GetGopherConnection(const wchar_t* pstrServ
                                                           const wchar_t* pstrUserName,
                                                           const wchar_t* pstrPassword,
                                                           INTERNET_PORT nPort) {
-    (void)pstrServer; (void)pstrUserName; (void)pstrPassword; (void)nPort;
-    return nullptr;
+    return new CGopherConnection(this, pstrServer, pstrUserName, pstrPassword, m_dwContext, nPort);
 }
 
 //=============================================================================
 // Additional CHttpFile methods
 //=============================================================================
 int CHttpFile::QueryInfo(DWORD dwInfoLevel, CString& str, DWORD* pdwIndex) {
-    (void)dwInfoLevel; (void)pdwIndex;
-    str.Empty();
-    return 0;
+    if (!m_hFile) {
+        str.Empty();
+        return FALSE;
+    }
+    DWORD chars = 0;
+    if (::HttpQueryInfoW(m_hFile, dwInfoLevel, nullptr, &chars, pdwIndex)) {
+        str.Empty();
+        return TRUE;
+    }
+    if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER || chars == 0) {
+        str.Empty();
+        return FALSE;
+    }
+    std::vector<wchar_t> buffer((size_t)chars + 1, L'\0');
+    if (!::HttpQueryInfoW(m_hFile, dwInfoLevel, buffer.data(), &chars, pdwIndex)) {
+        str.Empty();
+        return FALSE;
+    }
+    str = buffer.data();
+    return TRUE;
 }
 
 int CHttpFile::QueryInfo(DWORD dwInfoLevel, SYSTEMTIME* pSysTime, DWORD* pdwIndex) {
-    (void)dwInfoLevel; (void)pdwIndex;
-    if (pSysTime) memset(pSysTime, 0, sizeof(SYSTEMTIME));
-    return 0;
+    if (!m_hFile || !pSysTime) return FALSE;
+    DWORD cb = sizeof(SYSTEMTIME);
+    memset(pSysTime, 0, sizeof(SYSTEMTIME));
+    return ::HttpQueryInfoW(m_hFile, dwInfoLevel | HTTP_QUERY_FLAG_SYSTEMTIME, pSysTime, &cb, pdwIndex);
 }
 
 int CHttpFile::QueryInfoStatusCode(DWORD_PTR& dwStatusCode) const {
@@ -948,8 +980,8 @@ int CHttpFile::QueryInfoStatusCode(DWORD_PTR& dwStatusCode) const {
 
 int CHttpFile::SendRequestEx(LPINTERNET_BUFFERS lpBuffIn, LPINTERNET_BUFFERS lpBuffOut,
                               DWORD dwFlags, DWORD_PTR dwContext) {
-    (void)lpBuffIn; (void)lpBuffOut; (void)dwFlags; (void)dwContext;
-    return 0;
+    if (!m_hFile) return FALSE;
+    return ::HttpSendRequestExW(m_hFile, lpBuffIn, lpBuffOut, dwFlags, dwContext);
 }
 
 //=============================================================================
@@ -963,14 +995,26 @@ int CFtpConnection::GetCurrentDirectory(wchar_t* pstrDirName, DWORD* pdwLen) con
 CInternetFile* CFtpConnection::Command(const wchar_t* pstrCommand, CmdResponseType eResponse,
                                         CmdResponseType eResponse2, unsigned long dwContext,
                                         unsigned __int64 dwFlags) {
-    (void)pstrCommand; (void)eResponse; (void)eResponse2; (void)dwContext; (void)dwFlags;
-    return nullptr;
+    (void)eResponse2;
+    if (!m_hConnection || !pstrCommand) return nullptr;
+    HINTERNET hResponse = nullptr;
+    const BOOL expectResponse = (eResponse != CmdRespNone) ? TRUE : FALSE;
+    if (!::FtpCommandW(m_hConnection, expectResponse, (DWORD)dwFlags, pstrCommand, dwContext, &hResponse)) {
+        return nullptr;
+    }
+    if (!expectResponse || !hResponse) {
+        if (hResponse) {
+            ::InternetCloseHandle(hResponse);
+        }
+        return nullptr;
+    }
+    return new CInternetFile(hResponse, nullptr, this, 0);
 }
 
 int CFtpConnection::Command(const wchar_t* pstrCommand, DWORD dwCmdResponse,
                              DWORD_PTR dwContext) {
-    (void)pstrCommand; (void)dwCmdResponse; (void)dwContext;
-    return 0;
+    if (!m_hConnection || !pstrCommand) return FALSE;
+    return ::FtpCommandW(m_hConnection, FALSE, dwCmdResponse, pstrCommand, dwContext, nullptr);
 }
 
 //=============================================================================
