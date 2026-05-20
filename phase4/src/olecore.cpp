@@ -23,6 +23,11 @@
 #define VT_COLOR 0x0000000CL
 #endif
 
+// Stock control event DISPIDs (from olectl.h)
+#ifndef DISPID_CLICK
+#include <olectl.h>
+#endif
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
@@ -57,6 +62,55 @@ static int g_bOleInitialized = FALSE;
 static int g_nOleLockCount = 0;
 static COleMessageFilter* g_pMessageFilter = nullptr;
 static COleDataSource* g_pClipboardOwner = nullptr;
+
+//=============================================================================
+// COleControl internal state (side-channel to avoid ABI breakage)
+//=============================================================================
+namespace {
+
+struct OleControlStockProps {
+    COLORREF clrBack   = RGB(255, 255, 255);
+    COLORREF clrFore   = RGB(0, 0, 0);
+    BOOL     bEnabled  = TRUE;
+    BOOL     bModified = FALSE;
+    short    nAppearance  = 0;
+    short    nBorderStyle = 0;
+    long     lReadyState  = 4; // READYSTATE_COMPLETE
+};
+
+struct OleControlEventSink {
+    IID      iid;
+    DWORD    dwCookie;
+    IUnknown* pSink;
+};
+
+struct OleControlState {
+    OleControlStockProps             props;
+    std::vector<OleControlEventSink> eventSinks;
+    std::vector<IPropertyNotifySink*> propSinks;
+    DWORD dwNextCookie = 1;
+};
+
+static std::map<const COleControl*, OleControlState> g_oleControlState;
+
+static OleControlState& GetOleControlState(const COleControl* p) {
+    return g_oleControlState[p];
+}
+
+static void RemoveOleControlState(const COleControl* p) {
+    auto it = g_oleControlState.find(p);
+    if (it != g_oleControlState.end()) {
+        for (auto& s : it->second.eventSinks) {
+            if (s.pSink) s.pSink->Release();
+        }
+        for (auto* s : it->second.propSinks) {
+            if (s) s->Release();
+        }
+        g_oleControlState.erase(it);
+    }
+}
+
+} // anonymous namespace (OleControl internal state)
 
 namespace {
 
@@ -1944,6 +1998,13 @@ void COlePropertyPage::OnEditProperty(DISPID dispid) {
     (void)dispid;
 }
 
+void COlePropertyPage::SetModifiedFlag(BOOL bModified) {
+    m_bModified = bModified ? TRUE : FALSE;
+    if (m_pPageSite) {
+        m_pPageSite->OnStatusChange(bModified ? PROPPAGESTATUS_DIRTY : 0);
+    }
+}
+
 //=============================================================================
 // COleDocument
 //=============================================================================
@@ -2582,12 +2643,60 @@ COleControlSite::~COleControlSite() {
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_t* lpszWindowName,
                                      DWORD dwStyle, const RECT& rect, UINT nID, CFile* pPersist,
                                      BOOL bStorage, BSTR bstrLicKey) {
-    (void)clsid; (void)lpszWindowName; (void)rect;
-    (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    (void)lpszWindowName; (void)pPersist; (void)bStorage;
     m_dwStyle = dwStyle;
-    m_hWnd = pWndCtrl ? pWndCtrl->GetSafeHwnd() : nullptr;
     SetControlSiteId(this, nID);
-    return FALSE;
+
+    // Use CoCreateInstance (with optional license via IClassFactory2)
+    IUnknown* pUnk = nullptr;
+    HRESULT hr;
+    if (bstrLicKey) {
+        IClassFactory2* pCF2 = nullptr;
+        hr = CoGetClassObject(clsid, CLSCTX_INPROC_SERVER, nullptr, IID_IClassFactory2,
+                              reinterpret_cast<void**>(&pCF2));
+        if (SUCCEEDED(hr) && pCF2) {
+            hr = pCF2->CreateInstanceLic(nullptr, nullptr, IID_IUnknown, bstrLicKey,
+                                          reinterpret_cast<void**>(&pUnk));
+            pCF2->Release();
+        } else {
+            hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown,
+                                  reinterpret_cast<void**>(&pUnk));
+        }
+    } else {
+        hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown,
+                              reinterpret_cast<void**>(&pUnk));
+    }
+    if (FAILED(hr) || !pUnk) return FALSE;
+
+    // Get IOleObject
+    hr = pUnk->QueryInterface(IID_IOleObject, reinterpret_cast<void**>(&m_lpObject));
+    if (FAILED(hr)) { pUnk->Release(); return FALSE; }
+
+    // Get IDispatch
+    pUnk->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&m_lpDispatch));
+
+    // Get IOleInPlaceObject
+    pUnk->QueryInterface(IID_IOleInPlaceObject, reinterpret_cast<void**>(&m_lpInPlaceObject));
+
+    pUnk->Release();
+
+    // Set host names
+    m_lpObject->SetHostNames(L"OpenMFC", lpszWindowName ? lpszWindowName : L"");
+
+    // Activate in-place if we have a parent window
+    HWND hParent = pWndCtrl ? pWndCtrl->GetSafeHwnd() : (m_pCtrlCont ? m_pCtrlCont->GetWnd()->GetSafeHwnd() : nullptr);
+    if (hParent) {
+        hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rect);
+        if (SUCCEEDED(hr)) {
+            m_bInPlaceActive = TRUE;
+            // Retrieve the in-place window handle
+            if (m_lpInPlaceObject) {
+                m_lpInPlaceObject->GetWindow(&m_hWnd);
+            }
+        }
+    }
+
+    return TRUE;
 }
 
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, const wchar_t* lpszProgID,
@@ -2609,10 +2718,31 @@ void COleControlSite::DestroyControl() {
 }
 
 void COleControlSite::Activate(BOOL bActivate) {
-    m_bInPlaceActive = bActivate ? TRUE : FALSE;
+    if (bActivate) {
+        if (!m_bInPlaceActive && m_lpObject) {
+            HWND hParent = m_hWnd ? ::GetParent(m_hWnd) : nullptr;
+            if (!hParent && m_pCtrlCont && m_pCtrlCont->GetWnd())
+                hParent = m_pCtrlCont->GetWnd()->GetSafeHwnd();
+            if (hParent) {
+                RECT rc = {};
+                if (m_hWnd) ::GetWindowRect(m_hWnd, &rc);
+                HRESULT hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rc);
+                if (SUCCEEDED(hr)) {
+                    m_bInPlaceActive = TRUE;
+                    if (m_lpInPlaceObject && !m_hWnd)
+                        m_lpInPlaceObject->GetWindow(&m_hWnd);
+                }
+            }
+        }
+    } else {
+        Deactivate();
+    }
 }
 
 void COleControlSite::Deactivate() {
+    if (m_bInPlaceActive && m_lpInPlaceObject) {
+        m_lpInPlaceObject->InPlaceDeactivate();
+    }
     m_bInPlaceActive = FALSE;
 }
 
@@ -3241,6 +3371,7 @@ COleControl::COleControl()
 }
 
 COleControl::~COleControl() {
+    RemoveOleControlState(this);
 }
 
 BOOL COleControl::CreateControl(REFCLSID clsid, const wchar_t* lpszWindowName,
@@ -3281,7 +3412,33 @@ BOOL COleControl::DoPropExchange(CPropExchange* pPX) {
 }
 
 BOOL COleControl::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
-    (void)dwDispid; (void)vtProp; (void)pvProp;
+    if (!pvProp) return FALSE;
+    // Delegate to the control site if available
+    if (m_pControlSite)
+        return m_pControlSite->GetAmbientProperty(dwDispid, vtProp, pvProp);
+    // Fallback defaults when not hosted
+    switch (dwDispid) {
+    case DISPID_AMBIENT_USERMODE:
+        if (vtProp == VT_BOOL) {
+            *static_cast<VARIANT_BOOL*>(pvProp) = VARIANT_TRUE;
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_BACKCOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOW));
+            return TRUE;
+        }
+        break;
+    case DISPID_AMBIENT_FORECOLOR:
+        if (vtProp == VT_COLOR || vtProp == VT_I4) {
+            *static_cast<long*>(pvProp) = static_cast<long>(GetSysColor(COLOR_WINDOWTEXT));
+            return TRUE;
+        }
+        break;
+    default:
+        break;
+    }
     return FALSE;
 }
 
@@ -3293,7 +3450,47 @@ void COleControl::FireEvent(DISPID dispId, BYTE* pbParams, ...) {
 }
 
 void COleControl::FireEventV(DISPID dispId, BYTE* pbParams, va_list argList) {
-    (void)dispId; (void)pbParams; (void)argList;
+    OleControlState& st = GetOleControlState(this);
+    if (st.eventSinks.empty()) return;
+
+    // Build DISPPARAMS from the VT-encoded parameter list
+    int cParams = CountDispatchParams(pbParams);
+    std::vector<VARIANTARG> params(static_cast<size_t>(cParams));
+    va_list argCopy;
+    // We need a copy of argList per each sink invocation
+    // Build params once; they are read-only for each Invoke call
+    va_copy(argCopy, argList);
+    for (int i = 0; i < cParams; ++i) {
+        MakeDispatchVariant(static_cast<VARTYPE>(pbParams[i]), &argCopy, &params[static_cast<size_t>(i)]);
+    }
+    va_end(argCopy);
+
+    // Reverse for DISPPARAMS (COM convention: last arg first)
+    std::vector<VARIANTARG> revParams(static_cast<size_t>(cParams));
+    for (int i = 0; i < cParams; ++i) {
+        revParams[static_cast<size_t>(i)] = params[static_cast<size_t>(cParams - i - 1)];
+    }
+
+    DISPPARAMS dp = {};
+    dp.cArgs = static_cast<UINT>(cParams);
+    dp.rgvarg = cParams ? revParams.data() : nullptr;
+
+    // Fire to all registered sinks
+    for (auto& sink : st.eventSinks) {
+        if (!sink.pSink) continue;
+        IDispatch* pDisp = nullptr;
+        if (SUCCEEDED(sink.pSink->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&pDisp))) && pDisp) {
+            pDisp->Invoke(dispId, IID_NULL, LOCALE_USER_DEFAULT,
+                          DISPATCH_METHOD, &dp, nullptr, nullptr, nullptr);
+            pDisp->Release();
+        }
+    }
+
+    // Clean up variants (don't use VariantClear on the reversed view; clear originals)
+    for (int i = 0; i < cParams; ++i) {
+        params[static_cast<size_t>(i)].vt = VT_EMPTY;
+        VariantClear(&params[static_cast<size_t>(i)]);
+    }
 }
 
 BOOL COleControl::IsOptimizedDraw() const {
@@ -3302,6 +3499,8 @@ BOOL COleControl::IsOptimizedDraw() const {
 
 void COleControl::SetInitialSize(int cx, int cy) {
     m_cxExtent.cx = cx;
+    m_cxExtent.cy = cy;
+    m_cyExtent.cx = cx;
     m_cyExtent.cy = cy;
 }
 
@@ -3477,22 +3676,54 @@ BOOL COleControl::AmbientSupportsMnemonics() { return TRUE; }
 CString COleControl::AmbientScaleUnits() { return CString(); }
 unsigned long COleControl::AmbientLocaleID() { return 0; }
 
-void COleControl::FireClick() {}
-void COleControl::FireDblClick() {}
-void COleControl::FireKeyDown(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
-void COleControl::FireKeyPress(USHORT* pnChar) { (void)pnChar; }
-void COleControl::FireKeyUp(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
-void COleControl::FireMouseDown(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireReadyStateChange() {}
+void COleControl::FireClick() {
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_CLICK, noParams);
+}
+void COleControl::FireDblClick() {
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_DBLCLICK, noParams);
+}
+void COleControl::FireKeyDown(USHORT* pnChar, short nShiftState) {
+    // VT_PI2 (pointer to I2) = VT_BYREF|VT_I2 = 0x4002; MFC uses 0x4002 for USHORT*
+    BYTE params[3] = { static_cast<BYTE>(VT_BYREF | VT_I2), VT_I2, 0 };
+    FireEvent(DISPID_KEYDOWN, params, pnChar, nShiftState);
+}
+void COleControl::FireKeyPress(USHORT* pnChar) {
+    BYTE params[2] = { static_cast<BYTE>(VT_BYREF | VT_I2), 0 };
+    FireEvent(DISPID_KEYPRESS, params, pnChar);
+}
+void COleControl::FireKeyUp(USHORT* pnChar, short nShiftState) {
+    BYTE params[3] = { static_cast<BYTE>(VT_BYREF | VT_I2), VT_I2, 0 };
+    FireEvent(DISPID_KEYUP, params, pnChar, nShiftState);
+}
+void COleControl::FireMouseDown(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEDOWN, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEMOVE, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEUP, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireReadyStateChange() {
+    GetOleControlState(this).props.lReadyState = 4; // READYSTATE_COMPLETE
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_READYSTATECHANGE, noParams);
+}
 
-COLORREF COleControl::GetBackColor() const { return RGB(255,255,255); }
-void COleControl::SetBackColor(COLORREF clr) { (void)clr; }
-COLORREF COleControl::GetForeColor() const { return RGB(0,0,0); }
-void COleControl::SetForeColor(COLORREF clr) { (void)clr; }
-BOOL COleControl::GetEnabled() const { return TRUE; }
-void COleControl::SetEnabled(BOOL bEnabled) { (void)bEnabled; }
+COLORREF COleControl::GetBackColor() const { return GetOleControlState(this).props.clrBack; }
+void COleControl::SetBackColor(COLORREF clr) { GetOleControlState(this).props.clrBack = clr; if(m_hWnd) ::InvalidateRect(m_hWnd, nullptr, TRUE); }
+COLORREF COleControl::GetForeColor() const { return GetOleControlState(this).props.clrFore; }
+void COleControl::SetForeColor(COLORREF clr) { GetOleControlState(this).props.clrFore = clr; if(m_hWnd) ::InvalidateRect(m_hWnd, nullptr, TRUE); }
+BOOL COleControl::GetEnabled() const { return GetOleControlState(this).props.bEnabled; }
+void COleControl::SetEnabled(BOOL bEnabled) {
+    GetOleControlState(this).props.bEnabled = bEnabled;
+    if (m_hWnd) ::EnableWindow(m_hWnd, bEnabled);
+}
 void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
 void COleControl::SetFont(CFont* pFont) { (void)pFont; }
 unsigned int COleControl::GetHwnd() { return (unsigned int)(uintptr_t)m_hWnd; }
@@ -3501,38 +3732,84 @@ OLE_COLOR COleControl::GetBackColorOle() const { return (OLE_COLOR)GetBackColor(
 OLE_COLOR COleControl::GetForeColorOle() const { return (OLE_COLOR)GetForeColor(); }
 void COleControl::SetBackColorOle(OLE_COLOR clr) { SetBackColor((COLORREF)clr); }
 void COleControl::SetForeColorOle(OLE_COLOR clr) { SetForeColor((COLORREF)clr); }
-short COleControl::GetAppearance() const { return 0; }
-void COleControl::SetAppearance(short nAppearance) { (void)nAppearance; }
-short COleControl::GetBorderStyle() const { return 0; }
-void COleControl::SetBorderStyle(short nBorderStyle) { (void)nBorderStyle; }
+short COleControl::GetAppearance() const { return GetOleControlState(this).props.nAppearance; }
+void COleControl::SetAppearance(short nAppearance) { GetOleControlState(this).props.nAppearance = nAppearance; if(m_hWnd) ::InvalidateRect(m_hWnd, nullptr, TRUE); }
+short COleControl::GetBorderStyle() const { return GetOleControlState(this).props.nBorderStyle; }
+void COleControl::SetBorderStyle(short nBorderStyle) { GetOleControlState(this).props.nBorderStyle = nBorderStyle; if(m_hWnd) ::InvalidateRect(m_hWnd, nullptr, TRUE); }
 CString COleControl::GetText() const { return CString(); }
 void COleControl::SetText(const wchar_t* lpszText) { (void)lpszText; }
 void COleControl::GetText(CString& strText) const { strText = CString(); }
-long COleControl::GetReadyState() const { return 4; }
+long COleControl::GetReadyState() const { return GetOleControlState(this).props.lReadyState; }
 
 BOOL COleControl::IsSubclassedControl() { return FALSE; }
-void COleControl::SetModifiedFlag(BOOL bModified) { (void)bModified; }
-BOOL COleControl::GetModifiedFlag() const { return FALSE; }
+void COleControl::SetModifiedFlag(BOOL bModified) { GetOleControlState(this).props.bModified = bModified ? TRUE : FALSE; }
+BOOL COleControl::GetModifiedFlag() const { return GetOleControlState(this).props.bModified; }
 ULONG COleControl::InternalAddRef() { return 1; }
 ULONG COleControl::InternalRelease() { return 1; }
 ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) { (void)riid; *ppv = nullptr; return E_NOINTERFACE; }
-void COleControl::GetControlSize(int* pCX, int* pCY) { if(pCX) *pCX = 0; if(pCY) *pCY = 0; }
-void COleControl::SetControlSize(int cx, int cy) { (void)cx; (void)cy; }
+void COleControl::GetControlSize(int* pCX, int* pCY) {
+    if (pCX) *pCX = m_cxExtent.cx;
+    if (pCY) *pCY = m_cxExtent.cy;
+}
+void COleControl::SetControlSize(int cx, int cy) {
+    m_cxExtent.cx = cx;
+    m_cxExtent.cy = cy;
+    m_cyExtent.cx = cx;
+    m_cyExtent.cy = cy;
+}
 void COleControl::OnSetClientSite() {}
 void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) { (void)pControlInfo; }
 BOOL COleControl::OnMnemonic(LPMSG pMsg) { (void)pMsg; return FALSE; }
 void COleControl::OnAmbientPropertyChange(DISPID dispid) { (void)dispid; }
-void COleControl::BoundPropertyChanged(DISPID dispid) { (void)dispid; }
-void COleControl::BoundPropertyRequestEdit(DISPID dispid) { (void)dispid; }
-void COleControl::InvalidateControl(LPCRECT lpRect) { (void)lpRect; }
+void COleControl::BoundPropertyChanged(DISPID dispid) {
+    OleControlState& st = GetOleControlState(this);
+    for (auto* pSink : st.propSinks) {
+        if (pSink) pSink->OnChanged(dispid);
+    }
+}
+void COleControl::BoundPropertyRequestEdit(DISPID dispid) {
+    // Notify all IPropertyNotifySink listeners about pending change
+    OleControlState& st = GetOleControlState(this);
+    for (auto* pSink : st.propSinks) {
+        if (pSink) pSink->OnRequestEdit(dispid);
+    }
+}
+void COleControl::InvalidateControl(LPCRECT lpRect, BOOL bErase) {
+    if (m_hWnd) ::InvalidateRect(m_hWnd, lpRect, bErase);
+}
 int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) { (void)pMsg; (void)hWnd; (void)lpRect; return 0; }
-void COleControl::ShowPropertyPages() {}
+void COleControl::ShowPropertyPages() {
+    if (!m_hWnd) return;
+    ISpecifyPropertyPages* pSPP = nullptr;
+    if (FAILED(InternalQueryInterface(IID_ISpecifyPropertyPages, reinterpret_cast<void**>(&pSPP))) || !pSPP)
+        return;
+    CAUUID pages = {};
+    if (SUCCEEDED(pSPP->GetPages(&pages)) && pages.cElems > 0) {
+        IUnknown* pUnk = nullptr;
+        InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&pUnk));
+        OleCreatePropertyFrame(m_hWnd, 0, 0, nullptr,
+                               pUnk ? 1u : 0u, pUnk ? &pUnk : nullptr,
+                               pages.cElems, pages.pElems,
+                               LOCALE_USER_DEFAULT, 0, nullptr);
+        if (pUnk) pUnk->Release();
+        CoTaskMemFree(pages.pElems);
+    }
+    pSPP->Release();
+}
 int COleControl::GetPropertyPageCount() const { return 0; }
 BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) { (void)lpUnk; return FALSE; }
-BOOL COleControl::CanCreateConnectionPoints() { return FALSE; }
+BOOL COleControl::CanCreateConnectionPoints() { return TRUE; }
 void COleControl::EnableConnectionPoints() {}
-BOOL COleControl::IsConnectionPointEnabled(REFIID riid) { (void)riid; return FALSE; }
-void COleControl::FirePropChanged(DISPID dispid) { (void)dispid; }
+BOOL COleControl::IsConnectionPointEnabled(REFIID riid) {
+    OleControlState& st = GetOleControlState(this);
+    for (auto& s : st.eventSinks) {
+        if (IsEqualIID(s.iid, riid)) return TRUE;
+    }
+    return FALSE;
+}
+void COleControl::FirePropChanged(DISPID dispid) {
+    BoundPropertyChanged(dispid);
+}
 BOOL COleControl::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return FALSE; }
 LONG COleControl::OnPosRectChange(LPCRECT lprcPosRect) { (void)lprcPosRect; return 0; }
 BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) { (void)lprcPosRect; (void)lprcClipRect; return TRUE; }
