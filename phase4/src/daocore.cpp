@@ -19,6 +19,8 @@
 namespace {
 struct DaoWorkspaceState {
     BOOL inTransaction = FALSE;
+    CString name;
+    CString userName;
 };
 
 struct DaoDatabaseState {
@@ -43,11 +45,22 @@ struct DaoQueryDefState {
     long type = 0;
 };
 
+struct DaoRecordsetState {
+    BOOL bBOF = TRUE;
+    BOOL bEOF = TRUE;
+    long lAbsolutePosition = -1;  // -1 = BOF/EOF/unknown
+    double dPercentPosition = 0.0;
+    long lRecordCount = 0;
+    CString strCurrentIndex;
+    CString strSQL;
+};
+
 std::mutex g_daoStateMutex;
 std::unordered_map<const CDaoWorkspace*, DaoWorkspaceState> g_workspaceStates;
 std::unordered_map<const CDaoDatabase*, DaoDatabaseState> g_databaseStates;
 std::unordered_map<const CDaoTableDef*, DaoTableDefState> g_tableDefStates;
 std::unordered_map<const CDaoQueryDef*, DaoQueryDefState> g_queryDefStates;
+std::unordered_map<const CDaoRecordset*, DaoRecordsetState> g_recordsetStates;
 }
 
 //=============================================================================
@@ -81,11 +94,30 @@ CDaoWorkspace::~CDaoWorkspace() {
     g_workspaceStates.erase(this);
 }
 
+void CDaoWorkspace::Open(const wchar_t* lpszName) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoWorkspaceState& state = g_workspaceStates[this];
+    if (lpszName && *lpszName)
+        state.name = CString(lpszName);
+    else
+        state.name = CString(L"#Default Workspace#");
+    m_strName = state.name;
+    m_bOpen = TRUE;
+}
+
 CString CDaoWorkspace::GetName() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_workspaceStates.find(this);
+    if (it != g_workspaceStates.end() && !it->second.name.IsEmpty())
+        return it->second.name;
     return CString(L"#Default Workspace#");
 }
 
 CString CDaoWorkspace::GetUserName() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_workspaceStates.find(this);
+    if (it != g_workspaceStates.end() && !it->second.userName.IsEmpty())
+        return it->second.userName;
     return CString(L"Admin");
 }
 
@@ -292,36 +324,87 @@ CDaoRecordset::CDaoRecordset(CDaoDatabase* pDatabase)
     : m_pDatabase(pDatabase), m_pDAORecordset(nullptr), m_bOpen(FALSE),
       m_nFields(0), m_lRecordCount(0) {
     memset(_daorecordset_padding, 0, sizeof(_daorecordset_padding));
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_recordsetStates[this] = DaoRecordsetState{};
 }
 
 CDaoRecordset::~CDaoRecordset() {
     Close();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_recordsetStates.erase(this);
 }
 
 void CDaoRecordset::Open(int nOpenType, const wchar_t* lpszSQL, int nOptions) {
     (void)nOpenType; (void)nOptions;
-    if (lpszSQL) m_strSQL = lpszSQL;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoRecordsetState& state = g_recordsetStates[this];
+    if (lpszSQL) {
+        m_strSQL = lpszSQL;
+        state.strSQL = lpszSQL;
+    }
+    // Without a real DAO driver, we open to an empty recordset: BOF=EOF=TRUE
+    state.bBOF = TRUE;
+    state.bEOF = TRUE;
+    state.lAbsolutePosition = -1;
+    state.dPercentPosition = 0.0;
+    state.lRecordCount = 0;
+    m_lRecordCount = 0;
     m_bOpen = TRUE;
 }
 
 void CDaoRecordset::Open(CDaoTableDef* pTableDef, int nOpenType, int nOptions) {
     (void)pTableDef; (void)nOpenType; (void)nOptions;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoRecordsetState& state = g_recordsetStates[this];
+    state.bBOF = TRUE;
+    state.bEOF = TRUE;
+    state.lAbsolutePosition = -1;
+    state.dPercentPosition = 0.0;
+    state.lRecordCount = 0;
+    m_lRecordCount = 0;
     m_bOpen = TRUE;
 }
 
 void CDaoRecordset::Open(CDaoQueryDef* pQueryDef, int nOpenType, int nOptions) {
     (void)pQueryDef; (void)nOpenType; (void)nOptions;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    DaoRecordsetState& state = g_recordsetStates[this];
+    state.bBOF = TRUE;
+    state.bEOF = TRUE;
+    state.lAbsolutePosition = -1;
+    state.dPercentPosition = 0.0;
+    state.lRecordCount = 0;
+    m_lRecordCount = 0;
     m_bOpen = TRUE;
 }
 
 void CDaoRecordset::Close() {
     m_bOpen = FALSE;
     m_pDAORecordset = nullptr;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        it->second.bBOF = TRUE;
+        it->second.bEOF = TRUE;
+        it->second.lAbsolutePosition = -1;
+        it->second.lRecordCount = 0;
+    }
 }
 
 BOOL CDaoRecordset::IsOpen() const { return m_bOpen; }
-BOOL CDaoRecordset::IsBOF() const { return FALSE; }
-BOOL CDaoRecordset::IsEOF() const { return TRUE; }
+
+BOOL CDaoRecordset::IsBOF() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.bBOF : TRUE;
+}
+
+BOOL CDaoRecordset::IsEOF() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.bEOF : TRUE;
+}
+
 BOOL CDaoRecordset::CanUpdate() const { return TRUE; }
 BOOL CDaoRecordset::CanAppend() const { return TRUE; }
 
@@ -329,17 +412,144 @@ void CDaoRecordset::DoFieldExchange(CDaoFieldExchange* pFX) {
     (void)pFX;
 }
 
-void CDaoRecordset::MoveFirst() {}
-void CDaoRecordset::MoveLast() {}
-void CDaoRecordset::MoveNext() {}
-void CDaoRecordset::MovePrev() {}
-void CDaoRecordset::Move(long lRows) { (void)lRows; }
+void CDaoRecordset::MoveFirst() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        if (it->second.lRecordCount > 0) {
+            it->second.bBOF = FALSE;
+            it->second.bEOF = FALSE;
+            it->second.lAbsolutePosition = 0;
+            it->second.dPercentPosition = 0.0;
+        }
+        // else: empty recordset stays BOF=TRUE, EOF=TRUE
+    }
+}
 
-long CDaoRecordset::GetRecordCount() const { return 0; }
-long CDaoRecordset::GetAbsolutePosition() const { return -1; }
-void CDaoRecordset::SetAbsolutePosition(long lPos) { (void)lPos; }
-double CDaoRecordset::GetPercentPosition() const { return 0.0; }
-void CDaoRecordset::SetPercentPosition(double dPosition) { (void)dPosition; }
+void CDaoRecordset::MoveLast() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        if (it->second.lRecordCount > 0) {
+            it->second.bBOF = FALSE;
+            it->second.bEOF = FALSE;
+            it->second.lAbsolutePosition = it->second.lRecordCount - 1;
+            it->second.dPercentPosition = 100.0;
+        }
+    }
+}
+
+void CDaoRecordset::MoveNext() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        DaoRecordsetState& s = it->second;
+        if (!s.bEOF) {
+            if (s.lRecordCount > 0 && s.lAbsolutePosition >= s.lRecordCount - 1) {
+                s.bEOF = TRUE;
+                s.lAbsolutePosition = s.lRecordCount;
+                s.dPercentPosition = 100.0;
+            } else if (s.lAbsolutePosition >= 0) {
+                s.lAbsolutePosition++;
+                s.dPercentPosition = (s.lRecordCount > 0)
+                    ? (double)s.lAbsolutePosition / s.lRecordCount * 100.0
+                    : 0.0;
+            }
+        }
+    }
+}
+
+void CDaoRecordset::MovePrev() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        DaoRecordsetState& s = it->second;
+        if (!s.bBOF) {
+            if (s.lAbsolutePosition <= 0) {
+                s.bBOF = TRUE;
+                s.lAbsolutePosition = -1;
+                s.dPercentPosition = 0.0;
+            } else {
+                s.lAbsolutePosition--;
+                s.dPercentPosition = (s.lRecordCount > 0)
+                    ? (double)s.lAbsolutePosition / s.lRecordCount * 100.0
+                    : 0.0;
+            }
+        }
+    }
+}
+
+void CDaoRecordset::Move(long lRows) {
+    if (lRows == 0) return;
+    if (lRows > 0) {
+        for (long i = 0; i < lRows; i++) MoveNext();
+    } else {
+        for (long i = 0; i > lRows; i--) MovePrev();
+    }
+}
+
+long CDaoRecordset::GetRecordCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end())
+        return it->second.lRecordCount;
+    return m_lRecordCount;
+}
+
+long CDaoRecordset::GetAbsolutePosition() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.lAbsolutePosition : -1;
+}
+
+void CDaoRecordset::SetAbsolutePosition(long lPos) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    DaoRecordsetState& s = it->second;
+    if (lPos < 0 || s.lRecordCount == 0) {
+        s.lAbsolutePosition = -1;
+        s.bBOF = TRUE;
+        s.bEOF = (s.lRecordCount == 0);
+        return;
+    }
+    if (lPos >= s.lRecordCount) {
+        s.lAbsolutePosition = s.lRecordCount;
+        s.bEOF = TRUE;
+        s.bBOF = FALSE;
+        return;
+    }
+    s.lAbsolutePosition = lPos;
+    s.bBOF = FALSE;
+    s.bEOF = FALSE;
+    s.dPercentPosition = (s.lRecordCount > 0)
+        ? (double)lPos / s.lRecordCount * 100.0
+        : 0.0;
+}
+
+double CDaoRecordset::GetPercentPosition() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.dPercentPosition : 0.0;
+}
+
+void CDaoRecordset::SetPercentPosition(double dPosition) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    DaoRecordsetState& s = it->second;
+    if (dPosition < 0.0) dPosition = 0.0;
+    if (dPosition > 100.0) dPosition = 100.0;
+    s.dPercentPosition = dPosition;
+    if (s.lRecordCount > 0) {
+        long newPos = (long)(dPosition / 100.0 * s.lRecordCount);
+        if (newPos < 0) newPos = 0;
+        if (newPos >= s.lRecordCount) newPos = s.lRecordCount - 1;
+        s.lAbsolutePosition = newPos;
+        s.bBOF = FALSE;
+        s.bEOF = FALSE;
+    }
+}
 
 void CDaoRecordset::FindFirst(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
 void CDaoRecordset::FindLast(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
@@ -377,19 +587,36 @@ void CDaoRecordset::SetFieldValue(int nIndex, const COleVariant& varValue) {
 }
 
 void CDaoRecordset::SetCurrentIndex(const wchar_t* lpszIndex) {
-    if (lpszIndex) m_strCurrentIndex = lpszIndex;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (lpszIndex) {
+        m_strCurrentIndex = lpszIndex;
+        if (it != g_recordsetStates.end())
+            it->second.strCurrentIndex = lpszIndex;
+    }
 }
 
 CString CDaoRecordset::GetCurrentIndex() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end() && !it->second.strCurrentIndex.IsEmpty())
+        return it->second.strCurrentIndex;
     return m_strCurrentIndex;
 }
 
 CString CDaoRecordset::GetSQL() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end() && !it->second.strSQL.IsEmpty())
+        return it->second.strSQL;
     return m_strSQL;
 }
 
 void CDaoRecordset::SetSQL(const wchar_t* lpszSQL) {
-    if (lpszSQL) m_strSQL = lpszSQL;
+    if (!lpszSQL) return;
+    m_strSQL = lpszSQL;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_recordsetStates[this].strSQL = lpszSQL;
 }
 
 CDaoDatabase* CDaoRecordset::GetDatabase() const {
@@ -768,4 +995,266 @@ void AFXAPI DFX_Binary(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
 void AFXAPI DFX_LongBinary(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                            CLongBinary& value, DWORD dwBufSize) {
     (void)pFX; (void)lpszFieldName; (void)value; (void)dwBufSize;
+}
+
+//=============================================================================
+// MS_ABI wrappers for DAO classes
+// These extern "C" functions use MS ABI so MSVC-compiled code can call them.
+// The build_phase4.sh DEF section maps MSVC-mangled names to these wrappers.
+//=============================================================================
+
+// --- CDaoWorkspace ---
+extern "C" void* MS_ABI dao_CDaoWorkspace_ctor(void* pThis) {
+    return new(pThis) CDaoWorkspace();
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_dtor(CDaoWorkspace* pThis) {
+    pThis->~CDaoWorkspace();
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_Open(CDaoWorkspace* pThis, const wchar_t* lpszName) {
+    pThis->Open(lpszName);
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_Close(CDaoWorkspace* pThis) {
+    pThis->Close();
+}
+extern "C" int MS_ABI dao_CDaoWorkspace_IsOpen(const CDaoWorkspace* pThis) {
+    return pThis->IsOpen();
+}
+extern "C" int MS_ABI dao_CDaoWorkspace_GetInTransaction(const CDaoWorkspace* pThis) {
+    return pThis->GetInTransaction();
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_BeginTrans(CDaoWorkspace* pThis) {
+    pThis->BeginTrans();
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_CommitTrans(CDaoWorkspace* pThis) {
+    pThis->CommitTrans();
+}
+extern "C" void MS_ABI dao_CDaoWorkspace_Rollback(CDaoWorkspace* pThis) {
+    pThis->Rollback();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoWorkspace_GetRuntimeClass(const CDaoWorkspace* pThis) {
+    (void)pThis;
+    return CDaoWorkspace::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoWorkspace_GetThisClass() {
+    return CDaoWorkspace::GetThisClass();
+}
+
+// --- CDaoDatabase ---
+extern "C" void* MS_ABI dao_CDaoDatabase_ctor(void* pThis, CDaoWorkspace* pWS) {
+    return new(pThis) CDaoDatabase(pWS);
+}
+extern "C" void MS_ABI dao_CDaoDatabase_dtor(CDaoDatabase* pThis) {
+    pThis->~CDaoDatabase();
+}
+extern "C" void MS_ABI dao_CDaoDatabase_Open(CDaoDatabase* pThis, const wchar_t* lpszName,
+                                              int bExclusive, int bReadOnly, const wchar_t* lpszConnect) {
+    pThis->Open(lpszName, bExclusive, bReadOnly, lpszConnect);
+}
+extern "C" void MS_ABI dao_CDaoDatabase_Close(CDaoDatabase* pThis) {
+    pThis->Close();
+}
+extern "C" int MS_ABI dao_CDaoDatabase_IsOpen(const CDaoDatabase* pThis) {
+    return pThis->IsOpen();
+}
+extern "C" int MS_ABI dao_CDaoDatabase_GetInTransaction(const CDaoDatabase* pThis) {
+    return pThis->GetInTransaction();
+}
+extern "C" void MS_ABI dao_CDaoDatabase_BeginTrans(CDaoDatabase* pThis) {
+    pThis->BeginTrans();
+}
+extern "C" void MS_ABI dao_CDaoDatabase_CommitTrans(CDaoDatabase* pThis) {
+    pThis->CommitTrans();
+}
+extern "C" void MS_ABI dao_CDaoDatabase_Rollback(CDaoDatabase* pThis) {
+    pThis->Rollback();
+}
+extern "C" long MS_ABI dao_CDaoDatabase_GetRecordsAffected(const CDaoDatabase* pThis) {
+    return pThis->GetRecordsAffected();
+}
+extern "C" int MS_ABI dao_CDaoDatabase_CanUpdate(const CDaoDatabase* pThis) {
+    return pThis->CanUpdate();
+}
+extern "C" int MS_ABI dao_CDaoDatabase_CanTransact(const CDaoDatabase* pThis) {
+    return pThis->CanTransact();
+}
+extern "C" CDaoWorkspace* MS_ABI dao_CDaoDatabase_GetWorkspace(CDaoDatabase* pThis) {
+    return pThis->GetWorkspace();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoDatabase_GetRuntimeClass(const CDaoDatabase* pThis) {
+    (void)pThis;
+    return CDaoDatabase::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoDatabase_GetThisClass() {
+    return CDaoDatabase::GetThisClass();
+}
+
+// --- CDaoRecordset ---
+extern "C" void* MS_ABI dao_CDaoRecordset_ctor(void* pThis, CDaoDatabase* pDB) {
+    return new(pThis) CDaoRecordset(pDB);
+}
+extern "C" void MS_ABI dao_CDaoRecordset_dtor(CDaoRecordset* pThis) {
+    pThis->~CDaoRecordset();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_OpenSQL(CDaoRecordset* pThis, int nOpenType,
+                                                  const wchar_t* lpszSQL, int nOptions) {
+    pThis->Open(nOpenType, lpszSQL, nOptions);
+}
+extern "C" void MS_ABI dao_CDaoRecordset_Close(CDaoRecordset* pThis) {
+    pThis->Close();
+}
+extern "C" int MS_ABI dao_CDaoRecordset_IsOpen(const CDaoRecordset* pThis) {
+    return pThis->IsOpen();
+}
+extern "C" int MS_ABI dao_CDaoRecordset_IsBOF(const CDaoRecordset* pThis) {
+    return pThis->IsBOF();
+}
+extern "C" int MS_ABI dao_CDaoRecordset_IsEOF(const CDaoRecordset* pThis) {
+    return pThis->IsEOF();
+}
+extern "C" long MS_ABI dao_CDaoRecordset_GetRecordCount(const CDaoRecordset* pThis) {
+    return pThis->GetRecordCount();
+}
+extern "C" long MS_ABI dao_CDaoRecordset_GetAbsolutePosition(const CDaoRecordset* pThis) {
+    return pThis->GetAbsolutePosition();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_SetAbsolutePosition(CDaoRecordset* pThis, long lPos) {
+    pThis->SetAbsolutePosition(lPos);
+}
+extern "C" double MS_ABI dao_CDaoRecordset_GetPercentPosition(const CDaoRecordset* pThis) {
+    return pThis->GetPercentPosition();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_SetPercentPosition(CDaoRecordset* pThis, double d) {
+    pThis->SetPercentPosition(d);
+}
+extern "C" void MS_ABI dao_CDaoRecordset_MoveFirst(CDaoRecordset* pThis) {
+    pThis->MoveFirst();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_MoveLast(CDaoRecordset* pThis) {
+    pThis->MoveLast();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_MoveNext(CDaoRecordset* pThis) {
+    pThis->MoveNext();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_MovePrev(CDaoRecordset* pThis) {
+    pThis->MovePrev();
+}
+extern "C" void MS_ABI dao_CDaoRecordset_Move(CDaoRecordset* pThis, long lRows) {
+    pThis->Move(lRows);
+}
+extern "C" CDaoDatabase* MS_ABI dao_CDaoRecordset_GetDatabase(const CDaoRecordset* pThis) {
+    return pThis->GetDatabase();
+}
+extern "C" int MS_ABI dao_CDaoRecordset_CanUpdate(const CDaoRecordset* pThis) {
+    return pThis->CanUpdate();
+}
+extern "C" int MS_ABI dao_CDaoRecordset_CanAppend(const CDaoRecordset* pThis) {
+    return pThis->CanAppend();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoRecordset_GetRuntimeClass(const CDaoRecordset* pThis) {
+    (void)pThis;
+    return CDaoRecordset::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoRecordset_GetThisClass() {
+    return CDaoRecordset::GetThisClass();
+}
+
+// --- CDaoTableDef ---
+extern "C" void* MS_ABI dao_CDaoTableDef_ctor(void* pThis, CDaoDatabase* pDB) {
+    return new(pThis) CDaoTableDef(pDB);
+}
+extern "C" void MS_ABI dao_CDaoTableDef_dtor(CDaoTableDef* pThis) {
+    pThis->~CDaoTableDef();
+}
+extern "C" void MS_ABI dao_CDaoTableDef_Open(CDaoTableDef* pThis, const wchar_t* lpszName) {
+    pThis->Open(lpszName);
+}
+extern "C" void MS_ABI dao_CDaoTableDef_Close(CDaoTableDef* pThis) {
+    pThis->Close();
+}
+extern "C" int MS_ABI dao_CDaoTableDef_IsOpen(const CDaoTableDef* pThis) {
+    return pThis->IsOpen();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoTableDef_GetRuntimeClass(const CDaoTableDef* pThis) {
+    (void)pThis;
+    return CDaoTableDef::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoTableDef_GetThisClass() {
+    return CDaoTableDef::GetThisClass();
+}
+
+// --- CDaoQueryDef ---
+extern "C" void* MS_ABI dao_CDaoQueryDef_ctor(void* pThis, CDaoDatabase* pDB) {
+    return new(pThis) CDaoQueryDef(pDB);
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_dtor(CDaoQueryDef* pThis) {
+    pThis->~CDaoQueryDef();
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_Open(CDaoQueryDef* pThis, const wchar_t* lpszName) {
+    pThis->Open(lpszName);
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_Close(CDaoQueryDef* pThis) {
+    pThis->Close();
+}
+extern "C" int MS_ABI dao_CDaoQueryDef_IsOpen(const CDaoQueryDef* pThis) {
+    return pThis->IsOpen();
+}
+extern "C" int MS_ABI dao_CDaoQueryDef_CanUpdate(const CDaoQueryDef* pThis) {
+    return pThis->CanUpdate();
+}
+extern "C" long MS_ABI dao_CDaoQueryDef_GetType(const CDaoQueryDef* pThis) {
+    return pThis->GetType();
+}
+extern "C" long MS_ABI dao_CDaoQueryDef_GetODBCTimeout(const CDaoQueryDef* pThis) {
+    return pThis->GetODBCTimeout();
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_SetODBCTimeout(CDaoQueryDef* pThis, long lTimeout) {
+    pThis->SetODBCTimeout(lTimeout);
+}
+extern "C" long MS_ABI dao_CDaoQueryDef_GetRecordsAffected(const CDaoQueryDef* pThis) {
+    return pThis->GetRecordsAffected();
+}
+extern "C" int MS_ABI dao_CDaoQueryDef_GetReturnsRecords(const CDaoQueryDef* pThis) {
+    return pThis->GetReturnsRecords();
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_SetReturnsRecords(CDaoQueryDef* pThis, int b) {
+    pThis->SetReturnsRecords(b);
+}
+extern "C" void MS_ABI dao_CDaoQueryDef_Execute(CDaoQueryDef* pThis, int nOptions) {
+    pThis->Execute(nOptions);
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoQueryDef_GetRuntimeClass(const CDaoQueryDef* pThis) {
+    (void)pThis;
+    return CDaoQueryDef::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoQueryDef_GetThisClass() {
+    return CDaoQueryDef::GetThisClass();
+}
+
+// --- CDaoRecordView ---
+extern "C" CRuntimeClass* MS_ABI dao_CDaoRecordView_GetRuntimeClass(const CDaoRecordView* pThis) {
+    (void)pThis;
+    return CDaoRecordView::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoRecordView_GetThisClass() {
+    return CDaoRecordView::GetThisClass();
+}
+
+// --- CDaoException ---
+extern "C" CRuntimeClass* MS_ABI dao_CDaoException_GetRuntimeClass(const CDaoException* pThis) {
+    (void)pThis;
+    return CDaoException::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI dao_CDaoException_GetThisClass() {
+    return CDaoException::GetThisClass();
+}
+
+// --- Global DAO functions wrappers ---
+extern "C" void MS_ABI dao_AfxDaoInit() {
+    AfxDaoInit();
+}
+extern "C" void MS_ABI dao_AfxDaoTerm() {
+    AfxDaoTerm();
+}
+extern "C" CDaoWorkspace* MS_ABI dao_CDaoWorkspace_GetDefaultWorkspace() {
+    return CDaoWorkspace::GetDefaultWorkspace();
 }

@@ -148,6 +148,7 @@ public:
     explicit CDaoWorkspace(CDaoDatabase* pDatabase);
     virtual ~CDaoWorkspace();
 
+    void Open(const wchar_t* lpszName = nullptr);
     CString GetName() const;
     CString GetUserName() const;
     BOOL IsOpen() const;
@@ -167,9 +168,10 @@ public:
 public:
     void* m_pDAOWorkspace;
     BOOL m_bOpen;
+    CString m_strName;
 
 protected:
-    char _daoworkspace_padding[64];
+    char _daoworkspace_padding[56];
 };
 
 //=============================================================================
