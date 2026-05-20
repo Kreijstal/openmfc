@@ -2673,8 +2673,27 @@ COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClas
     memset(_oleobjectfactory_padding, 0, sizeof(_oleobjectfactory_padding));
 }
 
+COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
+                                      BOOL bMultiInstance, BOOL bFreeOnRelease,
+                                      const wchar_t* lpszProgID)
+    : COleObjectFactory() {
+    CommonConstruct(clsid, pRuntimeClass, bMultiInstance, bFreeOnRelease, lpszProgID);
+}
+
 COleObjectFactory::~COleObjectFactory() {
     Revoke();
+}
+
+void COleObjectFactory::CommonConstruct(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
+                                         BOOL bMultiInstance, BOOL bFreeOnRelease,
+                                         const wchar_t* lpszProgID) {
+    (void)bFreeOnRelease;
+    m_clsid = clsid;
+    m_pRuntimeClass = pRuntimeClass;
+    m_bMultiInstance = bMultiInstance;
+    m_strProgID = lpszProgID ? lpszProgID : L"";
+    m_dwRegister = 0;
+    m_pTemplate = nullptr;
 }
 
 BOOL COleObjectFactory::Register() {
@@ -2698,7 +2717,7 @@ BOOL COleObjectFactory::IsRegistered() const {
 }
 
 BOOL COleObjectFactory::IsLicenseValid() {
-    return TRUE;
+    return VerifyUserLicense();
 }
 
 int COleObjectFactory::RegisterAll() {
@@ -2712,12 +2731,26 @@ BOOL COleObjectFactory::UpdateRegistryAll(BOOL bRegister) {
 void COleObjectFactory::RevokeAll() {
 }
 
+BOOL COleObjectFactory::Unregister() {
+    Revoke();
+    return TRUE;
+}
+
+BOOL COleObjectFactory::UnregisterAll() {
+    RevokeAll();
+    return TRUE;
+}
+
 CCmdTarget* COleObjectFactory::OnCreateObject() {
-    return nullptr;
+    if (!m_pRuntimeClass) {
+        return nullptr;
+    }
+    CObject* pObject = m_pRuntimeClass->CreateObject();
+    return pObject ? static_cast<CCmdTarget*>(pObject) : nullptr;
 }
 
 BOOL COleObjectFactory::OnVerifyFile(LPCTSTR lpszFileName) {
-    return FALSE;
+    return lpszFileName && *lpszFileName;
 }
 
 void COleObjectFactory::UpdateRegistry(BOOL bRegister) {
@@ -2725,6 +2758,23 @@ void COleObjectFactory::UpdateRegistry(BOOL bRegister) {
 
 void COleObjectFactory::ConnectTemplate(COleTemplateServer* pTemplate) {
     m_pTemplate = pTemplate;
+}
+
+BOOL COleObjectFactory::VerifyUserLicense() {
+    return TRUE;
+}
+
+BOOL COleObjectFactory::VerifyLicenseKey(BSTR bstrKey) {
+    (void)bstrKey;
+    return TRUE;
+}
+
+BOOL COleObjectFactory::GetLicenseKey(DWORD dwReserved, BSTR* pbstrKey) {
+    (void)dwReserved;
+    if (pbstrKey) {
+        *pbstrKey = nullptr;
+    }
+    return FALSE;
 }
 
 //=============================================================================
@@ -2745,6 +2795,15 @@ void COleTemplateServer::ConnectTemplate(REFCLSID clsid, CDocTemplate* pDocTempl
     m_pRuntimeClass = nullptr;
     m_bMultiInstance = bMultiInstance;
     m_pDocTemplate = pDocTemplate;
+    COleObjectFactory::ConnectTemplate(this);
+}
+
+BOOL COleTemplateServer::Register() {
+    return COleObjectFactory::Register();
+}
+
+BOOL COleTemplateServer::Unregister() {
+    return COleObjectFactory::Unregister();
 }
 
 void COleTemplateServer::UpdateRegistry(OLE_APPTYPE nAppType,
@@ -2752,6 +2811,22 @@ void COleTemplateServer::UpdateRegistry(OLE_APPTYPE nAppType,
                                          const wchar_t** rglpszOverwrite,
                                          BOOL bRegister) {
     (void)nAppType; (void)rglpszRegister; (void)rglpszOverwrite; (void)bRegister;
+}
+
+CCmdTarget* COleTemplateServer::OnCreateObject() {
+    if (!m_pDocTemplate) {
+        return nullptr;
+    }
+    CDocument* pDoc = m_pDocTemplate->CreateNewDocument();
+    return pDoc ? static_cast<CCmdTarget*>(pDoc) : nullptr;
+}
+
+BOOL COleTemplateServer::OnCmdMsg(UINT nID, int nCode, void* pExtra,
+                                  AFX_CMDHANDLERINFO* pHandlerInfo) {
+    if (m_pDocTemplate && m_pDocTemplate->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
+        return TRUE;
+    }
+    return COleObjectFactory::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 //=============================================================================
@@ -3126,6 +3201,11 @@ COleDialog::COleDialog(UINT nIDTemplate, CWnd* pParentWnd)
     memset(_olediag_padding, 0, sizeof(_olediag_padding));
 }
 
+COleDialog::COleDialog(CWnd* pParentWnd)
+    : CDialog(static_cast<UINT>(0), pParentWnd) {
+    memset(_olediag_padding, 0, sizeof(_olediag_padding));
+}
+
 COleDialog::~COleDialog() {
 }
 
@@ -3344,6 +3424,35 @@ void COleInsertDialog::GetIconMetafile(HGLOBAL* phMetaPict) {
     if (phMetaPict) *phMetaPict = m_io.hMetaPict;
 }
 
+UINT COleInsertDialog::GetSelectionType() const {
+    if (m_io.dwFlags & IOF_SELECTCREATECONTROL) {
+        return IOF_SELECTCREATECONTROL;
+    }
+    if (m_io.dwFlags & IOF_SELECTCREATEFROMFILE) {
+        return IOF_SELECTCREATEFROMFILE;
+    }
+    if (m_io.dwFlags & IOF_SELECTCREATENEW) {
+        return IOF_SELECTCREATENEW;
+    }
+    return 0;
+}
+
+void COleInsertDialog::AddClassIDToList(CLSID*& rgclsid, int& nCount, int& nAlloc, CLSID* pClassID) {
+    if (!pClassID) {
+        return;
+    }
+    if (nCount >= nAlloc) {
+        int nNewAlloc = nAlloc > 0 ? nAlloc * 2 : 8;
+        CLSID* pNewList = static_cast<CLSID*>(std::realloc(rgclsid, sizeof(CLSID) * nNewAlloc));
+        if (!pNewList) {
+            return;
+        }
+        rgclsid = pNewList;
+        nAlloc = nNewAlloc;
+    }
+    rgclsid[nCount++] = *pClassID;
+}
+
 //=============================================================================
 // COleLinksDialog
 //=============================================================================
@@ -3394,7 +3503,7 @@ CLSID COlePasteSpecialDialog::GetClassID() const {
 }
 
 BOOL COlePasteSpecialDialog::IsPasteLink() const {
-    return FALSE;
+    return (m_ps.dwFlags & PSF_SELECTPASTELINK) != 0;
 }
 
 int COlePasteSpecialDialog::CreateItem(COleClientItem* pItem) {
@@ -3404,6 +3513,73 @@ int COlePasteSpecialDialog::CreateItem(COleClientItem* pItem) {
 
 COleClientItem* COlePasteSpecialDialog::CreateItem(COleDocument* pDoc) {
     return nullptr;
+}
+
+UINT COlePasteSpecialDialog::GetSelectionType() const {
+    if (m_ps.dwFlags & PSF_SELECTPASTELINK) {
+        return PSF_SELECTPASTELINK;
+    }
+    if (m_ps.dwFlags & PSF_SELECTPASTE) {
+        return PSF_SELECTPASTE;
+    }
+    return 0;
+}
+
+void COlePasteSpecialDialog::AddFormat(const FORMATETC& formatEtc, wchar_t* lpszFormat,
+                                       wchar_t* lpszResult, DWORD flags) {
+    int nNewCount = m_ps.cPasteEntries + 1;
+    OLEUIPASTEENTRYW* pEntries = static_cast<OLEUIPASTEENTRYW*>(
+        std::realloc(m_ps.arrPasteEntries, sizeof(OLEUIPASTEENTRYW) * nNewCount));
+    if (!pEntries) {
+        return;
+    }
+    m_ps.arrPasteEntries = pEntries;
+
+    OLEUIPASTEENTRYW& entry = m_ps.arrPasteEntries[m_ps.cPasteEntries++];
+    memset(&entry, 0, sizeof(entry));
+    entry.fmtetc = formatEtc;
+    entry.lpstrFormatName = lpszFormat;
+    entry.lpstrResultText = lpszResult;
+    entry.dwFlags = flags;
+}
+
+void COlePasteSpecialDialog::AddFormat(UINT cfFormat, TYMED tymed, UINT nFormatID,
+                                       BOOL bEnableIcon, BOOL bLink) {
+    (void)nFormatID;
+    static wchar_t szFormat[] = L"Format";
+    static wchar_t szPasteResult[] = L"Paste";
+    static wchar_t szLinkResult[] = L"Link";
+
+    FORMATETC formatEtc = {};
+    formatEtc.cfFormat = static_cast<CLIPFORMAT>(cfFormat);
+    formatEtc.dwAspect = DVASPECT_CONTENT;
+    formatEtc.lindex = -1;
+    formatEtc.tymed = tymed;
+
+    DWORD flags = bLink ? OLEUIPASTE_LINKANYTYPE : OLEUIPASTE_PASTE;
+    if (bEnableIcon) {
+        flags |= OLEUIPASTE_ENABLEICON;
+    }
+    AddFormat(formatEtc, szFormat, bLink ? szLinkResult : szPasteResult, flags);
+}
+
+OLEUIPASTEFLAG COlePasteSpecialDialog::AddLinkEntry(UINT nFormatID) {
+    static const OLEUIPASTEFLAG linkFlags[] = {
+        OLEUIPASTE_LINKTYPE1, OLEUIPASTE_LINKTYPE2, OLEUIPASTE_LINKTYPE3, OLEUIPASTE_LINKTYPE4,
+        OLEUIPASTE_LINKTYPE5, OLEUIPASTE_LINKTYPE6, OLEUIPASTE_LINKTYPE7, OLEUIPASTE_LINKTYPE8
+    };
+    if (nFormatID == 0 || nFormatID > sizeof(linkFlags) / sizeof(linkFlags[0])) {
+        return OLEUIPASTE_LINKANYTYPE;
+    }
+    return linkFlags[nFormatID - 1];
+}
+
+void COlePasteSpecialDialog::AddStandardFormats(BOOL bEnableLink) {
+    AddFormat(CF_UNICODETEXT, TYMED_HGLOBAL, CF_UNICODETEXT, FALSE, FALSE);
+    AddFormat(CF_TEXT, TYMED_HGLOBAL, CF_TEXT, FALSE, FALSE);
+    if (bEnableLink) {
+        AddFormat(CF_UNICODETEXT, TYMED_HGLOBAL, CF_UNICODETEXT, FALSE, TRUE);
+    }
 }
 
 //=============================================================================
