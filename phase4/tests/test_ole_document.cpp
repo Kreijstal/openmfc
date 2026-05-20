@@ -68,33 +68,73 @@ int main() {
     }
 
     COleServerDoc serverDoc;
-    COleServerItem serverItemA(&serverDoc);
-    COleServerItem serverItemB(&serverDoc);
-    if (serverDoc.GetEmbeddedServerItem() != &serverItemA) {
-        std::printf("FAIL: COleServerDoc did not track first server item\n");
+    COleClientItem embeddedClient(&serverDoc);
+    if (serverDoc.GetEmbeddedItem() != &embeddedClient) {
+        std::printf("FAIL: COleServerDoc embedded client lookup mismatch\n");
         return 1;
     }
-    if (serverDoc.GetLinkedServerItem(nullptr) != &serverItemA) {
-        std::printf("FAIL: GetLinkedServerItem(nullptr) should return first server item\n");
+    if (serverDoc.GetEmbeddedServerItem() != nullptr || serverDoc.GetLinkedServerItem(nullptr) != nullptr) {
+        std::printf("FAIL: new COleServerDoc should not have server items\n");
         return 1;
     }
-    CSize size(120, 80);
-    serverItemA.OnSetExtent(DVASPECT_CONTENT, size);
-    CSize gotSize(0, 0);
-    if (!serverItemA.OnGetExtent(DVASPECT_CONTENT, gotSize) || gotSize.cx != 120 || gotSize.cy != 80) {
-        std::printf("FAIL: COleServerItem extent lifecycle mismatch\n");
+
+    {
+        COleServerItem serverItem(&serverDoc);
+        if (serverItem.GetDocument() != &serverDoc || serverItem.m_pDocument != &serverDoc) {
+            std::printf("FAIL: COleServerItem constructor did not attach to server doc\n");
+            return 1;
+        }
+        if (serverDoc.GetEmbeddedServerItem() != &serverItem ||
+            serverDoc.GetLinkedServerItem(nullptr) != &serverItem ||
+            serverDoc.GetLinkedServerItem(L"AnyName") != &serverItem) {
+            std::printf("FAIL: COleServerDoc server item lookup mismatch\n");
+            return 1;
+        }
+    }
+
+    if (serverDoc.GetEmbeddedServerItem() != nullptr || serverDoc.GetLinkedServerItem(nullptr) != nullptr) {
+        std::printf("FAIL: COleServerItem destructor did not detach from server doc\n");
+        return 1;
+    }
+    if (serverDoc.IsModified()) {
+        std::printf("FAIL: new COleServerDoc should start unmodified\n");
         return 1;
     }
     serverDoc.NotifyChanged();
     if (!serverDoc.IsModified()) {
-        std::printf("FAIL: NotifyChanged should mark server doc modified\n");
+        std::printf("FAIL: COleServerDoc::NotifyChanged should set modified\n");
         return 1;
     }
     serverDoc.NotifySaved();
     if (serverDoc.IsModified()) {
-        std::printf("FAIL: NotifySaved should clear modified flag\n");
+        std::printf("FAIL: COleServerDoc::NotifySaved should clear modified\n");
         return 1;
     }
+    serverDoc.NotifyRename(nullptr);
+    if (serverDoc.GetTitle()[0] != L'\0') {
+        std::printf("FAIL: COleServerDoc::NotifyRename(nullptr) should clear title\n");
+        return 1;
+    }
+
+    {
+        COleServerItem serverItemA(&serverDoc);
+        COleServerItem serverItemB(&serverDoc);
+        if (serverDoc.GetLinkedServerItem(L"1") != &serverItemA ||
+            serverDoc.GetLinkedServerItem(L"2") != &serverItemB ||
+            serverDoc.GetLinkedServerItem(L"3") != nullptr ||
+            serverDoc.GetLinkedServerItem(L"AnyName") != nullptr) {
+            std::printf("FAIL: COleServerDoc linked server item index lookup mismatch\n");
+            return 1;
+        }
+        CSize size(120, 80);
+        serverItemA.OnSetExtent(DVASPECT_CONTENT, size);
+        CSize gotSize(0, 0);
+        if (!serverItemA.OnGetExtent(DVASPECT_CONTENT, gotSize) || gotSize.cx != 120 || gotSize.cy != 80) {
+            std::printf("FAIL: COleServerItem extent lifecycle mismatch\n");
+            return 1;
+        }
+    }
+
     if (!serverDoc.OnSetHostNames(L"HostApp", L"DocObj")) {
         std::printf("FAIL: OnSetHostNames should succeed\n");
         return 1;
