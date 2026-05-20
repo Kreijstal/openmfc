@@ -108,6 +108,23 @@ int main() {
         std::printf("FAIL: COleServerDoc::NotifySaved should clear modified\n");
         return 1;
     }
+    serverDoc.NotifyRename(nullptr);
+    if (serverDoc.GetTitle()[0] != L'\0') {
+        std::printf("FAIL: COleServerDoc::NotifyRename(nullptr) should clear title\n");
+        return 1;
+    }
+
+    {
+        COleServerItem serverItemA(&serverDoc);
+        COleServerItem serverItemB(&serverDoc);
+        if (serverDoc.GetLinkedServerItem(L"1") != &serverItemA ||
+            serverDoc.GetLinkedServerItem(L"2") != &serverItemB ||
+            serverDoc.GetLinkedServerItem(L"3") != nullptr ||
+            serverDoc.GetLinkedServerItem(L"AnyName") != nullptr) {
+            std::printf("FAIL: COleServerDoc linked server item index lookup mismatch\n");
+            return 1;
+        }
+    }
 
     std::printf("OK: COleDocument/COleClientItem tests passed\n");
     return 0;

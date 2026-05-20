@@ -7,6 +7,7 @@
 #include "openmfc/afxole.h"
 #include <algorithm>
 #include <cstring>
+#include <cwchar>
 #include <cstdio>
 #include <vector>
 
@@ -510,6 +511,14 @@ static void RemoveServerDocItem(COleServerDoc* document, COleServerItem* item) {
     state->items.erase(std::remove(state->items.begin(), state->items.end(), item), state->items.end());
     if (item->m_pServerDoc == document) item->m_pServerDoc = nullptr;
     if (item->m_pDocument == document) item->m_pDocument = nullptr;
+}
+
+static size_t ParseLinkedItemIndex(const wchar_t* itemName) {
+    if (!itemName || !*itemName) return 0;
+    wchar_t* end = nullptr;
+    unsigned long value = std::wcstoul(itemName, &end, 10);
+    if (!end || *end != L'\0' || value == 0) return 0;
+    return static_cast<size_t>(value);
 }
 
 static DataCacheState* GetDataCacheState(COleDataSource* source, bool create) {
@@ -1692,11 +1701,11 @@ void COleServerDoc::NotifyChanged() {
 }
 
 void COleServerDoc::NotifyClosed() {
-    Revoke();
+    if (m_bRegistered || m_lpMoniker) Revoke();
 }
 
 void COleServerDoc::NotifyRename(const wchar_t* lpszNewName) {
-    if (lpszNewName) SetTitle(lpszNewName);
+    SetTitle(lpszNewName ? lpszNewName : L"");
 }
 
 void COleServerDoc::NotifySaved() {
@@ -1721,6 +1730,8 @@ COleServerItem* COleServerDoc::GetLinkedServerItem(const wchar_t* lpszItemName) 
     ServerDocState* state = GetServerDocState(this, false);
     if (!state || state->items.empty()) return nullptr;
     if (!lpszItemName || !*lpszItemName) return state->items.front();
+    size_t index = ParseLinkedItemIndex(lpszItemName);
+    if (index != 0 && index <= state->items.size()) return state->items[index - 1];
     return state->items.size() == 1 ? state->items.front() : nullptr;
 }
 
