@@ -100,7 +100,8 @@ int main() {
         return 1;
     }
 
-    AfxOleTerm(FALSE);
+    const BOOL bJustThisThread = FALSE;
+    AfxOleTerm(bJustThisThread);
     std::printf("OK: COleDocument/COleClientItem tests passed\n");
     return 0;
 }

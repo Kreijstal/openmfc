@@ -513,6 +513,33 @@ static void AddServerItem(COleServerDoc* document, COleServerItem* item) {
     }
 }
 
+static BOOL EnsureLinkingDocMoniker(COleLinkingDoc* document, const wchar_t* fileName, BOOL setModified) {
+    if (!document) return FALSE;
+
+    const wchar_t* monikerPath = fileName;
+    if (!monikerPath || !*monikerPath) {
+        monikerPath = document->GetPathName();
+    }
+    if (!monikerPath || !*monikerPath) return FALSE;
+
+    if (document->m_lpMoniker) {
+        document->m_lpMoniker->Release();
+        document->m_lpMoniker = nullptr;
+    }
+
+    LPMONIKER moniker = nullptr;
+    HRESULT hr = CreateFileMoniker(monikerPath, &moniker);
+    if (FAILED(hr) || !moniker) {
+        document->m_bRegistered = FALSE;
+        return FALSE;
+    }
+
+    document->m_lpMoniker = moniker;
+    document->m_bRegistered = TRUE;
+    if (setModified) document->SetModifiedFlag(TRUE);
+    return TRUE;
+}
+
 static void RemoveServerItem(COleServerDoc* document, COleServerItem* item) {
     ServerDocState* state = GetServerDocState(document, false);
     if (!state || !item) return;
@@ -1666,14 +1693,7 @@ COleLinkingDoc::~COleLinkingDoc() {
 
 LPMONIKER COleLinkingDoc::GetMoniker(OLEGETMONIKER nAssign) {
     if (!m_lpMoniker && nAssign != OLEGETMONIKER_ONLYIFTHERE) {
-        const wchar_t* path = GetPathName();
-        if (path && *path) {
-            LPMONIKER moniker = nullptr;
-            if (SUCCEEDED(CreateFileMoniker(path, &moniker))) {
-                m_lpMoniker = moniker;
-                m_bRegistered = TRUE;
-            }
-        }
+        EnsureLinkingDocMoniker(this, nullptr, FALSE);
     }
     return m_lpMoniker;
 }
@@ -1683,28 +1703,7 @@ LPMONIKER COleLinkingDoc::GetFileMoniker() {
 }
 
 BOOL COleLinkingDoc::RegisterIfServerAttached(const wchar_t* lpszFileName, BOOL bSetModified) {
-    const wchar_t* fileName = lpszFileName;
-    if (!fileName || !*fileName) {
-        fileName = GetPathName();
-    }
-    if (!fileName || !*fileName) return FALSE;
-
-    if (m_lpMoniker) {
-        m_lpMoniker->Release();
-        m_lpMoniker = nullptr;
-    }
-
-    LPMONIKER moniker = nullptr;
-    HRESULT hr = CreateFileMoniker(fileName, &moniker);
-    if (FAILED(hr) || !moniker) {
-        m_bRegistered = FALSE;
-        return FALSE;
-    }
-
-    m_lpMoniker = moniker;
-    m_bRegistered = TRUE;
-    if (bSetModified) SetModifiedFlag(TRUE);
-    return TRUE;
+    return EnsureLinkingDocMoniker(this, lpszFileName, bSetModified);
 }
 
 void COleLinkingDoc::Revoke() {
@@ -1779,7 +1778,8 @@ COleServerItem* COleServerDoc::GetLinkedServerItem(const wchar_t* lpszItemName) 
     if (!lpszItemName || !*lpszItemName) return state->items.front();
     for (COleServerItem* item : state->items) {
         if (!item) continue;
-        const wchar_t* title = item->GetDocument() ? item->GetDocument()->GetTitle() : nullptr;
+        COleServerDoc* itemDoc = item->GetDocument();
+        const wchar_t* title = itemDoc ? itemDoc->GetTitle() : nullptr;
         if (title && wcscmp(title, lpszItemName) == 0) return item;
     }
     return nullptr;
@@ -2062,7 +2062,7 @@ BOOL COleServerItem::OnDraw(CDC* pDC, CSize& rSize) {
 }
 
 BOOL COleServerItem::OnDrawEx(CDC* pDC, DVASPECT nDrawAspect, CSize& rSize) {
-    (void)pDC;
+    (void)pDC; // Lifecycle-only fallback: use stored extent when no rendering backend is available.
     if (nDrawAspect != DVASPECT_CONTENT && nDrawAspect != DVASPECT_ICON) return FALSE;
     return OnGetExtent(nDrawAspect, rSize);
 }
