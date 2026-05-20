@@ -910,7 +910,10 @@ extern "C" unsigned long long MS_ABI impl__Seek_CFile__UEAA_K_JI_Z(void* pThis, 
 // Symbol: ?Read@CFile@@UEAAIPEAXI@Z
 extern "C" unsigned int MS_ABI impl__Read_CFile__UEAAIPEAXI_Z(void* pThis, void* lpBuf, unsigned int nCount) {
     CFile* self = static_cast<CFile*>(pThis);
-    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf || nCount == 0) {
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf) {
+        return 0;
+    }
+    if (nCount == 0) {
         return 0;
     }
     DWORD dwRead = 0;
@@ -921,7 +924,10 @@ extern "C" unsigned int MS_ABI impl__Read_CFile__UEAAIPEAXI_Z(void* pThis, void*
 // Symbol: ?Write@CFile@@UEAAXPEBXI@Z
 extern "C" void MS_ABI impl__Write_CFile__UEAAXPEBXI_Z(void* pThis, const void* lpBuf, unsigned int nCount) {
     CFile* self = static_cast<CFile*>(pThis);
-    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf || nCount == 0) {
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf) {
+        return;
+    }
+    if (nCount == 0) {
         return;
     }
     DWORD dwWritten = 0;
