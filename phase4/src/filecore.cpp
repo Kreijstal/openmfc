@@ -215,8 +215,39 @@ void CFile::Remove(const wchar_t* lpszFileName) {
 }
 
 int CFile::GetStatus(CFileStatus& rStatus) const {
-    (void)rStatus;
-    return 0;
+    if (!m_strFileName.IsEmpty()) {
+        return GetStatus(m_strFileName.GetString(), rStatus, nullptr);
+    }
+    if (m_hFile == (void*)INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle((HANDLE)m_hFile, &info)) {
+        return 0;
+    }
+
+    memset(&rStatus, 0, sizeof(rStatus));
+    ULARGE_INTEGER ul;
+
+    ul.LowPart = info.ftCreationTime.dwLowDateTime;
+    ul.HighPart = info.ftCreationTime.dwHighDateTime;
+    rStatus.m_ctime = ul.QuadPart;
+
+    ul.LowPart = info.ftLastWriteTime.dwLowDateTime;
+    ul.HighPart = info.ftLastWriteTime.dwHighDateTime;
+    rStatus.m_mtime = ul.QuadPart;
+
+    ul.LowPart = info.ftLastAccessTime.dwLowDateTime;
+    ul.HighPart = info.ftLastAccessTime.dwHighDateTime;
+    rStatus.m_atime = ul.QuadPart;
+
+    ul.LowPart = info.nFileSizeLow;
+    ul.HighPart = info.nFileSizeHigh;
+    rStatus.m_size = ul.QuadPart;
+    rStatus.m_attribute = (BYTE)info.dwFileAttributes;
+    rStatus.m_szFullName[0] = L'\0';
+    return 1;
 }
 
 int CFile::GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM) { (void)pTM;
@@ -852,6 +883,9 @@ void CArchive::WriteString(const wchar_t* lpsz) {
 // Symbol: ?GetLength@CFile@@UEBA_KXZ
 extern "C" unsigned long long MS_ABI impl__GetLength_CFile__UEBA_KXZ(void* pThis) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE) {
+        return 0;
+    }
     LARGE_INTEGER li;
     li.QuadPart = 0;
     if (GetFileSizeEx((HANDLE)self->m_hFile, &li))
@@ -862,6 +896,9 @@ extern "C" unsigned long long MS_ABI impl__GetLength_CFile__UEBA_KXZ(void* pThis
 // Symbol: ?Seek@CFile@@UEAA_K_JI@Z
 extern "C" unsigned long long MS_ABI impl__Seek_CFile__UEAA_K_JI_Z(void* pThis, long long lOff, unsigned int nFrom) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE) {
+        return 0;
+    }
     LARGE_INTEGER li;
     li.QuadPart = lOff;
     LARGE_INTEGER result;
@@ -873,6 +910,12 @@ extern "C" unsigned long long MS_ABI impl__Seek_CFile__UEAA_K_JI_Z(void* pThis, 
 // Symbol: ?Read@CFile@@UEAAIPEAXI@Z
 extern "C" unsigned int MS_ABI impl__Read_CFile__UEAAIPEAXI_Z(void* pThis, void* lpBuf, unsigned int nCount) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf) {
+        return 0;
+    }
+    if (nCount == 0) {
+        return 0;
+    }
     DWORD dwRead = 0;
     ReadFile((HANDLE)self->m_hFile, lpBuf, nCount, &dwRead, nullptr);
     return dwRead;
@@ -881,6 +924,12 @@ extern "C" unsigned int MS_ABI impl__Read_CFile__UEAAIPEAXI_Z(void* pThis, void*
 // Symbol: ?Write@CFile@@UEAAXPEBXI@Z
 extern "C" void MS_ABI impl__Write_CFile__UEAAXPEBXI_Z(void* pThis, const void* lpBuf, unsigned int nCount) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE || !lpBuf) {
+        return;
+    }
+    if (nCount == 0) {
+        return;
+    }
     DWORD dwWritten = 0;
     WriteFile((HANDLE)self->m_hFile, lpBuf, nCount, &dwWritten, nullptr);
 }
@@ -888,6 +937,9 @@ extern "C" void MS_ABI impl__Write_CFile__UEAAXPEBXI_Z(void* pThis, const void* 
 // Symbol: ?GetPosition@CFile@@UEBA_KXZ
 extern "C" unsigned long long MS_ABI impl__GetPosition_CFile__UEBA_KXZ(void* pThis) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE) {
+        return 0;
+    }
     LARGE_INTEGER li, result;
     li.QuadPart = 0;
     if (SetFilePointerEx((HANDLE)self->m_hFile, li, &result, FILE_CURRENT))
@@ -898,6 +950,9 @@ extern "C" unsigned long long MS_ABI impl__GetPosition_CFile__UEBA_KXZ(void* pTh
 // Symbol: ?Flush@CFile@@UEAAXXZ
 extern "C" void MS_ABI impl__Flush_CFile__UEAAXXZ(void* pThis) {
     CFile* self = static_cast<CFile*>(pThis);
+    if (!self || self->m_hFile == (void*)INVALID_HANDLE_VALUE) {
+        return;
+    }
     FlushFileBuffers((HANDLE)self->m_hFile);
 }
 
