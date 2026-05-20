@@ -319,6 +319,99 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ?classCPrintDialog@CPrintDialog@@2UCRuntimeClass@@A=_ZN12CPrintDialog17classCPrintDialogE DATA
     ?classCPageSetupDialog@CPageSetupDialog@@2UCRuntimeClass@@A=_ZN16CPageSetupDialog21classCPageSetupDialogE DATA
     ?classCFindReplaceDialog@CFindReplaceDialog@@2UCRuntimeClass@@A=_ZN18CFindReplaceDialog23classCFindReplaceDialogE DATA
+    ; DAO class runtime classes (OpenMFC-specific: DAO was removed from MFC 14.x)
+    ?classCDaoException@CDaoException@@2UCRuntimeClass@@A=_ZN13CDaoException18classCDaoExceptionE DATA
+    ?classCDaoWorkspace@CDaoWorkspace@@2UCRuntimeClass@@A=_ZN13CDaoWorkspace18classCDaoWorkspaceE DATA
+    ?classCDaoDatabase@CDaoDatabase@@2UCRuntimeClass@@A=_ZN12CDaoDatabase17classCDaoDatabaseE DATA
+    ?classCDaoRecordset@CDaoRecordset@@2UCRuntimeClass@@A=_ZN13CDaoRecordset18classCDaoRecordsetE DATA
+    ?classCDaoTableDef@CDaoTableDef@@2UCRuntimeClass@@A=_ZN12CDaoTableDef17classCDaoTableDefE DATA
+    ?classCDaoQueryDef@CDaoQueryDef@@2UCRuntimeClass@@A=_ZN12CDaoQueryDef17classCDaoQueryDefE DATA
+    ?classCDaoRecordView@CDaoRecordView@@2UCRuntimeClass@@A=_ZN14CDaoRecordView19classCDaoRecordViewE DATA
+    ; DAO GetRuntimeClass / GetThisClass (via MS_ABI wrappers in daocore.cpp)
+    ?GetRuntimeClass@CDaoWorkspace@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoWorkspace_GetRuntimeClass
+    ?GetThisClass@CDaoWorkspace@@SAPEAUCRuntimeClass@@XZ=dao_CDaoWorkspace_GetThisClass
+    ?GetRuntimeClass@CDaoDatabase@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoDatabase_GetRuntimeClass
+    ?GetThisClass@CDaoDatabase@@SAPEAUCRuntimeClass@@XZ=dao_CDaoDatabase_GetThisClass
+    ?GetRuntimeClass@CDaoRecordset@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoRecordset_GetRuntimeClass
+    ?GetThisClass@CDaoRecordset@@SAPEAUCRuntimeClass@@XZ=dao_CDaoRecordset_GetThisClass
+    ?GetRuntimeClass@CDaoTableDef@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoTableDef_GetRuntimeClass
+    ?GetThisClass@CDaoTableDef@@SAPEAUCRuntimeClass@@XZ=dao_CDaoTableDef_GetThisClass
+    ?GetRuntimeClass@CDaoQueryDef@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoQueryDef_GetRuntimeClass
+    ?GetThisClass@CDaoQueryDef@@SAPEAUCRuntimeClass@@XZ=dao_CDaoQueryDef_GetThisClass
+    ?GetRuntimeClass@CDaoRecordView@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoRecordView_GetRuntimeClass
+    ?GetThisClass@CDaoRecordView@@SAPEAUCRuntimeClass@@XZ=dao_CDaoRecordView_GetThisClass
+    ?GetRuntimeClass@CDaoException@@UEBAPEAUCRuntimeClass@@XZ=dao_CDaoException_GetRuntimeClass
+    ?GetThisClass@CDaoException@@SAPEAUCRuntimeClass@@XZ=dao_CDaoException_GetThisClass
+    ; DAO constructors / destructors (MS_ABI wrappers)
+    ??0CDaoWorkspace@@QEAA@XZ=dao_CDaoWorkspace_ctor
+    ??1CDaoWorkspace@@UEAA@XZ=dao_CDaoWorkspace_dtor
+    ??0CDaoDatabase@@QEAA@PEAVCDaoWorkspace@@@Z=dao_CDaoDatabase_ctor
+    ??1CDaoDatabase@@UEAA@XZ=dao_CDaoDatabase_dtor
+    ??0CDaoRecordset@@QEAA@PEAVCDaoDatabase@@@Z=dao_CDaoRecordset_ctor
+    ??1CDaoRecordset@@UEAA@XZ=dao_CDaoRecordset_dtor
+    ??0CDaoTableDef@@QEAA@PEAVCDaoDatabase@@@Z=dao_CDaoTableDef_ctor
+    ??1CDaoTableDef@@UEAA@XZ=dao_CDaoTableDef_dtor
+    ??0CDaoQueryDef@@QEAA@PEAVCDaoDatabase@@@Z=dao_CDaoQueryDef_ctor
+    ??1CDaoQueryDef@@UEAA@XZ=dao_CDaoQueryDef_dtor
+    ; CDaoWorkspace key methods
+    ?Open@CDaoWorkspace@@UEAAXPEB_W@Z=dao_CDaoWorkspace_Open
+    ?Close@CDaoWorkspace@@UEAAXXZ=dao_CDaoWorkspace_Close
+    ?IsOpen@CDaoWorkspace@@QEBAHXZ=dao_CDaoWorkspace_IsOpen
+    ?GetInTransaction@CDaoWorkspace@@QEBAHXZ=dao_CDaoWorkspace_GetInTransaction
+    ?BeginTrans@CDaoWorkspace@@UEAAXXZ=dao_CDaoWorkspace_BeginTrans
+    ?CommitTrans@CDaoWorkspace@@UEAAXXZ=dao_CDaoWorkspace_CommitTrans
+    ?Rollback@CDaoWorkspace@@UEAAXXZ=dao_CDaoWorkspace_Rollback
+    ?GetDefaultWorkspace@CDaoWorkspace@@SAPEAVCDaoWorkspace@@XZ=dao_CDaoWorkspace_GetDefaultWorkspace
+    ; CDaoDatabase key methods
+    ?Open@CDaoDatabase@@UEAAXPEB_WHHPEB_W@Z=dao_CDaoDatabase_Open
+    ?Close@CDaoDatabase@@UEAAXXZ=dao_CDaoDatabase_Close
+    ?IsOpen@CDaoDatabase@@QEBAHXZ=dao_CDaoDatabase_IsOpen
+    ?GetInTransaction@CDaoDatabase@@QEBAHXZ=dao_CDaoDatabase_GetInTransaction
+    ?BeginTrans@CDaoDatabase@@UEAAXXZ=dao_CDaoDatabase_BeginTrans
+    ?CommitTrans@CDaoDatabase@@UEAAXXZ=dao_CDaoDatabase_CommitTrans
+    ?Rollback@CDaoDatabase@@UEAAXXZ=dao_CDaoDatabase_Rollback
+    ?GetRecordsAffected@CDaoDatabase@@QEBAJXZ=dao_CDaoDatabase_GetRecordsAffected
+    ?CanUpdate@CDaoDatabase@@QEBAHXZ=dao_CDaoDatabase_CanUpdate
+    ?CanTransact@CDaoDatabase@@QEBAHXZ=dao_CDaoDatabase_CanTransact
+    ?GetWorkspace@CDaoDatabase@@QEAAPEAVCDaoWorkspace@@XZ=dao_CDaoDatabase_GetWorkspace
+    ; CDaoRecordset key methods
+    ?Open@CDaoRecordset@@UEAAXHPEB_WH@Z=dao_CDaoRecordset_OpenSQL
+    ?Close@CDaoRecordset@@UEAAXXZ=dao_CDaoRecordset_Close
+    ?IsOpen@CDaoRecordset@@QEBAHXZ=dao_CDaoRecordset_IsOpen
+    ?IsBOF@CDaoRecordset@@QEBAHXZ=dao_CDaoRecordset_IsBOF
+    ?IsEOF@CDaoRecordset@@QEBAHXZ=dao_CDaoRecordset_IsEOF
+    ?GetRecordCount@CDaoRecordset@@QEBAJXZ=dao_CDaoRecordset_GetRecordCount
+    ?GetAbsolutePosition@CDaoRecordset@@QEBAJXZ=dao_CDaoRecordset_GetAbsolutePosition
+    ?SetAbsolutePosition@CDaoRecordset@@QEAAXJ@Z=dao_CDaoRecordset_SetAbsolutePosition
+    ?GetPercentPosition@CDaoRecordset@@QEBANXZ=dao_CDaoRecordset_GetPercentPosition
+    ?SetPercentPosition@CDaoRecordset@@QEAAXN@Z=dao_CDaoRecordset_SetPercentPosition
+    ?MoveFirst@CDaoRecordset@@UEAAXXZ=dao_CDaoRecordset_MoveFirst
+    ?MoveLast@CDaoRecordset@@UEAAXXZ=dao_CDaoRecordset_MoveLast
+    ?MoveNext@CDaoRecordset@@UEAAXXZ=dao_CDaoRecordset_MoveNext
+    ?MovePrev@CDaoRecordset@@UEAAXXZ=dao_CDaoRecordset_MovePrev
+    ?Move@CDaoRecordset@@UEAAXJ@Z=dao_CDaoRecordset_Move
+    ?GetDatabase@CDaoRecordset@@QEBAPEAVCDaoDatabase@@XZ=dao_CDaoRecordset_GetDatabase
+    ?CanUpdate@CDaoRecordset@@QEBAHXZ=dao_CDaoRecordset_CanUpdate
+    ?CanAppend@CDaoRecordset@@QEBAHXZ=dao_CDaoRecordset_CanAppend
+    ; CDaoTableDef key methods
+    ?Open@CDaoTableDef@@UEAAXPEB_W@Z=dao_CDaoTableDef_Open
+    ?Close@CDaoTableDef@@UEAAXXZ=dao_CDaoTableDef_Close
+    ?IsOpen@CDaoTableDef@@QEBAHXZ=dao_CDaoTableDef_IsOpen
+    ; CDaoQueryDef key methods
+    ?Open@CDaoQueryDef@@UEAAXPEB_W@Z=dao_CDaoQueryDef_Open
+    ?Close@CDaoQueryDef@@UEAAXXZ=dao_CDaoQueryDef_Close
+    ?IsOpen@CDaoQueryDef@@QEBAHXZ=dao_CDaoQueryDef_IsOpen
+    ?CanUpdate@CDaoQueryDef@@QEBAHXZ=dao_CDaoQueryDef_CanUpdate
+    ?GetType@CDaoQueryDef@@QEBAJXZ=dao_CDaoQueryDef_GetType
+    ?GetODBCTimeout@CDaoQueryDef@@QEBAJXZ=dao_CDaoQueryDef_GetODBCTimeout
+    ?SetODBCTimeout@CDaoQueryDef@@QEAAXJ@Z=dao_CDaoQueryDef_SetODBCTimeout
+    ?GetRecordsAffected@CDaoQueryDef@@QEBAJXZ=dao_CDaoQueryDef_GetRecordsAffected
+    ?GetReturnsRecords@CDaoQueryDef@@QEBAHXZ=dao_CDaoQueryDef_GetReturnsRecords
+    ?SetReturnsRecords@CDaoQueryDef@@QEAAXH@Z=dao_CDaoQueryDef_SetReturnsRecords
+    ?Execute@CDaoQueryDef@@UEAAXH@Z=dao_CDaoQueryDef_Execute
+    ; Global DAO functions
+    ?AfxDaoInit@@YAXXZ=dao_AfxDaoInit
+    ?AfxDaoTerm@@YAXXZ=dao_AfxDaoTerm
 EOF_OPENMFC_EXPORTS
 echo "Added OpenMFC-specific static class member exports to .def file"
 
