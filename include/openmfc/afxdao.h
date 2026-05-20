@@ -148,6 +148,7 @@ public:
     explicit CDaoWorkspace(CDaoDatabase* pDatabase);
     virtual ~CDaoWorkspace();
 
+    void Open(const wchar_t* lpszName = nullptr);
     CString GetName() const;
     CString GetUserName() const;
     BOOL IsOpen() const;
@@ -167,10 +168,18 @@ public:
 public:
     void* m_pDAOWorkspace;
     BOOL m_bOpen;
+    CString m_strName;
 
 protected:
-    char _daoworkspace_padding[64];
+    char _daoworkspace_padding[56];
 };
+// Verify that adding m_strName with reduced padding preserved the same total layout size
+// as the original (void* + BOOL + char[64]) = pointer(8) + BOOL(4) + pad(4) + 64 = 80 bytes net
+static_assert(
+    sizeof(void*) + sizeof(BOOL) + sizeof(CString) + 56 ==
+    sizeof(void*) + sizeof(BOOL) + 64,
+    "CDaoWorkspace layout changed: m_strName + reduced padding must match original size"
+);
 
 //=============================================================================
 // CDaoDatabase - DAO Database Connection
