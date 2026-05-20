@@ -2159,6 +2159,81 @@ protected:
 // IMPLEMENT_DYNAMIC(CMenu, CObject) in menucore.cpp
 
 //=============================================================================
+// CImageList - Image list wrapper
+//=============================================================================
+
+class CImageList : public CObject {
+    DECLARE_DYNCREATE(CImageList)
+public:
+    CImageList();
+    virtual ~CImageList();
+
+    // Creation
+    int Create(int cx, int cy, UINT nFlags, int nInitial, int nGrow);
+    int Create(UINT nBitmapID, int cx, int nGrow, COLORREF crMask);
+    int Create(const wchar_t* lpszBitmapID, int cx, int nGrow, COLORREF crMask);
+    int Create(CImageList* pImageList);
+
+    // Handle operations
+    HIMAGELIST GetSafeHandle() const { return m_hImageList; }
+    operator HIMAGELIST() const { return m_hImageList; }
+    int Attach(HIMAGELIST hImageList);
+    HIMAGELIST Detach();
+    int DeleteImageList();
+
+    static CImageList* FromHandle(HIMAGELIST hImageList);
+    static CImageList* FromHandlePermanent(HIMAGELIST hImageList);
+    static void DeleteTempMap();
+
+    // Image management
+    int GetImageCount() const;
+    int Add(HBITMAP hbmImage, HBITMAP hbmMask);
+    int Add(HBITMAP hbmImage, COLORREF crMask);
+    int Add(HICON hIcon);
+    int Replace(int nImage, HBITMAP hbmImage, HBITMAP hbmMask);
+    int Replace(int nImage, HICON hIcon);
+    int Remove(int nImage);
+    int RemoveAll();
+    HICON ExtractIcon(int nImage);
+    int GetImageInfo(int nImage, IMAGEINFO* pImageInfo) const;
+
+    // Drawing
+    int Draw(CDC* pDC, int nImage, POINT pt, UINT nStyle);
+    int DrawEx(CDC* pDC, int nImage, POINT pt, SIZE sz,
+               COLORREF clrBk, COLORREF clrFg, UINT nStyle);
+    int DrawIndirect(IMAGELISTDRAWPARAMS* pimldp);
+    int DrawIndirect(CDC* pDC, int nImage, POINT pt, SIZE sz,
+                     POINT ptOrigin, UINT fStyle, COLORREF rgbFg,
+                     COLORREF rgbBk, COLORREF rgbBlend1, COLORREF rgbBlend2,
+                     DWORD fState, DWORD Frame, COLORREF crEffect);
+
+    // Background color
+    COLORREF GetBkColor() const;
+    COLORREF SetBkColor(COLORREF cr);
+
+    // Drag & drop
+    int BeginDrag(int nImage, CPoint ptHotSpot);
+    static void EndDrag();
+    static int DragMove(CPoint pt);
+    static int DragShowNolock(int bShow);
+    static CImageList* GetDragImage(LPPOINT lpPoint, LPPOINT lpPointHotSpot);
+    static int DragEnter(CWnd* pWndLock, CPoint point);
+    static int DragLeave(CWnd* pWndLock);
+
+    // Serialization
+    int Read(CArchive* pArchive);
+    int Write(CArchive* pArchive);
+
+public:
+    HIMAGELIST m_hImageList;
+
+protected:
+    char _imagelist_padding[24];
+};
+
+// IMPLEMENT_DYNCREATE(CImageList, CObject) in gdicore.cpp
+
+//=============================================================================
 // CWnd implementation (inline for header-only)
 //=============================================================================
 
