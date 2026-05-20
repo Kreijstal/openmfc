@@ -389,6 +389,11 @@ struct DocumentState {
     std::vector<COleClientItem*> items;
 };
 
+struct ServerDocState {
+    COleServerDoc* document = nullptr;
+    std::vector<COleServerItem*> items;
+};
+
 struct ClientItemState {
     COleClientItem* item = nullptr;
     LONG activeVerb = OLEIVERB_PRIMARY;
@@ -397,6 +402,7 @@ struct ClientItemState {
 
 static std::vector<DropTargetState> g_dropTargetStates;
 static std::vector<DocumentState> g_documentStates;
+static std::vector<ServerDocState> g_serverDocStates;
 static std::vector<ClientItemState> g_clientItemStates;
 
 static DropTargetState* GetDropTargetState(COleDropTarget* target, bool create) {
@@ -434,6 +440,24 @@ static void RemoveDocumentState(COleDocument* document) {
         g_documentStates.end());
 }
 
+static ServerDocState* GetServerDocState(COleServerDoc* document, bool create) {
+    if (!document) return nullptr;
+    for (ServerDocState& state : g_serverDocStates) {
+        if (state.document == document) return &state;
+    }
+    if (!create) return nullptr;
+    g_serverDocStates.push_back(ServerDocState());
+    g_serverDocStates.back().document = document;
+    return &g_serverDocStates.back();
+}
+
+static void RemoveServerDocState(COleServerDoc* document) {
+    g_serverDocStates.erase(
+        std::remove_if(g_serverDocStates.begin(), g_serverDocStates.end(),
+                       [document](const ServerDocState& state) { return state.document == document; }),
+        g_serverDocStates.end());
+}
+
 static ClientItemState* GetClientItemState(COleClientItem* item, bool create) {
     if (!item) return nullptr;
     for (ClientItemState& state : g_clientItemStates) {
@@ -467,6 +491,24 @@ static void RemoveDocumentItem(COleDocument* document, COleClientItem* item) {
     if (!state || !item) return;
     state->items.erase(std::remove(state->items.begin(), state->items.end(), item), state->items.end());
     if (item->m_pContainerDoc == document) item->m_pContainerDoc = nullptr;
+    if (item->m_pDocument == document) item->m_pDocument = nullptr;
+}
+
+static void AddServerDocItem(COleServerDoc* document, COleServerItem* item) {
+    ServerDocState* state = GetServerDocState(document, true);
+    if (!state || !item) return;
+    if (std::find(state->items.begin(), state->items.end(), item) == state->items.end()) {
+        state->items.push_back(item);
+    }
+    item->m_pServerDoc = document;
+    item->m_pDocument = document;
+}
+
+static void RemoveServerDocItem(COleServerDoc* document, COleServerItem* item) {
+    ServerDocState* state = GetServerDocState(document, false);
+    if (!state || !item) return;
+    state->items.erase(std::remove(state->items.begin(), state->items.end(), item), state->items.end());
+    if (item->m_pServerDoc == document) item->m_pServerDoc = nullptr;
     if (item->m_pDocument == document) item->m_pDocument = nullptr;
 }
 
@@ -1635,33 +1677,51 @@ COleServerDoc::COleServerDoc()
 }
 
 COleServerDoc::~COleServerDoc() {
+    ServerDocState* state = GetServerDocState(this, false);
+    if (state) {
+        for (COleServerItem* item : state->items) {
+            if (item && item->m_pServerDoc == this) item->m_pServerDoc = nullptr;
+            if (item && item->m_pDocument == this) item->m_pDocument = nullptr;
+        }
+    }
+    RemoveServerDocState(this);
 }
 
 void COleServerDoc::NotifyChanged() {
+    SetModifiedFlag(TRUE);
 }
 
 void COleServerDoc::NotifyClosed() {
+    Revoke();
 }
 
 void COleServerDoc::NotifyRename(const wchar_t* lpszNewName) {
+    if (lpszNewName) SetTitle(lpszNewName);
 }
 
 void COleServerDoc::NotifySaved() {
+    SetModifiedFlag(FALSE);
 }
 
 void COleServerDoc::SaveEmbedding() {
+    SetModifiedFlag(FALSE);
 }
 
 COleClientItem* COleServerDoc::GetEmbeddedItem() {
-    return nullptr;
+    return OnGetEmbeddedItem();
 }
 
 COleServerItem* COleServerDoc::GetEmbeddedServerItem() {
-    return nullptr;
+    ServerDocState* state = GetServerDocState(this, false);
+    if (!state || state->items.empty()) return nullptr;
+    return state->items.front();
 }
 
 COleServerItem* COleServerDoc::GetLinkedServerItem(const wchar_t* lpszItemName) {
-    return nullptr;
+    ServerDocState* state = GetServerDocState(this, false);
+    if (!state || state->items.empty()) return nullptr;
+    if (!lpszItemName || !*lpszItemName) return state->items.front();
+    return state->items.size() == 1 ? state->items.front() : nullptr;
 }
 
 BOOL COleServerDoc::OnSetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) {
@@ -1921,9 +1981,12 @@ IMPLEMENT_DYNAMIC(COleServerItem, CDocItem)
 COleServerItem::COleServerItem(COleServerDoc* pServerDoc, BOOL bAutoDelete)
     : m_pServerDoc(pServerDoc), m_bAutoDelete(bAutoDelete) {
     memset(_oleserveritem_padding, 0, sizeof(_oleserveritem_padding));
+    m_pDocument = pServerDoc;
+    if (pServerDoc) AddServerDocItem(pServerDoc, this);
 }
 
 COleServerItem::~COleServerItem() {
+    if (m_pServerDoc) RemoveServerDocItem(m_pServerDoc, this);
 }
 
 BOOL COleServerItem::OnDraw(CDC* pDC, CSize& rSize) {
