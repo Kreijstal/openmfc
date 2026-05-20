@@ -88,7 +88,7 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
 extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WH_W_Z(
     CString* rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep)
 {
-    if (lpszFullString == nullptr)
+    if (rString == nullptr || lpszFullString == nullptr || iSubString < 0)
         return FALSE;
 
     while (iSubString > 0)
@@ -121,6 +121,10 @@ extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTrait
 extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1)
 {
+    if (rString == nullptr) {
+        return;
+    }
+
     CString strFormat;
     // Call our implementation of LoadString
     impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(&strFormat, nIDS);
@@ -146,6 +150,8 @@ extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMF
         } else {
              *rString = strFormat;
         }
+    } else {
+        rString->Empty();
     }
 }
 
@@ -154,6 +160,10 @@ extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMF
 extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W1_Z(
     CString* rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2)
 {
+    if (rString == nullptr) {
+        return;
+    }
+
     CString strFormat;
     impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(&strFormat, nIDS);
 
@@ -178,6 +188,8 @@ extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMF
         } else {
              *rString = strFormat;
         }
+    } else {
+        rString->Empty();
     }
 }
 

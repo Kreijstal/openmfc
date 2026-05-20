@@ -1514,43 +1514,43 @@ public:
 // ============================================================================
 
 inline CObject*& CMapStringToOb::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, CObject*, CObject*>::operator[](CString(key));
+    return CMap<CString, const CString&, CObject*, CObject*>::operator[](CString(key ? key : L""));
 }
 
 inline bool CMapStringToOb::Lookup(const wchar_t* key, CObject*& rValue) const {
-    return CMap<CString, const CString&, CObject*, CObject*>::Lookup(CString(key), rValue);
+    return CMap<CString, const CString&, CObject*, CObject*>::Lookup(CString(key ? key : L""), rValue);
 }
 
 inline void CMapStringToOb::SetAt(const wchar_t* key, CObject* newValue) {
-    CMap<CString, const CString&, CObject*, CObject*>::SetAt(CString(key), newValue);
+    CMap<CString, const CString&, CObject*, CObject*>::SetAt(CString(key ? key : L""), newValue);
 }
 
 inline void*& CMapStringToPtr::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, void*, void*>::operator[](CString(key));
+    return CMap<CString, const CString&, void*, void*>::operator[](CString(key ? key : L""));
 }
 
 inline bool CMapStringToPtr::Lookup(const wchar_t* key, void*& rValue) const {
-    return CMap<CString, const CString&, void*, void*>::Lookup(CString(key), rValue);
+    return CMap<CString, const CString&, void*, void*>::Lookup(CString(key ? key : L""), rValue);
 }
 
 inline void CMapStringToPtr::SetAt(const wchar_t* key, void* newValue) {
-    CMap<CString, const CString&, void*, void*>::SetAt(CString(key), newValue);
+    CMap<CString, const CString&, void*, void*>::SetAt(CString(key ? key : L""), newValue);
 }
 
 inline CString& CMapStringToString::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, CString, const CString&>::operator[](CString(key));
+    return CMap<CString, const CString&, CString, const CString&>::operator[](CString(key ? key : L""));
 }
 
 inline bool CMapStringToString::Lookup(const wchar_t* key, CString& rValue) const {
-    return CMap<CString, const CString&, CString, const CString&>::Lookup(CString(key), rValue);
+    return CMap<CString, const CString&, CString, const CString&>::Lookup(CString(key ? key : L""), rValue);
 }
 
 inline void CMapStringToString::SetAt(const wchar_t* key, const CString& newValue) {
-    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key), newValue);
+    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key ? key : L""), newValue);
 }
 
 inline void CMapStringToString::SetAt(const wchar_t* key, const wchar_t* newValue) {
-    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key), CString(newValue));
+    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key ? key : L""), CString(newValue ? newValue : L""));
 }
 
 // CWinThread forward declaration - defined in afxwin.h
