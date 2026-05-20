@@ -1489,6 +1489,13 @@ extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(
     return FALSE;  // String not found
 }
 
+// Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4DocStringIndex@1@@Z
+extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4DocStringIndex_1__Z(
+    const CDocTemplate* pThis, CString* rString, int nID)
+{
+    return impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(pThis, rString, nID);
+}
+
 // MatchDocType
 extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocument___Z(
     CDocTemplate* pThis, const wchar_t* lpszPathName, CDocument*& rpDocMatch)
@@ -1497,6 +1504,14 @@ extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocumen
     (void)lpszPathName;
     rpDocMatch = nullptr;
     return 0;  // No match
+}
+
+// Symbol: ?MatchDocType@CDocTemplate@@UEAA?AW4Confidence@1@PEB_WAEAPEAVCDocument@@@Z
+extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAA_AW4Confidence_1_PEB_WAEAPEAVCDocument___Z(
+    CDocTemplate* pThis, const wchar_t* lpszPathName, CDocument*& rpDocMatch)
+{
+    return impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocument___Z(
+        pThis, lpszPathName, rpDocMatch);
 }
 
 // =============================================================================
@@ -1572,6 +1587,15 @@ extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAV
 
     // Create new document
     return impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
+        pThis, lpszPathName, bMakeVisible);
+}
+
+// Symbol: ?OpenDocumentFile@CSingleDocTemplate@@UEAAPEAVCDocument@@PEB_WHH@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAVCDocument__PEB_WHH_Z(
+    CSingleDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible, int bAddToMRU)
+{
+    (void)bAddToMRU;
+    return impl__OpenDocumentFile_CSingleDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
         pThis, lpszPathName, bMakeVisible);
 }
 
@@ -1658,6 +1682,15 @@ extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVC
 {
     // MDI always creates a new document
     return impl__OpenDocumentFile_CDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
+        pThis, lpszPathName, bMakeVisible);
+}
+
+// Symbol: ?OpenDocumentFile@CMultiDocTemplate@@UEAAPEAVCDocument@@PEB_WHH@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVCDocument__PEB_WHH_Z(
+    CMultiDocTemplate* pThis, const wchar_t* lpszPathName, int bMakeVisible, int bAddToMRU)
+{
+    (void)bAddToMRU;
+    return impl__OpenDocumentFile_CMultiDocTemplate__UEAAPEAVCDocument__PEB_WH_Z(
         pThis, lpszPathName, bMakeVisible);
 }
 
