@@ -986,6 +986,102 @@ extern "C" int MS_ABI impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
         pThis, L"SysTabControl32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
 }
 
+// Symbol: ?CreateEx@CSliderCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CSliderCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CSliderCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return pThis->CreateEx(dwExStyle, L"msctls_trackbar32", L"", dwStyle, pRect->left, pRect->top,
+                           pRect->right - pRect->left, pRect->bottom - pRect->top,
+                           pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+}
+
+// Symbol: ?CreateEx@CProgressCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CProgressCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CProgressCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return pThis->CreateEx(dwExStyle, L"msctls_progress32", L"", dwStyle, pRect->left, pRect->top,
+                           pRect->right - pRect->left, pRect->bottom - pRect->top,
+                           pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+}
+
+// Symbol: ?CreateEx@CSpinButtonCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CSpinButtonCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CSpinButtonCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return pThis->CreateEx(dwExStyle, L"msctls_updown32", L"", dwStyle, pRect->left, pRect->top,
+                           pRect->right - pRect->left, pRect->bottom - pRect->top,
+                           pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+}
+
+// Symbol: ?CreateEx@CTabCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CTabCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CTabCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    return pThis->CreateEx(dwExStyle, L"SysTabControl32", L"", dwStyle, pRect->left, pRect->top,
+                           pRect->right - pRect->left, pRect->bottom - pRect->top,
+                           pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, (HMENU)(uintptr_t)nID, nullptr);
+}
+
+// Symbol: ?GetRange@CProgressCtrl@@QEBAXAEAH0@Z
+extern "C" void MS_ABI impl__GetRange_CProgressCtrl__QEBAXAEAH0_Z(
+    const CProgressCtrl* pThis, int* pLower, int* pUpper) {
+    if (pLower) *pLower = 0;
+    if (pUpper) *pUpper = 0;
+    if (!pThis || !pThis->m_hWnd) return;
+
+    PBRANGE range = {};
+    ::SendMessageW(pThis->m_hWnd, PBM_GETRANGE, TRUE, (LPARAM)&range);
+    if (pLower) *pLower = range.iLow;
+    if (pUpper) *pUpper = range.iHigh;
+}
+
+// Symbol: ?GetRange@CSliderCtrl@@QEBAXAEAH0@Z
+extern "C" void MS_ABI impl__GetRange_CSliderCtrl__QEBAXAEAH0_Z(
+    const CSliderCtrl* pThis, int* pMin, int* pMax) {
+    if (pMin) *pMin = 0;
+    if (pMax) *pMax = 0;
+    if (!pThis || !pThis->m_hWnd) return;
+    if (pMin) *pMin = (int)::SendMessageW(pThis->m_hWnd, TBM_GETRANGEMIN, 0, 0);
+    if (pMax) *pMax = (int)::SendMessageW(pThis->m_hWnd, TBM_GETRANGEMAX, 0, 0);
+}
+
+// Symbol: ?SetRange@CSliderCtrl@@QEAAXHHH@Z
+extern "C" void MS_ABI impl__SetRange_CSliderCtrl__QEAAXHHH_Z(
+    CSliderCtrl* pThis, int nMin, int nMax, int bRedraw) {
+    if (!pThis || !pThis->m_hWnd) return;
+    ::SendMessageW(pThis->m_hWnd, TBM_SETRANGE, bRedraw ? TRUE : FALSE, MAKELPARAM(nMin, nMax));
+}
+
+// Symbol: ?GetSelection@CSliderCtrl@@QEBAXAEAH0@Z
+extern "C" void MS_ABI impl__GetSelection_CSliderCtrl__QEBAXAEAH0_Z(
+    const CSliderCtrl* pThis, int* pMinSel, int* pMaxSel) {
+    if (pMinSel) *pMinSel = 0;
+    if (pMaxSel) *pMaxSel = 0;
+    if (!pThis || !pThis->m_hWnd) return;
+    if (pMinSel) *pMinSel = (int)::SendMessageW(pThis->m_hWnd, TBM_GETSELSTART, 0, 0);
+    if (pMaxSel) *pMaxSel = (int)::SendMessageW(pThis->m_hWnd, TBM_GETSELEND, 0, 0);
+}
+
+// Symbol: ?SetSelection@CSliderCtrl@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetSelection_CSliderCtrl__QEAAXHH_Z(
+    CSliderCtrl* pThis, int nMinSel, int nMaxSel) {
+    if (!pThis || !pThis->m_hWnd) return;
+    ::SendMessageW(pThis->m_hWnd, TBM_SETSELSTART, FALSE, nMinSel);
+    ::SendMessageW(pThis->m_hWnd, TBM_SETSELEND, FALSE, nMaxSel);
+}
+
+// Symbol: ?GetRange@CSpinButtonCtrl@@QEBAXAEAH0@Z
+extern "C" void MS_ABI impl__GetRange_CSpinButtonCtrl__QEBAXAEAH0_Z(
+    const CSpinButtonCtrl* pThis, int* pLower, int* pUpper) {
+    if (pLower) *pLower = 0;
+    if (pUpper) *pUpper = 100;
+    if (!pThis || !pThis->m_hWnd) return;
+
+    DWORD dwRange = (DWORD)::SendMessageW(pThis->m_hWnd, UDM_GETRANGE, 0, 0);
+    if (pLower) *pLower = (short)HIWORD(dwRange);
+    if (pUpper) *pUpper = (short)LOWORD(dwRange);
+}
+
 namespace {
 struct TasksPaneGroupState {
     std::wstring name;

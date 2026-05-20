@@ -840,14 +840,37 @@ CPrintDialogEx::~CPrintDialogEx() {
 }
 
 intptr_t CPrintDialogEx::DoModal() {
-    // PrintDlgEx requires comctl32 v6+ but falls back gracefully
-    (void)this;
-    return IDCANCEL;
+    if (m_pdex.lStructSize == 0) {
+        m_pdex.lStructSize = sizeof(PRINTDLGEXW);
+    }
+
+    if (!m_pdex.hwndOwner) {
+        CWnd* pMain = AfxGetMainWnd();
+        m_pdex.hwndOwner = pMain ? pMain->GetSafeHwnd() : nullptr;
+    }
+
+    HRESULT hr = ::PrintDlgExW(&m_pdex);
+    if (FAILED(hr)) {
+        return -1;
+    }
+
+    switch (m_pdex.dwResultAction) {
+    case PD_RESULT_PRINT:
+        return IDOK;
+    case PD_RESULT_CANCEL:
+        return IDCANCEL;
+    default:
+        return -1;
+    }
 }
 
 int CPrintDialogEx::GetCopies() const { return (int)m_pdex.nCopies; }
-int CPrintDialogEx::GetFromPage() const { return (int)m_pdex.nPageRanges ? m_pdex.lpPageRanges[0].nFromPage : 0; }
-int CPrintDialogEx::GetToPage() const { return (int)m_pdex.nPageRanges ? m_pdex.lpPageRanges[0].nToPage : 0; }
+int CPrintDialogEx::GetFromPage() const {
+    return (m_pdex.nPageRanges > 0 && m_pdex.lpPageRanges) ? (int)m_pdex.lpPageRanges[0].nFromPage : 0;
+}
+int CPrintDialogEx::GetToPage() const {
+    return (m_pdex.nPageRanges > 0 && m_pdex.lpPageRanges) ? (int)m_pdex.lpPageRanges[0].nToPage : 0;
+}
 
 CString CPrintDialogEx::GetDeviceName() const {
     CString str;
@@ -885,8 +908,34 @@ CString CPrintDialogEx::GetPortName() const {
     return str;
 }
 
-HDC CPrintDialogEx::GetPrinterDC() const { return nullptr; }
-HDC CPrintDialogEx::CreatePrinterDC() { return nullptr; }
+HDC CPrintDialogEx::GetPrinterDC() const { return m_pdex.hDC; }
+HDC CPrintDialogEx::CreatePrinterDC() {
+    if (m_pdex.hDC) {
+        return m_pdex.hDC;
+    }
+    if (!m_pdex.hDevMode || !m_pdex.hDevNames) {
+        return nullptr;
+    }
+
+    DEVMODEW* pDevMode = static_cast<DEVMODEW*>(::GlobalLock(m_pdex.hDevMode));
+    DEVNAMES* pDevNames = static_cast<DEVNAMES*>(::GlobalLock(m_pdex.hDevNames));
+    if (!pDevMode || !pDevNames) {
+        if (pDevMode) ::GlobalUnlock(m_pdex.hDevMode);
+        if (pDevNames) ::GlobalUnlock(m_pdex.hDevNames);
+        return nullptr;
+    }
+
+    const wchar_t* pDriver = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDriverOffset;
+    const wchar_t* pDevice = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDeviceOffset;
+    const wchar_t* pOutput = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wOutputOffset;
+    HDC hdc = ::CreateDCW(pDriver, pDevice, pOutput, pDevMode);
+
+    ::GlobalUnlock(m_pdex.hDevNames);
+    ::GlobalUnlock(m_pdex.hDevMode);
+
+    m_pdex.hDC = hdc;
+    return hdc;
+}
 
 int CPrintDialogEx::GetPortrait() const {
     if (m_pdex.hDevMode) {
