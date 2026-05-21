@@ -1934,7 +1934,7 @@ extern "C" int MS_ABI impl__OnSetWindowPos_CDockSite__UEAAHPEBVCWnd__AEBVCRect__
     if (pThis == nullptr) return FALSE;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     DockSiteCoreState& state = g_dockSiteCoreState[pThis];
-    state.recentRect = NormalizeRect(static_cast<const RECT*>(rect), 320, 220);
+    state.recentRect = NormalizeRect(&rect, 320, 220);
     ++state.layoutRevision;
     return TRUE;
 }
@@ -1980,7 +1980,7 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CDockSite__UEAAXXZ(void* pThis)
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     DockSiteCoreState& state = g_dockSiteCoreState[pThis];
-    state.recentRect = NormalizeRect(static_cast<const RECT*>(state.recentRect), 320, 220);
+    state.recentRect = NormalizeRect(&state.recentRect, 320, 220);
     ++state.layoutRevision;
 }
 
@@ -1994,7 +1994,7 @@ extern "C" void MS_ABI impl__FixupVirtualRects_CDockSite__UEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     DockSiteCoreState& state = g_dockSiteCoreState[pThis];
-    state.recentRect = NormalizeRect(static_cast<const RECT*>(state.recentRect), 320, 220);
+    state.recentRect = NormalizeRect(&state.recentRect, 320, 220);
     ++state.layoutRevision;
 }
 
@@ -2436,6 +2436,16 @@ struct AutoHideButtonState {
 };
 
 static std::mutex g_wave2Mutex;
+static constexpr int kPaneFrameDefaultWidth = 240;
+static constexpr int kPaneFrameDefaultHeight = 140;
+static constexpr int kPaneFrameDefaultMinWidth = 120;
+static constexpr int kPaneFrameDefaultMinHeight = 80;
+static constexpr int kPaneFrameCaptionHeight = 22;
+static constexpr int kPaneFrameThinBorder = 1;
+static constexpr int kPaneFrameBorder = 2;
+static constexpr int kPaneFrameWideBorder = 4;
+static constexpr int kPaneDividerThickness = 8;
+static constexpr int kPaneDividerUnitWidth = 120;
 static std::unordered_map<void*, PaneState> g_framePanes;
 static std::unordered_map<void*, PaneState> g_multiFramePanes;
 static std::unordered_map<void*, PaneState> g_containerPanes;
@@ -2452,10 +2462,10 @@ static void AddUniquePane(PaneState& state, void* pane) {
     if (std::find(state.panes.begin(), state.panes.end(), pane) == state.panes.end()) {
         state.panes.push_back(pane);
     }
-    if (state.minSize.cx <= 0) state.minSize.cx = 120;
-    if (state.minSize.cy <= 0) state.minSize.cy = 80;
+    if (state.minSize.cx <= 0) state.minSize.cx = kPaneFrameDefaultMinWidth;
+    if (state.minSize.cy <= 0) state.minSize.cy = kPaneFrameDefaultMinHeight;
     if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
-        state.recentRect = CRect(0, 0, 240, 140);
+        state.recentRect = CRect(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
     }
 }
 
@@ -2696,14 +2706,14 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEA
 extern "C" int MS_ABI impl__Create_CPaneFrameWnd__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(
     void* pThis, const wchar_t* lpszClassName, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext) {
     if (pThis == nullptr) return FALSE;
-    CRect useRect = NormalizeRect(&rect, 240, 140);
+    CRect useRect = NormalizeRect(&rect, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
         PaneState& state = g_framePanes[pThis];
         state.parent = pParentWnd;
         state.recentRect = useRect;
-        if (state.minSize.cx <= 0) state.minSize.cx = 120;
-        if (state.minSize.cy <= 0) state.minSize.cy = 80;
+        if (state.minSize.cx <= 0) state.minSize.cx = kPaneFrameDefaultMinWidth;
+        if (state.minSize.cy <= 0) state.minSize.cy = kPaneFrameDefaultMinHeight;
         state.rollUp = FALSE;
     }
     return TryCreatePaneWindow(reinterpret_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, 0, pContext);
@@ -2733,23 +2743,21 @@ extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     PaneState& state = g_framePanes[pThis];
     if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
-        state.recentRect = CRect(0, 0, 240, 140);
+        state.recentRect = CRect(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
     }
-    if (state.minSize.cx <= 0) state.minSize.cx = 120;
-    if (state.minSize.cy <= 0) state.minSize.cy = 80;
-    const int captionHeight = 22;
-    const int border = 2;
+    if (state.minSize.cx <= 0) state.minSize.cx = kPaneFrameDefaultMinWidth;
+    if (state.minSize.cy <= 0) state.minSize.cy = kPaneFrameDefaultMinHeight;
     if (state.rollUp) {
-        state.recentRect.bottom = state.recentRect.top + captionHeight + border;
+        state.recentRect.bottom = state.recentRect.top + kPaneFrameCaptionHeight + kPaneFrameBorder;
     } else {
         if (state.recentRect.Width() < state.minSize.cx) {
             state.recentRect.right = state.recentRect.left + state.minSize.cx;
         }
-        if (state.recentRect.Height() < state.minSize.cy + captionHeight) {
-            state.recentRect.bottom = state.recentRect.top + state.minSize.cy + captionHeight;
+        if (state.recentRect.Height() < state.minSize.cy + kPaneFrameCaptionHeight) {
+            state.recentRect.bottom = state.recentRect.top + state.minSize.cy + kPaneFrameCaptionHeight;
         }
     }
-    state.rollUp = state.recentRect.Height() <= (captionHeight + border);
+    state.rollUp = state.recentRect.Height() <= (kPaneFrameCaptionHeight + kPaneFrameBorder);
 }
 
 // Symbol: ?CalcBorderSize@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
@@ -2757,7 +2765,7 @@ extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(vo
     if (!pRect) return;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     const PaneState& state = g_framePanes[pThis];
-    const int border = state.panes.empty() ? 1 : 2;
+    const int border = state.panes.empty() ? kPaneFrameThinBorder : kPaneFrameBorder;
     pRect->SetRect(border, border, border, border);
 }
 
@@ -2766,10 +2774,9 @@ extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagM
     if (!pSize) return;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     const PaneState& state = g_framePanes[pThis];
-    const int border = state.panes.empty() ? 2 : 4;
-    const int captionHeight = 22;
+    const int border = state.panes.empty() ? kPaneFrameBorder : kPaneFrameWideBorder;
     pSize->cx = std::max(80, state.minSize.cx) + border;
-    pSize->cy = std::max(40, state.minSize.cy) + captionHeight + border;
+    pSize->cy = std::max(40, state.minSize.cy) + kPaneFrameCaptionHeight + border;
 }
 
 // Symbol: ?GetCaptionRect@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
@@ -2779,11 +2786,11 @@ extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(vo
     const PaneState& state = g_framePanes[pThis];
     const CRect frameRect = (state.recentRect.Width() > 0 && state.recentRect.Height() > 0)
                                 ? state.recentRect
-                                : CRect(0, 0, 240, 140);
+                                : CRect(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
     pRect->left = frameRect.left;
     pRect->top = frameRect.top;
     pRect->right = frameRect.right;
-    pRect->bottom = frameRect.top + std::min(22, frameRect.Height());
+    pRect->bottom = frameRect.top + std::min(kPaneFrameCaptionHeight, frameRect.Height());
 }
 
 // Symbol: ?GetCaptionText@CPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -2888,7 +2895,7 @@ extern "C" void MS_ABI impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(vo
     PaneState& state = g_dividerPanes[pThis];
     AddUniquePane(state, pPane);
     const int paneCount = static_cast<int>(state.panes.size());
-    state.recentRect = CRect(0, 0, std::max(80, paneCount * 120), 8);
+    state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
 }
 
 // Symbol: ?RemovePane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
@@ -2900,7 +2907,7 @@ extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z
         state.recentRect.SetRectEmpty();
     } else {
         const int paneCount = static_cast<int>(state.panes.size());
-        state.recentRect = CRect(0, 0, std::max(80, paneCount * 120), 8);
+        state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
     }
 }
 
@@ -2969,8 +2976,8 @@ extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CS
         return;
     }
     const int paneCount = static_cast<int>(state.panes.size());
-    pRet->cx = paneCount > 0 ? std::max(80, 80 * paneCount) : 0;
-    pRet->cy = paneCount > 0 ? 8 : 0;
+        pRet->cx = paneCount > 0 ? std::max(80, 80 * paneCount) : 0;
+        pRet->cy = paneCount > 0 ? kPaneDividerThickness : 0;
 }
 
 //=============================================================================
