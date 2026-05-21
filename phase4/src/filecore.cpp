@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cerrno>
+#include <cstdint>
 #include <io.h>
 
 // MS ABI calling convention
@@ -17,6 +18,15 @@
 #else
   #define MS_ABI
 #endif
+
+extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
+    CArchive* ar,
+    unsigned int* pwSchemaNum
+);
+extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
+    const CRuntimeClass* pThis,
+    CArchive* ar
+);
 
 // =============================================================================
 // CFile Implementation
@@ -739,9 +749,32 @@ CArchive& CArchive::operator>>(double& d) {
 }
 
 CArchive& CArchive::operator>>(CObject*& pOb) {
-    // Simplified: just read null pointer indicator
-    (void)pOb;
-    pOb = nullptr;
+    unsigned char hasObject = 0;
+    if (Read(&hasObject, sizeof(hasObject)) != sizeof(hasObject) || hasObject == 0) {
+        pOb = nullptr;
+        return *this;
+    }
+
+    unsigned int nSchema = 0xFFFF;
+    CRuntimeClass* pClass = impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(this, &nSchema);
+    SetObjectSchema(nSchema);
+
+    if (!pClass || !pClass->m_pfnCreateObject) {
+        pOb = nullptr;
+        return *this;
+    }
+
+    pOb = pClass->CreateObject();
+    if (pOb) {
+        pOb->Serialize(*this);
+    }
+    return *this;
+}
+
+CArchive& CArchive::operator>>(void*& p) {
+    uintptr_t value = 0;
+    Read(&value, sizeof(value));
+    p = reinterpret_cast<void*>(value);
     return *this;
 }
 
@@ -819,8 +852,29 @@ CArchive& CArchive::operator<<(double d) {
 }
 
 CArchive& CArchive::operator<<(const CObject* pOb) {
-    // Simplified: just write null pointer indicator
-    (void)pOb;
+    unsigned char hasObject = (pOb != nullptr) ? 1 : 0;
+    Write(&hasObject, sizeof(hasObject));
+
+    if (!hasObject) {
+        return *this;
+    }
+
+    const CRuntimeClass* pClass = pOb->GetRuntimeClass();
+    if (pClass == nullptr) {
+        pClass = &CObject::classCObject;
+    }
+    impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(pClass, this);
+
+    // Conservative format: only write payload if load side can create the object.
+    if (pClass->m_pfnCreateObject) {
+        const_cast<CObject*>(pOb)->Serialize(*this);
+    }
+    return *this;
+}
+
+CArchive& CArchive::operator<<(const void* p) {
+    uintptr_t value = reinterpret_cast<uintptr_t>(p);
+    Write(&value, sizeof(value));
     return *this;
 }
 

@@ -358,6 +358,7 @@ public:
     CArchive& operator>>(float& f);
     CArchive& operator>>(double& d);
     CArchive& operator>>(CObject*& pOb);
+    CArchive& operator>>(void*& p);
     CArchive& operator>>(CString& str);
     
     // Writing operations
@@ -373,6 +374,7 @@ public:
     CArchive& operator<<(float f);
     CArchive& operator<<(double d);
     CArchive& operator<<(const CObject* pOb);
+    CArchive& operator<<(const void* p);
     CArchive& operator<<(const CString& str);
     
     // String operations
@@ -646,7 +648,17 @@ void SerializeElements(CArchive& ar, TYPE* pElements, int nCount) {
 
 // Specialization for CString
 template<>
-void SerializeElements<CString>(CArchive& ar, CString* pElements, int nCount);
+inline void SerializeElements<CString>(CArchive& ar, CString* pElements, int nCount) {
+    if (ar.IsStoring()) {
+        for (int i = 0; i < nCount; i++) {
+            ar << pElements[i];
+        }
+    } else {
+        for (int i = 0; i < nCount; i++) {
+            ar >> pElements[i];
+        }
+    }
+}
 
 // CMap template - hash table implementation
 template<class KEY, class ARG_KEY, class VALUE, class ARG_VALUE = const VALUE&>
