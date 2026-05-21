@@ -1615,6 +1615,8 @@ struct PaneCoreState {
 struct DockSiteCoreState {
     CWnd* parent = nullptr;
     CRect recentRect = CRect(0, 0, 0, 0);
+    int rowCount = 0;
+    unsigned int layoutRevision = 0;
 };
 
 std::mutex g_paneCoreStateMutex;
@@ -1931,7 +1933,9 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_CDockSite__UEAAHPEAVCPane__0_Z(void* 
 extern "C" int MS_ABI impl__OnSetWindowPos_CDockSite__UEAAHPEBVCWnd__AEBVCRect__I_Z(void* pThis, const CWnd*, const CRect& rect, unsigned int) {
     if (pThis == nullptr) return FALSE;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
-    g_dockSiteCoreState[pThis].recentRect = rect;
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    state.recentRect = NormalizeRect(static_cast<const RECT*>(rect), 320, 220);
+    ++state.layoutRevision;
     return TRUE;
 }
 
@@ -1939,18 +1943,24 @@ extern "C" int MS_ABI impl__OnSetWindowPos_CDockSite__UEAAHPEBVCWnd__AEBVCRect__
 extern "C" void MS_ABI impl__ResizeDockSite_CDockSite__QEAAXHH_Z(void* pThis, int cx, int cy) {
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
-    CRect& rect = g_dockSiteCoreState[pThis].recentRect;
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    CRect& rect = state.recentRect;
     rect.right = rect.left + (cx > 0 ? cx : rect.Width());
     rect.bottom = rect.top + (cy > 0 ? cy : rect.Height());
+    ++state.layoutRevision;
 }
 
 // Symbol: ?ResizeDockSiteByOffset@CDockSite@@IEAAXHH@Z
 extern "C" void MS_ABI impl__ResizeDockSiteByOffset_CDockSite__IEAAXHH_Z(void* pThis, int cx, int cy) {
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
-    CRect& rect = g_dockSiteCoreState[pThis].recentRect;
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    CRect& rect = state.recentRect;
     rect.right += cx;
     rect.bottom += cy;
+    if (rect.Width() <= 0) rect.right = rect.left + 1;
+    if (rect.Height() <= 0) rect.bottom = rect.top + 1;
+    ++state.layoutRevision;
 }
 
 // Symbol: ?ResizeRow@CDockSite@@QEAAHPEAVCDockingPanesRow@@HH@Z
@@ -1966,19 +1976,45 @@ extern "C" int MS_ABI impl__ShowPane_CDockSite__UEAAHPEAVCBasePane__HHH_Z(void* 
 }
 
 // Symbol: ?AdjustDockingLayout@CDockSite@@UEAAXXZ
-extern "C" void MS_ABI impl__AdjustDockingLayout_CDockSite__UEAAXXZ(void*) {}
+extern "C" void MS_ABI impl__AdjustDockingLayout_CDockSite__UEAAXXZ(void* pThis) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    state.recentRect = NormalizeRect(static_cast<const RECT*>(state.recentRect), 320, 220);
+    ++state.layoutRevision;
+}
 
 // Symbol: ?AdjustLayout@CDockSite@@UEAAXXZ
-extern "C" void MS_ABI impl__AdjustLayout_CDockSite__UEAAXXZ(void*) {}
+extern "C" void MS_ABI impl__AdjustLayout_CDockSite__UEAAXXZ(void* pThis) {
+    impl__AdjustDockingLayout_CDockSite__UEAAXXZ(pThis);
+}
 
 // Symbol: ?FixupVirtualRects@CDockSite@@UEAAXXZ
-extern "C" void MS_ABI impl__FixupVirtualRects_CDockSite__UEAAXXZ(void*) {}
+extern "C" void MS_ABI impl__FixupVirtualRects_CDockSite__UEAAXXZ(void* pThis) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    state.recentRect = NormalizeRect(static_cast<const RECT*>(state.recentRect), 320, 220);
+    ++state.layoutRevision;
+}
 
 // Symbol: ?OnInsertRow@CDockSite@@UEAAXPEAU__POSITION@@@Z
-extern "C" void MS_ABI impl__OnInsertRow_CDockSite__UEAAXPEAU__POSITION___Z(void*, void*) {}
+extern "C" void MS_ABI impl__OnInsertRow_CDockSite__UEAAXPEAU__POSITION___Z(void* pThis, void*) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    ++state.rowCount;
+    ++state.layoutRevision;
+}
 
 // Symbol: ?OnRemoveRow@CDockSite@@UEAAXPEAU__POSITION@@H@Z
-extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void*, void*, int) {}
+extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void* pThis, void*, int) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
+    if (state.rowCount > 0) --state.rowCount;
+    ++state.layoutRevision;
+}
 
 namespace {
 class CFrameImpl;
@@ -2388,6 +2424,10 @@ extern "C" void MS_ABI impl__RecalcLayout_CMFCCaptionBar__MEAAXXZ(CMFCCaptionBar
 namespace {
 struct PaneState {
     std::vector<void*> panes;
+    CWnd* parent = nullptr;
+    CRect recentRect = CRect(0, 0, 0, 0);
+    CSize minSize = CSize(0, 0);
+    BOOL rollUp = FALSE;
 };
 
 struct AutoHideButtonState {
@@ -2411,6 +2451,11 @@ static void AddUniquePane(PaneState& state, void* pane) {
     if (!pane) return;
     if (std::find(state.panes.begin(), state.panes.end(), pane) == state.panes.end()) {
         state.panes.push_back(pane);
+    }
+    if (state.minSize.cx <= 0) state.minSize.cx = 120;
+    if (state.minSize.cy <= 0) state.minSize.cy = 80;
+    if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
+        state.recentRect = CRect(0, 0, 240, 140);
     }
 }
 
@@ -2647,37 +2692,98 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEA
     if (ppBar) *ppBar = nullptr;
 }
 
+// Symbol: ?Create@CPaneFrameWnd@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__Create_CPaneFrameWnd__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(
+    void* pThis, const wchar_t* lpszClassName, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext) {
+    if (pThis == nullptr) return FALSE;
+    CRect useRect = NormalizeRect(&rect, 240, 140);
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        PaneState& state = g_framePanes[pThis];
+        state.parent = pParentWnd;
+        state.recentRect = useRect;
+        if (state.minSize.cx <= 0) state.minSize.cx = 120;
+        if (state.minSize.cy <= 0) state.minSize.cy = 80;
+        state.rollUp = FALSE;
+    }
+    return TryCreatePaneWindow(reinterpret_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, 0, pContext);
+}
+
 // Symbol: ?AddPane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
 extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    AddUniquePane(g_framePanes[pThis], pPane);
+    PaneState& state = g_framePanes[pThis];
+    AddUniquePane(state, pPane);
+    state.rollUp = FALSE;
 }
 
 // Symbol: ?RemovePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
 extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    RemovePane(g_framePanes[pThis], pPane);
-}
-
-// Symbol: ?AdjustLayout@CPaneFrameWnd@@UEAAXXZ
-extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void*) {}
-
-// Symbol: ?CalcBorderSize@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
-extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(void*, CRect* pRect) {
-    if (pRect) pRect->SetRectEmpty();
-}
-
-// Symbol: ?CalcMinSize@CPaneFrameWnd@@MEAAXAEAVCSize@@PEAUtagMINMAXINFO@@@Z
-extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void*, CSize* pSize, MINMAXINFO*) {
-    if (pSize) {
-        pSize->cx = 0;
-        pSize->cy = 0;
+    PaneState& state = g_framePanes[pThis];
+    RemovePane(state, pPane);
+    if (state.panes.empty()) {
+        state.rollUp = FALSE;
     }
 }
 
+// Symbol: ?AdjustLayout@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    PaneState& state = g_framePanes[pThis];
+    if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
+        state.recentRect = CRect(0, 0, 240, 140);
+    }
+    if (state.minSize.cx <= 0) state.minSize.cx = 120;
+    if (state.minSize.cy <= 0) state.minSize.cy = 80;
+    const int captionHeight = 22;
+    const int border = 2;
+    if (state.rollUp) {
+        state.recentRect.bottom = state.recentRect.top + captionHeight + border;
+    } else {
+        if (state.recentRect.Width() < state.minSize.cx) {
+            state.recentRect.right = state.recentRect.left + state.minSize.cx;
+        }
+        if (state.recentRect.Height() < state.minSize.cy + captionHeight) {
+            state.recentRect.bottom = state.recentRect.top + state.minSize.cy + captionHeight;
+        }
+    }
+    state.rollUp = state.recentRect.Height() <= (captionHeight + border);
+}
+
+// Symbol: ?CalcBorderSize@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* pRect) {
+    if (!pRect) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_framePanes[pThis];
+    const int border = state.panes.empty() ? 1 : 2;
+    pRect->SetRect(border, border, border, border);
+}
+
+// Symbol: ?CalcMinSize@CPaneFrameWnd@@MEAAXAEAVCSize@@PEAUtagMINMAXINFO@@@Z
+extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void* pThis, CSize* pSize, MINMAXINFO*) {
+    if (!pSize) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_framePanes[pThis];
+    const int border = state.panes.empty() ? 2 : 4;
+    const int captionHeight = 22;
+    pSize->cx = std::max(80, state.minSize.cx) + border;
+    pSize->cy = std::max(40, state.minSize.cy) + captionHeight + border;
+}
+
 // Symbol: ?GetCaptionRect@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
-extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void*, CRect* pRect) {
-    if (pRect) pRect->SetRectEmpty();
+extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* pRect) {
+    if (!pRect) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_framePanes[pThis];
+    const CRect frameRect = (state.recentRect.Width() > 0 && state.recentRect.Height() > 0)
+                                ? state.recentRect
+                                : CRect(0, 0, 240, 140);
+    pRect->left = frameRect.left;
+    pRect->top = frameRect.top;
+    pRect->right = frameRect.right;
+    pRect->bottom = frameRect.top + std::min(22, frameRect.Height());
 }
 
 // Symbol: ?GetCaptionText@CPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -2701,13 +2807,16 @@ extern "C" void* MS_ABI impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThi
 }
 
 // Symbol: ?IsRollDown@CPaneFrameWnd@@UEBAHXZ
-extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void*) {
-    return FALSE;
+extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_framePanes[pThis];
+    return state.rollUp ? FALSE : TRUE;
 }
 
 // Symbol: ?IsRollUp@CPaneFrameWnd@@UEBAHXZ
-extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void*) {
-    return FALSE;
+extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    return g_framePanes[pThis].rollUp;
 }
 
 // Symbol: ?AddPane@CPaneContainer@@QEAAPEAVCDockablePane@@PEAV2@@Z
@@ -2776,13 +2885,23 @@ extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEA
 // Symbol: ?AddPane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    AddUniquePane(g_dividerPanes[pThis], pPane);
+    PaneState& state = g_dividerPanes[pThis];
+    AddUniquePane(state, pPane);
+    const int paneCount = static_cast<int>(state.panes.size());
+    state.recentRect = CRect(0, 0, std::max(80, paneCount * 120), 8);
 }
 
 // Symbol: ?RemovePane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    RemovePane(g_dividerPanes[pThis], pPane);
+    PaneState& state = g_dividerPanes[pThis];
+    RemovePane(state, pPane);
+    if (state.panes.empty()) {
+        state.recentRect.SetRectEmpty();
+    } else {
+        const int paneCount = static_cast<int>(state.panes.size());
+        state.recentRect = CRect(0, 0, std::max(80, paneCount * 120), 8);
+    }
 }
 
 // Symbol: ?CheckVisibility@CPaneDivider@@UEAAHXZ
@@ -2808,21 +2927,50 @@ extern "C" void* MS_ABI impl__GetFirstPane_CPaneDivider__QEBAPEBVCBasePane__XZ(v
 }
 
 // Symbol: ?GetPaneDividers@CPaneDivider@@QEAAXAEAVCObList@@@Z
-extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
+    if (!pList) return;
+    pList->RemoveAll();
+    if (!pThis) return;
+    pList->AddTail(reinterpret_cast<CObject*>(pThis));
+}
 
 // Symbol: ?GetPanes@CPaneDivider@@QEAAXAEAVCObList@@@Z
-extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
+    if (!pList) return;
+    pList->RemoveAll();
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    for (void* pane : g_dividerPanes[pThis].panes) {
+        if (pane != nullptr) {
+            pList->AddTail(reinterpret_cast<CObject*>(pane));
+        }
+    }
+}
 
 // Symbol: ?GetRootContainerRect@CPaneDivider@@QEAA?AVCRect@@XZ
-extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void*) {
-    if (pRet) pRet->SetRectEmpty();
+extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void* pThis) {
+    if (!pRet) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_dividerPanes[pThis];
+    if (state.recentRect.Width() > 0 && state.recentRect.Height() > 0) {
+        *pRet = state.recentRect;
+    } else {
+        pRet->SetRect(0, 0, state.panes.empty() ? 0 : 240, state.panes.empty() ? 0 : 140);
+    }
 }
 
 // Symbol: ?CalcFixedLayout@CPaneDivider@@UEAA?AVCSize@@HH@Z
-extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CSize* pRet, void*, int, int) {
+extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CSize* pRet, void* pThis, int, int) {
     if (!pRet) return;
-    pRet->cx = 0;
-    pRet->cy = 0;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const PaneState& state = g_dividerPanes[pThis];
+    if (state.recentRect.Width() > 0 && state.recentRect.Height() > 0) {
+        pRet->cx = state.recentRect.Width();
+        pRet->cy = state.recentRect.Height();
+        return;
+    }
+    const int paneCount = static_cast<int>(state.panes.size());
+    pRet->cx = paneCount > 0 ? std::max(80, 80 * paneCount) : 0;
+    pRet->cy = paneCount > 0 ? 8 : 0;
 }
 
 //=============================================================================

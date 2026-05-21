@@ -36,6 +36,7 @@ class CDockablePane;
 class CBasePane;
 class CPaneFrameWnd;
 class CDockingManager;
+class CPaneContainer;
 class CFrameWndEx;
 class CMDIFrameWndEx;
 class CMDIChildWndEx;
@@ -772,9 +773,19 @@ public:
     CPaneFrameWnd();
     virtual ~CPaneFrameWnd();
 
-    BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
-    void AddPane(CBasePane* pBar);
-    void RemovePane(CBasePane* pBar, BOOL bDestroy = FALSE);
+    virtual BOOL Create(const wchar_t* lpszClassName, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext = nullptr);
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
+    virtual void AddPane(CBasePane* pBar);
+    virtual void RemovePane(CBasePane* pBar, BOOL bDestroy = FALSE);
+    virtual void AdjustLayout();
+    virtual void CalcBorderSize(CRect& rect) const;
+    virtual void CalcMinSize(CSize& size, MINMAXINFO* pMMI);
+    virtual void GetCaptionRect(CRect& rect) const;
+    virtual CString GetCaptionText();
+    virtual CWnd* GetFirstVisiblePane() const;
+    virtual CWnd* GetPane() const;
+    virtual BOOL IsRollDown() const;
+    virtual BOOL IsRollUp() const;
 
 protected:
     char _paneframewnd_padding[128];
@@ -1091,7 +1102,20 @@ class CMFCStatusBar : public CStatusBar {
     DECLARE_DYNAMIC(CMFCStatusBar)
 public: CMFCStatusBar(); virtual ~CMFCStatusBar(); char _pad[64]; };
 class CPaneDivider : public CObject {
-public: CPaneDivider() {} char _pad[16]; };
+public:
+    CPaneDivider() {}
+    virtual ~CPaneDivider() {}
+    virtual void AddPane(CDockablePane* pPane);
+    virtual void RemovePane(CDockablePane* pPane);
+    virtual BOOL CheckVisibility();
+    CPaneContainer* FindPaneContainer(CDockablePane* pBar, int& nIndex);
+    const CBasePane* GetFirstPane() const;
+    void GetPaneDividers(CObList& lst);
+    void GetPanes(CObList& lst);
+    CRect GetRootContainerRect();
+    virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
+    char _pad[16];
+};
 
 class CMFCRibbonButtonsGroup : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonButtonsGroup) public: CMFCRibbonButtonsGroup(); virtual ~CMFCRibbonButtonsGroup(); char _pad[32]; };
 class CMFCRibbonCaptionButton : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCaptionButton) public: CMFCRibbonCaptionButton(); virtual ~CMFCRibbonCaptionButton(); char _pad[32]; };
