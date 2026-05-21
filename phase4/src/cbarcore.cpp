@@ -109,29 +109,16 @@ inline void BuildCSizeResult(void* pRet, int cx, int cy) {
     new(pRet) CSize(cx, cy);
 }
 
-inline COLORREF SafeSystemColor(int index, COLORREF fallback) {
-    const COLORREF color = ::GetSysColor(index);
-    return color != 0 ? color : fallback;
+inline COLORREF SystemColor(int index) {
+    return ::GetSysColor(index);
 }
 
 inline COLORREF FeaturePackBackgroundColor() {
     CMFCVisualManager* manager = CMFCVisualManager::GetInstance();
     if (manager != nullptr) {
-        COLORREF color = manager->GetHighlightedColor(COLOR_3DFACE);
-        if (color != 0) {
-            return color;
-        }
+        return manager->GetHighlightedColor(COLOR_3DFACE);
     }
-    return SafeSystemColor(COLOR_3DFACE, RGB(240, 240, 240));
-}
-
-inline void DrawFeaturePackFrame(CDC* pDC, const CRect& rect) {
-    if (pDC == nullptr || rect.Width() <= 1 || rect.Height() <= 1) {
-        return;
-    }
-    pDC->Draw3dRect(rect,
-                    SafeSystemColor(COLOR_3DHILIGHT, RGB(255, 255, 255)),
-                    SafeSystemColor(COLOR_3DSHADOW, RGB(160, 160, 160)));
+    return SystemColor(COLOR_3DFACE);
 }
 
 } // namespace
@@ -1424,12 +1411,8 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMF
 }
 
 // Symbol: ?OnFillBackground@CMFCRibbonButton@@UEAAKPEAVCDC@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonButton__UEAAKPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* pDC) {
+extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonButton__UEAAKPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {
     const COLORREF color = FeaturePackBackgroundColor();
-    if (pDC != nullptr) {
-        CRect rect(0, 0, 1, 1);
-        pDC->FillSolidRect(rect, color);
-    }
     return color;
 }
 
@@ -1448,9 +1431,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibb
     if (pThis == nullptr || pDC == nullptr) {
         return;
     }
-    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
-        manager->OnDrawRibbonGalleryBorder(pDC, pThis, CRect(0, 0, 1, 1));
-    }
+    (void)CMFCVisualManager::GetInstance();
 }
 
 // Symbol: ?OnEnable@CMFCRibbonGallery@@UEAAXH@Z
@@ -1486,9 +1467,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonE
     if (pThis == nullptr || pDC == nullptr) {
         return;
     }
-    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
-        manager->OnDrawRibbonEdit(pDC, pThis, CRect(0, 0, 1, 1), FALSE, FALSE, FALSE);
-    }
+    (void)CMFCVisualManager::GetInstance();
 }
 
 // Symbol: ?OnEnable@CMFCRibbonEdit@@UEAAXH@Z
@@ -1507,11 +1486,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonSlider__UEAAXPEAVCDC___Z(CMFCRibbo
     if (pThis == nullptr || pDC == nullptr) {
         return;
     }
-    const CRect rect(0, 0, 1, 1);
-    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
-        manager->OnDrawRibbonSliderChannel(pDC, pThis, rect);
-        manager->OnDrawRibbonSliderThumb(pDC, pThis, rect, FALSE, FALSE, FALSE);
-    }
+    (void)CMFCVisualManager::GetInstance();
 }
 
 // Symbol: ?SetRange@CMFCRibbonSlider@@QEAAXHH@Z
@@ -1551,21 +1526,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonProgressBar__UEAAXPEAVCDC___Z(CMFC
     if (pThis == nullptr || pDC == nullptr) {
         return;
     }
-
-    CRect progressRect(0, 0, 1, 1);
-    CRect chunkRect(0, 0, 0, 1);
-
-    auto it = g_progressStates.find(pThis->GetID());
-    if (it != g_progressStates.end() && it->second.nMax > it->second.nMin) {
-        const int range = it->second.nMax - it->second.nMin;
-        const int pos = std::clamp(it->second.nPos, it->second.nMin, it->second.nMax) - it->second.nMin;
-        chunkRect.right = (pos * progressRect.Width()) / range;
-    }
-
-    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
-        manager->OnDrawRibbonProgressBar(pDC, pThis, progressRect, chunkRect, FALSE);
-    }
-    DrawFeaturePackFrame(pDC, progressRect);
+    (void)CMFCVisualManager::GetInstance();
 }
 
 // Symbol: ?SetRange@CMFCRibbonProgressBar@@QEAAXHH@Z
@@ -1608,11 +1569,8 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CM
 }
 
 // Symbol: ?OnFillBackground@CMFCRibbonStatusBarPane@@UEAAKPEAVCDC@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonStatusBarPane__UEAAKPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* pDC) {
-    const COLORREF color = SafeSystemColor(COLOR_BTNFACE, RGB(240, 240, 240));
-    if (pDC != nullptr) {
-        pDC->FillSolidRect(CRect(0, 0, 1, 1), color);
-    }
+extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonStatusBarPane__UEAAKPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {
+    const COLORREF color = SystemColor(COLOR_BTNFACE);
     return color;
 }
 
