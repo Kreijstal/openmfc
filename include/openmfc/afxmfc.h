@@ -549,6 +549,7 @@ public:
     BOOL SetActiveCategory(CMFCRibbonCategory* pCategory, BOOL bForceRestore = FALSE);
     void AddToTabs(CMFCRibbonBaseElement* pElement);
     void SetQuickAccessToolbar(CMFCRibbonButtonsGroup* pQAT);
+    void SetQuickAccessToolbarOnTop(BOOL bOnTop = TRUE);
     void ToggleMimimizeState();
     BOOL IsMinimized() const;
 
@@ -1100,13 +1101,13 @@ class CMFCRibbonTab : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonT
 class CMFCRibbonContextCaption : public CObject { DECLARE_DYNAMIC(CMFCRibbonContextCaption) public: CMFCRibbonContextCaption(); virtual ~CMFCRibbonContextCaption(); char _pad[32]; };
 class CMFCAutoHideBar : public CPane { DECLARE_DYNAMIC(CMFCAutoHideBar) public: CMFCAutoHideBar(); virtual ~CMFCAutoHideBar(); char _pad[32]; };
 class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); CMFCRibbonCheckBox(UINT, const wchar_t*) : CMFCRibbonCheckBox() {} virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
-class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT, int, const wchar_t*, int) : CMFCRibbonEdit() {} virtual ~CMFCRibbonEdit(); char _pad[32]; };
-class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT, const wchar_t*, int, int, UINT, int) : CMFCRibbonGallery() {} virtual ~CMFCRibbonGallery(); char _pad[32]; };
+class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT nID, int, const wchar_t* lpszText, int) : CMFCRibbonEdit() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonEdit(); char _pad[32]; };
+class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT nID, const wchar_t* lpszText, int, int, UINT, int) : CMFCRibbonGallery() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonGallery(); char _pad[32]; };
 class CMFCRibbonLabel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonLabel) public: CMFCRibbonLabel(); CMFCRibbonLabel(const wchar_t*, int) : CMFCRibbonLabel() {} virtual ~CMFCRibbonLabel(); char _pad[32]; };
 class CMFCRibbonMainPanel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonMainPanel) public: CMFCRibbonMainPanel(); virtual ~CMFCRibbonMainPanel(); char _pad[32]; };
-class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); CMFCRibbonProgressBar(UINT, int, int) : CMFCRibbonProgressBar() {} virtual ~CMFCRibbonProgressBar(); char _pad[32]; };
+class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); CMFCRibbonProgressBar(UINT nID, int, int) : CMFCRibbonProgressBar() { SetID(nID); } virtual ~CMFCRibbonProgressBar(); char _pad[32]; };
 class CMFCRibbonSeparator : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSeparator) public: CMFCRibbonSeparator(); CMFCRibbonSeparator(int) : CMFCRibbonSeparator() {} virtual ~CMFCRibbonSeparator(); char _pad[32]; };
-class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSlider) public: CMFCRibbonSlider(); CMFCRibbonSlider(UINT, int) : CMFCRibbonSlider() {} virtual ~CMFCRibbonSlider(); char _pad[32]; };
+class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSlider) public: CMFCRibbonSlider(); CMFCRibbonSlider(UINT nID, int) : CMFCRibbonSlider() { SetID(nID); } virtual ~CMFCRibbonSlider(); char _pad[32]; };
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };
 class CMFCRibbonStatusBarPane : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonStatusBarPane) public: CMFCRibbonStatusBarPane(); virtual ~CMFCRibbonStatusBarPane(); char _pad[32]; };
 class CMFCTasksPaneTaskGroup : public CObject { DECLARE_DYNAMIC(CMFCTasksPaneTaskGroup) public: CMFCTasksPaneTaskGroup(); virtual ~CMFCTasksPaneTaskGroup(); char _pad[32]; };
