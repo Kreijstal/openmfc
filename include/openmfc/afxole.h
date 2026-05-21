@@ -872,6 +872,7 @@ public:
 
     BOOL IsModified() const { return m_bModified; }
     void SetModified(BOOL bModified = TRUE) { m_bModified = bModified; }
+    void SetModifiedFlag(BOOL bModified = TRUE);
 
     IPropertyPageSite* GetPageSite() const { return m_pPageSite; }
 
@@ -1771,7 +1772,7 @@ public:
     virtual void OnAmbientPropertyChange(DISPID dispid);
     void BoundPropertyChanged(DISPID dispid);
     void BoundPropertyRequestEdit(DISPID dispid);
-    void InvalidateControl(LPCRECT lpRect = nullptr);
+    void InvalidateControl(LPCRECT lpRect = nullptr, BOOL bErase = TRUE);
 
     // Property pages
     virtual int OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect);

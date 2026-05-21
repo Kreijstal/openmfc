@@ -3437,6 +3437,12 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CFrameWnd__QEAAXPEAVCDocument__H
     pThis->InitialUpdateFrame(p0, p1);
 }
 
+// Symbol: ?InvalidateControl@COleControl@@QEAAXPEBUtagRECT@@H@Z
+// COleControl::InvalidateControl
+extern "C" void MS_ABI impl__InvalidateControl_COleControl__QEAAXPEBUtagRECT__H_Z(COleControl* pThis, const RECT* p0, int p1) {
+    pThis->InvalidateControl(p0, p1);
+}
+
 // Symbol: ?InvokeHelper@COleControlSite@@UEAAXJGGPEAXPEBEZZ
 // COleControlSite::InvokeHelper
 extern "C" void MS_ABI impl__InvokeHelper_COleControlSite__UEAAXJGGPEAXPEBEZZ(COleControlSite* pThis, long p0, unsigned short p1, unsigned short p2, void* p3, const unsigned char* p4) {
@@ -5893,6 +5899,12 @@ extern "C" void MS_ABI impl__SetModified_CPropertyPage__QEAAXH_Z(CPropertyPage* 
 // Symbol: ?SetModifiedFlag@COleControl@@QEAAXH@Z
 // COleControl::SetModifiedFlag
 extern "C" void MS_ABI impl__SetModifiedFlag_COleControl__QEAAXH_Z(COleControl* pThis, int p0) {
+    pThis->SetModifiedFlag(p0);
+}
+
+// Symbol: ?SetModifiedFlag@COlePropertyPage@@QEAAXH@Z
+// COlePropertyPage::SetModifiedFlag
+extern "C" void MS_ABI impl__SetModifiedFlag_COlePropertyPage__QEAAXH_Z(COlePropertyPage* pThis, int p0) {
     pThis->SetModifiedFlag(p0);
 }
 

@@ -33,6 +33,11 @@
 #define VT_COLOR 0x0000000CL
 #endif
 
+// Stock control event DISPIDs (from olectl.h)
+#ifndef DISPID_CLICK
+#include <olectl.h>
+#endif
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
@@ -887,6 +892,12 @@ struct ServerItemState {
     ~ServerItemState() { delete dataSource; }
 };
 
+struct OleControlEventSink {
+    IID iid = IID_NULL;
+    DWORD cookie = 0;
+    IUnknown* sink = nullptr;
+};
+
 struct OleControlState {
     COleControl* control = nullptr;
     COLORREF backColor = RGB(255, 255, 255);
@@ -897,6 +908,8 @@ struct OleControlState {
     CString text;
     long readyState = 4;
     BOOL modified = FALSE;
+    std::vector<OleControlEventSink> eventSinks;
+    std::vector<IPropertyNotifySink*> propSinks;
 };
 
 static std::vector<DropTargetState> g_dropTargetStates;
@@ -1034,10 +1047,17 @@ static OleControlState* GetOleControlState(COleControl* control, bool create) {
 }
 
 static void RemoveOleControlState(COleControl* control) {
-    g_oleControlStates.erase(
-        std::remove_if(g_oleControlStates.begin(), g_oleControlStates.end(),
-                       [control](const OleControlState& state) { return state.control == control; }),
-        g_oleControlStates.end());
+    auto it = std::remove_if(g_oleControlStates.begin(), g_oleControlStates.end(),
+                             [control](const OleControlState& state) { return state.control == control; });
+    for (auto releaseIt = it; releaseIt != g_oleControlStates.end(); ++releaseIt) {
+        for (auto& sink : releaseIt->eventSinks) {
+            if (sink.sink) sink.sink->Release();
+        }
+        for (auto* sink : releaseIt->propSinks) {
+            if (sink) sink->Release();
+        }
+    }
+    g_oleControlStates.erase(it, g_oleControlStates.end());
 }
 
 static void AddDocumentItem(COleDocument* document, COleClientItem* item) {
@@ -2091,6 +2111,13 @@ void COlePropertyPage::OnEditProperty(DISPID dispid) {
     (void)dispid;
 }
 
+void COlePropertyPage::SetModifiedFlag(BOOL bModified) {
+    m_bModified = bModified ? TRUE : FALSE;
+    if (m_pPageSite) {
+        m_pPageSite->OnStatusChange(bModified ? PROPPAGESTATUS_DIRTY : 0);
+    }
+}
+
 //=============================================================================
 // COleDocument
 //=============================================================================
@@ -2880,12 +2907,60 @@ COleControlSite::~COleControlSite() {
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_t* lpszWindowName,
                                      DWORD dwStyle, const RECT& rect, UINT nID, CFile* pPersist,
                                      BOOL bStorage, BSTR bstrLicKey) {
-    (void)clsid; (void)lpszWindowName; (void)rect;
-    (void)pPersist; (void)bStorage; (void)bstrLicKey;
+    (void)lpszWindowName; (void)pPersist; (void)bStorage;
     m_dwStyle = dwStyle;
-    m_hWnd = pWndCtrl ? pWndCtrl->GetSafeHwnd() : nullptr;
     SetControlSiteId(this, nID);
-    return FALSE;
+
+    // Use CoCreateInstance (with optional license via IClassFactory2)
+    IUnknown* pUnk = nullptr;
+    HRESULT hr;
+    if (bstrLicKey) {
+        IClassFactory2* pCF2 = nullptr;
+        hr = CoGetClassObject(clsid, CLSCTX_INPROC_SERVER, nullptr, IID_IClassFactory2,
+                              reinterpret_cast<void**>(&pCF2));
+        if (SUCCEEDED(hr) && pCF2) {
+            hr = pCF2->CreateInstanceLic(nullptr, nullptr, IID_IUnknown, bstrLicKey,
+                                          reinterpret_cast<void**>(&pUnk));
+            pCF2->Release();
+        } else {
+            hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown,
+                                  reinterpret_cast<void**>(&pUnk));
+        }
+    } else {
+        hr = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown,
+                              reinterpret_cast<void**>(&pUnk));
+    }
+    if (FAILED(hr) || !pUnk) return FALSE;
+
+    // Get IOleObject
+    hr = pUnk->QueryInterface(IID_IOleObject, reinterpret_cast<void**>(&m_lpObject));
+    if (FAILED(hr)) { pUnk->Release(); return FALSE; }
+
+    // Get IDispatch
+    pUnk->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&m_lpDispatch));
+
+    // Get IOleInPlaceObject
+    pUnk->QueryInterface(IID_IOleInPlaceObject, reinterpret_cast<void**>(&m_lpInPlaceObject));
+
+    pUnk->Release();
+
+    // Set host names
+    m_lpObject->SetHostNames(L"OpenMFC", lpszWindowName ? lpszWindowName : L"");
+
+    // Activate in-place if we have a parent window
+    HWND hParent = pWndCtrl ? pWndCtrl->GetSafeHwnd() : (m_pCtrlCont ? m_pCtrlCont->GetWnd()->GetSafeHwnd() : nullptr);
+    if (hParent) {
+        hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rect);
+        if (SUCCEEDED(hr)) {
+            m_bInPlaceActive = TRUE;
+            // Retrieve the in-place window handle
+            if (m_lpInPlaceObject) {
+                m_lpInPlaceObject->GetWindow(&m_hWnd);
+            }
+        }
+    }
+
+    return TRUE;
 }
 
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, const wchar_t* lpszProgID,
@@ -2907,10 +2982,31 @@ void COleControlSite::DestroyControl() {
 }
 
 void COleControlSite::Activate(BOOL bActivate) {
-    m_bInPlaceActive = bActivate ? TRUE : FALSE;
+    if (bActivate) {
+        if (!m_bInPlaceActive && m_lpObject) {
+            HWND hParent = m_hWnd ? ::GetParent(m_hWnd) : nullptr;
+            if (!hParent && m_pCtrlCont && m_pCtrlCont->GetWnd())
+                hParent = m_pCtrlCont->GetWnd()->GetSafeHwnd();
+            if (hParent) {
+                RECT rc = {};
+                if (m_hWnd) ::GetWindowRect(m_hWnd, &rc);
+                HRESULT hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rc);
+                if (SUCCEEDED(hr)) {
+                    m_bInPlaceActive = TRUE;
+                    if (m_lpInPlaceObject && !m_hWnd)
+                        m_lpInPlaceObject->GetWindow(&m_hWnd);
+                }
+            }
+        }
+    } else {
+        Deactivate();
+    }
 }
 
 void COleControlSite::Deactivate() {
+    if (m_bInPlaceActive && m_lpInPlaceObject) {
+        m_lpInPlaceObject->InPlaceDeactivate();
+    }
     m_bInPlaceActive = FALSE;
 }
 
@@ -3711,7 +3807,47 @@ void COleControl::FireEvent(DISPID dispId, BYTE* pbParams, ...) {
 }
 
 void COleControl::FireEventV(DISPID dispId, BYTE* pbParams, va_list argList) {
-    (void)dispId; (void)pbParams; (void)argList;
+    OleControlState* state = GetOleControlState(this, false);
+    if (!state || state->eventSinks.empty()) return;
+
+    // Build DISPPARAMS from the VT-encoded parameter list
+    int cParams = CountDispatchParams(pbParams);
+    std::vector<VARIANTARG> params(static_cast<size_t>(cParams));
+    va_list argCopy;
+    // We need a copy of argList per each sink invocation
+    // Build params once; they are read-only for each Invoke call
+    va_copy(argCopy, argList);
+    for (int i = 0; i < cParams; ++i) {
+        MakeDispatchVariant(static_cast<VARTYPE>(pbParams[i]), &argCopy, &params[static_cast<size_t>(i)]);
+    }
+    va_end(argCopy);
+
+    // Reverse for DISPPARAMS (COM convention: last arg first)
+    std::vector<VARIANTARG> revParams(static_cast<size_t>(cParams));
+    for (int i = 0; i < cParams; ++i) {
+        revParams[static_cast<size_t>(i)] = params[static_cast<size_t>(cParams - i - 1)];
+    }
+
+    DISPPARAMS dp = {};
+    dp.cArgs = static_cast<UINT>(cParams);
+    dp.rgvarg = cParams ? revParams.data() : nullptr;
+
+    // Fire to all registered sinks
+    for (auto& sink : state->eventSinks) {
+        if (!sink.sink) continue;
+        IDispatch* pDisp = nullptr;
+        if (SUCCEEDED(sink.sink->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&pDisp))) && pDisp) {
+            pDisp->Invoke(dispId, IID_NULL, LOCALE_USER_DEFAULT,
+                          DISPATCH_METHOD, &dp, nullptr, nullptr, nullptr);
+            pDisp->Release();
+        }
+    }
+
+    // Clean up variants (don't use VariantClear on the reversed view; clear originals)
+    for (int i = 0; i < cParams; ++i) {
+        params[static_cast<size_t>(i)].vt = VT_EMPTY;
+        VariantClear(&params[static_cast<size_t>(i)]);
+    }
 }
 
 BOOL COleControl::IsOptimizedDraw() const {
@@ -3934,15 +4070,45 @@ CString COleControl::AmbientScaleUnits() {
 }
 unsigned long COleControl::AmbientLocaleID() { unsigned long locale = static_cast<unsigned long>(::GetUserDefaultLCID()); GetAmbientProperty(DISPID_AMBIENT_LOCALEID, VT_I4, &locale); return locale; }
 
-void COleControl::FireClick() {}
-void COleControl::FireDblClick() {}
-void COleControl::FireKeyDown(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
-void COleControl::FireKeyPress(USHORT* pnChar) { (void)pnChar; }
-void COleControl::FireKeyUp(USHORT* pnChar, short nShiftState) { (void)pnChar; (void)nShiftState; }
-void COleControl::FireMouseDown(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) { (void)nButton; (void)nShiftState; (void)x; (void)y; }
-void COleControl::FireReadyStateChange() {}
+void COleControl::FireClick() {
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_CLICK, noParams);
+}
+void COleControl::FireDblClick() {
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_DBLCLICK, noParams);
+}
+void COleControl::FireKeyDown(USHORT* pnChar, short nShiftState) {
+    // VT_PI2 (pointer to I2) = VT_BYREF|VT_I2 = 0x4002; MFC uses 0x4002 for USHORT*
+    BYTE params[3] = { static_cast<BYTE>(VT_BYREF | VT_I2), VT_I2, 0 };
+    FireEvent(DISPID_KEYDOWN, params, pnChar, nShiftState);
+}
+void COleControl::FireKeyPress(USHORT* pnChar) {
+    BYTE params[2] = { static_cast<BYTE>(VT_BYREF | VT_I2), 0 };
+    FireEvent(DISPID_KEYPRESS, params, pnChar);
+}
+void COleControl::FireKeyUp(USHORT* pnChar, short nShiftState) {
+    BYTE params[3] = { static_cast<BYTE>(VT_BYREF | VT_I2), VT_I2, 0 };
+    FireEvent(DISPID_KEYUP, params, pnChar, nShiftState);
+}
+void COleControl::FireMouseDown(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEDOWN, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireMouseMove(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEMOVE, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) {
+    BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
+    FireEvent(DISPID_MOUSEUP, params, nButton, nShiftState, x, y);
+}
+void COleControl::FireReadyStateChange() {
+    OleControlState* state = GetOleControlState(this, true);
+    if (state) state->readyState = 4; // READYSTATE_COMPLETE
+    BYTE noParams[1] = { 0 };
+    FireEvent(DISPID_READYSTATECHANGE, noParams);
+}
 
 COLORREF COleControl::GetBackColor() const {
     OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
@@ -4067,22 +4233,59 @@ void COleControl::OnAmbientPropertyChange(DISPID dispid) {
     }
 }
 void COleControl::BoundPropertyChanged(DISPID dispid) {
-    (void)dispid;
+    OleControlState* state = GetOleControlState(this, false);
+    if (state) {
+        for (auto* sink : state->propSinks) {
+            if (sink) sink->OnChanged(dispid);
+        }
+    }
     SetModifiedFlag(TRUE);
     InvalidateControl();
 }
-void COleControl::BoundPropertyRequestEdit(DISPID dispid) { (void)dispid; }
-void COleControl::InvalidateControl(LPCRECT lpRect) {
-    if (m_hWnd) ::InvalidateRect(m_hWnd, lpRect, TRUE);
+void COleControl::BoundPropertyRequestEdit(DISPID dispid) {
+    OleControlState* state = GetOleControlState(this, false);
+    if (!state) return;
+    for (auto* sink : state->propSinks) {
+        if (sink) sink->OnRequestEdit(dispid);
+    }
+}
+void COleControl::InvalidateControl(LPCRECT lpRect, BOOL bErase) {
+    if (m_hWnd) ::InvalidateRect(m_hWnd, lpRect, bErase);
 }
 int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) { (void)pMsg; (void)hWnd; (void)lpRect; return 0; }
-void COleControl::ShowPropertyPages() {}
+void COleControl::ShowPropertyPages() {
+    if (!m_hWnd) return;
+    ISpecifyPropertyPages* pSPP = nullptr;
+    if (FAILED(InternalQueryInterface(IID_ISpecifyPropertyPages, reinterpret_cast<void**>(&pSPP))) || !pSPP)
+        return;
+    CAUUID pages = {};
+    if (SUCCEEDED(pSPP->GetPages(&pages)) && pages.cElems > 0) {
+        IUnknown* pUnk = nullptr;
+        InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&pUnk));
+        OleCreatePropertyFrame(m_hWnd, 0, 0, nullptr,
+                               pUnk ? 1u : 0u, pUnk ? &pUnk : nullptr,
+                               pages.cElems, pages.pElems,
+                               LOCALE_USER_DEFAULT, 0, nullptr);
+        if (pUnk) pUnk->Release();
+        CoTaskMemFree(pages.pElems);
+    }
+    pSPP->Release();
+}
 int COleControl::GetPropertyPageCount() const { return 0; }
 BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) { (void)lpUnk; return FALSE; }
-BOOL COleControl::CanCreateConnectionPoints() { return FALSE; }
+BOOL COleControl::CanCreateConnectionPoints() { return TRUE; }
 void COleControl::EnableConnectionPoints() {}
-BOOL COleControl::IsConnectionPointEnabled(REFIID riid) { (void)riid; return FALSE; }
-void COleControl::FirePropChanged(DISPID dispid) { (void)dispid; }
+BOOL COleControl::IsConnectionPointEnabled(REFIID riid) {
+    OleControlState* state = GetOleControlState(this, false);
+    if (!state) return FALSE;
+    for (auto& sink : state->eventSinks) {
+        if (IsEqualIID(sink.iid, riid)) return TRUE;
+    }
+    return FALSE;
+}
+void COleControl::FirePropChanged(DISPID dispid) {
+    BoundPropertyChanged(dispid);
+}
 BOOL COleControl::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return FALSE; }
 LONG COleControl::OnPosRectChange(LPCRECT lprcPosRect) { (void)lprcPosRect; return 0; }
 BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) { (void)lprcPosRect; (void)lprcClipRect; return TRUE; }
