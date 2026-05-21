@@ -483,7 +483,7 @@ BOOL CToolBar::LoadToolBar(UINT nIDResource) {
 
     WORD* pButtonIDs = pData + 4;
 
-    for (int i = 0; i < wCount; i++) {
+    for (WORD i = 0; i < wCount; ++i) {
         TBBUTTON tb = {};
         tb.iBitmap = I_IMAGENONE;
         tb.idCommand = pButtonIDs[i];
@@ -828,11 +828,10 @@ void CStatusBar::GetItemRect(int nIndex, LPRECT lpRect) const {
 
 BOOL CStatusBar::SetPaneText(int nIndex, const wchar_t* lpszNewText, BOOL bUpdate) {
     if (!m_hWnd || nIndex < 0 || nIndex >= m_nCount) return FALSE;
+    if (!bUpdate) return TRUE;
     ::SendMessageW(m_hWnd, SB_SETTEXTW, nIndex, (LPARAM)(lpszNewText ? lpszNewText : L""));
-    if (bUpdate) {
-        ::InvalidateRect(m_hWnd, nullptr, TRUE);
-        ::UpdateWindow(m_hWnd);
-    }
+    ::InvalidateRect(m_hWnd, nullptr, TRUE);
+    ::UpdateWindow(m_hWnd);
     return TRUE;
 }
 
@@ -2828,7 +2827,8 @@ extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(
     if (!pList) return;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     pList->RemoveAll();
-    if (pThis != nullptr) {
+    const auto it = g_dividerPanes.find(pThis);
+    if (it != g_dividerPanes.end() && pThis != nullptr) {
         pList->AddTail(reinterpret_cast<CObject*>(pThis));
     }
 }
