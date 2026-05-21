@@ -60,7 +60,7 @@ constexpr int kApproxRibbonCharPx = 6;
 std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
 std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
 std::unordered_map<UINT, int> g_galleryLastSelectedByID;
-std::unordered_map<const CMFCRibbonBaseElement*, bool> g_ribbonElementEnabled;
+std::unordered_map<const CMFCRibbonBaseElement*, bool> g_ribbonElementsEnabled;
 
 struct RibbonSliderState {
     int nMin = 0;
@@ -1461,7 +1461,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibb
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonGallery__UEAAXH_Z(CMFCRibbonGallery* pThis, int bEnable) {
     if (!pThis) return;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
-    g_ribbonElementEnabled[pThis] = (bEnable != FALSE);
+    g_ribbonElementsEnabled[pThis] = (bEnable != FALSE);
 }
 
 // Symbol: ?SelectItem@CMFCRibbonGallery@@QEAAXH@Z
@@ -1495,7 +1495,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonE
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonEdit__UEAAXH_Z(CMFCRibbonEdit* pThis, int bEnable) {
     if (!pThis) return;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
-    g_ribbonElementEnabled[pThis] = (bEnable != FALSE);
+    g_ribbonElementsEnabled[pThis] = (bEnable != FALSE);
 }
 
 // Symbol: ?GetRegularSize@CMFCRibbonSlider@@UEAA?AVCSize@@PEAVCDC@@@Z
