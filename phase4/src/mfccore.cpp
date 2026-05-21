@@ -1409,11 +1409,13 @@ const PropertyGridPropertyState* FindPropertyGridPropertyState(const CMFCPropert
 
 void RemovePropertyGridPropertyReferences(const CMFCPropertyGridProperty* pProp) {
     g_propertyGridPropertyStates.erase(pProp);
-    for (auto& [_, propertyState] : g_propertyGridPropertyStates) {
+    for (auto& [unusedPropertyKey, propertyState] : g_propertyGridPropertyStates) {
+        (void)unusedPropertyKey;
         auto& subItems = propertyState.subItems;
         subItems.erase(std::remove(subItems.begin(), subItems.end(), pProp), subItems.end());
     }
-    for (auto& [_, ctrlState] : g_propertyGridCtrlStates) {
+    for (auto& [unusedCtrlKey, ctrlState] : g_propertyGridCtrlStates) {
+        (void)unusedCtrlKey;
         auto& properties = ctrlState.properties;
         properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
     }
@@ -1438,7 +1440,8 @@ TasksPaneState& EnsureTasksPaneState(const CMFCTasksPane* pPane) {
 
 void RemoveTaskFromAllGroups(const CMFCTasksPaneTask* pTask) {
     g_tasksPaneTaskStates.erase(pTask);
-    for (auto& [_, paneState] : g_tasksPaneStates) {
+    for (auto& [unusedPaneKey, paneState] : g_tasksPaneStates) {
+        (void)unusedPaneKey;
         for (auto& group : paneState.groups) {
             auto& tasks = group.tasks;
             tasks.erase(
