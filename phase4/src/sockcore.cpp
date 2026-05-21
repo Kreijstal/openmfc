@@ -572,6 +572,7 @@ int CSocket::ProcessAuxQueue() {
     std::deque<AuxSocketMessage> pending;
     {
         std::lock_guard<std::mutex> lock(g_auxQueueMutex);
+        if (g_auxQueue.empty()) return TRUE;
         pending.swap(g_auxQueue);
     }
 
@@ -579,7 +580,8 @@ int CSocket::ProcessAuxQueue() {
         if (item.message == kSocketNotifyMessage) {
             CAsyncSocket::DoCallBack(item.socket, item.lParam);
         } else if (item.message == kSocketDeadMessage) {
-            CAsyncSocket* pSocket = CAsyncSocket::LookupHandle(item.socket, TRUE);
+            constexpr int kLookupDeadSocket = TRUE;
+            CAsyncSocket* pSocket = CAsyncSocket::LookupHandle(item.socket, kLookupDeadSocket);
             if (pSocket) pSocket->Close();
         }
     }
