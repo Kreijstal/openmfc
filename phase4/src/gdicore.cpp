@@ -2653,7 +2653,7 @@ IMPLEMENT_DYNCREATE(CImageList, CObject)
 
 #ifdef __GNUC__
 asm(".globl \"?classCImageList@CImageList@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCImageList@CImageList@@2UCRuntimeClass@@A\", _ZN10CImageList17classCImageListE\n");
+    ".set \"?classCImageList@CImageList@@2UCRuntimeClass@@A\", _ZN10CImageList15classCImageListE\n");
 #endif
 
 namespace {
