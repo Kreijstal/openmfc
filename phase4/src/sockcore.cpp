@@ -10,6 +10,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <cstring>
+#include <deque>
 #include <map>
 #include <mutex>
 
@@ -28,6 +29,17 @@ static WSADATA g_wsaData;
 // Simple socket handle map for LookupHandle/KillSocket/AttachHandle
 static std::map<SOCKET, CAsyncSocket*> g_socketMap;
 static std::mutex g_socketMapMutex;
+static constexpr UINT kSocketNotifyMessage = WM_USER + 0;
+static constexpr UINT kSocketDeadMessage = WM_USER + 1;
+
+struct AuxSocketMessage {
+    UINT message;
+    SOCKET socket;
+    long lParam;
+};
+
+static std::deque<AuxSocketMessage> g_auxQueue;
+static std::mutex g_auxQueueMutex;
 
 //=============================================================================
 // AfxSocketInit (existing public export - symbol already in thunks.cpp)
@@ -344,7 +356,34 @@ void CAsyncSocket::SetLastError(int nErrorCode) {
 }
 
 void CAsyncSocket::DoCallBack(SOCKET hSocket, long lParam) {
-    (void)hSocket; (void)lParam;
+    CAsyncSocket* pSocket = LookupHandle(hSocket, FALSE);
+    if (!pSocket) return;
+
+    const int nErrorCode = WSAGETSELECTERROR(lParam);
+    switch (WSAGETSELECTEVENT(lParam)) {
+    case FD_READ:
+        pSocket->OnReceive(nErrorCode);
+        break;
+    case FD_WRITE:
+        pSocket->OnSend(nErrorCode);
+        break;
+    case FD_OOB:
+        pSocket->OnOutOfBandData(nErrorCode);
+        break;
+    case FD_ACCEPT:
+        pSocket->OnAccept(nErrorCode);
+        break;
+    case FD_CONNECT:
+        pSocket->m_bConnected = (nErrorCode == 0);
+        pSocket->OnConnect(nErrorCode);
+        break;
+    case FD_CLOSE:
+        pSocket->m_bConnected = FALSE;
+        pSocket->OnClose(nErrorCode);
+        break;
+    default:
+        break;
+    }
 }
 
 SOCKET CAsyncSocket::DetachHandle(SOCKET hSocket, int bDeadSocket) {
@@ -524,10 +563,32 @@ int CSocket::SendToHelper(const void* lpBuf, int nBufLen, const sockaddr* lpSock
     return ::sendto(m_hSocket, (const char*)lpBuf, nBufLen, nFlags, lpSockAddr, nSockAddrLen);
 }
 
-int CSocket::OnMessagePending() { return FALSE; }
-int CSocket::ProcessAuxQueue() { return TRUE; }
+int CSocket::OnMessagePending() {
+    ProcessAuxQueue();
+    return PumpMessages(0);
+}
+
+int CSocket::ProcessAuxQueue() {
+    std::deque<AuxSocketMessage> pending;
+    {
+        std::lock_guard<std::mutex> lock(g_auxQueueMutex);
+        pending.swap(g_auxQueue);
+    }
+
+    for (const auto& item : pending) {
+        if (item.message == kSocketNotifyMessage) {
+            CAsyncSocket::DoCallBack(item.socket, item.lParam);
+        } else if (item.message == kSocketDeadMessage) {
+            CAsyncSocket* pSocket = CAsyncSocket::LookupHandle(item.socket, TRUE);
+            if (pSocket) pSocket->Close();
+        }
+    }
+    return TRUE;
+}
+
 void CSocket::AuxQueueAdd(UINT message, SOCKET hSocket, long lParam) {
-    (void)message; (void)hSocket; (void)lParam;
+    std::lock_guard<std::mutex> lock(g_auxQueueMutex);
+    g_auxQueue.push_back({message, hSocket, lParam});
 }
 
 int CSocket::PumpMessages(UINT uStopFlag) {
@@ -623,9 +684,6 @@ int CSocketFile::Open(const wchar_t* lpszFileName, UINT nOpenFlags, CFileExcepti
 //=============================================================================
 // CSocketWnd C++ implementation
 //=============================================================================
-
-#define WM_SOCKET_NOTIFY  (WM_USER + 0)
-#define WM_SOCKET_DEAD    (WM_USER + 1)
 
 BEGIN_MESSAGE_MAP(CSocketWnd, CWnd)
 END_MESSAGE_MAP()
