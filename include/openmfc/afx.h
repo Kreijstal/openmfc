@@ -1501,10 +1501,8 @@ public:
     void InsertAt(INT_PTR nIndex, const wchar_t* newElement, INT_PTR nCount = 1);
     void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1);
     void InsertAt(INT_PTR nStartIndex, CStringArray* pNewArray);
-    virtual void Serialize(CArchive& ar) override;
-
-protected:
     void InsertEmpty(INT_PTR nIndex, INT_PTR nCount);
+    virtual void Serialize(CArchive& ar) override;
 };
 
 OPENMFC_DECLARE_LIST_WRAPPER(CObList, CObject*, CObject*, DECLARE_SERIAL)

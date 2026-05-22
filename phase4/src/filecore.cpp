@@ -154,7 +154,7 @@ struct CStringMapStringState {
             pair->value = value;
             CMapStringToString::CPair* raw = pair.get();
             if (previous) {
-                const_cast<CMapStringToString::CPair*>(previous)->pNextAssoc = raw;
+                previous->pNextAssoc = raw;
             }
             pairs.push_back(std::move(pair));
             previous = raw;
@@ -859,7 +859,7 @@ extern "C" void MS_ABI impl__InsertAt_CStringArray__QEAAX_JPEB_W0_Z(CStringArray
 // Symbol: ?InsertAt@CStringArray@@QEAAX_JPEBV1@@Z
 extern "C" void MS_ABI impl__InsertAt_CStringArray__QEAAX_JPEBV1__Z(CStringArray* pThis, long long nIndex, CStringArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
 // Symbol: ?InsertEmpty@CStringArray@@IEAAX_J0@Z
-extern "C" void MS_ABI impl__InsertEmpty_CStringArray__IEAAX_J0_Z(CStringArray* pThis, long long nIndex, long long nCount) { if (pThis) { struct CStringArrayAccessor : CStringArray { using CStringArray::InsertEmpty; }; static_cast<CStringArrayAccessor*>(pThis)->InsertEmpty(nIndex, nCount); } }
+extern "C" void MS_ABI impl__InsertEmpty_CStringArray__IEAAX_J0_Z(CStringArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->InsertEmpty(nIndex, nCount); }
 // Symbol: ?RemoveAt@CStringArray@@QEAAX_J0@Z
 extern "C" void MS_ABI impl__RemoveAt_CStringArray__QEAAX_J0_Z(CStringArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
 // Symbol: ?Serialize@CStringArray@@UEAAXAEAVCArchive@@@Z
