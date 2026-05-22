@@ -340,9 +340,16 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
     }
 
     if (!m_strFileName.IsEmpty()) {
-        _snwprintf(lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        int written = _snwprintf(
+            lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
     } else if (m_lOsError != -1) {
-        _snwprintf(lpszError, nMaxError, L"%ls (OS error %ld)", pszMessage, m_lOsError);
+        int written = _snwprintf(lpszError, nMaxError, L"%ls (OS error %ld)", pszMessage, m_lOsError);
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
     } else {
         wcsncpy(lpszError, pszMessage, nMaxError - 1);
         lpszError[nMaxError - 1] = L'\0';
@@ -490,7 +497,11 @@ int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT*
     }
 
     if (!m_strFileName.IsEmpty()) {
-        _snwprintf(lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        int written = _snwprintf(
+            lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
     } else {
         wcsncpy(lpszError, pszMessage, nMaxError - 1);
         lpszError[nMaxError - 1] = L'\0';

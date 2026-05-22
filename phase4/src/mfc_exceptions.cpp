@@ -173,11 +173,11 @@ void CException::AssertValid() const {
 
 void CFileException::Dump() const {
     wchar_t buffer[512];
-    const wchar_t* fileName = m_strFileName.IsEmpty() ? nullptr : static_cast<const wchar_t*>(m_strFileName);
-    if (fileName) {
+    if (!m_strFileName.IsEmpty()) {
         _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
                    L"CFileException[cause=%d, message=%ls, osError=%ld, file=%ls, autoDelete=%d]\n",
-                   m_cause, FileCauseText(m_cause), m_lOsError, fileName, m_bAutoDelete);
+                   m_cause, FileCauseText(m_cause), m_lOsError, static_cast<const wchar_t*>(m_strFileName),
+                   m_bAutoDelete);
     } else {
         _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
                    L"CFileException[cause=%d, message=%ls, osError=%ld, autoDelete=%d]\n",
@@ -200,11 +200,10 @@ void CFileException::AssertValid() const {
 
 void CArchiveException::Dump() const {
     wchar_t buffer[512];
-    const wchar_t* fileName = m_strFileName.IsEmpty() ? nullptr : static_cast<const wchar_t*>(m_strFileName);
-    if (fileName) {
+    if (!m_strFileName.IsEmpty()) {
         _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
                    L"CArchiveException[cause=%d, message=%ls, file=%ls, autoDelete=%d]\n",
-                   m_cause, ArchiveCauseText(m_cause), fileName, m_bAutoDelete);
+                   m_cause, ArchiveCauseText(m_cause), static_cast<const wchar_t*>(m_strFileName), m_bAutoDelete);
     } else {
         _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
                    L"CArchiveException[cause=%d, message=%ls, autoDelete=%d]\n",
