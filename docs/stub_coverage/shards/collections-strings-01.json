@@ -1,0 +1,438 @@
+{
+  "category": "collections_strings",
+  "id": "collections-strings-01",
+  "primary_files": [
+    "include/openmfc/afx.h",
+    "phase4/src/strcore.cpp",
+    "phase4/src/filecore.cpp"
+  ],
+  "symbol_count": 85,
+  "symbols": [
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 4139,
+      "symbol": "?DrawTextOnGlass@AFX_GLOBAL_DATA@@QEAAHPEAXPEAVCDC@@HHV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@KHK@Z"
+    },
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 4430,
+      "symbol": "?ExcludeTag@AFX_GLOBAL_DATA@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W0H@Z"
+    },
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 12221,
+      "symbol": "?RegisterWindowClass@AFX_GLOBAL_DATA@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z"
+    },
+    {
+      "class": "CD2DTextFormat",
+      "ordinal": 5430,
+      "symbol": "?GetFontFamilyName@CD2DTextFormat@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CD2DTextFormat",
+      "ordinal": 5696,
+      "symbol": "?GetLocaleName@CD2DTextFormat@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CD2DTextLayout",
+      "ordinal": 5431,
+      "symbol": "?GetFontFamilyName@CD2DTextLayout@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEAUDWRITE_TEXT_RANGE@@@Z"
+    },
+    {
+      "class": "CD2DTextLayout",
+      "ordinal": 5697,
+      "symbol": "?GetLocaleName@CD2DTextLayout@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEAUDWRITE_TEXT_RANGE@@@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3618,
+      "symbol": "?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3625,
+      "symbol": "?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3632,
+      "symbol": "?DDX_DHtml_SelectString@CDHtmlDialog@@IEAAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3633,
+      "symbol": "?DDX_DHtml_SelectString@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3634,
+      "symbol": "?DDX_DHtml_SelectValue@CDHtmlDialog@@IEAAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3635,
+      "symbol": "?DDX_DHtml_SelectValue@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CDataRecoveryHandler",
+      "ordinal": 3733,
+      "symbol": "?DeleteAutosavedFile@CDataRecoveryHandler@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CDataRecoveryHandler",
+      "ordinal": 4735,
+      "symbol": "?GenerateAutosaveFileName@CDataRecoveryHandler@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBV23@@Z"
+    },
+    {
+      "class": "CDataRecoveryHandler",
+      "ordinal": 5267,
+      "symbol": "?GetDocumentListName@CDataRecoveryHandler@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCDocument@@@Z"
+    },
+    {
+      "class": "CDataRecoveryHandler",
+      "ordinal": 5986,
+      "symbol": "?GetNormalDocumentTitle@CDataRecoveryHandler@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCDocument@@@Z"
+    },
+    {
+      "class": "CDataRecoveryHandler",
+      "ordinal": 6177,
+      "symbol": "?GetRecoveredDocumentTitle@CDataRecoveryHandler@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBV23@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 5426,
+      "symbol": "?GetFont@CDialogTemplate@@QEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAG@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 5427,
+      "symbol": "?GetFont@CDialogTemplate@@SAHPEBUDLGTEMPLATE@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAG@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1817,
+      "symbol": "?AddCheckButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1830,
+      "symbol": "?AddControlItem@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1849,
+      "symbol": "?AddEditBox@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1894,
+      "symbol": "?AddMenu@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1939,
+      "symbol": "?AddPushButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 1997,
+      "symbol": "?AddText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 5293,
+      "symbol": "?GetEditBoxText@CFileDialog@@QEAAJKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 13073,
+      "symbol": "?SetControlItemText@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 13074,
+      "symbol": "?SetControlLabel@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 13162,
+      "symbol": "?SetEditBoxText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFileDialog",
+      "ordinal": 13907,
+      "symbol": "?StartVisualGroup@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 5233,
+      "symbol": "?GetDisplayString@CFontHolder@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CFrameWnd",
+      "ordinal": 5917,
+      "symbol": "?GetMessageString@CFrameWnd@@UEBAXIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CHotKeyCtrl",
+      "ordinal": 5495,
+      "symbol": "?GetHotKeyName@CHotKeyCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CHotKeyCtrl",
+      "ordinal": 5648,
+      "symbol": "?GetKeyName@CHotKeyCtrl@@SA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IH@Z"
+    },
+    {
+      "class": "CListBox",
+      "ordinal": 6775,
+      "symbol": "?GetText@CListBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CListCtrl",
+      "ordinal": 5641,
+      "symbol": "?GetItemText@CListCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z"
+    },
+    {
+      "class": "CMenuTearOffManager",
+      "ordinal": 2537,
+      "symbol": "?Build@CMenuTearOffManager@@QEAAXIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMenuTearOffManager",
+      "ordinal": 11706,
+      "symbol": "?Parse@CMenuTearOffManager@@QEAAIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CPictureHolder",
+      "ordinal": 5234,
+      "symbol": "?GetDisplayString@CPictureHolder@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 5213,
+      "symbol": "?GetDeviceName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 5274,
+      "symbol": "?GetDriverName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 6099,
+      "symbol": "?GetPortName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4143,
+      "symbol": "?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z"
+    },
+    {
+      "class": "CRichEditCtrl",
+      "ordinal": 6667,
+      "symbol": "?GetSelText@CRichEditCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CRichEditCtrl",
+      "ordinal": 6787,
+      "symbol": "?GetTextRange@CRichEditCtrl@@QEBAHHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CSettingsStore",
+      "ordinal": 12044,
+      "symbol": "?Read@CSettingsStore@@UEAAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CStatusBarCtrl",
+      "ordinal": 6778,
+      "symbol": "?GetText@CStatusBarCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HPEAH@Z"
+    },
+    {
+      "class": "CStatusBarCtrl",
+      "ordinal": 7402,
+      "symbol": "?GetTipText@CStatusBarCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 2033,
+      "symbol": "?AddView@CTabView@@QEAAHPEAUCRuntimeClass@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HPEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 4431,
+      "symbol": "?ExcludeTag@CTagManager@@QEAAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11707,
+      "symbol": "?ParseColor@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAK@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11708,
+      "symbol": "?ParseColorHEX@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAK@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11710,
+      "symbol": "?ParseControlRenderer@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRenderer@@I@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11711,
+      "symbol": "?ParseControlRenderer@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRenderer@@PEB_W@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11712,
+      "symbol": "?ParseControlRendererInfo@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRendererInfo@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11716,
+      "symbol": "?ParseFont@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAUtagLOGFONTW@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11723,
+      "symbol": "?ParsePoint@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCPoint@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11724,
+      "symbol": "?ParseRect@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11725,
+      "symbol": "?ParseSize@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCSize@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11726,
+      "symbol": "?ParseString@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@0AEAVCStringArray@@HH@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11727,
+      "symbol": "?ParseToolBarImages@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolBarImages@@I@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11728,
+      "symbol": "?ParseToolBarImages@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolBarImages@@PEB_W@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 11729,
+      "symbol": "?ParseToolTipInfo@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolTipInfo@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12078,
+      "symbol": "?ReadBool@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAH@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12082,
+      "symbol": "?ReadColor@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAK@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12084,
+      "symbol": "?ReadControlRenderer@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRenderer@@I@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12085,
+      "symbol": "?ReadControlRenderer@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRenderer@@PEB_W@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12086,
+      "symbol": "?ReadControlRendererInfo@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCControlRendererInfo@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12088,
+      "symbol": "?ReadFont@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAUtagLOGFONTW@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12093,
+      "symbol": "?ReadInt@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAH@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12103,
+      "symbol": "?ReadPoint@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCPoint@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12104,
+      "symbol": "?ReadRect@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12105,
+      "symbol": "?ReadSize@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCSize@@@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12113,
+      "symbol": "?ReadToolBarImages@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolBarImages@@I@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12114,
+      "symbol": "?ReadToolBarImages@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolBarImages@@PEB_W@Z"
+    },
+    {
+      "class": "CTagManager",
+      "ordinal": 12115,
+      "symbol": "?ReadToolTipInfo@CTagManager@@QEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCMFCToolTipInfo@@@Z"
+    },
+    {
+      "class": "CToolBarCtrl",
+      "ordinal": 6719,
+      "symbol": "?GetString@CToolBarCtrl@@QEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CTooltipManager",
+      "ordinal": 13711,
+      "symbol": "?SetTooltipText@CTooltipManager@@SAXPEAUtagTOOLINFOW@@PEAVCToolTipCtrl@@IV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z"
+    },
+    {
+      "class": "CTreeCtrl",
+      "ordinal": 5643,
+      "symbol": "?GetItemText@CTreeCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAU_TREEITEM@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3775,
+      "symbol": "?DelRegTree@CWinApp@@QEAAJPEAUHKEY__@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCAtlTransactionManager@4@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3995,
+      "symbol": "?DoPromptFileName@CWinApp@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IKHPEAVCDocTemplate@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12222,
+      "symbol": "?RegisterWithRestartManager@CWinApp@@UEAAJHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6646,
+      "symbol": "?GetSectionString@CWinAppEx@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W00@Z"
+    },
+    {
+      "class": "CWnd",
+      "ordinal": 5245,
+      "symbol": "?GetDlgItemTextW@CWnd@@QEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    }
+  ],
+  "title": "collections_strings shard 01/01: CTagManager, CFileDialog, CDHtmlDialog"
+}

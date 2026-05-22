@@ -1,0 +1,1012 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-01",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 3224,
+      "symbol": "?CreateDitherBitmap@AFX_GLOBAL_DATA@@IEAAPEAUHBITMAP__@@PEAUHDC__@@@Z"
+    },
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 4115,
+      "symbol": "?DrawParentBackground@AFX_GLOBAL_DATA@@QEAAHPEAVCWnd@@PEAVCDC@@PEAUtagRECT@@@Z"
+    },
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 13363,
+      "symbol": "?SetMenuFont@AFX_GLOBAL_DATA@@QEAAHPEAUtagLOGFONTW@@H@Z"
+    },
+    {
+      "class": "AFX_GLOBAL_DATA",
+      "ordinal": 14131,
+      "symbol": "?UpdateFonts@AFX_GLOBAL_DATA@@QEAAXXZ"
+    },
+    {
+      "class": "CArchivePropExchange",
+      "ordinal": 4410,
+      "symbol": "?ExchangeFontProp@CArchivePropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CAsyncPropExchange",
+      "ordinal": 4411,
+      "symbol": "?ExchangeFontProp@CAsyncPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 10722,
+      "symbol": "?OnPaint@CAutoHideDockSite@@IEAAXXZ"
+    },
+    {
+      "class": "CBitmap",
+      "ordinal": 6247,
+      "symbol": "?GetRuntimeClass@CBitmap@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBitmap",
+      "ordinal": 6810,
+      "symbol": "?GetThisClass@CBitmap@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 2500,
+      "symbol": "?AutoLoad@CBitmapButton@@QEAAHIPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 4077,
+      "symbol": "?DrawItem@CBitmapButton@@MEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 6248,
+      "symbol": "?GetRuntimeClass@CBitmapButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 6811,
+      "symbol": "?GetThisClass@CBitmapButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 8087,
+      "symbol": "?LoadBitmaps@CBitmapButton@@QEAAHPEB_W000@Z"
+    },
+    {
+      "class": "CBitmapButton",
+      "ordinal": 13871,
+      "symbol": "?SizeToContent@CBitmapButton@@QEAAXXZ"
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "ordinal": 2462,
+      "symbol": "?Attach@CBitmapRenderTarget@@QEAAXPEAUID2D1BitmapRenderTarget@@@Z"
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "ordinal": 3814,
+      "symbol": "?Detach@CBitmapRenderTarget@@QEAAPEAUID2D1BitmapRenderTarget@@XZ"
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "ordinal": 4932,
+      "symbol": "?GetBitmap@CBitmapRenderTarget@@QEAAHAEAVCD2DBitmap@@@Z"
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "ordinal": 6249,
+      "symbol": "?GetRuntimeClass@CBitmapRenderTarget@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "ordinal": 6812,
+      "symbol": "?GetThisClass@CBitmapRenderTarget@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBrush",
+      "ordinal": 6250,
+      "symbol": "?GetRuntimeClass@CBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CBrush",
+      "ordinal": 6813,
+      "symbol": "?GetThisClass@CBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CChevronOwnerDrawMenu",
+      "ordinal": 4080,
+      "symbol": "?DrawItem@CChevronOwnerDrawMenu@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CChevronOwnerDrawMenu",
+      "ordinal": 8438,
+      "symbol": "?MeasureItem@CChevronOwnerDrawMenu@@UEAAXPEAUtagMEASUREITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CClientDC",
+      "ordinal": 6255,
+      "symbol": "?GetRuntimeClass@CClientDC@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CClientDC",
+      "ordinal": 6818,
+      "symbol": "?GetThisClass@CClientDC@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CCommonDialog",
+      "ordinal": 10724,
+      "symbol": "?OnPaint@CCommonDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 3972,
+      "symbol": "?DoPaint@CControlBar@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 4038,
+      "symbol": "?DrawBorders@CControlBar@@UEAAXPEAVCDC@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 4068,
+      "symbol": "?DrawGripper@CControlBar@@UEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 4110,
+      "symbol": "?DrawNCGripper@CControlBar@@UEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 4114,
+      "symbol": "?DrawNonThemedGripper@CControlBar@@UEAAHPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 4144,
+      "symbol": "?DrawThemedGripper@CControlBar@@UEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CControlBar",
+      "ordinal": 10725,
+      "symbol": "?OnPaint@CControlBar@@QEAAXXZ"
+    },
+    {
+      "class": "CCtrlView",
+      "ordinal": 9218,
+      "symbol": "?OnDraw@CCtrlView@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CCtrlView",
+      "ordinal": 10726,
+      "symbol": "?OnPaint@CCtrlView@@IEAAXXZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 2463,
+      "symbol": "?Attach@CD2DBitmap@@QEAAXPEAUID2D1Bitmap@@@Z"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 2878,
+      "symbol": "?CommonInit@CD2DBitmap@@IEAAXXZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3034,
+      "symbol": "?CopyFromBitmap@CD2DBitmap@@QEAAJPEBV1@PEBVCD2DPointU@@PEBVCD2DRectU@@@Z"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3035,
+      "symbol": "?CopyFromMemory@CD2DBitmap@@QEAAJPEBXIPEBVCD2DRectU@@@Z"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3036,
+      "symbol": "?CopyFromRenderTarget@CD2DBitmap@@QEAAJPEBVCRenderTarget@@PEBVCD2DPointU@@PEBVCD2DRectU@@@Z"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3061,
+      "symbol": "?Create@CD2DBitmap@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3777,
+      "symbol": "?Destroy@CD2DBitmap@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 3815,
+      "symbol": "?Detach@CD2DBitmap@@QEAAPEAUID2D1Bitmap@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 5269,
+      "symbol": "?GetDPI@CD2DBitmap@@QEBA?AVCD2DSizeF@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 6093,
+      "symbol": "?GetPixelFormat@CD2DBitmap@@QEBA?AUD2D1_PIXEL_FORMAT@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 6095,
+      "symbol": "?GetPixelSize@CD2DBitmap@@QEBA?AVCD2DSizeU@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 6264,
+      "symbol": "?GetRuntimeClass@CD2DBitmap@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 6676,
+      "symbol": "?GetSize@CD2DBitmap@@QEBA?AVCD2DSizeF@@XZ"
+    },
+    {
+      "class": "CD2DBitmap",
+      "ordinal": 6827,
+      "symbol": "?GetThisClass@CD2DBitmap@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 2464,
+      "symbol": "?Attach@CD2DBitmapBrush@@QEAAXPEAUID2D1BitmapBrush@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 2879,
+      "symbol": "?CommonInit@CD2DBitmapBrush@@IEAAXPEAUD2D1_BITMAP_BRUSH_PROPERTIES@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 3062,
+      "symbol": "?Create@CD2DBitmapBrush@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 3778,
+      "symbol": "?Destroy@CD2DBitmapBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 3816,
+      "symbol": "?Detach@CD2DBitmapBrush@@QEAAPEAUID2D1BitmapBrush@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 5352,
+      "symbol": "?GetExtendModeX@CD2DBitmapBrush@@QEBA?AW4D2D1_EXTEND_MODE@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 5353,
+      "symbol": "?GetExtendModeY@CD2DBitmapBrush@@QEBA?AW4D2D1_EXTEND_MODE@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 5589,
+      "symbol": "?GetInterpolationMode@CD2DBitmapBrush@@QEBA?AW4D2D1_BITMAP_INTERPOLATION_MODE@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 6265,
+      "symbol": "?GetRuntimeClass@CD2DBitmapBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 6828,
+      "symbol": "?GetThisClass@CD2DBitmapBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 12958,
+      "symbol": "?SetBitmap@CD2DBitmapBrush@@QEAAXPEAVCD2DBitmap@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13178,
+      "symbol": "?SetExtendModeX@CD2DBitmapBrush@@QEAAXW4D2D1_EXTEND_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13179,
+      "symbol": "?SetExtendModeY@CD2DBitmapBrush@@QEAAXW4D2D1_EXTEND_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13295,
+      "symbol": "?SetInterpolationMode@CD2DBitmapBrush@@QEAAXW4D2D1_BITMAP_INTERPOLATION_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 2465,
+      "symbol": "?Attach@CD2DBrush@@QEAAXPEAUID2D1Brush@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 3779,
+      "symbol": "?Destroy@CD2DBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 3817,
+      "symbol": "?Detach@CD2DBrush@@QEAAPEAUID2D1Brush@@XZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 6011,
+      "symbol": "?GetOpacity@CD2DBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 6266,
+      "symbol": "?GetRuntimeClass@CD2DBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 6829,
+      "symbol": "?GetThisClass@CD2DBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 7433,
+      "symbol": "?GetTransform@CD2DBrush@@QEBAXPEAUD2D_MATRIX_3X2_F@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 13404,
+      "symbol": "?SetOpacity@CD2DBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 13713,
+      "symbol": "?SetTransform@CD2DBrush@@QEAAXPEBUD2D_MATRIX_3X2_F@@@Z"
+    },
+    {
+      "class": "CD2DBrushProperties",
+      "ordinal": 2880,
+      "symbol": "?CommonInit@CD2DBrushProperties@@IEAAXXZ"
+    },
+    {
+      "class": "CD2DGradientBrush",
+      "ordinal": 3781,
+      "symbol": "?Destroy@CD2DGradientBrush@@MEAAXXZ"
+    },
+    {
+      "class": "CD2DGradientBrush",
+      "ordinal": 6268,
+      "symbol": "?GetRuntimeClass@CD2DGradientBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DGradientBrush",
+      "ordinal": 6831,
+      "symbol": "?GetThisClass@CD2DGradientBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 2468,
+      "symbol": "?Attach@CD2DLinearGradientBrush@@QEAAXPEAUID2D1LinearGradientBrush@@@Z"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 3064,
+      "symbol": "?Create@CD2DLinearGradientBrush@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 3783,
+      "symbol": "?Destroy@CD2DLinearGradientBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 3820,
+      "symbol": "?Detach@CD2DLinearGradientBrush@@QEAAPEAUID2D1LinearGradientBrush@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 5317,
+      "symbol": "?GetEndPoint@CD2DLinearGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 6270,
+      "symbol": "?GetRuntimeClass@CD2DLinearGradientBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 6702,
+      "symbol": "?GetStartPoint@CD2DLinearGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 6833,
+      "symbol": "?GetThisClass@CD2DLinearGradientBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 13175,
+      "symbol": "?SetEndPoint@CD2DLinearGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "ordinal": 13608,
+      "symbol": "?SetStartPoint@CD2DLinearGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 2471,
+      "symbol": "?Attach@CD2DRadialGradientBrush@@QEAAXPEAUID2D1RadialGradientBrush@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 3067,
+      "symbol": "?Create@CD2DRadialGradientBrush@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 3786,
+      "symbol": "?Destroy@CD2DRadialGradientBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 3823,
+      "symbol": "?Detach@CD2DRadialGradientBrush@@QEAAPEAUID2D1RadialGradientBrush@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 5003,
+      "symbol": "?GetCenter@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 5454,
+      "symbol": "?GetGradientOriginOffset@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6156,
+      "symbol": "?GetRadiusX@CD2DRadialGradientBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6157,
+      "symbol": "?GetRadiusY@CD2DRadialGradientBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6273,
+      "symbol": "?GetRuntimeClass@CD2DRadialGradientBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6836,
+      "symbol": "?GetThisClass@CD2DRadialGradientBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13004,
+      "symbol": "?SetCenter@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13221,
+      "symbol": "?SetGradientOriginOffset@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13525,
+      "symbol": "?SetRadiusX@CD2DRadialGradientBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13526,
+      "symbol": "?SetRadiusY@CD2DRadialGradientBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 2472,
+      "symbol": "?Attach@CD2DSolidColorBrush@@QEAAXPEAUID2D1SolidColorBrush@@@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3068,
+      "symbol": "?Create@CD2DSolidColorBrush@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3787,
+      "symbol": "?Destroy@CD2DSolidColorBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3824,
+      "symbol": "?Detach@CD2DSolidColorBrush@@QEAAPEAUID2D1SolidColorBrush@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 5049,
+      "symbol": "?GetColor@CD2DSolidColorBrush@@QEBA?AU_D3DCOLORVALUE@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 6275,
+      "symbol": "?GetRuntimeClass@CD2DSolidColorBrush@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 6838,
+      "symbol": "?GetThisClass@CD2DSolidColorBrush@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 13034,
+      "symbol": "?SetColor@CD2DSolidColorBrush@@QEAAXU_D3DCOLORVALUE@@@Z"
+    },
+    {
+      "class": "CD2DTextLayout",
+      "ordinal": 13211,
+      "symbol": "?SetFontFamilyName@CD2DTextLayout@@QEAAHPEB_WUDWRITE_TEXT_RANGE@@@Z"
+    },
+    {
+      "class": "CDC",
+      "ordinal": 6282,
+      "symbol": "?GetRuntimeClass@CDC@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CDC",
+      "ordinal": 6845,
+      "symbol": "?GetThisClass@CDC@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 5436,
+      "symbol": "?GetFontSizeField@CDialogTemplate@@KAPEAEPEBUDLGTEMPLATE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 7584,
+      "symbol": "?HasFont@CDialogTemplate@@QEBAHXZ"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 13204,
+      "symbol": "?SetFont@CDialogTemplate@@QEAAHPEB_WG@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 13630,
+      "symbol": "?SetSystemFont@CDialogTemplate@@QEAAHG@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 3973,
+      "symbol": "?DoPaint@CDockBar@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10632,
+      "symbol": "?OnNcPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10729,
+      "symbol": "?OnPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockContext",
+      "ordinal": 4061,
+      "symbol": "?DrawFocusRect@CDockContext@@QEAAXH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3179,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@AEBVCSize@@PEAPEAX@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3180,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@PEAU2@K@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4033,
+      "symbol": "?DrawAlpha@CDrawingManager@@QEAAXPEAVCDC@@AEBVCRect@@01@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4056,
+      "symbol": "?DrawEllipse@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4067,
+      "symbol": "?DrawGradientRing@CDrawingManager@@QEAAHVCRect@@KKKHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4099,
+      "symbol": "?DrawLine@CDrawingManager@@QEAAXHHHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4101,
+      "symbol": "?DrawLineA@CDrawingManager@@QEAAXNNNNK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4120,
+      "symbol": "?DrawRect@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4125,
+      "symbol": "?DrawRotated@CDrawingManager@@QEAAXVCRect@@AEAVCDC@@H@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4132,
+      "symbol": "?DrawShadow@CDrawingManager@@QEAAHVCRect@@HHHPEAVCBitmap@@1KH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4469,
+      "symbol": "?Fill4ColorsGradient@CDrawingManager@@QEAAXVCRect@@KKKKHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4471,
+      "symbol": "?FillAlpha@CDrawingManager@@QEAAXAEBVCRect@@E@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4483,
+      "symbol": "?FillGradient@CDrawingManager@@QEAAXVCRect@@KKHHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4484,
+      "symbol": "?FillGradient2@CDrawingManager@@QEAAXVCRect@@KKH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7559,
+      "symbol": "?GrayRect@CDrawingManager@@QEAAHVCRect@@HKK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7615,
+      "symbol": "?HighlightRect@CDrawingManager@@QEAAHVCRect@@HKHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7643,
+      "symbol": "?HLStoRGB_ONE@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7644,
+      "symbol": "?HLStoRGB_TWO@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7645,
+      "symbol": "?HSVtoRGB@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7652,
+      "symbol": "?HueToRGB@CDrawingManager@@SAEMMM@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7653,
+      "symbol": "?HuetoRGB@CDrawingManager@@SANNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 8462,
+      "symbol": "?MirrorRect@CDrawingManager@@QEAAXVCRect@@H@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11735,
+      "symbol": "?PixelAlpha@CDrawingManager@@SAKKH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11736,
+      "symbol": "?PixelAlpha@CDrawingManager@@SAKKKH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11737,
+      "symbol": "?PixelAlpha@CDrawingManager@@SAKKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11829,
+      "symbol": "?PrepareShadowMask@CDrawingManager@@SAPEAUHBITMAP__@@HKHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 12597,
+      "symbol": "?RGBtoHSL@CDrawingManager@@SAXKPEAN00@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 12598,
+      "symbol": "?RGBtoHSV@CDrawingManager@@SAXKPEAN00@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 13472,
+      "symbol": "?SetPixel@CDrawingManager@@SAXPEAKHHHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 13882,
+      "symbol": "?SmartMixColors@CDrawingManager@@SAKKKNHH@Z"
+    },
+    {
+      "class": "CFont",
+      "ordinal": 6313,
+      "symbol": "?GetRuntimeClass@CFont@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CFont",
+      "ordinal": 6876,
+      "symbol": "?GetThisClass@CFont@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 5429,
+      "symbol": "?GetFontDispatch@CFontHolder@@QEAAPEAUIFontDisp@@XZ"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 5432,
+      "symbol": "?GetFontHandle@CFontHolder@@QEAAPEAUHFONT__@@JJ@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 5433,
+      "symbol": "?GetFontHandle@CFontHolder@@QEAAPEAUHFONT__@@XZ"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 7708,
+      "symbol": "?InitializeFont@CFontHolder@@QEAAXPEBUtagFONTDESC@@PEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 12024,
+      "symbol": "?QueryTextMetrics@CFontHolder@@QEAAXPEAUtagTEXTMETRICW@@@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 12257,
+      "symbol": "?ReleaseFont@CFontHolder@@QEAAXXZ"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 12731,
+      "symbol": "?Select@CFontHolder@@QEAAPEAVCFont@@PEAVCDC@@JJ@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 13205,
+      "symbol": "?SetFont@CFontHolder@@QEAAXPEAUIFont@@@Z"
+    },
+    {
+      "class": "CFontHolder",
+      "ordinal": 13212,
+      "symbol": "?SetFontNotifySink@CFontHolder@@QEAAXPEAUIPropertyNotifySink@@@Z"
+    },
+    {
+      "class": "CGdiObject",
+      "ordinal": 3355,
+      "symbol": "?CreateObject@CGdiObject@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CGdiObject",
+      "ordinal": 6320,
+      "symbol": "?GetRuntimeClass@CGdiObject@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGdiObject",
+      "ordinal": 6883,
+      "symbol": "?GetThisClass@CGdiObject@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CHeaderCtrl",
+      "ordinal": 4082,
+      "symbol": "?DrawItem@CHeaderCtrl@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 10731,
+      "symbol": "?OnPaint@CHtmlEditView@@QEAAXXZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 9383,
+      "symbol": "?OnDrawIconicThumbnailOrLivePreview@CHtmlView@@UEAAXAEAVCDC@@VCRect@@VCSize@@HAEAH@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10732,
+      "symbol": "?OnPaint@CHtmlView@@IEAAXXZ"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 5023,
+      "symbol": "?GetClientBitmap@CMDITabProxyWnd@@QEAAPEAUHBITMAP__@@HHH@Z"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 11007,
+      "symbol": "?OnSendIconicLivePreviewBitmap@CMDITabProxyWnd@@IEAAHXZ"
+    },
+    {
+      "class": "CMenuImages",
+      "ordinal": 4019,
+      "symbol": "?Draw@CMenuImages@@SAXPEAVCDC@@W4IMAGES_IDS@1@AEBVCPoint@@W4IMAGE_STATE@1@AEBVCSize@@@Z"
+    },
+    {
+      "class": "CMenuImages",
+      "ordinal": 4020,
+      "symbol": "?Draw@CMenuImages@@SAXPEAVCDC@@W4IMAGES_IDS@1@AEBVCRect@@W4IMAGE_STATE@1@AEBVCSize@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 4136,
+      "symbol": "?DrawTextExW@CMetaFileDC@@UEAAHPEA_WHPEAUtagRECT@@IPEAUtagDRAWTEXTPARAMS@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 4141,
+      "symbol": "?DrawTextW@CMetaFileDC@@UEAAHPEB_WHPEAUtagRECT@@I@Z"
+    },
+    {
+      "class": "COutlookCustomizeButton",
+      "ordinal": 9269,
+      "symbol": "?OnDraw@COutlookCustomizeButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CPaintDC",
+      "ordinal": 6541,
+      "symbol": "?GetRuntimeClass@CPaintDC@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPaintDC",
+      "ordinal": 7104,
+      "symbol": "?GetThisClass@CPaintDC@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPalette",
+      "ordinal": 6542,
+      "symbol": "?GetRuntimeClass@CPalette@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPalette",
+      "ordinal": 7105,
+      "symbol": "?GetThisClass@CPalette@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPaneTrackingWnd",
+      "ordinal": 14320,
+      "symbol": "?OnPaint@CPaneTrackingWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPen",
+      "ordinal": 6549,
+      "symbol": "?GetRuntimeClass@CPen@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPen",
+      "ordinal": 7112,
+      "symbol": "?GetThisClass@CPen@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPictureHolder",
+      "ordinal": 3283,
+      "symbol": "?CreateFromBitmap@CPictureHolder@@QEAAHI@Z"
+    },
+    {
+      "class": "CPictureHolder",
+      "ordinal": 3284,
+      "symbol": "?CreateFromBitmap@CPictureHolder@@QEAAHPEAUHBITMAP__@@PEAUHPALETTE__@@H@Z"
+    },
+    {
+      "class": "CPictureHolder",
+      "ordinal": 3285,
+      "symbol": "?CreateFromBitmap@CPictureHolder@@QEAAHPEAVCBitmap@@PEAVCPalette@@H@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 2788,
+      "symbol": "?ClipToPage@CPreviewDC@@QEAAXXZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 2918,
+      "symbol": "?ComputeDeltas@CPreviewDC@@IEAA?AVCSize@@AEAHPEB_WAEAIHIPEAHHPEA_W30@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 4137,
+      "symbol": "?DrawTextExW@CPreviewDC@@UEAAHPEA_WHPEAUtagRECT@@IPEAUtagDRAWTEXTPARAMS@@@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 4142,
+      "symbol": "?DrawTextW@CPreviewDC@@UEAAHPEB_WHPEAUtagRECT@@I@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 4403,
+      "symbol": "?Escape@CPreviewDC@@UEAAHHHPEBDPEAX@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 4465,
+      "symbol": "?ExtTextOutW@CPreviewDC@@UEAAHHHIPEBUtagRECT@@PEB_WIPEAH@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 6550,
+      "symbol": "?GetRuntimeClass@CPreviewDC@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 7113,
+      "symbol": "?GetThisClass@CPreviewDC@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 7560,
+      "symbol": "?GrayStringW@CPreviewDC@@UEAAHPEAVCBrush@@P6AHPEAUHDC__@@_JH@Z2HHHHH@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 8457,
+      "symbol": "?MirrorAttributes@CPreviewDC@@IEAAXXZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 8460,
+      "symbol": "?MirrorFont@CPreviewDC@@IEAAXXZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 8461,
+      "symbol": "?MirrorMappingMode@CPreviewDC@@IEAAXH@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 8464,
+      "symbol": "?MirrorViewportOrg@CPreviewDC@@IEAAXXZ"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 8574,
+      "symbol": "?OffsetViewportOrg@CPreviewDC@@UEAA?AVCPoint@@HH@Z"
+    },
+    {
+      "class": "CPreviewDC",
+      "ordinal": 11906,
+      "symbol": "?PrinterDPtoScreenDP@CPreviewDC@@QEBAXPEAUtagPOINT@@@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 01/02: CDrawingManager, CPreviewDC, CD2DBitmap"
+}

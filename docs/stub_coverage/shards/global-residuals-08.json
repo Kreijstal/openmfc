@@ -1,0 +1,1013 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-08",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 3603,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3604,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3605,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3636,
+      "symbol": "?DDX_FieldCBIndex@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3637,
+      "symbol": "?DDX_FieldCBString@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3638,
+      "symbol": "?DDX_FieldCBStringExact@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3639,
+      "symbol": "?DDX_FieldCheck@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3640,
+      "symbol": "?DDX_FieldLBIndex@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3641,
+      "symbol": "?DDX_FieldLBString@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3642,
+      "symbol": "?DDX_FieldLBStringExact@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3643,
+      "symbol": "?DDX_FieldRadio@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3644,
+      "symbol": "?DDX_FieldScroll@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3645,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAEPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3646,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3647,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAIPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3648,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAJPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3649,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAKPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3650,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAMPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3651,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEANPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3652,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3653,
+      "symbol": "?DDX_FieldText@@YAXPEAVCDataExchange@@HPEA_WHPEAVCRecordset@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3654,
+      "symbol": "?DDX_IPAddress@@YAXPEAVCDataExchange@@HAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3655,
+      "symbol": "?DDX_LBIndex@@YAXPEAVCDataExchange@@HAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3656,
+      "symbol": "?DDX_LBString@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3657,
+      "symbol": "?DDX_LBStringExact@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3658,
+      "symbol": "?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAU_FILETIME@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3659,
+      "symbol": "?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3660,
+      "symbol": "?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3661,
+      "symbol": "?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3662,
+      "symbol": "?DDX_OCBool@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3663,
+      "symbol": "?DDX_OCBoolRO@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3664,
+      "symbol": "?DDX_OCColor@@YAXPEAVCDataExchange@@HJAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3665,
+      "symbol": "?DDX_OCColorRO@@YAXPEAVCDataExchange@@HJAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3666,
+      "symbol": "?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3667,
+      "symbol": "?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3668,
+      "symbol": "?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3669,
+      "symbol": "?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3670,
+      "symbol": "?DDX_OCInt@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3671,
+      "symbol": "?DDX_OCInt@@YAXPEAVCDataExchange@@HJAEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3672,
+      "symbol": "?DDX_OCIntRO@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3673,
+      "symbol": "?DDX_OCIntRO@@YAXPEAVCDataExchange@@HJAEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3674,
+      "symbol": "?DDX_OCShort@@YAXPEAVCDataExchange@@HJAEAF@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3675,
+      "symbol": "?DDX_OCShortRO@@YAXPEAVCDataExchange@@HJAEAF@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3676,
+      "symbol": "?DDX_OCText@@YAXPEAVCDataExchange@@HJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3677,
+      "symbol": "?DDX_OCTextRO@@YAXPEAVCDataExchange@@HJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3678,
+      "symbol": "?DDX_Radio@@YAXPEAVCDataExchange@@HAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3679,
+      "symbol": "?DDX_Scroll@@YAXPEAVCDataExchange@@HAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3680,
+      "symbol": "?DDX_Slider@@YAXPEAVCDataExchange@@HAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3681,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3682,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEA_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3683,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3684,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAF@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3685,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3686,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAI@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3687,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3688,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3689,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3690,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3691,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAU_FILETIME@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3692,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3693,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDB_NUMERIC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3694,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3695,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDBTIME@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3696,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDEC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3697,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3698,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAVCOleCurrency@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3699,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3700,
+      "symbol": "?DDX_Text@@YAXPEAVCDataExchange@@HPEA_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3704,
+      "symbol": "?Deactivate@XPropertyPage@COlePropertyPage@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 3706,
+      "symbol": "?DeactivateAndUndo@XOleIPSite@COleClientItem@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 3707,
+      "symbol": "?DeactivateAndUndo@XOleIPSite@COleControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 3726,
+      "symbol": "?Delete@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHHH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3727,
+      "symbol": "?Delete@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHHH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3757,
+      "symbol": "?DeleteObject@XRichEditOleCallback@CRichEditView@@UEAAJPEAUIOleObject@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3852,
+      "symbol": "?DidEvent@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3855,
+      "symbol": "?DiscardUndoState@XOleIPSite@COleClientItem@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 3856,
+      "symbol": "?DiscardUndoState@XOleIPSite@COleControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 3990,
+      "symbol": "?DoPreview@XPreviewHandler@CDocument@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4007,
+      "symbol": "?DoVerb@XOleObject@CDocObjectServer@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4008,
+      "symbol": "?DoVerb@XOleObject@COleControl@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4009,
+      "symbol": "?DoVerb@XOleObject@COleServerDoc@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4010,
+      "symbol": "?DoVerb@XOleObject@COleServerItem@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4015,
+      "symbol": "?DragEnter@XDropTarget@COleDropTarget@@UEAAJPEAUIDataObject@@KU_POINTL@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4017,
+      "symbol": "?DragLeave@XDropTarget@COleDropTarget@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4018,
+      "symbol": "?DragOver@XDropTarget@COleDropTarget@@UEAAJKU_POINTL@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4024,
+      "symbol": "?Draw@CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@QEAAXPEAVCDC@@VCRect@@HE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4028,
+      "symbol": "?Draw@XViewObject@COleControl@@UEAAJKJPEAXPEAUtagDVTARGETDEVICE@@PEAUHDC__@@2PEBU_RECTL@@3P6AH_K@Z4@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4147,
+      "symbol": "?DrawY@CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@QEAAXPEAVCDC@@VCRect@@VCSize@@HE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4148,
+      "symbol": "?Drop@XDropTarget@COleDropTarget@@UEAAJPEAUIDataObject@@KU_POINTL@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4162,
+      "symbol": "?DUnadvise@XDataObject@COleControl@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4163,
+      "symbol": "?DUnadvise@XDataObject@COleDataSource@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4164,
+      "symbol": "?DUnadvise@XDataObject@COleServerDoc@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4165,
+      "symbol": "?DUnadvise@XDataObject@COleServerItem@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4177,
+      "symbol": "?EditProperty@XPropertyPage@COlePropertyPage@@UEAAJJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4181,
+      "symbol": "?Empty@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4182,
+      "symbol": "?Empty@?$CSimpleStringT@D$00@ATL@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4186,
+      "symbol": "?Empty@XInfoError@CMFCRibbonInfo@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4278,
+      "symbol": "?EnableModeless@XDocHostUIHandler@CHtmlControlSite@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4279,
+      "symbol": "?EnableModeless@XOleInPlaceActiveObject@COleControl@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4280,
+      "symbol": "?EnableModeless@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4281,
+      "symbol": "?EnableModeless@XOleInPlaceFrame@COleFrameHook@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4282,
+      "symbol": "?EnableModeless@XOleIPFrame@COleControlContainer@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4369,
+      "symbol": "?EnumAdvise@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4370,
+      "symbol": "?EnumAdvise@XOleObject@COleControl@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4371,
+      "symbol": "?EnumAdvise@XOleObject@COleServerDoc@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4372,
+      "symbol": "?EnumAdvise@XOleObject@COleServerItem@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4373,
+      "symbol": "?EnumCache@XOleCache@COleControl@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4376,
+      "symbol": "?EnumConnections@XConnPt@CConnectionPoint@@UEAAJPEAPEAUIEnumConnections@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4378,
+      "symbol": "?EnumDAdvise@XDataObject@COleControl@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4379,
+      "symbol": "?EnumDAdvise@XDataObject@COleDataSource@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4380,
+      "symbol": "?EnumDAdvise@XDataObject@COleServerDoc@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4381,
+      "symbol": "?EnumDAdvise@XDataObject@COleServerItem@@UEAAJPEAPEAUIEnumSTATDATA@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4384,
+      "symbol": "?EnumFormatEtc@XDataObject@COleControl@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4385,
+      "symbol": "?EnumFormatEtc@XDataObject@COleDataSource@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4386,
+      "symbol": "?EnumFormatEtc@XDataObject@COleServerDoc@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4387,
+      "symbol": "?EnumFormatEtc@XDataObject@COleServerItem@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4390,
+      "symbol": "?EnumObjects@XOleContainer@COleControlContainer@@UEAAJKPEAPEAUIEnumUnknown@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4391,
+      "symbol": "?EnumObjects@XOleItemContainer@COleLinkingDoc@@UEAAJKPEAPEAUIEnumUnknown@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4394,
+      "symbol": "?EnumVerbs@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIEnumOLEVERB@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4395,
+      "symbol": "?EnumVerbs@XOleObject@COleControl@@UEAAJPEAPEAUIEnumOLEVERB@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4396,
+      "symbol": "?EnumVerbs@XOleObject@COleServerDoc@@UEAAJPEAPEAUIEnumOLEVERB@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4397,
+      "symbol": "?EnumVerbs@XOleObject@COleServerItem@@UEAAJPEAPEAUIEnumOLEVERB@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4398,
+      "symbol": "?EnumViews@XOleDocument@CDocObjectServer@@UEAAJPEAPEAUIEnumOleDocumentViews@@PEAPEAUIOleDocumentView@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4432,
+      "symbol": "?Exec@XOleCommandTarget@CDocObjectServer@@UEAAJPEBU_GUID@@KKPEAUtagVARIANT@@1@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4433,
+      "symbol": "?Exec@XOleCommandTarget@COleFrameHook@@UEAAJPEBU_GUID@@KKPEAUtagVARIANT@@1@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4467,
+      "symbol": "?FailedToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4506,
+      "symbol": "?FilterDataObject@XDocHostUIHandler@CHtmlControlSite@@UEAAJPEAUIDataObject@@PEAPEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4510,
+      "symbol": "?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAH_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4511,
+      "symbol": "?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4512,
+      "symbol": "?Find@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAHDH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4513,
+      "symbol": "?Find@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAHPEBDH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4585,
+      "symbol": "?FindOneOf@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4586,
+      "symbol": "?FindOneOf@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAHPEBD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4624,
+      "symbol": "?FireEvent@XNotifyDBEvents@COleControlSite@@QEAAJKKQEAUtagDBNOTIFYREASON@@W4DSCSTATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4653,
+      "symbol": "?Fork@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4654,
+      "symbol": "?Fork@?$CSimpleStringT@D$00@ATL@@AEAAXH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4655,
+      "symbol": "?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4656,
+      "symbol": "?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4657,
+      "symbol": "?Format@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4658,
+      "symbol": "?Format@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4662,
+      "symbol": "?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4663,
+      "symbol": "?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4664,
+      "symbol": "?FormatMessage@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4665,
+      "symbol": "?FormatMessage@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4666,
+      "symbol": "?FormatMessageV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAPEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4667,
+      "symbol": "?FormatMessageV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAPEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4668,
+      "symbol": "?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4669,
+      "symbol": "?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4670,
+      "symbol": "?FormatMessageW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4671,
+      "symbol": "?FormatMessageW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4675,
+      "symbol": "?FormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4676,
+      "symbol": "?FormatV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4697,
+      "symbol": "?FreeExtra@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4698,
+      "symbol": "?FreeExtra@?$CSimpleStringT@D$00@ATL@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4716,
+      "symbol": "?Freeze@XViewObject@COleControl@@UEAAJKJPEAXPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4719,
+      "symbol": "?FreezeEvents@XOleControl@COleControl@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4734,
+      "symbol": "?g_pTopLevelFrame@@3PEAVCFrameWnd@@EA"
+    },
+    {
+      "class": null,
+      "ordinal": 4753,
+      "symbol": "?get_accChild@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4754,
+      "symbol": "?get_accChild@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4768,
+      "symbol": "?get_accChildCount@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4769,
+      "symbol": "?get_accChildCount@XAccessible@CWnd@@UEAAJPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4777,
+      "symbol": "?get_accDefaultAction@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4778,
+      "symbol": "?get_accDefaultAction@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4783,
+      "symbol": "?get_accDescription@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4784,
+      "symbol": "?get_accDescription@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4789,
+      "symbol": "?get_accFocus@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4790,
+      "symbol": "?get_accFocus@XAccessible@CWnd@@UEAAJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4795,
+      "symbol": "?get_accHelp@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4796,
+      "symbol": "?get_accHelp@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4801,
+      "symbol": "?get_accHelpTopic@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4802,
+      "symbol": "?get_accHelpTopic@XAccessible@CWnd@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4807,
+      "symbol": "?get_accKeyboardShortcut@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4808,
+      "symbol": "?get_accKeyboardShortcut@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4815,
+      "symbol": "?get_accName@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4816,
+      "symbol": "?get_accName@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4829,
+      "symbol": "?get_accParent@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4830,
+      "symbol": "?get_accParent@XAccessible@CWnd@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4838,
+      "symbol": "?get_accRole@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4839,
+      "symbol": "?get_accRole@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4844,
+      "symbol": "?get_accSelection@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4845,
+      "symbol": "?get_accSelection@XAccessible@CWnd@@UEAAJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4854,
+      "symbol": "?get_accState@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4855,
+      "symbol": "?get_accState@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4860,
+      "symbol": "?get_accValue@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4861,
+      "symbol": "?get_accValue@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4871,
+      "symbol": "?GetActivationPolicy@XPointerInactive@COleControl@@UEAAJPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4885,
+      "symbol": "?GetAdvise@XViewObject@COleControl@@UEAAJPEAK0PEAPEAUIAdviseSink@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4888,
+      "symbol": "?GetAllocLength@?$CSimpleStringT@_W$00@ATL@@QEBAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4889,
+      "symbol": "?GetAllocLength@?$CSimpleStringT@D$00@ATL@@QEBAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4913,
+      "symbol": "?GetAt@?$CSimpleStringT@_W$00@ATL@@QEBA_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4914,
+      "symbol": "?GetAt@?$CSimpleStringT@D$00@ATL@@QEBADH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4935,
+      "symbol": "?GetBorder@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4936,
+      "symbol": "?GetBorder@XOleIPFrame@COleControlContainer@@UEAAJPEAUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4946,
+      "symbol": "?GetBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4947,
+      "symbol": "?GetBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4948,
+      "symbol": "?GetBuffer@?$CSimpleStringT@D$00@ATL@@QEAAPEADH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4949,
+      "symbol": "?GetBuffer@?$CSimpleStringT@D$00@ATL@@QEAAPEADXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4954,
+      "symbol": "?GetBufferSetLength@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4955,
+      "symbol": "?GetBufferSetLength@?$CSimpleStringT@D$00@ATL@@QEAAPEADH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4980,
+      "symbol": "?GetCanonicalFormatEtc@XDataObject@COleControl@@UEAAJPEAUtagFORMATETC@@0@Z"
+    }
+  ],
+  "title": "global_residuals shard 08/12: global"
+}

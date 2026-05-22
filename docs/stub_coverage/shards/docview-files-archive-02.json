@@ -1,0 +1,73 @@
+{
+  "category": "docview_files_archive",
+  "id": "docview-files-archive-02",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/docview.cpp",
+    "phase4/src/filecore.cpp"
+  ],
+  "symbol_count": 12,
+  "symbols": [
+    {
+      "class": "CView",
+      "ordinal": 10681,
+      "symbol": "?OnNextPaneCmd@CView@@IEAAHI@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10767,
+      "symbol": "?OnPaint@CView@@IEAAXXZ"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10807,
+      "symbol": "?OnPrepareDC@CView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10835,
+      "symbol": "?OnPrint@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10846,
+      "symbol": "?OnPrintClient@CView@@IEAA_JPEAVCDC@@I@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10965,
+      "symbol": "?OnScroll@CView@@UEAAHIIH@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 10968,
+      "symbol": "?OnScrollBy@CView@@UEAAHVCSize@@H@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 11290,
+      "symbol": "?OnSplitCmd@CView@@IEAAHI@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 11510,
+      "symbol": "?OnUpdateNextPaneMenu@CView@@IEAAXPEAVCCmdUI@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 11538,
+      "symbol": "?OnUpdateSplitCmd@CView@@IEAAXPEAVCCmdUI@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 11770,
+      "symbol": "?PostNcDestroy@CView@@MEAAXXZ"
+    },
+    {
+      "class": "CView",
+      "ordinal": 11805,
+      "symbol": "?PreCreateWindow@CView@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    }
+  ],
+  "title": "docview_files_archive shard 02/02: CView"
+}

@@ -1,0 +1,1013 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-01",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 256,
+      "symbol": "??$CopyElements@VCOleVariant@@@@YAXPEAVCOleVariant@@PEBV0@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 257,
+      "symbol": "??$HashKey@AEBUtagVARIANT@@@@YAIAEBUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 258,
+      "symbol": "??$HashKey@PEB_W@@YAIPEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 259,
+      "symbol": "??$HashKey@PEBD@@YAIPEBD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 260,
+      "symbol": "??$HashKey@VCComBSTR@ATL@@@@YAIVCComBSTR@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 261,
+      "symbol": "??$SerializeElements@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@@YAXAEAVCArchive@@PEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 262,
+      "symbol": "??$SerializeElements@V?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@@YAXAEAVCArchive@@PEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 263,
+      "symbol": "??$SerializeElements@VCComBSTR@ATL@@@@YAXAEAVCArchive@@PEAVCComBSTR@ATL@@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 264,
+      "symbol": "??$SerializeElements@VCOleVariant@@@@YAXAEAVCArchive@@PEAVCOleVariant@@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 265,
+      "symbol": "??_U@YAPEAX_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 266,
+      "symbol": "??_V@YAXPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 267,
+      "symbol": "??0?$CSimpleStringT@_W$00@ATL@@QEAA@AEBV?$CSimpleStringT@_W$0A@@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 268,
+      "symbol": "??0?$CSimpleStringT@_W$00@ATL@@QEAA@AEBV01@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 269,
+      "symbol": "??0?$CSimpleStringT@_W$00@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 270,
+      "symbol": "??0?$CSimpleStringT@_W$00@ATL@@QEAA@PEB_WHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 271,
+      "symbol": "??0?$CSimpleStringT@_W$00@ATL@@QEAA@PEB_WPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 272,
+      "symbol": "??0?$CSimpleStringT@D$00@ATL@@QEAA@AEBV?$CSimpleStringT@D$0A@@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 273,
+      "symbol": "??0?$CSimpleStringT@D$00@ATL@@QEAA@AEBV01@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 274,
+      "symbol": "??0?$CSimpleStringT@D$00@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 275,
+      "symbol": "??0?$CSimpleStringT@D$00@ATL@@QEAA@PEBDHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 276,
+      "symbol": "??0?$CSimpleStringT@D$00@ATL@@QEAA@PEBDPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 277,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 278,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@AEBUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 279,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@AEBUtagVARIANT@@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 280,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@AEBV01@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 281,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@DH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 282,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 283,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 284,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEAE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 285,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 286,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 287,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEB_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 288,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEB_WHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 289,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEB_WPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 290,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 291,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBDH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 292,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBDHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 293,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBDPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 294,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 295,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEBEPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 296,
+      "symbol": "??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 297,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 298,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@AEBUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 299,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@AEBUtagVARIANT@@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 300,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@AEBV01@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 301,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@DH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 302,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEA_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 303,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 304,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 305,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 306,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 307,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEB_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 308,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEB_WHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 309,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEB_WPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 310,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBD@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 311,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBDH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 312,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBDHPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 313,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBDPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 314,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 315,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEBEPEAUIAtlStringMgr@1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 316,
+      "symbol": "??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 317,
+      "symbol": "??0_AFX_D2D_STATE@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 318,
+      "symbol": "??0_AFX_THREAD_STATE@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 319,
+      "symbol": "??0AFX_DDPDATA@@QEAA@PEAXHH0IPEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 320,
+      "symbol": "??0AFX_EXCEPTION_LINK@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 321,
+      "symbol": "??0AFX_GLOBAL_DATA@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 322,
+      "symbol": "??0AFX_MAINTAIN_STATE@@QEAA@PEAVAFX_MODULE_STATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 323,
+      "symbol": "??0AFX_MAINTAIN_STATE2@@QEAA@PEAVAFX_MODULE_STATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 324,
+      "symbol": "??0AFX_MODULE_STATE@@QEAA@HP6A_JPEAUHWND__@@I_K_J@ZKH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 325,
+      "symbol": "??0AFX_MODULE_THREAD_STATE@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 326,
+      "symbol": "??0CAnimationBaseObject@@QEAA@II_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 327,
+      "symbol": "??0CAnimationBaseObject@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 328,
+      "symbol": "??0CAnimationColor@@QEAA@KII_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 329,
+      "symbol": "??0CAnimationColor@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 330,
+      "symbol": "??0CAnimationController@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 331,
+      "symbol": "??0CAnimationGroup@@QEAA@PEAVCAnimationController@@I@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 332,
+      "symbol": "??0CAnimationPoint@@QEAA@AEBVCPoint@@II_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 333,
+      "symbol": "??0CAnimationPoint@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 334,
+      "symbol": "??0CAnimationRect@@QEAA@AEBVCPoint@@AEBVCSize@@II_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 335,
+      "symbol": "??0CAnimationRect@@QEAA@AEBVCRect@@II_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 336,
+      "symbol": "??0CAnimationRect@@QEAA@HHHHII_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 337,
+      "symbol": "??0CAnimationRect@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 338,
+      "symbol": "??0CAnimationSize@@QEAA@AEBVCSize@@II_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 339,
+      "symbol": "??0CAnimationSize@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 340,
+      "symbol": "??0CAnimationValue@@QEAA@NII_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 341,
+      "symbol": "??0CAnimationValue@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 343,
+      "symbol": "??0CAppDestinations@@QEAA@PEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 344,
+      "symbol": "??0CAppDestinations@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 345,
+      "symbol": "??0CArchive@@QEAA@PEAVCFile@@IHPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 346,
+      "symbol": "??0CArchivePropExchange@@QEAA@AEAVCArchive@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 347,
+      "symbol": "??0CArchiveStream@@QEAA@PEAVCArchive@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 348,
+      "symbol": "??0CAsyncMonikerFile@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 349,
+      "symbol": "??0CAsyncPropExchange@@QEAA@K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 351,
+      "symbol": "??0CAutoHideDockSite@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 353,
+      "symbol": "??0CBaseTabbedPane@@QEAA@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 354,
+      "symbol": "??0CBlobProperty@@QEAA@PEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 355,
+      "symbol": "??0CBrowserControlSite@@QEAA@PEAVCOleControlContainer@@PEAVCDHtmlDialog@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 356,
+      "symbol": "??0CBrush@@QEAA@HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 358,
+      "symbol": "??0CBrush@@QEAA@PEAVCBitmap@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 360,
+      "symbol": "??0CChevronOwnerDrawMenu@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 362,
+      "symbol": "??0CCmdTarget@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 363,
+      "symbol": "??0CCmdUI@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 364,
+      "symbol": "??0CColorDialog@@QEAA@KKPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 366,
+      "symbol": "??0CCommandManager@@IEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 367,
+      "symbol": "??0CConnectionPoint@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 370,
+      "symbol": "??0CControlBarInfo@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 371,
+      "symbol": "??0CControlCreationInfo@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 372,
+      "symbol": "??0CControlDataSource@COleControl@@QEAA@PEAV1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 373,
+      "symbol": "??0CControlFrameWnd@@QEAA@PEAVCOleControl@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 374,
+      "symbol": "??0CControlSiteFactoryMgr@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 375,
+      "symbol": "??0CCtrlView@@QEAA@PEB_WK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 376,
+      "symbol": "??0CD2DBitmap@@IEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 377,
+      "symbol": "??0CD2DBitmap@@QEAA@PEAVCRenderTarget@@IPEB_WVCD2DSizeU@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 378,
+      "symbol": "??0CD2DBitmap@@QEAA@PEAVCRenderTarget@@PEAUHBITMAP__@@VCD2DSizeU@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 379,
+      "symbol": "??0CD2DBitmap@@QEAA@PEAVCRenderTarget@@PEB_WVCD2DSizeU@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 380,
+      "symbol": "??0CD2DBitmapBrush@@QEAA@PEAVCRenderTarget@@IPEB_WVCD2DSizeU@@PEAUD2D1_BITMAP_BRUSH_PROPERTIES@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 381,
+      "symbol": "??0CD2DBitmapBrush@@QEAA@PEAVCRenderTarget@@PEAUD2D1_BITMAP_BRUSH_PROPERTIES@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 382,
+      "symbol": "??0CD2DBitmapBrush@@QEAA@PEAVCRenderTarget@@PEB_WVCD2DSizeU@@PEAUD2D1_BITMAP_BRUSH_PROPERTIES@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 383,
+      "symbol": "??0CD2DBrush@@IEAA@PEAVCRenderTarget@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 384,
+      "symbol": "??0CD2DBrushProperties@@QEAA@M@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 385,
+      "symbol": "??0CD2DBrushProperties@@QEAA@UD2D_MATRIX_3X2_F@@M@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 386,
+      "symbol": "??0CD2DBrushProperties@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 391,
+      "symbol": "??0CD2DGeometry@@QEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 392,
+      "symbol": "??0CD2DGeometrySink@@QEAA@AEAVCD2DPathGeometry@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 393,
+      "symbol": "??0CD2DGradientBrush@@QEAA@PEAVCRenderTarget@@PEBUD2D1_GRADIENT_STOP@@IW4D2D1_GAMMA@@W4D2D1_EXTEND_MODE@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 394,
+      "symbol": "??0CD2DLayer@@QEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 395,
+      "symbol": "??0CD2DLinearGradientBrush@@QEAA@PEAVCRenderTarget@@PEBUD2D1_GRADIENT_STOP@@IUD2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES@@W4D2D1_GAMMA@@W4D2D1_EXTEND_MODE@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 396,
+      "symbol": "??0CD2DMesh@@QEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 397,
+      "symbol": "??0CD2DPathGeometry@@QEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 402,
+      "symbol": "??0CD2DPointU@@QEAA@AEBUD2D_POINT_2U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 403,
+      "symbol": "??0CD2DPointU@@QEAA@AEBVCPoint@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 404,
+      "symbol": "??0CD2DPointU@@QEAA@II@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 405,
+      "symbol": "??0CD2DPointU@@QEAA@PEBUD2D_POINT_2U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 406,
+      "symbol": "??0CD2DRadialGradientBrush@@QEAA@PEAVCRenderTarget@@PEBUD2D1_GRADIENT_STOP@@IUD2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES@@W4D2D1_GAMMA@@W4D2D1_EXTEND_MODE@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 411,
+      "symbol": "??0CD2DRectU@@QEAA@AEBUD2D_RECT_U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 412,
+      "symbol": "??0CD2DRectU@@QEAA@AEBVCRect@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 413,
+      "symbol": "??0CD2DRectU@@QEAA@IIII@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 414,
+      "symbol": "??0CD2DRectU@@QEAA@PEBUD2D_RECT_U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 415,
+      "symbol": "??0CD2DResource@@IEAA@PEAVCRenderTarget@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 423,
+      "symbol": "??0CD2DSizeU@@QEAA@AEBUD2D_SIZE_U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 424,
+      "symbol": "??0CD2DSizeU@@QEAA@AEBVCSize@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 425,
+      "symbol": "??0CD2DSizeU@@QEAA@II@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 426,
+      "symbol": "??0CD2DSizeU@@QEAA@PEBUD2D_SIZE_U@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 427,
+      "symbol": "??0CD2DSolidColorBrush@@QEAA@PEAVCRenderTarget@@KHPEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 428,
+      "symbol": "??0CD2DSolidColorBrush@@QEAA@PEAVCRenderTarget@@U_D3DCOLORVALUE@@PEAVCD2DBrushProperties@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 429,
+      "symbol": "??0CD2DTextFormat@@QEAA@PEAVCRenderTarget@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@MW4DWRITE_FONT_WEIGHT@@W4DWRITE_FONT_STYLE@@W4DWRITE_FONT_STRETCH@@1PEAUIDWriteFontCollection@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 430,
+      "symbol": "??0CD2DTextLayout@@QEAA@PEAVCRenderTarget@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCD2DTextFormat@@AEBVCD2DSizeF@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 432,
+      "symbol": "??0CDataBoundProperty@@QEAA@PEAV0@JG@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 433,
+      "symbol": "??0CDataExchange@@QEAA@PEAVCWnd@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 434,
+      "symbol": "??0CDataRecoveryHandler@@QEAA@KH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 435,
+      "symbol": "??0CDataSourceControl@@QEAA@PEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 436,
+      "symbol": "??0CDBException@@QEAA@F@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 437,
+      "symbol": "??0CDBVariant@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 440,
+      "symbol": "??0CDHtmlControlSink@@QEAA@PEAUIUnknown@@PEAVCDHtmlSinkHandler@@PEB_W_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 441,
+      "symbol": "??0CDHtmlControlSink@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 445,
+      "symbol": "??0CDHtmlElementEventSink@@QEAA@PEAVCDHtmlEventSink@@PEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 446,
+      "symbol": "??0CDialog@@QEAA@IPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 447,
+      "symbol": "??0CDialog@@QEAA@PEB_WPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 448,
+      "symbol": "??0CDialog@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 450,
+      "symbol": "??0CDialogEx@@QEAA@IPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 451,
+      "symbol": "??0CDialogEx@@QEAA@PEB_WPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 452,
+      "symbol": "??0CDialogEx@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 453,
+      "symbol": "??0CDialogImpl@@IEAA@AEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 454,
+      "symbol": "??0CDialogTemplate@@QEAA@PEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 455,
+      "symbol": "??0CDialogTemplate@@QEAA@PEBUDLGTEMPLATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 458,
+      "symbol": "??0CDockablePaneAdapter@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 459,
+      "symbol": "??0CDockBar@@QEAA@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 460,
+      "symbol": "??0CDockContext@@QEAA@PEAVCControlBar@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 462,
+      "symbol": "??0CDockingPanesRow@@QEAA@PEAVCDockSite@@HH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 463,
+      "symbol": "??0CDockSite@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 464,
+      "symbol": "??0CDockState@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 466,
+      "symbol": "??0CDocObjectServer@@QEAA@PEAVCOleServerDoc@@PEAUIOleDocumentSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 467,
+      "symbol": "??0CDocObjectServerItem@@IEAA@PEAVCOleServerDoc@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 470,
+      "symbol": "??0CDrawingManager@@QEAA@AEAVCDC@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 471,
+      "symbol": "??0CDumpContext@@QEAA@PEAVCFile@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 473,
+      "symbol": "??0CDynLinkLibrary@@QEAA@AEAUAFX_EXTENSION_MODULE@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 474,
+      "symbol": "??0CDynLinkLibrary@@QEAA@PEAUHINSTANCE__@@0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 476,
+      "symbol": "??0CEnumArray@@QEAA@_KPEBXIH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 477,
+      "symbol": "??0CEnumConnections@@QEAA@PEBXI@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 478,
+      "symbol": "??0CEnumConnPoints@@QEAA@PEBXI@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 481,
+      "symbol": "??0CException@@QEAA@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 482,
+      "symbol": "??0CException@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 484,
+      "symbol": "??0CFile@@QEAA@PEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 487,
+      "symbol": "??0CFile@@QEAA@PEB_WIPEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 489,
+      "symbol": "??0CFileDialog@@QEAA@HPEB_W0K0PEAVCWnd@@KH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 490,
+      "symbol": "??0CFileFind@@QEAA@PEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 493,
+      "symbol": "??0CFixedAlloc@@QEAA@II@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 494,
+      "symbol": "??0CFixedAllocNoSync@@QEAA@II@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 495,
+      "symbol": "??0CFolderPickerDialog@@QEAA@PEB_WKPEAVCWnd@@KH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 496,
+      "symbol": "??0CFontDialog@@QEAA@AEBU_charformatw@@KPEAVCDC@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 497,
+      "symbol": "??0CFontDialog@@QEAA@PEAUtagLOGFONTW@@KPEAVCDC@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 498,
+      "symbol": "??0CFontHolder@@QEAA@PEAUIPropertyNotifySink@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 502,
+      "symbol": "??0CFrameWnd@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 506,
+      "symbol": "??0CFtpFileFind@@QEAA@PEAVCFtpConnection@@_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 507,
+      "symbol": "??0CFullScreenImpl@@QEAA@PEAVCFrameImpl@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 508,
+      "symbol": "??0CGestureConfig@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 510,
+      "symbol": "??0CGopherConnection@@QEAA@PEAVCInternetSession@@PEAXPEB_W_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 511,
+      "symbol": "??0CGopherConnection@@QEAA@PEAVCInternetSession@@PEB_W11_KG@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 513,
+      "symbol": "??0CGopherFile@@IEAA@PEAXAEAVCGopherLocator@@PEAVCGopherConnection@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 514,
+      "symbol": "??0CGopherFileFind@@QEAA@PEAVCGopherConnection@@_K@Z"
+    }
+  ],
+  "title": "global_residuals shard 01/12: global"
+}

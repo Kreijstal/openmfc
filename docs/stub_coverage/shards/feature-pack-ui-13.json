@@ -1,0 +1,1013 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-13",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8546,
+      "symbol": "?NotifyCommand@CMFCRibbonBaseElement@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8551,
+      "symbol": "?NotifyControlCommand@CMFCRibbonBaseElement@@MEAAHHH_K_J@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8556,
+      "symbol": "?NotifyHighlightListItem@CMFCRibbonBaseElement@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8577,
+      "symbol": "?OnAccDefaultAction@CMFCRibbonBaseElement@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8622,
+      "symbol": "?OnAddToQAToolbar@CMFCRibbonBaseElement@@UEAAHAEAVCMFCRibbonQuickAccessToolBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 8633,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 9393,
+      "symbol": "?OnDrawKeyTip@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 9443,
+      "symbol": "?OnDrawOnList@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 10227,
+      "symbol": "?OnKey@CMFCRibbonBaseElement@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 10343,
+      "symbol": "?OnLButtonDown@CMFCRibbonBaseElement@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 11200,
+      "symbol": "?OnShowPopupMenu@CMFCRibbonBaseElement@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 11452,
+      "symbol": "?OnUpdateCmdUI@CMFCRibbonBaseElement@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 11756,
+      "symbol": "?PostMenuCommand@CMFCRibbonBaseElement@@QEAAXI@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 12184,
+      "symbol": "?Redraw@CMFCRibbonBaseElement@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 12451,
+      "symbol": "?ReplaceByID@CMFCRibbonBaseElement@@MEAAHIPEAV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 12859,
+      "symbol": "?SetACCData@CMFCRibbonBaseElement@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13159,
+      "symbol": "?SetDroppedDown@CMFCRibbonBaseElement@@IEAAXPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13314,
+      "symbol": "?SetKeys@CMFCRibbonBaseElement@@UEAAXPEB_W0@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13412,
+      "symbol": "?SetOriginal@CMFCRibbonBaseElement@@UEAAXPEAV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13459,
+      "symbol": "?SetParentCategory@CMFCRibbonBaseElement@@UEAAXPEAVCMFCRibbonCategory@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13463,
+      "symbol": "?SetParentMenu@CMFCRibbonBaseElement@@UEAAXPEAVCMFCRibbonPanelMenuBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13676,
+      "symbol": "?SetTextAlwaysOnRight@CMFCRibbonBaseElement@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 13946,
+      "symbol": "?StretchToWholeRow@CMFCRibbonBaseElement@@UEAAHPEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 14169,
+      "symbol": "?UpdateTooltipInfo@CMFCRibbonBaseElement@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 1976,
+      "symbol": "?AddSubItem@CMFCRibbonButton@@QEAAXPEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 2002,
+      "symbol": "?AddToListBox@CMFCRibbonButton@@MEAAHPEAVCMFCRibbonCommandsListBox@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 2835,
+      "symbol": "?ClosePopupMenu@CMFCRibbonButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 2888,
+      "symbol": "?CommonInit@CMFCRibbonButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 3003,
+      "symbol": "?CopyFrom@CMFCRibbonButton@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 3396,
+      "symbol": "?CreateObject@CMFCRibbonButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4039,
+      "symbol": "?DrawBottomText@CMFCRibbonButton@@QEAA?AVCSize@@PEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4071,
+      "symbol": "?DrawImage@CMFCRibbonButton@@UEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4123,
+      "symbol": "?DrawRibbonText@CMFCRibbonButton@@UEAAHPEAVCDC@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@IK@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4501,
+      "symbol": "?FillWindowList@CMFCRibbonButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4535,
+      "symbol": "?FindByData@CMFCRibbonButton@@MEAAPEAVCMFCRibbonBaseElement@@_K@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4541,
+      "symbol": "?FindByID@CMFCRibbonButton@@MEAAPEAVCMFCRibbonBaseElement@@I@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 4605,
+      "symbol": "?FindSubItemIndexByID@CMFCRibbonButton@@QEBAHI@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 5303,
+      "symbol": "?GetElements@CMFCRibbonButton@@MEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 5308,
+      "symbol": "?GetElementsByID@CMFCRibbonButton@@MEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 5457,
+      "symbol": "?GetGroupButtonExtraWidth@CMFCRibbonButton@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 5535,
+      "symbol": "?GetImageSize@CMFCRibbonButton@@UEBA?AVCSize@@W4RibbonImageType@CMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 5649,
+      "symbol": "?GetKeyTipRect@CMFCRibbonButton@@MEAA?AVCRect@@PEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 6416,
+      "symbol": "?GetRuntimeClass@CMFCRibbonButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 6979,
+      "symbol": "?GetThisClass@CMFCRibbonButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 7418,
+      "symbol": "?GetToolTipText@CMFCRibbonButton@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8288,
+      "symbol": "?m_bUseMenuHandle@CMFCRibbonButton@@2HA"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8578,
+      "symbol": "?OnAccDefaultAction@CMFCRibbonButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8634,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonButton@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8834,
+      "symbol": "?OnClick@CMFCRibbonButton@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 9444,
+      "symbol": "?OnDrawOnList@CMFCRibbonButton@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10228,
+      "symbol": "?OnKey@CMFCRibbonButton@@MEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10344,
+      "symbol": "?OnLButtonDown@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10394,
+      "symbol": "?OnLButtonUp@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10493,
+      "symbol": "?OnMouseMove@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 11201,
+      "symbol": "?OnShowPopupMenu@CMFCRibbonButton@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 12313,
+      "symbol": "?RemoveAllSubItems@CMFCRibbonButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 12420,
+      "symbol": "?RemoveSubItem@CMFCRibbonButton@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 12860,
+      "symbol": "?SetACCData@CMFCRibbonButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13125,
+      "symbol": "?SetDescription@CMFCRibbonButton@@UEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13352,
+      "symbol": "?SetMenu@CMFCRibbonButton@@QEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13353,
+      "symbol": "?SetMenu@CMFCRibbonButton@@QEAAXPEAUHMENU__@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13413,
+      "symbol": "?SetOriginal@CMFCRibbonButton@@MEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13460,
+      "symbol": "?SetParentCategory@CMFCRibbonButton@@UEAAXPEAVCMFCRibbonCategory@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 13465,
+      "symbol": "?SetParentRibbonBar@CMFCRibbonButton@@MEAAXPEAVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 1805,
+      "symbol": "?AddButton@CMFCRibbonButtonsGroup@@QEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 1812,
+      "symbol": "?AddButtons@CMFCRibbonButtonsGroup@@QEAAXAEBV?$CList@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 2000,
+      "symbol": "?AddToKeyList@CMFCRibbonButtonsGroup@@MEAAXAEAV?$CArray@PEAVCMFCRibbonKeyTip@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 2003,
+      "symbol": "?AddToListBox@CMFCRibbonButtonsGroup@@MEAAHPEAVCMFCRibbonCommandsListBox@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 2751,
+      "symbol": "?CleanUpSizes@CMFCRibbonButtonsGroup@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 3004,
+      "symbol": "?CopyFrom@CMFCRibbonButtonsGroup@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 3397,
+      "symbol": "?CreateObject@CMFCRibbonButtonsGroup@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 4515,
+      "symbol": "?Find@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@PEBV2@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 4536,
+      "symbol": "?FindByData@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@_K@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 4542,
+      "symbol": "?FindByID@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@I@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 4547,
+      "symbol": "?FindByOriginal@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@PEAV2@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 4961,
+      "symbol": "?GetButtonIndex@CMFCRibbonButtonsGroup@@QEBAHPEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5278,
+      "symbol": "?GetDroppedDown@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5309,
+      "symbol": "?GetElementsByID@CMFCRibbonButtonsGroup@@MEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5405,
+      "symbol": "?GetFirstTabStop@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5421,
+      "symbol": "?GetFocused@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5475,
+      "symbol": "?GetHighlighted@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5536,
+      "symbol": "?GetImageSize@CMFCRibbonButtonsGroup@@QEBA?BVCSize@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5618,
+      "symbol": "?GetItemIDsList@CMFCRibbonButtonsGroup@@MEBAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5659,
+      "symbol": "?GetLastTabStop@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6110,
+      "symbol": "?GetPressed@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6186,
+      "symbol": "?GetRegularSize@CMFCRibbonButtonsGroup@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6417,
+      "symbol": "?GetRuntimeClass@CMFCRibbonButtonsGroup@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6980,
+      "symbol": "?GetThisClass@CMFCRibbonButtonsGroup@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 7513,
+      "symbol": "?GetVisibleElements@CMFCRibbonButtonsGroup@@MEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 7624,
+      "symbol": "?HitTest@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 8635,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonButtonsGroup@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 9238,
+      "symbol": "?OnDraw@CMFCRibbonButtonsGroup@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 9386,
+      "symbol": "?OnDrawImage@CMFCRibbonButtonsGroup@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 10946,
+      "symbol": "?OnRTLChanged@CMFCRibbonButtonsGroup@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 11160,
+      "symbol": "?OnShow@CMFCRibbonButtonsGroup@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 11453,
+      "symbol": "?OnUpdateCmdUI@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 12284,
+      "symbol": "?RemoveAll@CMFCRibbonButtonsGroup@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 12452,
+      "symbol": "?ReplaceByID@CMFCRibbonButtonsGroup@@MEAAHIPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13278,
+      "symbol": "?SetImages@CMFCRibbonButtonsGroup@@QEAAXPEAVCMFCToolBarImages@@00@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13414,
+      "symbol": "?SetOriginal@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13461,
+      "symbol": "?SetParentCategory@CMFCRibbonButtonsGroup@@UEAAXPEAVCMFCRibbonCategory@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13464,
+      "symbol": "?SetParentMenu@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonPanelMenuBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13466,
+      "symbol": "?SetParentRibbonBar@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 3398,
+      "symbol": "?CreateObject@CMFCRibbonCaptionButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 6187,
+      "symbol": "?GetRegularSize@CMFCRibbonCaptionButton@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 6418,
+      "symbol": "?GetRuntimeClass@CMFCRibbonCaptionButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 6981,
+      "symbol": "?GetThisClass@CMFCRibbonCaptionButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 9239,
+      "symbol": "?OnDraw@CMFCRibbonCaptionButton@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 10395,
+      "symbol": "?OnLButtonUp@CMFCRibbonCaptionButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1716,
+      "symbol": "?accHitTest@CMFCRibbonCategory@@UEAAJJJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1730,
+      "symbol": "?accLocation@CMFCRibbonCategory@@UEAAJPEAJ000UtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1741,
+      "symbol": "?accNavigate@CMFCRibbonCategory@@UEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1872,
+      "symbol": "?AddHidden@CMFCRibbonCategory@@QEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 2752,
+      "symbol": "?CleanUpSizes@CMFCRibbonCategory@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 2889,
+      "symbol": "?CommonInit@CMFCRibbonCategory@@IEAAXPEAVCMFCRibbonBar@@PEB_WIIVCSize@@2@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 3005,
+      "symbol": "?CopyFrom@CMFCRibbonCategory@@UEAAXAEAV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4363,
+      "symbol": "?EnsureVisible@CMFCRibbonCategory@@IEAAXPEAVCMFCRibbonButton@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4537,
+      "symbol": "?FindByData@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@_KH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4543,
+      "symbol": "?FindByID@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@IH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4596,
+      "symbol": "?FindPanelWithElem@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonPanel@@PEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4750,
+      "symbol": "?get_accChild@CMFCRibbonCategory@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4760,
+      "symbol": "?get_accChildCount@CMFCRibbonCategory@@UEAAJPEAJ@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 4822,
+      "symbol": "?get_accParent@CMFCRibbonCategory@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5279,
+      "symbol": "?GetDroppedDown@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5304,
+      "symbol": "?GetElements@CMFCRibbonCategory@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5310,
+      "symbol": "?GetElementsByID@CMFCRibbonCategory@@QEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5409,
+      "symbol": "?GetFirstVisibleElement@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5422,
+      "symbol": "?GetFocused@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5476,
+      "symbol": "?GetHighlighted@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5537,
+      "symbol": "?GetImageSize@CMFCRibbonCategory@@QEBA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5619,
+      "symbol": "?GetItemIDsList@CMFCRibbonCategory@@QEBAXAEAV?$CList@II@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5662,
+      "symbol": "?GetLastVisibleElement@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5715,
+      "symbol": "?GetMaxHeight@CMFCRibbonCategory@@QEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 5928,
+      "symbol": "?GetMinWidth@CMFCRibbonCategory@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 6052,
+      "symbol": "?GetPanelFromPoint@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonPanel@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 6053,
+      "symbol": "?GetPanelIndex@CMFCRibbonCategory@@QEBAHPEBVCMFCRibbonPanel@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 6072,
+      "symbol": "?GetParentButton@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 6791,
+      "symbol": "?GetTextTopLine@CMFCRibbonCategory@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7514,
+      "symbol": "?GetVisibleElements@CMFCRibbonCategory@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7614,
+      "symbol": "?HighlightPanel@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonPanel@@PEAV2@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7625,
+      "symbol": "?HitTest@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@VCPoint@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7638,
+      "symbol": "?HitTestEx@CMFCRibbonCategory@@QEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7642,
+      "symbol": "?HitTestScrollButtons@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8045,
+      "symbol": "?IsWindows7Look@CMFCRibbonCategory@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8537,
+      "symbol": "?NormalizeFloatingRect@CMFCRibbonCategory@@AEAAXPEAVCMFCRibbonBar@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8552,
+      "symbol": "?NotifyControlCommand@CMFCRibbonCategory@@UEAAHHH_K_J@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8748,
+      "symbol": "?OnCancelMode@CMFCRibbonCategory@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 9240,
+      "symbol": "?OnDraw@CMFCRibbonCategory@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 9387,
+      "symbol": "?OnDrawImage@CMFCRibbonCategory@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCRibbonBaseElement@@HHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10229,
+      "symbol": "?OnKey@CMFCRibbonCategory@@UEAAHI@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10345,
+      "symbol": "?OnLButtonDown@CMFCRibbonCategory@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10396,
+      "symbol": "?OnLButtonUp@CMFCRibbonCategory@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10494,
+      "symbol": "?OnMouseMove@CMFCRibbonCategory@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10947,
+      "symbol": "?OnRTLChanged@CMFCRibbonCategory@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10969,
+      "symbol": "?OnScrollHorz@CMFCRibbonCategory@@UEAAHHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 11013,
+      "symbol": "?OnSetAccData@CMFCRibbonCategory@@UEAAHJ@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 11454,
+      "symbol": "?OnUpdateCmdUI@CMFCRibbonCategory@@UEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12151,
+      "symbol": "?RecalcLayout@CMFCRibbonCategory@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12165,
+      "symbol": "?RecalcPanelWidths@CMFCRibbonCategory@@IEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12410,
+      "symbol": "?RemovePanel@CMFCRibbonCategory@@QEAAHHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12482,
+      "symbol": "?ReposPanels@CMFCRibbonCategory@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12514,
+      "symbol": "?ResetPanelsLayout@CMFCRibbonCategory@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12861,
+      "symbol": "?SetACCData@CMFCRibbonCategory@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12887,
+      "symbol": "?SetActive@CMFCRibbonCategory@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13033,
+      "symbol": "?SetCollapseOrder@CMFCRibbonCategory@@QEAAXAEBV?$CArray@HH@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13315,
+      "symbol": "?SetKeys@CMFCRibbonCategory@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13382,
+      "symbol": "?SetName@CMFCRibbonCategory@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13445,
+      "symbol": "?SetPanelsLayout@CMFCRibbonCategory@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13816,
+      "symbol": "?ShowElements@CMFCRibbonCategory@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13817,
+      "symbol": "?ShowFloating@CMFCRibbonCategory@@IEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 14157,
+      "symbol": "?UpdateScrollButtons@CMFCRibbonCategory@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 3400,
+      "symbol": "?CreateObject@CMFCRibbonCheckBox@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 5584,
+      "symbol": "?GetIntermediateSize@CMFCRibbonCheckBox@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 6420,
+      "symbol": "?GetRuntimeClass@CMFCRibbonCheckBox@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 6983,
+      "symbol": "?GetThisClass@CMFCRibbonCheckBox@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 9241,
+      "symbol": "?OnDraw@CMFCRibbonCheckBox@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "ordinal": 9445,
+      "symbol": "?OnDrawOnList@CMFCRibbonCheckBox@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonCmdUI",
+      "ordinal": 4191,
+      "symbol": "?Enable@CMFCRibbonCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCmdUI",
+      "ordinal": 13009,
+      "symbol": "?SetCheck@CMFCRibbonCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCmdUI",
+      "ordinal": 13520,
+      "symbol": "?SetRadio@CMFCRibbonCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCmdUI",
+      "ordinal": 13664,
+      "symbol": "?SetText@CMFCRibbonCmdUI@@UEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2845,
+      "symbol": "?CollectBaseElement@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXElement@CMFCRibbonInfo@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2846,
+      "symbol": "?CollectCategory@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonCategory@@AEAVXCategory@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2847,
+      "symbol": "?CollectCategoryMain@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXCategoryMain@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2848,
+      "symbol": "?CollectElement@CMFCRibbonCollector@@MEAAPEAVXElement@CMFCRibbonInfo@@AEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2849,
+      "symbol": "?CollectElement@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXElement@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2850,
+      "symbol": "?CollectImageInfo@CMFCRibbonCollector@@MEAAXAEAVCMFCToolBarImages@@AEAVXImage@CMFCRibbonInfo@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2851,
+      "symbol": "?CollectPanel@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonPanel@@AEAVXPanel@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2852,
+      "symbol": "?CollectQATElements@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2853,
+      "symbol": "?CollectRibbonBar@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 2854,
+      "symbol": "?CollectRibbonBar@CMFCRibbonCollector@@UEAAXAEBVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5000,
+      "symbol": "?GetCategoryImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonCategory@@AEAVXCategory@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5001,
+      "symbol": "?GetCategoryImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonCategory@@AEAVXImage@CMFCRibbonInfo@@1@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5300,
+      "symbol": "?GetElementImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXImage@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5513,
+      "symbol": "?GetID@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXID@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 6207,
+      "symbol": "?GetRibbonBarImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 1820,
+      "symbol": "?AddColorsGroup@CMFCRibbonColorButton@@QEAAXPEB_WAEBV?$CList@KK@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 2890,
+      "symbol": "?CommonInit@CMFCRibbonColorButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 3006,
+      "symbol": "?CopyFrom@CMFCRibbonColorButton@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 3401,
+      "symbol": "?CreateObject@CMFCRibbonColorButton@@SAPEAVCObject@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 13/27: CMFCRibbonCategory, CMFCRibbonButton, CMFCRibbonButtonsGroup"
+}

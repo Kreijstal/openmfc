@@ -1,0 +1,222 @@
+{
+  "category": "internet_wininet",
+  "id": "internet-wininet-01",
+  "primary_files": [
+    "include/openmfc/afxinet.h",
+    "phase4/src/inetcore.cpp"
+  ],
+  "symbol_count": 42,
+  "symbols": [
+    {
+      "class": "CFileFind",
+      "ordinal": 2825,
+      "symbol": "?CloseContext@CFileFind@@MEAAXXZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 4578,
+      "symbol": "?FindNextFileW@CFileFind@@UEAAHXZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 5382,
+      "symbol": "?GetFileName@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 5385,
+      "symbol": "?GetFilePath@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 5389,
+      "symbol": "?GetFileTitle@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 5392,
+      "symbol": "?GetFileURL@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 6220,
+      "symbol": "?GetRoot@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 6310,
+      "symbol": "?GetRuntimeClass@CFileFind@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CFileFind",
+      "ordinal": 6873,
+      "symbol": "?GetThisClass@CFileFind@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CFtpFileFind",
+      "ordinal": 2826,
+      "symbol": "?CloseContext@CFtpFileFind@@MEAAXXZ"
+    },
+    {
+      "class": "CFtpFileFind",
+      "ordinal": 4579,
+      "symbol": "?FindNextFileW@CFtpFileFind@@UEAAHXZ"
+    },
+    {
+      "class": "CFtpFileFind",
+      "ordinal": 5393,
+      "symbol": "?GetFileURL@CFtpFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CFtpFileFind",
+      "ordinal": 6319,
+      "symbol": "?GetRuntimeClass@CFtpFileFind@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CFtpFileFind",
+      "ordinal": 6882,
+      "symbol": "?GetThisClass@CFtpFileFind@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherConnection",
+      "ordinal": 4915,
+      "symbol": "?GetAttribute@CGopherConnection@@QEAAHAEAVCGopherLocator@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAV34@@Z"
+    },
+    {
+      "class": "CGopherConnection",
+      "ordinal": 6321,
+      "symbol": "?GetRuntimeClass@CGopherConnection@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherConnection",
+      "ordinal": 6884,
+      "symbol": "?GetThisClass@CGopherConnection@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherFile",
+      "ordinal": 6322,
+      "symbol": "?GetRuntimeClass@CGopherFile@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherFile",
+      "ordinal": 6885,
+      "symbol": "?GetThisClass@CGopherFile@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherFile",
+      "ordinal": 14228,
+      "symbol": "?Write@CGopherFile@@UEAAXPEBXI@Z"
+    },
+    {
+      "class": "CGopherFile",
+      "ordinal": 14297,
+      "symbol": "?WriteString@CGopherFile@@UEAAXPEB_W@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 2827,
+      "symbol": "?CloseContext@CGopherFileFind@@MEAAXXZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 4563,
+      "symbol": "?FindFile@CGopherFileFind@@UEAAHAEAVCGopherLocator@@PEB_WK@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 4564,
+      "symbol": "?FindFile@CGopherFileFind@@UEAAHPEB_WK@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 4580,
+      "symbol": "?FindNextFileW@CGopherFileFind@@UEAAHXZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5140,
+      "symbol": "?GetCreationTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5141,
+      "symbol": "?GetCreationTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5383,
+      "symbol": "?GetFileName@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5386,
+      "symbol": "?GetFilePath@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5390,
+      "symbol": "?GetFileTitle@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5394,
+      "symbol": "?GetFileURL@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5656,
+      "symbol": "?GetLastAccessTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5657,
+      "symbol": "?GetLastAccessTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5666,
+      "symbol": "?GetLastWriteTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5667,
+      "symbol": "?GetLastWriteTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5678,
+      "symbol": "?GetLength@CGopherFileFind@@UEBA_KXZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 5700,
+      "symbol": "?GetLocator@CGopherFileFind@@QEBA?AVCGopherLocator@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 6221,
+      "symbol": "?GetRoot@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 6323,
+      "symbol": "?GetRuntimeClass@CGopherFileFind@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 6625,
+      "symbol": "?GetScreenName@CGopherFileFind@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 6886,
+      "symbol": "?GetThisClass@CGopherFileFind@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CGopherFileFind",
+      "ordinal": 7889,
+      "symbol": "?IsDots@CGopherFileFind@@UEBAHXZ"
+    }
+  ],
+  "title": "internet_wininet shard 01/01: CGopherFileFind, CFileFind, CFtpFileFind"
+}

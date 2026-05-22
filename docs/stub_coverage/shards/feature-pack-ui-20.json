@@ -1,0 +1,1013 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-20",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12194,
+      "symbol": "?RedrawCustomizeButton@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12198,
+      "symbol": "?RedrawUnderlines@CMFCToolBar@@SAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12297,
+      "symbol": "?RemoveAllButtons@CMFCToolBar@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12332,
+      "symbol": "?RemoveButton@CMFCToolBar@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12413,
+      "symbol": "?RemoveResetStateButton@CMFCToolBar@@IEAAHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12418,
+      "symbol": "?RemoveStateFromRegistry@CMFCToolBar@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12497,
+      "symbol": "?ResetAll@CMFCToolBar@@SAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12498,
+      "symbol": "?ResetAllImages@CMFCToolBar@@SAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12506,
+      "symbol": "?ResetImages@CMFCToolBar@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12551,
+      "symbol": "?RestoreFocus@CMFCToolBar@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12555,
+      "symbol": "?RestoreOriginalState@CMFCToolBar@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12649,
+      "symbol": "?SaveOriginalState@CMFCToolBar@@MEAAXAEAVCSettingsStore@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12650,
+      "symbol": "?SaveParameters@CMFCToolBar@@SAHPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12654,
+      "symbol": "?SaveResetOriginalState@CMFCToolBar@@IEAAXAEAVCSettingsStore@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12674,
+      "symbol": "?SaveState@CMFCToolBar@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12814,
+      "symbol": "?Serialize@CMFCToolBar@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12957,
+      "symbol": "?SetBasicCommands@CMFCToolBar@@SAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12984,
+      "symbol": "?SetButtonInfo@CMFCToolBar@@QEAAXHIIH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12991,
+      "symbol": "?SetButtonStyle@CMFCToolBar@@UEAAXHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12993,
+      "symbol": "?SetButtonText@CMFCToolBar@@QEAAHHPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13060,
+      "symbol": "?SetCommandUsageOptions@CMFCToolBar@@SAHII@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13096,
+      "symbol": "?SetCustomizeMode@CMFCToolBar@@SAHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13230,
+      "symbol": "?SetHeight@CMFCToolBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13234,
+      "symbol": "?SetHelpMode@CMFCToolBar@@SAXH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13245,
+      "symbol": "?SetHot@CMFCToolBar@@QEAAHPEAVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13249,
+      "symbol": "?SetHotTextColor@CMFCToolBar@@SAXK@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13317,
+      "symbol": "?SetLargeIcons@CMFCToolBar@@SAXH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13335,
+      "symbol": "?SetLockedSizes@CMFCToolBar@@QEAAXUtagSIZE@@0H@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13366,
+      "symbol": "?SetMenuSizes@CMFCToolBar@@SAXUtagSIZE@@0@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13387,
+      "symbol": "?SetNonPermittedCommands@CMFCToolBar@@SAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13403,
+      "symbol": "?SetOneRowWithSibling@CMFCToolBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13411,
+      "symbol": "?SetOrigButtons@CMFCToolBar@@QEAAXAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13556,
+      "symbol": "?SetRoundedRgn@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13588,
+      "symbol": "?SetSiblingToolBar@CMFCToolBar@@QEAAXPEAV1@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13702,
+      "symbol": "?SetToolBarBtnText@CMFCToolBar@@QEAAXIPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13718,
+      "symbol": "?SetTwoRowsWithSibling@CMFCToolBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13733,
+      "symbol": "?SetUserImages@CMFCToolBar@@SAHPEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13803,
+      "symbol": "?ShowCommandMessageString@CMFCToolBar@@MEAAXI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13877,
+      "symbol": "?SizeToolBar@CMFCToolBar@@IEAAXHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13884,
+      "symbol": "?SmartUpdate@CMFCToolBar@@MEAAHAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13942,
+      "symbol": "?StretchPane@CMFCToolBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13988,
+      "symbol": "?ToolBarMouseHookProc@CMFCToolBar@@KA_JH_K_J@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14017,
+      "symbol": "?TranslateChar@CMFCToolBar@@UEAAHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14115,
+      "symbol": "?UpdateButton@CMFCToolBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14135,
+      "symbol": "?UpdateImagesColor@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14172,
+      "symbol": "?UpdateTooltips@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14223,
+      "symbol": "?WrapToolBar@CMFCToolBar@@QEAAHHHPEAVCDC@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 2914,
+      "symbol": "?CompareWith@CMFCToolBarButton@@UEBAHAEBV1@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 3024,
+      "symbol": "?CopyFrom@CMFCToolBarButton@@UEAAXAEBV1@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 3296,
+      "symbol": "?CreateFromOleData@CMFCToolBarButton@@SAPEAV1@PEAVCOleDataObject@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 3437,
+      "symbol": "?CreateObject@CMFCToolBarButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4455,
+      "symbol": "?ExportToMenuButton@CMFCToolBarButton@@UEBAHAEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4488,
+      "symbol": "?FillInterior@CMFCToolBarButton@@IEAAXPEAVCDC@@AEBVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4862,
+      "symbol": "?GetAccCount@CMFCToolBarButton@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 5042,
+      "symbol": "?GetClipboardFormat@CMFCToolBarButton@@SAGXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 6467,
+      "symbol": "?GetRuntimeClass@CMFCToolBarButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7030,
+      "symbol": "?GetThisClass@CMFCToolBarButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7700,
+      "symbol": "?Initialize@CMFCToolBarButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7910,
+      "symbol": "?IsFirstInGroup@CMFCToolBarButton@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7933,
+      "symbol": "?IsLastInGroup@CMFCToolBarButton@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8285,
+      "symbol": "?m_bUpdateImages@CMFCToolBarButton@@2HA"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8292,
+      "symbol": "?m_bWrapText@CMFCToolBarButton@@2HA"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8293,
+      "symbol": "?m_cFormat@CMFCToolBarButton@@2GA"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8328,
+      "symbol": "?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8401,
+      "symbol": "?m_strClipboardFormatName@CMFCToolBarButton@@2V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8723,
+      "symbol": "?OnCalculateSize@CMFCToolBarButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8786,
+      "symbol": "?OnChangeParentWnd@CMFCToolBarButton@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 9260,
+      "symbol": "?OnDraw@CMFCToolBarButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 9438,
+      "symbol": "?OnDrawOnCustomizeList@CMFCToolBarButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 11403,
+      "symbol": "?OnToolHitTest@CMFCToolBarButton@@UEAAHPEBVCWnd@@PEAUtagTOOLINFOW@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 11824,
+      "symbol": "?PrepareDrag@CMFCToolBarButton@@UEAAHAEAVCOleDataSource@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 12507,
+      "symbol": "?ResetImageToDefault@CMFCToolBarButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 12815,
+      "symbol": "?Serialize@CMFCToolBarButton@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 12880,
+      "symbol": "?SetACCData@CMFCToolBarButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 13269,
+      "symbol": "?SetImage@CMFCToolBarButton@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 13512,
+      "symbol": "?SetProtectedCommands@CMFCToolBarButton@@SAXAEBV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 3923,
+      "symbol": "?DoDataExchange@CMFCToolBarButtonCustomizeDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 4230,
+      "symbol": "?EnableControls@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 5846,
+      "symbol": "?GetMessageMap@CMFCToolBarButtonCustomizeDialog@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 7324,
+      "symbol": "?GetThisMessageMap@CMFCToolBarButtonCustomizeDialog@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 8617,
+      "symbol": "?OnAddImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 9100,
+      "symbol": "?OnDefaultImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 9704,
+      "symbol": "?OnEditImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10143,
+      "symbol": "?OnImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10144,
+      "symbol": "?OnImageList@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10145,
+      "symbol": "?OnImageText@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10176,
+      "symbol": "?OnInitDialog@CMFCToolBarButtonCustomizeDialog@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10707,
+      "symbol": "?OnOK@CMFCToolBarButtonCustomizeDialog@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 10753,
+      "symbol": "?OnPaint@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 11341,
+      "symbol": "?OnText@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 11576,
+      "symbol": "?OnUserImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 12131,
+      "symbol": "?RebuildImageList@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 1807,
+      "symbol": "?AddButton@CMFCToolBarButtonsListButton@@QEAAXPEAVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 4093,
+      "symbol": "?DrawItem@CMFCToolBarButtonsListButton@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 5847,
+      "symbol": "?GetMessageMap@CMFCToolBarButtonsListButton@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 6629,
+      "symbol": "?GetScrollBarCtrl@CMFCToolBarButtonsListButton@@UEBAPEAVCScrollBar@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 7325,
+      "symbol": "?GetThisMessageMap@CMFCToolBarButtonsListButton@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 7632,
+      "symbol": "?HitTest@CMFCToolBarButtonsListButton@@IEBAPEAVCMFCToolBarButton@@UtagPOINT@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 9061,
+      "symbol": "?OnCtlColor@CMFCToolBarButtonsListButton@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 9727,
+      "symbol": "?OnEnable@CMFCToolBarButtonsListButton@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 9778,
+      "symbol": "?OnEraseBkgnd@CMFCToolBarButtonsListButton@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 9997,
+      "symbol": "?OnGetDlgCode@CMFCToolBarButtonsListButton@@IEAAIXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 10246,
+      "symbol": "?OnKeyDown@CMFCToolBarButtonsListButton@@IEAAXIII@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 10358,
+      "symbol": "?OnLButtonDown@CMFCToolBarButtonsListButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11257,
+      "symbol": "?OnSize@CMFCToolBarButtonsListButton@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11319,
+      "symbol": "?OnSysColorChange@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11590,
+      "symbol": "?OnVScroll@CMFCToolBarButtonsListButton@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12133,
+      "symbol": "?RebuildLocations@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12197,
+      "symbol": "?RedrawSelection@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12337,
+      "symbol": "?RemoveButtons@CMFCToolBarButtonsListButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12733,
+      "symbol": "?SelectButton@CMFCToolBarButtonsListButton@@IEAAXPEAVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12734,
+      "symbol": "?SelectButton@CMFCToolBarButtonsListButton@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 13279,
+      "symbol": "?SetImages@CMFCToolBarButtonsListButton@@QEAAXPEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCToolBarCmdUI",
+      "ordinal": 4194,
+      "symbol": "?Enable@CMFCToolBarCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarCmdUI",
+      "ordinal": 13011,
+      "symbol": "?SetCheck@CMFCToolBarCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarCmdUI",
+      "ordinal": 13521,
+      "symbol": "?SetRadio@CMFCToolBarCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarCmdUI",
+      "ordinal": 13667,
+      "symbol": "?SetText@CMFCToolBarCmdUI@@UEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBarColorButton",
+      "ordinal": 3438,
+      "symbol": "?CreateObject@CMFCToolBarColorButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarColorButton",
+      "ordinal": 6468,
+      "symbol": "?GetRuntimeClass@CMFCToolBarColorButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarColorButton",
+      "ordinal": 7031,
+      "symbol": "?GetThisClass@CMFCToolBarColorButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarColorButton",
+      "ordinal": 9261,
+      "symbol": "?OnDraw@CMFCToolBarColorButton@@MEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 2080,
+      "symbol": "?AdjustRect@CMFCToolBarComboBoxButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 3025,
+      "symbol": "?CopyFrom@CMFCToolBarComboBoxButton@@UEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 3189,
+      "symbol": "?CreateCombo@CMFCToolBarComboBoxButton@@UEAAPEAVCComboBox@@PEAVCWnd@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 3239,
+      "symbol": "?CreateEdit@CMFCToolBarComboBoxButton@@UEAAPEAVCMFCToolBarComboBoxEdit@@PEAVCWnd@@AEBVCRect@@K@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 3439,
+      "symbol": "?CreateObject@CMFCToolBarComboBoxButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 4456,
+      "symbol": "?ExportToMenuButton@CMFCToolBarComboBoxButton@@UEBAHAEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 5610,
+      "symbol": "?GetItemDataPtrAll@CMFCToolBarComboBoxButton@@SAPEAXIH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 6469,
+      "symbol": "?GetRuntimeClass@CMFCToolBarComboBoxButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 7032,
+      "symbol": "?GetThisClass@CMFCToolBarComboBoxButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 7583,
+      "symbol": "?HasFocus@CMFCToolBarComboBoxButton@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 7701,
+      "symbol": "?Initialize@CMFCToolBarComboBoxButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8232,
+      "symbol": "?m_bCenterVert@CMFCToolBarComboBoxButton@@1HA"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8249,
+      "symbol": "?m_bFlat@CMFCToolBarComboBoxButton@@1HA"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8548,
+      "symbol": "?NotifyCommand@CMFCToolBarComboBoxButton@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8618,
+      "symbol": "?OnAddToCustomizePage@CMFCToolBarComboBoxButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8724,
+      "symbol": "?OnCalculateSize@CMFCToolBarComboBoxButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8787,
+      "symbol": "?OnChangeParentWnd@CMFCToolBarComboBoxButton@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 8839,
+      "symbol": "?OnClick@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 9062,
+      "symbol": "?OnCtlColor@CMFCToolBarComboBoxButton@@UEAAPEAUHBRUSH__@@PEAVCDC@@I@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 9262,
+      "symbol": "?OnDraw@CMFCToolBarComboBoxButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 9439,
+      "symbol": "?OnDrawOnCustomizeList@CMFCToolBarComboBoxButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 10054,
+      "symbol": "?OnGlobalFontsChanged@CMFCToolBarComboBoxButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 10519,
+      "symbol": "?OnMove@CMFCToolBarComboBoxButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 11163,
+      "symbol": "?OnShow@CMFCToolBarComboBoxButton@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 11258,
+      "symbol": "?OnSize@CMFCToolBarComboBoxButton@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 11558,
+      "symbol": "?OnUpdateToolTip@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@HAEAVCToolTipCtrl@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 12307,
+      "symbol": "?RemoveAllItems@CMFCToolBarComboBoxButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 12816,
+      "symbol": "?Serialize@CMFCToolBarComboBoxButton@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 12881,
+      "symbol": "?SetACCData@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 13156,
+      "symbol": "?SetDropDownHeight@CMFCToolBarComboBoxButton@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 13246,
+      "symbol": "?SetHotEdit@CMFCToolBarComboBoxButton@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 13623,
+      "symbol": "?SetStyle@CMFCToolBarComboBoxButton@@UEAAXI@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 5848,
+      "symbol": "?GetMessageMap@CMFCToolBarComboBoxEdit@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 7326,
+      "symbol": "?GetThisMessageMap@CMFCToolBarComboBoxEdit@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 8764,
+      "symbol": "?OnChange@CMFCToolBarComboBoxEdit@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 8978,
+      "symbol": "?OnContextMenu@CMFCToolBarComboBoxEdit@@IEAAXPEAVCWnd@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 10269,
+      "symbol": "?OnKillFocus@CMFCToolBarComboBoxEdit@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 10466,
+      "symbol": "?OnMouseLeave@CMFCToolBarComboBoxEdit@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 10502,
+      "symbol": "?OnMouseMove@CMFCToolBarComboBoxEdit@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 10754,
+      "symbol": "?OnPaint@CMFCToolBarComboBoxEdit@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 11075,
+      "symbol": "?OnSetFocus@CMFCToolBarComboBoxEdit@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxEdit",
+      "ordinal": 11891,
+      "symbol": "?PreTranslateMessage@CMFCToolBarComboBoxEdit@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 2081,
+      "symbol": "?AdjustRect@CMFCToolBarDateTimeCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 3026,
+      "symbol": "?CopyFrom@CMFCToolBarDateTimeCtrl@@UEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 3216,
+      "symbol": "?CreateDateTimeCtrl@CMFCToolBarDateTimeCtrl@@MEAAPEAVCMFCToolBarDateTimeCtrlImpl@@PEAVCWnd@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 3440,
+      "symbol": "?CreateObject@CMFCToolBarDateTimeCtrl@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 4457,
+      "symbol": "?ExportToMenuButton@CMFCToolBarDateTimeCtrl@@UEBAHAEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 4973,
+      "symbol": "?GetByCmd@CMFCToolBarDateTimeCtrl@@SAPEAV1@I@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 6470,
+      "symbol": "?GetRuntimeClass@CMFCToolBarDateTimeCtrl@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7033,
+      "symbol": "?GetThisClass@CMFCToolBarDateTimeCtrl@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7398,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAHIAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7399,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAKIAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7400,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAKIPEAU_SYSTEMTIME@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7702,
+      "symbol": "?Initialize@CMFCToolBarDateTimeCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8549,
+      "symbol": "?NotifyCommand@CMFCToolBarDateTimeCtrl@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8619,
+      "symbol": "?OnAddToCustomizePage@CMFCToolBarDateTimeCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8725,
+      "symbol": "?OnCalculateSize@CMFCToolBarDateTimeCtrl@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8788,
+      "symbol": "?OnChangeParentWnd@CMFCToolBarDateTimeCtrl@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8840,
+      "symbol": "?OnClick@CMFCToolBarDateTimeCtrl@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 9063,
+      "symbol": "?OnCtlColor@CMFCToolBarDateTimeCtrl@@UEAAPEAUHBRUSH__@@PEAVCDC@@I@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 9263,
+      "symbol": "?OnDraw@CMFCToolBarDateTimeCtrl@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 9440,
+      "symbol": "?OnDrawOnCustomizeList@CMFCToolBarDateTimeCtrl@@UEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 10055,
+      "symbol": "?OnGlobalFontsChanged@CMFCToolBarDateTimeCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 10520,
+      "symbol": "?OnMove@CMFCToolBarDateTimeCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 11164,
+      "symbol": "?OnShow@CMFCToolBarDateTimeCtrl@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 11259,
+      "symbol": "?OnSize@CMFCToolBarDateTimeCtrl@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 11559,
+      "symbol": "?OnUpdateToolTip@CMFCToolBarDateTimeCtrl@@UEAAHPEAVCWnd@@HAEAVCToolTipCtrl@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 12817,
+      "symbol": "?Serialize@CMFCToolBarDateTimeCtrl@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13624,
+      "symbol": "?SetStyle@CMFCToolBarDateTimeCtrl@@UEAAXI@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13690,
+      "symbol": "?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHAEBVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13691,
+      "symbol": "?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHPEAU_SYSTEMTIME@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13692,
+      "symbol": "?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHPEBVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13693,
+      "symbol": "?SetTimeAll@CMFCToolBarDateTimeCtrl@@SAHIAEBVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13694,
+      "symbol": "?SetTimeAll@CMFCToolBarDateTimeCtrl@@SAHIPEAU_SYSTEMTIME@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 13695,
+      "symbol": "?SetTimeAll@CMFCToolBarDateTimeCtrl@@SAHIPEBVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrlImpl",
+      "ordinal": 5849,
+      "symbol": "?GetMessageMap@CMFCToolBarDateTimeCtrlImpl@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrlImpl",
+      "ordinal": 7327,
+      "symbol": "?GetThisMessageMap@CMFCToolBarDateTimeCtrlImpl@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrlImpl",
+      "ordinal": 9079,
+      "symbol": "?OnDateTimeChange@CMFCToolBarDateTimeCtrlImpl@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrlImpl",
+      "ordinal": 9080,
+      "symbol": "?OnDateTimeCloseUp@CMFCToolBarDateTimeCtrlImpl@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 20/27: CMFCToolBar, CMFCToolBarDateTimeCtrl, CMFCToolBarComboBoxButton"
+}

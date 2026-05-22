@@ -1,0 +1,123 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-12",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 22,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 14260,
+      "symbol": "?Write@XElementEdit@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14261,
+      "symbol": "?Write@XElementFontComboBox@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14262,
+      "symbol": "?Write@XElementGroup@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14263,
+      "symbol": "?Write@XElementLabel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14264,
+      "symbol": "?Write@XElementProgressBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14265,
+      "symbol": "?Write@XElementSeparator@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14266,
+      "symbol": "?Write@XElementSlider@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14267,
+      "symbol": "?Write@XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14268,
+      "symbol": "?Write@XID@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14269,
+      "symbol": "?Write@XImage@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14270,
+      "symbol": "?Write@XPanel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14271,
+      "symbol": "?Write@XQAT@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14272,
+      "symbol": "?Write@XQATItem@XQAT@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14273,
+      "symbol": "?Write@XRibbonBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14275,
+      "symbol": "?WriteBool@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14277,
+      "symbol": "?WriteColor@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@KK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14280,
+      "symbol": "?WriteInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14295,
+      "symbol": "?WriteSize@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCSize@@1@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14305,
+      "symbol": "?WriteUInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@II@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 14324,
+      "symbol": "??1CDataSourceControl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 14329,
+      "symbol": "??0CMFCDynamicLayout@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 14330,
+      "symbol": "??1CMFCDynamicLayout@@UEAA@XZ"
+    }
+  ],
+  "title": "global_residuals shard 12/12: global"
+}

@@ -1,0 +1,117 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-06",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 21,
+  "symbols": [
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 14141,
+      "symbol": "?UpdateLink@COleUILinkInfo@@UEAAJKHH@Z"
+    },
+    {
+      "class": "COleUpdateDialog",
+      "ordinal": 6537,
+      "symbol": "?GetRuntimeClass@COleUpdateDialog@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "COleUpdateDialog",
+      "ordinal": 7100,
+      "symbol": "?GetThisClass@COleUpdateDialog@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "COleVariant",
+      "ordinal": 4976,
+      "symbol": "?GetByteArrayFromVariantArray@COleVariant@@QEAAXAEAVCByteArray@@@Z"
+    },
+    {
+      "class": "CReflectorWnd",
+      "ordinal": 13070,
+      "symbol": "?SetControl@CReflectorWnd@@QEAAXPEAVCOleControl@@@Z"
+    },
+    {
+      "class": "CRichEditCntrItem",
+      "ordinal": 5029,
+      "symbol": "?GetClientSite@CRichEditCntrItem@@UEAAPEAUIOleClientSite@@XZ"
+    },
+    {
+      "class": "CRichEditCntrItem",
+      "ordinal": 7532,
+      "symbol": "?GetWindowContext@CRichEditCntrItem@@QEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagOIFI@@@Z"
+    },
+    {
+      "class": "CRichEditCtrl",
+      "ordinal": 5592,
+      "symbol": "?GetIRichEditOle@CRichEditCtrl@@QEBAPEAUIRichEditOle@@XZ"
+    },
+    {
+      "class": "CRichEditDoc",
+      "ordinal": 5542,
+      "symbol": "?GetInPlaceActiveItem@CRichEditDoc@@UEAAPEAVCOleClientItem@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "CRichEditDoc",
+      "ordinal": 6116,
+      "symbol": "?GetPrimarySelectedItem@CRichEditDoc@@UEAAPEAVCOleClientItem@@PEAVCView@@@Z"
+    },
+    {
+      "class": "CRichEditDoc",
+      "ordinal": 8212,
+      "symbol": "?LookupItem@CRichEditDoc@@QEBAPEAVCRichEditCntrItem@@PEAUIOleObject@@@Z"
+    },
+    {
+      "class": "CRichEditDoc",
+      "ordinal": 10005,
+      "symbol": "?OnGetEmbeddedItem@CRichEditDoc@@MEAAPEAVCOleServerItem@@XZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 3986,
+      "symbol": "?DoPaste@CRichEditView@@QEAAXAEAVCOleDataObject@@GPEAX@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 5100,
+      "symbol": "?GetContextMenu@CRichEditView@@MEAAPEAUHMENU__@@GPEAUIOleObject@@PEAU_charrange@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 7533,
+      "symbol": "?GetWindowContext@CRichEditView@@QEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagOIFI@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 9200,
+      "symbol": "?OnDragEnter@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 9215,
+      "symbol": "?OnDragOver@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 9677,
+      "symbol": "?OnDrop@CView@@UEAAHPEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CView",
+      "ordinal": 9682,
+      "symbol": "?OnDropEx@CView@@UEAAKPEAVCOleDataObject@@KKVCPoint@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8157,
+      "symbol": "?LoadState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 12684,
+      "symbol": "?SaveState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 06/06: CRichEditDoc, CView, CRichEditView"
+}

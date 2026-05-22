@@ -1,0 +1,1013 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-04",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 1095,
+      "symbol": "??1CDockablePaneAdapter@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1096,
+      "symbol": "??1CDockBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1097,
+      "symbol": "??1CDockContext@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1099,
+      "symbol": "??1CDockingPanesRow@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1100,
+      "symbol": "??1CDockSite@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1101,
+      "symbol": "??1CDockState@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1103,
+      "symbol": "??1CDocObjectServer@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1104,
+      "symbol": "??1CDocObjectServerItem@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1108,
+      "symbol": "??1CDrawingManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1110,
+      "symbol": "??1CDynLinkLibrary@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1111,
+      "symbol": "??1CEdit@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1113,
+      "symbol": "??1CEnumArray@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1114,
+      "symbol": "??1CEnumConnections@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1115,
+      "symbol": "??1CEnumConnPoints@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1118,
+      "symbol": "??1CEnumUnknown@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1121,
+      "symbol": "??1CFileDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1123,
+      "symbol": "??1CFixedAlloc@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1124,
+      "symbol": "??1CFixedAllocNoSync@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1125,
+      "symbol": "??1CFolderPickerDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1126,
+      "symbol": "??1CFontHolder@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1129,
+      "symbol": "??1CFrameWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1133,
+      "symbol": "??1CFullScreenImpl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1134,
+      "symbol": "??1CGestureConfig@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1138,
+      "symbol": "??1CGopherFileFind@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1139,
+      "symbol": "??1CGopherLocator@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1140,
+      "symbol": "??1CHeaderCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1141,
+      "symbol": "??1CHotKeyCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1142,
+      "symbol": "??1CHtmlControlSite@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1143,
+      "symbol": "??1CHtmlEditCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1144,
+      "symbol": "??1CHtmlEditDoc@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1145,
+      "symbol": "??1CHtmlEditView@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1154,
+      "symbol": "??1CIPAddressCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1155,
+      "symbol": "??1CJumpList@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1157,
+      "symbol": "??1CListBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1158,
+      "symbol": "??1CListCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1159,
+      "symbol": "??1CLongBinary@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1170,
+      "symbol": "??1CMDITabProxyWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1171,
+      "symbol": "??1CMemDC@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1174,
+      "symbol": "??1CMenuTearOffManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1176,
+      "symbol": "??1CMFCAcceleratorKey@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1177,
+      "symbol": "??1CMFCAcceleratorKeyAssignCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1180,
+      "symbol": "??1CMFCBaseAccessibleObject@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1182,
+      "symbol": "??1CMFCBaseToolBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1183,
+      "symbol": "??1CMFCBaseVisualManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1185,
+      "symbol": "??1CMFCCaptionBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1186,
+      "symbol": "??1CMFCCaptionButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1187,
+      "symbol": "??1CMFCCaptionButtonEx@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1188,
+      "symbol": "??1CMFCCaptionMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1189,
+      "symbol": "??1CMFCCmdUsageCount@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1190,
+      "symbol": "??1CMFCColorBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1191,
+      "symbol": "??1CMFCColorButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1192,
+      "symbol": "??1CMFCColorDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1193,
+      "symbol": "??1CMFCColorMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1194,
+      "symbol": "??1CMFCColorPickerCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1195,
+      "symbol": "??1CMFCColorPopupMenu@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1196,
+      "symbol": "??1CMFCColorPropertySheet@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1197,
+      "symbol": "??1CMFCControlBarImpl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1198,
+      "symbol": "??1CMFCControlContainer@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1199,
+      "symbol": "??1CMFCControlRenderer@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1200,
+      "symbol": "??1CMFCControlRendererInfo@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1201,
+      "symbol": "??1CMFCCustomizeButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1202,
+      "symbol": "??1CMFCCustomizeMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1203,
+      "symbol": "??1CMFCDesktopAlertDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1204,
+      "symbol": "??1CMFCDesktopAlertWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1205,
+      "symbol": "??1CMFCDragFrameImpl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1206,
+      "symbol": "??1CMFCDropDownFrame@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1207,
+      "symbol": "??1CMFCDropDownListBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1208,
+      "symbol": "??1CMFCDropDownToolbarButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1209,
+      "symbol": "??1CMFCEditBrowseCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1210,
+      "symbol": "??1CMFCFilterChunkValueImpl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1211,
+      "symbol": "??1CMFCFontComboBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1212,
+      "symbol": "??1CMFCHeaderCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1213,
+      "symbol": "??1CMFCImagePaintArea@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1214,
+      "symbol": "??1CMFCKeyMapDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1215,
+      "symbol": "??1CMFCLinkCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1216,
+      "symbol": "??1CMFCListCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1217,
+      "symbol": "??1CMFCMaskedEdit@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1218,
+      "symbol": "??1CMFCMenuBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1219,
+      "symbol": "??1CMFCMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1220,
+      "symbol": "??1CMFCMousePropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1221,
+      "symbol": "??1CMFCOutlookBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1222,
+      "symbol": "??1CMFCOutlookBarPane@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1223,
+      "symbol": "??1CMFCOutlookBarPaneAdapter@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1224,
+      "symbol": "??1CMFCOutlookBarPaneButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1225,
+      "symbol": "??1CMFCOutlookBarTabCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1227,
+      "symbol": "??1CMFCPopupMenuBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1228,
+      "symbol": "??1CMFCPreviewCtrlImpl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1229,
+      "symbol": "??1CMFCPropertyGridColorProperty@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1231,
+      "symbol": "??1CMFCPropertyGridFileProperty@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1232,
+      "symbol": "??1CMFCPropertyGridFontProperty@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1234,
+      "symbol": "??1CMFCPropertyGridToolTipCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1235,
+      "symbol": "??1CMFCPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1236,
+      "symbol": "??1CMFCPropertySheet@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1237,
+      "symbol": "??1CMFCPropertySheetCategoryInfo@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1244,
+      "symbol": "??1CMFCRibbonCollector@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1245,
+      "symbol": "??1CMFCRibbonColorButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1246,
+      "symbol": "??1CMFCRibbonComboBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1247,
+      "symbol": "??1CMFCRibbonCommandsListBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1248,
+      "symbol": "??1CMFCRibbonConstructor@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1249,
+      "symbol": "??1CMFCRibbonCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1250,
+      "symbol": "??1CMFCRibbonCustomizePropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1252,
+      "symbol": "??1CMFCRibbonFontComboBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1254,
+      "symbol": "??1CMFCRibbonGalleryMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1255,
+      "symbol": "??1CMFCRibbonInfo@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1256,
+      "symbol": "??1CMFCRibbonInfoLoader@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1257,
+      "symbol": "??1CMFCRibbonKeyboardCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1258,
+      "symbol": "??1CMFCRibbonKeyTip@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1260,
+      "symbol": "??1CMFCRibbonLinkCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1262,
+      "symbol": "??1CMFCRibbonMainPanelButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1263,
+      "symbol": "??1CMFCRibbonMiniToolBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1265,
+      "symbol": "??1CMFCRibbonPanelMenu@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1266,
+      "symbol": "??1CMFCRibbonPanelMenuBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1268,
+      "symbol": "??1CMFCRibbonQuickAccessToolBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1269,
+      "symbol": "??1CMFCRibbonRichEditCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1273,
+      "symbol": "??1CMFCRibbonTabsGroup@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1274,
+      "symbol": "??1CMFCRibbonUndoButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1275,
+      "symbol": "??1CMFCShadowRenderer@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1276,
+      "symbol": "??1CMFCShellListCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1277,
+      "symbol": "??1CMFCShellTreeCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1278,
+      "symbol": "??1CMFCShowAllButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1279,
+      "symbol": "??1CMFCSpinButtonCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1283,
+      "symbol": "??1CMFCTasksPaneFrameWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1286,
+      "symbol": "??1CMFCToolBarButtonCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1287,
+      "symbol": "??1CMFCToolBarButtonsListButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1289,
+      "symbol": "??1CMFCToolBarComboBoxEdit@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1290,
+      "symbol": "??1CMFCToolBarDateTimeCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1291,
+      "symbol": "??1CMFCToolBarDropSource@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1292,
+      "symbol": "??1CMFCToolBarDropTarget@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1294,
+      "symbol": "??1CMFCToolBarEditCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1295,
+      "symbol": "??1CMFCToolBarFontComboBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1296,
+      "symbol": "??1CMFCToolBarFontSizeComboBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1300,
+      "symbol": "??1CMFCToolBarsCommandsListBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1301,
+      "symbol": "??1CMFCToolBarsCommandsPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1302,
+      "symbol": "??1CMFCToolBarsCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1303,
+      "symbol": "??1CMFCToolBarsKeyboardPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1304,
+      "symbol": "??1CMFCToolBarsListCheckBox@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1305,
+      "symbol": "??1CMFCToolBarsListPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1306,
+      "symbol": "??1CMFCToolBarsMenuPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1307,
+      "symbol": "??1CMFCToolBarsOptionsPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1308,
+      "symbol": "??1CMFCToolBarSpinEditBoxButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1309,
+      "symbol": "??1CMFCToolBarsToolsPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1310,
+      "symbol": "??1CMFCToolBarSystemMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1311,
+      "symbol": "??1CMFCToolTipCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1313,
+      "symbol": "??1CMFCVisualManagerBitmapCache@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1314,
+      "symbol": "??1CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1319,
+      "symbol": "??1CMFCVisualManagerVS2008@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1322,
+      "symbol": "??1CMFCZoomKernel@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1324,
+      "symbol": "??1CMonikerFile@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1325,
+      "symbol": "??1CMonthCalCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1326,
+      "symbol": "??1CMouseManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1329,
+      "symbol": "??1CMultiPageDHtmlDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1338,
+      "symbol": "??1COleCntrFrameWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1339,
+      "symbol": "??1COleCntrFrameWndEx@@MEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1342,
+      "symbol": "??1COleControlLock@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1344,
+      "symbol": "??1COleControlSiteOrWnd@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1348,
+      "symbol": "??1COleDocIPFrameWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1349,
+      "symbol": "??1COleDocIPFrameWndEx@@MEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1356,
+      "symbol": "??1COleIPFrameWndEx@@MEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1365,
+      "symbol": "??1COleServerDocEx@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1373,
+      "symbol": "??1CPaneDialog@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1376,
+      "symbol": "??1CPictureHolder@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1377,
+      "symbol": "??1CPngImage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1378,
+      "symbol": "??1CPreviewDC@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1379,
+      "symbol": "??1CPreviewView@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1380,
+      "symbol": "??1CPreviewViewEx@@MEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1381,
+      "symbol": "??1CPrintInfo@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1382,
+      "symbol": "??1CProcessLocalObject@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1383,
+      "symbol": "??1CProgressCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1384,
+      "symbol": "??1CPropbagPropExchange@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1385,
+      "symbol": "??1CProperty@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1386,
+      "symbol": "??1CPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1387,
+      "symbol": "??1CPropertySection@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1388,
+      "symbol": "??1CPropertySet@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1389,
+      "symbol": "??1CPropertySheet@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1391,
+      "symbol": "??1CPtrList@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1392,
+      "symbol": "??1CReBarCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1393,
+      "symbol": "??1CRecentDockSiteInfo@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1395,
+      "symbol": "??1CRecentPaneContainerInfo@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1398,
+      "symbol": "??1CRectTracker@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1400,
+      "symbol": "??1CReObject@@QEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1401,
+      "symbol": "??1CRichEditCntrItem@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1403,
+      "symbol": "??1CScreenWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1404,
+      "symbol": "??1CScrollBar@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1407,
+      "symbol": "??1CSettingsStore@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1408,
+      "symbol": "??1CSharedFile@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1409,
+      "symbol": "??1CShellManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1411,
+      "symbol": "??1CSliderCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1412,
+      "symbol": "??1CSmartDockingGroupGuide@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1413,
+      "symbol": "??1CSmartDockingGroupGuidesManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1414,
+      "symbol": "??1CSmartDockingHighlighterWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1415,
+      "symbol": "??1CSmartDockingManager@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1416,
+      "symbol": "??1CSmartDockingStandaloneGuide@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1417,
+      "symbol": "??1CSmartDockingStandaloneGuideWnd@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1420,
+      "symbol": "??1CSpinButtonCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1423,
+      "symbol": "??1CSplitterWndEx@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1424,
+      "symbol": "??1CStatic@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1426,
+      "symbol": "??1CStatusBarCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1431,
+      "symbol": "??1CTabbedPane@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1432,
+      "symbol": "??1CTabCtrl@@UEAA@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 1433,
+      "symbol": "??1CTabView@@MEAA@XZ"
+    }
+  ],
+  "title": "global_residuals shard 04/12: global"
+}

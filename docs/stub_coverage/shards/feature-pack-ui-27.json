@@ -1,0 +1,438 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-27",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 85,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13905,
+      "symbol": "?StartTearOff@CPaneFrameWnd@@QEAAHPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13916,
+      "symbol": "?StopCaptionButtonsTracking@CPaneFrameWnd@@MEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13931,
+      "symbol": "?StoreRecentDockSiteInfo@CPaneFrameWnd@@UEAAXPEAVCPane@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13935,
+      "symbol": "?StoreRecentTabRelatedInfo@CPaneFrameWnd@@UEAAXPEAVCDockablePane@@0@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 14173,
+      "symbol": "?UpdateTooltips@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 2535,
+      "symbol": "?BrowseCallbackProc@CShellManager@@KAHPEAUHWND__@@I_J1@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 2536,
+      "symbol": "?BrowseForFolder@CShellManager@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCWnd@@PEB_W2IPEAH@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 2923,
+      "symbol": "?ConcatenateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@0@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 3039,
+      "symbol": "?CopyItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 3316,
+      "symbol": "?CreateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@I@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 4706,
+      "symbol": "?FreeItem@CShellManager@@QEAAXPEFAU_ITEMIDLIST@@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 5603,
+      "symbol": "?GetItemCount@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 5634,
+      "symbol": "?GetItemSize@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 5974,
+      "symbol": "?GetNextItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 6075,
+      "symbol": "?GetParentItem@CShellManager@@QEAAHPEFBU_ITEMIDLIST@@AEAPEFAU2@@Z"
+    },
+    {
+      "class": "CShellManager",
+      "ordinal": 8048,
+      "symbol": "?ItemFromPath@CShellManager@@QEAAJPEB_WAEAPEFAU_ITEMIDLIST@@@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 2722,
+      "symbol": "?CheckTabbedBarAlignment@CTabbedPane@@MEAAHXZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 3492,
+      "symbol": "?CreateObject@CTabbedPane@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 3845,
+      "symbol": "?DetachPane@CTabbedPane@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 4314,
+      "symbol": "?EnableTabAutoColor@CTabbedPane@@SAXH@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 4636,
+      "symbol": "?FloatTab@CTabbedPane@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 5903,
+      "symbol": "?GetMessageMap@CTabbedPane@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 6595,
+      "symbol": "?GetRuntimeClass@CTabbedPane@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 6741,
+      "symbol": "?GetTabArea@CTabbedPane@@UEBAXAEAVCRect@@0@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 7158,
+      "symbol": "?GetThisClass@CTabbedPane@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 7381,
+      "symbol": "?GetThisMessageMap@CTabbedPane@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8021,
+      "symbol": "?IsTabLocationBottom@CTabbedPane@@UEBAHXZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8223,
+      "symbol": "?m_arTabsAutoColors@CTabbedPane@@1V?$CArray@KK@@A"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8261,
+      "symbol": "?m_bIsTabsAutoColor@CTabbedPane@@1HA"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8284,
+      "symbol": "?m_bTabsAlwaysTop@CTabbedPane@@2HA"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8329,
+      "symbol": "?m_lstTabbedControlBars@CTabbedPane@@1V?$CList@PEAUHWND__@@PEAU1@@@A"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8385,
+      "symbol": "?m_pTabWndRTC@CTabbedPane@@2PEAUCRuntimeClass@@EA"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 8404,
+      "symbol": "?m_StyleTabWnd@CTabbedPane@@2W4Style@CMFCTabCtrl@@A"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 9035,
+      "symbol": "?OnCreate@CTabbedPane@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 9153,
+      "symbol": "?OnDestroy@CTabbedPane@@IEAAXXZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 10820,
+      "symbol": "?OnPressCloseButton@CTabbedPane@@MEAAXXZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 12518,
+      "symbol": "?ResetTabs@CTabbedPane@@SAXXZ"
+    },
+    {
+      "class": "CTabbedPane",
+      "ordinal": 13632,
+      "symbol": "?SetTabAutoColors@CTabbedPane@@SAXAEBV?$CArray@KK@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 2783,
+      "symbol": "?ClickCommandControl@CTaskDialog@@IEBAXH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 2784,
+      "symbol": "?ClickRadioButton@CTaskDialog@@IEBAXH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 4500,
+      "symbol": "?FillStruct@CTaskDialog@@AEAAXAEAU_TASKDIALOGCONFIG@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 4713,
+      "symbol": "?FreeStruct@CTaskDialog@@AEAAXAEAU_TASKDIALOGCONFIG@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 4958,
+      "symbol": "?GetButtonData@CTaskDialog@@AEBAPEAU_TASKDIALOG_BUTTON@@AEBV?$CArray@U_CTaskDialogButton@CTaskDialog@@AEBU12@@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 4962,
+      "symbol": "?GetButtonIndex@CTaskDialog@@AEBA_JHAEBV?$CArray@U_CTaskDialogButton@CTaskDialog@@AEBU12@@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 5069,
+      "symbol": "?GetCommonButtonCount@CTaskDialog@@MEBAHXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 5070,
+      "symbol": "?GetCommonButtonFlag@CTaskDialog@@MEBAHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 5071,
+      "symbol": "?GetCommonButtonId@CTaskDialog@@MEBAHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 6598,
+      "symbol": "?GetRuntimeClass@CTaskDialog@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 7161,
+      "symbol": "?GetThisClass@CTaskDialog@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 7862,
+      "symbol": "?IsCommandControlEnabled@CTaskDialog@@QEBAHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 7981,
+      "symbol": "?IsRadioButtonEnabled@CTaskDialog@@QEBAHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 8090,
+      "symbol": "?LoadCommandControls@CTaskDialog@@QEAAXHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 8127,
+      "symbol": "?LoadRadioButtons@CTaskDialog@@QEAAXHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 8518,
+      "symbol": "?NavigateTo@CTaskDialog@@IEBAXAEAV1@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 8540,
+      "symbol": "?Notify@CTaskDialog@@AEBAXI_K_J@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 8948,
+      "symbol": "?OnCommandControlClick@CTaskDialog@@MEAAJH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 9037,
+      "symbol": "?OnCreate@CTaskDialog@@MEAAJXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 9155,
+      "symbol": "?OnDestroy@CTaskDialog@@MEAAJXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 9829,
+      "symbol": "?OnExpandButtonClick@CTaskDialog@@MEAAJH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 10069,
+      "symbol": "?OnHelp@CTaskDialog@@MEAAJXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 10120,
+      "symbol": "?OnHyperlinkClick@CTaskDialog@@MEAAJAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 10150,
+      "symbol": "?OnInit@CTaskDialog@@MEAAJXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 10544,
+      "symbol": "?OnNavigatePage@CTaskDialog@@MEAAJXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 10870,
+      "symbol": "?OnRadioButtonClick@CTaskDialog@@MEAAJH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 11365,
+      "symbol": "?OnTimer@CTaskDialog@@MEAAJJ@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 11580,
+      "symbol": "?OnVerificationCheckboxClick@CTaskDialog@@MEAAJH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 12301,
+      "symbol": "?RemoveAllCommandControls@CTaskDialog@@QEAAXXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 12312,
+      "symbol": "?RemoveAllRadioButtons@CTaskDialog@@QEAAXXZ"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13055,
+      "symbol": "?SetCommandControlOptions@CTaskDialog@@QEAAXHHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13061,
+      "symbol": "?SetCommonButtonOptions@CTaskDialog@@QEAAXHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13062,
+      "symbol": "?SetCommonButtons@CTaskDialog@@QEAAXHHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13108,
+      "symbol": "?SetDefaultCommandControl@CTaskDialog@@QEAAXH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13113,
+      "symbol": "?SetDefaultRadioButton@CTaskDialog@@QEAAXH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13177,
+      "symbol": "?SetExpansionArea@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@00@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13493,
+      "symbol": "?SetProgressBarState@CTaskDialog@@QEAAXH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13524,
+      "symbol": "?SetRadioButtonOptions@CTaskDialog@@QEAAXHH@Z"
+    },
+    {
+      "class": "CTaskDialog",
+      "ordinal": 13738,
+      "symbol": "?SetVerificationCheckbox@CTaskDialog@@QEAAXH@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 3339,
+      "symbol": "?CreateNewTool@CUserToolsManager@@QEAAPEAVCUserTool@@XZ"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 4618,
+      "symbol": "?FindTool@CUserToolsManager@@QEBAPEAVCUserTool@@I@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 7841,
+      "symbol": "?InvokeTool@CUserToolsManager@@QEAAHI@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 8154,
+      "symbol": "?LoadState@CUserToolsManager@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 8502,
+      "symbol": "?MoveToolDown@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 8503,
+      "symbol": "?MoveToolUp@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 12430,
+      "symbol": "?RemoveTool@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z"
+    },
+    {
+      "class": "CUserToolsManager",
+      "ordinal": 12681,
+      "symbol": "?SaveState@CUserToolsManager@@QEAAHPEB_W@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 27/27: CTaskDialog, CTabbedPane, CShellManager"
+}

@@ -1,0 +1,1013 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-06",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 2616,
+      "symbol": "?CalcSize@CMFCColorBar@@MEAA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 2965,
+      "symbol": "?ContextToSize@CMFCColorBar@@QEAAXHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 3102,
+      "symbol": "?Create@CMFCColorBar@@UEAAHPEAVCWnd@@KIPEAVCPalette@@HHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 3196,
+      "symbol": "?CreateControl@CMFCColorBar@@UEAAHPEAVCWnd@@AEBVCRect@@IHPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 3375,
+      "symbol": "?CreateObject@CMFCColorBar@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 3506,
+      "symbol": "?CreatePalette@CMFCColorBar@@KAHAEBV?$CArray@KK@@AEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 3975,
+      "symbol": "?DoPaint@CMFCColorBar@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 4213,
+      "symbol": "?EnableAutomaticButton@CMFCColorBar@@QEAAXPEB_WKH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 4287,
+      "symbol": "?EnableOtherButton@CMFCColorBar@@QEAAXPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5052,
+      "symbol": "?GetColorGridSize@CMFCColorBar@@IEBA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5365,
+      "symbol": "?GetExtraHeight@CMFCColorBar@@IEBAHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5480,
+      "symbol": "?GetHighlightedColor@CMFCColorBar@@QEBAKXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5785,
+      "symbol": "?GetMessageMap@CMFCColorBar@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 6370,
+      "symbol": "?GetRuntimeClass@CMFCColorBar@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 6933,
+      "symbol": "?GetThisClass@CMFCColorBar@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 7263,
+      "symbol": "?GetThisMessageMap@CMFCColorBar@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 7671,
+      "symbol": "?InitColors@CMFCColorBar@@KAHPEAVCPalette@@AEAV?$CArray@KK@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 8296,
+      "symbol": "?m_ColorNames@CMFCColorBar@@1V?$CMap@KKV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@@A"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 8774,
+      "symbol": "?OnChangeHot@CMFCColorBar@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 9001,
+      "symbol": "?OnCreate@CMFCColorBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 9124,
+      "symbol": "?OnDestroy@CMFCColorBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10224,
+      "symbol": "?OnKey@CMFCColorBar@@MEAAHI@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10294,
+      "symbol": "?OnLButtonDblClk@CMFCColorBar@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10325,
+      "symbol": "?OnLButtonDown@CMFCColorBar@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10378,
+      "symbol": "?OnLButtonUp@CMFCColorBar@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10458,
+      "symbol": "?OnMouseLeave@CMFCColorBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10477,
+      "symbol": "?OnMouseMove@CMFCColorBar@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10566,
+      "symbol": "?OnNcCalcSize@CMFCColorBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10638,
+      "symbol": "?OnNcPaint@CMFCColorBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10771,
+      "symbol": "?OnPaletteChanged@CMFCColorBar@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 10865,
+      "symbol": "?OnQueryNewPalette@CMFCColorBar@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 11000,
+      "symbol": "?OnSendCommand@CMFCColorBar@@MEAAHPEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 11447,
+      "symbol": "?OnUpdateCmdUI@CMFCColorBar@@MEAAXPEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 11656,
+      "symbol": "?OpenColorDialog@CMFCColorBar@@MEAAHKAEAK@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 11870,
+      "symbol": "?PreTranslateMessage@CMFCColorBar@@MEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 12124,
+      "symbol": "?Rebuild@CMFCColorBar@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 12766,
+      "symbol": "?SelectPalette@CMFCColorBar@@IEAAPEAVCPalette@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 12810,
+      "symbol": "?Serialize@CMFCColorBar@@MEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 13036,
+      "symbol": "?SetColor@CMFCColorBar@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 13146,
+      "symbol": "?SetDocumentColors@CMFCColorBar@@QEAAXPEB_WAEAV?$CList@KK@@H@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 13237,
+      "symbol": "?SetHorzMargin@CMFCColorBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 13740,
+      "symbol": "?SetVertMargin@CMFCColorBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 13800,
+      "symbol": "?ShowCommandMessageString@CMFCColorBar@@MEAAXI@Z"
+    },
+    {
+      "class": "CMFCColorBarCmdUI",
+      "ordinal": 4189,
+      "symbol": "?Enable@CMFCColorBarCmdUI@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 4214,
+      "symbol": "?EnableAutomaticButton@CMFCColorButton@@QEAAXPEB_WKH@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 4288,
+      "symbol": "?EnableOtherButton@CMFCColorButton@@QEAAXPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 5786,
+      "symbol": "?GetMessageMap@CMFCColorButton@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 6371,
+      "symbol": "?GetRuntimeClass@CMFCColorButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 6934,
+      "symbol": "?GetThisClass@CMFCColorButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 7264,
+      "symbol": "?GetThisMessageMap@CMFCColorButton@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 7891,
+      "symbol": "?IsDrawXPTheme@CMFCColorButton@@IEBAHXZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 9225,
+      "symbol": "?OnDraw@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 9288,
+      "symbol": "?OnDrawBorder@CMFCColorButton@@MEAAXPEAVCDC@@AEAVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 9374,
+      "symbol": "?OnDrawFocusRect@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 9854,
+      "symbol": "?OnFillBackground@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 9993,
+      "symbol": "?OnGetDlgCode@CMFCColorButton@@IEAAIXZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 10152,
+      "symbol": "?OnInitControl@CMFCColorButton@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 10238,
+      "symbol": "?OnKeyDown@CMFCColorButton@@IEAAXIII@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 10326,
+      "symbol": "?OnLButtonDown@CMFCColorButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 10478,
+      "symbol": "?OnMouseMove@CMFCColorButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 11170,
+      "symbol": "?OnShowColorPopup@CMFCColorButton@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 11309,
+      "symbol": "?OnSysColorChange@CMFCColorButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 12135,
+      "symbol": "?RebuildPalette@CMFCColorButton@@IEAAXPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 13037,
+      "symbol": "?SetColor@CMFCColorButton@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 13147,
+      "symbol": "?SetDocumentColors@CMFCColorButton@@QEAAXPEB_WAEAV?$CList@KK@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 13430,
+      "symbol": "?SetPalette@CMFCColorButton@@QEAAXPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 13873,
+      "symbol": "?SizeToContent@CMFCColorButton@@UEAA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 14121,
+      "symbol": "?UpdateColor@CMFCColorButton@@MEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 3915,
+      "symbol": "?DoDataExchange@CMFCColorDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 5787,
+      "symbol": "?GetMessageMap@CMFCColorDialog@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 7265,
+      "symbol": "?GetThisMessageMap@CMFCColorDialog@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 8922,
+      "symbol": "?OnColorSelect@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 9125,
+      "symbol": "?OnDestroy@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10164,
+      "symbol": "?OnInitDialog@CMFCColorDialog@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10327,
+      "symbol": "?OnLButtonDown@CMFCColorDialog@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10479,
+      "symbol": "?OnMouseMove@CMFCColorDialog@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 11032,
+      "symbol": "?OnSetCursor@CMFCColorDialog@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 11310,
+      "symbol": "?OnSysColorChange@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 11871,
+      "symbol": "?PreTranslateMessage@CMFCColorDialog@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 12136,
+      "symbol": "?RebuildPalette@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 13085,
+      "symbol": "?SetCurrentColor@CMFCColorDialog@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 13384,
+      "symbol": "?SetNewColor@CMFCColorDialog@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 13427,
+      "symbol": "?SetPageOne@CMFCColorDialog@@QEAAXEEE@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 13429,
+      "symbol": "?SetPageTwo@CMFCColorDialog@@QEAAXEEE@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 2997,
+      "symbol": "?CopyFrom@CMFCColorMenuButton@@MEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 3376,
+      "symbol": "?CreateObject@CMFCColorMenuButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 3511,
+      "symbol": "?CreatePopupMenu@CMFCColorMenuButton@@MEAAPEAVCMFCPopupMenu@@XZ"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 4215,
+      "symbol": "?EnableAutomaticButton@CMFCColorMenuButton@@QEAAXPEB_WKH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 4249,
+      "symbol": "?EnableDocumentColors@CMFCColorMenuButton@@QEAAXPEB_WH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 4289,
+      "symbol": "?EnableOtherButton@CMFCColorMenuButton@@QEAAXPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 4319,
+      "symbol": "?EnableTearOff@CMFCColorMenuButton@@QEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 5050,
+      "symbol": "?GetColorByCmdID@CMFCColorMenuButton@@SAKI@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 6372,
+      "symbol": "?GetRuntimeClass@CMFCColorMenuButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 6935,
+      "symbol": "?GetThisClass@CMFCColorMenuButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 7698,
+      "symbol": "?Initialize@CMFCColorMenuButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 8297,
+      "symbol": "?m_ColorsByID@CMFCColorMenuButton@@1V?$CMap@IIKK@@A"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 8782,
+      "symbol": "?OnChangeParentWnd@CMFCColorMenuButton@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 9226,
+      "symbol": "?OnDraw@CMFCColorMenuButton@@MEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 9436,
+      "symbol": "?OnDrawOnCustomizeList@CMFCColorMenuButton@@MEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 11657,
+      "symbol": "?OpenColorDialog@CMFCColorMenuButton@@UEAAHKAEAK@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 12811,
+      "symbol": "?Serialize@CMFCColorMenuButton@@MEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 13038,
+      "symbol": "?SetColor@CMFCColorMenuButton@@UEAAXKH@Z"
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "ordinal": 13044,
+      "symbol": "?SetColorName@CMFCColorMenuButton@@SAXKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 3302,
+      "symbol": "?CreateHexagon@CMFCColorPickerCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 3303,
+      "symbol": "?CreateHexGreyScaleBar@CMFCColorPickerCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4049,
+      "symbol": "?DrawCursor@CMFCColorPickerCtrl@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4069,
+      "symbol": "?DrawHex@CMFCColorPickerCtrl@@IEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4088,
+      "symbol": "?DrawItem@CMFCColorPickerCtrl@@MEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4102,
+      "symbol": "?DrawLuminanceBar@CMFCColorPickerCtrl@@IEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4116,
+      "symbol": "?DrawPicker@CMFCColorPickerCtrl@@IEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 4894,
+      "symbol": "?GetAngleFromPoint@CMFCColorPickerCtrl@@IEAAHHH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 5162,
+      "symbol": "?GetCursorPos@CMFCColorPickerCtrl@@IEAA?AVCPoint@@XZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 5163,
+      "symbol": "?GetCursorRect@CMFCColorPickerCtrl@@IEAA?AVCRect@@XZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 5489,
+      "symbol": "?GetHLS@CMFCColorPickerCtrl@@QEAAXPEAN00@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 5788,
+      "symbol": "?GetMessageMap@CMFCColorPickerCtrl@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 7266,
+      "symbol": "?GetThisMessageMap@CMFCColorPickerCtrl@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 8219,
+      "symbol": "?LumFromPoint@CMFCColorPickerCtrl@@IEAANH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 8560,
+      "symbol": "?NotifyParent@CMFCColorPickerCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 8738,
+      "symbol": "?OnCancelMode@CMFCColorPickerCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 9756,
+      "symbol": "?OnEraseBkgnd@CMFCColorPickerCtrl@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 9994,
+      "symbol": "?OnGetDlgCode@CMFCColorPickerCtrl@@IEAAIXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10239,
+      "symbol": "?OnKeyDown@CMFCColorPickerCtrl@@IEAAXIII@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10263,
+      "symbol": "?OnKillFocus@CMFCColorPickerCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10295,
+      "symbol": "?OnLButtonDblClk@CMFCColorPickerCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10328,
+      "symbol": "?OnLButtonDown@CMFCColorPickerCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10379,
+      "symbol": "?OnLButtonUp@CMFCColorPickerCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10480,
+      "symbol": "?OnMouseMove@CMFCColorPickerCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10772,
+      "symbol": "?OnPaletteChanged@CMFCColorPickerCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 10866,
+      "symbol": "?OnQueryNewPalette@CMFCColorPickerCtrl@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11064,
+      "symbol": "?OnSetFocus@CMFCColorPickerCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11238,
+      "symbol": "?OnSize@CMFCColorPickerCtrl@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11743,
+      "symbol": "?PointFromLum@CMFCColorPickerCtrl@@IEAAHN@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11793,
+      "symbol": "?PreCreateWindow@CMFCColorPickerCtrl@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11840,
+      "symbol": "?PreSubclassWindow@CMFCColorPickerCtrl@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 12735,
+      "symbol": "?SelectCellHexagon@CMFCColorPickerCtrl@@IEAAHHH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 12736,
+      "symbol": "?SelectCellHexagon@CMFCColorPickerCtrl@@QEAAXEEE@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13039,
+      "symbol": "?SetColor@CMFCColorPickerCtrl@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13236,
+      "symbol": "?SetHLS@CMFCColorPickerCtrl@@QEAAXNNNH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13339,
+      "symbol": "?SetLuminanceBarWidth@CMFCColorPickerCtrl@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13415,
+      "symbol": "?SetOriginalColor@CMFCColorPickerCtrl@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13431,
+      "symbol": "?SetPalette@CMFCColorPickerCtrl@@QEAAXPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13719,
+      "symbol": "?SetType@CMFCColorPickerCtrl@@QEAAXW4COLORTYPE@1@@Z"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 3535,
+      "symbol": "?CreateTearOffBar@CMFCColorPopupMenu@@UEAAPEAVCPane@@PEAVCFrameWnd@@IPEB_W@Z"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 5789,
+      "symbol": "?GetMessageMap@CMFCColorPopupMenu@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 6373,
+      "symbol": "?GetRuntimeClass@CMFCColorPopupMenu@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 6936,
+      "symbol": "?GetThisClass@CMFCColorPopupMenu@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 7267,
+      "symbol": "?GetThisMessageMap@CMFCColorPopupMenu@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "ordinal": 9002,
+      "symbol": "?OnCreate@CMFCColorPopupMenu@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 5790,
+      "symbol": "?GetMessageMap@CMFCColorPropertySheet@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 6374,
+      "symbol": "?GetRuntimeClass@CMFCColorPropertySheet@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 6937,
+      "symbol": "?GetThisClass@CMFCColorPropertySheet@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 7268,
+      "symbol": "?GetThisMessageMap@CMFCColorPropertySheet@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 8082,
+      "symbol": "?LoadAcceleratorTable@CMFCColorPropertySheet@@QEAAXI@Z"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 10165,
+      "symbol": "?OnInitDialog@CMFCColorPropertySheet@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 10684,
+      "symbol": "?OnNotify@CMFCColorPropertySheet@@MEAAH_K_JPEA_J@Z"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 11239,
+      "symbol": "?OnSize@CMFCColorPropertySheet@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 11764,
+      "symbol": "?PostNcDestroy@CMFCColorPropertySheet@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 11872,
+      "symbol": "?PreTranslateMessage@CMFCColorPropertySheet@@MEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "ordinal": 12529,
+      "symbol": "?ResizeControl@CMFCColorPropertySheet@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCControlBarImpl",
+      "ordinal": 2609,
+      "symbol": "?CalcNcSize@CMFCControlBarImpl@@IEAAXPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CMFCControlBarImpl",
+      "ordinal": 4106,
+      "symbol": "?DrawNcArea@CMFCControlBarImpl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCControlBarImpl",
+      "ordinal": 4925,
+      "symbol": "?GetBackgroundFromParent@CMFCControlBarImpl@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCControlBarImpl",
+      "ordinal": 5455,
+      "symbol": "?GetGripperRect@CMFCControlBarImpl@@QEAAXAEAVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 2769,
+      "symbol": "?ClearControlData@CMFCControlContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 3226,
+      "symbol": "?CreateDlgControl@CMFCControlContainer@@IEAAPEAVCWnd@@PEB_W@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 4714,
+      "symbol": "?FreeSubclassedControls@CMFCControlContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 5106,
+      "symbol": "?GetControlData@CMFCControlContainer@@QEAAHGAEAKAEAPEAE@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 8011,
+      "symbol": "?IsSubclassedFeaturePackControl@CMFCControlContainer@@QEAAHPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 11903,
+      "symbol": "?PreUnsubclassControl@CMFCControlContainer@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 12560,
+      "symbol": "?ReSubclassControl@CMFCControlContainer@@QEAAHPEAUHWND__@@GAEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 13071,
+      "symbol": "?SetControlData@CMFCControlContainer@@QEAAXGKPEAE@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 13954,
+      "symbol": "?SubclassDlgControls@CMFCControlContainer@@QEAAHXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 14187,
+      "symbol": "?UTF8ToString@CMFCControlContainer@@SAHPEBDAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 2735,
+      "symbol": "?CleanUp@CMFCControlRenderer@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 3103,
+      "symbol": "?Create@CMFCControlRenderer@@UEAAHAEBVCMFCControlRendererInfo@@H@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 3377,
+      "symbol": "?CreateObject@CMFCControlRenderer@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 4021,
+      "symbol": "?Draw@CMFCControlRenderer@@UEAAXPEAVCDC@@VCRect@@IE@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 4062,
+      "symbol": "?DrawFrame@CMFCControlRenderer@@UEAAXPEAVCDC@@VCRect@@IE@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 4486,
+      "symbol": "?FillInterior@CMFCControlRenderer@@UEAAXPEAVCDC@@VCRect@@IE@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 4487,
+      "symbol": "?FillInterior@CMFCControlRenderer@@UEAAXPEAVCDC@@VCRect@@W4ImageAlignHorz@CMFCToolBarImages@@W4ImageAlignVert@5@IE@Z"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 6375,
+      "symbol": "?GetRuntimeClass@CMFCControlRenderer@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 6938,
+      "symbol": "?GetThisClass@CMFCControlRenderer@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 8455,
+      "symbol": "?Mirror@CMFCControlRenderer@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 11311,
+      "symbol": "?OnSysColorChange@CMFCControlRenderer@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "ordinal": 13885,
+      "symbol": "?SmoothResize@CMFCControlRenderer@@QEAAHN@Z"
+    },
+    {
+      "class": "CMFCControlRendererInfo",
+      "ordinal": 2882,
+      "symbol": "?CommonInit@CMFCControlRendererInfo@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCControlRendererInfo",
+      "ordinal": 6202,
+      "symbol": "?GetResourceID@CMFCControlRendererInfo@@QEBAPEB_WXZ"
+    },
+    {
+      "class": "CMFCControlRendererInfo",
+      "ordinal": 13553,
+      "symbol": "?SetResourceID@CMFCControlRendererInfo@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 3378,
+      "symbol": "?CreateObject@CMFCCustomColorsPropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 3916,
+      "symbol": "?DoDataExchange@CMFCCustomColorsPropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 5791,
+      "symbol": "?GetMessageMap@CMFCCustomColorsPropertyPage@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 6376,
+      "symbol": "?GetRuntimeClass@CMFCCustomColorsPropertyPage@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 6939,
+      "symbol": "?GetThisClass@CMFCCustomColorsPropertyPage@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 7269,
+      "symbol": "?GetThisMessageMap@CMFCCustomColorsPropertyPage@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 8923,
+      "symbol": "?OnColour@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 9185,
+      "symbol": "?OnDoubleClickedColor@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10112,
+      "symbol": "?OnHLSChanged@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10166,
+      "symbol": "?OnInitDialog@CMFCCustomColorsPropertyPage@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10415,
+      "symbol": "?OnLuminance@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10940,
+      "symbol": "?OnRGBChanged@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 06/27: CMFCColorBar, CMFCColorPickerCtrl, CMFCColorButton"
+}

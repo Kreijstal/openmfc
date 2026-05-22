@@ -1,0 +1,578 @@
+{
+  "category": "app_runtime_globals",
+  "id": "app-runtime-globals-01",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/appcore.cpp",
+    "phase4/src/mfc_exceptions.cpp"
+  ],
+  "symbol_count": 113,
+  "symbols": [
+    {
+      "class": "CException",
+      "ordinal": 3728,
+      "symbol": "?Delete@CException@@QEAAXXZ"
+    },
+    {
+      "class": "CException",
+      "ordinal": 5326,
+      "symbol": "?GetErrorMessage@CException@@UEAAHPEA_WIPEAI@Z"
+    },
+    {
+      "class": "CException",
+      "ordinal": 6306,
+      "symbol": "?GetRuntimeClass@CException@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CException",
+      "ordinal": 12464,
+      "symbol": "?ReportError@CException@@UEAAHII@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 3484,
+      "symbol": "?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 3485,
+      "symbol": "?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 3486,
+      "symbol": "?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 4732,
+      "symbol": "?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 4733,
+      "symbol": "?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 7872,
+      "symbol": "?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 8074,
+      "symbol": "?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z"
+    },
+    {
+      "class": "CRuntimeClass",
+      "ordinal": 13920,
+      "symbol": "?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 1844,
+      "symbol": "?AddDocTemplate@CWinApp@@QEAAXPEAVCDocTemplate@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 2439,
+      "symbol": "?ApplicationRecoveryCallback@CWinApp@@UEAAKPEAX@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 2822,
+      "symbol": "?CloseAllDocuments@CWinApp@@QEAAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3519,
+      "symbol": "?CreatePrinterDC@CWinApp@@QEAAHAEAVCDC@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3849,
+      "symbol": "?DevModeChange@CWinApp@@QEAAXPEA_W@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3940,
+      "symbol": "?DoEnableModeless@CWinApp@@SAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3949,
+      "symbol": "?DoMessageBox@CWinApp@@UEAAHPEB_WII@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 3992,
+      "symbol": "?DoPrintDialog@CWinApp@@QEAA_JPEAVCPrintDialog@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4011,
+      "symbol": "?DoWaitCursor@CWinApp@@UEAAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4235,
+      "symbol": "?EnableD2DSupport@CWinApp@@QEAAHW4D2D1_FACTORY_TYPE@@W4DWRITE_FACTORY_TYPE@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4277,
+      "symbol": "?EnableModeless@CWinApp@@QEAAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4307,
+      "symbol": "?EnableShellOpen@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4317,
+      "symbol": "?EnableTaskbarInteraction@CWinApp@@QEAAHH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 4903,
+      "symbol": "?GetAppRegistryKey@CWinApp@@QEAAPEAUHKEY__@@PEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 5183,
+      "symbol": "?GetDataRecoveryHandler@CWinApp@@UEAAPEAVCDataRecoveryHandler@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 5594,
+      "symbol": "?GetITaskbarList@CWinApp@@QEAAPEAUITaskbarList@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 5596,
+      "symbol": "?GetITaskbarList3@CWinApp@@QEAAPEAUITaskbarList3@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 5915,
+      "symbol": "?GetMessageMap@CWinApp@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 6118,
+      "symbol": "?GetPrinterDeviceDefaults@CWinApp@@QEAAHPEAUtagPDW@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 6614,
+      "symbol": "?GetRuntimeClass@CWinApp@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 6643,
+      "symbol": "?GetSectionKey@CWinApp@@QEAAPEAUHKEY__@@PEB_WPEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 6731,
+      "symbol": "?GetSysPolicyValue@CWinApp@@QEAAHKPEAH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 7393,
+      "symbol": "?GetThisMessageMap@CWinApp@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 7595,
+      "symbol": "?HideApplication@CWinApp@@QEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 7650,
+      "symbol": "?HtmlHelpW@CWinApp@@UEAAX_KI@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 7668,
+      "symbol": "?InitApplication@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 7719,
+      "symbol": "?InitLibId@CWinApp@@UEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8023,
+      "symbol": "?IsTaskbarInteractionEnabled@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8044,
+      "symbol": "?IsWindows7@CWinApp@@QEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8084,
+      "symbol": "?LoadAppLangResourceDLL@CWinApp@@UEAAPEAUHINSTANCE__@@XZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8167,
+      "symbol": "?LoadSysPolicies@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8667,
+      "symbol": "?OnAppExit@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 8968,
+      "symbol": "?OnContextHelp@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 9089,
+      "symbol": "?OnDDECommand@CWinApp@@UEAAHPEA_W@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 9842,
+      "symbol": "?OnFilePrintSetup@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 10070,
+      "symbol": "?OnHelp@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 10073,
+      "symbol": "?OnHelpFinder@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 10080,
+      "symbol": "?OnHelpIndex@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 10087,
+      "symbol": "?OnHelpUsing@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 10124,
+      "symbol": "?OnIdle@CWinApp@@UEAAHJ@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 11929,
+      "symbol": "?ProcessWndProcException@CWinApp@@UEAA_JPEAVCException@@PEBUtagMSG@@@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12212,
+      "symbol": "?Register@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12217,
+      "symbol": "?RegisterShellFileTypes@CWinApp@@IEAAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12223,
+      "symbol": "?RegisterWithRestartManager@CWinApp@@UEAAJPEB_WKP6AKPEAX@Z1KK@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12262,
+      "symbol": "?ReleaseTaskBarRefs@CWinApp@@QEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12544,
+      "symbol": "?RestartInstance@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12608,
+      "symbol": "?RunAutomated@CWinApp@@QEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12609,
+      "symbol": "?RunEmbedded@CWinApp@@QEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12625,
+      "symbol": "?SaveAllModified@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12686,
+      "symbol": "?SaveStdProfileSettings@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12769,
+      "symbol": "?SelectPrinter@CWinApp@@QEAAXPEAX0H@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 12923,
+      "symbol": "?SetAppID@CWinApp@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 13087,
+      "symbol": "?SetCurrentHandles@CWinApp@@QEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 13544,
+      "symbol": "?SetRegistryKey@CWinApp@@IEAAXI@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 13545,
+      "symbol": "?SetRegistryKey@CWinApp@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 13792,
+      "symbol": "?ShowAppMessageBox@CWinApp@@SAHPEAV1@PEB_WII@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 14088,
+      "symbol": "?Unregister@CWinApp@@UEAAHXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 14091,
+      "symbol": "?UnregisterShellFileTypes@CWinApp@@IEAAXXZ"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 14152,
+      "symbol": "?UpdatePrinterSelection@CWinApp@@IEAAXH@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 14210,
+      "symbol": "?WinHelpInternal@CWinApp@@UEAAX_KI@Z"
+    },
+    {
+      "class": "CWinApp",
+      "ordinal": 14216,
+      "symbol": "?WinHelpW@CWinApp@@UEAAX_KI@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 4320,
+      "symbol": "?EnableTearOffMenus@CWinAppEx@@QEAAHPEB_WII@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 4330,
+      "symbol": "?EnableUserTools@CWinAppEx@@QEAAHIIIPEAUCRuntimeClass@@II@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 4930,
+      "symbol": "?GetBinary@CWinAppEx@@QEAAHPEB_WPEAPEAEPEAI@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 5948,
+      "symbol": "?GetMouseManager@CWinAppEx@@QEAAPEAVCMouseManager@@XZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 5998,
+      "symbol": "?GetObjectW@CWinAppEx@@QEAAHPEB_WAEAVCObject@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6615,
+      "symbol": "?GetRuntimeClass@CWinAppEx@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6641,
+      "symbol": "?GetSectionBinary@CWinAppEx@@QEAAHPEB_W0PEAPEAEPEAI@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6642,
+      "symbol": "?GetSectionInt@CWinAppEx@@QEAAHPEB_W0H@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6645,
+      "symbol": "?GetSectionObject@CWinAppEx@@QEAAHPEB_W0AEAVCObject@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 6669,
+      "symbol": "?GetShellManager@CWinAppEx@@QEAAPEAVCShellManager@@XZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 7178,
+      "symbol": "?GetThisClass@CWinAppEx@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 7473,
+      "symbol": "?GetUserToolsManager@CWinAppEx@@QEAAPEAVCUserToolsManager@@XZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 7726,
+      "symbol": "?InitMouseManager@CWinAppEx@@QEAAHXZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 7734,
+      "symbol": "?InitShellManager@CWinAppEx@@QEAAHXZ"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8155,
+      "symbol": "?LoadState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8156,
+      "symbol": "?LoadState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8176,
+      "symbol": "?LoadWindowPlacement@CWinAppEx@@MEAAHAEAVCRect@@AEAH1@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8665,
+      "symbol": "?OnAppContextHelp@CWinAppEx@@UEAAXPEAVCWnd@@QEBK@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 8899,
+      "symbol": "?OnClosingMainFrame@CWinAppEx@@MEAAXPEAVCFrameImpl@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 11582,
+      "symbol": "?OnViewDoubleClick@CWinAppEx@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 12264,
+      "symbol": "?ReloadWindowPlacement@CWinAppEx@@MEAAHPEAVCFrameWnd@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 12682,
+      "symbol": "?SaveState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 12683,
+      "symbol": "?SaveState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 13846,
+      "symbol": "?ShowPopupMenu@CWinAppEx@@UEAAHIAEBVCPoint@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 13937,
+      "symbol": "?StoreWindowPlacement@CWinAppEx@@MEAAHAEBVCRect@@HH@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14274,
+      "symbol": "?WriteBinary@CWinAppEx@@QEAAHPEB_WPEAEI@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14287,
+      "symbol": "?WriteObject@CWinAppEx@@QEAAHPEB_WAEAVCObject@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14291,
+      "symbol": "?WriteSectionBinary@CWinAppEx@@QEAAHPEB_W0PEAEI@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14292,
+      "symbol": "?WriteSectionInt@CWinAppEx@@QEAAHPEB_W0H@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14293,
+      "symbol": "?WriteSectionObject@CWinAppEx@@QEAAHPEB_W0AEAVCObject@@@Z"
+    },
+    {
+      "class": "CWinAppEx",
+      "ordinal": 14294,
+      "symbol": "?WriteSectionString@CWinAppEx@@QEAAHPEB_W00@Z"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 2876,
+      "symbol": "?CommonConstruct@CWinThread@@QEAAXXZ"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 3537,
+      "symbol": "?CreateThread@CWinThread@@QEAAHKIPEAU_SECURITY_ATTRIBUTES@@@Z"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 3731,
+      "symbol": "?Delete@CWinThread@@UEAAXXZ"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 3863,
+      "symbol": "?DispatchThreadMessage@CWinThread@@IEAAXPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 3864,
+      "symbol": "?DispatchThreadMessageEx@CWinThread@@IEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 5706,
+      "symbol": "?GetMainWnd@CWinThread@@UEAAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 6618,
+      "symbol": "?GetRuntimeClass@CWinThread@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 11921,
+      "symbol": "?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CWinThread",
+      "ordinal": 11930,
+      "symbol": "?ProcessWndProcException@CWinThread@@UEAA_JPEAVCException@@PEBUtagMSG@@@Z"
+    }
+  ],
+  "title": "app_runtime_globals shard 01/01: CWinApp, CWinAppEx, CWinThread"
+}

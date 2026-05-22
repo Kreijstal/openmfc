@@ -1,0 +1,569 @@
+{
+  "category": "database_dao_odbc",
+  "id": "database-dao-odbc-01",
+  "primary_files": [
+    "include/openmfc/afxdb.h",
+    "include/openmfc/afxdao.h",
+    "phase4/src/dbcore.cpp",
+    "phase4/src/daocore.cpp"
+  ],
+  "symbol_count": 111,
+  "symbols": [
+    {
+      "class": "CDBException",
+      "ordinal": 2538,
+      "symbol": "?BuildErrorString@CDBException@@UEAAXPEAVCDatabase@@PEAXH@Z"
+    },
+    {
+      "class": "CDBException",
+      "ordinal": 4183,
+      "symbol": "?Empty@CDBException@@QEAAXXZ"
+    },
+    {
+      "class": "CDBException",
+      "ordinal": 5325,
+      "symbol": "?GetErrorMessage@CDBException@@UEBAHPEA_WIPEAI@Z"
+    },
+    {
+      "class": "CDBException",
+      "ordinal": 6281,
+      "symbol": "?GetRuntimeClass@CDBException@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CDBException",
+      "ordinal": 6844,
+      "symbol": "?GetThisClass@CDBException@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 2384,
+      "symbol": "?AllocConnect@CDatabase@@IEAAXK@Z"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 2523,
+      "symbol": "?BindParameters@CDatabase@@UEAAXPEAX@Z"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 2692,
+      "symbol": "?Check@CDatabase@@UEBAHF@Z"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 2708,
+      "symbol": "?CheckHstmt@CDatabase@@QEBAHFPEAX@Z"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 2925,
+      "symbol": "?Connect@CDatabase@@IEAAHK@Z"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 4681,
+      "symbol": "?Free@CDatabase@@IEAAXXZ"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 5077,
+      "symbol": "?GetConnect@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 5078,
+      "symbol": "?GetConnectInfo@CDatabase@@IEAAXXZ"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 5175,
+      "symbol": "?GetDatabaseName@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CDatabase",
+      "ordinal": 14188,
+      "symbol": "?VerifyConnect@CDatabase@@IEAAXXZ"
+    },
+    {
+      "class": "CFieldExchange",
+      "ordinal": 5701,
+      "symbol": "?GetLongBinaryData@CFieldExchange@@QEAAXHAEAVCLongBinary@@PEA_J@Z"
+    },
+    {
+      "class": "CFieldExchange",
+      "ordinal": 5703,
+      "symbol": "?GetLongBinarySize@CFieldExchange@@QEAA_JH@Z"
+    },
+    {
+      "class": "CFieldExchange",
+      "ordinal": 12122,
+      "symbol": "?ReallocLongBinary@CFieldExchange@@QEAAPEAEAEAVCLongBinary@@_J1@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2382,
+      "symbol": "?AllocAndCacheFieldInfo@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2386,
+      "symbol": "?AllocDataCache@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2391,
+      "symbol": "?AllocHstmt@CRecordset@@IEAAHXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2393,
+      "symbol": "?AllocRowset@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2395,
+      "symbol": "?AllocStatusArrays@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2429,
+      "symbol": "?AppendFilterAndSortSQL@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2436,
+      "symbol": "?AppendNames@CRecordset@@QEAAIPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2437,
+      "symbol": "?AppendNamesValues@CRecordset@@QEAAIPEAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2438,
+      "symbol": "?AppendValues@CRecordset@@QEAAIPEAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2521,
+      "symbol": "?BindFieldsForUpdate@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2522,
+      "symbol": "?BindFieldsToColumns@CRecordset@@QEAAIXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2524,
+      "symbol": "?BindParams@CRecordset@@QEAAIPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2544,
+      "symbol": "?BuildSelectSQL@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2548,
+      "symbol": "?BuildSQL@CRecordset@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2549,
+      "symbol": "?BuildUpdateSQL@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2650,
+      "symbol": "?CanBookmark@CRecordset@@QEBAHXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2652,
+      "symbol": "?Cancel@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2693,
+      "symbol": "?Check@CRecordset@@UEBAHF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2718,
+      "symbol": "?CheckRowsetCurrencyStatus@CRecordset@@QEAAXGJ@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2719,
+      "symbol": "?CheckRowsetError@CRecordset@@UEAAXF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2773,
+      "symbol": "?ClearFieldStatus@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2777,
+      "symbol": "?ClearNullFieldStatus@CRecordset@@QEAAXK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 2778,
+      "symbol": "?ClearNullParamStatus@CRecordset@@QEAAXK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 3870,
+      "symbol": "?DoBulkFieldExchange@CRecordset@@UEAAXPEAVCFieldExchange@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4219,
+      "symbol": "?EnableBookmarks@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4439,
+      "symbol": "?ExecuteSetPosUpdate@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4441,
+      "symbol": "?ExecuteUpdateSQL@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4468,
+      "symbol": "?FetchData@CRecordset@@QEAAFGJPEA_K@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4602,
+      "symbol": "?FindSQLToken@CRecordset@@SAPEB_WPEB_W0@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4626,
+      "symbol": "?Fixups@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4649,
+      "symbol": "?FlushResultSet@CRecordset@@QEAAHXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4695,
+      "symbol": "?FreeDataCache@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4711,
+      "symbol": "?FreeRowset@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4934,
+      "symbol": "?GetBookmark@CRecordset@@QEAAXAEAVCDBVariant@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4943,
+      "symbol": "?GetBoundFieldIndex@CRecordset@@QEAAHPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 4944,
+      "symbol": "?GetBoundParamIndex@CRecordset@@QEAAHPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5169,
+      "symbol": "?GetData@CRecordset@@SA_JPEAVCDatabase@@PEAXFF1_JF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5176,
+      "symbol": "?GetDataBuffer@CRecordset@@SAPEAXAEAVCDBVariant@@FPEA_JF_K@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5194,
+      "symbol": "?GetDefaultConnect@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5201,
+      "symbol": "?GetDefaultSQL@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5366,
+      "symbol": "?GetFieldIndexByName@CRecordset@@QEAAFPEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5367,
+      "symbol": "?GetFieldLengthBuffer@CRecordset@@QEAAPEA_JKH@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5368,
+      "symbol": "?GetFieldStatus@CRecordset@@QEAAEK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5369,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXFAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5370,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXFAEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5371,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXFAEAVCDBVariant@@F@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5372,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5373,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXPEB_WAEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5374,
+      "symbol": "?GetFieldValue@CRecordset@@QEAAXPEB_WAEAVCDBVariant@@F@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5669,
+      "symbol": "?GetLBFetchSize@CRecordset@@MEAA_J_J@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5671,
+      "symbol": "?GetLBReallocSize@CRecordset@@MEAA_J_J@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5702,
+      "symbol": "?GetLongBinaryDataAndCleanup@CRecordset@@SAXPEAVCDatabase@@PEAXF_JPEAPEAX2AEAVCDBVariant@@F@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5704,
+      "symbol": "?GetLongCharDataAndCleanup@CRecordset@@SAXPEAVCDatabase@@PEAXF_JPEAPEAX2AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@FF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 5705,
+      "symbol": "?GetLongCharDataAndCleanup@CRecordset@@SAXPEAVCDatabase@@PEAXF_JPEAPEAX2AEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@FF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 6003,
+      "symbol": "?GetODBCFieldInfo@CRecordset@@QEAAXFAEAUCODBCFieldInfo@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 6004,
+      "symbol": "?GetODBCFieldInfo@CRecordset@@QEAAXPEB_WAEAUCODBCFieldInfo@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 6784,
+      "symbol": "?GetTextLen@CRecordset@@SA_JF_K@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7733,
+      "symbol": "?InitRecord@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7906,
+      "symbol": "?IsFieldStatusDirty@CRecordset@@QEBAHK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7907,
+      "symbol": "?IsFieldStatusNull@CRecordset@@QEBAHK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7924,
+      "symbol": "?IsJoin@CRecordset@@SAHPEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7965,
+      "symbol": "?IsParamStatusNull@CRecordset@@QEBAHK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 7983,
+      "symbol": "?IsRecordsetUpdatable@CRecordset@@IEAAHXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 8004,
+      "symbol": "?IsSelectQueryUpdatable@CRecordset@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 8008,
+      "symbol": "?IsSQLUpdatable@CRecordset@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 8094,
+      "symbol": "?LoadFields@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 8427,
+      "symbol": "?MarkForAddNew@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 8428,
+      "symbol": "?MarkForUpdate@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 11153,
+      "symbol": "?OnSetUpdateOptions@CRecordset@@UEAAXPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 11774,
+      "symbol": "?PreBindFields@CRecordset@@UEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 11822,
+      "symbol": "?PrepareAndExecute@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 11831,
+      "symbol": "?PrepareUpdateHstmt@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 12123,
+      "symbol": "?RebindParams@CRecordset@@QEAAXPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 12204,
+      "symbol": "?RefreshRowset@CRecordset@@QEAAXGG@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 12501,
+      "symbol": "?ResetCursor@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 12781,
+      "symbol": "?SendLongBinaryData@CRecordset@@IEAAXPEAX@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 12968,
+      "symbol": "?SetBookmark@CRecordset@@QEAAXAEBVCDBVariant@@@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13063,
+      "symbol": "?SetConcurrencyAndCursorType@CRecordset@@IEAAXPEAXK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13188,
+      "symbol": "?SetFieldDirty@CRecordset@@QEAAXPEAXH@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13190,
+      "symbol": "?SetFieldStatus@CRecordset@@QEAAXKE@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13336,
+      "symbol": "?SetLockingMode@CRecordset@@QEAAXI@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13392,
+      "symbol": "?SetNullFieldStatus@CRecordset@@QEAAXK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13393,
+      "symbol": "?SetNullParamStatus@CRecordset@@QEAAXK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13558,
+      "symbol": "?SetRowsetCurrencyStatus@CRecordset@@UEAAXFGJ_K@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13559,
+      "symbol": "?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13609,
+      "symbol": "?SetState@CRecordset@@IEAAXHPEB_WK@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13724,
+      "symbol": "?SetUpdateMethod@CRecordset@@IEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13880,
+      "symbol": "?SkipDeletedRecords@CRecordset@@QEAAXGJPEA_KPEAF@Z"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 13923,
+      "symbol": "?StoreFields@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 14058,
+      "symbol": "?UnbindFieldsForUpdate@CRecordset@@QEAAXXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 14136,
+      "symbol": "?UpdateInsertDelete@CRecordset@@IEAAHXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 14189,
+      "symbol": "?VerifyCursorSupport@CRecordset@@IEAAKXZ"
+    },
+    {
+      "class": "CRecordset",
+      "ordinal": 14190,
+      "symbol": "?VerifyDriverBehavior@CRecordset@@IEAAXXZ"
+    }
+  ],
+  "title": "database_dao_odbc shard 01/01: CRecordset, CDatabase, CDBException"
+}

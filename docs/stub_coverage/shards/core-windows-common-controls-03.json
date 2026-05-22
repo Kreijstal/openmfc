@@ -1,0 +1,24 @@
+{
+  "category": "core_windows_common_controls",
+  "id": "core-windows-common-controls-03",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/wincore.cpp",
+    "phase4/src/dlgcore.cpp",
+    "phase4/src/ctrlcore.cpp"
+  ],
+  "symbol_count": 2,
+  "symbols": [
+    {
+      "class": "CWnd",
+      "ordinal": 14220,
+      "symbol": "?wndTop@CWnd@@2V1@B"
+    },
+    {
+      "class": "CWnd",
+      "ordinal": 14221,
+      "symbol": "?wndTopMost@CWnd@@2V1@B"
+    }
+  ],
+  "title": "core_windows_common_controls shard 03/03: CWnd"
+}

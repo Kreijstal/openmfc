@@ -1,0 +1,1013 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-15",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 200,
+  "symbols": [
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13311,
+      "symbol": "?SetItemToolTip@CMFCRibbonGallery@@QEAAXHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13388,
+      "symbol": "?SetNotifyParentID@CMFCRibbonGallery@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13433,
+      "symbol": "?SetPalette@CMFCRibbonGallery@@QEAAXAEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13434,
+      "symbol": "?SetPalette@CMFCRibbonGallery@@QEAAXIH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13462,
+      "symbol": "?SetParentCategory@CMFCRibbonGallery@@MEAAXPEAVCMFCRibbonCategory@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 3012,
+      "symbol": "?CopyFrom@CMFCRibbonGalleryIcon@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 3410,
+      "symbol": "?CreateObject@CMFCRibbonGalleryIcon@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 5075,
+      "symbol": "?GetCompactSize@CMFCRibbonGalleryIcon@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 5210,
+      "symbol": "?GetDescription@CMFCRibbonGalleryIcon@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 6189,
+      "symbol": "?GetRegularSize@CMFCRibbonGalleryIcon@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 6432,
+      "symbol": "?GetRuntimeClass@CMFCRibbonGalleryIcon@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 6995,
+      "symbol": "?GetThisClass@CMFCRibbonGalleryIcon@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 7419,
+      "symbol": "?GetToolTipText@CMFCRibbonGalleryIcon@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 7846,
+      "symbol": "?IsAutoRepeatMode@CMFCRibbonGalleryIcon@@MEBAHAEAH@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 7909,
+      "symbol": "?IsFirst@CMFCRibbonGalleryIcon@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 7931,
+      "symbol": "?IsLast@CMFCRibbonGalleryIcon@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 8623,
+      "symbol": "?OnAddToQAToolbar@CMFCRibbonGalleryIcon@@MEAAHAEAVCMFCRibbonQuickAccessToolBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 8674,
+      "symbol": "?OnAutoRepeat@CMFCRibbonGalleryIcon@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 8835,
+      "symbol": "?OnClick@CMFCRibbonGalleryIcon@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 9247,
+      "symbol": "?OnDraw@CMFCRibbonGalleryIcon@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 10097,
+      "symbol": "?OnHighlight@CMFCRibbonGalleryIcon@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 10349,
+      "symbol": "?OnLButtonDown@CMFCRibbonGalleryIcon@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 12867,
+      "symbol": "?SetACCData@CMFCRibbonGalleryIcon@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 2894,
+      "symbol": "?CommonInit@CMFCRibbonGalleryMenuButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 3013,
+      "symbol": "?CopyFrom@CMFCRibbonGalleryMenuButton@@UEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 3411,
+      "symbol": "?CreateObject@CMFCRibbonGalleryMenuButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 3513,
+      "symbol": "?CreatePopupMenu@CMFCRibbonGalleryMenuButton@@UEAAPEAVCMFCPopupMenu@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 6433,
+      "symbol": "?GetRuntimeClass@CMFCRibbonGalleryMenuButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 6996,
+      "symbol": "?GetThisClass@CMFCRibbonGalleryMenuButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 1851,
+      "symbol": "?AddElementImages@CMFCRibbonInfo@@IEAAXAEAVXElement@1@AEAV?$CArray@PEAVXImage@CMFCRibbonInfo@@PEAV12@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 4179,
+      "symbol": "?ElementNameFromType@CMFCRibbonInfo@@SAPEB_WW4XElementType@1@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 4180,
+      "symbol": "?ElementTypeFromName@CMFCRibbonInfo@@SA?AW4XElementType@1@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 4904,
+      "symbol": "?GetArrayImages@CMFCRibbonInfo@@QEAAXAEAV?$CArray@PEAVXImage@CMFCRibbonInfo@@PEAV12@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 12037,
+      "symbol": "?Read@CMFCRibbonInfo@@MEAAHAEAVXRibbonInfoParser@1@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 12038,
+      "symbol": "?Read@CMFCRibbonInfo@@UEAAHPEAEI@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 12039,
+      "symbol": "?Read@CMFCRibbonInfo@@UEAAHPEAUIStream@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 14232,
+      "symbol": "?Write@CMFCRibbonInfo@@MEAAHAEAVXRibbonInfoParser@1@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 14233,
+      "symbol": "?Write@CMFCRibbonInfo@@UEAAHPEAPEAEAEAI@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 14234,
+      "symbol": "?Write@CMFCRibbonInfo@@UEAAHPEAUIStream@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8067,
+      "symbol": "?Load@CMFCRibbonInfoLoader@@QEAAHIPEB_WPEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8068,
+      "symbol": "?Load@CMFCRibbonInfoLoader@@QEAAHPEB_W0PEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8104,
+      "symbol": "?LoadFromBuffer@CMFCRibbonInfoLoader@@UEAAHPEAEI@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8105,
+      "symbol": "?LoadFromBuffer@CMFCRibbonInfoLoader@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8119,
+      "symbol": "?LoadImageW@CMFCRibbonInfoLoader@@MEAAHAEBVXID@CMFCRibbonInfo@@AEAVCMFCToolBarImages@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8120,
+      "symbol": "?LoadImageW@CMFCRibbonInfoLoader@@UEAAHAEAVXImage@CMFCRibbonInfo@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 5828,
+      "symbol": "?GetMessageMap@CMFCRibbonKeyTip@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 7306,
+      "symbol": "?GetThisMessageMap@CMFCRibbonKeyTip@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 7590,
+      "symbol": "?Hide@CMFCRibbonKeyTip@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 8400,
+      "symbol": "?m_strClassName@CMFCRibbonKeyTip@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 9135,
+      "symbol": "?OnDestroy@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 9772,
+      "symbol": "?OnEraseBkgnd@CMFCRibbonKeyTip@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 10450,
+      "symbol": "?OnMouseActivate@CMFCRibbonKeyTip@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 10747,
+      "symbol": "?OnPaint@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 13781,
+      "symbol": "?Show@CMFCRibbonKeyTip@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 14147,
+      "symbol": "?UpdateMenuShadow@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 1883,
+      "symbol": "?AddKeyEntry@CMFCRibbonKeyboardCustomizeDialog@@IEAAXPEAUtagACCEL@@@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 3921,
+      "symbol": "?DoDataExchange@CMFCRibbonKeyboardCustomizeDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 5827,
+      "symbol": "?GetMessageMap@CMFCRibbonKeyboardCustomizeDialog@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 7305,
+      "symbol": "?GetThisMessageMap@CMFCRibbonKeyboardCustomizeDialog@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 8672,
+      "symbol": "?OnAssign@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10174,
+      "symbol": "?OnInitDialog@CMFCRibbonKeyboardCustomizeDialog@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10890,
+      "symbol": "?OnRemove@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10925,
+      "symbol": "?OnResetAll@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10973,
+      "symbol": "?OnSelchangeCategory@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10977,
+      "symbol": "?OnSelchangeCommandsList@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10980,
+      "symbol": "?OnSelchangeCurrentKeysList@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 10989,
+      "symbol": "?OnSelchangeViewType@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 11507,
+      "symbol": "?OnUpdateNewShortcutKey@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 3412,
+      "symbol": "?CreateObject@CMFCRibbonLabel@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 5587,
+      "symbol": "?GetIntermediateSize@CMFCRibbonLabel@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 6434,
+      "symbol": "?GetRuntimeClass@CMFCRibbonLabel@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 6997,
+      "symbol": "?GetThisClass@CMFCRibbonLabel@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 8639,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonLabel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 8716,
+      "symbol": "?OnCalcTextSize@CMFCRibbonLabel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 9248,
+      "symbol": "?OnDraw@CMFCRibbonLabel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "ordinal": 12868,
+      "symbol": "?SetACCData@CMFCRibbonLabel@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 3413,
+      "symbol": "?CreateObject@CMFCRibbonLaunchButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 5651,
+      "symbol": "?GetKeyTipRect@CMFCRibbonLaunchButton@@UEAA?AVCRect@@PEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 6190,
+      "symbol": "?GetRegularSize@CMFCRibbonLaunchButton@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 6435,
+      "symbol": "?GetRuntimeClass@CMFCRibbonLaunchButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 6998,
+      "symbol": "?GetThisClass@CMFCRibbonLaunchButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 8836,
+      "symbol": "?OnClick@CMFCRibbonLaunchButton@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 9249,
+      "symbol": "?OnDraw@CMFCRibbonLaunchButton@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 12869,
+      "symbol": "?SetACCData@CMFCRibbonLaunchButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 3014,
+      "symbol": "?CopyFrom@CMFCRibbonLinkCtrl@@UEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 3414,
+      "symbol": "?CreateObject@CMFCRibbonLinkCtrl@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 5076,
+      "symbol": "?GetCompactSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 6191,
+      "symbol": "?GetRegularSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 6436,
+      "symbol": "?GetRuntimeClass@CMFCRibbonLinkCtrl@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 6999,
+      "symbol": "?GetThisClass@CMFCRibbonLinkCtrl@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 8579,
+      "symbol": "?OnAccDefaultAction@CMFCRibbonLinkCtrl@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 9250,
+      "symbol": "?OnDraw@CMFCRibbonLinkCtrl@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 10495,
+      "symbol": "?OnMouseMove@CMFCRibbonLinkCtrl@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 11099,
+      "symbol": "?OnSetIcon@CMFCRibbonLinkCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 11669,
+      "symbol": "?OpenLink@CMFCRibbonLinkCtrl@@QEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 12870,
+      "symbol": "?SetACCData@CMFCRibbonLinkCtrl@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 13327,
+      "symbol": "?SetLink@CMFCRibbonLinkCtrl@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 1779,
+      "symbol": "?Add@CMFCRibbonMainPanel@@UEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 1945,
+      "symbol": "?AddRecentFilesList@CMFCRibbonMainPanel@@QEAAXPEB_WH@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 1998,
+      "symbol": "?AddToBottom@CMFCRibbonMainPanel@@QEAAXPEAVCMFCRibbonMainPanelButton@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 2012,
+      "symbol": "?AddToRight@CMFCRibbonMainPanel@@QEAAXPEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 3015,
+      "symbol": "?CopyFrom@CMFCRibbonMainPanel@@MEAAXAEAVCMFCRibbonPanel@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 3415,
+      "symbol": "?CreateObject@CMFCRibbonMainPanel@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 3979,
+      "symbol": "?DoPaint@CMFCRibbonMainPanel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 4035,
+      "symbol": "?DrawApplicationButton@CMFCRibbonMainPanel@@IEAAXPEAVCDC@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 5066,
+      "symbol": "?GetCommandsFrame@CMFCRibbonMainPanel@@QEBA?AVCRect@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 5731,
+      "symbol": "?GetMenuElements@CMFCRibbonMainPanel@@IEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 6108,
+      "symbol": "?GetPreferedMenuLocation@CMFCRibbonMainPanel@@MEAAHAEAVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 6437,
+      "symbol": "?GetRuntimeClass@CMFCRibbonMainPanel@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 7000,
+      "symbol": "?GetThisClass@CMFCRibbonMainPanel@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 8475,
+      "symbol": "?MouseButtonDown@CMFCRibbonMainPanel@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 9399,
+      "symbol": "?OnDrawMenuBorder@CMFCRibbonMainPanel@@MEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 12166,
+      "symbol": "?RecalcWidths@CMFCRibbonMainPanel@@MEAAXPEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "ordinal": 12471,
+      "symbol": "?Reposition@CMFCRibbonMainPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "ordinal": 3416,
+      "symbol": "?CreateObject@CMFCRibbonMainPanelButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "ordinal": 6438,
+      "symbol": "?GetRuntimeClass@CMFCRibbonMainPanelButton@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "ordinal": 7001,
+      "symbol": "?GetThisClass@CMFCRibbonMainPanelButton@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "ordinal": 9293,
+      "symbol": "?OnDrawBorder@CMFCRibbonMainPanelButton@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "ordinal": 9862,
+      "symbol": "?OnFillBackground@CMFCRibbonMainPanelButton@@MEAAKPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 3417,
+      "symbol": "?CreateObject@CMFCRibbonMiniToolBar@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 5829,
+      "symbol": "?GetMessageMap@CMFCRibbonMiniToolBar@@MEBAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 6439,
+      "symbol": "?GetRuntimeClass@CMFCRibbonMiniToolBar@@UEBAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 7002,
+      "symbol": "?GetThisClass@CMFCRibbonMiniToolBar@@SAPEAUCRuntimeClass@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 7307,
+      "symbol": "?GetThisMessageMap@CMFCRibbonMiniToolBar@@KAPEBUAFX_MSGMAP@@XZ"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 8377,
+      "symbol": "?m_pCurrent@CMFCRibbonMiniToolBar@@1PEAV1@EA"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 9017,
+      "symbol": "?OnCreate@CMFCRibbonMiniToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 11360,
+      "symbol": "?OnTimer@CMFCRibbonMiniToolBar@@IEAAX_K@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 13057,
+      "symbol": "?SetCommands@CMFCRibbonMiniToolBar@@QEAAXPEAVCMFCRibbonBar@@AEBV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 13782,
+      "symbol": "?Show@CMFCRibbonMiniToolBar@@QEAAHHH@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 13866,
+      "symbol": "?ShowWithContextMenu@CMFCRibbonMiniToolBar@@QEAAHHHIPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "ordinal": 14176,
+      "symbol": "?UpdateTransparency@CMFCRibbonMiniToolBar@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 1696,
+      "symbol": "?accDoDefaultAction@CMFCRibbonPanel@@MEAAJUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 1717,
+      "symbol": "?accHitTest@CMFCRibbonPanel@@MEAAJJJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 1731,
+      "symbol": "?accLocation@CMFCRibbonPanel@@MEAAJPEAJ000UtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 1743,
+      "symbol": "?accNavigate@CMFCRibbonPanel@@MEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2007,
+      "symbol": "?AddToolBar@CMFCRibbonPanel@@QEAAPEAVCMFCRibbonButtonsGroup@@IIII@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2622,
+      "symbol": "?CalcTotalWidth@CMFCRibbonPanel@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2658,
+      "symbol": "?CancelMode@CMFCRibbonPanel@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2684,
+      "symbol": "?CenterElementsInColumn@CMFCRibbonPanel@@IEAAXHHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2753,
+      "symbol": "?CleanUpSizes@CMFCRibbonPanel@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 2895,
+      "symbol": "?CommonInit@CMFCRibbonPanel@@IEAAXPEB_WPEAUHICON__@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 3016,
+      "symbol": "?CopyFrom@CMFCRibbonPanel@@MEAAXAEAV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 3980,
+      "symbol": "?DoPaint@CMFCRibbonPanel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4264,
+      "symbol": "?EnableLaunchButton@CMFCRibbonPanel@@QEAAXIHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4538,
+      "symbol": "?FindByData@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@_K@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4544,
+      "symbol": "?FindByID@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@I@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4762,
+      "symbol": "?get_accChildCount@CMFCRibbonPanel@@MEAAJPEAJ@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4824,
+      "symbol": "?get_accParent@CMFCRibbonPanel@@MEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 4993,
+      "symbol": "?GetCaptionSize@CMFCRibbonPanel@@IEBA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5281,
+      "symbol": "?GetDroppedDown@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5305,
+      "symbol": "?GetElements@CMFCRibbonPanel@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5311,
+      "symbol": "?GetElementsByID@CMFCRibbonPanel@@QEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5406,
+      "symbol": "?GetFirstTabStop@CMFCRibbonPanel@@IEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5423,
+      "symbol": "?GetFocused@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5449,
+      "symbol": "?GetGalleryRect@CMFCRibbonPanel@@QEAA?AVCRect@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5470,
+      "symbol": "?GetHeight@CMFCRibbonPanel@@MEBAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5478,
+      "symbol": "?GetHighlighted@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5538,
+      "symbol": "?GetIndex@CMFCRibbonPanel@@UEBAHPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5620,
+      "symbol": "?GetItemIDsList@CMFCRibbonPanel@@QEBAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5660,
+      "symbol": "?GetLastTabStop@CMFCRibbonPanel@@IEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 5929,
+      "symbol": "?GetMinWidth@CMFCRibbonPanel@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6035,
+      "symbol": "?GetPaltteMinSize@CMFCRibbonPanel@@IEBA?AVCSize@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6073,
+      "symbol": "?GetParentButton@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6089,
+      "symbol": "?GetParentWnd@CMFCRibbonPanel@@MEBAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6112,
+      "symbol": "?GetPressed@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7515,
+      "symbol": "?GetVisibleElements@CMFCRibbonPanel@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7580,
+      "symbol": "?HasElement@CMFCRibbonPanel@@QEBAHPEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7608,
+      "symbol": "?Highlight@CMFCRibbonPanel@@MEAAXHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7627,
+      "symbol": "?HitTest@CMFCRibbonPanel@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7639,
+      "symbol": "?HitTestEx@CMFCRibbonPanel@@UEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7749,
+      "symbol": "?Insert@CMFCRibbonPanel@@UEAAHPEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7801,
+      "symbol": "?InsertSeparator@CMFCRibbonPanel@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7860,
+      "symbol": "?IsCollapsed@CMFCRibbonPanel@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8046,
+      "symbol": "?IsWindows7Look@CMFCRibbonPanel@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8051,
+      "symbol": "?JustifyElementsInColumn@CMFCRibbonPanel@@IEAAXHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8357,
+      "symbol": "?m_nNextPanelID@CMFCRibbonPanel@@1IA"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8408,
+      "symbol": "?MakeGalleryItemVisible@CMFCRibbonPanel@@QEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8476,
+      "symbol": "?MouseButtonDown@CMFCRibbonPanel@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8477,
+      "symbol": "?MouseButtonUp@CMFCRibbonPanel@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8553,
+      "symbol": "?NotifyControlCommand@CMFCRibbonPanel@@MEAAHHH_K_J@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 8640,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonPanel@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 9463,
+      "symbol": "?OnDrawPaletteMenu@CMFCRibbonPanel@@IEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 10233,
+      "symbol": "?OnKey@CMFCRibbonPanel@@UEAAHI@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 10950,
+      "symbol": "?OnRTLChanged@CMFCRibbonPanel@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 11015,
+      "symbol": "?OnSetAccData@CMFCRibbonPanel@@MEAAHJ@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 11162,
+      "symbol": "?OnShow@CMFCRibbonPanel@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 11455,
+      "symbol": "?OnUpdateCmdUI@CMFCRibbonPanel@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12167,
+      "symbol": "?RecalcWidths@CMFCRibbonPanel@@UEAAXPEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12195,
+      "symbol": "?RedrawElement@CMFCRibbonPanel@@MEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12269,
+      "symbol": "?Remove@CMFCRibbonPanel@@QEAAHHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12286,
+      "symbol": "?RemoveAll@CMFCRibbonPanel@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12446,
+      "symbol": "?Replace@CMFCRibbonPanel@@QEAAHHPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12453,
+      "symbol": "?ReplaceByID@CMFCRibbonPanel@@QEAAHIPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12472,
+      "symbol": "?Reposition@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12475,
+      "symbol": "?RepositionMenu@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12481,
+      "symbol": "?ReposPalette@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12714,
+      "symbol": "?ScrollPalette@CMFCRibbonPanel@@IEAAXHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 12871,
+      "symbol": "?SetACCData@CMFCRibbonPanel@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 13167,
+      "symbol": "?SetElementMenu@CMFCRibbonPanel@@QEAAHIIHH@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 13168,
+      "symbol": "?SetElementMenu@CMFCRibbonPanel@@QEAAHIPEAUHMENU__@@HH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 15/27: CMFCRibbonPanel, CMFCRibbonGalleryIcon, CMFCRibbonMainPanel"
+}
