@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwctype>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -1032,7 +1033,8 @@ std::vector<std::wstring> TokenizeCommandLine(const wchar_t* cmdLine) {
 void ParseCommandFlag(CommandLineInfoState& state, const wchar_t* flag) {
     if (flag == nullptr || *flag == L'\0') return;
     std::wstring lower(flag);
-    for (wchar_t& ch : lower) ch = static_cast<wchar_t>(std::towlower(ch));
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](wchar_t ch) { return static_cast<wchar_t>(std::towlower(ch)); });
 
     if (lower == L"n" || lower == L"new") {
         state.shellCommand = kShellCommandFileNew;
@@ -1100,11 +1102,18 @@ extern "C" void MS_ABI impl__ParseParam_CCommandLineInfo__UEAAXPEBDHH_Z(
         impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, nullptr, bFlag, bLast);
         return;
     }
-    std::wstring wide;
-    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(pszParam); *p; ++p) {
-        wide.push_back(static_cast<wchar_t>(*p));
+    const int needed = ::MultiByteToWideChar(CP_ACP, 0, pszParam, -1, nullptr, 0);
+    if (needed > 0) {
+        std::wstring wide(static_cast<size_t>(needed - 1), L'\0');
+        ::MultiByteToWideChar(CP_ACP, 0, pszParam, -1, wide.data(), needed);
+        impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, wide.c_str(), bFlag, bLast);
+        return;
     }
-    impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, wide.c_str(), bFlag, bLast);
+    std::wstring fallback;
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(pszParam); *p; ++p) {
+        fallback.push_back(static_cast<wchar_t>(*p));
+    }
+    impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, fallback.c_str(), bFlag, bLast);
 }
 
 // Symbol: ?ParseParamFlag@CCommandLineInfo@@IEAAXPEBD@Z
@@ -1223,7 +1232,7 @@ extern "C" int MS_ABI impl__GetProfileBinary_CWinApp__UEAAHPEB_W0PEAPEAEPEAI_Z(
     const std::vector<unsigned char>& data = it->second;
     if (data.empty()) return FALSE;
 
-    unsigned char* copy = static_cast<unsigned char*>(std::malloc(data.size()));
+    unsigned char* copy = new (std::nothrow) unsigned char[data.size()];
     if (!copy) return FALSE;
     std::memcpy(copy, data.data(), data.size());
     *ppData = copy;
@@ -1257,12 +1266,22 @@ extern "C" int MS_ABI impl__WriteProfileBinary_CWinApp__UEAAHPEB_W0PEAEI_Z(
     return TRUE;
 }
 
+static HCURSOR GetWaitCursorHandle() {
+    static HCURSOR s_wait = ::LoadCursorW(nullptr, IDC_WAIT);
+    return s_wait;
+}
+
+static HCURSOR GetArrowCursorHandle() {
+    static HCURSOR s_arrow = ::LoadCursorW(nullptr, IDC_ARROW);
+    return s_arrow;
+}
+
 // Symbol: ?BeginWaitCursor@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__BeginWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
     if (!pThis) return;
     int& depth = g_waitCursorDepth[pThis];
     ++depth;
-    ::SetCursor(::LoadCursorW(nullptr, IDC_WAIT));
+    ::SetCursor(GetWaitCursorHandle());
 }
 
 // Symbol: ?EndWaitCursor@CCmdTarget@@QEAAXXZ
@@ -1270,14 +1289,14 @@ extern "C" void MS_ABI impl__EndWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis
     if (!pThis) return;
     int& depth = g_waitCursorDepth[pThis];
     if (depth > 0) --depth;
-    if (depth == 0) ::SetCursor(::LoadCursorW(nullptr, IDC_ARROW));
+    if (depth == 0) ::SetCursor(GetArrowCursorHandle());
 }
 
 // Symbol: ?RestoreWaitCursor@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__RestoreWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
     if (!pThis) return;
     const int depth = g_waitCursorDepth[pThis];
-    ::SetCursor(::LoadCursorW(nullptr, depth > 0 ? IDC_WAIT : IDC_ARROW));
+    ::SetCursor(depth > 0 ? GetWaitCursorHandle() : GetArrowCursorHandle());
 }
 
 // Symbol: ??0CDocManager@@QEAA@XZ
