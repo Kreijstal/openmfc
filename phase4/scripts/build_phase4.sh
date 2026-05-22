@@ -265,6 +265,13 @@ cat >> "$BUILD/openmfc.def" << 'EOF_OPENMFC_EXPORTS'
     ?classCFileException@CFileException@@2UCRuntimeClass@@A=_ZN14CFileException19classCFileExceptionE DATA
     ?classCMemoryException@CMemoryException@@2UCRuntimeClass@@A=_ZN16CMemoryException21classCMemoryExceptionE DATA
     ?classCArchiveException@CArchiveException@@2UCRuntimeClass@@A=_ZN17CArchiveException22classCArchiveExceptionE DATA
+    ; Diagnostic virtuals referenced by MSVC tests but absent from harvested ordinal mapping
+    ?Dump@CException@@UEBAXXZ=impl__Dump_CException__UEBAXXZ
+    ?AssertValid@CException@@UEBAXXZ=impl__AssertValid_CException__UEBAXXZ
+    ?Dump@CFileException@@UEBAXXZ=impl__Dump_CFileException__UEBAXXZ
+    ?AssertValid@CFileException@@UEBAXXZ=impl__AssertValid_CFileException__UEBAXXZ
+    ?Dump@CArchiveException@@UEBAXXZ=impl__Dump_CArchiveException__UEBAXXZ
+    ?AssertValid@CArchiveException@@UEBAXXZ=impl__AssertValid_CArchiveException__UEBAXXZ
     ; GDI class runtime classes
     ?classCGdiObject@CGdiObject@@2UCRuntimeClass@@A=_ZN10CGdiObject15classCGdiObjectE DATA
     ?classCPen@CPen@@2UCRuntimeClass@@A=_ZN4CPen9classCPenE DATA

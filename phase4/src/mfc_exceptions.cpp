@@ -130,21 +130,10 @@ int CException::GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsi
     if (pnHelpContext) {
         *pnHelpContext = 0;
     }
-    if (!lpszError || nMaxError == 0) {
-        return 0;
+    if (lpszError && nMaxError > 0) {
+        lpszError[0] = L'\0';
     }
-
-    wchar_t className[64];
-    CopyClassName(this, className, sizeof(className) / sizeof(className[0]));
-    if (wcscmp(className, L"CException") == 0) {
-        CopyErrorText(lpszError, nMaxError, L"MFC exception");
-    } else {
-        wchar_t buffer[128];
-        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"MFC exception: %ls", className);
-        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
-        CopyErrorText(lpszError, nMaxError, buffer);
-    }
-    return 1;
+    return 0;
 }
 
 void CException::Dump() const {
@@ -221,6 +210,48 @@ void CArchiveException::AssertValid() const {
                    L"CArchiveException::AssertValid unknown cause=%d\n", m_cause);
         buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
         EmitDiagnosticText(buffer);
+    }
+}
+
+// Symbol: ?Dump@CException@@UEBAXXZ
+extern "C" void MS_ABI impl__Dump_CException__UEBAXXZ(const CException* pThis) {
+    if (pThis) {
+        pThis->CException::Dump();
+    }
+}
+
+// Symbol: ?AssertValid@CException@@UEBAXXZ
+extern "C" void MS_ABI impl__AssertValid_CException__UEBAXXZ(const CException* pThis) {
+    if (pThis) {
+        pThis->CException::AssertValid();
+    }
+}
+
+// Symbol: ?Dump@CFileException@@UEBAXXZ
+extern "C" void MS_ABI impl__Dump_CFileException__UEBAXXZ(const CFileException* pThis) {
+    if (pThis) {
+        pThis->CFileException::Dump();
+    }
+}
+
+// Symbol: ?AssertValid@CFileException@@UEBAXXZ
+extern "C" void MS_ABI impl__AssertValid_CFileException__UEBAXXZ(const CFileException* pThis) {
+    if (pThis) {
+        pThis->CFileException::AssertValid();
+    }
+}
+
+// Symbol: ?Dump@CArchiveException@@UEBAXXZ
+extern "C" void MS_ABI impl__Dump_CArchiveException__UEBAXXZ(const CArchiveException* pThis) {
+    if (pThis) {
+        pThis->CArchiveException::Dump();
+    }
+}
+
+// Symbol: ?AssertValid@CArchiveException@@UEBAXXZ
+extern "C" void MS_ABI impl__AssertValid_CArchiveException__UEBAXXZ(const CArchiveException* pThis) {
+    if (pThis) {
+        pThis->CArchiveException::AssertValid();
     }
 }
 

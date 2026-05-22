@@ -3,6 +3,36 @@
 #include "openmfc/afxwin.h"
 #include <new>
 
+IMPLEMENT_DYNAMIC(CArchiveException, CException)
+
+namespace {
+
+void CopyExceptionText(wchar_t* out, UINT maxLen, const wchar_t* text) {
+    if (out == nullptr || maxLen == 0) {
+        return;
+    }
+    const wchar_t* src = text ? text : L"";
+    wcsncpy(out, src, maxLen - 1);
+    out[maxLen - 1] = L'\0';
+}
+
+const wchar_t* ArchiveCauseText(int cause) {
+    switch (cause) {
+    case CArchiveException::none: return L"No error";
+    case CArchiveException::generic: return L"Archive error";
+    case CArchiveException::readOnly: return L"Cannot write to read-only archive";
+    case CArchiveException::endOfFile: return L"Unexpected end of file";
+    case CArchiveException::writeOnly: return L"Cannot read from write-only archive";
+    case CArchiveException::badIndex: return L"Invalid object index";
+    case CArchiveException::badClass: return L"Invalid class found in archive";
+    case CArchiveException::badSchema: return L"Schema mismatch in archive";
+    case CArchiveException::badFormat: return L"Bad archive format";
+    default: return L"Unknown archive error";
+    }
+}
+
+} // namespace
+
 // Exception throwing helpers
 
 void AFXAPI AfxThrowMemoryException() {
@@ -40,6 +70,22 @@ void AFXAPI AfxThrowUserException() {
 
 void AFXAPI AfxAbort() {
     std::abort();
+}
+
+int CException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) const {
+    if (pnHelpContext != nullptr) {
+        *pnHelpContext = 0;
+    }
+    if (lpszError != nullptr && nMaxError > 0) {
+        lpszError[0] = L'\0';
+    }
+    return 0;
+}
+
+void CException::Dump() const {
+}
+
+void CException::AssertValid() const {
 }
 
 // CFileException::GetErrorMessage implementation
@@ -113,4 +159,33 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
 
     lpszError[0] = L'\0';
     return 0;
+}
+
+void CFileException::Dump() const {
+}
+
+void CFileException::AssertValid() const {
+    CException::AssertValid();
+}
+
+CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
+    : CException(TRUE), m_cause(cause), m_strFileName(lpszArchiveName ? lpszArchiveName : L"") {
+}
+
+int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) const {
+    if (pnHelpContext != nullptr) {
+        *pnHelpContext = 0;
+    }
+    if (lpszError == nullptr || nMaxError == 0) {
+        return 0;
+    }
+    CopyExceptionText(lpszError, nMaxError, ArchiveCauseText(m_cause));
+    return 1;
+}
+
+void CArchiveException::Dump() const {
+}
+
+void CArchiveException::AssertValid() const {
+    CException::AssertValid();
 }

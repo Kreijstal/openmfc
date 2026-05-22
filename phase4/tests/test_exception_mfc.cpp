@@ -43,7 +43,6 @@ int main() {
         printf("    GetErrorMessage returned: %d\n", hasMessage);
         printf("    Message empty: %s\n", buffer[0] ? "no" : "yes");
         e->AssertValid();
-        e->Dump();
         if (!hasMessage || !buffer[0]) {
             printf("  FAILED: Expected non-empty CMemoryException message\n");
             return 1;
@@ -108,7 +107,6 @@ int main() {
         printf("    GetErrorMessage returned: %d\n", hasMessage);
         printf("    Message empty: %s\n", buffer[0] ? "no" : "yes");
         e->AssertValid();
-        e->Dump();
         if (!hasMessage || !buffer[0]) {
             printf("  FAILED: Expected non-empty CFileException message\n");
             e->Delete();
