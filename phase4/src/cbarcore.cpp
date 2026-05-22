@@ -45,6 +45,9 @@ struct RibbonCategoryState {
 struct RibbonBarState {
     std::vector<CMFCRibbonCategory*> categories;
     std::unordered_set<CMFCRibbonCategory*> ownedCategories;
+    std::vector<CMFCRibbonBaseElement*> tabs;
+    bool quickAccessToolbarOnTop = true;
+    bool minimized = false;
     CMFCRibbonCategory* activeCategory = nullptr;
 };
 
@@ -57,6 +60,7 @@ constexpr int kApproxRibbonCharPx = 6;
 std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
 std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
 std::unordered_map<UINT, int> g_galleryLastSelectedByID;
+std::unordered_map<const CMFCRibbonBaseElement*, bool> g_ribbonElementsEnabled;
 
 struct RibbonSliderState {
     int nMin = 0;
@@ -123,6 +127,7 @@ inline COLORREF FeaturePackBackgroundColor() {
 
 } // namespace
 
+// Symbol: ??0CMFCRibbonBar@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
     if (!pThis) return nullptr;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
@@ -131,6 +136,7 @@ extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplac
     return bar;
 }
 
+// Symbol: ??0CMFCRibbonCategory@@IEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonCategory__IEAA_XZ(void* pThis) {
     if (!pThis) return nullptr;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
@@ -139,6 +145,7 @@ extern "C" void* MS_ABI impl___0CMFCRibbonCategory__IEAA_XZ(void* pThis) {
     return category;
 }
 
+// Symbol: ??1CMFCRibbonPanel@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonPanel__UEAA_XZ(void* pThis) {
     auto* panel = reinterpret_cast<CMFCRibbonPanel*>(pThis);
     if (!panel) return;
@@ -156,6 +163,7 @@ extern "C" void MS_ABI impl___1CMFCRibbonPanel__UEAA_XZ(void* pThis) {
     panel->~CMFCRibbonPanel();
 }
 
+// Symbol: ??1CMFCRibbonCategory@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonCategory__UEAA_XZ(void* pThis) {
     auto* category = reinterpret_cast<CMFCRibbonCategory*>(pThis);
     if (!category) return;
@@ -187,6 +195,7 @@ extern "C" void MS_ABI impl___1CMFCRibbonCategory__UEAA_XZ(void* pThis) {
     category->~CMFCRibbonCategory();
 }
 
+// Symbol: ??1CMFCRibbonBar@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonBar__UEAA_XZ(void* pThis) {
     auto* bar = reinterpret_cast<CMFCRibbonBar*>(pThis);
     if (!bar) return;
@@ -210,6 +219,7 @@ extern "C" void MS_ABI impl___1CMFCRibbonBar__UEAA_XZ(void* pThis) {
     bar->~CMFCRibbonBar();
 }
 
+// Symbol: ?Add@CMFCRibbonPanel@@UEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__Add_CMFCRibbonPanel__UEAAXPEAVCMFCRibbonBaseElement___Z(
     CMFCRibbonPanel* pThis, CMFCRibbonBaseElement* pElement) {
     if (!pThis || !pElement) return;
@@ -217,12 +227,14 @@ extern "C" void MS_ABI impl__Add_CMFCRibbonPanel__UEAAXPEAVCMFCRibbonBaseElement
     g_ribbonPanels[pThis].elements.push_back(pElement);
 }
 
+// Symbol: ?AddSeparator@CMFCRibbonPanel@@UEAAXXZ
 extern "C" void MS_ABI impl__AddSeparator_CMFCRibbonPanel__UEAAXXZ(CMFCRibbonPanel* pThis) {
     if (!pThis) return;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_ribbonPanels[pThis].elements.push_back(nullptr);
 }
 
+// Symbol: ?GetCount@CMFCRibbonPanel@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCount_CMFCRibbonPanel__QEBAHXZ(const CMFCRibbonPanel* pThis) {
     if (!pThis) return 0;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
@@ -230,6 +242,7 @@ extern "C" int MS_ABI impl__GetCount_CMFCRibbonPanel__QEBAHXZ(const CMFCRibbonPa
     return (it == g_ribbonPanels.end()) ? 0 : static_cast<int>(it->second.elements.size());
 }
 
+// Symbol: ?GetElement@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@H@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetElement_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__H_Z(
     const CMFCRibbonPanel* pThis, int nIndex) {
     if (!pThis || nIndex < 0) return nullptr;
@@ -241,6 +254,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetElement_CMFCRibbonPanel__QEBAP
     return elements[static_cast<size_t>(nIndex)];
 }
 
+// Symbol: ?AddPanel@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonPanel@@PEB_WPEAUHICON__@@PEAUCRuntimeClass@@@Z
 extern "C" CMFCRibbonPanel* MS_ABI impl__AddPanel_CMFCRibbonCategory__QEAAPEAVCMFCRibbonPanel__PEB_WPEAUHICON____PEAUCRuntimeClass___Z(
     CMFCRibbonCategory* pThis, const wchar_t* lpszLabel, HICON__* hIcon, CRuntimeClass*) {
     if (!pThis) return nullptr;
@@ -254,6 +268,7 @@ extern "C" CMFCRibbonPanel* MS_ABI impl__AddPanel_CMFCRibbonCategory__QEAAPEAVCM
     return panel;
 }
 
+// Symbol: ?GetPanel@CMFCRibbonCategory@@QEAAPEAVCMFCRibbonPanel@@H@Z
 extern "C" CMFCRibbonPanel* MS_ABI impl__GetPanel_CMFCRibbonCategory__QEAAPEAVCMFCRibbonPanel__H_Z(
     CMFCRibbonCategory* pThis, int nIndex) {
     if (!pThis || nIndex < 0) return nullptr;
@@ -265,6 +280,7 @@ extern "C" CMFCRibbonPanel* MS_ABI impl__GetPanel_CMFCRibbonCategory__QEAAPEAVCM
     return panels[static_cast<size_t>(nIndex)];
 }
 
+// Symbol: ?GetPanelCount@CMFCRibbonCategory@@QEBAHXZ
 extern "C" int MS_ABI impl__GetPanelCount_CMFCRibbonCategory__QEBAHXZ(const CMFCRibbonCategory* pThis) {
     if (!pThis) return 0;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
@@ -272,6 +288,7 @@ extern "C" int MS_ABI impl__GetPanelCount_CMFCRibbonCategory__QEBAHXZ(const CMFC
     return (it == g_ribbonCategories.end()) ? 0 : static_cast<int>(it->second.panels.size());
 }
 
+// Symbol: ?AddCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_WIIVCSize@@1HPEAUCRuntimeClass@@@Z
 extern "C" CMFCRibbonCategory* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIIVCSize__1HPEAUCRuntimeClass___Z(
     CMFCRibbonBar* pThis, const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage,
     CSize sizeSmall, unsigned int uiAnimLargeImage, int nInsertAt, CRuntimeClass*) {
@@ -296,6 +313,7 @@ extern "C" CMFCRibbonCategory* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVC
     return category;
 }
 
+// Symbol: ?GetCategory@CMFCRibbonBar@@QEBAPEAVCMFCRibbonCategory@@H@Z
 extern "C" CMFCRibbonCategory* MS_ABI impl__GetCategory_CMFCRibbonBar__QEBAPEAVCMFCRibbonCategory__H_Z(
     const CMFCRibbonBar* pThis, int nIndex) {
     if (!pThis || nIndex < 0) return nullptr;
@@ -307,6 +325,7 @@ extern "C" CMFCRibbonCategory* MS_ABI impl__GetCategory_CMFCRibbonBar__QEBAPEAVC
     return categories[static_cast<size_t>(nIndex)];
 }
 
+// Symbol: ?GetCategoryCount@CMFCRibbonBar@@QEBAHXZ
 extern "C" int MS_ABI impl__GetCategoryCount_CMFCRibbonBar__QEBAHXZ(const CMFCRibbonBar* pThis) {
     if (!pThis) return 0;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
@@ -314,6 +333,7 @@ extern "C" int MS_ABI impl__GetCategoryCount_CMFCRibbonBar__QEBAHXZ(const CMFCRi
     return (it == g_ribbonBars.end()) ? 0 : static_cast<int>(it->second.categories.size());
 }
 
+// Symbol: ?SetActiveCategory@CMFCRibbonBar@@UEAAHPEAVCMFCRibbonCategory@@H@Z
 extern "C" int MS_ABI impl__SetActiveCategory_CMFCRibbonBar__UEAAHPEAVCMFCRibbonCategory__H_Z(
     CMFCRibbonBar* pThis, CMFCRibbonCategory* pCategory, int) {
     if (!pThis) return FALSE;
@@ -329,40 +349,71 @@ extern "C" int MS_ABI impl__SetActiveCategory_CMFCRibbonBar__UEAAHPEAVCMFCRibbon
     return TRUE;
 }
 
+// Symbol: ?AddToTabs@CMFCRibbonBar@@QEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__AddToTabs_CMFCRibbonBar__QEAAXPEAVCMFCRibbonBaseElement___Z(
-    CMFCRibbonBar*, CMFCRibbonBaseElement*) {}
+    CMFCRibbonBar* pThis, CMFCRibbonBaseElement* pElement) {
+    if (!pThis || !pElement) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto& tabs = g_ribbonBars[pThis].tabs;
+    if (std::find(tabs.begin(), tabs.end(), pElement) == tabs.end()) {
+        tabs.push_back(pElement);
+    }
+}
 
+// Symbol: ?SetQuickAccessToolbarOnTop@CMFCRibbonBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetQuickAccessToolbarOnTop_CMFCRibbonBar__QEAAXH_Z(CMFCRibbonBar* pThis, int bOnTop) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonBars[pThis].quickAccessToolbarOnTop = (bOnTop != FALSE);
+}
+
+// Symbol: ?ToggleMimimizeState@CMFCRibbonBar@@QEAAXXZ
+extern "C" void MS_ABI impl__ToggleMimimizeState_CMFCRibbonBar__QEAAXXZ(CMFCRibbonBar* pThis) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    auto& state = g_ribbonBars[pThis];
+    state.minimized = !state.minimized;
+}
+
+// Symbol: ?CreateObject@CMFCRibbonCategory@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonCategory__SAPEAVCObject__XZ() {
     return CMFCRibbonCategory::GetThisClass()->CreateObject();
 }
 
+// Symbol: ?CreateObject@CMFCRibbonPanel@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonPanel__SAPEAVCObject__XZ() {
     return CMFCRibbonPanel::GetThisClass()->CreateObject();
 }
 
+// Symbol: ?GetRuntimeClass@CMFCRibbonBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonBar__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonBar* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CMFCRibbonBar::GetThisClass();
 }
 
+// Symbol: ?GetRuntimeClass@CMFCRibbonCategory@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonCategory__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonCategory* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CMFCRibbonCategory::GetThisClass();
 }
 
+// Symbol: ?GetRuntimeClass@CMFCRibbonPanel@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonPanel__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonPanel* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CMFCRibbonPanel::GetThisClass();
 }
 
+// Symbol: ?GetThisClass@CMFCRibbonBar@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonBar__SAPEAUCRuntimeClass__XZ() {
     return CMFCRibbonBar::GetThisClass();
 }
 
+// Symbol: ?GetThisClass@CMFCRibbonCategory@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonCategory__SAPEAUCRuntimeClass__XZ() {
     return CMFCRibbonCategory::GetThisClass();
 }
 
+// Symbol: ?GetThisClass@CMFCRibbonPanel@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonPanel__SAPEAUCRuntimeClass__XZ() {
     return CMFCRibbonPanel::GetThisClass();
 }
@@ -1336,6 +1387,7 @@ extern "C" void* MS_ABI impl___0CMFCRibbonStatusBarPane__QEAA_IPEB_WPEAUHBITMAP_
 // Symbol: ?SetToolTipText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetToolTipText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_ribbonToolTips[RibbonElementID(pThis)] = (lpszText != nullptr) ? lpszText : L"";
 }
 
@@ -1346,6 +1398,7 @@ extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonBaseElement__UEBA_AV__CStr
         BuildCStringResult(pRet, L"");
         return;
     }
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto it = g_ribbonToolTips.find(RibbonElementID(pThis));
     if (it != g_ribbonToolTips.end()) {
         BuildCStringResult(pRet, it->second);
@@ -1358,6 +1411,7 @@ extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonBaseElement__UEBA_AV__CStr
 // Symbol: ?SetDescription@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetDescription_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_ribbonDescriptions[RibbonElementID(pThis)] = (lpszText != nullptr) ? lpszText : L"";
 }
 
@@ -1368,6 +1422,7 @@ extern "C" void MS_ABI impl__GetDescription_CMFCRibbonBaseElement__UEBA_AV__CStr
         BuildCStringResult(pRet, L"");
         return;
     }
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto it = g_ribbonDescriptions.find(RibbonElementID(pThis));
     if (it != g_ribbonDescriptions.end()) {
         BuildCStringResult(pRet, it->second);
@@ -1453,17 +1508,20 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibb
 // Symbol: ?OnEnable@CMFCRibbonGallery@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonGallery__UEAAXH_Z(CMFCRibbonGallery* pThis, int bEnable) {
     if (!pThis) return;
-    (void)bEnable;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonElementsEnabled[pThis] = (bEnable != FALSE);
 }
 
 // Symbol: ?SelectItem@CMFCRibbonGallery@@QEAAXH@Z
 extern "C" void MS_ABI impl__SelectItem_CMFCRibbonGallery__QEAAXH_Z(CMFCRibbonGallery* pThis, int nItem) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_galleryLastSelectedByID[pThis->GetID()] = nItem;
 }
 
 // Symbol: ?GetLastSelectedItem@CMFCRibbonGallery@@SAHI@Z
 extern "C" int MS_ABI impl__GetLastSelectedItem_CMFCRibbonGallery__SAHI_Z(UINT nGalleryID) {
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto it = g_galleryLastSelectedByID.find(nGalleryID);
     return (it != g_galleryLastSelectedByID.end()) ? it->second : -1;
 }
@@ -1489,7 +1547,8 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonE
 // Symbol: ?OnEnable@CMFCRibbonEdit@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonEdit__UEAAXH_Z(CMFCRibbonEdit* pThis, int bEnable) {
     if (!pThis) return;
-    (void)bEnable;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonElementsEnabled[pThis] = (bEnable != FALSE);
 }
 
 // Symbol: ?GetRegularSize@CMFCRibbonSlider@@UEAA?AVCSize@@PEAVCDC@@@Z
@@ -1508,6 +1567,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonSlider__UEAAXPEAVCDC___Z(CMFCRibbo
 // Symbol: ?SetRange@CMFCRibbonSlider@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetRange_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nMin, int nMax) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_sliderStates[pThis->GetID()];
     NormalizeRange(nMin, nMax, state.nMin, state.nMax);
     state.nPos = std::clamp(state.nPos, state.nMin, state.nMax);
@@ -1516,6 +1576,7 @@ extern "C" void MS_ABI impl__SetRange_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlid
 // Symbol: ?SetPos@CMFCRibbonSlider@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetPos_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nPos, int /*bRedraw*/) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_sliderStates[pThis->GetID()];
     state.nPos = std::clamp(nPos, state.nMin, state.nMax);
 }
@@ -1523,12 +1584,14 @@ extern "C" void MS_ABI impl__SetPos_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider
 // Symbol: ?SetZoomButtons@CMFCRibbonSlider@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetZoomButtons_CMFCRibbonSlider__QEAAXH_Z(CMFCRibbonSlider* pThis, int bSet) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_sliderStates[pThis->GetID()].bShowZoomButtons = (bSet != FALSE);
 }
 
 // Symbol: ?SetZoomIncrement@CMFCRibbonSlider@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetZoomIncrement_CMFCRibbonSlider__QEAAXH_Z(CMFCRibbonSlider* pThis, int nDelta) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_sliderStates[pThis->GetID()].nZoomIncrement = std::max(1, nDelta);
 }
 
@@ -1548,6 +1611,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonProgressBar__UEAAXPEAVCDC___Z(CMFC
 // Symbol: ?SetRange@CMFCRibbonProgressBar@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetRange_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonProgressBar* pThis, int nMin, int nMax) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_progressStates[pThis->GetID()];
     NormalizeRange(nMin, nMax, state.nMin, state.nMax);
     state.nPos = std::clamp(state.nPos, state.nMin, state.nMax);
@@ -1556,6 +1620,7 @@ extern "C" void MS_ABI impl__SetRange_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbo
 // Symbol: ?SetPos@CMFCRibbonProgressBar@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetPos_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonProgressBar* pThis, int nPos, int /*bRedraw*/) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_progressStates[pThis->GetID()];
     state.nPos = std::clamp(nPos, state.nMin, state.nMax);
 }
@@ -1563,6 +1628,7 @@ extern "C" void MS_ABI impl__SetPos_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonP
 // Symbol: ?SetInfiniteMode@CMFCRibbonProgressBar@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetInfiniteMode_CMFCRibbonProgressBar__QEAAXH_Z(CMFCRibbonProgressBar* pThis, int bSet) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_progressStates[pThis->GetID()].bInfinite = (bSet != FALSE);
 }
 
@@ -1597,6 +1663,7 @@ extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonStatusBarPane__MEBA_AV__CS
         BuildCStringResult(pRet, L"");
         return;
     }
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto it = g_ribbonToolTips.find(RibbonElementID(pThis));
     if (it != g_ribbonToolTips.end()) {
         BuildCStringResult(pRet, it->second);
@@ -1610,6 +1677,7 @@ extern "C" void MS_ABI impl__GetToolTipText_CMFCRibbonStatusBarPane__MEBA_AV__CS
 extern "C" int MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAHIHK_Z(
     CMFCRibbonStatusBarPane* pThis, UINT nAnimationListResID, int cxAnimation, DWORD dwAnimationSpeed) {
     if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_statusPaneStates[pThis->GetID()];
     state.hAnimationBitmap = nullptr;
     state.cxAnimation = cxAnimation;
@@ -1622,6 +1690,7 @@ extern "C" int MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAHIHK_Z
 extern "C" void MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAXPEAUHBITMAP____HK_Z(
     CMFCRibbonStatusBarPane* pThis, HBITMAP hAnimationList, int cxAnimation, DWORD dwAnimationSpeed) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_statusPaneStates[pThis->GetID()];
     state.hAnimationBitmap = hAnimationList;
     state.cxAnimation = cxAnimation;
@@ -1633,6 +1702,7 @@ extern "C" void MS_ABI impl__SetAnimationList_CMFCRibbonStatusBarPane__QEAAXPEAU
 extern "C" void MS_ABI impl__StartAnimation_CMFCRibbonStatusBarPane__QEAAXII_Z(
     CMFCRibbonStatusBarPane* pThis, UINT nAnimationDuration, UINT nAnimationDelay) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     auto& state = g_statusPaneStates[pThis->GetID()];
     state.bAnimating = true;
     state.nAnimationFrame = 0;
@@ -1643,6 +1713,7 @@ extern "C" void MS_ABI impl__StartAnimation_CMFCRibbonStatusBarPane__QEAAXII_Z(
 // Symbol: ?StopAnimation@CMFCRibbonStatusBarPane@@QEAAXXZ
 extern "C" void MS_ABI impl__StopAnimation_CMFCRibbonStatusBarPane__QEAAXXZ(CMFCRibbonStatusBarPane* pThis) {
     if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     g_statusPaneStates[pThis->GetID()].bAnimating = false;
 }
 
