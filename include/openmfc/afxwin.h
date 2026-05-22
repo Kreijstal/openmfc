@@ -221,11 +221,9 @@ class CException : public CObject {
 public:
     CException(int bAutoDelete = 1) : m_bAutoDelete(bAutoDelete) {}
     virtual ~CException() = default;
-    
-    virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr) const {
-        (void)lpszError; (void)nMaxError; (void)pnHelpContext;
-        return 0; // FALSE
-    }
+    virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr) const;
+    virtual void Dump() const override;
+    virtual void AssertValid() const override;
     
     void Delete() { if (m_bAutoDelete) delete this; }
     
@@ -268,6 +266,8 @@ public:
         : m_cause(cause), m_lOsError(lOsError) {}
 
     virtual int GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const override;
+    virtual void Dump() const override;
+    virtual void AssertValid() const override;
 
     int m_cause;
     long m_lOsError;
@@ -293,6 +293,8 @@ public:
     CArchiveException(int cause = CArchiveException::none, const wchar_t* lpszArchiveName = nullptr);
     
     virtual int GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const override;
+    virtual void Dump() const override;
+    virtual void AssertValid() const override;
     
     int m_cause;
     CString m_strFileName;

@@ -38,6 +38,16 @@ int main() {
     catch (CMemoryException* e) {
         printf("  SUCCESS: Caught CMemoryException*!\n");
         printf("    Exception pointer: %p\n", (void*)e);
+        wchar_t buffer[256] = {};
+        int hasMessage = e->GetErrorMessage(buffer, 256);
+        printf("    GetErrorMessage returned: %d\n", hasMessage);
+        printf("    Message empty: %s\n", buffer[0] ? "no" : "yes");
+        e->AssertValid();
+        e->Dump();
+        if (!hasMessage || !buffer[0]) {
+            printf("  FAILED: Expected non-empty CMemoryException message\n");
+            return 1;
+        }
         // Don't call e->Delete() since our static object shouldn't be deleted
         fflush(stdout);
     }
@@ -93,6 +103,17 @@ int main() {
         printf("  SUCCESS: Caught CFileException*!\n");
         printf("    Exception pointer: %p\n", (void*)e);
         printf("    Cause: %d (Expected: %d)\n", e->m_cause, CFileException::fileNotFound);
+        wchar_t buffer[256] = {};
+        int hasMessage = e->GetErrorMessage(buffer, 256);
+        printf("    GetErrorMessage returned: %d\n", hasMessage);
+        printf("    Message empty: %s\n", buffer[0] ? "no" : "yes");
+        e->AssertValid();
+        e->Dump();
+        if (!hasMessage || !buffer[0]) {
+            printf("  FAILED: Expected non-empty CFileException message\n");
+            e->Delete();
+            return 1;
+        }
         // In real MFC, we should delete the exception. 
         // Our implementation allocates with 'new', so this is safe and correct.
         e->Delete(); 
