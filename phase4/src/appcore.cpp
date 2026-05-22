@@ -7,6 +7,14 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <cwctype>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -914,3 +922,664 @@ extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ() {
 // Note: AfxGetThread, AfxGetInstanceHandle, AfxGetResourceHandle,
 // AfxSetResourceHandle, AfxGetMainWnd, and AfxWinInit are now
 // inline functions defined in afxwin.h
+
+// =============================================================================
+// Conservative app/runtime residual helpers
+// =============================================================================
+class CCommandLineInfo;
+class CDocManager;
+class CRecentFileList;
+
+namespace {
+struct CommandLineInfoState {
+    int shellCommand = 0;
+    int openRecentIndex = -1;
+    bool hasFileName = false;
+    std::wstring fileName;
+};
+
+struct DocManagerState {
+    std::vector<CDocTemplate*> templates;
+};
+
+struct RecentFileListState {
+    UINT start = 0;
+    int maxEntries = 0;
+    int maxDisplayLen = 0;
+    std::wstring section;
+    std::wstring entryFormat;
+    std::vector<std::wstring> entries;
+};
+
+struct AppRuntimeState {
+    std::vector<CDocTemplate*> templates;
+    std::vector<std::wstring> recentEntries;
+    unsigned int maxRecent = 4;
+    std::unordered_map<std::wstring, unsigned int> profileInts;
+    std::unordered_map<std::wstring, std::wstring> profileStrings;
+    std::unordered_map<std::wstring, std::vector<unsigned char>> profileBinary;
+};
+
+std::unordered_map<const CCommandLineInfo*, CommandLineInfoState> g_commandLineInfoStates;
+std::unordered_map<const CDocManager*, DocManagerState> g_docManagerStates;
+std::unordered_map<const CRecentFileList*, RecentFileListState> g_recentFileListStates;
+std::unordered_map<const CWinApp*, AppRuntimeState> g_appRuntimeStates;
+std::unordered_map<const CCmdTarget*, int> g_waitCursorDepth;
+
+constexpr int kShellCommandFileNothing = 0;
+constexpr int kShellCommandFileNew = 1;
+constexpr int kShellCommandFileOpen = 2;
+constexpr int kShellCommandFilePrint = 3;
+constexpr int kShellCommandFilePrintTo = 4;
+constexpr int kShellCommandAppRegister = 5;
+constexpr int kShellCommandAppUnregister = 6;
+constexpr int kShellCommandFileDDE = 7;
+
+std::wstring MakeProfileKey(const wchar_t* section, const wchar_t* entry) {
+    std::wstring key = section ? section : L"";
+    key.push_back(L'\x1f');
+    key.append(entry ? entry : L"");
+    return key;
+}
+
+const wchar_t* FindFileNamePart(const wchar_t* path) {
+    if (path == nullptr) return L"";
+    const wchar_t* name = path;
+    for (const wchar_t* p = path; *p != L'\0'; ++p) {
+        if (*p == L'\\' || *p == L'/') {
+            name = p + 1;
+        }
+    }
+    return name;
+}
+
+void AddRecentPath(std::vector<std::wstring>& entries, int maxEntries, const wchar_t* path) {
+    if (path == nullptr || *path == L'\0') return;
+    std::wstring value(path);
+    entries.erase(std::remove(entries.begin(), entries.end(), value), entries.end());
+    entries.insert(entries.begin(), std::move(value));
+    if (maxEntries >= 0 && static_cast<int>(entries.size()) > maxEntries) {
+        entries.resize(static_cast<size_t>(maxEntries));
+    }
+}
+
+std::vector<std::wstring> TokenizeCommandLine(const wchar_t* cmdLine) {
+    std::vector<std::wstring> tokens;
+    if (cmdLine == nullptr) return tokens;
+
+    const wchar_t* p = cmdLine;
+    while (*p != L'\0') {
+        while (*p == L' ' || *p == L'\t') ++p;
+        if (*p == L'\0') break;
+
+        std::wstring token;
+        bool inQuotes = false;
+        while (*p != L'\0') {
+            if (*p == L'"') {
+                inQuotes = !inQuotes;
+                ++p;
+                continue;
+            }
+            if (!inQuotes && (*p == L' ' || *p == L'\t')) break;
+            token.push_back(*p++);
+        }
+        tokens.push_back(std::move(token));
+        while (*p == L' ' || *p == L'\t') ++p;
+    }
+    return tokens;
+}
+
+void ParseCommandFlag(CommandLineInfoState& state, const wchar_t* flag) {
+    if (flag == nullptr || *flag == L'\0') return;
+    std::wstring lower(flag);
+    for (wchar_t& ch : lower) ch = static_cast<wchar_t>(std::towlower(ch));
+
+    if (lower == L"n" || lower == L"new") {
+        state.shellCommand = kShellCommandFileNew;
+    } else if (lower == L"open") {
+        state.shellCommand = kShellCommandFileOpen;
+    } else if (lower == L"p" || lower == L"print") {
+        state.shellCommand = kShellCommandFilePrint;
+    } else if (lower == L"pt" || lower == L"printto") {
+        state.shellCommand = kShellCommandFilePrintTo;
+    } else if (lower == L"dde") {
+        state.shellCommand = kShellCommandFileDDE;
+    } else if (lower == L"register") {
+        state.shellCommand = kShellCommandAppRegister;
+    } else if (lower == L"unregister") {
+        state.shellCommand = kShellCommandAppUnregister;
+    }
+}
+
+void ParseNonFlagToken(CommandLineInfoState& state, const wchar_t* token) {
+    if (token == nullptr || *token == L'\0') return;
+    state.fileName = token;
+    state.hasFileName = true;
+    if (state.shellCommand == kShellCommandFileNothing || state.shellCommand == kShellCommandFileNew) {
+        state.shellCommand = kShellCommandFileOpen;
+    }
+}
+
+CDocument* OpenWithTemplates(const std::vector<CDocTemplate*>& templates, const wchar_t* path, int makeVisible) {
+    for (CDocTemplate* tpl : templates) {
+        if (tpl == nullptr) continue;
+        CDocument* doc = tpl->OpenDocumentFile(path, makeVisible);
+        if (doc != nullptr) return doc;
+    }
+    return nullptr;
+}
+}  // namespace
+
+// Symbol: ??0CCommandLineInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CCommandLineInfo__QEAA_XZ(void* pThis) {
+    if (pThis) g_commandLineInfoStates[reinterpret_cast<CCommandLineInfo*>(pThis)] = CommandLineInfoState{};
+    return pThis;
+}
+
+// Symbol: ??1CCommandLineInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1CCommandLineInfo__UEAA_XZ(CCommandLineInfo* pThis) {
+    if (pThis) g_commandLineInfoStates.erase(pThis);
+}
+
+// Symbol: ?ParseParam@CCommandLineInfo@@UEAAXPEB_WHH@Z
+extern "C" void MS_ABI impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(
+    CCommandLineInfo* pThis, const wchar_t* pszParam, int bFlag, int bLast) {
+    if (!pThis) return;
+    CommandLineInfoState& state = g_commandLineInfoStates[pThis];
+    if (bFlag) ParseCommandFlag(state, pszParam);
+    else ParseNonFlagToken(state, pszParam);
+    if (bLast && state.shellCommand == kShellCommandFileNothing && !state.hasFileName) {
+        state.shellCommand = kShellCommandFileNew;
+    }
+}
+
+// Symbol: ?ParseParam@CCommandLineInfo@@UEAAXPEBDHH@Z
+extern "C" void MS_ABI impl__ParseParam_CCommandLineInfo__UEAAXPEBDHH_Z(
+    CCommandLineInfo* pThis, const char* pszParam, int bFlag, int bLast) {
+    if (pszParam == nullptr) {
+        impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, nullptr, bFlag, bLast);
+        return;
+    }
+    std::wstring wide;
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(pszParam); *p; ++p) {
+        wide.push_back(static_cast<wchar_t>(*p));
+    }
+    impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, wide.c_str(), bFlag, bLast);
+}
+
+// Symbol: ?ParseParamFlag@CCommandLineInfo@@IEAAXPEBD@Z
+extern "C" void MS_ABI impl__ParseParamFlag_CCommandLineInfo__IEAAXPEBD_Z(CCommandLineInfo* pThis, const char* pszParam) {
+    impl__ParseParam_CCommandLineInfo__UEAAXPEBDHH_Z(pThis, pszParam, TRUE, FALSE);
+}
+
+// Symbol: ?ParseParamNotFlag@CCommandLineInfo@@IEAAXPEB_W@Z
+extern "C" void MS_ABI impl__ParseParamNotFlag_CCommandLineInfo__IEAAXPEB_W_Z(CCommandLineInfo* pThis, const wchar_t* pszParam) {
+    impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(pThis, pszParam, FALSE, FALSE);
+}
+
+// Symbol: ?ParseParamNotFlag@CCommandLineInfo@@IEAAXPEBD@Z
+extern "C" void MS_ABI impl__ParseParamNotFlag_CCommandLineInfo__IEAAXPEBD_Z(CCommandLineInfo* pThis, const char* pszParam) {
+    impl__ParseParam_CCommandLineInfo__UEAAXPEBDHH_Z(pThis, pszParam, FALSE, FALSE);
+}
+
+// Symbol: ?ParseLast@CCommandLineInfo@@IEAAXH@Z
+extern "C" void MS_ABI impl__ParseLast_CCommandLineInfo__IEAAXH_Z(CCommandLineInfo* pThis, int bLast) {
+    if (!pThis || !bLast) return;
+    CommandLineInfoState& state = g_commandLineInfoStates[pThis];
+    if (state.shellCommand == kShellCommandFileNothing && !state.hasFileName) {
+        state.shellCommand = kShellCommandFileNew;
+    }
+}
+
+// Symbol: ?ParseCommandLine@CWinApp@@QEAAXAEAVCCommandLineInfo@@@Z
+extern "C" void MS_ABI impl__ParseCommandLine_CWinApp__QEAAXAEAVCCommandLineInfo___Z(
+    CWinApp* pThis, CCommandLineInfo* pInfo) {
+    if (!pThis || !pInfo) return;
+    const std::vector<std::wstring> tokens = TokenizeCommandLine(pThis->m_lpCmdLine);
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        const std::wstring& token = tokens[i];
+        const bool isFlag = !token.empty() && (token[0] == L'/' || token[0] == L'-');
+        const wchar_t* value = isFlag ? token.c_str() + 1 : token.c_str();
+        impl__ParseParam_CCommandLineInfo__UEAAXPEB_WHH_Z(
+            pInfo, value, isFlag ? TRUE : FALSE, (i + 1) == tokens.size() ? TRUE : FALSE);
+    }
+    if (tokens.empty()) {
+        impl__ParseLast_CCommandLineInfo__IEAAXH_Z(pInfo, TRUE);
+    }
+}
+
+// Symbol: ?ProcessShellCommand@CWinApp@@QEAAHAEAVCCommandLineInfo@@@Z
+extern "C" int MS_ABI impl__ProcessShellCommand_CWinApp__QEAAHAEAVCCommandLineInfo___Z(
+    CWinApp* pThis, CCommandLineInfo* pInfo) {
+    if (!pThis || !pInfo) return FALSE;
+    CommandLineInfoState& state = g_commandLineInfoStates[pInfo];
+    AppRuntimeState& appState = g_appRuntimeStates[pThis];
+
+    switch (state.shellCommand) {
+    case kShellCommandFileNothing:
+        return TRUE;
+    case kShellCommandFileNew:
+        return OpenWithTemplates(appState.templates, nullptr, TRUE) != nullptr;
+    case kShellCommandFileOpen:
+        return state.hasFileName && OpenWithTemplates(appState.templates, state.fileName.c_str(), TRUE) != nullptr;
+    case kShellCommandAppRegister:
+    case kShellCommandAppUnregister:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+// Symbol: ?LoadStdProfileSettings@CWinApp@@IEAAXI@Z
+extern "C" void MS_ABI impl__LoadStdProfileSettings_CWinApp__IEAAXI_Z(CWinApp* pThis, unsigned int nMaxMRU) {
+    if (!pThis) return;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    state.maxRecent = nMaxMRU;
+    if (state.recentEntries.size() > nMaxMRU) {
+        state.recentEntries.resize(nMaxMRU);
+    }
+}
+
+// Symbol: ?AddToRecentFileList@CWinApp@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__AddToRecentFileList_CWinApp__UEAAXPEB_W_Z(CWinApp* pThis, const wchar_t* pathName) {
+    if (!pThis) return;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    AddRecentPath(state.recentEntries, static_cast<int>(state.maxRecent), pathName);
+}
+
+// Symbol: ?GetProfileIntW@CWinApp@@UEAAIPEB_W0H@Z
+extern "C" unsigned int MS_ABI impl__GetProfileIntW_CWinApp__UEAAIPEB_W0H_Z(
+    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, int defaultValue) {
+    if (!pThis) return static_cast<unsigned int>(defaultValue);
+    const auto& map = g_appRuntimeStates[pThis].profileInts;
+    const auto it = map.find(MakeProfileKey(section, entry));
+    return it == map.end() ? static_cast<unsigned int>(defaultValue) : it->second;
+}
+
+// Symbol: ?GetProfileStringW@CWinApp@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W00@Z
+extern "C" void MS_ABI impl__GetProfileStringW_CWinApp__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W00_Z(
+    CString* ret, CWinApp* pThis, const wchar_t* section, const wchar_t* entry, const wchar_t* defaultValue) {
+    if (!ret) return;
+    if (!pThis) {
+        new (ret) CString(defaultValue ? defaultValue : L"");
+        return;
+    }
+    const auto& map = g_appRuntimeStates[pThis].profileStrings;
+    const auto it = map.find(MakeProfileKey(section, entry));
+    new (ret) CString(it == map.end() ? (defaultValue ? defaultValue : L"") : it->second.c_str());
+}
+
+// Symbol: ?GetProfileBinary@CWinApp@@UEAAHPEB_W0PEAPEAEPEAI@Z
+extern "C" int MS_ABI impl__GetProfileBinary_CWinApp__UEAAHPEB_W0PEAPEAEPEAI_Z(
+    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, unsigned char** ppData, unsigned int* pBytes) {
+    if (ppData) *ppData = nullptr;
+    if (pBytes) *pBytes = 0;
+    if (!pThis || !ppData || !pBytes) return FALSE;
+
+    const auto& map = g_appRuntimeStates[pThis].profileBinary;
+    const auto it = map.find(MakeProfileKey(section, entry));
+    if (it == map.end()) return FALSE;
+
+    const std::vector<unsigned char>& data = it->second;
+    if (data.empty()) return FALSE;
+
+    unsigned char* copy = static_cast<unsigned char*>(std::malloc(data.size()));
+    if (!copy) return FALSE;
+    std::memcpy(copy, data.data(), data.size());
+    *ppData = copy;
+    *pBytes = static_cast<unsigned int>(data.size());
+    return TRUE;
+}
+
+// Symbol: ?WriteProfileInt@CWinApp@@UEAAHPEB_W0H@Z
+extern "C" int MS_ABI impl__WriteProfileInt_CWinApp__UEAAHPEB_W0H_Z(
+    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, int value) {
+    if (!pThis || !section || !entry) return FALSE;
+    g_appRuntimeStates[pThis].profileInts[MakeProfileKey(section, entry)] = static_cast<unsigned int>(value);
+    return TRUE;
+}
+
+// Symbol: ?WriteProfileStringW@CWinApp@@UEAAHPEB_W00@Z
+extern "C" int MS_ABI impl__WriteProfileStringW_CWinApp__UEAAHPEB_W00_Z(
+    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, const wchar_t* value) {
+    if (!pThis || !section || !entry) return FALSE;
+    g_appRuntimeStates[pThis].profileStrings[MakeProfileKey(section, entry)] = value ? value : L"";
+    return TRUE;
+}
+
+// Symbol: ?WriteProfileBinary@CWinApp@@UEAAHPEB_W0PEAEI@Z
+extern "C" int MS_ABI impl__WriteProfileBinary_CWinApp__UEAAHPEB_W0PEAEI_Z(
+    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, unsigned char* data, unsigned int bytes) {
+    if (!pThis || !section || !entry) return FALSE;
+    std::vector<unsigned char> blob;
+    if (data && bytes != 0) blob.assign(data, data + bytes);
+    g_appRuntimeStates[pThis].profileBinary[MakeProfileKey(section, entry)] = std::move(blob);
+    return TRUE;
+}
+
+// Symbol: ?BeginWaitCursor@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__BeginWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    int& depth = g_waitCursorDepth[pThis];
+    ++depth;
+    ::SetCursor(::LoadCursorW(nullptr, IDC_WAIT));
+}
+
+// Symbol: ?EndWaitCursor@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__EndWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    int& depth = g_waitCursorDepth[pThis];
+    if (depth > 0) --depth;
+    if (depth == 0) ::SetCursor(::LoadCursorW(nullptr, IDC_ARROW));
+}
+
+// Symbol: ?RestoreWaitCursor@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__RestoreWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    const int depth = g_waitCursorDepth[pThis];
+    ::SetCursor(::LoadCursorW(nullptr, depth > 0 ? IDC_WAIT : IDC_ARROW));
+}
+
+// Symbol: ??0CDocManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CDocManager__QEAA_XZ(void* pThis) {
+    if (pThis) g_docManagerStates[reinterpret_cast<CDocManager*>(pThis)] = DocManagerState{};
+    return pThis;
+}
+
+// Symbol: ??1CDocManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDocManager__UEAA_XZ(CDocManager* pThis) {
+    if (pThis) g_docManagerStates.erase(pThis);
+}
+
+// Symbol: ?AddDocTemplate@CDocManager@@UEAAXPEAVCDocTemplate@@@Z
+extern "C" void MS_ABI impl__AddDocTemplate_CDocManager__UEAAXPEAVCDocTemplate___Z(CDocManager* pThis, CDocTemplate* pTemplate) {
+    if (!pThis || !pTemplate) return;
+    auto& templates = g_docManagerStates[pThis].templates;
+    if (std::find(templates.begin(), templates.end(), pTemplate) == templates.end()) {
+        templates.push_back(pTemplate);
+    }
+}
+
+// Symbol: ?GetBestTemplate@CDocManager@@UEAAPEAVCDocTemplate@@PEB_W@Z
+extern "C" CDocTemplate* MS_ABI impl__GetBestTemplate_CDocManager__UEAAPEAVCDocTemplate__PEB_W_Z(
+    CDocManager* pThis, const wchar_t* pathName) {
+    (void)pathName;
+    if (!pThis) return nullptr;
+    auto& templates = g_docManagerStates[pThis].templates;
+    return templates.empty() ? nullptr : templates.front();
+}
+
+// Symbol: ?GetFirstDocTemplatePosition@CDocManager@@UEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetFirstDocTemplatePosition_CDocManager__UEBAPEAU__POSITION__XZ(const CDocManager* pThis) {
+    if (!pThis) return nullptr;
+    const auto& templates = g_docManagerStates[pThis].templates;
+    return templates.empty() ? nullptr : reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+}
+
+// Symbol: ?GetNextDocTemplate@CDocManager@@UEBAPEAVCDocTemplate@@AEAPEAU__POSITION@@@Z
+extern "C" CDocTemplate* MS_ABI impl__GetNextDocTemplate_CDocManager__UEBAPEAVCDocTemplate__AEAPEAU__POSITION___Z(
+    const CDocManager* pThis, void** pos) {
+    if (!pThis || !pos || !*pos) return nullptr;
+    const auto& templates = g_docManagerStates[pThis].templates;
+    const uintptr_t index = reinterpret_cast<uintptr_t>(*pos) - 1;
+    if (index >= templates.size()) {
+        *pos = nullptr;
+        return nullptr;
+    }
+    *pos = (index + 1 < templates.size()) ? reinterpret_cast<void*>(index + 2) : nullptr;
+    return templates[index];
+}
+
+// Symbol: ?GetOpenDocumentCount@CDocManager@@UEAAHXZ
+extern "C" int MS_ABI impl__GetOpenDocumentCount_CDocManager__UEAAHXZ(CDocManager* pThis) {
+    (void)pThis;
+    return 0;
+}
+
+// Symbol: ?GetDocumentCount@CDocManager@@IEAAHXZ
+extern "C" int MS_ABI impl__GetDocumentCount_CDocManager__IEAAHXZ(CDocManager* pThis) {
+    if (!pThis) return 0;
+    return static_cast<int>(g_docManagerStates[pThis].templates.size());
+}
+
+// Symbol: ?GetRuntimeClass@CDocManager@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDocManager__UEBAPEAUCRuntimeClass__XZ(const CDocManager* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetThisClass@CDocManager@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocManager__SAPEAUCRuntimeClass__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?OpenDocumentFile@CDocManager@@UEAAPEAVCDocument@@PEB_W@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CDocManager__UEAAPEAVCDocument__PEB_W_Z(
+    CDocManager* pThis, const wchar_t* pathName) {
+    if (!pThis) return nullptr;
+    return OpenWithTemplates(g_docManagerStates[pThis].templates, pathName, TRUE);
+}
+
+// Symbol: ?OpenDocumentFile@CDocManager@@UEAAPEAVCDocument@@PEB_WH@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CDocManager__UEAAPEAVCDocument__PEB_WH_Z(
+    CDocManager* pThis, const wchar_t* pathName, int bMakeVisible) {
+    if (!pThis) return nullptr;
+    return OpenWithTemplates(g_docManagerStates[pThis].templates, pathName, bMakeVisible);
+}
+
+// Symbol: ?OnFileNew@CDocManager@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFileNew_CDocManager__UEAAXXZ(CDocManager* pThis) {
+    if (!pThis) return;
+    (void)OpenWithTemplates(g_docManagerStates[pThis].templates, nullptr, TRUE);
+}
+
+// Symbol: ?OnFileOpen@CDocManager@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFileOpen_CDocManager__UEAAXXZ(CDocManager* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SaveAllModified@CDocManager@@UEAAHXZ
+extern "C" int MS_ABI impl__SaveAllModified_CDocManager__UEAAHXZ(CDocManager* pThis) {
+    (void)pThis;
+    return TRUE;
+}
+
+// Symbol: ?CloseAllDocuments@CDocManager@@UEAAXH@Z
+extern "C" void MS_ABI impl__CloseAllDocuments_CDocManager__UEAAXH_Z(CDocManager* pThis, int bEndSession) {
+    (void)pThis;
+    (void)bEndSession;
+}
+
+// Symbol: ?DoPromptFileName@CDocManager@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IKHPEAVCDocTemplate@@@Z
+extern "C" int MS_ABI impl__DoPromptFileName_CDocManager__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IKHPEAVCDocTemplate___Z(
+    CDocManager* pThis, CString* fileName, unsigned int idTitle, unsigned long flags, int bOpenFileDialog, CDocTemplate* pTemplate) {
+    (void)pThis;
+    (void)idTitle;
+    (void)flags;
+    (void)bOpenFileDialog;
+    (void)pTemplate;
+    if (fileName) *fileName = L"";
+    return FALSE;
+}
+
+// Symbol: ?OnDDECommand@CDocManager@@UEAAHPEA_W@Z
+extern "C" int MS_ABI impl__OnDDECommand_CDocManager__UEAAHPEA_W_Z(CDocManager* pThis, wchar_t* command) {
+    (void)pThis;
+    (void)command;
+    return FALSE;
+}
+
+// Symbol: ?RegisterShellFileTypes@CDocManager@@UEAAXH@Z
+extern "C" void MS_ABI impl__RegisterShellFileTypes_CDocManager__UEAAXH_Z(CDocManager* pThis, int bCompat) {
+    (void)pThis;
+    (void)bCompat;
+}
+
+// Symbol: ?UnregisterShellFileTypes@CDocManager@@QEAAXXZ
+extern "C" void MS_ABI impl__UnregisterShellFileTypes_CDocManager__QEAAXXZ(CDocManager* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??0CRecentFileList@@QEAA@IPEB_W0HH@Z
+extern "C" void* MS_ABI impl___0CRecentFileList__QEAA_IPEB_W0HH_Z(
+    void* pThis, unsigned int start, const wchar_t* section, const wchar_t* entryFormat, int size, int maxDispLen) {
+    if (pThis) {
+        RecentFileListState state;
+        state.start = start;
+        state.maxEntries = size < 0 ? 0 : size;
+        state.maxDisplayLen = maxDispLen;
+        state.section = section ? section : L"";
+        state.entryFormat = entryFormat ? entryFormat : L"";
+        g_recentFileListStates[reinterpret_cast<CRecentFileList*>(pThis)] = std::move(state);
+    }
+    return pThis;
+}
+
+// Symbol: ??1CRecentFileList@@UEAA@XZ
+extern "C" void MS_ABI impl___1CRecentFileList__UEAA_XZ(CRecentFileList* pThis) {
+    if (pThis) g_recentFileListStates.erase(pThis);
+}
+
+// Symbol: ?Add@CRecentFileList@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__Add_CRecentFileList__UEAAXPEB_W_Z(CRecentFileList* pThis, const wchar_t* pathName) {
+    if (!pThis) return;
+    RecentFileListState& state = g_recentFileListStates[pThis];
+    AddRecentPath(state.entries, state.maxEntries, pathName);
+}
+
+// Symbol: ?Add@CRecentFileList@@UEAAXPEB_W0@Z
+extern "C" void MS_ABI impl__Add_CRecentFileList__UEAAXPEB_W0_Z(CRecentFileList* pThis, const wchar_t* pathName, const wchar_t* displayName) {
+    const wchar_t* chosen = (displayName && *displayName) ? displayName : pathName;
+    impl__Add_CRecentFileList__UEAAXPEB_W_Z(pThis, chosen);
+}
+
+// Symbol: ?Add@CRecentFileList@@QEAAXPEAUIShellItem@@PEB_W@Z
+extern "C" void MS_ABI impl__Add_CRecentFileList__QEAAXPEAUIShellItem__PEB_W_Z(CRecentFileList* pThis, IShellItem* pItem, const wchar_t* displayName) {
+    (void)pItem;
+    impl__Add_CRecentFileList__UEAAXPEB_W0_Z(pThis, nullptr, displayName);
+}
+
+// Symbol: ?Add@CRecentFileList@@QEAAXPEAUIShellLinkW@@PEB_W@Z
+extern "C" void MS_ABI impl__Add_CRecentFileList__QEAAXPEAUIShellLinkW__PEB_W_Z(CRecentFileList* pThis, IShellLinkW* pLink, const wchar_t* displayName) {
+    (void)pLink;
+    impl__Add_CRecentFileList__UEAAXPEB_W0_Z(pThis, nullptr, displayName);
+}
+
+// Symbol: ?Add@CRecentFileList@@QEAAXPEFAU_ITEMIDLIST@@PEB_W@Z
+extern "C" void MS_ABI impl__Add_CRecentFileList__QEAAXPEFAU_ITEMIDLIST__PEB_W_Z(
+    CRecentFileList* pThis, const ITEMIDLIST* pidl, const wchar_t* displayName) {
+    (void)pidl;
+    impl__Add_CRecentFileList__UEAAXPEB_W0_Z(pThis, nullptr, displayName);
+}
+
+// Symbol: ?Remove@CRecentFileList@@UEAAXH@Z
+extern "C" void MS_ABI impl__Remove_CRecentFileList__UEAAXH_Z(CRecentFileList* pThis, int index) {
+    if (!pThis) return;
+    auto& entries = g_recentFileListStates[pThis].entries;
+    if (index < 0 || static_cast<size_t>(index) >= entries.size()) return;
+    entries.erase(entries.begin() + index);
+}
+
+// Symbol: ?ReadList@CRecentFileList@@UEAAXXZ
+extern "C" void MS_ABI impl__ReadList_CRecentFileList__UEAAXXZ(CRecentFileList* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?WriteList@CRecentFileList@@UEAAXXZ
+extern "C" void MS_ABI impl__WriteList_CRecentFileList__UEAAXXZ(CRecentFileList* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?UpdateMenu@CRecentFileList@@UEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__UpdateMenu_CRecentFileList__UEAAXPEAVCCmdUI___Z(CRecentFileList* pThis, CCmdUI* pCmdUI) {
+    (void)pThis;
+    (void)pCmdUI;
+}
+
+// Symbol: ?GetDisplayName@CRecentFileList@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HPEB_WHH@Z
+extern "C" int MS_ABI impl__GetDisplayName_CRecentFileList__UEBAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HPEB_WHH_Z(
+    const CRecentFileList* pThis, CString* stringOut, int index, const wchar_t* curDir, int bAtLeastName, int bFullPath) {
+    (void)curDir;
+    (void)bAtLeastName;
+    if (!pThis || !stringOut) return FALSE;
+    const auto& entries = g_recentFileListStates[pThis].entries;
+    if (index < 0 || static_cast<size_t>(index) >= entries.size()) return FALSE;
+    const std::wstring& value = entries[static_cast<size_t>(index)];
+    *stringOut = bFullPath ? value.c_str() : FindFileNamePart(value.c_str());
+    return TRUE;
+}
+
+// Symbol: ?AddDocTemplate@CWinApp@@UEAAXPEAVCDocTemplate@@@Z
+extern "C" void MS_ABI impl__AddDocTemplate_CWinApp__UEAAXPEAVCDocTemplate___Z(CWinApp* pThis, CDocTemplate* pTemplate) {
+    if (!pThis || !pTemplate) return;
+    auto& templates = g_appRuntimeStates[pThis].templates;
+    if (std::find(templates.begin(), templates.end(), pTemplate) == templates.end()) {
+        templates.push_back(pTemplate);
+    }
+}
+
+// Symbol: ?GetFirstDocTemplatePosition@CWinApp@@QEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetFirstDocTemplatePosition_CWinApp__QEBAPEAU__POSITION__XZ(const CWinApp* pThis) {
+    if (!pThis) return nullptr;
+    const auto& templates = g_appRuntimeStates[pThis].templates;
+    return templates.empty() ? nullptr : reinterpret_cast<void*>(static_cast<uintptr_t>(1));
+}
+
+// Symbol: ?GetNextDocTemplate@CWinApp@@QEBAPEAVCDocTemplate@@AEAPEAU__POSITION@@@Z
+extern "C" CDocTemplate* MS_ABI impl__GetNextDocTemplate_CWinApp__QEBAPEAVCDocTemplate__AEAPEAU__POSITION___Z(
+    const CWinApp* pThis, void** pos) {
+    if (!pThis || !pos || !*pos) return nullptr;
+    const auto& templates = g_appRuntimeStates[pThis].templates;
+    const uintptr_t index = reinterpret_cast<uintptr_t>(*pos) - 1;
+    if (index >= templates.size()) {
+        *pos = nullptr;
+        return nullptr;
+    }
+    *pos = (index + 1 < templates.size()) ? reinterpret_cast<void*>(index + 2) : nullptr;
+    return templates[index];
+}
+
+// Symbol: ?GetOpenDocumentCount@CWinApp@@QEAAHXZ
+extern "C" int MS_ABI impl__GetOpenDocumentCount_CWinApp__QEAAHXZ(CWinApp* pThis) {
+    (void)pThis;
+    return 0;
+}
+
+// Symbol: ?OpenDocumentFile@CWinApp@@UEAAPEAVCDocument@@PEB_W@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CWinApp__UEAAPEAVCDocument__PEB_W_Z(CWinApp* pThis, const wchar_t* pathName) {
+    if (!pThis) return nullptr;
+    return OpenWithTemplates(g_appRuntimeStates[pThis].templates, pathName, TRUE);
+}
+
+// Symbol: ?OpenDocumentFile@CWinApp@@UEAAPEAVCDocument@@PEB_WH@Z
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CWinApp__UEAAPEAVCDocument__PEB_WH_Z(
+    CWinApp* pThis, const wchar_t* pathName, int bMakeVisible) {
+    if (!pThis) return nullptr;
+    return OpenWithTemplates(g_appRuntimeStates[pThis].templates, pathName, bMakeVisible);
+}
+
+// Symbol: ?OnFileNew@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileNew_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    (void)OpenWithTemplates(g_appRuntimeStates[pThis].templates, nullptr, TRUE);
+}
+
+// Symbol: ?OnFileOpen@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileOpen_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (!pThis || !pThis->m_lpCmdLine || pThis->m_lpCmdLine[0] == L'\0') return;
+    (void)OpenWithTemplates(g_appRuntimeStates[pThis].templates, pThis->m_lpCmdLine, TRUE);
+}
+
+// Symbol: ?OnOpenRecentFile@CWinApp@@IEAAHI@Z
+extern "C" int MS_ABI impl__OnOpenRecentFile_CWinApp__IEAAHI_Z(CWinApp* pThis, unsigned int index) {
+    if (!pThis) return FALSE;
+    const auto& entries = g_appRuntimeStates[pThis].recentEntries;
+    if (index >= entries.size()) return FALSE;
+    return OpenWithTemplates(g_appRuntimeStates[pThis].templates, entries[index].c_str(), TRUE) != nullptr;
+}
+
+// Symbol: ?OnUpdateRecentFileMenu@CWinApp@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateRecentFileMenu_CWinApp__IEAAXPEAVCCmdUI___Z(CWinApp* pThis, CCmdUI* pCmdUI) {
+    (void)pThis;
+    (void)pCmdUI;
+}
