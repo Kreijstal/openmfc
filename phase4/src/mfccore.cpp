@@ -1359,6 +1359,133 @@ void CMFCTabCtrl::EnableTabSwap(BOOL) {}
 void CMFCTabCtrl::SetTabBorderSize(int) {}
 void CMFCTabCtrl::SetTabsHeight(int) {}
 
+namespace {
+
+struct PropertyGridPropertyState {
+    std::vector<CMFCPropertyGridProperty*> subItems;
+};
+
+struct PropertyGridCtrlState {
+    std::vector<CMFCPropertyGridProperty*> properties;
+    int descriptionRows = 0;
+    int layoutRevision = 0;
+};
+
+struct TasksPaneTaskState {
+    UINT id = 0;
+    std::wstring label;
+    int icon = -1;
+    BOOL isSeparator = FALSE;
+    UINT commandID = 0;
+    unsigned __int64 userData = 0;
+};
+
+struct TasksPaneGroupState {
+    struct TaskEntry {
+        CMFCTasksPaneTask* task = nullptr;
+        std::wstring label;
+        int icon = -1;
+        UINT commandID = 0;
+        unsigned __int64 userData = 0;
+    };
+
+    std::wstring name;
+    BOOL hasGripper = FALSE;
+    BOOL isSpecial = FALSE;
+    int icon = -1;
+    HICON hIcon = nullptr;
+    std::vector<TaskEntry> tasks;
+};
+
+struct TasksPaneState {
+    std::wstring caption;
+    std::vector<TasksPaneGroupState> groups;
+};
+
+thread_local std::unordered_map<const CMFCPropertyGridProperty*, PropertyGridPropertyState> g_propertyGridPropertyStates;
+thread_local std::unordered_map<const CMFCPropertyGridCtrl*, PropertyGridCtrlState> g_propertyGridCtrlStates;
+thread_local std::unordered_map<const CMFCTasksPaneTask*, TasksPaneTaskState> g_tasksPaneTaskStates;
+thread_local std::unordered_map<const CMFCTasksPane*, TasksPaneState> g_tasksPaneStates;
+
+PropertyGridPropertyState& EnsurePropertyGridPropertyState(const CMFCPropertyGridProperty* pProp) {
+    return g_propertyGridPropertyStates[pProp];
+}
+
+const PropertyGridPropertyState* FindPropertyGridPropertyState(const CMFCPropertyGridProperty* pProp) {
+    auto it = g_propertyGridPropertyStates.find(pProp);
+    return it == g_propertyGridPropertyStates.end() ? nullptr : &it->second;
+}
+
+void RemovePropertyGridPropertyReferences(const CMFCPropertyGridProperty* pProp) {
+    g_propertyGridPropertyStates.erase(pProp);
+    for (auto& [unusedPropertyKey, propertyState] : g_propertyGridPropertyStates) {
+        (void)unusedPropertyKey;
+        auto& subItems = propertyState.subItems;
+        subItems.erase(std::remove(subItems.begin(), subItems.end(), pProp), subItems.end());
+    }
+    for (auto& [unusedCtrlKey, ctrlState] : g_propertyGridCtrlStates) {
+        (void)unusedCtrlKey;
+        auto& properties = ctrlState.properties;
+        properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
+    }
+}
+
+PropertyGridCtrlState& EnsurePropertyGridCtrlState(const CMFCPropertyGridCtrl* pCtrl) {
+    return g_propertyGridCtrlStates[pCtrl];
+}
+
+const PropertyGridCtrlState* FindPropertyGridCtrlState(const CMFCPropertyGridCtrl* pCtrl) {
+    auto it = g_propertyGridCtrlStates.find(pCtrl);
+    return it == g_propertyGridCtrlStates.end() ? nullptr : &it->second;
+}
+
+TasksPaneTaskState& EnsureTasksPaneTaskState(const CMFCTasksPaneTask* pTask) {
+    return g_tasksPaneTaskStates[pTask];
+}
+
+TasksPaneState& EnsureTasksPaneState(const CMFCTasksPane* pPane) {
+    return g_tasksPaneStates[pPane];
+}
+
+void RemoveTaskFromAllGroups(const CMFCTasksPaneTask* pTask) {
+    g_tasksPaneTaskStates.erase(pTask);
+    for (auto& [unusedPaneKey, paneState] : g_tasksPaneStates) {
+        (void)unusedPaneKey;
+        for (auto& group : paneState.groups) {
+            auto& tasks = group.tasks;
+            tasks.erase(
+                std::remove_if(tasks.begin(), tasks.end(),
+                    [pTask](const TasksPaneGroupState::TaskEntry& task) { return task.task == pTask; }),
+                tasks.end());
+        }
+    }
+}
+
+TasksPaneGroupState& EnsureTasksPaneGroup(TasksPaneState& state, int nGroup) {
+    if (nGroup < 0) {
+        state.groups.push_back({});
+        return state.groups.back();
+    }
+
+    const size_t groupIndex = static_cast<size_t>(nGroup);
+    if (groupIndex >= state.groups.size()) {
+        state.groups.resize(groupIndex + 1);
+    }
+    return state.groups[groupIndex];
+}
+
+void ExpandPropertyRecursive(CMFCPropertyGridProperty* pProp, BOOL bExpand) {
+    if (!pProp) return;
+    pProp->Expand(bExpand);
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pProp);
+    if (!state) return;
+    for (CMFCPropertyGridProperty* child : state->subItems) {
+        ExpandPropertyRecursive(child, bExpand);
+    }
+}
+
+} // namespace
+
 //=============================================================================
 // CMFCPropertyGridProperty
 //=============================================================================
@@ -1371,22 +1498,46 @@ CMFCPropertyGridProperty::CMFCPropertyGridProperty(const wchar_t* lpszName, cons
     if (lpszName) m_strName = lpszName;
     if (lpszDescr) m_strDescr = lpszDescr;
     memset(_propgridproperty_padding, 0, sizeof(_propgridproperty_padding));
+    EnsurePropertyGridPropertyState(this);
 }
-CMFCPropertyGridProperty::~CMFCPropertyGridProperty() {}
+CMFCPropertyGridProperty::~CMFCPropertyGridProperty() { RemovePropertyGridPropertyReferences(this); }
 
 const CString& CMFCPropertyGridProperty::GetName() const { return m_strName; }
 const COleVariant& CMFCPropertyGridProperty::GetValue() const { return m_varValue; }
-void CMFCPropertyGridProperty::SetValue(const COleVariant& varValue) { m_varValue = varValue; }
+void CMFCPropertyGridProperty::SetValue(const COleVariant& varValue) {
+    m_varValue = varValue;
+    m_bModified = TRUE;
+}
 BOOL CMFCPropertyGridProperty::IsModified() const { return m_bModified; }
 void CMFCPropertyGridProperty::SetModified(BOOL bModified) { m_bModified = bModified; }
 BOOL CMFCPropertyGridProperty::IsEnabled() const { return m_bEnabled; }
 void CMFCPropertyGridProperty::SetEnabled(BOOL bEnable) { m_bEnabled = bEnable; }
 BOOL CMFCPropertyGridProperty::IsVisible() const { return m_bVisible; }
 void CMFCPropertyGridProperty::Show(BOOL bShow) { m_bVisible = bShow; }
-int CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty*) { return 0; }
-int CMFCPropertyGridProperty::GetSubItemsCount() const { return 0; }
-CMFCPropertyGridProperty* CMFCPropertyGridProperty::GetSubItem(int) const { return nullptr; }
-void CMFCPropertyGridProperty::RemoveAllSubItems() {}
+void CMFCPropertyGridProperty::Show(BOOL bShow, BOOL bAdjustLayout) {
+    Show(bShow);
+    (void)bAdjustLayout;
+}
+int CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty* pProp) {
+    if (!pProp || pProp == this) return -1;
+    auto& subItems = EnsurePropertyGridPropertyState(this).subItems;
+    auto it = std::find(subItems.begin(), subItems.end(), pProp);
+    if (it != subItems.end()) return static_cast<int>(it - subItems.begin());
+    subItems.push_back(pProp);
+    return static_cast<int>(subItems.size() - 1);
+}
+int CMFCPropertyGridProperty::GetSubItemsCount() const {
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(this);
+    return state ? static_cast<int>(state->subItems.size()) : 0;
+}
+CMFCPropertyGridProperty* CMFCPropertyGridProperty::GetSubItem(int nIndex) const {
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->subItems.size())) return nullptr;
+    return state->subItems[static_cast<size_t>(nIndex)];
+}
+void CMFCPropertyGridProperty::RemoveAllSubItems() {
+    EnsurePropertyGridPropertyState(this).subItems.clear();
+}
 void CMFCPropertyGridProperty::Expand(BOOL bExpand) { m_bExpanded = bExpand; }
 BOOL CMFCPropertyGridProperty::IsExpanded() const { return m_bExpanded; }
 void CMFCPropertyGridProperty::SetData(DWORD_PTR dwData) { m_dwData = dwData; }
@@ -1399,28 +1550,70 @@ IMPLEMENT_DYNAMIC(CMFCPropertyGridCtrl, CWnd)
 
 CMFCPropertyGridCtrl::CMFCPropertyGridCtrl() {
     memset(_propgridctrl_padding, 0, sizeof(_propgridctrl_padding));
+    EnsurePropertyGridCtrlState(this);
 }
-CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() {}
+CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() { g_propertyGridCtrlStates.erase(this); }
 
-BOOL CMFCPropertyGridCtrl::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
-int CMFCPropertyGridCtrl::AddProperty(CMFCPropertyGridProperty*, int, int) { return 0; }
-int CMFCPropertyGridCtrl::GetPropertyCount() const { return 0; }
-CMFCPropertyGridProperty* CMFCPropertyGridCtrl::GetProperty(int) const { return nullptr; }
-void CMFCPropertyGridCtrl::RemoveAll() {}
-void CMFCPropertyGridCtrl::ExpandAll(BOOL) {}
-void CMFCPropertyGridCtrl::AdjustLayout() {}
-void CMFCPropertyGridCtrl::SetDescriptionRows(int) {}
+BOOL CMFCPropertyGridCtrl::Create(DWORD, const RECT&, CWnd*, UINT) {
+    EnsurePropertyGridCtrlState(this);
+    return TRUE;
+}
+int CMFCPropertyGridCtrl::AddProperty(CMFCPropertyGridProperty* pProp, int nPos, int bRedraw) {
+    if (!pProp) return -1;
+    (void)bRedraw;
+
+    auto& properties = EnsurePropertyGridCtrlState(this).properties;
+    properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
+
+    if (nPos < 0 || nPos > static_cast<int>(properties.size())) {
+        properties.push_back(pProp);
+        return static_cast<int>(properties.size() - 1);
+    }
+
+    auto it = properties.begin() + nPos;
+    properties.insert(it, pProp);
+    return nPos;
+}
+int CMFCPropertyGridCtrl::GetPropertyCount() const {
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(this);
+    return state ? static_cast<int>(state->properties.size()) : 0;
+}
+CMFCPropertyGridProperty* CMFCPropertyGridCtrl::GetProperty(int nIndex) const {
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->properties.size())) return nullptr;
+    return state->properties[static_cast<size_t>(nIndex)];
+}
+void CMFCPropertyGridCtrl::RemoveAll() {
+    EnsurePropertyGridCtrlState(this).properties.clear();
+}
+void CMFCPropertyGridCtrl::ExpandAll(BOOL bExpand) {
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(this);
+    if (!state) return;
+    for (CMFCPropertyGridProperty* pProp : state->properties) {
+        ExpandPropertyRecursive(pProp, bExpand);
+    }
+}
+void CMFCPropertyGridCtrl::AdjustLayout() {
+    ++EnsurePropertyGridCtrlState(this).layoutRevision;
+}
+void CMFCPropertyGridCtrl::SetDescriptionRows(int nRows) {
+    EnsurePropertyGridCtrlState(this).descriptionRows = (nRows < 0) ? 0 : nRows;
+}
 
 //=============================================================================
 // CMFCTasksPaneTask
 //=============================================================================
 IMPLEMENT_DYNAMIC(CMFCTasksPaneTask, CObject)
 
-CMFCTasksPaneTask::CMFCTasksPaneTask(UINT nID, const wchar_t*, int, BOOL) {
-    (void)nID;
+CMFCTasksPaneTask::CMFCTasksPaneTask(UINT nID, const wchar_t* lpszLabel, int nIcon, BOOL bIsSeparator) {
     memset(_taskspanetask_padding, 0, sizeof(_taskspanetask_padding));
+    auto& state = EnsureTasksPaneTaskState(this);
+    state.id = nID;
+    state.label = lpszLabel ? lpszLabel : L"";
+    state.icon = nIcon;
+    state.isSeparator = bIsSeparator ? TRUE : FALSE;
 }
-CMFCTasksPaneTask::~CMFCTasksPaneTask() {}
+CMFCTasksPaneTask::~CMFCTasksPaneTask() { RemoveTaskFromAllGroups(this); }
 
 //=============================================================================
 // CMFCTasksPane
@@ -1429,17 +1622,97 @@ IMPLEMENT_DYNAMIC(CMFCTasksPane, CBasePane)
 
 CMFCTasksPane::CMFCTasksPane() {
     memset(_taskspane_padding, 0, sizeof(_taskspane_padding));
+    EnsureTasksPaneState(this);
 }
-CMFCTasksPane::~CMFCTasksPane() {}
+CMFCTasksPane::~CMFCTasksPane() { g_tasksPaneStates.erase(this); }
 
-BOOL CMFCTasksPane::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
-int CMFCTasksPane::AddTask(int, const wchar_t*, int, unsigned int, unsigned __int64) { return 0; }
+BOOL CMFCTasksPane::Create(DWORD, const RECT&, CWnd*, UINT) {
+    EnsureTasksPaneState(this);
+    return TRUE;
+}
+int CMFCTasksPane::AddTask(int nGroup, const wchar_t* lpszName, int nIcon, unsigned int uiCmdID, unsigned __int64 dwUserData) {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    TasksPaneGroupState& group = EnsureTasksPaneGroup(state, nGroup);
+
+    TasksPaneGroupState::TaskEntry task;
+    task.label = lpszName ? lpszName : L"";
+    task.icon = nIcon;
+    task.commandID = uiCmdID;
+    task.userData = dwUserData;
+    group.tasks.push_back(std::move(task));
+    return static_cast<int>(group.tasks.size() - 1);
+}
 // Old convenience overloads (non-MSDN API)
-void CMFCTasksPane::AddTask(int, CMFCTasksPaneTask*) {}
-void CMFCTasksPane::RemoveAllTasks() {}
-void CMFCTasksPane::SetCaption(int, const wchar_t*) {}
-BOOL CMFCTasksPane::SetGroupName(int, const wchar_t*) { return TRUE; }
-int CMFCTasksPane::AddGroup(const wchar_t*, BOOL, BOOL, int) { return 0; }
+void CMFCTasksPane::AddTask(int nGroup, CMFCTasksPaneTask* pTask) {
+    if (!pTask) return;
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    TasksPaneGroupState& group = EnsureTasksPaneGroup(state, nGroup);
+    auto it = std::find_if(group.tasks.begin(), group.tasks.end(),
+        [pTask](const TasksPaneGroupState::TaskEntry& task) { return task.task == pTask; });
+    if (it == group.tasks.end()) {
+        TasksPaneGroupState::TaskEntry task;
+        task.task = pTask;
+        group.tasks.push_back(std::move(task));
+    }
+}
+void CMFCTasksPane::RemoveAllTasks() {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    for (auto& group : state.groups) {
+        group.tasks.clear();
+    }
+}
+void CMFCTasksPane::RemoveAllTasks(int nGroup) {
+    if (nGroup < 0) {
+        RemoveAllTasks();
+        return;
+    }
+
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    if (nGroup >= static_cast<int>(state.groups.size())) return;
+    state.groups[static_cast<size_t>(nGroup)].tasks.clear();
+}
+void CMFCTasksPane::SetCaption(int nGroup, const wchar_t* lpszCaption) {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    if (nGroup < 0) {
+        state.caption = lpszCaption ? lpszCaption : L"";
+        return;
+    }
+    if (nGroup >= static_cast<int>(state.groups.size())) return;
+    state.groups[static_cast<size_t>(nGroup)].name = lpszCaption ? lpszCaption : L"";
+}
+void CMFCTasksPane::SetCaption(const wchar_t* lpszCaption) { SetCaption(-1, lpszCaption); }
+BOOL CMFCTasksPane::SetGroupName(int nGroup, const wchar_t* lpszName) {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    if (nGroup < 0 || nGroup >= static_cast<int>(state.groups.size())) return FALSE;
+    state.groups[static_cast<size_t>(nGroup)].name = lpszName ? lpszName : L"";
+    return TRUE;
+}
+int CMFCTasksPane::AddGroup(const wchar_t* lpszName, BOOL bBottomHasGripper, BOOL bSpecial, int nIcon) {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    TasksPaneGroupState group;
+    group.name = lpszName ? lpszName : L"";
+    group.hasGripper = bBottomHasGripper ? TRUE : FALSE;
+    group.isSpecial = bSpecial ? TRUE : FALSE;
+    group.icon = nIcon;
+    state.groups.push_back(std::move(group));
+    return static_cast<int>(state.groups.size() - 1);
+}
+int CMFCTasksPane::AddGroup(int nGroup, const wchar_t* lpszName, BOOL bBottomHasGripper, BOOL bSpecial, HICON hIcon) {
+    TasksPaneState& state = EnsureTasksPaneState(this);
+    TasksPaneGroupState group;
+    group.name = lpszName ? lpszName : L"";
+    group.hasGripper = bBottomHasGripper ? TRUE : FALSE;
+    group.isSpecial = bSpecial ? TRUE : FALSE;
+    group.hIcon = hIcon;
+
+    if (nGroup >= 0 && nGroup <= static_cast<int>(state.groups.size())) {
+        state.groups.insert(state.groups.begin() + nGroup, std::move(group));
+        return nGroup;
+    }
+
+    state.groups.push_back(std::move(group));
+    return static_cast<int>(state.groups.size() - 1);
+}
 
 //=============================================================================
 // CPaneFrameWnd

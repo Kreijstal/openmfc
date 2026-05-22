@@ -694,6 +694,7 @@ public:
     void SetEnabled(BOOL bEnable = TRUE);
     BOOL IsVisible() const;
     void Show(BOOL bShow = TRUE);
+    void Show(BOOL bShow, BOOL bAdjustLayout);
     int AddSubItem(CMFCPropertyGridProperty* pProp);
     int GetSubItemsCount() const;
     CMFCPropertyGridProperty* GetSubItem(int nIndex) const;
@@ -763,9 +764,12 @@ public:
     int AddTask(int nGroup, const wchar_t* lpszName, int nIcon = -1, unsigned int uiCmdID = 0, unsigned __int64 dwUserData = 0);
     void AddTask(int nGroup, CMFCTasksPaneTask* pTask);
     void RemoveAllTasks();
+    void RemoveAllTasks(int nGroup);
     void SetCaption(int nGroup, const wchar_t* lpszCaption);
+    void SetCaption(const wchar_t* lpszCaption);
     BOOL SetGroupName(int nGroup, const wchar_t* lpszName);
     int AddGroup(const wchar_t* lpszName, BOOL bBottomHasGripper = FALSE, BOOL bSpecial = FALSE, int nIcon = -1);
+    int AddGroup(int nGroup, const wchar_t* lpszName, BOOL bBottomHasGripper = FALSE, BOOL bSpecial = FALSE, HICON hIcon = nullptr);
 
 protected:
     char _taskspane_padding[128];
