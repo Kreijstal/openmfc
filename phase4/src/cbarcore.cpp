@@ -109,6 +109,18 @@ inline void BuildCSizeResult(void* pRet, int cx, int cy) {
     new(pRet) CSize(cx, cy);
 }
 
+inline COLORREF SystemColor(int index) {
+    return ::GetSysColor(index);
+}
+
+inline COLORREF FeaturePackBackgroundColor() {
+    CMFCVisualManager* manager = CMFCVisualManager::GetInstance();
+    if (manager != nullptr) {
+        return manager->GetHighlightedColor(COLOR_3DFACE);
+    }
+    return SystemColor(COLOR_3DFACE);
+}
+
 } // namespace
 
 extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
@@ -1395,14 +1407,29 @@ extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonButton__UEAA_AVCSize_
 extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
 
 // Symbol: ?OnDraw@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
+        manager->OnDrawRibbonDefaultPaneButton(pDC, pThis);
+    }
+}
 
 // Symbol: ?OnDrawBorder@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDrawBorder_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDrawBorder_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
+        manager->OnDrawRibbonButtonBorder(pDC, pThis);
+    }
+}
 
 // Symbol: ?OnFillBackground@CMFCRibbonButton@@UEAAKPEAVCDC@@@Z
 extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonButton__UEAAKPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {
-    return 0;
+    const COLORREF color = FeaturePackBackgroundColor();
+    return color;
 }
 
 // Symbol: ?GetRegularSize@CMFCRibbonGallery@@UEAA?AVCSize@@PEAVCDC@@@Z
@@ -1416,7 +1443,12 @@ extern "C" void MS_ABI impl__GetCompactSize_CMFCRibbonGallery__UEAA_AVCSize__PEA
 }
 
 // Symbol: ?OnDraw@CMFCRibbonGallery@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibbonGallery* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonGallery__UEAAXPEAVCDC___Z(CMFCRibbonGallery* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    (void)CMFCVisualManager::GetInstance();
+}
 
 // Symbol: ?OnEnable@CMFCRibbonGallery@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonGallery__UEAAXH_Z(CMFCRibbonGallery* pThis, int bEnable) {
@@ -1447,7 +1479,12 @@ extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonEdit__UEAA_AVCSize__P
 }
 
 // Symbol: ?OnDraw@CMFCRibbonEdit@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonEdit* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonEdit__UEAAXPEAVCDC___Z(CMFCRibbonEdit* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    (void)CMFCVisualManager::GetInstance();
+}
 
 // Symbol: ?OnEnable@CMFCRibbonEdit@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnEnable_CMFCRibbonEdit__UEAAXH_Z(CMFCRibbonEdit* pThis, int bEnable) {
@@ -1461,7 +1498,12 @@ extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonSlider__UEAA_AVCSize__PEAV
 }
 
 // Symbol: ?OnDraw@CMFCRibbonSlider@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonSlider__UEAAXPEAVCDC___Z(CMFCRibbonSlider* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonSlider__UEAAXPEAVCDC___Z(CMFCRibbonSlider* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    (void)CMFCVisualManager::GetInstance();
+}
 
 // Symbol: ?SetRange@CMFCRibbonSlider@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetRange_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nMin, int nMax) {
@@ -1496,7 +1538,12 @@ extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonProgressBar__UEAA_AVCSize_
 }
 
 // Symbol: ?OnDraw@CMFCRibbonProgressBar@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonProgressBar__UEAAXPEAVCDC___Z(CMFCRibbonProgressBar* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonProgressBar__UEAAXPEAVCDC___Z(CMFCRibbonProgressBar* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    (void)CMFCVisualManager::GetInstance();
+}
 
 // Symbol: ?SetRange@CMFCRibbonProgressBar@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetRange_CMFCRibbonProgressBar__QEAAXHH_Z(CMFCRibbonProgressBar* pThis, int nMin, int nMax) {
@@ -1528,11 +1575,19 @@ extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonStatusBarPane__MEAA_A
 extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {}
 
 // Symbol: ?OnDraw@CMFCRibbonStatusBarPane@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* pThis, CDC* pDC) {
+    if (pThis == nullptr || pDC == nullptr) {
+        return;
+    }
+    if (CMFCVisualManager* manager = CMFCVisualManager::GetInstance(); manager != nullptr) {
+        manager->OnDrawRibbonStatusBarPane(pDC, nullptr, pThis);
+    }
+}
 
 // Symbol: ?OnFillBackground@CMFCRibbonStatusBarPane@@UEAAKPEAVCDC@@@Z
 extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonStatusBarPane__UEAAKPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {
-    return 0;
+    const COLORREF color = SystemColor(COLOR_BTNFACE);
+    return color;
 }
 
 // Symbol: ?GetToolTipText@CMFCRibbonStatusBarPane@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -2001,6 +2056,7 @@ class CFrameImpl;
 struct FrameImplState {
     CFrameWnd* ownerFrame = nullptr;
     void* menuBar = nullptr;
+    CRuntimeClass* visualManagerClass = nullptr;
 };
 
 std::mutex g_featurePackStateMutex;
@@ -2025,7 +2081,8 @@ extern "C" void* MS_ABI impl___0CFrameImpl__QEAA_PEAVCFrameWnd___Z(void* pThis, 
     }
     auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
     std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
-    g_frameImplStates.insert_or_assign(frameImpl, FrameImplState{pFrame, nullptr});
+    CMFCVisualManager* manager = CMFCVisualManager::GetInstance();
+    g_frameImplStates.insert_or_assign(frameImpl, FrameImplState{pFrame, nullptr, manager != nullptr ? manager->GetRuntimeClass() : nullptr});
     return pThis;
 }
 
@@ -2262,17 +2319,51 @@ extern "C" int MS_ABI impl__OnShowCustomizePane_CFrameImpl__IEAAHPEAVCMFCPopupMe
 
 // Symbol: ?OnCloseFrame@CFrameImpl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnCloseFrame_CFrameImpl__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (!pThis) {
+        return;
+    }
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    g_frameImplStates.erase(frameImpl);
 }
 
 // Symbol: ?OnLoadFrame@CFrameImpl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnLoadFrame_CFrameImpl__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (!pThis) {
+        return;
+    }
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    FrameImplState& state = g_frameImplStates[frameImpl];
+    CMFCVisualManager* manager = CMFCVisualManager::GetInstance();
+    state.visualManagerClass = manager != nullptr ? manager->GetRuntimeClass() : nullptr;
 }
 
 // Symbol: ?OnChangeVisualManager@CFrameImpl@@QEAAXXZ
 extern "C" void MS_ABI impl__OnChangeVisualManager_CFrameImpl__QEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (!pThis) {
+        return;
+    }
+
+    auto* frameImpl = reinterpret_cast<CFrameImpl*>(pThis);
+    CFrameWnd* ownerFrame = nullptr;
+    CWnd* menuBarWnd = nullptr;
+
+    {
+        std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+        FrameImplState& state = g_frameImplStates[frameImpl];
+        ownerFrame = state.ownerFrame;
+        menuBarWnd = reinterpret_cast<CWnd*>(state.menuBar);
+        CMFCVisualManager* manager = CMFCVisualManager::GetInstance();
+        state.visualManagerClass = manager != nullptr ? manager->GetRuntimeClass() : nullptr;
+    }
+
+    if (ownerFrame != nullptr && ownerFrame->GetSafeHwnd() != nullptr) {
+        ownerFrame->RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+    }
+    if (menuBarWnd != nullptr && menuBarWnd->GetSafeHwnd() != nullptr) {
+        menuBarWnd->RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+    }
 }
 
 // Symbol: ?SetMenuBar@CFrameImpl@@IEAAXPEAVCMFCMenuBar@@@Z

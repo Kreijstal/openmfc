@@ -416,6 +416,15 @@ void CMFCVisualManager::OnDrawTasksGroupCaption(CDC*, CMFCTasksPaneTaskGroup*, B
 void CMFCVisualManager::OnDrawTasksGroupAreaBorder(CDC*, CRect, BOOL, BOOL) {}
 void CMFCVisualManager::OnDrawTearOffCaption(CDC*, CRect, BOOL) {}
 void CMFCVisualManager::OnDrawToolBoxFrame(CDC*, const CRect&) {}
+COLORREF CMFCVisualManager::GetToolbarDisabledTextColor() {
+    return GetHighlightedColor(COLOR_GRAYTEXT);
+}
+COLORREF CMFCVisualManager::GetToolbarHighlightColor() {
+    return GetHighlightedColor(COLOR_HIGHLIGHT);
+}
+int CMFCVisualManager::GetShowAllMenuItemsHeight(CDC*, const CSize& sizeDefault) {
+    return sizeDefault.cy > 0 ? sizeDefault.cy : 16;
+}
 
 COLORREF CMFCVisualManager::GetHighlightedColor(UINT nColorIndex) const {
     COLORREF clr = ::GetSysColor(static_cast<int>(nColorIndex));
@@ -503,20 +512,20 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCVisualManagerWindows7
 
 // Symbol: ?GetToolbarDisabledTextColor@CMFCVisualManager@@UEAAKXZ
 extern "C" unsigned long MS_ABI impl__GetToolbarDisabledTextColor_CMFCVisualManager__UEAAKXZ(CMFCVisualManager* pThis) {
-    return pThis ? pThis->GetHighlightedColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_GRAYTEXT);
+    return pThis ? pThis->GetToolbarDisabledTextColor() : ::GetSysColor(COLOR_GRAYTEXT);
 }
 
 // Symbol: ?GetToolbarHighlightColor@CMFCVisualManager@@UEAAKXZ
 extern "C" unsigned long MS_ABI impl__GetToolbarHighlightColor_CMFCVisualManager__UEAAKXZ(CMFCVisualManager* pThis) {
-    return pThis ? pThis->GetHighlightedColor(COLOR_HIGHLIGHT) : ::GetSysColor(COLOR_HIGHLIGHT);
+    return pThis ? pThis->GetToolbarHighlightColor() : ::GetSysColor(COLOR_HIGHLIGHT);
 }
 
 // Symbol: ?GetShowAllMenuItemsHeight@CMFCVisualManager@@UEAAHPEAVCDC@@AEBVCSize@@@Z
 extern "C" int MS_ABI impl__GetShowAllMenuItemsHeight_CMFCVisualManager__UEAAHPEAVCDC__AEBVCSize___Z(
     CMFCVisualManager* pThis, CDC* pDC, const CSize* pSize) {
-    (void)pThis;
-    (void)pDC;
-    return (pSize != nullptr && pSize->cy > 0) ? pSize->cy : 16;
+    static const CSize defaultSize(0, 16);
+    const CSize& size = pSize != nullptr ? *pSize : defaultSize;
+    return pThis ? pThis->GetShowAllMenuItemsHeight(pDC, size) : (size.cy > 0 ? size.cy : 16);
 }
 
 // Symbol: ?OnDrawButtonBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z

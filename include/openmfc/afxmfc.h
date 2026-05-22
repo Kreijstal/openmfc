@@ -114,6 +114,10 @@ public:
 
     static CMFCVisualManager* GetInstance();
     static void SetDefaultManager(CRuntimeClass* pRTI);
+    static void AdjustFrames();
+    static void AdjustToolbars();
+    static CMFCVisualManager* CreateVisualManager(CRuntimeClass* pRTI);
+    static void DestroyInstance(int bAutoDestroy = TRUE);
 
     virtual void OnDrawMenuBorder(CDC* pDC, CMFCPopupMenu* pMenu, CRect rect);
     virtual void OnDrawMenuImage(CDC* pDC, const CRect& rect, const CRect& rectImage);
@@ -194,6 +198,9 @@ public:
     virtual void OnDrawTasksGroupAreaBorder(CDC* pDC, CRect rect, BOOL bSpecial, BOOL bNoTitle);
     virtual void OnDrawTearOffCaption(CDC* pDC, CRect rectCaption, BOOL bIsActive);
     virtual void OnDrawToolBoxFrame(CDC* pDC, const CRect& rect);
+    virtual COLORREF GetToolbarDisabledTextColor();
+    virtual COLORREF GetToolbarHighlightColor();
+    virtual int GetShowAllMenuItemsHeight(CDC* pDC, const CSize& sizeDefault);
 
     COLORREF GetHighlightedColor(UINT nColorIndex) const;
     static COLORREF GetThemeColor(COLORREF clrBase, int nIntensity);
