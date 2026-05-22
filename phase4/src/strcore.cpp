@@ -67,6 +67,13 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
     return CStringLoadStringImpl(pThis, GetResourceHandle(), nID);
 }
 
+// CString::LoadString(UINT nID) [x86 alias]
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHI@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QAAHI_Z(CString* pThis, UINT nID)
+{
+    return CStringLoadStringImpl(pThis, GetResourceHandle(), nID);
+}
+
 // CString::LoadString(HINSTANCE, UINT)
 // Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@I@Z
 extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
@@ -75,9 +82,25 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
     return CStringLoadStringImpl(pThis, hInst, nID);
 }
 
+// CString::LoadString(HINSTANCE, UINT) [x86 alias]
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHPAUHINSTANCE__@@I@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QAAHPAUHINSTANCE____I_Z(
+    CString* pThis, HINSTANCE hInst, UINT nID)
+{
+    return CStringLoadStringImpl(pThis, hInst, nID);
+}
+
 // CString::LoadString(HINSTANCE, UINT, LANGID)
 // Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@IG@Z
 extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____IG_Z(
+    CString* pThis, HINSTANCE hInst, UINT nID, unsigned short /*wLanguageID*/)
+{
+    return CStringLoadStringImpl(pThis, hInst, nID);
+}
+
+// CString::LoadString(HINSTANCE, UINT, LANGID) [x86 alias]
+// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QAAHPAUHINSTANCE__@@IG@Z
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QAAHPAUHINSTANCE____IG_Z(
     CString* pThis, HINSTANCE hInst, UINT nID, unsigned short /*wLanguageID*/)
 {
     return CStringLoadStringImpl(pThis, hInst, nID);
@@ -114,6 +137,15 @@ extern "C" int MS_ABI impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTrait
         rString->ReleaseBuffer(nLen);
     }
     return TRUE;
+}
+
+// AfxExtractSubString [x86 alias]
+// Symbol: ?AfxExtractSubString@@YAHAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WH_W@Z
+extern "C" int MS_ABI impl__AfxExtractSubString__YAHAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PB_WH_W_Z(
+    CString* rString, const wchar_t* lpszFullString, int iSubString, wchar_t chSep)
+{
+    return impl__AfxExtractSubString__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WH_W_Z(
+        rString, lpszFullString, iSubString, chSep);
 }
 
 // AfxFormatString1
@@ -155,6 +187,15 @@ extern "C" void MS_ABI impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMF
     }
 }
 
+// AfxFormatString1 [x86 alias]
+// Symbol: ?AfxFormatString1@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W@Z
+extern "C" void MS_ABI impl__AfxFormatString1__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPB_W_Z(
+    CString* rString, UINT nIDS, const wchar_t* lpsz1)
+{
+    impl__AfxFormatString1__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W_Z(
+        rString, nIDS, lpsz1);
+}
+
 // AfxFormatString2
 // Symbol: ?AfxFormatString2@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPEB_W1@Z
 extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W1_Z(
@@ -191,6 +232,15 @@ extern "C" void MS_ABI impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMF
     } else {
         rString->Empty();
     }
+}
+
+// AfxFormatString2 [x86 alias]
+// Symbol: ?AfxFormatString2@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPB_W1@Z
+extern "C" void MS_ABI impl__AfxFormatString2__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPB_W1_Z(
+    CString* rString, UINT nIDS, const wchar_t* lpsz1, const wchar_t* lpsz2)
+{
+    impl__AfxFormatString2__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEB_W1_Z(
+        rString, nIDS, lpsz1, lpsz2);
 }
 
 static void AfxFormatStringsCore(CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString)
@@ -234,12 +284,30 @@ extern "C" void MS_ABI impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMF
     AfxFormatStringsCore(rString, strFormat.GetString(), rglpsz, nString);
 }
 
+// AfxFormatStrings(CString&, UINT, const wchar_t* const*, int) [x86 alias]
+// Symbol: ?AfxFormatStrings@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IPBQB_WH@Z
+extern "C" void MS_ABI impl__AfxFormatStrings__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPBQB_WH_Z(
+    CString* rString, UINT nIDS, const wchar_t* const* rglpsz, int nString)
+{
+    impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEBQEB_WH_Z(
+        rString, nIDS, rglpsz, nString);
+}
+
 // AfxFormatStrings(CString&, const wchar_t*, const wchar_t* const*, int)
 // Symbol: ?AfxFormatStrings@@YAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_WPEBQEB_WH@Z
 extern "C" void MS_ABI impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WPEBQEB_WH_Z(
     CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString)
 {
     AfxFormatStringsCore(rString, lpszFormat, rglpsz, nString);
+}
+
+// AfxFormatStrings(CString&, const wchar_t*, const wchar_t* const*, int) [x86 alias]
+// Symbol: ?AfxFormatStrings@@YAXAAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PB_WPBQB_WH@Z
+extern "C" void MS_ABI impl__AfxFormatStrings__YAXAAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PB_WPBQB_WH_Z(
+    CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString)
+{
+    impl__AfxFormatStrings__YAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_WPEBQEB_WH_Z(
+        rString, lpszFormat, rglpsz, nString);
 }
 
 // AfxA2WHelper
@@ -259,6 +327,13 @@ extern "C" wchar_t* MS_ABI impl__AfxA2WHelper__YAPEA_WPEA_WPEBDH_Z(wchar_t* lpw,
     return lpw;
 }
 
+// AfxA2WHelper [x86 alias]
+// Symbol: ?AfxA2WHelper@@YAPA_WPA_WPBDH@Z
+extern "C" wchar_t* MS_ABI impl__AfxA2WHelper__YAPA_WPA_WPBDH_Z(wchar_t* lpw, const char* lpa, int nChars)
+{
+    return impl__AfxA2WHelper__YAPEA_WPEA_WPEBDH_Z(lpw, lpa, nChars);
+}
+
 // AfxW2AHelper
 // Symbol: ?AfxW2AHelper@@YAPEADPEADPEB_WH@Z
 extern "C" char* MS_ABI impl__AfxW2AHelper__YAPEADPEADPEB_WH_Z(char* lpa, const wchar_t* lpw, int nChars)
@@ -276,6 +351,13 @@ extern "C" char* MS_ABI impl__AfxW2AHelper__YAPEADPEADPEB_WH_Z(char* lpa, const 
     return lpa;
 }
 
+// AfxW2AHelper [x86 alias]
+// Symbol: ?AfxW2AHelper@@YAPADPADPB_WH@Z
+extern "C" char* MS_ABI impl__AfxW2AHelper__YAPADPADPB_WH_Z(char* lpa, const wchar_t* lpw, int nChars)
+{
+    return impl__AfxW2AHelper__YAPEADPEADPEB_WH_Z(lpa, lpw, nChars);
+}
+
 // AfxBSTR2CString
 // Symbol: ?AfxBSTR2CString@@YAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEA_W@Z
 extern "C" void MS_ABI impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
@@ -289,6 +371,15 @@ extern "C" void MS_ABI impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC
         return;
     }
     *pStr = bstr;
+}
+
+// AfxBSTR2CString [x86 alias]
+// Symbol: ?AfxBSTR2CString@@YAXPAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PA_W@Z
+extern "C" void MS_ABI impl__AfxBSTR2CString__YAXPAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PA_W_Z(
+    CString* pStr, wchar_t* bstr)
+{
+    impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
+        pStr, bstr);
 }
 
 static wchar_t NormalizePathChar(wchar_t ch)
@@ -322,6 +413,13 @@ extern "C" int MS_ABI impl__AfxComparePath__YAHPEB_W0_Z(const wchar_t* pszPath1,
 
     if (nLen1 == nLen2) return 0;
     return (nLen1 < nLen2) ? -1 : 1;
+}
+
+// AfxComparePath [x86 alias]
+// Symbol: ?AfxComparePath@@YAHPB_W0@Z
+extern "C" int MS_ABI impl__AfxComparePath__YAHPB_W0_Z(const wchar_t* pszPath1, const wchar_t* pszPath2)
+{
+    return impl__AfxComparePath__YAHPEB_W0_Z(pszPath1, pszPath2);
 }
 
 // AfxMessageBox (text)
