@@ -483,7 +483,7 @@ BOOL CToolBar::LoadToolBar(UINT nIDResource) {
 
     WORD* pButtonIDs = pData + 4;
 
-    for (int i = 0; i < wCount; i++) {
+    for (WORD i = 0; i < wCount; ++i) {
         TBBUTTON tb = {};
         tb.iBitmap = I_IMAGENONE;
         tb.idCommand = pButtonIDs[i];
@@ -500,13 +500,27 @@ BOOL CToolBar::LoadToolBar(UINT nIDResource) {
 
 BOOL CToolBar::LoadToolBar(const wchar_t* lpszResourceName) {
     if (!lpszResourceName) return FALSE;
-    // Try loading by name
     HRSRC hRsrc = ::FindResourceW(AfxGetInstanceHandle(), lpszResourceName, RT_TOOLBAR);
     if (!hRsrc) return FALSE;
     HGLOBAL hGlobal = ::LoadResource(AfxGetInstanceHandle(), hRsrc);
     if (!hGlobal) return FALSE;
     WORD* pData = (WORD*)::LockResource(hGlobal);
+    if (!pData) return FALSE;
+
     WORD wCount = pData[1];
+    WORD* pButtonIDs = pData + 4;
+
+    for (int i = 0; i < wCount; i++) {
+        TBBUTTON tb = {};
+        tb.iBitmap = I_IMAGENONE;
+        tb.idCommand = pButtonIDs[i];
+        tb.fsState = TBSTATE_ENABLED;
+        tb.fsStyle = (pButtonIDs[i] == 0) ? BTNS_SEP : BTNS_BUTTON;
+        tb.dwData = 0;
+        tb.iString = -1;
+        ::SendMessageW(m_hWnd, TB_ADDBUTTONSW, 1, (LPARAM)&tb);
+    }
+
     m_nCount = wCount;
     return TRUE;
 }
@@ -814,8 +828,10 @@ void CStatusBar::GetItemRect(int nIndex, LPRECT lpRect) const {
 
 BOOL CStatusBar::SetPaneText(int nIndex, const wchar_t* lpszNewText, BOOL bUpdate) {
     if (!m_hWnd || nIndex < 0 || nIndex >= m_nCount) return FALSE;
+    ::SendMessageW(m_hWnd, SB_SETTEXTW, nIndex, (LPARAM)(lpszNewText ? lpszNewText : L""));
     if (bUpdate) {
-        ::SendMessageW(m_hWnd, SB_SETTEXTW, nIndex | SBT_OWNERDRAW, (LPARAM)lpszNewText);
+        ::InvalidateRect(m_hWnd, nullptr, TRUE);
+        ::UpdateWindow(m_hWnd);
     }
     return TRUE;
 }
@@ -881,7 +897,7 @@ CToolTipCtrl* CStatusBar::GetToolTips() const {
 }
 
 void CStatusBar::EnableDocking(DWORD dwDockStyle) {
-    (void)dwDockStyle;
+    m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | (dwDockStyle & CBRS_ALIGN_ANY);
 }
 
 BOOL CStatusBar::IsSimple() const {
@@ -2808,10 +2824,29 @@ extern "C" void* MS_ABI impl__GetFirstPane_CPaneDivider__QEBAPEBVCBasePane__XZ(v
 }
 
 // Symbol: ?GetPaneDividers@CPaneDivider@@QEAAXAEAVCObList@@@Z
-extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
+    if (!pList) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    pList->RemoveAll();
+    const auto it = g_dividerPanes.find(pThis);
+    if (it != g_dividerPanes.end() && pThis != nullptr) {
+        pList->AddTail(reinterpret_cast<CObject*>(pThis));
+    }
+}
 
 // Symbol: ?GetPanes@CPaneDivider@@QEAAXAEAVCObList@@@Z
-extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void*, CObList*) {}
+extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
+    if (!pList) return;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    pList->RemoveAll();
+    const auto it = g_dividerPanes.find(pThis);
+    if (it == g_dividerPanes.end()) return;
+    for (void* pane : it->second.panes) {
+        if (pane != nullptr) {
+            pList->AddTail(reinterpret_cast<CObject*>(pane));
+        }
+    }
+}
 
 // Symbol: ?GetRootContainerRect@CPaneDivider@@QEAA?AVCRect@@XZ
 extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void*) {
@@ -2890,7 +2925,11 @@ BOOL CMFCToolBarButton::m_bUpdateImages = FALSE;
 
 // Symbol: ?SetClipboardFormatName@CMFCToolBarButton@@SAXPEB_W@Z
 void CMFCToolBarButton::SetClipboardFormatName(const wchar_t* lpszName) {
-    if (lpszName) m_strClipboardFormatName = lpszName;
+    if (lpszName && *lpszName) {
+        m_strClipboardFormatName = lpszName;
+    } else {
+        m_strClipboardFormatName.Empty();
+    }
 }
 
 extern "C" void MS_ABI impl__SetClipboardFormatName_CMFCToolBarButton__SAXPEB_W_Z(const wchar_t* p0) {
