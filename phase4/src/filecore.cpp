@@ -5,12 +5,19 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afx.h"
 #include <windows.h>
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
 #include <cerrno>
 #include <cstdint>
 #include <io.h>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -27,6 +34,1234 @@ extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
     const CRuntimeClass* pThis,
     CArchive* ar
 );
+
+namespace {
+
+std::mutex g_collectionStateMutex;
+
+template<typename Wrapper, typename State>
+using CollectionStateMap = std::unordered_map<const Wrapper*, State>;
+
+template<typename Wrapper, typename State>
+CollectionStateMap<Wrapper, State>& GetCollectionStates() {
+    static CollectionStateMap<Wrapper, State> states;
+    return states;
+}
+
+template<typename Wrapper, typename State, typename... Args>
+State& EnsureCollectionState(const Wrapper* self, Args&&... args) {
+    auto& states = GetCollectionStates<Wrapper, State>();
+    auto it = states.find(self);
+    if (it == states.end()) {
+        it = states.emplace(self, State(std::forward<Args>(args)...)).first;
+    }
+    return it->second;
+}
+
+template<typename Wrapper, typename State>
+State* FindCollectionState(const Wrapper* self) {
+    auto& states = GetCollectionStates<Wrapper, State>();
+    auto it = states.find(self);
+    return it == states.end() ? nullptr : &it->second;
+}
+
+template<typename Wrapper, typename State>
+void RemoveCollectionState(const Wrapper* self) {
+    GetCollectionStates<Wrapper, State>().erase(self);
+}
+
+template<typename TYPE, typename ARG_TYPE>
+struct ArrayWrapperState {
+    CArray<TYPE, ARG_TYPE> data;
+};
+
+template<typename TYPE, typename ARG_TYPE>
+struct ListWrapperState {
+    explicit ListWrapperState(int nBlockSize = 10) : data(nBlockSize) {}
+    CList<TYPE, ARG_TYPE> data;
+};
+
+template<typename KEY, typename ARG_KEY, typename VALUE, typename ARG_VALUE>
+struct MapWrapperState {
+    explicit MapWrapperState(int nBlockSize = 10) : data(nBlockSize) {}
+    CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> data;
+};
+
+template<typename VALUE, typename ARG_VALUE>
+struct CStringKeyMapState {
+    explicit CStringKeyMapState(int nBlockSize = 10) : data(nBlockSize) {}
+    CMap<CString, const CString&, VALUE, ARG_VALUE> data;
+    CString lookupKeyScratch;
+};
+
+static int ClampCollectionSize(INT_PTR value) {
+    if (value <= 0) return 0;
+    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    return static_cast<int>(value);
+}
+
+static int ClampCollectionGrow(INT_PTR value) {
+    if (value < -1) return -1;
+    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    return static_cast<int>(value);
+}
+
+static int ClampCollectionBlockSize(INT_PTR value) {
+    if (value <= 0) return 10;
+    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    return static_cast<int>(value);
+}
+
+static CString NormalizeStringKey(const wchar_t* key) {
+    return CString(key ? key : L"");
+}
+
+template<typename T>
+const T& CollectionConstRef(T& value) {
+    return value;
+}
+
+template<typename T>
+const T*& CollectionConstRef(T*& value) {
+    static thread_local const T* snapshot = nullptr;
+    snapshot = value;
+    return snapshot;
+}
+
+template<typename T>
+const T* CollectionConstData(T* data) {
+    return data;
+}
+
+template<typename T>
+const T** CollectionConstData(T** data) {
+    return (const T**)data;
+}
+
+static UINT HashCStringKey(const CString& key) {
+    UINT hash = 0;
+    const wchar_t* p = static_cast<const wchar_t*>(key);
+    while (*p) {
+        hash = (hash << 5) + hash + static_cast<UINT>(*p++);
+    }
+    return hash;
+}
+
+struct CStringMapStringState {
+    explicit CStringMapStringState(int nBlockSize = 10) : data(nBlockSize) {}
+
+    void MarkDirty() { pairsDirty = true; }
+
+    void EnsurePairs() {
+        if (!pairsDirty) {
+            return;
+        }
+        pairs.clear();
+        CMapStringToString::CPair* previous = nullptr;
+        auto pos = data.GetStartPosition();
+        while (pos != CMapStringToString::POSITION(nullptr, 0)) {
+            CString key;
+            CString value;
+            data.GetNextAssoc(pos, key, value);
+            auto pair = std::make_unique<CMapStringToString::CPair>();
+            pair->pNextAssoc = nullptr;
+            pair->nHashValue = HashCStringKey(key);
+            pair->key = key;
+            pair->value = value;
+            CMapStringToString::CPair* raw = pair.get();
+            if (previous) {
+                previous->pNextAssoc = raw;
+            }
+            pairs.push_back(std::move(pair));
+            previous = raw;
+        }
+        pairsDirty = false;
+    }
+
+    CMapStringToString::CPair* PLookup(const wchar_t* key) {
+        EnsurePairs();
+        CString lookup = NormalizeStringKey(key);
+        for (const auto& pair : pairs) {
+            if (pair->key == lookup) {
+                return pair.get();
+            }
+        }
+        return nullptr;
+    }
+
+    const CMapStringToString::CPair* PLookup(const wchar_t* key) const {
+        return const_cast<CStringMapStringState*>(this)->PLookup(key);
+    }
+
+    CMap<CString, const CString&, CString, const CString&> data;
+    CString lookupKeyScratch;
+    std::vector<std::unique_ptr<CMapStringToString::CPair>> pairs;
+    bool pairsDirty = true;
+};
+
+template<typename Wrapper, typename TYPE, typename ARG_TYPE>
+static CArray<TYPE, ARG_TYPE>& EnsureArrayStorage(const Wrapper* self) {
+    return EnsureCollectionState<Wrapper, ArrayWrapperState<TYPE, ARG_TYPE>>(self).data;
+}
+
+template<typename Wrapper, typename TYPE, typename ARG_TYPE>
+static const CArray<TYPE, ARG_TYPE>* FindArrayStorage(const Wrapper* self) {
+    const auto* state = FindCollectionState<Wrapper, ArrayWrapperState<TYPE, ARG_TYPE>>(self);
+    return state ? &state->data : nullptr;
+}
+
+template<typename Wrapper, typename TYPE, typename ARG_TYPE>
+static CList<TYPE, ARG_TYPE>& EnsureListStorage(const Wrapper* self, int nBlockSize = 10) {
+    return EnsureCollectionState<Wrapper, ListWrapperState<TYPE, ARG_TYPE>>(self, ClampCollectionBlockSize(nBlockSize)).data;
+}
+
+template<typename Wrapper, typename TYPE, typename ARG_TYPE>
+static const CList<TYPE, ARG_TYPE>* FindListStorage(const Wrapper* self) {
+    const auto* state = FindCollectionState<Wrapper, ListWrapperState<TYPE, ARG_TYPE>>(self);
+    return state ? &state->data : nullptr;
+}
+
+template<typename Wrapper, typename KEY, typename ARG_KEY, typename VALUE, typename ARG_VALUE>
+static CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& EnsureMapStorage(const Wrapper* self, int nBlockSize = 10) {
+    return EnsureCollectionState<Wrapper, MapWrapperState<KEY, ARG_KEY, VALUE, ARG_VALUE>>(self, ClampCollectionBlockSize(nBlockSize)).data;
+}
+
+template<typename Wrapper, typename KEY, typename ARG_KEY, typename VALUE, typename ARG_VALUE>
+static const CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>* FindMapStorage(const Wrapper* self) {
+    const auto* state = FindCollectionState<Wrapper, MapWrapperState<KEY, ARG_KEY, VALUE, ARG_VALUE>>(self);
+    return state ? &state->data : nullptr;
+}
+
+template<typename Wrapper, typename VALUE, typename ARG_VALUE>
+static CStringKeyMapState<VALUE, ARG_VALUE>& EnsureCStringKeyMapStorage(const Wrapper* self, int nBlockSize = 10) {
+    return EnsureCollectionState<Wrapper, CStringKeyMapState<VALUE, ARG_VALUE>>(self, ClampCollectionBlockSize(nBlockSize));
+}
+
+template<typename Wrapper, typename VALUE, typename ARG_VALUE>
+static const CStringKeyMapState<VALUE, ARG_VALUE>* FindCStringKeyMapStorage(const Wrapper* self) {
+    return FindCollectionState<Wrapper, CStringKeyMapState<VALUE, ARG_VALUE>>(self);
+}
+
+static CStringMapStringState& EnsureCStringMapStringStorage(const CMapStringToString* self, int nBlockSize = 10) {
+    return EnsureCollectionState<CMapStringToString, CStringMapStringState>(self, ClampCollectionBlockSize(nBlockSize));
+}
+
+static const CStringMapStringState* FindCStringMapStringStorage(const CMapStringToString* self) {
+    return FindCollectionState<CMapStringToString, CStringMapStringState>(self);
+}
+
+template<typename KEY, typename VALUE>
+struct AssocSnapshot {
+    AssocSnapshot* pNext = nullptr;
+    UINT nHashValue = 0;
+    KEY key{};
+    VALUE value{};
+};
+
+template<typename VALUE>
+struct ListNodeSnapshot {
+    ListNodeSnapshot* pNext = nullptr;
+    ListNodeSnapshot* pPrev = nullptr;
+    VALUE data{};
+};
+
+} // namespace
+
+IMPLEMENT_DYNAMIC(CUIntArray, CObject)
+IMPLEMENT_SERIAL(CDWordArray, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CObArray, CObject, 0xFFFF)
+IMPLEMENT_DYNAMIC(CPtrArray, CObject)
+IMPLEMENT_SERIAL(CByteArray, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CStringArray, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CStringList, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CObList, CObject, 0xFFFF)
+IMPLEMENT_DYNAMIC(CMapPtrToPtr, CObject)
+IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
+IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0xFFFF)
+IMPLEMENT_DYNAMIC(CMapStringToPtr, CObject)
+IMPLEMENT_SERIAL(CMapStringToString, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CMapWordToOb, CObject, 0xFFFF)
+IMPLEMENT_DYNAMIC(CMapWordToPtr, CObject)
+
+#define OPENMFC_DEFINE_ARRAY_METHODS(class_name, element_type, arg_type) \
+class_name::class_name() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureCollectionState<class_name, ArrayWrapperState<element_type, arg_type>>(this); \
+} \
+ \
+class_name::~class_name() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    RemoveCollectionState<class_name, ArrayWrapperState<element_type, arg_type>>(this); \
+} \
+ \
+INT_PTR class_name::GetSize() const { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    const auto* data = FindArrayStorage<class_name, element_type, arg_type>(this); \
+    return data ? data->GetSize() : 0; \
+} \
+ \
+INT_PTR class_name::GetCount() const { \
+    return GetSize(); \
+} \
+ \
+BOOL class_name::IsEmpty() const { \
+    return GetSize() == 0; \
+} \
+ \
+INT_PTR class_name::GetUpperBound() const { \
+    return GetSize() - 1; \
+} \
+ \
+void class_name::SetSize(INT_PTR nNewSize, INT_PTR nGrowBy) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).SetSize(ClampCollectionSize(nNewSize), ClampCollectionGrow(nGrowBy)); \
+} \
+ \
+void class_name::FreeExtra() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).FreeExtra(); \
+} \
+ \
+void class_name::RemoveAll() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).RemoveAll(); \
+} \
+ \
+element_type class_name::GetAt(INT_PTR nIndex) const { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    const auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
+    return data.GetAt(ClampCollectionSize(nIndex)); \
+} \
+ \
+void class_name::SetAt(INT_PTR nIndex, arg_type newElement) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).SetAt(ClampCollectionSize(nIndex), newElement); \
+} \
+ \
+element_type& class_name::ElementAt(INT_PTR nIndex) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    return EnsureArrayStorage<class_name, element_type, arg_type>(this).ElementAt(ClampCollectionSize(nIndex)); \
+} \
+ \
+const element_type& class_name::ElementAt(INT_PTR nIndex) const { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    return CollectionConstRef(EnsureArrayStorage<class_name, element_type, arg_type>(this).ElementAt(ClampCollectionSize(nIndex))); \
+} \
+ \
+element_type class_name::operator[](INT_PTR nIndex) const { \
+    return GetAt(nIndex); \
+} \
+ \
+element_type& class_name::operator[](INT_PTR nIndex) { \
+    return ElementAt(nIndex); \
+} \
+ \
+element_type* class_name::GetData() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    return EnsureArrayStorage<class_name, element_type, arg_type>(this).GetData(); \
+} \
+ \
+const element_type* class_name::GetData() const { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    return CollectionConstData(EnsureArrayStorage<class_name, element_type, arg_type>(this).GetData()); \
+} \
+ \
+void class_name::SetAtGrow(INT_PTR nIndex, arg_type newElement) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).SetAtGrow(ClampCollectionSize(nIndex), newElement); \
+} \
+ \
+INT_PTR class_name::Add(arg_type newElement) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    return EnsureArrayStorage<class_name, element_type, arg_type>(this).Add(newElement); \
+} \
+ \
+INT_PTR class_name::Append(const class_name& src) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
+    const auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(&src); \
+    return data.Append(srcData); \
+} \
+ \
+void class_name::Copy(const class_name& src) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
+    const auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(&src); \
+    data.Copy(srcData); \
+} \
+ \
+void class_name::InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).InsertAt(ClampCollectionSize(nIndex), newElement, ClampCollectionSize(nCount)); \
+} \
+ \
+void class_name::RemoveAt(INT_PTR nIndex, INT_PTR nCount) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureArrayStorage<class_name, element_type, arg_type>(this).RemoveAt(ClampCollectionSize(nIndex), ClampCollectionSize(nCount)); \
+} \
+ \
+void class_name::InsertAt(INT_PTR nStartIndex, class_name* pNewArray) { \
+    if (!pNewArray) return; \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
+    auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(pNewArray); \
+    data.InsertAt(ClampCollectionSize(nStartIndex), &srcData); \
+} \
+ \
+void class_name::Serialize(CArchive& ar) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
+    if (ar.IsStoring()) ar << data; else ar >> data; \
+}
+
+OPENMFC_DEFINE_ARRAY_METHODS(CUIntArray, unsigned int, unsigned int)
+OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)
+OPENMFC_DEFINE_ARRAY_METHODS(CObArray, CObject*, CObject*)
+OPENMFC_DEFINE_ARRAY_METHODS(CPtrArray, void*, void*)
+OPENMFC_DEFINE_ARRAY_METHODS(CByteArray, BYTE, BYTE)
+
+CStringArray::CStringArray() {
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    EnsureCollectionState<CStringArray, ArrayWrapperState<CString, const CString&>>(this);
+}
+
+CStringArray::~CStringArray() {
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    RemoveCollectionState<CStringArray, ArrayWrapperState<CString, const CString&>>(this);
+}
+
+INT_PTR CStringArray::GetSize() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindArrayStorage<CStringArray, CString, const CString&>(this); return data ? data->GetSize() : 0; }
+INT_PTR CStringArray::GetCount() const { return GetSize(); }
+BOOL CStringArray::IsEmpty() const { return GetSize() == 0; }
+INT_PTR CStringArray::GetUpperBound() const { return GetSize() - 1; }
+void CStringArray::SetSize(INT_PTR nNewSize, INT_PTR nGrowBy) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).SetSize(ClampCollectionSize(nNewSize), ClampCollectionGrow(nGrowBy)); }
+void CStringArray::FreeExtra() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).FreeExtra(); }
+void CStringArray::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).RemoveAll(); }
+CString CStringArray::GetAt(INT_PTR nIndex) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).GetAt(ClampCollectionSize(nIndex)); }
+void CStringArray::SetAt(INT_PTR nIndex, const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).SetAt(ClampCollectionSize(nIndex), newElement); }
+CString& CStringArray::ElementAt(INT_PTR nIndex) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).ElementAt(ClampCollectionSize(nIndex)); }
+const CString& CStringArray::ElementAt(INT_PTR nIndex) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).ElementAt(ClampCollectionSize(nIndex)); }
+CString CStringArray::operator[](INT_PTR nIndex) const { return GetAt(nIndex); }
+CString& CStringArray::operator[](INT_PTR nIndex) { return ElementAt(nIndex); }
+CString* CStringArray::GetData() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).GetData(); }
+const CString* CStringArray::GetData() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).GetData(); }
+void CStringArray::SetAtGrow(INT_PTR nIndex, const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).SetAtGrow(ClampCollectionSize(nIndex), newElement); }
+void CStringArray::SetAtGrow(INT_PTR nIndex, const wchar_t* newElement) { SetAtGrow(nIndex, NormalizeStringKey(newElement)); }
+INT_PTR CStringArray::Add(const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureArrayStorage<CStringArray, CString, const CString&>(this).Add(newElement); }
+INT_PTR CStringArray::Append(const CStringArray& src) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureArrayStorage<CStringArray, CString, const CString&>(this); const auto& srcData = EnsureArrayStorage<CStringArray, CString, const CString&>(&src); return data.Append(srcData); }
+void CStringArray::Copy(const CStringArray& src) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureArrayStorage<CStringArray, CString, const CString&>(this); const auto& srcData = EnsureArrayStorage<CStringArray, CString, const CString&>(&src); data.Copy(srcData); }
+void CStringArray::InsertAt(INT_PTR nIndex, const CString& newElement, INT_PTR nCount) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).InsertAt(ClampCollectionSize(nIndex), newElement, ClampCollectionSize(nCount)); }
+void CStringArray::InsertAt(INT_PTR nIndex, const wchar_t* newElement, INT_PTR nCount) { InsertAt(nIndex, NormalizeStringKey(newElement), nCount); }
+void CStringArray::RemoveAt(INT_PTR nIndex, INT_PTR nCount) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).RemoveAt(ClampCollectionSize(nIndex), ClampCollectionSize(nCount)); }
+void CStringArray::InsertAt(INT_PTR nStartIndex, CStringArray* pNewArray) { if (!pNewArray) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureArrayStorage<CStringArray, CString, const CString&>(this); auto& srcData = EnsureArrayStorage<CStringArray, CString, const CString&>(pNewArray); data.InsertAt(ClampCollectionSize(nStartIndex), &srcData); }
+void CStringArray::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureArrayStorage<CStringArray, CString, const CString&>(this); if (ar.IsStoring()) ar << data; else ar >> data; }
+void CStringArray::InsertEmpty(INT_PTR nIndex, INT_PTR nCount) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureArrayStorage<CStringArray, CString, const CString&>(this).InsertAt(ClampCollectionSize(nIndex), CString(), ClampCollectionSize(nCount)); }
+
+#define OPENMFC_DEFINE_LIST_METHODS(class_name, element_type, arg_type) \
+class_name::class_name(INT_PTR nBlockSize) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureCollectionState<class_name, ListWrapperState<element_type, arg_type>>(this, ClampCollectionBlockSize(nBlockSize)); \
+} \
+ \
+class_name::~class_name() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    RemoveCollectionState<class_name, ListWrapperState<element_type, arg_type>>(this); \
+} \
+ \
+INT_PTR class_name::GetCount() const { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    const auto* data = FindListStorage<class_name, element_type, arg_type>(this); \
+    return data ? data->GetCount() : 0; \
+} \
+ \
+BOOL class_name::IsEmpty() const { return GetCount() == 0; } \
+element_type& class_name::GetHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetHead(); } \
+element_type class_name::GetHead() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetHead(); } \
+element_type& class_name::GetTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetTail(); } \
+element_type class_name::GetTail() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetTail(); } \
+typename class_name::POSITION class_name::GetHeadPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->GetHeadPosition() : POSITION(nullptr); } \
+typename class_name::POSITION class_name::GetTailPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->GetTailPosition() : POSITION(nullptr); } \
+element_type& class_name::GetNext(POSITION& rPosition) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetNext(rPosition); } \
+element_type class_name::GetNext(POSITION& rPosition) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetNext(rPosition); } \
+element_type& class_name::GetPrev(POSITION& rPosition) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetPrev(rPosition); } \
+element_type class_name::GetPrev(POSITION& rPosition) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetPrev(rPosition); } \
+element_type class_name::GetAt(POSITION position) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetAt(position); } \
+void class_name::SetAt(POSITION pos, arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).SetAt(pos, newElement); } \
+void class_name::RemoveAt(POSITION position) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAt(position); } \
+typename class_name::POSITION class_name::FindIndex(INT_PTR nIndex) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->FindIndex(ClampCollectionSize(nIndex)) : POSITION(nullptr); } \
+typename class_name::POSITION class_name::Find(arg_type searchValue, POSITION startAfter) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->Find(searchValue, startAfter) : POSITION(nullptr); } \
+typename class_name::POSITION class_name::AddHead(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddHead(newElement); return data.GetHeadPosition(); } \
+typename class_name::POSITION class_name::AddTail(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddTail(newElement); return data.GetTailPosition(); } \
+void class_name::AddHead(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddHead(&srcData); } \
+void class_name::AddTail(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddTail(&srcData); } \
+element_type class_name::RemoveHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).RemoveHead(); } \
+element_type class_name::RemoveTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).RemoveTail(); } \
+typename class_name::POSITION class_name::InsertBefore(POSITION position, arg_type newElement) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); \
+    POSITION oldPos = position; \
+    data.InsertBefore(position, newElement); \
+    if (oldPos == POSITION(nullptr)) return data.GetTailPosition(); \
+    POSITION pos = data.GetHeadPosition(); \
+    POSITION prev(nullptr); \
+    while (pos != POSITION(nullptr) && pos != oldPos) { prev = pos; data.GetNext(pos); } \
+    return prev; \
+} \
+typename class_name::POSITION class_name::InsertAfter(POSITION position, arg_type newElement) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); \
+    POSITION oldPos = position; \
+    data.InsertAfter(position, newElement); \
+    if (oldPos == POSITION(nullptr)) return data.GetHeadPosition(); \
+    POSITION result = oldPos; \
+    data.GetNext(result); \
+    return result; \
+} \
+void class_name::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAll(); } \
+void class_name::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); if (ar.IsStoring()) ar << data; else ar >> data; }
+
+OPENMFC_DEFINE_LIST_METHODS(CObList, CObject*, CObject*)
+
+CStringList::CStringList(INT_PTR nBlockSize) {
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    EnsureCollectionState<CStringList, ListWrapperState<CString, const CString&>>(this, ClampCollectionBlockSize(nBlockSize));
+}
+
+CStringList::~CStringList() {
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    RemoveCollectionState<CStringList, ListWrapperState<CString, const CString&>>(this);
+}
+
+INT_PTR CStringList::GetCount() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<CStringList, CString, const CString&>(this); return data ? data->GetCount() : 0; }
+BOOL CStringList::IsEmpty() const { return GetCount() == 0; }
+CString& CStringList::GetHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetHead(); }
+CString CStringList::GetHead() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetHead(); }
+CString& CStringList::GetTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetTail(); }
+CString CStringList::GetTail() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetTail(); }
+CStringList::POSITION CStringList::GetHeadPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<CStringList, CString, const CString&>(this); return data ? data->GetHeadPosition() : POSITION(nullptr); }
+CStringList::POSITION CStringList::GetTailPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<CStringList, CString, const CString&>(this); return data ? data->GetTailPosition() : POSITION(nullptr); }
+CString& CStringList::GetNext(POSITION& rPosition) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetNext(rPosition); }
+CString CStringList::GetNext(POSITION& rPosition) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetNext(rPosition); }
+CString& CStringList::GetPrev(POSITION& rPosition) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetPrev(rPosition); }
+CString CStringList::GetPrev(POSITION& rPosition) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetPrev(rPosition); }
+CString CStringList::GetAt(POSITION position) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).GetAt(position); }
+void CStringList::SetAt(POSITION pos, const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<CStringList, CString, const CString&>(this).SetAt(pos, newElement); }
+void CStringList::RemoveAt(POSITION position) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<CStringList, CString, const CString&>(this).RemoveAt(position); }
+CStringList::POSITION CStringList::FindIndex(INT_PTR nIndex) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<CStringList, CString, const CString&>(this); return data ? data->FindIndex(ClampCollectionSize(nIndex)) : POSITION(nullptr); }
+CStringList::POSITION CStringList::Find(const CString& searchValue, POSITION startAfter) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<CStringList, CString, const CString&>(this); return data ? data->Find(searchValue, startAfter) : POSITION(nullptr); }
+CStringList::POSITION CStringList::Find(const wchar_t* searchValue, POSITION startAfter) const { return Find(NormalizeStringKey(searchValue), startAfter); }
+CStringList::POSITION CStringList::AddHead(const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); data.AddHead(newElement); return data.GetHeadPosition(); }
+CStringList::POSITION CStringList::AddHead(const wchar_t* newElement) { return AddHead(NormalizeStringKey(newElement)); }
+void CStringList::AddHead(CStringList* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); auto& srcData = EnsureListStorage<CStringList, CString, const CString&>(pNewList); data.AddHead(&srcData); }
+CStringList::POSITION CStringList::AddTail(const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); data.AddTail(newElement); return data.GetTailPosition(); }
+CStringList::POSITION CStringList::AddTail(const wchar_t* newElement) { return AddTail(NormalizeStringKey(newElement)); }
+void CStringList::AddTail(CStringList* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); auto& srcData = EnsureListStorage<CStringList, CString, const CString&>(pNewList); data.AddTail(&srcData); }
+CString CStringList::RemoveHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).RemoveHead(); }
+CString CStringList::RemoveTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<CStringList, CString, const CString&>(this).RemoveTail(); }
+CStringList::POSITION CStringList::InsertBefore(POSITION position, const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); POSITION oldPos = position; data.InsertBefore(position, newElement); if (oldPos == POSITION(nullptr)) return data.GetTailPosition(); POSITION pos = data.GetHeadPosition(); POSITION prev(nullptr); while (pos != POSITION(nullptr) && pos != oldPos) { prev = pos; data.GetNext(pos); } return prev; }
+CStringList::POSITION CStringList::InsertBefore(POSITION position, const wchar_t* newElement) { return InsertBefore(position, NormalizeStringKey(newElement)); }
+CStringList::POSITION CStringList::InsertAfter(POSITION position, const CString& newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); POSITION oldPos = position; data.InsertAfter(position, newElement); if (oldPos == POSITION(nullptr)) return data.GetHeadPosition(); POSITION result = oldPos; data.GetNext(result); return result; }
+CStringList::POSITION CStringList::InsertAfter(POSITION position, const wchar_t* newElement) { return InsertAfter(position, NormalizeStringKey(newElement)); }
+void CStringList::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<CStringList, CString, const CString&>(this).RemoveAll(); }
+void CStringList::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<CStringList, CString, const CString&>(this); if (ar.IsStoring()) ar << data; else ar >> data; }
+
+#define OPENMFC_DEFINE_MAP_METHODS(class_name, key_type, arg_key_type, value_type, arg_value_type) \
+class_name::class_name(INT_PTR nBlockSize) { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    EnsureCollectionState<class_name, MapWrapperState<key_type, arg_key_type, value_type, arg_value_type>>(this, ClampCollectionBlockSize(nBlockSize)); \
+} \
+ \
+class_name::~class_name() { \
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    RemoveCollectionState<class_name, MapWrapperState<key_type, arg_key_type, value_type, arg_value_type>>(this); \
+} \
+ \
+INT_PTR class_name::GetCount() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); return data ? data->GetCount() : 0; } \
+BOOL class_name::IsEmpty() const { return GetCount() == 0; } \
+BOOL class_name::Lookup(arg_key_type key, value_type& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); return (data && data->Lookup(key, rValue)) ? TRUE : FALSE; } \
+value_type& class_name::operator[](arg_key_type key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this)[key]; } \
+const value_type& class_name::operator[](arg_key_type key) const { \
+    return CollectionConstRef(const_cast<class_name*>(this)->operator[](key)); \
+} \
+void class_name::SetAt(arg_key_type key, arg_value_type newValue) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this).SetAt(key, newValue); } \
+BOOL class_name::RemoveKey(arg_key_type key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); return data.RemoveKey(key) ? TRUE : FALSE; } \
+void class_name::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this).RemoveAll(); } \
+typename class_name::POSITION class_name::GetStartPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); return data ? data->GetStartPosition() : POSITION(nullptr, 0); } \
+void class_name::GetNextAssoc(POSITION& rNextPosition, key_type& rKey, value_type& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this).GetNextAssoc(rNextPosition, rKey, rValue); } \
+UINT class_name::GetHashTableSize() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); return data ? data->GetHashTableSize() : 17; } \
+void class_name::InitHashTable(UINT hashSize, BOOL bAllocNow) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this).InitHashTable(hashSize, bAllocNow != FALSE); } \
+void class_name::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureMapStorage<class_name, key_type, arg_key_type, value_type, arg_value_type>(this); if (ar.IsStoring()) ar << data; else ar >> data; }
+
+OPENMFC_DEFINE_MAP_METHODS(CMapPtrToPtr, void*, void*, void*, void*)
+OPENMFC_DEFINE_MAP_METHODS(CMapPtrToWord, void*, void*, WORD, WORD)
+OPENMFC_DEFINE_MAP_METHODS(CMapWordToOb, WORD, WORD, CObject*, CObject*)
+OPENMFC_DEFINE_MAP_METHODS(CMapWordToPtr, WORD, WORD, void*, void*)
+
+CMapStringToOb::CMapStringToOb(INT_PTR nBlockSize) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this, ClampCollectionBlockSize(nBlockSize)); }
+CMapStringToOb::~CMapStringToOb() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); RemoveCollectionState<CMapStringToOb, CStringKeyMapState<CObject*, CObject*>>(this); }
+INT_PTR CMapStringToOb::GetCount() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); return state ? state->data.GetCount() : 0; }
+BOOL CMapStringToOb::IsEmpty() const { return GetCount() == 0; }
+BOOL CMapStringToOb::Lookup(const CString& key, CObject*& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); return (state && state->data.Lookup(key, rValue)) ? TRUE : FALSE; }
+BOOL CMapStringToOb::Lookup(const wchar_t* key, CObject*& rValue) const { return Lookup(NormalizeStringKey(key), rValue); }
+BOOL CMapStringToOb::LookupKey(const CString& key, const wchar_t*& rKey) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); CString actualKey; if (!state.data.LookupKey(key, actualKey)) return FALSE; state.lookupKeyScratch = actualKey; rKey = static_cast<const wchar_t*>(state.lookupKeyScratch); return TRUE; }
+BOOL CMapStringToOb::LookupKey(const wchar_t* key, const wchar_t*& rKey) const { return LookupKey(NormalizeStringKey(key), rKey); }
+CObject*& CMapStringToOb::operator[](const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this).data[key]; }
+CObject*& CMapStringToOb::operator[](const wchar_t* key) { return (*this)[NormalizeStringKey(key)]; }
+const CObject* CMapStringToOb::operator[](const wchar_t* key) const { CObject* value = nullptr; Lookup(key, value); return value; }
+void CMapStringToOb::SetAt(const CString& key, CObject* newValue) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this).data.SetAt(key, newValue); }
+void CMapStringToOb::SetAt(const wchar_t* key, CObject* newValue) { SetAt(NormalizeStringKey(key), newValue); }
+BOOL CMapStringToOb::RemoveKey(const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); return state.data.RemoveKey(key) ? TRUE : FALSE; }
+BOOL CMapStringToOb::RemoveKey(const wchar_t* key) { return RemoveKey(NormalizeStringKey(key)); }
+void CMapStringToOb::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this).data.RemoveAll(); }
+CMapStringToOb::POSITION CMapStringToOb::GetStartPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); return state ? state->data.GetStartPosition() : POSITION(nullptr, 0); }
+void CMapStringToOb::GetNextAssoc(POSITION& rNextPosition, CString& rKey, CObject*& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this).data.GetNextAssoc(rNextPosition, rKey, rValue); }
+UINT CMapStringToOb::GetHashTableSize() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); return state ? state->data.GetHashTableSize() : 17; }
+void CMapStringToOb::InitHashTable(UINT hashSize, BOOL bAllocNow) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this).data.InitHashTable(hashSize, bAllocNow != FALSE); }
+void CMapStringToOb::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToOb, CObject*, CObject*>(this); if (ar.IsStoring()) ar << state.data; else ar >> state.data; }
+
+CMapStringToPtr::CMapStringToPtr(INT_PTR nBlockSize) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this, ClampCollectionBlockSize(nBlockSize)); }
+CMapStringToPtr::~CMapStringToPtr() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); RemoveCollectionState<CMapStringToPtr, CStringKeyMapState<void*, void*>>(this); }
+INT_PTR CMapStringToPtr::GetCount() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); return state ? state->data.GetCount() : 0; }
+BOOL CMapStringToPtr::IsEmpty() const { return GetCount() == 0; }
+BOOL CMapStringToPtr::Lookup(const CString& key, void*& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); return (state && state->data.Lookup(key, rValue)) ? TRUE : FALSE; }
+BOOL CMapStringToPtr::Lookup(const wchar_t* key, void*& rValue) const { return Lookup(NormalizeStringKey(key), rValue); }
+BOOL CMapStringToPtr::LookupKey(const CString& key, const wchar_t*& rKey) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); CString actualKey; if (!state.data.LookupKey(key, actualKey)) return FALSE; state.lookupKeyScratch = actualKey; rKey = static_cast<const wchar_t*>(state.lookupKeyScratch); return TRUE; }
+BOOL CMapStringToPtr::LookupKey(const wchar_t* key, const wchar_t*& rKey) const { return LookupKey(NormalizeStringKey(key), rKey); }
+void*& CMapStringToPtr::operator[](const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this).data[key]; }
+void*& CMapStringToPtr::operator[](const wchar_t* key) { return (*this)[NormalizeStringKey(key)]; }
+const void* CMapStringToPtr::operator[](const wchar_t* key) const { void* value = nullptr; Lookup(key, value); return value; }
+void CMapStringToPtr::SetAt(const CString& key, void* newValue) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this).data.SetAt(key, newValue); }
+void CMapStringToPtr::SetAt(const wchar_t* key, void* newValue) { SetAt(NormalizeStringKey(key), newValue); }
+BOOL CMapStringToPtr::RemoveKey(const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); return state.data.RemoveKey(key) ? TRUE : FALSE; }
+BOOL CMapStringToPtr::RemoveKey(const wchar_t* key) { return RemoveKey(NormalizeStringKey(key)); }
+void CMapStringToPtr::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this).data.RemoveAll(); }
+CMapStringToPtr::POSITION CMapStringToPtr::GetStartPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); return state ? state->data.GetStartPosition() : POSITION(nullptr, 0); }
+void CMapStringToPtr::GetNextAssoc(POSITION& rNextPosition, CString& rKey, void*& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this).data.GetNextAssoc(rNextPosition, rKey, rValue); }
+UINT CMapStringToPtr::GetHashTableSize() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); return state ? state->data.GetHashTableSize() : 17; }
+void CMapStringToPtr::InitHashTable(UINT hashSize, BOOL bAllocNow) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this).data.InitHashTable(hashSize, bAllocNow != FALSE); }
+void CMapStringToPtr::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringKeyMapStorage<CMapStringToPtr, void*, void*>(this); if (ar.IsStoring()) ar << state.data; else ar >> state.data; }
+
+CMapStringToString::CMapStringToString(INT_PTR nBlockSize) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringMapStringStorage(this, ClampCollectionBlockSize(nBlockSize)); }
+CMapStringToString::~CMapStringToString() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); RemoveCollectionState<CMapStringToString, CStringMapStringState>(this); }
+INT_PTR CMapStringToString::GetCount() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringMapStringStorage(this); return state ? state->data.GetCount() : 0; }
+BOOL CMapStringToString::IsEmpty() const { return GetCount() == 0; }
+BOOL CMapStringToString::Lookup(const CString& key, CString& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringMapStringStorage(this); return (state && state->data.Lookup(key, rValue)) ? TRUE : FALSE; }
+BOOL CMapStringToString::Lookup(const wchar_t* key, CString& rValue) const { return Lookup(NormalizeStringKey(key), rValue); }
+BOOL CMapStringToString::LookupKey(const CString& key, const wchar_t*& rKey) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); CString actualKey; if (!state.data.LookupKey(key, actualKey)) return FALSE; state.lookupKeyScratch = actualKey; rKey = static_cast<const wchar_t*>(state.lookupKeyScratch); return TRUE; }
+BOOL CMapStringToString::LookupKey(const wchar_t* key, const wchar_t*& rKey) const { return LookupKey(NormalizeStringKey(key), rKey); }
+CString& CMapStringToString::operator[](const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.MarkDirty(); return state.data[key]; }
+CString& CMapStringToString::operator[](const wchar_t* key) { return (*this)[NormalizeStringKey(key)]; }
+const CString& CMapStringToString::operator[](const wchar_t* key) const { return const_cast<CMapStringToString*>(this)->operator[](key); }
+void CMapStringToString::SetAt(const CString& key, const CString& newValue) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.data.SetAt(key, newValue); state.MarkDirty(); }
+void CMapStringToString::SetAt(const wchar_t* key, const CString& newValue) { SetAt(NormalizeStringKey(key), newValue); }
+void CMapStringToString::SetAt(const wchar_t* key, const wchar_t* newValue) { SetAt(NormalizeStringKey(key), NormalizeStringKey(newValue)); }
+BOOL CMapStringToString::RemoveKey(const CString& key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); BOOL removed = state.data.RemoveKey(key) ? TRUE : FALSE; if (removed) state.MarkDirty(); return removed; }
+BOOL CMapStringToString::RemoveKey(const wchar_t* key) { return RemoveKey(NormalizeStringKey(key)); }
+void CMapStringToString::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.data.RemoveAll(); state.MarkDirty(); }
+CMapStringToString::POSITION CMapStringToString::GetStartPosition() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringMapStringStorage(this); return state ? state->data.GetStartPosition() : POSITION(nullptr, 0); }
+void CMapStringToString::GetNextAssoc(POSITION& rNextPosition, CString& rKey, CString& rValue) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureCStringMapStringStorage(this).data.GetNextAssoc(rNextPosition, rKey, rValue); }
+UINT CMapStringToString::GetHashTableSize() const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* state = FindCStringMapStringStorage(this); return state ? state->data.GetHashTableSize() : 17; }
+void CMapStringToString::InitHashTable(UINT hashSize, BOOL bAllocNow) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.data.InitHashTable(hashSize, bAllocNow != FALSE); state.MarkDirty(); }
+CMapStringToString::CPair* CMapStringToString::PLookup(const wchar_t* key) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureCStringMapStringStorage(this).PLookup(key); }
+const CMapStringToString::CPair* CMapStringToString::PLookup(const wchar_t* key) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureCStringMapStringStorage(this).PLookup(key); }
+CMapStringToString::CPair* CMapStringToString::PGetFirstAssoc() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.EnsurePairs(); return state.pairs.empty() ? nullptr : state.pairs.front().get(); }
+const CMapStringToString::CPair* CMapStringToString::PGetFirstAssoc() const { return const_cast<CMapStringToString*>(this)->PGetFirstAssoc(); }
+CMapStringToString::CPair* CMapStringToString::PGetNextAssoc(const CPair* pAssocRet) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); state.EnsurePairs(); if (!pAssocRet) return nullptr; for (size_t i = 0; i < state.pairs.size(); ++i) { if (state.pairs[i].get() == pAssocRet) return (i + 1 < state.pairs.size()) ? state.pairs[i + 1].get() : nullptr; } return nullptr; }
+const CMapStringToString::CPair* CMapStringToString::PGetNextAssoc(const CPair* pAssocRet) const { return const_cast<CMapStringToString*>(this)->PGetNextAssoc(pAssocRet); }
+void CMapStringToString::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& state = EnsureCStringMapStringStorage(this); if (ar.IsStoring()) ar << state.data; else { ar >> state.data; state.MarkDirty(); } }
+
+#undef OPENMFC_DEFINE_LIST_METHODS
+#undef OPENMFC_DEFINE_MAP_METHODS
+#undef OPENMFC_DEFINE_ARRAY_METHODS
+
+#define OPENMFC_WRAP_CTOR0(fn_name, class_name) \
+extern "C" void* MS_ABI fn_name(class_name* pThis) { \
+    return pThis ? new (pThis) class_name() : nullptr; \
+}
+
+#define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type, cast_expr) \
+extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { \
+    return pThis ? new (pThis) class_name(cast_expr) : nullptr; \
+}
+
+#define OPENMFC_WRAP_DTOR(fn_name, class_name) \
+extern "C" void MS_ABI fn_name(class_name* pThis) { \
+    if (pThis) pThis->~class_name(); \
+}
+
+#define OPENMFC_WRAP_GETTHISCLASS(fn_name, class_name) \
+extern "C" CRuntimeClass* MS_ABI fn_name() { \
+    return class_name::GetThisClass(); \
+}
+
+#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) \
+extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { \
+    return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); \
+}
+
+#define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) \
+extern "C" CObject* MS_ABI fn_name() { \
+    return class_name::CreateObject(); \
+}
+
+#define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) \
+extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { \
+    return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; \
+}
+
+// Symbol: ??0CUIntArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CUIntArray__QEAA_XZ, CUIntArray)
+// Symbol: ??1CUIntArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CUIntArray__UEAA_XZ, CUIntArray)
+// Symbol: ?Append@CUIntArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CUIntArray__QEAA_JAEBV1__Z(CUIntArray* pThis, const CUIntArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CUIntArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CUIntArray__QEAAXAEBV1__Z(CUIntArray* pThis, const CUIntArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?FreeExtra@CUIntArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CUIntArray__QEAAXXZ(CUIntArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CUIntArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CUIntArray__UEBAPEAUCRuntimeClass__XZ, CUIntArray)
+// Symbol: ?GetThisClass@CUIntArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CUIntArray__SAPEAUCRuntimeClass__XZ, CUIntArray)
+// Symbol: ?InsertAt@CUIntArray@@QEAAX_JI0@Z
+extern "C" void MS_ABI impl__InsertAt_CUIntArray__QEAAX_JI0_Z(CUIntArray* pThis, long long nIndex, unsigned int value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?InsertAt@CUIntArray@@QEAAX_JPEAV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CUIntArray__QEAAX_JPEAV1__Z(CUIntArray* pThis, long long nIndex, CUIntArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?RemoveAt@CUIntArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CUIntArray__QEAAX_J0_Z(CUIntArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?SetAtGrow@CUIntArray@@QEAAX_JI@Z
+extern "C" void MS_ABI impl__SetAtGrow_CUIntArray__QEAAX_JI_Z(CUIntArray* pThis, long long nIndex, unsigned int value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CUIntArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CUIntArray__QEAAX_J0_Z(CUIntArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+// Symbol: ??0CDWordArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CDWordArray__QEAA_XZ, CDWordArray)
+// Symbol: ??1CDWordArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CDWordArray__UEAA_XZ, CDWordArray)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDWordArray@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDWordArray___Z, CDWordArray)
+// Symbol: ?Append@CDWordArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CDWordArray__QEAA_JAEBV1__Z(CDWordArray* pThis, const CDWordArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CDWordArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CDWordArray__QEAAXAEBV1__Z(CDWordArray* pThis, const CDWordArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?CreateObject@CDWordArray@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CDWordArray__SAPEAVCObject__XZ, CDWordArray)
+// Symbol: ?FreeExtra@CDWordArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CDWordArray__QEAAXXZ(CDWordArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CDWordArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CDWordArray__UEBAPEAUCRuntimeClass__XZ, CDWordArray)
+// Symbol: ?GetThisClass@CDWordArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CDWordArray__SAPEAUCRuntimeClass__XZ, CDWordArray)
+// Symbol: ?InsertAt@CDWordArray@@QEAAX_JK0@Z
+extern "C" void MS_ABI impl__InsertAt_CDWordArray__QEAAX_JK0_Z(CDWordArray* pThis, long long nIndex, unsigned long value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?InsertAt@CDWordArray@@QEAAX_JPEAV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CDWordArray__QEAAX_JPEAV1__Z(CDWordArray* pThis, long long nIndex, CDWordArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?RemoveAt@CDWordArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CDWordArray__QEAAX_J0_Z(CDWordArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?Serialize@CDWordArray@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CDWordArray__UEAAXAEAVCArchive___Z(CDWordArray* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+// Symbol: ?SetAtGrow@CDWordArray@@QEAAX_JK@Z
+extern "C" void MS_ABI impl__SetAtGrow_CDWordArray__QEAAX_JK_Z(CDWordArray* pThis, long long nIndex, unsigned long value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CDWordArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CDWordArray__QEAAX_J0_Z(CDWordArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+// Symbol: ??0CPtrArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CPtrArray__QEAA_XZ, CPtrArray)
+// Symbol: ??1CPtrArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CPtrArray__UEAA_XZ, CPtrArray)
+// Symbol: ?Append@CPtrArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CPtrArray__QEAA_JAEBV1__Z(CPtrArray* pThis, const CPtrArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CPtrArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CPtrArray__QEAAXAEBV1__Z(CPtrArray* pThis, const CPtrArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?FreeExtra@CPtrArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CPtrArray__QEAAXXZ(CPtrArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CPtrArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CPtrArray__UEBAPEAUCRuntimeClass__XZ, CPtrArray)
+// Symbol: ?GetThisClass@CPtrArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CPtrArray__SAPEAUCRuntimeClass__XZ, CPtrArray)
+// Symbol: ?InsertAt@CPtrArray@@QEAAX_JPEAV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CPtrArray__QEAAX_JPEAV1__Z(CPtrArray* pThis, long long nIndex, CPtrArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?InsertAt@CPtrArray@@QEAAX_JPEAX0@Z
+extern "C" void MS_ABI impl__InsertAt_CPtrArray__QEAAX_JPEAX0_Z(CPtrArray* pThis, long long nIndex, void* value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?RemoveAt@CPtrArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CPtrArray__QEAAX_J0_Z(CPtrArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?SetAtGrow@CPtrArray@@QEAAX_JPEAX@Z
+extern "C" void MS_ABI impl__SetAtGrow_CPtrArray__QEAAX_JPEAX_Z(CPtrArray* pThis, long long nIndex, void* value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CPtrArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CPtrArray__QEAAX_J0_Z(CPtrArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+// Symbol: ??0CByteArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CByteArray__QEAA_XZ, CByteArray)
+// Symbol: ??1CByteArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CByteArray__UEAA_XZ, CByteArray)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCByteArray@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCByteArray___Z, CByteArray)
+// Symbol: ?Append@CByteArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CByteArray__QEAA_JAEBV1__Z(CByteArray* pThis, const CByteArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CByteArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CByteArray__QEAAXAEBV1__Z(CByteArray* pThis, const CByteArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?CreateObject@CByteArray@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CByteArray__SAPEAVCObject__XZ, CByteArray)
+// Symbol: ?FreeExtra@CByteArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CByteArray__QEAAXXZ(CByteArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CByteArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CByteArray__UEBAPEAUCRuntimeClass__XZ, CByteArray)
+// Symbol: ?GetThisClass@CByteArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CByteArray__SAPEAUCRuntimeClass__XZ, CByteArray)
+// Symbol: ?InsertAt@CByteArray@@QEAAX_JE0@Z
+extern "C" void MS_ABI impl__InsertAt_CByteArray__QEAAX_JE0_Z(CByteArray* pThis, long long nIndex, unsigned char value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?InsertAt@CByteArray@@QEAAX_JPEAV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CByteArray__QEAAX_JPEAV1__Z(CByteArray* pThis, long long nIndex, CByteArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?RemoveAt@CByteArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CByteArray__QEAAX_J0_Z(CByteArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?Serialize@CByteArray@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CByteArray__UEAAXAEAVCArchive___Z(CByteArray* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+// Symbol: ?SetAtGrow@CByteArray@@QEAAX_JE@Z
+extern "C" void MS_ABI impl__SetAtGrow_CByteArray__QEAAX_JE_Z(CByteArray* pThis, long long nIndex, unsigned char value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CByteArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CByteArray__QEAAX_J0_Z(CByteArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+// Symbol: ??0CObArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CObArray__QEAA_XZ, CObArray)
+// Symbol: ??1CObArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CObArray__UEAA_XZ, CObArray)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCObArray@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCObArray___Z, CObArray)
+// Symbol: ?Append@CObArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CObArray__QEAA_JAEBV1__Z(CObArray* pThis, const CObArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CObArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CObArray__QEAAXAEBV1__Z(CObArray* pThis, const CObArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?CreateObject@CObArray@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CObArray__SAPEAVCObject__XZ, CObArray)
+// Symbol: ?FreeExtra@CObArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CObArray__QEAAXXZ(CObArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CObArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CObArray__UEBAPEAUCRuntimeClass__XZ, CObArray)
+// Symbol: ?GetThisClass@CObArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CObArray__SAPEAUCRuntimeClass__XZ, CObArray)
+// Symbol: ?InsertAt@CObArray@@QEAAX_JPEAV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CObArray__QEAAX_JPEAV1__Z(CObArray* pThis, long long nIndex, CObArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?InsertAt@CObArray@@QEAAX_JPEAVCObject@@0@Z
+extern "C" void MS_ABI impl__InsertAt_CObArray__QEAAX_JPEAVCObject__0_Z(CObArray* pThis, long long nIndex, CObject* value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?RemoveAt@CObArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CObArray__QEAAX_J0_Z(CObArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?Serialize@CObArray@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CObArray__UEAAXAEAVCArchive___Z(CObArray* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+// Symbol: ?SetAtGrow@CObArray@@QEAAX_JPEAVCObject@@@Z
+extern "C" void MS_ABI impl__SetAtGrow_CObArray__QEAAX_JPEAVCObject___Z(CObArray* pThis, long long nIndex, CObject* value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CObArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CObArray__QEAAX_J0_Z(CObArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+// Symbol: ??0CStringArray@@QEAA@XZ
+OPENMFC_WRAP_CTOR0(impl___0CStringArray__QEAA_XZ, CStringArray)
+// Symbol: ??1CStringArray@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CStringArray__UEAA_XZ, CStringArray)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCStringArray@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCStringArray___Z, CStringArray)
+// Symbol: ?Append@CStringArray@@QEAA_JAEBV1@@Z
+extern "C" long long MS_ABI impl__Append_CStringArray__QEAA_JAEBV1__Z(CStringArray* pThis, const CStringArray* pSrc) { return (pThis && pSrc) ? pThis->Append(*pSrc) : 0; }
+// Symbol: ?Copy@CStringArray@@QEAAXAEBV1@@Z
+extern "C" void MS_ABI impl__Copy_CStringArray__QEAAXAEBV1__Z(CStringArray* pThis, const CStringArray* pSrc) { if (pThis && pSrc) pThis->Copy(*pSrc); }
+// Symbol: ?CreateObject@CStringArray@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CStringArray__SAPEAVCObject__XZ, CStringArray)
+// Symbol: ?FreeExtra@CStringArray@@QEAAXXZ
+extern "C" void MS_ABI impl__FreeExtra_CStringArray__QEAAXXZ(CStringArray* pThis) { if (pThis) pThis->FreeExtra(); }
+// Symbol: ?GetRuntimeClass@CStringArray@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CStringArray__UEBAPEAUCRuntimeClass__XZ, CStringArray)
+// Symbol: ?GetThisClass@CStringArray@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CStringArray__SAPEAUCRuntimeClass__XZ, CStringArray)
+// Symbol: ?InsertAt@CStringArray@@QEAAX_JAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@0@Z
+extern "C" void MS_ABI impl__InsertAt_CStringArray__QEAAX_JAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__0_Z(CStringArray* pThis, long long nIndex, const CString& value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?InsertAt@CStringArray@@QEAAX_JPEB_W0@Z
+extern "C" void MS_ABI impl__InsertAt_CStringArray__QEAAX_JPEB_W0_Z(CStringArray* pThis, long long nIndex, const wchar_t* value, long long nCount) { if (pThis) pThis->InsertAt(nIndex, value, nCount); }
+// Symbol: ?InsertAt@CStringArray@@QEAAX_JPEBV1@@Z
+extern "C" void MS_ABI impl__InsertAt_CStringArray__QEAAX_JPEBV1__Z(CStringArray* pThis, long long nIndex, CStringArray* pNewArray) { if (pThis) pThis->InsertAt(nIndex, pNewArray); }
+// Symbol: ?InsertEmpty@CStringArray@@IEAAX_J0@Z
+extern "C" void MS_ABI impl__InsertEmpty_CStringArray__IEAAX_J0_Z(CStringArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->InsertEmpty(nIndex, nCount); }
+// Symbol: ?RemoveAt@CStringArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__RemoveAt_CStringArray__QEAAX_J0_Z(CStringArray* pThis, long long nIndex, long long nCount) { if (pThis) pThis->RemoveAt(nIndex, nCount); }
+// Symbol: ?Serialize@CStringArray@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CStringArray__UEAAXAEAVCArchive___Z(CStringArray* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+// Symbol: ?SetAtGrow@CStringArray@@QEAAX_JAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__SetAtGrow_CStringArray__QEAAX_JAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStringArray* pThis, long long nIndex, const CString& value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetAtGrow@CStringArray@@QEAAX_JPEB_W@Z
+extern "C" void MS_ABI impl__SetAtGrow_CStringArray__QEAAX_JPEB_W_Z(CStringArray* pThis, long long nIndex, const wchar_t* value) { if (pThis) pThis->SetAtGrow(nIndex, value); }
+// Symbol: ?SetSize@CStringArray@@QEAAX_J0@Z
+extern "C" void MS_ABI impl__SetSize_CStringArray__QEAAX_J0_Z(CStringArray* pThis, long long nNewSize, long long nGrowBy) { if (pThis) pThis->SetSize(nNewSize, nGrowBy); }
+
+#undef OPENMFC_WRAP_CTOR0
+#undef OPENMFC_WRAP_CTOR1
+#undef OPENMFC_WRAP_DTOR
+#undef OPENMFC_WRAP_GETTHISCLASS
+#undef OPENMFC_WRAP_GETRUNTIMECLASS
+#undef OPENMFC_WRAP_CREATEOBJECT
+#undef OPENMFC_WRAP_SERIAL_EXTRACT
+
+#define OPENMFC_WRAP_CTOR0(fn_name, class_name) extern "C" void* MS_ABI fn_name(class_name* pThis) { return pThis ? new (pThis) class_name() : nullptr; }
+#define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }
+#define OPENMFC_WRAP_DTOR(fn_name, class_name) extern "C" void MS_ABI fn_name(class_name* pThis) { if (pThis) pThis->~class_name(); }
+#define OPENMFC_WRAP_GETTHISCLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name() { return class_name::GetThisClass(); }
+#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); }
+#define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) extern "C" CObject* MS_ABI fn_name() { return class_name::CreateObject(); }
+#define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; }
+
+// Symbol: ??0CStringList@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CStringList__QEAA__J_Z, CStringList, long long)
+// Symbol: ??1CStringList@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CStringList__UEAA_XZ, CStringList)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCStringList@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCStringList___Z, CStringList)
+// Symbol: ?AddHead@CStringList@@QEAAPEAU__POSITION@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" CStringList::POSITION MS_ABI impl__AddHead_CStringList__QEAAPEAU__POSITION__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStringList* pThis, const CString& value) { return pThis ? pThis->AddHead(value) : CStringList::POSITION(nullptr); }
+// Symbol: ?AddHead@CStringList@@QEAAPEAU__POSITION@@PEB_W@Z
+extern "C" CStringList::POSITION MS_ABI impl__AddHead_CStringList__QEAAPEAU__POSITION__PEB_W_Z(CStringList* pThis, const wchar_t* value) { return pThis ? pThis->AddHead(value) : CStringList::POSITION(nullptr); }
+// Symbol: ?AddHead@CStringList@@QEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__AddHead_CStringList__QEAAXPEAV1__Z(CStringList* pThis, CStringList* pNewList) { if (pThis) pThis->AddHead(pNewList); }
+// Symbol: ?AddTail@CStringList@@QEAAPEAU__POSITION@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" CStringList::POSITION MS_ABI impl__AddTail_CStringList__QEAAPEAU__POSITION__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStringList* pThis, const CString& value) { return pThis ? pThis->AddTail(value) : CStringList::POSITION(nullptr); }
+// Symbol: ?AddTail@CStringList@@QEAAPEAU__POSITION@@PEB_W@Z
+extern "C" CStringList::POSITION MS_ABI impl__AddTail_CStringList__QEAAPEAU__POSITION__PEB_W_Z(CStringList* pThis, const wchar_t* value) { return pThis ? pThis->AddTail(value) : CStringList::POSITION(nullptr); }
+// Symbol: ?AddTail@CStringList@@QEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__AddTail_CStringList__QEAAXPEAV1__Z(CStringList* pThis, CStringList* pNewList) { if (pThis) pThis->AddTail(pNewList); }
+// Symbol: ?CreateObject@CStringList@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CStringList__SAPEAVCObject__XZ, CStringList)
+// Symbol: ?Find@CStringList@@QEBAPEAU__POSITION@@PEB_WPEAU2@@Z
+extern "C" CStringList::POSITION MS_ABI impl__Find_CStringList__QEBAPEAU__POSITION__PEB_WPEAU2__Z(const CStringList* pThis, const wchar_t* value, CStringList::POSITION* pStartAfter) { return pThis ? pThis->Find(value, pStartAfter ? *pStartAfter : CStringList::POSITION(nullptr)) : CStringList::POSITION(nullptr); }
+// Symbol: ?FindIndex@CStringList@@QEBAPEAU__POSITION@@_J@Z
+extern "C" CStringList::POSITION MS_ABI impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(const CStringList* pThis, long long nIndex) { return pThis ? pThis->FindIndex(nIndex) : CStringList::POSITION(nullptr); }
+extern "C" CStringList::POSITION MS_ABI impl__FindIndex_CStringList__QEBAPEAU__POSITION___J_Z(const CStringList* pThis, long long nIndex) { return impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(pThis, nIndex); }
+// Symbol: ?FreeNode@CStringList@@IEAAXPEAUCNode@1@@Z
+extern "C" void MS_ABI impl__FreeNode_CStringList__IEAAXPEAUCNode_1___Z(CStringList* /*pThis*/, void* pNode) { delete static_cast<ListNodeSnapshot<CString>*>(pNode); }
+extern "C" void MS_ABI impl__FreeNode_CStringList__IEAAXPEAUCNode_1__Z(CStringList* pThis, void* pNode) { impl__FreeNode_CStringList__IEAAXPEAUCNode_1___Z(pThis, pNode); }
+// Symbol: ?GetRuntimeClass@CStringList@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CStringList__UEBAPEAUCRuntimeClass__XZ, CStringList)
+// Symbol: ?GetThisClass@CStringList@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CStringList__SAPEAUCRuntimeClass__XZ, CStringList)
+// Symbol: ?InsertAfter@CStringList@@QEAAPEAU__POSITION@@PEAU2@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" CStringList::POSITION MS_ABI impl__InsertAfter_CStringList__QEAAPEAU__POSITION__PEAU2_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStringList* pThis, CStringList::POSITION* pPos, const CString& value) { return pThis ? pThis->InsertAfter(pPos ? *pPos : CStringList::POSITION(nullptr), value) : CStringList::POSITION(nullptr); }
+// Symbol: ?InsertAfter@CStringList@@QEAAPEAU__POSITION@@PEAU2@PEB_W@Z
+extern "C" CStringList::POSITION MS_ABI impl__InsertAfter_CStringList__QEAAPEAU__POSITION__PEAU2_PEB_W_Z(CStringList* pThis, CStringList::POSITION* pPos, const wchar_t* value) { return pThis ? pThis->InsertAfter(pPos ? *pPos : CStringList::POSITION(nullptr), value) : CStringList::POSITION(nullptr); }
+// Symbol: ?InsertBefore@CStringList@@QEAAPEAU__POSITION@@PEAU2@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" CStringList::POSITION MS_ABI impl__InsertBefore_CStringList__QEAAPEAU__POSITION__PEAU2_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CStringList* pThis, CStringList::POSITION* pPos, const CString& value) { return pThis ? pThis->InsertBefore(pPos ? *pPos : CStringList::POSITION(nullptr), value) : CStringList::POSITION(nullptr); }
+// Symbol: ?InsertBefore@CStringList@@QEAAPEAU__POSITION@@PEAU2@PEB_W@Z
+extern "C" CStringList::POSITION MS_ABI impl__InsertBefore_CStringList__QEAAPEAU__POSITION__PEAU2_PEB_W_Z(CStringList* pThis, CStringList::POSITION* pPos, const wchar_t* value) { return pThis ? pThis->InsertBefore(pPos ? *pPos : CStringList::POSITION(nullptr), value) : CStringList::POSITION(nullptr); }
+// Symbol: ?NewNode@CStringList@@IEAAPEAUCNode@1@PEAU21@0@Z
+extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(CStringList* /*pThis*/, void* pPrev, void* pNext) { auto* node = new ListNodeSnapshot<CString>(); node->pPrev = static_cast<ListNodeSnapshot<CString>*>(pPrev); node->pNext = static_cast<ListNodeSnapshot<CString>*>(pNext); return node; }
+extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1_PEAU21_0_Z(CStringList* pThis, void* pPrev, void* pNext) { return impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(pThis, pPrev, pNext); }
+// Symbol: ?RemoveAll@CStringList@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CStringList__QEAAXXZ(CStringList* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveAt@CStringList@@QEAAXPEAU__POSITION@@@Z
+extern "C" void MS_ABI impl__RemoveAt_CStringList__QEAAXPEAU__POSITION___Z(CStringList* pThis, CStringList::POSITION* pPos) { if (pThis && pPos) pThis->RemoveAt(*pPos); }
+// Symbol: ?RemoveHead@CStringList@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__RemoveHead_CStringList__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(CStringList* pThis, void* ret) { new (ret) CString(pThis ? pThis->RemoveHead() : CString()); }
+// Symbol: ?RemoveTail@CStringList@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__RemoveTail_CStringList__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(CStringList* pThis, void* ret) { new (ret) CString(pThis ? pThis->RemoveTail() : CString()); }
+// Symbol: ?Serialize@CStringList@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CStringList__UEAAXAEAVCArchive___Z(CStringList* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+
+// Symbol: ??0CObList@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CObList__QEAA__J_Z, CObList, long long)
+// Symbol: ??1CObList@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CObList__UEAA_XZ, CObList)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCObList@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCObList___Z, CObList)
+// Symbol: ?AddHead@CObList@@QEAAPEAU__POSITION@@PEAVCObject@@@Z
+extern "C" CObList::POSITION MS_ABI impl__AddHead_CObList__QEAAPEAU__POSITION__PEAVCObject___Z(CObList* pThis, CObject* value) { return pThis ? pThis->AddHead(value) : CObList::POSITION(nullptr); }
+// Symbol: ?AddHead@CObList@@QEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__AddHead_CObList__QEAAXPEAV1__Z(CObList* pThis, CObList* pNewList) { if (pThis) pThis->AddHead(pNewList); }
+// Symbol: ?AddTail@CObList@@QEAAPEAU__POSITION@@PEAVCObject@@@Z
+extern "C" CObList::POSITION MS_ABI impl__AddTail_CObList__QEAAPEAU__POSITION__PEAVCObject___Z(CObList* pThis, CObject* value) { return pThis ? pThis->AddTail(value) : CObList::POSITION(nullptr); }
+// Symbol: ?AddTail@CObList@@QEAAXPEAV1@@Z
+extern "C" void MS_ABI impl__AddTail_CObList__QEAAXPEAV1__Z(CObList* pThis, CObList* pNewList) { if (pThis) pThis->AddTail(pNewList); }
+// Symbol: ?CreateObject@CObList@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CObList__SAPEAVCObject__XZ, CObList)
+// Symbol: ?Find@CObList@@QEBAPEAU__POSITION@@PEAVCObject@@PEAU2@@Z
+extern "C" CObList::POSITION MS_ABI impl__Find_CObList__QEBAPEAU__POSITION__PEAVCObject__PEAU2__Z(const CObList* pThis, CObject* value, CObList::POSITION* pStartAfter) { return pThis ? pThis->Find(value, pStartAfter ? *pStartAfter : CObList::POSITION(nullptr)) : CObList::POSITION(nullptr); }
+// Symbol: ?FindIndex@CObList@@QEBAPEAU__POSITION@@_J@Z
+extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(const CObList* pThis, long long nIndex) { return pThis ? pThis->FindIndex(nIndex) : CObList::POSITION(nullptr); }
+extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION___J_Z(const CObList* pThis, long long nIndex) { return impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(pThis, nIndex); }
+// Symbol: ?FreeNode@CObList@@IEAAXPEAUCNode@1@@Z
+extern "C" void MS_ABI impl__FreeNode_CObList__IEAAXPEAUCNode_1___Z(CObList* /*pThis*/, void* pNode) { delete static_cast<ListNodeSnapshot<CObject*>*>(pNode); }
+extern "C" void MS_ABI impl__FreeNode_CObList__IEAAXPEAUCNode_1__Z(CObList* pThis, void* pNode) { impl__FreeNode_CObList__IEAAXPEAUCNode_1___Z(pThis, pNode); }
+// Symbol: ?GetRuntimeClass@CObList@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CObList__UEBAPEAUCRuntimeClass__XZ, CObList)
+// Symbol: ?GetThisClass@CObList@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CObList__SAPEAUCRuntimeClass__XZ, CObList)
+// Symbol: ?InsertAfter@CObList@@QEAAPEAU__POSITION@@PEAU2@PEAVCObject@@@Z
+extern "C" CObList::POSITION MS_ABI impl__InsertAfter_CObList__QEAAPEAU__POSITION__PEAU2_PEAVCObject___Z(CObList* pThis, CObList::POSITION* pPos, CObject* value) { return pThis ? pThis->InsertAfter(pPos ? *pPos : CObList::POSITION(nullptr), value) : CObList::POSITION(nullptr); }
+// Symbol: ?InsertBefore@CObList@@QEAAPEAU__POSITION@@PEAU2@PEAVCObject@@@Z
+extern "C" CObList::POSITION MS_ABI impl__InsertBefore_CObList__QEAAPEAU__POSITION__PEAU2_PEAVCObject___Z(CObList* pThis, CObList::POSITION* pPos, CObject* value) { return pThis ? pThis->InsertBefore(pPos ? *pPos : CObList::POSITION(nullptr), value) : CObList::POSITION(nullptr); }
+// Symbol: ?NewNode@CObList@@IEAAPEAUCNode@1@PEAU21@0@Z
+extern "C" void* MS_ABI impl__NewNode_CObList__IEAAPEAUCNode_1__PEAU21_0_Z(CObList* /*pThis*/, void* pPrev, void* pNext) { auto* node = new ListNodeSnapshot<CObject*>(); node->pPrev = static_cast<ListNodeSnapshot<CObject*>*>(pPrev); node->pNext = static_cast<ListNodeSnapshot<CObject*>*>(pNext); return node; }
+extern "C" void* MS_ABI impl__NewNode_CObList__IEAAPEAUCNode_1_PEAU21_0_Z(CObList* pThis, void* pPrev, void* pNext) { return impl__NewNode_CObList__IEAAPEAUCNode_1__PEAU21_0_Z(pThis, pPrev, pNext); }
+// Symbol: ?RemoveAll@CObList@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CObList__QEAAXXZ(CObList* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveAt@CObList@@QEAAXPEAU__POSITION@@@Z
+extern "C" void MS_ABI impl__RemoveAt_CObList__QEAAXPEAU__POSITION___Z(CObList* pThis, CObList::POSITION* pPos) { if (pThis && pPos) pThis->RemoveAt(*pPos); }
+// Symbol: ?RemoveHead@CObList@@QEAAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__RemoveHead_CObList__QEAAPEAVCObject__XZ(CObList* pThis) { return pThis ? pThis->RemoveHead() : nullptr; }
+// Symbol: ?RemoveTail@CObList@@QEAAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__RemoveTail_CObList__QEAAPEAVCObject__XZ(CObList* pThis) { return pThis ? pThis->RemoveTail() : nullptr; }
+// Symbol: ?Serialize@CObList@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CObList__UEAAXAEAVCArchive___Z(CObList* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+
+#undef OPENMFC_WRAP_CTOR0
+#undef OPENMFC_WRAP_CTOR1
+#undef OPENMFC_WRAP_DTOR
+#undef OPENMFC_WRAP_GETTHISCLASS
+#undef OPENMFC_WRAP_GETRUNTIMECLASS
+#undef OPENMFC_WRAP_CREATEOBJECT
+#undef OPENMFC_WRAP_SERIAL_EXTRACT
+
+#define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }
+#define OPENMFC_WRAP_DTOR(fn_name, class_name) extern "C" void MS_ABI fn_name(class_name* pThis) { if (pThis) pThis->~class_name(); }
+#define OPENMFC_WRAP_GETTHISCLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name() { return class_name::GetThisClass(); }
+#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); }
+#define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) extern "C" CObject* MS_ABI fn_name() { return class_name::CreateObject(); }
+#define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; }
+
+// Symbol: ??0CMapPtrToPtr@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapPtrToPtr__QEAA__J_Z, CMapPtrToPtr, long long)
+// Symbol: ??1CMapPtrToPtr@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapPtrToPtr__UEAA_XZ, CMapPtrToPtr)
+// Symbol: ??ACMapPtrToPtr@@QEAAAEAPEAXPEAX@Z
+extern "C" void** MS_ABI impl___ACMapPtrToPtr__QEAAAEAPEAXPEAX_Z(CMapPtrToPtr* pThis, void* key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?FreeAssoc@CMapPtrToPtr@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToPtr__IEAAXPEAUCAssoc_1___Z(CMapPtrToPtr* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<void*, void*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToPtr__IEAAXPEAUCAssoc_1__Z(CMapPtrToPtr* pThis, void* pAssoc) { impl__FreeAssoc_CMapPtrToPtr__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapPtrToPtr@@IEBAPEAUCAssoc@1@PEAXAEAI1@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapPtrToPtr__IEBAPEAUCAssoc_1_PEAXAEAI1_Z(const CMapPtrToPtr* pThis, void* key, unsigned int& nHash, unsigned int& nHashBucket) { nHash = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(key) >> 4); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; void* value = nullptr; if (!pThis || !pThis->Lookup(key, value)) return nullptr; auto* assoc = new AssocSnapshot<void*, void*>(); assoc->nHashValue = nHash; assoc->key = key; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapPtrToPtr@@QEBAXAEAPEAU__POSITION@@AEAPEAX1@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapPtrToPtr__QEBAXAEAPEAU__POSITION__AEAPEAX1_Z(const CMapPtrToPtr* pThis, CMapPtrToPtr::POSITION& pos, void*& key, void*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = nullptr; value = nullptr; } }
+// Symbol: ?GetRuntimeClass@CMapPtrToPtr@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapPtrToPtr__UEBAPEAUCRuntimeClass__XZ, CMapPtrToPtr)
+// Symbol: ?GetThisClass@CMapPtrToPtr@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapPtrToPtr__SAPEAUCRuntimeClass__XZ, CMapPtrToPtr)
+// Symbol: ?GetValueAt@CMapPtrToPtr@@QEBAPEAXPEAX@Z
+extern "C" void* MS_ABI impl__GetValueAt_CMapPtrToPtr__QEBAPEAXPEAX_Z(const CMapPtrToPtr* pThis, void* key) { void* value = nullptr; return (pThis && pThis->Lookup(key, value)) ? value : nullptr; }
+// Symbol: ?InitHashTable@CMapPtrToPtr@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapPtrToPtr__QEAAXIH_Z(CMapPtrToPtr* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapPtrToPtr@@QEBAHPEAXAEAPEAX@Z
+extern "C" int MS_ABI impl__Lookup_CMapPtrToPtr__QEBAHPEAXAEAPEAX_Z(const CMapPtrToPtr* pThis, void* key, void*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapPtrToPtr@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapPtrToPtr__IEAAPEAUCAssoc_1_XZ(CMapPtrToPtr* /*pThis*/) { return new AssocSnapshot<void*, void*>(); }
+// Symbol: ?RemoveAll@CMapPtrToPtr@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapPtrToPtr__QEAAXXZ(CMapPtrToPtr* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapPtrToPtr@@QEAAHPEAX@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapPtrToPtr__QEAAHPEAX_Z(CMapPtrToPtr* pThis, void* key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+
+// Symbol: ??0CMapPtrToWord@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapPtrToWord__QEAA__J_Z, CMapPtrToWord, long long)
+// Symbol: ??1CMapPtrToWord@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapPtrToWord__UEAA_XZ, CMapPtrToWord)
+// Symbol: ??ACMapPtrToWord@@QEAAAEAGPEAX@Z
+extern "C" unsigned short* MS_ABI impl___ACMapPtrToWord__QEAAAEAGPEAX_Z(CMapPtrToWord* pThis, void* key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?FreeAssoc@CMapPtrToWord@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(CMapPtrToWord* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<void*, WORD>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1__Z(CMapPtrToWord* pThis, void* pAssoc) { impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapPtrToWord@@IEBAPEAUCAssoc@1@PEAXAEAI1@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapPtrToWord__IEBAPEAUCAssoc_1_PEAXAEAI1_Z(const CMapPtrToWord* pThis, void* key, unsigned int& nHash, unsigned int& nHashBucket) { nHash = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(key) >> 4); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; WORD value = 0; if (!pThis || !pThis->Lookup(key, value)) return nullptr; auto* assoc = new AssocSnapshot<void*, WORD>(); assoc->nHashValue = nHash; assoc->key = key; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapPtrToWord@@QEBAXAEAPEAU__POSITION@@AEAPEAXAEAG@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapPtrToWord__QEBAXAEAPEAU__POSITION__AEAPEAXAEAG_Z(const CMapPtrToWord* pThis, CMapPtrToWord::POSITION& pos, void*& key, unsigned short& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = nullptr; value = 0; } }
+// Symbol: ?GetRuntimeClass@CMapPtrToWord@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapPtrToWord__UEBAPEAUCRuntimeClass__XZ, CMapPtrToWord)
+// Symbol: ?GetThisClass@CMapPtrToWord@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapPtrToWord__SAPEAUCRuntimeClass__XZ, CMapPtrToWord)
+// Symbol: ?InitHashTable@CMapPtrToWord@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapPtrToWord__QEAAXIH_Z(CMapPtrToWord* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapPtrToWord@@QEBAHPEAXAEAG@Z
+extern "C" int MS_ABI impl__Lookup_CMapPtrToWord__QEBAHPEAXAEAG_Z(const CMapPtrToWord* pThis, void* key, unsigned short& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapPtrToWord@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapPtrToWord__IEAAPEAUCAssoc_1_XZ(CMapPtrToWord* /*pThis*/) { return new AssocSnapshot<void*, WORD>(); }
+// Symbol: ?RemoveAll@CMapPtrToWord@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapPtrToWord__QEAAXXZ(CMapPtrToWord* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapPtrToWord@@QEAAHPEAX@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapPtrToWord__QEAAHPEAX_Z(CMapPtrToWord* pThis, void* key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+
+// Symbol: ??0CMapStringToOb@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapStringToOb__QEAA__J_Z, CMapStringToOb, long long)
+// Symbol: ??1CMapStringToOb@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapStringToOb__UEAA_XZ, CMapStringToOb)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMapStringToOb@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMapStringToOb___Z, CMapStringToOb)
+// Symbol: ??ACMapStringToOb@@QEAAAEAPEAVCObject@@PEB_W@Z
+extern "C" CObject** MS_ABI impl___ACMapStringToOb__QEAAAEAPEAVCObject__PEB_W_Z(CMapStringToOb* pThis, const wchar_t* key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?CreateObject@CMapStringToOb@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CMapStringToOb__SAPEAVCObject__XZ, CMapStringToOb)
+// Symbol: ?FreeAssoc@CMapStringToOb@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1___Z(CMapStringToOb* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<CString, CObject*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1__Z(CMapStringToOb* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapStringToOb@@IEBAPEAUCAssoc@1@PEB_WAEAI1@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapStringToOb__IEBAPEAUCAssoc_1_PEB_WAEAI1_Z(const CMapStringToOb* pThis, const wchar_t* key, unsigned int& nHash, unsigned int& nHashBucket) { CString k = NormalizeStringKey(key); nHash = HashCStringKey(k); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; CObject* value = nullptr; if (!pThis || !pThis->Lookup(k, value)) return nullptr; auto* assoc = new AssocSnapshot<CString, CObject*>(); assoc->nHashValue = nHash; assoc->key = k; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapStringToOb@@QEBAXAEAPEAU__POSITION@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAVCObject@@@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapStringToOb__QEBAXAEAPEAU__POSITION__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAVCObject___Z(const CMapStringToOb* pThis, CMapStringToOb::POSITION& pos, CString& key, CObject*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = L""; value = nullptr; } }
+// Symbol: ?GetRuntimeClass@CMapStringToOb@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapStringToOb__UEBAPEAUCRuntimeClass__XZ, CMapStringToOb)
+// Symbol: ?GetThisClass@CMapStringToOb@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapStringToOb__SAPEAUCRuntimeClass__XZ, CMapStringToOb)
+// Symbol: ?InitHashTable@CMapStringToOb@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapStringToOb__QEAAXIH_Z(CMapStringToOb* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapStringToOb@@QEBAHPEB_WAEAPEAVCObject@@@Z
+extern "C" int MS_ABI impl__Lookup_CMapStringToOb__QEBAHPEB_WAEAPEAVCObject___Z(const CMapStringToOb* pThis, const wchar_t* key, CObject*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?LookupKey@CMapStringToOb@@QEBAHPEB_WAEAPEB_W@Z
+extern "C" int MS_ABI impl__LookupKey_CMapStringToOb__QEBAHPEB_WAEAPEB_W_Z(const CMapStringToOb* pThis, const wchar_t* key, const wchar_t*& actualKey) { return (pThis && pThis->LookupKey(key, actualKey)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapStringToOb@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapStringToOb__IEAAPEAUCAssoc_1_XZ(CMapStringToOb* /*pThis*/) { return new AssocSnapshot<CString, CObject*>(); }
+// Symbol: ?RemoveAll@CMapStringToOb@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapStringToOb__QEAAXXZ(CMapStringToOb* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapStringToOb@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapStringToOb__QEAAHPEB_W_Z(CMapStringToOb* pThis, const wchar_t* key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+// Symbol: ?Serialize@CMapStringToOb@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMapStringToOb__UEAAXAEAVCArchive___Z(CMapStringToOb* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+
+// Symbol: ??0CMapStringToPtr@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapStringToPtr__QEAA__J_Z, CMapStringToPtr, long long)
+// Symbol: ??1CMapStringToPtr@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapStringToPtr__UEAA_XZ, CMapStringToPtr)
+// Symbol: ??ACMapStringToPtr@@QEAAAEAPEAXPEB_W@Z
+extern "C" void** MS_ABI impl___ACMapStringToPtr__QEAAAEAPEAXPEB_W_Z(CMapStringToPtr* pThis, const wchar_t* key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?FreeAssoc@CMapStringToPtr@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1___Z(CMapStringToPtr* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<CString, void*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1__Z(CMapStringToPtr* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapStringToPtr@@IEBAPEAUCAssoc@1@PEB_WAEAI1@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapStringToPtr__IEBAPEAUCAssoc_1_PEB_WAEAI1_Z(const CMapStringToPtr* pThis, const wchar_t* key, unsigned int& nHash, unsigned int& nHashBucket) { CString k = NormalizeStringKey(key); nHash = HashCStringKey(k); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; void* value = nullptr; if (!pThis || !pThis->Lookup(k, value)) return nullptr; auto* assoc = new AssocSnapshot<CString, void*>(); assoc->nHashValue = nHash; assoc->key = k; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapStringToPtr@@QEBAXAEAPEAU__POSITION@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAX@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapStringToPtr__QEBAXAEAPEAU__POSITION__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAX_Z(const CMapStringToPtr* pThis, CMapStringToPtr::POSITION& pos, CString& key, void*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = L""; value = nullptr; } }
+// Symbol: ?GetRuntimeClass@CMapStringToPtr@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapStringToPtr__UEBAPEAUCRuntimeClass__XZ, CMapStringToPtr)
+// Symbol: ?GetThisClass@CMapStringToPtr@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapStringToPtr__SAPEAUCRuntimeClass__XZ, CMapStringToPtr)
+// Symbol: ?InitHashTable@CMapStringToPtr@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapStringToPtr__QEAAXIH_Z(CMapStringToPtr* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapStringToPtr@@QEBAHPEB_WAEAPEAX@Z
+extern "C" int MS_ABI impl__Lookup_CMapStringToPtr__QEBAHPEB_WAEAPEAX_Z(const CMapStringToPtr* pThis, const wchar_t* key, void*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?LookupKey@CMapStringToPtr@@QEBAHPEB_WAEAPEB_W@Z
+extern "C" int MS_ABI impl__LookupKey_CMapStringToPtr__QEBAHPEB_WAEAPEB_W_Z(const CMapStringToPtr* pThis, const wchar_t* key, const wchar_t*& actualKey) { return (pThis && pThis->LookupKey(key, actualKey)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapStringToPtr@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapStringToPtr__IEAAPEAUCAssoc_1_XZ(CMapStringToPtr* /*pThis*/) { return new AssocSnapshot<CString, void*>(); }
+// Symbol: ?RemoveAll@CMapStringToPtr@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapStringToPtr__QEAAXXZ(CMapStringToPtr* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapStringToPtr@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapStringToPtr__QEAAHPEB_W_Z(CMapStringToPtr* pThis, const wchar_t* key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+
+// Symbol: ??0CMapStringToString@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapStringToString__QEAA__J_Z, CMapStringToString, long long)
+// Symbol: ??1CMapStringToString@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapStringToString__UEAA_XZ, CMapStringToString)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMapStringToString@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMapStringToString___Z, CMapStringToString)
+// Symbol: ??ACMapStringToString@@QEAAAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
+extern "C" CString* MS_ABI impl___ACMapStringToString__QEAAAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CMapStringToString* pThis, const wchar_t* key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?CreateObject@CMapStringToString@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CMapStringToString__SAPEAVCObject__XZ, CMapStringToString)
+// Symbol: ?FreeAssoc@CMapStringToString@@IEAAXPEAVCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1___Z(CMapStringToString* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<CString, CString>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1__Z(CMapStringToString* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapStringToString@@IEBAPEAVCAssoc@1@PEB_WAEAI1@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapStringToString__IEBAPEAVCAssoc_1_PEB_WAEAI1_Z(const CMapStringToString* pThis, const wchar_t* key, unsigned int& nHash, unsigned int& nHashBucket) { CString k = NormalizeStringKey(key); nHash = HashCStringKey(k); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; CString value; if (!pThis || !pThis->Lookup(k, value)) return nullptr; auto* assoc = new AssocSnapshot<CString, CString>(); assoc->nHashValue = nHash; assoc->key = k; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapStringToString@@QEBAXAEAPEAU__POSITION@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@1@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapStringToString__QEBAXAEAPEAU__POSITION__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__1_Z(const CMapStringToString* pThis, CMapStringToString::POSITION& pos, CString& key, CString& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = L""; value = L""; } }
+// Symbol: ?GetRuntimeClass@CMapStringToString@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapStringToString__UEBAPEAUCRuntimeClass__XZ, CMapStringToString)
+// Symbol: ?GetThisClass@CMapStringToString@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapStringToString__SAPEAUCRuntimeClass__XZ, CMapStringToString)
+// Symbol: ?InitHashTable@CMapStringToString@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapStringToString__QEAAXIH_Z(CMapStringToString* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapStringToString@@QEBAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__Lookup_CMapStringToString__QEBAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CMapStringToString* pThis, const wchar_t* key, CString& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?LookupKey@CMapStringToString@@QEBAHPEB_WAEAPEB_W@Z
+extern "C" int MS_ABI impl__LookupKey_CMapStringToString__QEBAHPEB_WAEAPEB_W_Z(const CMapStringToString* pThis, const wchar_t* key, const wchar_t*& actualKey) { return (pThis && pThis->LookupKey(key, actualKey)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapStringToString@@IEAAPEAVCAssoc@1@PEB_W@Z
+extern "C" void* MS_ABI impl__NewAssoc_CMapStringToString__IEAAPEAVCAssoc_1_PEB_W_Z(CMapStringToString* /*pThis*/, const wchar_t* key) { auto* assoc = new AssocSnapshot<CString, CString>(); assoc->key = NormalizeStringKey(key); assoc->nHashValue = HashCStringKey(assoc->key); return assoc; }
+// Symbol: ?PGetFirstAssoc@CMapStringToString@@QEAAPEAUCPair@1@XZ
+extern "C" CMapStringToString::CPair* MS_ABI impl__PGetFirstAssoc_CMapStringToString__QEAAPEAUCPair_1_XZ(CMapStringToString* pThis) { return pThis ? pThis->PGetFirstAssoc() : nullptr; }
+// Symbol: ?PGetFirstAssoc@CMapStringToString@@QEBAPEBUCPair@1@XZ
+extern "C" const CMapStringToString::CPair* MS_ABI impl__PGetFirstAssoc_CMapStringToString__QEBAPEBUCPair_1_XZ(const CMapStringToString* pThis) { return pThis ? pThis->PGetFirstAssoc() : nullptr; }
+// Symbol: ?PGetNextAssoc@CMapStringToString@@QEAAPEAUCPair@1@PEBU21@@Z
+extern "C" CMapStringToString::CPair* MS_ABI impl__PGetNextAssoc_CMapStringToString__QEAAPEAUCPair_1_PEBU21___Z(CMapStringToString* pThis, const CMapStringToString::CPair* pAssoc) { return pThis ? pThis->PGetNextAssoc(pAssoc) : nullptr; }
+extern "C" CMapStringToString::CPair* MS_ABI impl__PGetNextAssoc_CMapStringToString__QEAAPEAUCPair_1_PEBU21__Z(CMapStringToString* pThis, const CMapStringToString::CPair* pAssoc) { return impl__PGetNextAssoc_CMapStringToString__QEAAPEAUCPair_1_PEBU21___Z(pThis, pAssoc); }
+// Symbol: ?PGetNextAssoc@CMapStringToString@@QEBAPEBUCPair@1@PEBU21@@Z
+extern "C" const CMapStringToString::CPair* MS_ABI impl__PGetNextAssoc_CMapStringToString__QEBAPEBUCPair_1_PEBU21___Z(const CMapStringToString* pThis, const CMapStringToString::CPair* pAssoc) { return pThis ? pThis->PGetNextAssoc(pAssoc) : nullptr; }
+extern "C" const CMapStringToString::CPair* MS_ABI impl__PGetNextAssoc_CMapStringToString__QEBAPEBUCPair_1_PEBU21__Z(const CMapStringToString* pThis, const CMapStringToString::CPair* pAssoc) { return impl__PGetNextAssoc_CMapStringToString__QEBAPEBUCPair_1_PEBU21___Z(pThis, pAssoc); }
+// Symbol: ?PLookup@CMapStringToString@@QEAAPEAUCPair@1@PEB_W@Z
+extern "C" CMapStringToString::CPair* MS_ABI impl__PLookup_CMapStringToString__QEAAPEAUCPair_1_PEB_W_Z(CMapStringToString* pThis, const wchar_t* key) { return pThis ? pThis->PLookup(key) : nullptr; }
+// Symbol: ?PLookup@CMapStringToString@@QEBAPEBUCPair@1@PEB_W@Z
+extern "C" const CMapStringToString::CPair* MS_ABI impl__PLookup_CMapStringToString__QEBAPEBUCPair_1_PEB_W_Z(const CMapStringToString* pThis, const wchar_t* key) { return pThis ? pThis->PLookup(key) : nullptr; }
+// Symbol: ?RemoveAll@CMapStringToString@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapStringToString__QEAAXXZ(CMapStringToString* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapStringToString@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapStringToString__QEAAHPEB_W_Z(CMapStringToString* pThis, const wchar_t* key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+// Symbol: ?Serialize@CMapStringToString@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMapStringToString__UEAAXAEAVCArchive___Z(CMapStringToString* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+
+// Symbol: ??0CMapWordToOb@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapWordToOb__QEAA__J_Z, CMapWordToOb, long long)
+// Symbol: ??1CMapWordToOb@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapWordToOb__UEAA_XZ, CMapWordToOb)
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMapWordToOb@@@Z
+OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMapWordToOb___Z, CMapWordToOb)
+// Symbol: ??ACMapWordToOb@@QEAAAEAPEAVCObject@@G@Z
+extern "C" CObject** MS_ABI impl___ACMapWordToOb__QEAAAEAPEAVCObject__G_Z(CMapWordToOb* pThis, unsigned short key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?CreateObject@CMapWordToOb@@SAPEAVCObject@@XZ
+OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CMapWordToOb__SAPEAVCObject__XZ, CMapWordToOb)
+// Symbol: ?FreeAssoc@CMapWordToOb@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1___Z(CMapWordToOb* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<WORD, CObject*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1__Z(CMapWordToOb* pThis, void* pAssoc) { impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapWordToOb@@IEBAPEAUCAssoc@1@GAEAI0@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapWordToOb__IEBAPEAUCAssoc_1_GAEAI0_Z(const CMapWordToOb* pThis, unsigned short key, unsigned int& nHash, unsigned int& nHashBucket) { nHash = static_cast<unsigned int>(key >> 4); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; CObject* value = nullptr; if (!pThis || !pThis->Lookup(key, value)) return nullptr; auto* assoc = new AssocSnapshot<WORD, CObject*>(); assoc->nHashValue = nHash; assoc->key = key; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapWordToOb@@QEBAXAEAPEAU__POSITION@@AEAGAEAPEAVCObject@@@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapWordToOb__QEBAXAEAPEAU__POSITION__AEAGAEAPEAVCObject___Z(const CMapWordToOb* pThis, CMapWordToOb::POSITION& pos, unsigned short& key, CObject*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = 0; value = nullptr; } }
+// Symbol: ?GetRuntimeClass@CMapWordToOb@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapWordToOb__UEBAPEAUCRuntimeClass__XZ, CMapWordToOb)
+// Symbol: ?GetThisClass@CMapWordToOb@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapWordToOb__SAPEAUCRuntimeClass__XZ, CMapWordToOb)
+// Symbol: ?InitHashTable@CMapWordToOb@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapWordToOb__QEAAXIH_Z(CMapWordToOb* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapWordToOb@@QEBAHGAEAPEAVCObject@@@Z
+extern "C" int MS_ABI impl__Lookup_CMapWordToOb__QEBAHGAEAPEAVCObject___Z(const CMapWordToOb* pThis, unsigned short key, CObject*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapWordToOb@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapWordToOb__IEAAPEAUCAssoc_1_XZ(CMapWordToOb* /*pThis*/) { return new AssocSnapshot<WORD, CObject*>(); }
+// Symbol: ?RemoveAll@CMapWordToOb@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapWordToOb__QEAAXXZ(CMapWordToOb* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapWordToOb@@QEAAHG@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapWordToOb__QEAAHG_Z(CMapWordToOb* pThis, unsigned short key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+// Symbol: ?Serialize@CMapWordToOb@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMapWordToOb__UEAAXAEAVCArchive___Z(CMapWordToOb* pThis, CArchive& ar) { if (pThis) pThis->Serialize(ar); }
+
+// Symbol: ??0CMapWordToPtr@@QEAA@_J@Z
+OPENMFC_WRAP_CTOR1(impl___0CMapWordToPtr__QEAA__J_Z, CMapWordToPtr, long long)
+// Symbol: ??1CMapWordToPtr@@UEAA@XZ
+OPENMFC_WRAP_DTOR(impl___1CMapWordToPtr__UEAA_XZ, CMapWordToPtr)
+// Symbol: ??ACMapWordToPtr@@QEAAAEAPEAXG@Z
+extern "C" void** MS_ABI impl___ACMapWordToPtr__QEAAAEAPEAXG_Z(CMapWordToPtr* pThis, unsigned short key) { return pThis ? &((*pThis)[key]) : nullptr; }
+// Symbol: ?FreeAssoc@CMapWordToPtr@@IEAAXPEAUCAssoc@1@@Z
+extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1___Z(CMapWordToPtr* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<WORD, void*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1__Z(CMapWordToPtr* pThis, void* pAssoc) { impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
+// Symbol: ?GetAssocAt@CMapWordToPtr@@IEBAPEAUCAssoc@1@GAEAI0@Z
+extern "C" void* MS_ABI impl__GetAssocAt_CMapWordToPtr__IEBAPEAUCAssoc_1_GAEAI0_Z(const CMapWordToPtr* pThis, unsigned short key, unsigned int& nHash, unsigned int& nHashBucket) { nHash = static_cast<unsigned int>(key >> 4); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; void* value = nullptr; if (!pThis || !pThis->Lookup(key, value)) return nullptr; auto* assoc = new AssocSnapshot<WORD, void*>(); assoc->nHashValue = nHash; assoc->key = key; assoc->value = value; return assoc; }
+// Symbol: ?GetNextAssoc@CMapWordToPtr@@QEBAXAEAPEAU__POSITION@@AEAGAEAPEAX@Z
+extern "C" void MS_ABI impl__GetNextAssoc_CMapWordToPtr__QEBAXAEAPEAU__POSITION__AEAGAEAPEAX_Z(const CMapWordToPtr* pThis, CMapWordToPtr::POSITION& pos, unsigned short& key, void*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = 0; value = nullptr; } }
+// Symbol: ?GetRuntimeClass@CMapWordToPtr@@UEBAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETRUNTIMECLASS(impl__GetRuntimeClass_CMapWordToPtr__UEBAPEAUCRuntimeClass__XZ, CMapWordToPtr)
+// Symbol: ?GetThisClass@CMapWordToPtr@@SAPEAUCRuntimeClass@@XZ
+OPENMFC_WRAP_GETTHISCLASS(impl__GetThisClass_CMapWordToPtr__SAPEAUCRuntimeClass__XZ, CMapWordToPtr)
+// Symbol: ?InitHashTable@CMapWordToPtr@@QEAAXIH@Z
+extern "C" void MS_ABI impl__InitHashTable_CMapWordToPtr__QEAAXIH_Z(CMapWordToPtr* pThis, unsigned int hashSize, int bAllocNow) { if (pThis) pThis->InitHashTable(hashSize, bAllocNow); }
+// Symbol: ?Lookup@CMapWordToPtr@@QEBAHGAEAPEAX@Z
+extern "C" int MS_ABI impl__Lookup_CMapWordToPtr__QEBAHGAEAPEAX_Z(const CMapWordToPtr* pThis, unsigned short key, void*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
+// Symbol: ?NewAssoc@CMapWordToPtr@@IEAAPEAUCAssoc@1@XZ
+extern "C" void* MS_ABI impl__NewAssoc_CMapWordToPtr__IEAAPEAUCAssoc_1_XZ(CMapWordToPtr* /*pThis*/) { return new AssocSnapshot<WORD, void*>(); }
+// Symbol: ?RemoveAll@CMapWordToPtr@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMapWordToPtr__QEAAXXZ(CMapWordToPtr* pThis) { if (pThis) pThis->RemoveAll(); }
+// Symbol: ?RemoveKey@CMapWordToPtr@@QEAAHG@Z
+extern "C" int MS_ABI impl__RemoveKey_CMapWordToPtr__QEAAHG_Z(CMapWordToPtr* pThis, unsigned short key) { return (pThis && pThis->RemoveKey(key)) ? 1 : 0; }
+
+#undef OPENMFC_WRAP_CTOR1
+#undef OPENMFC_WRAP_DTOR
+#undef OPENMFC_WRAP_GETTHISCLASS
+#undef OPENMFC_WRAP_GETRUNTIMECLASS
+#undef OPENMFC_WRAP_CREATEOBJECT
+#undef OPENMFC_WRAP_SERIAL_EXTRACT
 
 // =============================================================================
 // CFile Implementation

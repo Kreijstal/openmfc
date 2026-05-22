@@ -1368,57 +1368,295 @@ void CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>::GetNextAssoc(POSITION& rNextPosition,
 
 // Type definitions for common collections
 typedef CArray<int, int> CIntArray;
-typedef CArray<unsigned int, unsigned int> CUIntArray;
 typedef CArray<WORD, WORD> CWordArray;
-typedef CArray<DWORD, DWORD> CDWordArray;
-typedef CArray<CString, const CString&> CStringArray;
-typedef CArray<CObject*, CObject*> CObArray;
-typedef CArray<void*, void*> CPtrArray;
 
 typedef CList<int, int> CIntList;
 typedef CList<unsigned int, unsigned int> CUIntList;
 typedef CList<WORD, WORD> CWordList;
 typedef CList<DWORD, DWORD> CDWordList;
-typedef CList<CString, const CString&> CStringList;
-typedef CList<CObject*, CObject*> CObList;
 typedef CList<void*, void*> CPtrList;
 
-// Byte array (missing from above)
-typedef CArray<BYTE, BYTE> CByteArray;
+#define OPENMFC_DECLARE_ARRAY_WRAPPER(class_name, element_type, arg_type, class_decl) \
+class class_name : public CObject { \
+    class_decl(class_name) \
+public: \
+    class_name(); \
+    virtual ~class_name(); \
+    INT_PTR GetSize() const; \
+    INT_PTR GetCount() const; \
+    BOOL IsEmpty() const; \
+    INT_PTR GetUpperBound() const; \
+    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1); \
+    void FreeExtra(); \
+    void RemoveAll(); \
+    element_type GetAt(INT_PTR nIndex) const; \
+    void SetAt(INT_PTR nIndex, arg_type newElement); \
+    element_type& ElementAt(INT_PTR nIndex); \
+    const element_type& ElementAt(INT_PTR nIndex) const; \
+    element_type operator[](INT_PTR nIndex) const; \
+    element_type& operator[](INT_PTR nIndex); \
+    element_type* GetData(); \
+    const element_type* GetData() const; \
+    void SetAtGrow(INT_PTR nIndex, arg_type newElement); \
+    INT_PTR Add(arg_type newElement); \
+    INT_PTR Append(const class_name& src); \
+    void Copy(const class_name& src); \
+    void InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount = 1); \
+    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1); \
+    void InsertAt(INT_PTR nStartIndex, class_name* pNewArray); \
+    virtual void Serialize(CArchive& ar) override; \
+};
+
+#define OPENMFC_DECLARE_LIST_WRAPPER(class_name, element_type, arg_type, class_decl) \
+class class_name : public CObject { \
+    class_decl(class_name) \
+public: \
+    typedef CList<element_type, arg_type>::POSITION POSITION; \
+    explicit class_name(INT_PTR nBlockSize = 10); \
+    virtual ~class_name(); \
+    INT_PTR GetCount() const; \
+    BOOL IsEmpty() const; \
+    element_type& GetHead(); \
+    element_type GetHead() const; \
+    element_type& GetTail(); \
+    element_type GetTail() const; \
+    POSITION GetHeadPosition() const; \
+    POSITION GetTailPosition() const; \
+    element_type& GetNext(POSITION& rPosition); \
+    element_type GetNext(POSITION& rPosition) const; \
+    element_type& GetPrev(POSITION& rPosition); \
+    element_type GetPrev(POSITION& rPosition) const; \
+    element_type GetAt(POSITION position) const; \
+    void SetAt(POSITION pos, arg_type newElement); \
+    void RemoveAt(POSITION position); \
+    POSITION FindIndex(INT_PTR nIndex) const; \
+    POSITION Find(arg_type searchValue, POSITION startAfter = POSITION(nullptr)) const; \
+    POSITION AddHead(arg_type newElement); \
+    POSITION AddTail(arg_type newElement); \
+    void AddHead(class_name* pNewList); \
+    void AddTail(class_name* pNewList); \
+    element_type RemoveHead(); \
+    element_type RemoveTail(); \
+    POSITION InsertBefore(POSITION position, arg_type newElement); \
+    POSITION InsertAfter(POSITION position, arg_type newElement); \
+    void RemoveAll(); \
+    virtual void Serialize(CArchive& ar) override; \
+};
+
+#define OPENMFC_DECLARE_MAP_WRAPPER(class_name, key_type, arg_key_type, value_type, arg_value_type, base_key_type, class_decl) \
+class class_name : public CObject { \
+    class_decl(class_name) \
+public: \
+    typedef base_key_type BASE_KEY; \
+    typedef CMap<key_type, arg_key_type, value_type, arg_value_type>::POSITION POSITION; \
+    explicit class_name(INT_PTR nBlockSize = 10); \
+    virtual ~class_name(); \
+    INT_PTR GetCount() const; \
+    BOOL IsEmpty() const; \
+    BOOL Lookup(arg_key_type key, value_type& rValue) const; \
+    value_type& operator[](arg_key_type key); \
+    const value_type& operator[](arg_key_type key) const; \
+    void SetAt(arg_key_type key, arg_value_type newValue); \
+    BOOL RemoveKey(arg_key_type key); \
+    void RemoveAll(); \
+    POSITION GetStartPosition() const; \
+    void GetNextAssoc(POSITION& rNextPosition, key_type& rKey, value_type& rValue) const; \
+    UINT GetHashTableSize() const; \
+    void InitHashTable(UINT hashSize, BOOL bAllocNow = TRUE); \
+    virtual void Serialize(CArchive& ar) override; \
+};
+
+OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
+OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, DECLARE_SERIAL)
+OPENMFC_DECLARE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
+OPENMFC_DECLARE_ARRAY_WRAPPER(CPtrArray, void*, void*, DECLARE_DYNAMIC)
+OPENMFC_DECLARE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
+
+class CStringArray : public CObject {
+    DECLARE_SERIAL(CStringArray)
+public:
+    CStringArray();
+    virtual ~CStringArray();
+    INT_PTR GetSize() const;
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    INT_PTR GetUpperBound() const;
+    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1);
+    void FreeExtra();
+    void RemoveAll();
+    CString GetAt(INT_PTR nIndex) const;
+    void SetAt(INT_PTR nIndex, const CString& newElement);
+    CString& ElementAt(INT_PTR nIndex);
+    const CString& ElementAt(INT_PTR nIndex) const;
+    CString operator[](INT_PTR nIndex) const;
+    CString& operator[](INT_PTR nIndex);
+    CString* GetData();
+    const CString* GetData() const;
+    void SetAtGrow(INT_PTR nIndex, const CString& newElement);
+    void SetAtGrow(INT_PTR nIndex, const wchar_t* newElement);
+    INT_PTR Add(const CString& newElement);
+    INT_PTR Append(const CStringArray& src);
+    void Copy(const CStringArray& src);
+    void InsertAt(INT_PTR nIndex, const CString& newElement, INT_PTR nCount = 1);
+    void InsertAt(INT_PTR nIndex, const wchar_t* newElement, INT_PTR nCount = 1);
+    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1);
+    void InsertAt(INT_PTR nStartIndex, CStringArray* pNewArray);
+    void InsertEmpty(INT_PTR nIndex, INT_PTR nCount);
+    virtual void Serialize(CArchive& ar) override;
+};
+
+OPENMFC_DECLARE_LIST_WRAPPER(CObList, CObject*, CObject*, DECLARE_SERIAL)
+
+class CStringList : public CObject {
+    DECLARE_SERIAL(CStringList)
+public:
+    typedef CList<CString, const CString&>::POSITION POSITION;
+    explicit CStringList(INT_PTR nBlockSize = 10);
+    virtual ~CStringList();
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    CString& GetHead();
+    CString GetHead() const;
+    CString& GetTail();
+    CString GetTail() const;
+    POSITION GetHeadPosition() const;
+    POSITION GetTailPosition() const;
+    CString& GetNext(POSITION& rPosition);
+    CString GetNext(POSITION& rPosition) const;
+    CString& GetPrev(POSITION& rPosition);
+    CString GetPrev(POSITION& rPosition) const;
+    CString GetAt(POSITION position) const;
+    void SetAt(POSITION pos, const CString& newElement);
+    void RemoveAt(POSITION position);
+    POSITION FindIndex(INT_PTR nIndex) const;
+    POSITION Find(const CString& searchValue, POSITION startAfter = POSITION(nullptr)) const;
+    POSITION Find(const wchar_t* searchValue, POSITION startAfter = POSITION(nullptr)) const;
+    POSITION AddHead(const CString& newElement);
+    POSITION AddHead(const wchar_t* newElement);
+    void AddHead(CStringList* pNewList);
+    POSITION AddTail(const CString& newElement);
+    POSITION AddTail(const wchar_t* newElement);
+    void AddTail(CStringList* pNewList);
+    CString RemoveHead();
+    CString RemoveTail();
+    POSITION InsertBefore(POSITION position, const CString& newElement);
+    POSITION InsertBefore(POSITION position, const wchar_t* newElement);
+    POSITION InsertAfter(POSITION position, const CString& newElement);
+    POSITION InsertAfter(POSITION position, const wchar_t* newElement);
+    void RemoveAll();
+    virtual void Serialize(CArchive& ar) override;
+};
+
+OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToPtr, void*, void*, void*, void*, void*, DECLARE_DYNAMIC)
+OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToWord, void*, void*, WORD, WORD, void*, DECLARE_DYNAMIC)
+OPENMFC_DECLARE_MAP_WRAPPER(CMapWordToOb, WORD, WORD, CObject*, CObject*, WORD, DECLARE_SERIAL)
+OPENMFC_DECLARE_MAP_WRAPPER(CMapWordToPtr, WORD, WORD, void*, void*, WORD, DECLARE_DYNAMIC)
 
 // String map classes (non-template versions for ABI compatibility)
-class CMapStringToOb : public CMap<CString, const CString&, CObject*, CObject*> {
+class CMapStringToOb : public CObject {
+    DECLARE_SERIAL(CMapStringToOb)
 public:
     typedef const wchar_t* BASE_KEY;
-    CMapStringToOb(int nBlockSize = 10) : CMap(nBlockSize) {}
+    typedef CMap<CString, const CString&, CObject*, CObject*>::POSITION POSITION;
+    explicit CMapStringToOb(INT_PTR nBlockSize = 10);
+    virtual ~CMapStringToOb();
 
-    // Additional string-specific methods
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    BOOL Lookup(const CString& key, CObject*& rValue) const;
+    BOOL Lookup(const wchar_t* key, CObject*& rValue) const;
+    BOOL LookupKey(const CString& key, const wchar_t*& rKey) const;
+    BOOL LookupKey(const wchar_t* key, const wchar_t*& rKey) const;
+    CObject*& operator[](const CString& key);
     CObject*& operator[](const wchar_t* key);
-    bool Lookup(const wchar_t* key, CObject*& rValue) const;
+    const CObject* operator[](const wchar_t* key) const;
+    void SetAt(const CString& key, CObject* newValue);
     void SetAt(const wchar_t* key, CObject* newValue);
+    BOOL RemoveKey(const CString& key);
+    BOOL RemoveKey(const wchar_t* key);
+    void RemoveAll();
+    POSITION GetStartPosition() const;
+    void GetNextAssoc(POSITION& rNextPosition, CString& rKey, CObject*& rValue) const;
+    UINT GetHashTableSize() const;
+    void InitHashTable(UINT hashSize, BOOL bAllocNow = TRUE);
+    virtual void Serialize(CArchive& ar) override;
 };
 
-class CMapStringToPtr : public CMap<CString, const CString&, void*, void*> {
+class CMapStringToPtr : public CObject {
+    DECLARE_DYNAMIC(CMapStringToPtr)
 public:
     typedef const wchar_t* BASE_KEY;
-    CMapStringToPtr(int nBlockSize = 10) : CMap(nBlockSize) {}
+    typedef CMap<CString, const CString&, void*, void*>::POSITION POSITION;
+    explicit CMapStringToPtr(INT_PTR nBlockSize = 10);
+    virtual ~CMapStringToPtr();
 
-    // Additional string-specific methods
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    BOOL Lookup(const CString& key, void*& rValue) const;
+    BOOL Lookup(const wchar_t* key, void*& rValue) const;
+    BOOL LookupKey(const CString& key, const wchar_t*& rKey) const;
+    BOOL LookupKey(const wchar_t* key, const wchar_t*& rKey) const;
+    void*& operator[](const CString& key);
     void*& operator[](const wchar_t* key);
-    bool Lookup(const wchar_t* key, void*& rValue) const;
+    const void* operator[](const wchar_t* key) const;
+    void SetAt(const CString& key, void* newValue);
     void SetAt(const wchar_t* key, void* newValue);
+    BOOL RemoveKey(const CString& key);
+    BOOL RemoveKey(const wchar_t* key);
+    void RemoveAll();
+    POSITION GetStartPosition() const;
+    void GetNextAssoc(POSITION& rNextPosition, CString& rKey, void*& rValue) const;
+    UINT GetHashTableSize() const;
+    void InitHashTable(UINT hashSize, BOOL bAllocNow = TRUE);
+    virtual void Serialize(CArchive& ar) override;
 };
 
-class CMapStringToString : public CMap<CString, const CString&, CString, const CString&> {
+class CMapStringToString : public CObject {
+    DECLARE_SERIAL(CMapStringToString)
 public:
-    CMapStringToString(int nBlockSize = 10) : CMap(nBlockSize) {}
-    
-    // Additional string-specific methods
+    typedef const wchar_t* BASE_KEY;
+    typedef CMap<CString, const CString&, CString, const CString&>::POSITION POSITION;
+    struct CPair {
+        const CPair* pNextAssoc;
+        UINT nHashValue;
+        CString key;
+        CString value;
+    };
+
+    explicit CMapStringToString(INT_PTR nBlockSize = 10);
+    virtual ~CMapStringToString();
+
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    BOOL Lookup(const CString& key, CString& rValue) const;
+    BOOL Lookup(const wchar_t* key, CString& rValue) const;
+    BOOL LookupKey(const CString& key, const wchar_t*& rKey) const;
+    BOOL LookupKey(const wchar_t* key, const wchar_t*& rKey) const;
+    CString& operator[](const CString& key);
     CString& operator[](const wchar_t* key);
-    bool Lookup(const wchar_t* key, CString& rValue) const;
+    const CString& operator[](const wchar_t* key) const;
+    void SetAt(const CString& key, const CString& newValue);
     void SetAt(const wchar_t* key, const CString& newValue);
     void SetAt(const wchar_t* key, const wchar_t* newValue);
+    BOOL RemoveKey(const CString& key);
+    BOOL RemoveKey(const wchar_t* key);
+    void RemoveAll();
+    POSITION GetStartPosition() const;
+    void GetNextAssoc(POSITION& rNextPosition, CString& rKey, CString& rValue) const;
+    UINT GetHashTableSize() const;
+    void InitHashTable(UINT hashSize, BOOL bAllocNow = TRUE);
+    CPair* PLookup(const wchar_t* key);
+    const CPair* PLookup(const wchar_t* key) const;
+    CPair* PGetFirstAssoc();
+    const CPair* PGetFirstAssoc() const;
+    CPair* PGetNextAssoc(const CPair* pAssocRet);
+    const CPair* PGetNextAssoc(const CPair* pAssocRet) const;
+    virtual void Serialize(CArchive& ar) override;
 };
+
+#undef OPENMFC_DECLARE_ARRAY_WRAPPER
+#undef OPENMFC_DECLARE_LIST_WRAPPER
+#undef OPENMFC_DECLARE_MAP_WRAPPER
 
 // ============================================================================
 // Typed pointer collection templates
@@ -1521,50 +1759,6 @@ public:
     }
 };
 
-// ============================================================================
-// CMapStringTo* inline implementations
-// ============================================================================
-
-inline CObject*& CMapStringToOb::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, CObject*, CObject*>::operator[](CString(key ? key : L""));
-}
-
-inline bool CMapStringToOb::Lookup(const wchar_t* key, CObject*& rValue) const {
-    return CMap<CString, const CString&, CObject*, CObject*>::Lookup(CString(key ? key : L""), rValue);
-}
-
-inline void CMapStringToOb::SetAt(const wchar_t* key, CObject* newValue) {
-    CMap<CString, const CString&, CObject*, CObject*>::SetAt(CString(key ? key : L""), newValue);
-}
-
-inline void*& CMapStringToPtr::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, void*, void*>::operator[](CString(key ? key : L""));
-}
-
-inline bool CMapStringToPtr::Lookup(const wchar_t* key, void*& rValue) const {
-    return CMap<CString, const CString&, void*, void*>::Lookup(CString(key ? key : L""), rValue);
-}
-
-inline void CMapStringToPtr::SetAt(const wchar_t* key, void* newValue) {
-    CMap<CString, const CString&, void*, void*>::SetAt(CString(key ? key : L""), newValue);
-}
-
-inline CString& CMapStringToString::operator[](const wchar_t* key) {
-    return CMap<CString, const CString&, CString, const CString&>::operator[](CString(key ? key : L""));
-}
-
-inline bool CMapStringToString::Lookup(const wchar_t* key, CString& rValue) const {
-    return CMap<CString, const CString&, CString, const CString&>::Lookup(CString(key ? key : L""), rValue);
-}
-
-inline void CMapStringToString::SetAt(const wchar_t* key, const CString& newValue) {
-    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key ? key : L""), newValue);
-}
-
-inline void CMapStringToString::SetAt(const wchar_t* key, const wchar_t* newValue) {
-    CMap<CString, const CString&, CString, const CString&>::SetAt(CString(key ? key : L""), CString(newValue ? newValue : L""));
-}
-
 // CWinThread forward declaration - defined in afxwin.h
 class CWinThread;
 
@@ -1572,7 +1766,7 @@ class CWinThread;
 template<class TYPE, class ARG_TYPE>
 CArchive& operator<<(CArchive& ar, const CArray<TYPE, ARG_TYPE>& array) {
     ar << (WORD)array.GetSize();
-    SerializeElements(ar, array.GetData(), array.GetSize());
+    SerializeElements(ar, const_cast<TYPE*>(array.GetData()), array.GetSize());
     return ar;
 }
 
