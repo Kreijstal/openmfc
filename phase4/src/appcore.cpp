@@ -334,14 +334,28 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
         break;
     }
 
-    if (pszMessage) {
-        wcsncpy(lpszError, pszMessage, nMaxError - 1);
-        lpszError[nMaxError - 1] = L'\0';
-        return 1;  // TRUE - message provided
+    if (!pszMessage) {
+        lpszError[0] = L'\0';
+        return 0;
     }
 
-    lpszError[0] = L'\0';
-    return 0;
+    if (!m_strFileName.IsEmpty()) {
+        int written = _snwprintf(
+            lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
+    } else if (m_lOsError != -1) {
+        int written = _snwprintf(lpszError, nMaxError, L"%ls (OS error %ld)", pszMessage, m_lOsError);
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
+    } else {
+        wcsncpy(lpszError, pszMessage, nMaxError - 1);
+        lpszError[nMaxError - 1] = L'\0';
+    }
+    lpszError[nMaxError - 1] = L'\0';
+    return 1;  // TRUE - message provided
 }
 
 // Define MS_ABI if not defined
@@ -477,14 +491,23 @@ int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT*
         break;
     }
 
-    if (pszMessage) {
-        wcsncpy(lpszError, pszMessage, nMaxError - 1);
-        lpszError[nMaxError - 1] = L'\0';
-        return 1;  // TRUE - message provided
+    if (!pszMessage) {
+        lpszError[0] = L'\0';
+        return 0;
     }
 
-    lpszError[0] = L'\0';
-    return 0;
+    if (!m_strFileName.IsEmpty()) {
+        int written = _snwprintf(
+            lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
+        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
+            lpszError[nMaxError - 1] = L'\0';
+        }
+    } else {
+        wcsncpy(lpszError, pszMessage, nMaxError - 1);
+        lpszError[nMaxError - 1] = L'\0';
+    }
+    lpszError[nMaxError - 1] = L'\0';
+    return 1;  // TRUE - message provided
 }
 
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)

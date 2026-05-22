@@ -64,7 +64,182 @@ static void CopyErrorText(wchar_t* out, UINT maxLen, const wchar_t* text) {
     out[maxLen - 1] = L'\0';
 }
 
+static void EmitDiagnosticText(const wchar_t* text) {
+    if (!text) return;
+    OutputDebugStringW(text);
+    fwprintf(stderr, L"%ls", text);
+}
+
+static void CopyClassName(const CException* pThis, wchar_t* out, size_t outCount) {
+    if (!out || outCount == 0) return;
+    out[0] = L'\0';
+    const char* name = "CException";
+    if (pThis) {
+        CRuntimeClass* pClass = pThis->GetRuntimeClass();
+        if (pClass && pClass->m_lpszClassName && pClass->m_lpszClassName[0] != '\0') {
+            name = pClass->m_lpszClassName;
+        }
+    }
+
+    size_t i = 0;
+    for (; name[i] != '\0' && i + 1 < outCount; ++i) {
+        out[i] = static_cast<unsigned char>(name[i]);
+    }
+    out[i] = L'\0';
+}
+
+static const wchar_t* FileCauseText(int cause) {
+    switch (cause) {
+    case CFileException::none: return L"No error";
+    case CFileException::genericException: return L"Generic file error";
+    case CFileException::fileNotFound: return L"File not found";
+    case CFileException::badPath: return L"Invalid path";
+    case CFileException::tooManyOpenFiles: return L"Too many open files";
+    case CFileException::accessDenied: return L"Access denied";
+    case CFileException::invalidFile: return L"Invalid file";
+    case CFileException::removeCurrentDir: return L"Cannot remove current directory";
+    case CFileException::directoryFull: return L"Directory is full";
+    case CFileException::badSeek: return L"Invalid seek operation";
+    case CFileException::hardIO: return L"Hardware I/O error";
+    case CFileException::sharingViolation: return L"File sharing violation";
+    case CFileException::lockViolation: return L"File lock violation";
+    case CFileException::diskFull: return L"Disk is full";
+    case CFileException::endOfFile: return L"Unexpected end of file";
+    default: return L"Unknown file error";
+    }
+}
+
+static const wchar_t* ArchiveCauseText(int cause) {
+    switch (cause) {
+    case CArchiveException::none: return L"No error";
+    case CArchiveException::generic: return L"Archive error";
+    case CArchiveException::readOnly: return L"Cannot write to read-only archive";
+    case CArchiveException::endOfFile: return L"Unexpected end of file";
+    case CArchiveException::writeOnly: return L"Cannot read from write-only archive";
+    case CArchiveException::badIndex: return L"Invalid object index";
+    case CArchiveException::badClass: return L"Invalid class found in archive";
+    case CArchiveException::badSchema: return L"Schema mismatch in archive";
+    case CArchiveException::badFormat: return L"Bad archive format";
+    default: return L"Unknown archive error";
+    }
+}
+
 } // namespace
+
+int CException::GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext) const {
+    if (pnHelpContext) {
+        *pnHelpContext = 0;
+    }
+    if (!lpszError || nMaxError == 0) {
+        return 0;
+    }
+
+    wchar_t className[64];
+    CopyClassName(this, className, sizeof(className) / sizeof(className[0]));
+    if (wcscmp(className, L"CException") == 0) {
+        CopyErrorText(lpszError, nMaxError, L"MFC exception");
+    } else {
+        wchar_t buffer[128];
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"MFC exception: %ls", className);
+        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+        CopyErrorText(lpszError, nMaxError, buffer);
+    }
+    return 1;
+}
+
+void CException::Dump() const {
+    wchar_t className[64];
+    CopyClassName(this, className, sizeof(className) / sizeof(className[0]));
+    wchar_t buffer[160];
+    _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+               L"%ls[autoDelete=%d]\n", className, m_bAutoDelete);
+    buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+    EmitDiagnosticText(buffer);
+}
+
+void CException::AssertValid() const {
+    CRuntimeClass* pClass = GetRuntimeClass();
+    if (!pClass || !pClass->m_lpszClassName || pClass->m_lpszClassName[0] == '\0') {
+        EmitDiagnosticText(L"CException::AssertValid missing runtime class information\n");
+    }
+    if (m_bAutoDelete != FALSE && m_bAutoDelete != TRUE) {
+        wchar_t buffer[96];
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CException::AssertValid unusual m_bAutoDelete=%d\n", m_bAutoDelete);
+        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+        EmitDiagnosticText(buffer);
+    }
+}
+
+void CFileException::Dump() const {
+    wchar_t buffer[512];
+    if (!m_strFileName.IsEmpty()) {
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CFileException[cause=%d, message=%ls, osError=%ld, file=%ls, autoDelete=%d]\n",
+                   m_cause, FileCauseText(m_cause), m_lOsError, static_cast<const wchar_t*>(m_strFileName),
+                   m_bAutoDelete);
+    } else {
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CFileException[cause=%d, message=%ls, osError=%ld, autoDelete=%d]\n",
+                   m_cause, FileCauseText(m_cause), m_lOsError, m_bAutoDelete);
+    }
+    buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+    EmitDiagnosticText(buffer);
+}
+
+void CFileException::AssertValid() const {
+    CException::AssertValid();
+    if (m_cause < none || m_cause > endOfFile) {
+        wchar_t buffer[96];
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CFileException::AssertValid unknown cause=%d\n", m_cause);
+        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+        EmitDiagnosticText(buffer);
+    }
+}
+
+void CArchiveException::Dump() const {
+    wchar_t buffer[512];
+    if (!m_strFileName.IsEmpty()) {
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CArchiveException[cause=%d, message=%ls, file=%ls, autoDelete=%d]\n",
+                   m_cause, ArchiveCauseText(m_cause), static_cast<const wchar_t*>(m_strFileName), m_bAutoDelete);
+    } else {
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CArchiveException[cause=%d, message=%ls, autoDelete=%d]\n",
+                   m_cause, ArchiveCauseText(m_cause), m_bAutoDelete);
+    }
+    buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+    EmitDiagnosticText(buffer);
+}
+
+void CArchiveException::AssertValid() const {
+    CException::AssertValid();
+    if (m_cause < none || m_cause > badFormat) {
+        wchar_t buffer[104];
+        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
+                   L"CArchiveException::AssertValid unknown cause=%d\n", m_cause);
+        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
+        EmitDiagnosticText(buffer);
+    }
+}
+
+// Symbol: ?GetErrorMessage@CException@@UEBAHPEA_WIPEAI@Z
+extern "C" int MS_ABI impl__GetErrorMessage_CException__UEBAHPEA_WIPEAI_Z(
+    const CException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext
+) {
+    if (!pThis) {
+        if (pnHelpContext) *pnHelpContext = 0;
+        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
+        return 0;
+    }
+    return pThis->CException::GetErrorMessage(lpszError, nMaxError, pnHelpContext);
+}
+
+#ifdef __GNUC__
+asm(".globl \"?GetErrorMessage@CException@@UEBAHPEA_WIPEAI@Z\"\n"
+    ".set \"?GetErrorMessage@CException@@UEBAHPEA_WIPEAI@Z\", impl__GetErrorMessage_CException__UEBAHPEA_WIPEAI_Z\n");
+#endif
 
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc);
 extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
@@ -598,14 +773,26 @@ extern "C" void MS_ABI opdelete_shim(void* pThis) {
 // Serialize does nothing for exceptions
 extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
 
-// AssertValid does nothing
-extern "C" void MS_ABI stub_AssertValid(const CObject*) {}
+extern "C" void MS_ABI stub_AssertValid(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CException*>(pThis)->CException::AssertValid();
+}
 
-// Dump does nothing
-extern "C" void MS_ABI stub_Dump(const CObject*) {}
+extern "C" void MS_ABI stub_Dump(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CException*>(pThis)->CException::Dump();
+}
 
-// GetErrorMessage returns 0 (not implemented)
-extern "C" int MS_ABI stub_GetErrorMessage(const CException*, wchar_t*, unsigned int, unsigned int*) { return 0; }
+extern "C" int MS_ABI stub_GetErrorMessage(
+    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
+) {
+    if (!pThis) {
+        if (pnHelpContext) *pnHelpContext = 0;
+        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
+        return 0;
+    }
+    return pThis->CException::GetErrorMessage(lpszError, nMaxError, pnHelpContext);
+}
 
 // MSVC vtable for CMemoryException
 // Note: In real MFC, CObject declares GetRuntimeClass BEFORE the destructor.
@@ -648,14 +835,37 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObje
     return &CFileException::classCFileException;
 }
 
+extern "C" void MS_ABI vtbl_CFileException_AssertValid(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CFileException*>(pThis)->CFileException::AssertValid();
+}
+
+extern "C" void MS_ABI vtbl_CFileException_Dump(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CFileException*>(pThis)->CFileException::Dump();
+}
+
+extern "C" int MS_ABI vtbl_CFileException_GetErrorMessage(
+    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
+) {
+    if (!pThis) {
+        if (pnHelpContext) *pnHelpContext = 0;
+        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
+        return 0;
+    }
+    return static_cast<const CFileException*>(pThis)->CFileException::GetErrorMessage(
+        lpszError, nMaxError, pnHelpContext
+    );
+}
+
 // CFileException vtable - heap-allocated, needs proper destructor
 static void* g_vtbl_CFileException[] = {
     reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CFileException),                   // [1] destructor (calls ~CFileException)
     reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
-    reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid
-    reinterpret_cast<void*>(stub_Dump),                             // [4] Dump
-    reinterpret_cast<void*>(stub_GetErrorMessage)                   // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CFileException_AssertValid),       // [3] AssertValid
+    reinterpret_cast<void*>(vtbl_CFileException_Dump),              // [4] Dump
+    reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage)    // [5] GetErrorMessage
 };
 
 // CArchiveException vtable
@@ -664,14 +874,37 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CArchiveException_GetRuntimeClass(const CO
     return &CArchiveException::classCArchiveException;
 }
 
+extern "C" void MS_ABI vtbl_CArchiveException_AssertValid(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CArchiveException*>(pThis)->CArchiveException::AssertValid();
+}
+
+extern "C" void MS_ABI vtbl_CArchiveException_Dump(const CObject* pThis) {
+    if (!pThis) return;
+    static_cast<const CArchiveException*>(pThis)->CArchiveException::Dump();
+}
+
+extern "C" int MS_ABI vtbl_CArchiveException_GetErrorMessage(
+    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
+) {
+    if (!pThis) {
+        if (pnHelpContext) *pnHelpContext = 0;
+        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
+        return 0;
+    }
+    return static_cast<const CArchiveException*>(pThis)->CArchiveException::GetErrorMessage(
+        lpszError, nMaxError, pnHelpContext
+    );
+}
+
 // CArchiveException vtable - heap-allocated, needs proper destructor
 static void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CArchiveException),                   // [1] destructor (calls ~CArchiveException)
     reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
-    reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid
-    reinterpret_cast<void*>(stub_Dump),                                // [4] Dump
-    reinterpret_cast<void*>(stub_GetErrorMessage)                      // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CArchiveException_AssertValid),       // [3] AssertValid
+    reinterpret_cast<void*>(vtbl_CArchiveException_Dump),              // [4] Dump
+    reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage)    // [5] GetErrorMessage
 };
 
 // Patch vptr to point to our MSVC-compatible vtable
