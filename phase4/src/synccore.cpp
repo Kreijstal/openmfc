@@ -111,6 +111,10 @@ CSyncObject::CSyncObject(const wchar_t* pstrName)
     }
 }
 
+extern "C" void* MS_ABI impl___0CSyncObject__QEAA_PEB_W_Z(void* pThis, const wchar_t* pstrName) {
+    return new(pThis) CSyncObject(pstrName);
+}
+
 CSyncObject::~CSyncObject() {
     if (m_hObject != nullptr) {
         ::CloseHandle(m_hObject);

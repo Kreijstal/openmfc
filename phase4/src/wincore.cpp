@@ -2028,6 +2028,55 @@ extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThi
     return pThis ? pThis->SendChildNotifyLastMsg(pResult) : FALSE;
 }
 
+// Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
+extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd* pThis, int nBar) {
+    (void)nBar;
+    if (!pThis || !pThis->m_hWnd) {
+        return nullptr;
+    }
+    return nullptr;
+}
+
+// Symbol: ?IsFrameWnd@CWnd@@UEBAHXZ
+extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) {
+    (void)pThis;
+    return FALSE;
+}
+
+// Symbol: ?OnAmbientProperty@CWnd@@UEAAHPEAVCOleControlSite@@JPEAUtagVARIANT@@@Z
+extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+    CWnd* pThis, COleControlSite* pSite, long dispid, VARIANT* pVar)
+{
+    (void)pThis;
+    (void)pSite;
+    (void)dispid;
+    (void)pVar;
+    return FALSE;
+}
+
+// Symbol: ?OnToolHitTest@CWnd@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
+extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
+    const CWnd* pThis, CPoint point, TOOLINFOW* pTI) {
+    (void)pThis;
+    (void)point;
+    if (pTI) {
+        std::memset(pTI, 0, sizeof(*pTI));
+    }
+    return -1;
+}
+
+// Symbol: ?PreSubclassWindow@CWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
+    (void)pThis;
+    (void)pMsg;
+    return FALSE;
+}
+
 LONGLONG CWnd::SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3)
 {
     (void)p0;
