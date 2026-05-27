@@ -630,7 +630,7 @@ extern "C" void* MS_ABI impl___0CToolBar__QEAA_XZ(void* pThis) {
 // Symbol: ??0CWinThread@@QEAA@P6AIPEAX@Z0@Z
 // Constructor: CWinThread::CWinThread
 extern "C" void* MS_ABI impl___0CWinThread__QEAA_P6AIPEAX_Z0_Z(void* pThis, void* /*fnptr*/ p0, void* /*fnptr*/ p1) {
-    return new(pThis) CWinThread(p0, p1);
+    return new(pThis) CWinThread((unsigned int (*)(void*))p0, (unsigned int (*)(void*))p1);
 }
 
 // Symbol: ??1CArchive@@QEAA@XZ
@@ -1320,7 +1320,7 @@ extern "C" void MS_ABI impl__ActivateTopParent_CWnd__QEAAXXZ(CWnd* pThis) {
 // Symbol: ?AddClassIDToList@COleInsertDialog@@IEAAXAEAPEAU_GUID@@AEAH1PEAU2@@Z
 // COleInsertDialog::AddClassIDToList
 extern "C" void MS_ABI impl__AddClassIDToList_COleInsertDialog__IEAAXAEAPEAU_GUID__AEAH1PEAU2__Z(COleInsertDialog* pThis, _GUID** p0, int* p1, int* p2, void* p3) {
-    pThis->AddClassIDToList((*p0), (*p1), (*p2), p3);
+    pThis->AddClassIDToList((*p0), (*p1), (*p2), (CLSID*)p3);
 }
 
 // Symbol: ?AddFormat@COlePasteSpecialDialog@@QEAAXAEBUtagFORMATETC@@PEA_W1K@Z
@@ -1332,7 +1332,7 @@ extern "C" void MS_ABI impl__AddFormat_COlePasteSpecialDialog__QEAAXAEBUtagFORMA
 // Symbol: ?AddFormat@COlePasteSpecialDialog@@QEAAXIKIHH@Z
 // COlePasteSpecialDialog::AddFormat
 extern "C" void MS_ABI impl__AddFormat_COlePasteSpecialDialog__QEAAXIKIHH_Z(COlePasteSpecialDialog* pThis, unsigned int p0, unsigned long p1, unsigned int p2, int p3, int p4) {
-    pThis->AddFormat(p0, p1, p2, p3, p4);
+    pThis->AddFormat(p0, (TYMED)p1, p2, p3, p4);
 }
 
 // Symbol: ?AddFrameWnd@CFrameWnd@@IEAAXXZ
@@ -1374,7 +1374,7 @@ extern "C" void MS_ABI impl__AddStandardFormats_COlePasteSpecialDialog__QEAAXH_Z
 // Symbol: ?AddSubItem@CMFCPropertyGridProperty@@QEAAHPEAV1@@Z
 // CMFCPropertyGridProperty::AddSubItem
 extern "C" int MS_ABI impl__AddSubItem_CMFCPropertyGridProperty__QEAAHPEAV1__Z(CMFCPropertyGridProperty* pThis, void* p0) {
-    return (int)pThis->AddSubItem(p0);
+    return (int)pThis->AddSubItem((CMFCPropertyGridProperty*)p0);
 }
 
 // Symbol: ?AddTask@CMFCTasksPane@@QEAAHHPEB_WHI_K@Z
@@ -1513,7 +1513,7 @@ extern "C" void MS_ABI impl__AttachControlSite_CWnd__IEAAXPEAVCHandleMap___Z(CWn
 // Symbol: ?AttachControlSite@CWnd@@QEAAXPEAV1@I@Z
 // CWnd::AttachControlSite
 extern "C" void MS_ABI impl__AttachControlSite_CWnd__QEAAXPEAV1_I_Z(CWnd* pThis, void* p0, unsigned int p1) {
-    pThis->AttachControlSite(p0, p1);
+    pThis->AttachControlSite((COleControlSite*)p0, p1);
 }
 
 // Symbol: ?AttachDataObject@COleClientItem@@QEBAXAEAVCOleDataObject@@@Z
@@ -3371,7 +3371,7 @@ extern "C" long MS_ABI impl__GetWindowLessChildCount_CWnd__QEAAJXZ(CWnd* pThis) 
 // Symbol: ?GetWindowMenuPopup@CMDIFrameWnd@@UEAAPEAUHMENU__@@PEAU2@@Z
 // CMDIFrameWnd::GetWindowMenuPopup
 extern "C" HMENU__* MS_ABI impl__GetWindowMenuPopup_CMDIFrameWnd__UEAAPEAUHMENU____PEAU2__Z(CMDIFrameWnd* pThis, void* p0) {
-    return (HMENU__*)pThis->GetWindowMenuPopup(p0);
+    return (HMENU__*)pThis->GetWindowMenuPopup((HMENU)p0);
 }
 
 // Symbol: ?GetWindowPlacement@CWnd@@QEBAHPEAUtagWINDOWPLACEMENT@@@Z
@@ -5270,7 +5270,7 @@ extern "C" int MS_ABI impl__ReplaceButton_CMFCToolBar__QEAAHIAEBVCMFCToolBarButt
 // Symbol: ?RepositionBars@CWnd@@QEAAXIIIIPEAUtagRECT@@PEBU2@H@Z
 // CWnd::RepositionBars
 extern "C" void MS_ABI impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_Z(CWnd* pThis, unsigned int p0, unsigned int p1, unsigned int p2, unsigned int p3, RECT* p4, const void* p5, int p6) {
-    pThis->RepositionBars(p0, p1, p2, p3, p4, p5, p6);
+    pThis->RepositionBars(p0, p1, p2, p3, p4, (RECT*)p5, p6);
 }
 
 // Symbol: ?ResizeParentToFit@CScrollView@@QEAAXH@Z
@@ -5348,13 +5348,13 @@ extern "C" void MS_ABI impl__ScrollToPosition_CScrollView__QEAAXUtagPOINT___Z(CS
 // Symbol: ?ScrollWindow@CWnd@@QEAAXHHPEBUtagRECT@@0@Z
 // CWnd::ScrollWindow
 extern "C" void MS_ABI impl__ScrollWindow_CWnd__QEAAXHHPEBUtagRECT__0_Z(CWnd* pThis, int p0, int p1, const RECT* p2, int p3) {
-    pThis->ScrollWindow(p0, p1, p2, p3);
+    pThis->ScrollWindow(p0, p1, p2, (const RECT*)(intptr_t)p3);
 }
 
 // Symbol: ?ScrollWindowEx@CWnd@@QEAAHHHPEBUtagRECT@@0PEAVCRgn@@PEAU2@I@Z
 // CWnd::ScrollWindowEx
 extern "C" int MS_ABI impl__ScrollWindowEx_CWnd__QEAAHHHPEBUtagRECT__0PEAVCRgn__PEAU2_I_Z(CWnd* pThis, int p0, int p1, const RECT* p2, int p3, CRgn* p4, void* p5, unsigned int p6) {
-    return (int)pThis->ScrollWindowEx(p0, p1, p2, p3, p4, p5, p6);
+    return (int)pThis->ScrollWindowEx(p0, p1, p2, (const RECT*)(intptr_t)p3, p4, (RECT*)p5, p6);
 }
 
 // Symbol: ?Seek@CInternetFile@@UEAA_K_JI@Z
