@@ -1005,16 +1005,26 @@ int CWnd::ModifyStyle(HWND p0, DWORD p1, DWORD p2, UINT p3)
         return FALSE;
     }
 
+    ::SetLastError(0);
     LONG_PTR style = ::GetWindowLongPtrW(p0, GWL_STYLE);
+    if (style == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
     LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(p1)) | static_cast<LONG_PTR>(p2);
     if (newStyle == style) {
         return TRUE;
     }
 
-    ::SetWindowLongPtrW(p0, GWL_STYLE, newStyle);
+    ::SetLastError(0);
+    LONG_PTR prevStyle = ::SetWindowLongPtrW(p0, GWL_STYLE, newStyle);
+    if (prevStyle == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
     if (p3 != 0) {
-        ::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
-                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        if (!::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+            return FALSE;
+        }
     }
     return TRUE;
 }
@@ -1025,16 +1035,26 @@ int CWnd::ModifyStyleEx(HWND p0, DWORD p1, DWORD p2, UINT p3)
         return FALSE;
     }
 
+    ::SetLastError(0);
     LONG_PTR style = ::GetWindowLongPtrW(p0, GWL_EXSTYLE);
+    if (style == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
     LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(p1)) | static_cast<LONG_PTR>(p2);
     if (newStyle == style) {
         return TRUE;
     }
 
-    ::SetWindowLongPtrW(p0, GWL_EXSTYLE, newStyle);
+    ::SetLastError(0);
+    LONG_PTR prevStyle = ::SetWindowLongPtrW(p0, GWL_EXSTYLE, newStyle);
+    if (prevStyle == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
     if (p3 != 0) {
-        ::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
-                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        if (!::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+            return FALSE;
+        }
     }
     return TRUE;
 }

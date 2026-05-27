@@ -55,6 +55,7 @@ static bool LoadTemplateDocString(UINT resourceId, int index, CString& out) {
     }
 
     int outLen = static_cast<int>(end - start);
+    out = CString();
     wchar_t* outBuf = out.GetBuffer(outLen);
     if (outLen > 0) {
         memcpy(outBuf, start, static_cast<size_t>(outLen) * sizeof(wchar_t));
@@ -102,6 +103,16 @@ static bool PathHasExtensionInsensitive(const wchar_t* path, const wchar_t* expe
 
     const wchar_t* dot = wcsrchr(path, L'.');
     if (!dot) {
+        return false;
+    }
+
+    if (expectedExt[0] == L'*') {
+        ++expectedExt;
+        if (expectedExt[0] == L'.') {
+            // already normalized to dot-prefixed extension
+        }
+    }
+    if (!expectedExt[0]) {
         return false;
     }
 

@@ -127,13 +127,65 @@ void CMenu::DrawItem(void* lpDrawItemStruct) {
         return;
     }
 
+    HDC hdc = dis->hDC;
     const bool selected = (dis->itemState & ODS_SELECTED) != 0;
-    HBRUSH brush = ::GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_MENU);
-    ::FillRect(dis->hDC, &dis->rcItem, brush);
+    const bool disabled = (dis->itemState & (ODS_DISABLED | ODS_GRAYED)) != 0;
+    const bool checked = (dis->itemState & ODS_CHECKED) != 0;
+
+    HBRUSH bgBrush = ::GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_MENU);
+    ::FillRect(hdc, &dis->rcItem, bgBrush);
+
+    const int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
+    const COLORREF oldTextColor = ::GetTextColor(hdc);
+    HFONT hOldFont = nullptr;
+    HFONT hMenuFont = static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+    if (hMenuFont) {
+        hOldFont = static_cast<HFONT>(::SelectObject(hdc, hMenuFont));
+    }
+
+    COLORREF textColor = ::GetSysColor(disabled ? COLOR_GRAYTEXT : (selected ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT));
+    ::SetTextColor(hdc, textColor);
+
+    RECT rcItem = dis->rcItem;
+    RECT rcCheck = rcItem;
+    RECT rcText = rcItem;
+    const int checkWidth = ::GetSystemMetrics(SM_CXMENUCHECK);
+    rcCheck.right = rcCheck.left + checkWidth;
+    rcText.left = rcCheck.right + 2;
+
+    if (checked) {
+        UINT state = DFCS_MENUCHECK;
+        if (disabled) {
+            state |= DFCS_INACTIVE;
+        }
+        ::DrawFrameControl(hdc, &rcCheck, DFC_MENU, state);
+    }
+
+    wchar_t textBuffer[256] = {};
+    if (dis->itemID != static_cast<UINT>(-1) && dis->hwndItem != nullptr) {
+        HMENU hMenu = reinterpret_cast<HMENU>(dis->hwndItem);
+        ::GetMenuStringW(hMenu, dis->itemID, textBuffer, static_cast<int>(sizeof(textBuffer) / sizeof(textBuffer[0])), MF_BYCOMMAND);
+    } else if (dis->itemData != 0) {
+        const wchar_t* pText = reinterpret_cast<const wchar_t*>(dis->itemData);
+        if (pText) {
+            wcsncpy(textBuffer, pText, (sizeof(textBuffer) / sizeof(textBuffer[0])) - 1);
+            textBuffer[(sizeof(textBuffer) / sizeof(textBuffer[0])) - 1] = L'\0';
+        }
+    }
+
+    if (textBuffer[0] != L'\0') {
+        ::DrawTextW(hdc, textBuffer, -1, &rcText, DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_NOPREFIX);
+    }
 
     if (dis->itemState & ODS_FOCUS) {
-        ::DrawFocusRect(dis->hDC, &dis->rcItem);
+        ::DrawFocusRect(hdc, &rcItem);
     }
+
+    if (hOldFont) {
+        ::SelectObject(hdc, hOldFont);
+    }
+    ::SetBkMode(hdc, oldBkMode);
+    ::SetTextColor(hdc, oldTextColor);
 }
 
 void CMenu::MeasureItem(void* lpMeasureItemStruct) {

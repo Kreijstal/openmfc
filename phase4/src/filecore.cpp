@@ -1851,30 +1851,24 @@ void CArchive::FillBuffer(UINT nBytesNeeded) {
     }
 
     UINT capacity = static_cast<UINT>(m_nBufSize);
-    UINT bytesNeeded = std::min(capacity, nBytesNeeded);
     UINT bytesToRead = capacity - nRemaining;
-    if (bytesNeeded > nRemaining) {
-        UINT deficit = bytesNeeded - nRemaining;
-        if (deficit < bytesToRead) {
-            bytesToRead = deficit;
-        }
-    }
 
     UINT nRead = m_pFile->Read(m_lpBufStart + nRemaining, bytesToRead);
     m_lpBufMax = m_lpBufStart + nRemaining + nRead;
 }
 
-struct CArchiveAccessor : CArchive {
+class CArchiveAccess {
+public:
     static void InvokeFillBuffer(CArchive* pArchive, unsigned int nBytesNeeded) {
-        static_cast<CArchiveAccessor*>(pArchive)->FillBuffer(nBytesNeeded);
+        if (pArchive) {
+            pArchive->FillBuffer(nBytesNeeded);
+        }
     }
 };
 
 // Symbol: ?FillBuffer@CArchive@@QEAAXI@Z
 extern "C" void MS_ABI impl__FillBuffer_CArchive__QEAAXI_Z(CArchive* pThis, unsigned int nBytesNeeded) {
-    if (pThis) {
-        CArchiveAccessor::InvokeFillBuffer(pThis, nBytesNeeded);
-    }
+    CArchiveAccess::InvokeFillBuffer(pThis, nBytesNeeded);
 }
 
 void CArchive::WriteBuffer() {
@@ -2358,6 +2352,9 @@ extern "C" void MS_ABI impl__CommonBaseInit_CFile__IEAAXPEAXPEAVCAtlTransactionM
 // Symbol: ?CommonInit@CFile@@IEAAXPEB_WIPEAVCAtlTransactionManager@ATL@@@Z
 extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
     void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
+    if (!pThis) {
+        return;
+    }
     CFileAccessor::InvokeCommonInit(static_cast<CFile*>(pThis), lpszFileName, nOpenFlags, pTM);
 }
 

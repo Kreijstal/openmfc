@@ -855,26 +855,53 @@ BOOL CStatusBar::SetIndicators(const UINT* lpIDArray, int nIDCount) {
 
 BOOL CStatusBar::SetPaneInfo(int nIndex, UINT nID, UINT nStyle, int cxWidth) {
     if (!m_hWnd || nIndex < 0 || nIndex >= m_nCount || !m_pData) return FALSE;
+
+    CString paneText = GetPaneText(nIndex);
     m_pData[nIndex * 4] = nID;
     m_pData[nIndex * 4 + 1] = nStyle;
     m_pData[nIndex * 4 + 2] = cxWidth;
+
+    RECT clientRect = {};
+    ::GetClientRect(m_hWnd, &clientRect);
+    const int totalWidth = std::max(0, static_cast<int>(clientRect.right - clientRect.left));
+
+    int fixedWidth = 0;
+    int autoPaneCount = 0;
+    for (int i = 0; i < m_nCount; ++i) {
+        int paneWidth = static_cast<int>(m_pData[i * 4 + 2]);
+        if (paneWidth > 0) {
+            fixedWidth += paneWidth;
+        } else {
+            ++autoPaneCount;
+        }
+    }
+
+    int remainingWidth = std::max(0, totalWidth - fixedWidth);
+    int autoWidth = (autoPaneCount > 0) ? (remainingWidth / autoPaneCount) : 0;
+    int autoRemainder = (autoPaneCount > 0) ? (remainingWidth % autoPaneCount) : 0;
 
     std::vector<int> parts(static_cast<size_t>(m_nCount));
     int right = 0;
     for (int i = 0; i < m_nCount; ++i) {
         int paneWidth = static_cast<int>(m_pData[i * 4 + 2]);
         if (paneWidth <= 0) {
-            RECT rc = {};
-            ::SendMessageW(m_hWnd, SB_GETRECT, i, reinterpret_cast<LPARAM>(&rc));
-            paneWidth = std::max(0, static_cast<int>(rc.right - rc.left));
+            paneWidth = autoWidth;
+            if (autoRemainder > 0) {
+                ++paneWidth;
+                --autoRemainder;
+            }
         }
-        right += paneWidth;
+        right += std::max(0, paneWidth);
         parts[static_cast<size_t>(i)] = right;
+    }
+
+    if (!parts.empty()) {
+        parts.back() = -1;
     }
 
     ::SendMessageW(m_hWnd, SB_SETPARTS, m_nCount, reinterpret_cast<LPARAM>(parts.data()));
     ::SendMessageW(m_hWnd, SB_SETTEXTW, nIndex | (nStyle & 0xFF00),
-                   reinterpret_cast<LPARAM>(GetPaneText(nIndex).GetString()));
+                   reinterpret_cast<LPARAM>(paneText.GetString()));
     return TRUE;
 }
 
