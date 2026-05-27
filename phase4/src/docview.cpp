@@ -8,6 +8,107 @@
 #include "openmfc/afxwin.h"
 #include <windows.h>
 #include <cstring>
+#include <string>
+
+namespace {
+
+constexpr int kDocStringCount = 7;
+
+enum DocStringIndexCompat {
+    kWindowTitle = 0,
+    kDocName = 1,
+    kFileNewName = 2,
+    kFilterName = 3,
+    kFilterExt = 4,
+    kRegFileTypeId = 5,
+    kRegFileTypeName = 6,
+};
+
+static bool LoadTemplateDocString(UINT resourceId, int index, CString& out) {
+    out.Empty();
+    if (resourceId == 0 || index < 0 || index >= kDocStringCount) {
+        return false;
+    }
+
+    wchar_t buffer[1024] = {};
+    int len = ::LoadStringW(AfxGetInstanceHandle(), resourceId, buffer, sizeof(buffer) / sizeof(buffer[0]));
+    if (len <= 0) {
+        return false;
+    }
+
+    const wchar_t* start = buffer;
+    for (int i = 0; i < index; ++i) {
+        const wchar_t* sep = wcschr(start, L'\n');
+        if (!sep) {
+            return false;
+        }
+        start = sep + 1;
+    }
+
+    const wchar_t* end = wcschr(start, L'\n');
+    if (!end) {
+        end = start + wcslen(start);
+    }
+
+    if (end < start) {
+        return false;
+    }
+
+    int outLen = static_cast<int>(end - start);
+    wchar_t* outBuf = out.GetBuffer(outLen);
+    if (outLen > 0) {
+        memcpy(outBuf, start, static_cast<size_t>(outLen) * sizeof(wchar_t));
+    }
+    outBuf[outLen] = L'\0';
+    out.ReleaseBuffer(outLen);
+    return true;
+}
+
+static std::wstring NormalizePathForCompare(const wchar_t* path) {
+    if (!path || !path[0]) {
+        return std::wstring();
+    }
+
+    wchar_t fullPath[MAX_PATH] = {};
+    DWORD len = ::GetFullPathNameW(path, MAX_PATH, fullPath, nullptr);
+    const wchar_t* source = (len > 0 && len < MAX_PATH) ? fullPath : path;
+
+    std::wstring normalized(source);
+    for (wchar_t& ch : normalized) {
+        if (ch == L'/') {
+            ch = L'\\';
+        }
+    }
+    return normalized;
+}
+
+static bool PathsEqualInsensitive(const wchar_t* lhs, const wchar_t* rhs) {
+    std::wstring left = NormalizePathForCompare(lhs);
+    std::wstring right = NormalizePathForCompare(rhs);
+    if (left.empty() || right.empty()) {
+        return false;
+    }
+
+    return ::CompareStringOrdinal(
+               left.c_str(), -1,
+               right.c_str(), -1,
+               TRUE) == CSTR_EQUAL;
+}
+
+static bool PathHasExtensionInsensitive(const wchar_t* path, const wchar_t* expectedExt) {
+    if (!path || !expectedExt || !expectedExt[0]) {
+        return false;
+    }
+
+    const wchar_t* dot = wcsrchr(path, L'.');
+    if (!dot) {
+        return false;
+    }
+
+    return ::CompareStringOrdinal(dot, -1, expectedExt, -1, TRUE) == CSTR_EQUAL;
+}
+
+} // namespace
 
 // MS ABI calling convention
 #ifdef __GNUC__
@@ -259,14 +360,47 @@ void CScrollView::GetTrueClientSize(SIZE& size, SIZE& sizeSb) const {
     if (m_hWnd) {
         RECT rc;
         ::GetClientRect(m_hWnd, &rc);
-        size.cx = rc.right - rc.left;
-        size.cy = rc.bottom - rc.top;
+        size.cx = static_cast<int>(rc.right - rc.left);
+        size.cy = static_cast<int>(rc.bottom - rc.top);
     } else {
         size.cx = 0;
         size.cy = 0;
     }
     sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
     sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
+}
+
+// Symbol: ?GetScrollBarSizes@CScrollView@@IEAAXAEAVCSize@@@Z
+extern "C" void MS_ABI impl__GetScrollBarSizes_CScrollView__IEAAXAEAVCSize___Z(
+    CScrollView* pThis, SIZE* pSizeSb)
+{
+    if (!pSizeSb) {
+        return;
+    }
+    if (pThis) {
+        pThis->GetScrollBarSizes(*pSizeSb);
+    } else {
+        pSizeSb->cx = 0;
+        pSizeSb->cy = 0;
+    }
+}
+
+// Symbol: ?GetTrueClientSize@CScrollView@@IEAAHAEAVCSize@@0@Z
+extern "C" int MS_ABI impl__GetTrueClientSize_CScrollView__IEAAHAEAVCSize__0_Z(
+    const CScrollView* pThis, SIZE* pSize, SIZE* pSizeSb)
+{
+    if (!pSize || !pSizeSb) {
+        return FALSE;
+    }
+    if (pThis) {
+        pThis->GetTrueClientSize(*pSize, *pSizeSb);
+        return TRUE;
+    }
+    pSize->cx = 0;
+    pSize->cy = 0;
+    pSizeSb->cx = 0;
+    pSizeSb->cy = 0;
+    return FALSE;
 }
 
 void CScrollView::ScrollToPosition(POINT pt) {
@@ -287,7 +421,12 @@ void CScrollView::ScrollToPosition(POINT pt) {
     ::InvalidateRect(m_hWnd, nullptr, TRUE);
 }
 
-CPoint CScrollView::GetScrollPosition() const { return CPoint(0, 0); }
+CPoint CScrollView::GetScrollPosition() const {
+    if (!m_hWnd) {
+        return CPoint(0, 0);
+    }
+    return CPoint(::GetScrollPos(m_hWnd, SB_HORZ), ::GetScrollPos(m_hWnd, SB_VERT));
+}
 
 void CScrollView::FillOutsideRect(void* pDC, void* pBrush) {
     if (!m_hWnd || !pDC) return;
@@ -906,7 +1045,14 @@ extern "C" int MS_ABI impl__OnPreparePrinting_CView__UEAAHPEAX_Z(
 {
     (void)pThis;
     (void)pInfo;
-    return FALSE;  // No printing support by default
+    return TRUE;
+}
+
+// Symbol: ?OnPreparePrinting@CView@@MEAAHPEAUCPrintInfo@@@Z
+extern "C" int MS_ABI impl__OnPreparePrinting_CView__MEAAHPEAUCPrintInfo___Z(
+    CView* pThis, void* pInfo)
+{
+    return impl__OnPreparePrinting_CView__UEAAHPEAX_Z(pThis, pInfo);
 }
 
 // OnBeginPrinting
@@ -918,6 +1064,13 @@ extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(
     (void)pInfo;
 }
 
+// Symbol: ?OnBeginPrinting@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnBeginPrinting_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(
+    CView* pThis, void* pDC, void* pInfo)
+{
+    impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(pThis, pDC, pInfo);
+}
+
 // OnEndPrinting
 extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(
     CView* pThis, void* pDC, void* pInfo)
@@ -927,14 +1080,34 @@ extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(
     (void)pInfo;
 }
 
+// Symbol: ?OnEndPrinting@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnEndPrinting_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(
+    CView* pThis, void* pDC, void* pInfo)
+{
+    impl__OnEndPrinting_CView__UEAAXPEAX0_Z(pThis, pDC, pInfo);
+}
+
 // OnActivateView
 extern "C" void MS_ABI impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(
     CView* pThis, int bActivate, CView* pActivateView, CView* pDeactiveView)
 {
-    (void)pThis;
-    (void)bActivate;
     (void)pActivateView;
     (void)pDeactiveView;
+
+    if (!pThis || !pThis->m_hWnd) {
+        return;
+    }
+
+    if (bActivate) {
+        ::SetFocus(pThis->m_hWnd);
+    }
+}
+
+// Symbol: ?OnActivateView@CView@@MEAAXHPEAV1@0@Z
+extern "C" void MS_ABI impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(
+    CView* pThis, int bActivate, CView* pActivateView, CView* pDeactiveView)
+{
+    impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(pThis, bActivate, pActivateView, pDeactiveView);
 }
 
 // GetParentFrame
@@ -1500,10 +1673,42 @@ extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAV__CStringT__WV__
 extern "C" int MS_ABI impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocument___Z(
     CDocTemplate* pThis, const wchar_t* lpszPathName, CDocument*& rpDocMatch)
 {
-    (void)pThis;
-    (void)lpszPathName;
+    enum ConfidenceCompat {
+        noAttempt = 0,
+        maybeAttemptForeign = 1,
+        maybeAttemptNative = 2,
+        yesAttemptForeign = 3,
+        yesAttemptNative = 4,
+        yesAlreadyOpen = 5,
+    };
+
     rpDocMatch = nullptr;
-    return 0;  // No match
+    if (!pThis || !lpszPathName || !lpszPathName[0]) {
+        return noAttempt;
+    }
+
+    void* pos = pThis->GetFirstDocPosition();
+    while (pos) {
+        CDocument* pDoc = pThis->GetNextDoc(pos);
+        if (!pDoc) {
+            continue;
+        }
+
+        const wchar_t* existingPath = pDoc->GetPathName();
+        if (existingPath && existingPath[0] && PathsEqualInsensitive(existingPath, lpszPathName)) {
+            rpDocMatch = pDoc;
+            return yesAlreadyOpen;
+        }
+    }
+
+    CString filterExt;
+    if (LoadTemplateDocString(pThis->m_nIDResource, kFilterExt, filterExt) &&
+        !filterExt.IsEmpty() &&
+        PathHasExtensionInsensitive(lpszPathName, filterExt.GetString())) {
+        return yesAttemptNative;
+    }
+
+    return yesAttemptForeign;
 }
 
 // Symbol: ?MatchDocType@CDocTemplate@@UEAA?AW4Confidence@1@PEB_WAEAPEAVCDocument@@@Z

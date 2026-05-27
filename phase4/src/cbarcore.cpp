@@ -854,10 +854,27 @@ BOOL CStatusBar::SetIndicators(const UINT* lpIDArray, int nIDCount) {
 }
 
 BOOL CStatusBar::SetPaneInfo(int nIndex, UINT nID, UINT nStyle, int cxWidth) {
-    if (!m_hWnd || nIndex < 0 || nIndex >= m_nCount) return FALSE;
+    if (!m_hWnd || nIndex < 0 || nIndex >= m_nCount || !m_pData) return FALSE;
     m_pData[nIndex * 4] = nID;
     m_pData[nIndex * 4 + 1] = nStyle;
     m_pData[nIndex * 4 + 2] = cxWidth;
+
+    std::vector<int> parts(static_cast<size_t>(m_nCount));
+    int right = 0;
+    for (int i = 0; i < m_nCount; ++i) {
+        int paneWidth = static_cast<int>(m_pData[i * 4 + 2]);
+        if (paneWidth <= 0) {
+            RECT rc = {};
+            ::SendMessageW(m_hWnd, SB_GETRECT, i, reinterpret_cast<LPARAM>(&rc));
+            paneWidth = std::max(0, static_cast<int>(rc.right - rc.left));
+        }
+        right += paneWidth;
+        parts[static_cast<size_t>(i)] = right;
+    }
+
+    ::SendMessageW(m_hWnd, SB_SETPARTS, m_nCount, reinterpret_cast<LPARAM>(parts.data()));
+    ::SendMessageW(m_hWnd, SB_SETTEXTW, nIndex | (nStyle & 0xFF00),
+                   reinterpret_cast<LPARAM>(GetPaneText(nIndex).GetString()));
     return TRUE;
 }
 
@@ -945,8 +962,11 @@ CSize CStatusBar::GetPaneSize(int nIndex) const {
 CSize CStatusBar::GetBorders() const {
     CSize sz(0, 0);
     if (m_hWnd) {
-        sz.cx = (int)::SendMessageW(m_hWnd, SB_GETBORDERS, 0, 0);
-        sz.cy = 0;
+        int borders[3] = {0, 0, 0};
+        if (::SendMessageW(m_hWnd, SB_GETBORDERS, 0, reinterpret_cast<LPARAM>(borders))) {
+            sz.cx = borders[0];
+            sz.cy = borders[1];
+        }
     }
     return sz;
 }
@@ -1738,6 +1758,20 @@ extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__S
 extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
     CString* pRet, const CStatusBar* pThis, int nIndex) {
     new (pRet) CString(pThis->GetPaneText(nIndex));
+}
+
+// Symbol: ?GetPaneInfo@CStatusBar@@QEBAXHAEAI0AEAH@Z
+extern "C" void MS_ABI impl__GetPaneInfo_CStatusBar__QEBAXHAEAI0AEAH_Z(
+    const CStatusBar* pThis, int nIndex, UINT* pnID, UINT* pnStyle, int* pcxWidth) {
+    UINT id = 0;
+    UINT style = 0;
+    int width = 0;
+    if (pThis) {
+        pThis->GetPaneInfo(nIndex, id, style, width);
+    }
+    if (pnID) *pnID = id;
+    if (pnStyle) *pnStyle = style;
+    if (pcxWidth) *pcxWidth = width;
 }
 
 // Symbol: ?GetPaneText@CStatusBar@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z

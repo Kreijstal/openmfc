@@ -5,6 +5,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <cstring>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -120,9 +121,34 @@ CMenu::~CMenu() {
     impl___1CMenu__UEAA_XZ(this);
 }
 
-void CMenu::DrawItem(void*) {}
+void CMenu::DrawItem(void* lpDrawItemStruct) {
+    DRAWITEMSTRUCT* dis = static_cast<DRAWITEMSTRUCT*>(lpDrawItemStruct);
+    if (!dis || !dis->hDC) {
+        return;
+    }
 
-void CMenu::MeasureItem(void*) {}
+    const bool selected = (dis->itemState & ODS_SELECTED) != 0;
+    HBRUSH brush = ::GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_MENU);
+    ::FillRect(dis->hDC, &dis->rcItem, brush);
+
+    if (dis->itemState & ODS_FOCUS) {
+        ::DrawFocusRect(dis->hDC, &dis->rcItem);
+    }
+}
+
+void CMenu::MeasureItem(void* lpMeasureItemStruct) {
+    MEASUREITEMSTRUCT* mis = static_cast<MEASUREITEMSTRUCT*>(lpMeasureItemStruct);
+    if (!mis) {
+        return;
+    }
+
+    if (mis->itemWidth == 0) {
+        mis->itemWidth = ::GetSystemMetrics(SM_CXMENUCHECK) + 16;
+    }
+    if (mis->itemHeight == 0) {
+        mis->itemHeight = ::GetSystemMetrics(SM_CYMENU);
+    }
+}
 
 // CMenu default constructor
 extern "C" CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu* pThis) {

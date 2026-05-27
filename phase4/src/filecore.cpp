@@ -1836,7 +1836,7 @@ CArchive::~CArchive() {
 }
 
 void CArchive::FillBuffer(UINT nBytesNeeded) {
-    if (!m_pFile) return;
+    if (!m_pFile || !m_lpBufStart || m_nBufSize <= 0) return;
 
     // Move remaining data to start of buffer
     UINT nRemaining = (UINT)(m_lpBufMax - m_lpBufCur);
@@ -1845,10 +1845,36 @@ void CArchive::FillBuffer(UINT nBytesNeeded) {
     }
     m_lpBufCur = m_lpBufStart;
 
-    // Read more data
-    UINT nRead = m_pFile->Read(m_lpBufStart + nRemaining,
-                               m_nBufSize - nRemaining);
+    if (nRemaining >= nBytesNeeded) {
+        m_lpBufMax = m_lpBufStart + nRemaining;
+        return;
+    }
+
+    UINT capacity = static_cast<UINT>(m_nBufSize);
+    UINT bytesNeeded = std::min(capacity, nBytesNeeded);
+    UINT bytesToRead = capacity - nRemaining;
+    if (bytesNeeded > nRemaining) {
+        UINT deficit = bytesNeeded - nRemaining;
+        if (deficit < bytesToRead) {
+            bytesToRead = deficit;
+        }
+    }
+
+    UINT nRead = m_pFile->Read(m_lpBufStart + nRemaining, bytesToRead);
     m_lpBufMax = m_lpBufStart + nRemaining + nRead;
+}
+
+struct CArchiveAccessor : CArchive {
+    static void InvokeFillBuffer(CArchive* pArchive, unsigned int nBytesNeeded) {
+        static_cast<CArchiveAccessor*>(pArchive)->FillBuffer(nBytesNeeded);
+    }
+};
+
+// Symbol: ?FillBuffer@CArchive@@QEAAXI@Z
+extern "C" void MS_ABI impl__FillBuffer_CArchive__QEAAXI_Z(CArchive* pThis, unsigned int nBytesNeeded) {
+    if (pThis) {
+        CArchiveAccessor::InvokeFillBuffer(pThis, nBytesNeeded);
+    }
 }
 
 void CArchive::WriteBuffer() {
@@ -2327,6 +2353,33 @@ extern "C" void MS_ABI impl__CommonBaseInit_CFile__IEAAXPEAXPEAVCAtlTransactionM
     void* pThis, void* hFile, void* /*pTM*/) {
     CFile* self = static_cast<CFile*>(pThis);
     self->m_hFile = hFile ? hFile : (void*)INVALID_HANDLE_VALUE;
+}
+
+// Symbol: ?CommonInit@CFile@@IEAAXPEB_WIPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
+    CFileAccessor::InvokeCommonInit(static_cast<CFile*>(pThis), lpszFileName, nOpenFlags, pTM);
+}
+
+// Symbol: ?Rename@CFile@@SAXPEB_W0PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__Rename_CFile__SAXPEB_W0PEAVCAtlTransactionManager_ATL___Z(
+    const wchar_t* lpszOldName, const wchar_t* lpszNewName, void* /*pTM*/) {
+    CFile::Rename(lpszOldName, lpszNewName);
+}
+
+// Symbol: ?Remove@CFile@@SAXPEB_WPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__Remove_CFile__SAXPEB_WPEAVCAtlTransactionManager_ATL___Z(
+    const wchar_t* lpszFileName, void* /*pTM*/) {
+    CFile::Remove(lpszFileName);
+}
+
+// Symbol: ?SetStatus@CFile@@SAXPEB_WAEBUCFileStatus@@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void MS_ABI impl__SetStatus_CFile__SAXPEB_WAEBUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(
+    const wchar_t* lpszFileName, const CFileStatus* pStatus, void* /*pTM*/) {
+    if (!pStatus) {
+        return;
+    }
+    CFile::SetStatus(lpszFileName, *pStatus);
 }
 
 // Symbol: ?Open@CFile@@UEAAHPEB_WIPEAVCFileException@@@Z
