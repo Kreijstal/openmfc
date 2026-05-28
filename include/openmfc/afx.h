@@ -164,6 +164,7 @@ typedef int BOOL;
 
 class CObject;
 class CArchive;
+class CArchiveAccess;
 class CFile;
 class CException;
 class CFileException;
@@ -406,6 +407,7 @@ protected:
     bool m_bForceFlat;
     bool m_bUserBuf;
     
+    friend class CArchiveAccess;
     void FillBuffer(UINT nBytesNeeded);
     void WriteBuffer();
 };

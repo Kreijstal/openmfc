@@ -158,6 +158,10 @@ intptr_t CFileDialog::DoModal() {
     return IDCANCEL;
 }
 
+extern "C" intptr_t MS_ABI impl__DoModal_CFileDialog__UEAA_JXZ(CFileDialog* pThis) {
+    return pThis ? pThis->DoModal() : IDCANCEL;
+}
+
 // Symbol: ?GetPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 CString CFileDialog::GetPathName() const {
     return m_strPathName;
@@ -600,6 +604,10 @@ intptr_t CPageSetupDialog::DoModal() {
     }
 
     return IDCANCEL;
+}
+
+extern "C" intptr_t MS_ABI impl__DoModal_CPageSetupDialog__UEAA_JXZ(CPageSetupDialog* pThis) {
+    return pThis ? pThis->DoModal() : IDCANCEL;
 }
 
 // Symbol: ?GetDeviceName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ

@@ -111,6 +111,13 @@ CSyncObject::CSyncObject(const wchar_t* pstrName)
     }
 }
 
+extern "C" void* MS_ABI impl___0CSyncObject__QEAA_PEB_W_Z(void* pThis, const wchar_t* pstrName) {
+    if (!pThis) {
+        return nullptr;
+    }
+    return new(pThis) CSyncObject(pstrName);
+}
+
 CSyncObject::~CSyncObject() {
     if (m_hObject != nullptr) {
         ::CloseHandle(m_hObject);
@@ -181,6 +188,9 @@ BOOL CCriticalSection::Unlock() {
 extern "C" void* MS_ABI
 impl___0CMutex__QEAA_HPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
     void* pThis, int p0, const wchar_t* p1, LPSECURITY_ATTRIBUTES p2) {
+    if (!pThis) {
+        return nullptr;
+    }
     return new(pThis) CMutex(p0, p1, p2);
 }
 
@@ -206,6 +216,9 @@ BOOL CMutex::Unlock() {
 extern "C" void* MS_ABI
 impl___0CSemaphore__QEAA_JJPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
     void* pThis, long p0, long p1, const wchar_t* p2, LPSECURITY_ATTRIBUTES p3) {
+    if (!pThis) {
+        return nullptr;
+    }
     return new(pThis) CSemaphore(p0, p1, p2, p3);
 }
 
@@ -236,6 +249,9 @@ BOOL CSemaphore::Unlock(LONG lCount, LPLONG lpPrevCount) {
 extern "C" void* MS_ABI
 impl___0CEvent__QEAA_HHPEB_WPEAU_SECURITY_ATTRIBUTES___Z(
     void* pThis, int p0, int p1, const wchar_t* p2, LPSECURITY_ATTRIBUTES p3) {
+    if (!pThis) {
+        return nullptr;
+    }
     return new(pThis) CEvent(p0, p1, p2, p3);
 }
 
@@ -274,6 +290,9 @@ BOOL CEvent::Unlock() {
 extern "C" void* MS_ABI
 impl___0CSingleLock__QEAA_PEAVCSyncObject__H_Z(
     void* pThis, CSyncObject* p0, int p1) {
+    if (!pThis) {
+        return nullptr;
+    }
     return new(pThis) CSingleLock(p0, p1);
 }
 
@@ -331,6 +350,9 @@ BOOL CSingleLock::Unlock(LONG lCount, LPLONG lpPrevCount) {
 extern "C" void* MS_ABI
 impl___0CMultiLock__QEAA_QEAPEAVCSyncObject__KH_Z(
     void* pThis, CSyncObject** p0, unsigned long p1, int p2) {
+    if (!pThis) {
+        return nullptr;
+    }
     return new(pThis) CMultiLock(p0, p1, p2);
 }
 

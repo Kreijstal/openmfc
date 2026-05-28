@@ -115,6 +115,7 @@ void OpenMfcCleanupTempWrappers() {
 
 // Global app pointer (defined in appcore.cpp)
 extern CWinApp* g_pApp;
+extern CWinThread* AfxGetThread();
 
 // OpenMFC window class name
 static const wchar_t* g_szOpenMFCClass = L"OpenMFC_Window";
@@ -952,7 +953,8 @@ void* CWnd::FromHandlePermanent(HWND p0)
 
 const MSG* CWnd::GetCurrentMessage()
 {
-    return nullptr;
+    CWinThread* pThread = AfxGetThread();
+    return pThread ? &pThread->m_msgCur : nullptr;
 }
 
 void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
@@ -999,20 +1001,62 @@ int CWnd::GrayCtlColor(HDC p0, HWND p1, UINT p2, HBRUSH p3, DWORD p4)
 
 int CWnd::ModifyStyle(HWND p0, DWORD p1, DWORD p2, UINT p3)
 {
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
+    if (!p0) {
+        return FALSE;
+    }
+
+    ::SetLastError(0);
+    LONG_PTR style = ::GetWindowLongPtrW(p0, GWL_STYLE);
+    if (style == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
+    LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(p1)) | static_cast<LONG_PTR>(p2);
+    if (newStyle == style) {
+        return TRUE;
+    }
+
+    ::SetLastError(0);
+    LONG_PTR prevStyle = ::SetWindowLongPtrW(p0, GWL_STYLE, newStyle);
+    if (prevStyle == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
+    if (p3 != 0) {
+        if (!::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 int CWnd::ModifyStyleEx(HWND p0, DWORD p1, DWORD p2, UINT p3)
 {
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
+    if (!p0) {
+        return FALSE;
+    }
+
+    ::SetLastError(0);
+    LONG_PTR style = ::GetWindowLongPtrW(p0, GWL_EXSTYLE);
+    if (style == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
+    LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(p1)) | static_cast<LONG_PTR>(p2);
+    if (newStyle == style) {
+        return TRUE;
+    }
+
+    ::SetLastError(0);
+    LONG_PTR prevStyle = ::SetWindowLongPtrW(p0, GWL_EXSTYLE, newStyle);
+    if (prevStyle == 0 && ::GetLastError() != 0) {
+        return FALSE;
+    }
+    if (p3 != 0) {
+        if (!::SetWindowPos(p0, nullptr, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 int CWnd::ReflectLastMsg(HWND p0, LONGLONG* p1)
@@ -1938,8 +1982,99 @@ int CWnd::ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p
 
 int CWnd::SendChildNotifyLastMsg(LONGLONG* p0)
 {
-    (void)p0;
-    return 0;
+    const MSG* pMsg = GetCurrentMessage();
+    if (!pMsg) {
+        if (p0) {
+            *p0 = 0;
+        }
+        return FALSE;
+    }
+
+    LONGLONG result = 0;
+    if (!OnChildNotify(pMsg->message,
+                       static_cast<ULONGLONG>(pMsg->wParam),
+                       static_cast<LONGLONG>(pMsg->lParam),
+                       &result)) {
+        if (p0) {
+            *p0 = 0;
+        }
+        return FALSE;
+    }
+
+    if (p0) {
+        *p0 = result;
+    }
+    return TRUE;
+}
+
+// Symbol: ?GetScrollPos@CWnd@@QEBAHH@Z
+extern "C" int MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* pThis, int nBar) {
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+    return ::GetScrollPos(pThis->m_hWnd, nBar);
+}
+
+// Symbol: ?IsDialogMessageW@CWnd@@QEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
+    if (!pThis || !pThis->m_hWnd || !pMsg) {
+        return FALSE;
+    }
+    return ::IsDialogMessageW(pThis->m_hWnd, pMsg);
+}
+
+// Symbol: ?SendChildNotifyLastMsg@CWnd@@QEAAHPEA_J@Z
+extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThis, LONGLONG* pResult) {
+    return pThis ? pThis->SendChildNotifyLastMsg(pResult) : FALSE;
+}
+
+// Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
+extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd* pThis, int nBar) {
+    (void)nBar;
+    if (!pThis || !pThis->m_hWnd) {
+        return nullptr;
+    }
+    return nullptr;
+}
+
+// Symbol: ?IsFrameWnd@CWnd@@UEBAHXZ
+extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) {
+    (void)pThis;
+    return FALSE;
+}
+
+// Symbol: ?OnAmbientProperty@CWnd@@UEAAHPEAVCOleControlSite@@JPEAUtagVARIANT@@@Z
+extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+    CWnd* pThis, COleControlSite* pSite, long dispid, VARIANT* pVar)
+{
+    (void)pThis;
+    (void)pSite;
+    (void)dispid;
+    (void)pVar;
+    return FALSE;
+}
+
+// Symbol: ?OnToolHitTest@CWnd@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
+extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
+    const CWnd* pThis, CPoint point, TOOLINFOW* pTI) {
+    (void)pThis;
+    (void)point;
+    if (pTI) {
+        std::memset(pTI, 0, sizeof(*pTI));
+    }
+    return -1;
+}
+
+// Symbol: ?PreSubclassWindow@CWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
+    (void)pThis;
+    (void)pMsg;
+    return FALSE;
 }
 
 LONGLONG CWnd::SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3)
