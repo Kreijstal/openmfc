@@ -465,8 +465,41 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/mfccore.cpp"
     "$ROOT/phase4/src/thunks.cpp"
     "$ROOT/phase4/src/manual_thunks.cpp"
-    # Add more implementation files here as they are created
 )
+
+# Preserve the established compile order above, then append new class/category
+# shards. Keep the patterns narrow so legacy helper files that were not part of
+# the old build do not start compiling accidentally.
+SHARD_SOURCE_PATTERNS=(
+    'app_*.cpp'
+    'collections_*.cpp'
+    'ctrl_*.cpp'
+    'dao_*.cpp'
+    'db_*.cpp'
+    'doc_*.cpp'
+    'feature_*.cpp'
+    'file_*.cpp'
+    'gdi_*.cpp'
+    'global_*.cpp'
+    'inet_*.cpp'
+    'ole_*.cpp'
+    'sock_*.cpp'
+)
+
+for pattern in "${SHARD_SOURCE_PATTERNS[@]}"; do
+    while IFS= read -r src; do
+        found=false
+        for existing in "${IMPL_SOURCES[@]}"; do
+            if [[ "$existing" == "$src" ]]; then
+                found=true
+                break
+            fi
+        done
+        if [[ "$found" == false ]]; then
+            IMPL_SOURCES+=("$src")
+        fi
+    done < <(find "$ROOT/phase4/src" -maxdepth 1 -type f -name "$pattern" -print | sort)
+done
 
 for src in "${IMPL_SOURCES[@]}"; do
     if [[ -f "$src" ]]; then
