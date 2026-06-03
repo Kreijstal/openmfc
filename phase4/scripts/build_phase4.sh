@@ -465,6 +465,7 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/mfccore.cpp"
     "$ROOT/phase4/src/thunks.cpp"
     "$ROOT/phase4/src/manual_thunks.cpp"
+    "$ROOT/phase4/src/frame_font_exports.cpp"
 )
 
 # Preserve the established compile order above, then append new class/category
