@@ -35,6 +35,19 @@ static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 static std::map<HWND, CDialog*> g_dlgMap;
 static std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
 
+namespace {
+struct CDialogExAccess : CDialogEx {
+    using CDialogEx::m_clrBackground;
+    using CDialogEx::m_hBackgroundImage;
+};
+
+static CDialogExAccess* DialogExAccess(CDialogEx* pThis) {
+    return static_cast<CDialogExAccess*>(pThis);
+}
+}  // namespace
+
+extern "C" void MS_ABI impl__CommonConstruct_CDialogEx__IEAAXXZ(CDialogEx* pThis);
+
 // =============================================================================
 // CDialog Constructors
 // =============================================================================
@@ -410,7 +423,7 @@ static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 // CDialogEx default constructor
 extern "C" void MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
     impl___0CDialog__QEAA_XZ(pThis);
-    // Additional CDialogEx initialization
+    impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
 }
 
 // CDialogEx constructor with ID
@@ -418,6 +431,7 @@ extern "C" void MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
     CDialogEx* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
     impl___0CDialog__QEAA_IPEAVCWnd___Z(pThis, nIDTemplate, pParentWnd);
+    impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
 }
 
 // CDialogEx constructor with template name
@@ -425,6 +439,156 @@ extern "C" void MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
     CDialogEx* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
     impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(pThis, lpszTemplateName, pParentWnd);
+    impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
+}
+
+// Symbol: ?CommonConstruct@CDialogEx@@IEAAXXZ
+extern "C" void MS_ABI impl__CommonConstruct_CDialogEx__IEAAXXZ(CDialogEx* pThis) {
+    if (!pThis) return;
+    CDialogExAccess* access = DialogExAccess(pThis);
+    access->m_clrBackground = GetSysColor(COLOR_BTNFACE);
+    access->m_hBackgroundImage = nullptr;
+}
+
+// Symbol: ?GetMessageMap@CDialogEx@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDialogEx__MEBAPEBUAFX_MSGMAP__XZ(
+    const CDialogEx* pThis) {
+    (void)pThis;
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CDialogEx@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialogEx__UEBAPEAUCRuntimeClass__XZ(
+    const CDialogEx* pThis) {
+    (void)pThis;
+    return CDialogEx::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CDialogEx@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialogEx__SAPEAUCRuntimeClass__XZ() {
+    return CDialogEx::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CDialogEx@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialogEx__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?OnActivate@CDialogEx@@IEAAXIPEAVCWnd@@H@Z
+extern "C" void MS_ABI impl__OnActivate_CDialogEx__IEAAXIPEAVCWnd__H_Z(
+    CDialogEx* pThis, UINT nState, CWnd* pWndOther, BOOL bMinimized) {
+    (void)pThis;
+    (void)nState;
+    (void)pWndOther;
+    (void)bMinimized;
+}
+
+// Symbol: ?OnCommand@CDialogEx@@MEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CDialogEx__MEAAH_K_J_Z(
+    CDialogEx* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)lParam;
+    if (!pThis) return FALSE;
+    switch (LOWORD(wParam)) {
+    case IDOK:
+        impl__OnOK_CDialog__MEAAXXZ(pThis);
+        return TRUE;
+    case IDCANCEL:
+        impl__OnCancel_CDialog__MEAAXXZ(pThis);
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+// Symbol: ?OnCtlColor@CDialogEx@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
+extern "C" HBRUSH MS_ABI impl__OnCtlColor_CDialogEx__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
+    CDialogEx* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
+    (void)pThis;
+    (void)pDC;
+    (void)pWnd;
+    (void)nCtlColor;
+    return GetSysColorBrush(COLOR_BTNFACE);
+}
+
+// Symbol: ?OnDestroy@CDialogEx@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CDialogEx__IEAAXXZ(CDialogEx* pThis) {
+    if (pThis && pThis->m_hWnd) {
+        g_dlgMap.erase(pThis->m_hWnd);
+    }
+}
+
+// Symbol: ?OnEraseBkgnd@CDialogEx@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CDialogEx__IEAAHPEAVCDC___Z(CDialogEx* pThis, CDC* pDC) {
+    (void)pThis;
+    (void)pDC;
+    return FALSE;
+}
+
+// Symbol: ?OnNcActivate@CDialogEx@@IEAAHH@Z
+extern "C" int MS_ABI impl__OnNcActivate_CDialogEx__IEAAHH_Z(CDialogEx* pThis, BOOL bActive) {
+    (void)pThis;
+    return bActive;
+}
+
+// Symbol: ?OnSettingChange@CDialogEx@@IEAAXIPEB_W@Z
+extern "C" void MS_ABI impl__OnSettingChange_CDialogEx__IEAAXIPEB_W_Z(
+    CDialogEx* pThis, UINT uFlags, const wchar_t* lpszSection) {
+    (void)pThis;
+    (void)uFlags;
+    (void)lpszSection;
+}
+
+// Symbol: ?OnSysColorChange@CDialogEx@@IEAAXXZ
+extern "C" void MS_ABI impl__OnSysColorChange_CDialogEx__IEAAXXZ(CDialogEx* pThis) {
+    if (pThis) {
+        DialogExAccess(pThis)->m_clrBackground = GetSysColor(COLOR_BTNFACE);
+    }
+}
+
+// Symbol: ?PreTranslateMessage@CDialogEx@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CDialogEx__UEAAHPEAUtagMSG___Z(
+    CDialogEx* pThis, MSG* pMsg) {
+    return impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(pThis, pMsg);
+}
+
+// Symbol: ?SetActiveMenu@CDialogEx@@IEAAXPEAVCMFCPopupMenu@@@Z
+extern "C" void MS_ABI impl__SetActiveMenu_CDialogEx__IEAAXPEAVCMFCPopupMenu___Z(
+    CDialogEx* pThis, void* pMenu) {
+    (void)pThis;
+    (void)pMenu;
+}
+
+// Symbol: ?SetBackgroundColor@CDialogEx@@QEAAXKH@Z
+extern "C" void MS_ABI impl__SetBackgroundColor_CDialogEx__QEAAXKH_Z(
+    CDialogEx* pThis, COLORREF color, BOOL bRepaint) {
+    if (!pThis) return;
+    DialogExAccess(pThis)->m_clrBackground = color;
+    if (bRepaint && pThis->m_hWnd) {
+        InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
+    }
+}
+
+// Symbol: ?SetBackgroundImage@CDialogEx@@QEAAHIW4BackgroundLocation@1@H@Z
+extern "C" int MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAHIW4BackgroundLocation_1_H_Z(
+    CDialogEx* pThis, UINT uiBmpResId, int backgroundLocation, BOOL bRepaint) {
+    (void)uiBmpResId;
+    (void)backgroundLocation;
+    if (bRepaint && pThis && pThis->m_hWnd) {
+        InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
+    }
+    return FALSE;
+}
+
+// Symbol: ?SetBackgroundImage@CDialogEx@@QEAAXPEAUHBITMAP__@@W4BackgroundLocation@1@HH@Z
+extern "C" void MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W4BackgroundLocation_1_HH_Z(
+    CDialogEx* pThis, HBITMAP hBitmap, int backgroundLocation, BOOL bAutoDestroy, BOOL bRepaint) {
+    (void)backgroundLocation;
+    (void)bAutoDestroy;
+    if (!pThis) return;
+    DialogExAccess(pThis)->m_hBackgroundImage = hBitmap;
+    if (bRepaint && pThis->m_hWnd) {
+        InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
+    }
 }
 
 // =============================================================================
