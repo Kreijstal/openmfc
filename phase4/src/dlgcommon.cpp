@@ -247,6 +247,13 @@ void CFileDialog::SetDefExt(const wchar_t* lpszDefExt) {
     m_strDefExt = lpszDefExt;
 }
 
+// Symbol: ?AddComboBox@CFileDialog@@QEAAJK@Z
+extern "C" HRESULT MS_ABI impl__AddComboBox_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+    return E_NOTIMPL;
+}
+
 // Symbol: ?AddPlace@CFileDialog@@QEAAXPEAUIShellItem@@W4FDAP@@@Z
 extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEAUIShellItem__W4FDAP___Z(
     CFileDialog* pThis, void* p0, int p1) {
@@ -268,10 +275,122 @@ extern "C" void MS_ABI impl__ApplyOFNToShellDialog_CFileDialog__QEAAXXZ(CFileDia
     (void)pThis;
 }
 
+// Symbol: ?AddRadioButtonList@CFileDialog@@QEAAJK@Z
+extern "C" HRESULT MS_ABI impl__AddRadioButtonList_CFileDialog__QEAAJK_Z(
+    CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddSeparator@CFileDialog@@QEAAJK@Z
+extern "C" HRESULT MS_ABI impl__AddSeparator_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?EnableOpenDropDown@CFileDialog@@QEAAJK@Z
+extern "C" HRESULT MS_ABI impl__EnableOpenDropDown_CFileDialog__QEAAJK_Z(
+    CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?EndVisualGroup@CFileDialog@@QEAAJXZ
+extern "C" HRESULT MS_ABI impl__EndVisualGroup_CFileDialog__QEAAJXZ(CFileDialog* pThis) {
+    (void)pThis;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetCheckButtonState@CFileDialog@@QEAAJKAEAH@Z
+extern "C" HRESULT MS_ABI impl__GetCheckButtonState_CFileDialog__QEAAJKAEAH_Z(
+    CFileDialog* pThis, unsigned long p0, int* p1) {
+    (void)pThis;
+    (void)p0;
+    if (p1 != nullptr) {
+        *p1 = FALSE;
+    }
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetControlItemState@CFileDialog@@QEAAJKKAEAW4CDCONTROLSTATEF@@@Z
+extern "C" HRESULT MS_ABI impl__GetControlItemState_CFileDialog__QEAAJKKAEAW4CDCONTROLSTATEF___Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long p1, unsigned int* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    if (p2 != nullptr) {
+        *p2 = 0;
+    }
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetControlState@CFileDialog@@QEAAJKAEAW4CDCONTROLSTATEF@@@Z
+extern "C" HRESULT MS_ABI impl__GetControlState_CFileDialog__QEAAJKAEAW4CDCONTROLSTATEF___Z(
+    CFileDialog* pThis, unsigned long p0, unsigned int* p1) {
+    (void)pThis;
+    (void)p0;
+    if (p1 != nullptr) {
+        *p1 = 0;
+    }
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetIFileDialogCustomize@CFileDialog@@QEAAPEAUIFileDialogCustomize@@XZ
+extern "C" void* MS_ABI impl__GetIFileDialogCustomize_CFileDialog__QEAAPEAUIFileDialogCustomize__XZ(
+    CFileDialog* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetIFileOpenDialog@CFileDialog@@QEAAPEAUIFileOpenDialog@@XZ
+extern "C" void* MS_ABI impl__GetIFileOpenDialog_CFileDialog__QEAAPEAUIFileOpenDialog__XZ(CFileDialog* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetIFileSaveDialog@CFileDialog@@QEAAPEAUIFileSaveDialog@@XZ
+extern "C" void* MS_ABI impl__GetIFileSaveDialog_CFileDialog__QEAAPEAUIFileSaveDialog__XZ(CFileDialog* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetResult@CFileDialog@@QEAAPEAUIShellItem@@XZ
+extern "C" void* MS_ABI impl__GetResult_CFileDialog__QEAAPEAUIShellItem__XZ(CFileDialog* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetResults@CFileDialog@@QEAAPEAUIShellItemArray@@XZ
+extern "C" void* MS_ABI impl__GetResults_CFileDialog__QEAAPEAUIShellItemArray__XZ(CFileDialog* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?GetSelectedControlItem@CFileDialog@@QEAAJKAEAK@Z
+extern "C" HRESULT MS_ABI impl__GetSelectedControlItem_CFileDialog__QEAAJKAEAK_Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long* p1) {
+    (void)pThis;
+    (void)p0;
+    if (p1 != nullptr) {
+        *p1 = 0;
+    }
+    return E_NOTIMPL;
+}
+
 // Symbol: ?HideControl@CFileDialog@@QEAAXH@Z
 extern "C" void MS_ABI impl__HideControl_CFileDialog__QEAAXH_Z(CFileDialog* pThis, int p0) {
     (void)pThis;
     (void)p0;
+}
+
+// Symbol: ?MakeProminent@CFileDialog@@QEAAJK@Z
+extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+    return E_NOTIMPL;
 }
 
 // Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
@@ -358,12 +477,66 @@ extern "C" void MS_ABI impl__OnTypeChange_CFileDialog__MEAAXXZ(CFileDialog* pThi
     (void)pThis;
 }
 
+// Symbol: ?RemoveControlItem@CFileDialog@@QEAAJKK@Z
+extern "C" HRESULT MS_ABI impl__RemoveControlItem_CFileDialog__QEAAJKK_Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?SetCheckButtonState@CFileDialog@@QEAAJKH@Z
+extern "C" HRESULT MS_ABI impl__SetCheckButtonState_CFileDialog__QEAAJKH_Z(
+    CFileDialog* pThis, unsigned long p0, int p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?SetControlItemState@CFileDialog@@QEAAJKKW4CDCONTROLSTATEF@@@Z
+extern "C" HRESULT MS_ABI impl__SetControlItemState_CFileDialog__QEAAJKKW4CDCONTROLSTATEF___Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long p1, unsigned int p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?SetControlState@CFileDialog@@QEAAJKW4CDCONTROLSTATEF@@@Z
+extern "C" HRESULT MS_ABI impl__SetControlState_CFileDialog__QEAAJKW4CDCONTROLSTATEF___Z(
+    CFileDialog* pThis, unsigned long p0, unsigned int p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return E_NOTIMPL;
+}
+
 // Symbol: ?SetControlText@CFileDialog@@QEAAXHPEB_W@Z
 extern "C" void MS_ABI impl__SetControlText_CFileDialog__QEAAXHPEB_W_Z(
     CFileDialog* pThis, int p0, const wchar_t* p1) {
     (void)pThis;
     (void)p0;
     (void)p1;
+}
+
+// Symbol: ?SetProperties@CFileDialog@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__SetProperties_CFileDialog__QEAAHPEB_W_Z(
+    CFileDialog* pThis, const wchar_t* p0) {
+    (void)pThis;
+    (void)p0;
+    return FALSE;
+}
+
+// Symbol: ?SetSelectedControlItem@CFileDialog@@QEAAJKK@Z
+extern "C" HRESULT MS_ABI impl__SetSelectedControlItem_CFileDialog__QEAAJKK_Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return E_NOTIMPL;
 }
 
 // Symbol: ?SetTemplate@CFileDialog@@QEAAXPEB_W0@Z
