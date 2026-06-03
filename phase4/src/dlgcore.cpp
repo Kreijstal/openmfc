@@ -33,6 +33,7 @@ static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 // Map HWND to CDialog* for dialog message routing
 #include <map>
 static std::map<HWND, CDialog*> g_dlgMap;
+static std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
 
 // =============================================================================
 // CDialog Constructors
@@ -77,6 +78,9 @@ extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
         // Don't destroy - dialog should already be destroyed
         pThis->m_hWnd = nullptr;
     }
+    if (pThis) {
+        g_dlgIndirectTemplates.erase(pThis);
+    }
 }
 
 // =============================================================================
@@ -85,7 +89,8 @@ extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
 
 // Ordinal: 3961
 extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
-    if (!pThis || !pThis->m_lpszTemplateName) {
+    auto indirectIt = g_dlgIndirectTemplates.find(pThis);
+    if (!pThis || (!pThis->m_lpszTemplateName && indirectIt == g_dlgIndirectTemplates.end())) {
         return -1;  // IDABORT
     }
 
@@ -103,14 +108,22 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     static thread_local CDialog* s_pPendingDialog = nullptr;
     s_pPendingDialog = pThis;
 
-    // Create the modal dialog
-    INT_PTR nResult = DialogBoxParamW(
-        hInst,
-        pThis->m_lpszTemplateName,
-        hWndParent,
-        AfxDlgProc,
-        reinterpret_cast<LPARAM>(pThis)
-    );
+    INT_PTR nResult = 0;
+    if (indirectIt != g_dlgIndirectTemplates.end()) {
+        nResult = DialogBoxIndirectParamW(
+            hInst,
+            indirectIt->second,
+            hWndParent,
+            AfxDlgProc,
+            reinterpret_cast<LPARAM>(pThis));
+    } else {
+        nResult = DialogBoxParamW(
+            hInst,
+            pThis->m_lpszTemplateName,
+            hWndParent,
+            AfxDlgProc,
+            reinterpret_cast<LPARAM>(pThis));
+    }
 
     s_pPendingDialog = nullptr;
     return nResult;
@@ -135,6 +148,7 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
 
     // Store template name
     pThis->m_lpszTemplateName = lpszTemplateName;
+    g_dlgIndirectTemplates.erase(pThis);
 
     // Create the modeless dialog
     HWND hDlg = CreateDialogParamW(
@@ -205,6 +219,7 @@ extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
 // CDialog::CheckAutoCenter
 // =============================================================================
 
+// Symbol: ?CheckAutoCenter@CDialog@@UEAAHXZ
 // Ordinal: 2701
 extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
     (void)pThis;
@@ -215,6 +230,7 @@ extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
 // CDialog::PreTranslateMessage
 // =============================================================================
 
+// Symbol: ?PreTranslateMessage@CDialog@@UEAAHPEAUtagMSG@@@Z
 // Ordinal: 11861
 extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
     CDialog* pThis, MSG* pMsg)
@@ -232,10 +248,101 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
 // CDialog::Initialize
 // =============================================================================
 
+// Symbol: ?Initialize@CDialog@@QEAAXXZ
 // Ordinal: 7705
 extern "C" void MS_ABI impl__Initialize_CDialog__QEAAXXZ(CDialog* pThis) {
     (void)pThis;
     // Default initialization - nothing to do
+}
+
+// Symbol: ?CreateIndirect@CDialog@@IEAAHPEAXPEAVCWnd@@PEAUHINSTANCE__@@@Z
+extern "C" int MS_ABI impl__CreateIndirect_CDialog__IEAAHPEAXPEAVCWnd__PEAUHINSTANCE_____Z(
+    CDialog* pThis, void* lpDialogTemplate, CWnd* pParentWnd, HINSTANCE hInst) {
+    if (!pThis || !lpDialogTemplate) return FALSE;
+    if (!hInst) hInst = AfxGetInstanceHandle();
+    if (!hInst) hInst = GetModuleHandleW(nullptr);
+    HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
+    HWND hDlg = CreateDialogIndirectParamW(
+        hInst,
+        static_cast<LPCDLGTEMPLATEW>(lpDialogTemplate),
+        hWndParent,
+        AfxDlgProc,
+        reinterpret_cast<LPARAM>(pThis));
+    if (!hDlg) return FALSE;
+    pThis->m_hWnd = hDlg;
+    g_dlgIndirectTemplates.erase(pThis);
+    g_dlgMap[hDlg] = pThis;
+    return TRUE;
+}
+
+// Symbol: ?CreateIndirect@CDialog@@IEAAHPEBUDLGTEMPLATE@@PEAVCWnd@@PEAXPEAUHINSTANCE__@@@Z
+extern "C" int MS_ABI impl__CreateIndirect_CDialog__IEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAXPEAUHINSTANCE_____Z(
+    CDialog* pThis, const DLGTEMPLATE* lpDialogTemplate, CWnd* pParentWnd, void* lpDialogInit,
+    HINSTANCE hInst) {
+    (void)lpDialogInit;
+    return impl__CreateIndirect_CDialog__IEAAHPEAXPEAVCWnd__PEAUHINSTANCE_____Z(
+        pThis, const_cast<DLGTEMPLATE*>(lpDialogTemplate), pParentWnd, hInst);
+}
+
+// Symbol: ?CreateIndirect@CDialog@@UEAAHPEAXPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__CreateIndirect_CDialog__UEAAHPEAXPEAVCWnd___Z(
+    CDialog* pThis, void* lpDialogTemplate, CWnd* pParentWnd) {
+    return impl__CreateIndirect_CDialog__IEAAHPEAXPEAVCWnd__PEAUHINSTANCE_____Z(
+        pThis, lpDialogTemplate, pParentWnd, nullptr);
+}
+
+// Symbol: ?CreateIndirect@CDialog@@UEAAHPEBUDLGTEMPLATE@@PEAVCWnd@@PEAX@Z
+extern "C" int MS_ABI impl__CreateIndirect_CDialog__UEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAX_Z(
+    CDialog* pThis, const DLGTEMPLATE* lpDialogTemplate, CWnd* pParentWnd, void* lpDialogInit) {
+    return impl__CreateIndirect_CDialog__IEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAXPEAUHINSTANCE_____Z(
+        pThis, lpDialogTemplate, pParentWnd, lpDialogInit, nullptr);
+}
+
+// Symbol: ?GetMessageMap@CDialog@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDialog__MEBAPEBUAFX_MSGMAP__XZ(
+    const CDialog* pThis) {
+    (void)pThis;
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetOccDialogInfo@CDialog@@MEAAPEAU_AFX_OCC_DIALOG_INFO@@XZ
+extern "C" _AFX_OCC_DIALOG_INFO* MS_ABI impl__GetOccDialogInfo_CDialog__MEAAPEAU_AFX_OCC_DIALOG_INFO__XZ(
+    CDialog* pThis) {
+    return pThis ? pThis->GetOccDialogInfo() : nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CDialog@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialog__UEBAPEAUCRuntimeClass__XZ(
+    const CDialog* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CDialog@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialog__SAPEAUCRuntimeClass__XZ() {
+    return CDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CDialog@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialog__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?InitModalIndirect@CDialog@@QEAAHPEAXPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__InitModalIndirect_CDialog__QEAAHPEAXPEAVCWnd___Z(
+    CDialog* pThis, void* lpDialogTemplate, CWnd* pParentWnd) {
+    (void)pParentWnd;
+    if (!pThis || !lpDialogTemplate) return FALSE;
+    pThis->m_lpszTemplateName = nullptr;
+    g_dlgIndirectTemplates[pThis] = static_cast<const DLGTEMPLATE*>(lpDialogTemplate);
+    return TRUE;
+}
+
+// Symbol: ?InitModalIndirect@CDialog@@QEAAHPEBUDLGTEMPLATE@@PEAVCWnd@@PEAX@Z
+extern "C" int MS_ABI impl__InitModalIndirect_CDialog__QEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAX_Z(
+    CDialog* pThis, const DLGTEMPLATE* lpDialogTemplate, CWnd* pParentWnd, void* lpDialogInit) {
+    (void)lpDialogInit;
+    return impl__InitModalIndirect_CDialog__QEAAHPEAXPEAVCWnd___Z(
+        pThis, const_cast<DLGTEMPLATE*>(lpDialogTemplate), pParentWnd);
 }
 
 // =============================================================================
@@ -430,6 +537,7 @@ CDialog::~CDialog() {
         g_dlgMap.erase(m_hWnd);
         m_hWnd = nullptr;
     }
+    g_dlgIndirectTemplates.erase(this);
 }
 
 // Symbol: ?DoModal@CDialog@@UEAA_JXZ
