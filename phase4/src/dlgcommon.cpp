@@ -247,6 +247,138 @@ void CFileDialog::SetDefExt(const wchar_t* lpszDefExt) {
     m_strDefExt = lpszDefExt;
 }
 
+// Symbol: ?AddPlace@CFileDialog@@QEAAXPEAUIShellItem@@W4FDAP@@@Z
+extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEAUIShellItem__W4FDAP___Z(
+    CFileDialog* pThis, void* p0, int p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?AddPlace@CFileDialog@@QEAAXPEB_WW4FDAP@@@Z
+extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEB_WW4FDAP___Z(
+    CFileDialog* pThis, const wchar_t* p0, int p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?ApplyOFNToShellDialog@CFileDialog@@QEAAXXZ
+extern "C" void MS_ABI impl__ApplyOFNToShellDialog_CFileDialog__QEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?HideControl@CFileDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__HideControl_CFileDialog__QEAAXH_Z(CFileDialog* pThis, int p0) {
+    (void)pThis;
+    (void)p0;
+}
+
+// Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
+extern "C" void MS_ABI impl__OnButtonClicked_CFileDialog__MEAAXK_Z(CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+}
+
+// Symbol: ?OnCheckButtonToggled@CFileDialog@@MEAAXKH@Z
+extern "C" void MS_ABI impl__OnCheckButtonToggled_CFileDialog__MEAAXKH_Z(
+    CFileDialog* pThis, unsigned long p0, int p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?OnControlActivating@CFileDialog@@MEAAXK@Z
+extern "C" void MS_ABI impl__OnControlActivating_CFileDialog__MEAAXK_Z(
+    CFileDialog* pThis, unsigned long p0) {
+    (void)pThis;
+    (void)p0;
+}
+
+// Symbol: ?OnFileNameChange@CFileDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__OnFileNameChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnFileNameOK@CFileDialog@@MEAAHXZ
+extern "C" int MS_ABI impl__OnFileNameOK_CFileDialog__MEAAHXZ(CFileDialog* pThis) {
+    (void)pThis;
+    return FALSE;
+}
+
+// Symbol: ?OnFolderChange@CFileDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__OnFolderChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnInitDone@CFileDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__OnInitDone_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnItemSelected@CFileDialog@@MEAAXKK@Z
+extern "C" void MS_ABI impl__OnItemSelected_CFileDialog__MEAAXKK_Z(
+    CFileDialog* pThis, unsigned long p0, unsigned long p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?OnLBSelChangedNotify@CFileDialog@@MEAAXIII@Z
+extern "C" void MS_ABI impl__OnLBSelChangedNotify_CFileDialog__MEAAXIII_Z(
+    CFileDialog* pThis, unsigned int p0, unsigned int p1, unsigned int p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+// Symbol: ?OnNotify@CFileDialog@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CFileDialog__MEAAH_K_JPEA_J_Z(
+    CFileDialog* pThis, uintptr_t p0, intptr_t p1, intptr_t* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    if (p2 != nullptr) {
+        *p2 = 0;
+    }
+    return FALSE;
+}
+
+// Symbol: ?OnShareViolation@CFileDialog@@MEAAIPEB_W@Z
+extern "C" unsigned int MS_ABI impl__OnShareViolation_CFileDialog__MEAAIPEB_W_Z(
+    CFileDialog* pThis, const wchar_t* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+// Symbol: ?OnTypeChange@CFileDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__OnTypeChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SetControlText@CFileDialog@@QEAAXHPEB_W@Z
+extern "C" void MS_ABI impl__SetControlText_CFileDialog__QEAAXHPEB_W_Z(
+    CFileDialog* pThis, int p0, const wchar_t* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?SetTemplate@CFileDialog@@QEAAXPEB_W0@Z
+extern "C" void MS_ABI impl__SetTemplate_CFileDialog__QEAAXPEB_W0_Z(
+    CFileDialog* pThis, const wchar_t* p0, const wchar_t* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?UpdateOFNFromShellDialog@CFileDialog@@UEAAXXZ
+extern "C" void MS_ABI impl__UpdateOFNFromShellDialog_CFileDialog__UEAAXXZ(CFileDialog* pThis) {
+    (void)pThis;
+}
+
 //=============================================================================
 // CColorDialog implementation
 //=============================================================================
