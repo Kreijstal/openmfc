@@ -362,6 +362,90 @@ extern "C" int MS_ABI impl__InitModalIndirect_CDialog__QEAAHPEBUDLGTEMPLATE__PEA
 // Dialog Procedure
 // =============================================================================
 
+// Symbol: ?HandleInitDialog@CDialog@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__HandleInitDialog_CDialog__IEAA_J_K_J_Z(
+    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)wParam;
+    (void)lParam;
+    return pThis ? impl__OnInitDialog_CDialog__UEAAHXZ(pThis) : TRUE;
+}
+
+// Symbol: ?OnCmdMsg@CDialog@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CDialog__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CDialog* pThis, UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
+    (void)pThis;
+    (void)nID;
+    (void)nCode;
+    (void)pExtra;
+    (void)pHandlerInfo;
+    return FALSE;
+}
+
+// Symbol: ?OnCommandHelp@CDialog@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
+    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnEndSession@CDialog@@IEAAXH@Z
+extern "C" void MS_ABI impl__OnEndSession_CDialog__IEAAXH_Z(CDialog* pThis, BOOL bEnding) {
+    (void)pThis;
+    (void)bEnding;
+}
+
+// Symbol: ?OnHelpHitTest@CDialog@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__OnHelpHitTest_CDialog__IEAA_J_K_J_Z(
+    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnPaint@CDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CDialog__IEAAXXZ(CDialog* pThis) {
+    if (!pThis || !pThis->m_hWnd) return;
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(pThis->m_hWnd, &ps);
+    if (hdc) {
+        EndPaint(pThis->m_hWnd, &ps);
+    }
+}
+
+// Symbol: ?OnQueryEndSession@CDialog@@IEAAHXZ
+extern "C" int MS_ABI impl__OnQueryEndSession_CDialog__IEAAHXZ(CDialog* pThis) {
+    (void)pThis;
+    return TRUE;
+}
+
+// Symbol: ?PostModal@CDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__PostModal_CDialog__IEAAXXZ(CDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?PreInitDialog@CDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__PreInitDialog_CDialog__MEAAXXZ(CDialog* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?PreModal@CDialog@@IEAAPEAUHWND__@@XZ
+extern "C" HWND MS_ABI impl__PreModal_CDialog__IEAAPEAUHWND____XZ(CDialog* pThis) {
+    CWnd* pParent = AfxGetMainWnd();
+    HWND hWndParent = pParent ? pParent->m_hWnd : nullptr;
+    return (pThis && pThis->m_hWnd) ? pThis->m_hWnd : hWndParent;
+}
+
+// Symbol: ?SetOccDialogInfo@CDialog@@MEAAHPEAU_AFX_OCC_DIALOG_INFO@@@Z
+extern "C" int MS_ABI impl__SetOccDialogInfo_CDialog__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(
+    CDialog* pThis, _AFX_OCC_DIALOG_INFO* pDialogInfo) {
+    (void)pThis;
+    (void)pDialogInfo;
+    return TRUE;
+}
+
 static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     CDialog* pDlg = nullptr;
