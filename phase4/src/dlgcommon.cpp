@@ -33,10 +33,62 @@ IMPLEMENT_DYNAMIC(CFontDialog, CDialog)
 IMPLEMENT_DYNAMIC(CPrintDialog, CDialog)
 IMPLEMENT_DYNAMIC(CPageSetupDialog, CDialog)
 IMPLEMENT_DYNAMIC(CFindReplaceDialog, CDialog)
+IMPLEMENT_DYNAMIC(CFileDialog, CDialog)
+
+#ifdef __GNUC__
+asm(".globl \"?classCFileDialog@CFileDialog@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCFileDialog@CFileDialog@@2UCRuntimeClass@@A\", _ZN11CFileDialog16classCFileDialogE\n");
+#endif
 
 //=============================================================================
 // CFileDialog implementation
 //=============================================================================
+
+namespace {
+struct CFileDialogAccess : CFileDialog {
+    using CFileDialog::m_bOpenFileDialog;
+    using CFileDialog::m_dwFlags;
+    using CFileDialog::m_strDefExt;
+    using CFileDialog::m_strFileName;
+    using CFileDialog::m_strFileNameOnly;
+    using CFileDialog::m_strFilter;
+    using CFileDialog::m_strFolderPath;
+    using CFileDialog::m_strInitialDir;
+    using CFileDialog::m_strPathName;
+};
+
+OPENFILENAMEW& OpenMfcGetOFNSnapshot(const CFileDialog* pThis) {
+    thread_local OPENFILENAMEW ofn;
+    thread_local wchar_t fileBuffer[65536];
+
+    memset(&ofn, 0, sizeof(ofn));
+    memset(fileBuffer, 0, sizeof(fileBuffer));
+
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = fileBuffer;
+    ofn.nMaxFile = static_cast<DWORD>(sizeof(fileBuffer) / sizeof(fileBuffer[0]));
+    ofn.nFilterIndex = 1;
+
+    if (pThis == nullptr) {
+        ofn.lpstrFilter = L"All Files\0*.*\0";
+        return ofn;
+    }
+
+    const auto* access = static_cast<const CFileDialogAccess*>(pThis);
+    const CString& selectedPath = access->m_strPathName.IsEmpty() ? access->m_strFileName : access->m_strPathName;
+    if (!selectedPath.IsEmpty()) {
+        wcsncpy(fileBuffer, static_cast<const wchar_t*>(selectedPath), ofn.nMaxFile - 1);
+    }
+
+    ofn.lpstrFilter = access->m_strFilter.IsEmpty() ? L"All Files\0*.*\0" : static_cast<const wchar_t*>(access->m_strFilter);
+    ofn.lpstrDefExt = access->m_strDefExt.IsEmpty() ? nullptr : static_cast<const wchar_t*>(access->m_strDefExt);
+    ofn.lpstrInitialDir =
+        access->m_strInitialDir.IsEmpty() ? nullptr : static_cast<const wchar_t*>(access->m_strInitialDir);
+    ofn.Flags = access->m_dwFlags | OFN_EXPLORER;
+
+    return ofn;
+}
+}
 
 CFileDialog::CFileDialog(int bOpenFileDialog,
                          const wchar_t* lpszDefExt,
@@ -245,6 +297,38 @@ extern "C" void MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV_
 
 void CFileDialog::SetDefExt(const wchar_t* lpszDefExt) {
     m_strDefExt = lpszDefExt;
+}
+
+// Symbol: ?GetInterfaceMap@CFileDialog@@MEBAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CFileDialog__MEBAPEBUAFX_INTERFACEMAP__XZ(
+    const CFileDialog* pThis) {
+    return pThis ? pThis->GetInterfaceMap() : CWnd::GetThisInterfaceMap();
+}
+
+// Symbol: ?GetOFN@CFileDialog@@QEAAAEAUtagOFNW@@XZ
+extern "C" OPENFILENAMEW* MS_ABI impl__GetOFN_CFileDialog__QEAAAEAUtagOFNW__XZ(CFileDialog* pThis) {
+    return &OpenMfcGetOFNSnapshot(pThis);
+}
+
+// Symbol: ?GetOFN@CFileDialog@@QEBAAEBUtagOFNW@@XZ
+extern "C" const OPENFILENAMEW* MS_ABI impl__GetOFN_CFileDialog__QEBAAEBUtagOFNW__XZ(const CFileDialog* pThis) {
+    return &OpenMfcGetOFNSnapshot(pThis);
+}
+
+// Symbol: ?GetRuntimeClass@CFileDialog@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileDialog__UEBAPEAUCRuntimeClass__XZ(
+    const CFileDialog* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CFileDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CFileDialog@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileDialog__SAPEAUCRuntimeClass__XZ() {
+    return CFileDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisInterfaceMap@CFileDialog@@KAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CFileDialog__KAPEBUAFX_INTERFACEMAP__XZ() {
+    return CWnd::GetThisInterfaceMap();
 }
 
 // Symbol: ?AddComboBox@CFileDialog@@QEAAJK@Z

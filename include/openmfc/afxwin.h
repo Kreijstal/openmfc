@@ -1211,7 +1211,7 @@ class CFindReplaceDialog;
 
 // CFileDialog - File Open/Save dialog
 class CFileDialog : public CDialog {
-    // DECLARE_DYNAMIC(CFileDialog)
+    DECLARE_DYNAMIC(CFileDialog)
 public:
     // Constructor parameters based on MFC140u.dll symbols:
     // CFileDialog(int, wchar_t const *, wchar_t const *, unsigned long, wchar_t const *, class CWnd *, unsigned long, int)
