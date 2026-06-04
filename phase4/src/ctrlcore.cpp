@@ -488,6 +488,24 @@ extern "C" int MS_ABI impl__GetText_CListBox__QEBAHPEA_WH_Z(const CListBox* pThi
     return (int)::SendMessageW(pThis->m_hWnd, LB_GETTEXT, nIndex, (LPARAM)lpszBuffer);
 }
 
+extern "C" int MS_ABI impl__GetTextLen_CListBox__QEBAHH_Z(const CListBox* pThis, int nIndex);
+
+// Symbol: ?GetText@CListBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetText_CListBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CListBox* pThis, int nIndex, CString* rString) {
+    if (!rString) {
+        return;
+    }
+    rString->Empty();
+    int len = impl__GetTextLen_CListBox__QEBAHH_Z(pThis, nIndex);
+    if (len <= 0) {
+        return;
+    }
+    wchar_t* buffer = rString->GetBuffer(len + 1);
+    int copied = impl__GetText_CListBox__QEBAHPEA_WH_Z(pThis, nIndex, buffer);
+    rString->ReleaseBuffer(copied > 0 ? copied : 0);
+}
+
 // CListBox::GetTextLen
 extern "C" int MS_ABI impl__GetTextLen_CListBox__QEBAHH_Z(const CListBox* pThis, int nIndex) {
     if (!pThis || !pThis->m_hWnd) return LB_ERR;

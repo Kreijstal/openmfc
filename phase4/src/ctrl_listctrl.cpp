@@ -100,6 +100,30 @@ extern "C" int MS_ABI impl__GetItemText_CListCtrl__QEBAHHHPEA_WH_Z(
     return (int)::SendMessageW(ListCtrlHwnd(pThis), LVM_GETITEMTEXTW, nItem, (LPARAM)&item);
 }
 
+// Symbol: ?GetItemText@CListCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z
+extern "C" void MS_ABI impl__GetItemText_CListCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HH_Z(
+    CString* pRet, const CListCtrl* pThis, int nItem, int nSubItem) {
+    if (!pRet) {
+        return;
+    }
+    new (pRet) CString();
+    HWND hWnd = ListCtrlHwnd(pThis);
+    if (!hWnd) {
+        return;
+    }
+
+    int capacity = 128;
+    for (;;) {
+        wchar_t* buffer = pRet->GetBuffer(capacity);
+        int copied = impl__GetItemText_CListCtrl__QEBAHHHPEA_WH_Z(pThis, nItem, nSubItem, buffer, capacity);
+        pRet->ReleaseBuffer(copied > 0 ? copied : 0);
+        if (copied < capacity - 1 || capacity >= 32768) {
+            return;
+        }
+        capacity *= 2;
+    }
+}
+
 // Symbol: ?GetMessageMap@CListCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CListCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CListCtrl* pThis) {
     (void)pThis;

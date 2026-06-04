@@ -1736,10 +1736,33 @@ int CWnd::GetDlgItemTextW(int p0, void*& p1, void** p2, void* p3) const
 
 int CWnd::GetDlgItemTextW(int p0, WCHAR* p1, int p2) const
 {
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0;
+    if (!m_hWnd || !p1 || p2 <= 0) {
+        return 0;
+    }
+    return ::GetDlgItemTextW(m_hWnd, p0, p1, p2);
+}
+
+// Symbol: ?GetDlgItemTextW@CWnd@@QEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetDlgItemTextW_CWnd__QEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CWnd* pThis, int nID, CString* rString) {
+    if (!rString) {
+        return 0;
+    }
+    rString->Empty();
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+
+    HWND hItem = ::GetDlgItem(pThis->m_hWnd, nID);
+    int length = hItem ? ::GetWindowTextLengthW(hItem) : 0;
+    if (length <= 0) {
+        return 0;
+    }
+
+    wchar_t* buffer = rString->GetBuffer(length + 1);
+    int copied = ::GetWindowTextW(hItem, buffer, length + 1);
+    rString->ReleaseBuffer(copied > 0 ? copied : 0);
+    return copied > 0 ? copied : 0;
 }
 
 IUnknown* CWnd::GetDSCCursor()
@@ -2622,6 +2645,18 @@ DWORD CFrameWnd::GetMenuBarState() const { return 0; }
 DWORD CFrameWnd::GetMenuBarVisibility() const { return 0; }
 CWnd* CFrameWnd::GetMessageBar() { return nullptr; }
 void CFrameWnd::GetMessageString(unsigned int nID, CString& rMessage) const { (void)nID; (void)rMessage; }
+
+// Symbol: ?GetMessageString@CFrameWnd@@UEBAXIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetMessageString_CFrameWnd__UEBAXIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CFrameWnd* pThis, unsigned int nID, CString* rMessage) {
+    if (!rMessage) {
+        return;
+    }
+    rMessage->Empty();
+    if (pThis) {
+        pThis->GetMessageString(nID, *rMessage);
+    }
+}
 void CFrameWnd::InitialUpdateFrame(CDocument* pDoc, int bMakeVisible) { (void)pDoc; (void)bMakeVisible; }
 int CFrameWnd::IsFrameWnd() const { return 1; }
 int CFrameWnd::IsTracking() { return 0; }

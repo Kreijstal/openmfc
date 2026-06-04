@@ -237,6 +237,12 @@ CString CRichEditCtrl::GetSelText() const {
     return str;
 }
 
+// Symbol: ?GetSelText@CRichEditCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetSelText_CRichEditCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CRichEditCtrl* pThis) {
+    new (pRet) CString(pThis ? pThis->GetSelText() : CString());
+}
+
 LONG CRichEditCtrl::GetTextLengthEx(DWORD dwFlags, UINT uCodePage) const {
     if (!m_hWnd) return 0;
     GETTEXTLENGTHEX gtl = {};
@@ -260,6 +266,16 @@ int CRichEditCtrl::GetTextRange(int nFirst, int nLast, CString& refString) const
     if (nCopied < 0) nCopied = 0;
     refString.ReleaseBuffer(nCopied);
     return nCopied;
+}
+
+// Symbol: ?GetTextRange@CRichEditCtrl@@QEBAHHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetTextRange_CRichEditCtrl__QEBAHHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CRichEditCtrl* pThis, int nFirst, int nLast, CString* refString) {
+    if (!refString) {
+        return 0;
+    }
+    refString->Empty();
+    return pThis ? pThis->GetTextRange(nFirst, nLast, *refString) : 0;
 }
 
 void CRichEditCtrl::LineScroll(int nLines, int nChars) {

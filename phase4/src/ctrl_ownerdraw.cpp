@@ -451,6 +451,36 @@ extern "C" uintptr_t MS_ABI impl__GetItemData_CTreeCtrl__QEBA_KPEAU_TREEITEM___Z
     return TreeCtrlGetItem(TreeCtrlHwnd(pThis), hItem, TVIF_PARAM, &item) ? (uintptr_t)item.lParam : 0;
 }
 
+// Symbol: ?GetItemText@CTreeCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAU_TREEITEM@@@Z
+extern "C" void MS_ABI impl__GetItemText_CTreeCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAU_TREEITEM___Z(
+    CString* pRet, const CTreeCtrl* pThis, HTREEITEM hItem) {
+    if (!pRet) {
+        return;
+    }
+    new (pRet) CString();
+    HWND hWnd = TreeCtrlHwnd(pThis);
+    if (!hWnd || !hItem) {
+        return;
+    }
+
+    int capacity = 128;
+    for (;;) {
+        wchar_t* buffer = pRet->GetBuffer(capacity);
+        TVITEMW item = {};
+        item.mask = TVIF_TEXT;
+        item.hItem = hItem;
+        item.pszText = buffer;
+        item.cchTextMax = capacity;
+        BOOL ok = (BOOL)::SendMessageW(hWnd, TVM_GETITEMW, 0, (LPARAM)&item);
+        int copied = ok ? (int)wcslen(buffer) : 0;
+        pRet->ReleaseBuffer(copied);
+        if (!ok || copied < capacity - 1 || capacity >= 32768) {
+            return;
+        }
+        capacity *= 2;
+    }
+}
+
 // Symbol: ?GetItemExpandedImageIndex@CTreeCtrl@@QEBAHPEAU_TREEITEM@@@Z
 extern "C" int MS_ABI impl__GetItemExpandedImageIndex_CTreeCtrl__QEBAHPEAU_TREEITEM___Z(
     const CTreeCtrl* pThis, HTREEITEM hItem) {
