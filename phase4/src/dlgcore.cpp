@@ -29,6 +29,7 @@ IMPLEMENT_DYNAMIC(CDialogEx, CDialog)
 
 // Forward declaration
 static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+static INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 // Map HWND to CDialog* for dialog message routing
 #include <map>
@@ -36,13 +37,35 @@ static std::map<HWND, CDialog*> g_dlgMap;
 static std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
 
 namespace {
+static const AFX_MSGMAP* EmptyMessageMap() {
+    static const AFX_MSGMAP_ENTRY entries[] = {{0, 0, 0, 0, 0, nullptr}};
+    static const AFX_MSGMAP msgMap = {nullptr, entries};
+    return &msgMap;
+}
+
 struct CDialogExAccess : CDialogEx {
     using CDialogEx::m_clrBackground;
     using CDialogEx::m_hBackgroundImage;
 };
 
+struct CPropertyPageAccess : CPropertyPage {
+    using CPropertyPage::_propertypage_padding;
+};
+
+struct CPropertySheetAccess : CPropertySheet {
+    using CPropertySheet::_propertysheet_padding;
+};
+
 static CDialogExAccess* DialogExAccess(CDialogEx* pThis) {
     return static_cast<CDialogExAccess*>(pThis);
+}
+
+static CPropertyPageAccess* PropertyPageAccess(CPropertyPage* pThis) {
+    return static_cast<CPropertyPageAccess*>(pThis);
+}
+
+static CPropertySheetAccess* PropertySheetAccess(CPropertySheet* pThis) {
+    return static_cast<CPropertySheetAccess*>(pThis);
 }
 }  // namespace
 
@@ -855,6 +878,83 @@ CPropertyPage::CPropertyPage(const wchar_t* lpszTemplateName, unsigned int nIDCa
     memset(_propertypage_padding, 0, sizeof(_propertypage_padding));
 }
 
+// Symbol: ?CommonConstruct@CPropertyPage@@IEAAXPEB_WI@Z
+extern "C" void MS_ABI impl__CommonConstruct_CPropertyPage__IEAAXPEB_WI_Z(
+    CPropertyPage* pThis, const wchar_t* lpszTemplateName, UINT nIDCaption) {
+    if (!pThis) return;
+    pThis->m_hWnd = nullptr;
+    pThis->m_lpszTemplateName = lpszTemplateName;
+    pThis->m_nIDHelp = 0;
+    pThis->m_nIDCaption = nIDCaption;
+    pThis->m_bModified = FALSE;
+    std::memset(PropertyPageAccess(pThis)->_propertypage_padding, 0, sizeof(PropertyPageAccess(pThis)->_propertypage_padding));
+}
+
+// Symbol: ?CommonConstruct@CPropertyPage@@IEAAXPEB_WIII@Z
+extern "C" void MS_ABI impl__CommonConstruct_CPropertyPage__IEAAXPEB_WIII_Z(
+    CPropertyPage* pThis, const wchar_t* lpszTemplateName, UINT nIDCaption, UINT nIDHeaderTitle, UINT nIDHeaderSubTitle) {
+    (void)nIDHeaderTitle;
+    (void)nIDHeaderSubTitle;
+    impl__CommonConstruct_CPropertyPage__IEAAXPEB_WI_Z(pThis, lpszTemplateName, nIDCaption);
+}
+
+// Symbol: ?Construct@CPropertyPage@@QEAAXII@Z
+extern "C" void MS_ABI impl__Construct_CPropertyPage__QEAAXII_Z(
+    CPropertyPage* pThis, UINT nIDTemplate, UINT nIDCaption) {
+    impl__CommonConstruct_CPropertyPage__IEAAXPEB_WI_Z(pThis, MAKEINTRESOURCEW(nIDTemplate), nIDCaption);
+    if (pThis) pThis->m_nIDHelp = nIDTemplate;
+}
+
+// Symbol: ?Construct@CPropertyPage@@QEAAXIIII@Z
+extern "C" void MS_ABI impl__Construct_CPropertyPage__QEAAXIIII_Z(
+    CPropertyPage* pThis, UINT nIDTemplate, UINT nIDCaption, UINT nIDHeaderTitle, UINT nIDHeaderSubTitle) {
+    (void)nIDHeaderTitle;
+    (void)nIDHeaderSubTitle;
+    impl__Construct_CPropertyPage__QEAAXII_Z(pThis, nIDTemplate, nIDCaption);
+}
+
+// Symbol: ?Construct@CPropertyPage@@QEAAXPEB_WI@Z
+extern "C" void MS_ABI impl__Construct_CPropertyPage__QEAAXPEB_WI_Z(
+    CPropertyPage* pThis, const wchar_t* lpszTemplateName, UINT nIDCaption) {
+    impl__CommonConstruct_CPropertyPage__IEAAXPEB_WI_Z(pThis, lpszTemplateName, nIDCaption);
+}
+
+// Symbol: ?Construct@CPropertyPage@@QEAAXPEB_WIII@Z
+extern "C" void MS_ABI impl__Construct_CPropertyPage__QEAAXPEB_WIII_Z(
+    CPropertyPage* pThis, const wchar_t* lpszTemplateName, UINT nIDCaption, UINT nIDHeaderTitle, UINT nIDHeaderSubTitle) {
+    (void)nIDHeaderTitle;
+    (void)nIDHeaderSubTitle;
+    impl__Construct_CPropertyPage__QEAAXPEB_WI_Z(pThis, lpszTemplateName, nIDCaption);
+}
+
+// Symbol: ?Cleanup@CPropertyPage@@IEAAXXZ
+extern "C" void MS_ABI impl__Cleanup_CPropertyPage__IEAAXXZ(CPropertyPage* pThis) {
+    if (pThis) pThis->m_bModified = FALSE;
+}
+
+// Symbol: ?GetMessageMap@CPropertyPage@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPropertyPage__MEBAPEBUAFX_MSGMAP__XZ(
+    const CPropertyPage* pThis) {
+    (void)pThis;
+    return EmptyMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CPropertyPage@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPropertyPage__UEBAPEAUCRuntimeClass__XZ(
+    const CPropertyPage* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CPropertyPage::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CPropertyPage@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertyPage__SAPEAUCRuntimeClass__XZ() {
+    return CPropertyPage::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CPropertyPage@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CPropertyPage__KAPEBUAFX_MSGMAP__XZ() {
+    return EmptyMessageMap();
+}
+
 int CPropertyPage::OnSetActive() {
     return TRUE;  // Allow page to become active
 }
@@ -929,6 +1029,89 @@ CPropertySheet* CPropertyPage::GetParentSheet() {
         return dynamic_cast<CPropertySheet*>(reinterpret_cast<CWnd*>(it->second));
     }
     return nullptr;
+}
+
+// Symbol: ?AllocPSP@CPropertyPage@@IEAAXK@Z
+extern "C" void MS_ABI impl__AllocPSP_CPropertyPage__IEAAXK_Z(CPropertyPage* pThis, DWORD dwSize) {
+    (void)pThis;
+    (void)dwSize;
+}
+
+// Symbol: ?EndDialog@CPropertyPage@@QEAAXH@Z
+extern "C" void MS_ABI impl__EndDialog_CPropertyPage__QEAAXH_Z(CPropertyPage* pThis, int nEndID) {
+    CPropertySheet* pSheet = pThis ? pThis->GetParentSheet() : nullptr;
+    if (pSheet) {
+        pSheet->EndDialog(nEndID);
+    } else if (pThis && pThis->m_hWnd) {
+        ::EndDialog(pThis->m_hWnd, nEndID);
+    }
+}
+
+// Symbol: ?InitDialogInfo@CPropertyPage@@IEAAPEBUDLGTEMPLATE@@PEBU2@@Z
+extern "C" const DLGTEMPLATE* MS_ABI impl__InitDialogInfo_CPropertyPage__IEAAPEBUDLGTEMPLATE__PEBU2__Z(
+    CPropertyPage* pThis, const DLGTEMPLATE* pTemplate) {
+    (void)pThis;
+    return pTemplate;
+}
+
+// Symbol: ?IsButtonEnabled@CPropertyPage@@IEAAHH@Z
+extern "C" int MS_ABI impl__IsButtonEnabled_CPropertyPage__IEAAHH_Z(CPropertyPage* pThis, int nButton) {
+    CPropertySheet* pSheet = pThis ? pThis->GetParentSheet() : nullptr;
+    HWND hButton = pSheet && pSheet->m_hWnd ? ::GetDlgItem(pSheet->m_hWnd, nButton) : nullptr;
+    return hButton ? ::IsWindowEnabled(hButton) : FALSE;
+}
+
+// Symbol: ?MapWizardResult@CPropertyPage@@IEAA_J_J@Z
+extern "C" LRESULT MS_ABI impl__MapWizardResult_CPropertyPage__IEAA_J_J_Z(CPropertyPage* pThis, LRESULT result) {
+    (void)pThis;
+    return result;
+}
+
+// Symbol: ?OnCtlColor@CPropertyPage@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
+extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertyPage__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
+    CPropertyPage* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
+    (void)pThis;
+    (void)pDC;
+    (void)pWnd;
+    (void)nCtlColor;
+    return nullptr;
+}
+
+// Symbol: ?OnNotify@CPropertyPage@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CPropertyPage__MEAAH_K_JPEA_J_Z(
+    CPropertyPage* pThis, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    if (pResult) *pResult = 0;
+    return FALSE;
+}
+
+// Symbol: ?OnWizardFinishEx@CPropertyPage@@UEAAPEAUHWND__@@XZ
+extern "C" HWND MS_ABI impl__OnWizardFinishEx_CPropertyPage__UEAAPEAUHWND____XZ(CPropertyPage* pThis) {
+    (void)pThis;
+    return nullptr;
+}
+
+// Symbol: ?PreProcessPageTemplate@CPropertyPage@@IEAAXAEAU_PROPSHEETPAGEW@@H@Z
+extern "C" void MS_ABI impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PROPSHEETPAGEW__H_Z(
+    CPropertyPage* pThis, PROPSHEETPAGEW& psp, int bWizard) {
+    (void)bWizard;
+    std::memset(&psp, 0, sizeof(psp));
+    psp.dwSize = sizeof(psp);
+    psp.dwFlags = 0;
+    psp.hInstance = AfxGetInstanceHandle();
+    psp.pszTemplate = pThis ? pThis->m_lpszTemplateName : nullptr;
+    psp.pfnDlgProc = PropPageDlgProc;
+    psp.lParam = reinterpret_cast<LPARAM>(pThis);
+}
+
+// Symbol: ?PreTranslateMessage@CPropertyPage@@MEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CPropertyPage__MEAAHPEAUtagMSG___Z(
+    CPropertyPage* pThis, MSG* pMsg) {
+    (void)pThis;
+    (void)pMsg;
+    return FALSE;
 }
 
 // =============================================================================
@@ -1044,6 +1227,99 @@ CPropertySheet::CPropertySheet(const wchar_t* pszCaption, CWnd* pParentWnd, unsi
 {
     memset(m_pages, 0, sizeof(m_pages));
     memset(_propertysheet_padding, 0, sizeof(_propertysheet_padding));
+}
+
+// Symbol: ?CommonConstruct@CPropertySheet@@QEAAXPEAVCWnd@@I@Z
+extern "C" void MS_ABI impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__I_Z(
+    CPropertySheet* pThis, CWnd* pParentWnd, UINT iSelectPage) {
+    if (!pThis) return;
+    pThis->m_hWnd = nullptr;
+    pThis->m_pszCaption = nullptr;
+    pThis->m_pParentWnd = pParentWnd;
+    pThis->m_nActivePage = iSelectPage;
+    pThis->m_bWizardMode = FALSE;
+    pThis->m_nPageCount = 0;
+    std::memset(pThis->m_pages, 0, sizeof(pThis->m_pages));
+    std::memset(PropertySheetAccess(pThis)->_propertysheet_padding, 0, sizeof(PropertySheetAccess(pThis)->_propertysheet_padding));
+}
+
+// Symbol: ?CommonConstruct@CPropertySheet@@QEAAXPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@1@Z
+extern "C" void MS_ABI impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____1_Z(
+    CPropertySheet* pThis, CWnd* pParentWnd, UINT iSelectPage, HBITMAP hbmWatermark, HPALETTE hpalWatermark, HBITMAP hbmHeader) {
+    (void)hbmWatermark;
+    (void)hpalWatermark;
+    (void)hbmHeader;
+    impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__I_Z(pThis, pParentWnd, iSelectPage);
+}
+
+// Symbol: ?Construct@CPropertySheet@@QEAAXIPEAVCWnd@@I@Z
+extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXIPEAVCWnd__I_Z(
+    CPropertySheet* pThis, UINT nIDCaption, CWnd* pParentWnd, UINT iSelectPage) {
+    (void)nIDCaption;
+    impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__I_Z(pThis, pParentWnd, iSelectPage);
+}
+
+// Symbol: ?Construct@CPropertySheet@@QEAAXIPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@1@Z
+extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXIPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____1_Z(
+    CPropertySheet* pThis, UINT nIDCaption, CWnd* pParentWnd, UINT iSelectPage, HBITMAP hbmWatermark, HPALETTE hpalWatermark, HBITMAP hbmHeader) {
+    (void)nIDCaption;
+    impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____1_Z(
+        pThis, pParentWnd, iSelectPage, hbmWatermark, hpalWatermark, hbmHeader);
+}
+
+// Symbol: ?Construct@CPropertySheet@@QEAAXPEB_WPEAVCWnd@@I@Z
+extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXPEB_WPEAVCWnd__I_Z(
+    CPropertySheet* pThis, const wchar_t* pszCaption, CWnd* pParentWnd, UINT iSelectPage) {
+    impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__I_Z(pThis, pParentWnd, iSelectPage);
+    if (pThis) pThis->m_pszCaption = pszCaption;
+}
+
+// Symbol: ?Construct@CPropertySheet@@QEAAXPEB_WPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@2@Z
+extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXPEB_WPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____2_Z(
+    CPropertySheet* pThis, const wchar_t* pszCaption, CWnd* pParentWnd, UINT iSelectPage, HBITMAP hbmWatermark, HPALETTE hpalWatermark, HBITMAP hbmHeader) {
+    (void)hbmWatermark;
+    (void)hpalWatermark;
+    (void)hbmHeader;
+    impl__Construct_CPropertySheet__QEAAXPEB_WPEAVCWnd__I_Z(pThis, pszCaption, pParentWnd, iSelectPage);
+}
+
+// Symbol: ?BuildPropPageArray@CPropertySheet@@UEAAXXZ
+extern "C" void MS_ABI impl__BuildPropPageArray_CPropertySheet__UEAAXXZ(CPropertySheet* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?ContinueModal@CPropertySheet@@UEAAHXZ
+extern "C" int MS_ABI impl__ContinueModal_CPropertySheet__UEAAHXZ(CPropertySheet* pThis) {
+    return pThis && pThis->m_hWnd && ::IsWindow(pThis->m_hWnd);
+}
+
+// Symbol: ?EnableStackedTabs@CPropertySheet@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableStackedTabs_CPropertySheet__QEAAXH_Z(CPropertySheet* pThis, int bStacked) {
+    (void)pThis;
+    (void)bStacked;
+}
+
+// Symbol: ?GetMessageMap@CPropertySheet@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPropertySheet__MEBAPEBUAFX_MSGMAP__XZ(
+    const CPropertySheet* pThis) {
+    (void)pThis;
+    return EmptyMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CPropertySheet@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPropertySheet__UEBAPEAUCRuntimeClass__XZ(
+    const CPropertySheet* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CPropertySheet::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CPropertySheet@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertySheet__SAPEAUCRuntimeClass__XZ() {
+    return CPropertySheet::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CPropertySheet@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CPropertySheet__KAPEBUAFX_MSGMAP__XZ() {
+    return EmptyMessageMap();
 }
 
 int CPropertySheet::GetPageCount() const {
@@ -1293,4 +1569,110 @@ int CPropertySheet::OnInitDialog() {
 
 void CPropertySheet::OnPageChanged() {
     // Default: do nothing
+}
+
+// Symbol: ?HandleInitDialog@CPropertySheet@@IEAA_J_K_J@Z
+extern "C" LRESULT MS_ABI impl__HandleInitDialog_CPropertySheet__IEAA_J_K_J_Z(
+    CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)wParam;
+    (void)lParam;
+    return pThis ? pThis->OnInitDialog() : FALSE;
+}
+
+// Symbol: ?OnClose@CPropertySheet@@IEAAXXZ
+extern "C" void MS_ABI impl__OnClose_CPropertySheet__IEAAXXZ(CPropertySheet* pThis) {
+    if (pThis) pThis->EndDialog(IDCANCEL);
+}
+
+// Symbol: ?OnCmdMsg@CPropertySheet@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CPropertySheet__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CPropertySheet* pThis, UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
+    (void)pThis;
+    (void)nID;
+    (void)nCode;
+    (void)pExtra;
+    (void)pHandlerInfo;
+    return FALSE;
+}
+
+// Symbol: ?OnCommand@CPropertySheet@@UEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CPropertySheet__UEAAH_K_J_Z(
+    CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)lParam;
+    UINT id = LOWORD(wParam);
+    if (pThis && (id == IDOK || id == IDCANCEL)) {
+        pThis->EndDialog(id);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// Symbol: ?OnCommandHelp@CPropertySheet@@IEAA_J_K_J@Z
+extern "C" LRESULT MS_ABI impl__OnCommandHelp_CPropertySheet__IEAA_J_K_J_Z(
+    CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnCtlColor@CPropertySheet@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
+extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertySheet__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
+    CPropertySheet* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
+    (void)pThis;
+    (void)pDC;
+    (void)pWnd;
+    (void)nCtlColor;
+    return nullptr;
+}
+
+// Symbol: ?OnGetMinMaxInfo@CPropertySheet@@IEAAXPEAUtagMINMAXINFO@@@Z
+extern "C" void MS_ABI impl__OnGetMinMaxInfo_CPropertySheet__IEAAXPEAUtagMINMAXINFO___Z(
+    CPropertySheet* pThis, MINMAXINFO* lpMMI) {
+    (void)pThis;
+    (void)lpMMI;
+}
+
+// Symbol: ?OnKickIdle@CPropertySheet@@IEAA_J_K_J@Z
+extern "C" LRESULT MS_ABI impl__OnKickIdle_CPropertySheet__IEAA_J_K_J_Z(
+    CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnNcCreate@CPropertySheet@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnNcCreate_CPropertySheet__IEAAHPEAUtagCREATESTRUCTW___Z(
+    CPropertySheet* pThis, CREATESTRUCTW* pCreateStruct) {
+    (void)pThis;
+    (void)pCreateStruct;
+    return TRUE;
+}
+
+// Symbol: ?OnSetDefID@CPropertySheet@@IEAA_J_K_J@Z
+extern "C" LRESULT MS_ABI impl__OnSetDefID_CPropertySheet__IEAA_J_K_J_Z(
+    CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?OnSysCommand@CPropertySheet@@IEAAXI_J@Z
+extern "C" void MS_ABI impl__OnSysCommand_CPropertySheet__IEAAXI_J_Z(
+    CPropertySheet* pThis, UINT nID, LPARAM lParam) {
+    (void)lParam;
+    if (pThis && ((nID & 0xFFF0) == SC_CLOSE)) {
+        pThis->EndDialog(IDCANCEL);
+    }
+}
+
+// Symbol: ?PreTranslateMessage@CPropertySheet@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CPropertySheet__UEAAHPEAUtagMSG___Z(
+    CPropertySheet* pThis, MSG* pMsg) {
+    if (pThis && pThis->m_hWnd && pMsg) {
+        return ::IsDialogMessageW(pThis->m_hWnd, pMsg);
+    }
+    return FALSE;
 }
