@@ -338,6 +338,62 @@ extern "C" HRESULT MS_ABI impl__AddComboBox_CFileDialog__QEAAJK_Z(CFileDialog* p
     return E_NOTIMPL;
 }
 
+// Symbol: ?AddCheckButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" HRESULT MS_ABI impl__AddCheckButton_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* label, int bChecked) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)label;
+    (void)bChecked;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddControlItem@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__AddControlItem_CFileDialog__QEAAJKKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, unsigned long dwIDItem, const CString* label) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)dwIDItem;
+    (void)label;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddEditBox@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__AddEditBox_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)text;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddMenu@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__AddMenu_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)label;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddPushButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__AddPushButton_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)label;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?AddText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__AddText_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)text;
+    return E_NOTIMPL;
+}
+
 // Symbol: ?AddPlace@CFileDialog@@QEAAXPEAUIShellItem@@W4FDAP@@@Z
 extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEAUIShellItem__W4FDAP___Z(
     CFileDialog* pThis, void* p0, int p1) {
@@ -395,6 +451,17 @@ extern "C" HRESULT MS_ABI impl__GetCheckButtonState_CFileDialog__QEAAJKAEAH_Z(
     (void)p0;
     if (p1 != nullptr) {
         *p1 = FALSE;
+    }
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetEditBoxText@CFileDialog@@QEAAJKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__GetEditBoxText_CFileDialog__QEAAJKAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    if (text) {
+        text->Empty();
     }
     return E_NOTIMPL;
 }
@@ -579,6 +646,34 @@ extern "C" HRESULT MS_ABI impl__SetCheckButtonState_CFileDialog__QEAAJKH_Z(
     return E_NOTIMPL;
 }
 
+// Symbol: ?SetControlItemText@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__SetControlItemText_CFileDialog__QEAAJKKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, unsigned long dwIDItem, const CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)dwIDItem;
+    (void)text;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?SetControlLabel@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__SetControlLabel_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)text;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?SetEditBoxText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__SetEditBoxText_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)text;
+    return E_NOTIMPL;
+}
+
 // Symbol: ?SetControlItemState@CFileDialog@@QEAAJKKW4CDCONTROLSTATEF@@@Z
 extern "C" HRESULT MS_ABI impl__SetControlItemState_CFileDialog__QEAAJKKW4CDCONTROLSTATEF___Z(
     CFileDialog* pThis, unsigned long p0, unsigned long p1, unsigned int p2) {
@@ -629,6 +724,15 @@ extern "C" void MS_ABI impl__SetTemplate_CFileDialog__QEAAXPEB_W0_Z(
     (void)pThis;
     (void)p0;
     (void)p1;
+}
+
+// Symbol: ?StartVisualGroup@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" HRESULT MS_ABI impl__StartVisualGroup_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
+    (void)pThis;
+    (void)dwIDCtl;
+    (void)label;
+    return E_NOTIMPL;
 }
 
 // Symbol: ?UpdateOFNFromShellDialog@CFileDialog@@UEAAXXZ
@@ -1507,6 +1611,12 @@ CString CPrintDialogEx::GetDeviceName() const {
     return str;
 }
 
+// Symbol: ?GetDeviceName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetDeviceName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CPrintDialogEx* pThis) {
+    new(__ret) CString(pThis ? pThis->GetDeviceName() : CString());
+}
+
 CString CPrintDialogEx::GetDriverName() const {
     CString str;
     if (m_pdex.hDevNames) {
@@ -1519,6 +1629,12 @@ CString CPrintDialogEx::GetDriverName() const {
     return str;
 }
 
+// Symbol: ?GetDriverName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetDriverName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CPrintDialogEx* pThis) {
+    new(__ret) CString(pThis ? pThis->GetDriverName() : CString());
+}
+
 CString CPrintDialogEx::GetPortName() const {
     CString str;
     if (m_pdex.hDevNames) {
@@ -1529,6 +1645,12 @@ CString CPrintDialogEx::GetPortName() const {
         }
     }
     return str;
+}
+
+// Symbol: ?GetPortName@CPrintDialogEx@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetPortName_CPrintDialogEx__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const CPrintDialogEx* pThis) {
+    new(__ret) CString(pThis ? pThis->GetPortName() : CString());
 }
 
 HDC CPrintDialogEx::GetPrinterDC() const { return m_pdex.hDC; }
