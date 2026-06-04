@@ -138,6 +138,11 @@ extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPAV1_PAUHWND_____Z(HWND hWnd) {
     return OpenMfcAttachCWnd(hWnd);
 }
 
+// Symbol: ?FromHandle@CWnd@@SAPEAV1@PEAUHWND__@@@Z
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd) {
+    return OpenMfcAttachCWnd(hWnd);
+}
+
 CWnd* CWnd::FromHandle(HWND hWnd) {
     return OpenMfcAttachCWnd(hWnd);
 }
@@ -145,6 +150,11 @@ CWnd* CWnd::FromHandle(HWND hWnd) {
 // Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
     return &CWnd::classCWnd;
+}
+
+// Symbol: ?GetRuntimeClass@CWnd@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeClass__XZ(const CWnd* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CWnd::GetThisClass();
 }
 
 #ifdef __GNUC__
@@ -238,6 +248,96 @@ extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCr
     g_hwndMap[hWnd] = pThis;
 
     return TRUE;
+}
+
+// Symbol: ?CreateEx@CWnd@@UEAAHKPEB_W0KHHHHPEAUHWND__@@PEAUHMENU__@@PEAX@Z
+extern "C" int MS_ABI impl__CreateEx_CWnd__UEAAHKPEB_W0KHHHHPEAUHWND____PEAUHMENU____PEAX_Z(
+    CWnd* pThis,
+    DWORD dwExStyle,
+    const wchar_t* lpszClassName,
+    const wchar_t* lpszWindowName,
+    DWORD dwStyle,
+    int x,
+    int y,
+    int nWidth,
+    int nHeight,
+    HWND hWndParent,
+    HMENU nIDorHMenu,
+    void* lpParam)
+{
+    if (!pThis) {
+        return FALSE;
+    }
+
+    HINSTANCE hInst = AfxGetInstanceHandle();
+    if (!hInst) {
+        hInst = GetModuleHandle(nullptr);
+    }
+
+    const wchar_t* className = lpszClassName;
+    if (!className || className[0] == 0) {
+        if (!g_atomOpenMFCClass) {
+            g_atomOpenMFCClass = RegisterOpenMFCClass(hInst);
+        }
+        className = g_szOpenMFCClass;
+    }
+
+    CREATESTRUCTW cs = {};
+    cs.dwExStyle = dwExStyle;
+    cs.lpszClass = className;
+    cs.lpszName = lpszWindowName;
+    cs.style = dwStyle;
+    cs.x = x;
+    cs.y = y;
+    cs.cx = nWidth;
+    cs.cy = nHeight;
+    cs.hwndParent = hWndParent;
+    cs.hMenu = nIDorHMenu;
+    cs.hInstance = hInst;
+    cs.lpCreateParams = lpParam;
+
+    if (!impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(pThis, cs)) {
+        return FALSE;
+    }
+
+    HWND hWnd = CreateWindowExW(
+        cs.dwExStyle, cs.lpszClass, cs.lpszName, cs.style,
+        cs.x, cs.y, cs.cx, cs.cy, cs.hwndParent, cs.hMenu,
+        cs.hInstance, cs.lpCreateParams ? cs.lpCreateParams : pThis);
+    if (!hWnd) {
+        return FALSE;
+    }
+
+    pThis->m_hWnd = hWnd;
+    g_hwndMap[hWnd] = pThis;
+    return TRUE;
+}
+
+// Symbol: ?CreateEx@CWnd@@UEAAHKPEB_W0KAEBUtagRECT@@PEAV1@IPEAX@Z
+extern "C" int MS_ABI impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+    CWnd* pThis,
+    DWORD dwExStyle,
+    const wchar_t* lpszClassName,
+    const wchar_t* lpszWindowName,
+    DWORD dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    UINT nID,
+    void* lpParam)
+{
+    return impl__CreateEx_CWnd__UEAAHKPEB_W0KHHHHPEAUHWND____PEAUHMENU____PEAX_Z(
+        pThis,
+        dwExStyle,
+        lpszClassName,
+        lpszWindowName,
+        dwStyle,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        pParentWnd ? pParentWnd->m_hWnd : nullptr,
+        reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)),
+        lpParam);
 }
 
 // CWnd::ShowWindow
@@ -955,6 +1055,12 @@ void* CWnd::FromHandlePermanent(HWND p0)
     return nullptr;
 }
 
+// Symbol: ?FromHandlePermanent@CWnd@@SAPEAV1@PEAUHWND__@@@Z
+extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd) {
+    auto it = g_hwndMap.find(hWnd);
+    return it != g_hwndMap.end() ? it->second : nullptr;
+}
+
 const MSG* CWnd::GetCurrentMessage()
 {
     CWinThread* pThread = AfxGetThread();
@@ -969,6 +1075,19 @@ void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
     return nullptr;
 }
 
+// Symbol: ?GetDescendantWindow@CWnd@@SAPEAV1@PEAUHWND__@@HH@Z
+extern "C" CWnd* MS_ABI impl__GetDescendantWindow_CWnd__SAPEAV1_PEAUHWND____HH_Z(
+    HWND hWnd, int nID, int bOnlyPerm) {
+    HWND hChild = hWnd ? ::GetDlgItem(hWnd, nID) : nullptr;
+    if (!hChild) {
+        return nullptr;
+    }
+    if (bOnlyPerm) {
+        return impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(hChild);
+    }
+    return CWnd::FromHandle(hChild);
+}
+
 void* CWnd::GetSafeOwner(void* p0, HWND* p1)
 {
     (void)p0;
@@ -976,11 +1095,39 @@ void* CWnd::GetSafeOwner(void* p0, HWND* p1)
     return nullptr;
 }
 
+// Symbol: ?GetSafeOwner@CWnd@@SAPEAV1@PEAV1@PEAPEAUHWND__@@@Z
+extern "C" CWnd* MS_ABI impl__GetSafeOwner_CWnd__SAPEAV1_PEAV1_PEAPEAUHWND_____Z(
+    CWnd* pParent, HWND* pWndTop) {
+    HWND hOwner = pParent ? pParent->m_hWnd : nullptr;
+    if (!hOwner) {
+        CWinThread* pThread = AfxGetThread();
+        hOwner = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
+    }
+    if (pWndTop) {
+        *pWndTop = hOwner;
+    }
+    return hOwner ? CWnd::FromHandle(hOwner) : nullptr;
+}
+
 HWND CWnd::GetSafeOwner_(void* p0, void** p1)
 {
     (void)p0;
     (void)p1;
     return 0;
+}
+
+// Symbol: ?GetSafeOwner_@CWnd@@SAPEAUHWND__@@PEAU2@PEAPEAU2@@Z
+extern "C" HWND MS_ABI impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z(
+    HWND hParent, HWND* pWndTop) {
+    HWND hOwner = hParent;
+    if (!hOwner) {
+        CWinThread* pThread = AfxGetThread();
+        hOwner = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
+    }
+    if (pWndTop) {
+        *pWndTop = hOwner;
+    }
+    return hOwner;
 }
 
 const AFX_INTERFACEMAP* CWnd::GetThisInterfaceMap()
@@ -1214,6 +1361,31 @@ int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const RECT*&
     return 0;
 }
 
+// Symbol: ?CreateControl@CWnd@@QEAAHAEBU_GUID@@PEB_WKAEBUtagRECT@@PEAV1@IPEAVCFile@@HPEA_W@Z
+extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHAEBU_GUID__PEB_WKAEBUtagRECT__PEAV1_IPEAVCFile__HPEA_W_Z(
+    CWnd* pThis,
+    const GUID& clsid,
+    const WCHAR* pWindowName,
+    DWORD dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    UINT nID,
+    CFile* pPersist,
+    int bStorage,
+    WCHAR* pLicKey) {
+    (void)pThis;
+    (void)clsid;
+    (void)pWindowName;
+    (void)dwStyle;
+    (void)rect;
+    (void)pParentWnd;
+    (void)nID;
+    (void)pPersist;
+    (void)bStorage;
+    (void)pLicKey;
+    return FALSE;
+}
+
 int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const POINT* p3, const SIZE* p4, void* p5, UINT p6, CFile* p7, int p8, WCHAR* p9)
 {
     (void)p0;
@@ -1227,6 +1399,33 @@ int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const POINT*
     (void)p8;
     (void)p9;
     return 0;
+}
+
+// Symbol: ?CreateControl@CWnd@@QEAAHAEBU_GUID@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@PEAV1@IPEAVCFile@@HPEA_W@Z
+extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHAEBU_GUID__PEB_WKPEBUtagPOINT__PEBUtagSIZE__PEAV1_IPEAVCFile__HPEA_W_Z(
+    CWnd* pThis,
+    const GUID& clsid,
+    const WCHAR* pWindowName,
+    DWORD dwStyle,
+    const POINT* pPoint,
+    const SIZE* pSize,
+    CWnd* pParentWnd,
+    UINT nID,
+    CFile* pPersist,
+    int bStorage,
+    WCHAR* pLicKey) {
+    (void)pThis;
+    (void)clsid;
+    (void)pWindowName;
+    (void)dwStyle;
+    (void)pPoint;
+    (void)pSize;
+    (void)pParentWnd;
+    (void)nID;
+    (void)pPersist;
+    (void)bStorage;
+    (void)pLicKey;
+    return FALSE;
 }
 
 int CWnd::CreateControl(const CControlCreationInfo*& p0, DWORD p1, const POINT* p2, const SIZE* p3, void* p4, UINT p5)
@@ -1252,6 +1451,31 @@ int CWnd::CreateControl(const WCHAR* p0, const WCHAR* p1, DWORD p2, const RECT*&
     (void)p7;
     (void)p8;
     return 0;
+}
+
+// Symbol: ?CreateControl@CWnd@@QEAAHPEB_W0KAEBUtagRECT@@PEAV1@IPEAVCFile@@HPEA_W@Z
+extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAVCFile__HPEA_W_Z(
+    CWnd* pThis,
+    const WCHAR* lpszClass,
+    const WCHAR* pWindowName,
+    DWORD dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    UINT nID,
+    CFile* pPersist,
+    int bStorage,
+    WCHAR* pLicKey) {
+    (void)pThis;
+    (void)lpszClass;
+    (void)pWindowName;
+    (void)dwStyle;
+    (void)rect;
+    (void)pParentWnd;
+    (void)nID;
+    (void)pPersist;
+    (void)bStorage;
+    (void)pLicKey;
+    return FALSE;
 }
 
 int CWnd::CreateControlContainer(COleControlContainer** p0)
@@ -1301,12 +1525,29 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
     return 0;
 }
 
+// Symbol: ?CreateDlgIndirect@CWnd@@IEAAHPEBUDLGTEMPLATE@@PEAV1@PEAUHINSTANCE__@@@Z
+extern "C" int MS_ABI impl__CreateDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
+    CWnd* pThis, const DLGTEMPLATE* pTemplate, CWnd* pParentWnd, HINSTANCE hInst) {
+    (void)pThis;
+    (void)pTemplate;
+    (void)pParentWnd;
+    (void)hInst;
+    return FALSE;
+}
+
 int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
 {
     (void)p0;
     (void)p1;
     (void)p2;
     return 0;
+}
+
+// Symbol: ?CreateRunDlgIndirect@CWnd@@IEAAHPEBUDLGTEMPLATE@@PEAV1@PEAUHINSTANCE__@@@Z
+extern "C" int MS_ABI impl__CreateRunDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
+    CWnd* pThis, const DLGTEMPLATE* pTemplate, CWnd* pParentWnd, HINSTANCE hInst) {
+    return impl__CreateDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
+        pThis, pTemplate, pParentWnd, hInst);
 }
 
 LONGLONG CWnd::Default()
@@ -2019,6 +2260,45 @@ extern "C" int MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* pThis, int n
     return ::GetScrollPos(pThis->m_hWnd, nBar);
 }
 
+// Symbol: ?GetScrollInfo@CWnd@@QEAAHHPEAUtagSCROLLINFO@@I@Z
+extern "C" int MS_ABI impl__GetScrollInfo_CWnd__QEAAHHPEAUtagSCROLLINFO__I_Z(
+    CWnd* pThis, int nBar, SCROLLINFO* pScrollInfo, UINT nMask) {
+    if (!pThis || !pThis->m_hWnd || !pScrollInfo) {
+        return FALSE;
+    }
+    pScrollInfo->fMask = nMask;
+    return ::GetScrollInfo(pThis->m_hWnd, nBar, pScrollInfo);
+}
+
+// Symbol: ?GetScrollLimit@CWnd@@QEAAHH@Z
+extern "C" int MS_ABI impl__GetScrollLimit_CWnd__QEAAHH_Z(CWnd* pThis, int nBar) {
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+    SCROLLINFO si = {};
+    si.cbSize = sizeof(si);
+    si.fMask = SIF_RANGE | SIF_PAGE;
+    if (!::GetScrollInfo(pThis->m_hWnd, nBar, &si)) {
+        return 0;
+    }
+    int page = si.nPage > 0 ? static_cast<int>(si.nPage) - 1 : 0;
+    return si.nMax - page;
+}
+
+// Symbol: ?GetScrollRange@CWnd@@QEBAXHPEAH0@Z
+extern "C" void MS_ABI impl__GetScrollRange_CWnd__QEBAXHPEAH0_Z(
+    const CWnd* pThis, int nBar, int* pMinPos, int* pMaxPos) {
+    if (pMinPos) {
+        *pMinPos = 0;
+    }
+    if (pMaxPos) {
+        *pMaxPos = 0;
+    }
+    if (pThis && pThis->m_hWnd) {
+        ::GetScrollRange(pThis->m_hWnd, nBar, pMinPos, pMaxPos);
+    }
+}
+
 // Symbol: ?IsDialogMessageW@CWnd@@QEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
     if (!pThis || !pThis->m_hWnd || !pMsg) {
@@ -2079,6 +2359,47 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* 
     (void)pThis;
     (void)pMsg;
     return FALSE;
+}
+
+// Symbol: ?OnCommand@CWnd@@MEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd* pThis, WPARAM wParam, LPARAM lParam) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    return FALSE;
+}
+
+// Symbol: ?OnFinalRelease@CWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFinalRelease_CWnd__UEAAXXZ(CWnd* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnNotify@CWnd@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(
+    CWnd* pThis, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+    (void)pThis;
+    (void)wParam;
+    (void)lParam;
+    if (pResult) {
+        *pResult = 0;
+    }
+    return FALSE;
+}
+
+// Symbol: ?OnWndMsg@CWnd@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
+    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+    if (pResult) {
+        *pResult = 0;
+    }
+    switch (message) {
+    case WM_COMMAND:
+        return impl__OnCommand_CWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
+    case WM_NOTIFY:
+        return impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(pThis, wParam, lParam, pResult);
+    default:
+        return FALSE;
+    }
 }
 
 LONGLONG CWnd::SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3)
