@@ -35,6 +35,7 @@ static INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, 
 #include <map>
 static std::map<HWND, CDialog*> g_dlgMap;
 static std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
+static std::map<CPropertyPage*, PROPSHEETPAGEW> g_propertyPagePspMap;
 
 namespace {
 static const AFX_MSGMAP* EmptyMessageMap() {
@@ -929,7 +930,9 @@ extern "C" void MS_ABI impl__Construct_CPropertyPage__QEAAXPEB_WIII_Z(
 
 // Symbol: ?Cleanup@CPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__Cleanup_CPropertyPage__IEAAXXZ(CPropertyPage* pThis) {
-    if (pThis) pThis->m_bModified = FALSE;
+    if (!pThis) return;
+    pThis->m_bModified = FALSE;
+    g_propertyPagePspMap.erase(pThis);
 }
 
 // Symbol: ?GetMessageMap@CPropertyPage@@MEBAPEBUAFX_MSGMAP@@XZ
@@ -1093,6 +1096,24 @@ extern "C" HWND MS_ABI impl__OnWizardFinishEx_CPropertyPage__UEAAPEAUHWND____XZ(
     return nullptr;
 }
 
+// Symbol: ?GetPSP@CPropertyPage@@QEAAAEAU_PROPSHEETPAGEW@@XZ
+extern "C" PROPSHEETPAGEW& MS_ABI impl__GetPSP_CPropertyPage__QEAAAEAU_PROPSHEETPAGEW__XZ(CPropertyPage* pThis) {
+    PROPSHEETPAGEW& psp = g_propertyPagePspMap[pThis];
+    if (psp.dwSize == 0) {
+        psp.dwSize = sizeof(psp);
+        psp.hInstance = AfxGetInstanceHandle();
+        psp.pszTemplate = pThis ? pThis->m_lpszTemplateName : nullptr;
+        psp.pfnDlgProc = PropPageDlgProc;
+        psp.lParam = reinterpret_cast<LPARAM>(pThis);
+    }
+    return psp;
+}
+
+// Symbol: ?GetPSP@CPropertyPage@@QEBAAEBU_PROPSHEETPAGEW@@XZ
+extern "C" const PROPSHEETPAGEW& MS_ABI impl__GetPSP_CPropertyPage__QEBAAEBU_PROPSHEETPAGEW__XZ(const CPropertyPage* pThis) {
+    return impl__GetPSP_CPropertyPage__QEAAAEAU_PROPSHEETPAGEW__XZ(const_cast<CPropertyPage*>(pThis));
+}
+
 // Symbol: ?PreProcessPageTemplate@CPropertyPage@@IEAAXAEAU_PROPSHEETPAGEW@@H@Z
 extern "C" void MS_ABI impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PROPSHEETPAGEW__H_Z(
     CPropertyPage* pThis, PROPSHEETPAGEW& psp, int bWizard) {
@@ -1104,6 +1125,9 @@ extern "C" void MS_ABI impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PRO
     psp.pszTemplate = pThis ? pThis->m_lpszTemplateName : nullptr;
     psp.pfnDlgProc = PropPageDlgProc;
     psp.lParam = reinterpret_cast<LPARAM>(pThis);
+    if (pThis) {
+        g_propertyPagePspMap[pThis] = psp;
+    }
 }
 
 // Symbol: ?PreTranslateMessage@CPropertyPage@@MEAAHPEAUtagMSG@@@Z
