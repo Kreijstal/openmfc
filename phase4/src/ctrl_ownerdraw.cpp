@@ -221,6 +221,81 @@ extern "C" int MS_ABI impl__VKeyToItem_CListBox__UEAAHII_Z(CListBox* pThis, UINT
     return -1;
 }
 
+// Symbol: ?DrawItem@CStatic@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
+extern "C" void MS_ABI impl__DrawItem_CStatic__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
+    CStatic* pThis, DRAWITEMSTRUCT* pDraw) {
+    (void)pThis;
+    FillOwnerDrawItem(pDraw);
+}
+
+// Symbol: ?GetRuntimeClass@CProgressCtrl@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CProgressCtrl__UEBAPEAUCRuntimeClass__XZ(
+    const CProgressCtrl* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CProgressCtrl::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CProgressCtrl@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CProgressCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CProgressCtrl::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CScrollBar@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CScrollBar__UEBAPEAUCRuntimeClass__XZ(
+    const CScrollBar* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CScrollBar::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CScrollBar@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollBar__SAPEAUCRuntimeClass__XZ() {
+    return CScrollBar::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CSliderCtrl@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSliderCtrl__UEBAPEAUCRuntimeClass__XZ(
+    const CSliderCtrl* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CSliderCtrl::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CSliderCtrl@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSliderCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CSliderCtrl::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CSpinButtonCtrl@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSpinButtonCtrl__UEBAPEAUCRuntimeClass__XZ(
+    const CSpinButtonCtrl* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CSpinButtonCtrl::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CSpinButtonCtrl@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSpinButtonCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CSpinButtonCtrl::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CStatic@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CStatic__UEBAPEAUCRuntimeClass__XZ(
+    const CStatic* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CStatic::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CStatic@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CStatic__SAPEAUCRuntimeClass__XZ() {
+    return CStatic::GetThisClass();
+}
+
+// Symbol: ?OnChildNotify@CStatic@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnChildNotify_CStatic__MEAAHI_K_JPEA_J_Z(
+    CStatic* pThis, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+    (void)wParam;
+    if (pResult) *pResult = 0;
+    if (message == WM_DRAWITEM && lParam) {
+        impl__DrawItem_CStatic__UEAAXPEAUtagDRAWITEMSTRUCT___Z(pThis, (DRAWITEMSTRUCT*)lParam);
+        if (pResult) *pResult = TRUE;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 // Symbol: ?GetRuntimeClass@CColorDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CColorDialog__UEBAPEAUCRuntimeClass__XZ(const CColorDialog* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CColorDialog::GetThisClass();
