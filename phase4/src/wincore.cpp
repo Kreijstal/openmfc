@@ -143,6 +143,16 @@ extern "C" const StaticCWndExport MS_ABI impl__wndNoTopMost_CWnd__2V1_B = {
     nullptr, {}, HWND_NOTOPMOST, {}
 };
 
+// Symbol: ?wndTop@CWnd@@2V1@B
+extern "C" const StaticCWndExport MS_ABI impl__wndTop_CWnd__2V1_B = {
+    nullptr, {}, HWND_TOP, {}
+};
+
+// Symbol: ?wndTopMost@CWnd@@2V1@B
+extern "C" const StaticCWndExport MS_ABI impl__wndTopMost_CWnd__2V1_B = {
+    nullptr, {}, HWND_TOPMOST, {}
+};
+
 // =============================================================================
 // CWnd Implementation
 // =============================================================================
