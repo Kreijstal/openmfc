@@ -121,6 +121,28 @@ extern CWinThread* AfxGetThread();
 static const wchar_t* g_szOpenMFCClass = L"OpenMFC_Window";
 static ATOM g_atomOpenMFCClass = 0;
 
+namespace {
+struct StaticCWndExport {
+    void* vptr;
+    unsigned char padToHwnd[56];
+    HWND hWnd;
+    unsigned char tail[160];
+};
+
+static_assert(sizeof(StaticCWndExport) == sizeof(CWnd), "static CWnd export must match CWnd size");
+static_assert(offsetof(StaticCWndExport, hWnd) == 64, "static CWnd export must place HWND at CWnd::m_hWnd");
+}  // namespace
+
+// Symbol: ?wndBottom@CWnd@@2V1@B
+extern "C" const StaticCWndExport MS_ABI impl__wndBottom_CWnd__2V1_B = {
+    nullptr, {}, HWND_BOTTOM, {}
+};
+
+// Symbol: ?wndNoTopMost@CWnd@@2V1@B
+extern "C" const StaticCWndExport MS_ABI impl__wndNoTopMost_CWnd__2V1_B = {
+    nullptr, {}, HWND_NOTOPMOST, {}
+};
+
 // =============================================================================
 // CWnd Implementation
 // =============================================================================
