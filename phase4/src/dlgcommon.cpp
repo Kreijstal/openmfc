@@ -794,6 +794,19 @@ int CFontDialog::IsItalic() const {
 // CPrintDialog implementation
 //=============================================================================
 
+namespace {
+struct CPrintDialogAccess : CPrintDialog {
+    using CPrintDialog::m_bPrintSetupOnly;
+    using CPrintDialog::m_dwFlags;
+    using CPrintDialog::m_hDC;
+    using CPrintDialog::m_hDevMode;
+    using CPrintDialog::m_hDevNames;
+    using CPrintDialog::m_nCopies;
+    using CPrintDialog::m_nFromPage;
+    using CPrintDialog::m_nToPage;
+};
+}
+
 CPrintDialog::CPrintDialog(int bPrintSetupOnly, unsigned long dwFlags, CWnd* pParentWnd)
     : CDialog(), m_bPrintSetupOnly(bPrintSetupOnly), m_dwFlags(dwFlags),
       m_hDevMode(nullptr), m_hDevNames(nullptr), m_hDC(nullptr),
@@ -847,6 +860,85 @@ intptr_t CPrintDialog::DoModal() {
     }
 
     return IDCANCEL;
+}
+
+// Symbol: ?AttachOnSetup@CPrintDialog@@MEAAPEAV1@XZ
+extern "C" CPrintDialog* MS_ABI impl__AttachOnSetup_CPrintDialog__MEAAPEAV1_XZ(CPrintDialog* pThis) {
+    return pThis;
+}
+
+// Symbol: ?CreatePrinterDC@CPrintDialog@@QEAAPEAUHDC__@@XZ
+extern "C" HDC MS_ABI impl__CreatePrinterDC_CPrintDialog__QEAAPEAUHDC____XZ(CPrintDialog* pThis) {
+    if (pThis == nullptr) {
+        return nullptr;
+    }
+
+    auto* access = static_cast<CPrintDialogAccess*>(pThis);
+    if (access->m_hDC != nullptr) {
+        return static_cast<HDC>(access->m_hDC);
+    }
+    if (access->m_hDevMode == nullptr || access->m_hDevNames == nullptr) {
+        return nullptr;
+    }
+
+    DEVMODEW* pDevMode = static_cast<DEVMODEW*>(GlobalLock(access->m_hDevMode));
+    DEVNAMES* pDevNames = static_cast<DEVNAMES*>(GlobalLock(access->m_hDevNames));
+    if (pDevMode == nullptr || pDevNames == nullptr) {
+        if (pDevMode != nullptr) {
+            GlobalUnlock(access->m_hDevMode);
+        }
+        if (pDevNames != nullptr) {
+            GlobalUnlock(access->m_hDevNames);
+        }
+        return nullptr;
+    }
+
+    const wchar_t* pDriver = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDriverOffset;
+    const wchar_t* pDevice = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDeviceOffset;
+    const wchar_t* pOutput = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wOutputOffset;
+    HDC hDC = CreateDCW(pDriver, pDevice, pOutput, pDevMode);
+
+    GlobalUnlock(access->m_hDevNames);
+    GlobalUnlock(access->m_hDevMode);
+
+    access->m_hDC = hDC;
+    return hDC;
+}
+
+// Symbol: ?GetDefaults@CPrintDialog@@QEAAHXZ
+extern "C" int MS_ABI impl__GetDefaults_CPrintDialog__QEAAHXZ(CPrintDialog* pThis) {
+    if (pThis == nullptr) {
+        return FALSE;
+    }
+
+    auto* access = static_cast<CPrintDialogAccess*>(pThis);
+    PRINTDLGW pd{};
+    pd.lStructSize = sizeof(pd);
+    pd.Flags = (access->m_dwFlags & ~(PD_RETURNDC | PD_RETURNIC | PD_PRINTSETUP)) | PD_RETURNDEFAULT;
+    pd.hDevMode = static_cast<HGLOBAL>(access->m_hDevMode);
+    pd.hDevNames = static_cast<HGLOBAL>(access->m_hDevNames);
+    pd.nCopies = static_cast<WORD>(access->m_nCopies);
+    pd.nFromPage = static_cast<WORD>(access->m_nFromPage);
+    pd.nToPage = static_cast<WORD>(access->m_nToPage);
+    pd.nMinPage = 1;
+    pd.nMaxPage = 0xFFFF;
+
+    if (!PrintDlgW(&pd)) {
+        return FALSE;
+    }
+
+    access->m_hDevMode = pd.hDevMode;
+    access->m_hDevNames = pd.hDevNames;
+    if (pd.hDC != nullptr) {
+        if (access->m_hDC != nullptr && access->m_hDC != pd.hDC) {
+            DeleteDC(static_cast<HDC>(access->m_hDC));
+        }
+        access->m_hDC = pd.hDC;
+    }
+    access->m_nCopies = pd.nCopies;
+    access->m_nFromPage = pd.nFromPage;
+    access->m_nToPage = pd.nToPage;
+    return TRUE;
 }
 
 // Symbol: ?GetDeviceName@CPrintDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -945,6 +1037,42 @@ void* CPrintDialog::GetPrinterDC() const {
 
 void* CPrintDialog::GetDevMode() const {
     return m_hDevMode;
+}
+
+// Symbol: ?GetMessageMap@CPrintDialog@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPrintDialog__MEBAPEBUAFX_MSGMAP__XZ(
+    const CPrintDialog* pThis) {
+    (void)pThis;
+    return CDialog::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CPrintDialog@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPrintDialog__UEBAPEAUCRuntimeClass__XZ(
+    const CPrintDialog* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CPrintDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CPrintDialog@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPrintDialog__SAPEAUCRuntimeClass__XZ() {
+    return CPrintDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CPrintDialog@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CPrintDialog__KAPEBUAFX_MSGMAP__XZ() {
+    return CDialog::GetThisMessageMap();
+}
+
+// Symbol: ?OnPrintSetup@CPrintDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPrintSetup_CPrintDialog__IEAAXXZ(CPrintDialog* pThis) {
+    if (pThis == nullptr) {
+        return;
+    }
+
+    auto* access = static_cast<CPrintDialogAccess*>(pThis);
+    const int oldPrintSetupOnly = access->m_bPrintSetupOnly;
+    access->m_bPrintSetupOnly = TRUE;
+    pThis->DoModal();
+    access->m_bPrintSetupOnly = oldPrintSetupOnly;
 }
 
 //=============================================================================
