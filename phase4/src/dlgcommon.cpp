@@ -951,6 +951,14 @@ void* CPrintDialog::GetDevMode() const {
 // CPageSetupDialog implementation
 //=============================================================================
 
+namespace {
+struct CPageSetupDialogAccess : CPageSetupDialog {
+    using CPageSetupDialog::m_hDevMode;
+    using CPageSetupDialog::m_hDevNames;
+    using CPageSetupDialog::m_rtMargin;
+};
+}
+
 CPageSetupDialog::CPageSetupDialog(unsigned long dwFlags, CWnd* pParentWnd)
     : CDialog(), m_dwFlags(dwFlags), m_hDevMode(nullptr), m_hDevNames(nullptr) {
     (void)pParentWnd;
@@ -997,6 +1005,39 @@ intptr_t CPageSetupDialog::DoModal() {
 
 extern "C" intptr_t MS_ABI impl__DoModal_CPageSetupDialog__UEAA_JXZ(CPageSetupDialog* pThis) {
     return pThis ? pThis->DoModal() : IDCANCEL;
+}
+
+// Symbol: ?CreatePrinterDC@CPageSetupDialog@@QEAAPEAUHDC__@@XZ
+extern "C" HDC MS_ABI impl__CreatePrinterDC_CPageSetupDialog__QEAAPEAUHDC____XZ(CPageSetupDialog* pThis) {
+    if (pThis == nullptr) {
+        return nullptr;
+    }
+
+    auto* access = static_cast<CPageSetupDialogAccess*>(pThis);
+    if (access->m_hDevMode == nullptr || access->m_hDevNames == nullptr) {
+        return nullptr;
+    }
+
+    DEVMODEW* pDevMode = static_cast<DEVMODEW*>(GlobalLock(access->m_hDevMode));
+    DEVNAMES* pDevNames = static_cast<DEVNAMES*>(GlobalLock(access->m_hDevNames));
+    if (pDevMode == nullptr || pDevNames == nullptr) {
+        if (pDevMode != nullptr) {
+            GlobalUnlock(access->m_hDevMode);
+        }
+        if (pDevNames != nullptr) {
+            GlobalUnlock(access->m_hDevNames);
+        }
+        return nullptr;
+    }
+
+    const wchar_t* pDriver = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDriverOffset;
+    const wchar_t* pDevice = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wDeviceOffset;
+    const wchar_t* pOutput = reinterpret_cast<const wchar_t*>(pDevNames) + pDevNames->wOutputOffset;
+    HDC hDC = CreateDCW(pDriver, pDevice, pOutput, pDevMode);
+
+    GlobalUnlock(access->m_hDevNames);
+    GlobalUnlock(access->m_hDevMode);
+    return hDC;
 }
 
 // Symbol: ?GetDeviceName@CPageSetupDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -1066,6 +1107,63 @@ void CPageSetupDialog::GetMarginRect(RECT* pRect) const {
     if (pRect != nullptr) {
         *pRect = m_rtMargin;
     }
+}
+
+// Symbol: ?GetMargins@CPageSetupDialog@@QEBAXPEAUtagRECT@@0@Z
+extern "C" void MS_ABI impl__GetMargins_CPageSetupDialog__QEBAXPEAUtagRECT__0_Z(
+    const CPageSetupDialog* pThis, RECT* lpRectMargins, RECT* lpRectMinMargins) {
+    RECT margins{};
+    if (pThis != nullptr) {
+        const auto* access = static_cast<const CPageSetupDialogAccess*>(pThis);
+        margins = access->m_rtMargin;
+    }
+    if (lpRectMargins != nullptr) {
+        *lpRectMargins = margins;
+    }
+    if (lpRectMinMargins != nullptr) {
+        memset(lpRectMinMargins, 0, sizeof(*lpRectMinMargins));
+    }
+}
+
+// Symbol: ?GetRuntimeClass@CPageSetupDialog@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPageSetupDialog__UEBAPEAUCRuntimeClass__XZ(
+    const CPageSetupDialog* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CPageSetupDialog::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CPageSetupDialog@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPageSetupDialog__SAPEAUCRuntimeClass__XZ() {
+    return CPageSetupDialog::GetThisClass();
+}
+
+// Symbol: ?OnDrawPage@CPageSetupDialog@@UEAAIPEAVCDC@@IPEAUtagRECT@@@Z
+extern "C" unsigned int MS_ABI impl__OnDrawPage_CPageSetupDialog__UEAAIPEAVCDC__IPEAUtagRECT___Z(
+    CPageSetupDialog* pThis, CDC* pDC, unsigned int nMessage, RECT* lpRect) {
+    (void)pThis;
+    (void)pDC;
+    (void)nMessage;
+    (void)lpRect;
+    return 0;
+}
+
+// Symbol: ?PaintHookProc@CPageSetupDialog@@KAIPEAUHWND__@@I_K_J@Z
+extern "C" unsigned int MS_ABI impl__PaintHookProc_CPageSetupDialog__KAIPEAUHWND____I_K_J_Z(
+    HWND hWnd, unsigned int message, unsigned __int64 wParam, __int64 lParam) {
+    (void)hWnd;
+    (void)message;
+    (void)wParam;
+    (void)lParam;
+    return 0;
+}
+
+// Symbol: ?PreDrawPage@CPageSetupDialog@@UEAAIGGPEAUtagPSDW@@@Z
+extern "C" unsigned int MS_ABI impl__PreDrawPage_CPageSetupDialog__UEAAIGGPEAUtagPSDW___Z(
+    CPageSetupDialog* pThis, unsigned short wPaper, unsigned short wFlags, PAGESETUPDLGW* pPSD) {
+    (void)pThis;
+    (void)wPaper;
+    (void)wFlags;
+    (void)pPSD;
+    return 0;
 }
 
 void CPageSetupDialog::GetPaperSize(SIZE* pSize) const {
