@@ -120,6 +120,14 @@ struct RibbonStatusPaneState {
 };
 std::unordered_map<UINT, RibbonStatusPaneState> g_statusPaneStates;
 
+struct ThreadSlotDataState {
+    int nextSlot = 0;
+    std::unordered_set<int> freeSlots;
+    std::unordered_map<DWORD, std::unordered_map<int, void*>> threadValues;
+};
+std::mutex g_threadSlotMutex;
+std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
+
 inline UINT RibbonElementID(const CMFCRibbonBaseElement* pElem) {
     return (pElem != nullptr) ? pElem->GetID() : 0;
 }
@@ -142,6 +150,12 @@ inline void BuildCStringResult(void* pRet, const std::wstring& value) {
 inline void BuildCSizeResult(void* pRet, int cx, int cy) {
     if (!pRet) return;
     new(pRet) CSize(cx, cy);
+}
+
+inline CSize ToolbarDefaultSize(const CToolBar* pBar, int nButtons = -1) {
+    const int count = nButtons >= 0 ? nButtons : (pBar ? std::max(0, pBar->m_nCount) : 0);
+    const CSize button = pBar ? pBar->GetButtonSize() : CSize(23, 22);
+    return CSize(button.cx * std::max(1, count), button.cy);
 }
 
 inline COLORREF SystemColor(int index) {
@@ -818,6 +832,376 @@ BOOL CToolBar::IsVisible() const {
 
 BOOL CToolBar::IsFloating() const {
     return (m_dwStyle & CBRS_FLOATING) != 0;
+}
+
+//=============================================================================
+// CThreadSlotData and toolbar ABI residuals
+//=============================================================================
+
+// Symbol: ?AllocSlot@CThreadSlotData@@QEAAHXZ
+extern "C" int MS_ABI impl__AllocSlot_CThreadSlotData__QEAAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_threadSlotMutex);
+    auto& state = g_threadSlotStates[pThis];
+    if (!state.freeSlots.empty()) {
+        int slot = *state.freeSlots.begin();
+        state.freeSlots.erase(slot);
+        return slot;
+    }
+    return state.nextSlot++;
+}
+
+// Symbol: ?AssignInstance@CThreadSlotData@@QEAAXPEAUHINSTANCE__@@@Z
+extern "C" void MS_ABI impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(void* pThis, HINSTANCE hInst) {
+    (void)pThis;
+    (void)hInst;
+}
+
+// Symbol: ?DeleteValues@CThreadSlotData@@QEAAXPEAUCThreadData@@PEAUHINSTANCE__@@@Z
+extern "C" void MS_ABI impl__DeleteValues_CThreadSlotData__QEAAXPEAUCThreadData__PEAUHINSTANCE_____Z(
+    void* pThis, void* pThreadData, HINSTANCE hInst) {
+    (void)pThreadData;
+    (void)hInst;
+    std::lock_guard<std::mutex> lock(g_threadSlotMutex);
+    auto it = g_threadSlotStates.find(pThis);
+    if (it != g_threadSlotStates.end()) {
+        it->second.threadValues.erase(::GetCurrentThreadId());
+    }
+}
+
+// Symbol: ?DeleteValues@CThreadSlotData@@QEAAXPEAUHINSTANCE__@@H@Z
+extern "C" void MS_ABI impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(void* pThis, HINSTANCE hInst, int bAll) {
+    (void)hInst;
+    std::lock_guard<std::mutex> lock(g_threadSlotMutex);
+    auto it = g_threadSlotStates.find(pThis);
+    if (it == g_threadSlotStates.end()) return;
+    if (bAll) {
+        it->second.threadValues.clear();
+    } else {
+        it->second.threadValues.erase(::GetCurrentThreadId());
+    }
+}
+
+// Symbol: ?FreeSlot@CThreadSlotData@@QEAAXH@Z
+extern "C" void MS_ABI impl__FreeSlot_CThreadSlotData__QEAAXH_Z(void* pThis, int nSlot) {
+    std::lock_guard<std::mutex> lock(g_threadSlotMutex);
+    auto& state = g_threadSlotStates[pThis];
+    state.freeSlots.insert(nSlot);
+    for (auto& entry : state.threadValues) {
+        entry.second.erase(nSlot);
+    }
+}
+
+// Symbol: ?SetValue@CThreadSlotData@@QEAAXHPEAX@Z
+extern "C" void MS_ABI impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(void* pThis, int nSlot, void* pValue) {
+    std::lock_guard<std::mutex> lock(g_threadSlotMutex);
+    g_threadSlotStates[pThis].threadValues[::GetCurrentThreadId()][nSlot] = pValue;
+}
+
+// Symbol: ?CalcDynamicLayout@CToolBar@@UEAA?AVCSize@@HK@Z
+extern "C" void MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
+    CSize* pRet, CToolBar* pThis, int nLength, unsigned long dwMode) {
+    (void)dwMode;
+    CSize size = ToolbarDefaultSize(pThis);
+    if (nLength > 0) size.cx = nLength;
+    BuildCSizeResult(pRet, size.cx, size.cy);
+}
+
+// Symbol: ?CalcFixedLayout@CToolBar@@UEAA?AVCSize@@HH@Z
+extern "C" void MS_ABI impl__CalcFixedLayout_CToolBar__UEAA_AVCSize__HH_Z(
+    CSize* pRet, CToolBar* pThis, int bStretch, int bHorz) {
+    CSize size = ToolbarDefaultSize(pThis);
+    if (bStretch && pThis && pThis->GetSafeHwnd()) {
+        RECT rc = {};
+        if (::GetClientRect(::GetParent(pThis->GetSafeHwnd()), &rc)) {
+            if (bHorz) size.cx = rc.right - rc.left;
+            else size.cy = rc.bottom - rc.top;
+        }
+    }
+    BuildCSizeResult(pRet, size.cx, size.cy);
+}
+
+// Symbol: ?CalcLayout@CToolBar@@IEAA?AVCSize@@KH@Z
+extern "C" void MS_ABI impl__CalcLayout_CToolBar__IEAA_AVCSize__KH_Z(
+    CSize* pRet, CToolBar* pThis, unsigned long dwMode, int nLength) {
+    impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(pRet, pThis, nLength, dwMode);
+}
+
+// Symbol: ?CalcSize@CToolBar@@IEAA?AVCSize@@PEAU_TBBUTTON@@H@Z
+extern "C" void MS_ABI impl__CalcSize_CToolBar__IEAA_AVCSize__PEAU_TBBUTTON__H_Z(
+    CSize* pRet, CToolBar* pThis, TBBUTTON* pData, int nCount) {
+    (void)pData;
+    CSize size = ToolbarDefaultSize(pThis, nCount);
+    BuildCSizeResult(pRet, size.cx, size.cy);
+}
+
+// Symbol: ?get_accName@CToolBar@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accName_CToolBar__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CToolBar* pThis, VARIANT varChild, wchar_t** pszName) {
+    if (!pszName) return E_POINTER;
+    *pszName = nullptr;
+    int index = (varChild.vt == VT_I4) ? (int)varChild.lVal - 1 : -1;
+    CString text = pThis && index >= 0 ? pThis->GetButtonText(index) : CString(L"Toolbar");
+    *pszName = ::SysAllocString((const wchar_t*)text);
+    return *pszName ? S_OK : E_OUTOFMEMORY;
+}
+
+// Symbol: ?GetMessageMap@CToolBar@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ(const CToolBar* pThis) {
+    (void)pThis;
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CToolBar@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntimeClass__XZ(const CToolBar* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CToolBar::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CToolBar@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ() {
+    return CToolBar::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CToolBar@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CToolBar__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?Layout@CToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__Layout_CToolBar__IEAAXXZ(CToolBar* pThis) {
+    if (pThis && pThis->GetSafeHwnd()) {
+        ::SendMessageW(pThis->GetSafeHwnd(), TB_AUTOSIZE, 0, 0);
+    }
+}
+
+// Symbol: ?OnBarStyleChange@CToolBar@@UEAAXKK@Z
+extern "C" void MS_ABI impl__OnBarStyleChange_CToolBar__UEAAXKK_Z(CToolBar* pThis, unsigned long oldStyle, unsigned long newStyle) {
+    (void)oldStyle;
+    if (pThis) pThis->SetBarStyle(newStyle);
+}
+
+// Symbol: ?OnEraseBkgnd@CToolBar@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CToolBar__IEAAHPEAVCDC___Z(CToolBar* pThis, CDC* pDC) {
+    (void)pThis;
+    (void)pDC;
+    return TRUE;
+}
+
+// Symbol: ?OnNcCalcSize@CToolBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CToolBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(
+    CToolBar* pThis, int bCalcValidRects, NCCALCSIZE_PARAMS* lpncsp) {
+    (void)pThis;
+    (void)bCalcValidRects;
+    (void)lpncsp;
+}
+
+// Symbol: ?OnNcCreate@CToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnNcCreate_CToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(CToolBar* pThis, CREATESTRUCTW* lpCreateStruct) {
+    (void)pThis;
+    (void)lpCreateStruct;
+    return TRUE;
+}
+
+// Symbol: ?OnNcHitTest@CToolBar@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CToolBar__IEAA_JVCPoint___Z(CToolBar* pThis, CPoint point) {
+    return pThis && pThis->GetSafeHwnd() ? ::DefWindowProcW(pThis->GetSafeHwnd(), WM_NCHITTEST, 0, MAKELPARAM(point.x, point.y)) : HTCLIENT;
+}
+
+// Symbol: ?OnPreserveSizingPolicyHelper@CToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnPreserveSizingPolicyHelper_CToolBar__IEAA_J_K_J_Z(CToolBar* pThis, unsigned __int64, __int64) {
+    return pThis ? pThis->GetBarStyle() : 0;
+}
+
+// Symbol: ?OnPreserveZeroBorderHelper@CToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnPreserveZeroBorderHelper_CToolBar__IEAA_J_K_J_Z(CToolBar*, unsigned __int64, __int64) {
+    return 0;
+}
+
+// Symbol: ?OnSetButtonSize@CToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnSetButtonSize_CToolBar__IEAA_J_K_J_Z(CToolBar* pThis, unsigned __int64, __int64 lParam) {
+    if (pThis) {
+        SIZE sz = { LOWORD(lParam), HIWORD(lParam) };
+        pThis->SetSizes(sz, pThis->m_sizeImage);
+    }
+    return TRUE;
+}
+
+// Symbol: ?OnSetSizeHelper@CToolBar@@IEAA_JAEAVCSize@@_J@Z
+extern "C" __int64 MS_ABI impl__OnSetSizeHelper_CToolBar__IEAA_JAEAVCSize___J_Z(CToolBar* pThis, CSize* pSize, __int64) {
+    if (pThis && pSize) pThis->m_sizeButton = *pSize;
+    return TRUE;
+}
+
+// Symbol: ?OnSysColorChange@CToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnSysColorChange_CToolBar__IEAAXXZ(CToolBar* pThis) {
+    if (pThis && pThis->GetSafeHwnd()) ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
+}
+
+// Symbol: ?OnToolHitTest@CToolBar@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
+extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
+    const CToolBar* pThis, CPoint point, TOOLINFOW* pTI) {
+    if (!pThis || !pThis->GetSafeHwnd()) return -1;
+    int count = (int)::SendMessageW(pThis->GetSafeHwnd(), TB_BUTTONCOUNT, 0, 0);
+    for (int i = 0; i < count; ++i) {
+        RECT rc = {};
+        if (::SendMessageW(pThis->GetSafeHwnd(), TB_GETITEMRECT, i, (LPARAM)&rc) && ::PtInRect(&rc, POINT{point.x, point.y})) {
+            if (pTI) {
+                pTI->hwnd = pThis->GetSafeHwnd();
+                pTI->uId = (UINT_PTR)pThis->GetItemID(i);
+                pTI->rect = rc;
+            }
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Symbol: ?OnUpdateCmdUI@CToolBar@@UEAAXPEAVCFrameWnd@@H@Z
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(CToolBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler) {
+    (void)pThis;
+    (void)pTarget;
+    (void)bDisableIfNoHndler;
+}
+
+// Symbol: ?OnWindowPosChanging@CToolBar@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanging_CToolBar__IEAAXPEAUtagWINDOWPOS___Z(CToolBar* pThis, WINDOWPOS* lpWndPos) {
+    (void)pThis;
+    (void)lpWndPos;
+}
+
+// Symbol: ?SetOwner@CToolBar@@QEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__SetOwner_CToolBar__QEAAXPEAVCWnd___Z(CToolBar* pThis, CWnd* pOwner) {
+    if (pThis && pThis->GetSafeHwnd()) {
+        ::SetWindowLongPtrW(pThis->GetSafeHwnd(), GWLP_HWNDPARENT, (LONG_PTR)(pOwner ? pOwner->GetSafeHwnd() : nullptr));
+    }
+}
+
+// Symbol: ?SizeToolBar@CToolBar@@IEAAXPEAU_TBBUTTON@@HHH@Z
+extern "C" void MS_ABI impl__SizeToolBar_CToolBar__IEAAXPEAU_TBBUTTON__HHH_Z(
+    CToolBar* pThis, TBBUTTON* pData, int nCount, int nLength, int bVert) {
+    (void)pData;
+    if (!pThis) return;
+    CSize sz = ToolbarDefaultSize(pThis, nCount);
+    if (nLength > 0) {
+        if (bVert) sz.cy = nLength;
+        else sz.cx = nLength;
+    }
+    pThis->m_sizeButton = sz;
+}
+
+// Symbol: ?WrapToolBar@CToolBar@@IEAAHPEAU_TBBUTTON@@HH@Z
+extern "C" int MS_ABI impl__WrapToolBar_CToolBar__IEAAHPEAU_TBBUTTON__HH_Z(
+    CToolBar* pThis, TBBUTTON* pData, int nCount, int nWidth) {
+    (void)pThis;
+    if (!pData || nCount <= 0 || nWidth <= 0) return 0;
+    int rows = 1;
+    int x = 0;
+    for (int i = 0; i < nCount; ++i) {
+        x += 23;
+        if (x > nWidth) {
+            pData[i].fsState |= TBSTATE_WRAP;
+            x = 23;
+            ++rows;
+        }
+    }
+    return rows;
+}
+
+// Symbol: ?AddString@CToolBarCtrl@@QEAAHI@Z
+extern "C" int MS_ABI impl__AddString_CToolBarCtrl__QEAAHI_Z(CWnd* pThis, unsigned int nStringID) {
+    if (!pThis || !pThis->GetSafeHwnd()) return -1;
+    wchar_t text[256] = {};
+    ::LoadStringW(AfxGetInstanceHandle(), nStringID, text, 256);
+    return (int)::SendMessageW(pThis->GetSafeHwnd(), TB_ADDSTRINGW, 0, (LPARAM)text);
+}
+
+extern "C" int MS_ABI impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, unsigned long dwExStyle, unsigned long dwStyle, const RECT* rect, CWnd* pParentWnd, unsigned int nID);
+
+// Symbol: ?Create@CToolBarCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CToolBarCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, unsigned long dwStyle, const RECT* rect, CWnd* pParentWnd, unsigned int nID) {
+    RECT rc = rect ? *rect : RECT{0, 0, 0, 0};
+    return impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(pThis, 0, dwStyle, &rc, pParentWnd, nID);
+}
+
+// Symbol: ?CreateEx@CToolBarCtrl@@QEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, unsigned long dwExStyle, unsigned long dwStyle, const RECT* rect, CWnd* pParentWnd, unsigned int nID) {
+    if (!pThis || !pParentWnd) return FALSE;
+    RECT rc = rect ? *rect : RECT{0, 0, 0, 0};
+    HWND hwnd = ::CreateWindowExW(dwExStyle, TOOLBARCLASSNAMEW, nullptr, dwStyle | WS_CHILD,
+                                  rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+                                  pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
+                                  AfxGetInstanceHandle(), nullptr);
+    pThis->m_hWnd = hwnd;
+    if (hwnd) ::SendMessageW(hwnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    return hwnd != nullptr;
+}
+
+// Symbol: ?GetDropTarget@CToolBarCtrl@@QEBAJPEAPEAUIDropTarget@@@Z
+extern "C" long MS_ABI impl__GetDropTarget_CToolBarCtrl__QEBAJPEAPEAUIDropTarget___Z(const CWnd* pThis, IDropTarget** ppDropTarget) {
+    (void)pThis;
+    if (ppDropTarget) *ppDropTarget = nullptr;
+    return E_NOTIMPL;
+}
+
+// Symbol: ?GetMessageMap@CToolBarCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CToolBarCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CWnd* pThis) {
+    (void)pThis;
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CToolBarCtrl@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBarCtrl__UEBAPEAUCRuntimeClass__XZ(const CWnd* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CWnd::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CToolBarCtrl@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBarCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CWnd::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CToolBarCtrl@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CToolBarCtrl__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?OnCreate@CToolBarCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CToolBarCtrl__IEAAHPEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW* lpCreateStruct) {
+    (void)pThis;
+    (void)lpCreateStruct;
+    return 0;
+}
+
+// Symbol: ?RestoreState@CToolBarCtrl@@QEAAXPEAUHKEY__@@PEB_W1@Z
+extern "C" void MS_ABI impl__RestoreState_CToolBarCtrl__QEAAXPEAUHKEY____PEB_W1_Z(CWnd* pThis, HKEY hKeyRoot, const wchar_t* lpszSubKey, const wchar_t* lpszValueName) {
+    (void)pThis;
+    (void)hKeyRoot;
+    (void)lpszSubKey;
+    (void)lpszValueName;
+}
+
+// Symbol: ?SaveState@CToolBarCtrl@@QEAAXPEAUHKEY__@@PEB_W1@Z
+extern "C" void MS_ABI impl__SaveState_CToolBarCtrl__QEAAXPEAUHKEY____PEB_W1_Z(CWnd* pThis, HKEY hKeyRoot, const wchar_t* lpszSubKey, const wchar_t* lpszValueName) {
+    (void)pThis;
+    (void)hKeyRoot;
+    (void)lpszSubKey;
+    (void)lpszValueName;
+}
+
+// Symbol: ?Enable@CToolCmdUI@@UEAAXH@Z
+extern "C" void MS_ABI impl__Enable_CToolCmdUI__UEAAXH_Z(CCmdUI* pThis, int bOn) {
+    if (pThis) pThis->Enable(bOn);
+}
+
+// Symbol: ?SetCheck@CToolCmdUI@@UEAAXH@Z
+extern "C" void MS_ABI impl__SetCheck_CToolCmdUI__UEAAXH_Z(CCmdUI* pThis, int nCheck) {
+    if (pThis) pThis->SetCheck(nCheck);
+}
+
+// Symbol: ?SetText@CToolCmdUI@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetText_CToolCmdUI__UEAAXPEB_W_Z(CCmdUI* pThis, const wchar_t* lpszText) {
+    if (pThis) pThis->SetText(lpszText);
 }
 
 //=============================================================================
