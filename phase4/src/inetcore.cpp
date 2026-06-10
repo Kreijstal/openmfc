@@ -483,6 +483,10 @@ __attribute__((used)) static CRuntimeClass g_classCHttpFile = {
     "CHttpFile", sizeof(CHttpFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
 
+__attribute__((used)) static CRuntimeClass g_classCGopherFile = {
+    "CGopherFile", sizeof(CGopherFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
+};
+
 //=============================================================================
 // CInternetFile
 //=============================================================================
@@ -1208,6 +1212,19 @@ CFileFind::~CFileFind() { Close(); }
 int CFileFind::FindFile(const wchar_t* pstrName, DWORD dwUnused) {
     (void)dwUnused;
     Close();
+    m_strRoot.Empty();
+    if (!pstrName) return 0;
+    if (pstrName && *pstrName) {
+        const wchar_t* lastSlash = wcsrchr(pstrName, L'\\');
+        const wchar_t* lastForward = wcsrchr(pstrName, L'/');
+        const wchar_t* split = lastSlash;
+        if (!split || (lastForward && lastForward > split)) {
+            split = lastForward;
+        }
+        if (split) {
+            m_strRoot = CString(pstrName).Left((int)(split - pstrName) + 1);
+        }
+    }
     m_hFindFile = ::FindFirstFileW(pstrName, &m_findData);
     if (m_hFindFile == INVALID_HANDLE_VALUE) return 0;
     m_bGotFirst = 1;
@@ -1218,7 +1235,11 @@ int CFileFind::FindFile(const wchar_t* pstrName, DWORD dwUnused) {
 
 int CFileFind::FindNextFile() {
     if (m_hFindFile == INVALID_HANDLE_VALUE) return 0;
-    if (!m_bGotFirst) return 0;
+    if (m_bGotFirst) {
+        m_bGotFirst = 0;
+        m_strFileName = m_findData.cFileName;
+        return 1;
+    }
     if (!::FindNextFileW(m_hFindFile, &m_findData)) return 0;
     m_strFileName = m_findData.cFileName;
     g_lastFileName = m_strFileName;
@@ -1295,13 +1316,22 @@ int CFtpFileFind::FindFile(const wchar_t* pstrName, DWORD dwFlags) {
                                          INTERNET_FLAG_RELOAD, (DWORD_PTR)m_dwContext);
     if (!m_hFindHandle) return 0;
     m_strFileName = m_findFileData.cFileName;
+    m_findData = m_findFileData;
+    m_bGotFirst = 1;
     return 1;
 }
 
 int CFtpFileFind::FindNextFile() {
     if (!m_hFindHandle) return 0;
+    if (m_bGotFirst) {
+        m_bGotFirst = 0;
+        m_strFileName = m_findFileData.cFileName;
+        m_findData = m_findFileData;
+        return 1;
+    }
     if (!::InternetFindNextFileW(m_hFindHandle, &m_findFileData)) return 0;
     m_strFileName = m_findFileData.cFileName;
+    m_findData = m_findFileData;
     return 1;
 }
 
@@ -1515,6 +1545,280 @@ CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
 }
 
 CGopherFile::~CGopherFile() {}
+
+//=============================================================================
+// Internet file finder ABI thunks
+//=============================================================================
+
+static void openmfcConstructString(CString* pRet, const CString& value) {
+    if (pRet) {
+        new (pRet) CString(value);
+    }
+}
+
+static int openmfcFileTimeToCTimeStorage(const FILETIME& fileTime, void* pTime) {
+    if (!pTime) return FALSE;
+    ULARGE_INTEGER ticks;
+    ticks.LowPart = fileTime.dwLowDateTime;
+    ticks.HighPart = fileTime.dwHighDateTime;
+    if (ticks.QuadPart == 0) {
+        std::memset(pTime, 0, sizeof(__int64));
+        return TRUE;
+    }
+    const unsigned __int64 epochDelta = 116444736000000000ULL;
+    if (ticks.QuadPart < epochDelta) return FALSE;
+    __int64 seconds = (__int64)((ticks.QuadPart - epochDelta) / 10000000ULL);
+    std::memcpy(pTime, &seconds, sizeof(seconds));
+    return TRUE;
+}
+
+// Symbol: ?CloseContext@CFileFind@@MEAAXXZ
+extern "C" void MS_ABI impl__CloseContext_CFileFind__MEAAXXZ(CFileFind* pThis) {
+    if (pThis) pThis->Close();
+}
+
+// Symbol: ?FindNextFileW@CFileFind@@UEAAHXZ
+extern "C" int MS_ABI impl__FindNextFileW_CFileFind__UEAAHXZ(CFileFind* pThis) {
+    return pThis ? pThis->FindNextFile() : FALSE;
+}
+
+// Symbol: ?GetFileName@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileName_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileName() : CString());
+}
+
+// Symbol: ?GetFilePath@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFilePath_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFilePath() : CString());
+}
+
+// Symbol: ?GetFileTitle@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileTitle_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileTitle() : CString());
+}
+
+// Symbol: ?GetFileURL@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileURL_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileURL() : CString());
+}
+
+// Symbol: ?GetRoot@CFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetRoot_CFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetRoot() : CString());
+}
+
+// Symbol: ?GetRuntimeClass@CFileFind@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileFind__UEBAPEAUCRuntimeClass__XZ(const CFileFind* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CFileFind::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CFileFind@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileFind__SAPEAUCRuntimeClass__XZ() {
+    return CFileFind::GetThisClass();
+}
+
+// Symbol: ?CloseContext@CFtpFileFind@@MEAAXXZ
+extern "C" void MS_ABI impl__CloseContext_CFtpFileFind__MEAAXXZ(CFtpFileFind* pThis) {
+    if (pThis) pThis->Close();
+}
+
+// Symbol: ?FindNextFileW@CFtpFileFind@@UEAAHXZ
+extern "C" int MS_ABI impl__FindNextFileW_CFtpFileFind__UEAAHXZ(CFtpFileFind* pThis) {
+    return pThis ? pThis->FindNextFile() : FALSE;
+}
+
+// Symbol: ?GetFileURL@CFtpFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileURL_CFtpFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CFtpFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileURL() : CString());
+}
+
+// Symbol: ?GetRuntimeClass@CFtpFileFind@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFtpFileFind__UEBAPEAUCRuntimeClass__XZ(const CFtpFileFind* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CFtpFileFind::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CFtpFileFind@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFtpFileFind__SAPEAUCRuntimeClass__XZ() {
+    return CFtpFileFind::GetThisClass();
+}
+
+// Symbol: ?GetAttribute@CGopherConnection@@QEAAHAEAVCGopherLocator@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAV34@@Z
+extern "C" int MS_ABI impl__GetAttribute_CGopherConnection__QEAAHAEAVCGopherLocator__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAV34__Z(
+    CGopherConnection* pThis, CGopherLocator* pLocator, CString* pAttributeName, CString* pValue) {
+    (void)pThis;
+    if (!pLocator || !pValue) return FALSE;
+    const wchar_t* name = pAttributeName ? (const wchar_t*)*pAttributeName : nullptr;
+    if (name && (_wcsicmp(name, L"Length") == 0 || _wcsicmp(name, L"Size") == 0)) {
+        *pValue = L"0";
+    } else if (name && _wcsicmp(name, L"Type") == 0) {
+        *pValue = L"Unknown";
+    } else {
+        pValue->Empty();
+    }
+    return TRUE;
+}
+
+// Symbol: ?GetRuntimeClass@CGopherConnection@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherConnection__UEBAPEAUCRuntimeClass__XZ(const CGopherConnection* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CGopherConnection::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CGopherConnection@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherConnection__SAPEAUCRuntimeClass__XZ() {
+    return CGopherConnection::GetThisClass();
+}
+
+// Symbol: ?GetRuntimeClass@CGopherFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherFile__UEBAPEAUCRuntimeClass__XZ(const CGopherFile* pThis) {
+    (void)pThis;
+    return &g_classCGopherFile;
+}
+
+// Symbol: ?GetThisClass@CGopherFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherFile__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCGopherFile;
+}
+
+// Symbol: ?Write@CGopherFile@@UEAAXPEBXI@Z
+extern "C" void MS_ABI impl__Write_CGopherFile__UEAAXPEBXI_Z(CGopherFile* pThis, const void* lpBuf, unsigned int nCount) {
+    if (pThis) pThis->CInternetFile::Write(lpBuf, nCount);
+}
+
+// Symbol: ?WriteString@CGopherFile@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__WriteString_CGopherFile__UEAAXPEB_W_Z(CGopherFile* pThis, const wchar_t* pstr) {
+    if (pThis) pThis->CInternetFile::WriteString(pstr);
+}
+
+// Symbol: ?CloseContext@CGopherFileFind@@MEAAXXZ
+extern "C" void MS_ABI impl__CloseContext_CGopherFileFind__MEAAXXZ(GopherFileFind* pThis) {
+    if (pThis) pThis->Close();
+}
+
+// Symbol: ?FindFile@CGopherFileFind@@UEAAHAEAVCGopherLocator@@PEB_WK@Z
+extern "C" int MS_ABI impl__FindFile_CGopherFileFind__UEAAHAEAVCGopherLocator__PEB_WK_Z(
+    GopherFileFind* pThis, CGopherLocator* pLocator, const wchar_t* pstrName, unsigned long dwFlags) {
+    (void)pLocator;
+    return pThis ? pThis->FindFile(pstrName ? pstrName : L"*", dwFlags) : FALSE;
+}
+
+// Symbol: ?FindFile@CGopherFileFind@@UEAAHPEB_WK@Z
+extern "C" int MS_ABI impl__FindFile_CGopherFileFind__UEAAHPEB_WK_Z(
+    GopherFileFind* pThis, const wchar_t* pstrName, unsigned long dwFlags) {
+    return pThis ? pThis->FindFile(pstrName ? pstrName : L"*", dwFlags) : FALSE;
+}
+
+// Symbol: ?FindNextFileW@CGopherFileFind@@UEAAHXZ
+extern "C" int MS_ABI impl__FindNextFileW_CGopherFileFind__UEAAHXZ(GopherFileFind* pThis) {
+    return pThis ? pThis->FindNextFile() : FALSE;
+}
+
+// Symbol: ?GetCreationTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z
+extern "C" int MS_ABI impl__GetCreationTime_CGopherFileFind__UEBAHAEAVCTime_ATL___Z(const GopherFileFind* pThis, void* pTime) {
+    FILETIME ft = {};
+    return pThis && pThis->GetCreationTime(&ft) ? openmfcFileTimeToCTimeStorage(ft, pTime) : FALSE;
+}
+
+// Symbol: ?GetCreationTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z
+extern "C" int MS_ABI impl__GetCreationTime_CGopherFileFind__UEBAHPEAU_FILETIME___Z(const GopherFileFind* pThis, FILETIME* pFileTime) {
+    return pThis ? pThis->GetCreationTime(pFileTime) : FALSE;
+}
+
+// Symbol: ?GetFileName@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileName_CGopherFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileName() : CString());
+}
+
+// Symbol: ?GetFilePath@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFilePath_CGopherFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFilePath() : CString());
+}
+
+// Symbol: ?GetFileTitle@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileTitle_CGopherFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetFileTitle() : CString());
+}
+
+// Symbol: ?GetFileURL@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetFileURL_CGopherFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    CString url;
+    if (pThis) {
+        url = pThis->GetFileURL();
+        if (url.Left(6) == L"ftp://") {
+            url = L"gopher://" + url.Mid(6);
+        }
+    }
+    openmfcConstructString(pRet, url);
+}
+
+// Symbol: ?GetLastAccessTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z
+extern "C" int MS_ABI impl__GetLastAccessTime_CGopherFileFind__UEBAHAEAVCTime_ATL___Z(const GopherFileFind* pThis, void* pTime) {
+    FILETIME ft = {};
+    return pThis && pThis->GetLastAccessTime(&ft) ? openmfcFileTimeToCTimeStorage(ft, pTime) : FALSE;
+}
+
+// Symbol: ?GetLastAccessTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z
+extern "C" int MS_ABI impl__GetLastAccessTime_CGopherFileFind__UEBAHPEAU_FILETIME___Z(const GopherFileFind* pThis, FILETIME* pFileTime) {
+    return pThis ? pThis->GetLastAccessTime(pFileTime) : FALSE;
+}
+
+// Symbol: ?GetLastWriteTime@CGopherFileFind@@UEBAHAEAVCTime@ATL@@@Z
+extern "C" int MS_ABI impl__GetLastWriteTime_CGopherFileFind__UEBAHAEAVCTime_ATL___Z(const GopherFileFind* pThis, void* pTime) {
+    FILETIME ft = {};
+    return pThis && pThis->GetLastWriteTime(&ft) ? openmfcFileTimeToCTimeStorage(ft, pTime) : FALSE;
+}
+
+// Symbol: ?GetLastWriteTime@CGopherFileFind@@UEBAHPEAU_FILETIME@@@Z
+extern "C" int MS_ABI impl__GetLastWriteTime_CGopherFileFind__UEBAHPEAU_FILETIME___Z(const GopherFileFind* pThis, FILETIME* pFileTime) {
+    return pThis ? pThis->GetLastWriteTime(pFileTime) : FALSE;
+}
+
+// Symbol: ?GetLength@CGopherFileFind@@UEBA_KXZ
+extern "C" unsigned __int64 MS_ABI impl__GetLength_CGopherFileFind__UEBA_KXZ(const GopherFileFind* pThis) {
+    return pThis ? pThis->GetLength() : 0;
+}
+
+// Symbol: ?GetLocator@CGopherFileFind@@QEBA?AVCGopherLocator@@XZ
+extern "C" void MS_ABI impl__GetLocator_CGopherFileFind__QEBA_AVCGopherLocator__XZ(CGopherLocator* pRet, const GopherFileFind* pThis) {
+    (void)pThis;
+    if (pRet) new (pRet) CGopherLocator();
+}
+
+// Symbol: ?GetRoot@CGopherFileFind@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetRoot_CGopherFileFind__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetRoot() : CString());
+}
+
+// Symbol: ?GetRuntimeClass@CGopherFileFind@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherFileFind__UEBAPEAUCRuntimeClass__XZ(const GopherFileFind* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : GopherFileFind::GetThisClass();
+}
+
+// Symbol: ?GetScreenName@CGopherFileFind@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetScreenName_CGopherFileFind__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const GopherFileFind* pThis) {
+    openmfcConstructString(pRet, pThis ? pThis->GetScreenName() : CString());
+}
+
+// Symbol: ?GetThisClass@CGopherFileFind@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherFileFind__SAPEAUCRuntimeClass__XZ() {
+    return GopherFileFind::GetThisClass();
+}
+
+// Symbol: ?IsDots@CGopherFileFind@@UEBAHXZ
+extern "C" int MS_ABI impl__IsDots_CGopherFileFind__UEBAHXZ(const GopherFileFind* pThis) {
+    return pThis ? pThis->IsDots() : FALSE;
+}
 
 //=============================================================================
 // Manual WinInet thunk implementations for remaining exports in this unit
