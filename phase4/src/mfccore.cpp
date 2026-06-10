@@ -5151,6 +5151,14 @@ BOOL CTooltipManager::CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, U
     }
     return created;
 }
+
+// Symbol: ?CreateToolTipObject@CTooltipManager@@IEAAHAEAPEAVCToolTipCtrl@@I@Z
+extern "C" int MS_ABI impl__CreateToolTipObject_CTooltipManager__IEAAHAEAPEAVCToolTipCtrl__I_Z(
+    CTooltipManager* pThis, CToolTipCtrl** ppToolTip, unsigned int nType) {
+    (void)pThis;
+    return ppToolTip ? CTooltipManager::CreateToolTip(*ppToolTip, nullptr, nType) : FALSE;
+}
+
 void CTooltipManager::DeleteToolTip(CToolTipCtrl*& pToolTip) {
     if (pToolTip) {
         pToolTip->DestroyWindow();

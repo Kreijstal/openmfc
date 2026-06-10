@@ -2065,6 +2065,306 @@ void CVSListBox::SetItemText(int nIndex, const CString& strText) {
     }
 }
 
+// Symbol: ?GetMessageMap@CVSListBox@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBox__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBox* pThis) {
+    (void)pThis;
+    return CListBox::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CVSListBox@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBox__UEBAPEAUCRuntimeClass__XZ(const CVSListBox* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CVSListBox::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CVSListBox@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBox__SAPEAUCRuntimeClass__XZ() {
+    return CVSListBox::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CVSListBox@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBox__KAPEBUAFX_MSGMAP__XZ() {
+    return CListBox::GetThisMessageMap();
+}
+
+// Symbol: ?OnCreateList@CVSListBox@@MEAAPEAVCWnd@@XZ
+extern "C" CWnd* MS_ABI impl__OnCreateList_CVSListBox__MEAAPEAVCWnd__XZ(CVSListBox* pThis) {
+    return pThis;
+}
+
+// Symbol: ?OnDblclkList@CVSListBox@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnDblclkList_CVSListBox__IEAAXPEAUtagNMHDR__PEA_J_Z(CVSListBox* pThis, NMHDR* pNMHDR, __int64* pResult) {
+    (void)pThis;
+    (void)pNMHDR;
+    if (pResult) *pResult = 0;
+}
+
+// Symbol: ?OnEndLabelEdit@CVSListBox@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnEndLabelEdit_CVSListBox__IEAAXPEAUtagNMHDR__PEA_J_Z(CVSListBox* pThis, NMHDR* pNMHDR, __int64* pResult) {
+    (void)pThis;
+    (void)pNMHDR;
+    if (pResult) *pResult = 0;
+}
+
+// Symbol: ?OnGetdispinfo@CVSListBox@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnGetdispinfo_CVSListBox__IEAAXPEAUtagNMHDR__PEA_J_Z(CVSListBox* pThis, NMHDR* pNMHDR, __int64* pResult) {
+    (void)pThis;
+    (void)pNMHDR;
+    if (pResult) *pResult = 0;
+}
+
+// Symbol: ?OnInitControl@CVSListBox@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnInitControl_CVSListBox__IEAA_J_K_J_Z(CVSListBox* pThis, unsigned __int64, __int64) {
+    return pThis ? TRUE : FALSE;
+}
+
+// Symbol: ?OnItemChanged@CVSListBox@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnItemChanged_CVSListBox__IEAAXPEAUtagNMHDR__PEA_J_Z(CVSListBox* pThis, NMHDR* pNMHDR, __int64* pResult) {
+    (void)pThis;
+    (void)pNMHDR;
+    if (pResult) *pResult = 0;
+}
+
+// Symbol: ?OnKeyDown@CVSListBox@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnKeyDown_CVSListBox__IEAAXPEAUtagNMHDR__PEA_J_Z(CVSListBox* pThis, NMHDR* pNMHDR, __int64* pResult) {
+    (void)pThis;
+    (void)pNMHDR;
+    if (pResult) *pResult = 0;
+}
+
+// Symbol: ?OnSizeList@CVSListBox@@MEAAXXZ
+extern "C" void MS_ABI impl__OnSizeList_CVSListBox__MEAAXXZ(CVSListBox* pThis) {
+    if (pThis && pThis->GetSafeHwnd()) {
+        ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
+    }
+}
+
+// Symbol: ?PreTranslateMessage@CVSListBox@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CVSListBox__UEAAHPEAUtagMSG___Z(CVSListBox* pThis, MSG* pMsg) {
+    (void)pThis;
+    (void)pMsg;
+    return FALSE;
+}
+
+// Symbol: ?AddButton@CVSListBoxBase@@QEAAHIPEB_WGEI@Z
+extern "C" int MS_ABI impl__AddButton_CVSListBoxBase__QEAAHIPEB_WGEI_Z(
+    CVSListBoxBase* pThis, unsigned int nID, const wchar_t* lpszName, unsigned short, unsigned char, unsigned int) {
+    (void)pThis;
+    (void)lpszName;
+    return (int)nID;
+}
+
+// Symbol: ?AdjustLayout@CVSListBoxBase@@IEAAXXZ
+extern "C" void MS_ABI impl__AdjustLayout_CVSListBoxBase__IEAAXXZ(CVSListBoxBase* pThis) {
+    if (pThis && pThis->GetSafeHwnd()) ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
+}
+
+// Symbol: ?CreateNewItem@CVSListBoxBase@@MEAAXXZ
+extern "C" void MS_ABI impl__CreateNewItem_CVSListBoxBase__MEAAXXZ(CVSListBoxBase* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?EnableBrowseButton@CVSListBoxBase@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableBrowseButton_CVSListBoxBase__QEAAXH_Z(CVSListBoxBase* pThis, int bEnable) {
+    if (pThis && pThis->GetSafeHwnd()) ::EnableWindow(pThis->GetSafeHwnd(), bEnable);
+}
+
+// Symbol: ?EnableButton@CVSListBoxBase@@QEAAHHH@Z
+extern "C" void MS_ABI impl__EnableButton_CVSListBoxBase__QEAAHHH_Z(CVSListBoxBase* pThis, int, int bEnable) {
+    if (pThis && pThis->GetSafeHwnd()) ::EnableWindow(pThis->GetSafeHwnd(), bEnable);
+}
+
+// Symbol: ?GetButtonID@CVSListBoxBase@@QEBAIH@Z
+extern "C" unsigned int MS_ABI impl__GetButtonID_CVSListBoxBase__QEBAIH_Z(const CVSListBoxBase* pThis, int nIndex) {
+    (void)pThis;
+    return (unsigned int)nIndex;
+}
+
+// Symbol: ?GetButtonNum@CVSListBoxBase@@QEBAHI@Z
+extern "C" int MS_ABI impl__GetButtonNum_CVSListBoxBase__QEBAHI_Z(const CVSListBoxBase* pThis, unsigned int nID) {
+    (void)pThis;
+    return (int)nID;
+}
+
+// Symbol: ?GetMessageMap@CVSListBoxBase@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBoxBase__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBoxBase* pThis) {
+    (void)pThis;
+    return CStatic::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CVSListBoxBase@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxBase__UEBAPEAUCRuntimeClass__XZ(const CVSListBoxBase* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CVSListBoxBase::GetThisClass();
+}
+
+// Symbol: ?GetStdButtonNum@CVSListBoxBase@@IEBAHI@Z
+extern "C" int MS_ABI impl__GetStdButtonNum_CVSListBoxBase__IEBAHI_Z(const CVSListBoxBase* pThis, unsigned int nID) {
+    (void)pThis;
+    return (int)nID;
+}
+
+// Symbol: ?GetThisClass@CVSListBoxBase@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxBase__SAPEAUCRuntimeClass__XZ() {
+    return CVSListBoxBase::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CVSListBoxBase@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBoxBase__KAPEBUAFX_MSGMAP__XZ() {
+    return CStatic::GetThisMessageMap();
+}
+
+// Symbol: ?Init@CVSListBoxBase@@IEAAXXZ
+extern "C" void MS_ABI impl__Init_CVSListBoxBase__IEAAXXZ(CVSListBoxBase* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?OnClickButton@CVSListBoxBase@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnClickButton_CVSListBoxBase__UEAAXH_Z(CVSListBoxBase* pThis, int) {
+    (void)pThis;
+}
+
+// Symbol: ?OnCommand@CVSListBoxBase@@MEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CVSListBoxBase__MEAAH_K_J_Z(CVSListBoxBase* pThis, unsigned __int64, __int64) {
+    (void)pThis;
+    return FALSE;
+}
+
+// Symbol: ?OnCreate@CVSListBoxBase@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CVSListBoxBase__IEAAHPEAUtagCREATESTRUCTW___Z(CVSListBoxBase* pThis, CREATESTRUCTW*) {
+    return pThis ? 0 : -1;
+}
+
+// Symbol: ?OnEnable@CVSListBoxBase@@IEAAXH@Z
+extern "C" void MS_ABI impl__OnEnable_CVSListBoxBase__IEAAXH_Z(CVSListBoxBase* pThis, int bEnable) {
+    if (pThis && pThis->GetSafeHwnd()) ::EnableWindow(pThis->GetSafeHwnd(), bEnable);
+}
+
+// Symbol: ?OnEndEditLabel@CVSListBoxBase@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__OnEndEditLabel_CVSListBoxBase__UEAAXPEB_W_Z(CVSListBoxBase* pThis, const wchar_t*) {
+    (void)pThis;
+}
+
+// Symbol: ?OnEraseBkgnd@CVSListBoxBase@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CVSListBoxBase__IEAAHPEAVCDC___Z(CVSListBoxBase* pThis, CDC*) {
+    (void)pThis;
+    return TRUE;
+}
+
+// Symbol: ?OnGetDlgCode@CVSListBoxBase@@IEAAIXZ
+extern "C" unsigned int MS_ABI impl__OnGetDlgCode_CVSListBoxBase__IEAAIXZ(CVSListBoxBase*) {
+    return DLGC_WANTARROWS | DLGC_WANTCHARS;
+}
+
+// Symbol: ?OnKey@CVSListBoxBase@@UEAAXGE@Z
+extern "C" void MS_ABI impl__OnKey_CVSListBoxBase__UEAAXGE_Z(CVSListBoxBase* pThis, unsigned short, unsigned char) {
+    (void)pThis;
+}
+
+// Symbol: ?OnSetFocus@CVSListBoxBase@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CVSListBoxBase__IEAAXPEAVCWnd___Z(CVSListBoxBase* pThis, CWnd*) {
+    if (pThis && pThis->GetSafeHwnd()) ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, FALSE);
+}
+
+// Symbol: ?OnSetText@CVSListBoxBase@@IEAAHPEB_W@Z
+extern "C" int MS_ABI impl__OnSetText_CVSListBoxBase__IEAAHPEB_W_Z(CVSListBoxBase* pThis, const wchar_t* lpszText) {
+    return pThis && pThis->GetSafeHwnd() ? ::SetWindowTextW(pThis->GetSafeHwnd(), lpszText) : FALSE;
+}
+
+// Symbol: ?OnSize@CVSListBoxBase@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CVSListBoxBase__IEAAXIHH_Z(CVSListBoxBase* pThis, unsigned int, int, int) {
+    if (pThis && pThis->GetSafeHwnd()) ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
+}
+
+// Symbol: ?PreSubclassWindow@CVSListBoxBase@@MEAAXXZ
+extern "C" void MS_ABI impl__PreSubclassWindow_CVSListBoxBase__MEAAXXZ(CVSListBoxBase* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SetGrayDisabledButtons@CVSListBoxBase@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetGrayDisabledButtons_CVSListBoxBase__QEAAXH_Z(CVSListBoxBase* pThis, int) {
+    (void)pThis;
+}
+
+// Symbol: ?SetStandardButtons@CVSListBoxBase@@QEAAHI@Z
+extern "C" int MS_ABI impl__SetStandardButtons_CVSListBoxBase__QEAAHI_Z(CVSListBoxBase* pThis, unsigned int nButtons) {
+    (void)pThis;
+    return (int)nButtons;
+}
+
+// Symbol: ?GetMessageMap@CVSListBoxEditCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBoxEditCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBoxEditCtrl* pThis) {
+    (void)pThis;
+    return CEdit::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CVSListBoxEditCtrl@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxEditCtrl__UEBAPEAUCRuntimeClass__XZ(const CVSListBoxEditCtrl* pThis) {
+    return pThis ? pThis->GetRuntimeClass() : CVSListBoxEditCtrl::GetThisClass();
+}
+
+// Symbol: ?GetThisClass@CVSListBoxEditCtrl@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxEditCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CVSListBoxEditCtrl::GetThisClass();
+}
+
+// Symbol: ?GetThisMessageMap@CVSListBoxEditCtrl@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBoxEditCtrl__KAPEBUAFX_MSGMAP__XZ() {
+    return CEdit::GetThisMessageMap();
+}
+
+// Symbol: ?LockSize@CVSListBoxEditCtrl@@QEAAXPEAVCVSListBoxBase@@H@Z
+extern "C" void MS_ABI impl__LockSize_CVSListBoxEditCtrl__QEAAXPEAVCVSListBoxBase__H_Z(CVSListBoxEditCtrl* pThis, CVSListBoxBase*, int) {
+    (void)pThis;
+}
+
+// Symbol: ?OnKeyDown@CVSListBoxEditCtrl@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CVSListBoxEditCtrl__IEAAXIII_Z(CVSListBoxEditCtrl* pThis, unsigned int nChar, unsigned int, unsigned int) {
+    if (pThis && pThis->GetSafeHwnd()) ::SendMessageW(pThis->GetSafeHwnd(), WM_KEYDOWN, nChar, 0);
+}
+
+// Symbol: ?OnNcCalcSize@CVSListBoxEditCtrl@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CVSListBoxEditCtrl__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(CVSListBoxEditCtrl*, int, NCCALCSIZE_PARAMS*) {
+}
+
+// Symbol: ?OnWindowPosChanging@CVSListBoxEditCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanging_CVSListBoxEditCtrl__IEAAXPEAUtagWINDOWPOS___Z(CVSListBoxEditCtrl*, WINDOWPOS*) {
+}
+
+// Symbol: ?OnAfterAddItem@CVSToolsListBox@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAfterAddItem_CVSToolsListBox__UEAAXH_Z(CVSListBox* pThis, int nItem) {
+    (void)pThis;
+    (void)nItem;
+}
+
+// Symbol: ?OnAfterMoveItemDown@CVSToolsListBox@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAfterMoveItemDown_CVSToolsListBox__UEAAXH_Z(CVSListBox* pThis, int nItem) {
+    (void)pThis;
+    (void)nItem;
+}
+
+// Symbol: ?OnAfterMoveItemUp@CVSToolsListBox@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAfterMoveItemUp_CVSToolsListBox__UEAAXH_Z(CVSListBox* pThis, int nItem) {
+    (void)pThis;
+    (void)nItem;
+}
+
+// Symbol: ?OnAfterRenameItem@CVSToolsListBox@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAfterRenameItem_CVSToolsListBox__UEAAXH_Z(CVSListBox* pThis, int nItem) {
+    (void)pThis;
+    (void)nItem;
+}
+
+// Symbol: ?OnBeforeRemoveItem@CVSToolsListBox@@UEAAHH@Z
+extern "C" int MS_ABI impl__OnBeforeRemoveItem_CVSToolsListBox__UEAAHH_Z(CVSListBox* pThis, int nItem) {
+    (void)pThis;
+    (void)nItem;
+    return TRUE;
+}
+
+// Symbol: ?OnSelectionChanged@CVSToolsListBox@@UEAAXXZ
+extern "C" void MS_ABI impl__OnSelectionChanged_CVSToolsListBox__UEAAXXZ(CVSListBox* pThis) {
+    (void)pThis;
+}
+
 // Symbol: ?AddItem@CVSListBox@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@_KH@Z
 extern "C" int MS_ABI impl__AddItem_CVSListBox__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___KH_Z(
     CVSListBox* pThis, const CString* p0, uintptr_t p1, int p2) {
