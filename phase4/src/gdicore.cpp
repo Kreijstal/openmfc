@@ -104,6 +104,8 @@ struct CRenderTargetState {
     bool drawing = false;
     CD2DSizeF dpi = CD2DSizeF(96.0f, 96.0f);
     CD2DSizeF size = CD2DSizeF(0.0f, 0.0f);
+    CString lastText;
+    CD2DRectF lastTextRect;
     unsigned __int64 tag1 = 0;
     unsigned __int64 tag2 = 0;
 };
@@ -1824,6 +1826,32 @@ extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRo
 
 void CRenderTarget::FillRoundedRectangle(const CD2DRoundedRect& rect) {
     impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush___Z(this, &rect, nullptr);
+}
+
+// Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
+extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+    CRenderTarget* pThis, const CString* text, const CD2DRectF* rect, void* brush, void* textFormat, int drawOptions, int measuringMode) {
+    (void)brush;
+    (void)textFormat;
+    (void)drawOptions;
+    (void)measuringMode;
+    if (!pThis) return;
+
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.lastText = text ? *text : CString();
+    state.lastTextRect = rect ? *rect : CD2DRectF();
+    if (rect) {
+        if (rect->right > state.size.width) state.size.width = rect->right;
+        if (rect->bottom > state.size.height) state.size.height = rect->bottom;
+    }
+}
+
+// Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
+extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+    CRenderTarget* pThis, const CString* text, CD2DRectF rect, void* brush, void* textFormat, int drawOptions, int measuringMode) {
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+        pThis, text, &rect, brush, textFormat, drawOptions, measuringMode);
 }
 
 // Symbol: ?COLORREF_TO_D2DCOLOR@CRenderTarget@@SA?AU_D3DCOLORVALUE@@KH@Z

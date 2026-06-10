@@ -982,6 +982,18 @@ struct AppRuntimeState {
     std::unordered_map<std::wstring, unsigned int> profileInts;
     std::unordered_map<std::wstring, std::wstring> profileStrings;
     std::unordered_map<std::wstring, std::vector<unsigned char>> profileBinary;
+    std::wstring registryRoot;
+    std::wstring appId;
+    bool modelessEnabled = true;
+    bool shellOpenEnabled = false;
+    bool taskbarEnabled = false;
+    bool d2dEnabled = false;
+    bool automated = false;
+    bool embedded = false;
+    HGLOBAL printerDevMode = nullptr;
+    HGLOBAL printerDevNames = nullptr;
+    ITaskbarList* taskbarList = nullptr;
+    ITaskbarList3* taskbarList3 = nullptr;
 };
 
 std::unordered_map<const CCommandLineInfo*, CommandLineInfoState> g_commandLineInfoStates;
@@ -1004,6 +1016,68 @@ std::wstring MakeProfileKey(const wchar_t* section, const wchar_t* entry) {
     key.push_back(L'\x1f');
     key.append(entry ? entry : L"");
     return key;
+}
+
+std::wstring WideValue(const wchar_t* value) {
+    return value ? value : L"";
+}
+
+std::wstring LowerWide(std::wstring value) {
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](wchar_t ch) { return static_cast<wchar_t>(std::towlower(ch)); });
+    return value;
+}
+
+std::wstring GetAppRegistryRoot(CWinApp* app) {
+    AppRuntimeState& state = g_appRuntimeStates[app];
+    if (!state.registryRoot.empty()) return state.registryRoot;
+    if (app && app->m_pszRegistryKey && *app->m_pszRegistryKey) return app->m_pszRegistryKey;
+    if (app && app->m_pszAppName && *app->m_pszAppName) return std::wstring(L"Software\\") + app->m_pszAppName;
+    return L"Software\\OpenMFC";
+}
+
+std::wstring GetAppName(CWinApp* app) {
+    if (app && app->m_pszAppName && *app->m_pszAppName) return app->m_pszAppName;
+    if (app && app->m_pszExeName && *app->m_pszExeName) return app->m_pszExeName;
+    return L"OpenMFC";
+}
+
+HWND GetAppMainHwnd(CWinApp* app) {
+    return app && app->m_pMainWnd ? app->m_pMainWnd->GetSafeHwnd() : nullptr;
+}
+
+int CountTemplateDocuments(CDocTemplate* tpl) {
+    if (!tpl) return 0;
+    int count = 0;
+    void* pos = tpl->GetFirstDocPosition();
+    while (pos) {
+        CDocument* doc = tpl->GetNextDoc(pos);
+        if (doc) ++count;
+    }
+    return count;
+}
+
+bool SaveTemplateDocuments(CDocTemplate* tpl) {
+    if (!tpl) return true;
+    void* pos = tpl->GetFirstDocPosition();
+    while (pos) {
+        CDocument* doc = tpl->GetNextDoc(pos);
+        if (doc && !doc->SaveModified()) return false;
+    }
+    return true;
+}
+
+void CloseTemplateDocuments(CDocTemplate* tpl) {
+    if (!tpl) return;
+    std::vector<CDocument*> docs;
+    void* pos = tpl->GetFirstDocPosition();
+    while (pos) {
+        CDocument* doc = tpl->GetNextDoc(pos);
+        if (doc) docs.push_back(doc);
+    }
+    for (CDocument* doc : docs) {
+        doc->OnCloseDocument();
+    }
 }
 
 const wchar_t* FindFileNamePart(const wchar_t* path) {
@@ -1287,6 +1361,34 @@ extern "C" int MS_ABI impl__WriteProfileBinary_CWinApp__UEAAHPEB_W0PEAEI_Z(
     if (data && bytes != 0) blob.assign(data, data + bytes);
     g_appRuntimeStates[pThis].profileBinary[MakeProfileKey(section, entry)] = std::move(blob);
     return TRUE;
+}
+
+// Symbol: ?DelRegTree@CWinApp@@QEAAJPEAUHKEY__@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCAtlTransactionManager@4@@Z
+extern "C" long MS_ABI impl__DelRegTree_CWinApp__QEAAJPEAUHKEY____AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCAtlTransactionManager_4__Z(
+    CWinApp* pThis, HKEY hParentKey, const CString* keyName, void*) {
+    (void)pThis;
+    if (!hParentKey || !keyName) return ERROR_INVALID_PARAMETER;
+    return ::RegDeleteTreeW(hParentKey, static_cast<const wchar_t*>(*keyName));
+}
+
+// Symbol: ?DoPromptFileName@CWinApp@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IKHPEAVCDocTemplate@@@Z
+extern "C" int MS_ABI impl__DoPromptFileName_CWinApp__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IKHPEAVCDocTemplate___Z(
+    CWinApp* pThis, CString* fileName, unsigned int, unsigned long flags, int bOpenFileDialog, CDocTemplate*) {
+    if (!fileName) return FALSE;
+    CFileDialog dlg(bOpenFileDialog, nullptr, static_cast<const wchar_t*>(*fileName), flags, nullptr, pThis ? pThis->m_pMainWnd : nullptr);
+    if (dlg.DoModal() != IDOK) return FALSE;
+    *fileName = dlg.GetPathName();
+    return TRUE;
+}
+
+// Symbol: ?RegisterWithRestartManager@CWinApp@@UEAAJHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" long MS_ABI impl__RegisterWithRestartManager_CWinApp__UEAAJHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CWinApp*, int bRegisterRecoveryCallback, const CString* restartIdentifier) {
+    if (!bRegisterRecoveryCallback) {
+        return ::UnregisterApplicationRestart();
+    }
+    const wchar_t* commandLine = restartIdentifier ? static_cast<const wchar_t*>(*restartIdentifier) : L"";
+    return ::RegisterApplicationRestart(commandLine, 0);
 }
 
 static HCURSOR GetWaitCursorHandle() {
@@ -1624,4 +1726,473 @@ extern "C" int MS_ABI impl__OnOpenRecentFile_CWinApp__IEAAHI_Z(CWinApp* pThis, u
 extern "C" void MS_ABI impl__OnUpdateRecentFileMenu_CWinApp__IEAAXPEAVCCmdUI___Z(CWinApp* pThis, CCmdUI* pCmdUI) {
     (void)pThis;
     (void)pCmdUI;
+}
+
+namespace {
+const AFX_MSGMAP_ENTRY g_emptyAppMessageEntries[] = {
+    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0}
+};
+
+const AFX_MSGMAP g_emptyAppMessageMap = {
+    nullptr,
+    g_emptyAppMessageEntries
+};
+
+DWORD WINAPI OpenMfcWinThreadEntry(LPVOID param) {
+    CWinThread* thread = reinterpret_cast<CWinThread*>(param);
+    if (!thread) return 0;
+    g_pCurrentThread = thread;
+    UINT result = 0;
+    if (thread->InitInstance()) {
+        result = static_cast<UINT>(thread->Run());
+    }
+    result = static_cast<UINT>(thread->ExitInstance());
+    if (thread->m_bAutoDelete) {
+        delete thread;
+    }
+    g_pCurrentThread = nullptr;
+    return result;
+}
+}  // namespace
+
+// Symbol: ?GetRuntimeClass@CWinThread@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinThread__UEBAPEAUCRuntimeClass__XZ(const CWinThread*) {
+    return &CWinThread::classCWinThread;
+}
+
+// Symbol: ?CommonConstruct@CWinThread@@QEAAXXZ
+extern "C" void MS_ABI impl__CommonConstruct_CWinThread__QEAAXXZ(CWinThread* pThis) {
+    if (!pThis) return;
+    pThis->m_pMainWnd = nullptr;
+    pThis->m_nThreadID = 0;
+    pThis->m_hThread = nullptr;
+    pThis->m_bAutoDelete = TRUE;
+    std::memset(&pThis->m_msgCur, 0, sizeof(pThis->m_msgCur));
+}
+
+// Symbol: ?CreateThread@CWinThread@@QEAAHKIPEAU_SECURITY_ATTRIBUTES@@@Z
+extern "C" int MS_ABI impl__CreateThread_CWinThread__QEAAHKIPEAU_SECURITY_ATTRIBUTES___Z(
+    CWinThread* pThis, unsigned long createFlags, unsigned int stackSize, SECURITY_ATTRIBUTES* securityAttributes) {
+    if (!pThis || pThis->m_hThread) return FALSE;
+    DWORD threadId = 0;
+    HANDLE thread = ::CreateThread(securityAttributes, stackSize, OpenMfcWinThreadEntry, pThis, createFlags, &threadId);
+    if (!thread) return FALSE;
+    pThis->m_hThread = thread;
+    pThis->m_nThreadID = threadId;
+    return TRUE;
+}
+
+// Symbol: ?Delete@CWinThread@@UEAAXXZ
+extern "C" void MS_ABI impl__Delete_CWinThread__UEAAXXZ(CWinThread* pThis) {
+    if (!pThis) return;
+    if (pThis->m_hThread && pThis->m_hThread != ::GetCurrentThread()) {
+        ::CloseHandle(pThis->m_hThread);
+        pThis->m_hThread = nullptr;
+    }
+    if (pThis->m_bAutoDelete) delete pThis;
+}
+
+// Symbol: ?DispatchThreadMessageEx@CWinThread@@IEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* msg) {
+    if (!pThis || !msg) return FALSE;
+    pThis->m_msgCur = *msg;
+    if (pThis->PreTranslateMessage(msg)) return TRUE;
+    ::TranslateMessage(msg);
+    ::DispatchMessageW(msg);
+    return TRUE;
+}
+
+// Symbol: ?DispatchThreadMessage@CWinThread@@IEAAXPEAUtagMSG@@@Z
+extern "C" void MS_ABI impl__DispatchThreadMessage_CWinThread__IEAAXPEAUtagMSG___Z(CWinThread* pThis, MSG* msg) {
+    (void)impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG___Z(pThis, msg);
+}
+
+// Symbol: ?GetMainWnd@CWinThread@@UEAAPEAVCWnd@@XZ
+extern "C" CWnd* MS_ABI impl__GetMainWnd_CWinThread__UEAAPEAVCWnd__XZ(CWinThread* pThis) {
+    return pThis ? pThis->m_pMainWnd : nullptr;
+}
+
+// Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread*, int, MSG*) {
+    return FALSE;
+}
+
+// Symbol: ?ProcessWndProcException@CWinThread@@UEAA_JPEAVCException@@PEBUtagMSG@@@Z
+extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(
+    CWinThread*, CException* exception, const MSG*) {
+    if (exception) exception->GetErrorMessage(nullptr, 0, nullptr);
+    return 0;
+}
+
+// Symbol: ?GetRuntimeClass@CWinApp@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinApp__UEBAPEAUCRuntimeClass__XZ(const CWinApp*) {
+    return &CWinApp::classCWinApp;
+}
+
+// Symbol: ?GetThisMessageMap@CWinApp@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CWinApp__KAPEBUAFX_MSGMAP__XZ() {
+    return &g_emptyAppMessageMap;
+}
+
+// Symbol: ?GetMessageMap@CWinApp@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWinApp__MEBAPEBUAFX_MSGMAP__XZ(const CWinApp*) {
+    return &g_emptyAppMessageMap;
+}
+
+// Symbol: ?AddDocTemplate@CWinApp@@QEAAXPEAVCDocTemplate@@@Z
+extern "C" void MS_ABI impl__AddDocTemplate_CWinApp__QEAAXPEAVCDocTemplate___Z(CWinApp* pThis, CDocTemplate* pTemplate) {
+    impl__AddDocTemplate_CWinApp__UEAAXPEAVCDocTemplate___Z(pThis, pTemplate);
+}
+
+// Symbol: ?CloseAllDocuments@CWinApp@@QEAAXH@Z
+extern "C" void MS_ABI impl__CloseAllDocuments_CWinApp__QEAAXH_Z(CWinApp* pThis, int) {
+    if (!pThis) return;
+    for (CDocTemplate* tpl : g_appRuntimeStates[pThis].templates) CloseTemplateDocuments(tpl);
+}
+
+// Symbol: ?SaveAllModified@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__SaveAllModified_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    for (CDocTemplate* tpl : g_appRuntimeStates[pThis].templates) {
+        if (!SaveTemplateDocuments(tpl)) return FALSE;
+    }
+    return TRUE;
+}
+
+// Symbol: ?GetOpenDocumentCount@CWinApp@@QEAAHXZ
+extern "C" int MS_ABI impl__GetOpenDocumentCount_CWinApp__QEAAHXZ(CWinApp* pThis);
+
+// Symbol: ?CreatePrinterDC@CWinApp@@QEAAHAEAVCDC@@@Z
+extern "C" int MS_ABI impl__CreatePrinterDC_CWinApp__QEAAHAEAVCDC___Z(CWinApp* pThis, CDC* dc) {
+    if (!pThis || !dc) return FALSE;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    HDC hdc = ::CreateDCW(L"WINSPOOL", nullptr, nullptr, nullptr);
+    if (!hdc) return FALSE;
+    dc->m_hDC = hdc;
+    dc->m_hAttribDC = hdc;
+    (void)state;
+    return TRUE;
+}
+
+// Symbol: ?DevModeChange@CWinApp@@QEAAXPEA_W@Z
+extern "C" void MS_ABI impl__DevModeChange_CWinApp__QEAAXPEA_W_Z(CWinApp*, wchar_t*) {
+}
+
+// Symbol: ?DoEnableModeless@CWinApp@@SAXH@Z
+extern "C" void MS_ABI impl__DoEnableModeless_CWinApp__SAXH_Z(int enable) {
+    if (g_pApp) g_appRuntimeStates[g_pApp].modelessEnabled = enable != FALSE;
+}
+
+// Symbol: ?ShowAppMessageBox@CWinApp@@SAHPEAV1@PEB_WII@Z
+extern "C" int MS_ABI impl__ShowAppMessageBox_CWinApp__SAHPEAV1_PEB_WII_Z(
+    CWinApp* app, const wchar_t* prompt, unsigned int type, unsigned int) {
+    return ::MessageBoxW(GetAppMainHwnd(app), prompt ? prompt : L"", GetAppName(app).c_str(), type);
+}
+
+// Symbol: ?DoMessageBox@CWinApp@@UEAAHPEB_WII@Z
+extern "C" int MS_ABI impl__DoMessageBox_CWinApp__UEAAHPEB_WII_Z(
+    CWinApp* pThis, const wchar_t* prompt, unsigned int type, unsigned int idPrompt) {
+    return impl__ShowAppMessageBox_CWinApp__SAHPEAV1_PEB_WII_Z(pThis, prompt, type, idPrompt);
+}
+
+// Symbol: ?DoPrintDialog@CWinApp@@QEAA_JPEAVCPrintDialog@@@Z
+extern "C" intptr_t MS_ABI impl__DoPrintDialog_CWinApp__QEAA_JPEAVCPrintDialog___Z(CWinApp*, CPrintDialog* dialog) {
+    return dialog ? dialog->DoModal() : IDCANCEL;
+}
+
+// Symbol: ?DoWaitCursor@CWinApp@@UEAAXH@Z
+extern "C" void MS_ABI impl__DoWaitCursor_CWinApp__UEAAXH_Z(CWinApp*, int code) {
+    ::SetCursor(code > 0 ? GetWaitCursorHandle() : GetArrowCursorHandle());
+}
+
+// Symbol: ?EnableD2DSupport@CWinApp@@QEAAHW4D2D1_FACTORY_TYPE@@W4DWRITE_FACTORY_TYPE@@@Z
+extern "C" int MS_ABI impl__EnableD2DSupport_CWinApp__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(CWinApp* pThis, int, int) {
+    if (!pThis) return FALSE;
+    g_appRuntimeStates[pThis].d2dEnabled = true;
+    return TRUE;
+}
+
+// Symbol: ?EnableModeless@CWinApp@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableModeless_CWinApp__QEAAXH_Z(CWinApp* pThis, int enable) {
+    if (pThis) g_appRuntimeStates[pThis].modelessEnabled = enable != FALSE;
+}
+
+// Symbol: ?EnableShellOpen@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__EnableShellOpen_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (pThis) g_appRuntimeStates[pThis].shellOpenEnabled = true;
+}
+
+// Symbol: ?EnableTaskbarInteraction@CWinApp@@QEAAHH@Z
+extern "C" int MS_ABI impl__EnableTaskbarInteraction_CWinApp__QEAAHH_Z(CWinApp* pThis, int enable) {
+    if (!pThis) return FALSE;
+    g_appRuntimeStates[pThis].taskbarEnabled = enable != FALSE;
+    return TRUE;
+}
+
+// Symbol: ?GetAppRegistryKey@CWinApp@@QEAAPEAUHKEY__@@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" HKEY MS_ABI impl__GetAppRegistryKey_CWinApp__QEAAPEAUHKEY____PEAVCAtlTransactionManager_ATL___Z(CWinApp* pThis, void*) {
+    if (!pThis) return nullptr;
+    HKEY key = nullptr;
+    return ::RegCreateKeyExW(HKEY_CURRENT_USER, GetAppRegistryRoot(pThis).c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, nullptr) == ERROR_SUCCESS ? key : nullptr;
+}
+
+// Symbol: ?GetSectionKey@CWinApp@@QEAAPEAUHKEY__@@PEB_WPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" HKEY MS_ABI impl__GetSectionKey_CWinApp__QEAAPEAUHKEY____PEB_WPEAVCAtlTransactionManager_ATL___Z(CWinApp* pThis, const wchar_t* section, void*) {
+    if (!pThis || !section) return nullptr;
+    std::wstring path = GetAppRegistryRoot(pThis);
+    if (!path.empty() && path.back() != L'\\') path.push_back(L'\\');
+    path.append(section);
+    HKEY key = nullptr;
+    return ::RegCreateKeyExW(HKEY_CURRENT_USER, path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &key, nullptr) == ERROR_SUCCESS ? key : nullptr;
+}
+
+// Symbol: ?GetDataRecoveryHandler@CWinApp@@UEAAPEAVCDataRecoveryHandler@@XZ
+extern "C" void* MS_ABI impl__GetDataRecoveryHandler_CWinApp__UEAAPEAVCDataRecoveryHandler__XZ(CWinApp*) {
+    return nullptr;
+}
+
+// Symbol: ?GetITaskbarList@CWinApp@@QEAAPEAUITaskbarList@@XZ
+extern "C" ITaskbarList* MS_ABI impl__GetITaskbarList_CWinApp__QEAAPEAUITaskbarList__XZ(CWinApp* pThis) {
+    if (!pThis) return nullptr;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    if (!state.taskbarEnabled) return nullptr;
+    if (!state.taskbarList) {
+        ::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_ITaskbarList, reinterpret_cast<void**>(&state.taskbarList));
+        if (state.taskbarList) state.taskbarList->HrInit();
+    }
+    return state.taskbarList;
+}
+
+// Symbol: ?GetITaskbarList3@CWinApp@@QEAAPEAUITaskbarList3@@XZ
+extern "C" ITaskbarList3* MS_ABI impl__GetITaskbarList3_CWinApp__QEAAPEAUITaskbarList3__XZ(CWinApp* pThis) {
+    if (!pThis) return nullptr;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    if (!state.taskbarEnabled) return nullptr;
+    if (!state.taskbarList3) {
+        ::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, reinterpret_cast<void**>(&state.taskbarList3));
+        if (state.taskbarList3) state.taskbarList3->HrInit();
+    }
+    return state.taskbarList3;
+}
+
+// Symbol: ?ReleaseTaskBarRefs@CWinApp@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseTaskBarRefs_CWinApp__QEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    if (state.taskbarList3) state.taskbarList3->Release();
+    if (state.taskbarList) state.taskbarList->Release();
+    state.taskbarList3 = nullptr;
+    state.taskbarList = nullptr;
+}
+
+// Symbol: ?GetPrinterDeviceDefaults@CWinApp@@QEAAHPEAUtagPDW@@@Z
+extern "C" int MS_ABI impl__GetPrinterDeviceDefaults_CWinApp__QEAAHPEAUtagPDW___Z(CWinApp* pThis, PRINTDLGW* pd) {
+    if (!pThis || !pd) return FALSE;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    pd->hDevMode = state.printerDevMode;
+    pd->hDevNames = state.printerDevNames;
+    return TRUE;
+}
+
+// Symbol: ?GetSysPolicyValue@CWinApp@@QEAAHKPEAH@Z
+extern "C" int MS_ABI impl__GetSysPolicyValue_CWinApp__QEAAHKPEAH_Z(CWinApp*, unsigned long, int* value) {
+    if (value) *value = 0;
+    return FALSE;
+}
+
+// Symbol: ?HideApplication@CWinApp@@QEAAXXZ
+extern "C" void MS_ABI impl__HideApplication_CWinApp__QEAAXXZ(CWinApp* pThis) {
+    HWND hwnd = GetAppMainHwnd(pThis);
+    if (hwnd) ::ShowWindow(hwnd, SW_HIDE);
+}
+
+// Symbol: ?HtmlHelpW@CWinApp@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__HtmlHelpW_CWinApp__UEAAX_KI_Z(CWinApp*, unsigned long long, unsigned int) {
+}
+
+// Symbol: ?InitLibId@CWinApp@@UEAAXXZ
+extern "C" void MS_ABI impl__InitLibId_CWinApp__UEAAXXZ(CWinApp*) {
+}
+
+// Symbol: ?IsTaskbarInteractionEnabled@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__IsTaskbarInteractionEnabled_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    return pThis && g_appRuntimeStates[pThis].taskbarEnabled ? TRUE : FALSE;
+}
+
+// Symbol: ?IsWindows7@CWinApp@@QEAAHXZ
+extern "C" int MS_ABI impl__IsWindows7_CWinApp__QEAAHXZ(CWinApp*) {
+    return TRUE;
+}
+
+// Symbol: ?LoadAppLangResourceDLL@CWinApp@@UEAAPEAUHINSTANCE__@@XZ
+extern "C" HINSTANCE MS_ABI impl__LoadAppLangResourceDLL_CWinApp__UEAAPEAUHINSTANCE____XZ(CWinApp*) {
+    return AfxGetResourceHandle();
+}
+
+// Symbol: ?LoadSysPolicies@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__LoadSysPolicies_CWinApp__UEAAHXZ(CWinApp*) {
+    return TRUE;
+}
+
+// Symbol: ?OnAppExit@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnAppExit_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    impl__CloseAllDocuments_CWinApp__QEAAXH_Z(pThis, FALSE);
+    ::PostQuitMessage(0);
+}
+
+// Symbol: ?OnContextHelp@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnContextHelp_CWinApp__IEAAXXZ(CWinApp*) {
+}
+
+// Symbol: ?OnDDECommand@CWinApp@@UEAAHPEA_W@Z
+extern "C" int MS_ABI impl__OnDDECommand_CWinApp__UEAAHPEA_W_Z(CWinApp*, wchar_t*) {
+    return FALSE;
+}
+
+// Symbol: ?OnFilePrintSetup@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFilePrintSetup_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    CPrintDialog dialog(TRUE);
+    (void)impl__DoPrintDialog_CWinApp__QEAA_JPEAVCPrintDialog___Z(pThis, &dialog);
+}
+
+// Symbol: ?OnHelp@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnHelp_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (pThis && pThis->m_pszHelpFilePath) ::ShellExecuteW(GetAppMainHwnd(pThis), L"open", pThis->m_pszHelpFilePath, nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+// Symbol: ?OnHelpFinder@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnHelpFinder_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    impl__OnHelp_CWinApp__IEAAXXZ(pThis);
+}
+
+// Symbol: ?OnHelpIndex@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnHelpIndex_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    impl__OnHelp_CWinApp__IEAAXXZ(pThis);
+}
+
+// Symbol: ?OnHelpUsing@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__OnHelpUsing_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    impl__OnHelp_CWinApp__IEAAXXZ(pThis);
+}
+
+// Symbol: ?OnIdle@CWinApp@@UEAAHJ@Z
+extern "C" int MS_ABI impl__OnIdle_CWinApp__UEAAHJ_Z(CWinApp* pThis, long count) {
+    return pThis ? pThis->CWinThread::OnIdle(count) : FALSE;
+}
+
+// Symbol: ?ProcessWndProcException@CWinApp@@UEAA_JPEAVCException@@PEBUtagMSG@@@Z
+extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinApp__UEAA_JPEAVCException__PEBUtagMSG___Z(
+    CWinApp*, CException* exception, const MSG*) {
+    if (exception) {
+        wchar_t buffer[512] = {};
+        exception->GetErrorMessage(buffer, 512, nullptr);
+        if (buffer[0] != L'\0') ::MessageBoxW(nullptr, buffer, L"OpenMFC", MB_OK | MB_ICONERROR);
+    }
+    return 0;
+}
+
+// Symbol: ?Register@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__Register_CWinApp__UEAAHXZ(CWinApp*) {
+    return TRUE;
+}
+
+// Symbol: ?RegisterShellFileTypes@CWinApp@@IEAAXH@Z
+extern "C" void MS_ABI impl__RegisterShellFileTypes_CWinApp__IEAAXH_Z(CWinApp* pThis, int) {
+    if (pThis) g_appRuntimeStates[pThis].shellOpenEnabled = true;
+}
+
+// Symbol: ?RegisterWithRestartManager@CWinApp@@UEAAJPEB_WKP6AKPEAX@Z1KK@Z
+extern "C" long MS_ABI impl__RegisterWithRestartManager_CWinApp__UEAAJPEB_WKP6AKPEAX_Z1KK_Z(
+    CWinApp*, const wchar_t* restartIdentifier, unsigned long flags, DWORD (WINAPI*)(void*), void*, unsigned long, unsigned long) {
+    return ::RegisterApplicationRestart(restartIdentifier ? restartIdentifier : L"", flags);
+}
+
+// Symbol: ?RestartInstance@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__RestartInstance_CWinApp__UEAAHXZ(CWinApp*) {
+    return FALSE;
+}
+
+// Symbol: ?RunAutomated@CWinApp@@QEAAHXZ
+extern "C" int MS_ABI impl__RunAutomated_CWinApp__QEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    std::wstring cmd = LowerWide(WideValue(pThis->m_lpCmdLine));
+    bool automated = cmd.find(L"/automation") != std::wstring::npos || cmd.find(L"-automation") != std::wstring::npos;
+    g_appRuntimeStates[pThis].automated = automated;
+    return automated ? TRUE : FALSE;
+}
+
+// Symbol: ?RunEmbedded@CWinApp@@QEAAHXZ
+extern "C" int MS_ABI impl__RunEmbedded_CWinApp__QEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    std::wstring cmd = LowerWide(WideValue(pThis->m_lpCmdLine));
+    bool embedded = cmd.find(L"/embedding") != std::wstring::npos || cmd.find(L"-embedding") != std::wstring::npos;
+    g_appRuntimeStates[pThis].embedded = embedded;
+    return embedded ? TRUE : FALSE;
+}
+
+// Symbol: ?SaveStdProfileSettings@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__SaveStdProfileSettings_CWinApp__IEAAXXZ(CWinApp*) {
+}
+
+// Symbol: ?SelectPrinter@CWinApp@@QEAAXPEAX0H@Z
+extern "C" void MS_ABI impl__SelectPrinter_CWinApp__QEAAXPEAX0H_Z(CWinApp* pThis, void* devNames, void* devMode, int) {
+    if (!pThis) return;
+    AppRuntimeState& state = g_appRuntimeStates[pThis];
+    state.printerDevNames = static_cast<HGLOBAL>(devNames);
+    state.printerDevMode = static_cast<HGLOBAL>(devMode);
+}
+
+// Symbol: ?SetAppID@CWinApp@@IEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetAppID_CWinApp__IEAAXPEB_W_Z(CWinApp* pThis, const wchar_t* appId) {
+    if (pThis) g_appRuntimeStates[pThis].appId = WideValue(appId);
+}
+
+// Symbol: ?SetCurrentHandles@CWinApp@@QEAAXXZ
+extern "C" void MS_ABI impl__SetCurrentHandles_CWinApp__QEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    pThis->m_hInstance = AfxGetInstanceHandle();
+    pThis->m_nThreadID = ::GetCurrentThreadId();
+    pThis->m_hThread = ::GetCurrentThread();
+}
+
+// Symbol: ?SetRegistryKey@CWinApp@@IEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetRegistryKey_CWinApp__IEAAXPEB_W_Z(CWinApp* pThis, const wchar_t* key) {
+    if (pThis) g_appRuntimeStates[pThis].registryRoot = key && *key ? std::wstring(L"Software\\") + key : L"Software\\OpenMFC";
+}
+
+// Symbol: ?SetRegistryKey@CWinApp@@IEAAXI@Z
+extern "C" void MS_ABI impl__SetRegistryKey_CWinApp__IEAAXI_Z(CWinApp* pThis, unsigned int id) {
+    if (!pThis) return;
+    wchar_t buffer[64] = {};
+    std::swprintf(buffer, 64, L"OpenMFC\\%u", id);
+    g_appRuntimeStates[pThis].registryRoot = std::wstring(L"Software\\") + buffer;
+}
+
+// Symbol: ?Unregister@CWinApp@@UEAAHXZ
+extern "C" int MS_ABI impl__Unregister_CWinApp__UEAAHXZ(CWinApp*) {
+    return TRUE;
+}
+
+// Symbol: ?UnregisterShellFileTypes@CWinApp@@IEAAXXZ
+extern "C" void MS_ABI impl__UnregisterShellFileTypes_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (pThis) g_appRuntimeStates[pThis].shellOpenEnabled = false;
+}
+
+// Symbol: ?UpdatePrinterSelection@CWinApp@@IEAAXH@Z
+extern "C" void MS_ABI impl__UpdatePrinterSelection_CWinApp__IEAAXH_Z(CWinApp*, int) {
+}
+
+// Symbol: ?WinHelpInternal@CWinApp@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__WinHelpInternal_CWinApp__UEAAX_KI_Z(CWinApp* pThis, unsigned long long data, unsigned int command) {
+    if (pThis && pThis->m_pszHelpFilePath) ::WinHelpW(GetAppMainHwnd(pThis), pThis->m_pszHelpFilePath, command, static_cast<ULONG_PTR>(data));
+}
+
+// Symbol: ?WinHelpW@CWinApp@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__WinHelpW_CWinApp__UEAAX_KI_Z(CWinApp* pThis, unsigned long long data, unsigned int command) {
+    impl__WinHelpInternal_CWinApp__UEAAX_KI_Z(pThis, data, command);
+}
+
+// Symbol: ?ApplicationRecoveryCallback@CWinApp@@UEAAKPEAX@Z
+extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAKPEAX_Z(CWinApp*, void*) {
+    return 0;
 }

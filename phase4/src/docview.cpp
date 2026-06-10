@@ -7,8 +7,13 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include <windows.h>
+#include <algorithm>
 #include <cstring>
+#include <deque>
+#include <new>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace {
 
@@ -117,6 +122,62 @@ static bool PathHasExtensionInsensitive(const wchar_t* path, const wchar_t* expe
     }
 
     return ::CompareStringOrdinal(dot, -1, expectedExt, -1, TRUE) == CSTR_EQUAL;
+}
+
+struct DocChunkState {
+    GUID guid = {};
+    DWORD id = 0;
+    void* value = nullptr;
+};
+
+struct DocumentExtraState {
+    std::vector<DocChunkState> chunks;
+    size_t chunkReadIndex = 0;
+    bool searchHandler = false;
+    HMENU defaultMenu = nullptr;
+    HACCEL defaultAccel = nullptr;
+};
+
+struct TemplateExtraState {
+    UINT containerId = 0;
+    UINT serverId = 0;
+    UINT serverEmbeddingId = 0;
+    UINT previewId = 0;
+    CRuntimeClass* serverDocClass = nullptr;
+    CRuntimeClass* serverFrameClass = nullptr;
+    CRuntimeClass* previewViewClass = nullptr;
+    CRuntimeClass* previewFrameClass = nullptr;
+};
+
+struct EditViewExtraState {
+    std::wstring buffer;
+    std::wstring findText;
+    std::wstring replaceText;
+    CFont* printerFont = nullptr;
+    const wchar_t* locked = nullptr;
+    UINT pageCount = 0;
+};
+
+std::unordered_map<const CDocument*, DocumentExtraState> g_documentExtraStates;
+std::unordered_map<const CDocTemplate*, TemplateExtraState> g_templateExtraStates;
+std::unordered_map<const CEditView*, EditViewExtraState> g_editViewExtraStates;
+
+std::wstring EditViewText(const CEditView* view) {
+    if (!view) return std::wstring();
+    if (view->m_hWnd) {
+        int len = ::GetWindowTextLengthW(view->m_hWnd);
+        std::wstring text(static_cast<size_t>(std::max(0, len)), L'\0');
+        if (len > 0) ::GetWindowTextW(view->m_hWnd, text.data(), len + 1);
+        return text;
+    }
+    auto it = g_editViewExtraStates.find(view);
+    return it == g_editViewExtraStates.end() ? std::wstring() : it->second.buffer;
+}
+
+void SetEditViewText(CEditView* view, const std::wstring& text) {
+    if (!view) return;
+    g_editViewExtraStates[view].buffer = text;
+    if (view->m_hWnd) ::SetWindowTextW(view->m_hWnd, text.c_str());
 }
 
 } // namespace
@@ -254,6 +315,9 @@ extern "C" int MS_ABI impl__OnOpenDocument_CDocument__UEAAHPEB_W_Z(CDocument* pT
 extern "C" int MS_ABI impl__OnSaveDocument_CDocument__UEAAHPEB_W_Z(CDocument* pThis, const wchar_t* lpszPathName);
 extern "C" void MS_ABI impl__OnCloseDocument_CDocument__UEAAXXZ(CDocument* pThis);
 extern "C" void MS_ABI impl__DeleteContents_CDocument__UEAAXXZ(CDocument* pThis);
+extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(CFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, CFileException* pException);
+extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException* pThis, unsigned int type, unsigned int);
+extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
 extern "C" void MS_ABI impl__SetModifiedFlag_CDocument__UEAAXH_Z(CDocument* pThis, int bModified);
 extern "C" int MS_ABI impl__IsModified_CDocument__UEBAHXZ(const CDocument* pThis);
 extern "C" void MS_ABI impl__SetTitle_CDocument__UEAAXPEB_W_Z(CDocument* pThis, const wchar_t* lpszTitle);
@@ -768,6 +832,7 @@ extern "C" void MS_ABI impl___1CDocument__UEAA_XZ(CDocument* pThis) {
     }
     pThis->m_pFirstView = nullptr;
     pThis->m_pLastView = nullptr;
+    g_documentExtraStates.erase(pThis);
 }
 
 // OnNewDocument
@@ -784,11 +849,19 @@ extern "C" int MS_ABI impl__OnNewDocument_CDocument__UEAAHXZ(CDocument* pThis) {
 extern "C" int MS_ABI impl__OnOpenDocument_CDocument__UEAAHPEB_W_Z(
     CDocument* pThis, const wchar_t* lpszPathName)
 {
-    (void)lpszPathName;
-    if (!pThis) return FALSE;
+    if (!pThis || !lpszPathName || !lpszPathName[0]) return FALSE;
     pThis->DeleteContents();
+    CFile file;
+    CFileException fileException;
+    if (!impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(&file, lpszPathName, CFile::modeRead | CFile::shareDenyWrite, &fileException)) {
+        return FALSE;
+    }
+    CArchive archive(&file, CArchive::load);
+    pThis->Serialize(archive);
+    archive.Close();
+    file.Close();
+    pThis->SetPathName(lpszPathName, TRUE);
     pThis->SetModifiedFlag(FALSE);
-    // Real implementation would open file and serialize
     return TRUE;
 }
 
@@ -797,10 +870,18 @@ extern "C" int MS_ABI impl__OnOpenDocument_CDocument__UEAAHPEB_W_Z(
 extern "C" int MS_ABI impl__OnSaveDocument_CDocument__UEAAHPEB_W_Z(
     CDocument* pThis, const wchar_t* lpszPathName)
 {
-    (void)lpszPathName;
-    if (!pThis) return FALSE;
+    if (!pThis || !lpszPathName || !lpszPathName[0]) return FALSE;
+    CFile file;
+    CFileException fileException;
+    if (!impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(&file, lpszPathName, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, &fileException)) {
+        return FALSE;
+    }
+    CArchive archive(&file, CArchive::store);
+    pThis->Serialize(archive);
+    archive.Close();
+    file.Close();
+    pThis->SetPathName(lpszPathName, TRUE);
     pThis->SetModifiedFlag(FALSE);
-    // Real implementation would serialize to file
     return TRUE;
 }
 
@@ -831,8 +912,7 @@ extern "C" void MS_ABI impl__OnCloseDocument_CDocument__UEAAXXZ(CDocument* pThis
 // DeleteContents
 // Symbol: ?DeleteContents@CDocument@@UEAAXXZ
 extern "C" void MS_ABI impl__DeleteContents_CDocument__UEAAXXZ(CDocument* pThis) {
-    (void)pThis;
-    // Default: nothing to delete
+    if (pThis) g_documentExtraStates[pThis].chunks.clear();
 }
 
 // SetModifiedFlag
@@ -874,6 +954,13 @@ extern "C" void MS_ABI impl__SetPathName_CDocument__UEAAXPEB_WH_Z(
     (void)bAddToMRU;
     if (pThis) {
         pThis->m_strPathName = lpszPathName ? lpszPathName : L"";
+        if (!pThis->m_strPathName.IsEmpty()) {
+            const wchar_t* path = pThis->m_strPathName;
+            const wchar_t* slash = wcsrchr(path, L'\\');
+            const wchar_t* fslash = wcsrchr(path, L'/');
+            const wchar_t* name = slash > fslash ? slash : fslash;
+            pThis->m_strTitle = name ? name + 1 : path;
+        }
     }
 }
 
@@ -968,9 +1055,9 @@ extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObj
 // SaveModified
 // Symbol: ?SaveModified@CDocument@@UEAAHXZ
 extern "C" int MS_ABI impl__SaveModified_CDocument__UEAAHXZ(CDocument* pThis) {
-    (void)pThis;
-    // Default: allow close without saving
-    return TRUE;
+    if (!pThis || !pThis->IsModified()) return TRUE;
+    const wchar_t* path = pThis->GetPathName();
+    return path && *path ? pThis->DoFileSave() : TRUE;
 }
 
 // DoSave
@@ -995,9 +1082,14 @@ extern "C" int MS_ABI impl__DoFileSave_CDocument__UEAAHXZ(CDocument* pThis) {
 extern "C" void MS_ABI impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(
     CDocument* pThis, CArchive* ar)
 {
-    (void)pThis;
-    (void)ar;
-    // Default: no serialization
+    if (!pThis || !ar) return;
+    if (ar->IsStoring()) {
+        (*ar) << pThis->m_strTitle;
+        (*ar) << pThis->m_strPathName;
+    } else {
+        (*ar) >> pThis->m_strTitle;
+        (*ar) >> pThis->m_strPathName;
+    }
 }
 
 // =============================================================================
@@ -1944,3 +2036,515 @@ extern "C" void MS_ABI impl__SetDefaultTitle_CMultiDocTemplate__UEAAXPEAVCDocume
 {
     impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(pThis, pDoc);
 }
+
+namespace {
+const AFX_MSGMAP_ENTRY g_docviewEmptyEntries[] = {
+    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0}
+};
+const AFX_MSGMAP g_docviewEmptyMap = { nullptr, g_docviewEmptyEntries };
+constexpr const AFX_INTERFACEMAP* g_docviewEmptyInterfaceMap = nullptr;
+}
+
+// Symbol: ?GetRuntimeClass@CDocument@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDocument__UEBAPEAUCRuntimeClass__XZ(const CDocument*) { return &CDocument::classCDocument; }
+// Symbol: ?GetThisClass@CDocument@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocument__SAPEAUCRuntimeClass__XZ() { return &CDocument::classCDocument; }
+// Symbol: ?GetMessageMap@CDocument@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDocument__MEBAPEBUAFX_MSGMAP__XZ(const CDocument*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CDocument@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDocument__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+// Symbol: ?GetInterfaceMap@CDocument@@MEBAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CDocument__MEBAPEBUAFX_INTERFACEMAP__XZ(const CDocument*) { return g_docviewEmptyInterfaceMap; }
+// Symbol: ?GetThisInterfaceMap@CDocument@@KAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CDocument__KAPEBUAFX_INTERFACEMAP__XZ() { return g_docviewEmptyInterfaceMap; }
+
+// Symbol: ?GetRuntimeClass@CView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CView__UEBAPEAUCRuntimeClass__XZ(const CView*) { return &CView::classCView; }
+// Symbol: ?GetThisClass@CView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CView__SAPEAUCRuntimeClass__XZ() { return &CView::classCView; }
+// Symbol: ?GetMessageMap@CView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CView__MEBAPEBUAFX_MSGMAP__XZ(const CView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CScrollView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CScrollView__UEBAPEAUCRuntimeClass__XZ(const CScrollView*) { return &CScrollView::classCScrollView; }
+// Symbol: ?GetThisClass@CScrollView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollView__SAPEAUCRuntimeClass__XZ() { return &CScrollView::classCScrollView; }
+// Symbol: ?GetMessageMap@CScrollView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CScrollView__MEBAPEBUAFX_MSGMAP__XZ(const CScrollView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CScrollView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CScrollView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CFormView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFormView__UEBAPEAUCRuntimeClass__XZ(const CFormView*) { return &CFormView::classCFormView; }
+// Symbol: ?GetThisClass@CFormView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &CFormView::classCFormView; }
+// Symbol: ?GetMessageMap@CFormView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CFormView__MEBAPEBUAFX_MSGMAP__XZ(const CFormView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CFormView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFormView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CEditView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CEditView__UEBAPEAUCRuntimeClass__XZ(const CEditView*) { return &CEditView::classCEditView; }
+// Symbol: ?GetThisClass@CEditView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CEditView__SAPEAUCRuntimeClass__XZ() { return &CEditView::classCEditView; }
+// Symbol: ?GetMessageMap@CEditView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CEditView__MEBAPEBUAFX_MSGMAP__XZ(const CEditView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CEditView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CEditView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CListView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CListView__UEBAPEAUCRuntimeClass__XZ(const CListView*) { return &CListView::classCListView; }
+// Symbol: ?GetThisClass@CListView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CListView__SAPEAUCRuntimeClass__XZ() { return &CListView::classCListView; }
+// Symbol: ?GetMessageMap@CListView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CListView__MEBAPEBUAFX_MSGMAP__XZ(const CListView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CListView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CListView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CTreeView@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTreeView__UEBAPEAUCRuntimeClass__XZ(const CTreeView*) { return &CTreeView::classCTreeView; }
+// Symbol: ?GetThisClass@CTreeView@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTreeView__SAPEAUCRuntimeClass__XZ() { return &CTreeView::classCTreeView; }
+// Symbol: ?GetMessageMap@CTreeView@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CTreeView__MEBAPEBUAFX_MSGMAP__XZ(const CTreeView*) { return &g_docviewEmptyMap; }
+// Symbol: ?GetThisMessageMap@CTreeView@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CTreeView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
+
+// Symbol: ?GetRuntimeClass@CDocTemplate@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDocTemplate__UEBAPEAUCRuntimeClass__XZ(const CDocTemplate*) { return &CDocTemplate::classCDocTemplate; }
+// Symbol: ?GetThisClass@CDocTemplate@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocTemplate__SAPEAUCRuntimeClass__XZ() { return &CDocTemplate::classCDocTemplate; }
+// Symbol: ?GetRuntimeClass@CSingleDocTemplate@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSingleDocTemplate__UEBAPEAUCRuntimeClass__XZ(const CSingleDocTemplate*) { return &CSingleDocTemplate::classCSingleDocTemplate; }
+// Symbol: ?GetThisClass@CSingleDocTemplate@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSingleDocTemplate__SAPEAUCRuntimeClass__XZ() { return &CSingleDocTemplate::classCSingleDocTemplate; }
+// Symbol: ?GetRuntimeClass@CMultiDocTemplate@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMultiDocTemplate__UEBAPEAUCRuntimeClass__XZ(const CMultiDocTemplate*) { return &CMultiDocTemplate::classCMultiDocTemplate; }
+// Symbol: ?GetThisClass@CMultiDocTemplate@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiDocTemplate__SAPEAUCRuntimeClass__XZ() { return &CMultiDocTemplate::classCMultiDocTemplate; }
+
+// Symbol: ?GetRuntimeClass@CArchiveException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CArchiveException__UEBAPEAUCRuntimeClass__XZ(const CArchiveException*) { return &CArchiveException::classCArchiveException; }
+
+// Symbol: ?GetFile@CDocument@@UEAAPEAVCFile@@PEB_WIPEAVCFileException@@@Z
+extern "C" CFile* MS_ABI impl__GetFile_CDocument__UEAAPEAVCFile__PEB_WIPEAVCFileException___Z(CDocument*, const wchar_t* path, unsigned int openFlags, CFileException* exception) {
+    CFile* file = new (std::nothrow) CFile();
+    if (!file) return nullptr;
+    if (!impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(file, path, openFlags, exception)) {
+        delete file;
+        return nullptr;
+    }
+    return file;
+}
+
+// Symbol: ?ReleaseFile@CDocument@@UEAAXPEAVCFile@@H@Z
+extern "C" void MS_ABI impl__ReleaseFile_CDocument__UEAAXPEAVCFile__H_Z(CDocument*, CFile* file, int abort) {
+    if (!file) return;
+    if (!abort) file->Close();
+    delete file;
+}
+
+// Symbol: ?ClearPathName@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__ClearPathName_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) pThis->m_strPathName.Empty(); }
+// Symbol: ?CanCloseFrame@CDocument@@UEAAHPEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__CanCloseFrame_CDocument__UEAAHPEAVCFrameWnd___Z(CDocument* pThis, CFrameWnd*) { return pThis ? pThis->SaveModified() : TRUE; }
+// Symbol: ?PreCloseFrame@CDocument@@UEAAXPEAVCFrameWnd@@@Z
+extern "C" void MS_ABI impl__PreCloseFrame_CDocument__UEAAXPEAVCFrameWnd___Z(CDocument* pThis, CFrameWnd*) { if (pThis) pThis->UpdateAllViews(nullptr, 0, nullptr); }
+// Symbol: ?DisconnectViews@CDocument@@QEAAXXZ
+extern "C" void MS_ABI impl__DisconnectViews_CDocument__QEAAXXZ(CDocument* pThis) {
+    if (!pThis) return;
+    for (CView* view = pThis->m_pFirstView; view; ) {
+        CView* next = view->m_pNextView;
+        view->m_pDocument = nullptr;
+        view->m_pNextView = nullptr;
+        view = next;
+    }
+    pThis->m_pFirstView = pThis->m_pLastView = nullptr;
+}
+// Symbol: ?SendInitialUpdate@CDocument@@QEAAXXZ
+extern "C" void MS_ABI impl__SendInitialUpdate_CDocument__QEAAXXZ(CDocument* pThis) {
+    if (!pThis) return;
+    for (CView* view = pThis->m_pFirstView; view; view = view->m_pNextView) view->OnInitialUpdate();
+}
+// Symbol: ?UpdateFrameCounts@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__UpdateFrameCounts_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) pThis->UpdateAllViews(nullptr, 0, nullptr); }
+// Symbol: ?OnChangedViewList@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__OnChangedViewList_CDocument__UEAAXXZ(CDocument* pThis) { impl__UpdateFrameCounts_CDocument__UEAAXXZ(pThis); }
+// Symbol: ?OnCmdMsg@CDocument@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CDocument__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CDocument* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CCmdTarget::OnCmdMsg(id, code, extra, info) : FALSE; }
+// Symbol: ?OnFileSave@CDocument@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileSave_CDocument__IEAAXXZ(CDocument* pThis) { if (pThis) pThis->DoFileSave(); }
+// Symbol: ?OnFileSaveAs@CDocument@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileSaveAs_CDocument__IEAAXXZ(CDocument* pThis) { if (pThis) pThis->DoSave(pThis->GetPathName(), TRUE); }
+// Symbol: ?OnFileClose@CDocument@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileClose_CDocument__IEAAXXZ(CDocument* pThis) { if (pThis && pThis->SaveModified()) pThis->OnCloseDocument(); }
+// Symbol: ?ReportSaveLoadException@CDocument@@UEAAXPEB_WPEAVCException@@HI@Z
+extern "C" void MS_ABI impl__ReportSaveLoadException_CDocument__UEAAXPEB_WPEAVCException__HI_Z(CDocument*, const wchar_t*, CException* ex, int, unsigned int) { if (ex) impl__ReportError_CException__UEAAHII_Z(ex, MB_OK | MB_ICONEXCLAMATION, 0); }
+
+// Chunk/read-preview state.
+// Symbol: ?ClearChunkList@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__ClearChunkList_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) g_documentExtraStates[pThis].chunks.clear(); }
+// Symbol: ?BeginReadChunks@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__BeginReadChunks_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) g_documentExtraStates[pThis].chunkReadIndex = 0; }
+// Symbol: ?SetChunkValue@CDocument@@UEAAHPEAUIFilterChunkValue@ATL@@@Z
+extern "C" int MS_ABI impl__SetChunkValue_CDocument__UEAAHPEAUIFilterChunkValue_ATL___Z(CDocument* pThis, void* value) {
+    if (!pThis || !value) return FALSE;
+    DocChunkState chunk;
+    chunk.id = static_cast<DWORD>(g_documentExtraStates[pThis].chunks.size());
+    chunk.value = value;
+    g_documentExtraStates[pThis].chunks.push_back(chunk);
+    return TRUE;
+}
+// Symbol: ?ReadNextChunkValue@CDocument@@UEAAHPEAPEAUIFilterChunkValue@ATL@@@Z
+extern "C" int MS_ABI impl__ReadNextChunkValue_CDocument__UEAAHPEAPEAUIFilterChunkValue_ATL___Z(CDocument* pThis, void** value) {
+    if (value) *value = nullptr;
+    if (!pThis || !value) return FALSE;
+    auto& state = g_documentExtraStates[pThis];
+    if (state.chunkReadIndex >= state.chunks.size()) return FALSE;
+    *value = state.chunks[state.chunkReadIndex++].value;
+    return TRUE;
+}
+// Symbol: ?FindChunk@CDocument@@UEAAPEAU__POSITION@@AEBU_GUID@@K@Z
+extern "C" void* MS_ABI impl__FindChunk_CDocument__UEAAPEAU__POSITION__AEBU_GUID__K_Z(CDocument* pThis, const GUID* guid, unsigned long id) {
+    if (!pThis || !guid) return nullptr;
+    auto& chunks = g_documentExtraStates[pThis].chunks;
+    for (size_t i = 0; i < chunks.size(); ++i) if (chunks[i].id == id && IsEqualGUID(chunks[i].guid, *guid)) return reinterpret_cast<void*>(i + 1);
+    return nullptr;
+}
+// Symbol: ?RemoveChunk@CDocument@@UEAAXAEBU_GUID@@K@Z
+extern "C" void MS_ABI impl__RemoveChunk_CDocument__UEAAXAEBU_GUID__K_Z(CDocument* pThis, const GUID* guid, unsigned long id) {
+    if (!pThis || !guid) return;
+    auto& chunks = g_documentExtraStates[pThis].chunks;
+    chunks.erase(std::remove_if(chunks.begin(), chunks.end(), [&](const DocChunkState& c){ return c.id == id && IsEqualGUID(c.guid, *guid); }), chunks.end());
+}
+
+// Symbol: ?LoadDocumentFromStream@CDocument@@UEAAJPEAUIStream@@K@Z
+extern "C" long MS_ABI impl__LoadDocumentFromStream_CDocument__UEAAJPEAUIStream__K_Z(CDocument* pThis, void* stream, unsigned long) {
+    if (!pThis || !stream) return E_POINTER;
+    IStream* pStream = static_cast<IStream*>(stream);
+    CMemFile memFile;
+    BYTE buffer[4096];
+    for (;;) {
+        ULONG read = 0;
+        HRESULT hr = pStream->Read(buffer, sizeof(buffer), &read);
+        if (FAILED(hr)) return hr;
+        if (read == 0) break;
+        memFile.Write(buffer, read);
+    }
+    memFile.Seek(0, CFile::begin);
+    CArchive archive(&memFile, CArchive::load);
+    pThis->DeleteContents();
+    pThis->Serialize(archive);
+    archive.Close();
+    pThis->SetModifiedFlag(FALSE);
+    return S_OK;
+}
+// Symbol: ?OnLoadDocumentFromStream@CDocument@@UEAAJPEAUIStream@@K@Z
+extern "C" long MS_ABI impl__OnLoadDocumentFromStream_CDocument__UEAAJPEAUIStream__K_Z(CDocument* pThis, void* stream, unsigned long mode) { return impl__LoadDocumentFromStream_CDocument__UEAAJPEAUIStream__K_Z(pThis, stream, mode); }
+// Symbol: ?GetThumbnail@CDocument@@UEAAHIPEAPEAUHBITMAP__@@PEAW4WTS_ALPHATYPE@@@Z
+extern "C" void MS_ABI impl__OnDrawThumbnail_CDocument__UEAAXAEAVCDC__PEAUtagRECT___Z(CDocument*, CDC*, RECT*);
+extern "C" int MS_ABI impl__GetThumbnail_CDocument__UEAAHIPEAPEAUHBITMAP____PEAW4WTS_ALPHATYPE___Z(CDocument* pThis, unsigned int size, HBITMAP* bitmap, int* alphaType) {
+    if (bitmap) *bitmap = nullptr;
+    if (alphaType) *alphaType = 0;
+    if (!bitmap || size == 0) return FALSE;
+    HDC screen = ::GetDC(nullptr);
+    HDC mem = ::CreateCompatibleDC(screen);
+    HBITMAP hbmp = ::CreateCompatibleBitmap(screen, size, size);
+    HGDIOBJ old = ::SelectObject(mem, hbmp);
+    RECT rc = {0, 0, static_cast<LONG>(size), static_cast<LONG>(size)};
+    ::FillRect(mem, &rc, static_cast<HBRUSH>(::GetStockObject(WHITE_BRUSH)));
+    CDC dc; dc.m_hDC = mem; dc.m_hAttribDC = mem;
+    if (pThis) impl__OnDrawThumbnail_CDocument__UEAAXAEAVCDC__PEAUtagRECT___Z(pThis, &dc, &rc);
+    ::SelectObject(mem, old);
+    ::DeleteDC(mem);
+    ::ReleaseDC(nullptr, screen);
+    *bitmap = hbmp;
+    return hbmp != nullptr;
+}
+// Symbol: ?OnDrawThumbnail@CDocument@@UEAAXAEAVCDC@@PEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__OnDrawThumbnail_CDocument__UEAAXAEAVCDC__PEAUtagRECT___Z(CDocument*, CDC* dc, RECT* rect) { if (dc && rect && dc->m_hDC) ::DrawTextW(dc->m_hDC, L"OpenMFC", -1, rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE); }
+// Symbol: ?OnPreviewHandlerQueryFocus@CDocument@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__OnPreviewHandlerQueryFocus_CDocument__UEAAJPEAPEAUHWND_____Z(CDocument* pThis, HWND* hwnd) { if (hwnd) *hwnd = pThis && pThis->m_pFirstView ? pThis->m_pFirstView->GetSafeHwnd() : nullptr; return S_OK; }
+// Symbol: ?OnPreviewHandlerTranslateAccelerator@CDocument@@UEAAJPEAUtagMSG@@@Z
+extern "C" long MS_ABI impl__OnPreviewHandlerTranslateAccelerator_CDocument__UEAAJPEAUtagMSG___Z(CDocument*, MSG*) { return S_FALSE; }
+// Symbol: ?IsSearchAndOrganizeHandler@CDocument@@QEBAHXZ
+extern "C" int MS_ABI impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(const CDocument* pThis) { auto it = g_documentExtraStates.find(pThis); return it != g_documentExtraStates.end() && it->second.searchHandler; }
+// Symbol: ?GetDefaultMenu@CDocument@@UEAAPEAUHMENU__@@XZ
+extern "C" HMENU MS_ABI impl__GetDefaultMenu_CDocument__UEAAPEAUHMENU____XZ(CDocument* pThis) { return pThis ? g_documentExtraStates[pThis].defaultMenu : nullptr; }
+// Symbol: ?GetDefaultAccelerator@CDocument@@UEAAPEAUHACCEL__@@XZ
+extern "C" HACCEL MS_ABI impl__GetDefaultAccelerator_CDocument__UEAAPEAUHACCEL____XZ(CDocument* pThis) { return pThis ? g_documentExtraStates[pThis].defaultAccel : nullptr; }
+// Symbol: ?OnCreatePreviewFrame@CDocument@@UEAAHXZ
+extern "C" int MS_ABI impl__OnCreatePreviewFrame_CDocument__UEAAHXZ(CDocument*) { return TRUE; }
+// Symbol: ?OnDocumentEvent@CDocument@@UEAAXW4DocumentEvent@1@@Z
+extern "C" void MS_ABI impl__OnDocumentEvent_CDocument__UEAAXW4DocumentEvent_1__Z(CDocument* pThis, int eventId) { if (pThis) pThis->UpdateAllViews(nullptr, static_cast<LPARAM>(eventId), nullptr); }
+// Symbol: ?OnFinalRelease@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFinalRelease_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis && pThis->m_bAutoDelete) delete pThis; }
+// Symbol: ?OnIdle@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__OnIdle_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) pThis->UpdateAllViews(nullptr, 0, nullptr); }
+// Symbol: ?OnRichPreviewUnload@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__OnRichPreviewUnload_CDocument__UEAAXXZ(CDocument* pThis) { impl__ClearChunkList_CDocument__UEAAXXZ(pThis); }
+// Symbol: ?OnUnloadHandler@CDocument@@UEAAXXZ
+extern "C" void MS_ABI impl__OnUnloadHandler_CDocument__UEAAXXZ(CDocument* pThis) { impl__OnRichPreviewUnload_CDocument__UEAAXXZ(pThis); }
+// Symbol: ?OnFileSendMail@CDocument@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFileSendMail_CDocument__IEAAXXZ(CDocument* pThis) { if (pThis && pThis->GetPathName()[0]) ::ShellExecuteW(nullptr, L"open", pThis->GetPathName(), nullptr, nullptr, SW_SHOWNORMAL); }
+// Symbol: ?OnUpdateFileSendMail@CDocument@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateFileSendMail_CDocument__IEAAXPEAVCCmdUI___Z(CDocument* pThis, CCmdUI* ui) { if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && pThis->GetPathName()[0]); }
+
+// CDocTemplate residuals.
+// Symbol: ?LoadTemplate@CDocTemplate@@UEAAXXZ
+extern "C" void MS_ABI impl__LoadTemplate_CDocTemplate__UEAAXXZ(CDocTemplate* pThis) { if (pThis) { CString s; (void)pThis->GetDocString(s, kDocName); } }
+// Symbol: ?LoadTemplate@CMultiDocTemplate@@UEAAXXZ
+extern "C" void MS_ABI impl__LoadTemplate_CMultiDocTemplate__UEAAXXZ(CMultiDocTemplate* pThis) { impl__LoadTemplate_CDocTemplate__UEAAXXZ(pThis); }
+// Symbol: ?SaveAllModified@CDocTemplate@@UEAAHXZ
+extern "C" int MS_ABI impl__SaveAllModified_CDocTemplate__UEAAHXZ(CDocTemplate* pThis) { if (!pThis) return FALSE; for (void* pos=pThis->GetFirstDocPosition(); pos;) { CDocument* d=pThis->GetNextDoc(pos); if (d && !d->SaveModified()) return FALSE; } return TRUE; }
+// Symbol: ?CloseAllDocuments@CDocTemplate@@UEAAXH@Z
+extern "C" void MS_ABI impl__CloseAllDocuments_CDocTemplate__UEAAXH_Z(CDocTemplate* pThis, int) { if (!pThis) return; std::vector<CDocument*> docs; for (void* pos=pThis->GetFirstDocPosition(); pos;) if (CDocument* d=pThis->GetNextDoc(pos)) docs.push_back(d); for (CDocument* d: docs) d->OnCloseDocument(); }
+// Symbol: ?OnIdle@CDocTemplate@@UEAAXXZ
+extern "C" void MS_ABI impl__OnIdle_CDocTemplate__UEAAXXZ(CDocTemplate* pThis) { if (!pThis) return; for (void* pos=pThis->GetFirstDocPosition(); pos;) if (CDocument* d=pThis->GetNextDoc(pos)) impl__OnIdle_CDocument__UEAAXXZ(d); }
+// Symbol: ?OnCmdMsg@CDocTemplate@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CDocTemplate__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CDocTemplate* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CCmdTarget::OnCmdMsg(id, code, extra, info) : FALSE; }
+// Symbol: ?SetContainerInfo@CDocTemplate@@QEAAXI@Z
+extern "C" void MS_ABI impl__SetContainerInfo_CDocTemplate__QEAAXI_Z(CDocTemplate* pThis, unsigned int id) { if (pThis) g_templateExtraStates[pThis].containerId = id; }
+// Symbol: ?SetServerInfo@CDocTemplate@@QEAAXIIPEAUCRuntimeClass@@0@Z
+extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, unsigned int embedId, CRuntimeClass* docClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.serverId=id; s.serverEmbeddingId=embedId; s.serverDocClass=docClass; s.serverFrameClass=frameClass; } }
+// Symbol: ?SetPreviewInfo@CDocTemplate@@QEAAXIPEAUCRuntimeClass@@0@Z
+extern "C" void MS_ABI impl__SetPreviewInfo_CDocTemplate__QEAAXIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, CRuntimeClass* viewClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.previewId=id; s.previewViewClass=viewClass; s.previewFrameClass=frameClass; } }
+// Symbol: ?CreatePreviewFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@@Z
+extern "C" CFrameWnd* MS_ABI impl__CreatePreviewFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument___Z(CDocTemplate* pThis, CWnd*, CDocument* doc) { return pThis ? pThis->CreateNewFrame(doc, nullptr) : nullptr; }
+
+// CView residuals.
+// Symbol: ?CalcWindowRect@CView@@UEAAXPEAUtagRECT@@I@Z
+extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* pThis, RECT* rect, unsigned int adjustType) {
+    if (!pThis || !rect) return;
+    DWORD style = pThis->m_hWnd ? static_cast<DWORD>(::GetWindowLongPtrW(pThis->m_hWnd, GWL_STYLE)) : WS_CHILD;
+    DWORD exStyle = pThis->m_hWnd ? static_cast<DWORD>(::GetWindowLongPtrW(pThis->m_hWnd, GWL_EXSTYLE)) : 0;
+    BOOL hasMenu = (adjustType != 0 && pThis->m_hWnd && ::GetMenu(pThis->m_hWnd));
+    ::AdjustWindowRectEx(rect, style, hasMenu, exStyle);
+}
+// Symbol: ?DoPreparePrinting@CView@@QEAAHPEAUCPrintInfo@@@Z
+extern "C" int MS_ABI impl__DoPreparePrinting_CView__QEAAHPEAUCPrintInfo___Z(CView* pThis, void* info) { return pThis ? pThis->OnPreparePrinting(info) : FALSE; }
+// Symbol: ?DoPrintPreview@CView@@QEAAHIPEAV1@PEAUCRuntimeClass@@PEAUCPrintPreviewState@@@Z
+extern "C" int MS_ABI impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(CView* pThis, unsigned int, CView* previewView, CRuntimeClass*, void*) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_HIDE); if (previewView && previewView->m_hWnd) ::ShowWindow(previewView->m_hWnd, SW_SHOW); return previewView != nullptr; }
+// Symbol: ?GetParentSplitter@CView@@SAPEAVCSplitterWnd@@PEBVCWnd@@H@Z
+extern "C" void* MS_ABI impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(const CWnd*, int) { return nullptr; }
+// Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
+extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView*, int) { return nullptr; }
+// Symbol: ?IsSelected@CView@@UEBAHPEBVCObject@@@Z
+extern "C" int MS_ABI impl__IsSelected_CView__UEBAHPEBVCObject___Z(const CView*, const CObject*) { return FALSE; }
+// Symbol: ?OnActivateFrame@CView@@MEAAXIPEAVCFrameWnd@@@Z
+extern "C" void MS_ABI impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(CView* pThis, unsigned int, CFrameWnd*) { if (pThis && pThis->m_hWnd) ::SetFocus(pThis->m_hWnd); }
+// Symbol: ?OnCmdMsg@CView@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CView__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CView* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CWnd::OnCmdMsg(id, code, extra, info) : FALSE; }
+// Symbol: ?OnCreate@CView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(CView*, CREATESTRUCTW*) { return 0; }
+// Symbol: ?OnDestroy@CView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_pDocument) pThis->m_pDocument->RemoveView(pThis); }
+// Symbol: ?OnDragLeave@CView@@UEAAXXZ
+extern "C" void MS_ABI impl__OnDragLeave_CView__UEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd && ::GetCapture() == pThis->m_hWnd) ::ReleaseCapture(); }
+// Symbol: ?OnDragScroll@CView@@UEAAKKVCPoint@@@Z
+extern "C" unsigned long MS_ABI impl__OnDragScroll_CView__UEAAKKVCPoint___Z(CView*, unsigned long keyState, CPoint) { return keyState; }
+// Symbol: ?OnDraw@CView@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CView__MEAAXPEAVCDC___Z(CView* pThis, CDC* dc) { if (pThis && dc && dc->m_hDC && pThis->m_pDocument) { RECT rc = {0, 0, 10000, 10000}; ::DrawTextW(dc->m_hDC, pThis->m_pDocument->GetTitle(), -1, &rc, DT_LEFT | DT_TOP | DT_SINGLELINE); } }
+// Symbol: ?OnEndPrintPreview@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@UtagPOINT@@PEAVCPreviewView@@@Z
+extern "C" void MS_ABI impl__OnEndPrintPreview_CView__MEAAXPEAVCDC__PEAUCPrintInfo__UtagPOINT__PEAVCPreviewView___Z(CView* pThis, CDC*, void*, POINT, void*) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_SHOW); }
+// Symbol: ?OnFilePrint@CView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFilePrint_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, TRUE); }
+// Symbol: ?OnFilePrintPreview@CView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFilePrintPreview_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_SHOW); }
+// Symbol: ?OnMouseActivate@CView@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnMouseActivate_CView__IEAAHPEAVCWnd__II_Z(CView*, CWnd*, unsigned int, unsigned int) { return MA_ACTIVATE; }
+
+// CScrollView residuals.
+// Symbol: ?sizeDefault@CScrollView@@2UtagSIZE@@B
+extern "C" SIZE impl__sizeDefault_CScrollView__2UtagSIZE__B = {0, 0};
+// Symbol: ?CalcWindowRect@CScrollView@@UEAAXPEAUtagRECT@@I@Z
+extern "C" void MS_ABI impl__CalcWindowRect_CScrollView__UEAAXPEAUtagRECT__I_Z(CScrollView* pThis, RECT* rect, unsigned int adjustType) { impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(pThis, rect, adjustType); }
+// Symbol: ?GetDeviceScrollPosition@CScrollView@@QEBA?AVCPoint@@XZ
+extern "C" void MS_ABI impl__GetDeviceScrollPosition_CScrollView__QEBA_AVCPoint__XZ(CPoint* ret, const CScrollView* pThis) { new (ret) CPoint(pThis ? pThis->GetScrollPosition() : CPoint(0, 0)); }
+// Symbol: ?GetDeviceScrollSizes@CScrollView@@QEBAXAEAHAEAUtagSIZE@@11@Z
+extern "C" void MS_ABI impl__GetDeviceScrollSizes_CScrollView__QEBAXAEAHAEAUtagSIZE__11_Z(const CScrollView* pThis, int* mapMode, SIZE* total, SIZE* page, SIZE* line) { if (mapMode) *mapMode=pThis?pThis->m_nMapMode:MM_TEXT; if (total) *total=pThis?pThis->m_totalLog:SIZE{0,0}; if (page) *page=pThis?pThis->m_pageDev:SIZE{0,0}; if (line) *line=pThis?pThis->m_lineDev:SIZE{0,0}; }
+// Symbol: ?CheckScrollBars@CScrollView@@QEBAXAEAH0@Z
+extern "C" void MS_ABI impl__CheckScrollBars_CScrollView__QEBAXAEAH0_Z(const CScrollView* pThis, int* needH, int* needV) { if (needH) *needH=pThis&&pThis->m_totalLog.cx>0; if (needV) *needV=pThis&&pThis->m_totalLog.cy>0; }
+// Symbol: ?ScrollToDevicePosition@CScrollView@@IEAAXUtagPOINT@@@Z
+extern "C" void MS_ABI impl__ScrollToDevicePosition_CScrollView__IEAAXUtagPOINT___Z(CScrollView* pThis, POINT pt) { if (pThis) pThis->ScrollToPosition(pt); }
+// Symbol: ?CenterOnPoint@CScrollView@@IEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__CenterOnPoint_CScrollView__IEAAXVCPoint___Z(CScrollView* pThis, CPoint pt) { if (!pThis) return; RECT rc={}; if (pThis->m_hWnd) ::GetClientRect(pThis->m_hWnd,&rc); POINT dest={pt.x-(rc.right-rc.left)/2, pt.y-(rc.bottom-rc.top)/2}; pThis->ScrollToPosition(dest); }
+// Symbol: ?OnScrollBy@CScrollView@@UEAAHVCSize@@H@Z
+extern "C" int MS_ABI impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(CScrollView* pThis, CSize size, int) { if (!pThis) return FALSE; CPoint pt=pThis->GetScrollPosition(); pt.x+=size.cx; pt.y+=size.cy; pThis->ScrollToPosition(pt); return TRUE; }
+// Symbol: ?OnScroll@CScrollView@@UEAAHIIH@Z
+extern "C" int MS_ABI impl__OnScroll_CScrollView__UEAAHIIH_Z(CScrollView* pThis, unsigned int code, unsigned int pos, int doScroll) { if (!pThis) return FALSE; CSize delta(0,0); if (code==SB_LINEUP) delta.cy=-pThis->m_lineDev.cy; else if (code==SB_LINEDOWN) delta.cy=pThis->m_lineDev.cy; else if (code==SB_PAGEUP) delta.cy=-pThis->m_pageDev.cy; else if (code==SB_PAGEDOWN) delta.cy=pThis->m_pageDev.cy; else if (code==SB_THUMBPOSITION||code==SB_THUMBTRACK) { CPoint pt=pThis->GetScrollPosition(); pt.y=pos; pThis->ScrollToPosition(pt); return TRUE; } return doScroll ? impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(pThis, delta, TRUE) : TRUE; }
+// Symbol: ?OnHScroll@CScrollView@@QEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnHScroll_CScrollView__QEAAXIIPEAVCScrollBar___Z(CScrollView* pThis, unsigned int code, unsigned int pos, CScrollBar*) { if (pThis) { CPoint pt=pThis->GetScrollPosition(); if (code==SB_LINELEFT) pt.x-=pThis->m_lineDev.cx; else if (code==SB_LINERIGHT) pt.x+=pThis->m_lineDev.cx; else if (code==SB_PAGELEFT) pt.x-=pThis->m_pageDev.cx; else if (code==SB_PAGERIGHT) pt.x+=pThis->m_pageDev.cx; else if (code==SB_THUMBPOSITION||code==SB_THUMBTRACK) pt.x=pos; pThis->ScrollToPosition(pt); } }
+// Symbol: ?OnVScroll@CScrollView@@QEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnVScroll_CScrollView__QEAAXIIPEAVCScrollBar___Z(CScrollView* pThis, unsigned int code, unsigned int pos, CScrollBar*) { impl__OnScroll_CScrollView__UEAAHIIH_Z(pThis, code, pos, TRUE); }
+// Symbol: ?DoMouseWheel@CScrollView@@QEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__DoMouseWheel_CScrollView__QEAAHIFVCPoint___Z(CScrollView* pThis, unsigned int, short zDelta, CPoint) { if (!pThis) return FALSE; CSize delta(0, zDelta < 0 ? pThis->m_lineDev.cy*3 : -pThis->m_lineDev.cy*3); return impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(pThis, delta, TRUE); }
+// Symbol: ?OnMouseWheel@CScrollView@@QEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CScrollView__QEAAHIFVCPoint___Z(CScrollView* pThis, unsigned int flags, short zDelta, CPoint pt) { return impl__DoMouseWheel_CScrollView__QEAAHIFVCPoint___Z(pThis, flags, zDelta, pt); }
+// Symbol: ?GetWheelScrollDistance@CScrollView@@UEAA?AVCSize@@V2@HH@Z
+extern "C" void MS_ABI impl__GetWheelScrollDistance_CScrollView__UEAA_AVCSize__V2_HH_Z(CSize* ret, CScrollView*, CSize size, int, int) { new (ret) CSize(size.cx, size.cy * 3); }
+// Symbol: ?OnSize@CScrollView@@QEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CScrollView__QEAAXIHH_Z(CScrollView* pThis, unsigned int, int, int) { if (pThis && pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd,nullptr,TRUE); }
+// Symbol: ?UpdateBars@CScrollView@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateBars_CScrollView__IEAAXXZ(CScrollView* pThis) { if (pThis) pThis->SetScrollSizes(pThis->m_nMapMode, pThis->m_totalLog, pThis->m_pageDev, pThis->m_lineDev); }
+// Symbol: ?GetScrollBarState@CScrollView@@IEAAXVCSize@@AEAV2@1AEAVCPoint@@H@Z
+extern "C" void MS_ABI impl__GetScrollBarState_CScrollView__IEAAXVCSize__AEAV2_1AEAVCPoint__H_Z(CScrollView* pThis, CSize, CSize* needSb, CSize* range, CPoint* move, int) { if (needSb) *needSb=CSize(pThis&&pThis->m_totalLog.cx>0,pThis&&pThis->m_totalLog.cy>0); if (range) *range=CSize(pThis?pThis->m_totalLog.cx:0,pThis?pThis->m_totalLog.cy:0); if (move) *move=pThis?pThis->GetScrollPosition():CPoint(0,0); }
+// Symbol: ?HandleMButtonDown@CScrollView@@QEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CScrollView*, uintptr_t, intptr_t) { return 0; }
+// Symbol: ?OnPrepareDC@CScrollView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CScrollView* pThis, CDC* dc, void*) { if (dc && dc->m_hDC && pThis) ::SetMapMode(dc->m_hDC, pThis->m_nMapMode); }
+// Symbol: ?OnPrintClient@CScrollView@@QEAA_JPEAVCDC@@I@Z
+extern "C" intptr_t MS_ABI impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(CScrollView* pThis, CDC* dc, unsigned int) { if (pThis) pThis->OnDraw(dc); return TRUE; }
+// Symbol: ?SetScaleToFitSize@CScrollView@@QEAAXUtagSIZE@@@Z
+extern "C" void MS_ABI impl__SetScaleToFitSize_CScrollView__QEAAXUtagSIZE___Z(CScrollView* pThis, SIZE size) { if (pThis) pThis->SetScrollSizes(MM_TEXT, size, size, SIZE{1,1}); }
+
+// CFormView residuals.
+// Symbol: ?GetOccDialogInfo@CFormView@@MEAAPEAU_AFX_OCC_DIALOG_INFO@@XZ
+extern "C" void* MS_ABI impl__GetOccDialogInfo_CFormView__MEAAPEAU_AFX_OCC_DIALOG_INFO__XZ(CFormView*) { return nullptr; }
+// Symbol: ?SetOccDialogInfo@CFormView@@MEAAHPEAU_AFX_OCC_DIALOG_INFO@@@Z
+extern "C" int MS_ABI impl__SetOccDialogInfo_CFormView__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(CFormView*, void*) { return TRUE; }
+// Symbol: ?HandleInitDialog@CFormView@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__HandleInitDialog_CFormView__IEAA_J_K_J_Z(CFormView* pThis, uintptr_t, intptr_t) { if (pThis) pThis->OnInitialUpdate(); return TRUE; }
+// Symbol: ?OnActivateFrame@CFormView@@MEAAXIPEAVCFrameWnd@@@Z
+extern "C" void MS_ABI impl__OnActivateFrame_CFormView__MEAAXIPEAVCFrameWnd___Z(CFormView* pThis, unsigned int state, CFrameWnd* frame) { impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(pThis, state, frame); }
+// Symbol: ?OnActivateView@CFormView@@MEAAXHPEAVCView@@0@Z
+extern "C" void MS_ABI impl__OnActivateView_CFormView__MEAAXHPEAVCView__0_Z(CFormView* pThis, int active, CView* av, CView* dv) { impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(pThis, active, av, dv); }
+// Symbol: ?OnCreate@CFormView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CFormView__IEAAHPEAUtagCREATESTRUCTW___Z(CFormView*, CREATESTRUCTW*) { return 0; }
+// Symbol: ?OnPrintClient@CFormView@@IEAA_JPEAVCDC@@I@Z
+extern "C" intptr_t MS_ABI impl__OnPrintClient_CFormView__IEAA_JPEAVCDC__I_Z(CFormView* pThis, CDC* dc, unsigned int flags) { return impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(pThis, dc, flags); }
+// Symbol: ?OnSetFocus@CFormView@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CFormView__IEAAXPEAVCWnd___Z(CFormView* pThis, CWnd*) { if (pThis && pThis->m_hWnd) ::SetFocus(pThis->m_hWnd); }
+// Symbol: ?PreTranslateMessage@CFormView@@MEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CFormView__MEAAHPEAUtagMSG___Z(CFormView* pThis, MSG* msg) { return pThis && pThis->m_hWnd && msg ? ::IsDialogMessageW(pThis->m_hWnd, msg) : FALSE; }
+// Symbol: ?SaveFocusControl@CFormView@@IEAAHXZ
+extern "C" int MS_ABI impl__SaveFocusControl_CFormView__IEAAHXZ(CFormView* pThis) { return pThis && pThis->m_hWnd && ::GetFocus() != nullptr; }
+
+// CEditView residuals and static data.
+// Symbol: ?dwStyleDefault@CEditView@@2KB
+extern "C" unsigned long impl__dwStyleDefault_CEditView__2KB = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL;
+// Symbol: ?nMaxSize@CEditView@@2IB
+extern "C" unsigned int impl__nMaxSize_CEditView__2IB = 0x00ffffff;
+// Symbol: ?GetBufferLength@CEditView@@QEBAIXZ
+extern "C" unsigned int MS_ABI impl__GetBufferLength_CEditView__QEBAIXZ(const CEditView* pThis) { return static_cast<unsigned int>(EditViewText(pThis).size()); }
+// Symbol: ?GetSelectedText@CEditView@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetSelectedText_CEditView__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CEditView* pThis, CString* out) { if (out) const_cast<CEditView*>(pThis)->GetSelectedText(*out); }
+// Symbol: ?FindTextW@CEditView@@QEAAHPEB_WHH@Z
+extern "C" int MS_ABI impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(CEditView* pThis, const wchar_t* find, int next, int caseSensitive) {
+    if (!pThis || !find) return -1;
+    std::wstring text = EditViewText(pThis), needle(find);
+    if (!caseSensitive) { std::transform(text.begin(),text.end(),text.begin(),::towlower); std::transform(needle.begin(),needle.end(),needle.begin(),::towlower); }
+    size_t start = 0;
+    if (pThis->m_hWnd) { DWORD s=0,e=0; ::SendMessageW(pThis->m_hWnd, EM_GETSEL, (WPARAM)&s, (LPARAM)&e); start = next ? e : s; }
+    size_t pos = next ? text.find(needle, start) : text.rfind(needle, start);
+    if (pos == std::wstring::npos) return -1;
+    if (pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_SETSEL, pos, pos + needle.size());
+    return static_cast<int>(pos);
+}
+// Symbol: ?LockBuffer@CEditView@@QEBAPEB_WXZ
+extern "C" const wchar_t* MS_ABI impl__LockBuffer_CEditView__QEBAPEB_WXZ(const CEditView* pThis) { if (!pThis) return L""; auto& s=g_editViewExtraStates[pThis]; s.buffer=EditViewText(pThis); s.locked=s.buffer.c_str(); return s.locked; }
+// Symbol: ?UnlockBuffer@CEditView@@QEBAXXZ
+extern "C" void MS_ABI impl__UnlockBuffer_CEditView__QEBAXXZ(const CEditView* pThis) { if (pThis) g_editViewExtraStates[pThis].locked=nullptr; }
+// Symbol: ?DeleteContents@CEditView@@UEAAXXZ
+extern "C" void MS_ABI impl__DeleteContents_CEditView__UEAAXXZ(CEditView* pThis) { SetEditViewText(pThis, L""); }
+// Symbol: ?ReadFromArchive@CEditView@@QEAAXAEAVCArchive@@I@Z
+extern "C" void MS_ABI impl__ReadFromArchive_CEditView__QEAAXAEAVCArchive__I_Z(CEditView* pThis, CArchive* ar, unsigned int) { if (!pThis||!ar) return; CString s; (*ar)>>s; SetEditViewText(pThis, static_cast<const wchar_t*>(s)); }
+// Symbol: ?WriteToArchive@CEditView@@QEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__WriteToArchive_CEditView__QEAAXAEAVCArchive___Z(CEditView* pThis, CArchive* ar) { if (!pThis||!ar) return; CString s(EditViewText(pThis).c_str()); (*ar)<<s; }
+// Symbol: ?SerializeRaw@CEditView@@QEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__SerializeRaw_CEditView__QEAAXAEAVCArchive___Z(CEditView* pThis, CArchive* ar) { if (!pThis||!ar) return; if (ar->IsStoring()) impl__WriteToArchive_CEditView__QEAAXAEAVCArchive___Z(pThis, ar); else impl__ReadFromArchive_CEditView__QEAAXAEAVCArchive__I_Z(pThis, ar, 0); }
+// Symbol: ?SameAsSelected@CEditView@@IEAAHPEB_WH@Z
+extern "C" int MS_ABI impl__SameAsSelected_CEditView__IEAAHPEB_WH_Z(CEditView* pThis, const wchar_t* text, int caseSensitive) { CString sel; pThis->GetSelectedText(sel); return caseSensitive ? wcscmp(sel, text?text:L"")==0 : _wcsicmp(sel, text?text:L"")==0; }
+// Symbol: ?OnReplaceSel@CEditView@@MEAAXPEB_WHH0@Z
+extern "C" void MS_ABI impl__OnReplaceSel_CEditView__MEAAXPEB_WHH0_Z(CEditView* pThis, const wchar_t* find, int next, int caseSensitive, const wchar_t* repl) { if (!pThis) return; int pos=impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(pThis, find, next, caseSensitive); if (pos>=0 && pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_REPLACESEL, TRUE, (LPARAM)(repl?repl:L"")); }
+// Symbol: ?OnReplaceAll@CEditView@@MEAAXPEB_W0H@Z
+extern "C" void MS_ABI impl__OnReplaceAll_CEditView__MEAAXPEB_W0H_Z(CEditView* pThis, const wchar_t* find, const wchar_t* repl, int caseSensitive) { if (!pThis||!find||!*find) return; std::wstring text=EditViewText(pThis), needle(find), replacement(repl?repl:L""); size_t pos=0; while ((pos=text.find(needle,pos))!=std::wstring::npos) { text.replace(pos,needle.size(),replacement); pos+=replacement.size(); } SetEditViewText(pThis,text); (void)caseSensitive; }
+// Edit command handlers.
+// Symbol: ?OnEditClear@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditClear_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, WM_CLEAR,0,0); }
+// Symbol: ?OnEditCopy@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditCopy_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, WM_COPY,0,0); }
+// Symbol: ?OnEditCut@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditCut_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, WM_CUT,0,0); }
+// Symbol: ?OnEditPaste@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditPaste_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, WM_PASTE,0,0); }
+// Symbol: ?OnEditUndo@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditUndo_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_UNDO,0,0); }
+// Symbol: ?OnEditSelectAll@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditSelectAll_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_SETSEL,0,-1); }
+// Symbol: ?OnEditChange@CEditView@@IEAAHXZ
+extern "C" int MS_ABI impl__OnEditChange_CEditView__IEAAHXZ(CEditView* pThis) { if (pThis&&pThis->m_pDocument) pThis->m_pDocument->SetModifiedFlag(TRUE); if (pThis) g_editViewExtraStates[pThis].buffer=EditViewText(pThis); return TRUE; }
+// Symbol: ?OnEditFind@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditFind_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis) g_editViewExtraStates[pThis].findText.clear(); }
+// Symbol: ?OnEditReplace@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditReplace_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis) g_editViewExtraStates[pThis].replaceText.clear(); }
+// Symbol: ?OnEditRepeat@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditRepeat_CEditView__IEAAXXZ(CEditView* pThis) { auto& s=g_editViewExtraStates[pThis]; if (!s.findText.empty()) impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(pThis, s.findText.c_str(), TRUE, TRUE); }
+// Symbol: ?OnEditFindReplace@CEditView@@IEAAXH@Z
+extern "C" void MS_ABI impl__OnEditFindReplace_CEditView__IEAAXH_Z(CEditView* pThis, int replace) { if (pThis) { auto& s=g_editViewExtraStates[pThis]; if (replace) s.replaceText.clear(); else s.findText.clear(); } }
+// Symbol: ?OnFindReplaceCmd@CEditView@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__OnFindReplaceCmd_CEditView__IEAA_J_K_J_Z(CEditView* pThis, uintptr_t, intptr_t) { if (!pThis) return 0; auto& s=g_editViewExtraStates[pThis]; return s.findText.empty() ? 0 : impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(pThis, s.findText.c_str(), TRUE, TRUE) >= 0; }
+// Symbol: ?InitializeReplace@CEditView@@IEAAHXZ
+extern "C" int MS_ABI impl__InitializeReplace_CEditView__IEAAHXZ(CEditView* pThis) { if (pThis) { g_editViewExtraStates[pThis].findText.clear(); g_editViewExtraStates[pThis].replaceText.clear(); } return TRUE; }
+// Symbol: ?OnFindNext@CEditView@@MEAAXPEB_WHH@Z
+extern "C" void MS_ABI impl__OnFindNext_CEditView__MEAAXPEB_WHH_Z(CEditView* pThis, const wchar_t* find, int next, int caseSensitive) { if (pThis) { g_editViewExtraStates[pThis].findText=find?find:L""; impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(pThis, find, next, caseSensitive); } }
+// Symbol: ?OnTextNotFound@CEditView@@MEAAXPEB_W@Z
+extern "C" void MS_ABI impl__OnTextNotFound_CEditView__MEAAXPEB_W_Z(CEditView*, const wchar_t*) { ::MessageBeep(MB_ICONINFORMATION); }
+// Symbol: ?OnPreparePrinting@CEditView@@MEAAHPEAUCPrintInfo@@@Z
+extern "C" int MS_ABI impl__OnPreparePrinting_CEditView__MEAAHPEAUCPrintInfo___Z(CEditView*, void*) { return TRUE; }
+// Symbol: ?OnBeginPrinting@CEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnBeginPrinting_CEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC* dc, void*) { if (pThis && dc && dc->m_hDC) { auto it = g_editViewExtraStates.find(pThis); CFont* font = it == g_editViewExtraStates.end() ? nullptr : it->second.printerFont; if (font) ::SelectObject(dc->m_hDC, font->GetSafeHandle()); } }
+// Symbol: ?OnEndPrinting@CEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnEndPrinting_CEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC*, void*) { if (pThis) g_editViewExtraStates[pThis].pageCount = 0; }
+// Symbol: ?OnPrepareDC@CEditView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrepareDC_CEditView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC* dc, void*) { if (pThis && dc && dc->m_hDC) { auto it = g_editViewExtraStates.find(pThis); CFont* font = it == g_editViewExtraStates.end() ? nullptr : it->second.printerFont; if (font) ::SelectObject(dc->m_hDC, font->GetSafeHandle()); } }
+// Symbol: ?OnPrint@CEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrint_CEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC* dc, void*) { if (!pThis||!dc||!dc->m_hDC) return; std::wstring t=EditViewText(pThis); RECT rc={0,0,10000,10000}; ::DrawTextW(dc->m_hDC,t.c_str(),-1,&rc,DT_LEFT|DT_TOP|DT_WORDBREAK); }
+// Symbol: ?PaginateTo@CEditView@@IEAAHPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" int MS_ABI impl__PaginateTo_CEditView__IEAAHPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC*, void*) { if (pThis) g_editViewExtraStates[pThis].pageCount=1; return TRUE; }
+// Symbol: ?SetPrinterFont@CEditView@@QEAAXPEAVCFont@@@Z
+extern "C" void MS_ABI impl__SetPrinterFont_CEditView__QEAAXPEAVCFont___Z(CEditView* pThis, CFont* font) { if (pThis) g_editViewExtraStates[pThis].printerFont=font; }
+// Symbol: ?GetPrinterFont@CEditView@@QEBAPEAVCFont@@XZ
+extern "C" CFont* MS_ABI impl__GetPrinterFont_CEditView__QEBAPEAVCFont__XZ(const CEditView* pThis) { auto it=g_editViewExtraStates.find(pThis); return it==g_editViewExtraStates.end()?nullptr:it->second.printerFont; }
+// Symbol: ?SetTabStops@CEditView@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetTabStops_CEditView__QEAAXH_Z(CEditView* pThis, int tabs) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_SETTABSTOPS,1,(LPARAM)&tabs); }
+// Symbol: ?OnCreate@CEditView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CEditView__IEAAHPEAUtagCREATESTRUCTW___Z(CEditView* pThis, CREATESTRUCTW*) { if (!pThis||pThis->m_hWnd) return 0; pThis->m_hWnd=::CreateWindowExW(0,L"EDIT",L"",impl__dwStyleDefault_CEditView__2KB,0,0,0,0,nullptr,nullptr,AfxGetInstanceHandle(),nullptr); return pThis->m_hWnd?0:-1; }
+// Symbol: ?OnDestroy@CEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CEditView__IEAAXXZ(CEditView* pThis) { if (pThis) g_editViewExtraStates.erase(pThis); }
+// Symbol: ?CalcWindowRect@CEditView@@MEAAXPEAUtagRECT@@I@Z
+extern "C" void MS_ABI impl__CalcWindowRect_CEditView__MEAAXPEAUtagRECT__I_Z(CEditView* pThis, RECT* rect, unsigned int adjustType) { impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(pThis, rect, adjustType); }
+// Symbol: ?PreCreateWindow@CEditView@@MEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CEditView__MEAAHAEAUtagCREATESTRUCTW___Z(CEditView*, CREATESTRUCTW* cs) { if (cs) cs->style |= impl__dwStyleDefault_CEditView__2KB; return TRUE; }
+// Symbol: ?OnSetFont@CEditView@@IEAAXPEAVCFont@@H@Z
+extern "C" void MS_ABI impl__OnSetFont_CEditView__IEAAXPEAVCFont__H_Z(CEditView* pThis, CFont* font, int redraw) { if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, WM_SETFONT, (WPARAM)(font?font->GetSafeHandle():nullptr), redraw); }
+// Symbol: ?OnUpdateEditUndo@CEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditUndo_CEditView__IEAAXPEAVCCmdUI___Z(CEditView* pThis, CCmdUI* ui) { if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && pThis->m_hWnd && ::SendMessageW(pThis->m_hWnd, EM_CANUNDO, 0, 0)); }
+// Symbol: ?OnUpdateNeedClip@CEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedClip_CEditView__IEAAXPEAVCCmdUI___Z(CEditView*, CCmdUI* ui) { if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, ::IsClipboardFormatAvailable(CF_UNICODETEXT)); }
+// Symbol: ?OnUpdateNeedFind@CEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedFind_CEditView__IEAAXPEAVCCmdUI___Z(CEditView* pThis, CCmdUI* ui) { if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && !EditViewText(pThis).empty()); }
+// Symbol: ?OnUpdateNeedSel@CEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedSel_CEditView__IEAAXPEAVCCmdUI___Z(CEditView* pThis, CCmdUI* ui) { DWORD s=0,e=0; if (pThis&&pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_GETSEL, (WPARAM)&s, (LPARAM)&e); if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, s != e); }
+// Symbol: ?OnUpdateNeedText@CEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedText_CEditView__IEAAXPEAVCCmdUI___Z(CEditView* pThis, CCmdUI* ui) { if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && !EditViewText(pThis).empty()); }
+
+// CListView/CTreeView residuals.
+// Symbol: ?DrawItem@CListView@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
+extern "C" void MS_ABI impl__DrawItem_CListView__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CListView*, DRAWITEMSTRUCT*) {}
+// Symbol: ?OnChildNotify@CListView@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnChildNotify_CListView__MEAAHI_K_JPEA_J_Z(CListView*, unsigned int, unsigned long long, long long, long long*) { return FALSE; }
+// Symbol: ?OnNcDestroy@CListView@@QEAAXXZ
+extern "C" void MS_ABI impl__OnNcDestroy_CListView__QEAAXXZ(CListView* pThis) { if (pThis) pThis->m_pListCtrl=nullptr; }
+// Symbol: ?PreCreateWindow@CListView@@UEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CListView__UEAAHAEAUtagCREATESTRUCTW___Z(CListView*, CREATESTRUCTW* cs) { if (cs) cs->lpszClass = WC_LISTVIEWW; return TRUE; }
+// Symbol: ?RemoveImageList@CListView@@IEAAXH@Z
+extern "C" void MS_ABI impl__RemoveImageList_CListView__IEAAXH_Z(CListView* pThis, int type) { if (pThis&&pThis->m_hWnd) ListView_SetImageList(pThis->m_hWnd, nullptr, type); }
+// Symbol: ?OnDestroy@CTreeView@@QEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CTreeView__QEAAXXZ(CTreeView* pThis) { if (pThis) pThis->m_pTreeCtrl=nullptr; }
+// Symbol: ?PreCreateWindow@CTreeView@@UEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CTreeView__UEAAHAEAUtagCREATESTRUCTW___Z(CTreeView*, CREATESTRUCTW* cs) { if (cs) cs->lpszClass = WC_TREEVIEWW; return TRUE; }
+// Symbol: ?RemoveImageList@CTreeView@@IEAAXH@Z
+extern "C" void MS_ABI impl__RemoveImageList_CTreeView__IEAAXH_Z(CTreeView* pThis, int type) { if (pThis&&pThis->m_hWnd) TreeView_SetImageList(pThis->m_hWnd, nullptr, type); }

@@ -1589,6 +1589,25 @@ struct CDHtmlDialogAccess : CDHtmlDialog {
     using CDHtmlDialog::Select_FindString;
     using CDHtmlDialog::SetFocusToElement;
 };
+
+struct DHtmlDataExchange {
+    int m_bSaveAndValidate;
+};
+
+static void DDXDHtmlText(CDHtmlDialog* pThis, const wchar_t* lpszId, CString* pValue, int bSaveAndValidate) {
+    if (!pThis || !pValue) return;
+    if (bSaveAndValidate) {
+        wchar_t* text = pThis->GetElementText(lpszId);
+        *pValue = text ? text : L"";
+        if (text) ::SysFreeString(text);
+    } else {
+        pThis->SetElementText(lpszId, const_cast<wchar_t*>(static_cast<const wchar_t*>(*pValue)));
+    }
+}
+
+static int DHtmlSaveAndValidate(void* pDX) {
+    return pDX ? static_cast<DHtmlDataExchange*>(pDX)->m_bSaveAndValidate : FALSE;
+}
 }
 
 // ---------------------------------------------------------------------------
@@ -2013,6 +2032,42 @@ extern "C" void MS_ABI impl__Navigate_CDHtmlDialog__QEAAXPEB_WK00PEAXK_Z(
 extern "C" void MS_ABI impl__GetCurrentUrl_CDHtmlDialog__QEAAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CDHtmlDialog* pThis, CString& strUrl) {
     pThis->GetCurrentUrl(strUrl);
+}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CDHtmlDialog* pThis, const wchar_t* lpszId, long, CString* pValue, int bSaveAndValidate) {
+    DDXDHtmlText(pThis, lpszId, pValue, bSaveAndValidate);
+}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CDHtmlDialog* pThis, void* pDX, const wchar_t* lpszId, long, CString* pValue) {
+    DDXDHtmlText(pThis, lpszId, pValue, DHtmlSaveAndValidate(pDX));
+}
+
+// Symbol: ?DDX_DHtml_SelectString@CDHtmlDialog@@IEAAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectString_CDHtmlDialog__IEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CDHtmlDialog* pThis, const wchar_t* lpszId, CString* pValue, int bSaveAndValidate) {
+    DDXDHtmlText(pThis, lpszId, pValue, bSaveAndValidate);
+}
+
+// Symbol: ?DDX_DHtml_SelectString@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectString_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CDHtmlDialog* pThis, void* pDX, const wchar_t* lpszId, CString* pValue) {
+    DDXDHtmlText(pThis, lpszId, pValue, DHtmlSaveAndValidate(pDX));
+}
+
+// Symbol: ?DDX_DHtml_SelectValue@CDHtmlDialog@@IEAAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectValue_CDHtmlDialog__IEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CDHtmlDialog* pThis, const wchar_t* lpszId, CString* pValue, int bSaveAndValidate) {
+    DDXDHtmlText(pThis, lpszId, pValue, bSaveAndValidate);
+}
+
+// Symbol: ?DDX_DHtml_SelectValue@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectValue_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CDHtmlDialog* pThis, void* pDX, const wchar_t* lpszId, CString* pValue) {
+    DDXDHtmlText(pThis, lpszId, pValue, DHtmlSaveAndValidate(pDX));
 }
 
 // Symbol: ?GetElement@CDHtmlDialog@@QEAAJPEB_WPEAPEAUIDispatch@@PEAH@Z

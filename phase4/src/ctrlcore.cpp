@@ -49,6 +49,53 @@ IMPLEMENT_DYNAMIC(CListCtrl, CWnd)
 IMPLEMENT_DYNAMIC(CTreeCtrl, CWnd)
 IMPLEMENT_DYNAMIC(CTabCtrl, CWnd)
 
+namespace {
+CString OpenMfcKeyName(UINT vk, BOOL extended) {
+    if (vk == 0) return CString();
+
+    UINT scanCode = ::MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
+    LONG lParam = static_cast<LONG>(scanCode << 16);
+    if (extended) lParam |= 1L << 24;
+
+    wchar_t buffer[128] = {};
+    if (::GetKeyNameTextW(lParam, buffer, static_cast<int>(sizeof(buffer) / sizeof(buffer[0]))) > 0) {
+        return CString(buffer);
+    }
+
+    if (vk >= L' ' && vk <= 0x7e) {
+        wchar_t fallback[2] = {static_cast<wchar_t>(vk), L'\0'};
+        return CString(fallback);
+    }
+
+    CString fallback;
+    fallback.Format(L"VK_%02X", vk);
+    return fallback;
+}
+}
+
+// Symbol: ?GetKeyName@CHotKeyCtrl@@SA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IH@Z
+extern "C" void MS_ABI impl__GetKeyName_CHotKeyCtrl__SA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IH_Z(
+    CString* pRet, unsigned int vk, int extended) {
+    new (pRet) CString(OpenMfcKeyName(vk, extended));
+}
+
+// Symbol: ?GetHotKeyName@CHotKeyCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetHotKeyName_CHotKeyCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, const CWnd* pThis) {
+    CString result;
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    if (hwnd) {
+        DWORD hotKey = static_cast<DWORD>(::SendMessageW(hwnd, HKM_GETHOTKEY, 0, 0));
+        UINT vk = LOBYTE(LOWORD(hotKey));
+        UINT modifiers = HIBYTE(LOWORD(hotKey));
+        if (modifiers & HOTKEYF_CONTROL) result += L"Ctrl+";
+        if (modifiers & HOTKEYF_SHIFT) result += L"Shift+";
+        if (modifiers & HOTKEYF_ALT) result += L"Alt+";
+        result += OpenMfcKeyName(vk, (modifiers & HOTKEYF_EXT) != 0);
+    }
+    new (pRet) CString(result);
+}
+
 #ifdef __GNUC__
 // MSVC symbol aliases for runtime class statics
 asm(".globl \"?classCButton@CButton@@2UCRuntimeClass@@A\"\n"

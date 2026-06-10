@@ -13,6 +13,7 @@
 #include <cwctype>
 #include <cstring>
 #include <cstdlib>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -167,7 +168,16 @@ struct MenuHashState {
 struct WinAppExState {
     std::unordered_map<std::wstring, int> ints;
     std::unordered_map<std::wstring, CString> strings;
+    std::unordered_map<std::wstring, std::vector<unsigned char>> binaries;
+    std::unordered_set<std::wstring> objects;
     std::unordered_set<std::wstring> states;
+    bool tearOffMenus = false;
+    bool userTools = false;
+    bool mouseManager = false;
+    bool shellManager = false;
+    CRect windowRect = CRect(0, 0, 0, 0);
+    int windowShowCmd = SW_SHOWNORMAL;
+    int windowFlags = 0;
 };
 
 thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
@@ -178,6 +188,9 @@ thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_
 thread_local std::unordered_map<const CTooltipManager*, TooltipManagerState> g_tooltipManagerStates;
 thread_local std::unordered_map<const CMenuHash*, MenuHashState> g_menuHashStates;
 std::unordered_map<const CWinAppEx*, WinAppExState> g_winAppExStates;
+static int g_mouseManagerToken = 0;
+static int g_shellManagerToken = 0;
+static int g_userToolsManagerToken = 0;
 static BOOL g_forceMenuFocus = FALSE;
 static BOOL g_showAllAccelerators = FALSE;
 alignas(CFont) static unsigned char g_menuFontStorage[sizeof(CFont)] = {};
@@ -208,6 +221,13 @@ void ClearPopupMenuBarState(const CMFCPopupMenuBar* pMenuBar) {
         delete item;
     }
     g_popupMenuBarStates.erase(it);
+}
+
+std::wstring CurrentAppExSection(CWinAppEx* app) {
+    if (!app) return L"";
+    CString section = app->GetRegSectionPath(nullptr);
+    const wchar_t* value = static_cast<const wchar_t*>(section);
+    return value ? std::wstring(value) : std::wstring();
 }
 
 CString GetMenuItemText(HMENU hMenu, int index) {
@@ -2418,6 +2438,26 @@ extern "C" void MS_ABI impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCt
 extern "C" void MS_ABI impl__UpdateTooltips_CTooltipManager__QEAAXXZ(CTooltipManager* pThis) { if (pThis) pThis->UpdateTooltips(); }
 // Symbol: ?SetTooltipParams@CTooltipManager@@QEAAXIPEAUCRuntimeClass@@PEAVCMFCToolTipInfo@@@Z
 extern "C" void MS_ABI impl__SetTooltipParams_CTooltipManager__QEAAXIPEAUCRuntimeClass__PEAVCMFCToolTipInfo___Z(CTooltipManager* pThis, unsigned int types, CRuntimeClass* rtc, CMFCToolTipInfo* params) { if (pThis) pThis->SetTooltipParams(types, rtc, params); }
+// Symbol: ?SetTooltipText@CTooltipManager@@SAXPEAUtagTOOLINFOW@@PEAVCToolTipCtrl@@IV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
+extern "C" void MS_ABI impl__SetTooltipText_CTooltipManager__SAXPEAUtagTOOLINFOW__PEAVCToolTipCtrl__IV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+    TOOLINFOW* toolInfo, CToolTipCtrl* toolTip, unsigned int id, const CString* text, const wchar_t* description) {
+    const wchar_t* resolved = text ? text->GetString() : nullptr;
+    if (!resolved || !*resolved) resolved = description ? description : L"";
+
+    TOOLINFOW localInfo = toolInfo ? *toolInfo : TOOLINFOW{};
+    localInfo.cbSize = sizeof(TOOLINFOW);
+    localInfo.uId = id ? id : localInfo.uId;
+    localInfo.lpszText = const_cast<wchar_t*>(resolved);
+
+    if (toolInfo) {
+        toolInfo->cbSize = localInfo.cbSize;
+        toolInfo->uId = localInfo.uId;
+        toolInfo->lpszText = localInfo.lpszText;
+    }
+    if (toolTip && toolTip->GetSafeHwnd()) {
+        ::SendMessageW(toolTip->GetSafeHwnd(), TTM_UPDATETIPTEXTW, 0, reinterpret_cast<LPARAM>(&localInfo));
+    }
+}
 
 IMPLEMENT_DYNAMIC(CMenuHash, CObject)
 CMenuHash::CMenuHash() { memset(_menuhash_padding, 0, sizeof(_menuhash_padding)); }
@@ -2543,6 +2583,17 @@ extern "C" int MS_ABI impl__GetInt_CWinAppEx__QEAAHPEB_WH_Z(CWinAppEx* pThis, co
 extern "C" int MS_ABI impl__WriteInt_CWinAppEx__QEAAHPEB_WH_Z(CWinAppEx* pThis, const wchar_t* entry, int value) { return pThis ? pThis->WriteInt(entry, value) : FALSE; }
 // Symbol: ?GetString@CWinAppEx@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W0@Z
 extern "C" void MS_ABI impl__GetString_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(CString* ret, CWinAppEx* pThis, const wchar_t* entry, const wchar_t* defVal) { new (ret) CString(pThis ? pThis->GetString(entry, defVal) : CString(defVal ? defVal : L"")); }
+// Symbol: ?GetSectionString@CWinAppEx@@QEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W00@Z
+extern "C" void MS_ABI impl__GetSectionString_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W00_Z(
+    CString* ret, CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, const wchar_t* defVal) {
+    if (!pThis) {
+        new (ret) CString(defVal ? defVal : L"");
+        return;
+    }
+    auto& state = g_winAppExStates[pThis];
+    auto it = state.strings.find(AppEntryKey(section, entry));
+    new (ret) CString(it == state.strings.end() ? CString(defVal ? defVal : L"") : it->second);
+}
 // Symbol: ?WriteString@CWinAppEx@@QEAAHPEB_W0@Z
 extern "C" int MS_ABI impl__WriteString_CWinAppEx__QEAAHPEB_W0_Z(CWinAppEx* pThis, const wchar_t* entry, const wchar_t* value) { return pThis ? pThis->WriteString(entry, value) : FALSE; }
 // Symbol: ?LoadState@CWinAppEx@@UEAAHPEB_WPEAVCFrameImpl@@@Z
@@ -2555,6 +2606,253 @@ extern "C" int MS_ABI impl__CleanState_CWinAppEx__UEAAHPEB_W_Z(CWinAppEx* pThis,
 extern "C" int MS_ABI impl__IsStateExists_CWinAppEx__QEAAHPEB_W_Z(CWinAppEx* pThis, const wchar_t* section) { return pThis ? pThis->IsStateExists(section) : FALSE; }
 // Symbol: ?ExitInstance@CWinAppEx@@UEAAHXZ
 extern "C" int MS_ABI impl__ExitInstance_CWinAppEx__UEAAHXZ(CWinAppEx* pThis) { return pThis ? pThis->ExitInstance() : 0; }
+
+// Symbol: ?GetRuntimeClass@CWinAppEx@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinAppEx__UEBAPEAUCRuntimeClass__XZ(const CWinAppEx*) {
+    return &CWinAppEx::classCWinAppEx;
+}
+
+// Symbol: ?GetThisClass@CWinAppEx@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ() {
+    return &CWinAppEx::classCWinAppEx;
+}
+
+// Symbol: ?GetBinary@CWinAppEx@@QEAAHPEB_WPEAPEAEPEAI@Z
+extern "C" int MS_ABI impl__GetBinary_CWinAppEx__QEAAHPEB_WPEAPEAEPEAI_Z(
+    CWinAppEx* pThis, const wchar_t* entry, unsigned char** data, unsigned int* bytes) {
+    if (data) *data = nullptr;
+    if (bytes) *bytes = 0;
+    if (!pThis || !entry || !data || !bytes) return FALSE;
+    auto& binaries = g_winAppExStates[pThis].binaries;
+    const std::wstring section = CurrentAppExSection(pThis);
+    auto it = binaries.find(AppEntryKey(section.c_str(), entry));
+    if (it == binaries.end()) return FALSE;
+    const std::vector<unsigned char>& blob = it->second;
+    unsigned char* copy = new (std::nothrow) unsigned char[blob.size()];
+    if (!copy && !blob.empty()) return FALSE;
+    if (!blob.empty()) std::memcpy(copy, blob.data(), blob.size());
+    *data = copy;
+    *bytes = static_cast<unsigned int>(blob.size());
+    return TRUE;
+}
+
+// Symbol: ?WriteBinary@CWinAppEx@@QEAAHPEB_WPEAEI@Z
+extern "C" int MS_ABI impl__WriteBinary_CWinAppEx__QEAAHPEB_WPEAEI_Z(
+    CWinAppEx* pThis, const wchar_t* entry, unsigned char* data, unsigned int bytes) {
+    if (!pThis || !entry) return FALSE;
+    std::vector<unsigned char> blob;
+    if (data && bytes != 0) blob.assign(data, data + bytes);
+    const std::wstring section = CurrentAppExSection(pThis);
+    g_winAppExStates[pThis].binaries[AppEntryKey(section.c_str(), entry)] = std::move(blob);
+    return TRUE;
+}
+
+// Symbol: ?GetObjectW@CWinAppEx@@QEAAHPEB_WAEAVCObject@@@Z
+extern "C" int MS_ABI impl__GetObjectW_CWinAppEx__QEAAHPEB_WAEAVCObject___Z(CWinAppEx* pThis, const wchar_t* entry, CObject*) {
+    if (!pThis || !entry) return FALSE;
+    const std::wstring section = CurrentAppExSection(pThis);
+    return g_winAppExStates[pThis].objects.count(AppEntryKey(section.c_str(), entry)) ? TRUE : FALSE;
+}
+
+// Symbol: ?WriteObject@CWinAppEx@@QEAAHPEB_WAEAVCObject@@@Z
+extern "C" int MS_ABI impl__WriteObject_CWinAppEx__QEAAHPEB_WAEAVCObject___Z(CWinAppEx* pThis, const wchar_t* entry, CObject* object) {
+    if (!pThis || !entry || !object) return FALSE;
+    const std::wstring section = CurrentAppExSection(pThis);
+    g_winAppExStates[pThis].objects.insert(AppEntryKey(section.c_str(), entry));
+    return TRUE;
+}
+
+// Symbol: ?GetSectionBinary@CWinAppEx@@QEAAHPEB_W0PEAPEAEPEAI@Z
+extern "C" int MS_ABI impl__GetSectionBinary_CWinAppEx__QEAAHPEB_W0PEAPEAEPEAI_Z(
+    CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, unsigned char** data, unsigned int* bytes) {
+    if (data) *data = nullptr;
+    if (bytes) *bytes = 0;
+    if (!pThis || !section || !entry || !data || !bytes) return FALSE;
+    auto& binaries = g_winAppExStates[pThis].binaries;
+    auto it = binaries.find(AppEntryKey(section, entry));
+    if (it == binaries.end()) return FALSE;
+    const std::vector<unsigned char>& blob = it->second;
+    unsigned char* copy = new (std::nothrow) unsigned char[blob.size()];
+    if (!copy && !blob.empty()) return FALSE;
+    if (!blob.empty()) std::memcpy(copy, blob.data(), blob.size());
+    *data = copy;
+    *bytes = static_cast<unsigned int>(blob.size());
+    return TRUE;
+}
+
+// Symbol: ?WriteSectionBinary@CWinAppEx@@QEAAHPEB_W0PEAEI@Z
+extern "C" int MS_ABI impl__WriteSectionBinary_CWinAppEx__QEAAHPEB_W0PEAEI_Z(
+    CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, unsigned char* data, unsigned int bytes) {
+    if (!pThis || !section || !entry) return FALSE;
+    std::vector<unsigned char> blob;
+    if (data && bytes != 0) blob.assign(data, data + bytes);
+    g_winAppExStates[pThis].binaries[AppEntryKey(section, entry)] = std::move(blob);
+    return TRUE;
+}
+
+// Symbol: ?GetSectionInt@CWinAppEx@@QEAAHPEB_W0H@Z
+extern "C" int MS_ABI impl__GetSectionInt_CWinAppEx__QEAAHPEB_W0H_Z(CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, int defVal) {
+    if (!pThis || !section || !entry) return defVal;
+    auto& ints = g_winAppExStates[pThis].ints;
+    auto it = ints.find(AppEntryKey(section, entry));
+    return it == ints.end() ? defVal : it->second;
+}
+
+// Symbol: ?WriteSectionInt@CWinAppEx@@QEAAHPEB_W0H@Z
+extern "C" int MS_ABI impl__WriteSectionInt_CWinAppEx__QEAAHPEB_W0H_Z(CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, int value) {
+    if (!pThis || !section || !entry) return FALSE;
+    g_winAppExStates[pThis].ints[AppEntryKey(section, entry)] = value;
+    return TRUE;
+}
+
+// Symbol: ?WriteSectionString@CWinAppEx@@QEAAHPEB_W00@Z
+extern "C" int MS_ABI impl__WriteSectionString_CWinAppEx__QEAAHPEB_W00_Z(CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, const wchar_t* value) {
+    if (!pThis || !section || !entry) return FALSE;
+    g_winAppExStates[pThis].strings[AppEntryKey(section, entry)] = CString(value ? value : L"");
+    return TRUE;
+}
+
+// Symbol: ?GetSectionObject@CWinAppEx@@QEAAHPEB_W0AEAVCObject@@@Z
+extern "C" int MS_ABI impl__GetSectionObject_CWinAppEx__QEAAHPEB_W0AEAVCObject___Z(CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, CObject*) {
+    if (!pThis || !section || !entry) return FALSE;
+    return g_winAppExStates[pThis].objects.count(AppEntryKey(section, entry)) ? TRUE : FALSE;
+}
+
+// Symbol: ?WriteSectionObject@CWinAppEx@@QEAAHPEB_W0AEAVCObject@@@Z
+extern "C" int MS_ABI impl__WriteSectionObject_CWinAppEx__QEAAHPEB_W0AEAVCObject___Z(CWinAppEx* pThis, const wchar_t* section, const wchar_t* entry, CObject* object) {
+    if (!pThis || !section || !entry || !object) return FALSE;
+    g_winAppExStates[pThis].objects.insert(AppEntryKey(section, entry));
+    return TRUE;
+}
+
+// Symbol: ?EnableTearOffMenus@CWinAppEx@@QEAAHPEB_WII@Z
+extern "C" int MS_ABI impl__EnableTearOffMenus_CWinAppEx__QEAAHPEB_WII_Z(CWinAppEx* pThis, const wchar_t*, unsigned int, unsigned int) {
+    if (!pThis) return FALSE;
+    g_winAppExStates[pThis].tearOffMenus = true;
+    return TRUE;
+}
+
+// Symbol: ?EnableUserTools@CWinAppEx@@QEAAHIIIPEAUCRuntimeClass@@II@Z
+extern "C" int MS_ABI impl__EnableUserTools_CWinAppEx__QEAAHIIIPEAUCRuntimeClass__II_Z(
+    CWinAppEx* pThis, unsigned int, unsigned int, unsigned int, CRuntimeClass*, unsigned int, unsigned int) {
+    if (!pThis) return FALSE;
+    g_winAppExStates[pThis].userTools = true;
+    return TRUE;
+}
+
+// Symbol: ?InitMouseManager@CWinAppEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InitMouseManager_CWinAppEx__QEAAHXZ(CWinAppEx* pThis) {
+    if (!pThis) return FALSE;
+    g_winAppExStates[pThis].mouseManager = true;
+    return TRUE;
+}
+
+// Symbol: ?GetMouseManager@CWinAppEx@@QEAAPEAVCMouseManager@@XZ
+extern "C" CMouseManager* MS_ABI impl__GetMouseManager_CWinAppEx__QEAAPEAVCMouseManager__XZ(CWinAppEx* pThis) {
+    if (!pThis) return nullptr;
+    impl__InitMouseManager_CWinAppEx__QEAAHXZ(pThis);
+    return reinterpret_cast<CMouseManager*>(&g_mouseManagerToken);
+}
+
+// Symbol: ?InitShellManager@CWinAppEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InitShellManager_CWinAppEx__QEAAHXZ(CWinAppEx* pThis) {
+    if (!pThis) return FALSE;
+    g_winAppExStates[pThis].shellManager = true;
+    return TRUE;
+}
+
+// Symbol: ?GetShellManager@CWinAppEx@@QEAAPEAVCShellManager@@XZ
+extern "C" CShellManager* MS_ABI impl__GetShellManager_CWinAppEx__QEAAPEAVCShellManager__XZ(CWinAppEx* pThis) {
+    if (!pThis) return nullptr;
+    impl__InitShellManager_CWinAppEx__QEAAHXZ(pThis);
+    return reinterpret_cast<CShellManager*>(&g_shellManagerToken);
+}
+
+// Symbol: ?GetUserToolsManager@CWinAppEx@@QEAAPEAVCUserToolsManager@@XZ
+extern "C" CUserToolsManager* MS_ABI impl__GetUserToolsManager_CWinAppEx__QEAAPEAVCUserToolsManager__XZ(CWinAppEx* pThis) {
+    if (!pThis) return nullptr;
+    g_winAppExStates[pThis].userTools = true;
+    return reinterpret_cast<CUserToolsManager*>(&g_userToolsManagerToken);
+}
+
+// Symbol: ?LoadWindowPlacement@CWinAppEx@@MEAAHAEAVCRect@@AEAH1@Z
+extern "C" int MS_ABI impl__LoadWindowPlacement_CWinAppEx__MEAAHAEAVCRect__AEAH1_Z(CWinAppEx* pThis, CRect* rect, int* showCmd, int* flags) {
+    if (!pThis || !rect || !showCmd || !flags) return FALSE;
+    WinAppExState& state = g_winAppExStates[pThis];
+    *rect = state.windowRect;
+    *showCmd = state.windowShowCmd;
+    *flags = state.windowFlags;
+    return TRUE;
+}
+
+// Symbol: ?StoreWindowPlacement@CWinAppEx@@MEAAHAEBVCRect@@HH@Z
+extern "C" int MS_ABI impl__StoreWindowPlacement_CWinAppEx__MEAAHAEBVCRect__HH_Z(CWinAppEx* pThis, const CRect* rect, int showCmd, int flags) {
+    if (!pThis || !rect) return FALSE;
+    WinAppExState& state = g_winAppExStates[pThis];
+    state.windowRect = *rect;
+    state.windowShowCmd = showCmd;
+    state.windowFlags = flags;
+    return TRUE;
+}
+
+// Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx*, const wchar_t* section) {
+    return pThis ? pThis->LoadState(section, nullptr) : FALSE;
+}
+
+// Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx*, const wchar_t* section) {
+    return pThis ? pThis->SaveState(section, nullptr) : FALSE;
+}
+
+// Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx*, const wchar_t* section) {
+    return pThis ? pThis->LoadState(section, nullptr) : FALSE;
+}
+
+// Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx*, const wchar_t* section) {
+    return pThis ? pThis->SaveState(section, nullptr) : FALSE;
+}
+
+// Symbol: ?ReloadWindowPlacement@CWinAppEx@@MEAAHPEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__ReloadWindowPlacement_CWinAppEx__MEAAHPEAVCFrameWnd___Z(CWinAppEx* pThis, CFrameWnd* frame) {
+    if (!pThis || !frame) return FALSE;
+    WinAppExState& state = g_winAppExStates[pThis];
+    HWND hwnd = frame->GetSafeHwnd();
+    if (!hwnd) return TRUE;
+    if (!state.windowRect.IsRectNull()) {
+        ::MoveWindow(hwnd, state.windowRect.left, state.windowRect.top, state.windowRect.Width(), state.windowRect.Height(), TRUE);
+    }
+    ::ShowWindow(hwnd, state.windowShowCmd);
+    return TRUE;
+}
+
+// Symbol: ?OnAppContextHelp@CWinAppEx@@UEAAXPEAVCWnd@@QEBK@Z
+extern "C" void MS_ABI impl__OnAppContextHelp_CWinAppEx__UEAAXPEAVCWnd__QEBK_Z(CWinAppEx*, CWnd*, const unsigned long*) {
+}
+
+// Symbol: ?OnClosingMainFrame@CWinAppEx@@MEAAXPEAVCFrameImpl@@@Z
+extern "C" void MS_ABI impl__OnClosingMainFrame_CWinAppEx__MEAAXPEAVCFrameImpl___Z(CWinAppEx*, void*) {
+}
+
+// Symbol: ?OnViewDoubleClick@CWinAppEx@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__OnViewDoubleClick_CWinAppEx__UEAAHPEAVCWnd__H_Z(CWinAppEx*, CWnd*, int) {
+    return FALSE;
+}
+
+// Symbol: ?ShowPopupMenu@CWinAppEx@@UEAAHIAEBVCPoint@@PEAVCWnd@@@Z
+extern "C" int MS_ABI impl__ShowPopupMenu_CWinAppEx__UEAAHIAEBVCPoint__PEAVCWnd___Z(CWinAppEx*, unsigned int menuId, const CPoint* point, CWnd* owner) {
+    HMENU menu = ::LoadMenuW(AfxGetResourceHandle(), MAKEINTRESOURCEW(menuId));
+    if (!menu) return FALSE;
+    HMENU popup = ::GetSubMenu(menu, 0);
+    BOOL shown = FALSE;
+    if (popup && point) {
+        shown = ::TrackPopupMenu(popup, TPM_LEFTALIGN | TPM_TOPALIGN, point->x, point->y, 0, owner ? owner->GetSafeHwnd() : nullptr, nullptr);
+    }
+    ::DestroyMenu(menu);
+    return shown ? TRUE : FALSE;
+}
 
 IMPLEMENT_DYNAMIC(CMFCStatusBar, CStatusBar)
 CMFCStatusBar::CMFCStatusBar() { memset(_pad, 0, sizeof(_pad)); }

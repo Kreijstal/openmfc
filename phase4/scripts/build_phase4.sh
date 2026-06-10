@@ -533,6 +533,7 @@ LDLIBS=(
     -lcomdlg32
     -lwininet
     -lws2_32
+    -ladvapi32
     -lole32
     -loleaut32
     -luuid

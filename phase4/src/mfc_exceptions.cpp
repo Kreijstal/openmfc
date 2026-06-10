@@ -304,6 +304,25 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CException__SAPEAUCRuntimeCl
 asm(".globl \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\"\n"
     ".set \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CException__SAPEAUCRuntimeClass__XZ\n");
 
+// Symbol: ?GetRuntimeClass@CException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CException__UEBAPEAUCRuntimeClass__XZ(const CException*) {
+    return &CException::classCException;
+}
+
+// Symbol: ?Delete@CException@@QEAAXXZ
+extern "C" void MS_ABI impl__Delete_CException__QEAAXXZ(CException* pThis) {
+    if (pThis) pThis->Delete();
+}
+
+// Symbol: ?ReportError@CException@@UEAAHII@Z
+extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException* pThis, unsigned int type, unsigned int) {
+    if (!pThis) return FALSE;
+    wchar_t buffer[512] = {};
+    pThis->GetErrorMessage(buffer, 512, nullptr);
+    ::MessageBoxW(nullptr, buffer[0] ? buffer : L"An MFC exception occurred.", L"OpenMFC", type ? type : (MB_OK | MB_ICONERROR));
+    return TRUE;
+}
+
 // =============================================================================
 // Missing Exception Class Definitions
 // =============================================================================

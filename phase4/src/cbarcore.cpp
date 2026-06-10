@@ -1807,6 +1807,59 @@ extern "C" void MS_ABI impl__GetPaneText_CStatusBar__QEBAXHAEAV__CStringT__WV__S
     pThis->GetPaneText(nIndex, *pStr);
 }
 
+// Symbol: ?GetText@CStatusBarCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HPEAH@Z
+extern "C" void MS_ABI impl__GetText_CStatusBarCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HPEAH_Z(
+    CString* pRet, const CWnd* pThis, int nPane, int* pType) {
+    CString text;
+    int type = 0;
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    if (hwnd) {
+        LRESULT lenAndType = ::SendMessageW(hwnd, SB_GETTEXTLENGTHW, nPane, 0);
+        int len = LOWORD(lenAndType);
+        type = HIWORD(lenAndType);
+        if (len > 0) {
+            std::vector<wchar_t> buffer(static_cast<size_t>(len) + 1);
+            ::SendMessageW(hwnd, SB_GETTEXTW, nPane, reinterpret_cast<LPARAM>(buffer.data()));
+            text = buffer.data();
+        }
+    }
+    if (pType) *pType = type;
+    new (pRet) CString(text);
+}
+
+// Symbol: ?GetTipText@CStatusBarCtrl@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__GetTipText_CStatusBarCtrl__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CString* pRet, const CWnd* pThis, int nPane) {
+    CString text;
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    if (hwnd) {
+        constexpr int kMaxTipText = 1024;
+        std::vector<wchar_t> buffer(kMaxTipText);
+        ::SendMessageW(hwnd, SB_GETTIPTEXTW, MAKEWPARAM(nPane, kMaxTipText), reinterpret_cast<LPARAM>(buffer.data()));
+        buffer.back() = L'\0';
+        text = buffer.data();
+    }
+    new (pRet) CString(text);
+}
+
+// Symbol: ?GetString@CToolBarCtrl@@QEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetString_CToolBarCtrl__QEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CWnd* pThis, int nString, CString* pString) {
+    if (!pString) return 0;
+    *pString = L"";
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    if (!hwnd) return 0;
+
+    constexpr int kMaxToolBarString = 1024;
+    std::vector<wchar_t> buffer(kMaxToolBarString);
+    LRESULT copied = ::SendMessageW(
+        hwnd, TB_GETSTRINGW, MAKEWPARAM(kMaxToolBarString, nString), reinterpret_cast<LPARAM>(buffer.data()));
+    if (copied < 0) return static_cast<int>(copied);
+    buffer.back() = L'\0';
+    *pString = buffer.data();
+    return static_cast<int>(copied);
+}
+
 namespace {
 struct PaneCoreState {
     CWnd* parent = nullptr;

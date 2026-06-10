@@ -464,6 +464,52 @@ protected:
     char _mfctoolbarimages_padding[64];
 };
 
+class CMFCControlRendererInfo {
+public:
+    CMFCControlRendererInfo();
+    CMFCControlRendererInfo(const CMFCControlRendererInfo& src);
+    CMFCControlRendererInfo(UINT nID, const CRect& rectImage, const CRect& rectCorners,
+                            const CRect& rectSides, const CRect& rectInter);
+    CMFCControlRendererInfo(UINT nID, DWORD clrTransparent, const CRect& rectImage,
+                            const CRect& rectCorners, const CRect& rectSides,
+                            const CRect& rectInter, BOOL bPreMultiplyCheck = FALSE);
+    CMFCControlRendererInfo(const wchar_t* lpszID, const CRect& rectImage,
+                            const CRect& rectCorners, const CRect& rectSides,
+                            const CRect& rectInter);
+    CMFCControlRendererInfo(const wchar_t* lpszID, DWORD clrTransparent,
+                            const CRect& rectImage, const CRect& rectCorners,
+                            const CRect& rectSides, const CRect& rectInter,
+                            BOOL bPreMultiplyCheck = FALSE);
+    ~CMFCControlRendererInfo();
+    CMFCControlRendererInfo& operator=(const CMFCControlRendererInfo& src);
+    void CommonInit();
+    const wchar_t* GetResourceID() const;
+    void SetResourceID(const wchar_t* lpszID);
+
+protected:
+    char _controlrendererinfo_padding[96];
+};
+
+class CMFCControlRenderer : public CObject {
+    DECLARE_DYNAMIC(CMFCControlRenderer)
+public:
+    CMFCControlRenderer();
+    virtual ~CMFCControlRenderer();
+    virtual BOOL Create(const CMFCControlRendererInfo& info, BOOL bFlip = FALSE);
+    virtual void CleanUp();
+    virtual void Draw(CDC* pDC, CRect rect, UINT index = 0, BYTE alphaSrc = 255);
+    virtual void DrawFrame(CDC* pDC, CRect rect, UINT index = 0, BYTE alphaSrc = 255);
+    virtual void FillInterior(CDC* pDC, CRect rect, UINT index = 0, BYTE alphaSrc = 255);
+    virtual void FillInterior(CDC* pDC, CRect rect, int alignHorz, int alignVert,
+                              UINT index = 0, BYTE alphaSrc = 255);
+    virtual void Mirror();
+    virtual void OnSysColorChange();
+    BOOL SmoothResize(double dblImageScale);
+
+protected:
+    char _controlrenderer_padding[96];
+};
+
 //=============================================================================
 // CMFCRibbonBaseElement - Ribbon element base
 //=============================================================================
@@ -1020,7 +1066,39 @@ protected:
 class CMFCToolTipInfo {
 public:
     CMFCToolTipInfo() { memset(_pad, 0, sizeof(_pad)); }
-    char _pad[64];
+    char _pad[96];
+};
+
+class CTagManager : public CObject {
+    DECLARE_DYNAMIC(CTagManager)
+public:
+    explicit CTagManager(const wchar_t* lpszBuffer = nullptr);
+    virtual ~CTagManager();
+
+    void SetBuffer(const wchar_t* lpszBuffer);
+    BOOL LoadFromFile(const wchar_t* lpszFileName);
+    BOOL LoadFromResource(UINT uiResId, const wchar_t* lpszResType);
+    BOOL LoadFromResource(const wchar_t* lpszResName, const wchar_t* lpszResType);
+    BOOL ExcludeTag(const wchar_t* lpszTag, CString& strValue, BOOL bTrim = TRUE);
+
+    BOOL ReadBool(const CString& strTag, int& value);
+    BOOL ReadColor(const CString& strTag, COLORREF& value);
+    BOOL ReadFont(const CString& strTag, LOGFONTW& value);
+    BOOL ReadInt(const CString& strTag, int& value);
+    BOOL ReadPoint(const CString& strTag, CPoint& value);
+    BOOL ReadRect(const CString& strTag, CRect& value);
+    BOOL ReadSize(const CString& strTag, CSize& value);
+
+    static BOOL ParseColor(const CString& strValue, COLORREF& value);
+    static BOOL ParseColorHEX(const CString& strValue, COLORREF& value);
+    static BOOL ParseFont(const CString& strValue, LOGFONTW& value);
+    static BOOL ParsePoint(const CString& strValue, CPoint& value);
+    static BOOL ParseRect(const CString& strValue, CRect& value);
+    static BOOL ParseSize(const CString& strValue, CSize& value);
+    static BOOL ParseString(const CString& strValue, const CString& strSeparators, CStringArray& values, BOOL bTrim = TRUE, BOOL bRemoveEmpty = TRUE);
+
+protected:
+    char _tagmanager_padding[32];
 };
 
 class CTooltipManager : public CObject {

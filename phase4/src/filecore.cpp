@@ -2184,6 +2184,75 @@ void CArchive::WriteString(const wchar_t* lpsz) {
     Write(lpsz, nLen * sizeof(wchar_t));
 }
 
+// Symbol: ?GetObjectSchema@CArchive@@QEAAIXZ
+extern "C" unsigned int MS_ABI impl__GetObjectSchema_CArchive__QEAAIXZ(CArchive* pThis) {
+    return pThis ? pThis->GetObjectSchema() : 0;
+}
+
+// Symbol: ?WriteCount@CArchive@@QEAAX_K@Z
+extern "C" void MS_ABI impl__WriteCount_CArchive__QEAAX_K_Z(CArchive* pThis, unsigned long long count) {
+    if (!pThis) return;
+    pThis->Write(&count, sizeof(count));
+}
+
+// Symbol: ?ReadCount@CArchive@@QEAA_KXZ
+extern "C" unsigned long long MS_ABI impl__ReadCount_CArchive__QEAA_KXZ(CArchive* pThis) {
+    unsigned long long count = 0;
+    if (pThis) pThis->Read(&count, sizeof(count));
+    return count;
+}
+
+// Symbol: ?CheckCount@CArchive@@QEAAXXZ
+extern "C" void MS_ABI impl__CheckCount_CArchive__QEAAXXZ(CArchive* pThis) {
+    if (pThis) pThis->Flush();
+}
+
+// Symbol: ?WriteClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
+extern "C" void MS_ABI impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
+    if (pThis && pClass) impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(pClass, pThis);
+}
+
+// Symbol: ?SerializeClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
+extern "C" void MS_ABI impl__SerializeClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
+    if (pThis && pThis->IsStoring()) impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(pThis, pClass);
+    else if (pThis) {
+        unsigned int schema = 0;
+        (void)impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, &schema);
+        pThis->SetObjectSchema(schema);
+    }
+}
+
+// Symbol: ?ReadClass@CArchive@@QEAAPEAUCRuntimeClass@@PEBU2@PEAIPEAK@Z
+extern "C" CRuntimeClass* MS_ABI impl__ReadClass_CArchive__QEAAPEAUCRuntimeClass__PEBU2_PEAIPEAK_Z(
+    CArchive* pThis, const CRuntimeClass*, unsigned int* schema, unsigned long*) {
+    return pThis ? impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, schema) : nullptr;
+}
+
+// Symbol: ?WriteObject@CArchive@@QEAAXPEBVCObject@@@Z
+extern "C" void MS_ABI impl__WriteObject_CArchive__QEAAXPEBVCObject___Z(CArchive* pThis, const CObject* object) {
+    if (pThis) (*pThis) << object;
+}
+
+// Symbol: ?ReadObject@CArchive@@QEAAPEAVCObject@@PEBUCRuntimeClass@@@Z
+extern "C" CObject* MS_ABI impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass*) {
+    CObject* object = nullptr;
+    if (pThis) (*pThis) >> object;
+    return object;
+}
+
+// Symbol: ?ReadString@CArchive@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CArchive* pThis, CString* stringOut) {
+    return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
+}
+
+// Symbol: ?MapObject@CArchive@@QEAAXPEBVCObject@@@Z
+extern "C" void MS_ABI impl__MapObject_CArchive__QEAAXPEBVCObject___Z(CArchive*, const CObject*) {
+}
+
+// Symbol: ?EnsureSchemaMapExists@CArchive@@QEAAXPEAPEAV?$CArray@W4LoadArrayObjType@CArchive@@AEBW412@@@@Z
+extern "C" void MS_ABI impl__EnsureSchemaMapExists_CArchive__QEAAXPEAPEAV__CArray_W4LoadArrayObjType_CArchive__AEBW412____Z(CArchive*, void**) {
+}
+
 // =============================================================================
 // CFile extern "C" MS_ABI Thunks
 // These are cross-ABI vtable entry points for CFile virtual methods.
