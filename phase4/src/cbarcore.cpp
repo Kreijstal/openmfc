@@ -128,6 +128,35 @@ struct ThreadSlotDataState {
 std::mutex g_threadSlotMutex;
 std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
 
+struct TypeLibCacheState {
+    bool locked = false;
+    std::unordered_map<unsigned long, ITypeLib*> typeLibs;
+    std::unordered_map<std::wstring, ITypeInfo*> typeInfos;
+};
+std::mutex g_typeLibCacheMutex;
+std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
+
+struct UserToolState {
+    std::wstring command;
+    HICON icon = nullptr;
+};
+std::mutex g_userToolMutex;
+std::unordered_map<void*, UserToolState> g_userTools;
+std::unordered_map<void*, HDC> g_windowlessDCs;
+std::unordered_set<void*> g_d2dInitialized;
+
+__attribute__((used)) static CRuntimeClass g_classCUserException = {
+    "CUserException", sizeof(CException), 0xFFFF, nullptr, nullptr, &CException::classCException, nullptr
+};
+
+__attribute__((used)) static CRuntimeClass g_classCUserTool = {
+    "CUserTool", sizeof(void*), 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
+};
+
+__attribute__((used)) static CRuntimeClass g_classCWindowlessDC = {
+    "CWindowlessDC", sizeof(CDC), 0xFFFF, nullptr, nullptr, &CDC::classCDC, nullptr
+};
+
 inline UINT RibbonElementID(const CMFCRibbonBaseElement* pElem) {
     return (pElem != nullptr) ? pElem->GetID() : 0;
 }
@@ -156,6 +185,26 @@ inline CSize ToolbarDefaultSize(const CToolBar* pBar, int nButtons = -1) {
     const int count = nButtons >= 0 ? nButtons : (pBar ? std::max(0, pBar->m_nCount) : 0);
     const CSize button = pBar ? pBar->GetButtonSize() : CSize(23, 22);
     return CSize(button.cx * std::max(1, count), button.cy);
+}
+
+inline std::wstring TypeInfoCacheKey(unsigned long lcid, const GUID& iid) {
+    wchar_t guidText[64] = {};
+    ::StringFromGUID2(iid, guidText, 64);
+    std::wstring key = std::to_wstring(lcid);
+    key.push_back(L':');
+    key += guidText;
+    return key;
+}
+
+inline void ReleaseTypeLibCache(TypeLibCacheState& state) {
+    for (auto& entry : state.typeLibs) {
+        if (entry.second) entry.second->Release();
+    }
+    for (auto& entry : state.typeInfos) {
+        if (entry.second) entry.second->Release();
+    }
+    state.typeLibs.clear();
+    state.typeInfos.clear();
 }
 
 inline COLORREF SystemColor(int index) {
@@ -1202,6 +1251,216 @@ extern "C" void MS_ABI impl__SetCheck_CToolCmdUI__UEAAXH_Z(CCmdUI* pThis, int nC
 // Symbol: ?SetText@CToolCmdUI@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetText_CToolCmdUI__UEAAXPEB_W_Z(CCmdUI* pThis, const wchar_t* lpszText) {
     if (pThis) pThis->SetText(lpszText);
+}
+
+// Symbol: ?Cache@CTypeLibCache@@QEAAXKPEAUITypeLib@@@Z
+extern "C" void MS_ABI impl__Cache_CTypeLibCache__QEAAXKPEAUITypeLib___Z(void* pThis, unsigned long lcid, ITypeLib* pTypeLib) {
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto& slot = g_typeLibCaches[pThis].typeLibs[lcid];
+    if (slot) slot->Release();
+    slot = pTypeLib;
+    if (slot) slot->AddRef();
+}
+
+// Symbol: ?CacheTypeInfo@CTypeLibCache@@QEAAXKAEBU_GUID@@PEAUITypeInfo@@@Z
+extern "C" void MS_ABI impl__CacheTypeInfo_CTypeLibCache__QEAAXKAEBU_GUID__PEAUITypeInfo___Z(
+    void* pThis, unsigned long lcid, const GUID* iid, ITypeInfo* pTypeInfo) {
+    if (!iid) return;
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto& slot = g_typeLibCaches[pThis].typeInfos[TypeInfoCacheKey(lcid, *iid)];
+    if (slot) slot->Release();
+    slot = pTypeInfo;
+    if (slot) slot->AddRef();
+}
+
+// Symbol: ?Lock@CTypeLibCache@@QEAAXXZ
+extern "C" void MS_ABI impl__Lock_CTypeLibCache__QEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    g_typeLibCaches[pThis].locked = true;
+}
+
+// Symbol: ?Lookup@CTypeLibCache@@QEAAHKPEAPEAUITypeLib@@@Z
+extern "C" int MS_ABI impl__Lookup_CTypeLibCache__QEAAHKPEAPEAUITypeLib___Z(void* pThis, unsigned long lcid, ITypeLib** ppTypeLib) {
+    if (!ppTypeLib) return FALSE;
+    *ppTypeLib = nullptr;
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto cache = g_typeLibCaches.find(pThis);
+    if (cache == g_typeLibCaches.end()) return FALSE;
+    auto it = cache->second.typeLibs.find(lcid);
+    if (it == cache->second.typeLibs.end() || !it->second) return FALSE;
+    *ppTypeLib = it->second;
+    (*ppTypeLib)->AddRef();
+    return TRUE;
+}
+
+// Symbol: ?LookupTypeInfo@CTypeLibCache@@QEAAHKAEBU_GUID@@PEAPEAUITypeInfo@@@Z
+extern "C" int MS_ABI impl__LookupTypeInfo_CTypeLibCache__QEAAHKAEBU_GUID__PEAPEAUITypeInfo___Z(
+    void* pThis, unsigned long lcid, const GUID* iid, ITypeInfo** ppTypeInfo) {
+    if (!iid || !ppTypeInfo) return FALSE;
+    *ppTypeInfo = nullptr;
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto cache = g_typeLibCaches.find(pThis);
+    if (cache == g_typeLibCaches.end()) return FALSE;
+    auto it = cache->second.typeInfos.find(TypeInfoCacheKey(lcid, *iid));
+    if (it == cache->second.typeInfos.end() || !it->second) return FALSE;
+    *ppTypeInfo = it->second;
+    (*ppTypeInfo)->AddRef();
+    return TRUE;
+}
+
+// Symbol: ?Unlock@CTypeLibCache@@QEAAXXZ
+extern "C" void MS_ABI impl__Unlock_CTypeLibCache__QEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    g_typeLibCaches[pThis].locked = false;
+}
+
+// Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
+extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis, void* pExcept) {
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    for (auto it = g_typeLibCaches.begin(); it != g_typeLibCaches.end();) {
+        if (it->first == pExcept || it->second.locked) {
+            ++it;
+        } else {
+            ReleaseTypeLibCache(it->second);
+            it = g_typeLibCaches.erase(it);
+        }
+    }
+    if (pThis && !pExcept) {
+        g_typeLibCaches.erase(pThis);
+    }
+}
+
+// Symbol: ?GetRuntimeClass@CUserException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CUserException__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {
+    (void)pThis;
+    return &g_classCUserException;
+}
+
+// Symbol: ?GetThisClass@CUserException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CUserException__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCUserException;
+}
+
+// Symbol: ?CopyIconToClipboard@CUserTool@@QEAAHXZ
+extern "C" int MS_ABI impl__CopyIconToClipboard_CUserTool__QEAAHXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto it = g_userTools.find(pThis);
+    if (it == g_userTools.end() || !it->second.icon || !::OpenClipboard(nullptr)) return FALSE;
+    ::EmptyClipboard();
+    HICON copy = (HICON)::CopyImage(it->second.icon, IMAGE_ICON, 0, 0, LR_COPYFROMRESOURCE);
+    if (!copy) {
+        ::CloseClipboard();
+        return FALSE;
+    }
+    BOOL ok = ::SetClipboardData(CF_ENHMETAFILE, copy) != nullptr;
+    ::CloseClipboard();
+    return ok;
+}
+
+// Symbol: ?CreateObject@CUserTool@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CUserTool__SAPEAVCObject__XZ() {
+    return reinterpret_cast<CObject*>(new char[sizeof(void*)]);
+}
+
+// Symbol: ?DeleteIcon@CUserTool@@MEAAXXZ
+extern "C" void MS_ABI impl__DeleteIcon_CUserTool__MEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& state = g_userTools[pThis];
+    if (state.icon) {
+        ::DestroyIcon(state.icon);
+        state.icon = nullptr;
+    }
+}
+
+// Symbol: ?GetRuntimeClass@CUserTool@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CUserTool__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &g_classCUserTool;
+}
+
+// Symbol: ?GetThisClass@CUserTool@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CUserTool__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCUserTool;
+}
+
+// Symbol: ?Invoke@CUserTool@@UEAAHXZ
+extern "C" int MS_ABI impl__Invoke_CUserTool__UEAAHXZ(void* pThis) {
+    std::wstring command;
+    {
+        std::lock_guard<std::mutex> lock(g_userToolMutex);
+        command = g_userTools[pThis].command;
+    }
+    if (command.empty()) return FALSE;
+    HINSTANCE result = ::ShellExecuteW(nullptr, L"open", command.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    return (UINT_PTR)result > 32;
+}
+
+// Symbol: ?LoadDefaultIcon@CUserTool@@MEAAPEAUHICON__@@XZ
+extern "C" HICON MS_ABI impl__LoadDefaultIcon_CUserTool__MEAAPEAUHICON____XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& state = g_userTools[pThis];
+    if (!state.icon) {
+        state.icon = ::LoadIconW(nullptr, IDI_APPLICATION);
+    }
+    return state.icon;
+}
+
+// Symbol: ?Serialize@CUserTool@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CUserTool__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar) {
+    if (!ar) return;
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    CString command(g_userTools[pThis].command.c_str());
+    if (ar->IsStoring()) {
+        *ar << command;
+    } else {
+        *ar >> command;
+        g_userTools[pThis].command = (const wchar_t*)command;
+    }
+}
+
+// Symbol: ?SetCommand@CUserTool@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetCommand_CUserTool__QEAAXPEB_W_Z(void* pThis, const wchar_t* lpszCmd) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    g_userTools[pThis].command = lpszCmd ? lpszCmd : L"";
+}
+
+// Symbol: ?SetToolIcon@CUserTool@@UEAAPEAUHICON__@@XZ
+extern "C" HICON MS_ABI impl__SetToolIcon_CUserTool__UEAAPEAUHICON____XZ(void* pThis) {
+    return impl__LoadDefaultIcon_CUserTool__MEAAPEAUHICON____XZ(pThis);
+}
+
+// Symbol: ?Detach@CWindowlessDC@@QEAAPEAUHDC__@@XZ
+extern "C" HDC MS_ABI impl__Detach_CWindowlessDC__QEAAPEAUHDC____XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    HDC hdc = nullptr;
+    auto it = g_windowlessDCs.find(pThis);
+    if (it != g_windowlessDCs.end()) {
+        hdc = it->second;
+        g_windowlessDCs.erase(it);
+    }
+    return hdc;
+}
+
+// Symbol: ?GetRuntimeClass@CWindowlessDC@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWindowlessDC__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &g_classCWindowlessDC;
+}
+
+// Symbol: ?GetThisClass@CWindowlessDC@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWindowlessDC__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCWindowlessDC;
+}
+
+// Symbol: ?InitD2D@_AFX_D2D_STATE@@QEAAHW4D2D1_FACTORY_TYPE@@W4DWRITE_FACTORY_TYPE@@@Z
+extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void* pThis, int, int) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    g_d2dInitialized.insert(pThis);
+    return TRUE;
+}
+
+// Symbol: ?ReleaseD2DRefs@_AFX_D2D_STATE@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    g_d2dInitialized.erase(pThis);
 }
 
 //=============================================================================
