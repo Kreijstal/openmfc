@@ -9,7 +9,9 @@
 #include "docking_state.h"
 #include "ribbon_state.h"
 #include <commctrl.h>
+#include <shlobj.h>
 #include <algorithm>
+#include <climits>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -140,8 +142,39 @@ struct UserToolState {
     std::wstring command;
     HICON icon = nullptr;
 };
+struct UserToolsManagerState {
+    std::vector<void*> tools;
+};
+
+struct TaskDialogButtonState {
+    std::vector<std::wstring> labels;
+    std::vector<TASKDIALOG_BUTTON> buttons;
+    std::unordered_set<int> disabled;
+    int defaultButton = 0;
+};
+
+struct TaskDialogState {
+    TaskDialogButtonState commandControls;
+    TaskDialogButtonState radioButtons;
+    int progressState = 0;
+};
+
+struct TabbedPaneState {
+    std::vector<void*> tabs;
+    CRect tabArea = CRect(0, 0, 0, 0);
+};
+
+struct GenericFeaturePackObject : CObject {
+    GenericFeaturePackObject() = default;
+};
+
 std::mutex g_userToolMutex;
 std::unordered_map<void*, UserToolState> g_userTools;
+std::unordered_map<void*, UserToolsManagerState> g_userToolManagers;
+std::mutex g_taskDialogMutex;
+std::unordered_map<CTaskDialog*, TaskDialogState> g_taskDialogs;
+std::mutex g_tabbedPaneMutex;
+std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
 std::unordered_set<void*> g_d2dInitialized;
 
@@ -153,9 +186,108 @@ __attribute__((used)) static CRuntimeClass g_classCUserTool = {
     "CUserTool", sizeof(void*), 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
 };
 
+__attribute__((used)) static CRuntimeClass g_classCTabbedPane = {
+    "CTabbedPane", sizeof(void*), 0xFFFF, nullptr, nullptr, &CWnd::classCWnd, nullptr
+};
+
+__attribute__((used)) static CRuntimeClass g_classCTaskDialog = {
+    "CTaskDialog", sizeof(CTaskDialog), 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
+};
+
 __attribute__((used)) static CRuntimeClass g_classCWindowlessDC = {
     "CWindowlessDC", sizeof(CDC), 0xFFFF, nullptr, nullptr, &CDC::classCDC, nullptr
 };
+
+void AddTaskDialogButton(TaskDialogButtonState& state, int id, const wchar_t* label, int enabled) {
+    auto it = std::find_if(state.buttons.begin(), state.buttons.end(),
+        [id](const TASKDIALOG_BUTTON& button) { return button.nButtonID == id; });
+    std::wstring text = label ? label : L"";
+    if (it == state.buttons.end()) {
+        state.labels.push_back(text);
+        state.buttons.push_back({ id, nullptr });
+    } else {
+        const size_t index = static_cast<size_t>(std::distance(state.buttons.begin(), it));
+        state.labels[index] = text;
+    }
+    for (size_t i = 0; i < state.buttons.size(); ++i) {
+        state.buttons[i].pszButtonText = state.labels[i].c_str();
+    }
+    if (enabled) {
+        state.disabled.erase(id);
+    } else {
+        state.disabled.insert(id);
+    }
+}
+
+TASKDIALOG_BUTTON* FirstTaskDialogButton(TaskDialogButtonState& state) {
+    return state.buttons.empty() ? nullptr : state.buttons.data();
+}
+
+ptrdiff_t FindTaskDialogButtonIndex(const TaskDialogButtonState& state, int id) {
+    for (size_t i = 0; i < state.buttons.size(); ++i) {
+        if (state.buttons[i].nButtonID == id) return static_cast<ptrdiff_t>(i);
+    }
+    return -1;
+}
+
+int CommonButtonId(int commonButtonFlag) {
+    switch (commonButtonFlag) {
+        case TDCBF_OK_BUTTON: return IDOK;
+        case TDCBF_YES_BUTTON: return IDYES;
+        case TDCBF_NO_BUTTON: return IDNO;
+        case TDCBF_CANCEL_BUTTON: return IDCANCEL;
+        case TDCBF_RETRY_BUTTON: return IDRETRY;
+        case TDCBF_CLOSE_BUTTON: return IDCLOSE;
+        default: return 0;
+    }
+}
+
+int CommonButtonFlagByIndex(int commonButtons, int index) {
+    static const int flags[] = {
+        TDCBF_OK_BUTTON, TDCBF_YES_BUTTON, TDCBF_NO_BUTTON,
+        TDCBF_CANCEL_BUTTON, TDCBF_RETRY_BUTTON, TDCBF_CLOSE_BUTTON
+    };
+    int seen = 0;
+    for (int flag : flags) {
+        if ((commonButtons & flag) == 0) continue;
+        if (seen == index) return flag;
+        ++seen;
+    }
+    return 0;
+}
+
+void FillTaskDialogConfig(CTaskDialog* dialog, TASKDIALOGCONFIG& config) {
+    memset(&config, 0, sizeof(config));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    if (!dialog) return;
+
+    config.dwFlags = dialog->m_nTaskDialogOptions;
+    config.dwCommonButtons = dialog->m_nCommonButtons;
+    config.pszWindowTitle = dialog->m_strWindowTitle;
+    config.pszMainInstruction = dialog->m_strMainInstruction;
+    config.pszContent = dialog->m_strContent;
+    config.hMainIcon = dialog->m_hMainIcon;
+    config.hFooterIcon = dialog->m_hFooterIcon;
+    config.pszFooter = dialog->m_strFooterText.IsEmpty() ? nullptr : (const wchar_t*)dialog->m_strFooterText;
+    config.pszVerificationText =
+        dialog->m_strVerificationText.IsEmpty() ? nullptr : (const wchar_t*)dialog->m_strVerificationText;
+    config.pszExpandedInformation =
+        dialog->m_strExpandedInfo.IsEmpty() ? nullptr : (const wchar_t*)dialog->m_strExpandedInfo;
+    config.pszExpandedControlText =
+        dialog->m_strExpandedControlText.IsEmpty() ? nullptr : (const wchar_t*)dialog->m_strExpandedControlText;
+    config.pszCollapsedControlText =
+        dialog->m_strCollapsedControlText.IsEmpty() ? nullptr : (const wchar_t*)dialog->m_strCollapsedControlText;
+    if (dialog->m_nDialogWidth > 0) config.cxWidth = dialog->m_nDialogWidth;
+
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    TaskDialogState& state = g_taskDialogs[dialog];
+    config.pButtons = FirstTaskDialogButton(state.commandControls);
+    config.cButtons = static_cast<UINT>(state.commandControls.buttons.size());
+    config.nDefaultButton = state.commandControls.defaultButton;
+    config.pRadioButtons = FirstTaskDialogButton(state.radioButtons);
+    config.cRadioButtons = static_cast<UINT>(state.radioButtons.buttons.size());
+    config.nDefaultRadioButton = state.radioButtons.defaultButton;
+}
 
 inline UINT RibbonElementID(const CMFCRibbonBaseElement* pElem) {
     return (pElem != nullptr) ? pElem->GetID() : 0;
@@ -220,6 +352,19 @@ inline COLORREF FeaturePackBackgroundColor() {
 }
 
 } // namespace
+
+// Symbol: ?m_arTabsAutoColors@CTabbedPane@@1V?$CArray@KK@@A
+extern "C" __attribute__((used)) void* impl__m_arTabsAutoColors_CTabbedPane__1V__CArray_KK__A = nullptr;
+// Symbol: ?m_bIsTabsAutoColor@CTabbedPane@@1HA
+extern "C" __attribute__((used)) int impl__m_bIsTabsAutoColor_CTabbedPane__1HA = FALSE;
+// Symbol: ?m_bTabsAlwaysTop@CTabbedPane@@2HA
+extern "C" __attribute__((used)) int impl__m_bTabsAlwaysTop_CTabbedPane__2HA = FALSE;
+// Symbol: ?m_lstTabbedControlBars@CTabbedPane@@1V?$CList@PEAUHWND__@@PEAU1@@@A
+extern "C" __attribute__((used)) void* impl__m_lstTabbedControlBars_CTabbedPane__1V__CList_PEAUHWND____PEAU1___A = nullptr;
+// Symbol: ?m_pTabWndRTC@CTabbedPane@@2PEAUCRuntimeClass@@EA
+extern "C" __attribute__((used)) CRuntimeClass* impl__m_pTabWndRTC_CTabbedPane__2PEAUCRuntimeClass__EA = nullptr;
+// Symbol: ?m_StyleTabWnd@CTabbedPane@@2W4Style@CMFCTabCtrl@@A
+extern "C" __attribute__((used)) int impl__m_StyleTabWnd_CTabbedPane__2W4Style_CMFCTabCtrl__A = 0;
 
 // Symbol: ??0CMFCRibbonBar@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
@@ -1992,22 +2137,8 @@ HRESULT CTaskDialog::AddPushButton(int nButtonID, const wchar_t* pszLabel) {
 int CTaskDialog::DoModal(HWND hWndParent) {
     // Use TaskDialogIndirect if available (Vista+), otherwise fallback to MessageBox
     TASKDIALOGCONFIG tc = {};
-    tc.cbSize = sizeof(TASKDIALOGCONFIG);
+    FillTaskDialogConfig(this, tc);
     tc.hwndParent = hWndParent;
-    tc.dwFlags = m_nTaskDialogOptions;
-    tc.dwCommonButtons = m_nCommonButtons;
-    tc.pszWindowTitle = m_strWindowTitle;
-    tc.pszMainInstruction = m_strMainInstruction;
-    tc.pszContent = m_strContent;
-    tc.hMainIcon = m_hMainIcon;
-    tc.hFooterIcon = m_hFooterIcon;
-    tc.pszFooter = m_strFooterText.IsEmpty() ? nullptr : (const wchar_t*)m_strFooterText;
-    tc.pszVerificationText = m_strVerificationText.IsEmpty() ? nullptr : (const wchar_t*)m_strVerificationText;
-    tc.pszExpandedInformation = m_strExpandedInfo.IsEmpty() ? nullptr : (const wchar_t*)m_strExpandedInfo;
-    tc.pszExpandedControlText = m_strExpandedControlText.IsEmpty() ? nullptr : (const wchar_t*)m_strExpandedControlText;
-    tc.pszCollapsedControlText = m_strCollapsedControlText.IsEmpty() ? nullptr : (const wchar_t*)m_strCollapsedControlText;
-
-    if (m_nDialogWidth > 0) tc.cxWidth = m_nDialogWidth;
 
     int nButton = 0;
     int nRadio = 0;
@@ -4005,6 +4136,608 @@ extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void* pThis) {
 extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     return g_framePanes[pThis].rollUp;
+}
+
+// Symbol: ?StartTearOff@CPaneFrameWnd@@QEAAHPEAVCMFCPopupMenu@@@Z
+extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(void* pThis, void* pMenu) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    AddUniquePane(g_framePanes[pThis], pMenu);
+    return pThis != nullptr;
+}
+
+// Symbol: ?StopCaptionButtonsTracking@CPaneFrameWnd@@MEAAXXZ
+extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(void*) {
+}
+
+// Symbol: ?StoreRecentDockSiteInfo@CPaneFrameWnd@@UEAAXPEAVCPane@@@Z
+extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pPane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    PaneState& state = g_framePanes[pThis];
+    AddUniquePane(state, pPane);
+    if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
+        state.recentRect = CRect(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
+    }
+}
+
+// Symbol: ?StoreRecentTabRelatedInfo@CPaneFrameWnd@@UEAAXPEAVCDockablePane@@0@Z
+extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneFrameWnd__UEAAXPEAVCDockablePane__0_Z(
+    void* pThis, void* pPane, void* pTabSibling) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    PaneState& state = g_framePanes[pThis];
+    AddUniquePane(state, pPane);
+    AddUniquePane(state, pTabSibling);
+}
+
+// Symbol: ?UpdateTooltips@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(void* pThis) {
+    if (!pThis) return;
+    CWnd* wnd = reinterpret_cast<CWnd*>(pThis);
+    if (wnd->GetSafeHwnd()) {
+        ::InvalidateRect(wnd->GetSafeHwnd(), nullptr, FALSE);
+    }
+}
+
+// Symbol: ?BrowseCallbackProc@CShellManager@@KAHPEAUHWND__@@I_J1@Z
+extern "C" int MS_ABI impl__BrowseCallbackProc_CShellManager__KAHPEAUHWND____I_J1_Z(
+    HWND hwnd, UINT msg, intptr_t, intptr_t data) {
+    if (msg == BFFM_INITIALIZED && hwnd && data) {
+        ::SendMessageW(hwnd, BFFM_SETSELECTIONW, TRUE, static_cast<LPARAM>(data));
+    }
+    return 0;
+}
+
+// Symbol: ?GetItemSize@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z
+extern "C" UINT MS_ABI impl__GetItemSize_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(void*, const ITEMIDLIST* pidl) {
+    if (!pidl) return 0;
+    UINT size = sizeof(USHORT);
+    const ITEMIDLIST* current = pidl;
+    while (current->mkid.cb != 0) {
+        size += current->mkid.cb;
+        current = reinterpret_cast<const ITEMIDLIST*>(
+            reinterpret_cast<const BYTE*>(current) + current->mkid.cb);
+    }
+    return size;
+}
+
+// Symbol: ?GetItemCount@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z
+extern "C" UINT MS_ABI impl__GetItemCount_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(void*, const ITEMIDLIST* pidl) {
+    UINT count = 0;
+    for (const ITEMIDLIST* current = pidl; current && current->mkid.cb != 0;
+         current = reinterpret_cast<const ITEMIDLIST*>(reinterpret_cast<const BYTE*>(current) + current->mkid.cb)) {
+        ++count;
+    }
+    return count;
+}
+
+// Symbol: ?CreateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@I@Z
+extern "C" ITEMIDLIST* MS_ABI impl__CreateItem_CShellManager__QEAAPEFAU_ITEMIDLIST__I_Z(void*, UINT cb) {
+    const UINT itemBytes = std::max<UINT>(cb, sizeof(USHORT));
+    auto* pidl = static_cast<ITEMIDLIST*>(::CoTaskMemAlloc(itemBytes + sizeof(USHORT)));
+    if (!pidl) return nullptr;
+    memset(pidl, 0, itemBytes + sizeof(USHORT));
+    pidl->mkid.cb = static_cast<USHORT>(std::min<UINT>(itemBytes, USHRT_MAX));
+    return pidl;
+}
+
+// Symbol: ?CopyItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z
+extern "C" ITEMIDLIST* MS_ABI impl__CopyItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(void* pThis, const ITEMIDLIST* pidl) {
+    UINT size = impl__GetItemSize_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(pThis, pidl);
+    if (size == 0) return nullptr;
+    auto* copy = static_cast<ITEMIDLIST*>(::CoTaskMemAlloc(size));
+    if (copy) memcpy(copy, pidl, size);
+    return copy;
+}
+
+// Symbol: ?ConcatenateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@0@Z
+extern "C" ITEMIDLIST* MS_ABI impl__ConcatenateItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2_0_Z(
+    void* pThis, const ITEMIDLIST* left, const ITEMIDLIST* right) {
+    const UINT leftSize = impl__GetItemSize_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(pThis, left);
+    const UINT rightSize = impl__GetItemSize_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(pThis, right);
+    if (leftSize == 0) return impl__CopyItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(pThis, right);
+    if (rightSize == 0) return impl__CopyItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(pThis, left);
+    auto* combined = static_cast<ITEMIDLIST*>(::CoTaskMemAlloc(leftSize + rightSize - sizeof(USHORT)));
+    if (!combined) return nullptr;
+    memcpy(combined, left, leftSize - sizeof(USHORT));
+    memcpy(reinterpret_cast<BYTE*>(combined) + leftSize - sizeof(USHORT), right, rightSize);
+    return combined;
+}
+
+// Symbol: ?FreeItem@CShellManager@@QEAAXPEFAU_ITEMIDLIST@@@Z
+extern "C" void MS_ABI impl__FreeItem_CShellManager__QEAAXPEFAU_ITEMIDLIST___Z(void*, ITEMIDLIST* pidl) {
+    ::CoTaskMemFree(pidl);
+}
+
+// Symbol: ?GetNextItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z
+extern "C" ITEMIDLIST* MS_ABI impl__GetNextItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(void*, const ITEMIDLIST* pidl) {
+    if (!pidl || pidl->mkid.cb == 0) return nullptr;
+    auto* next = reinterpret_cast<ITEMIDLIST*>(const_cast<BYTE*>(reinterpret_cast<const BYTE*>(pidl)) + pidl->mkid.cb);
+    return next->mkid.cb == 0 ? nullptr : next;
+}
+
+// Symbol: ?GetParentItem@CShellManager@@QEAAHPEFBU_ITEMIDLIST@@AEAPEFAU2@@Z
+extern "C" int MS_ABI impl__GetParentItem_CShellManager__QEAAHPEFBU_ITEMIDLIST__AEAPEFAU2__Z(
+    void*, const ITEMIDLIST* pidl, ITEMIDLIST** parent) {
+    if (parent) *parent = nullptr;
+    if (!pidl || !parent || pidl->mkid.cb == 0) return FALSE;
+    const ITEMIDLIST* current = pidl;
+    const ITEMIDLIST* last = nullptr;
+    while (current->mkid.cb != 0) {
+        last = current;
+        current = reinterpret_cast<const ITEMIDLIST*>(reinterpret_cast<const BYTE*>(current) + current->mkid.cb);
+    }
+    const UINT bytesBeforeLast = static_cast<UINT>(reinterpret_cast<const BYTE*>(last) - reinterpret_cast<const BYTE*>(pidl));
+    auto* result = static_cast<ITEMIDLIST*>(::CoTaskMemAlloc(bytesBeforeLast + sizeof(USHORT)));
+    if (!result) return FALSE;
+    memcpy(result, pidl, bytesBeforeLast);
+    memset(reinterpret_cast<BYTE*>(result) + bytesBeforeLast, 0, sizeof(USHORT));
+    *parent = result;
+    return TRUE;
+}
+
+// Symbol: ?ItemFromPath@CShellManager@@QEAAJPEB_WAEAPEFAU_ITEMIDLIST@@@Z
+extern "C" HRESULT MS_ABI impl__ItemFromPath_CShellManager__QEAAJPEB_WAEAPEFAU_ITEMIDLIST___Z(
+    void*, const wchar_t* path, ITEMIDLIST** pidl) {
+    if (pidl) *pidl = nullptr;
+    if (!path || !pidl) return E_INVALIDARG;
+    SFGAOF attributes = 0;
+    return ::SHParseDisplayName(path, nullptr, reinterpret_cast<PIDLIST_ABSOLUTE*>(pidl), 0, &attributes);
+}
+
+// Symbol: ?BrowseForFolder@CShellManager@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCWnd@@PEB_W2IPEAH@Z
+extern "C" int MS_ABI impl__BrowseForFolder_CShellManager__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCWnd__PEB_W2IPEAH_Z(
+    void*, CString* outFolder, CWnd* parent, const wchar_t* title, const wchar_t* initialFolder, UINT flags, int* image) {
+    wchar_t displayName[MAX_PATH] = {};
+    BROWSEINFOW bi = {};
+    bi.hwndOwner = parent ? parent->GetSafeHwnd() : nullptr;
+    bi.pszDisplayName = displayName;
+    bi.lpszTitle = title;
+    bi.ulFlags = flags;
+    bi.lpfn = reinterpret_cast<BFFCALLBACK>(impl__BrowseCallbackProc_CShellManager__KAHPEAUHWND____I_J1_Z);
+    bi.lParam = reinterpret_cast<LPARAM>(initialFolder);
+    bi.iImage = image ? *image : 0;
+    PIDLIST_ABSOLUTE pidl = ::SHBrowseForFolderW(&bi);
+    if (!pidl) return FALSE;
+    wchar_t path[MAX_PATH] = {};
+    BOOL ok = ::SHGetPathFromIDListW(pidl, path);
+    if (ok && outFolder) *outFolder = path;
+    if (image) *image = bi.iImage;
+    ::CoTaskMemFree(pidl);
+    return ok;
+}
+
+// Symbol: ?CheckTabbedBarAlignment@CTabbedPane@@MEAAHXZ
+extern "C" int MS_ABI impl__CheckTabbedBarAlignment_CTabbedPane__MEAAHXZ(void*) {
+    return TRUE;
+}
+
+// Symbol: ?CreateObject@CTabbedPane@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CTabbedPane__SAPEAVCObject__XZ() {
+    return new GenericFeaturePackObject();
+}
+
+// Symbol: ?DetachPane@CTabbedPane@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__DetachPane_CTabbedPane__UEAAHPEAVCWnd__H_Z(void* pThis, void* pane, int) {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    auto& tabs = g_tabbedPanes[pThis].tabs;
+    tabs.erase(std::remove(tabs.begin(), tabs.end(), pane), tabs.end());
+    return TRUE;
+}
+
+// Symbol: ?EnableTabAutoColor@CTabbedPane@@SAXH@Z
+extern "C" void MS_ABI impl__EnableTabAutoColor_CTabbedPane__SAXH_Z(int enable) {
+    impl__m_bIsTabsAutoColor_CTabbedPane__1HA = enable;
+}
+
+// Symbol: ?FloatTab@CTabbedPane@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z
+extern "C" int MS_ABI impl__FloatTab_CTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
+    void* pThis, void* pane, int, int, int) {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    auto& tabs = g_tabbedPanes[pThis].tabs;
+    tabs.erase(std::remove(tabs.begin(), tabs.end(), pane), tabs.end());
+    return TRUE;
+}
+
+// Symbol: ?GetMessageMap@CTabbedPane@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CTabbedPane__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetRuntimeClass@CTabbedPane@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &g_classCTabbedPane;
+}
+
+// Symbol: ?GetTabArea@CTabbedPane@@UEBAXAEAVCRect@@0@Z
+extern "C" void MS_ABI impl__GetTabArea_CTabbedPane__UEBAXAEAVCRect__0_Z(void* pThis, CRect* tabArea, CRect* paneArea) {
+    CRect bounds(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
+    CWnd* wnd = reinterpret_cast<CWnd*>(pThis);
+    if (wnd && wnd->GetSafeHwnd()) {
+        RECT rc = {};
+        if (::GetClientRect(wnd->GetSafeHwnd(), &rc)) bounds = CRect(rc);
+    }
+    const int tabHeight = 24;
+    if (impl__m_bTabsAlwaysTop_CTabbedPane__2HA) {
+        if (tabArea) *tabArea = CRect(bounds.left, bounds.top, bounds.right, bounds.top + tabHeight);
+        if (paneArea) *paneArea = CRect(bounds.left, bounds.top + tabHeight, bounds.right, bounds.bottom);
+    } else {
+        if (tabArea) *tabArea = CRect(bounds.left, bounds.bottom - tabHeight, bounds.right, bounds.bottom);
+        if (paneArea) *paneArea = CRect(bounds.left, bounds.top, bounds.right, bounds.bottom - tabHeight);
+    }
+}
+
+// Symbol: ?GetThisClass@CTabbedPane@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCTabbedPane;
+}
+
+// Symbol: ?GetThisMessageMap@CTabbedPane@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CTabbedPane__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
+}
+
+// Symbol: ?IsTabLocationBottom@CTabbedPane@@UEBAHXZ
+extern "C" int MS_ABI impl__IsTabLocationBottom_CTabbedPane__UEBAHXZ(void*) {
+    return !impl__m_bTabsAlwaysTop_CTabbedPane__2HA;
+}
+
+// Symbol: ?OnCreate@CTabbedPane@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CTabbedPane__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW*) {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    g_tabbedPanes[pThis] = {};
+    return 0;
+}
+
+// Symbol: ?OnDestroy@CTabbedPane@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CTabbedPane__IEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    g_tabbedPanes.erase(pThis);
+}
+
+// Symbol: ?OnPressCloseButton@CTabbedPane@@MEAAXXZ
+extern "C" void MS_ABI impl__OnPressCloseButton_CTabbedPane__MEAAXXZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    auto& tabs = g_tabbedPanes[pThis].tabs;
+    if (!tabs.empty()) tabs.pop_back();
+}
+
+// Symbol: ?ResetTabs@CTabbedPane@@SAXXZ
+extern "C" void MS_ABI impl__ResetTabs_CTabbedPane__SAXXZ() {
+    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
+    g_tabbedPanes.clear();
+}
+
+// Symbol: ?SetTabAutoColors@CTabbedPane@@SAXAEBV?$CArray@KK@@@Z
+extern "C" void MS_ABI impl__SetTabAutoColors_CTabbedPane__SAXAEBV__CArray_KK___Z(const void* colors) {
+    impl__m_arTabsAutoColors_CTabbedPane__1V__CArray_KK__A = const_cast<void*>(colors);
+    impl__m_bIsTabsAutoColor_CTabbedPane__1HA = TRUE;
+}
+
+// Symbol: ?ClickCommandControl@CTaskDialog@@IEBAXH@Z
+extern "C" void MS_ABI impl__ClickCommandControl_CTaskDialog__IEBAXH_Z(CTaskDialog* pThis, int id) {
+    if (pThis) pThis->m_nSelectedCommandID = id;
+}
+
+// Symbol: ?ClickRadioButton@CTaskDialog@@IEBAXH@Z
+extern "C" void MS_ABI impl__ClickRadioButton_CTaskDialog__IEBAXH_Z(CTaskDialog* pThis, int id) {
+    if (pThis) pThis->m_nSelectedRadioButtonID = id;
+}
+
+// Symbol: ?FillStruct@CTaskDialog@@AEAAXAEAU_TASKDIALOGCONFIG@@@Z
+extern "C" void MS_ABI impl__FillStruct_CTaskDialog__AEAAXAEAU_TASKDIALOGCONFIG___Z(CTaskDialog* pThis, TASKDIALOGCONFIG* config) {
+    if (config) FillTaskDialogConfig(pThis, *config);
+}
+
+// Symbol: ?FreeStruct@CTaskDialog@@AEAAXAEAU_TASKDIALOGCONFIG@@@Z
+extern "C" void MS_ABI impl__FreeStruct_CTaskDialog__AEAAXAEAU_TASKDIALOGCONFIG___Z(CTaskDialog*, TASKDIALOGCONFIG*) {
+}
+
+// Symbol: ?GetButtonData@CTaskDialog@@AEBAPEAU_TASKDIALOG_BUTTON@@AEBV?$CArray@U_CTaskDialogButton@CTaskDialog@@AEBU12@@@@Z
+extern "C" TASKDIALOG_BUTTON* MS_ABI impl__GetButtonData_CTaskDialog__AEBAPEAU_TASKDIALOG_BUTTON__AEBV__CArray_U_CTaskDialogButton_CTaskDialog__AEBU12____Z(
+    CTaskDialog* pThis, const void*) {
+    if (!pThis) return nullptr;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    return FirstTaskDialogButton(g_taskDialogs[pThis].commandControls);
+}
+
+// Symbol: ?GetButtonIndex@CTaskDialog@@AEBA_JHAEBV?$CArray@U_CTaskDialogButton@CTaskDialog@@AEBU12@@@@Z
+extern "C" intptr_t MS_ABI impl__GetButtonIndex_CTaskDialog__AEBA_JHAEBV__CArray_U_CTaskDialogButton_CTaskDialog__AEBU12____Z(
+    CTaskDialog* pThis, int id, const void*) {
+    if (!pThis) return -1;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    ptrdiff_t index = FindTaskDialogButtonIndex(g_taskDialogs[pThis].commandControls, id);
+    if (index >= 0) return index;
+    return FindTaskDialogButtonIndex(g_taskDialogs[pThis].radioButtons, id);
+}
+
+// Symbol: ?GetCommonButtonCount@CTaskDialog@@MEBAHXZ
+extern "C" int MS_ABI impl__GetCommonButtonCount_CTaskDialog__MEBAHXZ(const CTaskDialog* pThis) {
+    if (!pThis) return 0;
+    int count = 0;
+    for (int flag : { TDCBF_OK_BUTTON, TDCBF_YES_BUTTON, TDCBF_NO_BUTTON,
+                      TDCBF_CANCEL_BUTTON, TDCBF_RETRY_BUTTON, TDCBF_CLOSE_BUTTON }) {
+        if (pThis->m_nCommonButtons & flag) ++count;
+    }
+    return count;
+}
+
+// Symbol: ?GetCommonButtonFlag@CTaskDialog@@MEBAHH@Z
+extern "C" int MS_ABI impl__GetCommonButtonFlag_CTaskDialog__MEBAHH_Z(const CTaskDialog* pThis, int index) {
+    return pThis ? CommonButtonFlagByIndex(pThis->m_nCommonButtons, index) : 0;
+}
+
+// Symbol: ?GetCommonButtonId@CTaskDialog@@MEBAHH@Z
+extern "C" int MS_ABI impl__GetCommonButtonId_CTaskDialog__MEBAHH_Z(const CTaskDialog* pThis, int index) {
+    return CommonButtonId(impl__GetCommonButtonFlag_CTaskDialog__MEBAHH_Z(pThis, index));
+}
+
+// Symbol: ?GetRuntimeClass@CTaskDialog@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTaskDialog__UEBAPEAUCRuntimeClass__XZ(const CTaskDialog*) {
+    return &g_classCTaskDialog;
+}
+
+// Symbol: ?GetThisClass@CTaskDialog@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTaskDialog__SAPEAUCRuntimeClass__XZ() {
+    return &g_classCTaskDialog;
+}
+
+// Symbol: ?IsCommandControlEnabled@CTaskDialog@@QEBAHH@Z
+extern "C" int MS_ABI impl__IsCommandControlEnabled_CTaskDialog__QEBAHH_Z(const CTaskDialog* pThis, int id) {
+    if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    return g_taskDialogs[const_cast<CTaskDialog*>(pThis)].commandControls.disabled.count(id) == 0;
+}
+
+// Symbol: ?IsRadioButtonEnabled@CTaskDialog@@QEBAHH@Z
+extern "C" int MS_ABI impl__IsRadioButtonEnabled_CTaskDialog__QEBAHH_Z(const CTaskDialog* pThis, int id) {
+    if (!pThis) return FALSE;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    return g_taskDialogs[const_cast<CTaskDialog*>(pThis)].radioButtons.disabled.count(id) == 0;
+}
+
+// Symbol: ?LoadCommandControls@CTaskDialog@@QEAAXHH@Z
+extern "C" void MS_ABI impl__LoadCommandControls_CTaskDialog__QEAAXHH_Z(CTaskDialog* pThis, int firstId, int count) {
+    if (!pThis) return;
+    for (int i = 0; i < count; ++i) {
+        wchar_t label[32] = {};
+        swprintf(label, 32, L"%d", firstId + i);
+        pThis->AddCommandControl(firstId + i, label);
+    }
+}
+
+// Symbol: ?LoadRadioButtons@CTaskDialog@@QEAAXHH@Z
+extern "C" void MS_ABI impl__LoadRadioButtons_CTaskDialog__QEAAXHH_Z(CTaskDialog* pThis, int firstId, int count) {
+    if (!pThis) return;
+    for (int i = 0; i < count; ++i) {
+        wchar_t label[32] = {};
+        swprintf(label, 32, L"%d", firstId + i);
+        pThis->AddRadioButton(firstId + i, label);
+    }
+}
+
+// Symbol: ?NavigateTo@CTaskDialog@@IEBAXAEAV1@@Z
+extern "C" void MS_ABI impl__NavigateTo_CTaskDialog__IEBAXAEAV1__Z(CTaskDialog* pThis, CTaskDialog* other) {
+    if (!pThis || !other) return;
+    pThis->m_strContent = other->m_strContent;
+    pThis->m_strMainInstruction = other->m_strMainInstruction;
+    pThis->m_strWindowTitle = other->m_strWindowTitle;
+    pThis->m_strFooterText = other->m_strFooterText;
+    pThis->m_strVerificationText = other->m_strVerificationText;
+    pThis->m_strExpandedInfo = other->m_strExpandedInfo;
+    pThis->m_strExpandedControlText = other->m_strExpandedControlText;
+    pThis->m_strCollapsedControlText = other->m_strCollapsedControlText;
+    pThis->m_nCommonButtons = other->m_nCommonButtons;
+    pThis->m_nTaskDialogOptions = other->m_nTaskDialogOptions;
+}
+
+// Symbol: ?Notify@CTaskDialog@@AEBAXI_K_J@Z
+extern "C" void MS_ABI impl__Notify_CTaskDialog__AEBAXI_K_J_Z(const CTaskDialog*, UINT, uintptr_t, intptr_t) {
+}
+
+// Symbol: ?OnCommandControlClick@CTaskDialog@@MEAAJH@Z
+extern "C" intptr_t MS_ABI impl__OnCommandControlClick_CTaskDialog__MEAAJH_Z(CTaskDialog* pThis, int id) {
+    impl__ClickCommandControl_CTaskDialog__IEBAXH_Z(pThis, id);
+    return S_OK;
+}
+
+// Symbol: ?OnCreate@CTaskDialog@@MEAAJXZ
+extern "C" intptr_t MS_ABI impl__OnCreate_CTaskDialog__MEAAJXZ(CTaskDialog* pThis) {
+    if (!pThis) return E_POINTER;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis];
+    return S_OK;
+}
+
+// Symbol: ?OnDestroy@CTaskDialog@@MEAAJXZ
+extern "C" intptr_t MS_ABI impl__OnDestroy_CTaskDialog__MEAAJXZ(CTaskDialog* pThis) {
+    if (pThis) {
+        std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+        g_taskDialogs.erase(pThis);
+    }
+    return S_OK;
+}
+
+// Symbol: ?OnExpandButtonClick@CTaskDialog@@MEAAJH@Z
+extern "C" intptr_t MS_ABI impl__OnExpandButtonClick_CTaskDialog__MEAAJH_Z(CTaskDialog* pThis, int expanded) {
+    if (pThis) pThis->m_bExpanded = expanded;
+    return S_OK;
+}
+
+// Symbol: ?OnHelp@CTaskDialog@@MEAAJXZ
+extern "C" intptr_t MS_ABI impl__OnHelp_CTaskDialog__MEAAJXZ(CTaskDialog*) {
+    return S_OK;
+}
+
+// Symbol: ?OnHyperlinkClick@CTaskDialog@@MEAAJAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" intptr_t MS_ABI impl__OnHyperlinkClick_CTaskDialog__MEAAJAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CTaskDialog*, const CString*) {
+    return S_OK;
+}
+
+// Symbol: ?OnInit@CTaskDialog@@MEAAJXZ
+extern "C" intptr_t MS_ABI impl__OnInit_CTaskDialog__MEAAJXZ(CTaskDialog*) {
+    return S_OK;
+}
+
+// Symbol: ?OnNavigatePage@CTaskDialog@@MEAAJXZ
+extern "C" intptr_t MS_ABI impl__OnNavigatePage_CTaskDialog__MEAAJXZ(CTaskDialog*) {
+    return S_OK;
+}
+
+// Symbol: ?OnRadioButtonClick@CTaskDialog@@MEAAJH@Z
+extern "C" intptr_t MS_ABI impl__OnRadioButtonClick_CTaskDialog__MEAAJH_Z(CTaskDialog* pThis, int id) {
+    impl__ClickRadioButton_CTaskDialog__IEBAXH_Z(pThis, id);
+    return S_OK;
+}
+
+// Symbol: ?OnTimer@CTaskDialog@@MEAAJJ@Z
+extern "C" intptr_t MS_ABI impl__OnTimer_CTaskDialog__MEAAJJ_Z(CTaskDialog*, intptr_t) {
+    return S_OK;
+}
+
+// Symbol: ?OnVerificationCheckboxClick@CTaskDialog@@MEAAJH@Z
+extern "C" intptr_t MS_ABI impl__OnVerificationCheckboxClick_CTaskDialog__MEAAJH_Z(CTaskDialog* pThis, int checked) {
+    if (pThis) pThis->m_bVerificationChecked = checked;
+    return S_OK;
+}
+
+// Symbol: ?RemoveAllCommandControls@CTaskDialog@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllCommandControls_CTaskDialog__QEAAXXZ(CTaskDialog* pThis) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis].commandControls = {};
+}
+
+// Symbol: ?RemoveAllRadioButtons@CTaskDialog@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllRadioButtons_CTaskDialog__QEAAXXZ(CTaskDialog* pThis) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis].radioButtons = {};
+}
+
+// Symbol: ?SetCommandControlOptions@CTaskDialog@@QEAAXHHH@Z
+extern "C" void MS_ABI impl__SetCommandControlOptions_CTaskDialog__QEAAXHHH_Z(CTaskDialog* pThis, int id, int enabled, int) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    auto& disabled = g_taskDialogs[pThis].commandControls.disabled;
+    if (enabled) disabled.erase(id); else disabled.insert(id);
+}
+
+// Symbol: ?SetCommonButtonOptions@CTaskDialog@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetCommonButtonOptions_CTaskDialog__QEAAXHH_Z(CTaskDialog*, int, int) {
+}
+
+// Symbol: ?SetCommonButtons@CTaskDialog@@QEAAXHHH@Z
+extern "C" void MS_ABI impl__SetCommonButtons_CTaskDialog__QEAAXHHH_Z(CTaskDialog* pThis, int buttons, int, int) {
+    if (pThis) pThis->m_nCommonButtons = buttons;
+}
+
+// Symbol: ?SetDefaultCommandControl@CTaskDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetDefaultCommandControl_CTaskDialog__QEAAXH_Z(CTaskDialog* pThis, int id) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis].commandControls.defaultButton = id;
+}
+
+// Symbol: ?SetDefaultRadioButton@CTaskDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetDefaultRadioButton_CTaskDialog__QEAAXH_Z(CTaskDialog* pThis, int id) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis].radioButtons.defaultButton = id;
+}
+
+// Symbol: ?SetExpansionArea@CTaskDialog@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@00@Z
+extern "C" void MS_ABI impl__SetExpansionArea_CTaskDialog__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__00_Z(
+    CTaskDialog* pThis, const CString* expanded, const CString* expandedControl, const CString* collapsedControl) {
+    if (!pThis) return;
+    if (expanded) pThis->m_strExpandedInfo = *expanded;
+    if (expandedControl) pThis->m_strExpandedControlText = *expandedControl;
+    if (collapsedControl) pThis->m_strCollapsedControlText = *collapsedControl;
+}
+
+// Symbol: ?SetProgressBarState@CTaskDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetProgressBarState_CTaskDialog__QEAAXH_Z(CTaskDialog* pThis, int state) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs[pThis].progressState = state;
+}
+
+// Symbol: ?SetRadioButtonOptions@CTaskDialog@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetRadioButtonOptions_CTaskDialog__QEAAXHH_Z(CTaskDialog* pThis, int id, int enabled) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    auto& disabled = g_taskDialogs[pThis].radioButtons.disabled;
+    if (enabled) disabled.erase(id); else disabled.insert(id);
+}
+
+// Symbol: ?SetVerificationCheckbox@CTaskDialog@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetVerificationCheckbox_CTaskDialog__QEAAXH_Z(CTaskDialog* pThis, int checked) {
+    if (pThis) pThis->m_bVerificationChecked = checked;
+}
+
+// Symbol: ?CreateNewTool@CUserToolsManager@@QEAAPEAVCUserTool@@XZ
+extern "C" void* MS_ABI impl__CreateNewTool_CUserToolsManager__QEAAPEAVCUserTool__XZ(void* pThis) {
+    auto* tool = new char[sizeof(void*)];
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    g_userTools[tool] = {};
+    g_userToolManagers[pThis].tools.push_back(tool);
+    return tool;
+}
+
+// Symbol: ?FindTool@CUserToolsManager@@QEBAPEAVCUserTool@@I@Z
+extern "C" void* MS_ABI impl__FindTool_CUserToolsManager__QEBAPEAVCUserTool__I_Z(const void* pThis, UINT index) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& tools = g_userToolManagers[const_cast<void*>(pThis)].tools;
+    return index < tools.size() ? tools[index] : nullptr;
+}
+
+// Symbol: ?InvokeTool@CUserToolsManager@@QEAAHI@Z
+extern "C" int MS_ABI impl__InvokeTool_CUserToolsManager__QEAAHI_Z(void* pThis, UINT index) {
+    void* tool = impl__FindTool_CUserToolsManager__QEBAPEAVCUserTool__I_Z(pThis, index);
+    return tool ? impl__Invoke_CUserTool__UEAAHXZ(tool) : FALSE;
+}
+
+// Symbol: ?LoadState@CUserToolsManager@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__LoadState_CUserToolsManager__QEAAHPEB_W_Z(void* pThis, const wchar_t*) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    g_userToolManagers[pThis];
+    return TRUE;
+}
+
+// Symbol: ?MoveToolDown@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z
+extern "C" int MS_ABI impl__MoveToolDown_CUserToolsManager__QEAAHPEAVCUserTool___Z(void* pThis, void* tool) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& tools = g_userToolManagers[pThis].tools;
+    auto it = std::find(tools.begin(), tools.end(), tool);
+    if (it == tools.end() || std::next(it) == tools.end()) return FALSE;
+    std::iter_swap(it, std::next(it));
+    return TRUE;
+}
+
+// Symbol: ?MoveToolUp@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z
+extern "C" int MS_ABI impl__MoveToolUp_CUserToolsManager__QEAAHPEAVCUserTool___Z(void* pThis, void* tool) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& tools = g_userToolManagers[pThis].tools;
+    auto it = std::find(tools.begin(), tools.end(), tool);
+    if (it == tools.end() || it == tools.begin()) return FALSE;
+    std::iter_swap(it, std::prev(it));
+    return TRUE;
+}
+
+// Symbol: ?RemoveTool@CUserToolsManager@@QEAAHPEAVCUserTool@@@Z
+extern "C" int MS_ABI impl__RemoveTool_CUserToolsManager__QEAAHPEAVCUserTool___Z(void* pThis, void* tool) {
+    std::lock_guard<std::mutex> lock(g_userToolMutex);
+    auto& tools = g_userToolManagers[pThis].tools;
+    auto it = std::find(tools.begin(), tools.end(), tool);
+    if (it == tools.end()) return FALSE;
+    tools.erase(it);
+    g_userTools.erase(tool);
+    delete[] reinterpret_cast<char*>(tool);
+    return TRUE;
+}
+
+// Symbol: ?SaveState@CUserToolsManager@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__SaveState_CUserToolsManager__QEAAHPEB_W_Z(void*, const wchar_t*) {
+    return TRUE;
 }
 
 BOOL CPaneFrameWnd::Create(const wchar_t* lpszClassName, DWORD dwStyle, const RECT& rect,
