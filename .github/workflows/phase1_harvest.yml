@@ -7,7 +7,7 @@ jobs:
   harvest-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
@@ -52,7 +52,7 @@ jobs:
   build-wine-tracer:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install mingw
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
       - name: Build wine tracer
@@ -69,7 +69,7 @@ jobs:
   import-libs:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
       - name: Generate DEF and import libs for CRT
