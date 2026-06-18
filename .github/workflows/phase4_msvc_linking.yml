@@ -13,7 +13,7 @@ jobs:
     outputs:
       dll-artifact: ${{ steps.upload.outputs.artifact-name }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install llvm-mingw (UCRT)
       run: |
@@ -46,7 +46,7 @@ jobs:
     needs: build-phase4-mingw
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Download Phase 4 artifacts
       uses: actions/download-artifact@v8
       with:
