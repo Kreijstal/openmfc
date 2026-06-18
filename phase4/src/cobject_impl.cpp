@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <cwchar>
 #include "openmfc/afxwin.h"
 
 // MS ABI calling convention
@@ -68,6 +69,11 @@ static std::vector<CRuntimeClass*>& GetClassRegistry() {
     return registry;
 }
 
+static CRuntimeClass*& GetClassRegistryHead() {
+    static CRuntimeClass* head = nullptr;
+    return head;
+}
+
 // Register a class in the global list
 static void RegisterRuntimeClass(CRuntimeClass* pClass) {
     if (pClass) {
@@ -76,6 +82,8 @@ static void RegisterRuntimeClass(CRuntimeClass* pClass) {
         for (auto* c : registry) {
             if (c == pClass) return;
         }
+        pClass->m_pNextClass = GetClassRegistryHead();
+        GetClassRegistryHead() = pClass;
         registry.push_back(pClass);
     }
 }
@@ -100,6 +108,15 @@ static bool g_classesInitialized = false;
 static void InitializeClasses() {
     if (g_classesInitialized) return;
     RegisterRuntimeClass(&CObject::classCObject);
+    RegisterRuntimeClass(&CException::classCException);
+    RegisterRuntimeClass(&CMemoryException::classCMemoryException);
+    RegisterRuntimeClass(&CFileException::classCFileException);
+    RegisterRuntimeClass(&CArchiveException::classCArchiveException);
+    RegisterRuntimeClass(&CCmdTarget::classCCmdTarget);
+    RegisterRuntimeClass(&CWinThread::classCWinThread);
+    RegisterRuntimeClass(&CWinApp::classCWinApp);
+    RegisterRuntimeClass(&CWnd::classCWnd);
+    RegisterRuntimeClass(&CFrameWnd::classCFrameWnd);
     g_classesInitialized = true;
 }
 
@@ -215,8 +232,7 @@ extern "C" void MS_ABI impl__Serialize_CObject__UEAAXAEAVCArchive___Z(
 // CRuntimeClass Methods
 // =============================================================================
 
-// CRuntimeClass::CreateObject() - instance method
-// Creates a new instance of this class using the factory function
+// Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
     CRuntimeClass* pThis  // RCX = this (CRuntimeClass*)
 ) {
@@ -226,8 +242,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ
     return pThis->m_pfnCreateObject();
 }
 
-// CRuntimeClass::CreateObject(const wchar_t*) - static method
-// Creates object by class name (wide string)
+// Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)
 ) {
@@ -237,12 +252,12 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_
 
     InitializeClasses();
 
-    // Convert wide string to narrow for comparison
     char narrowName[256];
-    int i = 0;
-    while (lpszClassName[i] && i < 255) {
-        narrowName[i] = (char)lpszClassName[i];
-        i++;
+    size_t i = 0;
+    while (lpszClassName[i] && i < sizeof(narrowName) - 1) {
+        wchar_t ch = lpszClassName[i];
+        narrowName[i] = (ch >= 0 && ch <= 0x7f) ? static_cast<char>(ch) : '?';
+        ++i;
     }
     narrowName[i] = '\0';
 
@@ -259,8 +274,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_
     return nullptr;
 }
 
-// CRuntimeClass::CreateObject(const char*) - static method
-// Creates object by class name (narrow string)
+// Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD_Z(
     const char* lpszClassName  // RCX = class name (narrow)
 ) {
@@ -283,8 +297,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD
     return nullptr;
 }
 
-// CRuntimeClass::FromName(const wchar_t*) - static method
-// Finds CRuntimeClass by class name (wide string)
+// Symbol: ?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z
 extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)
 ) {
@@ -294,12 +307,12 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
 
     InitializeClasses();
 
-    // Convert wide string to narrow for comparison
     char narrowName[256];
-    int i = 0;
-    while (lpszClassName[i] && i < 255) {
-        narrowName[i] = (char)lpszClassName[i];
-        i++;
+    size_t i = 0;
+    while (lpszClassName[i] && i < sizeof(narrowName) - 1) {
+        wchar_t ch = lpszClassName[i];
+        narrowName[i] = (ch >= 0 && ch <= 0x7f) ? static_cast<char>(ch) : '?';
+        ++i;
     }
     narrowName[i] = '\0';
 
@@ -313,8 +326,7 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(
     return nullptr;
 }
 
-// CRuntimeClass::FromName(const char*) - static method
-// Finds CRuntimeClass by class name (narrow string)
+// Symbol: ?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z
 extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
     const char* lpszClassName  // RCX = class name (narrow)
 ) {
@@ -334,8 +346,7 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
     return nullptr;
 }
 
-// CRuntimeClass::IsDerivedFrom() - const member function
-// Checks if this class is derived from another class
+// Symbol: ?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z
 extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
     const CRuntimeClass* pThis,     // RCX = this (CRuntimeClass*)
     const CRuntimeClass* pBaseClass // RDX = base class to check
@@ -350,14 +361,13 @@ extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
         if (pClass == pBaseClass) {
             return TRUE;
         }
-        pClass = pClass->m_pBaseClass;
+        pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : pClass->m_pBaseClass;
     }
 
     return FALSE;
 }
 
-// CRuntimeClass::Load() - static method
-// Loads CRuntimeClass from archive (for serialization)
+// Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
 extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
     CArchive* ar,              // RCX = archive
     unsigned int* pwSchemaNum  // RDX = schema number output
@@ -392,8 +402,7 @@ extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive_
     return pClass;
 }
 
-// CRuntimeClass::Store() - const member function
-// Stores CRuntimeClass to archive (for serialization)
+// Symbol: ?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
     const CRuntimeClass* pThis,  // RCX = this
     CArchive* ar                 // RDX = archive
