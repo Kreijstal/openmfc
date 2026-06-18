@@ -19,5 +19,218 @@
 #include "openmfc/afxinet.h"
 #include "openmfc/afxsock.h"
 #include "openmfc/afx.h"
+#include <cwchar>
 #include <cstring>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
+namespace {
+
+struct RibbonWriteState {
+    std::vector<std::wstring> events;
+};
+
+std::mutex g_manualThunkStateMutex;
+std::unordered_map<void*, RibbonWriteState> g_ribbonWriterState;
+std::unordered_map<void*, int> g_dynamicLayoutState;
+std::unordered_map<void*, int> g_dataSourceControlState;
+
+std::wstring ManualThunkCStringText(const CString* text) {
+    return text ? std::wstring(static_cast<const wchar_t*>(*text)) : std::wstring();
+}
+
+int RecordRibbonWrite(void* parser, const wchar_t* name) {
+    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
+    g_ribbonWriterState[parser].events.emplace_back(name ? name : L"");
+    return 1;
+}
+
+int RecordRibbonAttribute(void* parser, const CString* name, const std::wstring& value) {
+    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
+    std::wstring event = ManualThunkCStringText(name);
+    event += L"=";
+    event += value;
+    g_ribbonWriterState[parser].events.push_back(event);
+    return 1;
+}
+
+std::wstring ManualThunkIntText(int value, int defaultValue) {
+    wchar_t buffer[64] = {};
+    std::swprintf(buffer, 64, L"%d:%d", value, defaultValue);
+    return buffer;
+}
+
+std::wstring ManualThunkUIntText(unsigned int value, unsigned int defaultValue) {
+    wchar_t buffer[64] = {};
+    std::swprintf(buffer, 64, L"%u:%u", value, defaultValue);
+    return buffer;
+}
+
+std::wstring ManualThunkULongText(unsigned long value, unsigned long defaultValue) {
+    wchar_t buffer[64] = {};
+    std::swprintf(buffer, 64, L"%lu:%lu", value, defaultValue);
+    return buffer;
+}
+
+std::wstring ManualThunkSizeText(const CSize* value, const CSize* defaultValue) {
+    wchar_t buffer[96] = {};
+    const int cx = value ? value->cx : 0;
+    const int cy = value ? value->cy : 0;
+    const int defaultCx = defaultValue ? defaultValue->cx : 0;
+    const int defaultCy = defaultValue ? defaultValue->cy : 0;
+    std::swprintf(buffer, 96, L"%d,%d:%d,%d", cx, cy, defaultCx, defaultCy);
+    return buffer;
+}
+
+}  // namespace
+
+// Symbol: ?Write@XElementEdit@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementEdit_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementEdit");
+}
+
+// Symbol: ?Write@XElementFontComboBox@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementFontComboBox_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementFontComboBox");
+}
+
+// Symbol: ?Write@XElementGroup@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementGroup_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementGroup");
+}
+
+// Symbol: ?Write@XElementLabel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementLabel_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementLabel");
+}
+
+// Symbol: ?Write@XElementProgressBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementProgressBar_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementProgressBar");
+}
+
+// Symbol: ?Write@XElementSeparator@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementSeparator_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementSeparator");
+}
+
+// Symbol: ?Write@XElementSlider@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementSlider_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementSlider");
+}
+
+// Symbol: ?Write@XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z
+extern "C" int MS_ABI impl__Write_XGalleryGroup_XElementButtonGallery_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_3__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XGalleryGroup");
+}
+
+// Symbol: ?Write@XID@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XID_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XID");
+}
+
+// Symbol: ?Write@XImage@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XImage_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XImage");
+}
+
+// Symbol: ?Write@XPanel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XPanel_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XPanel");
+}
+
+// Symbol: ?Write@XQAT@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XQAT_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XQAT");
+}
+
+// Symbol: ?Write@XQATItem@XQAT@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z
+extern "C" int MS_ABI impl__Write_XQATItem_XQAT_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_3__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XQATItem");
+}
+
+// Symbol: ?Write@XRibbonBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XRibbonBar_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XRibbonBar");
+}
+
+// Symbol: ?WriteBool@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z
+extern "C" int MS_ABI impl__WriteBool_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HH_Z(
+    void* pThis, const CString* name, int value, int defaultValue) {
+    return RecordRibbonAttribute(pThis, name, ManualThunkIntText(value, defaultValue));
+}
+
+// Symbol: ?WriteColor@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@KK@Z
+extern "C" int MS_ABI impl__WriteColor_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__KK_Z(
+    void* pThis, const CString* name, unsigned long value, unsigned long defaultValue) {
+    return RecordRibbonAttribute(pThis, name, ManualThunkULongText(value, defaultValue));
+}
+
+// Symbol: ?WriteInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HH@Z
+extern "C" int MS_ABI impl__WriteInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HH_Z(
+    void* pThis, const CString* name, int value, int defaultValue) {
+    return RecordRibbonAttribute(pThis, name, ManualThunkIntText(value, defaultValue));
+}
+
+// Symbol: ?WriteSize@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCSize@@1@Z
+extern "C" int MS_ABI impl__WriteSize_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCSize__1_Z(
+    void* pThis, const CString* name, const CSize* value, const CSize* defaultValue) {
+    return RecordRibbonAttribute(pThis, name, ManualThunkSizeText(value, defaultValue));
+}
+
+// Symbol: ?WriteUInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@II@Z
+extern "C" int MS_ABI impl__WriteUInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__II_Z(
+    void* pThis, const CString* name, unsigned int value, unsigned int defaultValue) {
+    return RecordRibbonAttribute(pThis, name, ManualThunkUIntText(value, defaultValue));
+}
+
+// Symbol: ??1CDataSourceControl@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CDataSourceControl__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
+    g_dataSourceControlState.erase(pThis);
+    return pThis;
+}
+
+// Symbol: ??0CMFCDynamicLayout@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CMFCDynamicLayout__QEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
+    g_dynamicLayoutState[pThis] = 0;
+    return pThis;
+}
+
+// Symbol: ??1CMFCDynamicLayout@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCDynamicLayout__UEAA_XZ(void* pThis) {
+    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
+    g_dynamicLayoutState.erase(pThis);
+    return pThis;
+}
