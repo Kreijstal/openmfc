@@ -38,11 +38,14 @@ int main() {
     catch (CMemoryException* e) {
         printf("  SUCCESS: Caught CMemoryException*!\n");
         printf("    Exception pointer: %p\n", (void*)e);
+        fflush(stdout);
         wchar_t buffer[256] = {};
         int hasMessage = e->GetErrorMessage(buffer, 256);
         printf("    GetErrorMessage returned: %d\n", hasMessage);
         printf("    Message empty: %s\n", buffer[0] ? "no" : "yes");
+        fflush(stdout);
         e->AssertValid();
+        fflush(stdout);
         if (!hasMessage || !buffer[0]) {
             printf("  FAILED: Expected non-empty CMemoryException message\n");
             return 1;
