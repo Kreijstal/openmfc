@@ -1,7 +1,8 @@
 {
-  "_comment": "Golden MFC exception vtable slot maps, resolved from a live MFC harvest. Confidence: 'exact-ordinal' = proven mfc140u.dll export hit; 'folded-icf' = ICF-shared no-op thunk; 'rva-only' = real slot not individually exported (e.g. destructor); 'cross-module-rva' = slot in a module with no ordinal map here (CFile/CArchive vtables live in mfc140.dll). Per-slot 'role' is the fixed CObject/CException ABI contract.",
+  "_comment": "Golden MFC exception vtable slot maps, resolved from a live MFC harvest. Confidence: 'exact-ordinal' = proven mfc140u.dll export hit; 'exact-export' = proven mfc140.dll export hit (CFile/CArchive); 'folded-icf' = ICF-shared no-op thunk (cofolded_export names the symbol it folded onto); 'rva-only' = real slot not individually exported (e.g. destructor); 'cross-module-rva' = slot in a module with no name map. Per-slot 'role' is the fixed CObject/CException ABI contract.",
   "source_raw": "phase1/harvest/raw_vtable_slots.json",
   "source_ordmap": "mfc_complete_ordinal_mapping.json",
+  "source_rvamap": "mfc140_rva_symbols.json",
   "classes": [
     {
       "name": "CMemoryException",
@@ -54,7 +55,7 @@
           "index": 5,
           "rva": "0x2273c0",
           "module": "mfc140u.dll",
-          "role": "GetErrorMessage (CException, non-const)",
+          "role": "GetErrorMessage (CException base, non-const)",
           "symbol": "?GetErrorMessage@CException@@UEAAHPEA_WIPEAI@Z",
           "confidence": "exact-ordinal"
         },
@@ -62,7 +63,7 @@
           "index": 6,
           "rva": "0x227630",
           "module": "mfc140u.dll",
-          "role": "GetErrorMessage (CSimpleException, const)",
+          "role": "GetErrorMessage (most-derived override)",
           "symbol": "?GetErrorMessage@CSimpleException@@UEBAHPEA_WIPEAI@Z",
           "confidence": "exact-ordinal"
         },
@@ -84,9 +85,8 @@
           "rva": "0x22b860",
           "module": "mfc140.dll",
           "role": "GetRuntimeClass",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x22b860"
+          "symbol": "?GetThisClass@CFileException@@SAPEAUCRuntimeClass@@XZ",
+          "confidence": "exact-export"
         },
         {
           "index": 1,
@@ -104,7 +104,7 @@
           "role": "Serialize",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 3,
@@ -113,7 +113,7 @@
           "role": "AssertValid",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 4,
@@ -122,34 +122,31 @@
           "role": "Dump",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 5,
           "rva": "0x225820",
           "module": "mfc140.dll",
-          "role": "GetErrorMessage (CException, non-const)",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x225820"
+          "role": "GetErrorMessage (CException base, non-const)",
+          "symbol": "?GetErrorMessage@CException@@UEAAHPEADIPEAI@Z",
+          "confidence": "exact-export"
         },
         {
           "index": 6,
           "rva": "0x22b350",
           "module": "mfc140.dll",
-          "role": "GetErrorMessage (CSimpleException, const)",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x22b350"
+          "role": "GetErrorMessage (most-derived override)",
+          "symbol": "?GetErrorMessage@CFileException@@UEBAHPEADIPEAI@Z",
+          "confidence": "exact-export"
         },
         {
           "index": 7,
           "rva": "0x225840",
           "module": "mfc140.dll",
           "role": "ReportError",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x225840"
+          "symbol": "?ReportError@CException@@UEAAHII@Z",
+          "confidence": "exact-export"
         }
       ]
     },
@@ -161,9 +158,8 @@
           "rva": "0x1d1600",
           "module": "mfc140.dll",
           "role": "GetRuntimeClass",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x1d1600"
+          "symbol": "?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ",
+          "confidence": "exact-export"
         },
         {
           "index": 1,
@@ -181,7 +177,7 @@
           "role": "Serialize",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 3,
@@ -190,7 +186,7 @@
           "role": "AssertValid",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 4,
@@ -199,34 +195,31 @@
           "role": "Dump",
           "symbol": null,
           "confidence": "folded-icf",
-          "address": "mfc140.dll+0x2820"
+          "cofolded_export": "?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ"
         },
         {
           "index": 5,
           "rva": "0x225820",
           "module": "mfc140.dll",
-          "role": "GetErrorMessage (CException, non-const)",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x225820"
+          "role": "GetErrorMessage (CException base, non-const)",
+          "symbol": "?GetErrorMessage@CException@@UEAAHPEADIPEAI@Z",
+          "confidence": "exact-export"
         },
         {
           "index": 6,
           "rva": "0x1d1430",
           "module": "mfc140.dll",
-          "role": "GetErrorMessage (CSimpleException, const)",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x1d1430"
+          "role": "GetErrorMessage (most-derived override)",
+          "symbol": "?GetErrorMessage@CArchiveException@@UEBAHPEADIPEAI@Z",
+          "confidence": "exact-export"
         },
         {
           "index": 7,
           "rva": "0x225840",
           "module": "mfc140.dll",
           "role": "ReportError",
-          "symbol": null,
-          "confidence": "cross-module-rva",
-          "address": "mfc140.dll+0x225840"
+          "symbol": "?ReportError@CException@@UEAAHII@Z",
+          "confidence": "exact-export"
         }
       ]
     }

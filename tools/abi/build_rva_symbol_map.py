@@ -15,9 +15,12 @@ Usage:
 import argparse, json, re, sys
 from pathlib import Path
 
-# dumpbin /exports rows look like:  "  6360    0 002275C0 [NONAME]"  (ordinal hint RVA name)
-# or for forwarders/named exports the 4th column is a symbol. We only need cols 1 & 3.
-EXPORT_ROW = re.compile(r"^\s*(\d+)\s+[0-9A-Fa-f]+\s+([0-9A-Fa-f]+)\s+\S")
+# dumpbin /exports rows. For NONAME exports the hint column is blank, so the row
+# is "ordinal RVA [NONAME]"; for named exports it is "ordinal hint RVA name". The
+# RVA is the 8-hex-digit field immediately before the name; an optional hint may
+# precede it. Capture ordinal and that RVA (regex backtracking picks the right
+# field whether or not a hint is present).
+EXPORT_ROW = re.compile(r"^\s*(\d+)\s+(?:[0-9A-Fa-f]+\s+)?([0-9A-Fa-f]{8})\b")
 
 def parse_exports(path):
     """ordinal(int) -> rva(int) from `dumpbin /exports` output."""

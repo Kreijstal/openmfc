@@ -6,8 +6,6 @@ name: Harvest mfc140 (MBCS) RVA symbols
 
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/resolve-mfc140-names]   # temporary: removed before merge
 
 jobs:
   dump:
