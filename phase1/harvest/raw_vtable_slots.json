@@ -1,0 +1,21 @@
+{
+  "_comment": "Raw harvest output from CI run 27864563844 (real mfc140u.dll, MSVC, _AFXDLL). Slots are live in-DLL RVAs with export-table ordinals (@N) or nearest-lower (@N+0xNN). Consumed by resolve_vtable_slots.py.",
+  "classes": [
+    {
+      "name": "CMemoryException",
+      "slots": [
+        { "index": 0, "rva": "0x2275c0", "ordinal": "@6360" },
+        { "index": 1, "rva": "0x227750", "ordinal": "@2344+0x30" },
+        { "index": 2, "rva": "0x27d0",   "ordinal": "@10020" },
+        { "index": 3, "rva": "0x27d0",   "ordinal": "@10020" },
+        { "index": 4, "rva": "0x27d0",   "ordinal": "@10020" },
+        { "index": 5, "rva": "0x2273c0", "ordinal": "@5326" },
+        { "index": 6, "rva": "0x227630", "ordinal": "@5332" },
+        { "index": 7, "rva": "0x2273e0", "ordinal": "@12464" },
+        { "index": 8, "rva": "0x34d188", "ordinal": "@13869+0xeea0" }
+      ]
+    },
+    { "name": "CFileException", "slots": [] },
+    { "name": "CArchiveException", "slots": [] }
+  ]
+}
