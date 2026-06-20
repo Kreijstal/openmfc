@@ -63,7 +63,12 @@ jobs:
         echo ""
         echo "5. Drop-in replacement test..."
         ./scripts/test_dropin_replacement.sh
-        
+
+        # 6. Exception vtable golden guardrail
+        echo ""
+        echo "6. Exception vtable golden guardrail..."
+        python3 tools/abi/check_vtables.py
+
         echo ""
         echo "✅ All ABI safety checks passed!"
     
