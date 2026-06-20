@@ -1,0 +1,83 @@
+{
+  "_comment": "Golden MFC exception vtable slot maps, resolved from a live mfc140u.dll harvest. 'exact-ordinal' symbols are proven export hits; 'rva-only' slots are real but unnamed (destructor / shared no-op thunks not individually exported).",
+  "source_raw": "phase1/harvest/raw_vtable_slots.json",
+  "source_ordmap": "mfc_complete_ordinal_mapping.json",
+  "classes": [
+    {
+      "name": "CMemoryException",
+      "slots": [
+        {
+          "index": 0,
+          "rva": "0x2275c0",
+          "role": "GetRuntimeClass",
+          "symbol": "?GetRuntimeClass@CMemoryException@@UEBAPEAUCRuntimeClass@@XZ",
+          "confidence": "exact-ordinal"
+        },
+        {
+          "index": 1,
+          "rva": "0x227750",
+          "role": "~dtor (scalar-deleting destructor)",
+          "symbol": null,
+          "confidence": "rva-only",
+          "nearest_export": "?AfxThrowInvalidArgException@@YAXXZ+0x30"
+        },
+        {
+          "index": 2,
+          "rva": "0x27d0",
+          "role": "Serialize",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "cofolded_export": "?OnGetItemPosition@COleClientItem@@MEAAXAEAVCRect@@@Z"
+        },
+        {
+          "index": 3,
+          "rva": "0x27d0",
+          "role": "AssertValid",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "cofolded_export": "?OnGetItemPosition@COleClientItem@@MEAAXAEAVCRect@@@Z"
+        },
+        {
+          "index": 4,
+          "rva": "0x27d0",
+          "role": "Dump",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "cofolded_export": "?OnGetItemPosition@COleClientItem@@MEAAXAEAVCRect@@@Z"
+        },
+        {
+          "index": 5,
+          "rva": "0x2273c0",
+          "role": "GetErrorMessage (CException, non-const)",
+          "symbol": "?GetErrorMessage@CException@@UEAAHPEA_WIPEAI@Z",
+          "confidence": "exact-ordinal"
+        },
+        {
+          "index": 6,
+          "rva": "0x227630",
+          "role": "GetErrorMessage (CSimpleException, const)",
+          "symbol": "?GetErrorMessage@CSimpleException@@UEBAHPEA_WIPEAI@Z",
+          "confidence": "exact-ordinal"
+        },
+        {
+          "index": 7,
+          "rva": "0x2273e0",
+          "role": "ReportError",
+          "symbol": "?ReportError@CException@@UEAAHII@Z",
+          "confidence": "exact-ordinal"
+        }
+      ],
+      "note": "vtable ends at slot 8 (next entry is a data export = past-the-end over-read)"
+    },
+    {
+      "name": "CFileException",
+      "slots": [],
+      "note": "not harvested (empty in raw dump)"
+    },
+    {
+      "name": "CArchiveException",
+      "slots": [],
+      "note": "not harvested (empty in raw dump)"
+    }
+  ]
+}
