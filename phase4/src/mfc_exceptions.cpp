@@ -823,15 +823,15 @@ extern "C" void MS_ABI opdelete_shim(void* pThis) {
 // Serialize does nothing for exceptions
 extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
 
-extern "C" void MS_ABI stub_AssertValid(const CObject* pThis) {
-    if (!pThis) return;
-    static_cast<const CException*>(pThis)->CException::AssertValid();
-}
+// No-ops by design. These vtable slots are invoked by MSVC code on objects
+// whose vptr we patched to our MSVC-layout vtable. Dispatching into a C++ method
+// that performs an internal virtual call (e.g. CException::AssertValid ->
+// GetRuntimeClass) would resolve through the patched vtable using MinGW's
+// Itanium slot indices, which don't line up with the MSVC layout -> crash.
+// Release-mode MFC AssertValid/Dump are effectively no-ops, so this is correct.
+extern "C" void MS_ABI stub_AssertValid(const CObject* pThis) { (void)pThis; }
 
-extern "C" void MS_ABI stub_Dump(const CObject* pThis) {
-    if (!pThis) return;
-    static_cast<const CException*>(pThis)->CException::Dump();
-}
+extern "C" void MS_ABI stub_Dump(const CObject* pThis) { (void)pThis; }
 
 extern "C" int MS_ABI stub_GetErrorMessage(
     const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
@@ -923,8 +923,8 @@ static void* g_vtbl_CFileException[] = {
     reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CFileException),                   // [1] destructor (calls ~CFileException)
     reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
-    reinterpret_cast<void*>(vtbl_CFileException_AssertValid),       // [3] AssertValid
-    reinterpret_cast<void*>(vtbl_CFileException_Dump),              // [4] Dump
+    reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
+    reinterpret_cast<void*>(stub_Dump),                             // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
     reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage)    // [5] GetErrorMessage
 };
 
@@ -960,8 +960,8 @@ static void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CArchiveException),                   // [1] destructor (calls ~CArchiveException)
     reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
-    reinterpret_cast<void*>(vtbl_CArchiveException_AssertValid),       // [3] AssertValid
-    reinterpret_cast<void*>(vtbl_CArchiveException_Dump),              // [4] Dump
+    reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
+    reinterpret_cast<void*>(stub_Dump),                                // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
     reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage)    // [5] GetErrorMessage
 };
 
