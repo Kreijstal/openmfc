@@ -785,6 +785,12 @@ static void InitAllRTTI() {
 // Returns 'this' as MSVC destructors do; caller won't deallocate since m_bAutoDelete=0
 extern "C" void* MS_ABI stub_dtor_static(void* pThis) { return pThis; }
 
+// Generic padding for vtable slots beyond GetErrorMessage (e.g. ReportError).
+// The real MFC CException vtable contains both ReportError and GetErrorMessage;
+// their relative order/positions vary by toolset, so we serve the message thunk
+// at multiple candidate slots and pad the rest with this safe no-op (returns 0).
+extern "C" int MS_ABI stub_vtable_pad(void*) { return 0; }
+
 // =============================================================================
 // Proper destructor shims for heap-allocated exceptions
 // =============================================================================
@@ -888,7 +894,9 @@ static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
     reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
-    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage)    // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
+    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
+    reinterpret_cast<void*>(stub_vtable_pad)                          // [7] pad
 };
 
 // CFileException vtable
@@ -925,7 +933,9 @@ static void* g_vtbl_CFileException[] = {
     reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
     reinterpret_cast<void*>(stub_Dump),                             // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
-    reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage)    // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
+    reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
+    reinterpret_cast<void*>(stub_vtable_pad)                        // [7] pad
 };
 
 // CArchiveException vtable
@@ -962,7 +972,9 @@ static void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
     reinterpret_cast<void*>(stub_Dump),                                // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
-    reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage)    // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
+    reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
+    reinterpret_cast<void*>(stub_vtable_pad)                           // [7] pad
 };
 
 // Patch vptr to point to our MSVC-compatible vtable
