@@ -218,27 +218,45 @@ std::vector<std::pair<uintptr_t, std::string>> g_exportMap; // sorted by address
 uintptr_t g_modBase = 0;
 uintptr_t g_modEnd = 0;
 
+// Parse the loaded module's export table. mfc140u.dll exports almost everything
+// by ORDINAL (NONAME), so AddressOfNames is sparse -- we therefore index EVERY
+// function in AddressOfFunctions by ordinal, then overlay names where present.
+// Explicitly use the 64-bit PE headers (IMAGE_NT_HEADERS can resolve to the
+// 32-bit variant under some toolchains, which misreads SizeOfImage and the
+// export DataDirectory -> empty map + truncated module range).
 void build_export_map(const wchar_t* moduleName) {
     HMODULE h = GetModuleHandleW(moduleName);
     if (!h) return;
     auto base = reinterpret_cast<uintptr_t>(h);
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE) return;
-    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS64*>(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE ||
+        nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) return;
     g_modBase = base;
     g_modEnd = base + nt->OptionalHeader.SizeOfImage;
     const auto& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
     if (!dir.VirtualAddress) return;
     auto* exp = reinterpret_cast<IMAGE_EXPORT_DIRECTORY*>(base + dir.VirtualAddress);
-    auto* names = reinterpret_cast<DWORD*>(base + exp->AddressOfNames);
-    auto* ords = reinterpret_cast<WORD*>(base + exp->AddressOfNameOrdinals);
     auto* funcs = reinterpret_cast<DWORD*>(base + exp->AddressOfFunctions);
-    g_exportMap.reserve(exp->NumberOfNames);
+    auto* names = reinterpret_cast<DWORD*>(base + exp->AddressOfNames);
+    auto* nameOrds = reinterpret_cast<WORD*>(base + exp->AddressOfNameOrdinals);
+
+    // 1) every function by ordinal -> "@<ordinal>" (handles NONAME)
+    for (DWORD i = 0; i < exp->NumberOfFunctions; ++i) {
+        if (!funcs[i]) continue; // empty slot
+        uintptr_t addr = base + funcs[i];
+        std::ostringstream o;
+        o << "@" << (exp->Base + i);
+        g_exportMap.push_back({addr, o.str()});
+    }
+    // 2) overlay the (sparse) named exports so resolution prefers real names
     for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
         const char* nm = reinterpret_cast<const char*>(base + names[i]);
-        uintptr_t addr = base + funcs[ords[i]];
+        uintptr_t addr = base + funcs[nameOrds[i]];
         g_exportMap.push_back({addr, nm});
     }
+    // sort so named entries (which sort after "@...") win on exact-address ties
     std::sort(g_exportMap.begin(), g_exportMap.end());
 }
 
