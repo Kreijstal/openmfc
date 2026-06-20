@@ -1,5 +1,5 @@
 {
-  "_comment": "Golden MFC exception vtable slot maps, resolved from a live mfc140u.dll harvest. 'exact-ordinal' symbols are proven export hits; 'rva-only' slots are real but unnamed (destructor / shared no-op thunks not individually exported).",
+  "_comment": "Golden MFC exception vtable slot maps, resolved from a live MFC harvest. Confidence: 'exact-ordinal' = proven mfc140u.dll export hit; 'folded-icf' = ICF-shared no-op thunk; 'rva-only' = real slot not individually exported (e.g. destructor); 'cross-module-rva' = slot in a module with no ordinal map here (CFile/CArchive vtables live in mfc140.dll). Per-slot 'role' is the fixed CObject/CException ABI contract.",
   "source_raw": "phase1/harvest/raw_vtable_slots.json",
   "source_ordmap": "mfc_complete_ordinal_mapping.json",
   "classes": [
@@ -9,6 +9,7 @@
         {
           "index": 0,
           "rva": "0x2275c0",
+          "module": "mfc140u.dll",
           "role": "GetRuntimeClass",
           "symbol": "?GetRuntimeClass@CMemoryException@@UEBAPEAUCRuntimeClass@@XZ",
           "confidence": "exact-ordinal"
@@ -16,6 +17,7 @@
         {
           "index": 1,
           "rva": "0x227750",
+          "module": "mfc140u.dll",
           "role": "~dtor (scalar-deleting destructor)",
           "symbol": null,
           "confidence": "rva-only",
@@ -24,6 +26,7 @@
         {
           "index": 2,
           "rva": "0x27d0",
+          "module": "mfc140u.dll",
           "role": "Serialize",
           "symbol": null,
           "confidence": "folded-icf",
@@ -32,6 +35,7 @@
         {
           "index": 3,
           "rva": "0x27d0",
+          "module": "mfc140u.dll",
           "role": "AssertValid",
           "symbol": null,
           "confidence": "folded-icf",
@@ -40,6 +44,7 @@
         {
           "index": 4,
           "rva": "0x27d0",
+          "module": "mfc140u.dll",
           "role": "Dump",
           "symbol": null,
           "confidence": "folded-icf",
@@ -48,6 +53,7 @@
         {
           "index": 5,
           "rva": "0x2273c0",
+          "module": "mfc140u.dll",
           "role": "GetErrorMessage (CException, non-const)",
           "symbol": "?GetErrorMessage@CException@@UEAAHPEA_WIPEAI@Z",
           "confidence": "exact-ordinal"
@@ -55,6 +61,7 @@
         {
           "index": 6,
           "rva": "0x227630",
+          "module": "mfc140u.dll",
           "role": "GetErrorMessage (CSimpleException, const)",
           "symbol": "?GetErrorMessage@CSimpleException@@UEBAHPEA_WIPEAI@Z",
           "confidence": "exact-ordinal"
@@ -62,22 +69,166 @@
         {
           "index": 7,
           "rva": "0x2273e0",
+          "module": "mfc140u.dll",
           "role": "ReportError",
           "symbol": "?ReportError@CException@@UEAAHII@Z",
           "confidence": "exact-ordinal"
         }
-      ],
-      "note": "vtable ends at slot 8 (next entry is a data export = past-the-end over-read)"
+      ]
     },
     {
       "name": "CFileException",
-      "slots": [],
-      "note": "not harvested (empty in raw dump)"
+      "slots": [
+        {
+          "index": 0,
+          "rva": "0x22b860",
+          "module": "mfc140.dll",
+          "role": "GetRuntimeClass",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x22b860"
+        },
+        {
+          "index": 1,
+          "rva": "0x21cb40",
+          "module": "mfc140.dll",
+          "role": "~dtor (scalar-deleting destructor)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x21cb40"
+        },
+        {
+          "index": 2,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "Serialize",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 3,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "AssertValid",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 4,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "Dump",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 5,
+          "rva": "0x225820",
+          "module": "mfc140.dll",
+          "role": "GetErrorMessage (CException, non-const)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x225820"
+        },
+        {
+          "index": 6,
+          "rva": "0x22b350",
+          "module": "mfc140.dll",
+          "role": "GetErrorMessage (CSimpleException, const)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x22b350"
+        },
+        {
+          "index": 7,
+          "rva": "0x225840",
+          "module": "mfc140.dll",
+          "role": "ReportError",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x225840"
+        }
+      ]
     },
     {
       "name": "CArchiveException",
-      "slots": [],
-      "note": "not harvested (empty in raw dump)"
+      "slots": [
+        {
+          "index": 0,
+          "rva": "0x1d1600",
+          "module": "mfc140.dll",
+          "role": "GetRuntimeClass",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x1d1600"
+        },
+        {
+          "index": 1,
+          "rva": "0xaae30",
+          "module": "mfc140.dll",
+          "role": "~dtor (scalar-deleting destructor)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0xaae30"
+        },
+        {
+          "index": 2,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "Serialize",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 3,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "AssertValid",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 4,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "role": "Dump",
+          "symbol": null,
+          "confidence": "folded-icf",
+          "address": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 5,
+          "rva": "0x225820",
+          "module": "mfc140.dll",
+          "role": "GetErrorMessage (CException, non-const)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x225820"
+        },
+        {
+          "index": 6,
+          "rva": "0x1d1430",
+          "module": "mfc140.dll",
+          "role": "GetErrorMessage (CSimpleException, const)",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x1d1430"
+        },
+        {
+          "index": 7,
+          "rva": "0x225840",
+          "module": "mfc140.dll",
+          "role": "ReportError",
+          "symbol": null,
+          "confidence": "cross-module-rva",
+          "address": "mfc140.dll+0x225840"
+        }
+      ]
     }
   ]
 }

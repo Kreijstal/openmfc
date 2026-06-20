@@ -204,12 +204,14 @@ void write_layouts(const std::vector<std::pair<std::string, LayoutInfo>>& layout
 // ---------------------------------------------------------------------------
 struct VTableSlot {
     int index = 0;
-    uintptr_t rva = 0;
-    std::string symbol;
+    uintptr_t rva = 0;       // offset within the containing module
+    std::string module;      // containing module basename (e.g. "mfc140u.dll")
+    std::string symbol;      // "@<ordinal>", "name", or "module+0xrva"
 };
 
 struct VTableInfo {
     std::string name;
+    std::string note;        // diagnostics when a walk yields nothing useful
     std::vector<VTableSlot> slots;
 };
 
@@ -275,21 +277,74 @@ std::string resolve_addr(uintptr_t addr) {
     return "?";
 }
 
+// Is `a` inside committed, executable memory? A vtable slot must point at code;
+// the first slot that does NOT (data export, RTTI, padding, garbage) marks the
+// end of the vtable. This also naturally drops the trailing data-export
+// over-read that a fixed [modBase,modEnd) range check used to include.
+bool is_exec_addr(uintptr_t a) {
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (VirtualQuery(reinterpret_cast<void*>(a), &mbi, sizeof(mbi)) != sizeof(mbi)) return false;
+    if (mbi.State != MEM_COMMIT) return false;
+    DWORD prot = mbi.Protect & 0xFF;
+    return prot == PAGE_EXECUTE || prot == PAGE_EXECUTE_READ ||
+           prot == PAGE_EXECUTE_READWRITE || prot == PAGE_EXECUTE_WRITECOPY;
+}
+
+std::string module_basename(HMODULE m) {
+    wchar_t buf[MAX_PATH] = {};
+    GetModuleFileNameW(m, buf, MAX_PATH);
+    std::wstring w(buf);
+    size_t pos = w.find_last_of(L"\\/");
+    std::wstring b = (pos == std::wstring::npos) ? w : w.substr(pos + 1);
+    std::string out;
+    for (wchar_t c : b) out += static_cast<char>(c & 0x7f); // ascii filenames
+    return out;
+}
+
+// Resolve `addr` to a symbol and report its containing module + module-relative
+// rva. Inside mfc140u.dll we use the export table (ordinal/name); elsewhere we
+// emit "<module>+0x<rva>" so a vtable whose functions live outside mfc140u (the
+// CFile/CArchive case) is captured instead of silently dropped.
+std::string resolve_in_module(uintptr_t addr, std::string& moduleOut, uintptr_t& rvaOut) {
+    HMODULE m = nullptr;
+    if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                           GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCWSTR>(addr), &m) && m) {
+        moduleOut = module_basename(m);
+        rvaOut = addr - reinterpret_cast<uintptr_t>(m);
+    } else {
+        moduleOut = "?";
+        rvaOut = addr;
+    }
+    if (g_modBase && addr >= g_modBase && addr < g_modEnd) return resolve_addr(addr);
+    std::ostringstream o;
+    o << moduleOut << "+0x" << std::hex << rvaOut;
+    return o.str();
+}
+
 VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 64) {
     VTableInfo vt;
     vt.name = className;
-    if (!instance || !g_modBase) return vt;
+    if (!instance) { vt.note = "null instance"; return vt; }
+    if (IsBadReadPtr(instance, sizeof(void*))) { vt.note = "unreadable instance"; return vt; }
     auto* vptr = *reinterpret_cast<void* const*>(instance);
-    if (!vptr) return vt;
+    if (!vptr) { vt.note = "null vptr"; return vt; }
+    if (IsBadReadPtr(vptr, sizeof(void*))) { vt.note = "unreadable vptr"; return vt; }
     auto* slots = reinterpret_cast<void* const*>(vptr);
     for (int i = 0; i < maxSlots; ++i) {
+        if (IsBadReadPtr(&slots[i], sizeof(void*))) break;
         auto a = reinterpret_cast<uintptr_t>(slots[i]);
-        if (a < g_modBase || a >= g_modEnd) break; // pointer left the module => end of vtable
+        if (!a || !is_exec_addr(a)) break; // slot no longer points to code => vtable end
         VTableSlot s;
         s.index = i;
-        s.rva = a - g_modBase;
-        s.symbol = resolve_addr(a);
+        s.symbol = resolve_in_module(a, s.module, s.rva);
         vt.slots.push_back(s);
+    }
+    if (vt.slots.empty()) {
+        std::ostringstream o;
+        o << "vptr=0x" << std::hex << reinterpret_cast<uintptr_t>(vptr)
+          << " first slot not executable";
+        vt.note = o.str();
     }
     return vt;
 }
@@ -299,12 +354,15 @@ void write_vtables(const std::vector<VTableInfo>& vts, const std::string& path) 
     std::ostringstream oss;
     oss << "{\n  \"classes\": [\n";
     for (size_t i = 0; i < vts.size(); ++i) {
-        oss << "    {\n      \"name\": " << quote(vts[i].name) << ",\n      \"slots\": [\n";
+        oss << "    {\n      \"name\": " << quote(vts[i].name);
+        if (!vts[i].note.empty()) oss << ",\n      \"note\": " << quote(vts[i].note);
+        oss << ",\n      \"slots\": [\n";
         for (size_t j = 0; j < vts[i].slots.size(); ++j) {
             const auto& s = vts[i].slots[j];
             oss << "        {\"index\": " << s.index
                 << ", \"rva\": \"0x" << std::hex << s.rva << std::dec
-                << "\", \"symbol\": " << quote(s.symbol) << "}";
+                << "\", \"module\": " << quote(s.module)
+                << ", \"symbol\": " << quote(s.symbol) << "}";
             if (j + 1 < vts[i].slots.size()) oss << ",";
             oss << "\n";
         }
