@@ -869,6 +869,18 @@ extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const COb
     return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 }
 
+// CMemoryException has no per-instance state, so its message is constant.
+// Real MFC reports AFX_IDP_OUT_OF_MEMORY ("Out of memory.").
+extern "C" int MS_ABI vtbl_CMemoryException_GetErrorMessage(
+    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
+) {
+    (void)pThis;
+    if (pnHelpContext) *pnHelpContext = 0;
+    if (!lpszError || nMaxError == 0) return 0;
+    CopyErrorText(lpszError, nMaxError, L"Out of memory.");
+    return 1;
+}
+
 // CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
 static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
@@ -876,7 +888,7 @@ static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
     reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
     reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
-    reinterpret_cast<void*>(stub_GetErrorMessage)                     // [5] GetErrorMessage
+    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage)    // [5] GetErrorMessage
 };
 
 // CFileException vtable
@@ -898,14 +910,12 @@ extern "C" void MS_ABI vtbl_CFileException_Dump(const CObject* pThis) {
 extern "C" int MS_ABI vtbl_CFileException_GetErrorMessage(
     const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
 ) {
-    if (!pThis) {
-        if (pnHelpContext) *pnHelpContext = 0;
-        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
-        return 0;
-    }
-    return static_cast<const CFileException*>(pThis)->CFileException::GetErrorMessage(
-        lpszError, nMaxError, pnHelpContext
-    );
+    if (pnHelpContext) *pnHelpContext = 0;
+    if (!lpszError || nMaxError == 0) return 0;
+    if (!pThis) { lpszError[0] = L'\0'; return 0; }
+    const CFileException* pFile = static_cast<const CFileException*>(pThis);
+    CopyErrorText(lpszError, nMaxError, FileCauseText(pFile->m_cause));
+    return 1;
 }
 
 // CFileException vtable - heap-allocated, needs proper destructor
@@ -937,14 +947,12 @@ extern "C" void MS_ABI vtbl_CArchiveException_Dump(const CObject* pThis) {
 extern "C" int MS_ABI vtbl_CArchiveException_GetErrorMessage(
     const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
 ) {
-    if (!pThis) {
-        if (pnHelpContext) *pnHelpContext = 0;
-        if (lpszError && nMaxError > 0) lpszError[0] = L'\0';
-        return 0;
-    }
-    return static_cast<const CArchiveException*>(pThis)->CArchiveException::GetErrorMessage(
-        lpszError, nMaxError, pnHelpContext
-    );
+    if (pnHelpContext) *pnHelpContext = 0;
+    if (!lpszError || nMaxError == 0) return 0;
+    if (!pThis) { lpszError[0] = L'\0'; return 0; }
+    const CArchiveException* pArc = static_cast<const CArchiveException*>(pThis);
+    CopyErrorText(lpszError, nMaxError, ArchiveCauseText(pArc->m_cause));
+    return 1;
 }
 
 // CArchiveException vtable - heap-allocated, needs proper destructor
