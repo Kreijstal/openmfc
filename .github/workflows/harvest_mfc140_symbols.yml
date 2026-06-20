@@ -1,0 +1,81 @@
+name: Harvest mfc140 (MBCS) RVA symbols
+
+# One-shot: produce an RVA->mangled-symbol map for mfc140.dll so the
+# CFileException/CArchiveException vtable slots (which live in mfc140.dll,
+# not mfc140u.dll) can be name-resolved by tools/abi/resolve_vtable_slots.py.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Locate mfc140.dll (MBCS) and mfc140.lib
+        id: locate
+        shell: pwsh
+        run: |
+          function Find-File([string]$name) {
+            foreach ($p in @("$env:SystemRoot\System32\$name", "$env:SystemRoot\SysWOW64\$name")) {
+              if (Test-Path $p) { return Get-Item $p }
+            }
+            $roots = @($env:VCToolsRedistDir, $env:VCToolsInstallDir, $env:VSINSTALLDIR,
+                       'C:\Program Files\Microsoft Visual Studio',
+                       'C:\Program Files (x86)\Microsoft Visual Studio') |
+                     Where-Object { $_ -and (Test-Path $_) }
+            foreach ($root in $roots) {
+              $hit = Get-ChildItem -Path $root -Filter $name -Recurse -ErrorAction SilentlyContinue -File |
+                     Where-Object { $_.FullName -notmatch 'x86|arm' } | Select-Object -First 1
+              if ($hit) { return $hit }
+            }
+            return $null
+          }
+          $dll = Find-File 'mfc140.dll'
+          if (-not $dll) { Write-Error 'mfc140.dll not found'; exit 1 }
+          $libPath = Join-Path $env:VCToolsInstallDir 'ATLMFC\lib\x64\mfc140.lib'
+          if (-not (Test-Path $libPath)) {
+            $lib = Find-File 'mfc140.lib'
+            if (-not $lib) { Write-Error 'mfc140.lib not found'; exit 1 }
+            $libPath = $lib.FullName
+          }
+          Write-Host "DLL: $($dll.FullName)"
+          Write-Host "LIB: $libPath"
+          Write-Host "DLL version: $($dll.VersionInfo.ProductVersion)  sha256: $((Get-FileHash $dll.FullName -Algorithm SHA256).Hash.ToLower())"
+          "mfc_dll=$($dll.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "mfc_lib=$libPath"        | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Dump exports and lib symbols
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          & dumpbin /nologo /exports '${{ steps.locate.outputs.mfc_dll }}' | Out-File artifacts/mfc140.exports -Encoding ASCII
+          & dumpbin /nologo /ALL     '${{ steps.locate.outputs.mfc_lib }}' | Out-File artifacts/mfc140_lib_all.txt -Encoding ASCII
+
+      - name: Extract ordinal map (symbol -> ordinal)
+        shell: bash
+        run: |
+          python tools/extract_ordinals.py \
+            --dumpbin artifacts/mfc140_lib_all.txt \
+            --out-json artifacts/mfc140_ordinal_map.json
+
+      - name: Join into RVA -> symbol map
+        shell: bash
+        run: |
+          python tools/abi/build_rva_symbol_map.py \
+            --exports artifacts/mfc140.exports \
+            --ordinal-map artifacts/mfc140_ordinal_map.json \
+            --module mfc140.dll \
+            --out artifacts/mfc140_rva_symbols.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: mfc140_rva_symbols
+          path: artifacts/
+          retention-days: 14

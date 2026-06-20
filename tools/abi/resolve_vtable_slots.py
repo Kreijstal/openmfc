@@ -52,8 +52,8 @@ CEXCEPTION_ROLES = {
     2: "Serialize",
     3: "AssertValid",
     4: "Dump",
-    5: "GetErrorMessage (CException, non-const)",
-    6: "GetErrorMessage (CSimpleException, const)",
+    5: "GetErrorMessage (CException base, non-const)",
+    6: "GetErrorMessage (most-derived override)",
     7: "ReportError",
 }
 ROLE_TABLE = {
@@ -62,9 +62,17 @@ ROLE_TABLE = {
     "CArchiveException": CEXCEPTION_ROLES,
 }
 
-def resolve(raw_path, ordmap_path):
+def load_rva_map(path):
+    """module-rva ('mfc140.dll', {'0xrva': symbol}) for cross-module slots."""
+    if not path or not os.path.exists(path):
+        return None, {}
+    d = json.load(open(path))
+    return d.get("module"), d.get("by_rva", {})
+
+def resolve(raw_path, ordmap_path, rvamap_path=None):
     raw = json.load(open(raw_path))
     omap = load_ord_map(ordmap_path)
+    rva_module, rva_syms = load_rva_map(rvamap_path)
     out_classes = []
     for cls in raw["classes"]:
         roles = ROLE_TABLE.get(cls["name"], {})
@@ -86,6 +94,10 @@ def resolve(raw_path, ordmap_path):
             sym = omap.get(ordn)
             exact = (off == 0 and ordn is not None)
             folded = rva_counts.get(s["rva"], 0) > 1
+            # cross-module slot resolved via the mfc140.dll RVA->symbol map
+            xsym = None
+            if rva_module and s.get("module") == rva_module:
+                xsym = rva_syms.get(s["rva"])
             # over-read detection: a non-exact hit landing on a data export far
             # from the code cluster is past the vtable end.
             if not exact and is_data_symbol(sym):
@@ -103,15 +115,21 @@ def resolve(raw_path, ordmap_path):
                 entry["confidence"] = "folded-icf"
                 if exact and sym:
                     entry["cofolded_export"] = sym
+                elif xsym:
+                    entry["cofolded_export"] = xsym
                 elif "+0x" in tok:
                     entry["address"] = tok
             elif exact and sym:
                 entry["symbol"] = sym
                 entry["confidence"] = "exact-ordinal"
+            elif xsym:
+                # named via the mfc140.dll RVA map. The exported symbol at this
+                # exact address is authoritative (GetRuntimeClass may surface as
+                # its ICF-folded twin GetThisClass; the slot 'role' carries intent).
+                entry["symbol"] = xsym
+                entry["confidence"] = "exact-export"
             elif "+0x" in tok and tok.split("+0x")[0].endswith(".dll"):
-                # slot lives in a module we have no ordinal->name map for
-                # (CFile/CArchive vtables are in mfc140.dll). Real slot, address
-                # known, name not resolvable here.
+                # slot lives in a module we have no name map for; address known.
                 entry["symbol"] = None
                 entry["confidence"] = "cross-module-rva"
                 entry["address"] = tok
@@ -131,20 +149,23 @@ def resolve(raw_path, ordmap_path):
     return {
         "_comment": "Golden MFC exception vtable slot maps, resolved from a live "
                     "MFC harvest. Confidence: 'exact-ordinal' = proven mfc140u.dll "
-                    "export hit; 'folded-icf' = ICF-shared no-op thunk; 'rva-only' = "
+                    "export hit; 'exact-export' = proven mfc140.dll export hit "
+                    "(CFile/CArchive); 'folded-icf' = ICF-shared no-op thunk "
+                    "(cofolded_export names the symbol it folded onto); 'rva-only' = "
                     "real slot not individually exported (e.g. destructor); "
-                    "'cross-module-rva' = slot in a module with no ordinal map here "
-                    "(CFile/CArchive vtables live in mfc140.dll). Per-slot 'role' is "
-                    "the fixed CObject/CException ABI contract.",
+                    "'cross-module-rva' = slot in a module with no name map. Per-slot "
+                    "'role' is the fixed CObject/CException ABI contract.",
         "source_raw": os.path.relpath(raw_path, ROOT),
         "source_ordmap": os.path.relpath(ordmap_path, ROOT),
+        "source_rvamap": os.path.relpath(rvamap_path, ROOT) if rvamap_path else None,
         "classes": out_classes,
     }
 
 if __name__ == "__main__":
     raw = os.path.join(ROOT, "phase1/harvest/raw_vtable_slots.json")
     omap = os.path.join(ROOT, "mfc_complete_ordinal_mapping.json")
-    out = resolve(raw, omap)
+    rvamap = os.path.join(ROOT, "mfc140_rva_symbols.json")
+    out = resolve(raw, omap, rvamap)
     txt = json.dumps(out, indent=2)
     if "--out" in sys.argv:
         dst = os.path.join(ROOT, "phase1/harvest/vtable_slots.json")
