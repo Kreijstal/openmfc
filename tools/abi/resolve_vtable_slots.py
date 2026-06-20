@@ -103,9 +103,18 @@ def resolve(raw_path, ordmap_path):
                 entry["confidence"] = "folded-icf"
                 if exact and sym:
                     entry["cofolded_export"] = sym
+                elif "+0x" in tok:
+                    entry["address"] = tok
             elif exact and sym:
                 entry["symbol"] = sym
                 entry["confidence"] = "exact-ordinal"
+            elif "+0x" in tok and tok.split("+0x")[0].endswith(".dll"):
+                # slot lives in a module we have no ordinal->name map for
+                # (CFile/CArchive vtables are in mfc140.dll). Real slot, address
+                # known, name not resolvable here.
+                entry["symbol"] = None
+                entry["confidence"] = "cross-module-rva"
+                entry["address"] = tok
             else:
                 # real slot, name not provable from exports (dtor not exported)
                 entry["symbol"] = None
@@ -121,9 +130,12 @@ def resolve(raw_path, ordmap_path):
         out_classes.append(oc)
     return {
         "_comment": "Golden MFC exception vtable slot maps, resolved from a live "
-                    "mfc140u.dll harvest. 'exact-ordinal' symbols are proven export "
-                    "hits; 'rva-only' slots are real but unnamed (destructor / shared "
-                    "no-op thunks not individually exported).",
+                    "MFC harvest. Confidence: 'exact-ordinal' = proven mfc140u.dll "
+                    "export hit; 'folded-icf' = ICF-shared no-op thunk; 'rva-only' = "
+                    "real slot not individually exported (e.g. destructor); "
+                    "'cross-module-rva' = slot in a module with no ordinal map here "
+                    "(CFile/CArchive vtables live in mfc140.dll). Per-slot 'role' is "
+                    "the fixed CObject/CException ABI contract.",
         "source_raw": os.path.relpath(raw_path, ROOT),
         "source_ordmap": os.path.relpath(ordmap_path, ROOT),
         "classes": out_classes,

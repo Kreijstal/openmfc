@@ -1,21 +1,164 @@
 {
-  "_comment": "Raw harvest output from CI run 27864563844 (real mfc140u.dll, MSVC, _AFXDLL). Slots are live in-DLL RVAs with export-table ordinals (@N) or nearest-lower (@N+0xNN). Consumed by resolve_vtable_slots.py.",
+  "_comment": "Raw harvest output from phase1_harvest run 27873800842 (real MFC, MSVC, _AFXDLL). Slots are live in-process vtable entries; 'module' is the containing DLL and 'symbol' is '@ordinal' inside mfc140u.dll or '<module>+0x<rva>' elsewhere. CMemoryException resolves in mfc140u.dll; CFileException/CArchiveException vtables live in mfc140.dll (both DLLs are loaded). Consumed by tools/abi/resolve_vtable_slots.py.",
   "classes": [
     {
       "name": "CMemoryException",
       "slots": [
-        { "index": 0, "rva": "0x2275c0", "ordinal": "@6360" },
-        { "index": 1, "rva": "0x227750", "ordinal": "@2344+0x30" },
-        { "index": 2, "rva": "0x27d0",   "ordinal": "@10020" },
-        { "index": 3, "rva": "0x27d0",   "ordinal": "@10020" },
-        { "index": 4, "rva": "0x27d0",   "ordinal": "@10020" },
-        { "index": 5, "rva": "0x2273c0", "ordinal": "@5326" },
-        { "index": 6, "rva": "0x227630", "ordinal": "@5332" },
-        { "index": 7, "rva": "0x2273e0", "ordinal": "@12464" },
-        { "index": 8, "rva": "0x34d188", "ordinal": "@13869+0xeea0" }
+        {
+          "index": 0,
+          "rva": "0x2275c0",
+          "module": "mfc140u.dll",
+          "symbol": "@6360"
+        },
+        {
+          "index": 1,
+          "rva": "0x227750",
+          "module": "mfc140u.dll",
+          "symbol": "@2344+0x30"
+        },
+        {
+          "index": 2,
+          "rva": "0x27d0",
+          "module": "mfc140u.dll",
+          "symbol": "@10020"
+        },
+        {
+          "index": 3,
+          "rva": "0x27d0",
+          "module": "mfc140u.dll",
+          "symbol": "@10020"
+        },
+        {
+          "index": 4,
+          "rva": "0x27d0",
+          "module": "mfc140u.dll",
+          "symbol": "@10020"
+        },
+        {
+          "index": 5,
+          "rva": "0x2273c0",
+          "module": "mfc140u.dll",
+          "symbol": "@5326"
+        },
+        {
+          "index": 6,
+          "rva": "0x227630",
+          "module": "mfc140u.dll",
+          "symbol": "@5332"
+        },
+        {
+          "index": 7,
+          "rva": "0x2273e0",
+          "module": "mfc140u.dll",
+          "symbol": "@12464"
+        }
       ]
     },
-    { "name": "CFileException", "slots": [] },
-    { "name": "CArchiveException", "slots": [] }
+    {
+      "name": "CFileException",
+      "slots": [
+        {
+          "index": 0,
+          "rva": "0x22b860",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x22b860"
+        },
+        {
+          "index": 1,
+          "rva": "0x21cb40",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x21cb40"
+        },
+        {
+          "index": 2,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 3,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 4,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 5,
+          "rva": "0x225820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x225820"
+        },
+        {
+          "index": 6,
+          "rva": "0x22b350",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x22b350"
+        },
+        {
+          "index": 7,
+          "rva": "0x225840",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x225840"
+        }
+      ]
+    },
+    {
+      "name": "CArchiveException",
+      "slots": [
+        {
+          "index": 0,
+          "rva": "0x1d1600",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x1d1600"
+        },
+        {
+          "index": 1,
+          "rva": "0xaae30",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0xaae30"
+        },
+        {
+          "index": 2,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 3,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 4,
+          "rva": "0x2820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x2820"
+        },
+        {
+          "index": 5,
+          "rva": "0x225820",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x225820"
+        },
+        {
+          "index": 6,
+          "rva": "0x1d1430",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x1d1430"
+        },
+        {
+          "index": 7,
+          "rva": "0x225840",
+          "module": "mfc140.dll",
+          "symbol": "mfc140.dll+0x225840"
+        }
+      ]
+    }
   ]
 }
