@@ -77,11 +77,14 @@ def resolve(raw_path, ordmap_path):
         slots = []
         truncated_at = None
         for s in rawslots:
-            mo = ORD_RE.match(s.get("ordinal", ""))
+            # harvest emits the resolved token under "symbol"; older hand-made
+            # raw dumps used "ordinal". Accept either.
+            tok = s.get("symbol") or s.get("ordinal") or ""
+            mo = ORD_RE.match(tok)
             ordn = int(mo.group(1)) if mo else None
             off = int(mo.group(2), 16) if (mo and mo.group(2)) else 0
             sym = omap.get(ordn)
-            exact = (off == 0)
+            exact = (off == 0 and ordn is not None)
             folded = rva_counts.get(s["rva"], 0) > 1
             # over-read detection: a non-exact hit landing on a data export far
             # from the code cluster is past the vtable end.
@@ -89,6 +92,8 @@ def resolve(raw_path, ordmap_path):
                 truncated_at = s["index"]
                 break
             entry = {"index": s["index"], "rva": s["rva"]}
+            if s.get("module"):
+                entry["module"] = s["module"]
             if s["index"] in roles:
                 entry["role"] = roles[s["index"]]
             if folded:
