@@ -4,6 +4,7 @@
 #include "shared_types.h"
 #include <afxwin.h>
 #include <Windows.h>
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -192,14 +193,122 @@ void write_layouts(const std::vector<std::pair<std::string, LayoutInfo>>& layout
     std::ofstream(path, std::ios::binary) << oss.str();
 }
 
+// ---------------------------------------------------------------------------
+// VTable slot harvesting
+//
+// MFC does not export its vtables as named symbols (no ??_7Class@@6B@ exports),
+// so we cannot GetProcAddress a vtable. Instead we read the vptr off a *live*
+// instance (offset 0), walk the slots, and resolve each slot's function address
+// against mfc140u.dll's export table -- the methods ARE exported even though the
+// vtables are not. The output schema matches what tools/gen_vtable.py consumes.
+// ---------------------------------------------------------------------------
+struct VTableSlot {
+    int index = 0;
+    uintptr_t rva = 0;
+    std::string symbol;
+};
+
+struct VTableInfo {
+    std::string name;
+    std::vector<VTableSlot> slots;
+};
+
+namespace {
+std::vector<std::pair<uintptr_t, std::string>> g_exportMap; // sorted by address
+uintptr_t g_modBase = 0;
+uintptr_t g_modEnd = 0;
+
+void build_export_map(const wchar_t* moduleName) {
+    HMODULE h = GetModuleHandleW(moduleName);
+    if (!h) return;
+    auto base = reinterpret_cast<uintptr_t>(h);
+    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return;
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
+    g_modBase = base;
+    g_modEnd = base + nt->OptionalHeader.SizeOfImage;
+    const auto& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+    if (!dir.VirtualAddress) return;
+    auto* exp = reinterpret_cast<IMAGE_EXPORT_DIRECTORY*>(base + dir.VirtualAddress);
+    auto* names = reinterpret_cast<DWORD*>(base + exp->AddressOfNames);
+    auto* ords = reinterpret_cast<WORD*>(base + exp->AddressOfNameOrdinals);
+    auto* funcs = reinterpret_cast<DWORD*>(base + exp->AddressOfFunctions);
+    g_exportMap.reserve(exp->NumberOfNames);
+    for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+        const char* nm = reinterpret_cast<const char*>(base + names[i]);
+        uintptr_t addr = base + funcs[ords[i]];
+        g_exportMap.push_back({addr, nm});
+    }
+    std::sort(g_exportMap.begin(), g_exportMap.end());
+}
+
+std::string resolve_addr(uintptr_t addr) {
+    if (g_exportMap.empty()) return "?";
+    auto it = std::lower_bound(
+        g_exportMap.begin(), g_exportMap.end(), addr,
+        [](const std::pair<uintptr_t, std::string>& e, uintptr_t a) { return e.first < a; });
+    if (it != g_exportMap.end() && it->first == addr) return it->second; // exact export
+    if (it != g_exportMap.begin()) {                                     // nearest lower + offset
+        --it;
+        std::ostringstream o;
+        o << it->second << "+0x" << std::hex << (addr - it->first);
+        return o.str();
+    }
+    return "?";
+}
+
+VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 64) {
+    VTableInfo vt;
+    vt.name = className;
+    if (!instance || !g_modBase) return vt;
+    auto* vptr = *reinterpret_cast<void* const*>(instance);
+    if (!vptr) return vt;
+    auto* slots = reinterpret_cast<void* const*>(vptr);
+    for (int i = 0; i < maxSlots; ++i) {
+        auto a = reinterpret_cast<uintptr_t>(slots[i]);
+        if (a < g_modBase || a >= g_modEnd) break; // pointer left the module => end of vtable
+        VTableSlot s;
+        s.index = i;
+        s.rva = a - g_modBase;
+        s.symbol = resolve_addr(a);
+        vt.slots.push_back(s);
+    }
+    return vt;
+}
+} // namespace
+
+void write_vtables(const std::vector<VTableInfo>& vts, const std::string& path) {
+    std::ostringstream oss;
+    oss << "{\n  \"classes\": [\n";
+    for (size_t i = 0; i < vts.size(); ++i) {
+        oss << "    {\n      \"name\": " << quote(vts[i].name) << ",\n      \"slots\": [\n";
+        for (size_t j = 0; j < vts[i].slots.size(); ++j) {
+            const auto& s = vts[i].slots[j];
+            oss << "        {\"index\": " << s.index
+                << ", \"rva\": \"0x" << std::hex << s.rva << std::dec
+                << "\", \"symbol\": " << quote(s.symbol) << "}";
+            if (j + 1 < vts[i].slots.size()) oss << ",";
+            oss << "\n";
+        }
+        oss << "      ]\n    }";
+        if (i + 1 < vts.size()) oss << ",";
+        oss << "\n";
+    }
+    oss << "  ]\n}\n";
+    std::ofstream(path, std::ios::binary) << oss.str();
+}
+
 int main() {
     hook_throw();
+    build_export_map(L"mfc140u.dll");
+    std::vector<VTableInfo> vtables;
 
     std::vector<std::pair<std::string, ExceptionNode>> exceptions;
     try {
         AfxThrowMemoryException();
     } catch (CMemoryException* e) {
         exceptions.push_back({"CMemoryException", dump_exception(".?AVCMemoryException@@")});
+        if (e) vtables.push_back(harvest_vtable("CMemoryException", e));
         if (e) e->Delete();
     }
 
@@ -207,6 +316,14 @@ int main() {
         AfxThrowFileException(CFileException::generic, 0, nullptr);
     } catch (CFileException* e) {
         exceptions.push_back({"CFileException", dump_exception(".?AVCFileException@@")});
+        if (e) vtables.push_back(harvest_vtable("CFileException", e));
+        if (e) e->Delete();
+    }
+
+    try {
+        AfxThrowArchiveException(CArchiveException::generic, nullptr);
+    } catch (CArchiveException* e) {
+        if (e) vtables.push_back(harvest_vtable("CArchiveException", e));
         if (e) e->Delete();
     }
 
@@ -215,5 +332,6 @@ int main() {
 
     write_exceptions(exceptions, "exceptions.json");
     write_layouts(layouts, "layouts.json");
+    write_vtables(vtables, "vtable_slots.json");
     return 0;
 }
