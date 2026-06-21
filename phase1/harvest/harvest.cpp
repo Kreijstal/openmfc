@@ -447,10 +447,17 @@ void write_vtables(const std::vector<VTableInfo>& vts, const std::string& path) 
 CWinApp g_harvestApp;
 
 namespace {
-// Concrete shims for classes whose ctor is protected and/or that have a pure
-// virtual (CView::OnDraw). The shim's vtable preserves the base slot ORDER; only
-// the overridden slot points into harvest.exe (flagged in the resolved symbol),
-// which conveniently identifies that slot.
+// MFC marks many CObject-derived classes abstract via a PURE-but-DLL-defined
+// destructor (e.g. ~CDocument), so they cannot be `new`d directly. A trivial
+// derived shim supplies a concrete destructor (overriding the pure base dtor) and
+// inherits the base constructors, making the class instantiable. The shim's
+// vtable preserves the base slot ORDER; only the destructor slot (and any
+// explicitly overridden method) points into harvest.exe — which is flagged in the
+// resolved symbol and conveniently identifies that slot.
+template <class B> struct Shim : public B { using B::B; };
+
+// Views additionally have a pure virtual OnDraw; override it so the shim is
+// concrete. Slot order still matches the base class.
 struct HView       : public CView       { void OnDraw(CDC*) override {} };
 struct HScrollView : public CScrollView { void OnDraw(CDC*) override {} };
 
@@ -469,24 +476,24 @@ void harvest_constructed_vtables(std::vector<VTableInfo>& v) {
          catch (...) { VTableInfo _vi; _vi.name = NAME; _vi.note = "construction threw"; v.push_back(_vi); } \
     } while (0)
 
-    PROBE("CDocument",          new CDocument());
-    PROBE("COleDocument",       new COleDocument());
-    PROBE("COleLinkingDoc",     new COleLinkingDoc());
-    PROBE("CDockState",         new CDockState());
-    PROBE("CCommandLineInfo",   new CCommandLineInfo());
-    PROBE("CFrameWnd",          new CFrameWnd());
-    PROBE("CMDIFrameWnd",       new CMDIFrameWnd());
-    PROBE("CMDIChildWnd",       new CMDIChildWnd());
-    PROBE("CDialog",            new CDialog());
+    PROBE("CDocument",          new Shim<CDocument>());
+    PROBE("COleDocument",       new Shim<COleDocument>());
+    PROBE("COleLinkingDoc",     new Shim<COleLinkingDoc>());
+    PROBE("CDockState",         new Shim<CDockState>());
+    PROBE("CCommandLineInfo",   new Shim<CCommandLineInfo>());
+    PROBE("CFrameWnd",          new Shim<CFrameWnd>());
+    PROBE("CMDIFrameWnd",       new Shim<CMDIFrameWnd>());
+    PROBE("CMDIChildWnd",       new Shim<CMDIChildWnd>());
+    PROBE("CDialog",            new Shim<CDialog>());
     PROBE("CView",              new HView());        // slot ORDER == CView
     PROBE("CScrollView",        new HScrollView());  // slot ORDER == CScrollView
-    PROBE("CSingleDocTemplate", new CSingleDocTemplate(0, nullptr, nullptr, nullptr));
-    PROBE("CMultiDocTemplate",  new CMultiDocTemplate(0, nullptr, nullptr, nullptr));
-    PROBE("COleObjectFactory",  new COleObjectFactory(CLSID_NULL, RUNTIME_CLASS(CDocument), FALSE, nullptr));
-    PROBE("CRecentFileList",    new CRecentFileList(0, _T("Recent File List"), _T("File%d"), 4, 0));
-    PROBE("COleDataSource",     new COleDataSource());
-    PROBE("COleDropTarget",     new COleDropTarget());
-    PROBE("COleDropSource",     new COleDropSource());
+    PROBE("CSingleDocTemplate", new Shim<CSingleDocTemplate>(0, nullptr, nullptr, nullptr));
+    PROBE("CMultiDocTemplate",  new Shim<CMultiDocTemplate>(0, nullptr, nullptr, nullptr));
+    PROBE("COleObjectFactory",  new Shim<COleObjectFactory>(CLSID_NULL, RUNTIME_CLASS(CDocument), FALSE, nullptr));
+    PROBE("CRecentFileList",    new Shim<CRecentFileList>(0, _T("Recent File List"), _T("File%d"), 4, 0));
+    PROBE("COleDataSource",     new Shim<COleDataSource>());
+    PROBE("COleDropTarget",     new Shim<COleDropTarget>());
+    PROBE("COleDropSource",     new Shim<COleDropSource>());
 #undef PROBE
 }
 } // namespace
