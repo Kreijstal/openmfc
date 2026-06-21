@@ -13,8 +13,6 @@
   #define MS_ABI
 #endif
 
-// --- CDialogBar (IMPLEMENT_DYNAMIC(CDialogBar, CControlBar) in cbarcore.cpp) ---
-
 // Symbol: ?GetRuntimeClass@CDialogBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialogBar__UEBAPEAUCRuntimeClass__XZ(const CDialogBar*) {
     return CDialogBar::GetThisClass();
@@ -24,8 +22,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialogBar__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialogBar__SAPEAUCRuntimeClass__XZ() {
     return CDialogBar::GetThisClass();
 }
-
-// --- CDocItem (IMPLEMENT_DYNAMIC(CDocItem, CObject) in olecore.cpp) ---
 
 // Symbol: ?GetRuntimeClass@CDocItem@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDocItem__UEBAPEAUCRuntimeClass__XZ(const CDocItem*) {
@@ -37,14 +33,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocItem__SAPEAUCRuntimeClas
     return CDocItem::GetThisClass();
 }
 
-// CDocItem::IsBlank() is a virtual returning BOOL; the MFC base default is FALSE.
-// Symbol: ?IsBlank@CDocItem@@UEBAHXZ
-extern "C" int MS_ABI impl__IsBlank_CDocItem__UEBAHXZ(const CDocItem*) {
-    return 0;
-}
-
-// --- CDragListBox (IMPLEMENT_DYNAMIC(CDragListBox, CListBox) in ctrlcore.cpp) ---
-
 // Symbol: ?GetRuntimeClass@CDragListBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDragListBox__UEBAPEAUCRuntimeClass__XZ(const CDragListBox*) {
     return CDragListBox::GetThisClass();
@@ -54,8 +42,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDragListBox__UEBAPEAUCRu
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDragListBox__SAPEAUCRuntimeClass__XZ() {
     return CDragListBox::GetThisClass();
 }
-
-// --- CEdit (IMPLEMENT_DYNAMIC(CEdit, CWnd) in ctrlcore.cpp) ---
 
 // Symbol: ?GetRuntimeClass@CEdit@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CEdit__UEBAPEAUCRuntimeClass__XZ(const CEdit*) {

@@ -15,10 +15,6 @@
   #define MS_ABI
 #endif
 
-// ---------------------------------------------------------------------------
-// COleControl runtime class (RTTI)
-// ---------------------------------------------------------------------------
-
 // Symbol: ?GetThisClass@COleControl@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI
 impl__GetThisClass_COleControl__SAPEAUCRuntimeClass__XZ() {
@@ -30,23 +26,4 @@ extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_COleControl__UEBAPEAUCRuntimeClass__XZ(const COleControl* pThis) {
     (void)pThis;
     return COleControl::GetThisClass();
-}
-
-// ---------------------------------------------------------------------------
-// COleControl message map accessors
-// COleControl carries no additional message-map entries that we model, so the
-// base CWnd message map is the correct fallback.
-// ---------------------------------------------------------------------------
-
-// Symbol: ?GetThisMessageMap@COleControl@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI
-impl__GetThisMessageMap_COleControl__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
-}
-
-// Symbol: ?GetMessageMap@COleControl@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI
-impl__GetMessageMap_COleControl__MEBAPEBUAFX_MSGMAP__XZ(const COleControl* pThis) {
-    (void)pThis;
-    return CWnd::GetThisMessageMap();
 }
