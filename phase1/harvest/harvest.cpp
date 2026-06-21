@@ -3,6 +3,10 @@
 #endif
 #include "shared_types.h"
 #include <afxwin.h>
+#include <afxext.h>    // CControlBar/CToolBar/CStatusBar/CSplitterWnd
+#include <afxadv.h>    // CDockState/CRecentFileList/CSharedFile
+#include <afxole.h>    // COle* document/server/client + factory + data transfer
+#include <afxdisp.h>   // COleVariant/COleCurrency/COleDateTime(Span)/COleException
 #include <Windows.h>
 #include <algorithm>
 #include <fstream>
@@ -136,6 +140,69 @@ void harvest_layouts(std::vector<std::pair<std::string, LayoutInfo>>& layouts) {
 
     LayoutInfo app; app.size = static_cast<int>(sizeof(CWinApp));
     layouts.push_back({"CWinApp", app});
+
+    // --- Batch 2: sizeof ground truth for the classes whose RTTI descriptors /
+    // value methods are currently blocked by unknown layout. sizeof() is a pure
+    // compile-time probe (no instance needed), so this is safe in CI even for
+    // abstract or window-backed classes. Member offsets are added only where the
+    // member is public (offsetof requires accessibility).
+#define ADD_SIZE(C) do { LayoutInfo _l; _l.size = static_cast<int>(sizeof(C)); \
+    layouts.push_back({#C, _l}); } while (0)
+
+    // Command/target + thread core
+    ADD_SIZE(CCmdTarget);
+    ADD_SIZE(CWinThread);
+
+    // Document / view / frame hierarchy
+    ADD_SIZE(CDocument);
+    ADD_SIZE(CDocTemplate);
+    ADD_SIZE(CSingleDocTemplate);
+    ADD_SIZE(CMultiDocTemplate);
+    ADD_SIZE(CDocManager);
+    ADD_SIZE(CView);
+    ADD_SIZE(CCtrlView);
+    ADD_SIZE(CScrollView);
+    ADD_SIZE(CFormView);
+    ADD_SIZE(CFrameWnd);
+    ADD_SIZE(CMDIFrameWnd);
+    ADD_SIZE(CMDIChildWnd);
+    ADD_SIZE(CDialog);
+
+    // Control bars / splitter
+    ADD_SIZE(CControlBar);
+    ADD_SIZE(CStatusBar);
+    ADD_SIZE(CToolBar);
+    ADD_SIZE(CSplitterWnd);
+    ADD_SIZE(CDockState);
+
+    // OLE document / server / client / transfer
+    ADD_SIZE(COleDocument);
+    ADD_SIZE(COleLinkingDoc);
+    ADD_SIZE(COleServerDoc);
+    ADD_SIZE(COleServerItem);
+    ADD_SIZE(COleClientItem);
+    ADD_SIZE(COleDocObjectItem);
+    ADD_SIZE(COleObjectFactory);
+    ADD_SIZE(COleDataSource);
+    ADD_SIZE(COleDropTarget);
+    ADD_SIZE(COleDropSource);
+    ADD_SIZE(COleDispatchDriver);
+
+    // OLE value types (already partly implemented; pin real sizeof)
+    ADD_SIZE(COleVariant);
+    ADD_SIZE(COleCurrency);
+    { LayoutInfo _l; _l.size = static_cast<int>(sizeof(ATL::COleDateTime));
+      layouts.push_back({"COleDateTime", _l}); }
+    { LayoutInfo _l; _l.size = static_cast<int>(sizeof(ATL::COleDateTimeSpan));
+      layouts.push_back({"COleDateTimeSpan", _l}); }
+    ADD_SIZE(COleSafeArray);
+
+    // Misc value/util
+    ADD_SIZE(CDynLinkLibrary);
+    ADD_SIZE(CRecentFileList);
+    ADD_SIZE(CCommandLineInfo);
+
+#undef ADD_SIZE
 }
 
 std::string quote(const std::string& s) {

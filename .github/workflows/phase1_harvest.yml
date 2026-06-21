@@ -43,6 +43,7 @@ jobs:
           Get-Content artifacts\golden_trace.json -ErrorAction SilentlyContinue
 
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: phase1_harvest
