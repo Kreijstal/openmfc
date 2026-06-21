@@ -92,7 +92,7 @@ public:
     void* m_pDockContext;
     DWORD m_dwStyle;
     CRect m_rectBorder;
-    char _controlbar_padding[64];
+    char _controlbar_padding[40];
 };
 
 // AFX_IDW_* and CBRS_* constants (must be before CToolBar/CStatusBar usage)
@@ -130,7 +130,7 @@ public:
     void Activate(BOOL bActivate = TRUE);
     void SetMaxTipWidth(int iWidth);
     int GetText(CWnd* pWnd, UINT_PTR nIDTool, wchar_t* pszText, int cchMax) const;
-    char _tooltip_padding[64];
+    char _tooltip_padding[56];
 };
 
 //=============================================================================
@@ -300,7 +300,7 @@ public:
     void* m_pOccDialogInfo;
 
 protected:
-    char _dialogbar_padding[48];
+    char _dialogbar_padding[16];
 };
 
 //=============================================================================
@@ -371,7 +371,7 @@ public:
     int m_nActiveCol;
 
 protected:
-    char _splitterwnd_padding[128];
+    char _splitterwnd_padding[72];
 };
 
 //=============================================================================
@@ -470,7 +470,7 @@ public:
     CDocItem();
     virtual ~CDocItem();
     CDocument* m_pDocument;
-    char _docitem_padding[16];
+    char _docitem_padding[56];
 };
 
 // COleDocument forward (needed by CDocItem subclasses)
@@ -587,7 +587,7 @@ public:
     SAFEARRAY* Detach();
     void Copy(const COleSafeArray* psaSrc);
 
-    char _olesafearray_padding[24];
+    char _olesafearray_padding[0];
 };
 
 //=============================================================================
@@ -714,7 +714,7 @@ public:
     ULONG m_lRefCount;
 
 protected:
-    char _oledropsource_padding[32];
+    char _oledropsource_padding[64];
 };
 
 //=============================================================================
@@ -820,7 +820,7 @@ public:
     int m_nHandleSize;
 
 protected:
-    char _oleresizebar_padding[24];
+    char _oleresizebar_padding[64];
 };
 
 //=============================================================================
@@ -848,7 +848,7 @@ public:
     LPSTREAM m_lpStream;
 
 protected:
-    char _olestreamfile_padding[32];
+    char _olestreamfile_padding[24];
 };
 
 //=============================================================================
@@ -885,7 +885,7 @@ public:
     wchar_t* m_pszDocString;
 
 protected:
-    char _olepropertypage_padding[32];
+    char _olepropertypage_padding[160];
 };
 
 //=============================================================================
@@ -926,7 +926,7 @@ public:
     BOOL m_bRemember;
 
 protected:
-    char _coledocument_padding[48];
+    char _coledocument_padding[96];
 };
 
 //=============================================================================
@@ -953,7 +953,7 @@ public:
     LPMONIKER m_lpMoniker;
 
 protected:
-    char _colelinkingdoc_padding[32];
+    char _colelinkingdoc_padding[56];
 };
 
 //=============================================================================
@@ -985,7 +985,7 @@ public:
     BOOL m_bEmbedded;
 
 protected:
-    char _coleserverdoc_padding[32];
+    char _coleserverdoc_padding[96];
 };
 
 //=============================================================================
@@ -1123,7 +1123,7 @@ public:
                         const GUID* pguidCmdGroup = nullptr);
 
 protected:
-    char _coledocobjectitem_padding[48];
+    char _coledocobjectitem_padding[40];
 };
 
 //=============================================================================
@@ -1158,7 +1158,7 @@ public:
     BOOL m_bAutoDelete;
 
 protected:
-    char _oleserveritem_padding[48];
+    char _oleserveritem_padding[136];
 };
 
 //=============================================================================
@@ -1239,7 +1239,7 @@ public:
     CDocTemplate* m_pDocTemplate;
 
 protected:
-    char _oletemplateserver_padding[24];
+    char _oletemplateserver_padding[0];
 };
 
 //=============================================================================
@@ -1344,7 +1344,7 @@ public:
     COleResizeBar* m_pResizeBar;
 
 protected:
-    char _oleipframewnd_padding[32];
+    char _oleipframewnd_padding[160];
 };
 
 //=============================================================================
@@ -1420,7 +1420,7 @@ public:
     explicit COleDialog(CWnd* pParentWnd);
     virtual ~COleDialog();
     int MapResult(UINT nResult);
-    char _olediag_padding[32];
+    char _olediag_padding[8];
 };
 
 //=============================================================================
@@ -1441,7 +1441,7 @@ public:
     DWORD m_dwFlags;
 
 protected:
-    char _olebusydialog_padding[16];
+    char _olebusydialog_padding[0];
 };
 
 //=============================================================================
@@ -1490,7 +1490,7 @@ public:
     COleClientItem* m_pItem;
 
 protected:
-    char _olechangesourcedialog_padding[16];
+    char _olechangesourcedialog_padding[32];
 };
 
 //=============================================================================
@@ -1551,7 +1551,7 @@ public:
     DWORD m_dwFlags;
 
 protected:
-    char _oleinsertdialog_padding[16];
+    char _oleinsertdialog_padding[512];
 };
 
 //=============================================================================
@@ -1573,7 +1573,7 @@ public:
     COleDocument* m_pDoc;
 
 protected:
-    char _olelinksdialog_padding[16];
+    char _olelinksdialog_padding[32];
 };
 
 //=============================================================================
@@ -1630,7 +1630,7 @@ public:
     COleClientItem* m_pItem;
 
 protected:
-    char _olepropertiesdialog_padding[16];
+    char _olepropertiesdialog_padding[328];
 };
 
 //=============================================================================
@@ -1650,7 +1650,7 @@ protected:
     BOOL m_bUpdateLinks;
     BOOL m_bUpdateEmbeddings;
 
-    char _oleupdatedialog_padding[8];
+    char _oleupdatedialog_padding[112];
 };
 
 //=============================================================================
@@ -1810,7 +1810,7 @@ public:
     BOOL m_bOptimizedDraw;
 
 protected:
-    char _olecontrol_padding[64];
+    char _olecontrol_padding[632];
 };
 
 //=============================================================================
