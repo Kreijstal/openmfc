@@ -362,10 +362,14 @@ bool is_exec_addr(uintptr_t a) {
 // LOCAL import thunks (jmp qword ptr [__imp_...]) or ILT stubs (jmp rel32), not
 // directly at the mfc140u function. Follow up to a few hops so the slot resolves
 // to the real mfc140u export instead of "harvest.exe+0x...".
-uintptr_t follow_thunk(uintptr_t addr, int maxHops = 4) {
+uintptr_t follow_thunk(uintptr_t addr, int maxHops = 6) {
     for (int hop = 0; hop < maxHops; ++hop) {
-        if (IsBadReadPtr(reinterpret_cast<void*>(addr), 6)) break;
+        if (IsBadReadPtr(reinterpret_cast<void*>(addr), 10)) break;
         const unsigned char* p = reinterpret_cast<const unsigned char*>(addr);
+        if (p[0] == 0xF3 && p[1] == 0x0F && p[2] == 0x1E && p[3] == 0xFA) {
+            addr += 4;                                 // skip CET endbr64 prefix, re-decode
+            continue;
+        }
         if (p[0] == 0xFF && p[1] == 0x25) {            // jmp qword ptr [rip+disp32]
             int32_t disp; memcpy(&disp, p + 2, 4);
             uintptr_t iat = addr + 6 + static_cast<intptr_t>(disp);
