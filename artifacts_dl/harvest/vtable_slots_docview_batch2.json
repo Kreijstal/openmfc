@@ -1,0 +1,6767 @@
+{
+ "classes": [
+  {
+   "name": "CDocument",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x21def0",
+     "module": "mfc140u.dll",
+     "symbol": "@6299"
+    },
+    {
+     "index": 1,
+     "rva": "0xbd50",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xbd50"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x21c840",
+     "module": "mfc140u.dll",
+     "symbol": "@8903"
+    },
+    {
+     "index": 6,
+     "rva": "0x21acb0",
+     "module": "mfc140u.dll",
+     "symbol": "@9942"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x21a9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5763"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x21a9b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5557"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x23ba",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x23ba"
+    },
+    {
+     "index": 23,
+     "rva": "0x263e4",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263e4"
+    },
+    {
+     "index": 24,
+     "rva": "0x263ea",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263ea"
+    },
+    {
+     "index": 25,
+     "rva": "0x21b100",
+     "module": "mfc140u.dll",
+     "symbol": "@2779"
+    },
+    {
+     "index": 26,
+     "rva": "0x1d75",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1d75"
+    },
+    {
+     "index": 27,
+     "rva": "0x161d",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x161d"
+    },
+    {
+     "index": 28,
+     "rva": "0x21c730",
+     "module": "mfc140u.dll",
+     "symbol": "@5408"
+    },
+    {
+     "index": 29,
+     "rva": "0x21c740",
+     "module": "mfc140u.dll",
+     "symbol": "@5973"
+    },
+    {
+     "index": 30,
+     "rva": "0x21adb0",
+     "module": "mfc140u.dll",
+     "symbol": "@8772"
+    },
+    {
+     "index": 31,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 32,
+     "rva": "0x21c060",
+     "module": "mfc140u.dll",
+     "symbol": "@10665"
+    },
+    {
+     "index": 33,
+     "rva": "0x263f0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263f0"
+    },
+    {
+     "index": 34,
+     "rva": "0x263f6",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263f6"
+    },
+    {
+     "index": 35,
+     "rva": "0x21c480",
+     "module": "mfc140u.dll",
+     "symbol": "@8888"
+    },
+    {
+     "index": 36,
+     "rva": "0x263fc",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263fc"
+    },
+    {
+     "index": 37,
+     "rva": "0x26402",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26402"
+    },
+    {
+     "index": 38,
+     "rva": "0x21c010",
+     "module": "mfc140u.dll",
+     "symbol": "@12256"
+    },
+    {
+     "index": 39,
+     "rva": "0x2801",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2801"
+    },
+    {
+     "index": 40,
+     "rva": "0x1113",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1113"
+    },
+    {
+     "index": 41,
+     "rva": "0x2432",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2432"
+    },
+    {
+     "index": 42,
+     "rva": "0x180c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x180c"
+    },
+    {
+     "index": 43,
+     "rva": "0x1e88",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1e88"
+    },
+    {
+     "index": 44,
+     "rva": "0x21ce10",
+     "module": "mfc140u.dll",
+     "symbol": "@10941"
+    },
+    {
+     "index": 45,
+     "rva": "0x21c8b0",
+     "module": "mfc140u.dll",
+     "symbol": "@8093"
+    },
+    {
+     "index": 46,
+     "rva": "0x21cbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@7395"
+    },
+    {
+     "index": 47,
+     "rva": "0x2680",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2680"
+    },
+    {
+     "index": 48,
+     "rva": "0x21dcf0",
+     "module": "mfc140u.dll",
+     "symbol": "@2767"
+    },
+    {
+     "index": 49,
+     "rva": "0x21dd50",
+     "module": "mfc140u.dll",
+     "symbol": "@13023"
+    },
+    {
+     "index": 50,
+     "rva": "0x21dde0",
+     "module": "mfc140u.dll",
+     "symbol": "@2511"
+    },
+    {
+     "index": 51,
+     "rva": "0x21ddf0",
+     "module": "mfc140u.dll",
+     "symbol": "@12100"
+    },
+    {
+     "index": 52,
+     "rva": "0x21de20",
+     "module": "mfc140u.dll",
+     "symbol": "@12341"
+    },
+    {
+     "index": 53,
+     "rva": "0x21de70",
+     "module": "mfc140u.dll",
+     "symbol": "@4549"
+    },
+    {
+     "index": 54,
+     "rva": "0x21c580",
+     "module": "mfc140u.dll",
+     "symbol": "@9175"
+    },
+    {
+     "index": 55,
+     "rva": "0x21af60",
+     "module": "mfc140u.dll",
+     "symbol": "@2662"
+    },
+    {
+     "index": 56,
+     "rva": "0x21b5b0",
+     "module": "mfc140u.dll",
+     "symbol": "@12642"
+    },
+    {
+     "index": 57,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 58,
+     "rva": "0x26408",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26408"
+    },
+    {
+     "index": 59,
+     "rva": "0x21b190",
+     "module": "mfc140u.dll",
+     "symbol": "@3947"
+    },
+    {
+     "index": 60,
+     "rva": "0x21ade0",
+     "module": "mfc140u.dll",
+     "symbol": "@14132"
+    },
+    {
+     "index": 61,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 62,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 63,
+     "rva": "0x21c620",
+     "module": "mfc140u.dll",
+     "symbol": "@10122"
+    },
+    {
+     "index": 64,
+     "rva": "0x21c8d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10411"
+    },
+    {
+     "index": 65,
+     "rva": "0x21c9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10827"
+    },
+    {
+     "index": 66,
+     "rva": "0x21c9f0",
+     "module": "mfc140u.dll",
+     "symbol": "@10828"
+    },
+    {
+     "index": 67,
+     "rva": "0x21ca20",
+     "module": "mfc140u.dll",
+     "symbol": "@9054"
+    },
+    {
+     "index": 68,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 69,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    }
+   ]
+  },
+  {
+   "name": "COleDocument",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x247c80",
+     "module": "mfc140u.dll",
+     "symbol": "@6521"
+    },
+    {
+     "index": 1,
+     "rva": "0xbe10",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xbe10"
+    },
+    {
+     "index": 2,
+     "rva": "0x254390",
+     "module": "mfc140u.dll",
+     "symbol": "@12828"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x26c540",
+     "module": "mfc140u.dll",
+     "symbol": "@8913"
+    },
+    {
+     "index": 6,
+     "rva": "0x21acb0",
+     "module": "mfc140u.dll",
+     "symbol": "@9942"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x21a9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5763"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x21a9b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5557"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x23ba",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x23ba"
+    },
+    {
+     "index": 23,
+     "rva": "0x263e4",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263e4"
+    },
+    {
+     "index": 24,
+     "rva": "0x2642c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2642c"
+    },
+    {
+     "index": 25,
+     "rva": "0x21b100",
+     "module": "mfc140u.dll",
+     "symbol": "@2779"
+    },
+    {
+     "index": 26,
+     "rva": "0x1d75",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1d75"
+    },
+    {
+     "index": 27,
+     "rva": "0x161d",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x161d"
+    },
+    {
+     "index": 28,
+     "rva": "0x21c730",
+     "module": "mfc140u.dll",
+     "symbol": "@5408"
+    },
+    {
+     "index": 29,
+     "rva": "0x21c740",
+     "module": "mfc140u.dll",
+     "symbol": "@5973"
+    },
+    {
+     "index": 30,
+     "rva": "0x21adb0",
+     "module": "mfc140u.dll",
+     "symbol": "@8772"
+    },
+    {
+     "index": 31,
+     "rva": "0x2541a0",
+     "module": "mfc140u.dll",
+     "symbol": "@3738"
+    },
+    {
+     "index": 32,
+     "rva": "0x254a40",
+     "module": "mfc140u.dll",
+     "symbol": "@10667"
+    },
+    {
+     "index": 33,
+     "rva": "0x26438",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26438"
+    },
+    {
+     "index": 34,
+     "rva": "0x2643e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2643e"
+    },
+    {
+     "index": 35,
+     "rva": "0x254f30",
+     "module": "mfc140u.dll",
+     "symbol": "@8889"
+    },
+    {
+     "index": 36,
+     "rva": "0x263fc",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263fc"
+    },
+    {
+     "index": 37,
+     "rva": "0x26402",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26402"
+    },
+    {
+     "index": 38,
+     "rva": "0x21c010",
+     "module": "mfc140u.dll",
+     "symbol": "@12256"
+    },
+    {
+     "index": 39,
+     "rva": "0x2801",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2801"
+    },
+    {
+     "index": 40,
+     "rva": "0x1113",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1113"
+    },
+    {
+     "index": 41,
+     "rva": "0x2432",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2432"
+    },
+    {
+     "index": 42,
+     "rva": "0x180c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x180c"
+    },
+    {
+     "index": 43,
+     "rva": "0x1e88",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1e88"
+    },
+    {
+     "index": 44,
+     "rva": "0x21ce10",
+     "module": "mfc140u.dll",
+     "symbol": "@10941"
+    },
+    {
+     "index": 45,
+     "rva": "0x21c8b0",
+     "module": "mfc140u.dll",
+     "symbol": "@8093"
+    },
+    {
+     "index": 46,
+     "rva": "0x21cbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@7395"
+    },
+    {
+     "index": 47,
+     "rva": "0x2680",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2680"
+    },
+    {
+     "index": 48,
+     "rva": "0x21dcf0",
+     "module": "mfc140u.dll",
+     "symbol": "@2767"
+    },
+    {
+     "index": 49,
+     "rva": "0x21dd50",
+     "module": "mfc140u.dll",
+     "symbol": "@13023"
+    },
+    {
+     "index": 50,
+     "rva": "0x21dde0",
+     "module": "mfc140u.dll",
+     "symbol": "@2511"
+    },
+    {
+     "index": 51,
+     "rva": "0x21ddf0",
+     "module": "mfc140u.dll",
+     "symbol": "@12100"
+    },
+    {
+     "index": 52,
+     "rva": "0x21de20",
+     "module": "mfc140u.dll",
+     "symbol": "@12341"
+    },
+    {
+     "index": 53,
+     "rva": "0x21de70",
+     "module": "mfc140u.dll",
+     "symbol": "@4549"
+    },
+    {
+     "index": 54,
+     "rva": "0x21c580",
+     "module": "mfc140u.dll",
+     "symbol": "@9175"
+    },
+    {
+     "index": 55,
+     "rva": "0x21af60",
+     "module": "mfc140u.dll",
+     "symbol": "@2662"
+    },
+    {
+     "index": 56,
+     "rva": "0x254700",
+     "module": "mfc140u.dll",
+     "symbol": "@12643"
+    },
+    {
+     "index": 57,
+     "rva": "0x254690",
+     "module": "mfc140u.dll",
+     "symbol": "@11776"
+    },
+    {
+     "index": 58,
+     "rva": "0x26432",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26432"
+    },
+    {
+     "index": 59,
+     "rva": "0x21b190",
+     "module": "mfc140u.dll",
+     "symbol": "@3947"
+    },
+    {
+     "index": 60,
+     "rva": "0x21ade0",
+     "module": "mfc140u.dll",
+     "symbol": "@14132"
+    },
+    {
+     "index": 61,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 62,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 63,
+     "rva": "0x2548a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10123"
+    },
+    {
+     "index": 64,
+     "rva": "0x2552e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10412"
+    },
+    {
+     "index": 65,
+     "rva": "0x21c9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10827"
+    },
+    {
+     "index": 66,
+     "rva": "0x21c9f0",
+     "module": "mfc140u.dll",
+     "symbol": "@10828"
+    },
+    {
+     "index": 67,
+     "rva": "0x21ca20",
+     "module": "mfc140u.dll",
+     "symbol": "@9054"
+    },
+    {
+     "index": 68,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 69,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 70,
+     "rva": "0x26c6b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5541"
+    },
+    {
+     "index": 71,
+     "rva": "0x254110",
+     "module": "mfc140u.dll",
+     "symbol": "@6704"
+    },
+    {
+     "index": 72,
+     "rva": "0x21c740",
+     "module": "mfc140u.dll",
+     "symbol": "@5973"
+    },
+    {
+     "index": 73,
+     "rva": "0x2540a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1880"
+    },
+    {
+     "index": 74,
+     "rva": "0x2540d0",
+     "module": "mfc140u.dll",
+     "symbol": "@12369"
+    },
+    {
+     "index": 75,
+     "rva": "0x254620",
+     "module": "mfc140u.dll",
+     "symbol": "@14148"
+    },
+    {
+     "index": 76,
+     "rva": "0x26c630",
+     "module": "mfc140u.dll",
+     "symbol": "@6115"
+    },
+    {
+     "index": 77,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 78,
+     "rva": "0x2549d0",
+     "module": "mfc140u.dll",
+     "symbol": "@5935"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x255150",
+     "module": "mfc140u.dll",
+     "symbol": "@8118"
+    },
+    {
+     "index": 81,
+     "rva": "0x254fb0",
+     "module": "mfc140u.dll",
+     "symbol": "@12689"
+    }
+   ]
+  },
+  {
+   "name": "COleLinkingDoc",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x247c90",
+     "module": "mfc140u.dll",
+     "symbol": "@6526"
+    },
+    {
+     "index": 1,
+     "rva": "0xbed0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xbed0"
+    },
+    {
+     "index": 2,
+     "rva": "0x254390",
+     "module": "mfc140u.dll",
+     "symbol": "@12828"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x26c540",
+     "module": "mfc140u.dll",
+     "symbol": "@8913"
+    },
+    {
+     "index": 6,
+     "rva": "0x21acb0",
+     "module": "mfc140u.dll",
+     "symbol": "@9942"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x21a9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5763"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x25e6b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5575"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x23ba",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x23ba"
+    },
+    {
+     "index": 23,
+     "rva": "0x263e4",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263e4"
+    },
+    {
+     "index": 24,
+     "rva": "0x2642c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2642c"
+    },
+    {
+     "index": 25,
+     "rva": "0x21b100",
+     "module": "mfc140u.dll",
+     "symbol": "@2779"
+    },
+    {
+     "index": 26,
+     "rva": "0x1d75",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1d75"
+    },
+    {
+     "index": 27,
+     "rva": "0x161d",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x161d"
+    },
+    {
+     "index": 28,
+     "rva": "0x21c730",
+     "module": "mfc140u.dll",
+     "symbol": "@5408"
+    },
+    {
+     "index": 29,
+     "rva": "0x21c740",
+     "module": "mfc140u.dll",
+     "symbol": "@5973"
+    },
+    {
+     "index": 30,
+     "rva": "0x21adb0",
+     "module": "mfc140u.dll",
+     "symbol": "@8772"
+    },
+    {
+     "index": 31,
+     "rva": "0x2541a0",
+     "module": "mfc140u.dll",
+     "symbol": "@3738"
+    },
+    {
+     "index": 32,
+     "rva": "0x25e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10668"
+    },
+    {
+     "index": 33,
+     "rva": "0x26450",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26450"
+    },
+    {
+     "index": 34,
+     "rva": "0x26456",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26456"
+    },
+    {
+     "index": 35,
+     "rva": "0x25e2e0",
+     "module": "mfc140u.dll",
+     "symbol": "@8890"
+    },
+    {
+     "index": 36,
+     "rva": "0x2645c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2645c"
+    },
+    {
+     "index": 37,
+     "rva": "0x26402",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26402"
+    },
+    {
+     "index": 38,
+     "rva": "0x21c010",
+     "module": "mfc140u.dll",
+     "symbol": "@12256"
+    },
+    {
+     "index": 39,
+     "rva": "0x2801",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2801"
+    },
+    {
+     "index": 40,
+     "rva": "0x1113",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1113"
+    },
+    {
+     "index": 41,
+     "rva": "0x2432",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2432"
+    },
+    {
+     "index": 42,
+     "rva": "0x180c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x180c"
+    },
+    {
+     "index": 43,
+     "rva": "0x1e88",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x1e88"
+    },
+    {
+     "index": 44,
+     "rva": "0x21ce10",
+     "module": "mfc140u.dll",
+     "symbol": "@10941"
+    },
+    {
+     "index": 45,
+     "rva": "0x21c8b0",
+     "module": "mfc140u.dll",
+     "symbol": "@8093"
+    },
+    {
+     "index": 46,
+     "rva": "0x21cbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@7395"
+    },
+    {
+     "index": 47,
+     "rva": "0x2680",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2680"
+    },
+    {
+     "index": 48,
+     "rva": "0x21dcf0",
+     "module": "mfc140u.dll",
+     "symbol": "@2767"
+    },
+    {
+     "index": 49,
+     "rva": "0x21dd50",
+     "module": "mfc140u.dll",
+     "symbol": "@13023"
+    },
+    {
+     "index": 50,
+     "rva": "0x21dde0",
+     "module": "mfc140u.dll",
+     "symbol": "@2511"
+    },
+    {
+     "index": 51,
+     "rva": "0x21ddf0",
+     "module": "mfc140u.dll",
+     "symbol": "@12100"
+    },
+    {
+     "index": 52,
+     "rva": "0x21de20",
+     "module": "mfc140u.dll",
+     "symbol": "@12341"
+    },
+    {
+     "index": 53,
+     "rva": "0x21de70",
+     "module": "mfc140u.dll",
+     "symbol": "@4549"
+    },
+    {
+     "index": 54,
+     "rva": "0x21c580",
+     "module": "mfc140u.dll",
+     "symbol": "@9175"
+    },
+    {
+     "index": 55,
+     "rva": "0x21af60",
+     "module": "mfc140u.dll",
+     "symbol": "@2662"
+    },
+    {
+     "index": 56,
+     "rva": "0x254700",
+     "module": "mfc140u.dll",
+     "symbol": "@12643"
+    },
+    {
+     "index": 57,
+     "rva": "0x254690",
+     "module": "mfc140u.dll",
+     "symbol": "@11776"
+    },
+    {
+     "index": 58,
+     "rva": "0x26432",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26432"
+    },
+    {
+     "index": 59,
+     "rva": "0x21b190",
+     "module": "mfc140u.dll",
+     "symbol": "@3947"
+    },
+    {
+     "index": 60,
+     "rva": "0x21ade0",
+     "module": "mfc140u.dll",
+     "symbol": "@14132"
+    },
+    {
+     "index": 61,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 62,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 63,
+     "rva": "0x2548a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10123"
+    },
+    {
+     "index": 64,
+     "rva": "0x2552e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10412"
+    },
+    {
+     "index": 65,
+     "rva": "0x21c9a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10827"
+    },
+    {
+     "index": 66,
+     "rva": "0x21c9f0",
+     "module": "mfc140u.dll",
+     "symbol": "@10828"
+    },
+    {
+     "index": 67,
+     "rva": "0x21ca20",
+     "module": "mfc140u.dll",
+     "symbol": "@9054"
+    },
+    {
+     "index": 68,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 69,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 70,
+     "rva": "0x26c6b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5541"
+    },
+    {
+     "index": 71,
+     "rva": "0x254110",
+     "module": "mfc140u.dll",
+     "symbol": "@6704"
+    },
+    {
+     "index": 72,
+     "rva": "0x21c740",
+     "module": "mfc140u.dll",
+     "symbol": "@5973"
+    },
+    {
+     "index": 73,
+     "rva": "0x2540a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1880"
+    },
+    {
+     "index": 74,
+     "rva": "0x2540d0",
+     "module": "mfc140u.dll",
+     "symbol": "@12369"
+    },
+    {
+     "index": 75,
+     "rva": "0x254620",
+     "module": "mfc140u.dll",
+     "symbol": "@14148"
+    },
+    {
+     "index": 76,
+     "rva": "0x26c630",
+     "module": "mfc140u.dll",
+     "symbol": "@6115"
+    },
+    {
+     "index": 77,
+     "rva": "0x25e3d0",
+     "module": "mfc140u.dll",
+     "symbol": "@11215"
+    },
+    {
+     "index": 78,
+     "rva": "0x25de80",
+     "module": "mfc140u.dll",
+     "symbol": "@5936"
+    },
+    {
+     "index": 79,
+     "rva": "0x25e4e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5090"
+    },
+    {
+     "index": 80,
+     "rva": "0x255150",
+     "module": "mfc140u.dll",
+     "symbol": "@8118"
+    },
+    {
+     "index": 81,
+     "rva": "0x25e3f0",
+     "module": "mfc140u.dll",
+     "symbol": "@12690"
+    },
+    {
+     "index": 82,
+     "rva": "0x26444",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26444"
+    },
+    {
+     "index": 83,
+     "rva": "0x2644a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2644a"
+    },
+    {
+     "index": 84,
+     "rva": "0x26462",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26462"
+    }
+   ]
+  },
+  {
+   "name": "CDockState",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x222000",
+     "module": "mfc140u.dll",
+     "symbol": "@6294"
+    },
+    {
+     "index": 1,
+     "rva": "0xbf90",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xbf90"
+    },
+    {
+     "index": 2,
+     "rva": "0x220d50",
+     "module": "mfc140u.dll",
+     "symbol": "@12800"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    }
+   ]
+  },
+  {
+   "name": "CCommandLineInfo",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x37a0",
+     "module": "mfc140u.dll",
+     "symbol": "@6505"
+    },
+    {
+     "index": 1,
+     "rva": "0xc050",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc050"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x1cc060",
+     "module": "mfc140u.dll",
+     "symbol": "@11719"
+    }
+   ]
+  },
+  {
+   "name": "CFrameWnd",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x66ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@6316"
+    },
+    {
+     "index": 1,
+     "rva": "0xc110",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc110"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x29e360",
+     "module": "mfc140u.dll",
+     "symbol": "@8904"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x29cad0",
+     "module": "mfc140u.dll",
+     "symbol": "@5767"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x28baf0",
+     "module": "mfc140u.dll",
+     "symbol": "@3812"
+    },
+    {
+     "index": 27,
+     "rva": "0x26384",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26384"
+    },
+    {
+     "index": 28,
+     "rva": "0x28edc0",
+     "module": "mfc140u.dll",
+     "symbol": "@2629"
+    },
+    {
+     "index": 29,
+     "rva": "0x2a1060",
+     "module": "mfc140u.dll",
+     "symbol": "@5722"
+    },
+    {
+     "index": 30,
+     "rva": "0x2a10a0",
+     "module": "mfc140u.dll",
+     "symbol": "@13351"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x29d2f0",
+     "module": "mfc140u.dll",
+     "symbol": "@8928"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x29d3d0",
+     "module": "mfc140u.dll",
+     "symbol": "@2510"
+    },
+    {
+     "index": 68,
+     "rva": "0x29d560",
+     "module": "mfc140u.dll",
+     "symbol": "@4353"
+    },
+    {
+     "index": 69,
+     "rva": "0x29ceb0",
+     "module": "mfc140u.dll",
+     "symbol": "@11859"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x26366",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26366"
+    },
+    {
+     "index": 74,
+     "rva": "0x20f410",
+     "module": "mfc140u.dll",
+     "symbol": "@11761"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 86,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 90,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 91,
+     "rva": "0x26372",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26372"
+    },
+    {
+     "index": 92,
+     "rva": "0x29dd00",
+     "module": "mfc140u.dll",
+     "symbol": "@8095"
+    },
+    {
+     "index": 93,
+     "rva": "0x29ede0",
+     "module": "mfc140u.dll",
+     "symbol": "@4872"
+    },
+    {
+     "index": 94,
+     "rva": "0x10130",
+     "module": "mfc140u.dll",
+     "symbol": "@1640"
+    },
+    {
+     "index": 95,
+     "rva": "0x26378",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26378"
+    },
+    {
+     "index": 96,
+     "rva": "0x2a0200",
+     "module": "mfc140u.dll",
+     "symbol": "@12142"
+    },
+    {
+     "index": 97,
+     "rva": "0x2a0dc0",
+     "module": "mfc140u.dll",
+     "symbol": "@1766"
+    },
+    {
+     "index": 98,
+     "rva": "0x2090",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2090"
+    },
+    {
+     "index": 99,
+     "rva": "0x2a0f00",
+     "module": "mfc140u.dll",
+     "symbol": "@13360"
+    },
+    {
+     "index": 100,
+     "rva": "0x2a0f60",
+     "module": "mfc140u.dll",
+     "symbol": "@5727"
+    },
+    {
+     "index": 101,
+     "rva": "0x2a0f70",
+     "module": "mfc140u.dll",
+     "symbol": "@13358"
+    },
+    {
+     "index": 102,
+     "rva": "0x2a1000",
+     "module": "mfc140u.dll",
+     "symbol": "@5726"
+    },
+    {
+     "index": 103,
+     "rva": "0x29fe10",
+     "module": "mfc140u.dll",
+     "symbol": "@11119"
+    },
+    {
+     "index": 104,
+     "rva": "0x29f590",
+     "module": "mfc140u.dll",
+     "symbol": "@5743"
+    },
+    {
+     "index": 105,
+     "rva": "0x2a03a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8521"
+    },
+    {
+     "index": 106,
+     "rva": "0x2637e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2637e"
+    },
+    {
+     "index": 107,
+     "rva": "0x29fbc0",
+     "module": "mfc140u.dll",
+     "symbol": "@11489"
+    },
+    {
+     "index": 108,
+     "rva": "0x29dec0",
+     "module": "mfc140u.dll",
+     "symbol": "@11484"
+    },
+    {
+     "index": 109,
+     "rva": "0x29ce60",
+     "module": "mfc140u.dll",
+     "symbol": "@5189"
+    },
+    {
+     "index": 110,
+     "rva": "0x2a0130",
+     "module": "mfc140u.dll",
+     "symbol": "@3723"
+    },
+    {
+     "index": 111,
+     "rva": "0x29d140",
+     "module": "mfc140u.dll",
+     "symbol": "@4443"
+    },
+    {
+     "index": 112,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 113,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    }
+   ]
+  },
+  {
+   "name": "CMDIFrameWnd",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x87b70",
+     "module": "mfc140u.dll",
+     "symbol": "@6356"
+    },
+    {
+     "index": 1,
+     "rva": "0xc1d0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc1d0"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x2a64c0",
+     "module": "mfc140u.dll",
+     "symbol": "@8907"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x2a6380",
+     "module": "mfc140u.dll",
+     "symbol": "@5776"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x28baf0",
+     "module": "mfc140u.dll",
+     "symbol": "@3812"
+    },
+    {
+     "index": 27,
+     "rva": "0x26390",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26390"
+    },
+    {
+     "index": 28,
+     "rva": "0x28edc0",
+     "module": "mfc140u.dll",
+     "symbol": "@2629"
+    },
+    {
+     "index": 29,
+     "rva": "0x2a1060",
+     "module": "mfc140u.dll",
+     "symbol": "@5722"
+    },
+    {
+     "index": 30,
+     "rva": "0x2a10a0",
+     "module": "mfc140u.dll",
+     "symbol": "@13351"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x2a6410",
+     "module": "mfc140u.dll",
+     "symbol": "@8930"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x29d3d0",
+     "module": "mfc140u.dll",
+     "symbol": "@2510"
+    },
+    {
+     "index": 68,
+     "rva": "0x29d560",
+     "module": "mfc140u.dll",
+     "symbol": "@4353"
+    },
+    {
+     "index": 69,
+     "rva": "0x2a6820",
+     "module": "mfc140u.dll",
+     "symbol": "@11864"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x2639c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2639c"
+    },
+    {
+     "index": 74,
+     "rva": "0x20f410",
+     "module": "mfc140u.dll",
+     "symbol": "@11761"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 86,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 90,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 91,
+     "rva": "0x26372",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26372"
+    },
+    {
+     "index": 92,
+     "rva": "0x2a69e0",
+     "module": "mfc140u.dll",
+     "symbol": "@8098"
+    },
+    {
+     "index": 93,
+     "rva": "0x29ede0",
+     "module": "mfc140u.dll",
+     "symbol": "@4872"
+    },
+    {
+     "index": 94,
+     "rva": "0x2a6990",
+     "module": "mfc140u.dll",
+     "symbol": "@4874"
+    },
+    {
+     "index": 95,
+     "rva": "0x26378",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26378"
+    },
+    {
+     "index": 96,
+     "rva": "0x2a0200",
+     "module": "mfc140u.dll",
+     "symbol": "@12142"
+    },
+    {
+     "index": 97,
+     "rva": "0x2a0dc0",
+     "module": "mfc140u.dll",
+     "symbol": "@1766"
+    },
+    {
+     "index": 98,
+     "rva": "0x2090",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2090"
+    },
+    {
+     "index": 99,
+     "rva": "0x2a7f70",
+     "module": "mfc140u.dll",
+     "symbol": "@13361"
+    },
+    {
+     "index": 100,
+     "rva": "0x2a0f60",
+     "module": "mfc140u.dll",
+     "symbol": "@5727"
+    },
+    {
+     "index": 101,
+     "rva": "0x2a7f90",
+     "module": "mfc140u.dll",
+     "symbol": "@13359"
+    },
+    {
+     "index": 102,
+     "rva": "0x2a1000",
+     "module": "mfc140u.dll",
+     "symbol": "@5726"
+    },
+    {
+     "index": 103,
+     "rva": "0x29fe10",
+     "module": "mfc140u.dll",
+     "symbol": "@11119"
+    },
+    {
+     "index": 104,
+     "rva": "0x29f590",
+     "module": "mfc140u.dll",
+     "symbol": "@5743"
+    },
+    {
+     "index": 105,
+     "rva": "0x2a03a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8521"
+    },
+    {
+     "index": 106,
+     "rva": "0x26396",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26396"
+    },
+    {
+     "index": 107,
+     "rva": "0x2a7cb0",
+     "module": "mfc140u.dll",
+     "symbol": "@11493"
+    },
+    {
+     "index": 108,
+     "rva": "0x2a7800",
+     "module": "mfc140u.dll",
+     "symbol": "@11487"
+    },
+    {
+     "index": 109,
+     "rva": "0x29ce60",
+     "module": "mfc140u.dll",
+     "symbol": "@5189"
+    },
+    {
+     "index": 110,
+     "rva": "0x2a6930",
+     "module": "mfc140u.dll",
+     "symbol": "@3725"
+    },
+    {
+     "index": 111,
+     "rva": "0x29d140",
+     "module": "mfc140u.dll",
+     "symbol": "@4443"
+    },
+    {
+     "index": 112,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 113,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 114,
+     "rva": "0x2638a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2638a"
+    },
+    {
+     "index": 115,
+     "rva": "0x2a7780",
+     "module": "mfc140u.dll",
+     "symbol": "@7539"
+    }
+   ]
+  },
+  {
+   "name": "CMDIChildWnd",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x83800",
+     "module": "mfc140u.dll",
+     "symbol": "@6353"
+    },
+    {
+     "index": 1,
+     "rva": "0xc290",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc290"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x29e360",
+     "module": "mfc140u.dll",
+     "symbol": "@8904"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x2a6cf0",
+     "module": "mfc140u.dll",
+     "symbol": "@5773"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x2a6da0",
+     "module": "mfc140u.dll",
+     "symbol": "@3811"
+    },
+    {
+     "index": 27,
+     "rva": "0x263a8",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263a8"
+    },
+    {
+     "index": 28,
+     "rva": "0x28edc0",
+     "module": "mfc140u.dll",
+     "symbol": "@2629"
+    },
+    {
+     "index": 29,
+     "rva": "0x2a1060",
+     "module": "mfc140u.dll",
+     "symbol": "@5722"
+    },
+    {
+     "index": 30,
+     "rva": "0x2a10a0",
+     "module": "mfc140u.dll",
+     "symbol": "@13351"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x29d2f0",
+     "module": "mfc140u.dll",
+     "symbol": "@8928"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x29d3d0",
+     "module": "mfc140u.dll",
+     "symbol": "@2510"
+    },
+    {
+     "index": 68,
+     "rva": "0x29d560",
+     "module": "mfc140u.dll",
+     "symbol": "@4353"
+    },
+    {
+     "index": 69,
+     "rva": "0x2a6e60",
+     "module": "mfc140u.dll",
+     "symbol": "@11862"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x263ae",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263ae"
+    },
+    {
+     "index": 74,
+     "rva": "0x20f410",
+     "module": "mfc140u.dll",
+     "symbol": "@11761"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 86,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 90,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 91,
+     "rva": "0x26372",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26372"
+    },
+    {
+     "index": 92,
+     "rva": "0x2a7110",
+     "module": "mfc140u.dll",
+     "symbol": "@8097"
+    },
+    {
+     "index": 93,
+     "rva": "0x29ede0",
+     "module": "mfc140u.dll",
+     "symbol": "@4872"
+    },
+    {
+     "index": 94,
+     "rva": "0x10130",
+     "module": "mfc140u.dll",
+     "symbol": "@1640"
+    },
+    {
+     "index": 95,
+     "rva": "0x26378",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26378"
+    },
+    {
+     "index": 96,
+     "rva": "0x2a0200",
+     "module": "mfc140u.dll",
+     "symbol": "@12142"
+    },
+    {
+     "index": 97,
+     "rva": "0x2a75c0",
+     "module": "mfc140u.dll",
+     "symbol": "@1767"
+    },
+    {
+     "index": 98,
+     "rva": "0x2a7720",
+     "module": "mfc140u.dll",
+     "symbol": "@7432"
+    },
+    {
+     "index": 99,
+     "rva": "0x2a0f00",
+     "module": "mfc140u.dll",
+     "symbol": "@13360"
+    },
+    {
+     "index": 100,
+     "rva": "0x2a0f60",
+     "module": "mfc140u.dll",
+     "symbol": "@5727"
+    },
+    {
+     "index": 101,
+     "rva": "0x2a0f70",
+     "module": "mfc140u.dll",
+     "symbol": "@13358"
+    },
+    {
+     "index": 102,
+     "rva": "0x2a1000",
+     "module": "mfc140u.dll",
+     "symbol": "@5726"
+    },
+    {
+     "index": 103,
+     "rva": "0x29fe10",
+     "module": "mfc140u.dll",
+     "symbol": "@11119"
+    },
+    {
+     "index": 104,
+     "rva": "0x2a78a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5744"
+    },
+    {
+     "index": 105,
+     "rva": "0x2a03a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8521"
+    },
+    {
+     "index": 106,
+     "rva": "0x2637e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2637e"
+    },
+    {
+     "index": 107,
+     "rva": "0x2a78d0",
+     "module": "mfc140u.dll",
+     "symbol": "@11491"
+    },
+    {
+     "index": 108,
+     "rva": "0x29dec0",
+     "module": "mfc140u.dll",
+     "symbol": "@11484"
+    },
+    {
+     "index": 109,
+     "rva": "0x29ce60",
+     "module": "mfc140u.dll",
+     "symbol": "@5189"
+    },
+    {
+     "index": 110,
+     "rva": "0x2a0130",
+     "module": "mfc140u.dll",
+     "symbol": "@3723"
+    },
+    {
+     "index": 111,
+     "rva": "0x29d140",
+     "module": "mfc140u.dll",
+     "symbol": "@4443"
+    },
+    {
+     "index": 112,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 113,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 114,
+     "rva": "0x263a2",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263a2"
+    },
+    {
+     "index": 115,
+     "rva": "0x2a7b70",
+     "module": "mfc140u.dll",
+     "symbol": "@11486"
+    },
+    {
+     "index": 116,
+     "rva": "0x2897",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2897"
+    }
+   ]
+  },
+  {
+   "name": "CDialog",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x3eba0",
+     "module": "mfc140u.dll",
+     "symbol": "@6285"
+    },
+    {
+     "index": 1,
+     "rva": "0xc350",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc350"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x207d80",
+     "module": "mfc140u.dll",
+     "symbol": "@8901"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x207c30",
+     "module": "mfc140u.dll",
+     "symbol": "@5755"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x28baf0",
+     "module": "mfc140u.dll",
+     "symbol": "@3812"
+    },
+    {
+     "index": 27,
+     "rva": "0x26348",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26348"
+    },
+    {
+     "index": 28,
+     "rva": "0x28edc0",
+     "module": "mfc140u.dll",
+     "symbol": "@2629"
+    },
+    {
+     "index": 29,
+     "rva": "0x28aeb0",
+     "module": "mfc140u.dll",
+     "symbol": "@5723"
+    },
+    {
+     "index": 30,
+     "rva": "0x28aed0",
+     "module": "mfc140u.dll",
+     "symbol": "@13354"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x28e040",
+     "module": "mfc140u.dll",
+     "symbol": "@8947"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x222a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x222a"
+    },
+    {
+     "index": 68,
+     "rva": "0x18c5",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x18c5"
+    },
+    {
+     "index": 69,
+     "rva": "0x207c40",
+     "module": "mfc140u.dll",
+     "symbol": "@11854"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x26366",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26366"
+    },
+    {
+     "index": 74,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x208df0",
+     "module": "mfc140u.dll",
+     "symbol": "@2697"
+    },
+    {
+     "index": 86,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x208680",
+     "module": "mfc140u.dll",
+     "symbol": "@13397"
+    },
+    {
+     "index": 90,
+     "rva": "0x8760",
+     "module": "mfc140u.dll",
+     "symbol": "@6000"
+    },
+    {
+     "index": 91,
+     "rva": "0x11e5",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x11e5"
+    },
+    {
+     "index": 92,
+     "rva": "0x2636c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2636c"
+    },
+    {
+     "index": 93,
+     "rva": "0x208140",
+     "module": "mfc140u.dll",
+     "symbol": "@3307"
+    },
+    {
+     "index": 94,
+     "rva": "0x208230",
+     "module": "mfc140u.dll",
+     "symbol": "@3308"
+    },
+    {
+     "index": 95,
+     "rva": "0x2088b0",
+     "module": "mfc140u.dll",
+     "symbol": "@3951"
+    },
+    {
+     "index": 96,
+     "rva": "0x208d10",
+     "module": "mfc140u.dll",
+     "symbol": "@10163"
+    },
+    {
+     "index": 97,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 98,
+     "rva": "0x208db0",
+     "module": "mfc140u.dll",
+     "symbol": "@10704"
+    },
+    {
+     "index": 99,
+     "rva": "0x208de0",
+     "module": "mfc140u.dll",
+     "symbol": "@8731"
+    },
+    {
+     "index": 100,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    }
+   ]
+  },
+  {
+   "name": "CView",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x13d0e0",
+     "module": "mfc140u.dll",
+     "symbol": "@6610"
+    },
+    {
+     "index": 1,
+     "rva": "0x9b90",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x9b90"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x277780",
+     "module": "mfc140u.dll",
+     "symbol": "@8917"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x277520",
+     "module": "mfc140u.dll",
+     "symbol": "@5911"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x28baf0",
+     "module": "mfc140u.dll",
+     "symbol": "@3812"
+    },
+    {
+     "index": 27,
+     "rva": "0x263b4",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263b4"
+    },
+    {
+     "index": 28,
+     "rva": "0x2776f0",
+     "module": "mfc140u.dll",
+     "symbol": "@2628"
+    },
+    {
+     "index": 29,
+     "rva": "0x28aeb0",
+     "module": "mfc140u.dll",
+     "symbol": "@5723"
+    },
+    {
+     "index": 30,
+     "rva": "0x28aed0",
+     "module": "mfc140u.dll",
+     "symbol": "@13354"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x277b30",
+     "module": "mfc140u.dll",
+     "symbol": "@6630"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x28e040",
+     "module": "mfc140u.dll",
+     "symbol": "@8947"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x222a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x222a"
+    },
+    {
+     "index": 68,
+     "rva": "0x18c5",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x18c5"
+    },
+    {
+     "index": 69,
+     "rva": "0x28bc00",
+     "module": "mfc140u.dll",
+     "symbol": "@11902"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x26366",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26366"
+    },
+    {
+     "index": 74,
+     "rva": "0x20f410",
+     "module": "mfc140u.dll",
+     "symbol": "@11761"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 86,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 90,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 91,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 92,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 93,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 94,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 95,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 96,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 97,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 98,
+     "rva": "0x88a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5714"
+    },
+    {
+     "index": 99,
+     "rva": "0x277a90",
+     "module": "mfc140u.dll",
+     "symbol": "@9217"
+    },
+    {
+     "index": 100,
+     "rva": "0x277d00",
+     "module": "mfc140u.dll",
+     "symbol": "@10807"
+    },
+    {
+     "index": 101,
+     "rva": "0x2778f0",
+     "module": "mfc140u.dll",
+     "symbol": "@10199"
+    },
+    {
+     "index": 102,
+     "rva": "0x2779d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8614"
+    },
+    {
+     "index": 103,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 104,
+     "rva": "0x277920",
+     "module": "mfc140u.dll",
+     "symbol": "@11435"
+    },
+    {
+     "index": 105,
+     "rva": "0x9b10",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x9b10"
+    },
+    {
+     "index": 106,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 107,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 108,
+     "rva": "0x277940",
+     "module": "mfc140u.dll",
+     "symbol": "@10835"
+    },
+    {
+     "index": 109,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 110,
+     "rva": "0x277d30",
+     "module": "mfc140u.dll",
+     "symbol": "@9739"
+    }
+   ]
+  },
+  {
+   "name": "CScrollView",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x27a980",
+     "module": "mfc140u.dll",
+     "symbol": "@6573"
+    },
+    {
+     "index": 1,
+     "rva": "0x9c70",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x9c70"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x277780",
+     "module": "mfc140u.dll",
+     "symbol": "@8917"
+    },
+    {
+     "index": 6,
+     "rva": "0x28bac0",
+     "module": "mfc140u.dll",
+     "symbol": "@9946"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x287910",
+     "module": "mfc140u.dll",
+     "symbol": "@5894"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x28f600",
+     "module": "mfc140u.dll",
+     "symbol": "@5582"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 23,
+     "rva": "0x26336",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26336"
+    },
+    {
+     "index": 24,
+     "rva": "0x26342",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26342"
+    },
+    {
+     "index": 25,
+     "rva": "0x2633c",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2633c"
+    },
+    {
+     "index": 26,
+     "rva": "0x28baf0",
+     "module": "mfc140u.dll",
+     "symbol": "@3812"
+    },
+    {
+     "index": 27,
+     "rva": "0x263b4",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263b4"
+    },
+    {
+     "index": 28,
+     "rva": "0x2893f0",
+     "module": "mfc140u.dll",
+     "symbol": "@2627"
+    },
+    {
+     "index": 29,
+     "rva": "0x28aeb0",
+     "module": "mfc140u.dll",
+     "symbol": "@5723"
+    },
+    {
+     "index": 30,
+     "rva": "0x28aed0",
+     "module": "mfc140u.dll",
+     "symbol": "@13354"
+    },
+    {
+     "index": 31,
+     "rva": "0x2634e",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2634e"
+    },
+    {
+     "index": 32,
+     "rva": "0x277b30",
+     "module": "mfc140u.dll",
+     "symbol": "@6630"
+    },
+    {
+     "index": 33,
+     "rva": "0x26354",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26354"
+    },
+    {
+     "index": 34,
+     "rva": "0x2635a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2635a"
+    },
+    {
+     "index": 35,
+     "rva": "0x28d050",
+     "module": "mfc140u.dll",
+     "symbol": "@14211"
+    },
+    {
+     "index": 36,
+     "rva": "0x291820",
+     "module": "mfc140u.dll",
+     "symbol": "@2967"
+    },
+    {
+     "index": 37,
+     "rva": "0x291830",
+     "module": "mfc140u.dll",
+     "symbol": "@4352"
+    },
+    {
+     "index": 38,
+     "rva": "0x291870",
+     "module": "mfc140u.dll",
+     "symbol": "@9384"
+    },
+    {
+     "index": 39,
+     "rva": "0x290460",
+     "module": "mfc140u.dll",
+     "symbol": "@4360"
+    },
+    {
+     "index": 40,
+     "rva": "0x2904a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4828"
+    },
+    {
+     "index": 41,
+     "rva": "0x2904c0",
+     "module": "mfc140u.dll",
+     "symbol": "@4767"
+    },
+    {
+     "index": 42,
+     "rva": "0x2904e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4752"
+    },
+    {
+     "index": 43,
+     "rva": "0x290520",
+     "module": "mfc140u.dll",
+     "symbol": "@4814"
+    },
+    {
+     "index": 44,
+     "rva": "0x290560",
+     "module": "mfc140u.dll",
+     "symbol": "@4859"
+    },
+    {
+     "index": 45,
+     "rva": "0x2905a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4782"
+    },
+    {
+     "index": 46,
+     "rva": "0x2905e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4837"
+    },
+    {
+     "index": 47,
+     "rva": "0x290620",
+     "module": "mfc140u.dll",
+     "symbol": "@4853"
+    },
+    {
+     "index": 48,
+     "rva": "0x290660",
+     "module": "mfc140u.dll",
+     "symbol": "@4794"
+    },
+    {
+     "index": 49,
+     "rva": "0x2906a0",
+     "module": "mfc140u.dll",
+     "symbol": "@4800"
+    },
+    {
+     "index": 50,
+     "rva": "0x2906e0",
+     "module": "mfc140u.dll",
+     "symbol": "@4806"
+    },
+    {
+     "index": 51,
+     "rva": "0x290720",
+     "module": "mfc140u.dll",
+     "symbol": "@4788"
+    },
+    {
+     "index": 52,
+     "rva": "0x290740",
+     "module": "mfc140u.dll",
+     "symbol": "@4843"
+    },
+    {
+     "index": 53,
+     "rva": "0x290760",
+     "module": "mfc140u.dll",
+     "symbol": "@4776"
+    },
+    {
+     "index": 54,
+     "rva": "0x2907a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1755"
+    },
+    {
+     "index": 55,
+     "rva": "0x2907e0",
+     "module": "mfc140u.dll",
+     "symbol": "@1734"
+    },
+    {
+     "index": 56,
+     "rva": "0x290840",
+     "module": "mfc140u.dll",
+     "symbol": "@1748"
+    },
+    {
+     "index": 57,
+     "rva": "0x290880",
+     "module": "mfc140u.dll",
+     "symbol": "@1722"
+    },
+    {
+     "index": 58,
+     "rva": "0x2908a0",
+     "module": "mfc140u.dll",
+     "symbol": "@1700"
+    },
+    {
+     "index": 59,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 60,
+     "rva": "0x2908e0",
+     "module": "mfc140u.dll",
+     "symbol": "@11940"
+    },
+    {
+     "index": 61,
+     "rva": "0x290920",
+     "module": "mfc140u.dll",
+     "symbol": "@13513"
+    },
+    {
+     "index": 62,
+     "rva": "0x290930",
+     "module": "mfc140u.dll",
+     "symbol": "@3173"
+    },
+    {
+     "index": 63,
+     "rva": "0x28e040",
+     "module": "mfc140u.dll",
+     "symbol": "@8947"
+    },
+    {
+     "index": 64,
+     "rva": "0x28e150",
+     "module": "mfc140u.dll",
+     "symbol": "@10691"
+    },
+    {
+     "index": 65,
+     "rva": "0x28bbf0",
+     "module": "mfc140u.dll",
+     "symbol": "@6729"
+    },
+    {
+     "index": 66,
+     "rva": "0x181b",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x181b"
+    },
+    {
+     "index": 67,
+     "rva": "0x222a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x222a"
+    },
+    {
+     "index": 68,
+     "rva": "0x18c5",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x18c5"
+    },
+    {
+     "index": 69,
+     "rva": "0x28bc00",
+     "module": "mfc140u.dll",
+     "symbol": "@11902"
+    },
+    {
+     "index": 70,
+     "rva": "0x2a92a0",
+     "module": "mfc140u.dll",
+     "symbol": "@8656"
+    },
+    {
+     "index": 71,
+     "rva": "0x28d140",
+     "module": "mfc140u.dll",
+     "symbol": "@14209"
+    },
+    {
+     "index": 72,
+     "rva": "0x28d1b0",
+     "module": "mfc140u.dll",
+     "symbol": "@11625"
+    },
+    {
+     "index": 73,
+     "rva": "0x26366",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26366"
+    },
+    {
+     "index": 74,
+     "rva": "0x20f410",
+     "module": "mfc140u.dll",
+     "symbol": "@11761"
+    },
+    {
+     "index": 75,
+     "rva": "0x28f0d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8830"
+    },
+    {
+     "index": 76,
+     "rva": "0x28c960",
+     "module": "mfc140u.dll",
+     "symbol": "@11415"
+    },
+    {
+     "index": 77,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 78,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 79,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 80,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 81,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 82,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 83,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 84,
+     "rva": "0x2923d0",
+     "module": "mfc140u.dll",
+     "symbol": "@14360"
+    },
+    {
+     "index": 85,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 86,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 87,
+     "rva": "0x291ef0",
+     "module": "mfc140u.dll",
+     "symbol": "@3209"
+    },
+    {
+     "index": 88,
+     "rva": "0x291f10",
+     "module": "mfc140u.dll",
+     "symbol": "@3212"
+    },
+    {
+     "index": 89,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 90,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 91,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 92,
+     "rva": "0x2897c0",
+     "module": "mfc140u.dll",
+     "symbol": "@10964"
+    },
+    {
+     "index": 93,
+     "rva": "0x289900",
+     "module": "mfc140u.dll",
+     "symbol": "@10967"
+    },
+    {
+     "index": 94,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 95,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 96,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 97,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 98,
+     "rva": "0x88a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5714"
+    },
+    {
+     "index": 99,
+     "rva": "0x277a90",
+     "module": "mfc140u.dll",
+     "symbol": "@9217"
+    },
+    {
+     "index": 100,
+     "rva": "0x287f20",
+     "module": "mfc140u.dll",
+     "symbol": "@10806"
+    },
+    {
+     "index": 101,
+     "rva": "0x2778f0",
+     "module": "mfc140u.dll",
+     "symbol": "@10199"
+    },
+    {
+     "index": 102,
+     "rva": "0x2779d0",
+     "module": "mfc140u.dll",
+     "symbol": "@8614"
+    },
+    {
+     "index": 103,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 104,
+     "rva": "0x277920",
+     "module": "mfc140u.dll",
+     "symbol": "@11435"
+    },
+    {
+     "index": 105,
+     "rva": "0x9bf0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x9bf0"
+    },
+    {
+     "index": 106,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 107,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 108,
+     "rva": "0x277940",
+     "module": "mfc140u.dll",
+     "symbol": "@10835"
+    },
+    {
+     "index": 109,
+     "rva": "0x27d0",
+     "module": "mfc140u.dll",
+     "symbol": "@10020"
+    },
+    {
+     "index": 110,
+     "rva": "0x277d30",
+     "module": "mfc140u.dll",
+     "symbol": "@9739"
+    },
+    {
+     "index": 111,
+     "rva": "0x288610",
+     "module": "mfc140u.dll",
+     "symbol": "@7518"
+    }
+   ]
+  },
+  {
+   "name": "CSingleDocTemplate",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x226070",
+     "module": "mfc140u.dll",
+     "symbol": "@6578"
+    },
+    {
+     "index": 1,
+     "rva": "0xc430",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc430"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x226ae0",
+     "module": "mfc140u.dll",
+     "symbol": "@8902"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x1de870",
+     "module": "mfc140u.dll",
+     "symbol": "@5555"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x226240",
+     "module": "mfc140u.dll",
+     "symbol": "@8170"
+    },
+    {
+     "index": 23,
+     "rva": "0x225c50",
+     "module": "mfc140u.dll",
+     "symbol": "@5399"
+    },
+    {
+     "index": 24,
+     "rva": "0x225c60",
+     "module": "mfc140u.dll",
+     "symbol": "@5969"
+    },
+    {
+     "index": 25,
+     "rva": "0x225c80",
+     "module": "mfc140u.dll",
+     "symbol": "@1847"
+    },
+    {
+     "index": 26,
+     "rva": "0x225c90",
+     "module": "mfc140u.dll",
+     "symbol": "@12350"
+    },
+    {
+     "index": 27,
+     "rva": "0x263c0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263c0"
+    },
+    {
+     "index": 28,
+     "rva": "0x263c6",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263c6"
+    },
+    {
+     "index": 29,
+     "rva": "0x226630",
+     "module": "mfc140u.dll",
+     "symbol": "@3333"
+    },
+    {
+     "index": 30,
+     "rva": "0x226680",
+     "module": "mfc140u.dll",
+     "symbol": "@3334"
+    },
+    {
+     "index": 31,
+     "rva": "0x226990",
+     "module": "mfc140u.dll",
+     "symbol": "@7712"
+    },
+    {
+     "index": 32,
+     "rva": "0x2269b0",
+     "module": "mfc140u.dll",
+     "symbol": "@12624"
+    },
+    {
+     "index": 33,
+     "rva": "0x226a20",
+     "module": "mfc140u.dll",
+     "symbol": "@2821"
+    },
+    {
+     "index": 34,
+     "rva": "0x263d2",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263d2"
+    },
+    {
+     "index": 35,
+     "rva": "0x263cc",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263cc"
+    },
+    {
+     "index": 36,
+     "rva": "0x225f90",
+     "module": "mfc140u.dll",
+     "symbol": "@13116"
+    },
+    {
+     "index": 37,
+     "rva": "0x226a80",
+     "module": "mfc140u.dll",
+     "symbol": "@10121"
+    }
+   ]
+  },
+  {
+   "name": "CMultiDocTemplate",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x225ba0",
+     "module": "mfc140u.dll",
+     "symbol": "@6498"
+    },
+    {
+     "index": 1,
+     "rva": "0xc510",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc510"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x226ae0",
+     "module": "mfc140u.dll",
+     "symbol": "@8902"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x1de870",
+     "module": "mfc140u.dll",
+     "symbol": "@5555"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x225740",
+     "module": "mfc140u.dll",
+     "symbol": "@8171"
+    },
+    {
+     "index": 23,
+     "rva": "0x225810",
+     "module": "mfc140u.dll",
+     "symbol": "@5398"
+    },
+    {
+     "index": 24,
+     "rva": "0x2242b0",
+     "module": "mfc140u.dll",
+     "symbol": "@5968"
+    },
+    {
+     "index": 25,
+     "rva": "0x225820",
+     "module": "mfc140u.dll",
+     "symbol": "@1846"
+    },
+    {
+     "index": 26,
+     "rva": "0x225830",
+     "module": "mfc140u.dll",
+     "symbol": "@12349"
+    },
+    {
+     "index": 27,
+     "rva": "0x263c0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263c0"
+    },
+    {
+     "index": 28,
+     "rva": "0x263c6",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263c6"
+    },
+    {
+     "index": 29,
+     "rva": "0x226630",
+     "module": "mfc140u.dll",
+     "symbol": "@3333"
+    },
+    {
+     "index": 30,
+     "rva": "0x226680",
+     "module": "mfc140u.dll",
+     "symbol": "@3334"
+    },
+    {
+     "index": 31,
+     "rva": "0x226990",
+     "module": "mfc140u.dll",
+     "symbol": "@7712"
+    },
+    {
+     "index": 32,
+     "rva": "0x2269b0",
+     "module": "mfc140u.dll",
+     "symbol": "@12624"
+    },
+    {
+     "index": 33,
+     "rva": "0x226a20",
+     "module": "mfc140u.dll",
+     "symbol": "@2821"
+    },
+    {
+     "index": 34,
+     "rva": "0x263de",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263de"
+    },
+    {
+     "index": 35,
+     "rva": "0x263d8",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x263d8"
+    },
+    {
+     "index": 36,
+     "rva": "0x225a60",
+     "module": "mfc140u.dll",
+     "symbol": "@13115"
+    },
+    {
+     "index": 37,
+     "rva": "0x226a80",
+     "module": "mfc140u.dll",
+     "symbol": "@10121"
+    }
+   ]
+  },
+  {
+   "name": "COleObjectFactory",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x25c9f0",
+     "module": "mfc140u.dll",
+     "symbol": "@6528"
+    },
+    {
+     "index": 1,
+     "rva": "0xc5f0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc5f0"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x1de460",
+     "module": "mfc140u.dll",
+     "symbol": "@8900"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x25bae0",
+     "module": "mfc140u.dll",
+     "symbol": "@5577"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x13b6",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x13b6"
+    },
+    {
+     "index": 23,
+     "rva": "0x25bd90",
+     "module": "mfc140u.dll",
+     "symbol": "@12210"
+    },
+    {
+     "index": 24,
+     "rva": "0x25c190",
+     "module": "mfc140u.dll",
+     "symbol": "@14153"
+    },
+    {
+     "index": 25,
+     "rva": "0x25c130",
+     "module": "mfc140u.dll",
+     "symbol": "@9052"
+    },
+    {
+     "index": 26,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 27,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 28,
+     "rva": "0x25c560",
+     "module": "mfc140u.dll",
+     "symbol": "@14191"
+    }
+   ]
+  },
+  {
+   "name": "CRecentFileList",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0x22a460",
+     "module": "mfc140u.dll",
+     "symbol": "@12274"
+    },
+    {
+     "index": 1,
+     "rva": "0x2641a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x2641a"
+    },
+    {
+     "index": 2,
+     "rva": "0x26414",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26414"
+    },
+    {
+     "index": 3,
+     "rva": "0x26420",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26420"
+    },
+    {
+     "index": 4,
+     "rva": "0x22a890",
+     "module": "mfc140u.dll",
+     "symbol": "@14145"
+    },
+    {
+     "index": 5,
+     "rva": "0x22ad70",
+     "module": "mfc140u.dll",
+     "symbol": "@12098"
+    },
+    {
+     "index": 6,
+     "rva": "0x22aca0",
+     "module": "mfc140u.dll",
+     "symbol": "@14284"
+    },
+    {
+     "index": 7,
+     "rva": "0xc6d0",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc6d0"
+    }
+   ]
+  },
+  {
+   "name": "COleDataSource",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0xe290",
+     "module": "mfc140u.dll",
+     "symbol": "@6256"
+    },
+    {
+     "index": 1,
+     "rva": "0xc780",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc780"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x1de460",
+     "module": "mfc140u.dll",
+     "symbol": "@8900"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x2539a0",
+     "module": "mfc140u.dll",
+     "symbol": "@5570"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 23,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 24,
+     "rva": "0x2535a0",
+     "module": "mfc140u.dll",
+     "symbol": "@10901"
+    },
+    {
+     "index": 25,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    }
+   ]
+  },
+  {
+   "name": "COleDropTarget",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0xe290",
+     "module": "mfc140u.dll",
+     "symbol": "@6256"
+    },
+    {
+     "index": 1,
+     "rva": "0xc840",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc840"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x1de460",
+     "module": "mfc140u.dll",
+     "symbol": "@8900"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x25af00",
+     "module": "mfc140u.dll",
+     "symbol": "@5573"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x25a9f0",
+     "module": "mfc140u.dll",
+     "symbol": "@12566"
+    },
+    {
+     "index": 23,
+     "rva": "0x25ad30",
+     "module": "mfc140u.dll",
+     "symbol": "@9199"
+    },
+    {
+     "index": 24,
+     "rva": "0x25ad90",
+     "module": "mfc140u.dll",
+     "symbol": "@9214"
+    },
+    {
+     "index": 25,
+     "rva": "0x25adf0",
+     "module": "mfc140u.dll",
+     "symbol": "@9676"
+    },
+    {
+     "index": 26,
+     "rva": "0x25ae50",
+     "module": "mfc140u.dll",
+     "symbol": "@9681"
+    },
+    {
+     "index": 27,
+     "rva": "0x25aec0",
+     "module": "mfc140u.dll",
+     "symbol": "@9204"
+    },
+    {
+     "index": 28,
+     "rva": "0x25aa50",
+     "module": "mfc140u.dll",
+     "symbol": "@9216"
+    }
+   ]
+  },
+  {
+   "name": "COleDropSource",
+   "slots": [
+    {
+     "index": 0,
+     "rva": "0xe290",
+     "module": "mfc140u.dll",
+     "symbol": "@6256"
+    },
+    {
+     "index": 1,
+     "rva": "0xc900",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0xc900"
+    },
+    {
+     "index": 2,
+     "rva": "0x24eb",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x24eb"
+    },
+    {
+     "index": 3,
+     "rva": "0x146a",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x146a"
+    },
+    {
+     "index": 4,
+     "rva": "0x26b7",
+     "module": "harvest.exe",
+     "symbol": "harvest.exe+0x26b7"
+    },
+    {
+     "index": 5,
+     "rva": "0x1de460",
+     "module": "mfc140u.dll",
+     "symbol": "@8900"
+    },
+    {
+     "index": 6,
+     "rva": "0x1de880",
+     "module": "mfc140u.dll",
+     "symbol": "@9941"
+    },
+    {
+     "index": 7,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 8,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 9,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 10,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 11,
+     "rva": "0x1de7a0",
+     "module": "mfc140u.dll",
+     "symbol": "@7460"
+    },
+    {
+     "index": 12,
+     "rva": "0x1de840",
+     "module": "mfc140u.dll",
+     "symbol": "@5749"
+    },
+    {
+     "index": 13,
+     "rva": "0x1de8f0",
+     "module": "mfc140u.dll",
+     "symbol": "@5062"
+    },
+    {
+     "index": 14,
+     "rva": "0x1de850",
+     "module": "mfc140u.dll",
+     "symbol": "@5229"
+    },
+    {
+     "index": 15,
+     "rva": "0x1de8e0",
+     "module": "mfc140u.dll",
+     "symbol": "@5083"
+    },
+    {
+     "index": 16,
+     "rva": "0x25a590",
+     "module": "mfc140u.dll",
+     "symbol": "@5572"
+    },
+    {
+     "index": 17,
+     "rva": "0x1de860",
+     "module": "mfc140u.dll",
+     "symbol": "@5339"
+    },
+    {
+     "index": 18,
+     "rva": "0x3a60",
+     "module": "mfc140u.dll",
+     "symbol": "@10003"
+    },
+    {
+     "index": 19,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 20,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 21,
+     "rva": "0x71e0",
+     "module": "mfc140u.dll",
+     "symbol": "@10004"
+    },
+    {
+     "index": 22,
+     "rva": "0x25a410",
+     "module": "mfc140u.dll",
+     "symbol": "@11984"
+    },
+    {
+     "index": 23,
+     "rva": "0x25a440",
+     "module": "mfc140u.dll",
+     "symbol": "@7555"
+    },
+    {
+     "index": 24,
+     "rva": "0x25a450",
+     "module": "mfc140u.dll",
+     "symbol": "@8699"
+    }
+   ]
+  }
+ ],
+ "_comment": "Vtable slot order for constructible doc/view/frame/OLE classes, harvested via derived shims (phase1_harvest). Slots resolved to mfc140u @ordinal give the method ORDER; repeated symbols are ICF-folded trivial bodies (ambiguous, like the exception golden); harvest.exe+0x slots are inline CObject/CCmdTarget virtuals emitted locally (order valid, no exported identity). See harvested-layouts-batch2 memory."
+}
