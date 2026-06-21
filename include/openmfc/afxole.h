@@ -662,7 +662,7 @@ public:
     void* m_pDataCache; // internal cache
 
 protected:
-    char _oledatasource_padding[96];
+    char _oledatasource_padding[48];
 };
 
 //=============================================================================
@@ -695,7 +695,7 @@ public:
     BOOL m_bRegistered;
 
 protected:
-    char _oledroptarget_padding[56];
+    char _oledroptarget_padding[48];
 };
 
 //=============================================================================
@@ -753,7 +753,7 @@ public:
     DWORD m_nTimeout;
 
 protected:
-    char _olemessagefilter_padding[64];
+    char _olemessagefilter_padding[48];
 };
 
 //=============================================================================
@@ -1302,7 +1302,7 @@ public:
     DWORD m_dwStyle;
 
 protected:
-    char _olecontrolsite_padding[80];
+    char _olecontrolsite_padding[296];
 };
 
 //=============================================================================
@@ -1325,7 +1325,7 @@ public:
     CPtrList m_listSites;
 
 protected:
-    char _olecontrolcontainer_padding[48];
+    char _olecontrolcontainer_padding[160];
 };
 
 //=============================================================================
