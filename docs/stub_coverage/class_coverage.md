@@ -1,0 +1,738 @@
+# OpenMFC class implementation coverage
+
+Computed from build-phase4/openmfc.def (alias -> impl_ target) vs impl_ definitions in hand-written phase4/src/*.cpp. A class counts as "implemented" for a method when its export is backed by a real strong impl_ override (not the weak stub).
+
+- classes with exports: **711**
+- fully implemented: **67**
+- partially implemented: **203**
+- NOT implemented (0 methods): **441**
+
+## NOT-implemented, by family
+
+- other: 153
+- CMFC* (feature-pack ribbon/toolbar/visual mgr): 148
+- X* (OLE/COM/ActiveX interface impls): 91
+- docking/panes: 22
+- CD2D* (Direct2D wrappers): 17
+- CAnimation*: 8
+- CRibbon*: 2
+
+## NOT-implemented classes (all 441)
+
+- AFX_AUTOHIDE_DOCKSITE_SAVE_INFO
+- AFX_COM
+- AFX_DDPDATA
+- AFX_EXCEPTION_LINK
+- AFX_MAINTAIN_STATE
+- AFX_MAINTAIN_STATE2
+- AFX_MODULE_STATE
+- AFX_MODULE_THREAD_STATE
+- CAfxStringMgr
+- CAnimateCtrl
+- CAnimationBaseObject
+- CAnimationColor
+- CAnimationController
+- CAnimationGroup
+- CAnimationPoint
+- CAnimationRect
+- CAnimationSize
+- CAnimationValue
+- CAppDestinations
+- CArchivePropExchange
+- CArchiveStream
+- CAsyncMonikerFile
+- CAsyncPropExchange
+- CAutoHideDockSite
+- CBaseKeyFrame
+- CBaseTabbedPane
+- CBaseTransition
+- CBitmapButton
+- CBitmapRenderTarget
+- CBlobProperty
+- CBrowserControlSite
+- CCachedDataPathProperty
+- CChevronOwnerDrawMenu
+- CComboBoxEx
+- CCommandManager
+- CCommonDialog
+- CConnectionPoint
+- CControlBarInfo
+- CControlCreationInfo
+- CControlDataSource
+- CControlFrameWnd
+- CControlSiteFactoryMgr
+- CCtrlView
+- CD2DBitmap
+- CD2DBitmapBrush
+- CD2DBrush
+- CD2DBrushProperties
+- CD2DGeometry
+- CD2DGeometrySink
+- CD2DGradientBrush
+- CD2DLayer
+- CD2DLinearGradientBrush
+- CD2DMesh
+- CD2DPathGeometry
+- CD2DPointU
+- CD2DRadialGradientBrush
+- CD2DRectU
+- CD2DResource
+- CD2DSizeU
+- CD2DSolidColorBrush
+- CDBVariant
+- CDHtmlControlSink
+- CDHtmlElementEventSink
+- CDHtmlEventSink
+- CDataBoundProperty
+- CDataExchange
+- CDataPathProperty
+- CDataSourceControl
+- CDateTimeCtrl
+- CDialogImpl
+- CDocObjectServer
+- CDocObjectServerItem
+- CDockBar
+- CDockContext
+- CDockState
+- CDockablePaneAdapter
+- CDockingPanesRow
+- CDrawingManager
+- CDummyDockablePane
+- CDumpContext
+- CDynLinkLibrary
+- CEnumArray
+- CEnumConnPoints
+- CEnumConnections
+- CEnumUnknown
+- CFixedAlloc
+- CFixedAllocNoSync
+- CFolderPickerDialog
+- CFullScreenImpl
+- CGestureConfig
+- CGopherFileFind
+- CHandleMap
+- CHeaderCtrl
+- CHelpComboBoxButton
+- CHtmlControlSite
+- CHtmlEditCtrl
+- CHtmlEditDoc
+- CHtmlEditView
+- CHwndRenderTarget
+- CIPAddressCtrl
+- CInnerUnknown
+- CInvalidArgException
+- CItemDataSource
+- CJumpList
+- CKeyFrame
+- CLinkCtrl
+- CMDITabInfo
+- CMDITabProxyWnd
+- CMFCAcceleratorKey
+- CMFCAcceleratorKeyAssignCtrl
+- CMFCBaseAccessibleObject
+- CMFCBaseToolBar
+- CMFCBaseVisualManager
+- CMFCCaptionButton
+- CMFCCaptionButtonEx
+- CMFCCaptionMenuButton
+- CMFCCmdUsageCount
+- CMFCColorBar
+- CMFCColorBarCmdUI
+- CMFCColorButton
+- CMFCColorDialog
+- CMFCColorMenuButton
+- CMFCColorPickerCtrl
+- CMFCColorPopupMenu
+- CMFCColorPropertySheet
+- CMFCControlBarImpl
+- CMFCControlContainer
+- CMFCCustomColorsPropertyPage
+- CMFCCustomizeButton
+- CMFCCustomizeMenuButton
+- CMFCDesktopAlertDialog
+- CMFCDesktopAlertWnd
+- CMFCDesktopAlertWndButton
+- CMFCDragFrameImpl
+- CMFCDropDownFrame
+- CMFCDropDownListBox
+- CMFCDropDownToolBar
+- CMFCDropDownToolbarButton
+- CMFCDynamicLayout
+- CMFCDynamicLayoutData
+- CMFCEditBrowseCtrl
+- CMFCFilterChunkValueImpl
+- CMFCFontComboBox
+- CMFCHeaderCtrl
+- CMFCImageEditorDialog
+- CMFCImagePaintArea
+- CMFCKeyMapDialog
+- CMFCLinkCtrl
+- CMFCListCtrl
+- CMFCMaskedEdit
+- CMFCMenuButton
+- CMFCMousePropertyPage
+- CMFCOutlookBar
+- CMFCOutlookBarPane
+- CMFCOutlookBarPaneAdapter
+- CMFCOutlookBarPaneButton
+- CMFCOutlookBarPaneList
+- CMFCOutlookBarScrollButton
+- CMFCOutlookBarTabCtrl
+- CMFCOutlookBarToolBar
+- CMFCPreviewCtrlImpl
+- CMFCPrintPreviewToolBar
+- CMFCPropertyGridColorProperty
+- CMFCPropertyGridFileProperty
+- CMFCPropertyGridFontProperty
+- CMFCPropertyGridToolTipCtrl
+- CMFCPropertyPage
+- CMFCPropertySheet
+- CMFCPropertySheetCategoryInfo
+- CMFCPropertySheetListBox
+- CMFCPropertySheetTabCtrl
+- CMFCReBar
+- CMFCReBarState
+- CMFCRibbonApplicationButton
+- CMFCRibbonCaptionButton
+- CMFCRibbonCmdUI
+- CMFCRibbonCollector
+- CMFCRibbonColorButton
+- CMFCRibbonColorMenuButton
+- CMFCRibbonComboBox
+- CMFCRibbonCommandsListBox
+- CMFCRibbonConstructor
+- CMFCRibbonContextCaption
+- CMFCRibbonCustomizeCategory
+- CMFCRibbonCustomizeDialog
+- CMFCRibbonCustomizePropertyPage
+- CMFCRibbonDefaultPanelButton
+- CMFCRibbonFontComboBox
+- CMFCRibbonGalleryIcon
+- CMFCRibbonGalleryMenuButton
+- CMFCRibbonInfo
+- CMFCRibbonInfoLoader
+- CMFCRibbonKeyTip
+- CMFCRibbonKeyboardCustomizeDialog
+- CMFCRibbonLaunchButton
+- CMFCRibbonLinkCtrl
+- CMFCRibbonMainPanelButton
+- CMFCRibbonMiniToolBar
+- CMFCRibbonPanelMenu
+- CMFCRibbonPanelMenuBar
+- CMFCRibbonQuickAccessCustomizeButton
+- CMFCRibbonQuickAccessToolBar
+- CMFCRibbonQuickAccessToolBarDefaultState
+- CMFCRibbonRecentFilesList
+- CMFCRibbonRichEditCtrl
+- CMFCRibbonSpinButtonCtrl
+- CMFCRibbonStatusBarCustomizeButton
+- CMFCRibbonTabsGroup
+- CMFCRibbonUndoButton
+- CMFCShadowRenderer
+- CMFCShadowWnd
+- CMFCShellListCtrl
+- CMFCShellTreeCtrl
+- CMFCShowAllButton
+- CMFCSpinButtonCtrl
+- CMFCStandardColorsPropertyPage
+- CMFCStatusBarCmdUI
+- CMFCTabButton
+- CMFCTabDropTarget
+- CMFCTasksPaneFrameWnd
+- CMFCTasksPanePropertyPage
+- CMFCTasksPaneTask
+- CMFCTasksPaneTaskGroup
+- CMFCTasksPaneToolBar
+- CMFCTasksPaneToolBarCmdUI
+- CMFCToolBarButtonCustomizeDialog
+- CMFCToolBarButtonsListButton
+- CMFCToolBarCmdUI
+- CMFCToolBarColorButton
+- CMFCToolBarComboBoxEdit
+- CMFCToolBarDateTimeCtrl
+- CMFCToolBarDateTimeCtrlImpl
+- CMFCToolBarDropSource
+- CMFCToolBarDropTarget
+- CMFCToolBarEditCtrl
+- CMFCToolBarFontComboBox
+- CMFCToolBarFontSizeComboBox
+- CMFCToolBarInfo
+- CMFCToolBarNameDialog
+- CMFCToolBarSpinEditBoxButton
+- CMFCToolBarSystemMenuButton
+- CMFCToolBarsCommandsListBox
+- CMFCToolBarsCommandsPropertyPage
+- CMFCToolBarsCustomizeDialog
+- CMFCToolBarsKeyboardPropertyPage
+- CMFCToolBarsListCheckBox
+- CMFCToolBarsListPropertyPage
+- CMFCToolBarsMenuPropertyPage
+- CMFCToolBarsOptionsPropertyPage
+- CMFCToolBarsToolsPropertyPage
+- CMFCToolTipCtrl
+- CMFCVisualManagerBitmapCache
+- CMFCVisualManagerBitmapCacheItem
+- CMFCVisualManagerVS2008
+- CMFCWindowsManagerDialog
+- CMFCZoomKernel
+- CMemDC
+- CMenuImages
+- CMiniDockFrameWnd
+- CMirrorFile
+- CMonikerFile
+- CMonthCalCtrl
+- CMouseManager
+- CMultiPageDHtmlDialog
+- CNetAddressCtrl
+- CNotSupportedException
+- COccManager
+- COleCntrFrameWnd
+- COleCntrFrameWndEx
+- COleControlLock
+- COleControlModule
+- COleDBRecordView
+- COleDispatchImpl
+- COleDocIPFrameWnd
+- COleDocIPFrameWndEx
+- COleIPFrameWndEx
+- COleServerDocEx
+- COleUILinkInfo
+- COutlookCustomizeButton
+- COutlookOptionsDlg
+- CPagerCtrl
+- CPaneDialog
+- CPaneTrackingWnd
+- CParkingWnd
+- CPlex
+- CPngImage
+- CPreviewDC
+- CPreviewView
+- CPreviewViewEx
+- CPrintInfo
+- CPrintPreviewState
+- CProcessLocalObject
+- CPropExchange
+- CPropbagPropExchange
+- CProperty
+- CPropertySection
+- CPropertySet
+- CPropsetPropExchange
+- CPtrList
+- CReBar
+- CReBarCtrl
+- CReObject
+- CRecentDockSiteInfo
+- CRecentPaneContainerInfo
+- CRectTracker
+- CReflectorWnd
+- CResetPropExchange
+- CResourceException
+- CRibbonCategoryScroll
+- CRibbonUndoLabel
+- CRichEditCntrItem
+- CRichEditDoc
+- CScreenWnd
+- CSettingsStoreSP
+- CSharedFile
+- CShellManager
+- CSimpleException
+- CSimpleList
+- CSmartDockingGroupGuide
+- CSmartDockingGroupGuidesManager
+- CSmartDockingGroupGuidesWnd
+- CSmartDockingHighlighterWnd
+- CSmartDockingInfo
+- CSmartDockingManager
+- CSmartDockingStandaloneGuide
+- CSmartDockingStandaloneGuideWnd
+- CSplitterWndEx
+- CStatusCmdUI
+- CTabbedPane
+- CTasksPaneHistoryButton
+- CTasksPaneMenuButton
+- CTasksPaneNavigateButton
+- CTestCmdUI
+- CThreadLocalObject
+- CThreadSlotData
+- CTime
+- CTimeSpan
+- CToolCmdUI
+- CTypeLibCache
+- CTypeLibCacheMap
+- CUserException
+- CUserTool
+- CUserToolsManager
+- CVSToolsListBox
+- CWindowlessDC
+- CWordArray
+- CXMLParserCollection
+- PAGE_INFO
+- XAccessible
+- XAccessibleServer
+- XAdviseSink
+- XAmbientProps
+- XBase
+- XBoundObjectSite
+- XCategory
+- XCategoryMain
+- XClassFactory
+- XConnPt
+- XContext
+- XDataObject
+- XDocHostUIHandler
+- XDropSource
+- XDropTarget
+- XElement
+- XElementButton
+- XElementButtonApplication
+- XElementButtonCheck
+- XElementButtonColor
+- XElementButtonGallery
+- XElementButtonLaunch
+- XElementButtonLinkCtrl
+- XElementButtonMainPanel
+- XElementButtonUndo
+- XElementComboBox
+- XElementEdit
+- XElementFontComboBox
+- XElementGroup
+- XElementLabel
+- XElementProgressBar
+- XElementSeparator
+- XElementSlider
+- XEnumVOID
+- XEventConnPt
+- XEventSink
+- XFileDialogControlEvents
+- XFileDialogEvents
+- XFontNotification
+- XGalleryGroup
+- XID
+- XImage
+- XInfoError
+- XInitializeWithStream
+- XMessageFilter
+- XNotifyDBEvents
+- XObjectWithSite
+- XOleCache
+- XOleClientSite
+- XOleCommandTarget
+- XOleContainer
+- XOleControl
+- XOleControlSite
+- XOleDocument
+- XOleDocumentSite
+- XOleDocumentView
+- XOleIPFrame
+- XOleIPSite
+- XOleInPlaceActiveObject
+- XOleInPlaceFrame
+- XOleInPlaceObject
+- XOleItemContainer
+- XOleObject
+- XOleUIObjInfo
+- XOleWindow
+- XPanel
+- XPerPropertyBrowsing
+- XPersistFile
+- XPersistMemory
+- XPersistPropertyBag
+- XPersistStorage
+- XPersistStreamInit
+- XPointerInactive
+- XPreviewHandler
+- XPreviewHandlerVisuals
+- XPrint
+- XPropNotifySink
+- XPropertyNotifySink
+- XPropertyPage
+- XProvideClassInfo
+- XQAT
+- XQATItem
+- XQuickActivate
+- XRibbonBar
+- XRibbonInfoParser
+- XRibbonInfoParserCollection
+- XRibbonInfoParserRoot
+- XRichEditOleCallback
+- XRowsetNotify
+- XSpecifyPropertyPages
+- XViewObject
+- _AFX_D2D_STATE
+- _AFX_THREAD_STATE
+
+## Partially implemented (methods done / total)
+
+- CMFCToolBar: 15/241
+- COleControl: 52/259
+- CMFCRibbonBar: 12/134
+- CMFCVisualManagerOffice2007: 10/130
+- CMFCTasksPane: 7/115
+- CPaneFrameWnd: 14/122
+- CMFCPropertyGridCtrl: 9/113
+- CMFCBaseTabCtrl: 4/102
+- CDockablePane: 14/103
+- CRichEditView: 17/104
+- CMDIFrameWndEx: 12/94
+- CMFCPopupMenu: 15/93
+- CMFCVisualManagerOffice2003: 5/83
+- CMFCRibbonPanel: 8/85
+- CMFCVisualManager: 85/159
+- CMFCVisualManagerOfficeXP: 5/79
+- CMFCTabCtrl: 2/71
+- COleClientItem: 33/102
+- CMDIChildWndEx: 14/82
+- CFrameWndEx: 11/77
+- CMFCButton: 5/68
+- CMFCRibbonCategory: 8/71
+- CCmdTarget: 7/66
+- CMFCPropertyGridProperty: 6/65
+- CBasePane: 8/66
+- CPane: 14/71
+- CFrameImpl: 8/64
+- CMFCRibbonBaseElement: 8/64
+- CMFCVisualManagerWindows: 8/63
+- CMFCStatusBar: 5/58
+- COleServerDoc: 6/59
+- CWnd: 191/244
+- CMFCVisualManagerWindows7: 9/61
+- CMFCCaptionBar: 3/54
+- CPaneContainer: 4/55
+- CControlBar: 2/52
+- CMDIClientAreaWnd: 7/55
+- COlePropertyPage: 8/56
+- CPaneContainerManager: 8/56
+- CSplitterWnd: 17/64
+- COleControlSite: 6/52
+- CMFCMenuBar: 10/55
+- CMFCPopupMenuBar: 10/54
+- CMFCToolBarImages: 14/58
+- CDHtmlDialog: 62/104
+- CMFCRibbonGallery: 11/52
+- CPaneDivider: 12/53
+- CHtmlView: 63/103
+- CMFCRibbonButton: 13/53
+- CMFCRibbonButtonsGroup: 2/42
+- CMultiPaneFrameWnd: 7/47
+- CMFCRibbonStatusBar: 2/41
+- COleDocument: 8/47
+- CTaskDialog: 26/65
+- CDockSite: 17/53
+- COleSafeArray: 4/40
+- COleServerItem: 6/39
+- CMFCToolBarComboBoxButton: 26/58
+- CDockingManager: 44/75
+- COleControlContainer: 2/33
+- CToolBar: 20/50
+- CVSListBoxBase: 2/32
+- CMFCToolBarButton: 4/33
+- CRenderTarget: 24/53
+- CMFCRibbonEdit: 7/33
+- CMFCToolBarEditBoxButton: 7/33
+- COleIPFrameWnd: 4/28
+- CStatusBar: 14/38
+- CMFCAutoHideBar: 7/30
+- CMFCToolBarMenuButton: 10/33
+- AFX_GLOBAL_DATA: 3/25
+- CDaoRecordset: 1/23
+- CMFCRibbonTab: 1/20
+- COleDocObjectItem: 4/23
+- COleLinkingDoc: 5/23
+- CView: 28/46
+- CMetaFileDC: 4/21
+- CMFCAutoHideButton: 6/23
+- CMFCRibbonMainPanel: 2/19
+- CMFCRibbonSlider: 9/26
+- COleFrameHook: 2/19
+- CMFCVisualManagerVS2005: 5/21
+- CPrintDialogEx: 9/25
+- CDataRecoveryHandler: 5/20
+- COleStreamFile: 9/24
+- CDaoDatabase: 1/16
+- CDaoQueryDef: 1/16
+- CKeyboardManager: 9/23
+- CMiniFrameWnd: 4/18
+- COleCurrency: 2/16
+- CToolBarCtrl: 1/15
+- CVSListBox: 12/25
+- CTabView: 7/19
+- CDaoWorkspace: 1/13
+- COleResizeBar: 3/14
+- CRichEditCtrl: 22/32
+- CStatusBarCtrl: 2/12
+- CDialogTemplate: 6/15
+- CGlobalUtils: 11/20
+- COleVariant: 20/29
+- CMFCRibbonLabel: 3/11
+- CMFCRibbonSeparator: 1/9
+- CMFCRibbonStatusBarPane: 14/22
+- COleDataSource: 12/20
+- CVSListBoxEditCtrl: 2/10
+- CHttpFile: 14/21
+- CMFCRibbonProgressBar: 8/15
+- COleObjectFactory: 15/22
+- CDaoTableDef: 1/8
+- CDialogBar: 5/11
+- CGopherFile: 1/7
+- CMFCRibbonCheckBox: 3/9
+- CMFCToolBarMenuButtonsButton: 3/9
+- CHotKeyCtrl: 2/8
+- CByteArray: 9/14
+- CDWordArray: 9/14
+- CFileFind: 18/23
+- CMapStringToOb: 11/16
+- CMapStringToString: 17/22
+- CMapWordToOb: 10/15
+- CObArray: 9/14
+- CObList: 15/20
+- COleDropSource: 3/8
+- COleDropTarget: 10/15
+- COlePropertiesDialog: 1/6
+- CStringArray: 12/17
+- CStringList: 19/24
+- CToolTipCtrl: 18/23
+- CSplitButton: 5/10
+- CEnumFormatEtc: 2/6
+- CGopherConnection: 6/10
+- CMapPtrToPtr: 10/14
+- CMapPtrToWord: 9/13
+- CMapStringToPtr: 10/14
+- CMapWordToPtr: 9/13
+- COleDispatchException: 2/6
+- COleMessageFilter: 8/12
+- CPropertySheet: 41/45
+- CPtrArray: 8/12
+- CUIntArray: 8/12
+- CEvent: 3/6
+- CMFCControlRenderer: 11/14
+- CMutex: 3/6
+- COleControlSiteOrWnd: 2/5
+- COleInsertDialog: 6/9
+- COleLinksDialog: 2/5
+- COlePasteSpecialDialog: 8/11
+- COleUpdateDialog: 2/5
+- CSemaphore: 3/6
+- CSettingsStore: 22/25
+- CStdioFile: 23/26
+- CEnumOleVerb: 1/4
+- COleException: 1/4
+- CAsyncSocket: 31/33
+- CBrush: 5/7
+- CContextMenuManager: 13/15
+- CD2DTextFormat: 4/6
+- CD2DTextLayout: 6/8
+- CDBException: 5/7
+- CDialog: 35/37
+- CDocItem: 5/7
+- CException: 9/11
+- CFile: 32/34
+- CFontDialog: 7/9
+- CFtpFileFind: 6/8
+- CInternetSession: 17/19
+- CLongBinary: 2/4
+- CMenuTearOffManager: 7/9
+- CPrintDialog: 15/17
+- CRecordset: 117/119
+- CSocket: 15/17
+- CSyncObject: 4/6
+- CWinAppEx: 52/54
+- CDragListBox: 9/11
+- CCriticalSection: 1/3
+- CDaoException: 1/3
+- CDaoRecordView: 1/3
+- CArchive: 21/22
+- CCmdUI: 5/6
+- CColorDialog: 7/8
+- CDocTemplate: 21/22
+- CEditView: 57/58
+- CFieldExchange: 5/6
+- CFileDialog: 66/67
+- CGopherLocator: 1/2
+- CHttpConnection: 7/8
+- CInternetFile: 23/24
+- CMultiLock: 4/5
+- COleBusyDialog: 4/5
+- COleChangeIconDialog: 5/6
+- COleChangeSourceDialog: 5/6
+- COleCmdUI: 4/5
+- COleConvertDialog: 6/7
+- COleDialog: 3/4
+- COleTemplateServer: 6/7
+- CPageSetupDialog: 13/14
+- CPen: 4/5
+- CScrollView: 34/35
+- CSingleLock: 3/4
+- CTooltipManager: 7/8
+- CButton: 6/7
+- CComboBox: 10/11
+- CTreeCtrl: 25/26
+
+## Fully implemented
+
+- CAnimationVariable
+- CArchiveException
+- CBitmap
+- CCheckListBox
+- CClientDC
+- CCommandLineInfo
+- CD2DEllipse
+- CD2DPointF
+- CD2DRectF
+- CD2DRoundedRect
+- CD2DSizeF
+- CDC
+- CDCRenderTarget
+- CDatabase
+- CDialogEx
+- CDocManager
+- CDocument
+- CEdit
+- CFileException
+- CFindReplaceDialog
+- CFont
+- CFontHolder
+- CFormView
+- CFrameWnd
+- CFtpConnection
+- CGdiObject
+- CImageList
+- CInternetConnection
+- CInternetException
+- CListBox
+- CListCtrl
+- CListView
+- CMDIChildWnd
+- CMDIFrameWnd
+- CMFCControlRendererInfo
+- CMemFile
+- CMemoryException
+- CMenu
+- CMenuHash
+- CMultiDocTemplate
+- CNoTrackObject
+- CObject
+- COleConnPtContainer
+- COleDataObject
+- COleDispatchDriver
+- CPaintDC
+- CPalette
+- CPictureHolder
+- CProgressCtrl
+- CPropertyPage
+- CRecentFileList
+- CRecordView
+- CRgn
+- CRuntimeClass
+- CScrollBar
+- CSingleDocTemplate
+- CSliderCtrl
+- CSocketFile
+- CSocketWnd
+- CSpinButtonCtrl
+- CStatic
+- CTabCtrl
+- CTagManager
+- CTreeView
+- CWinApp
+- CWinThread
+- CWindowDC
