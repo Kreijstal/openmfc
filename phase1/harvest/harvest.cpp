@@ -358,6 +358,31 @@ bool is_exec_addr(uintptr_t a) {
            prot == PAGE_EXECUTE_READWRITE || prot == PAGE_EXECUTE_WRITECOPY;
 }
 
+// A vtable built in harvest.exe for a derived shim points its inherited slots at
+// LOCAL import thunks (jmp qword ptr [__imp_...]) or ILT stubs (jmp rel32), not
+// directly at the mfc140u function. Follow up to a few hops so the slot resolves
+// to the real mfc140u export instead of "harvest.exe+0x...".
+uintptr_t follow_thunk(uintptr_t addr, int maxHops = 4) {
+    for (int hop = 0; hop < maxHops; ++hop) {
+        if (IsBadReadPtr(reinterpret_cast<void*>(addr), 6)) break;
+        const unsigned char* p = reinterpret_cast<const unsigned char*>(addr);
+        if (p[0] == 0xFF && p[1] == 0x25) {            // jmp qword ptr [rip+disp32]
+            int32_t disp; memcpy(&disp, p + 2, 4);
+            uintptr_t iat = addr + 6 + static_cast<intptr_t>(disp);
+            if (IsBadReadPtr(reinterpret_cast<void*>(iat), sizeof(uintptr_t))) break;
+            addr = *reinterpret_cast<const uintptr_t*>(iat); // real target from IAT
+            continue;
+        }
+        if (p[0] == 0xE9) {                            // jmp rel32 (ILT stub)
+            int32_t rel; memcpy(&rel, p + 1, 4);
+            addr = addr + 5 + static_cast<intptr_t>(rel);
+            continue;
+        }
+        break;
+    }
+    return addr;
+}
+
 std::string module_basename(HMODULE m) {
     wchar_t buf[MAX_PATH] = {};
     GetModuleFileNameW(m, buf, MAX_PATH);
@@ -374,23 +399,30 @@ std::string module_basename(HMODULE m) {
 // emit "<module>+0x<rva>" so a vtable whose functions live outside mfc140u (the
 // CFile/CArchive case) is captured instead of silently dropped.
 std::string resolve_in_module(uintptr_t addr, std::string& moduleOut, uintptr_t& rvaOut) {
+    // If the slot points outside mfc140u (e.g. a harvest.exe import thunk for a
+    // derived-shim vtable), follow the thunk to its real target before resolving.
+    uintptr_t target = addr;
+    if (!(g_modBase && addr >= g_modBase && addr < g_modEnd)) {
+        uintptr_t followed = follow_thunk(addr);
+        if (g_modBase && followed >= g_modBase && followed < g_modEnd) target = followed;
+    }
     HMODULE m = nullptr;
     if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCWSTR>(addr), &m) && m) {
+                           reinterpret_cast<LPCWSTR>(target), &m) && m) {
         moduleOut = module_basename(m);
-        rvaOut = addr - reinterpret_cast<uintptr_t>(m);
+        rvaOut = target - reinterpret_cast<uintptr_t>(m);
     } else {
         moduleOut = "?";
-        rvaOut = addr;
+        rvaOut = target;
     }
-    if (g_modBase && addr >= g_modBase && addr < g_modEnd) return resolve_addr(addr);
+    if (g_modBase && target >= g_modBase && target < g_modEnd) return resolve_addr(target);
     std::ostringstream o;
     o << moduleOut << "+0x" << std::hex << rvaOut;
     return o.str();
 }
 
-VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 64) {
+VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 256) {
     VTableInfo vt;
     vt.name = className;
     if (!instance) { vt.note = "null instance"; return vt; }
