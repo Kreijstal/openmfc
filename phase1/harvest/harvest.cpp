@@ -9,6 +9,7 @@
 #include <afxdisp.h>   // COleVariant/COleCurrency/COleDateTime(Span)/COleException
 #include <Windows.h>
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -441,6 +442,55 @@ void write_vtables(const std::vector<VTableInfo>& vts, const std::string& path) 
     std::ofstream(path, std::ios::binary) << oss.str();
 }
 
+// A global CWinApp so AfxGetApp()/module state are valid while we construct MFC
+// objects to read their vtables (this is the standard MFC console-app pattern).
+CWinApp g_harvestApp;
+
+namespace {
+// Concrete shims for classes whose ctor is protected and/or that have a pure
+// virtual (CView::OnDraw). The shim's vtable preserves the base slot ORDER; only
+// the overridden slot points into harvest.exe (flagged in the resolved symbol),
+// which conveniently identifies that slot.
+struct HView       : public CView       { void OnDraw(CDC*) override {} };
+struct HScrollView : public CScrollView { void OnDraw(CDC*) override {} };
+
+// Construct each class, read the vtable off its live vptr (offset 0), append.
+// Objects are intentionally LEAKED — the process exits immediately, and leaking
+// avoids any destructor side effects. Release MFC (/MD, no _DEBUG) turns ASSERTs
+// into no-ops and the C++ ctors only initialize members (no window is created),
+// so construction is safe. Each probe prints to stderr first, so if any ctor
+// faults the CI log names the culprit.
+void harvest_constructed_vtables(std::vector<VTableInfo>& v) {
+#define PROBE(NAME, EXPR) \
+    do { std::fprintf(stderr, "[vtbl] %s\n", NAME); std::fflush(stderr); \
+         try { const void* _p = (EXPR); \
+               if (_p) v.push_back(harvest_vtable(NAME, _p)); \
+               else { VTableInfo _vi; _vi.name = NAME; _vi.note = "null instance"; v.push_back(_vi); } } \
+         catch (...) { VTableInfo _vi; _vi.name = NAME; _vi.note = "construction threw"; v.push_back(_vi); } \
+    } while (0)
+
+    PROBE("CDocument",          new CDocument());
+    PROBE("COleDocument",       new COleDocument());
+    PROBE("COleLinkingDoc",     new COleLinkingDoc());
+    PROBE("CDockState",         new CDockState());
+    PROBE("CCommandLineInfo",   new CCommandLineInfo());
+    PROBE("CFrameWnd",          new CFrameWnd());
+    PROBE("CMDIFrameWnd",       new CMDIFrameWnd());
+    PROBE("CMDIChildWnd",       new CMDIChildWnd());
+    PROBE("CDialog",            new CDialog());
+    PROBE("CView",              new HView());        // slot ORDER == CView
+    PROBE("CScrollView",        new HScrollView());  // slot ORDER == CScrollView
+    PROBE("CSingleDocTemplate", new CSingleDocTemplate(0, nullptr, nullptr, nullptr));
+    PROBE("CMultiDocTemplate",  new CMultiDocTemplate(0, nullptr, nullptr, nullptr));
+    PROBE("COleObjectFactory",  new COleObjectFactory(CLSID_NULL, RUNTIME_CLASS(CDocument), FALSE, nullptr));
+    PROBE("CRecentFileList",    new CRecentFileList(0, _T("Recent File List"), _T("File%d"), 4, 0));
+    PROBE("COleDataSource",     new COleDataSource());
+    PROBE("COleDropTarget",     new COleDropTarget());
+    PROBE("COleDropSource",     new COleDropSource());
+#undef PROBE
+}
+} // namespace
+
 int main() {
     hook_throw();
     build_export_map(L"mfc140u.dll");
@@ -473,8 +523,18 @@ int main() {
     std::vector<std::pair<std::string, LayoutInfo>> layouts;
     harvest_layouts(layouts);
 
+    // Persist the crash-proof data FIRST: even if a constructor below faults with
+    // an access violation (not catchable by C++ try/catch), these files are already
+    // on disk and the `if: always()` upload step will still capture them.
     write_exceptions(exceptions, "exceptions.json");
     write_layouts(layouts, "layouts.json");
+
+    // Initialize MFC module state, then harvest vtable slot order by constructing
+    // live instances (MFC exports no ??_7 vtable symbols, so an instance is the
+    // only way to reach the vptr).
+    if (AfxWinInit(::GetModuleHandle(nullptr), nullptr, ::GetCommandLine(), 0)) {
+        harvest_constructed_vtables(vtables);
+    }
     write_vtables(vtables, "vtable_slots.json");
     return 0;
 }
