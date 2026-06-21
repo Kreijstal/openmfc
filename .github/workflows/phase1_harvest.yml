@@ -21,6 +21,46 @@ jobs:
             /Fe:artifacts\harvest.exe ^
             /link /LIBPATH:"%VCToolsInstallDir%ATLMFC\lib\x64" mfc140u.lib
 
+      - name: Dump MSVC class layouts
+        shell: cmd
+        run: |
+          cl /nologo /c /EHsc /MD ^
+            /I"%VCToolsInstallDir%ATLMFC\include" /I"%VCToolsInstallDir%include" ^
+            /d1reportSingleClassLayoutCObject ^
+            /d1reportSingleClassLayoutCCmdTarget ^
+            /d1reportSingleClassLayoutCWnd ^
+            /d1reportSingleClassLayoutCWinThread ^
+            /d1reportSingleClassLayoutCWinApp ^
+            /d1reportSingleClassLayoutCDocument ^
+            /d1reportSingleClassLayoutCView ^
+            /d1reportSingleClassLayoutCCtrlView ^
+            /d1reportSingleClassLayoutCScrollView ^
+            /d1reportSingleClassLayoutCFrameWnd ^
+            /d1reportSingleClassLayoutCMDIFrameWnd ^
+            /d1reportSingleClassLayoutCMDIChildWnd ^
+            /d1reportSingleClassLayoutCDialog ^
+            /d1reportSingleClassLayoutCDocTemplate ^
+            /d1reportSingleClassLayoutCSingleDocTemplate ^
+            /d1reportSingleClassLayoutCMultiDocTemplate ^
+            /d1reportSingleClassLayoutCDocManager ^
+            /d1reportSingleClassLayoutCOleDocument ^
+            /d1reportSingleClassLayoutCOleLinkingDoc ^
+            /d1reportSingleClassLayoutCOleServerDoc ^
+            /d1reportSingleClassLayoutCOleClientItem ^
+            /d1reportSingleClassLayoutCOleServerItem ^
+            /d1reportSingleClassLayoutCOleObjectFactory ^
+            /d1reportSingleClassLayoutCOleDataSource ^
+            /d1reportSingleClassLayoutCControlBar ^
+            /d1reportSingleClassLayoutCStatusBar ^
+            /d1reportSingleClassLayoutCToolBar ^
+            /d1reportSingleClassLayoutCSplitterWnd ^
+            /d1reportSingleClassLayoutCDockState ^
+            /d1reportSingleClassLayoutCRecentFileList ^
+            /d1reportSingleClassLayoutCCommandLineInfo ^
+            phase1\harvest\layout_probe.cpp /Foartifacts\layout_probe.obj > artifacts\class_layouts.txt 2>&1
+          rem cl returns 0; show a short head so the log confirms output
+          powershell -Command "Get-Content artifacts\class_layouts.txt -TotalCount 40"
+
       - name: Run harvester
         shell: pwsh
         run: |
