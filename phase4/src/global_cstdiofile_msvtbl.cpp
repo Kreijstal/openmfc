@@ -27,12 +27,17 @@
 
 #include "openmfc/afxwin.h"
 #include <cstdlib>
+#include <new>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+// Real CStdioFile::GetLength logic lives in this exported thunk (fstat on the FILE*);
+// CStdioFile uses a FILE* (not m_hFile), so CFile::GetLength would be wrong here.
+extern "C" unsigned long long MS_ABI impl__GetLength_CStdioFile__UEBA_KXZ(const CStdioFile*);
 
 namespace {
 
@@ -42,17 +47,19 @@ void*          MS_ABI v_dtor(CStdioFile* p, unsigned int flags)  { p->CStdioFile
 void           MS_ABI v_Serialize(CStdioFile*, void*)            {}
 void           MS_ABI v_AssertValid(const CStdioFile*)           {}
 void           MS_ABI v_Dump(const CStdioFile*, void*)           {}
-unsigned long long MS_ABI v_GetPosition(const CStdioFile*)       { return 0; }
-void           MS_ABI v_GetFileName(CStdioFile*, void*)          {}   // CString sret — unused in spike
-void           MS_ABI v_GetFileTitle(CStdioFile*, void*)         {}
-void           MS_ABI v_GetFilePath(CStdioFile*, void*)          {}
+unsigned long long MS_ABI v_GetPosition(const CStdioFile* p)     { return const_cast<CStdioFile*>(p)->CStdioFile::Seek(0, 1 /*current*/); }
+// CString returned by value via sret. Proven repo convention (impl__GetFileName_CFile
+// thunk): this=RCX, sret=RDX, void return — construct into the caller's buffer.
+void           MS_ABI v_GetFileName(CStdioFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFileName());  }
+void           MS_ABI v_GetFileTitle(CStdioFile* p, CString* pRet) { new(pRet) CString(p->CFile::GetFileTitle()); }
+void           MS_ABI v_GetFilePath(CStdioFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFilePath());  }
 void           MS_ABI v_SetFilePath(CStdioFile* p, const wchar_t* n) { p->CFile::SetFilePath(n); }
 int            MS_ABI v_Open3(CStdioFile*, const wchar_t*, unsigned, void*) { return 0; }
 int            MS_ABI v_Open4(CStdioFile*, const wchar_t*, unsigned, void*, void*) { return 0; }
 void*          MS_ABI v_Duplicate(const CStdioFile*)             { return nullptr; }
 unsigned long long MS_ABI v_Seek(CStdioFile* p, long long off, unsigned from) { return p->CStdioFile::Seek(off, from); }
 void           MS_ABI v_SetLength(CStdioFile* p, unsigned long long n)        { p->CFile::SetLength(n); }
-unsigned long long MS_ABI v_GetLength(const CStdioFile*)         { return 0; }
+unsigned long long MS_ABI v_GetLength(const CStdioFile* p)       { return impl__GetLength_CStdioFile__UEBA_KXZ(p); }
 unsigned int   MS_ABI v_Read(CStdioFile* p, void* b, unsigned int n)         { return p->CStdioFile::Read(b, n); }
 void           MS_ABI v_Write(CStdioFile* p, const void* b, unsigned int n)  { p->CStdioFile::Write(b, n); }
 void           MS_ABI v_LockRange(CStdioFile*, unsigned long long, unsigned long long)   {}

@@ -23,6 +23,7 @@
 
 #include "openmfc/afxwin.h"
 #include <cstdlib>
+#include <new>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -38,10 +39,14 @@ void*          MS_ABI v_dtor(CFile* p, unsigned int flags)   { p->CFile::~CFile(
 void           MS_ABI v_Serialize(CFile*, void*)             {}
 void           MS_ABI v_AssertValid(const CFile*)            {}
 void           MS_ABI v_Dump(const CFile*, void*)            {}
-unsigned long long MS_ABI v_GetPosition(const CFile*)        { return 0; }
-void           MS_ABI v_GetFileName(CFile*, void*)           {}   // CString sret — unused in spike
-void           MS_ABI v_GetFileTitle(CFile*, void*)          {}
-void           MS_ABI v_GetFilePath(CFile*, void*)           {}
+unsigned long long MS_ABI v_GetPosition(const CFile* p)      { return const_cast<CFile*>(p)->CFile::Seek(0, 1 /*current*/); }
+// CString is returned by value via sret. For these member-returning-CString slots
+// the proven repo convention (see impl__GetFileName_CFile thunk) is this=RCX,
+// sret=RDX, void return — construct the CString into the caller's buffer. Stubbing
+// (or swapping the params) crashes the client.
+void           MS_ABI v_GetFileName(CFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFileName());  }
+void           MS_ABI v_GetFileTitle(CFile* p, CString* pRet) { new(pRet) CString(p->CFile::GetFileTitle()); }
+void           MS_ABI v_GetFilePath(CFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFilePath());  }
 void           MS_ABI v_SetFilePath(CFile* p, const wchar_t* n) { p->CFile::SetFilePath(n); }
 int            MS_ABI v_Open3(CFile*, const wchar_t*, unsigned, void*) { return 0; }
 int            MS_ABI v_Open4(CFile*, const wchar_t*, unsigned, void*, void*) { return 0; }

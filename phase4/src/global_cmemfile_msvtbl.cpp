@@ -24,6 +24,7 @@
 
 #include "openmfc/afxwin.h"
 #include <cstdlib>
+#include <new>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -40,9 +41,12 @@ void           MS_ABI v_Serialize(CMemFile*, void*)           {}
 void           MS_ABI v_AssertValid(const CMemFile*)          {}
 void           MS_ABI v_Dump(const CMemFile*, void*)          {}
 unsigned long long MS_ABI v_GetPosition(const CMemFile* p)    { return const_cast<CMemFile*>(p)->CMemFile::Seek(0, 1 /*current*/); }
-void           MS_ABI v_GetFileName(CMemFile*, void*)         {}   // CString sret — unused in spike
-void           MS_ABI v_GetFileTitle(CMemFile*, void*)        {}
-void           MS_ABI v_GetFilePath(CMemFile*, void*)         {}
+// CString returned by value via sret. Proven repo convention (impl__GetFileName_CFile
+// thunk): this=RCX, sret=RDX, void return — construct the CString into the caller's
+// buffer. Stubbing (or swapping the params) crashes the client.
+void           MS_ABI v_GetFileName(CMemFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFileName());  }
+void           MS_ABI v_GetFileTitle(CMemFile* p, CString* pRet) { new(pRet) CString(p->CFile::GetFileTitle()); }
+void           MS_ABI v_GetFilePath(CMemFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFilePath());  }
 void           MS_ABI v_SetFilePath(CMemFile* p, const wchar_t* n) { p->CFile::SetFilePath(n); }
 int            MS_ABI v_Open3(CMemFile*, const wchar_t*, unsigned, void*) { return 0; }
 int            MS_ABI v_Open4(CMemFile*, const wchar_t*, unsigned, void*, void*) { return 0; }
