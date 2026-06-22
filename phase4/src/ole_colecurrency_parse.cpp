@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include <oleauto.h>
+#include <cstddef>   // offsetof — llvm-mingw/clang doesn't pull it in via <windows.h>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
