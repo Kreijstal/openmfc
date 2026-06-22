@@ -2491,15 +2491,26 @@ extern "C" int MS_ABI impl__GetStatus_CFile__SAHPEB_WAEAUCFileStatus__PEAVCAtlTr
     return CFile::GetStatus(lpszFileName, rStatus, pTM);
 }
 
+// CFile runtime-class descriptor. CFile is DECLARE_DYNAMIC in real MFC: base
+// CObject, schema 0xFFFF, no factory. m_nObjectSize is the real MSVC sizeof(CFile)
+// (40, harvested from mfc140u.dll), not the host sizeof. Following the repo's
+// IMPLEMENT_DYNAMIC convention (m_pfnGetBaseClass null, m_pBaseClass set; the
+// exported IsDerivedFrom falls back to m_pBaseClass). This descriptor is an internal
+// DLL symbol (not added to the .def) so the export set stays at the 14,109 match,
+// but it gives CFile-derived RTTI getters a real base to chain to.
+CRuntimeClass CFile::classCFile = {
+    "CFile", 40, 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
+};
+
 // Symbol: ?GetThisClass@CFile@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFile__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CFile::classCFile;
 }
 
 // Symbol: ?GetRuntimeClass@CFile@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFile__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CFile::classCFile;
 }
 
 extern "C" void* impl__hFileNull_CFile__2QEAXEA = (void*)INVALID_HANDLE_VALUE;
