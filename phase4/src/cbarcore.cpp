@@ -481,14 +481,13 @@ int CToolTipCtrl::GetText(CWnd* pWnd, UINT_PTR nIDTool, wchar_t* pszText, int cc
 IMPLEMENT_DYNAMIC(CToolBar, CControlBar)
 
 CToolBar::CToolBar()
-    : m_nCount(0), m_hbmImageWell(nullptr), m_pToolTip(nullptr),
-      m_pDockBar(nullptr), m_pDockSite(nullptr), m_pDockContext(nullptr),
-      m_bInRecalcLayout(FALSE), m_bDelayedButtonLayout(FALSE) {
+    : m_hRsrcImageWell(nullptr), m_hInstImageWell(nullptr), m_hbmImageWell(nullptr),
+      m_bDelayedButtonLayout(FALSE), m_pStringMap(nullptr) {
+    // m_nCount and the docking members are inherited from CControlBar (ctor).
     m_sizeButton.cx = 23;
     m_sizeButton.cy = 22;
     m_sizeImage.cx = 16;
     m_sizeImage.cy = 15;
-    memset(_toolbar_padding, 0, sizeof(_toolbar_padding));
 }
 
 CToolBar::~CToolBar() {
@@ -756,14 +755,17 @@ BOOL CToolBar::SetBitmap(HBITMAP hbmImageWell) {
 }
 
 void CToolBar::SetToolTips(CToolTipCtrl* pToolTip) {
-    m_pToolTip = pToolTip;
+    // Real MFC keeps no tooltip member; the toolbar control owns it.
     if (m_hWnd && pToolTip && pToolTip->GetSafeHwnd()) {
         ::SendMessageW(m_hWnd, TB_SETTOOLTIPS, (WPARAM)pToolTip->GetSafeHwnd(), 0);
     }
 }
 
 CToolTipCtrl* CToolBar::GetToolTips() const {
-    return m_pToolTip;
+    if (!m_hWnd) return nullptr;
+    HWND h = (HWND)::SendMessageW(m_hWnd, TB_GETTOOLTIPS, 0, 0);
+    if (!h) return nullptr;
+    return reinterpret_cast<CToolTipCtrl*>(CWnd::FromHandle(h));
 }
 
 void CToolBar::EnableDocking(DWORD dwDockStyle) {
@@ -783,10 +785,9 @@ BOOL CToolBar::IsFloating() const {
 //=============================================================================
 IMPLEMENT_DYNAMIC(CStatusBar, CControlBar)
 
-CStatusBar::CStatusBar()
-    : m_nCount(0), m_pData(nullptr), m_cxLeftBorder(0), m_cxRightBorder(0),
-      m_pToolTip(nullptr) {
-    memset(_statusbar_padding, 0, sizeof(_statusbar_padding));
+CStatusBar::CStatusBar() : m_nMinHeight(0) {
+    // m_nCount/m_pData/m_cxLeftBorder/m_cxRightBorder are inherited from
+    // CControlBar (initialized by its ctor).
 }
 
 CStatusBar::~CStatusBar() {
@@ -999,11 +1000,12 @@ CSize CStatusBar::GetBorders() const {
 }
 
 void CStatusBar::SetToolTips(CToolTipCtrl* pToolTip) {
-    m_pToolTip = pToolTip;
+    // Real MFC CStatusBar has no tooltip member (status panes manage their own).
+    (void)pToolTip;
 }
 
 CToolTipCtrl* CStatusBar::GetToolTips() const {
-    return m_pToolTip;
+    return nullptr;
 }
 
 void CStatusBar::EnableDocking(DWORD dwDockStyle) {
