@@ -383,7 +383,7 @@ extern "C" void MS_ABI impl__FreeNode_CPtrList__IEAAXPEAUCNode_1__Z(OpenMFC_CPtr
 
 // Symbol: ?GetRuntimeClass@CPtrList@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPtrList__UEBAPEAUCRuntimeClass__XZ(const OpenMFC_CPtrList* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : OpenMFC_CPtrList::GetThisClass();
+    return OpenMFC_CPtrList::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CPtrList@@SAPEAUCRuntimeClass@@XZ

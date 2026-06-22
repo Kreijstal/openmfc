@@ -16,14 +16,14 @@
 
 // Symbol: ??_U@YAPEAX_K@Z
 extern "C" void* MS_ABI impl____U_YAPEAX_K_Z(std::size_t size) {
-    // operator new[](size_t): never returns null on success path.
-    return ::operator new(size);
+    // operator new[](size_t): forward to the array allocation function.
+    return ::operator new[](size);
 }
 
 // Symbol: ??_V@YAXPEAX@Z
 extern "C" void MS_ABI impl____V_YAXPEAX_Z(void* p) {
-    // operator delete[](void*)
-    ::operator delete(p);
+    // operator delete[](void*): pair with operator new[].
+    ::operator delete[](p);
 }
 
 // MFC HashKey<> template helpers for string pointer keys.

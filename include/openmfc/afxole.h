@@ -574,6 +574,13 @@ public:
 // COleSafeArray - Safe Array wrapper
 //=============================================================================
 class COleSafeArray : public SAFEARRAY {
+    // SAFEARRAY embeds only rgsabound[1]. The COleSafeArray methods store the
+    // descriptor inline (see phase4/src/ole_csafearray_ext.cpp), so reserve room
+    // for up to 4 dimensions (3 extra SAFEARRAYBOUNDs = 24 bytes); without this,
+    // a multi-dim Create()/Attach() memcpy overruns the object. NOTE: this makes
+    // sizeof 56, not the harvested MSVC 32 — real COleSafeArray is : tagVARIANT
+    // holding a SAFEARRAY*; making it byte-faithful needs an impl rework.
+    char _olesafearray_inline_bounds[3 * sizeof(SAFEARRAYBOUND)];
 public:
     COleSafeArray() { cbElements = 0; cDims = 0; pvData = nullptr; }
     ~COleSafeArray() { Destroy(); }

@@ -591,7 +591,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CMenu__SAPEAVCObject__XZ() {
 }
 
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMenu__UEBAPEAUCRuntimeClass__XZ(const CMenu* pThis) {
-    return pThis->GetRuntimeClass();
+    return CMenu::GetThisClass();
 }
 
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMenu__SAPEAUCRuntimeClass__XZ() {

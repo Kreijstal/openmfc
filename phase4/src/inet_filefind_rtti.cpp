@@ -32,7 +32,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileFind__SAPEAUCRuntimeCla
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileFind__UEBAPEAUCRuntimeClass__XZ(
     const CFileFind* pThis) {
     if (!pThis) return CFileFind::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return CFileFind::GetThisClass();
 }
 
 // Symbol: ?FindNextFileW@CFileFind@@UEAAHXZ
@@ -85,7 +85,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFtpFileFind__SAPEAUCRuntime
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFtpFileFind__UEBAPEAUCRuntimeClass__XZ(
     const CFtpFileFind* pThis) {
     if (!pThis) return CFtpFileFind::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return CFtpFileFind::GetThisClass();
 }
 
 // Symbol: ?FindNextFileW@CFtpFileFind@@UEAAHXZ
@@ -110,5 +110,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherConnection__SAPEAUCRu
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherConnection__UEBAPEAUCRuntimeClass__XZ(
     const CGopherConnection* pThis) {
     if (!pThis) return CGopherConnection::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return CGopherConnection::GetThisClass();
 }

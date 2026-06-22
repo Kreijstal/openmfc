@@ -18,7 +18,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClas
 // Symbol: ?GetRuntimeClass@CToolBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntimeClass__XZ(
     const CToolBar* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CToolBar::GetThisClass();
+    return CToolBar::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CVSListBox@@SAPEAUCRuntimeClass@@XZ
@@ -29,7 +29,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBox__SAPEAUCRuntimeCl
 // Symbol: ?GetRuntimeClass@CVSListBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBox__UEBAPEAUCRuntimeClass__XZ(
     const CVSListBox* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CVSListBox::GetThisClass();
+    return CVSListBox::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CVSListBoxBase@@SAPEAUCRuntimeClass@@XZ
@@ -40,7 +40,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxBase__SAPEAUCRunti
 // Symbol: ?GetRuntimeClass@CVSListBoxBase@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxBase__UEBAPEAUCRuntimeClass__XZ(
     const CVSListBoxBase* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CVSListBoxBase::GetThisClass();
+    return CVSListBoxBase::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CVSListBoxEditCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -51,5 +51,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxEditCtrl__SAPEAUCR
 // Symbol: ?GetRuntimeClass@CVSListBoxEditCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxEditCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CVSListBoxEditCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CVSListBoxEditCtrl::GetThisClass();
+    return CVSListBoxEditCtrl::GetThisClass();
 }

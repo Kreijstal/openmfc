@@ -32,7 +32,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDialog__SAPEAUCRuntimeCl
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleDialog__UEBAPEAUCRuntimeClass__XZ(
     const COleDialog* pThis) {
     if (!pThis) return COleDialog::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleDialog::GetThisClass();
 }
 
 // ---------------------------------------------------------------------------
@@ -48,5 +48,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleConvertDialog__SAPEAUCRu
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleConvertDialog__UEBAPEAUCRuntimeClass__XZ(
     const COleConvertDialog* pThis) {
     if (!pThis) return COleConvertDialog::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleConvertDialog::GetThisClass();
 }

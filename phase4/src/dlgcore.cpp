@@ -351,7 +351,7 @@ extern "C" _AFX_OCC_DIALOG_INFO* MS_ABI impl__GetOccDialogInfo_CDialog__MEAAPEAU
 // Symbol: ?GetRuntimeClass@CDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialog__UEBAPEAUCRuntimeClass__XZ(
     const CDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CDialog::GetThisClass();
+    return CDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CDialog@@SAPEAUCRuntimeClass@@XZ
@@ -945,7 +945,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPropertyPage__MEBAPEBUA
 // Symbol: ?GetRuntimeClass@CPropertyPage@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPropertyPage__UEBAPEAUCRuntimeClass__XZ(
     const CPropertyPage* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CPropertyPage::GetThisClass();
+    return CPropertyPage::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CPropertyPage@@SAPEAUCRuntimeClass@@XZ
@@ -1333,7 +1333,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPropertySheet__MEBAPEBU
 // Symbol: ?GetRuntimeClass@CPropertySheet@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPropertySheet__UEBAPEAUCRuntimeClass__XZ(
     const CPropertySheet* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CPropertySheet::GetThisClass();
+    return CPropertySheet::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CPropertySheet@@SAPEAUCRuntimeClass@@XZ

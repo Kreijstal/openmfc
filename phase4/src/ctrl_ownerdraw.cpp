@@ -58,7 +58,7 @@ extern "C" void MS_ABI impl__DrawItem_CButton__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
 
 // Symbol: ?GetRuntimeClass@CButton@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CButton__UEBAPEAUCRuntimeClass__XZ(const CButton* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CButton::GetThisClass();
+    return CButton::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CButton@@SAPEAUCRuntimeClass@@XZ
@@ -103,7 +103,7 @@ extern "C" void MS_ABI impl__DrawItem_CComboBox__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
 
 // Symbol: ?GetRuntimeClass@CComboBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CComboBox__UEBAPEAUCRuntimeClass__XZ(const CComboBox* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CComboBox::GetThisClass();
+    return CComboBox::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CComboBox@@SAPEAUCRuntimeClass@@XZ
@@ -179,7 +179,7 @@ extern "C" void MS_ABI impl__DrawItem_CListBox__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
 
 // Symbol: ?GetRuntimeClass@CListBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CListBox__UEBAPEAUCRuntimeClass__XZ(const CListBox* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CListBox::GetThisClass();
+    return CListBox::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CListBox@@SAPEAUCRuntimeClass@@XZ
@@ -252,7 +252,7 @@ extern "C" void MS_ABI impl__DrawItem_CStatic__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
 // Symbol: ?GetRuntimeClass@CProgressCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CProgressCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CProgressCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CProgressCtrl::GetThisClass();
+    return CProgressCtrl::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CProgressCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -263,7 +263,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CProgressCtrl__SAPEAUCRuntim
 // Symbol: ?GetRuntimeClass@CScrollBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CScrollBar__UEBAPEAUCRuntimeClass__XZ(
     const CScrollBar* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CScrollBar::GetThisClass();
+    return CScrollBar::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CScrollBar@@SAPEAUCRuntimeClass@@XZ
@@ -274,7 +274,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollBar__SAPEAUCRuntimeCl
 // Symbol: ?GetRuntimeClass@CSliderCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSliderCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CSliderCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CSliderCtrl::GetThisClass();
+    return CSliderCtrl::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CSliderCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -285,7 +285,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSliderCtrl__SAPEAUCRuntimeC
 // Symbol: ?GetRuntimeClass@CSpinButtonCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSpinButtonCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CSpinButtonCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CSpinButtonCtrl::GetThisClass();
+    return CSpinButtonCtrl::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CSpinButtonCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -296,7 +296,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSpinButtonCtrl__SAPEAUCRunt
 // Symbol: ?GetRuntimeClass@CStatic@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CStatic__UEBAPEAUCRuntimeClass__XZ(
     const CStatic* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CStatic::GetThisClass();
+    return CStatic::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CStatic@@SAPEAUCRuntimeClass@@XZ
@@ -344,7 +344,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CTabCtrl__MEBAPEBUAFX_MS
 // Symbol: ?GetRuntimeClass@CTabCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTabCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CTabCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CTabCtrl::GetThisClass();
+    return CTabCtrl::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CTabCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -542,7 +542,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CTreeCtrl__MEBAPEBUAFX_M
 // Symbol: ?GetRuntimeClass@CTreeCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTreeCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CTreeCtrl* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CTreeCtrl::GetThisClass();
+    return CTreeCtrl::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CTreeCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -673,7 +673,7 @@ extern "C" int MS_ABI impl__SetItemEx_CTreeCtrl__QEAAHPEAU_TREEITEM__IPEB_WHHII_
 
 // Symbol: ?GetRuntimeClass@CColorDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CColorDialog__UEBAPEAUCRuntimeClass__XZ(const CColorDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CColorDialog::GetThisClass();
+    return CColorDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CColorDialog@@SAPEAUCRuntimeClass@@XZ
@@ -690,7 +690,7 @@ extern "C" int MS_ABI impl__OnColorOK_CColorDialog__MEAAHXZ(CColorDialog* pThis)
 // Symbol: ?GetRuntimeClass@CFindReplaceDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFindReplaceDialog__UEBAPEAUCRuntimeClass__XZ(
     const CFindReplaceDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CFindReplaceDialog::GetThisClass();
+    return CFindReplaceDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CFindReplaceDialog@@SAPEAUCRuntimeClass@@XZ

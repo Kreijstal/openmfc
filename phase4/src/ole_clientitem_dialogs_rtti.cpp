@@ -20,7 +20,7 @@
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CCmdTarget__UEBAPEAUCRuntimeClass__XZ(
         const CCmdTarget* pThis) {
     if (!pThis) return CCmdTarget::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return CCmdTarget::GetThisClass();
 }
 
 //-----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleBusyDialog__SAPEAUCRunti
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleBusyDialog__UEBAPEAUCRuntimeClass__XZ(
         const COleBusyDialog* pThis) {
     if (!pThis) return COleBusyDialog::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleBusyDialog::GetThisClass();
 }
 
 //-----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleChangeIconDialog__SAPEAU
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleChangeIconDialog__UEBAPEAUCRuntimeClass__XZ(
         const COleChangeIconDialog* pThis) {
     if (!pThis) return COleChangeIconDialog::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleChangeIconDialog::GetThisClass();
 }
 
 //-----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleChangeSourceDialog__SAPE
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleChangeSourceDialog__UEBAPEAUCRuntimeClass__XZ(
         const COleChangeSourceDialog* pThis) {
     if (!pThis) return COleChangeSourceDialog::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleChangeSourceDialog::GetThisClass();
 }
 
 //-----------------------------------------------------------------------------
@@ -80,5 +80,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleClientItem__SAPEAUCRunti
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleClientItem__UEBAPEAUCRuntimeClass__XZ(
         const COleClientItem* pThis) {
     if (!pThis) return COleClientItem::GetThisClass();
-    return pThis->GetRuntimeClass();
+    return COleClientItem::GetThisClass();
 }

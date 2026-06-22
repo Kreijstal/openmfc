@@ -17,7 +17,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHtmlView__SAPEAUCRuntimeCla
 // Symbol: ?GetRuntimeClass@CHtmlView@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CHtmlView__UEBAPEAUCRuntimeClass__XZ(
     const CHtmlView* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CHtmlView::GetThisClass();
+    return CHtmlView::GetThisClass();
 }
 
 // Symbol: ?CreateObject@CHtmlView@@SAPEAVCObject@@XZ
@@ -28,7 +28,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CHtmlView__SAPEAVCObject__XZ() {
 // Symbol: ?GetRuntimeClass@CMemoryException@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemoryException__UEBAPEAUCRuntimeClass__XZ(
     const CMemoryException* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMemoryException::GetThisClass();
+    return CMemoryException::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CMetaFileDC@@SAPEAUCRuntimeClass@@XZ
@@ -39,7 +39,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMetaFileDC__SAPEAUCRuntimeC
 // Symbol: ?GetRuntimeClass@CMetaFileDC@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMetaFileDC__UEBAPEAUCRuntimeClass__XZ(
     const CMetaFileDC* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMetaFileDC::GetThisClass();
+    return CMetaFileDC::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CMiniFrameWnd@@SAPEAUCRuntimeClass@@XZ
@@ -50,5 +50,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMiniFrameWnd__SAPEAUCRuntim
 // Symbol: ?GetRuntimeClass@CMiniFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMiniFrameWnd__UEBAPEAUCRuntimeClass__XZ(
     const CMiniFrameWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMiniFrameWnd::GetThisClass();
+    return CMiniFrameWnd::GetThisClass();
 }

@@ -17,5 +17,5 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPrintDialogEx__SAPEAUCRunti
 // Symbol: ?GetRuntimeClass@CPrintDialogEx@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPrintDialogEx__UEBAPEAUCRuntimeClass__XZ(
     const CPrintDialogEx* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CPrintDialogEx::GetThisClass();
+    return CPrintDialogEx::GetThisClass();
 }

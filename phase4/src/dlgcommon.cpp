@@ -318,7 +318,7 @@ extern "C" const OPENFILENAMEW* MS_ABI impl__GetOFN_CFileDialog__QEBAAEBUtagOFNW
 // Symbol: ?GetRuntimeClass@CFileDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileDialog__UEBAPEAUCRuntimeClass__XZ(
     const CFileDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CFileDialog::GetThisClass();
+    return CFileDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CFileDialog@@SAPEAUCRuntimeClass@@XZ
@@ -1153,7 +1153,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CPrintDialog__MEBAPEBUAF
 // Symbol: ?GetRuntimeClass@CPrintDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPrintDialog__UEBAPEAUCRuntimeClass__XZ(
     const CPrintDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CPrintDialog::GetThisClass();
+    return CPrintDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CPrintDialog@@SAPEAUCRuntimeClass@@XZ
@@ -1360,7 +1360,7 @@ extern "C" void MS_ABI impl__GetMargins_CPageSetupDialog__QEBAXPEAUtagRECT__0_Z(
 // Symbol: ?GetRuntimeClass@CPageSetupDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPageSetupDialog__UEBAPEAUCRuntimeClass__XZ(
     const CPageSetupDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CPageSetupDialog::GetThisClass();
+    return CPageSetupDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CPageSetupDialog@@SAPEAUCRuntimeClass@@XZ

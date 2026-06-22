@@ -321,7 +321,7 @@ extern "C" void MS_ABI impl__FreeExtra_CWordArray__QEAAXXZ(OpenMfcWordArray* pTh
 // Symbol: ?GetRuntimeClass@CWordArray@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWordArray__UEBAPEAUCRuntimeClass__XZ(
         const OpenMfcWordArray* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : OpenMfcWordArray::GetThisClass();
+    return OpenMfcWordArray::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CWordArray@@SAPEAUCRuntimeClass@@XZ

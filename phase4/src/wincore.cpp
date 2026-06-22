@@ -186,7 +186,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__X
 
 // Symbol: ?GetRuntimeClass@CWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeClass__XZ(const CWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CWnd::GetThisClass();
+    return CWnd::GetThisClass();
 }
 
 #ifdef __GNUC__
