@@ -584,16 +584,17 @@ public:
 //=============================================================================
 // COleSafeArray - Safe Array wrapper
 //=============================================================================
-class COleSafeArray : public SAFEARRAY {
-    // SAFEARRAY embeds only rgsabound[1]. The COleSafeArray methods store the
-    // descriptor inline (see phase4/src/ole_csafearray_ext.cpp), so reserve room
-    // for up to 4 dimensions (3 extra SAFEARRAYBOUNDs = 24 bytes); without this,
-    // a multi-dim Create()/Attach() memcpy overruns the object. NOTE: this makes
-    // sizeof 56, not the harvested MSVC 32 — real COleSafeArray is : tagVARIANT
-    // holding a SAFEARRAY*; making it byte-faithful needs an impl rework.
-    char _olesafearray_inline_bounds[3 * sizeof(SAFEARRAYBOUND)];
+// Byte-faithful MSVC mfc140u layout: COleSafeArray : public tagVARIANT (24) plus
+// two cached DWORDs (size 32). The SAFEARRAY lives in the variant's `parray`
+// field with vt = VT_ARRAY | <element type>; m_dwElementSize / m_dwDims cache
+// the element size and dimension count. The impl (ole_csafearray_ext.cpp,
+// olecore.cpp) drives the real oleaut32 SafeArray* APIs through parray.
+class COleSafeArray : public tagVARIANT {
 public:
-    COleSafeArray() { cbElements = 0; cDims = 0; pvData = nullptr; }
+    DWORD m_dwElementSize;   // @24
+    DWORD m_dwDims;          // @28
+
+    COleSafeArray() { vt = VT_EMPTY; parray = nullptr; m_dwElementSize = 0; m_dwDims = 0; }
     ~COleSafeArray() { Destroy(); }
 
     void Destroy();
@@ -604,7 +605,6 @@ public:
     void Attach(const SAFEARRAY& saSrc);
     SAFEARRAY* Detach();
     void Copy(const COleSafeArray* psaSrc);
-
 };
 
 //=============================================================================

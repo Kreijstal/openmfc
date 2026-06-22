@@ -1,8 +1,8 @@
 // Behavioral test for COleSafeArray extended methods (ole_csafearray_ext.cpp).
 //
 // Includes the impl .cpp directly and drives the exported impl_ thunks against a
-// COleSafeArray-layout object: a SAFEARRAY base plus 24 bytes of trailing
-// padding (room for up to 4 dimensions of rgsabound), matching
+// byte-faithful COleSafeArray-layout object: tagVARIANT (the SAFEARRAY lives in
+// `var.parray`) plus the two cached DWORDs, size 32, matching
 // include/openmfc/afxole.h. Exercises real oleaut32 SafeArray operations under
 // Wine: create, element round-trip, bounds, lock, redim/resize, copy, attach.
 
@@ -13,13 +13,16 @@
 
 #include "../phase4/src/ole_csafearray_ext.cpp"
 
-// Mirror COleSafeArray's layout: SAFEARRAY (rgsabound[1] inside) + 24 pad bytes.
+// Mirror COleSafeArray's layout: tagVARIANT + m_dwElementSize + m_dwDims (32).
 struct alignas(8) OleSA {
-    SAFEARRAY sa;
-    char      pad[24];
-    OleSA() { std::memset(this, 0, sizeof(*this)); }
+    VARIANT       var;               // SAFEARRAY* in var.parray
+    unsigned long m_dwElementSize;
+    unsigned long m_dwDims;
+    OleSA() { std::memset(this, 0, sizeof(*this)); }  // vt = VT_EMPTY, parray = null
 };
-static_assert(sizeof(OleSA) == sizeof(SAFEARRAY) + 24, "OleSA layout");
+static_assert(sizeof(OleSA) == 32, "OleSA layout (tagVARIANT + 2 DWORD)");
+// The owned SAFEARRAY descriptor for an OleSA.
+static SAFEARRAY* SAof(OleSA& o) { return o.var.parray; }
 
 static int g_failures = 0;
 static void check(bool cond, const char* what) {
@@ -32,9 +35,9 @@ int main() {
     OleSA a;
     long seed[5] = {10, 20, 30, 40, 50};
     impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(&a, VT_I4, 5, seed, 0);
-    check(a.sa.cDims == 1, "CreateOneDim: cDims == 1");
-    check(a.sa.cbElements == sizeof(long), "CreateOneDim: cbElements == 4");
-    check(a.sa.pvData != nullptr, "CreateOneDim: data allocated");
+    check(SAof(a)->cDims == 1, "CreateOneDim: cDims == 1");
+    check(SAof(a)->cbElements == sizeof(long), "CreateOneDim: cbElements == 4");
+    check(SAof(a)->pvData != nullptr, "CreateOneDim: data allocated");
 
     long lb = -1, ub = -1;
     impl__GetLBound_COleSafeArray__QEAAXKPEAJ_Z(&a, 1, &lb);
@@ -60,9 +63,9 @@ int main() {
 
     // ----- 2. Lock / Unlock adjust the lock count -----
     impl__Lock_COleSafeArray__QEAAXXZ(&a);
-    check(a.sa.cLocks == 1, "Lock: cLocks == 1");
+    check(SAof(a)->cLocks == 1, "Lock: cLocks == 1");
     impl__Unlock_COleSafeArray__QEAAXXZ(&a);
-    check(a.sa.cLocks == 0, "Unlock: cLocks == 0");
+    check(SAof(a)->cLocks == 0, "Unlock: cLocks == 0");
 
     // ----- 3. ResizeOneDim grows; existing elements preserved -----
     impl__ResizeOneDim_COleSafeArray__QEAAXK_Z(&a, 8);
@@ -93,13 +96,13 @@ int main() {
 
     // ----- 6. DestroyData frees the data buffer -----
     impl__DestroyData_COleSafeArray__QEAAXXZ(&a);
-    check(a.sa.pvData == nullptr, "DestroyData clears pvData");
+    check(SAof(a)->pvData == nullptr, "DestroyData clears pvData");
 
     // ----- 7. Multi-dim Create (2x3); both bounds must be copied -----
     OleSA m;
     unsigned long dims2[2] = {2, 3};  // logical [2][3]
     impl__Create_COleSafeArray__QEAAXGKPEAK_Z(&m, VT_I4, 2, dims2);
-    check(m.sa.cDims == 2, "Create 2-D: cDims == 2");
+    check(SAof(m)->cDims == 2, "Create 2-D: cDims == 2");
     long l1 = 0, u1 = 0, l2 = 0, u2 = 0;
     impl__GetLBound_COleSafeArray__QEAAXKPEAJ_Z(&m, 1, &l1);
     impl__GetUBound_COleSafeArray__QEAAXKPEAJ_Z(&m, 1, &u1);
@@ -136,7 +139,7 @@ int main() {
     long second[5] = {7, 8, 9, 10, 11};
     impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(&reuse, VT_I4, 5, second, 0);
     check(impl__GetOneDimSize_COleSafeArray__QEAAKXZ(&reuse) == 5, "reuse: second Create -> size 5");
-    check(reuse.sa.pvData != nullptr, "reuse: new buffer allocated");
+    check(SAof(reuse)->pvData != nullptr, "reuse: new buffer allocated");
     long got = 0; long idx3 = 3;
     impl__GetElement_COleSafeArray__QEAAXPEAJPEAX_Z(&reuse, &idx3, &got);
     check(got == 10, "reuse: second array element [3] == 10");
