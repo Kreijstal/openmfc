@@ -1379,59 +1379,75 @@ COleDateTime& COleDateTime::operator=(const COleDateTime& dtSrc) {
 //=============================================================================
 // COleSafeArray
 //=============================================================================
+// COleSafeArray : public tagVARIANT — the SAFEARRAY lives in `parray`, not
+// inline. These operate on parray and keep vt / the cached dims in sync.
 void COleSafeArray::Destroy() {
-    if (pvData) {
-        SafeArrayDestroy(this);
-        cbElements = 0;
-        cDims = 0;
-        pvData = nullptr;
+    if (parray) {
+        SafeArrayDestroy(parray);
+        parray = nullptr;
     }
+    vt = VT_EMPTY;
+    m_dwElementSize = 0;
+    m_dwDims = 0;
 }
 
 void COleSafeArray::Clear() {
-    SafeArrayDestroyData(this);
+    VariantClear(this);   // frees parray and resets vt
+    m_dwElementSize = 0;
+    m_dwDims = 0;
 }
 
-void COleSafeArray::Create(VARTYPE vt, DWORD cDims, SAFEARRAYBOUND* rgsabound) {
+void COleSafeArray::Create(VARTYPE vtype, DWORD cDims, SAFEARRAYBOUND* rgsabound) {
     Destroy();
-    SAFEARRAY* psa = SafeArrayCreate(vt, cDims, rgsabound);
+    SAFEARRAY* psa = SafeArrayCreate(vtype, cDims, rgsabound);
     if (psa) {
-        memcpy(this, psa, sizeof(SAFEARRAY));
+        vt = VT_ARRAY | vtype;
+        parray = psa;
+        m_dwElementSize = psa->cbElements;
+        m_dwDims = psa->cDims;
     }
 }
 
 void COleSafeArray::AccessData(void** ppvData) {
-    SafeArrayAccessData(this, ppvData);
+    SafeArrayAccessData(parray, ppvData);
 }
 
 void COleSafeArray::UnaccessData() {
-    SafeArrayUnaccessData(this);
+    SafeArrayUnaccessData(parray);
 }
 
 void COleSafeArray::Attach(const SAFEARRAY& saSrc) {
     Destroy();
-    memcpy(this, &saSrc, sizeof(SAFEARRAY));
+    // Deep-copy rather than alias the caller's descriptor: a const& may refer to
+    // a stack/temporary SAFEARRAY, and Destroy() would later SafeArrayDestroy it.
+    // (Element vartype isn't carried by a bare SAFEARRAY, so record only VT_ARRAY.)
+    SAFEARRAY* psaNew = nullptr;
+    if (SUCCEEDED(SafeArrayCopy(const_cast<SAFEARRAY*>(&saSrc), &psaNew)) && psaNew) {
+        parray = psaNew;
+        vt = VT_ARRAY;
+        m_dwElementSize = psaNew->cbElements;
+        m_dwDims = psaNew->cDims;
+    }
 }
 
 SAFEARRAY* COleSafeArray::Detach() {
-    SAFEARRAY* psa = (SAFEARRAY*)malloc(sizeof(SAFEARRAY));
-    if (psa) {
-        memcpy(psa, this, sizeof(SAFEARRAY));
-    }
-    pvData = nullptr;
-    cbElements = 0;
-    cDims = 0;
+    SAFEARRAY* psa = parray;
+    parray = nullptr;
+    vt = VT_EMPTY;
+    m_dwElementSize = 0;
+    m_dwDims = 0;
     return psa;
 }
 
 void COleSafeArray::Copy(const COleSafeArray* psaSrc) {
     Destroy();
-    if (psaSrc && psaSrc->pvData) {
+    if (psaSrc && psaSrc->parray) {
         SAFEARRAY* psaNew = nullptr;
-        SafeArrayCopy((SAFEARRAY*)psaSrc, &psaNew);
-        if (psaNew) {
-            memcpy(this, psaNew, sizeof(SAFEARRAY));
-            SafeArrayDestroy(psaNew);
+        if (SUCCEEDED(SafeArrayCopy(psaSrc->parray, &psaNew)) && psaNew) {
+            parray = psaNew;
+            vt = psaSrc->vt;
+            m_dwElementSize = psaNew->cbElements;
+            m_dwDims = psaNew->cDims;
         }
     }
 }

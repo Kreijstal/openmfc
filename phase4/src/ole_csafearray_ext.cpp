@@ -34,43 +34,41 @@
 
 namespace {
 
-// View the embedded COleSafeArray as its SAFEARRAY base (offset 0).
-inline SAFEARRAY* SA(void* pThis) { return reinterpret_cast<SAFEARRAY*>(pThis); }
+// COleSafeArray : public tagVARIANT (24) + two cached DWORDs (size 32). The
+// SAFEARRAY is held by the variant's `parray`, not inline; vt = VT_ARRAY|<elem>.
+struct CSAView {
+    VARIANT       var;               // @0  (parray @8, vt @0)
+    unsigned long m_dwElementSize;   // @24
+    unsigned long m_dwDims;          // @28
+};
+static_assert(sizeof(CSAView) == 32, "COleSafeArray must be 32 bytes (tagVARIANT + 2 DWORD)");
 
-// Release any array data this object already owns before overwriting the inline
-// descriptor, so reusing one COleSafeArray for several Create()/Attach() calls
-// doesn't leak the previous pvData buffer. A freshly-constructed object has
-// cDims==0/pvData==null (see the header ctor), so this is a no-op on first use.
-inline void ReleaseInline(void* pThis) {
-    SAFEARRAY* sa = SA(pThis);
-    if (sa->cDims != 0 && sa->pvData != nullptr) {
-        SafeArrayDestroyData(sa);
-        sa->pvData = nullptr;
-        sa->cDims = 0;
-    }
+// The owned SAFEARRAY for this object.
+inline SAFEARRAY* SA(void* pThis) { return reinterpret_cast<CSAView*>(pThis)->var.parray; }
+
+// Take ownership of a freshly-created heap SAFEARRAY, caching element size /
+// dimension count like real MFC. No inline copy, so any dim count is fine.
+inline void StoreArray(void* pThis, SAFEARRAY* psa, unsigned short vt) {
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    // If creation failed, leave a clean empty VARIANT rather than VT_ARRAY+null.
+    v->var.vt = psa ? static_cast<unsigned short>(VT_ARRAY | vt) : static_cast<unsigned short>(VT_EMPTY);
+    v->var.parray = psa;
+    v->m_dwElementSize = psa ? psa->cbElements : 0;
+    v->m_dwDims = psa ? psa->cDims : 0;
 }
 
-// Full descriptor byte size for an n-dimension SAFEARRAY (rgsabound is a
-// flexible array; only rgsabound[0] lives inside sizeof(SAFEARRAY)).
-inline size_t DescriptorSize(unsigned long dims) {
-    return sizeof(SAFEARRAY) + (dims >= 1 ? (dims - 1) : 0) * sizeof(SAFEARRAYBOUND);
-}
-
-// Copy a freshly-created heap SAFEARRAY's full descriptor into the embedded
-// object, then release only the heap descriptor shell (the separately-allocated
-// data buffer survives and is now referenced by the embedded object). Bounded to
-// 4 dims by the 24-byte trailing padding in COleSafeArray.
-void AdoptDescriptor(void* pThis, SAFEARRAY* psa) {
-    if (!psa) return;
-    unsigned long dims = psa->cDims;
-    if (dims < 1 || dims > 4) {
-        // Cannot fit; free the array entirely rather than corrupt the object.
-        SafeArrayDestroy(psa);
-        return;
+// Release any array this object currently owns before overwriting it, so reusing
+// one object across Create()/Attach() doesn't leak. A fresh object has
+// vt==VT_EMPTY / parray==null (header ctor), so this is a no-op on first use.
+inline void ReleaseArray(void* pThis) {
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    if (v->var.parray != nullptr) {
+        SafeArrayDestroy(v->var.parray);
     }
-    std::memcpy(pThis, psa, DescriptorSize(dims));
-    // Free the descriptor shell only; the data buffer stays alive for pThis.
-    SafeArrayDestroyDescriptor(psa);
+    v->var.vt = VT_EMPTY;
+    v->var.parray = nullptr;
+    v->m_dwElementSize = 0;
+    v->m_dwDims = 0;
 }
 
 } // namespace
@@ -84,15 +82,15 @@ void AdoptDescriptor(void* pThis, SAFEARRAY* psa) {
 extern "C" void MS_ABI impl__Create_COleSafeArray__QEAAXGKPEAK_Z(
     void* pThis, unsigned short vt, unsigned long dwDims, unsigned long* rgElements)
 {
-    if (!pThis || !rgElements || dwDims < 1 || dwDims > 4) return;
-    ReleaseInline(pThis);  // free any previously-held array on reuse
-    SAFEARRAYBOUND bounds[4];
+    if (!pThis || !rgElements || dwDims < 1 || dwDims > 64) return;
+    ReleaseArray(pThis);  // free any previously-held array on reuse
+    SAFEARRAYBOUND bounds[64];
     for (unsigned long i = 0; i < dwDims; ++i) {
         bounds[i].lLbound = 0;
         bounds[i].cElements = rgElements[i];
     }
     SAFEARRAY* psa = SafeArrayCreate(vt, dwDims, bounds);
-    AdoptDescriptor(pThis, psa);
+    StoreArray(pThis, psa, vt);
 }
 
 // ?CreateOneDim@COleSafeArray@@QEAAXGKPEBXJ@Z
@@ -103,13 +101,13 @@ extern "C" void MS_ABI impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(
     const void* pvSrcData, long lLbound)
 {
     if (!pThis) return;
-    ReleaseInline(pThis);  // free any previously-held array on reuse
+    ReleaseArray(pThis);  // free any previously-held array on reuse
     SAFEARRAYBOUND bound;
     bound.lLbound = lLbound;
     bound.cElements = dwElementCount;
     SAFEARRAY* psa = SafeArrayCreate(vt, 1, &bound);
-    AdoptDescriptor(pThis, psa);
-    if (pvSrcData && SA(pThis)->pvData && dwElementCount) {
+    StoreArray(pThis, psa, vt);
+    if (pvSrcData && SA(pThis) && SA(pThis)->pvData && dwElementCount) {
         void* p = nullptr;
         if (SUCCEEDED(SafeArrayAccessData(SA(pThis), &p)) && p) {
             std::memcpy(p, pvSrcData,
@@ -239,13 +237,13 @@ extern "C" void MS_ABI impl__Attach_COleSafeArray__QEAAXAEAUtagVARIANT___Z(
 {
     if (!pThis || !pvarSrc) return;
     if (!(pvarSrc->vt & VT_ARRAY) || pvarSrc->parray == nullptr) return;
-    SAFEARRAY* psa = pvarSrc->parray;
-    unsigned long dims = psa->cDims;
-    if (dims < 1 || dims > 4) return;
-    ReleaseInline(pThis);  // free any previously-held array before adopting
-    std::memcpy(pThis, psa, DescriptorSize(dims));
-    // Transfer ownership: detach the array from the source variant without
-    // freeing the (now shared) data buffer.
+    ReleaseArray(pThis);  // free any previously-held array before adopting
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    v->var.vt = pvarSrc->vt;
+    v->var.parray = pvarSrc->parray;
+    v->m_dwElementSize = pvarSrc->parray->cbElements;
+    v->m_dwDims = pvarSrc->parray->cDims;
+    // Transfer ownership: clear the source variant without freeing the array.
     VariantInit(pvarSrc);
 }
 
