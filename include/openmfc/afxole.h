@@ -86,13 +86,29 @@ public:
     CControlBar();
     virtual ~CControlBar();
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
-    int m_nCount;
-    CWnd* m_pDockSite;
-    void* m_pDockBar;
-    void* m_pDockContext;
-    DWORD m_dwStyle;
-    CRect m_rectBorder;
-    char _controlbar_padding[40];
+
+    // Faithful MSVC mfc140u CControlBar layout (size 328; members begin where
+    // CWnd ends @232). Real MFC keeps these here, so the bar subclasses inherit
+    // them instead of re-declaring (which is what made CToolBar/CStatusBar
+    // oversized). m_pData is void* in retail; declared UINT* here (same 8-byte
+    // pointer at the same offset) so CStatusBar's pane code indexes it directly.
+    void* m_pInPlaceOwner;     // 232
+    BOOL  m_bAutoDelete;       // 240
+    int   m_cxLeftBorder;      // 244
+    int   m_cxRightBorder;     // 248
+    int   m_cyTopBorder;       // 252
+    int   m_cyBottomBorder;    // 256
+    int   m_cxDefaultGap;      // 260
+    int   m_nMRUWidth;         // 264
+    int   m_nCount;            // 268
+    UINT* m_pData;             // 272
+    HANDLE m_hReBarTheme;      // 280
+    int   m_nStateFlags;       // 288
+    DWORD m_dwStyle;           // 292
+    DWORD m_dwDockStyle;       // 296
+    CWnd* m_pDockSite;         // 304
+    void* m_pDockBar;          // 312
+    void* m_pDockContext;      // 320
 };
 
 // AFX_IDW_* and CBRS_* constants (must be before CToolBar/CStatusBar usage)
@@ -208,19 +224,15 @@ public:
     };
 
 public:
-    int m_nCount;
-    SIZE m_sizeButton;
-    SIZE m_sizeImage;
-    HBITMAP m_hbmImageWell;
-    CToolTipCtrl* m_pToolTip;
-    CWnd* m_pDockBar;
-    CWnd* m_pDockSite;
-    void* m_pDockContext;
-    BOOL m_bInRecalcLayout;
-    BOOL m_bDelayedButtonLayout;
-
-protected:
-    char _toolbar_padding[128];
+    // CToolBar-specific members (size 384; begin where CControlBar ends @328).
+    // m_nCount and the docking members are inherited from CControlBar now.
+    HANDLE  m_hRsrcImageWell;        // 328
+    HANDLE  m_hInstImageWell;        // 336
+    HBITMAP m_hbmImageWell;          // 344
+    BOOL    m_bDelayedButtonLayout;  // 352
+    SIZE    m_sizeImage;             // 356
+    SIZE    m_sizeButton;            // 364
+    void*   m_pStringMap;            // 376
 };
 
 //=============================================================================
@@ -265,14 +277,10 @@ public:
     BOOL IsSimple() const;
 
 public:
-    int m_nCount;
-    UINT* m_pData;
-    int m_cxLeftBorder;
-    int m_cxRightBorder;
-    CToolTipCtrl* m_pToolTip;
-
-protected:
-    char _statusbar_padding[96];
+    // CStatusBar adds only m_nMinHeight (size 336; begins where CControlBar
+    // ends @328). m_nCount/m_pData/m_cxLeftBorder/m_cxRightBorder are inherited
+    // from CControlBar now.
+    int m_nMinHeight;            // 328
 };
 
 //=============================================================================
@@ -300,7 +308,10 @@ public:
     void* m_pOccDialogInfo;
 
 protected:
-    char _dialogbar_padding[16];
+    // Re-tuned from [16] to [8]: the faithful CControlBar no longer has tail
+    // padding for mingw's Itanium ABI to fold m_bAutoDelete into, so the base
+    // now packs like MSVC. Total 352 to match mfc140u.
+    char _dialogbar_padding[8];
 };
 
 //=============================================================================
@@ -1463,12 +1474,9 @@ public:
     OLEUICHANGEICONW* GetOleUIChangeIcon() { return &m_ci; }
 
 public:
+    // Faithful MSVC layout: COleDialog (312) + OLEUICHANGEICONW m_ci@312 only,
+    // total 928. dwFlags/the item live inside m_ci (m_ci.dwFlags etc.).
     OLEUICHANGEICONW m_ci;
-    DWORD m_dwFlags;
-    COleClientItem* m_pItem;
-
-protected:
-    char _olechangeicondialog_padding[16];
 };
 
 //=============================================================================
@@ -1517,12 +1525,9 @@ public:
     UINT GetSelectionType() const;
 
 public:
+    // Faithful MSVC layout: COleDialog (312) + OLEUICONVERTW m_cv@312 only,
+    // total 504. dwFlags/the item live inside m_cv (m_cv.dwFlags etc.).
     OLEUICONVERTW m_cv;
-    DWORD m_dwFlags;
-    COleClientItem* m_pItem;
-
-protected:
-    char _oleconvertdialog_padding[16];
 };
 
 //=============================================================================

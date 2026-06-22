@@ -54,9 +54,12 @@ void CCmdUI::Enable(BOOL bOn) { (void)bOn; }
 void CCmdUI::SetCheck(int nCheck) { (void)nCheck; }
 void CCmdUI::SetText(const wchar_t* lpszText) { (void)lpszText; }
 
-CControlBar::CControlBar() : m_nCount(0), m_pDockSite(nullptr), m_pDockBar(nullptr),
-    m_pDockContext(nullptr), m_dwStyle(0) {
-    memset(_controlbar_padding, 0, sizeof(_controlbar_padding));
+CControlBar::CControlBar()
+    : m_pInPlaceOwner(nullptr), m_bAutoDelete(FALSE),
+      m_cxLeftBorder(0), m_cxRightBorder(0), m_cyTopBorder(0), m_cyBottomBorder(0),
+      m_cxDefaultGap(0), m_nMRUWidth(0), m_nCount(0), m_pData(nullptr),
+      m_hReBarTheme(nullptr), m_nStateFlags(0), m_dwStyle(0), m_dwDockStyle(0),
+      m_pDockSite(nullptr), m_pDockBar(nullptr), m_pDockContext(nullptr) {
 }
 
 CControlBar::~CControlBar() {}
@@ -3344,12 +3347,12 @@ intptr_t COleBusyDialog::DoModal() {
 IMPLEMENT_DYNAMIC(COleChangeIconDialog, COleDialog)
 
 COleChangeIconDialog::COleChangeIconDialog(COleClientItem* pItem, DWORD dwFlags, CWnd* pParentWnd)
-    : COleDialog(0, pParentWnd), m_dwFlags(dwFlags), m_pItem(pItem) {
+    : COleDialog(0, pParentWnd) {
+    (void)pItem;  // faithful layout stores state in m_ci; no separate item field
     memset(&m_ci, 0, sizeof(m_ci));
     m_ci.cbStruct = sizeof(OLEUICHANGEICONW);
     m_ci.hWndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     m_ci.dwFlags = dwFlags;
-    memset(_olechangeicondialog_padding, 0, sizeof(_olechangeicondialog_padding));
 }
 
 COleChangeIconDialog::~COleChangeIconDialog() {
@@ -3361,9 +3364,7 @@ intptr_t COleChangeIconDialog::DoModal() {
 }
 
 int COleChangeIconDialog::DoChangeIcon(COleClientItem* pItem) {
-    if (pItem) {
-        m_pItem = pItem;
-    }
+    (void)pItem;
     return DoModal() == IDOK;
 }
 
@@ -3411,13 +3412,13 @@ IMPLEMENT_DYNAMIC(COleConvertDialog, COleDialog)
 
 COleConvertDialog::COleConvertDialog(COleClientItem* pItem, DWORD dwFlags,
                                       CLSID* pClassID, CWnd* pParentWnd)
-    : COleDialog(0, pParentWnd), m_dwFlags(dwFlags), m_pItem(pItem) {
+    : COleDialog(0, pParentWnd) {
+    (void)pItem;  // faithful layout stores state in m_cv; no separate item field
     memset(&m_cv, 0, sizeof(m_cv));
     m_cv.cbStruct = sizeof(OLEUICONVERTW);
     m_cv.hWndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     m_cv.dwFlags = dwFlags;
     if (pClassID) m_cv.clsid = *pClassID;
-    memset(_oleconvertdialog_padding, 0, sizeof(_oleconvertdialog_padding));
 }
 
 COleConvertDialog::~COleConvertDialog() {
@@ -3446,9 +3447,7 @@ CString COleConvertDialog::GetDisplayIcon() const {
 }
 
 int COleConvertDialog::DoConvert(COleClientItem* pItem) {
-    if (pItem) {
-        m_pItem = pItem;
-    }
+    (void)pItem;
     return DoModal() == IDOK;
 }
 
