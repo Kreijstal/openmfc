@@ -439,7 +439,14 @@ public:
     CFile(HANDLE hFile);
     CFile(const wchar_t* lpszFileName, UINT nOpenFlags);
     virtual ~CFile();
-    
+
+    // RTTI: CFile is DECLARE_DYNAMIC in real MFC (base CObject, schema 0xFFFF).
+    // The descriptor lives in filecore.cpp; the exported GetThisClass/GetRuntimeClass
+    // thunks return &classCFile. Kept as an internal (non-exported) DLL symbol so the
+    // export set stays at the exact 14,109-symbol mfc140u match.
+    static AFX_DATA CRuntimeClass classCFile;
+    static CRuntimeClass* GetThisClass() { return &classCFile; }
+
     // File operations
     virtual UINT Read(void* lpBuf, UINT nCount);
     virtual void Write(const void* lpBuf, UINT nCount);
