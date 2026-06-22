@@ -106,14 +106,23 @@ CDumpContext& CDumpContext::operator<<(LPCSTR lpsz) {
         OutputString(L"(NULL)");
         return *this;
     }
-    // Widen ASCII/ANSI to wchar_t.
+    // Widen ASCII/ANSI to wchar_t, flushing in stack-buffer-sized chunks so
+    // strings longer than the buffer are emitted in full (no truncation).
     wchar_t buf[512];
+    const size_t cap = (sizeof(buf) / sizeof(buf[0])) - 1;
     size_t n = 0;
-    for (; lpsz[n] != '\0' && n < (sizeof(buf) / sizeof(buf[0])) - 1; ++n) {
-        buf[n] = static_cast<wchar_t>(static_cast<unsigned char>(lpsz[n]));
+    while (*lpsz != '\0') {
+        buf[n++] = static_cast<wchar_t>(static_cast<unsigned char>(*lpsz++));
+        if (n == cap) {
+            buf[n] = L'\0';
+            OutputString(buf);
+            n = 0;
+        }
     }
-    buf[n] = L'\0';
-    OutputString(buf);
+    if (n > 0) {
+        buf[n] = L'\0';
+        OutputString(buf);
+    }
     return *this;
 }
 

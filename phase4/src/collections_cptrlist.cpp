@@ -164,10 +164,10 @@ OpenMFC_CPtrList::CNode* OpenMFC_CPtrList::NewNode(CNode* pPrev, CNode* pNext) {
         if (pNewBlock == nullptr) return nullptr;
         CNode* pNode = static_cast<CNode*>(pNewBlock->data());
         // Thread the fresh nodes onto the free list (pNext chains them).
-        pNode += m_nBlockSize - 1;
-        for (INT_PTR i = m_nBlockSize - 1; i >= 0; --i, --pNode) {
-            pNode->pNext = m_pNodeFree;
-            m_pNodeFree = pNode;
+        // Index instead of decrementing past the start (the latter is UB).
+        for (INT_PTR i = m_nBlockSize - 1; i >= 0; --i) {
+            pNode[i].pNext = m_pNodeFree;
+            m_pNodeFree = &pNode[i];
         }
     }
     CNode* pNode = m_pNodeFree;

@@ -61,11 +61,10 @@ extern "C" wchar_t* MS_ABI impl__GetBufferSetLength___CSimpleStringT__W_00_ATL__
     if (!pThis) return nullptr;
     if (nLength < 0) nLength = 0;
     wchar_t* pBuf = pThis->GetBuffer(nLength);
-    // GetBuffer() locked the data and guaranteed alloc >= nLength.  Set the
-    // logical length to nLength and terminate.
-    CStringData* pData = DataOf(pThis);
-    pData->nDataLength = nLength;
-    pBuf[nLength] = L'\0';
+    // Set the logical length via the public API rather than poking
+    // nDataLength directly (ReleaseBuffer keeps the string's state flags and
+    // shared-empty-buffer handling correct, and writes the terminator).
+    pThis->ReleaseBuffer(nLength);
     return pBuf;
 }
 

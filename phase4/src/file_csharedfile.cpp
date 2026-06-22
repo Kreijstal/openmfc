@@ -106,8 +106,15 @@ BYTE* CSharedFile::Alloc(SIZE_T nBytes)
     if (!hNew) {
         return nullptr;
     }
+    BYTE* pMsg = reinterpret_cast<BYTE*>(::GlobalLock(hNew));
+    if (!pMsg) {
+        // Lock failed: don't strand the handle (m_lpBuffer stays null, so the
+        // dtor would never Free it) — release it now.
+        ::GlobalFree(hNew);
+        return nullptr;
+    }
     m_hGlobalMemory = hNew;
-    return reinterpret_cast<BYTE*>(::GlobalLock(hNew));
+    return pMsg;
 }
 
 // Realloc the global block. lpMem is the currently-locked pointer; unlock,
