@@ -3348,11 +3348,15 @@ IMPLEMENT_DYNAMIC(COleChangeIconDialog, COleDialog)
 
 COleChangeIconDialog::COleChangeIconDialog(COleClientItem* pItem, DWORD dwFlags, CWnd* pParentWnd)
     : COleDialog(0, pParentWnd) {
-    (void)pItem;  // faithful layout stores state in m_ci; no separate item field
     memset(&m_ci, 0, sizeof(m_ci));
     m_ci.cbStruct = sizeof(OLEUICHANGEICONW);
     m_ci.hWndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     m_ci.dwFlags = dwFlags;
+    // Seed the dialog from the item (no separate member; state lives in m_ci).
+    if (pItem != nullptr) {
+        pItem->GetClassID(&m_ci.clsid);
+        m_ci.hMetaPict = pItem->GetIconicMetafile();
+    }
 }
 
 COleChangeIconDialog::~COleChangeIconDialog() {
@@ -3364,8 +3368,12 @@ intptr_t COleChangeIconDialog::DoModal() {
 }
 
 int COleChangeIconDialog::DoChangeIcon(COleClientItem* pItem) {
-    (void)pItem;
-    return DoModal() == IDOK;
+    if (DoModal() != IDOK)
+        return FALSE;
+    // Apply the chosen icon back to the item.
+    if (pItem != nullptr)
+        pItem->SetIconicMetafile(m_ci.hMetaPict);
+    return TRUE;
 }
 
 //=============================================================================
@@ -3413,12 +3421,15 @@ IMPLEMENT_DYNAMIC(COleConvertDialog, COleDialog)
 COleConvertDialog::COleConvertDialog(COleClientItem* pItem, DWORD dwFlags,
                                       CLSID* pClassID, CWnd* pParentWnd)
     : COleDialog(0, pParentWnd) {
-    (void)pItem;  // faithful layout stores state in m_cv; no separate item field
     memset(&m_cv, 0, sizeof(m_cv));
     m_cv.cbStruct = sizeof(OLEUICONVERTW);
     m_cv.hWndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     m_cv.dwFlags = dwFlags;
-    if (pClassID) m_cv.clsid = *pClassID;
+    // Class id: explicit argument wins, else seed from the item.
+    if (pClassID)
+        m_cv.clsid = *pClassID;
+    else if (pItem != nullptr)
+        pItem->GetClassID(&m_cv.clsid);
 }
 
 COleConvertDialog::~COleConvertDialog() {
@@ -3447,8 +3458,19 @@ CString COleConvertDialog::GetDisplayIcon() const {
 }
 
 int COleConvertDialog::DoConvert(COleClientItem* pItem) {
-    (void)pItem;
-    return DoModal() == IDOK;
+    if (DoModal() != IDOK)
+        return FALSE;
+    // Apply the chosen conversion/activation to the item.
+    if (pItem != nullptr) {
+        if (IsConvertTo()) {
+            pItem->ConvertTo(GetClassID());
+        } else {
+            CLSID clsidOld;
+            pItem->GetClassID(&clsidOld);
+            pItem->ActivateAs(GetClassID(), clsidOld);
+        }
+    }
+    return TRUE;
 }
 
 UINT COleConvertDialog::GetSelectionType() const {
