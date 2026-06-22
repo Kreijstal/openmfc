@@ -34,6 +34,7 @@ struct Case {
     CRuntimeClass* (MS_ABI *getRC)(const void*);
     const char*    name;
     int            size;
+    unsigned       schema;   // real mfc140u m_wSchema (SERIAL classes carry a version)
     CRuntimeClass* base;
 };
 
@@ -41,22 +42,22 @@ int main() {
     Case cases[] = {
         { impl__GetThisClass_CDockState__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CDockState__UEBAPEAUCRuntimeClass__XZ,
-          "CDockState", 96, &CObject::classCObject },
+          "CDockState", 96, 0x00000000, &CObject::classCObject },
         { impl__GetThisClass_CDockingPanesRow__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CDockingPanesRow__UEBAPEAUCRuntimeClass__XZ,
-          "CDockingPanesRow", 112, &CObject::classCObject },
+          "CDockingPanesRow", 112, 0xFFFF, &CObject::classCObject },
         { impl__GetThisClass_CDockablePaneAdapter__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CDockablePaneAdapter__UEBAPEAUCRuntimeClass__XZ,
-          "CDockablePaneAdapter", 1280, &CDockablePane::classCDockablePane },
+          "CDockablePaneAdapter", 1280, 0x80000002, &CDockablePane::classCDockablePane },
         { impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CBaseTabbedPane__UEBAPEAUCRuntimeClass__XZ,
-          "CBaseTabbedPane", 1304, &CDockablePane::classCDockablePane },
+          "CBaseTabbedPane", 1304, 0xFFFF, &CDockablePane::classCDockablePane },
         { impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ,
-          "CTabbedPane", 1304, impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ() },
+          "CTabbedPane", 1304, 0x80000002, impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ() },
         { impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CMiniDockFrameWnd__UEBAPEAUCRuntimeClass__XZ,
-          "CMiniDockFrameWnd", 896, &CMiniFrameWnd::classCMiniFrameWnd },
+          "CMiniDockFrameWnd", 896, 0xFFFF, &CMiniFrameWnd::classCMiniFrameWnd },
     };
 
     for (const Case& c : cases) {
@@ -69,8 +70,8 @@ int main() {
         check(rc->m_lpszClassName && std::strcmp(rc->m_lpszClassName, c.name) == 0, buf);
         std::snprintf(buf, sizeof(buf), "%s: m_nObjectSize == %d", c.name, c.size);
         check(rc->m_nObjectSize == c.size, buf);
-        std::snprintf(buf, sizeof(buf), "%s: schema 0xFFFF (DYNAMIC, no factory)", c.name);
-        check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
+        std::snprintf(buf, sizeof(buf), "%s: schema 0x%08X, no factory", c.name, c.schema);
+        check(rc->m_wSchema == c.schema && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
         std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass is the right base", c.name);

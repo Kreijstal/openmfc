@@ -27,14 +27,20 @@
 namespace {
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
 // m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
-#define PANE_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+//
+// m_wSchema matches the real mfc140u.dll descriptor (read by calling the exported
+// getters under Wine): DECLARE_DYNAMIC/DECLARE_DYNCREATE use 0xFFFF, DECLARE_SERIAL
+// carries a real version number (0x80000000 = VERSIONABLE_SCHEMA flag). m_pfnCreateObject
+// stays null even for DYNCREATE/SERIAL classes — OpenMFC has no class body for these,
+// so it cannot manufacture instances, and null honestly signals "not constructible".
+#define PANE_DESC(Cls, Size, Schema, BaseDesc) \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
 
-PANE_DESC(CPaneContainer,        248,  &CObject::classCObject);
-PANE_DESC(CPaneContainerManager, 160,  &CObject::classCObject);
-PANE_DESC(CPaneDivider,          536,  &CBasePane::classCBasePane);
-PANE_DESC(CPaneDialog,           1264, &CDockablePane::classCDockablePane);
-PANE_DESC(CPaneFrameWnd,         600,  &CWnd::classCWnd);
+PANE_DESC(CPaneContainer,        248,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
+PANE_DESC(CPaneContainerManager, 160,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
+PANE_DESC(CPaneDivider,          536,  0xFFFF,     &CBasePane::classCBasePane);       // DECLARE_DYNCREATE
+PANE_DESC(CPaneDialog,           1264, 0x80000001, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
+PANE_DESC(CPaneFrameWnd,         600,  0x80000002, &CWnd::classCWnd);                 // DECLARE_SERIAL
 #undef PANE_DESC
 } // namespace
 
