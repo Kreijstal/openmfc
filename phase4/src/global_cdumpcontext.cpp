@@ -28,6 +28,13 @@
   #define MS_ABI
 #endif
 
+// Polymorphic dispatch on the CFile-family target via its MSVC-layout vtable
+// (global_file_dispatch.cpp); mingw virtual syntax would mis-index the vtable.
+extern "C" {
+void MS_ABI OpenMFC_File_Write(CFile*, const void*, unsigned int);
+void MS_ABI OpenMFC_File_Flush(CFile*);
+}
+
 // ---------------------------------------------------------------------------
 // Class definition (not present in include/; defined here with the exact
 // MSVC-compatible layout from the authoritative research).
@@ -86,7 +93,7 @@ void CDumpContext::OutputString(LPCWSTR lpsz) {
     }
     if (m_pFile != nullptr) {
         UINT nBytes = static_cast<UINT>(wcslen(lpsz) * sizeof(wchar_t));
-        m_pFile->Write(lpsz, nBytes);
+        OpenMFC_File_Write(m_pFile, lpsz, nBytes);
     } else {
         OutputDebugStringW(lpsz);
     }
@@ -261,7 +268,7 @@ CDumpContext& CDumpContext::DumpAsHex(unsigned short w) {
 
 void CDumpContext::Flush() {
     if (m_pFile != nullptr) {
-        m_pFile->Flush();
+        OpenMFC_File_Flush(m_pFile);
     }
 }
 

@@ -26,6 +26,17 @@
   #define MS_ABI
 #endif
 
+// Internal polymorphic dispatch on CFile-family objects via their MSVC-layout
+// vtable (global_file_dispatch.cpp). Internal code must NOT use pFile->Method()
+// virtual syntax — mingw indexes the MSVC vtable with Itanium slots and mis-dispatches.
+extern "C" {
+unsigned int        MS_ABI OpenMFC_File_Read(CFile*, void*, unsigned int);
+void                MS_ABI OpenMFC_File_Write(CFile*, const void*, unsigned int);
+unsigned long long  MS_ABI OpenMFC_File_Seek(CFile*, long long, unsigned int);
+unsigned long long  MS_ABI OpenMFC_File_GetLength(CFile*);
+void                MS_ABI OpenMFC_File_Flush(CFile*);
+}
+
 extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
     CArchive* ar,
     unsigned int* pwSchemaNum
@@ -1853,7 +1864,7 @@ void CArchive::FillBuffer(UINT nBytesNeeded) {
     UINT capacity = static_cast<UINT>(m_nBufSize);
     UINT bytesToRead = capacity - nRemaining;
 
-    UINT nRead = m_pFile->Read(m_lpBufStart + nRemaining, bytesToRead);
+    UINT nRead = OpenMFC_File_Read(m_pFile, m_lpBufStart + nRemaining, bytesToRead);
     m_lpBufMax = m_lpBufStart + nRemaining + nRead;
 }
 
@@ -1876,7 +1887,7 @@ void CArchive::WriteBuffer() {
 
     UINT nBytes = (UINT)(m_lpBufCur - m_lpBufStart);
     if (nBytes > 0) {
-        m_pFile->Write(m_lpBufStart, nBytes);
+        OpenMFC_File_Write(m_pFile, m_lpBufStart, nBytes);
         m_lpBufCur = m_lpBufStart;
     }
 }
@@ -1929,7 +1940,7 @@ void CArchive::Flush() {
         WriteBuffer();
     }
     if (m_pFile) {
-        m_pFile->Flush();
+        OpenMFC_File_Flush(m_pFile);
     }
 }
 
