@@ -147,16 +147,22 @@ extern "C" void* MS_ABI impl___0CMDIFrameWndEx__IEAA_XZ(void* pThis) {
     return new(pThis) CMDIFrameWndEx();
 }
 
+// Install the MSVC-layout vtable so drop-in MSVC clients dispatch CMemFile virtuals
+// correctly (the mingw/Itanium vtable diverges past the destructor slot).
+extern "C" void* OpenMFC_PatchCMemFileVtable(void* pObj);
+
 // Symbol: ??0CMemFile@@QEAA@I@Z
 // Constructor: CMemFile::CMemFile
 extern "C" void* MS_ABI impl___0CMemFile__QEAA_I_Z(void* pThis, unsigned int p0) {
-    return new(pThis) CMemFile(p0);
+    new(pThis) CMemFile(p0);
+    return OpenMFC_PatchCMemFileVtable(pThis);
 }
 
 // Symbol: ??0CMemFile@@QEAA@PEAEII@Z
 // Constructor: CMemFile::CMemFile
 extern "C" void* MS_ABI impl___0CMemFile__QEAA_PEAEII_Z(void* pThis, unsigned char* p0, unsigned int p1, unsigned int p2) {
-    return new(pThis) CMemFile(p0, p1, p2);
+    new(pThis) CMemFile(p0, p1, p2);
+    return OpenMFC_PatchCMemFileVtable(pThis);
 }
 
 // Symbol: ??0CMetaFileDC@@QEAA@XZ
@@ -3034,7 +3040,7 @@ extern "C" unsigned __int64 MS_ABI impl__GetLength_CInternetFile__UEBA_KXZ(const
 // Symbol: ?GetLength@CMemFile@@UEBA_KXZ
 // CMemFile::GetLength
 extern "C" unsigned __int64 MS_ABI impl__GetLength_CMemFile__UEBA_KXZ(const CMemFile* pThis) {
-    return (unsigned __int64)pThis->GetLength();
+    return (unsigned __int64)pThis->CMemFile::GetLength();
 }
 
 // Symbol: ?GetLicenseKey@COleObjectFactory@@MEAAHKPEAPEA_W@Z
@@ -5071,7 +5077,7 @@ extern "C" unsigned int MS_ABI impl__Read_CInternetFile__UEAAIPEAXI_Z(CInternetF
 // Symbol: ?Read@CMemFile@@UEAAIPEAXI@Z
 // CMemFile::Read
 extern "C" unsigned int MS_ABI impl__Read_CMemFile__UEAAIPEAXI_Z(CMemFile* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
+    return (unsigned int)pThis->CMemFile::Read(p0, p1);
 }
 
 // Symbol: ?Read@COleStreamFile@@UEAAIPEAXI@Z
@@ -5366,7 +5372,7 @@ extern "C" unsigned __int64 MS_ABI impl__Seek_CInternetFile__UEAA_K_JI_Z(CIntern
 // Symbol: ?Seek@CMemFile@@UEAA_K_JI@Z
 // CMemFile::Seek
 extern "C" unsigned __int64 MS_ABI impl__Seek_CMemFile__UEAA_K_JI_Z(CMemFile* pThis, __int64 p0, unsigned int p1) {
-    return (unsigned __int64)pThis->Seek(p0, p1);
+    return (unsigned __int64)pThis->CMemFile::Seek(p0, p1);
 }
 
 // Symbol: ?Seek@COleStreamFile@@UEAA_K_JI@Z
@@ -6292,7 +6298,7 @@ extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const
 // Symbol: ?Write@CMemFile@@UEAAXPEBXI@Z
 // CMemFile::Write
 extern "C" void MS_ABI impl__Write_CMemFile__UEAAXPEBXI_Z(CMemFile* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
+    pThis->CMemFile::Write(p0, p1);
 }
 
 // Symbol: ?Write@COleStreamFile@@UEAAXPEBXI@Z
