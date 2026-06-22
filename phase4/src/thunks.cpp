@@ -75,22 +75,27 @@ extern "C" void* MS_ABI impl___0CEnumFormatEtc__QEAA_XZ(void* pThis) {
     return new(pThis) CEnumFormatEtc();
 }
 
+extern "C" void* OpenMFC_PatchCFileVtable(void* pObj);
+
 // Symbol: ??0CFile@@QEAA@PEAX@Z
 // Constructor: CFile::CFile
 extern "C" void* MS_ABI impl___0CFile__QEAA_PEAX_Z(void* pThis, void* p0) {
-    return new(pThis) CFile(p0);
+    new(pThis) CFile(p0);
+    return OpenMFC_PatchCFileVtable(pThis);
 }
 
 // Symbol: ??0CFile@@QEAA@PEB_WI@Z
 // Constructor: CFile::CFile
 extern "C" void* MS_ABI impl___0CFile__QEAA_PEB_WI_Z(void* pThis, const wchar_t* p0, unsigned int p1) {
-    return new(pThis) CFile(p0, p1);
+    new(pThis) CFile(p0, p1);
+    return OpenMFC_PatchCFileVtable(pThis);
 }
 
 // Symbol: ??0CFile@@QEAA@XZ
 // Constructor: CFile::CFile
 extern "C" void* MS_ABI impl___0CFile__QEAA_XZ(void* pThis) {
-    return new(pThis) CFile();
+    new(pThis) CFile();
+    return OpenMFC_PatchCFileVtable(pThis);
 }
 
 // Symbol: ??0CFileFind@@QEAA@XZ
@@ -615,16 +620,20 @@ extern "C" void* MS_ABI impl___0CStatusBar__QEAA_XZ(void* pThis) {
     return new(pThis) CStatusBar();
 }
 
+extern "C" void* OpenMFC_PatchCStdioFileVtable(void* pObj);
+
 // Symbol: ??0CStdioFile@@QEAA@PEB_WI@Z
 // Constructor: CStdioFile::CStdioFile
 extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEB_WI_Z(void* pThis, const wchar_t* p0, unsigned int p1) {
-    return new(pThis) CStdioFile(p0, p1);
+    new(pThis) CStdioFile(p0, p1);
+    return OpenMFC_PatchCStdioFileVtable(pThis);
 }
 
 // Symbol: ??0CStdioFile@@QEAA@XZ
 // Constructor: CStdioFile::CStdioFile
 extern "C" void* MS_ABI impl___0CStdioFile__QEAA_XZ(void* pThis) {
-    return new(pThis) CStdioFile();
+    new(pThis) CStdioFile();
+    return OpenMFC_PatchCStdioFileVtable(pThis);
 }
 
 // Symbol: ??0CToolBar@@QEAA@XZ
@@ -1772,7 +1781,7 @@ extern "C" void MS_ABI impl__Close_CSocketFile__UEAAXXZ(CSocketFile* pThis) {
 // Symbol: ?Close@CStdioFile@@UEAAXXZ
 // CStdioFile::Close
 extern "C" void MS_ABI impl__Close_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
-    pThis->Close();
+    pThis->CStdioFile::Close();
 }
 
 // Symbol: ?Command@CFtpConnection@@QEAAPEAVCInternetFile@@PEB_WW4CmdResponseType@1@K_K@Z
@@ -2596,7 +2605,7 @@ extern "C" void MS_ABI impl__Flush_CMemFile__UEAAXXZ(CMemFile* pThis) {
 // Symbol: ?Flush@CStdioFile@@UEAAXXZ
 // CStdioFile::Flush
 extern "C" void MS_ABI impl__Flush_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
-    pThis->Flush();
+    pThis->CStdioFile::Flush();
 }
 
 // Symbol: ?GetAccessibilityHitTest@CWnd@@QEAAJJJPEAUtagVARIANT@@@Z
@@ -5095,7 +5104,7 @@ extern "C" unsigned int MS_ABI impl__Read_CSocketFile__UEAAIPEAXI_Z(CSocketFile*
 // Symbol: ?Read@CStdioFile@@UEAAIPEAXI@Z
 // CStdioFile::Read
 extern "C" unsigned int MS_ABI impl__Read_CStdioFile__UEAAIPEAXI_Z(CStdioFile* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
+    return (unsigned int)pThis->CStdioFile::Read(p0, p1);
 }
 
 // Symbol: ?ReadString@CArchive@@QEAAPEA_WPEA_WI@Z
@@ -5390,7 +5399,7 @@ extern "C" unsigned __int64 MS_ABI impl__Seek_CSocketFile__UEAA_K_JI_Z(CSocketFi
 // Symbol: ?Seek@CStdioFile@@UEAA_K_JI@Z
 // CStdioFile::Seek
 extern "C" unsigned __int64 MS_ABI impl__Seek_CStdioFile__UEAA_K_JI_Z(CStdioFile* pThis, __int64 p0, unsigned int p1) {
-    return (unsigned __int64)pThis->Seek(p0, p1);
+    return (unsigned __int64)pThis->CStdioFile::Seek(p0, p1);
 }
 
 // Symbol: ?Send@CAsyncSocket@@UEAAHPEBXHH@Z
@@ -6316,7 +6325,7 @@ extern "C" void MS_ABI impl__Write_CSocketFile__UEAAXPEBXI_Z(CSocketFile* pThis,
 // Symbol: ?Write@CStdioFile@@UEAAXPEBXI@Z
 // CStdioFile::Write
 extern "C" void MS_ABI impl__Write_CStdioFile__UEAAXPEBXI_Z(CStdioFile* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
+    pThis->CStdioFile::Write(p0, p1);
 }
 
 // Symbol: ?WriteString@CArchive@@QEAAXPEB_W@Z
