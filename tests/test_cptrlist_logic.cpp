@@ -153,6 +153,27 @@ int main() {
     CHECK(L3->GetCount() == 0, "list empty after draining 100");
     impl___1CPtrList__UEAA_XZ(L3);
 
+    // Self-append must be bounded to the original nodes (the buggy version chases
+    // newly-appended nodes until OOM). Reaching the CHECK at all proves it
+    // terminates; the content proves correctness.
+    alignas(OpenMFC_CPtrList) unsigned char storageS[sizeof(OpenMFC_CPtrList)];
+    OpenMFC_CPtrList* LS = reinterpret_cast<OpenMFC_CPtrList*>(storageS);
+    impl___0CPtrList__QEAA__J_Z(LS, 4);
+    impl__AddTail_CPtrList__QEAAPEAU__POSITION__PEAX_Z(LS, (void*)(intptr_t)1);
+    impl__AddTail_CPtrList__QEAAPEAU__POSITION__PEAX_Z(LS, (void*)(intptr_t)2);
+    impl__AddTail_CPtrList__QEAAXPEAV1__Z(LS, LS);   // self-append
+    CHECK(LS->GetCount() == 4, "self AddTail bounded -> count doubles to 4");
+    {
+        intptr_t expect[4] = {1, 2, 1, 2};
+        bool ok = true;
+        for (int i = 0; i < 4; ++i) {
+            void* v = impl__RemoveHead_CPtrList__QEAAPEAXXZ(LS);
+            if (v != (void*)expect[i]) { ok = false; break; }
+        }
+        CHECK(ok, "self AddTail produced [1,2,1,2]");
+    }
+    impl___1CPtrList__UEAA_XZ(LS);
+
     // NULL-guard checks.
     CHECK(impl__RemoveHead_CPtrList__QEAAPEAXXZ(nullptr) == nullptr, "NULL this RemoveHead safe");
     CHECK(impl__GetThisClass_CPtrList__SAPEAUCRuntimeClass__XZ() != nullptr, "GetThisClass non-null");

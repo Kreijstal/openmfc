@@ -37,6 +37,19 @@ namespace {
 // View the embedded COleSafeArray as its SAFEARRAY base (offset 0).
 inline SAFEARRAY* SA(void* pThis) { return reinterpret_cast<SAFEARRAY*>(pThis); }
 
+// Release any array data this object already owns before overwriting the inline
+// descriptor, so reusing one COleSafeArray for several Create()/Attach() calls
+// doesn't leak the previous pvData buffer. A freshly-constructed object has
+// cDims==0/pvData==null (see the header ctor), so this is a no-op on first use.
+inline void ReleaseInline(void* pThis) {
+    SAFEARRAY* sa = SA(pThis);
+    if (sa->cDims != 0 && sa->pvData != nullptr) {
+        SafeArrayDestroyData(sa);
+        sa->pvData = nullptr;
+        sa->cDims = 0;
+    }
+}
+
 // Full descriptor byte size for an n-dimension SAFEARRAY (rgsabound is a
 // flexible array; only rgsabound[0] lives inside sizeof(SAFEARRAY)).
 inline size_t DescriptorSize(unsigned long dims) {
@@ -72,6 +85,7 @@ extern "C" void MS_ABI impl__Create_COleSafeArray__QEAAXGKPEAK_Z(
     void* pThis, unsigned short vt, unsigned long dwDims, unsigned long* rgElements)
 {
     if (!pThis || !rgElements || dwDims < 1 || dwDims > 4) return;
+    ReleaseInline(pThis);  // free any previously-held array on reuse
     SAFEARRAYBOUND bounds[4];
     for (unsigned long i = 0; i < dwDims; ++i) {
         bounds[i].lLbound = 0;
@@ -89,6 +103,7 @@ extern "C" void MS_ABI impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(
     const void* pvSrcData, long lLbound)
 {
     if (!pThis) return;
+    ReleaseInline(pThis);  // free any previously-held array on reuse
     SAFEARRAYBOUND bound;
     bound.lLbound = lLbound;
     bound.cElements = dwElementCount;
@@ -227,6 +242,7 @@ extern "C" void MS_ABI impl__Attach_COleSafeArray__QEAAXAEAUtagVARIANT___Z(
     SAFEARRAY* psa = pvarSrc->parray;
     unsigned long dims = psa->cDims;
     if (dims < 1 || dims > 4) return;
+    ReleaseInline(pThis);  // free any previously-held array before adopting
     std::memcpy(pThis, psa, DescriptorSize(dims));
     // Transfer ownership: detach the array from the source variant without
     // freeing the (now shared) data buffer.

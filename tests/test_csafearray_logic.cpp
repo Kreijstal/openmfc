@@ -128,6 +128,20 @@ int main() {
     check(dr == 3.5, "Attach: element [2] == 3.5");
     check(var.vt == VT_EMPTY && var.parray == nullptr, "Attach: source variant cleared");
 
+    // ----- reuse: a second Create on the same object must release the first
+    // array's data (no leak) and produce a correct new array -----
+    OleSA reuse;
+    long first[3] = {1, 2, 3};
+    impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(&reuse, VT_I4, 3, first, 0);
+    long second[5] = {7, 8, 9, 10, 11};
+    impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(&reuse, VT_I4, 5, second, 0);
+    check(impl__GetOneDimSize_COleSafeArray__QEAAKXZ(&reuse) == 5, "reuse: second Create -> size 5");
+    check(reuse.sa.pvData != nullptr, "reuse: new buffer allocated");
+    long got = 0; long idx3 = 3;
+    impl__GetElement_COleSafeArray__QEAAXPEAJPEAX_Z(&reuse, &idx3, &got);
+    check(got == 10, "reuse: second array element [3] == 10");
+    impl__DestroyData_COleSafeArray__QEAAXXZ(&reuse);
+
     std::printf("RESULT: %s (%d failures)\n", g_failures == 0 ? "ALL PASS" : "FAILED", g_failures);
     return g_failures == 0 ? 0 : 1;
 }

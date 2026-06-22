@@ -143,6 +143,21 @@ int main() {
           "RemoveAt spliced tail correctly at large N");
     impl___1CWordArray__UEAA_XZ(c);
 
+    // ---- self-insert: InsertAt(idx, &self) must snapshot the source first ----
+    alignas(OpenMfcWordArray) unsigned char storage4[sizeof(OpenMfcWordArray)];
+    OpenMfcWordArray* s = reinterpret_cast<OpenMfcWordArray*>(storage4);
+    impl___0CWordArray__QEAA_XZ(s);
+    s->SetAtGrow(0, 10); s->SetAtGrow(1, 20); s->SetAtGrow(2, 30);   // [10,20,30]
+    // Insert a copy of the whole array at index 1 -> [10,10,20,30,20,30].
+    impl__InsertAt_CWordArray__QEAAX_JPEAV1__Z(s, 1, s);
+    {
+        unsigned short expect[6] = {10, 10, 20, 30, 20, 30};
+        bool ok = (s->GetSize() == 6);
+        for (INT_PTR i = 0; ok && i < 6; ++i) if (s->GetAt(i) != expect[i]) ok = false;
+        CHECK(ok, "self-insert InsertAt(1,&self) -> [10,10,20,30,20,30]");
+    }
+    impl___1CWordArray__UEAA_XZ(s);
+
     if (g_failures == 0) {
         std::printf("ALL CHECKS PASSED\n");
         return 0;

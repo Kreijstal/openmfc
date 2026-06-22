@@ -219,14 +219,23 @@ void OpenMFC_CPtrList::AddHead(OpenMFC_CPtrList* pNewList) {
     if (pNewList == nullptr) return;
     // Add elements of pNewList to the head, preserving their relative order
     // (iterate from tail to head of source so the source head ends up first).
-    for (CNode* p = pNewList->m_pNodeTail; p != nullptr; p = p->pPrev)
+    // When pNewList == this, stop at the original head so we don't chase the
+    // nodes we're inserting (which would loop until OOM).
+    CNode* pStop = (pNewList == this) ? pNewList->m_pNodeHead : nullptr;
+    for (CNode* p = pNewList->m_pNodeTail; p != nullptr; p = p->pPrev) {
         AddHead(p->data);
+        if (p == pStop) break;
+    }
 }
 
 void OpenMFC_CPtrList::AddTail(OpenMFC_CPtrList* pNewList) {
     if (pNewList == nullptr) return;
-    for (CNode* p = pNewList->m_pNodeHead; p != nullptr; p = p->pNext)
+    // Bound self-append at the original tail (see AddHead above).
+    CNode* pStop = (pNewList == this) ? pNewList->m_pNodeTail : nullptr;
+    for (CNode* p = pNewList->m_pNodeHead; p != nullptr; p = p->pNext) {
         AddTail(p->data);
+        if (p == pStop) break;
+    }
 }
 
 void* OpenMFC_CPtrList::RemoveHead() {

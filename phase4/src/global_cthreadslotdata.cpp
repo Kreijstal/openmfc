@@ -270,16 +270,28 @@ extern "C" void MS_ABI impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(
 // Symbol: ?DeleteValues@CThreadSlotData@@QEAAXPEAUHINSTANCE__@@H@Z
 // Clears, for the calling thread, all slot values belonging to a module.
 extern "C" void MS_ABI impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(
-    CThreadSlotData* pThis, HINSTANCE hInst, int /*bAll*/) {
+    CThreadSlotData* pThis, HINSTANCE hInst, int bAll) {
     if (pThis == nullptr)
         return;
     EnterCriticalSection(&pThis->m_sect);
-    CThreadData* pData = (CThreadData*)TlsGetValue(pThis->m_tlsIndex);
-    if (pData != nullptr && pData->pData != nullptr && pThis->m_pSlotData != nullptr) {
-        int limit = pData->nCount < pThis->m_nMax ? pData->nCount : pThis->m_nMax;
-        for (int i = 1; i < limit; ++i) {
-            if (hInst == nullptr || pThis->m_pSlotData[i].hInst == hInst)
-                pData->pData[i] = nullptr;
+    if (pThis->m_pSlotData != nullptr) {
+        // Clear matching (module-owned) slot values in one thread's node.
+        auto clearNode = [&](CThreadData* pData) {
+            if (pData == nullptr || pData->pData == nullptr)
+                return;
+            int limit = pData->nCount < pThis->m_nMax ? pData->nCount : pThis->m_nMax;
+            for (int i = 1; i < limit; ++i) {
+                if (hInst == nullptr || pThis->m_pSlotData[i].hInst == hInst)
+                    pData->pData[i] = nullptr;
+            }
+        };
+        if (bAll) {
+            // Walk every tracked per-thread node via m_list, not just this thread.
+            for (CThreadData* p = (CThreadData*)pThis->m_list.m_pHead; p != nullptr;
+                 p = *(CThreadData**)((BYTE*)p + pThis->m_list.m_nNextOffset))
+                clearNode(p);
+        } else {
+            clearNode((CThreadData*)TlsGetValue(pThis->m_tlsIndex));
         }
     }
     LeaveCriticalSection(&pThis->m_sect);

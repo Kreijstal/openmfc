@@ -189,6 +189,8 @@ void OpenMfcWordArray::SetAtGrow(INT_PTR nIndex, WORD newElement) {
 INT_PTR OpenMfcWordArray::Add(WORD newElement) {
     INT_PTR nIndex = m_nSize;
     SetAtGrow(nIndex, newElement);
+    // If growth failed the element wasn't stored; don't report a phantom index.
+    if (nIndex >= m_nSize) return -1;
     return nIndex;
 }
 
@@ -246,6 +248,20 @@ void OpenMfcWordArray::InsertAt(INT_PTR nStartIndex, OpenMfcWordArray* pNewArray
     if (pNewArray == nullptr || nStartIndex < 0) return;
     INT_PTR nCount = pNewArray->m_nSize;
     if (nCount <= 0) return;
+    if (pNewArray == this) {
+        // Self-insert: snapshot the source first — the hole-opening InsertAt
+        // below mutates/reallocates m_pData, so a direct copy would read shifted
+        // or freed data.
+        WORD* snap = static_cast<WORD*>(malloc(static_cast<size_t>(nCount) * sizeof(WORD)));
+        if (snap == nullptr) return;
+        memcpy(snap, m_pData, static_cast<size_t>(nCount) * sizeof(WORD));
+        InsertAt(nStartIndex, static_cast<WORD>(0), nCount);
+        if (nStartIndex + nCount <= m_nSize) {
+            memcpy(m_pData + nStartIndex, snap, static_cast<size_t>(nCount) * sizeof(WORD));
+        }
+        free(snap);
+        return;
+    }
     // Open a hole using the value form, then overwrite with source contents.
     InsertAt(nStartIndex, static_cast<WORD>(0), nCount);
     if (nStartIndex + nCount <= m_nSize) {
