@@ -21,6 +21,26 @@ jobs:
             /Fe:artifacts\harvest.exe ^
             /link /LIBPATH:"%VCToolsInstallDir%ATLMFC\lib\x64" mfc140u.lib
 
+      - name: Dump MSVC class layouts
+        shell: cmd
+        run: |
+          rem MSVC honors only the LAST /d1reportSingleClassLayout per invocation,
+          rem so run one compile per class and append each report. The flag is a
+          rem prefix match (may emit a few CXxx* extras); we grep exact names later.
+          if exist artifacts\class_layouts.txt del artifacts\class_layouts.txt
+          for %%C in (CObject CCmdTarget CWnd CWinThread CWinApp CDocument CView ^
+                     CCtrlView CScrollView CFrameWnd CMDIFrameWnd CMDIChildWnd ^
+                     CDialog CDocTemplate CSingleDocTemplate CMultiDocTemplate ^
+                     CDocManager COleDocument COleLinkingDoc COleServerDoc ^
+                     COleClientItem COleServerItem COleObjectFactory COleDataSource ^
+                     CControlBar CStatusBar CToolBar CSplitterWnd CDockState ^
+                     CRecentFileList CCommandLineInfo) do ( ^
+            cl /nologo /c /EHsc /MD ^
+              /I"%VCToolsInstallDir%ATLMFC\include" /I"%VCToolsInstallDir%include" ^
+              /d1reportSingleClassLayout%%C ^
+              phase1\harvest\layout_probe.cpp /Foartifacts\layout_probe.obj >> artifacts\class_layouts.txt 2>&1 )
+          powershell -Command "Select-String -Path artifacts\class_layouts.txt -Pattern 'size\(' | Select-Object -First 40"
+
       - name: Run harvester
         shell: pwsh
         run: |
@@ -43,6 +63,7 @@ jobs:
           Get-Content artifacts\golden_trace.json -ErrorAction SilentlyContinue
 
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: phase1_harvest

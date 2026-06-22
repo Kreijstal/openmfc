@@ -58,7 +58,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CFrameWnd__MEBAPEBUAFX_M
 // Symbol: ?GetRuntimeClass@CFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFrameWnd__UEBAPEAUCRuntimeClass__XZ(
     const CFrameWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CFrameWnd::GetThisClass();
+    return CFrameWnd::GetThisClass();
 }
 
 // Symbol: ?GetThisMessageMap@CFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
@@ -95,7 +95,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CMDIChildWnd__MEBAPEBUAF
 // Symbol: ?GetRuntimeClass@CMDIChildWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIChildWnd__UEBAPEAUCRuntimeClass__XZ(
     const CMDIChildWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMDIChildWnd::GetThisClass();
+    return CMDIChildWnd::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CMDIChildWnd@@SAPEAUCRuntimeClass@@XZ
@@ -296,7 +296,7 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CMDIFrameWnd__MEBAPEBUAF
 // Symbol: ?GetRuntimeClass@CMDIFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIFrameWnd__UEBAPEAUCRuntimeClass__XZ(
     const CMDIFrameWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMDIFrameWnd::GetThisClass();
+    return CMDIFrameWnd::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CMDIFrameWnd@@SAPEAUCRuntimeClass@@XZ
@@ -470,7 +470,7 @@ extern "C" void MS_ABI impl__GetCharFormat_CFontDialog__QEBAXAEAU_charformatw___
 // Symbol: ?GetRuntimeClass@CFontDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFontDialog__UEBAPEAUCRuntimeClass__XZ(
     const CFontDialog* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CFontDialog::GetThisClass();
+    return CFontDialog::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CFontDialog@@SAPEAUCRuntimeClass@@XZ

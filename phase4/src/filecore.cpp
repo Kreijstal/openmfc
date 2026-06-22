@@ -696,7 +696,7 @@ extern "C" CRuntimeClass* MS_ABI fn_name() { \
 
 #define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) \
 extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { \
-    return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); \
+    return class_name::GetThisClass(); \
 }
 
 #define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) \
@@ -901,7 +901,7 @@ extern "C" void MS_ABI impl__SetSize_CStringArray__QEAAX_J0_Z(CStringArray* pThi
 #define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }
 #define OPENMFC_WRAP_DTOR(fn_name, class_name) extern "C" void MS_ABI fn_name(class_name* pThis) { if (pThis) pThis->~class_name(); }
 #define OPENMFC_WRAP_GETTHISCLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name() { return class_name::GetThisClass(); }
-#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); }
+#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return class_name::GetThisClass(); }
 #define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) extern "C" CObject* MS_ABI fn_name() { return class_name::CreateObject(); }
 #define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; }
 
@@ -1016,7 +1016,7 @@ extern "C" void MS_ABI impl__Serialize_CObList__UEAAXAEAVCArchive___Z(CObList* p
 #define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }
 #define OPENMFC_WRAP_DTOR(fn_name, class_name) extern "C" void MS_ABI fn_name(class_name* pThis) { if (pThis) pThis->~class_name(); }
 #define OPENMFC_WRAP_GETTHISCLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name() { return class_name::GetThisClass(); }
-#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return pThis ? pThis->GetRuntimeClass() : class_name::GetThisClass(); }
+#define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return class_name::GetThisClass(); }
 #define OPENMFC_WRAP_CREATEOBJECT(fn_name, class_name) extern "C" CObject* MS_ABI fn_name() { return class_name::CreateObject(); }
 #define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; }
 

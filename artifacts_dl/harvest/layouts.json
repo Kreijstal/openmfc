@@ -22,5 +22,161 @@
   "CWinApp": {
     "sizeof": 376,
     "members": {}
+  },
+  "CCmdTarget": {
+    "sizeof": 64,
+    "members": {}
+  },
+  "CWinThread": {
+    "sizeof": 136,
+    "members": {}
+  },
+  "CDocument": {
+    "sizeof": 384,
+    "members": {}
+  },
+  "CDocTemplate": {
+    "sizeof": 240,
+    "members": {}
+  },
+  "CSingleDocTemplate": {
+    "sizeof": 248,
+    "members": {}
+  },
+  "CMultiDocTemplate": {
+    "sizeof": 320,
+    "members": {}
+  },
+  "CDocManager": {
+    "sizeof": 64,
+    "members": {}
+  },
+  "CView": {
+    "sizeof": 248,
+    "members": {}
+  },
+  "CCtrlView": {
+    "sizeof": 264,
+    "members": {}
+  },
+  "CScrollView": {
+    "sizeof": 304,
+    "members": {}
+  },
+  "CFormView": {
+    "sizeof": 352,
+    "members": {}
+  },
+  "CFrameWnd": {
+    "sizeof": 472,
+    "members": {}
+  },
+  "CMDIFrameWnd": {
+    "sizeof": 480,
+    "members": {}
+  },
+  "CMDIChildWnd": {
+    "sizeof": 488,
+    "members": {}
+  },
+  "CDialog": {
+    "sizeof": 304,
+    "members": {}
+  },
+  "CControlBar": {
+    "sizeof": 328,
+    "members": {}
+  },
+  "CStatusBar": {
+    "sizeof": 336,
+    "members": {}
+  },
+  "CToolBar": {
+    "sizeof": 384,
+    "members": {}
+  },
+  "CSplitterWnd": {
+    "sizeof": 384,
+    "members": {}
+  },
+  "CDockState": {
+    "sizeof": 96,
+    "members": {}
+  },
+  "COleDocument": {
+    "sizeof": 488,
+    "members": {}
+  },
+  "COleLinkingDoc": {
+    "sizeof": 560,
+    "members": {}
+  },
+  "COleServerDoc": {
+    "sizeof": 664,
+    "members": {}
+  },
+  "COleServerItem": {
+    "sizeof": 224,
+    "members": {}
+  },
+  "COleClientItem": {
+    "sizeof": 240,
+    "members": {}
+  },
+  "COleDocObjectItem": {
+    "sizeof": 280,
+    "members": {}
+  },
+  "COleObjectFactory": {
+    "sizeof": 136,
+    "members": {}
+  },
+  "COleDataSource": {
+    "sizeof": 96,
+    "members": {}
+  },
+  "COleDropTarget": {
+    "sizeof": 104,
+    "members": {}
+  },
+  "COleDropSource": {
+    "sizeof": 104,
+    "members": {}
+  },
+  "COleDispatchDriver": {
+    "sizeof": 16,
+    "members": {}
+  },
+  "COleVariant": {
+    "sizeof": 24,
+    "members": {}
+  },
+  "COleCurrency": {
+    "sizeof": 16,
+    "members": {}
+  },
+  "COleDateTime": {
+    "sizeof": 16,
+    "members": {}
+  },
+  "COleDateTimeSpan": {
+    "sizeof": 16,
+    "members": {}
+  },
+  "COleSafeArray": {
+    "sizeof": 32,
+    "members": {}
+  },
+  "CDynLinkLibrary": {
+    "sizeof": 128,
+    "members": {}
+  },
+  "CRecentFileList": {
+    "sizeof": 56,
+    "members": {}
+  },
+  "CCommandLineInfo": {
+    "sizeof": 72,
+    "members": {}
   }
 }

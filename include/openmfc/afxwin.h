@@ -981,7 +981,7 @@ public:
     UINT m_nIDHelp;
 
 protected:
-    char _framewnd_padding[16]; // Padding for member variables
+    char _framewnd_padding[216]; // Padding for member variables
 };
 
 //=============================================================================
@@ -1012,7 +1012,6 @@ public:
     HWND m_hWndMDIClient; // Handle to MDI client window
     
 protected:
-    char _mdiframe_padding[32];
 };
 
 //=============================================================================
@@ -1035,7 +1034,7 @@ public:
     CMDIFrameWnd* GetMDIFrame();
     
 protected:
-    char _mdichild_padding[32];
+    char _mdichild_padding[16];
 };
 
 //=============================================================================
@@ -1068,7 +1067,7 @@ public:
     unsigned int m_nIDHelp;
     
 protected:
-    char _dialog_padding[32];
+    char _dialog_padding[56];
 };
 
 //=============================================================================
@@ -1088,7 +1087,7 @@ public:
 protected:
     unsigned long m_clrBackground;
     void* m_hBackgroundImage;
-    char _dialogex_padding[32];
+    char _dialogex_padding[56];
 };
 
 //=============================================================================
@@ -1194,7 +1193,7 @@ public:
     int m_nPageCount;
 
 protected:
-    char _propertysheet_padding[32];
+    char _propertysheet_padding[8];
 };
 
 //=============================================================================
@@ -1260,7 +1259,7 @@ protected:
     // Multiple files
     void* m_pFileList;
     
-    char _filedialog_padding[128];
+    char _filedialog_padding[1032];
 };
 
 // CColorDialog - Color selection dialog
@@ -1314,7 +1313,7 @@ protected:
     unsigned long m_clrResult;
     int m_nPointSize;
 
-    char _fontdialog_padding[32];
+    char _fontdialog_padding[208];
 };
 
 // CPrintDialog - Print dialog
@@ -1351,7 +1350,7 @@ protected:
     int m_nFromPage;
     int m_nToPage;
 
-    char _printdialog_padding[32];
+    char _printdialog_padding[80];
 };
 
 //=============================================================================
@@ -1381,7 +1380,7 @@ public:
     PRINTDLGEXW m_pdex;
 
 protected:
-    char _printdialogex_padding[64];
+    char _printdialogex_padding[24];
 };
 
 // CPageSetupDialog - Page setup dialog
@@ -1412,7 +1411,7 @@ protected:
     RECT m_rtMargin;
     SIZE m_sizePaper;
 
-    char _pagesetupdialog_padding[16];
+    char _pagesetupdialog_padding[88];
 };
 
 // CFindReplaceDialog - Find/Replace dialog (modeless)
@@ -1482,7 +1481,7 @@ public:
     int m_nCmdShow;
 
 protected:
-    char _winapp_padding[232];
+    char _winapp_padding[176];
 };
 
 // IMPLEMENT_DYNAMIC(CWinApp, CWinThread) moved to appcore.cpp
@@ -1711,7 +1710,6 @@ public:
     HGDIOBJ m_hObject;
 
     // Padding for ABI compatibility
-    char _gdiobject_padding[24];
 };
 
 // CPen - Pen GDI object
@@ -1730,7 +1728,6 @@ public:
     int GetExtLogPen(void* pLogPen) const;
     
 protected:
-    char _pen_padding[24];
 };
 
 // CBrush - Brush GDI object
@@ -1752,7 +1749,6 @@ public:
     int GetLogBrush(void* pLogBrush) const;
     
 protected:
-    char _brush_padding[24];
 };
 
 // CFont - Font GDI object
@@ -1772,7 +1768,6 @@ public:
     int GetLogFont(void* pLogFont) const;
     
 protected:
-    char _font_padding[24];
 };
 
 // CBitmap - Bitmap GDI object
@@ -1798,7 +1793,6 @@ public:
     int SetBitmapDimension(int nWidth, int nHeight, CSize* pSize = nullptr);
     
 protected:
-    char _bitmap_padding[24];
 };
 
 // CPalette - Palette GDI object
@@ -1820,7 +1814,6 @@ public:
     int ResizePalette(unsigned int nNumEntries);
 
 protected:
-    char _palette_padding[24];
 };
 
 // CRgn - Region GDI object
@@ -1860,7 +1853,6 @@ public:
     int GetRegionData(RGNDATA* lpRgnData, int nCount) const;
 
 protected:
-    char _rgn_padding[24];
 };
 
 // CDC - Device Context base class
@@ -2027,7 +2019,7 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _cdc_padding[64];
+    char _cdc_padding[8];
 };
 
 // CClientDC - Client area device context
@@ -2041,7 +2033,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _clientdc_padding[24];
 };
 
 // CPaintDC - Painting device context
@@ -2057,7 +2048,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _paintdc_padding[24];
 };
 
 // CWindowDC - Whole window device context
@@ -2071,7 +2061,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _windowdc_padding[24];
 };
 
 // CMetaFileDC - Metafile device context
@@ -2088,7 +2077,6 @@ public:
     void* CloseEnhanced();
     
 protected:
-    char _metafiledc_padding[24];
 };
 
 //=============================================================================
@@ -2155,7 +2143,6 @@ public:
     HMENU m_hMenu;
 
 protected:
-    char _menu_padding[24];
 };
 
 // IMPLEMENT_DYNAMIC(CMenu, CObject) in menucore.cpp
@@ -2230,7 +2217,6 @@ public:
     HIMAGELIST m_hImageList;
 
 protected:
-    char _imagelist_padding[24];
 };
 
 // IMPLEMENT_DYNCREATE(CImageList, CObject) in gdicore.cpp
@@ -3189,7 +3175,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _document_padding[56];
+    char _document_padding[304];
 };
 
 // CView - View base class
@@ -3224,7 +3210,6 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _view_padding[56];
 };
 
 // CScrollView - Scrollable view
@@ -3260,7 +3245,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _scrollview_padding[64];
+    char _scrollview_padding[24];
 };
 
 // CFormView - Form-based view
@@ -3290,7 +3275,7 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _formview_padding[64];
+    char _formview_padding[32];
 };
 
 // CEditView - Edit control-based view
@@ -3318,7 +3303,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _editview_padding[64];
+    char _editview_padding[88];
 };
 
 // CListView - List control-based view
@@ -3340,7 +3325,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _listview_padding[64];
+    char _listview_padding[8];
 };
 
 // CTreeView - Tree control-based view
@@ -3362,7 +3347,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _treeview_padding[64];
+    char _treeview_padding[8];
 };
 
 //=============================================================================
@@ -3444,7 +3429,6 @@ public:
     CRichEditCtrl& GetRichEditCtrl() { return *this; }
 
 protected:
-    char _richeditctrl_padding[64];
 };
 
 //=============================================================================
@@ -3515,7 +3499,7 @@ public:
     WORD m_nWordWrapMode;
 
 protected:
-    char _richeditview_padding[96];
+    char _richeditview_padding[200];
 };
 
 //=============================================================================
@@ -3634,7 +3618,7 @@ public:
     BOOL m_bCreated;
 
 protected:
-    char _htmlview_padding[128];
+    char _htmlview_padding[320];
 };
 
 //=============================================================================
@@ -3750,7 +3734,7 @@ public:
     BOOL m_bCreated;
 
 protected:
-    char _dhtmldialog_padding[128];
+    char _dhtmldialog_padding[328];
 };
 
 // CDocTemplate - Document template base class
@@ -3801,7 +3785,7 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _doctemplate_padding[64];
+    char _doctemplate_padding[160];
 };
 
 // CSingleDocTemplate - Single document interface template
@@ -3826,7 +3810,6 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _singledoctemplate_padding[64];
 };
 
 // CMultiDocTemplate - Multiple document interface template
@@ -3848,7 +3831,7 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _multidoctemplate_padding[64];
+    char _multidoctemplate_padding[80];
 };
 
 //=============================================================================

@@ -1280,7 +1280,7 @@ extern "C" int MS_ABI impl__SetOption_CInternetConnection__QEAAHKPEAXKK_Z(
 // Symbol: ?GetRuntimeClass@CInternetConnection@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetConnection__UEBAPEAUCRuntimeClass__XZ(
     const CInternetConnection* pThis) {
-    return pThis->GetRuntimeClass();
+    return CInternetConnection::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CInternetConnection@@SAPEAUCRuntimeClass@@XZ
@@ -1342,7 +1342,7 @@ extern "C" void* MS_ABI impl___0CInternetFile__IEAA_PEAXPEB_WPEAVCInternetConnec
 // Symbol: ?GetRuntimeClass@CInternetSession@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetSession__UEBAPEAUCRuntimeClass__XZ(
     const CInternetSession* pThis) {
-    return pThis->GetRuntimeClass();
+    return CInternetSession::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CInternetSession@@SAPEAUCRuntimeClass@@XZ
@@ -1384,7 +1384,7 @@ extern "C" int MS_ABI impl__SetCookie_CInternetSession__SAHPEB_W00_Z(
 // Symbol: ?GetRuntimeClass@CHttpConnection@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CHttpConnection__UEBAPEAUCRuntimeClass__XZ(
     const CHttpConnection* pThis) {
-    return pThis->GetRuntimeClass();
+    return CHttpConnection::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CHttpConnection@@SAPEAUCRuntimeClass@@XZ
@@ -1395,7 +1395,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHttpConnection__SAPEAUCRunt
 // Symbol: ?GetRuntimeClass@CFtpConnection@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFtpConnection__UEBAPEAUCRuntimeClass__XZ(
     const CFtpConnection* pThis) {
-    return pThis->GetRuntimeClass();
+    return CFtpConnection::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CFtpConnection@@SAPEAUCRuntimeClass@@XZ
@@ -1586,7 +1586,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHttpFile__SAPEAUCRuntimeCla
 // Symbol: ?GetRuntimeClass@CInternetException@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CInternetException__UEBAPEAUCRuntimeClass__XZ(
     const CInternetException* pThis) {
-    return pThis->GetRuntimeClass();
+    return CInternetException::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CInternetException@@SAPEAUCRuntimeClass@@XZ

@@ -186,7 +186,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__X
 
 // Symbol: ?GetRuntimeClass@CWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeClass__XZ(const CWnd* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CWnd::GetThisClass();
+    return CWnd::GetThisClass();
 }
 
 #ifdef __GNUC__
@@ -885,7 +885,6 @@ extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
 IMPLEMENT_DYNCREATE(CMDIFrameWnd, CFrameWnd)
 
 CMDIFrameWnd::CMDIFrameWnd() : m_hWndMDIClient(nullptr) {
-    memset(_mdiframe_padding, 0, sizeof(_mdiframe_padding));
 }
 
 // CMDIFrameWnd::CreateClient

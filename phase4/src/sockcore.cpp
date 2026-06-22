@@ -791,7 +791,7 @@ extern "C" int MS_ABI impl__SendToHelper_CAsyncSocket__MEAAHPEBXHPEBUsockaddr__H
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CAsyncSocket__UEBAPEAUCRuntimeClass__XZ(
         const CAsyncSocket* pThis) {
     if (!pThis) return &CAsyncSocket::classCAsyncSocket;
-    return pThis->GetRuntimeClass();
+    return CAsyncSocket::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CAsyncSocket@@SAPEAUCRuntimeClass@@XZ
@@ -855,7 +855,7 @@ extern "C" int MS_ABI impl__ProcessAuxQueue_CSocket__SAHXZ() {
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSocket__UEBAPEAUCRuntimeClass__XZ(
         const CSocket* pThis) {
     if (!pThis) return &CSocket::classCSocket;
-    return pThis->GetRuntimeClass();
+    return CSocket::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CSocket@@SAPEAUCRuntimeClass@@XZ
@@ -934,7 +934,7 @@ extern "C" int MS_ABI impl__Open_CSocketFile__UEAAHPEB_WIPEAVCFileException___Z(
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSocketFile__UEBAPEAUCRuntimeClass__XZ(
         const CSocketFile* pThis) {
     if (!pThis) return &CSocketFile::classCSocketFile;
-    return pThis->GetRuntimeClass();
+    return CSocketFile::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CSocketFile@@SAPEAUCRuntimeClass@@XZ

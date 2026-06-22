@@ -38,7 +38,7 @@ IMPLEMENT_DYNAMIC(CEvent, CSyncObject)
 extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_CSyncObject__UEBAPEAUCRuntimeClass__XZ(
     const CSyncObject* pThis) {
-    return pThis != nullptr ? pThis->GetRuntimeClass() : &CSyncObject::classCSyncObject;
+    return &CSyncObject::classCSyncObject;
 }
 
 // Symbol: ?GetThisClass@CSyncObject@@SAPEAUCRuntimeClass@@XZ
@@ -51,7 +51,7 @@ impl__GetThisClass_CSyncObject__SAPEAUCRuntimeClass__XZ() {
 extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_CCriticalSection__UEBAPEAUCRuntimeClass__XZ(
     const CCriticalSection* pThis) {
-    return pThis != nullptr ? pThis->GetRuntimeClass() : &CCriticalSection::classCCriticalSection;
+    return &CCriticalSection::classCCriticalSection;
 }
 
 // Symbol: ?GetThisClass@CCriticalSection@@SAPEAUCRuntimeClass@@XZ
@@ -64,7 +64,7 @@ impl__GetThisClass_CCriticalSection__SAPEAUCRuntimeClass__XZ() {
 extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_CMutex__UEBAPEAUCRuntimeClass__XZ(
     const CMutex* pThis) {
-    return pThis != nullptr ? pThis->GetRuntimeClass() : &CMutex::classCMutex;
+    return &CMutex::classCMutex;
 }
 
 // Symbol: ?GetThisClass@CMutex@@SAPEAUCRuntimeClass@@XZ
@@ -77,7 +77,7 @@ impl__GetThisClass_CMutex__SAPEAUCRuntimeClass__XZ() {
 extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_CSemaphore__UEBAPEAUCRuntimeClass__XZ(
     const CSemaphore* pThis) {
-    return pThis != nullptr ? pThis->GetRuntimeClass() : &CSemaphore::classCSemaphore;
+    return &CSemaphore::classCSemaphore;
 }
 
 // Symbol: ?GetThisClass@CSemaphore@@SAPEAUCRuntimeClass@@XZ
@@ -90,7 +90,7 @@ impl__GetThisClass_CSemaphore__SAPEAUCRuntimeClass__XZ() {
 extern "C" CRuntimeClass* MS_ABI
 impl__GetRuntimeClass_CEvent__UEBAPEAUCRuntimeClass__XZ(
     const CEvent* pThis) {
-    return pThis != nullptr ? pThis->GetRuntimeClass() : &CEvent::classCEvent;
+    return &CEvent::classCEvent;
 }
 
 // Symbol: ?GetThisClass@CEvent@@SAPEAUCRuntimeClass@@XZ

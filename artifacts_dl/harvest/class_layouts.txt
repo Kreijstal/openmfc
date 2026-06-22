@@ -1,0 +1,5622 @@
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CObject	size(8):
+	+---
+ 0	| {vfptr}
+	+---
+
+CObject::$vftable@:
+	| &CObject_meta
+	|  0
+ 0	| &CObject::GetRuntimeClass 
+ 1	| &CObject::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+
+CObject::GetRuntimeClass this adjustor: 0
+CObject::{dtor} this adjustor: 0
+CObject::Serialize this adjustor: 0
+CObject::AssertValid this adjustor: 0
+CObject::Dump this adjustor: 0
+CObject::__delDtor this adjustor: 0
+CObject::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CCmdTarget	size(64):
+	+---
+ 0	| +--- (base class CObject)
+ 0	| | {vfptr}
+	| +---
+ 8	| m_dwRef
+  	| <alignment member> (size=4)
+16	| m_pOuterUnknown
+24	| m_xInnerUnknown
+32	| XDispatch m_xDispatch
+40	| m_bResultExpected
+  	| <alignment member> (size=4)
+48	| XConnPtContainer m_xConnPtContainer
+56	| m_pModuleState
+	+---
+
+CCmdTarget::$vftable@:
+	| &CCmdTarget_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &CCmdTarget::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+
+CCmdTarget::GetRuntimeClass this adjustor: 0
+CCmdTarget::OnCmdMsg this adjustor: 0
+CCmdTarget::OnFinalRelease this adjustor: 0
+CCmdTarget::IsInvokeAllowed this adjustor: 0
+CCmdTarget::GetDispatchIID this adjustor: 0
+CCmdTarget::GetTypeInfoCount this adjustor: 0
+CCmdTarget::GetTypeLibCache this adjustor: 0
+CCmdTarget::GetTypeLib this adjustor: 0
+CCmdTarget::{dtor} this adjustor: 0
+CCmdTarget::GetMessageMap this adjustor: 0
+CCmdTarget::GetCommandMap this adjustor: 0
+CCmdTarget::GetDispatchMap this adjustor: 0
+CCmdTarget::GetConnectionMap this adjustor: 0
+CCmdTarget::GetInterfaceMap this adjustor: 0
+CCmdTarget::GetEventSinkMap this adjustor: 0
+CCmdTarget::OnCreateAggregates this adjustor: 0
+CCmdTarget::GetInterfaceHook this adjustor: 0
+CCmdTarget::GetExtraConnectionPoints this adjustor: 0
+CCmdTarget::GetConnectionHook this adjustor: 0
+CCmdTarget::__delDtor this adjustor: 0
+CCmdTarget::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CWnd	size(232):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_hWnd
+72	| m_bEnableActiveAccessibility
+  	| <alignment member> (size=7)
+80	| m_pStdObject
+88	| m_pProxy
+96	| XAccessible m_xAccessible
+104	| XAccessibleServer m_xAccessibleServer
+112	| m_bIsTouchWindowRegistered
+116	| CPoint m_ptGestureFrom
+  	| <alignment member> (size=4)
+128	| m_ulGestureArg
+136	| m_bGestureInited
+  	| <alignment member> (size=4)
+144	| m_pCurrentGestureInfo
+152	| m_pDynamicLayout
+160	| m_hWndOwner
+168	| m_nFlags
+  	| <alignment member> (size=4)
+176	| m_pfnSuper
+184	| m_nModalResult
+  	| <alignment member> (size=4)
+192	| m_pDropTarget
+200	| m_pCtrlCont
+208	| m_pCtrlSite
+216	| m_pMFCCtrlContainer
+224	| m_pRenderTarget
+	+---
+
+CWnd::$vftable@:
+	| &CWnd_meta
+	|  0
+ 0	| &CWnd::GetRuntimeClass 
+ 1	| &CWnd::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CWnd::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+
+CWnd::GetRuntimeClass this adjustor: 0
+CWnd::PreSubclassWindow this adjustor: 0
+CWnd::Create this adjustor: 0
+CWnd::CreateEx this adjustor: 0
+CWnd::CreateEx this adjustor: 0
+CWnd::DestroyWindow this adjustor: 0
+CWnd::PreCreateWindow this adjustor: 0
+CWnd::CalcWindowRect this adjustor: 0
+CWnd::GetMenu this adjustor: 0
+CWnd::SetMenu this adjustor: 0
+CWnd::OnToolHitTest this adjustor: 0
+CWnd::GetScrollBaphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+rCtrl this adjustor: 0
+CWnd::WinHelpA this adjustor: 0
+CWnd::HtmlHelpA this adjustor: 0
+CWnd::WinHelpInternal this adjustor: 0
+CWnd::ContinueModal this adjustor: 0
+CWnd::EndModalLoop this adjustor: 0
+CWnd::OnDrawIconicThumbnailOrLivePreview this adjustor: 0
+CWnd::GetInterfaceMap this adjustor: 0
+CWnd::EnsureStdObj this adjustor: 0
+CWnd::get_accParent this adjustor: 0
+CWnd::get_accChildCount this adjustor: 0
+CWnd::get_accChild this adjustor: 0
+CWnd::get_accName this adjustor: 0
+CWnd::get_accValue this adjustor: 0
+CWnd::get_accDescription this adjustor: 0
+CWnd::get_accRole this adjustor: 0
+CWnd::get_accState this adjustor: 0
+CWnd::get_accHelp this adjustor: 0
+CWnd::get_accHelpTopic this adjustor: 0
+CWnd::get_accKeyboardShortcut this adjustor: 0
+CWnd::get_accFocus this adjustor: 0
+CWnd::get_accSelection this adjustor: 0
+CWnd::get_accDefaultAction this adjustor: 0
+CWnd::accSelect this adjustor: 0
+CWnd::accLocation this adjustor: 0
+CWnd::accNavigate this adjustor: 0
+CWnd::accHitTest this adjustor: 0
+CWnd::accDoDefaultAction this adjustor: 0
+CWnd::put_accName this adjustor: 0
+CWnd::put_accValue this adjustor: 0
+CWnd::SetProxy this adjustor: 0
+CWnd::CreateAccessibleProxy this adjustor: 0
+CWnd::OnCommand this adjustor: 0
+CWnd::OnNotify this adjustor: 0
+CWnd::GetSuperWndProcAddr this adjustor: 0
+CWnd::DoDataExchange this adjustor: 0
+CWnd::BeginModalState this adjustor: 0
+CWnd::EndModalState this adjustor: 0
+CWnd::PreTranslateMessage this adjustor: 0
+CWnd::OnAmbientProperty this adjustor: 0
+CWnd::WindowProc this adjustor: 0
+CWnd::OnWndMsg this adjustor: 0
+CWnd::DefWindowProcA this adjustor: 0
+CWnd::PostNcDestroy this adjustor: 0
+CWnd::OnChildNotify this adjustor: 0
+CWnd::OnTouchInputs this adjustor: 0
+CWnd::OnTouchInput this adjustor: 0
+CWnd::GetGestureStatus this adjustor: 0
+CWnd::OnGestureZoom this adjustor: 0
+CWnd::OnGesturePan this adjustor: 0
+CWnd::OnGestureRotate this adjustor: 0
+CWnd::OnGestureTwoFingerTap this adjustor: 0
+CWnd::OnGesturePressAndTap this adjustor: 0
+CWnd::ResizeDynamicLayout this adjustor: 0
+CWnd::{dtor} this adjustor: 0
+CWnd::CheckAutoCenter this adjustor: 0
+CWnd::IsFrameWnd this adjustor: 0
+CWnd::OnFinalRelease this adjustor: 0
+CWnd::CreateControlContainer this adjustor: 0
+CWnd::CreateControlSite this adjustor: 0
+CWnd::SetOccDialogInfo this adjustor: 0
+CWnd::GetOccDialogInfo this adjustor: 0
+CWnd::GetMessageMap this adjustor: 0
+CWnd::__delDtor this adjustor: 0
+CWnd::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CWinThread	size(136):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_pMainWnd
+72	| m_pActiveWnd
+80	| m_bAutoDelete
+  	| <alignment member> (size=4)
+88	| m_hThread
+96	| m_nThreadID
+  	| <alignment member> (size=4)
+104	| m_pThreadParams
+112	| m_pfnThreadProc
+120	| m_lpfnOleTermOrFreeLib
+128	| m_pMessageFilter
+	+---
+
+CWinThread::$vftable@:
+	| &CWinThread_meta
+	|  0
+ 0	| &CWinThread::GetRuntimeClass 
+ 1	| &CWinThread::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWinThread::InitInstance 
+23	| &CWinThread::Run 
+24	| &CWinThread::PreTranslateMessage 
+25	| &CWinThread::PumpMessage 
+26	| &CWinThread::OnIdle 
+27	| &CWinThread::IsIdleMessage 
+28	| &CWinThread::ExitInstance 
+29	| &CWinThread::ProcessWndProcException 
+30	| &CWinThread::ProcessMessageFilter 
+31	| &CWinThread::GetMainWnd 
+32	| &CWinThread::Delete 
+
+CWinThread::GetRuntimeClass this adjustor: 0
+CWinThread::InitInstance this adjustor: 0
+CWinThread::Run this adjustor: 0
+CWinThread::PreTranslateMessage this adjustor: 0
+CWinThread::PumpMessage this adjustor: 0
+CWinThread::OnIdle this adjustor: 0
+CWinThread::IsIdleMessage this adjustor: 0
+CWinThread::ExitInstance this adjustor: 0
+CWinThread::ProcessWndProcException this adjustor: 0
+CWinThread::ProcessMessageFilter this adjustor: 0
+CWinThread::GetMainWnd this adjustor: 0
+CWinThread::{dtor} this adjustor: 0
+CWinThread::Delete this adjustor: 0
+CWinThread::__delDtor this adjustor: 0
+CWinThread::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CWinApp	size(376):
+	+---
+ 0	| +--- (base class CWinThread)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_pMainWnd
+72	| | m_pActiveWnd
+80	| | m_bAutoDelete
+  	| | <alignment member> (size=4)
+88	| | m_hThread
+96	| | m_nThreadID
+  	| | <alignment member> (size=4)
+104	| | m_pThreadParams
+112	| | m_pfnThreadProc
+120	| | m_lpfnOleTermOrFreeLib
+128	| | m_pMessageFilter
+	| +---
+136	| m_hInstance
+144	| m_lpCmdLine
+152	| m_nCmdShow
+  	| <alignment member> (size=4)
+160	| m_pszAppName
+168	| m_pszAppID
+176	| m_pszRegistryKey
+184	| m_pDocManager
+192	| m_bHelpMode
+  	| <alignment member> (size=4)
+200	| m_pszExeName
+208	| m_pszHelpFilePath
+216	| m_pszProfileName
+224	| AFX_HELP_TYPE m_eHelpType
+  	| <alignment member> (size=4)
+232	| m_hDevMode
+240	| m_hDevNames
+248	| m_dwPromptContext
+  	| <alignment member> (size=4)
+256	| m_hLangResourceDLL
+264	| m_nWaitCursorCount
+  	| <alignment member> (size=4)
+272	| m_hcurWaitCursorRestore
+280	| m_pRecentFileList
+288	| m_pDataRecoveryHandler
+296	| m_pCmdInfo
+304	| m_atomApp
+306	| m_atomSystemTopic
+308	| m_nNumPreviewPages
+312	| m_nSafetyPoolSize
+320	| m_lpfnDaoTerm
+328	| m_dwPolicies
+332	| m_dwRestartManagerSupportFlags
+336	| m_nAutosaveInterval
+340	| m_bTaskbarInteractionEnabled
+344	| m_bIsWindows7
+348	| m_bComInitialized
+352	| m_bTaskBarInterfacesAvailable
+  	| <alignment member> (size=4)
+360	| m_pTaskbarList
+368	| m_pTaskbarList3
+	+---
+
+CWinApp::$vftable@:
+	| &CWinApp_meta
+	|  0
+ 0	| &CWinApp::GetRuntimeClass 
+ 1	| &CWinApp::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CWinApp::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWinApp::InitInstance 
+23	| &CWinApp::Run 
+24	| &CWinThread::PreTranslateMessage 
+25	| &CWinThread::PumpMessage 
+26	| &CWinApp::OnIdle 
+27	| &CWinThread::IsIdleMessage 
+28	| &CWinApp::ExitInstance 
+29	| &CWinApp::ProcessWndProcException 
+30	| &CWinThread::ProcessMessageFilter 
+31	| &CWinThread::GetMainWnd 
+32	| &CWinThread::Delete 
+33	| &CWinApp::GetProfileIntA 
+34	| &CWinApp::WriteProfileInt 
+35	| &CWinApp::GetProfileStringA 
+36	| &CWinApp::WriteProfileStringA 
+37	| &CWinApp::GetProfileBinary 
+38	| &CWinApp::WriteProfileBinary 
+39	| &CWinApp::InitLibId 
+40	| &CWinApp::Register 
+41	| &CWinApp::Unregister 
+42	| &CWinApp::OpenDocumentFile 
+43	| &CWinApp::OpenDocumentFile 
+44	| &CWinApp::AddToRecentFileList 
+45	| &CWinApp::InitApplication 
+46	| &CWinApp::SaveAllModified 
+47	| &CWinApp::DoMessageBox 
+48	| &CWinApp::DoWaitCursor 
+49	| &CWinApp::OnDDECommand 
+50	| &CWinApp::WinHelpA 
+51	| &CWinApp::HtmlHelpA 
+52	| &CWinApp::WinHelpInternal 
+53	| &CWinApp::RegisterWithRestartManager 
+54	| &CWinApp::RegisterWithRestartManager 
+55	| &CWinApp::ApplicationRecoveryCallback 
+56	| &CWinApp::SupportsRestartManager 
+57	| &CWinApp::SupportsApplicationRecovery 
+58	| &CWinApp::SupportsAutosaveAtRestart 
+59	| &CWinApp::SupportsAutosaveAtInterval 
+60	| &CWinApp::ReopenPreviousFilesAtRestart 
+61	| &CWinApp::RestoreAutosavedFilesAtRestart 
+62	| &CWinApp::GetApplicationRestartFlags 
+63	| &CWinApp::GetApplicationRecoveryParameter 
+64	| &CWinApp::GetApplicationRecoveryPingInterval 
+65	| &CWinApp::GetDataRecoveryHandler 
+66	| &CWinApp::IsTaskbarInteractionEnabled 
+67	| &CWinApp::RestartInstancphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+e 
+68	| &CWinApp::LoadAppLangResourceDLL 
+69	| &CWinApp::LoadSysPolicies 
+
+CWinApp::GetRuntimeClass this adjustor: 0
+CWinApp::GetProfileIntA this adjustor: 0
+CWinApp::WriteProfileInt this adjustor: 0
+CWinApp::GetProfileStringA this adjustor: 0
+CWinApp::WriteProfileStringA this adjustor: 0
+CWinApp::GetProfileBinary this adjustor: 0
+CWinApp::WriteProfileBinary this adjustor: 0
+CWinApp::InitLibId this adjustor: 0
+CWinApp::Register this adjustor: 0
+CWinApp::Unregister this adjustor: 0
+CWinApp::OpenDocumentFile this adjustor: 0
+CWinApp::OpenDocumentFile this adjustor: 0
+CWinApp::AddToRecentFileList this adjustor: 0
+CWinApp::InitApplication this adjustor: 0
+CWinApp::SaveAllModified this adjustor: 0
+CWinApp::DoMessageBox this adjustor: 0
+CWinApp::DoWaitCursor this adjustor: 0
+CWinApp::OnDDECommand this adjustor: 0
+CWinApp::WinHelpA this adjustor: 0
+CWinApp::HtmlHelpA this adjustor: 0
+CWinApp::WinHelpInternal this adjustor: 0
+CWinApp::RegisterWithRestartManager this adjustor: 0
+CWinApp::RegisterWithRestartManager this adjustor: 0
+CWinApp::ApplicationRecoveryCallback this adjustor: 0
+CWinApp::SupportsRestartManager this adjustor: 0
+CWinApp::SupportsApplicationRecovery this adjustor: 0
+CWinApp::SupportsAutosaveAtRestart this adjustor: 0
+CWinApp::SupportsAutosaveAtInterval this adjustor: 0
+CWinApp::ReopenPreviousFilesAtRestart this adjustor: 0
+CWinApp::RestoreAutosavedFilesAtRestart this adjustor: 0
+CWinApp::GetApplicationRestartFlags this adjustor: 0
+CWinApp::GetApplicationRecoveryParameter this adjustor: 0
+CWinApp::GetApplicationRecoveryPingInterval this adjustor: 0
+CWinApp::GetDataRecoveryHandler this adjustor: 0
+CWinApp::IsTaskbarInteractionEnabled this adjustor: 0
+CWinApp::InitInstance this adjustor: 0
+CWinApp::ExitInstance this adjustor: 0
+CWinApp::RestartInstance this adjustor: 0
+CWinApp::Run this adjustor: 0
+CWinApp::OnIdle this adjustor: 0
+CWinApp::ProcessWndProcException this adjustor: 0
+CWinApp::LoadAppLangResourceDLL this adjustor: 0
+CWinApp::{dtor} this adjustor: 0
+CWinApp::GetMessageMap this adjustor: 0
+CWinApp::LoadSysPolicies this adjustor: 0
+CWinApp::__delDtor this adjustor: 0
+CWinApp::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CDocument::CDocumentAdapter	size(24):
+	+---
+ 0	| +--- (base class ATL::IDocument)
+ 0	| | {vfptr}
+ 8	| | m_refCount
+  	| | <alignment member> (size=4)
+	| +---
+16	| m_pParentDoc
+	+---
+
+CDocument::CDocumentAdapter::$vftable@:
+	| &CDocumentAdapter_meta
+	|  0
+ 0	| &CDocument::CDocumentAdapter::{dtor} 
+ 1	| &ATL::IDocument::AddRef 
+ 2	| &ATL::IDocument::Release 
+ 3	| &CDocument::CDocumentAdapter::LoadFromStream 
+ 4	| &CDocument::CDocumentAdapter::InitializeSearchContent 
+ 5	| &CDocument::CDocumentAdapter::BeginReadChunks 
+ 6	| &CDocument::CDocumentAdapter::GetThumbnail 
+ 7	| &CDocument::CDocumentAdapter::ClearChunkList 
+ 8	| &CDocument::CDocumentAdapter::SetChunkValue 
+ 9	| &CDocument::CDocumentAdapter::ReadNextChunkValue 
+10	| &CDocument::CDocumentAdapter::RemoveChunk 
+11	| &CDocument::CDocumentAdapter::FindChunk 
+12	| &CDocument::CDocumentAdapter::GetContainer 
+
+CDocument::CDocumentAdapter::{dtor} this adjustor: 0
+CDocument::CDocumentAdapter::LoadFromStream this adjustor: 0
+CDocument::CDocumentAdapter::InitializeSearchContent this adjustor: 0
+CDocument::CDocumentAdapter::ClearChunkList this adjustor: 0
+CDocument::CDocumentAdapter::SetChunkValue this adjustor: 0
+CDocument::CDocumentAdapter::BeginReadChunks this adjustor: 0
+CDocument::CDocumentAdapter::ReadNextChunkValue this adjustor: 0
+CDocument::CDocumentAdapter::RemoveChunk this adjustor: 0
+CDocument::CDocumentAdapter::FindChunk this adjustor: 0
+CDocument::CDocumentAdapter::GetContainer this adjustor: 0
+CDocument::CDocumentAdapter::GetThumbnail this adjustor: 0
+CDocument::CDocumentAdapter::__delDtor this adjustor: 0
+CDocument::CDocumentAdapter::__vecDelDtor this adjustor: 0
+
+class CDocument	size(384):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+72	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPathName
+80	| m_pDocTemplate
+88	| CPtrList m_viewList
+144	| m_bModified
+148	| m_bFinalRelease
+152	| m_bOLELocked
+  	| <alignment member> (size=4)
+160	| m_hWndHost
+168	| CRect m_rectHost
+184	| m_pStream
+192	| m_grfMode
+  	| <alignment member> (size=4)
+200	| m_pPreviewFrame
+208	| ?$CComPtr@UIUnknown@@ m_spUnkSite
+216	| CPtrList m_lstChunks
+272	| m_posReadChunk
+280	| m_pDocumentAdapter
+288	| m_bAutoDelete
+292	| m_bEmbedded
+296	| m_bGetThumbnailMode
+300	| m_bPreviewHandlerMode
+304	| m_bSearchMode
+308	| m_clrRichPreviewBackColor
+312	| m_clrRichPreviewTextColor
+  	| <alignment member> (size=4)
+320	| CFont m_lfRichPreviewFont
+336	| XInitializeWithStream m_xInitializeWithStream
+344	| XPreviewHandler m_xPreviewHandler
+352	| XPreviewHandlerVisuals m_xPreviewHandlerVisuals
+360	| XObjectWithSite m_xObjectWithSite
+368	| XOleWindow m_xOleWindow
+376	| m_pPreviewHandlerSite
+	+---
+
+CDocument::$vftable@:
+	| &CDocument_meta
+	|  0
+ 0	| &CDocument::GetRuntimeClass 
+ 1	| &CDocument::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDocument::OnCmdMsg 
+ 6	| &CDocument::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CDocument::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CDocument::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocument::GetAdapter 
+23	| &CDocument::SetTitle 
+24	| &CDocument::SetPathName 
+25	| &CDocument::ClearPathName 
+26	| &CDocument::IsModified 
+27	| &CDocument::SetModifiedFlag 
+28	| &CDocument::GetFirstViewPosition 
+29	| &CDocument::GetNextView 
+30	| &CDocumentphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+::OnChangedViewList 
+31	| &CDocument::DeleteContents 
+32	| &CDocument::OnNewDocument 
+33	| &CDocument::OnOpenDocument 
+34	| &CDocument::OnSaveDocument 
+35	| &CDocument::OnCloseDocument 
+36	| &CDocument::ReportSaveLoadException 
+37	| &CDocument::GetFile 
+38	| &CDocument::ReleaseFile 
+39	| &CDocument::OnBeforeRichPreviewFontChanged 
+40	| &CDocument::OnRichPreviewFontChanged 
+41	| &CDocument::OnRichPreviewTextColorChanged 
+42	| &CDocument::OnRichPreviewBackColorChanged 
+43	| &CDocument::OnRichPreviewSiteChanged 
+44	| &CDocument::OnRichPreviewUnload 
+45	| &CDocument::LoadDocumentFromStream 
+46	| &CDocument::GetThumbnail 
+47	| &CDocument::InitializeSearchContent 
+48	| &CDocument::ClearChunkList 
+49	| &CDocument::SetChunkValue 
+50	| &CDocument::BeginReadChunks 
+51	| &CDocument::ReadNextChunkValue 
+52	| &CDocument::RemoveChunk 
+53	| &CDocument::FindChunk 
+54	| &CDocument::OnDocumentEvent 
+55	| &CDocument::CanCloseFrame 
+56	| &CDocument::SaveModified 
+57	| &CDocument::PreCloseFrame 
+58	| &CDocument::DoSave 
+59	| &CDocument::DoFileSave 
+60	| &CDocument::UpdateFrameCounts 
+61	| &CDocument::GetDefaultMenu 
+62	| &CDocument::GetDefaultAccelerator 
+63	| &CDocument::OnIdle 
+64	| &CDocument::OnLoadDocumentFromStream 
+65	| &CDocument::OnPreviewHandlerQueryFocus 
+66	| &CDocument::OnPreviewHandlerTranslateAccelerator 
+67	| &CDocument::OnCreatePreviewFrame 
+68	| &CDocument::OnUnloadHandler 
+69	| &CDocument::OnDrawThumbnail 
+
+CDocument::GetRuntimeClass this adjustor: 0
+CDocument::GetAdapter this adjustor: 0
+CDocument::SetTitle this adjustor: 0
+CDocument::SetPathName this adjustor: 0
+CDocument::ClearPathName this adjustor: 0
+CDocument::IsModified this adjustor: 0
+CDocument::SetModifiedFlag this adjustor: 0
+CDocument::GetFirstViewPosition this adjustor: 0
+CDocument::GetNextView this adjustor: 0
+CDocument::OnChangedViewList this adjustor: 0
+CDocument::DeleteContents this adjustor: 0
+CDocument::OnNewDocument this adjustor: 0
+CDocument::OnOpenDocument this adjustor: 0
+CDocument::OnSaveDocument this adjustor: 0
+CDocument::OnCloseDocument this adjustor: 0
+CDocument::ReportSaveLoadException this adjustor: 0
+CDocument::GetFile this adjustor: 0
+CDocument::ReleaseFile this adjustor: 0
+CDocument::OnBeforeRichPreviewFontChanged this adjustor: 0
+CDocument::OnRichPreviewFontChanged this adjustor: 0
+CDocument::OnRichPreviewTextColorChanged this adjustor: 0
+CDocument::OnRichPreviewBackColorChanged this adjustor: 0
+CDocument::OnRichPreviewSiteChanged this adjustor: 0
+CDocument::OnRichPreviewUnload this adjustor: 0
+CDocument::LoadDocumentFromStream this adjustor: 0
+CDocument::GetThumbnail this adjustor: 0
+CDocument::InitializeSearchContent this adjustor: 0
+CDocument::ClearChunkList this adjustor: 0
+CDocument::SetChunkValue this adjustor: 0
+CDocument::BeginReadChunks this adjustor: 0
+CDocument::ReadNextChunkValue this adjustor: 0
+CDocument::RemoveChunk this adjustor: 0
+CDocument::FindChunk this adjustor: 0
+CDocument::OnDocumentEvent this adjustor: 0
+CDocument::CanCloseFrame this adjustor: 0
+CDocument::SaveModified this adjustor: 0
+CDocument::PreCloseFrame this adjustor: 0
+CDocument::{dtor} this adjustor: 0
+CDocument::DoSave this adjustor: 0
+CDocument::DoFileSave this adjustor: 0
+CDocument::UpdateFrameCounts this adjustor: 0
+CDocument::GetDefaultMenu this adjustor: 0
+CDocument::GetDefaultAccelerator this adjustor: 0
+CDocument::OnIdle this adjustor: 0
+CDocument::OnFinalRelease this adjustor: 0
+CDocument::OnLoadDocumentFromStream this adjustor: 0
+CDocument::OnPreviewHandlerQueryFocus this adjustor: 0
+CDocument::OnPreviewHandlerTranslateAccelerator this adjustor: 0
+CDocument::OnCreatePreviewFrame this adjustor: 0
+CDocument::OnUnloadHandler this adjustor: 0
+CDocument::OnDrawThumbnail this adjustor: 0
+CDocument::OnCmdMsg this adjustor: 0
+CDocument::GetMessageMap this adjustor: 0
+CDocument::GetInterfaceMap this adjustor: 0
+CDocument::__delDtor this adjustor: 0
+CDocument::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CView	size(248):
+	+---
+ 0	| +--- (base class CWnd)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_hWnd
+72	| | m_bEnableActiveAccessibility
+  	| | <alignment member> (size=7)
+80	| | m_pStdObject
+88	| | m_pProxy
+96	| | XAccessible m_xAccessible
+104	| | XAccessibleServer m_xAccessibleServer
+112	| | m_bIsTouchWindowRegistered
+116	| | CPoint m_ptGestureFrom
+  	| | <alignment member> (size=4)
+128	| | m_ulGestureArg
+136	| | m_bGestureInited
+  	| | <alignment member> (size=4)
+144	| | m_pCurrentGestureInfo
+152	| | m_pDynamicLayout
+160	| | m_hWndOwner
+168	| | m_nFlags
+  	| | <alignment member> (size=4)
+176	| | m_pfnSuper
+184	| | m_nModalResult
+  	| | <alignment member> (size=4)
+192	| | m_pDropTarget
+200	| | m_pCtrlCont
+208	| | m_pCtrlSite
+216	| | m_pMFCCtrlContainer
+224	| | m_pRenderTarget
+	| +---
+232	| m_pDocument
+240	| m_bInitialRedraw
+  	| <alignment member> (size=4)
+	+---
+
+CView::$vftable@:
+	| &CView_meta
+	|  0
+ 0	| &CView::GetRuntimeClass 
+ 1	| &CView::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CView::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CView::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CView::PreCreateWindow 
+28	| &CView::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CView::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CView::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CView::IsSelected 
+92	| &CView::OnScroll 
+93	| &CView::OnScrollBy 
+94	| &CView::OnDragEnter 
+95	| &CView::OnDragOver 
+96	| &CView::OnDragLeave 
+97	| &CView::OnDrop 
+98	| &CView::OnDropEx 
+99	| &CView::OnDphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+ragScroll 
+100	| &CView::OnPrepareDC 
+101	| &CView::OnInitialUpdate 
+102	| &CView::OnActivateView 
+103	| &CView::OnActivateFrame 
+104	| &CView::OnUpdate 
+105	| &CView::OnDraw 
+106	| &CView::OnPreparePrinting 
+107	| &CView::OnBeginPrinting 
+108	| &CView::OnPrint 
+109	| &CView::OnEndPrinting 
+110	| &CView::OnEndPrintPreview 
+
+CView::GetRuntimeClass this adjustor: 0
+CView::IsSelected this adjustor: 0
+CView::OnScroll this adjustor: 0
+CView::OnScrollBy this adjustor: 0
+CView::OnDragEnter this adjustor: 0
+CView::OnDragOver this adjustor: 0
+CView::OnDragLeave this adjustor: 0
+CView::OnDrop this adjustor: 0
+CView::OnDropEx this adjustor: 0
+CView::OnDragScroll this adjustor: 0
+CView::OnPrepareDC this adjustor: 0
+CView::OnInitialUpdate this adjustor: 0
+CView::OnActivateView this adjustor: 0
+CView::OnActivateFrame this adjustor: 0
+CView::OnUpdate this adjustor: 0
+CView::OnDraw this adjustor: 0
+CView::OnPreparePrinting this adjustor: 0
+CView::OnBeginPrinting this adjustor: 0
+CView::OnPrint this adjustor: 0
+CView::OnEndPrinting this adjustor: 0
+CView::OnEndPrintPreview this adjustor: 0
+CView::{dtor} this adjustor: 0
+CView::CalcWindowRect this adjustor: 0
+CView::GetScrollBarCtrl this adjustor: 0
+CView::OnCmdMsg this adjustor: 0
+CView::PreCreateWindow this adjustor: 0
+CView::PostNcDestroy this adjustor: 0
+CView::GetMessageMap this adjustor: 0
+CView::__delDtor this adjustor: 0
+CView::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CCtrlView	size(264):
+	+---
+ 0	| +--- (base class CView)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_pDocument
+240	| | m_bInitialRedraw
+  	| | <alignment member> (size=4)
+	| +---
+248	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strClass
+256	| m_dwDefaultStyle
+  	| <alignment member> (size=4)
+	+---
+
+CCtrlView::$vftable@:
+	| &CCtrlView_meta
+	|  0
+ 0	| &CCtrlView::GetRuntimeClass 
+ 1	| &CCtrlView::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CView::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCtrlView::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CCtrlView::PreCreateWindow 
+28	| &CView::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CView::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CView::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::Creaphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+teControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CView::IsSelected 
+92	| &CView::OnScroll 
+93	| &CView::OnScrollBy 
+94	| &CView::OnDragEnter 
+95	| &CView::OnDragOver 
+96	| &CView::OnDragLeave 
+97	| &CView::OnDrop 
+98	| &CView::OnDropEx 
+99	| &CView::OnDragScroll 
+100	| &CView::OnPrepareDC 
+101	| &CView::OnInitialUpdate 
+102	| &CView::OnActivateView 
+103	| &CView::OnActivateFrame 
+104	| &CView::OnUpdate 
+105	| &CCtrlView::OnDraw 
+106	| &CView::OnPreparePrinting 
+107	| &CView::OnBeginPrinting 
+108	| &CView::OnPrint 
+109	| &CView::OnEndPrinting 
+110	| &CView::OnEndPrintPreview 
+
+CCtrlView::GetRuntimeClass this adjustor: 0
+CCtrlView::OnDraw this adjustor: 0
+CCtrlView::PreCreateWindow this adjustor: 0
+CCtrlView::{dtor} this adjustor: 0
+CCtrlView::GetMessageMap this adjustor: 0
+CCtrlView::__delDtor this adjustor: 0
+CCtrlView::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CScrollView	size(304):
+	+---
+ 0	| +--- (base class CView)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_pDocument
+240	| | m_bInitialRedraw
+  	| | <alignment member> (size=4)
+	| +---
+248	| m_pAnchorWindow
+256	| m_nMapMode
+260	| CSize m_totalLog
+268	| CSize m_totalDev
+276	| CSize m_pageDev
+284	| CSize m_lineDev
+292	| m_bCenter
+296	| m_bInsideUpdate
+  	| <alignment member> (size=4)
+	+---
+
+CScrollView::$vftable@:
+	| &CScrollView_meta
+	|  0
+ 0	| &CScrollView::GetRuntimeClass 
+ 1	| &CScrollView::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CView::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CScrollView::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CView::PreCreateWindow 
+28	| &CScrollView::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CView::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CView::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutophase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+Center 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CView::IsSelected 
+92	| &CScrollView::OnScroll 
+93	| &CScrollView::OnScrollBy 
+94	| &CView::OnDragEnter 
+95	| &CView::OnDragOver 
+96	| &CView::OnDragLeave 
+97	| &CView::OnDrop 
+98	| &CView::OnDropEx 
+99	| &CView::OnDragScroll 
+100	| &CScrollView::OnPrepareDC 
+101	| &CView::OnInitialUpdate 
+102	| &CView::OnActivateView 
+103	| &CView::OnActivateFrame 
+104	| &CView::OnUpdate 
+105	| &CScrollView::OnDraw 
+106	| &CView::OnPreparePrinting 
+107	| &CView::OnBeginPrinting 
+108	| &CView::OnPrint 
+109	| &CView::OnEndPrinting 
+110	| &CView::OnEndPrintPreview 
+111	| &CScrollView::GetWheelScrollDistance 
+
+CScrollView::GetRuntimeClass this adjustor: 0
+CScrollView::OnDraw this adjustor: 0
+CScrollView::{dtor} this adjustor: 0
+CScrollView::CalcWindowRect this adjustor: 0
+CScrollView::OnPrepareDC this adjustor: 0
+CScrollView::GetWheelScrollDistance this adjustor: 0
+CScrollView::OnScroll this adjustor: 0
+CScrollView::OnScrollBy this adjustor: 0
+CScrollView::GetMessageMap this adjustor: 0
+CScrollView::__delDtor this adjustor: 0
+CScrollView::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CTypedSimpleList<class CFrameWnd *>	size(16):
+	+---
+ 0	| +--- (base class CSimpleList)
+ 0	| | m_pHead
+ 8	| | m_nNextOffset
+	| +---
+	+---
+
+class CFrameWnd	size(472):
+	+---
+ 0	| +--- (base class CWnd)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_hWnd
+72	| | m_bEnableActiveAccessibility
+  	| | <alignment member> (size=7)
+80	| | m_pStdObject
+88	| | m_pProxy
+96	| | XAccessible m_xAccessible
+104	| | XAccessibleServer m_xAccessibleServer
+112	| | m_bIsTouchWindowRegistered
+116	| | CPoint m_ptGestureFrom
+  	| | <alignment member> (size=4)
+128	| | m_ulGestureArg
+136	| | m_bGestureInited
+  	| | <alignment member> (size=4)
+144	| | m_pCurrentGestureInfo
+152	| | m_pDynamicLayout
+160	| | m_hWndOwner
+168	| | m_nFlags
+  	| | <alignment member> (size=4)
+176	| | m_pfnSuper
+184	| | m_nModalResult
+  	| | <alignment member> (size=4)
+192	| | m_pDropTarget
+200	| | m_pCtrlCont
+208	| | m_pCtrlSite
+216	| | m_pMFCCtrlContainer
+224	| | m_pRenderTarget
+	| +---
+232	| m_bAutoMenuEnable
+236	| m_nWindow
+240	| m_hMenuDefault
+248	| m_hAccelTable
+256	| m_dwPromptContext
+260	| m_bHelpMode
+264	| m_pNextFrameWnd
+272	| CRect m_rectBorder
+288	| m_pNotifyHook
+296	| CPtrList m_listControlBars
+352	| m_nShowDelay
+356	| m_nIDHelp
+360	| m_nIDTracking
+364	| m_nIDLastMessage
+368	| m_pViewActive
+376	| m_lpfnCloseProc
+384	| m_cModalStack
+  	| <alignment member> (size=4)
+392	| m_phWndDisable
+400	| m_hMenuAlt
+408	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+416	| m_bInRecalcLayout
+  	| <alignment member> (size=4)
+424	| m_pFloatingFrameClass
+432	| m_dwMenuBarVisibility
+436	| m_dwMenuBarState
+440	| m_hMenu
+448	| m_bTempShowMenu
+452	| m_bMouseHitMenu
+456	| m_nProgressBarRangeMin
+460	| m_nProgressBarRangeMax
+464	| m_nIdleFlags
+  	| <alignment member> (size=4)
+	+---
+
+CFrameWnd::$vftable@:
+	| &CFrameWnd_meta
+	|  0
+ 0	| &CFrameWnd::GetRuntimeClass 
+ 1	| &CFrameWnd::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CFrameWnd::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CFrameWnd::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CFrameWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CFrameWnd::GetMenu 
+30	| &CFrameWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CFrameWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &Cphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+Wnd::DoDataExchange 
+67	| &CFrameWnd::BeginModalState 
+68	| &CFrameWnd::EndModalState 
+69	| &CFrameWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CFrameWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CFrameWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CFrameWnd::Create 
+92	| &CFrameWnd::LoadFrame 
+93	| &CFrameWnd::GetActiveDocument 
+94	| &CFrameWnd::GetActiveFrame 
+95	| &CFrameWnd::GetMessageString 
+96	| &CFrameWnd::RecalcLayout 
+97	| &CFrameWnd::ActivateFrame 
+98	| &CFrameWnd::GetTrackingID 
+99	| &CFrameWnd::SetMenuBarVisibility 
+100	| &CFrameWnd::GetMenuBarVisibility 
+101	| &CFrameWnd::SetMenuBarState 
+102	| &CFrameWnd::GetMenuBarState 
+103	| &CFrameWnd::OnSetPreviewMode 
+104	| &CFrameWnd::GetMessageBar 
+105	| &CFrameWnd::NegotiateBorderSpace 
+106	| &CFrameWnd::OnCreateClient 
+107	| &CFrameWnd::OnUpdateFrameTitle 
+108	| &CFrameWnd::OnUpdateFrameMenu 
+109	| &CFrameWnd::GetDefaultAccelerator 
+110	| &CFrameWnd::DelayUpdateFrameMenu 
+111	| &CFrameWnd::ExitHelpMode 
+112	| &CFrameWnd::OnShowMenuBar 
+113	| &CFrameWnd::OnHideMenuBar 
+
+CFrameWnd::GetRuntimeClass this adjustor: 0
+CFrameWnd::Create this adjustor: 0
+CFrameWnd::LoadFrame this adjustor: 0
+CFrameWnd::GetActiveDocument this adjustor: 0
+CFrameWnd::GetActiveFrame this adjustor: 0
+CFrameWnd::GetMessageString this adjustor: 0
+CFrameWnd::RecalcLayout this adjustor: 0
+CFrameWnd::ActivateFrame this adjustor: 0
+CFrameWnd::GetMenu this adjustor: 0
+CFrameWnd::SetMenu this adjustor: 0
+CFrameWnd::GetTrackingID this adjustor: 0
+CFrameWnd::SetMenuBarVisibility this adjustor: 0
+CFrameWnd::GetMenuBarVisibility this adjustor: 0
+CFrameWnd::SetMenuBarState this adjustor: 0
+CFrameWnd::GetMenuBarState this adjustor: 0
+CFrameWnd::BeginModalState this adjustor: 0
+CFrameWnd::EndModalState this adjustor: 0
+CFrameWnd::OnSetPreviewMode this adjustor: 0
+CFrameWnd::GetMessageBar this adjustor: 0
+CFrameWnd::NegotiateBorderSpace this adjustor: 0
+CFrameWnd::OnCreateClient this adjustor: 0
+CFrameWnd::{dtor} this adjustor: 0
+CFrameWnd::IsFrameWnd this adjustor: 0
+CFrameWnd::OnCmdMsg this adjustor: 0
+CFrameWnd::OnUpdateFrameTitle this adjustor: 0
+CFrameWnd::OnUpdateFrameMenu this adjustor: 0
+CFrameWnd::GetDefaultAccelerator this adjustor: 0
+CFrameWnd::PreTranslateMessage this adjustor: 0
+CFrameWnd::DelayUpdateFrameMenu this adjustor: 0
+CFrameWnd::ExitHelpMode this adjustor: 0
+CFrameWnd::PreCreateWindow this adjustor: 0
+CFrameWnd::OnCommand this adjustor: 0
+CFrameWnd::PostNcDestroy this adjustor: 0
+CFrameWnd::OnShowMenuBar this adjustor: 0
+CFrameWnd::OnHideMenuBar this adjustor: 0
+CFrameWnd::GetMessageMap this adjustor: 0
+CFrameWnd::__delDtor this adjustor: 0
+CFrameWnd::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CMDIFrameWnd	size(480):
+	+---
+ 0	| +--- (base class CFrameWnd)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_bAutoMenuEnable
+236	| | m_nWindow
+240	| | m_hMenuDefault
+248	| | m_hAccelTable
+256	| | m_dwPromptContext
+260	| | m_bHelpMode
+264	| | m_pNextFrameWnd
+272	| | CRect m_rectBorder
+288	| | m_pNotifyHook
+296	| | CPtrList m_listControlBars
+352	| | m_nShowDelay
+356	| | m_nIDHelp
+360	| | m_nIDTracking
+364	| | m_nIDLastMessage
+368	| | m_pViewActive
+376	| | m_lpfnCloseProc
+384	| | m_cModalStack
+  	| | <alignment member> (size=4)
+392	| | m_phWndDisable
+400	| | m_hMenuAlt
+408	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+416	| | m_bInRecalcLayout
+  	| | <alignment member> (size=4)
+424	| | m_pFloatingFrameClass
+432	| | m_dwMenuBarVisibility
+436	| | m_dwMenuBarState
+440	| | m_hMenu
+448	| | m_bTempShowMenu
+452	| | m_bMouseHitMenu
+456	| | m_nProgressBarRangeMin
+460	| | m_nProgressBarRangeMax
+464	| | m_nIdleFlags
+  	| | <alignment member> (size=4)
+	| +---
+472	| m_hWndMDIClient
+	+---
+
+CMDIFrameWnd::$vftable@:
+	| &CMDIFrameWnd_meta
+	|  0
+ 0	| &CMDIFrameWnd::GetRuntimeClass 
+ 1	| &CMDIFrameWnd::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CMDIFrameWnd::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CMDIFrameWnd::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CMDIFrameWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CFrameWnd::GetMenu 
+30	| &CFrameWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+y 
+63	| &CMDIFrameWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CFrameWnd::BeginModalState 
+68	| &CFrameWnd::EndModalState 
+69	| &CMDIFrameWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CMDIFrameWnd::DefWindowProcA 
+74	| &CFrameWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CFrameWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CFrameWnd::Create 
+92	| &CMDIFrameWnd::LoadFrame 
+93	| &CFrameWnd::GetActiveDocument 
+94	| &CMDIFrameWnd::GetActiveFrame 
+95	| &CFrameWnd::GetMessageString 
+96	| &CFrameWnd::RecalcLayout 
+97	| &CFrameWnd::ActivateFrame 
+98	| &CFrameWnd::GetTrackingID 
+99	| &CMDIFrameWnd::SetMenuBarVisibility 
+100	| &CFrameWnd::GetMenuBarVisibility 
+101	| &CMDIFrameWnd::SetMenuBarState 
+102	| &CFrameWnd::GetMenuBarState 
+103	| &CFrameWnd::OnSetPreviewMode 
+104	| &CFrameWnd::GetMessageBar 
+105	| &CFrameWnd::NegotiateBorderSpace 
+106	| &CMDIFrameWnd::OnCreateClient 
+107	| &CMDIFrameWnd::OnUpdateFrameTitle 
+108	| &CMDIFrameWnd::OnUpdateFrameMenu 
+109	| &CFrameWnd::GetDefaultAccelerator 
+110	| &CMDIFrameWnd::DelayUpdateFrameMenu 
+111	| &CFrameWnd::ExitHelpMode 
+112	| &CFrameWnd::OnShowMenuBar 
+113	| &CFrameWnd::OnHideMenuBar 
+114	| &CMDIFrameWnd::CreateClient 
+115	| &CMDIFrameWnd::GetWindowMenuPopup 
+
+CMDIFrameWnd::GetRuntimeClass this adjustor: 0
+CMDIFrameWnd::CreateClient this adjustor: 0
+CMDIFrameWnd::GetWindowMenuPopup this adjustor: 0
+CMDIFrameWnd::PreCreateWindow this adjustor: 0
+CMDIFrameWnd::LoadFrame this adjustor: 0
+CMDIFrameWnd::OnCreateClient this adjustor: 0
+CMDIFrameWnd::PreTranslateMessage this adjustor: 0
+CMDIFrameWnd::OnUpdateFrameTitle this adjustor: 0
+CMDIFrameWnd::OnCmdMsg this adjustor: 0
+CMDIFrameWnd::OnUpdateFrameMenu this adjustor: 0
+CMDIFrameWnd::DelayUpdateFrameMenu this adjustor: 0
+CMDIFrameWnd::GetActiveFrame this adjustor: 0
+CMDIFrameWnd::SetMenuBarVisibility this adjustor: 0
+CMDIFrameWnd::SetMenuBarState this adjustor: 0
+CMDIFrameWnd::DefWindowProcA this adjustor: 0
+CMDIFrameWnd::OnCommand this adjustor: 0
+CMDIFrameWnd::GetMessageMap this adjustor: 0
+CMDIFrameWnd::{dtor} this adjustor: 0
+CMDIFrameWnd::__delDtor this adjustor: 0
+CMDIFrameWnd::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CMDIChildWnd	size(488):
+	+---
+ 0	| +--- (base class CFrameWnd)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_bAutoMenuEnable
+236	| | m_nWindow
+240	| | m_hMenuDefault
+248	| | m_hAccelTable
+256	| | m_dwPromptContext
+260	| | m_bHelpMode
+264	| | m_pNextFrameWnd
+272	| | CRect m_rectBorder
+288	| | m_pNotifyHook
+296	| | CPtrList m_listControlBars
+352	| | m_nShowDelay
+356	| | m_nIDHelp
+360	| | m_nIDTracking
+364	| | m_nIDLastMessage
+368	| | m_pViewActive
+376	| | m_lpfnCloseProc
+384	| | m_cModalStack
+  	| | <alignment member> (size=4)
+392	| | m_phWndDisable
+400	| | m_hMenuAlt
+408	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+416	| | m_bInRecalcLayout
+  	| | <alignment member> (size=4)
+424	| | m_pFloatingFrameClass
+432	| | m_dwMenuBarVisibility
+436	| | m_dwMenuBarState
+440	| | m_hMenu
+448	| | m_bTempShowMenu
+452	| | m_bMouseHitMenu
+456	| | m_nProgressBarRangeMin
+460	| | m_nProgressBarRangeMax
+464	| | m_nIdleFlags
+  	| | <alignment member> (size=4)
+	| +---
+472	| m_hMenuShared
+480	| m_bPseudoInactive
+  	| <alignment member> (size=4)
+	+---
+
+CMDIChildWnd::$vftable@:
+	| &CMDIChildWnd_meta
+	|  0
+ 0	| &CMDIChildWnd::GetRuntimeClass 
+ 1	| &CMDIChildWnd::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CFrameWnd::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CMDIChildWnd::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CMDIChildWnd::DestroyWindow 
+27	| &CMDIChildWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CFrameWnd::GetMenu 
+30	| &CFrameWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accVphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+alue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CFrameWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CFrameWnd::BeginModalState 
+68	| &CFrameWnd::EndModalState 
+69	| &CMDIChildWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CMDIChildWnd::DefWindowProcA 
+74	| &CFrameWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CFrameWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CFrameWnd::Create 
+92	| &CMDIChildWnd::LoadFrame 
+93	| &CFrameWnd::GetActiveDocument 
+94	| &CFrameWnd::GetActiveFrame 
+95	| &CFrameWnd::GetMessageString 
+96	| &CFrameWnd::RecalcLayout 
+97	| &CMDIChildWnd::ActivateFrame 
+98	| &CMDIChildWnd::GetTrackingID 
+99	| &CFrameWnd::SetMenuBarVisibility 
+100	| &CFrameWnd::GetMenuBarVisibility 
+101	| &CFrameWnd::SetMenuBarState 
+102	| &CFrameWnd::GetMenuBarState 
+103	| &CFrameWnd::OnSetPreviewMode 
+104	| &CMDIChildWnd::GetMessageBar 
+105	| &CFrameWnd::NegotiateBorderSpace 
+106	| &CFrameWnd::OnCreateClient 
+107	| &CMDIChildWnd::OnUpdateFrameTitle 
+108	| &CFrameWnd::OnUpdateFrameMenu 
+109	| &CFrameWnd::GetDefaultAccelerator 
+110	| &CFrameWnd::DelayUpdateFrameMenu 
+111	| &CFrameWnd::ExitHelpMode 
+112	| &CFrameWnd::OnShowMenuBar 
+113	| &CFrameWnd::OnHideMenuBar 
+114	| &CMDIChildWnd::Create 
+115	| &CMDIChildWnd::OnUpdateFrameMenu 
+116	| &CMDIChildWnd::IsTabbedMDIChild 
+
+CMDIChildWnd::GetRuntimeClass this adjustor: 0
+CMDIChildWnd::Create this adjustor: 0
+CMDIChildWnd::GetTrackingID this adjustor: 0
+CMDIChildWnd::PreCreateWindow this adjustor: 0
+CMDIChildWnd::LoadFrame this adjustor: 0
+CMDIChildWnd::DestroyWindow this adjustor: 0
+CMDIChildWnd::PreTranslateMessage this adjustor: 0
+CMDIChildWnd::ActivateFrame this adjustor: 0
+CMDIChildWnd::OnUpdateFrameMenu this adjustor: 0
+CMDIChildWnd::IsTabbedMDIChild this adjustor: 0
+CMDIChildWnd::GetMessageBar this adjustor: 0
+CMDIChildWnd::OnUpdateFrameTitle this adjustor: 0
+CMDIChildWnd::DefWindowProcA this adjustor: 0
+CMDIChildWnd::GetMessageMap this adjustor: 0
+CMDIChildWnd::{dtor} this adjustor: 0
+CMDIChildWnd::__delDtor this adjustor: 0
+CMDIChildWnd::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CDialog	size(304):
+	+---
+ 0	| +--- (base class CWnd)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_hWnd
+72	| | m_bEnableActiveAccessibility
+  	| | <alignment member> (size=7)
+80	| | m_pStdObject
+88	| | m_pProxy
+96	| | XAccessible m_xAccessible
+104	| | XAccessibleServer m_xAccessibleServer
+112	| | m_bIsTouchWindowRegistered
+116	| | CPoint m_ptGestureFrom
+  	| | <alignment member> (size=4)
+128	| | m_ulGestureArg
+136	| | m_bGestureInited
+  	| | <alignment member> (size=4)
+144	| | m_pCurrentGestureInfo
+152	| | m_pDynamicLayout
+160	| | m_hWndOwner
+168	| | m_nFlags
+  	| | <alignment member> (size=4)
+176	| | m_pfnSuper
+184	| | m_nModalResult
+  	| | <alignment member> (size=4)
+192	| | m_pDropTarget
+200	| | m_pCtrlCont
+208	| | m_pCtrlSite
+216	| | m_pMFCCtrlContainer
+224	| | m_pRenderTarget
+	| +---
+232	| m_nIDHelp
+  	| <alignment member> (size=4)
+240	| m_lpszTemplateName
+248	| m_hDialogTemplate
+256	| m_lpDialogTemplate
+264	| m_lpDialogInit
+272	| m_pParentWnd
+280	| m_hWndTop
+288	| m_bClosedByEndDialog
+  	| <alignment member> (size=4)
+296	| m_pOccDialogInfo
+	+---
+
+CDialog::$vftable@:
+	| &CDialog_meta
+	|  0
+ 0	| &CDialog::GetRuntimeClass 
+ 1	| &CDialog::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDialog::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CDialog::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CDialog::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CDialog::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CDialog::SetOccDialogInfo 
+90	| &CDialog::GetOccDialogInfo 
+91	| &CDialog::Create 
+92	| &CDialog::Create 
+93	| &CDialog::CreateIndirect 
+94	| &CDialog::CreateIndirect 
+95	| &CDialog::DoModal 
+96	| &CDialog::OnInitDialog 
+97	| &CDialog::OnSetFont 
+98	| &CDialog::OnOK 
+99	| &CDialog::OnCancel 
+100	| &CDialog::PreInitDialog 
+
+CDialog::GetRuntimeClass this adjustor: 0
+CDialog::Create this adjustor: 0
+CDialog::Create this adjustor: 0
+CDialog::CreateIndirect this adjustor: 0
+CDialog::CreateIndirect this adjustor: 0
+CDialog::DoModal this adjustor: 0
+CDialog::OnInitDialog this adjustor: 0
+CDialog::OnSetFont this adjustor: 0
+CDialog::OnOK this adjustor: 0
+CDialog::OnCancel this adjustor: 0
+CDialog::{dtor} this adjustor: 0
+CDialog::PreTranslateMessage this adjustor: 0
+CDialog::OnCmdMsg this adjustor: 0
+CDialog::CheckAutoCenter this adjustor: 0
+CDialog::SetOccDialogInfo this adjustor: 0
+CDialog::GetOccDialogInfo this adjustor: 0
+CDialog::PreInitDialog this adjustor: 0
+CDialog::GetMessageMap this adjustor: 0
+CDialog::__delDtor this adjustor: 0
+CDialog::__vecDelDtor this adjustor: 0
+
+class CDialogBar	size(352):
+	+---
+ 0	| +--- (base class CControlBar)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_pInPlaceOwner
+240	| | m_bAutoDelete
+244	| | m_cxLeftBorder
+248	| | m_cxRightBorder
+252	| | m_cyTopBorder
+256	| | m_cyBottomBorder
+260	| | m_cxDefaultGap
+264	| | m_nMRUWidth
+268	| | m_nCount
+272	| | m_pData
+280	| | m_hReBarTheme
+288	| | m_nStateFlags
+292	| | m_dwStyle
+296	| | m_dwDockStyle
+  	| | <alignment member> (size=4)
+304	| | m_pDockSite
+312	| | m_pDockBar
+320	| | m_pDockContext
+	| +---
+328	| CSize m_sizeDefault
+336	| m_pOccDialogInfo
+344	| m_lpszTemplateName
+	+---
+
+CDialogBar::$vftable@:
+	| &CDialogBar_meta
+	|  0
+ 0	| &CDialogBar::GetRuntimeClass 
+ 1	| &CDialogBar::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CDialogBar::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CControlBar::DestroyWindow 
+27	| &CControlBar::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+ount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CControlBar::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CControlBar::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CControlBar::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CDialogBar::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CDialogBar::CalcFixedLayout 
+92	| &CControlBar::CalcDynamicLayout 
+93	| &CDialogBar::OnUpdateCmdUI 
+94	| &CControlBar::CalcInsideRect 
+95	| &CControlBar::DoPaint 
+96	| &CControlBar::DrawBorders 
+97	| &CControlBar::DrawGripper 
+98	| &CControlBar::DrawNCGripper 
+99	| &CControlBar::DrawThemedGripper 
+100	| &CControlBar::DrawNonThemedGripper 
+101	| &CControlBar::DelayShow 
+102	| &CControlBar::IsVisible 
+103	| &CControlBar::RecalcDelayShow 
+104	| &CControlBar::IsDockBar 
+105	| &CControlBar::OnBarStyleChange 
+106	| &CControlBar::SetStatusText 
+107	| &CControlBar::SetStatusText 
+108	| &CDialogBar::Create 
+109	| &CDialogBar::Create 
+
+CDialogBar::GetRuntimeClass this adjustor: 0
+CDialogBar::Create this adjustor: 0
+CDialogBar::Create this adjustor: 0
+CDialogBar::{dtor} this adjustor: 0
+CDialogBar::CalcFixedLayout this adjustor: 0
+CDialogBar::OnUpdateCmdUI this adjustor: 0
+CDialogBar::SetOccDialogInfo this adjustor: 0
+CDialogBar::GetMessageMap this adjustor: 0
+CDialogBar::__delDtor this adjustor: 0
+CDialogBar::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CDocTemplate	size(240):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_bAutoDelete
+  	| <alignment member> (size=4)
+72	| m_pAttachedFactory
+80	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strCLSID
+88	| _GUID m_clsid
+104	| m_hMenuInPlace
+112	| m_hAccelInPlace
+120	| m_hMenuEmbedding
+128	| m_hAccelEmbedding
+136	| m_hMenuInPlaceServer
+144	| m_hAccelInPlaceServer
+152	| m_nIDResource
+156	| m_nIDServerResource
+160	| m_nIDEmbeddingResource
+164	| m_nIDContainerResource
+168	| m_nIDPreviewResource
+  	| <alignment member> (size=4)
+176	| m_pDocClass
+184	| m_pFrameClass
+192	| m_pViewClass
+200	| m_pOleFrameClass
+208	| m_pOleViewClass
+216	| m_pPreviewFrameClass
+224	| m_pPreviewViewClass
+232	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strDocStrings
+	+---
+
+CDocTemplate::$vftable@:
+	| &CDocTemplate_meta
+	|  0
+ 0	| &CDocTemplate::GetRuntimeClass 
+ 1	| &CDocTemplate::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDocTemplate::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocTemplate::LoadTemplate 
+23	| &CDocTemplate::GetFirstDocPosition 
+24	| &CDocTemplate::GetNextDoc 
+25	| &CDocTemplate::AddDocument 
+26	| &CDocTemplate::RemoveDocument 
+27	| &CDocTemplate::GetDocString 
+28	| &CDocTemplate::MatchDocType 
+29	| &CDocTemplate::CreateNewDocument 
+30	| &CDocTemplate::CreateNewFrame 
+31	| &CDocTemplate::InitialUpdateFrame 
+32	| &CDocTemplate::SaveAllModified 
+33	| &CDocTemplate::CloseAllDocuments 
+34	| &CDocTemplate::OpenDocumentFile 
+35	| &CDocTemplate::OpenDocumentFile 
+36	| &CDocTemplate::SetDefaultTitle 
+37	| &CDocTemplate::OnIdle 
+
+CDocTemplate::GetRuntimeClass this adjustor: 0
+CDocTemplate::LoadTemplate this adjustor: 0
+CDocTemplate::GetFirstDocPosition this adjustor: 0
+CDocTemplate::GetNextDoc this adjustor: 0
+CDocTemplate::AddDocument this adjustor: 0
+CDocTemplate::RemoveDocument this adjustor: 0
+CDocTemplate::GetDocString this adjustor: 0
+CDocTemplate::MatchDocType this adjustor: 0
+CDocTemplate::CreateNewDocument this adjustor: 0
+CDocTemplate::CreateNewFrame this adjustor: 0
+CDocTemplate::InitialUpdateFrame this adjustor: 0
+CDocTemplate::SaveAllModified this adjustor: 0
+CDocTemplate::CloseAllDocuments this adjustor: 0
+CDocTemplate::OpenDocumentFile this adjustor: 0
+CDocTemplate::OpenDocumentFile this adjustor: 0
+CDocTemplate::SetDefaultTitle this adjustor: 0
+CDocTemplate::{dtor} this adjustor: 0
+CDocTemplate::OnIdle this adjustor: 0
+CDocTemplate::OnCmdMsg this adjustor: 0
+CDocTemplate::__delDtor this adjustor: 0
+CDocTemplate::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CSingleDocTemplate	size(248):
+	+---
+ 0	| +--- (base class CDocTemplate)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_bAutoDelete
+  	| | <alignment member> (size=4)
+72	| | m_pAttachedFactory
+80	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strCLSID
+88	| | _GUID m_clsid
+104	| | m_hMenuInPlace
+112	| | m_hAccelInPlace
+120	| | m_hMenuEmbedding
+128	| | m_hAccelEmbedding
+136	| | m_hMenuInPlaceServer
+144	| | m_hAccelInPlaceServer
+152	| | m_nIDResource
+156	| | m_nIDServerResource
+160	| | m_nIDEmbeddingResource
+164	| | m_nIDContainerResource
+168	| | m_nIDPreviewResource
+  	| | <alignment member> (size=4)
+176	| | m_pDocClass
+184	| | m_pFrameClass
+192	| | m_pViewClass
+200	| | m_pOleFrameClass
+208	| | m_pOleViewClass
+216	| | m_pPreviewFrameClass
+224	| | m_pPreviewViewClass
+232	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strDocStrings
+	| +---
+240	| m_pOnlyDoc
+	+---
+
+CSingleDocTemplate::$vftable@:
+	| &CSingleDocTemplate_meta
+	|  0
+ 0	| &CSingleDocTemplate::GetRuntimeClass 
+ 1	| &CSingleDocTemplate::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDocTemplate::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocTemplate::LoadTemplate 
+23	| &CSingleDocTemplate::GetFirstDocPosition 
+24	| &CSingleDocTemplate::GetNextDoc 
+25	| &CSingleDocTemplate::AddDocument 
+26	| &CSingleDocTemplate::RemoveDocument 
+27	| &CDocTemplate::GetDocString 
+28	| &CDocTemplate::MatchDocType 
+29	| &CDocTemplate::CreateNewDocument 
+30	| &CDocTemplate::CreateNewFrame 
+31	| &CDocTemplate::InitialUpdateFrame 
+32	| &CDocTemplate::SaveAllModified 
+33	| &CDocTemplate::CloseAllDocuments 
+34	| &CSingleDocTemplate::OpenDocumentFile 
+35	| &CSingleDocTemplate::OpenDocumentFile 
+36	| &CSingleDocTemplate::SetDefaultTitle 
+37	| &CDocTemplate::OnIdle 
+
+CSingleDocTemplate::GetRuntimeClass this adjustor: 0
+CSingleDocTemplate::{dtor} this adjustor: 0
+CSingleDocTemplate::AddDocument this adjustor: 0
+CSingleDocTemplate::RemoveDocument this adjustor: 0
+CSingleDocTemplate::GetFirstDocPosition this adjustor: 0
+CSingleDocTemplate::GetNextDoc this adjustor: 0
+CSingleDocTemplate::OpenDocumentFile this adjustor: 0
+CSingleDocTemplate::OpenDocumentFile this adjustor: 0
+CSingleDocTemplate::SetDefaultTitle this adjustor: 0
+CSingleDocTemplate::__delDtor this adjustor: 0
+CSingleDocTemplate::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CMultiDocTemplate	size(320):
+	+---
+ 0	| +--- (base class CDocTemplate)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_bAutoDelete
+  	| | <alignment member> (size=4)
+72	| | m_pAttachedFactory
+80	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strCLSID
+88	| | _GUID m_clsid
+104	| | m_hMenuInPlace
+112	| | m_hAccelInPlace
+120	| | m_hMenuEmbedding
+128	| | m_hAccelEmbedding
+136	| | m_hMenuInPlaceServer
+144	| | m_hAccelInPlaceServer
+152	| | m_nIDResource
+156	| | m_nIDServerResource
+160	| | m_nIDEmbeddingResource
+164	| | m_nIDContainerResource
+168	| | m_nIDPreviewResource
+  	| | <alignment member> (size=4)
+176	| | m_pDocClass
+184	| | m_pFrameClass
+192	| | m_pViewClass
+200	| | m_pOleFrameClass
+208	| | m_pOleViewClass
+216	| | m_pPreviewFrameClass
+224	| | m_pPreviewViewClass
+232	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strDocStrings
+	| +---
+240	| m_hMenuShared
+248	| m_hAccelTable
+256	| CPtrList m_docList
+312	| m_nUntitledCount
+  	| <alignment member> (size=4)
+	+---
+
+CMultiDocTemplate::$vftable@:
+	| &CMultiDocTemplate_meta
+	|  0
+ 0	| &CMultiDocTemplate::GetRuntimeClass 
+ 1	| &CMultiDocTemplate::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDocTemplate::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CCmdTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CMultiDocTemplate::LoadTemplate 
+23	| &CMultiDocTemplate::GetFirstDocPosition 
+24	| &CMultiDocTemplate::GetNextDoc 
+25	| &CMultiDocTemplate::AddDocument 
+26	| &CMultiDocTemplate::RemoveDocument 
+27	| &CDocTemplate::GetDocString 
+28	| &CDocTemplate::MatchDocType 
+29	| &CDocTemplate::CreateNewDocument 
+30	| &CDocTemplate::CreateNewFrame 
+31	| &CDocTemplate::InitialUpdateFrame 
+32	| &CDocTemplate::SaveAllModified 
+33	| &CDocTemplate::CloseAllDocuments 
+34	| &CMultiDocTemplate::OpenDocumentFile 
+35	| &CMultiDocTemplate::OpenDocumentFile 
+36	| &CMultiDocTemplate::SetDefaultTitle 
+37	| &CDocTemplate::OnIdle 
+
+CMultiDocTemplate::GetRuntimeClass this adjustor: 0
+CMultiDocTemplate::{dtor} this adjustor: 0
+CMultiDocTemplate::LoadTemplate this adjustor: 0
+CMultiDocTemplate::AddDocument this adjustor: 0
+CMultiDocTemplate::RemoveDocument this adjustor: 0
+CMultiDocTemplate::GetFirstDocPosition this adjustor: 0
+CMultiDocTemplate::GetNextDoc this adjustor: 0
+CMultiDocTemplate::OpenDocumentFile this adjustor: 0
+CMultiDocTemplate::OpenDocumentFile this adjustor: 0
+CMultiDocTemplate::SetDefaultTitle this adjustor: 0
+CMultiDocTemplate::__delDtor this adjustor: 0
+CMultiDocTemplate::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CDocManager	size(64):
+	+---
+ 0	| +--- (base class CObject)
+ 0	| | {vfptr}
+	| +---
+ 8	| CPtrList m_templateList
+	+---
+
+CDocManager::$vftable@:
+	| &CDocManager_meta
+	|  0
+ 0	| &CDocManager::GetRuntimeClass 
+ 1	| &CDocManager::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CDocManager::AddDocTemplate 
+ 6	| &CDocManager::GetFirstDocTemplatePosition 
+ 7	| &CDocManager::GetNextDocTemplate 
+ 8	| &CDocManager::RegisterShellFileTypes 
+ 9	| &CDocManager::OpenDocumentFile 
+10	| &CDocManager::OpenDocumentFile 
+11	| &CDocManager::SaveAllModified 
+12	| &CDocManager::CloseAllDocuments 
+13	| &CDocManager::GetOpenDocumentCount 
+14	| &CDocManager::GetBestTemplate 
+15	| &CDocManager::DoPromptFileName 
+16	| &CDocManager::OnDDECommand 
+17	| &CDocManager::OnFileNew 
+18	| &CDocManager::OnFileOpen 
+
+CDocManager::GetRuntimeClass this adjustor: 0
+CDocManager::AddDocTemplate this adjustor: 0
+CDocManager::GetFirstDocTemplatePosition this adjustor: 0
+CDocManager::GetNextDocTemplate this adjustor: 0
+CDocManager::RegisterShellFileTypes this adjustor: 0
+CDocManager::OpenDocumentFile this adjustor: 0
+CDocManager::OpenDocumentFile this adjustor: 0
+CDocManager::SaveAllModified this adjustor: 0
+CDocManager::CloseAllDocuments this adjustor: 0
+CDocManager::GetOpenDocumentCount this adjustor: 0
+CDocManager::GetBestTemplate this adjustor: 0
+CDocManager::DoPromptFileName this adjustor: 0
+CDocManager::OnDDECommand this adjustor: 0
+CDocManager::OnFileNew this adjustor: 0
+CDocManager::OnFileOpen this adjustor: 0
+CDocManager::{dtor} this adjustor: 0
+CDocManager::__delDtor this adjustor: 0
+CDocManager::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CFormView	size(352):
+	+---
+ 0	| +--- (base class CScrollView)
+ 0	| | +--- (base class CView)
+ 0	| | | +--- (base class CWnd)
+ 0	| | | | +--- (base class CCmdTarget)
+ 0	| | | | | +--- (base class CObject)
+ 0	| | | | | | {vfptr}
+	| | | | | +---
+ 8	| | | | | m_dwRef
+  	| | | | | <alignment member> (size=4)
+16	| | | | | m_pOuterUnknown
+24	| | | | | m_xInnerUnknown
+32	| | | | | XDispatch m_xDispatch
+40	| | | | | m_bResultExpected
+  	| | | | | <alignment member> (size=4)
+48	| | | | | XConnPtContainer m_xConnPtContainer
+56	| | | | | m_pModuleState
+	| | | | +---
+64	| | | | m_hWnd
+72	| | | | m_bEnableActiveAccessibility
+  	| | | | <alignment member> (size=7)
+80	| | | | m_pStdObject
+88	| | | | m_pProxy
+96	| | | | XAccessible m_xAccessible
+104	| | | | XAccessibleServer m_xAccessibleServer
+112	| | | | m_bIsTouchWindowRegistered
+116	| | | | CPoint m_ptGestureFrom
+  	| | | | <alignment member> (size=4)
+128	| | | | m_ulGestureArg
+136	| | | | m_bGestureInited
+  	| | | | <alignment member> (size=4)
+144	| | | | m_pCurrentGestureInfo
+152	| | | | m_pDynamicLayout
+160	| | | | m_hWndOwner
+168	| | | | m_nFlags
+  	| | | | <alignment member> (size=4)
+176	| | | | m_pfnSuper
+184	| | | | m_nModalResult
+  	| | | | <alignment member> (size=4)
+192	| | | | m_pDropTarget
+200	| | | | m_pCtrlCont
+208	| | | | m_pCtrlSite
+216	| | | | m_pMFCCtrlContainer
+224	| | | | m_pRenderTarget
+	| | | +---
+232	| | | m_pDocument
+240	| | | m_bInitialRedraw
+  	| | | <alignment member> (size=4)
+	| | +---
+248	| | m_pAnchorWindow
+256	| | m_nMapMode
+260	| | CSize m_totalLog
+268	| | CSize m_totalDev
+276	| | CSize m_pageDev
+284	| | CSize m_lineDev
+292	| | m_bCenter
+296	| | m_bInsideUpdate
+  	| | <alignment member> (size=4)
+	| +---
+304	| m_lpszTemplateName
+312	| m_pCreateContext
+320	| m_hWndFocus
+328	| m_bInitDlgCompleted
+  	| <alignment member> (size=4)
+336	| m_pOccDialogInfo
+344	| m_pCreatedOccDialogInfo
+	+---
+
+CFormView::$vftable@:
+	| &CFormView_meta
+	|  0
+ 0	| &CFormView::GetRuntimeClass 
+ 1	| &CFormView::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CView::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CFormView::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CFormView::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CView::PreCreateWindow 
+28	| &CScrollView::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CView::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CFormView::get_accChildCount 
+42	| &CFormView::get_accChild 
+43	| &CFormView::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CFormView::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CFormView::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CFormView::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::Defphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+WindowProcA 
+74	| &CView::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CFormView::SetOccDialogInfo 
+90	| &CFormView::GetOccDialogInfo 
+91	| &CView::IsSelected 
+92	| &CScrollView::OnScroll 
+93	| &CScrollView::OnScrollBy 
+94	| &CView::OnDragEnter 
+95	| &CView::OnDragOver 
+96	| &CView::OnDragLeave 
+97	| &CView::OnDrop 
+98	| &CView::OnDropEx 
+99	| &CView::OnDragScroll 
+100	| &CScrollView::OnPrepareDC 
+101	| &CFormView::OnInitialUpdate 
+102	| &CFormView::OnActivateView 
+103	| &CFormView::OnActivateFrame 
+104	| &CView::OnUpdate 
+105	| &CFormView::OnDraw 
+106	| &CView::OnPreparePrinting 
+107	| &CView::OnBeginPrinting 
+108	| &CView::OnPrint 
+109	| &CView::OnEndPrinting 
+110	| &CView::OnEndPrintPreview 
+111	| &CScrollView::GetWheelScrollDistance 
+
+CFormView::GetRuntimeClass this adjustor: 0
+CFormView::{dtor} this adjustor: 0
+CFormView::OnInitialUpdate this adjustor: 0
+CFormView::get_accChild this adjustor: 0
+CFormView::get_accChildCount this adjustor: 0
+CFormView::get_accName this adjustor: 0
+CFormView::accLocation this adjustor: 0
+CFormView::accHitTest this adjustor: 0
+CFormView::OnDraw this adjustor: 0
+CFormView::Create this adjustor: 0
+CFormView::PreTranslateMessage this adjustor: 0
+CFormView::OnActivateView this adjustor: 0
+CFormView::OnActivateFrame this adjustor: 0
+CFormView::SetOccDialogInfo this adjustor: 0
+CFormView::GetOccDialogInfo this adjustor: 0
+CFormView::GetMessageMap this adjustor: 0
+CFormView::__delDtor this adjustor: 0
+CFormView::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class COleDocument	size(488):
+	+---
+ 0	| +--- (base class CDocument)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+72	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPathName
+80	| | m_pDocTemplate
+88	| | CPtrList m_viewList
+144	| | m_bModified
+148	| | m_bFinalRelease
+152	| | m_bOLELocked
+  	| | <alignment member> (size=4)
+160	| | m_hWndHost
+168	| | CRect m_rectHost
+184	| | m_pStream
+192	| | m_grfMode
+  	| | <alignment member> (size=4)
+200	| | m_pPreviewFrame
+208	| | ?$CComPtr@UIUnknown@@ m_spUnkSite
+216	| | CPtrList m_lstChunks
+272	| | m_posReadChunk
+280	| | m_pDocumentAdapter
+288	| | m_bAutoDelete
+292	| | m_bEmbedded
+296	| | m_bGetThumbnailMode
+300	| | m_bPreviewHandlerMode
+304	| | m_bSearchMode
+308	| | m_clrRichPreviewBackColor
+312	| | m_clrRichPreviewTextColor
+  	| | <alignment member> (size=4)
+320	| | CFont m_lfRichPreviewFont
+336	| | XInitializeWithStream m_xInitializeWithStream
+344	| | XPreviewHandler m_xPreviewHandler
+352	| | XPreviewHandlerVisuals m_xPreviewHandlerVisuals
+360	| | XObjectWithSite m_xObjectWithSite
+368	| | XOleWindow m_xOleWindow
+376	| | m_pPreviewHandlerSite
+	| +---
+384	| CObList m_docItemList
+440	| m_dwNextItemNumber
+444	| m_bLastVisible
+448	| m_bCompoundFile
+  	| <alignment member> (size=4)
+456	| m_lpRootStg
+464	| m_bSameAsLoad
+468	| m_bRemember
+472	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strStorageName
+480	| m_ptd
+	+---
+
+COleDocument::$vftable@:
+	| &COleDocument_meta
+	|  0
+ 0	| &COleDocument::GetRuntimeClass 
+ 1	| &COleDocument::{dtor} 
+ 2	| &COleDocument::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &COleDocument::OnCmdMsg 
+ 6	| &CDocument::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CDocument::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CDocument::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocument::GetAdapter 
+23	| &CDocument::SetTitle 
+24	| &COleDocument::SetPathName 
+25	| &CDocument::ClearPathName 
+26	| &CDocument::IsModified 
+27	| &CDocument::SetModifiedFlag 
+28	| &CDocument::GetFirstViewPosition 
+29	| &CDocument::GetNextView 
+30	| &CDocument::OnChangedViewList 
+31	| &COleDocument::DeleteContents 
+32	| &COleDocument::OnNewDocument 
+33	| &COleDocument::OnOpenDocument 
+34	| &COleDocument::OnSaveDocument 
+35	| &COleDocument::OnCloseDocument 
+36	| &CDocument::ReportSaveLoadException 
+37	| &CDocument::GetFile 
+38	| &CDocument::ReleaseFile 
+39	| &CDocument::OnBeforeRichPreviewFontChanged 
+40	| &CDocument::OnRichPreviewFontChanged 
+41	| &CDocument::OnRichPreviewTextColorChanged 
+42	| &CDocument::OnRichPreviewBackColorChanged 
+43	| &CDocument::OnRichPreviewSiteChanged 
+44	| &CDocument::OnRichPreviewUnload 
+45	| &CDocument::LoadDocumentFromStream 
+46	| &CDocument::GetThumbnail 
+47	| &CDocument::InitializeSearchContent 
+48	| &CDocument::ClearChunkList 
+49	| &CDocument::SetChunkValue 
+50	| &CDocument::BeginReadChunks 
+51	| &CDocument::ReadNextChunkValue 
+52	| &CDocument::RemoveChunk 
+53	| &CDocument::FindChunk 
+54	| &CDocument::OnDocumentEvent 
+55	| &CDocument::CanCloseFrame 
+56	| &COleDocument::SaveModified 
+57	| &COleDocument::PreCloseFrame 
+58	| &COleDocument::DoSave 
+59	| &CDocument::DoFileSave 
+60	| &CDocument::UpdateFrameCounts 
+61	| &CDocument::GetDefaultMenu 
+62	| &CDocument::GetDefaultAccelerator 
+63	| &COleDocument::OnIdle 
+64	| &COleDocuphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+ment::OnLoadDocumentFromStream 
+65	| &CDocument::OnPreviewHandlerQueryFocus 
+66	| &CDocument::OnPreviewHandlerTranslateAccelerator 
+67	| &CDocument::OnCreatePreviewFrame 
+68	| &CDocument::OnUnloadHandler 
+69	| &CDocument::OnDrawThumbnail 
+70	| &COleDocument::GetInPlaceActiveItem 
+71	| &COleDocument::GetStartPosition 
+72	| &COleDocument::GetNextItem 
+73	| &COleDocument::AddItem 
+74	| &COleDocument::RemoveItem 
+75	| &COleDocument::UpdateModifiedFlag 
+76	| &COleDocument::GetPrimarySelectedItem 
+77	| &COleDocument::OnShowViews 
+78	| &COleDocument::GetMoniker 
+79	| &COleDocument::GetContainer 
+80	| &COleDocument::LoadFromStorage 
+81	| &COleDocument::SaveToStorage 
+
+COleDocument::GetRuntimeClass this adjustor: 0
+COleDocument::GetInPlaceActiveItem this adjustor: 0
+COleDocument::GetStartPosition this adjustor: 0
+COleDocument::GetNextItem this adjustor: 0
+COleDocument::AddItem this adjustor: 0
+COleDocument::RemoveItem this adjustor: 0
+COleDocument::UpdateModifiedFlag this adjustor: 0
+COleDocument::GetPrimarySelectedItem this adjustor: 0
+COleDocument::OnShowViews this adjustor: 0
+COleDocument::SetPathName this adjustor: 0
+COleDocument::{dtor} this adjustor: 0
+COleDocument::DeleteContents this adjustor: 0
+COleDocument::Serialize this adjustor: 0
+COleDocument::PreCloseFrame this adjustor: 0
+COleDocument::DoSave this adjustor: 0
+COleDocument::SaveModified this adjustor: 0
+COleDocument::OnIdle this adjustor: 0
+COleDocument::OnNewDocument this adjustor: 0
+COleDocument::OnOpenDocument this adjustor: 0
+COleDocument::OnSaveDocument this adjustor: 0
+COleDocument::OnCloseDocument this adjustor: 0
+COleDocument::GetMoniker this adjustor: 0
+COleDocument::GetContainer this adjustor: 0
+COleDocument::LoadFromStorage this adjustor: 0
+COleDocument::SaveToStorage this adjustor: 0
+COleDocument::OnLoadDocumentFromStream this adjustor: 0
+COleDocument::OnCmdMsg this adjustor: 0
+COleDocument::__delDtor this adjustor: 0
+COleDocument::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class COleLinkingDoc	size(560):
+	+---
+ 0	| +--- (base class COleDocument)
+ 0	| | +--- (base class CDocument)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+72	| | | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPathName
+80	| | | m_pDocTemplate
+88	| | | CPtrList m_viewList
+144	| | | m_bModified
+148	| | | m_bFinalRelease
+152	| | | m_bOLELocked
+  	| | | <alignment member> (size=4)
+160	| | | m_hWndHost
+168	| | | CRect m_rectHost
+184	| | | m_pStream
+192	| | | m_grfMode
+  	| | | <alignment member> (size=4)
+200	| | | m_pPreviewFrame
+208	| | | ?$CComPtr@UIUnknown@@ m_spUnkSite
+216	| | | CPtrList m_lstChunks
+272	| | | m_posReadChunk
+280	| | | m_pDocumentAdapter
+288	| | | m_bAutoDelete
+292	| | | m_bEmbedded
+296	| | | m_bGetThumbnailMode
+300	| | | m_bPreviewHandlerMode
+304	| | | m_bSearchMode
+308	| | | m_clrRichPreviewBackColor
+312	| | | m_clrRichPreviewTextColor
+  	| | | <alignment member> (size=4)
+320	| | | CFont m_lfRichPreviewFont
+336	| | | XInitializeWithStream m_xInitializeWithStream
+344	| | | XPreviewHandler m_xPreviewHandler
+352	| | | XPreviewHandlerVisuals m_xPreviewHandlerVisuals
+360	| | | XObjectWithSite m_xObjectWithSite
+368	| | | XOleWindow m_xOleWindow
+376	| | | m_pPreviewHandlerSite
+	| | +---
+384	| | CObList m_docItemList
+440	| | m_dwNextItemNumber
+444	| | m_bLastVisible
+448	| | m_bCompoundFile
+  	| | <alignment member> (size=4)
+456	| | m_lpRootStg
+464	| | m_bSameAsLoad
+468	| | m_bRemember
+472	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strStorageName
+480	| | m_ptd
+	| +---
+488	| m_pFactory
+496	| m_bDeferErrors
+  	| <alignment member> (size=4)
+504	| m_pLastException
+512	| m_dwRegister
+  	| <alignment member> (size=4)
+520	| m_lpMonikerROT
+528	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strMoniker
+536	| m_bVisibleLock
+  	| <alignment member> (size=4)
+544	| XPersistFile m_xPersistFile
+552	| XOleItemContainer m_xOleItemContainer
+	+---
+
+COleLinkingDoc::$vftable@:
+	| &COleLinkingDoc_meta
+	|  0
+ 0	| &COleLinkingDoc::GetRuntimeClass 
+ 1	| &COleLinkingDoc::{dtor} 
+ 2	| &COleDocument::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &COleDocument::OnCmdMsg 
+ 6	| &CDocument::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CDocument::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleLinkingDoc::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocument::GetAdapter 
+23	| &CDocument::SetTitle 
+24	| &COleDocument::SetPathName 
+25	| &CDocument::ClearPathName 
+26	| &CDocument::IsModified 
+27	| &CDocument::SetModifiedFlag 
+28	| &CDocument::GetFirstViewPosition 
+29	| &CDocument::GetNextView 
+30	| &CDocument::OnChangedViewList 
+31	| &COleDocument::DeleteContents 
+32	| &COleLinkingDoc::OnNewDocument 
+33	| &COleLinkingDoc::OnOpenDocument 
+34	| &COleLinkingDoc::OnSaveDocument 
+35	| &COleLinkingDoc::OnCloseDocument 
+36	| &COleLinkingDoc::ReportSaveLoadException 
+37	| &CDocument::GetFile 
+38	| &CDocument::ReleaseFile 
+39	| &CDocument::OnBeforeRichPreviewFontChanged 
+40	| &CDocument::OnRichPreviewFontChanged 
+41	| &CDocument::OnRichPreviewTextColorChanged 
+42	| &CDocument::OnRichPreviewBackColorChanged 
+43	| &CDocument::OnRichPreviewSiteChanged 
+44	| &CDocument::OnRichPreviewUnload 
+45	| &CDocument::LoadDocumentFromStream 
+46	| &CDocument::GetThumbnail 
+47	| &CDocumenphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+t::InitializeSearchContent 
+48	| &CDocument::ClearChunkList 
+49	| &CDocument::SetChunkValue 
+50	| &CDocument::BeginReadChunks 
+51	| &CDocument::ReadNextChunkValue 
+52	| &CDocument::RemoveChunk 
+53	| &CDocument::FindChunk 
+54	| &CDocument::OnDocumentEvent 
+55	| &CDocument::CanCloseFrame 
+56	| &COleDocument::SaveModified 
+57	| &COleDocument::PreCloseFrame 
+58	| &COleDocument::DoSave 
+59	| &CDocument::DoFileSave 
+60	| &CDocument::UpdateFrameCounts 
+61	| &CDocument::GetDefaultMenu 
+62	| &CDocument::GetDefaultAccelerator 
+63	| &COleDocument::OnIdle 
+64	| &COleDocument::OnLoadDocumentFromStream 
+65	| &CDocument::OnPreviewHandlerQueryFocus 
+66	| &CDocument::OnPreviewHandlerTranslateAccelerator 
+67	| &CDocument::OnCreatePreviewFrame 
+68	| &CDocument::OnUnloadHandler 
+69	| &CDocument::OnDrawThumbnail 
+70	| &COleDocument::GetInPlaceActiveItem 
+71	| &COleDocument::GetStartPosition 
+72	| &COleDocument::GetNextItem 
+73	| &COleDocument::AddItem 
+74	| &COleDocument::RemoveItem 
+75	| &COleDocument::UpdateModifiedFlag 
+76	| &COleDocument::GetPrimarySelectedItem 
+77	| &COleLinkingDoc::OnShowViews 
+78	| &COleLinkingDoc::GetMoniker 
+79	| &COleLinkingDoc::GetContainer 
+80	| &COleDocument::LoadFromStorage 
+81	| &COleLinkingDoc::SaveToStorage 
+82	| &COleLinkingDoc::OnGetLinkedItem 
+83	| &COleLinkingDoc::OnFindEmbeddedItem 
+84	| &COleLinkingDoc::RegisterIfServerAttached 
+
+COleLinkingDoc::GetRuntimeClass this adjustor: 0
+COleLinkingDoc::OnGetLinkedItem this adjustor: 0
+COleLinkingDoc::OnFindEmbeddedItem this adjustor: 0
+COleLinkingDoc::{dtor} this adjustor: 0
+COleLinkingDoc::OnNewDocument this adjustor: 0
+COleLinkingDoc::OnOpenDocument this adjustor: 0
+COleLinkingDoc::OnSaveDocument this adjustor: 0
+COleLinkingDoc::OnCloseDocument this adjustor: 0
+COleLinkingDoc::GetContainer this adjustor: 0
+COleLinkingDoc::GetMoniker this adjustor: 0
+COleLinkingDoc::ReportSaveLoadException this adjustor: 0
+COleLinkingDoc::RegisterIfServerAttached this adjustor: 0
+COleLinkingDoc::OnShowViews this adjustor: 0
+COleLinkingDoc::SaveToStorage this adjustor: 0
+COleLinkingDoc::GetInterfaceMap this adjustor: 0
+COleLinkingDoc::__delDtor this adjustor: 0
+COleLinkingDoc::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class COleServerDoc	size(664):
+	+---
+ 0	| +--- (base class COleLinkingDoc)
+ 0	| | +--- (base class COleDocument)
+ 0	| | | +--- (base class CDocument)
+ 0	| | | | +--- (base class CCmdTarget)
+ 0	| | | | | +--- (base class CObject)
+ 0	| | | | | | {vfptr}
+	| | | | | +---
+ 8	| | | | | m_dwRef
+  	| | | | | <alignment member> (size=4)
+16	| | | | | m_pOuterUnknown
+24	| | | | | m_xInnerUnknown
+32	| | | | | XDispatch m_xDispatch
+40	| | | | | m_bResultExpected
+  	| | | | | <alignment member> (size=4)
+48	| | | | | XConnPtContainer m_xConnPtContainer
+56	| | | | | m_pModuleState
+	| | | | +---
+64	| | | | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strTitle
+72	| | | | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPathName
+80	| | | | m_pDocTemplate
+88	| | | | CPtrList m_viewList
+144	| | | | m_bModified
+148	| | | | m_bFinalRelease
+152	| | | | m_bOLELocked
+  	| | | | <alignment member> (size=4)
+160	| | | | m_hWndHost
+168	| | | | CRect m_rectHost
+184	| | | | m_pStream
+192	| | | | m_grfMode
+  	| | | | <alignment member> (size=4)
+200	| | | | m_pPreviewFrame
+208	| | | | ?$CComPtr@UIUnknown@@ m_spUnkSite
+216	| | | | CPtrList m_lstChunks
+272	| | | | m_posReadChunk
+280	| | | | m_pDocumentAdapter
+288	| | | | m_bAutoDelete
+292	| | | | m_bEmbedded
+296	| | | | m_bGetThumbnailMode
+300	| | | | m_bPreviewHandlerMode
+304	| | | | m_bSearchMode
+308	| | | | m_clrRichPreviewBackColor
+312	| | | | m_clrRichPreviewTextColor
+  	| | | | <alignment member> (size=4)
+320	| | | | CFont m_lfRichPreviewFont
+336	| | | | XInitializeWithStream m_xInitializeWithStream
+344	| | | | XPreviewHandler m_xPreviewHandler
+352	| | | | XPreviewHandlerVisuals m_xPreviewHandlerVisuals
+360	| | | | XObjectWithSite m_xObjectWithSite
+368	| | | | XOleWindow m_xOleWindow
+376	| | | | m_pPreviewHandlerSite
+	| | | +---
+384	| | | CObList m_docItemList
+440	| | | m_dwNextItemNumber
+444	| | | m_bLastVisible
+448	| | | m_bCompoundFile
+  	| | | <alignment member> (size=4)
+456	| | | m_lpRootStg
+464	| | | m_bSameAsLoad
+468	| | | m_bRemember
+472	| | | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strStorageName
+480	| | | m_ptd
+	| | +---
+488	| | m_pFactory
+496	| | m_bDeferErrors
+  	| | <alignment member> (size=4)
+504	| | m_pLastException
+512	| | m_dwRegister
+  	| | <alignment member> (size=4)
+520	| | m_lpMonikerROT
+528	| | ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strMoniker
+536	| | m_bVisibleLock
+  	| | <alignment member> (size=4)
+544	| | XPersistFile m_xPersistFile
+552	| | XOleItemContainer m_xOleItemContainer
+	| +---
+560	| m_lpClientSite
+568	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strHostObj
+576	| m_bCntrVisible
+580	| m_bClosing
+584	| m_pEmbeddedItem
+592	| m_pInPlaceFrame
+600	| m_pOrigParent
+608	| m_dwOrigStyle
+612	| m_dwOrigStyleEx
+616	| m_pDocObjectServer
+624	| XPersistStorage m_xPersistStorage
+632	| XOleObject m_xOleObject
+640	| XDataObject m_xDataObject
+648	| XOleInPlaceObject m_xOleInPlaceObject
+656	| XOleInPlaceActiveObject m_xOleInPlaceActiveObject
+	+---
+
+COleServerDoc::$vftable@:
+	| &COleServerDoc_meta
+	|  0
+ 0	| &COleServerDoc::GetRuntimeClass 
+ 1	| &COleServerDoc::{dtor} 
+ 2	| &COleDocument::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &COleDocument::OnCmdMsg 
+ 6	| &CDocument::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &COleServerDoc::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleServerDoc::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &COleServerDoc::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocument::GetAdapter 
+23	| &CDocument::SetTitle 
+24	| &COleDocument::SetPathName 
+25	| &CDocument::ClearPathName 
+26	| &CDocument::IsModified 
+27	| &CDocument::SetModifiedFlag 
+28	| &CDocument::GetFirstViewPosition 
+29	| &CDocument::GetNextView 
+30	| &CDocument::OnChangedViewList 
+31	| &COleServerDoc::DeleteContents 
+32	| &COleLinkingDoc::OnNewDocument 
+33	| &COleLinkingDoc::OnOpenDocument 
+34	| &COleServerDoc::OnSaveDocument 
+35	| &COleServerDoc::OnCloseDocument 
+36	| &COleLinkingDoc::ReportSaveLoadException 
+37	| &CDocument::GetFile 
+38	| &CDocument::ReleaseFile 
+39	| &CDocument::OnBeforeRichPreviewFontChanged 
+40	| &CDocument::OnRichPreviewFontChanged 
+41	| &CDocument::OnRichPreviewTextColorChanged 
+42	| &CDocument::OnRichPreviewBackColorChanged 
+43	| &CDocument::OnRichPreviewSiteChanged 
+44	| &CDocument::OnRichPreviewUnload 
+45	| &CDocument::LoadDocumentFromStream 
+46	| &CDocument::GetThumbnail 
+47	| &CDocument::InitializeSearchContent 
+48	| &CDocument::ClearChunkList 
+49	| &CDocument::SetChunkValue 
+50	| &CDocument::BeginReadChunks 
+51	| &CDocument::ReadNextChunkValue 
+52	| &CDocument::RemoveChunk 
+53	| &CDocument::FindChunk 
+54	| &CDocument::OnDocumentEvent 
+55	| &COleServerDoc::CanCloseFrame 
+56	| &COleServerDoc::SaveModified 
+57	| &COleDocument::PreCloseFrame 
+58	| &COleDocument::DoSave 
+59	| &CDocument::DoFileSave 
+60	| &CDocument::UpdateFrameCounts 
+61	| &COleServerDoc::GetDefaultMenu 
+62	| &COleServerDoc::GetDefaultAccelerator 
+63	| &COleDocument::OnIdle 
+64	| &COleDocument::OnLoadDocumentFromStream 
+65	| &CDocument::OnPreviewHandlerQueryFocus 
+66	| &CDocument::OnPreviewHandlerTranslateAccelerator 
+67	| &CDocument::OnCreatePreviewFrame 
+68	| &CDocument::OnUnloadHandler 
+69	| &CDocument::OnDrawThumbnail 
+70	| &COleDocument::GetInPlaceActiveItem 
+71	| &COleDocument::GetStartPosition 
+72	| &COleDocument::GetNextItem 
+73	| &COleDocument::AddItem 
+74	| &COleDocument::RemoveItem 
+75	| &COleDocument::UpdateModifiedFlag 
+76	| &COleDocument::GetPrimarySelectedItem 
+77	| &COleLinkingDoc::OnShowViews 
+78	| &COleServerDoc::GetMoniker 
+79	| &COleLinkingDoc::GetContainer 
+80	| &COleDocument::LoadFromStorage 
+81	| &COleLinkingDoc::SaveToStorage 
+82	| &COleServerDoc::OnGetLinkedItem 
+83	| &COleLinkingDoc::OnFindEmbeddedItem 
+84	| &COleLinkingDoc::RegisterIfServerAttached 
+85	| &COleServerDoc::OnUpdateDocument 
+86	| &COleServerDoc::OnGetEmbeddedItem 
+87	| &COleServerDoc::OnClose 
+88	| &COleServerDoc::OnSetHostNames 
+89	| &COleServerDoc::OnExecOleCmd 
+90	| &COleServerDoc::GetDocObjectServer 
+91	| &COleServerDoc::OnShowDocument 
+92	| &COleServerDoc::OnDeactivate 
+93	| &COleServerDoc::OnDeactivateUI 
+94	| &COleServerDoc::OnDocWindowActivate 
+95	| &COleServerDoc::OnShowControlBars 
+96	| &COleServerDoc::OnSetItemRects 
+97	| &COleServerDoc::OnReactivateAndUndo 
+98	| &COleServerDoc::OnFrameWindowActivate 
+99	| &COleServerDoc::CreateInPlaceFrame 
+100	| &COleServerDoc::DestroyInPlaceFrame 
+101	| &COleServerDoc::OnResizeBorder 
+102	| &COleServerDoc::GetFileTypeString 
+103	| &COleServerDoc::OnNewEmbedding 
+104	| &COleServerDoc::OnOpenEmbedding 
+105	| &COleServerDoc::OnSaveEmbedding 
+
+COleServerDoc::GetRuntimeClass this adjustor: 0
+COleServerDoc::OnUpdateDocument this adjustor: 0
+COleServerDoc::OnGetEmbeddedItem this adjustor: 0
+COleServerDoc::OnClose this adjustor: 0
+COleServerDoc::OnSetHostNames this adjustor: 0
+COleServerDoc::OnExecOleCmd this adjustor: 0
+COleServerDoc::GetDocObjectServer this adjustor: 0
+COleServerDoc::GetInterfaceHook this adjustor: 0
+COleServerDoc::OnShowDocument this adjustor: 0
+COleServerDoc::OnDeactivate this adjustor: 0
+COleServerDoc::OnDeactivateUI this adjustor: 0
+COleServerDoc::OnDocWindowActivate this adjustor: 0
+COleServerDoc::OnShowControlBars this adjustor: 0
+COleServerDoc::OnSetItemRects this adjustor: 0
+COleServerDoc::OnReactivateAndUndo this adjustor: 0
+COleServerDoc::OnFrameWindowActivate this adjustor: 0
+COleServerDoc::CreateInPlaceFrame this adjustor: 0
+COleServerDoc::DestroyInPlaceFrame this adjustor: 0
+COleServerDoc::OnResizeBorder this adjustor: 0
+COleServerDoc::{dtor} this adjustor: 0
+COleServerDoc::OnSaveDocument this adjustor: 0
+COleServerDoc::OnCloseDocument this adjustor: 0
+COleServerDoc::DeleteContents this adjustor: 0
+COleServerDoc::GetMoniker this adjustor: 0
+COleServerDoc::OnGetLinkedItem this adjustor: 0
+COleServerDoc::CanCloseFrame this adjustor: phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+0
+COleServerDoc::SaveModified this adjustor: 0
+COleServerDoc::GetDefaultMenu this adjustor: 0
+COleServerDoc::GetDefaultAccelerator this adjustor: 0
+COleServerDoc::GetFileTypeString this adjustor: 0
+COleServerDoc::OnNewEmbedding this adjustor: 0
+COleServerDoc::OnOpenEmbedding this adjustor: 0
+COleServerDoc::OnSaveEmbedding this adjustor: 0
+COleServerDoc::GetMessageMap this adjustor: 0
+COleServerDoc::GetInterfaceMap this adjustor: 0
+COleServerDoc::__delDtor this adjustor: 0
+COleServerDoc::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class COleClientItem	size(240):
+	+---
+ 0	| +--- (base class CDocItem)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_pDocument
+	| +---
+72	| m_lpObject
+80	| m_lpViewObject
+88	| m_dwItemNumber
+92	| tagDVASPECT m_nDrawAspect
+96	| m_scLast
+  	| <alignment member> (size=4)
+104	| m_lpStorage
+112	| m_lpLockBytes
+120	| m_dwConnection
+124	| m_bLinkUnavail
+125	| m_bMoniker
+126	| m_bLocked
+127	| m_bNeedCommit
+128	| m_bClosing
+129	| m_bReserved
+  	| <alignment member> (size=4)
+136	| m_lpNewStorage
+144	| ItemState m_nItemState
+148	| OLE_OBJTYPE m_nItemType
+152	| m_pView
+160	| m_dwContainerStyle
+  	| <alignment member> (size=4)
+168	| m_pInPlaceFrame
+176	| m_pInPlaceDoc
+184	| m_hWndServer
+192	| m_dwFrameMenuBarVisibility
+  	| <alignment member> (size=4)
+200	| ClassesAllowedInStorage m_ClassesAllowedInStorage
+208	| m_nClassesAllowedInStorage
+  	| <alignment member> (size=4)
+216	| XOleClientSite m_xOleClientSite
+224	| XAdviseSink m_xAdviseSink
+232	| XOleIPSite m_xOleIPSite
+	+---
+
+COleClientItem::$vftable@:
+	| &COleClientItem_meta
+	|  0
+ 0	| &COleClientItem::GetRuntimeClass 
+ 1	| &COleClientItem::{dtor} 
+ 2	| &COleClientItem::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleClientItem::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CDocItem::IsBlank 
+23	| &COleClientItem::SetDrawAspect 
+24	| &COleClientItem::Release 
+25	| &COleClientItem::DoVerb 
+26	| &COleClientItem::OnGetClipboardData 
+27	| &COleClientItem::ConvertTo 
+28	| &COleClientItem::ActivateAs 
+29	| &COleClientItem::OnChange 
+30	| &COleClientItem::OnGetItemPosition 
+31	| &COleClientItem::OnScrollBy 
+32	| &COleClientItem::OnDiscardUndoState 
+33	| &COleClientItem::OnDeactivateAndUndo 
+34	| &COleClientItem::OnDeactivateUI 
+35	| &COleClientItem::OnShowItem 
+36	| &COleClientItem::OnGetClipRect 
+37	| &COleClientItem::CanActivate 
+38	| &COleClientItem::OnActivate 
+39	| &COleClientItem::OnActivateUI 
+40	| &COleClientItem::OnDeactivate 
+41	| &COleClientItem::OnGetWindowContext 
+42	| &COleClientItem::OnChangeItemPosition 
+43	| &COleClientItem::OnInsertMenus 
+44	| &COleClientItem::OnSetMenu 
+45	| &COleClientItem::OnRemoveMenus 
+46	| &COleClientItem::OnUpdateFrameTitle 
+47	| &COleClientItem::OnShowControlBars 
+48	| &COleClientItem::ReportError 
+49	| &COleClientItem::FreezeLink 
+50	| &COleClientItem::GetClientSite 
+51	| &COleClientItem::FinishCreate 
+52	| &COleClientItem::CheckGeneral 
+53	| &COleClientItem::OnDataChange 
+54	| &COleClientItem::GetItemStorage 
+55	| &COleClientItem::ReadItem 
+56	| &COleClientItem::WriteItem 
+57	| &COleClientItem::CommitItem 
+
+COleClientItem::GetRuntimeClass this adjustor: 0
+COleClientItem::SetDrawAspect this adjustor: 0
+COleClientItem::Release this adjustor: 0
+COleClientItem::DoVerb this adjustor: 0
+COleClientItem::OnGetClipboardData this adjustor: 0
+COleClientItem::ConvertTo this adjustor: 0
+COleClientItem::ActivateAs this adjustor: 0
+COleClientItem::OnChange this adjustor: 0
+COleClientItem::OnGetItemPosition this adjustor: 0
+COleClientItem::OnScrollBy this adjustor: 0
+COleClientItem::OnDiscardUndoState this adjustor: 0
+COleClientItem::OnDeactivateAndUndo this adjustor: 0
+COleClientItem::OnDeactivateUI this adjustor: 0
+COleClientItem::OnShowItem this adjustor: 0
+COleClientItem::Onphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+GetClipRect this adjustor: 0
+COleClientItem::CanActivate this adjustor: 0
+COleClientItem::OnActivate this adjustor: 0
+COleClientItem::OnActivateUI this adjustor: 0
+COleClientItem::OnDeactivate this adjustor: 0
+COleClientItem::OnGetWindowContext this adjustor: 0
+COleClientItem::OnChangeItemPosition this adjustor: 0
+COleClientItem::OnInsertMenus this adjustor: 0
+COleClientItem::OnSetMenu this adjustor: 0
+COleClientItem::OnRemoveMenus this adjustor: 0
+COleClientItem::OnUpdateFrameTitle this adjustor: 0
+COleClientItem::OnShowControlBars this adjustor: 0
+COleClientItem::{dtor} this adjustor: 0
+COleClientItem::Serialize this adjustor: 0
+COleClientItem::ReportError this adjustor: 0
+COleClientItem::FreezeLink this adjustor: 0
+COleClientItem::GetClientSite this adjustor: 0
+COleClientItem::FinishCreate this adjustor: 0
+COleClientItem::CheckGeneral this adjustor: 0
+COleClientItem::OnDataChange this adjustor: 0
+COleClientItem::GetItemStorage this adjustor: 0
+COleClientItem::ReadItem this adjustor: 0
+COleClientItem::WriteItem this adjustor: 0
+COleClientItem::CommitItem this adjustor: 0
+COleClientItem::GetInterfaceMap this adjustor: 0
+COleClientItem::__delDtor this adjustor: 0
+COleClientItem::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleServerItem	size(224):
+	+---
+ 0	| +--- (base class CDocItem)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_pDocument
+	| +---
+72	| CSize m_sizeExtent
+80	| m_bNeedUnlock
+84	| m_bAutoDelete
+88	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strItemName
+96	| m_lpOleAdviseHolder
+104	| m_lpDataAdviseHolder
+112	| CItemDataSource m_dataSource
+208	| XOleObject m_xOleObject
+216	| XDataObject m_xDataObject
+	+---
+
+COleServerItem::$vftable@:
+	| &COleServerItem_meta
+	|  0
+ 0	| &COleServerItem::GetRuntimeClass 
+ 1	| &COleServerItem::{dtor} 
+ 2	| &CDocItem::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &COleServerItem::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleServerItem::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleServerItem::IsBlank 
+23	| &COleServerItem::OnDraw 
+24	| &COleServerItem::OnUpdate 
+25	| &COleServerItem::OnDrawEx 
+26	| &COleServerItem::OnSetExtent 
+27	| &COleServerItem::OnGetExtent 
+28	| &COleServerItem::OnDoVerb 
+29	| &COleServerItem::OnSetColorScheme 
+30	| &COleServerItem::OnGetClipboardData 
+31	| &COleServerItem::OnQueryUpdateItems 
+32	| &COleServerItem::OnUpdateItems 
+33	| &COleServerItem::OnShow 
+34	| &COleServerItem::OnOpen 
+35	| &COleServerItem::OnHide 
+36	| &COleServerItem::OnInitFromData 
+37	| &COleServerItem::OnRenderGlobalData 
+38	| &COleServerItem::OnRenderFileData 
+39	| &COleServerItem::OnRenderData 
+40	| &COleServerItem::OnSetData 
+41	| &COleServerItem::GetMetafileData 
+42	| &COleServerItem::OnSaveEmbedding 
+
+COleServerItem::GetRuntimeClass this adjustor: 0
+COleServerItem::OnDraw this adjustor: 0
+COleServerItem::OnUpdate this adjustor: 0
+COleServerItem::OnDrawEx this adjustor: 0
+COleServerItem::OnSetExtent this adjustor: 0
+COleServerItem::OnGetExtent this adjustor: 0
+COleServerItem::OnDoVerb this adjustor: 0
+COleServerItem::OnSetColorScheme this adjustor: 0
+COleServerItem::OnGetClipboardData this adjustor: 0
+COleServerItem::OnQueryUpdateItems this adjustor: 0
+COleServerItem::OnUpdateItems this adjustor: 0
+COleServerItem::OnShow this adjustor: 0
+COleServerItem::OnOpen this adjustor: 0
+COleServerItem::OnHide this adjustor: 0
+COleServerItem::OnInitFromData this adjustor: 0
+COleServerItem::OnRenderGlobalData this adjustor: 0
+COleServerItem::OnRenderFileData this adjustor: 0
+COleServerItem::OnRenderData this adjustor: 0
+COleServerItem::OnSetData this adjustor: 0
+COleServerItem::OnFinalRelease this adjustor: 0
+COleServerItem::{dtor} this adjustor: 0
+COleServerItem::GetMetafileData this adjustor: 0
+COleServerItem::OnSaveEmbedding this adjustor: 0
+COleServerItem::IsBlank this adjustor: 0
+COleServerItem::GetInterfaceMap this adjustor: 0
+COleServerItem::__delDtor this adjustor: 0
+COleServerItem::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CTypedSimpleList<class COleObjectFactory *>	size(16):
+	+---
+ 0	| +--- (base class CSimpleList)
+ 0	| | m_pHead
+ 8	| | m_nNextOffset
+	| +---
+	+---
+
+class COleObjectFactory	size(136):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_pNextFactory
+72	| m_dwRegister
+76	| _GUID m_clsid
+  	| <alignment member> (size=4)
+96	| m_pRuntimeClass
+104	| m_bMultiInstance
+108	| m_nFlags
+112	| m_lpszProgID
+120	| m_bLicenseChecked
+121	| m_bLicenseValid
+122	| m_bRegistered
+123	| m_bOAT
+  	| <alignment member> (size=4)
+128	| XClassFactory m_xClassFactory
+	+---
+
+COleObjectFactory::$vftable@:
+	| &COleObjectFactory_meta
+	|  0
+ 0	| &COleObjectFactory::GetRuntimeClass 
+ 1	| &COleObjectFactory::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleObjectFactory::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleObjectFactory::IsRegistered 
+23	| &COleObjectFactory::Register 
+24	| &COleObjectFactory::UpdateRegistry 
+25	| &COleObjectFactory::OnCreateObject 
+26	| &COleObjectFactory::VerifyUserLicense 
+27	| &COleObjectFactory::GetLicenseKey 
+28	| &COleObjectFactory::VerifyLicenseKey 
+
+COleObjectFactory::GetRuntimeClass this adjustor: 0
+COleObjectFactory::IsRegistered this adjustor: 0
+COleObjectFactory::Register this adjustor: 0
+COleObjectFactory::UpdateRegistry this adjustor: 0
+COleObjectFactory::OnCreateObject this adjustor: 0
+COleObjectFactory::VerifyUserLicense this adjustor: 0
+COleObjectFactory::GetLicenseKey this adjustor: 0
+COleObjectFactory::VerifyLicenseKey this adjustor: 0
+COleObjectFactory::{dtor} this adjustor: 0
+COleObjectFactory::GetInterfaceMap this adjustor: 0
+COleObjectFactory::__delDtor this adjustor: 0
+COleObjectFactory::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleDataSource	size(96):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_pDataCache
+72	| m_nMaxSize
+76	| m_nSize
+80	| m_nGrowBy
+  	| <alignment member> (size=4)
+88	| XDataObject m_xDataObject
+	+---
+
+COleDataSource::$vftable@:
+	| &COleDataSource_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleDataSource::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleDataSource::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleDataSource::OnRenderGlobalData 
+23	| &COleDataSource::OnRenderFileData 
+24	| &COleDataSource::OnRenderData 
+25	| &COleDataSource::OnSetData 
+
+COleDataSource::OnRenderGlobalData this adjustor: 0
+COleDataSource::OnRenderFileData this adjustor: 0
+COleDataSource::OnRenderData this adjustor: 0
+COleDataSource::OnSetData this adjustor: 0
+COleDataSource::{dtor} this adjustor: 0
+COleDataSource::GetInterfaceMap this adjustor: 0
+COleDataSource::__delDtor this adjustor: 0
+COleDataSource::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleDropTarget	size(104):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_hWnd
+72	| m_lpDataObject
+80	| m_nTimerID
+84	| m_dwLastTick
+88	| m_nScrollDelay
+  	| <alignment member> (size=4)
+96	| XDropTarget m_xDropTarget
+	+---
+
+COleDropTarget::$vftable@:
+	| &COleDropTarget_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleDropTarget::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleDropTarget::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleDropTarget::Revoke 
+23	| &COleDropTarget::OnDragEnter 
+24	| &COleDropTarget::OnDragOver 
+25	| &COleDropTarget::OnDrop 
+26	| &COleDropTarget::OnDropEx 
+27	| &COleDropTarget::OnDragLeave 
+28	| &COleDropTarget::OnDragScroll 
+
+COleDropTarget::Revoke this adjustor: 0
+COleDropTarget::OnDragEnter this adjustor: 0
+COleDropTarget::OnDragOver this adjustor: 0
+COleDropTarget::OnDrop this adjustor: 0
+COleDropTarget::OnDropEx this adjustor: 0
+COleDropTarget::OnDragLeave this adjustor: 0
+COleDropTarget::OnDragScroll this adjustor: 0
+COleDropTarget::{dtor} this adjustor: 0
+COleDropTarget::GetInterfaceMap this adjustor: 0
+COleDropTarget::__delDtor this adjustor: 0
+COleDropTarget::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleDropSource	size(104):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| XDropSource m_xDropSource
+72	| CRect m_rectStartDrag
+88	| m_bDragStarted
+92	| m_dwButtonCancel
+96	| m_dwButtonDrop
+  	| <alignment member> (size=4)
+	+---
+
+COleDropSource::$vftable@:
+	| &COleDropSource_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleDropSource::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleDropSource::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleDropSource::QueryContinueDrag 
+23	| &COleDropSource::GiveFeedback 
+24	| &COleDropSource::OnBeginDrag 
+
+COleDropSource::QueryContinueDrag this adjustor: 0
+COleDropSource::GiveFeedback this adjustor: 0
+COleDropSource::OnBeginDrag this adjustor: 0
+COleDropSource::GetInterfaceMap this adjustor: 0
+COleDropSource::{dtor} this adjustor: 0
+COleDropSource::__delDtor this adjustor: 0
+COleDropSource::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleMessageFilter	size(104):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_bRegistered
+68	| m_nBusyCount
+72	| m_bEnableBusy
+76	| m_bEnableNotResponding
+80	| m_bUnblocking
+84	| m_nRetryReply
+88	| m_nBusyReply
+92	| m_nTimeout
+96	| XMessageFilter m_xMessageFilter
+	+---
+
+COleMessageFilter::$vftable@:
+	| &COleMessageFilter_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleMessageFilter::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleMessageFilter::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleMessageFilter::BeginBusyState 
+23	| &COleMessageFilter::EndBusyState 
+24	| &COleMessageFilter::OnMessagePending 
+25	| &COleMessageFilter::IsSignificantMessage 
+26	| &COleMessageFilter::OnBusyDialog 
+27	| &COleMessageFilter::OnNotRespondingDialog 
+
+COleMessageFilter::BeginBusyState this adjustor: 0
+COleMessageFilter::EndBusyState this adjustor: 0
+COleMessageFilter::OnMessagePending this adjustor: 0
+COleMessageFilter::{dtor} this adjustor: 0
+COleMessageFilter::IsSignificantMessage this adjustor: 0
+COleMessageFilter::OnBusyDialog this adjustor: 0
+COleMessageFilter::OnNotRespondingDialog this adjustor: 0
+COleMessageFilter::GetInterfaceMap this adjustor: 0
+COleMessageFilter::__delDtor this adjustor: 0
+COleMessageFilter::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class _CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>	size(56):
+	+---
+ 0	| +--- (base class CPtrList)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_pNodeHead
+16	| | m_pNodeTail
+24	| | m_nCount
+32	| | m_pNodeFree
+40	| | m_pBlocks
+48	| | m_nBlockSize
+	| +---
+	+---
+
+_CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::$vftable@:
+	| &?$_CTypedPtrList@VCPtrList@@PEAUCOleControlSiteOrWnd@@_meta
+	|  0
+ 0	| &CPtrList::GetRuntimeClass 
+ 1	| &_CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+
+_CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::{dtor} this adjustor: 0
+_CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::__delDtor this adjustor: 0
+_CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::__vecDelDtor this adjustor: 0
+
+class CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>	size(56):
+	+---
+ 0	| +--- (base class _CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>)
+ 0	| | +--- (base class CPtrList)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_pNodeHead
+16	| | | m_pNodeTail
+24	| | | m_nCount
+32	| | | m_pNodeFree
+40	| | | m_pBlocks
+48	| | | m_nBlockSize
+	| | +---
+	| +---
+	+---
+
+CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::$vftable@:
+	| &?$CTypedPtrList@VCPtrList@@PEAUCOleControlSiteOrWnd@@_meta
+	|  0
+ 0	| &CPtrList::GetRuntimeClass 
+ 1	| &CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+
+CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::{dtor} this adjustor: 0
+CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::__delDtor this adjustor: 0
+CTypedPtrList<class CPtrList,struct COleControlSiteOrWnd *>::__vecDelDtor this adjustor: 0
+
+class COleControlSite	size(384):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_pCtrlCont
+72	| m_hWnd
+80	| m_pWndCtrl
+88	| m_nID
+92	| CRect m_rect
+108	| _GUID m_iidEvents
+  	| <alignment member> (size=4)
+128	| m_pObject
+136	| m_pInPlaceObject
+144	| m_pActiveObject
+152	| m_pWindowlessObject
+160	| m_dwEventSink
+164	| m_dwPropNotifySink
+168	| m_dwStyleMask
+172	| m_dwStyle
+176	| m_dwMiscStatus
+180	| m_bIsWindowless
+184	| tagCONTROLINFO m_ctlInfo
+208	| m_bIgnoreNotify
+212	| m_dwNotifyDBEvents
+216	| m_pDataSourceControl
+224	| m_pBindings
+232	| m_pDSCSite
+232	| m_ctlidRowSource
+240	| m_defdispid
+244	| m_dwType
+248	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strDataField
+256	| m_bIsDirty
+  	| <alignment member> (size=4)
+264	| tagVARIANT m_varResult
+288	| COleDispatchDriver m_dispDriver
+304	| m_pDC
+312	| XOleClientSite m_xOleClientSite
+320	| XOleIPSite m_xOleIPSite
+328	| XOleControlSite m_xOleControlSite
+336	| XAmbientProps m_xAmbientProps
+344	| XPropertyNotifySink m_xPropertyNotifySink
+352	| XEventSink m_xEventSink
+360	| XBoundObjectSite m_xBoundObjectSite
+368	| XNotifyDBEvents m_xNotifyDBEvents
+376	| XRowsetNotify m_xRowsetNotify
+	+---
+
+COleControlSite::$vftable@:
+	| &COleControlSite_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleControlSite::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleControlSite::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHophase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+ok 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleControlSite::CreateControl 
+23	| &COleControlSite::CreateControl 
+24	| &COleControlSite::DestroyControl 
+25	| &COleControlSite::DoVerb 
+26	| &COleControlSite::InvokeHelperV 
+27	| &COleControlSite::SetPropertyV 
+28	| &COleControlSite::InvokeHelper 
+29	| &COleControlSite::GetProperty 
+30	| &COleControlSite::SetProperty 
+31	| &COleControlSite::SafeSetProperty 
+32	| &COleControlSite::GetStyle 
+33	| &COleControlSite::GetExStyle 
+34	| &COleControlSite::ModifyStyle 
+35	| &COleControlSite::ModifyStyleEx 
+36	| &COleControlSite::SetWindowTextA 
+37	| &COleControlSite::GetWindowTextA 
+38	| &COleControlSite::GetDlgCtrlID 
+39	| &COleControlSite::SetDlgCtrlID 
+40	| &COleControlSite::MoveWindow 
+41	| &COleControlSite::SetWindowPos 
+42	| &COleControlSite::ShowWindow 
+43	| &COleControlSite::IsWindowEnabled 
+44	| &COleControlSite::EnableWindow 
+45	| &COleControlSite::SetFocus 
+46	| &COleControlSite::SetFocus 
+47	| &COleControlSite::EnableDSC 
+48	| &COleControlSite::BindDefaultProperty 
+49	| &COleControlSite::BindProperty 
+50	| &COleControlSite::QuickActivate 
+51	| &COleControlSite::CreateControlCommon 
+52	| &COleControlSite::CreateOrLoad 
+53	| &COleControlSite::CreateOrLoad 
+
+COleControlSite::CreateControl this adjustor: 0
+COleControlSite::CreateControl this adjustor: 0
+COleControlSite::DestroyControl this adjustor: 0
+COleControlSite::DoVerb this adjustor: 0
+COleControlSite::InvokeHelperV this adjustor: 0
+COleControlSite::SetPropertyV this adjustor: 0
+COleControlSite::InvokeHelper this adjustor: 0
+COleControlSite::GetProperty this adjustor: 0
+COleControlSite::SetProperty this adjustor: 0
+COleControlSite::SafeSetProperty this adjustor: 0
+COleControlSite::GetStyle this adjustor: 0
+COleControlSite::GetExStyle this adjustor: 0
+COleControlSite::ModifyStyle this adjustor: 0
+COleControlSite::ModifyStyleEx this adjustor: 0
+COleControlSite::SetWindowTextA this adjustor: 0
+COleControlSite::GetWindowTextA this adjustor: 0
+COleControlSite::GetDlgCtrlID this adjustor: 0
+COleControlSite::SetDlgCtrlID this adjustor: 0
+COleControlSite::MoveWindow this adjustor: 0
+COleControlSite::SetWindowPos this adjustor: 0
+COleControlSite::ShowWindow this adjustor: 0
+COleControlSite::IsWindowEnabled this adjustor: 0
+COleControlSite::EnableWindow this adjustor: 0
+COleControlSite::SetFocus this adjustor: 0
+COleControlSite::SetFocus this adjustor: 0
+COleControlSite::EnableDSC this adjustor: 0
+COleControlSite::BindDefaultProperty this adjustor: 0
+COleControlSite::BindProperty this adjustor: 0
+COleControlSite::QuickActivate this adjustor: 0
+COleControlSite::CreateControlCommon this adjustor: 0
+COleControlSite::{dtor} this adjustor: 0
+COleControlSite::CreateOrLoad this adjustor: 0
+COleControlSite::CreateOrLoad this adjustor: 0
+COleControlSite::GetInterfaceMap this adjustor: 0
+COleControlSite::__delDtor this adjustor: 0
+COleControlSite::__vecDelDtor this adjustor: 0
+
+class COleControlSiteOrWnd	size(24):
+	+---
+ 0	| m_hWnd
+ 8	| m_pSite
+16	| m_bAutoRadioButton
+  	| <alignment member> (size=4)
+	+---
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class COleControlContainer	size(248):
+	+---
+ 0	| +--- (base class CCmdTarget)
+ 0	| | +--- (base class CObject)
+ 0	| | | {vfptr}
+	| | +---
+ 8	| | m_dwRef
+  	| | <alignment member> (size=4)
+16	| | m_pOuterUnknown
+24	| | m_xInnerUnknown
+32	| | XDispatch m_xDispatch
+40	| | m_bResultExpected
+  	| | <alignment member> (size=4)
+48	| | XConnPtContainer m_xConnPtContainer
+56	| | m_pModuleState
+	| +---
+64	| m_pWnd
+72	| CMapPtrToPtr m_siteMap
+128	| ?$CTypedPtrList@VCPtrList@@PEAUCOleControlSiteOrWnd@@ m_listSitesOrWnds
+184	| m_crBack
+188	| m_crFore
+192	| m_pOleFont
+200	| m_pSiteUIActive
+208	| m_pSiteCapture
+216	| m_pSiteFocus
+224	| m_nWindowlessControls
+  	| <alignment member> (size=4)
+232	| XOleIPFrame m_xOleIPFrame
+240	| XOleContainer m_xOleContainer
+	+---
+
+COleControlContainer::$vftable@:
+	| &COleControlContainer_meta
+	|  0
+ 0	| &CCmdTarget::GetRuntimeClass 
+ 1	| &COleControlContainer::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CCmdTarget::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CCmdTarget::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &COleControlContainer::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &COleControlContainer::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &COleControlContainer::BroadcastAmbientPropertyChange 
+23	| &COleControlContainer::FindItem 
+24	| &COleControlContainer::GetAmbientProp 
+25	| &COleControlContainer::ScrollChildren 
+26	| &COleControlContainer::OnUIActivate 
+27	| &COleControlContainer::OnUIDeactivate 
+28	| &COleControlContainer::CheckDlgButton 
+29	| &COleControlContainer::CheckRadioButton 
+30	| &COleControlContainer::GetDlgItem 
+31	| &COleControlContainer::GetDlgItem 
+32	| &COleControlContainer::GetDlgItemInt 
+33	| &COleControlContainer::GetDlgItemTextA 
+34	| &COleControlContainer::SendDlgItemMessageA 
+35	| &COleControlContainer::SetDlgItemInt 
+36	| &COleControlContainer::SetDlgItemTextA 
+37	| &COleControlContainer::IsDlgButtonChecked 
+38	| &COleControlContainer::HandleSetFocus 
+39	| &COleControlContainer::HandleWindowlessMessage 
+40	| &COleControlContainer::OnPaint 
+41	| &COleControlContainer::FillListSitesOrWnds 
+
+COleControlContainer::BroadcastAmbientPropertyChange this adjustor: 0
+COleControlContainer::FindItem this adjustor: 0
+COleControlContainer::GetAmbientProp this adjustor: 0
+COleControlContainer::ScrollChildren this adjustor: 0
+COleControlContainer::OnUIActivate this adjustor: 0
+COleControlContainer::OnUIDeactivate this adjustor: 0
+COleControlContainer::CheckDlgButton this adjustor: 0
+COleControlContainer::CheckRadioButton this adjustor: 0
+COleControlContainer::GetDlgItem this adjustor: 0
+COleControlContainer::GetDlgItem this adjustor: 0
+COleControlContainer::GetDlgItemInt this adjustor: 0
+COleControlContainer::GetDlgItemTextA this adjustor: 0
+COleControlContainer::SendDlgItemMessageA this adjustor: 0
+COleControlContainer::SetDlgItemInt this adjustor: 0
+COleControlContainer::SetDlgItemTextA this adjustor: 0
+COleControlContainer::IsDlgButtonChecked this adjustor: 0
+COleControlContainer::HandleSetFocus this adjustor: 0
+COleControlContainer::HandleWindowlessMessage this adjustor: 0
+COleControlContainer::OnPaint this adjustor: 0
+COleControlContainer::FillListSitesOrWnds this adjustor: 0
+COleControlContainer::{dtor} this adjustor: 0
+COleControlContainer::GetInterfaceMap this adjustor: 0
+COleControlContainer::GetDispatchMap this adjustor: 0
+COleControlContainer::__delDtor this adjustor: 0
+COleControlContainer::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CControlBar	size(328):
+	+---
+ 0	| +--- (base class CWnd)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_hWnd
+72	| | m_bEnableActiveAccessibility
+  	| | <alignment member> (size=7)
+80	| | m_pStdObject
+88	| | m_pProxy
+96	| | XAccessible m_xAccessible
+104	| | XAccessibleServer m_xAccessibleServer
+112	| | m_bIsTouchWindowRegistered
+116	| | CPoint m_ptGestureFrom
+  	| | <alignment member> (size=4)
+128	| | m_ulGestureArg
+136	| | m_bGestureInited
+  	| | <alignment member> (size=4)
+144	| | m_pCurrentGestureInfo
+152	| | m_pDynamicLayout
+160	| | m_hWndOwner
+168	| | m_nFlags
+  	| | <alignment member> (size=4)
+176	| | m_pfnSuper
+184	| | m_nModalResult
+  	| | <alignment member> (size=4)
+192	| | m_pDropTarget
+200	| | m_pCtrlCont
+208	| | m_pCtrlSite
+216	| | m_pMFCCtrlContainer
+224	| | m_pRenderTarget
+	| +---
+232	| m_pInPlaceOwner
+240	| m_bAutoDelete
+244	| m_cxLeftBorder
+248	| m_cxRightBorder
+252	| m_cyTopBorder
+256	| m_cyBottomBorder
+260	| m_cxDefaultGap
+264	| m_nMRUWidth
+268	| m_nCount
+272	| m_pData
+280	| m_hReBarTheme
+288	| m_nStateFlags
+292	| m_dwStyle
+296	| m_dwDockStyle
+  	| <alignment member> (size=4)
+304	| m_pDockSite
+312	| m_pDockBar
+320	| m_pDockContext
+	+---
+
+CControlBar::$vftable@:
+	| &CControlBar_meta
+	|  0
+ 0	| &CControlBar::GetRuntimeClass 
+ 1	| &CControlBar::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CControlBar::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CControlBar::DestroyWindow 
+27	| &CControlBar::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CControlBar::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CControlBar::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CControlBar::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CControlBar::CalcFixedLayout 
+92	| &CControlBar::CalcDynamicLayout 
+93	| &CControlBar::OnUpdateCmdUI 
+94	| &CControlBar::CalcInsideRect 
+95	| &CControlBar::DoPaint 
+96	| &CControlBar::DrawBorders 
+97	| &CControlBar::DrawGripper 
+98	| &CControlBar::DrawNCGripper 
+99	| &CControlBar::DrawThemedGripper 
+100	| &CControlBar::DrawNonThemedGripper 
+101	| &CControlBar::DelayShow 
+102	| &CControlBar::IsVisible 
+103	| &CControlBar::RecalcDelayShow 
+104	| &CControlBar::IsDockBar 
+105	| &CControlBar::OnBarStyleChange 
+106	| &CControlBar::SetStatusText 
+107	| &CControlBar::SetStatusText 
+
+CControlBar::GetRuntimeClass this adjustor: 0
+CControlBar::CalcFixedLayout this adjustor: 0
+CControlBar::CalcDynamicLayout this adjustor: 0
+CControlBar::OnUpdateCmdUI this adjustor: 0
+CControlBar::CalcInsideRect this adjustor: 0
+CControlBar::DoPaint this adjustor: 0
+CControlBar::DrawBorders this adjustor: 0
+CControlBar::DrawGripper this adjustor: 0
+CControlBar::DrawNCGripper this adjustor: 0
+CControlBar::DrawThemedGripper this adjustor: 0
+CControlBar::DrawNonThemedGripper this adjustor: 0
+CControlBar::{dtor} this adjustor: 0
+CControlBar::DelayShow this adjustor: 0
+CControlBar::IsVisible this adjustor: 0
+CControlBar::RecalcDelayShow this adjustor: 0
+CControlBar::IsDockBar this adjustor: 0
+CControlBar::DestroyWindow this adjustor: 0
+CControlBar::OnBarStyleChange this adjustor: 0
+CControlBar::PreTranslateMessage this adjustor: 0
+CControlBar::PreCreateWindow this adjustor: 0
+CControlBar::PostNcDestroy this adjustor: 0
+CControlBar::WindowProc this adjustor: 0
+CControlBar::SetStatusText this adjustor: 0
+CControlBar::SetStatusText this adjustor: 0
+CControlBar::GetMessageMap this adjustor: 0
+CControlBar::__delDtor this adjustor: 0
+CControlBar::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CStatusBar	size(336):
+	+---
+ 0	| +--- (base class CControlBar)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_pInPlaceOwner
+240	| | m_bAutoDelete
+244	| | m_cxLeftBorder
+248	| | m_cxRightBorder
+252	| | m_cyTopBorder
+256	| | m_cyBottomBorder
+260	| | m_cxDefaultGap
+264	| | m_nMRUWidth
+268	| | m_nCount
+272	| | m_pData
+280	| | m_hReBarTheme
+288	| | m_nStateFlags
+292	| | m_dwStyle
+296	| | m_dwDockStyle
+  	| | <alignment member> (size=4)
+304	| | m_pDockSite
+312	| | m_pDockBar
+320	| | m_pDockContext
+	| +---
+328	| m_nMinHeight
+  	| <alignment member> (size=4)
+	+---
+
+CStatusBar::$vftable@:
+	| &CStatusBar_meta
+	|  0
+ 0	| &CStatusBar::GetRuntimeClass 
+ 1	| &CStatusBar::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CStatusBar::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CControlBar::DestroyWindow 
+27	| &CStatusBar::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CControlBar::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CControlBar::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CControlBar::PostNcDestroy 
+75	| &CStatusBar::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+7phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+9	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CStatusBar::CalcFixedLayout 
+92	| &CControlBar::CalcDynamicLayout 
+93	| &CStatusBar::OnUpdateCmdUI 
+94	| &CStatusBar::CalcInsideRect 
+95	| &CControlBar::DoPaint 
+96	| &CControlBar::DrawBorders 
+97	| &CControlBar::DrawGripper 
+98	| &CControlBar::DrawNCGripper 
+99	| &CControlBar::DrawThemedGripper 
+100	| &CControlBar::DrawNonThemedGripper 
+101	| &CControlBar::DelayShow 
+102	| &CControlBar::IsVisible 
+103	| &CControlBar::RecalcDelayShow 
+104	| &CControlBar::IsDockBar 
+105	| &CStatusBar::OnBarStyleChange 
+106	| &CControlBar::SetStatusText 
+107	| &CControlBar::SetStatusText 
+108	| &CStatusBar::Create 
+109	| &CStatusBar::CreateEx 
+110	| &CStatusBar::DrawItem 
+
+CStatusBar::GetRuntimeClass this adjustor: 0
+CStatusBar::Create this adjustor: 0
+CStatusBar::CreateEx this adjustor: 0
+CStatusBar::DrawItem this adjustor: 0
+CStatusBar::{dtor} this adjustor: 0
+CStatusBar::CalcFixedLayout this adjustor: 0
+CStatusBar::PreCreateWindow this adjustor: 0
+CStatusBar::CalcInsideRect this adjustor: 0
+CStatusBar::OnBarStyleChange this adjustor: 0
+CStatusBar::OnUpdateCmdUI this adjustor: 0
+CStatusBar::OnChildNotify this adjustor: 0
+CStatusBar::GetMessageMap this adjustor: 0
+CStatusBar::__delDtor this adjustor: 0
+CStatusBar::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CToolBar	size(384):
+	+---
+ 0	| +--- (base class CControlBar)
+ 0	| | +--- (base class CWnd)
+ 0	| | | +--- (base class CCmdTarget)
+ 0	| | | | +--- (base class CObject)
+ 0	| | | | | {vfptr}
+	| | | | +---
+ 8	| | | | m_dwRef
+  	| | | | <alignment member> (size=4)
+16	| | | | m_pOuterUnknown
+24	| | | | m_xInnerUnknown
+32	| | | | XDispatch m_xDispatch
+40	| | | | m_bResultExpected
+  	| | | | <alignment member> (size=4)
+48	| | | | XConnPtContainer m_xConnPtContainer
+56	| | | | m_pModuleState
+	| | | +---
+64	| | | m_hWnd
+72	| | | m_bEnableActiveAccessibility
+  	| | | <alignment member> (size=7)
+80	| | | m_pStdObject
+88	| | | m_pProxy
+96	| | | XAccessible m_xAccessible
+104	| | | XAccessibleServer m_xAccessibleServer
+112	| | | m_bIsTouchWindowRegistered
+116	| | | CPoint m_ptGestureFrom
+  	| | | <alignment member> (size=4)
+128	| | | m_ulGestureArg
+136	| | | m_bGestureInited
+  	| | | <alignment member> (size=4)
+144	| | | m_pCurrentGestureInfo
+152	| | | m_pDynamicLayout
+160	| | | m_hWndOwner
+168	| | | m_nFlags
+  	| | | <alignment member> (size=4)
+176	| | | m_pfnSuper
+184	| | | m_nModalResult
+  	| | | <alignment member> (size=4)
+192	| | | m_pDropTarget
+200	| | | m_pCtrlCont
+208	| | | m_pCtrlSite
+216	| | | m_pMFCCtrlContainer
+224	| | | m_pRenderTarget
+	| | +---
+232	| | m_pInPlaceOwner
+240	| | m_bAutoDelete
+244	| | m_cxLeftBorder
+248	| | m_cxRightBorder
+252	| | m_cyTopBorder
+256	| | m_cyBottomBorder
+260	| | m_cxDefaultGap
+264	| | m_nMRUWidth
+268	| | m_nCount
+272	| | m_pData
+280	| | m_hReBarTheme
+288	| | m_nStateFlags
+292	| | m_dwStyle
+296	| | m_dwDockStyle
+  	| | <alignment member> (size=4)
+304	| | m_pDockSite
+312	| | m_pDockBar
+320	| | m_pDockContext
+	| +---
+328	| m_hRsrcImageWell
+336	| m_hInstImageWell
+344	| m_hbmImageWell
+352	| m_bDelayedButtonLayout
+356	| CSize m_sizeImage
+364	| CSize m_sizeButton
+  	| <alignment member> (size=4)
+376	| m_pStringMap
+	+---
+
+CToolBar::$vftable@:
+	| &CToolBar_meta
+	|  0
+ 0	| &CToolBar::GetRuntimeClass 
+ 1	| &CToolBar::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CToolBar::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CControlBar::DestroyWindow 
+27	| &CControlBar::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CToolBar::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CToolBar::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CWnd::OnCommand 
+64	| &CWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CControlBar::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CControlBar::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CCophase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+ntrolBar::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRotate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CToolBar::CalcFixedLayout 
+92	| &CToolBar::CalcDynamicLayout 
+93	| &CToolBar::OnUpdateCmdUI 
+94	| &CControlBar::CalcInsideRect 
+95	| &CControlBar::DoPaint 
+96	| &CControlBar::DrawBorders 
+97	| &CControlBar::DrawGripper 
+98	| &CControlBar::DrawNCGripper 
+99	| &CControlBar::DrawThemedGripper 
+100	| &CControlBar::DrawNonThemedGripper 
+101	| &CControlBar::DelayShow 
+102	| &CControlBar::IsVisible 
+103	| &CControlBar::RecalcDelayShow 
+104	| &CControlBar::IsDockBar 
+105	| &CToolBar::OnBarStyleChange 
+106	| &CControlBar::SetStatusText 
+107	| &CControlBar::SetStatusText 
+108	| &CToolBar::Create 
+109	| &CToolBar::CreateEx 
+110	| &CToolBar::GetItemRect 
+
+CToolBar::GetRuntimeClass this adjustor: 0
+CToolBar::Create this adjustor: 0
+CToolBar::CreateEx this adjustor: 0
+CToolBar::GetItemRect this adjustor: 0
+CToolBar::{dtor} this adjustor: 0
+CToolBar::CalcFixedLayout this adjustor: 0
+CToolBar::CalcDynamicLayout this adjustor: 0
+CToolBar::OnToolHitTest this adjustor: 0
+CToolBar::OnUpdateCmdUI this adjustor: 0
+CToolBar::OnBarStyleChange this adjustor: 0
+CToolBar::get_accName this adjustor: 0
+CToolBar::GetMessageMap this adjustor: 0
+CToolBar::__delDtor this adjustor: 0
+CToolBar::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+
+class CSplitterWnd	size(384):
+	+---
+ 0	| +--- (base class CWnd)
+ 0	| | +--- (base class CCmdTarget)
+ 0	| | | +--- (base class CObject)
+ 0	| | | | {vfptr}
+	| | | +---
+ 8	| | | m_dwRef
+  	| | | <alignment member> (size=4)
+16	| | | m_pOuterUnknown
+24	| | | m_xInnerUnknown
+32	| | | XDispatch m_xDispatch
+40	| | | m_bResultExpected
+  	| | | <alignment member> (size=4)
+48	| | | XConnPtContainer m_xConnPtContainer
+56	| | | m_pModuleState
+	| | +---
+64	| | m_hWnd
+72	| | m_bEnableActiveAccessibility
+  	| | <alignment member> (size=7)
+80	| | m_pStdObject
+88	| | m_pProxy
+96	| | XAccessible m_xAccessible
+104	| | XAccessibleServer m_xAccessibleServer
+112	| | m_bIsTouchWindowRegistered
+116	| | CPoint m_ptGestureFrom
+  	| | <alignment member> (size=4)
+128	| | m_ulGestureArg
+136	| | m_bGestureInited
+  	| | <alignment member> (size=4)
+144	| | m_pCurrentGestureInfo
+152	| | m_pDynamicLayout
+160	| | m_hWndOwner
+168	| | m_nFlags
+  	| | <alignment member> (size=4)
+176	| | m_pfnSuper
+184	| | m_nModalResult
+  	| | <alignment member> (size=4)
+192	| | m_pDropTarget
+200	| | m_pCtrlCont
+208	| | m_pCtrlSite
+216	| | m_pMFCCtrlContainer
+224	| | m_pRenderTarget
+	| +---
+232	| m_pDynamicViewClass
+240	| m_nMaxRows
+244	| m_nMaxCols
+248	| m_cxSplitter
+252	| m_cySplitter
+256	| m_cxBorderShare
+260	| m_cyBorderShare
+264	| m_cxSplitterGap
+268	| m_cySplitterGap
+272	| m_cxBorder
+276	| m_cyBorder
+280	| m_nRows
+284	| m_nCols
+288	| m_bHasHScroll
+292	| m_bHasVScroll
+296	| m_pColInfo
+304	| m_pRowInfo
+312	| m_bTracking
+316	| m_bTracking2
+320	| CPoint m_ptTrackOffset
+328	| CRect m_rectLimit
+344	| CRect m_rectTracker
+360	| CRect m_rectTracker2
+376	| m_htTrack
+  	| <alignment member> (size=4)
+	+---
+
+CSplitterWnd::$vftable@:
+	| &CSplitterWnd_meta
+	|  0
+ 0	| &CSplitterWnd::GetRuntimeClass 
+ 1	| &CSplitterWnd::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCmdTarget::OnCmdMsg 
+ 6	| &CWnd::OnFinalRelease 
+ 7	| &CCmdTarget::IsInvokeAllowed 
+ 8	| &CCmdTarget::GetDispatchIID 
+ 9	| &CCmdTarget::GetTypeInfoCount 
+10	| &CCmdTarget::GetTypeLibCache 
+11	| &CCmdTarget::GetTypeLib 
+12	| &CSplitterWnd::GetMessageMap 
+13	| &CCmdTarget::GetCommandMap 
+14	| &CCmdTarget::GetDispatchMap 
+15	| &CCmdTarget::GetConnectionMap 
+16	| &CWnd::GetInterfaceMap 
+17	| &CCmdTarget::GetEventSinkMap 
+18	| &CCmdTarget::OnCreateAggregates 
+19	| &CCmdTarget::GetInterfaceHook 
+20	| &CCmdTarget::GetExtraConnectionPoints 
+21	| &CCmdTarget::GetConnectionHook 
+22	| &CWnd::PreSubclassWindow 
+23	| &CWnd::Create 
+24	| &CWnd::CreateEx 
+25	| &CWnd::CreateEx 
+26	| &CWnd::DestroyWindow 
+27	| &CWnd::PreCreateWindow 
+28	| &CWnd::CalcWindowRect 
+29	| &CWnd::GetMenu 
+30	| &CWnd::SetMenu 
+31	| &CWnd::OnToolHitTest 
+32	| &CWnd::GetScrollBarCtrl 
+33	| &CWnd::WinHelpA 
+34	| &CWnd::HtmlHelpA 
+35	| &CWnd::WinHelpInternal 
+36	| &CWnd::ContinueModal 
+37	| &CWnd::EndModalLoop 
+38	| &CWnd::OnDrawIconicThumbnailOrLivePreview 
+39	| &CWnd::EnsureStdObj 
+40	| &CWnd::get_accParent 
+41	| &CWnd::get_accChildCount 
+42	| &CWnd::get_accChild 
+43	| &CWnd::get_accName 
+44	| &CWnd::get_accValue 
+45	| &CWnd::get_accDescription 
+46	| &CWnd::get_accRole 
+47	| &CWnd::get_accState 
+48	| &CWnd::get_accHelp 
+49	| &CWnd::get_accHelpTopic 
+50	| &CWnd::get_accKeyboardShortcut 
+51	| &CWnd::get_accFocus 
+52	| &CWnd::get_accSelection 
+53	| &CWnd::get_accDefaultAction 
+54	| &CWnd::accSelect 
+55	| &CWnd::accLocation 
+56	| &CWnd::accNavigate 
+57	| &CWnd::accHitTest 
+58	| &CWnd::accDoDefaultAction 
+59	| &CWnd::put_accName 
+60	| &CWnd::put_accValue 
+61	| &CWnd::SetProxy 
+62	| &CWnd::CreateAccessibleProxy 
+63	| &CSplitterWnd::OnCommand 
+64	| &CSplitterWnd::OnNotify 
+65	| &CWnd::GetSuperWndProcAddr 
+66	| &CWnd::DoDataExchange 
+67	| &CWnd::BeginModalState 
+68	| &CWnd::EndModalState 
+69	| &CWnd::PreTranslateMessage 
+70	| &CWnd::OnAmbientProperty 
+71	| &CWnd::WindowProc 
+72	| &CWnd::OnWndMsg 
+73	| &CWnd::DefWindowProcA 
+74	| &CWnd::PostNcDestroy 
+75	| &CWnd::OnChildNotify 
+76	| &CWnd::OnTouchInputs 
+77	| &CWnd::OnTouchInput 
+78	| &CWnd::GetGestureStatus 
+79	| &CWnd::OnGestureZoom 
+80	| &CWnd::OnGesturePan 
+81	| &CWnd::OnGestureRphase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+otate 
+82	| &CWnd::OnGestureTwoFingerTap 
+83	| &CWnd::OnGesturePressAndTap 
+84	| &CWnd::ResizeDynamicLayout 
+85	| &CWnd::CheckAutoCenter 
+86	| &CWnd::IsFrameWnd 
+87	| &CWnd::CreateControlContainer 
+88	| &CWnd::CreateControlSite 
+89	| &CWnd::SetOccDialogInfo 
+90	| &CWnd::GetOccDialogInfo 
+91	| &CSplitterWnd::Create 
+92	| &CSplitterWnd::CreateStatic 
+93	| &CSplitterWnd::CreateView 
+94	| &CSplitterWnd::RecalcLayout 
+95	| &CSplitterWnd::OnDrawSplitter 
+96	| &CSplitterWnd::OnInvertTracker 
+97	| &CSplitterWnd::OnDraw 
+98	| &CSplitterWnd::CreateScrollBarCtrl 
+99	| &CSplitterWnd::DeleteView 
+100	| &CSplitterWnd::SplitRow 
+101	| &CSplitterWnd::SplitColumn 
+102	| &CSplitterWnd::DeleteRow 
+103	| &CSplitterWnd::DeleteColumn 
+104	| &CSplitterWnd::GetActivePane 
+105	| &CSplitterWnd::SetActivePane 
+106	| &CSplitterWnd::CanActivateNext 
+107	| &CSplitterWnd::ActivateNext 
+108	| &CSplitterWnd::DoKeyboardSplit 
+109	| &CSplitterWnd::DoScroll 
+110	| &CSplitterWnd::DoScrollBy 
+111	| &CSplitterWnd::HitTest 
+112	| &CSplitterWnd::GetInsideRect 
+113	| &CSplitterWnd::GetHitRect 
+114	| &CSplitterWnd::TrackRowSize 
+115	| &CSplitterWnd::TrackColumnSize 
+116	| &CSplitterWnd::DrawAllSplitBars 
+117	| &CSplitterWnd::SetSplitCursor 
+118	| &CSplitterWnd::StartTracking 
+119	| &CSplitterWnd::StopTracking 
+
+CSplitterWnd::GetRuntimeClass this adjustor: 0
+CSplitterWnd::Create this adjustor: 0
+CSplitterWnd::CreateStatic this adjustor: 0
+CSplitterWnd::CreateView this adjustor: 0
+CSplitterWnd::RecalcLayout this adjustor: 0
+CSplitterWnd::OnDrawSplitter this adjustor: 0
+CSplitterWnd::OnInvertTracker this adjustor: 0
+CSplitterWnd::OnDraw this adjustor: 0
+CSplitterWnd::CreateScrollBarCtrl this adjustor: 0
+CSplitterWnd::DeleteView this adjustor: 0
+CSplitterWnd::SplitRow this adjustor: 0
+CSplitterWnd::SplitColumn this adjustor: 0
+CSplitterWnd::DeleteRow this adjustor: 0
+CSplitterWnd::DeleteColumn this adjustor: 0
+CSplitterWnd::GetActivePane this adjustor: 0
+CSplitterWnd::SetActivePane this adjustor: 0
+CSplitterWnd::CanActivateNext this adjustor: 0
+CSplitterWnd::ActivateNext this adjustor: 0
+CSplitterWnd::DoKeyboardSplit this adjustor: 0
+CSplitterWnd::DoScroll this adjustor: 0
+CSplitterWnd::DoScrollBy this adjustor: 0
+CSplitterWnd::{dtor} this adjustor: 0
+CSplitterWnd::HitTest this adjustor: 0
+CSplitterWnd::GetInsideRect this adjustor: 0
+CSplitterWnd::GetHitRect this adjustor: 0
+CSplitterWnd::TrackRowSize this adjustor: 0
+CSplitterWnd::TrackColumnSize this adjustor: 0
+CSplitterWnd::DrawAllSplitBars this adjustor: 0
+CSplitterWnd::SetSplitCursor this adjustor: 0
+CSplitterWnd::StartTracking this adjustor: 0
+CSplitterWnd::StopTracking this adjustor: 0
+CSplitterWnd::OnCommand this adjustor: 0
+CSplitterWnd::OnNotify this adjustor: 0
+CSplitterWnd::GetMessageMap this adjustor: 0
+CSplitterWnd::__delDtor this adjustor: 0
+CSplitterWnd::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CDockState	size(96):
+	+---
+ 0	| +--- (base class CObject)
+ 0	| | {vfptr}
+	| +---
+ 8	| CPtrArray m_arrBarInfo
+48	| m_bScaling
+52	| CRect m_rectDevice
+68	| CRect m_rectClip
+84	| CSize m_sizeLogical
+92	| m_dwVersion
+	+---
+
+CDockState::$vftable@:
+	| &CDockState_meta
+	|  0
+ 0	| &CDockState::GetRuntimeClass 
+ 1	| &CDockState::{dtor} 
+ 2	| &CDockState::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+
+CDockState::GetRuntimeClass this adjustor: 0
+CDockState::{dtor} this adjustor: 0
+CDockState::Serialize this adjustor: 0
+CDockState::__delDtor this adjustor: 0
+CDockState::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CRecentFileList	size(56):
+	+---
+ 0	| {vfptr}
+ 8	| m_nSize
+  	| <alignment member> (size=4)
+16	| m_arrNames
+24	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strSectionName
+32	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strEntryFormat
+40	| m_nStart
+44	| m_nMaxDisplayLength
+48	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strOriginal
+	+---
+
+CRecentFileList::$vftable@:
+	| &CRecentFileList_meta
+	|  0
+ 0	| &CRecentFileList::Remove 
+ 1	| &CRecentFileList::Add 
+ 2	| &CRecentFileList::Add 
+ 3	| &CRecentFileList::GetDisplayName 
+ 4	| &CRecentFileList::UpdateMenu 
+ 5	| &CRecentFileList::ReadList 
+ 6	| &CRecentFileList::WriteList 
+ 7	| &CRecentFileList::{dtor} 
+
+CRecentFileList::Remove this adjustor: 0
+CRecentFileList::Add this adjustor: 0
+CRecentFileList::Add this adjustor: 0
+CRecentFileList::GetDisplayName this adjustor: 0
+CRecentFileList::UpdateMenu this adjustor: 0
+CRecentFileList::ReadList this adjustor: 0
+CRecentFileList::WriteList this adjustor: 0
+CRecentFileList::{dtor} this adjustor: 0
+CRecentFileList::__delDtor this adjustor: 0
+CRecentFileList::__vecDelDtor this adjustor: 0
+layout_probe.cpp
+_WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+phase1/harvest/layout_probe.cpp(47): error C2027: use of undefined type 'COleFrameHook'
+/home/kreijstal/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxwin.h(4075): note: see declaration of 'COleFrameHook'
+
+class CCommandLineInfo	size(72):
+	+---
+ 0	| +--- (base class CObject)
+ 0	| | {vfptr}
+	| +---
+ 8	| m_bShowSplash
+12	| m_bRunEmbedded
+16	| m_bRunAutomated
+20	| m_bRegisterPerUser
+24	| <unnamed-type-m_nShellCommand> m_nShellCommand
+  	| <alignment member> (size=4)
+32	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strFileName
+40	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPrinterName
+48	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strDriverName
+56	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strPortName
+64	| ?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@ m_strRestartIdentifier
+	+---
+
+CCommandLineInfo::$vftable@:
+	| &CCommandLineInfo_meta
+	|  0
+ 0	| &CObject::GetRuntimeClass 
+ 1	| &CCommandLineInfo::{dtor} 
+ 2	| &CObject::Serialize 
+ 3	| &CObject::AssertValid 
+ 4	| &CObject::Dump 
+ 5	| &CCommandLineInfo::ParseParam 
+
+CCommandLineInfo::ParseParam this adjustor: 0
+CCommandLineInfo::{dtor} this adjustor: 0
+CCommandLineInfo::__delDtor this adjustor: 0
+CCommandLineInfo::__vecDelDtor this adjustor: 0

@@ -3,8 +3,13 @@
 #endif
 #include "shared_types.h"
 #include <afxwin.h>
+#include <afxext.h>    // CControlBar/CToolBar/CStatusBar/CSplitterWnd
+#include <afxadv.h>    // CDockState/CRecentFileList/CSharedFile
+#include <afxole.h>    // COle* document/server/client + factory + data transfer
+#include <afxdisp.h>   // COleVariant/COleCurrency/COleDateTime(Span)/COleException
 #include <Windows.h>
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -136,6 +141,69 @@ void harvest_layouts(std::vector<std::pair<std::string, LayoutInfo>>& layouts) {
 
     LayoutInfo app; app.size = static_cast<int>(sizeof(CWinApp));
     layouts.push_back({"CWinApp", app});
+
+    // --- Batch 2: sizeof ground truth for the classes whose RTTI descriptors /
+    // value methods are currently blocked by unknown layout. sizeof() is a pure
+    // compile-time probe (no instance needed), so this is safe in CI even for
+    // abstract or window-backed classes. Member offsets are added only where the
+    // member is public (offsetof requires accessibility).
+#define ADD_SIZE(C) do { LayoutInfo _l; _l.size = static_cast<int>(sizeof(C)); \
+    layouts.push_back({#C, _l}); } while (0)
+
+    // Command/target + thread core
+    ADD_SIZE(CCmdTarget);
+    ADD_SIZE(CWinThread);
+
+    // Document / view / frame hierarchy
+    ADD_SIZE(CDocument);
+    ADD_SIZE(CDocTemplate);
+    ADD_SIZE(CSingleDocTemplate);
+    ADD_SIZE(CMultiDocTemplate);
+    ADD_SIZE(CDocManager);
+    ADD_SIZE(CView);
+    ADD_SIZE(CCtrlView);
+    ADD_SIZE(CScrollView);
+    ADD_SIZE(CFormView);
+    ADD_SIZE(CFrameWnd);
+    ADD_SIZE(CMDIFrameWnd);
+    ADD_SIZE(CMDIChildWnd);
+    ADD_SIZE(CDialog);
+
+    // Control bars / splitter
+    ADD_SIZE(CControlBar);
+    ADD_SIZE(CStatusBar);
+    ADD_SIZE(CToolBar);
+    ADD_SIZE(CSplitterWnd);
+    ADD_SIZE(CDockState);
+
+    // OLE document / server / client / transfer
+    ADD_SIZE(COleDocument);
+    ADD_SIZE(COleLinkingDoc);
+    ADD_SIZE(COleServerDoc);
+    ADD_SIZE(COleServerItem);
+    ADD_SIZE(COleClientItem);
+    ADD_SIZE(COleDocObjectItem);
+    ADD_SIZE(COleObjectFactory);
+    ADD_SIZE(COleDataSource);
+    ADD_SIZE(COleDropTarget);
+    ADD_SIZE(COleDropSource);
+    ADD_SIZE(COleDispatchDriver);
+
+    // OLE value types (already partly implemented; pin real sizeof)
+    ADD_SIZE(COleVariant);
+    ADD_SIZE(COleCurrency);
+    { LayoutInfo _l; _l.size = static_cast<int>(sizeof(ATL::COleDateTime));
+      layouts.push_back({"COleDateTime", _l}); }
+    { LayoutInfo _l; _l.size = static_cast<int>(sizeof(ATL::COleDateTimeSpan));
+      layouts.push_back({"COleDateTimeSpan", _l}); }
+    ADD_SIZE(COleSafeArray);
+
+    // Misc value/util
+    ADD_SIZE(CDynLinkLibrary);
+    ADD_SIZE(CRecentFileList);
+    ADD_SIZE(CCommandLineInfo);
+
+#undef ADD_SIZE
 }
 
 std::string quote(const std::string& s) {
@@ -290,6 +358,35 @@ bool is_exec_addr(uintptr_t a) {
            prot == PAGE_EXECUTE_READWRITE || prot == PAGE_EXECUTE_WRITECOPY;
 }
 
+// A vtable built in harvest.exe for a derived shim points its inherited slots at
+// LOCAL import thunks (jmp qword ptr [__imp_...]) or ILT stubs (jmp rel32), not
+// directly at the mfc140u function. Follow up to a few hops so the slot resolves
+// to the real mfc140u export instead of "harvest.exe+0x...".
+uintptr_t follow_thunk(uintptr_t addr, int maxHops = 6) {
+    for (int hop = 0; hop < maxHops; ++hop) {
+        if (IsBadReadPtr(reinterpret_cast<void*>(addr), 10)) break;
+        const unsigned char* p = reinterpret_cast<const unsigned char*>(addr);
+        if (p[0] == 0xF3 && p[1] == 0x0F && p[2] == 0x1E && p[3] == 0xFA) {
+            addr += 4;                                 // skip CET endbr64 prefix, re-decode
+            continue;
+        }
+        if (p[0] == 0xFF && p[1] == 0x25) {            // jmp qword ptr [rip+disp32]
+            int32_t disp; memcpy(&disp, p + 2, 4);
+            uintptr_t iat = addr + 6 + static_cast<intptr_t>(disp);
+            if (IsBadReadPtr(reinterpret_cast<void*>(iat), sizeof(uintptr_t))) break;
+            addr = *reinterpret_cast<const uintptr_t*>(iat); // real target from IAT
+            continue;
+        }
+        if (p[0] == 0xE9) {                            // jmp rel32 (ILT stub)
+            int32_t rel; memcpy(&rel, p + 1, 4);
+            addr = addr + 5 + static_cast<intptr_t>(rel);
+            continue;
+        }
+        break;
+    }
+    return addr;
+}
+
 std::string module_basename(HMODULE m) {
     wchar_t buf[MAX_PATH] = {};
     GetModuleFileNameW(m, buf, MAX_PATH);
@@ -306,23 +403,30 @@ std::string module_basename(HMODULE m) {
 // emit "<module>+0x<rva>" so a vtable whose functions live outside mfc140u (the
 // CFile/CArchive case) is captured instead of silently dropped.
 std::string resolve_in_module(uintptr_t addr, std::string& moduleOut, uintptr_t& rvaOut) {
+    // If the slot points outside mfc140u (e.g. a harvest.exe import thunk for a
+    // derived-shim vtable), follow the thunk to its real target before resolving.
+    uintptr_t target = addr;
+    if (!(g_modBase && addr >= g_modBase && addr < g_modEnd)) {
+        uintptr_t followed = follow_thunk(addr);
+        if (g_modBase && followed >= g_modBase && followed < g_modEnd) target = followed;
+    }
     HMODULE m = nullptr;
     if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCWSTR>(addr), &m) && m) {
+                           reinterpret_cast<LPCWSTR>(target), &m) && m) {
         moduleOut = module_basename(m);
-        rvaOut = addr - reinterpret_cast<uintptr_t>(m);
+        rvaOut = target - reinterpret_cast<uintptr_t>(m);
     } else {
         moduleOut = "?";
-        rvaOut = addr;
+        rvaOut = target;
     }
-    if (g_modBase && addr >= g_modBase && addr < g_modEnd) return resolve_addr(addr);
+    if (g_modBase && target >= g_modBase && target < g_modEnd) return resolve_addr(target);
     std::ostringstream o;
     o << moduleOut << "+0x" << std::hex << rvaOut;
     return o.str();
 }
 
-VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 64) {
+VTableInfo harvest_vtable(const std::string& className, const void* instance, int maxSlots = 256) {
     VTableInfo vt;
     vt.name = className;
     if (!instance) { vt.note = "null instance"; return vt; }
@@ -374,6 +478,62 @@ void write_vtables(const std::vector<VTableInfo>& vts, const std::string& path) 
     std::ofstream(path, std::ios::binary) << oss.str();
 }
 
+// A global CWinApp so AfxGetApp()/module state are valid while we construct MFC
+// objects to read their vtables (this is the standard MFC console-app pattern).
+CWinApp g_harvestApp;
+
+namespace {
+// MFC marks many CObject-derived classes abstract via a PURE-but-DLL-defined
+// destructor (e.g. ~CDocument), so they cannot be `new`d directly. A trivial
+// derived shim supplies a concrete destructor (overriding the pure base dtor) and
+// inherits the base constructors, making the class instantiable. The shim's
+// vtable preserves the base slot ORDER; only the destructor slot (and any
+// explicitly overridden method) points into harvest.exe — which is flagged in the
+// resolved symbol and conveniently identifies that slot.
+template <class B> struct Shim : public B { using B::B; };
+
+// Views additionally have a pure virtual OnDraw; override it so the shim is
+// concrete. Slot order still matches the base class.
+struct HView       : public CView       { void OnDraw(CDC*) override {} };
+struct HScrollView : public CScrollView { void OnDraw(CDC*) override {} };
+
+// Construct each class, read the vtable off its live vptr (offset 0), append.
+// Objects are intentionally LEAKED — the process exits immediately, and leaking
+// avoids any destructor side effects. Release MFC (/MD, no _DEBUG) turns ASSERTs
+// into no-ops and the C++ ctors only initialize members (no window is created),
+// so construction is safe. Each probe prints to stderr first, so if any ctor
+// faults the CI log names the culprit.
+void harvest_constructed_vtables(std::vector<VTableInfo>& v) {
+#define PROBE(NAME, EXPR) \
+    do { std::fprintf(stderr, "[vtbl] %s\n", NAME); std::fflush(stderr); \
+         try { const void* _p = (EXPR); \
+               if (_p) v.push_back(harvest_vtable(NAME, _p)); \
+               else { VTableInfo _vi; _vi.name = NAME; _vi.note = "null instance"; v.push_back(_vi); } } \
+         catch (...) { VTableInfo _vi; _vi.name = NAME; _vi.note = "construction threw"; v.push_back(_vi); } \
+    } while (0)
+
+    PROBE("CDocument",          new Shim<CDocument>());
+    PROBE("COleDocument",       new Shim<COleDocument>());
+    PROBE("COleLinkingDoc",     new Shim<COleLinkingDoc>());
+    PROBE("CDockState",         new Shim<CDockState>());
+    PROBE("CCommandLineInfo",   new Shim<CCommandLineInfo>());
+    PROBE("CFrameWnd",          new Shim<CFrameWnd>());
+    PROBE("CMDIFrameWnd",       new Shim<CMDIFrameWnd>());
+    PROBE("CMDIChildWnd",       new Shim<CMDIChildWnd>());
+    PROBE("CDialog",            new Shim<CDialog>());
+    PROBE("CView",              new HView());        // slot ORDER == CView
+    PROBE("CScrollView",        new HScrollView());  // slot ORDER == CScrollView
+    PROBE("CSingleDocTemplate", new Shim<CSingleDocTemplate>(0, nullptr, nullptr, nullptr));
+    PROBE("CMultiDocTemplate",  new Shim<CMultiDocTemplate>(0, nullptr, nullptr, nullptr));
+    PROBE("COleObjectFactory",  new Shim<COleObjectFactory>(CLSID_NULL, RUNTIME_CLASS(CDocument), FALSE, nullptr));
+    PROBE("CRecentFileList",    new Shim<CRecentFileList>(0, _T("Recent File List"), _T("File%d"), 4, 0));
+    PROBE("COleDataSource",     new Shim<COleDataSource>());
+    PROBE("COleDropTarget",     new Shim<COleDropTarget>());
+    PROBE("COleDropSource",     new Shim<COleDropSource>());
+#undef PROBE
+}
+} // namespace
+
 int main() {
     hook_throw();
     build_export_map(L"mfc140u.dll");
@@ -406,8 +566,18 @@ int main() {
     std::vector<std::pair<std::string, LayoutInfo>> layouts;
     harvest_layouts(layouts);
 
+    // Persist the crash-proof data FIRST: even if a constructor below faults with
+    // an access violation (not catchable by C++ try/catch), these files are already
+    // on disk and the `if: always()` upload step will still capture them.
     write_exceptions(exceptions, "exceptions.json");
     write_layouts(layouts, "layouts.json");
+
+    // Initialize MFC module state, then harvest vtable slot order by constructing
+    // live instances (MFC exports no ??_7 vtable symbols, so an instance is the
+    // only way to reach the vptr).
+    if (AfxWinInit(::GetModuleHandle(nullptr), nullptr, ::GetCommandLine(), 0)) {
+        harvest_constructed_vtables(vtables);
+    }
     write_vtables(vtables, "vtable_slots.json");
     return 0;
 }

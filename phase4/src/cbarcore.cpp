@@ -388,19 +388,19 @@ extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonPanel__SAPEAVCObject__XZ
 // Symbol: ?GetRuntimeClass@CMFCRibbonBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonBar__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonBar* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonBar::GetThisClass();
+    return CMFCRibbonBar::GetThisClass();
 }
 
 // Symbol: ?GetRuntimeClass@CMFCRibbonCategory@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonCategory__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonCategory* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonCategory::GetThisClass();
+    return CMFCRibbonCategory::GetThisClass();
 }
 
 // Symbol: ?GetRuntimeClass@CMFCRibbonPanel@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonPanel__UEBAPEAUCRuntimeClass__XZ(
     const CMFCRibbonPanel* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CMFCRibbonPanel::GetThisClass();
+    return CMFCRibbonPanel::GetThisClass();
 }
 
 // Symbol: ?GetThisClass@CMFCRibbonBar@@SAPEAUCRuntimeClass@@XZ
