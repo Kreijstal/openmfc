@@ -483,7 +483,13 @@ public:
     CMemFile(UINT nGrowBytes = 1024);
     CMemFile(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes = 0);
     virtual ~CMemFile();
-    
+
+    // RTTI: CMemFile is DECLARE_DYNAMIC in real MFC (base CFile, schema 0xFFFF).
+    // Descriptor lives in filecore.cpp; the exported getters return &classCMemFile.
+    // Internal (non-exported) symbol so the export set stays the 14,109 mfc140u match.
+    static AFX_DATA CRuntimeClass classCMemFile;
+    static CRuntimeClass* GetThisClass() { return &classCMemFile; }
+
     virtual UINT Read(void* lpBuf, UINT nCount) override;
     virtual void Write(const void* lpBuf, UINT nCount) override;
     virtual ULONGLONG Seek(LONGLONG lOff, UINT nFrom) override;
