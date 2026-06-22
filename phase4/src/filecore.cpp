@@ -2615,15 +2615,22 @@ extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/,
 // Symbol: ?UnlockRange@CMemFile@@UEAAX_K0@Z
 extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/, unsigned long long /*dwPos*/, unsigned long long /*dwCount*/) {}
 
+// CMemFile runtime-class descriptor. DECLARE_DYNAMIC in real MFC: base CFile,
+// schema 0xFFFF, no factory. m_nObjectSize is the real mfc140u sizeof(CMemFile) (88).
+// Internal DLL symbol (not in the .def) so the export set stays the 14,109 match.
+CRuntimeClass CMemFile::classCMemFile = {
+    "CMemFile", 88, 0xFFFF, nullptr, nullptr, &CFile::classCFile, nullptr
+};
+
 // Symbol: ?GetThisClass@CMemFile@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemFile__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CMemFile::classCMemFile;
 }
 
 // Symbol: ?GetRuntimeClass@CMemFile@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemFile__UEBAPEAUCRuntimeClass__XZ(const CMemFile* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CMemFile::classCMemFile;
 }
 
 static void OpenStdioFile(CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags) {
