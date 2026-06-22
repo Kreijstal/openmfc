@@ -38,6 +38,7 @@ int main() {
     check(SAof(a)->cDims == 1, "CreateOneDim: cDims == 1");
     check(SAof(a)->cbElements == sizeof(long), "CreateOneDim: cbElements == 4");
     check(SAof(a)->pvData != nullptr, "CreateOneDim: data allocated");
+    check(a.var.vt == (VT_ARRAY | VT_I4), "CreateOneDim: vt == VT_ARRAY|VT_I4");
 
     long lb = -1, ub = -1;
     impl__GetLBound_COleSafeArray__QEAAXKPEAJ_Z(&a, 1, &lb);
@@ -103,6 +104,7 @@ int main() {
     unsigned long dims2[2] = {2, 3};  // logical [2][3]
     impl__Create_COleSafeArray__QEAAXGKPEAK_Z(&m, VT_I4, 2, dims2);
     check(SAof(m)->cDims == 2, "Create 2-D: cDims == 2");
+    check(m.var.vt == (VT_ARRAY | VT_I4), "Create 2-D: vt == VT_ARRAY|VT_I4");
     long l1 = 0, u1 = 0, l2 = 0, u2 = 0;
     impl__GetLBound_COleSafeArray__QEAAXKPEAJ_Z(&m, 1, &l1);
     impl__GetUBound_COleSafeArray__QEAAXKPEAJ_Z(&m, 1, &u1);
@@ -126,6 +128,7 @@ int main() {
     OleSA at;
     impl__Attach_COleSafeArray__QEAAXAEAUtagVARIANT___Z(&at, &var);
     check(impl__GetOneDimSize_COleSafeArray__QEAAKXZ(&at) == 4, "Attach: size 4 adopted");
+    check(at.var.vt == (VT_ARRAY | VT_R8), "Attach: vt == VT_ARRAY|VT_R8 adopted");
     double dr = 0;
     impl__GetElement_COleSafeArray__QEAAXPEAJPEAX_Z(&at, &si, &dr);
     check(dr == 3.5, "Attach: element [2] == 3.5");
@@ -140,6 +143,7 @@ int main() {
     impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(&reuse, VT_I4, 5, second, 0);
     check(impl__GetOneDimSize_COleSafeArray__QEAAKXZ(&reuse) == 5, "reuse: second Create -> size 5");
     check(SAof(reuse)->pvData != nullptr, "reuse: new buffer allocated");
+    check(reuse.var.vt == (VT_ARRAY | VT_I4), "reuse: vt set correctly, not stale");
     long got = 0; long idx3 = 3;
     impl__GetElement_COleSafeArray__QEAAXPEAJPEAX_Z(&reuse, &idx3, &got);
     check(got == 10, "reuse: second array element [3] == 10");

@@ -50,7 +50,8 @@ inline SAFEARRAY* SA(void* pThis) { return reinterpret_cast<CSAView*>(pThis)->va
 // dimension count like real MFC. No inline copy, so any dim count is fine.
 inline void StoreArray(void* pThis, SAFEARRAY* psa, unsigned short vt) {
     CSAView* v = reinterpret_cast<CSAView*>(pThis);
-    v->var.vt = static_cast<unsigned short>(VT_ARRAY | vt);
+    // If creation failed, leave a clean empty VARIANT rather than VT_ARRAY+null.
+    v->var.vt = psa ? static_cast<unsigned short>(VT_ARRAY | vt) : static_cast<unsigned short>(VT_EMPTY);
     v->var.parray = psa;
     v->m_dwElementSize = psa ? psa->cbElements : 0;
     v->m_dwDims = psa ? psa->cDims : 0;

@@ -1418,12 +1418,16 @@ void COleSafeArray::UnaccessData() {
 
 void COleSafeArray::Attach(const SAFEARRAY& saSrc) {
     Destroy();
-    // Take ownership of the caller's SAFEARRAY (element vartype is not carried
-    // by a bare SAFEARRAY, so record only VT_ARRAY).
-    parray = const_cast<SAFEARRAY*>(&saSrc);
-    vt = VT_ARRAY;
-    m_dwElementSize = saSrc.cbElements;
-    m_dwDims = saSrc.cDims;
+    // Deep-copy rather than alias the caller's descriptor: a const& may refer to
+    // a stack/temporary SAFEARRAY, and Destroy() would later SafeArrayDestroy it.
+    // (Element vartype isn't carried by a bare SAFEARRAY, so record only VT_ARRAY.)
+    SAFEARRAY* psaNew = nullptr;
+    if (SUCCEEDED(SafeArrayCopy(const_cast<SAFEARRAY*>(&saSrc), &psaNew)) && psaNew) {
+        parray = psaNew;
+        vt = VT_ARRAY;
+        m_dwElementSize = psaNew->cbElements;
+        m_dwDims = psaNew->cDims;
+    }
 }
 
 SAFEARRAY* COleSafeArray::Detach() {
