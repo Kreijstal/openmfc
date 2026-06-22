@@ -29,16 +29,23 @@
 namespace {
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
 // m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
-#define DT_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+//
+// m_wSchema matches the real mfc140u.dll descriptor (read by calling the exported
+// getters under Wine), which depends on the class's DECLARE macro: DECLARE_DYNAMIC
+// and DECLARE_DYNCREATE use 0xFFFF, while DECLARE_SERIAL carries a real version
+// number (0x80000000 = VERSIONABLE_SCHEMA flag, or plain 0). m_pfnCreateObject is
+// left null even for DYNCREATE/SERIAL classes: OpenMFC has no class body for these
+// so it cannot manufacture instances, and null honestly signals "not constructible".
+#define DT_DESC(Cls, Size, Schema, BaseDesc) \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
 
 // CBaseTabbedPane before CTabbedPane so the latter can take its address.
-DT_DESC(CDockState,           96,   &CObject::classCObject);
-DT_DESC(CDockingPanesRow,     112,  &CObject::classCObject);
-DT_DESC(CDockablePaneAdapter, 1280, &CDockablePane::classCDockablePane);
-DT_DESC(CBaseTabbedPane,      1304, &CDockablePane::classCDockablePane);
-DT_DESC(CTabbedPane,          1304, &classCBaseTabbedPane);
-DT_DESC(CMiniDockFrameWnd,    896,  &CMiniFrameWnd::classCMiniFrameWnd);
+DT_DESC(CDockState,           96,   0x00000000, &CObject::classCObject);          // DECLARE_SERIAL, schema 0
+DT_DESC(CDockingPanesRow,     112,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
+DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
+DT_DESC(CBaseTabbedPane,      1304, 0xFFFF,     &CDockablePane::classCDockablePane); // DECLARE_DYNAMIC
+DT_DESC(CTabbedPane,          1304, 0x80000002, &classCBaseTabbedPane);           // DECLARE_SERIAL
+DT_DESC(CMiniDockFrameWnd,    896,  0xFFFF,     &CMiniFrameWnd::classCMiniFrameWnd); // DECLARE_DYNCREATE
 #undef DT_DESC
 } // namespace
 

@@ -31,6 +31,7 @@ struct Case {
     CRuntimeClass* (MS_ABI *getRC)(const void*);
     const char*    name;
     int            size;
+    unsigned       schema;   // real mfc140u m_wSchema (SERIAL classes carry a version)
     CRuntimeClass* base;
 };
 
@@ -38,19 +39,19 @@ int main() {
     Case cases[] = {
         { impl__GetThisClass_CPaneContainer__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CPaneContainer__UEBAPEAUCRuntimeClass__XZ,
-          "CPaneContainer", 248, &CObject::classCObject },
+          "CPaneContainer", 248, 0xFFFF, &CObject::classCObject },
         { impl__GetThisClass_CPaneContainerManager__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CPaneContainerManager__UEBAPEAUCRuntimeClass__XZ,
-          "CPaneContainerManager", 160, &CObject::classCObject },
+          "CPaneContainerManager", 160, 0xFFFF, &CObject::classCObject },
         { impl__GetThisClass_CPaneDivider__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CPaneDivider__UEBAPEAUCRuntimeClass__XZ,
-          "CPaneDivider", 536, &CBasePane::classCBasePane },
+          "CPaneDivider", 536, 0xFFFF, &CBasePane::classCBasePane },
         { impl__GetThisClass_CPaneDialog__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CPaneDialog__UEBAPEAUCRuntimeClass__XZ,
-          "CPaneDialog", 1264, &CDockablePane::classCDockablePane },
+          "CPaneDialog", 1264, 0x80000001, &CDockablePane::classCDockablePane },
         { impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CPaneFrameWnd__UEBAPEAUCRuntimeClass__XZ,
-          "CPaneFrameWnd", 600, &CWnd::classCWnd },
+          "CPaneFrameWnd", 600, 0x80000002, &CWnd::classCWnd },
     };
 
     for (const Case& c : cases) {
@@ -63,8 +64,8 @@ int main() {
         check(rc->m_lpszClassName && std::strcmp(rc->m_lpszClassName, c.name) == 0, buf);
         std::snprintf(buf, sizeof(buf), "%s: m_nObjectSize == %d", c.name, c.size);
         check(rc->m_nObjectSize == c.size, buf);
-        std::snprintf(buf, sizeof(buf), "%s: schema 0xFFFF (DYNAMIC, no factory)", c.name);
-        check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
+        std::snprintf(buf, sizeof(buf), "%s: schema 0x%08X, no factory", c.name, c.schema);
+        check(rc->m_wSchema == c.schema && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
         std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass is the right base", c.name);
