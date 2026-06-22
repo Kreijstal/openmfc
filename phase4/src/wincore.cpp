@@ -885,7 +885,6 @@ extern "C" int MS_ABI impl__AfxWinMain__YAHPEAUHINSTANCE____0PEA_WH_Z(
 IMPLEMENT_DYNCREATE(CMDIFrameWnd, CFrameWnd)
 
 CMDIFrameWnd::CMDIFrameWnd() : m_hWndMDIClient(nullptr) {
-    memset(_mdiframe_padding, 0, sizeof(_mdiframe_padding));
 }
 
 // CMDIFrameWnd::CreateClient

@@ -2811,7 +2811,6 @@ IMPLEMENT_DYNAMIC(COleTemplateServer, COleObjectFactory)
 
 COleTemplateServer::COleTemplateServer()
     : m_pDocTemplate(nullptr) {
-    memset(_oletemplateserver_padding, 0, sizeof(_oletemplateserver_padding));
 }
 
 COleTemplateServer::~COleTemplateServer() {
@@ -3329,7 +3328,6 @@ COleBusyDialog::COleBusyDialog(HTASK hTaskBusy, BOOL bNotResponding,
     m_bz.hWndOwner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     m_bz.dwFlags = dwFlags;
     m_bz.hTask = hTaskBusy;
-    memset(_olebusydialog_padding, 0, sizeof(_olebusydialog_padding));
 }
 
 COleBusyDialog::~COleBusyDialog() {

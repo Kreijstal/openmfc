@@ -1012,7 +1012,6 @@ public:
     HWND m_hWndMDIClient; // Handle to MDI client window
     
 protected:
-    char _mdiframe_padding[0];
 };
 
 //=============================================================================
@@ -1711,7 +1710,6 @@ public:
     HGDIOBJ m_hObject;
 
     // Padding for ABI compatibility
-    char _gdiobject_padding[0];
 };
 
 // CPen - Pen GDI object
@@ -1730,7 +1728,6 @@ public:
     int GetExtLogPen(void* pLogPen) const;
     
 protected:
-    char _pen_padding[0];
 };
 
 // CBrush - Brush GDI object
@@ -1752,7 +1749,6 @@ public:
     int GetLogBrush(void* pLogBrush) const;
     
 protected:
-    char _brush_padding[0];
 };
 
 // CFont - Font GDI object
@@ -1772,7 +1768,6 @@ public:
     int GetLogFont(void* pLogFont) const;
     
 protected:
-    char _font_padding[0];
 };
 
 // CBitmap - Bitmap GDI object
@@ -1798,7 +1793,6 @@ public:
     int SetBitmapDimension(int nWidth, int nHeight, CSize* pSize = nullptr);
     
 protected:
-    char _bitmap_padding[0];
 };
 
 // CPalette - Palette GDI object
@@ -1820,7 +1814,6 @@ public:
     int ResizePalette(unsigned int nNumEntries);
 
 protected:
-    char _palette_padding[0];
 };
 
 // CRgn - Region GDI object
@@ -1860,7 +1853,6 @@ public:
     int GetRegionData(RGNDATA* lpRgnData, int nCount) const;
 
 protected:
-    char _rgn_padding[0];
 };
 
 // CDC - Device Context base class
@@ -2041,7 +2033,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _clientdc_padding[0];
 };
 
 // CPaintDC - Painting device context
@@ -2057,7 +2048,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _paintdc_padding[0];
 };
 
 // CWindowDC - Whole window device context
@@ -2071,7 +2061,6 @@ public:
     CWnd* m_pWnd;
 
 protected:
-    char _windowdc_padding[0];
 };
 
 // CMetaFileDC - Metafile device context
@@ -2088,7 +2077,6 @@ public:
     void* CloseEnhanced();
     
 protected:
-    char _metafiledc_padding[0];
 };
 
 //=============================================================================
@@ -2155,7 +2143,6 @@ public:
     HMENU m_hMenu;
 
 protected:
-    char _menu_padding[0];
 };
 
 // IMPLEMENT_DYNAMIC(CMenu, CObject) in menucore.cpp
@@ -2230,7 +2217,6 @@ public:
     HIMAGELIST m_hImageList;
 
 protected:
-    char _imagelist_padding[0];
 };
 
 // IMPLEMENT_DYNCREATE(CImageList, CObject) in gdicore.cpp
@@ -3224,7 +3210,6 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _view_padding[0];
 };
 
 // CScrollView - Scrollable view
@@ -3444,7 +3429,6 @@ public:
     CRichEditCtrl& GetRichEditCtrl() { return *this; }
 
 protected:
-    char _richeditctrl_padding[0];
 };
 
 //=============================================================================
@@ -3826,7 +3810,6 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _singledoctemplate_padding[0];
 };
 
 // CMultiDocTemplate - Multiple document interface template

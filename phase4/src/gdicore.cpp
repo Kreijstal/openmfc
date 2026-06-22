@@ -870,7 +870,6 @@ asm(".globl \"?classCMetaFileDC@CMetaFileDC@@2UCRuntimeClass@@A\"\n"
 
 // CMetaFileDC default constructor
 CMetaFileDC::CMetaFileDC() : CDC() {
-    memset(_metafiledc_padding, 0, sizeof(_metafiledc_padding));
 }
 
 // CMetaFileDC destructor

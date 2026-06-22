@@ -587,7 +587,6 @@ public:
     SAFEARRAY* Detach();
     void Copy(const COleSafeArray* psaSrc);
 
-    char _olesafearray_padding[0];
 };
 
 //=============================================================================
@@ -1239,7 +1238,6 @@ public:
     CDocTemplate* m_pDocTemplate;
 
 protected:
-    char _oletemplateserver_padding[0];
 };
 
 //=============================================================================
@@ -1441,7 +1439,6 @@ public:
     DWORD m_dwFlags;
 
 protected:
-    char _olebusydialog_padding[0];
 };
 
 //=============================================================================

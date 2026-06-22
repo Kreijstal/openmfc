@@ -35,7 +35,6 @@ static const wchar_t* g_pszRichEditClass = RICHEDIT_CLASS;
 IMPLEMENT_DYNAMIC(CRichEditCtrl, CWnd)
 
 CRichEditCtrl::CRichEditCtrl() {
-    memset(_richeditctrl_padding, 0, sizeof(_richeditctrl_padding));
 }
 
 CRichEditCtrl::~CRichEditCtrl() {
