@@ -79,6 +79,8 @@ int main() {
         check(rc->m_nObjectSize == c.size, buf);
         std::snprintf(buf, sizeof(buf), "%s: schema 0xFFFF, no factory", c.name);
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
+        std::snprintf(buf, sizeof(buf), "%s: m_pfnGetBaseClass and m_pNextClass null", c.name);
+        check(rc->m_pfnGetBaseClass == nullptr && rc->m_pNextClass == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
         std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
