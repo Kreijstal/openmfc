@@ -226,9 +226,17 @@ public:
     virtual void AssertValid() const override;
     
     void Delete() { if (m_bAutoDelete) delete this; }
-    
+
 protected:
     int m_bAutoDelete;
+    // MSVC lays CException out as 16 bytes (vfptr@0, m_bAutoDelete@8, +4 padding@12)
+    // and does NOT reuse that tail padding for derived members. The Itanium/mingw
+    // ABI DOES reuse it, which would place CFileException::m_cause@12 / m_lOsError@16
+    // instead of MSVC's @16 / @20 — so a real MSVC client reads m_lOsError from
+    // uninitialized memory. This explicit reserved word fills the slot so mingw has
+    // no tail padding to fold into, matching the real layout. See
+    // mingw-reuses-tail-padding. Never read by clients (sits in MSVC's pad slot).
+    int m_nReservedPad = 0;
 };
 
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
