@@ -1,0 +1,229 @@
+{
+ "1": {
+  "family": "mfc",
+  "classes": [
+   "CMFCBaseAccessibleObject",
+   "CMFCRibbonApplicationButton",
+   "CMFCRibbonBaseElement",
+   "CMFCRibbonButton",
+   "CMFCRibbonButtonsGroup",
+   "CMFCRibbonCaptionButton",
+   "CMFCRibbonCheckBox",
+   "CMFCRibbonColorButton",
+   "CMFCRibbonColorMenuButton",
+   "CMFCRibbonComboBox",
+   "CMFCRibbonContextCaption",
+   "CMFCRibbonDefaultPanelButton",
+   "CMFCRibbonEdit",
+   "CMFCRibbonFontComboBox",
+   "CMFCRibbonGallery",
+   "CMFCRibbonGalleryIcon",
+   "CMFCRibbonLabel",
+   "CMFCRibbonLaunchButton",
+   "CMFCRibbonLinkCtrl",
+   "CMFCRibbonMainPanelButton",
+   "CMFCRibbonProgressBar",
+   "CMFCRibbonQuickAccessCustomizeButton",
+   "CMFCRibbonQuickAccessToolBar",
+   "CMFCRibbonRecentFilesList",
+   "CMFCRibbonSeparator",
+   "CMFCRibbonSlider",
+   "CMFCRibbonStatusBarCustomizeButton",
+   "CMFCRibbonStatusBarPane",
+   "CMFCRibbonTab",
+   "CMFCRibbonTabsGroup",
+   "CMFCRibbonUndoButton",
+   "CRibbonUndoLabel"
+  ]
+ },
+ "2": {
+  "family": "misc",
+  "classes": [
+   "CHelpComboBoxButton",
+   "CMFCColorMenuButton",
+   "CMFCCustomizeButton",
+   "CMFCCustomizeMenuButton",
+   "CMFCDropDownToolbarButton",
+   "CMFCOutlookBarPaneButton",
+   "CMFCRibbonGalleryMenuButton",
+   "CMFCShowAllButton",
+   "CMFCToolBarButton",
+   "CMFCToolBarColorButton",
+   "CMFCToolBarComboBoxButton",
+   "CMFCToolBarDateTimeCtrl",
+   "CMFCToolBarEditBoxButton",
+   "CMFCToolBarFontComboBox",
+   "CMFCToolBarFontSizeComboBox",
+   "CMFCToolBarMenuButton",
+   "CMFCToolBarMenuButtonsButton",
+   "CMFCToolBarSpinEditBoxButton",
+   "CMFCToolBarSystemMenuButton",
+   "COutlookCustomizeButton",
+   "CTasksPaneHistoryButton",
+   "CTasksPaneMenuButton",
+   "CTasksPaneNavigateButton"
+  ]
+ },
+ "3": {
+  "family": "mfc",
+  "classes": [
+   "CMFCBaseToolBar",
+   "CMFCColorBar",
+   "CMFCDropDownToolBar",
+   "CMFCMenuBar",
+   "CMFCOutlookBarPane",
+   "CMFCOutlookBarToolBar",
+   "CMFCPopupMenuBar",
+   "CMFCPrintPreviewToolBar",
+   "CMFCRibbonPanelMenuBar",
+   "CMFCTasksPaneToolBar",
+   "CMFCToolBar"
+  ]
+ },
+ "4": {
+  "family": "mfc",
+  "classes": [
+   "CMFCColorPopupMenu",
+   "CMFCDropDownListBox",
+   "CMFCPopupMenu",
+   "CMFCRibbonMiniToolBar",
+   "CMFCRibbonPanelMenu",
+   "CMFCButton",
+   "CMFCColorButton",
+   "CMFCLinkCtrl",
+   "CMFCMenuButton"
+  ]
+ },
+ "5": {
+  "family": "mfc",
+  "classes": [
+   "CMFCBaseTabCtrl",
+   "CMFCOutlookBarTabCtrl",
+   "CMFCTabCtrl",
+   "CMFCControlRenderer",
+   "CMFCShadowRenderer",
+   "CMFCListCtrl",
+   "CMFCShellListCtrl",
+   "CMFCAutoHideBar",
+   "CMFCAutoHideButton"
+  ]
+ },
+ "6": {
+  "family": "mfc",
+  "classes": [
+   "CMFCCaptionBar",
+   "CMFCColorPropertySheet",
+   "CMFCCustomColorsPropertyPage",
+   "CMFCDesktopAlertDialog",
+   "CMFCDesktopAlertWnd",
+   "CMFCDropDownFrame",
+   "CMFCDynamicLayout",
+   "CMFCEditBrowseCtrl",
+   "CMFCMaskedEdit"
+  ]
+ },
+ "7": {
+  "family": "mfc",
+  "classes": [
+   "CMFCMousePropertyPage",
+   "CMFCPreviewCtrlImpl",
+   "CMFCReBar",
+   "CMFCShellTreeCtrl",
+   "CMFCStandardColorsPropertyPage",
+   "CMFCStatusBar",
+   "CMFCVisualManagerVS2008"
+  ]
+ },
+ "8": {
+  "family": "misc",
+  "classes": [
+   "CControlBar",
+   "CDockBar",
+   "COleResizeBar",
+   "CReBar",
+   "CStatusBar",
+   "CBaseKeyFrame",
+   "CKeyFrame",
+   "CPreviewView",
+   "CPreviewViewEx"
+  ]
+ },
+ "9": {
+  "family": "misc",
+  "classes": [
+   "CSplitterWnd",
+   "CSplitterWndEx",
+   "CBaseTransition",
+   "CBitmapRenderTarget",
+   "CGopherFileFind",
+   "CHtmlEditDoc",
+   "CHtmlEditView",
+   "CHwndRenderTarget",
+   "CMDITabProxyWnd"
+  ]
+ },
+ "10": {
+  "family": "misc",
+  "classes": [
+   "CMultiPaneFrameWnd",
+   "COleCntrFrameWndEx",
+   "COleDBRecordView",
+   "COlePropertyPage",
+   "CPreviewDC",
+   "CRichEditCntrItem",
+   "CRichEditDoc",
+   "CSmartDockingGroupGuidesManager",
+   "CSmartDockingStandaloneGuide"
+  ]
+ },
+ "11": {
+  "family": "misc",
+  "classes": [
+   "CTaskDialog",
+   "CWindowlessDC"
+  ]
+ },
+ "12": {
+  "family": "propgrid",
+  "classes": [
+   "CMFCPropertyGridColorProperty",
+   "CMFCPropertyGridFileProperty",
+   "CMFCPropertyGridFontProperty",
+   "CMFCPropertyGridProperty",
+   "CMFCPropertyPage",
+   "CMFCRibbonCustomizePropertyPage",
+   "CMFCPropertySheet",
+   "CMFCRibbonCustomizeDialog",
+   "CMFCPropertyGridCtrl"
+  ]
+ },
+ "13": {
+  "family": "propgrid",
+  "classes": [
+   "CMFCPropertyGridToolTipCtrl",
+   "CMFCPropertySheetCategoryInfo"
+  ]
+ },
+ "14": {
+  "family": "ribbon",
+  "classes": [
+   "CMFCRibbonCustomizeCategory",
+   "CMFCRibbonMainPanel",
+   "CMFCRibbonRichEditCtrl",
+   "CMFCRibbonStatusBar"
+  ]
+ },
+ "15": {
+  "family": "toolbar",
+  "classes": [
+   "CMFCTasksPane",
+   "CMFCTasksPaneFrameWnd",
+   "CMFCToolBarsCommandsPropertyPage",
+   "CMFCToolBarsCustomizeDialog",
+   "CMFCToolBarsKeyboardPropertyPage",
+   "CMFCToolBarsListPropertyPage",
+   "CMFCToolBarsMenuPropertyPage",
+   "CMFCToolBarsOptionsPropertyPage"
+  ]
+ }
+}
