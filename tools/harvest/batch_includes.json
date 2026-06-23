@@ -1,0 +1,72 @@
+{
+ "1": [
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "2": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h"
+ ],
+ "3": [
+  "openmfc/afxmfc.h"
+ ],
+ "4": [
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "5": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "6": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "7": [
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "8": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "9": [
+  "openmfc/afx.h",
+  "openmfc/afxinet.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "10": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxole.h",
+  "openmfc/afxwin.h"
+ ],
+ "11": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "12": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "13": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "14": [
+  "openmfc/afx.h",
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ],
+ "15": [
+  "openmfc/afxmfc.h",
+  "openmfc/afxwin.h"
+ ]
+}
