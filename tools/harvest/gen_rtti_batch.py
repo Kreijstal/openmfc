@@ -39,6 +39,14 @@ def topo(classes, base_of):
 def main():
     cat = sys.argv[1]
     includes = [h for h in sys.argv[2].split(',') if h]
+    # Order includes core-first; afxinet/afxole/etc. need CWnd/CException from
+    # afx.h+afxwin.h already declared (alphabetical order breaks this).
+    ORDER = ['openmfc/afx.h', 'openmfc/afxwin.h', 'openmfc/afxext.h',
+             'openmfc/afxmfc.h', 'openmfc/afxole.h', 'openmfc/afxdisp.h',
+             'openmfc/afxdb.h', 'openmfc/afxdao.h', 'openmfc/afxinet.h',
+             'openmfc/afxrendertarget.h', 'openmfc/afxtaskdialog.h', 'openmfc/afxhtml.h']
+    rank = {h: i for i, h in enumerate(ORDER)}
+    includes = sorted(includes, key=lambda h: rank.get(h, 99))
     classes = sys.argv[3:]
     H = json.load(open(os.path.join(ROOT, 'tools/harvest/rtti_layouts.json')))
     inset = set(classes)
