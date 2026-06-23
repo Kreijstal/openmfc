@@ -65,11 +65,12 @@ def generate_cstring_abi_test() -> str:
 static_assert(sizeof(CString) == 8, "CString must be 8 bytes on x64");
 static_assert(alignof(CString) == 8, "CString must be 8-byte aligned");
 
-// CStringData layout check
-static_assert(sizeof(CStringData) == 16, "CStringData must be 16 bytes");
-static_assert(offsetof(CStringData, nRefs) == 0, "nRefs at offset 0");
-static_assert(offsetof(CStringData, nDataLength) == 4, "nDataLength at offset 4");
-static_assert(offsetof(CStringData, nAllocLength) == 8, "nAllocLength at offset 8");
+// CStringData layout check — must match real ATL (atlsimpstr.h) exactly on x64.
+static_assert(sizeof(CStringData) == 24, "CStringData must be 24 bytes");
+static_assert(offsetof(CStringData, pStringMgr) == 0, "pStringMgr at offset 0");
+static_assert(offsetof(CStringData, nDataLength) == 8, "nDataLength at offset 8");
+static_assert(offsetof(CStringData, nAllocLength) == 12, "nAllocLength at offset 12");
+static_assert(offsetof(CStringData, nRefs) == 16, "nRefs at offset 16");
 
 // Test reference counting (copy-on-write)
 bool test_refcounting() {
@@ -102,8 +103,8 @@ int main() {
         failures++;
     }
     
-    if (sizeof(CStringData) != 16) {
-        printf("FAIL: sizeof(CStringData) = %zu (expected 16)\\n", sizeof(CStringData));
+    if (sizeof(CStringData) != 24) {
+        printf("FAIL: sizeof(CStringData) = %zu (expected 24)\\n", sizeof(CStringData));
         failures++;
     }
     

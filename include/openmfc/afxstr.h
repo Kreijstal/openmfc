@@ -36,7 +36,7 @@ typedef int BOOL;
 // 
 // Layout: CStringT contains a single pointer m_pszData pointing to character data.
 // A CStringData header is stored BEFORE the character buffer in memory:
-//   [CStringData (16 bytes)] [character data ...]
+//   [CStringData (24 bytes)] [character data ...]
 //                            ^ m_pszData points here
 
 // CStringData / IAtlStringMgr are laid out byte-identically to ATL's
