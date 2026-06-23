@@ -39,13 +39,29 @@ typedef int BOOL;
 //   [CStringData (16 bytes)] [character data ...]
 //                            ^ m_pszData points here
 
-// CStringData structure (matches MSVC MFC layout)
-// On Windows: long is 4 bytes, so use int32_t for portability
+// CStringData / IAtlStringMgr are laid out byte-identically to ATL's
+// (atlsimpstr.h) so a CString returned by value to a real MSVC client is read and
+// destructed correctly. ATL CStringData: pStringMgr@0, nDataLength@8, nAllocLength@12,
+// nRefs@16 (data at offset 24). When a client releases the last ref it calls
+// pStringMgr->Free through this vtable, so OpenMFC strings carry a real manager.
+struct CStringData;
+
+// Matches ATL's __interface IAtlStringMgr exactly (5 pure-virtual methods, no
+// virtual destructor -> 5-slot vtable identical under MSVC and mingw/Win64).
+struct IAtlStringMgr {
+    virtual CStringData* Allocate(int nAllocLength, int nCharSize) = 0;
+    virtual void         Free(CStringData* pData) = 0;
+    virtual CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) = 0;
+    virtual CStringData* GetNilString() = 0;
+    virtual IAtlStringMgr* Clone() = 0;
+};
+
 struct CStringData {
-    int32_t nRefs;         // Reference count (-1 = locked, meaning buffer is not shared)
-    int32_t nDataLength;   // Length of string in characters (not including null terminator)
-    int32_t nAllocLength;  // Allocated buffer length in characters (not including null terminator)
-    int32_t padding;       // Padding to 16 bytes
+    IAtlStringMgr* pStringMgr;  // offset 0
+    int   nDataLength;          // offset 8
+    int   nAllocLength;         // offset 12
+    long  nRefs;                // offset 16 (long == 4 bytes on Win64/LLP64)
+    // wchar_t data[] follows at offset 24
 
     wchar_t* data() { return reinterpret_cast<wchar_t*>(this + 1); }
     const wchar_t* data() const { return reinterpret_cast<const wchar_t*>(this + 1); }
@@ -56,13 +72,50 @@ struct CStringData {
     bool IsShared() const { return nRefs > 1; }
 };
 
-// Static nil string data for empty strings
+static_assert(sizeof(CStringData) == 24, "CStringData must match ATL (24 bytes)");
+
+inline CStringData* GetNilStringData();  // fwd (manager references it)
+
+// The OpenMFC string manager. Its vtable layout matches IAtlStringMgr, so a MSVC
+// client can call Free/Reallocate/etc. on buffers our DLL allocated (and vice versa).
+class OpenMFCStringMgr : public IAtlStringMgr {
+public:
+    CStringData* Allocate(int nAllocLength, int nCharSize) override {
+        size_t nBytes = sizeof(CStringData) + static_cast<size_t>(nAllocLength + 1) * nCharSize;
+        CStringData* pData = static_cast<CStringData*>(malloc(nBytes));
+        if (!pData) return nullptr;
+        pData->pStringMgr = this;
+        pData->nDataLength = 0;
+        pData->nAllocLength = nAllocLength;
+        pData->nRefs = 1;
+        return pData;
+    }
+    void Free(CStringData* pData) override { free(pData); }
+    CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) override {
+        size_t nBytes = sizeof(CStringData) + static_cast<size_t>(nAllocLength + 1) * nCharSize;
+        CStringData* pNew = static_cast<CStringData*>(realloc(pData, nBytes));
+        if (!pNew) return nullptr;
+        pNew->nAllocLength = nAllocLength;
+        return pNew;
+    }
+    CStringData* GetNilString() override { return GetNilStringData(); }
+    IAtlStringMgr* Clone() override { return this; }
+};
+
+inline IAtlStringMgr* OpenMFC_GetStringMgr() {
+    static OpenMFCStringMgr mgr;
+    return &mgr;
+}
+
+// Static nil string data for empty strings (locked: nRefs == -1, never freed).
 inline CStringData* GetNilStringData() {
-    // Static nil buffer: CStringData + null terminator
     static struct {
         CStringData header;
         wchar_t nul;
-    } nilData = { { -1, 0, 0, 0 }, L'\0' };
+    } nilData = { { nullptr, 0, 0, -1 }, L'\0' };
+    if (nilData.header.pStringMgr == nullptr) {
+        nilData.header.pStringMgr = OpenMFC_GetStringMgr();
+    }
     return &nilData.header;
 }
 
@@ -574,18 +627,14 @@ private:
     
     // ... (rest of private members)
     static CStringData* AllocData(int nLength) {
-        // Allocate CStringData + (nLength + 1) wchar_t characters
-        size_t nSize = sizeof(CStringData) + (nLength + 1) * sizeof(wchar_t);
-        CStringData* pData = static_cast<CStringData*>(malloc(nSize));
+        // Allocate via the string manager so the buffer carries a valid pStringMgr
+        // (an MSVC client releasing the last ref calls pStringMgr->Free through it).
+        CStringData* pData = OpenMFC_GetStringMgr()->Allocate(nLength, sizeof(wchar_t));
         if (pData == nullptr) {
             // Out of memory - in real MFC this throws
             std::fprintf(stderr, "CString: out of memory\n");
             std::abort();
         }
-        pData->nRefs = 1;
-        pData->nDataLength = 0;
-        pData->nAllocLength = nLength;
-        pData->padding = 0;
         pData->data()[0] = L'\0';
         return pData;
     }
@@ -596,8 +645,8 @@ private:
     }
 
     static void FreeBuffer(CStringData* pData) {
-        if (pData != GetNilStringData()) {
-            free(pData);
+        if (pData != GetNilStringData() && !pData->IsLocked()) {
+            pData->pStringMgr->Free(pData);
         }
     }
 };
