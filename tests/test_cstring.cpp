@@ -101,8 +101,9 @@ TEST(sizeof_check) {
     // CString should be one pointer
     ASSERT(sizeof(CString) == sizeof(void*));
 
-    // CStringData should be 16 bytes
-    ASSERT(sizeof(CStringData) == 16);
+    // CStringData must match ATL's binary layout exactly (24 bytes):
+    // IAtlStringMgr* pStringMgr@0, int nDataLength@8, int nAllocLength@12, long nRefs@16.
+    ASSERT(sizeof(CStringData) == 24);
 }
 
 TEST(find) {

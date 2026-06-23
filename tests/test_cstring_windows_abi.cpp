@@ -33,20 +33,21 @@ bool test_cstring_layout() {
         printf("✅ alignof(CString) = 8 bytes\n");
     }
     
-    // CStringData layout (MUST match MFC exactly)
-    if (sizeof(CStringData) != 16) {
-        printf("❌ FAIL: sizeof(CStringData) = %zu (expected 16)\n", sizeof(CStringData));
+    // CStringData layout (MUST match ATL/MFC exactly)
+    if (sizeof(CStringData) != 24) {
+        printf("❌ FAIL: sizeof(CStringData) = %zu (expected 24)\n", sizeof(CStringData));
         all_pass = false;
     } else {
-        printf("✅ sizeof(CStringData) = 16 bytes\n");
+        printf("✅ sizeof(CStringData) = 24 bytes\n");
     }
-    
+
     // Check CStringData field offsets (critical for ABI!)
-    // MFC layout on x64:
-    //   int32_t nRefs;        // offset 0
-    //   int32_t nDataLength;  // offset 4  
-    //   int32_t nAllocLength; // offset 8
-    //   int32_t padding;      // offset 12
+    // Real ATL CStringData layout on x64 (atlsimpstr.h):
+    //   IAtlStringMgr* pStringMgr;  // offset 0  (8 bytes)
+    //   int nDataLength;            // offset 8
+    //   int nAllocLength;           // offset 12
+    //   long nRefs;                 // offset 16 (4 bytes; struct padded to 24)
+    //   data() begins at offset 24
     
     // Note: We can't use offsetof on private members, but we can verify
     // the total size matches expectations
