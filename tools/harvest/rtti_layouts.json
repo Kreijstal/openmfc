@@ -1,0 +1,792 @@
+{
+ "CAutoHideDockSite": {
+  "base": "CDockSite",
+  "schema": 65535,
+  "sizeof": 552
+ },
+ "CBaseKeyFrame": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 24
+ },
+ "CBaseTransition": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CBitmapRenderTarget": {
+  "base": "CRenderTarget",
+  "schema": 65535,
+  "sizeof": 88
+ },
+ "CControlBar": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 328
+ },
+ "CDockBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 400
+ },
+ "CGopherFile": {
+  "base": "CInternetFile",
+  "schema": 65535,
+  "sizeof": 152
+ },
+ "CGopherFileFind": {
+  "base": "CFileFind",
+  "schema": 65535,
+  "sizeof": 72
+ },
+ "CHelpComboBoxButton": {
+  "base": "CMFCToolBarComboBoxButton",
+  "schema": 2147483649,
+  "sizeof": 344
+ },
+ "CHtmlEditDoc": {
+  "base": "CDocument",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CHtmlEditView": {
+  "base": "CHtmlView",
+  "schema": 65535,
+  "sizeof": 592
+ },
+ "CHwndRenderTarget": {
+  "base": "CRenderTarget",
+  "schema": 65535,
+  "sizeof": 88
+ },
+ "CKeyFrame": {
+  "base": "CBaseKeyFrame",
+  "schema": 65535,
+  "sizeof": 48
+ },
+ "CMDITabProxyWnd": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 240
+ },
+ "CMFCAutoHideBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 1112
+ },
+ "CMFCAutoHideButton": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CMFCBaseAccessibleObject": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 160
+ },
+ "CMFCBaseTabCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 960
+ },
+ "CMFCBaseToolBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 1016
+ },
+ "CMFCButton": {
+  "base": "CButton",
+  "schema": 65535,
+  "sizeof": 2848
+ },
+ "CMFCCaptionBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 1720
+ },
+ "CMFCColorBar": {
+  "base": "CMFCPopupMenuBar",
+  "schema": 1,
+  "sizeof": 5384
+ },
+ "CMFCColorButton": {
+  "base": "CMFCButton",
+  "schema": 65535,
+  "sizeof": 3016
+ },
+ "CMFCColorMenuButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 2147483649,
+  "sizeof": 416
+ },
+ "CMFCColorPopupMenu": {
+  "base": "CMFCPopupMenu",
+  "schema": 65535,
+  "sizeof": 11992
+ },
+ "CMFCColorPropertySheet": {
+  "base": "CPropertySheet",
+  "schema": 65535,
+  "sizeof": 408
+ },
+ "CMFCControlRenderer": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 512
+ },
+ "CMFCCustomColorsPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 1072
+ },
+ "CMFCCustomizeButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 2147483649,
+  "sizeof": 408
+ },
+ "CMFCCustomizeMenuButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 65535,
+  "sizeof": 328
+ },
+ "CMFCDesktopAlertDialog": {
+  "base": "CDialogEx",
+  "schema": 65535,
+  "sizeof": 3776
+ },
+ "CMFCDesktopAlertWnd": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 6160
+ },
+ "CMFCDropDownFrame": {
+  "base": "CMiniFrameWnd",
+  "schema": 2147483649,
+  "sizeof": 5488
+ },
+ "CMFCDropDownListBox": {
+  "base": "CMFCPopupMenu",
+  "schema": 65535,
+  "sizeof": 6640
+ },
+ "CMFCDropDownToolBar": {
+  "base": "CMFCToolBar",
+  "schema": 1,
+  "sizeof": 4944
+ },
+ "CMFCDropDownToolbarButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 2147483649,
+  "sizeof": 176
+ },
+ "CMFCDynamicLayout": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 80
+ },
+ "CMFCEditBrowseCtrl": {
+  "base": "CEdit",
+  "schema": 65535,
+  "sizeof": 336
+ },
+ "CMFCHeaderCtrl": {
+  "base": "CHeaderCtrl",
+  "schema": 65535,
+  "sizeof": 320
+ },
+ "CMFCLinkCtrl": {
+  "base": "CMFCButton",
+  "schema": 65535,
+  "sizeof": 2880
+ },
+ "CMFCListCtrl": {
+  "base": "CListCtrl",
+  "schema": 65535,
+  "sizeof": 576
+ },
+ "CMFCMaskedEdit": {
+  "base": "CEdit",
+  "schema": 65535,
+  "sizeof": 296
+ },
+ "CMFCMenuBar": {
+  "base": "CMFCToolBar",
+  "schema": 2147483649,
+  "sizeof": 5056
+ },
+ "CMFCMenuButton": {
+  "base": "CMFCButton",
+  "schema": 65535,
+  "sizeof": 2888
+ },
+ "CMFCMousePropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 1072
+ },
+ "CMFCOutlookBar": {
+  "base": "CBaseTabbedPane",
+  "schema": 1,
+  "sizeof": 1384
+ },
+ "CMFCOutlookBarPane": {
+  "base": "CMFCToolBar",
+  "schema": 1,
+  "sizeof": 11112
+ },
+ "CMFCOutlookBarPaneAdapter": {
+  "base": "CDockablePaneAdapter",
+  "schema": 2147483650,
+  "sizeof": 1280
+ },
+ "CMFCOutlookBarPaneButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 160
+ },
+ "CMFCOutlookBarTabCtrl": {
+  "base": "CMFCBaseTabCtrl",
+  "schema": 65535,
+  "sizeof": 11768
+ },
+ "CMFCOutlookBarToolBar": {
+  "base": "CMFCToolBar",
+  "schema": 65535,
+  "sizeof": 5008
+ },
+ "CMFCPopupMenu": {
+  "base": "CMiniFrameWnd",
+  "schema": 2147483649,
+  "sizeof": 6600
+ },
+ "CMFCPopupMenuBar": {
+  "base": "CMFCToolBar",
+  "schema": 1,
+  "sizeof": 5152
+ },
+ "CMFCPreviewCtrlImpl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CMFCPrintPreviewToolBar": {
+  "base": "CMFCToolBar",
+  "schema": 65535,
+  "sizeof": 4944
+ },
+ "CMFCPropertyGridColorProperty": {
+  "base": "CMFCPropertyGridProperty",
+  "schema": 65535,
+  "sizeof": 440
+ },
+ "CMFCPropertyGridCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 1720
+ },
+ "CMFCPropertyGridFileProperty": {
+  "base": "CMFCPropertyGridProperty",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CMFCPropertyGridFontProperty": {
+  "base": "CMFCPropertyGridProperty",
+  "schema": 65535,
+  "sizeof": 552
+ },
+ "CMFCPropertyGridProperty": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 352
+ },
+ "CMFCPropertyGridToolTipCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 280
+ },
+ "CMFCPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CMFCPropertySheet": {
+  "base": "CPropertySheet",
+  "schema": 65535,
+  "sizeof": 29232
+ },
+ "CMFCPropertySheetCategoryInfo": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 168
+ },
+ "CMFCReBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 1040
+ },
+ "CMFCRibbonApplicationButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 1440
+ },
+ "CMFCRibbonBaseElement": {
+  "base": "CMFCBaseAccessibleObject",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CMFCRibbonButton": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CMFCRibbonButtonsGroup": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 1648
+ },
+ "CMFCRibbonCaptionButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 632
+ },
+ "CMFCRibbonCheckBox": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CMFCRibbonColorButton": {
+  "base": "CMFCRibbonGallery",
+  "schema": 65535,
+  "sizeof": 1496
+ },
+ "CMFCRibbonColorMenuButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 640
+ },
+ "CMFCRibbonComboBox": {
+  "base": "CMFCRibbonEdit",
+  "schema": 65535,
+  "sizeof": 816
+ },
+ "CMFCRibbonContextCaption": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 640
+ },
+ "CMFCRibbonCustomizeCategory": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 72
+ },
+ "CMFCRibbonCustomizeDialog": {
+  "base": "CMFCPropertySheet",
+  "schema": 65535,
+  "sizeof": 29240
+ },
+ "CMFCRibbonCustomizePropertyPage": {
+  "base": "CMFCPropertyPage",
+  "schema": 65535,
+  "sizeof": 7376
+ },
+ "CMFCRibbonDefaultPanelButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 640
+ },
+ "CMFCRibbonEdit": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 688
+ },
+ "CMFCRibbonFontComboBox": {
+  "base": "CMFCRibbonComboBox",
+  "schema": 65535,
+  "sizeof": 840
+ },
+ "CMFCRibbonGallery": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 1272
+ },
+ "CMFCRibbonGalleryIcon": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 656
+ },
+ "CMFCRibbonGalleryMenuButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 65535,
+  "sizeof": 1568
+ },
+ "CMFCRibbonLabel": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CMFCRibbonLaunchButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 632
+ },
+ "CMFCRibbonLinkCtrl": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 632
+ },
+ "CMFCRibbonMainPanel": {
+  "base": "CMFCRibbonPanel",
+  "schema": 65535,
+  "sizeof": 1832
+ },
+ "CMFCRibbonMainPanelButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CMFCRibbonMiniToolBar": {
+  "base": "CMFCRibbonPanelMenu",
+  "schema": 65535,
+  "sizeof": 12144
+ },
+ "CMFCRibbonPanelMenu": {
+  "base": "CMFCPopupMenu",
+  "schema": 65535,
+  "sizeof": 12128
+ },
+ "CMFCRibbonPanelMenuBar": {
+  "base": "CMFCPopupMenuBar",
+  "schema": 65535,
+  "sizeof": 5520
+ },
+ "CMFCRibbonProgressBar": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 408
+ },
+ "CMFCRibbonQuickAccessCustomizeButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 672
+ },
+ "CMFCRibbonQuickAccessToolBar": {
+  "base": "CMFCRibbonButtonsGroup",
+  "schema": 65535,
+  "sizeof": 1744
+ },
+ "CMFCRibbonRecentFilesList": {
+  "base": "CMFCRibbonButtonsGroup",
+  "schema": 65535,
+  "sizeof": 1648
+ },
+ "CMFCRibbonRichEditCtrl": {
+  "base": "CRichEditCtrl",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CMFCRibbonSeparator": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 392
+ },
+ "CMFCRibbonSlider": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 480
+ },
+ "CMFCRibbonStatusBar": {
+  "base": "CMFCRibbonBar",
+  "schema": 65535,
+  "sizeof": 8728
+ },
+ "CMFCRibbonStatusBarCustomizeButton": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CMFCRibbonStatusBarPane": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 1072
+ },
+ "CMFCRibbonTab": {
+  "base": "CMFCRibbonBaseElement",
+  "schema": 65535,
+  "sizeof": 400
+ },
+ "CMFCRibbonTabsGroup": {
+  "base": "CMFCRibbonButtonsGroup",
+  "schema": 65535,
+  "sizeof": 1648
+ },
+ "CMFCRibbonUndoButton": {
+  "base": "CMFCRibbonGallery",
+  "schema": 65535,
+  "sizeof": 1352
+ },
+ "CMFCShadowRenderer": {
+  "base": "CMFCControlRenderer",
+  "schema": 65535,
+  "sizeof": 512
+ },
+ "CMFCShellListCtrl": {
+  "base": "CMFCListCtrl",
+  "schema": 65535,
+  "sizeof": 632
+ },
+ "CMFCShellTreeCtrl": {
+  "base": "CTreeCtrl",
+  "schema": 65535,
+  "sizeof": 256
+ },
+ "CMFCShowAllButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 65535,
+  "sizeof": 296
+ },
+ "CMFCStandardColorsPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 1048
+ },
+ "CMFCStatusBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 1056
+ },
+ "CMFCTabCtrl": {
+  "base": "CMFCBaseTabCtrl",
+  "schema": 65535,
+  "sizeof": 15720
+ },
+ "CMFCTasksPane": {
+  "base": "CDockablePane",
+  "schema": 2147483649,
+  "sizeof": 6936
+ },
+ "CMFCTasksPaneFrameWnd": {
+  "base": "CPaneFrameWnd",
+  "schema": 2147483650,
+  "sizeof": 608
+ },
+ "CMFCTasksPaneToolBar": {
+  "base": "CMFCToolBar",
+  "schema": 1,
+  "sizeof": 4960
+ },
+ "CMFCToolBar": {
+  "base": "CMFCBaseToolBar",
+  "schema": 2147483649,
+  "sizeof": 4944
+ },
+ "CMFCToolBarButton": {
+  "base": "CObject",
+  "schema": 2147483649,
+  "sizeof": 136
+ },
+ "CMFCToolBarColorButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 176
+ },
+ "CMFCToolBarComboBoxButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 336
+ },
+ "CMFCToolBarDateTimeCtrl": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 168
+ },
+ "CMFCToolBarEditBoxButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 176
+ },
+ "CMFCToolBarFontComboBox": {
+  "base": "CMFCToolBarComboBoxButton",
+  "schema": 1,
+  "sizeof": 352
+ },
+ "CMFCToolBarFontSizeComboBox": {
+  "base": "CMFCToolBarComboBoxButton",
+  "schema": 1,
+  "sizeof": 344
+ },
+ "CMFCToolBarMenuButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 2147483649,
+  "sizeof": 296
+ },
+ "CMFCToolBarMenuButtonsButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 65535,
+  "sizeof": 144
+ },
+ "CMFCToolBarSpinEditBoxButton": {
+  "base": "CMFCToolBarEditBoxButton",
+  "schema": 1,
+  "sizeof": 440
+ },
+ "CMFCToolBarSystemMenuButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 2147483649,
+  "sizeof": 312
+ },
+ "CMFCToolBarsCommandsPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 848
+ },
+ "CMFCToolBarsCustomizeDialog": {
+  "base": "CPropertySheet",
+  "schema": 65535,
+  "sizeof": 3512
+ },
+ "CMFCToolBarsKeyboardPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 2552
+ },
+ "CMFCToolBarsListPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 1816
+ },
+ "CMFCToolBarsMenuPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 2752
+ },
+ "CMFCToolBarsOptionsPropertyPage": {
+  "base": "CPropertyPage",
+  "schema": 65535,
+  "sizeof": 1992
+ },
+ "CMFCToolTipCtrl": {
+  "base": "CToolTipCtrl",
+  "schema": 65535,
+  "sizeof": 424
+ },
+ "CMFCVisualManagerVS2008": {
+  "base": "CMFCVisualManagerVS2005",
+  "schema": 65535,
+  "sizeof": 824
+ },
+ "CMultiPaneFrameWnd": {
+  "base": "CPaneFrameWnd",
+  "schema": 2147483650,
+  "sizeof": 768
+ },
+ "COleCntrFrameWndEx": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 1352
+ },
+ "COleDBRecordView": {
+  "base": "CFormView",
+  "schema": 65535,
+  "sizeof": 360
+ },
+ "COlePropertyPage": {
+  "base": "CDialog",
+  "schema": 65535,
+  "sizeof": 512
+ },
+ "COleResizeBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 408
+ },
+ "COutlookCustomizeButton": {
+  "base": "CMFCCustomizeButton",
+  "schema": 65535,
+  "sizeof": 408
+ },
+ "CPreviewDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 88
+ },
+ "CPreviewView": {
+  "base": "CScrollView",
+  "schema": 65535,
+  "sizeof": 536
+ },
+ "CPreviewViewEx": {
+  "base": "CPreviewView",
+  "schema": 65535,
+  "sizeof": 5536
+ },
+ "CReBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 336
+ },
+ "CRibbonUndoLabel": {
+  "base": "CMFCRibbonButton",
+  "schema": 65535,
+  "sizeof": 624
+ },
+ "CRichEditCntrItem": {
+  "base": "COleClientItem",
+  "schema": 0,
+  "sizeof": 256
+ },
+ "CRichEditDoc": {
+  "base": "COleServerDoc",
+  "schema": 65535,
+  "sizeof": 672
+ },
+ "CSmartDockingGroupGuidesManager": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 6680
+ },
+ "CSmartDockingStandaloneGuide": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 1128
+ },
+ "CSplitterWnd": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CSplitterWndEx": {
+  "base": "CSplitterWnd",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CStatusBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 336
+ },
+ "CTaskDialog": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 240
+ },
+ "CTasksPaneHistoryButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 1,
+  "sizeof": 360
+ },
+ "CTasksPaneMenuButton": {
+  "base": "CMFCToolBarMenuButton",
+  "schema": 1,
+  "sizeof": 304
+ },
+ "CTasksPaneNavigateButton": {
+  "base": "CMFCToolBarButton",
+  "schema": 1,
+  "sizeof": 136
+ },
+ "CWindowlessDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 40
+ }
+}
