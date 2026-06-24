@@ -1,9 +1,15 @@
 #include <afxwin.h>
 #include <afxcontrolbars.h>
 #include <cstdio>
+// m_iImage / m_iUserImage are protected; reach them via a derived accessor.
+struct ProbeAccess : public CMFCToolBarButton {
+  int rawImage() const { return m_iImage; }
+  int rawUserImage() const { return m_iUserImage; }
+};
 static void dumpB(const char* tag, CMFCToolBarButton& b){
-  printf("[%s] id=%u style=%u img=%d userimg=%d userbtn=%d locked=%d text=%d image=%d hidden=%d visible=%d horz=%d strText=\"%ls\" rect=(%ld,%ld,%ld,%ld)\n",
-    tag, b.m_nID, b.m_nStyle, b.GetImage(), 0, b.m_bUserButton, b.IsLocked(), b.m_bText, b.m_bImage,
+  const ProbeAccess& pa = static_cast<const ProbeAccess&>(b);
+  printf("[%s] id=%u style=%u img=%d iImage=%d iUserImage=%d userbtn=%d locked=%d text=%d image=%d hidden=%d visible=%d horz=%d strText=\"%ls\" rect=(%ld,%ld,%ld,%ld)\n",
+    tag, b.m_nID, b.m_nStyle, b.GetImage(), pa.rawImage(), pa.rawUserImage(), b.m_bUserButton, b.IsLocked(), b.m_bText, b.m_bImage,
     b.IsHidden(), b.IsVisible(), b.IsHorizontal(), (const wchar_t*)b.m_strText,
     b.Rect().left,b.Rect().top,b.Rect().right,b.Rect().bottom);
 }

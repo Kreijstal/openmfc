@@ -56,13 +56,16 @@ Key facts (real mfc140u 14.51.36231):
 2. Implement the verifiable-subset method bodies in a new `phase4/src/` TU (real ctor field
    init from golden; Serialize field order from golden; CopyFrom/CompareWith; statics).
    Provide the real `CreateObject` factory now that a body exists.
-3. **Verify (on-host gate, end-to-end):**
-   - mingw `sizeof`/offset probe == 136 and matches golden offsets.
-   - `build_phase4.sh` → NO ABI REGRESSIONS / 14,109 exact / 0 GCC-mangled.
-   - **Differential**: build a client against our `openmfc.lib` AND against real
-     `mfc140u.lib`; run both under wine; `diff` must be identical for ctor dumps, SetImage,
-     CopyFrom/CompareWith, and the **byte-exact Serialize hex** + round-trip.
-4. PR, watch Windows CI (compile + MSVC link + wine), squash-merge, update memory.
+3. **Verify (MSVC-ABI-targeted; mingw is only a fast cross-check, not the gate):**
+   - `build_phase4.sh` → NO ABI REGRESSIONS / 14,109 exact / 0 GCC-mangled (MSVC export surface).
+   - **Authoritative on-host gate — drop-in differential vs real `mfc140u`**: LoadLibrary
+     our built `openmfc.dll` under wine and call the exported ctors/methods on a raw buffer,
+     reading fields at the REAL MSVC offsets; output must match real `mfc140u` field-for-field
+     (and byte-exact for Serialize). This proves the **MSVC** layout/behavior — a mingw
+     `sizeof`/`offsetof` match alone does NOT (mingw can diverge from MSVC via tail-padding
+     reuse), so the mingw probe is only a quick sanity cross-check.
+   - Windows CI (compile + MSVC link + wine runtime) is the final authoritative gate.
+4. PR, watch Windows CI, squash-merge, update memory.
 
 ## Verification bar (what "faithful" means here, concretely)
 The golden differential — our DLL must produce the **same 36/46-byte Serialize stream**,

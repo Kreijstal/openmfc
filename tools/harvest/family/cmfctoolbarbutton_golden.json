@@ -16,14 +16,18 @@
     "m_bVisible": 100, "m_rect": 104, "m_sizeText": 120, "m_pWndParent": 128
   },
   "default_ctor": {
-    "m_nID": 0, "m_nStyle": 0, "m_iImage": -1, "m_iUserImage": 0,
+    "_note": "real mfc140u Initialize() values; m_iImage AND m_iUserImage are both -1 (no-image sentinel), and m_bImage/m_bWholeText/m_bHorz/m_bVisible default TRUE",
+    "m_nID": 0, "m_nStyle": 0, "m_iImage": -1, "m_iUserImage": -1,
     "m_bUserButton": 0, "m_bLocked": 0, "m_bText": 0, "m_bImage": 1,
-    "m_bIsHidden": 0, "m_bVisible": 1, "m_bHorz": 1, "m_strText": "",
-    "m_rect": [0,0,0,0]
+    "m_bWrap": 0, "m_bWholeText": 1, "m_bTextBelow": 0, "m_bDragFromCollection": 0,
+    "m_bIsHidden": 0, "m_bDisableFill": 0, "m_bExtraSize": 0, "m_bVisible": 1, "m_bHorz": 1,
+    "m_strText": "", "m_strTextCustom": "", "m_dwdItemData": 0, "m_rect": [0,0,0,0]
   },
   "param_ctor": {
     "_args": "CMFCToolBarButton(123, 5, L\"Hello\", bUserButton=TRUE, bLocked=FALSE)",
-    "m_nID": 123, "GetImage": 5, "m_bUserButton": 1, "m_strText": "Hello"
+    "_note": "user button -> iImage stays -1, iUserImage set to 5; non-user -> iImage set, iUserImage stays -1",
+    "m_nID": 123, "GetImage": 5, "m_iImage": -1, "m_iUserImage": 5,
+    "m_bUserButton": 1, "m_strText": "Hello"
   },
   "SetImage_9_on_userbutton": { "GetImage_after": 9 },
   "CopyFrom_then_CompareWith": { "equal": 1, "after_id_change": 0 },

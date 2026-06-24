@@ -21,7 +21,11 @@ MSVC="${MSVC:-$HOME/msvc}"
 [ -d "$MSVC/VC/Tools/MSVC" ] || { echo "ERROR: MSVC SDK not found under '$MSVC' (set MSVC=/path/to/sdk-root)"; exit 1; }
 MSVC_VER="$(ls -1 "$MSVC/VC/Tools/MSVC" | sort -V | tail -1)"
 SDK_VER="$(ls -1 "$MSVC/Windows Kits/10/Include" | sort -V | tail -1)"
-PROBE="${1:?usage: build_family_probe.sh <probe.cpp>}"
+PROBE="${1:?usage: build_family_probe.sh <probe.cpp> [dll-to-stage]}"
+# Optional 2nd arg: a DLL (e.g. our built openmfc.dll) to stage into the run dir and
+# pass to the probe as argv[1]. The ctor probe LoadLibrary's it explicitly; without
+# this the probe would fall back to whatever "openmfc.dll" resolves to in cwd.
+DLL_TO_STAGE="${2:-}"
 WORK="${WORK:-$(mktemp -d)}"
 
 INC_MSVC="$MSVC/VC/Tools/MSVC/$MSVC_VER/include"
@@ -80,4 +84,12 @@ crtdir="$(find "$RED" -type d -path '*x64*Microsoft.VC*.CRT' 2>/dev/null | sort 
 cp -f "$mfcdir"/*.dll "$WORK"/ 2>/dev/null || true
 cp -f "$crtdir"/*.dll "$WORK"/ 2>/dev/null || true
 
-( cd "$WORK"; WINEDEBUG=-all timeout 60 wine probe.exe 2>/dev/null )
+# 3. optionally stage a DLL-under-test (e.g. our openmfc.dll) and pass it to the probe.
+PROBE_ARGS=()
+if [ -n "$DLL_TO_STAGE" ]; then
+  [ -f "$DLL_TO_STAGE" ] || { echo "ERROR: dll-to-stage '$DLL_TO_STAGE' not found"; exit 1; }
+  cp -f "$DLL_TO_STAGE" "$WORK"/
+  PROBE_ARGS=("$(basename "$DLL_TO_STAGE")")
+fi
+
+( cd "$WORK"; WINEDEBUG=-all timeout 60 wine probe.exe "${PROBE_ARGS[@]}" 2>/dev/null )

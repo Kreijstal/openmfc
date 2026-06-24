@@ -1,3 +1,15 @@
+// On-host drop-in verifier for CMFCToolBarButton's exported constructors. This is a
+// PURE WIN32 probe (no MFC headers/link): it LoadLibrary's our built openmfc.dll
+// explicitly and calls the exported ctors on a raw buffer, then reads fields at the
+// REAL mfc140u offsets. Explicit LoadLibrary is required because our DLL exits 53 on
+// *implicit* load under wine (CRT/MFC startup gap) — same approach as rtti_probe.
+// NOTE: do NOT build this through build_family_probe.sh (that one links mfc140u for
+// the MFC-using golden/layout probes). Build & run standalone, e.g.:
+//   x86_64-w64-mingw32-g++ -O0 -static -static-libgcc -static-libstdc++ \
+//       -o ctorprobe.exe cmfctoolbarbutton_ctor_probe.cpp
+//   cp build-phase4/openmfc.dll . && WINEDEBUG=-all wine ctorprobe.exe openmfc.dll
+// Expected output == real mfc140u golden (cmfctoolbarbutton_golden.json): default
+// iImage=-1 iUserImage=-1; user(123,5,"Hello",T) iUserImage=5; nonuser(77,3,"Bee",F,locked) iImage=3.
 #include <windows.h>
 #include <cstdio>
 #include <cstring>
