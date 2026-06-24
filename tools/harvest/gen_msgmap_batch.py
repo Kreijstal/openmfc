@@ -16,6 +16,8 @@ def gm_sym(c):  return f'?GetMessageMap@{c}@@MEBAPEBUAFX_MSGMAP@@XZ'
 def gtm_sym(c): return f'?GetThisMessageMap@{c}@@KAPEBUAFX_MSGMAP@@XZ'
 
 def main():
+    if len(sys.argv) < 3:
+        sys.exit('usage: gen_msgmap_batch.py <slug> <Class>...')
     slug = sys.argv[1]
     classes = sys.argv[2:]
     bases = json.load(open(f'{ROOT}/tools/harvest/msgmap_bases.json'))
@@ -92,7 +94,7 @@ def main():
     L.append('#undef DEF_MM')
     L.append('')
     cpp_path = f'{ROOT}/phase4/src/global_{slug}_msgmap.cpp'
-    open(cpp_path, 'w').write('\n'.join(L))
+    open(cpp_path, 'w', encoding='utf-8').write('\n'.join(L))
 
     # ---- test: provide stub defs for out-of-batch base getters, assert structure ----
     T = []
@@ -129,12 +131,16 @@ def main():
             T.append(f'        check(gm && gm->pfnGetBaseMap == nullptr, "{c} root has null base");')
         else:
             T.append(f'        check(gm && gm->pfnGetBaseMap != nullptr, "{c} base chain set");')
+            # Verify pfnGetBaseMap() resolves to the actual base map, not just non-null.
+            base_map = f'&class{b}_msgmap' if b in inset else f'&s_{b}_map'
+            T.append(f'        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == {base_map},')
+            T.append(f'              "{c} pfnGetBaseMap resolves to {b} map");')
         T.append(f'    }}')
     T.append('    printf("%s: %d checks failed\\n", failures?"FAILED":"OK", failures);')
     T.append('    return failures ? 1 : 0;')
     T.append('}')
     test_path = f'{ROOT}/tests/test_global_{slug}_msgmap_logic.cpp'
-    open(test_path, 'w').write('\n'.join(T) + '\n')
+    open(test_path, 'w', encoding='utf-8').write('\n'.join(T) + '\n')
     print(f'wrote {cpp_path}')
     print(f'wrote {test_path}')
 
