@@ -109,7 +109,10 @@ void tbb_SetImage(CMFCToolBarButton* b, int iImage) {
 // Behavioral slots delegate to the shared bodies; stub slots return the SDK-header
 // inline defaults. Unused trailing args ride in registers and are harmlessly ignored.
 CRuntimeClass* MS_ABI v00_GetRuntimeClass(const void* p) { return impl__GetRuntimeClass_CMFCToolBarButton__UEBAPEAUCRuntimeClass__XZ(p); }
-void* MS_ABI v01_dtor(CMFCToolBarButton* p, unsigned int flags) { p->~CMFCToolBarButton(); if (flags & 1) ::operator delete(p); return p; }
+// Qualified (CMFCToolBarButton::) destructor call is statically bound, so it does NOT
+// re-dispatch through vptr[1] (== this very wrapper) and recurse. Same guard the CFile
+// spike uses. flags&1 is the MSVC "deleting" bit.
+void* MS_ABI v01_dtor(CMFCToolBarButton* p, unsigned int flags) { p->CMFCToolBarButton::~CMFCToolBarButton(); if (flags & 1) ::operator delete(p); return p; }
 void  MS_ABI v02_Serialize(CMFCToolBarButton* p, CArchive* ar) { tbb_Serialize(p, ar); }
 void  MS_ABI v03_AssertValid(const void*) {}
 void  MS_ABI v04_Dump(const void*, void*) {}

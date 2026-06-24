@@ -31,6 +31,7 @@ typedef void  (*CopyFrom_fn)(void*, void*);
 typedef void  (*SetStyle_fn)(void*, unsigned);
 typedef R     (*GetRect_fn)(void*);
 typedef int   (*IsExtra_fn)(void*);
+typedef void* (*Dtor_fn)(void*, unsigned);
 
 static int  I(void* b, int o){ return *(int*)((char*)b + o); }
 static int  fails = 0;
@@ -50,11 +51,11 @@ int main(int argc, char** argv){
 
   char buf[160], buf2[160];
 
-  // ---- vptr install + all 53 slots non-null ----
+  // ---- vptr install + all 53 slots non-null (default ctor path) ----
   memset(buf,0xCC,sizeof(buf)); c0(buf);
-  void** vptr = *(void***)buf;
-  printf("vptr=%p\n", (void*)vptr);
-  if(!vptr){ printf("FAIL: null vptr (ctor did not install MSVC vtable)\n"); return 4; }
+  void** vptr = *(void***)buf;   // re-read after EACH ctor below; ctor thunks must patch
+  printf("vptr(default ctor)=%p\n", (void*)vptr);
+  if(!vptr){ printf("FAIL: null vptr (default ctor did not install MSVC vtable)\n"); return 4; }
   int nullslots=0; for(int i=0;i<53;i++) if(!vptr[i]) { nullslots++; printf("  slot %d NULL\n", i); }
   check("all 53 slots non-null", nullslots, 0);
 
@@ -64,8 +65,13 @@ int main(int argc, char** argv){
   check("slot0 GetRuntimeClass objsize", rc? *(int*)((char*)rc+8):-1, 136);
   check("slot0 GetRuntimeClass schema",  rc? (long)*(unsigned*)((char*)rc+12):-1, (long)0x80000001);
 
-  // ---- user button: slot 50 SetImage sets m_iUserImage; slot 38 Reset = no-op ----
+  // ---- param ctor must ALSO install the vtable (separate thunk) — re-read its vptr ----
   memset(buf,0xCC,sizeof(buf)); cp(buf,123,5,L"Hello",1,0);   // user button
+  vptr = *(void***)buf;
+  printf("vptr(param ctor)=%p\n", (void*)vptr);
+  check("param ctor installed non-null vtable", vptr?1:0, 1);
+
+  // ---- user button: slot 50 SetImage sets m_iUserImage; slot 38 Reset = no-op ----
   ((SetImage_fn)vptr[50])(buf, 9);
   check("slot50 SetImage(user) iUserImage", I(buf,O_iUserImage), 9);
   check("slot50 SetImage(user) iImage unchanged", I(buf,O_iImage), -1);
@@ -74,6 +80,7 @@ int main(int argc, char** argv){
 
   // ---- non-user button: SetImage sets m_iImage ----
   memset(buf,0xCC,sizeof(buf)); cp(buf,77,3,L"Bee",0,0);      // non-user button
+  vptr = *(void***)buf;
   ((SetImage_fn)vptr[50])(buf, 8);
   check("slot50 SetImage(nonuser) iImage", I(buf,O_iImage), 8);
   check("slot50 SetImage(nonuser) iUserImage unchanged", I(buf,O_iUserImage), -1);
@@ -85,9 +92,10 @@ int main(int argc, char** argv){
   // ---- slot 52 IsExtraSize ----
   check("slot52 IsExtraSize", ((IsExtra_fn)vptr[52])(buf), I(buf,O_bExtraSize));
 
-  // ---- slot 7 CopyFrom + slot 39 CompareWith ----
+  // ---- slot 7 CopyFrom + slot 39 CompareWith (dispatch on dst -> read dst's vptr) ----
   memset(buf,0xCC,sizeof(buf));  cp(buf,200,11,L"Src",1,0);   // src (user)
   memset(buf2,0xCC,sizeof(buf2)); c0(buf2);                   // blank dst
+  vptr = *(void***)buf2;
   ((CopyFrom_fn)vptr[7])(buf2, buf);
   check("slot7 CopyFrom nID copied", I(buf2,O_nID), 200);
   check("slot39 CompareWith equal after copy", ((Compare_fn)vptr[39])(buf2, buf), 1);
@@ -98,6 +106,14 @@ int main(int argc, char** argv){
   R r = ((GetRect_fn)vptr[36])(buf2);
   check("slot36 GetInvalidateRect.left", r.left, 0);
   check("slot36 GetInvalidateRect.right", r.right, 0);
+
+  // ---- slot 1 dtor (non-deleting, flags=0): must run + return WITHOUT recursing ----
+  // (the dtor slot's qualified ~CMFCToolBarButton must not re-dispatch through vptr[1].)
+  // Use a fresh default button (empty CStrings -> dtor frees nothing on the stack buf).
+  memset(buf,0xCC,sizeof(buf)); c0(buf);
+  void** dvptr = *(void***)buf;
+  void* dret = ((Dtor_fn)dvptr[1])(buf, 0);   // would stack-overflow/crash if recursive
+  check("slot1 dtor(flags=0) returns this (no recursion)", dret==buf?1:0, 1);
 
   printf("%s (%d failures)\n", fails? "VTABLE PROBE FAILED" : "VTABLE PROBE PASSED", fails);
   return fails ? 1 : 0;

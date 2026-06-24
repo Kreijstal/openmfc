@@ -20,8 +20,8 @@ int main(){
   // CopyFrom: populate src, copy into blank dst, dump key fields
   CMFCToolBarButton src(200, 11, L"Hello", TRUE, FALSE);
   src.m_nStyle=6; src.m_bText=TRUE; src.m_strTextCustom=L"Cust"; src.m_dwdItemData=0x99;
-  CMFCToolBarButton dst; dst.CopyFrom(src);
-  const PA& p = static_cast<const PA&>(dst);
+  PA dst; dst.CopyFrom(src);   // PA (no added members) so the m_iImage/m_iUserImage
+  const PA& p = dst;           // accessors read a real PA, not a downcast (no UB).
   printf("CopyFrom dst: nID=%u nStyle=%u iImage=%d iUserImage=%d userBtn=%d bText=%d strText=%ls strCustom=%ls itemData=%llu\n",
     dst.m_nID, dst.m_nStyle, p.iImg(), p.iUImg(), dst.m_bUserButton, dst.m_bText,
     (const wchar_t*)dst.m_strText, (const wchar_t*)dst.m_strTextCustom, (unsigned long long)dst.m_dwdItemData);
