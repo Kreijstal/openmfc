@@ -176,8 +176,7 @@
   "slug": "other_14",
   "classes": [
    "CVSListBoxBase",
-   "CVSListBoxEditCtrl",
-   "CWnd"
+   "CVSListBoxEditCtrl"
   ]
  },
  "15": {
