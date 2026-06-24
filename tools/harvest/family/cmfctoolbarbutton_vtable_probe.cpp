@@ -18,7 +18,7 @@ int main(){
   HMODULE m = GetModuleHandleW(L"mfc140u.dll");
   CMFCToolBarButton btn;
   uintptr_t* vptr = *(uintptr_t**)&btn;
-  const int N = 56;
+  const int N = 53;   // exact slot count (cmfctoolbarbutton_vtable.json); don't over-read past the table
   for(size_t k=0;k<sizeof(VIRT)/sizeof(VIRT[0]);k++){
     uintptr_t a = (uintptr_t)GetProcAddress(m, MAKEINTRESOURCEA(VIRT[k].ord));
     int found=-1,dups=0;
