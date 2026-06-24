@@ -362,18 +362,46 @@ public:
 
     static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
 
-    UINT m_nID;
-    int m_iImage;
-    CString m_strText;
-    BOOL m_bUserButton;
-    BOOL m_bLocked;
+    int GetImage() const { return m_bUserButton ? m_iUserImage : m_iImage; }
+    BOOL IsLocked() const { return m_bLocked; }
+    BOOL IsHidden() const { return m_bIsHidden; }
+    BOOL IsVisible() const { return m_bVisible; }
+    BOOL IsHorizontal() const { return m_bHorz; }
+
+    // Exact MSVC instance layout (sizeof 136), harvested byte-for-byte from real
+    // mfc140u via tools/harvest/family. Member offsets MUST match so a real MSVC
+    // client (compiled vs the real MFC headers) reads our fields where it expects
+    // them. (Was a wrong 64-byte stub with members in the wrong order.)
+    BOOL      m_bUserButton;          // @8
+    BOOL      m_bText;                // @12
+    BOOL      m_bImage;               // @16
+    BOOL      m_bWrap;                // @20
+    BOOL      m_bWholeText;           // @24
+    BOOL      m_bTextBelow;           // @28
+    BOOL      m_bDragFromCollection;  // @32
+    UINT      m_nID;                  // @36
+    UINT      m_nStyle;               // @40
+    DWORD_PTR m_dwdItemData;          // @48
+    CString   m_strText;              // @56
+    CString   m_strTextCustom;        // @64
 
     static CString m_strClipboardFormatName;
-    static BOOL m_bWrapText;
-    static BOOL m_bUpdateImages;
+    static BOOL    m_bWrapText;
+    static BOOL    m_bUpdateImages;
 
-protected:
-    char _mfctoolbarbutton_padding[32];
+    // Real MFC declares these protected; kept public here (protection is compile-time
+    // only and has no ABI/offset impact) so existing derived-class code compiles.
+    int   m_iImage;          // @72
+    int   m_iUserImage;      // @76
+    BOOL  m_bLocked;         // @80
+    BOOL  m_bIsHidden;       // @84
+    BOOL  m_bDisableFill;    // @88
+    BOOL  m_bExtraSize;      // @92
+    BOOL  m_bHorz;           // @96
+    BOOL  m_bVisible;        // @100
+    CRect m_rect;            // @104
+    CSize m_sizeText;        // @120
+    CWnd* m_pWndParent;      // @128
 };
 
 //=============================================================================
@@ -970,7 +998,7 @@ public:
     BOOL m_bFlat;
     BOOL m_bCenterVert;
 
-    char _pad[32];
+    char _pad[192];  // CMFCToolBarComboBoxButton real sizeof 336 (base 136 + 8 + 192)
 };
 
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
@@ -988,7 +1016,7 @@ public:
 
     BOOL m_bFlat;
 
-    char _pad[32];
+    char _pad[36];  // CMFCToolBarEditBoxButton real sizeof 176 (base 136 + 4 + 36)
 };
 
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
@@ -1006,7 +1034,7 @@ public:
     virtual int CompareWith(const CMFCToolBarButton& other) const;
 
     HMENU m_hMenu;
-    char _pad[64];
+    char _pad[152];  // CMFCToolBarMenuButton real sizeof 296 (base 136 + 8 + 152)
 };
 
 class CMFCToolBarMenuButtonsButton : public CMFCToolBarMenuButton {
