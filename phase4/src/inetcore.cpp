@@ -321,11 +321,20 @@ CHttpFile* CHttpConnection::OpenRequest(DWORD dwRequestFlags,
 }
 
 //=============================================================================
-// RTTI for CInternetFile and CInternetException (manual stubs)
-// CStdioFile/CFile don't have DECLARE_DYNAMIC in our headers
+// RTTI for CInternetFile and CInternetException
+// CInternetFile is DECLARE_DYNAMIC in real MFC: base CStdioFile, schema 0xFFFF,
+// real MSVC sizeof=128 (harvested from mfc140u.dll). The base descriptor lives in
+// filecore.cpp (file-internal, not referenceable here), so chain via
+// m_pfnGetBaseClass to CStdioFile's exported getter — the real-MFC _AFXDLL
+// cross-module base-resolution mechanism.
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CStdioFile__SAPEAUCRuntimeClass__XZ();
+static CRuntimeClass* AFXAPI gb_CInternetFile() {
+    return impl__GetThisClass_CStdioFile__SAPEAUCRuntimeClass__XZ();
+}
 
 __attribute__((used)) static CRuntimeClass g_classCInternetFile = {
-    "CStdioFile", sizeof(CInternetFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
+    "CInternetFile", 128, 0xFFFF, nullptr, gb_CInternetFile, nullptr, nullptr
 };
 
 __attribute__((used)) static CRuntimeClass g_classCInternetException = {

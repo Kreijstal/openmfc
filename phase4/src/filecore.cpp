@@ -2773,15 +2773,26 @@ extern "C" void MS_ABI impl__UnlockRange_CStdioFile__UEAAX_K0_Z(CStdioFile* pThi
                  static_cast<DWORD>(dwCount & 0xFFFFFFFFULL), static_cast<DWORD>(dwCount >> 32), &ov);
 }
 
+// CStdioFile runtime-class descriptor. DECLARE_DYNAMIC in real MFC: base CFile,
+// schema 0xFFFF, no factory. Real MSVC sizeof(CStdioFile)=48 (harvested from
+// mfc140u.dll). A real _AFXDLL client walks the base chain via m_pfnGetBaseClass,
+// so set it to CFile's exported getter (CFile::classCFile is referenceable here, so
+// the thunk just returns it). This gives CStdioFile-derived classes (CInternetFile/
+// CGopherFile) an unbroken IsKindOf chain to CObject. File-scope internal symbol.
+static CRuntimeClass* AFXAPI gb_CStdioFile() { return &CFile::classCFile; }
+static CRuntimeClass g_classCStdioFile = {
+    "CStdioFile", 48, 0xFFFF, nullptr, gb_CStdioFile, nullptr, nullptr
+};
+
 // Symbol: ?GetThisClass@CStdioFile@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CStdioFile__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &g_classCStdioFile;
 }
 
 // Symbol: ?GetRuntimeClass@CStdioFile@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CStdioFile__UEBAPEAUCRuntimeClass__XZ(const CStdioFile* pThis) {
     (void)pThis;
-    return nullptr;
+    return &g_classCStdioFile;
 }
 
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ();

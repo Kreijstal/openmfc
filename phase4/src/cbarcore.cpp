@@ -2130,13 +2130,21 @@ extern "C" void MS_ABI impl__ShowPane_CDockablePane__UEAAXHHH_Z(CDockablePane* p
 
 static constexpr unsigned int kNoSerializationSchema = 0xFFFF;
 
+// CDockSite: DECLARE_DYNAMIC, real MSVC sizeof=544, base CBasePane (harvested from
+// mfc140u.dll). Chain via m_pfnGetBaseClass to CBasePane's exported getter so the
+// IsKindOf chain reaches CObject correctly (was sizeof 0 / base CObject — wrong).
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+static CRuntimeClass* AFXAPI gb_CDockSite() {
+    return impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+}
+
 static CRuntimeClass g_runtimeClassDockSite = {
     "CDockSite",
-    0,
+    544,
     kNoSerializationSchema,
     nullptr,
+    gb_CDockSite,
     nullptr,
-    &CObject::classCObject,
     nullptr
 };
 
