@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Iteratively resolve undefined "Class::classClass" framework statics in a
 # generated RTTI logic test by appending placeholder definitions until it links.
-# Usage: fix_test_bases.sh <cat>
+# Usage: fix_test_bases.sh <cat> [suffix]   (suffix defaults to rtti; use msgmap for maps)
 set -u
 cd "$(dirname "$0")/../.." || exit 1
 CAT="$1"
-TEST="tests/test_global_${CAT}_rtti_logic.cpp"
+SUFFIX="${2:-rtti}"
+TEST="tests/test_global_${CAT}_${SUFFIX}_logic.cpp"
 FLAGS="-std=c++17 -fpermissive -fms-extensions -Wno-attributes -D_WIN32_WINNT=0x0601 -DUNICODE -D_UNICODE -Iinclude -Ibuild-phase4/include"
 for i in $(seq 1 40); do
   err=$(x86_64-w64-mingw32-g++ $FLAGS -o /tmp/test_${CAT}.exe "$TEST" 2>&1)

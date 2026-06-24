@@ -1,0 +1,752 @@
+{
+"CAutoHideDockSite": {
+"gm": 5745,
+"gtm": 7223,
+"gt": 6805
+},
+"CBasePane": {
+"gm": 5746,
+"gtm": 7224,
+"gt": 6807
+},
+"CBaseTabbedPane": {
+"gm": 5747,
+"gtm": 7225,
+"gt": 6808
+},
+"CCmdTarget": {
+"gm": 5749,
+"gtm": 7227,
+"gt": 6819
+},
+"CCommonDialog": {
+"gm": 5750,
+"gtm": 7228,
+"gt": 6823
+},
+"CControlBar": {
+"gm": 5751,
+"gtm": 7229,
+"gt": 6824
+},
+"CControlFrameWnd": {
+"gm": 5752,
+"gtm": 7230,
+"gt": 0
+},
+"CCtrlView": {
+"gm": 5753,
+"gtm": 7231,
+"gt": 6826
+},
+"CDHtmlDialog": {
+"gm": 5754,
+"gtm": 7232,
+"gt": 6847
+},
+"CDialogBar": {
+"gm": 5756,
+"gtm": 7234,
+"gt": 6849
+},
+"CDocObjectServer": {
+"gm": 5762,
+"gtm": 7240,
+"gt": 6859
+},
+"CDockBar": {
+"gm": 5760,
+"gtm": 7238,
+"gt": 6854
+},
+"CDockSite": {
+"gm": 5761,
+"gtm": 7239,
+"gt": 6856
+},
+"CDockablePane": {
+"gm": 5758,
+"gtm": 7236,
+"gt": 6852
+},
+"CDockablePaneAdapter": {
+"gm": 5759,
+"gtm": 7237,
+"gt": 6853
+},
+"CDummyDockablePane": {
+"gm": 5764,
+"gtm": 7242,
+"gt": 0
+},
+"CFrameWndEx": {
+"gm": 5768,
+"gtm": 7246,
+"gt": 6880
+},
+"CHtmlEditView": {
+"gm": 5769,
+"gtm": 7247,
+"gt": 6891
+},
+"CHtmlView": {
+"gm": 5770,
+"gtm": 7248,
+"gt": 6892
+},
+"CMDIChildWndEx": {
+"gm": 5774,
+"gtm": 7252,
+"gt": 6917
+},
+"CMDIClientAreaWnd": {
+"gm": 5775,
+"gtm": 7253,
+"gt": 6918
+},
+"CMDIFrameWndEx": {
+"gm": 5777,
+"gtm": 7255,
+"gt": 6920
+},
+"CMDITabProxyWnd": {
+"gm": 5778,
+"gtm": 7256,
+"gt": 6921
+},
+"CMFCAcceleratorKeyAssignCtrl": {
+"gm": 5779,
+"gtm": 7257,
+"gt": 0
+},
+"CMFCAutoHideBar": {
+"gm": 5780,
+"gtm": 7258,
+"gt": 6926
+},
+"CMFCBaseTabCtrl": {
+"gm": 5781,
+"gtm": 7259,
+"gt": 6929
+},
+"CMFCBaseToolBar": {
+"gm": 5782,
+"gtm": 7260,
+"gt": 6930
+},
+"CMFCButton": {
+"gm": 5783,
+"gtm": 7261,
+"gt": 6931
+},
+"CMFCCaptionBar": {
+"gm": 5784,
+"gtm": 7262,
+"gt": 6932
+},
+"CMFCColorBar": {
+"gm": 5785,
+"gtm": 7263,
+"gt": 6933
+},
+"CMFCColorButton": {
+"gm": 5786,
+"gtm": 7264,
+"gt": 6934
+},
+"CMFCColorDialog": {
+"gm": 5787,
+"gtm": 7265,
+"gt": 0
+},
+"CMFCColorPickerCtrl": {
+"gm": 5788,
+"gtm": 7266,
+"gt": 0
+},
+"CMFCColorPopupMenu": {
+"gm": 5789,
+"gtm": 7267,
+"gt": 6936
+},
+"CMFCColorPropertySheet": {
+"gm": 5790,
+"gtm": 7268,
+"gt": 6937
+},
+"CMFCCustomColorsPropertyPage": {
+"gm": 5791,
+"gtm": 7269,
+"gt": 6939
+},
+"CMFCDesktopAlertDialog": {
+"gm": 5792,
+"gtm": 7270,
+"gt": 6942
+},
+"CMFCDesktopAlertWnd": {
+"gm": 5793,
+"gtm": 7271,
+"gt": 6943
+},
+"CMFCDropDownFrame": {
+"gm": 5794,
+"gtm": 7272,
+"gt": 6944
+},
+"CMFCDropDownListBox": {
+"gm": 5795,
+"gtm": 7273,
+"gt": 6945
+},
+"CMFCDropDownToolBar": {
+"gm": 5796,
+"gtm": 7274,
+"gt": 6946
+},
+"CMFCEditBrowseCtrl": {
+"gm": 5797,
+"gtm": 7275,
+"gt": 6948
+},
+"CMFCFontComboBox": {
+"gm": 5798,
+"gtm": 7276,
+"gt": 0
+},
+"CMFCHeaderCtrl": {
+"gm": 5799,
+"gtm": 7277,
+"gt": 6949
+},
+"CMFCImageEditorDialog": {
+"gm": 5800,
+"gtm": 7278,
+"gt": 0
+},
+"CMFCImagePaintArea": {
+"gm": 5801,
+"gtm": 7279,
+"gt": 0
+},
+"CMFCKeyMapDialog": {
+"gm": 5802,
+"gtm": 7280,
+"gt": 0
+},
+"CMFCLinkCtrl": {
+"gm": 5803,
+"gtm": 7281,
+"gt": 6950
+},
+"CMFCListCtrl": {
+"gm": 5804,
+"gtm": 7282,
+"gt": 6951
+},
+"CMFCMaskedEdit": {
+"gm": 5805,
+"gtm": 7283,
+"gt": 6952
+},
+"CMFCMenuBar": {
+"gm": 5806,
+"gtm": 7284,
+"gt": 6953
+},
+"CMFCMenuButton": {
+"gm": 5807,
+"gtm": 7285,
+"gt": 6954
+},
+"CMFCMousePropertyPage": {
+"gm": 5808,
+"gtm": 7286,
+"gt": 6955
+},
+"CMFCOutlookBar": {
+"gm": 5809,
+"gtm": 7287,
+"gt": 6956
+},
+"CMFCOutlookBarPane": {
+"gm": 5810,
+"gtm": 7288,
+"gt": 6957
+},
+"CMFCOutlookBarPaneAdapter": {
+"gm": 5811,
+"gtm": 7289,
+"gt": 6958
+},
+"CMFCOutlookBarTabCtrl": {
+"gm": 5812,
+"gtm": 7290,
+"gt": 6960
+},
+"CMFCOutlookBarToolBar": {
+"gm": 5813,
+"gtm": 7291,
+"gt": 6961
+},
+"CMFCPopupMenu": {
+"gm": 5814,
+"gtm": 7292,
+"gt": 6962
+},
+"CMFCPopupMenuBar": {
+"gm": 5815,
+"gtm": 7293,
+"gt": 6963
+},
+"CMFCPreviewCtrlImpl": {
+"gm": 5816,
+"gtm": 7294,
+"gt": 6964
+},
+"CMFCPrintPreviewToolBar": {
+"gm": 5817,
+"gtm": 7295,
+"gt": 6965
+},
+"CMFCPropertyGridCtrl": {
+"gm": 5818,
+"gtm": 7296,
+"gt": 6967
+},
+"CMFCPropertyGridToolTipCtrl": {
+"gm": 5819,
+"gtm": 7297,
+"gt": 6971
+},
+"CMFCPropertyPage": {
+"gm": 5820,
+"gtm": 7298,
+"gt": 6972
+},
+"CMFCPropertySheet": {
+"gm": 5821,
+"gtm": 7299,
+"gt": 6973
+},
+"CMFCPropertySheetListBox": {
+"gm": 5822,
+"gtm": 7300,
+"gt": 0
+},
+"CMFCReBar": {
+"gm": 5823,
+"gtm": 7301,
+"gt": 6975
+},
+"CMFCRibbonBar": {
+"gm": 5824,
+"gtm": 7302,
+"gt": 6977
+},
+"CMFCRibbonCommandsListBox": {
+"gm": 5825,
+"gtm": 7303,
+"gt": 0
+},
+"CMFCRibbonCustomizePropertyPage": {
+"gm": 5826,
+"gtm": 7304,
+"gt": 6990
+},
+"CMFCRibbonKeyTip": {
+"gm": 5828,
+"gtm": 7306,
+"gt": 0
+},
+"CMFCRibbonKeyboardCustomizeDialog": {
+"gm": 5827,
+"gtm": 7305,
+"gt": 0
+},
+"CMFCRibbonMiniToolBar": {
+"gm": 5829,
+"gtm": 7307,
+"gt": 7002
+},
+"CMFCRibbonPanelMenu": {
+"gm": 5830,
+"gtm": 7308,
+"gt": 7004
+},
+"CMFCRibbonPanelMenuBar": {
+"gm": 5831,
+"gtm": 7309,
+"gt": 7005
+},
+"CMFCRibbonRichEditCtrl": {
+"gm": 5832,
+"gtm": 7310,
+"gt": 7010
+},
+"CMFCRibbonSpinButtonCtrl": {
+"gm": 5833,
+"gtm": 7311,
+"gt": 0
+},
+"CMFCRibbonStatusBar": {
+"gm": 5834,
+"gtm": 7312,
+"gt": 7013
+},
+"CMFCShadowWnd": {
+"gm": 5835,
+"gtm": 7313,
+"gt": 0
+},
+"CMFCShellListCtrl": {
+"gm": 5836,
+"gtm": 7314,
+"gt": 7020
+},
+"CMFCShellTreeCtrl": {
+"gm": 5837,
+"gtm": 7315,
+"gt": 7021
+},
+"CMFCSpinButtonCtrl": {
+"gm": 5838,
+"gtm": 7316,
+"gt": 0
+},
+"CMFCStandardColorsPropertyPage": {
+"gm": 5839,
+"gtm": 7317,
+"gt": 7023
+},
+"CMFCStatusBar": {
+"gm": 5840,
+"gtm": 7318,
+"gt": 7024
+},
+"CMFCTabCtrl": {
+"gm": 5841,
+"gtm": 7319,
+"gt": 7025
+},
+"CMFCTasksPane": {
+"gm": 5842,
+"gtm": 7320,
+"gt": 7026
+},
+"CMFCTasksPaneFrameWnd": {
+"gm": 5843,
+"gtm": 7321,
+"gt": 7027
+},
+"CMFCTasksPaneToolBar": {
+"gm": 5844,
+"gtm": 7322,
+"gt": 7028
+},
+"CMFCToolBar": {
+"gm": 5845,
+"gtm": 7323,
+"gt": 7029
+},
+"CMFCToolBarButtonCustomizeDialog": {
+"gm": 5846,
+"gtm": 7324,
+"gt": 0
+},
+"CMFCToolBarButtonsListButton": {
+"gm": 5847,
+"gtm": 7325,
+"gt": 0
+},
+"CMFCToolBarComboBoxEdit": {
+"gm": 5848,
+"gtm": 7326,
+"gt": 0
+},
+"CMFCToolBarDateTimeCtrlImpl": {
+"gm": 5849,
+"gtm": 7327,
+"gt": 0
+},
+"CMFCToolBarDropSource": {
+"gm": 5850,
+"gtm": 7328,
+"gt": 0
+},
+"CMFCToolBarDropTarget": {
+"gm": 5851,
+"gtm": 7329,
+"gt": 0
+},
+"CMFCToolBarEditCtrl": {
+"gm": 5852,
+"gtm": 7330,
+"gt": 0
+},
+"CMFCToolBarNameDialog": {
+"gm": 5853,
+"gtm": 7331,
+"gt": 0
+},
+"CMFCToolBarsCommandsListBox": {
+"gm": 5854,
+"gtm": 7332,
+"gt": 0
+},
+"CMFCToolBarsCommandsPropertyPage": {
+"gm": 5855,
+"gtm": 7333,
+"gt": 7039
+},
+"CMFCToolBarsCustomizeDialog": {
+"gm": 5856,
+"gtm": 7334,
+"gt": 7040
+},
+"CMFCToolBarsKeyboardPropertyPage": {
+"gm": 5857,
+"gtm": 7335,
+"gt": 7041
+},
+"CMFCToolBarsListCheckBox": {
+"gm": 5858,
+"gtm": 7336,
+"gt": 0
+},
+"CMFCToolBarsListPropertyPage": {
+"gm": 5859,
+"gtm": 7337,
+"gt": 7042
+},
+"CMFCToolBarsMenuPropertyPage": {
+"gm": 5860,
+"gtm": 7338,
+"gt": 7043
+},
+"CMFCToolBarsOptionsPropertyPage": {
+"gm": 5861,
+"gtm": 7339,
+"gt": 7044
+},
+"CMFCToolBarsToolsPropertyPage": {
+"gm": 5862,
+"gtm": 7340,
+"gt": 0
+},
+"CMFCToolTipCtrl": {
+"gm": 5863,
+"gtm": 7341,
+"gt": 7047
+},
+"CMFCWindowsManagerDialog": {
+"gm": 5864,
+"gtm": 7342,
+"gt": 0
+},
+"CMiniDockFrameWnd": {
+"gm": 5865,
+"gtm": 7343,
+"gt": 7056
+},
+"CMiniFrameWnd": {
+"gm": 5866,
+"gtm": 7344,
+"gt": 7057
+},
+"CMultiPaneFrameWnd": {
+"gm": 5867,
+"gtm": 7345,
+"gt": 7063
+},
+"COleCntrFrameWndEx": {
+"gm": 5868,
+"gtm": 7346,
+"gt": 7074
+},
+"COleControl": {
+"gm": 5869,
+"gtm": 7347,
+"gt": 7075
+},
+"COleDBRecordView": {
+"gm": 5870,
+"gtm": 7348,
+"gt": 7078
+},
+"COleDocIPFrameWnd": {
+"gm": 5871,
+"gtm": 7349,
+"gt": 7081
+},
+"COleDocIPFrameWndEx": {
+"gm": 5872,
+"gtm": 7350,
+"gt": 7082
+},
+"COleIPFrameWnd": {
+"gm": 5873,
+"gtm": 7351,
+"gt": 7087
+},
+"COleIPFrameWndEx": {
+"gm": 5874,
+"gtm": 7352,
+"gt": 7088
+},
+"COlePropertyPage": {
+"gm": 5875,
+"gtm": 7353,
+"gt": 7094
+},
+"COleResizeBar": {
+"gm": 5876,
+"gtm": 7354,
+"gt": 7095
+},
+"COleServerDoc": {
+"gm": 5877,
+"gtm": 7355,
+"gt": 7096
+},
+"COleServerDocEx": {
+"gm": 5878,
+"gtm": 7356,
+"gt": 7097
+},
+"COutlookOptionsDlg": {
+"gm": 5879,
+"gtm": 7357,
+"gt": 0
+},
+"CPane": {
+"gm": 5880,
+"gtm": 7358,
+"gt": 7106
+},
+"CPaneDialog": {
+"gm": 5881,
+"gtm": 7359,
+"gt": 7109
+},
+"CPaneDivider": {
+"gm": 5882,
+"gtm": 7360,
+"gt": 7110
+},
+"CPaneFrameWnd": {
+"gm": 5883,
+"gtm": 7361,
+"gt": 7111
+},
+"CPaneTrackingWnd": {
+"gm": 14317,
+"gtm": 14318,
+"gt": 0
+},
+"CPreviewView": {
+"gm": 5884,
+"gtm": 7362,
+"gt": 7114
+},
+"CPreviewViewEx": {
+"gm": 5885,
+"gtm": 7363,
+"gt": 7115
+},
+"CPrintDialogEx": {
+"gm": 5887,
+"gtm": 7365,
+"gt": 7117
+},
+"CReBar": {
+"gm": 5890,
+"gtm": 7368,
+"gt": 7123
+},
+"CRichEditView": {
+"gm": 5892,
+"gtm": 7370,
+"gt": 7134
+},
+"CScreenWnd": {
+"gm": 5893,
+"gtm": 7371,
+"gt": 0
+},
+"CSmartDockingGroupGuidesWnd": {
+"gm": 5895,
+"gtm": 7373,
+"gt": 0
+},
+"CSmartDockingHighlighterWnd": {
+"gm": 5896,
+"gtm": 7374,
+"gt": 0
+},
+"CSmartDockingStandaloneGuideWnd": {
+"gm": 5897,
+"gtm": 7375,
+"gt": 0
+},
+"CSplitButton": {
+"gm": 5899,
+"gtm": 7377,
+"gt": 7148
+},
+"CSplitterWnd": {
+"gm": 5900,
+"gtm": 7378,
+"gt": 7149
+},
+"CSplitterWndEx": {
+"gm": 5901,
+"gtm": 7379,
+"gt": 7150
+},
+"CStatusBar": {
+"gm": 5902,
+"gtm": 7380,
+"gt": 7152
+},
+"CTabView": {
+"gm": 5905,
+"gtm": 7383,
+"gt": 7160
+},
+"CTabbedPane": {
+"gm": 5903,
+"gtm": 7381,
+"gt": 7158
+},
+"CToolBar": {
+"gm": 5906,
+"gtm": 7384,
+"gt": 7165
+},
+"CToolBarCtrl": {
+"gm": 5907,
+"gtm": 7385,
+"gt": 7166
+},
+"CVSListBox": {
+"gm": 5912,
+"gtm": 7390,
+"gt": 7174
+},
+"CVSListBoxBase": {
+"gm": 5913,
+"gtm": 7391,
+"gt": 7175
+},
+"CVSListBoxEditCtrl": {
+"gm": 5914,
+"gtm": 7392,
+"gt": 7176
+},
+"CWnd": {
+"gm": 5916,
+"gtm": 7394,
+"gt": 7182
+}
+}

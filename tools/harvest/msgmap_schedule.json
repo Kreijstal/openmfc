@@ -1,0 +1,290 @@
+{
+ "1": {
+  "family": "frame",
+  "slug": "frame_01",
+  "classes": [
+   "CControlFrameWnd",
+   "CFrameWndEx",
+   "CMDIChildWndEx",
+   "CMDIClientAreaWnd",
+   "CMDIFrameWndEx",
+   "CMDITabProxyWnd",
+   "CMiniFrameWnd"
+  ]
+ },
+ "2": {
+  "family": "mfc",
+  "slug": "mfc_02",
+  "classes": [
+   "CMFCAcceleratorKeyAssignCtrl",
+   "CMFCAutoHideBar",
+   "CMFCBaseTabCtrl",
+   "CMFCBaseToolBar",
+   "CMFCButton",
+   "CMFCCaptionBar",
+   "CMFCColorBar",
+   "CMFCColorButton"
+  ]
+ },
+ "3": {
+  "family": "mfc",
+  "slug": "mfc_03",
+  "classes": [
+   "CMFCColorDialog",
+   "CMFCColorPickerCtrl",
+   "CMFCColorPopupMenu",
+   "CMFCColorPropertySheet",
+   "CMFCCustomColorsPropertyPage",
+   "CMFCDesktopAlertDialog",
+   "CMFCDesktopAlertWnd",
+   "CMFCDropDownFrame"
+  ]
+ },
+ "4": {
+  "family": "mfc",
+  "slug": "mfc_04",
+  "classes": [
+   "CMFCDropDownListBox",
+   "CMFCDropDownToolBar",
+   "CMFCEditBrowseCtrl",
+   "CMFCFontComboBox",
+   "CMFCHeaderCtrl",
+   "CMFCImageEditorDialog",
+   "CMFCImagePaintArea",
+   "CMFCKeyMapDialog"
+  ]
+ },
+ "5": {
+  "family": "mfc",
+  "slug": "mfc_05",
+  "classes": [
+   "CMFCLinkCtrl",
+   "CMFCListCtrl",
+   "CMFCMaskedEdit",
+   "CMFCMenuBar",
+   "CMFCMenuButton",
+   "CMFCMousePropertyPage",
+   "CMFCOutlookBar",
+   "CMFCOutlookBarPane"
+  ]
+ },
+ "6": {
+  "family": "mfc",
+  "slug": "mfc_06",
+  "classes": [
+   "CMFCOutlookBarPaneAdapter",
+   "CMFCOutlookBarTabCtrl",
+   "CMFCOutlookBarToolBar",
+   "CMFCPopupMenu",
+   "CMFCPopupMenuBar",
+   "CMFCPreviewCtrlImpl",
+   "CMFCPrintPreviewToolBar",
+   "CMFCReBar"
+  ]
+ },
+ "7": {
+  "family": "mfc",
+  "slug": "mfc_07",
+  "classes": [
+   "CMFCShadowWnd",
+   "CMFCShellListCtrl",
+   "CMFCShellTreeCtrl",
+   "CMFCSpinButtonCtrl",
+   "CMFCStandardColorsPropertyPage",
+   "CMFCStatusBar",
+   "CMFCTabCtrl",
+   "CMFCTasksPane"
+  ]
+ },
+ "8": {
+  "family": "mfc",
+  "slug": "mfc_08",
+  "classes": [
+   "CMFCTasksPaneFrameWnd",
+   "CMFCTasksPaneToolBar",
+   "CMFCToolTipCtrl",
+   "CMFCWindowsManagerDialog"
+  ]
+ },
+ "9": {
+  "family": "ole",
+  "slug": "ole_09",
+  "classes": [
+   "COleCntrFrameWndEx",
+   "COleControl",
+   "COleDBRecordView",
+   "COleDocIPFrameWnd",
+   "COleDocIPFrameWndEx",
+   "COleIPFrameWnd",
+   "COleIPFrameWndEx",
+   "COlePropertyPage"
+  ]
+ },
+ "10": {
+  "family": "ole",
+  "slug": "ole_10",
+  "classes": [
+   "COleResizeBar",
+   "COleServerDoc",
+   "COleServerDocEx"
+  ]
+ },
+ "11": {
+  "family": "other",
+  "slug": "other_11",
+  "classes": [
+   "CCmdTarget",
+   "CCommonDialog",
+   "CControlBar",
+   "CCtrlView",
+   "CDHtmlDialog",
+   "CDialogBar",
+   "CDocObjectServer",
+   "CHtmlEditView"
+  ]
+ },
+ "12": {
+  "family": "other",
+  "slug": "other_12",
+  "classes": [
+   "CHtmlView",
+   "COutlookOptionsDlg",
+   "CPreviewView",
+   "CPreviewViewEx",
+   "CPrintDialogEx",
+   "CReBar",
+   "CRichEditView",
+   "CScreenWnd"
+  ]
+ },
+ "13": {
+  "family": "other",
+  "slug": "other_13",
+  "classes": [
+   "CSplitButton",
+   "CSplitterWnd",
+   "CSplitterWndEx",
+   "CStatusBar",
+   "CTabView",
+   "CToolBar",
+   "CToolBarCtrl",
+   "CVSListBox"
+  ]
+ },
+ "14": {
+  "family": "other",
+  "slug": "other_14",
+  "classes": [
+   "CVSListBoxBase",
+   "CVSListBoxEditCtrl",
+   "CWnd"
+  ]
+ },
+ "15": {
+  "family": "pane",
+  "slug": "pane_15",
+  "classes": [
+   "CAutoHideDockSite",
+   "CBasePane",
+   "CBaseTabbedPane",
+   "CDockBar",
+   "CDockSite",
+   "CDockablePane",
+   "CDockablePaneAdapter",
+   "CDummyDockablePane"
+  ]
+ },
+ "16": {
+  "family": "pane",
+  "slug": "pane_16",
+  "classes": [
+   "CMiniDockFrameWnd",
+   "CMultiPaneFrameWnd",
+   "CPane",
+   "CPaneDialog",
+   "CPaneDivider",
+   "CPaneFrameWnd",
+   "CPaneTrackingWnd",
+   "CSmartDockingGroupGuidesWnd"
+  ]
+ },
+ "17": {
+  "family": "pane",
+  "slug": "pane_17",
+  "classes": [
+   "CSmartDockingHighlighterWnd",
+   "CSmartDockingStandaloneGuideWnd",
+   "CTabbedPane"
+  ]
+ },
+ "18": {
+  "family": "propgrid",
+  "slug": "propgrid_18",
+  "classes": [
+   "CMFCPropertyGridCtrl",
+   "CMFCPropertyGridToolTipCtrl",
+   "CMFCPropertyPage",
+   "CMFCPropertySheet",
+   "CMFCPropertySheetListBox"
+  ]
+ },
+ "19": {
+  "family": "ribbon",
+  "slug": "ribbon_19",
+  "classes": [
+   "CMFCRibbonBar",
+   "CMFCRibbonCommandsListBox",
+   "CMFCRibbonCustomizePropertyPage",
+   "CMFCRibbonKeyTip",
+   "CMFCRibbonKeyboardCustomizeDialog",
+   "CMFCRibbonMiniToolBar",
+   "CMFCRibbonPanelMenu",
+   "CMFCRibbonPanelMenuBar"
+  ]
+ },
+ "20": {
+  "family": "ribbon",
+  "slug": "ribbon_20",
+  "classes": [
+   "CMFCRibbonRichEditCtrl",
+   "CMFCRibbonSpinButtonCtrl",
+   "CMFCRibbonStatusBar"
+  ]
+ },
+ "21": {
+  "family": "toolbar",
+  "slug": "toolbar_21",
+  "classes": [
+   "CMFCToolBar",
+   "CMFCToolBarButtonCustomizeDialog",
+   "CMFCToolBarButtonsListButton",
+   "CMFCToolBarComboBoxEdit",
+   "CMFCToolBarDateTimeCtrlImpl",
+   "CMFCToolBarDropSource",
+   "CMFCToolBarDropTarget",
+   "CMFCToolBarEditCtrl"
+  ]
+ },
+ "22": {
+  "family": "toolbar",
+  "slug": "toolbar_22",
+  "classes": [
+   "CMFCToolBarNameDialog",
+   "CMFCToolBarsCommandsListBox",
+   "CMFCToolBarsCommandsPropertyPage",
+   "CMFCToolBarsCustomizeDialog",
+   "CMFCToolBarsKeyboardPropertyPage",
+   "CMFCToolBarsListCheckBox",
+   "CMFCToolBarsListPropertyPage",
+   "CMFCToolBarsMenuPropertyPage"
+  ]
+ },
+ "23": {
+  "family": "toolbar",
+  "slug": "toolbar_23",
+  "classes": [
+   "CMFCToolBarsOptionsPropertyPage",
+   "CMFCToolBarsToolsPropertyPage"
+  ]
+ }
+}
