@@ -6,11 +6,19 @@
 #
 # Usage: build_family_probe.sh <probe.cpp>   (prints the probe's stdout)
 #
-# Requires the local msvc-wine toolchain at $MSVC (clang-cl, lld-link, wine) plus the
-# real atlmfc headers/libs and the x64 redist DLLs. Creates exact-case header/lib
-# symlinks on first run (Linux is case-sensitive; MFC #includes are mixed-case).
+# Requires a local msvc-wine toolchain (clang-cl, lld-link, wine) plus the real atlmfc
+# headers/libs and the x64 redist DLLs. Set MSVC=/path/to/sdk-root to point at it; if
+# unset, common locations are auto-detected. Creates exact-case header/lib symlinks on
+# first run (Linux is case-sensitive; MFC #includes are mixed-case).
 set -euo pipefail
-MSVC="${MSVC:-/home/kreijstal/msvc}"
+# Resolve the MSVC SDK root: explicit $MSVC wins, else probe common install dirs.
+if [ -z "${MSVC:-}" ]; then
+  for cand in "$HOME/msvc" /opt/msvc /tmp/msvc/unpack /tmp/msvc-dl; do
+    [ -d "$cand/VC/Tools/MSVC" ] && { MSVC="$cand"; break; }
+  done
+fi
+MSVC="${MSVC:-$HOME/msvc}"
+[ -d "$MSVC/VC/Tools/MSVC" ] || { echo "ERROR: MSVC SDK not found under '$MSVC' (set MSVC=/path/to/sdk-root)"; exit 1; }
 MSVC_VER="$(ls -1 "$MSVC/VC/Tools/MSVC" | sort -V | tail -1)"
 SDK_VER="$(ls -1 "$MSVC/Windows Kits/10/Include" | sort -V | tail -1)"
 PROBE="${1:?usage: build_family_probe.sh <probe.cpp>}"
