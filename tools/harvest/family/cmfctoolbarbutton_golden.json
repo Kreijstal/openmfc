@@ -1,0 +1,55 @@
+{
+  "_comment": "Ground-truth harvested from REAL mfc140u.dll (Redist 14.51.36231) under wine via cmfctoolbarbutton_golden_probe.cpp + build_family_probe.sh on 2026-06-24. This is the verification target the OpenMFC real-class-body impl must reproduce byte/value-exact.",
+  "class": "CMFCToolBarButton",
+  "base": "CObject",
+  "declare_macro": "DECLARE_SERIAL(CMFCToolBarButton)",
+  "rtti": { "schema": "0x80000001", "objsize": 136, "createobject_nonnull": true,
+            "schema_meaning": "VERSIONABLE_SCHEMA(0x80000000) | version 1" },
+  "sizeof": 136,
+  "layout": {
+    "_packing": "x64 default /Zp8, vfptr@0",
+    "m_bUserButton": 8, "m_bText": 12, "m_bImage": 16, "m_bWrap": 20,
+    "m_bWholeText": 24, "m_bTextBelow": 28, "m_bDragFromCollection": 32,
+    "m_nID": 36, "m_nStyle": 40, "m_dwdItemData": 48, "m_strText": 56,
+    "m_strTextCustom": 64, "m_iImage": 72, "m_iUserImage": 76, "m_bLocked": 80,
+    "m_bIsHidden": 84, "m_bDisableFill": 88, "m_bExtraSize": 92, "m_bHorz": 96,
+    "m_bVisible": 100, "m_rect": 104, "m_sizeText": 120, "m_pWndParent": 128
+  },
+  "default_ctor": {
+    "_note": "real mfc140u Initialize() values; m_iImage AND m_iUserImage are both -1 (no-image sentinel), and m_bImage/m_bWholeText/m_bHorz/m_bVisible default TRUE",
+    "m_nID": 0, "m_nStyle": 0, "m_iImage": -1, "m_iUserImage": -1,
+    "m_bUserButton": 0, "m_bLocked": 0, "m_bText": 0, "m_bImage": 1,
+    "m_bWrap": 0, "m_bWholeText": 1, "m_bTextBelow": 0, "m_bDragFromCollection": 0,
+    "m_bIsHidden": 0, "m_bDisableFill": 0, "m_bExtraSize": 0, "m_bVisible": 1, "m_bHorz": 1,
+    "m_strText": "", "m_strTextCustom": "", "m_dwdItemData": 0, "m_rect": [0,0,0,0]
+  },
+  "param_ctor": {
+    "_args": "CMFCToolBarButton(123, 5, L\"Hello\", bUserButton=TRUE, bLocked=FALSE)",
+    "_note": "user button -> iImage stays -1, iUserImage set to 5; non-user -> iImage set, iUserImage stays -1",
+    "m_nID": 123, "GetImage": 5, "m_iImage": -1, "m_iUserImage": 5,
+    "m_bUserButton": 1, "m_strText": "Hello"
+  },
+  "SetImage_9_on_userbutton": { "GetImage_after": 9 },
+  "CopyFrom_then_CompareWith": { "equal": 1, "after_id_change": 0 },
+  "serialize": {
+    "_via": "CArchive(store) into CMemFile of the SetImage(9) param button",
+    "len": 46,
+    "hex": "7B0000000000000009000000FFFEFF05480065006C006C006F000100000000000000000000000100000001000000",
+    "field_order": [
+      "m_nID         (UINT  DWORD)",
+      "m_nStyle      (UINT  DWORD)",
+      "m_iImage      (int   DWORD, default -1 = FFFFFFFF)",
+      "m_strText     (CArchive CStringW: FF FE FF, count byte, UTF-16LE chars)",
+      "m_bUserButton (DWORD)",
+      "<reserved 0>  (DWORD, always 0 for base button; not driven by any settable field)",
+      "m_bText       (DWORD)",
+      "m_bImage      (DWORD, default 1)",
+      "m_bVisible    (DWORD, default 1)"
+    ],
+    "not_serialized": ["m_bWrap","m_bWholeText","m_bTextBelow","m_bIsHidden",
+      "m_bHorz","m_bLocked","m_bDisableFill","m_bExtraSize","m_iUserImage",
+      "m_dwdItemData","m_strTextCustom"],
+    "baseline_default_hex": "0000000000000000FFFFFFFFFFFEFF000000000000000000000000000100000001000000",
+    "roundtrip_compare_equal": 1
+  }
+}
