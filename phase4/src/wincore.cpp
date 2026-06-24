@@ -1166,9 +1166,29 @@ const AFX_INTERFACEMAP* CWnd::GetThisInterfaceMap()
     return nullptr;
 }
 
+// CWnd's message map: real MFC bases it on CCmdTarget (harvested by pointer
+// identity from mfc140u.dll). Returning null here made a real client crash when it
+// walked CWnd's map during message/command routing. The handler entries are real
+// mfc140u code addresses we cannot replicate, so use the empty terminator and chain
+// pfnGetBaseMap to CCmdTarget's exported GetThisMessageMap (the _AFXDLL mechanism).
+namespace {
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCmdTarget__KAPEBUAFX_MSGMAP__XZ();
+const AFX_MSGMAP_ENTRY g_cwndEmptyMsgEntries[] = { {0,0,0,0, AfxSig_end, (AFX_PMSG)0} };
+const AFX_MSGMAP* AFXAPI gbm_CWnd_base() { return impl__GetThisMessageMap_CCmdTarget__KAPEBUAFX_MSGMAP__XZ(); }
+const AFX_MSGMAP g_cwndMessageMap = { gbm_CWnd_base, g_cwndEmptyMsgEntries };
+} // namespace
+
 const AFX_MSGMAP* CWnd::GetThisMessageMap()
 {
-    return nullptr;
+    return &g_cwndMessageMap;
+}
+
+// The exported virtual GetMessageMap was a weak stub returning null; give it the
+// same base-chained map so a real client's CWnd routing does not null-deref.
+// Symbol: ?GetMessageMap@CWnd@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*)
+{
+    return &g_cwndMessageMap;
 }
 
 int CWnd::GrayCtlColor(HDC p0, HWND p1, UINT p2, HBRUSH p3, DWORD p4)
