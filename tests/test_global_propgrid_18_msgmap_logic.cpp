@@ -32,6 +32,8 @@ int main(){
         check(gm == gt, "CMFCPropertyGridCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCPropertyGridCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCPropertyGridCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCPropertyGridCtrl pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCPropertyGridToolTipCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -40,6 +42,8 @@ int main(){
         check(gm == gt, "CMFCPropertyGridToolTipCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCPropertyGridToolTipCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCPropertyGridToolTipCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCPropertyGridToolTipCtrl pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCPropertyPage__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -48,6 +52,8 @@ int main(){
         check(gm == gt, "CMFCPropertyPage GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCPropertyPage lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCPropertyPage base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertyPage_map,
+              "CMFCPropertyPage pfnGetBaseMap resolves to CPropertyPage map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCPropertySheet__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -56,6 +62,8 @@ int main(){
         check(gm == gt, "CMFCPropertySheet GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCPropertySheet lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCPropertySheet base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertySheet_map,
+              "CMFCPropertySheet pfnGetBaseMap resolves to CPropertySheet map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCPropertySheetListBox__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -64,6 +72,8 @@ int main(){
         check(gm == gt, "CMFCPropertySheetListBox GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCPropertySheetListBox lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCPropertySheetListBox base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCPropertySheetListBox pfnGetBaseMap resolves to CWnd map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

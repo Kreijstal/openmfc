@@ -38,6 +38,8 @@ int main(){
         check(gm == gt, "CMFCLinkCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCLinkCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCLinkCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCButton_map,
+              "CMFCLinkCtrl pfnGetBaseMap resolves to CMFCButton map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCListCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -46,6 +48,8 @@ int main(){
         check(gm == gt, "CMFCListCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCListCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCListCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CListCtrl_map,
+              "CMFCListCtrl pfnGetBaseMap resolves to CListCtrl map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCMaskedEdit__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -54,6 +58,8 @@ int main(){
         check(gm == gt, "CMFCMaskedEdit GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCMaskedEdit lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCMaskedEdit base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCMaskedEdit pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCMenuBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -62,6 +68,8 @@ int main(){
         check(gm == gt, "CMFCMenuBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCMenuBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCMenuBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCToolBar_map,
+              "CMFCMenuBar pfnGetBaseMap resolves to CMFCToolBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCMenuButton__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -70,6 +78,8 @@ int main(){
         check(gm == gt, "CMFCMenuButton GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCMenuButton lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCMenuButton base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCButton_map,
+              "CMFCMenuButton pfnGetBaseMap resolves to CMFCButton map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCMousePropertyPage__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -78,6 +88,8 @@ int main(){
         check(gm == gt, "CMFCMousePropertyPage GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCMousePropertyPage lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCMousePropertyPage base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertyPage_map,
+              "CMFCMousePropertyPage pfnGetBaseMap resolves to CPropertyPage map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCOutlookBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -86,6 +98,8 @@ int main(){
         check(gm == gt, "CMFCOutlookBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCOutlookBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCOutlookBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CBaseTabbedPane_map,
+              "CMFCOutlookBar pfnGetBaseMap resolves to CBaseTabbedPane map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCOutlookBarPane__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -94,6 +108,8 @@ int main(){
         check(gm == gt, "CMFCOutlookBarPane GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCOutlookBarPane lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCOutlookBarPane base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCToolBar_map,
+              "CMFCOutlookBarPane pfnGetBaseMap resolves to CMFCToolBar map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

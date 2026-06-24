@@ -34,6 +34,8 @@ int main(){
         check(gm == gt, "CMFCTasksPaneFrameWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCTasksPaneFrameWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCTasksPaneFrameWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPaneFrameWnd_map,
+              "CMFCTasksPaneFrameWnd pfnGetBaseMap resolves to CPaneFrameWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCTasksPaneToolBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -42,6 +44,8 @@ int main(){
         check(gm == gt, "CMFCTasksPaneToolBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCTasksPaneToolBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCTasksPaneToolBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCToolBar_map,
+              "CMFCTasksPaneToolBar pfnGetBaseMap resolves to CMFCToolBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCToolTipCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -50,6 +54,8 @@ int main(){
         check(gm == gt, "CMFCToolTipCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCToolTipCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCToolTipCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CToolTipCtrl_map,
+              "CMFCToolTipCtrl pfnGetBaseMap resolves to CToolTipCtrl map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCWindowsManagerDialog__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -58,6 +64,8 @@ int main(){
         check(gm == gt, "CMFCWindowsManagerDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCWindowsManagerDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCWindowsManagerDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialog_map,
+              "CMFCWindowsManagerDialog pfnGetBaseMap resolves to CDialog map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

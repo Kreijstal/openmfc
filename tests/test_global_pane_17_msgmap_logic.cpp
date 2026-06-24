@@ -30,6 +30,8 @@ int main(){
         check(gm == gt, "CSmartDockingHighlighterWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CSmartDockingHighlighterWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CSmartDockingHighlighterWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CSmartDockingHighlighterWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CSmartDockingStandaloneGuideWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -38,6 +40,8 @@ int main(){
         check(gm == gt, "CSmartDockingStandaloneGuideWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CSmartDockingStandaloneGuideWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CSmartDockingStandaloneGuideWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CSmartDockingStandaloneGuideWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CTabbedPane__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -46,6 +50,8 @@ int main(){
         check(gm == gt, "CTabbedPane GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CTabbedPane lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CTabbedPane base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CBaseTabbedPane_map,
+              "CTabbedPane pfnGetBaseMap resolves to CBaseTabbedPane map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

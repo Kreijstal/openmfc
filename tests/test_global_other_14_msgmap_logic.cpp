@@ -30,6 +30,8 @@ int main(){
         check(gm == gt, "CVSListBoxBase GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CVSListBoxBase lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CVSListBoxBase base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CVSListBoxBase pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CVSListBoxEditCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -38,6 +40,8 @@ int main(){
         check(gm == gt, "CVSListBoxEditCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CVSListBoxEditCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CVSListBoxEditCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCEditBrowseCtrl_map,
+              "CVSListBoxEditCtrl pfnGetBaseMap resolves to CMFCEditBrowseCtrl map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

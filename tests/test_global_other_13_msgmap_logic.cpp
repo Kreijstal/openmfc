@@ -34,6 +34,8 @@ int main(){
         check(gm == gt, "CSplitButton GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CSplitButton lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CSplitButton base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CSplitButton pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CSplitterWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -42,6 +44,8 @@ int main(){
         check(gm == gt, "CSplitterWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CSplitterWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CSplitterWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CSplitterWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CSplitterWndEx__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -50,6 +54,8 @@ int main(){
         check(gm == gt, "CSplitterWndEx GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CSplitterWndEx lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CSplitterWndEx base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &classCSplitterWnd_msgmap,
+              "CSplitterWndEx pfnGetBaseMap resolves to CSplitterWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CStatusBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -58,6 +64,8 @@ int main(){
         check(gm == gt, "CStatusBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CStatusBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CStatusBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CControlBar_map,
+              "CStatusBar pfnGetBaseMap resolves to CControlBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CTabView__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -66,6 +74,8 @@ int main(){
         check(gm == gt, "CTabView GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CTabView lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CTabView base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CView_map,
+              "CTabView pfnGetBaseMap resolves to CView map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -74,6 +84,8 @@ int main(){
         check(gm == gt, "CToolBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CToolBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CToolBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CControlBar_map,
+              "CToolBar pfnGetBaseMap resolves to CControlBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CToolBarCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -82,6 +94,8 @@ int main(){
         check(gm == gt, "CToolBarCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CToolBarCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CToolBarCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CToolBarCtrl pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CVSListBox__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -90,6 +104,8 @@ int main(){
         check(gm == gt, "CVSListBox GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CVSListBox lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CVSListBox base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CVSListBoxBase_map,
+              "CVSListBox pfnGetBaseMap resolves to CVSListBoxBase map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;
