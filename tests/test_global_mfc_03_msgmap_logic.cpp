@@ -38,6 +38,8 @@ int main(){
         check(gm == gt, "CMFCColorDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCColorDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCColorDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialogEx_map,
+              "CMFCColorDialog pfnGetBaseMap resolves to CDialogEx map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCColorPickerCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -46,6 +48,8 @@ int main(){
         check(gm == gt, "CMFCColorPickerCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCColorPickerCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCColorPickerCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCColorPickerCtrl pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCColorPopupMenu__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -54,6 +58,8 @@ int main(){
         check(gm == gt, "CMFCColorPopupMenu GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCColorPopupMenu lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCColorPopupMenu base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCPopupMenu_map,
+              "CMFCColorPopupMenu pfnGetBaseMap resolves to CMFCPopupMenu map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCColorPropertySheet__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -62,6 +68,8 @@ int main(){
         check(gm == gt, "CMFCColorPropertySheet GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCColorPropertySheet lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCColorPropertySheet base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertySheet_map,
+              "CMFCColorPropertySheet pfnGetBaseMap resolves to CPropertySheet map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCCustomColorsPropertyPage__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -70,6 +78,8 @@ int main(){
         check(gm == gt, "CMFCCustomColorsPropertyPage GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCCustomColorsPropertyPage lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCCustomColorsPropertyPage base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertyPage_map,
+              "CMFCCustomColorsPropertyPage pfnGetBaseMap resolves to CPropertyPage map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCDesktopAlertDialog__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -78,6 +88,8 @@ int main(){
         check(gm == gt, "CMFCDesktopAlertDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCDesktopAlertDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCDesktopAlertDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialogEx_map,
+              "CMFCDesktopAlertDialog pfnGetBaseMap resolves to CDialogEx map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCDesktopAlertWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -86,6 +98,8 @@ int main(){
         check(gm == gt, "CMFCDesktopAlertWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCDesktopAlertWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCDesktopAlertWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCDesktopAlertWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCDropDownFrame__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -94,6 +108,8 @@ int main(){
         check(gm == gt, "CMFCDropDownFrame GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCDropDownFrame lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCDropDownFrame base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMiniFrameWnd_map,
+              "CMFCDropDownFrame pfnGetBaseMap resolves to CMiniFrameWnd map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

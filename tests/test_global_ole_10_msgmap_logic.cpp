@@ -30,6 +30,8 @@ int main(){
         check(gm == gt, "COleResizeBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "COleResizeBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "COleResizeBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CControlBar_map,
+              "COleResizeBar pfnGetBaseMap resolves to CControlBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_COleServerDoc__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -38,6 +40,8 @@ int main(){
         check(gm == gt, "COleServerDoc GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "COleServerDoc lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "COleServerDoc base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDocument_map,
+              "COleServerDoc pfnGetBaseMap resolves to CDocument map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_COleServerDocEx__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -46,6 +50,8 @@ int main(){
         check(gm == gt, "COleServerDocEx GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "COleServerDocEx lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "COleServerDocEx base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &classCOleServerDoc_msgmap,
+              "COleServerDocEx pfnGetBaseMap resolves to COleServerDoc map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

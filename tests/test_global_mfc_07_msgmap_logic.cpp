@@ -42,6 +42,8 @@ int main(){
         check(gm == gt, "CMFCShadowWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCShadowWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCShadowWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMiniFrameWnd_map,
+              "CMFCShadowWnd pfnGetBaseMap resolves to CMiniFrameWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCShellListCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -50,6 +52,8 @@ int main(){
         check(gm == gt, "CMFCShellListCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCShellListCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCShellListCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCListCtrl_map,
+              "CMFCShellListCtrl pfnGetBaseMap resolves to CMFCListCtrl map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCShellTreeCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -58,6 +62,8 @@ int main(){
         check(gm == gt, "CMFCShellTreeCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCShellTreeCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCShellTreeCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CTreeCtrl_map,
+              "CMFCShellTreeCtrl pfnGetBaseMap resolves to CTreeCtrl map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCSpinButtonCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -66,6 +72,8 @@ int main(){
         check(gm == gt, "CMFCSpinButtonCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCSpinButtonCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCSpinButtonCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCSpinButtonCtrl pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCStandardColorsPropertyPage__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -74,6 +82,8 @@ int main(){
         check(gm == gt, "CMFCStandardColorsPropertyPage GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCStandardColorsPropertyPage lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCStandardColorsPropertyPage base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPropertyPage_map,
+              "CMFCStandardColorsPropertyPage pfnGetBaseMap resolves to CPropertyPage map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCStatusBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -82,6 +92,8 @@ int main(){
         check(gm == gt, "CMFCStatusBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCStatusBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCStatusBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPane_map,
+              "CMFCStatusBar pfnGetBaseMap resolves to CPane map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCTabCtrl__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -90,6 +102,8 @@ int main(){
         check(gm == gt, "CMFCTabCtrl GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCTabCtrl lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCTabCtrl base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCBaseTabCtrl_map,
+              "CMFCTabCtrl pfnGetBaseMap resolves to CMFCBaseTabCtrl map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCTasksPane__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -98,6 +112,8 @@ int main(){
         check(gm == gt, "CMFCTasksPane GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCTasksPane lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCTasksPane base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDockablePane_map,
+              "CMFCTasksPane pfnGetBaseMap resolves to CDockablePane map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

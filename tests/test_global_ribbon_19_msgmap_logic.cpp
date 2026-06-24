@@ -38,6 +38,8 @@ int main(){
         check(gm == gt, "CMFCRibbonBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CPane_map,
+              "CMFCRibbonBar pfnGetBaseMap resolves to CPane map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonCommandsListBox__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -46,6 +48,8 @@ int main(){
         check(gm == gt, "CMFCRibbonCommandsListBox GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonCommandsListBox lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonCommandsListBox base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCRibbonCommandsListBox pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonCustomizePropertyPage__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -54,6 +58,8 @@ int main(){
         check(gm == gt, "CMFCRibbonCustomizePropertyPage GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonCustomizePropertyPage lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonCustomizePropertyPage base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCPropertyPage_map,
+              "CMFCRibbonCustomizePropertyPage pfnGetBaseMap resolves to CMFCPropertyPage map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonKeyTip__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -62,6 +68,8 @@ int main(){
         check(gm == gt, "CMFCRibbonKeyTip GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonKeyTip lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonKeyTip base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMFCRibbonKeyTip pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonKeyboardCustomizeDialog__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -70,6 +78,8 @@ int main(){
         check(gm == gt, "CMFCRibbonKeyboardCustomizeDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonKeyboardCustomizeDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonKeyboardCustomizeDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialogEx_map,
+              "CMFCRibbonKeyboardCustomizeDialog pfnGetBaseMap resolves to CDialogEx map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonMiniToolBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -78,6 +88,8 @@ int main(){
         check(gm == gt, "CMFCRibbonMiniToolBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonMiniToolBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonMiniToolBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &classCMFCRibbonPanelMenu_msgmap,
+              "CMFCRibbonMiniToolBar pfnGetBaseMap resolves to CMFCRibbonPanelMenu map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonPanelMenu__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -86,6 +98,8 @@ int main(){
         check(gm == gt, "CMFCRibbonPanelMenu GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonPanelMenu lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonPanelMenu base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCPopupMenu_map,
+              "CMFCRibbonPanelMenu pfnGetBaseMap resolves to CMFCPopupMenu map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMFCRibbonPanelMenuBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -94,6 +108,8 @@ int main(){
         check(gm == gt, "CMFCRibbonPanelMenuBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMFCRibbonPanelMenuBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMFCRibbonPanelMenuBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMFCPopupMenuBar_map,
+              "CMFCRibbonPanelMenuBar pfnGetBaseMap resolves to CMFCPopupMenuBar map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

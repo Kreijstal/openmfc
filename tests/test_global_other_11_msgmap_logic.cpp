@@ -42,6 +42,8 @@ int main(){
         check(gm == gt, "CCommonDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CCommonDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CCommonDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialog_map,
+              "CCommonDialog pfnGetBaseMap resolves to CDialog map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CControlBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -50,6 +52,8 @@ int main(){
         check(gm == gt, "CControlBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CControlBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CControlBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CControlBar pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CCtrlView__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -58,6 +62,8 @@ int main(){
         check(gm == gt, "CCtrlView GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CCtrlView lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CCtrlView base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CView_map,
+              "CCtrlView pfnGetBaseMap resolves to CView map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CDHtmlDialog__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -66,6 +72,8 @@ int main(){
         check(gm == gt, "CDHtmlDialog GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CDHtmlDialog lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CDHtmlDialog base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CDialog_map,
+              "CDHtmlDialog pfnGetBaseMap resolves to CDialog map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CDialogBar__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -74,6 +82,8 @@ int main(){
         check(gm == gt, "CDialogBar GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CDialogBar lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CDialogBar base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &classCControlBar_msgmap,
+              "CDialogBar pfnGetBaseMap resolves to CControlBar map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CDocObjectServer__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -82,6 +92,8 @@ int main(){
         check(gm == gt, "CDocObjectServer GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CDocObjectServer lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CDocObjectServer base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &classCCmdTarget_msgmap,
+              "CDocObjectServer pfnGetBaseMap resolves to CCmdTarget map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CHtmlEditView__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -90,6 +102,8 @@ int main(){
         check(gm == gt, "CHtmlEditView GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CHtmlEditView lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CHtmlEditView base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CFormView_map,
+              "CHtmlEditView pfnGetBaseMap resolves to CFormView map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

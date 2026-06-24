@@ -34,6 +34,8 @@ int main(){
         check(gm == gt, "CControlFrameWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CControlFrameWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CControlFrameWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CControlFrameWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CFrameWndEx__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -42,6 +44,8 @@ int main(){
         check(gm == gt, "CFrameWndEx GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CFrameWndEx lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CFrameWndEx base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CFrameWnd_map,
+              "CFrameWndEx pfnGetBaseMap resolves to CFrameWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMDIChildWndEx__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -50,6 +54,8 @@ int main(){
         check(gm == gt, "CMDIChildWndEx GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMDIChildWndEx lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMDIChildWndEx base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMDIChildWnd_map,
+              "CMDIChildWndEx pfnGetBaseMap resolves to CMDIChildWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMDIClientAreaWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -58,6 +64,8 @@ int main(){
         check(gm == gt, "CMDIClientAreaWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMDIClientAreaWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMDIClientAreaWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMDIClientAreaWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMDIFrameWndEx__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -66,6 +74,8 @@ int main(){
         check(gm == gt, "CMDIFrameWndEx GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMDIFrameWndEx lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMDIFrameWndEx base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CMDIFrameWnd_map,
+              "CMDIFrameWndEx pfnGetBaseMap resolves to CMDIFrameWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMDITabProxyWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -74,6 +84,8 @@ int main(){
         check(gm == gt, "CMDITabProxyWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMDITabProxyWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMDITabProxyWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CWnd_map,
+              "CMDITabProxyWnd pfnGetBaseMap resolves to CWnd map");
     }
     {
         const AFX_MSGMAP* gm = impl__GetMessageMap_CMiniFrameWnd__MEBAPEBUAFX_MSGMAP__XZ(nullptr);
@@ -82,6 +94,8 @@ int main(){
         check(gm == gt, "CMiniFrameWnd GetMessageMap==GetThisMessageMap");
         check(gm && gm->lpEntries != nullptr, "CMiniFrameWnd lpEntries non-null");
         check(gm && gm->pfnGetBaseMap != nullptr, "CMiniFrameWnd base chain set");
+        check(gm && gm->pfnGetBaseMap && gm->pfnGetBaseMap() == &s_CFrameWnd_map,
+              "CMiniFrameWnd pfnGetBaseMap resolves to CFrameWnd map");
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;
