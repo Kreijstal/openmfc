@@ -1,0 +1,20 @@
+struct V{const char*n;int ord;};
+static V VIRT[]={
+  {"GetRuntimeClass",6467},
+  {"Serialize",12815},
+  {"CopyFrom",3024},
+  {"OnDraw",9260},
+  {"OnCalculateSize",8723},
+  {"OnChangeParentWnd",8786},
+  {"ExportToMenuButton",4455},
+  {"OnDrawOnCustomizeList",9438},
+  {"OnToolHitTest",11403},
+  {"ResetImageToDefault",12507},
+  {"CompareWith",2914},
+  {"IsFirstInGroup",7910},
+  {"IsLastInGroup",7933},
+  {"SetACCData",12880},
+  {"GetAccCount",4862},
+  {"PrepareDrag",11824},
+  {"SetImage",13269},
+};

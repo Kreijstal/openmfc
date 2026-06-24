@@ -67,6 +67,40 @@ Key facts (real mfc140u 14.51.36231):
    - Windows CI (compile + MSVC link + wine runtime) is the final authoritative gate.
 4. PR, watch Windows CI, squash-merge, update memory.
 
+## Vtable order (harvested — required before behavioral virtual methods)
+Virtual dispatch from a real client uses real `mfc140u`'s slot indices, so to override
+`Serialize`/`CopyFrom`/`CompareWith`/etc. our header must declare the full virtual list in
+the SAME order, producing the same 53-slot vtable. Harvested + verified in
+`cmfctoolbarbutton_vtable.json` (probe: `cmfctoolbarbutton_vtable_probe.cpp`): every
+exported virtual's slot was found by exact-address match in the real vtable (by ordinal),
+and all 17 land exactly where SDK-header declaration order predicts. Key slots:
+`[0] GetRuntimeClass, [1] dtor, [2] Serialize, [3] AssertValid, [4] Dump, [5] PrepareDrag,
+[7] CopyFrom, [8] OnDraw, [9] OnCalculateSize, [12] OnChangeParentWnd, [13] ExportToMenuButton,
+[29] OnDrawOnCustomizeList, [33] OnToolHitTest, [38] ResetImageToDefault, [39] CompareWith,
+[46] IsFirstInGroup, [47] IsLastInGroup, [48] SetACCData, [49] GetAccCount, [50] SetImage`
+(total 53). CObject overrides (~dtor/Serialize/AssertValid/Dump) fold into base slots 1-4;
+CMFCToolBarButton's new virtuals start at slot 5.
+
+### Increment 2 DONE — installed 53-slot MSVC vtable + vptr patch
+`phase4/src/global_cmfctoolbarbutton_msvtbl.cpp` hand-authors the full 53-slot MSVC-layout
+vtable (same mechanism as the CFile spike, `global_cfile_msvtbl.cpp`) — NOT by declaring 48
+mingw virtuals in our header, which would only produce an *Itanium* vtable that mis-dispatches
+every slot past the destructor. The two exported ctors (`thunks.cpp`) call
+`OpenMFC_PatchToolBarButtonVtable` right after the mingw ctor, so a drop-in MSVC client's
+virtual calls land on the right slots. Behavioral slots reproduce HARVESTED semantics:
+SetImage (user→m_iUserImage else m_iImage), ResetImageToDefault (base no-op — derived
+override), CompareWith (base compares ONLY m_nID), CopyFrom (full data-member copy), SetStyle/
+GetInvalidateRect/IsExtraSize (SDK inline). GUI/OLE slots keep faithful signatures + honest
+minimal returns. Named exports Serialize/CopyFrom/CompareWith/SetImage/ResetImageToDefault
+flipped from weak null stubs to real bodies. VERIFIED end-to-end:
+`cmfctoolbarbutton_ourvtable_probe.cpp` explicit-LoadLibrary's our built openmfc.dll, reads the
+vptr the ctor installed, and DISPATCHES THROUGH the vtable (vptr[slot]) — 15/15 checks pass
+(all 53 slots non-null; slot0/7/36/37/38/39/50/52 behavior matches harvest). ABI build stays
+14,109 exact / 0 GCC-mangled. DEFERRED: byte-exact Serialize parity vs mfc140u — our
+`CArchive::operator<<(CString)` uses a raw 4-byte length, not real MFC's `FF FE FF`+count
+encoding; that's a CArchive-WIDE concern, its own increment. The slot/export give a real,
+self-consistent round-trippable Serialize now (crash-safe), just not byte-identical yet.
+
 ## Verification bar (what "faithful" means here, concretely)
 The golden differential — our DLL must produce the **same 36/46-byte Serialize stream**,
 same default-ctor field values, and same CompareWith verdicts as real `mfc140u`. This is a
