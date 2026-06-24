@@ -67,6 +67,22 @@ Key facts (real mfc140u 14.51.36231):
    - Windows CI (compile + MSVC link + wine runtime) is the final authoritative gate.
 4. PR, watch Windows CI, squash-merge, update memory.
 
+## Vtable order (harvested — required before behavioral virtual methods)
+Virtual dispatch from a real client uses real `mfc140u`'s slot indices, so to override
+`Serialize`/`CopyFrom`/`CompareWith`/etc. our header must declare the full virtual list in
+the SAME order, producing the same 53-slot vtable. Harvested + verified in
+`cmfctoolbarbutton_vtable.json` (probe: `cmfctoolbarbutton_vtable_probe.cpp`): every
+exported virtual's slot was found by exact-address match in the real vtable (by ordinal),
+and all 17 land exactly where SDK-header declaration order predicts. Key slots:
+`[0] GetRuntimeClass, [1] dtor, [2] Serialize, [3] AssertValid, [4] Dump, [5] PrepareDrag,
+[7] CopyFrom, [8] OnDraw, [9] OnCalculateSize, [12] OnChangeParentWnd, [13] ExportToMenuButton,
+[29] OnDrawOnCustomizeList, [33] OnToolHitTest, [38] ResetImageToDefault, [39] CompareWith,
+[46] IsFirstInGroup, [47] IsLastInGroup, [48] SetACCData, [49] GetAccCount, [50] SetImage`
+(total 53). CObject overrides (~dtor/Serialize/AssertValid/Dump) fold into base slots 1-4;
+CMFCToolBarButton's new virtuals start at slot 5. Increment-2 impl declares all 48 own
+virtuals in this order (trivial ones inline from the SDK header; exported ones real), then
+verifies OUR DLL's vtable slot-for-slot against this map before relying on virtual dispatch.
+
 ## Verification bar (what "faithful" means here, concretely)
 The golden differential — our DLL must produce the **same 36/46-byte Serialize stream**,
 same default-ctor field values, and same CompareWith verdicts as real `mfc140u`. This is a
