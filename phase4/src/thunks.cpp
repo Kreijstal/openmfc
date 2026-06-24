@@ -362,16 +362,24 @@ extern "C" void* MS_ABI impl___0CMFCToolBar__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCToolBar();
 }
 
+// Install the harvested 53-slot MSVC-layout vtable after the mingw ctor sets its own
+// (Itanium) vptr, so a drop-in MSVC client dispatches CMFCToolBarButton virtuals to the
+// right slots (same mechanism as OpenMFC_PatchCFileVtable). See
+// phase4/src/global_cmfctoolbarbutton_msvtbl.cpp.
+extern "C" void* OpenMFC_PatchToolBarButtonVtable(void* pObj);
+
 // Symbol: ??0CMFCToolBarButton@@QEAA@IHPEB_WHH@Z
 // Constructor: CMFCToolBarButton::CMFCToolBarButton
 extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_IHPEB_WHH_Z(void* pThis, unsigned int p0, int p1, const wchar_t* p2, int p3, int p4) {
-    return new(pThis) CMFCToolBarButton(p0, p1, p2, p3, p4);
+    new(pThis) CMFCToolBarButton(p0, p1, p2, p3, p4);
+    return OpenMFC_PatchToolBarButtonVtable(pThis);
 }
 
 // Symbol: ??0CMFCToolBarButton@@QEAA@XZ
 // Constructor: CMFCToolBarButton::CMFCToolBarButton
 extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_XZ(void* pThis) {
-    return new(pThis) CMFCToolBarButton();
+    new(pThis) CMFCToolBarButton();
+    return OpenMFC_PatchToolBarButtonVtable(pThis);
 }
 
 // Symbol: ??0CMFCToolBarComboBoxButton@@QEAA@IHKH@Z
