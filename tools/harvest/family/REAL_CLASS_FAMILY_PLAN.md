@@ -128,6 +128,35 @@ real Compare/Serialize/CopyFrom) drives it to 7/7. NOTE the ComboBox embeds a li
 CComboBox/CMFCToolBarComboBoxEdit, so the control-bound slots (OnDraw, CreateCombo,
 GetHwnd, …) get faithful-minimal bodies; only the data-side ones are byte-verifiable.
 
+## Derived increment 3b — CMFCToolBarMenuButton (HARVESTED; impl pending)
+Second derived button harvested. Ground truth (real mfc140u 14.51.36231):
+- **Vtable: 65 slots** (`cmfctoolbarmenubutton_vtable.json`, probe
+  `cmfctoolbarmenubutton_vtable_probe.cpp`). All 19 exported virtuals resolved by
+  ordinal-address match (dups==1) and land EXACTLY where SDK-header
+  (`afxtoolbarmenubutton.h`) declaration order predicts — zero mismatches. Overrides
+  replace base slots in-place (Serialize@2, CopyFrom@7, OnDraw@8, OnCalculateSize@9,
+  OnClick@10, OnChangeParentWnd@12, HaveHotBorder@23 inline, OnCancelMode@24,
+  OnContextHelp@27 inline, OnDrawOnCustomizeList@29, IsDroppedDown@30 inline,
+  OnBeforeDrag@31, SaveBarState@34, ResetImageToDefault@38, CompareWith@39, SetACCData@48,
+  SetRadio@51); the 12 NEW virtuals append at 53-64 (OpenPopupMenu@53, CreateFromMenu@54,
+  CreateMenu@55, CreatePopupMenu@56, OnAfterCreatePopupMenu@57, IsEmptyMenuAllowed@58,
+  IsBorder@59, OnClickMenuItem@60, IsExclusive@61, HasButton@62, IsTearOffMenu@63,
+  SetTearOff@64). Slots 56-63 are inline (non-exported) — placed by declaration order,
+  bracketed by exported CreateMenu@55 and SetTearOff@64.
+- **RTTI:** sizeof 296, schema 0x80000001 (VTI bit | version 1), CreateObject non-null
+  (DECLARE_SERIAL factory).
+- No purely-headless behavioral virtual on this class (CreateMenu/OpenPopupMenu/OnDraw all
+  need a GUI) — metadata-only golden.
+
+**Parity tracker:** `cmfctoolbarmenubutton_parity_probe.cpp` grades OUR built openmfc.dll
+against this golden (explicit-LoadLibrary; degrades safely on the stub — never dispatches a
+vtable it hasn't proven is the installed MSVC one). Baseline today: **3/7** (ctor + RTTI
+objsize/schema done; null CreateObject stub + no MSVC vtable are the TODOs). Increment-3b
+impl (CreateObject factory + 65-slot hand-authored MSVC vtable +
+`OpenMFC_ToolBarMenuButtonVtableAddr` export + vptr patch in the Menu-button ctors) drives
+it to 7/7. The Group-B behavioral check rides slot64 SetTearOff(uiBarID=5) -> slot63
+IsTearOffMenu() flipping 0->1, both headless once the vtable is installed.
+
 ## Verification bar (what "faithful" means here, concretely)
 The golden differential — our DLL must produce the **same 36/46-byte Serialize stream**,
 same default-ctor field values, and same CompareWith verdicts as real `mfc140u`. This is a
