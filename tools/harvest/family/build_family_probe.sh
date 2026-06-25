@@ -28,6 +28,16 @@ PROBE="${1:?usage: build_family_probe.sh <probe.cpp> [dll-to-stage]}"
 DLL_TO_STAGE="${2:-}"
 WORK="${WORK:-$(mktemp -d)}"
 
+# Regenerate any *_virt_ords.h the probe #includes — these are build artifacts derived
+# from mfc_complete_ordinal_mapping.json (NOT checked in), so the JSON stays the single
+# source of truth and the tables can't drift. Written next to the probe so the #include
+# resolves.
+PROBE_DIR="$(cd "$(dirname "$PROBE")" && pwd)"
+for hdr in $(grep -oE '#[[:space:]]*include[[:space:]]*"[^"]*_virt_ords\.h"' "$PROBE" | grep -oE '[A-Za-z0-9_]+_virt_ords\.h'); do
+  python3 "$(dirname "$0")/gen_virt_ords.py" "$hdr" "$PROBE_DIR/$hdr" \
+    && echo "generated $hdr" >&2
+done
+
 INC_MSVC="$MSVC/VC/Tools/MSVC/$MSVC_VER/include"
 INC_ATL="$MSVC/VC/Tools/MSVC/$MSVC_VER/atlmfc/include"
 INC_UCRT="$MSVC/Windows Kits/10/Include/$SDK_VER/ucrt"

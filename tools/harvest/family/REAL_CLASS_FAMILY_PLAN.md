@@ -101,6 +101,33 @@ vptr the ctor installed, and DISPATCHES THROUGH the vtable (vptr[slot]) — 15/1
 encoding; that's a CArchive-WIDE concern, its own increment. The slot/export give a real,
 self-consistent round-trippable Serialize now (crash-safe), just not byte-identical yet.
 
+## Derived increment 3 — CMFCToolBarComboBoxButton (HARVESTED; impl pending)
+First derived button harvested. Ground truth (real mfc140u 14.51.36231):
+- **Vtable: 62 slots** (`cmfctoolbarcomboboxbutton_vtable.json`, probe
+  `cmfctoolbarcomboboxbutton_vtable_probe.cpp`). All 25 exported virtuals resolved by
+  ordinal-address match (dups==1) and land EXACTLY where SDK-header
+  (`afxtoolbarcomboboxbutton.h`) declaration order predicts — zero mismatches. Overrides
+  replace base slots in-place (Serialize@2, CopyFrom@7, OnDraw@8, OnCalculateSize@9,
+  OnClick@10, OnChangeParentWnd@12, ExportToMenuButton@13, OnMove@14, OnSize@15,
+  NotifyCommand@18, OnAddToCustomizePage@19, OnCtlColor@20, OnGlobalFontsChanged@25,
+  OnDrawOnCustomizeList@29, OnShow@35, SetStyle@37, HasFocus@43, OnUpdateToolTip@45,
+  SetACCData@48); the 9 NEW virtuals append at 53-61 (AddItem@53, AddSortedItem@54,
+  CreateCombo@55, CreateEdit@56, GetEditCtrl@57, DuplicateData@58, ClearData@59,
+  Compare@60, GetPrompt@61). Slots 57-59,61 are inline (non-exported) — placed by
+  declaration order, confirmed bracketed by exported CreateEdit@56 and Compare@60.
+- **RTTI:** sizeof 336, schema 0x1, CreateObject non-null (DECLARE_SERIAL factory).
+- **Compare()** (pure string cmp, headless): (a,b)=-1, (b,a)=1, (a,a)=0.
+
+**Parity tracker:** `cmfctoolbarcomboboxbutton_parity_probe.cpp` grades OUR built
+openmfc.dll against this golden (explicit-LoadLibrary; degrades safely on the stub —
+never dispatches a vtable it hasn't proven is the installed MSVC one). Baseline today:
+**3/7** (ctor + RTTI objsize/schema done; null CreateObject stub + no MSVC vtable are the
+TODOs). Increment-3 impl (CreateObject factory + 62-slot hand-authored MSVC vtable +
+`OpenMFC_ToolBarComboBoxButtonVtableAddr` export + vptr patch in the ComboBox ctors +
+real Compare/Serialize/CopyFrom) drives it to 7/7. NOTE the ComboBox embeds a live
+CComboBox/CMFCToolBarComboBoxEdit, so the control-bound slots (OnDraw, CreateCombo,
+GetHwnd, …) get faithful-minimal bodies; only the data-side ones are byte-verifiable.
+
 ## Verification bar (what "faithful" means here, concretely)
 The golden differential — our DLL must produce the **same 36/46-byte Serialize stream**,
 same default-ctor field values, and same CompareWith verdicts as real `mfc140u`. This is a
