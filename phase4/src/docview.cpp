@@ -318,6 +318,7 @@ extern "C" void MS_ABI impl__DeleteContents_CDocument__UEAAXXZ(CDocument* pThis)
 extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(CFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, CFileException* pException);
 extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException* pThis, unsigned int type, unsigned int);
 extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
+extern "C" void MS_ABI impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CView* pThis, CDC* dc, void* info);
 extern "C" void MS_ABI impl__SetModifiedFlag_CDocument__UEAAXH_Z(CDocument* pThis, int bModified);
 extern "C" int MS_ABI impl__IsModified_CDocument__UEBAHXZ(const CDocument* pThis);
 extern "C" void MS_ABI impl__SetTitle_CDocument__UEAAXPEB_W_Z(CDocument* pThis, const wchar_t* lpszTitle);
@@ -2355,6 +2356,107 @@ extern "C" void MS_ABI impl__OnFilePrint_CView__IEAAXXZ(CView* pThis) { if (pThi
 extern "C" void MS_ABI impl__OnFilePrintPreview_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_SHOW); }
 // Symbol: ?OnMouseActivate@CView@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnMouseActivate_CView__IEAAHPEAVCWnd__II_Z(CView*, CWnd*, unsigned int, unsigned int) { return MA_ACTIVATE; }
+// Symbol: ?OnNextPaneCmd@CView@@IEAAHI@Z
+extern "C" int MS_ABI impl__OnNextPaneCmd_CView__IEAAHI_Z(CView* pThis, unsigned int id) {
+    (void)pThis;
+    (void)id;
+    return FALSE;
+}
+// Symbol: ?OnPaint@CView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CView__IEAAXXZ(CView* pThis) {
+    if (!pThis) {
+        return;
+    }
+
+    CDC dc;
+    PAINTSTRUCT ps = {};
+    HWND hWnd = pThis->GetSafeHwnd();
+    if (!hWnd) {
+        return;
+    }
+
+    dc.m_hDC = ::BeginPaint(hWnd, &ps);
+    dc.m_hAttribDC = dc.m_hDC;
+    if (!dc.m_hDC) {
+        ::EndPaint(hWnd, &ps);
+        return;
+    }
+
+    impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(pThis, &dc, nullptr);
+    pThis->OnDraw(&dc);
+
+    ::EndPaint(hWnd, &ps);
+    dc.m_hDC = nullptr;
+    dc.m_hAttribDC = nullptr;
+}
+// Symbol: ?OnPrepareDC@CView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CView* pThis, CDC* dc, void* info) {
+    (void)pThis;
+    (void)dc;
+    (void)info;
+}
+// Symbol: ?OnPrint@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrint_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CView* pThis, CDC* dc, void* info) {
+    (void)info;
+    if (pThis && dc) {
+        pThis->OnDraw(dc);
+    }
+}
+// Symbol: ?OnPrintClient@CView@@IEAA_JPEAVCDC@@I@Z
+extern "C" intptr_t MS_ABI impl__OnPrintClient_CView__IEAA_JPEAVCDC__I_Z(CView* pThis, CDC* dc, unsigned int flags) {
+    (void)flags;
+    if (pThis && dc) {
+        pThis->OnDraw(dc);
+    }
+    return TRUE;
+}
+// Symbol: ?OnScroll@CView@@UEAAHIIH@Z
+extern "C" int MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView* pThis, unsigned int code, unsigned int pos, int doScroll) {
+    (void)pThis;
+    (void)code;
+    (void)pos;
+    (void)doScroll;
+    return FALSE;
+}
+// Symbol: ?OnScrollBy@CView@@UEAAHVCSize@@H@Z
+extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(CView* pThis, CSize size, int doScroll) {
+    (void)pThis;
+    (void)size;
+    (void)doScroll;
+    return FALSE;
+}
+// Symbol: ?OnSplitCmd@CView@@IEAAHI@Z
+extern "C" int MS_ABI impl__OnSplitCmd_CView__IEAAHI_Z(CView* pThis, unsigned int id) {
+    (void)pThis;
+    (void)id;
+    return FALSE;
+}
+// Symbol: ?OnUpdateNextPaneMenu@CView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNextPaneMenu_CView__IEAAXPEAVCCmdUI___Z(CView* pThis, CCmdUI* ui) {
+    (void)pThis;
+    if (ui) {
+        impl__Enable_CCmdUI__UEAAXH_Z(ui, FALSE);
+    }
+}
+// Symbol: ?OnUpdateSplitCmd@CView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateSplitCmd_CView__IEAAXPEAVCCmdUI___Z(CView* pThis, CCmdUI* ui) {
+    (void)pThis;
+    if (ui) {
+        impl__Enable_CCmdUI__UEAAXH_Z(ui, FALSE);
+    }
+}
+// Symbol: ?PostNcDestroy@CView@@MEAAXXZ
+extern "C" void MS_ABI impl__PostNcDestroy_CView__MEAAXXZ(CView* pThis) {
+    if (pThis) {
+        delete pThis;
+    }
+}
+// Symbol: ?PreCreateWindow@CView@@MEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CView__MEAAHAEAUtagCREATESTRUCTW___Z(CView* pThis, CREATESTRUCTW* cs) {
+    (void)pThis;
+    (void)cs;
+    return TRUE;
+}
 
 // CScrollView residuals.
 // Symbol: ?sizeDefault@CScrollView@@2UtagSIZE@@B
