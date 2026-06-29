@@ -116,6 +116,9 @@ void OpenMfcCleanupTempWrappers() {
 // Global app pointer (defined in appcore.cpp)
 extern CWinApp* g_pApp;
 extern CWinThread* AfxGetThread();
+// Returns nonzero when the message was handled and writes the result to pResult.
+extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
+    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 
 // OpenMFC window class name
 static const wchar_t* g_szOpenMFCClass = L"OpenMFC_Window";
@@ -212,8 +215,7 @@ asm(".globl \"?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ\"\n"
     ".set \"?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ\n");
 #endif
 
-// CWnd::Create
-// Ordinal: 3182
+// Symbol: ?Create@CWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAV1@IPEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
     CWnd* pThis,
     const wchar_t* lpszClassName,
@@ -372,8 +374,7 @@ extern "C" int MS_ABI impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX
         lpParam);
 }
 
-// CWnd::ShowWindow
-// Ordinal: 13870
+// Symbol: ?ShowWindow@CWnd@@QEAAHH@Z
 extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow) {
     if (!pThis || !pThis->m_hWnd) {
         return FALSE;
@@ -406,7 +407,7 @@ extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis) {
     return ::IsWindowEnabled(pThis->m_hWnd);
 }
 
-// CWnd::DestroyWindow
+// Symbol: ?DestroyWindow@CWnd@@UEAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     if (!pThis || !pThis->m_hWnd) {
         return FALSE;
@@ -419,8 +420,7 @@ extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     return ::DestroyWindow(hWnd);
 }
 
-// CWnd::PreCreateWindow
-// Ordinal: 11813
+// Symbol: ?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
     CWnd* pThis, CREATESTRUCTW& cs)
 {
@@ -430,7 +430,7 @@ extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
     return TRUE;
 }
 
-// CWnd::DefWindowProcW
+// Symbol: ?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z
 extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -440,11 +440,18 @@ extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
     return 0;
 }
 
-// CWnd::WindowProc
+// Symbol: ?WindowProc@CWnd@@MEAA_JI_K_J@Z
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    // Default - just call DefWindowProcW
+    if (!pThis || !pThis->m_hWnd) {
+        return 0;
+    }
+
+    LRESULT result = 0;
+    if (impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(pThis, message, wParam, lParam, &result)) {
+        return result;
+    }
     return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(pThis, message, wParam, lParam);
 }
 
@@ -798,12 +805,10 @@ static LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 
     // Route to CWnd::WindowProc if we have a CWnd
     if (pWnd) {
-        // Call through virtual WindowProc
-        // In real MFC this would use the vtable, but for now use default
-        LRESULT result = DefWindowProcW(hWnd, message, wParam, lParam);
+        LRESULT result = impl__WindowProc_CWnd__MEAA_JI_K_J_Z(pWnd, message, wParam, lParam);
 
         // WM_NCDESTROY is the final message - clean up the wrapper
-        // This must come after DefWindowProc since the window is still valid during the call
+        // This must come after WindowProc since the window is still valid during the call.
         if (message == WM_NCDESTROY) {
             OpenMfcDetachCWnd(hWnd);
         }
