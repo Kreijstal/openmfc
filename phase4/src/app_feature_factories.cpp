@@ -10,13 +10,6 @@
   #define MS_ABI
 #endif
 
-// Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ
-extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
-    CRuntimeClass* pThis)
-{
-    return pThis ? pThis->CreateObject() : nullptr;
-}
-
 // Symbol: ?CreateObject@CMFCControlRenderer@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCControlRenderer__SAPEAVCObject__XZ()
 {
