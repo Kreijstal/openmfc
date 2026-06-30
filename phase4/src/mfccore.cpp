@@ -939,8 +939,10 @@ void CMFCVisualManager::OnDrawStatusBarProgress(CDC* pDC, CMFCStatusBar*, CRect 
     FillAndFrame(pDC, rectProgress, ::GetSysColor(COLOR_WINDOW), g_visualBorderColor);
     if (nProgressTotal > 0) {
         int innerWidth = std::max(0, rectProgress.Width() - 2);
-        int width = std::max(0, std::min(innerWidth, (innerWidth * nProgressCurr) / nProgressTotal));
-        FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + 1 + width, rectProgress.bottom - 1), clrBar ? clrBar : g_visualAccentColor);
+        int width = static_cast<int>(std::max(0LL, std::min<long long>(innerWidth,
+            (static_cast<long long>(innerWidth) * nProgressCurr) / nProgressTotal)));
+        COLORREF bar = (clrBar != static_cast<COLORREF>(-1)) ? clrBar : g_visualAccentColor;
+        FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + 1 + width, rectProgress.bottom - 1), bar);
     }
 }
 void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC* pDC, CMFCStatusBar*, CRect rect) { OnDrawMenuResizeBar(pDC, rect, 0); }
