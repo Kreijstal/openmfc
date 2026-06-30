@@ -150,6 +150,26 @@ struct ToolBarState {
     std::unordered_set<CMFCToolBarButton*> ownedButtons;
 };
 
+struct RibbonPanelState {
+    std::vector<CMFCRibbonBaseElement*> elements;
+};
+
+struct RibbonCategoryState {
+    std::vector<CMFCRibbonPanel*> panels;
+    std::unordered_set<CMFCRibbonPanel*> ownedPanels;
+};
+
+struct RibbonBarState {
+    CWnd* parent = nullptr;
+    std::vector<CMFCRibbonCategory*> categories;
+    std::unordered_set<CMFCRibbonCategory*> ownedCategories;
+    std::vector<CMFCRibbonBaseElement*> tabs;
+    CMFCRibbonButtonsGroup* quickAccessToolbar = nullptr;
+    CMFCRibbonCategory* activeCategory = nullptr;
+    bool quickAccessToolbarOnTop = true;
+    bool minimized = false;
+};
+
 struct PopupMenuBarState {
     HMENU menu = nullptr;
     std::vector<CMFCToolBarMenuButton*> items;
@@ -195,6 +215,9 @@ struct WinAppExState {
 thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
 thread_local std::unordered_map<const CMFCMenuBar*, MenuBarState> g_menuBarStates;
 thread_local std::unordered_map<const CMFCToolBar*, ToolBarState> g_toolBarStates;
+thread_local std::unordered_map<const CMFCRibbonPanel*, RibbonPanelState> g_ribbonPanelStates;
+thread_local std::unordered_map<const CMFCRibbonCategory*, RibbonCategoryState> g_ribbonCategoryStates;
+thread_local std::unordered_map<const CMFCRibbonBar*, RibbonBarState> g_ribbonBarStates;
 thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_popupMenuBarStates;
 thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
 thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_contextMenuStates;
@@ -243,6 +266,57 @@ void ClearToolBarState(const CMFCToolBar* pToolBar) {
     if (it == g_toolBarStates.end()) return;
     ClearToolBarButtons(it->second);
     g_toolBarStates.erase(it);
+}
+
+void ClearRibbonPanelState(const CMFCRibbonPanel* pPanel) {
+    if (!pPanel) return;
+    g_ribbonPanelStates.erase(pPanel);
+
+    for (auto& entry : g_ribbonCategoryStates) {
+        entry.second.ownedPanels.erase(const_cast<CMFCRibbonPanel*>(pPanel));
+        auto& panels = entry.second.panels;
+        panels.erase(std::remove(panels.begin(), panels.end(), pPanel), panels.end());
+    }
+}
+
+void ClearRibbonCategoryState(const CMFCRibbonCategory* pCategory) {
+    if (!pCategory) return;
+
+    std::vector<CMFCRibbonPanel*> ownedPanels;
+    auto it = g_ribbonCategoryStates.find(pCategory);
+    if (it != g_ribbonCategoryStates.end()) {
+        ownedPanels.assign(it->second.ownedPanels.begin(), it->second.ownedPanels.end());
+        g_ribbonCategoryStates.erase(it);
+    }
+
+    for (auto& entry : g_ribbonBarStates) {
+        RibbonBarState& state = entry.second;
+        if (state.activeCategory == pCategory) {
+            state.activeCategory = nullptr;
+        }
+        state.ownedCategories.erase(const_cast<CMFCRibbonCategory*>(pCategory));
+        auto& categories = state.categories;
+        categories.erase(std::remove(categories.begin(), categories.end(), pCategory), categories.end());
+    }
+
+    for (CMFCRibbonPanel* panel : ownedPanels) {
+        delete panel;
+    }
+}
+
+void ClearRibbonBarState(const CMFCRibbonBar* pBar) {
+    if (!pBar) return;
+
+    std::vector<CMFCRibbonCategory*> ownedCategories;
+    auto it = g_ribbonBarStates.find(pBar);
+    if (it != g_ribbonBarStates.end()) {
+        ownedCategories.assign(it->second.ownedCategories.begin(), it->second.ownedCategories.end());
+        g_ribbonBarStates.erase(it);
+    }
+
+    for (CMFCRibbonCategory* category : ownedCategories) {
+        delete category;
+    }
 }
 
 void CopyToolBarButtonBaseFields(CMFCToolBarButton* dst, const CMFCToolBarButton& src) {
@@ -1268,13 +1342,29 @@ CMFCRibbonPanel::CMFCRibbonPanel(const wchar_t* lpszName, HICON hIcon)
     : m_hIcon(hIcon) {
     if (lpszName) m_strName = lpszName;
     memset(_ribbonpanel_padding, 0, sizeof(_ribbonpanel_padding));
+    g_ribbonPanelStates[this];
 }
-CMFCRibbonPanel::~CMFCRibbonPanel() {}
+CMFCRibbonPanel::~CMFCRibbonPanel() {
+    ClearRibbonPanelState(this);
+}
 
-void CMFCRibbonPanel::Add(CMFCRibbonBaseElement*) {}
-void CMFCRibbonPanel::AddSeparator() {}
-int CMFCRibbonPanel::GetCount() const { return 0; }
-CMFCRibbonBaseElement* CMFCRibbonPanel::GetElement(int) const { return nullptr; }
+void CMFCRibbonPanel::Add(CMFCRibbonBaseElement* pElem) {
+    if (!pElem) return;
+    g_ribbonPanelStates[this].elements.push_back(pElem);
+}
+void CMFCRibbonPanel::AddSeparator() {
+    g_ribbonPanelStates[this].elements.push_back(nullptr);
+}
+int CMFCRibbonPanel::GetCount() const {
+    auto it = g_ribbonPanelStates.find(this);
+    return it == g_ribbonPanelStates.end() ? 0 : static_cast<int>(it->second.elements.size());
+}
+CMFCRibbonBaseElement* CMFCRibbonPanel::GetElement(int nIndex) const {
+    auto it = g_ribbonPanelStates.find(this);
+    if (it == g_ribbonPanelStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.elements.size())) return nullptr;
+    return it->second.elements[static_cast<size_t>(nIndex)];
+}
 CString CMFCRibbonPanel::GetName() const { return m_strName; }
 
 //=============================================================================
@@ -1285,14 +1375,40 @@ IMPLEMENT_DYNAMIC(CMFCRibbonCategory, CObject)
 CMFCRibbonCategory::CMFCRibbonCategory(const wchar_t* lpszName, UINT, UINT) {
     if (lpszName) m_strName = lpszName;
     memset(_ribboncategory_padding, 0, sizeof(_ribboncategory_padding));
+    g_ribbonCategoryStates[this];
 }
-CMFCRibbonCategory::~CMFCRibbonCategory() {}
+CMFCRibbonCategory::~CMFCRibbonCategory() {
+    ClearRibbonCategoryState(this);
+}
 
-CMFCRibbonPanel* CMFCRibbonCategory::AddPanel(const wchar_t*, HICON, CRuntimeClass*) { return nullptr; }
+CMFCRibbonPanel* CMFCRibbonCategory::AddPanel(const wchar_t* lpszLabel, HICON hIcon, CRuntimeClass*) {
+    auto* panel = new (std::nothrow) CMFCRibbonPanel(lpszLabel, hIcon);
+    if (!panel) return nullptr;
+
+    RibbonCategoryState& state = g_ribbonCategoryStates[this];
+    state.panels.push_back(panel);
+    state.ownedPanels.insert(panel);
+    return panel;
+}
 // Old convenience overloads (non-MSDN API)
-void CMFCRibbonCategory::AddPanel(CMFCRibbonPanel*) {}
-int CMFCRibbonCategory::GetPanelCount() const { return 0; }
-CMFCRibbonPanel* CMFCRibbonCategory::GetPanel(int) const { return nullptr; }
+void CMFCRibbonCategory::AddPanel(CMFCRibbonPanel* pPanel) {
+    if (!pPanel) return;
+    RibbonCategoryState& state = g_ribbonCategoryStates[this];
+    if (std::find(state.panels.begin(), state.panels.end(), pPanel) == state.panels.end()) {
+        state.panels.push_back(pPanel);
+    }
+    g_ribbonPanelStates[pPanel];
+}
+int CMFCRibbonCategory::GetPanelCount() const {
+    auto it = g_ribbonCategoryStates.find(this);
+    return it == g_ribbonCategoryStates.end() ? 0 : static_cast<int>(it->second.panels.size());
+}
+CMFCRibbonPanel* CMFCRibbonCategory::GetPanel(int nIndex) const {
+    auto it = g_ribbonCategoryStates.find(this);
+    if (it == g_ribbonCategoryStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.panels.size())) return nullptr;
+    return it->second.panels[static_cast<size_t>(nIndex)];
+}
 CString CMFCRibbonCategory::GetName() const { return m_strName; }
 
 //=============================================================================
@@ -1302,22 +1418,97 @@ IMPLEMENT_DYNAMIC(CMFCRibbonBar, CPane)
 
 CMFCRibbonBar::CMFCRibbonBar(BOOL) {
     memset(_ribbonbar_padding, 0, sizeof(_ribbonbar_padding));
+    g_ribbonBarStates[this];
 }
-CMFCRibbonBar::~CMFCRibbonBar() {}
+CMFCRibbonBar::~CMFCRibbonBar() {
+    ClearRibbonBarState(this);
+}
 
 BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
-    (void)pParentWnd; (void)dwStyle; (void)nID; return TRUE;
+    if (!pParentWnd) return FALSE;
+    g_ribbonBarStates[this].parent = pParentWnd;
+    m_hWnd = ::CreateWindowExW(0, L"STATIC", nullptr,
+                                dwStyle, 0, 0, 0, 0,
+                                pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
+                                AfxGetInstanceHandle(), nullptr);
+    if (!m_hWnd) {
+        g_ribbonBarStates.erase(this);
+        return FALSE;
+    }
+    return TRUE;
 }
-CMFCRibbonCategory* CMFCRibbonBar::AddCategory(const wchar_t*, unsigned int, unsigned int, CSize, unsigned int, int, CRuntimeClass*) { return nullptr; }
+CMFCRibbonCategory* CMFCRibbonBar::AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage, CSize, unsigned int, int nInsertAt, CRuntimeClass*) {
+    auto* category = new (std::nothrow) CMFCRibbonCategory(lpszName, uiSmallImage, uiLargeImage);
+    if (!category) return nullptr;
+
+    RibbonBarState& state = g_ribbonBarStates[this];
+    auto insertPos = state.categories.end();
+    if (nInsertAt >= 0 && nInsertAt < static_cast<int>(state.categories.size())) {
+        insertPos = state.categories.begin() + nInsertAt;
+    }
+    state.categories.insert(insertPos, category);
+    state.ownedCategories.insert(category);
+    if (!state.activeCategory) {
+        state.activeCategory = category;
+    }
+    return category;
+}
 // Old convenience overloads (non-MSDN API)
-BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory*) { return TRUE; }
-int CMFCRibbonBar::GetCategoryCount() const { return 0; }
-CMFCRibbonCategory* CMFCRibbonBar::GetCategory(int) const { return nullptr; }
-BOOL CMFCRibbonBar::SetActiveCategory(CMFCRibbonCategory*, BOOL) { return TRUE; }
-void CMFCRibbonBar::AddToTabs(CMFCRibbonBaseElement*) {}
-void CMFCRibbonBar::SetQuickAccessToolbar(CMFCRibbonButtonsGroup*) {}
-void CMFCRibbonBar::ToggleMimimizeState() {}
-BOOL CMFCRibbonBar::IsMinimized() const { return FALSE; }
+BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory* pCategory) {
+    if (!pCategory) return FALSE;
+    RibbonBarState& state = g_ribbonBarStates[this];
+    if (std::find(state.categories.begin(), state.categories.end(), pCategory) == state.categories.end()) {
+        state.categories.push_back(pCategory);
+    }
+    g_ribbonCategoryStates[pCategory];
+    if (!state.activeCategory) {
+        state.activeCategory = pCategory;
+    }
+    return TRUE;
+}
+int CMFCRibbonBar::GetCategoryCount() const {
+    auto it = g_ribbonBarStates.find(this);
+    return it == g_ribbonBarStates.end() ? 0 : static_cast<int>(it->second.categories.size());
+}
+CMFCRibbonCategory* CMFCRibbonBar::GetCategory(int nIndex) const {
+    auto it = g_ribbonBarStates.find(this);
+    if (it == g_ribbonBarStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.categories.size())) return nullptr;
+    return it->second.categories[static_cast<size_t>(nIndex)];
+}
+BOOL CMFCRibbonBar::SetActiveCategory(CMFCRibbonCategory* pCategory, BOOL) {
+    RibbonBarState& state = g_ribbonBarStates[this];
+    if (!pCategory) {
+        state.activeCategory = nullptr;
+        return TRUE;
+    }
+    if (std::find(state.categories.begin(), state.categories.end(), pCategory) == state.categories.end()) {
+        return FALSE;
+    }
+    state.activeCategory = pCategory;
+    return TRUE;
+}
+void CMFCRibbonBar::AddToTabs(CMFCRibbonBaseElement* pElement) {
+    if (!pElement) return;
+    auto& tabs = g_ribbonBarStates[this].tabs;
+    if (std::find(tabs.begin(), tabs.end(), pElement) == tabs.end()) {
+        tabs.push_back(pElement);
+    }
+}
+void CMFCRibbonBar::SetQuickAccessToolbar(CMFCRibbonButtonsGroup* pQAT) {
+    g_ribbonBarStates[this].quickAccessToolbar = pQAT;
+}
+void CMFCRibbonBar::SetQuickAccessToolbarOnTop(BOOL bOnTop) {
+    g_ribbonBarStates[this].quickAccessToolbarOnTop = bOnTop != FALSE;
+}
+void CMFCRibbonBar::ToggleMimimizeState() {
+    RibbonBarState& state = g_ribbonBarStates[this];
+    state.minimized = !state.minimized;
+}
+BOOL CMFCRibbonBar::IsMinimized() const {
+    auto it = g_ribbonBarStates.find(this);
+    return it != g_ribbonBarStates.end() && it->second.minimized ? TRUE : FALSE;
+}
 
 //=============================================================================
 // CMiniFrameWnd
