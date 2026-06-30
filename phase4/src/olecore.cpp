@@ -3028,6 +3028,8 @@ public:
         return static_cast<ULONG>(refs);
     }
 
+    void DetachSite() { m_site = nullptr; }
+
     HRESULT STDMETHODCALLTYPE SaveObject() override { return S_OK; }
 
     HRESULT STDMETHODCALLTYPE GetMoniker(DWORD dwAssign, DWORD dwWhichMoniker,
@@ -3188,6 +3190,12 @@ public:
         if (hdc) {
             ::ReleaseDC(hwndParent, hdc);
         }
+        if (dpiX <= 0) {
+            dpiX = 96;
+        }
+        if (dpiY <= 0) {
+            dpiY = 96;
+        }
 
         if (dwFlags & XFORMCOORDS_HIMETRICTOCONTAINER) {
             pPtfContainer->x = static_cast<float>((pPtlHimetric->x * dpiX) / 2540.0);
@@ -3271,12 +3279,12 @@ public:
             return S_OK;
         case DISPID_AMBIENT_BACKCOLOR:
             VariantInit(pVarResult);
-            pVarResult->vt = VT_COLOR;
+            pVarResult->vt = VT_I4;
             pVarResult->lVal = static_cast<LONG>(::GetSysColor(COLOR_WINDOW));
             return S_OK;
         case DISPID_AMBIENT_FORECOLOR:
             VariantInit(pVarResult);
-            pVarResult->vt = VT_COLOR;
+            pVarResult->vt = VT_I4;
             pVarResult->lVal = static_cast<LONG>(::GetSysColor(COLOR_WINDOWTEXT));
             return S_OK;
         case DISPID_AMBIENT_LOCALEID:
@@ -3323,6 +3331,7 @@ static void RemoveControlSiteState(const COleControlSite* pSite) {
     auto it = g_oleControlSiteState.find(pSite);
     if (it != g_oleControlSiteState.end()) {
         if (it->second.adapter) {
+            it->second.adapter->DetachSite();
             it->second.adapter->Release();
         }
         g_oleControlSiteState.erase(it);
@@ -3640,7 +3649,33 @@ long COleControlSite::GetContainer(IOleContainer** ppContainer) {
 void COleControlSite::ShowPropertyFrame() {
     if (m_pControl) {
         m_pControl->ShowPropertyPages();
+        return;
     }
+    if (!m_lpObject) {
+        return;
+    }
+
+    ISpecifyPropertyPages* pSPP = nullptr;
+    if (FAILED(m_lpObject->QueryInterface(IID_ISpecifyPropertyPages,
+                                          reinterpret_cast<void**>(&pSPP))) || !pSPP) {
+        return;
+    }
+
+    CAUUID pages = {};
+    if (SUCCEEDED(pSPP->GetPages(&pages)) && pages.cElems > 0 && pages.pElems) {
+        IUnknown* pUnk = nullptr;
+        m_lpObject->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&pUnk));
+        HWND hwndOwner = m_hWnd ? m_hWnd : GetSiteParentWindow(this);
+        OleCreatePropertyFrame(hwndOwner, 0, 0, nullptr,
+                               pUnk ? 1u : 0u, pUnk ? &pUnk : nullptr,
+                               pages.cElems, pages.pElems,
+                               LOCALE_USER_DEFAULT, 0, nullptr);
+        if (pUnk) {
+            pUnk->Release();
+        }
+    }
+    CoTaskMemFree(pages.pElems);
+    pSPP->Release();
 }
 
 void COleControlSite::EnableWindow(BOOL bEnable) {
