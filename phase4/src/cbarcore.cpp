@@ -3429,6 +3429,20 @@ void RegisterComboButton(CMFCToolBarComboBoxButton* pButton) {
     buttons.push_back(pButton);
 }
 
+void UnregisterComboButton(CMFCToolBarComboBoxButton* pButton) {
+    if (!pButton) return;
+    g_comboStates.erase(pButton);
+    for (auto it = g_comboByCmd.begin(); it != g_comboByCmd.end(); ) {
+        auto& buttons = it->second;
+        buttons.erase(std::remove(buttons.begin(), buttons.end(), pButton), buttons.end());
+        if (buttons.empty()) {
+            it = g_comboByCmd.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 std::vector<CMFCToolBarComboBoxButton*> GetComboButtonsByCmd(UINT uiCmd) {
     auto it = g_comboByCmd.find(uiCmd);
     if (it == g_comboByCmd.end()) return {};
@@ -3450,7 +3464,38 @@ void RegisterEditButton(CMFCToolBarEditBoxButton* pButton) {
     }
     buttons.push_back(pButton);
 }
+
+void UnregisterEditButton(CMFCToolBarEditBoxButton* pButton) {
+    if (!pButton) return;
+    for (auto it = g_editByCmd.begin(); it != g_editByCmd.end(); ) {
+        auto& buttons = it->second;
+        buttons.erase(std::remove(buttons.begin(), buttons.end(), pButton), buttons.end());
+        if (buttons.empty()) {
+            g_editContentsByCmd.erase(it->first);
+            it = g_editByCmd.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
 } // namespace
+
+void OpenMFC_CopyComboButtonState(CMFCToolBarComboBoxButton* dst, const CMFCToolBarComboBoxButton* src) {
+    if (!dst || !src) return;
+    if (const ComboButtonState* state = FindComboState(src)) {
+        g_comboStates[dst] = *state;
+    }
+    RegisterComboButton(dst);
+}
+
+void OpenMFC_CopyEditButtonState(CMFCToolBarEditBoxButton* dst, const CMFCToolBarEditBoxButton* src) {
+    if (!dst || !src) return;
+    RegisterEditButton(dst);
+    auto it = g_editContentsByCmd.find(src->m_nID);
+    if (it != g_editContentsByCmd.end()) {
+        g_editContentsByCmd[dst->m_nID] = it->second;
+    }
+}
 
 // Static members - provided without // Symbol: comments so typed_stubs handles
 // the MSVC-named exports. Definitions needed for C++ ODR completeness.
@@ -3474,6 +3519,10 @@ extern "C" void MS_ABI impl__SetClipboardFormatName_CMFCToolBarButton__SAXPEB_W_
 //=============================================================================
 // CMFCToolBarComboBoxButton
 //=============================================================================
+
+CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton() {
+    UnregisterComboButton(this);
+}
 
 // Symbol: ?AddItem@CMFCToolBarComboBoxButton@@UEAA_JPEB_W_K@Z
 INT_PTR CMFCToolBarComboBoxButton::AddItem(const wchar_t* lpszItem, DWORD_PTR dwData) {
@@ -3795,6 +3844,10 @@ extern "C" void MS_ABI impl__SetText_CMFCToolBarComboBoxButton__QEAAXPEB_W_Z(CMF
 //=============================================================================
 // CMFCToolBarEditBoxButton
 //=============================================================================
+
+CMFCToolBarEditBoxButton::~CMFCToolBarEditBoxButton() {
+    UnregisterEditButton(this);
+}
 
 // Symbol: ?SetContents@CMFCToolBarEditBoxButton@@UEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 void CMFCToolBarEditBoxButton::SetContents(const CString& sContents) {

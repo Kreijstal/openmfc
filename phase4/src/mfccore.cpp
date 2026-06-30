@@ -33,6 +33,9 @@ IMPLEMENT_DYNAMIC(CMFCVisualManager, CObject)
 static CMFCVisualManager* g_pVisualManager = nullptr;
 static CRuntimeClass* g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
 
+void OpenMFC_CopyComboButtonState(CMFCToolBarComboBoxButton* dst, const CMFCToolBarComboBoxButton* src);
+void OpenMFC_CopyEditButtonState(CMFCToolBarEditBoxButton* dst, const CMFCToolBarEditBoxButton* src);
+
 namespace {
 
 struct DockingManagerState {
@@ -138,6 +141,15 @@ struct MenuBarState {
     std::unordered_set<CMFCToolBarButton*> ownedItems;
 };
 
+struct ToolBarState {
+    CWnd* parent = nullptr;
+    DWORD dockStyle = 0;
+    CSize buttonSize = CSize(23, 22);
+    CSize imageSize = CSize(16, 15);
+    std::vector<CMFCToolBarButton*> buttons;
+    std::unordered_set<CMFCToolBarButton*> ownedButtons;
+};
+
 struct PopupMenuBarState {
     HMENU menu = nullptr;
     std::vector<CMFCToolBarMenuButton*> items;
@@ -182,6 +194,7 @@ struct WinAppExState {
 
 thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
 thread_local std::unordered_map<const CMFCMenuBar*, MenuBarState> g_menuBarStates;
+thread_local std::unordered_map<const CMFCToolBar*, ToolBarState> g_toolBarStates;
 thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_popupMenuBarStates;
 thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
 thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_contextMenuStates;
@@ -212,6 +225,111 @@ void ClearMenuBarState(const CMFCMenuBar* pMenuBar) {
         delete item;
     }
     g_menuBarStates.erase(it);
+}
+
+void ClearToolBarButtons(ToolBarState& state) {
+    for (CMFCToolBarButton* button : state.ownedButtons) {
+        if (button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+            g_menuButtonStates.erase(static_cast<CMFCToolBarMenuButton*>(button));
+        }
+        delete button;
+    }
+    state.buttons.clear();
+    state.ownedButtons.clear();
+}
+
+void ClearToolBarState(const CMFCToolBar* pToolBar) {
+    auto it = g_toolBarStates.find(pToolBar);
+    if (it == g_toolBarStates.end()) return;
+    ClearToolBarButtons(it->second);
+    g_toolBarStates.erase(it);
+}
+
+void CopyToolBarButtonBaseFields(CMFCToolBarButton* dst, const CMFCToolBarButton& src) {
+    if (!dst) return;
+    dst->m_bUserButton = src.m_bUserButton;
+    dst->m_bText = src.m_bText;
+    dst->m_bImage = src.m_bImage;
+    dst->m_bWrap = src.m_bWrap;
+    dst->m_bWholeText = src.m_bWholeText;
+    dst->m_bTextBelow = src.m_bTextBelow;
+    dst->m_bDragFromCollection = src.m_bDragFromCollection;
+    dst->m_nID = src.m_nID;
+    dst->m_nStyle = src.m_nStyle;
+    dst->m_dwdItemData = src.m_dwdItemData;
+    dst->m_strText = src.m_strText;
+    dst->m_strTextCustom = src.m_strTextCustom;
+    dst->m_iImage = src.m_iImage;
+    dst->m_iUserImage = src.m_iUserImage;
+    dst->m_bLocked = src.m_bLocked;
+    dst->m_bIsHidden = src.m_bIsHidden;
+    dst->m_bDisableFill = src.m_bDisableFill;
+    dst->m_bExtraSize = src.m_bExtraSize;
+    dst->m_bHorz = src.m_bHorz;
+    dst->m_bVisible = src.m_bVisible;
+    dst->m_rect = src.m_rect;
+    dst->m_sizeText = src.m_sizeText;
+    dst->m_pWndParent = src.m_pWndParent;
+}
+
+void CopyMenuButtonState(CMFCToolBarMenuButton* dst, const CMFCToolBarMenuButton* src) {
+    if (!dst) return;
+    if (!src) {
+        g_menuButtonStates.erase(dst);
+        return;
+    }
+
+    auto stateIt = g_menuButtonStates.find(src);
+    if (stateIt == g_menuButtonStates.end()) {
+        g_menuButtonStates.erase(dst);
+        return;
+    }
+
+    g_menuButtonStates[dst] = stateIt->second;
+}
+
+CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButtonsButton))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarMenuButtonsButton();
+        if (cloned) {
+            CopyToolBarButtonBaseFields(cloned, button);
+            if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+                const auto& menuButton = static_cast<const CMFCToolBarMenuButton&>(button);
+                cloned->m_hMenu = menuButton.m_hMenu;
+                CopyMenuButtonState(cloned, &menuButton);
+            }
+            cloned->m_uiSystemCommand = static_cast<const CMFCToolBarMenuButtonsButton&>(button).m_uiSystemCommand;
+        }
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+        const auto& menuButton = static_cast<const CMFCToolBarMenuButton&>(button);
+        auto* cloned = new (std::nothrow) CMFCToolBarMenuButton(menuButton);
+        CopyMenuButtonState(cloned, &menuButton);
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarComboBoxButton();
+        if (cloned) {
+            CopyToolBarButtonBaseFields(cloned, button);
+            const auto& combo = static_cast<const CMFCToolBarComboBoxButton&>(button);
+            cloned->m_bFlat = combo.m_bFlat;
+            cloned->m_bCenterVert = combo.m_bCenterVert;
+            OpenMFC_CopyComboButtonState(cloned, &combo);
+        }
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarEditBoxButton();
+        if (cloned) {
+            CopyToolBarButtonBaseFields(cloned, button);
+            const auto& edit = static_cast<const CMFCToolBarEditBoxButton&>(button);
+            cloned->m_bFlat = edit.m_bFlat;
+            OpenMFC_CopyEditButtonState(cloned, &edit);
+        }
+        return cloned;
+    }
+    return new (std::nothrow) CMFCToolBarButton(button);
 }
 
 void ClearPopupMenuBarState(const CMFCPopupMenuBar* pMenuBar) {
@@ -812,14 +930,22 @@ IMPLEMENT_DYNAMIC(CMFCToolBar, CBasePane)
 CMFCToolBar::CMFCToolBar() {
     memset(_mfctoolbar_padding, 0, sizeof(_mfctoolbar_padding));
 }
-CMFCToolBar::~CMFCToolBar() {}
+CMFCToolBar::~CMFCToolBar() {
+    ClearToolBarState(this);
+}
 
 BOOL CMFCToolBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
     if (!pParentWnd) return FALSE;
+    g_toolBarStates[this].parent = pParentWnd;
     m_hWnd = ::CreateWindowExW(0, L"ToolbarWindow32", nullptr,
                                 dwStyle, 0, 0, 0, 0,
                                 pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
                                 AfxGetInstanceHandle(), nullptr);
+    if (m_hWnd) {
+        ::SendMessageW(m_hWnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    } else {
+        ClearToolBarState(this);
+    }
     return m_hWnd != nullptr;
 }
 
@@ -829,17 +955,118 @@ BOOL CMFCToolBar::CreateEx(CWnd* pParentWnd, DWORD, DWORD dwStyle, CRect, UINT n
 
 BOOL CMFCToolBar::LoadToolBar(UINT, UINT, UINT, BOOL, UINT, UINT, UINT) { return TRUE; }
 BOOL CMFCToolBar::LoadBitmap(UINT) { return TRUE; }
-BOOL CMFCToolBar::SetButtons(const UINT*, int, BOOL) { return TRUE; }
-BOOL CMFCToolBar::ReplaceButton(UINT, const CMFCToolBarButton&, BOOL) { return FALSE; }
-int CMFCToolBar::GetCount() const { return 0; }
-CMFCToolBarButton* CMFCToolBar::GetButton(int) const { return nullptr; }
-void CMFCToolBar::SetSizes(SIZE, SIZE) {}
-CSize CMFCToolBar::GetButtonSize() const { return CSize(23, 22); }
-void CMFCToolBar::EnableDocking(DWORD) {}
+BOOL CMFCToolBar::SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages) {
+    if (nIDCount < 0 || (nIDCount > 0 && lpIDArray == nullptr)) return FALSE;
+
+    ToolBarState& state = g_toolBarStates[this];
+    ClearToolBarButtons(state);
+
+    for (int i = 0; i < nIDCount; ++i) {
+        UINT id = lpIDArray[i];
+        auto* button = new (std::nothrow) CMFCToolBarButton(id, bImages ? i : -1);
+        if (!button) {
+            ClearToolBarButtons(state);
+            return FALSE;
+        }
+        if (id == 0) {
+            button->m_nStyle = TBSTYLE_SEP;
+            button->m_iImage = -1;
+            button->m_bImage = FALSE;
+        }
+        state.buttons.push_back(button);
+        state.ownedButtons.insert(button);
+    }
+
+    if (m_hWnd) {
+        int existing = static_cast<int>(::SendMessageW(m_hWnd, TB_BUTTONCOUNT, 0, 0));
+        while (existing-- > 0) {
+            ::SendMessageW(m_hWnd, TB_DELETEBUTTON, 0, 0);
+        }
+
+        for (CMFCToolBarButton* button : state.buttons) {
+            TBBUTTON tb = {};
+            tb.iBitmap = button->m_iImage;
+            tb.idCommand = static_cast<int>(button->m_nID);
+            tb.fsState = TBSTATE_ENABLED;
+            tb.fsStyle = button->m_nID == 0 ? TBSTYLE_SEP : TBSTYLE_BUTTON;
+            ::SendMessageW(m_hWnd, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&tb));
+        }
+    }
+
+    return TRUE;
+}
+
+BOOL CMFCToolBar::ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL) {
+    ToolBarState& state = g_toolBarStates[this];
+    for (size_t i = 0; i < state.buttons.size(); ++i) {
+        CMFCToolBarButton* current = state.buttons[i];
+        if (!current || current->m_nID != nID) continue;
+
+        CMFCToolBarButton* replacement = CloneToolBarButton(button);
+        if (!replacement) return FALSE;
+
+        if (state.ownedButtons.erase(current) != 0) {
+            delete current;
+        }
+        state.buttons[i] = replacement;
+        state.ownedButtons.insert(replacement);
+
+        if (m_hWnd) {
+            TBBUTTONINFO tbi = {};
+            tbi.cbSize = sizeof(TBBUTTONINFO);
+            tbi.dwMask = TBIF_COMMAND | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE;
+            tbi.idCommand = static_cast<int>(replacement->m_nID);
+            tbi.iImage = replacement->m_iImage;
+            tbi.fsState = TBSTATE_ENABLED;
+            tbi.fsStyle = replacement->m_nID == 0 ? TBSTYLE_SEP : TBSTYLE_BUTTON;
+            ::SendMessageW(m_hWnd, TB_SETBUTTONINFO, nID, reinterpret_cast<LPARAM>(&tbi));
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
+
+int CMFCToolBar::GetCount() const {
+    auto it = g_toolBarStates.find(this);
+    return it == g_toolBarStates.end() ? 0 : static_cast<int>(it->second.buttons.size());
+}
+
+CMFCToolBarButton* CMFCToolBar::GetButton(int nIndex) const {
+    auto it = g_toolBarStates.find(this);
+    if (it == g_toolBarStates.end()) return nullptr;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.buttons.size())) return nullptr;
+    return it->second.buttons[nIndex];
+}
+
+void CMFCToolBar::SetSizes(SIZE sizeButton, SIZE sizeImage) {
+    for (auto& entry : g_toolBarStates) {
+        entry.second.buttonSize = CSize(sizeButton);
+        entry.second.imageSize = CSize(sizeImage);
+        if (entry.first && entry.first->GetSafeHwnd()) {
+            ::SendMessageW(entry.first->GetSafeHwnd(), TB_SETBUTTONSIZE, 0, MAKELPARAM(sizeButton.cx, sizeButton.cy));
+            ::SendMessageW(entry.first->GetSafeHwnd(), TB_SETBITMAPSIZE, 0, MAKELPARAM(sizeImage.cx, sizeImage.cy));
+        }
+    }
+}
+
+CSize CMFCToolBar::GetButtonSize() const {
+    auto it = g_toolBarStates.find(this);
+    return it == g_toolBarStates.end() ? CSize(23, 22) : it->second.buttonSize;
+}
+
+void CMFCToolBar::EnableDocking(DWORD dwDockStyle) {
+    g_toolBarStates[this].dockStyle = dwDockStyle;
+}
 void CMFCToolBar::AdjustLayout() {}
 void CMFCToolBar::AdjustSize() {}
-CString CMFCToolBar::GetButtonText(int) const { return CString(); }
-void CMFCToolBar::GetButtonText(int, CString& rString) const { rString = CString(); }
+CString CMFCToolBar::GetButtonText(int nIndex) const {
+    CMFCToolBarButton* button = GetButton(nIndex);
+    return button ? button->m_strText : CString();
+}
+
+void CMFCToolBar::GetButtonText(int nIndex, CString& rString) const {
+    rString = GetButtonText(nIndex);
+}
 
 //=============================================================================
 // CMFCMenuBar
@@ -2157,11 +2384,9 @@ CMDIChildWndEx::~CMDIChildWndEx() {}
 //=============================================================================
 IMPLEMENT_DYNAMIC(CMFCToolBarComboBoxButton, CMFCToolBarButton)
 CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton() { memset(_pad, 0, sizeof(_pad)); }
-CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton() {}
 
 IMPLEMENT_DYNAMIC(CMFCToolBarEditBoxButton, CMFCToolBarButton)
 CMFCToolBarEditBoxButton::CMFCToolBarEditBoxButton() { memset(_pad, 0, sizeof(_pad)); }
-CMFCToolBarEditBoxButton::~CMFCToolBarEditBoxButton() {}
 
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButton, CMFCToolBarButton)
 CMFCToolBarMenuButton::CMFCToolBarMenuButton() : m_hMenu(nullptr) { memset(_pad, 0, sizeof(_pad)); }
@@ -2173,7 +2398,7 @@ CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
     : CMFCToolBarButton(src.m_nID, src.m_iImage, static_cast<const wchar_t*>(src.m_strText), src.m_bUserButton, src.m_bLocked),
       m_hMenu(src.m_hMenu) {
     memset(_pad, 0, sizeof(_pad));
-    g_menuButtonStates[this] = g_menuButtonStates[&src];
+    CopyMenuButtonState(this, &src);
 }
 CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
     g_menuButtonStates.erase(this);
@@ -2206,7 +2431,7 @@ void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
     if (src.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
         const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
         m_hMenu = menuSrc.m_hMenu;
-        g_menuButtonStates[this] = g_menuButtonStates[&menuSrc];
+        CopyMenuButtonState(this, &menuSrc);
     }
 }
 
