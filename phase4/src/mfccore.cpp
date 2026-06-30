@@ -940,7 +940,16 @@ void* CBasePane::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx,
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
         PaneCoreState& state = g_paneCoreState[this];
-        state.recentRect = CRect(x, y, x + std::max(0, cx), y + std::max(0, cy));
+        CRect rect = state.recentRect;
+        if ((nFlags & SWP_NOMOVE) == 0) {
+            rect.left = x;
+            rect.top = y;
+        }
+        if ((nFlags & SWP_NOSIZE) == 0) {
+            rect.right = rect.left + std::max(0, cx);
+            rect.bottom = rect.top + std::max(0, cy);
+        }
+        state.recentRect = rect;
     }
     HWND hwnd = GetSafeHwnd();
     if (hwnd != nullptr) {
@@ -984,7 +993,11 @@ CDockablePane::CDockablePane() {
 CDockablePane::~CDockablePane() {}
 
 BOOL CDockablePane::CanBeAttached() const { return TRUE; }
-BOOL CDockablePane::CanAutoHide() const { return TRUE; }
+BOOL CDockablePane::CanAutoHide() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.canAutoHide : TRUE;
+}
 void CDockablePane::EnableAutohideAll() {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     g_paneCoreState[this].canAutoHide = TRUE;
@@ -2268,7 +2281,8 @@ BOOL CPaneFrameWnd::Create(CWnd* pParentWnd, DWORD dwStyle, UINT) {
             rect = CRect(0, 0, 320, 220);
         }
     }
-    return Create(L"STATIC", dwStyle, *static_cast<const RECT*>(rect), pParentWnd, nullptr);
+    RECT createRect{rect.left, rect.top, rect.right, rect.bottom};
+    return Create(L"STATIC", dwStyle, createRect, pParentWnd, nullptr);
 }
 extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane);
 extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int);

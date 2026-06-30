@@ -33,18 +33,4 @@ inline std::unordered_map<const void*, PaneCoreState>& PaneCoreStates() {
     return states;
 }
 
-inline PaneCoreState& EnsurePaneCoreState(const void* pane) {
-    return PaneCoreStates()[pane];
-}
-
-inline const PaneCoreState* FindPaneCoreState(const void* pane) {
-    auto& states = PaneCoreStates();
-    auto it = states.find(pane);
-    return it == states.end() ? nullptr : &it->second;
-}
-
-inline void RemovePaneCoreState(const void* pane) {
-    PaneCoreStates().erase(pane);
-}
-
 } // namespace openmfc::docking_state
