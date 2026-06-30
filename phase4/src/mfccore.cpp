@@ -2593,7 +2593,7 @@ CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() { g_propertyGridCtrlStates.erase(t
 
 BOOL CMFCPropertyGridCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
     EnsurePropertyGridCtrlState(this);
-    return CWnd::CreateEx(0, nullptr, L"", dwStyle, rect.left, rect.top,
+    return CWnd::CreateEx(0, L"SysListView32", L"", dwStyle, rect.left, rect.top,
                           rect.right - rect.left, rect.bottom - rect.top,
                           pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr,
                           reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), this);
