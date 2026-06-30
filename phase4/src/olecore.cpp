@@ -234,7 +234,9 @@ public:
 
     HRESULT STDMETHODCALLTYPE Next(ULONG cConnections, IConnectionPoint** rgpcn, ULONG* pcFetched) override {
         if (pcFetched) *pcFetched = 0;
+        if (cConnections == 0) return S_OK;
         if (cConnections > 0 && !rgpcn) return E_POINTER;
+        if (cConnections > 1 && !pcFetched) return E_POINTER;
         return S_FALSE;
     }
 
@@ -243,13 +245,36 @@ public:
 
     HRESULT STDMETHODCALLTYPE Clone(IEnumConnectionPoints** ppEnum) override {
         if (!ppEnum) return E_POINTER;
-        *ppEnum = new EmptyEnumConnectionPoints();
+        *ppEnum = new (std::nothrow) EmptyEnumConnectionPoints();
         return *ppEnum ? S_OK : E_OUTOFMEMORY;
     }
 
 private:
     LONG m_refCount;
 };
+
+static void InitializeDocumentView(COleDocObjectItem* item, IOleDocumentView* view) {
+    if (!item || !view) return;
+
+    IOleClientSite* clientSite = nullptr;
+    if (item->m_lpObject &&
+        SUCCEEDED(item->m_lpObject->GetClientSite(&clientSite)) && clientSite) {
+        IOleInPlaceSite* inPlaceSite = nullptr;
+        if (SUCCEEDED(clientSite->QueryInterface(IID_IOleInPlaceSite,
+                                                 reinterpret_cast<void**>(&inPlaceSite))) &&
+            inPlaceSite) {
+            view->SetInPlaceSite(inPlaceSite);
+            inPlaceSite->Release();
+        }
+        clientSite->Release();
+    }
+
+    CRect itemRect;
+    item->OnGetItemPosition(itemRect);
+    RECT rect = { itemRect.left, itemRect.top, itemRect.right, itemRect.bottom };
+    view->SetRect(&rect);
+    view->UIActivate(TRUE);
+}
 
 static int CountDispatchParams(const BYTE* pbParamInfo) {
     if (!pbParamInfo) return 0;
@@ -4387,7 +4412,7 @@ BOOL COleDocObjectItem::IsDocObject() const {
     IOleDocument* document = nullptr;
     HRESULT hr = m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document));
     if (document) document->Release();
-    return SUCCEEDED(hr) && document != nullptr;
+    return SUCCEEDED(hr);
 }
 BOOL COleDocObjectItem::IsActive() const { return m_bInPlaceActive && IsOpen(); }
 IOleDocumentView* COleDocObjectItem::GetActiveView() const {
@@ -4400,7 +4425,9 @@ IOleDocumentView* COleDocObjectItem::GetActiveView() const {
 
     IOleDocument* document = nullptr;
     if (SUCCEEDED(m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document))) && document) {
-        document->CreateView(nullptr, nullptr, 0, &view);
+        if (SUCCEEDED(document->CreateView(nullptr, nullptr, 0, &view)) && view) {
+            InitializeDocumentView(const_cast<COleDocObjectItem*>(this), view);
+        }
         document->Release();
     }
     return view;
