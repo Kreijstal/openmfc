@@ -2418,11 +2418,11 @@ void DetachPropertyFromGrid(CMFCPropertyGridProperty* pProp) {
     SetPropertyGridOwnerRecursive(pProp, nullptr);
 }
 
-BOOL IsPropertyGridAncestor(const CMFCPropertyGridProperty* pCandidateParent,
-                            const CMFCPropertyGridProperty* pProp) {
-    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pCandidateParent);
+BOOL IsPropertyGridAncestorOf(const CMFCPropertyGridProperty* pAncestor,
+                              const CMFCPropertyGridProperty* pDescendant) {
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pDescendant);
     while (state && state->parent) {
-        if (state->parent == pProp) {
+        if (state->parent == pAncestor) {
             return TRUE;
         }
         state = FindPropertyGridPropertyState(state->parent);
@@ -2530,7 +2530,7 @@ void CMFCPropertyGridProperty::Show(BOOL bShow, BOOL bAdjustLayout) {
 }
 int CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty* pProp) {
     if (!pProp || pProp == this) return -1;
-    if (IsPropertyGridAncestor(this, pProp)) return -1;
+    if (IsPropertyGridAncestorOf(pProp, this)) return -1;
 
     auto& parentState = EnsurePropertyGridPropertyState(this);
     auto& subItems = parentState.subItems;
