@@ -6,6 +6,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
 #include "openmfc/afxole.h"
+#include "ribbon_state.h"
 #include <commctrl.h>
 #include <algorithm>
 #include <cstring>
@@ -33,28 +34,14 @@
 #endif
 
 namespace {
-struct RibbonPanelState {
-    std::vector<CMFCRibbonBaseElement*> elements;
-};
+using openmfc::ribbon_state::RibbonBarState;
+using openmfc::ribbon_state::RibbonCategoryState;
+using openmfc::ribbon_state::RibbonPanelState;
 
-struct RibbonCategoryState {
-    std::vector<CMFCRibbonPanel*> panels;
-    std::unordered_set<CMFCRibbonPanel*> ownedPanels;
-};
-
-struct RibbonBarState {
-    std::vector<CMFCRibbonCategory*> categories;
-    std::unordered_set<CMFCRibbonCategory*> ownedCategories;
-    std::vector<CMFCRibbonBaseElement*> tabs;
-    bool quickAccessToolbarOnTop = true;
-    bool minimized = false;
-    CMFCRibbonCategory* activeCategory = nullptr;
-};
-
-std::mutex g_ribbonMutex;
-std::unordered_map<CMFCRibbonPanel*, RibbonPanelState> g_ribbonPanels;
-std::unordered_map<CMFCRibbonCategory*, RibbonCategoryState> g_ribbonCategories;
-std::unordered_map<CMFCRibbonBar*, RibbonBarState> g_ribbonBars;
+auto& g_ribbonMutex = openmfc::ribbon_state::RibbonMutex();
+auto& g_ribbonPanels = openmfc::ribbon_state::RibbonPanelStates();
+auto& g_ribbonCategories = openmfc::ribbon_state::RibbonCategoryStates();
+auto& g_ribbonBars = openmfc::ribbon_state::RibbonBarStates();
 constexpr int kApproxRibbonCharPx = 6;
 
 std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
@@ -152,7 +139,14 @@ extern "C" void MS_ABI impl___1CMFCRibbonPanel__UEAA_XZ(void* pThis) {
 
     {
         std::lock_guard<std::mutex> lock(g_ribbonMutex);
-        g_ribbonPanels.erase(panel);
+        auto panelIt = g_ribbonPanels.find(panel);
+        if (panelIt != g_ribbonPanels.end()) {
+            std::vector<CMFCRibbonBaseElement*> ownedElements(panelIt->second.ownedElements.begin(), panelIt->second.ownedElements.end());
+            g_ribbonPanels.erase(panelIt);
+            for (CMFCRibbonBaseElement* element : ownedElements) {
+                delete element;
+            }
+        }
         for (auto& [_, categoryState] : g_ribbonCategories) {
             categoryState.ownedPanels.erase(panel);
             auto& panels = categoryState.panels;
@@ -224,7 +218,9 @@ extern "C" void MS_ABI impl__Add_CMFCRibbonPanel__UEAAXPEAVCMFCRibbonBaseElement
     CMFCRibbonPanel* pThis, CMFCRibbonBaseElement* pElement) {
     if (!pThis || !pElement) return;
     std::lock_guard<std::mutex> lock(g_ribbonMutex);
-    g_ribbonPanels[pThis].elements.push_back(pElement);
+    auto& state = g_ribbonPanels[pThis];
+    state.elements.push_back(pElement);
+    state.ownedElements.insert(pElement);
 }
 
 // Symbol: ?AddSeparator@CMFCRibbonPanel@@UEAAXXZ
