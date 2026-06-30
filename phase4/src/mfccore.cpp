@@ -9,6 +9,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
+#include "ribbon_state.h"
 #include <algorithm>
 #include <cwctype>
 #include <cstring>
@@ -37,6 +38,10 @@ void OpenMFC_CopyComboButtonState(CMFCToolBarComboBoxButton* dst, const CMFCTool
 void OpenMFC_CopyEditButtonState(CMFCToolBarEditBoxButton* dst, const CMFCToolBarEditBoxButton* src);
 
 namespace {
+
+using openmfc::ribbon_state::RibbonBarState;
+using openmfc::ribbon_state::RibbonCategoryState;
+using openmfc::ribbon_state::RibbonPanelState;
 
 struct DockingManagerState {
     std::vector<CBasePane*> panes;
@@ -150,26 +155,6 @@ struct ToolBarState {
     std::unordered_set<CMFCToolBarButton*> ownedButtons;
 };
 
-struct RibbonPanelState {
-    std::vector<CMFCRibbonBaseElement*> elements;
-};
-
-struct RibbonCategoryState {
-    std::vector<CMFCRibbonPanel*> panels;
-    std::unordered_set<CMFCRibbonPanel*> ownedPanels;
-};
-
-struct RibbonBarState {
-    CWnd* parent = nullptr;
-    std::vector<CMFCRibbonCategory*> categories;
-    std::unordered_set<CMFCRibbonCategory*> ownedCategories;
-    std::vector<CMFCRibbonBaseElement*> tabs;
-    CMFCRibbonButtonsGroup* quickAccessToolbar = nullptr;
-    CMFCRibbonCategory* activeCategory = nullptr;
-    bool quickAccessToolbarOnTop = true;
-    bool minimized = false;
-};
-
 struct PopupMenuBarState {
     HMENU menu = nullptr;
     std::vector<CMFCToolBarMenuButton*> items;
@@ -215,9 +200,9 @@ struct WinAppExState {
 thread_local std::unordered_map<const CMFCPopupMenu*, PopupMenuState> g_popupMenuStates;
 thread_local std::unordered_map<const CMFCMenuBar*, MenuBarState> g_menuBarStates;
 thread_local std::unordered_map<const CMFCToolBar*, ToolBarState> g_toolBarStates;
-thread_local std::unordered_map<const CMFCRibbonPanel*, RibbonPanelState> g_ribbonPanelStates;
-thread_local std::unordered_map<const CMFCRibbonCategory*, RibbonCategoryState> g_ribbonCategoryStates;
-thread_local std::unordered_map<const CMFCRibbonBar*, RibbonBarState> g_ribbonBarStates;
+auto& g_ribbonPanelStates = openmfc::ribbon_state::RibbonPanelStates();
+auto& g_ribbonCategoryStates = openmfc::ribbon_state::RibbonCategoryStates();
+auto& g_ribbonBarStates = openmfc::ribbon_state::RibbonBarStates();
 thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_popupMenuBarStates;
 thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
 thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_contextMenuStates;
@@ -270,7 +255,14 @@ void ClearToolBarState(const CMFCToolBar* pToolBar) {
 
 void ClearRibbonPanelState(const CMFCRibbonPanel* pPanel) {
     if (!pPanel) return;
-    g_ribbonPanelStates.erase(pPanel);
+    auto it = g_ribbonPanelStates.find(pPanel);
+    if (it != g_ribbonPanelStates.end()) {
+        std::vector<CMFCRibbonBaseElement*> ownedElements(it->second.ownedElements.begin(), it->second.ownedElements.end());
+        g_ribbonPanelStates.erase(it);
+        for (CMFCRibbonBaseElement* element : ownedElements) {
+            delete element;
+        }
+    }
 
     for (auto& entry : g_ribbonCategoryStates) {
         entry.second.ownedPanels.erase(const_cast<CMFCRibbonPanel*>(pPanel));
@@ -1350,7 +1342,9 @@ CMFCRibbonPanel::~CMFCRibbonPanel() {
 
 void CMFCRibbonPanel::Add(CMFCRibbonBaseElement* pElem) {
     if (!pElem) return;
-    g_ribbonPanelStates[this].elements.push_back(pElem);
+    RibbonPanelState& state = g_ribbonPanelStates[this];
+    state.elements.push_back(pElem);
+    state.ownedElements.insert(pElem);
 }
 void CMFCRibbonPanel::AddSeparator() {
     g_ribbonPanelStates[this].elements.push_back(nullptr);
@@ -1397,6 +1391,7 @@ void CMFCRibbonCategory::AddPanel(CMFCRibbonPanel* pPanel) {
     if (std::find(state.panels.begin(), state.panels.end(), pPanel) == state.panels.end()) {
         state.panels.push_back(pPanel);
     }
+    state.ownedPanels.insert(pPanel);
     g_ribbonPanelStates[pPanel];
 }
 int CMFCRibbonCategory::GetPanelCount() const {
@@ -1432,7 +1427,7 @@ BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
                                 pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
                                 AfxGetInstanceHandle(), nullptr);
     if (!m_hWnd) {
-        g_ribbonBarStates.erase(this);
+        ClearRibbonBarState(this);
         return FALSE;
     }
     return TRUE;
@@ -1460,6 +1455,7 @@ BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory* pCategory) {
     if (std::find(state.categories.begin(), state.categories.end(), pCategory) == state.categories.end()) {
         state.categories.push_back(pCategory);
     }
+    state.ownedCategories.insert(pCategory);
     g_ribbonCategoryStates[pCategory];
     if (!state.activeCategory) {
         state.activeCategory = pCategory;
