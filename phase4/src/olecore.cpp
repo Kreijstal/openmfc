@@ -45,6 +45,9 @@
   #define MS_ABI
 #endif
 
+extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+    CWnd* pThis, COleControlSite* pSite, long dispid, VARIANT* pVar);
+
 //=============================================================================
 // Base classes needed by OLE
 //=============================================================================
@@ -2949,8 +2952,459 @@ BOOL COleTemplateServer::OnCmdMsg(UINT nID, int nCode, void* pExtra,
 IMPLEMENT_DYNAMIC(COleControlSite, CCmdTarget)
 
 namespace {
+static HWND GetSiteParentWindow(const COleControlSite* pSite) {
+    if (!pSite) {
+        return nullptr;
+    }
+    if (pSite->m_pCtrlCont && pSite->m_pCtrlCont->GetWnd()) {
+        HWND hwnd = pSite->m_pCtrlCont->GetWnd()->GetSafeHwnd();
+        if (hwnd) {
+            return hwnd;
+        }
+    }
+    if (pSite->m_hWnd) {
+        HWND hwndParent = ::GetParent(pSite->m_hWnd);
+        return hwndParent ? hwndParent : pSite->m_hWnd;
+    }
+    return nullptr;
+}
+
+static RECT GetSitePositionRect(const COleControlSite* pSite) {
+    RECT rc = {};
+    HWND hwndParent = GetSiteParentWindow(pSite);
+    if (pSite && pSite->m_hWnd) {
+        ::GetWindowRect(pSite->m_hWnd, &rc);
+        if (hwndParent) {
+            ::MapWindowPoints(nullptr, hwndParent, reinterpret_cast<POINT*>(&rc), 2);
+        }
+        return rc;
+    }
+    if (hwndParent) {
+        ::GetClientRect(hwndParent, &rc);
+    }
+    return rc;
+}
+
+static void SetVariantBool(VARIANT* pVar, BOOL value) {
+    VariantInit(pVar);
+    pVar->vt = VT_BOOL;
+    pVar->boolVal = value ? VARIANT_TRUE : VARIANT_FALSE;
+}
+
+static BOOL TryGetAmbientOverride(COleControlSite* pSite, DISPID dispid, VARIANT* pVarResult) {
+    if (!pSite || !pVarResult || !pSite->m_pCtrlCont || !pSite->m_pCtrlCont->GetWnd()) {
+        return FALSE;
+    }
+    VariantInit(pVarResult);
+    CWnd* pWnd = pSite->m_pCtrlCont->GetWnd();
+    if (impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+            pWnd, pSite, dispid, pVarResult)) {
+        return TRUE;
+    }
+    VariantClear(pVarResult);
+    return FALSE;
+}
+
+class ControlSiteAdapter : public IOleClientSite,
+                           public IOleInPlaceSite,
+                           public IOleControlSite,
+                           public IOleInPlaceFrame,
+                           public IDispatch {
+public:
+    explicit ControlSiteAdapter(COleControlSite* pSite) : m_refs(1), m_site(pSite) {}
+    virtual ~ControlSiteAdapter() = default;
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) {
+            return E_POINTER;
+        }
+        *ppvObject = nullptr;
+        if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IOleClientSite)) {
+            *ppvObject = static_cast<IOleClientSite*>(this);
+        } else if (IsEqualIID(riid, IID_IOleWindow) || IsEqualIID(riid, IID_IOleInPlaceSite)) {
+            *ppvObject = static_cast<IOleInPlaceSite*>(this);
+        } else if (IsEqualIID(riid, IID_IOleControlSite)) {
+            *ppvObject = static_cast<IOleControlSite*>(this);
+        } else if (IsEqualIID(riid, IID_IOleInPlaceFrame) ||
+                   IsEqualIID(riid, IID_IOleInPlaceUIWindow)) {
+            *ppvObject = static_cast<IOleInPlaceFrame*>(this);
+        } else if (IsEqualIID(riid, IID_IDispatch)) {
+            *ppvObject = static_cast<IDispatch*>(this);
+        } else {
+            return E_NOINTERFACE;
+        }
+        AddRef();
+        return S_OK;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override {
+        return static_cast<ULONG>(InterlockedIncrement(&m_refs));
+    }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        LONG refs = InterlockedDecrement(&m_refs);
+        if (refs == 0) {
+            delete this;
+        }
+        return static_cast<ULONG>(refs);
+    }
+
+    void DetachSite() { m_site = nullptr; }
+
+    HRESULT STDMETHODCALLTYPE SaveObject() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE GetMoniker(DWORD dwAssign, DWORD dwWhichMoniker,
+                                         IMoniker** ppmk) override {
+        (void)dwAssign; (void)dwWhichMoniker;
+        if (ppmk) {
+            *ppmk = nullptr;
+        }
+        return E_NOTIMPL;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetContainer(IOleContainer** ppContainer) override {
+        if (!ppContainer) {
+            return E_POINTER;
+        }
+        *ppContainer = nullptr;
+        return m_site ? m_site->GetContainer(ppContainer) : E_FAIL;
+    }
+
+    HRESULT STDMETHODCALLTYPE ShowObject() override {
+        if (m_site && m_site->m_lpInPlaceObject) {
+            HWND hwnd = nullptr;
+            if (SUCCEEDED(m_site->m_lpInPlaceObject->GetWindow(&hwnd))) {
+                m_site->m_hWnd = hwnd;
+            }
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnShowWindow(BOOL fShow) override {
+        (void)fShow;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE RequestNewObjectLayout() override { return E_NOTIMPL; }
+
+    HRESULT STDMETHODCALLTYPE GetWindow(HWND* phwnd) override {
+        if (!phwnd) {
+            return E_POINTER;
+        }
+        *phwnd = GetSiteParentWindow(m_site);
+        return *phwnd ? S_OK : E_FAIL;
+    }
+
+    HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL fEnterMode) override {
+        (void)fEnterMode;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE CanInPlaceActivate() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE OnInPlaceActivate() override {
+        if (m_site) {
+            m_site->m_bInPlaceActive = TRUE;
+            if (m_site->m_lpInPlaceObject) {
+                HWND hwnd = nullptr;
+                if (SUCCEEDED(m_site->m_lpInPlaceObject->GetWindow(&hwnd))) {
+                    m_site->m_hWnd = hwnd;
+                }
+            }
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnUIActivate() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE GetWindowContext(IOleInPlaceFrame** ppFrame,
+                                               IOleInPlaceUIWindow** ppDoc,
+                                               LPRECT lprcPosRect,
+                                               LPRECT lprcClipRect,
+                                               LPOLEINPLACEFRAMEINFO lpFrameInfo) override {
+        if (ppFrame) {
+            *ppFrame = static_cast<IOleInPlaceFrame*>(this);
+            AddRef();
+        }
+        if (ppDoc) {
+            *ppDoc = nullptr;
+        }
+        RECT rc = GetSitePositionRect(m_site);
+        if (lprcPosRect) {
+            *lprcPosRect = rc;
+        }
+        if (lprcClipRect) {
+            HWND hwndParent = GetSiteParentWindow(m_site);
+            if (hwndParent) {
+                ::GetClientRect(hwndParent, lprcClipRect);
+            } else {
+                *lprcClipRect = rc;
+            }
+        }
+        if (lpFrameInfo) {
+            memset(lpFrameInfo, 0, sizeof(*lpFrameInfo));
+            lpFrameInfo->cb = sizeof(*lpFrameInfo);
+            lpFrameInfo->hwndFrame = GetSiteParentWindow(m_site);
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetBorder(LPRECT lprectBorder) override {
+        if (!lprectBorder) {
+            return E_POINTER;
+        }
+        HWND hwndParent = GetSiteParentWindow(m_site);
+        if (hwndParent) {
+            ::GetClientRect(hwndParent, lprectBorder);
+        } else {
+            *lprectBorder = GetSitePositionRect(m_site);
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE RequestBorderSpace(LPCBORDERWIDTHS pborderwidths) override {
+        (void)pborderwidths;
+        return INPLACE_E_NOTOOLSPACE;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetBorderSpace(LPCBORDERWIDTHS pborderwidths) override {
+        (void)pborderwidths;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetActiveObject(IOleInPlaceActiveObject* pActiveObject,
+                                              LPCOLESTR pszObjName) override {
+        (void)pActiveObject; (void)pszObjName;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE InsertMenus(HMENU hmenuShared,
+                                          LPOLEMENUGROUPWIDTHS lpMenuWidths) override {
+        (void)hmenuShared;
+        if (lpMenuWidths) {
+            memset(lpMenuWidths, 0, sizeof(*lpMenuWidths));
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetMenu(HMENU hmenuShared, HOLEMENU holemenu,
+                                      HWND hwndActiveObject) override {
+        (void)hmenuShared; (void)holemenu; (void)hwndActiveObject;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE RemoveMenus(HMENU hmenuShared) override {
+        (void)hmenuShared;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetStatusText(LPCOLESTR pszStatusText) override {
+        (void)pszStatusText;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE EnableModeless(BOOL fEnable) override {
+        (void)fEnable;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE TranslateAccelerator(LPMSG lpmsg, WORD wID) override {
+        (void)lpmsg; (void)wID;
+        return S_FALSE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Scroll(SIZE scrollExtant) override {
+        (void)scrollExtant;
+        return E_NOTIMPL;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnUIDeactivate(BOOL fUndoable) override {
+        (void)fUndoable;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnInPlaceDeactivate() override {
+        if (m_site) {
+            m_site->m_bInPlaceActive = FALSE;
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE DiscardUndoState() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE DeactivateAndUndo() override {
+        if (m_site) {
+            m_site->Deactivate();
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnPosRectChange(LPCRECT lprcPosRect) override {
+        if (!lprcPosRect) {
+            return E_POINTER;
+        }
+        if (m_site && m_site->m_lpInPlaceObject) {
+            return m_site->m_lpInPlaceObject->SetObjectRects(lprcPosRect, lprcPosRect);
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnControlInfoChanged() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE LockInPlaceActive(BOOL fLock) override {
+        (void)fLock;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetExtendedControl(IDispatch** ppDisp) override {
+        if (!ppDisp) {
+            return E_POINTER;
+        }
+        *ppDisp = nullptr;
+        return E_NOTIMPL;
+    }
+
+    HRESULT STDMETHODCALLTYPE TransformCoords(POINTL* pPtlHimetric, POINTF* pPtfContainer,
+                                               DWORD dwFlags) override {
+        if (!pPtlHimetric || !pPtfContainer) {
+            return E_POINTER;
+        }
+        HWND hwndParent = GetSiteParentWindow(m_site);
+        HDC hdc = ::GetDC(hwndParent);
+        int dpiX = hdc ? ::GetDeviceCaps(hdc, LOGPIXELSX) : 96;
+        int dpiY = hdc ? ::GetDeviceCaps(hdc, LOGPIXELSY) : 96;
+        if (hdc) {
+            ::ReleaseDC(hwndParent, hdc);
+        }
+        if (dpiX <= 0) {
+            dpiX = 96;
+        }
+        if (dpiY <= 0) {
+            dpiY = 96;
+        }
+
+        if (dwFlags & XFORMCOORDS_HIMETRICTOCONTAINER) {
+            pPtfContainer->x = static_cast<float>((pPtlHimetric->x * dpiX) / 2540.0);
+            pPtfContainer->y = static_cast<float>((pPtlHimetric->y * dpiY) / 2540.0);
+            return S_OK;
+        }
+        if (dwFlags & XFORMCOORDS_CONTAINERTOHIMETRIC) {
+            pPtlHimetric->x = static_cast<LONG>((pPtfContainer->x * 2540.0f) / dpiX);
+            pPtlHimetric->y = static_cast<LONG>((pPtfContainer->y * 2540.0f) / dpiY);
+            return S_OK;
+        }
+        return E_INVALIDARG;
+    }
+
+    HRESULT STDMETHODCALLTYPE TranslateAccelerator(MSG* pMsg, DWORD grfModifiers) override {
+        (void)pMsg; (void)grfModifiers;
+        return S_FALSE;
+    }
+
+    HRESULT STDMETHODCALLTYPE OnFocus(BOOL fGotFocus) override {
+        (void)fGotFocus;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE ShowPropertyFrame() override {
+        if (m_site) {
+            m_site->ShowPropertyFrame();
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT* pctinfo) override {
+        if (!pctinfo) {
+            return E_POINTER;
+        }
+        *pctinfo = 0;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo) override {
+        (void)iTInfo; (void)lcid;
+        if (ppTInfo) {
+            *ppTInfo = nullptr;
+        }
+        return E_NOTIMPL;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames,
+                                            UINT cNames, LCID lcid, DISPID* rgDispId) override {
+        (void)riid; (void)rgszNames; (void)cNames; (void)lcid;
+        if (rgDispId && cNames) {
+            for (UINT i = 0; i < cNames; ++i) {
+                rgDispId[i] = DISPID_UNKNOWN;
+            }
+        }
+        return DISP_E_UNKNOWNNAME;
+    }
+
+    HRESULT STDMETHODCALLTYPE Invoke(DISPID dispIdMember, REFIID riid, LCID lcid,
+                                     WORD wFlags, DISPPARAMS* pDispParams,
+                                     VARIANT* pVarResult, EXCEPINFO* pExcepInfo,
+                                     UINT* puArgErr) override {
+        (void)riid; (void)lcid; (void)pDispParams; (void)pExcepInfo; (void)puArgErr;
+        if (!(wFlags & DISPATCH_PROPERTYGET)) {
+            return DISP_E_MEMBERNOTFOUND;
+        }
+        if (!pVarResult) {
+            return E_POINTER;
+        }
+        if (TryGetAmbientOverride(m_site, dispIdMember, pVarResult)) {
+            return S_OK;
+        }
+
+        switch (dispIdMember) {
+        case DISPID_AMBIENT_USERMODE:
+        case DISPID_AMBIENT_SUPPORTSMNEMONICS:
+            SetVariantBool(pVarResult, TRUE);
+            return S_OK;
+        case DISPID_AMBIENT_UIDEAD:
+        case DISPID_AMBIENT_DISPLAYASDEFAULT:
+        case DISPID_AMBIENT_SHOWGRABHANDLES:
+        case DISPID_AMBIENT_SHOWHATCHING:
+            SetVariantBool(pVarResult, FALSE);
+            return S_OK;
+        case DISPID_AMBIENT_BACKCOLOR:
+            VariantInit(pVarResult);
+            pVarResult->vt = VT_I4;
+            pVarResult->lVal = static_cast<LONG>(::GetSysColor(COLOR_WINDOW));
+            return S_OK;
+        case DISPID_AMBIENT_FORECOLOR:
+            VariantInit(pVarResult);
+            pVarResult->vt = VT_I4;
+            pVarResult->lVal = static_cast<LONG>(::GetSysColor(COLOR_WINDOWTEXT));
+            return S_OK;
+        case DISPID_AMBIENT_LOCALEID:
+            VariantInit(pVarResult);
+            pVarResult->vt = VT_I4;
+            pVarResult->lVal = static_cast<LONG>(::GetUserDefaultLCID());
+            return S_OK;
+        case DISPID_AMBIENT_DISPLAYNAME:
+        case DISPID_AMBIENT_SCALEUNITS:
+            VariantInit(pVarResult);
+            pVarResult->vt = VT_BSTR;
+            pVarResult->bstrVal = SysAllocString(L"");
+            return pVarResult->bstrVal ? S_OK : E_OUTOFMEMORY;
+        case DISPID_AMBIENT_APPEARANCE:
+            VariantInit(pVarResult);
+            pVarResult->vt = VT_I2;
+            pVarResult->iVal = 0;
+            return S_OK;
+        default:
+            return DISP_E_MEMBERNOTFOUND;
+        }
+    }
+
+private:
+    volatile LONG m_refs;
+    COleControlSite* m_site;
+};
+
 struct OleControlSiteState {
-    UINT controlId;
+    UINT controlId = 0;
+    ControlSiteAdapter* adapter = nullptr;
 };
 
 static std::map<const COleControlSite*, OleControlSiteState> g_oleControlSiteState;
@@ -2959,11 +3413,18 @@ static void SetControlSiteId(const COleControlSite* pSite, UINT controlId) {
     if (!pSite) {
         return;
     }
-    g_oleControlSiteState[pSite] = { controlId };
+    g_oleControlSiteState[pSite].controlId = controlId;
 }
 
 static void RemoveControlSiteState(const COleControlSite* pSite) {
-    g_oleControlSiteState.erase(pSite);
+    auto it = g_oleControlSiteState.find(pSite);
+    if (it != g_oleControlSiteState.end()) {
+        if (it->second.adapter) {
+            it->second.adapter->DetachSite();
+            it->second.adapter->Release();
+        }
+        g_oleControlSiteState.erase(it);
+    }
 }
 
 static BOOL TryGetControlSiteId(const COleControlSite* pSite, UINT* pControlId) {
@@ -2976,6 +3437,23 @@ static BOOL TryGetControlSiteId(const COleControlSite* pSite, UINT* pControlId) 
     }
     *pControlId = it->second.controlId;
     return TRUE;
+}
+
+static ControlSiteAdapter* GetControlSiteAdapter(COleControlSite* pSite, bool create) {
+    if (!pSite) {
+        return nullptr;
+    }
+    auto it = g_oleControlSiteState.find(pSite);
+    if (it == g_oleControlSiteState.end()) {
+        if (!create) {
+            return nullptr;
+        }
+        it = g_oleControlSiteState.emplace(pSite, OleControlSiteState{}).first;
+    }
+    if (!it->second.adapter && create) {
+        it->second.adapter = new(std::nothrow) ControlSiteAdapter(pSite);
+    }
+    return it->second.adapter;
 }
 } // namespace
 
@@ -3031,18 +3509,35 @@ BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_
 
     pUnk->Release();
 
+    ControlSiteAdapter* pAdapter = GetControlSiteAdapter(this, true);
+    if (!pAdapter) {
+        DestroyControl();
+        return FALSE;
+    }
+    hr = m_lpObject->SetClientSite(static_cast<IOleClientSite*>(pAdapter));
+    if (FAILED(hr)) {
+        DestroyControl();
+        return FALSE;
+    }
+    OleSetContainedObject(m_lpObject, TRUE);
+
     // Set host names
     m_lpObject->SetHostNames(L"OpenMFC", lpszWindowName ? lpszWindowName : L"");
 
     // Activate in-place if we have a parent window
-    HWND hParent = pWndCtrl ? pWndCtrl->GetSafeHwnd() : (m_pCtrlCont ? m_pCtrlCont->GetWnd()->GetSafeHwnd() : nullptr);
+    HWND hParent = pWndCtrl ? pWndCtrl->GetSafeHwnd() : nullptr;
+    if (!hParent) {
+        hParent = GetSiteParentWindow(this);
+    }
     if (hParent) {
-        hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rect);
+        hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr,
+                                static_cast<IOleClientSite*>(pAdapter), 0, hParent, &rect);
         if (SUCCEEDED(hr)) {
             m_bInPlaceActive = TRUE;
             // Retrieve the in-place window handle
             if (m_lpInPlaceObject) {
                 m_lpInPlaceObject->GetWindow(&m_hWnd);
+                m_lpInPlaceObject->SetObjectRects(&rect, &rect);
             }
         }
     }
@@ -3060,6 +3555,7 @@ BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, const wchar_t* lpszProgID,
 }
 
 void COleControlSite::DestroyControl() {
+    if (m_lpObject) { m_lpObject->SetClientSite(nullptr); }
     if (m_lpObject) { m_lpObject->Release(); m_lpObject = nullptr; }
     if (m_lpInPlaceObject) { m_lpInPlaceObject->Release(); m_lpInPlaceObject = nullptr; }
     if (m_lpDispatch) { m_lpDispatch->Release(); m_lpDispatch = nullptr; }
@@ -3076,12 +3572,23 @@ void COleControlSite::Activate(BOOL bActivate) {
                 hParent = m_pCtrlCont->GetWnd()->GetSafeHwnd();
             if (hParent) {
                 RECT rc = {};
-                if (m_hWnd) ::GetWindowRect(m_hWnd, &rc);
-                HRESULT hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr, nullptr, 0, hParent, &rc);
+                if (m_hWnd) {
+                    rc = GetSitePositionRect(this);
+                } else {
+                    ::GetClientRect(hParent, &rc);
+                }
+                ControlSiteAdapter* pAdapter = GetControlSiteAdapter(this, true);
+                if (!pAdapter) {
+                    return;
+                }
+                HRESULT hr = m_lpObject->DoVerb(OLEIVERB_INPLACEACTIVATE, nullptr,
+                                                static_cast<IOleClientSite*>(pAdapter), 0, hParent, &rc);
                 if (SUCCEEDED(hr)) {
                     m_bInPlaceActive = TRUE;
                     if (m_lpInPlaceObject && !m_hWnd)
                         m_lpInPlaceObject->GetWindow(&m_hWnd);
+                    if (m_lpInPlaceObject)
+                        m_lpInPlaceObject->SetObjectRects(&rc, &rc);
                 }
             }
         }
@@ -3226,6 +3733,44 @@ long COleControlSite::GetContainer(IOleContainer** ppContainer) {
     if (!ppContainer) return E_POINTER;
     *ppContainer = nullptr;
     return E_NOINTERFACE;
+}
+
+void COleControlSite::ShowPropertyFrame() {
+    if (m_pControl) {
+        m_pControl->ShowPropertyPages();
+        return;
+    }
+    if (!m_lpObject) {
+        return;
+    }
+
+    ISpecifyPropertyPages* pSPP = nullptr;
+    if (FAILED(m_lpObject->QueryInterface(IID_ISpecifyPropertyPages,
+                                          reinterpret_cast<void**>(&pSPP))) || !pSPP) {
+        return;
+    }
+
+    CAUUID pages = {};
+    if (SUCCEEDED(pSPP->GetPages(&pages)) && pages.cElems > 0 && pages.pElems) {
+        IUnknown* pUnk = nullptr;
+        m_lpObject->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&pUnk));
+        HWND hwndOwner = m_hWnd ? m_hWnd : GetSiteParentWindow(this);
+        OleCreatePropertyFrame(hwndOwner, 0, 0, nullptr,
+                               pUnk ? 1u : 0u, pUnk ? &pUnk : nullptr,
+                               pages.cElems, pages.pElems,
+                               LOCALE_USER_DEFAULT, 0, nullptr);
+        if (pUnk) {
+            pUnk->Release();
+        }
+    }
+    CoTaskMemFree(pages.pElems);
+    pSPP->Release();
+}
+
+void COleControlSite::EnableWindow(BOOL bEnable) {
+    if (m_hWnd) {
+        ::EnableWindow(m_hWnd, bEnable);
+    }
 }
 
 COleControlContainer* COleControlSite::GetContainer() const {
@@ -3856,15 +4401,16 @@ BOOL COleControl::CreateControl(REFCLSID clsid, const wchar_t* lpszWindowName,
 
     COleControlSite* site = container->CreateSite(container);
     if (!site) return FALSE;
+    site->m_pControl = this;
 
     if (!site->CreateControl(this, clsid, lpszWindowName, dwStyle, rect, nID, pPersist, bStorage, bstrLicKey)) {
+        site->m_pControl = nullptr;
         container->DeleteSite(site);
         return FALSE;
     }
 
     m_pContainer = container;
     m_pControlSite = site;
-    site->m_pControl = this;
     m_bInitialized = TRUE;
     return TRUE;
 }
