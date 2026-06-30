@@ -6,6 +6,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
 #include "openmfc/afxole.h"
+#include "docking_state.h"
 #include "ribbon_state.h"
 #include <commctrl.h>
 #include <algorithm>
@@ -37,6 +38,7 @@ namespace {
 using openmfc::ribbon_state::RibbonBarState;
 using openmfc::ribbon_state::RibbonCategoryState;
 using openmfc::ribbon_state::RibbonPanelState;
+using openmfc::docking_state::PaneCoreState;
 
 auto& g_ribbonMutex = openmfc::ribbon_state::RibbonMutex();
 auto& g_ribbonPanels = openmfc::ribbon_state::RibbonPanelStates();
@@ -1859,13 +1861,6 @@ extern "C" int MS_ABI impl__GetString_CToolBarCtrl__QEBAHHAEAV__CStringT__WV__St
 }
 
 namespace {
-struct PaneCoreState {
-    CWnd* parent = nullptr;
-    CSize minSize = CSize(0, 0);
-    CRect recentRect = CRect(0, 0, 0, 0);
-    BOOL visible = FALSE;
-};
-
 struct DockSiteCoreState {
     CWnd* parent = nullptr;
     CRect recentRect = CRect(0, 0, 0, 0);
@@ -1873,8 +1868,8 @@ struct DockSiteCoreState {
     unsigned int layoutRevision = 0;
 };
 
-std::mutex g_paneCoreStateMutex;
-std::unordered_map<const void*, PaneCoreState> g_paneCoreState;
+auto& g_paneCoreStateMutex = openmfc::docking_state::PaneCoreStateMutex();
+auto& g_paneCoreState = openmfc::docking_state::PaneCoreStates();
 std::unordered_map<const void*, DockSiteCoreState> g_dockSiteCoreState;
 
 static CRect NormalizeRect(const RECT* rect, int fallbackWidth = 200, int fallbackHeight = 120) {
@@ -1919,6 +1914,7 @@ extern "C" int MS_ABI impl__CreateEx_CBasePane__UEAAHKPEB_W0KAEBUtagRECT__PEAVCW
         PaneCoreState& state = g_paneCoreState[pThis];
         state.parent = pParentWnd;
         state.recentRect = useRect;
+        state.visible = (dwStyle & WS_VISIBLE) ? TRUE : FALSE;
         if (state.minSize.cx <= 0) state.minSize.cx = 32;
         if (state.minSize.cy <= 0) state.minSize.cy = 32;
     }
@@ -1973,6 +1969,8 @@ extern "C" int MS_ABI impl__Create_CPane__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKPE
         PaneCoreState& state = g_paneCoreState[pThis];
         state.parent = pParentWnd;
         state.recentRect = useRect;
+        state.visible = (dwStyle & WS_VISIBLE) ? TRUE : FALSE;
+        state.canFloat = TRUE;
         if (state.minSize.cx <= 0) state.minSize.cx = 64;
         if (state.minSize.cy <= 0) state.minSize.cy = 64;
     }
@@ -1995,6 +1993,7 @@ extern "C" int MS_ABI impl__Dock_CPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_D
     PaneCoreState& state = g_paneCoreState[pThis];
     state.parent = static_cast<CWnd*>(pTargetBar);
     state.recentRect = NormalizeRect(lpRect);
+    state.tabbed = FALSE;
     return TRUE;
 }
 
@@ -2057,7 +2056,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntim
 // Symbol: ?Create@CDockablePane@@UEAAHPEB_WPEAVCWnd@@AEBUtagRECT@@HIKKKPEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
     CDockablePane* pThis, const wchar_t* lpszCaption, CWnd* pParentWnd, const RECT& rect,
-    int, unsigned int nID, unsigned long dwStyle, unsigned long, unsigned long, CCreateContext* pContext) {
+    int bHasGripper, unsigned int nID, unsigned long dwStyle, unsigned long dwTabbedStyle,
+    unsigned long, CCreateContext* pContext) {
     if (pThis == nullptr) return FALSE;
     CRect useRect = NormalizeRect(&rect, 240, 140);
     {
@@ -2065,6 +2065,11 @@ extern "C" int MS_ABI impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagREC
         PaneCoreState& state = g_paneCoreState[pThis];
         state.parent = pParentWnd;
         state.recentRect = useRect;
+        state.visible = (dwStyle & WS_VISIBLE) ? TRUE : FALSE;
+        state.canFloat = TRUE;
+        state.canAutoHide = TRUE;
+        state.hasGripper = bHasGripper ? TRUE : FALSE;
+        state.tabbed = (dwTabbedStyle != 0) ? TRUE : FALSE;
         if (state.minSize.cx <= 0) state.minSize.cx = 120;
         if (state.minSize.cy <= 0) state.minSize.cy = 80;
     }
@@ -2116,6 +2121,7 @@ extern "C" int MS_ABI impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__
     PaneCoreState& state = g_paneCoreState[pThis];
     state.parent = pTargetBar != nullptr ? static_cast<CWnd*>(pTargetBar) : state.parent;
     state.recentRect = NormalizeRect(lpRect, 240, 140);
+    state.tabbed = FALSE;
     return TRUE;
 }
 

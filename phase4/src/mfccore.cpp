@@ -9,6 +9,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
+#include "docking_state.h"
 #include "ribbon_state.h"
 #include <algorithm>
 #include <cwctype>
@@ -42,6 +43,10 @@ namespace {
 using openmfc::ribbon_state::RibbonBarState;
 using openmfc::ribbon_state::RibbonCategoryState;
 using openmfc::ribbon_state::RibbonPanelState;
+using openmfc::docking_state::PaneCoreState;
+
+auto& g_paneCoreStateMutex = openmfc::docking_state::PaneCoreStateMutex();
+auto& g_paneCoreState = openmfc::docking_state::PaneCoreStates();
 
 struct DockingManagerState {
     std::vector<CBasePane*> panes;
@@ -888,23 +893,62 @@ IMPLEMENT_DYNAMIC(CBasePane, CWnd)
 
 CBasePane::CBasePane() {
     memset(_basepane_padding, 0, sizeof(_basepane_padding));
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[this];
+    state.canFloat = FALSE;
+    state.canAutoHide = FALSE;
+    state.hasGripper = FALSE;
 }
-CBasePane::~CBasePane() {}
+CBasePane::~CBasePane() {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState.erase(this);
+}
 
 BOOL CBasePane::CanAcceptPane(const CBasePane*) const { return TRUE; }
-BOOL CBasePane::CanAutoHide() const { return FALSE; }
+BOOL CBasePane::CanAutoHide() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.canAutoHide : FALSE;
+}
 BOOL CBasePane::CanBeAttached() const { return TRUE; }
 BOOL CBasePane::CanBeClosed() const { return TRUE; }
 BOOL CBasePane::CanBeDocked() const { return TRUE; }
-BOOL CBasePane::CanBeFloating() const { return FALSE; }
+BOOL CBasePane::CanBeFloating() const { return CanFloat(); }
 BOOL CBasePane::CanBeResized() const { return TRUE; }
-BOOL CBasePane::CanFloat() const { return FALSE; }
+BOOL CBasePane::CanFloat() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.canFloat : FALSE;
+}
 BOOL CBasePane::DoesAllowSiblingBars() const { return TRUE; }
-BOOL CBasePane::HasGripper() const { return FALSE; }
+BOOL CBasePane::HasGripper() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.hasGripper : FALSE;
+}
 BOOL CBasePane::IsAccessibilityCompatible() { return TRUE; }
-void CBasePane::SetPaneAlignment(DWORD) {}
-DWORD CBasePane::GetPaneAlignment() const { return 0; }
-void* CBasePane::SetWindowPos(const CWnd*, int, int, int, int, unsigned int, void*) { return nullptr; }
+void CBasePane::SetPaneAlignment(DWORD dwAlignment) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[this].alignment = dwAlignment;
+}
+DWORD CBasePane::GetPaneAlignment() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.alignment : 0;
+}
+void* CBasePane::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags, void* pExtra) {
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        PaneCoreState& state = g_paneCoreState[this];
+        state.recentRect = CRect(x, y, x + std::max(0, cx), y + std::max(0, cy));
+    }
+    HWND hwnd = GetSafeHwnd();
+    if (hwnd != nullptr) {
+        HWND hwndInsertAfter = pWndInsertAfter != nullptr ? pWndInsertAfter->GetSafeHwnd() : nullptr;
+        ::SetWindowPos(hwnd, hwndInsertAfter, x, y, cx, cy, nFlags);
+    }
+    return pExtra;
+}
 void CBasePane::CalcFixedLayout(BOOL, BOOL) {}
 void CBasePane::RecalcLayout() {}
 
@@ -915,6 +959,8 @@ IMPLEMENT_DYNAMIC(CPane, CBasePane)
 
 CPane::CPane() {
     memset(_pane_padding, 0, sizeof(_pane_padding));
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[this].canFloat = TRUE;
 }
 CPane::~CPane() {}
 
@@ -929,16 +975,40 @@ IMPLEMENT_DYNAMIC(CDockablePane, CPane)
 
 CDockablePane::CDockablePane() {
     memset(_dockablepane_padding, 0, sizeof(_dockablepane_padding));
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[this];
+    state.canFloat = TRUE;
+    state.canAutoHide = TRUE;
+    state.hasGripper = TRUE;
 }
 CDockablePane::~CDockablePane() {}
 
 BOOL CDockablePane::CanBeAttached() const { return TRUE; }
 BOOL CDockablePane::CanAutoHide() const { return TRUE; }
-void CDockablePane::EnableAutohideAll() {}
-CMFCAutoHideBar* CDockablePane::SetAutoHideMode(int, unsigned long, void*, int) { return nullptr; }
+void CDockablePane::EnableAutohideAll() {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[this].canAutoHide = TRUE;
+}
+CMFCAutoHideBar* CDockablePane::SetAutoHideMode(int bAutoHideMode, unsigned long dwAlignment, void* pAutoHideBar, int) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[this];
+    state.autoHideMode = bAutoHideMode ? TRUE : FALSE;
+    state.autoHideAlignment = bAutoHideMode ? dwAlignment : 0;
+    state.autoHideBar = bAutoHideMode ? pAutoHideBar : nullptr;
+    state.canAutoHide = TRUE;
+    return reinterpret_cast<CMFCAutoHideBar*>(state.autoHideBar);
+}
 // Old convenience overloads (non-MSDN API)
-BOOL CDockablePane::IsAutoHideMode() const { return FALSE; }
-BOOL CDockablePane::IsTabbed() const { return FALSE; }
+BOOL CDockablePane::IsAutoHideMode() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.autoHideMode : FALSE;
+}
+BOOL CDockablePane::IsTabbed() const {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    auto it = g_paneCoreState.find(this);
+    return it != g_paneCoreState.end() ? it->second.tabbed : FALSE;
+}
 
 //=============================================================================
 // CMFCToolBarButton
@@ -2188,9 +2258,26 @@ CPaneFrameWnd::CPaneFrameWnd() {
 }
 CPaneFrameWnd::~CPaneFrameWnd() {}
 
-BOOL CPaneFrameWnd::Create(CWnd*, DWORD, UINT) { return TRUE; }
-void CPaneFrameWnd::AddPane(CBasePane*) {}
-void CPaneFrameWnd::RemovePane(CBasePane*, BOOL) {}
+BOOL CPaneFrameWnd::Create(CWnd* pParentWnd, DWORD dwStyle, UINT) {
+    CRect rect(0, 0, 320, 220);
+    if (pParentWnd && pParentWnd->GetSafeHwnd()) {
+        RECT parentRect{};
+        pParentWnd->GetClientRect(&parentRect);
+        rect = CRect(parentRect);
+        if (rect.Width() <= 0 || rect.Height() <= 0) {
+            rect = CRect(0, 0, 320, 220);
+        }
+    }
+    return Create(L"STATIC", dwStyle, *static_cast<const RECT*>(rect), pParentWnd, nullptr);
+}
+extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane);
+extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int);
+void CPaneFrameWnd::AddPane(CBasePane* pBar) {
+    impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(this, pBar);
+}
+void CPaneFrameWnd::RemovePane(CBasePane* pBar, BOOL bDestroy) {
+    impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(this, pBar, bDestroy, FALSE);
+}
 
 //=============================================================================
 // CDockingManager
@@ -2245,18 +2332,28 @@ void CDockingManager::FloatPane(CBasePane* pBar, CPoint, DWORD) {
     DockingManagerState& state = EnsureDockingState(this);
     state.hiddenPanes.erase(pBar);
     state.floatingPanes.insert(pBar);
+    if (pBar) {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+        PaneCoreState& paneState = g_paneCoreState[pBar];
+        paneState.canFloat = TRUE;
+        paneState.visible = TRUE;
+    }
 }
 
 void CDockingManager::HidePane(CBasePane* pBar) {
     if (!pBar) return;
     AddDockingPane(this, pBar);
     EnsureDockingState(this).hiddenPanes.insert(pBar);
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[pBar].visible = FALSE;
 }
 
 void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
     if (!pBar) return;
     AddDockingPane(this, pBar);
     EnsureDockingState(this).hiddenPanes.erase(pBar);
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[pBar].visible = TRUE;
 }
 void CDockingManager::RecalcLayout() {}
 void CDockingManager::SetDockState() {}
