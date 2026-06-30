@@ -2281,6 +2281,8 @@ namespace {
 
 struct PropertyGridPropertyState {
     std::vector<CMFCPropertyGridProperty*> subItems;
+    CMFCPropertyGridProperty* parent = nullptr;
+    CMFCPropertyGridCtrl* owner = nullptr;
 };
 
 struct PropertyGridCtrlState {
@@ -2334,12 +2336,20 @@ const PropertyGridPropertyState* FindPropertyGridPropertyState(const CMFCPropert
     return it == g_propertyGridPropertyStates.end() ? nullptr : &it->second;
 }
 
+PropertyGridPropertyState* FindMutablePropertyGridPropertyState(const CMFCPropertyGridProperty* pProp) {
+    auto it = g_propertyGridPropertyStates.find(pProp);
+    return it == g_propertyGridPropertyStates.end() ? nullptr : &it->second;
+}
+
 void RemovePropertyGridPropertyReferences(const CMFCPropertyGridProperty* pProp) {
     g_propertyGridPropertyStates.erase(pProp);
     for (auto& [unusedPropertyKey, propertyState] : g_propertyGridPropertyStates) {
         (void)unusedPropertyKey;
         auto& subItems = propertyState.subItems;
         subItems.erase(std::remove(subItems.begin(), subItems.end(), pProp), subItems.end());
+        if (propertyState.parent == pProp) {
+            propertyState.parent = nullptr;
+        }
     }
     for (auto& [unusedCtrlKey, ctrlState] : g_propertyGridCtrlStates) {
         (void)unusedCtrlKey;
@@ -2355,6 +2365,69 @@ PropertyGridCtrlState& EnsurePropertyGridCtrlState(const CMFCPropertyGridCtrl* p
 const PropertyGridCtrlState* FindPropertyGridCtrlState(const CMFCPropertyGridCtrl* pCtrl) {
     auto it = g_propertyGridCtrlStates.find(pCtrl);
     return it == g_propertyGridCtrlStates.end() ? nullptr : &it->second;
+}
+
+PropertyGridCtrlState* FindMutablePropertyGridCtrlState(const CMFCPropertyGridCtrl* pCtrl) {
+    auto it = g_propertyGridCtrlStates.find(pCtrl);
+    return it == g_propertyGridCtrlStates.end() ? nullptr : &it->second;
+}
+
+void TouchPropertyGridCtrl(CMFCPropertyGridCtrl* pCtrl, BOOL bAdjustLayout) {
+    if (!pCtrl) return;
+    if (bAdjustLayout) {
+        pCtrl->AdjustLayout();
+    } else {
+        pCtrl->Invalidate(FALSE);
+    }
+}
+
+void SetPropertyGridOwnerRecursive(CMFCPropertyGridProperty* pProp, CMFCPropertyGridCtrl* pOwner) {
+    if (!pProp) return;
+    auto& state = EnsurePropertyGridPropertyState(pProp);
+    state.owner = pOwner;
+    for (CMFCPropertyGridProperty* child : state.subItems) {
+        SetPropertyGridOwnerRecursive(child, pOwner);
+    }
+}
+
+void DetachPropertyFromParent(CMFCPropertyGridProperty* pProp) {
+    if (!pProp) return;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(pProp);
+    if (!state) return;
+
+    if (state->parent) {
+        PropertyGridPropertyState* parentState = FindMutablePropertyGridPropertyState(state->parent);
+        if (parentState) {
+            auto& subItems = parentState->subItems;
+            subItems.erase(std::remove(subItems.begin(), subItems.end(), pProp), subItems.end());
+        }
+        state->parent = nullptr;
+    }
+}
+
+void DetachPropertyFromGrid(CMFCPropertyGridProperty* pProp) {
+    if (!pProp) return;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(pProp);
+    if (!state || !state->owner) return;
+
+    PropertyGridCtrlState* ctrlState = FindMutablePropertyGridCtrlState(state->owner);
+    if (ctrlState) {
+        auto& properties = ctrlState->properties;
+        properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
+    }
+    SetPropertyGridOwnerRecursive(pProp, nullptr);
+}
+
+BOOL IsPropertyGridAncestorOf(const CMFCPropertyGridProperty* pAncestor,
+                              const CMFCPropertyGridProperty* pDescendant) {
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pDescendant);
+    while (state && state->parent) {
+        if (state->parent == pAncestor) {
+            return TRUE;
+        }
+        state = FindPropertyGridPropertyState(state->parent);
+    }
+    return FALSE;
 }
 
 TasksPaneTaskState& EnsureTasksPaneTaskState(const CMFCTasksPaneTask* pTask) {
@@ -2425,23 +2498,52 @@ const COleVariant& CMFCPropertyGridProperty::GetValue() const { return m_varValu
 void CMFCPropertyGridProperty::SetValue(const COleVariant& varValue) {
     m_varValue = varValue;
     m_bModified = TRUE;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
+    if (state && state->owner) {
+        TouchPropertyGridCtrl(state->owner, FALSE);
+    }
 }
 BOOL CMFCPropertyGridProperty::IsModified() const { return m_bModified; }
-void CMFCPropertyGridProperty::SetModified(BOOL bModified) { m_bModified = bModified; }
+void CMFCPropertyGridProperty::SetModified(BOOL bModified) {
+    m_bModified = bModified;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
+    if (state && state->owner) {
+        TouchPropertyGridCtrl(state->owner, FALSE);
+    }
+}
 BOOL CMFCPropertyGridProperty::IsEnabled() const { return m_bEnabled; }
-void CMFCPropertyGridProperty::SetEnabled(BOOL bEnable) { m_bEnabled = bEnable; }
+void CMFCPropertyGridProperty::SetEnabled(BOOL bEnable) {
+    m_bEnabled = bEnable;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
+    if (state && state->owner) {
+        TouchPropertyGridCtrl(state->owner, FALSE);
+    }
+}
 BOOL CMFCPropertyGridProperty::IsVisible() const { return m_bVisible; }
 void CMFCPropertyGridProperty::Show(BOOL bShow) { m_bVisible = bShow; }
 void CMFCPropertyGridProperty::Show(BOOL bShow, BOOL bAdjustLayout) {
     Show(bShow);
-    (void)bAdjustLayout;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
+    if (state && state->owner) {
+        TouchPropertyGridCtrl(state->owner, bAdjustLayout);
+    }
 }
 int CMFCPropertyGridProperty::AddSubItem(CMFCPropertyGridProperty* pProp) {
     if (!pProp || pProp == this) return -1;
-    auto& subItems = EnsurePropertyGridPropertyState(this).subItems;
+    if (IsPropertyGridAncestorOf(pProp, this)) return -1;
+
+    auto& parentState = EnsurePropertyGridPropertyState(this);
+    auto& subItems = parentState.subItems;
     auto it = std::find(subItems.begin(), subItems.end(), pProp);
     if (it != subItems.end()) return static_cast<int>(it - subItems.begin());
+
+    DetachPropertyFromParent(pProp);
+    DetachPropertyFromGrid(pProp);
+    EnsurePropertyGridPropertyState(pProp).parent = this;
+    SetPropertyGridOwnerRecursive(pProp, parentState.owner);
+
     subItems.push_back(pProp);
+    TouchPropertyGridCtrl(parentState.owner, TRUE);
     return static_cast<int>(subItems.size() - 1);
 }
 int CMFCPropertyGridProperty::GetSubItemsCount() const {
@@ -2454,11 +2556,28 @@ CMFCPropertyGridProperty* CMFCPropertyGridProperty::GetSubItem(int nIndex) const
     return state->subItems[static_cast<size_t>(nIndex)];
 }
 void CMFCPropertyGridProperty::RemoveAllSubItems() {
-    EnsurePropertyGridPropertyState(this).subItems.clear();
+    auto& state = EnsurePropertyGridPropertyState(this);
+    for (CMFCPropertyGridProperty* child : state.subItems) {
+        PropertyGridPropertyState* childState = FindMutablePropertyGridPropertyState(child);
+        if (childState && childState->parent == this) {
+            childState->parent = nullptr;
+            SetPropertyGridOwnerRecursive(child, nullptr);
+        }
+    }
+    state.subItems.clear();
+    TouchPropertyGridCtrl(state.owner, TRUE);
 }
-void CMFCPropertyGridProperty::Expand(BOOL bExpand) { m_bExpanded = bExpand; }
+void CMFCPropertyGridProperty::Expand(BOOL bExpand) {
+    m_bExpanded = bExpand;
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
+    if (state && state->owner) {
+        TouchPropertyGridCtrl(state->owner, TRUE);
+    }
+}
 BOOL CMFCPropertyGridProperty::IsExpanded() const { return m_bExpanded; }
-void CMFCPropertyGridProperty::SetData(DWORD_PTR dwData) { m_dwData = dwData; }
+void CMFCPropertyGridProperty::SetData(DWORD_PTR dwData) {
+    m_dwData = dwData;
+}
 DWORD_PTR CMFCPropertyGridProperty::GetData() const { return m_dwData; }
 
 //=============================================================================
@@ -2472,24 +2591,37 @@ CMFCPropertyGridCtrl::CMFCPropertyGridCtrl() {
 }
 CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() { g_propertyGridCtrlStates.erase(this); }
 
-BOOL CMFCPropertyGridCtrl::Create(DWORD, const RECT&, CWnd*, UINT) {
+BOOL CMFCPropertyGridCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
     EnsurePropertyGridCtrlState(this);
-    return TRUE;
+    return CWnd::CreateEx(0, L"SysListView32", L"", dwStyle, rect.left, rect.top,
+                          rect.right - rect.left, rect.bottom - rect.top,
+                          pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr,
+                          reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), this);
 }
 int CMFCPropertyGridCtrl::AddProperty(CMFCPropertyGridProperty* pProp, int nPos, int bRedraw) {
     if (!pProp) return -1;
-    (void)bRedraw;
 
     auto& properties = EnsurePropertyGridCtrlState(this).properties;
     properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
+    DetachPropertyFromParent(pProp);
+    DetachPropertyFromGrid(pProp);
+    PropertyGridPropertyState& propState = EnsurePropertyGridPropertyState(pProp);
+    propState.parent = nullptr;
+    SetPropertyGridOwnerRecursive(pProp, this);
 
     if (nPos < 0 || nPos > static_cast<int>(properties.size())) {
         properties.push_back(pProp);
+        if (bRedraw) {
+            TouchPropertyGridCtrl(this, TRUE);
+        }
         return static_cast<int>(properties.size() - 1);
     }
 
     auto it = properties.begin() + nPos;
     properties.insert(it, pProp);
+    if (bRedraw) {
+        TouchPropertyGridCtrl(this, TRUE);
+    }
     return nPos;
 }
 int CMFCPropertyGridCtrl::GetPropertyCount() const {
@@ -2502,7 +2634,16 @@ CMFCPropertyGridProperty* CMFCPropertyGridCtrl::GetProperty(int nIndex) const {
     return state->properties[static_cast<size_t>(nIndex)];
 }
 void CMFCPropertyGridCtrl::RemoveAll() {
-    EnsurePropertyGridCtrlState(this).properties.clear();
+    auto& state = EnsurePropertyGridCtrlState(this);
+    for (CMFCPropertyGridProperty* pProp : state.properties) {
+        PropertyGridPropertyState* propState = FindMutablePropertyGridPropertyState(pProp);
+        if (propState) {
+            propState->parent = nullptr;
+            SetPropertyGridOwnerRecursive(pProp, nullptr);
+        }
+    }
+    state.properties.clear();
+    TouchPropertyGridCtrl(this, TRUE);
 }
 void CMFCPropertyGridCtrl::ExpandAll(BOOL bExpand) {
     const PropertyGridCtrlState* state = FindPropertyGridCtrlState(this);
@@ -2510,12 +2651,15 @@ void CMFCPropertyGridCtrl::ExpandAll(BOOL bExpand) {
     for (CMFCPropertyGridProperty* pProp : state->properties) {
         ExpandPropertyRecursive(pProp, bExpand);
     }
+    TouchPropertyGridCtrl(this, TRUE);
 }
 void CMFCPropertyGridCtrl::AdjustLayout() {
     ++EnsurePropertyGridCtrlState(this).layoutRevision;
+    Invalidate(FALSE);
 }
 void CMFCPropertyGridCtrl::SetDescriptionRows(int nRows) {
     EnsurePropertyGridCtrlState(this).descriptionRows = (nRows < 0) ? 0 : nRows;
+    TouchPropertyGridCtrl(this, TRUE);
 }
 
 //=============================================================================
