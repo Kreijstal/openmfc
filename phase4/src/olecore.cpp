@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cwchar>
 #include <cstdio>
+#include <docobj.h>
 #include <map>
 #include <new>
 #include <vector>
@@ -206,6 +207,49 @@ static bool MakeRenderedFileMedium(COleDataSource* source, FORMATETC* format, ST
     }
     return true;
 }
+
+class EmptyEnumConnectionPoints : public IEnumConnectionPoints {
+public:
+    EmptyEnumConnectionPoints() : m_refCount(1) {}
+    virtual ~EmptyEnumConnectionPoints() {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IEnumConnectionPoints) {
+            *ppvObject = static_cast<IEnumConnectionPoints*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        if (ref == 0) delete this;
+        return ref;
+    }
+
+    HRESULT STDMETHODCALLTYPE Next(ULONG cConnections, IConnectionPoint** rgpcn, ULONG* pcFetched) override {
+        if (pcFetched) *pcFetched = 0;
+        if (cConnections > 0 && !rgpcn) return E_POINTER;
+        return S_FALSE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Skip(ULONG) override { return S_FALSE; }
+    HRESULT STDMETHODCALLTYPE Reset() override { return S_OK; }
+
+    HRESULT STDMETHODCALLTYPE Clone(IEnumConnectionPoints** ppEnum) override {
+        if (!ppEnum) return E_POINTER;
+        *ppEnum = new EmptyEnumConnectionPoints();
+        return *ppEnum ? S_OK : E_OUTOFMEMORY;
+    }
+
+private:
+    LONG m_refCount;
+};
 
 static int CountDispatchParams(const BYTE* pbParamInfo) {
     if (!pbParamInfo) return 0;
@@ -767,8 +811,8 @@ extern "C" HRESULT MS_ABI impl__EnumConnectionPoints_COleConnPtContainer__UEAAJP
 ) {
     (void)pThis;
     if (!ppEnum) return E_POINTER;
-    *ppEnum = nullptr;
-    return E_NOTIMPL;
+    *ppEnum = new EmptyEnumConnectionPoints();
+    return *ppEnum ? S_OK : E_OUTOFMEMORY;
 }
 
 // Symbol: ?FindConnectionPoint@COleConnPtContainer@@UEAAJAEBU_GUID@@PEAPEAUIConnectionPoint@@@Z
@@ -4338,18 +4382,68 @@ IMPLEMENT_DYNAMIC(COleDocObjectItem, COleClientItem)
 
 COleDocObjectItem::COleDocObjectItem(COleDocument* pContainerDoc) : COleClientItem(pContainerDoc) { memset(_coledocobjectitem_padding, 0, sizeof(_coledocobjectitem_padding)); }
 COleDocObjectItem::~COleDocObjectItem() {}
-BOOL COleDocObjectItem::IsDocObject() const { return FALSE; }
+BOOL COleDocObjectItem::IsDocObject() const {
+    if (!m_lpObject) return FALSE;
+    IOleDocument* document = nullptr;
+    HRESULT hr = m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document));
+    if (document) document->Release();
+    return SUCCEEDED(hr) && document != nullptr;
+}
 BOOL COleDocObjectItem::IsActive() const { return m_bInPlaceActive && IsOpen(); }
-IOleDocumentView* COleDocObjectItem::GetActiveView() const { return nullptr; }
-HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) { *ppDocument = nullptr; return E_NOTIMPL; }
-void COleDocObjectItem::ActivateAndShow() {}
+IOleDocumentView* COleDocObjectItem::GetActiveView() const {
+    if (!m_lpObject) return nullptr;
+    IOleDocumentView* view = nullptr;
+    if (m_lpInPlaceObject &&
+        SUCCEEDED(m_lpInPlaceObject->QueryInterface(IID_IOleDocumentView, reinterpret_cast<void**>(&view)))) {
+        return view;
+    }
+
+    IOleDocument* document = nullptr;
+    if (SUCCEEDED(m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document))) && document) {
+        document->CreateView(nullptr, nullptr, 0, &view);
+        document->Release();
+    }
+    return view;
+}
+HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) {
+    if (!ppDocument) return E_POINTER;
+    *ppDocument = nullptr;
+    if (!m_lpObject) return OLE_E_NOTRUNNING;
+
+    IOleDocument* document = nullptr;
+    HRESULT hr = m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document));
+    if (SUCCEEDED(hr) && document) {
+        *ppDocument = static_cast<IUnknown*>(document);
+        return S_OK;
+    }
+    return hr;
+}
+void COleDocObjectItem::ActivateAndShow() {
+    if (!m_lpObject) return;
+    Activate(OLEIVERB_SHOW);
+    IOleDocumentView* view = GetActiveView();
+    if (view) {
+        view->Show(TRUE);
+        view->Release();
+    }
+}
 BOOL COleDocObjectItem::IsOpen() const { return m_nStatus == OLE_OPEN; }
 void COleDocObjectItem::OnActivateView() {}
 BOOL COleDocObjectItem::OnPreparePrinting(void* pInfo) { (void)pInfo; return TRUE; }
 void COleDocObjectItem::OnBeginPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
 void COleDocObjectItem::OnPrint(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
 void COleDocObjectItem::OnEndPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
-HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GUID* pguidCmdGroup) { (void)nCmdID; (void)nCmdExecOpt; (void)pguidCmdGroup; return E_NOTIMPL; }
+HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GUID* pguidCmdGroup) {
+    if (!m_lpObject) return OLE_E_NOTRUNNING;
+
+    IOleCommandTarget* commandTarget = nullptr;
+    HRESULT hr = m_lpObject->QueryInterface(IID_IOleCommandTarget, reinterpret_cast<void**>(&commandTarget));
+    if (FAILED(hr) || !commandTarget) return hr == E_NOINTERFACE ? OLECMDERR_E_NOTSUPPORTED : hr;
+
+    hr = commandTarget->Exec(pguidCmdGroup, nCmdID, nCmdExecOpt, nullptr, nullptr);
+    commandTarget->Release();
+    return hr;
+}
 
 //=============================================================================
 // CEnumFormatEtc
