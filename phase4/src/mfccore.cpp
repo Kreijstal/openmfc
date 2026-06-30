@@ -605,6 +605,7 @@ void DrawArrowGlyph(CDC* pDC, CRect rect, bool down, COLORREF color) {
 }
 
 void DrawPlusMinus(CDC* pDC, CRect rect, bool minusOnly, COLORREF color) {
+    if (!IsDrawableRect(rect)) return;
     FrameSolid(pDC, rect, color);
     const int cx = (rect.left + rect.right) / 2;
     const int cy = (rect.top + rect.bottom) / 2;
@@ -754,12 +755,12 @@ void CMFCVisualManager::OnFillBarBackground(CDC* pDC, CBasePane*, CRect rectClie
 void CMFCVisualManager::OnDrawBarGripper(CDC* pDC, CRect rectGripper, BOOL bHorz, CBasePane*) {
     COLORREF color = ::GetSysColor(COLOR_3DSHADOW);
     if (bHorz) {
-        for (int x = rectGripper.left + 3; x + 1 < rectGripper.right; x += 4) {
-            FillSolid(pDC, CRect(x, rectGripper.top + 3, x + 2, rectGripper.top + 5), color);
-        }
-    } else {
         for (int y = rectGripper.top + 3; y + 1 < rectGripper.bottom; y += 4) {
             FillSolid(pDC, CRect(rectGripper.left + 3, y, rectGripper.left + 5, y + 2), color);
+        }
+    } else {
+        for (int x = rectGripper.left + 3; x + 1 < rectGripper.right; x += 4) {
+            FillSolid(pDC, CRect(x, rectGripper.top + 3, x + 2, rectGripper.top + 5), color);
         }
     }
 }
@@ -786,8 +787,9 @@ void CMFCVisualManager::OnDrawCheckBoxEx(CDC* pDC, CRect rect, int nState, BOOL 
     FillAndFrame(pDC, rect, bEnabled ? ::GetSysColor(COLOR_WINDOW) : ::GetSysColor(COLOR_BTNFACE),
                  (bHighlighted || bPressed) ? g_visualAccentColor : g_visualBorderColor);
     if (nState != 0) {
-        DrawLine(pDC, rect.left + 3, (rect.top + rect.bottom) / 2, rect.left + rect.Width() / 2, rect.bottom - 4, ::GetSysColor(COLOR_BTNTEXT));
-        DrawLine(pDC, rect.left + rect.Width() / 2, rect.bottom - 4, rect.right - 3, rect.top + 3, ::GetSysColor(COLOR_BTNTEXT));
+        COLORREF markColor = ::GetSysColor(bEnabled ? COLOR_BTNTEXT : COLOR_GRAYTEXT);
+        DrawLine(pDC, rect.left + 3, (rect.top + rect.bottom) / 2, rect.left + rect.Width() / 2, rect.bottom - 4, markColor);
+        DrawLine(pDC, rect.left + rect.Width() / 2, rect.bottom - 4, rect.right - 3, rect.top + 3, markColor);
     }
 }
 void CMFCVisualManager::OnDrawComboBorder(CDC* pDC, CRect rect, BOOL bDisabled, BOOL bIsDropped, BOOL bIsHighlighted, CMFCToolBarComboBoxButton*) {
@@ -831,7 +833,18 @@ void CMFCVisualManager::OnDrawMenuCheck(CDC* pDC, CMFCToolBarMenuButton*, CRect 
     FillAndFrame(pDC, rect, bHighlight ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU), g_visualBorderColor);
     if (bIsRadio) {
         HDC hdc = SafeHdc(pDC);
-        if (hdc) ::Ellipse(hdc, rect.left + 4, rect.top + 4, rect.right - 4, rect.bottom - 4);
+        if (hdc) {
+            COLORREF markColor = ::GetSysColor(COLOR_MENUTEXT);
+            HBRUSH brush = ::CreateSolidBrush(markColor);
+            HPEN pen = ::CreatePen(PS_SOLID, 1, markColor);
+            HGDIOBJ oldBrush = brush ? ::SelectObject(hdc, brush) : nullptr;
+            HGDIOBJ oldPen = pen ? ::SelectObject(hdc, pen) : nullptr;
+            ::Ellipse(hdc, rect.left + 4, rect.top + 4, rect.right - 4, rect.bottom - 4);
+            if (oldPen) ::SelectObject(hdc, oldPen);
+            if (oldBrush) ::SelectObject(hdc, oldBrush);
+            if (pen) ::DeleteObject(pen);
+            if (brush) ::DeleteObject(brush);
+        }
     } else {
         OnDrawCheckBoxEx(pDC, rect, 1, bHighlight, FALSE, TRUE);
     }
@@ -925,8 +938,9 @@ void CMFCVisualManager::OnDrawStatusBarPaneBorder(CDC* pDC, CMFCStatusBar*, CRec
 void CMFCVisualManager::OnDrawStatusBarProgress(CDC* pDC, CMFCStatusBar*, CRect rectProgress, int nProgressTotal, int nProgressCurr, COLORREF clrBar, COLORREF, COLORREF, BOOL) {
     FillAndFrame(pDC, rectProgress, ::GetSysColor(COLOR_WINDOW), g_visualBorderColor);
     if (nProgressTotal > 0) {
-        int width = std::max(0, std::min(rectProgress.Width(), (rectProgress.Width() * nProgressCurr) / nProgressTotal));
-        FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + width, rectProgress.bottom - 1), clrBar ? clrBar : g_visualAccentColor);
+        int innerWidth = std::max(0, rectProgress.Width() - 2);
+        int width = std::max(0, std::min(innerWidth, (innerWidth * nProgressCurr) / nProgressTotal));
+        FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + 1 + width, rectProgress.bottom - 1), clrBar ? clrBar : g_visualAccentColor);
     }
 }
 void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC* pDC, CMFCStatusBar*, CRect rect) { OnDrawMenuResizeBar(pDC, rect, 0); }
