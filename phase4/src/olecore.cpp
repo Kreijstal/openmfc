@@ -45,6 +45,9 @@
   #define MS_ABI
 #endif
 
+extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+    CWnd* pThis, COleControlSite* pSite, long dispid, VARIANT* pVar);
+
 //=============================================================================
 // Base classes needed by OLE
 //=============================================================================
@@ -2988,9 +2991,24 @@ static void SetVariantBool(VARIANT* pVar, BOOL value) {
     pVar->boolVal = value ? VARIANT_TRUE : VARIANT_FALSE;
 }
 
+static BOOL TryGetAmbientOverride(COleControlSite* pSite, DISPID dispid, VARIANT* pVarResult) {
+    if (!pSite || !pVarResult || !pSite->m_pCtrlCont || !pSite->m_pCtrlCont->GetWnd()) {
+        return FALSE;
+    }
+    VariantInit(pVarResult);
+    CWnd* pWnd = pSite->m_pCtrlCont->GetWnd();
+    if (impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+            pWnd, pSite, dispid, pVarResult)) {
+        return TRUE;
+    }
+    VariantClear(pVarResult);
+    return FALSE;
+}
+
 class ControlSiteAdapter : public IOleClientSite,
                            public IOleInPlaceSite,
                            public IOleControlSite,
+                           public IOleInPlaceFrame,
                            public IDispatch {
 public:
     explicit ControlSiteAdapter(COleControlSite* pSite) : m_refs(1), m_site(pSite) {}
@@ -3007,6 +3025,9 @@ public:
             *ppvObject = static_cast<IOleInPlaceSite*>(this);
         } else if (IsEqualIID(riid, IID_IOleControlSite)) {
             *ppvObject = static_cast<IOleControlSite*>(this);
+        } else if (IsEqualIID(riid, IID_IOleInPlaceFrame) ||
+                   IsEqualIID(riid, IID_IOleInPlaceUIWindow)) {
+            *ppvObject = static_cast<IOleInPlaceFrame*>(this);
         } else if (IsEqualIID(riid, IID_IDispatch)) {
             *ppvObject = static_cast<IDispatch*>(this);
         } else {
@@ -3102,7 +3123,8 @@ public:
                                                LPRECT lprcClipRect,
                                                LPOLEINPLACEFRAMEINFO lpFrameInfo) override {
         if (ppFrame) {
-            *ppFrame = nullptr;
+            *ppFrame = static_cast<IOleInPlaceFrame*>(this);
+            AddRef();
         }
         if (ppDoc) {
             *ppDoc = nullptr;
@@ -3125,6 +3147,70 @@ public:
             lpFrameInfo->hwndFrame = GetSiteParentWindow(m_site);
         }
         return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetBorder(LPRECT lprectBorder) override {
+        if (!lprectBorder) {
+            return E_POINTER;
+        }
+        HWND hwndParent = GetSiteParentWindow(m_site);
+        if (hwndParent) {
+            ::GetClientRect(hwndParent, lprectBorder);
+        } else {
+            *lprectBorder = GetSitePositionRect(m_site);
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE RequestBorderSpace(LPCBORDERWIDTHS pborderwidths) override {
+        (void)pborderwidths;
+        return INPLACE_E_NOTOOLSPACE;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetBorderSpace(LPCBORDERWIDTHS pborderwidths) override {
+        (void)pborderwidths;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetActiveObject(IOleInPlaceActiveObject* pActiveObject,
+                                              LPCOLESTR pszObjName) override {
+        (void)pActiveObject; (void)pszObjName;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE InsertMenus(HMENU hmenuShared,
+                                          LPOLEMENUGROUPWIDTHS lpMenuWidths) override {
+        (void)hmenuShared;
+        if (lpMenuWidths) {
+            memset(lpMenuWidths, 0, sizeof(*lpMenuWidths));
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetMenu(HMENU hmenuShared, HOLEMENU holemenu,
+                                      HWND hwndActiveObject) override {
+        (void)hmenuShared; (void)holemenu; (void)hwndActiveObject;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE RemoveMenus(HMENU hmenuShared) override {
+        (void)hmenuShared;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetStatusText(LPCOLESTR pszStatusText) override {
+        (void)pszStatusText;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE EnableModeless(BOOL fEnable) override {
+        (void)fEnable;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE TranslateAccelerator(LPMSG lpmsg, WORD wID) override {
+        (void)lpmsg; (void)wID;
+        return S_FALSE;
     }
 
     HRESULT STDMETHODCALLTYPE Scroll(SIZE scrollExtant) override {
@@ -3265,16 +3351,19 @@ public:
         if (!pVarResult) {
             return E_POINTER;
         }
+        if (TryGetAmbientOverride(m_site, dispIdMember, pVarResult)) {
+            return S_OK;
+        }
 
         switch (dispIdMember) {
         case DISPID_AMBIENT_USERMODE:
-        case DISPID_AMBIENT_SHOWGRABHANDLES:
-        case DISPID_AMBIENT_SHOWHATCHING:
         case DISPID_AMBIENT_SUPPORTSMNEMONICS:
             SetVariantBool(pVarResult, TRUE);
             return S_OK;
         case DISPID_AMBIENT_UIDEAD:
         case DISPID_AMBIENT_DISPLAYASDEFAULT:
+        case DISPID_AMBIENT_SHOWGRABHANDLES:
+        case DISPID_AMBIENT_SHOWHATCHING:
             SetVariantBool(pVarResult, FALSE);
             return S_OK;
         case DISPID_AMBIENT_BACKCOLOR:
