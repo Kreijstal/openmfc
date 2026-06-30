@@ -35,6 +35,17 @@ IMPLEMENT_DYNAMIC(CMFCVisualManager, CObject)
 static CMFCVisualManager* g_pVisualManager = nullptr;
 static CRuntimeClass* g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
 
+extern "C" void* impl__m_pRTIDefault_CMFCVisualManager__1PEAUCRuntimeClass__EA;
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
+extern "C" std::int32_t impl__m_bDefaultWinXPColors_CMFCVisualManagerOffice2003__1HA;
+extern "C" std::int32_t impl__m_bStatusBarOfficeXPLook_CMFCVisualManagerOffice2003__1HA;
+extern "C" std::int32_t impl__m_bUseGlobalTheme_CMFCVisualManagerOffice2003__1HA;
+extern "C" std::int32_t impl__m_bAutoFreeRes_CMFCVisualManagerOffice2007__1HA;
+extern "C" void* impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE____EA;
+extern "C" std::uint32_t impl__m_Style_CMFCVisualManagerOffice2007__1W4Style_1_A;
+extern "C" std::int32_t impl__m_bRoundedAutohideButtons_CMFCVisualManagerVS2005__2HA;
+extern "C" std::int32_t impl__m_b3DTabsXPTheme_CMFCVisualManagerWindows__2HA;
+
 void OpenMFC_CopyComboButtonState(CMFCToolBarComboBoxButton* dst, const CMFCToolBarComboBoxButton* src);
 void OpenMFC_CopyEditButtonState(CMFCToolBarEditBoxButton* dst, const CMFCToolBarEditBoxButton* src);
 
@@ -221,6 +232,9 @@ static BOOL g_forceMenuFocus = FALSE;
 static BOOL g_showAllAccelerators = FALSE;
 alignas(CFont) static unsigned char g_menuFontStorage[sizeof(CFont)] = {};
 static CFont* g_menuFontPtr = nullptr;
+static COLORREF g_visualAccentColor = RGB(0, 120, 215);
+static COLORREF g_visualBackgroundColor = RGB(240, 240, 240);
+static COLORREF g_visualBorderColor = RGB(160, 160, 160);
 
 void ClearPopupMenuState(const CMFCPopupMenu* pMenu) {
     auto it = g_popupMenuStates.find(pMenu);
@@ -492,6 +506,126 @@ HMENU LoadMenuResource(UINT uiMenuResId, HMENU* pOwnedMenu) {
     return hMenu;
 }
 
+HDC SafeHdc(CDC* pDC) {
+    return pDC ? pDC->GetSafeHdc() : nullptr;
+}
+
+RECT ToRECT(const CRect& rect) {
+    return RECT{rect.left, rect.top, rect.right, rect.bottom};
+}
+
+bool IsDrawableRect(const CRect& rect) {
+    return rect.right > rect.left && rect.bottom > rect.top;
+}
+
+void FillSolid(CDC* pDC, const CRect& rect, COLORREF color) {
+    HDC hdc = SafeHdc(pDC);
+    if (!hdc || !IsDrawableRect(rect)) return;
+    RECT nativeRect = ToRECT(rect);
+    HBRUSH brush = ::CreateSolidBrush(color);
+    if (brush) {
+        ::FillRect(hdc, &nativeRect, brush);
+        ::DeleteObject(brush);
+    }
+}
+
+void FrameSolid(CDC* pDC, const CRect& rect, COLORREF color) {
+    HDC hdc = SafeHdc(pDC);
+    if (!hdc || !IsDrawableRect(rect)) return;
+    RECT nativeRect = ToRECT(rect);
+    HBRUSH brush = ::CreateSolidBrush(color);
+    if (brush) {
+        ::FrameRect(hdc, &nativeRect, brush);
+        ::DeleteObject(brush);
+    }
+}
+
+void DrawLine(CDC* pDC, int x1, int y1, int x2, int y2, COLORREF color) {
+    HDC hdc = SafeHdc(pDC);
+    if (!hdc) return;
+    HPEN pen = ::CreatePen(PS_SOLID, 1, color);
+    HGDIOBJ oldPen = pen ? ::SelectObject(hdc, pen) : nullptr;
+    ::MoveToEx(hdc, x1, y1, nullptr);
+    ::LineTo(hdc, x2, y2);
+    if (oldPen) ::SelectObject(hdc, oldPen);
+    if (pen) ::DeleteObject(pen);
+}
+
+void Draw3dFrame(CDC* pDC, const CRect& rect, COLORREF light, COLORREF dark) {
+    if (!IsDrawableRect(rect)) return;
+    DrawLine(pDC, rect.left, rect.top, rect.right - 1, rect.top, light);
+    DrawLine(pDC, rect.left, rect.top, rect.left, rect.bottom - 1, light);
+    DrawLine(pDC, rect.left, rect.bottom - 1, rect.right, rect.bottom - 1, dark);
+    DrawLine(pDC, rect.right - 1, rect.top, rect.right - 1, rect.bottom, dark);
+}
+
+void FillAndFrame(CDC* pDC, const CRect& rect, COLORREF fill, COLORREF border) {
+    FillSolid(pDC, rect, fill);
+    FrameSolid(pDC, rect, border);
+}
+
+COLORREF ButtonFillForState(CMFCVisualManager::AFX_BUTTON_STATE state) {
+    switch (state) {
+    case CMFCVisualManager::ButtonsIsPressed:
+        return CMFCVisualManager::GetThemeColor(g_visualAccentColor, -35);
+    case CMFCVisualManager::ButtonsIsHighlighted:
+        return CMFCVisualManager::GetThemeColor(g_visualAccentColor, 45);
+    case CMFCVisualManager::ButtonsIsDisabled:
+        return ::GetSysColor(COLOR_BTNFACE);
+    case CMFCVisualManager::ButtonsIsRegular:
+    default:
+        return g_visualBackgroundColor;
+    }
+}
+
+void DrawArrowGlyph(CDC* pDC, CRect rect, bool down, COLORREF color) {
+    HDC hdc = SafeHdc(pDC);
+    if (!hdc || !IsDrawableRect(rect)) return;
+    const int cx = (rect.left + rect.right) / 2;
+    const int cy = (rect.top + rect.bottom) / 2;
+    POINT points[3]{};
+    if (down) {
+        points[0] = POINT{cx - 4, cy - 2};
+        points[1] = POINT{cx + 4, cy - 2};
+        points[2] = POINT{cx, cy + 3};
+    } else {
+        points[0] = POINT{cx - 4, cy + 2};
+        points[1] = POINT{cx + 4, cy + 2};
+        points[2] = POINT{cx, cy - 3};
+    }
+    HBRUSH brush = ::CreateSolidBrush(color);
+    HPEN pen = ::CreatePen(PS_SOLID, 1, color);
+    HGDIOBJ oldBrush = brush ? ::SelectObject(hdc, brush) : nullptr;
+    HGDIOBJ oldPen = pen ? ::SelectObject(hdc, pen) : nullptr;
+    ::Polygon(hdc, points, 3);
+    if (oldPen) ::SelectObject(hdc, oldPen);
+    if (oldBrush) ::SelectObject(hdc, oldBrush);
+    if (pen) ::DeleteObject(pen);
+    if (brush) ::DeleteObject(brush);
+}
+
+void DrawPlusMinus(CDC* pDC, CRect rect, bool minusOnly, COLORREF color) {
+    if (!IsDrawableRect(rect)) return;
+    FrameSolid(pDC, rect, color);
+    const int cx = (rect.left + rect.right) / 2;
+    const int cy = (rect.top + rect.bottom) / 2;
+    DrawLine(pDC, rect.left + 3, cy, rect.right - 3, cy, color);
+    if (!minusOnly) {
+        DrawLine(pDC, cx, rect.top + 3, cx, rect.bottom - 3, color);
+    }
+}
+
+void DrawRectText(CDC* pDC, CRect rect, const wchar_t* text, COLORREF color) {
+    HDC hdc = SafeHdc(pDC);
+    if (!hdc || !text) return;
+    RECT nativeRect = ToRECT(rect);
+    COLORREF oldText = ::SetTextColor(hdc, color);
+    int oldMode = ::SetBkMode(hdc, TRANSPARENT);
+    ::DrawTextW(hdc, text, -1, &nativeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    ::SetBkMode(hdc, oldMode);
+    ::SetTextColor(hdc, oldText);
+}
+
 void DestroyContextMenus(ContextMenuState& state) {
     for (auto& entry : state.ownedMenusById) {
         if (entry.second) ::DestroyMenu(entry.second);
@@ -501,6 +635,54 @@ void DestroyContextMenus(ContextMenuState& state) {
     state.idsByName.clear();
 }
 
+void SyncVisualManagerExports() {
+    impl__m_pRTIDefault_CMFCVisualManager__1PEAUCRuntimeClass__EA = g_pDefaultVisualManagerClass;
+    impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA = g_pVisualManager;
+}
+
+void SetVisualPalette(COLORREF accent, COLORREF background, COLORREF border) {
+    g_visualAccentColor = accent;
+    g_visualBackgroundColor = background;
+    g_visualBorderColor = border;
+}
+
+void ApplyVisualPaletteForClass(const CRuntimeClass* pClass) {
+    if (pClass == CMFCVisualManagerOffice2007::GetThisClass()) {
+        switch (CMFCVisualManagerOffice2007::GetStyle()) {
+        case CMFCVisualManagerOffice2007::Office2007_ObsidianBlack:
+            SetVisualPalette(RGB(65, 75, 86), RGB(214, 218, 223), RGB(93, 103, 115));
+            break;
+        case CMFCVisualManagerOffice2007::Office2007_Silver:
+            SetVisualPalette(RGB(126, 142, 167), RGB(232, 234, 239), RGB(145, 153, 166));
+            break;
+        case CMFCVisualManagerOffice2007::Office2007_Aqua:
+            SetVisualPalette(RGB(49, 155, 177), RGB(224, 241, 244), RGB(103, 166, 181));
+            break;
+        case CMFCVisualManagerOffice2007::Office2007_LunaBlue:
+        default:
+            SetVisualPalette(RGB(59, 112, 185), RGB(221, 232, 246), RGB(117, 150, 191));
+            break;
+        }
+        return;
+    }
+    if (pClass == CMFCVisualManagerOffice2003::GetThisClass() ||
+        pClass == CMFCVisualManagerOfficeXP::GetThisClass()) {
+        SetVisualPalette(RGB(49, 106, 197), RGB(236, 239, 243), RGB(127, 157, 185));
+        return;
+    }
+    if (pClass == CMFCVisualManagerVS2005::GetThisClass()) {
+        SetVisualPalette(RGB(0, 122, 204), RGB(238, 238, 242), RGB(104, 104, 104));
+        return;
+    }
+    if (pClass == CMFCVisualManagerWindows7::GetThisClass() ||
+        pClass == CMFCVisualManagerWindows::GetThisClass() ||
+        pClass == CMFCVisualManagerAero::GetThisClass()) {
+        SetVisualPalette(RGB(0, 120, 215), ::GetSysColor(COLOR_3DFACE), RGB(160, 160, 160));
+        return;
+    }
+    SetVisualPalette(RGB(0, 120, 215), ::GetSysColor(COLOR_3DFACE), ::GetSysColor(COLOR_3DSHADOW));
+}
+
 } // namespace
 
 static CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRTI) {
@@ -508,26 +690,35 @@ static CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRT
     if (pClass == nullptr || !pClass->IsDerivedFrom(RUNTIME_CLASS(CMFCVisualManager))) {
         pClass = RUNTIME_CLASS(CMFCVisualManager);
     }
+    ApplyVisualPaletteForClass(pClass);
 
     CObject* pObject = pClass->CreateObject();
     if (pObject != nullptr && pObject->IsKindOf(RUNTIME_CLASS(CMFCVisualManager))) {
-        return static_cast<CMFCVisualManager*>(pObject);
+        CMFCVisualManager* manager = static_cast<CMFCVisualManager*>(pObject);
+        g_pVisualManager = manager;
+        SyncVisualManagerExports();
+        return manager;
     }
 
     delete pObject;
-    return new CMFCVisualManager();
+    CMFCVisualManager* manager = new CMFCVisualManager();
+    g_pVisualManager = manager;
+    SyncVisualManagerExports();
+    return manager;
 }
 
 CMFCVisualManager::CMFCVisualManager() {
     memset(_visualmanager_padding, 0, sizeof(_visualmanager_padding));
     if (g_pVisualManager == nullptr) {
         g_pVisualManager = this;
+        SyncVisualManagerExports();
     }
 }
 
 CMFCVisualManager::~CMFCVisualManager() {
     if (g_pVisualManager == this) {
         g_pVisualManager = nullptr;
+        SyncVisualManagerExports();
     }
 }
 
@@ -535,6 +726,7 @@ CMFCVisualManager* CMFCVisualManager::GetInstance() {
     if (!g_pVisualManager) {
         g_pVisualManager = CreateVisualManagerFromRuntimeClass(g_pDefaultVisualManagerClass);
     }
+    SyncVisualManagerExports();
     return g_pVisualManager;
 }
 
@@ -544,87 +736,226 @@ void CMFCVisualManager::SetDefaultManager(CRuntimeClass* pRTI) {
         !g_pDefaultVisualManagerClass->IsDerivedFrom(RUNTIME_CLASS(CMFCVisualManager))) {
         g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
     }
+    if (g_pVisualManager != nullptr && !g_pVisualManager->IsKindOf(g_pDefaultVisualManagerClass)) {
+        delete g_pVisualManager;
+        g_pVisualManager = nullptr;
+    }
+    ApplyVisualPaletteForClass(g_pDefaultVisualManagerClass);
+    SyncVisualManagerExports();
 }
 
-void CMFCVisualManager::OnDrawMenuBorder(CDC*, CMFCPopupMenu*, CRect) {}
-void CMFCVisualManager::OnDrawMenuImage(CDC*, const CRect&, const CRect&) {}
-void CMFCVisualManager::OnFillBarBackground(CDC*, CBasePane*, CRect, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawBarGripper(CDC*, CRect, BOOL, CBasePane*) {}
-void CMFCVisualManager::OnDrawButtonBorder(CDC*, CMFCToolBarButton*, CRect, CMFCVisualManager::AFX_BUTTON_STATE) {}
-void CMFCVisualManager::OnDrawButtonSeparator(CDC*, CMFCToolBarButton*, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawCaptionButton(CDC*, CMFCCaptionButton*, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawCaptionButtonIcon(CDC*, CMFCCaptionButton*, CMenuImages::IMAGES_IDS, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawCheckBoxEx(CDC*, CRect, int, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawComboBorder(CDC*, CRect, BOOL, BOOL, BOOL, CMFCToolBarComboBoxButton*) {}
-void CMFCVisualManager::OnDrawComboDropButton(CDC*, CRect, BOOL, BOOL, BOOL, CMFCToolBarComboBoxButton*) {}
-void CMFCVisualManager::OnDrawControlBorder(CWnd*) {}
-void CMFCVisualManager::OnDrawDockingBarScrollButton(CDC*, CMFCToolBarButton*, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawEditBorder(CDC*, CRect, BOOL, BOOL, CMFCToolBarEditBoxButton*) {}
-void CMFCVisualManager::OnDrawExpandingBox(CDC*, CRect, BOOL, COLORREF) {}
-void CMFCVisualManager::OnDrawFloatingToolbarBorder(CDC*, CMFCToolBar*, CRect, CRect) {}
-void CMFCVisualManager::OnDrawHeaderCtrlBorder(CMFCHeaderCtrl*, CDC*, CRect&, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawHeaderCtrlSortArrow(CMFCHeaderCtrl*, CDC*, CRect&, BOOL) {}
-void CMFCVisualManager::OnDrawMenuArrowOnCustomizeList(CDC*, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawMenuCheck(CDC*, CMFCToolBarMenuButton*, CRect, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawMenuItemButton(CDC*, CMFCToolBarMenuButton*, CRect, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawMenuResizeBar(CDC*, CRect, int) {}
-void CMFCVisualManager::OnDrawMenuScrollButton(CDC*, CRect, BOOL, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawMenuShadow(CDC*, const CRect&, const CRect&, int, int, int, CBitmap*, CBitmap*, COLORREF) {}
-void CMFCVisualManager::OnDrawMenuSystemButton(CDC*, CRect, UINT, UINT, BOOL) {}
-void CMFCVisualManager::OnDrawMiniFrameBorder(CDC*, CPaneFrameWnd*, CRect, CRect) {}
-void CMFCVisualManager::OnDrawOutlookBarSplitter(CDC*, CRect) {}
-void CMFCVisualManager::OnDrawOutlookPageButtonBorder(CDC*, CRect&, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawPaneBorder(CDC*, CBasePane*, CRect&) {}
-unsigned long CMFCVisualManager::OnDrawPaneCaption(CDC*, CDockablePane*, int, CRect, int) { return 0; }
-void CMFCVisualManager::OnDrawPaneDivider(CDC*, CPaneDivider*, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawPopupWindowBorder(CDC*, CRect) {}
-void CMFCVisualManager::OnDrawPopupWindowButtonBorder(CDC*, CRect, CMFCDesktopAlertWndButton*) {}
-void CMFCVisualManager::OnDrawPopupWindowCaption(CDC*, CRect, CMFCDesktopAlertWnd*) {}
-void CMFCVisualManager::OnDrawRibbonApplicationButton(CDC*, CMFCRibbonButton*) {}
-void CMFCVisualManager::OnDrawRibbonButtonBorder(CDC*, CMFCRibbonButton*) {}
-unsigned long CMFCVisualManager::OnDrawRibbonButtonsGroup(CDC*, CMFCRibbonButtonsGroup*, CRect) { return 0; }
-void CMFCVisualManager::OnDrawRibbonCaption(CDC*, CMFCRibbonBar*, CRect, CRect) {}
-void CMFCVisualManager::OnDrawRibbonCaptionButton(CDC*, CMFCRibbonCaptionButton*) {}
-void CMFCVisualManager::OnDrawRibbonCategory(CDC*, CMFCRibbonCategory*, CRect) {}
-unsigned long CMFCVisualManager::OnDrawRibbonCategoryCaption(CDC*, CMFCRibbonContextCaption*) { return 0; }
-void CMFCVisualManager::OnDrawRibbonCategoryScroll(CDC*, CMFCRibbonCategoryScroll*) {}
-void CMFCVisualManager::OnDrawRibbonCategoryTab(CDC*, CMFCRibbonTab*, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonCheckBoxOnList(CDC*, CMFCRibbonCheckBox*, CRect, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonDefaultPaneButton(CDC*, CMFCRibbonButton*) {}
-void CMFCVisualManager::OnDrawRibbonDefaultPaneButtonContext(CDC*, CMFCRibbonButton*) {}
-void CMFCVisualManager::OnDrawRibbonDesign(CDC*, CMFCRibbonBar*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonEdit(CDC*, CMFCRibbonEdit*, CRect, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonGalleryBorder(CDC*, CMFCRibbonGallery*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonLabel(CDC*, CMFCRibbonLabel*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonMainPanelButtonBorder(CDC*, CMFCRibbonButton*) {}
-void CMFCVisualManager::OnDrawRibbonMainPanelFrame(CDC*, CMFCRibbonMainPanel*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonPanel(CDC*, CMFCRibbonPanel*, CRect, CRect) {}
-void CMFCVisualManager::OnDrawRibbonPanelCaption(CDC*, CMFCRibbonPanel*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonProgressBar(CDC*, CMFCRibbonProgressBar*, CRect, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonQATSeparator(CDC*, CMFCRibbonSeparator*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonQuickAccessToolBarSeparator(CDC*, CMFCRibbonSeparator*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonSliderChannel(CDC*, CMFCRibbonSlider*, CRect) {}
-void CMFCVisualManager::OnDrawRibbonSliderThumb(CDC*, CMFCRibbonSlider*, CRect, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonSliderZoomButton(CDC*, CMFCRibbonSlider*, CRect, BOOL, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawRibbonStatusBarPane(CDC*, CMFCRibbonStatusBar*, CMFCRibbonStatusBarPane*) {}
-void CMFCVisualManager::OnDrawRibbonTabsFrame(CDC*, CMFCRibbonBar*, CRect) {}
-void CMFCVisualManager::OnDrawScrollButtons(CDC*, const CRect&, const int, int, BOOL) {}
-void CMFCVisualManager::OnDrawSeparator(CDC*, CBasePane*, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawShowAllMenuItems(CDC*, CRect, CMFCVisualManager::AFX_BUTTON_STATE) {}
-void CMFCVisualManager::OnDrawSpinButtons(CDC*, CRect, int, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawStatusBarPaneBorder(CDC*, CMFCStatusBar*, CRect, UINT, UINT) {}
-void CMFCVisualManager::OnDrawStatusBarProgress(CDC*, CMFCStatusBar*, CRect, int, int, COLORREF, COLORREF, COLORREF, BOOL) {}
-void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC*, CMFCStatusBar*, CRect) {}
-void CMFCVisualManager::OnDrawTab(CDC*, CRect, int, BOOL, const CMFCBaseTabCtrl*) {}
-void CMFCVisualManager::OnDrawTabButton(CDC*, CRect, const CMFCBaseTabCtrl*, int, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawTabCloseButton(CDC*, CRect, const CMFCBaseTabCtrl*, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawTabContent(CDC*, CRect, int, BOOL, const CMFCBaseTabCtrl*, COLORREF) {}
-void CMFCVisualManager::OnDrawTabsButtonBorder(CDC*, CRect&, CMFCButton*, UINT, CMFCBaseTabCtrl*) {}
-void CMFCVisualManager::OnDrawTask(CDC*, CMFCTasksPaneTask*, CImageList*, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawTasksGroupCaption(CDC*, CMFCTasksPaneTaskGroup*, BOOL, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawTasksGroupAreaBorder(CDC*, CRect, BOOL, BOOL) {}
-void CMFCVisualManager::OnDrawTearOffCaption(CDC*, CRect, BOOL) {}
-void CMFCVisualManager::OnDrawToolBoxFrame(CDC*, const CRect&) {}
+void CMFCVisualManager::OnDrawMenuBorder(CDC* pDC, CMFCPopupMenu*, CRect rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawMenuImage(CDC* pDC, const CRect& rect, const CRect& rectImage) {
+    FillSolid(pDC, rect, ::GetSysColor(COLOR_MENU));
+    FrameSolid(pDC, rectImage, ::GetSysColor(COLOR_3DSHADOW));
+}
+void CMFCVisualManager::OnFillBarBackground(CDC* pDC, CBasePane*, CRect rectClient, CRect rectClip, BOOL) {
+    FillSolid(pDC, IsDrawableRect(rectClip) ? rectClip : rectClient, g_visualBackgroundColor);
+}
+void CMFCVisualManager::OnDrawBarGripper(CDC* pDC, CRect rectGripper, BOOL bHorz, CBasePane*) {
+    COLORREF color = ::GetSysColor(COLOR_3DSHADOW);
+    if (bHorz) {
+        for (int y = rectGripper.top + 3; y + 1 < rectGripper.bottom; y += 4) {
+            FillSolid(pDC, CRect(rectGripper.left + 3, y, rectGripper.left + 5, y + 2), color);
+        }
+    } else {
+        for (int x = rectGripper.left + 3; x + 1 < rectGripper.right; x += 4) {
+            FillSolid(pDC, CRect(x, rectGripper.top + 3, x + 2, rectGripper.top + 5), color);
+        }
+    }
+}
+void CMFCVisualManager::OnDrawButtonBorder(CDC* pDC, CMFCToolBarButton*, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    FillAndFrame(pDC, rect, ButtonFillForState(state), state == ButtonsIsPressed ? ::GetSysColor(COLOR_3DDKSHADOW) : g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawButtonSeparator(CDC* pDC, CMFCToolBarButton*, CRect rect, BOOL bHorz) {
+    if (bHorz) {
+        int x = (rect.left + rect.right) / 2;
+        DrawLine(pDC, x, rect.top + 2, x, rect.bottom - 2, ::GetSysColor(COLOR_3DSHADOW));
+    } else {
+        int y = (rect.top + rect.bottom) / 2;
+        DrawLine(pDC, rect.left + 2, y, rect.right - 2, y, ::GetSysColor(COLOR_3DSHADOW));
+    }
+}
+void CMFCVisualManager::OnDrawCaptionButton(CDC* pDC, CMFCCaptionButton*, BOOL, BOOL, BOOL bDisabled) {
+    CRect rect(0, 0, 16, 16);
+    FillAndFrame(pDC, rect, ::GetSysColor(COLOR_BTNFACE), bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawCaptionButtonIcon(CDC* pDC, CMFCCaptionButton*, CMenuImages::IMAGES_IDS, BOOL, BOOL) {
+    DrawRectText(pDC, CRect(0, 0, 16, 16), L"x", ::GetSysColor(COLOR_BTNTEXT));
+}
+void CMFCVisualManager::OnDrawCheckBoxEx(CDC* pDC, CRect rect, int nState, BOOL bHighlighted, BOOL bPressed, BOOL bEnabled) {
+    FillAndFrame(pDC, rect, bEnabled ? ::GetSysColor(COLOR_WINDOW) : ::GetSysColor(COLOR_BTNFACE),
+                 (bHighlighted || bPressed) ? g_visualAccentColor : g_visualBorderColor);
+    if (nState != 0) {
+        COLORREF markColor = ::GetSysColor(bEnabled ? COLOR_BTNTEXT : COLOR_GRAYTEXT);
+        DrawLine(pDC, rect.left + 3, (rect.top + rect.bottom) / 2, rect.left + rect.Width() / 2, rect.bottom - 4, markColor);
+        DrawLine(pDC, rect.left + rect.Width() / 2, rect.bottom - 4, rect.right - 3, rect.top + 3, markColor);
+    }
+}
+void CMFCVisualManager::OnDrawComboBorder(CDC* pDC, CRect rect, BOOL bDisabled, BOOL bIsDropped, BOOL bIsHighlighted, CMFCToolBarComboBoxButton*) {
+    FrameSolid(pDC, rect, bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : (bIsDropped || bIsHighlighted ? g_visualAccentColor : g_visualBorderColor));
+}
+void CMFCVisualManager::OnDrawComboDropButton(CDC* pDC, CRect rect, BOOL bDisabled, BOOL bIsDropped, BOOL bIsHighlighted, CMFCToolBarComboBoxButton*) {
+    FillAndFrame(pDC, rect, (bIsDropped || bIsHighlighted) ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE),
+                 bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : g_visualBorderColor);
+    DrawArrowGlyph(pDC, rect, true, bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_BTNTEXT));
+}
+void CMFCVisualManager::OnDrawControlBorder(CWnd* pWndCtrl) {
+    if (!pWndCtrl || !pWndCtrl->GetSafeHwnd()) return;
+    HDC hdc = ::GetWindowDC(pWndCtrl->GetSafeHwnd());
+    if (!hdc) return;
+    RECT rect{};
+    ::GetWindowRect(pWndCtrl->GetSafeHwnd(), &rect);
+    ::OffsetRect(&rect, -rect.left, -rect.top);
+    HBRUSH brush = ::CreateSolidBrush(g_visualBorderColor);
+    if (brush) {
+        ::FrameRect(hdc, &rect, brush);
+        ::DeleteObject(brush);
+    }
+    ::ReleaseDC(pWndCtrl->GetSafeHwnd(), hdc);
+}
+void CMFCVisualManager::OnDrawDockingBarScrollButton(CDC* pDC, CMFCToolBarButton*, BOOL bUp, BOOL bHorz) {
+    CRect rect(0, 0, 16, 16);
+    FillAndFrame(pDC, rect, ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor);
+    DrawArrowGlyph(pDC, rect, bHorz ? false : !bUp, ::GetSysColor(COLOR_BTNTEXT));
+}
+void CMFCVisualManager::OnDrawEditBorder(CDC* pDC, CRect rect, BOOL bDisabled, BOOL bIsHighlighted, CMFCToolBarEditBoxButton*) {
+    FrameSolid(pDC, rect, bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : (bIsHighlighted ? g_visualAccentColor : g_visualBorderColor));
+}
+void CMFCVisualManager::OnDrawExpandingBox(CDC* pDC, CRect rect, BOOL bIsOpened, COLORREF colorBox) { DrawPlusMinus(pDC, rect, bIsOpened, colorBox); }
+void CMFCVisualManager::OnDrawFloatingToolbarBorder(CDC* pDC, CMFCToolBar*, CRect rectBorder, CRect) { Draw3dFrame(pDC, rectBorder, ::GetSysColor(COLOR_3DHILIGHT), ::GetSysColor(COLOR_3DSHADOW)); }
+void CMFCVisualManager::OnDrawHeaderCtrlBorder(CMFCHeaderCtrl*, CDC* pDC, CRect& rect, BOOL bIsPressed, BOOL bIsHighlighted) {
+    FillAndFrame(pDC, rect, bIsPressed ? ::GetSysColor(COLOR_3DLIGHT) : (bIsHighlighted ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE)), g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawHeaderCtrlSortArrow(CMFCHeaderCtrl*, CDC* pDC, CRect& rect, BOOL bIsAscending) { DrawArrowGlyph(pDC, rect, !bIsAscending, ::GetSysColor(COLOR_BTNTEXT)); }
+void CMFCVisualManager::OnDrawMenuArrowOnCustomizeList(CDC* pDC, CRect rect, BOOL bSelected) { DrawArrowGlyph(pDC, rect, true, bSelected ? ::GetSysColor(COLOR_HIGHLIGHTTEXT) : ::GetSysColor(COLOR_MENUTEXT)); }
+void CMFCVisualManager::OnDrawMenuCheck(CDC* pDC, CMFCToolBarMenuButton*, CRect rect, BOOL bHighlight, BOOL bIsRadio) {
+    FillAndFrame(pDC, rect, bHighlight ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU), g_visualBorderColor);
+    if (bIsRadio) {
+        HDC hdc = SafeHdc(pDC);
+        if (hdc) {
+            COLORREF markColor = ::GetSysColor(COLOR_MENUTEXT);
+            HBRUSH brush = ::CreateSolidBrush(markColor);
+            HPEN pen = ::CreatePen(PS_SOLID, 1, markColor);
+            HGDIOBJ oldBrush = brush ? ::SelectObject(hdc, brush) : nullptr;
+            HGDIOBJ oldPen = pen ? ::SelectObject(hdc, pen) : nullptr;
+            ::Ellipse(hdc, rect.left + 4, rect.top + 4, rect.right - 4, rect.bottom - 4);
+            if (oldPen) ::SelectObject(hdc, oldPen);
+            if (oldBrush) ::SelectObject(hdc, oldBrush);
+            if (pen) ::DeleteObject(pen);
+            if (brush) ::DeleteObject(brush);
+        }
+    } else {
+        OnDrawCheckBoxEx(pDC, rect, 1, bHighlight, FALSE, TRUE);
+    }
+}
+void CMFCVisualManager::OnDrawMenuItemButton(CDC* pDC, CMFCToolBarMenuButton*, CRect rectButton, BOOL bHighlight, BOOL bDisabled) {
+    FillAndFrame(pDC, rectButton, bHighlight ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU),
+                 bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawMenuResizeBar(CDC* pDC, CRect rect, int) {
+    FillSolid(pDC, rect, ::GetSysColor(COLOR_MENU));
+    for (int i = 0; i < 3; ++i) DrawLine(pDC, rect.right - 4 - i * 4, rect.bottom - 2, rect.right - 2, rect.bottom - 4 - i * 4, ::GetSysColor(COLOR_3DSHADOW));
+}
+void CMFCVisualManager::OnDrawMenuScrollButton(CDC* pDC, CRect rect, BOOL bIsScrollDown, BOOL bIsHighlited, BOOL bIsPressed, BOOL bIsDisabled) {
+    FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU)), g_visualBorderColor);
+    DrawArrowGlyph(pDC, rect, bIsScrollDown, bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_MENUTEXT));
+}
+void CMFCVisualManager::OnDrawMenuShadow(CDC* pDC, const CRect& rectClient, const CRect& rectExclude, int nDepth, int, int, CBitmap*, CBitmap*, COLORREF color) {
+    CRect right(rectClient.right, rectClient.top + nDepth, rectClient.right + nDepth, rectClient.bottom + nDepth);
+    CRect bottom(rectClient.left + nDepth, rectClient.bottom, rectClient.right + nDepth, rectClient.bottom + nDepth);
+    FillSolid(pDC, right, color);
+    FillSolid(pDC, bottom, color);
+    if (IsDrawableRect(rectExclude)) FillSolid(pDC, rectExclude, ::GetSysColor(COLOR_MENU));
+}
+void CMFCVisualManager::OnDrawMenuSystemButton(CDC* pDC, CRect rect, UINT, UINT, BOOL bHighlight) {
+    FillAndFrame(pDC, rect, bHighlight ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU), g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawMiniFrameBorder(CDC* pDC, CPaneFrameWnd*, CRect rectBorder, CRect) { FrameSolid(pDC, rectBorder, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawOutlookBarSplitter(CDC* pDC, CRect rect) { FillSolid(pDC, rect, ::GetSysColor(COLOR_3DSHADOW)); }
+void CMFCVisualManager::OnDrawOutlookPageButtonBorder(CDC* pDC, CRect& rect, BOOL bIsHighlighted, BOOL bIsPressed) {
+    FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlighted ? ButtonFillForState(ButtonsIsHighlighted) : g_visualBackgroundColor), g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawPaneBorder(CDC* pDC, CBasePane*, CRect& rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
+unsigned long CMFCVisualManager::OnDrawPaneCaption(CDC* pDC, CDockablePane*, int active, CRect rect, int) {
+    COLORREF fill = active ? g_visualAccentColor : ::GetSysColor(COLOR_INACTIVECAPTION);
+    FillAndFrame(pDC, rect, fill, g_visualBorderColor);
+    return active ? ::GetSysColor(COLOR_CAPTIONTEXT) : ::GetSysColor(COLOR_INACTIVECAPTIONTEXT);
+}
+void CMFCVisualManager::OnDrawPaneDivider(CDC* pDC, CPaneDivider*, CRect rect, BOOL) { FillSolid(pDC, rect, ::GetSysColor(COLOR_3DFACE)); FrameSolid(pDC, rect, ::GetSysColor(COLOR_3DSHADOW)); }
+void CMFCVisualManager::OnDrawPopupWindowBorder(CDC* pDC, CRect rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawPopupWindowButtonBorder(CDC* pDC, CRect rectClient, CMFCDesktopAlertWndButton*) { FillAndFrame(pDC, rectClient, ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd*) { FillSolid(pDC, rectCaption, g_visualAccentColor); }
+void CMFCVisualManager::OnDrawRibbonApplicationButton(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 28, 28), g_visualAccentColor, ::GetSysColor(COLOR_3DDKSHADOW)); }
+void CMFCVisualManager::OnDrawRibbonButtonBorder(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 24, 22), ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
+unsigned long CMFCVisualManager::OnDrawRibbonButtonsGroup(CDC* pDC, CMFCRibbonButtonsGroup*, CRect rect) { FillAndFrame(pDC, rect, ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); return ::GetSysColor(COLOR_BTNTEXT); }
+void CMFCVisualManager::OnDrawRibbonCaption(CDC* pDC, CMFCRibbonBar*, CRect rectCaption, CRect rectText) {
+    FillSolid(pDC, rectCaption, g_visualAccentColor);
+    DrawRectText(pDC, rectText, L"", ::GetSysColor(COLOR_CAPTIONTEXT));
+}
+void CMFCVisualManager::OnDrawRibbonCaptionButton(CDC* pDC, CMFCRibbonCaptionButton*) { OnDrawCaptionButton(pDC, nullptr, TRUE, FALSE, FALSE); }
+void CMFCVisualManager::OnDrawRibbonCategory(CDC* pDC, CMFCRibbonCategory*, CRect rect) { FillSolid(pDC, rect, g_visualBackgroundColor); }
+unsigned long CMFCVisualManager::OnDrawRibbonCategoryCaption(CDC* pDC, CMFCRibbonContextCaption*) { FillSolid(pDC, CRect(0, 0, 120, 18), g_visualAccentColor); return ::GetSysColor(COLOR_CAPTIONTEXT); }
+void CMFCVisualManager::OnDrawRibbonCategoryScroll(CDC* pDC, CMFCRibbonCategoryScroll*) { FillAndFrame(pDC, CRect(0, 0, 18, 18), ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab*, BOOL bIsActive) { FillAndFrame(pDC, CRect(0, 0, 80, 24), bIsActive ? ::GetSysColor(COLOR_WINDOW) : g_visualBackgroundColor, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonCheckBoxOnList(CDC* pDC, CMFCRibbonCheckBox*, CRect rect, BOOL bIsSelected, BOOL bHighlighted) { OnDrawCheckBoxEx(pDC, rect, bIsSelected, bHighlighted, FALSE, TRUE); }
+void CMFCVisualManager::OnDrawRibbonDefaultPaneButton(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 80, 22), ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonDefaultPaneButtonContext(CDC* pDC, CMFCRibbonButton*) { OnDrawRibbonDefaultPaneButton(pDC, nullptr); }
+void CMFCVisualManager::OnDrawRibbonDesign(CDC* pDC, CMFCRibbonBar*, CRect rect) { FillSolid(pDC, rect, g_visualBackgroundColor); }
+void CMFCVisualManager::OnDrawRibbonEdit(CDC* pDC, CMFCRibbonEdit*, CRect rect, BOOL bIsHighlighted, BOOL, BOOL bIsDisabled) {
+    FillAndFrame(pDC, rect, bIsDisabled ? ::GetSysColor(COLOR_BTNFACE) : ::GetSysColor(COLOR_WINDOW), bIsHighlighted ? g_visualAccentColor : g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawRibbonGalleryBorder(CDC* pDC, CMFCRibbonGallery*, CRect rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonLabel(CDC* pDC, CMFCRibbonLabel*, CRect rect) {
+    FillSolid(pDC, rect, g_visualBackgroundColor);
+    DrawLine(pDC, rect.left, rect.bottom - 1, rect.right, rect.bottom - 1, ::GetSysColor(COLOR_3DLIGHT));
+}
+void CMFCVisualManager::OnDrawRibbonMainPanelButtonBorder(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 120, 24), ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonMainPanelFrame(CDC* pDC, CMFCRibbonMainPanel*, CRect rect) { FillAndFrame(pDC, rect, ::GetSysColor(COLOR_MENU), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonPanel(CDC* pDC, CMFCRibbonPanel*, CRect rectPanel, CRect rectCaption) { FillAndFrame(pDC, rectPanel, ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); if (IsDrawableRect(rectCaption)) FillSolid(pDC, rectCaption, ::GetSysColor(COLOR_3DLIGHT)); }
+void CMFCVisualManager::OnDrawRibbonPanelCaption(CDC* pDC, CMFCRibbonPanel*, CRect rectCaption) { FillSolid(pDC, rectCaption, ::GetSysColor(COLOR_3DLIGHT)); }
+void CMFCVisualManager::OnDrawRibbonProgressBar(CDC* pDC, CMFCRibbonProgressBar*, CRect rectProgress, CRect rectChunk, BOOL bInfiniteMode) {
+    FillAndFrame(pDC, rectProgress, ::GetSysColor(COLOR_WINDOW), g_visualBorderColor);
+    FillSolid(pDC, bInfiniteMode ? rectProgress : rectChunk, g_visualAccentColor);
+}
+void CMFCVisualManager::OnDrawRibbonQATSeparator(CDC* pDC, CMFCRibbonSeparator*, CRect rect) { OnDrawSeparator(pDC, nullptr, rect, TRUE); }
+void CMFCVisualManager::OnDrawRibbonQuickAccessToolBarSeparator(CDC* pDC, CMFCRibbonSeparator*, CRect rect) { OnDrawSeparator(pDC, nullptr, rect, TRUE); }
+void CMFCVisualManager::OnDrawRibbonSliderChannel(CDC* pDC, CMFCRibbonSlider*, CRect rect) { FillAndFrame(pDC, rect, ::GetSysColor(COLOR_3DLIGHT), ::GetSysColor(COLOR_3DSHADOW)); }
+void CMFCVisualManager::OnDrawRibbonSliderThumb(CDC* pDC, CMFCRibbonSlider*, CRect rect, BOOL bIsHighlighted, BOOL bIsPressed, BOOL bIsDisabled) {
+    FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlighted ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE)), bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : g_visualBorderColor);
+}
+void CMFCVisualManager::OnDrawRibbonSliderZoomButton(CDC* pDC, CMFCRibbonSlider*, CRect rect, BOOL bIsZoomOut, BOOL bIsHighlighted, BOOL bIsPressed, BOOL bIsDisabled) {
+    OnDrawRibbonSliderThumb(pDC, nullptr, rect, bIsHighlighted, bIsPressed, bIsDisabled);
+    DrawPlusMinus(pDC, CRect(rect.left + 4, rect.top + 4, rect.right - 4, rect.bottom - 4), bIsZoomOut, ::GetSysColor(COLOR_BTNTEXT));
+}
+void CMFCVisualManager::OnDrawRibbonStatusBarPane(CDC* pDC, CMFCRibbonStatusBar*, CMFCRibbonStatusBarPane*) { FillAndFrame(pDC, CRect(0, 0, 80, 22), ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawRibbonTabsFrame(CDC* pDC, CMFCRibbonBar*, CRect rectTab) { FillAndFrame(pDC, rectTab, g_visualBackgroundColor, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawScrollButtons(CDC* pDC, const CRect& rect, const int, int iImage, BOOL bHilited) { FillAndFrame(pDC, rect, bHilited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); DrawArrowGlyph(pDC, rect, iImage != 0, ::GetSysColor(COLOR_BTNTEXT)); }
+void CMFCVisualManager::OnDrawSeparator(CDC* pDC, CBasePane*, CRect rect, BOOL bHorz) { OnDrawButtonSeparator(pDC, nullptr, rect, bHorz); }
+void CMFCVisualManager::OnDrawShowAllMenuItems(CDC* pDC, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) { FillAndFrame(pDC, rect, ButtonFillForState(state), g_visualBorderColor); DrawArrowGlyph(pDC, rect, true, ::GetSysColor(COLOR_BTNTEXT)); }
+void CMFCVisualManager::OnDrawSpinButtons(CDC* pDC, CRect rect, int nState, BOOL, BOOL bIsHovered) { FillAndFrame(pDC, rect, bIsHovered ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); DrawArrowGlyph(pDC, rect, nState != 0, ::GetSysColor(COLOR_BTNTEXT)); }
+void CMFCVisualManager::OnDrawStatusBarPaneBorder(CDC* pDC, CMFCStatusBar*, CRect rectPane, UINT, UINT) { Draw3dFrame(pDC, rectPane, ::GetSysColor(COLOR_3DSHADOW), ::GetSysColor(COLOR_3DHILIGHT)); }
+void CMFCVisualManager::OnDrawStatusBarProgress(CDC* pDC, CMFCStatusBar*, CRect rectProgress, int nProgressTotal, int nProgressCurr, COLORREF clrBar, COLORREF, COLORREF, BOOL) {
+    FillAndFrame(pDC, rectProgress, ::GetSysColor(COLOR_WINDOW), g_visualBorderColor);
+    if (nProgressTotal > 0) {
+        int innerWidth = std::max(0, rectProgress.Width() - 2);
+        int width = static_cast<int>(std::max(0LL, std::min<long long>(innerWidth,
+            (static_cast<long long>(innerWidth) * nProgressCurr) / nProgressTotal)));
+        COLORREF bar = (clrBar != static_cast<COLORREF>(-1)) ? clrBar : g_visualAccentColor;
+        FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + 1 + width, rectProgress.bottom - 1), bar);
+    }
+}
+void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC* pDC, CMFCStatusBar*, CRect rect) { OnDrawMenuResizeBar(pDC, rect, 0); }
+void CMFCVisualManager::OnDrawTab(CDC* pDC, CRect rect, int, BOOL bIsActive, const CMFCBaseTabCtrl*) { FillAndFrame(pDC, rect, bIsActive ? ::GetSysColor(COLOR_WINDOW) : ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTabButton(CDC* pDC, CRect rect, const CMFCBaseTabCtrl*, int, BOOL bIsHilited, BOOL bIsPressed) { FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHilited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE)), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTabCloseButton(CDC* pDC, CRect rect, const CMFCBaseTabCtrl*, BOOL bIsHilited, BOOL bIsPressed, BOOL bIsDisabled) { OnDrawTabButton(pDC, rect, nullptr, 0, bIsHilited, bIsPressed); DrawRectText(pDC, rect, L"x", bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_BTNTEXT)); }
+void CMFCVisualManager::OnDrawTabContent(CDC* pDC, CRect rect, int, BOOL, const CMFCBaseTabCtrl*, COLORREF) { FillSolid(pDC, rect, ::GetSysColor(COLOR_WINDOW)); }
+void CMFCVisualManager::OnDrawTabsButtonBorder(CDC* pDC, CRect& rect, CMFCButton*, UINT uiState, CMFCBaseTabCtrl*) { FillAndFrame(pDC, rect, uiState ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTask(CDC* pDC, CMFCTasksPaneTask*, CImageList*, BOOL bIsHighlighted, BOOL bIsSelected) { FillAndFrame(pDC, CRect(0, 0, 120, 22), bIsSelected ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlighted ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_WINDOW)), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTasksGroupCaption(CDC* pDC, CMFCTasksPaneTaskGroup*, BOOL bIsHighlighted, BOOL bIsSelected, BOOL) { FillAndFrame(pDC, CRect(0, 0, 160, 24), bIsSelected ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlighted ? ButtonFillForState(ButtonsIsHighlighted) : g_visualAccentColor), g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTasksGroupAreaBorder(CDC* pDC, CRect rect, BOOL, BOOL) { FrameSolid(pDC, rect, g_visualBorderColor); }
+void CMFCVisualManager::OnDrawTearOffCaption(CDC* pDC, CRect rect, BOOL bIsActive) { FillSolid(pDC, rect, bIsActive ? g_visualAccentColor : ::GetSysColor(COLOR_INACTIVEBORDER)); }
+void CMFCVisualManager::OnDrawToolBoxFrame(CDC* pDC, const CRect& rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
 COLORREF CMFCVisualManager::GetToolbarDisabledTextColor() {
     return GetHighlightedColor(COLOR_GRAYTEXT);
 }
@@ -672,6 +1003,7 @@ extern "C" CMFCVisualManager* MS_ABI impl__CreateVisualManager_CMFCVisualManager
 extern "C" void MS_ABI impl__DestroyInstance_CMFCVisualManager__SAXH_Z(int) {
     delete g_pVisualManager;
     g_pVisualManager = nullptr;
+    SyncVisualManagerExports();
 }
 
 // Symbol: ?CreateObject@CMFCVisualManager@@SAPEAVCObject@@XZ
@@ -772,44 +1104,83 @@ extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManager__UEAAXPEAVCDC__
 
 // Office variant visual managers
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2003, CMFCVisualManager)
-CMFCVisualManagerOffice2003::CMFCVisualManagerOffice2003() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerOffice2003::CMFCVisualManagerOffice2003() {
+    memset(_pad, 0, sizeof(_pad));
+    impl__m_bDefaultWinXPColors_CMFCVisualManagerOffice2003__1HA = TRUE;
+    impl__m_bStatusBarOfficeXPLook_CMFCVisualManagerOffice2003__1HA = TRUE;
+    impl__m_bUseGlobalTheme_CMFCVisualManagerOffice2003__1HA = TRUE;
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerOffice2003::~CMFCVisualManagerOffice2003() {}
 CObject* CMFCVisualManagerOffice2003::CreateObject() { return new CMFCVisualManagerOffice2003(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2007, CMFCVisualManager)
 static CMFCVisualManagerOffice2007::Style g_office2007Style = CMFCVisualManagerOffice2007::Office2007_LunaBlue;
-CMFCVisualManagerOffice2007::CMFCVisualManagerOffice2007() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerOffice2007::CMFCVisualManagerOffice2007() {
+    memset(_pad, 0, sizeof(_pad));
+    impl__m_bAutoFreeRes_CMFCVisualManagerOffice2007__1HA = TRUE;
+    impl__m_Style_CMFCVisualManagerOffice2007__1W4Style_1_A = static_cast<std::uint32_t>(g_office2007Style);
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerOffice2007::~CMFCVisualManagerOffice2007() {}
 CObject* CMFCVisualManagerOffice2007::CreateObject() { return new CMFCVisualManagerOffice2007(); }
 int CMFCVisualManagerOffice2007::SetStyle(CMFCVisualManagerOffice2007::Style style, const wchar_t*) {
+    if (style < Office2007_LunaBlue || style > Office2007_Aqua) {
+        style = Office2007_LunaBlue;
+    }
     g_office2007Style = style;
+    impl__m_Style_CMFCVisualManagerOffice2007__1W4Style_1_A = static_cast<std::uint32_t>(style);
+    ApplyVisualPaletteForClass(GetThisClass());
+    if (g_pVisualManager && g_pVisualManager->IsKindOf(GetThisClass())) {
+        SyncVisualManagerExports();
+    }
     return TRUE;
 }
 CMFCVisualManagerOffice2007::Style CMFCVisualManagerOffice2007::GetStyle() { return g_office2007Style; }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOfficeXP, CMFCVisualManager)
-CMFCVisualManagerOfficeXP::CMFCVisualManagerOfficeXP() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerOfficeXP::CMFCVisualManagerOfficeXP() {
+    memset(_pad, 0, sizeof(_pad));
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerOfficeXP::~CMFCVisualManagerOfficeXP() {}
 CObject* CMFCVisualManagerOfficeXP::CreateObject() { return new CMFCVisualManagerOfficeXP(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerVS2005, CMFCVisualManager)
-CMFCVisualManagerVS2005::CMFCVisualManagerVS2005() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerVS2005::CMFCVisualManagerVS2005() {
+    memset(_pad, 0, sizeof(_pad));
+    impl__m_bRoundedAutohideButtons_CMFCVisualManagerVS2005__2HA = TRUE;
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerVS2005::~CMFCVisualManagerVS2005() {}
 CObject* CMFCVisualManagerVS2005::CreateObject() { return new CMFCVisualManagerVS2005(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerWindows, CMFCVisualManager)
-CMFCVisualManagerWindows::CMFCVisualManagerWindows() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerWindows::CMFCVisualManagerWindows() {
+    memset(_pad, 0, sizeof(_pad));
+    impl__m_b3DTabsXPTheme_CMFCVisualManagerWindows__2HA = TRUE;
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerWindows::~CMFCVisualManagerWindows() {}
 CObject* CMFCVisualManagerWindows::CreateObject() { return new CMFCVisualManagerWindows(); }
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerWindows7, CMFCVisualManager)
-CMFCVisualManagerWindows7::CMFCVisualManagerWindows7() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerWindows7::CMFCVisualManagerWindows7() {
+    memset(_pad, 0, sizeof(_pad));
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerWindows7::~CMFCVisualManagerWindows7() {}
 CObject* CMFCVisualManagerWindows7::CreateObject() { return new CMFCVisualManagerWindows7(); }
-int CMFCVisualManagerWindows7::SetStyle(const wchar_t*) { return TRUE; }
+int CMFCVisualManagerWindows7::SetStyle(const wchar_t*) {
+    ApplyVisualPaletteForClass(GetThisClass());
+    return TRUE;
+}
 
 IMPLEMENT_DYNAMIC(CMFCVisualManagerAero, CMFCVisualManager)
-CMFCVisualManagerAero::CMFCVisualManagerAero() { memset(_pad, 0, sizeof(_pad)); }
+CMFCVisualManagerAero::CMFCVisualManagerAero() {
+    memset(_pad, 0, sizeof(_pad));
+    ApplyVisualPaletteForClass(GetThisClass());
+}
 CMFCVisualManagerAero::~CMFCVisualManagerAero() {}
 
 // Symbol: ??0CMFCVisualManagerOfficeXP@@IEAA@H@Z
