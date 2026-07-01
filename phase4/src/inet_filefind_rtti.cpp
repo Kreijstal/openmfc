@@ -15,6 +15,7 @@
 #include <new>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #ifdef GetObject
 #undef GetObject
@@ -103,6 +104,89 @@ CString FinderUrl(const CFtpFileFind* pThis) {
         return CString(L"gopher://") + pConnection->GetServerName() + L"/" + locator;
     }
     return locator;
+}
+
+CString FormatGopherAttribute(const GOPHER_ATTRIBUTE_TYPE& attr) {
+    CString value;
+    switch (attr.AttributeId) {
+    case GOPHER_ATTRIBUTE_ID_ADMIN:
+        value = attr.AttributeType.Admin.Comment;
+        if (attr.AttributeType.Admin.EmailAddress) {
+            if (!value.IsEmpty()) value += L" ";
+            value += attr.AttributeType.Admin.EmailAddress;
+        }
+        break;
+    case GOPHER_ATTRIBUTE_ID_MOD_DATE: {
+        const FILETIME& ft = attr.AttributeType.ModDate.DateAndTime;
+        value.Format(L"%08lx:%08lx",
+                     static_cast<unsigned long>(ft.dwHighDateTime),
+                     static_cast<unsigned long>(ft.dwLowDateTime));
+        break;
+    }
+    case GOPHER_ATTRIBUTE_ID_TTL:
+        value.Format(L"%lu", static_cast<unsigned long>(attr.AttributeType.Ttl.Ttl));
+        break;
+    case GOPHER_ATTRIBUTE_ID_SCORE:
+        value.Format(L"%d", attr.AttributeType.Score.Score);
+        break;
+    case GOPHER_ATTRIBUTE_ID_RANGE:
+        value.Format(L"%d-%d",
+                     attr.AttributeType.ScoreRange.LowerBound,
+                     attr.AttributeType.ScoreRange.UpperBound);
+        break;
+    case GOPHER_ATTRIBUTE_ID_SITE:
+        value = attr.AttributeType.Site.Site;
+        break;
+    case GOPHER_ATTRIBUTE_ID_ORG:
+        value = attr.AttributeType.Organization.Organization;
+        break;
+    case GOPHER_ATTRIBUTE_ID_LOCATION:
+        value = attr.AttributeType.Location.Location;
+        break;
+    case GOPHER_ATTRIBUTE_ID_GEOG:
+        value.Format(L"%d %d %d, %d %d %d",
+                     attr.AttributeType.GeographicalLocation.DegreesNorth,
+                     attr.AttributeType.GeographicalLocation.MinutesNorth,
+                     attr.AttributeType.GeographicalLocation.SecondsNorth,
+                     attr.AttributeType.GeographicalLocation.DegreesEast,
+                     attr.AttributeType.GeographicalLocation.MinutesEast,
+                     attr.AttributeType.GeographicalLocation.SecondsEast);
+        break;
+    case GOPHER_ATTRIBUTE_ID_TIMEZONE:
+        value.Format(L"%d", attr.AttributeType.TimeZone.Zone);
+        break;
+    case GOPHER_ATTRIBUTE_ID_PROVIDER:
+        value = attr.AttributeType.Provider.Provider;
+        break;
+    case GOPHER_ATTRIBUTE_ID_VERSION:
+        value = attr.AttributeType.Version.Version;
+        break;
+    case GOPHER_ATTRIBUTE_ID_ABSTRACT:
+        value = attr.AttributeType.Abstract.ShortAbstract;
+        if (attr.AttributeType.Abstract.AbstractFile) {
+            if (!value.IsEmpty()) value += L" ";
+            value += attr.AttributeType.Abstract.AbstractFile;
+        }
+        break;
+    case GOPHER_ATTRIBUTE_ID_VIEW:
+        value = attr.AttributeType.View.ContentType;
+        if (attr.AttributeType.View.Language) {
+            if (!value.IsEmpty()) value += L"; ";
+            value += attr.AttributeType.View.Language;
+        }
+        if (attr.AttributeType.View.Size) {
+            value.AppendFormat(L" (%lu)", static_cast<unsigned long>(attr.AttributeType.View.Size));
+        }
+        break;
+    case GOPHER_ATTRIBUTE_ID_TREEWALK:
+        value = attr.AttributeType.Veronica.TreeWalk ? L"TRUE" : L"FALSE";
+        break;
+    case GOPHER_ATTRIBUTE_ID_UNKNOWN:
+    default:
+        value = attr.AttributeType.Unknown.Text;
+        break;
+    }
+    return value;
 }
 
 void FillLocator(CGopherLocator* pRet, const CString& locator) {
@@ -258,6 +342,40 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherConnection__UEBAPE
     const CGopherConnection* pThis) {
     if (!pThis) return CGopherConnection::GetThisClass();
     return CGopherConnection::GetThisClass();
+}
+
+// Symbol: ?GetAttribute@CGopherConnection@@QEAAHAEAVCGopherLocator@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAV34@@Z
+extern "C" int MS_ABI impl__GetAttribute_CGopherConnection__QEAAHAEAVCGopherLocator__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAV34__Z(
+    CGopherConnection* pThis, CGopherLocator* pLocator, CString strRequested, CString* pResult) {
+    if (pResult) pResult->Empty();
+    if (!pThis || !pThis->m_hConnection || !pLocator || !pResult) return 0;
+
+    const wchar_t* locator = LocatorString(pLocator);
+    const wchar_t* requested = strRequested.GetString();
+    DWORD returned = 0;
+    DWORD bufferSize = MIN_GOPHER_ATTRIBUTE_LENGTH * 4;
+    std::vector<BYTE> buffer(bufferSize);
+    if (!::GopherGetAttributeW(pThis->m_hConnection, locator, requested,
+                               buffer.data(), bufferSize, &returned,
+                               nullptr, pThis->m_dwContext)) {
+        if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER || returned == 0) return 0;
+        bufferSize = returned;
+        buffer.assign(bufferSize, 0);
+        if (!::GopherGetAttributeW(pThis->m_hConnection, locator, requested,
+                                   buffer.data(), bufferSize, &returned,
+                                   nullptr, pThis->m_dwContext)) {
+            return 0;
+        }
+    }
+
+    if (returned >= sizeof(GOPHER_ATTRIBUTE_TYPE)) {
+        const GOPHER_ATTRIBUTE_TYPE* attr =
+            reinterpret_cast<const GOPHER_ATTRIBUTE_TYPE*>(buffer.data());
+        *pResult = FormatGopherAttribute(*attr);
+    } else if (returned >= sizeof(wchar_t)) {
+        *pResult = reinterpret_cast<const wchar_t*>(buffer.data());
+    }
+    return 1;
 }
 
 // Symbol: ?Write@CGopherFile@@UEAAXPEBXI@Z
