@@ -75,7 +75,6 @@ class CGlobalUtils;
 class CWinAppEx;
 class CMFCToolTipInfo;
 class CMouseManager;
-class CShellManager;
 class CUserToolsManager;
 class CMFCDesktopAlertWnd;
 class CMFCDesktopAlertWndButton;
@@ -1255,6 +1254,25 @@ protected:
     char _globalutils_padding[32];
 };
 
+class CShellManager {
+public:
+    CShellManager() = default;
+    virtual ~CShellManager() = default;
+
+    static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData);
+    BOOL BrowseForFolder(CString& strOutFolder, CWnd* pWndParent, const wchar_t* lpszTitle,
+                         const wchar_t* lpszInitialFolder, UINT ulFlags, int* piFolderImage);
+    LPITEMIDLIST ConcatenateItem(LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2);
+    LPITEMIDLIST CopyItem(LPCITEMIDLIST pidl);
+    LPITEMIDLIST CreateItem(UINT cbSize);
+    void FreeItem(LPITEMIDLIST pidl);
+    UINT GetItemCount(LPCITEMIDLIST pidl);
+    UINT GetItemSize(LPCITEMIDLIST pidl);
+    LPITEMIDLIST GetNextItem(LPCITEMIDLIST pidl);
+    BOOL GetParentItem(LPCITEMIDLIST pidl, LPITEMIDLIST& pidlParent);
+    HRESULT ItemFromPath(const wchar_t* lpszPath, LPITEMIDLIST& pidl);
+};
+
 class CWinAppEx : public CWinApp {
     DECLARE_DYNAMIC(CWinAppEx)
 public:
@@ -1263,9 +1281,11 @@ public:
 
     BOOL InitContextMenuManager();
     BOOL InitKeyboardManager();
+    BOOL InitShellManager();
     BOOL InitTooltipManager();
     CContextMenuManager* GetContextMenuManager();
     CKeyboardManager* GetKeyboardManager();
+    CShellManager* GetShellManager();
     CTooltipManager* GetTooltipManager();
     int GetDataVersion() const;
     const wchar_t* SetRegistryBase(const wchar_t* lpszSectionName);

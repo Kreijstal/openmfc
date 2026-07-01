@@ -16,6 +16,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <new>
+#include <shlobj.h>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -4286,6 +4287,256 @@ HICON CGlobalUtils::GetWndIcon(CWnd* pWnd) { return pWnd ? reinterpret_cast<HICO
 BOOL CGlobalUtils::CanBeAttached(CWnd* pWnd) const { return pWnd != nullptr; }
 BOOL CGlobalUtils::CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const { return pWnd != nullptr; }
 CDockingManager* CGlobalUtils::GetDockingManager(CWnd* pWnd) { return pWnd && pWnd->IsKindOf(RUNTIME_CLASS(CFrameWndEx)) ? static_cast<CFrameWndEx*>(pWnd)->GetDockingManager() : nullptr; }
+
+//=============================================================================
+// CShellManager
+//=============================================================================
+
+namespace {
+
+template <typename Fn>
+Fn LoadShell32Function(const char* name) {
+    HMODULE shell32 = ::GetModuleHandleW(L"shell32.dll");
+    if (!shell32) shell32 = ::LoadLibraryW(L"shell32.dll");
+    return shell32 ? reinterpret_cast<Fn>(::GetProcAddress(shell32, name)) : nullptr;
+}
+
+LPITEMIDLIST AllocatePidlBytes(UINT bytes) {
+    if (bytes < sizeof(USHORT)) bytes = sizeof(USHORT);
+    void* memory = ::CoTaskMemAlloc(bytes);
+    if (!memory) return nullptr;
+    std::memset(memory, 0, bytes);
+    return static_cast<LPITEMIDLIST>(memory);
+}
+
+} // namespace
+
+int CALLBACK CShellManager::BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM, LPARAM lpData) {
+    if (uMsg == BFFM_INITIALIZED && lpData != 0) {
+        ::SendMessageW(hwnd, BFFM_SETSELECTIONW, TRUE, lpData);
+    }
+    return 0;
+}
+
+BOOL CShellManager::BrowseForFolder(CString& strOutFolder, CWnd* pWndParent, const wchar_t* lpszTitle,
+                                    const wchar_t* lpszInitialFolder, UINT ulFlags, int* piFolderImage) {
+    using SHBrowseForFolderWFn = LPITEMIDLIST (WINAPI*)(LPBROWSEINFOW);
+    using SHGetPathFromIDListWFn = BOOL (WINAPI*)(LPCITEMIDLIST, LPWSTR);
+
+    auto browseForFolder = LoadShell32Function<SHBrowseForFolderWFn>("SHBrowseForFolderW");
+    auto getPathFromIDList = LoadShell32Function<SHGetPathFromIDListWFn>("SHGetPathFromIDListW");
+    if (!browseForFolder || !getPathFromIDList) return FALSE;
+
+    wchar_t displayName[MAX_PATH] = {};
+    BROWSEINFOW browseInfo = {};
+    browseInfo.hwndOwner = pWndParent ? pWndParent->GetSafeHwnd() : nullptr;
+    browseInfo.pszDisplayName = displayName;
+    browseInfo.lpszTitle = lpszTitle;
+    browseInfo.ulFlags = ulFlags;
+    browseInfo.lpfn = &CShellManager::BrowseCallbackProc;
+    browseInfo.lParam = reinterpret_cast<LPARAM>(lpszInitialFolder);
+    browseInfo.iImage = 0;
+
+    LPITEMIDLIST selected = browseForFolder(&browseInfo);
+    if (!selected) return FALSE;
+
+    wchar_t path[MAX_PATH] = {};
+    BOOL ok = getPathFromIDList(selected, path);
+    if (ok) strOutFolder = path;
+    if (piFolderImage) *piFolderImage = browseInfo.iImage;
+    FreeItem(selected);
+    return ok;
+}
+
+LPITEMIDLIST CShellManager::CreateItem(UINT cbSize) {
+    if (cbSize < sizeof(USHORT)) cbSize = sizeof(USHORT);
+    LPITEMIDLIST pidl = AllocatePidlBytes(cbSize + sizeof(USHORT));
+    if (pidl) pidl->mkid.cb = static_cast<USHORT>(cbSize);
+    return pidl;
+}
+
+void CShellManager::FreeItem(LPITEMIDLIST pidl) {
+    ::CoTaskMemFree(pidl);
+}
+
+UINT CShellManager::GetItemSize(LPCITEMIDLIST pidl) {
+    if (!pidl) return 0;
+    UINT total = 0;
+    const BYTE* cursor = reinterpret_cast<const BYTE*>(pidl);
+    for (;;) {
+        const auto* item = reinterpret_cast<LPCITEMIDLIST>(cursor);
+        total += sizeof(USHORT);
+        if (item->mkid.cb == 0) break;
+        total += item->mkid.cb - sizeof(USHORT);
+        cursor += item->mkid.cb;
+    }
+    return total;
+}
+
+UINT CShellManager::GetItemCount(LPCITEMIDLIST pidl) {
+    if (!pidl) return 0;
+    UINT count = 0;
+    const BYTE* cursor = reinterpret_cast<const BYTE*>(pidl);
+    for (;;) {
+        const auto* item = reinterpret_cast<LPCITEMIDLIST>(cursor);
+        if (item->mkid.cb == 0) break;
+        ++count;
+        cursor += item->mkid.cb;
+    }
+    return count;
+}
+
+LPITEMIDLIST CShellManager::GetNextItem(LPCITEMIDLIST pidl) {
+    if (!pidl || pidl->mkid.cb == 0) return nullptr;
+    return reinterpret_cast<LPITEMIDLIST>(const_cast<BYTE*>(reinterpret_cast<const BYTE*>(pidl)) + pidl->mkid.cb);
+}
+
+LPITEMIDLIST CShellManager::CopyItem(LPCITEMIDLIST pidl) {
+    UINT bytes = GetItemSize(pidl);
+    if (bytes == 0) return nullptr;
+    LPITEMIDLIST copy = AllocatePidlBytes(bytes);
+    if (copy) std::memcpy(copy, pidl, bytes);
+    return copy;
+}
+
+LPITEMIDLIST CShellManager::ConcatenateItem(LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2) {
+    if (!pidl1) return CopyItem(pidl2);
+    if (!pidl2) return CopyItem(pidl1);
+
+    UINT size1 = GetItemSize(pidl1);
+    UINT size2 = GetItemSize(pidl2);
+    if (size1 == 0 || size2 == 0) return nullptr;
+
+    UINT payload1 = size1 - sizeof(USHORT);
+    LPITEMIDLIST combined = AllocatePidlBytes(payload1 + size2);
+    if (!combined) return nullptr;
+
+    std::memcpy(combined, pidl1, payload1);
+    std::memcpy(reinterpret_cast<BYTE*>(combined) + payload1, pidl2, size2);
+    return combined;
+}
+
+BOOL CShellManager::GetParentItem(LPCITEMIDLIST pidl, LPITEMIDLIST& pidlParent) {
+    pidlParent = nullptr;
+    if (!pidl || pidl->mkid.cb == 0) return FALSE;
+
+    const BYTE* base = reinterpret_cast<const BYTE*>(pidl);
+    const BYTE* cursor = base;
+    const BYTE* last = base;
+    while (reinterpret_cast<LPCITEMIDLIST>(cursor)->mkid.cb != 0) {
+        last = cursor;
+        cursor += reinterpret_cast<LPCITEMIDLIST>(cursor)->mkid.cb;
+    }
+
+    UINT parentBytes = static_cast<UINT>(last - base) + sizeof(USHORT);
+    pidlParent = AllocatePidlBytes(parentBytes);
+    if (!pidlParent) return FALSE;
+    if (parentBytes > sizeof(USHORT)) {
+        std::memcpy(pidlParent, pidl, parentBytes - sizeof(USHORT));
+    }
+    return TRUE;
+}
+
+HRESULT CShellManager::ItemFromPath(const wchar_t* lpszPath, LPITEMIDLIST& pidl) {
+    pidl = nullptr;
+    if (!lpszPath || *lpszPath == L'\0') return E_INVALIDARG;
+
+    using SHParseDisplayNameFn = HRESULT (WINAPI*)(PCWSTR, IBindCtx*, PIDLIST_ABSOLUTE*, SFGAOF, SFGAOF*);
+    auto parseDisplayName = LoadShell32Function<SHParseDisplayNameFn>("SHParseDisplayName");
+    if (!parseDisplayName) return E_NOTIMPL;
+
+    PIDLIST_ABSOLUTE absolute = nullptr;
+    HRESULT hr = parseDisplayName(lpszPath, nullptr, &absolute, 0, nullptr);
+    if (SUCCEEDED(hr)) pidl = absolute;
+    return hr;
+}
+
+// Symbol: ??0CShellManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CShellManager__QEAA_XZ(CShellManager* pThis) {
+    return pThis ? new(pThis) CShellManager() : nullptr;
+}
+
+// Symbol: ??1CShellManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CShellManager__UEAA_XZ(CShellManager* pThis) {
+    if (pThis) pThis->~CShellManager();
+}
+
+// Symbol: ?BrowseCallbackProc@CShellManager@@KAHPEAUHWND__@@I_J1@Z
+extern "C" int MS_ABI impl__BrowseCallbackProc_CShellManager__KAHPEAUHWND____I_J1_Z(
+    HWND hwnd, unsigned int uMsg, __int64 lParam, __int64 lpData) {
+    return CShellManager::BrowseCallbackProc(hwnd, uMsg, static_cast<LPARAM>(lParam), static_cast<LPARAM>(lpData));
+}
+
+// Symbol: ?BrowseForFolder@CShellManager@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCWnd@@PEB_W2IPEAH@Z
+extern "C" int MS_ABI impl__BrowseForFolder_CShellManager__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCWnd__PEB_W2IPEAH_Z(
+    CShellManager* pThis, CString* strOutFolder, CWnd* pWndParent, const wchar_t* lpszTitle,
+    const wchar_t* lpszInitialFolder, unsigned int ulFlags, int* piFolderImage) {
+    if (!pThis || !strOutFolder) return FALSE;
+    return pThis->BrowseForFolder(*strOutFolder, pWndParent, lpszTitle, lpszInitialFolder, ulFlags, piFolderImage);
+}
+
+// Symbol: ?ConcatenateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@0@Z
+extern "C" LPITEMIDLIST MS_ABI impl__ConcatenateItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2_0_Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl1, LPCITEMIDLIST pidl2) {
+    return pThis ? pThis->ConcatenateItem(pidl1, pidl2) : nullptr;
+}
+
+// Symbol: ?CopyItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z
+extern "C" LPITEMIDLIST MS_ABI impl__CopyItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl) {
+    return pThis ? pThis->CopyItem(pidl) : nullptr;
+}
+
+// Symbol: ?CreateItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@I@Z
+extern "C" LPITEMIDLIST MS_ABI impl__CreateItem_CShellManager__QEAAPEFAU_ITEMIDLIST__I_Z(
+    CShellManager* pThis, unsigned int cbSize) {
+    return pThis ? pThis->CreateItem(cbSize) : nullptr;
+}
+
+// Symbol: ?FreeItem@CShellManager@@QEAAXPEFAU_ITEMIDLIST@@@Z
+extern "C" void MS_ABI impl__FreeItem_CShellManager__QEAAXPEFAU_ITEMIDLIST___Z(
+    CShellManager* pThis, LPITEMIDLIST pidl) {
+    if (pThis) pThis->FreeItem(pidl);
+}
+
+// Symbol: ?GetItemCount@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z
+extern "C" unsigned int MS_ABI impl__GetItemCount_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl) {
+    return pThis ? pThis->GetItemCount(pidl) : 0;
+}
+
+// Symbol: ?GetItemSize@CShellManager@@QEAAIPEFBU_ITEMIDLIST@@@Z
+extern "C" unsigned int MS_ABI impl__GetItemSize_CShellManager__QEAAIPEFBU_ITEMIDLIST___Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl) {
+    return pThis ? pThis->GetItemSize(pidl) : 0;
+}
+
+// Symbol: ?GetNextItem@CShellManager@@QEAAPEFAU_ITEMIDLIST@@PEFBU2@@Z
+extern "C" LPITEMIDLIST MS_ABI impl__GetNextItem_CShellManager__QEAAPEFAU_ITEMIDLIST__PEFBU2__Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl) {
+    return pThis ? pThis->GetNextItem(pidl) : nullptr;
+}
+
+// Symbol: ?GetParentItem@CShellManager@@QEAAHPEFBU_ITEMIDLIST@@AEAPEFAU2@@Z
+extern "C" int MS_ABI impl__GetParentItem_CShellManager__QEAAHPEFBU_ITEMIDLIST__AEAPEFAU2__Z(
+    CShellManager* pThis, LPCITEMIDLIST pidl, LPITEMIDLIST* pidlParent) {
+    if (!pThis || !pidlParent) return FALSE;
+    LPITEMIDLIST parent = nullptr;
+    BOOL ok = pThis->GetParentItem(pidl, parent);
+    *pidlParent = parent;
+    return ok;
+}
+
+// Symbol: ?ItemFromPath@CShellManager@@QEAAJPEB_WAEAPEFAU_ITEMIDLIST@@@Z
+extern "C" long MS_ABI impl__ItemFromPath_CShellManager__QEAAJPEB_WAEAPEFAU_ITEMIDLIST___Z(
+    CShellManager* pThis, const wchar_t* lpszPath, LPITEMIDLIST* pidl) {
+    if (!pThis || !pidl) return E_POINTER;
+    LPITEMIDLIST item = nullptr;
+    HRESULT hr = pThis->ItemFromPath(lpszPath, item);
+    *pidl = item;
+    return hr;
+}
+
 // Symbol: ??0CGlobalUtils@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CGlobalUtils__QEAA_XZ(void* pThis) { return new (pThis) CGlobalUtils(); }
 // Symbol: ??1CGlobalUtils@@UEAA@XZ
