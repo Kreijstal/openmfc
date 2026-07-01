@@ -2433,6 +2433,9 @@ void RemovePropertyGridPropertyReferences(const CMFCPropertyGridProperty* pProp)
         (void)unusedCtrlKey;
         auto& properties = ctrlState.properties;
         properties.erase(std::remove(properties.begin(), properties.end(), pProp), properties.end());
+        if (ctrlState.current == pProp) {
+            ctrlState.current = nullptr;
+        }
     }
 }
 
@@ -2508,7 +2511,114 @@ BOOL IsPropertyGridAncestorOf(const CMFCPropertyGridProperty* pAncestor,
     return FALSE;
 }
 
+std::wstring PropertyGridVariantToString(const VARIANT& value, const PropertyGridCtrlState* ctrlState);
+
+std::wstring JoinPropertyGridArrayParts(const std::vector<std::wstring>& parts, const PropertyGridCtrlState* ctrlState) {
+    std::wstring result;
+    const wchar_t delimiter = ctrlState ? ctrlState->listDelimiter : L',';
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (i != 0) {
+            result.push_back(delimiter);
+            result.push_back(L' ');
+        }
+        result += parts[i];
+    }
+    return result;
+}
+
+std::wstring PropertyGridArrayToString(const VARIANT& value, const PropertyGridCtrlState* ctrlState) {
+    if (!(value.vt & VT_ARRAY) || !value.parray || SafeArrayGetDim(value.parray) != 1) {
+        return L"";
+    }
+
+    long lower = 0;
+    long upper = -1;
+    if (FAILED(SafeArrayGetLBound(value.parray, 1, &lower)) ||
+        FAILED(SafeArrayGetUBound(value.parray, 1, &upper)) ||
+        upper < lower) {
+        return L"";
+    }
+
+    VARTYPE elementType = value.vt & VT_TYPEMASK;
+    if (elementType == VT_EMPTY) {
+        SafeArrayGetVartype(value.parray, &elementType);
+    }
+
+    std::vector<std::wstring> parts;
+    parts.reserve(static_cast<size_t>(upper - lower + 1));
+    for (long index = lower; index <= upper; ++index) {
+        VARIANT element;
+        VariantInit(&element);
+        HRESULT hr = E_FAIL;
+
+        switch (elementType) {
+        case VT_VARIANT:
+            hr = SafeArrayGetElement(value.parray, &index, &element);
+            break;
+        case VT_BSTR: {
+            BSTR text = nullptr;
+            hr = SafeArrayGetElement(value.parray, &index, &text);
+            if (SUCCEEDED(hr)) {
+                element.vt = VT_BSTR;
+                element.bstrVal = text;
+            }
+            break;
+        }
+        case VT_BOOL: {
+            VARIANT_BOOL item = VARIANT_FALSE;
+            hr = SafeArrayGetElement(value.parray, &index, &item);
+            if (SUCCEEDED(hr)) {
+                element.vt = VT_BOOL;
+                element.boolVal = item;
+            }
+            break;
+        }
+        case VT_I2: {
+            SHORT item = 0;
+            hr = SafeArrayGetElement(value.parray, &index, &item);
+            if (SUCCEEDED(hr)) {
+                element.vt = VT_I2;
+                element.iVal = item;
+            }
+            break;
+        }
+        case VT_I4:
+        case VT_INT: {
+            LONG item = 0;
+            hr = SafeArrayGetElement(value.parray, &index, &item);
+            if (SUCCEEDED(hr)) {
+                element.vt = elementType;
+                element.lVal = item;
+            }
+            break;
+        }
+        case VT_R8: {
+            DOUBLE item = 0;
+            hr = SafeArrayGetElement(value.parray, &index, &item);
+            if (SUCCEEDED(hr)) {
+                element.vt = VT_R8;
+                element.dblVal = item;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+
+        if (SUCCEEDED(hr)) {
+            parts.push_back(PropertyGridVariantToString(element, ctrlState));
+        }
+        VariantClear(&element);
+    }
+
+    return JoinPropertyGridArrayParts(parts, ctrlState);
+}
+
 std::wstring PropertyGridVariantToString(const VARIANT& value, const PropertyGridCtrlState* ctrlState = nullptr) {
+    if (value.vt & VT_ARRAY) {
+        return PropertyGridArrayToString(value, ctrlState);
+    }
+
     switch (value.vt) {
     case VT_EMPTY:
     case VT_NULL:
@@ -2752,7 +2862,7 @@ const CString& CMFCPropertyGridProperty::GetName() const { return m_strName; }
 const COleVariant& CMFCPropertyGridProperty::GetValue() const { return m_varValue; }
 void CMFCPropertyGridProperty::SetValue(const COleVariant& varValue) {
     AssignPropertyGridVariant(m_varValue, varValue);
-    m_bModified = TRUE;
+    m_bModified = IsValueChanged();
     PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(this);
     if (state && state->owner) {
         TouchPropertyGridCtrl(state->owner, FALSE);
@@ -2812,15 +2922,30 @@ CMFCPropertyGridProperty* CMFCPropertyGridProperty::GetSubItem(int nIndex) const
 }
 void CMFCPropertyGridProperty::RemoveAllSubItems() {
     auto& state = EnsurePropertyGridPropertyState(this);
-    for (CMFCPropertyGridProperty* child : state.subItems) {
+    CMFCPropertyGridCtrl* owner = state.owner;
+    if (owner) {
+        PropertyGridCtrlState* ctrlState = FindMutablePropertyGridCtrlState(owner);
+        if (ctrlState) {
+            for (CMFCPropertyGridProperty* child : state.subItems) {
+                if (ctrlState->current == child || IsPropertyGridAncestorOf(child, ctrlState->current)) {
+                    ctrlState->current = nullptr;
+                    break;
+                }
+            }
+        }
+    }
+
+    std::vector<CMFCPropertyGridProperty*> children = state.subItems;
+    state.subItems.clear();
+    for (CMFCPropertyGridProperty* child : children) {
         PropertyGridPropertyState* childState = FindMutablePropertyGridPropertyState(child);
         if (childState && childState->parent == this) {
             childState->parent = nullptr;
             SetPropertyGridOwnerRecursive(child, nullptr);
         }
+        delete child;
     }
-    state.subItems.clear();
-    TouchPropertyGridCtrl(state.owner, TRUE);
+    TouchPropertyGridCtrl(owner, TRUE);
 }
 void CMFCPropertyGridProperty::Expand(BOOL bExpand) {
     m_bExpanded = bExpand;
@@ -3030,7 +3155,19 @@ CMFCPropertyGridCtrl::CMFCPropertyGridCtrl() {
     memset(_propgridctrl_padding, 0, sizeof(_propgridctrl_padding));
     EnsurePropertyGridCtrlState(this);
 }
-CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() { g_propertyGridCtrlStates.erase(this); }
+CMFCPropertyGridCtrl::~CMFCPropertyGridCtrl() {
+    PropertyGridCtrlState* state = FindMutablePropertyGridCtrlState(this);
+    if (state) {
+        std::vector<CMFCPropertyGridProperty*> properties = state->properties;
+        state->properties.clear();
+        state->current = nullptr;
+        for (CMFCPropertyGridProperty* prop : properties) {
+            SetPropertyGridOwnerRecursive(prop, nullptr);
+            delete prop;
+        }
+    }
+    g_propertyGridCtrlStates.erase(this);
+}
 
 BOOL CMFCPropertyGridCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
     EnsurePropertyGridCtrlState(this);
