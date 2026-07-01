@@ -15,12 +15,8 @@
 // files; each is a distinct mangled symbol from the ones already present.
 //
 // Deliberately NOT implemented here (left as honest weak stubs):
-//   - Detach()->VARIANT and GetByteArray(CByteArray&): the repo's vt-less
-//     SAFEARRAY model cannot recover the element VARTYPE that a VARIANT result
-//     requires, and GetByteArray couples to CByteArray's layout.
-//   - AllocData/AllocDescriptor/DestroyDescriptor: these free or allocate the
-//     bare descriptor, which is unsafe against an *embedded* (non-heap)
-//     descriptor under this layout model.
+//   - Detach()->VARIANT and GetByteArray(CByteArray&): GetByteArray couples to
+//     CByteArray's layout, which is not declared in the public OpenMFC headers.
 
 #include <windows.h>
 #include <oleauto.h>
@@ -53,6 +49,21 @@ inline void StoreArray(void* pThis, SAFEARRAY* psa, unsigned short vt) {
     // If creation failed, leave a clean empty VARIANT rather than VT_ARRAY+null.
     v->var.vt = psa ? static_cast<unsigned short>(VT_ARRAY | vt) : static_cast<unsigned short>(VT_EMPTY);
     v->var.parray = psa;
+    v->m_dwElementSize = psa ? psa->cbElements : 0;
+    v->m_dwDims = psa ? psa->cDims : 0;
+}
+
+inline void StoreDescriptor(void* pThis, SAFEARRAY* psa) {
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    v->var.vt = psa ? static_cast<unsigned short>(VT_ARRAY) : static_cast<unsigned short>(VT_EMPTY);
+    v->var.parray = psa;
+    v->m_dwElementSize = psa ? psa->cbElements : 0;
+    v->m_dwDims = psa ? psa->cDims : 0;
+}
+
+inline void RefreshCache(void* pThis) {
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    SAFEARRAY* psa = v->var.parray;
     v->m_dwElementSize = psa ? psa->cbElements : 0;
     v->m_dwDims = psa ? psa->cDims : 0;
 }
@@ -114,6 +125,34 @@ extern "C" void MS_ABI impl__CreateOneDim_COleSafeArray__QEAAXGKPEBXJ_Z(
                         (size_t)dwElementCount * SA(pThis)->cbElements);
             SafeArrayUnaccessData(SA(pThis));
         }
+    }
+}
+
+// ?AllocDescriptor@COleSafeArray@@QEAAXK@Z
+// void AllocDescriptor(DWORD dwDims) - allocates an empty SAFEARRAY descriptor
+// owned by this COleSafeArray. Bounds and element type are filled by the caller
+// before AllocData() in the classic OLEAUT32 workflow.
+// Symbol: ?AllocDescriptor@COleSafeArray@@QEAAXK@Z
+extern "C" void MS_ABI impl__AllocDescriptor_COleSafeArray__QEAAXK_Z(
+    void* pThis, unsigned long dwDims)
+{
+    if (!pThis || dwDims == 0) return;
+    ReleaseArray(pThis);
+    SAFEARRAY* psa = nullptr;
+    if (SUCCEEDED(SafeArrayAllocDescriptor(dwDims, &psa))) {
+        StoreDescriptor(pThis, psa);
+    }
+}
+
+// ?AllocData@COleSafeArray@@QEAAXXZ
+// void AllocData() - allocates backing storage for an already-populated
+// descriptor.
+// Symbol: ?AllocData@COleSafeArray@@QEAAXXZ
+extern "C" void MS_ABI impl__AllocData_COleSafeArray__QEAAXXZ(void* pThis)
+{
+    if (!pThis || !SA(pThis)) return;
+    if (SUCCEEDED(SafeArrayAllocData(SA(pThis)))) {
+        RefreshCache(pThis);
     }
 }
 
@@ -202,7 +241,9 @@ extern "C" void MS_ABI impl__Redim_COleSafeArray__QEAAXPEAUtagSAFEARRAYBOUND___Z
     void* pThis, SAFEARRAYBOUND* psaboundNew)
 {
     if (!pThis || !psaboundNew) return;
-    SafeArrayRedim(SA(pThis), psaboundNew);
+    if (SUCCEEDED(SafeArrayRedim(SA(pThis), psaboundNew))) {
+        RefreshCache(pThis);
+    }
 }
 
 // ?ResizeOneDim@COleSafeArray@@QEAAXK@Z
@@ -211,11 +252,13 @@ extern "C" void MS_ABI impl__Redim_COleSafeArray__QEAAXPEAUtagSAFEARRAYBOUND___Z
 extern "C" void MS_ABI impl__ResizeOneDim_COleSafeArray__QEAAXK_Z(
     void* pThis, unsigned long dwElementCount)
 {
-    if (!pThis) return;
+    if (!pThis || !SA(pThis) || SA(pThis)->cDims != 1) return;
     SAFEARRAYBOUND bound;
     bound.lLbound = SA(pThis)->rgsabound[0].lLbound;
     bound.cElements = dwElementCount;
-    SafeArrayRedim(SA(pThis), &bound);
+    if (SUCCEEDED(SafeArrayRedim(SA(pThis), &bound))) {
+        RefreshCache(pThis);
+    }
 }
 
 // ?Copy@COleSafeArray@@QEAAXPEAPEAUtagSAFEARRAY@@@Z
@@ -253,5 +296,25 @@ extern "C" void MS_ABI impl__Attach_COleSafeArray__QEAAXAEAUtagVARIANT___Z(
 extern "C" void MS_ABI impl__DestroyData_COleSafeArray__QEAAXXZ(void* pThis)
 {
     if (!pThis) return;
-    SafeArrayDestroyData(SA(pThis));
+    if (SUCCEEDED(SafeArrayDestroyData(SA(pThis)))) {
+        RefreshCache(pThis);
+    }
+}
+
+// ?DestroyDescriptor@COleSafeArray@@QEAAXXZ
+// void DestroyDescriptor() - frees only the descriptor and detaches this wrapper.
+// This mirrors OLEAUT32's descriptor-only lifecycle; callers that allocated data
+// separately should call DestroyData() first.
+// Symbol: ?DestroyDescriptor@COleSafeArray@@QEAAXXZ
+extern "C" void MS_ABI impl__DestroyDescriptor_COleSafeArray__QEAAXXZ(void* pThis)
+{
+    if (!pThis || !SA(pThis)) return;
+    SAFEARRAY* psa = SA(pThis);
+    if (SUCCEEDED(SafeArrayDestroyDescriptor(psa))) {
+        CSAView* v = reinterpret_cast<CSAView*>(pThis);
+        v->var.vt = VT_EMPTY;
+        v->var.parray = nullptr;
+        v->m_dwElementSize = 0;
+        v->m_dwDims = 0;
+    }
 }

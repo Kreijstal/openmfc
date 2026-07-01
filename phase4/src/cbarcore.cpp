@@ -1860,6 +1860,101 @@ extern "C" int MS_ABI impl__GetString_CToolBarCtrl__QEBAHHAEAV__CStringT__WV__St
     return static_cast<int>(copied);
 }
 
+// Symbol: ?Create@CStatusBarCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CStatusBarCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
+    ::InitCommonControlsEx(&icc);
+    return pThis->CreateEx(0, STATUSCLASSNAMEW, L"", dwStyle,
+        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
+        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
+}
+
+// Symbol: ?CreateEx@CStatusBarCtrl@@QEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CStatusBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
+    ::InitCommonControlsEx(&icc);
+    return pThis->CreateEx(dwExStyle, STATUSCLASSNAMEW, L"", dwStyle,
+        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
+        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
+}
+
+// Symbol: ?GetBorders@CStatusBarCtrl@@QEBAHAEAH00@Z
+extern "C" int MS_ABI impl__GetBorders_CStatusBarCtrl__QEBAHAEAH00_Z(
+    const CWnd* pThis, int* pHorz, int* pVert, int* pSpacing) {
+    int borders[3] = {};
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    BOOL ok = hwnd ? static_cast<BOOL>(::SendMessageW(hwnd, SB_GETBORDERS, 0, reinterpret_cast<LPARAM>(borders))) : FALSE;
+    if (pHorz) *pHorz = borders[0];
+    if (pVert) *pVert = borders[1];
+    if (pSpacing) *pSpacing = borders[2];
+    return ok;
+}
+
+// Symbol: ?GetText@CStatusBarCtrl@@QEBAHPEA_WHPEAH@Z
+extern "C" int MS_ABI impl__GetText_CStatusBarCtrl__QEBAHPEA_WHPEAH_Z(
+    const CWnd* pThis, wchar_t* pBuffer, int nPane, int* pType) {
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    if (!hwnd) {
+        if (pType) *pType = 0;
+        if (pBuffer) *pBuffer = L'\0';
+        return 0;
+    }
+    LRESULT lenAndType = ::SendMessageW(hwnd, SB_GETTEXTLENGTHW, nPane, 0);
+    if (pType) *pType = HIWORD(lenAndType);
+    if (!pBuffer) return LOWORD(lenAndType);
+    LRESULT copied = ::SendMessageW(hwnd, SB_GETTEXTW, nPane, reinterpret_cast<LPARAM>(pBuffer));
+    return LOWORD(copied);
+}
+
+// Symbol: ?GetTextLength@CStatusBarCtrl@@QEBAHHPEAH@Z
+extern "C" int MS_ABI impl__GetTextLength_CStatusBarCtrl__QEBAHHPEAH_Z(
+    const CWnd* pThis, int nPane, int* pType) {
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    LRESULT lenAndType = hwnd ? ::SendMessageW(hwnd, SB_GETTEXTLENGTHW, nPane, 0) : 0;
+    if (pType) *pType = HIWORD(lenAndType);
+    return LOWORD(lenAndType);
+}
+
+// Symbol: ?AddString@CToolBarCtrl@@QEAAHI@Z
+extern "C" int MS_ABI impl__AddString_CToolBarCtrl__QEAAHI_Z(CWnd* pThis, UINT nStringID) {
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    return hwnd ? static_cast<int>(::SendMessageW(hwnd, TB_ADDSTRINGW, reinterpret_cast<WPARAM>(AfxGetResourceHandle()), nStringID)) : -1;
+}
+
+// Symbol: ?Create@CToolBarCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CToolBarCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
+    ::InitCommonControlsEx(&icc);
+    return pThis->CreateEx(0, TOOLBARCLASSNAMEW, L"", dwStyle,
+        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
+        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
+}
+
+// Symbol: ?CreateEx@CToolBarCtrl@@QEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    CWnd* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
+    if (!pThis || !pRect) return FALSE;
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
+    ::InitCommonControlsEx(&icc);
+    return pThis->CreateEx(dwExStyle, TOOLBARCLASSNAMEW, L"", dwStyle,
+        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
+        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
+}
+
+// Symbol: ?GetDropTarget@CToolBarCtrl@@QEBAJPEAPEAUIDropTarget@@@Z
+extern "C" long MS_ABI impl__GetDropTarget_CToolBarCtrl__QEBAJPEAPEAUIDropTarget___Z(
+    const CWnd* pThis, IDropTarget** ppDropTarget) {
+    if (ppDropTarget) *ppDropTarget = nullptr;
+    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
+    return hwnd ? static_cast<long>(::SendMessageW(hwnd, TB_GETOBJECT, reinterpret_cast<WPARAM>(&IID_IDropTarget), reinterpret_cast<LPARAM>(ppDropTarget))) : E_FAIL;
+}
+
 namespace {
 struct DockSiteCoreState {
     CWnd* parent = nullptr;

@@ -29,6 +29,40 @@ inline wchar_t* PszOf(void* pThis) {
 inline CStringData* DataOf(void* pThis) {
     return reinterpret_cast<CStringData*>(PszOf(pThis)) - 1;
 }
+
+inline bool IsTrimChar(wchar_t ch, const wchar_t* trimSet) {
+    return trimSet ? std::wcschr(trimSet, ch) != nullptr : false;
+}
+
+CString* TrimLeftWithSet(CString* pThis, const wchar_t* trimSet) {
+    if (!pThis || !trimSet || *trimSet == L'\0') return pThis;
+    const wchar_t* text = pThis->GetString();
+    int len = pThis->GetLength();
+    int first = 0;
+    while (first < len && IsTrimChar(text[first], trimSet)) {
+        ++first;
+    }
+    if (first > 0) {
+        *pThis = pThis->Mid(first);
+    }
+    return pThis;
+}
+
+CString* TrimRightWithSet(CString* pThis, const wchar_t* trimSet) {
+    if (!pThis || !trimSet || *trimSet == L'\0') return pThis;
+    const wchar_t* text = pThis->GetString();
+    int len = pThis->GetLength();
+    int last = len;
+    while (last > 0 && IsTrimChar(text[last - 1], trimSet)) {
+        --last;
+    }
+    if (last < len) {
+        wchar_t* buf = pThis->GetBuffer(last);
+        buf[last] = L'\0';
+        pThis->ReleaseBuffer(last);
+    }
+    return pThis;
+}
 } // namespace
 
 // ---- CSimpleStringT<wchar_t,1> accessors -------------------------------------
@@ -113,4 +147,107 @@ extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTrait
     va_start(args, pszFormat);
     pThis->FormatV(pszFormat, args);
     va_end(args);
+}
+
+// Symbol: ?MakeLower@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__MakeLower___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->MakeLower();
+    return pThis;
+}
+
+// Symbol: ?MakeReverse@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__MakeReverse___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->MakeReverse();
+    return pThis;
+}
+
+// Symbol: ?MakeUpper@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__MakeUpper___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->MakeUpper();
+    return pThis;
+}
+
+// Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAH_W0@Z
+extern "C" int MS_ABI
+impl__Replace___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAH_W0_Z(
+        CString* pThis, wchar_t chOld, wchar_t chNew) {
+    return pThis ? pThis->Replace(chOld, chNew) : 0;
+}
+
+// Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEB_W0@Z
+extern "C" int MS_ABI
+impl__Replace___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W0_Z(
+        CString* pThis, const wchar_t* pszOld, const wchar_t* pszNew) {
+    return pThis ? pThis->Replace(pszOld, pszNew) : 0;
+}
+
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CString* MS_ABI
+impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(
+        CString* pThis, wchar_t chTarget) {
+    wchar_t trimSet[2] = { chTarget, L'\0' };
+    TrimRightWithSet(pThis, trimSet);
+    return TrimLeftWithSet(pThis, trimSet);
+}
+
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CString* MS_ABI
+impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(
+        CString* pThis, const wchar_t* pszTargets) {
+    TrimRightWithSet(pThis, pszTargets);
+    return TrimLeftWithSet(pThis, pszTargets);
+}
+
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->Trim();
+    return pThis;
+}
+
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CString* MS_ABI
+impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(
+        CString* pThis, wchar_t chTarget) {
+    wchar_t trimSet[2] = { chTarget, L'\0' };
+    return TrimLeftWithSet(pThis, trimSet);
+}
+
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CString* MS_ABI
+impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(
+        CString* pThis, const wchar_t* pszTargets) {
+    return TrimLeftWithSet(pThis, pszTargets);
+}
+
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->TrimLeft();
+    return pThis;
+}
+
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CString* MS_ABI
+impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(
+        CString* pThis, wchar_t chTarget) {
+    wchar_t trimSet[2] = { chTarget, L'\0' };
+    return TrimRightWithSet(pThis, trimSet);
+}
+
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CString* MS_ABI
+impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(
+        CString* pThis, const wchar_t* pszTargets) {
+    return TrimRightWithSet(pThis, pszTargets);
+}
+
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* MS_ABI
+impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
+    if (pThis) pThis->TrimRight();
+    return pThis;
 }
