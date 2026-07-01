@@ -41,6 +41,24 @@ class CFrameWndEx;
 class CMDIFrameWndEx;
 class CMDIChildWndEx;
 
+#ifdef OPENMFC_APPCORE_IMPL
+#if defined(__GNUC__)
+#define OPENMFC_MS_ABI __attribute__((ms_abi))
+#else
+#define OPENMFC_MS_ABI
+#endif
+
+extern "C" int OPENMFC_MS_ABI impl__CompareProps_CMFCPropertyGridCtrl__MEBAHPEBVCMFCPropertyGridProperty__0_Z(const CMFCPropertyGridCtrl*, const CMFCPropertyGridProperty*, const CMFCPropertyGridProperty*);
+extern "C" void OPENMFC_MS_ABI impl__ExpandDeep_CMFCPropertyGridProperty__IEAAXH_Z(CMFCPropertyGridProperty*, int);
+extern "C" void* OPENMFC_MS_ABI impl__FindSubItemByData_CMFCPropertyGridProperty__IEBAPEAV1__K_Z(const CMFCPropertyGridProperty*, unsigned __int64);
+extern "C" int OPENMFC_MS_ABI impl__GetTotalItems_CMFCPropertyGridCtrl__IEBAHH_Z(const CMFCPropertyGridCtrl*, int);
+extern "C" int OPENMFC_MS_ABI impl__IsSubItem_CMFCPropertyGridProperty__IEBAHPEAV1__Z(const CMFCPropertyGridProperty*, void*);
+extern "C" int OPENMFC_MS_ABI impl__IsValueChanged_CMFCPropertyGridProperty__MEBAHXZ(const CMFCPropertyGridProperty*);
+extern "C" int OPENMFC_MS_ABI impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(CMFCPropertyGridProperty*, int);
+extern "C" void OPENMFC_MS_ABI impl__SetModifiedFlag_CMFCPropertyGridProperty__IEAAXXZ(CMFCPropertyGridProperty*);
+extern "C" void OPENMFC_MS_ABI impl__SetOwnerList_CMFCPropertyGridProperty__IEAAXPEAVCMFCPropertyGridCtrl___Z(CMFCPropertyGridProperty*, CMFCPropertyGridCtrl*);
+#endif
+
 // Types referenced by CMFCVisualManager method signatures
 class CMFCCaptionButton;
 class CMFCHeaderCtrl;
@@ -771,6 +789,8 @@ public:
     void Show(BOOL bShow = TRUE);
     void Show(BOOL bShow, BOOL bAdjustLayout);
     int AddSubItem(CMFCPropertyGridProperty* pProp);
+    BOOL RemoveSubItem(CMFCPropertyGridProperty*& pProp, BOOL bDelete = FALSE);
+    BOOL RemoveSubItem(void*& pProp, BOOL bDelete = FALSE);
     int GetSubItemsCount() const;
     CMFCPropertyGridProperty* GetSubItem(int nIndex) const;
     void RemoveAllSubItems();
@@ -778,8 +798,47 @@ public:
     BOOL IsExpanded() const;
     void SetData(DWORD_PTR dwData);
     DWORD_PTR GetData() const;
+    BOOL AddOption(const wchar_t* lpszOption, BOOL bInsertUnique = TRUE);
+    const wchar_t* GetOption(int nIndex) const;
+    int GetOptionCount() const;
+    void RemoveAllOptions();
+    void Enable(BOOL bEnable = TRUE);
+    int GetExpandedSubItems(BOOL bIncludeHidden = TRUE) const;
+    int GetHierarchyLevel() const;
+    BOOL IsParentExpanded() const;
+    virtual CString FormatProperty();
+    virtual CString GetNameTooltip();
+    virtual CString GetValueTooltip();
+    virtual void ResetOriginalValue();
+    virtual void SetOriginalValue(const COleVariant& varValue);
+    void SetName(const wchar_t* lpszName, BOOL bRedraw = TRUE);
+    void Redraw();
+    virtual BOOL OnUpdateValue();
+    virtual BOOL OnEndEdit();
+    virtual void OnSelectCombo();
+    virtual void OnCloseCombo();
 
 protected:
+    friend class CMFCPropertyGridCtrl;
+#ifdef OPENMFC_APPCORE_IMPL
+    friend void OPENMFC_MS_ABI impl__ExpandDeep_CMFCPropertyGridProperty__IEAAXH_Z(CMFCPropertyGridProperty*, int);
+    friend void* OPENMFC_MS_ABI impl__FindSubItemByData_CMFCPropertyGridProperty__IEBAPEAV1__K_Z(const CMFCPropertyGridProperty*, unsigned __int64);
+    friend int OPENMFC_MS_ABI impl__IsSubItem_CMFCPropertyGridProperty__IEBAHPEAV1__Z(const CMFCPropertyGridProperty*, void*);
+    friend int OPENMFC_MS_ABI impl__IsValueChanged_CMFCPropertyGridProperty__MEBAHXZ(const CMFCPropertyGridProperty*);
+    friend int OPENMFC_MS_ABI impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(CMFCPropertyGridProperty*, int);
+    friend void OPENMFC_MS_ABI impl__SetModifiedFlag_CMFCPropertyGridProperty__IEAAXXZ(CMFCPropertyGridProperty*);
+    friend void OPENMFC_MS_ABI impl__SetOwnerList_CMFCPropertyGridProperty__IEAAXPEAVCMFCPropertyGridCtrl___Z(CMFCPropertyGridProperty*, CMFCPropertyGridCtrl*);
+#endif
+
+    void ExpandDeep(BOOL bExpand = TRUE);
+    BOOL IsSubItem(CMFCPropertyGridProperty* pProp) const;
+    BOOL IsSubItem(void* pProp) const;
+    CMFCPropertyGridProperty* FindSubItemByData(DWORD_PTR dwData) const;
+    virtual BOOL IsValueChanged() const;
+    void SetOwnerList(CMFCPropertyGridCtrl* pWndList);
+    void SetModifiedFlag();
+    virtual BOOL OnRotateListValue(BOOL bForward = TRUE);
+
     CString m_strName;
     COleVariant m_varValue;
     CString m_strDescr;
@@ -804,12 +863,30 @@ public:
     int AddProperty(CMFCPropertyGridProperty* pProp, int nPos = -1, int bRedraw = TRUE);
     int GetPropertyCount() const;
     CMFCPropertyGridProperty* GetProperty(int nIndex) const;
+    BOOL DeleteProperty(CMFCPropertyGridProperty*& pProp, BOOL bRedraw = TRUE, BOOL bAdjustLayout = TRUE);
+    BOOL DeleteProperty(void*& pProp, BOOL bRedraw = TRUE, BOOL bAdjustLayout = TRUE);
+    CMFCPropertyGridProperty* FindItemByData(DWORD_PTR dwData, BOOL bSearchSubItems = TRUE) const;
     void RemoveAll();
     void ExpandAll(BOOL bExpand = TRUE);
     void AdjustLayout();
     void SetDescriptionRows(int nRows);
+    void SetCurSel(CMFCPropertyGridProperty* pProp, BOOL bRedraw = TRUE);
+    void ResetOriginalValues(BOOL bRedraw = TRUE);
+    void MarkModifiedProperties(BOOL bModified = TRUE, BOOL bRedraw = TRUE);
+    void SetBoolLabels(const wchar_t* lpszTrue, const wchar_t* lpszFalse);
+    void SetListDelimiter(wchar_t c);
+    void SetAlphabeticMode(BOOL bSet = TRUE);
+    void SetGroupNameFullWidth(BOOL bSet = TRUE, BOOL bRedraw = TRUE);
 
 protected:
+#ifdef OPENMFC_APPCORE_IMPL
+    friend int OPENMFC_MS_ABI impl__CompareProps_CMFCPropertyGridCtrl__MEBAHPEBVCMFCPropertyGridProperty__0_Z(const CMFCPropertyGridCtrl*, const CMFCPropertyGridProperty*, const CMFCPropertyGridProperty*);
+    friend int OPENMFC_MS_ABI impl__GetTotalItems_CMFCPropertyGridCtrl__IEBAHH_Z(const CMFCPropertyGridCtrl*, int);
+#endif
+
+    int GetTotalItems(BOOL bIncludeHidden = TRUE) const;
+    virtual int CompareProps(const CMFCPropertyGridProperty* pProp1, const CMFCPropertyGridProperty* pProp2) const;
+
     char _propgridctrl_padding[128];
 };
 
