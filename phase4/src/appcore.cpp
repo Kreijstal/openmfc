@@ -24,6 +24,121 @@
   #define MS_ABI
 #endif
 
+namespace {
+
+CRuntimeClass* const g_coreRuntimeClasses[] = {
+    &CObject::classCObject,
+    &CException::classCException,
+    &CMemoryException::classCMemoryException,
+    &CFileException::classCFileException,
+    &CArchiveException::classCArchiveException,
+    &CCmdTarget::classCCmdTarget,
+    &CWinThread::classCWinThread,
+    &CWinApp::classCWinApp,
+};
+
+bool RuntimeClassNameEquals(const char* lhs, const char* rhs) {
+    return lhs && rhs && std::strcmp(lhs, rhs) == 0;
+}
+
+bool RuntimeClassNameEquals(const char* lhs, const wchar_t* rhs) {
+    if (!lhs || !rhs) return false;
+    while (*lhs && *rhs) {
+        if (static_cast<unsigned char>(*lhs) != static_cast<unsigned int>(*rhs)) return false;
+        ++lhs;
+        ++rhs;
+    }
+    return *lhs == '\0' && *rhs == L'\0';
+}
+
+CRuntimeClass* FindRuntimeClassByName(const char* name) {
+    if (!name || !*name) return nullptr;
+    for (CRuntimeClass* seed : g_coreRuntimeClasses) {
+        for (CRuntimeClass* pClass = seed; pClass; pClass = pClass->m_pNextClass) {
+            if (RuntimeClassNameEquals(pClass->m_lpszClassName, name)) return pClass;
+        }
+    }
+    return nullptr;
+}
+
+CRuntimeClass* FindRuntimeClassByName(const wchar_t* name) {
+    if (!name || !*name) return nullptr;
+    for (CRuntimeClass* seed : g_coreRuntimeClasses) {
+        for (CRuntimeClass* pClass = seed; pClass; pClass = pClass->m_pNextClass) {
+            if (RuntimeClassNameEquals(pClass->m_lpszClassName, name)) return pClass;
+        }
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+// Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(CRuntimeClass* pThis) {
+    return pThis ? pThis->CreateObject() : nullptr;
+}
+
+// Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEBD_Z(const char* className) {
+    CRuntimeClass* pClass = FindRuntimeClassByName(className);
+    return pClass ? pClass->CreateObject() : nullptr;
+}
+
+// Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z
+extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(const wchar_t* className) {
+    CRuntimeClass* pClass = FindRuntimeClassByName(className);
+    return pClass ? pClass->CreateObject() : nullptr;
+}
+
+// Symbol: ?FromName@CRuntimeClass@@SAPEAU1@PEBD@Z
+extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(const char* className) {
+    return FindRuntimeClassByName(className);
+}
+
+// Symbol: ?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z
+extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEB_W_Z(const wchar_t* className) {
+    return FindRuntimeClassByName(className);
+}
+
+// Symbol: ?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z
+extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
+    const CRuntimeClass* pThis, const CRuntimeClass* pBaseClass) {
+    return (pThis && pBaseClass && pThis->IsDerivedFrom(pBaseClass)) ? TRUE : FALSE;
+}
+
+// Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
+extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(
+    CArchive* ar, unsigned int* pwSchemaNum) {
+    if (!ar) return nullptr;
+
+    unsigned int schema = 0xFFFF;
+    unsigned int nameLength = 0;
+    if (ar->Read(&schema, sizeof(schema)) != sizeof(schema) ||
+        ar->Read(&nameLength, sizeof(nameLength)) != sizeof(nameLength)) {
+        if (pwSchemaNum) *pwSchemaNum = 0xFFFF;
+        return nullptr;
+    }
+
+    if (pwSchemaNum) *pwSchemaNum = schema;
+    if (nameLength == 0 || nameLength > 4096) return nullptr;
+
+    std::vector<char> name(nameLength + 1, '\0');
+    if (ar->Read(name.data(), nameLength) != nameLength) return nullptr;
+    return FindRuntimeClassByName(name.data());
+}
+
+// Symbol: ?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
+    const CRuntimeClass* pThis, CArchive* ar) {
+    if (!pThis || !ar) return;
+    const char* className = pThis->m_lpszClassName ? pThis->m_lpszClassName : "";
+    unsigned int schema = pThis->m_wSchema;
+    unsigned int nameLength = static_cast<unsigned int>(std::strlen(className));
+    ar->Write(&schema, sizeof(schema));
+    ar->Write(&nameLength, sizeof(nameLength));
+    if (nameLength != 0) ar->Write(className, nameLength);
+}
+
 // =============================================================================
 // Forward declarations from wincore.cpp
 // =============================================================================
