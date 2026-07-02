@@ -3363,6 +3363,7 @@ BOOL CMFCPropertyGridCtrl::DeleteProperty(CMFCPropertyGridProperty*& pProp, BOOL
 
     PropertyGridPropertyState* propState = FindMutablePropertyGridPropertyState(pProp);
     if (propState && propState->parent) {
+        if (propState->owner != this) return FALSE;
         CMFCPropertyGridProperty* parent = propState->parent;
         CMFCPropertyGridProperty* removed = pProp;
         if (state.current == removed || IsPropertyGridAncestorOf(removed, state.current)) {
@@ -3426,10 +3427,11 @@ void CMFCPropertyGridCtrl::SetDescriptionRows(int nRows) {
 }
 void CMFCPropertyGridCtrl::SetCurSel(CMFCPropertyGridProperty* pProp, BOOL bRedraw) {
     auto& state = EnsurePropertyGridCtrlState(this);
-    state.current = pProp;
     if (pProp) {
-        EnsurePropertyGridPropertyState(pProp).owner = this;
+        const PropertyGridPropertyState* propState = FindPropertyGridPropertyState(pProp);
+        if (!propState || propState->owner != this) return;
     }
+    state.current = pProp;
     if (bRedraw) {
         TouchPropertyGridCtrl(this, FALSE);
     }
@@ -3462,6 +3464,7 @@ void CMFCPropertyGridCtrl::SetBoolLabels(const wchar_t* lpszTrue, const wchar_t*
 }
 void CMFCPropertyGridCtrl::SetListDelimiter(wchar_t c) {
     EnsurePropertyGridCtrlState(this).listDelimiter = c;
+    TouchPropertyGridCtrl(this, FALSE);
 }
 void CMFCPropertyGridCtrl::SetAlphabeticMode(BOOL bSet) {
     auto& state = EnsurePropertyGridCtrlState(this);
