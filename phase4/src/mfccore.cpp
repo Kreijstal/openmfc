@@ -2349,7 +2349,52 @@ struct PropertyGridCtrlState {
     wchar_t listDelimiter = L',';
     BOOL alphabeticMode = FALSE;
     BOOL groupNameFullWidth = FALSE;
+    COLORREF customColors[7] = {
+        RGB(0, 0, 0),
+        RGB(128, 128, 128),
+        RGB(128, 0, 0),
+        RGB(0, 128, 0),
+        RGB(0, 0, 128),
+        RGB(255, 255, 255),
+        RGB(255, 255, 0)
+    };
 };
+
+#ifndef CHILDID_SELF
+#define CHILDID_SELF 0
+#endif
+
+#ifndef ROLE_SYSTEM_OUTLINE
+#define ROLE_SYSTEM_OUTLINE 0x23
+#endif
+
+#ifndef ROLE_SYSTEM_OUTLINEITEM
+#define ROLE_SYSTEM_OUTLINEITEM 0x24
+#endif
+
+#ifndef STATE_SYSTEM_UNAVAILABLE
+#define STATE_SYSTEM_UNAVAILABLE 0x00000001
+#endif
+
+#ifndef STATE_SYSTEM_SELECTED
+#define STATE_SYSTEM_SELECTED 0x00000002
+#endif
+
+#ifndef STATE_SYSTEM_FOCUSED
+#define STATE_SYSTEM_FOCUSED 0x00000004
+#endif
+
+#ifndef STATE_SYSTEM_INVISIBLE
+#define STATE_SYSTEM_INVISIBLE 0x00008000
+#endif
+
+#ifndef STATE_SYSTEM_EXPANDED
+#define STATE_SYSTEM_EXPANDED 0x00000200
+#endif
+
+#ifndef STATE_SYSTEM_COLLAPSED
+#define STATE_SYSTEM_COLLAPSED 0x00000400
+#endif
 
 struct TasksPaneTaskState {
     UINT id = 0;
@@ -2746,6 +2791,91 @@ int CountPropertyGridItems(const CMFCPropertyGridProperty* pProp, BOOL bIncludeH
         count += CountPropertyGridItems(child, bIncludeHidden);
     }
     return count;
+}
+
+void AppendVisiblePropertyGridItems(CMFCPropertyGridProperty* pProp,
+                                    std::vector<CMFCPropertyGridProperty*>& items) {
+    if (!pProp || !pProp->IsVisible() || !pProp->IsParentExpanded()) return;
+    items.push_back(pProp);
+
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pProp);
+    if (!state || !pProp->IsExpanded()) return;
+    for (CMFCPropertyGridProperty* child : state->subItems) {
+        AppendVisiblePropertyGridItems(child, items);
+    }
+}
+
+std::vector<CMFCPropertyGridProperty*> VisiblePropertyGridItems(const CMFCPropertyGridCtrl* pCtrl) {
+    std::vector<CMFCPropertyGridProperty*> items;
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(pCtrl);
+    if (!state) return items;
+    for (CMFCPropertyGridProperty* prop : state->properties) {
+        AppendVisiblePropertyGridItems(prop, items);
+    }
+    return items;
+}
+
+int PropertyGridChildIDFromVariant(const VARIANT& varChild) {
+    if (varChild.vt == VT_EMPTY) return CHILDID_SELF;
+    if (varChild.vt == VT_I4 || varChild.vt == VT_INT) return static_cast<int>(varChild.lVal);
+    if (varChild.vt == VT_UI4 || varChild.vt == VT_UINT) return static_cast<int>(varChild.ulVal);
+    if (varChild.vt == VT_I2) return static_cast<int>(varChild.iVal);
+    if (varChild.vt == VT_UI2) return static_cast<int>(varChild.uiVal);
+    return -1;
+}
+
+CMFCPropertyGridProperty* PropertyGridPropertyFromChildID(CMFCPropertyGridCtrl* pCtrl, int childID) {
+    if (!pCtrl || childID <= CHILDID_SELF) return nullptr;
+    std::vector<CMFCPropertyGridProperty*> items = VisiblePropertyGridItems(pCtrl);
+    const size_t index = static_cast<size_t>(childID - 1);
+    return index < items.size() ? items[index] : nullptr;
+}
+
+int PropertyGridChildIDFromProperty(CMFCPropertyGridCtrl* pCtrl, CMFCPropertyGridProperty* pProp) {
+    if (!pCtrl || !pProp) return CHILDID_SELF;
+    std::vector<CMFCPropertyGridProperty*> items = VisiblePropertyGridItems(pCtrl);
+    auto it = std::find(items.begin(), items.end(), pProp);
+    return it == items.end() ? CHILDID_SELF : static_cast<int>(it - items.begin()) + 1;
+}
+
+void SetPropertyGridVariantChild(VARIANT* pvarChild, int childID) {
+    if (!pvarChild) return;
+    VariantInit(pvarChild);
+    pvarChild->vt = VT_I4;
+    pvarChild->lVal = childID;
+}
+
+HRESULT AllocPropertyGridString(const std::wstring& text, BSTR* ppszValue) {
+    if (!ppszValue) return E_POINTER;
+    *ppszValue = ::SysAllocString(text.c_str());
+    return *ppszValue ? S_OK : E_OUTOFMEMORY;
+}
+
+RECT NativeRect(const CRect& rect) {
+    RECT nativeRect{rect.left, rect.top, rect.right, rect.bottom};
+    return nativeRect;
+}
+
+CRect PropertyGridItemRect(CMFCPropertyGridCtrl* pCtrl, int childID) {
+    RECT rcClient{0, 0, 240, 18};
+    if (pCtrl && pCtrl->GetSafeHwnd()) {
+        pCtrl->GetClientRect(&rcClient);
+    }
+
+    const int rowHeight = 18;
+    int top = 0;
+    if (childID > CHILDID_SELF) {
+        top = (childID - 1) * rowHeight;
+    }
+    return CRect(rcClient.left, top, rcClient.right, top + rowHeight);
+}
+
+CMFCPropertyGridProperty* PropertyGridHitTestByPoint(CMFCPropertyGridCtrl* pCtrl, CPoint point) {
+    if (!pCtrl) return nullptr;
+    const int rowHeight = 18;
+    if (point.y < 0) return nullptr;
+    int childID = point.y / rowHeight + 1;
+    return PropertyGridPropertyFromChildID(pCtrl, childID);
 }
 
 CMFCPropertyGridProperty* FindPropertyGridSubItemByData(CMFCPropertyGridProperty* pProp, DWORD_PTR dwData) {
@@ -3368,6 +3498,492 @@ int CMFCPropertyGridCtrl::CompareProps(const CMFCPropertyGridProperty* pProp1, c
     if (!pProp1) return -1;
     if (!pProp2) return 1;
     return pProp1->GetName().Compare(pProp2->GetName());
+}
+
+// Symbol: ?FormatProperty@CMFCPropertyGridProperty@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__FormatProperty_CMFCPropertyGridProperty__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, CMFCPropertyGridProperty* pThis) {
+    new(pRet) CString(pThis ? pThis->FormatProperty() : CString());
+}
+
+// Symbol: ?GetNameTooltip@CMFCPropertyGridProperty@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetNameTooltip_CMFCPropertyGridProperty__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, CMFCPropertyGridProperty* pThis) {
+    new(pRet) CString(pThis ? pThis->GetNameTooltip() : CString());
+}
+
+// Symbol: ?GetValueTooltip@CMFCPropertyGridProperty@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetValueTooltip_CMFCPropertyGridProperty__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, CMFCPropertyGridProperty* pThis) {
+    new(pRet) CString(pThis ? pThis->GetValueTooltip() : CString());
+}
+
+// Symbol: ?HasButton@CMFCPropertyGridProperty@@MEBAHXZ
+extern "C" int MS_ABI impl__HasButton_CMFCPropertyGridProperty__MEBAHXZ(CMFCPropertyGridProperty* pThis) {
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pThis);
+    return (state && !state->options.empty()) ? TRUE : FALSE;
+}
+
+// Symbol: ?IsSelected@CMFCPropertyGridProperty@@UEBAHXZ
+extern "C" int MS_ABI impl__IsSelected_CMFCPropertyGridProperty__UEBAHXZ(CMFCPropertyGridProperty* pThis) {
+    const PropertyGridPropertyState* propState = FindPropertyGridPropertyState(pThis);
+    const PropertyGridCtrlState* ctrlState = propState && propState->owner ? FindPropertyGridCtrlState(propState->owner) : nullptr;
+    return (ctrlState && ctrlState->current == pThis) ? TRUE : FALSE;
+}
+
+// Symbol: ?OnActivateByTab@CMFCPropertyGridProperty@@MEAAHXZ
+extern "C" int MS_ABI impl__OnActivateByTab_CMFCPropertyGridProperty__MEAAHXZ(CMFCPropertyGridProperty* pThis) {
+    PropertyGridPropertyState* propState = FindMutablePropertyGridPropertyState(pThis);
+    if (!pThis || !propState || !propState->owner || !pThis->IsEnabled() || !pThis->IsVisible()) return FALSE;
+    propState->owner->SetCurSel(pThis, TRUE);
+    return TRUE;
+}
+
+// Symbol: ?OnClickButton@CMFCPropertyGridProperty@@UEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnClickButton_CMFCPropertyGridProperty__UEAAXVCPoint___Z(
+    CMFCPropertyGridProperty* pThis, CPoint) {
+    if (pThis) impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(pThis, TRUE);
+}
+
+// Symbol: ?OnClickValue@CMFCPropertyGridProperty@@UEAAHIVCPoint@@@Z
+extern "C" int MS_ABI impl__OnClickValue_CMFCPropertyGridProperty__UEAAHIVCPoint___Z(
+    CMFCPropertyGridProperty* pThis, unsigned int, CPoint) {
+    if (!pThis || !pThis->IsEnabled()) return FALSE;
+    PropertyGridPropertyState* propState = FindMutablePropertyGridPropertyState(pThis);
+    if (propState && propState->owner) propState->owner->SetCurSel(pThis, TRUE);
+    return TRUE;
+}
+
+// Symbol: ?OnDblClk@CMFCPropertyGridProperty@@UEAAHVCPoint@@@Z
+extern "C" int MS_ABI impl__OnDblClk_CMFCPropertyGridProperty__UEAAHVCPoint___Z(
+    CMFCPropertyGridProperty* pThis, CPoint) {
+    if (!pThis) return FALSE;
+    if (pThis->GetSubItemsCount() > 0) {
+        pThis->Expand(!pThis->IsExpanded());
+        return TRUE;
+    }
+    return impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(pThis, TRUE);
+}
+
+// Symbol: ?OnEdit@CMFCPropertyGridProperty@@UEAAHPEAUtagPOINT@@@Z
+extern "C" int MS_ABI impl__OnEdit_CMFCPropertyGridProperty__UEAAHPEAUtagPOINT___Z(
+    CMFCPropertyGridProperty* pThis, POINT*) {
+    if (!pThis || !pThis->IsEnabled()) return FALSE;
+    PropertyGridPropertyState* propState = FindMutablePropertyGridPropertyState(pThis);
+    if (propState && propState->owner) propState->owner->SetCurSel(pThis, TRUE);
+    return TRUE;
+}
+
+// Symbol: ?PushChar@CMFCPropertyGridProperty@@UEAAHI@Z
+extern "C" int MS_ABI impl__PushChar_CMFCPropertyGridProperty__UEAAHI_Z(
+    CMFCPropertyGridProperty* pThis, unsigned int nChar) {
+    if (!pThis || !pThis->IsEnabled()) return FALSE;
+    if (nChar == VK_SPACE || nChar == VK_RETURN) {
+        return impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(pThis, TRUE);
+    }
+    return FALSE;
+}
+
+// Symbol: ?EnableSpinControl@CMFCPropertyGridProperty@@QEAAXHHH@Z
+extern "C" void MS_ABI impl__EnableSpinControl_CMFCPropertyGridProperty__QEAAXHHH_Z(
+    CMFCPropertyGridProperty* pThis, int bEnable, int nMin, int nMax) {
+    if (!pThis) return;
+    PropertyGridPropertyState& state = EnsurePropertyGridPropertyState(pThis);
+    state.spinEnabled = bEnable ? TRUE : FALSE;
+    state.spinMin = nMin;
+    state.spinMax = nMax;
+    TouchPropertyGridCtrl(state.owner, FALSE);
+}
+
+// Symbol: ?AdjustInPlaceEditRect@CMFCPropertyGridProperty@@UEAAXAEAVCRect@@0@Z
+extern "C" void MS_ABI impl__AdjustInPlaceEditRect_CMFCPropertyGridProperty__UEAAXAEAVCRect__0_Z(
+    CMFCPropertyGridProperty*, CRect* rectEdit, CRect* rectSpin) {
+    if (rectEdit) rectEdit->DeflateRect(2, 1);
+    if (rectSpin && rectEdit) {
+        rectSpin->SetRect(rectEdit->right - 16, rectEdit->top, rectEdit->right, rectEdit->bottom);
+        rectEdit->right = rectSpin->left;
+    }
+}
+
+// Symbol: ?AdjustButtonRect@CMFCPropertyGridProperty@@UEAAXXZ
+extern "C" void MS_ABI impl__AdjustButtonRect_CMFCPropertyGridProperty__UEAAXXZ(CMFCPropertyGridProperty* pThis) {
+    PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(pThis);
+    TouchPropertyGridCtrl(state ? state->owner : nullptr, FALSE);
+}
+
+// Symbol: ?OnDrawName@CMFCPropertyGridProperty@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawName_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridProperty* pThis, CDC* pDC, CRect rect) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc()) return;
+    RECT nativeRect = NativeRect(rect);
+    ::DrawTextW(pDC->GetSafeHdc(), pThis->GetName(), -1, &nativeRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+}
+
+// Symbol: ?OnDrawValue@CMFCPropertyGridProperty@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawValue_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridProperty* pThis, CDC* pDC, CRect rect) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc()) return;
+    CString value = pThis->FormatProperty();
+    RECT nativeRect = NativeRect(rect);
+    ::DrawTextW(pDC->GetSafeHdc(), value, -1, &nativeRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+}
+
+// Symbol: ?OnDrawDescription@CMFCPropertyGridProperty@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawDescription_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridProperty* pThis, CDC* pDC, CRect rect) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc()) return;
+    CString text = pThis->GetNameTooltip();
+    RECT nativeRect = NativeRect(rect);
+    ::DrawTextW(pDC->GetSafeHdc(), text, -1, &nativeRect, DT_LEFT | DT_TOP | DT_WORDBREAK | DT_NOPREFIX);
+}
+
+// Symbol: ?OnDrawButton@CMFCPropertyGridProperty@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawButton_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridProperty*, CDC* pDC, CRect rect) {
+    if (!pDC || !pDC->GetSafeHdc()) return;
+    RECT nativeRect = NativeRect(rect);
+    ::DrawFrameControl(pDC->GetSafeHdc(), &nativeRect, DFC_BUTTON, DFCS_BUTTONPUSH);
+}
+
+// Symbol: ?OnDrawExpandBox@CMFCPropertyGridProperty@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawExpandBox_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridProperty* pThis, CDC* pDC, CRect rect) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc() || pThis->GetSubItemsCount() <= 0) return;
+    RECT nativeRect = NativeRect(rect);
+    ::DrawFrameControl(pDC->GetSafeHdc(), &nativeRect, DFC_BUTTON,
+                       pThis->IsExpanded() ? DFCS_BUTTONPUSH : (DFCS_BUTTONPUSH | DFCS_PUSHED));
+    const int midX = (rect.left + rect.right) / 2;
+    const int midY = (rect.top + rect.bottom) / 2;
+    ::MoveToEx(pDC->GetSafeHdc(), rect.left + 3, midY, nullptr);
+    ::LineTo(pDC->GetSafeHdc(), rect.right - 3, midY);
+    if (!pThis->IsExpanded()) {
+        ::MoveToEx(pDC->GetSafeHdc(), midX, rect.top + 3, nullptr);
+        ::LineTo(pDC->GetSafeHdc(), midX, rect.bottom - 3);
+    }
+}
+
+// Symbol: ?OnSetCursor@CMFCPropertyGridProperty@@UEBAHXZ
+extern "C" int MS_ABI impl__OnSetCursor_CMFCPropertyGridProperty__UEBAHXZ(CMFCPropertyGridProperty* pThis) {
+    if (!pThis || !pThis->IsEnabled()) return FALSE;
+    ::SetCursor(::LoadCursorW(nullptr, IDC_ARROW));
+    return TRUE;
+}
+
+// Symbol: ?HitTest@CMFCPropertyGridProperty@@QEAAPEAV1@VCPoint@@PEAW4ClickArea@1@@Z
+extern "C" CMFCPropertyGridProperty* MS_ABI impl__HitTest_CMFCPropertyGridProperty__QEAAPEAV1_VCPoint__PEAW4ClickArea_1__Z(
+    CMFCPropertyGridProperty* pThis, CPoint, int* pClickArea) {
+    if (pClickArea) *pClickArea = 0;
+    return (pThis && pThis->IsVisible()) ? pThis : nullptr;
+}
+
+// Symbol: ?Init@CMFCPropertyGridProperty@@IEAAXXZ
+extern "C" void MS_ABI impl__Init_CMFCPropertyGridProperty__IEAAXXZ(CMFCPropertyGridProperty* pThis) {
+    if (!pThis) return;
+    EnsurePropertyGridPropertyState(pThis);
+    pThis->SetModified(FALSE);
+}
+
+// Symbol: ?AddTerminalProp@CMFCPropertyGridProperty@@IEAAXAEAV?$CList@PEAVCMFCPropertyGridProperty@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__AddTerminalProp_CMFCPropertyGridProperty__IEAAXAEAV__CList_PEAVCMFCPropertyGridProperty__PEAV1____Z(
+    CMFCPropertyGridProperty* pThis, CList<CMFCPropertyGridProperty*, CMFCPropertyGridProperty*>* pList) {
+    if (!pThis || !pList) return;
+
+    const PropertyGridPropertyState* state = FindPropertyGridPropertyState(pThis);
+    if (!state || state->subItems.empty()) {
+        pList->AddTail(pThis);
+        return;
+    }
+
+    for (CMFCPropertyGridProperty* child : state->subItems) {
+        impl__AddTerminalProp_CMFCPropertyGridProperty__IEAAXAEAV__CList_PEAVCMFCPropertyGridProperty__PEAV1____Z(child, pList);
+    }
+}
+
+// Symbol: ?get_accChildCount@CMFCPropertyGridCtrl@@UEAAJPEAJ@Z
+extern "C" HRESULT MS_ABI impl__get_accChildCount_CMFCPropertyGridCtrl__UEAAJPEAJ_Z(
+    CMFCPropertyGridCtrl* pThis, long* pCountChildren) {
+    if (!pCountChildren) return E_POINTER;
+    *pCountChildren = pThis ? static_cast<long>(VisiblePropertyGridItems(pThis).size()) : 0;
+    return S_OK;
+}
+
+// Symbol: ?get_accChild@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" HRESULT MS_ABI impl__get_accChild_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(
+    CMFCPropertyGridCtrl*, VARIANT varChild, IDispatch** ppdispChild) {
+    if (!ppdispChild) return E_POINTER;
+    *ppdispChild = nullptr;
+    return PropertyGridChildIDFromVariant(varChild) >= CHILDID_SELF ? S_FALSE : E_INVALIDARG;
+}
+
+// Symbol: ?get_accName@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accName_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, BSTR* pszName) {
+    if (!pszName) return E_POINTER;
+    *pszName = nullptr;
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    if (childID == CHILDID_SELF) return AllocPropertyGridString(L"Property Grid", pszName);
+    CMFCPropertyGridProperty* prop = PropertyGridPropertyFromChildID(pThis, childID);
+    if (!prop) return E_INVALIDARG;
+    return AllocPropertyGridString(static_cast<const wchar_t*>(prop->GetName()), pszName);
+}
+
+// Symbol: ?get_accValue@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accValue_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, BSTR* pszValue) {
+    if (!pszValue) return E_POINTER;
+    *pszValue = nullptr;
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    CMFCPropertyGridProperty* prop = childID == CHILDID_SELF ? (FindPropertyGridCtrlState(pThis) ? FindPropertyGridCtrlState(pThis)->current : nullptr)
+                                                             : PropertyGridPropertyFromChildID(pThis, childID);
+    if (!prop) return S_FALSE;
+    CString value = prop->FormatProperty();
+    return AllocPropertyGridString(static_cast<const wchar_t*>(value), pszValue);
+}
+
+// Symbol: ?get_accDescription@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accDescription_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, BSTR* pszDescription) {
+    return impl__get_accName_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(pThis, varChild, pszDescription);
+}
+
+// Symbol: ?get_accDefaultAction@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accDefaultAction_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, BSTR* pszDefaultAction) {
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    if (childID == CHILDID_SELF) return S_FALSE;
+    CMFCPropertyGridProperty* prop = PropertyGridPropertyFromChildID(pThis, childID);
+    if (!prop) return E_INVALIDARG;
+    return AllocPropertyGridString(prop->GetSubItemsCount() > 0 ? L"Expand or collapse" : L"Edit", pszDefaultAction);
+}
+
+// Symbol: ?get_accRole@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" HRESULT MS_ABI impl__get_accRole_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAU2__Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, VARIANT* pvarRole) {
+    (void)pThis;
+    if (!pvarRole) return E_POINTER;
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    if (childID < CHILDID_SELF) return E_INVALIDARG;
+    VariantInit(pvarRole);
+    pvarRole->vt = VT_I4;
+    pvarRole->lVal = childID == CHILDID_SELF ? ROLE_SYSTEM_OUTLINE : ROLE_SYSTEM_OUTLINEITEM;
+    return S_OK;
+}
+
+// Symbol: ?get_accState@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" HRESULT MS_ABI impl__get_accState_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAU2__Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT varChild, VARIANT* pvarState) {
+    if (!pvarState) return E_POINTER;
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    if (childID < CHILDID_SELF) return E_INVALIDARG;
+    VariantInit(pvarState);
+    pvarState->vt = VT_I4;
+    pvarState->lVal = 0;
+    if (childID == CHILDID_SELF) return S_OK;
+
+    CMFCPropertyGridProperty* prop = PropertyGridPropertyFromChildID(pThis, childID);
+    if (!prop) return E_INVALIDARG;
+    const PropertyGridCtrlState* ctrlState = FindPropertyGridCtrlState(pThis);
+    if (!prop->IsEnabled()) pvarState->lVal |= STATE_SYSTEM_UNAVAILABLE;
+    if (!prop->IsVisible()) pvarState->lVal |= STATE_SYSTEM_INVISIBLE;
+    if (ctrlState && ctrlState->current == prop) pvarState->lVal |= STATE_SYSTEM_SELECTED | STATE_SYSTEM_FOCUSED;
+    if (prop->GetSubItemsCount() > 0) pvarState->lVal |= prop->IsExpanded() ? STATE_SYSTEM_EXPANDED : STATE_SYSTEM_COLLAPSED;
+    return S_OK;
+}
+
+// Symbol: ?get_accFocus@CMFCPropertyGridCtrl@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" HRESULT MS_ABI impl__get_accFocus_CMFCPropertyGridCtrl__UEAAJPEAUtagVARIANT___Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT* pvarChild) {
+    if (!pvarChild) return E_POINTER;
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(pThis);
+    SetPropertyGridVariantChild(pvarChild, state ? PropertyGridChildIDFromProperty(pThis, state->current) : CHILDID_SELF);
+    return S_OK;
+}
+
+// Symbol: ?get_accSelection@CMFCPropertyGridCtrl@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" HRESULT MS_ABI impl__get_accSelection_CMFCPropertyGridCtrl__UEAAJPEAUtagVARIANT___Z(
+    CMFCPropertyGridCtrl* pThis, VARIANT* pvarChildren) {
+    return impl__get_accFocus_CMFCPropertyGridCtrl__UEAAJPEAUtagVARIANT___Z(pThis, pvarChildren);
+}
+
+// Symbol: ?accSelect@CMFCPropertyGridCtrl@@UEAAJJUtagVARIANT@@@Z
+extern "C" HRESULT MS_ABI impl__accSelect_CMFCPropertyGridCtrl__UEAAJJUtagVARIANT___Z(
+    CMFCPropertyGridCtrl* pThis, long, VARIANT varChild) {
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    CMFCPropertyGridProperty* prop = PropertyGridPropertyFromChildID(pThis, childID);
+    if (!prop) return E_INVALIDARG;
+    pThis->SetCurSel(prop, TRUE);
+    return S_OK;
+}
+
+// Symbol: ?accHitTest@CMFCPropertyGridCtrl@@UEAAJJJPEAUtagVARIANT@@@Z
+extern "C" HRESULT MS_ABI impl__accHitTest_CMFCPropertyGridCtrl__UEAAJJJPEAUtagVARIANT___Z(
+    CMFCPropertyGridCtrl* pThis, long xLeft, long yTop, VARIANT* pvarChild) {
+    if (!pvarChild) return E_POINTER;
+    POINT pt{xLeft, yTop};
+    if (pThis && pThis->GetSafeHwnd()) ::ScreenToClient(pThis->GetSafeHwnd(), &pt);
+    CMFCPropertyGridProperty* prop = PropertyGridHitTestByPoint(pThis, CPoint(pt.x, pt.y));
+    SetPropertyGridVariantChild(pvarChild, PropertyGridChildIDFromProperty(pThis, prop));
+    return S_OK;
+}
+
+// Symbol: ?accLocation@CMFCPropertyGridCtrl@@UEAAJPEAJ000UtagVARIANT@@@Z
+extern "C" HRESULT MS_ABI impl__accLocation_CMFCPropertyGridCtrl__UEAAJPEAJ000UtagVARIANT___Z(
+    CMFCPropertyGridCtrl* pThis, long* pxLeft, long* pyTop, long* pcxWidth, long* pcyHeight, VARIANT varChild) {
+    if (!pxLeft || !pyTop || !pcxWidth || !pcyHeight) return E_POINTER;
+    int childID = PropertyGridChildIDFromVariant(varChild);
+    CRect itemRect = PropertyGridItemRect(pThis, childID);
+    POINT pt{itemRect.left, itemRect.top};
+    if (pThis && pThis->GetSafeHwnd()) ::ClientToScreen(pThis->GetSafeHwnd(), &pt);
+    *pxLeft = pt.x;
+    *pyTop = pt.y;
+    *pcxWidth = itemRect.Width();
+    *pcyHeight = itemRect.Height();
+    return S_OK;
+}
+
+// Symbol: ?get_accHelp@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accHelp_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl*, VARIANT, BSTR* pszHelp) {
+    if (!pszHelp) return E_POINTER;
+    *pszHelp = nullptr;
+    return S_FALSE;
+}
+
+// Symbol: ?get_accHelpTopic@CMFCPropertyGridCtrl@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
+extern "C" HRESULT MS_ABI impl__get_accHelpTopic_CMFCPropertyGridCtrl__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(
+    CMFCPropertyGridCtrl*, BSTR* pszHelpFile, VARIANT, long* pidTopic) {
+    if (pszHelpFile) *pszHelpFile = nullptr;
+    if (pidTopic) *pidTopic = 0;
+    return S_FALSE;
+}
+
+// Symbol: ?get_accKeyboardShortcut@CMFCPropertyGridCtrl@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" HRESULT MS_ABI impl__get_accKeyboardShortcut_CMFCPropertyGridCtrl__UEAAJUtagVARIANT__PEAPEA_W_Z(
+    CMFCPropertyGridCtrl*, VARIANT, BSTR* pszKeyboardShortcut) {
+    if (!pszKeyboardShortcut) return E_POINTER;
+    *pszKeyboardShortcut = nullptr;
+    return S_FALSE;
+}
+
+// Symbol: ?EditItem@CMFCPropertyGridCtrl@@UEAAHPEAVCMFCPropertyGridProperty@@PEAUtagPOINT@@@Z
+extern "C" int MS_ABI impl__EditItem_CMFCPropertyGridCtrl__UEAAHPEAVCMFCPropertyGridProperty__PEAUtagPOINT___Z(
+    CMFCPropertyGridCtrl* pThis, CMFCPropertyGridProperty* pProp, POINT* point) {
+    (void)point;
+    if (!pThis || !pProp || !pProp->IsEnabled()) return FALSE;
+    pThis->SetCurSel(pProp, TRUE);
+    return TRUE;
+}
+
+// Symbol: ?EndEditItem@CMFCPropertyGridCtrl@@UEAAHH@Z
+extern "C" int MS_ABI impl__EndEditItem_CMFCPropertyGridCtrl__UEAAHH_Z(CMFCPropertyGridCtrl* pThis, int bUpdateData) {
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(pThis);
+    if (!state || !state->current) return FALSE;
+    return bUpdateData ? state->current->OnUpdateValue() : state->current->OnEndEdit();
+}
+
+// Symbol: ?EnsureVisible@CMFCPropertyGridCtrl@@QEAAXPEAVCMFCPropertyGridProperty@@H@Z
+extern "C" void MS_ABI impl__EnsureVisible_CMFCPropertyGridCtrl__QEAAXPEAVCMFCPropertyGridProperty__H_Z(
+    CMFCPropertyGridCtrl* pThis, CMFCPropertyGridProperty* pProp, int bExpandParents) {
+    if (!pThis || !pProp) return;
+    if (bExpandParents) {
+        PropertyGridPropertyState* state = FindMutablePropertyGridPropertyState(pProp);
+        while (state && state->parent) {
+            state->parent->Expand(TRUE);
+            state = FindMutablePropertyGridPropertyState(state->parent);
+        }
+    }
+    pThis->SetCurSel(pProp, TRUE);
+}
+
+// Symbol: ?HitTest@CMFCPropertyGridCtrl@@QEBAPEAVCMFCPropertyGridProperty@@VCPoint@@PEAW4ClickArea@2@H@Z
+extern "C" CMFCPropertyGridProperty* MS_ABI impl__HitTest_CMFCPropertyGridCtrl__QEBAPEAVCMFCPropertyGridProperty__VCPoint__PEAW4ClickArea_2_H_Z(
+    CMFCPropertyGridCtrl* pThis, CPoint point, int* pClickArea, int) {
+    if (pClickArea) *pClickArea = point.x < 120 ? 1 : 2;
+    return PropertyGridHitTestByPoint(pThis, point);
+}
+
+// Symbol: ?OnDrawProperty@CMFCPropertyGridCtrl@@UEBAHPEAVCDC@@PEAVCMFCPropertyGridProperty@@@Z
+extern "C" int MS_ABI impl__OnDrawProperty_CMFCPropertyGridCtrl__UEBAHPEAVCDC__PEAVCMFCPropertyGridProperty___Z(
+    CMFCPropertyGridCtrl* pThis, CDC* pDC, CMFCPropertyGridProperty* pProp) {
+    if (!pDC || !pDC->GetSafeHdc() || !pProp) return FALSE;
+    int childID = PropertyGridChildIDFromProperty(pThis, pProp);
+    CRect rect = PropertyGridItemRect(pThis, childID);
+    COLORREF back = pProp->IsEnabled() ? ::GetSysColor(COLOR_WINDOW) : ::GetSysColor(COLOR_BTNFACE);
+    ::SetBkColor(pDC->GetSafeHdc(), back);
+    RECT nativeRect = NativeRect(rect);
+    ::ExtTextOutW(pDC->GetSafeHdc(), 0, 0, ETO_OPAQUE, &nativeRect, nullptr, 0, nullptr);
+    CRect nameRect(rect.left + 4 + pProp->GetHierarchyLevel() * 12, rect.top, rect.left + rect.Width() / 2, rect.bottom);
+    CRect valueRect(rect.left + rect.Width() / 2 + 4, rect.top, rect.right - 2, rect.bottom);
+    impl__OnDrawName_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(pProp, pDC, nameRect);
+    impl__OnDrawValue_CMFCPropertyGridProperty__UEAAXPEAVCDC__VCRect___Z(pProp, pDC, valueRect);
+    return TRUE;
+}
+
+// Symbol: ?OnDraw@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z(CMFCPropertyGridCtrl* pThis, CDC* pDC) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc()) return;
+    for (CMFCPropertyGridProperty* prop : VisiblePropertyGridItems(pThis)) {
+        impl__OnDrawProperty_CMFCPropertyGridCtrl__UEBAHPEAVCDC__PEAVCMFCPropertyGridProperty___Z(pThis, pDC, prop);
+    }
+}
+
+// Symbol: ?OnFillBackground@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillBackground_CMFCPropertyGridCtrl__MEAAXPEAVCDC__VCRect___Z(
+    CMFCPropertyGridCtrl*, CDC* pDC, CRect rect) {
+    if (!pDC || !pDC->GetSafeHdc()) return;
+    RECT nativeRect = NativeRect(rect);
+    ::ExtTextOutW(pDC->GetSafeHdc(), 0, 0, ETO_OPAQUE, &nativeRect, nullptr, 0, nullptr);
+}
+
+// Symbol: ?OnDrawList@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDrawList_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z(CMFCPropertyGridCtrl* pThis, CDC* pDC) {
+    impl__OnDraw_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z(pThis, pDC);
+}
+
+// Symbol: ?SetCustomColors@CMFCPropertyGridCtrl@@QEAAXKKKKKKK@Z
+extern "C" void MS_ABI impl__SetCustomColors_CMFCPropertyGridCtrl__QEAAXKKKKKKK_Z(
+    CMFCPropertyGridCtrl* pThis, COLORREF c1, COLORREF c2, COLORREF c3, COLORREF c4, COLORREF c5, COLORREF c6, COLORREF c7) {
+    if (!pThis) return;
+    PropertyGridCtrlState& state = EnsurePropertyGridCtrlState(pThis);
+    COLORREF values[7] = {c1, c2, c3, c4, c5, c6, c7};
+    std::copy(std::begin(values), std::end(values), std::begin(state.customColors));
+}
+
+// Symbol: ?GetCustomColors@CMFCPropertyGridCtrl@@QEAAXAEAK000000@Z
+extern "C" void MS_ABI impl__GetCustomColors_CMFCPropertyGridCtrl__QEAAXAEAK000000_Z(
+    CMFCPropertyGridCtrl* pThis, COLORREF* c1, COLORREF* c2, COLORREF* c3, COLORREF* c4, COLORREF* c5, COLORREF* c6, COLORREF* c7) {
+    const PropertyGridCtrlState* state = FindPropertyGridCtrlState(pThis);
+    const COLORREF defaults[7] = {RGB(0, 0, 0), RGB(128, 128, 128), RGB(128, 0, 0), RGB(0, 128, 0), RGB(0, 0, 128), RGB(255, 255, 255), RGB(255, 255, 0)};
+    const COLORREF* colors = state ? state->customColors : defaults;
+    if (c1) *c1 = colors[0];
+    if (c2) *c2 = colors[1];
+    if (c3) *c3 = colors[2];
+    if (c4) *c4 = colors[3];
+    if (c5) *c5 = colors[4];
+    if (c6) *c6 = colors[5];
+    if (c7) *c7 = colors[6];
+}
+
+// Symbol: ?EnableDescriptionArea@CMFCPropertyGridCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableDescriptionArea_CMFCPropertyGridCtrl__QEAAXH_Z(CMFCPropertyGridCtrl* pThis, int bEnable) {
+    if (pThis) pThis->SetDescriptionRows(bEnable ? 2 : 0);
+}
+
+// Symbol: ?Init@CMFCPropertyGridCtrl@@MEAAXXZ
+extern "C" void MS_ABI impl__Init_CMFCPropertyGridCtrl__MEAAXXZ(CMFCPropertyGridCtrl* pThis) {
+    if (pThis) EnsurePropertyGridCtrlState(pThis);
+}
+
+// Symbol: ?NotifyAccessibility@CMFCPropertyGridCtrl@@MEAAXPEAVCMFCPropertyGridProperty@@@Z
+extern "C" void MS_ABI impl__NotifyAccessibility_CMFCPropertyGridCtrl__MEAAXPEAVCMFCPropertyGridProperty___Z(
+    CMFCPropertyGridCtrl* pThis, CMFCPropertyGridProperty* pProp) {
+    (void)pProp;
+    TouchPropertyGridCtrl(pThis, FALSE);
+}
+
+// Symbol: ?CalcEditMargin@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__CalcEditMargin_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropertyGridCtrl* pThis) {
+    TouchPropertyGridCtrl(pThis, FALSE);
 }
 
 //=============================================================================
