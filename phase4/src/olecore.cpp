@@ -30,6 +30,9 @@
 #define DISPID_AMBIENT_APPEARANCE   (-716)
 #define DISPID_AMBIENT_SCALEUNITS   (-807)
 #endif
+#ifndef DISPID_AMBIENT_TEXTALIGN
+#define DISPID_AMBIENT_TEXTALIGN    (-708)
+#endif
 #ifndef VT_COLOR
 #define VT_COLOR 0x0000000CL
 #endif
@@ -54,9 +57,133 @@ extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JP
 IMPLEMENT_DYNAMIC(CControlBar, CWnd)
 IMPLEMENT_DYNAMIC(CDocItem, CObject)
 
-void CCmdUI::Enable(BOOL bOn) { (void)bOn; }
-void CCmdUI::SetCheck(int nCheck) { (void)nCheck; }
-void CCmdUI::SetText(const wchar_t* lpszText) { (void)lpszText; }
+namespace {
+
+struct CCmdUIShim {
+    void* vftable;
+    UINT m_nID;
+    CCmdUI* m_pOther;
+    int m_nIndex;
+    CMenu* m_pMenu;
+    CMenu* m_pSubMenu;
+    char _padding[8];
+};
+
+static CMenu* CCmdUI_Menu(const CCmdUI* pThis) {
+    auto* ui = reinterpret_cast<const CCmdUIShim*>(pThis);
+    if (!ui) return nullptr;
+    if (ui->m_pSubMenu != nullptr) {
+        return ui->m_pSubMenu;
+    }
+    return ui->m_pMenu;
+}
+
+static bool CCmdUI_IsValidMenu(const CCmdUI* pThis) {
+    auto* ui = reinterpret_cast<const CCmdUIShim*>(pThis);
+    return ui != nullptr && CCmdUI_Menu(pThis) != nullptr && CCmdUI_Menu(pThis)->m_hMenu != nullptr;
+}
+
+static bool CCmdUI_IdValid(UINT id) {
+    return id != 0U && id != static_cast<UINT>(-1);
+}
+
+static bool CCmdUI_HasByPositionTarget(const CCmdUI* pThis, UINT* itemID, UINT* flags) {
+    auto* ui = reinterpret_cast<const CCmdUIShim*>(pThis);
+    if (!ui) return false;
+    if (ui->m_nIndex > 0) {
+        *itemID = static_cast<UINT>(ui->m_nIndex);
+        *flags = MF_BYPOSITION;
+        return true;
+    }
+    if (!CCmdUI_IdValid(ui->m_nID)) {
+        return false;
+    }
+    *itemID = ui->m_nID;
+    *flags = MF_BYCOMMAND;
+    return true;
+}
+
+static void CCmdUI_Delegated(CCmdUI* pThis, void (CCmdUI::*fn)(int), int arg) {
+    if (pThis && pThis->m_pOther && pThis->m_pOther != pThis) {
+        (pThis->m_pOther->*fn)(arg);
+    }
+}
+
+static void CCmdUI_DelegatedText(CCmdUI* pThis, void (CCmdUI::*fn)(const wchar_t*), const wchar_t* text) {
+    if (pThis && pThis->m_pOther && pThis->m_pOther != pThis) {
+        (pThis->m_pOther->*fn)(text);
+    }
+}
+
+static void CCmdUIEnableForMenu(CCmdUI* pThis, BOOL bOn) {
+    auto* ui = reinterpret_cast<CCmdUIShim*>(pThis);
+    if (!ui || pThis->m_pOther) {
+        CCmdUI_Delegated(pThis, &CCmdUI::Enable, bOn);
+        return;
+    }
+
+    CMenu* pMenu = CCmdUI_Menu(pThis);
+    if (!CCmdUI_IsValidMenu(pThis)) {
+        return;
+    }
+
+    UINT itemID = 0;
+    UINT flags = MF_BYCOMMAND;
+    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
+
+    UINT state = bOn ? MF_ENABLED : (MF_DISABLED | MF_GRAYED);
+    if (CCmdUI_IsValidMenu(pThis)) {
+        ::EnableMenuItem(pMenu->m_hMenu, itemID, flags | state);
+    }
+}
+
+static void CCmdUICheckForMenu(CCmdUI* pThis, int nCheck) {
+    auto* ui = reinterpret_cast<CCmdUIShim*>(pThis);
+    if (!ui || pThis->m_pOther) {
+        CCmdUI_Delegated(pThis, &CCmdUI::SetCheck, nCheck);
+        return;
+    }
+
+    if (!CCmdUI_IsValidMenu(pThis)) {
+        return;
+    }
+    CMenu* pMenu = CCmdUI_Menu(pThis);
+
+    UINT itemID = 0;
+    UINT flags = MF_BYCOMMAND;
+    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
+    ::CheckMenuItem(pMenu->m_hMenu, itemID, flags | (nCheck ? MF_CHECKED : MF_UNCHECKED));
+}
+
+static void CCmdUISetTextForMenu(CCmdUI* pThis, const wchar_t* lpszText) {
+    if (!pThis) return;
+    auto* ui = reinterpret_cast<CCmdUIShim*>(pThis);
+    if (!ui || pThis->m_pOther) {
+        CCmdUI_DelegatedText(pThis, &CCmdUI::SetText, lpszText);
+        return;
+    }
+
+    if (!CCmdUI_IsValidMenu(pThis)) {
+        return;
+    }
+    CMenu* pMenu = CCmdUI_Menu(pThis);
+
+    UINT itemID = 0;
+    UINT flags = MF_BYCOMMAND;
+    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
+
+    MENUITEMINFOW mii = {};
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_TYPE | MIIM_STRING;
+    mii.dwTypeData = const_cast<wchar_t*>(lpszText ? lpszText : L"");
+    mii.cch = static_cast<UINT>(lpszText ? (wcslen(lpszText) + 1) : 0);
+    ::SetMenuItemInfoW(pMenu->m_hMenu, itemID, flags == MF_BYPOSITION, &mii);
+}
+} // namespace
+
+void CCmdUI::Enable(BOOL bOn) { CCmdUIEnableForMenu(this, bOn); }
+void CCmdUI::SetCheck(int nCheck) { CCmdUICheckForMenu(this, nCheck); }
+void CCmdUI::SetText(const wchar_t* lpszText) { CCmdUISetTextForMenu(this, lpszText); }
 
 CControlBar::CControlBar()
     : m_pInPlaceOwner(nullptr), m_bAutoDelete(FALSE),
@@ -950,6 +1077,37 @@ struct ClientItemState {
     COleClientItem* item = nullptr;
     LONG activeVerb = OLEIVERB_PRIMARY;
     BOOL modified = FALSE;
+    HGLOBAL iconicMetafile = nullptr;
+    HGLOBAL contentMetafile = nullptr;
+    ClientItemState() = default;
+    ClientItemState(const ClientItemState&) = delete;
+    ClientItemState& operator=(const ClientItemState&) = delete;
+    ClientItemState(ClientItemState&& other) noexcept
+        : item(other.item), activeVerb(other.activeVerb), modified(other.modified),
+          iconicMetafile(other.iconicMetafile), contentMetafile(other.contentMetafile) {
+        other.item = nullptr;
+        other.iconicMetafile = nullptr;
+        other.contentMetafile = nullptr;
+    }
+    ClientItemState& operator=(ClientItemState&& other) noexcept {
+        if (this != &other) {
+            if (iconicMetafile) GlobalFree(iconicMetafile);
+            if (contentMetafile) GlobalFree(contentMetafile);
+            item = other.item;
+            activeVerb = other.activeVerb;
+            modified = other.modified;
+            iconicMetafile = other.iconicMetafile;
+            contentMetafile = other.contentMetafile;
+            other.item = nullptr;
+            other.iconicMetafile = nullptr;
+            other.contentMetafile = nullptr;
+        }
+        return *this;
+    }
+    ~ClientItemState() {
+        if (iconicMetafile) GlobalFree(iconicMetafile);
+        if (contentMetafile) GlobalFree(contentMetafile);
+    }
 };
 
 struct ServerDocState {
@@ -985,6 +1143,10 @@ struct OleControlState {
     BOOL modified = FALSE;
     std::vector<OleControlEventSink> eventSinks;
     std::vector<IPropertyNotifySink*> propSinks;
+    std::vector<IID> enabledConnectionPoints;
+    RECT posRect = {0, 0, 0, 0};
+    RECT clipRect = {0, 0, 0, 0};
+    BOOL hasObjectRects = FALSE;
 };
 
 static std::vector<DropTargetState> g_dropTargetStates;
@@ -993,6 +1155,7 @@ static std::vector<ClientItemState> g_clientItemStates;
 static std::vector<ServerDocState> g_serverDocStates;
 static std::vector<ServerItemState> g_serverItemStates;
 static std::vector<OleControlState> g_oleControlStates;
+static std::vector<COleObjectFactory*> g_oleObjectFactories;
 
 static DropTargetState* GetDropTargetState(COleDropTarget* target, bool create) {
     if (!target) return nullptr;
@@ -1029,6 +1192,58 @@ static void RemoveDocumentState(COleDocument* document) {
         g_documentStates.end());
 }
 
+class OleItemContainerAdapter : public IOleItemContainer {
+public:
+    explicit OleItemContainerAdapter(COleDocument* document) : m_refCount(1), m_document(document) {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IOleContainer || riid == IID_IOleItemContainer) {
+            *ppvObject = static_cast<IOleItemContainer*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        if (ref == 0) delete this;
+        return ref;
+    }
+    HRESULT STDMETHODCALLTYPE ParseDisplayName(IBindCtx*, LPOLESTR, ULONG* pchEaten, IMoniker** ppmkOut) override {
+        if (pchEaten) *pchEaten = 0;
+        if (ppmkOut) *ppmkOut = nullptr;
+        return E_NOTIMPL;
+    }
+    HRESULT STDMETHODCALLTYPE EnumObjects(DWORD, IEnumUnknown** ppenum) override {
+        if (ppenum) *ppenum = nullptr;
+        return E_NOTIMPL;
+    }
+    HRESULT STDMETHODCALLTYPE LockContainer(BOOL) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE GetObject(LPOLESTR pszItem, DWORD, IBindCtx*, REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        *ppvObject = nullptr;
+        COleClientItem* item = m_document ? m_document->OnGetLinkedItem(pszItem) : nullptr;
+        if (!item || !item->GetObject()) return MK_E_NOOBJECT;
+        return item->GetObject()->QueryInterface(riid, ppvObject);
+    }
+    HRESULT STDMETHODCALLTYPE GetObjectStorage(LPOLESTR, IBindCtx*, REFIID, void** ppvStorage) override {
+        if (!ppvStorage) return E_POINTER;
+        *ppvStorage = nullptr;
+        return E_NOTIMPL;
+    }
+    HRESULT STDMETHODCALLTYPE IsRunning(LPOLESTR pszItem) override {
+        COleClientItem* item = m_document ? m_document->OnGetLinkedItem(pszItem) : nullptr;
+        return (item && item->IsRunning()) ? S_OK : S_FALSE;
+    }
+
+private:
+    LONG m_refCount;
+    COleDocument* m_document;
+};
+
 static ClientItemState* GetClientItemState(COleClientItem* item, bool create) {
     if (!item) return nullptr;
     for (ClientItemState& state : g_clientItemStates) {
@@ -1040,11 +1255,30 @@ static ClientItemState* GetClientItemState(COleClientItem* item, bool create) {
     return &g_clientItemStates.back();
 }
 
+static ClientItemState* FindClientItemState(const COleClientItem* item) {
+    for (ClientItemState& state : g_clientItemStates) {
+        if (state.item == item) return &state;
+    }
+    return nullptr;
+}
+
 static void RemoveClientItemState(COleClientItem* item) {
     g_clientItemStates.erase(
         std::remove_if(g_clientItemStates.begin(), g_clientItemStates.end(),
                        [item](const ClientItemState& state) { return state.item == item; }),
         g_clientItemStates.end());
+}
+
+static void AddOleObjectFactory(COleObjectFactory* factory) {
+    if (!factory) return;
+    if (std::find(g_oleObjectFactories.begin(), g_oleObjectFactories.end(), factory) == g_oleObjectFactories.end()) {
+        g_oleObjectFactories.push_back(factory);
+    }
+}
+
+static void RemoveOleObjectFactory(COleObjectFactory* factory) {
+    g_oleObjectFactories.erase(std::remove(g_oleObjectFactories.begin(), g_oleObjectFactories.end(), factory),
+                               g_oleObjectFactories.end());
 }
 
 static ServerDocState* GetServerDocState(COleServerDoc* document, bool create) {
@@ -1119,6 +1353,20 @@ static OleControlState* GetOleControlState(COleControl* control, bool create) {
     g_oleControlStates.push_back(OleControlState());
     g_oleControlStates.back().control = control;
     return &g_oleControlStates.back();
+}
+
+template <typename Interface>
+static Interface* QueryOleControlInterface(COleControl* control, REFIID iid) {
+    if (!control) return nullptr;
+    Interface* iface = nullptr;
+    if (control->m_pControlSite && control->m_pControlSite->m_lpObject &&
+        SUCCEEDED(control->m_pControlSite->m_lpObject->QueryInterface(iid, reinterpret_cast<void**>(&iface)))) {
+        return iface;
+    }
+    if (SUCCEEDED(control->InternalQueryInterface(iid, reinterpret_cast<void**>(&iface)))) {
+        return iface;
+    }
+    return nullptr;
 }
 
 static void RemoveOleControlState(COleControl* control) {
@@ -1302,6 +1550,54 @@ private:
     LONG m_refCount;
     COleDropSource* m_source;
 };
+
+class OleMessageFilterAdapter : public IMessageFilter {
+public:
+    explicit OleMessageFilterAdapter(COleMessageFilter* filter) : m_refCount(1), m_filter(filter) {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
+        if (!ppvObject) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IMessageFilter) {
+            *ppvObject = static_cast<IMessageFilter*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppvObject = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG ref = InterlockedDecrement(&m_refCount);
+        if (ref == 0) delete this;
+        return ref;
+    }
+    DWORD STDMETHODCALLTYPE HandleInComingCall(DWORD, HTASK, DWORD, LPINTERFACEINFO) override {
+        return SERVERCALL_ISHANDLED;
+    }
+    DWORD STDMETHODCALLTYPE RetryRejectedCall(HTASK, DWORD, DWORD rejectType) override {
+        if (!m_filter) return static_cast<DWORD>(-1);
+        if (rejectType == SERVERCALL_RETRYLATER) {
+            if (m_filter->m_nRetryReply != 0) return m_filter->m_nRetryReply;
+            return m_filter->m_bEnableBusy ? 250 : static_cast<DWORD>(-1);
+        }
+        return static_cast<DWORD>(-1);
+    }
+    DWORD STDMETHODCALLTYPE MessagePending(HTASK, DWORD, DWORD) override {
+        if (!m_filter) return PENDINGMSG_WAITDEFPROCESS;
+        MSG msg = {};
+        BOOL hasMsg = ::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE);
+        return m_filter->OnMessagePending(hasMsg ? &msg : nullptr)
+            ? PENDINGMSG_WAITDEFPROCESS
+            : PENDINGMSG_CANCELCALL;
+    }
+
+private:
+    LONG m_refCount;
+    COleMessageFilter* m_filter;
+};
+
+static OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
+static IMessageFilter* g_previousMessageFilter = nullptr;
 
 HRESULT DropTargetAdapter::DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
     if (!effect) return E_POINTER;
@@ -1787,14 +2083,39 @@ DROPEFFECT COleDataSource::DoDragDrop(DWORD dwEffects, LPCRECT lpRectStartDrag,
 }
 
 int COleDataSource::OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal) {
-    (void)lpFormatEtc;
     if (phGlobal) *phGlobal = nullptr;
-    return 0;
+    if (!lpFormatEtc || !phGlobal) return FALSE;
+    DataCacheState* state = GetDataCacheState(this, false);
+    DataCacheEntry* entry = FindCacheEntry(state, *lpFormatEtc);
+    if (!entry || !entry->hasMedium || entry->medium.tymed != TYMED_HGLOBAL) return FALSE;
+    *phGlobal = DuplicateGlobalMemory(entry->medium.hGlobal);
+    return *phGlobal != nullptr;
 }
 
 int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
-    (void)lpFormatEtc; (void)pFile;
-    return 0;
+    if (!lpFormatEtc || !pFile) return FALSE;
+    DataCacheState* state = GetDataCacheState(this, false);
+    DataCacheEntry* entry = FindCacheEntry(state, *lpFormatEtc);
+    if (!entry || !entry->hasMedium) return FALSE;
+
+    if (entry->medium.tymed == TYMED_HGLOBAL && entry->medium.hGlobal) {
+        SIZE_T size = GlobalSize(entry->medium.hGlobal);
+        void* data = GlobalLock(entry->medium.hGlobal);
+        if (!data) return FALSE;
+        pFile->Write(data, static_cast<UINT>(size));
+        GlobalUnlock(entry->medium.hGlobal);
+        return TRUE;
+    }
+    if (entry->medium.tymed == TYMED_FILE && entry->medium.lpszFileName) {
+        CFile source(entry->medium.lpszFileName, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+        BYTE buffer[4096];
+        UINT read = 0;
+        while ((read = source.Read(buffer, sizeof(buffer))) > 0) {
+            pFile->Write(buffer, read);
+        }
+        return TRUE;
+    }
+    return FALSE;
 }
 
 void COleDataSource::Empty() {
@@ -1860,20 +2181,24 @@ void COleDropTarget::Revoke() {
 
 DROPEFFECT COleDropTarget::OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject,
                                         DWORD dwKeyState, CPoint point) {
-    return DROPEFFECT_NONE;
+    (void)pWnd; (void)point;
+    if (!pDataObject || !pDataObject->GetIDataObject(FALSE)) return DROPEFFECT_NONE;
+    return (dwKeyState & MK_CONTROL) ? DROPEFFECT_COPY : DROPEFFECT_MOVE;
 }
 
 DROPEFFECT COleDropTarget::OnDragOver(CWnd* pWnd, COleDataObject* pDataObject,
                                        DWORD dwKeyState, CPoint point) {
-    return DROPEFFECT_NONE;
+    return OnDragEnter(pWnd, pDataObject, dwKeyState, point);
 }
 
 void COleDropTarget::OnDragLeave(CWnd* pWnd) {
+    (void)pWnd;
 }
 
 BOOL COleDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject,
                              DROPEFFECT dropEffect, CPoint point) {
-    return FALSE;
+    (void)pWnd; (void)point;
+    return pDataObject && pDataObject->GetIDataObject(FALSE) && dropEffect != DROPEFFECT_NONE;
 }
 
 DROPEFFECT COleDropTarget::OnDropEx(CWnd* pWnd, COleDataObject* pDataObject,
@@ -1923,10 +2248,42 @@ COleMessageFilter::COleMessageFilter()
 COleMessageFilter::~COleMessageFilter() {
 }
 
-int COleMessageFilter::Register() { return 0; }
+int COleMessageFilter::Register() {
+    if (g_messageFilterAdapter) {
+        CoRegisterMessageFilter(g_previousMessageFilter, nullptr);
+        g_messageFilterAdapter->Release();
+        g_messageFilterAdapter = nullptr;
+        if (g_previousMessageFilter) {
+            g_previousMessageFilter->Release();
+            g_previousMessageFilter = nullptr;
+        }
+    }
+
+    g_messageFilterAdapter = new(std::nothrow) OleMessageFilterAdapter(this);
+    if (!g_messageFilterAdapter) return FALSE;
+    IMessageFilter* oldFilter = nullptr;
+    HRESULT hr = CoRegisterMessageFilter(g_messageFilterAdapter, &oldFilter);
+    if (FAILED(hr)) {
+        g_messageFilterAdapter->Release();
+        g_messageFilterAdapter = nullptr;
+        return FALSE;
+    }
+    g_previousMessageFilter = oldFilter;
+    return TRUE;
+}
 
 void COleMessageFilter::Revoke() {
-    CoRegisterMessageFilter(nullptr, nullptr);
+    IMessageFilter* oldFilter = nullptr;
+    CoRegisterMessageFilter(g_previousMessageFilter, &oldFilter);
+    if (oldFilter) oldFilter->Release();
+    if (g_previousMessageFilter) {
+        g_previousMessageFilter->Release();
+        g_previousMessageFilter = nullptr;
+    }
+    if (g_messageFilterAdapter) {
+        g_messageFilterAdapter->Release();
+        g_messageFilterAdapter = nullptr;
+    }
 }
 
 BOOL COleMessageFilter::EnableBusyDialog(BOOL bEnableBusy) {
@@ -2295,7 +2652,30 @@ void COleDocument::OnShowViews(BOOL bVisible) {
 }
 
 COleClientItem* COleDocument::OnGetLinkedItem(const wchar_t* lpszItemName) {
-    return nullptr;
+    DocumentState* state = GetDocumentState(this, false);
+    if (!state || state->items.empty()) return nullptr;
+    if (!lpszItemName || !*lpszItemName) return state->items.front();
+
+    size_t index = ParseLinkedItemIndex(lpszItemName);
+    if (index != 0 && index <= state->items.size()) {
+        return state->items[index - 1];
+    }
+
+    for (COleClientItem* item : state->items) {
+        if (!item) continue;
+        CLSID clsid = CLSID_NULL;
+        item->GetClassID(&clsid);
+        LPOLEOBJECT object = item->GetObject();
+        if (object) {
+            LPOLESTR userType = nullptr;
+            if (SUCCEEDED(object->GetUserType(USERCLASSTYPE_FULL, &userType)) && userType) {
+                bool match = wcscmp(userType, lpszItemName) == 0;
+                CoTaskMemFree(userType);
+                if (match) return item;
+            }
+        }
+    }
+    return state->items.size() == 1 ? state->items.front() : nullptr;
 }
 
 COleClientItem* COleDocument::OnGetEmbeddedItem() {
@@ -2312,7 +2692,7 @@ void COleDocument::OnEditLinks() {
 }
 
 LPOLEITEMCONTAINER COleDocument::GetItemContainer() {
-    return nullptr;
+    return new(std::nothrow) OleItemContainerAdapter(this);
 }
 
 //=============================================================================
@@ -2781,6 +3161,7 @@ COleObjectFactory::COleObjectFactory()
       m_dwRegister(0), m_pTemplate(nullptr) {
     memset(&m_clsid, 0, sizeof(m_clsid));
     memset(_oleobjectfactory_padding, 0, sizeof(_oleobjectfactory_padding));
+    AddOleObjectFactory(this);
 }
 
 COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
@@ -2789,6 +3170,7 @@ COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClas
       m_bMultiInstance(bMultiInstance), m_strProgID(lpszProgID ? lpszProgID : L""),
       m_dwRegister(0), m_pTemplate(nullptr) {
     memset(_oleobjectfactory_padding, 0, sizeof(_oleobjectfactory_padding));
+    AddOleObjectFactory(this);
 }
 
 COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
@@ -2800,6 +3182,7 @@ COleObjectFactory::COleObjectFactory(REFCLSID clsid, CRuntimeClass* pRuntimeClas
 
 COleObjectFactory::~COleObjectFactory() {
     Revoke();
+    RemoveOleObjectFactory(this);
 }
 
 void COleObjectFactory::CommonConstruct(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
@@ -2812,6 +3195,7 @@ void COleObjectFactory::CommonConstruct(REFCLSID clsid, CRuntimeClass* pRuntimeC
     m_strProgID = lpszProgID ? lpszProgID : L"";
     m_dwRegister = 0;
     m_pTemplate = nullptr;
+    AddOleObjectFactory(this);
 }
 
 BOOL COleObjectFactory::Register() {
@@ -2839,14 +3223,26 @@ BOOL COleObjectFactory::IsLicenseValid() {
 }
 
 int COleObjectFactory::RegisterAll() {
-    return 0;
+    int count = 0;
+    for (COleObjectFactory* factory : g_oleObjectFactories) {
+        if (factory && factory->Register()) ++count;
+    }
+    return count;
 }
 
 BOOL COleObjectFactory::UpdateRegistryAll(BOOL bRegister) {
-    return TRUE;
+    BOOL ok = TRUE;
+    for (COleObjectFactory* factory : g_oleObjectFactories) {
+        if (!factory) continue;
+        factory->UpdateRegistry(bRegister);
+    }
+    return ok;
 }
 
 void COleObjectFactory::RevokeAll() {
+    for (COleObjectFactory* factory : g_oleObjectFactories) {
+        if (factory) factory->Revoke();
+    }
 }
 
 BOOL COleObjectFactory::Unregister() {
@@ -2872,6 +3268,48 @@ BOOL COleObjectFactory::OnVerifyFile(LPCTSTR lpszFileName) {
 }
 
 void COleObjectFactory::UpdateRegistry(BOOL bRegister) {
+    if (m_strProgID.IsEmpty()) return;
+
+    wchar_t clsidText[64] = {};
+    if (StringFromGUID2(m_clsid, clsidText, 64) == 0) return;
+
+    CString clsidKey = CString(L"CLSID\\") + clsidText;
+    if (!bRegister) {
+        RegDeleteTreeW(HKEY_CLASSES_ROOT, static_cast<const wchar_t*>(m_strProgID));
+        RegDeleteTreeW(HKEY_CLASSES_ROOT, static_cast<const wchar_t*>(clsidKey));
+        return;
+    }
+
+    HKEY hKey = nullptr;
+    if (RegCreateKeyExW(HKEY_CLASSES_ROOT, static_cast<const wchar_t*>(m_strProgID), 0, nullptr,
+                        REG_OPTION_NON_VOLATILE, KEY_SET_VALUE | KEY_CREATE_SUB_KEY, nullptr, &hKey, nullptr) == ERROR_SUCCESS) {
+        HKEY hClsid = nullptr;
+        if (RegCreateKeyExW(hKey, L"CLSID", 0, nullptr, REG_OPTION_NON_VOLATILE,
+                            KEY_SET_VALUE, nullptr, &hClsid, nullptr) == ERROR_SUCCESS) {
+            RegSetValueExW(hClsid, nullptr, 0, REG_SZ,
+                           reinterpret_cast<const BYTE*>(clsidText),
+                           static_cast<DWORD>((wcslen(clsidText) + 1) * sizeof(wchar_t)));
+            RegCloseKey(hClsid);
+        }
+        RegCloseKey(hKey);
+    }
+
+    if (RegCreateKeyExW(HKEY_CLASSES_ROOT, static_cast<const wchar_t*>(clsidKey), 0, nullptr,
+                        REG_OPTION_NON_VOLATILE, KEY_SET_VALUE | KEY_CREATE_SUB_KEY, nullptr, &hKey, nullptr) == ERROR_SUCCESS) {
+        const wchar_t* progID = static_cast<const wchar_t*>(m_strProgID);
+        RegSetValueExW(hKey, nullptr, 0, REG_SZ,
+                       reinterpret_cast<const BYTE*>(progID),
+                       static_cast<DWORD>((wcslen(progID) + 1) * sizeof(wchar_t)));
+        HKEY hProgID = nullptr;
+        if (RegCreateKeyExW(hKey, L"ProgID", 0, nullptr, REG_OPTION_NON_VOLATILE,
+                            KEY_SET_VALUE, nullptr, &hProgID, nullptr) == ERROR_SUCCESS) {
+            RegSetValueExW(hProgID, nullptr, 0, REG_SZ,
+                           reinterpret_cast<const BYTE*>(progID),
+                           static_cast<DWORD>((wcslen(progID) + 1) * sizeof(wchar_t)));
+            RegCloseKey(hProgID);
+        }
+        RegCloseKey(hKey);
+    }
 }
 
 void COleObjectFactory::ConnectTemplate(COleTemplateServer* pTemplate) {
@@ -2927,7 +3365,8 @@ void COleTemplateServer::UpdateRegistry(OLE_APPTYPE nAppType,
                                          const wchar_t** rglpszRegister,
                                          const wchar_t** rglpszOverwrite,
                                          BOOL bRegister) {
-    (void)nAppType; (void)rglpszRegister; (void)rglpszOverwrite; (void)bRegister;
+    (void)nAppType; (void)rglpszRegister; (void)rglpszOverwrite;
+    COleObjectFactory::UpdateRegistry(bRegister);
 }
 
 CCmdTarget* COleTemplateServer::OnCreateObject() {
@@ -4588,9 +5027,61 @@ void COleClientItem::OnShowItem() {}
 void COleClientItem::OnOpen() {}
 void COleClientItem::OnClose() {}
 BOOL COleClientItem::OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow) { (void)pFrameWnd; (void)bShow; return TRUE; }
-HGLOBAL COleClientItem::GetIconicMetafile() { return nullptr; }
-BOOL COleClientItem::SetIconicMetafile(HGLOBAL hMetaPict) { (void)hMetaPict; return FALSE; }
-HGLOBAL COleClientItem::GetMetaFile() { return nullptr; }
+HGLOBAL COleClientItem::GetIconicMetafile() {
+    ClientItemState* state = FindClientItemState(this);
+    if (state && state->iconicMetafile) return DuplicateGlobalMemory(state->iconicMetafile);
+    if (!m_lpObject) return nullptr;
+    FORMATETC fmt = {};
+    fmt.cfFormat = CF_METAFILEPICT;
+    fmt.dwAspect = DVASPECT_ICON;
+    fmt.lindex = -1;
+    fmt.tymed = TYMED_MFPICT;
+    STGMEDIUM medium = {};
+    IDataObject* data = nullptr;
+    if (FAILED(m_lpObject->QueryInterface(IID_IDataObject, reinterpret_cast<void**>(&data))) || !data) return nullptr;
+    HRESULT hr = data->GetData(&fmt, &medium);
+    data->Release();
+    if (FAILED(hr) || medium.tymed != TYMED_MFPICT) {
+        ReleaseStgMedium(&medium);
+        return nullptr;
+    }
+    HGLOBAL copy = DuplicateGlobalMemory(medium.hMetaFilePict);
+    ReleaseStgMedium(&medium);
+    return copy;
+}
+BOOL COleClientItem::SetIconicMetafile(HGLOBAL hMetaPict) {
+    ClientItemState* state = GetClientItemState(this, true);
+    if (!state) return FALSE;
+    HGLOBAL copy = hMetaPict ? DuplicateGlobalMemory(hMetaPict) : nullptr;
+    if (hMetaPict && !copy) return FALSE;
+    if (state->iconicMetafile) GlobalFree(state->iconicMetafile);
+    state->iconicMetafile = copy;
+    m_nDrawAspect = hMetaPict ? DVASPECT_ICON : DVASPECT_CONTENT;
+    SetModifiedFlag(TRUE);
+    return TRUE;
+}
+HGLOBAL COleClientItem::GetMetaFile() {
+    ClientItemState* state = FindClientItemState(this);
+    if (state && state->contentMetafile) return DuplicateGlobalMemory(state->contentMetafile);
+    if (!m_lpObject) return nullptr;
+    IDataObject* data = nullptr;
+    if (FAILED(m_lpObject->QueryInterface(IID_IDataObject, reinterpret_cast<void**>(&data))) || !data) return nullptr;
+    FORMATETC fmt = {};
+    fmt.cfFormat = CF_METAFILEPICT;
+    fmt.dwAspect = DVASPECT_CONTENT;
+    fmt.lindex = -1;
+    fmt.tymed = TYMED_MFPICT;
+    STGMEDIUM medium = {};
+    HRESULT hr = data->GetData(&fmt, &medium);
+    data->Release();
+    if (FAILED(hr) || medium.tymed != TYMED_MFPICT) {
+        ReleaseStgMedium(&medium);
+        return nullptr;
+    }
+    HGLOBAL copy = DuplicateGlobalMemory(medium.hMetaFilePict);
+    ReleaseStgMedium(&medium);
+    return copy;
+}
 void COleClientItem::SetHostNames(const wchar_t* lpszHost, const wchar_t* lpszHostObj) { (void)lpszHost; (void)lpszHostObj; }
 BOOL COleClientItem::ConvertTo(REFCLSID clsidNew) {
     if (!m_lpObject) return FALSE;
@@ -4672,7 +5163,13 @@ void COleControl::OnResetState() {
     m_cyExtent.cx = 0;
     m_cyExtent.cy = 0;
 }
-DWORD COleControl::GetControlFlags() { return 0; }
+DWORD COleControl::GetControlFlags() {
+    DWORD flags = 0;
+    if (m_bOptimizedDraw) flags |= 0x00000001;
+    if (m_hWnd) flags |= 0x00000002;
+    if (m_pControlSite) flags |= 0x00000004;
+    return flags;
+}
 BOOL COleControl::OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size) {
     if (dwDrawAspect != DVASPECT_CONTENT) return FALSE;
     m_cxExtent.cx = size.cx;
@@ -4687,7 +5184,22 @@ BOOL COleControl::OnGetExtent(DVASPECT dwDrawAspect, SIZE& size) {
     size.cy = m_cxExtent.cy;
     return TRUE;
 }
-BOOL COleControl::OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional) { (void)dispid; (void)pclsid; (void)pbPageOptional; return FALSE; }
+BOOL COleControl::OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional) {
+    if (!pclsid) return FALSE;
+    *pclsid = CLSID_NULL;
+    if (pbPageOptional) *pbPageOptional = FALSE;
+
+    IPerPropertyBrowsing* browsing = QueryOleControlInterface<IPerPropertyBrowsing>(this, IID_IPerPropertyBrowsing);
+    if (!browsing) return FALSE;
+
+    CLSID clsid = CLSID_NULL;
+    HRESULT hr = browsing->MapPropertyToPage(dispid, &clsid);
+    browsing->Release();
+    if (FAILED(hr) || IsEqualCLSID(clsid, CLSID_NULL)) return FALSE;
+
+    *pclsid = clsid;
+    return TRUE;
+}
 
 COLORREF COleControl::AmbientBackColor() { COLORREF cr = RGB(255,255,255); GetAmbientProperty(DISPID_AMBIENT_BACKCOLOR, VT_COLOR, &cr); return cr; }
 COLORREF COleControl::AmbientForeColor() { COLORREF cr = RGB(0,0,0); GetAmbientProperty(DISPID_AMBIENT_FORECOLOR, VT_COLOR, &cr); return cr; }
@@ -4696,7 +5208,11 @@ OLE_COLOR COleControl::AmbientBackColorOle() { return (OLE_COLOR)AmbientBackColo
 OLE_COLOR COleControl::AmbientForeColorOle() { return (OLE_COLOR)AmbientForeColor(); }
 IFontDisp* COleControl::AmbientFont() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return (IFontDisp*)p; }
 IDispatch* COleControl::AmbientFontDisp() { IDispatch* p = nullptr; GetAmbientProperty(DISPID_AMBIENT_FONT, VT_DISPATCH, &p); return p; }
-short COleControl::AmbientTextAlign() { return 0; }
+short COleControl::AmbientTextAlign() {
+    short align = 0;
+    GetAmbientProperty(DISPID_AMBIENT_TEXTALIGN, VT_I2, &align);
+    return align;
+}
 BOOL COleControl::AmbientUserMode() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_USERMODE, VT_BOOL, &b); return b; }
 BOOL COleControl::AmbientUIDead() { BOOL b = FALSE; GetAmbientProperty(DISPID_AMBIENT_UIDEAD, VT_BOOL, &b); return b; }
 BOOL COleControl::AmbientShowGrabHandles() { BOOL b = TRUE; GetAmbientProperty(DISPID_AMBIENT_SHOWGRABHANDLES, VT_BOOL, &b); return b; }
@@ -4842,7 +5358,9 @@ long COleControl::GetReadyState() const {
     return state ? state->readyState : 4;
 }
 
-BOOL COleControl::IsSubclassedControl() { return FALSE; }
+BOOL COleControl::IsSubclassedControl() {
+    return m_hWnd != nullptr && m_pControlSite == nullptr;
+}
 void COleControl::SetModifiedFlag(BOOL bModified) {
     OleControlState* state = GetOleControlState(this, true);
     if (state) state->modified = bModified;
@@ -4853,7 +5371,14 @@ BOOL COleControl::GetModifiedFlag() const {
 }
 ULONG COleControl::InternalAddRef() { return 1; }
 ULONG COleControl::InternalRelease() { return 1; }
-ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) { (void)riid; *ppv = nullptr; return E_NOINTERFACE; }
+ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) {
+    if (!ppv) return E_POINTER;
+    *ppv = nullptr;
+    if (m_pControlSite && m_pControlSite->m_lpObject) {
+        return m_pControlSite->m_lpObject->QueryInterface(riid, ppv);
+    }
+    return E_NOINTERFACE;
+}
 void COleControl::GetControlSize(int* pCX, int* pCY) {
     if (pCX) *pCX = m_cxExtent.cx;
     if (pCY) *pCY = m_cxExtent.cy;
@@ -4868,8 +5393,30 @@ void COleControl::OnSetClientSite() {
     m_bInitialized = (m_pControlSite != nullptr);
     m_pContainer = m_pControlSite ? m_pControlSite->GetContainer() : nullptr;
 }
-void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) { (void)pControlInfo; }
-BOOL COleControl::OnMnemonic(LPMSG pMsg) { (void)pMsg; return FALSE; }
+void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) {
+    if (!pControlInfo) return;
+    memset(pControlInfo, 0, sizeof(*pControlInfo));
+    pControlInfo->cb = sizeof(*pControlInfo);
+
+    IOleControl* control = QueryOleControlInterface<IOleControl>(this, IID_IOleControl);
+    if (control) {
+        CONTROLINFO info = {};
+        info.cb = sizeof(info);
+        if (SUCCEEDED(control->GetControlInfo(&info))) {
+            *pControlInfo = info;
+        }
+        control->Release();
+    }
+}
+
+BOOL COleControl::OnMnemonic(LPMSG pMsg) {
+    if (!pMsg) return FALSE;
+    IOleControl* control = QueryOleControlInterface<IOleControl>(this, IID_IOleControl);
+    if (!control) return FALSE;
+    HRESULT hr = control->OnMnemonic(pMsg);
+    control->Release();
+    return SUCCEEDED(hr) ? TRUE : FALSE;
+}
 void COleControl::OnAmbientPropertyChange(DISPID dispid) {
     OleControlState* state = GetOleControlState(this, true);
     if (!state) return;
@@ -4902,7 +5449,19 @@ void COleControl::BoundPropertyRequestEdit(DISPID dispid) {
 void COleControl::InvalidateControl(LPCRECT lpRect, BOOL bErase) {
     if (m_hWnd) ::InvalidateRect(m_hWnd, lpRect, bErase);
 }
-int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) { (void)pMsg; (void)hWnd; (void)lpRect; return 0; }
+int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) {
+    (void)pMsg; (void)lpRect;
+    if (m_pControlSite) {
+        m_pControlSite->ShowPropertyFrame();
+        return TRUE;
+    }
+    HWND oldWnd = m_hWnd;
+    if (!m_hWnd && hWnd) m_hWnd = hWnd;
+    int count = GetPropertyPageCount();
+    if (count > 0) ShowPropertyPages();
+    if (!oldWnd && hWnd) m_hWnd = oldWnd;
+    return count > 0 ? TRUE : FALSE;
+}
 void COleControl::ShowPropertyPages() {
     if (!m_hWnd) return;
     ISpecifyPropertyPages* pSPP = nullptr;
@@ -4921,13 +5480,75 @@ void COleControl::ShowPropertyPages() {
     }
     pSPP->Release();
 }
-int COleControl::GetPropertyPageCount() const { return 0; }
-BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) { (void)lpUnk; return FALSE; }
+int COleControl::GetPropertyPageCount() const {
+    IUnknown* unknown = nullptr;
+    if (m_pControlSite && m_pControlSite->m_lpObject) {
+        unknown = m_pControlSite->m_lpObject;
+        unknown->AddRef();
+    } else {
+        const_cast<COleControl*>(this)->InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&unknown));
+    }
+    if (!unknown) return 0;
+
+    ISpecifyPropertyPages* pages = nullptr;
+    HRESULT hr = unknown->QueryInterface(IID_ISpecifyPropertyPages, reinterpret_cast<void**>(&pages));
+    unknown->Release();
+    if (FAILED(hr) || !pages) return 0;
+    CAUUID cauuid = {};
+    int count = 0;
+    if (SUCCEEDED(pages->GetPages(&cauuid))) {
+        count = static_cast<int>(cauuid.cElems);
+        CoTaskMemFree(cauuid.pElems);
+    }
+    pages->Release();
+    return count;
+}
+BOOL COleControl::IsPropertyPage(LPUNKNOWN lpUnk) {
+    if (!lpUnk) return FALSE;
+    IPropertyPage* page = nullptr;
+    HRESULT hr = lpUnk->QueryInterface(IID_IPropertyPage, reinterpret_cast<void**>(&page));
+    if (page) page->Release();
+    return SUCCEEDED(hr) ? TRUE : FALSE;
+}
 BOOL COleControl::CanCreateConnectionPoints() { return TRUE; }
-void COleControl::EnableConnectionPoints() {}
+void COleControl::EnableConnectionPoints() {
+    OleControlState* state = GetOleControlState(this, true);
+    if (!state) return;
+    IConnectionPointContainer* container = nullptr;
+    IUnknown* unknown = nullptr;
+    if (m_pControlSite && m_pControlSite->m_lpObject) {
+        unknown = m_pControlSite->m_lpObject;
+        unknown->AddRef();
+    } else {
+        InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&unknown));
+    }
+    if (!unknown) return;
+    HRESULT hr = unknown->QueryInterface(IID_IConnectionPointContainer, reinterpret_cast<void**>(&container));
+    unknown->Release();
+    if (FAILED(hr) || !container) return;
+
+    IEnumConnectionPoints* enumPoints = nullptr;
+    if (SUCCEEDED(container->EnumConnectionPoints(&enumPoints)) && enumPoints) {
+        IConnectionPoint* point = nullptr;
+        while (enumPoints->Next(1, &point, nullptr) == S_OK) {
+            IID iid = IID_NULL;
+            if (SUCCEEDED(point->GetConnectionInterface(&iid))) {
+                bool exists = std::any_of(state->enabledConnectionPoints.begin(), state->enabledConnectionPoints.end(),
+                    [&iid](const IID& value) { return IsEqualIID(value, iid); });
+                if (!exists) state->enabledConnectionPoints.push_back(iid);
+            }
+            point->Release();
+        }
+        enumPoints->Release();
+    }
+    container->Release();
+}
 BOOL COleControl::IsConnectionPointEnabled(REFIID riid) {
     OleControlState* state = GetOleControlState(this, false);
     if (!state) return FALSE;
+    for (const IID& iid : state->enabledConnectionPoints) {
+        if (IsEqualIID(iid, riid)) return TRUE;
+    }
     for (auto& sink : state->eventSinks) {
         if (IsEqualIID(sink.iid, riid)) return TRUE;
     }
@@ -4936,9 +5557,44 @@ BOOL COleControl::IsConnectionPointEnabled(REFIID riid) {
 void COleControl::FirePropChanged(DISPID dispid) {
     BoundPropertyChanged(dispid);
 }
-BOOL COleControl::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return FALSE; }
-LONG COleControl::OnPosRectChange(LPCRECT lprcPosRect) { (void)lprcPosRect; return 0; }
-BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) { (void)lprcPosRect; (void)lprcClipRect; return TRUE; }
+BOOL COleControl::PreTranslateMessage(MSG* pMsg) {
+    if (!pMsg) return FALSE;
+    IOleInPlaceActiveObject* activeObject = QueryOleControlInterface<IOleInPlaceActiveObject>(this, IID_IOleInPlaceActiveObject);
+    if (!activeObject) return FALSE;
+    HRESULT hr = activeObject->TranslateAccelerator(pMsg);
+    activeObject->Release();
+    return hr == S_OK ? TRUE : FALSE;
+}
+
+LONG COleControl::OnPosRectChange(LPCRECT lprcPosRect) {
+    if (!lprcPosRect) return E_POINTER;
+    RECT clipRect = *lprcPosRect;
+    OleControlState* state = GetOleControlState(this, true);
+    if (state && state->hasObjectRects) {
+        clipRect = state->clipRect;
+    }
+    return OnSetObjectRects(lprcPosRect, &clipRect) ? S_OK : E_FAIL;
+}
+
+BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) {
+    if (!lprcPosRect) return FALSE;
+    RECT clipRect = lprcClipRect ? *lprcClipRect : *lprcPosRect;
+    OleControlState* state = GetOleControlState(this, true);
+    if (state) {
+        state->posRect = *lprcPosRect;
+        state->clipRect = clipRect;
+        state->hasObjectRects = TRUE;
+    }
+    if (m_pControlSite && m_pControlSite->m_lpInPlaceObject &&
+        SUCCEEDED(m_pControlSite->m_lpInPlaceObject->SetObjectRects(lprcPosRect, &clipRect))) {
+        return TRUE;
+    }
+    IOleInPlaceObject* inPlace = QueryOleControlInterface<IOleInPlaceObject>(this, IID_IOleInPlaceObject);
+    if (!inPlace) return FALSE;
+    HRESULT hr = inPlace->SetObjectRects(lprcPosRect, &clipRect);
+    inPlace->Release();
+    return SUCCEEDED(hr) ? TRUE : FALSE;
+}
 void COleControl::OnClose(DWORD dwSaveOption) { (void)dwSaveOption; }
 void COleControl::SetCapture() { if(m_hWnd) ::SetCapture(m_hWnd); }
 void COleControl::ReleaseCapture() { ::ReleaseCapture(); }
