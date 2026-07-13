@@ -190,6 +190,51 @@ inline void LBString(void* pDX, int nIDC, CString* pv, bool exact) {
     }
 }
 
+// Date/time controls (DTP / month-cal).  Value layouts are simple and known:
+// CTime = __time64_t@0; COleDateTime = { double m_dt@0; int m_status@8 };
+// FILETIME/SYSTEMTIME are Win32.  Only m_hWnd (known CWnd offset) is touched.
+enum DateKind { DK_CTIME, DK_OLEDT, DK_FILETIME };
+
+inline bool StFromCtl(void* pDX, int nIDC, bool month, SYSTEMTIME* st) {
+    HWND h = Ctrl(pDX, nIDC);
+    if (!h) return false;
+    LRESULT r = month ? ::SendMessageW(h, MCM_GETCURSEL, 0, (LPARAM)st)
+                      : ::SendMessageW(h, DTM_GETSYSTEMTIME, 0, (LPARAM)st);
+    return month ? (r != 0) : (r == GDT_VALID);
+}
+inline void StToCtl(void* pDX, int nIDC, bool month, const SYSTEMTIME* st) {
+    HWND h = Ctrl(pDX, nIDC);
+    if (!h) return;
+    if (month) ::SendMessageW(h, MCM_SETCURSEL, 0, (LPARAM)st);
+    else ::SendMessageW(h, DTM_SETSYSTEMTIME, GDT_VALID, (LPARAM)st);
+}
+inline long long CTimeFromSt(const SYSTEMTIME* st) {
+    FILETIME ft; SystemTimeToFileTime(st, &ft);
+    ULARGE_INTEGER u; u.LowPart = ft.dwLowDateTime; u.HighPart = ft.dwHighDateTime;
+    return (long long)((u.QuadPart - 116444736000000000ULL) / 10000000ULL);
+}
+inline void StFromCTime(long long t, SYSTEMTIME* st) {
+    ULARGE_INTEGER u; u.QuadPart = (unsigned long long)t * 10000000ULL + 116444736000000000ULL;
+    FILETIME ft; ft.dwLowDateTime = u.LowPart; ft.dwHighDateTime = u.HighPart;
+    FileTimeToSystemTime(&ft, st);
+}
+
+inline void DateExchange(void* pDX, int nIDC, void* pv, int kind, bool month) {
+    if (Saving(pDX)) {
+        SYSTEMTIME st{};
+        if (!StFromCtl(pDX, nIDC, month, &st)) return;
+        if (kind == DK_CTIME) *(long long*)pv = CTimeFromSt(&st);
+        else if (kind == DK_FILETIME) SystemTimeToFileTime(&st, (FILETIME*)pv);
+        else { double d = 0; SystemTimeToVariantTime(&st, &d); ((double*)pv)[0] = d; ((int*)((char*)pv + 8))[0] = 0; }
+    } else {
+        SYSTEMTIME st{};
+        if (kind == DK_CTIME) StFromCTime(*(long long*)pv, &st);
+        else if (kind == DK_FILETIME) FileTimeToSystemTime((const FILETIME*)pv, &st);
+        else { double d = ((double*)pv)[0]; VariantTimeToSystemTime(d, &st); }
+        StToCtl(pDX, nIDC, month, &st);
+    }
+}
+
 inline void IPAddress(void* pDX, int nIDC, unsigned long* pv) {
     HWND h = Ctrl(pDX, nIDC);
     if (!h) return;

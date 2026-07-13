@@ -210,6 +210,21 @@ extern "C" void MS_ABI impl__DDX_Control__YAXPEAVCDataExchange__HAEAVCWnd___Z(vo
     openmfc_ddx::Ctrl(pDX, nIDC);
 }
 
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAU_FILETIME@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAU_FILETIME___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_FILETIME, false);
+}
+
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAVCOleDateTime_ATL___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_OLEDT, false);
+}
+
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAVCTime@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAVCTime_ATL___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_CTIME, false);
+}
+
 // Symbol: ?DDX_FieldCBIndex@@YAXPEAVCDataExchange@@HAEAHPEAVCRecordset@@@Z
 extern "C" void MS_ABI impl__DDX_FieldCBIndex__YAXPEAVCDataExchange__HAEAHPEAVCRecordset___Z(void* pDX, int nIDC, int* pv, void* pRs) {
     (void)pRs; openmfc_ddx::CBIndex(pDX, nIDC, pv);
@@ -318,6 +333,21 @@ extern "C" void MS_ABI impl__DDX_LBString__YAXPEAVCDataExchange__HAEAV__CStringT
 // Symbol: ?DDX_LBStringExact@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__DDX_LBStringExact__YAXPEAVCDataExchange__HAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* pDX, int nIDC, void* pv) {
     openmfc_ddx::LBString(pDX, nIDC, reinterpret_cast<CString*>(pv), true);
+}
+
+// Symbol: ?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAU_FILETIME@@@Z
+extern "C" void MS_ABI impl__DDX_MonthCalCtrl__YAXPEAVCDataExchange__HAEAU_FILETIME___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_FILETIME, true);
+}
+
+// Symbol: ?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_MonthCalCtrl__YAXPEAVCDataExchange__HAEAVCOleDateTime_ATL___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_OLEDT, true);
+}
+
+// Symbol: ?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAVCTime@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_MonthCalCtrl__YAXPEAVCDataExchange__HAEAVCTime_ATL___Z(void* pDX, int nIDC, void* pv) {
+    openmfc_ddx::DateExchange(pDX, nIDC, pv, openmfc_ddx::DK_CTIME, true);
 }
 
 // Symbol: ?DDX_Radio@@YAXPEAVCDataExchange@@HAEAH@Z

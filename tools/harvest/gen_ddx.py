@@ -187,6 +187,17 @@ def build():
             add(s, [('void*','pDX'),('int','nIDC'),('unsigned long*','pv')], 'openmfc_ddx::IPAddress(pDX, nIDC, pv);'); covered+=1; continue
         if fn == 'DDX_Control':
             add(s, [('void*','pDX'),('int','nIDC'),('void*','pv')], 'openmfc_ddx::Ctrl(pDX, nIDC);'); covered+=1; continue
+        # ---- date/time-picker & month-cal controls (CTime / COleDateTime / FILETIME) ----
+        if fn in ('DDX_DateTimeCtrl','DDX_MonthCalCtrl'):
+            month = 'true' if fn == 'DDX_MonthCalCtrl' else 'false'
+            kind = None
+            if body == 'AEAVCTime@ATL@@': kind = 'openmfc_ddx::DK_CTIME'
+            elif body == 'AEAVCOleDateTime@ATL@@': kind = 'openmfc_ddx::DK_OLEDT'
+            elif body == 'AEAU_FILETIME@@': kind = 'openmfc_ddx::DK_FILETIME'
+            if kind:
+                add(s, [('void*','pDX'),('int','nIDC'),('void*','pv')],
+                    'openmfc_ddx::DateExchange(pDX, nIDC, pv, %s, %s);' % (kind, month)); covered+=1
+            continue
 
         # ---- DDP_ property-page families: data-move like DDX; End*/PostProcessing commit ----
         if fn == 'DDP_Text':
