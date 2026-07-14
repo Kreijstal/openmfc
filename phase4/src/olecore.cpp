@@ -1596,8 +1596,8 @@ private:
     COleMessageFilter* m_filter;
 };
 
-static OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
-static IMessageFilter* g_previousMessageFilter = nullptr;
+static thread_local OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
+static thread_local IMessageFilter* g_previousMessageFilter = nullptr;
 
 HRESULT DropTargetAdapter::DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
     if (!effect) return E_POINTER;
@@ -2107,13 +2107,19 @@ int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
         return TRUE;
     }
     if (entry->medium.tymed == TYMED_FILE && entry->medium.lpszFileName) {
-        CFile source(entry->medium.lpszFileName, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
-        BYTE buffer[4096];
-        UINT read = 0;
-        while ((read = source.Read(buffer, sizeof(buffer))) > 0) {
-            pFile->Write(buffer, read);
+        try {
+            CFile source(entry->medium.lpszFileName,
+                         CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+            BYTE buffer[4096];
+            UINT read = 0;
+            while ((read = source.Read(buffer, sizeof(buffer))) > 0) {
+                pFile->Write(buffer, read);
+            }
+            return TRUE;
+        } catch (CFileException* exception) {
+            if (exception) exception->Delete();
+            return FALSE;
         }
-        return TRUE;
     }
     return FALSE;
 }
@@ -5530,7 +5536,8 @@ void COleControl::EnableConnectionPoints() {
     IEnumConnectionPoints* enumPoints = nullptr;
     if (SUCCEEDED(container->EnumConnectionPoints(&enumPoints)) && enumPoints) {
         IConnectionPoint* point = nullptr;
-        while (enumPoints->Next(1, &point, nullptr) == S_OK) {
+        ULONG fetched = 0;
+        while (enumPoints->Next(1, &point, &fetched) == S_OK && fetched == 1) {
             IID iid = IID_NULL;
             if (SUCCEEDED(point->GetConnectionInterface(&iid))) {
                 bool exists = std::any_of(state->enabledConnectionPoints.begin(), state->enabledConnectionPoints.end(),

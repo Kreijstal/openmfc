@@ -35,7 +35,7 @@ struct GopherFindState {
 };
 
 std::unordered_map<const void*, GopherFindState>& GopherStates() {
-    static std::unordered_map<const void*, GopherFindState> states;
+    static thread_local std::unordered_map<const void*, GopherFindState> states;
     return states;
 }
 
@@ -110,7 +110,9 @@ CString FormatGopherAttribute(const GOPHER_ATTRIBUTE_TYPE& attr) {
     CString value;
     switch (attr.AttributeId) {
     case GOPHER_ATTRIBUTE_ID_ADMIN:
-        value = attr.AttributeType.Admin.Comment;
+        if (attr.AttributeType.Admin.Comment) {
+            value = attr.AttributeType.Admin.Comment;
+        }
         if (attr.AttributeType.Admin.EmailAddress) {
             if (!value.IsEmpty()) value += L" ";
             value += attr.AttributeType.Admin.EmailAddress;
@@ -135,13 +137,15 @@ CString FormatGopherAttribute(const GOPHER_ATTRIBUTE_TYPE& attr) {
                      attr.AttributeType.ScoreRange.UpperBound);
         break;
     case GOPHER_ATTRIBUTE_ID_SITE:
-        value = attr.AttributeType.Site.Site;
+        if (attr.AttributeType.Site.Site) value = attr.AttributeType.Site.Site;
         break;
     case GOPHER_ATTRIBUTE_ID_ORG:
-        value = attr.AttributeType.Organization.Organization;
+        if (attr.AttributeType.Organization.Organization) {
+            value = attr.AttributeType.Organization.Organization;
+        }
         break;
     case GOPHER_ATTRIBUTE_ID_LOCATION:
-        value = attr.AttributeType.Location.Location;
+        if (attr.AttributeType.Location.Location) value = attr.AttributeType.Location.Location;
         break;
     case GOPHER_ATTRIBUTE_ID_GEOG:
         value.Format(L"%d %d %d, %d %d %d",
@@ -156,20 +160,22 @@ CString FormatGopherAttribute(const GOPHER_ATTRIBUTE_TYPE& attr) {
         value.Format(L"%d", attr.AttributeType.TimeZone.Zone);
         break;
     case GOPHER_ATTRIBUTE_ID_PROVIDER:
-        value = attr.AttributeType.Provider.Provider;
+        if (attr.AttributeType.Provider.Provider) value = attr.AttributeType.Provider.Provider;
         break;
     case GOPHER_ATTRIBUTE_ID_VERSION:
-        value = attr.AttributeType.Version.Version;
+        if (attr.AttributeType.Version.Version) value = attr.AttributeType.Version.Version;
         break;
     case GOPHER_ATTRIBUTE_ID_ABSTRACT:
-        value = attr.AttributeType.Abstract.ShortAbstract;
+        if (attr.AttributeType.Abstract.ShortAbstract) {
+            value = attr.AttributeType.Abstract.ShortAbstract;
+        }
         if (attr.AttributeType.Abstract.AbstractFile) {
             if (!value.IsEmpty()) value += L" ";
             value += attr.AttributeType.Abstract.AbstractFile;
         }
         break;
     case GOPHER_ATTRIBUTE_ID_VIEW:
-        value = attr.AttributeType.View.ContentType;
+        if (attr.AttributeType.View.ContentType) value = attr.AttributeType.View.ContentType;
         if (attr.AttributeType.View.Language) {
             if (!value.IsEmpty()) value += L"; ";
             value += attr.AttributeType.View.Language;
@@ -183,7 +189,7 @@ CString FormatGopherAttribute(const GOPHER_ATTRIBUTE_TYPE& attr) {
         break;
     case GOPHER_ATTRIBUTE_ID_UNKNOWN:
     default:
-        value = attr.AttributeType.Unknown.Text;
+        if (attr.AttributeType.Unknown.Text) value = attr.AttributeType.Unknown.Text;
         break;
     }
     return value;
@@ -234,6 +240,7 @@ int FindGopher(CFtpFileFind* pThis, const wchar_t* locator,
     std::memset(&pThis->m_findFileData, 0, sizeof(pThis->m_findFileData));
     wcsncpy(pThis->m_findFileData.cFileName, state.data.DisplayString,
             MAX_PATH - 1);
+    pThis->m_findFileData.cFileName[MAX_PATH - 1] = L'\0';
     pThis->m_findFileData.nFileSizeLow = state.data.SizeLow;
     pThis->m_findFileData.nFileSizeHigh = state.data.SizeHigh;
     pThis->m_findFileData.ftLastWriteTime = state.data.LastModificationTime;
@@ -416,6 +423,7 @@ extern "C" int MS_ABI impl__FindNextFileW_CGopherFileFind__UEAAHXZ(CFtpFileFind*
         if (!::InternetFindNextFileW(pThis->m_hFindHandle, &it->second.data)) return 0;
         std::memset(&pThis->m_findFileData, 0, sizeof(pThis->m_findFileData));
         wcsncpy(pThis->m_findFileData.cFileName, it->second.data.DisplayString, MAX_PATH - 1);
+        pThis->m_findFileData.cFileName[MAX_PATH - 1] = L'\0';
         pThis->m_findFileData.nFileSizeLow = it->second.data.SizeLow;
         pThis->m_findFileData.nFileSizeHigh = it->second.data.SizeHigh;
         pThis->m_findFileData.ftLastWriteTime = it->second.data.LastModificationTime;
