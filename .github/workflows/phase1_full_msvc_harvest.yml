@@ -2,6 +2,18 @@ name: Phase 1 - Full MSVC ABI Harvest
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/phase1_full_msvc_harvest.yml'
+      - 'tools/harvest/gen_rtti_targets.py'
+      - 'tools/harvest/harvest_msvc_layouts.ps1'
+      - 'tools/harvest/merge_layout_summaries.py'
+      - 'tools/harvest/msvc_layout_probe.cpp'
+      - 'tools/harvest/parse_rtti_probe.py'
+      - 'tools/harvest/rtti_layout_targets.txt'
+      - 'tools/harvest/rtti_probe.cpp'
+      - 'tools/harvest/rtti_targets.h'
+      - 'tools/harvest/rtti_targets.json'
 
 jobs:
   harvest-rtti-descriptors:
