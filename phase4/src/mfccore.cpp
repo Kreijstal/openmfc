@@ -1466,6 +1466,82 @@ BOOL CDockablePane::IsTabbed() const {
 }
 
 //=============================================================================
+// CBaseTabbedPane
+//=============================================================================
+IMPLEMENT_DYNAMIC(CBaseTabbedPane, CDockablePane)
+
+CBaseTabbedPane::CBaseTabbedPane(int iStyle) {
+    memset(_basetabbedpane_padding, 0, sizeof(_basetabbedpane_padding));
+    (void)iStyle;
+}
+
+CBaseTabbedPane::~CBaseTabbedPane() {}
+
+// Symbol: ??0CBaseTabbedPane@@QEAA@H@Z
+extern "C" void* MS_ABI impl___0CBaseTabbedPane__QEAA_H_Z(void* pThis, int iStyle) { return new (pThis) CBaseTabbedPane(iStyle); }
+// Symbol: ??1CBaseTabbedPane@@UEAA@XZ
+extern "C" void MS_ABI impl___1CBaseTabbedPane__UEAA_XZ(CBaseTabbedPane* pThis) { if (pThis) pThis->~CBaseTabbedPane(); }
+
+//=============================================================================
+// CTabbedPane
+//=============================================================================
+IMPLEMENT_SERIAL(CTabbedPane, CBaseTabbedPane, 0x80000002)
+
+CTabbedPane::CTabbedPane(int iStyle) : CBaseTabbedPane(iStyle) { memset(_tabbedpane_padding, 0, sizeof(_tabbedpane_padding)); }
+CTabbedPane::~CTabbedPane() {}
+
+// Symbol: ??0CTabbedPane@@QEAA@H@Z
+extern "C" void* MS_ABI impl___0CTabbedPane__QEAA_H_Z(void* pThis, int iStyle) { return new (pThis) CTabbedPane(iStyle); }
+// Symbol: ??1CTabbedPane@@UEAA@XZ
+extern "C" void MS_ABI impl___1CTabbedPane__UEAA_XZ(CTabbedPane* pThis) { if (pThis) pThis->~CTabbedPane(); }
+
+//=============================================================================
+// CUserTool
+//=============================================================================
+IMPLEMENT_SERIAL(CUserTool, CObject, 0x80000001)
+
+CUserTool::CUserTool() {
+    memset(_usertool_padding, 0, sizeof(_usertool_padding));
+}
+
+CUserTool::~CUserTool() {}
+
+int CUserTool::Invoke() { return 0; }
+void CUserTool::Serialize(CArchive&) {}
+
+// Symbol: ??0CUserTool@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CUserTool__QEAA_XZ(void* pThis) { return new (pThis) CUserTool(); }
+// Symbol: ??1CUserTool@@UEAA@XZ
+extern "C" void MS_ABI impl___1CUserTool__UEAA_XZ(CUserTool* pThis) { if (pThis) pThis->~CUserTool(); }
+
+//=============================================================================
+// CUserToolsManager
+//=============================================================================
+IMPLEMENT_DYNAMIC(CUserToolsManager, CObject)
+
+CUserToolsManager::CUserToolsManager() {
+    memset(_usertoolsmanager_padding, 0, sizeof(_usertoolsmanager_padding));
+}
+
+CUserToolsManager::CUserToolsManager(int, int, int, CRuntimeClass*, int, int) {
+    memset(_usertoolsmanager_padding, 0, sizeof(_usertoolsmanager_padding));
+}
+
+CUserToolsManager::~CUserToolsManager() {}
+
+// Symbol: ??0CUserToolsManager@@QEAA@IIIPEAUCRuntimeClass@@II@Z
+extern "C" void* MS_ABI impl___0CUserToolsManager__QEAA_IIIPEAUCRuntimeClass__II_Z(
+    void* pThis, int p0, int p1, int p2, CRuntimeClass* p3,
+    int p4, int p5) {
+    return new (pThis) CUserToolsManager(p0, p1, p2, p3, p4, p5);
+}
+
+// Symbol: ??0CUserToolsManager@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CUserToolsManager__QEAA_XZ(void* pThis) { return new (pThis) CUserToolsManager(); }
+// Symbol: ??1CUserToolsManager@@UEAA@XZ
+extern "C" void MS_ABI impl___1CUserToolsManager__UEAA_XZ(CUserToolsManager* pThis) { if (pThis) pThis->~CUserToolsManager(); }
+
+//=============================================================================
 // CMFCToolBarButton
 //=============================================================================
 IMPLEMENT_DYNAMIC(CMFCToolBarButton, CObject)
