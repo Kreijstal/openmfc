@@ -1867,7 +1867,8 @@ void COleDataObject::BeginEnumFormats() {
 
 BOOL COleDataObject::GetNextFormat(FORMATETC* lpFormatEtc) {
     if (!m_lpEnumFmtEtc) return FALSE;
-    return m_lpEnumFmtEtc->Next(1, lpFormatEtc, nullptr) == S_OK;
+    ULONG fetched = 0;
+    return m_lpEnumFmtEtc->Next(1, lpFormatEtc, &fetched) == S_OK && fetched == 1;
 }
 
 BOOL COleDataObject::IsDataAvailable(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
@@ -1968,7 +1969,19 @@ CFile* COleDataObject::GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) 
     CString filePath = stg.lpszFileName;
     ReleaseStgMedium(&stg);
 
-    return new CFile(filePath, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+    if (filePath.IsEmpty()) {
+        return nullptr;
+    }
+
+    auto* result = new CFile(filePath, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+    if (result == nullptr || result->m_hFile == INVALID_HANDLE_VALUE) {
+        if (result) {
+            result->Close();
+            delete result;
+        }
+        return nullptr;
+    }
+    return result;
 }
 
 //=============================================================================
@@ -2107,19 +2120,16 @@ int COleDataSource::OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile) {
         return TRUE;
     }
     if (entry->medium.tymed == TYMED_FILE && entry->medium.lpszFileName) {
-        try {
-            CFile source(entry->medium.lpszFileName,
-                         CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
-            BYTE buffer[4096];
-            UINT read = 0;
-            while ((read = source.Read(buffer, sizeof(buffer))) > 0) {
-                pFile->Write(buffer, read);
-            }
-            return TRUE;
-        } catch (CFileException* exception) {
-            if (exception) exception->Delete();
+        CFile source(entry->medium.lpszFileName, CFile::modeRead | CFile::shareDenyNone | CFile::typeBinary);
+        if (source.m_hFile == INVALID_HANDLE_VALUE) {
             return FALSE;
         }
+        BYTE buffer[4096];
+        UINT read = 0;
+        while ((read = source.Read(buffer, sizeof(buffer))) > 0) {
+            pFile->Write(buffer, read);
+        }
+        return TRUE;
     }
     return FALSE;
 }
