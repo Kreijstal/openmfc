@@ -17,7 +17,6 @@
 #include <afxdisp.h>
 #include <afxoledb.h>
 #include <afxdb.h>
-#include <afxdao.h>
 #include <afxsock.h>
 #include <afxinet.h>
 #include <afxtaskdialog.h>

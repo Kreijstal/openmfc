@@ -63,7 +63,8 @@ foreach ($className in $selected) {
     $exitCode = $LASTEXITCODE
     $compilerOutput | Out-File -FilePath $rawPath -Encoding utf8
 
-    $hasLayout = Select-String -Path $rawPath -SimpleMatch "$className size(" -Quiet
+    $layoutPattern = "\b$([regex]::Escape($className))\s+size\("
+    $hasLayout = Select-String -Path $rawPath -Pattern $layoutPattern -Quiet
     if ($exitCode -eq 0 -and $hasLayout) {
         $succeeded += $className
     }
