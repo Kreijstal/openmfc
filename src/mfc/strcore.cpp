@@ -53,19 +53,45 @@
 
 // CString::LoadString implementation
 int CString::LoadString(UINT nID) {
-    // Try fixed buffer first (typical max length 256)
-    wchar_t szBuffer[256];
-    int nLen = ::LoadStringW(AfxGetResourceHandle(), nID, szBuffer, 255);
-    
-    if (nLen > 0) {
-        // Success with fixed buffer
-        *this = szBuffer;
-        return nLen;
+    HINSTANCE hInst = AfxGetResourceHandle();
+    if (!hInst) return 0;
+
+    int nLen = ::LoadStringW(hInst, nID, nullptr, 0);
+    if (nLen == 0) return 0;
+
+    // Fast path for the common <=255 case.
+    if (nLen < 255) {
+        wchar_t buf[256];
+        int loaded = ::LoadStringW(hInst, nID, buf, 255);
+        if (loaded > 0) {
+            *this = buf;
+            return loaded;
+        }
+        return 0;
     }
-    
-    // If failed, might be too long or not found.
-    // Try larger buffer if needed, but for now 256 is standard for MFC string resources.
-    // Real MFC does a more complex loop here.
+
+    size_t bufLen = 256;
+    while (bufLen <= 8192) {
+        std::vector<wchar_t> buf(bufLen, 0);
+        int loaded = ::LoadStringW(hInst, nID, buf.data(), static_cast<int>(bufLen - 1));
+        if (loaded <= 0) return 0;
+        *this = buf.data();
+        if (loaded < static_cast<int>(bufLen - 1)) {
+            return loaded;
+        }
+        if (bufLen >= static_cast<size_t>(nLen + 1)) {
+            return loaded;
+        }
+        bufLen *= 2;
+    }
+
+    // Fallback: keep first attempt (likely truncated) but return success.
+    std::vector<wchar_t> buf(8192, 0);
+    int loaded = ::LoadStringW(hInst, nID, buf.data(), static_cast<int>(buf.size() - 1));
+    if (loaded > 0) {
+        *this = buf.data();
+        return loaded;
+    }
     return 0;
 }
 
