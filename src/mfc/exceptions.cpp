@@ -1,7 +1,9 @@
 // Define OPENMFC_APPCORE_IMPL since we link with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include <cstdio>
 #include <new>
+#include <cwchar>
 
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 
@@ -53,6 +55,13 @@ public:
     CUserException() : CException(TRUE) {}
 };
 
+namespace {
+void EmitExceptionText(const wchar_t* text) {
+    if (!text) return;
+    fwprintf(stderr, L"%ls\n", text);
+}
+}
+
 // Exception throwing helpers
 
 void AFXAPI AfxThrowMemoryException() {
@@ -98,9 +107,24 @@ int CException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelp
 }
 
 void CException::Dump() const {
+    const char* name = GetRuntimeClass() && GetRuntimeClass()->m_lpszClassName ? GetRuntimeClass()->m_lpszClassName : "CException";
+    wchar_t out[128];
+    size_t i = 0;
+    for (; name[i] != '\0' && i + 1 < (sizeof(out)/sizeof(out[0])); ++i) {
+        out[i] = static_cast<unsigned char>(name[i]);
+    }
+    out[i] = L'\0';
+    fwprintf(stderr, L"CException::Dump class=%ls autoDelete=%d\n", out, m_bAutoDelete);
 }
 
 void CException::AssertValid() const {
+    const CRuntimeClass* pClass = GetRuntimeClass();
+    if (!pClass || !pClass->m_lpszClassName || pClass->m_lpszClassName[0] == '\0') {
+        EmitExceptionText(L"CException::AssertValid invalid runtime class");
+    }
+    if (m_bAutoDelete != FALSE && m_bAutoDelete != TRUE) {
+        EmitExceptionText(L"CException::AssertValid invalid m_bAutoDelete");
+    }
 }
 
 // CFileException::GetErrorMessage implementation
@@ -177,6 +201,15 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
 }
 
 void CFileException::Dump() const {
+    wchar_t msg[1024];
+    if (m_strFileName.IsEmpty()) {
+        swprintf(msg, 1024, L"CFileException{cause=%d, os=%ld, autoDelete=%d}",
+                 m_cause, m_lOsError, m_bAutoDelete);
+    } else {
+        swprintf(msg, 1024, L"CFileException{cause=%d, os=%ld, file=%ls, autoDelete=%d}",
+                 m_cause, m_lOsError, static_cast<const wchar_t*>(m_strFileName), m_bAutoDelete);
+    }
+    fwprintf(stderr, L"%ls\n", msg);
 }
 
 void CFileException::AssertValid() const {
@@ -199,6 +232,14 @@ int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT*
 }
 
 void CArchiveException::Dump() const {
+    wchar_t msg[1024];
+    if (m_strFileName.IsEmpty()) {
+        swprintf(msg, 1024, L"CArchiveException{cause=%d, autoDelete=%d}", m_cause, m_bAutoDelete);
+    } else {
+        swprintf(msg, 1024, L"CArchiveException{cause=%d, file=%ls, autoDelete=%d}",
+                 m_cause, static_cast<const wchar_t*>(m_strFileName), m_bAutoDelete);
+    }
+    fwprintf(stderr, L"%ls\n", msg);
 }
 
 void CArchiveException::AssertValid() const {
