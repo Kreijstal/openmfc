@@ -19,6 +19,8 @@
 #include <windows.h>
 #include <objidl.h>
 #include <cstddef>   // offsetof — llvm-mingw/clang doesn't pull it in via <windows.h>
+#include <cstring>
+#include "openmfc/afxole.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -161,4 +163,90 @@ extern "C" int MS_ABI impl__OpenStream_COleStreamFile__QEAAHPEAUIStorage__PEB_WK
     if (FAILED(lpStorage->OpenStream(lpszName, nullptr, nFlags, 0, &pNew)) || !pNew) return 0;
     s = pNew;
     return 1;
+}
+
+// ?Duplicate@COleStreamFile@@UBAPAVCFile@@XZ
+// CFile* Duplicate() const — clone the underlying IStream and return a new wrapper.
+// Symbol: ?Duplicate@COleStreamFile@@UBAPAVCFile@@XZ
+extern "C" void* MS_ABI impl__Duplicate_COleStreamFile__UBAPAVCFile__XZ(const void* pThis)
+{
+    COleStreamFile* pDup = new COleStreamFile();
+    if (!pDup) return nullptr;
+
+    IStream* source = Stream(const_cast<void*>(pThis));
+    if (!source) return pDup;
+
+    IStream* pClone = nullptr;
+    if (SUCCEEDED(source->Clone(&pClone)) && pClone) {
+        pDup->Attach(pClone);
+    }
+    return pDup;
+}
+
+// ?GetStatus@COleStreamFile@@QBAHAAUCFileStatus@@@Z
+// int GetStatus(CFileStatus& rStatus) const — fill status from STATSTG.
+// Symbol: ?GetStatus@COleStreamFile@@QBAHAAUCFileStatus@@@Z
+extern "C" int MS_ABI impl__GetStatus_COleStreamFile__QBAHAAUCFileStatus__XZ(
+    const void* pThis, CFileStatus* pStatus)
+{
+    if (!pThis || !pStatus) return 0;
+    std::memset(pStatus, 0, sizeof(*pStatus));
+
+    IStream* stream = Stream(const_cast<void*>(pThis));
+    if (!stream) return 0;
+
+    STATSTG stat;
+    if (FAILED(stream->Stat(&stat, STATFLAG_DEFAULT))) return 0;
+
+    ULARGE_INTEGER ul;
+    ul.LowPart = stat.cbSize.LowPart;
+    ul.HighPart = stat.cbSize.HighPart;
+    pStatus->m_size = ul.QuadPart;
+
+    ul.LowPart = stat.ctime.dwLowDateTime;
+    ul.HighPart = stat.ctime.dwHighDateTime;
+    pStatus->m_ctime = ul.QuadPart;
+
+    ul.LowPart = stat.mtime.dwLowDateTime;
+    ul.HighPart = stat.mtime.dwHighDateTime;
+    pStatus->m_mtime = ul.QuadPart;
+
+    ul.LowPart = stat.atime.dwLowDateTime;
+    ul.HighPart = stat.atime.dwHighDateTime;
+    pStatus->m_atime = ul.QuadPart;
+
+    if (stat.pwcsName) {
+        for (size_t i = 0; i + 1 < _MAX_PATH && stat.pwcsName[i] != L'\0'; ++i) {
+            pStatus->m_szFullName[i] = stat.pwcsName[i];
+            pStatus->m_szFullName[i + 1] = L'\0';
+        }
+        CoTaskMemFree(stat.pwcsName);
+    }
+
+    return 1;
+}
+
+// ?GetStorageName@COleStreamFile@@UBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+// const CStringT<wchar_t,...> GetStorageName() const — return stream storage name.
+// Symbol: ?GetStorageName@COleStreamFile@@UBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetStorageName_COleStreamFile__UBA_BV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    const void* pThis, void* ret)
+{
+    IStream* stream = Stream(const_cast<void*>(pThis));
+    if (!stream) {
+        new(ret) CString();
+        return;
+    }
+
+    STATSTG stat;
+    if (FAILED(stream->Stat(&stat, STATFLAG_DEFAULT))) {
+        new(ret) CString();
+        return;
+    }
+
+    const wchar_t* storageName = stat.pwcsName ? stat.pwcsName : L"";
+    new(ret) CString(storageName);
+    if (stat.pwcsName) {
+        CoTaskMemFree(stat.pwcsName);
+    }
 }

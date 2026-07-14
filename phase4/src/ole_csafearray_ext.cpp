@@ -21,6 +21,7 @@
 #include <windows.h>
 #include <oleauto.h>
 #include <cstring>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -67,6 +68,63 @@ inline void RefreshCache(void* pThis) {
     v->m_dwElementSize = psa ? psa->cbElements : 0;
     v->m_dwDims = psa ? psa->cDims : 0;
 }
+
+namespace {
+
+inline void SetByteArrayEmpty(CByteArray* pByteArray) {
+    if (pByteArray) pByteArray->SetSize(0);
+}
+
+// Copy all bytes from a SAFEARRAY into a CByteArray.
+// Returns false if the SAFEARRAY cannot be enumerated (including overflow), true otherwise.
+inline bool CopySafeArrayBytes(SAFEARRAY* psa, CByteArray* pByteArray) {
+    if (!psa || !pByteArray) return false;
+    unsigned long long uBytes = 0;
+    if (psa->cbElements == 0) {
+        SetByteArrayEmpty(pByteArray);
+        return true;
+    }
+
+    unsigned long long uElemCount = 1;
+    for (unsigned long iDim = 1; iDim <= psa->cDims; ++iDim) {
+        LONG lBound = 0;
+        LONG uBound = 0;
+        if (FAILED(SafeArrayGetLBound(psa, iDim, &lBound)) ||
+            FAILED(SafeArrayGetUBound(psa, iDim, &uBound))) {
+            return false;
+        }
+        if (uBound < lBound) {
+            SetByteArrayEmpty(pByteArray);
+            return false;
+        }
+        unsigned long long dimCount = static_cast<unsigned long long>(uBound - lBound + 1);
+        if (dimCount == 0 || uElemCount > (static_cast<unsigned long long>(-1) / dimCount)) {
+            SetByteArrayEmpty(pByteArray);
+            return false;
+        }
+        uElemCount *= dimCount;
+    }
+
+    if (uElemCount > (static_cast<unsigned long long>(-1) / psa->cbElements)) {
+        SetByteArrayEmpty(pByteArray);
+        return false;
+    }
+    uBytes = uElemCount * psa->cbElements;
+
+    void* pData = nullptr;
+    if (FAILED(SafeArrayAccessData(psa, &pData)) || !pData) {
+        return false;
+    }
+
+    pByteArray->SetSize(static_cast<long long>(uBytes));
+    if (uBytes != 0) {
+        std::memcpy(pByteArray->GetData(), pData, static_cast<size_t>(uBytes));
+    }
+    SafeArrayUnaccessData(psa);
+    return true;
+}
+
+} // namespace
 
 // Release any array this object currently owns before overwriting it, so reusing
 // one object across Create()/Attach() doesn't leak. A fresh object has
@@ -317,4 +375,56 @@ extern "C" void MS_ABI impl__DestroyDescriptor_COleSafeArray__QEAAXXZ(void* pThi
         v->m_dwElementSize = 0;
         v->m_dwDims = 0;
     }
+}
+
+// ?Detach@COleSafeArray@@QEAA?AUtagVARIANT@@XZ
+// VARIANT Detach() — releases ownership of the SAFEARRAY descriptor and returns
+// an equivalent VARIANT with VT_ARRAY set.
+// Symbol: ?Detach@COleSafeArray@@QEAA?AUtagVARIANT@@XZ
+extern "C" VARIANT* MS_ABI impl__Detach_COleSafeArray__QEAA_AUtagVARIANT__XZ(
+    VARIANT* pRet, void* pThis)
+{
+    if (!pRet) return nullptr;
+    VariantInit(pRet);
+    if (!pThis) return pRet;
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    pRet->vt = v->var.vt;
+    pRet->parray = static_cast<SAFEARRAY*>(v->var.parray);
+    v->var.vt = VT_EMPTY;
+    v->var.parray = nullptr;
+    v->m_dwElementSize = 0;
+    v->m_dwDims = 0;
+    return pRet;
+}
+
+// ?GetByteArray@COleSafeArray@@QAAXAAVCByteArray@@@Z
+// void GetByteArray(CByteArray& ba) — copy the raw byte payload of this SAFEARRAY.
+// Symbol: ?GetByteArray@COleSafeArray@@QAAXAAVCByteArray@@@Z
+extern "C" void MS_ABI impl__GetByteArray_COleSafeArray__QAAXAAVCByteArray___Z(
+    void* pThis, CByteArray* pByteArray)
+{
+    if (!pThis || !pByteArray) return;
+    SetByteArrayEmpty(pByteArray);
+    SAFEARRAY* psa = SA(pThis);
+    if (!psa) return;
+    CopySafeArrayBytes(psa, pByteArray);
+}
+
+// ?GetByteArrayFromVariantArray@COleVariant@@QAAXAAVCByteArray@@@Z
+// void GetByteArrayFromVariantArray(CByteArray& ba) — convert array VARIANT payload.
+// Symbol: ?GetByteArrayFromVariantArray@COleVariant@@QAAXAAVCByteArray@@@Z
+extern "C" void MS_ABI impl__GetByteArrayFromVariantArray_COleVariant__QAAXAAVCByteArray___Z(
+    void* pThis, CByteArray* pByteArray)
+{
+    if (!pThis || !pByteArray) return;
+    VARIANT* pVar = static_cast<VARIANT*>(pThis);
+    SetByteArrayEmpty(pByteArray);
+    if ((pVar->vt & VT_ARRAY) == 0) return;
+
+    SAFEARRAY* psa = (pVar->vt & VT_BYREF)
+        ? (pVar->pparray ? *pVar->pparray : nullptr)
+        : pVar->parray;
+    if (!psa) return;
+
+    CopySafeArrayBytes(psa, pByteArray);
 }
