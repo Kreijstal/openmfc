@@ -96,7 +96,7 @@ $summary | ConvertTo-Json -Depth 6 |
     Out-File -FilePath (Join-Path $OutputDir "summary.json") -Encoding utf8
 
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $scratchDir
-Write-Host "MSVC layouts shard $ShardIndex/$ShardCount: $($succeeded.Count)/$($selected.Count) harvested"
+Write-Host "MSVC layouts shard $ShardIndex/${ShardCount}: $($succeeded.Count)/$($selected.Count) harvested"
 
 if ($succeeded.Count -eq 0) {
     throw "no class layouts were harvested"
