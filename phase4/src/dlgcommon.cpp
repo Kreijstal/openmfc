@@ -15,7 +15,11 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <cstring>
+#include <map>
 #include <new>
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 // MS ABI for x64 Windows
 #ifdef __GNUC__
@@ -57,6 +61,60 @@ struct CFileDialogAccess : CFileDialog {
     using CFileDialog::m_strPathName;
 };
 
+struct CFileDialogControlState {
+    std::map<unsigned long, CString> controlLabels;
+    std::map<unsigned long, int> checkState;
+    std::map<unsigned long, CString> editText;
+    std::map<unsigned long, unsigned int> controlStates;
+    std::map<unsigned long, unsigned long> selectedItem;
+
+    struct ItemState {
+        CString text;
+        unsigned int state = 0;
+    };
+    std::map<unsigned long, std::map<unsigned long, ItemState>> controlItems;
+
+    std::vector<CString> selectedPaths;
+
+    bool openDropDownEnabled = false;
+    bool visualGroupActive = false;
+    unsigned long activeVisualGroup = 0;
+    CString properties;
+};
+
+static std::unordered_map<const CFileDialog*, CFileDialogControlState> g_fileDialogStates;
+
+static CFileDialogControlState* GetFileDialogState(const CFileDialog* pThis, bool createIfMissing) {
+    if (!pThis) {
+        return nullptr;
+    }
+
+    auto it = g_fileDialogStates.find(pThis);
+    if (it == g_fileDialogStates.end()) {
+        if (!createIfMissing) {
+            return nullptr;
+        }
+        it = g_fileDialogStates.emplace(pThis, CFileDialogControlState()).first;
+    }
+
+    return &it->second;
+}
+
+static void EraseFileDialogState(const CFileDialog* pThis) {
+    g_fileDialogStates.erase(pThis);
+}
+
+static void SetTextOrEmpty(CString* dst, const CString* src) {
+    if (!dst) {
+        return;
+    }
+    if (src) {
+        *dst = *src;
+    } else {
+        dst->Empty();
+    }
+}
+
 OPENFILENAMEW& OpenMfcGetOFNSnapshot(const CFileDialog* pThis) {
     thread_local OPENFILENAMEW ofn;
     thread_local wchar_t fileBuffer[65536];
@@ -88,7 +146,6 @@ OPENFILENAMEW& OpenMfcGetOFNSnapshot(const CFileDialog* pThis) {
 
     return ofn;
 }
-}
 
 CFileDialog::CFileDialog(int bOpenFileDialog,
                          const wchar_t* lpszDefExt,
@@ -115,11 +172,28 @@ CFileDialog::CFileDialog(int bOpenFileDialog,
     memset(_filedialog_padding, 0, sizeof(_filedialog_padding));
 }
 
+CFileDialog::~CFileDialog() {
+    EraseFileDialogState(this);
+}
+
 // Symbol: ?DoModal@CFileDialog@@UEAA_JXZ
 intptr_t CFileDialog::DoModal() {
+    CFileDialogControlState* state = GetFileDialogState(this, true);
+    if (state) {
+        state->selectedPaths.clear();
+        state->controlStates.clear();
+        state->checkState.clear();
+        state->editText.clear();
+        state->controlLabels.clear();
+        state->selectedItem.clear();
+        state->controlItems.clear();
+        state->visualGroupActive = false;
+    }
+
     // Allocate buffer for multiple file selection
     const size_t nBufferSize = 65536;
-    wchar_t* szFile = new wchar_t[nBufferSize];
+    std::vector<wchar_t> buffer(nBufferSize);
+    wchar_t* szFile = buffer.data();
     memset(szFile, 0, nBufferSize * sizeof(wchar_t));
 
     if (!m_strFileName.IsEmpty()) {
@@ -150,41 +224,34 @@ intptr_t CFileDialog::DoModal() {
         if ((m_dwFlags & OFN_ALLOWMULTISELECT) && szFile[wcslen(szFile) + 1] != L'\0') {
             // Multiple files selected: directory followed by null-separated filenames
             m_strFolderPath = szFile;
-
-            // Store pointer to file list for GetNextPathName
-            // m_pFileList points to the first filename after the directory
-            m_pFileList = (void*)(szFile + wcslen(szFile) + 1);
-
-            // Keep the buffer alive
-            // (In a real implementation, we'd allocate persistent storage)
-
-            // Build first path name
-            const wchar_t* pFirstFile = static_cast<const wchar_t*>(m_pFileList);
-            if (*pFirstFile != L'\0') {
-                m_strPathName = m_strFolderPath + L"\\" + CString(pFirstFile);
-                m_strFileNameOnly = pFirstFile;
-            } else {
-                // Single file selected in multi-select mode
-                m_strPathName = m_strFolderPath;
-                const wchar_t* pFileName = wcsrchr(szFile, L'\\');
-                if (pFileName) {
-                    m_strFileNameOnly = pFileName + 1;
-                    m_strFolderPath = m_strPathName.Left((int)(pFileName - szFile));
-                } else {
-                    m_strFileNameOnly = szFile;
+            if (state) {
+                const wchar_t* pFirstFile = szFile + wcslen(szFile) + 1;
+                while (*pFirstFile != L'\0') {
+                    const wchar_t* pNextNull = pFirstFile + wcslen(pFirstFile) + 1;
+                    CString filePath = m_strFolderPath + L"\\" + CString(pFirstFile);
+                    state->selectedPaths.push_back(filePath);
+                    pFirstFile = pNextNull;
                 }
-                m_pFileList = nullptr;
+
+                if (!state->selectedPaths.empty()) {
+                    m_strPathName = state->selectedPaths[0];
+                    const wchar_t* pFileName = wcsrchr((const wchar_t*)m_strPathName, L'\\');
+                    m_strFileNameOnly = pFileName != nullptr ? CString(pFileName + 1) : m_strPathName;
+                }
             }
         } else {
-            // Single file selection
-            m_strPathName = szFile;
-            m_pFileList = nullptr;
+            CString fullPath = szFile;
+            m_strPathName = fullPath;
+            if (state) {
+                state->selectedPaths.clear();
+                state->selectedPaths.push_back(fullPath);
+            }
 
             // Extract file name from path
-            const wchar_t* pFileName = wcsrchr(szFile, L'\\');
+            const wchar_t* pFileName = wcsrchr((const wchar_t*)fullPath, L'\\');
             if (pFileName != nullptr) {
                 m_strFileNameOnly = pFileName + 1;
-                m_strFolderPath = m_strPathName.Left((int)(pFileName - szFile));
+                m_strFolderPath = m_strPathName.Left((int)(pFileName - (const wchar_t*)fullPath));
             } else {
                 m_strFileNameOnly = szFile;
                 m_strFolderPath = L"";
@@ -201,12 +268,9 @@ intptr_t CFileDialog::DoModal() {
             m_strFileTitle = m_strFileNameOnly;
         }
 
-        // Note: szFile buffer must remain valid for GetNextPathName to work
-        // In a production implementation, we'd copy to persistent storage
         return IDOK;
     }
 
-    delete[] szFile;
     return IDCANCEL;
 }
 
@@ -266,28 +330,21 @@ extern "C" void MS_ABI impl__GetFolderPath_CFileDialog__QEBA_AV__CStringT__WV__S
 
 // Symbol: ?GetNextPathName@CFileDialog@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAPEAU__POSITION@@@Z
 CString CFileDialog::GetNextPathName(void*& pos) const {
-    // Multiple file selection: files are null-separated in the buffer
-    // pos should point to the current position in the null-separated list
-
-    if (pos == nullptr) {
-        return CString();
-    }
-
-    const wchar_t* pCurrent = static_cast<const wchar_t*>(pos);
-
-    // Check if we've reached the end (double null terminator)
-    if (*pCurrent == L'\0') {
+    const CFileDialogControlState* state = GetFileDialogState(this, false);
+    if (!state) {
         pos = nullptr;
         return CString();
     }
 
-    // Build full path: folder + filename
-    CString strResult = m_strFolderPath + L"\\" + CString(pCurrent);
+    size_t index = (pos == nullptr) ? 0 : (reinterpret_cast<uintptr_t>(pos) - 1);
+    if (index >= state->selectedPaths.size()) {
+        pos = nullptr;
+        return CString();
+    }
 
-    // Advance pos to next filename (past the null terminator)
-    pos = (void*)(pCurrent + wcslen(pCurrent) + 1);
-
-    return strResult;
+    CString result = state->selectedPaths[index];
+    pos = (index + 1 < state->selectedPaths.size()) ? reinterpret_cast<void*>(index + 2) : nullptr;
+    return result;
 }
 
 extern "C" void MS_ABI impl__GetNextPathName_CFileDialog__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAPEAU__POSITION___Z(
@@ -333,65 +390,72 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CFileDialog_
 
 // Symbol: ?AddComboBox@CFileDialog@@QEAAJK@Z
 extern "C" HRESULT MS_ABI impl__AddComboBox_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
-    (void)pThis;
-    (void)p0;
-    return E_NOTIMPL;
+    if (!pThis) return E_INVALIDARG;
+
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) {
+        return E_OUTOFMEMORY;
+    }
+    state->controlLabels.emplace(p0, CString());
+    return S_OK;
 }
 
 // Symbol: ?AddCheckButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
 extern "C" HRESULT MS_ABI impl__AddCheckButton_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* label, int bChecked) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)label;
-    (void)bChecked;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], label);
+    state->checkState[dwIDCtl] = bChecked ? TRUE : FALSE;
+    return S_OK;
 }
 
 // Symbol: ?AddControlItem@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__AddControlItem_CFileDialog__QEAAJKKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, unsigned long dwIDItem, const CString* label) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)dwIDItem;
-    (void)label;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    CString itemLabel;
+    SetTextOrEmpty(&itemLabel, label);
+    auto& items = state->controlItems[dwIDCtl];
+    items[dwIDItem].text = itemLabel;
+    return S_OK;
 }
 
 // Symbol: ?AddEditBox@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__AddEditBox_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)text;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->editText[dwIDCtl], text);
+    return S_OK;
 }
 
 // Symbol: ?AddMenu@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__AddMenu_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)label;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], label);
+    return S_OK;
 }
 
 // Symbol: ?AddPushButton@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__AddPushButton_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)label;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], label);
+    return S_OK;
 }
 
 // Symbol: ?AddText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__AddText_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)text;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], text);
+    return S_OK;
 }
 
 // Symbol: ?AddPlace@CFileDialog@@QEAAXPEAUIShellItem@@W4FDAP@@@Z
@@ -418,75 +482,118 @@ extern "C" void MS_ABI impl__ApplyOFNToShellDialog_CFileDialog__QEAAXXZ(CFileDia
 // Symbol: ?AddRadioButtonList@CFileDialog@@QEAAJK@Z
 extern "C" HRESULT MS_ABI impl__AddRadioButtonList_CFileDialog__QEAAJK_Z(
     CFileDialog* pThis, unsigned long p0) {
-    (void)pThis;
-    (void)p0;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->controlLabels[p0] = L"";
+    state->controlStates[p0] = 0;
+    state->selectedItem[p0] = 0;
+    return S_OK;
 }
 
 // Symbol: ?AddSeparator@CFileDialog@@QEAAJK@Z
 extern "C" HRESULT MS_ABI impl__AddSeparator_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
-    (void)pThis;
-    (void)p0;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->controlLabels[p0] = L"---";
+    return S_OK;
 }
 
 // Symbol: ?EnableOpenDropDown@CFileDialog@@QEAAJK@Z
 extern "C" HRESULT MS_ABI impl__EnableOpenDropDown_CFileDialog__QEAAJK_Z(
     CFileDialog* pThis, unsigned long p0) {
-    (void)pThis;
-    (void)p0;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->openDropDownEnabled = TRUE;
+    state->controlLabels[p0] = L"";
+    return S_OK;
 }
 
 // Symbol: ?EndVisualGroup@CFileDialog@@QEAAJXZ
 extern "C" HRESULT MS_ABI impl__EndVisualGroup_CFileDialog__QEAAJXZ(CFileDialog* pThis) {
-    (void)pThis;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) return S_FALSE;
+    state->visualGroupActive = FALSE;
+    state->activeVisualGroup = 0;
+    return S_OK;
 }
 
 // Symbol: ?GetCheckButtonState@CFileDialog@@QEAAJKAEAH@Z
 extern "C" HRESULT MS_ABI impl__GetCheckButtonState_CFileDialog__QEAAJKAEAH_Z(
     CFileDialog* pThis, unsigned long p0, int* p1) {
-    (void)pThis;
-    (void)p0;
-    if (p1 != nullptr) {
-        *p1 = FALSE;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        if (p1 != nullptr) {
+            *p1 = FALSE;
+        }
+        return S_FALSE;
     }
-    return E_NOTIMPL;
+    if (p1 != nullptr) {
+        auto it = state->checkState.find(p0);
+        *p1 = (it == state->checkState.end()) ? FALSE : it->second;
+    }
+    return S_OK;
 }
 
 // Symbol: ?GetEditBoxText@CFileDialog@@QEAAJKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__GetEditBoxText_CFileDialog__QEAAJKAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    if (text) {
-        text->Empty();
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        if (text) text->Empty();
+        return S_FALSE;
     }
-    return E_NOTIMPL;
+    auto it = state->editText.find(dwIDCtl);
+    if (it == state->editText.end()) {
+        if (text) text->Empty();
+        return S_FALSE;
+    }
+    if (text) {
+        *text = it->second;
+    }
+    return S_OK;
 }
 
 // Symbol: ?GetControlItemState@CFileDialog@@QEAAJKKAEAW4CDCONTROLSTATEF@@@Z
 extern "C" HRESULT MS_ABI impl__GetControlItemState_CFileDialog__QEAAJKKAEAW4CDCONTROLSTATEF___Z(
     CFileDialog* pThis, unsigned long p0, unsigned long p1, unsigned int* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        if (p2 != nullptr) {
+            *p2 = 0;
+        }
+        return S_FALSE;
+    }
+    auto itControl = state->controlItems.find(p0);
+    if (itControl != state->controlItems.end()) {
+        auto itItem = itControl->second.find(p1);
+        if (itItem != itControl->second.end()) {
+            if (p2 != nullptr) {
+                *p2 = itItem->second.state;
+            }
+            return S_OK;
+        }
+    }
     if (p2 != nullptr) {
         *p2 = 0;
     }
-    return E_NOTIMPL;
+    return S_FALSE;
 }
 
 // Symbol: ?GetControlState@CFileDialog@@QEAAJKAEAW4CDCONTROLSTATEF@@@Z
 extern "C" HRESULT MS_ABI impl__GetControlState_CFileDialog__QEAAJKAEAW4CDCONTROLSTATEF___Z(
     CFileDialog* pThis, unsigned long p0, unsigned int* p1) {
-    (void)pThis;
-    (void)p0;
-    if (p1 != nullptr) {
-        *p1 = 0;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        if (p1 != nullptr) {
+            *p1 = 0;
+        }
+        return S_FALSE;
     }
-    return E_NOTIMPL;
+    auto it = state->controlStates.find(p0);
+    if (p1 != nullptr) {
+        *p1 = (it == state->controlStates.end()) ? 0 : it->second;
+    }
+    return (it == state->controlStates.end()) ? S_FALSE : S_OK;
 }
 
 // Symbol: ?GetIFileDialogCustomize@CFileDialog@@QEAAPEAUIFileDialogCustomize@@XZ
@@ -523,12 +630,18 @@ extern "C" void* MS_ABI impl__GetResults_CFileDialog__QEAAPEAUIShellItemArray__X
 // Symbol: ?GetSelectedControlItem@CFileDialog@@QEAAJKAEAK@Z
 extern "C" HRESULT MS_ABI impl__GetSelectedControlItem_CFileDialog__QEAAJKAEAK_Z(
     CFileDialog* pThis, unsigned long p0, unsigned long* p1) {
-    (void)pThis;
-    (void)p0;
-    if (p1 != nullptr) {
-        *p1 = 0;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        if (p1 != nullptr) {
+            *p1 = 0;
+        }
+        return S_FALSE;
     }
-    return E_NOTIMPL;
+    auto it = state->selectedItem.find(p0);
+    if (p1 != nullptr) {
+        *p1 = (it == state->selectedItem.end()) ? 0 : it->second;
+    }
+    return (it == state->selectedItem.end()) ? S_FALSE : S_OK;
 }
 
 // Symbol: ?HideControl@CFileDialog@@QEAAXH@Z
@@ -541,7 +654,7 @@ extern "C" void MS_ABI impl__HideControl_CFileDialog__QEAAXH_Z(CFileDialog* pThi
 extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
     (void)pThis;
     (void)p0;
-    return E_NOTIMPL;
+    return S_OK;
 }
 
 // Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
@@ -631,66 +744,79 @@ extern "C" void MS_ABI impl__OnTypeChange_CFileDialog__MEAAXXZ(CFileDialog* pThi
 // Symbol: ?RemoveControlItem@CFileDialog@@QEAAJKK@Z
 extern "C" HRESULT MS_ABI impl__RemoveControlItem_CFileDialog__QEAAJKK_Z(
     CFileDialog* pThis, unsigned long p0, unsigned long p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, false);
+    if (!state) {
+        return S_FALSE;
+    }
+    auto it = state->controlItems.find(p0);
+    if (it == state->controlItems.end()) {
+        return S_FALSE;
+    }
+    it->second.erase(p1);
+    if (it->second.empty()) {
+        state->controlItems.erase(it);
+    }
+    auto selected = state->selectedItem.find(p0);
+    if (selected != state->selectedItem.end() && selected->second == p1) {
+        selected->second = 0;
+    }
+    return S_OK;
 }
 
 // Symbol: ?SetCheckButtonState@CFileDialog@@QEAAJKH@Z
 extern "C" HRESULT MS_ABI impl__SetCheckButtonState_CFileDialog__QEAAJKH_Z(
     CFileDialog* pThis, unsigned long p0, int p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->checkState[p0] = p1 ? TRUE : FALSE;
+    return S_OK;
 }
 
 // Symbol: ?SetControlItemText@CFileDialog@@QEAAJKKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__SetControlItemText_CFileDialog__QEAAJKKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, unsigned long dwIDItem, const CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)dwIDItem;
-    (void)text;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    CString itemText;
+    SetTextOrEmpty(&itemText, text);
+    state->controlItems[dwIDCtl][dwIDItem].text = itemText;
+    return S_OK;
 }
 
 // Symbol: ?SetControlLabel@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__SetControlLabel_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)text;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], text);
+    return S_OK;
 }
 
 // Symbol: ?SetEditBoxText@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__SetEditBoxText_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* text) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)text;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    SetTextOrEmpty(&state->editText[dwIDCtl], text);
+    return S_OK;
 }
 
 // Symbol: ?SetControlItemState@CFileDialog@@QEAAJKKW4CDCONTROLSTATEF@@@Z
 extern "C" HRESULT MS_ABI impl__SetControlItemState_CFileDialog__QEAAJKKW4CDCONTROLSTATEF___Z(
     CFileDialog* pThis, unsigned long p0, unsigned long p1, unsigned int p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->controlItems[p0][p1].state = p2;
+    return S_OK;
 }
 
 // Symbol: ?SetControlState@CFileDialog@@QEAAJKW4CDCONTROLSTATEF@@@Z
 extern "C" HRESULT MS_ABI impl__SetControlState_CFileDialog__QEAAJKW4CDCONTROLSTATEF___Z(
     CFileDialog* pThis, unsigned long p0, unsigned int p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->controlStates[p0] = p1;
+    return S_OK;
 }
 
 // Symbol: ?SetControlText@CFileDialog@@QEAAXHPEB_W@Z
@@ -704,18 +830,23 @@ extern "C" void MS_ABI impl__SetControlText_CFileDialog__QEAAXHPEB_W_Z(
 // Symbol: ?SetProperties@CFileDialog@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__SetProperties_CFileDialog__QEAAHPEB_W_Z(
     CFileDialog* pThis, const wchar_t* p0) {
-    (void)pThis;
-    (void)p0;
-    return FALSE;
+    if (!pThis) return FALSE;
+    if (!p0 || !p0[0]) {
+        return FALSE;
+    }
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return FALSE;
+    state->properties = p0;
+    return TRUE;
 }
 
 // Symbol: ?SetSelectedControlItem@CFileDialog@@QEAAJKK@Z
 extern "C" HRESULT MS_ABI impl__SetSelectedControlItem_CFileDialog__QEAAJKK_Z(
     CFileDialog* pThis, unsigned long p0, unsigned long p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->selectedItem[p0] = p1;
+    return S_OK;
 }
 
 // Symbol: ?SetTemplate@CFileDialog@@QEAAXPEB_W0@Z
@@ -729,10 +860,12 @@ extern "C" void MS_ABI impl__SetTemplate_CFileDialog__QEAAXPEB_W0_Z(
 // Symbol: ?StartVisualGroup@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__StartVisualGroup_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CFileDialog* pThis, unsigned long dwIDCtl, const CString* label) {
-    (void)pThis;
-    (void)dwIDCtl;
-    (void)label;
-    return E_NOTIMPL;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (!state) return E_OUTOFMEMORY;
+    state->visualGroupActive = TRUE;
+    state->activeVisualGroup = dwIDCtl;
+    SetTextOrEmpty(&state->controlLabels[dwIDCtl], label);
+    return S_OK;
 }
 
 // Symbol: ?UpdateOFNFromShellDialog@CFileDialog@@UEAAXXZ
@@ -1984,3 +2117,5 @@ extern "C" void MS_ABI impl__SetItemText_CVSListBox__MEAAXHAEBV__CStringT__WV__S
     CVSListBox* pThis, int p0, const CString* p1) {
     if (pThis && p1) pThis->SetItemText(p0, *p1);
 }
+
+} // namespace

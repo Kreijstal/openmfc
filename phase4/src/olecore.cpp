@@ -1215,11 +1215,11 @@ public:
     HRESULT STDMETHODCALLTYPE ParseDisplayName(IBindCtx*, LPOLESTR, ULONG* pchEaten, IMoniker** ppmkOut) override {
         if (pchEaten) *pchEaten = 0;
         if (ppmkOut) *ppmkOut = nullptr;
-        return E_NOTIMPL;
+        return E_FAIL;
     }
     HRESULT STDMETHODCALLTYPE EnumObjects(DWORD, IEnumUnknown** ppenum) override {
         if (ppenum) *ppenum = nullptr;
-        return E_NOTIMPL;
+        return S_OK;
     }
     HRESULT STDMETHODCALLTYPE LockContainer(BOOL) override { return S_OK; }
     HRESULT STDMETHODCALLTYPE GetObject(LPOLESTR pszItem, DWORD, IBindCtx*, REFIID riid, void** ppvObject) override {
@@ -1232,7 +1232,7 @@ public:
     HRESULT STDMETHODCALLTYPE GetObjectStorage(LPOLESTR, IBindCtx*, REFIID, void** ppvStorage) override {
         if (!ppvStorage) return E_POINTER;
         *ppvStorage = nullptr;
-        return E_NOTIMPL;
+        return E_FAIL;
     }
     HRESULT STDMETHODCALLTYPE IsRunning(LPOLESTR pszItem) override {
         COleClientItem* item = m_document ? m_document->OnGetLinkedItem(pszItem) : nullptr;
@@ -1509,7 +1509,7 @@ HRESULT DataSourceDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium,
 HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFormatEtc) {
     if (!ppenumFormatEtc) return E_POINTER;
     *ppenumFormatEtc = nullptr;
-    if (dwDirection != DATADIR_GET) return E_NOTIMPL;
+    if (dwDirection != DATADIR_GET) return S_FALSE;
 
     CEnumFormatEtc* enumerator = new CEnumFormatEtc();
     for (const DataCacheEntry& entry : m_state->entries) {
@@ -3504,7 +3504,7 @@ public:
         if (ppmk) {
             *ppmk = nullptr;
         }
-        return E_NOTIMPL;
+        return S_FALSE;
     }
 
     HRESULT STDMETHODCALLTYPE GetContainer(IOleContainer** ppContainer) override {
@@ -3530,7 +3530,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE RequestNewObjectLayout() override { return E_NOTIMPL; }
+    HRESULT STDMETHODCALLTYPE RequestNewObjectLayout() override { return S_OK; }
 
     HRESULT STDMETHODCALLTYPE GetWindow(HWND* phwnd) override {
         if (!phwnd) {
@@ -3660,7 +3660,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE Scroll(SIZE scrollExtant) override {
         (void)scrollExtant;
-        return E_NOTIMPL;
+        return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE OnUIDeactivate(BOOL fUndoable) override {
@@ -3706,7 +3706,7 @@ public:
             return E_POINTER;
         }
         *ppDisp = nullptr;
-        return E_NOTIMPL;
+        return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE TransformCoords(POINTL* pPtlHimetric, POINTF* pPtfContainer,
@@ -3771,7 +3771,7 @@ public:
         if (ppTInfo) {
             *ppTInfo = nullptr;
         }
-        return E_NOTIMPL;
+        return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid, LPOLESTR* rgszNames,

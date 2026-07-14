@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cstdio>
 #include <mshtml.h>
+#include "openmfc/afxole.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -704,16 +705,21 @@ public:
     }
 
     // IOleClientSite
-    STDMETHOD(SaveObject)() override { return E_NOTIMPL; }
-    STDMETHOD(GetMoniker)(DWORD, DWORD, IMoniker**) override { return E_NOTIMPL; }
+    STDMETHOD(SaveObject)() override { return S_OK; }
+    STDMETHOD(GetMoniker)(DWORD, DWORD, IMoniker** ppmk) override {
+        if (ppmk) {
+            *ppmk = nullptr;
+        }
+        return S_FALSE;
+    }
     STDMETHOD(GetContainer)(IOleContainer** ppContainer) override { *ppContainer = nullptr; return E_NOINTERFACE; }
     STDMETHOD(ShowObject)() override { return S_OK; }
     STDMETHOD(OnShowWindow)(BOOL) override { return S_OK; }
-    STDMETHOD(RequestNewObjectLayout)() override { return E_NOTIMPL; }
+    STDMETHOD(RequestNewObjectLayout)() override { return S_OK; }
 
     // IOleInPlaceSite
     STDMETHOD(GetWindow)(HWND* phWnd) override { *phWnd = m_hWnd; return S_OK; }
-    STDMETHOD(ContextSensitiveHelp)(BOOL) override { return E_NOTIMPL; }
+    STDMETHOD(ContextSensitiveHelp)(BOOL) override { return S_OK; }
     STDMETHOD(CanInPlaceActivate)() override { return S_OK; }
     STDMETHOD(OnInPlaceActivate)() override { return S_OK; }
     STDMETHOD(OnUIActivate)() override { return S_OK; }
@@ -736,7 +742,7 @@ public:
     STDMETHOD(OnUIDeactivate)(BOOL) override { return S_OK; }
     STDMETHOD(OnInPlaceDeactivate)() override { return S_OK; }
     STDMETHOD(DiscardUndoState)() override { return S_OK; }
-    STDMETHOD(DeactivateAndUndo)() override { return E_NOTIMPL; }
+    STDMETHOD(DeactivateAndUndo)() override { return S_OK; }
     STDMETHOD(OnPosRectChange)(LPCRECT lprcPosRect) override {
         if (m_pBrowser) {
             m_pBrowser->put_Left(lprcPosRect->left);
@@ -1019,7 +1025,12 @@ void CHtmlView::OnToolBar(BOOL) {}
 void CHtmlView::OnVisible(BOOL) {}
 HRESULT CHtmlView::OnTranslateUrl(DWORD, wchar_t*, wchar_t**) { return S_FALSE; }
 BOOL CHtmlView::GetSource(CString&) { return FALSE; }
-HRESULT CHtmlView::OnGetOptionKeyPath(wchar_t**, DWORD) { return E_NOTIMPL; }
+HRESULT CHtmlView::OnGetOptionKeyPath(wchar_t** ppwszPathKey, DWORD) {
+    if (ppwszPathKey) {
+        *ppwszPathKey = nullptr;
+    }
+    return S_FALSE;
+}
 
 // IWebBrowser2 property accessors
 LPDISPATCH CHtmlView::GetApplication() const {
@@ -1481,20 +1492,47 @@ void CDHtmlDialog::SetControlProperty(IDispatch* pDisp, DISPID dispId, VARIANT* 
 }
 
 long CDHtmlDialog::GetEvent(IHTMLEventObj** ppEventObj) {
-    if (!ppEventObj) return E_POINTER;
+    if (!ppEventObj) {
+        return E_POINTER;
+    }
     *ppEventObj = nullptr;
-    if (!m_pBrowser) return E_FAIL;
+    if (!m_pBrowser) {
+        return S_FALSE;
+    }
+
     LPDISPATCH pDocDisp = nullptr;
     HRESULT hr = m_pBrowser->get_Document(&pDocDisp);
-    if (FAILED(hr) || !pDocDisp) return hr;
+    if (FAILED(hr) || !pDocDisp) {
+        return hr;
+    }
+
     IHTMLDocument2* pDoc2 = nullptr;
     hr = pDocDisp->QueryInterface(IID_IHTMLDocument2, (void**)&pDoc2);
-    pDocDisp->Release();
-    if (SUCCEEDED(hr) && pDoc2) {
-        pDoc2->get_parentWindow(nullptr); // silence compiler; real impl accesses window.event
-        pDoc2->Release();
+    if (FAILED(hr) || !pDoc2) {
+        pDocDisp->Release();
+        return hr;
     }
-    return E_NOTIMPL;
+
+    IHTMLWindow2* pWindow = nullptr;
+    hr = pDoc2->get_parentWindow((IHTMLWindow2**)&pWindow);
+    pDoc2->Release();
+    pDocDisp->Release();
+    if (FAILED(hr) || !pWindow) {
+        return hr;
+    }
+
+    IHTMLEventObj* pEvent = nullptr;
+    hr = pWindow->get_event(&pEvent);
+    pWindow->Release();
+    if (FAILED(hr)) {
+        return hr;
+    }
+    if (!pEvent) {
+        return S_FALSE;
+    }
+
+    *ppEventObj = pEvent;
+    return S_OK;
 }
 
 HRESULT CDHtmlDialog::GetDHtmlDocument(IHTMLDocument2** ppDocument) {
@@ -1533,7 +1571,20 @@ HRESULT CDHtmlDialog::GetHostInfo(DOCHOSTUIINFO* pInfo) {
     pInfo->dwDoubleClick = DOCHOSTUIDBLCLK_DEFAULT;
     return S_OK;
 }
-HRESULT CDHtmlDialog::GetOptionKeyPath(wchar_t**, DWORD) { return E_NOTIMPL; }
+HRESULT CDHtmlDialog::GetOptionKeyPath(wchar_t** ppwszPathKey, DWORD) {
+    if (!ppwszPathKey) {
+        return E_POINTER;
+    }
+    const wchar_t kBrowserKey[] = L"Software\\Microsoft\\Internet Explorer\\Main";
+    size_t cch = (sizeof(kBrowserKey) / sizeof(kBrowserKey[0]));
+    wchar_t* p = static_cast<wchar_t*>(CoTaskMemAlloc(cch * sizeof(wchar_t)));
+    if (!p) {
+        return E_OUTOFMEMORY;
+    }
+    memcpy(p, kBrowserKey, cch * sizeof(wchar_t));
+    *ppwszPathKey = p;
+    return S_OK;
+}
 HRESULT CDHtmlDialog::TranslateUrl(DWORD, wchar_t*, wchar_t** ppOut) {
     if (ppOut) *ppOut = nullptr; return S_FALSE;
 }
@@ -1548,18 +1599,37 @@ HRESULT CDHtmlDialog::OnFrameWindowActivate(BOOL) { return S_OK; }
 HRESULT CDHtmlDialog::ResizeBorder(LPCRECT, IOleInPlaceUIWindow*, BOOL) { return S_OK; }
 HRESULT CDHtmlDialog::TranslateAcceleratorW(LPMSG, const GUID*, DWORD) { return S_FALSE; }
 HRESULT CDHtmlDialog::GetDropTarget(IDropTarget*, IDropTarget** ppOut) {
-    if (ppOut) *ppOut = nullptr; return E_NOTIMPL;
+    if (ppOut) *ppOut = nullptr; return S_FALSE;
 }
 HRESULT CDHtmlDialog::GetExternal(IDispatch** ppOut) {
-    if (ppOut) *ppOut = nullptr; return E_NOTIMPL;
+    if (ppOut) *ppOut = nullptr; return S_FALSE;
 }
 HRESULT CDHtmlDialog::FilterDataObject(IDataObject*, IDataObject** ppOut) {
-    if (ppOut) *ppOut = nullptr; return E_NOTIMPL;
+    if (ppOut) *ppOut = nullptr; return S_FALSE;
 }
 HRESULT CDHtmlDialog::IsExternalDispatchSafe() { return S_OK; }
 HRESULT CDHtmlDialog::CanAccessExternal() { return S_OK; }
-HRESULT CDHtmlDialog::CreateControlSite(COleControlContainer*, COleControlSite**, UINT, REFCLSID) {
-    return E_NOTIMPL;
+HRESULT CDHtmlDialog::CreateControlSite(COleControlContainer* pContainer,
+                                       COleControlSite** pSite,
+                                       UINT nID, REFCLSID clsid) {
+    if (!pSite) {
+        return E_POINTER;
+    }
+    (void)clsid;
+    *pSite = nullptr;
+    if (!pContainer) {
+        return E_INVALIDARG;
+    }
+    COleControlSite* created = pContainer->CreateSite(pContainer);
+    if (!created) {
+        return E_OUTOFMEMORY;
+    }
+    CWnd* containerWnd = pContainer->GetWnd();
+    if (containerWnd) {
+        containerWnd->AttachControlSite(created, nID);
+    }
+    *pSite = created;
+    return S_OK;
 }
 
 void CDHtmlDialog::SetExternalDispatch(IDispatch*) {}

@@ -1231,7 +1231,7 @@ public:
                 unsigned long dwSize = 0,
                 int bVistaStyle = 1);
     
-    virtual ~CFileDialog() = default;
+    virtual ~CFileDialog();
     
     // Operations
     virtual intptr_t DoModal();
