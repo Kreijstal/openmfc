@@ -46,6 +46,48 @@ auto& g_ribbonCategories = openmfc::ribbon_state::RibbonCategoryStates();
 auto& g_ribbonBars = openmfc::ribbon_state::RibbonBarStates();
 constexpr int kApproxRibbonCharPx = 6;
 
+struct TaskDialogButtonState {
+    int id = 0;
+    std::wstring label;
+};
+
+struct TaskDialogState {
+    std::vector<TaskDialogButtonState> commandButtons;
+    std::vector<TaskDialogButtonState> radioButtons;
+    std::vector<TaskDialogButtonState> pushButtons;
+};
+
+std::mutex& g_taskDialogStateMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+std::unordered_map<const CTaskDialog*, TaskDialogState>& g_taskDialogStates() {
+    static std::unordered_map<const CTaskDialog*, TaskDialogState> states;
+    return states;
+}
+
+TaskDialogState& EnsureTaskDialogState(const CTaskDialog* dialog) {
+    std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
+    return g_taskDialogStates()[dialog];
+}
+
+void EraseTaskDialogState(const CTaskDialog* dialog) {
+    std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
+    g_taskDialogStates().erase(dialog);
+}
+
+void StoreTaskDialogButton(std::vector<TaskDialogButtonState>& slots, int id, const wchar_t* label) {
+    if (!label) return;
+    for (auto& btn : slots) {
+        if (btn.id == id) {
+            btn.label = label;
+            return;
+        }
+    }
+    slots.push_back({id, label});
+}
+
 std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
 std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
 std::unordered_map<UINT, int> g_galleryLastSelectedByID;
@@ -1233,6 +1275,7 @@ CTaskDialog::CTaskDialog(const wchar_t* pszContent, const wchar_t* pszMainInstru
 }
 
 CTaskDialog::~CTaskDialog() {
+    EraseTaskDialogState(this);
 }
 
 void CTaskDialog::SetDialogWidth(int nWidth) {
@@ -1286,17 +1329,20 @@ void CTaskDialog::SetProgressBarMarquee(BOOL bMarquee, int nSpeed) {
 }
 
 HRESULT CTaskDialog::AddCommandControl(int nCommandID, const wchar_t* pszLabel) {
-    (void)nCommandID; (void)pszLabel;
+    if (nCommandID <= 0 || !pszLabel) return E_INVALIDARG;
+    StoreTaskDialogButton(EnsureTaskDialogState(this).commandButtons, nCommandID, pszLabel);
     return S_OK;
 }
 
 HRESULT CTaskDialog::AddRadioButton(int nRadioButtonID, const wchar_t* pszLabel) {
-    (void)nRadioButtonID; (void)pszLabel;
+    if (nRadioButtonID <= 0 || !pszLabel) return E_INVALIDARG;
+    StoreTaskDialogButton(EnsureTaskDialogState(this).radioButtons, nRadioButtonID, pszLabel);
     return S_OK;
 }
 
 HRESULT CTaskDialog::AddPushButton(int nButtonID, const wchar_t* pszLabel) {
-    (void)nButtonID; (void)pszLabel;
+    if (nButtonID <= 0 || !pszLabel) return E_INVALIDARG;
+    StoreTaskDialogButton(EnsureTaskDialogState(this).pushButtons, nButtonID, pszLabel);
     return S_OK;
 }
 
@@ -1323,6 +1369,42 @@ int CTaskDialog::DoModal(HWND hWndParent) {
     int nButton = 0;
     int nRadio = 0;
     BOOL bVerification = FALSE;
+    TaskDialogState state;
+    {
+        std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
+        auto it = g_taskDialogStates().find(this);
+        if (it != g_taskDialogStates().end()) state = it->second;
+    }
+
+    std::vector<TASKDIALOG_BUTTON> taskDialogButtons;
+    taskDialogButtons.reserve(state.commandButtons.size() + state.pushButtons.size());
+    for (auto& item : state.commandButtons) {
+        taskDialogButtons.push_back({item.id, item.label.c_str()});
+    }
+    for (auto& item : state.pushButtons) {
+        taskDialogButtons.push_back({item.id, item.label.c_str()});
+    }
+
+    std::vector<TASKDIALOG_BUTTON> radioButtons;
+    radioButtons.reserve(state.radioButtons.size());
+    for (auto& item : state.radioButtons) {
+        radioButtons.push_back({item.id, item.label.c_str()});
+    }
+
+    if (!taskDialogButtons.empty()) {
+        tc.cButtons = static_cast<UINT>(taskDialogButtons.size());
+        tc.pButtons = taskDialogButtons.data();
+        tc.nDefaultButton = taskDialogButtons.front().nButtonID;
+    }
+    if (!radioButtons.empty()) {
+        tc.cRadioButtons = static_cast<UINT>(radioButtons.size());
+        tc.pRadioButtons = radioButtons.data();
+        tc.nDefaultRadioButton = radioButtons.front().nButtonID;
+        tc.dwFlags |= TDF_ALLOW_DIALOG_CANCELLATION;
+    }
+    if (!state.commandButtons.empty() && state.pushButtons.empty()) {
+        tc.dwFlags |= TDF_USE_COMMAND_LINKS;
+    }
 
     using TaskDialogIndirectFn = HRESULT (WINAPI *)(const TASKDIALOGCONFIG*, int*, int*, BOOL*);
     HMODULE hComctl = ::GetModuleHandleW(L"comctl32.dll");
@@ -1338,24 +1420,60 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         if (SUCCEEDED(hr)) {
             m_bVerificationChecked = bVerification;
             m_nSelectedRadioButtonID = nRadio;
+            m_nSelectedCommandID = nButton;
             return nButton;
         }
     }
 
     // Fallback to simple MessageBox
     UINT uType = MB_OK;
-    if (m_nCommonButtons & CTaskDialog::TDCBF_OK_BUTTON) uType = MB_OK;
-    else if (m_nCommonButtons & CTaskDialog::TDCBF_YES_BUTTON) uType = MB_YESNO;
-    else if (m_nCommonButtons & CTaskDialog::TDCBF_RETRY_BUTTON) uType = MB_RETRYCANCEL;
+    if ((m_nCommonButtons & CTaskDialog::TDCBF_YES_BUTTON) && (m_nCommonButtons & CTaskDialog::TDCBF_NO_BUTTON) &&
+        (m_nCommonButtons & CTaskDialog::TDCBF_CANCEL_BUTTON)) {
+        uType = MB_YESNOCANCEL;
+    } else if ((m_nCommonButtons & CTaskDialog::TDCBF_YES_BUTTON) && (m_nCommonButtons & CTaskDialog::TDCBF_NO_BUTTON)) {
+        uType = MB_YESNO;
+    } else if ((m_nCommonButtons & CTaskDialog::TDCBF_OK_BUTTON) && (m_nCommonButtons & CTaskDialog::TDCBF_CANCEL_BUTTON)) {
+        uType = MB_OKCANCEL;
+    } else if (m_nCommonButtons & CTaskDialog::TDCBF_RETRY_BUTTON) {
+        uType = MB_RETRYCANCEL;
+    } else if (m_nCommonButtons & CTaskDialog::TDCBF_YES_BUTTON) {
+        uType = MB_YESNO;
+    } else if (m_nCommonButtons & CTaskDialog::TDCBF_CANCEL_BUTTON) {
+        uType = MB_OKCANCEL;
+    } else {
+        uType = MB_OK;
+    }
+
+    if (!taskDialogButtons.empty()) {
+        uType = MB_OK;
+    }
 
     int result = ::MessageBoxW(hWndParent, m_strContent, m_strWindowTitle, uType);
     switch (result) {
-        case IDOK: return IDOK;
+        case IDOK:
+            if (!taskDialogButtons.empty()) {
+                m_nSelectedCommandID = taskDialogButtons.front().nButtonID;
+                return m_nSelectedCommandID;
+            }
+            if (!state.pushButtons.empty()) {
+                m_nSelectedCommandID = state.pushButtons.front().id;
+                return m_nSelectedCommandID;
+            }
+            return IDOK;
         case IDYES: return IDYES;
         case IDNO: return IDNO;
         case IDCANCEL: return IDCANCEL;
         case IDRETRY: return IDRETRY;
-        default: return IDOK;
+        default:
+            if (!taskDialogButtons.empty()) {
+                m_nSelectedCommandID = taskDialogButtons.front().nButtonID;
+                return m_nSelectedCommandID;
+            }
+            if (!state.radioButtons.empty()) {
+                m_nSelectedRadioButtonID = state.radioButtons.front().id;
+                return m_nSelectedRadioButtonID;
+            }
+            return IDOK;
     }
 
 }
