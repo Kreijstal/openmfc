@@ -53,8 +53,8 @@ extern "C" void MS_ABI impl___1CListBox__UEAA_XZ(CListBox* pThis) {
 }
 
 // Symbol: ??1CHeaderCtrl@@UEAA@XZ
-extern "C" void MS_ABI impl___1CHeaderCtrl__UEAA_XZ(CHeaderCtrl* pThis) {
-    if (pThis) pThis->~CHeaderCtrl();
+extern "C" void MS_ABI impl___1CHeaderCtrl__UEAA_XZ(void* pThis) {
+    if (pThis) static_cast<CWnd*>(pThis)->~CWnd();
 }
 
 // Symbol: ??1CIPAddressCtrl@@UEAA@XZ
