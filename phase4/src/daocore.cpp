@@ -6,9 +6,11 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxdao.h"
+#include <algorithm>
 #include <cstring>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -21,12 +23,17 @@ struct DaoWorkspaceState {
     BOOL inTransaction = FALSE;
     CString name;
     CString userName;
+    std::vector<const CDaoDatabase*> databases;
 };
 
 struct DaoDatabaseState {
     CString name;
     CString connect;
     BOOL inTransaction = FALSE;
+    std::vector<const CDaoTableDef*> tableDefs;
+    std::vector<const CDaoQueryDef*> queryDefs;
+    std::vector<DaoTableDefState> tableDefInfos;
+    std::vector<CDaoRelationInfo> relations;
 };
 
 struct DaoTableDefState {
@@ -34,15 +41,20 @@ struct DaoTableDefState {
     CString connect;
     CString sourceTableName;
     long attributes = 0;
+    std::vector<CDaoFieldInfo> fields;
+    std::vector<CDaoIndexInfo> indexes;
 };
 
 struct DaoQueryDefState {
     CString name;
+    CString sql;
     CString connect;
     long timeout = 60;
     long recordsAffected = 0;
     BOOL returnsRecords = TRUE;
     long type = 0;
+    std::vector<CDaoFieldInfo> fields;
+    std::vector<CDaoParameterInfo> parameters;
 };
 
 struct DaoRecordsetState {
@@ -53,6 +65,9 @@ struct DaoRecordsetState {
     long lRecordCount = 0;
     CString strCurrentIndex;
     CString strSQL;
+    std::vector<CDaoFieldInfo> fields;
+    std::vector<CDaoIndexInfo> indexes;
+    std::vector<COleVariant> currentFieldValues;
 };
 
 std::mutex g_daoStateMutex;
@@ -61,7 +76,184 @@ std::unordered_map<const CDaoDatabase*, DaoDatabaseState> g_databaseStates;
 std::unordered_map<const CDaoTableDef*, DaoTableDefState> g_tableDefStates;
 std::unordered_map<const CDaoQueryDef*, DaoQueryDefState> g_queryDefStates;
 std::unordered_map<const CDaoRecordset*, DaoRecordsetState> g_recordsetStates;
+
+namespace {
+
+static CString CloneCString(const wchar_t* value) {
+    return value ? CString(value) : CString();
 }
+
+template <typename T>
+static T& EnsureState(std::unordered_map<const void*, T>& map, const void* key) {
+    return map[key];
+}
+
+static void FreeIndexFieldInfos(CDaoIndexInfo& indexInfo) {
+    if (indexInfo.m_pFieldInfos) {
+        delete[] indexInfo.m_pFieldInfos;
+        indexInfo.m_pFieldInfos = nullptr;
+    }
+    indexInfo.m_nFields = 0;
+}
+
+static void EnsureVariantCopy(COleVariant& target, const COleVariant& source) {
+    VariantClear(&target);
+    VariantCopy(&target, &source);
+}
+
+static CDaoTableDef* FindTableDefByName(CDaoDatabase* pDatabase, const wchar_t* lpszName) {
+    if (!pDatabase || !lpszName) return nullptr;
+    auto itDb = g_databaseStates.find(pDatabase);
+    if (itDb == g_databaseStates.end()) return nullptr;
+    const CString targetName = CloneCString(lpszName);
+    for (const CDaoTableDef* pDef : itDb->second.tableDefs) {
+        auto itDef = g_tableDefStates.find(pDef);
+        if (itDef != g_tableDefStates.end() && !itDef->second.name.IsEmpty() &&
+            itDef->second.name == targetName) {
+            return const_cast<CDaoTableDef*>(pDef);
+        }
+    }
+    return nullptr;
+}
+
+static CDaoQueryDef* FindQueryDefByName(CDaoDatabase* pDatabase, const wchar_t* lpszName) {
+    if (!pDatabase || !lpszName) return nullptr;
+    auto itDb = g_databaseStates.find(pDatabase);
+    if (itDb == g_databaseStates.end()) return nullptr;
+    const CString targetName = CloneCString(lpszName);
+    for (const CDaoQueryDef* pDef : itDb->second.queryDefs) {
+        auto itQuery = g_queryDefStates.find(pDef);
+        if (itQuery != g_queryDefStates.end() &&
+            itQuery->second.name == targetName) {
+            return const_cast<CDaoQueryDef*>(pDef);
+        }
+    }
+    return nullptr;
+}
+
+static void RegisterDatabaseWithWorkspace(CDaoDatabase* pDatabase, CDaoWorkspace* pWorkspace) {
+    if (!pDatabase || !pWorkspace) return;
+    auto wsIt = g_workspaceStates.find(pWorkspace);
+    if (wsIt == g_workspaceStates.end()) return;
+    auto& dbs = wsIt->second.databases;
+    if (std::find(dbs.begin(), dbs.end(), pDatabase) == dbs.end()) {
+        dbs.push_back(pDatabase);
+    }
+}
+
+static void UnregisterDatabaseFromWorkspace(CDaoDatabase* pDatabase, CDaoWorkspace* pWorkspace) {
+    if (!pDatabase || !pWorkspace) return;
+    auto wsIt = g_workspaceStates.find(pWorkspace);
+    if (wsIt == g_workspaceStates.end()) return;
+    auto& dbs = wsIt->second.databases;
+    dbs.erase(std::remove(dbs.begin(), dbs.end(), pDatabase), dbs.end());
+}
+
+static void RegisterTableDef(CDaoTableDef* pTableDef, CDaoDatabase* pDatabase) {
+    if (!pTableDef || !pDatabase) return;
+    auto dbIt = g_databaseStates.find(pDatabase);
+    if (dbIt == g_databaseStates.end()) return;
+    auto& tableDefs = dbIt->second.tableDefs;
+    if (std::find(tableDefs.begin(), tableDefs.end(), pTableDef) == tableDefs.end()) {
+        tableDefs.push_back(pTableDef);
+    }
+}
+
+static void RegisterQueryDef(CDaoQueryDef* pQueryDef, CDaoDatabase* pDatabase) {
+    if (!pQueryDef || !pDatabase) return;
+    auto dbIt = g_databaseStates.find(pDatabase);
+    if (dbIt == g_databaseStates.end()) return;
+    auto& queryDefs = dbIt->second.queryDefs;
+    if (std::find(queryDefs.begin(), queryDefs.end(), pQueryDef) == queryDefs.end()) {
+        queryDefs.push_back(pQueryDef);
+    }
+}
+
+static void UnregisterTableDef(CDaoTableDef* pTableDef, CDaoDatabase* pDatabase) {
+    if (!pTableDef || !pDatabase) return;
+    auto dbIt = g_databaseStates.find(pDatabase);
+    if (dbIt == g_databaseStates.end()) return;
+    auto& tableDefs = dbIt->second.tableDefs;
+    tableDefs.erase(std::remove(tableDefs.begin(), tableDefs.end(), pTableDef), tableDefs.end());
+}
+
+static void UnregisterQueryDef(CDaoQueryDef* pQueryDef, CDaoDatabase* pDatabase) {
+    if (!pQueryDef || !pDatabase) return;
+    auto dbIt = g_databaseStates.find(pDatabase);
+    if (dbIt == g_databaseStates.end()) return;
+    auto& queryDefs = dbIt->second.queryDefs;
+    queryDefs.erase(std::remove(queryDefs.begin(), queryDefs.end(), pQueryDef), queryDefs.end());
+}
+
+static void CopyFieldInfo(CDaoFieldInfo& dst, const CDaoFieldInfo& src) {
+    dst = src;
+}
+
+static void CopyIndexInfo(CDaoIndexInfo& dst, const CDaoIndexInfo& src) {
+    if (&dst == &src) return;
+    if (dst.m_pFieldInfos) {
+        delete[] dst.m_pFieldInfos;
+    }
+    dst.m_strName = src.m_strName;
+    dst.m_nFields = src.m_nFields;
+    dst.m_bPrimary = src.m_bPrimary;
+    dst.m_bUnique = src.m_bUnique;
+    dst.m_bClustered = src.m_bClustered;
+    dst.m_bIgnoreNulls = src.m_bIgnoreNulls;
+    dst.m_bRequired = src.m_bRequired;
+    dst.m_bForeign = src.m_bForeign;
+    dst.m_lDistinctCount = src.m_lDistinctCount;
+    if (src.m_nFields > 0 && src.m_pFieldInfos) {
+        dst.m_pFieldInfos = new CDaoIndexFieldInfo[static_cast<size_t>(src.m_nFields)];
+        for (int i = 0; i < src.m_nFields; ++i) {
+            dst.m_pFieldInfos[i] = src.m_pFieldInfos[i];
+        }
+    } else {
+        dst.m_pFieldInfos = nullptr;
+        dst.m_nFields = 0;
+    }
+}
+
+static void ApplyTableDefInfoFromState(CDaoTableDefInfo& dst, const DaoTableDefState& state) {
+    dst.m_strName = state.name;
+    dst.m_lAttributes = state.attributes;
+    dst.m_strSourceTable = state.sourceTableName;
+    dst.m_strConnect = state.connect;
+    dst.m_lRecordCount = 0;
+    dst.m_bUpdatable = TRUE;
+    dst.m_strValidationRule = CString();
+    dst.m_strValidationText = CString();
+}
+
+static void ClearTableDefState(DaoTableDefState& state) {
+    for (auto& indexInfo : state.indexes) {
+        FreeIndexFieldInfos(indexInfo);
+    }
+    state.indexes.clear();
+    state.fields.clear();
+}
+
+static void ClearRecordsetState(DaoRecordsetState& state) {
+    for (auto& indexInfo : state.indexes) {
+        FreeIndexFieldInfos(indexInfo);
+    }
+    state.indexes.clear();
+    state.fields.clear();
+    state.currentFieldValues.clear();
+}
+
+static std::vector<CDaoIndexInfo> CloneIndexInfoVector(const std::vector<CDaoIndexInfo>& source) {
+    std::vector<CDaoIndexInfo> copied;
+    copied.reserve(source.size());
+    for (const auto& index : source) {
+        CDaoIndexInfo clone{};
+        CopyIndexInfo(clone, index);
+        copied.push_back(clone);
+    }
+    return copied;
+}
+
+} // namespace
 
 //=============================================================================
 // CDaoException - IMPLEMENT_DYNAMIC (class declared in header with inline methods)
@@ -86,6 +278,9 @@ CDaoWorkspace::CDaoWorkspace(CDaoDatabase* pDatabase)
     memset(_daoworkspace_padding, 0, sizeof(_daoworkspace_padding));
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_workspaceStates[this] = DaoWorkspaceState{};
+    if (pDatabase) {
+        RegisterDatabaseWithWorkspace(pDatabase, this);
+    }
 }
 
 CDaoWorkspace::~CDaoWorkspace() {
@@ -126,12 +321,18 @@ BOOL CDaoWorkspace::IsOpen() const {
 }
 
 CDaoDatabase* CDaoWorkspace::GetDatabase(int nIndex) {
-    (void)nIndex;
-    return nullptr;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_workspaceStates.find(this);
+    if (it == g_workspaceStates.end()) return nullptr;
+    const auto& dbs = it->second.databases;
+    if (nIndex < 0 || static_cast<size_t>(nIndex) >= dbs.size()) return nullptr;
+    return const_cast<CDaoDatabase*>(dbs[static_cast<size_t>(nIndex)]);
 }
 
 int CDaoWorkspace::GetDatabaseCount() const {
-    return 0;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_workspaceStates.find(this);
+    return (it != g_workspaceStates.end()) ? static_cast<int>(it->second.databases.size()) : 0;
 }
 
 void CDaoWorkspace::BeginTrans() {
@@ -184,10 +385,12 @@ CDaoDatabase::CDaoDatabase(CDaoWorkspace* pWorkspace)
     if (!m_pWorkspace) m_pWorkspace = CDaoWorkspace::GetDefaultWorkspace();
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_databaseStates[this] = DaoDatabaseState{};
+    RegisterDatabaseWithWorkspace(this, m_pWorkspace);
 }
 
 CDaoDatabase::~CDaoDatabase() {
     Close();
+    UnregisterDatabaseFromWorkspace(this, m_pWorkspace);
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_databaseStates.erase(this);
 }
@@ -239,23 +442,95 @@ BOOL CDaoDatabase::CanTransact() const {
 }
 
 int CDaoDatabase::GetTableDefCount() const {
-    return 0;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    if (it == g_databaseStates.end()) return 0;
+    return static_cast<int>(it->second.tableDefs.size() + it->second.tableDefInfos.size());
 }
 
 void CDaoDatabase::GetTableDefInfo(int nIndex, CDaoTableDefInfo& tabledefinfo,
                                     DWORD dwInfoOptions) {
-    (void)nIndex; (void)tabledefinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    tabledefinfo = CDaoTableDefInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    if (it == g_databaseStates.end()) return;
+
+    if (nIndex < 0) return;
+
+    int tableDefIndex = 0;
+    for (const CDaoTableDef* pDef : it->second.tableDefs) {
+        if (nIndex == tableDefIndex) {
+            auto itDef = g_tableDefStates.find(pDef);
+            if (itDef != g_tableDefStates.end()) {
+                ApplyTableDefInfoFromState(tabledefinfo, itDef->second);
+            }
+            return;
+        }
+        ++tableDefIndex;
+    }
+
+    size_t infoIndex = static_cast<size_t>(nIndex) - it->second.tableDefs.size();
+    if (infoIndex >= it->second.tableDefInfos.size()) return;
+    const DaoTableDefState& infoState = it->second.tableDefInfos[infoIndex];
+    tabledefinfo.m_strName = infoState.name;
+    tabledefinfo.m_lAttributes = infoState.attributes;
+    tabledefinfo.m_strSourceTable = infoState.sourceTableName;
+    tabledefinfo.m_strConnect = infoState.connect;
+    tabledefinfo.m_lRecordCount = 0;
+    tabledefinfo.m_bUpdatable = TRUE;
+    tabledefinfo.m_strValidationRule = CString();
+    tabledefinfo.m_strValidationText = CString();
 }
 
 void CDaoDatabase::CreateTableDef(const wchar_t* lpszName, long lAttributes,
                                    long lOptions, const wchar_t* lpszSource,
                                    const wchar_t* lpszConnect) {
-    (void)lpszName; (void)lAttributes; (void)lOptions;
-    (void)lpszSource; (void)lpszConnect;
+    (void)lOptions;
+    if (!lpszName || !*lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto& dbState = g_databaseStates[this];
+    for (auto& info : dbState.tableDefInfos) {
+        if (info.name == lpszName) {
+            info.attributes = lAttributes;
+            info.sourceTableName = lpszSource ? CString(lpszSource) : CString();
+            info.connect = lpszConnect ? CString(lpszConnect) : CString();
+            return;
+        }
+    }
+    DaoTableDefState info;
+    info.name = CString(lpszName);
+    info.attributes = lAttributes;
+    info.sourceTableName = lpszSource ? CString(lpszSource) : CString();
+    info.connect = lpszConnect ? CString(lpszConnect) : CString();
+    dbState.tableDefInfos.push_back(info);
 }
 
 void CDaoDatabase::DeleteTableDef(const wchar_t* lpszName) {
-    (void)lpszName;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    if (it == g_databaseStates.end()) return;
+
+    for (auto tableDefIt = it->second.tableDefs.begin();
+         tableDefIt != it->second.tableDefs.end(); ++tableDefIt) {
+        auto stateIt = g_tableDefStates.find(*tableDefIt);
+        if (stateIt != g_tableDefStates.end() && stateIt->second.name == CString(lpszName)) {
+            if (const_cast<CDaoTableDef*>(*tableDefIt)) {
+                CDaoTableDef* pTableDef = const_cast<CDaoTableDef*>(*tableDefIt);
+                pTableDef->Close();
+            }
+            it->second.tableDefs.erase(tableDefIt);
+            break;
+        }
+    }
+
+    auto& infos = it->second.tableDefInfos;
+    infos.erase(std::remove_if(infos.begin(), infos.end(),
+                               [&](const DaoTableDefState& info) {
+                                   return info.name == CString(lpszName);
+                               }),
+                infos.end());
 }
 
 CDaoQueryDef* CDaoDatabase::CreateQueryDef(const wchar_t* lpszName,
@@ -264,11 +539,23 @@ CDaoQueryDef* CDaoDatabase::CreateQueryDef(const wchar_t* lpszName,
     pQD->m_bOpen = TRUE;
     if (lpszName) pQD->SetName(lpszName);
     if (lpszSQL) pQD->SetSQL(lpszSQL);
+    {
+        std::lock_guard<std::mutex> lock(g_daoStateMutex);
+        RegisterQueryDef(pQD, this);
+        if (lpszSQL) g_queryDefStates[pQD].sql = CString(lpszSQL);
+    }
     return pQD;
 }
 
 void CDaoDatabase::DeleteQueryDef(const wchar_t* lpszName) {
-    (void)lpszName;
+    if (!lpszName) return;
+    CDaoQueryDef* pFound = FindQueryDefByName(this, lpszName);
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    if (!pFound) return;
+    pFound->Close();
+    UnregisterQueryDef(pFound, this);
+    g_queryDefStates.erase(pFound);
+    delete pFound;
 }
 
 void CDaoDatabase::BeginTrans() {
@@ -299,16 +586,32 @@ void CDaoDatabase::Execute(const wchar_t* lpszSQL, int nOptions) {
 void CDaoDatabase::CreateRelation(const wchar_t* lpszName, const wchar_t* lpszTable,
                                    const wchar_t* lpszForeignTable, long lAttributes,
                                    const wchar_t* lpszField, const wchar_t* lpszForeignField) {
-    (void)lpszName; (void)lpszTable; (void)lpszForeignTable;
-    (void)lAttributes; (void)lpszField; (void)lpszForeignField;
+    CDaoRelationInfo relinfo;
+    relinfo.m_strName = lpszName ? CString(lpszName) : CString();
+    relinfo.m_strTable = lpszTable ? CString(lpszTable) : CString();
+    relinfo.m_strForeignTable = lpszForeignTable ? CString(lpszForeignTable) : CString();
+    relinfo.m_lAttributes = lAttributes;
+    relinfo.m_strField = lpszField ? CString(lpszField) : CString();
+    relinfo.m_strForeignField = lpszForeignField ? CString(lpszForeignField) : CString();
+    CreateRelation(relinfo);
 }
 
 void CDaoDatabase::CreateRelation(CDaoRelationInfo& relinfo) {
-    (void)relinfo;
+    if (relinfo.m_strName.IsEmpty()) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto& state = g_databaseStates[this];
+    state.relations.push_back(relinfo);
 }
 
 void CDaoDatabase::DeleteRelation(const wchar_t* lpszName) {
-    (void)lpszName;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    if (it == g_databaseStates.end()) return;
+    auto& rels = it->second.relations;
+    rels.erase(std::remove_if(rels.begin(), rels.end(),
+                              [&](const CDaoRelationInfo& rel) { return rel.m_strName == lpszName; }),
+              rels.end());
 }
 
 CDaoWorkspace* CDaoDatabase::GetWorkspace() {
@@ -331,6 +634,10 @@ CDaoRecordset::CDaoRecordset(CDaoDatabase* pDatabase)
 CDaoRecordset::~CDaoRecordset() {
     Close();
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it != g_recordsetStates.end()) {
+        ClearRecordsetState(it->second);
+    }
     g_recordsetStates.erase(this);
 }
 
@@ -338,9 +645,13 @@ void CDaoRecordset::Open(int nOpenType, const wchar_t* lpszSQL, int nOptions) {
     (void)nOpenType; (void)nOptions;
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     DaoRecordsetState& state = g_recordsetStates[this];
+    ClearRecordsetState(state);
     if (lpszSQL) {
         m_strSQL = lpszSQL;
         state.strSQL = lpszSQL;
+    } else {
+        m_strSQL = CString();
+        state.strSQL = CString();
     }
     // Without a real DAO driver, we open to an empty recordset: BOF=EOF=TRUE
     state.bBOF = TRUE;
@@ -348,33 +659,64 @@ void CDaoRecordset::Open(int nOpenType, const wchar_t* lpszSQL, int nOptions) {
     state.lAbsolutePosition = -1;
     state.dPercentPosition = 0.0;
     state.lRecordCount = 0;
-    m_lRecordCount = 0;
+    m_lRecordCount = state.lRecordCount;
+    m_nFields = 0;
     m_bOpen = TRUE;
 }
 
 void CDaoRecordset::Open(CDaoTableDef* pTableDef, int nOpenType, int nOptions) {
-    (void)pTableDef; (void)nOpenType; (void)nOptions;
+    (void)nOpenType; (void)nOptions;
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     DaoRecordsetState& state = g_recordsetStates[this];
+    ClearRecordsetState(state);
+    if (pTableDef) {
+        auto it = g_tableDefStates.find(pTableDef);
+        if (it != g_tableDefStates.end()) {
+            state.fields = it->second.fields;
+            state.indexes = CloneIndexInfoVector(it->second.indexes);
+            state.strSQL = CString(L"SELECT * FROM ") + it->second.name;
+            m_strSQL = state.strSQL;
+        }
+    } else {
+        state.strSQL = CString();
+        m_strSQL = CString();
+    }
+    m_nFields = static_cast<int>(state.fields.size());
+    m_lRecordCount = 0;
     state.bBOF = TRUE;
     state.bEOF = TRUE;
     state.lAbsolutePosition = -1;
     state.dPercentPosition = 0.0;
-    state.lRecordCount = 0;
-    m_lRecordCount = 0;
+    state.lRecordCount = m_lRecordCount;
     m_bOpen = TRUE;
 }
 
 void CDaoRecordset::Open(CDaoQueryDef* pQueryDef, int nOpenType, int nOptions) {
-    (void)pQueryDef; (void)nOpenType; (void)nOptions;
+    (void)nOpenType; (void)nOptions;
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     DaoRecordsetState& state = g_recordsetStates[this];
+    ClearRecordsetState(state);
+    if (pQueryDef) {
+        auto queryStateIt = g_queryDefStates.find(pQueryDef);
+        if (queryStateIt != g_queryDefStates.end()) {
+            state.fields = queryStateIt->second.fields;
+            state.strSQL = queryStateIt->second.sql;
+            if (state.strSQL.IsEmpty()) {
+                state.strSQL = pQueryDef->m_strSQL;
+            }
+            m_strSQL = state.strSQL;
+        }
+    } else {
+        state.strSQL = CString();
+        m_strSQL = CString();
+    }
+    m_nFields = static_cast<int>(state.fields.size());
+    m_lRecordCount = 0;
     state.bBOF = TRUE;
     state.bEOF = TRUE;
     state.lAbsolutePosition = -1;
     state.dPercentPosition = 0.0;
     state.lRecordCount = 0;
-    m_lRecordCount = 0;
     m_bOpen = TRUE;
 }
 
@@ -384,11 +726,14 @@ void CDaoRecordset::Close() {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     auto it = g_recordsetStates.find(this);
     if (it != g_recordsetStates.end()) {
+        ClearRecordsetState(it->second);
         it->second.bBOF = TRUE;
         it->second.bEOF = TRUE;
         it->second.lAbsolutePosition = -1;
         it->second.lRecordCount = 0;
     }
+    m_lRecordCount = 0;
+    m_nFields = 0;
 }
 
 BOOL CDaoRecordset::IsOpen() const { return m_bOpen; }
@@ -571,19 +916,69 @@ COleVariant CDaoRecordset::GetBookmark() {
 }
 
 void CDaoRecordset::GetFieldValue(const wchar_t* lpszName, COleVariant& varValue) {
-    (void)lpszName; varValue.Clear();
+    if (!lpszName) {
+        varValue.Clear();
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    const auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) {
+        varValue.Clear();
+        return;
+    }
+    const auto& fields = it->second.fields;
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (fields[i].m_strName == lpszName) {
+            if (i < it->second.currentFieldValues.size()) {
+                EnsureVariantCopy(varValue, it->second.currentFieldValues[i]);
+            } else {
+                varValue.Clear();
+            }
+            return;
+        }
+    }
+    varValue.Clear();
 }
 
 void CDaoRecordset::GetFieldValue(int nIndex, COleVariant& varValue) {
-    (void)nIndex; varValue.Clear();
+    if (nIndex < 0) {
+        varValue.Clear();
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || nIndex >= static_cast<int>(it->second.currentFieldValues.size())) {
+        varValue.Clear();
+        return;
+    }
+    EnsureVariantCopy(varValue, it->second.currentFieldValues[static_cast<size_t>(nIndex)]);
 }
 
 void CDaoRecordset::SetFieldValue(const wchar_t* lpszName, const COleVariant& varValue) {
-    (void)lpszName; (void)varValue;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    for (size_t i = 0; i < it->second.fields.size(); ++i) {
+        if (it->second.fields[i].m_strName == lpszName) {
+            if (it->second.currentFieldValues.size() <= i) {
+                it->second.currentFieldValues.resize(it->second.fields.size());
+            }
+            EnsureVariantCopy(it->second.currentFieldValues[i], varValue);
+            return;
+        }
+    }
 }
 
 void CDaoRecordset::SetFieldValue(int nIndex, const COleVariant& varValue) {
-    (void)nIndex; (void)varValue;
+    if (nIndex < 0) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    if (it->second.currentFieldValues.size() <= static_cast<size_t>(nIndex)) {
+        it->second.currentFieldValues.resize(static_cast<size_t>(nIndex) + 1);
+    }
+    EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(nIndex)], varValue);
 }
 
 void CDaoRecordset::SetCurrentIndex(const wchar_t* lpszIndex) {
@@ -624,35 +1019,88 @@ CDaoDatabase* CDaoRecordset::GetDatabase() const {
 }
 
 int CDaoRecordset::GetFieldCount() const {
-    return m_nFields;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? static_cast<int>(it->second.fields.size()) : m_nFields;
 }
 
 void CDaoRecordset::GetFieldInfo(int nIndex, CDaoFieldInfo& fieldinfo,
                                   DWORD dwInfoOptions) {
-    (void)nIndex; (void)fieldinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    fieldinfo = CDaoFieldInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.fields.size())) return;
+    CopyFieldInfo(fieldinfo, it->second.fields[static_cast<size_t>(nIndex)]);
 }
 
 void CDaoRecordset::GetFieldInfo(const wchar_t* lpszName, CDaoFieldInfo& fieldinfo,
                                   DWORD dwInfoOptions) {
-    (void)lpszName; (void)fieldinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    fieldinfo = CDaoFieldInfo{};
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    for (const auto& field : it->second.fields) {
+        if (field.m_strName == lpszName) {
+            fieldinfo = field;
+            return;
+        }
+    }
 }
 
-int CDaoRecordset::GetIndexCount() const { return 0; }
+int CDaoRecordset::GetIndexCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? static_cast<int>(it->second.indexes.size()) : 0;
+}
 
 void CDaoRecordset::GetIndexInfo(int nIndex, CDaoIndexInfo& indexinfo,
                                   DWORD dwInfoOptions) {
-    (void)nIndex; (void)indexinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    indexinfo.m_strName = CString();
+    indexinfo.m_nFields = 0;
+    indexinfo.m_pFieldInfos = nullptr;
+    indexinfo.m_bPrimary = FALSE;
+    indexinfo.m_bUnique = FALSE;
+    indexinfo.m_bClustered = FALSE;
+    indexinfo.m_bIgnoreNulls = FALSE;
+    indexinfo.m_bRequired = FALSE;
+    indexinfo.m_bForeign = FALSE;
+    indexinfo.m_lDistinctCount = 0;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || nIndex < 0 || nIndex >= static_cast<int>(it->second.indexes.size()))
+        return;
+    CopyIndexInfo(indexinfo, it->second.indexes[static_cast<size_t>(nIndex)]);
 }
 
 void CDaoRecordset::GetIndexInfo(const wchar_t* lpszName, CDaoIndexInfo& indexinfo,
                                   DWORD dwInfoOptions) {
-    (void)lpszName; (void)indexinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    indexinfo = CDaoIndexInfo{};
+    indexinfo.m_pFieldInfos = nullptr;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    for (const auto& index : it->second.indexes) {
+        if (index.m_strName == lpszName) {
+            CopyIndexInfo(indexinfo, index);
+            return;
+        }
+    }
 }
 
 BOOL CDaoRecordset::Seek(const wchar_t* lpszComparison, COleVariant* pKey1,
                           COleVariant* pKey2, COleVariant* pKey3) {
     (void)lpszComparison; (void)pKey1; (void)pKey2; (void)pKey3;
-    return FALSE;
+    if (!IsOpen()) return FALSE;
+    if (GetRecordCount() == 0) return FALSE;
+    MoveFirst();
+    return TRUE;
 }
 
 CString CDaoRecordset::GetValidationRule() const {
@@ -672,7 +1120,8 @@ CString CDaoRecordset::GetDefaultSQL() {
 }
 
 void CDaoRecordset::FillCache(long* pSize, COleVariant* pBookmark) {
-    (void)pSize; (void)pBookmark;
+    if (pSize) *pSize = GetRecordCount();
+    if (pBookmark) pBookmark->Clear();
 }
 
 //=============================================================================
@@ -685,17 +1134,24 @@ CDaoTableDef::CDaoTableDef(CDaoDatabase* pDatabase)
     memset(_daotabledef_padding, 0, sizeof(_daotabledef_padding));
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_tableDefStates[this] = DaoTableDefState{};
+    RegisterTableDef(this, m_pDatabase);
 }
 
 CDaoTableDef::~CDaoTableDef() {
     Close();
+    UnregisterTableDef(this, m_pDatabase);
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it != g_tableDefStates.end()) {
+        ClearTableDefState(it->second);
+    }
     g_tableDefStates.erase(this);
 }
 
 void CDaoTableDef::Open(const wchar_t* lpszName) {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_tableDefStates[this].name = lpszName ? CString(lpszName) : CString();
+    RegisterTableDef(this, m_pDatabase);
     m_bOpen = TRUE;
 }
 
@@ -703,6 +1159,7 @@ void CDaoTableDef::Create(const wchar_t* lpszName, long lAttributes,
                           const wchar_t* lpszSrcTable, const wchar_t* lpszConnect) {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     DaoTableDefState& state = g_tableDefStates[this];
+    RegisterTableDef(this, m_pDatabase);
     state.name = lpszName ? CString(lpszName) : CString();
     state.attributes = lAttributes;
     state.sourceTableName = lpszSrcTable ? CString(lpszSrcTable) : CString();
@@ -752,37 +1209,148 @@ BOOL CDaoTableDef::CanUpdate() const { return TRUE; }
 
 void CDaoTableDef::CreateField(const wchar_t* lpszName, short nType, long lSize,
                                 long lAttributes) {
-    (void)lpszName; (void)nType; (void)lSize; (void)lAttributes;
+    if (!lpszName) return;
+    CDaoFieldInfo fieldinfo;
+    fieldinfo.m_strName = lpszName;
+    fieldinfo.m_nType = nType;
+    fieldinfo.m_lSize = lSize;
+    fieldinfo.m_lAttributes = lAttributes;
+    CreateField(fieldinfo);
 }
 
-void CDaoTableDef::CreateField(CDaoFieldInfo& fieldinfo) { (void)fieldinfo; }
-void CDaoTableDef::DeleteField(const wchar_t* lpszName) { (void)lpszName; }
-void CDaoTableDef::DeleteField(int nIndex) { (void)nIndex; }
-int CDaoTableDef::GetFieldCount() const { return 0; }
+void CDaoTableDef::CreateField(CDaoFieldInfo& fieldinfo) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    g_tableDefStates[this].fields.push_back(fieldinfo);
+}
+
+void CDaoTableDef::DeleteField(const wchar_t* lpszName) {
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    auto& fields = it->second.fields;
+    fields.erase(std::remove_if(fields.begin(), fields.end(),
+                               [&](const CDaoFieldInfo& field) {
+                                   return field.m_strName == CString(lpszName);
+                               }),
+                fields.end());
+}
+
+void CDaoTableDef::DeleteField(int nIndex) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    auto& fields = it->second.fields;
+    if (nIndex < 0 || static_cast<size_t>(nIndex) >= fields.size()) return;
+    fields.erase(fields.begin() + nIndex);
+}
+
+int CDaoTableDef::GetFieldCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? static_cast<int>(it->second.fields.size()) : 0;
+}
 
 void CDaoTableDef::GetFieldInfo(int nIndex, CDaoFieldInfo& fieldinfo,
                                  DWORD dwInfoOptions) {
-    (void)nIndex; (void)fieldinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    fieldinfo = CDaoFieldInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.fields.size())) return;
+    CopyFieldInfo(fieldinfo, it->second.fields[static_cast<size_t>(nIndex)]);
 }
 
 void CDaoTableDef::GetFieldInfo(const wchar_t* lpszName, CDaoFieldInfo& fieldinfo,
                                  DWORD dwInfoOptions) {
-    (void)lpszName; (void)fieldinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    fieldinfo = CDaoFieldInfo{};
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    for (const auto& field : it->second.fields) {
+        if (field.m_strName == lpszName) {
+            fieldinfo = field;
+            return;
+        }
+    }
 }
 
-void CDaoTableDef::CreateIndex(CDaoIndexInfo& indexinfo) { (void)indexinfo; }
-void CDaoTableDef::DeleteIndex(const wchar_t* lpszName) { (void)lpszName; }
-void CDaoTableDef::DeleteIndex(int nIndex) { (void)nIndex; }
-int CDaoTableDef::GetIndexCount() const { return 0; }
+void CDaoTableDef::CreateIndex(CDaoIndexInfo& indexinfo) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    CDaoIndexInfo copy = indexinfo;
+    copy.m_pFieldInfos = nullptr;
+    copy.m_nFields = 0;
+    if (indexinfo.m_nFields > 0 && indexinfo.m_pFieldInfos) {
+        copy.m_nFields = indexinfo.m_nFields;
+        copy.m_pFieldInfos = new CDaoIndexFieldInfo[static_cast<size_t>(indexinfo.m_nFields)];
+        for (int i = 0; i < indexinfo.m_nFields; ++i) {
+            copy.m_pFieldInfos[i] = indexinfo.m_pFieldInfos[i];
+        }
+    }
+    it->second.indexes.push_back(copy);
+}
+
+void CDaoTableDef::DeleteIndex(const wchar_t* lpszName) {
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    for (auto indexIt = it->second.indexes.begin(); indexIt != it->second.indexes.end(); ++indexIt) {
+        if (indexIt->m_strName == lpszName) {
+            FreeIndexFieldInfos(*indexIt);
+            it->second.indexes.erase(indexIt);
+            return;
+        }
+    }
+}
+
+void CDaoTableDef::DeleteIndex(int nIndex) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    auto& indexes = it->second.indexes;
+    if (nIndex < 0 || static_cast<size_t>(nIndex) >= indexes.size()) return;
+    FreeIndexFieldInfos(indexes[nIndex]);
+    indexes.erase(indexes.begin() + nIndex);
+}
+
+int CDaoTableDef::GetIndexCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? static_cast<int>(it->second.indexes.size()) : 0;
+}
 
 void CDaoTableDef::GetIndexInfo(int nIndex, CDaoIndexInfo& indexinfo,
                                  DWORD dwInfoOptions) {
-    (void)nIndex; (void)indexinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    indexinfo = CDaoIndexInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.indexes.size())) return;
+    CopyIndexInfo(indexinfo, it->second.indexes[static_cast<size_t>(nIndex)]);
 }
 
 void CDaoTableDef::GetIndexInfo(const wchar_t* lpszName, CDaoIndexInfo& indexinfo,
                                  DWORD dwInfoOptions) {
-    (void)lpszName; (void)indexinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    indexinfo = CDaoIndexInfo{};
+    indexinfo.m_pFieldInfos = nullptr;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    if (it == g_tableDefStates.end()) return;
+    for (const auto& index : it->second.indexes) {
+        if (index.m_strName == lpszName) {
+            CopyIndexInfo(indexinfo, index);
+            return;
+        }
+    }
 }
 
 CString CDaoTableDef::GetValidationRule() const { return CString(); }
@@ -799,24 +1367,33 @@ CDaoQueryDef::CDaoQueryDef(CDaoDatabase* pDatabase)
     memset(_daoquerydef_padding, 0, sizeof(_daoquerydef_padding));
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_queryDefStates[this] = DaoQueryDefState{};
+    if (m_pDatabase) RegisterQueryDef(this, m_pDatabase);
 }
 
 CDaoQueryDef::~CDaoQueryDef() {
     Close();
+    UnregisterQueryDef(this, m_pDatabase);
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it != g_queryDefStates.end()) {
+        it->second.fields.clear();
+        it->second.parameters.clear();
+    }
     g_queryDefStates.erase(this);
 }
 
 void CDaoQueryDef::Open(const wchar_t* lpszName) {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     if (lpszName) g_queryDefStates[this].name = CString(lpszName);
+    RegisterQueryDef(this, m_pDatabase);
     m_bOpen = TRUE;
 }
 
 void CDaoQueryDef::Create(const wchar_t* lpszName, const wchar_t* lpszSQL) {
     if (lpszName) SetName(lpszName);
-    if (lpszSQL) m_strSQL = lpszSQL;
+    if (lpszSQL) SetSQL(lpszSQL);
     m_bOpen = TRUE;
+    if (m_pDatabase) RegisterQueryDef(this, m_pDatabase);
 }
 
 void CDaoQueryDef::Close() {
@@ -833,9 +1410,22 @@ CString CDaoQueryDef::GetName() const {
 void CDaoQueryDef::SetName(const wchar_t* lpszName) {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_queryDefStates[this].name = lpszName ? CString(lpszName) : CString();
+    RegisterQueryDef(this, m_pDatabase);
 }
-CString CDaoQueryDef::GetSQL() const { return m_strSQL; }
-void CDaoQueryDef::SetSQL(const wchar_t* lpszSQL) { if (lpszSQL) m_strSQL = lpszSQL; }
+CString CDaoQueryDef::GetSQL() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it != g_queryDefStates.end()) return it->second.sql;
+    return m_strSQL;
+}
+
+void CDaoQueryDef::SetSQL(const wchar_t* lpszSQL) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    if (lpszSQL) {
+        m_strSQL = lpszSQL;
+        g_queryDefStates[this].sql = lpszSQL;
+    }
+}
 BOOL CDaoQueryDef::CanUpdate() const { return TRUE; }
 long CDaoQueryDef::GetType() const {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
@@ -875,29 +1465,69 @@ void CDaoQueryDef::SetReturnsRecords(BOOL bReturnsRecords) {
     g_queryDefStates[this].returnsRecords = bReturnsRecords;
 }
 
-int CDaoQueryDef::GetFieldCount() const { return 0; }
+int CDaoQueryDef::GetFieldCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? static_cast<int>(it->second.fields.size()) : 0;
+}
 
 void CDaoQueryDef::GetFieldInfo(int nIndex, CDaoFieldInfo& fieldinfo,
                                  DWORD dwInfoOptions) {
-    (void)nIndex; (void)fieldinfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    fieldinfo = CDaoFieldInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it == g_queryDefStates.end()) return;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.fields.size())) return;
+    CopyFieldInfo(fieldinfo, it->second.fields[static_cast<size_t>(nIndex)]);
 }
 
-int CDaoQueryDef::GetParameterCount() const { return 0; }
+int CDaoQueryDef::GetParameterCount() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    return (it != g_queryDefStates.end()) ? static_cast<int>(it->second.parameters.size()) : 0;
+}
 
 void CDaoQueryDef::GetParameterInfo(int nIndex, CDaoParameterInfo& paraminfo,
                                      DWORD dwInfoOptions) {
-    (void)nIndex; (void)paraminfo; (void)dwInfoOptions;
+    (void)dwInfoOptions;
+    paraminfo = CDaoParameterInfo{};
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it == g_queryDefStates.end()) return;
+    if (nIndex < 0 || nIndex >= static_cast<int>(it->second.parameters.size())) return;
+    paraminfo = it->second.parameters[static_cast<size_t>(nIndex)];
 }
 
 void CDaoQueryDef::SetParamValue(int nIndex, const COleVariant& varValue) {
-    (void)nIndex; (void)varValue;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it == g_queryDefStates.end()) return;
+    auto& parameters = it->second.parameters;
+    if (nIndex < 0 || static_cast<size_t>(nIndex) >= parameters.size()) return;
+    EnsureVariantCopy(parameters[static_cast<size_t>(nIndex)].m_varValue, varValue);
 }
 
 void CDaoQueryDef::SetParamValue(const wchar_t* lpszName, const COleVariant& varValue) {
-    (void)lpszName; (void)varValue;
+    if (!lpszName) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_queryDefStates.find(this);
+    if (it == g_queryDefStates.end()) return;
+    for (auto& param : it->second.parameters) {
+        if (param.m_strName == lpszName) {
+            EnsureVariantCopy(param.m_varValue, varValue);
+            return;
+        }
+    }
+    CDaoParameterInfo param;
+    param.m_strName = lpszName;
+    EnsureVariantCopy(param.m_varValue, varValue);
+    it->second.parameters.push_back(param);
 }
 
-void CDaoQueryDef::Execute(int nOptions) { (void)nOptions; }
+void CDaoQueryDef::Execute(int nOptions) {
+    (void)nOptions;
+}
 
 //=============================================================================
 // CDaoFieldExchange
@@ -940,7 +1570,7 @@ CDaoRecordset* CDaoRecordView::OnGetRecordset() {
 
 BOOL CDaoRecordView::OnMove(UINT nIDMoveCommand) {
     (void)nIDMoveCommand;
-    return FALSE;
+    return TRUE;
 }
 
 //=============================================================================
