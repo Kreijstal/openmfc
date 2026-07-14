@@ -57,6 +57,22 @@ namespace {
 std::mutex g_oleDispatchDescriptionMutex;
 std::unordered_map<const COleDispatchException*, std::wstring> g_oleDispatchDescriptions;
 
+std::wstring LoadOleDispatchDescription(UINT nDescriptionID) {
+    std::wstring description;
+    if (nDescriptionID == 0) {
+        return description;
+    }
+
+    wchar_t buffer[1024];
+    int nLen = LoadStringW(AfxGetResourceHandle(), nDescriptionID,
+                           buffer, static_cast<int>(sizeof(buffer) / sizeof(buffer[0])));
+    if (nLen <= 0) {
+        return description;
+    }
+    description.assign(buffer, buffer + nLen);
+    return description;
+}
+
 static void CopyErrorText(wchar_t* out, UINT maxLen, const wchar_t* text) {
     if (!out || maxLen == 0) return;
     const wchar_t* src = text ? text : L"";
@@ -1132,7 +1148,14 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     COleDispatchException* pEx = new COleDispatchException();
     pEx->m_wCode = wCode;
     pEx->m_dwHelpContext = nHelpID;
-    // TODO: Load description from resource nDescriptionID
+    {
+        std::wstring description = LoadOleDispatchDescription(nDescriptionID);
+        if (!description.empty()) {
+            std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
+            g_oleDispatchDescriptions[pEx] = std::move(description);
+            pEx->m_strDescription = g_oleDispatchDescriptions[pEx].c_str();
+        }
+    }
     ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 
