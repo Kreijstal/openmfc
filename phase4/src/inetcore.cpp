@@ -14,6 +14,7 @@
 #include <cwchar>
 #include <new>
 #include <vector>
+#include <cwctype>
 
 #ifdef GetObject
 #undef GetObject
@@ -46,6 +47,137 @@ IMPLEMENT_DYNAMIC(CInternetSession, CObject)
 // Map for looking up sessions by handle
 #include <unordered_map>
 static std::unordered_map<HINTERNET, CInternetSession*> g_sessionMap;
+
+namespace {
+
+thread_local CString g_lastFileName;
+
+CString LocatorToString(const CGopherLocator* pLocator) {
+    if (!pLocator || !pLocator->m_lpBuffer || pLocator->m_dwBufferLength == 0) {
+        return CString();
+    }
+    return CString(reinterpret_cast<const wchar_t*>(pLocator->m_lpBuffer));
+}
+
+void FillLocator(CGopherLocator* pRet, const CString& locator) {
+    if (!pRet) return;
+    if (pRet->m_lpBuffer) {
+        std::free(pRet->m_lpBuffer);
+        pRet->m_lpBuffer = nullptr;
+        pRet->m_dwBufferLength = 0;
+    }
+    new (pRet) CGopherLocator();
+    const wchar_t* psz = locator.GetString();
+    size_t chars = psz ? wcslen(psz) : 0;
+    pRet->m_dwBufferLength = static_cast<DWORD>((chars + 1) * sizeof(wchar_t));
+    pRet->m_lpBuffer = std::malloc(pRet->m_dwBufferLength);
+    if (pRet->m_lpBuffer) {
+        std::memcpy(pRet->m_lpBuffer, psz ? psz : L"", pRet->m_dwBufferLength);
+    } else {
+        pRet->m_dwBufferLength = 0;
+    }
+}
+
+CInternetSession* SessionForHandle(HINTERNET hInternet) {
+    auto it = g_sessionMap.find(hInternet);
+    if (it != g_sessionMap.end()) return it->second;
+
+    HINTERNET current = hInternet;
+    for (int i = 0; i < 8; ++i) {
+        HINTERNET parent = nullptr;
+        DWORD cb = sizeof(parent);
+        if (!InternetQueryOptionW(current, INTERNET_OPTION_PARENT_HANDLE, &parent, &cb) || !parent) {
+            break;
+        }
+        it = g_sessionMap.find(parent);
+        if (it != g_sessionMap.end()) return it->second;
+        if (parent == current) break;
+        current = parent;
+    }
+    return nullptr;
+}
+
+void CALLBACK WinInetStatusCallback(HINTERNET hInternet, DWORD_PTR dwContext, DWORD dwInternetStatus,
+                                   LPVOID lpvStatusInformation, DWORD dwStatusInformationLength) {
+    CInternetSession* pSession = SessionForHandle(hInternet);
+    if (pSession) {
+        pSession->OnStatusCallback(dwContext, dwInternetStatus, lpvStatusInformation,
+                                  dwStatusInformationLength);
+    }
+}
+
+CString MapGopherTypeToString(unsigned long dwType) {
+    if (dwType & GOPHER_TYPE_TEXT_FILE) return L"Text File";
+    if (dwType & GOPHER_TYPE_DIRECTORY) return L"Directory";
+    if (dwType & GOPHER_TYPE_CSO) return L"CSO";
+    if (dwType & GOPHER_TYPE_ERROR) return L"Error";
+    if (dwType & GOPHER_TYPE_MAC_BINHEX) return L"Mac BinHex";
+    if (dwType & GOPHER_TYPE_DOS_ARCHIVE) return L"DOS Archive";
+    if (dwType & GOPHER_TYPE_UNIX_UUENCODED) return L"Unix UUEncoded";
+    if (dwType & GOPHER_TYPE_INDEX_SERVER) return L"Index Server";
+    if (dwType & GOPHER_TYPE_TELNET) return L"Telnet";
+    if (dwType & GOPHER_TYPE_BINARY) return L"Binary";
+    if (dwType & GOPHER_TYPE_REDUNDANT) return L"Redundant";
+    if (dwType & GOPHER_TYPE_TN3270) return L"TN3270";
+    if (dwType & GOPHER_TYPE_GIF) return L"GIF";
+    if (dwType & GOPHER_TYPE_IMAGE) return L"Image";
+    if (dwType & GOPHER_TYPE_BITMAP) return L"Bitmap";
+    if (dwType & GOPHER_TYPE_MOVIE) return L"Movie";
+    if (dwType & GOPHER_TYPE_SOUND) return L"Sound";
+    if (dwType & GOPHER_TYPE_HTML) return L"HTML";
+    if (dwType & GOPHER_TYPE_PDF) return L"PDF";
+    if (dwType & GOPHER_TYPE_CALENDAR) return L"Calendar";
+    return CString();
+}
+
+CInternetSession* SessionForStaticHelpers() {
+    static CInternetSession g_staticHelperSession;
+    return &g_staticHelperSession;
+}
+
+CString LocatorTypeFromApi(const CGopherLocator& refLocator) {
+    const CString locator = LocatorToString(&refLocator);
+    if (locator.IsEmpty()) return CString();
+    DWORD dwType = 0;
+    if (GopherGetLocatorTypeW(locator, &dwType)) {
+        return MapGopherTypeToString(dwType);
+    }
+    return CString();
+}
+
+bool BuildGopherLocator(CString& out, const CString& host, INTERNET_PORT port,
+                       const CString& display, const CString& selector, DWORD gopherType) {
+    CString safeHost = host.IsEmpty() ? CString() : host;
+    CString safeDisplay = display;
+    CString safeSelector = selector;
+    DWORD required = 0;
+    std::vector<wchar_t> buffer;
+    if (!GopherCreateLocatorW(safeHost, port ? port : INTERNET_DEFAULT_GOPHER_PORT,
+                              safeDisplay, safeSelector, gopherType, nullptr, &required)) {
+        return false;
+    }
+    if (required == 0) return false;
+    buffer.assign(required, L'\0');
+    if (!GopherCreateLocatorW(safeHost, port ? port : INTERNET_DEFAULT_GOPHER_PORT,
+                              safeDisplay, safeSelector, gopherType,
+                              buffer.data(), &required)) {
+        return false;
+    }
+    out = buffer.data();
+    return true;
+}
+
+void AppendGopherType(CString& locator, unsigned long gopherType) {
+    if (gopherType == 0) return;
+    if (!locator.IsEmpty()) locator += L"\t";
+    if (gopherType < 128 && iswprint((wchar_t)gopherType)) {
+        locator.AppendFormat(L"%lc", static_cast<wchar_t>(gopherType));
+    } else {
+        locator.AppendFormat(L"%lu", gopherType);
+    }
+}
+
+} // namespace
 
 CInternetSession::CInternetSession(const wchar_t* pstrAgent,
                                     DWORD_PTR dwContext,
@@ -115,14 +247,20 @@ int CInternetSession::SetOption(DWORD dwOption, void* lpBuffer, DWORD dwBufLen) 
 }
 
 int CInternetSession::EnableStatusCallback(int bEnable) {
-    m_bCallbackEnabled = bEnable;
-    if (m_hSession) {
-        if (bEnable) {
-            InternetSetStatusCallbackW(m_hSession, nullptr);
-        } else {
-            InternetSetStatusCallbackW(m_hSession, nullptr);
-        }
+    if (!m_hSession) return FALSE;
+
+    SetLastError(0);
+    INTERNET_STATUS_CALLBACK prev;
+    if (bEnable) {
+        prev = InternetSetStatusCallbackW(m_hSession, &WinInetStatusCallback);
+    } else {
+        prev = InternetSetStatusCallbackW(m_hSession, INTERNET_INVALID_STATUS_CALLBACK);
     }
+
+    if (prev == INTERNET_INVALID_STATUS_CALLBACK && GetLastError() != 0) {
+        return FALSE;
+    }
+    m_bCallbackEnabled = bEnable;
     return TRUE;
 }
 
@@ -870,26 +1008,50 @@ int CInternetSession::GetFtpConnection(const wchar_t* pstrServer,
                                         const wchar_t* pstrPassword,
                                         INTERNET_PORT nPort, int bPassive,
                                         CFtpConnection*& refConnection) {
-    (void)pstrServer; (void)pstrUserName; (void)pstrPassword; (void)nPort; (void)bPassive;
+    CInternetSession* pSession = SessionForStaticHelpers();
     refConnection = nullptr;
-    return 0;
+    if (!pSession) return 0;
+    CFtpConnection* pConnection = pSession->GetFtpConnection(
+        pstrServer, pstrUserName, pstrPassword, nPort, bPassive);
+    if (!pConnection || !pConnection->m_hConnection) {
+        delete pConnection;
+        return 0;
+    }
+    refConnection = pConnection;
+    return 1;
 }
 
 int CInternetSession::GetHttpConnection(const wchar_t* pstrServer, INTERNET_PORT nPort,
                                          const wchar_t* pstrUserName, const wchar_t* pstrPassword,
                                          CHttpConnection*& refConnection) {
-    (void)pstrServer; (void)nPort; (void)pstrUserName; (void)pstrPassword;
+    CInternetSession* pSession = SessionForStaticHelpers();
     refConnection = nullptr;
-    return 0;
+    if (!pSession) return 0;
+    CHttpConnection* pConnection = pSession->GetHttpConnection(
+        pstrServer, nPort, pstrUserName, pstrPassword);
+    if (!pConnection || !pConnection->m_hConnection) {
+        delete pConnection;
+        return 0;
+    }
+    refConnection = pConnection;
+    return 1;
 }
 
 int CInternetSession::GetHttpConnection(const wchar_t* pstrServer, DWORD dwFlags,
                                          INTERNET_PORT nPort,
                                          const wchar_t* pstrUserName, const wchar_t* pstrPassword,
                                          CHttpConnection*& refConnection) {
-    (void)pstrServer; (void)dwFlags; (void)nPort; (void)pstrUserName; (void)pstrPassword;
+    CInternetSession* pSession = SessionForStaticHelpers();
     refConnection = nullptr;
-    return 0;
+    if (!pSession) return 0;
+    CHttpConnection* pConnection = pSession->GetHttpConnection(
+        pstrServer, dwFlags, nPort, pstrUserName, pstrPassword);
+    if (!pConnection || !pConnection->m_hConnection) {
+        delete pConnection;
+        return 0;
+    }
+    refConnection = pConnection;
+    return 1;
 }
 
 DWORD CInternetSession::GetCookieLength(const wchar_t* pstrUrl, const wchar_t* pstrCookieName) {
@@ -1050,6 +1212,7 @@ int CFileFind::FindFile(const wchar_t* pstrName, DWORD dwUnused) {
     if (m_hFindFile == INVALID_HANDLE_VALUE) return 0;
     m_bGotFirst = 1;
     m_strFileName = m_findData.cFileName;
+    g_lastFileName = m_strFileName;
     return 1;
 }
 
@@ -1058,6 +1221,7 @@ int CFileFind::FindNextFile() {
     if (!m_bGotFirst) return 0;
     if (!::FindNextFileW(m_hFindFile, &m_findData)) return 0;
     m_strFileName = m_findData.cFileName;
+    g_lastFileName = m_strFileName;
     return 1;
 }
 
@@ -1104,8 +1268,8 @@ int CFileFind::GetCreationTime(FILETIME* pFileTime) const {
 }
 
 int CFileFind::GetFileName(CString& strFileName) {
-    strFileName.Empty();
-    return 0;
+    strFileName = g_lastFileName;
+    return static_cast<int>(!strFileName.IsEmpty());
 }
 
 //=============================================================================
@@ -1156,7 +1320,7 @@ CString CFtpFileFind::GetFileURL() const {
 }
 
 //=============================================================================
-// CGopherFileFind (stub)
+// CGopherFileFind
 //=============================================================================
 IMPLEMENT_DYNAMIC(GopherFileFind, CFtpFileFind)
 
@@ -1165,13 +1329,22 @@ GopherFileFind::GopherFileFind(CFtpConnection* pFtp, DWORD_PTR dwContext)
 
 GopherFileFind::~GopherFileFind() {}
 
-CString GopherFileFind::GetFileName() const { return CString(); }
-CString GopherFileFind::GetScreenName() const { return CString(); }
-CGopherLocator GopherFileFind::GetLocator() const { CGopherLocator loc; return loc; }
-int GopherFileFind::GetFileLength(DWORD_PTR& dwLength) const { dwLength = 0; return 0; }
+CString GopherFileFind::GetFileName() const { return m_strFileName; }
+CString GopherFileFind::GetScreenName() const { return m_strFileName; }
+CGopherLocator GopherFileFind::GetLocator() const {
+    CString locator = m_strRoot;
+    if (locator.IsEmpty()) locator = m_strFileName;
+    CGopherLocator loc;
+    FillLocator(&loc, locator);
+    return loc;
+}
+int GopherFileFind::GetFileLength(DWORD_PTR& dwLength) const {
+    dwLength = (static_cast<DWORD_PTR>(m_findFileData.nFileSizeHigh) << 32) | m_findFileData.nFileSizeLow;
+    return 1;
+}
 
 //=============================================================================
-// CGopherConnection (stub)
+// CGopherConnection
 //=============================================================================
 IMPLEMENT_DYNAMIC(CGopherConnection, CInternetConnection)
 
@@ -1179,6 +1352,18 @@ CGopherConnection::CGopherConnection(CInternetSession* pSession, HINTERNET hConn
                                       const wchar_t* pstrServer, DWORD_PTR dwContext)
     : CInternetConnection(pSession, pstrServer, INTERNET_DEFAULT_GOPHER_PORT, dwContext) {
     m_hConnection = hConnected;
+    if (!m_hConnection && m_pSession && m_pSession->GetHandle()) {
+        m_hConnection = InternetConnectW(
+            m_pSession->GetHandle(),
+            pstrServer,
+            INTERNET_DEFAULT_GOPHER_PORT,
+            nullptr,
+            nullptr,
+            INTERNET_SERVICE_GOPHER,
+            0,
+            dwContext
+        );
+    }
     memset(_gopherconn_padding, 0, sizeof(_gopherconn_padding));
 }
 
@@ -1186,8 +1371,19 @@ CGopherConnection::CGopherConnection(CInternetSession* pSession, const wchar_t* 
                                       const wchar_t* pstrUserName, const wchar_t* pstrPassword,
                                       DWORD_PTR dwContext, INTERNET_PORT nPort)
     : CInternetConnection(pSession, pstrServer, nPort, dwContext) {
+    if (!m_hConnection && m_pSession && m_pSession->GetHandle()) {
+        m_hConnection = InternetConnectW(
+            m_pSession->GetHandle(),
+            pstrServer,
+            nPort,
+            pstrUserName,
+            pstrPassword,
+            INTERNET_SERVICE_GOPHER,
+            0,
+            dwContext
+        );
+    }
     memset(_gopherconn_padding, 0, sizeof(_gopherconn_padding));
-    (void)pstrUserName; (void)pstrPassword;
 }
 
 CGopherConnection::~CGopherConnection() {}
@@ -1195,20 +1391,48 @@ CGopherConnection::~CGopherConnection() {}
 CGopherFile* CGopherConnection::OpenFile(GOPHER_FIND_DATAW* pFindData,
                                           const wchar_t* pstrLocator,
                                           DWORD_PTR dwContext) {
-    (void)pFindData; (void)pstrLocator; (void)dwContext;
-    return nullptr;
+    const wchar_t* locator = pstrLocator;
+    if (!locator && pFindData && pFindData->Locator[0]) locator = pFindData->Locator;
+    if (!m_hConnection || !locator) return nullptr;
+
+    HINTERNET hFile = GopherOpenFileW(m_hConnection, locator, nullptr, 0, dwContext);
+    if (!hFile) return nullptr;
+
+    CGopherLocator locatorValue;
+    FillLocator(&locatorValue, CString(locator));
+    return new CGopherFile(hFile, locatorValue, this);
 }
 
 CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
                                                  CGopherLocator* pLocator,
                                                  unsigned long dwContext) {
-    (void)pstrDisplayString; (void)pLocator; (void)dwContext;
-    CGopherLocator loc; return loc;
+    (void)dwContext;
+    CGopherLocator loc;
+    CString display = pstrDisplayString ? pstrDisplayString : L"";
+    CString selector = LocatorToString(pLocator);
+    DWORD gopherType = GOPHER_TYPE_UNKNOWN;
+    if (pLocator && !selector.IsEmpty()) {
+        GopherGetLocatorTypeW(selector, &gopherType);
+    }
+
+    CString built;
+    if (BuildGopherLocator(built, m_strServerName, m_nPort, display, selector, gopherType)) {
+        FillLocator(&loc, built);
+        return loc;
+    }
+
+    CString locator = display;
+    if (!locator.IsEmpty() && !selector.IsEmpty()) locator += L"\t";
+    locator += selector;
+    FillLocator(&loc, locator);
+    return loc;
 }
 
 CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrLocator) {
-    (void)pstrLocator;
-    CGopherLocator loc; return loc;
+    CGopherLocator loc;
+    if (!pstrLocator) return loc;
+    FillLocator(&loc, pstrLocator ? pstrLocator : L"");
+    return loc;
 }
 
 CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString,
@@ -1216,8 +1440,34 @@ CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString
                                                  CGopherLocator* pLocator2,
                                                  unsigned long dwContext,
                                                  unsigned short nGopherType) {
-    (void)pstrDisplayString; (void)pLocator1; (void)pLocator2; (void)dwContext; (void)nGopherType;
-    CGopherLocator loc; return loc;
+    (void)dwContext;
+    CGopherLocator loc;
+    CString display = pstrDisplayString ? pstrDisplayString : L"";
+    CString left = LocatorToString(pLocator1);
+    CString right = LocatorToString(pLocator2);
+
+    CString selector;
+    if (!left.IsEmpty()) {
+        if (!selector.IsEmpty()) selector += L"\t";
+        selector += left;
+    }
+    if (!right.IsEmpty()) {
+        if (!selector.IsEmpty()) selector += L"\t";
+        selector += right;
+    }
+
+    CString built;
+    if (BuildGopherLocator(built, CString(), INTERNET_INVALID_PORT_NUMBER, display, selector, nGopherType)) {
+        FillLocator(&loc, built);
+        return loc;
+    }
+
+    CString locator = display;
+    if (!locator.IsEmpty() && !selector.IsEmpty()) locator += L"\t";
+    locator += selector;
+    AppendGopherType(locator, nGopherType);
+    FillLocator(&loc, locator);
+    return loc;
 }
 
 // Convenience overload
@@ -1225,28 +1475,43 @@ CGopherLocator CGopherConnection::CreateLocator(const wchar_t* pstrDisplayString
                                                  const wchar_t* pstrSelectorString,
                                                  DWORD dwGopherType) {
     CGopherLocator loc;
-    (void)pstrDisplayString; (void)pstrSelectorString; (void)dwGopherType;
+    CString display = pstrDisplayString ? pstrDisplayString : L"";
+    CString selector = pstrSelectorString ? pstrSelectorString : L"";
+
+    CString built;
+    if (BuildGopherLocator(built, m_strServerName, m_nPort, display, selector, dwGopherType)) {
+        FillLocator(&loc, built);
+        return loc;
+    }
+
+    CString locator = display;
+    if (!locator.IsEmpty() && !selector.IsEmpty()) locator += L"\t";
+    locator += selector;
+    AppendGopherType(locator, dwGopherType);
+    FillLocator(&loc, locator);
     return loc;
 }
 
 CString CGopherConnection::GetLocatorType(const CGopherLocator& refLocator) {
-    (void)refLocator;
+    CString type = LocatorTypeFromApi(refLocator);
+    if (!type.IsEmpty()) return type;
+    CString locator = LocatorToString(&refLocator);
+    if (!locator.IsEmpty()) return locator.Left(1);
     return CString();
 }
 
 CFtpFileFind* CGopherConnection::CreateFileFind(CGopherLocator* pLocator) {
-    (void)pLocator;
-    return nullptr;
+    auto* pFind = new GopherFileFind(reinterpret_cast<CFtpConnection*>(this), m_dwContext);
+    if (pFind && pLocator) pFind->m_strRoot = LocatorToString(pLocator);
+    return pFind;
 }
 
 //=============================================================================
-// CGopherFile (stub)
+// CGopherFile
 //=============================================================================
 CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
                          CGopherConnection* pConnection)
-    : CInternetFile() {
-    m_hFile = hFile;
-    (void)refLocator; (void)pConnection;
+    : CInternetFile(hFile, LocatorToString(&refLocator), pConnection, 0) {
 }
 
 CGopherFile::~CGopherFile() {}
