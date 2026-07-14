@@ -26,6 +26,15 @@ struct DaoWorkspaceState {
     std::vector<const CDaoDatabase*> databases;
 };
 
+struct DaoTableDefState {
+    CString name;
+    CString connect;
+    CString sourceTableName;
+    long attributes = 0;
+    std::vector<CDaoFieldInfo> fields;
+    std::vector<CDaoIndexInfo> indexes;
+};
+
 struct DaoDatabaseState {
     CString name;
     CString connect;
@@ -34,15 +43,6 @@ struct DaoDatabaseState {
     std::vector<const CDaoQueryDef*> queryDefs;
     std::vector<DaoTableDefState> tableDefInfos;
     std::vector<CDaoRelationInfo> relations;
-};
-
-struct DaoTableDefState {
-    CString name;
-    CString connect;
-    CString sourceTableName;
-    long attributes = 0;
-    std::vector<CDaoFieldInfo> fields;
-    std::vector<CDaoIndexInfo> indexes;
 };
 
 struct DaoQueryDefState {
@@ -1888,3 +1888,5 @@ extern "C" void MS_ABI dao_AfxDaoTerm() {
 extern "C" CDaoWorkspace* MS_ABI dao_CDaoWorkspace_GetDefaultWorkspace() {
     return CDaoWorkspace::GetDefaultWorkspace();
 }
+
+}  // namespace
