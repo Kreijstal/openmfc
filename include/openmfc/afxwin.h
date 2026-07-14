@@ -1530,7 +1530,12 @@ inline HINSTANCE AFXAPI AfxGetResourceHandle() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_hInstance : nullptr;
 }
-inline void AFXAPI AfxSetResourceHandle(HINSTANCE) { /* TODO */ }
+inline void AFXAPI AfxSetResourceHandle(HINSTANCE hResource) {
+    CWinApp* pApp = AfxGetApp();
+    if (pApp != nullptr) {
+        pApp->m_hInstance = hResource;
+    }
+}
 inline CWnd* AFXAPI AfxGetMainWnd() {
     CWinApp* pApp = AfxGetApp();
     return pApp ? pApp->m_pMainWnd : nullptr;

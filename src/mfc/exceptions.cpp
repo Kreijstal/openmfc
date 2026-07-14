@@ -33,6 +33,26 @@ const wchar_t* ArchiveCauseText(int cause) {
 
 } // namespace
 
+class CInvalidArgException : public CException {
+public:
+    CInvalidArgException() : CException(TRUE) {}
+};
+
+class CNotSupportedException : public CException {
+public:
+    CNotSupportedException() : CException(TRUE) {}
+};
+
+class CResourceException : public CException {
+public:
+    CResourceException() : CException(TRUE) {}
+};
+
+class CUserException : public CException {
+public:
+    CUserException() : CException(TRUE) {}
+};
+
 // Exception throwing helpers
 
 void AFXAPI AfxThrowMemoryException() {
@@ -48,24 +68,19 @@ void AFXAPI AfxThrowFileException(int cause, LONG lOsError, LPCWSTR lpszFileName
 }
 
 void AFXAPI AfxThrowInvalidArgException() {
-    // For now, use CException as base if specific class not implemented
-    // TODO: Implement CInvalidArgException
-    throw new CException(TRUE); 
+    throw new CInvalidArgException();
 }
 
 void AFXAPI AfxThrowNotSupportedException() {
-    // TODO: Implement CNotSupportedException
-    throw new CException(TRUE);
+    throw new CNotSupportedException();
 }
 
 void AFXAPI AfxThrowResourceException() {
-    // TODO: Implement CResourceException
-    throw new CException(TRUE);
+    throw new CResourceException();
 }
 
 void AFXAPI AfxThrowUserException() {
-    // TODO: Implement CUserException
-    throw new CException(TRUE);
+    throw new CUserException();
 }
 
 void AFXAPI AfxAbort() {
