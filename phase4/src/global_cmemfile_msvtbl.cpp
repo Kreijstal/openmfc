@@ -32,6 +32,18 @@
   #define MS_ABI
 #endif
 
+extern "C" void* MS_ABI impl__Duplicate_CMemFile__UEBAPEAVCFile__XZ(const CMemFile* pThis);
+extern "C" unsigned int MS_ABI impl__GetBufferPtr_CMemFile__UEAAIIIPEAPEAX0_Z(
+    CMemFile* pThis, unsigned int nCommand, unsigned int nCount, void** ppBufStart, void** ppBufMax);
+extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pException);
+extern "C" int MS_ABI impl__Open_CFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM, void* pException);
+extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount);
+extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount);
+extern "C" void MS_ABI impl__Abort_CMemFile__UEAAXXZ(CMemFile* pThis);
+extern "C" void MS_ABI impl__SetLength_CMemFile__UEAAX_K_Z(CMemFile* pThis, unsigned long long dwNewLen);
+
 namespace {
 
 // --- slot wrappers: qualified (non-virtual) member calls, no re-dispatch ---
@@ -48,20 +60,31 @@ void           MS_ABI v_GetFileName(CMemFile* p, CString* pRet)  { new(pRet) CSt
 void           MS_ABI v_GetFileTitle(CMemFile* p, CString* pRet) { new(pRet) CString(p->CFile::GetFileTitle()); }
 void           MS_ABI v_GetFilePath(CMemFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFilePath());  }
 void           MS_ABI v_SetFilePath(CMemFile* p, const wchar_t* n) { p->CFile::SetFilePath(n); }
-int            MS_ABI v_Open3(CMemFile*, const wchar_t*, unsigned, void*) { return 0; }
-int            MS_ABI v_Open4(CMemFile*, const wchar_t*, unsigned, void*, void*) { return 0; }
-void*          MS_ABI v_Duplicate(const CMemFile*)            { return nullptr; }
+int            MS_ABI v_Open3(CMemFile* p, const wchar_t* lpszFileName, unsigned nOpenFlags, void* pException) {
+    return impl__Open_CFile__UEAAHPEB_WIPEAVCFileException___Z(p, lpszFileName, nOpenFlags, pException);
+}
+int            MS_ABI v_Open4(CMemFile* p, const wchar_t* lpszFileName, unsigned nOpenFlags, void* pTM, void* pException) {
+    return impl__Open_CFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+        p, lpszFileName, nOpenFlags, pTM, pException);
+}
+void*          MS_ABI v_Duplicate(const CMemFile* p)            { return impl__Duplicate_CMemFile__UEBAPEAVCFile__XZ(p); }
 unsigned long long MS_ABI v_Seek(CMemFile* p, long long off, unsigned from) { return p->CMemFile::Seek(off, from); }
 void           MS_ABI v_SetLength(CMemFile* p, unsigned long long n)        { p->CMemFile::SetLength(n); }
 unsigned long long MS_ABI v_GetLength(const CMemFile* p)      { return const_cast<CMemFile*>(p)->CMemFile::GetLength(); }
 unsigned int   MS_ABI v_Read(CMemFile* p, void* b, unsigned int n)         { return p->CMemFile::Read(b, n); }
 void           MS_ABI v_Write(CMemFile* p, const void* b, unsigned int n)  { p->CMemFile::Write(b, n); }
-void           MS_ABI v_LockRange(CMemFile*, unsigned long long, unsigned long long)   {}
-void           MS_ABI v_UnlockRange(CMemFile*, unsigned long long, unsigned long long) {}
-void           MS_ABI v_Abort(CMemFile*)                      {}
+void           MS_ABI v_LockRange(CMemFile* p, unsigned long long dwPos, unsigned long long dwCount)   {
+    impl__LockRange_CMemFile__UEAAX_K0_Z(p, dwPos, dwCount);
+}
+void           MS_ABI v_UnlockRange(CMemFile* p, unsigned long long dwPos, unsigned long long dwCount) {
+    impl__UnlockRange_CMemFile__UEAAX_K0_Z(p, dwPos, dwCount);
+}
+void           MS_ABI v_Abort(CMemFile* p)                      { impl__Abort_CMemFile__UEAAXXZ(p); }
 void           MS_ABI v_Flush(CMemFile* p)                    { p->CMemFile::Flush(); }
 void           MS_ABI v_Close(CMemFile* p)                    { p->CFile::Close(); }
-unsigned int   MS_ABI v_GetBufferPtr(CMemFile*, unsigned int, unsigned int, void**, void**) { return 0; }
+unsigned int   MS_ABI v_GetBufferPtr(CMemFile* p, unsigned int nCommand, unsigned int nCount, void** ppBufStart, void** ppBufMax) {
+    return impl__GetBufferPtr_CMemFile__UEAAIIIPEAPEAX0_Z(p, nCommand, nCount, ppBufStart, ppBufMax);
+}
 
 // The 24-slot MSVC-layout vtable. vptr points at &slot[0].
 void* const g_CMemFile_msvtbl[24] = {

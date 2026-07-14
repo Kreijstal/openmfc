@@ -38,6 +38,18 @@
 // Real CStdioFile::GetLength logic lives in this exported thunk (fstat on the FILE*);
 // CStdioFile uses a FILE* (not m_hFile), so CFile::GetLength would be wrong here.
 extern "C" unsigned long long MS_ABI impl__GetLength_CStdioFile__UEBA_KXZ(const CStdioFile*);
+extern "C" int MS_ABI impl__Open_CStdioFile__UEAAHPEB_WIPEAVCFileException___Z(
+    CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pException);
+extern "C" int MS_ABI impl__Open_CStdioFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+    CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM, void* pException);
+extern "C" CFile* MS_ABI impl__Duplicate_CStdioFile__UEBAPEAVCFile__XZ(const CStdioFile* pThis);
+extern "C" unsigned int MS_ABI impl__GetBufferPtr_CFile__UEAAIIIPEAPEAX0_Z(
+    void* pThis, unsigned int nCommand, unsigned int nCount, void** ppBufStart, void** ppBufMax);
+extern "C" void MS_ABI impl__LockRange_CStdioFile__UEAAX_K0_Z(
+    CStdioFile* pThis, unsigned long long dwPos, unsigned long long dwCount);
+extern "C" void MS_ABI impl__UnlockRange_CStdioFile__UEAAX_K0_Z(
+    CStdioFile* pThis, unsigned long long dwPos, unsigned long long dwCount);
+extern "C" void MS_ABI impl__Abort_CStdioFile__UEAAXXZ(CStdioFile* pThis);
 
 namespace {
 
@@ -54,20 +66,31 @@ void           MS_ABI v_GetFileName(CStdioFile* p, CString* pRet)  { new(pRet) C
 void           MS_ABI v_GetFileTitle(CStdioFile* p, CString* pRet) { new(pRet) CString(p->CFile::GetFileTitle()); }
 void           MS_ABI v_GetFilePath(CStdioFile* p, CString* pRet)  { new(pRet) CString(p->CFile::GetFilePath());  }
 void           MS_ABI v_SetFilePath(CStdioFile* p, const wchar_t* n) { p->CFile::SetFilePath(n); }
-int            MS_ABI v_Open3(CStdioFile*, const wchar_t*, unsigned, void*) { return 0; }
-int            MS_ABI v_Open4(CStdioFile*, const wchar_t*, unsigned, void*, void*) { return 0; }
-void*          MS_ABI v_Duplicate(const CStdioFile*)             { return nullptr; }
+int            MS_ABI v_Open3(CStdioFile* p, const wchar_t* lpszFileName, unsigned nOpenFlags, void* pException) {
+    return impl__Open_CStdioFile__UEAAHPEB_WIPEAVCFileException___Z(p, lpszFileName, nOpenFlags, pException);
+}
+int            MS_ABI v_Open4(CStdioFile* p, const wchar_t* lpszFileName, unsigned nOpenFlags, void* pTM, void* pException) {
+    return impl__Open_CStdioFile__UEAAHPEB_WIPEAVCAtlTransactionManager_ATL__PEAVCFileException___Z(
+        p, lpszFileName, nOpenFlags, pTM, pException);
+}
+void*          MS_ABI v_Duplicate(const CStdioFile* p)             { return impl__Duplicate_CStdioFile__UEBAPEAVCFile__XZ(p); }
 unsigned long long MS_ABI v_Seek(CStdioFile* p, long long off, unsigned from) { return p->CStdioFile::Seek(off, from); }
 void           MS_ABI v_SetLength(CStdioFile* p, unsigned long long n)        { p->CFile::SetLength(n); }
 unsigned long long MS_ABI v_GetLength(const CStdioFile* p)       { return impl__GetLength_CStdioFile__UEBA_KXZ(p); }
 unsigned int   MS_ABI v_Read(CStdioFile* p, void* b, unsigned int n)         { return p->CStdioFile::Read(b, n); }
 void           MS_ABI v_Write(CStdioFile* p, const void* b, unsigned int n)  { p->CStdioFile::Write(b, n); }
-void           MS_ABI v_LockRange(CStdioFile*, unsigned long long, unsigned long long)   {}
-void           MS_ABI v_UnlockRange(CStdioFile*, unsigned long long, unsigned long long) {}
-void           MS_ABI v_Abort(CStdioFile*)                       {}
+void           MS_ABI v_LockRange(CStdioFile* p, unsigned long long dwPos, unsigned long long dwCount) {
+    impl__LockRange_CStdioFile__UEAAX_K0_Z(p, dwPos, dwCount);
+}
+void           MS_ABI v_UnlockRange(CStdioFile* p, unsigned long long dwPos, unsigned long long dwCount) {
+    impl__UnlockRange_CStdioFile__UEAAX_K0_Z(p, dwPos, dwCount);
+}
+void           MS_ABI v_Abort(CStdioFile* p) { impl__Abort_CStdioFile__UEAAXXZ(p); }
 void           MS_ABI v_Flush(CStdioFile* p)                     { p->CStdioFile::Flush(); }
 void           MS_ABI v_Close(CStdioFile* p)                     { p->CStdioFile::Close(); }
-unsigned int   MS_ABI v_GetBufferPtr(CStdioFile*, unsigned int, unsigned int, void**, void**) { return 0; }
+unsigned int   MS_ABI v_GetBufferPtr(CStdioFile* p, unsigned int nCommand, unsigned int nCount, void** ppBufStart, void** ppBufMax) {
+    return impl__GetBufferPtr_CFile__UEAAIIIPEAPEAX0_Z(p, nCommand, nCount, ppBufStart, ppBufMax);
+}
 void           MS_ABI v_WriteString(CStdioFile* p, const wchar_t* s) { p->CStdioFile::WriteString(s); }
 void*          MS_ABI v_ReadStringW(CStdioFile* p, wchar_t* s, unsigned n) { return p->CStdioFile::ReadString(s, n); }
 int            MS_ABI v_ReadStringS(CStdioFile* p, CString& s)      { return p->CStdioFile::ReadString(s); }
