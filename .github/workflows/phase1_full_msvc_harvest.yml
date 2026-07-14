@@ -1,0 +1,163 @@
+name: Phase 1 - Full MSVC ABI Harvest
+
+on:
+  workflow_dispatch:
+
+jobs:
+  harvest-rtti-descriptors:
+    name: Probe all RTTI descriptors
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Verify generated harvest inventory
+        shell: pwsh
+        run: python tools/harvest/gen_rtti_targets.py --check
+
+      - name: Locate real x64 mfc140u.dll
+        id: locate
+        shell: pwsh
+        run: |
+          function Find-X64Mfc {
+            $roots = @(
+              $env:VCToolsRedistDir,
+              $env:VCToolsInstallDir,
+              $env:VSINSTALLDIR,
+              'C:\Program Files\Microsoft Visual Studio',
+              'C:\Program Files (x86)\Microsoft Visual Studio'
+            ) | Where-Object { $_ -and (Test-Path $_) }
+
+            $hits = foreach ($root in $roots) {
+              Get-ChildItem -Path $root -Filter mfc140u.dll -Recurse -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -notmatch '\\(x86|arm|arm64)\\' }
+            }
+            $preferred = $hits | Where-Object { $_.FullName -match '\\x64\\' } | Select-Object -First 1
+            if ($preferred) { return $preferred }
+            return $hits | Select-Object -First 1
+          }
+
+          $dll = Find-X64Mfc
+          if (-not $dll) {
+            Write-Error 'mfc140u.dll was not found in the Visual Studio installation'
+            exit 1
+          }
+          $version = $dll.VersionInfo.ProductVersion
+          $sha256 = (Get-FileHash $dll.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Host "DLL: $($dll.FullName)"
+          Write-Host "Version: $version"
+          Write-Host "SHA256: $sha256"
+          "mfc_dll=$($dll.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "mfc_version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "mfc_sha256=$sha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build and run ordinal RTTI probe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/rtti | Out-Null
+          cl.exe /nologo /EHsc /O2 /D_WIN32_WINNT=0x0602 `
+            tools\harvest\rtti_probe.cpp `
+            /Fe:artifacts\rtti\rtti_probe.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & .\artifacts\rtti\rtti_probe.exe '${{ steps.locate.outputs.mfc_dll }}' |
+            Out-File artifacts/rtti/rtti_descriptors.jsonl -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          dumpbin /nologo /headers '${{ steps.locate.outputs.mfc_dll }}' |
+            Out-File artifacts/rtti/mfc140u_headers.txt -Encoding ascii
+
+      - name: Validate and normalize RTTI descriptors
+        shell: pwsh
+        run: |
+          python tools/harvest/parse_rtti_probe.py `
+            --input artifacts/rtti/rtti_descriptors.jsonl `
+            --manifest tools/harvest/rtti_targets.json `
+            --output artifacts/rtti/rtti_descriptors.json `
+            --summary artifacts/rtti/summary.json `
+            --dll-version '${{ steps.locate.outputs.mfc_version }}' `
+            --dll-sha256 '${{ steps.locate.outputs.mfc_sha256 }}'
+
+      - name: Upload RTTI descriptor harvest
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase1_rtti_descriptors
+          path: |
+            artifacts/rtti/*.json
+            artifacts/rtti/*.jsonl
+            artifacts/rtti/mfc140u_headers.txt
+          retention-days: 30
+
+  harvest-class-layouts:
+    name: MSVC layouts (${{ matrix.shard }}/8)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Verify generated harvest inventory
+        shell: pwsh
+        run: python tools/harvest/gen_rtti_targets.py --check
+
+      - name: Harvest per-class layouts
+        shell: pwsh
+        run: |
+          tools/harvest/harvest_msvc_layouts.ps1 `
+            -ShardIndex ${{ matrix.shard }} `
+            -ShardCount 8 `
+            -OutputDir artifacts/msvc_layouts
+
+      - name: Upload layout shard
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase1_msvc_layouts_${{ matrix.shard }}
+          path: artifacts/msvc_layouts/
+          retention-days: 30
+
+  verify-layout-harvest:
+    name: Verify complete layout inventory
+    runs-on: ubuntu-latest
+    needs: harvest-class-layouts
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download layout shards
+        uses: actions/download-artifact@v8
+        with:
+          pattern: phase1_msvc_layouts_*
+          path: artifacts/layout_shards
+
+      - name: Merge and verify shard summaries
+        run: |
+          python3 tools/harvest/merge_layout_summaries.py \
+            --targets tools/harvest/rtti_layout_targets.txt \
+            --summaries 'artifacts/layout_shards/**/summary.json' \
+            --output artifacts/layout_summary.json
+
+      - name: Upload combined layout summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase1_msvc_layout_summary
+          path: artifacts/layout_summary.json
+          retention-days: 30
