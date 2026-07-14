@@ -5327,10 +5327,22 @@ HRESULT CShellManager::ItemFromPath(const wchar_t* lpszPath, LPITEMIDLIST& pidl)
 
     using SHParseDisplayNameFn = HRESULT (WINAPI*)(PCWSTR, IBindCtx*, PIDLIST_ABSOLUTE*, SFGAOF, SFGAOF*);
     auto parseDisplayName = LoadShell32Function<SHParseDisplayNameFn>("SHParseDisplayName");
-    if (!parseDisplayName) return E_NOTIMPL;
+    if (parseDisplayName) {
+        PIDLIST_ABSOLUTE absolute = nullptr;
+        HRESULT hr = parseDisplayName(lpszPath, nullptr, &absolute, 0, nullptr);
+        if (SUCCEEDED(hr)) pidl = absolute;
+        return hr;
+    }
 
     PIDLIST_ABSOLUTE absolute = nullptr;
-    HRESULT hr = parseDisplayName(lpszPath, nullptr, &absolute, 0, nullptr);
+    IShellFolder* desktop = nullptr;
+    HRESULT hr = ::SHGetDesktopFolder(&desktop);
+    if (FAILED(hr)) return hr;
+
+    SFGAOF attributes = 0;
+    ULONG chEaten = 0;
+    hr = desktop->ParseDisplayName(nullptr, nullptr, const_cast<LPWSTR>(lpszPath), &chEaten, &absolute, &attributes);
+    desktop->Release();
     if (SUCCEEDED(hr)) pidl = absolute;
     return hr;
 }

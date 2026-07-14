@@ -1333,13 +1333,13 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         ? reinterpret_cast<TaskDialogIndirectFn>(::GetProcAddress(hComctl, "TaskDialogIndirect"))
         : nullptr;
 
-    HRESULT hr = pTaskDialogIndirect
-        ? pTaskDialogIndirect(&tc, &nButton, &nRadio, &bVerification)
-        : E_NOTIMPL;
-    if (SUCCEEDED(hr)) {
-        m_bVerificationChecked = bVerification;
-        m_nSelectedRadioButtonID = nRadio;
-        return nButton;
+    if (pTaskDialogIndirect) {
+        HRESULT hr = pTaskDialogIndirect(&tc, &nButton, &nRadio, &bVerification);
+        if (SUCCEEDED(hr)) {
+            m_bVerificationChecked = bVerification;
+            m_nSelectedRadioButtonID = nRadio;
+            return nButton;
+        }
     }
 
     // Fallback to simple MessageBox
@@ -1357,6 +1357,7 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         case IDRETRY: return IDRETRY;
         default: return IDOK;
     }
+
 }
 
 // Ribbon element wrappers (Wave 2 retry)
