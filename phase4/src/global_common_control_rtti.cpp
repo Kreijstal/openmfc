@@ -22,6 +22,21 @@
 
 // ---- Thin Win32 control wrappers (CWnd-derived, defaulted destructors) ----
 
+// Symbol: ??1CAnimateCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CAnimateCtrl__UEAA_XZ(CAnimateCtrl* pThis) {
+    if (pThis) pThis->~CAnimateCtrl();
+}
+
+// Symbol: ??1CComboBoxEx@@UEAA@XZ
+extern "C" void MS_ABI impl___1CComboBoxEx__UEAA_XZ(CComboBoxEx* pThis) {
+    if (pThis) pThis->~CComboBoxEx();
+}
+
+// Symbol: ??1CDateTimeCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDateTimeCtrl__UEAA_XZ(CDateTimeCtrl* pThis) {
+    if (pThis) pThis->~CDateTimeCtrl();
+}
+
 // Symbol: ??1CEdit@@UEAA@XZ
 extern "C" void MS_ABI impl___1CEdit__UEAA_XZ(CEdit* pThis) {
     if (pThis) pThis->~CEdit();
@@ -37,9 +52,24 @@ extern "C" void MS_ABI impl___1CListBox__UEAA_XZ(CListBox* pThis) {
     if (pThis) pThis->~CListBox();
 }
 
+// Symbol: ??1CHeaderCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CHeaderCtrl__UEAA_XZ(CHeaderCtrl* pThis) {
+    if (pThis) pThis->~CHeaderCtrl();
+}
+
+// Symbol: ??1CIPAddressCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CIPAddressCtrl__UEAA_XZ(CIPAddressCtrl* pThis) {
+    if (pThis) pThis->~CIPAddressCtrl();
+}
+
 // Symbol: ??1CListCtrl@@UEAA@XZ
 extern "C" void MS_ABI impl___1CListCtrl__UEAA_XZ(CListCtrl* pThis) {
     if (pThis) pThis->~CListCtrl();
+}
+
+// Symbol: ??1CLinkCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CLinkCtrl__UEAA_XZ(CLinkCtrl* pThis) {
+    if (pThis) pThis->~CLinkCtrl();
 }
 
 // Symbol: ??1CProgressCtrl@@UEAA@XZ
