@@ -33,6 +33,10 @@
 #include <afxhtml.h>
 #include <afxrendertarget.h>
 
+#ifdef HARVEST_EXTRA_HEADER
+#include HARVEST_EXTRA_HEADER
+#endif
+
 #ifndef HARVEST_CLASS
 #error HARVEST_CLASS must name the class being harvested
 #endif
