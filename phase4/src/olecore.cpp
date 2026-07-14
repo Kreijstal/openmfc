@@ -194,7 +194,27 @@ CControlBar::CControlBar()
 }
 
 CControlBar::~CControlBar() {}
-BOOL CControlBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) { (void)pParentWnd; (void)dwStyle; (void)nID; return FALSE; }
+BOOL CControlBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
+    if (!pParentWnd) return FALSE;
+
+    m_dwStyle = dwStyle;
+    DWORD winStyle = dwStyle & 0xFFFF;
+    if ((winStyle & WS_CHILD) == 0) winStyle |= WS_CHILD;
+
+    m_hWnd = ::CreateWindowExW(0, L"STATIC", nullptr, winStyle,
+                               0, 0, 0, 0,
+                               pParentWnd->GetSafeHwnd(),
+                               (HMENU)(UINT_PTR)nID,
+                               AfxGetInstanceHandle(), nullptr);
+
+    if (!m_hWnd) return FALSE;
+
+    ::SetWindowLongPtrW(m_hWnd, GWLP_ID, nID);
+    if (dwStyle & WS_VISIBLE) {
+        ::ShowWindow(m_hWnd, SW_SHOW);
+    }
+    return TRUE;
+}
 
 CDocItem::CDocItem() : m_pDocument(nullptr) { memset(_docitem_padding, 0, sizeof(_docitem_padding)); }
 CDocItem::~CDocItem() {}

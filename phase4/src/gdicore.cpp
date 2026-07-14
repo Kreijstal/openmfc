@@ -3048,9 +3048,55 @@ int CImageList::DragLeave(CWnd* pWndLock) {
 
 // Symbol: ?Read@CImageList@@QEAAHPEAVCArchive@@@Z
 extern "C" int MS_ABI impl__Read_CImageList__QEAAHPEAVCArchive___Z(CImageList* pThis, CArchive* pAr) {
-    (void)pAr;
-    // Serialization requires full CArchive support; stub with FALSE for now
-    if (!pThis) return FALSE;
+    if (!pThis || !pAr || !pAr->IsLoading()) return FALSE;
+
+    void* serializedHandle = nullptr;
+    int nImageCount = 0;
+    int cx = 0;
+    int cy = 0;
+    unsigned int flags = 0;
+    int grow = 0;
+    unsigned long bgColor = (unsigned long)CLR_NONE;
+
+    *pAr >> serializedHandle;
+    *pAr >> nImageCount;
+    *pAr >> cx;
+    *pAr >> cy;
+    *pAr >> flags;
+    *pAr >> grow;
+    *pAr >> bgColor;
+
+    if (pThis->m_hImageList) {
+        ::ImageList_Destroy(pThis->m_hImageList);
+        pThis->m_hImageList = nullptr;
+    }
+
+    HIMAGELIST source = (HIMAGELIST)serializedHandle;
+    if (source) {
+        HIMAGELIST copy = ::ImageList_Duplicate(source);
+        if (copy) {
+            pThis->m_hImageList = copy;
+            if (bgColor != (unsigned long)CLR_NONE) {
+                ::ImageList_SetBkColor(pThis->m_hImageList, (COLORREF)bgColor);
+            }
+            return TRUE;
+        }
+    }
+
+    if (cx > 0 && cy > 0) {
+        if (flags == 0) flags = ILC_COLOR32;
+        if (nImageCount < 0) nImageCount = 0;
+        pThis->m_hImageList = ::ImageList_Create(cx, cy, flags, nImageCount, grow > 0 ? grow : 1);
+        if (pThis->m_hImageList && bgColor != (unsigned long)CLR_NONE) {
+            ::ImageList_SetBkColor(pThis->m_hImageList, (COLORREF)bgColor);
+        }
+        return TRUE;
+    }
+
+    if (!serializedHandle) {
+        return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -3060,9 +3106,31 @@ int CImageList::Read(CArchive* pArchive) {
 
 // Symbol: ?Write@CImageList@@QEAAHPEAVCArchive@@@Z
 extern "C" int MS_ABI impl__Write_CImageList__QEAAHPEAVCArchive___Z(CImageList* pThis, CArchive* pAr) {
-    (void)pAr;
-    if (!pThis) return FALSE;
-    return FALSE;
+    if (!pThis || !pAr || !pAr->IsStoring()) return FALSE;
+
+    void* serializedHandle = pThis->m_hImageList;
+    int nImageCount = pThis ? pThis->GetImageCount() : 0;
+    int cx = 0;
+    int cy = 0;
+    unsigned int flags = ILC_COLOR32;
+    int grow = 1;
+    unsigned long bgColor = (unsigned long)CLR_NONE;
+
+    if (pThis->m_hImageList) {
+        if (!::ImageList_GetIconSize(pThis->m_hImageList, &cx, &cy)) {
+            cx = cy = 0;
+        }
+        bgColor = static_cast<unsigned long>(::ImageList_GetBkColor(pThis->m_hImageList));
+    }
+
+    *pAr << serializedHandle;
+    *pAr << nImageCount;
+    *pAr << cx;
+    *pAr << cy;
+    *pAr << flags;
+    *pAr << grow;
+    *pAr << bgColor;
+    return TRUE;
 }
 
 int CImageList::Write(CArchive* pArchive) {

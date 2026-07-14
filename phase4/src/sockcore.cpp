@@ -661,7 +661,10 @@ void CSocketFile::Abort() {
 ULONGLONG CSocketFile::GetLength() const { return (ULONGLONG)-1; }
 ULONGLONG CSocketFile::GetPosition() const { return (ULONGLONG)-1; }
 void CSocketFile::SetLength(ULONGLONG dwNewLen) { (void)dwNewLen; }
-CFile* CSocketFile::Duplicate() const { return nullptr; }
+CFile* CSocketFile::Duplicate() const {
+    if (!m_pSocket) return nullptr;
+    return new CSocketFile(m_pSocket, m_bArchiveCompatible);
+}
 
 UINT CSocketFile::GetBufferPtr(UINT nCommand, UINT nCount, void** ppBufStart, void** ppBufMax) {
     (void)nCommand; (void)nCount;
