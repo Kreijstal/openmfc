@@ -176,6 +176,8 @@ struct PopupMenuBarState {
     HMENU menu = nullptr;
     std::vector<CMFCToolBarMenuButton*> items;
     std::unordered_set<CMFCToolBarMenuButton*> ownedItems;
+    int selected = -1;
+    bool delayedSubMenuOpen = false;
 };
 
 struct MenuButtonState {
@@ -193,6 +195,34 @@ struct TooltipManagerState {
     UINT types = 0;
     CRuntimeClass* runtimeClass = nullptr;
     CMFCToolTipInfo* params = nullptr;
+    std::vector<CToolTipCtrl*> tooltips;
+};
+
+struct MFCButtonState {
+    HICON icon = nullptr;
+    HICON iconHot = nullptr;
+    COLORREF faceColor = RGB(240, 240, 240);
+    COLORREF textColor = RGB(0, 0, 0);
+    COLORREF textHotColor = RGB(0, 0, 0);
+    bool ownerDraw = false;
+    bool fullTextTooltip = false;
+    CString tooltip;
+    bool ownsIcon = false;
+    bool ownsHotIcon = false;
+};
+
+struct TabEntry {
+    CWnd* window = nullptr;
+    std::wstring label;
+    UINT id = static_cast<UINT>(-1);
+};
+
+struct TabCtrlState {
+    std::vector<TabEntry> tabs;
+    int activeTab = -1;
+    BOOL tabSwapEnabled = TRUE;
+    int tabBorderSize = 0;
+    int tabsHeight = 0;
 };
 
 struct MenuHashState {
@@ -224,7 +254,9 @@ thread_local std::unordered_map<const CMFCPopupMenuBar*, PopupMenuBarState> g_po
 thread_local std::unordered_map<const CMFCToolBarMenuButton*, MenuButtonState> g_menuButtonStates;
 thread_local std::unordered_map<const CContextMenuManager*, ContextMenuState> g_contextMenuStates;
 thread_local std::unordered_map<const CTooltipManager*, TooltipManagerState> g_tooltipManagerStates;
+thread_local std::unordered_map<const CMFCButton*, MFCButtonState> g_mfcButtonStates;
 thread_local std::unordered_map<const CMenuHash*, MenuHashState> g_menuHashStates;
+thread_local std::unordered_map<const CMFCBaseTabCtrl*, TabCtrlState> g_tabCtrlStates;
 std::unordered_map<const CWinAppEx*, WinAppExState> g_winAppExStates;
 static int g_mouseManagerToken = 0;
 static int g_shellManagerToken = 0;
@@ -271,6 +303,35 @@ void ClearToolBarState(const CMFCToolBar* pToolBar) {
     if (it == g_toolBarStates.end()) return;
     ClearToolBarButtons(it->second);
     g_toolBarStates.erase(it);
+}
+
+MFCButtonState& EnsureMFCButtonState(const CMFCButton* pButton) {
+    return g_mfcButtonStates[pButton];
+}
+
+void RemoveMFCButtonState(const CMFCButton* pButton) {
+    auto it = g_mfcButtonStates.find(pButton);
+    if (it == g_mfcButtonStates.end()) return;
+    if (it->second.icon && it->second.ownsIcon) {
+        ::DestroyIcon(it->second.icon);
+    }
+    if (it->second.iconHot && it->second.ownsHotIcon) {
+        ::DestroyIcon(it->second.iconHot);
+    }
+    g_mfcButtonStates.erase(it);
+}
+
+TabCtrlState& EnsureTabCtrlState(const CMFCBaseTabCtrl* pCtrl) {
+    return g_tabCtrlStates[pCtrl];
+}
+
+const TabCtrlState* FindTabCtrlState(const CMFCBaseTabCtrl* pCtrl) {
+    auto it = g_tabCtrlStates.find(pCtrl);
+    return it == g_tabCtrlStates.end() ? nullptr : &it->second;
+}
+
+void RemoveTabCtrlState(const CMFCBaseTabCtrl* pCtrl) {
+    g_tabCtrlStates.erase(pCtrl);
 }
 
 void ClearRibbonPanelState(const CMFCRibbonPanel* pPanel) {
@@ -1331,7 +1392,13 @@ void* CBasePane::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx,
     return pExtra;
 }
 void CBasePane::CalcFixedLayout(BOOL, BOOL) {}
-void CBasePane::RecalcLayout() {}
+void CBasePane::RecalcLayout() {
+    HWND hwnd = GetSafeHwnd();
+    if (hwnd) {
+        ::InvalidateRect(hwnd, nullptr, TRUE);
+        ::UpdateWindow(hwnd);
+    }
+}
 
 //=============================================================================
 // CPane
@@ -1347,7 +1414,9 @@ CPane::~CPane() {}
 
 BOOL CPane::CanBeDocked() const { return TRUE; }
 BOOL CPane::CanFloat() const { return TRUE; }
-void CPane::RecalcLayout() {}
+void CPane::RecalcLayout() {
+    CBasePane::RecalcLayout();
+}
 
 //=============================================================================
 // CDockablePane
@@ -1578,8 +1647,28 @@ CSize CMFCToolBar::GetButtonSize() const {
 void CMFCToolBar::EnableDocking(DWORD dwDockStyle) {
     g_toolBarStates[this].dockStyle = dwDockStyle;
 }
-void CMFCToolBar::AdjustLayout() {}
-void CMFCToolBar::AdjustSize() {}
+void CMFCToolBar::AdjustLayout() {
+    ToolBarState& state = g_toolBarStates[this];
+    const int count = static_cast<int>(state.buttons.size());
+    if (m_hWnd) {
+        ::SendMessageW(m_hWnd, TB_SETBUTTONSIZE, 0, MAKELPARAM(state.buttonSize.cx, state.buttonSize.cy));
+        ::SendMessageW(m_hWnd, TB_SETBITMAPSIZE, 0, MAKELPARAM(state.imageSize.cx, state.imageSize.cy));
+        ::SendMessageW(m_hWnd, TB_AUTOSIZE, 0, 0);
+        ::InvalidateRect(m_hWnd, nullptr, TRUE);
+    }
+
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& paneState = g_paneCoreState[this];
+    if (paneState.recentRect.IsRectEmpty()) {
+        paneState.recentRect = CRect(0, 0, std::max(1, count) * state.buttonSize.cx, state.buttonSize.cy);
+    } else if (count > 0) {
+        paneState.recentRect.right = paneState.recentRect.left + count * state.buttonSize.cx;
+        paneState.recentRect.bottom = paneState.recentRect.top + state.buttonSize.cy;
+    }
+}
+void CMFCToolBar::AdjustSize() {
+    AdjustLayout();
+}
 CString CMFCToolBar::GetButtonText(int nIndex) const {
     CMFCToolBarButton* button = GetButton(nIndex);
     return button ? button->m_strText : CString();
@@ -1649,7 +1738,18 @@ CSize CMFCMenuBar::CalcLayout(DWORD, int nLength) {
     return size;
 }
 
-void CMFCMenuBar::AdjustLocations() {}
+void CMFCMenuBar::AdjustLocations() {
+    MenuBarState& state = g_menuBarStates[this];
+    const int count = static_cast<int>(state.items.size());
+    const int height = 22;
+    const int width = count > 0 ? std::max(23, (count * 80)) : 23;
+    if (GetSafeHwnd()) {
+        ::SendMessageW(GetSafeHwnd(), TB_AUTOSIZE, 0, 0);
+        ::InvalidateRect(GetSafeHwnd(), nullptr, TRUE);
+    }
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[this].recentRect = CRect(0, 0, width, height);
+}
 
 CFont& CMFCMenuBar::GetMenuFont(BOOL) {
     return EnsureMenuFont();
@@ -1977,15 +2077,49 @@ IMPLEMENT_DYNAMIC(CMFCButton, CButton)
 CMFCButton::CMFCButton() {
     memset(_mfcbutton_padding, 0, sizeof(_mfcbutton_padding));
 }
-CMFCButton::~CMFCButton() {}
+CMFCButton::~CMFCButton() {
+    RemoveMFCButtonState(this);
+}
 
-void CMFCButton::SetImage(HICON, BOOL, HICON, BOOL) {}
-void CMFCButton::SetFaceColor(COLORREF, BOOL) {}
-void CMFCButton::SetTextColor(COLORREF) {}
-void CMFCButton::SetTextHotColor(COLORREF) {}
-BOOL CMFCButton::IsOwnerDraw() const { return FALSE; }
-void CMFCButton::EnableFullTextTooltip(BOOL) {}
-void CMFCButton::SetTooltip(const wchar_t*) {}
+void CMFCButton::SetImage(HICON hIcon, BOOL bAutoDestroy, HICON hIconHot, BOOL) {
+    MFCButtonState& state = EnsureMFCButtonState(this);
+    if (state.ownsIcon && state.icon && state.icon != hIcon) ::DestroyIcon(state.icon);
+    if (state.ownsHotIcon && state.iconHot && state.iconHot != hIconHot) ::DestroyIcon(state.iconHot);
+    state.icon = hIcon;
+    state.iconHot = hIconHot;
+    state.ownsIcon = bAutoDestroy != FALSE;
+    state.ownsHotIcon = bAutoDestroy != FALSE && hIconHot != nullptr;
+    state.ownerDraw = (hIcon != nullptr || hIconHot != nullptr);
+    if (GetSafeHwnd()) Invalidate(FALSE);
+}
+void CMFCButton::SetFaceColor(COLORREF crFace, BOOL bRedraw) {
+    MFCButtonState& state = EnsureMFCButtonState(this);
+    state.faceColor = crFace;
+    state.ownerDraw = true;
+    if (bRedraw && GetSafeHwnd()) Invalidate(FALSE);
+}
+void CMFCButton::SetTextColor(COLORREF crText) {
+    MFCButtonState& state = EnsureMFCButtonState(this);
+    state.textColor = crText;
+    state.ownerDraw = true;
+    if (GetSafeHwnd()) Invalidate(FALSE);
+}
+void CMFCButton::SetTextHotColor(COLORREF crTextHot) {
+    MFCButtonState& state = EnsureMFCButtonState(this);
+    state.textHotColor = crTextHot;
+    state.ownerDraw = true;
+    if (GetSafeHwnd()) Invalidate(FALSE);
+}
+BOOL CMFCButton::IsOwnerDraw() const {
+    auto it = g_mfcButtonStates.find(this);
+    return it != g_mfcButtonStates.end() && it->second.ownerDraw ? TRUE : FALSE;
+}
+void CMFCButton::EnableFullTextTooltip(BOOL bEnable) {
+    EnsureMFCButtonState(this).fullTextTooltip = bEnable != FALSE;
+}
+void CMFCButton::SetTooltip(const wchar_t* lpszToolTipText) {
+    EnsureMFCButtonState(this).tooltip = lpszToolTipText ? lpszToolTipText : L"";
+}
 
 //=============================================================================
 // CMFCPopupMenu
@@ -2202,9 +2336,23 @@ CSize CMFCPopupMenuBar::CalcSize(BOOL) {
     return CSize(160, std::max(22, count * 22));
 }
 
-void CMFCPopupMenuBar::AdjustLayout() {}
-void CMFCPopupMenuBar::AdjustLocations() {}
-void CMFCPopupMenuBar::CloseDelayedSubMenu() {}
+void CMFCPopupMenuBar::AdjustLayout() {
+    PopupMenuBarState& state = g_popupMenuBarStates[this];
+    if (GetSafeHwnd()) {
+        ::InvalidateRect(GetSafeHwnd(), nullptr, TRUE);
+        ::UpdateWindow(GetSafeHwnd());
+    }
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    g_paneCoreState[this].recentRect = CRect(0, 0, 160, std::max(22, static_cast<int>(state.items.size()) * 22));
+}
+void CMFCPopupMenuBar::AdjustLocations() {
+    AdjustLayout();
+}
+void CMFCPopupMenuBar::CloseDelayedSubMenu() {
+    PopupMenuBarState& state = g_popupMenuBarStates[this];
+    state.delayedSubMenuOpen = false;
+    state.selected = -1;
+}
 
 // Symbol: ?ImportFromMenu@CMFCPopupMenuBar@@UEAAHPEAUHMENU__@@H@Z
 extern "C" int MS_ABI impl__ImportFromMenu_CMFCPopupMenuBar__UEAAHPEAUHMENU____H_Z(CMFCPopupMenuBar* pThis, HMENU hMenu, int bShowAllCommands) {
@@ -2254,15 +2402,75 @@ IMPLEMENT_DYNAMIC(CMFCBaseTabCtrl, CWnd)
 CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     memset(_mfcbasetabctrl_padding, 0, sizeof(_mfcbasetabctrl_padding));
 }
-CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {}
+CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {
+    RemoveTabCtrlState(this);
+}
 
 BOOL CMFCBaseTabCtrl::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
-int CMFCBaseTabCtrl::GetTabsCount() const { return 0; }
-void CMFCBaseTabCtrl::AddTab(CWnd*, const wchar_t*, UINT) {}
-int CMFCBaseTabCtrl::RemoveTab(int, int) { return 0; }
-void CMFCBaseTabCtrl::SetActiveTab(int) {}
-int CMFCBaseTabCtrl::GetActiveTab() const { return -1; }
-CWnd* CMFCBaseTabCtrl::GetTabWnd(int) const { return nullptr; }
+int CMFCBaseTabCtrl::GetTabsCount() const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    return state ? static_cast<int>(state->tabs.size()) : 0;
+}
+
+void CMFCBaseTabCtrl::AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId) {
+    if (!pWnd) {
+        return;
+    }
+
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    state.tabs.push_back({
+        pWnd,
+        lpszLabel ? lpszLabel : L"",
+        uiId,
+    });
+    if (state.activeTab < 0) {
+        state.activeTab = 0;
+    }
+}
+
+int CMFCBaseTabCtrl::RemoveTab(int nIndex, int) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
+        return 0;
+    }
+
+    state.tabs.erase(state.tabs.begin() + nIndex);
+
+    if (state.tabs.empty()) {
+        state.activeTab = -1;
+    } else if (state.activeTab == nIndex) {
+        state.activeTab = (nIndex == 0) ? 0 : nIndex - 1;
+    } else if (state.activeTab > nIndex) {
+        --state.activeTab;
+    }
+
+    return 1;
+}
+
+void CMFCBaseTabCtrl::SetActiveTab(int nIndex) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
+        state.activeTab = -1;
+        return;
+    }
+    state.activeTab = nIndex;
+}
+
+int CMFCBaseTabCtrl::GetActiveTab() const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    return state ? state->activeTab : -1;
+}
+
+CWnd* CMFCBaseTabCtrl::GetTabWnd(int nIndex) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state) {
+        return nullptr;
+    }
+    if (nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return nullptr;
+    }
+    return state->tabs[nIndex].window;
+}
 
 //=============================================================================
 // CMFCTabCtrl
@@ -2274,9 +2482,20 @@ CMFCTabCtrl::CMFCTabCtrl() {
 }
 CMFCTabCtrl::~CMFCTabCtrl() {}
 
-void CMFCTabCtrl::EnableTabSwap(BOOL) {}
-void CMFCTabCtrl::SetTabBorderSize(int) {}
-void CMFCTabCtrl::SetTabsHeight(int) {}
+void CMFCTabCtrl::EnableTabSwap(BOOL bEnable) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    state.tabSwapEnabled = bEnable != FALSE;
+}
+
+void CMFCTabCtrl::SetTabBorderSize(int nTabBorderSize) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    state.tabBorderSize = nTabBorderSize;
+}
+
+void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    state.tabsHeight = nTabHeight;
+}
 
 namespace {
 
@@ -4211,8 +4430,54 @@ void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     g_paneCoreState[pBar].visible = TRUE;
 }
-void CDockingManager::RecalcLayout() {}
-void CDockingManager::SetDockState() {}
+void CDockingManager::RecalcLayout() {
+    DockingManagerState& state = EnsureDockingState(this);
+    if (state.lockUpdate) return;
+
+    RECT client{0, 0, 0, 0};
+    HWND parent = m_pParentWnd ? m_pParentWnd->GetSafeHwnd() : nullptr;
+    if (parent) {
+        ::GetClientRect(parent, &client);
+    }
+    int visibleCount = 0;
+    for (CBasePane* pane : state.panes) {
+        if (IsPaneVisibleForDocking(state, pane)) ++visibleCount;
+    }
+    if (visibleCount <= 0) return;
+
+    int index = 0;
+    int width = (client.right > client.left) ? (client.right - client.left) / visibleCount : 0;
+    for (CBasePane* pane : state.panes) {
+        if (!IsPaneVisibleForDocking(state, pane)) continue;
+        CRect rect(client.left + index * width, client.top,
+                   index == visibleCount - 1 ? client.right : client.left + (index + 1) * width,
+                   client.bottom);
+        {
+            std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+            g_paneCoreState[pane].recentRect = rect;
+            g_paneCoreState[pane].visible = TRUE;
+        }
+        if (pane->GetSafeHwnd() && rect.Width() > 0 && rect.Height() > 0) {
+            pane->SetWindowPos(nullptr, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+        } else {
+            pane->RecalcLayout();
+        }
+        ++index;
+    }
+}
+void CDockingManager::SetDockState() {
+    DockingManagerState& state = EnsureDockingState(this);
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    for (CBasePane* pane : state.panes) {
+        if (!pane) continue;
+        PaneCoreState& paneState = g_paneCoreState[pane];
+        paneState.visible = state.hiddenPanes.find(pane) == state.hiddenPanes.end();
+        paneState.canFloat = paneState.canFloat || state.floatingPanes.find(pane) != state.floatingPanes.end();
+        if (state.enabledAlignment != 0 && paneState.alignment == 0) {
+            paneState.alignment = state.enabledAlignment;
+        }
+    }
+}
 
 // Symbol: ?AddMiniFrame@CDockingManager@@UEAAHPEAVCPaneFrameWnd@@@Z
 extern "C" int MS_ABI impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(CDockingManager* pThis, void* pFrame) {

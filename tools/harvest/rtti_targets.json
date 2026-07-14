@@ -1,0 +1,1964 @@
+{
+  "mapping": "mfc_complete_ordinal_mapping.json",
+  "mapping_sha256": "8065869b5432117f5e20a453e4ab0fb90978000aee6ab63a60966aaa754dbc05",
+  "missing_get_runtime_class": [],
+  "missing_get_this_class": [],
+  "target_count": 391,
+  "targets": [
+    {
+      "class": "CAnimateCtrl",
+      "get_runtime_class_ordinal": 6231,
+      "get_this_class_ordinal": 6794
+    },
+    {
+      "class": "CAnimationBaseObject",
+      "get_runtime_class_ordinal": 6232,
+      "get_this_class_ordinal": 6795
+    },
+    {
+      "class": "CAnimationColor",
+      "get_runtime_class_ordinal": 6233,
+      "get_this_class_ordinal": 6796
+    },
+    {
+      "class": "CAnimationController",
+      "get_runtime_class_ordinal": 6234,
+      "get_this_class_ordinal": 6797
+    },
+    {
+      "class": "CAnimationPoint",
+      "get_runtime_class_ordinal": 6235,
+      "get_this_class_ordinal": 6798
+    },
+    {
+      "class": "CAnimationRect",
+      "get_runtime_class_ordinal": 6236,
+      "get_this_class_ordinal": 6799
+    },
+    {
+      "class": "CAnimationSize",
+      "get_runtime_class_ordinal": 6237,
+      "get_this_class_ordinal": 6800
+    },
+    {
+      "class": "CAnimationValue",
+      "get_runtime_class_ordinal": 6238,
+      "get_this_class_ordinal": 6801
+    },
+    {
+      "class": "CArchiveException",
+      "get_runtime_class_ordinal": 6239,
+      "get_this_class_ordinal": 6802
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "get_runtime_class_ordinal": 6240,
+      "get_this_class_ordinal": 6803
+    },
+    {
+      "class": "CAsyncSocket",
+      "get_runtime_class_ordinal": 6241,
+      "get_this_class_ordinal": 6804
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "get_runtime_class_ordinal": 6242,
+      "get_this_class_ordinal": 6805
+    },
+    {
+      "class": "CBaseKeyFrame",
+      "get_runtime_class_ordinal": 6243,
+      "get_this_class_ordinal": 6806
+    },
+    {
+      "class": "CBasePane",
+      "get_runtime_class_ordinal": 6244,
+      "get_this_class_ordinal": 6807
+    },
+    {
+      "class": "CBaseTabbedPane",
+      "get_runtime_class_ordinal": 6245,
+      "get_this_class_ordinal": 6808
+    },
+    {
+      "class": "CBaseTransition",
+      "get_runtime_class_ordinal": 6246,
+      "get_this_class_ordinal": 6809
+    },
+    {
+      "class": "CBitmap",
+      "get_runtime_class_ordinal": 6247,
+      "get_this_class_ordinal": 6810
+    },
+    {
+      "class": "CBitmapButton",
+      "get_runtime_class_ordinal": 6248,
+      "get_this_class_ordinal": 6811
+    },
+    {
+      "class": "CBitmapRenderTarget",
+      "get_runtime_class_ordinal": 6249,
+      "get_this_class_ordinal": 6812
+    },
+    {
+      "class": "CBrush",
+      "get_runtime_class_ordinal": 6250,
+      "get_this_class_ordinal": 6813
+    },
+    {
+      "class": "CButton",
+      "get_runtime_class_ordinal": 6251,
+      "get_this_class_ordinal": 6814
+    },
+    {
+      "class": "CByteArray",
+      "get_runtime_class_ordinal": 6252,
+      "get_this_class_ordinal": 6815
+    },
+    {
+      "class": "CCachedDataPathProperty",
+      "get_runtime_class_ordinal": 6253,
+      "get_this_class_ordinal": 6816
+    },
+    {
+      "class": "CCheckListBox",
+      "get_runtime_class_ordinal": 6254,
+      "get_this_class_ordinal": 6817
+    },
+    {
+      "class": "CClientDC",
+      "get_runtime_class_ordinal": 6255,
+      "get_this_class_ordinal": 6818
+    },
+    {
+      "class": "CCmdTarget",
+      "get_runtime_class_ordinal": 6256,
+      "get_this_class_ordinal": 6819
+    },
+    {
+      "class": "CColorDialog",
+      "get_runtime_class_ordinal": 6257,
+      "get_this_class_ordinal": 6820
+    },
+    {
+      "class": "CComboBox",
+      "get_runtime_class_ordinal": 6258,
+      "get_this_class_ordinal": 6821
+    },
+    {
+      "class": "CComboBoxEx",
+      "get_runtime_class_ordinal": 6259,
+      "get_this_class_ordinal": 6822
+    },
+    {
+      "class": "CCommonDialog",
+      "get_runtime_class_ordinal": 6260,
+      "get_this_class_ordinal": 6823
+    },
+    {
+      "class": "CControlBar",
+      "get_runtime_class_ordinal": 6261,
+      "get_this_class_ordinal": 6824
+    },
+    {
+      "class": "CCriticalSection",
+      "get_runtime_class_ordinal": 6262,
+      "get_this_class_ordinal": 6825
+    },
+    {
+      "class": "CCtrlView",
+      "get_runtime_class_ordinal": 6263,
+      "get_this_class_ordinal": 6826
+    },
+    {
+      "class": "CD2DBitmap",
+      "get_runtime_class_ordinal": 6264,
+      "get_this_class_ordinal": 6827
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "get_runtime_class_ordinal": 6265,
+      "get_this_class_ordinal": 6828
+    },
+    {
+      "class": "CD2DBrush",
+      "get_runtime_class_ordinal": 6266,
+      "get_this_class_ordinal": 6829
+    },
+    {
+      "class": "CD2DGeometry",
+      "get_runtime_class_ordinal": 6267,
+      "get_this_class_ordinal": 6830
+    },
+    {
+      "class": "CD2DGradientBrush",
+      "get_runtime_class_ordinal": 6268,
+      "get_this_class_ordinal": 6831
+    },
+    {
+      "class": "CD2DLayer",
+      "get_runtime_class_ordinal": 6269,
+      "get_this_class_ordinal": 6832
+    },
+    {
+      "class": "CD2DLinearGradientBrush",
+      "get_runtime_class_ordinal": 6270,
+      "get_this_class_ordinal": 6833
+    },
+    {
+      "class": "CD2DMesh",
+      "get_runtime_class_ordinal": 6271,
+      "get_this_class_ordinal": 6834
+    },
+    {
+      "class": "CD2DPathGeometry",
+      "get_runtime_class_ordinal": 6272,
+      "get_this_class_ordinal": 6835
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "get_runtime_class_ordinal": 6273,
+      "get_this_class_ordinal": 6836
+    },
+    {
+      "class": "CD2DResource",
+      "get_runtime_class_ordinal": 6274,
+      "get_this_class_ordinal": 6837
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "get_runtime_class_ordinal": 6275,
+      "get_this_class_ordinal": 6838
+    },
+    {
+      "class": "CD2DTextFormat",
+      "get_runtime_class_ordinal": 6276,
+      "get_this_class_ordinal": 6839
+    },
+    {
+      "class": "CD2DTextLayout",
+      "get_runtime_class_ordinal": 6277,
+      "get_this_class_ordinal": 6840
+    },
+    {
+      "class": "CDBException",
+      "get_runtime_class_ordinal": 6281,
+      "get_this_class_ordinal": 6844
+    },
+    {
+      "class": "CDC",
+      "get_runtime_class_ordinal": 6282,
+      "get_this_class_ordinal": 6845
+    },
+    {
+      "class": "CDCRenderTarget",
+      "get_runtime_class_ordinal": 6283,
+      "get_this_class_ordinal": 6846
+    },
+    {
+      "class": "CDHtmlDialog",
+      "get_runtime_class_ordinal": 6284,
+      "get_this_class_ordinal": 6847
+    },
+    {
+      "class": "CDWordArray",
+      "get_runtime_class_ordinal": 6301,
+      "get_this_class_ordinal": 6864
+    },
+    {
+      "class": "CDataPathProperty",
+      "get_runtime_class_ordinal": 6279,
+      "get_this_class_ordinal": 6842
+    },
+    {
+      "class": "CDatabase",
+      "get_runtime_class_ordinal": 6278,
+      "get_this_class_ordinal": 6841
+    },
+    {
+      "class": "CDateTimeCtrl",
+      "get_runtime_class_ordinal": 6280,
+      "get_this_class_ordinal": 6843
+    },
+    {
+      "class": "CDialog",
+      "get_runtime_class_ordinal": 6285,
+      "get_this_class_ordinal": 6848
+    },
+    {
+      "class": "CDialogBar",
+      "get_runtime_class_ordinal": 6286,
+      "get_this_class_ordinal": 6849
+    },
+    {
+      "class": "CDialogEx",
+      "get_runtime_class_ordinal": 6287,
+      "get_this_class_ordinal": 6850
+    },
+    {
+      "class": "CDocItem",
+      "get_runtime_class_ordinal": 6288,
+      "get_this_class_ordinal": 6851
+    },
+    {
+      "class": "CDocManager",
+      "get_runtime_class_ordinal": 6295,
+      "get_this_class_ordinal": 6858
+    },
+    {
+      "class": "CDocObjectServer",
+      "get_runtime_class_ordinal": 6296,
+      "get_this_class_ordinal": 6859
+    },
+    {
+      "class": "CDocObjectServerItem",
+      "get_runtime_class_ordinal": 6297,
+      "get_this_class_ordinal": 6860
+    },
+    {
+      "class": "CDocTemplate",
+      "get_runtime_class_ordinal": 6298,
+      "get_this_class_ordinal": 6861
+    },
+    {
+      "class": "CDockBar",
+      "get_runtime_class_ordinal": 6291,
+      "get_this_class_ordinal": 6854
+    },
+    {
+      "class": "CDockSite",
+      "get_runtime_class_ordinal": 6293,
+      "get_this_class_ordinal": 6856
+    },
+    {
+      "class": "CDockState",
+      "get_runtime_class_ordinal": 6294,
+      "get_this_class_ordinal": 6857
+    },
+    {
+      "class": "CDockablePane",
+      "get_runtime_class_ordinal": 6289,
+      "get_this_class_ordinal": 6852
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "get_runtime_class_ordinal": 6290,
+      "get_this_class_ordinal": 6853
+    },
+    {
+      "class": "CDockingPanesRow",
+      "get_runtime_class_ordinal": 6292,
+      "get_this_class_ordinal": 6855
+    },
+    {
+      "class": "CDocument",
+      "get_runtime_class_ordinal": 6299,
+      "get_this_class_ordinal": 6862
+    },
+    {
+      "class": "CDragListBox",
+      "get_runtime_class_ordinal": 6300,
+      "get_this_class_ordinal": 6863
+    },
+    {
+      "class": "CDynLinkLibrary",
+      "get_runtime_class_ordinal": 6302,
+      "get_this_class_ordinal": 6865
+    },
+    {
+      "class": "CEdit",
+      "get_runtime_class_ordinal": 6303,
+      "get_this_class_ordinal": 6866
+    },
+    {
+      "class": "CEditView",
+      "get_runtime_class_ordinal": 6304,
+      "get_this_class_ordinal": 6867
+    },
+    {
+      "class": "CEvent",
+      "get_runtime_class_ordinal": 6305,
+      "get_this_class_ordinal": 6868
+    },
+    {
+      "class": "CException",
+      "get_runtime_class_ordinal": 6306,
+      "get_this_class_ordinal": 6869
+    },
+    {
+      "class": "CFile",
+      "get_runtime_class_ordinal": 6307,
+      "get_this_class_ordinal": 6870
+    },
+    {
+      "class": "CFileDialog",
+      "get_runtime_class_ordinal": 6308,
+      "get_this_class_ordinal": 6871
+    },
+    {
+      "class": "CFileException",
+      "get_runtime_class_ordinal": 6309,
+      "get_this_class_ordinal": 6872
+    },
+    {
+      "class": "CFileFind",
+      "get_runtime_class_ordinal": 6310,
+      "get_this_class_ordinal": 6873
+    },
+    {
+      "class": "CFindReplaceDialog",
+      "get_runtime_class_ordinal": 6311,
+      "get_this_class_ordinal": 6874
+    },
+    {
+      "class": "CFolderPickerDialog",
+      "get_runtime_class_ordinal": 6312,
+      "get_this_class_ordinal": 6875
+    },
+    {
+      "class": "CFont",
+      "get_runtime_class_ordinal": 6313,
+      "get_this_class_ordinal": 6876
+    },
+    {
+      "class": "CFontDialog",
+      "get_runtime_class_ordinal": 6314,
+      "get_this_class_ordinal": 6877
+    },
+    {
+      "class": "CFormView",
+      "get_runtime_class_ordinal": 6315,
+      "get_this_class_ordinal": 6878
+    },
+    {
+      "class": "CFrameWnd",
+      "get_runtime_class_ordinal": 6316,
+      "get_this_class_ordinal": 6879
+    },
+    {
+      "class": "CFrameWndEx",
+      "get_runtime_class_ordinal": 6317,
+      "get_this_class_ordinal": 6880
+    },
+    {
+      "class": "CFtpConnection",
+      "get_runtime_class_ordinal": 6318,
+      "get_this_class_ordinal": 6881
+    },
+    {
+      "class": "CFtpFileFind",
+      "get_runtime_class_ordinal": 6319,
+      "get_this_class_ordinal": 6882
+    },
+    {
+      "class": "CGdiObject",
+      "get_runtime_class_ordinal": 6320,
+      "get_this_class_ordinal": 6883
+    },
+    {
+      "class": "CGopherConnection",
+      "get_runtime_class_ordinal": 6321,
+      "get_this_class_ordinal": 6884
+    },
+    {
+      "class": "CGopherFile",
+      "get_runtime_class_ordinal": 6322,
+      "get_this_class_ordinal": 6885
+    },
+    {
+      "class": "CGopherFileFind",
+      "get_runtime_class_ordinal": 6323,
+      "get_this_class_ordinal": 6886
+    },
+    {
+      "class": "CHeaderCtrl",
+      "get_runtime_class_ordinal": 6324,
+      "get_this_class_ordinal": 6887
+    },
+    {
+      "class": "CHelpComboBoxButton",
+      "get_runtime_class_ordinal": 6325,
+      "get_this_class_ordinal": 6888
+    },
+    {
+      "class": "CHotKeyCtrl",
+      "get_runtime_class_ordinal": 6326,
+      "get_this_class_ordinal": 6889
+    },
+    {
+      "class": "CHtmlEditDoc",
+      "get_runtime_class_ordinal": 6327,
+      "get_this_class_ordinal": 6890
+    },
+    {
+      "class": "CHtmlEditView",
+      "get_runtime_class_ordinal": 6328,
+      "get_this_class_ordinal": 6891
+    },
+    {
+      "class": "CHtmlView",
+      "get_runtime_class_ordinal": 6329,
+      "get_this_class_ordinal": 6892
+    },
+    {
+      "class": "CHttpConnection",
+      "get_runtime_class_ordinal": 6330,
+      "get_this_class_ordinal": 6893
+    },
+    {
+      "class": "CHttpFile",
+      "get_runtime_class_ordinal": 6331,
+      "get_this_class_ordinal": 6894
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "get_runtime_class_ordinal": 6332,
+      "get_this_class_ordinal": 6895
+    },
+    {
+      "class": "CIPAddressCtrl",
+      "get_runtime_class_ordinal": 6339,
+      "get_this_class_ordinal": 6902
+    },
+    {
+      "class": "CImageList",
+      "get_runtime_class_ordinal": 6333,
+      "get_this_class_ordinal": 6896
+    },
+    {
+      "class": "CInternetConnection",
+      "get_runtime_class_ordinal": 6334,
+      "get_this_class_ordinal": 6897
+    },
+    {
+      "class": "CInternetException",
+      "get_runtime_class_ordinal": 6335,
+      "get_this_class_ordinal": 6898
+    },
+    {
+      "class": "CInternetFile",
+      "get_runtime_class_ordinal": 6336,
+      "get_this_class_ordinal": 6899
+    },
+    {
+      "class": "CInternetSession",
+      "get_runtime_class_ordinal": 6337,
+      "get_this_class_ordinal": 6900
+    },
+    {
+      "class": "CInvalidArgException",
+      "get_runtime_class_ordinal": 6338,
+      "get_this_class_ordinal": 6901
+    },
+    {
+      "class": "CKeyFrame",
+      "get_runtime_class_ordinal": 6340,
+      "get_this_class_ordinal": 6903
+    },
+    {
+      "class": "CLinkCtrl",
+      "get_runtime_class_ordinal": 6341,
+      "get_this_class_ordinal": 6904
+    },
+    {
+      "class": "CListBox",
+      "get_runtime_class_ordinal": 6342,
+      "get_this_class_ordinal": 6905
+    },
+    {
+      "class": "CListCtrl",
+      "get_runtime_class_ordinal": 6343,
+      "get_this_class_ordinal": 6906
+    },
+    {
+      "class": "CListView",
+      "get_runtime_class_ordinal": 6344,
+      "get_this_class_ordinal": 6907
+    },
+    {
+      "class": "CLongBinary",
+      "get_runtime_class_ordinal": 6345,
+      "get_this_class_ordinal": 6908
+    },
+    {
+      "class": "CMDIChildWnd",
+      "get_runtime_class_ordinal": 6353,
+      "get_this_class_ordinal": 6916
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "get_runtime_class_ordinal": 6354,
+      "get_this_class_ordinal": 6917
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "get_runtime_class_ordinal": 6355,
+      "get_this_class_ordinal": 6918
+    },
+    {
+      "class": "CMDIFrameWnd",
+      "get_runtime_class_ordinal": 6356,
+      "get_this_class_ordinal": 6919
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "get_runtime_class_ordinal": 6357,
+      "get_this_class_ordinal": 6920
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "get_runtime_class_ordinal": 6358,
+      "get_this_class_ordinal": 6921
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "get_runtime_class_ordinal": 6363,
+      "get_this_class_ordinal": 6926
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "get_runtime_class_ordinal": 6364,
+      "get_this_class_ordinal": 6927
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "get_runtime_class_ordinal": 6365,
+      "get_this_class_ordinal": 6928
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "get_runtime_class_ordinal": 6366,
+      "get_this_class_ordinal": 6929
+    },
+    {
+      "class": "CMFCBaseToolBar",
+      "get_runtime_class_ordinal": 6367,
+      "get_this_class_ordinal": 6930
+    },
+    {
+      "class": "CMFCButton",
+      "get_runtime_class_ordinal": 6368,
+      "get_this_class_ordinal": 6931
+    },
+    {
+      "class": "CMFCCaptionBar",
+      "get_runtime_class_ordinal": 6369,
+      "get_this_class_ordinal": 6932
+    },
+    {
+      "class": "CMFCColorBar",
+      "get_runtime_class_ordinal": 6370,
+      "get_this_class_ordinal": 6933
+    },
+    {
+      "class": "CMFCColorButton",
+      "get_runtime_class_ordinal": 6371,
+      "get_this_class_ordinal": 6934
+    },
+    {
+      "class": "CMFCColorMenuButton",
+      "get_runtime_class_ordinal": 6372,
+      "get_this_class_ordinal": 6935
+    },
+    {
+      "class": "CMFCColorPopupMenu",
+      "get_runtime_class_ordinal": 6373,
+      "get_this_class_ordinal": 6936
+    },
+    {
+      "class": "CMFCColorPropertySheet",
+      "get_runtime_class_ordinal": 6374,
+      "get_this_class_ordinal": 6937
+    },
+    {
+      "class": "CMFCControlRenderer",
+      "get_runtime_class_ordinal": 6375,
+      "get_this_class_ordinal": 6938
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "get_runtime_class_ordinal": 6376,
+      "get_this_class_ordinal": 6939
+    },
+    {
+      "class": "CMFCCustomizeButton",
+      "get_runtime_class_ordinal": 6377,
+      "get_this_class_ordinal": 6940
+    },
+    {
+      "class": "CMFCCustomizeMenuButton",
+      "get_runtime_class_ordinal": 6378,
+      "get_this_class_ordinal": 6941
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "get_runtime_class_ordinal": 6379,
+      "get_this_class_ordinal": 6942
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "get_runtime_class_ordinal": 6380,
+      "get_this_class_ordinal": 6943
+    },
+    {
+      "class": "CMFCDropDownFrame",
+      "get_runtime_class_ordinal": 6381,
+      "get_this_class_ordinal": 6944
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "get_runtime_class_ordinal": 6382,
+      "get_this_class_ordinal": 6945
+    },
+    {
+      "class": "CMFCDropDownToolBar",
+      "get_runtime_class_ordinal": 6383,
+      "get_this_class_ordinal": 6946
+    },
+    {
+      "class": "CMFCDropDownToolbarButton",
+      "get_runtime_class_ordinal": 6384,
+      "get_this_class_ordinal": 6947
+    },
+    {
+      "class": "CMFCDynamicLayout",
+      "get_runtime_class_ordinal": 14347,
+      "get_this_class_ordinal": 14348
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "get_runtime_class_ordinal": 6385,
+      "get_this_class_ordinal": 6948
+    },
+    {
+      "class": "CMFCHeaderCtrl",
+      "get_runtime_class_ordinal": 6386,
+      "get_this_class_ordinal": 6949
+    },
+    {
+      "class": "CMFCLinkCtrl",
+      "get_runtime_class_ordinal": 6387,
+      "get_this_class_ordinal": 6950
+    },
+    {
+      "class": "CMFCListCtrl",
+      "get_runtime_class_ordinal": 6388,
+      "get_this_class_ordinal": 6951
+    },
+    {
+      "class": "CMFCMaskedEdit",
+      "get_runtime_class_ordinal": 6389,
+      "get_this_class_ordinal": 6952
+    },
+    {
+      "class": "CMFCMenuBar",
+      "get_runtime_class_ordinal": 6390,
+      "get_this_class_ordinal": 6953
+    },
+    {
+      "class": "CMFCMenuButton",
+      "get_runtime_class_ordinal": 6391,
+      "get_this_class_ordinal": 6954
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "get_runtime_class_ordinal": 6392,
+      "get_this_class_ordinal": 6955
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "get_runtime_class_ordinal": 6393,
+      "get_this_class_ordinal": 6956
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "get_runtime_class_ordinal": 6394,
+      "get_this_class_ordinal": 6957
+    },
+    {
+      "class": "CMFCOutlookBarPaneAdapter",
+      "get_runtime_class_ordinal": 6395,
+      "get_this_class_ordinal": 6958
+    },
+    {
+      "class": "CMFCOutlookBarPaneButton",
+      "get_runtime_class_ordinal": 6396,
+      "get_this_class_ordinal": 6959
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "get_runtime_class_ordinal": 6397,
+      "get_this_class_ordinal": 6960
+    },
+    {
+      "class": "CMFCOutlookBarToolBar",
+      "get_runtime_class_ordinal": 6398,
+      "get_this_class_ordinal": 6961
+    },
+    {
+      "class": "CMFCPopupMenu",
+      "get_runtime_class_ordinal": 6399,
+      "get_this_class_ordinal": 6962
+    },
+    {
+      "class": "CMFCPopupMenuBar",
+      "get_runtime_class_ordinal": 6400,
+      "get_this_class_ordinal": 6963
+    },
+    {
+      "class": "CMFCPreviewCtrlImpl",
+      "get_runtime_class_ordinal": 6401,
+      "get_this_class_ordinal": 6964
+    },
+    {
+      "class": "CMFCPrintPreviewToolBar",
+      "get_runtime_class_ordinal": 6402,
+      "get_this_class_ordinal": 6965
+    },
+    {
+      "class": "CMFCPropertyGridColorProperty",
+      "get_runtime_class_ordinal": 6403,
+      "get_this_class_ordinal": 6966
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "get_runtime_class_ordinal": 6404,
+      "get_this_class_ordinal": 6967
+    },
+    {
+      "class": "CMFCPropertyGridFileProperty",
+      "get_runtime_class_ordinal": 6405,
+      "get_this_class_ordinal": 6968
+    },
+    {
+      "class": "CMFCPropertyGridFontProperty",
+      "get_runtime_class_ordinal": 6406,
+      "get_this_class_ordinal": 6969
+    },
+    {
+      "class": "CMFCPropertyGridProperty",
+      "get_runtime_class_ordinal": 6407,
+      "get_this_class_ordinal": 6970
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "get_runtime_class_ordinal": 6408,
+      "get_this_class_ordinal": 6971
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "get_runtime_class_ordinal": 6409,
+      "get_this_class_ordinal": 6972
+    },
+    {
+      "class": "CMFCPropertySheet",
+      "get_runtime_class_ordinal": 6410,
+      "get_this_class_ordinal": 6973
+    },
+    {
+      "class": "CMFCPropertySheetCategoryInfo",
+      "get_runtime_class_ordinal": 6411,
+      "get_this_class_ordinal": 6974
+    },
+    {
+      "class": "CMFCReBar",
+      "get_runtime_class_ordinal": 6412,
+      "get_this_class_ordinal": 6975
+    },
+    {
+      "class": "CMFCRibbonApplicationButton",
+      "get_runtime_class_ordinal": 6413,
+      "get_this_class_ordinal": 6976
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "get_runtime_class_ordinal": 6414,
+      "get_this_class_ordinal": 6977
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "get_runtime_class_ordinal": 6415,
+      "get_this_class_ordinal": 6978
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "get_runtime_class_ordinal": 6416,
+      "get_this_class_ordinal": 6979
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "get_runtime_class_ordinal": 6417,
+      "get_this_class_ordinal": 6980
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "get_runtime_class_ordinal": 6418,
+      "get_this_class_ordinal": 6981
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "get_runtime_class_ordinal": 6419,
+      "get_this_class_ordinal": 6982
+    },
+    {
+      "class": "CMFCRibbonCheckBox",
+      "get_runtime_class_ordinal": 6420,
+      "get_this_class_ordinal": 6983
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "get_runtime_class_ordinal": 6421,
+      "get_this_class_ordinal": 6984
+    },
+    {
+      "class": "CMFCRibbonColorMenuButton",
+      "get_runtime_class_ordinal": 6422,
+      "get_this_class_ordinal": 6985
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "get_runtime_class_ordinal": 6423,
+      "get_this_class_ordinal": 6986
+    },
+    {
+      "class": "CMFCRibbonContextCaption",
+      "get_runtime_class_ordinal": 6424,
+      "get_this_class_ordinal": 6987
+    },
+    {
+      "class": "CMFCRibbonCustomizeCategory",
+      "get_runtime_class_ordinal": 6425,
+      "get_this_class_ordinal": 6988
+    },
+    {
+      "class": "CMFCRibbonCustomizeDialog",
+      "get_runtime_class_ordinal": 6426,
+      "get_this_class_ordinal": 6989
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "get_runtime_class_ordinal": 6427,
+      "get_this_class_ordinal": 6990
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "get_runtime_class_ordinal": 6428,
+      "get_this_class_ordinal": 6991
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "get_runtime_class_ordinal": 6429,
+      "get_this_class_ordinal": 6992
+    },
+    {
+      "class": "CMFCRibbonFontComboBox",
+      "get_runtime_class_ordinal": 6430,
+      "get_this_class_ordinal": 6993
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "get_runtime_class_ordinal": 6431,
+      "get_this_class_ordinal": 6994
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "get_runtime_class_ordinal": 6432,
+      "get_this_class_ordinal": 6995
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "get_runtime_class_ordinal": 6433,
+      "get_this_class_ordinal": 6996
+    },
+    {
+      "class": "CMFCRibbonLabel",
+      "get_runtime_class_ordinal": 6434,
+      "get_this_class_ordinal": 6997
+    },
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "get_runtime_class_ordinal": 6435,
+      "get_this_class_ordinal": 6998
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "get_runtime_class_ordinal": 6436,
+      "get_this_class_ordinal": 6999
+    },
+    {
+      "class": "CMFCRibbonMainPanel",
+      "get_runtime_class_ordinal": 6437,
+      "get_this_class_ordinal": 7000
+    },
+    {
+      "class": "CMFCRibbonMainPanelButton",
+      "get_runtime_class_ordinal": 6438,
+      "get_this_class_ordinal": 7001
+    },
+    {
+      "class": "CMFCRibbonMiniToolBar",
+      "get_runtime_class_ordinal": 6439,
+      "get_this_class_ordinal": 7002
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "get_runtime_class_ordinal": 6440,
+      "get_this_class_ordinal": 7003
+    },
+    {
+      "class": "CMFCRibbonPanelMenu",
+      "get_runtime_class_ordinal": 6441,
+      "get_this_class_ordinal": 7004
+    },
+    {
+      "class": "CMFCRibbonPanelMenuBar",
+      "get_runtime_class_ordinal": 6442,
+      "get_this_class_ordinal": 7005
+    },
+    {
+      "class": "CMFCRibbonProgressBar",
+      "get_runtime_class_ordinal": 6443,
+      "get_this_class_ordinal": 7006
+    },
+    {
+      "class": "CMFCRibbonQuickAccessCustomizeButton",
+      "get_runtime_class_ordinal": 6444,
+      "get_this_class_ordinal": 7007
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "get_runtime_class_ordinal": 6445,
+      "get_this_class_ordinal": 7008
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "get_runtime_class_ordinal": 6446,
+      "get_this_class_ordinal": 7009
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "get_runtime_class_ordinal": 6447,
+      "get_this_class_ordinal": 7010
+    },
+    {
+      "class": "CMFCRibbonSeparator",
+      "get_runtime_class_ordinal": 6448,
+      "get_this_class_ordinal": 7011
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "get_runtime_class_ordinal": 6449,
+      "get_this_class_ordinal": 7012
+    },
+    {
+      "class": "CMFCRibbonStatusBar",
+      "get_runtime_class_ordinal": 6450,
+      "get_this_class_ordinal": 7013
+    },
+    {
+      "class": "CMFCRibbonStatusBarCustomizeButton",
+      "get_runtime_class_ordinal": 6451,
+      "get_this_class_ordinal": 7014
+    },
+    {
+      "class": "CMFCRibbonStatusBarPane",
+      "get_runtime_class_ordinal": 6452,
+      "get_this_class_ordinal": 7015
+    },
+    {
+      "class": "CMFCRibbonTab",
+      "get_runtime_class_ordinal": 6453,
+      "get_this_class_ordinal": 7016
+    },
+    {
+      "class": "CMFCRibbonTabsGroup",
+      "get_runtime_class_ordinal": 6454,
+      "get_this_class_ordinal": 7017
+    },
+    {
+      "class": "CMFCRibbonUndoButton",
+      "get_runtime_class_ordinal": 6455,
+      "get_this_class_ordinal": 7018
+    },
+    {
+      "class": "CMFCShadowRenderer",
+      "get_runtime_class_ordinal": 6456,
+      "get_this_class_ordinal": 7019
+    },
+    {
+      "class": "CMFCShellListCtrl",
+      "get_runtime_class_ordinal": 6457,
+      "get_this_class_ordinal": 7020
+    },
+    {
+      "class": "CMFCShellTreeCtrl",
+      "get_runtime_class_ordinal": 6458,
+      "get_this_class_ordinal": 7021
+    },
+    {
+      "class": "CMFCShowAllButton",
+      "get_runtime_class_ordinal": 6459,
+      "get_this_class_ordinal": 7022
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "get_runtime_class_ordinal": 6460,
+      "get_this_class_ordinal": 7023
+    },
+    {
+      "class": "CMFCStatusBar",
+      "get_runtime_class_ordinal": 6461,
+      "get_this_class_ordinal": 7024
+    },
+    {
+      "class": "CMFCTabCtrl",
+      "get_runtime_class_ordinal": 6462,
+      "get_this_class_ordinal": 7025
+    },
+    {
+      "class": "CMFCTasksPane",
+      "get_runtime_class_ordinal": 6463,
+      "get_this_class_ordinal": 7026
+    },
+    {
+      "class": "CMFCTasksPaneFrameWnd",
+      "get_runtime_class_ordinal": 6464,
+      "get_this_class_ordinal": 7027
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "get_runtime_class_ordinal": 6465,
+      "get_this_class_ordinal": 7028
+    },
+    {
+      "class": "CMFCToolBar",
+      "get_runtime_class_ordinal": 6466,
+      "get_this_class_ordinal": 7029
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "get_runtime_class_ordinal": 6467,
+      "get_this_class_ordinal": 7030
+    },
+    {
+      "class": "CMFCToolBarColorButton",
+      "get_runtime_class_ordinal": 6468,
+      "get_this_class_ordinal": 7031
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "get_runtime_class_ordinal": 6469,
+      "get_this_class_ordinal": 7032
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "get_runtime_class_ordinal": 6470,
+      "get_this_class_ordinal": 7033
+    },
+    {
+      "class": "CMFCToolBarEditBoxButton",
+      "get_runtime_class_ordinal": 6471,
+      "get_this_class_ordinal": 7034
+    },
+    {
+      "class": "CMFCToolBarFontComboBox",
+      "get_runtime_class_ordinal": 6472,
+      "get_this_class_ordinal": 7035
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "get_runtime_class_ordinal": 6473,
+      "get_this_class_ordinal": 7036
+    },
+    {
+      "class": "CMFCToolBarMenuButton",
+      "get_runtime_class_ordinal": 6474,
+      "get_this_class_ordinal": 7037
+    },
+    {
+      "class": "CMFCToolBarMenuButtonsButton",
+      "get_runtime_class_ordinal": 6475,
+      "get_this_class_ordinal": 7038
+    },
+    {
+      "class": "CMFCToolBarSpinEditBoxButton",
+      "get_runtime_class_ordinal": 6482,
+      "get_this_class_ordinal": 7045
+    },
+    {
+      "class": "CMFCToolBarSystemMenuButton",
+      "get_runtime_class_ordinal": 6483,
+      "get_this_class_ordinal": 7046
+    },
+    {
+      "class": "CMFCToolBarsCommandsPropertyPage",
+      "get_runtime_class_ordinal": 6476,
+      "get_this_class_ordinal": 7039
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "get_runtime_class_ordinal": 6477,
+      "get_this_class_ordinal": 7040
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "get_runtime_class_ordinal": 6478,
+      "get_this_class_ordinal": 7041
+    },
+    {
+      "class": "CMFCToolBarsListPropertyPage",
+      "get_runtime_class_ordinal": 6479,
+      "get_this_class_ordinal": 7042
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "get_runtime_class_ordinal": 6480,
+      "get_this_class_ordinal": 7043
+    },
+    {
+      "class": "CMFCToolBarsOptionsPropertyPage",
+      "get_runtime_class_ordinal": 6481,
+      "get_this_class_ordinal": 7044
+    },
+    {
+      "class": "CMFCToolTipCtrl",
+      "get_runtime_class_ordinal": 6484,
+      "get_this_class_ordinal": 7047
+    },
+    {
+      "class": "CMFCVisualManager",
+      "get_runtime_class_ordinal": 6485,
+      "get_this_class_ordinal": 7048
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "get_runtime_class_ordinal": 6486,
+      "get_this_class_ordinal": 7049
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "get_runtime_class_ordinal": 6487,
+      "get_this_class_ordinal": 7050
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "get_runtime_class_ordinal": 6488,
+      "get_this_class_ordinal": 7051
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "get_runtime_class_ordinal": 6489,
+      "get_this_class_ordinal": 7052
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "get_runtime_class_ordinal": 6490,
+      "get_this_class_ordinal": 7053
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "get_runtime_class_ordinal": 6491,
+      "get_this_class_ordinal": 7054
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "get_runtime_class_ordinal": 6492,
+      "get_this_class_ordinal": 7055
+    },
+    {
+      "class": "CMapPtrToPtr",
+      "get_runtime_class_ordinal": 6346,
+      "get_this_class_ordinal": 6909
+    },
+    {
+      "class": "CMapPtrToWord",
+      "get_runtime_class_ordinal": 6347,
+      "get_this_class_ordinal": 6910
+    },
+    {
+      "class": "CMapStringToOb",
+      "get_runtime_class_ordinal": 6348,
+      "get_this_class_ordinal": 6911
+    },
+    {
+      "class": "CMapStringToPtr",
+      "get_runtime_class_ordinal": 6349,
+      "get_this_class_ordinal": 6912
+    },
+    {
+      "class": "CMapStringToString",
+      "get_runtime_class_ordinal": 6350,
+      "get_this_class_ordinal": 6913
+    },
+    {
+      "class": "CMapWordToOb",
+      "get_runtime_class_ordinal": 6351,
+      "get_this_class_ordinal": 6914
+    },
+    {
+      "class": "CMapWordToPtr",
+      "get_runtime_class_ordinal": 6352,
+      "get_this_class_ordinal": 6915
+    },
+    {
+      "class": "CMemFile",
+      "get_runtime_class_ordinal": 6359,
+      "get_this_class_ordinal": 6922
+    },
+    {
+      "class": "CMemoryException",
+      "get_runtime_class_ordinal": 6360,
+      "get_this_class_ordinal": 6923
+    },
+    {
+      "class": "CMenu",
+      "get_runtime_class_ordinal": 6361,
+      "get_this_class_ordinal": 6924
+    },
+    {
+      "class": "CMetaFileDC",
+      "get_runtime_class_ordinal": 6362,
+      "get_this_class_ordinal": 6925
+    },
+    {
+      "class": "CMiniDockFrameWnd",
+      "get_runtime_class_ordinal": 6493,
+      "get_this_class_ordinal": 7056
+    },
+    {
+      "class": "CMiniFrameWnd",
+      "get_runtime_class_ordinal": 6494,
+      "get_this_class_ordinal": 7057
+    },
+    {
+      "class": "CMonikerFile",
+      "get_runtime_class_ordinal": 6495,
+      "get_this_class_ordinal": 7058
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "get_runtime_class_ordinal": 6496,
+      "get_this_class_ordinal": 7059
+    },
+    {
+      "class": "CMouseManager",
+      "get_runtime_class_ordinal": 6497,
+      "get_this_class_ordinal": 7060
+    },
+    {
+      "class": "CMultiDocTemplate",
+      "get_runtime_class_ordinal": 6498,
+      "get_this_class_ordinal": 7061
+    },
+    {
+      "class": "CMultiPageDHtmlDialog",
+      "get_runtime_class_ordinal": 6499,
+      "get_this_class_ordinal": 7062
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "get_runtime_class_ordinal": 6500,
+      "get_this_class_ordinal": 7063
+    },
+    {
+      "class": "CMutex",
+      "get_runtime_class_ordinal": 6501,
+      "get_this_class_ordinal": 7064
+    },
+    {
+      "class": "CNetAddressCtrl",
+      "get_runtime_class_ordinal": 6502,
+      "get_this_class_ordinal": 7065
+    },
+    {
+      "class": "CNotSupportedException",
+      "get_runtime_class_ordinal": 6503,
+      "get_this_class_ordinal": 7066
+    },
+    {
+      "class": "CObArray",
+      "get_runtime_class_ordinal": 6504,
+      "get_this_class_ordinal": 7067
+    },
+    {
+      "class": "CObList",
+      "get_runtime_class_ordinal": 6506,
+      "get_this_class_ordinal": 7069
+    },
+    {
+      "class": "CObject",
+      "get_runtime_class_ordinal": 6505,
+      "get_this_class_ordinal": 7068
+    },
+    {
+      "class": "COleBusyDialog",
+      "get_runtime_class_ordinal": 6507,
+      "get_this_class_ordinal": 7070
+    },
+    {
+      "class": "COleChangeIconDialog",
+      "get_runtime_class_ordinal": 6508,
+      "get_this_class_ordinal": 7071
+    },
+    {
+      "class": "COleChangeSourceDialog",
+      "get_runtime_class_ordinal": 6509,
+      "get_this_class_ordinal": 7072
+    },
+    {
+      "class": "COleClientItem",
+      "get_runtime_class_ordinal": 6510,
+      "get_this_class_ordinal": 7073
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "get_runtime_class_ordinal": 6511,
+      "get_this_class_ordinal": 7074
+    },
+    {
+      "class": "COleControl",
+      "get_runtime_class_ordinal": 6512,
+      "get_this_class_ordinal": 7075
+    },
+    {
+      "class": "COleControlModule",
+      "get_runtime_class_ordinal": 6513,
+      "get_this_class_ordinal": 7076
+    },
+    {
+      "class": "COleConvertDialog",
+      "get_runtime_class_ordinal": 6514,
+      "get_this_class_ordinal": 7077
+    },
+    {
+      "class": "COleDBRecordView",
+      "get_runtime_class_ordinal": 6515,
+      "get_this_class_ordinal": 7078
+    },
+    {
+      "class": "COleDialog",
+      "get_runtime_class_ordinal": 6516,
+      "get_this_class_ordinal": 7079
+    },
+    {
+      "class": "COleDispatchException",
+      "get_runtime_class_ordinal": 6517,
+      "get_this_class_ordinal": 7080
+    },
+    {
+      "class": "COleDocIPFrameWnd",
+      "get_runtime_class_ordinal": 6518,
+      "get_this_class_ordinal": 7081
+    },
+    {
+      "class": "COleDocIPFrameWndEx",
+      "get_runtime_class_ordinal": 6519,
+      "get_this_class_ordinal": 7082
+    },
+    {
+      "class": "COleDocObjectItem",
+      "get_runtime_class_ordinal": 6520,
+      "get_this_class_ordinal": 7083
+    },
+    {
+      "class": "COleDocument",
+      "get_runtime_class_ordinal": 6521,
+      "get_this_class_ordinal": 7084
+    },
+    {
+      "class": "COleException",
+      "get_runtime_class_ordinal": 6522,
+      "get_this_class_ordinal": 7085
+    },
+    {
+      "class": "COleIPFrameWnd",
+      "get_runtime_class_ordinal": 6524,
+      "get_this_class_ordinal": 7087
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "get_runtime_class_ordinal": 6525,
+      "get_this_class_ordinal": 7088
+    },
+    {
+      "class": "COleInsertDialog",
+      "get_runtime_class_ordinal": 6523,
+      "get_this_class_ordinal": 7086
+    },
+    {
+      "class": "COleLinkingDoc",
+      "get_runtime_class_ordinal": 6526,
+      "get_this_class_ordinal": 7089
+    },
+    {
+      "class": "COleLinksDialog",
+      "get_runtime_class_ordinal": 6527,
+      "get_this_class_ordinal": 7090
+    },
+    {
+      "class": "COleObjectFactory",
+      "get_runtime_class_ordinal": 6528,
+      "get_this_class_ordinal": 7091
+    },
+    {
+      "class": "COlePasteSpecialDialog",
+      "get_runtime_class_ordinal": 6529,
+      "get_this_class_ordinal": 7092
+    },
+    {
+      "class": "COlePropertiesDialog",
+      "get_runtime_class_ordinal": 6530,
+      "get_this_class_ordinal": 7093
+    },
+    {
+      "class": "COlePropertyPage",
+      "get_runtime_class_ordinal": 6531,
+      "get_this_class_ordinal": 7094
+    },
+    {
+      "class": "COleResizeBar",
+      "get_runtime_class_ordinal": 6532,
+      "get_this_class_ordinal": 7095
+    },
+    {
+      "class": "COleServerDoc",
+      "get_runtime_class_ordinal": 6533,
+      "get_this_class_ordinal": 7096
+    },
+    {
+      "class": "COleServerDocEx",
+      "get_runtime_class_ordinal": 6534,
+      "get_this_class_ordinal": 7097
+    },
+    {
+      "class": "COleServerItem",
+      "get_runtime_class_ordinal": 6535,
+      "get_this_class_ordinal": 7098
+    },
+    {
+      "class": "COleStreamFile",
+      "get_runtime_class_ordinal": 6536,
+      "get_this_class_ordinal": 7099
+    },
+    {
+      "class": "COleUpdateDialog",
+      "get_runtime_class_ordinal": 6537,
+      "get_this_class_ordinal": 7100
+    },
+    {
+      "class": "COutlookCustomizeButton",
+      "get_runtime_class_ordinal": 6538,
+      "get_this_class_ordinal": 7101
+    },
+    {
+      "class": "CPageSetupDialog",
+      "get_runtime_class_ordinal": 6540,
+      "get_this_class_ordinal": 7103
+    },
+    {
+      "class": "CPagerCtrl",
+      "get_runtime_class_ordinal": 6539,
+      "get_this_class_ordinal": 7102
+    },
+    {
+      "class": "CPaintDC",
+      "get_runtime_class_ordinal": 6541,
+      "get_this_class_ordinal": 7104
+    },
+    {
+      "class": "CPalette",
+      "get_runtime_class_ordinal": 6542,
+      "get_this_class_ordinal": 7105
+    },
+    {
+      "class": "CPane",
+      "get_runtime_class_ordinal": 6543,
+      "get_this_class_ordinal": 7106
+    },
+    {
+      "class": "CPaneContainer",
+      "get_runtime_class_ordinal": 6544,
+      "get_this_class_ordinal": 7107
+    },
+    {
+      "class": "CPaneContainerManager",
+      "get_runtime_class_ordinal": 6545,
+      "get_this_class_ordinal": 7108
+    },
+    {
+      "class": "CPaneDialog",
+      "get_runtime_class_ordinal": 6546,
+      "get_this_class_ordinal": 7109
+    },
+    {
+      "class": "CPaneDivider",
+      "get_runtime_class_ordinal": 6547,
+      "get_this_class_ordinal": 7110
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "get_runtime_class_ordinal": 6548,
+      "get_this_class_ordinal": 7111
+    },
+    {
+      "class": "CPen",
+      "get_runtime_class_ordinal": 6549,
+      "get_this_class_ordinal": 7112
+    },
+    {
+      "class": "CPreviewDC",
+      "get_runtime_class_ordinal": 6550,
+      "get_this_class_ordinal": 7113
+    },
+    {
+      "class": "CPreviewView",
+      "get_runtime_class_ordinal": 6551,
+      "get_this_class_ordinal": 7114
+    },
+    {
+      "class": "CPreviewViewEx",
+      "get_runtime_class_ordinal": 6552,
+      "get_this_class_ordinal": 7115
+    },
+    {
+      "class": "CPrintDialog",
+      "get_runtime_class_ordinal": 6553,
+      "get_this_class_ordinal": 7116
+    },
+    {
+      "class": "CPrintDialogEx",
+      "get_runtime_class_ordinal": 6554,
+      "get_this_class_ordinal": 7117
+    },
+    {
+      "class": "CProgressCtrl",
+      "get_runtime_class_ordinal": 6555,
+      "get_this_class_ordinal": 7118
+    },
+    {
+      "class": "CPropertyPage",
+      "get_runtime_class_ordinal": 6556,
+      "get_this_class_ordinal": 7119
+    },
+    {
+      "class": "CPropertySheet",
+      "get_runtime_class_ordinal": 6557,
+      "get_this_class_ordinal": 7120
+    },
+    {
+      "class": "CPtrArray",
+      "get_runtime_class_ordinal": 6558,
+      "get_this_class_ordinal": 7121
+    },
+    {
+      "class": "CPtrList",
+      "get_runtime_class_ordinal": 6559,
+      "get_this_class_ordinal": 7122
+    },
+    {
+      "class": "CReBar",
+      "get_runtime_class_ordinal": 6560,
+      "get_this_class_ordinal": 7123
+    },
+    {
+      "class": "CReBarCtrl",
+      "get_runtime_class_ordinal": 6561,
+      "get_this_class_ordinal": 7124
+    },
+    {
+      "class": "CRecordView",
+      "get_runtime_class_ordinal": 6563,
+      "get_this_class_ordinal": 7126
+    },
+    {
+      "class": "CRecordset",
+      "get_runtime_class_ordinal": 6562,
+      "get_this_class_ordinal": 7125
+    },
+    {
+      "class": "CRenderTarget",
+      "get_runtime_class_ordinal": 6564,
+      "get_this_class_ordinal": 7127
+    },
+    {
+      "class": "CResourceException",
+      "get_runtime_class_ordinal": 6565,
+      "get_this_class_ordinal": 7128
+    },
+    {
+      "class": "CRgn",
+      "get_runtime_class_ordinal": 6566,
+      "get_this_class_ordinal": 7129
+    },
+    {
+      "class": "CRibbonUndoLabel",
+      "get_runtime_class_ordinal": 6567,
+      "get_this_class_ordinal": 7130
+    },
+    {
+      "class": "CRichEditCntrItem",
+      "get_runtime_class_ordinal": 6568,
+      "get_this_class_ordinal": 7131
+    },
+    {
+      "class": "CRichEditCtrl",
+      "get_runtime_class_ordinal": 6569,
+      "get_this_class_ordinal": 7132
+    },
+    {
+      "class": "CRichEditDoc",
+      "get_runtime_class_ordinal": 6570,
+      "get_this_class_ordinal": 7133
+    },
+    {
+      "class": "CRichEditView",
+      "get_runtime_class_ordinal": 6571,
+      "get_this_class_ordinal": 7134
+    },
+    {
+      "class": "CScrollBar",
+      "get_runtime_class_ordinal": 6572,
+      "get_this_class_ordinal": 7135
+    },
+    {
+      "class": "CScrollView",
+      "get_runtime_class_ordinal": 6573,
+      "get_this_class_ordinal": 7136
+    },
+    {
+      "class": "CSemaphore",
+      "get_runtime_class_ordinal": 6574,
+      "get_this_class_ordinal": 7137
+    },
+    {
+      "class": "CSettingsStore",
+      "get_runtime_class_ordinal": 6575,
+      "get_this_class_ordinal": 7138
+    },
+    {
+      "class": "CSharedFile",
+      "get_runtime_class_ordinal": 6576,
+      "get_this_class_ordinal": 7139
+    },
+    {
+      "class": "CSimpleException",
+      "get_runtime_class_ordinal": 6577,
+      "get_this_class_ordinal": 7140
+    },
+    {
+      "class": "CSingleDocTemplate",
+      "get_runtime_class_ordinal": 6578,
+      "get_this_class_ordinal": 7141
+    },
+    {
+      "class": "CSliderCtrl",
+      "get_runtime_class_ordinal": 6579,
+      "get_this_class_ordinal": 7142
+    },
+    {
+      "class": "CSmartDockingGroupGuidesManager",
+      "get_runtime_class_ordinal": 6580,
+      "get_this_class_ordinal": 7143
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "get_runtime_class_ordinal": 6581,
+      "get_this_class_ordinal": 7144
+    },
+    {
+      "class": "CSocket",
+      "get_runtime_class_ordinal": 6582,
+      "get_this_class_ordinal": 7145
+    },
+    {
+      "class": "CSocketFile",
+      "get_runtime_class_ordinal": 6583,
+      "get_this_class_ordinal": 7146
+    },
+    {
+      "class": "CSpinButtonCtrl",
+      "get_runtime_class_ordinal": 6584,
+      "get_this_class_ordinal": 7147
+    },
+    {
+      "class": "CSplitButton",
+      "get_runtime_class_ordinal": 6585,
+      "get_this_class_ordinal": 7148
+    },
+    {
+      "class": "CSplitterWnd",
+      "get_runtime_class_ordinal": 6586,
+      "get_this_class_ordinal": 7149
+    },
+    {
+      "class": "CSplitterWndEx",
+      "get_runtime_class_ordinal": 6587,
+      "get_this_class_ordinal": 7150
+    },
+    {
+      "class": "CStatic",
+      "get_runtime_class_ordinal": 6588,
+      "get_this_class_ordinal": 7151
+    },
+    {
+      "class": "CStatusBar",
+      "get_runtime_class_ordinal": 6589,
+      "get_this_class_ordinal": 7152
+    },
+    {
+      "class": "CStatusBarCtrl",
+      "get_runtime_class_ordinal": 6590,
+      "get_this_class_ordinal": 7153
+    },
+    {
+      "class": "CStdioFile",
+      "get_runtime_class_ordinal": 6591,
+      "get_this_class_ordinal": 7154
+    },
+    {
+      "class": "CStringArray",
+      "get_runtime_class_ordinal": 6592,
+      "get_this_class_ordinal": 7155
+    },
+    {
+      "class": "CStringList",
+      "get_runtime_class_ordinal": 6593,
+      "get_this_class_ordinal": 7156
+    },
+    {
+      "class": "CSyncObject",
+      "get_runtime_class_ordinal": 6594,
+      "get_this_class_ordinal": 7157
+    },
+    {
+      "class": "CTabCtrl",
+      "get_runtime_class_ordinal": 6596,
+      "get_this_class_ordinal": 7159
+    },
+    {
+      "class": "CTabView",
+      "get_runtime_class_ordinal": 6597,
+      "get_this_class_ordinal": 7160
+    },
+    {
+      "class": "CTabbedPane",
+      "get_runtime_class_ordinal": 6595,
+      "get_this_class_ordinal": 7158
+    },
+    {
+      "class": "CTaskDialog",
+      "get_runtime_class_ordinal": 6598,
+      "get_this_class_ordinal": 7161
+    },
+    {
+      "class": "CTasksPaneHistoryButton",
+      "get_runtime_class_ordinal": 6599,
+      "get_this_class_ordinal": 7162
+    },
+    {
+      "class": "CTasksPaneMenuButton",
+      "get_runtime_class_ordinal": 6600,
+      "get_this_class_ordinal": 7163
+    },
+    {
+      "class": "CTasksPaneNavigateButton",
+      "get_runtime_class_ordinal": 6601,
+      "get_this_class_ordinal": 7164
+    },
+    {
+      "class": "CToolBar",
+      "get_runtime_class_ordinal": 6602,
+      "get_this_class_ordinal": 7165
+    },
+    {
+      "class": "CToolBarCtrl",
+      "get_runtime_class_ordinal": 6603,
+      "get_this_class_ordinal": 7166
+    },
+    {
+      "class": "CToolTipCtrl",
+      "get_runtime_class_ordinal": 6604,
+      "get_this_class_ordinal": 7167
+    },
+    {
+      "class": "CTreeCtrl",
+      "get_runtime_class_ordinal": 6605,
+      "get_this_class_ordinal": 7168
+    },
+    {
+      "class": "CTreeView",
+      "get_runtime_class_ordinal": 6606,
+      "get_this_class_ordinal": 7169
+    },
+    {
+      "class": "CUIntArray",
+      "get_runtime_class_ordinal": 6607,
+      "get_this_class_ordinal": 7170
+    },
+    {
+      "class": "CUserException",
+      "get_runtime_class_ordinal": 6608,
+      "get_this_class_ordinal": 7171
+    },
+    {
+      "class": "CUserTool",
+      "get_runtime_class_ordinal": 6609,
+      "get_this_class_ordinal": 7172
+    },
+    {
+      "class": "CVSListBox",
+      "get_runtime_class_ordinal": 6611,
+      "get_this_class_ordinal": 7174
+    },
+    {
+      "class": "CVSListBoxBase",
+      "get_runtime_class_ordinal": 6612,
+      "get_this_class_ordinal": 7175
+    },
+    {
+      "class": "CVSListBoxEditCtrl",
+      "get_runtime_class_ordinal": 6613,
+      "get_this_class_ordinal": 7176
+    },
+    {
+      "class": "CView",
+      "get_runtime_class_ordinal": 6610,
+      "get_this_class_ordinal": 7173
+    },
+    {
+      "class": "CWinApp",
+      "get_runtime_class_ordinal": 6614,
+      "get_this_class_ordinal": 7177
+    },
+    {
+      "class": "CWinAppEx",
+      "get_runtime_class_ordinal": 6615,
+      "get_this_class_ordinal": 7178
+    },
+    {
+      "class": "CWinThread",
+      "get_runtime_class_ordinal": 6618,
+      "get_this_class_ordinal": 7181
+    },
+    {
+      "class": "CWindowDC",
+      "get_runtime_class_ordinal": 6616,
+      "get_this_class_ordinal": 7179
+    },
+    {
+      "class": "CWindowlessDC",
+      "get_runtime_class_ordinal": 6617,
+      "get_this_class_ordinal": 7180
+    },
+    {
+      "class": "CWnd",
+      "get_runtime_class_ordinal": 6619,
+      "get_this_class_ordinal": 7182
+    },
+    {
+      "class": "CWordArray",
+      "get_runtime_class_ordinal": 6620,
+      "get_this_class_ordinal": 7183
+    }
+  ]
+}

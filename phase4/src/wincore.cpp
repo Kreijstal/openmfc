@@ -1181,11 +1181,26 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCmdTarget__KAPEBUAF
 const AFX_MSGMAP_ENTRY g_cwndEmptyMsgEntries[] = { {0,0,0,0, AfxSig_end, (AFX_PMSG)0} };
 const AFX_MSGMAP* AFXAPI gbm_CWnd_base() { return impl__GetThisMessageMap_CCmdTarget__KAPEBUAFX_MSGMAP__XZ(); }
 const AFX_MSGMAP g_cwndMessageMap = { gbm_CWnd_base, g_cwndEmptyMsgEntries };
+
+int CWnd_PreTranslateMessageCompat(CWnd* pThis, MSG* pMsg) {
+    if (!pThis || !pMsg || !pThis->m_hWnd) {
+        return FALSE;
+    }
+    if (!::IsWindow(pThis->m_hWnd)) {
+        return FALSE;
+    }
+    return ::IsDialogMessageW(pThis->m_hWnd, pMsg) ? TRUE : FALSE;
+}
 } // namespace
 
 const AFX_MSGMAP* CWnd::GetThisMessageMap()
 {
     return &g_cwndMessageMap;
+}
+
+// Symbol: ?GetThisMessageMap@CWnd@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ() {
+    return CWnd::GetThisMessageMap();
 }
 
 // The exported virtual GetMessageMap was a weak stub returning null; give it the
@@ -1285,9 +1300,24 @@ void CWnd::SendMessageToDescendants(HWND p0, UINT p1, ULONGLONG p2, LONGLONG p3,
 
 int CWnd::WalkPreTranslateTree(HWND p0, MSG* p1)
 {
-    (void)p0;
-    (void)p1;
-    return 0;
+    if (!p0 || !p1) {
+        return FALSE;
+    }
+
+    for (HWND hChild = ::GetWindow(p0, GW_CHILD); hChild; hChild = ::GetWindow(hChild, GW_HWNDNEXT)) {
+        if (!::IsWindow(hChild)) {
+            continue;
+        }
+
+        CWnd* pChild = CWnd::FromHandle(hChild);
+        if (pChild && CWnd_PreTranslateMessageCompat(pChild, p1)) {
+            return TRUE;
+        }
+        if (WalkPreTranslateTree(hChild, p1)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 
@@ -2435,9 +2465,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) {
 
 // Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
-    (void)pThis;
-    (void)pMsg;
-    return FALSE;
+    return CWnd_PreTranslateMessageCompat(pThis, pMsg);
 }
 
 // Symbol: ?OnCommand@CWnd@@MEAAH_K_J@Z
@@ -2693,8 +2721,28 @@ __int64 CFrameWnd::OnActivateTopLevel(unsigned __int64 wParam, __int64 lParam) {
 int CFrameWnd::OnBarCheck(unsigned int nID) { (void)nID; return 0; }
 void CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult) { (void)nIndex; (void)pNMHDR; (void)lResult; }
 void CFrameWnd::OnClose() {}
-int CFrameWnd::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) { (void)nID; (void)nCode; (void)pExtra; (void)pHandlerInfo; return 0; }
-int CFrameWnd::OnCommand(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
+int CFrameWnd::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
+    CWnd* pView = m_pViewActive ? m_pViewActive : GetActiveView();
+    if (pView && pView->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
+            return TRUE;
+    }
+
+    if (CWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+int CFrameWnd::OnCommand(unsigned __int64 wParam, __int64 lParam) {
+    (void)lParam;
+    unsigned int nID = static_cast<unsigned int>(LOWORD(static_cast<WPARAM>(wParam)));
+    int nCode = static_cast<int>(HIWORD(static_cast<WPARAM>(wParam)));
+    if (OnCmdMsg(nID, nCode, nullptr, nullptr)) {
+        return TRUE;
+    }
+    return CWnd::OnCommand(static_cast<uintptr_t>(wParam), static_cast<intptr_t>(lParam));
+}
 __int64 CFrameWnd::OnCommandHelp(unsigned __int64 wParam, __int64 lParam) { (void)wParam; (void)lParam; return 0; }
 void CFrameWnd::OnContextHelp() {}
 int CFrameWnd::OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext) { (void)lpcs; (void)pContext; return 0; }
@@ -2738,7 +2786,27 @@ void CFrameWnd::OnUpdateFrameTitle(int bAddToTitle) { (void)bAddToTitle; }
 void CFrameWnd::OnUpdateKeyIndicator(CCmdUI* pCmdUI) { (void)pCmdUI; }
 void CFrameWnd::OnVScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar) { (void)nSBCode; (void)nPos; (void)pScrollBar; }
 void CFrameWnd::PostNcDestroy() {}
-int CFrameWnd::PreTranslateMessage(MSG* pMsg) { (void)pMsg; return 0; }
+int CFrameWnd::PreTranslateMessage(MSG* pMsg) {
+    if (!pMsg) {
+        return FALSE;
+    }
+
+    if (!m_hWnd) {
+        return FALSE;
+    }
+
+    if (m_hAccelTable && pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) {
+        if (::TranslateAccelerator(m_hWnd, m_hAccelTable, pMsg)) {
+            return TRUE;
+        }
+    }
+
+    if (CWnd::WalkPreTranslateTree(m_hWnd, pMsg)) {
+        return TRUE;
+    }
+
+    return CWnd_PreTranslateMessageCompat(this, pMsg);
+}
 int CFrameWnd::ProcessHelpMsg(MSG& msg, DWORD* pContext) { (void)msg; (void)pContext; return 0; }
 void CFrameWnd::ReDockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) { (void)pBar; (void)pDockBar; (void)lpRect; }
 void CFrameWnd::RemoveControlBar(CControlBar* pBar) { (void)pBar; }

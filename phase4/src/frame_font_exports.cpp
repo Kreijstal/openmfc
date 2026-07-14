@@ -66,6 +66,25 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX
     return EmptyMessageMap();
 }
 
+// Symbol: ?OnCmdMsg@CFrameWnd@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+// CFrameWnd::OnCmdMsg
+extern "C" int MS_ABI impl__OnCmdMsg_CFrameWnd__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CFrameWnd* pThis, UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
+    return pThis ? pThis->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo) : FALSE;
+}
+
+// Symbol: ?OnCommand@CFrameWnd@@MEAAH_K_J@Z
+// CFrameWnd::OnCommand
+extern "C" int MS_ABI impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(CFrameWnd* pThis, WPARAM wParam, LPARAM lParam) {
+    return pThis ? pThis->OnCommand(wParam, lParam) : FALSE;
+}
+
+// Symbol: ?PreTranslateMessage@CFrameWnd@@UEAAHPEAUtagMSG@@@Z
+// CFrameWnd::PreTranslateMessage
+extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(CFrameWnd* pThis, MSG* pMsg) {
+    return pThis ? pThis->PreTranslateMessage(pMsg) : FALSE;
+}
+
 // Symbol: ?rectDefault@CFrameWnd@@2VCRect@@B
 extern "C" const CRect MS_ABI impl__rectDefault_CFrameWnd__2VCRect__B = {};
 

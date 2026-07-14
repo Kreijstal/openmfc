@@ -37,14 +37,27 @@ static RTC* call_getthis(HMODULE h, int ord) {
 
 int main(int argc, char** argv) {
     if (argc < 2) { fprintf(stderr, "need real mfc140u path\n"); return 2; }
-    HMODULE real = LoadLibraryA(argv[1]);
+    HMODULE real = LoadLibraryExA(
+        argv[1], nullptr,
+        LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (!real) { fprintf(stderr, "LoadLibrary real failed %lu\n", GetLastError()); return 2; }
-    HMODULE ours = (argc >= 3) ? LoadLibraryA(argv[2]) : nullptr;
+    HMODULE ours = (argc >= 3)
+        ? LoadLibraryExA(argv[2], nullptr,
+                         LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)
+        : nullptr;
+    if (argc >= 3 && !ours) {
+        fprintf(stderr, "LoadLibrary ours failed %lu\n", GetLastError());
+        return 2;
+    }
 
     for (int i = 0; i < g_ntargets; ++i) {
         const Target& t = g_targets[i];
         RTC* r = call_getthis(real, t.ord_gt);
         if (!r) { printf("{\"class\":\"%s\",\"error\":\"no real getthis\"}\n", t.name); continue; }
+        if (!r->m_lpszClassName || strcmp(r->m_lpszClassName, t.name) != 0) {
+            printf("{\"class\":\"%s\",\"error\":\"descriptor class mismatch\"}\n", t.name);
+            continue;
+        }
         const char* base = "?";
         RTC* b = r->m_pfnGetBaseClass ? r->m_pfnGetBaseClass() : nullptr;
         if (b && b->m_lpszClassName) base = b->m_lpszClassName;

@@ -3350,6 +3350,60 @@ extern "C" CWnd* MS_ABI impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(const
     return (CWnd*)pThis->GetTabWnd(p0);
 }
 
+// Symbol: ?AddTab@CMFCBaseTabCtrl@@UEAAXPAVCWnd@@IIH@Z
+// CMFCBaseTabCtrl::AddTab
+extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPAVCWnd__IIH_Z(
+    CMFCBaseTabCtrl* pThis, CWnd* p0, unsigned int p1, int p2) {
+    (void)p2;
+    if (!pThis) {
+        return;
+    }
+    pThis->AddTab(p0, nullptr, p1);
+}
+
+// Symbol: ?AddTab@CMFCBaseTabCtrl@@UEAAXPAVCWnd@@PB_WIH@Z
+// CMFCBaseTabCtrl::AddTab
+extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPAVCWnd__PB_WIH_Z(
+    CMFCBaseTabCtrl* pThis, CWnd* p0, const wchar_t* p1, unsigned int p2, int p3) {
+    (void)p3;
+    if (!pThis) {
+        return;
+    }
+    pThis->AddTab(p0, p1, p2);
+}
+
+// Symbol: ?SetTabBorderSize@CMFCBaseTabCtrl@@UEAAXHH@Z
+// CMFCBaseTabCtrl::SetTabBorderSize
+extern "C" void MS_ABI impl__SetTabBorderSize_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl* pThis, int p0, int p1) {
+    (void)p1;
+    if (!pThis) {
+        return;
+    }
+    if (auto* pTabCtrl = dynamic_cast<CMFCTabCtrl*>(pThis)) {
+        pTabCtrl->SetTabBorderSize(p0);
+    }
+}
+
+// Symbol: ?SetTabsHeight@CMFCBaseTabCtrl@@UEAAXXZ
+// CMFCBaseTabCtrl::SetTabsHeight
+extern "C" void MS_ABI impl__SetTabsHeight_CMFCBaseTabCtrl__UEAAXXZ(CMFCBaseTabCtrl* pThis) {
+    if (!pThis) {
+        return;
+    }
+    if (auto* pTabCtrl = dynamic_cast<CMFCTabCtrl*>(pThis)) {
+        pTabCtrl->SetTabsHeight(0);
+    }
+}
+
+// Symbol: ?SetTabsHeight@CMFCTabCtrl@@MEAAXXZ
+// CMFCTabCtrl::SetTabsHeight
+extern "C" void MS_ABI impl__SetTabsHeight_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis) {
+    if (!pThis) {
+        return;
+    }
+    pThis->SetTabsHeight(0);
+}
+
 // Symbol: ?GetText@COleControl@@QEAAPEA_WXZ
 // COleControl::GetText
 extern "C" wchar_t* MS_ABI impl__GetText_COleControl__QEAAPEA_WXZ(COleControl* pThis) {
@@ -5658,6 +5712,13 @@ extern "C" void MS_ABI impl__SetCharFormat_CRichEditView__QEAAXUCHARFORMAT2W___Z
 // CCmdUI::SetCheck
 extern "C" void MS_ABI impl__SetCheck_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
     pThis->SetCheck(p0);
+}
+
+// Symbol: ?Enable@CCmdUI@@UEAAXH@Z
+// CCmdUI::Enable
+extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
+    if (!pThis) return;
+    pThis->Enable(p0);
 }
 
 // Symbol: ?SetCheck@COleCmdUI@@UEAAXH@Z

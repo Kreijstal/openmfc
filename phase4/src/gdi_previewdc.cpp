@@ -35,7 +35,8 @@ CDC* PreviewAsCDC(void* pThis) {
 
 PreviewDCState GetPreviewState(void* pThis) {
     std::lock_guard<std::mutex> lock(g_previewDcMutex);
-    return g_previewDcState[pThis];
+    auto it = g_previewDcState.find(pThis);
+    return it != g_previewDcState.end() ? it->second : PreviewDCState();
 }
 
 void SetPreviewScale(void* pThis, int num, int den) {
