@@ -12,6 +12,7 @@ from pathlib import Path
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--targets", required=True, type=Path)
+    parser.add_argument("--runtime-only", type=Path)
     parser.add_argument("--summaries", required=True)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
@@ -21,6 +22,19 @@ def main() -> int:
         for line in args.targets.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     }
+    runtime_only = set()
+    if args.runtime_only:
+        runtime_only = {
+            line.strip()
+            for line in args.runtime_only.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+    unknown_runtime_only = sorted(runtime_only - targets)
+    if unknown_runtime_only:
+        raise SystemExit(
+            "runtime-only classes are absent from the target inventory: "
+            + ", ".join(unknown_runtime_only)
+        )
     summary_paths = sorted(Path(path) for path in glob.glob(args.summaries, recursive=True))
     if not summary_paths:
         raise SystemExit(f"no summaries matched {args.summaries}")
@@ -56,10 +70,16 @@ def main() -> int:
 
     missing = sorted(targets - seen)
     unexpected = sorted(seen - targets)
+    accepted_runtime_only = sorted(set(failures) & runtime_only)
+    unapproved_failures = sorted(set(failures) - runtime_only)
     combined = {
         "expected": len(targets),
         "harvested": len(successes),
+        "accounted": len(successes) + len(accepted_runtime_only),
         "failed_count": len(failures),
+        "runtime_only_count": len(accepted_runtime_only),
+        "runtime_only": accepted_runtime_only,
+        "unapproved_failures": unapproved_failures,
         "missing": missing,
         "unexpected": unexpected,
         "duplicates": sorted(duplicates),
@@ -69,9 +89,11 @@ def main() -> int:
     args.output.write_text(json.dumps(combined, indent=2, sort_keys=True) + "\n")
     print(
         f"MSVC layouts: {len(successes)}/{len(targets)} harvested; "
-        f"failed={len(failures)} missing={len(missing)} duplicates={len(duplicates)}"
+        f"runtime-only={len(accepted_runtime_only)} "
+        f"unapproved-failures={len(unapproved_failures)} "
+        f"missing={len(missing)} duplicates={len(duplicates)}"
     )
-    return 1 if failures or missing or unexpected or duplicates else 0
+    return 1 if unapproved_failures or missing or unexpected or duplicates else 0
 
 
 if __name__ == "__main__":

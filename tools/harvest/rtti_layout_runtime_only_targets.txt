@@ -1,0 +1,16 @@
+# These mfc140u.dll classes expose valid CRuntimeClass descriptors, including
+# verified base/schema/sizeof data, but have no concrete definition in the
+# public ATLMFC headers. Full member layouts require private symbols or DLL
+# memory probing; the layout harvest must keep reporting them separately.
+CHelpComboBoxButton
+CMFCRibbonColorMenuButton
+CMFCRibbonCustomizeCategory
+CMFCRibbonQuickAccessCustomizeButton
+CMFCRibbonStatusBarCustomizeButton
+CMFCToolBarColorButton
+COutlookCustomizeButton
+CRibbonUndoLabel
+CTasksPaneHistoryButton
+CTasksPaneMenuButton
+CTasksPaneNavigateButton
+CWindowlessDC

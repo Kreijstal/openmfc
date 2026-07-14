@@ -11,6 +11,7 @@ on:
       - 'tools/harvest/msvc_layout_probe.cpp'
       - 'tools/harvest/parse_rtti_probe.py'
       - 'tools/harvest/rtti_layout_targets.txt'
+      - 'tools/harvest/rtti_layout_runtime_only_targets.txt'
       - 'tools/harvest/rtti_probe.cpp'
       - 'tools/harvest/rtti_targets.h'
       - 'tools/harvest/rtti_targets.json'
@@ -163,6 +164,7 @@ jobs:
         run: |
           python3 tools/harvest/merge_layout_summaries.py \
             --targets tools/harvest/rtti_layout_targets.txt \
+            --runtime-only tools/harvest/rtti_layout_runtime_only_targets.txt \
             --summaries 'artifacts/layout_shards/**/summary.json' \
             --output artifacts/layout_summary.json
 

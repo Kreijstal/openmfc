@@ -1,4 +1,59 @@
 {
+ "CAnimateCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CAnimationBaseObject": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CAnimationColor": {
+  "base": "CAnimationBaseObject",
+  "schema": 65535,
+  "sizeof": 328
+ },
+ "CAnimationController": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 112
+ },
+ "CAnimationPoint": {
+  "base": "CAnimationBaseObject",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CAnimationRect": {
+  "base": "CAnimationBaseObject",
+  "schema": 65535,
+  "sizeof": 440
+ },
+ "CAnimationSize": {
+  "base": "CAnimationBaseObject",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CAnimationValue": {
+  "base": "CAnimationBaseObject",
+  "schema": 65535,
+  "sizeof": 136
+ },
+ "CArchiveException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CAsyncMonikerFile": {
+  "base": "CMonikerFile",
+  "schema": 65535,
+  "sizeof": 96
+ },
+ "CAsyncSocket": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
  "CAutoHideDockSite": {
   "base": "CDockSite",
   "schema": 65535,
@@ -9,25 +64,395 @@
   "schema": 65535,
   "sizeof": 24
  },
+ "CBasePane": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 424
+ },
+ "CBaseTabbedPane": {
+  "base": "CDockablePane",
+  "schema": 65535,
+  "sizeof": 1304
+ },
  "CBaseTransition": {
   "base": "CObject",
   "schema": 65535,
   "sizeof": 56
+ },
+ "CBitmap": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CBitmapButton": {
+  "base": "CButton",
+  "schema": 65535,
+  "sizeof": 296
  },
  "CBitmapRenderTarget": {
   "base": "CRenderTarget",
   "schema": 65535,
   "sizeof": 88
  },
+ "CBrush": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CButton": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CByteArray": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 40
+ },
+ "CCachedDataPathProperty": {
+  "base": "CDataPathProperty",
+  "schema": 65535,
+  "sizeof": 200
+ },
+ "CCheckListBox": {
+  "base": "CListBox",
+  "schema": 65535,
+  "sizeof": 240
+ },
+ "CClientDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CCmdTarget": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CColorDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 376
+ },
+ "CComboBox": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CComboBoxEx": {
+  "base": "CComboBox",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CCommonDialog": {
+  "base": "CDialog",
+  "schema": 65535,
+  "sizeof": 304
+ },
  "CControlBar": {
   "base": "CWnd",
   "schema": 65535,
   "sizeof": 328
  },
+ "CCriticalSection": {
+  "base": "CSyncObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CCtrlView": {
+  "base": "CView",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CD2DBitmap": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 80
+ },
+ "CD2DBitmapBrush": {
+  "base": "CD2DBrush",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CD2DBrush": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CD2DGeometry": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CD2DGradientBrush": {
+  "base": "CD2DBrush",
+  "schema": 65535,
+  "sizeof": 96
+ },
+ "CD2DLayer": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CD2DLinearGradientBrush": {
+  "base": "CD2DGradientBrush",
+  "schema": 65535,
+  "sizeof": 120
+ },
+ "CD2DMesh": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CD2DPathGeometry": {
+  "base": "CD2DGeometry",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CD2DRadialGradientBrush": {
+  "base": "CD2DBrush",
+  "schema": 65535,
+  "sizeof": 128
+ },
+ "CD2DResource": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 24
+ },
+ "CD2DSolidColorBrush": {
+  "base": "CD2DBrush",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CD2DTextFormat": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CD2DTextLayout": {
+  "base": "CD2DResource",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CDBException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CDC": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CDCRenderTarget": {
+  "base": "CRenderTarget",
+  "schema": 65535,
+  "sizeof": 88
+ },
+ "CDHtmlDialog": {
+  "base": "CDialog",
+  "schema": 65535,
+  "sizeof": 664
+ },
+ "CDWordArray": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 40
+ },
+ "CDataPathProperty": {
+  "base": "CAsyncMonikerFile",
+  "schema": 65535,
+  "sizeof": 112
+ },
+ "CDatabase": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 160
+ },
+ "CDateTimeCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CDialog": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 304
+ },
+ "CDialogBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 352
+ },
+ "CDialogEx": {
+  "base": "CDialog",
+  "schema": 65535,
+  "sizeof": 368
+ },
+ "CDocItem": {
+  "base": "CCmdTarget",
+  "schema": 0,
+  "sizeof": 72
+ },
+ "CDocManager": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CDocObjectServer": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 144
+ },
+ "CDocObjectServerItem": {
+  "base": "COleServerItem",
+  "schema": 65535,
+  "sizeof": 224
+ },
+ "CDocTemplate": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 240
+ },
  "CDockBar": {
   "base": "CControlBar",
   "schema": 65535,
   "sizeof": 400
+ },
+ "CDockSite": {
+  "base": "CBasePane",
+  "schema": 65535,
+  "sizeof": 544
+ },
+ "CDockState": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 96
+ },
+ "CDockablePane": {
+  "base": "CPane",
+  "schema": 2147483650,
+  "sizeof": 1248
+ },
+ "CDockablePaneAdapter": {
+  "base": "CDockablePane",
+  "schema": 2147483650,
+  "sizeof": 1280
+ },
+ "CDockingPanesRow": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 112
+ },
+ "CDocument": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CDragListBox": {
+  "base": "CListBox",
+  "schema": 65535,
+  "sizeof": 240
+ },
+ "CDynLinkLibrary": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 128
+ },
+ "CEdit": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CEditView": {
+  "base": "CCtrlView",
+  "schema": 65535,
+  "sizeof": 344
+ },
+ "CEvent": {
+  "base": "CSyncObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CException": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CFile": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CFileDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 1424
+ },
+ "CFileException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CFileFind": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CFindReplaceDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 896
+ },
+ "CFolderPickerDialog": {
+  "base": "CFileDialog",
+  "schema": 65535,
+  "sizeof": 1424
+ },
+ "CFont": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CFontDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 632
+ },
+ "CFormView": {
+  "base": "CScrollView",
+  "schema": 65535,
+  "sizeof": 352
+ },
+ "CFrameWnd": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 472
+ },
+ "CFrameWndEx": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 1776
+ },
+ "CFtpConnection": {
+  "base": "CInternetConnection",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CFtpFileFind": {
+  "base": "CFileFind",
+  "schema": 65535,
+  "sizeof": 72
+ },
+ "CGdiObject": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CGopherConnection": {
+  "base": "CInternetConnection",
+  "schema": 65535,
+  "sizeof": 48
  },
  "CGopherFile": {
   "base": "CInternetFile",
@@ -39,10 +464,20 @@
   "schema": 65535,
   "sizeof": 72
  },
+ "CHeaderCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
  "CHelpComboBoxButton": {
   "base": "CMFCToolBarComboBoxButton",
   "schema": 2147483649,
   "sizeof": 344
+ },
+ "CHotKeyCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
  },
  "CHtmlEditDoc": {
   "base": "CDocument",
@@ -54,15 +489,115 @@
   "schema": 65535,
   "sizeof": 592
  },
+ "CHtmlView": {
+  "base": "CFormView",
+  "schema": 65535,
+  "sizeof": 592
+ },
+ "CHttpConnection": {
+  "base": "CInternetConnection",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CHttpFile": {
+  "base": "CInternetFile",
+  "schema": 65535,
+  "sizeof": 144
+ },
  "CHwndRenderTarget": {
   "base": "CRenderTarget",
   "schema": 65535,
   "sizeof": 88
  },
+ "CIPAddressCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CImageList": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CInternetConnection": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 48
+ },
+ "CInternetException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CInternetFile": {
+  "base": "CStdioFile",
+  "schema": 65535,
+  "sizeof": 128
+ },
+ "CInternetSession": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CInvalidArgException": {
+  "base": "CSimpleException",
+  "schema": 65535,
+  "sizeof": 288
+ },
  "CKeyFrame": {
   "base": "CBaseKeyFrame",
   "schema": 65535,
   "sizeof": 48
+ },
+ "CLinkCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CListBox": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CListCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CListView": {
+  "base": "CCtrlView",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CLongBinary": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 24
+ },
+ "CMDIChildWnd": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 488
+ },
+ "CMDIChildWndEx": {
+  "base": "CMDIChildWnd",
+  "schema": 65535,
+  "sizeof": 2072
+ },
+ "CMDIClientAreaWnd": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 16368
+ },
+ "CMDIFrameWnd": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 480
+ },
+ "CMDIFrameWndEx": {
+  "base": "CMDIFrameWnd",
+  "schema": 65535,
+  "sizeof": 18192
  },
  "CMDITabProxyWnd": {
   "base": "CWnd",
@@ -329,6 +864,11 @@
   "schema": 65535,
   "sizeof": 1440
  },
+ "CMFCRibbonBar": {
+  "base": "CPane",
+  "schema": 65535,
+  "sizeof": 8400
+ },
  "CMFCRibbonBaseElement": {
   "base": "CMFCBaseAccessibleObject",
   "schema": 65535,
@@ -348,6 +888,11 @@
   "base": "CMFCRibbonButton",
   "schema": 65535,
   "sizeof": 632
+ },
+ "CMFCRibbonCategory": {
+  "base": "CMFCBaseAccessibleObject",
+  "schema": 65535,
+  "sizeof": 2864
  },
  "CMFCRibbonCheckBox": {
   "base": "CMFCRibbonButton",
@@ -448,6 +993,11 @@
   "base": "CMFCRibbonPanelMenu",
   "schema": 65535,
   "sizeof": 12144
+ },
+ "CMFCRibbonPanel": {
+  "base": "CMFCBaseAccessibleObject",
+  "schema": 65535,
+  "sizeof": 1784
  },
  "CMFCRibbonPanelMenu": {
   "base": "CMFCPopupMenu",
@@ -669,25 +1219,290 @@
   "schema": 65535,
   "sizeof": 424
  },
+ "CMFCVisualManager": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CMFCVisualManagerOffice2003": {
+  "base": "CMFCVisualManagerOfficeXP",
+  "schema": 65535,
+  "sizeof": 752
+ },
+ "CMFCVisualManagerOffice2007": {
+  "base": "CMFCVisualManagerOffice2003",
+  "schema": 65535,
+  "sizeof": 68264
+ },
+ "CMFCVisualManagerOfficeXP": {
+  "base": "CMFCVisualManager",
+  "schema": 65535,
+  "sizeof": 528
+ },
+ "CMFCVisualManagerVS2005": {
+  "base": "CMFCVisualManagerOffice2003",
+  "schema": 65535,
+  "sizeof": 816
+ },
  "CMFCVisualManagerVS2008": {
   "base": "CMFCVisualManagerVS2005",
   "schema": 65535,
   "sizeof": 824
+ },
+ "CMFCVisualManagerWindows": {
+  "base": "CMFCVisualManagerOfficeXP",
+  "schema": 65535,
+  "sizeof": 536
+ },
+ "CMFCVisualManagerWindows7": {
+  "base": "CMFCVisualManagerWindows",
+  "schema": 65535,
+  "sizeof": 37520
+ },
+ "CMapPtrToPtr": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CMapPtrToWord": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CMapStringToOb": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 56
+ },
+ "CMapStringToPtr": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CMapStringToString": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 56
+ },
+ "CMapWordToOb": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 56
+ },
+ "CMapWordToPtr": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CMemFile": {
+  "base": "CFile",
+  "schema": 65535,
+  "sizeof": 88
+ },
+ "CMemoryException": {
+  "base": "CSimpleException",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CMenu": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CMetaFileDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 32
+ },
+ "CMiniDockFrameWnd": {
+  "base": "CMiniFrameWnd",
+  "schema": 65535,
+  "sizeof": 896
+ },
+ "CMiniFrameWnd": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 496
+ },
+ "CMonikerFile": {
+  "base": "COleStreamFile",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "CMonthCalCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CMouseManager": {
+  "base": "CObject",
+  "schema": 1,
+  "sizeof": 176
+ },
+ "CMultiDocTemplate": {
+  "base": "CDocTemplate",
+  "schema": 65535,
+  "sizeof": 320
+ },
+ "CMultiPageDHtmlDialog": {
+  "base": "CDHtmlDialog",
+  "schema": 65535,
+  "sizeof": 672
  },
  "CMultiPaneFrameWnd": {
   "base": "CPaneFrameWnd",
   "schema": 2147483650,
   "sizeof": 768
  },
+ "CMutex": {
+  "base": "CSyncObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CNetAddressCtrl": {
+  "base": "CEdit",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CNotSupportedException": {
+  "base": "CSimpleException",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CObArray": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 40
+ },
+ "CObList": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 56
+ },
+ "CObject": {
+  "base": "(null)",
+  "schema": 65535,
+  "sizeof": 8
+ },
+ "COleBusyDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 400
+ },
+ "COleChangeIconDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 928
+ },
+ "COleChangeSourceDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 496
+ },
+ "COleClientItem": {
+  "base": "CDocItem",
+  "schema": 65535,
+  "sizeof": 240
+ },
  "COleCntrFrameWndEx": {
   "base": "CFrameWnd",
   "schema": 65535,
   "sizeof": 1352
  },
+ "COleControl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 912
+ },
+ "COleControlModule": {
+  "base": "CWinApp",
+  "schema": 65535,
+  "sizeof": 376
+ },
+ "COleConvertDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 504
+ },
  "COleDBRecordView": {
   "base": "CFormView",
   "schema": 65535,
   "sizeof": 360
+ },
+ "COleDialog": {
+  "base": "CDialog",
+  "schema": 65535,
+  "sizeof": 312
+ },
+ "COleDispatchException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 64
+ },
+ "COleDocIPFrameWnd": {
+  "base": "COleIPFrameWnd",
+  "schema": 65535,
+  "sizeof": 640
+ },
+ "COleDocIPFrameWndEx": {
+  "base": "COleDocIPFrameWnd",
+  "schema": 65535,
+  "sizeof": 1936
+ },
+ "COleDocObjectItem": {
+  "base": "COleClientItem",
+  "schema": 65535,
+  "sizeof": 280
+ },
+ "COleDocument": {
+  "base": "CDocument",
+  "schema": 65535,
+  "sizeof": 488
+ },
+ "COleException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 24
+ },
+ "COleIPFrameWnd": {
+  "base": "CFrameWnd",
+  "schema": 65535,
+  "sizeof": 640
+ },
+ "COleIPFrameWndEx": {
+  "base": "COleIPFrameWnd",
+  "schema": 65535,
+  "sizeof": 1936
+ },
+ "COleInsertDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 1008
+ },
+ "COleLinkingDoc": {
+  "base": "COleDocument",
+  "schema": 65535,
+  "sizeof": 560
+ },
+ "COleLinksDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 432
+ },
+ "COleObjectFactory": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 136
+ },
+ "COlePasteSpecialDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 480
+ },
+ "COlePropertiesDialog": {
+  "base": "COleDialog",
+  "schema": 65535,
+  "sizeof": 720
  },
  "COlePropertyPage": {
   "base": "CDialog",
@@ -699,10 +1514,90 @@
   "schema": 65535,
   "sizeof": 408
  },
+ "COleServerDoc": {
+  "base": "COleLinkingDoc",
+  "schema": 65535,
+  "sizeof": 664
+ },
+ "COleServerDocEx": {
+  "base": "COleServerDoc",
+  "schema": 65535,
+  "sizeof": 664
+ },
+ "COleServerItem": {
+  "base": "CDocItem",
+  "schema": 65535,
+  "sizeof": 224
+ },
+ "COleStreamFile": {
+  "base": "CFile",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "COleUpdateDialog": {
+  "base": "COleLinksDialog",
+  "schema": 65535,
+  "sizeof": 440
+ },
  "COutlookCustomizeButton": {
   "base": "CMFCCustomizeButton",
   "schema": 65535,
   "sizeof": 408
+ },
+ "CPageSetupDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 432
+ },
+ "CPagerCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CPaintDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 112
+ },
+ "CPalette": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CPane": {
+  "base": "CBasePane",
+  "schema": 65535,
+  "sizeof": 1016
+ },
+ "CPaneContainer": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 248
+ },
+ "CPaneContainerManager": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 160
+ },
+ "CPaneDialog": {
+  "base": "CDockablePane",
+  "schema": 2147483649,
+  "sizeof": 1264
+ },
+ "CPaneDivider": {
+  "base": "CBasePane",
+  "schema": 65535,
+  "sizeof": 536
+ },
+ "CPaneFrameWnd": {
+  "base": "CWnd",
+  "schema": 2147483650,
+  "sizeof": 600
+ },
+ "CPen": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
  },
  "CPreviewDC": {
   "base": "CDC",
@@ -719,10 +1614,75 @@
   "schema": 65535,
   "sizeof": 5536
  },
+ "CPrintDialog": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 432
+ },
+ "CPrintDialogEx": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 464
+ },
+ "CProgressCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CPropertyPage": {
+  "base": "CCommonDialog",
+  "schema": 65535,
+  "sizeof": 344
+ },
+ "CPropertySheet": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 400
+ },
+ "CPtrArray": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CPtrList": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
  "CReBar": {
   "base": "CControlBar",
   "schema": 65535,
   "sizeof": 336
+ },
+ "CReBarCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CRecordView": {
+  "base": "CFormView",
+  "schema": 65535,
+  "sizeof": 360
+ },
+ "CRecordset": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 440
+ },
+ "CRenderTarget": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 80
+ },
+ "CResourceException": {
+  "base": "CSimpleException",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CRgn": {
+  "base": "CGdiObject",
+  "schema": 65535,
+  "sizeof": 16
  },
  "CRibbonUndoLabel": {
   "base": "CMFCRibbonButton",
@@ -734,10 +1694,60 @@
   "schema": 0,
   "sizeof": 256
  },
+ "CRichEditCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
  "CRichEditDoc": {
   "base": "COleServerDoc",
   "schema": 65535,
   "sizeof": 672
+ },
+ "CRichEditView": {
+  "base": "CCtrlView",
+  "schema": 65535,
+  "sizeof": 712
+ },
+ "CScrollBar": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CScrollView": {
+  "base": "CView",
+  "schema": 65535,
+  "sizeof": 304
+ },
+ "CSemaphore": {
+  "base": "CSyncObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CSettingsStore": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CSharedFile": {
+  "base": "CMemFile",
+  "schema": 65535,
+  "sizeof": 112
+ },
+ "CSimpleException": {
+  "base": "CException",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CSingleDocTemplate": {
+  "base": "CDocTemplate",
+  "schema": 65535,
+  "sizeof": 248
+ },
+ "CSliderCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
  },
  "CSmartDockingGroupGuidesManager": {
   "base": "CObject",
@@ -749,6 +1759,26 @@
   "schema": 65535,
   "sizeof": 1128
  },
+ "CSocket": {
+  "base": "CAsyncSocket",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CSocketFile": {
+  "base": "CFile",
+  "schema": 65535,
+  "sizeof": 56
+ },
+ "CSpinButtonCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CSplitButton": {
+  "base": "CButton",
+  "schema": 65535,
+  "sizeof": 248
+ },
  "CSplitterWnd": {
   "base": "CWnd",
   "schema": 65535,
@@ -759,10 +1789,55 @@
   "schema": 65535,
   "sizeof": 384
  },
+ "CStatic": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
  "CStatusBar": {
   "base": "CControlBar",
   "schema": 65535,
   "sizeof": 336
+ },
+ "CStatusBarCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CStdioFile": {
+  "base": "CFile",
+  "schema": 65535,
+  "sizeof": 48
+ },
+ "CStringArray": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 40
+ },
+ "CStringList": {
+  "base": "CObject",
+  "schema": 0,
+  "sizeof": 56
+ },
+ "CSyncObject": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 16
+ },
+ "CTabCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CTabView": {
+  "base": "CView",
+  "schema": 65535,
+  "sizeof": 15976
+ },
+ "CTabbedPane": {
+  "base": "CBaseTabbedPane",
+  "schema": 2147483650,
+  "sizeof": 1304
  },
  "CTaskDialog": {
   "base": "CObject",
@@ -784,9 +1859,99 @@
   "schema": 1,
   "sizeof": 136
  },
+ "CToolBar": {
+  "base": "CControlBar",
+  "schema": 65535,
+  "sizeof": 384
+ },
+ "CToolBarCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CToolTipCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CTreeCtrl": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CTreeView": {
+  "base": "CCtrlView",
+  "schema": 65535,
+  "sizeof": 264
+ },
+ "CUIntArray": {
+  "base": "CObject",
+  "schema": 65535,
+  "sizeof": 40
+ },
+ "CUserException": {
+  "base": "CSimpleException",
+  "schema": 65535,
+  "sizeof": 288
+ },
+ "CUserTool": {
+  "base": "CObject",
+  "schema": 2147483649,
+  "sizeof": 56
+ },
+ "CVSListBox": {
+  "base": "CVSListBoxBase",
+  "schema": 65535,
+  "sizeof": 840
+ },
+ "CVSListBoxBase": {
+  "base": "CStatic",
+  "schema": 65535,
+  "sizeof": 472
+ },
+ "CVSListBoxEditCtrl": {
+  "base": "CMFCEditBrowseCtrl",
+  "schema": 65535,
+  "sizeof": 352
+ },
+ "CView": {
+  "base": "CWnd",
+  "schema": 65535,
+  "sizeof": 248
+ },
+ "CWinApp": {
+  "base": "CWinThread",
+  "schema": 65535,
+  "sizeof": 376
+ },
+ "CWinAppEx": {
+  "base": "CWinApp",
+  "schema": 65535,
+  "sizeof": 456
+ },
+ "CWinThread": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 136
+ },
+ "CWindowDC": {
+  "base": "CDC",
+  "schema": 65535,
+  "sizeof": 40
+ },
  "CWindowlessDC": {
   "base": "CDC",
   "schema": 65535,
+  "sizeof": 40
+ },
+ "CWnd": {
+  "base": "CCmdTarget",
+  "schema": 65535,
+  "sizeof": 232
+ },
+ "CWordArray": {
+  "base": "CObject",
+  "schema": 0,
   "sizeof": 40
  }
 }
