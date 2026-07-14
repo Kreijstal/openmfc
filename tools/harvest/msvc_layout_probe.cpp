@@ -5,6 +5,15 @@
 #ifndef _AFXDLL
 #define _AFXDLL
 #endif
+#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
+#define _UNICODE
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <afxwin.h>
