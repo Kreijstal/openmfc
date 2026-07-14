@@ -260,9 +260,10 @@ thread_local std::unordered_map<const CMFCBaseTabCtrl*, TabCtrlState> g_tabCtrlS
 std::unordered_map<const CWinAppEx*, WinAppExState> g_winAppExStates;
 static int g_mouseManagerToken = 0;
 static int g_shellManagerToken = 0;
-static int g_userToolsManagerToken = 0;
+static CUserToolsManager g_userToolsManager;
 static BOOL g_forceMenuFocus = FALSE;
 static BOOL g_showAllAccelerators = FALSE;
+CUserToolsManager* afxUserToolsManager = &g_userToolsManager;
 alignas(CFont) static unsigned char g_menuFontStorage[sizeof(CFont)] = {};
 static CFont* g_menuFontPtr = nullptr;
 static COLORREF g_visualAccentColor = RGB(0, 120, 215);
@@ -5694,7 +5695,7 @@ extern "C" CShellManager* MS_ABI impl__GetShellManager_CWinAppEx__QEAAPEAVCShell
 extern "C" CUserToolsManager* MS_ABI impl__GetUserToolsManager_CWinAppEx__QEAAPEAVCUserToolsManager__XZ(CWinAppEx* pThis) {
     if (!pThis) return nullptr;
     g_winAppExStates[pThis].userTools = true;
-    return reinterpret_cast<CUserToolsManager*>(&g_userToolsManagerToken);
+    return afxUserToolsManager;
 }
 
 // Symbol: ?LoadWindowPlacement@CWinAppEx@@MEAAHAEAVCRect@@AEAH1@Z

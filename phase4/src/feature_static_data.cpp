@@ -279,8 +279,12 @@ extern "C" void* impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__E
 
 // Symbol: ?m_bIsTabsAutoColor@CTabbedPane@@1HA
 extern "C" std::int32_t impl__m_bIsTabsAutoColor_CTabbedPane__1HA = 0;
+// Symbol: ?m_arTabsAutoColors@CTabbedPane@@1V?$CArray@KK@@A
+extern "C" void* impl__m_arTabsAutoColors_CTabbedPane__1V__CArray_KK__A = nullptr;
 // Symbol: ?m_bTabsAlwaysTop@CTabbedPane@@2HA
 extern "C" std::int32_t impl__m_bTabsAlwaysTop_CTabbedPane__2HA = 0;
+// Symbol: ?m_lstTabbedControlBars@CTabbedPane@@1V?$CList@PAUHWND__@@PAU1@@@A
+extern "C" void* impl__m_lstTabbedControlBars_CTabbedPane__1V__CList_PAUHWND____PAU1___A = nullptr;
 // Symbol: ?m_pTabWndRTC@CTabbedPane@@2PEAUCRuntimeClass@@EA
 extern "C" void* impl__m_pTabWndRTC_CTabbedPane__2PEAUCRuntimeClass__EA = nullptr;
 // Symbol: ?m_StyleTabWnd@CTabbedPane@@2W4Style@CMFCTabCtrl@@A

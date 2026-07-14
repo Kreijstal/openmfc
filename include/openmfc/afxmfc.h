@@ -40,6 +40,9 @@ class CPaneContainer;
 class CFrameWndEx;
 class CMDIFrameWndEx;
 class CMDIChildWndEx;
+class CBaseTabbedPane;
+class CTabbedPane;
+class CUserTool;
 
 #ifdef OPENMFC_APPCORE_IMPL
 #if defined(__GNUC__)
@@ -751,6 +754,51 @@ protected:
 };
 
 //=============================================================================
+// Tabbed pane classes
+//=============================================================================
+class CBaseTabbedPane : public CDockablePane {
+    DECLARE_DYNAMIC(CBaseTabbedPane)
+public:
+    CBaseTabbedPane(int iStyle = 0);
+    virtual ~CBaseTabbedPane();
+
+protected:
+    char _basetabbedpane_padding[96];
+};
+
+class CTabbedPane : public CBaseTabbedPane {
+    DECLARE_SERIAL(CTabbedPane)
+public:
+    CTabbedPane(int iStyle = 0);
+    virtual ~CTabbedPane();
+
+protected:
+    char _tabbedpane_padding[96];
+};
+
+class CUserTool : public CObject {
+    DECLARE_SERIAL(CUserTool)
+public:
+    CUserTool();
+    virtual ~CUserTool();
+
+    virtual int Invoke();
+
+protected:
+    char _usertool_padding[32];
+};
+
+class CUserToolsManager : public CObject {
+public:
+    CUserToolsManager();
+    CUserToolsManager(int, int, int, CRuntimeClass*, int, int);
+    virtual ~CUserToolsManager();
+
+protected:
+    char _usertoolsmanager_padding[32];
+};
+
+//=============================================================================
 // CMFCTabCtrl - Feature Pack tab control
 //=============================================================================
 class CMFCTabCtrl : public CMFCBaseTabCtrl {
@@ -1287,6 +1335,7 @@ public:
     CKeyboardManager* GetKeyboardManager();
     CShellManager* GetShellManager();
     CTooltipManager* GetTooltipManager();
+    CUserToolsManager* GetUserToolsManager();
     int GetDataVersion() const;
     const wchar_t* SetRegistryBase(const wchar_t* lpszSectionName);
     CString GetRegSectionPath(const wchar_t* lpszSectionAdd = nullptr);
