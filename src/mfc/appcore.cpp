@@ -8,6 +8,7 @@ static CWinApp* g_pApp = nullptr;
 static CWinThread* g_pThread = nullptr;
 static HINSTANCE g_hInstance = nullptr;
 static HINSTANCE g_hResource = nullptr;
+thread_local CWinThread* g_threadState = nullptr;
 
 // Runtime class implementations
 IMPLEMENT_DYNAMIC(CException, CObject)
@@ -18,14 +19,15 @@ IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
 
-// Thread local storage for thread state
-// For now, we use a simple global for single-threaded apps, 
-// but in a real implementation this should be TLS.
-// TODO: Implement proper TLS for multi-threading support.
+// Thread local storage for thread state. This supports worker threads
+// that are executing with their own CWinThread context.
 
 // Note: AfxGetApp is defined inline in afxwin.h
 
 CWinThread* AFXAPI AfxGetThread() {
+    if (g_threadState != nullptr) {
+        return g_threadState;
+    }
     return g_pThread ? g_pThread : g_pApp;
 }
 
@@ -84,6 +86,9 @@ CWinApp::CWinApp(LPCWSTR lpszAppName)
     if (g_pApp == nullptr) {
         g_pApp = this;
         g_pThread = this;
+        if (g_threadState == nullptr) {
+            g_threadState = this;
+        }
     }
 }
 
