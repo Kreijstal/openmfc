@@ -188,6 +188,7 @@ class CGestureConfig;
 class CHandleMap;
 class CFrameWnd;
 class CListBox;
+class COleDataObject;
 class COleControlContainer;
 class COleControlSite;
 class COleControlSiteOrWnd;
@@ -3213,6 +3214,12 @@ public:
     
     // Activation
     virtual void OnActivateView(int bActivate, CView* pActivateView, CView* pDeactiveView);
+
+    // OLE drag/drop defaults
+    virtual DWORD OnDragEnter(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+    virtual DWORD OnDragOver(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+    virtual BOOL OnDrop(COleDataObject* pDataObject, DWORD dropEffect, CPoint point);
+    virtual DWORD OnDropEx(COleDataObject* pDataObject, DWORD dropDefault, DWORD dropList, CPoint point);
     
     // Frame window
     virtual CFrameWnd* GetParentFrame() const;

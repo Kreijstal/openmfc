@@ -490,6 +490,7 @@ class COleLinkingDoc;
 class COleServerDoc;
 class COleServerItem;
 class COleClientItem;
+class CRichEditCntrItem;
 class COleDataSource;
 class COleDropTarget;
 class COleDropSource;
@@ -1114,6 +1115,38 @@ public:
 
 protected:
     char _oleclientitem_padding[96];
+};
+
+//=============================================================================
+// CRichEditDoc / CRichEditCntrItem - Rich Edit OLE item helpers
+//=============================================================================
+class CRichEditDoc : public COleDocument {
+    DECLARE_DYNAMIC(CRichEditDoc)
+public:
+    CRichEditDoc();
+    virtual ~CRichEditDoc();
+
+    virtual COleClientItem* GetInPlaceActiveItem(CWnd* pWnd);
+    virtual COleClientItem* GetPrimarySelectedItem(CView* pView);
+    CRichEditCntrItem* LookupItem(IOleObject* pOleObject) const;
+
+protected:
+    char _richeditdoc_padding[32];
+};
+
+class CRichEditCntrItem : public COleClientItem {
+    DECLARE_DYNAMIC(CRichEditCntrItem)
+public:
+    explicit CRichEditCntrItem(COleDocument* pContainerDoc = nullptr);
+    virtual ~CRichEditCntrItem();
+
+    virtual IOleClientSite* GetClientSite();
+    HRESULT GetWindowContext(IOleInPlaceFrame** ppFrame,
+                             IOleInPlaceUIWindow** ppDoc,
+                             LPOLEINPLACEFRAMEINFO lpFrameInfo);
+
+protected:
+    char _richeditcntritem_padding[32];
 };
 
 //=============================================================================

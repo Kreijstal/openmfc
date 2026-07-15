@@ -237,6 +237,8 @@ struct DataCacheEntry {
     bool delayRenderFile = false;
 };
 
+static std::map<void*, COleControl*> g_reflectorControls;
+
 static FORMATETC MakeFormatEtc(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
     if (lpFormatEtc) {
         FORMATETC fmt = *lpFormatEtc;
@@ -615,6 +617,47 @@ static const COleVariant* AssignOleVariant(COleVariant* pThis, const VARIANT* pS
         VariantCopy(static_cast<VARIANT*>(pThis), const_cast<VARIANT*>(pSrc));
     }
     return pThis;
+}
+
+static COleClientItem* FindDocumentItemByOleObject(const COleDocument* doc, IOleObject* object) {
+    if (!doc || !object) return nullptr;
+    POSITION pos = reinterpret_cast<POSITION>(doc->GetStartPosition());
+    while (pos) {
+        COleClientItem* item = doc->GetNextClientItem(pos);
+        if (item && item->GetObject() == object) return item;
+    }
+    return nullptr;
+}
+
+static void CopyVariantByteArray(COleVariant* pThis, CByteArray* bytes) {
+    if (!bytes) return;
+    bytes->RemoveAll();
+    if (!pThis) return;
+
+    VARIANT* var = static_cast<VARIANT*>(pThis);
+    if ((var->vt & VT_ARRAY) == 0 || !var->parray) return;
+    VARTYPE elementType = VT_EMPTY;
+    if (FAILED(SafeArrayGetVartype(var->parray, &elementType))) {
+        elementType = static_cast<VARTYPE>(var->vt & VT_TYPEMASK);
+    }
+    if (elementType != VT_UI1 && elementType != VT_I1) return;
+
+    LONG lower = 0;
+    LONG upper = -1;
+    if (FAILED(SafeArrayGetLBound(var->parray, 1, &lower)) ||
+        FAILED(SafeArrayGetUBound(var->parray, 1, &upper)) ||
+        upper < lower) {
+        return;
+    }
+
+    BYTE* data = nullptr;
+    if (FAILED(SafeArrayAccessData(var->parray, reinterpret_cast<void**>(&data))) || !data) return;
+    const LONG count = upper - lower + 1;
+    bytes->SetSize(count);
+    for (LONG i = 0; i < count; ++i) {
+        bytes->SetAt(i, data[i]);
+    }
+    SafeArrayUnaccessData(var->parray);
 }
 
 struct OleDispatchDriverLayout {

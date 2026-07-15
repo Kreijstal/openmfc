@@ -48,48 +48,6 @@ auto& g_ribbonCategories = openmfc::ribbon_state::RibbonCategoryStates();
 auto& g_ribbonBars = openmfc::ribbon_state::RibbonBarStates();
 constexpr int kApproxRibbonCharPx = 6;
 
-struct TaskDialogButtonState {
-    int id = 0;
-    std::wstring label;
-};
-
-struct TaskDialogState {
-    std::vector<TaskDialogButtonState> commandButtons;
-    std::vector<TaskDialogButtonState> radioButtons;
-    std::vector<TaskDialogButtonState> pushButtons;
-};
-
-std::mutex& g_taskDialogStateMutex() {
-    static std::mutex mutex;
-    return mutex;
-}
-
-std::unordered_map<const CTaskDialog*, TaskDialogState>& g_taskDialogStates() {
-    static std::unordered_map<const CTaskDialog*, TaskDialogState> states;
-    return states;
-}
-
-TaskDialogState& EnsureTaskDialogState(const CTaskDialog* dialog) {
-    std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
-    return g_taskDialogStates()[dialog];
-}
-
-void EraseTaskDialogState(const CTaskDialog* dialog) {
-    std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
-    g_taskDialogStates().erase(dialog);
-}
-
-void StoreTaskDialogButton(std::vector<TaskDialogButtonState>& slots, int id, const wchar_t* label) {
-    if (!label) return;
-    for (auto& btn : slots) {
-        if (btn.id == id) {
-            btn.label = label;
-            return;
-        }
-    }
-    slots.push_back({id, label});
-}
-
 std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
 std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
 std::unordered_map<UINT, int> g_galleryLastSelectedByID;
@@ -2063,7 +2021,8 @@ CTaskDialog::CTaskDialog(const wchar_t* pszContent, const wchar_t* pszMainInstru
 }
 
 CTaskDialog::~CTaskDialog() {
-    EraseTaskDialogState(this);
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    g_taskDialogs.erase(this);
 }
 
 void CTaskDialog::SetDialogWidth(int nWidth) {
@@ -2118,19 +2077,22 @@ void CTaskDialog::SetProgressBarMarquee(BOOL bMarquee, int nSpeed) {
 
 HRESULT CTaskDialog::AddCommandControl(int nCommandID, const wchar_t* pszLabel) {
     if (nCommandID <= 0 || !pszLabel) return E_INVALIDARG;
-    StoreTaskDialogButton(EnsureTaskDialogState(this).commandButtons, nCommandID, pszLabel);
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    AddTaskDialogButton(g_taskDialogs[this].commandControls, nCommandID, pszLabel, TRUE);
     return S_OK;
 }
 
 HRESULT CTaskDialog::AddRadioButton(int nRadioButtonID, const wchar_t* pszLabel) {
     if (nRadioButtonID <= 0 || !pszLabel) return E_INVALIDARG;
-    StoreTaskDialogButton(EnsureTaskDialogState(this).radioButtons, nRadioButtonID, pszLabel);
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    AddTaskDialogButton(g_taskDialogs[this].radioButtons, nRadioButtonID, pszLabel, TRUE);
     return S_OK;
 }
 
 HRESULT CTaskDialog::AddPushButton(int nButtonID, const wchar_t* pszLabel) {
     if (nButtonID <= 0 || !pszLabel) return E_INVALIDARG;
-    StoreTaskDialogButton(EnsureTaskDialogState(this).pushButtons, nButtonID, pszLabel);
+    std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+    AddTaskDialogButton(g_taskDialogs[this].commandControls, nButtonID, pszLabel, TRUE);
     return S_OK;
 }
 
@@ -2145,25 +2107,13 @@ int CTaskDialog::DoModal(HWND hWndParent) {
     BOOL bVerification = FALSE;
     TaskDialogState state;
     {
-        std::lock_guard<std::mutex> lock(g_taskDialogStateMutex());
-        auto it = g_taskDialogStates().find(this);
-        if (it != g_taskDialogStates().end()) state = it->second;
+        std::lock_guard<std::mutex> lock(g_taskDialogMutex);
+        auto it = g_taskDialogs.find(this);
+        if (it != g_taskDialogs.end()) state = it->second;
     }
 
-    std::vector<TASKDIALOG_BUTTON> taskDialogButtons;
-    taskDialogButtons.reserve(state.commandButtons.size() + state.pushButtons.size());
-    for (auto& item : state.commandButtons) {
-        taskDialogButtons.push_back({item.id, item.label.c_str()});
-    }
-    for (auto& item : state.pushButtons) {
-        taskDialogButtons.push_back({item.id, item.label.c_str()});
-    }
-
-    std::vector<TASKDIALOG_BUTTON> radioButtons;
-    radioButtons.reserve(state.radioButtons.size());
-    for (auto& item : state.radioButtons) {
-        radioButtons.push_back({item.id, item.label.c_str()});
-    }
+    std::vector<TASKDIALOG_BUTTON> taskDialogButtons = state.commandControls.buttons;
+    std::vector<TASKDIALOG_BUTTON> radioButtons = state.radioButtons.buttons;
 
     if (!taskDialogButtons.empty()) {
         tc.cButtons = static_cast<UINT>(taskDialogButtons.size());
@@ -2176,7 +2126,7 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         tc.nDefaultRadioButton = radioButtons.front().nButtonID;
         tc.dwFlags |= TDF_ALLOW_DIALOG_CANCELLATION;
     }
-    if (!state.commandButtons.empty() && state.pushButtons.empty()) {
+    if (!state.commandControls.buttons.empty()) {
         tc.dwFlags |= TDF_USE_COMMAND_LINKS;
     }
 
@@ -2227,10 +2177,6 @@ int CTaskDialog::DoModal(HWND hWndParent) {
         case IDOK:
             if (!taskDialogButtons.empty()) {
                 m_nSelectedCommandID = taskDialogButtons.front().nButtonID;
-                return m_nSelectedCommandID;
-            }
-            if (!state.pushButtons.empty()) {
-                m_nSelectedCommandID = state.pushButtons.front().id;
                 return m_nSelectedCommandID;
             }
             return IDOK;
