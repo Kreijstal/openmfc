@@ -18,6 +18,7 @@
 // gdiplus import library (-lgdiplus), matching how ATL::CImage pulls in GDI+.
 #include <windows.h>
 #include <objbase.h>   // CreateStreamOnHGlobal, IStream
+#include <cstddef>     // offsetof
 #include <cstring>
 #include <new>
 

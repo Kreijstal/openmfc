@@ -13,6 +13,7 @@
 // The geometry algorithm faithfully reproduces MFC's viewtrak.cpp semantics and
 // is differentially verified against real mfc140u.dll (tests/test_recttracker_wine).
 #include <windows.h>
+#include <cstddef>   // offsetof
 #include <cstdlib>
 #include <new>
 

@@ -1,6 +1,7 @@
 // OpenMFC real implementation of CControlCreationInfo.
 // Layout-faithful, MS_ABI thunks aliased from the .def via impl_ symbols.
 #include <windows.h>
+#include <cstddef>   // offsetof
 #include <cstdint>
 
 #ifdef __GNUC__
