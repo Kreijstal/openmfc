@@ -428,13 +428,17 @@ static int DoTrack(RT* p, HWND hWnd, unsigned long long point, BOOL bRubber, BOO
                 OffsetRect(&rectCur, pt.x - ptStart.x, pt.y - ptStart.y);
                 ptStart = pt;
             } else {
-                unsigned long long pk = ((unsigned long long)(unsigned int)pt.y << 32) | (unsigned int)pt.x;
-                RT tmp = *p; tmp.m_rect = rectCur;
-                impl__AdjustRect_CRectTracker__UEAAXHPEAUtagRECT___Z(&tmp, nHandle, &rectCur);
-                (void)pk;
+                // Apply the new mouse coordinate to the tracked edge(s) FIRST, so
+                // the following AdjustRect enforces the min-size / inversion
+                // constraints on the NEW position (previously AdjustRect ran on the
+                // old rect and its result was overwritten by the raw coordinate).
                 int* xp; int* yp; ModifyPointers(nHandle, rectCur, &xp, &yp);
                 if (xp) *xp = pt.x;
                 if (yp) *yp = pt.y;
+                // Dispatch AdjustRect virtually (vtable slot 1) so a CRectTracker
+                // subclass override participates, matching real MFC TrackHandle.
+                void* const* vt = *(void* const* const*)p;
+                ((void (MS_ABI*)(void*, int, RECT*))vt[1])(p, nHandle, &rectCur);
             }
             if (hdc) { RECT rn = rectCur; Normalize(rn); DrawFocusRect(hdc, &rn); } // redraw
             bMoved = TRUE;
@@ -445,7 +449,9 @@ static int DoTrack(RT* p, HWND hWnd, unsigned long long point, BOOL bRubber, BOO
     if (hdc) { RECT rn = rectCur; Normalize(rn); DrawFocusRect(hdc, &rn); ReleaseDC(hWnd, hdc); }
     if (GetCapture() == hWnd) ReleaseCapture();
     if (bResult) { RECT old = p->m_rect; p->m_rect = rectCur;
-        impl__OnChangedRect_CRectTracker__UEAAXAEBVCRect___Z(p, &old); }
+        // Dispatch OnChangedRect virtually (vtable slot 2) for subclass overrides.
+        void* const* vt = *(void* const* const*)p;
+        ((void (MS_ABI*)(void*, const RECT*))vt[2])(p, &old); }
     else p->m_rect = rectSave;
     return bResult;
 }
