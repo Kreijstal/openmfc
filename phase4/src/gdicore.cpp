@@ -1219,7 +1219,13 @@ void CMFCToolBarImages::InitMembers() {
     CMFCToolBarImages* const p = this;
     std::memset(reinterpret_cast<char*>(p) + sizeof(CObject), 0,
                 sizeof(CMFCToolBarImages) - sizeof(CObject));
+    // The memset above spans three members that are real C++ objects, so their
+    // representations -- including the vfptrs of the two polymorphic ones --
+    // must be re-established. Without this, the first virtual call on m_dcMem
+    // or m_bmpMem (destruction included) dispatches through a null vptr.
+    new (&p->m_dcMem) CDC();
     new (&p->m_strUDLPath) CString();
+    new (&p->m_bmpMem) CBitmap();
     p->m_nBitsPerPixel = 0;
     p->m_nGrayImageLuminancePercentage = 0;
     p->m_nLightPercentage = 0;

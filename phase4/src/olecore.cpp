@@ -5046,9 +5046,33 @@ BOOL COleControl::DoPropExchange(CPropExchange* pPX) {
     return FALSE;
 }
 
+// COleControl::GetAmbientDispatchDriver — real implementation lives in
+// global_olecontrol_batch1.cpp (decoded from retail); it lazily binds the
+// embedded driver to the container's IDispatch via m_pClientSite.
+extern "C" COleDispatchDriver* MS_ABI
+impl__GetAmbientDispatchDriver_COleControl__IEAAPEAVCOleDispatchDriver__XZ(COleControl* pThis);
+
 BOOL COleControl::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
     if (!pvProp) return FALSE;
-    return MfcSiteOf(this) ? MfcSiteOf(this)->GetAmbientProperty(dwDispid, vtProp, pvProp) : FALSE;
+
+    // OpenMFC's own CreateControl path records a COleControlSite in the side
+    // table and that site answers ambients directly, so it stays the preferred
+    // source. It is not the only way to be hosted, though: an ordinary COM
+    // container calls SetClientSite and never touches the side table, and for
+    // those controls every ambient lookup used to fail outright. Fall back to
+    // the container's IDispatch, which is the path retail always takes.
+    if (COleControlSite* pSite = MfcSiteOf(this))
+        return pSite->GetAmbientProperty(dwDispid, vtProp, pvProp);
+
+    COleDispatchDriver* pDriver =
+        impl__GetAmbientDispatchDriver_COleControl__IEAAPEAVCOleDispatchDriver__XZ(this);
+    if (pDriver == nullptr || pDriver->GetIDispatch(FALSE) == nullptr)
+        return FALSE;
+
+    // DISPATCH_PROPERTYGET == 2. A container that does not implement the
+    // ambient reports failure through the driver rather than by throwing here.
+    pDriver->InvokeHelper(dwDispid, 2, vtProp, pvProp, nullptr);
+    return TRUE;
 }
 
 void COleControl::FireEvent(DISPID dispId, BYTE* pbParams, ...) {
@@ -5321,6 +5345,10 @@ void COleControl::OnResetState() {
         state->readyState = 4;
         state->modified = FALSE;
     }
+    // The side table is not the ABI-visible copy: IsModified() reads the
+    // m_bModified bit at this+0x160, so the reset has to clear that too or a
+    // freshly reset control still reports itself dirty to a real client.
+    m_bModified = 0;
     m_cxExtent = 0;
     m_cyExtent = 0;
 }

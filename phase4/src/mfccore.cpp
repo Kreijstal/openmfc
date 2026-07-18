@@ -1638,12 +1638,19 @@ CMFCBaseToolBar::~CMFCBaseToolBar() {}
 IMPLEMENT_DYNAMIC(CMFCToolBar, CMFCBaseToolBar)
 
 CMFCToolBar::CMFCToolBar() {
-    // The eight CMFCToolBarImages members and the three CObLists have real
-    // constructors, so only the POD span between them is zeroed here: from the
-    // first scalar (m_bLocked) to the end of the object.
+    // The eight CMFCToolBarImages members precede m_bLocked and keep their
+    // constructed state. The span zeroed here is NOT purely POD, though: the
+    // three CObLists (4488/4544/4600) and m_penDrag (4800) all sit after
+    // m_bLocked, so they are re-constructed below. Zeroing already gives an
+    // empty list and a null pen handle; what the memset destroys and placement
+    // new restores is their vfptrs.
     char* const base = reinterpret_cast<char*>(this);
     std::memset(base + offsetof(CMFCToolBar, m_bLocked), 0,
                 sizeof(CMFCToolBar) - offsetof(CMFCToolBar, m_bLocked));
+    new (&m_Buttons) CObList();
+    new (&m_OrigButtons) CObList();
+    new (&m_OrigResetButtons) CObList();
+    new (&m_penDrag) CPen();
     m_iButtonCapture = -1;
     m_iHighlighted   = -1;
     m_iSelected      = -1;
