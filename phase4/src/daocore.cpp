@@ -98,7 +98,10 @@ static void FreeIndexFieldInfos(CDaoIndexInfo& indexInfo) {
 
 static void EnsureVariantCopy(COleVariant& target, const COleVariant& source) {
     VariantClear(&target);
-    VariantCopy(&target, &source);
+    // mingw's oleauto.h declares VariantCopy's source as non-const VARIANTARG*;
+    // the call is semantically const (it only reads the source), so cast the
+    // constness away. COleVariant publicly derives from VARIANT (=VARIANTARG).
+    VariantCopy(&target, const_cast<COleVariant*>(&source));
 }
 
 static CDaoTableDef* FindTableDefByName(CDaoDatabase* pDatabase, const wchar_t* lpszName) {
@@ -253,7 +256,8 @@ static std::vector<CDaoIndexInfo> CloneIndexInfoVector(const std::vector<CDaoInd
     return copied;
 }
 
-} // namespace
+} // namespace (dao helper functions)
+} // namespace (dao internal state)
 
 //=============================================================================
 // CDaoException - IMPLEMENT_DYNAMIC (class declared in header with inline methods)
@@ -1888,5 +1892,3 @@ extern "C" void MS_ABI dao_AfxDaoTerm() {
 extern "C" CDaoWorkspace* MS_ABI dao_CDaoWorkspace_GetDefaultWorkspace() {
     return CDaoWorkspace::GetDefaultWorkspace();
 }
-
-}  // namespace
