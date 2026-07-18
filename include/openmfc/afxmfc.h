@@ -34,6 +34,9 @@ class CMFCAutoHideBar;
 class CPane;
 class CDockablePane;
 class CBasePane;
+class CDockSite;
+class CDockBar;
+class CDockBarRow;
 class CPaneFrameWnd;
 class CDockingManager;
 class CPaneContainer;
@@ -304,6 +307,52 @@ protected:
 class CMFCVisualManagerAero : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVisualManagerAero) public: CMFCVisualManagerAero(); virtual ~CMFCVisualManagerAero(); protected: char _pad[64]; };
 
 //=============================================================================
+// Aggregates embedded by value in CPane / CMFCToolBar
+//=============================================================================
+// Retail sizes confirmed with /d1reportSingleClassLayout. Their internals are
+// not modelled yet, so each is a correctly-sized opaque block: that pins the
+// offsets of everything after it in CPane, which is what the ABI depends on.
+// Replace the storage with real members when these classes are implemented.
+struct CMFCDragFrameImpl {   // retail sizeof 128
+    char _storage[128];
+};
+struct CRecentDockSiteInfo { // retail sizeof 288
+    char _storage[288];
+};
+struct CMFCControlBarImpl {  // retail sizeof 16
+    char _storage[16];
+};
+struct CMFCToolBarDropTarget { // retail sizeof 112
+    char _storage[112];
+};
+class CMFCToolTipCtrl;
+
+//=============================================================================
+// CAccessibilityData - accessibility block embedded by value in CBasePane
+//=============================================================================
+// Layout harvested with /d1reportSingleClassLayoutCAccessibilityData:
+// six CStrings, then the role/state/hit fields, then the rect and point.
+// No vtable in retail, so this must not gain virtual functions.
+class CAccessibilityData {
+public:
+    CAccessibilityData()
+        : m_nAccRole(0), m_bAccState(0), m_nAccHit(0),
+          m_rectAccLocation(0, 0, 0, 0), m_ptAccHit(0, 0) {}
+
+    CString m_strAccName;        // 0x00
+    CString m_strAccValue;       // 0x08
+    CString m_strDescription;    // 0x10
+    CString m_strAccKeys;        // 0x18
+    CString m_strAccHelp;        // 0x20
+    CString m_strAccDefAction;   // 0x28
+    DWORD   m_nAccRole;          // 0x30
+    long    m_bAccState;         // 0x34
+    long    m_nAccHit;           // 0x38 (+4 pad)
+    CRect   m_rectAccLocation;   // 0x3C
+    CPoint  m_ptAccHit;          // 0x4C (+4 tail pad)
+};                               // sizeof 88
+
+//=============================================================================
 // CBasePane - Base pane class
 //=============================================================================
 class CBasePane : public CWnd {
@@ -329,9 +378,31 @@ public:
     virtual void CalcFixedLayout(BOOL bStretch, BOOL bHorz);
     virtual void RecalcLayout();
 
-protected:
-    char _basepane_padding[128];
-};
+public:
+    // Retail member layout, harvested with
+    //   cl.exe /d1reportSingleClassLayoutCBasePane
+    // against the shipping MFC headers. Absolute offsets in comments; the base
+    // CWnd subobject occupies 0..231. Replaces a 128-byte padding blob that
+    // made the class 360 bytes instead of the retail 424, so every derived
+    // pane (CPane, CDockablePane, CMFCToolBar, ...) started at a wrong offset.
+    BOOL           m_bVisible;                // 0x0E8 232
+    BOOL           m_bRecentVisibleState;     // 0x0EC 236
+    BOOL           m_bIsRestoredFromRegistry; // 0x0F0 240
+    BOOL           m_bIsDlgControl;           // 0x0F4 244
+    BOOL           m_bIsMDITabbed;            // 0x0F8 248
+    BOOL           m_bEnableIDChecking;       // 0x0FC 252
+    DWORD          m_dwEnabledAlignment;      // 0x100 256
+    DWORD          m_dwStyle;                 // 0x104 260
+    DWORD          m_dwControlBarStyle;       // 0x108 264 (+4 tail pad)
+    CDockSite*     m_pDockSite;               // 0x110 272
+    CRect          m_rectBar;                 // 0x118 280
+    CDockBar*      m_pParentDockBar;          // 0x128 296
+    CDockBarRow*   m_pDockBarRow;             // 0x130 304
+    int            m_dockMode;                // 0x138 312 AFX_DOCK_TYPE (+4 pad)
+    const wchar_t* m_lpszBarTemplateName;     // 0x140 320
+    CSize          m_sizeDialog;              // 0x148 328
+    CAccessibilityData m_AccData;             // 0x150 336 (88 bytes)
+};                                            // 0x1A8 424
 
 //=============================================================================
 // CPane - Standard docking pane
@@ -346,9 +417,43 @@ public:
     virtual BOOL CanFloat() const override;
     virtual void RecalcLayout() override;
 
-protected:
-    char _pane_padding[64];
-};
+public:
+    // Retail member layout, harvested with /d1reportSingleClassLayoutCPane.
+    // The CBasePane subobject occupies 0..423; own members start at 424.
+    // Replaces a 64-byte padding blob that made CPane 424 bytes instead of the
+    // retail 1016 — a 592-byte shortfall that displaced every derived pane.
+    BOOL    m_bDisableMove;              // 0x1A8 424 (BOOL, +3 pad in retail)
+    BOOL    m_bFirstInGroup;             // 0x1AC 428
+    BOOL    m_bLastInGroup;              // 0x1B0 432
+    BOOL    m_bActiveInGroup;            // 0x1B4 436
+    int     m_nCount;                    // 0x1B8 440 (+4 tail pad)
+    void*   m_pData;                     // 0x1C0 448
+    int     m_cxLeftBorder;              // 0x1C8 456
+    int     m_cxRightBorder;             // 0x1CC 460
+    int     m_cyTopBorder;               // 0x1D0 464
+    int     m_cyBottomBorder;            // 0x1D4 468
+    int     m_cxDefaultGap;              // 0x1D8 472
+    int     m_nMRUWidth;                 // 0x1DC 476
+    CRect   m_rectVirtual;               // 0x1E0 480
+    CRect   m_rectDragImmediate;         // 0x1F0 496
+    CSize   m_sizeMin;                   // 0x200 512
+    CPoint  m_ptClientHotSpot;           // 0x208 520
+    BYTE    m_bCaptured;                 // 0x210 528  (single bytes in retail,
+    BYTE    m_bDisableChangeHot;         // 0x211 529   not BOOLs)
+    BYTE    m_bDblClick;                 // 0x212 530  (+1 pad)
+    BOOL    m_bDragMode;                 // 0x214 532
+    BOOL    m_bExclusiveRow;             // 0x218 536
+    BOOL    m_bPinState;                 // 0x21C 540
+    UINT    m_nID;                       // 0x220 544 (+4 tail pad)
+    HWND    m_hwndMiniFrameToBeClosed;   // 0x228 552
+    CRuntimeClass* m_pMiniFrameRTC;      // 0x230 560
+    CMFCDragFrameImpl   m_dragFrameImpl; // 0x238 568 (128 bytes)
+    CRecentDockSiteInfo m_recentDockInfo;// 0x2B8 696 (288 bytes)
+    CRect   m_rectSavedDockedRect;       // 0x3D8 984
+    BOOL    m_bRecentFloatingState;      // 0x3E8 1000
+    BOOL    m_bWasFloatingBeforeMove;    // 0x3EC 1004
+    BOOL    m_bWasFloatingBeforeTabbed;  // 0x3F0 1008 (+4 tail pad)
+};                                       // 0x3F8 1016
 
 //=============================================================================
 // CDockablePane - Dockable pane with caption
@@ -427,54 +532,6 @@ public:
 //=============================================================================
 // CMFCToolBar - Feature Pack toolbar
 //=============================================================================
-class CMFCToolBar : public CBasePane {
-    DECLARE_DYNAMIC(CMFCToolBar)
-public:
-    CMFCToolBar();
-    virtual ~CMFCToolBar();
-
-    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR);
-    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR);
-
-    virtual BOOL LoadToolBar(UINT uiResID, UINT uiColdResID = 0, UINT uiMenuResID = 0, BOOL bLocked = FALSE, UINT uiDisabledResID = 0, UINT uiMenuDisabledResID = 0, UINT uiHotResID = 0);
-    BOOL LoadBitmap(UINT nIDResource);
-    virtual BOOL SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages = TRUE);
-    BOOL ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL bNotify = FALSE);
-    int GetCount() const;
-    CMFCToolBarButton* GetButton(int nIndex) const;
-    static void SetSizes(SIZE sizeButton, SIZE sizeImage);
-    CSize GetButtonSize() const;
-    virtual void EnableDocking(DWORD dwDockStyle);
-    virtual void AdjustLayout();
-    void AdjustSize();
-    CString GetButtonText(int nIndex) const;
-    void GetButtonText(int nIndex, CString& rString) const;
-
-protected:
-    char _mfctoolbar_padding[128];
-};
-
-//=============================================================================
-// CMFCMenuBar - Feature Pack menu bar
-//=============================================================================
-class CMFCMenuBar : public CMFCToolBar {
-    DECLARE_DYNAMIC(CMFCMenuBar)
-public:
-    CMFCMenuBar();
-    virtual ~CMFCMenuBar();
-
-    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR) override;
-    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR) override;
-    virtual void CreateFromMenu(HMENU hMenu, BOOL bDefaultMenu = FALSE, BOOL bForceUpdate = FALSE);
-    CMFCToolBarButton* GetMenuItem(int nIndex) const;
-    virtual CSize CalcLayout(DWORD dwMode, int nLength = -1);
-    virtual void AdjustLocations();
-    static CFont& GetMenuFont(BOOL bHorz = TRUE);
-
-protected:
-    char _mfcmenubar_padding[96];
-};
-
 //=============================================================================
 // CMFCToolBarImages - Feature Pack toolbar image collection
 //=============================================================================
@@ -500,17 +557,218 @@ public:
     int GetCount() const;
     BOOL IsValid() const;
 
-    BOOL m_bIsRTL;
-    BYTE m_nDisabledImageAlpha;
-    BYTE m_nFadedImageAlpha;
+protected:
+    // Zeroes the retail member block and applies retail's non-zero defaults;
+    // shared by both constructors.
+    void InitMembers();
+public:
+
+    // These three are STATIC in retail MFC (afxtoolbarimages.h declares them
+    // AFX_IMPORT_DATA static, and IsRTL()/GetDisabledImageAlpha()/
+    // GetFadedImageAlpha() are static accessors). Declaring them as instance
+    // members added 8 bytes to every CMFCToolBarImages — and CMFCToolBar
+    // embeds eight of them.
+    static BOOL m_bIsRTL;
+    static BYTE m_nDisabledImageAlpha;
+    static BYTE m_nFadedImageAlpha;
 
     static BOOL m_bDisableTrueColorAlpha;
     static BOOL m_bIsDrawOnGlass;
     static BOOL m_bMultiThreaded;
 
 protected:
-    char _mfctoolbarimages_padding[64];
+    // Retail member layout, harvested with
+    //   cl.exe /d1reportSingleClassLayoutCMFCToolBarImages
+    // Replaces a 64-byte padding blob (sizeof 80) with the real 408-byte
+    // shape. CMFCToolBar embeds EIGHT of these by value, so a 328-byte
+    // shortfall here displaced ~2.6KB of that class on its own.
+    int     m_iCount;                        // 0x008   8
+    int     m_nBitsPerPixel;                 // 0x00C  12
+    int     m_nGrayImageLuminancePercentage; // 0x010  16
+    int     m_nLightPercentage;              // 0x014  20
+    BOOL    m_bInitialized;                  // 0x018  24
+    BOOL    m_bUserImagesList;               // 0x01C  28
+    BOOL    m_bModified;                     // 0x020  32
+    BOOL    m_bStretch;                      // 0x024  36
+    BOOL    m_bReadOnly;                     // 0x028  40
+    BOOL    m_bIsTemporary;                  // 0x02C  44
+    BOOL    m_bFadeInactive;                 // 0x030  48
+    BOOL    m_bIsGray;                       // 0x034  52
+    BOOL    m_bMapTo3DColors;                // 0x038  56
+    BOOL    m_bAlwaysLight;                  // 0x03C  60
+    BOOL    m_bAutoCheckPremlt;              // 0x040  64
+    BOOL    m_bCreateMonoDC;                 // 0x044  68
+    CDC     m_dcMem;                         // 0x048  72 (32 bytes)
+    CSize   m_sizeImage;                     // 0x068 104
+    CSize   m_sizeImageOriginal;             // 0x070 112
+    CSize   m_sizeImageDest;                 // 0x078 120
+    CRect   m_rectLastDraw;                  // 0x080 128
+    CRect   m_rectSubImage;                  // 0x090 144
+    HBITMAP m_hbmImageWell;                  // 0x0A0 160
+    HBITMAP m_hbmImageLight;                 // 0x0A8 168
+    HBITMAP m_hbmImageShadow;                // 0x0B0 176
+    CString m_strUDLPath;                    // 0x0B8 184
+    CBitmap m_bmpMem;                        // 0x0C0 192 (16 bytes)
+    void*   m_pBmpOriginal;                  // 0x0D0 208
+    COLORREF m_clrTransparent;               // 0x0D8 216
+    COLORREF m_clrTransparentOriginal;       // 0x0DC 220
+    COLORREF m_clrImageShadow;               // 0x0E0 224 (+4 pad)
+    double  m_dblScale;                      // 0x0E8 232
+    // Three collections held by value. Their internals are not modelled; the
+    // sizes are the harvested retail ones (CList 56, CList 56, CMap 56) and
+    // pin the end of the object at 408.
+    char    m_lstOrigResIds[56];             // 0x0F0 240
+    char    m_lstOrigResInstances[56];       // 0x128 296
+    char    m_mapOrigResOffsets[56];         // 0x160 352
+                                             // 0x198 408
 };
+// CMFCBaseToolBar - intermediate base between CPane and CMFCToolBar
+//=============================================================================
+// Retail declares CMFCToolBar : CMFCBaseToolBar : CPane. OpenMFC previously
+// derived CMFCToolBar straight from CBasePane, skipping two levels. The
+// harvested sizeof(CMFCBaseToolBar) is 1016 -- identical to CPane -- so it
+// adds no data of its own, but it must exist for the RTTI base chain and for
+// anything that up-casts through it.
+class CMFCBaseToolBar : public CPane {
+    DECLARE_DYNAMIC(CMFCBaseToolBar)
+public:
+    CMFCBaseToolBar();
+    virtual ~CMFCBaseToolBar();
+};  // sizeof 1016, same as CPane
+
+class CMFCToolBar : public CMFCBaseToolBar {
+    DECLARE_DYNAMIC(CMFCToolBar)
+public:
+    CMFCToolBar();
+    virtual ~CMFCToolBar();
+
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR);
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR);
+
+    virtual BOOL LoadToolBar(UINT uiResID, UINT uiColdResID = 0, UINT uiMenuResID = 0, BOOL bLocked = FALSE, UINT uiDisabledResID = 0, UINT uiMenuDisabledResID = 0, UINT uiHotResID = 0);
+    BOOL LoadBitmap(UINT nIDResource);
+    virtual BOOL SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages = TRUE);
+    BOOL ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL bNotify = FALSE);
+    int GetCount() const;
+    CMFCToolBarButton* GetButton(int nIndex) const;
+    static void SetSizes(SIZE sizeButton, SIZE sizeImage);
+    CSize GetButtonSize() const;
+    virtual void EnableDocking(DWORD dwDockStyle);
+    virtual void AdjustLayout();
+    void AdjustSize();
+    CString GetButtonText(int nIndex) const;
+    void GetButtonText(int nIndex, CString& rString) const;
+
+public:
+    // Retail member layout, harvested with
+    //   cl.exe /d1reportSingleClassLayoutCMFCToolBar
+    // The CMFCBaseToolBar subobject occupies 0..1015; own members start at
+    // 1016 and run to 4944. Replaces a 128-byte padding blob that left the
+    // class at 488 bytes -- a 4456-byte shortfall.
+    CMFCToolBarImages m_ImagesLocked;              // 0x03F8 1016
+    CMFCToolBarImages m_ColdImagesLocked;          // 0x0590 1424
+    CMFCToolBarImages m_DisabledImagesLocked;      // 0x0728 1832
+    CMFCToolBarImages m_LargeImagesLocked;         // 0x08C0 2240
+    CMFCToolBarImages m_LargeColdImagesLocked;     // 0x0A58 2648
+    CMFCToolBarImages m_LargeDisabledImagesLocked; // 0x0BF0 3056
+    CMFCToolBarImages m_MenuImagesLocked;          // 0x0D88 3464
+    CMFCToolBarImages m_DisabledMenuImagesLocked;  // 0x0F20 3872
+
+    BOOL m_bLocked;                        // 0x10B8 4280
+    BOOL m_bLargeIconsAreEnbaled;          // 0x10BC 4284 (retail's spelling)
+    BOOL m_bMasked;                        // 0x10C0 4288
+    BOOL m_bPermament;                     // 0x10C4 4292 (retail's spelling)
+    BOOL m_bTextLabels;                    // 0x10C8 4296
+    BOOL m_bDrawTextLabels;                // 0x10CC 4300
+    BOOL m_bResourceWasChanged;            // 0x10D0 4304
+    BOOL m_bLeaveFocus;                    // 0x10D4 4308
+    BOOL m_bFloating;                      // 0x10D8 4312
+    BOOL m_bNoDropTarget;                  // 0x10DC 4316
+    BOOL m_bIsDragCopy;                    // 0x10E0 4320
+    BOOL m_bStretchButton;                 // 0x10E4 4324
+    BOOL m_bTracked;                       // 0x10E8 4328
+    BOOL m_bMenuMode;                      // 0x10EC 4332
+    BOOL m_bDisableControlsIfNoHandler;    // 0x10F0 4336
+    BOOL m_bRouteCommandsViaFrame;         // 0x10F4 4340
+    BOOL m_bDisableCustomize;              // 0x10F8 4344
+    BOOL m_bShowHotBorder;                 // 0x10FC 4348
+    BOOL m_bGrayDisabledButtons;           // 0x1100 4352
+    BOOL m_bIgnoreSetText;                 // 0x1104 4356
+    BOOL m_bQuickCustomize;                // 0x1108 4360
+    BOOL m_bHasBrother;                    // 0x110C 4364
+    BOOL m_bElderBrother;                  // 0x1110 4368
+    BOOL m_bAllowReflections;              // 0x1114 4372
+    BOOL m_bRoundShape;                    // 0x1118 4376
+    BOOL m_bInUpdateShadow;                // 0x111C 4380
+
+    CMFCControlBarImpl m_Impl;             // 0x1120 4384 (16 bytes)
+
+    int  m_nMaxBtnHeight;                  // 0x1130 4400
+    int  m_iButtonCapture;                 // 0x1134 4404
+    int  m_iHighlighted;                   // 0x1138 4408
+    int  m_iSelected;                      // 0x113C 4412
+    int  m_iHot;                           // 0x1140 4416
+    int  m_nTooltipsCount;                 // 0x1144 4420
+    int  m_iDragIndex;                     // 0x1148 4424
+    int  m_iImagesOffset;                  // 0x114C 4428
+    int  m_nMaxLen;                        // 0x1150 4432
+    int  m_iAccHotItem;                    // 0x1154 4436
+
+    CSize m_sizeButtonLocked;              // 0x1158 4440
+    CSize m_sizeImageLocked;               // 0x1160 4448
+    CSize m_sizeCurButtonLocked;           // 0x1168 4456
+    CSize m_sizeCurImageLocked;            // 0x1170 4464
+    BOOL  m_bDontScaleLocked;              // 0x1178 4472
+    CSize m_sizeLast;                      // 0x117C 4476 (+4 pad)
+
+    CObList m_Buttons;                     // 0x1188 4488
+    CObList m_OrigButtons;                 // 0x11C0 4544
+    CObList m_OrigResetButtons;            // 0x11F8 4600
+
+    CMFCToolBarDropTarget m_DropTarget;    // 0x1230 4656 (112 bytes)
+
+    CRect  m_rectDrag;                     // 0x12A0 4768
+    CRect  m_rectTrack;                    // 0x12B0 4784
+    CPen   m_penDrag;                      // 0x12C0 4800
+    CPoint m_ptStartDrag;                  // 0x12D0 4816
+    CPoint m_ptLastMouse;                  // 0x12D8 4824
+
+    CWnd*              m_pWndLastCapture;  // 0x12E0 4832
+    CMFCToolTipCtrl*   m_pToolTip;         // 0x12E8 4840
+    CMFCToolBarButton* m_pDragButton;      // 0x12F0 4848
+    CMFCToolBar*       m_pBrotherToolBar;  // 0x12F8 4856
+    CMFCToolBarButton* m_pCustomizeBtn;    // 0x1300 4864
+
+    UINT m_uiOriginalResID;                // 0x1308 4872
+    HWND m_hwndLastFocus;                  // 0x1310 4880
+
+    // CMap<UINT, UINT&, CMFCToolBarButton*, CMFCToolBarButton*&>; internals not
+    // modelled, harvested size 56 pins the end of the object at 4944.
+    char m_AccelKeys[56];                  // 0x1318 4888
+};                                         // 0x1350 4944
+
+//=============================================================================
+// CMFCMenuBar - Feature Pack menu bar
+//=============================================================================
+class CMFCMenuBar : public CMFCToolBar {
+    DECLARE_DYNAMIC(CMFCMenuBar)
+public:
+    CMFCMenuBar();
+    virtual ~CMFCMenuBar();
+
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR) override;
+    virtual void CreateFromMenu(HMENU hMenu, BOOL bDefaultMenu = FALSE, BOOL bForceUpdate = FALSE);
+    CMFCToolBarButton* GetMenuItem(int nIndex) const;
+    virtual CSize CalcLayout(DWORD dwMode, int nLength = -1);
+    virtual void AdjustLocations();
+    static CFont& GetMenuFont(BOOL bHorz = TRUE);
+
+protected:
+    char _mfcmenubar_padding[96];
+};
+
+//=============================================================================
 
 class CMFCControlRendererInfo {
 public:

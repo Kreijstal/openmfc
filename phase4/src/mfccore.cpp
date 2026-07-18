@@ -1326,7 +1326,13 @@ extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerWindows7__UEAAXPE
 IMPLEMENT_DYNAMIC(CBasePane, CWnd)
 
 CBasePane::CBasePane() {
-    memset(_basepane_padding, 0, sizeof(_basepane_padding));
+    // Zero the retail member block (CWnd subobject is constructed already),
+    // then apply the non-zero retail defaults.
+    std::memset(reinterpret_cast<char*>(this) + sizeof(CWnd), 0,
+                sizeof(CBasePane) - sizeof(CWnd));
+    new (&m_AccData) CAccessibilityData();
+    m_bEnableIDChecking = TRUE;
+    m_dwEnabledAlignment = CBRS_ALIGN_ANY;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     PaneCoreState& state = g_paneCoreState[this];
     state.canFloat = FALSE;
@@ -1407,7 +1413,12 @@ void CBasePane::RecalcLayout() {
 IMPLEMENT_DYNAMIC(CPane, CBasePane)
 
 CPane::CPane() {
-    memset(_pane_padding, 0, sizeof(_pane_padding));
+    std::memset(reinterpret_cast<char*>(this) + sizeof(CBasePane), 0,
+                sizeof(CPane) - sizeof(CBasePane));
+    m_cxLeftBorder = m_cxRightBorder = 6;
+    m_cyTopBorder = m_cyBottomBorder = 6;
+    m_cxDefaultGap = 1;
+    m_nMRUWidth = 32767;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     g_paneCoreState[this].canFloat = TRUE;
 }
@@ -1618,10 +1629,30 @@ CMFCToolBarButton::~CMFCToolBarButton() {}
 //=============================================================================
 // CMFCToolBar
 //=============================================================================
-IMPLEMENT_DYNAMIC(CMFCToolBar, CBasePane)
+// Retail base chain is CMFCToolBar : CMFCBaseToolBar : CPane : CBasePane.
+IMPLEMENT_DYNAMIC(CMFCBaseToolBar, CPane)
+
+CMFCBaseToolBar::CMFCBaseToolBar() {}
+CMFCBaseToolBar::~CMFCBaseToolBar() {}
+
+IMPLEMENT_DYNAMIC(CMFCToolBar, CMFCBaseToolBar)
 
 CMFCToolBar::CMFCToolBar() {
-    memset(_mfctoolbar_padding, 0, sizeof(_mfctoolbar_padding));
+    // The eight CMFCToolBarImages members and the three CObLists have real
+    // constructors, so only the POD span between them is zeroed here: from the
+    // first scalar (m_bLocked) to the end of the object.
+    char* const base = reinterpret_cast<char*>(this);
+    std::memset(base + offsetof(CMFCToolBar, m_bLocked), 0,
+                sizeof(CMFCToolBar) - offsetof(CMFCToolBar, m_bLocked));
+    m_iButtonCapture = -1;
+    m_iHighlighted   = -1;
+    m_iSelected      = -1;
+    m_iHot           = -1;
+    m_iDragIndex     = -1;
+    m_iAccHotItem    = -1;
+    m_bGrayDisabledButtons = TRUE;
+    m_bRouteCommandsViaFrame = TRUE;
+    m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
     ClearToolBarState(this);

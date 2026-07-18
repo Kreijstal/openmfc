@@ -1456,6 +1456,19 @@ public: \
     POSITION InsertAfter(POSITION position, arg_type newElement); \
     void RemoveAll(); \
     virtual void Serialize(CArchive& ar) override; \
+protected: \
+    /* Retail member block, harvested with /d1reportSingleClassLayoutCObList.  */ \
+    /* MFC's list classes all share this shape: sizeof 56, CObject at 0..7.    */ \
+    /* OpenMFC keeps the live list contents in a side table keyed by `this`,   */ \
+    /* so these are storage for binary compatibility rather than the working   */ \
+    /* representation -- but they must exist, or anything embedding a list by  */ \
+    /* value (CMFCToolBar has three) lays out 48 bytes short per list.         */ \
+    void*    m_pNodeHead;   /* 0x08 */ \
+    void*    m_pNodeTail;   /* 0x10 */ \
+    INT_PTR  m_nCount;      /* 0x18 */ \
+    void*    m_pNodeFree;   /* 0x20 */ \
+    struct CPlex* m_pBlocks;/* 0x28 */ \
+    INT_PTR  m_nBlockSize;  /* 0x30 */ \
 };
 
 #define OPENMFC_DECLARE_MAP_WRAPPER(class_name, key_type, arg_key_type, value_type, arg_value_type, base_key_type, class_decl) \
