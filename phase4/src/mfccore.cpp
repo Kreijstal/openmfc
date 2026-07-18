@@ -1500,14 +1500,40 @@ extern "C" void MS_ABI impl___1CTabbedPane__UEAA_XZ(CTabbedPane* pThis) { if (pT
 //=============================================================================
 IMPLEMENT_SERIAL(CUserTool, CObject, 0x80000001)
 
-CUserTool::CUserTool() {
-    memset(_usertool_padding, 0, sizeof(_usertool_padding));
-}
+CUserTool::CUserTool() : m_uiCmdId(0), m_hIcon(nullptr) {}
 
 CUserTool::~CUserTool() {}
 
 int CUserTool::Invoke() { return 0; }
 void CUserTool::Serialize(CArchive&) {}
+
+// Draws the tool's icon centred inside rectImage. Retail (mfc140u
+// ?DrawToolIcon@CUserTool@@) computes
+//     x = left + (width  - iconSize) / 2
+//     y = top  + (height - iconSize) / 2
+// clamping each offset at 0 (cmovns), then calls DrawIconEx(..., DI_NORMAL).
+// Retail reads the icon extent from its cached afxGlobalData small-icon size;
+// we query the same value from the system directly.
+void CUserTool::DrawToolIcon(CDC* pDC, const CRect& rectImage) {
+    if (pDC == nullptr || m_hIcon == nullptr) return;
+
+    const int cx = ::GetSystemMetrics(SM_CXSMICON);
+    const int cy = ::GetSystemMetrics(SM_CYSMICON);
+
+    int dx = (rectImage.right - rectImage.left - cx) / 2;
+    int dy = (rectImage.bottom - rectImage.top - cy) / 2;
+    if (dx < 0) dx = 0;
+    if (dy < 0) dy = 0;
+
+    ::DrawIconEx(pDC->m_hDC, rectImage.left + dx, rectImage.top + dy,
+                 m_hIcon, 0, 0, 0, nullptr, DI_NORMAL);
+}
+
+// Symbol: ?DrawToolIcon@CUserTool@@QEAAXPEAVCDC@@AEBVCRect@@@Z
+extern "C" void MS_ABI impl__DrawToolIcon_CUserTool__QEAAXPEAVCDC__AEBVCRect___Z(
+    CUserTool* pThis, CDC* pDC, const CRect* pRect) {
+    if (pThis && pRect) pThis->DrawToolIcon(pDC, *pRect);
+}
 
 // Symbol: ??0CUserTool@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CUserTool__QEAA_XZ(void* pThis) { return new (pThis) CUserTool(); }

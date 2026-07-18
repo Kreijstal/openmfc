@@ -4404,11 +4404,46 @@ COleConnPtContainer::~COleConnPtContainer() {
 //=============================================================================
 // CEnumOleVerb
 //=============================================================================
-CEnumOleVerb::CEnumOleVerb() {
-    memset(_cenumoleverb_padding, 0, sizeof(_cenumoleverb_padding));
+CEnumOleVerb::CEnumOleVerb() : m_verbs(nullptr), m_count(0), m_position(0) {
 }
 
 CEnumOleVerb::~CEnumOleVerb() {
+}
+
+void CEnumOleVerb::SetVerbs(OLEVERB* pVerbs, unsigned long nCount) {
+    m_verbs = pVerbs;
+    m_count = nCount;
+    m_position = 0;
+}
+
+// Fetches the verb at the cursor and advances. Retail (mfc140u
+// ?OnNext@CEnumOleVerb@@) runs the CEnumArray element copy first and, when that
+// succeeds, replaces OLEVERB::lpszVerbName with a caller-owned duplicate --
+// allocated with the COM task allocator, since the caller is expected to
+// CoTaskMemFree it -- and raises a memory exception if that allocation fails.
+int CEnumOleVerb::OnNext(void* pv) {
+    if (pv == nullptr) return FALSE;
+    if (m_verbs == nullptr || m_position >= m_count) return FALSE;
+
+    OLEVERB* pDest = static_cast<OLEVERB*>(pv);
+    *pDest = m_verbs[m_position++];
+
+    if (pDest->lpszVerbName != nullptr) {
+        const size_t cb = (wcslen(pDest->lpszVerbName) + 1) * sizeof(wchar_t);
+        LPOLESTR copy = static_cast<LPOLESTR>(::CoTaskMemAlloc(cb));
+        if (copy == nullptr) {
+            pDest->lpszVerbName = nullptr;
+            return FALSE;
+        }
+        memcpy(copy, pDest->lpszVerbName, cb);
+        pDest->lpszVerbName = copy;
+    }
+    return TRUE;
+}
+
+// Symbol: ?OnNext@CEnumOleVerb@@MEAAHPEAX@Z
+extern "C" int MS_ABI impl__OnNext_CEnumOleVerb__MEAAHPEAX_Z(CEnumOleVerb* pThis, void* pv) {
+    return pThis ? pThis->OnNext(pv) : FALSE;
 }
 
 HWND COleControlSiteOrWnd::GetSafeHwnd() const {

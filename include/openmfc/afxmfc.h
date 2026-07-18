@@ -785,8 +785,22 @@ public:
     virtual int Invoke();
     virtual void Serialize(CArchive& ar);
 
+    void DrawToolIcon(CDC* pDC, const CRect& rectImage);
+
+    UINT GetCommandId() const { return m_uiCmdId; }
+    const CString& GetCommand() const { return m_strCommand; }
+
+    // Layout mirrors retail mfc140u (sizeof 56, matching the harvested
+    // descriptor in global_oleresidual_rtti.cpp). Confirmed against
+    // ?DrawToolIcon@CUserTool@@, which loads m_hIcon from this+0x30.
+    CString m_strLabel;             // 0x08
+    CString m_strArguments;         // 0x10
+    CString m_strInitialDirectory;  // 0x18
+
 protected:
-    char _usertool_padding[32];
+    UINT    m_uiCmdId;              // 0x20 (+4 tail pad)
+    CString m_strCommand;           // 0x28
+    HICON   m_hIcon;                // 0x30
 };
 
 class CUserToolsManager : public CObject {

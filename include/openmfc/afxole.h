@@ -1413,7 +1413,18 @@ class CEnumOleVerb {
 public:
     CEnumOleVerb();
     ~CEnumOleVerb();
-    char _cenumoleverb_padding[16];
+
+    // Retail's CEnumOleVerb derives from CEnumArray; OnNext copies the element
+    // at the cursor and then hands the caller its *own* copy of the verb name.
+    // We carry the equivalent cursor state directly (same shape as
+    // CEnumFormatEtc). Total size stays 16 bytes, matching the block this
+    // replaces, so the object layout is unchanged.
+    int OnNext(void* pv);
+    void SetVerbs(OLEVERB* pVerbs, unsigned long nCount);
+
+    OLEVERB*      m_verbs;     // 0x00
+    unsigned long m_count;     // 0x08
+    unsigned long m_position;  // 0x0C
 };
 
 //=============================================================================

@@ -2322,6 +2322,63 @@ extern "C" void MS_ABI impl__SetPreviewInfo_CDocTemplate__QEAAXIPEAUCRuntimeClas
 // Symbol: ?CreatePreviewFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@@Z
 extern "C" CFrameWnd* MS_ABI impl__CreatePreviewFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument___Z(CDocTemplate* pThis, CWnd*, CDocument* doc) { return pThis ? pThis->CreateNewFrame(doc, nullptr) : nullptr; }
 
+// CDocTemplate::CreateOleFrame — builds the in-place container frame used when a
+// document is activated inside an OLE container.
+//
+// Retail mfc140u reads the OLE frame/view runtime classes SetContainerInfo()
+// stashed at this+0xC8 / this+0xD0, fills a CCreateContext (m_pCurrentDoc = pDoc,
+// m_pCurrentDocTemplate = this, m_pNewViewClass = the OLE view class only when
+// bCreateView is set), and creates the frame from it. With SetContainerInfo()
+// never called those pointers are null and retail yields no frame.
+//
+// OpenMFC keeps the container registration as the resource id recorded by
+// SetContainerInfo (g_templateExtraStates), so the same contract is honoured
+// here: no container id means no OLE frame, otherwise the frame is loaded from
+// that id and the view is attached only when bCreateView requests it.
+// Symbol: ?CreateOleFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@H@Z
+extern "C" CFrameWnd* MS_ABI impl__CreateOleFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument__H_Z(
+    CDocTemplate* pThis, CWnd* pParentWnd, CDocument* pDoc, int bCreateView)
+{
+    if (!pThis || !pThis->m_pFrameClass) return nullptr;
+
+    auto itState = g_templateExtraStates.find(pThis);
+    const unsigned int containerId =
+        (itState == g_templateExtraStates.end()) ? 0u : itState->second.containerId;
+    if (containerId == 0) return nullptr;   // SetContainerInfo() never called
+
+    CObject* pObj = pThis->m_pFrameClass->CreateObject();
+    if (!pObj) return nullptr;
+    CFrameWnd* pFrame = static_cast<CFrameWnd*>(pObj);
+
+    if (!pFrame->m_hWnd) {
+        if (!pFrame->CFrameWnd::LoadFrame(containerId, WS_OVERLAPPEDWINDOW, pParentWnd, nullptr)) {
+            RECT rect = { CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT };
+            if (!pFrame->CFrameWnd::Create(nullptr, L"OpenMFC Container",
+                                           WS_OVERLAPPEDWINDOW, rect, pParentWnd,
+                                           nullptr, 0, nullptr)) {
+                return nullptr;
+            }
+        }
+    }
+
+    if (bCreateView && pThis->m_pViewClass && pDoc) {
+        CObject* pViewObj = pThis->m_pViewClass->CreateObject();
+        if (pViewObj) {
+            CView* pView = static_cast<CView*>(pViewObj);
+            pDoc->AddView(pView);
+            if (!pView->m_hWnd && pFrame->m_hWnd) {
+                RECT rcClient = {};
+                ::GetClientRect(pFrame->m_hWnd, &rcClient);
+                pView->CWnd::Create(nullptr, nullptr,
+                                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                                    rcClient, pFrame, AFX_IDW_PANE_FIRST, nullptr);
+            }
+            pFrame->m_pViewActive = pView;
+        }
+    }
+    return pFrame;
+}
+
 // CView residuals.
 // Symbol: ?CalcWindowRect@CView@@UEAAXPEAUtagRECT@@I@Z
 extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* pThis, RECT* rect, unsigned int adjustType) {
