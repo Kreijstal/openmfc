@@ -79,6 +79,7 @@ static void arr_SetSize(CArrayS* a, long long nNewSize, size_t elem)
                                 ? a->m_nMaxSize + nGrowBy
                                 : nNewSize;
         void* p = realloc(a->m_pData, (size_t)(nNewMax * (long long)elem));
+        if (p == nullptr) return;   // OOM: keep the existing buffer intact, don't deref null
         memset((char*)p + a->m_nSize * (long long)elem, 0,
                (size_t)((nNewMax - a->m_nSize) * (long long)elem));
         a->m_pData = p;

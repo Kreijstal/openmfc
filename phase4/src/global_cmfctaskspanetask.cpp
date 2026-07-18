@@ -85,6 +85,8 @@ extern "C" int MS_ABI
 impl__SetACCData_CMFCTasksPaneTask__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     void* pThis, void* pParent, void* /*pData*/)
 {
+    if (pThis == nullptr)
+        return FALSE;
     S* self = static_cast<S*>(pThis);
 
     // Faithful geometry step: convert the task's cached client rect to screen space via the

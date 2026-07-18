@@ -43,6 +43,15 @@ struct Store {
     std::unordered_map<uint64_t, void*> values;
     DWORD nextSlot;
     Store() : nextSlot(1) { InitializeCriticalSection(&cs); }
+    ~Store() {
+        // Release the lock object. We intentionally do NOT walk `values` calling
+        // each object's virtual destructor here: this runs at static-destruction
+        // (DLL unload / process teardown), where those objects' vtables may live
+        // in a module already unloaded — dispatching through them would crash.
+        // Any surviving thread-local values are process-lifetime and reclaimed by
+        // the OS at teardown. Per-slot values are freed in the exported destructor.
+        DeleteCriticalSection(&cs);
+    }
 };
 
 // C++11 guarantees thread-safe initialization of function-local statics.

@@ -56,14 +56,15 @@ inline HWND DlgHwnd(const S* self)
     return *reinterpret_cast<HWND*>(reinterpret_cast<char*>(self->m_pDlgWnd) + 64);
 }
 
-// Placeholder for MFC's CUserException. The real DLL calls
-// AfxThrowUserException() (throw new CUserException) to unwind out of the DDX
-// pass; that exception type / hierarchy is not available self-contained here,
-// so Fail() throws this local marker to preserve the non-returning, stack-
-// unwinding contract.
-struct UserExceptionAbort {};
-
 } // namespace
+
+// The real DLL's CDataExchange::Fail() calls AfxThrowUserException() (throw new
+// CUserException) to unwind out of the DDX pass. openmfc exports that function as
+// an MS_ABI thunk that throws through the MSVC C++ exception-ABI bridge
+// (mfc_exceptions.cpp), so an MSVC client's catch(CUserException*)/catch(CException*)
+// catches it. Call it directly here rather than throwing a mingw-local type that
+// the client could never catch.
+extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ();
 
 // Symbol: ??0CDataExchange@@QEAA@PEAVCWnd@@H@Z
 // CDataExchange(CWnd* pDlgWnd, BOOL bSaveAndValidate)
@@ -140,5 +141,5 @@ impl__Fail_CDataExchange__QEAAXXZ(void* pThis)
         }
     }
     // AfxThrowUserException(): never returns normally.
-    throw UserExceptionAbort();
+    impl__AfxThrowUserException__YAXXZ();
 }
