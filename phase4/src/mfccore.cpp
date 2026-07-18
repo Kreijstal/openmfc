@@ -1326,7 +1326,13 @@ extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerWindows7__UEAAXPE
 IMPLEMENT_DYNAMIC(CBasePane, CWnd)
 
 CBasePane::CBasePane() {
-    memset(_basepane_padding, 0, sizeof(_basepane_padding));
+    // Zero the retail member block (CWnd subobject is constructed already),
+    // then apply the non-zero retail defaults.
+    std::memset(reinterpret_cast<char*>(this) + sizeof(CWnd), 0,
+                sizeof(CBasePane) - sizeof(CWnd));
+    new (&m_AccData) CAccessibilityData();
+    m_bEnableIDChecking = TRUE;
+    m_dwEnabledAlignment = CBRS_ALIGN_ANY;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     PaneCoreState& state = g_paneCoreState[this];
     state.canFloat = FALSE;
@@ -1407,7 +1413,12 @@ void CBasePane::RecalcLayout() {
 IMPLEMENT_DYNAMIC(CPane, CBasePane)
 
 CPane::CPane() {
-    memset(_pane_padding, 0, sizeof(_pane_padding));
+    std::memset(reinterpret_cast<char*>(this) + sizeof(CBasePane), 0,
+                sizeof(CPane) - sizeof(CBasePane));
+    m_cxLeftBorder = m_cxRightBorder = 6;
+    m_cyTopBorder = m_cyBottomBorder = 6;
+    m_cxDefaultGap = 1;
+    m_nMRUWidth = 32767;
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
     g_paneCoreState[this].canFloat = TRUE;
 }
@@ -1500,14 +1511,40 @@ extern "C" void MS_ABI impl___1CTabbedPane__UEAA_XZ(CTabbedPane* pThis) { if (pT
 //=============================================================================
 IMPLEMENT_SERIAL(CUserTool, CObject, 0x80000001)
 
-CUserTool::CUserTool() {
-    memset(_usertool_padding, 0, sizeof(_usertool_padding));
-}
+CUserTool::CUserTool() : m_uiCmdId(0), m_hIcon(nullptr) {}
 
 CUserTool::~CUserTool() {}
 
 int CUserTool::Invoke() { return 0; }
 void CUserTool::Serialize(CArchive&) {}
+
+// Draws the tool's icon centred inside rectImage. Retail (mfc140u
+// ?DrawToolIcon@CUserTool@@) computes
+//     x = left + (width  - iconSize) / 2
+//     y = top  + (height - iconSize) / 2
+// clamping each offset at 0 (cmovns), then calls DrawIconEx(..., DI_NORMAL).
+// Retail reads the icon extent from its cached afxGlobalData small-icon size;
+// we query the same value from the system directly.
+void CUserTool::DrawToolIcon(CDC* pDC, const CRect& rectImage) {
+    if (pDC == nullptr || m_hIcon == nullptr) return;
+
+    const int cx = ::GetSystemMetrics(SM_CXSMICON);
+    const int cy = ::GetSystemMetrics(SM_CYSMICON);
+
+    int dx = (rectImage.right - rectImage.left - cx) / 2;
+    int dy = (rectImage.bottom - rectImage.top - cy) / 2;
+    if (dx < 0) dx = 0;
+    if (dy < 0) dy = 0;
+
+    ::DrawIconEx(pDC->m_hDC, rectImage.left + dx, rectImage.top + dy,
+                 m_hIcon, 0, 0, 0, nullptr, DI_NORMAL);
+}
+
+// Symbol: ?DrawToolIcon@CUserTool@@QEAAXPEAVCDC@@AEBVCRect@@@Z
+extern "C" void MS_ABI impl__DrawToolIcon_CUserTool__QEAAXPEAVCDC__AEBVCRect___Z(
+    CUserTool* pThis, CDC* pDC, const CRect* pRect) {
+    if (pThis && pRect) pThis->DrawToolIcon(pDC, *pRect);
+}
 
 // Symbol: ??0CUserTool@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CUserTool__QEAA_XZ(void* pThis) { return new (pThis) CUserTool(); }
@@ -1592,10 +1629,37 @@ CMFCToolBarButton::~CMFCToolBarButton() {}
 //=============================================================================
 // CMFCToolBar
 //=============================================================================
-IMPLEMENT_DYNAMIC(CMFCToolBar, CBasePane)
+// Retail base chain is CMFCToolBar : CMFCBaseToolBar : CPane : CBasePane.
+IMPLEMENT_DYNAMIC(CMFCBaseToolBar, CPane)
+
+CMFCBaseToolBar::CMFCBaseToolBar() {}
+CMFCBaseToolBar::~CMFCBaseToolBar() {}
+
+IMPLEMENT_DYNAMIC(CMFCToolBar, CMFCBaseToolBar)
 
 CMFCToolBar::CMFCToolBar() {
-    memset(_mfctoolbar_padding, 0, sizeof(_mfctoolbar_padding));
+    // The eight CMFCToolBarImages members precede m_bLocked and keep their
+    // constructed state. The span zeroed here is NOT purely POD, though: the
+    // three CObLists (4488/4544/4600) and m_penDrag (4800) all sit after
+    // m_bLocked, so they are re-constructed below. Zeroing already gives an
+    // empty list and a null pen handle; what the memset destroys and placement
+    // new restores is their vfptrs.
+    char* const base = reinterpret_cast<char*>(this);
+    std::memset(base + offsetof(CMFCToolBar, m_bLocked), 0,
+                sizeof(CMFCToolBar) - offsetof(CMFCToolBar, m_bLocked));
+    new (&m_Buttons) CObList();
+    new (&m_OrigButtons) CObList();
+    new (&m_OrigResetButtons) CObList();
+    new (&m_penDrag) CPen();
+    m_iButtonCapture = -1;
+    m_iHighlighted   = -1;
+    m_iSelected      = -1;
+    m_iHot           = -1;
+    m_iDragIndex     = -1;
+    m_iAccHotItem    = -1;
+    m_bGrayDisabledButtons = TRUE;
+    m_bRouteCommandsViaFrame = TRUE;
+    m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
     ClearToolBarState(this);

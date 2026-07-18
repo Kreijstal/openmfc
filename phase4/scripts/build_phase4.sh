@@ -540,6 +540,8 @@ LDLIBS=(
     -loledlg
     -lodbc32
     -lriched20
+    -luxtheme
+    -lgdiplus
 )
 
 # Collect all object files

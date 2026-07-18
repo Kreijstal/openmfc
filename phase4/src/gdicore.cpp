@@ -1206,16 +1206,45 @@ BOOL CMFCToolBarImages::m_bDisableTrueColorAlpha = FALSE;
 BOOL CMFCToolBarImages::m_bIsDrawOnGlass = FALSE;
 BOOL CMFCToolBarImages::m_bMultiThreaded = FALSE;
 
+// m_bIsRTL / m_nDisabledImageAlpha / m_nFadedImageAlpha are static in retail
+// MFC (AFX_IMPORT_DATA static in afxtoolbarimages.h), so they get definitions
+// here rather than per-object initialization.
+BOOL CMFCToolBarImages::m_bIsRTL = FALSE;
+BYTE CMFCToolBarImages::m_nDisabledImageAlpha = 127;
+BYTE CMFCToolBarImages::m_nFadedImageAlpha = 127;
+
+// Zero the retail member block and apply the non-zero retail defaults. Shared
+// by both constructors.
+void CMFCToolBarImages::InitMembers() {
+    CMFCToolBarImages* const p = this;
+    std::memset(reinterpret_cast<char*>(p) + sizeof(CObject), 0,
+                sizeof(CMFCToolBarImages) - sizeof(CObject));
+    // The memset above spans three members that are real C++ objects, so their
+    // representations -- including the vfptrs of the two polymorphic ones --
+    // must be re-established. Without this, the first virtual call on m_dcMem
+    // or m_bmpMem (destruction included) dispatches through a null vptr.
+    new (&p->m_dcMem) CDC();
+    new (&p->m_strUDLPath) CString();
+    new (&p->m_bmpMem) CBitmap();
+    p->m_nBitsPerPixel = 0;
+    p->m_nGrayImageLuminancePercentage = 0;
+    p->m_nLightPercentage = 0;
+    p->m_dblScale = 1.0;
+    p->m_clrTransparent = RGB(192, 192, 192);
+    p->m_clrTransparentOriginal = p->m_clrTransparent;
+    p->m_clrImageShadow = RGB(128, 128, 128);
+}
+#define InitImagesMembers() InitMembers()
+
 // Symbol: ??0CMFCToolBarImages@@QEAA@XZ
-CMFCToolBarImages::CMFCToolBarImages()
-    : m_bIsRTL(FALSE), m_nDisabledImageAlpha(127), m_nFadedImageAlpha(127) {
-    memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+CMFCToolBarImages::CMFCToolBarImages() {
+    InitImagesMembers();
 }
 
 // Symbol: ??0CMFCToolBarImages@@QEAA@H@Z
-CMFCToolBarImages::CMFCToolBarImages(BOOL)
-    : m_bIsRTL(FALSE), m_nDisabledImageAlpha(127), m_nFadedImageAlpha(127) {
-    memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+CMFCToolBarImages::CMFCToolBarImages(BOOL bReadOnly) {
+    InitImagesMembers();
+    m_bReadOnly = bReadOnly;
 }
 
 // Symbol: ??1CMFCToolBarImages@@UEAA@XZ
@@ -1300,7 +1329,7 @@ int CMFCToolBarImages::AddIcon(HICON hIcon, BOOL bAutoDestroy) {
 
 // Symbol: ?Clear@CMFCToolBarImages@@QEAAXXZ
 void CMFCToolBarImages::Clear() {
-    memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+    InitMembers();
     ClearToolBarImagesState(this, TRUE);
 }
 
@@ -1311,10 +1340,10 @@ void CMFCToolBarImages::Initialize() {
 
 // Symbol: ?CommonInit@CMFCToolBarImages@@QEAAXH@Z
 void CMFCToolBarImages::CommonInit(BOOL bFreeImageList) {
-    m_bIsRTL = FALSE;
+    m_bIsRTL = FALSE;                 // statics: reset the shared defaults
     m_nDisabledImageAlpha = 127;
     m_nFadedImageAlpha = 127;
-    memset(_mfctoolbarimages_padding, 0, sizeof(_mfctoolbarimages_padding));
+    InitMembers();
     ClearToolBarImagesState(this, bFreeImageList);
 }
 
@@ -1340,6 +1369,7 @@ BOOL CMFCToolBarImages::IsValid() const {
 }
 
 // --- extern "C" MS_ABI thunks ---
+
 
 // Symbol: ??0CMFCToolBarImages@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCToolBarImages__QEAA_XZ(void* pThis) {

@@ -1413,7 +1413,18 @@ class CEnumOleVerb {
 public:
     CEnumOleVerb();
     ~CEnumOleVerb();
-    char _cenumoleverb_padding[16];
+
+    // Retail's CEnumOleVerb derives from CEnumArray; OnNext copies the element
+    // at the cursor and then hands the caller its *own* copy of the verb name.
+    // We carry the equivalent cursor state directly (same shape as
+    // CEnumFormatEtc). Total size stays 16 bytes, matching the block this
+    // replaces, so the object layout is unchanged.
+    int OnNext(void* pv);
+    void SetVerbs(OLEVERB* pVerbs, unsigned long nCount);
+
+    OLEVERB*      m_verbs;     // 0x00
+    unsigned long m_count;     // 0x08
+    unsigned long m_position;  // 0x0C
 };
 
 //=============================================================================
@@ -1696,6 +1707,22 @@ protected:
 };
 
 //=============================================================================
+// CFontHolder - font wrapper embedded by value in COleControl
+//=============================================================================
+// Layout harvested from retail with /d1reportSingleClassLayoutCFontHolder:
+//   0 m_pFont, 8 m_dwConnectCookie (+4 pad), 16 m_pNotify  => sizeof 24.
+// No vtable in retail, so this must not gain virtual functions.
+class CFontHolder {
+public:
+    CFontHolder(IPropertyNotifySink* pNotify = nullptr)
+        : m_pFont(nullptr), m_dwConnectCookie(0), m_pNotify(pNotify) {}
+
+    IFontDisp*           m_pFont;            // 0x00
+    DWORD                m_dwConnectCookie;  // 0x08 (+4 tail pad)
+    IPropertyNotifySink* m_pNotify;          // 0x10
+};                                           // sizeof 24
+
+//=============================================================================
 // COleControl - ActiveX Control Base Class
 //=============================================================================
 class COleControl : public CWnd {
@@ -1843,17 +1870,116 @@ public:
     void MoveWindow(LPCRECT lpRect, BOOL bRepaint = TRUE);
 
 public:
-    COleControlSite* m_pControlSite;
-    COleControlContainer* m_pContainer;
-    BOOL m_bInitialized;
-    BOOL m_bInPlaceActive;
-    CSize m_cxExtent;
-    CSize m_cyExtent;
-    BOOL m_bOptimizedDraw;
+    // Data members transcribed from the retail mfc140u layout, harvested with
+    // cl.exe /d1reportSingleClassLayoutCOleControl against the shipping MFC
+    // headers. Offsets in the comments are absolute and are asserted in
+    // phase4/src/olecore.cpp; sizeof(COleControl) must stay 912.
+    //
+    // The previous member set (m_pContainer, a COleControlSite* m_pControlSite,
+    // and CSize extents) was invented: it produced the right total size only
+    // because of a trailing padding blob, so every member landed at the wrong
+    // offset for a real MFC client. The two members with no retail counterpart
+    // (the owning container and OpenMFC's own site object) now live in the
+    // OleControlState side table keyed by `this`.
+    const IID*          m_piidPrimary;              // 0x0E8 232
+    const IID*          m_piidEvents;               // 0x0F0 240
+    DWORD               m_dwVersionLoaded;          // 0x0F8 248 (+4 tail pad)
+    COleDispatchDriver  m_ambientDispDriver;        // 0x100 256 (16 bytes)
+    int                 m_cEventsFrozen;            // 0x110 272 (+4 tail pad)
+    union {                                         // 0x118 280
+        CWnd*           m_pWndOpenFrame;
+        void*           m_pRectTracker;             // CRectTracker* in retail
+    };
+    CRect               m_rcPos;                    // 0x120 288
+    CRect               m_rcBounds;                 // 0x130 304
+    CPoint              m_ptOffset;                 // 0x140 320
+    long                m_cxExtent;                 // 0x148 328  (retail: long,
+    long                m_cyExtent;                 // 0x14C 332   not CSize)
+    CWnd*               m_pReflect;                 // 0x150 336
+    UINT                m_nIDTracking;              // 0x158 344
+    UINT                m_nIDLastMessage;           // 0x15C 348
 
-protected:
-    char _olecontrol_padding[632];
-};
+    // 0x160 352: a single 4-byte bitfield word in retail. Bit positions are
+    // load-bearing for any client that reads control state directly.
+    unsigned m_bAutoMenuEnable       : 1;   // bit  0
+    unsigned m_bFinalReleaseCalled   : 1;   // bit  1
+    unsigned m_bModified             : 1;   // bit  2
+    unsigned m_bCountOnAmbients      : 1;   // bit  3
+    unsigned m_iButtonState          : 3;   // bits 4-6
+    unsigned m_iDblClkState          : 3;   // bits 7-9
+    unsigned m_bInPlaceActive        : 1;   // bit 10
+    unsigned m_bUIActive             : 1;   // bit 11
+    unsigned m_bPendingUIActivation  : 1;   // bit 12
+    unsigned m_bOpen                 : 1;   // bit 13
+    unsigned m_bChangingExtent       : 1;   // bit 14
+    unsigned m_bConvertVBX           : 1;   // bit 15
+    unsigned m_bSimpleFrame          : 1;   // bit 16
+    unsigned m_bUIDead               : 1;   // bit 17
+    unsigned m_bInitialized          : 1;   // bit 18
+    unsigned m_bAutoClip             : 1;   // bit 19
+    unsigned m_bMsgReflect           : 1;   // bit 20
+    unsigned m_bInPlaceSiteEx        : 1;   // bit 21
+    unsigned m_bInPlaceSiteWndless   : 1;   // bit 22
+    unsigned m_bNoRedraw             : 1;   // bit 23
+    unsigned m_bOptimizedDraw        : 1;   // bit 24
+
+    OLE_COLOR           m_clrBackColor;             // 0x164 356
+    OLE_COLOR           m_clrForeColor;             // 0x168 360 (+4 tail pad)
+    CString             m_strText;                  // 0x170 368
+    CFontHolder         m_font;                     // 0x178 376 (24 bytes)
+    HFONT               m_hFontPrev;                // 0x190 400
+    short               m_sAppearance;              // 0x198 408
+    short               m_sBorderStyle;             // 0x19A 410
+    BOOL                m_bEnabled;                 // 0x19C 412
+    long                m_lReadyState;              // 0x1A0 416 (+4 tail pad)
+
+    // Interface pointers held by the control. Typed as void* where OpenMFC does
+    // not yet model the interface; the slot width is what the ABI fixes.
+    void*               m_pUIActiveInfo;            // 0x1A8 424
+    IUnknown*           m_pDefIUnknown;             // 0x1B0 432
+    void*               m_pAdviseInfo;              // 0x1B8 440
+    void*               m_pDefIPersistStorage;      // 0x1C0 448
+    void*               m_pDefIViewObject;          // 0x1C8 456
+    void*               m_pDefIOleCache;            // 0x1D0 464
+    IOleClientSite*     m_pClientSite;              // 0x1D8 472
+    union {                                         // 0x1E0 480
+        void*           m_pInPlaceSite;
+        void*           m_pInPlaceSiteEx;
+        void*           m_pInPlaceSiteWndless;
+    };
+    void*               m_pControlSite;             // 0x1E8 488 (IOleControlSite*)
+    IOleAdviseHolder*   m_pOleAdviseHolder;         // 0x1F0 496
+    IDataAdviseHolder*  m_pDataAdviseHolder;        // 0x1F8 504
+    void*               m_pSimpleFrameSite;         // 0x200 512
+    void*               m_pInPlaceFrame;            // 0x208 520
+    OLEINPLACEFRAMEINFO m_frameInfo;                // 0x210 528 (32 bytes)
+    void*               m_pInPlaceDoc;              // 0x230 560
+    void*               m_pDataSource;              // 0x238 568
+    BOOL                m_bDataPathPropertiesLoaded;// 0x240 576
+    DWORD               m_dwDataPathVersionToReport;// 0x244 580
+
+    // Nested BEGIN_INTERFACE_PART sub-objects. Each is exactly one vtable
+    // pointer wide in retail; the two connection points carry extra state.
+    void* m_xPersistStorage;          // 0x248 584
+    void* m_xPersistStreamInit;       // 0x250 592
+    void* m_xPersistMemory;           // 0x258 600
+    void* m_xPersistPropertyBag;      // 0x260 608
+    void* m_xOleObject;               // 0x268 616
+    void* m_xViewObject;              // 0x270 624
+    void* m_xDataObject;              // 0x278 632
+    void* m_xOleInPlaceObject;        // 0x280 640
+    void* m_xOleInPlaceActiveObject;  // 0x288 648
+    void* m_xOleCache;                // 0x290 656
+    void* m_xOleControl;              // 0x298 664
+    void* m_xProvideClassInfo;        // 0x2A0 672
+    void* m_xSpecifyPropertyPages;    // 0x2A8 680
+    void* m_xPerPropertyBrowsing;     // 0x2B0 688
+    void* m_xFontNotification;        // 0x2B8 696
+    void* m_xQuickActivate;           // 0x2C0 704
+    void* m_xPointerInactive;         // 0x2C8 712
+    char  m_xEventConnPt[96];         // 0x2D0 720
+    char  m_xPropConnPt[96];          // 0x330 816
+};                                    // 0x390 912
 
 //=============================================================================
 // Forward references for OLE helper functions

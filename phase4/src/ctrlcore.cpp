@@ -828,6 +828,31 @@ extern "C" void MS_ABI impl__SetDropDownMenu_CSplitButton__QEAAXPEAVCMenu___Z(CS
     if (pThis) pThis->SetDropDownMenu(pMenu);
 }
 
+// CSplitButton::OnDropDown — BCN_DROPDOWN reflection handler. Drops the menu
+// registered by SetDropDownMenu() below the button, left-aligned with its lower
+// left corner, which is MFC's behaviour for the split-button arrow.
+// Symbol: ?OnDropDown@CSplitButton@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnDropDown_CSplitButton__IEAAXPEAUtagNMHDR__PEA_J_Z(
+    CSplitButton* pThis, NMHDR* /*pNMHDR*/, LRESULT* pResult) {
+    if (pResult) *pResult = 0;
+    if (!pThis) return;
+
+    auto it = g_splitMenus.find(pThis);
+    if (it == g_splitMenus.end() || it->second == nullptr) return;
+
+    HWND hWnd = pThis->GetSafeHwnd();
+    if (!hWnd) return;
+
+    // MFC tracks the first submenu when the resource is a menu bar.
+    HMENU hSub = ::GetSubMenu(it->second, 0);
+    HMENU hTrack = hSub ? hSub : it->second;
+
+    RECT rc{};
+    ::GetWindowRect(hWnd, &rc);
+    ::TrackPopupMenu(hTrack, TPM_LEFTALIGN | TPM_RIGHTBUTTON,
+                     rc.left, rc.bottom, 0, ::GetParent(hWnd), nullptr);
+}
+
 // Symbol: ?Cleanup@CSplitButton@@IEAAXXZ
 extern "C" void MS_ABI impl__Cleanup_CSplitButton__IEAAXXZ(CSplitButton* pThis) {
     if (!pThis) return;

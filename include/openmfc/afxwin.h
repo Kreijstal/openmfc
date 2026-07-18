@@ -1730,7 +1730,8 @@ public:
 class CPen : public CGdiObject {
     DECLARE_DYNAMIC(CPen)
 public:
-    CPen();
+    // Defined inline: CMFCToolBar embeds a CPen (m_penDrag) by value.
+    CPen() {}
     CPen(int nPenStyle, int nWidth, unsigned long crColor);
     CPen(int nPenStyle, int nWidth, const void* pLogBrush, int nStyleCount = 0, const unsigned long* lpStyle = nullptr);
     
@@ -1788,7 +1789,9 @@ protected:
 class CBitmap : public CGdiObject {
     DECLARE_DYNAMIC(CBitmap)
 public:
-    CBitmap();
+    // Defined inline: CMFCToolBarImages embeds a CBitmap by value, so the
+    // default ctor needs a definition, not just an exported thunk.
+    CBitmap() {}
     
     int LoadBitmap(const wchar_t* lpszResourceName);
     int LoadBitmap(unsigned int nIDResource);

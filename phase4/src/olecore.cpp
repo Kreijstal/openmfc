@@ -1196,6 +1196,12 @@ struct OleControlEventSink {
 
 struct OleControlState {
     COleControl* control = nullptr;
+    // OpenMFC-only associations. Retail COleControl has no member for either:
+    // it reaches its container through m_pClientSite, and its m_pControlSite is
+    // an IOleControlSite*, not OpenMFC's COleControlSite. Keeping them here
+    // leaves the 912-byte retail member layout intact.
+    COleControlContainer* container = nullptr;
+    COleControlSite* mfcSite = nullptr;
     COLORREF backColor = RGB(255, 255, 255);
     COLORREF foreColor = RGB(0, 0, 0);
     BOOL enabled = TRUE;
@@ -1418,12 +1424,21 @@ static OleControlState* GetOleControlState(COleControl* control, bool create) {
     return &g_oleControlStates.back();
 }
 
+// OpenMFC's COleControlSite for a control, or null. Retail keeps no such
+// pointer in the object (its m_pControlSite is an IOleControlSite*), so the
+// association lives in the side table rather than in a member.
+static COleControlSite* MfcSiteOf(const COleControl* control) {
+    OleControlState* state = GetOleControlState(const_cast<COleControl*>(control), false);
+    return state ? state->mfcSite : nullptr;
+}
+
 template <typename Interface>
 static Interface* QueryOleControlInterface(COleControl* control, REFIID iid) {
     if (!control) return nullptr;
     Interface* iface = nullptr;
-    if (control->m_pControlSite && control->m_pControlSite->m_lpObject &&
-        SUCCEEDED(control->m_pControlSite->m_lpObject->QueryInterface(iid, reinterpret_cast<void**>(&iface)))) {
+    OleControlState* state = GetOleControlState(control, false);
+    if (state && state->mfcSite && state->mfcSite->m_lpObject &&
+        SUCCEEDED(state->mfcSite->m_lpObject->QueryInterface(iid, reinterpret_cast<void**>(&iface)))) {
         return iface;
     }
     if (SUCCEEDED(control->InternalQueryInterface(iid, reinterpret_cast<void**>(&iface)))) {
@@ -4404,11 +4419,52 @@ COleConnPtContainer::~COleConnPtContainer() {
 //=============================================================================
 // CEnumOleVerb
 //=============================================================================
-CEnumOleVerb::CEnumOleVerb() {
-    memset(_cenumoleverb_padding, 0, sizeof(_cenumoleverb_padding));
+CEnumOleVerb::CEnumOleVerb() : m_verbs(nullptr), m_count(0), m_position(0) {
 }
 
 CEnumOleVerb::~CEnumOleVerb() {
+}
+
+void CEnumOleVerb::SetVerbs(OLEVERB* pVerbs, unsigned long nCount) {
+    m_verbs = pVerbs;
+    m_count = nCount;
+    m_position = 0;
+}
+
+// Fetches the verb at the cursor and advances. Retail (mfc140u
+// ?OnNext@CEnumOleVerb@@) runs the CEnumArray element copy first and, when that
+// succeeds, replaces OLEVERB::lpszVerbName with a caller-owned duplicate --
+// allocated with the COM task allocator, since the caller is expected to
+// CoTaskMemFree it -- and raises a memory exception if that allocation fails.
+int CEnumOleVerb::OnNext(void* pv) {
+    if (pv == nullptr) return FALSE;
+    if (m_verbs == nullptr || m_position >= m_count) return FALSE;
+
+    // Build the result from the verb at the cursor WITHOUT consuming it, so a
+    // failed allocation leaves the enumerator exactly where it was. Advancing
+    // first would silently swallow a verb on OOM: the caller gets FALSE, and
+    // a retry resumes at the following element.
+    const OLEVERB& src = m_verbs[m_position];
+    OLEVERB result = src;
+
+    if (src.lpszVerbName != nullptr) {
+        const size_t cb = (wcslen(src.lpszVerbName) + 1) * sizeof(wchar_t);
+        LPOLESTR copy = static_cast<LPOLESTR>(::CoTaskMemAlloc(cb));
+        if (copy == nullptr) {
+            return FALSE;   // cursor untouched; caller may retry this verb
+        }
+        memcpy(copy, src.lpszVerbName, cb);
+        result.lpszVerbName = copy;
+    }
+
+    *static_cast<OLEVERB*>(pv) = result;
+    ++m_position;
+    return TRUE;
+}
+
+// Symbol: ?OnNext@CEnumOleVerb@@MEAAHPEAX@Z
+extern "C" int MS_ABI impl__OnNext_CEnumOleVerb__MEAAHPEAX_Z(CEnumOleVerb* pThis, void* pv) {
+    return pThis ? pThis->OnNext(pv) : FALSE;
 }
 
 HWND COleControlSiteOrWnd::GetSafeHwnd() const {
@@ -4891,16 +4947,42 @@ COleControl::CControlDataSource::CControlDataSource(COleControl* pCtrl) {
     (void)pCtrl;
 }
 
-COleControl::COleControl()
-    : m_pControlSite(nullptr), m_pContainer(nullptr),
-      m_bInitialized(FALSE), m_bInPlaceActive(FALSE),
-      m_bOptimizedDraw(FALSE) {
-    m_cxExtent.cx = 0;
-    m_cxExtent.cy = 0;
-    m_cyExtent.cx = 0;
-    m_cyExtent.cy = 0;
+// sizeof/offset guards for the retail-transcribed layout. If any of these fire,
+// a member edit has silently broken binary compatibility with mfc140u.
+static_assert(sizeof(COleControl) == 912, "COleControl must match retail sizeof");
+static_assert(sizeof(CFontHolder) == 24, "CFontHolder must match retail sizeof");
+static_assert(offsetof(COleControl, m_piidPrimary) == 232, "m_piidPrimary @232");
+static_assert(offsetof(COleControl, m_ambientDispDriver) == 256, "m_ambientDispDriver @256");
+static_assert(offsetof(COleControl, m_rcPos) == 288, "m_rcPos @288");
+static_assert(offsetof(COleControl, m_cxExtent) == 328, "m_cxExtent @328");
+static_assert(offsetof(COleControl, m_clrBackColor) == 356, "m_clrBackColor @356");
+static_assert(offsetof(COleControl, m_strText) == 368, "m_strText @368");
+static_assert(offsetof(COleControl, m_font) == 376, "m_font @376");
+static_assert(offsetof(COleControl, m_pClientSite) == 472, "m_pClientSite @472");
+static_assert(offsetof(COleControl, m_pControlSite) == 488, "m_pControlSite @488");
+static_assert(offsetof(COleControl, m_frameInfo) == 528, "m_frameInfo @528");
+static_assert(offsetof(COleControl, m_xPersistStorage) == 584, "m_xPersistStorage @584");
+static_assert(offsetof(COleControl, m_xEventConnPt) == 720, "m_xEventConnPt @720");
+static_assert(offsetof(COleControl, m_xPropConnPt) == 816, "m_xPropConnPt @816");
+
+COleControl::COleControl() {
+    // Zero the whole retail member block, then set the members whose retail
+    // initial values are not zero. Members live at fixed offsets now, so this
+    // clears exactly the region a real client would inspect.
+    std::memset(reinterpret_cast<char*>(this) + sizeof(CWnd), 0,
+                sizeof(COleControl) - sizeof(CWnd));
+    m_bAutoMenuEnable = 1;
+    m_bAutoClip = 1;
+    m_bCountOnAmbients = 1;
+    m_sAppearance = 0;
+    m_bEnabled = TRUE;
+    m_lReadyState = 4;              // READYSTATE_COMPLETE
+    m_clrBackColor = 0x80000005;    // COLOR_WINDOW  | 0x80000000
+    m_clrForeColor = 0x80000008;    // COLOR_WINDOWTEXT | 0x80000000
+    new (&m_strText) CString();
+    new (&m_font) CFontHolder();
+    new (&m_ambientDispDriver) COleDispatchDriver();
     GetOleControlState(this, true);
-    memset(_olecontrol_padding, 0, sizeof(_olecontrol_padding));
 }
 
 COleControl::~COleControl() {
@@ -4927,9 +5009,11 @@ BOOL COleControl::CreateControl(REFCLSID clsid, const wchar_t* lpszWindowName,
         return FALSE;
     }
 
-    m_pContainer = container;
-    m_pControlSite = site;
-    m_bInitialized = TRUE;
+    if (OleControlState* state = GetOleControlState(this, true)) {
+        state->container = container;
+        state->mfcSite = site;
+    }
+    m_bInitialized = 1;
     return TRUE;
 }
 
@@ -4962,9 +5046,33 @@ BOOL COleControl::DoPropExchange(CPropExchange* pPX) {
     return FALSE;
 }
 
+// COleControl::GetAmbientDispatchDriver — real implementation lives in
+// global_olecontrol_batch1.cpp (decoded from retail); it lazily binds the
+// embedded driver to the container's IDispatch via m_pClientSite.
+extern "C" COleDispatchDriver* MS_ABI
+impl__GetAmbientDispatchDriver_COleControl__IEAAPEAVCOleDispatchDriver__XZ(COleControl* pThis);
+
 BOOL COleControl::GetAmbientProperty(DISPID dwDispid, VARTYPE vtProp, void* pvProp) {
     if (!pvProp) return FALSE;
-    return m_pControlSite ? m_pControlSite->GetAmbientProperty(dwDispid, vtProp, pvProp) : FALSE;
+
+    // OpenMFC's own CreateControl path records a COleControlSite in the side
+    // table and that site answers ambients directly, so it stays the preferred
+    // source. It is not the only way to be hosted, though: an ordinary COM
+    // container calls SetClientSite and never touches the side table, and for
+    // those controls every ambient lookup used to fail outright. Fall back to
+    // the container's IDispatch, which is the path retail always takes.
+    if (COleControlSite* pSite = MfcSiteOf(this))
+        return pSite->GetAmbientProperty(dwDispid, vtProp, pvProp);
+
+    COleDispatchDriver* pDriver =
+        impl__GetAmbientDispatchDriver_COleControl__IEAAPEAVCOleDispatchDriver__XZ(this);
+    if (pDriver == nullptr || pDriver->GetIDispatch(FALSE) == nullptr)
+        return FALSE;
+
+    // DISPATCH_PROPERTYGET == 2. A container that does not implement the
+    // ambient reports failure through the driver rather than by throwing here.
+    pDriver->InvokeHelper(dwDispid, 2, vtProp, pvProp, nullptr);
+    return TRUE;
 }
 
 void COleControl::FireEvent(DISPID dispId, BYTE* pbParams, ...) {
@@ -5237,30 +5345,32 @@ void COleControl::OnResetState() {
         state->readyState = 4;
         state->modified = FALSE;
     }
-    m_cxExtent.cx = 0;
-    m_cxExtent.cy = 0;
-    m_cyExtent.cx = 0;
-    m_cyExtent.cy = 0;
+    // The side table is not the ABI-visible copy: IsModified() reads the
+    // m_bModified bit at this+0x160, so the reset has to clear that too or a
+    // freshly reset control still reports itself dirty to a real client.
+    m_bModified = 0;
+    m_cxExtent = 0;
+    m_cyExtent = 0;
 }
 DWORD COleControl::GetControlFlags() {
     DWORD flags = 0;
     if (m_bOptimizedDraw) flags |= 0x00000001;
     if (m_hWnd) flags |= 0x00000002;
-    if (m_pControlSite) flags |= 0x00000004;
+    if (MfcSiteOf(this)) flags |= 0x00000004;
     return flags;
 }
+// m_cxExtent / m_cyExtent are the control's width and height in HIMETRIC, per
+// the retail layout — one scalar each, not a pair of CSize.
 BOOL COleControl::OnSetExtent(DVASPECT dwDrawAspect, const SIZE& size) {
     if (dwDrawAspect != DVASPECT_CONTENT) return FALSE;
-    m_cxExtent.cx = size.cx;
-    m_cxExtent.cy = size.cy;
-    m_cyExtent.cx = size.cx;
-    m_cyExtent.cy = size.cy;
+    m_cxExtent = size.cx;
+    m_cyExtent = size.cy;
     return TRUE;
 }
 BOOL COleControl::OnGetExtent(DVASPECT dwDrawAspect, SIZE& size) {
     if (dwDrawAspect != DVASPECT_CONTENT) return FALSE;
-    size.cx = m_cxExtent.cx;
-    size.cy = m_cxExtent.cy;
+    size.cx = m_cxExtent;
+    size.cy = m_cyExtent;
     return TRUE;
 }
 BOOL COleControl::OnMapPropertyToPage(DISPID dispid, CLSID* pclsid, BOOL* pbPageOptional) {
@@ -5438,7 +5548,7 @@ long COleControl::GetReadyState() const {
 }
 
 BOOL COleControl::IsSubclassedControl() {
-    return m_hWnd != nullptr && m_pControlSite == nullptr;
+    return m_hWnd != nullptr && MfcSiteOf(this) == nullptr;
 }
 void COleControl::SetModifiedFlag(BOOL bModified) {
     OleControlState* state = GetOleControlState(this, true);
@@ -5453,14 +5563,14 @@ ULONG COleControl::InternalRelease() { return 1; }
 ULONG COleControl::InternalQueryInterface(REFIID riid, void** ppv) {
     if (!ppv) return E_POINTER;
     *ppv = nullptr;
-    if (m_pControlSite && m_pControlSite->m_lpObject) {
-        return m_pControlSite->m_lpObject->QueryInterface(riid, ppv);
+    if (MfcSiteOf(this) && MfcSiteOf(this)->m_lpObject) {
+        return MfcSiteOf(this)->m_lpObject->QueryInterface(riid, ppv);
     }
     return E_NOINTERFACE;
 }
 void COleControl::GetControlSize(int* pCX, int* pCY) {
-    if (pCX) *pCX = m_cxExtent.cx;
-    if (pCY) *pCY = m_cxExtent.cy;
+    if (pCX) *pCX = m_cxExtent;
+    if (pCY) *pCY = m_cyExtent;
 }
 void COleControl::SetControlSize(int cx, int cy) {
     SIZE size = { cx, cy };
@@ -5469,8 +5579,11 @@ void COleControl::SetControlSize(int cx, int cy) {
     }
 }
 void COleControl::OnSetClientSite() {
-    m_bInitialized = (m_pControlSite != nullptr);
-    m_pContainer = m_pControlSite ? m_pControlSite->GetContainer() : nullptr;
+    COleControlSite* site = MfcSiteOf(this);
+    m_bInitialized = (site != nullptr) ? 1u : 0u;
+    if (OleControlState* state = GetOleControlState(this, true)) {
+        state->container = site ? site->GetContainer() : nullptr;
+    }
 }
 void COleControl::OnGetControlInfo(LPCONTROLINFO pControlInfo) {
     if (!pControlInfo) return;
@@ -5530,8 +5643,8 @@ void COleControl::InvalidateControl(LPCRECT lpRect, BOOL bErase) {
 }
 int COleControl::OnProperties(MSG* pMsg, HWND hWnd, const RECT* lpRect) {
     (void)pMsg; (void)lpRect;
-    if (m_pControlSite) {
-        m_pControlSite->ShowPropertyFrame();
+    if (COleControlSite* site = MfcSiteOf(this)) {
+        site->ShowPropertyFrame();
         return TRUE;
     }
     HWND oldWnd = m_hWnd;
@@ -5561,8 +5674,8 @@ void COleControl::ShowPropertyPages() {
 }
 int COleControl::GetPropertyPageCount() const {
     IUnknown* unknown = nullptr;
-    if (m_pControlSite && m_pControlSite->m_lpObject) {
-        unknown = m_pControlSite->m_lpObject;
+    if (MfcSiteOf(this) && MfcSiteOf(this)->m_lpObject) {
+        unknown = MfcSiteOf(this)->m_lpObject;
         unknown->AddRef();
     } else {
         const_cast<COleControl*>(this)->InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&unknown));
@@ -5595,8 +5708,8 @@ void COleControl::EnableConnectionPoints() {
     if (!state) return;
     IConnectionPointContainer* container = nullptr;
     IUnknown* unknown = nullptr;
-    if (m_pControlSite && m_pControlSite->m_lpObject) {
-        unknown = m_pControlSite->m_lpObject;
+    if (MfcSiteOf(this) && MfcSiteOf(this)->m_lpObject) {
+        unknown = MfcSiteOf(this)->m_lpObject;
         unknown->AddRef();
     } else {
         InternalQueryInterface(IID_IUnknown, reinterpret_cast<void**>(&unknown));
@@ -5665,8 +5778,9 @@ BOOL COleControl::OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect) {
         state->clipRect = clipRect;
         state->hasObjectRects = TRUE;
     }
-    if (m_pControlSite && m_pControlSite->m_lpInPlaceObject &&
-        SUCCEEDED(m_pControlSite->m_lpInPlaceObject->SetObjectRects(lprcPosRect, &clipRect))) {
+    COleControlSite* ipSite = MfcSiteOf(this);
+    if (ipSite && ipSite->m_lpInPlaceObject &&
+        SUCCEEDED(ipSite->m_lpInPlaceObject->SetObjectRects(lprcPosRect, &clipRect))) {
         return TRUE;
     }
     IOleInPlaceObject* inPlace = QueryOleControlInterface<IOleInPlaceObject>(this, IID_IOleInPlaceObject);

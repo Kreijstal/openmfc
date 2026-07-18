@@ -418,6 +418,14 @@ void CView::OnEndPrinting(void* pDC, void* pInfo) { impl__OnEndPrinting_CView__U
 void CView::OnActivateView(int bActivate, CView* pActivateView, CView* pDeactiveView) { impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(this, bActivate, pActivateView, pDeactiveView); }
 CFrameWnd* CView::GetParentFrame() const { return impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(this); }
 
+// OLE drag/drop virtual defaults. Match real MFC CView semantics: a view that
+// does not participate in drag/drop rejects the drop. OnDropEx returns (DWORD)-1
+// to signal "not handled" so the framework falls back to OnDrop.
+DWORD CView::OnDragEnter(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
+DWORD CView::OnDragOver(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
+BOOL CView::OnDrop(COleDataObject* /*pDataObject*/, DWORD /*dropEffect*/, CPoint /*point*/) { return FALSE; }
+DWORD CView::OnDropEx(COleDataObject* /*pDataObject*/, DWORD /*dropDefault*/, DWORD /*dropList*/, CPoint /*point*/) { return (DWORD)-1; }
+
 // =============================================================================
 // CScrollView Member Function Implementations (vtable entries)
 // =============================================================================
@@ -2313,6 +2321,75 @@ extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClas
 extern "C" void MS_ABI impl__SetPreviewInfo_CDocTemplate__QEAAXIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, CRuntimeClass* viewClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.previewId=id; s.previewViewClass=viewClass; s.previewFrameClass=frameClass; } }
 // Symbol: ?CreatePreviewFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@@Z
 extern "C" CFrameWnd* MS_ABI impl__CreatePreviewFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument___Z(CDocTemplate* pThis, CWnd*, CDocument* doc) { return pThis ? pThis->CreateNewFrame(doc, nullptr) : nullptr; }
+
+// CDocTemplate::CreateOleFrame — builds the in-place container frame used when a
+// document is activated inside an OLE container.
+//
+// Retail mfc140u reads the OLE frame/view runtime classes SetContainerInfo()
+// stashed at this+0xC8 / this+0xD0, fills a CCreateContext (m_pCurrentDoc = pDoc,
+// m_pCurrentDocTemplate = this, m_pNewViewClass = the OLE view class only when
+// bCreateView is set), and creates the frame from it. With SetContainerInfo()
+// never called those pointers are null and retail yields no frame.
+//
+// OpenMFC keeps the container registration as the resource id recorded by
+// SetContainerInfo (g_templateExtraStates), so the same contract is honoured
+// here: no container id means no OLE frame, otherwise the frame is loaded from
+// that id and the view is attached only when bCreateView requests it.
+// Symbol: ?CreateOleFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@H@Z
+extern "C" CFrameWnd* MS_ABI impl__CreateOleFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument__H_Z(
+    CDocTemplate* pThis, CWnd* pParentWnd, CDocument* pDoc, int bCreateView)
+{
+    if (!pThis || !pThis->m_pFrameClass) return nullptr;
+
+    auto itState = g_templateExtraStates.find(pThis);
+    const unsigned int containerId =
+        (itState == g_templateExtraStates.end()) ? 0u : itState->second.containerId;
+    if (containerId == 0) return nullptr;   // SetContainerInfo() never called
+
+    CObject* pObj = pThis->m_pFrameClass->CreateObject();
+    if (!pObj) return nullptr;
+    CFrameWnd* pFrame = static_cast<CFrameWnd*>(pObj);
+
+    if (!pFrame->m_hWnd) {
+        if (!pFrame->CFrameWnd::LoadFrame(containerId, WS_OVERLAPPEDWINDOW, pParentWnd, nullptr)) {
+            RECT rect = { CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT };
+            if (!pFrame->CFrameWnd::Create(nullptr, L"OpenMFC Container",
+                                           WS_OVERLAPPEDWINDOW, rect, pParentWnd,
+                                           nullptr, 0, nullptr)) {
+                // CreateObject() handed us ownership; nothing else can free the
+                // frame once we return null, so release it here.
+                delete pFrame;
+                return nullptr;
+            }
+        }
+    }
+
+    if (bCreateView && pThis->m_pViewClass && pDoc) {
+        CObject* pViewObj = pThis->m_pViewClass->CreateObject();
+        if (pViewObj) {
+            CView* pView = static_cast<CView*>(pViewObj);
+            // Create the view window BEFORE registering it with the document.
+            // Registering first would leave a windowless view attached to the
+            // document (and installed as m_pViewActive) if creation failed.
+            BOOL bViewReady = (pView->m_hWnd != nullptr);
+            if (!bViewReady && pFrame->m_hWnd) {
+                RECT rcClient = {};
+                ::GetClientRect(pFrame->m_hWnd, &rcClient);
+                bViewReady = pView->CWnd::Create(
+                    nullptr, nullptr,
+                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                    rcClient, pFrame, AFX_IDW_PANE_FIRST, nullptr);
+            }
+            if (bViewReady) {
+                pDoc->AddView(pView);
+                pFrame->m_pViewActive = pView;
+            } else {
+                delete pView;   // never reached the document; we still own it
+            }
+        }
+    }
+    return pFrame;
+}
 
 // CView residuals.
 // Symbol: ?CalcWindowRect@CView@@UEAAXPEAUtagRECT@@I@Z
