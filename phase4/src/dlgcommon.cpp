@@ -147,6 +147,8 @@ OPENFILENAMEW& OpenMfcGetOFNSnapshot(const CFileDialog* pThis) {
     return ofn;
 }
 
+} // namespace
+
 CFileDialog::CFileDialog(int bOpenFileDialog,
                          const wchar_t* lpszDefExt,
                          const wchar_t* lpszFileName,
@@ -2417,5 +2419,3 @@ extern "C" void MS_ABI impl__SetItemText_CVSListBox__MEAAXHAEBV__CStringT__WV__S
     CVSListBox* pThis, int p0, const CString* p1) {
     if (pThis && p1) pThis->SetItemText(p0, *p1);
 }
-
-} // namespace
