@@ -42,15 +42,26 @@ fi
 
 CXX="${CXX_MINGW:-x86_64-w64-mingw32-g++}"
 
-if ! command -v "$CXX" >/dev/null 2>&1; then
-    echo "⚠️  MinGW compiler not found ($CXX) -- skipping runtime tests."
-    echo "   Install mingw-w64 to run them locally."
+# Missing tooling means the tests do not run. Locally that should be a friendly
+# skip, but in CI a silent skip is indistinguishable from a pass and would hide
+# exactly the regressions these tests exist to catch -- so CI sets
+# REQUIRE_MINGW=1 and a missing toolchain fails the job instead.
+missing_tool() {
+    if [[ "${REQUIRE_MINGW:-0}" == "1" ]]; then
+        echo "❌ $1"
+        echo "   REQUIRE_MINGW=1 is set, so this is a failure rather than a skip."
+        exit 1
+    fi
+    echo "⚠️  $1 -- skipping runtime tests."
     exit 0
+}
+
+if ! command -v "$CXX" >/dev/null 2>&1; then
+    missing_tool "MinGW compiler not found ($CXX); install mingw-w64"
 fi
 
 if ! command -v wine >/dev/null 2>&1 && ! command -v wine64 >/dev/null 2>&1; then
-    echo "⚠️  Wine not found -- skipping runtime tests."
-    exit 0
+    missing_tool "Wine not found"
 fi
 
 WINE="$(command -v wine || command -v wine64)"
@@ -82,8 +93,16 @@ for t in "${TESTS[@]}"; do
         continue
     fi
 
+    # timeout is GNU coreutils and not present everywhere (macOS, slim images),
+    # so fall back to running without it rather than reporting a spurious
+    # failure. Unquoted on purpose: empty must expand to no argument at all.
+    TIMEOUT_CMD=""
+    if command -v timeout >/dev/null 2>&1; then
+        TIMEOUT_CMD="timeout 60s"
+    fi
+
     # WINEDEBUG quiets the loader chatter that otherwise buries the results.
-    if (cd "$WORK" && WINEDEBUG=-all timeout 60s "$WINE" "$t.exe" 2>/dev/null); then
+    if (cd "$WORK" && WINEDEBUG=-all $TIMEOUT_CMD "$WINE" "$t.exe" 2>/dev/null); then
         echo "✅ $t passed"
     else
         echo "❌ $t FAILED"

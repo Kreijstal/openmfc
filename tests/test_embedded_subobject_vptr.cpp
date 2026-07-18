@@ -70,7 +70,11 @@ int main(int argc, char** argv)
     // --- CMFCToolBarImages -------------------------------------------------
     // Storage is pre-zeroed so a constructor that fails to establish a vfptr
     // leaves a null there rather than stale stack data that might look valid.
-    static unsigned char img[I_SIZE];
+    // alignas: unsigned char[] guarantees only 1-byte alignment, and these
+    // buffers hold objects full of pointers. Current compilers happen to align
+    // large statics generously, but constructing into under-aligned storage is
+    // undefined behaviour and not something to leave to chance.
+    alignas(16) static unsigned char img[I_SIZE];
     memset(img, 0, sizeof img);
     ImgCtor(img);
     CHECK(VPTR(img, 0)        != NULL, "CMFCToolBarImages vfptr set");
@@ -78,7 +82,7 @@ int main(int argc, char** argv)
     CHECK(VPTR(img, I_BMPMEM) != NULL, "CMFCToolBarImages::m_bmpMem (CBitmap) vfptr survives memset");
 
     // --- CMFCToolBar -------------------------------------------------------
-    static unsigned char tb[T_SIZE];
+    alignas(16) static unsigned char tb[T_SIZE];
     memset(tb, 0, sizeof tb);
     TbCtor(tb);
     CHECK(VPTR(tb, 0)             != NULL, "CMFCToolBar vfptr set");
