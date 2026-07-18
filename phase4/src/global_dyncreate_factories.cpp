@@ -52,9 +52,34 @@ CObject* CreateSized()
 
 } // namespace
 
+// CSettingsStore::CreateObject()
+//
+// Unlike the other factories here, this one must produce an object that can
+// prove it is a CSettingsStore: CSettingsStoreSP::Create validates the result
+// with IsKindOf(RUNTIME_CLASS(CSettingsStore)). Handing back a CObjectShim
+// would misreport the type to that check and to every downstream
+// DYNAMIC_DOWNCAST, so the shim is not usable here.
+//
+// A real CSettingsStore runtime descriptor already exists (it backs the
+// exported CSettingsStore::GetThisClass), so the object can report its type
+// truthfully rather than either lying or refusing to be created. The class
+// below is a genuine CObject subclass of the harvested size whose
+// GetRuntimeClass returns that descriptor; IsKindOf then passes on the merits.
+// Its CSettingsStore methods remain unimplemented -- the same position as any
+// partially-implemented class -- but its identity is not a fiction.
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSettingsStore__SAPEAUCRuntimeClass__XZ();
+
+namespace {
+struct CSettingsStoreObject : public CObject {
+    CSettingsStoreObject() = default;
+    virtual CRuntimeClass* GetRuntimeClass() const override
+    { return impl__GetThisClass_CSettingsStore__SAPEAUCRuntimeClass__XZ(); }
+};
+} // namespace
+
 // Symbol: ?CreateObject@CSettingsStore@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CSettingsStore__SAPEAVCObject__XZ()
-{ return CreateSized<CObjectShim, 56>(); }
+{ return CreateSized<CSettingsStoreObject, 56>(); }
 
 // Symbol: ?CreateObject@CHelpComboBoxButton@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CHelpComboBoxButton__SAPEAVCObject__XZ()

@@ -2356,6 +2356,9 @@ extern "C" CFrameWnd* MS_ABI impl__CreateOleFrame_CDocTemplate__QEAAPEAVCFrameWn
             if (!pFrame->CFrameWnd::Create(nullptr, L"OpenMFC Container",
                                            WS_OVERLAPPEDWINDOW, rect, pParentWnd,
                                            nullptr, 0, nullptr)) {
+                // CreateObject() handed us ownership; nothing else can free the
+                // frame once we return null, so release it here.
+                delete pFrame;
                 return nullptr;
             }
         }
@@ -2365,15 +2368,24 @@ extern "C" CFrameWnd* MS_ABI impl__CreateOleFrame_CDocTemplate__QEAAPEAVCFrameWn
         CObject* pViewObj = pThis->m_pViewClass->CreateObject();
         if (pViewObj) {
             CView* pView = static_cast<CView*>(pViewObj);
-            pDoc->AddView(pView);
-            if (!pView->m_hWnd && pFrame->m_hWnd) {
+            // Create the view window BEFORE registering it with the document.
+            // Registering first would leave a windowless view attached to the
+            // document (and installed as m_pViewActive) if creation failed.
+            BOOL bViewReady = (pView->m_hWnd != nullptr);
+            if (!bViewReady && pFrame->m_hWnd) {
                 RECT rcClient = {};
                 ::GetClientRect(pFrame->m_hWnd, &rcClient);
-                pView->CWnd::Create(nullptr, nullptr,
-                                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                                    rcClient, pFrame, AFX_IDW_PANE_FIRST, nullptr);
+                bViewReady = pView->CWnd::Create(
+                    nullptr, nullptr,
+                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                    rcClient, pFrame, AFX_IDW_PANE_FIRST, nullptr);
             }
-            pFrame->m_pViewActive = pView;
+            if (bViewReady) {
+                pDoc->AddView(pView);
+                pFrame->m_pViewActive = pView;
+            } else {
+                delete pView;   // never reached the document; we still own it
+            }
         }
     }
     return pFrame;

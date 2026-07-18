@@ -38,11 +38,12 @@ extern "C" CObject* MS_ABI impl__CreateObject_CSettingsStore__SAPEAVCObject__XZ(
 // Retail derives the hive with a sbb/neg sequence that yields
 // HKEY_CURRENT_USER for bAdmin==0 and HKEY_LOCAL_MACHINE otherwise.
 //
-// Retail validates the freshly created object with IsKindOf; we instead check
-// IsDerivedFrom on the runtime class *before* creating. The two are equivalent
-// for a correctly registered CSettingsStore subclass, but IsKindOf would reject
-// the object our CreateObject hands back (it reports its base class, see
-// global_dyncreate_factories.cpp).
+// Retail validates the freshly created object with IsKindOf, and so do we: the
+// check below is applied to the object itself, not merely to the runtime class
+// that produced it. An earlier revision weakened this to an IsDerivedFrom test
+// on the class so that a placeholder object reporting its base type would slip
+// through; that made the validation meaningless. Objects that cannot prove
+// they are a CSettingsStore are now rejected, and Create reports failure.
 // Symbol: ?Create@CSettingsStoreSP@@QEAAAEAVCSettingsStore@@HH@Z
 extern "C" void* MS_ABI impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(
     void* pThis, int bAdmin, int bReadOnly) {
@@ -60,6 +61,13 @@ extern "C" void* MS_ABI impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__H
             pNew = pRTI->CreateObject();
         if (pNew == nullptr)
             pNew = impl__CreateObject_CSettingsStore__SAPEAVCObject__XZ();
+
+        // Retail's post-creation IsKindOf gate: anything that is not actually a
+        // CSettingsStore is discarded rather than installed.
+        if (pNew != nullptr && !pNew->IsKindOf(pDefault)) {
+            delete pNew;
+            pNew = nullptr;
+        }
 
         *ppRegistry = pNew;
 

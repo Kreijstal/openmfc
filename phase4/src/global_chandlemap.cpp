@@ -265,12 +265,16 @@ impl___0CHandleMap__QEAA_PEAUCRuntimeClass__P6AXPEAVCObject___Z2_KH_Z(
         m.m_nBlockSize     = blockSize;
     };
     initMap(pThis->m_permanentMap, 17, 10);
-    initMap(pThis->m_temporaryMap, 17, 4);
+    initMap(pThis->m_temporaryMap, 7, 4);
 
-    if (pfnDestructor == nullptr || pfnDestructor2 == nullptr)
-        return pThis;                       // retail: noreturn error helper
-    pThis->m_temporaryMap.m_nHashTableSize = 7;
-
+    // Retail routes null destructor callbacks into a non-returning error
+    // helper, so no half-built CHandleMap can ever be observed. OpenMFC cannot
+    // abort the caller's process from inside a DLL export, so it does the next
+    // best thing: finish initialization unconditionally. The previous early
+    // return handed back an object with m_pClass, both destructor slots,
+    // m_nOffset and m_nHandles still unset AND a temporary map left at the
+    // permanent map's hash size -- strictly worse than a consistent object
+    // whose (null) callbacks fail loudly at first use.
     pThis->m_pClass         = pClass;
     pThis->m_pfnDestructor  = pfnDestructor;
     pThis->m_pfnDestructor2 = pfnDestructor2;

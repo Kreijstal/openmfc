@@ -59,12 +59,18 @@ extern "C" CPen* MS_ABI impl___0CPen__QEAA_HHPEBUtagLOGBRUSH__HPEBK_Z(
     int nStyleCount, const DWORD* lpStyle)
 {
     if (!pThis) return nullptr;
-    pThis->m_hObject = ::ExtCreatePen(static_cast<DWORD>(nPenStyle),
-                                      static_cast<DWORD>(nWidth),
-                                      pLogBrush,
-                                      static_cast<DWORD>(nStyleCount),
-                                      lpStyle);
-    return pThis;
+    // Placement-new first: this is a constructor thunk, so the CPen/CGdiObject
+    // subobjects and the vtable pointer must be established before any member
+    // is written. Storing m_hObject into raw storage (as this did originally)
+    // left the vptr uninitialized, so the first virtual call on the pen --
+    // including ~CGdiObject -> DeleteObject -- dispatched through garbage.
+    CPen* p = new (pThis) CPen();
+    p->m_hObject = ::ExtCreatePen(static_cast<DWORD>(nPenStyle),
+                                  static_cast<DWORD>(nWidth),
+                                  pLogBrush,
+                                  static_cast<DWORD>(nStyleCount),
+                                  lpStyle);
+    return p;
 }
 
 // CGopherFile::CGopherFile(HINTERNET, CGopherLocator&, CGopherConnection*) —

@@ -4440,19 +4440,25 @@ int CEnumOleVerb::OnNext(void* pv) {
     if (pv == nullptr) return FALSE;
     if (m_verbs == nullptr || m_position >= m_count) return FALSE;
 
-    OLEVERB* pDest = static_cast<OLEVERB*>(pv);
-    *pDest = m_verbs[m_position++];
+    // Build the result from the verb at the cursor WITHOUT consuming it, so a
+    // failed allocation leaves the enumerator exactly where it was. Advancing
+    // first would silently swallow a verb on OOM: the caller gets FALSE, and
+    // a retry resumes at the following element.
+    const OLEVERB& src = m_verbs[m_position];
+    OLEVERB result = src;
 
-    if (pDest->lpszVerbName != nullptr) {
-        const size_t cb = (wcslen(pDest->lpszVerbName) + 1) * sizeof(wchar_t);
+    if (src.lpszVerbName != nullptr) {
+        const size_t cb = (wcslen(src.lpszVerbName) + 1) * sizeof(wchar_t);
         LPOLESTR copy = static_cast<LPOLESTR>(::CoTaskMemAlloc(cb));
         if (copy == nullptr) {
-            pDest->lpszVerbName = nullptr;
-            return FALSE;
+            return FALSE;   // cursor untouched; caller may retry this verb
         }
-        memcpy(copy, pDest->lpszVerbName, cb);
-        pDest->lpszVerbName = copy;
+        memcpy(copy, src.lpszVerbName, cb);
+        result.lpszVerbName = copy;
     }
+
+    *static_cast<OLEVERB*>(pv) = result;
+    ++m_position;
     return TRUE;
 }
 
