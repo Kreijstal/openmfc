@@ -783,12 +783,14 @@ public:
     virtual ~CUserTool();
 
     virtual int Invoke();
+    virtual void Serialize(CArchive& ar);
 
 protected:
     char _usertool_padding[32];
 };
 
 class CUserToolsManager : public CObject {
+    DECLARE_DYNAMIC(CUserToolsManager)
 public:
     CUserToolsManager();
     CUserToolsManager(int, int, int, CRuntimeClass*, int, int);

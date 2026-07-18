@@ -418,6 +418,14 @@ void CView::OnEndPrinting(void* pDC, void* pInfo) { impl__OnEndPrinting_CView__U
 void CView::OnActivateView(int bActivate, CView* pActivateView, CView* pDeactiveView) { impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(this, bActivate, pActivateView, pDeactiveView); }
 CFrameWnd* CView::GetParentFrame() const { return impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(this); }
 
+// OLE drag/drop virtual defaults. Match real MFC CView semantics: a view that
+// does not participate in drag/drop rejects the drop. OnDropEx returns (DWORD)-1
+// to signal "not handled" so the framework falls back to OnDrop.
+DWORD CView::OnDragEnter(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
+DWORD CView::OnDragOver(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
+BOOL CView::OnDrop(COleDataObject* /*pDataObject*/, DWORD /*dropEffect*/, CPoint /*point*/) { return FALSE; }
+DWORD CView::OnDropEx(COleDataObject* /*pDataObject*/, DWORD /*dropDefault*/, DWORD /*dropList*/, CPoint /*point*/) { return (DWORD)-1; }
+
 // =============================================================================
 // CScrollView Member Function Implementations (vtable entries)
 // =============================================================================

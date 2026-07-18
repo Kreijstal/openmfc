@@ -2189,8 +2189,8 @@ int CTaskDialog::DoModal(HWND hWndParent) {
                 m_nSelectedCommandID = taskDialogButtons.front().nButtonID;
                 return m_nSelectedCommandID;
             }
-            if (!state.radioButtons.empty()) {
-                m_nSelectedRadioButtonID = state.radioButtons.front().id;
+            if (!state.radioButtons.buttons.empty()) {
+                m_nSelectedRadioButtonID = state.radioButtons.buttons.front().nButtonID;
                 return m_nSelectedRadioButtonID;
             }
             return IDOK;
@@ -2756,42 +2756,6 @@ extern "C" int MS_ABI impl__GetTextLength_CStatusBarCtrl__QEBAHHPEAH_Z(
     LRESULT lenAndType = hwnd ? ::SendMessageW(hwnd, SB_GETTEXTLENGTHW, nPane, 0) : 0;
     if (pType) *pType = HIWORD(lenAndType);
     return LOWORD(lenAndType);
-}
-
-// Symbol: ?AddString@CToolBarCtrl@@QEAAHI@Z
-extern "C" int MS_ABI impl__AddString_CToolBarCtrl__QEAAHI_Z(CWnd* pThis, UINT nStringID) {
-    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
-    return hwnd ? static_cast<int>(::SendMessageW(hwnd, TB_ADDSTRINGW, reinterpret_cast<WPARAM>(AfxGetResourceHandle()), nStringID)) : -1;
-}
-
-// Symbol: ?Create@CToolBarCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-extern "C" int MS_ABI impl__Create_CToolBarCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
-    CWnd* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
-    if (!pThis || !pRect) return FALSE;
-    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
-    ::InitCommonControlsEx(&icc);
-    return pThis->CreateEx(0, TOOLBARCLASSNAMEW, L"", dwStyle,
-        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
-        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
-}
-
-// Symbol: ?CreateEx@CToolBarCtrl@@QEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
-extern "C" int MS_ABI impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
-    CWnd* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
-    if (!pThis || !pRect) return FALSE;
-    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
-    ::InitCommonControlsEx(&icc);
-    return pThis->CreateEx(dwExStyle, TOOLBARCLASSNAMEW, L"", dwStyle,
-        pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
-        pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
-}
-
-// Symbol: ?GetDropTarget@CToolBarCtrl@@QEBAJPEAPEAUIDropTarget@@@Z
-extern "C" long MS_ABI impl__GetDropTarget_CToolBarCtrl__QEBAJPEAPEAUIDropTarget___Z(
-    const CWnd* pThis, IDropTarget** ppDropTarget) {
-    if (ppDropTarget) *ppDropTarget = nullptr;
-    HWND hwnd = pThis ? pThis->GetSafeHwnd() : nullptr;
-    return hwnd ? static_cast<long>(::SendMessageW(hwnd, TB_GETOBJECT, reinterpret_cast<WPARAM>(&IID_IDropTarget), reinterpret_cast<LPARAM>(ppDropTarget))) : E_FAIL;
 }
 
 namespace {
