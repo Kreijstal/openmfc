@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>   // uintptr_t -- do not rely on the CRT pulling it in
 static int pass=0, fail=0;
 #define CHECK(c,msg) do{ if(c){pass++;printf("  PASS %s\n",msg);} \
                          else{fail++;printf("  FAIL %s\n",msg);} }while(0)
