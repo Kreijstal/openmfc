@@ -5336,15 +5336,18 @@ void COleControl::DoDataExchange(void* pDX) { (void)pDX; }
 void COleControl::OnResetState() {
     OleControlState* state = GetOleControlState(this, true);
     if (state) {
-        state->backColor = RGB(255, 255, 255);
-        state->foreColor = RGB(0, 0, 0);
-        state->enabled = TRUE;
-        state->appearance = 0;
-        state->borderStyle = 0;
         state->text.Empty();
-        state->readyState = 4;
         state->modified = FALSE;
     }
+    // The properties below now live in the ABI-visible members, so the reset
+    // has to clear those rather than the side-table shadow a client cannot
+    // see. Values match what the retail constructor establishes.
+    m_clrBackColor = 0x80000005;   // COLOR_WINDOW     | 0x80000000
+    m_clrForeColor = 0x80000008;   // COLOR_WINDOWTEXT | 0x80000000
+    m_bEnabled     = TRUE;
+    m_sAppearance  = 0;
+    m_sBorderStyle = 0;
+    m_lReadyState  = 4;            // READYSTATE_COMPLETE
     // The side table is not the ABI-visible copy: IsModified() reads the
     // m_bModified bit at this+0x160, so the reset has to clear that too or a
     // freshly reset control still reports itself dirty to a real client.
@@ -5352,12 +5355,15 @@ void COleControl::OnResetState() {
     m_cxExtent = 0;
     m_cyExtent = 0;
 }
+// COleControl::GetControlFlags() — retail is `mov eax,0x2 ; ret`: the base
+// implementation returns clipPaintDC and nothing else, unconditionally.
+// Derived controls override it to add fastBeginPaint / pointerInactive /
+// windowlessActivate / canOptimizeDraw. The previous version here computed a
+// flag word from m_bOptimizedDraw, m_hWnd and the control site, which meant a
+// plain COleControl reported capabilities (and, with no window, omitted
+// clipPaintDC) that the real base class never reports.
 DWORD COleControl::GetControlFlags() {
-    DWORD flags = 0;
-    if (m_bOptimizedDraw) flags |= 0x00000001;
-    if (m_hWnd) flags |= 0x00000002;
-    if (MfcSiteOf(this)) flags |= 0x00000004;
-    return flags;
+    return 0x00000002;   // clipPaintDC
 }
 // m_cxExtent / m_cyExtent are the control's width and height in HIMETRIC, per
 // the retail layout — one scalar each, not a pair of CSize.
@@ -5459,72 +5465,85 @@ void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) 
     FireEvent(DISPID_MOUSEUP, params, nButton, nShiftState, x, y);
 }
 void COleControl::FireReadyStateChange() {
-    OleControlState* state = GetOleControlState(this, true);
-    if (state) state->readyState = 4; // READYSTATE_COMPLETE
+    m_lReadyState = 4;   // READYSTATE_COMPLETE, the ABI-visible copy
     BYTE noParams[1] = { 0 };
     FireEvent(DISPID_READYSTATECHANGE, noParams);
 }
 
+// Retail reads these straight out of the object: GetBackColor is
+// `mov eax,[rcx+0x164]`. They used to be served from the OleControlState side
+// table, which a real client cannot see -- so the constructor's
+// m_clrBackColor (0x80000005) and the value this returned disagreed. Now the
+// ABI-visible member is the single source of truth.
 COLORREF COleControl::GetBackColor() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->backColor : RGB(255, 255, 255);
+    return static_cast<COLORREF>(m_clrBackColor);
 }
 void COleControl::SetBackColor(COLORREF clr) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (!state || state->backColor == clr) return;
-    state->backColor = clr;
+    if (m_clrBackColor == static_cast<OLE_COLOR>(clr)) return;
+    m_clrBackColor = static_cast<OLE_COLOR>(clr);
     SetModifiedFlag(TRUE);
     InvalidateControl();
 }
+// Retail: `mov eax,[rcx+0x168]`.
 COLORREF COleControl::GetForeColor() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->foreColor : RGB(0, 0, 0);
+    return static_cast<COLORREF>(m_clrForeColor);
 }
 void COleControl::SetForeColor(COLORREF clr) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (!state || state->foreColor == clr) return;
-    state->foreColor = clr;
+    if (m_clrForeColor == static_cast<OLE_COLOR>(clr)) return;
+    m_clrForeColor = static_cast<OLE_COLOR>(clr);
     SetModifiedFlag(TRUE);
     InvalidateControl();
 }
+// Retail: `mov eax,[rcx+0x19c]`.
 BOOL COleControl::GetEnabled() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->enabled : TRUE;
+    return m_bEnabled;
 }
 void COleControl::SetEnabled(BOOL bEnabled) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (!state || state->enabled == bEnabled) return;
-    state->enabled = bEnabled;
+    if (m_bEnabled == bEnabled) return;
+    m_bEnabled = bEnabled;
     if (m_hWnd) ::EnableWindow(m_hWnd, bEnabled);
     SetModifiedFlag(TRUE);
 }
 void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
 void COleControl::SetFont(CFont* pFont) { (void)pFont; }
-unsigned int COleControl::GetHwnd() { return (unsigned int)(uintptr_t)m_hWnd; }
+// COleControl::GetHwnd() — retail gates the handle on two flag bits:
+//     test DWORD PTR [rcx+0x160],0x2400 ; jne take_handle
+//     xor eax,eax ; ret                 ; otherwise report no window
+//   take_handle: mov rax,[rcx+0x40] ; ret
+// 0x2400 is bit 10 (m_bInPlaceActive) | bit 13. A control that has an HWND but
+// is not activated reports 0 to its container, which is what an OLE host uses
+// to decide whether the control can be talked to as a window at all. Returning
+// the raw handle unconditionally, as this did, misreports an inactive control.
+// The bitfield word is read raw because bit 13 has no name in this header.
+unsigned int COleControl::GetHwnd() {
+    const DWORD flags = *reinterpret_cast<const DWORD*>(
+        reinterpret_cast<const char*>(this) + 352);
+    if ((flags & 0x2400) == 0) return 0;
+    return (unsigned int)(uintptr_t)m_hWnd;
+}
 void COleControl::SetHwnd(HWND hWnd) { m_hWnd = hWnd; }
 OLE_COLOR COleControl::GetBackColorOle() const { return (OLE_COLOR)GetBackColor(); }
 OLE_COLOR COleControl::GetForeColorOle() const { return (OLE_COLOR)GetForeColor(); }
 void COleControl::SetBackColorOle(OLE_COLOR clr) { SetBackColor((COLORREF)clr); }
 void COleControl::SetForeColorOle(OLE_COLOR clr) { SetForeColor((COLORREF)clr); }
+// Retail: `movzx eax,WORD PTR [rcx+0x198]` -- a 16-bit read, so the stored
+// value is returned unwidened.
 short COleControl::GetAppearance() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->appearance : 0;
+    return m_sAppearance;
 }
 void COleControl::SetAppearance(short nAppearance) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (!state || state->appearance == nAppearance) return;
-    state->appearance = nAppearance;
+    if (m_sAppearance == nAppearance) return;
+    m_sAppearance = nAppearance;
     SetModifiedFlag(TRUE);
     InvalidateControl();
 }
+// Retail: `movzx eax,WORD PTR [rcx+0x19a]`.
 short COleControl::GetBorderStyle() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->borderStyle : 0;
+    return m_sBorderStyle;
 }
 void COleControl::SetBorderStyle(short nBorderStyle) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (!state || state->borderStyle == nBorderStyle) return;
-    state->borderStyle = nBorderStyle;
+    if (m_sBorderStyle == nBorderStyle) return;
+    m_sBorderStyle = nBorderStyle;
     SetModifiedFlag(TRUE);
     InvalidateControl();
 }
@@ -5542,9 +5561,9 @@ void COleControl::SetText(const wchar_t* lpszText) {
     InvalidateControl();
 }
 void COleControl::GetText(CString& strText) const { strText = GetText(); }
+// Retail: `mov eax,[rcx+0x1a0]`.
 long COleControl::GetReadyState() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->readyState : 4;
+    return m_lReadyState;
 }
 
 BOOL COleControl::IsSubclassedControl() {

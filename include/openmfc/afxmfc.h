@@ -913,9 +913,97 @@ public:
     void ToggleMimimizeState();
     BOOL IsMinimized() const;
 
-protected:
-    char _ribbonbar_padding[128];
-};
+    // Retail member block, transcribed from cl.exe /d1reportSingleClassLayout
+    // (sizeof 8400, base CPane ends at 1016). Offsets are pinned by
+    // static_asserts in phase4/src/mfccore.cpp.
+    //
+    // The four large embedded ribbon objects below are represented as opaque,
+    // exactly-sized blocks rather than as their real classes. OpenMFC does not
+    // model CMFCRibbonButtonsGroup / CMFCRibbonCaptionButtonsGroup /
+    // CMFCRibbonQuickAccessToolBar / CMFCRibbonTabsGroup at their true sizes
+    // (the declarations further down this header are placeholders), so naming
+    // them here would claim a layout this library does not actually provide.
+    // Sizing and reserving them keeps every following offset exact, which is
+    // what the implemented methods depend on; nothing constructs into them and
+    // no method here reads through them.
+    //
+    // Public like the other pane/toolbar member blocks in this header, so the
+    // offset static_asserts and the differential tests can reach them.
+public:
+    // alignas(8) is load-bearing, not cosmetic. MSVC ends CPane at 1016, but
+    // the Itanium ABI mingw/clang use folds derived members into the base's
+    // tail padding, which would start this block at 1012 and shift every
+    // offset below by 4. Forcing 8-byte alignment on the first member puts it
+    // back at 1016 so the DLL this toolchain builds matches the MSVC layout
+    // clients expect. Do not remove without re-checking every offset here.
+    alignas(8) int m_nTabsHeight;           // 1016
+    int    m_nCategoryHeight;               // 1020
+    int    m_nCategoryMinWidth;             // 1024
+    int    m_nHighlightedTab;               // 1028
+    int    m_nCaptionHeight;                // 1032
+    int    m_nTabTruncateRatio;             // 1036
+    int    m_nSystemButtonsNum;             // 1040
+    int    m_nKeyboardNavLevel;             // 1044
+    int    m_nCurrKeyChar;                  // 1048
+    int    m_nTooltipWidthRegular;          // 1052
+    int    m_nTooltipWidthLargeImage;       // 1056
+
+    BOOL   m_bRecalcCategoryHeight;         // 1060
+    BOOL   m_bRecalcCategoryWidth;          // 1064
+    BOOL   m_bTracked;                      // 1068
+    BOOL   m_bIsPrintPreview;               // 1072
+    BOOL   m_bQuickAccessToolbarOnTop;      // 1076
+    BOOL   m_bForceRedraw;                  // 1080
+    BOOL   m_bMaximizeMode;                 // 1084
+    BOOL   m_bAutoCommandTimer;             // 1088
+    BOOL   m_bPrintPreviewMode;             // 1092
+    BOOL   m_bIsTransparentCaption;         // 1096
+    BOOL   m_bIsMaximized;                  // 1100
+    BOOL   m_bToolTip;                      // 1104
+    BOOL   m_bToolTipDescr;                 // 1108
+    BOOL   m_bKeyTips;                      // 1112
+    BOOL   m_bIsCustomizeMenu;              // 1116
+    BOOL   m_bDontSetKeyTips;               // 1120
+    BOOL   m_bAutoDestroyMainButton;        // 1124
+    BOOL   m_bReplaceFrameCaption;          // 1128 (+4 tail pad)
+
+    HFONT  m_hFont;                         // 1136
+    DWORD  m_dwHideFlags;                   // 1144 (+4 pad)
+
+    CMFCRibbonButton*      m_pMainButton;   // 1152
+    CMFCRibbonBaseElement* m_pHighlighted;  // 1160
+    CMFCRibbonBaseElement* m_pPressed;      // 1168
+
+    alignas(8) char m_TabElements[1648];    // 1176  CMFCRibbonButtonsGroup
+
+    CMFCRibbonCategory* m_pActiveCategory;      // 2824
+    CMFCRibbonCategory* m_pActiveCategorySaved; // 2832
+    CMFCRibbonCategory* m_pMainCategory;        // 2840
+    CMFCRibbonCategory* m_pPrintPreviewCategory;// 2848
+
+    alignas(8) char m_arContextCaptions[40];       // 2856  CArray<CMFCRibbonContextCaption*>
+    alignas(8) char m_arCategories[40];            // 2896  CArray<CMFCRibbonCategory*>
+    alignas(8) char m_arKeyElements[40];           // 2936  CArray<CMFCRibbonKeyTip*>
+    alignas(8) char m_arVisibleCategoriesSaved[40];// 2976  CArray<int,int>
+
+    CRect  m_rectCaption;                   // 3016
+    CRect  m_rectCaptionText;               // 3032
+    CRect  m_rectSysButtons;                // 3048
+    CSize  m_sizeMainButton;                // 3064
+
+    void*  m_pToolTip;                      // 3072
+    void*  m_pKeyboardNavLevelParent;       // 3080
+    void*  m_pKeyboardNavLevelCurrent;      // 3088
+
+    alignas(8) char m_CaptionButtons[1896]; // 3096  CMFCRibbonCaptionButtonsGroup
+    alignas(8) char m_QAToolbar[1744];      // 4992  CMFCRibbonQuickAccessToolBar
+
+    BOOL   m_bSingleLevelAccessibilityMode; // 6736 (+4 pad)
+
+    alignas(8) char m_Tabs[1648];           // 6744  CMFCRibbonTabsGroup
+
+    BOOL   m_bWindows7Look;                 // 8392 (+4 tail pad)
+};                                          // 8400
 
 //=============================================================================
 // CMFCButton - Feature Pack button (CMiniFrameWnd defined above)
