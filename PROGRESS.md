@@ -94,6 +94,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 ## Per-Class Implementation Counts
 
 ### Top implemented classes
+
 | Class | Implemented | Skip list |
 |-------|-------------|-----------|
 | **CWnd** | 186 | 54 |
@@ -126,6 +127,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (9), COleDispatchDriver (9), COleServerItem (9), CSingleDocTemplate (9), CSplitButton (9), CStatusBarCtrl (9), CTabView (9), CDragListBox (8), CGdiObject (8), CMFCRibbonBaseElement (8), CMFCRibbonPanel (8), CMFCRibbonProgressBar (8), CMFCToolBarEditBoxButton (8), COleControlSite (8), COleDocument (8), COleMessageFilter (8), COlePasteSpecialDialog (8), CPaneContainerManager (8), CRuntimeClass (8), CSliderCtrl (8), CTreeView (8), CUserToolsManager (8), CVSListBoxEditCtrl (8), CCmdTarget (7), CFileException (7), CFrameImpl (7), CMDIClientAreaWnd (7), CMFCCaptionBar (7), CMFCRibbonEdit (7), CMFCStatusBar (7), CMFCVisualManagerWindows (7), CMFCVisualManagerWindows7 (7), COleDocObjectItem (7), COleLinkingDoc (7), CSharedFile (7), CColorDialog (6), CCommandLineInfo (6), CD2DTextLayout (6), CDCRenderTarget (6), CDocObjectServer (6), CException (6), CFontDialog (6), CFtpFileFind (6), CGopherConnection (6), CInternetConnection (6), CMFCRibbonCategory (6), CMFCTabCtrl (6), CMFCVisualManagerOffice2003 (6), COleIPFrameWnd (6), COleInsertDialog (6), CPaneContainer (6), CThreadSlotData (6), CTooltipManager (6), CTypeLibCache (6), CVSToolsListBox (6), CButton (5), CCmdUI (5), CDBException (5), CDataRecoveryHandler (5), CDialogBar (5), CDrawingManager (5), CFindReplaceDialog (5), CFullScreenImpl (5), CMFCOutlookBarTabCtrl (5), CMFCRibbonMiniToolBar (5), CMFCShellListCtrl (5), CMFCShellTreeCtrl (5), CMFCTabDropTarget (5), CMenuTearOffManager (5), COleConnPtContainer (5), COleConvertDialog (5), COleResizeBar (5), COleTemplateServer (5), CProgressCtrl (5), CSpinButtonCtrl (5), CStatic (5)
 
 ### Top skip-list offenders
+
 | Class | Skip count | Reason |
 |-------|-----------|--------|
 | CWnd | 54 | Overloads with incompatible signatures |

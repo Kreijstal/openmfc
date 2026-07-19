@@ -139,6 +139,7 @@ def render(manifest):
     add('## Per-Class Implementation Counts')
     add('')
     add('### Top implemented classes')
+    add('')
     add('| Class | Implemented | Skip list |')
     add('|-------|-------------|-----------|')
     for cls, n in ranked(real_by_class, 25):
@@ -154,6 +155,7 @@ def render(manifest):
     add('')
 
     add('### Top skip-list offenders')
+    add('')
     add('| Class | Skip count | Reason |')
     add('|-------|-----------|--------|')
     for cls, n in ranked(skip_by_class, 10):
