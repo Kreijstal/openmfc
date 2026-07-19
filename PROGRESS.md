@@ -9,13 +9,13 @@
 | Category | Count | % of Total |
 |----------|-------|------------|
 | **Total MSVC exports** | 14,103 | 100% |
-| **Real implementations** | 5,881 | 41.7% |
+| **Real implementations** | 5,886 | 41.7% |
 | ├─ Auto-generated thunks (`thunks.cpp`) | 1,077 | 7.6% |
-| └─ Manual implementations (other `phase4/src/*.cpp`) | 4,804 | 34.1% |
+| └─ Manual implementations (other `phase4/src/*.cpp`) | 4,809 | 34.1% |
 | **Skip list** (signature mismatch, return defaults) | 149 | 1.1% |
-| **Remaining stubs** (return 0/nullptr/void) | 8,073 | 57.2% |
+| **Remaining stubs** (return 0/nullptr/void) | 8,068 | 57.2% |
 
-⚠ **38 stale `// Symbol:` comments** — markers naming symbols
+⚠ **31 stale `// Symbol:` comments** — markers naming symbols
 that are not exports.
 
 Most are harmless: `build_phase4.sh` builds its `AUTO_EXCLUDES` list by
@@ -37,10 +37,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `viewrich.cpp` | 8 |
 | `mfc_exceptions.cpp` | 6 |
 | `gdicore.cpp` | 4 |
-| `ole_colestreamfile_ext.cpp` | 3 |
 | `appcore.cpp` | 2 |
-| `ole_csafearray_ext.cpp` | 2 |
-| `thunks.cpp` | 2 |
 | `feature_static_data.cpp` | 1 |
 | `global_common_control_rtti.cpp` | 1 |
 | `mfccore.cpp` | 1 |
@@ -89,7 +86,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `global_common_control_rtti.cpp` | 20 |
 | `gdi_object_rtti.cpp` | 19 |
 | `global_crecttracker.cpp` | 19 |
-| *(+136 further files)* | 1,075 |
+| *(+136 further files)* | 1,080 |
 
 ## Per-Class Implementation Counts
 
@@ -124,7 +121,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | **CPreviewDC** | 34 | 0 |
 
 ### Partially implemented classes (5–9 symbols)
-CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (9), COleDispatchDriver (9), COleServerItem (9), CSingleDocTemplate (9), CSplitButton (9), CStatusBarCtrl (9), CTabView (9), CDragListBox (8), CGdiObject (8), CMFCRibbonBaseElement (8), CMFCRibbonPanel (8), CMFCRibbonProgressBar (8), CMFCToolBarEditBoxButton (8), COleControlSite (8), COleDocument (8), COleMessageFilter (8), COlePasteSpecialDialog (8), CPaneContainerManager (8), CRuntimeClass (8), CSliderCtrl (8), CTreeView (8), CUserToolsManager (8), CVSListBoxEditCtrl (8), CCmdTarget (7), CFileException (7), CFrameImpl (7), CMDIClientAreaWnd (7), CMFCCaptionBar (7), CMFCRibbonEdit (7), CMFCStatusBar (7), CMFCVisualManagerWindows (7), CMFCVisualManagerWindows7 (7), COleDocObjectItem (7), COleLinkingDoc (7), CSharedFile (7), CColorDialog (6), CCommandLineInfo (6), CD2DTextLayout (6), CDCRenderTarget (6), CDocObjectServer (6), CException (6), CFontDialog (6), CFtpFileFind (6), CGopherConnection (6), CInternetConnection (6), CMFCRibbonCategory (6), CMFCTabCtrl (6), CMFCVisualManagerOffice2003 (6), COleIPFrameWnd (6), COleInsertDialog (6), CPaneContainer (6), CThreadSlotData (6), CTooltipManager (6), CTypeLibCache (6), CVSToolsListBox (6), CButton (5), CCmdUI (5), CDBException (5), CDataRecoveryHandler (5), CDialogBar (5), CDrawingManager (5), CFindReplaceDialog (5), CFullScreenImpl (5), CMFCOutlookBarTabCtrl (5), CMFCRibbonMiniToolBar (5), CMFCShellListCtrl (5), CMFCShellTreeCtrl (5), CMFCTabDropTarget (5), CMenuTearOffManager (5), COleConnPtContainer (5), COleConvertDialog (5), COleResizeBar (5), COleTemplateServer (5), CProgressCtrl (5), CSpinButtonCtrl (5), CStatic (5)
+CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (9), COleDispatchDriver (9), COleServerItem (9), CSingleDocTemplate (9), CSplitButton (9), CStatusBarCtrl (9), CTabView (9), CDragListBox (8), CGdiObject (8), CMFCRibbonBaseElement (8), CMFCRibbonPanel (8), CMFCRibbonProgressBar (8), CMFCToolBarEditBoxButton (8), COleControlSite (8), COleDocument (8), COleMessageFilter (8), COlePasteSpecialDialog (8), CPaneContainerManager (8), CRuntimeClass (8), CSliderCtrl (8), CTreeView (8), CUserToolsManager (8), CVSListBoxEditCtrl (8), CCmdTarget (7), CFileException (7), CFrameImpl (7), CMDIClientAreaWnd (7), CMFCCaptionBar (7), CMFCRibbonEdit (7), CMFCStatusBar (7), CMFCVisualManagerWindows (7), CMFCVisualManagerWindows7 (7), COleDocObjectItem (7), COleLinkingDoc (7), CSharedFile (7), CColorDialog (6), CCommandLineInfo (6), CD2DTextLayout (6), CDCRenderTarget (6), CDocObjectServer (6), CException (6), CFontDialog (6), CFtpFileFind (6), CGopherConnection (6), CInternetConnection (6), CMFCRibbonCategory (6), CMFCTabCtrl (6), CMFCVisualManagerOffice2003 (6), COleIPFrameWnd (6), COleInsertDialog (6), CPaneContainer (6), CThreadSlotData (6), CTooltipManager (6), CTypeLibCache (6), CVSToolsListBox (6), CButton (5), CCmdUI (5), CDBException (5), CDataRecoveryHandler (5), CDialogBar (5), CDrawingManager (5), CFindReplaceDialog (5), CFullScreenImpl (5), CMFCOutlookBarTabCtrl (5), CMFCRibbonMiniToolBar (5), CMFCShellListCtrl (5), CMFCShellTreeCtrl (5), CMFCTabDropTarget (5), CMenuTearOffManager (5), COleConnPtContainer (5), COleConvertDialog (5), COleResizeBar (5), COleTemplateServer (5), COleVariant (5), CProgressCtrl (5), CSpinButtonCtrl (5), CStatic (5)
 
 ### Top skip-list offenders
 
@@ -156,9 +153,9 @@ MSVC .def file (14,103 exports)
 ```
 
 - **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 1,077 auto-generated
-- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 4,804 symbols
+- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 4,809 symbols
 - **skip list**: Correct ABI signatures but return defaults because method signatures fundamentally differ from MSVC exports — 149 symbols
-- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 8,073 symbols
+- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 8,068 symbols
 
 ## Key Tools
 
