@@ -52,6 +52,19 @@ def pct(n, total):
     return f'{100.0 * n / total:.1f}%'
 
 
+def ranked(counter, limit=None):
+    """Counter entries as (key, count), highest first, ties broken by key.
+
+    Counter.most_common() sorts only on the count and relies on sort stability,
+    so equal counts come back in dict-insertion order -- which tracks whatever
+    order the manifest happened to list symbols in. That is stable in practice
+    but not guaranteed by anything, and a reordering upstream would silently
+    reshuffle rows in the generated document. Sorting on (-count, key) pins it.
+    """
+    items = sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))
+    return items[:limit] if limit is not None else items
+
+
 def render(manifest):
     real = manifest['real']
     skip = manifest['skip']
@@ -107,7 +120,7 @@ def render(manifest):
         add('')
         add('| Source file | Stale markers |')
         add('|-------------|---------------|')
-        for fname, n in stale_by_file.most_common():
+        for fname, n in ranked(stale_by_file):
             add(f'| `{fname}` | {n} |')
         add('')
 
@@ -115,11 +128,11 @@ def render(manifest):
     add('')
     add('| Source file | Implemented symbols |')
     add('|-------------|-------------------|')
-    for fname, n in by_file.most_common(40):
+    for fname, n in ranked(by_file, 40):
         label = f'`{fname}` (auto-generated)' if fname == 'thunks.cpp' else f'`{fname}`'
         add(f'| {label} | {n:,} |')
     if len(by_file) > 40:
-        rest = sum(n for _, n in by_file.most_common()[40:])
+        rest = sum(n for _, n in ranked(by_file)[40:])
         add(f'| *(+{len(by_file) - 40} further files)* | {rest:,} |')
     add('')
 
@@ -128,7 +141,7 @@ def render(manifest):
     add('### Top implemented classes')
     add('| Class | Implemented | Skip list |')
     add('|-------|-------------|-----------|')
-    for cls, n in real_by_class.most_common(25):
+    for cls, n in ranked(real_by_class, 25):
         add(f'| **{cls}** | {n} | {skip_by_class.get(cls, 0)} |')
     add('')
 
@@ -143,7 +156,7 @@ def render(manifest):
     add('### Top skip-list offenders')
     add('| Class | Skip count | Reason |')
     add('|-------|-----------|--------|')
-    for cls, n in skip_by_class.most_common(10):
+    for cls, n in ranked(skip_by_class, 10):
         add(f'| {cls} | {n} | {SKIP_REASONS.get(cls, "")} |')
     add('')
 
@@ -202,11 +215,11 @@ def main():
     ap.add_argument('--out', default=str(ROOT / 'PROGRESS.md'))
     args = ap.parse_args()
 
-    with open(args.manifest) as f:
+    with open(args.manifest, encoding='utf-8') as f:
         manifest = json.load(f)
 
     text = render(manifest)
-    with open(args.out, 'w') as f:
+    with open(args.out, 'w', encoding='utf-8') as f:
         f.write(text)
     print(f'Wrote {args.out}')
 

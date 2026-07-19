@@ -39,11 +39,11 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `gdicore.cpp` | 4 |
 | `ole_colestreamfile_ext.cpp` | 3 |
 | `appcore.cpp` | 2 |
-| `thunks.cpp` | 2 |
 | `ole_csafearray_ext.cpp` | 2 |
+| `thunks.cpp` | 2 |
+| `feature_static_data.cpp` | 1 |
 | `global_common_control_rtti.cpp` | 1 |
 | `mfccore.cpp` | 1 |
-| `feature_static_data.cpp` | 1 |
 
 ## Per-File Breakdown
 
@@ -72,23 +72,23 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `global_interface_maps.cpp` | 50 |
 | `global_toolbar_buttons_rtti.cpp` | 46 |
 | `ctrl_checklist.cpp` | 44 |
-| `sockcore.cpp` | 43 |
 | `ctrlcore.cpp` | 43 |
+| `sockcore.cpp` | 43 |
 | `global_afx_messages.cpp` | 42 |
 | `olecore.cpp` | 39 |
 | `inet_filefind_rtti.cpp` | 38 |
-| `gdi_previewdc.cpp` | 32 |
 | `ctrl_listctrl.cpp` | 32 |
+| `gdi_previewdc.cpp` | 32 |
 | `global_cdumpcontext.cpp` | 30 |
 | `global_d2d_rtti.cpp` | 28 |
 | `app_feature_factories.cpp` | 26 |
 | `global_string_buffer_format.cpp` | 26 |
 | `global_ctordtor_placement.cpp` | 24 |
-| `manual_thunks.cpp` | 22 |
 | `global_mfc_toolbars_rtti.cpp` | 22 |
+| `manual_thunks.cpp` | 22 |
 | `global_common_control_rtti.cpp` | 20 |
-| `global_crecttracker.cpp` | 19 |
 | `gdi_object_rtti.cpp` | 19 |
+| `global_crecttracker.cpp` | 19 |
 | *(+136 further files)* | 1,075 |
 
 ## Per-Class Implementation Counts
@@ -105,8 +105,8 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | **COleControl** | 68 | 2 |
 | **CFileDialog** | 65 | 0 |
 | **CHtmlView** | 63 | 2 |
-| **CTaskDialog** | 62 | 0 |
 | **CDHtmlDialog** | 62 | 1 |
+| **CTaskDialog** | 62 | 0 |
 | **CDocument** | 58 | 0 |
 | **CDockingManager** | 55 | 0 |
 | **CEditView** | 54 | 1 |
@@ -134,10 +134,10 @@ CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (
 | CWinAppEx | 6 |  |
 | COleDocument | 4 | EditChangeIcon/EditConvert |
 | COleSafeArray | 4 | Attach/Create/Copy/Detach |
+| CCmdTarget | 3 |  |
+| CFileFind | 3 |  |
+| CMFCButton | 3 |  |
 | COleClientItem | 3 | Activate/ActivateAs/GetClassID |
-| CToolTipCtrl | 3 |  |
-| COleControlSite | 3 |  |
-| CRichEditView | 3 |  |
 
 ## Architecture
 
