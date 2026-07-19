@@ -1787,6 +1787,16 @@ CSize CMFCToolBar::GetButtonSize() const {
 
 void CMFCToolBar::EnableDocking(DWORD dwDockStyle) {
     g_toolBarStates[this].dockStyle = dwDockStyle;
+    // Retail's override is exactly two stores:
+    //     mov DWORD PTR [rcx+0x108],0x1   ; m_dwControlBarStyle = 1
+    //     mov DWORD PTR [rcx+0x100],edx   ; m_dwEnabledAlignment = dwDockStyle
+    // The side table above is what OpenMFC's own docking code reads, but these
+    // members are what a real client sees, and previously they were left at
+    // zero -- so an MSVC caller could not tell a dockable toolbar from a fixed
+    // one. Note the literal is assigned, not OR'd: retail discards any style
+    // bits already present, and that is reproduced rather than "corrected".
+    m_dwControlBarStyle  = 1;
+    m_dwEnabledAlignment = dwDockStyle;
 }
 void CMFCToolBar::AdjustLayout() {
     ToolBarState& state = g_toolBarStates[this];
@@ -2107,8 +2117,59 @@ CString CMFCRibbonCategory::GetName() const { return m_strName; }
 //=============================================================================
 IMPLEMENT_DYNAMIC(CMFCRibbonBar, CPane)
 
-CMFCRibbonBar::CMFCRibbonBar(BOOL) {
-    memset(_ribbonbar_padding, 0, sizeof(_ribbonbar_padding));
+// Retail layout, pinned. Transcribed from /d1reportSingleClassLayout and then
+// confirmed against the shipping constructor's own stores: it writes the ctor
+// argument to 0x468 (m_bReplaceFrameCaption), constructs a subobject at 0x498
+// (m_TabElements), and initializes CArray vtables at 0xb28/0xb50/0xb78/0xba0
+// (the four arrays, 40 bytes apart) -- all exactly where this layout puts them.
+static_assert(sizeof(CMFCRibbonBar) == 8400, "CMFCRibbonBar sizeof 8400");
+static_assert(offsetof(CMFCRibbonBar, m_nTabsHeight) == 1016, "m_nTabsHeight @1016");
+static_assert(offsetof(CMFCRibbonBar, m_nHighlightedTab) == 1028, "m_nHighlightedTab @1028");
+static_assert(offsetof(CMFCRibbonBar, m_nKeyboardNavLevel) == 1044, "m_nKeyboardNavLevel @1044");
+static_assert(offsetof(CMFCRibbonBar, m_nTooltipWidthRegular) == 1052, "m_nTooltipWidthRegular @1052");
+static_assert(offsetof(CMFCRibbonBar, m_nTooltipWidthLargeImage) == 1056, "m_nTooltipWidthLargeImage @1056");
+static_assert(offsetof(CMFCRibbonBar, m_bRecalcCategoryHeight) == 1060, "m_bRecalcCategoryHeight @1060");
+static_assert(offsetof(CMFCRibbonBar, m_bQuickAccessToolbarOnTop) == 1076, "m_bQuickAccessToolbarOnTop @1076");
+static_assert(offsetof(CMFCRibbonBar, m_bMaximizeMode) == 1084, "m_bMaximizeMode @1084");
+static_assert(offsetof(CMFCRibbonBar, m_bReplaceFrameCaption) == 1128, "m_bReplaceFrameCaption @1128");
+static_assert(offsetof(CMFCRibbonBar, m_hFont) == 1136, "m_hFont @1136");
+static_assert(offsetof(CMFCRibbonBar, m_dwHideFlags) == 1144, "m_dwHideFlags @1144");
+static_assert(offsetof(CMFCRibbonBar, m_pMainButton) == 1152, "m_pMainButton @1152");
+static_assert(offsetof(CMFCRibbonBar, m_TabElements) == 1176, "m_TabElements @1176");
+static_assert(offsetof(CMFCRibbonBar, m_pActiveCategory) == 2824, "m_pActiveCategory @2824");
+static_assert(offsetof(CMFCRibbonBar, m_arContextCaptions) == 2856, "m_arContextCaptions @2856");
+static_assert(offsetof(CMFCRibbonBar, m_arCategories) == 2896, "m_arCategories @2896");
+static_assert(offsetof(CMFCRibbonBar, m_rectCaption) == 3016, "m_rectCaption @3016");
+static_assert(offsetof(CMFCRibbonBar, m_sizeMainButton) == 3064, "m_sizeMainButton @3064");
+static_assert(offsetof(CMFCRibbonBar, m_CaptionButtons) == 3096, "m_CaptionButtons @3096");
+static_assert(offsetof(CMFCRibbonBar, m_QAToolbar) == 4992, "m_QAToolbar @4992");
+static_assert(offsetof(CMFCRibbonBar, m_Tabs) == 6744, "m_Tabs @6744");
+static_assert(offsetof(CMFCRibbonBar, m_bWindows7Look) == 8392, "m_bWindows7Look @8392");
+
+CMFCRibbonBar::CMFCRibbonBar(BOOL bReplaceFrameCaption) {
+    // Every member in this span is POD -- the four large embedded ribbon
+    // objects are deliberately opaque byte blocks (see afxmfc.h), and CRect /
+    // CSize are plain structs -- so unlike the CMFCToolBar and
+    // CMFCToolBarImages constructors there is nothing here whose vfptr a
+    // blanket memset could destroy. If any of those blocks is ever replaced by
+    // a real class, this memset has to be split around it.
+    char* const base = reinterpret_cast<char*>(this);
+    std::memset(base + sizeof(CPane), 0, sizeof(CMFCRibbonBar) - sizeof(CPane));
+
+    // Non-zero defaults, read off the retail constructor rather than guessed.
+    // It zeroes via r15 and writes ebp==1 / eax==-1 to these slots:
+    m_nHighlightedTab         = -1;    // 0x404, eax
+    m_nKeyboardNavLevel       = -1;    // 0x414, eax
+    m_nTooltipWidthRegular    = 210;   // 0x41c, literal 0xd2
+    m_nTooltipWidthLargeImage = 318;   // 0x420, literal 0x13e
+    m_bRecalcCategoryHeight   = TRUE;  // 0x424, ebp
+    m_bRecalcCategoryWidth    = TRUE;  // 0x428, rbp (low half; 0x42c stays 0)
+    m_bIsPrintPreview         = TRUE;  // 0x430, ebp
+    m_bToolTip                = TRUE;  // 0x450, ebp
+    m_bToolTipDescr           = TRUE;  // 0x454, ebp
+    m_bKeyTips                = TRUE;  // 0x458, rbp (low half; 0x45c stays 0)
+    m_bReplaceFrameCaption    = bReplaceFrameCaption;  // 0x468, the ctor arg
+
     g_ribbonBarStates[this];
 }
 CMFCRibbonBar::~CMFCRibbonBar() {
