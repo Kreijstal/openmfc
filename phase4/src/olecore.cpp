@@ -5464,8 +5464,11 @@ void COleControl::FireMouseUp(short nButton, short nShiftState, long x, long y) 
     BYTE params[5] = { VT_I2, VT_I2, VT_I4, VT_I4, 0 };
     FireEvent(DISPID_MOUSEUP, params, nButton, nShiftState, x, y);
 }
+// Fires the notification only. The ready state itself is owned by whoever
+// transitions it (the constructor, or a derived control moving through
+// LOADING/INTERACTIVE); stamping COMPLETE here would clobber an intermediate
+// state the moment the container was told about it.
 void COleControl::FireReadyStateChange() {
-    m_lReadyState = 4;   // READYSTATE_COMPLETE, the ABI-visible copy
     BYTE noParams[1] = { 0 };
     FireEvent(DISPID_READYSTATECHANGE, noParams);
 }
@@ -5503,6 +5506,9 @@ void COleControl::SetEnabled(BOOL bEnabled) {
     m_bEnabled = bEnabled;
     if (m_hWnd) ::EnableWindow(m_hWnd, bEnabled);
     SetModifiedFlag(TRUE);
+    // A windowless control never sees ::EnableWindow, so this is its only
+    // trigger to repaint in the grayed state.
+    InvalidateControl();
 }
 void COleControl::SetFont(LPFONTDISP pFontDisp) { (void)pFontDisp; }
 void COleControl::SetFont(CFont* pFont) { (void)pFont; }
@@ -5510,15 +5516,14 @@ void COleControl::SetFont(CFont* pFont) { (void)pFont; }
 //     test DWORD PTR [rcx+0x160],0x2400 ; jne take_handle
 //     xor eax,eax ; ret                 ; otherwise report no window
 //   take_handle: mov rax,[rcx+0x40] ; ret
-// 0x2400 is bit 10 (m_bInPlaceActive) | bit 13. A control that has an HWND but
-// is not activated reports 0 to its container, which is what an OLE host uses
-// to decide whether the control can be talked to as a window at all. Returning
-// the raw handle unconditionally, as this did, misreports an inactive control.
-// The bitfield word is read raw because bit 13 has no name in this header.
+// 0x2400 is bit 10 (m_bInPlaceActive) | bit 13 (m_bOpen), both named in this
+// header, so the test is spelled with the members rather than a raw word read.
+// A control that has an HWND but is not activated reports 0 to its container,
+// which is what an OLE host uses to decide whether the control can be talked
+// to as a window at all. Returning the raw handle unconditionally, as this
+// did, misreports an inactive control.
 unsigned int COleControl::GetHwnd() {
-    const DWORD flags = *reinterpret_cast<const DWORD*>(
-        reinterpret_cast<const char*>(this) + 352);
-    if ((flags & 0x2400) == 0) return 0;
+    if (!m_bInPlaceActive && !m_bOpen) return 0;
     return (unsigned int)(uintptr_t)m_hWnd;
 }
 void COleControl::SetHwnd(HWND hWnd) { m_hWnd = hWnd; }

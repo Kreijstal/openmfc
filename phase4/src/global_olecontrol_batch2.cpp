@@ -5,7 +5,9 @@
 // Retail bitfield word at this+0x160; bit positions used below are the ones
 // the shipping code tests or sets:
 //   bit 16 (0x10) via bts = m_bSimpleFrame
-//   bit 18        = the invoke-allowed flag read by IsInvokeAllowed
+//   bit 18                = m_bInitialized, read by IsInvokeAllowed
+// Both are named bitfields in afxole.h, so the code below spells them out
+// instead of masking the raw word.
 //
 // Other offsets referenced:
 //   0x150 = 336 m_pReflect
@@ -29,14 +31,6 @@
 static_assert(offsetof(COleControl, m_pReflect) == 336, "m_pReflect @336");
 static_assert(offsetof(COleControl, m_font) == 376, "m_font @376");
 
-// The flags word is addressed raw: several of the bits retail tests here have
-// no name in this header, and reading the word is exactly what the shipping
-// code does.
-static inline DWORD* FlagsOf(COleControl* p)
-{ return reinterpret_cast<DWORD*>(reinterpret_cast<char*>(p) + 352); }
-static inline const DWORD* FlagsOf(const COleControl* p)
-{ return reinterpret_cast<const DWORD*>(reinterpret_cast<const char*>(p) + 352); }
-
 // COleControl::EnableSimpleFrame() — retail is a single bit set:
 //     bts DWORD PTR [rcx+0x160],0x10 ; ret
 // It only raises the flag; it does not create the frame or notify the
@@ -45,7 +39,7 @@ static inline const DWORD* FlagsOf(const COleControl* p)
 extern "C" void MS_ABI impl__EnableSimpleFrame_COleControl__QEAAXXZ(COleControl* pThis)
 {
     if (!pThis) return;
-    *FlagsOf(pThis) |= (1u << 16);
+    pThis->m_bSimpleFrame = 1;   // bit 16 of the 0x160 word
 }
 
 // COleControl::IsInvokeAllowed(DISPID) — retail:
@@ -58,7 +52,7 @@ extern "C" int MS_ABI impl__IsInvokeAllowed_COleControl__MEAAHJ_Z(
     COleControl* pThis, long /*dispid*/)
 {
     if (!pThis) return FALSE;
-    return static_cast<int>((*FlagsOf(pThis) >> 18) & 1u);
+    return pThis->m_bInitialized ? TRUE : FALSE;   // bit 18 of the 0x160 word
 }
 
 // COleControl::GetOuterWindow() const — retail:
