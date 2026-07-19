@@ -256,7 +256,12 @@ jobs:
       timeout-minutes: 5
       run: |
         sudo apt-get update
-        sudo apt-get install -y wine64
+        # mingw-w64 builds the dynamically-loaded functionality tests; without
+        # it tests/run_functionality_tests.sh skips them instead of running.
+        # Recommends are deliberately NOT trimmed here: dropping the compiler
+        # would put the runner back on its skip path, which REQUIRE_MINGW below
+        # now turns into a failure anyway.
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y wine64 mingw-w64
 
     - name: Run Wine runtime test
       timeout-minutes: 2
@@ -266,6 +271,11 @@ jobs:
 
     - name: Run MFC functionality tests
       timeout-minutes: 3
+      env:
+        # A skipped test is indistinguishable from a passing one in the job log,
+        # so require the toolchain here rather than letting the suite quietly
+        # not run.
+        REQUIRE_MINGW: "1"
       run: |
         chmod +x tests/run_functionality_tests.sh
         timeout 150s ./tests/run_functionality_tests.sh
