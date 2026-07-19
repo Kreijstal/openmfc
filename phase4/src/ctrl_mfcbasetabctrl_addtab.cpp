@@ -20,6 +20,10 @@
 // The resource-id overload was also one parameter short of its retail signature
 // (it took three explicit params where the mangling declares four), which would
 // have misaligned every argument had it ever been reachable.
+//
+// The fourth param, bDetachable, is plumbed through to the tab's side-table
+// record (CMFCBaseTabCtrl::AddTab gained a defaulted bDetachable arg for this),
+// so it is no longer silently dropped.
 
 #include <windows.h>
 #include "openmfc/afxwin.h"
@@ -32,6 +36,10 @@
 #endif
 
 namespace {
+
+// A string-resource label longer than this is truncated, matching the fixed
+// stack buffers MFC itself uses when resolving tab labels.
+constexpr int kMaxTabLabel = 256;
 
 // Retail takes the tab label as a string-resource id. Resolve it the same way
 // MFC does, and fall back to no label if the resource is missing rather than
@@ -50,12 +58,12 @@ extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__IIH_Z(
     CMFCBaseTabCtrl* pThis, CWnd* pTabWnd, unsigned int uiResTabLabel,
     unsigned int uiImageId, int bDetachable)
 {
-    (void)bDetachable;
     if (!pThis) return;
 
-    wchar_t label[256];
-    const bool haveLabel = LoadTabLabel(uiResTabLabel, label, 256);
-    pThis->AddTab(pTabWnd, haveLabel ? label : nullptr, uiImageId);
+    wchar_t label[kMaxTabLabel];
+    const bool haveLabel = LoadTabLabel(uiResTabLabel, label, kMaxTabLabel);
+    pThis->AddTab(pTabWnd, haveLabel ? label : nullptr, uiImageId,
+                  bDetachable ? TRUE : FALSE);
 }
 
 // Symbol: ?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@PEB_WIH@Z
@@ -63,7 +71,6 @@ extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__PEB_WIH_Z(
     CMFCBaseTabCtrl* pThis, CWnd* pTabWnd, const wchar_t* lpszTabLabel,
     unsigned int uiImageId, int bDetachable)
 {
-    (void)bDetachable;
     if (!pThis) return;
-    pThis->AddTab(pTabWnd, lpszTabLabel, uiImageId);
+    pThis->AddTab(pTabWnd, lpszTabLabel, uiImageId, bDetachable ? TRUE : FALSE);
 }

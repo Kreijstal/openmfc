@@ -10,6 +10,7 @@
 #include <oleauto.h>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 
 static int pass = 0, fail = 0;
 #define CHECK(c, msg) do { if (c) { pass++; printf("  PASS %s\n", msg); } \
@@ -121,6 +122,37 @@ int main()
         CHECK(filled == 8, "GetByteArray filled the CByteArray with all 8 bytes");
         ::SafeArrayDestroy(psa);
     }
+
+    // ---- CMFCBaseTabCtrl::AddTab passes bDetachable through to the side table ----
+    // Regression cover for the review finding that the flag was silently dropped.
+    // AddTab stores it; IsTabDetachable (also newly wired) reads it back, so the
+    // whole round-trip is observable through the ABI.
+    typedef void* (__stdcall *TabCtor)(void*);
+    typedef void  (__stdcall *AddTabResFn)(void*, void*, unsigned int, unsigned int, int);
+    typedef void  (__stdcall *AddTabLblFn)(void*, void*, const wchar_t*, unsigned int, int);
+    typedef int   (__stdcall *IsDetachFn)(const void*, int);
+    auto TCtor   = (TabCtor)   GetProcAddress(h, "??0CMFCBaseTabCtrl@@QEAA@XZ");
+    auto AddRes  = (AddTabResFn)GetProcAddress(h, "?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@IIH@Z");
+    auto AddLbl  = (AddTabLblFn)GetProcAddress(h, "?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@PEB_WIH@Z");
+    auto IsDet   = (IsDetachFn) GetProcAddress(h, "?IsTabDetachable@CMFCBaseTabCtrl@@UEBAHH@Z");
+    if (!TCtor || !AddRes || !AddLbl || !IsDet) { printf("missing tab-ctrl export(s)\n"); return 1; }
+
+    // CMFCBaseTabCtrl is CWnd + 128 bytes of padding in this build; give it
+    // generous zeroed storage. AddTab needs a non-null pTabWnd, but never
+    // dereferences it (it is stored, not touched), so a sentinel suffices.
+    alignas(16) unsigned char tab[512];
+    memset(tab, 0, sizeof tab);
+    TCtor(tab);
+    void* fakeWnd = (void*)(uintptr_t)0x1000;
+
+    AddLbl(tab, fakeWnd, L"detachable",     0, TRUE);   // index 0
+    AddLbl(tab, fakeWnd, L"fixed",          0, FALSE);  // index 1
+    AddRes(tab, fakeWnd, 0 /*no res*/,      0, TRUE);   // index 2
+
+    CHECK(IsDet(tab, 0) == TRUE,  "AddTab(label, bDetachable=TRUE) is read back detachable");
+    CHECK(IsDet(tab, 1) == FALSE, "AddTab(label, bDetachable=FALSE) is read back non-detachable");
+    CHECK(IsDet(tab, 2) == TRUE,  "AddTab(resId, bDetachable=TRUE) is read back detachable");
+    CHECK(IsDet(tab, 99) == FALSE,"IsTabDetachable out-of-range returns FALSE, no crash");
 
     if (pStm) pStm->Release();
     printf("%d passed, %d failed\n", pass, fail);

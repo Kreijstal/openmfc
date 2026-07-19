@@ -1089,11 +1089,12 @@ public:
 
     virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
     int GetTabsCount() const;
-    void AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId = (UINT)-1);
+    void AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId = (UINT)-1, BOOL bDetachable = TRUE);
     int RemoveTab(int nIndex, int nOption = 0);
     void SetActiveTab(int nIndex);
     int GetActiveTab() const;
     CWnd* GetTabWnd(int nIndex) const;
+    BOOL IsTabDetachable(int nIndex) const;
 
 protected:
     char _mfcbasetabctrl_padding[128];

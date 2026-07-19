@@ -27,19 +27,20 @@ jobs:
         export PATH="/opt/llvm-mingw/bin:$PATH"
         x86_64-w64-mingw32-clang++ --version
     
-    - name: Build Phase 4
-      run: |
-        export PATH="/opt/llvm-mingw/bin:$PATH"
-        CXX=x86_64-w64-mingw32-clang++ ./phase4/scripts/build_phase4.sh
-    
     - name: "Check for orphaned // Symbol: markers"
       run: |
         echo "=== Validating // Symbol: markers against the export list ==="
         # An orphaned marker means an export resolves to a stub returning 0
         # while a real implementation sits unreachable beside the marker --
         # every coverage metric counts it as done. Fails the build.
+        # Reads only static source/JSON, so it runs before the build to fail fast.
         python3 tools/gen_manifest.py --out /tmp/manifest.json
         python3 tools/check_symbol_markers.py --manifest /tmp/manifest.json
+
+    - name: Build Phase 4
+      run: |
+        export PATH="/opt/llvm-mingw/bin:$PATH"
+        CXX=x86_64-w64-mingw32-clang++ ./phase4/scripts/build_phase4.sh
 
     - name: Run ABI safety checks
       run: |

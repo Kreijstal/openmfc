@@ -3350,6 +3350,12 @@ extern "C" CWnd* MS_ABI impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(const
     return (CWnd*)pThis->GetTabWnd(p0);
 }
 
+// Symbol: ?IsTabDetachable@CMFCBaseTabCtrl@@UEBAHH@Z
+// CMFCBaseTabCtrl::IsTabDetachable
+extern "C" int MS_ABI impl__IsTabDetachable_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (int)pThis->IsTabDetachable(p0);
+}
+
 // CMFCBaseTabCtrl::AddTab lived here under 32-bit markers (PAVCWnd/PB_W) that
 // matched no export, and the resource-id overload was one parameter short of
 // its retail signature. Both are now in ctrl_mfcbasetabctrl_addtab.cpp with the

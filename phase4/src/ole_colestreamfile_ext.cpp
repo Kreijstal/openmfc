@@ -176,6 +176,8 @@ extern "C" int MS_ABI impl__OpenStream_COleStreamFile__QEAAHPEAUIStorage__PEB_WK
 // Symbol: ?Duplicate@COleStreamFile@@UEBAPEAVCFile@@XZ
 extern "C" void* MS_ABI impl__Duplicate_COleStreamFile__UEBAPEAVCFile__XZ(const void* pThis)
 {
+    if (!pThis) return nullptr;
+
     COleStreamFile* pDup = new COleStreamFile();
     if (!pDup) return nullptr;
 
