@@ -15,8 +15,15 @@
 // files; each is a distinct mangled symbol from the ones already present.
 //
 // Deliberately NOT implemented here (left as honest weak stubs):
-//   - Detach()->VARIANT and GetByteArray(CByteArray&): GetByteArray couples to
-//     CByteArray's layout, which is not declared in the public OpenMFC headers.
+//   - Detach()->VARIANT.
+//
+// GetByteArray(CByteArray&) was listed here as unimplemented, but the code
+// below implements it (and GetByteArrayFromVariantArray) against a local view
+// of CByteArray. Both markers carried 32-bit mangling (QAA/AAV) where retail
+// exports the 64-bit QEAA/AEAV form, so the .def aliased each export to a
+// correctly-mangled impl__ name that only the stub generator defined -- the
+// exports returned without doing anything and this code was unreachable.
+// Markers and impl__ names corrected; the header now matches.
 
 #include <windows.h>
 #include <oleauto.h>
@@ -397,10 +404,10 @@ extern "C" VARIANT* MS_ABI impl__Detach_COleSafeArray__QEAA_AUtagVARIANT__XZ(
     return pRet;
 }
 
-// ?GetByteArray@COleSafeArray@@QAAXAAVCByteArray@@@Z
+// ?GetByteArray@COleSafeArray@@QEAAXAEAVCByteArray@@@Z
 // void GetByteArray(CByteArray& ba) — copy the raw byte payload of this SAFEARRAY.
-// Symbol: ?GetByteArray@COleSafeArray@@QAAXAAVCByteArray@@@Z
-extern "C" void MS_ABI impl__GetByteArray_COleSafeArray__QAAXAAVCByteArray___Z(
+// Symbol: ?GetByteArray@COleSafeArray@@QEAAXAEAVCByteArray@@@Z
+extern "C" void MS_ABI impl__GetByteArray_COleSafeArray__QEAAXAEAVCByteArray___Z(
     void* pThis, CByteArray* pByteArray)
 {
     if (!pThis || !pByteArray) return;
@@ -410,10 +417,10 @@ extern "C" void MS_ABI impl__GetByteArray_COleSafeArray__QAAXAAVCByteArray___Z(
     CopySafeArrayBytes(psa, pByteArray);
 }
 
-// ?GetByteArrayFromVariantArray@COleVariant@@QAAXAAVCByteArray@@@Z
+// ?GetByteArrayFromVariantArray@COleVariant@@QEAAXAEAVCByteArray@@@Z
 // void GetByteArrayFromVariantArray(CByteArray& ba) — convert array VARIANT payload.
-// Symbol: ?GetByteArrayFromVariantArray@COleVariant@@QAAXAAVCByteArray@@@Z
-extern "C" void MS_ABI impl__GetByteArrayFromVariantArray_COleVariant__QAAXAAVCByteArray___Z(
+// Symbol: ?GetByteArrayFromVariantArray@COleVariant@@QEAAXAEAVCByteArray@@@Z
+extern "C" void MS_ABI impl__GetByteArrayFromVariantArray_COleVariant__QEAAXAEAVCByteArray___Z(
     void* pThis, CByteArray* pByteArray)
 {
     if (!pThis || !pByteArray) return;

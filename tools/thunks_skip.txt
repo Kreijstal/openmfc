@@ -15,6 +15,11 @@
 ?AddFormat@COlePasteSpecialDialog@@QEAAXIKIHH@Z
 ?AddItem@COleDocument@@UEAAXPEAVCDocItem@@@Z
 ?AddRequestHeaders@CHttpFile@@QEAAHPEB_WKH@Z
+# Both AddTab overloads are hand-implemented in
+# phase4/src/ctrl_mfcbasetabctrl_addtab.cpp. They must stay listed here so
+# gen_thunks.py does not also emit them (that would be a duplicate symbol).
+# Note this makes gen_manifest.py count them as "skip" rather than "real",
+# which understates coverage by two -- the exports do resolve to real code.
 ?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@IIH@Z
 ?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@PEB_WIH@Z
 ?AddSubItem@CMFCPropertyGridProperty@@QEAAHPEAV1@@Z

@@ -215,6 +215,7 @@ struct TabEntry {
     CWnd* window = nullptr;
     std::wstring label;
     UINT id = static_cast<UINT>(-1);
+    BOOL detachable = TRUE;
 };
 
 struct TabCtrlState {
@@ -2614,7 +2615,7 @@ int CMFCBaseTabCtrl::GetTabsCount() const {
     return state ? static_cast<int>(state->tabs.size()) : 0;
 }
 
-void CMFCBaseTabCtrl::AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId) {
+void CMFCBaseTabCtrl::AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId, BOOL bDetachable) {
     if (!pWnd) {
         return;
     }
@@ -2624,6 +2625,7 @@ void CMFCBaseTabCtrl::AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId) {
         pWnd,
         lpszLabel ? lpszLabel : L"",
         uiId,
+        bDetachable,
     });
     if (state.activeTab < 0) {
         state.activeTab = 0;
@@ -2672,6 +2674,17 @@ CWnd* CMFCBaseTabCtrl::GetTabWnd(int nIndex) const {
         return nullptr;
     }
     return state->tabs[nIndex].window;
+}
+
+BOOL CMFCBaseTabCtrl::IsTabDetachable(int nIndex) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state) {
+        return FALSE;
+    }
+    if (nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return FALSE;
+    }
+    return state->tabs[nIndex].detachable;
 }
 
 //=============================================================================

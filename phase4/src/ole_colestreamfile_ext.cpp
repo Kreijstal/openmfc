@@ -11,10 +11,16 @@
 // header changes and link/run standalone (the test exercises them under Wine
 // against a real CreateStreamOnHGlobal / StgCreateDocfile stream).
 //
-// Deliberately NOT implemented here (left as honest weak stubs): Duplicate
-// (needs the COleStreamFile ctor), GetRuntimeClass/GetThisClass (the repo's
-// CFile family is intentionally non-CObject and returns null RTTI), GetStatus /
-// GetStorageName (CFileStatus coupling / CStringT-by-value return).
+// Deliberately NOT implemented here (left as honest weak stubs):
+// GetRuntimeClass/GetThisClass (the repo's CFile family is intentionally
+// non-CObject and returns null RTTI).
+//
+// Duplicate, GetStatus and GetStorageName WERE listed here as unimplemented,
+// but the code below implements all three. Their `// Symbol:` markers carried
+// 32-bit mangling (PAV/QBA/UBA) where retail exports the 64-bit form, so the
+// .def aliased each export to a correctly-mangled impl__ name that only the
+// stub generator defined -- the export returned 0 and this code was
+// unreachable. Markers and impl__ names corrected; the header now matches.
 
 #include <windows.h>
 #include <objidl.h>
@@ -165,11 +171,13 @@ extern "C" int MS_ABI impl__OpenStream_COleStreamFile__QEAAHPEAUIStorage__PEB_WK
     return 1;
 }
 
-// ?Duplicate@COleStreamFile@@UBAPAVCFile@@XZ
+// ?Duplicate@COleStreamFile@@UEBAPEAVCFile@@XZ
 // CFile* Duplicate() const — clone the underlying IStream and return a new wrapper.
-// Symbol: ?Duplicate@COleStreamFile@@UBAPAVCFile@@XZ
-extern "C" void* MS_ABI impl__Duplicate_COleStreamFile__UBAPAVCFile__XZ(const void* pThis)
+// Symbol: ?Duplicate@COleStreamFile@@UEBAPEAVCFile@@XZ
+extern "C" void* MS_ABI impl__Duplicate_COleStreamFile__UEBAPEAVCFile__XZ(const void* pThis)
 {
+    if (!pThis) return nullptr;
+
     COleStreamFile* pDup = new COleStreamFile();
     if (!pDup) return nullptr;
 
@@ -183,10 +191,10 @@ extern "C" void* MS_ABI impl__Duplicate_COleStreamFile__UBAPAVCFile__XZ(const vo
     return pDup;
 }
 
-// ?GetStatus@COleStreamFile@@QBAHAAUCFileStatus@@@Z
+// ?GetStatus@COleStreamFile@@QEBAHAEAUCFileStatus@@@Z
 // int GetStatus(CFileStatus& rStatus) const — fill status from STATSTG.
-// Symbol: ?GetStatus@COleStreamFile@@QBAHAAUCFileStatus@@@Z
-extern "C" int MS_ABI impl__GetStatus_COleStreamFile__QBAHAAUCFileStatus__XZ(
+// Symbol: ?GetStatus@COleStreamFile@@QEBAHAEAUCFileStatus@@@Z
+extern "C" int MS_ABI impl__GetStatus_COleStreamFile__QEBAHAEAUCFileStatus___Z(
     const void* pThis, CFileStatus* pStatus)
 {
     if (!pThis || !pStatus) return 0;
@@ -226,26 +234,32 @@ extern "C" int MS_ABI impl__GetStatus_COleStreamFile__QBAHAAUCFileStatus__XZ(
     return 1;
 }
 
-// ?GetStorageName@COleStreamFile@@UBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+// ?GetStorageName@COleStreamFile@@UEBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 // const CStringT<wchar_t,...> GetStorageName() const — return stream storage name.
-// Symbol: ?GetStorageName@COleStreamFile@@UBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void MS_ABI impl__GetStorageName_COleStreamFile__UBA_BV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-    const void* pThis, void* ret)
+//
+// Returns a class by value, so MSVC x64 passes the hidden result pointer in RCX
+// and `this` in RDX: the sret pointer comes FIRST, before pThis. This function
+// previously took them the other way round, which went unnoticed because the
+// marker was mis-mangled and nothing ever dispatched here. Matches the idiom in
+// dlgcommon.cpp / dbcore.cpp / ctrlcore.cpp.
+// Symbol: ?GetStorageName@COleStreamFile@@UEBA?BV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void MS_ABI impl__GetStorageName_COleStreamFile__UEBA_BV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* __ret, const void* pThis)
 {
-    IStream* stream = Stream(const_cast<void*>(pThis));
+    IStream* stream = pThis ? Stream(const_cast<void*>(pThis)) : nullptr;
     if (!stream) {
-        new(ret) CString();
+        new(__ret) CString();
         return;
     }
 
     STATSTG stat;
     if (FAILED(stream->Stat(&stat, STATFLAG_DEFAULT))) {
-        new(ret) CString();
+        new(__ret) CString();
         return;
     }
 
     const wchar_t* storageName = stat.pwcsName ? stat.pwcsName : L"";
-    new(ret) CString(storageName);
+    new(__ret) CString(storageName);
     if (stat.pwcsName) {
         CoTaskMemFree(stat.pwcsName);
     }
