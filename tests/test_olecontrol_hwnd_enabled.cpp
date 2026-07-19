@@ -84,12 +84,50 @@ int main(){
     memset(ctl2,0,sizeof ctl2); CtorFn(ctl2); PTR(ctl2,64) = NULL;
     U32(ctl2,352) &= ~(1u<<2);
     SetEnF(ctl2, FALSE);
-    // Documents the PRE-EXISTING divergence this test uncovered: the setter
-    // updates only the side table, so the ABI-visible bit stays clear and a
-    // real client polling IsModified() never sees the change.
-    CHECK(IsModF(ctl2)==0, "PRE-EXISTING: SetEnabled's modified flag is invisible to IsModified");
+    CHECK(IsModF(ctl2)==1,        "SetEnabled marks the control modified, visibly to IsModified");
+    CHECK((U32(ctl2,352)>>2 & 1u)==1, "SetEnabled reaches the ABI-visible m_bModified bit");
+
+    // SetModifiedFlag drives the same bit, and only that bit.
+    memset(ctl2,0,sizeof ctl2); CtorFn(ctl2); PTR(ctl2,64) = NULL;
+    U32(ctl2,352) = 0;
     SetModF(ctl2, TRUE);
-    CHECK(IsModF(ctl2)==0, "PRE-EXISTING: SetModifiedFlag(TRUE) does not reach m_bModified");
+    CHECK(IsModF(ctl2)==1,        "SetModifiedFlag(TRUE) reaches m_bModified");
+    CHECK(U32(ctl2,352)==(1u<<2), "SetModifiedFlag(TRUE) touches no other bit");
+    SetModF(ctl2, FALSE);
+    CHECK(IsModF(ctl2)==0,        "SetModifiedFlag(FALSE) clears m_bModified");
+    CHECK(U32(ctl2,352)==0,       "SetModifiedFlag(FALSE) touches no other bit");
+
+    // Retail truncates rather than normalizes: the stored bit is bit 0 of the
+    // LOW BYTE of the argument (movzx r8d,dl / shl 2 / and 4). So an even
+    // argument CLEARS the flag. This is the check that fails if someone
+    // "cleans up" the assignment into `bModified ? 1 : 0`.
+    SetModF(ctl2, TRUE);
+    SetModF(ctl2, 2);
+    CHECK(IsModF(ctl2)==0,        "SetModifiedFlag(2) clears, matching retail truncation");
+    SetModF(ctl2, 3);
+    CHECK(IsModF(ctl2)==1,        "SetModifiedFlag(3) sets, matching retail truncation");
+    SetModF(ctl2, 0x100);
+    CHECK(IsModF(ctl2)==0,        "SetModifiedFlag(0x100) clears -- only the low byte is read");
+
+    // Preserved from the flags word around it: setting the bit must not
+    // disturb the neighbours the ctor established.
+    memset(ctl2,0,sizeof ctl2); CtorFn(ctl2); PTR(ctl2,64) = NULL;
+    U32(ctl2,352) = 0xFFFFFFFBu;   // everything but bit 2
+    SetModF(ctl2, TRUE);
+    CHECK(U32(ctl2,352)==0xFFFFFFFFu, "SetModifiedFlag(TRUE) leaves neighbouring bits set");
+    SetModF(ctl2, FALSE);
+    CHECK(U32(ctl2,352)==0xFFFFFFFBu, "SetModifiedFlag(FALSE) leaves neighbouring bits set");
+
+    // OnResetState must clear it too -- the check that motivated the ca63d6a
+    // reset fix, now that the setter and the reset agree on one location.
+    typedef void (__stdcall *ResetFn)(void*);
+    auto ResetF = (ResetFn)GetProcAddress(h,"?OnResetState@COleControl@@UEAAXXZ");
+    if(!ResetF){ printf("missing OnResetState export\n"); return 1; }
+    memset(ctl2,0,sizeof ctl2); CtorFn(ctl2); PTR(ctl2,64) = NULL;
+    SetModF(ctl2, TRUE);
+    CHECK(IsModF(ctl2)==1,        "control is dirty before the reset");
+    ResetF(ctl2);
+    CHECK(IsModF(ctl2)==0,        "OnResetState clears m_bModified");
 
     // The early-out on an unchanged value must survive the added invalidate:
     // a no-op call must not touch the object at all.

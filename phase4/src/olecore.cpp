@@ -1209,7 +1209,6 @@ struct OleControlState {
     short borderStyle = 0;
     CString text;
     long readyState = 4;
-    BOOL modified = FALSE;
     std::vector<OleControlEventSink> eventSinks;
     std::vector<IPropertyNotifySink*> propSinks;
     std::vector<IID> enabledConnectionPoints;
@@ -5337,7 +5336,6 @@ void COleControl::OnResetState() {
     OleControlState* state = GetOleControlState(this, true);
     if (state) {
         state->text.Empty();
-        state->modified = FALSE;
     }
     // The properties below now live in the ABI-visible members, so the reset
     // has to clear those rather than the side-table shadow a client cannot
@@ -5574,13 +5572,25 @@ long COleControl::GetReadyState() const {
 BOOL COleControl::IsSubclassedControl() {
     return m_hWnd != nullptr && MfcSiteOf(this) == nullptr;
 }
+// Retail (?SetModifiedFlag@COleControl@@QEAAXH@Z):
+//     mov   eax,[rcx+0x160]      ; movzx r8d,dl   ; shl r8d,2
+//     xor   r8d,eax              ; and   r8d,4    ; xor r8d,eax
+//     mov   [rcx+0x160],r8d      ; ret
+// The MSVC idiom for a 1-bit bitfield store: bit 2 is set from bit 0 of the
+// LOW BYTE of the argument. So the value is truncated, not normalized --
+// SetModifiedFlag(2) clears the flag, and a plain assignment to the bitfield
+// reproduces that exactly. Do not "fix" this into `bModified ? 1 : 0`.
+//
+// This used to write only the OleControlState side table, which no client can
+// see, while IsModified() read the m_bModified bit -- so a control marked
+// dirty by any property setter still reported itself clean. Same defect class
+// as the accessor migration in ca63d6a, which corrected OnResetState but left
+// the setter behind.
 void COleControl::SetModifiedFlag(BOOL bModified) {
-    OleControlState* state = GetOleControlState(this, true);
-    if (state) state->modified = bModified;
+    m_bModified = bModified;
 }
 BOOL COleControl::GetModifiedFlag() const {
-    OleControlState* state = GetOleControlState(const_cast<COleControl*>(this), false);
-    return state ? state->modified : FALSE;
+    return m_bModified;
 }
 ULONG COleControl::InternalAddRef() { return 1; }
 ULONG COleControl::InternalRelease() { return 1; }
