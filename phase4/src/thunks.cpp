@@ -171,6 +171,12 @@ extern "C" void* MS_ABI impl___0CMFCBaseTabCtrl__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCBaseTabCtrl();
 }
 
+// Symbol: ??0CMFCBaseToolBar@@QEAA@XZ
+// Constructor: CMFCBaseToolBar::CMFCBaseToolBar
+extern "C" void* MS_ABI impl___0CMFCBaseToolBar__QEAA_XZ(void* pThis) {
+    return new(pThis) CMFCBaseToolBar();
+}
+
 // Symbol: ??0CMFCButton@@QEAA@XZ
 // Constructor: CMFCButton::CMFCButton
 extern "C" void* MS_ABI impl___0CMFCButton__QEAA_XZ(void* pThis) {
@@ -805,6 +811,12 @@ extern "C" void MS_ABI impl___1CMetaFileDC__UEAA_XZ(void* pThis) {
 // Destructor: CMFCBaseTabCtrl::~CMFCBaseTabCtrl
 extern "C" void MS_ABI impl___1CMFCBaseTabCtrl__UEAA_XZ(void* pThis) {
     ((CMFCBaseTabCtrl*)pThis)->~CMFCBaseTabCtrl();
+}
+
+// Symbol: ??1CMFCBaseToolBar@@UEAA@XZ
+// Destructor: CMFCBaseToolBar::~CMFCBaseToolBar
+extern "C" void MS_ABI impl___1CMFCBaseToolBar__UEAA_XZ(void* pThis) {
+    ((CMFCBaseToolBar*)pThis)->~CMFCBaseToolBar();
 }
 
 // Symbol: ??1CMFCButton@@UEAA@XZ
@@ -2428,8 +2440,8 @@ extern "C" int MS_ABI impl__EnableTrackingToolTips_CWnd__QEAAHH_Z(CWnd* pThis, i
 // Symbol: ?EnableWindow@COleControlSite@@UEAAHH@Z
 // COleControlSite::EnableWindow
 extern "C" int MS_ABI impl__EnableWindow_COleControlSite__UEAAHH_Z(COleControlSite* pThis, int p0) {
-    if (!pThis || !pThis->m_hWnd) return 0;
-    return ::EnableWindow(pThis->m_hWnd, p0);
+    pThis->EnableWindow(p0);
+    return {};
 }
 
 // Symbol: ?EndBusyState@COleMessageFilter@@UEAAXXZ
@@ -3350,50 +3362,6 @@ extern "C" CWnd* MS_ABI impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(const
     return (CWnd*)pThis->GetTabWnd(p0);
 }
 
-// Symbol: ?IsTabDetachable@CMFCBaseTabCtrl@@UEBAHH@Z
-// CMFCBaseTabCtrl::IsTabDetachable
-extern "C" int MS_ABI impl__IsTabDetachable_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
-    return (int)pThis->IsTabDetachable(p0);
-}
-
-// CMFCBaseTabCtrl::AddTab lived here under 32-bit markers (PAVCWnd/PB_W) that
-// matched no export, and the resource-id overload was one parameter short of
-// its retail signature. Both are now in ctrl_mfcbasetabctrl_addtab.cpp with the
-// correct 64-bit mangling. They are NOT emitted by gen_thunks.py, so keeping
-// them here would lose them on the next regeneration.
-
-// Symbol: ?SetTabBorderSize@CMFCBaseTabCtrl@@UEAAXHH@Z
-// CMFCBaseTabCtrl::SetTabBorderSize
-extern "C" void MS_ABI impl__SetTabBorderSize_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl* pThis, int p0, int p1) {
-    (void)p1;
-    if (!pThis) {
-        return;
-    }
-    if (auto* pTabCtrl = dynamic_cast<CMFCTabCtrl*>(pThis)) {
-        pTabCtrl->SetTabBorderSize(p0);
-    }
-}
-
-// Symbol: ?SetTabsHeight@CMFCBaseTabCtrl@@UEAAXXZ
-// CMFCBaseTabCtrl::SetTabsHeight
-extern "C" void MS_ABI impl__SetTabsHeight_CMFCBaseTabCtrl__UEAAXXZ(CMFCBaseTabCtrl* pThis) {
-    if (!pThis) {
-        return;
-    }
-    if (auto* pTabCtrl = dynamic_cast<CMFCTabCtrl*>(pThis)) {
-        pTabCtrl->SetTabsHeight(0);
-    }
-}
-
-// Symbol: ?SetTabsHeight@CMFCTabCtrl@@MEAAXXZ
-// CMFCTabCtrl::SetTabsHeight
-extern "C" void MS_ABI impl__SetTabsHeight_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis) {
-    if (!pThis) {
-        return;
-    }
-    pThis->SetTabsHeight(0);
-}
-
 // Symbol: ?GetText@COleControl@@QEAAPEA_WXZ
 // COleControl::GetText
 extern "C" wchar_t* MS_ABI impl__GetText_COleControl__QEAAPEA_WXZ(COleControl* pThis) {
@@ -3609,6 +3577,12 @@ extern "C" int MS_ABI impl__IsSubclassedControl_COleControl__UEAAHXZ(COleControl
 // CMFCPropertyGridProperty::IsSubItem
 extern "C" int MS_ABI impl__IsSubItem_CMFCPropertyGridProperty__IEBAHPEAV1__Z(const CMFCPropertyGridProperty* pThis, void* p0) {
     return (int)pThis->IsSubItem(p0);
+}
+
+// Symbol: ?IsTabDetachable@CMFCBaseTabCtrl@@UEBAHH@Z
+// CMFCBaseTabCtrl::IsTabDetachable
+extern "C" int MS_ABI impl__IsTabDetachable_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (int)pThis->IsTabDetachable(p0);
 }
 
 // Symbol: ?IsTopParentActive@CWnd@@QEBAHXZ
@@ -4009,6 +3983,12 @@ extern "C" unsigned long MS_ABI impl__OnDragEnter_COleDropTarget__UEAAKPEAVCWnd_
     return (unsigned long)pThis->OnDragEnter(p0, p1, p2, p3);
 }
 
+// Symbol: ?OnDragEnter@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z
+// CView::OnDragEnter
+extern "C" unsigned long MS_ABI impl__OnDragEnter_CView__UEAAKPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (unsigned long)pThis->OnDragEnter(p0, p1, p2);
+}
+
 // Symbol: ?OnDragLeave@COleDropTarget@@UEAAXPEAVCWnd@@@Z
 // COleDropTarget::OnDragLeave
 extern "C" void MS_ABI impl__OnDragLeave_COleDropTarget__UEAAXPEAVCWnd___Z(COleDropTarget* pThis, CWnd* p0) {
@@ -4025,6 +4005,12 @@ extern "C" __int64 MS_ABI impl__OnDragList_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsig
 // COleDropTarget::OnDragOver
 extern "C" unsigned long MS_ABI impl__OnDragOver_COleDropTarget__UEAAKPEAVCWnd__PEAVCOleDataObject__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, CPoint p3) {
     return (unsigned long)pThis->OnDragOver(p0, p1, p2, p3);
+}
+
+// Symbol: ?OnDragOver@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z
+// CView::OnDragOver
+extern "C" unsigned long MS_ABI impl__OnDragOver_CView__UEAAKPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (unsigned long)pThis->OnDragOver(p0, p1, p2);
 }
 
 // Symbol: ?OnDragScroll@COleDropTarget@@UEAAKPEAVCWnd@@KVCPoint@@@Z
@@ -4446,10 +4432,22 @@ extern "C" int MS_ABI impl__OnDrop_COleDropTarget__UEAAHPEAVCWnd__PEAVCOleDataOb
     return (int)pThis->OnDrop(p0, p1, p2, p3);
 }
 
+// Symbol: ?OnDrop@CView@@UEAAHPEAVCOleDataObject@@KVCPoint@@@Z
+// CView::OnDrop
+extern "C" int MS_ABI impl__OnDrop_CView__UEAAHPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (int)pThis->OnDrop(p0, p1, p2);
+}
+
 // Symbol: ?OnDropEx@COleDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KKVCPoint@@@Z
 // COleDropTarget::OnDropEx
 extern "C" unsigned long MS_ABI impl__OnDropEx_COleDropTarget__UEAAKPEAVCWnd__PEAVCOleDataObject__KKVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, unsigned long p3, CPoint p4) {
     return (unsigned long)pThis->OnDropEx(p0, p1, p2, p3, p4);
+}
+
+// Symbol: ?OnDropEx@CView@@UEAAKPEAVCOleDataObject@@KKVCPoint@@@Z
+// CView::OnDropEx
+extern "C" unsigned long MS_ABI impl__OnDropEx_CView__UEAAKPEAVCOleDataObject__KKVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, unsigned long p2, CPoint p3) {
+    return (unsigned long)pThis->OnDropEx(p0, p1, p2, p3);
 }
 
 // Symbol: ?OnDropFiles@CFrameWnd@@IEAAXPEAUHDROP__@@@Z
@@ -4800,12 +4798,6 @@ extern "C" void MS_ABI impl__OnReset_CPropertyPage__UEAAXXZ(CPropertyPage* pThis
 // COleControl::OnResetState
 extern "C" void MS_ABI impl__OnResetState_COleControl__UEAAXXZ(COleControl* pThis) {
     pThis->OnResetState();
-}
-
-// Symbol: ?OnRotateListValue@CMFCPropertyGridProperty@@MEAAHH@Z
-// CMFCPropertyGridProperty::OnRotateListValue
-extern "C" int MS_ABI impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(CMFCPropertyGridProperty* pThis, int p0) {
-    return (int)pThis->OnRotateListValue(p0);
 }
 
 // Symbol: ?OnSelectCombo@CMFCPropertyGridProperty@@UEAAXXZ
@@ -5167,12 +5159,6 @@ extern "C" __int64 MS_ABI impl__QuerySiblings_CPropertyPage__QEAA_J_K_J_Z(CPrope
     return (__int64)pThis->QuerySiblings(p0, p1);
 }
 
-// Symbol: ?Read@CArchive@@QEAAIPEAXI@Z
-// CArchive::Read
-extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
-}
-
 // Symbol: ?Read@CInternetFile@@UEAAIPEAXI@Z
 // CInternetFile::Read
 extern "C" unsigned int MS_ABI impl__Read_CInternetFile__UEAAIPEAXI_Z(CInternetFile* pThis, void* p0, unsigned int p1) {
@@ -5213,12 +5199,6 @@ extern "C" wchar_t* MS_ABI impl__ReadString_CArchive__QEAAPEA_WPEA_WI_Z(CArchive
 // CStdioFile::ReadString
 extern "C" wchar_t* MS_ABI impl__ReadString_CStdioFile__UEAAPEA_WPEA_WI_Z(CStdioFile* pThis, wchar_t* p0, unsigned int p1) {
     return (wchar_t*)pThis->ReadString(p0, p1);
-}
-
-// Symbol: ?RecalcLayout@CFrameWnd@@UEAAXH@Z
-// CFrameWnd::RecalcLayout
-extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int p0) {
-    pThis->RecalcLayout(p0);
 }
 
 // Symbol: ?RecalcLayout@CPane@@UEAAXXZ
@@ -5704,13 +5684,6 @@ extern "C" void MS_ABI impl__SetCheck_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
     pThis->SetCheck(p0);
 }
 
-// Symbol: ?Enable@CCmdUI@@UEAAXH@Z
-// CCmdUI::Enable
-extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
-    if (!pThis) return;
-    pThis->Enable(p0);
-}
-
 // Symbol: ?SetCheck@COleCmdUI@@UEAAXH@Z
 // COleCmdUI::SetCheck
 extern "C" void MS_ABI impl__SetCheck_COleCmdUI__UEAAXH_Z(COleCmdUI* pThis, int p0) {
@@ -5938,12 +5911,6 @@ extern "C" void MS_ABI impl__SetInitialSize_COleControl__QEAAXHH_Z(COleControl* 
 // Symbol: ?SetLength@CFile@@UEAAX_K@Z
 // CFile::SetLength
 extern "C" void MS_ABI impl__SetLength_CFile__UEAAX_K_Z(CFile* pThis, unsigned __int64 p0) {
-    pThis->SetLength(p0);
-}
-
-// Symbol: ?SetLength@CMemFile@@UEAAX_K@Z
-// CMemFile::SetLength
-extern "C" void MS_ABI impl__SetLength_CMemFile__UEAAX_K_Z(CMemFile* pThis, unsigned __int64 p0) {
     pThis->SetLength(p0);
 }
 
@@ -6192,12 +6159,6 @@ extern "C" int MS_ABI impl__SetTaskbarOverlayIcon_CFrameWnd__QEAAHPEAUHICON____P
 // Symbol: ?SetText@CCmdUI@@UEAAXPEB_W@Z
 // CCmdUI::SetText
 extern "C" void MS_ABI impl__SetText_CCmdUI__UEAAXPEB_W_Z(CCmdUI* pThis, const wchar_t* p0) {
-    pThis->SetText(p0);
-}
-
-// Symbol: ?SetText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
-// CMFCRibbonBaseElement::SetText
-extern "C" void MS_ABI impl__SetText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* p0) {
     pThis->SetText(p0);
 }
 
@@ -6461,12 +6422,6 @@ extern "C" void MS_ABI impl__WrapChanged_CRichEditView__MEAAXXZ(CRichEditView* p
     pThis->WrapChanged();
 }
 
-// Symbol: ?Write@CArchive@@QEAAXPEBXI@Z
-// CArchive::Write
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
-}
-
 // Symbol: ?Write@CMemFile@@UEAAXPEBXI@Z
 // CMemFile::Write
 extern "C" void MS_ABI impl__Write_CMemFile__UEAAXPEBXI_Z(CMemFile* pThis, const void* p0, unsigned int p1) {
@@ -6545,5 +6500,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1074 thunks
+// Generated 1075 thunks
 // Errors (could not parse): 0
