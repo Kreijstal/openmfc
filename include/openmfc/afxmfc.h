@@ -1484,6 +1484,9 @@ public:
     BOOL SelectItem(int nIndex, BOOL bNotify = TRUE);
     BOOL SelectItem(DWORD_PTR dwData);
     void SetText(const wchar_t* lpszText);
+    void RemoveAllItems();
+    void SetDropDownHeight(int nHeight);
+    virtual void SetStyle(UINT nStyle);
 
     static CMFCToolBarComboBoxButton* GetByCmd(UINT uiCmd, BOOL bIsFocus = FALSE);
     static int GetCountAll(UINT uiCmd);

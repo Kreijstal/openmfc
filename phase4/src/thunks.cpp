@@ -5357,6 +5357,12 @@ extern "C" void MS_ABI impl__RemoveAll_CMFCPropertyGridCtrl__QEAAXXZ(CMFCPropert
     pThis->RemoveAll();
 }
 
+// Symbol: ?RemoveAllItems@CMFCToolBarComboBoxButton@@QEAAXXZ
+// CMFCToolBarComboBoxButton::RemoveAllItems
+extern "C" void MS_ABI impl__RemoveAllItems_CMFCToolBarComboBoxButton__QEAAXXZ(CMFCToolBarComboBoxButton* pThis) {
+    pThis->RemoveAllItems();
+}
+
 // Symbol: ?RemoveAllOptions@CMFCPropertyGridProperty@@QEAAXXZ
 // CMFCPropertyGridProperty::RemoveAllOptions
 extern "C" void MS_ABI impl__RemoveAllOptions_CMFCPropertyGridProperty__QEAAXXZ(CMFCPropertyGridProperty* pThis) {
@@ -5841,6 +5847,12 @@ extern "C" void MS_ABI impl__SetDockState_CFrameWnd__QEAAXAEBVCDockState___Z(CFr
     pThis->SetDockState((*p0));
 }
 
+// Symbol: ?SetDropDownHeight@CMFCToolBarComboBoxButton@@QEAAXH@Z
+// CMFCToolBarComboBoxButton::SetDropDownHeight
+extern "C" void MS_ABI impl__SetDropDownHeight_CMFCToolBarComboBoxButton__QEAAXH_Z(CMFCToolBarComboBoxButton* pThis, int p0) {
+    pThis->SetDropDownHeight(p0);
+}
+
 // Symbol: ?SetEnabled@COleControl@@QEAAXH@Z
 // COleControl::SetEnabled
 extern "C" void MS_ABI impl__SetEnabled_COleControl__QEAAXH_Z(COleControl* pThis, int p0) {
@@ -6189,6 +6201,12 @@ extern "C" void MS_ABI impl__SetSizes_CToolBar__QEAAXUtagSIZE__0_Z(CToolBar* pTh
 // CSplitterWnd::SetSplitCursor
 extern "C" void MS_ABI impl__SetSplitCursor_CSplitterWnd__MEAAXH_Z(CSplitterWnd* pThis, int p0) {
     pThis->SetSplitCursor(p0);
+}
+
+// Symbol: ?SetStyle@CMFCToolBarComboBoxButton@@UEAAXI@Z
+// CMFCToolBarComboBoxButton::SetStyle
+extern "C" void MS_ABI impl__SetStyle_CMFCToolBarComboBoxButton__UEAAXI_Z(CMFCToolBarComboBoxButton* pThis, unsigned int p0) {
+    pThis->SetStyle(p0);
 }
 
 // Symbol: ?SetTabTextColor@CMFCBaseTabCtrl@@UEAAHHK@Z
@@ -6559,5 +6577,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1085 thunks
+// Generated 1088 thunks
 // Errors (could not parse): 0
