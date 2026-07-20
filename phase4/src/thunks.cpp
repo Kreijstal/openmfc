@@ -3771,6 +3771,12 @@ extern "C" void MS_ABI impl__MoveTab_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl*
     pThis->MoveTab(p0, p1);
 }
 
+// Symbol: ?MoveTab@CMFCTabCtrl@@UEAAXHH@Z
+// CMFCTabCtrl::MoveTab
+extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, int p0, int p1) {
+    pThis->MoveTab(p0, p1);
+}
+
 // Symbol: ?NegotiateBorderSpace@CFrameWnd@@UEAAHIPEAUtagRECT@@@Z
 // CFrameWnd::NegotiateBorderSpace
 extern "C" int MS_ABI impl__NegotiateBorderSpace_CFrameWnd__UEAAHIPEAUtagRECT___Z(CFrameWnd* pThis, unsigned int p0, RECT* p1) {
@@ -5639,6 +5645,12 @@ extern "C" void MS_ABI impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z(
     pThis->SetActivePreviewView(p0);
 }
 
+// Symbol: ?SetActiveTab@CMFCTabCtrl@@UEAAHH@Z
+// CMFCTabCtrl::SetActiveTab
+extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(CMFCTabCtrl* pThis, int p0) {
+    return (int)pThis->SetActiveTab(p0);
+}
+
 // Symbol: ?SetActiveView@CFrameWnd@@QEAAXPEAVCView@@H@Z
 // CFrameWnd::SetActiveView
 extern "C" void MS_ABI impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z(CFrameWnd* pThis, CView* p0, int p1) {
@@ -6311,6 +6323,12 @@ extern "C" void MS_ABI impl__SwapTabs_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl
     pThis->SwapTabs(p0, p1);
 }
 
+// Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z
+// CMFCTabCtrl::SwapTabs
+extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, int p0, int p1) {
+    pThis->SwapTabs(p0, p1);
+}
+
 // Symbol: ?TextNotFound@CRichEditView@@QEAAXPEB_W@Z
 // CRichEditView::TextNotFound
 extern "C" void MS_ABI impl__TextNotFound_CRichEditView__QEAAXPEB_W_Z(CRichEditView* pThis, const wchar_t* p0) {
@@ -6559,5 +6577,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1085 thunks
+// Generated 1088 thunks
 // Errors (could not parse): 0
