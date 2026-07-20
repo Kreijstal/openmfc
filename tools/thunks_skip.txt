@@ -2,6 +2,11 @@
 # These fail because our C++ method signatures differ from
 # the MSVC DLL exports (parameter types, overloads, etc.)
 # Fix the C++ code, then remove from this list.
+#
+# CStringT<...>& params the generator cannot route to our CString;
+# hand-written in phase4/src/global_extra_thunks.cpp.
+?GetTabLabel@CMFCBaseTabCtrl@@UEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+?SetTabLabel@CMFCBaseTabCtrl@@UEAAHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 ??0CGopherFile@@IEAA@PEAX0PEB_WK_K@Z
 ??0CHttpFile@@IEAA@PEAX0PEB_W11_K@Z
 ??0CInternetFile@@IEAA@PEAX0PEB_W1_KH@Z

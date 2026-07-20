@@ -216,6 +216,8 @@ struct TabEntry {
     std::wstring label;
     UINT id = static_cast<UINT>(-1);
     BOOL detachable = TRUE;
+    BOOL visible = TRUE;
+    COLORREF textColor = static_cast<COLORREF>(-1);   // -1 == "use default"
 };
 
 struct TabCtrlState {
@@ -2685,6 +2687,141 @@ BOOL CMFCBaseTabCtrl::IsTabDetachable(int nIndex) const {
         return FALSE;
     }
     return state->tabs[nIndex].detachable;
+}
+
+CWnd* CMFCBaseTabCtrl::GetTabWndNoWrapper(int nIndex) const {
+    // The repo does not model per-tab wrapper windows, so the wrapped and
+    // unwrapped views coincide.
+    return GetTabWnd(nIndex);
+}
+
+CWnd* CMFCBaseTabCtrl::GetActiveWnd() const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || state->activeTab < 0 ||
+        state->activeTab >= static_cast<int>(state->tabs.size())) {
+        return nullptr;
+    }
+    return state->tabs[state->activeTab].window;
+}
+
+void CMFCBaseTabCtrl::RemoveAllTabs() {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    state.tabs.clear();
+    state.activeTab = -1;
+}
+
+BOOL CMFCBaseTabCtrl::GetTabLabel(int nIndex, CString& strLabel) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return FALSE;
+    }
+    strLabel = state->tabs[nIndex].label.c_str();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::SetTabLabel(int nIndex, const CString& strLabel) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
+        return FALSE;
+    }
+    state.tabs[nIndex].label = static_cast<const wchar_t*>(strLabel);
+    return TRUE;
+}
+
+int CMFCBaseTabCtrl::GetTabID(int nIndex) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return -1;
+    }
+    return static_cast<int>(state->tabs[nIndex].id);
+}
+
+int CMFCBaseTabCtrl::GetTabByID(int nID) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state) {
+        return -1;
+    }
+    for (int i = 0; i < static_cast<int>(state->tabs.size()); ++i) {
+        if (static_cast<int>(state->tabs[i].id) == nID) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int CMFCBaseTabCtrl::GetVisibleTabsNum() const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state) {
+        return 0;
+    }
+    int n = 0;
+    for (const TabEntry& t : state->tabs) {
+        if (t.visible) {
+            ++n;
+        }
+    }
+    return n;
+}
+
+BOOL CMFCBaseTabCtrl::IsTabVisible(int nIndex) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return FALSE;
+    }
+    return state->tabs[nIndex].visible;
+}
+
+COLORREF CMFCBaseTabCtrl::GetTabTextColor(int nIndex) const {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || nIndex < 0 || nIndex >= static_cast<int>(state->tabs.size())) {
+        return static_cast<COLORREF>(-1);
+    }
+    return state->tabs[nIndex].textColor;
+}
+
+BOOL CMFCBaseTabCtrl::SetTabTextColor(int nIndex, COLORREF color) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
+        return FALSE;
+    }
+    state.tabs[nIndex].textColor = color;
+    return TRUE;
+}
+
+void CMFCBaseTabCtrl::SwapTabs(int nFirst, int nSecond) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    const int n = static_cast<int>(state.tabs.size());
+    if (nFirst < 0 || nFirst >= n || nSecond < 0 || nSecond >= n || nFirst == nSecond) {
+        return;
+    }
+    std::swap(state.tabs[nFirst], state.tabs[nSecond]);
+    // The active tab tracks its window, so follow the two swapped slots.
+    if (state.activeTab == nFirst) {
+        state.activeTab = nSecond;
+    } else if (state.activeTab == nSecond) {
+        state.activeTab = nFirst;
+    }
+}
+
+void CMFCBaseTabCtrl::MoveTab(int nSource, int nDest) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    const int n = static_cast<int>(state.tabs.size());
+    if (nSource < 0 || nSource >= n || nDest < 0 || nDest >= n || nSource == nDest) {
+        return;
+    }
+    TabEntry moved = state.tabs[nSource];
+    const bool wasActive = (state.activeTab == nSource);
+    state.tabs.erase(state.tabs.begin() + nSource);
+    state.tabs.insert(state.tabs.begin() + nDest, moved);
+    if (wasActive) {
+        state.activeTab = nDest;
+    } else if (state.activeTab >= 0) {
+        // Re-track the previously-active window after the shift.
+        int a = state.activeTab;
+        if (nSource < a) --a;
+        if (nDest <= a) ++a;
+        state.activeTab = a;
+    }
 }
 
 //=============================================================================

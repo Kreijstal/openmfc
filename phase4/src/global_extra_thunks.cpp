@@ -30,6 +30,25 @@ extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int p0) {
     pThis->Enable(p0);
 }
 
+// gen_thunks.py cannot route a CStringT<wchar_t,...>& parameter to our CString,
+// so these two are hand-written (and listed in thunks_skip.txt).
+
+// Symbol: ?GetTabLabel@CMFCBaseTabCtrl@@UEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CMFCBaseTabCtrl::GetTabLabel
+extern "C" int MS_ABI impl__GetTabLabel_CMFCBaseTabCtrl__UEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CMFCBaseTabCtrl* pThis, int nIndex, CString* pLabel) {
+    if (!pThis || !pLabel) return 0;
+    return (int)pThis->GetTabLabel(nIndex, *pLabel);
+}
+
+// Symbol: ?SetTabLabel@CMFCBaseTabCtrl@@UEAAHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// CMFCBaseTabCtrl::SetTabLabel
+extern "C" int MS_ABI impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    CMFCBaseTabCtrl* pThis, int nIndex, const CString* pLabel) {
+    if (!pThis || !pLabel) return 0;
+    return (int)pThis->SetTabLabel(nIndex, *pLabel);
+}
+
 // Symbol: ?Read@CArchive@@QEAAIPEAXI@Z
 // CArchive::Read
 extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* p0, unsigned int p1) {

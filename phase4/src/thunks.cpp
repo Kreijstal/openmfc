@@ -2684,6 +2684,12 @@ extern "C" IOleDocumentView* MS_ABI impl__GetActiveView_COleDocObjectItem__QEBAP
     return (IOleDocumentView*)pThis->GetActiveView();
 }
 
+// Symbol: ?GetActiveWnd@CMFCBaseTabCtrl@@UEBAPEAVCWnd@@XZ
+// CMFCBaseTabCtrl::GetActiveWnd
+extern "C" CWnd* MS_ABI impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(const CMFCBaseTabCtrl* pThis) {
+    return (CWnd*)pThis->GetActiveWnd();
+}
+
 // Symbol: ?GetAmbientProperty@COleControl@@QEAAHJGPEAX@Z
 // COleControl::GetAmbientProperty
 extern "C" int MS_ABI impl__GetAmbientProperty_COleControl__QEAAHJGPEAX_Z(COleControl* pThis, long p0, unsigned short p1, void* p2) {
@@ -3356,10 +3362,34 @@ extern "C" void* /*fnptr*/* MS_ABI impl__GetSuperWndProcAddr_CWnd__MEAAPEAP6A_JP
     return (void* /*fnptr*/*)pThis->GetSuperWndProcAddr();
 }
 
+// Symbol: ?GetTabByID@CMFCBaseTabCtrl@@UEBAHH@Z
+// CMFCBaseTabCtrl::GetTabByID
+extern "C" int MS_ABI impl__GetTabByID_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (int)pThis->GetTabByID(p0);
+}
+
+// Symbol: ?GetTabID@CMFCBaseTabCtrl@@QEBAHH@Z
+// CMFCBaseTabCtrl::GetTabID
+extern "C" int MS_ABI impl__GetTabID_CMFCBaseTabCtrl__QEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (int)pThis->GetTabID(p0);
+}
+
+// Symbol: ?GetTabTextColor@CMFCBaseTabCtrl@@UEBAKH@Z
+// CMFCBaseTabCtrl::GetTabTextColor
+extern "C" unsigned long MS_ABI impl__GetTabTextColor_CMFCBaseTabCtrl__UEBAKH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (unsigned long)pThis->GetTabTextColor(p0);
+}
+
 // Symbol: ?GetTabWnd@CMFCBaseTabCtrl@@UEBAPEAVCWnd@@H@Z
 // CMFCBaseTabCtrl::GetTabWnd
 extern "C" CWnd* MS_ABI impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(const CMFCBaseTabCtrl* pThis, int p0) {
     return (CWnd*)pThis->GetTabWnd(p0);
+}
+
+// Symbol: ?GetTabWndNoWrapper@CMFCBaseTabCtrl@@UEBAPEAVCWnd@@H@Z
+// CMFCBaseTabCtrl::GetTabWndNoWrapper
+extern "C" CWnd* MS_ABI impl__GetTabWndNoWrapper_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (CWnd*)pThis->GetTabWndNoWrapper(p0);
 }
 
 // Symbol: ?GetText@COleControl@@QEAAPEA_WXZ
@@ -3403,6 +3433,12 @@ extern "C" void* MS_ABI impl__GetTopLevelParent_CWnd__QEBAPEAV1_XZ(const CWnd* p
 // CMFCPropertyGridCtrl::GetTotalItems
 extern "C" int MS_ABI impl__GetTotalItems_CMFCPropertyGridCtrl__IEBAHH_Z(const CMFCPropertyGridCtrl* pThis, int p0) {
     return (int)pThis->GetTotalItems(p0);
+}
+
+// Symbol: ?GetVisibleTabsNum@CMFCBaseTabCtrl@@UEBAHXZ
+// CMFCBaseTabCtrl::GetVisibleTabsNum
+extern "C" int MS_ABI impl__GetVisibleTabsNum_CMFCBaseTabCtrl__UEBAHXZ(const CMFCBaseTabCtrl* pThis) {
+    return (int)pThis->GetVisibleTabsNum();
 }
 
 // Symbol: ?GetWindowedChildCount@CWnd@@QEAAJXZ
@@ -3585,6 +3621,12 @@ extern "C" int MS_ABI impl__IsTabDetachable_CMFCBaseTabCtrl__UEBAHH_Z(const CMFC
     return (int)pThis->IsTabDetachable(p0);
 }
 
+// Symbol: ?IsTabVisible@CMFCBaseTabCtrl@@UEBAHH@Z
+// CMFCBaseTabCtrl::IsTabVisible
+extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int p0) {
+    return (int)pThis->IsTabVisible(p0);
+}
+
 // Symbol: ?IsTopParentActive@CWnd@@QEBAHXZ
 // CWnd::IsTopParentActive
 extern "C" int MS_ABI impl__IsTopParentActive_CWnd__QEBAHXZ(const CWnd* pThis) {
@@ -3728,6 +3770,12 @@ extern "C" int MS_ABI impl__ModifyStyleEx_CWnd__SAHPEAUHWND____KKI_Z(HWND__* p0,
 // CRecordset::Move
 extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* pThis, long p0, unsigned short p1) {
     pThis->Move(p0, p1);
+}
+
+// Symbol: ?MoveTab@CMFCBaseTabCtrl@@UEAAXHH@Z
+// CMFCBaseTabCtrl::MoveTab
+extern "C" void MS_ABI impl__MoveTab_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl* pThis, int p0, int p1) {
+    pThis->MoveTab(p0, p1);
 }
 
 // Symbol: ?NegotiateBorderSpace@CFrameWnd@@UEAAHIPEAUtagRECT@@@Z
@@ -5322,6 +5370,12 @@ extern "C" void MS_ABI impl__RemoveAllOptions_CMFCPropertyGridProperty__QEAAXXZ(
     pThis->RemoveAllOptions();
 }
 
+// Symbol: ?RemoveAllTabs@CMFCBaseTabCtrl@@UEAAXXZ
+// CMFCBaseTabCtrl::RemoveAllTabs
+extern "C" void MS_ABI impl__RemoveAllTabs_CMFCBaseTabCtrl__UEAAXXZ(CMFCBaseTabCtrl* pThis) {
+    pThis->RemoveAllTabs();
+}
+
 // Symbol: ?RemoveControlBar@CFrameWnd@@QEAAXPEAVCControlBar@@@Z
 // CFrameWnd::RemoveControlBar
 extern "C" void MS_ABI impl__RemoveControlBar_CFrameWnd__QEAAXPEAVCControlBar___Z(CFrameWnd* pThis, CControlBar* p0) {
@@ -6144,6 +6198,12 @@ extern "C" void MS_ABI impl__SetSplitCursor_CSplitterWnd__MEAAXH_Z(CSplitterWnd*
     pThis->SetSplitCursor(p0);
 }
 
+// Symbol: ?SetTabTextColor@CMFCBaseTabCtrl@@UEAAHHK@Z
+// CMFCBaseTabCtrl::SetTabTextColor
+extern "C" int MS_ABI impl__SetTabTextColor_CMFCBaseTabCtrl__UEAAHHK_Z(CMFCBaseTabCtrl* pThis, int p0, unsigned long p1) {
+    return (int)pThis->SetTabTextColor(p0, p1);
+}
+
 // Symbol: ?SetTaskbarOverlayIcon@CFrameWnd@@QEAAHIPEB_W@Z
 // CFrameWnd::SetTaskbarOverlayIcon
 extern "C" int MS_ABI impl__SetTaskbarOverlayIcon_CFrameWnd__QEAAHIPEB_W_Z(CFrameWnd* pThis, unsigned int p0, const wchar_t* p1) {
@@ -6250,6 +6310,12 @@ extern "C" int MS_ABI impl__SubclassDlgItem_CWnd__QEAAHIPEAV1__Z(CWnd* pThis, un
 // CWnd::SubclassWindow
 extern "C" int MS_ABI impl__SubclassWindow_CWnd__QEAAHPEAUHWND_____Z(CWnd* pThis, HWND__* p0) {
     return (int)pThis->SubclassWindow(p0);
+}
+
+// Symbol: ?SwapTabs@CMFCBaseTabCtrl@@UEAAXHH@Z
+// CMFCBaseTabCtrl::SwapTabs
+extern "C" void MS_ABI impl__SwapTabs_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBaseTabCtrl* pThis, int p0, int p1) {
+    pThis->SwapTabs(p0, p1);
 }
 
 // Symbol: ?TextNotFound@CRichEditView@@QEAAXPEB_W@Z
@@ -6500,5 +6566,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1075 thunks
+// Generated 1086 thunks
 // Errors (could not parse): 0
