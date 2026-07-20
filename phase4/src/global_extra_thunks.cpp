@@ -49,39 +49,55 @@ extern "C" int MS_ABI impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__W
     return (int)pThis->SetTabLabel(nIndex, *pLabel);
 }
 
+// gen_thunks.py routes COleControlSite::EnableWindow through our C++ method and
+// drops the BOOL return; retail instead drives the real window handle. Kept
+// here with the hand-written body (null-checked, returns the Win32 result).
+// Symbol: ?EnableWindow@COleControlSite@@UEAAHH@Z
+// COleControlSite::EnableWindow
+extern "C" int MS_ABI impl__EnableWindow_COleControlSite__UEAAHH_Z(COleControlSite* pThis, int p0) {
+    if (!pThis || !pThis->m_hWnd) return 0;
+    return ::EnableWindow(pThis->m_hWnd, p0);
+}
+
 // Symbol: ?Read@CArchive@@QEAAIPEAXI@Z
 // CArchive::Read
 extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* p0, unsigned int p1) {
+    if (!pThis) return 0;
     return (unsigned int)pThis->Read(p0, p1);
 }
 
 // Symbol: ?Write@CArchive@@QEAAXPEBXI@Z
 // CArchive::Write
 extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* p0, unsigned int p1) {
+    if (!pThis) return;
     pThis->Write(p0, p1);
 }
 
 // Symbol: ?SetLength@CMemFile@@UEAAX_K@Z
 // CMemFile::SetLength
 extern "C" void MS_ABI impl__SetLength_CMemFile__UEAAX_K_Z(CMemFile* pThis, unsigned __int64 p0) {
+    if (!pThis) return;
     pThis->SetLength(p0);
 }
 
 // Symbol: ?RecalcLayout@CFrameWnd@@UEAAXH@Z
 // CFrameWnd::RecalcLayout
 extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int p0) {
+    if (!pThis) return;
     pThis->RecalcLayout(p0);
 }
 
 // Symbol: ?OnRotateListValue@CMFCPropertyGridProperty@@MEAAHH@Z
 // CMFCPropertyGridProperty::OnRotateListValue
 extern "C" int MS_ABI impl__OnRotateListValue_CMFCPropertyGridProperty__MEAAHH_Z(CMFCPropertyGridProperty* pThis, int p0) {
+    if (!pThis) return 0;
     return (int)pThis->OnRotateListValue(p0);
 }
 
 // Symbol: ?SetText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
 // CMFCRibbonBaseElement::SetText
 extern "C" void MS_ABI impl__SetText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* p0) {
+    if (!pThis) return;
     pThis->SetText(p0);
 }
 

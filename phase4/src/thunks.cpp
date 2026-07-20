@@ -2437,13 +2437,6 @@ extern "C" int MS_ABI impl__EnableTrackingToolTips_CWnd__QEAAHH_Z(CWnd* pThis, i
     return (int)pThis->EnableTrackingToolTips(p0);
 }
 
-// Symbol: ?EnableWindow@COleControlSite@@UEAAHH@Z
-// COleControlSite::EnableWindow
-extern "C" int MS_ABI impl__EnableWindow_COleControlSite__UEAAHH_Z(COleControlSite* pThis, int p0) {
-    pThis->EnableWindow(p0);
-    return {};
-}
-
 // Symbol: ?EndBusyState@COleMessageFilter@@UEAAXXZ
 // COleMessageFilter::EndBusyState
 extern "C" void MS_ABI impl__EndBusyState_COleMessageFilter__UEAAXXZ(COleMessageFilter* pThis) {
@@ -6566,5 +6559,5 @@ extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
     pThis->ResizeDynamicLayout();
 }
 
-// Generated 1086 thunks
+// Generated 1085 thunks
 // Errors (could not parse): 0

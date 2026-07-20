@@ -73,8 +73,9 @@ int main()
     CHECK(ByID(tab, 20) == 1, "GetTabByID(20) == index 1");
     CHECK(ByID(tab, 999) == -1, "GetTabByID(missing) == -1");
 
-    // Active window follows SetActiveTab (index 1 was set active by... default 0)
-    CHECK(ActWnd(tab) == w0, "GetActiveWnd == first tab window (ctor default active 0)");
+    // Active window defaults to the first tab (index 0), set when the first
+    // AddTab promoted activeTab from -1 to 0.
+    CHECK(ActWnd(tab) == w0, "GetActiveWnd == first tab window (default active 0)");
     CHECK(NoWrap(tab, 2) == w2, "GetTabWndNoWrapper(2) == w2");
 
     // Visibility: all visible by default
