@@ -1094,7 +1094,20 @@ public:
     void SetActiveTab(int nIndex);
     int GetActiveTab() const;
     CWnd* GetTabWnd(int nIndex) const;
+    CWnd* GetTabWndNoWrapper(int nIndex) const;
+    CWnd* GetActiveWnd() const;
     BOOL IsTabDetachable(int nIndex) const;
+    void RemoveAllTabs();
+    BOOL GetTabLabel(int nIndex, CString& strLabel) const;
+    BOOL SetTabLabel(int nIndex, const CString& strLabel);
+    int GetTabID(int nIndex) const;
+    int GetTabByID(int nID) const;
+    int GetVisibleTabsNum() const;
+    BOOL IsTabVisible(int nIndex) const;
+    COLORREF GetTabTextColor(int nIndex) const;
+    BOOL SetTabTextColor(int nIndex, COLORREF color);
+    void SwapTabs(int nFirst, int nSecond);
+    void MoveTab(int nSource, int nDest);
 
 protected:
     char _mfcbasetabctrl_padding[128];
