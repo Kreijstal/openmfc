@@ -1187,6 +1187,14 @@ public:
     void SetTabBorderSize(int nTabBorderSize);
     void SetTabsHeight(int nTabHeight);
 
+    // Overrides re-exported under CMFCTabCtrl's own mangling. They share the
+    // base tab side table (the state is keyed by the CMFCBaseTabCtrl* subobject),
+    // so they route to the same, already-tested behaviour. SetActiveTab differs
+    // from the base only in returning success (retail returns BOOL here).
+    BOOL SetActiveTab(int nTab);
+    void MoveTab(int nSource, int nDest);
+    void SwapTabs(int nFirst, int nSecond);
+
 protected:
     char _mfctabctrl_padding[64];
 };

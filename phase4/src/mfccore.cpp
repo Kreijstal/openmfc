@@ -2849,6 +2849,23 @@ void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     state.tabsHeight = nTabHeight;
 }
 
+BOOL CMFCTabCtrl::SetActiveTab(int nTab) {
+    const TabCtrlState* state = FindTabCtrlState(this);
+    if (!state || nTab < 0 || nTab >= static_cast<int>(state->tabs.size())) {
+        return FALSE;
+    }
+    CMFCBaseTabCtrl::SetActiveTab(nTab);
+    return TRUE;
+}
+
+void CMFCTabCtrl::MoveTab(int nSource, int nDest) {
+    CMFCBaseTabCtrl::MoveTab(nSource, nDest);
+}
+
+void CMFCTabCtrl::SwapTabs(int nFirst, int nSecond) {
+    CMFCBaseTabCtrl::SwapTabs(nFirst, nSecond);
+}
+
 namespace {
 
 struct PropertyGridVariantValue {
