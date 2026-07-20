@@ -4905,6 +4905,8 @@ namespace {
 struct ComboButtonState {
     std::vector<std::pair<CString, DWORD_PTR>> items;
     int curSel = -1;
+    int dropDownHeight = 0;
+    UINT style = 0;
 };
 
 thread_local std::unordered_map<const CMFCToolBarComboBoxButton*, ComboButtonState> g_comboStates;
@@ -5158,6 +5160,28 @@ BOOL CMFCToolBarComboBoxButton::SelectItem(DWORD_PTR dwData) {
 void CMFCToolBarComboBoxButton::SetText(const wchar_t* lpszText) {
     RegisterComboButton(this);
     m_strText = lpszText ? lpszText : L"";
+}
+
+// No `// Symbol:` markers here: these have simple signatures gen_thunks.py can
+// route on its own, so it emits the impl__ thunks. (Sibling methods like AddItem
+// carry a marker + a hand-written extern "C" wrapper only because their INT_PTR/
+// DWORD_PTR signatures defeat the generator.)
+void CMFCToolBarComboBoxButton::RemoveAllItems() {
+    RegisterComboButton(this);
+    ComboButtonState& state = EnsureComboState(this);
+    state.items.clear();
+    state.curSel = -1;
+    m_strText.Empty();
+}
+
+void CMFCToolBarComboBoxButton::SetDropDownHeight(int nHeight) {
+    RegisterComboButton(this);
+    EnsureComboState(this).dropDownHeight = nHeight;
+}
+
+void CMFCToolBarComboBoxButton::SetStyle(UINT nStyle) {
+    RegisterComboButton(this);
+    EnsureComboState(this).style = nStyle;
 }
 
 // Static methods
