@@ -967,7 +967,12 @@ static HINSTANCE g_hInstance = nullptr;
 static HINSTANCE g_hResource = nullptr;
 constexpr size_t kOpaqueStateWordCount = 32;
 static void* g_appModuleStateStorage[kOpaqueStateWordCount] = {};
-static __thread void* g_threadStateStorage[kOpaqueStateWordCount] = {};
+struct _AFX_THREAD_STATE {
+    int nTempMapLock = 0;
+    int nWndCreateLock = 0;
+    void* pModuleState = nullptr;
+};
+static __thread _AFX_THREAD_STATE g_threadStateStorage;
 
 // AfxGetInstanceHandle implementation
 HINSTANCE AFXAPI AfxGetInstanceHandle() {
@@ -1006,11 +1011,22 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetAppModuleState__YAPEAVAFX_MODULE
 
 // Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
-    return reinterpret_cast<_AFX_THREAD_STATE*>(g_threadStateStorage);
+    return &g_threadStateStorage;
 }
 
 extern "C" _AFX_THREAD_STATE* MS_ABI impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ() {
     return AfxGetThreadState();
+}
+
+// Symbol: ??0_AFX_THREAD_STATE@@QEAA@XZ
+extern "C" _AFX_THREAD_STATE* MS_ABI impl___0_AFX_THREAD_STATE__QEAA_XZ(_AFX_THREAD_STATE* pThis) {
+    if (!pThis) return nullptr;
+    return new(pThis) _AFX_THREAD_STATE();
+}
+
+// Symbol: ??1_AFX_THREAD_STATE@@UEAA@XZ
+extern "C" void MS_ABI impl___1_AFX_THREAD_STATE__UEAA_XZ(_AFX_THREAD_STATE* pThis) {
+    if (pThis) pThis->~_AFX_THREAD_STATE();
 }
 
 // AfxWinInit implementation

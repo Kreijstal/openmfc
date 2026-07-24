@@ -86,6 +86,62 @@ std::wstring ManualThunkSizeText(const CSize* value, const CSize* defaultValue) 
 
 }  // namespace
 
+// Symbol: ?GiveFeedback@XDropSource@COleDropSource@@UEAAJK@Z
+extern "C" long MS_ABI impl__GiveFeedback_XDropSource_COleDropSource__UEAAJK_Z(
+    unsigned long dwEffect) {
+    (void)dwEffect;
+    return 0;
+}
+
+// Symbol: ?QueryContinueDrag@XDropSource@COleDropSource@@UEAAJHK@Z
+extern "C" long MS_ABI impl__QueryContinueDrag_XDropSource_COleDropSource__UEAAJHK_Z(
+    int fEscapePressed, unsigned long keyState) {
+    (void)fEscapePressed;
+    (void)keyState;
+    return 0;
+}
+
+// Symbol: ?DragEnter@XDropTarget@COleDropTarget@@UEAAJPEAUIDataObject@@KU_POINTL@@PEAK@Z
+extern "C" long MS_ABI impl__DragEnter_XDropTarget_COleDropTarget__UEAAJPEAUIDataObject__KU_POINTL__PEAK_Z(
+    void* pDataObj, unsigned long keyState, void* ptl, unsigned long* pdwEffect) {
+    (void)pDataObj;
+    (void)keyState;
+    (void)ptl;
+    if (pdwEffect != nullptr) {
+        *pdwEffect = 0;
+    }
+    return 0;
+}
+
+// Symbol: ?DragLeave@XDropTarget@COleDropTarget@@UEAAJXZ
+extern "C" long MS_ABI impl__DragLeave_XDropTarget_COleDropTarget__UEAAJXZ(void* pThis) {
+    (void)pThis;
+    return 0;
+}
+
+// Symbol: ?DragOver@XDropTarget@COleDropTarget@@UEAAJKU_POINTL@@PEAK@Z
+extern "C" long MS_ABI impl__DragOver_XDropTarget_COleDropTarget__UEAAJKU_POINTL__PEAK_Z(
+    unsigned long keyState, void* ptl, unsigned long* pdwEffect) {
+    (void)keyState;
+    (void)ptl;
+    if (pdwEffect != nullptr) {
+        *pdwEffect = 0;
+    }
+    return 0;
+}
+
+// Symbol: ?Drop@XDropTarget@COleDropTarget@@UEAAJPEAUIDataObject@@KU_POINTL@@PEAK@Z
+extern "C" long MS_ABI impl__Drop_XDropTarget_COleDropTarget__UEAAJPEAUIDataObject__KU_POINTL__PEAK_Z(
+    void* pDataObj, unsigned long keyState, void* ptl, unsigned long* pdwEffect) {
+    (void)pDataObj;
+    (void)keyState;
+    (void)ptl;
+    if (pdwEffect != nullptr) {
+        *pdwEffect = 0;
+    }
+    return 0;
+}
+
 // Symbol: ?Write@XElementEdit@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
 extern "C" int MS_ABI impl__Write_XElementEdit_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
     void* pThis, void* parser) {
@@ -154,6 +210,526 @@ extern "C" int MS_ABI impl__Write_XImage_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoPar
     void* pThis, void* parser) {
     (void)pThis;
     return RecordRibbonWrite(parser, L"XImage");
+}
+
+// Symbol: ?Write@XElement@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElement_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElement");
+}
+
+// Symbol: ?Write@XElementButton@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButton_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButton");
+}
+
+// Symbol: ?Write@XElementButtonApplication@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonApplication_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonApplication");
+}
+
+// Symbol: ?Write@XElementButtonCheck@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonCheck_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonCheck");
+}
+
+// Symbol: ?Write@XElementButtonColor@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonColor_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonColor");
+}
+
+// Symbol: ?Write@XElementButtonGallery@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonGallery_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonGallery");
+}
+
+// Symbol: ?Write@XElementButtonLaunch@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonLaunch_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonLaunch");
+}
+
+// Symbol: ?Write@XElementButtonLinkCtrl@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Write_XElementButtonLinkCtrl_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonLinkCtrl");
+}
+
+// Symbol: ?Read@XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z
+extern "C" int MS_ABI impl__Read_XGalleryGroup_XElementButtonGallery_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_3__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XGalleryGroup");
+}
+
+// Symbol: ?Read@XID@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XID_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XID");
+}
+
+// Symbol: ?Read@XImage@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XImage_CMFCRibbonInfo__QEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XImage");
+}
+
+// Symbol: ?Read@XElement@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElement_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElement");
+}
+
+// Symbol: ?Read@XElementButton@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButton_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButton");
+}
+
+// Symbol: ?Read@XElementButtonApplication@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonApplication_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonApplication");
+}
+
+// Symbol: ?Read@XElementButtonCheck@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonCheck_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonCheck");
+}
+
+// Symbol: ?Read@XElementButtonColor@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonColor_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonColor");
+}
+
+// Symbol: ?Read@XElementButtonGallery@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonGallery_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonGallery");
+}
+
+// Symbol: ?Read@XElementButtonLaunch@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonLaunch_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonLaunch");
+}
+
+// Symbol: ?Read@XElementButtonLinkCtrl@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementButtonLinkCtrl_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* parser) {
+    (void)pThis;
+    return RecordRibbonWrite(parser, L"XElementButtonLinkCtrl");
+}
+
+// Symbol: ??0XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XGalleryGroup_XElementButtonGallery_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElement@CMFCRibbonInfo@@IEAA@W4XElementType@1@@Z
+extern "C" void* MS_ABI impl___0XElement_CMFCRibbonInfo__IEAA_W4XElementType_1__Z(void* pThis, int type) {
+    (void)type;
+    return pThis;
+}
+
+// Symbol: ??0XElementButton@CMFCRibbonInfo@@IEAA@W4XElementType@1@@Z
+extern "C" void* MS_ABI impl___0XElementButton_CMFCRibbonInfo__IEAA_W4XElementType_1__Z(
+    void* pThis, int type) {
+    (void)type;
+    return pThis;
+}
+
+// Symbol: ??0XElementButton@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButton_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonApplication@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonApplication_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonCheck@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonCheck_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonColor@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonColor_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonGallery@CMFCRibbonInfo@@IEAA@W4XElementType@1@@Z
+extern "C" void* MS_ABI impl___0XElementButtonGallery_CMFCRibbonInfo__IEAA_W4XElementType_1__Z(
+    void* pThis, int type) {
+    (void)type;
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonGallery@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonGallery_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonLaunch@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonLaunch_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??0XElementButtonLinkCtrl@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementButtonLinkCtrl_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??1XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void MS_ABI impl___1XGalleryGroup_XElementButtonGallery_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElement@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElement_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButton@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButton_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonApplication@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonApplication_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonCheck@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonCheck_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonColor@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonColor_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonGallery@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonGallery_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonLaunch@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonLaunch_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??1XElementButtonLinkCtrl@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementButtonLinkCtrl_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??0XID@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XID_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??1XID@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void MS_ABI impl___1XID_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??0XImage@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XImage_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??1XImage@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void MS_ABI impl___1XImage_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?Empty@XInfoError@CMFCRibbonInfo@@QEAAXXZ
+extern "C" void MS_ABI impl__Empty_XInfoError_CMFCRibbonInfo__QEAAXXZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ??0XInfoError@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XInfoError_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ??1XInfoError@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void MS_ABI impl___1XInfoError_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    (void)pThis;
+}
+
+// Symbol: ?SetError@XInfoError@CMFCRibbonInfo@@QEAAXW4XError@12@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@JJ@Z
+extern "C" void MS_ABI impl__SetError_XInfoError_CMFCRibbonInfo__QEAAXW4XError_12_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__JJ_Z(
+    void* pThis, int error, const CString* text, unsigned long lineNo, unsigned long lineChar) {
+    (void)pThis;
+    (void)error;
+    (void)text;
+    (void)lineNo;
+    (void)lineChar;
+}
+
+// Symbol: ?GetIID@XEventConnPt@COleControl@@UEAAAEBU_GUID@@XZ
+extern "C" const GUID& MS_ABI impl__GetIID_XEventConnPt_COleControl__UEAAAEBU_GUID__XZ(void* pThis) {
+    (void)pThis;
+    return IID_NULL;
+}
+
+// Symbol: ?OnAdvise@XEventConnPt@COleControl@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAdvise_XEventConnPt_COleControl__UEAAXH_Z(void* pThis, long cookie) {
+    (void)pThis;
+    (void)cookie;
+}
+
+// Symbol: ?QuerySinkInterface@XEventConnPt@COleControl@@UEAAJPEAUIUnknown@@PEAPEAX@Z
+extern "C" long MS_ABI impl__QuerySinkInterface_XEventConnPt_COleControl__UEAAJPEAUIUnknown__PEAPEAX_Z(
+    void* pThis, void* sink, void** ppvObject) {
+    (void)pThis;
+    (void)sink;
+    if (ppvObject) {
+        *ppvObject = nullptr;
+    }
+    return 0;
+}
+
+// Symbol: ?GetIDsOfNames@XEventSink@COleControlSite@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
+extern "C" long MS_ABI impl__GetIDsOfNames_XEventSink_COleControlSite__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(
+    void* pThis, const GUID* riid, wchar_t*** rgszNames, unsigned int cNames,
+    unsigned long lcid, unsigned long* rgDispId) {
+    (void)pThis;
+    (void)riid;
+    (void)rgszNames;
+    (void)lcid;
+    if (rgDispId) {
+        for (unsigned int i = 0; i < cNames; ++i) {
+            rgDispId[i] = 0;
+        }
+    }
+    return 0;
+}
+
+// Symbol: ?GetTypeInfo@XEventSink@COleControlSite@@UEAAJIKPEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfo_XEventSink_COleControlSite__UEAAJIKPEAPEAUITypeInfo___Z(
+    void* pThis, unsigned int iTInfo, unsigned long lcid, void** ppTInfo) {
+    (void)pThis;
+    (void)iTInfo;
+    (void)lcid;
+    if (ppTInfo) {
+        *ppTInfo = nullptr;
+    }
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoCount@XEventSink@COleControlSite@@UEAAJPEAI@Z
+extern "C" long MS_ABI impl__GetTypeInfoCount_XEventSink_COleControlSite__UEAAJPEAI_Z(
+    void* pThis, unsigned int* pctinfo) {
+    (void)pThis;
+    if (pctinfo) {
+        *pctinfo = 0;
+    }
+    return 0;
+}
+
+// Symbol: ?Invoke@XEventSink@COleControlSite@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_XEventSink_COleControlSite__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(
+    void* pThis, const GUID* riid, unsigned long dispIdMember, unsigned short wFlags,
+    void* pDispParams, void* pVarResult, void* pExcepInfo, unsigned int* puArgErr) {
+    (void)pThis;
+    (void)riid;
+    (void)dispIdMember;
+    (void)wFlags;
+    (void)pDispParams;
+    (void)pVarResult;
+    (void)pExcepInfo;
+    (void)puArgErr;
+    return 0;
+}
+
+// Symbol: ?OnButtonClicked@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
+extern "C" long MS_ABI impl__OnButtonClicked_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(
+    void* pThis, void* pfdc, unsigned long dwIDCtl) {
+    (void)pThis;
+    (void)pfdc;
+    (void)dwIDCtl;
+    return 0;
+}
+
+// Symbol: ?OnCheckButtonToggled@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KH@Z
+extern "C" long MS_ABI impl__OnCheckButtonToggled_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KH_Z(
+    void* pThis, void* pfdc, unsigned long dwIDCtl, int bChecked) {
+    (void)pThis;
+    (void)pfdc;
+    (void)dwIDCtl;
+    (void)bChecked;
+    return 0;
+}
+
+// Symbol: ?OnControlActivating@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
+extern "C" long MS_ABI impl__OnControlActivating_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(
+    void* pThis, void* pfdc, unsigned long dwIDCtl) {
+    (void)pThis;
+    (void)pfdc;
+    (void)dwIDCtl;
+    return 0;
+}
+
+// Symbol: ?OnItemSelected@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KK@Z
+extern "C" long MS_ABI impl__OnItemSelected_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KK_Z(
+    void* pThis, void* pfdc, unsigned long dwIDCtl, unsigned long dwIDItem) {
+    (void)pThis;
+    (void)pfdc;
+    (void)dwIDCtl;
+    (void)dwIDItem;
+    return 0;
+}
+
+// Symbol: ?OnChanged@XFontNotification@COleControl@@UEAAJJ@Z
+extern "C" long MS_ABI impl__OnChanged_XFontNotification_COleControl__UEAAJJ_Z(
+    void* pThis, long id) {
+    (void)pThis;
+    (void)id;
+    return 0;
+}
+
+// Symbol: ?OnRequestEdit@XFontNotification@COleControl@@UEAAJJ@Z
+extern "C" long MS_ABI impl__OnRequestEdit_XFontNotification_COleControl__UEAAJJ_Z(
+    void* pThis, long id) {
+    (void)pThis;
+    (void)id;
+    return 0;
+}
+
+// Symbol: ?OnFileOk@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnFileOk_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pThis, void* pfd) {
+    (void)pThis;
+    (void)pfd;
+    return 0;
+}
+
+// Symbol: ?OnFolderChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pThis, void* pfd) {
+    (void)pThis;
+    (void)pfd;
+    return 0;
+}
+
+// Symbol: ?OnFolderChanging@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@@Z
+extern "C" long MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(
+    void* pThis, void* pfd, void* psiFolder) {
+    (void)pThis;
+    (void)pfd;
+    (void)psiFolder;
+    return 0;
+}
+
+// Symbol: ?OnHelp@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnHelp_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pThis, void* pfd) {
+    (void)pThis;
+    (void)pfd;
+    return 0;
+}
+
+// Symbol: ?OnOverwrite@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_OVERWRITE_RESPONSE@@@Z
+extern "C" long MS_ABI impl__OnOverwrite_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_OVERWRITE_RESPONSE___Z(
+    void* pThis, void* pfd, void* psi, int* response) {
+    (void)pThis;
+    (void)pfd;
+    (void)psi;
+    if (response) {
+        *response = 0;
+    }
+    return 0;
+}
+
+// Symbol: ?OnSelectionChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnSelectionChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pThis, void* pfd) {
+    (void)pThis;
+    (void)pfd;
+    return 0;
+}
+
+// Symbol: ?OnShareViolation@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_SHAREVIOLATION_RESPONSE@@@Z
+extern "C" long MS_ABI impl__OnShareViolation_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_SHAREVIOLATION_RESPONSE___Z(
+    void* pThis, void* pfd, void* psi, int* response) {
+    (void)pThis;
+    (void)pfd;
+    (void)psi;
+    if (response) {
+        *response = 0;
+    }
+    return 0;
+}
+
+// Symbol: ?OnTypeChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnTypeChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pThis, void* pfd) {
+    (void)pThis;
+    (void)pfd;
+    return 0;
+}
+
+// Symbol: ?Clone@XEnumVOID@CEnumArray@@UEAAJPEAPEAUIEnumVOID@@@Z
+extern "C" long MS_ABI impl__Clone_XEnumVOID_CEnumArray__UEAAJPEAPEAUIEnumVOID___Z(
+    void* pThis, void** ppEnumVoid) {
+    (void)pThis;
+    if (ppEnumVoid) {
+        *ppEnumVoid = nullptr;
+    }
+    return 0;
+}
+
+// Symbol: ?Next@XEnumVOID@CEnumArray@@UEAAJKPEAXPEAK@Z
+extern "C" long MS_ABI impl__Next_XEnumVOID_CEnumArray__UEAAJKPEAXPEAK_Z(
+    void* pThis, unsigned long celt, void* pv, unsigned long* pceltFetched) {
+    (void)pThis;
+    (void)pv;
+    if (pceltFetched) {
+        *pceltFetched = 0;
+    }
+    return celt == 0 ? 0 : 1;
+}
+
+// Symbol: ?Reset@XEnumVOID@CEnumArray@@UEAAJXZ
+extern "C" long MS_ABI impl__Reset_XEnumVOID_CEnumArray__UEAAJXZ(void* pThis) {
+    (void)pThis;
+    return 0;
+}
+
+// Symbol: ?Skip@XEnumVOID@CEnumArray@@UEAAJK@Z
+extern "C" long MS_ABI impl__Skip_XEnumVOID_CEnumArray__UEAAJK_Z(void* pThis, unsigned long celt) {
+    (void)pThis;
+    (void)celt;
+    return 0;
 }
 
 // Symbol: ?Write@XPanel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z

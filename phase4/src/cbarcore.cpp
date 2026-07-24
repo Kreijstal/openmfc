@@ -95,6 +95,7 @@ struct TypeLibCacheState {
 };
 std::mutex g_typeLibCacheMutex;
 std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
+std::unordered_map<std::wstring, void*> g_guidTypeLibCaches;
 
 struct UserToolState {
     std::wstring command;
@@ -135,6 +136,12 @@ std::mutex g_tabbedPaneMutex;
 std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
 std::unordered_set<void*> g_d2dInitialized;
+struct _AFX_D2D_STATE {
+    int d2dFactoryType = 0;
+    int dWriteFactoryType = 0;
+    bool initialized = false;
+};
+thread_local _AFX_D2D_STATE g_d2dState;
 
 __attribute__((used)) static CRuntimeClass g_classCUserException = {
     "CUserException", sizeof(CException), 0xFFFF, nullptr, nullptr, &CException::classCException, nullptr
@@ -285,6 +292,23 @@ inline std::wstring TypeInfoCacheKey(unsigned long lcid, const GUID& iid) {
     key += guidText;
     return key;
 }
+
+namespace {
+
+void* GetGuidTypeLibCache(const GUID& guid) {
+    wchar_t guidText[64] = {};
+    ::StringFromGUID2(guid, guidText, 64);
+    std::wstring key = guidText;
+    auto it = g_guidTypeLibCaches.find(key);
+    if (it != g_guidTypeLibCaches.end()) {
+        return it->second;
+    }
+    void* cache = new int(0);
+    g_guidTypeLibCaches.emplace(std::move(key), cache);
+    return cache;
+}
+
+} // namespace
 
 inline void ReleaseTypeLibCache(TypeLibCacheState& state) {
     for (auto& entry : state.typeLibs) {
@@ -1417,6 +1441,23 @@ extern "C" void MS_ABI impl__Unlock_CTypeLibCache__QEAAXXZ(void* pThis) {
     g_typeLibCaches[pThis].locked = false;
 }
 
+// Symbol: ?GetTypeLibCache@CCmdTarget@@UEAAPEAVCTypeLibCache@@XZ
+extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache__XZ(CCmdTarget* pThis) {
+    if (!pThis) {
+        return nullptr;
+    }
+    return pThis;
+}
+
+// Symbol: ?AfxGetTypeLibCache@@YAPEAVCTypeLibCache@@PEBU_GUID@@@Z
+extern "C" void* MS_ABI impl__AfxGetTypeLibCache__YAPEAVCTypeLibCache__PEBU_GUID___Z(const GUID* guid) {
+    if (!guid) {
+        return nullptr;
+    }
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    return GetGuidTypeLibCache(*guid);
+}
+
 // Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis, void* pExcept) {
     std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
@@ -1553,9 +1594,37 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWindowlessDC__SAPEAUCRuntim
     return &g_classCWindowlessDC;
 }
 
+// Symbol: ?AfxGetD2DState@@YAPEAV_AFX_D2D_STATE@@XZ
+extern "C" _AFX_D2D_STATE* MS_ABI impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ() {
+    return &g_d2dState;
+}
+
+// Symbol: ??0_AFX_D2D_STATE@@QEAA@XZ
+extern "C" _AFX_D2D_STATE* MS_ABI impl___0_AFX_D2D_STATE__QEAA_XZ(_AFX_D2D_STATE* pThis) {
+    if (!pThis) return nullptr;
+    return new(pThis) _AFX_D2D_STATE();
+}
+
+// Symbol: ??1_AFX_D2D_STATE@@UEAA@XZ
+extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(_AFX_D2D_STATE* pThis) {
+    if (!pThis) return;
+    _AFX_D2D_STATE& state = *pThis;
+    state.initialized = false;
+    state.d2dFactoryType = 0;
+    state.dWriteFactoryType = 0;
+    g_d2dInitialized.erase(pThis);
+    pThis->~_AFX_D2D_STATE();
+}
+
 // Symbol: ?InitD2D@_AFX_D2D_STATE@@QEAAHW4D2D1_FACTORY_TYPE@@W4DWRITE_FACTORY_TYPE@@@Z
-extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void* pThis, int, int) {
+extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void* pThis, int d2dFactoryType, int writeFactoryType) {
+    auto* pState = static_cast<_AFX_D2D_STATE*>(pThis);
     std::lock_guard<std::mutex> lock(g_userToolMutex);
+    if (pState) {
+        pState->initialized = true;
+        pState->d2dFactoryType = d2dFactoryType;
+        pState->dWriteFactoryType = writeFactoryType;
+    }
     g_d2dInitialized.insert(pThis);
     return TRUE;
 }
