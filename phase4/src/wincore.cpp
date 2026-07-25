@@ -36,6 +36,7 @@ extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW
 // Map HWND to CWnd* for message routing
 #include <map>
 #include <set>
+#include <mutex>
 #include <vector>
 static std::map<HWND, CWnd*> g_hwndMap;
 static std::map<const CWnd*, COleControlContainer*> g_controlContainerMap;
@@ -53,6 +54,8 @@ struct CFrameWndRuntimeState {
     DWORD menuBarState = 0;
     DWORD menuBarVisibility = 0;
     HMENU hiddenMenu = nullptr;
+    UINT menuResourceId = 0;   // frame's own menu resource, not m_nIDHelp
+    HMENU ownedMenu = nullptr;  // menu we LoadMenuW'd and must DestroyMenu
     int progressMin = 0;
     int progressMax = 100;
     int progressPos = 0;
@@ -67,11 +70,21 @@ std::map<CFrameWnd*, CFrameWndRuntimeState> g_frameWndRuntimeStates;
 // These need to be deleted when the underlying window is destroyed
 static std::set<CWnd*> g_tempWrappers;
 
+// Guards the process-wide runtime-state registries above. MFC apps may create
+// and destroy windows on several UI threads, so the map/set structural
+// operations must be serialized to avoid corrupting the trees. std::map keeps
+// references to existing elements valid across insertions of other keys, so the
+// reference returned by the accessors stays usable outside the lock (a given
+// window's state is only erased on that window's own thread at destruction).
+static std::mutex g_wndStateMutex;
+
 static CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd) {
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
     return g_wndRuntimeStates[pWnd];
 }
 
 static CFrameWndRuntimeState& GetFrameRuntimeState(CFrameWnd* pWnd) {
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
     return g_frameWndRuntimeStates[pWnd];
 }
 
@@ -79,6 +92,7 @@ static void CleanupWindowRuntimeState(CWnd* pWnd) {
     if (!pWnd) {
         return;
     }
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
     g_wndRuntimeStates.erase(pWnd);
     if (auto* pFrameWnd = dynamic_cast<CFrameWnd*>(pWnd)) {
         g_frameWndRuntimeStates.erase(pFrameWnd);
@@ -1811,6 +1825,13 @@ LONGLONG CWnd::Default()
     if (!m_hWnd) {
         return 0;
     }
+    // Re-dispatch the message currently being handled, as real MFC does via the
+    // thread's current MSG, rather than default-processing a bogus zero message.
+    const MSG* pMsg = GetCurrentMessage();
+    if (pMsg && pMsg->message != 0) {
+        return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
+            this, pMsg->message, pMsg->wParam, pMsg->lParam);
+    }
     return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this, 0, 0, 0);
 }
 
@@ -3129,7 +3150,9 @@ void CFrameWnd::DockControlBar(CControlBar* pBar, unsigned int nDockBarID, const
 }
 void CFrameWnd::DockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) {
     (void)pDockBar;
-    DockControlBar(pBar, static_cast<CDockBar*>(nullptr), lpRect);
+    // Delegate to the nDockBarID overload; a CDockBar* argument would resolve
+    // back to this same overload and recurse infinitely.
+    DockControlBar(pBar, 0u, lpRect);
 }
 void CFrameWnd::EnableDocking(DWORD dwDockStyle) {
     GetFrameRuntimeState(this).dockingStyle = dwDockStyle;
@@ -3190,15 +3213,10 @@ CView* CFrameWnd::GetActiveView() const {
     return dynamic_cast<CView*>(CWnd::FromHandle(hWndView));
 }
 void CFrameWnd::GetDockState(CDockState& state) const {
+    // A getter must not clobber the status bar as a side effect. We do not yet
+    // persist a serializable dock layout, so leave the caller's CDockState
+    // untouched rather than overwriting the frame's message text.
     (void)state;
-    if (!m_hWnd) {
-        return;
-    }
-    auto& frameState = GetFrameRuntimeState(const_cast<CFrameWnd*>(this));
-    std::wstring text = L"Dock state contains ";
-    text += std::to_wstring(static_cast<unsigned long long>(frameState.controlBars.size()));
-    text += L" control bar(s)";
-    const_cast<CFrameWnd*>(this)->SetMessageText(text.c_str());
 }
 
 const wchar_t* CFrameWnd::GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource) {
@@ -3523,7 +3541,10 @@ void CFrameWnd::OnEnable(int bEnable) {
         return;
     }
 
-    if (!::EnableWindow(m_hWnd, bEnable)) {
+    // ::EnableWindow returns the *previous* disabled state, not success, so base
+    // the status message on the requested bEnable value instead.
+    ::EnableWindow(m_hWnd, bEnable);
+    if (!bEnable) {
         SetMessageText(L"Frame window disabled");
     }
 }
@@ -3732,10 +3753,16 @@ void CFrameWnd::OnShowMenuBar() {
     }
 
     HMENU hMenuToShow = state.hiddenMenu;
-    if (!hMenuToShow && m_nIDHelp) {
+    if (!hMenuToShow && state.menuResourceId) {
         HINSTANCE hInst = AfxGetInstanceHandle();
         hMenuToShow = ::LoadMenuW(hInst ? hInst : ::GetModuleHandleW(nullptr),
-                                  MAKEINTRESOURCEW(m_nIDHelp));
+                                  MAKEINTRESOURCEW(state.menuResourceId));
+        // Track ownership so a previously loaded menu is not leaked when a fresh
+        // one is loaded here.
+        if (state.ownedMenu && state.ownedMenu != hMenuToShow) {
+            ::DestroyMenu(state.ownedMenu);
+        }
+        state.ownedMenu = hMenuToShow;
     }
 
     if (hMenuToShow) {
@@ -3920,7 +3947,7 @@ int CFrameWnd::ProcessHelpMsg(MSG& msg, DWORD* pContext) {
 }
 void CFrameWnd::ReDockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) {
     (void)pDockBar;
-    DockControlBar(pBar, static_cast<CDockBar*>(nullptr), lpRect);
+    DockControlBar(pBar, 0u, lpRect);
 }
 
 void CFrameWnd::RemoveControlBar(CControlBar* pBar) {
@@ -4009,11 +4036,9 @@ int CFrameWnd::SetMenuBarState(DWORD dwState) {
 }
 
 void CFrameWnd::SetMenuBarVisibility(DWORD dwStyle) {
-    auto& state = GetFrameRuntimeState(this);
-    if (state.menuBarVisibility == dwStyle) {
-        return;
-    }
-    state.menuBarVisibility = dwStyle;
+    // Do NOT assign state.menuBarVisibility here: OnHideMenuBar/OnShowMenuBar
+    // early-return when the recorded visibility already matches, so writing the
+    // new value first would make them no-ops. Let the handlers update the state.
     if (dwStyle == 0) {
         OnHideMenuBar();
     } else {
