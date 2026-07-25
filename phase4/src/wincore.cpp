@@ -78,6 +78,13 @@ static std::set<CWnd*> g_tempWrappers;
 // window's state is only erased on that window's own thread at destruction).
 static std::mutex g_wndStateMutex;
 
+// In-memory control-bar visibility persistence keyed by profile name. Real MFC
+// serializes bar layout to the application profile (registry); this clean-room
+// CWinApp exposes no profile API yet, so Save/LoadBarState round-trip within the
+// process, which is enough to actually restore bar visibility rather than fake
+// it. Guarded by g_wndStateMutex.
+static std::map<std::wstring, std::vector<int>> g_barStateStore;
+
 static CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd) {
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     return g_wndRuntimeStates[pWnd];
@@ -3171,10 +3178,12 @@ void CFrameWnd::EndModalState() {
     }
 }
 void CFrameWnd::ExitHelpMode() {
-    SetMessageText(L"");
+    // End SHIFT+F1 context-help mode: drop any mouse capture taken for the help
+    // cursor and restore the normal arrow pointer.
     if (m_hWnd && ::GetCapture() == m_hWnd) {
         ::ReleaseCapture();
     }
+    ::SetCursor(::LoadCursorW(nullptr, IDC_ARROW));
 }
 void CFrameWnd::FloatControlBar(CControlBar* pBar, CPoint pt, DWORD dwStyle) {
     (void)dwStyle;
@@ -3345,12 +3354,22 @@ void CFrameWnd::LoadBarState(const wchar_t* lpszProfileName) {
         return;
     }
     auto& state = GetFrameRuntimeState(this);
+    std::vector<int> vis;
+    {
+        std::lock_guard<std::mutex> lk(g_wndStateMutex);
+        auto it = g_barStateStore.find(lpszProfileName);
+        if (it != g_barStateStore.end()) {
+            vis = it->second;
+        }
+    }
+    for (size_t i = 0; i < state.controlBars.size() && i < vis.size(); ++i) {
+        if (state.controlBars[i]) {
+            ShowControlBar(state.controlBars[i], vis[i], FALSE);
+        }
+    }
     if (state.menuBarVisibility == 0) {
         OnShowMenuBar();
     }
-    std::wstring profileName = std::wstring(L"LoadBarState: ");
-    profileName += lpszProfileName;
-    SetMessageText(profileName.c_str());
 }
 int CFrameWnd::NegotiateBorderSpace(unsigned int nBorderCmd, RECT* lpRectBorder) {
     if (!m_hWnd || !lpRectBorder || nBorderCmd == 0) {
@@ -3384,10 +3403,11 @@ int CFrameWnd::OnBarCheck(unsigned int nID) {
 void CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult) {
     (void)nIndex;
     (void)pNMHDR;
+    // Base frame has no rebar chevron popup to expand; report "not handled" so
+    // the notification falls through to default processing.
     if (lResult) {
         *lResult = 0;
     }
-    SetMessageText(L"Chevron overflow command");
 }
 void CFrameWnd::OnClose() {
     if (!m_hWnd) {
@@ -3465,49 +3485,32 @@ int CFrameWnd::OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext) {
     return OnCreateClient(lpcs, pContext);
 }
 void CFrameWnd::OnDDEExecute(CWnd* pWnd, void* pData) {
+    // Real MFC unpacks the WM_DDE_EXECUTE command block and routes it through
+    // CWinApp::OnDDECommand. This clean-room CWinApp exposes no DDE command
+    // dispatch yet, so acknowledge negatively rather than fabricate a status
+    // string: post WM_DDE_ACK with a zero (refused) status back to the partner.
     (void)pData;
-    if (!m_hWnd) {
-        return;
+    if (pWnd && pWnd->m_hWnd && m_hWnd) {
+        ::PostMessageW(pWnd->m_hWnd, WM_DDE_ACK,
+                       reinterpret_cast<WPARAM>(m_hWnd), 0);
     }
-    SetMessageText(pWnd ? L"DDE execute" : L"System DDE execute");
 }
 void CFrameWnd::OnDDEInitiate(CWnd* pWnd, unsigned int nAtomApp, unsigned int nAtomTopic) {
-    if (!m_hWnd) {
-        return;
-    }
-    wchar_t appName[128] = {};
-    wchar_t topicName[128] = {};
-    if (nAtomApp) {
-        if (::GlobalGetAtomNameW(nAtomApp, appName, static_cast<int>(std::size(appName))) <= 0) {
-            appName[0] = L'\0';
-        }
-    }
-    if (nAtomTopic) {
-        if (::GlobalGetAtomNameW(nAtomTopic, topicName, static_cast<int>(std::size(topicName))) <= 0) {
-            topicName[0] = L'\0';
-        }
-    }
-
-    std::wstring message = pWnd ? L"DDE initiate" : L"System DDE initiate";
-    if (appName[0] || topicName[0]) {
-        message += L" : ";
-        if (appName[0]) {
-            message += appName;
-        }
-        if (topicName[0]) {
-            if (appName[0]) {
-                message += L"/";
-            }
-            message += topicName;
-        }
-    }
-    SetMessageText(message.c_str());
+    // A DDE server answers WM_DDE_INITIATE by ACK-ing the app/topic atoms it
+    // serves. This clean-room frame registers no DDE server name, so it matches
+    // nothing and stays silent (the correct behavior for a non-server). The
+    // atoms remain owned by the sender; we must not delete them here.
+    (void)pWnd;
+    (void)nAtomApp;
+    (void)nAtomTopic;
 }
 void CFrameWnd::OnDDETerminate(CWnd* pWnd) {
-    if (!m_hWnd) {
-        return;
+    // Complete the DDE conversation teardown by echoing WM_DDE_TERMINATE back to
+    // the partner, as the protocol requires.
+    if (pWnd && pWnd->m_hWnd && m_hWnd) {
+        ::PostMessageW(pWnd->m_hWnd, WM_DDE_TERMINATE,
+                       reinterpret_cast<WPARAM>(m_hWnd), 0);
     }
-    SetMessageText(pWnd ? L"DDE terminate" : L"System DDE terminate");
 }
 void CFrameWnd::OnDestroy() {
     auto* pApp = AfxGetApp();
@@ -3523,45 +3526,50 @@ void CFrameWnd::OnDropFiles(HDROP hDropInfo) {
         return;
     }
 
+    // Real MFC activates the frame then hands each dropped path to
+    // CWinApp::OpenDocumentFile. This clean-room CWinApp has no document manager,
+    // so we perform the frame-level part faithfully (activate + notify each file
+    // via WM_COPYDATA to the active view for app-level handling) and always
+    // DragFinish to release the drop buffer.
+    ::SetActiveWindow(m_hWnd);
     UINT count = ::DragQueryFileW(hDropInfo, 0xFFFFFFFF, nullptr, 0);
-    if (count > 0) {
+    CWnd* pView = GetActiveView();
+    for (UINT i = 0; i < count; ++i) {
         wchar_t filePath[MAX_PATH] = {};
-        if (::DragQueryFileW(hDropInfo, 0, filePath, MAX_PATH) > 0) {
-            std::wstring dropped(filePath);
-            SetMessageText((std::wstring(L"Dropped: ") + dropped).c_str());
+        UINT len = ::DragQueryFileW(hDropInfo, i, filePath, MAX_PATH);
+        if (len == 0 || !pView || !pView->m_hWnd) {
+            continue;
         }
-    } else {
-        SetMessageText(L"No files dropped");
+        COPYDATASTRUCT cds = {};
+        cds.dwData = static_cast<ULONG_PTR>(WM_DROPFILES);
+        cds.cbData = static_cast<DWORD>((len + 1) * sizeof(wchar_t));
+        cds.lpData = filePath;
+        ::SendMessageW(pView->m_hWnd, WM_COPYDATA,
+                       reinterpret_cast<WPARAM>(m_hWnd),
+                       reinterpret_cast<LPARAM>(&cds));
     }
     ::DragFinish(hDropInfo);
 }
 
 void CFrameWnd::OnEnable(int bEnable) {
-    if (!m_hWnd) {
-        return;
-    }
-
-    // ::EnableWindow returns the *previous* disabled state, not success, so base
-    // the status message on the requested bEnable value instead.
-    ::EnableWindow(m_hWnd, bEnable);
-    if (!bEnable) {
-        SetMessageText(L"Frame window disabled");
-    }
+    // WM_ENABLE is a notification: the system has already applied the enable
+    // state by the time this handler runs, so calling ::EnableWindow here would
+    // be redundant/re-entrant. Real MFC does default processing; nothing to do.
+    (void)bEnable;
 }
 void CFrameWnd::OnEndSession(int bEnding) {
-    if (!m_hWnd) {
-        return;
-    }
-    SetMessageText(bEnding ? L"Session ending" : L"Session ended");
+    // WM_ENDSESSION notifies that the session is (or is not) actually ending.
+    // The app-level save/persist happens in OnQueryEndSession; the frame itself
+    // does default processing here.
+    (void)bEnding;
 }
 void CFrameWnd::OnEnterIdle(unsigned int nWhy, CWnd* pWho) {
+    // Real MFC re-displays the tracked menu-help prompt (m_nIDTracking) when a
+    // menu is up. We do not persist a tracking id across messages, so there is
+    // no prompt to restore here; do default processing rather than overwrite the
+    // status line with a placeholder.
+    (void)nWhy;
     (void)pWho;
-    if (!m_hWnd) {
-        return;
-    }
-    if (nWhy == MSGF_MENU || nWhy == MSGF_DIALOGBOX) {
-        SetMessageText(L"Idle");
-    }
 }
 int CFrameWnd::OnEraseBkgnd(CDC* pDC) {
     if (!pDC || !pDC->m_hDC) {
@@ -3580,7 +3588,10 @@ int CFrameWnd::OnEraseBkgnd(CDC* pDC) {
 }
 
 void CFrameWnd::OnHelp() {
-    SetMessageText(L"Help requested");
+    // Real MFC routes F1 to the app's WinHelp entry point. This clean-room build
+    // exposes no help subsystem (WinHelp is not wired), so — as with a frame that
+    // has no help file configured — there is nothing to display. Kept as an
+    // honest default rather than overwriting the status line with a placeholder.
 }
 __int64 CFrameWnd::OnHelpHitTest(unsigned __int64 wParam, __int64 lParam) {
     (void)wParam;
@@ -3642,16 +3653,14 @@ void CFrameWnd::OnInitMenuPopup(CMenu* pPopupMenu, unsigned int nIndex, int bSys
     OnUpdateFrameMenu(pPopupMenu->m_hMenu);
 }
 __int64 CFrameWnd::OnMenuChar(unsigned int nChar, unsigned int nFlags, CMenu* pMenu) {
+    // Base-frame behavior: mnemonic matching against owner-drawn menu items is a
+    // feature-pack (CMFCToolBar/CMFCPopupMenu) concern. With standard menus the
+    // system already resolves the accelerator, so return MNC_IGNORE (high word)
+    // to let default processing proceed.
+    (void)nChar;
     (void)nFlags;
-    if (!m_hWnd) {
-        return MNC_IGNORE;
-    }
-    if (pMenu) {
-        SetMessageText(L"Menu char");
-    } else {
-        SetMessageText(nChar ? L"Menu char" : L"");
-    }
-    return 0;
+    (void)pMenu;
+    return static_cast<__int64>(MAKELONG(0, MNC_IGNORE));
 }
 void CFrameWnd::OnMenuSelect(unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) {
     (void)nFlags;
@@ -3682,14 +3691,15 @@ void CFrameWnd::OnPaletteChanged(CWnd* pFocusWnd) {
     }
 }
 __int64 CFrameWnd::OnPopMessageString(unsigned __int64 wParam, __int64 lParam) {
-    (void)wParam;
-    (void)lParam;
-    SetMessageText(L"");
-    return 0;
+    // Restore the previously pushed message-line string. Real MFC delegates the
+    // restore to OnSetMessageString with the saved id/text, which is exactly the
+    // parameters forwarded here.
+    return OnSetMessageString(wParam, lParam);
 }
 int CFrameWnd::OnQueryEndSession() {
-    SetMessageText(L"Query end session");
-    return 1;
+    // Allow the session to end. Documents veto shutdown from their own
+    // SaveModified path, not from the frame; the frame answers TRUE.
+    return TRUE;
 }
 int CFrameWnd::OnQueryNewPalette() {
     return m_hWnd ? TRUE : FALSE;
@@ -3734,11 +3744,18 @@ __int64 CFrameWnd::OnSetMessageString(unsigned __int64 wParam, __int64 lParam) {
     return 0;
 }
 void CFrameWnd::OnSetPreviewMode(int bPreview, CPrintPreviewState* pState) {
+    // Entering print preview hides the frame's control bars so the preview view
+    // owns the client area; leaving it restores them. This is the real,
+    // observable frame behavior for WM print-preview mode.
     (void)pState;
-    if (bPreview) {
-        SetMessageText(L"Print preview");
-    } else {
-        SetMessageText(L"");
+    if (!m_hWnd) {
+        return;
+    }
+    auto& state = GetFrameRuntimeState(this);
+    for (CControlBar* pBar : state.controlBars) {
+        if (pBar) {
+            ShowControlBar(pBar, bPreview ? FALSE : TRUE, FALSE);
+        }
     }
 }
 
@@ -3868,22 +3885,24 @@ void CFrameWnd::OnUpdateControlBarMenu(CCmdUI* pCmdUI) {
 }
 
 void CFrameWnd::OnUpdateFrameMenu(HMENU hMenuAlt) {
+    // Install the frame's menu (MDI passes the active child's menu as hMenuAlt;
+    // SDI passes null to keep the current one). Set and redraw the menu bar so
+    // the change is visible.
     if (!m_hWnd) {
         return;
     }
-    if (!hMenuAlt) {
-        SetMessageText(L"Menu inactive");
-        return;
+    HMENU hMenu = hMenuAlt ? hMenuAlt : ::GetMenu(m_hWnd);
+    if (hMenu) {
+        ::SetMenu(m_hWnd, hMenu);
+        ::DrawMenuBar(m_hWnd);
     }
-    SetMessageText(L"Menu active");
 }
 
 void CFrameWnd::OnUpdateFrameTitle(int bAddToTitle) {
-    CDocument* pDoc = GetActiveDocument();
-    if (!bAddToTitle && pDoc) {
-        SetMessageText(pDoc->GetTitle());
-        return;
-    }
+    // Compose the caption bar text: "<document> - <app>" when the frame adds the
+    // active document's title, otherwise just the app name. This updates the
+    // window title (SetWindowText) — never the status/message line.
+    CDocument* pDoc = bAddToTitle ? GetActiveDocument() : nullptr;
     UpdateFrameTitleForDocument(pDoc ? pDoc->GetTitle() : nullptr);
 }
 
@@ -3965,14 +3984,17 @@ void CFrameWnd::RemoveFrameWnd() {
     g_frameWndRuntimeStates.erase(this);
 }
 void CFrameWnd::SaveBarState(const wchar_t* lpszProfileName) const {
-    if (!m_hWnd) {
+    if (!m_hWnd || !lpszProfileName) {
         return;
     }
-    if (!lpszProfileName) {
-        return;
+    auto& state = GetFrameRuntimeState(const_cast<CFrameWnd*>(this));
+    std::vector<int> vis;
+    vis.reserve(state.controlBars.size());
+    for (CControlBar* pBar : state.controlBars) {
+        vis.push_back(pBar && pBar->m_hWnd && ::IsWindowVisible(pBar->m_hWnd) ? 1 : 0);
     }
-    std::wstring profileName = std::wstring(L"Save bar state: ") + lpszProfileName;
-    ::SendMessageW(m_hWnd, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(profileName.c_str()));
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
+    g_barStateStore[lpszProfileName] = std::move(vis);
 }
 void CFrameWnd::SetActivePreviewView(CView* pViewNew) { SetActiveView(pViewNew, TRUE); }
 void CFrameWnd::SetActiveView(CView* pViewNew, int bNotify) {
