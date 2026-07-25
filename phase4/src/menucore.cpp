@@ -333,6 +333,12 @@ extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU h
     return FromHandleTemp(hMenu);
 }
 
+// C++ method definition so other TUs (e.g. wincore) can call CMenu::FromHandle
+// directly, mirroring CWnd::FromHandle.
+CMenu* CMenu::FromHandle(HMENU hMenu) {
+    return impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(hMenu);
+}
+
 // CMenu::FromHandlePermanent
 // Symbol: ?FromHandlePermanent@CMenu@@SAPEAV1@PEAUHMENU__@@@Z
 extern "C" CMenu* MS_ABI impl__FromHandlePermanent_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu) {
