@@ -2163,7 +2163,7 @@ DWORD CWnd::GetStyle() const
 
 void* CWnd::GetSuperWndProcAddr()
 {
-    return m_pfnSuper;
+    return reinterpret_cast<void*>(m_pfnSuper);
 }
 
 CFrameWnd* CWnd::GetTopLevelFrame() const
