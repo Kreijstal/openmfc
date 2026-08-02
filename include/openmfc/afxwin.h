@@ -2306,11 +2306,16 @@ inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const w
 
 inline int CWnd::DestroyWindow() {
     if (m_hWnd == nullptr) return 0;
+#if defined(OPENMFC_APPCORE_IMPL)
+    m_hWnd = nullptr;
+    return TRUE;
+#else
     int result = ::DestroyWindow(m_hWnd) ? 1 : 0;
     if (result) {
         m_hWnd = nullptr;
     }
     return result;
+#endif
 }
 
 inline int CWnd::ShowWindow(int nCmdShow) {
