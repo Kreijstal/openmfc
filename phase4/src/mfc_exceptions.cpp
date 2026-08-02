@@ -822,7 +822,7 @@ static void InitAllRTTI() {
 // Static exceptions (m_bAutoDelete=0, never deleted):
 // - CMemoryException: Uses static instance (g_ManualMemoryException)
 // - CResourceException, CUserException: Use static instances
-// - These use vtbl_DeleteStatic for static lifetime behavior.
+// - These use a static-lifetime destructor thunk.
 //
 // Heap-allocated exceptions (m_bAutoDelete=1, may be deleted by MSVC):
 // - CFileException, CArchiveException: Created with 'new'
@@ -833,7 +833,7 @@ static void InitAllRTTI() {
 // Static destructor shim for static exceptions (CMemoryException and peers).
 // Returns 'this' as MSVC destructors do; caller won't deallocate since
 // m_bAutoDelete is initialized to 0 for these objects.
-extern "C" void* MS_ABI vtbl_DeleteStatic(void* pThis) {
+extern "C" void* MS_ABI dtor_CMemoryException(void* pThis) {
     if (!pThis) return nullptr;
     static_cast<CException*>(pThis)->Delete();
     return pThis;
@@ -1022,7 +1022,7 @@ extern "C" int MS_ABI vtbl_CMemoryException_GetErrorMessage(
 // CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
 static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(vtbl_DeleteStatic),                        // [1] destructor (static instance)
+    reinterpret_cast<void*>(dtor_CMemoryException),                    // [1] destructor (static instance)
     reinterpret_cast<void*>(vtbl_Serialize),                          // [2] Serialize
     reinterpret_cast<void*>(vtbl_AssertValid),                        // [3] AssertValid
     reinterpret_cast<void*>(vtbl_Dump),                               // [4] Dump
