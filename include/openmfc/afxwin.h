@@ -2444,12 +2444,14 @@ inline int CWnd::PostMessageW(unsigned int message, uintptr_t wParam, intptr_t l
 inline intptr_t CWnd::WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam) {
     intptr_t lResult = 0;
     if (!OnWndMsg(message, wParam, lParam, &lResult)) {
-#if defined(OPENMFC_APPCORE_IMPL)
-        lResult = m_hWnd ? static_cast<intptr_t>(::DefWindowProcW(
-            m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam))) : 0;
-#else
-        lResult = static_cast<intptr_t>(DefWindowProcW(message, wParam, lParam));
-#endif
+        if (m_hWnd && m_pfnSuper) {
+            lResult = static_cast<intptr_t>(::CallWindowProcW(
+                m_pfnSuper, m_hWnd, message,
+                static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)));
+        } else if (m_hWnd) {
+            lResult = static_cast<intptr_t>(::DefWindowProcW(
+                m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)));
+        }
     }
     return lResult;
 }
