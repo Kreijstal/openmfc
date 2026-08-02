@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-86",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 6639,
+      "symbol": "?GetScrollStyle@CSplitterWnd@@QEBAKXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 6686,
+      "symbol": "?GetSizingParent@CSplitterWnd@@IEAAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7635,
+      "symbol": "?HitTest@CSplitterWnd@@MEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7654,
+      "symbol": "?IdFromRowCol@CSplitterWnd@@QEBAHHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7859,
+      "symbol": "?IsChildPane@CSplitterWnd@@QEAAHPEAVCWnd@@PEAH1@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 8759,
+      "symbol": "?OnCancelMode@CSplitterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 8945,
+      "symbol": "?OnCommand@CSplitterWnd@@MEAAH_K_J@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 9166,
+      "symbol": "?OnDisplayChange@CSplitterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10118,
+      "symbol": "?OnHScroll@CSplitterWnd@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10250,
+      "symbol": "?OnKeyDown@CSplitterWnd@@IEAAXIII@Z"
+    }
+  ],
+  "title": "other_mfc shard 86/91: CSplitterWnd"
+}

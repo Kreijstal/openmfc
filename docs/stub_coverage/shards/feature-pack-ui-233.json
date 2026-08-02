@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-233",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 14233,
+      "symbol": "?Write@CMFCRibbonInfo@@UEAAHPEAPEAEAEAI@Z"
+    },
+    {
+      "class": "CMFCRibbonInfo",
+      "ordinal": 14234,
+      "symbol": "?Write@CMFCRibbonInfo@@UEAAHPEAUIStream@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 1256,
+      "symbol": "??1CMFCRibbonInfoLoader@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8067,
+      "symbol": "?Load@CMFCRibbonInfoLoader@@QEAAHIPEB_WPEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8068,
+      "symbol": "?Load@CMFCRibbonInfoLoader@@QEAAHPEB_W0PEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8104,
+      "symbol": "?LoadFromBuffer@CMFCRibbonInfoLoader@@UEAAHPEAEI@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8105,
+      "symbol": "?LoadFromBuffer@CMFCRibbonInfoLoader@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8119,
+      "symbol": "?LoadImageW@CMFCRibbonInfoLoader@@MEAAHAEBVXID@CMFCRibbonInfo@@AEAVCMFCToolBarImages@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonInfoLoader",
+      "ordinal": 8120,
+      "symbol": "?LoadImageW@CMFCRibbonInfoLoader@@UEAAHAEAVXImage@CMFCRibbonInfo@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 1258,
+      "symbol": "??1CMFCRibbonKeyTip@@UEAA@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 233/439: CMFCRibbonInfoLoader, CMFCRibbonInfo, CMFCRibbonKeyTip"
+}

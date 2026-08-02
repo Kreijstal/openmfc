@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-15",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleClientItem",
+      "ordinal": 10966,
+      "symbol": "?OnScrollBy@COleClientItem@@MEAAHVCSize@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 11106,
+      "symbol": "?OnSetMenu@COleClientItem@@UEAAXPEAVCMenu@@PEAXPEAUHWND__@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 11494,
+      "symbol": "?OnUpdateFrameTitle@COleClientItem@@UEAAHXZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12027,
+      "symbol": "?ReactivateAndUndo@COleClientItem@@QEAAHXZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12095,
+      "symbol": "?ReadItem@COleClientItem@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12096,
+      "symbol": "?ReadItemCompound@COleClientItem@@QEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12097,
+      "symbol": "?ReadItemFlat@COleClientItem@@QEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12231,
+      "symbol": "?Release@COleClientItem@@UEAAXW4tagOLECLOSE@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12465,
+      "symbol": "?ReportError@COleClientItem@@UEBAHJ@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 12605,
+      "symbol": "?Run@COleClientItem@@QEAAXXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 15/77: COleClientItem"
+}

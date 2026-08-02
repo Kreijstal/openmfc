@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-14",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPreviewView",
+      "ordinal": 11591,
+      "symbol": "?OnVScroll@CPreviewView@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 11626,
+      "symbol": "?OnZoomIn@CPreviewView@@IEAAXXZ"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 11627,
+      "symbol": "?OnZoomOut@CPreviewView@@IEAAXXZ"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 11751,
+      "symbol": "?PositionPage@CPreviewView@@MEAAXI@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 13088,
+      "symbol": "?SetCurrentPage@CPreviewView@@IEAAXIH@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 13486,
+      "symbol": "?SetPrintView@CPreviewView@@QEAAHPEAVCView@@@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 13562,
+      "symbol": "?SetScaledSize@CPreviewView@@IEAAXI@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 13776,
+      "symbol": "?SetZoomState@CPreviewView@@IEAAXIIVCPoint@@@Z"
+    },
+    {
+      "class": "CPropbagPropExchange",
+      "ordinal": 4412,
+      "symbol": "?ExchangeFontProp@CPropbagPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CPropsetPropExchange",
+      "ordinal": 4413,
+      "symbol": "?ExchangeFontProp@CPropsetPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 14/24: CPreviewView, CPropbagPropExchange, CPropsetPropExchange"
+}

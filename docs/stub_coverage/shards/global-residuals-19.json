@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-19",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2211,
+      "symbol": "?AfxGetModuleShortFileName@@YAXPEAUHINSTANCE__@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2212,
+      "symbol": "?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2213,
+      "symbol": "?AfxGetModuleThreadState@@YAPEAVAFX_MODULE_THREAD_STATE@@XZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2214,
+      "symbol": "?AfxGetNewHandler@@YAP6AH_K@ZXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2215,
+      "symbol": "?AFXGetParentFrame@@YAPEAVCFrameWnd@@PEBVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2216,
+      "symbol": "?AfxGetParentOwner@@YAPEAUHWND__@@PEAU1@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2217,
+      "symbol": "?AfxGetPerUserRegistration@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2218,
+      "symbol": "?AfxGetPropSheetFont@@YAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAGH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2219,
+      "symbol": "?AFXGetRegPath@@YA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2220,
+      "symbol": "?AfxGetRoot@@YAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 19/95: global"
+}

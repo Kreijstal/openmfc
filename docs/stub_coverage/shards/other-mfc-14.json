@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-14",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 14020,
+      "symbol": "?TranslateUrl@CBrowserControlSite@@MEAAJKPEA_WPEAPEA_W@Z"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 14177,
+      "symbol": "?UpdateUI@CBrowserControlSite@@MEAAJXZ"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 3059,
+      "symbol": "?Create@CComboBoxEx@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 3246,
+      "symbol": "?CreateEx@CComboBoxEx@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 3747,
+      "symbol": "?DeleteItem@CComboBoxEx@@QEAAHH@Z"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 5597,
+      "symbol": "?GetItem@CComboBoxEx@@QEAAHPEAUtagCOMBOBOXEXITEMW@@@Z"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 7779,
+      "symbol": "?InsertItem@CComboBoxEx@@QEAAHPEBUtagCOMBOBOXEXITEMW@@@Z"
+    },
+    {
+      "class": "CComboBoxEx",
+      "ordinal": 13298,
+      "symbol": "?SetItem@CComboBoxEx@@QEAAHPEBUtagCOMBOBOXEXITEMW@@@Z"
+    },
+    {
+      "class": "CCommandManager",
+      "ordinal": 2729,
+      "symbol": "?CleanUp@CCommandManager@@QEAAXXZ"
+    },
+    {
+      "class": "CCommandManager",
+      "ordinal": 2765,
+      "symbol": "?ClearAllCmdImages@CCommandManager@@QEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 14/91: CComboBoxEx, CBrowserControlSite, CCommandManager"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-60",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 9148,
+      "symbol": "?OnDestroy@COleIPFrameWndEx@@IEAAXXZ"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 10140,
+      "symbol": "?OnIdleUpdateCmdUI@COleIPFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 10435,
+      "symbol": "?OnMenuChar@COleIPFrameWndEx@@IEAA_JIIPEAVCMenu@@@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 10534,
+      "symbol": "?OnMoveMiniFrame@COleIPFrameWndEx@@UEAAHPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 10777,
+      "symbol": "?OnPaneCheck@COleIPFrameWndEx@@IEAAHI@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 11109,
+      "symbol": "?OnSetMenu@COleIPFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 11110,
+      "symbol": "?OnSetMenu@COleIPFrameWndEx@@IEAAHPEAUHMENU__@@@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 11124,
+      "symbol": "?OnSetPreviewMode@COleIPFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 11196,
+      "symbol": "?OnShowPanes@COleIPFrameWndEx@@UEAAHH@Z"
+    },
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 11373,
+      "symbol": "?OnToolbarContextMenu@COleIPFrameWndEx@@IEAA_J_K_J@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 60/77: COleIPFrameWndEx"
+}

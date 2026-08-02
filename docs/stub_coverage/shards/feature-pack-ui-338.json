@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-338",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4058,
+      "symbol": "?DrawEx@CMFCToolBarImages@@QEAAHPEAVCDC@@VCRect@@HW4ImageAlignHorz@1@W4ImageAlignVert@1@1E@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4302,
+      "symbol": "?EnableRTL@CMFCToolBarImages@@SAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4349,
+      "symbol": "?EndDrawImage@CMFCToolBarImages@@QEAAXAEAUtagAFXDrawState@@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4463,
+      "symbol": "?ExtractIconW@CMFCToolBarImages@@QEAAPEAUHICON__@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4477,
+      "symbol": "?FillDitheredRect@CMFCToolBarImages@@SAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 5712,
+      "symbol": "?GetMask@CMFCToolBarImages@@QEAAPEAUHBITMAP__@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 7558,
+      "symbol": "?GrayImages@CMFCToolBarImages@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 7842,
+      "symbol": "?Is32BitTransparencySupported@CMFCToolBarImages@@SAHXZ"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 8418,
+      "symbol": "?MapBmpTo3dColors@CMFCToolBarImages@@KAHAEAPEAUHBITMAP__@@HKK@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 8419,
+      "symbol": "?MapFromSysColor@CMFCToolBarImages@@SAKKH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 338/439: CMFCToolBarImages"
+}

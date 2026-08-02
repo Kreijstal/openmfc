@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-42",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 6701,
+      "symbol": "?GetStartDocument@CHtmlEditView@@UEAAPEB_WXZ"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 8906,
+      "symbol": "?OnCmdMsg@CHtmlEditView@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 10541,
+      "symbol": "?OnNavigateComplete2@CHtmlEditView@@UEAAXPEB_W@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 10809,
+      "symbol": "?OnPreparePrinting@CHtmlEditView@@UEAAHPEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 2504,
+      "symbol": "?BeforeNavigate2@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@1111PEAF@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 3913,
+      "symbol": "?DocumentComplete@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 4435,
+      "symbol": "?ExecFormsCommand@CHtmlView@@QEAAJKPEAUtagVARIANT@@0@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 5342,
+      "symbol": "?GetEventSinkMap@CHtmlView@@MEBAPEBUAFX_EVENTSINKMAP@@XZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 7194,
+      "symbol": "?GetThisEventSinkMap@CHtmlView@@KAPEBUAFX_EVENTSINKMAP@@XZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 8515,
+      "symbol": "?NavigateComplete2@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 42/91: CHtmlView, CHtmlEditView"
+}

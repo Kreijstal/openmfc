@@ -220,33 +220,62 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ() {
 }
 
 // =============================================================================
-// AfxGetModuleState / AfxSetModuleState (Simplified stubs)
+// AfxGetModuleState / AfxSetModuleState
 // =============================================================================
 
-// These are used for DLL state management in real MFC
-// We provide minimal stubs for link compatibility
+// These are used for DLL state management in real MFC.
+// The implementation here keeps a thread-local current state pointer and exposes
+// AfxGetStaticModuleState as a stable process-wide state object.
 
 struct AFX_MODULE_STATE {
-    // Simplified - real MFC has many members
     HINSTANCE m_hCurrentInstanceHandle;
     HINSTANCE m_hCurrentResourceHandle;
     CWinApp* m_pCurrentWinApp;
 };
 
-static AFX_MODULE_STATE g_moduleState;
+static AFX_MODULE_STATE g_moduleStateStatic;
+thread_local AFX_MODULE_STATE* g_pCurrentModuleState = nullptr;
 
-// AfxGetModuleState
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
-    // Populate from global state
-    g_moduleState.m_hCurrentInstanceHandle = AfxGetInstanceHandle();
-    g_moduleState.m_hCurrentResourceHandle = AfxGetResourceHandle();
-    g_moduleState.m_pCurrentWinApp = AfxGetApp();
-    return &g_moduleState;
+static AFX_MODULE_STATE* ResolveCurrentModuleState() {
+    if (!g_pCurrentModuleState) {
+        g_pCurrentModuleState = &g_moduleStateStatic;
+    }
+    return g_pCurrentModuleState;
 }
 
-// AfxGetStaticModuleState
+static void RefreshStaticModuleState() {
+    g_moduleStateStatic.m_hCurrentInstanceHandle = AfxGetInstanceHandle();
+    g_moduleStateStatic.m_hCurrentResourceHandle = AfxGetResourceHandle();
+    g_moduleStateStatic.m_pCurrentWinApp = AfxGetApp();
+}
+
+// Symbol: ?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@XZ
+// Ordinal: 2212
+// Return the current thread's module state; keep it synchronized with the
+// process-wide app/module handles.
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
+    AFX_MODULE_STATE* pState = ResolveCurrentModuleState();
+    if (pState == &g_moduleStateStatic) {
+        RefreshStaticModuleState();
+    }
+    return pState;
+}
+
+// Symbol: ?AfxSetModuleState@@YAPEAVAFX_MODULE_STATE@@PEAV1@@Z
+// Ordinal: 2327
+// Returns the previous module state and atomically switches the thread-local
+// current module state pointer.
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE* pNewState) {
+    AFX_MODULE_STATE* pOldState = ResolveCurrentModuleState();
+    g_pCurrentModuleState = pNewState ? pNewState : &g_moduleStateStatic;
+    return pOldState;
+}
+
+// Symbol: ?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ
+// Ordinal: 2211
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
-    return impl__AfxGetModuleState__YAPEAUAFX_MODULE_STATE__XZ();
+    RefreshStaticModuleState();
+    return &g_moduleStateStatic;
 }
 
 // =============================================================================
@@ -254,13 +283,16 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MOD
 // =============================================================================
 
 struct AFX_MODULE_THREAD_STATE {
-    // Simplified
+    // Simplified to the fields that are currently needed by OpenMFC callers.
     int m_nTempMapLock;
 };
 
-static AFX_MODULE_THREAD_STATE g_moduleThreadState;
+thread_local AFX_MODULE_THREAD_STATE g_moduleThreadState;
 
-// AfxGetModuleThreadState
-extern "C" AFX_MODULE_THREAD_STATE* MS_ABI impl__AfxGetModuleThreadState__YAPEAUAFX_MODULE_THREAD_STATE__XZ() {
+// Symbol: ?AfxGetModuleThreadState@@YAPEAVAFX_MODULE_THREAD_STATE@@XZ
+// Ordinal: 2213
+// Module thread state is per-thread process bookkeeping in real MFC.
+extern "C" AFX_MODULE_THREAD_STATE* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
+    g_moduleThreadState.m_nTempMapLock = 0;
     return &g_moduleThreadState;
 }

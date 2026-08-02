@@ -1674,6 +1674,19 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherConnection__SAPEAUCRu
     return CGopherConnection::GetThisClass();
 }
 
+// Symbol: ??0CGopherConnection@@QEAA@PEAVCInternetSession@@PEAXPEB_W_K@Z
+extern "C" void* MS_ABI impl___0CGopherConnection__QEAA_PEAVCInternetSession__PEAXPEB_W_K_Z(
+    void* pThis, CInternetSession* p0, void* p1, const wchar_t* p2, unsigned __int64 p3) {
+    return new(pThis) CGopherConnection(p0, p1, p2, p3);
+}
+
+// Symbol: ??0CGopherConnection@@QEAA@PEAVCInternetSession@@PEB_W11_KG@Z
+extern "C" void* MS_ABI impl___0CGopherConnection__QEAA_PEAVCInternetSession__PEB_W11_KG_Z(
+    void* pThis, CInternetSession* p0, const wchar_t* p1, const wchar_t* p2,
+    const wchar_t* p3, unsigned __int64 p4, unsigned short p5) {
+    return new(pThis) CGopherConnection(p0, p1, p2, p3, p4, p5);
+}
+
 // Symbol: ?GetRuntimeClass@CGopherFile@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherFile__UEBAPEAUCRuntimeClass__XZ(const CGopherFile* pThis) {
     (void)pThis;

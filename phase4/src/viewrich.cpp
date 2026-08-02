@@ -8,6 +8,7 @@
 #include <richedit.h>
 #include <commctrl.h>
 #include <cstring>
+#include <cwchar>
 #include <cstdio>
 #include <mshtml.h>
 #include "openmfc/afxole.h"
@@ -17,6 +18,10 @@
 #else
   #define MS_ABI
 #endif
+
+// CCmdUI export helpers (defined in olecore.cpp).
+extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
+extern "C" void MS_ABI impl__SetCheck_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int nCheck);
 
 // MinGW compat: rich edit 2.0 class name may be missing
 #ifndef MSFTEDIT_CLASS
@@ -29,6 +34,19 @@
 
 // Rich edit 2.0 class (prefer 4.1 if available)
 static const wchar_t* g_pszRichEditClass = RICHEDIT_CLASS;
+
+static wchar_t* CoTaskMemDuplicateW(const wchar_t* pszText) {
+    if (!pszText) {
+        return nullptr;
+    }
+    const size_t cch = wcslen(pszText) + 1;
+    wchar_t* p = static_cast<wchar_t*>(CoTaskMemAlloc(cch * sizeof(wchar_t)));
+    if (!p) {
+        return nullptr;
+    }
+    memcpy(p, pszText, cch * sizeof(wchar_t));
+    return p;
+}
 
 //=============================================================================
 // CRichEditCtrl
@@ -366,18 +384,18 @@ void CRichEditView::GetCharFormat(CHARFORMAT2W& cf) const {
     m_richEdit.GetSelectionCharFormat(cf);
 }
 
-void CRichEditView::SetParaFormat(const PARAFORMAT2& pf) {
-    m_richEdit.SetParaFormat(pf);
+BOOL CRichEditView::SetParaFormat(const PARAFORMAT2& pf) {
+    return m_richEdit.SetParaFormat(pf);
 }
 
 void CRichEditView::GetParaFormat(PARAFORMAT2& pf) const {
     m_richEdit.GetParaFormat(pf);
 }
 
-void CRichEditView::PrintInsideRect(CDC* pDC, RECT& rectLayout,
+LONG CRichEditView::PrintInsideRect(CDC* pDC, RECT& rectLayout,
                                     LONG nIndexStart, LONG nIndexEnd,
                                     BOOL bOutput) {
-    if (!m_richEdit.m_hWnd || !pDC || !pDC->m_hDC) return;
+    if (!m_richEdit.m_hWnd || !pDC || !pDC->m_hDC) return nIndexStart;
 
     FORMATRANGE fr = {};
     fr.hdc = pDC->m_hDC;
@@ -387,14 +405,12 @@ void CRichEditView::PrintInsideRect(CDC* pDC, RECT& rectLayout,
     fr.chrg.cpMin = nIndexStart;
     fr.chrg.cpMax = nIndexEnd;
 
-    if (bOutput) {
-        ::SendMessageW(m_richEdit.m_hWnd, EM_FORMATRANGE, TRUE, (LPARAM)&fr);
-    } else {
-        // Measure only - don't render
-        ::SendMessageW(m_richEdit.m_hWnd, EM_FORMATRANGE, FALSE, (LPARAM)&fr);
-    }
+    LONG nextIndex = static_cast<LONG>(::SendMessageW(
+        m_richEdit.m_hWnd, EM_FORMATRANGE, bOutput ? TRUE : FALSE,
+        reinterpret_cast<LPARAM>(&fr)));
 
     ::SendMessageW(m_richEdit.m_hWnd, EM_FORMATRANGE, 0, 0);  // Clear cache
+    return nextIndex;
 }
 
 LONG CRichEditView::PrintPage(CDC* pDC, LONG nIndexStart, LONG nIndexEnd) {
@@ -673,6 +689,74 @@ void CRichEditView::TextNotFound(const wchar_t* lpszFind) {
 
 void CRichEditView::OnTextNotFound(const wchar_t* lpszFind) {
     TextNotFound(lpszFind);
+}
+
+// Symbol: ?DoPaste@CRichEditView@@QEAAXAEAVCOleDataObject@@GPEAX@Z
+extern "C" void MS_ABI impl__DoPaste_CRichEditView__QEAAXAEAVCOleDataObject__GPEAX_Z(
+    CRichEditView* pThis, COleDataObject* pDataObject, unsigned short nFormat, void* /*reserved*/) {
+    if (!pThis) {
+        return;
+    }
+
+    const unsigned short targetFormat = nFormat ? nFormat : CF_UNICODETEXT;
+    if (pDataObject) {
+        HGLOBAL hData = pDataObject->GetGlobalData(targetFormat);
+        if (hData) {
+            const wchar_t* pText = static_cast<const wchar_t*>(::GlobalLock(hData));
+            if (pText) {
+                pThis->m_richEdit.ReplaceSel(pText, TRUE);
+                ::GlobalUnlock(hData);
+                return;
+            }
+            ::GlobalUnlock(hData);
+        }
+    }
+
+    pThis->m_richEdit.Paste();
+}
+
+// Symbol: ?GetContextMenu@CRichEditView@@MEAAPEAUHMENU__@@GPEAUIOleObject@@PEAU_charrange@@@Z
+extern "C" HMENU* MS_ABI impl__GetContextMenu_CRichEditView__MEAAPEAUHMENU____GPEAUIOleObject__PEAU_charrange___Z(
+    CRichEditView* pThis, unsigned short /*nMenuType*/, IOleObject* /*pObject*/, void* /*pRange*/) {
+    if (!pThis) {
+        return nullptr;
+    }
+
+    static HMENU menu = nullptr;
+    if (!menu) {
+        menu = ::CreatePopupMenu();
+        if (menu) {
+            ::AppendMenuW(menu, MF_STRING, 1, L"Properties");
+            ::AppendMenuW(menu, MF_STRING, 2, L"Clear");
+        }
+    }
+    return &menu;
+}
+
+// Symbol: ?GetWindowContext@CRichEditView@@QEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagOIFI@@@Z
+extern "C" long MS_ABI impl__GetWindowContext_CRichEditView__QEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagOIFI___Z(
+    CRichEditView* pThis, IOleInPlaceFrame** ppFrame, IOleInPlaceUIWindow** ppDoc, LPOLEINPLACEFRAMEINFO lpFrameInfo) {
+    if (!pThis) {
+        return -1;
+    }
+
+    if (ppFrame) {
+        *ppFrame = nullptr;
+    }
+    if (ppDoc) {
+        *ppDoc = nullptr;
+    }
+    if (!lpFrameInfo) {
+        return 0;
+    }
+
+    memset(lpFrameInfo, 0, sizeof(*lpFrameInfo));
+    lpFrameInfo->cb = sizeof(*lpFrameInfo);
+    lpFrameInfo->hwndFrame = pThis->GetSafeHwnd();
+    lpFrameInfo->fMDIApp = FALSE;
+    lpFrameInfo->cAccelEntries = 0;
+    lpFrameInfo->haccel = nullptr;
+    return S_OK;
 }
 
 //=============================================================================
@@ -1004,32 +1088,147 @@ void CHtmlView::PrintPreview() {
 
 // Event stubs (override in derived class)
 // Note: OnBeforeNavigate2/OnNavigateComplete2/OnDocumentComplete take decoded string params
-void CHtmlView::OnBeforeNavigate2(const wchar_t*, DWORD, const wchar_t*, CByteArray&, const wchar_t*, BOOL*) {}
-void CHtmlView::OnNavigateComplete2(const wchar_t*) {}
-void CHtmlView::OnDocumentComplete(const wchar_t*) {}
-void CHtmlView::OnProgressChange(long, long) {}
-void CHtmlView::OnTitleChange(const wchar_t*) {}
-void CHtmlView::OnStatusTextChange(const wchar_t*) {}
-void CHtmlView::OnCommandStateChange(long, BOOL) {}
-void CHtmlView::OnDownloadBegin() {}
-void CHtmlView::OnDownloadComplete() {}
-void CHtmlView::OnFullScreen(BOOL) {}
-void CHtmlView::OnMenuBar(BOOL) {}
-void CHtmlView::OnNavigateError(const wchar_t*, const wchar_t*, DWORD, BOOL*) {}
-void CHtmlView::OnNewWindow2(LPDISPATCH*, BOOL*) {}
-void CHtmlView::OnPropertyChange(const wchar_t*) {}
-void CHtmlView::OnQuit() {}
-void CHtmlView::OnStatusBar(BOOL) {}
-void CHtmlView::OnTheaterMode(BOOL) {}
-void CHtmlView::OnToolBar(BOOL) {}
-void CHtmlView::OnVisible(BOOL) {}
-HRESULT CHtmlView::OnTranslateUrl(DWORD, wchar_t*, wchar_t**) { return S_FALSE; }
-BOOL CHtmlView::GetSource(CString&) { return FALSE; }
-HRESULT CHtmlView::OnGetOptionKeyPath(wchar_t** ppwszPathKey, DWORD) {
-    if (ppwszPathKey) {
-        *ppwszPathKey = nullptr;
+void CHtmlView::OnBeforeNavigate2(const wchar_t* lpszURL, DWORD,
+                                 const wchar_t*, CByteArray&, const wchar_t*,
+                                 BOOL* pbCancel) {
+    if (pbCancel) {
+        *pbCancel = FALSE;
     }
-    return S_FALSE;
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
+void CHtmlView::OnNavigateComplete2(const wchar_t* lpszURL) {
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
+void CHtmlView::OnDocumentComplete(const wchar_t* lpszURL) {
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
+void CHtmlView::OnProgressChange(long nProgress, long nProgressMax) {
+    if (m_hWnd && nProgressMax > 0) {
+        wchar_t buf[128];
+        swprintf(buf, 128, L"Loading... %ld / %ld", nProgress, nProgressMax);
+        ::SetWindowTextW(m_hWnd, buf);
+    }
+}
+void CHtmlView::OnTitleChange(const wchar_t* lpszText) {
+    if (lpszText && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszText);
+    }
+}
+void CHtmlView::OnStatusTextChange(const wchar_t* lpszText) {
+    if (lpszText && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszText);
+    }
+}
+void CHtmlView::OnCommandStateChange(long lCommand, BOOL bEnable) {
+    if (m_hWnd) {
+        wchar_t buf[96];
+        swprintf(buf, 96, L"Command %ld %s", lCommand, bEnable ? L"enabled" : L"disabled");
+        ::SetWindowTextW(m_hWnd, buf);
+    }
+}
+void CHtmlView::OnDownloadBegin() {
+    if (m_hWnd) {
+        ::SetWindowTextW(m_hWnd, L"Download started");
+    }
+}
+void CHtmlView::OnDownloadComplete() {
+    if (m_hWnd) {
+        ::SetWindowTextW(m_hWnd, L"Download complete");
+    }
+}
+void CHtmlView::OnFullScreen(BOOL bFullScreen) {
+    if (m_pBrowser) m_pBrowser->put_FullScreen(bFullScreen);
+}
+void CHtmlView::OnMenuBar(BOOL bMenuBar) {
+    if (m_pBrowser) m_pBrowser->put_MenuBar(bMenuBar);
+}
+void CHtmlView::OnNavigateError(const wchar_t* lpszURL, const wchar_t* lpszFrame, DWORD dwError, BOOL* pbCancel) {
+    if (pbCancel) {
+        *pbCancel = FALSE;
+    }
+    if (!m_hWnd || !lpszURL) return;
+    (void)lpszFrame; (void)dwError;
+    ::SetWindowTextW(m_hWnd, lpszURL);
+}
+void CHtmlView::OnNewWindow2(LPDISPATCH*, BOOL* bCancel) {
+    if (bCancel) {
+        *bCancel = FALSE;
+    }
+}
+void CHtmlView::OnPropertyChange(const wchar_t* lpszProperty) {
+    if (lpszProperty && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszProperty);
+    }
+}
+void CHtmlView::OnQuit() {
+    if (m_pBrowser) {
+        m_pBrowser->Stop();
+        m_pBrowser->put_Visible(VARIANT_FALSE);
+    }
+}
+void CHtmlView::OnStatusBar(BOOL bStatusBar) {
+    if (m_pBrowser) m_pBrowser->put_StatusBar(bStatusBar);
+}
+void CHtmlView::OnTheaterMode(BOOL bTheaterMode) {
+    if (m_pBrowser) m_pBrowser->put_TheaterMode(bTheaterMode);
+}
+void CHtmlView::OnToolBar(BOOL bToolBar) {
+    if (m_pBrowser) m_pBrowser->put_ToolBar(bToolBar);
+}
+void CHtmlView::OnVisible(BOOL bVisible) {
+    if (m_pBrowser) m_pBrowser->put_Visible(bVisible ? VARIANT_TRUE : VARIANT_FALSE);
+}
+HRESULT CHtmlView::OnTranslateUrl(DWORD, wchar_t* pchURLIn, wchar_t** ppchURLOut) {
+    if (!ppchURLOut) return E_POINTER;
+    *ppchURLOut = nullptr;
+    if (!pchURLIn) {
+        return S_OK;
+    }
+    *ppchURLOut = CoTaskMemDuplicateW(pchURLIn);
+    return *ppchURLOut ? S_OK : E_OUTOFMEMORY;
+}
+BOOL CHtmlView::GetSource(CString& strRef) {
+    strRef.Empty();
+    if (!m_pBrowser) return FALSE;
+
+    LPDISPATCH pDocDisp = nullptr;
+    if (FAILED(m_pBrowser->get_Document(&pDocDisp)) || !pDocDisp) return FALSE;
+
+    IHTMLDocument3* pDoc3 = nullptr;
+    HRESULT hr = pDocDisp->QueryInterface(IID_IHTMLDocument3, (void**)&pDoc3);
+    pDocDisp->Release();
+    if (FAILED(hr) || !pDoc3) return FALSE;
+
+    IHTMLElement* pRoot = nullptr;
+    BSTR bstrSource = nullptr;
+    hr = pDoc3->get_documentElement(&pRoot);
+    pDoc3->Release();
+    if (FAILED(hr) || !pRoot) return FALSE;
+
+    hr = pRoot->get_outerHTML(&bstrSource);
+    pRoot->Release();
+    if (SUCCEEDED(hr) && bstrSource) {
+        strRef = bstrSource;
+        SysFreeString(bstrSource);
+        return TRUE;
+    }
+    if (bstrSource) {
+        SysFreeString(bstrSource);
+    }
+    return FALSE;
+}
+HRESULT CHtmlView::OnGetOptionKeyPath(wchar_t** ppwszPathKey, DWORD) {
+    if (!ppwszPathKey) {
+        return E_POINTER;
+    }
+    *ppwszPathKey = CoTaskMemDuplicateW(L"Software\\Microsoft\\Internet Explorer\\Main\\FeatureControl");
+    return *ppwszPathKey ? S_OK : E_OUTOFMEMORY;
 }
 
 // IWebBrowser2 property accessors
@@ -1139,24 +1338,31 @@ void CHtmlView::PutProperty(const wchar_t* lpszProperty, const VARIANT& vtValue)
 // CDHtmlDialog - DHTML-based Dialog
 //=============================================================================
 CDHtmlDialog::CDHtmlDialog()
-    : m_nHtmlResID(0), m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+    : m_nHtmlResID(0), m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE),
+      m_pExternalDispatch(nullptr), m_dwHostFlags(0) {
     memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
 }
 
 CDHtmlDialog::CDHtmlDialog(UINT nIDTemplate, UINT nHtmlResID, CWnd* pParentWnd)
     : CDialog(nIDTemplate, pParentWnd), m_nHtmlResID(nHtmlResID),
-      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE),
+      m_pExternalDispatch(nullptr), m_dwHostFlags(0) {
     memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
 }
 
 CDHtmlDialog::CDHtmlDialog(const wchar_t* lpszTemplateName, const wchar_t* lpszHtmlResID, CWnd* pParentWnd)
     : CDialog(lpszTemplateName, pParentWnd), m_nHtmlResID(0),
-      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE) {
+      m_pBrowser(nullptr), m_pCtrlWnd(nullptr), m_bCreated(FALSE),
+      m_pExternalDispatch(nullptr), m_dwHostFlags(0) {
     if (lpszHtmlResID) m_strHtmlResID = lpszHtmlResID;
     memset(_dhtmldialog_padding, 0, sizeof(_dhtmldialog_padding));
 }
 
 CDHtmlDialog::~CDHtmlDialog() {
+    if (m_pExternalDispatch) {
+        m_pExternalDispatch->Release();
+        m_pExternalDispatch = nullptr;
+    }
     if (m_pBrowser) {
         m_pBrowser->Stop();
         m_pBrowser->put_Visible(VARIANT_FALSE);
@@ -1319,8 +1525,22 @@ HRESULT CDHtmlDialog::SetElementProperty(const wchar_t* lpszElementId,
 }
 
 VARIANT CDHtmlDialog::GetElementProperty(const wchar_t* lpszElementId, long lCookie) {
-    (void)lpszElementId; (void)lCookie;
-    VARIANT v; VariantInit(&v); return v;
+    VARIANT v; VariantInit(&v);
+    if (!m_pBrowser || !lpszElementId) return v;
+
+    IDispatch* pDisp = nullptr;
+    HRESULT hr = GetElement(lpszElementId, &pDisp);
+    if (FAILED(hr) || !pDisp) return v;
+
+    DISPPARAMS dp = {};
+    DISPID dispId = lCookie;
+    hr = pDisp->Invoke(dispId, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET,
+                       &dp, &v, nullptr, nullptr);
+    pDisp->Release();
+    if (FAILED(hr)) {
+        VariantClear(&v);
+    }
+    return v;
 }
 
 // Legacy overload
@@ -1338,7 +1558,10 @@ HRESULT CDHtmlDialog::GetElementProperty(const wchar_t* lpszElementId,
     return hr;
 }
 
-HRESULT CDHtmlDialog::OnDDXError(const wchar_t*, const wchar_t*) {
+HRESULT CDHtmlDialog::OnDDXError(const wchar_t* lpszId, const wchar_t* lpszError) {
+    if (lpszId && lpszError && *lpszError) {
+        SetFocusToElement(lpszId);
+    }
     return S_OK;
 }
 
@@ -1548,18 +1771,90 @@ HRESULT CDHtmlDialog::GetDHtmlDocument(IHTMLDocument2** ppDocument) {
 }
 
 // Navigation event stubs
-void CDHtmlDialog::OnBeforeNavigate(IDispatch*, const wchar_t*) {}
-void CDHtmlDialog::OnNavigateComplete(IDispatch*, const wchar_t*) {}
-void CDHtmlDialog::OnDocumentComplete(IDispatch*, const wchar_t*) {}
+void CDHtmlDialog::OnBeforeNavigate(IDispatch*, const wchar_t* lpszURL) {
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
+void CDHtmlDialog::OnNavigateComplete(IDispatch*, const wchar_t* lpszURL) {
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
+void CDHtmlDialog::OnDocumentComplete(IDispatch*, const wchar_t* lpszURL) {
+    if (lpszURL && m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszURL);
+    }
+}
 
 // Internal helpers
-int CDHtmlDialog::FindSinkForObject(const wchar_t*) { return -1; }
+int CDHtmlDialog::FindSinkForObject(const wchar_t* lpszId) {
+    if (!lpszId || !*lpszId || !m_pBrowser) return -1;
+    IHTMLElement* pElem = nullptr;
+    if (SUCCEEDED(GetElement(lpszId, &pElem)) && pElem) {
+        pElem->Release();
+        return 0;
+    }
+    return -1;
+}
 void CDHtmlDialog::SetFocusToElement(const wchar_t* lpszId) {
-    // No-op default: keep ABI surface without requiring full DOM focus plumbing.
-    (void)lpszId;
+    if (!lpszId || !m_pBrowser) return;
+    IHTMLElement* pElem = nullptr;
+    if (FAILED(GetElement(lpszId, &pElem)) || !pElem) return;
+    IHTMLElement2* pElem2 = nullptr;
+    HRESULT hr = pElem->QueryInterface(IID_IHTMLElement2, (void**)&pElem2);
+    pElem->Release();
+    if (FAILED(hr) || !pElem2) return;
+    pElem2->focus();
+    pElem2->Release();
 }
 long CDHtmlDialog::Select_FindString(IHTMLSelectElement* pSelect, wchar_t* lpszFind, int bExact) {
-    (void)pSelect; (void)lpszFind; (void)bExact;
+    if (!pSelect || !lpszFind || !*lpszFind) {
+        return -1;
+    }
+    IDispatch* pDispatch = nullptr;
+    if (FAILED(pSelect->get_options(&pDispatch)) || !pDispatch) return -1;
+    IHTMLElementCollection* pOptions = nullptr;
+    HRESULT hr = pDispatch->QueryInterface(IID_IHTMLElementCollection, (void**)&pOptions);
+    pDispatch->Release();
+    if (FAILED(hr) || !pOptions) return -1;
+
+    long count = 0;
+    pOptions->get_length(&count);
+    for (long i = 0; i < count; ++i) {
+        VARIANT idx;
+        VARIANT name;
+        IDispatch* pItem = nullptr;
+        BSTR bstrText = nullptr;
+        VariantInit(&idx);
+        VariantInit(&name);
+        idx.vt = VT_I4;
+        idx.lVal = i;
+        HRESULT hrItem = pOptions->item(name, idx, &pItem);
+        VariantClear(&idx);
+        VariantClear(&name);
+        if (FAILED(hrItem) || !pItem) continue;
+
+        IHTMLOptionElement* pOpt = nullptr;
+        HRESULT hrOpt = pItem->QueryInterface(IID_IHTMLOptionElement, (void**)&pOpt);
+        pItem->Release();
+        if (FAILED(hrOpt) || !pOpt) continue;
+        HRESULT hrText = pOpt->get_text(&bstrText);
+        pOpt->Release();
+        if (FAILED(hrText) || !bstrText) continue;
+        bool matched = false;
+        if (bExact) {
+            matched = (wcscmp(bstrText, lpszFind) == 0);
+        } else {
+            matched = (wcsstr(bstrText, lpszFind) != nullptr);
+        }
+        SysFreeString(bstrText);
+        if (matched) {
+            pOptions->Release();
+            return i;
+        }
+    }
+    pOptions->Release();
     return -1;
 }
 
@@ -1567,7 +1862,7 @@ long CDHtmlDialog::Select_FindString(IHTMLSelectElement* pSelect, wchar_t* lpszF
 HRESULT CDHtmlDialog::GetHostInfo(DOCHOSTUIINFO* pInfo) {
     if (!pInfo) return E_POINTER;
     pInfo->cbSize = sizeof(DOCHOSTUIINFO);
-    pInfo->dwFlags = 0;
+    pInfo->dwFlags = m_dwHostFlags;
     pInfo->dwDoubleClick = DOCHOSTUIDBLCLK_DEFAULT;
     return S_OK;
 }
@@ -1585,8 +1880,16 @@ HRESULT CDHtmlDialog::GetOptionKeyPath(wchar_t** ppwszPathKey, DWORD) {
     *ppwszPathKey = p;
     return S_OK;
 }
-HRESULT CDHtmlDialog::TranslateUrl(DWORD, wchar_t*, wchar_t** ppOut) {
-    if (ppOut) *ppOut = nullptr; return S_FALSE;
+HRESULT CDHtmlDialog::TranslateUrl(DWORD, wchar_t* pchURLIn, wchar_t** ppOut) {
+    if (!ppOut) {
+        return E_POINTER;
+    }
+    *ppOut = nullptr;
+    if (!pchURLIn) {
+        return S_OK;
+    }
+    *ppOut = CoTaskMemDuplicateW(pchURLIn);
+    return *ppOut ? S_OK : E_OUTOFMEMORY;
 }
 HRESULT CDHtmlDialog::ShowContextMenu(DWORD, POINT*, IUnknown*, IDispatch*) { return S_OK; }
 HRESULT CDHtmlDialog::ShowUI(DWORD, IOleInPlaceActiveObject*, IOleCommandTarget*,
@@ -1598,17 +1901,32 @@ HRESULT CDHtmlDialog::OnDocWindowActivate(BOOL) { return S_OK; }
 HRESULT CDHtmlDialog::OnFrameWindowActivate(BOOL) { return S_OK; }
 HRESULT CDHtmlDialog::ResizeBorder(LPCRECT, IOleInPlaceUIWindow*, BOOL) { return S_OK; }
 HRESULT CDHtmlDialog::TranslateAcceleratorW(LPMSG, const GUID*, DWORD) { return S_FALSE; }
-HRESULT CDHtmlDialog::GetDropTarget(IDropTarget*, IDropTarget** ppOut) {
-    if (ppOut) *ppOut = nullptr; return S_FALSE;
+HRESULT CDHtmlDialog::GetDropTarget(IDropTarget* pDropTarget, IDropTarget** ppOut) {
+    if (!ppOut) return E_POINTER;
+    *ppOut = nullptr;
+    if (!pDropTarget) return S_FALSE;
+    pDropTarget->AddRef();
+    *ppOut = pDropTarget;
+    return S_OK;
 }
 HRESULT CDHtmlDialog::GetExternal(IDispatch** ppOut) {
-    if (ppOut) *ppOut = nullptr; return S_FALSE;
+    if (!ppOut) return E_POINTER;
+    *ppOut = nullptr;
+    if (!m_pExternalDispatch) return S_FALSE;
+    m_pExternalDispatch->AddRef();
+    *ppOut = m_pExternalDispatch;
+    return S_OK;
 }
-HRESULT CDHtmlDialog::FilterDataObject(IDataObject*, IDataObject** ppOut) {
-    if (ppOut) *ppOut = nullptr; return S_FALSE;
+HRESULT CDHtmlDialog::FilterDataObject(IDataObject* pDataObject, IDataObject** ppOut) {
+    if (!ppOut) return E_POINTER;
+    *ppOut = nullptr;
+    if (!pDataObject) return S_FALSE;
+    pDataObject->AddRef();
+    *ppOut = pDataObject;
+    return S_OK;
 }
-HRESULT CDHtmlDialog::IsExternalDispatchSafe() { return S_OK; }
-HRESULT CDHtmlDialog::CanAccessExternal() { return S_OK; }
+HRESULT CDHtmlDialog::IsExternalDispatchSafe() { return m_pExternalDispatch ? S_OK : S_FALSE; }
+HRESULT CDHtmlDialog::CanAccessExternal() { return m_pExternalDispatch ? S_OK : S_FALSE; }
 HRESULT CDHtmlDialog::CreateControlSite(COleControlContainer* pContainer,
                                        COleControlSite** pSite,
                                        UINT nID, REFCLSID clsid) {
@@ -1632,10 +1950,25 @@ HRESULT CDHtmlDialog::CreateControlSite(COleControlContainer* pContainer,
     return S_OK;
 }
 
-void CDHtmlDialog::SetExternalDispatch(IDispatch*) {}
-void CDHtmlDialog::SetHostFlags(DWORD) {}
+void CDHtmlDialog::SetExternalDispatch(IDispatch* pDispatch) {
+    if (m_pExternalDispatch) {
+        m_pExternalDispatch->Release();
+        m_pExternalDispatch = nullptr;
+    }
+    m_pExternalDispatch = pDispatch;
+    if (m_pExternalDispatch) {
+        m_pExternalDispatch->AddRef();
+    }
+}
+void CDHtmlDialog::SetHostFlags(DWORD dwFlags) {
+    m_dwHostFlags = dwFlags;
+}
 
-void CDHtmlDialog::OnDDXError(const wchar_t*, UINT, int) {}
+void CDHtmlDialog::OnDDXError(const wchar_t* lpszId, UINT nErrorID, int) {
+    wchar_t szError[128];
+    swprintf(szError, 128, L"DDX validation failed (id=%u)", nErrorID);
+    OnDDXError(lpszId, szError);
+}
 
 void CDHtmlDialog::OnDestroy() {
     if (m_pBrowser) {
@@ -2410,4 +2743,152 @@ extern "C" void MS_ABI impl__SetHostFlags_CDHtmlDialog__QEAAXK_Z(
 // Symbol: ?OnDestroy@CDHtmlDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CDHtmlDialog__IEAAXXZ(CDHtmlDialog* pThis) {
     static_cast<CDHtmlDialogAccess*>(pThis)->OnDestroy();
+}
+
+//=============================================================================
+// CRichEditView OnUpdate* command-UI handlers
+//=============================================================================
+
+// Symbol: ?OnUpdateBullet@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateBullet_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, (pThis && (pThis->GetParaFormatSelection().wNumbering & PFN_BULLET)) ? 1 : 0);
+}
+
+// Symbol: ?OnUpdateCharBold@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateCharBold_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, (pThis && (pThis->GetCharFormatSelection().dwEffects & CFE_BOLD)) ? 1 : 0);
+}
+
+// Symbol: ?OnUpdateCharEffect@CRichEditView@@QEAAXPEAVCCmdUI@@KK@Z
+extern "C" void MS_ABI impl__OnUpdateCharEffect_CRichEditView__QEAAXPEAVCCmdUI__KK_Z(CRichEditView* pThis, CCmdUI* ui, unsigned long dwMask, unsigned long dwEffects) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, ((dwEffects & dwMask) == dwEffects) ? 1 : 0);
+    (void)pThis;
+}
+
+// Symbol: ?OnUpdateCharItalic@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateCharItalic_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, (pThis && (pThis->GetCharFormatSelection().dwEffects & CFE_ITALIC)) ? 1 : 0);
+}
+
+// Symbol: ?OnUpdateCharUnderline@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateCharUnderline_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, (pThis && (pThis->GetCharFormatSelection().dwEffects & CFE_UNDERLINE)) ? 1 : 0);
+}
+
+// Symbol: ?OnUpdateEditPasteSpecial@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditPasteSpecial_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis ? pThis->CanPaste() : FALSE);
+}
+
+// Symbol: ?OnUpdateEditProperties@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditProperties_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateEditRedo@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditRedo_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, (pThis && pThis->m_richEdit.m_hWnd) ? (BOOL)::SendMessageW(pThis->m_richEdit.m_hWnd, EM_CANREDO, 0, 0) : FALSE);
+}
+
+// Symbol: ?OnUpdateEditUndo@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditUndo_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, (pThis && pThis->m_richEdit.m_hWnd) ? (BOOL)::SendMessageW(pThis->m_richEdit.m_hWnd, EM_CANUNDO, 0, 0) : FALSE);
+}
+
+// Symbol: ?OnUpdateNeedClip@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedClip_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, ::IsClipboardFormatAvailable(CF_UNICODETEXT));
+}
+
+// Symbol: ?OnUpdateNeedFind@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedFind_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && pThis->GetRichEditCtrl().GetTextLength() > 0);
+}
+
+// Symbol: ?OnUpdateNeedSel@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedSel_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) {
+        DWORD s = 0, e = 0;
+        if (pThis && pThis->m_richEdit.m_hWnd)
+            ::SendMessageW(pThis->m_richEdit.m_hWnd, EM_GETSEL, (WPARAM)&s, (LPARAM)&e);
+        impl__Enable_CCmdUI__UEAAXH_Z(ui, s != e);
+    }
+}
+
+// Symbol: ?OnUpdateNeedText@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNeedText_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && pThis->GetRichEditCtrl().GetTextLength() > 0);
+}
+
+// Symbol: ?OnUpdateParaAlign@CRichEditView@@QEAAXPEAVCCmdUI@@G@Z
+extern "C" void MS_ABI impl__OnUpdateParaAlign_CRichEditView__QEAAXPEAVCCmdUI__G_Z(CRichEditView* pThis, CCmdUI* ui, unsigned short nAlign) {
+    if (ui) impl__SetCheck_CCmdUI__UEAAXH_Z(ui, (pThis && pThis->GetParaFormatSelection().wAlignment == nAlign) ? 1 : 0);
+}
+
+// Symbol: ?OnUpdateParaCenter@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateParaCenter_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    impl__OnUpdateParaAlign_CRichEditView__QEAAXPEAVCCmdUI__G_Z(pThis, ui, PFA_CENTER);
+}
+
+// Symbol: ?OnUpdateParaLeft@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateParaLeft_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    impl__OnUpdateParaAlign_CRichEditView__QEAAXPEAVCCmdUI__G_Z(pThis, ui, PFA_LEFT);
+}
+
+// Symbol: ?OnUpdateParaRight@CRichEditView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateParaRight_CRichEditView__IEAAXPEAVCCmdUI___Z(CRichEditView* pThis, CCmdUI* ui) {
+    impl__OnUpdateParaAlign_CRichEditView__QEAAXPEAVCCmdUI__G_Z(pThis, ui, PFA_RIGHT);
+}
+
+//=============================================================================
+// CHtmlView OnUpdate* command-UI handlers
+//=============================================================================
+
+// Symbol: ?OnUpdateEditCopy@CHtmlView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditCopy_CHtmlView__IEAAXPEAVCCmdUI___Z(CHtmlView*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateEditCut@CHtmlView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditCut_CHtmlView__IEAAXPEAVCCmdUI___Z(CHtmlView*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateEditPaste@CHtmlView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateEditPaste_CHtmlView__IEAAXPEAVCCmdUI___Z(CHtmlView*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+//=============================================================================
+// CPreviewView / CPreviewViewEx OnUpdate* handlers (no header class yet)
+//=============================================================================
+
+// Symbol: ?OnUpdateNextPage@CPreviewView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNextPage_CPreviewView__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateNumPageChange@CPreviewView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateNumPageChange_CPreviewView__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdatePrevPage@CPreviewView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdatePrevPage_CPreviewView__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateZoomIn@CPreviewView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateZoomIn_CPreviewView__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateZoomOut@CPreviewView@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateZoomOut_CPreviewView__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdatePreviewNumPage@CPreviewViewEx@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdatePreviewNumPage_CPreviewViewEx__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
 }

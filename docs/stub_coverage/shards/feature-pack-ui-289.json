@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-289",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6114,
+      "symbol": "?GetPreviousPages@CMFCTasksPane@@QEBAXAEAVCStringList@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6628,
+      "symbol": "?GetScrollBarCtrl@CMFCTasksPane@@UEBAPEAVCScrollBar@@H@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6766,
+      "symbol": "?GetTask@CMFCTasksPane@@QEBAPEAVCMFCTasksPaneTask@@HH@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6769,
+      "symbol": "?GetTaskGroup@CMFCTasksPane@@QEBAPEAVCMFCTasksPaneTaskGroup@@H@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6770,
+      "symbol": "?GetTaskLocation@CMFCTasksPane@@QEBAHIAEAH0@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6771,
+      "symbol": "?GetTaskLocation@CMFCTasksPane@@QEBAHPEAUHWND__@@AEAH1@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6772,
+      "symbol": "?GetTaskLocation@CMFCTasksPane@@QEBAHPEAVCMFCTasksPaneTask@@AEAH1@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6773,
+      "symbol": "?GetTasksGroupBorders@CMFCTasksPane@@MEBA?AVCSize@@XZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 7561,
+      "symbol": "?GroupCaptionHitTest@CMFCTasksPane@@MEBAPEAVCMFCTasksPaneTaskGroup@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 8147,
+      "symbol": "?LoadState@CMFCTasksPane@@UEAAHPEB_WHI@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 289/439: CMFCTasksPane"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-16",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 5087,
+      "symbol": "?GetContainer@CConnectionPoint@@UEAAPEAUIConnectionPointContainer@@XZ"
+    },
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 5714,
+      "symbol": "?GetMaxConnections@CConnectionPoint@@UEAAHXZ"
+    },
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 5965,
+      "symbol": "?GetNextConnection@CConnectionPoint@@QEBAPEAUIUnknown@@AEAPEAU__POSITION@@@Z"
+    },
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 6703,
+      "symbol": "?GetStartPosition@CConnectionPoint@@QEBAPEAU__POSITION@@XZ"
+    },
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 8624,
+      "symbol": "?OnAdvise@CConnectionPoint@@UEAAXH@Z"
+    },
+    {
+      "class": "CConnectionPoint",
+      "ordinal": 12019,
+      "symbol": "?QuerySinkInterface@CConnectionPoint@@UEAAJPEAUIUnknown@@PEAPEAX@Z"
+    },
+    {
+      "class": "CControlFrameWnd",
+      "ordinal": 3060,
+      "symbol": "?Create@CControlFrameWnd@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CControlFrameWnd",
+      "ordinal": 8582,
+      "symbol": "?OnActivate@CControlFrameWnd@@IEAAXIPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CControlFrameWnd",
+      "ordinal": 8864,
+      "symbol": "?OnClose@CControlFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CControlFrameWnd",
+      "ordinal": 11761,
+      "symbol": "?PostNcDestroy@CControlFrameWnd@@MEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 16/91: CConnectionPoint, CControlFrameWnd"
+}

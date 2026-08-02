@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-395",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9641,
+      "symbol": "?OnDrawTabResizeBar@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@PEAVCMFCBaseTabCtrl@@HVCRect@@PEAVCBrush@@PEAVCPen@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9806,
+      "symbol": "?OnEraseTabsArea@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9812,
+      "symbol": "?OnEraseTabsButton@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9817,
+      "symbol": "?OnEraseTabsFrame@CMFCVisualManagerVS2008@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9871,
+      "symbol": "?OnFillBarBackground@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@2H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9878,
+      "symbol": "?OnFillButtonInterior@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 9887,
+      "symbol": "?OnFillCommandsListBackground@CMFCVisualManagerVS2008@@UEAAKPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 10101,
+      "symbol": "?OnHighlightMenuItem@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 10110,
+      "symbol": "?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2008",
+      "ordinal": 11544,
+      "symbol": "?OnUpdateSystemColors@CMFCVisualManagerVS2008@@UEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 395/439: CMFCVisualManagerVS2008"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-52",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 5271,
+      "symbol": "?GetDragDropEffect@XRichEditOleCallback@CRichEditView@@UEAAJHKPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5288,
+      "symbol": "?GetDropTarget@XDocHostUIHandler@CHtmlControlSite@@UEAAJPEAUIDropTarget@@PEAPEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5289,
+      "symbol": "?GetDropTarget@XOleInPlaceObject@COleControl@@UEAAJPEAPEAUIDropTarget@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5319,
+      "symbol": "?GetEnumVariant@XAccessibleServer@CWnd@@UEAAJPEAPEAUIEnumVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5351,
+      "symbol": "?GetExtendedControl@XOleControlSite@COleControlSite@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5355,
+      "symbol": "?GetExtent@XOleObject@CDocObjectServer@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5356,
+      "symbol": "?GetExtent@XOleObject@COleControl@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5357,
+      "symbol": "?GetExtent@XOleObject@COleServerDoc@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5358,
+      "symbol": "?GetExtent@XOleObject@COleServerItem@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5359,
+      "symbol": "?GetExtent@XViewObject@COleControl@@UEAAJKJPEAUtagDVTARGETDEVICE@@PEAUtagSIZE@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 52/95: global"
+}

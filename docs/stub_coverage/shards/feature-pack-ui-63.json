@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-63",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 12639,
+      "symbol": "?SaveMDIState@CMDIFrameWndEx@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 13833,
+      "symbol": "?ShowPane@CMDIFrameWndEx@@QEAAXPEAVCBasePane@@HHH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 13843,
+      "symbol": "?ShowPopupMenu@CMDIFrameWndEx@@IEAAHPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 13865,
+      "symbol": "?ShowWindowsDialog@CMDIFrameWndEx@@QEAAXXZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 13965,
+      "symbol": "?TabbedDocumentToControlBar@CMDIFrameWndEx@@UEAAHPEAVCMDIChildWndEx@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 14143,
+      "symbol": "?UpdateMDITabbedBarsIcons@CMDIFrameWndEx@@QEAAXXZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 14213,
+      "symbol": "?WinHelpW@CMDIFrameWndEx@@UEAAX_KI@Z"
+    },
+    {
+      "class": "CMFCAcceleratorKeyAssignCtrl",
+      "ordinal": 10261,
+      "symbol": "?OnKillFocus@CMFCAcceleratorKeyAssignCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCAcceleratorKeyAssignCtrl",
+      "ordinal": 11866,
+      "symbol": "?PreTranslateMessage@CMFCAcceleratorKeyAssignCtrl@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCAcceleratorKeyAssignCtrl",
+      "ordinal": 12509,
+      "symbol": "?ResetKey@CMFCAcceleratorKeyAssignCtrl@@QEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 63/439: CMDIFrameWndEx, CMFCAcceleratorKeyAssignCtrl"
+}

@@ -6,6 +6,7 @@
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxole.h"
 #include <windows.h>
 #include <algorithm>
 #include <cstring>
@@ -14,6 +15,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+class CSplitterWnd;
 
 namespace {
 
@@ -341,6 +344,7 @@ extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(CView* pThis, v
 extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(CView* pThis, void* pDC, void* pInfo);
 extern "C" void MS_ABI impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(CView* pThis, int bActivate, CView* pActivateView, CView* pDeactiveView);
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(const CView* pThis);
+extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine);
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(CScrollView* pThis, int nMapMode, const SIZE* sizeTotal, const SIZE* sizePage, const SIZE* sizeLine);
 extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* pThis);
 extern "C" void MS_ABI impl__OnDraw_CScrollView__UEAAXPEAX_Z(CScrollView* pThis, void* pDC);
@@ -418,13 +422,25 @@ void CView::OnEndPrinting(void* pDC, void* pInfo) { impl__OnEndPrinting_CView__U
 void CView::OnActivateView(int bActivate, CView* pActivateView, CView* pDeactiveView) { impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(this, bActivate, pActivateView, pDeactiveView); }
 CFrameWnd* CView::GetParentFrame() const { return impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(this); }
 
-// OLE drag/drop virtual defaults. Match real MFC CView semantics: a view that
-// does not participate in drag/drop rejects the drop. OnDropEx returns (DWORD)-1
-// to signal "not handled" so the framework falls back to OnDrop.
-DWORD CView::OnDragEnter(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
-DWORD CView::OnDragOver(COleDataObject* /*pDataObject*/, DWORD /*dwKeyState*/, CPoint /*point*/) { return DROPEFFECT_NONE; }
-BOOL CView::OnDrop(COleDataObject* /*pDataObject*/, DWORD /*dropEffect*/, CPoint /*point*/) { return FALSE; }
-DWORD CView::OnDropEx(COleDataObject* /*pDataObject*/, DWORD /*dropDefault*/, DWORD /*dropList*/, CPoint /*point*/) { return (DWORD)-1; }
+// OLE drag/drop virtual defaults.
+DWORD CView::OnDragEnter(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point) {
+    (void)point;
+    if (!pDataObject || !pDataObject->GetIDataObject(FALSE)) return DROPEFFECT_NONE;
+    return (dwKeyState & MK_CONTROL) ? DROPEFFECT_COPY : DROPEFFECT_MOVE;
+}
+
+DWORD CView::OnDragOver(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point) {
+    return OnDragEnter(pDataObject, dwKeyState, point);
+}
+
+BOOL CView::OnDrop(COleDataObject* pDataObject, DWORD dropEffect, CPoint point) {
+    (void)point;
+    return pDataObject && pDataObject->GetIDataObject(FALSE) && dropEffect != DROPEFFECT_NONE;
+}
+
+DWORD CView::OnDropEx(COleDataObject* pDataObject, DWORD dropDefault, DWORD /*dropList*/, CPoint point) {
+    return OnDrop(pDataObject, dropDefault, point);
+}
 
 // =============================================================================
 // CScrollView Member Function Implementations (vtable entries)
@@ -1154,6 +1170,9 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CView__UEAAXXZ(CView* pThis) {
 extern "C" int MS_ABI impl__OnPreparePrinting_CView__UEAAHPEAX_Z(
     CView* pThis, void* pInfo)
 {
+    if (!pThis || !pInfo) {
+        return FALSE;
+    }
     (void)pThis;
     (void)pInfo;
     return TRUE;
@@ -1225,13 +1244,8 @@ extern "C" void MS_ABI impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(
     const CView* pThis)
 {
-    if (!pThis || !pThis->m_hWnd) return nullptr;
-
-    HWND hWndParent = ::GetParent(pThis->m_hWnd);
-    // In a real implementation, we'd look up the CFrameWnd from HWND
-    // For now, return nullptr
-    (void)hWndParent;
-    return nullptr;
+    if (!pThis) return nullptr;
+    return const_cast<CView*>(pThis)->CWnd::GetParentFrame();
 }
 
 // =============================================================================
@@ -1294,6 +1308,16 @@ extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z
         si.nPage = pThis->m_pageDev.cy;
         ::SetScrollInfo(pThis->m_hWnd, SB_VERT, &si, TRUE);
     }
+}
+
+// Missing ABI variant with by-value first size argument and matching const refs
+extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(
+    CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine)
+{
+    if (!pThis) return;
+
+    impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(
+        pThis, nMapMode, &sizeTotal, &sizePage, &sizeLine);
 }
 
 // OnInitialUpdate (CScrollView override)
@@ -1765,12 +1789,36 @@ extern "C" void MS_ABI impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___
 extern "C" int MS_ABI impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(
     const CDocTemplate* pThis, CString* rString, int nID)
 {
-    (void)pThis;
-    (void)nID;
-    if (rString) {
-        rString->Empty();
+    if (!pThis || !rString) return FALSE;
+
+    if (LoadTemplateDocString(pThis->m_nIDResource, nID, *rString)) {
+        return TRUE;
     }
-    return FALSE;  // String not found
+
+    switch (nID) {
+        case kWindowTitle:
+            *rString = L"OpenMFC Document";
+            return TRUE;
+        case kDocName:
+        case kFileNewName:
+            *rString = L"Document";
+            return TRUE;
+        case kFilterName:
+            *rString = L"Document Files";
+            return TRUE;
+        case kFilterExt:
+            *rString = L"*.*";
+            return TRUE;
+        case kRegFileTypeId:
+            *rString = L"OpenMFC.Document";
+            return TRUE;
+        case kRegFileTypeName:
+            *rString = L"OpenMFC Document";
+            return TRUE;
+        default:
+            rString->Empty();
+            return FALSE;
+    }
 }
 
 // Symbol: ?GetDocString@CDocTemplate@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4DocStringIndex@1@@Z
@@ -2276,7 +2324,21 @@ extern "C" void MS_ABI impl__OnDrawThumbnail_CDocument__UEAAXAEAVCDC__PEAUtagREC
 // Symbol: ?OnPreviewHandlerQueryFocus@CDocument@@UEAAJPEAPEAUHWND__@@@Z
 extern "C" long MS_ABI impl__OnPreviewHandlerQueryFocus_CDocument__UEAAJPEAPEAUHWND_____Z(CDocument* pThis, HWND* hwnd) { if (hwnd) *hwnd = pThis && pThis->m_pFirstView ? pThis->m_pFirstView->GetSafeHwnd() : nullptr; return S_OK; }
 // Symbol: ?OnPreviewHandlerTranslateAccelerator@CDocument@@UEAAJPEAUtagMSG@@@Z
-extern "C" long MS_ABI impl__OnPreviewHandlerTranslateAccelerator_CDocument__UEAAJPEAUtagMSG___Z(CDocument*, MSG*) { return S_FALSE; }
+extern "C" long MS_ABI impl__OnPreviewHandlerTranslateAccelerator_CDocument__UEAAJPEAUtagMSG___Z(CDocument* pThis, MSG* pMsg) {
+    if (!pThis || !pMsg) {
+        return S_FALSE;
+    }
+
+    void* pos = pThis->GetFirstViewPosition();
+    while (pos) {
+        CView* pView = pThis->GetNextView(pos);
+        if (pView && pView->m_hWnd && ::IsWindow(pView->m_hWnd) && ::IsDialogMessageW(pView->m_hWnd, pMsg)) {
+            return S_OK;
+        }
+    }
+
+    return S_FALSE;
+}
 // Symbol: ?IsSearchAndOrganizeHandler@CDocument@@QEBAHXZ
 extern "C" int MS_ABI impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(const CDocument* pThis) { auto it = g_documentExtraStates.find(pThis); return it != g_documentExtraStates.end() && it->second.searchHandler; }
 // Symbol: ?GetDefaultMenu@CDocument@@UEAAPEAUHMENU__@@XZ
@@ -2284,7 +2346,12 @@ extern "C" HMENU MS_ABI impl__GetDefaultMenu_CDocument__UEAAPEAUHMENU____XZ(CDoc
 // Symbol: ?GetDefaultAccelerator@CDocument@@UEAAPEAUHACCEL__@@XZ
 extern "C" HACCEL MS_ABI impl__GetDefaultAccelerator_CDocument__UEAAPEAUHACCEL____XZ(CDocument* pThis) { return pThis ? g_documentExtraStates[pThis].defaultAccel : nullptr; }
 // Symbol: ?OnCreatePreviewFrame@CDocument@@UEAAHXZ
-extern "C" int MS_ABI impl__OnCreatePreviewFrame_CDocument__UEAAHXZ(CDocument*) { return TRUE; }
+extern "C" int MS_ABI impl__OnCreatePreviewFrame_CDocument__UEAAHXZ(CDocument* pThis) {
+    if (!pThis) {
+        return FALSE;
+    }
+    return pThis->m_pFirstView != nullptr ? TRUE : FALSE;
+}
 // Symbol: ?OnDocumentEvent@CDocument@@UEAAXW4DocumentEvent@1@@Z
 extern "C" void MS_ABI impl__OnDocumentEvent_CDocument__UEAAXW4DocumentEvent_1__Z(CDocument* pThis, int eventId) { if (pThis) pThis->UpdateAllViews(nullptr, static_cast<LPARAM>(eventId), nullptr); }
 // Symbol: ?OnFinalRelease@CDocument@@UEAAXXZ
@@ -2405,23 +2472,114 @@ extern "C" int MS_ABI impl__DoPreparePrinting_CView__QEAAHPEAUCPrintInfo___Z(CVi
 // Symbol: ?DoPrintPreview@CView@@QEAAHIPEAV1@PEAUCRuntimeClass@@PEAUCPrintPreviewState@@@Z
 extern "C" int MS_ABI impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(CView* pThis, unsigned int, CView* previewView, CRuntimeClass*, void*) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_HIDE); if (previewView && previewView->m_hWnd) ::ShowWindow(previewView->m_hWnd, SW_SHOW); return previewView != nullptr; }
 // Symbol: ?GetParentSplitter@CView@@SAPEAVCSplitterWnd@@PEBVCWnd@@H@Z
-extern "C" void* MS_ABI impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(const CWnd*, int) { return nullptr; }
+extern "C" void* MS_ABI impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(const CWnd* pThis, int) {
+    const CWnd* current = pThis;
+    while (current) {
+        const CWnd* parent = current->GetParent();
+        if (!parent) break;
+        const CRuntimeClass* cls = parent->GetRuntimeClass();
+        if (cls && cls->m_lpszClassName &&
+            (std::strcmp(cls->m_lpszClassName, "CSplitterWnd") == 0 ||
+             std::strcmp(cls->m_lpszClassName, "CSplitterWndEx") == 0)) {
+            return reinterpret_cast<CSplitterWnd*>(const_cast<CWnd*>(parent));
+        }
+        current = parent;
+    }
+    return nullptr;
+}
 // Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
-extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView*, int) { return nullptr; }
+extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView* pThis, int nBar) {
+    if (!pThis || !pThis->m_hWnd) return nullptr;
+    constexpr unsigned int kHScrollId = 0xE812;
+    constexpr unsigned int kVScrollId = 0xE811;
+    unsigned int id = (nBar == SB_HORZ) ? kHScrollId : (nBar == SB_VERT) ? kVScrollId : 0;
+    if (!id) return nullptr;
+    HWND hWnd = ::GetDlgItem(pThis->m_hWnd, id);
+    return hWnd ? static_cast<CScrollBar*>(CWnd::FromHandle(hWnd)) : nullptr;
+}
 // Symbol: ?IsSelected@CView@@UEBAHPEBVCObject@@@Z
-extern "C" int MS_ABI impl__IsSelected_CView__UEBAHPEBVCObject___Z(const CView*, const CObject*) { return FALSE; }
+extern "C" int MS_ABI impl__IsSelected_CView__UEBAHPEBVCObject___Z(const CView* pThis, const CObject* pObject) {
+    return (pThis && pObject && (pObject == pThis || pObject == pThis->m_pDocument)) ? TRUE : FALSE;
+}
 // Symbol: ?OnActivateFrame@CView@@MEAAXIPEAVCFrameWnd@@@Z
 extern "C" void MS_ABI impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(CView* pThis, unsigned int, CFrameWnd*) { if (pThis && pThis->m_hWnd) ::SetFocus(pThis->m_hWnd); }
 // Symbol: ?OnCmdMsg@CView@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__OnCmdMsg_CView__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CView* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CWnd::OnCmdMsg(id, code, extra, info) : FALSE; }
 // Symbol: ?OnCreate@CView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-extern "C" int MS_ABI impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(CView*, CREATESTRUCTW*) { return 0; }
+extern "C" int MS_ABI impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(CView* pThis, CREATESTRUCTW* pCreateStruct) {
+    if (!pThis) {
+        return -1;
+    }
+
+    if (pCreateStruct) {
+        pCreateStruct->style |= WS_CHILD | WS_VISIBLE;
+        pCreateStruct->style |= WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+        pCreateStruct->style &= ~WS_POPUP;
+    }
+
+    if (pThis->m_hWnd) {
+        DWORD style = static_cast<DWORD>(::GetWindowLongPtrW(pThis->m_hWnd, GWL_STYLE));
+        style |= static_cast<DWORD>(WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+        style &= static_cast<DWORD>(~WS_POPUP);
+        ::SetWindowLongPtrW(pThis->m_hWnd, GWL_STYLE, static_cast<LONG_PTR>(style));
+    }
+
+    return 0;
+}
 // Symbol: ?OnDestroy@CView@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_pDocument) pThis->m_pDocument->RemoveView(pThis); }
 // Symbol: ?OnDragLeave@CView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnDragLeave_CView__UEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd && ::GetCapture() == pThis->m_hWnd) ::ReleaseCapture(); }
+// Symbol: ?OnDragEnter@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z
+extern "C" unsigned long MS_ABI impl__OnDragEnter_CView__UEAAKPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (unsigned long)pThis->OnDragEnter(p0, p1, p2);
+}
+// Symbol: ?OnDragOver@CView@@UEAAKPEAVCOleDataObject@@KVCPoint@@@Z
+extern "C" unsigned long MS_ABI impl__OnDragOver_CView__UEAAKPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (unsigned long)pThis->OnDragOver(p0, p1, p2);
+}
+// Symbol: ?OnDrop@CView@@UEAAHPEAVCOleDataObject@@KVCPoint@@@Z
+extern "C" int MS_ABI impl__OnDrop_CView__UEAAHPEAVCOleDataObject__KVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, CPoint p2) {
+    return (int)pThis->OnDrop(p0, p1, p2);
+}
+// Symbol: ?OnDropEx@CView@@UEAAKPEAVCOleDataObject@@KKVCPoint@@@Z
+extern "C" unsigned long MS_ABI impl__OnDropEx_CView__UEAAKPEAVCOleDataObject__KKVCPoint___Z(CView* pThis, COleDataObject* p0, unsigned long p1, unsigned long p2, CPoint p3) {
+    return (unsigned long)pThis->OnDropEx(p0, p1, p2, p3);
+}
 // Symbol: ?OnDragScroll@CView@@UEAAKKVCPoint@@@Z
-extern "C" unsigned long MS_ABI impl__OnDragScroll_CView__UEAAKKVCPoint___Z(CView*, unsigned long keyState, CPoint) { return keyState; }
+extern "C" unsigned long MS_ABI impl__OnDragScroll_CView__UEAAKKVCPoint___Z(CView* pThis, unsigned long keyState, CPoint point) {
+    if (!pThis || !pThis->m_hWnd) {
+        return DROPEFFECT_NONE;
+    }
+
+    if ((keyState & (MK_LBUTTON | MK_RBUTTON | MK_MBUTTON | MK_XBUTTON1 | MK_XBUTTON2)) == 0) {
+        return DROPEFFECT_NONE;
+    }
+
+    RECT client = {};
+    if (!::GetClientRect(pThis->m_hWnd, &client)) {
+        return DROPEFFECT_NONE;
+    }
+
+    constexpr int kEdge = 16;
+    int dy = 0;
+    int step = (keyState & MK_CONTROL) ? 3 : 1;
+    int line = 16 * step;
+
+    if (point.y <= client.top + kEdge) {
+        dy = line;
+    } else if (point.y >= client.bottom - kEdge) {
+        dy = -line;
+    }
+
+    if (dy != 0) {
+        ::ScrollWindowEx(pThis->m_hWnd, 0, dy, nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE | SW_SCROLLCHILDREN | SW_ERASE);
+        ::UpdateWindow(pThis->m_hWnd);
+        return DROPEFFECT_SCROLL;
+    }
+
+    return DROPEFFECT_NONE;
+}
 // Symbol: ?OnDraw@CView@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CView__MEAAXPEAVCDC___Z(CView* pThis, CDC* dc) { if (pThis && dc && dc->m_hDC && pThis->m_pDocument) { RECT rc = {0, 0, 10000, 10000}; ::DrawTextW(dc->m_hDC, pThis->m_pDocument->GetTitle(), -1, &rc, DT_LEFT | DT_TOP | DT_SINGLELINE); } }
 // Symbol: ?OnEndPrintPreview@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@UtagPOINT@@PEAVCPreviewView@@@Z
@@ -2570,7 +2728,11 @@ extern "C" void MS_ABI impl__UpdateBars_CScrollView__IEAAXXZ(CScrollView* pThis)
 // Symbol: ?GetScrollBarState@CScrollView@@IEAAXVCSize@@AEAV2@1AEAVCPoint@@H@Z
 extern "C" void MS_ABI impl__GetScrollBarState_CScrollView__IEAAXVCSize__AEAV2_1AEAVCPoint__H_Z(CScrollView* pThis, CSize, CSize* needSb, CSize* range, CPoint* move, int) { if (needSb) *needSb=CSize(pThis&&pThis->m_totalLog.cx>0,pThis&&pThis->m_totalLog.cy>0); if (range) *range=CSize(pThis?pThis->m_totalLog.cx:0,pThis?pThis->m_totalLog.cy:0); if (move) *move=pThis?pThis->GetScrollPosition():CPoint(0,0); }
 // Symbol: ?HandleMButtonDown@CScrollView@@QEAA_J_K_J@Z
-extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CScrollView*, uintptr_t, intptr_t) { return 0; }
+extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CScrollView* pThis, uintptr_t nFlags, intptr_t point) {
+    if (!pThis || !pThis->m_hWnd) return FALSE;
+    const POINTS pts = MAKEPOINTS(point);
+    return static_cast<intptr_t>(::SendMessageW(pThis->m_hWnd, WM_MBUTTONDOWN, nFlags, MAKELPARAM(pts.x, pts.y)));
+}
 // Symbol: ?OnPrepareDC@CScrollView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CScrollView* pThis, CDC* dc, void*) { if (dc && dc->m_hDC && pThis) ::SetMapMode(dc->m_hDC, pThis->m_nMapMode); }
 // Symbol: ?OnPrintClient@CScrollView@@QEAA_JPEAVCDC@@I@Z
@@ -2580,9 +2742,15 @@ extern "C" void MS_ABI impl__SetScaleToFitSize_CScrollView__QEAAXUtagSIZE___Z(CS
 
 // CFormView residuals.
 // Symbol: ?GetOccDialogInfo@CFormView@@MEAAPEAU_AFX_OCC_DIALOG_INFO@@XZ
-extern "C" void* MS_ABI impl__GetOccDialogInfo_CFormView__MEAAPEAU_AFX_OCC_DIALOG_INFO__XZ(CFormView*) { return nullptr; }
+extern "C" void* MS_ABI impl__GetOccDialogInfo_CFormView__MEAAPEAU_AFX_OCC_DIALOG_INFO__XZ(CFormView* pThis) {
+    return pThis ? (_AFX_OCC_DIALOG_INFO*)pThis->GetOccDialogInfo() : nullptr;
+}
 // Symbol: ?SetOccDialogInfo@CFormView@@MEAAHPEAU_AFX_OCC_DIALOG_INFO@@@Z
-extern "C" int MS_ABI impl__SetOccDialogInfo_CFormView__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(CFormView*, void*) { return TRUE; }
+extern "C" int MS_ABI impl__SetOccDialogInfo_CFormView__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(CFormView* pThis, void* pInfo) {
+    if (!pThis) return FALSE;
+    pThis->SetOccDialogInfo(static_cast<_AFX_OCC_DIALOG_INFO*>(pInfo));
+    return TRUE;
+}
 // Symbol: ?HandleInitDialog@CFormView@@IEAA_J_K_J@Z
 extern "C" intptr_t MS_ABI impl__HandleInitDialog_CFormView__IEAA_J_K_J_Z(CFormView* pThis, uintptr_t, intptr_t) { if (pThis) pThis->OnInitialUpdate(); return TRUE; }
 // Symbol: ?OnActivateFrame@CFormView@@MEAAXIPEAVCFrameWnd@@@Z
@@ -2590,7 +2758,13 @@ extern "C" void MS_ABI impl__OnActivateFrame_CFormView__MEAAXIPEAVCFrameWnd___Z(
 // Symbol: ?OnActivateView@CFormView@@MEAAXHPEAVCView@@0@Z
 extern "C" void MS_ABI impl__OnActivateView_CFormView__MEAAXHPEAVCView__0_Z(CFormView* pThis, int active, CView* av, CView* dv) { impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(pThis, active, av, dv); }
 // Symbol: ?OnCreate@CFormView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-extern "C" int MS_ABI impl__OnCreate_CFormView__IEAAHPEAUtagCREATESTRUCTW___Z(CFormView*, CREATESTRUCTW*) { return 0; }
+extern "C" int MS_ABI impl__OnCreate_CFormView__IEAAHPEAUtagCREATESTRUCTW___Z(CFormView* pThis, CREATESTRUCTW* pCreateStruct) {
+    if (!pThis) {
+        return -1;
+    }
+
+    return impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(pThis, pCreateStruct);
+}
 // Symbol: ?OnPrintClient@CFormView@@IEAA_JPEAVCDC@@I@Z
 extern "C" intptr_t MS_ABI impl__OnPrintClient_CFormView__IEAA_JPEAVCDC__I_Z(CFormView* pThis, CDC* dc, unsigned int flags) { return impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(pThis, dc, flags); }
 // Symbol: ?OnSetFocus@CFormView@@IEAAXPEAVCWnd@@@Z
@@ -2620,6 +2794,34 @@ extern "C" int MS_ABI impl__FindTextW_CEditView__QEAAHPEB_WHH_Z(CEditView* pThis
     if (pos == std::wstring::npos) return -1;
     if (pThis->m_hWnd) ::SendMessageW(pThis->m_hWnd, EM_SETSEL, pos, pos + needle.size());
     return static_cast<int>(pos);
+}
+
+// Symbol: ?PrintInsideRect@CEditView@@QEAAIPEAVCDC@@AEAUtagRECT@@II@Z
+extern "C" int MS_ABI impl__PrintInsideRect_CEditView__QEAAIPEAVCDC__AEAUtagRECT__II_Z(
+    CEditView* pThis, CDC* pDC, RECT* rectLayout, int startIndex, int endIndex) {
+    if (!pThis || !pDC || !rectLayout || !pThis->m_hWnd) return 0;
+
+    int len = ::GetWindowTextLengthW(pThis->m_hWnd);
+    if (len <= 0 || !pDC->m_hDC) return 0;
+
+    std::wstring text(len + 1, L'\0');
+    if (::GetWindowTextW(pThis->m_hWnd, text.data(), len + 1) <= 0) return 0;
+    text.resize(static_cast<size_t>(::wcslen(text.c_str())));
+
+    int start = (startIndex < 0) ? 0 : startIndex;
+    int end = (endIndex < 0) ? len : endIndex;
+    if (start > end) std::swap(start, end);
+    start = std::min(start, len);
+    end = std::min(end, len);
+    if (start > end) return 0;
+
+    std::wstring viewText = text.substr(static_cast<size_t>(start), static_cast<size_t>(end - start));
+    RECT rc = *rectLayout;
+    int height = ::DrawTextW(pDC->m_hDC, viewText.c_str(),
+                             static_cast<int>(viewText.size()),
+                             &rc, DT_TOP | DT_LEFT | DT_WORDBREAK);
+    rectLayout->bottom = rc.top + height;
+    return height;
 }
 // Symbol: ?LockBuffer@CEditView@@QEBAPEB_WXZ
 extern "C" const wchar_t* MS_ABI impl__LockBuffer_CEditView__QEBAPEB_WXZ(const CEditView* pThis) { if (!pThis) return L""; auto& s=g_editViewExtraStates[pThis]; s.buffer=EditViewText(pThis); s.locked=s.buffer.c_str(); return s.locked; }
@@ -2671,7 +2873,11 @@ extern "C" void MS_ABI impl__OnFindNext_CEditView__MEAAXPEB_WHH_Z(CEditView* pTh
 // Symbol: ?OnTextNotFound@CEditView@@MEAAXPEB_W@Z
 extern "C" void MS_ABI impl__OnTextNotFound_CEditView__MEAAXPEB_W_Z(CEditView*, const wchar_t*) { ::MessageBeep(MB_ICONINFORMATION); }
 // Symbol: ?OnPreparePrinting@CEditView@@MEAAHPEAUCPrintInfo@@@Z
-extern "C" int MS_ABI impl__OnPreparePrinting_CEditView__MEAAHPEAUCPrintInfo___Z(CEditView*, void*) { return TRUE; }
+extern "C" int MS_ABI impl__OnPreparePrinting_CEditView__MEAAHPEAUCPrintInfo___Z(
+    CEditView* pThis, void* pInfo)
+{
+    return impl__OnPreparePrinting_CView__UEAAHPEAX_Z(pThis, pInfo);
+}
 // Symbol: ?OnBeginPrinting@CEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__OnBeginPrinting_CEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CEditView* pThis, CDC* dc, void*) { if (pThis && dc && dc->m_hDC) { auto it = g_editViewExtraStates.find(pThis); CFont* font = it == g_editViewExtraStates.end() ? nullptr : it->second.printerFont; if (font) ::SelectObject(dc->m_hDC, font->GetSafeHandle()); } }
 // Symbol: ?OnEndPrinting@CEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
@@ -2711,9 +2917,27 @@ extern "C" void MS_ABI impl__OnUpdateNeedText_CEditView__IEAAXPEAVCCmdUI___Z(CEd
 
 // CListView/CTreeView residuals.
 // Symbol: ?DrawItem@CListView@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
-extern "C" void MS_ABI impl__DrawItem_CListView__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CListView*, DRAWITEMSTRUCT*) {}
+extern "C" void MS_ABI impl__DrawItem_CListView__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CListView* pThis, DRAWITEMSTRUCT* pDis) {
+    if (!pThis || !pDis || !pDis->hDC) return;
+    HDC hdc = pDis->hDC;
+    const COLORREF bk = (pDis->itemState & ODS_SELECTED) ? RGB(196, 220, 255) : RGB(255, 255, 255);
+    HBRUSH brush = ::CreateSolidBrush(bk);
+    if (brush) {
+        ::FillRect(hdc, &pDis->rcItem, brush);
+        ::DeleteObject(brush);
+    }
+    if ((pDis->itemState & ODS_FOCUS) && pDis->hwndItem) {
+        ::DrawFocusRect(hdc, &pDis->rcItem);
+    }
+    if (!pThis->m_pListCtrl && pDis->hwndItem) {
+        pThis->m_pListCtrl = (CListCtrl*)CWnd::FromHandle(pDis->hwndItem);
+    }
+}
 // Symbol: ?OnChildNotify@CListView@@MEAAHI_K_JPEA_J@Z
-extern "C" int MS_ABI impl__OnChildNotify_CListView__MEAAHI_K_JPEA_J_Z(CListView*, unsigned int, unsigned long long, long long, long long*) { return FALSE; }
+extern "C" int MS_ABI impl__OnChildNotify_CListView__MEAAHI_K_JPEA_J_Z(CListView* pThis, unsigned int p0, unsigned long long p1, long long p2, long long* p3) {
+    if (!pThis) return FALSE;
+    return (int)pThis->OnChildNotify(p0, p1, p2, p3);
+}
 // Symbol: ?OnNcDestroy@CListView@@QEAAXXZ
 extern "C" void MS_ABI impl__OnNcDestroy_CListView__QEAAXXZ(CListView* pThis) { if (pThis) pThis->m_pListCtrl=nullptr; }
 // Symbol: ?PreCreateWindow@CListView@@UEAAHAEAUtagCREATESTRUCTW@@@Z

@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-24",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2275,
+      "symbol": "?AfxOleLockApp@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2276,
+      "symbol": "?AfxOleLockControl@@YAHAEBU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2277,
+      "symbol": "?AfxOleLockControl@@YAHPEB_W@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2278,
+      "symbol": "?AfxOleOnReleaseAllObjects@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2279,
+      "symbol": "?AfxOleRegisterControlClass@@YAHPEAUHINSTANCE__@@AEBU_GUID@@PEB_WIIHK1GG@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2280,
+      "symbol": "?AfxOleRegisterHelper@@YAHPEBQEB_W0HHPEAUHKEY__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2281,
+      "symbol": "?AfxOleRegisterPropertyPageClass@@YAHPEAUHINSTANCE__@@AEBU_GUID@@I@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2282,
+      "symbol": "?AfxOleRegisterPropertyPageClass@@YAHPEAUHINSTANCE__@@AEBU_GUID@@IH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2283,
+      "symbol": "?AfxOleRegisterServerClass@@YAHAEBU_GUID@@PEB_W11W4OLE_APPTYPE@@PEAPEB_W3H1@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2284,
+      "symbol": "?AfxOleRegisterServerClass@@YAHAEBU_GUID@@PEB_W11W4OLE_APPTYPE@@PEAPEB_W3H11@Z"
+    }
+  ],
+  "title": "global_residuals shard 24/95: global"
+}

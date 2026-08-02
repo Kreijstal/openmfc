@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-95",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 13873,
+      "symbol": "?SizeToContent@CMFCColorButton@@UEAA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCColorButton",
+      "ordinal": 14121,
+      "symbol": "?UpdateColor@CMFCColorButton@@MEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 1192,
+      "symbol": "??1CMFCColorDialog@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 3915,
+      "symbol": "?DoDataExchange@CMFCColorDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 8922,
+      "symbol": "?OnColorSelect@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 9125,
+      "symbol": "?OnDestroy@CMFCColorDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10164,
+      "symbol": "?OnInitDialog@CMFCColorDialog@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10327,
+      "symbol": "?OnLButtonDown@CMFCColorDialog@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 10479,
+      "symbol": "?OnMouseMove@CMFCColorDialog@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCColorDialog",
+      "ordinal": 11032,
+      "symbol": "?OnSetCursor@CMFCColorDialog@@IEAAHPEAVCWnd@@II@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 95/439: CMFCColorDialog, CMFCColorButton"
+}

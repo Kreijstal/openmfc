@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-177",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCReBar",
+      "ordinal": 10884,
+      "symbol": "?OnRecalcParent@CMFCReBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 11168,
+      "symbol": "?OnShowBand@CMFCReBar@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 11399,
+      "symbol": "?OnToolHitTest@CMFCReBar@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 11450,
+      "symbol": "?OnUpdateCmdUI@CMFCReBar@@UEAAXPEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 13436,
+      "symbol": "?SetPaneAlignment@CMFCReBar@@UEAAXK@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 14200,
+      "symbol": "?WindowProc@CMFCReBar@@MEAA_JI_K_J@Z"
+    },
+    {
+      "class": "CMFCRibbonApplicationButton",
+      "ordinal": 1738,
+      "symbol": "?accNavigate@CMFCRibbonApplicationButton@@MEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCRibbonApplicationButton",
+      "ordinal": 3395,
+      "symbol": "?CreateObject@CMFCRibbonApplicationButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonApplicationButton",
+      "ordinal": 4070,
+      "symbol": "?DrawImage@CMFCRibbonApplicationButton@@MEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonApplicationButton",
+      "ordinal": 4820,
+      "symbol": "?get_accParent@CMFCRibbonApplicationButton@@MEAAJPEAPEAUIDispatch@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 177/439: CMFCReBar, CMFCRibbonApplicationButton"
+}

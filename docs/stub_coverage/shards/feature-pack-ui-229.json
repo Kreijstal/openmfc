@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-229",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 12130,
+      "symbol": "?RebuildIconLocations@CMFCRibbonGallery@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 12196,
+      "symbol": "?RedrawIcons@CMFCRibbonGallery@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 12285,
+      "symbol": "?RemoveAll@CMFCRibbonGallery@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 12371,
+      "symbol": "?RemoveItemToolTips@CMFCRibbonGallery@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13224,
+      "symbol": "?SetGroupName@CMFCRibbonGallery@@QEAAXHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13311,
+      "symbol": "?SetItemToolTip@CMFCRibbonGallery@@QEAAXHPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13388,
+      "symbol": "?SetNotifyParentID@CMFCRibbonGallery@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13433,
+      "symbol": "?SetPalette@CMFCRibbonGallery@@QEAAXAEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13434,
+      "symbol": "?SetPalette@CMFCRibbonGallery@@QEAAXIH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 13462,
+      "symbol": "?SetParentCategory@CMFCRibbonGallery@@MEAAXPEAVCMFCRibbonCategory@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 229/439: CMFCRibbonGallery"
+}

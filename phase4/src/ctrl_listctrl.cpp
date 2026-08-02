@@ -127,7 +127,7 @@ extern "C" void MS_ABI impl__GetItemText_CListCtrl__QEBA_AV__CStringT__WV__StrTr
 // Symbol: ?GetMessageMap@CListCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CListCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CListCtrl* pThis) {
     (void)pThis;
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?GetRuntimeClass@CListCtrl@@UEBAPEAUCRuntimeClass@@XZ
@@ -152,7 +152,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CListCtrl__SAPEAUCRuntimeCla
 
 // Symbol: ?GetThisMessageMap@CListCtrl@@KAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CListCtrl__KAPEBUAFX_MSGMAP__XZ() {
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?HitTest@CListCtrl@@QEBAHVCPoint@@PEAI@Z

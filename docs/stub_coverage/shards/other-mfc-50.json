@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-50",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 11932,
+      "symbol": "?PtVisible@CMetaFileDC@@UEBAHHH@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 12178,
+      "symbol": "?RectVisible@CMetaFileDC@@UEBAHPEBUtagRECT@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 12260,
+      "symbol": "?ReleaseOutputDC@CMetaFileDC@@MEAAXXZ"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 12698,
+      "symbol": "?ScaleViewportExt@CMetaFileDC@@UEAA?AVCSize@@HHHH@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 12937,
+      "symbol": "?SetAttribDC@CMetaFileDC@@UEAAXPEAUHDC__@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 13420,
+      "symbol": "?SetOutputDC@CMetaFileDC@@MEAAXPEAUHDC__@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 13743,
+      "symbol": "?SetViewportExt@CMetaFileDC@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 13746,
+      "symbol": "?SetViewportOrg@CMetaFileDC@@UEAA?AVCPoint@@HH@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 13966,
+      "symbol": "?TabbedTextOutW@CMetaFileDC@@UEAA?AVCSize@@HHPEB_WHHPEAHH@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 13974,
+      "symbol": "?TextOutW@CMetaFileDC@@UEAAHHHPEB_WH@Z"
+    }
+  ],
+  "title": "other_mfc shard 50/91: CMetaFileDC"
+}

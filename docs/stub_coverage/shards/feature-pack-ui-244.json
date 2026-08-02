@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-244",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6073,
+      "symbol": "?GetParentButton@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6089,
+      "symbol": "?GetParentWnd@CMFCRibbonPanel@@MEBAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 6112,
+      "symbol": "?GetPressed@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7515,
+      "symbol": "?GetVisibleElements@CMFCRibbonPanel@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7580,
+      "symbol": "?HasElement@CMFCRibbonPanel@@QEBAHPEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7608,
+      "symbol": "?Highlight@CMFCRibbonPanel@@MEAAXHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7627,
+      "symbol": "?HitTest@CMFCRibbonPanel@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7639,
+      "symbol": "?HitTestEx@CMFCRibbonPanel@@UEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7749,
+      "symbol": "?Insert@CMFCRibbonPanel@@UEAAHPEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonPanel",
+      "ordinal": 7801,
+      "symbol": "?InsertSeparator@CMFCRibbonPanel@@UEAAHH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 244/439: CMFCRibbonPanel"
+}

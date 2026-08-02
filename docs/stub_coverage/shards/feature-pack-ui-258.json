@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-258",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 8643,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonSlider@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 8675,
+      "symbol": "?OnAutoRepeat@CMFCRibbonSlider@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 9450,
+      "symbol": "?OnDrawOnList@CMFCRibbonSlider@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 10352,
+      "symbol": "?OnLButtonDown@CMFCRibbonSlider@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 10401,
+      "symbol": "?OnLButtonUp@CMFCRibbonSlider@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 10497,
+      "symbol": "?OnMouseMove@CMFCRibbonSlider@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 12874,
+      "symbol": "?SetACCData@CMFCRibbonSlider@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 13686,
+      "symbol": "?SetThumbRect@CMFCRibbonSlider@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonStatusBar",
+      "ordinal": 1848,
+      "symbol": "?AddDynamicElement@CMFCRibbonStatusBar@@QEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonStatusBar",
+      "ordinal": 1850,
+      "symbol": "?AddElement@CMFCRibbonStatusBar@@QEAAXPEAVCMFCRibbonBaseElement@@PEB_WH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 258/439: CMFCRibbonSlider, CMFCRibbonStatusBar"
+}

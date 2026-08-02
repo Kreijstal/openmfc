@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-67",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13506,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAI@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13507,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAJ@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13508,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAK@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13509,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAM@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13510,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAN@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 13511,
+      "symbol": "?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 14205,
+      "symbol": "?WindowProc@COlePropertyPage@@MEAA_JI_K_J@Z"
+    },
+    {
+      "class": "COleResizeBar",
+      "ordinal": 9782,
+      "symbol": "?OnEraseBkgnd@COleResizeBar@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "COleResizeBar",
+      "ordinal": 10362,
+      "symbol": "?OnLButtonDown@COleResizeBar@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleResizeBar",
+      "ordinal": 10758,
+      "symbol": "?OnPaint@COleResizeBar@@IEAAXXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 67/77: COlePropertyPage, COleResizeBar"
+}

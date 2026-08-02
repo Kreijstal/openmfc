@@ -2,6 +2,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxole.h"
 #include <windows.h>
 
 #ifdef __GNUC__
@@ -210,23 +211,29 @@ extern "C" int MS_ABI impl__OnToolTipText_CMDIChildWnd__IEAAHIPEAUtagNMHDR__PEA_
 // Symbol: ?OnUpdateFrameMenu@CMDIChildWnd@@UEAAXHPEAVCWnd@@PEAUHMENU__@@@Z
 extern "C" void MS_ABI impl__OnUpdateFrameMenu_CMDIChildWnd__UEAAXHPEAVCWnd__PEAUHMENU_____Z(
     CMDIChildWnd* pThis, int bActive, CWnd* pActivateWnd, HMENU hMenuAlt) {
-    (void)pThis;
     (void)bActive;
     (void)pActivateWnd;
-    (void)hMenuAlt;
+    if (pThis) {
+        pThis->CFrameWnd::OnUpdateFrameMenu(hMenuAlt);
+    }
 }
 
 // Symbol: ?OnUpdateFrameTitle@CMDIChildWnd@@MEAAXH@Z
 extern "C" void MS_ABI impl__OnUpdateFrameTitle_CMDIChildWnd__MEAAXH_Z(CMDIChildWnd* pThis, int bAddToTitle) {
-    (void)pThis;
-    (void)bAddToTitle;
+    if (pThis) {
+        pThis->CFrameWnd::OnUpdateFrameTitle(bAddToTitle);
+    }
 }
 
 // Symbol: ?OnWindowPosChanging@CMDIChildWnd@@IEAAXPEAUtagWINDOWPOS@@@Z
 extern "C" void MS_ABI impl__OnWindowPosChanging_CMDIChildWnd__IEAAXPEAUtagWINDOWPOS___Z(
     CMDIChildWnd* pThis, WINDOWPOS* lpWndPos) {
-    (void)pThis;
-    (void)lpWndPos;
+    if (pThis && lpWndPos) {
+        if (lpWndPos->x < 0) lpWndPos->x = 0;
+        if (lpWndPos->y < 0) lpWndPos->y = 0;
+        if (lpWndPos->cx < 0) lpWndPos->cx = 0;
+        if (lpWndPos->cy < 0) lpWndPos->cy = 0;
+    }
 }
 
 // Symbol: ?PreCreateWindow@CMDIChildWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
@@ -294,8 +301,9 @@ extern "C" LRESULT MS_ABI impl__DefWindowProcW_CMDIFrameWnd__MEAA_JI_K_J_Z(
 
 // Symbol: ?DelayUpdateFrameMenu@CMDIFrameWnd@@UEAAXPEAUHMENU__@@@Z
 extern "C" void MS_ABI impl__DelayUpdateFrameMenu_CMDIFrameWnd__UEAAXPEAUHMENU_____Z(CMDIFrameWnd* pThis, HMENU hMenuAlt) {
-    (void)pThis;
-    (void)hMenuAlt;
+    if (pThis) {
+        pThis->CFrameWnd::DelayUpdateFrameMenu(hMenuAlt);
+    }
 }
 
 // Symbol: ?GetActiveFrame@CMDIFrameWnd@@UEAAPEAVCFrameWnd@@XZ
@@ -370,7 +378,9 @@ extern "C" void MS_ABI impl__OnDestroy_CMDIFrameWnd__IEAAXXZ(CMDIFrameWnd* pThis
 
 // Symbol: ?OnIdleUpdateCmdUI@CMDIFrameWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_CMDIFrameWnd__IEAAXXZ(CMDIFrameWnd* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    pThis->CFrameWnd::OnIdleUpdateCmdUI();
+    pThis->CFrameWnd::OnUpdateFrameTitle(0);
 }
 
 // Symbol: ?OnMDIWindowCmd@CMDIFrameWnd@@IEAAHI@Z
@@ -400,25 +410,34 @@ extern "C" void MS_ABI impl__OnSize_CMDIFrameWnd__IEAAXIHH_Z(CMDIFrameWnd* pThis
 
 // Symbol: ?OnUpdateFrameMenu@CMDIFrameWnd@@UEAAXPEAUHMENU__@@@Z
 extern "C" void MS_ABI impl__OnUpdateFrameMenu_CMDIFrameWnd__UEAAXPEAUHMENU_____Z(CMDIFrameWnd* pThis, HMENU hMenuAlt) {
-    (void)pThis;
-    (void)hMenuAlt;
+    if (pThis) {
+        pThis->CFrameWnd::OnUpdateFrameMenu(hMenuAlt);
+    }
 }
 
 // Symbol: ?OnUpdateFrameTitle@CMDIFrameWnd@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnUpdateFrameTitle_CMDIFrameWnd__UEAAXH_Z(CMDIFrameWnd* pThis, int bAddToTitle) {
-    (void)pThis;
-    (void)bAddToTitle;
+    if (pThis) {
+        pThis->CFrameWnd::OnUpdateFrameTitle(bAddToTitle);
+    }
 }
 
 // Symbol: ?OnUpdateMDIWindowCmd@CMDIFrameWnd@@IEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__OnUpdateMDIWindowCmd_CMDIFrameWnd__IEAAXPEAVCCmdUI___Z(CMDIFrameWnd* pThis, CCmdUI* pCmdUI) {
-    (void)pThis;
-    (void)pCmdUI;
+    if (!pThis || !pCmdUI) return;
+    CWnd* pActive = pThis->MDIGetActive(nullptr);
+    pCmdUI->Enable(pActive != nullptr);
 }
 
 // Symbol: ?OnWindowNew@CMDIFrameWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnWindowNew_CMDIFrameWnd__IEAAXXZ(CMDIFrameWnd* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    CWnd* pActive = pThis->MDIGetActive(nullptr);
+    if (pActive) {
+        pActive->SetFocus();
+    } else if (pThis->m_hWndMDIClient) {
+        pThis->MDICascade(0);
+    }
 }
 
 // Symbol: ?PreCreateWindow@CMDIFrameWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z

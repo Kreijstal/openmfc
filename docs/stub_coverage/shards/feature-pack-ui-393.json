@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-393",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 6747,
+      "symbol": "?GetTabFrameColors@CMFCVisualManagerVS2005@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9277,
+      "symbol": "?OnDrawAutoHideButtonBorder@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@VCRect@@1PEAVCMFCAutoHideButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9325,
+      "symbol": "?OnDrawCaptionButton@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@PEAVCMFCCaptionButton@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9473,
+      "symbol": "?OnDrawPaneCaption@CMFCVisualManagerVS2005@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9601,
+      "symbol": "?OnDrawSeparator@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9633,
+      "symbol": "?OnDrawTab@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9672,
+      "symbol": "?OnDrawToolBoxFrame@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9805,
+      "symbol": "?OnEraseTabsArea@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9851,
+      "symbol": "?OnFillAutoHideButtonBackground@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCAutoHideButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 9894,
+      "symbol": "?OnFillHighlightedArea@CMFCVisualManagerVS2005@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@PEAVCMFCToolBarButton@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 393/439: CMFCVisualManagerVS2005"
+}

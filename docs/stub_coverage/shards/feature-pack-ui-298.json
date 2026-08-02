@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-298",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 2060,
+      "symbol": "?AdjustLayout@CMFCTasksPaneToolBar@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 2070,
+      "symbol": "?AdjustLocations@CMFCTasksPaneToolBar@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 3435,
+      "symbol": "?CreateObject@CMFCTasksPaneToolBar@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 10134,
+      "symbol": "?OnIdleUpdateCmdUI@CMFCTasksPaneToolBar@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 11578,
+      "symbol": "?OnUserToolTip@CMFCTasksPaneToolBar@@MEBAHPEAVCMFCToolBarButton@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 14116,
+      "symbol": "?UpdateButtons@CMFCTasksPaneToolBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPaneToolBar",
+      "ordinal": 14146,
+      "symbol": "?UpdateMenuButtonText@CMFCTasksPaneToolBar@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 1699,
+      "symbol": "?accDoDefaultAction@CMFCToolBar@@MEAAJUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 1708,
+      "symbol": "?AccGetButtonByChildId@CMFCToolBar@@IEAAPEAVCMFCToolBarButton@@J@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 1709,
+      "symbol": "?AccGetButtonsCount@CMFCToolBar@@MEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 298/439: CMFCTasksPaneToolBar, CMFCToolBar"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-132",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 7689,
+      "symbol": "?InitHeader@CMFCListCtrl@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 7720,
+      "symbol": "?InitList@CMFCListCtrl@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 7956,
+      "symbol": "?IsMultipleSort@CMFCListCtrl@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 8924,
+      "symbol": "?OnColumnClick@CMFCListCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 8955,
+      "symbol": "?OnCompareItems@CMFCListCtrl@@UEAAH_J0H@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 9007,
+      "symbol": "?OnCreate@CMFCListCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 9069,
+      "symbol": "?OnCustomDraw@CMFCListCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 9762,
+      "symbol": "?OnEraseBkgnd@CMFCListCtrl@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 11242,
+      "symbol": "?OnSize@CMFCListCtrl@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCListCtrl",
+      "ordinal": 11299,
+      "symbol": "?OnStyleChanged@CMFCListCtrl@@IEAAXHPEAUtagSTYLESTRUCT@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 132/439: CMFCListCtrl"
+}

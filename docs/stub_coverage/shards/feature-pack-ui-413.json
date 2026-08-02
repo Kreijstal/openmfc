@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-413",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPane",
+      "ordinal": 3045,
+      "symbol": "?CopyState@CPane@@UEAAXPEAV1@@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 3218,
+      "symbol": "?CreateDefaultMiniframe@CPane@@UEAAPEAVCPaneFrameWnd@@VCRect@@@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 3877,
+      "symbol": "?DockByMouse@CPane@@UEAAHPEAVCBasePane@@@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 4367,
+      "symbol": "?EnterDragMode@CPane@@MEAAXH@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 4633,
+      "symbol": "?FloatPane@CPane@@UEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 4918,
+      "symbol": "?GetAvailableExpandSize@CPane@@UEBAHXZ"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 4923,
+      "symbol": "?GetAvailableStretchSize@CPane@@UEBAHXZ"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 4937,
+      "symbol": "?GetBorders@CPane@@QEBA?AVCRect@@XZ"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 6057,
+      "symbol": "?GetPaneName@CPane@@UEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 7503,
+      "symbol": "?GetVirtualRect@CPane@@QEBAXAEAVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 413/439: CPane"
+}

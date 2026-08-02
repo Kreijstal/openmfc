@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-64",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6034,
+      "symbol": "?GetPageSite@COlePropertyPage@@QEAAPEAUIPropertyPageSite@@XZ"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6124,
+      "symbol": "?GetPropCheck@COlePropertyPage@@QEAAHPEB_WPEAH@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6140,
+      "symbol": "?GetPropIndex@COlePropertyPage@@QEAAHPEB_WPEAH@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6142,
+      "symbol": "?GetPropRadio@COlePropertyPage@@QEAAHPEB_WPEAH@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6144,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAE@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6145,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAF@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6146,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAH@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6147,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAI@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6148,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAJ@Z"
+    },
+    {
+      "class": "COlePropertyPage",
+      "ordinal": 6149,
+      "symbol": "?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAK@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 64/77: COlePropertyPage"
+}

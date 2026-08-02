@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-36",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 3603,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3659,
+      "symbol": "?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3662,
+      "symbol": "?DDX_OCBool@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3663,
+      "symbol": "?DDX_OCBoolRO@@YAXPEAVCDataExchange@@HJAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3664,
+      "symbol": "?DDX_OCColor@@YAXPEAVCDataExchange@@HJAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3665,
+      "symbol": "?DDX_OCColorRO@@YAXPEAVCDataExchange@@HJAEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3666,
+      "symbol": "?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3667,
+      "symbol": "?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3668,
+      "symbol": "?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3669,
+      "symbol": "?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAN@Z"
+    }
+  ],
+  "title": "global_residuals shard 36/95: global"
+}

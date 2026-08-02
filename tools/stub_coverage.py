@@ -290,7 +290,8 @@ def load_current_manifest():
     exports = gen_manifest.load_exports(ROOT / "mfc_complete_ordinal_mapping.json")
     skips = gen_manifest.load_skip_list(ROOT / "tools" / "thunks_skip.txt")
     comments = gen_manifest.collect_symbol_comments(ROOT / "phase4" / "src")
-    manifest = gen_manifest.generate_manifest(exports, comments, skips)
+    impl_funcs = gen_manifest.collect_impl_functions(ROOT / "phase4" / "src")
+    manifest = gen_manifest.generate_manifest(exports, comments, skips, impl_funcs)
     return manifest, len(exports)
 
 

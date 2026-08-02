@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-16",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2167,
+      "symbol": "?afxData@@3UAUX_DATA@@A"
+    },
+    {
+      "class": null,
+      "ordinal": 2168,
+      "symbol": "?AfxDeleteObject@@YAXPEAPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2169,
+      "symbol": "?AfxDelRegTreeHelper@@YAJPEAUHKEY__@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCAtlTransactionManager@3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2170,
+      "symbol": "?AfxDlgProc@@YA_JPEAUHWND__@@I_K_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2171,
+      "symbol": "?AfxDllCanUnloadNow@@YAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2172,
+      "symbol": "?AfxDllGetClassObject@@YAJAEBU_GUID@@0PEAPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2173,
+      "symbol": "?AfxDoRegisterMFCControlClass@@YAXPEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2174,
+      "symbol": "?AfxDrawDitheredBitmap@@YAXPEAVCDC@@HHAEBVCBitmap@@KK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2175,
+      "symbol": "?AfxDrawGrayBitmap@@YAXPEAVCDC@@HHAEBVCBitmap@@K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2177,
+      "symbol": "?AfxEditviewTerm@@YAXXZ"
+    }
+  ],
+  "title": "global_residuals shard 16/95: global"
+}

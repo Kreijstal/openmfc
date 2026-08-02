@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-103",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 12560,
+      "symbol": "?ReSubclassControl@CMFCControlContainer@@QEAAHPEAUHWND__@@GAEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 13071,
+      "symbol": "?SetControlData@CMFCControlContainer@@QEAAXGKPEAE@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 13954,
+      "symbol": "?SubclassDlgControls@CMFCControlContainer@@QEAAHXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 14187,
+      "symbol": "?UTF8ToString@CMFCControlContainer@@SAHPEBDAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 3378,
+      "symbol": "?CreateObject@CMFCCustomColorsPropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 3916,
+      "symbol": "?DoDataExchange@CMFCCustomColorsPropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 8923,
+      "symbol": "?OnColour@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 9185,
+      "symbol": "?OnDoubleClickedColor@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10112,
+      "symbol": "?OnHLSChanged@CMFCCustomColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCustomColorsPropertyPage",
+      "ordinal": 10166,
+      "symbol": "?OnInitDialog@CMFCCustomColorsPropertyPage@@MEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 103/439: CMFCCustomColorsPropertyPage, CMFCControlContainer"
+}

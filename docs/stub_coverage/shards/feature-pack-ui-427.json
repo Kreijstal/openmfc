@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-427",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 13550,
+      "symbol": "?SetResizeMode@CPaneContainerManager@@UEAAXH@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 13929,
+      "symbol": "?StoreRecentDockSiteInfo@CPaneContainerManager@@UEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 1923,
+      "symbol": "?AddPaneContainer@CPaneDivider@@UEAAHAEAVCPaneContainerManager@@H@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 1924,
+      "symbol": "?AddPaneContainer@CPaneDivider@@UEAAHPEAVCDockablePane@@AEAVCPaneContainerManager@@K@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 1947,
+      "symbol": "?AddRecentPane@CPaneDivider@@UEAAPEAVCDockablePane@@PEAV2@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 2578,
+      "symbol": "?CalcExpectedDockedRect@CPaneDivider@@UEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 3141,
+      "symbol": "?Create@CPaneDivider@@UEAAHKAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 3264,
+      "symbol": "?CreateEx@CPaneDivider@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 3943,
+      "symbol": "?DoesAllowDynInsertBefore@CPaneDivider@@UEBAHXZ"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 3945,
+      "symbol": "?DoesContainFloatingPane@CPaneDivider@@UEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 427/439: CPaneDivider, CPaneContainerManager"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-55",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 11838,
+      "symbol": "?PreSubclassWindow@CMDIClientAreaWnd@@MEAAXXZ"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12422,
+      "symbol": "?RemoveTabGroup@CMDIClientAreaWnd@@QEAAXPEAVCMFCTabCtrl@@H@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12666,
+      "symbol": "?SaveState@CMDIClientAreaWnd@@QEAAHPEB_WI@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12806,
+      "symbol": "?Serialize@CMDIClientAreaWnd@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12844,
+      "symbol": "?SerializeOpenChildren@CMDIClientAreaWnd@@AEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12847,
+      "symbol": "?SerializeTabGroup@CMDIClientAreaWnd@@AEAAXAEAVCArchive@@PEAVCMFCTabCtrl@@H@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 12903,
+      "symbol": "?SetActiveTab@CMDIClientAreaWnd@@QEAAXPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 13968,
+      "symbol": "?TabWndFromPoint@CMDIClientAreaWnd@@AEAAPEAVCMFCTabCtrl@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 14144,
+      "symbol": "?UpdateMDITabbedGroups@CMDIClientAreaWnd@@QEAAXH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 1777,
+      "symbol": "?ActiveItemRecalcLayout@CMDIFrameWndEx@@QEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 55/439: CMDIClientAreaWnd, CMDIFrameWndEx"
+}

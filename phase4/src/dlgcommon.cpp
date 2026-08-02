@@ -62,6 +62,7 @@ struct CFileDialogAccess : CFileDialog {
 };
 
 struct CFileDialogControlState {
+    HWND owner = nullptr;
     std::map<unsigned long, CString> controlLabels;
     std::map<unsigned long, int> checkState;
     std::map<unsigned long, CString> editText;
@@ -158,9 +159,13 @@ CFileDialog::CFileDialog(int bOpenFileDialog,
                          unsigned long dwSize,
                          int bVistaStyle)
     : CDialog(), m_bOpenFileDialog(bOpenFileDialog), m_dwFlags(dwFlags), m_pFileList(nullptr) {
-    (void)pParentWnd;
     (void)dwSize;
     (void)bVistaStyle;
+
+    CFileDialogControlState* state = GetFileDialogState(this, true);
+    if (state) {
+        state->owner = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
+    }
 
     if (lpszDefExt != nullptr) {
         m_strDefExt = lpszDefExt;
@@ -205,7 +210,7 @@ intptr_t CFileDialog::DoModal() {
     OPENFILENAMEW ofn;
     memset(&ofn, 0, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = nullptr;
+    ofn.hwndOwner = state ? state->owner : nullptr;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = (DWORD)nBufferSize;
     ofn.lpstrFilter = m_strFilter.IsEmpty() ? L"All Files\0*.*\0" : (const wchar_t*)m_strFilter;
@@ -648,8 +653,11 @@ extern "C" HRESULT MS_ABI impl__GetSelectedControlItem_CFileDialog__QEAAJKAEAK_Z
 
 // Symbol: ?HideControl@CFileDialog@@QEAAXH@Z
 extern "C" void MS_ABI impl__HideControl_CFileDialog__QEAAXH_Z(CFileDialog* pThis, int p0) {
-    (void)pThis;
-    (void)p0;
+    if (!pThis || !pThis->GetSafeHwnd()) return;
+    HWND hControl = ::GetDlgItem(pThis->GetSafeHwnd(), p0);
+    if (hControl) {
+        ::ShowWindow(hControl, SW_HIDE);
+    }
 }
 
 // Symbol: ?MakeProminent@CFileDialog@@QEAAJK@Z
@@ -824,9 +832,14 @@ extern "C" HRESULT MS_ABI impl__SetControlState_CFileDialog__QEAAJKW4CDCONTROLST
 // Symbol: ?SetControlText@CFileDialog@@QEAAXHPEB_W@Z
 extern "C" void MS_ABI impl__SetControlText_CFileDialog__QEAAXHPEB_W_Z(
     CFileDialog* pThis, int p0, const wchar_t* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
+    if (!pThis) return;
+    CFileDialogControlState* state = GetFileDialogState(pThis, true);
+    if (state) {
+        state->controlLabels[static_cast<unsigned long>(p0)] = p1 ? p1 : L"";
+    }
+    if (pThis->GetSafeHwnd()) {
+        ::SetDlgItemTextW(pThis->GetSafeHwnd(), p0, p1 ? p1 : L"");
+    }
 }
 
 // Symbol: ?SetProperties@CFileDialog@@QEAAHPEB_W@Z
@@ -926,7 +939,8 @@ unsigned long* CColorDialog::GetSavedCustomColors() {
 // CFontDialog implementation
 //=============================================================================
 
-CFontDialog::CFontDialog(void* lpLogFont, unsigned long dwFlags, void* pdcPrinter, CWnd* pParentWnd)
+CFontDialog::CFontDialog(LOGFONTW* lpLogFont, unsigned long dwFlags,
+                         CDC* pdcPrinter, CWnd* pParentWnd)
     : CDialog(), m_dwFlags(dwFlags), m_clrResult(0), m_nPointSize(0) {
     (void)pdcPrinter;
     (void)pParentWnd;
@@ -941,6 +955,49 @@ CFontDialog::CFontDialog(void* lpLogFont, unsigned long dwFlags, void* pdcPrinte
     }
 
     memset(_fontdialog_padding, 0, sizeof(_fontdialog_padding));
+}
+
+CFontDialog::CFontDialog(const CHARFORMATW& cf, unsigned long dwFlags,
+                         CDC* pdcPrinter, CWnd* pParentWnd)
+    : CDialog(), m_dwFlags(dwFlags), m_clrResult(0), m_nPointSize(0) {
+    (void)pdcPrinter;
+    (void)pParentWnd;
+
+    memset(m_lf, 0, sizeof(m_lf));
+    LOGFONTW* lf = reinterpret_cast<LOGFONTW*>(m_lf);
+
+    lf->lfWeight = (cf.dwEffects & CFE_BOLD) ? FW_BOLD : FW_NORMAL;
+    lf->lfItalic      = (BYTE)((cf.dwEffects & CFE_ITALIC) != 0);
+    lf->lfUnderline   = (BYTE)((cf.dwEffects & CFE_UNDERLINE) != 0);
+    lf->lfStrikeOut   = (BYTE)((cf.dwEffects & CFE_STRIKEOUT) != 0);
+    lf->lfCharSet = cf.bCharSet;
+    lf->lfPitchAndFamily = cf.bPitchAndFamily;
+    if (cf.yHeight > 0) {
+        lf->lfHeight = -MulDiv(cf.yHeight, 1, 20);
+        m_nPointSize = (int)(cf.yHeight / 20);
+    }
+    lstrcpynW(lf->lfFaceName, cf.szFaceName, LF_FACESIZE);
+    m_clrResult = cf.crTextColor;
+    m_lpLogFont = m_lf;
+
+    memset(_fontdialog_padding, 0, sizeof(_fontdialog_padding));
+}
+
+// Export wrappers (placement-new the C++ ctors above; matches .def aliases).
+// Symbol: ??0CFontDialog@@QEAA@PEAUtagLOGFONTW@@KPEAVCDC@@PEAVCWnd@@@Z
+// Ordinal: 497
+// Ctor taking LOGFONTW*
+extern "C" CFontDialog* MS_ABI impl___0CFontDialog__QEAA_PEAUtagLOGFONTW__KPEAVCDC__PEAVCWnd___Z(
+    CFontDialog* pThis, LOGFONTW* lpLogFont, unsigned long dwFlags, CDC* pdcPrinter, CWnd* pParentWnd) {
+    return new(pThis) CFontDialog(lpLogFont, dwFlags, pdcPrinter, pParentWnd);
+}
+
+// Symbol: ??0CFontDialog@@QEAA@AEBU_charformatw@@KPEAVCDC@@PEAVCWnd@@@Z
+// Ordinal: 496
+// Ctor taking const CHARFORMATW&
+extern "C" CFontDialog* MS_ABI impl___0CFontDialog__QEAA_AEBU_charformatw__KPEAVCDC__PEAVCWnd___Z(
+    CFontDialog* pThis, const CHARFORMATW& cf, unsigned long dwFlags, CDC* pdcPrinter, CWnd* pParentWnd) {
+    return new(pThis) CFontDialog(cf, dwFlags, pdcPrinter, pParentWnd);
 }
 
 intptr_t CFontDialog::DoModal() {
@@ -1044,6 +1101,31 @@ struct CPrintDialogAccess : CPrintDialog {
     using CPrintDialog::m_nFromPage;
     using CPrintDialog::m_nToPage;
 };
+}
+
+// Symbol: ??0CPrintDialog@@IEAA@AEAUtagPDW@@@Z
+extern "C" CPrintDialog* MS_ABI impl___0CPrintDialog__IEAA_AEAUtagPDW___Z(CPrintDialog* pThis, tagPDW& pd) {
+    if (!pThis) return nullptr;
+
+    CPrintDialog* p = new(pThis) CPrintDialog(
+        (pd.Flags & PD_PRINTSETUP) ? 1 : 0,
+        pd.Flags,
+        nullptr
+    );
+    CPrintDialogAccess* acc = reinterpret_cast<CPrintDialogAccess*>(p);
+    acc->m_hDevMode = pd.hDevMode;
+    acc->m_hDevNames = pd.hDevNames;
+    acc->m_hDC = pd.hDC;
+    acc->m_nCopies = pd.nCopies == 0 ? 1 : pd.nCopies;
+    acc->m_nFromPage = pd.nFromPage == 0 ? 1 : pd.nFromPage;
+    acc->m_nToPage = pd.nToPage;
+    return p;
+}
+
+// Symbol: ??0CPrintDialog@@QEAA@HKPEAVCWnd@@@Z
+extern "C" CPrintDialog* MS_ABI impl___0CPrintDialog__QEAA_HKPEAVCWnd___Z(CPrintDialog* pThis, int bPrintSetupOnly, unsigned long dwFlags, CWnd* pParentWnd) {
+    if (!pThis) return nullptr;
+    return new(pThis) CPrintDialog(bPrintSetupOnly, dwFlags, pParentWnd);
 }
 
 CPrintDialog::CPrintDialog(int bPrintSetupOnly, unsigned long dwFlags, CWnd* pParentWnd)
@@ -1685,6 +1767,12 @@ unsigned int CFindReplaceDialog::GetFindReplaceMessage() {
 // CPrintDialogEx
 //=============================================================================
 IMPLEMENT_DYNAMIC(CPrintDialogEx, CDialog)
+
+// Symbol: ??0CPrintDialogEx@@QEAA@KPEAVCWnd@@@Z
+// CPrintDialogEx::CPrintDialogEx(DWORD dwFlags, CWnd* pParentWnd)
+extern "C" void* MS_ABI impl___0CPrintDialogEx__QEAA_KPEAVCWnd___Z(unsigned long dwFlags, CWnd* pParentWnd) {
+    return new CPrintDialogEx(dwFlags, pParentWnd);
+}
 
 CPrintDialogEx::CPrintDialogEx(DWORD dwFlags, CWnd* pParentWnd)
     : CDialog() {

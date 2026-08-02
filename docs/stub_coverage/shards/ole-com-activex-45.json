@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-45",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleDataSource",
+      "ordinal": 11052,
+      "symbol": "?OnSetData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 1956,
+      "symbol": "?AddRef@COleDispatchImpl@@UEAAKXZ"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 3857,
+      "symbol": "?Disconnect@COleDispatchImpl@@UEAAXXZ"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 5521,
+      "symbol": "?GetIDsOfNames@COleDispatchImpl@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 7445,
+      "symbol": "?GetTypeInfo@COleDispatchImpl@@UEAAJIKPEAPEAUITypeInfo@@@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 7454,
+      "symbol": "?GetTypeInfoCount@COleDispatchImpl@@UEAAJPEAI@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 7827,
+      "symbol": "?Invoke@COleDispatchImpl@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 12008,
+      "symbol": "?QueryInterface@COleDispatchImpl@@UEAAJAEBU_GUID@@PEAPEAX@Z"
+    },
+    {
+      "class": "COleDispatchImpl",
+      "ordinal": 12234,
+      "symbol": "?Release@COleDispatchImpl@@UEAAKXZ"
+    },
+    {
+      "class": "COleDocIPFrameWnd",
+      "ordinal": 1348,
+      "symbol": "??1COleDocIPFrameWnd@@UEAA@XZ"
+    }
+  ],
+  "title": "ole_com_activex shard 45/77: COleDispatchImpl, COleDataSource, COleDocIPFrameWnd"
+}

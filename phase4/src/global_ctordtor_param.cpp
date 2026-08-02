@@ -49,6 +49,16 @@ extern "C" void* MS_ABI impl___0CFileDialog__QEAA_HPEB_W0K0PEAVCWnd__KH_Z(
                                lpszFilter, pParentWnd, dwSize, bVistaStyle);
 }
 
+// Symbol: ??0CFolderPickerDialog@@QEAA@PEB_WKPEAVCWnd@@KH@Z
+extern "C" void* MS_ABI impl___0CFolderPickerDialog__QEAA_PEB_WKPEAVCWnd__KH_Z(
+        void* p, const wchar_t* lpszFolder, unsigned long dwFlags,
+        CWnd* pParentWnd, unsigned long nID, int bNeedOpen) {
+    (void)nID; (void)bNeedOpen;
+    // Real MFC: CFileDialog(TRUE, NULL, lpszFolder, OFN_HIDEREADONLY|dwFlags, NULL, pParentWnd, 0, TRUE)
+    // OFN_HIDEREADONLY == 0x4 (not defined in repo headers)
+    return new (p) CFileDialog(TRUE, nullptr, lpszFolder, 0x4u | dwFlags, nullptr, pParentWnd, 0, TRUE);
+}
+
 // Symbol: ??0CPageSetupDialog@@QEAA@KPEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CPageSetupDialog__QEAA_KPEAVCWnd___Z(
         void* p, unsigned long dwFlags, CWnd* pParentWnd) {

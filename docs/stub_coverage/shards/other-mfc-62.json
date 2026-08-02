@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-62",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPreviewViewEx",
+      "ordinal": 9787,
+      "symbol": "?OnEraseBkgnd@CPreviewViewEx@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CPreviewViewEx",
+      "ordinal": 11269,
+      "symbol": "?OnSize@CPreviewViewEx@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CPreviewViewEx",
+      "ordinal": 13704,
+      "symbol": "?SetToolbarSize@CPreviewViewEx@@IEAAXXZ"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 1959,
+      "symbol": "?AddRef@CPrintDialogEx@@UEAAKXZ"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 3717,
+      "symbol": "?DefWindowProcW@CPrintDialogEx@@UEAA_JI_K_J@Z"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 5200,
+      "symbol": "?GetDefaults@CPrintDialogEx@@QEAAHXZ"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 6674,
+      "symbol": "?GetSite@CPrintDialogEx@@UEAAJAEBU_GUID@@PEAPEAX@Z"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 7570,
+      "symbol": "?HandleInitDialog@CPrintDialogEx@@QEAA_J_K_J@Z"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 7573,
+      "symbol": "?HandleMessage@CPrintDialogEx@@UEAAJPEAUHWND__@@I_K_JPEA_J@Z"
+    },
+    {
+      "class": "CPrintDialogEx",
+      "ordinal": 7677,
+      "symbol": "?InitDone@CPrintDialogEx@@UEAAJXZ"
+    }
+  ],
+  "title": "other_mfc shard 62/91: CPrintDialogEx, CPreviewViewEx"
+}

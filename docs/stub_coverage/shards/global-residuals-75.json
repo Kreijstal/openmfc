@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-75",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 11994,
+      "symbol": "?QueryHitRect@XViewObject@COleControl@@UEAAJKPEBUtagRECT@@0JPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12000,
+      "symbol": "?QueryInsertObject@XRichEditOleCallback@CRichEditView@@UEAAJPEAU_GUID@@PEAUIStorage@@J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12020,
+      "symbol": "?QuerySinkInterface@XEventConnPt@COleControl@@UEAAJPEAUIUnknown@@PEAPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12021,
+      "symbol": "?QueryStatus@XOleCommandTarget@CDocObjectServer@@UEAAJPEBU_GUID@@KQEAU_tagOLECMD@@PEAU_tagOLECMDTEXT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12022,
+      "symbol": "?QueryStatus@XOleCommandTarget@COleFrameHook@@UEAAJPEBU_GUID@@KQEAU_tagOLECMD@@PEAU_tagOLECMDTEXT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12026,
+      "symbol": "?QuickActivate@XQuickActivate@COleControl@@UEAAJPEAUtagQACONTAINER@@PEAUtagQACONTROL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12028,
+      "symbol": "?ReactivateAndUndo@XOleInPlaceObject@COleControl@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 12029,
+      "symbol": "?ReactivateAndUndo@XOleInPlaceObject@COleServerDoc@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 12050,
+      "symbol": "?Read@XCategory@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12051,
+      "symbol": "?Read@XCategoryMain@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    }
+  ],
+  "title": "global_residuals shard 75/95: global"
+}

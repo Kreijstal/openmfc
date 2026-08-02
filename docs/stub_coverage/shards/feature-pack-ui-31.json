@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-31",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 12542,
+      "symbol": "?ResolveIntersectionRect@CDockingPanesRow@@IEAAXPEAVCPane@@_N@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 12705,
+      "symbol": "?ScreenToClient@CDockingPanesRow@@QEBAXAEAVCRect@@@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 13778,
+      "symbol": "?ShiftPanes@CDockingPanesRow@@AEAAXPEAVCPane@@HH@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 13779,
+      "symbol": "?ShiftPanesRect@CDockingPanesRow@@IEAAXPEAVCPane@@HH@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 13815,
+      "symbol": "?ShowDockSiteRow@CDockingPanesRow@@UEAAXHH@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 13829,
+      "symbol": "?ShowPane@CDockingPanesRow@@UEAAHPEAVCPane@@HH@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 13945,
+      "symbol": "?StretchPaneRect@CDockingPanesRow@@IEAAHPEAVCPane@@H@Z"
+    },
+    {
+      "class": "CDockingPanesRow",
+      "ordinal": 14185,
+      "symbol": "?UpdateVisibleState@CDockingPanesRow@@UEAAXH@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 1832,
+      "symbol": "?AddDefaultButtonsToCustomizePane@CFrameImpl@@IEAAXPEAVCMFCPopupMenu@@I@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 1857,
+      "symbol": "?AddFrame@CFrameImpl@@SAXPEAVCFrameWnd@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 31/439: CDockingPanesRow, CFrameImpl"
+}

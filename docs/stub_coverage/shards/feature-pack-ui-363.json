@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-363",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9814,
+      "symbol": "?OnEraseTabsFrame@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9849,
+      "symbol": "?OnFillAutoHideButtonBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCAutoHideButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9874,
+      "symbol": "?OnFillButtonInterior@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9881,
+      "symbol": "?OnFillCaptionBarButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9884,
+      "symbol": "?OnFillCommandsListBackground@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9889,
+      "symbol": "?OnFillHeaderCtrlBackground@CMFCVisualManager@@UEAAXPEAVCMFCHeaderCtrl@@PEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9897,
+      "symbol": "?OnFillMiniFrameCaption@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9902,
+      "symbol": "?OnFillOutlookBarCaption@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9905,
+      "symbol": "?OnFillOutlookPageButton@CMFCVisualManager@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9909,
+      "symbol": "?OnFillPopupWindowBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 363/439: CMFCVisualManager"
+}

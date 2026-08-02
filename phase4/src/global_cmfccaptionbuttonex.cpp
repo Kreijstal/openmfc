@@ -18,12 +18,17 @@
 //
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+struct CRuntimeClass;
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(const void* pThis);
 
 namespace {
 
@@ -50,6 +55,32 @@ static_assert(offsetof(S, m_nHit) == 32,    "m_nHit @32");
 static_assert(offsetof(S, m_ptOrg_x) == 40, "m_ptOrg @40");
 static_assert(offsetof(S, m_rect) == 56,    "m_rect @56");
 
+struct OpenMfcRuntimeClass {
+    const char* m_lpszClassName;
+    int m_nObjectSize;
+    unsigned short m_wSchema;
+    void* m_pfnCreateObject;
+    void* m_pfnGetBaseClass;
+    OpenMfcRuntimeClass* m_pBaseClass;
+    void* m_pClassContext;
+};
+
+static OpenMfcRuntimeClass g_CMFCCaptionButtonEx_rtti = {
+    "CMFCCaptionButtonEx",
+    sizeof(S),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+};
+
+static OpenMfcRuntimeClass* GetBaseClass() {
+    static OpenMfcRuntimeClass* base = reinterpret_cast<OpenMfcRuntimeClass*>(
+        impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(nullptr));
+    return base ? base : nullptr;
+}
+
 } // namespace
 
 // Forward decls of the exported thunks so the vtable can reference them.
@@ -60,9 +91,13 @@ namespace {
 // --- vtable slot wrappers -------------------------------------------------
 
 // slot 0: CObject::GetRuntimeClass — CMFCCaptionButton/Ex do not publish a
-// runtime-class descriptor through this self-contained TU; return null.
+// runtime-class descriptor through this self-contained TU; use a local descriptor
+// with CObject as base so RTTI walks to a real root instead of nullptr.
 void* MS_ABI vt_GetRuntimeClass(void* /*pThis*/) {
-    return nullptr;
+    if (!g_CMFCCaptionButtonEx_rtti.m_pBaseClass) {
+        g_CMFCCaptionButtonEx_rtti.m_pBaseClass = GetBaseClass();
+    }
+    return &g_CMFCCaptionButtonEx_rtti;
 }
 
 // slot 1: CMFCCaptionButtonEx::{dtor}  (vector-deleting-destructor wrapper).
@@ -76,15 +111,21 @@ void* MS_ABI vt_vdtor(void* p, unsigned flags) {
 }
 
 // slot 2: CObject::Serialize — CObject's base implementation is a no-op.
-void MS_ABI vt_Serialize(void* /*pThis*/, void* /*ar*/) {
+void MS_ABI vt_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
 }
 
 // slot 3: CObject::AssertValid — no-op in release semantics.
-void MS_ABI vt_AssertValid(void* /*pThis*/) {
+void MS_ABI vt_AssertValid(void* pThis) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::AssertValid();
 }
 
 // slot 4: CObject::Dump — no-op.
-void MS_ABI vt_Dump(void* /*pThis*/, void* /*dc*/) {
+void MS_ABI vt_Dump(void* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::Dump();
 }
 
 // slot 5: CMFCCaptionButtonEx::GetRect — returns m_rect by value.
@@ -100,6 +141,10 @@ void* MS_ABI vt_GetRect(void* pThis, void* retbuf) {
 // faithful no-op for hidden buttons and otherwise leave the surface untouched.
 void MS_ABI vt_OnDraw(void* /*pThis*/, void* /*pDC*/, unsigned char /*bActive*/,
                       unsigned char /*bDarkBackground*/) {
+    // No-op drawing: this TU models only the object shell of CMFCCaptionButtonEx.
+    // The real button rendering is owned by CMFCToolBar internals and visual
+    // manager state that is not represented in this ABI compatibility layer.
+    return;
 }
 
 // slot 7: CMFCCaptionButton::GetIconID — maps the hit code to a marlett/glyph

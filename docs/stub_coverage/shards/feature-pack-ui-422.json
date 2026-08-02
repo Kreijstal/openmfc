@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-422",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13435,
+      "symbol": "?SetPane@CPaneContainer@@QEAAXPEAVCDockablePane@@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13439,
+      "symbol": "?SetPaneContainer@CPaneContainer@@QEAAXPEAV1@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13440,
+      "symbol": "?SetPaneContainerManager@CPaneContainer@@IEAAXPEAVCPaneContainerManager@@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13723,
+      "symbol": "?SetUpByID@CPaneContainer@@QEAAHIPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13928,
+      "symbol": "?StoreRecentDockSiteInfo@CPaneContainer@@UEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 13943,
+      "symbol": "?StretchPaneContainer@CPaneContainer@@UEAAHHHHHAEAPEAX@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 1921,
+      "symbol": "?AddPaneAndPaneContainer@CPaneContainerManager@@IEAAHPEAVCDockablePane@@PEAVCPaneContainer@@K@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 1922,
+      "symbol": "?AddPaneAndPaneDivider@CPaneContainerManager@@IEAAHPEAVCDockablePane@@0PEAU__POSITION@@K@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 1925,
+      "symbol": "?AddPaneContainerManager@CPaneContainerManager@@UEAAHAEAV1@H@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 1926,
+      "symbol": "?AddPaneContainerManager@CPaneContainerManager@@UEAAHPEAVCDockablePane@@KAEAV1@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 422/439: CPaneContainer, CPaneContainerManager"
+}

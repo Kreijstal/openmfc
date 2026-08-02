@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-213",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 11202,
+      "symbol": "?OnShowPopupMenu@CMFCRibbonColorButton@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 12300,
+      "symbol": "?RemoveAllColorGroups@CMFCRibbonColorButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 12862,
+      "symbol": "?SetACCData@CMFCRibbonColorButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 13043,
+      "symbol": "?SetColorBoxSize@CMFCRibbonColorButton@@QEAAXVCSize@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 13148,
+      "symbol": "?SetDocumentColors@CMFCRibbonColorButton@@QEAAXPEB_WAEAV?$CList@KK@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 13432,
+      "symbol": "?SetPalette@CMFCRibbonColorButton@@QEAAXPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 14123,
+      "symbol": "?UpdateColor@CMFCRibbonColorButton@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 1246,
+      "symbol": "??1CMFCRibbonComboBox@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 1878,
+      "symbol": "?AddItem@CMFCRibbonComboBox@@UEAA_JPEB_W_K@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 2770,
+      "symbol": "?ClearData@CMFCRibbonComboBox@@MEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 213/439: CMFCRibbonColorButton, CMFCRibbonComboBox"
+}

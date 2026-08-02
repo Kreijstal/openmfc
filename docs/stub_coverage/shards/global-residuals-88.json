@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-88",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 13356,
+      "symbol": "?SetMenu@XOleIPFrame@COleControlContainer@@UEAAJPEAUHMENU__@@PEAXPEAUHWND__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13375,
+      "symbol": "?SetMoniker@XOleObject@CDocObjectServer@@UEAAJKPEAUIMoniker@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13376,
+      "symbol": "?SetMoniker@XOleObject@COleControl@@UEAAJKPEAUIMoniker@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13377,
+      "symbol": "?SetMoniker@XOleObject@COleServerDoc@@UEAAJKPEAUIMoniker@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13378,
+      "symbol": "?SetMoniker@XOleObject@COleServerItem@@UEAAJKPEAUIMoniker@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13394,
+      "symbol": "?SetObjectRects@XOleInPlaceObject@COleControl@@UEAAJPEBUtagRECT@@0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13395,
+      "symbol": "?SetObjectRects@XOleInPlaceObject@COleServerDoc@@UEAAJPEBUtagRECT@@0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13396,
+      "symbol": "?SetObjects@XPropertyPage@COlePropertyPage@@UEAAJKPEAPEAUIUnknown@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13428,
+      "symbol": "?SetPageSite@XPropertyPage@COlePropertyPage@@UEAAJPEAUIPropertyPageSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13514,
+      "symbol": "?SetProxy@XAccessibleServer@CWnd@@UEAAJPEAUIAccessibleProxy@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 88/95: global"
+}

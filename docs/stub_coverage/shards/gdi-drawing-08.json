@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-08",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDockBar",
+      "ordinal": 3973,
+      "symbol": "?DoPaint@CDockBar@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10632,
+      "symbol": "?OnNcPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10729,
+      "symbol": "?OnPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockContext",
+      "ordinal": 4061,
+      "symbol": "?DrawFocusRect@CDockContext@@QEAAXH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3179,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@AEBVCSize@@PEAPEAX@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3180,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@PEAU2@K@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4033,
+      "symbol": "?DrawAlpha@CDrawingManager@@QEAAXPEAVCDC@@AEBVCRect@@01@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4056,
+      "symbol": "?DrawEllipse@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4067,
+      "symbol": "?DrawGradientRing@CDrawingManager@@QEAAHVCRect@@KKKHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4099,
+      "symbol": "?DrawLine@CDrawingManager@@QEAAXHHHHK@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 08/24: CDrawingManager, CDockBar, CDockContext"
+}

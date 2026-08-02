@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-39",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CEnumArray",
+      "ordinal": 11285,
+      "symbol": "?OnSkip@CEnumArray@@MEAAHXZ"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4293,
+      "symbol": "?EnablePan@CGestureConfig@@QEAAXHK@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4297,
+      "symbol": "?EnablePressAndTap@CGestureConfig@@QEAAXH@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4301,
+      "symbol": "?EnableRotate@CGestureConfig@@QEAAXH@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4326,
+      "symbol": "?EnableTwoFingerTap@CGestureConfig@@QEAAXH@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4339,
+      "symbol": "?EnableZoom@CGestureConfig@@QEAAXH@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 4736,
+      "symbol": "?Get@CGestureConfig@@QEBAKKH@Z"
+    },
+    {
+      "class": "CGestureConfig",
+      "ordinal": 8465,
+      "symbol": "?Modify@CGestureConfig@@QEAAHKKK@Z"
+    },
+    {
+      "class": "CHeaderCtrl",
+      "ordinal": 3082,
+      "symbol": "?Create@CHeaderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CHeaderCtrl",
+      "ordinal": 3249,
+      "symbol": "?CreateEx@CHeaderCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    }
+  ],
+  "title": "other_mfc shard 39/91: CGestureConfig, CHeaderCtrl, CEnumArray"
+}

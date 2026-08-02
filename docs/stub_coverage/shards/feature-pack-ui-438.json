@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-438",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 11897,
+      "symbol": "?PreTranslateMessage@CPaneFrameWnd@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12138,
+      "symbol": "?RecalcCaptionHeight@CPaneFrameWnd@@MEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12189,
+      "symbol": "?RedrawAll@CPaneFrameWnd@@SAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12193,
+      "symbol": "?RedrawCaptionButton@CPaneFrameWnd@@IEAAXPEAVCMFCCaptionButton@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12298,
+      "symbol": "?RemoveAllCaptionButtons@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12335,
+      "symbol": "?RemoveButton@CPaneFrameWnd@@IEAAXI@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12387,
+      "symbol": "?RemoveNonValidPanes@CPaneFrameWnd@@UEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12450,
+      "symbol": "?ReplaceButton@CPaneFrameWnd@@IEAAXII@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12463,
+      "symbol": "?ReplacePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@0@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12653,
+      "symbol": "?SaveRecentFloatingState@CPaneFrameWnd@@MEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 438/439: CPaneFrameWnd"
+}

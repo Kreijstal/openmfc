@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-426",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12254,
+      "symbol": "?ReleaseEmptyPaneContainers@CPaneContainerManager@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12311,
+      "symbol": "?RemoveAllPanesAndPaneDividers@CPaneContainerManager@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12386,
+      "symbol": "?RemoveNonValidPanes@CPaneContainerManager@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12400,
+      "symbol": "?RemovePaneDivider@CPaneContainerManager@@UEAAXPEAVCPaneDivider@@@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12409,
+      "symbol": "?RemovePaneFromPaneContainer@CPaneContainerManager@@UEAAHPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12461,
+      "symbol": "?ReplacePane@CPaneContainerManager@@UEAAHPEAVCDockablePane@@0@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12536,
+      "symbol": "?ResizePaneContainers@CPaneContainerManager@@UEAAXIHHAEAPEAX@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12537,
+      "symbol": "?ResizePaneContainers@CPaneContainerManager@@UEAAXVCRect@@AEAPEAX@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 12831,
+      "symbol": "?Serialize@CPaneContainerManager@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CPaneContainerManager",
+      "ordinal": 13112,
+      "symbol": "?SetDefaultPaneDividerForPanes@CPaneContainerManager@@QEAAXPEAVCPaneDivider@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 426/439: CPaneContainerManager"
+}

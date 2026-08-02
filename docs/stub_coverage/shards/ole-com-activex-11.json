@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-11",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleClientItem",
+      "ordinal": 2678,
+      "symbol": "?CanPasteLink@COleClientItem@@SAHXZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 2706,
+      "symbol": "?CheckGeneral@COleClientItem@@MEAAXJ@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 2863,
+      "symbol": "?CommitItem@COleClientItem@@UEAAXH@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3187,
+      "symbol": "?CreateCloneFrom@COleClientItem@@QEAAHPEBV1@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3288,
+      "symbol": "?CreateFromFile@COleClientItem@@QEAAHPEB_WAEBU_GUID@@W4tagOLERENDER@@GPEAUtagFORMATETC@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3321,
+      "symbol": "?CreateLinkFromData@COleClientItem@@QEAAHPEAVCOleDataObject@@W4tagOLERENDER@@GPEAUtagFORMATETC@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3322,
+      "symbol": "?CreateLinkFromFile@COleClientItem@@QEAAHPEB_WW4tagOLERENDER@@GPEAUtagFORMATETC@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3531,
+      "symbol": "?CreateStaticFromData@COleClientItem@@QEAAHPEAVCOleDataObject@@W4tagOLERENDER@@GPEAUtagFORMATETC@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3710,
+      "symbol": "?DeactivateUI@COleClientItem@@QEAAXXZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 3729,
+      "symbol": "?Delete@COleClientItem@@QEAAXH@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 11/77: COleClientItem"
+}

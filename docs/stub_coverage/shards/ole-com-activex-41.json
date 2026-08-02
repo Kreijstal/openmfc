@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-41",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControlSite",
+      "ordinal": 3208,
+      "symbol": "?CreateControlCommon@COleControlSite@@MEAAJPEAVCWnd@@AEBU_GUID@@AEBVCControlCreationInfo@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_W@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 3504,
+      "symbol": "?CreateOrLoad@COleControlSite@@MEAAJAEBU_GUID@@PEAVCFile@@HPEA_W@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 3505,
+      "symbol": "?CreateOrLoad@COleControlSite@@MEAAJAEBVCControlCreationInfo@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 3847,
+      "symbol": "?DetachWindow@COleControlSite@@QEAAXXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 3861,
+      "symbol": "?DisconnectSink@COleControlSite@@IEAAXAEBU_GUID@@K@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 4006,
+      "symbol": "?DoVerb@COleControlSite@@UEAAJJPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 4250,
+      "symbol": "?EnableDSC@COleControlSite@@UEAAXXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 4718,
+      "symbol": "?FreezeEvents@COleControlSite@@QEAAXH@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 5109,
+      "symbol": "?GetControlInfo@COleControlSite@@IEAAXXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 5160,
+      "symbol": "?GetCursor@COleControlSite@@IEAAJJPEAPEAUIUnknown@@PEAPEAX@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 41/77: COleControlSite"
+}

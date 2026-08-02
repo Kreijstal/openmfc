@@ -49,9 +49,21 @@ namespace {
 // --- slot wrappers: qualified (non-virtual) member calls, no re-dispatch ---
 CRuntimeClass* MS_ABI v_GetRuntimeClass(CMemFile*)            { return &CMemFile::classCMemFile; }
 void*          MS_ABI v_dtor(CMemFile* p, unsigned int flags) { p->CMemFile::~CMemFile(); if (flags & 1) ::operator delete(p); return p; }
-void           MS_ABI v_Serialize(CMemFile*, void*)           {}
-void           MS_ABI v_AssertValid(const CMemFile*)          {}
-void           MS_ABI v_Dump(const CMemFile*, void*)          {}
+void           MS_ABI v_Serialize(CMemFile* pThis, void* pAr)           {
+    if (!pThis || !pAr) return;
+    CObject* obj = reinterpret_cast<CObject*>(pThis);
+    obj->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
+void           MS_ABI v_AssertValid(const CMemFile* pThis)          {
+    if (!pThis) return;
+    const CObject* obj = reinterpret_cast<const CObject*>(pThis);
+    obj->CObject::AssertValid();
+}
+void           MS_ABI v_Dump(const CMemFile* pThis, void*)          {
+    if (!pThis) return;
+    const CObject* obj = reinterpret_cast<const CObject*>(pThis);
+    obj->CObject::Dump();
+}
 unsigned long long MS_ABI v_GetPosition(const CMemFile* p)    { return const_cast<CMemFile*>(p)->CMemFile::Seek(0, 1 /*current*/); }
 // CString returned by value via sret. Proven repo convention (impl__GetFileName_CFile
 // thunk): this=RCX, sret=RDX, void return — construct the CString into the caller's

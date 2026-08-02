@@ -21,6 +21,7 @@
 #include <cstddef>     // offsetof
 #include <cstring>
 #include <new>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -107,11 +108,19 @@ static BOOL AttachDecoded(S* p, HBITMAP hbmp) {
 // Slot 0 (CBitmap::GetRuntimeClass) reuses the DLL's CBitmap RTTI thunk.
 extern "C" void* MS_ABI impl__GetRuntimeClass_CBitmap__UEBAPEAUCRuntimeClass__XZ(const void*);
 
-// CObject base virtuals: faithful no-op bodies (CObject::Serialize/AssertValid/
-// Dump do nothing in the base class).
-void  MS_ABI vt_Serialize(void* /*pThis*/, void* /*pArchive*/) {}
-void  MS_ABI vt_AssertValid(const void* /*pThis*/) {}
-void  MS_ABI vt_Dump(const void* /*pThis*/, void* /*pDumpContext*/) {}
+// CObject base virtuals.
+void  MS_ABI vt_Serialize(void* pThis, void* pArchive) {
+    if (!pThis || !pArchive) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pArchive));
+}
+void  MS_ABI vt_AssertValid(const void* pThis) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::AssertValid();
+}
+void  MS_ABI vt_Dump(const void* pThis, void* /*pDumpContext*/) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::Dump();
+}
 
 // Forward declaration so the deleting-dtor slot can run the real destructor body.
 } // namespace

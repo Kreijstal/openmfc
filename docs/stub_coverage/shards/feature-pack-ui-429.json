@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-429",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneDivider",
+      "ordinal": 10408,
+      "symbol": "?OnLButtonUp@CPaneDivider@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 10506,
+      "symbol": "?OnMouseMove@CPaneDivider@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 10599,
+      "symbol": "?OnNcDestroy@CPaneDivider@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 10759,
+      "symbol": "?OnPaint@CPaneDivider@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 11045,
+      "symbol": "?OnSetCursor@CPaneDivider@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 11191,
+      "symbol": "?OnShowPane@CPaneDivider@@UEAAXPEAVCDockablePane@@H@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 11266,
+      "symbol": "?OnSize@CPaneDivider@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 12255,
+      "symbol": "?ReleaseEmptyPaneContainers@CPaneDivider@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 12462,
+      "symbol": "?ReplacePane@CPaneDivider@@UEAAHPEAVCDockablePane@@0@Z"
+    },
+    {
+      "class": "CPaneDivider",
+      "ordinal": 12479,
+      "symbol": "?RepositionPanes@CPaneDivider@@UEAAXAEAVCRect@@AEAPEAX@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 429/439: CPaneDivider"
+}

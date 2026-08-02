@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-84",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8353,
+      "symbol": "?m_nLeftOffsetX@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8358,
+      "symbol": "?m_nRightOffsetX@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8370,
+      "symbol": "?m_nTopOffsetY@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 13786,
+      "symbol": "?Show@CSmartDockingStandaloneGuide@@UEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 1417,
+      "symbol": "??1CSmartDockingStandaloneGuideWnd@@UEAA@XZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 2456,
+      "symbol": "?Assign@CSmartDockingStandaloneGuideWnd@@QEAAHPEAUHBITMAP__@@H@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 3160,
+      "symbol": "?Create@CSmartDockingStandaloneGuideWnd@@QEAAHPEAUtagRECT@@PEAUHBITMAP__@@PEAUHRGN__@@PEAVCWnd@@HH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 7611,
+      "symbol": "?Highlight@CSmartDockingStandaloneGuideWnd@@QEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 8883,
+      "symbol": "?OnClose@CSmartDockingStandaloneGuideWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 9792,
+      "symbol": "?OnEraseBkgnd@CSmartDockingStandaloneGuideWnd@@IEAAHPEAVCDC@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 84/91: CSmartDockingStandaloneGuideWnd, CSmartDockingStandaloneGuide"
+}

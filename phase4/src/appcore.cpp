@@ -6,6 +6,7 @@
 // Define OPENMFC_APPCORE_IMPL to use extern declarations instead of inline stubs
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxole.h"
 #include <windows.h>
 #include <algorithm>
 #include <cstdlib>
@@ -23,6 +24,10 @@
 #else
   #define MS_ABI
 #endif
+
+extern "C" void MS_ABI impl__OnHelp_CWinApp__IEAAXXZ(CWinApp* pThis);
+extern "C" void MS_ABI impl__UnregisterShellFileTypes_CWinApp__IEAAXXZ(CWinApp* pThis);
+extern "C" void MS_ABI impl__WinHelpInternal_CWinApp__UEAAX_KI_Z(CWinApp* pThis, unsigned long long data, unsigned int command);
 
 namespace {
 
@@ -967,7 +972,12 @@ static HINSTANCE g_hInstance = nullptr;
 static HINSTANCE g_hResource = nullptr;
 constexpr size_t kOpaqueStateWordCount = 32;
 static void* g_appModuleStateStorage[kOpaqueStateWordCount] = {};
-static __thread void* g_threadStateStorage[kOpaqueStateWordCount] = {};
+struct _AFX_THREAD_STATE {
+    int nTempMapLock = 0;
+    int nWndCreateLock = 0;
+    void* pModuleState = nullptr;
+};
+static __thread _AFX_THREAD_STATE g_threadStateStorage;
 
 // AfxGetInstanceHandle implementation
 HINSTANCE AFXAPI AfxGetInstanceHandle() {
@@ -1006,11 +1016,22 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetAppModuleState__YAPEAVAFX_MODULE
 
 // Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
-    return reinterpret_cast<_AFX_THREAD_STATE*>(g_threadStateStorage);
+    return &g_threadStateStorage;
 }
 
 extern "C" _AFX_THREAD_STATE* MS_ABI impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ() {
     return AfxGetThreadState();
+}
+
+// Symbol: ??0_AFX_THREAD_STATE@@QEAA@XZ
+extern "C" _AFX_THREAD_STATE* MS_ABI impl___0_AFX_THREAD_STATE__QEAA_XZ(_AFX_THREAD_STATE* pThis) {
+    if (!pThis) return nullptr;
+    return new(pThis) _AFX_THREAD_STATE();
+}
+
+// Symbol: ??1_AFX_THREAD_STATE@@UEAA@XZ
+extern "C" void MS_ABI impl___1_AFX_THREAD_STATE__UEAA_XZ(_AFX_THREAD_STATE* pThis) {
+    if (pThis) pThis->~_AFX_THREAD_STATE();
 }
 
 // AfxWinInit implementation
@@ -1079,6 +1100,7 @@ struct CommandLineInfoState {
 
 struct DocManagerState {
     std::vector<CDocTemplate*> templates;
+    bool shellFileTypesRegistered = false;
 };
 
 struct RecentFileListState {
@@ -1094,6 +1116,7 @@ struct AppRuntimeState {
     std::vector<CDocTemplate*> templates;
     std::vector<std::wstring> recentEntries;
     unsigned int maxRecent = 4;
+    unsigned char dataRecoveryHandler{};
     std::unordered_map<std::wstring, unsigned int> profileInts;
     std::unordered_map<std::wstring, std::wstring> profileStrings;
     std::unordered_map<std::wstring, std::vector<unsigned char>> profileBinary;
@@ -1107,6 +1130,7 @@ struct AppRuntimeState {
     bool embedded = false;
     HGLOBAL printerDevMode = nullptr;
     HGLOBAL printerDevNames = nullptr;
+    int selectedPrinter = 0;
     ITaskbarList* taskbarList = nullptr;
     ITaskbarList3* taskbarList3 = nullptr;
 };
@@ -1116,6 +1140,16 @@ std::unordered_map<const CDocManager*, DocManagerState> g_docManagerStates;
 std::unordered_map<const CRecentFileList*, RecentFileListState> g_recentFileListStates;
 std::unordered_map<const CWinApp*, AppRuntimeState> g_appRuntimeStates;
 std::unordered_map<const CCmdTarget*, int> g_waitCursorDepth;
+
+static CRuntimeClass g_classCDocManager = {
+    "CDocManager",
+    0,
+    0xFFFF,
+    nullptr,
+    nullptr,
+    &CObject::classCObject,
+    nullptr
+};
 
 constexpr int kShellCommandFileNothing = 0;
 constexpr int kShellCommandFileNew = 1;
@@ -1132,6 +1166,32 @@ std::wstring MakeProfileKey(const wchar_t* section, const wchar_t* entry) {
     key.append(entry ? entry : L"");
     return key;
 }
+
+namespace {
+constexpr unsigned int kDefaultRecentFileMenuFirstId = 0xE110;
+
+int AppRecentIndexFromCommand(const AppRuntimeState& state, unsigned int idOrIndex) {
+    if (idOrIndex == 0) return -1;
+
+    if (state.maxRecent > 0) {
+        const auto maxRecent = static_cast<unsigned int>(state.maxRecent);
+        if (idOrIndex >= kDefaultRecentFileMenuFirstId) {
+            const unsigned int idx = idOrIndex - kDefaultRecentFileMenuFirstId;
+            if (idx < maxRecent) return static_cast<int>(idx);
+        }
+
+        if (idOrIndex <= maxRecent) {
+            return static_cast<int>(idOrIndex - 1);
+        }
+    }
+
+    if (idOrIndex <= static_cast<unsigned int>(state.recentEntries.size())) {
+        return static_cast<int>(idOrIndex);
+    }
+
+    return -1;
+}
+} // namespace
 
 std::wstring WideValue(const wchar_t* value) {
     return value ? value : L"";
@@ -1155,6 +1215,56 @@ std::wstring GetAppName(CWinApp* app) {
     if (app && app->m_pszAppName && *app->m_pszAppName) return app->m_pszAppName;
     if (app && app->m_pszExeName && *app->m_pszExeName) return app->m_pszExeName;
     return L"OpenMFC";
+}
+
+bool ReadDwordRegistryValue(HKEY root, const wchar_t* subKey, const wchar_t* valueName, unsigned long* value) {
+    if (!subKey || !valueName || !value) return false;
+    HKEY key = nullptr;
+    if (::RegOpenKeyExW(root, subKey, 0, KEY_READ, &key) != ERROR_SUCCESS) {
+        return false;
+    }
+    DWORD type = 0;
+    DWORD bytes = static_cast<DWORD>(sizeof(*value));
+    DWORD raw = 0;
+    const LONG status = ::RegQueryValueExW(key, valueName, nullptr, &type, reinterpret_cast<LPBYTE>(&raw), &bytes);
+    ::RegCloseKey(key);
+    if (status != ERROR_SUCCESS || type != REG_DWORD || bytes != sizeof(*value)) return false;
+    *value = raw;
+    return true;
+}
+
+bool ReadPolicyValueFromRegistry(const std::wstring& appName, unsigned long policy, int* value) {
+    if (!value) return false;
+    *value = 0;
+    unsigned long raw = 0;
+    std::wstring valueName = std::to_wstring(policy);
+    std::wstring policyName = L"Policy" + valueName;
+    const wchar_t* keys[][2] = {
+        {L"Software\\OpenMFC\\Policies", valueName.c_str()},
+        {L"Software\\OpenMFC\\Policies", policyName.c_str()}
+    };
+
+    for (auto* const* pair : keys) {
+        if (!pair[0]) continue;
+        if (ReadDwordRegistryValue(HKEY_CURRENT_USER, pair[0], pair[1], &raw) ||
+            ReadDwordRegistryValue(HKEY_LOCAL_MACHINE, pair[0], pair[1], &raw)) {
+            *value = static_cast<int>(raw);
+            return true;
+        }
+    }
+
+    if (!appName.empty()) {
+        const std::wstring appSpecific = std::wstring(L"Software\\OpenMFC\\Policies\\") + appName;
+        if (ReadDwordRegistryValue(HKEY_CURRENT_USER, appSpecific.c_str(), valueName.c_str(), &raw) ||
+            ReadDwordRegistryValue(HKEY_LOCAL_MACHINE, appSpecific.c_str(), valueName.c_str(), &raw) ||
+            ReadDwordRegistryValue(HKEY_CURRENT_USER, appSpecific.c_str(), policyName.c_str(), &raw) ||
+            ReadDwordRegistryValue(HKEY_LOCAL_MACHINE, appSpecific.c_str(), policyName.c_str(), &raw)) {
+            *value = static_cast<int>(raw);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 HWND GetAppMainHwnd(CWinApp* app) {
@@ -1507,12 +1617,12 @@ extern "C" long MS_ABI impl__RegisterWithRestartManager_CWinApp__UEAAJHAEBV__CSt
 }
 
 static HCURSOR GetWaitCursorHandle() {
-    static HCURSOR s_wait = ::LoadCursorW(nullptr, IDC_WAIT);
+    static HCURSOR s_wait = ::LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_WAIT));
     return s_wait;
 }
 
 static HCURSOR GetArrowCursorHandle() {
-    static HCURSOR s_arrow = ::LoadCursorW(nullptr, IDC_ARROW);
+    static HCURSOR s_arrow = ::LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW));
     return s_arrow;
 }
 
@@ -1591,25 +1701,33 @@ extern "C" CDocTemplate* MS_ABI impl__GetNextDocTemplate_CDocManager__UEBAPEAVCD
 
 // Symbol: ?GetOpenDocumentCount@CDocManager@@UEAAHXZ
 extern "C" int MS_ABI impl__GetOpenDocumentCount_CDocManager__UEAAHXZ(CDocManager* pThis) {
-    (void)pThis;
-    return 0;
+    if (!pThis) return 0;
+    int total = 0;
+    for (CDocTemplate* tpl : g_docManagerStates[pThis].templates) {
+        total += CountTemplateDocuments(tpl);
+    }
+    return total;
 }
 
 // Symbol: ?GetDocumentCount@CDocManager@@IEAAHXZ
 extern "C" int MS_ABI impl__GetDocumentCount_CDocManager__IEAAHXZ(CDocManager* pThis) {
     if (!pThis) return 0;
-    return static_cast<int>(g_docManagerStates[pThis].templates.size());
+    int total = 0;
+    for (CDocTemplate* tpl : g_docManagerStates[pThis].templates) {
+        total += CountTemplateDocuments(tpl);
+    }
+    return total;
 }
 
 // Symbol: ?GetRuntimeClass@CDocManager@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDocManager__UEBAPEAUCRuntimeClass__XZ(const CDocManager* pThis) {
     (void)pThis;
-    return nullptr;
+    return &g_classCDocManager;
 }
 
 // Symbol: ?GetThisClass@CDocManager@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocManager__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &g_classCDocManager;
 }
 
 // Symbol: ?OpenDocumentFile@CDocManager@@UEAAPEAVCDocument@@PEB_W@Z
@@ -1634,49 +1752,72 @@ extern "C" void MS_ABI impl__OnFileNew_CDocManager__UEAAXXZ(CDocManager* pThis) 
 
 // Symbol: ?OnFileOpen@CDocManager@@UEAAXXZ
 extern "C" void MS_ABI impl__OnFileOpen_CDocManager__UEAAXXZ(CDocManager* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    CFileDialog dlg(
+        TRUE, nullptr, nullptr, OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST, nullptr, nullptr);
+    if (dlg.DoModal() != IDOK) {
+        return;
+    }
+    (void)OpenWithTemplates(g_docManagerStates[pThis].templates, static_cast<const wchar_t*>(dlg.GetPathName()), TRUE);
 }
 
 // Symbol: ?SaveAllModified@CDocManager@@UEAAHXZ
 extern "C" int MS_ABI impl__SaveAllModified_CDocManager__UEAAHXZ(CDocManager* pThis) {
-    (void)pThis;
+    if (!pThis) return TRUE;
+    for (CDocTemplate* tpl : g_docManagerStates[pThis].templates) {
+        if (!SaveTemplateDocuments(tpl)) return FALSE;
+    }
     return TRUE;
 }
 
 // Symbol: ?CloseAllDocuments@CDocManager@@UEAAXH@Z
 extern "C" void MS_ABI impl__CloseAllDocuments_CDocManager__UEAAXH_Z(CDocManager* pThis, int bEndSession) {
-    (void)pThis;
     (void)bEndSession;
+    if (!pThis) return;
+    for (CDocTemplate* tpl : g_docManagerStates[pThis].templates) {
+        CloseTemplateDocuments(tpl);
+    }
 }
 
 // Symbol: ?DoPromptFileName@CDocManager@@UEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@IKHPEAVCDocTemplate@@@Z
 extern "C" int MS_ABI impl__DoPromptFileName_CDocManager__UEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IKHPEAVCDocTemplate___Z(
     CDocManager* pThis, CString* fileName, unsigned int idTitle, unsigned long flags, int bOpenFileDialog, CDocTemplate* pTemplate) {
-    (void)pThis;
-    (void)idTitle;
-    (void)flags;
-    (void)bOpenFileDialog;
     (void)pTemplate;
-    if (fileName) *fileName = L"";
-    return FALSE;
+    (void)idTitle;
+    if (!pThis || !fileName) return FALSE;
+    CFileDialog dlg(
+        bOpenFileDialog, nullptr, static_cast<const wchar_t*>(*fileName), flags, nullptr, nullptr);
+    if (dlg.DoModal() != IDOK) return FALSE;
+    *fileName = dlg.GetPathName();
+    return TRUE;
 }
 
 // Symbol: ?OnDDECommand@CDocManager@@UEAAHPEA_W@Z
 extern "C" int MS_ABI impl__OnDDECommand_CDocManager__UEAAHPEA_W_Z(CDocManager* pThis, wchar_t* command) {
-    (void)pThis;
-    (void)command;
-    return FALSE;
+    if (!pThis || !command || !command[0]) return FALSE;
+    const wchar_t* path = command;
+    std::vector<std::wstring> tokens = TokenizeCommandLine(command);
+    if (!tokens.empty()) {
+        if (_wcsicmp(tokens[0].c_str(), L"open") == 0 && tokens.size() >= 2) {
+            path = tokens[1].c_str();
+        } else {
+            path = tokens[0].c_str();
+        }
+    }
+    return OpenWithTemplates(g_docManagerStates[pThis].templates, path, TRUE) ? TRUE : FALSE;
 }
 
 // Symbol: ?RegisterShellFileTypes@CDocManager@@UEAAXH@Z
 extern "C" void MS_ABI impl__RegisterShellFileTypes_CDocManager__UEAAXH_Z(CDocManager* pThis, int bCompat) {
-    (void)pThis;
+    if (!pThis) return;
+    g_docManagerStates[pThis].shellFileTypesRegistered = true;
     (void)bCompat;
 }
 
 // Symbol: ?UnregisterShellFileTypes@CDocManager@@QEAAXXZ
 extern "C" void MS_ABI impl__UnregisterShellFileTypes_CDocManager__QEAAXXZ(CDocManager* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    g_docManagerStates[pThis].shellFileTypesRegistered = false;
 }
 
 // Symbol: ??0CRecentFileList@@QEAA@IPEB_W0HH@Z
@@ -1741,18 +1882,43 @@ extern "C" void MS_ABI impl__Remove_CRecentFileList__UEAAXH_Z(CRecentFileList* p
 
 // Symbol: ?ReadList@CRecentFileList@@UEAAXXZ
 extern "C" void MS_ABI impl__ReadList_CRecentFileList__UEAAXXZ(CRecentFileList* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    auto& state = g_recentFileListStates[pThis];
+    if (state.maxEntries > 0 && static_cast<int>(state.entries.size()) > state.maxEntries) {
+        state.entries.resize(static_cast<size_t>(state.maxEntries));
+    }
 }
 
 // Symbol: ?WriteList@CRecentFileList@@UEAAXXZ
 extern "C" void MS_ABI impl__WriteList_CRecentFileList__UEAAXXZ(CRecentFileList* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    if (g_recentFileListStates.find(pThis) == g_recentFileListStates.end()) {
+        g_recentFileListStates[pThis] = RecentFileListState{};
+    }
 }
 
 // Symbol: ?UpdateMenu@CRecentFileList@@UEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__UpdateMenu_CRecentFileList__UEAAXPEAVCCmdUI___Z(CRecentFileList* pThis, CCmdUI* pCmdUI) {
-    (void)pThis;
-    (void)pCmdUI;
+    if (!pThis || !pCmdUI) return;
+    const auto it = g_recentFileListStates.find(pThis);
+    if (it == g_recentFileListStates.end()) {
+        pCmdUI->Enable(FALSE);
+        return;
+    }
+
+    const RecentFileListState& state = it->second;
+    const int index = static_cast<int>(pCmdUI->m_nID) - static_cast<int>(state.start);
+    if (index < 0 || index >= static_cast<int>(state.entries.size())) {
+        pCmdUI->Enable(FALSE);
+        return;
+    }
+
+    std::wstring display = state.entries[static_cast<size_t>(index)];
+    if (state.maxDisplayLen > 0 && static_cast<int>(display.size()) > state.maxDisplayLen) {
+        display.resize(static_cast<size_t>(state.maxDisplayLen));
+    }
+    pCmdUI->SetText(display.c_str());
+    pCmdUI->Enable(TRUE);
 }
 
 // Symbol: ?GetDisplayName@CRecentFileList@@UEBAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HPEB_WHH@Z
@@ -1800,8 +1966,12 @@ extern "C" CDocTemplate* MS_ABI impl__GetNextDocTemplate_CWinApp__QEBAPEAVCDocTe
 
 // Symbol: ?GetOpenDocumentCount@CWinApp@@QEAAHXZ
 extern "C" int MS_ABI impl__GetOpenDocumentCount_CWinApp__QEAAHXZ(CWinApp* pThis) {
-    (void)pThis;
-    return 0;
+    if (!pThis) return 0;
+    int total = 0;
+    for (CDocTemplate* tpl : g_appRuntimeStates[pThis].templates) {
+        total += CountTemplateDocuments(tpl);
+    }
+    return total;
 }
 
 // Symbol: ?OpenDocumentFile@CWinApp@@UEAAPEAVCDocument@@PEB_W@Z
@@ -1833,14 +2003,24 @@ extern "C" void MS_ABI impl__OnFileOpen_CWinApp__IEAAXXZ(CWinApp* pThis) {
 extern "C" int MS_ABI impl__OnOpenRecentFile_CWinApp__IEAAHI_Z(CWinApp* pThis, unsigned int index) {
     if (!pThis) return FALSE;
     const auto& entries = g_appRuntimeStates[pThis].recentEntries;
-    if (index >= entries.size()) return FALSE;
-    return OpenWithTemplates(g_appRuntimeStates[pThis].templates, entries[index].c_str(), TRUE) != nullptr;
+    const AppRuntimeState& state = g_appRuntimeStates[pThis];
+    const int resolved = AppRecentIndexFromCommand(state, index);
+    if (resolved < 0 || static_cast<size_t>(resolved) >= entries.size()) return FALSE;
+    return OpenWithTemplates(state.templates, entries[static_cast<size_t>(resolved)].c_str(), TRUE) != nullptr;
 }
 
 // Symbol: ?OnUpdateRecentFileMenu@CWinApp@@IEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__OnUpdateRecentFileMenu_CWinApp__IEAAXPEAVCCmdUI___Z(CWinApp* pThis, CCmdUI* pCmdUI) {
-    (void)pThis;
-    (void)pCmdUI;
+    if (!pThis || !pCmdUI) return;
+    const auto& entries = g_appRuntimeStates[pThis].recentEntries;
+    const AppRuntimeState& state = g_appRuntimeStates[pThis];
+    const int index = AppRecentIndexFromCommand(state, pCmdUI->m_nID);
+    if (index < 0 || static_cast<size_t>(index) >= entries.size()) {
+        pCmdUI->Enable(FALSE);
+        return;
+    }
+    pCmdUI->SetText(entries[static_cast<size_t>(index)].c_str());
+    pCmdUI->Enable(TRUE);
 }
 
 namespace {
@@ -1928,8 +2108,8 @@ extern "C" CWnd* MS_ABI impl__GetMainWnd_CWinThread__UEAAPEAVCWnd__XZ(CWinThread
 }
 
 // Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread*, int, MSG*) {
-    return FALSE;
+extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread* pThis, int, MSG* msg) {
+    return (pThis && msg && pThis->PreTranslateMessage(msg)) ? TRUE : FALSE;
 }
 
 // Symbol: ?ProcessWndProcException@CWinThread@@UEAA_JPEAVCException@@PEBUtagMSG@@@Z
@@ -1990,7 +2170,19 @@ extern "C" int MS_ABI impl__CreatePrinterDC_CWinApp__QEAAHAEAVCDC___Z(CWinApp* p
 }
 
 // Symbol: ?DevModeChange@CWinApp@@QEAAXPEA_W@Z
-extern "C" void MS_ABI impl__DevModeChange_CWinApp__QEAAXPEA_W_Z(CWinApp*, wchar_t*) {
+extern "C" void MS_ABI impl__DevModeChange_CWinApp__QEAAXPEA_W_Z(CWinApp* pThis, wchar_t* lpDeviceName) {
+    if (!pThis) return;
+    if (!lpDeviceName || *lpDeviceName == L'\0') return;
+    auto& state = g_appRuntimeStates[pThis];
+    state.selectedPrinter = 0;
+    if (state.printerDevMode) {
+        ::GlobalFree(state.printerDevMode);
+        state.printerDevMode = nullptr;
+    }
+    if (state.printerDevNames) {
+        ::GlobalFree(state.printerDevNames);
+        state.printerDevNames = nullptr;
+    }
 }
 
 // Symbol: ?DoEnableModeless@CWinApp@@SAXH@Z
@@ -2062,8 +2254,9 @@ extern "C" HKEY MS_ABI impl__GetSectionKey_CWinApp__QEAAPEAUHKEY____PEB_WPEAVCAt
 }
 
 // Symbol: ?GetDataRecoveryHandler@CWinApp@@UEAAPEAVCDataRecoveryHandler@@XZ
-extern "C" void* MS_ABI impl__GetDataRecoveryHandler_CWinApp__UEAAPEAVCDataRecoveryHandler__XZ(CWinApp*) {
-    return nullptr;
+extern "C" void* MS_ABI impl__GetDataRecoveryHandler_CWinApp__UEAAPEAVCDataRecoveryHandler__XZ(CWinApp* pThis) {
+    if (!pThis) return nullptr;
+    return &g_appRuntimeStates[pThis].dataRecoveryHandler;
 }
 
 // Symbol: ?GetITaskbarList@CWinApp@@QEAAPEAUITaskbarList@@XZ
@@ -2110,9 +2303,10 @@ extern "C" int MS_ABI impl__GetPrinterDeviceDefaults_CWinApp__QEAAHPEAUtagPDW___
 }
 
 // Symbol: ?GetSysPolicyValue@CWinApp@@QEAAHKPEAH@Z
-extern "C" int MS_ABI impl__GetSysPolicyValue_CWinApp__QEAAHKPEAH_Z(CWinApp*, unsigned long, int* value) {
-    if (value) *value = 0;
-    return FALSE;
+extern "C" int MS_ABI impl__GetSysPolicyValue_CWinApp__QEAAHKPEAH_Z(CWinApp* pThis, unsigned long uiPolicy, int* value) {
+    if (!value) return FALSE;
+    const std::wstring appName = GetAppName(pThis);
+    return ReadPolicyValueFromRegistry(appName, uiPolicy, value) ? TRUE : FALSE;
 }
 
 // Symbol: ?HideApplication@CWinApp@@QEAAXXZ
@@ -2122,11 +2316,39 @@ extern "C" void MS_ABI impl__HideApplication_CWinApp__QEAAXXZ(CWinApp* pThis) {
 }
 
 // Symbol: ?HtmlHelpW@CWinApp@@UEAAX_KI@Z
-extern "C" void MS_ABI impl__HtmlHelpW_CWinApp__UEAAX_KI_Z(CWinApp*, unsigned long long, unsigned int) {
+extern "C" void MS_ABI impl__HtmlHelpW_CWinApp__UEAAX_KI_Z(
+    CWinApp* pThis, unsigned long long data, unsigned int command) {
+    if (!pThis || !pThis->m_pszHelpFilePath) return;
+    HWND hwnd = GetAppMainHwnd(pThis);
+    using HtmlHelpFn = HWND(WINAPI*)(HWND, LPCWSTR, UINT, ULONG_PTR);
+    HMODULE hhModule = ::GetModuleHandleW(L"hhctrl.ocx");
+    bool owned = false;
+    if (!hhModule) {
+        hhModule = ::LoadLibraryW(L"hhctrl.ocx");
+        owned = hhModule != nullptr;
+    }
+    if (!hhModule) {
+        hhModule = ::LoadLibraryW(L"hhctrl.dll");
+        owned = hhModule != nullptr;
+    }
+    if (hhModule) {
+        HtmlHelpFn htmlHelp = reinterpret_cast<HtmlHelpFn>(::GetProcAddress(hhModule, "HtmlHelpW"));
+        if (htmlHelp) {
+            htmlHelp(hwnd, pThis->m_pszHelpFilePath, command, data);
+        } else {
+            impl__WinHelpInternal_CWinApp__UEAAX_KI_Z(pThis, data, command);
+        }
+        if (owned) ::FreeLibrary(hhModule);
+        return;
+    }
+    impl__WinHelpInternal_CWinApp__UEAAX_KI_Z(pThis, data, command);
 }
 
 // Symbol: ?InitLibId@CWinApp@@UEAAXXZ
-extern "C" void MS_ABI impl__InitLibId_CWinApp__UEAAXXZ(CWinApp*) {
+extern "C" void MS_ABI impl__InitLibId_CWinApp__UEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    auto& state = g_appRuntimeStates[pThis];
+    state.appId = GetAppName(pThis);
 }
 
 // Symbol: ?IsTaskbarInteractionEnabled@CWinApp@@UEAAHXZ
@@ -2136,7 +2358,12 @@ extern "C" int MS_ABI impl__IsTaskbarInteractionEnabled_CWinApp__UEAAHXZ(CWinApp
 
 // Symbol: ?IsWindows7@CWinApp@@QEAAHXZ
 extern "C" int MS_ABI impl__IsWindows7_CWinApp__QEAAHXZ(CWinApp*) {
-    return TRUE;
+    OSVERSIONINFOEXW version{};
+    version.dwOSVersionInfoSize = sizeof(version);
+    if (::GetVersionExW(reinterpret_cast<LPOSVERSIONINFOW>(&version))) {
+        return version.dwMajorVersion == 6 && version.dwMinorVersion == 1 ? TRUE : FALSE;
+    }
+    return FALSE;
 }
 
 // Symbol: ?LoadAppLangResourceDLL@CWinApp@@UEAAPEAUHINSTANCE__@@XZ
@@ -2145,8 +2372,17 @@ extern "C" HINSTANCE MS_ABI impl__LoadAppLangResourceDLL_CWinApp__UEAAPEAUHINSTA
 }
 
 // Symbol: ?LoadSysPolicies@CWinApp@@UEAAHXZ
-extern "C" int MS_ABI impl__LoadSysPolicies_CWinApp__UEAAHXZ(CWinApp*) {
-    return TRUE;
+extern "C" int MS_ABI impl__LoadSysPolicies_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    int policyValue = 0;
+    bool hasPolicy = false;
+    const std::wstring appName = GetAppName(pThis);
+    for (unsigned long policy = 1; policy <= 4; ++policy) {
+        if (ReadPolicyValueFromRegistry(appName, policy, &policyValue)) {
+            hasPolicy = true;
+        }
+    }
+    return hasPolicy ? TRUE : FALSE;
 }
 
 // Symbol: ?OnAppExit@CWinApp@@IEAAXXZ
@@ -2156,12 +2392,17 @@ extern "C" void MS_ABI impl__OnAppExit_CWinApp__IEAAXXZ(CWinApp* pThis) {
 }
 
 // Symbol: ?OnContextHelp@CWinApp@@IEAAXXZ
-extern "C" void MS_ABI impl__OnContextHelp_CWinApp__IEAAXXZ(CWinApp*) {
+extern "C" void MS_ABI impl__OnContextHelp_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    impl__OnHelp_CWinApp__IEAAXXZ(pThis);
 }
 
 // Symbol: ?OnDDECommand@CWinApp@@UEAAHPEA_W@Z
-extern "C" int MS_ABI impl__OnDDECommand_CWinApp__UEAAHPEA_W_Z(CWinApp*, wchar_t*) {
-    return FALSE;
+extern "C" int MS_ABI impl__OnDDECommand_CWinApp__UEAAHPEA_W_Z(CWinApp* pThis, wchar_t* command) {
+    if (!pThis || !command) return FALSE;
+    auto& state = g_appRuntimeStates[pThis];
+    if (!state.shellOpenEnabled) return FALSE;
+    return command[0] != L'\0' ? TRUE : FALSE;
 }
 
 // Symbol: ?OnFilePrintSetup@CWinApp@@IEAAXXZ
@@ -2207,7 +2448,10 @@ extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinApp__UEAA_JPEAVCExc
 }
 
 // Symbol: ?Register@CWinApp@@UEAAHXZ
-extern "C" int MS_ABI impl__Register_CWinApp__UEAAHXZ(CWinApp*) {
+extern "C" int MS_ABI impl__Register_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    g_appRuntimeStates[pThis].shellOpenEnabled = true;
+    impl__LoadSysPolicies_CWinApp__UEAAHXZ(pThis);
     return TRUE;
 }
 
@@ -2223,8 +2467,10 @@ extern "C" long MS_ABI impl__RegisterWithRestartManager_CWinApp__UEAAJPEB_WKP6AK
 }
 
 // Symbol: ?RestartInstance@CWinApp@@UEAAHXZ
-extern "C" int MS_ABI impl__RestartInstance_CWinApp__UEAAHXZ(CWinApp*) {
-    return FALSE;
+extern "C" int MS_ABI impl__RestartInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    auto& state = g_appRuntimeStates[pThis];
+    return state.automated || state.embedded || !state.appId.empty() ? TRUE : FALSE;
 }
 
 // Symbol: ?RunAutomated@CWinApp@@QEAAHXZ
@@ -2246,7 +2492,15 @@ extern "C" int MS_ABI impl__RunEmbedded_CWinApp__QEAAHXZ(CWinApp* pThis) {
 }
 
 // Symbol: ?SaveStdProfileSettings@CWinApp@@IEAAXXZ
-extern "C" void MS_ABI impl__SaveStdProfileSettings_CWinApp__IEAAXXZ(CWinApp*) {
+extern "C" void MS_ABI impl__SaveStdProfileSettings_CWinApp__IEAAXXZ(CWinApp* pThis) {
+    if (!pThis) return;
+    auto& state = g_appRuntimeStates[pThis];
+    if (state.maxRecent == 0) state.maxRecent = 4;
+    impl__WriteProfileInt_CWinApp__UEAAHPEB_W0H_Z(pThis, L"Settings", L"MaxRecentDocs", static_cast<int>(state.maxRecent));
+    for (unsigned int i = 0; i < state.maxRecent && i < state.recentEntries.size(); ++i) {
+        std::wstring key = L"RecentFile" + std::to_wstring(i + 1);
+        impl__WriteProfileStringW_CWinApp__UEAAHPEB_W00_Z(pThis, L"Settings", key.c_str(), state.recentEntries[i].c_str());
+    }
 }
 
 // Symbol: ?SelectPrinter@CWinApp@@QEAAXPEAX0H@Z
@@ -2284,7 +2538,21 @@ extern "C" void MS_ABI impl__SetRegistryKey_CWinApp__IEAAXI_Z(CWinApp* pThis, un
 }
 
 // Symbol: ?Unregister@CWinApp@@UEAAHXZ
-extern "C" int MS_ABI impl__Unregister_CWinApp__UEAAHXZ(CWinApp*) {
+extern "C" int MS_ABI impl__Unregister_CWinApp__UEAAHXZ(CWinApp* pThis) {
+    if (!pThis) return FALSE;
+    auto& state = g_appRuntimeStates[pThis];
+    state.shellOpenEnabled = false;
+    state.selectedPrinter = 0;
+    if (state.printerDevMode) {
+        ::GlobalFree(state.printerDevMode);
+        state.printerDevMode = nullptr;
+    }
+    if (state.printerDevNames) {
+        ::GlobalFree(state.printerDevNames);
+        state.printerDevNames = nullptr;
+    }
+    impl__UnregisterShellFileTypes_CWinApp__IEAAXXZ(pThis);
+    impl__ReleaseTaskBarRefs_CWinApp__QEAAXXZ(pThis);
     return TRUE;
 }
 
@@ -2294,7 +2562,20 @@ extern "C" void MS_ABI impl__UnregisterShellFileTypes_CWinApp__IEAAXXZ(CWinApp* 
 }
 
 // Symbol: ?UpdatePrinterSelection@CWinApp@@IEAAXH@Z
-extern "C" void MS_ABI impl__UpdatePrinterSelection_CWinApp__IEAAXH_Z(CWinApp*, int) {
+extern "C" void MS_ABI impl__UpdatePrinterSelection_CWinApp__IEAAXH_Z(CWinApp* pThis, int nMode) {
+    if (!pThis) return;
+    auto& state = g_appRuntimeStates[pThis];
+    state.selectedPrinter = nMode;
+    if (nMode == 0) {
+        if (state.printerDevMode) {
+            ::GlobalFree(state.printerDevMode);
+            state.printerDevMode = nullptr;
+        }
+        if (state.printerDevNames) {
+            ::GlobalFree(state.printerDevNames);
+            state.printerDevNames = nullptr;
+        }
+    }
 }
 
 // Symbol: ?WinHelpInternal@CWinApp@@UEAAX_KI@Z
@@ -2308,6 +2589,9 @@ extern "C" void MS_ABI impl__WinHelpW_CWinApp__UEAAX_KI_Z(CWinApp* pThis, unsign
 }
 
 // Symbol: ?ApplicationRecoveryCallback@CWinApp@@UEAAKPEAX@Z
-extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAKPEAX_Z(CWinApp*, void*) {
+extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAKPEAX_Z(CWinApp* pThis, void* pContext) {
+    if (!pThis) return 1;
+    (void)pContext;
+    impl__SaveAllModified_CWinApp__UEAAHXZ(pThis);
     return 0;
 }

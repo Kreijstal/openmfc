@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-300",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2554,
+      "symbol": "?ButtonToIndex@CMFCToolBar@@QEBAHPEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2593,
+      "symbol": "?CalcFixedLayout@CMFCToolBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2603,
+      "symbol": "?CalcLayout@CMFCToolBar@@MEAA?AVCSize@@KH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2606,
+      "symbol": "?CalcMaxButtonHeight@CMFCToolBar@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2619,
+      "symbol": "?CalcSize@CMFCToolBar@@UEAA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2671,
+      "symbol": "?CanHandleSiblings@CMFCToolBar@@QEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2748,
+      "symbol": "?CleanUpImages@CMFCToolBar@@SAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2749,
+      "symbol": "?CleanUpLockedImages@CMFCToolBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 2859,
+      "symbol": "?CommandToIndex@CMFCToolBar@@QEBAHIH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 3237,
+      "symbol": "?CreateDroppedButton@CMFCToolBar@@MEAAPEAVCMFCToolBarButton@@PEAVCOleDataObject@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 300/439: CMFCToolBar"
+}

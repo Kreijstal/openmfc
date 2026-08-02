@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-110",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 10840,
+      "symbol": "?OnPrintClient@CMFCDesktopAlertWnd@@IEAA_JPEAVCDC@@I@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 11354,
+      "symbol": "?OnTimer@CMFCDesktopAlertWnd@@IEAAX_K@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 11605,
+      "symbol": "?OnWindowPosChanged@CMFCDesktopAlertWnd@@IEAAXPEAUtagWINDOWPOS@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 11916,
+      "symbol": "?ProcessCommand@CMFCDesktopAlertWnd@@QEAAHPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 12918,
+      "symbol": "?SetAnimationSpeed@CMFCDesktopAlertWnd@@QEAAXI@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 13897,
+      "symbol": "?StartAnimation@CMFCDesktopAlertWnd@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertWnd",
+      "ordinal": 13908,
+      "symbol": "?StartWindowMove@CMFCDesktopAlertWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 1205,
+      "symbol": "??1CMFCDragFrameImpl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 4054,
+      "symbol": "?DrawDragFrame@CMFCDragFrameImpl@@IEAAXPEBUtagRECT@@0HHH@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 4064,
+      "symbol": "?DrawFrameTab@CMFCDragFrameImpl@@IEAAXPEAVCDockablePane@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 110/439: CMFCDesktopAlertWnd, CMFCDragFrameImpl"
+}

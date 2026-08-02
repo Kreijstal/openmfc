@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-32",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDateTimeCtrl",
+      "ordinal": 13688,
+      "symbol": "?SetTime@CDateTimeCtrl@@QEAAHPEAU_SYSTEMTIME@@@Z"
+    },
+    {
+      "class": "CDateTimeCtrl",
+      "ordinal": 13689,
+      "symbol": "?SetTime@CDateTimeCtrl@@QEAAHPEBVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 3851,
+      "symbol": "?DialogMouseHookProc@CDialogImpl@@KA_JH_K_J@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 8310,
+      "symbol": "?m_hookMouse@CDialogImpl@@1PEAUHHOOK__@@EA"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 8379,
+      "symbol": "?m_pMenuDlgImpl@CDialogImpl@@1PEAV1@EA"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 8584,
+      "symbol": "?OnActivate@CDialogImpl@@IEAAXIPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 8927,
+      "symbol": "?OnCommand@CDialogImpl@@IEAAH_K_J@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 9110,
+      "symbol": "?OnDestroy@CDialogImpl@@IEAAXXZ"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 10546,
+      "symbol": "?OnNcActivate@CDialogImpl@@IEAAXAEAH@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 11856,
+      "symbol": "?PreTranslateMessage@CDialogImpl@@IEAAHPEAUtagMSG@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 32/91: CDialogImpl, CDateTimeCtrl"
+}

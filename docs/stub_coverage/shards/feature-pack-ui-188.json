@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-188",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11885,
+      "symbol": "?PreTranslateMessage@CMFCRibbonBar@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11919,
+      "symbol": "?ProcessKey@CMFCRibbonBar@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12150,
+      "symbol": "?RecalcLayout@CMFCRibbonBar@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12299,
+      "symbol": "?RemoveAllCategories@CMFCRibbonBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12303,
+      "symbol": "?RemoveAllFromTabs@CMFCRibbonBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12308,
+      "symbol": "?RemoveAllKeys@CMFCRibbonBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12340,
+      "symbol": "?RemoveCategory@CMFCRibbonBar@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12671,
+      "symbol": "?SaveState@CMFCRibbonBar@@MEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12691,
+      "symbol": "?SaveToXMLBuffer@CMFCRibbonBar@@QEBAIPEAPEAE@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 12692,
+      "symbol": "?SaveToXMLFile@CMFCRibbonBar@@QEBAHPEB_W@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 188/439: CMFCRibbonBar"
+}

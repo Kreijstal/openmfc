@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-350",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10891,
+      "symbol": "?OnRemove@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10926,
+      "symbol": "?OnResetAll@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10975,
+      "symbol": "?OnSelchangeCategory@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10978,
+      "symbol": "?OnSelchangeCommandsList@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10981,
+      "symbol": "?OnSelchangeCurrentKeysList@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10990,
+      "symbol": "?OnSelchangeViewType@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 11508,
+      "symbol": "?OnUpdateNewShortcutKey@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 12914,
+      "symbol": "?SetAllCategory@CMFCToolBarsKeyboardPropertyPage@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBarsListCheckBox",
+      "ordinal": 1304,
+      "symbol": "??1CMFCToolBarsListCheckBox@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarsListCheckBox",
+      "ordinal": 4225,
+      "symbol": "?EnableCheck@CMFCToolBarsListCheckBox@@QEAAXHH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 350/439: CMFCToolBarsKeyboardPropertyPage, CMFCToolBarsListCheckBox"
+}

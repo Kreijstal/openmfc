@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-81",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 12578,
+      "symbol": "?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAUtagTIMESTAMP_STRUCT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12579,
+      "symbol": "?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12580,
+      "symbol": "?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12581,
+      "symbol": "?RFX_Date_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAUtagTIMESTAMP_STRUCT@@PEAPEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12582,
+      "symbol": "?RFX_Double@@YAXPEAVCFieldExchange@@PEB_WAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12583,
+      "symbol": "?RFX_Double_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEANPEAPEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12584,
+      "symbol": "?RFX_Int@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12585,
+      "symbol": "?RFX_Int_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12586,
+      "symbol": "?RFX_Long@@YAXPEAVCFieldExchange@@PEB_WAEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12587,
+      "symbol": "?RFX_Long_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAJPEAPEA_J@Z"
+    }
+  ],
+  "title": "global_residuals shard 81/95: global"
+}

@@ -22,6 +22,7 @@
 
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afxmfc.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -57,10 +58,22 @@ static_assert(offsetof(S, m_pTaskPane) == 16, "m_pTaskPane @16");
 // Symbol: ?SetACCData@CMFCTasksPanePropertyPage@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI
 impl__SetACCData_CMFCTasksPanePropertyPage__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
-    void* pThis, void* pParent, void* /*pData*/)
+    void* pThis, void* pParent, void* pData)
 {
+    if (!pThis || !pData) return FALSE;
     S* self = static_cast<S*>(pThis);
-    (void)self;  // m_strName would be copied into the CAccessibilityData record here.
+    CAccessibilityData* data = static_cast<CAccessibilityData*>(pData);
+    data->m_strAccName = self->m_strName
+        ? CString(static_cast<const wchar_t*>(self->m_strName))
+        : CString();
+    data->m_strAccValue.Empty();
+    data->m_strDescription.Empty();
+    data->m_strAccKeys.Empty();
+    data->m_strAccHelp.Empty();
+    data->m_strAccDefAction.Empty();
+    data->m_nAccRole = 0x14; // ROLE_SYSTEM_GROUPING
+    data->m_bAccState = 0;
+    data->m_nAccHit = 0;
 
     // Faithful geometry step: derive the page's client rectangle from the parent window and
     // convert it to screen space, matching the framework's mapping before it records the
@@ -77,7 +90,9 @@ impl__SetACCData_CMFCTasksPanePropertyPage__UEAAHPEAVCWnd__AEAVCAccessibilityDat
                 POINT ptBR = { rc.right, rc.bottom };
                 ::ClientToScreen(hParent, &ptTL);
                 ::ClientToScreen(hParent, &ptBR);
-                // (Screen rectangle would be stored into the CAccessibilityData record here.)
+                data->m_rectAccLocation = CRect(ptTL.x, ptTL.y, ptBR.x, ptBR.y);
+                data->m_ptAccHit.x = (ptTL.x + ptBR.x) / 2;
+                data->m_ptAccHit.y = (ptTL.y + ptBR.y) / 2;
             }
         }
     }

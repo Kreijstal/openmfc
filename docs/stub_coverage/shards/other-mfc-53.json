@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-53",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMonikerFile",
+      "ordinal": 2480,
+      "symbol": "?Attach@CMonikerFile@@IEAAHPEAUIMoniker@@PEAUIBindHost@@PEAUIBindStatusCallback@@PEAUIBindCtx@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 2481,
+      "symbol": "?Attach@CMonikerFile@@IEAAHPEB_WPEAUIBindHost@@PEAUIBindStatusCallback@@PEAUIBindCtx@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 2808,
+      "symbol": "?Close@CMonikerFile@@UEAAXXZ"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 3176,
+      "symbol": "?CreateBindContext@CMonikerFile@@IEAAPEAUIBindCtx@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 3177,
+      "symbol": "?CreateBindHost@CMonikerFile@@KAPEAUIBindHost@@XZ"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 3833,
+      "symbol": "?Detach@CMonikerFile@@QEAAHPEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 4643,
+      "symbol": "?Flush@CMonikerFile@@UEAAXXZ"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 11646,
+      "symbol": "?Open@CMonikerFile@@MEAAHPEAUIMoniker@@PEAUIBindHost@@PEAUIBindStatusCallback@@PEAUIBindCtx@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 11647,
+      "symbol": "?Open@CMonikerFile@@MEAAHPEB_WPEAUIBindHost@@PEAUIBindStatusCallback@@PEAUIBindCtx@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 11648,
+      "symbol": "?Open@CMonikerFile@@UEAAHPEAUIMoniker@@PEAVCFileException@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 53/91: CMonikerFile"
+}

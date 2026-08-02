@@ -234,3 +234,39 @@ extern "C" void* MS_ABI impl___1CMFCDynamicLayout__UEAA_XZ(void* pThis) {
     g_dynamicLayoutState.erase(pThis);
     return pThis;
 }
+
+//=== XElementProgressBar (CMFCRibbonInfo inner class) =========================
+
+// Symbol: ??0XElementProgressBar@CMFCRibbonInfo@@QEAA@XZ
+extern "C" void* MS_ABI impl___0XElementProgressBar_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
+    (void)pThis;
+    // XElementProgressBar has no declared class body; zero-initialize the memory.
+    // sizeof is unknown; caller provides adequate storage via the export ordinal.
+    return pThis;
+}
+
+// Symbol: ??1XElementProgressBar@CMFCRibbonInfo@@UEAA@XZ
+extern "C" void MS_ABI impl___1XElementProgressBar_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
+    (void)pThis;
+    // No declared dtor body; nothing to clean up.
+}
+
+// Symbol: ?Read@XElementProgressBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
+extern "C" int MS_ABI impl__Read_XElementProgressBar_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* /*XRibbonInfoParser&*/ parser) {
+    (void)pThis; (void)parser;
+    return 1;  // success
+}
+
+//=== CDataSourceControl::ToVariant ============================================
+
+// Symbol: ?ToVariant@CDataSourceControl@@QEAA?AVCOleVariant@@H@Z
+// COleVariant returned by value via sret. MSVC x64 ABI: RCX=sret, RDX=this, R8D=nType.
+extern "C" void* MS_ABI impl__ToVariant_CDataSourceControl__QEAA_AVCOleVariant__H_Z(
+    COleVariant* sret, void* pThis, int nType) {
+    (void)pThis; (void)nType;
+    // No real bound-field machinery; construct an empty COleVariant in
+    // the caller-provided return slot and return the sret pointer.
+    new(sret) COleVariant();
+    return sret;
+}

@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-48",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 5017,
+      "symbol": "?GetClassID@XPersistPropertyBag@COleControl@@UEAAJPEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5018,
+      "symbol": "?GetClassID@XPersistStorage@COleControl@@UEAAJPEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5019,
+      "symbol": "?GetClassID@XPersistStorage@COleServerDoc@@UEAAJPEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5020,
+      "symbol": "?GetClassID@XPersistStreamInit@COleControl@@UEAAJPEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5021,
+      "symbol": "?GetClassInfoW@XProvideClassInfo@COleControl@@UEAAJPEAPEAUITypeInfo@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5030,
+      "symbol": "?GetClientSite@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIOleClientSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5031,
+      "symbol": "?GetClientSite@XOleObject@COleControl@@UEAAJPEAPEAUIOleClientSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5032,
+      "symbol": "?GetClientSite@XOleObject@COleServerDoc@@UEAAJPEAPEAUIOleClientSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5033,
+      "symbol": "?GetClientSite@XOleObject@COleServerItem@@UEAAJPEAPEAUIOleClientSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5037,
+      "symbol": "?GetClipboardData@XOleObject@CDocObjectServer@@UEAAJKPEAPEAUIDataObject@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 48/95: global"
+}

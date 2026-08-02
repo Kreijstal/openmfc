@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-70",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleServerDoc",
+      "ordinal": 5937,
+      "symbol": "?GetMoniker@COleServerDoc@@UEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 7553,
+      "symbol": "?GetZoomFactor@COleServerDoc@@QEBAHPEAUtagSIZE@@0PEBUtagRECT@@@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 8544,
+      "symbol": "?NotifyAllItems@COleServerDoc@@IEAAXW4OLE_NOTIFICATION@@_K@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 8878,
+      "symbol": "?OnClose@COleServerDoc@@MEAAXW4tagOLECLOSE@@@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 8891,
+      "symbol": "?OnCloseDocument@COleServerDoc@@UEAAXXZ"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 9095,
+      "symbol": "?OnDeactivate@COleServerDoc@@UEAAXXZ"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 9098,
+      "symbol": "?OnDeactivateUI@COleServerDoc@@UEAAXH@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 9180,
+      "symbol": "?OnDocWindowActivate@COleServerDoc@@UEAAXH@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 9825,
+      "symbol": "?OnExecOleCmd@COleServerDoc@@MEAAJPEBU_GUID@@KKPEAUtagVARIANT@@1@Z"
+    },
+    {
+      "class": "COleServerDoc",
+      "ordinal": 9845,
+      "symbol": "?OnFileSaveCopyAs@COleServerDoc@@IEAAXXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 70/77: COleServerDoc"
+}

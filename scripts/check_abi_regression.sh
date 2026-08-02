@@ -7,7 +7,7 @@ set -eu
 # The API is set in stone - we must not regress.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DLL="$ROOT/build-phase4/openmfc.dll"
+DLL="${BUILD:-$ROOT/build-phase4}/openmfc.dll"
 MAPPING="$ROOT/mfc_complete_ordinal_mapping.json"
 BASELINE="${1:-}"
 

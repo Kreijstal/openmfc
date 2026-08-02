@@ -18,12 +18,16 @@
 //
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afxmfc.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+struct CRuntimeClass;
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(const void* pThis);
 
 namespace {
 
@@ -50,6 +54,32 @@ static_assert(offsetof(S, m_bIsBottom)  == 80,  "m_bIsBottom @80");
 static_assert(offsetof(S, m_hIcon)      == 136, "m_hIcon @136");
 static_assert(offsetof(S, m_clrTextHot) == 148, "m_clrTextHot @148");
 
+struct OpenMfcRuntimeClass {
+    const char* m_lpszClassName;
+    int m_nObjectSize;
+    unsigned short m_wSchema;
+    void* m_pfnCreateObject;
+    void* m_pfnGetBaseClass;
+    OpenMfcRuntimeClass* m_pBaseClass;
+    void* m_pClassContext;
+};
+
+static OpenMfcRuntimeClass g_CMFCTasksPaneTaskGroup_rtti = {
+    "CMFCTasksPaneTaskGroup",
+    sizeof(S),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+};
+
+static OpenMfcRuntimeClass* GetBaseClass() {
+    static OpenMfcRuntimeClass* base = reinterpret_cast<OpenMfcRuntimeClass*>(
+        impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(nullptr));
+    return base ? base : nullptr;
+}
+
 } // namespace
 
 // Forward decl so the vtable can reference the exported thunk.
@@ -62,16 +92,29 @@ namespace {
 // --- CObject base-slot wrappers (no exports for these) --------------------
 
 // GetRuntimeClass: no CRuntimeClass descriptor is authored for this helper
-// class; return null rather than fabricate a bogus descriptor.
-const void* MS_ABI vslot_GetRuntimeClass(void* /*p*/) { return nullptr; }
+// class; install a local descriptor with CObject as base.
+const void* MS_ABI vslot_GetRuntimeClass(void* /*p*/) {
+    if (!g_CMFCTasksPaneTaskGroup_rtti.m_pBaseClass) {
+        g_CMFCTasksPaneTaskGroup_rtti.m_pBaseClass = GetBaseClass();
+    }
+    return &g_CMFCTasksPaneTaskGroup_rtti;
+}
 
 // Serialize(CArchive&): CMFCTasksPaneTaskGroup is not serializable; the base
 // CObject::Serialize is a no-op.
-void MS_ABI vslot_Serialize(void* /*p*/, void* /*ar*/) {}
+void MS_ABI vslot_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
 
-// AssertValid()/Dump(CDumpContext&): diagnostics-only; no-ops in release.
-void MS_ABI vslot_AssertValid(void* /*p*/) {}
-void MS_ABI vslot_Dump(void* /*p*/, void* /*dc*/) {}
+void MS_ABI vslot_AssertValid(void* pThis) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::AssertValid();
+}
+void MS_ABI vslot_Dump(void* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::Dump();
+}
 
 // Vector-deleting-destructor slot (CMFCTasksPaneTaskGroup::{dtor}).
 // The real dtor empties m_lstTasks and clears m_pPage; the task list is owned
@@ -100,14 +143,42 @@ void* const g_CMFCTasksPaneTaskGroup_vtbl[6] = {
 // Symbol: ?SetACCData@CMFCTasksPaneTaskGroup@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 // virtual BOOL CMFCTasksPaneTaskGroup::SetACCData(CWnd* pParent, CAccessibilityData& data)
 //   Publishes this group's accessibility record (name/role/location) into the
-//   supplied CAccessibilityData. The CAccessibilityData layout is not part of
-//   the OpenMFC surface reconstructed here, so we cannot faithfully write its
-//   fields without risking memory corruption; the real method returns TRUE on
-//   success, which we mirror. Population of `data` is intentionally omitted.
+//   supplied CAccessibilityData. This implementation now mirrors the key observable
+//   fields (name, state, and location) that are compatible with the header-shimmed
+//   CAccessibilityData shape.
 extern "C" int MS_ABI
 impl__SetACCData_CMFCTasksPaneTaskGroup__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
-    void* pThis, void* /*pParent*/, void* /*pData*/) {
-    if (!pThis)
+    void* pThis, void* pParent, void* pData) {
+    if (!pThis || !pData)
         return FALSE;
+
+    const S* self = static_cast<const S*>(pThis);
+    CAccessibilityData* data = static_cast<CAccessibilityData*>(pData);
+    data->m_strAccName = self->m_strName ? *static_cast<CString*>(self->m_strName) : CString();
+    data->m_strAccValue.Empty();
+    data->m_strDescription.Empty();
+    data->m_strAccKeys.Empty();
+    data->m_strAccHelp.Empty();
+    data->m_strAccDefAction.Empty();
+    data->m_nAccRole = 0;
+    data->m_bAccState = self->m_bIsCollapsed ? 0 : 1;
+    data->m_nAccHit = 0;
+
+    CRect rect(self->m_rect.left, self->m_rect.top, self->m_rect.right, self->m_rect.bottom);
+    if (pParent) {
+        CWnd* pWnd = static_cast<CWnd*>(pParent);
+        HWND hWnd = pWnd->GetSafeHwnd();
+        if (hWnd) {
+            POINT tl{rect.left, rect.top};
+            POINT br{rect.right, rect.bottom};
+            ::ClientToScreen(hWnd, &tl);
+            ::ClientToScreen(hWnd, &br);
+            rect = CRect(tl.x, tl.y, br.x, br.y);
+        }
+    }
+
+    data->m_rectAccLocation = rect;
+    data->m_ptAccHit.x = (rect.left + rect.right) / 2;
+    data->m_ptAccHit.y = (rect.top + rect.bottom) / 2;
     return TRUE;
 }

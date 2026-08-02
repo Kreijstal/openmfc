@@ -316,9 +316,9 @@ for iw in (False, True):
         [('{PCCH}', 'name')], 'return self->LoadEnvVar(name);')
     CROSS[(iw, 'GetEnvironmentVariableW', 'QEAAHPEB{c}@Z'.replace('{c}', '_W' if iw else 'D'))] = ('int',
         [('{PCCH}', 'name')], 'return self->LoadEnvVar(name);')
-if True:
-    CROSS[(False, 'CharToOemA', 'QEAAXXZ')] = ('void', [], 'self->CharToOem();')
-    CROSS[(False, 'OemToCharA', 'QEAAXXZ')] = ('void', [], 'self->OemToChar();')
+for iw in (False, True):
+    CROSS[(iw, 'CharToOemA', 'QEAAXXZ')] = ('void', [], 'self->CharToOem();')
+    CROSS[(iw, 'OemToCharA', 'QEAAXXZ')] = ('void', [], 'self->OemToChar();')
 
 # Resource / message formatting (both instantiations).
 for iw in (False, True):

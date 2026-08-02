@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-62",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleIPFrameWndEx",
+      "ordinal": 14215,
+      "symbol": "?WinHelpW@COleIPFrameWndEx@@UEAAX_KI@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 4342,
+      "symbol": "?EndDeferErrors@COleLinkingDoc@@QEAAJJ@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 5090,
+      "symbol": "?GetContainer@COleLinkingDoc@@UEAAPEAUIOleItemContainer@@XZ"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 8188,
+      "symbol": "?LockExternal@COleLinkingDoc@@IEAAXHH@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 8890,
+      "symbol": "?OnCloseDocument@COleLinkingDoc@@UEAAXXZ"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 9947,
+      "symbol": "?OnFindEmbeddedItem@COleLinkingDoc@@MEAAPEAVCOleClientItem@@PEB_W@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 10026,
+      "symbol": "?OnGetLinkedItem@COleLinkingDoc@@MEAAPEAVCOleServerItem@@PEB_W@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 10668,
+      "symbol": "?OnNewDocument@COleLinkingDoc@@UEAAHXZ"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 10716,
+      "symbol": "?OnOpenDocument@COleLinkingDoc@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "COleLinkingDoc",
+      "ordinal": 10959,
+      "symbol": "?OnSaveDocument@COleLinkingDoc@@UEAAHPEB_W@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 62/77: COleLinkingDoc, COleIPFrameWndEx"
+}

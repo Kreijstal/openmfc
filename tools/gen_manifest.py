@@ -73,11 +73,47 @@ def collect_symbol_comments(src_dir):
 
 def extract_class(symbol):
     """Extract class name from MSVC mangled symbol."""
+    # Constructor: ??0ClassName@@
+    m = re.match(r'\?\?0(\w+)@@', symbol)
+    if m:
+        return m.group(1)
+    # Destructor: ??1ClassName@@
+    m = re.match(r'\?\?1(\w+)@@', symbol)
+    if m:
+        return m.group(1)
+    # Regular method: ?Method@ClassName@@
     m = re.match(r'\?\w+@(\w+)@@', symbol)
     return m.group(1) if m else None
 
 
-def generate_manifest(exports, symbol_comments, skip_set):
+def symbol_to_impl_name(symbol):
+    """Convert a mangled symbol to its impl_ stub name.
+    Matches the convention in gen_thunks.py: replace ?@ with _, then
+    drop remaining non-alnum chars."""
+    stub = re.sub(r'[?@]', '_', symbol)
+    stub = re.sub(r'[^a-zA-Z0-9_]', '_', stub)
+    return 'impl_' + stub
+
+
+def collect_impl_functions(src_dir):
+    """Scan non-thunks source files for extern \"C\" MS_ABI impl_ functions.
+    Returns dict: impl_name -> {'file': str, 'line': int}
+    """
+    impl_funcs = {}
+    for fname in sorted(os.listdir(src_dir)):
+        if not fname.endswith('.cpp') or fname == 'thunks.cpp':
+            continue
+        fpath = os.path.join(src_dir, fname)
+        with open(fpath) as f:
+            for i, line in enumerate(f, 1):
+                for m in re.finditer(r'(impl_[A-Za-z0-9_]+)\s*\(', line):
+                    name = m.group(1)
+                    if name not in impl_funcs:
+                        impl_funcs[name] = {'file': fname, 'line': i}
+    return impl_funcs
+
+
+def generate_manifest(exports, symbol_comments, skip_set, impl_funcs=None):
     """Classify each export by status."""
     manifest = {
         'real': [],
@@ -103,6 +139,10 @@ def generate_manifest(exports, symbol_comments, skip_set):
         elif sym in symbol_comments:
             entry['category'] = 'real'
             entry.update(symbol_comments[sym])
+            manifest['real'].append(entry)
+        elif impl_funcs and symbol_to_impl_name(sym) in impl_funcs:
+            entry['category'] = 'real'
+            entry.update(impl_funcs[symbol_to_impl_name(sym)])
             manifest['real'].append(entry)
         else:
             entry['category'] = 'stub'
@@ -193,7 +233,8 @@ def main():
     exports = load_exports(args.mapping)
     skip_set = load_skip_list(args.skip)
     symbol_comments = collect_symbol_comments(args.source_dir)
-    manifest = generate_manifest(exports, symbol_comments, skip_set)
+    impl_funcs = collect_impl_functions(args.source_dir)
+    manifest = generate_manifest(exports, symbol_comments, skip_set, impl_funcs)
 
     if args.out.endswith('.json'):
         with open(args.out, 'w') as f:

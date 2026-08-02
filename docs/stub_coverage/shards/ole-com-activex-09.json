@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-09",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CHtmlView",
+      "ordinal": 11213,
+      "symbol": "?OnShowUI@CHtmlView@@UEAAJKPEAUIOleInPlaceActiveObject@@PEAUIOleCommandTarget@@PEAUIOleInPlaceFrame@@PEAUIOleInPlaceUIWindow@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 12023,
+      "symbol": "?QueryStatusWB@CHtmlView@@QEBA?AW4OLECMDF@@W4OLECMDID@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5155,
+      "symbol": "?GetCurSel@CMonthCalCtrl@@QEBAHAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5945,
+      "symbol": "?GetMonthRange@CMonthCalCtrl@@QEBAHAEAVCOleDateTime@ATL@@0K@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 6162,
+      "symbol": "?GetRange@CMonthCalCtrl@@QEBAKPEAVCOleDateTime@ATL@@0@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 6664,
+      "symbol": "?GetSelRange@CMonthCalCtrl@@QEBAHAEAVCOleDateTime@ATL@@0@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 7403,
+      "symbol": "?GetToday@CMonthCalCtrl@@QEBAHAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 13092,
+      "symbol": "?SetCurSel@CMonthCalCtrl@@QEAAHAEBVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 13532,
+      "symbol": "?SetRange@CMonthCalCtrl@@QEAAHPEBVCOleDateTime@ATL@@0@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 13583,
+      "symbol": "?SetSelRange@CMonthCalCtrl@@QEAAHAEBVCOleDateTime@ATL@@0@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 09/77: CMonthCalCtrl, CHtmlView"
+}

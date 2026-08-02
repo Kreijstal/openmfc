@@ -6,9 +6,12 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "openmfc/afxdb.h"
+#include "openmfc/afxole.h"
 #include <algorithm>
+#include <cstdint>
 #include <cwctype>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <new>
 #include <string>
@@ -67,6 +70,8 @@ struct RecordsetState {
 
 std::unordered_map<const CDatabase*, DbState> g_databaseStates;
 std::unordered_map<const CRecordset*, RecordsetState> g_recordsetStates;
+int g_loginTimeoutSeconds = 15;
+int g_queryTimeoutSeconds = 0;
 
 std::wstring WideOf(const wchar_t* value) {
     return value ? std::wstring(value) : std::wstring();
@@ -81,6 +86,10 @@ std::wstring LowerSql(const wchar_t* value) {
 
 bool SqlSucceeded(RETCODE rc) {
     return rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO;
+}
+
+inline SQLPOINTER CastOdbcOptionValue(std::uint64_t value) {
+    return reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value));
 }
 
 RecordsetState& EnsureRecordsetState(const CRecordset* recordset) {
@@ -189,7 +198,7 @@ BOOL CDatabase::Open(const wchar_t* lpszDSN, BOOL bExclusive, BOOL bReadOnly,
         return FALSE;
     }
 
-    SQLSetEnvAttr(m_henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0);
+    SQLSetEnvAttr(m_henv, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
 
     // Allocate connection handle
     if (SQLAllocHandle(SQL_HANDLE_DBC, m_henv, &m_hdbc) != SQL_SUCCESS) {
@@ -201,7 +210,7 @@ BOOL CDatabase::Open(const wchar_t* lpszDSN, BOOL bExclusive, BOOL bReadOnly,
     // Set read-only if specified
     if (m_bReadOnly) {
         SQLSetConnectAttr(m_hdbc, SQL_ATTR_ACCESS_MODE,
-                         (SQLPOINTER)SQL_MODE_READ_ONLY, 0);
+                         CastOdbcOptionValue(SQL_MODE_READ_ONLY), 0);
     }
 
     // Connect
@@ -251,14 +260,14 @@ void CDatabase::Close() {
 BOOL CDatabase::BeginTrans() {
     if (!m_bOpen) return FALSE;
     return SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
-                            (SQLPOINTER)SQL_AUTOCOMMIT_OFF, SQL_IS_UINTEGER) == SQL_SUCCESS;
+                            CastOdbcOptionValue(SQL_AUTOCOMMIT_OFF), SQL_IS_UINTEGER) == SQL_SUCCESS;
 }
 
 BOOL CDatabase::CommitTrans() {
     if (!m_bOpen) return FALSE;
     BOOL result = SQLEndTran(SQL_HANDLE_DBC, m_hdbc, SQL_COMMIT) == SQL_SUCCESS;
     SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
-                     (SQLPOINTER)SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
+                     CastOdbcOptionValue(SQL_AUTOCOMMIT_ON), SQL_IS_UINTEGER);
     return result;
 }
 
@@ -266,7 +275,7 @@ BOOL CDatabase::Rollback() {
     if (!m_bOpen) return FALSE;
     BOOL result = SQLEndTran(SQL_HANDLE_DBC, m_hdbc, SQL_ROLLBACK) == SQL_SUCCESS;
     SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
-                     (SQLPOINTER)SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
+                     CastOdbcOptionValue(SQL_AUTOCOMMIT_ON), SQL_IS_UINTEGER);
     return result;
 }
 
@@ -282,6 +291,9 @@ BOOL CDatabase::ExecuteSQL(const wchar_t* lpszSQL) {
 }
 
 void CDatabase::Cancel() {
+    if (m_hdbc == SQL_NULL_HDBC) return;
+    RETCODE rc = SQLCancel(m_hdbc);
+    g_databaseStates[this].lastRetCode = rc;
 }
 
 BOOL CDatabase::CanTransact() const {
@@ -301,19 +313,32 @@ CString CDatabase::GetConnect() const {
 }
 
 int CDatabase::GetLoginTimeout() {
-    return 15;
+    return g_loginTimeoutSeconds;
 }
 
 void CDatabase::SetLoginTimeout(int nSeconds) {
-    (void)nSeconds;
+    g_loginTimeoutSeconds = nSeconds >= 0 ? nSeconds : 0;
+    for (auto& pair : g_databaseStates) {
+        CDatabase* database = const_cast<CDatabase*>(pair.first);
+        if (!database || database->m_hdbc == SQL_NULL_HDBC) continue;
+        SQLSetConnectAttr(database->m_hdbc, SQL_ATTR_LOGIN_TIMEOUT,
+                         CastOdbcOptionValue(g_loginTimeoutSeconds),
+                         SQL_IS_UINTEGER);
+    }
 }
 
 int CDatabase::GetQueryTimeout() {
-    return 0;
+    return g_queryTimeoutSeconds;
 }
 
 void CDatabase::SetQueryTimeout(int nSeconds) {
-    (void)nSeconds;
+    g_queryTimeoutSeconds = nSeconds >= 0 ? nSeconds : 0;
+    for (auto& pair : g_recordsetStates) {
+        if (!pair.first || pair.first->m_hstmt == SQL_NULL_HSTMT) continue;
+        SQLSetStmtAttr(pair.first->m_hstmt, SQL_ATTR_QUERY_TIMEOUT,
+                       CastOdbcOptionValue(g_queryTimeoutSeconds),
+                       SQL_IS_UINTEGER);
+    }
 }
 
 //=============================================================================
@@ -327,22 +352,74 @@ CFieldExchange::CFieldExchange(RFX_Operation op, CRecordset* pRecordset)
 CFieldExchange::~CFieldExchange() {}
 
 BOOL CFieldExchange::IsFieldType(UINT* pnField) {
-    (void)pnField;
-    return TRUE;
+    if (!pnField) return FALSE;
+    if (m_nOperation == BindParam || m_nOperation == BindParamToField) {
+        if (*pnField == 0) {
+            *pnField = ++m_nParams;
+        }
+        return (*pnField != 0);
+    }
+    if (*pnField == 0) {
+        *pnField = ++m_nFields;
+    }
+    return (*pnField != 0);
 }
 
 void CFieldExchange::SetFieldType(UINT* pnField) {
-    (void)pnField;
+    if (!pnField) return;
+    if (m_nOperation == BindParam || m_nOperation == BindParamToField) {
+        if (*pnField == 0) {
+            *pnField = ++m_nParams;
+        }
+        return;
+    }
+    if (*pnField == 0) {
+        *pnField = ++m_nFields;
+    }
 }
 
 void CFieldExchange::Default(const wchar_t* lpszName, void* pv, __int64* pnLen,
                               int nSQLType, unsigned __int64 nLen, void* pvPrecision) {
-    (void)lpszName; (void)pv; (void)pnLen;
-    (void)nSQLType; (void)nLen; (void)pvPrecision;
+    (void)lpszName; (void)nSQLType;
+    if (!m_pRecordset) return;
+
+    RecordsetState& state = EnsureRecordsetState(m_pRecordset);
+    bool isParam = (m_nOperation == BindParam || m_nOperation == BindParamToField);
+    unsigned long fieldIndex = 0;
+    if (isParam) {
+        if (m_nParams == 0) ++m_nParams;
+        fieldIndex = static_cast<unsigned long>(m_nParams - 1);
+    } else {
+        if (m_nFields == 0) ++m_nFields;
+        fieldIndex = static_cast<unsigned long>(m_nFields - 1);
+    }
+
+    if (pv) {
+        if (isParam) state.boundParamIndexes[pv] = static_cast<int>(fieldIndex);
+        else state.boundFieldIndexes[pv] = static_cast<int>(fieldIndex);
+    }
+    if (pnLen) *pnLen = static_cast<__int64>(nLen);
+    if (pvPrecision) {
+        if (nSQLType == SQL_NUMERIC || nSQLType == SQL_DECIMAL) {
+            *static_cast<__int64*>(pvPrecision) = static_cast<__int64>(nLen);
+        } else {
+            *static_cast<__int64*>(pvPrecision) = 0;
+        }
+    }
+    if (state.fieldLengths.size() <= fieldIndex) {
+        state.fieldLengths.resize(fieldIndex + 1, 0);
+    }
+    if (nLen <= static_cast<unsigned __int64>(std::numeric_limits<long long>::max())) {
+        state.fieldLengths[fieldIndex] = static_cast<SQLLEN>(nLen);
+    }
 }
 
 void CFieldExchange::SetNull(const wchar_t* lpszName) {
-    (void)lpszName;
+    if (!m_pRecordset || !lpszName) return;
+    LoadRecordsetFields(m_pRecordset);
+    int index = FindFieldByName(m_pRecordset, lpszName);
+    if (index < 0) return;
+    EnsureRecordsetState(m_pRecordset).nullFields.insert(static_cast<unsigned long>(index));
 }
 
 //=============================================================================
@@ -368,11 +445,12 @@ CRecordset::~CRecordset() {
 
 BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     if (m_bOpen) return FALSE;
+    if (!m_pDatabase) return FALSE;
 
     m_nOpenType = nOpenType;
     m_dwOptions = dwOptions;
 
-    if (!m_pDatabase || !m_pDatabase->IsOpen()) {
+    if (!m_pDatabase->IsOpen()) {
         return FALSE;
     }
 
@@ -382,7 +460,11 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     }
 
     // Set options
-    OnSetOptions(m_hstmt);
+    if (!OnSetOptions(m_hstmt)) {
+        SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+        m_hstmt = SQL_NULL_HSTMT;
+        return FALSE;
+    }
 
     // Get SQL string
     CString strSQL = lpszSQL ? CString(lpszSQL) : GetDefaultSQL();
@@ -404,14 +486,30 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     SQLSMALLINT nCols = 0;
     SQLNumResultCols(m_hstmt, &nCols);
     m_nFields = nCols;
+    m_nRecordCount = 0;
+    SQLLEN rowCount = 0;
+    RETCODE rowRc = SQLRowCount(m_hstmt, &rowCount);
+    if (SqlSucceeded(rowRc) && rowCount > 0) {
+        m_nRecordCount = static_cast<long>(rowCount);
+    }
 
     m_bOpen = TRUE;
+    m_nEditMode = 0;
+    m_bDeleted = FALSE;
     m_bBOF = TRUE;
     m_bEOF = FALSE;
     m_nAbsolutePosition = 0;
-    m_nRecordCount = 0;
     {
         std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
+        RecordsetState& state = EnsureRecordsetState(this);
+        state = RecordsetState{};
+        state.currentSql = strSQL;
+        if (state.baseSql.IsEmpty()) state.baseSql = strSQL;
+        if (state.fieldLengths.size() < static_cast<size_t>(m_nFields)) {
+            state.fieldLengths.resize(static_cast<size_t>(m_nFields), 0);
+        } else {
+            state.fieldLengths.assign(static_cast<size_t>(m_nFields), 0);
+        }
         StoreSql(this, strSQL);
     }
 
@@ -435,7 +533,12 @@ BOOL CRecordset::IsDeleted() const {
 
 BOOL CRecordset::IsFieldDirty(void* pvField) {
     if (!pvField) return FALSE;
-    return EnsureRecordsetState(this).boundFieldIndexes.count(pvField) != 0;
+    RecordsetState& state = EnsureRecordsetState(this);
+    auto it = state.boundFieldIndexes.find(pvField);
+    if (it == state.boundFieldIndexes.end()) {
+        return FALSE;
+    }
+    return state.dirtyFields.count(static_cast<unsigned long>(it->second)) != 0;
 }
 
 BOOL CRecordset::IsFieldNull(void* pvField) {
@@ -447,78 +550,122 @@ BOOL CRecordset::IsFieldNull(void* pvField) {
 }
 
 BOOL CRecordset::IsFieldNullable(unsigned long dwField) {
-    (void)dwField;
-    return TRUE;
+    LoadRecordsetFields(this);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return TRUE;
+    auto& fields = it->second.fields;
+    if (dwField == 0 || dwField > fields.size()) return TRUE;
+    const auto& field = fields[dwField - 1];
+    return field.m_nNullability != SQL_NO_NULLS;
 }
 
 void CRecordset::MoveFirst() {
-    if (!m_bOpen) return;
-    if (SQLFetchScroll(m_hstmt, SQL_FETCH_FIRST, 0) == SQL_SUCCESS) {
-        m_bBOF = FALSE;
-        m_bEOF = FALSE;
-        m_nAbsolutePosition = 1;
-    }
+    Move(0, SQL_FETCH_FIRST);
 }
 
 void CRecordset::MoveLast() {
-    if (!m_bOpen) return;
-    if (SQLFetchScroll(m_hstmt, SQL_FETCH_LAST, 0) == SQL_SUCCESS) {
-        m_bBOF = FALSE;
-        m_bEOF = FALSE;
+    if (m_nRecordCount > 0) {
+        SetAbsolutePosition(m_nRecordCount);
+        return;
     }
+    Move(0, SQL_FETCH_LAST);
 }
 
 void CRecordset::MoveNext() {
-    if (!m_bOpen || m_bEOF) return;
-    RETCODE rc = SQLFetchScroll(m_hstmt, SQL_FETCH_NEXT, 0);
-    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-        m_bBOF = FALSE;
-        m_nAbsolutePosition++;
-    } else {
-        m_bEOF = TRUE;
+    if (m_bEOF) {
+        return;
     }
+    Move(0, SQL_FETCH_NEXT);
 }
 
 void CRecordset::MovePrev() {
-    if (!m_bOpen || m_bBOF) return;
-    RETCODE rc = SQLFetchScroll(m_hstmt, SQL_FETCH_PRIOR, 0);
-    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-        m_bEOF = FALSE;
-        if (m_nAbsolutePosition > 0) m_nAbsolutePosition--;
-    } else {
-        m_bBOF = TRUE;
+    if (m_bBOF) {
+        return;
     }
+    Move(0, SQL_FETCH_PRIOR);
 }
 
 void CRecordset::Move(long nRows, WORD wFetchType) {
     if (!m_bOpen) return;
-    SQLFetchScroll(m_hstmt, wFetchType, nRows);
+    RETCODE rc = SQLFetchScroll(m_hstmt, wFetchType, nRows);
+    if (SqlSucceeded(rc)) {
+        m_bBOF = FALSE;
+        m_bEOF = FALSE;
+
+        if (wFetchType == SQL_FETCH_FIRST) {
+            m_nAbsolutePosition = 1;
+        } else if (wFetchType == SQL_FETCH_LAST) {
+            m_nAbsolutePosition = m_nRecordCount > 0 ? m_nRecordCount : m_nAbsolutePosition;
+            if (m_nAbsolutePosition == 0) m_nAbsolutePosition = 1;
+        } else if (wFetchType == SQL_FETCH_ABSOLUTE) {
+            m_nAbsolutePosition = nRows > 0 ? nRows : (m_nRecordCount + nRows + 1);
+        } else if (wFetchType == SQL_FETCH_PRIOR) {
+            if (m_nAbsolutePosition > 0) --m_nAbsolutePosition;
+        } else if (wFetchType == SQL_FETCH_NEXT) {
+            ++m_nAbsolutePosition;
+        } else {
+            if (nRows != 0) m_nAbsolutePosition += nRows;
+        }
+        if (m_nRecordCount > 0) {
+            m_nAbsolutePosition = std::min(m_nAbsolutePosition, m_nRecordCount);
+            if (m_nAbsolutePosition < 1) m_nAbsolutePosition = 1;
+        }
+    } else if (rc == SQL_NO_DATA) {
+        if (wFetchType == SQL_FETCH_ABSOLUTE && nRows < 0) {
+            m_nAbsolutePosition = m_nRecordCount > 0
+                                     ? std::max<long>(1, m_nRecordCount + nRows + 1)
+                                     : 0;
+        }
+        if (nRows < 0 || wFetchType == SQL_FETCH_PRIOR || wFetchType == SQL_FETCH_FIRST) {
+            m_bBOF = TRUE;
+            m_nAbsolutePosition = 0;
+        } else {
+            m_bEOF = TRUE;
+        }
+    }
 }
 
 void CRecordset::SetAbsolutePosition(long nRows) {
-    m_nAbsolutePosition = nRows;
+    if (!m_bOpen) {
+        m_nAbsolutePosition = nRows;
+        return;
+    }
+    Move(nRows, SQL_FETCH_ABSOLUTE);
 }
 
 void CRecordset::AddNew() {
+    if (!m_bOpen || (m_dwOptions & CRecordset::readOnly)) return;
     m_nEditMode = 1; // addNew
 }
 
 void CRecordset::Edit() {
+    if (!m_bOpen || (m_dwOptions & CRecordset::readOnly)) return;
     m_nEditMode = 2; // edit
 }
 
 void CRecordset::Delete() {
+    if (!m_bOpen || (m_dwOptions & CRecordset::readOnly)) return;
     m_nEditMode = 3; // delete
     m_bDeleted = TRUE;
 }
 
 BOOL CRecordset::Update() {
+    if (!m_bOpen || m_nEditMode == 0 || (m_dwOptions & CRecordset::readOnly)) {
+        return FALSE;
+    }
+    m_bDeleted = FALSE;
     m_nEditMode = 0;
+    auto& state = EnsureRecordsetState(this);
+    state.dirtyFields.clear();
+    state.nullFields.clear();
     return TRUE;
 }
 
 void CRecordset::CancelUpdate() {
+    if (!m_bOpen) return;
     m_nEditMode = 0;
+    EnsureRecordsetState(this).dirtyFields.clear();
+    EnsureRecordsetState(this).nullFields.clear();
 }
 
 void CRecordset::SetFieldNull(void* pvField, BOOL bNull) {
@@ -532,20 +679,26 @@ void CRecordset::SetFieldNull(void* pvField, BOOL bNull) {
     } else {
         index = it->second;
     }
-    if (bNull) state.nullFields.insert(static_cast<unsigned long>(index));
-    else state.nullFields.erase(static_cast<unsigned long>(index));
+    unsigned long fieldIndex = static_cast<unsigned long>(index);
+    if (bNull) {
+        state.nullFields.insert(fieldIndex);
+    } else {
+        state.nullFields.erase(fieldIndex);
+    }
+    state.dirtyFields.insert(fieldIndex);
 }
 
 BOOL CRecordset::CanAppend() const {
-    return TRUE;
+    if (!m_pDatabase || !m_pDatabase->IsOpen()) return FALSE;
+    return (m_dwOptions & CRecordset::readOnly) == 0;
 }
 
 BOOL CRecordset::CanRestart() const {
-    return TRUE;
+    return IsOpen();
 }
 
 BOOL CRecordset::CanScroll() const {
-    return TRUE;
+    return IsOpen() && m_nOpenType != CRecordset::forwardOnly;
 }
 
 BOOL CRecordset::CanTransact() const {
@@ -553,7 +706,7 @@ BOOL CRecordset::CanTransact() const {
 }
 
 BOOL CRecordset::CanUpdate() const {
-    return TRUE;
+    return m_pDatabase && !m_bDeleted && (m_dwOptions & CRecordset::readOnly) == 0;
 }
 
 void CRecordset::SetRowsetSize(DWORD dwNewRowsetSize) {
@@ -569,16 +722,86 @@ CString CRecordset::GetDefaultSQL() {
 }
 
 void CRecordset::DoFieldExchange(CFieldExchange* pFX) {
-    (void)pFX;
+    if (!pFX) return;
+    pFX->m_pRecordset = this;
+    pFX->m_nFields = 0;
+    pFX->m_nParams = 0;
+
+    RecordsetState& state = EnsureRecordsetState(this);
+    state.boundFieldIndexes.clear();
+    state.boundParamIndexes.clear();
+    state.fieldLengths.clear();
+    state.updatePrepared = TRUE;
+    state.dirtyFields.clear();
+
+    if (m_hstmt != SQL_NULL_HSTMT) {
+        SQLSMALLINT count = 0;
+        if (SqlSucceeded(SQLNumResultCols(m_hstmt, &count))) {
+            state.fieldLengths.resize(static_cast<size_t>(count), 0);
+            m_nFields = static_cast<int>(count);
+        }
+    }
+
+    if (m_nFields > 0 && !state.fieldLengths.empty()) {
+        state.fieldLengths.resize(static_cast<size_t>(m_nFields), 0);
+    }
+
+    LoadRecordsetFields(this);
 }
 
 BOOL CRecordset::OnSetOptions(HSTMT hstmt) {
-    (void)hstmt;
-    return TRUE;
+    if (!hstmt || hstmt == SQL_NULL_HSTMT) return FALSE;
+
+    SQLUINTEGER timeout = static_cast<SQLUINTEGER>(g_queryTimeoutSeconds);
+    SQLUINTEGER cursor = SQL_CURSOR_FORWARD_ONLY;
+    SQLUINTEGER concurrency = (m_dwOptions & CRecordset::readOnly) ? SQL_CONCUR_READ_ONLY : SQL_CONCUR_VALUES;
+
+    switch (m_nOpenType) {
+    case CRecordset::snapshot:
+        cursor = SQL_CURSOR_KEYSET_DRIVEN;
+        break;
+    case CRecordset::dynaset:
+    case CRecordset::dynamic:
+        cursor = SQL_CURSOR_DYNAMIC;
+        break;
+    case CRecordset::forwardOnly:
+    default:
+        cursor = SQL_CURSOR_FORWARD_ONLY;
+        break;
+    }
+
+    RETCODE rc = SQL_SUCCESS;
+    rc = SQLSetStmtAttr(hstmt, SQL_ATTR_QUERY_TIMEOUT,
+                        CastOdbcOptionValue(timeout),
+                        SQL_IS_UINTEGER);
+    rc = (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)
+             ? SQLSetStmtAttr(hstmt, SQL_ATTR_CURSOR_TYPE, CastOdbcOptionValue(cursor), 0)
+             : rc;
+    rc = (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)
+             ? SQLSetStmtAttr(hstmt, SQL_ATTR_CONCURRENCY, CastOdbcOptionValue(concurrency), 0)
+             : rc;
+
+    return rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO;
 }
 
 void CRecordset::OnFieldChange(void* pvField, LONG* plLength) {
-    (void)pvField; (void)plLength;
+    if (!m_pDatabase || !pvField) return;
+    RecordsetState& state = EnsureRecordsetState(this);
+    int fieldIndex = 0;
+    auto fieldIt = state.boundFieldIndexes.find(pvField);
+    if (fieldIt != state.boundFieldIndexes.end()) {
+        fieldIndex = fieldIt->second;
+    } else {
+        fieldIndex = static_cast<int>(state.boundFieldIndexes.size());
+        state.boundFieldIndexes[pvField] = fieldIndex;
+    }
+
+    if (plLength && *plLength < 0) {
+        state.nullFields.insert(static_cast<unsigned long>(fieldIndex));
+    } else {
+        state.nullFields.erase(static_cast<unsigned long>(fieldIndex));
+    }
+    state.dirtyFields.insert(static_cast<unsigned long>(fieldIndex));
 }
 
 void CRecordset::SetDirtyFieldStatus(DWORD dwFieldStatus) {
@@ -616,7 +839,27 @@ CRecordView::~CRecordView() {
 }
 
 BOOL CRecordView::OnMove(UINT nIDMoveCommand) {
-    (void)nIDMoveCommand;
+    if (!m_pSet || !m_pSet->IsOpen()) return FALSE;
+
+    switch (nIDMoveCommand) {
+    case 0xE900: // ID_RECORD_FIRST
+        m_pSet->MoveFirst();
+        break;
+    case 0xE901: // ID_RECORD_LAST
+        m_pSet->MoveLast();
+        break;
+    case 0xE902: // ID_RECORD_NEXT
+        m_pSet->MoveNext();
+        break;
+    case 0xE903: // ID_RECORD_PREV
+        m_pSet->MovePrev();
+        break;
+    default:
+        return FALSE;
+    }
+
+    m_bOnFirstRecord = m_pSet->IsBOF() || m_pSet->GetAbsolutePosition() <= 1;
+    m_bOnLastRecord = m_pSet->IsEOF() || (m_pSet->GetRecordCount() > 0 && m_pSet->GetAbsolutePosition() >= m_pSet->GetRecordCount());
     return TRUE;
 }
 
@@ -679,12 +922,12 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordView__SAPEAUCRuntimeC
 // Symbol: ?GetMessageMap@CRecordView@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CRecordView__MEBAPEBUAFX_MSGMAP__XZ(const CRecordView* pThis) {
     (void)pThis;
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?GetThisMessageMap@CRecordView@@KAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CRecordView__KAPEBUAFX_MSGMAP__XZ() {
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?IsOpen@CRecordset@@QEBAHXZ
@@ -701,7 +944,14 @@ extern "C" int MS_ABI impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(CDatabase* pThis, co
 }
 
 // Symbol: ?OnSetOptions@CDatabase@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__OnSetOptions_CDatabase__UEAAXPEAX_Z(CDatabase* /*pThis*/, void* /*hstmt*/) {
+extern "C" void MS_ABI impl__OnSetOptions_CDatabase__UEAAXPEAX_Z(CDatabase* pThis, void* hstmt) {
+    if (!pThis || !hstmt) return;
+    HSTMT stmt = reinterpret_cast<HSTMT>(hstmt);
+    if (stmt == SQL_NULL_HSTMT) return;
+    SQLSetStmtAttr(stmt, SQL_ATTR_QUERY_TIMEOUT,
+                   CastOdbcOptionValue(g_queryTimeoutSeconds),
+                   SQL_IS_UINTEGER);
+    SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, CastOdbcOptionValue(SQL_CURSOR_DYNAMIC), 0);
 }
 
 // Symbol: ?ReplaceBrackets@CDatabase@@QEAAXPEA_W@Z
@@ -797,19 +1047,27 @@ extern "C" void MS_ABI impl__OnInitialUpdate_CRecordView__UEAAXXZ(CRecordView* p
 }
 
 // Symbol: ?OnUpdateRecordFirst@CRecordView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateRecordFirst_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+extern "C" void MS_ABI impl__OnUpdateRecordFirst_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* pThis, CCmdUI* pCmdUI) {
+    if (!pThis || !pThis->GetRecordset() || !pCmdUI) return;
+    pCmdUI->Enable(!pThis->GetRecordset()->IsBOF());
 }
 
 // Symbol: ?OnUpdateRecordLast@CRecordView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateRecordLast_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+extern "C" void MS_ABI impl__OnUpdateRecordLast_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* pThis, CCmdUI* pCmdUI) {
+    if (!pThis || !pThis->GetRecordset() || !pCmdUI) return;
+    pCmdUI->Enable(!pThis->GetRecordset()->IsEOF());
 }
 
 // Symbol: ?OnUpdateRecordNext@CRecordView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateRecordNext_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+extern "C" void MS_ABI impl__OnUpdateRecordNext_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* pThis, CCmdUI* pCmdUI) {
+    if (!pThis || !pThis->GetRecordset() || !pCmdUI) return;
+    pCmdUI->Enable(!pThis->GetRecordset()->IsEOF());
 }
 
 // Symbol: ?OnUpdateRecordPrev@CRecordView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateRecordPrev_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* /*pThis*/, CCmdUI* /*pCmdUI*/) {
+extern "C" void MS_ABI impl__OnUpdateRecordPrev_CRecordView__IEAAXPEAVCCmdUI___Z(CRecordView* pThis, CCmdUI* pCmdUI) {
+    if (!pThis || !pThis->GetRecordset() || !pCmdUI) return;
+    pCmdUI->Enable(!pThis->GetRecordset()->IsBOF());
 }
 
 // Symbol: ?GetThisClass@CDBException@@SAPEAUCRuntimeClass@@XZ
@@ -871,7 +1129,7 @@ extern "C" int MS_ABI impl__GetErrorMessage_CDBException__UEBAHPEA_WIPEAI_Z(
 extern "C" void MS_ABI impl__AllocConnect_CDatabase__IEAAXK_Z(CDatabase* pThis, unsigned long) {
     if (!pThis || pThis->m_hdbc != SQL_NULL_HDBC) return;
     if (pThis->m_henv == SQL_NULL_HENV && SqlSucceeded(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &pThis->m_henv))) {
-        SQLSetEnvAttr(pThis->m_henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0);
+        SQLSetEnvAttr(pThis->m_henv, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
     }
     if (pThis->m_henv != SQL_NULL_HENV) SQLAllocHandle(SQL_HANDLE_DBC, pThis->m_henv, &pThis->m_hdbc);
 }
@@ -890,7 +1148,13 @@ extern "C" int MS_ABI impl__Connect_CDatabase__IEAAHK_Z(CDatabase* pThis, unsign
 }
 
 // Symbol: ?BindParameters@CDatabase@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__BindParameters_CDatabase__UEAAXPEAX_Z(CDatabase*, void*) {
+extern "C" void MS_ABI impl__BindParameters_CDatabase__UEAAXPEAX_Z(CDatabase* pThis, void* pBind) {
+    if (!pThis || !pBind) return;
+    HSTMT hstmt = static_cast<HSTMT>(pBind);
+    if (hstmt != SQL_NULL_HSTMT) {
+        SQLFreeStmt(hstmt, SQL_RESET_PARAMS);
+    }
+    g_databaseStates[pThis].lastRetCode = SQL_SUCCESS;
 }
 
 // Symbol: ?Check@CDatabase@@UEBAHF@Z
@@ -929,8 +1193,19 @@ extern "C" void MS_ABI impl__VerifyConnect_CDatabase__IEAAXXZ(CDatabase* pThis) 
 }
 
 // Symbol: ?GetLongBinarySize@CFieldExchange@@QEAA_JH@Z
-extern "C" long long MS_ABI impl__GetLongBinarySize_CFieldExchange__QEAA_JH_Z(CFieldExchange*, int) {
-    return 0;
+extern "C" long long MS_ABI impl__GetLongBinarySize_CFieldExchange__QEAA_JH_Z(CFieldExchange* pThis, int nField) {
+    if (!pThis || !pThis->m_pRecordset || pThis->m_pRecordset->m_hstmt == SQL_NULL_HSTMT) return 0;
+
+    SQLLEN byteCount = 0;
+    RETCODE rc = SQLGetData(
+        pThis->m_pRecordset->m_hstmt,
+        static_cast<SQLUSMALLINT>(nField),
+        SQL_C_BINARY,
+        nullptr,
+        0,
+        &byteCount);
+    if (!SqlSucceeded(rc) || byteCount <= 0) return 0;
+    return static_cast<long long>(byteCount);
 }
 
 // Symbol: ?ReallocLongBinary@CFieldExchange@@QEAAPEAEAEAVCLongBinary@@_J1@Z
@@ -1058,7 +1333,27 @@ extern "C" void MS_ABI impl__Cancel_CRecordset__QEAAXXZ(CRecordset* pThis) { if 
 // Symbol: ?Check@CRecordset@@UEBAHF@Z
 extern "C" int MS_ABI impl__Check_CRecordset__UEBAHF_Z(const CRecordset* pThis, short retCode) { if (pThis) g_recordsetStates[pThis].lastRetCode = retCode; return SqlSucceeded(retCode) ? TRUE : FALSE; }
 // Symbol: ?CheckRowsetCurrencyStatus@CRecordset@@QEAAXGJ@Z
-extern "C" void MS_ABI impl__CheckRowsetCurrencyStatus_CRecordset__QEAAXGJ_Z(CRecordset*, unsigned short, long) {}
+extern "C" void MS_ABI impl__CheckRowsetCurrencyStatus_CRecordset__QEAAXGJ_Z(CRecordset* pThis, unsigned short fetchType, long row) {
+    if (!pThis) return;
+    RecordsetState& state = EnsureRecordsetState(pThis);
+    state.rowsetAllocated = true;
+    state.bookmark = static_cast<unsigned long>(row);
+
+    if (pThis->m_hstmt != SQL_NULL_HSTMT) {
+        RETCODE rc = SQLFetchScroll(pThis->m_hstmt, fetchType, row);
+        state.lastRetCode = rc;
+        if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+            pThis->m_bBOF = (row <= 0 ? TRUE : FALSE);
+            pThis->m_bEOF = FALSE;
+            pThis->m_nAbsolutePosition = (row == 0 ? 0 : row);
+        } else if (rc == SQL_NO_DATA) {
+            pThis->m_bEOF = TRUE;
+        }
+    } else if (row < 0) {
+        pThis->m_bBOF = TRUE;
+        pThis->m_bEOF = TRUE;
+    }
+}
 // Symbol: ?CheckRowsetError@CRecordset@@UEAAXF@Z
 extern "C" void MS_ABI impl__CheckRowsetError_CRecordset__UEAAXF_Z(CRecordset* pThis, short retCode) { if (pThis) EnsureRecordsetState(pThis).lastRetCode = retCode; }
 // Symbol: ?ClearFieldStatus@CRecordset@@QEAAXXZ
@@ -1098,7 +1393,21 @@ extern "C" short MS_ABI impl__FetchData_CRecordset__QEAAFGJPEA_K_Z(CRecordset* p
 // Symbol: ?FindSQLToken@CRecordset@@SAPEB_WPEB_W0@Z
 extern "C" const wchar_t* MS_ABI impl__FindSQLToken_CRecordset__SAPEB_WPEB_W0_Z(const wchar_t* sql, const wchar_t* token) { if (!sql || !token) return nullptr; auto s=LowerSql(sql); auto t=LowerSql(token); auto pos=s.find(t); return pos==std::wstring::npos?nullptr:sql+pos; }
 // Symbol: ?Fixups@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__Fixups_CRecordset__QEAAXXZ(CRecordset*) {}
+extern "C" void MS_ABI impl__Fixups_CRecordset__QEAAXXZ(CRecordset* pThis) {
+    if (!pThis) return;
+    LoadRecordsetFields(pThis);
+    RecordsetState& state = EnsureRecordsetState(pThis);
+    if (state.fieldLengths.size() < static_cast<size_t>(pThis->m_nFields)) {
+        state.fieldLengths.resize(static_cast<size_t>(pThis->m_nFields), 0);
+    } else {
+        for (auto& len : state.fieldLengths) len = 0;
+    }
+    if (pThis->m_bDeleted) state.dirtyFields.clear();
+    state.dataCache.clear();
+    if (pThis->m_nFields > 0) {
+        state.dataCache.resize(static_cast<size_t>(pThis->m_nFields) * 32, 0);
+    }
+}
 // Symbol: ?FlushResultSet@CRecordset@@QEAAHXZ
 extern "C" int MS_ABI impl__FlushResultSet_CRecordset__QEAAHXZ(CRecordset* pThis) { if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return FALSE; while (SQLMoreResults(pThis->m_hstmt) == SQL_SUCCESS) {} return TRUE; }
 // Symbol: ?GetBookmark@CRecordset@@QEAAXAEAVCDBVariant@@@Z
@@ -1176,7 +1485,20 @@ extern "C" void MS_ABI impl__MarkForAddNew_CRecordset__QEAAXXZ(CRecordset* pThis
 // Symbol: ?MarkForUpdate@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__MarkForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) pThis->Edit(); }
 // Symbol: ?OnSetUpdateOptions@CRecordset@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecordset*, void*) {}
+extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pThis, void* pUpdateOptions) {
+    if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return;
+    RecordsetState& state = EnsureRecordsetState(pThis);
+    state.updatePrepared = TRUE;
+    if (!pUpdateOptions) return;
+    auto options = static_cast<SQLUINTEGER*>(pUpdateOptions);
+        state.lockingMode = static_cast<unsigned int>(*options);
+    if (pThis->m_hstmt != SQL_NULL_HSTMT) {
+        SQLSetStmtAttr(pThis->m_hstmt, SQL_ATTR_CURSOR_TYPE,
+                       *options == 0 ? CastOdbcOptionValue(SQL_CURSOR_FORWARD_ONLY)
+                                     : CastOdbcOptionValue(SQL_CURSOR_STATIC),
+                       0);
+    }
+}
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?PrepareAndExecute@CRecordset@@IEAAXXZ
@@ -1188,15 +1510,43 @@ extern "C" void MS_ABI impl__RefreshRowset_CRecordset__QEAAXGG_Z(CRecordset* pTh
 // Symbol: ?ResetCursor@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__ResetCursor_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLCloseCursor(pThis->m_hstmt); if (pThis) { pThis->m_bBOF=TRUE; pThis->m_bEOF=FALSE; pThis->m_nAbsolutePosition=0; } }
 // Symbol: ?SendLongBinaryData@CRecordset@@IEAAXPEAX@Z
-extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecordset*, void*) {}
+extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecordset* pThis, void* pData) {
+    if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT || !pData) return;
+    LongBinaryCompat* binary = static_cast<LongBinaryCompat*>(pData);
+    if (!binary->m_hData) return;
+    void* data = ::GlobalLock(binary->m_hData);
+    if (!data) return;
+    RETCODE rc = SQLPutData(pThis->m_hstmt, data, binary->m_dwDataLength);
+    ::GlobalUnlock(binary->m_hData);
+    if (!SqlSucceeded(rc)) {
+        EnsureRecordsetState(pThis).lastRetCode = rc;
+    }
+}
 // Symbol: ?SetConcurrencyAndCursorType@CRecordset@@IEAAXPEAXK@Z
-extern "C" void MS_ABI impl__SetConcurrencyAndCursorType_CRecordset__IEAAXPEAXK_Z(CRecordset*, void* hstmt, unsigned long options) { if (hstmt) SQLSetStmtAttr(static_cast<HSTMT>(hstmt), SQL_ATTR_CONCURRENCY, (SQLPOINTER)((options & CRecordset::readOnly) ? SQL_CONCUR_READ_ONLY : SQL_CONCUR_VALUES), 0); }
+extern "C" void MS_ABI impl__SetConcurrencyAndCursorType_CRecordset__IEAAXPEAXK_Z(CRecordset*, void* hstmt, unsigned long options) {
+    if (!hstmt) return;
+    SQLSetStmtAttr(static_cast<HSTMT>(hstmt), SQL_ATTR_CONCURRENCY,
+                   CastOdbcOptionValue((options & CRecordset::readOnly) ? SQL_CONCUR_READ_ONLY : SQL_CONCUR_VALUES), 0);
+}
 // Symbol: ?SetFieldDirty@CRecordset@@QEAAXPEAXH@Z
 extern "C" void MS_ABI impl__SetFieldDirty_CRecordset__QEAAXPEAXH_Z(CRecordset* pThis, void* field, int dirty) { if (!pThis||!field) return; auto& st=EnsureRecordsetState(pThis); int idx=impl__GetBoundFieldIndex_CRecordset__QEAAHPEAX_Z(pThis,field); if (idx<0) { idx=static_cast<int>(st.boundFieldIndexes.size()); st.boundFieldIndexes[field]=idx; } if (dirty) st.dirtyFields.insert(idx); else st.dirtyFields.erase(idx); }
 // Symbol: ?SetLockingMode@CRecordset@@QEAAXI@Z
 extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset* pThis, unsigned int mode) { if (pThis) EnsureRecordsetState(pThis).lockingMode=mode; }
 // Symbol: ?SetRowsetCurrencyStatus@CRecordset@@UEAAXFGJ_K@Z
-extern "C" void MS_ABI impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(CRecordset*, short, unsigned short, long, unsigned long long) {}
+extern "C" void MS_ABI impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(CRecordset* pThis, short direction, unsigned short step, long row, unsigned long long flag) {
+    if (!pThis) return;
+    RecordsetState& state = EnsureRecordsetState(pThis);
+    state.bookmark = static_cast<unsigned long>(row);
+    state.lastRetCode = (flag ? SQL_SUCCESS : SQL_SUCCESS);
+    if (step == 0 || row < 0 || direction < 0) {
+        pThis->m_bEOF = TRUE;
+        pThis->m_bBOF = TRUE;
+    } else {
+        pThis->m_bEOF = FALSE;
+        pThis->m_bBOF = FALSE;
+        pThis->m_nAbsolutePosition = row;
+    }
+}
 // Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
 extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short row) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, row); }
 // Symbol: ?SetState@CRecordset@@IEAAXHPEB_WK@Z
@@ -1212,4 +1562,21 @@ extern "C" int MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* p
 // Symbol: ?VerifyCursorSupport@CRecordset@@IEAAKXZ
 extern "C" unsigned long MS_ABI impl__VerifyCursorSupport_CRecordset__IEAAKXZ(CRecordset* pThis) { return pThis && pThis->m_hstmt!=SQL_NULL_HSTMT ? 1 : 0; }
 // Symbol: ?VerifyDriverBehavior@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__VerifyDriverBehavior_CRecordset__IEAAXXZ(CRecordset*) {}
+extern "C" void MS_ABI impl__VerifyDriverBehavior_CRecordset__IEAAXXZ(CRecordset* pThis) {
+    if (!pThis) return;
+    if (!pThis->m_pDatabase || !pThis->m_pDatabase->IsOpen()) return;
+    if (pThis->m_hstmt == SQL_NULL_HSTMT) return;
+
+    SQLUINTEGER supported = 0;
+    SQLSMALLINT infoLen = 0;
+    RETCODE rc = SQLGetInfo(pThis->m_pDatabase->GetHDBC(),
+                            SQL_DYNAMIC_CURSOR_ATTRIBUTES1,
+                            &supported, sizeof(supported), &infoLen);
+    EnsureRecordsetState(pThis).lastRetCode = rc;
+    if (rc == SQL_NO_DATA || rc == SQL_ERROR) {
+        rc = SQLGetInfo(pThis->m_pDatabase->GetHDBC(),
+                        SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1,
+                        &supported, sizeof(supported), &infoLen);
+        EnsureRecordsetState(pThis).lastRetCode = rc;
+    }
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-130",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 10972,
+      "symbol": "?OnSelchangeCategory@CMFCKeyMapDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 10988,
+      "symbol": "?OnSelchangeViewType@CMFCKeyMapDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 11028,
+      "symbol": "?OnSetColumns@CMFCKeyMapDialog@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 11241,
+      "symbol": "?OnSize@CMFCKeyMapDialog@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 11909,
+      "symbol": "?PrintKeyMap@CMFCKeyMapDialog@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCKeyMapDialog",
+      "ordinal": 13053,
+      "symbol": "?SetColumnsWidth@CMFCKeyMapDialog@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCLinkCtrl",
+      "ordinal": 1215,
+      "symbol": "??1CMFCLinkCtrl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCLinkCtrl",
+      "ordinal": 8852,
+      "symbol": "?OnClicked@CMFCLinkCtrl@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCLinkCtrl",
+      "ordinal": 9233,
+      "symbol": "?OnDraw@CMFCLinkCtrl@@MEAAXPEAVCDC@@AEBVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCLinkCtrl",
+      "ordinal": 9375,
+      "symbol": "?OnDrawFocusRect@CMFCLinkCtrl@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 130/439: CMFCKeyMapDialog, CMFCLinkCtrl"
+}

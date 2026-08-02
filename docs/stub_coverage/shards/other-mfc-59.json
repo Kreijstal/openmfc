@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-59",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COccManager",
+      "ordinal": 13103,
+      "symbol": "?SetDefaultButton@COccManager@@SAXPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 13894,
+      "symbol": "?SplitDialogTemplate@COccManager@@UEAAPEAUDLGTEMPLATE@@PEBU2@PEAPEAUDLGITEMTEMPLATE@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 14047,
+      "symbol": "?UIActivateControl@COccManager@@KAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 14050,
+      "symbol": "?UIDeactivateIfNecessary@COccManager@@KAXPEAVCWnd@@0@Z"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 3932,
+      "symbol": "?DoDataExchange@COutlookOptionsDlg@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 8490,
+      "symbol": "?MoveItem@COutlookOptionsDlg@@IEAAXH@Z"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 9085,
+      "symbol": "?OnDblclkList@COutlookOptionsDlg@@IEAAXXZ"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10188,
+      "symbol": "?OnInitDialog@COutlookOptionsDlg@@MEAAHXZ"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10526,
+      "symbol": "?OnMoveDown@COutlookOptionsDlg@@IEAAXXZ"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10537,
+      "symbol": "?OnMoveUp@COutlookOptionsDlg@@IEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 59/91: COutlookOptionsDlg, COccManager"
+}

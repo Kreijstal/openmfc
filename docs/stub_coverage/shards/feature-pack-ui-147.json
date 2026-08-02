@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-147",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 11879,
+      "symbol": "?PreTranslateMessage@CMFCOutlookBarPane@@MEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12296,
+      "symbol": "?RemoveAllButtons@CMFCOutlookBarPane@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12331,
+      "symbol": "?RemoveButton@CMFCOutlookBarPane@@QEAAHI@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12336,
+      "symbol": "?RemoveButtonByIndex@CMFCOutlookBarPane@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12554,
+      "symbol": "?RestoreOriginalState@CMFCOutlookBarPane@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12711,
+      "symbol": "?ScrollDown@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12712,
+      "symbol": "?ScrollPageDown@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12713,
+      "symbol": "?ScrollPageUp@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12718,
+      "symbol": "?ScrollUp@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 12947,
+      "symbol": "?SetBackColor@CMFCOutlookBarPane@@QEAAXK@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 147/439: CMFCOutlookBarPane"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-431",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 2979,
+      "symbol": "?ConvertToTabbedDocument@CPaneFrameWnd@@UEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 3265,
+      "symbol": "?CreateEx@CPaneFrameWnd@@UEAAHKPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 3893,
+      "symbol": "?DockPane@CPaneFrameWnd@@UEAAPEAVCDockablePane@@AEAH@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 3905,
+      "symbol": "?DockPaneStandard@CPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4368,
+      "symbol": "?EnterDragMode@CPaneFrameWnd@@MEAAXPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4530,
+      "symbol": "?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@I@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4531,
+      "symbol": "?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@VCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4566,
+      "symbol": "?FindFloatingPaneByID@CPaneFrameWnd@@SAPEAVCBasePane@@I@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4679,
+      "symbol": "?FrameFromPoint@CPaneFrameWnd@@SAPEAV1@VCPoint@@HPEAV1@H@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 4987,
+      "symbol": "?GetCaptionButtonTotalWidth@CPaneFrameWnd@@IEBAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 431/439: CPaneFrameWnd"
+}

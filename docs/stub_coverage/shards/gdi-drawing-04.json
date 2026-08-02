@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-04",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13178,
+      "symbol": "?SetExtendModeX@CD2DBitmapBrush@@QEAAXW4D2D1_EXTEND_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13179,
+      "symbol": "?SetExtendModeY@CD2DBitmapBrush@@QEAAXW4D2D1_EXTEND_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBitmapBrush",
+      "ordinal": 13295,
+      "symbol": "?SetInterpolationMode@CD2DBitmapBrush@@QEAAXW4D2D1_BITMAP_INTERPOLATION_MODE@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 2465,
+      "symbol": "?Attach@CD2DBrush@@QEAAXPEAUID2D1Brush@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 3779,
+      "symbol": "?Destroy@CD2DBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 3817,
+      "symbol": "?Detach@CD2DBrush@@QEAAPEAUID2D1Brush@@XZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 6011,
+      "symbol": "?GetOpacity@CD2DBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 7433,
+      "symbol": "?GetTransform@CD2DBrush@@QEBAXPEAUD2D_MATRIX_3X2_F@@@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 13404,
+      "symbol": "?SetOpacity@CD2DBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DBrush",
+      "ordinal": 13713,
+      "symbol": "?SetTransform@CD2DBrush@@QEAAXPEBUD2D_MATRIX_3X2_F@@@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 04/24: CD2DBrush, CD2DBitmapBrush"
+}

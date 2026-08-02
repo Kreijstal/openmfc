@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-12",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleClientItem",
+      "ordinal": 3935,
+      "symbol": "?DoDragDrop@COleClientItem@@QEAAKPEBUtagRECT@@VCPoint@@HK0@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 4619,
+      "symbol": "?FinishCreate@COleClientItem@@MEAAHJ@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 4720,
+      "symbol": "?FreezeLink@COleClientItem@@UEAAHXZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 4978,
+      "symbol": "?GetCachedExtent@COleClientItem@@QEAAHPEAUtagSIZE@@W4tagDVASPECT@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5027,
+      "symbol": "?GetClientSite@COleClientItem@@MEAAPEAUIOleClientSite@@XZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5034,
+      "symbol": "?GetClipboardData@COleClientItem@@QEAAXPEAVCOleDataSource@@HPEAUtagPOINT@@PEAUtagSIZE@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5314,
+      "symbol": "?GetEmbeddedItemData@COleClientItem@@IEAAXPEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5503,
+      "symbol": "?GetIconFromRegistry@COleClientItem@@QEBAPEAUHICON__@@XZ"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5504,
+      "symbol": "?GetIconFromRegistry@COleClientItem@@SAPEAUHICON__@@AEAU_GUID@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 5547,
+      "symbol": "?GetInPlaceWindow@COleClientItem@@QEAAPEAVCWnd@@XZ"
+    }
+  ],
+  "title": "ole_com_activex shard 12/77: COleClientItem"
+}

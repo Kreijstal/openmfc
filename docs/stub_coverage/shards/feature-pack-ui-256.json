@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-256",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 1269,
+      "symbol": "??1CMFCRibbonRichEditCtrl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 8763,
+      "symbol": "?OnChange@CMFCRibbonRichEditCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 8974,
+      "symbol": "?OnContextMenu@CMFCRibbonRichEditCtrl@@IEAAXPEAVCWnd@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 10267,
+      "symbol": "?OnKillFocus@CMFCRibbonRichEditCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 10463,
+      "symbol": "?OnMouseLeave@CMFCRibbonRichEditCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 10748,
+      "symbol": "?OnPaint@CMFCRibbonRichEditCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 11072,
+      "symbol": "?OnSetFocus@CMFCRibbonRichEditCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 11887,
+      "symbol": "?PreTranslateMessage@CMFCRibbonRichEditCtrl@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRichEditCtrl",
+      "ordinal": 11915,
+      "symbol": "?ProcessClipboardAccelerators@CMFCRibbonRichEditCtrl@@IEAAHI@Z"
+    },
+    {
+      "class": "CMFCRibbonSeparator",
+      "ordinal": 2004,
+      "symbol": "?AddToListBox@CMFCRibbonSeparator@@UEAAHPEAVCMFCRibbonCommandsListBox@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 256/439: CMFCRibbonRichEditCtrl, CMFCRibbonSeparator"
+}

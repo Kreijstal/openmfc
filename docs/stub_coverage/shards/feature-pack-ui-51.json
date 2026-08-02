@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-51",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 12404,
+      "symbol": "?RemovePaneFromDockManager@CMDIChildWndEx@@QEAAXPEAVCBasePane@@HHH0@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 13832,
+      "symbol": "?ShowPane@CMDIChildWndEx@@QEAAXPEAVCBasePane@@HHH@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 14165,
+      "symbol": "?UpdateTaskbarTabIcon@CMDIChildWndEx@@UEAAXPEAUHICON__@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 2072,
+      "symbol": "?AdjustMDIChildren@CMDIClientAreaWnd@@AEAAXPEAVCMFCTabCtrl@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 2442,
+      "symbol": "?ApplyParams@CMDIClientAreaWnd@@AEAAXPEAVCMFCTabCtrl@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 2626,
+      "symbol": "?CalcWindowRect@CMDIClientAreaWnd@@MEAAXPEAUtagRECT@@I@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 2630,
+      "symbol": "?CalcWindowRectForMDITabbedGroups@CMDIClientAreaWnd@@QEAAXPEAUtagRECT@@I@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 2823,
+      "symbol": "?CloseAllWindows@CMDIClientAreaWnd@@QEAAXPEAVCMFCTabCtrl@@@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 3337,
+      "symbol": "?CreateNewTabGroup@CMDIClientAreaWnd@@AEAAPEAVCMFCTabCtrl@@PEAV2@VCRect@@H@Z"
+    },
+    {
+      "class": "CMDIClientAreaWnd",
+      "ordinal": 3534,
+      "symbol": "?CreateTabGroup@CMDIClientAreaWnd@@UEAAPEAVCMFCTabCtrl@@PEAV2@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 51/439: CMDIClientAreaWnd, CMDIChildWndEx"
+}

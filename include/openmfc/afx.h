@@ -379,7 +379,7 @@ public:
     CArchive& operator<<(const CString& str);
     
     // String operations
-    int ReadString(wchar_t* lpsz, UINT nMax);
+    wchar_t* ReadString(wchar_t* lpsz, UINT nMax);
     int ReadString(CString& rString);
     void WriteString(const wchar_t* lpsz);
     

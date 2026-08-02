@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-434",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9151,
+      "symbol": "?OnDestroy@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9172,
+      "symbol": "?OnDockToRecentPos@CPaneFrameWnd@@UEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9297,
+      "symbol": "?OnDrawBorder@CPaneFrameWnd@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9330,
+      "symbol": "?OnDrawCaptionButtons@CPaneFrameWnd@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9785,
+      "symbol": "?OnEraseBkgnd@CPaneFrameWnd@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9828,
+      "symbol": "?OnExitSizeMove@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 9953,
+      "symbol": "?OnFloatStatus@CPaneFrameWnd@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10035,
+      "symbol": "?OnGetMinMaxInfo@CPaneFrameWnd@@IEAAXPEAUtagMINMAXINFO@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10141,
+      "symbol": "?OnIdleUpdateCmdUI@CPaneFrameWnd@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10273,
+      "symbol": "?OnKillRollUpTimer@CPaneFrameWnd@@UEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 434/439: CPaneFrameWnd"
+}

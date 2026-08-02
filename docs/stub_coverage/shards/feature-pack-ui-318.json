@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-318",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13988,
+      "symbol": "?ToolBarMouseHookProc@CMFCToolBar@@KA_JH_K_J@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14017,
+      "symbol": "?TranslateChar@CMFCToolBar@@UEAAHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14115,
+      "symbol": "?UpdateButton@CMFCToolBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14135,
+      "symbol": "?UpdateImagesColor@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14172,
+      "symbol": "?UpdateTooltips@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 14223,
+      "symbol": "?WrapToolBar@CMFCToolBar@@QEAAHHHPEAVCDC@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 3296,
+      "symbol": "?CreateFromOleData@CMFCToolBarButton@@SAPEAV1@PEAVCOleDataObject@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4455,
+      "symbol": "?ExportToMenuButton@CMFCToolBarButton@@UEBAHAEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4488,
+      "symbol": "?FillInterior@CMFCToolBarButton@@IEAAXPEAVCDC@@AEBVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 4862,
+      "symbol": "?GetAccCount@CMFCToolBarButton@@UEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 318/439: CMFCToolBar, CMFCToolBarButton"
+}

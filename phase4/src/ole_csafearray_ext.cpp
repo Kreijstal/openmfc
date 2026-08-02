@@ -29,6 +29,8 @@
 #include <oleauto.h>
 #include <cstring>
 #include "openmfc/afx.h"
+#include "openmfc/afxdisp.h"  // COleVariant
+#include "openmfc/afxole.h"  // COleSafeArray
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -434,4 +436,178 @@ extern "C" void MS_ABI impl__GetByteArrayFromVariantArray_COleVariant__QEAAXAEAV
     if (!psa) return;
 
     CopySafeArrayBytes(psa, pByteArray);
+}
+
+void COleVariant::GetByteArrayFromVariantArray(CByteArray& byteArray)
+{
+    impl__GetByteArrayFromVariantArray_COleVariant__QEAAXAEAVCByteArray___Z(
+        this, &byteArray);
+}
+
+// Constructor helpers are defined below the overload set but are needed by
+// the VARIANT-taking constructors that appear first.
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc);
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc);
+
+// Symbol: ??0COleSafeArray@@QEAA@AEBUtagSAFEARRAY@@G@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBUtagSAFEARRAY__G_Z(
+    void* pThis, const SAFEARRAY* p0, unsigned short p1)
+{
+    if (!pThis) return nullptr;
+    COleSafeArray* p = new(pThis) COleSafeArray();
+    SAFEARRAY* pCopy = nullptr;
+    if (p0 && SUCCEEDED(SafeArrayCopy(const_cast<SAFEARRAY*>(p0), &pCopy))) {
+        StoreArray(p, pCopy, p1);
+    }
+    return p;
+}
+
+// Symbol: ??0COleSafeArray@@QEAA@PEBUtagSAFEARRAY@@G@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_PEBUtagSAFEARRAY__G_Z(
+    void* pThis, SAFEARRAY* p0, unsigned short p1)
+{
+    if (!pThis) return nullptr;
+    COleSafeArray* p = new(pThis) COleSafeArray();
+    SAFEARRAY* pCopy = nullptr;
+    if (p0 && SUCCEEDED(SafeArrayCopy(p0, &pCopy))) {
+        StoreArray(p, pCopy, p1);
+    }
+    return p;
+}
+
+// Symbol: ??0COleSafeArray@@QEAA@PEBUtagVARIANT@@@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_PEBUtagVARIANT___Z(
+    void* pThis, const VARIANT* p0)
+{
+    if (!pThis) return nullptr;
+    COleSafeArray* p = new(pThis) COleSafeArray();
+    if (p0) {
+        impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
+            pThis, reinterpret_cast<const COleVariant*>(p0));
+    }
+    return p;
+}
+
+// Symbol: ??0COleSafeArray@@QEAA@AEBUtagVARIANT@@@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBUtagVARIANT___Z(
+    void* pThis, const VARIANT& p0)
+{
+    return impl___0COleSafeArray__QEAA_AEBVCOleVariant___Z(
+        pThis, reinterpret_cast<const COleVariant*>(&p0));
+}
+
+// Symbol: ??0COleSafeArray@@QEAA@AEBV0@@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBV0__Z(
+    void* pThis, const COleSafeArray* p0)
+{
+    if (!pThis) return nullptr;
+    COleSafeArray* p = new(pThis) COleSafeArray();
+    if (p0 && p0->parray) {
+        p->Copy(p0);
+    }
+    return p;
+}
+
+//----------------------------------------------------------------------------
+// COleSafeArray – ctor/operator=/operator== from COleVariant
+//----------------------------------------------------------------------------
+
+// Forward-declare operator= (called by ctor below)
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc);
+
+// _AfxCompareSafeArrays helper – same logic as in olecore.cpp.
+static BOOL _AfxCompareSafeArrays(SAFEARRAY* parray1, SAFEARRAY* parray2)
+{
+    if (!parray1 || !parray2) return parray1 == parray2;
+    DWORD dwDim1 = SafeArrayGetDim(parray1);
+    DWORD dwDim2 = SafeArrayGetDim(parray2);
+    if (dwDim1 != dwDim2) return FALSE;
+    if (dwDim1 == 0) return TRUE;
+    DWORD dwSize1 = SafeArrayGetElemsize(parray1);
+    DWORD dwSize2 = SafeArrayGetElemsize(parray2);
+    if (dwSize1 != dwSize2) return FALSE;
+
+    BOOL bCompare = FALSE;
+    long* pLBound1 = new (std::nothrow) long[dwDim1];
+    long* pLBound2 = new (std::nothrow) long[dwDim2];
+    long* pUBound1 = new (std::nothrow) long[dwDim1];
+    long* pUBound2 = new (std::nothrow) long[dwDim2];
+    void* pData1 = nullptr;
+    void* pData2 = nullptr;
+
+    if (!pLBound1 || !pLBound2 || !pUBound1 || !pUBound2) goto cleanup;
+
+    {
+        size_t nTotalElements = 1;
+        for (DWORD i = 0; i < dwDim1; ++i) {
+            if (FAILED(SafeArrayGetLBound(parray1, i+1, &pLBound1[i])) ||
+                FAILED(SafeArrayGetLBound(parray2, i+1, &pLBound2[i])) ||
+                FAILED(SafeArrayGetUBound(parray1, i+1, &pUBound1[i])) ||
+                FAILED(SafeArrayGetUBound(parray2, i+1, &pUBound2[i])))
+                goto cleanup;
+            if (pUBound1[i] - pLBound1[i] != pUBound2[i] - pLBound2[i])
+                goto cleanup;
+            nTotalElements *= (size_t)(pUBound1[i] - pLBound1[i] + 1);
+        }
+        if (FAILED(SafeArrayAccessData(parray1, &pData1)) || !pData1) goto cleanup;
+        if (FAILED(SafeArrayAccessData(parray2, &pData2)) || !pData2) goto cleanup;
+        size_t nSize = nTotalElements * dwSize1;
+        bCompare = (memcmp(pData1, pData2, nSize) == 0);
+        SafeArrayUnaccessData(parray1);
+        SafeArrayUnaccessData(parray2);
+    }
+
+cleanup:
+    if (pData1) SafeArrayUnaccessData(parray1);
+    if (pData2) SafeArrayUnaccessData(parray2);
+    delete[] pLBound1;
+    delete[] pLBound2;
+    delete[] pUBound1;
+    delete[] pUBound2;
+    return bCompare;
+}
+
+// Symbol: ??0COleSafeArray@@QEAA@AEBVCOleVariant@@@Z
+extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc)
+{
+    if (!pThis) return nullptr;
+    // AfxSafeArrayInit: zero the 32-byte COleSafeArray
+    memset(pThis, 0, 32);
+    if (varSrc) {
+        // operator=(const COleVariant&) inline – call directly
+        impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(pThis, varSrc);
+    }
+    RefreshCache(pThis);
+    return static_cast<COleSafeArray*>(pThis);
+}
+
+// Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBVCOleVariant@@@Z
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc)
+{
+    if (!pThis || !varSrc) return static_cast<COleSafeArray*>(pThis);
+    const VARIANT* pSrc = reinterpret_cast<const VARIANT*>(varSrc);
+    if (!(pSrc->vt & VT_ARRAY))
+        AfxThrowOleException(E_INVALIDARG);
+    ReleaseArray(pThis);
+    CSAView* v = reinterpret_cast<CSAView*>(pThis);
+    // VariantCopy into the tagVARIANT portion (first 24 bytes)
+    VariantCopy(&v->var, const_cast<VARIANT*>(pSrc));
+    RefreshCache(pThis);
+    return static_cast<COleSafeArray*>(pThis);
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHAEBVCOleVariant@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBVCOleVariant___Z(
+    const void* pThis, const COleVariant* varSrc)
+{
+    if (!pThis || !varSrc) return FALSE;
+    const CSAView* v = reinterpret_cast<const CSAView*>(pThis);
+    const VARIANT* pSrc = reinterpret_cast<const VARIANT*>(varSrc);
+    if (v->var.vt != pSrc->vt) return FALSE;
+    return _AfxCompareSafeArrays(v->var.parray, pSrc->parray);
 }

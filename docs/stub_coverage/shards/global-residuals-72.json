@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-72",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 11956,
+      "symbol": "?PX_Currency@@YAHPEAVCPropExchange@@PEB_WAEATtagCY@@T2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11957,
+      "symbol": "?PX_DataPath@@YAHPEAVCPropExchange@@PEB_WAEAVCDataPathProperty@@1@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11958,
+      "symbol": "?PX_DataPath@@YAHPEAVCPropExchange@@PEB_WAEAVCDataPathProperty@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11959,
+      "symbol": "?PX_Double@@YAHPEAVCPropExchange@@PEB_WAEAN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11960,
+      "symbol": "?PX_Double@@YAHPEAVCPropExchange@@PEB_WAEANN@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11961,
+      "symbol": "?PX_Float@@YAHPEAVCPropExchange@@PEB_WAEAM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11962,
+      "symbol": "?PX_Float@@YAHPEAVCPropExchange@@PEB_WAEAMM@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11963,
+      "symbol": "?PX_Font@@YAHPEAVCPropExchange@@PEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11964,
+      "symbol": "?PX_IUnknown@@YAHPEAVCPropExchange@@PEB_WAEAPEAUIUnknown@@AEBU_GUID@@PEAU2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 11965,
+      "symbol": "?PX_Long@@YAHPEAVCPropExchange@@PEB_WAEAJ@Z"
+    }
+  ],
+  "title": "global_residuals shard 72/95: global"
+}

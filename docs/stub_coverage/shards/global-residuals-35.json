@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-35",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 3552,
+      "symbol": "?DAdvise@XDataObject@COleControl@@UEAAJPEAUtagFORMATETC@@KPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3553,
+      "symbol": "?DAdvise@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@KPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3554,
+      "symbol": "?DAdvise@XDataObject@COleServerDoc@@UEAAJPEAUtagFORMATETC@@KPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3555,
+      "symbol": "?DAdvise@XDataObject@COleServerItem@@UEAAJPEAUtagFORMATETC@@KPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3581,
+      "symbol": "?DDV_MinMaxDateTime@@YAXPEAVCDataExchange@@AEAVCOleDateTime@ATL@@PEBV23@2@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3582,
+      "symbol": "?DDV_MinMaxDateTime@@YAXPEAVCDataExchange@@AEAVCTime@ATL@@PEBV23@2@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3589,
+      "symbol": "?DDV_MinMaxMonth@@YAXPEAVCDataExchange@@AEAVCOleDateTime@ATL@@PEBV23@2@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3590,
+      "symbol": "?DDV_MinMaxMonth@@YAXPEAVCDataExchange@@AEAVCTime@ATL@@PEBV23@2@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3601,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3602,
+      "symbol": "?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBTIME@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 35/95: global"
+}

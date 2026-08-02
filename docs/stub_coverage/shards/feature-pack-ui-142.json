@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-142",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 12740,
+      "symbol": "?SelectCommand@CMFCMousePropertyPage@@IEAAHI@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 1221,
+      "symbol": "??1CMFCOutlookBar@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 2635,
+      "symbol": "?CanAcceptPane@CMFCOutlookBar@@UEBAHPEBVCBasePane@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 3108,
+      "symbol": "?Create@CMFCOutlookBar@@UEAAHPEB_WPEAVCWnd@@AEBUtagRECT@@IKKPEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 3215,
+      "symbol": "?CreateCustomPage@CMFCOutlookBar@@QEAAPEAVCMFCOutlookBarPane@@PEB_WHKH@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 3387,
+      "symbol": "?CreateObject@CMFCOutlookBar@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 4526,
+      "symbol": "?FindAvailablePageID@CMFCOutlookBar@@IEAAIXZ"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 4635,
+      "symbol": "?FloatTab@CMFCOutlookBar@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 5257,
+      "symbol": "?GetDockingStatus@CMFCOutlookBar@@UEAA?AW4AFX_CS_STATUS@@VCPoint@@H@Z"
+    },
+    {
+      "class": "CMFCOutlookBar",
+      "ordinal": 6739,
+      "symbol": "?GetTabArea@CMFCOutlookBar@@UEBAXAEAVCRect@@0@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 142/439: CMFCOutlookBar, CMFCMousePropertyPage"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-80",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCButton",
+      "ordinal": 9222,
+      "symbol": "?OnDraw@CMFCButton@@MEAAXPEAVCDC@@AEBVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9286,
+      "symbol": "?OnDrawBorder@CMFCButton@@MEAAXPEAVCDC@@AEAVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9373,
+      "symbol": "?OnDrawFocusRect@CMFCButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9477,
+      "symbol": "?OnDrawParentBackground@CMFCButton@@UEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9668,
+      "symbol": "?OnDrawText@CMFCButton@@MEAAXPEAVCDC@@AEBVCRect@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@II@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9724,
+      "symbol": "?OnEnable@CMFCButton@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9754,
+      "symbol": "?OnEraseBkgnd@CMFCButton@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9853,
+      "symbol": "?OnFillBackground@CMFCButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 9983,
+      "symbol": "?OnGetCheck@CMFCButton@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCButton",
+      "ordinal": 10008,
+      "symbol": "?OnGetFont@CMFCButton@@IEAAPEAUHFONT__@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 80/439: CMFCButton"
+}

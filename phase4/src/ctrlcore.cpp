@@ -28,6 +28,13 @@ extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCr
     CWnd* pParentWnd,
     UINT nID,
     CCreateContext* pContext);
+extern "C" int MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(
+    CWnd* pThis,
+    unsigned int p0,
+    unsigned __int64 p1,
+    __int64 p2,
+    __int64* p3);
+extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis);
 
 // =============================================================================
 // CRuntimeClass implementations for control classes
@@ -794,6 +801,22 @@ void CDragListBox::DrawSingle(int nItem) {
     if (::SendMessageW(m_hWnd, LB_GETITEMRECT, nItem, (LPARAM)&rc) != LB_ERR) {
         ::InvalidateRect(m_hWnd, &rc, TRUE);
     }
+}
+
+// Symbol: ?OnChildNotify@CDragListBox@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnChildNotify_CDragListBox__MEAAHI_K_JPEA_J_Z(
+    CDragListBox* pThis, UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3) {
+    if (!pThis) {
+        return FALSE;
+    }
+    return impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(
+        pThis, p0, static_cast<unsigned __int64>(p1), static_cast<__int64>(p2), p3);
+}
+
+// Symbol: ?PreSubclassWindow@CDragListBox@@UEAAXXZ
+extern "C" void MS_ABI impl__PreSubclassWindow_CDragListBox__UEAAXXZ(CDragListBox* pThis) {
+    g_dragSourceItem.erase(pThis);
+    impl__PreSubclassWindow_CWnd__UEAAXXZ(pThis);
 }
 
 int CSplitButton::Create(const wchar_t* lpszCaption, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned int nID) {

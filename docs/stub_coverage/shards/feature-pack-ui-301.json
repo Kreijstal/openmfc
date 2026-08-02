@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-301",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 3702,
+      "symbol": "?Deactivate@CMFCToolBar@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 3985,
+      "symbol": "?DoPaint@CMFCToolBar@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4040,
+      "symbol": "?DrawButton@CMFCToolBar@@MEAAHPEAVCDC@@PEAVCMFCToolBarButton@@PEAVCMFCToolBarImages@@HH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4053,
+      "symbol": "?DrawDragCursor@CMFCToolBar@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4128,
+      "symbol": "?DrawSeparator@CMFCToolBar@@MEAAXPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4151,
+      "symbol": "?DropDownMenu@CMFCToolBar@@IEAAHPEAVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4229,
+      "symbol": "?EnableContextMenuItems@CMFCToolBar@@MEAAHPEAVCMFCToolBarButton@@PEAVCMenu@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4232,
+      "symbol": "?EnableCustomizeButton@CMFCToolBar@@QEAAXHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4233,
+      "symbol": "?EnableCustomizeButton@CMFCToolBar@@QEAAXHHIH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 4559,
+      "symbol": "?FindDropIndex@CMFCToolBar@@MEBAHVCPoint@@AEAVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 301/439: CMFCToolBar"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-101",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11064,
+      "symbol": "?OnSetFocus@CMFCColorPickerCtrl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11238,
+      "symbol": "?OnSize@CMFCColorPickerCtrl@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11743,
+      "symbol": "?PointFromLum@CMFCColorPickerCtrl@@IEAAHN@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11793,
+      "symbol": "?PreCreateWindow@CMFCColorPickerCtrl@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 11840,
+      "symbol": "?PreSubclassWindow@CMFCColorPickerCtrl@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 12735,
+      "symbol": "?SelectCellHexagon@CMFCColorPickerCtrl@@IEAAHHH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 12736,
+      "symbol": "?SelectCellHexagon@CMFCColorPickerCtrl@@QEAAXEEE@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13039,
+      "symbol": "?SetColor@CMFCColorPickerCtrl@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13236,
+      "symbol": "?SetHLS@CMFCColorPickerCtrl@@QEAAXNNNH@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13339,
+      "symbol": "?SetLuminanceBarWidth@CMFCColorPickerCtrl@@QEAAXH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 101/439: CMFCColorPickerCtrl"
+}

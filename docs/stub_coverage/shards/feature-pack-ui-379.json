@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-379",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9471,
+      "symbol": "?OnDrawPaneCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9487,
+      "symbol": "?OnDrawPopupWindowCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWnd@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9495,
+      "symbol": "?OnDrawRibbonApplicationButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9498,
+      "symbol": "?OnDrawRibbonButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9503,
+      "symbol": "?OnDrawRibbonButtonsGroup@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButtonsGroup@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9505,
+      "symbol": "?OnDrawRibbonCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonBar@@VCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9508,
+      "symbol": "?OnDrawRibbonCaptionButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonCaptionButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9511,
+      "symbol": "?OnDrawRibbonCategory@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonCategory@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9515,
+      "symbol": "?OnDrawRibbonCategoryCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonContextCaption@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9518,
+      "symbol": "?OnDrawRibbonCategoryScroll@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCRibbonCategoryScroll@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 379/439: CMFCVisualManagerOffice2007"
+}

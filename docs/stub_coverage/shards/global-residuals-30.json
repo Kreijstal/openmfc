@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-30",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2353,
+      "symbol": "?AfxTimeToFileTime@@YAXAEBVCTime@ATL@@PEAU_FILETIME@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2354,
+      "symbol": "?AfxTlsAddRef@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2355,
+      "symbol": "?AfxTlsRelease@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2356,
+      "symbol": "?AfxTrackerTerm@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2357,
+      "symbol": "?AfxTryCleanup@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2358,
+      "symbol": "?AfxUnhookWindowCreate@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2359,
+      "symbol": "?AfxUnlockGlobals@@YAXH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2360,
+      "symbol": "?AfxUnlockTempMaps@@YAHH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2361,
+      "symbol": "?AfxUnmergeMenus@@YAXPEAUHMENU__@@00@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2362,
+      "symbol": "?AfxUnRegisterPreviewHandler@@YAHPEB_W@Z"
+    }
+  ],
+  "title": "global_residuals shard 30/95: global"
+}

@@ -9,6 +9,7 @@
 #include "docking_state.h"
 #include "ribbon_state.h"
 #include <commctrl.h>
+#include <oleacc.h>
 #include <shlobj.h>
 #include <algorithm>
 #include <climits>
@@ -30,7 +31,7 @@
 
 // MinGW compat
 #ifndef RT_TOOLBAR
-#define RT_TOOLBAR MAKEINTRESOURCE(241)
+#define RT_TOOLBAR MAKEINTRESOURCEW(241)
 #endif
 #ifndef ID_SEPARATOR
 #define ID_SEPARATOR 0
@@ -52,6 +53,7 @@ std::unordered_map<UINT, std::wstring> g_ribbonToolTips;
 std::unordered_map<UINT, std::wstring> g_ribbonDescriptions;
 std::unordered_map<UINT, int> g_galleryLastSelectedByID;
 std::unordered_map<const CMFCRibbonBaseElement*, bool> g_ribbonElementsEnabled;
+std::unordered_map<const CMFCRibbonBaseElement*, CSize> g_ribbonTextSizeById;
 
 struct RibbonSliderState {
     int nMin = 0;
@@ -93,8 +95,11 @@ struct TypeLibCacheState {
     std::unordered_map<unsigned long, ITypeLib*> typeLibs;
     std::unordered_map<std::wstring, ITypeInfo*> typeInfos;
 };
+struct TypeLibCacheHandle {};
 std::mutex g_typeLibCacheMutex;
 std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
+std::unordered_map<const CCmdTarget*, std::unique_ptr<TypeLibCacheHandle>> g_targetTypeLibCaches;
+std::unordered_map<std::wstring, std::unique_ptr<TypeLibCacheHandle>> g_guidTypeLibCaches;
 
 struct UserToolState {
     std::wstring command;
@@ -110,6 +115,117 @@ struct TaskDialogButtonState {
     std::unordered_set<int> disabled;
     int defaultButton = 0;
 };
+
+struct SplitterDim {
+    int ideal = 0;
+    int min = 0;
+};
+struct SplitterLayoutState {
+    std::vector<std::vector<CWnd*>> panes;
+    std::vector<SplitterDim> rowInfo;
+    std::vector<SplitterDim> colInfo;
+};
+
+std::mutex g_splitterWndMutex;
+std::unordered_map<const CSplitterWnd*, SplitterLayoutState> g_splitterWndStates;
+
+static SplitterLayoutState& EnsureSplitterState(const CSplitterWnd* pSplitter) {
+    auto it = g_splitterWndStates.find(pSplitter);
+    if (it == g_splitterWndStates.end()) {
+        it = g_splitterWndStates.emplace(pSplitter, SplitterLayoutState()).first;
+    }
+
+    const int rows = std::max(1, pSplitter ? pSplitter->m_nRows : 1);
+    const int cols = std::max(1, pSplitter ? pSplitter->m_nCols : 1);
+
+    if (static_cast<int>(it->second.rowInfo.size()) != rows) {
+        it->second.rowInfo.assign(rows, {});
+    }
+    if (static_cast<int>(it->second.colInfo.size()) != cols) {
+        it->second.colInfo.assign(cols, {});
+    }
+    if (static_cast<int>(it->second.panes.size()) != rows) {
+        it->second.panes.assign(rows, std::vector<CWnd*>(cols, nullptr));
+    }
+    for (auto& row : it->second.panes) {
+        if (static_cast<int>(row.size()) != cols) {
+            row.assign(cols, nullptr);
+        }
+    }
+    return it->second;
+}
+
+static CWnd* GetSplitterPane(const CSplitterWnd* pSplitter, int row, int col) {
+    if (!pSplitter) return nullptr;
+    const SplitterLayoutState& state = EnsureSplitterState(pSplitter);
+    if (row < 0 || col < 0 || row >= pSplitter->m_nRows || col >= pSplitter->m_nCols) return nullptr;
+    if (row >= static_cast<int>(state.panes.size()) || col >= static_cast<int>(state.panes[row].size())) {
+        return nullptr;
+    }
+    return state.panes[row][col];
+}
+
+static void NormalizeSplitterState(CSplitterWnd* pThis) {
+    if (!pThis) return;
+    SplitterLayoutState& state = EnsureSplitterState(pThis);
+    const int rows = std::max(1, pThis->m_nRows);
+    const int cols = std::max(1, pThis->m_nCols);
+
+    if (static_cast<int>(state.panes.size()) != rows) {
+        state.panes.assign(rows, std::vector<CWnd*>(cols, nullptr));
+    } else {
+        for (auto& row : state.panes) {
+            row.assign(cols, nullptr);
+        }
+    }
+    if (static_cast<int>(state.rowInfo.size()) != rows) {
+        state.rowInfo.assign(rows, {});
+    }
+    if (static_cast<int>(state.colInfo.size()) != cols) {
+        state.colInfo.assign(cols, {});
+    }
+
+    for (auto& row : state.rowInfo) {
+        if (row.min <= 0) row.min = pThis->m_sizeMin.cy;
+        if (row.ideal < row.min) row.ideal = row.min;
+    }
+    for (auto& col : state.colInfo) {
+        if (col.min <= 0) col.min = pThis->m_sizeMin.cx;
+        if (col.ideal < col.min) col.ideal = col.min;
+    }
+}
+
+static std::vector<int> SplitterSizesFromInfo(int total, const std::vector<SplitterDim>& info, int fallbackMin) {
+    const int count = static_cast<int>(info.size());
+    if (count <= 0) return {};
+    std::vector<int> sizes(count, std::max(0, fallbackMin));
+    int base = 0;
+    int weightTotal = 0;
+    std::vector<int> weights(count, 1);
+
+    for (int i = 0; i < count; ++i) {
+        const int minSize = std::max(info[i].min, fallbackMin);
+        sizes[i] = minSize;
+        base += minSize;
+        weights[i] = std::max(1, info[i].ideal);
+        weightTotal += weights[i];
+    }
+
+    if (base >= total || weightTotal == 0) return sizes;
+
+    int remaining = total - base;
+    for (int i = 0; i < count; ++i) {
+        int extra = (remaining * weights[i]) / weightTotal;
+        sizes[i] += extra;
+    }
+    int used = 0;
+    for (int v : sizes) used += v;
+    int rem = total - used;
+    for (int i = 0; rem > 0 && i < count; ++i, --rem) {
+        ++sizes[i];
+    }
+    return sizes;
+}
 
 struct TaskDialogState {
     TaskDialogButtonState commandControls;
@@ -135,6 +251,12 @@ std::mutex g_tabbedPaneMutex;
 std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
 std::unordered_set<void*> g_d2dInitialized;
+struct _AFX_D2D_STATE {
+    int d2dFactoryType = 0;
+    int dWriteFactoryType = 0;
+    bool initialized = false;
+};
+thread_local _AFX_D2D_STATE g_d2dState;
 
 __attribute__((used)) static CRuntimeClass g_classCUserException = {
     "CUserException", sizeof(CException), 0xFFFF, nullptr, nullptr, &CException::classCException, nullptr
@@ -261,6 +383,21 @@ inline int RibbonTextPixels(const CMFCRibbonBaseElement* pElem) {
     return std::max(0, pElem->GetText().GetLength()) * kApproxRibbonCharPx;
 }
 
+inline CSize MeasureRibbonText(const CMFCRibbonBaseElement* pElem, CDC* pDC) {
+    if (!pElem) return CSize(0, 0);
+    CString text = pElem->GetText();
+    const int len = text.GetLength();
+    if (len <= 0) return CSize(0, 16);
+    HDC hdc = pDC ? pDC->GetSafeHdc() : nullptr;
+    if (hdc) {
+        SIZE ext{};
+        if (::GetTextExtentPoint32W(hdc, (const wchar_t*)text, len, &ext)) {
+            return CSize(ext.cx + 6, std::max(16, static_cast<int>(ext.cy)));
+        }
+    }
+    return CSize(RibbonTextPixels(pElem), 16);
+}
+
 inline void BuildCStringResult(void* pRet, const std::wstring& value) {
     if (!pRet) return;
     new(pRet) CString(value.c_str());
@@ -285,6 +422,24 @@ inline std::wstring TypeInfoCacheKey(unsigned long lcid, const GUID& iid) {
     key += guidText;
     return key;
 }
+
+namespace {
+
+void* GetGuidTypeLibCache(const GUID& guid) {
+    wchar_t guidText[64] = {};
+    ::StringFromGUID2(guid, guidText, 64);
+    std::wstring key = guidText;
+    auto it = g_guidTypeLibCaches.find(key);
+    if (it != g_guidTypeLibCaches.end()) {
+        return it->second.get();
+    }
+    auto ownedCache = std::make_unique<TypeLibCacheHandle>();
+    void* cache = ownedCache.get();
+    g_guidTypeLibCaches.emplace(std::move(key), std::move(ownedCache));
+    return cache;
+}
+
+} // namespace
 
 inline void ReleaseTypeLibCache(TypeLibCacheState& state) {
     for (auto& entry : state.typeLibs) {
@@ -912,21 +1067,21 @@ UINT CToolBar::GetButtonStyle(int nIndex) const {
     return 0;
 }
 
-void CToolBar::SetButtonText(int nIndex, const wchar_t* lpszText) {
-    if (!m_hWnd) return;
-    TBBUTTONINFO tbi = {};
-    tbi.cbSize = sizeof(TBBUTTONINFO);
+BOOL CToolBar::SetButtonText(int nIndex, const wchar_t* lpszText) {
+    if (!m_hWnd) return FALSE;
+    TBBUTTONINFOW tbi = {};
+    tbi.cbSize = sizeof(TBBUTTONINFOW);
     tbi.dwMask = TBIF_TEXT;
     tbi.pszText = (LPWSTR)lpszText;
-    ::SendMessageW(m_hWnd, TB_SETBUTTONINFOW, nIndex, (LPARAM)&tbi);
+    return static_cast<BOOL>(::SendMessageW(m_hWnd, TB_SETBUTTONINFOW, nIndex, (LPARAM)&tbi));
 }
 
 CString CToolBar::GetButtonText(int nIndex) const {
     CString str;
     if (!m_hWnd) return str;
     wchar_t buf[256] = {};
-    TBBUTTONINFO tbi = {};
-    tbi.cbSize = sizeof(TBBUTTONINFO);
+    TBBUTTONINFOW tbi = {};
+    tbi.cbSize = sizeof(TBBUTTONINFOW);
     tbi.dwMask = TBIF_TEXT;
     tbi.pszText = buf;
     tbi.cchText = 256;
@@ -1133,24 +1288,27 @@ extern "C" void MS_ABI impl__OnBarStyleChange_CToolBar__UEAAXKK_Z(CToolBar* pThi
 
 // Symbol: ?OnEraseBkgnd@CToolBar@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CToolBar__IEAAHPEAVCDC___Z(CToolBar* pThis, CDC* pDC) {
-    (void)pThis;
-    (void)pDC;
-    return TRUE;
+    if (!pThis || !pThis->GetSafeHwnd() || !pDC || !pDC->GetSafeHdc()) return FALSE;
+    return static_cast<int>(::DefWindowProcW(
+        pThis->GetSafeHwnd(), WM_ERASEBKGND,
+        reinterpret_cast<WPARAM>(pDC->GetSafeHdc()), 0));
 }
 
 // Symbol: ?OnNcCalcSize@CToolBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
 extern "C" void MS_ABI impl__OnNcCalcSize_CToolBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(
     CToolBar* pThis, int bCalcValidRects, NCCALCSIZE_PARAMS* lpncsp) {
-    (void)pThis;
-    (void)bCalcValidRects;
-    (void)lpncsp;
+    if (!pThis || !pThis->GetSafeHwnd() || !lpncsp) return;
+    ::DefWindowProcW(pThis->GetSafeHwnd(), WM_NCCALCSIZE,
+                     static_cast<WPARAM>(bCalcValidRects != FALSE),
+                     reinterpret_cast<LPARAM>(lpncsp));
 }
 
 // Symbol: ?OnNcCreate@CToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnNcCreate_CToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(CToolBar* pThis, CREATESTRUCTW* lpCreateStruct) {
-    (void)pThis;
-    (void)lpCreateStruct;
-    return TRUE;
+    if (!pThis || !pThis->GetSafeHwnd() || !lpCreateStruct) return FALSE;
+    return static_cast<int>(::DefWindowProcW(
+        pThis->GetSafeHwnd(), WM_NCCREATE, 0,
+        reinterpret_cast<LPARAM>(lpCreateStruct)) != FALSE);
 }
 
 // Symbol: ?OnNcHitTest@CToolBar@@IEAA_JVCPoint@@@Z
@@ -1164,8 +1322,9 @@ extern "C" __int64 MS_ABI impl__OnPreserveSizingPolicyHelper_CToolBar__IEAA_J_K_
 }
 
 // Symbol: ?OnPreserveZeroBorderHelper@CToolBar@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnPreserveZeroBorderHelper_CToolBar__IEAA_J_K_J_Z(CToolBar*, unsigned __int64, __int64) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnPreserveZeroBorderHelper_CToolBar__IEAA_J_K_J_Z(
+    CToolBar* pThis, unsigned __int64, __int64) {
+    return pThis ? pThis->GetBarStyle() : 0;
 }
 
 // Symbol: ?OnSetButtonSize@CToolBar@@IEAA_J_K_J@Z
@@ -1216,8 +1375,9 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(CTo
 
 // Symbol: ?OnWindowPosChanging@CToolBar@@IEAAXPEAUtagWINDOWPOS@@@Z
 extern "C" void MS_ABI impl__OnWindowPosChanging_CToolBar__IEAAXPEAUtagWINDOWPOS___Z(CToolBar* pThis, WINDOWPOS* lpWndPos) {
-    (void)pThis;
-    (void)lpWndPos;
+    if (!pThis || !pThis->GetSafeHwnd() || !lpWndPos) return;
+    ::DefWindowProcW(pThis->GetSafeHwnd(), WM_WINDOWPOSCHANGING, 0,
+                     reinterpret_cast<LPARAM>(lpWndPos));
 }
 
 // Symbol: ?SetOwner@CToolBar@@QEAAXPEAVCWnd@@@Z
@@ -1320,25 +1480,25 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CToolBarCtrl__KAPEBU
 
 // Symbol: ?OnCreate@CToolBarCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CToolBarCtrl__IEAAHPEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW* lpCreateStruct) {
-    (void)pThis;
-    (void)lpCreateStruct;
-    return 0;
+    if (!pThis || !pThis->GetSafeHwnd() || !lpCreateStruct) return -1;
+    return ::SendMessageW(pThis->GetSafeHwnd(), TB_BUTTONSTRUCTSIZE,
+                          sizeof(TBBUTTON), 0) ? 0 : -1;
 }
 
 // Symbol: ?RestoreState@CToolBarCtrl@@QEAAXPEAUHKEY__@@PEB_W1@Z
 extern "C" void MS_ABI impl__RestoreState_CToolBarCtrl__QEAAXPEAUHKEY____PEB_W1_Z(CWnd* pThis, HKEY hKeyRoot, const wchar_t* lpszSubKey, const wchar_t* lpszValueName) {
-    (void)pThis;
-    (void)hKeyRoot;
-    (void)lpszSubKey;
-    (void)lpszValueName;
+    if (!pThis || !pThis->GetSafeHwnd() || !hKeyRoot || !lpszSubKey || !lpszValueName) return;
+    TBSAVEPARAMSW params = { hKeyRoot, lpszSubKey, lpszValueName };
+    ::SendMessageW(pThis->GetSafeHwnd(), TB_SAVERESTOREW, FALSE,
+                   reinterpret_cast<LPARAM>(&params));
 }
 
 // Symbol: ?SaveState@CToolBarCtrl@@QEAAXPEAUHKEY__@@PEB_W1@Z
 extern "C" void MS_ABI impl__SaveState_CToolBarCtrl__QEAAXPEAUHKEY____PEB_W1_Z(CWnd* pThis, HKEY hKeyRoot, const wchar_t* lpszSubKey, const wchar_t* lpszValueName) {
-    (void)pThis;
-    (void)hKeyRoot;
-    (void)lpszSubKey;
-    (void)lpszValueName;
+    if (!pThis || !pThis->GetSafeHwnd() || !hKeyRoot || !lpszSubKey || !lpszValueName) return;
+    TBSAVEPARAMSW params = { hKeyRoot, lpszSubKey, lpszValueName };
+    ::SendMessageW(pThis->GetSafeHwnd(), TB_SAVERESTOREW, TRUE,
+                   reinterpret_cast<LPARAM>(&params));
 }
 
 // Symbol: ?Enable@CToolCmdUI@@UEAAXH@Z
@@ -1417,6 +1577,28 @@ extern "C" void MS_ABI impl__Unlock_CTypeLibCache__QEAAXXZ(void* pThis) {
     g_typeLibCaches[pThis].locked = false;
 }
 
+// Symbol: ?GetTypeLibCache@CCmdTarget@@UEAAPEAVCTypeLibCache@@XZ
+extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache__XZ(CCmdTarget* pThis) {
+    if (!pThis) {
+        return nullptr;
+    }
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto& ownedCache = g_targetTypeLibCaches[pThis];
+    if (!ownedCache) {
+        ownedCache = std::make_unique<TypeLibCacheHandle>();
+    }
+    return ownedCache.get();
+}
+
+// Symbol: ?AfxGetTypeLibCache@@YAPEAVCTypeLibCache@@PEBU_GUID@@@Z
+extern "C" void* MS_ABI impl__AfxGetTypeLibCache__YAPEAVCTypeLibCache__PEBU_GUID___Z(const GUID* guid) {
+    if (!guid) {
+        return nullptr;
+    }
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    return GetGuidTypeLibCache(*guid);
+}
+
 // Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis, void* pExcept) {
     std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
@@ -1429,7 +1611,11 @@ extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis
         }
     }
     if (pThis && !pExcept) {
-        g_typeLibCaches.erase(pThis);
+        auto it = g_typeLibCaches.find(pThis);
+        if (it != g_typeLibCaches.end()) {
+            ReleaseTypeLibCache(it->second);
+            g_typeLibCaches.erase(it);
+        }
     }
 }
 
@@ -1502,7 +1688,7 @@ extern "C" HICON MS_ABI impl__LoadDefaultIcon_CUserTool__MEAAPEAUHICON____XZ(voi
     std::lock_guard<std::mutex> lock(g_userToolMutex);
     auto& state = g_userTools[pThis];
     if (!state.icon) {
-        state.icon = ::LoadIconW(nullptr, IDI_APPLICATION);
+        state.icon = ::LoadIconW(nullptr, MAKEINTRESOURCEW(IDI_APPLICATION));
     }
     return state.icon;
 }
@@ -1553,9 +1739,40 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWindowlessDC__SAPEAUCRuntim
     return &g_classCWindowlessDC;
 }
 
+// Symbol: ?AfxGetD2DState@@YAPEAV_AFX_D2D_STATE@@XZ
+extern "C" _AFX_D2D_STATE* MS_ABI impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ() {
+    return &g_d2dState;
+}
+
+// Symbol: ??0_AFX_D2D_STATE@@QEAA@XZ
+extern "C" _AFX_D2D_STATE* MS_ABI impl___0_AFX_D2D_STATE__QEAA_XZ(_AFX_D2D_STATE* pThis) {
+    if (!pThis) return nullptr;
+    return new(pThis) _AFX_D2D_STATE();
+}
+
+// Symbol: ??1_AFX_D2D_STATE@@UEAA@XZ
+extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(_AFX_D2D_STATE* pThis) {
+    if (!pThis) return;
+    _AFX_D2D_STATE& state = *pThis;
+    state.initialized = false;
+    state.d2dFactoryType = 0;
+    state.dWriteFactoryType = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_userToolMutex);
+        g_d2dInitialized.erase(pThis);
+    }
+    pThis->~_AFX_D2D_STATE();
+}
+
 // Symbol: ?InitD2D@_AFX_D2D_STATE@@QEAAHW4D2D1_FACTORY_TYPE@@W4DWRITE_FACTORY_TYPE@@@Z
-extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void* pThis, int, int) {
+extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void* pThis, int d2dFactoryType, int writeFactoryType) {
+    auto* pState = static_cast<_AFX_D2D_STATE*>(pThis);
     std::lock_guard<std::mutex> lock(g_userToolMutex);
+    if (pState) {
+        pState->initialized = true;
+        pState->d2dFactoryType = d2dFactoryType;
+        pState->dWriteFactoryType = writeFactoryType;
+    }
     g_d2dInitialized.insert(pThis);
     return TRUE;
 }
@@ -1803,6 +2020,51 @@ BOOL CStatusBar::IsSimple() const {
     return (BOOL)::SendMessageW(m_hWnd, SB_ISSIMPLE, 0, 0);
 }
 
+// Symbol: ?CalcFixedLayout@CDialogBar@@UEAA?AVCSize@@HH@Z
+extern "C" void MS_ABI impl__CalcFixedLayout_CDialogBar__UEAA_AVCSize__HH_Z(
+    CSize* pRet, CDialogBar* pThis, int bStretch, int bHorz) {
+    CSize size(0, 0);
+    if (pThis && pThis->GetSafeHwnd()) {
+        RECT rc = {};
+        if (::GetWindowRect(pThis->GetSafeHwnd(), &rc)) {
+            size.cx = rc.right - rc.left;
+            size.cy = rc.bottom - rc.top;
+        }
+        if (bStretch) {
+            HWND hParent = ::GetParent(pThis->GetSafeHwnd());
+            if (hParent && ::GetClientRect(hParent, &rc)) {
+                if (bHorz) size.cx = rc.right - rc.left;
+                else size.cy = rc.bottom - rc.top;
+            }
+        }
+    }
+    BuildCSizeResult(pRet, size.cx, size.cy);
+}
+
+// Symbol: ?HandleInitDialog@CDialogBar@@IEAA_J_K_J@Z
+extern "C" intptr_t MS_ABI impl__HandleInitDialog_CDialogBar__IEAA_J_K_J_Z(CDialogBar* pThis, WPARAM, LPARAM) {
+    if (!pThis) return TRUE;
+    return TRUE;
+}
+
+// Symbol: ?OnUpdateCmdUI@CDialogBar@@UEAAXPEAVCFrameWnd@@H@Z
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CDialogBar__UEAAXPEAVCFrameWnd__H_Z(
+    CDialogBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler) {
+    (void)pTarget;
+    (void)bDisableIfNoHndler;
+    if (pThis && pThis->GetSafeHwnd()) {
+        // Real MFC updates command UI from toolbar state; this approximation keeps
+        // layout and command dispatch side effects safe for compatibility callers.
+    }
+}
+
+// Symbol: ?SetOccDialogInfo@CDialogBar@@MEAAHPEAU_AFX_OCC_DIALOG_INFO@@@Z
+extern "C" int MS_ABI impl__SetOccDialogInfo_CDialogBar__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(CDialogBar* pThis, _AFX_OCC_DIALOG_INFO* pInfo) {
+    if (!pThis) return FALSE;
+    pThis->SetOccDialogInfo(static_cast<void*>(pInfo));
+    return TRUE;
+}
+
 //=============================================================================
 // CDialogBar
 //=============================================================================
@@ -1890,14 +2152,19 @@ CSplitterWnd::CSplitterWnd()
 
 CSplitterWnd::~CSplitterWnd() {
     if (m_hWnd) ::DestroyWindow(m_hWnd);
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    g_splitterWndStates.erase(this);
 }
 
 BOOL CSplitterWnd::Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols,
                            SIZE sizeMin, CCreateContext* pContext, DWORD dwStyle, UINT nID) {
     if (!pParentWnd) return FALSE;
+    if (nMaxRows <= 0 || nMaxCols <= 0) return FALSE;
     m_nMaxRows = nMaxRows;
     m_nMaxCols = nMaxCols;
     m_sizeMin = sizeMin;
+    m_nRows = nMaxRows;
+    m_nCols = nMaxCols;
 
     m_hWnd = ::CreateWindowExW(0, L"AfxSplitterWnd", nullptr,
                                 dwStyle | WS_CLIPCHILDREN,
@@ -1907,11 +2174,17 @@ BOOL CSplitterWnd::Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols,
                                 AfxGetInstanceHandle(), pContext);
     if (!m_hWnd) return FALSE;
     m_nId = nID;
+
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    (void)pContext;
     return TRUE;
 }
 
 BOOL CSplitterWnd::CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
                                  DWORD dwStyle, UINT nID) {
+    if (nRows <= 0 || nCols <= 0) return FALSE;
+    if (!pParentWnd) return FALSE;
     m_nRows = nRows;
     m_nCols = nCols;
     m_nMaxRows = nRows;
@@ -1923,56 +2196,203 @@ BOOL CSplitterWnd::CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
                                 pParentWnd->GetSafeHwnd(),
                                 (HMENU)(UINT_PTR)nID,
                                 AfxGetInstanceHandle(), nullptr);
-    return m_hWnd != nullptr;
+    if (!m_hWnd) return FALSE;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    return TRUE;
 }
 
 BOOL CSplitterWnd::CreateView(int row, int col, CRuntimeClass* pViewClass,
                                SIZE sizeInit, CCreateContext* pContext) {
-    (void)row; (void)col; (void)pViewClass; (void)sizeInit; (void)pContext;
-    return FALSE;
+    if (!m_hWnd) return FALSE;
+    if (row < 0 || col < 0 || row >= m_nRows || col >= m_nCols) return FALSE;
+    if (!pViewClass || !pViewClass->IsDerivedFrom(RUNTIME_CLASS(CWnd))) return FALSE;
+
+    CObject* pObject = pViewClass->CreateObject();
+    if (!pObject) return FALSE;
+    CWnd* pPane = dynamic_cast<CWnd*>(pObject);
+    if (!pPane) {
+        delete pObject;
+        return FALSE;
+    }
+
+    RECT rc{};
+    const int paneId = AFX_IDW_PANE_FIRST + row * m_nCols + col;
+    if (!pPane->Create(nullptr, nullptr, WS_CHILD | WS_VISIBLE,
+                       rc, this, paneId, pContext)) {
+        delete pPane;
+        return FALSE;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+        NormalizeSplitterState(this);
+        auto& state = EnsureSplitterState(this);
+        if (state.panes.size() > static_cast<size_t>(row) && state.panes[row].size() > static_cast<size_t>(col)) {
+            state.panes[row][col] = pPane;
+        }
+        if (sizeInit.cy > 0) {
+            const int rowIdeal = std::max(1, static_cast<int>(sizeInit.cy));
+            const int rowMin = static_cast<int>(sizeInit.cy);
+            state.rowInfo[row].ideal = std::max(state.rowInfo[row].ideal, rowIdeal);
+            state.rowInfo[row].min = std::max(state.rowInfo[row].min, rowMin);
+        }
+        if (sizeInit.cx > 0) {
+            const int colIdeal = std::max(1, static_cast<int>(sizeInit.cx));
+            const int colMin = static_cast<int>(sizeInit.cx);
+            state.colInfo[col].ideal = std::max(state.colInfo[col].ideal, colIdeal);
+            state.colInfo[col].min = std::max(state.colInfo[col].min, colMin);
+        }
+    }
+
+    SetActivePane(row, col, pPane);
+    RecalcLayout();
+    return TRUE;
 }
 
 CWnd* CSplitterWnd::GetPane(int row, int col) const {
-    (void)row; (void)col;
-    return nullptr;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    return GetSplitterPane(this, row, col);
 }
 
 void CSplitterWnd::GetRowInfo(int row, int& cyCur, int& cyMin) const {
-    cyCur = 0; cyMin = 0;
-    if (!m_hWnd) return;
-    (void)row;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    const SplitterLayoutState& state = EnsureSplitterState(this);
+    if (row < 0 || row >= static_cast<int>(state.rowInfo.size())) {
+        cyCur = 0;
+        cyMin = 0;
+        return;
+    }
+    cyCur = state.rowInfo[row].ideal;
+    cyMin = state.rowInfo[row].min;
 }
 
 void CSplitterWnd::SetRowInfo(int row, int cyIdeal, int cyMin) {
-    (void)row; (void)cyIdeal; (void)cyMin;
+    if (row < 0) return;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    if (row >= m_nRows) return;
+    auto& state = EnsureSplitterState(this);
+    state.rowInfo[row].ideal = std::max(0, cyIdeal);
+    state.rowInfo[row].min = std::max(0, cyMin);
 }
 
 void CSplitterWnd::GetColumnInfo(int col, int& cxCur, int& cxMin) const {
-    cxCur = 0; cxMin = 0;
-    (void)col;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    const SplitterLayoutState& state = EnsureSplitterState(this);
+    if (col < 0 || col >= static_cast<int>(state.colInfo.size())) {
+        cxCur = 0;
+        cxMin = 0;
+        return;
+    }
+    cxCur = state.colInfo[col].ideal;
+    cxMin = state.colInfo[col].min;
 }
 
 void CSplitterWnd::SetColumnInfo(int col, int cxIdeal, int cxMin) {
-    (void)col; (void)cxIdeal; (void)cxMin;
+    if (col < 0) return;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    if (col >= m_nCols) return;
+    auto& state = EnsureSplitterState(this);
+    state.colInfo[col].ideal = std::max(0, cxIdeal);
+    state.colInfo[col].min = std::max(0, cxMin);
 }
 
 void CSplitterWnd::RecalcLayout() {
+    if (!m_hWnd) return;
+    if (m_nRows <= 0 || m_nCols <= 0) return;
+    RECT rc{};
+    GetClientRect(&rc);
+    CRect client(rc);
+    if (client.Width() <= 0 || client.Height() <= 0) return;
+
+    NormalizeSplitterState(this);
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    const SplitterLayoutState& state = EnsureSplitterState(this);
+
+    const int rowCount = static_cast<int>(state.panes.size());
+    const int colCount = rowCount > 0 ? static_cast<int>(state.panes[0].size()) : 0;
+    if (rowCount <= 0 || colCount <= 0) return;
+
+    const int xGap = m_cxSplitter + m_cxSplitterGap;
+    const int yGap = m_cySplitter + m_cySplitterGap;
+    const int width = client.Width() - std::max(0, colCount - 1) * xGap;
+    const int height = client.Height() - std::max(0, rowCount - 1) * yGap;
+    if (width <= 0 || height <= 0) return;
+
+    const int minCol = std::max(1, static_cast<int>(m_sizeMin.cx));
+    const int minRow = std::max(1, static_cast<int>(m_sizeMin.cy));
+    std::vector<int> colWidths = SplitterSizesFromInfo(width, state.colInfo, minCol);
+    std::vector<int> rowHeights = SplitterSizesFromInfo(height, state.rowInfo, minRow);
+
+    int y = client.top;
+    for (int row = 0; row < rowCount; ++row) {
+        int x = client.left;
+        for (int col = 0; col < colCount; ++col) {
+            const int cw = (col < static_cast<int>(colWidths.size())) ? colWidths[col] : 0;
+            const int ch = (row < static_cast<int>(rowHeights.size())) ? rowHeights[row] : 0;
+            CWnd* pane = (row < static_cast<int>(state.panes.size()) && col < static_cast<int>(state.panes[row].size())) ?
+                state.panes[row][col] : nullptr;
+            if (pane && pane->GetSafeHwnd()) {
+                pane->MoveWindow(x, y, cw, ch, TRUE);
+            }
+            x += cw + xGap;
+        }
+        const int rh = (row < static_cast<int>(rowHeights.size())) ? rowHeights[row] : 0;
+        y += rh + yGap;
+    }
+
+    bool activeValid = m_pActivePane != nullptr;
+    if (activeValid && m_nActiveRow >= 0 && m_nActiveCol >= 0 &&
+        m_nActiveRow < rowCount && m_nActiveCol < colCount &&
+        state.panes[m_nActiveRow][m_nActiveCol] == m_pActivePane &&
+        m_pActivePane->GetSafeHwnd()) {
+        return;
+    }
+
+    for (int row = 0; row < rowCount; ++row) {
+        for (int col = 0; col < colCount; ++col) {
+            CWnd* pane = state.panes[row][col];
+            if (pane && pane->GetSafeHwnd()) {
+                m_pActivePane = pane;
+                m_nActiveRow = row;
+                m_nActiveCol = col;
+                return;
+            }
+        }
+    }
+    m_pActivePane = nullptr;
+    m_nActiveRow = -1;
+    m_nActiveCol = -1;
 }
 
 void CSplitterWnd::SetSplitCursor(int ht) {
     (void)ht;
+    const LPCWSTR cursorId = (m_nCols > 1) ? MAKEINTRESOURCEW(IDC_SIZEWE)
+                                           : MAKEINTRESOURCEW(IDC_SIZENS);
+    HCURSOR cursor = ::LoadCursorW(nullptr, cursorId);
+    if (cursor) {
+        ::SetCursor(cursor);
+    }
 }
 
 int CSplitterWnd::GetActivePane(int* pRow, int* pCol) const {
     if (pRow) *pRow = m_nActiveRow;
     if (pCol) *pCol = m_nActiveCol;
-    return 0;
+    if (m_nActiveRow < 0 || m_nActiveCol < 0) return -1;
+    return m_nActiveRow * m_nCols + m_nActiveCol;
 }
 
 void CSplitterWnd::SetActivePane(int row, int col, CWnd* pWnd) {
+    CWnd* target = pWnd ? pWnd : GetPane(row, col);
+    if (!target || row < 0 || col < 0 || row >= m_nRows || col >= m_nCols) return;
     m_nActiveRow = row;
     m_nActiveCol = col;
-    m_pActivePane = pWnd;
+    m_pActivePane = target;
+    if (m_pActivePane && m_pActivePane->GetSafeHwnd()) {
+        m_pActivePane->SetFocus();
+    }
 }
 
 CWnd* CSplitterWnd::GetActivePane() {
@@ -1980,14 +2400,56 @@ CWnd* CSplitterWnd::GetActivePane() {
 }
 
 BOOL CSplitterWnd::CanActivateNext(BOOL bPrev) {
+    if (m_nRows <= 0 || m_nCols <= 0) return FALSE;
+    const int total = m_nRows * m_nCols;
+    if (total <= 1) return FALSE;
+
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    const SplitterLayoutState& state = EnsureSplitterState(this);
+    const int start = (m_nActiveRow < 0 || m_nActiveCol < 0) ? (bPrev ? total - 1 : 0)
+                                                             : (m_nActiveRow * m_nCols + m_nActiveCol);
+    for (int i = 1; i <= total; ++i) {
+        const int candidate = bPrev ? ((start - i + total) % total) : ((start + i) % total);
+        const int row = candidate / m_nCols;
+        const int col = candidate % m_nCols;
+        if (row < static_cast<int>(state.panes.size()) &&
+            col < static_cast<int>(state.panes[row].size()) &&
+            state.panes[row][col] != nullptr) {
+            return TRUE;
+        }
+    }
     return FALSE;
 }
 
 void CSplitterWnd::ActivateNext(BOOL bPrev) {
+    if (!CanActivateNext(bPrev)) return;
+
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    const SplitterLayoutState& state = EnsureSplitterState(this);
+    const int total = m_nRows * m_nCols;
+    const int start = (m_nActiveRow < 0 || m_nActiveCol < 0) ? (bPrev ? total - 1 : 0)
+                                                             : (m_nActiveRow * m_nCols + m_nActiveCol);
+    for (int i = 1; i <= total; ++i) {
+        const int candidate = bPrev ? ((start - i + total) % total) : ((start + i) % total);
+        const int row = candidate / m_nCols;
+        const int col = candidate % m_nCols;
+        if (row >= static_cast<int>(state.panes.size()) || col >= static_cast<int>(state.panes[row].size())) {
+            continue;
+        }
+        CWnd* pane = state.panes[row][col];
+        if (pane && pane->GetSafeHwnd()) {
+            SetActivePane(row, col, pane);
+            break;
+        }
+    }
 }
 
 BOOL CSplitterWnd::DoKeyboardSplit() {
-    return FALSE;
+    if (!CanActivateNext(FALSE)) return FALSE;
+    ActivateNext(FALSE);
+    return TRUE;
 }
 
 void CSplitterWnd::OnDrawSplitter(CDC* pDC, int nType, const CRect& rect) {
@@ -2001,7 +2463,12 @@ void CSplitterWnd::OnInvertTracker(const CRect& rect) {
 }
 
 BOOL CSplitterWnd::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext) {
-    return FALSE;
+    (void)lpcs;
+    (void)pContext;
+    if (!m_hWnd) return FALSE;
+    std::lock_guard<std::mutex> lock(g_splitterWndMutex);
+    NormalizeSplitterState(this);
+    return TRUE;
 }
 
 //=============================================================================
@@ -2325,8 +2792,8 @@ extern "C" void MS_ABI impl__SetText_CMFCRibbonButton__UEAAXPEB_W_Z(CMFCRibbonBu
 }
 
 // Symbol: ?CanBeStretched@CMFCRibbonButton@@UEAAHXZ
-extern "C" int MS_ABI impl__CanBeStretched_CMFCRibbonButton__UEAAHXZ(CMFCRibbonButton* /*pThis*/) {
-    return FALSE;
+extern "C" int MS_ABI impl__CanBeStretched_CMFCRibbonButton__UEAAHXZ(CMFCRibbonButton* pThis) {
+    return pThis ? TRUE : FALSE;
 }
 
 // Symbol: ?GetRegularSize@CMFCRibbonButton@@UEAA?AVCSize@@PEAVCDC@@@Z
@@ -2345,7 +2812,11 @@ extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonButton__UEAA_AVCSize_
 }
 
 // Symbol: ?OnCalcTextSize@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* pThis, CDC* pDC) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonTextSizeById[pThis] = MeasureRibbonText(pThis, pDC);
+}
 
 // Symbol: ?OnDraw@CMFCRibbonButton@@UEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCRibbonButton__UEAAXPEAVCDC___Z(CMFCRibbonButton* pThis, CDC* pDC) {
@@ -2524,7 +2995,11 @@ extern "C" void MS_ABI impl__GetIntermediateSize_CMFCRibbonStatusBarPane__MEAA_A
 }
 
 // Symbol: ?OnCalcTextSize@CMFCRibbonStatusBarPane@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/) {}
+extern "C" void MS_ABI impl__OnCalcTextSize_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* pThis, CDC* pDC) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_ribbonTextSizeById[pThis] = MeasureRibbonText(pThis, pDC);
+}
 
 // Symbol: ?OnDraw@CMFCRibbonStatusBarPane@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCRibbonStatusBarPane__MEAAXPEAVCDC___Z(CMFCRibbonStatusBarPane* pThis, CDC* pDC) {
@@ -2756,6 +3231,45 @@ extern "C" int MS_ABI impl__GetTextLength_CStatusBarCtrl__QEBAHHPEAH_Z(
     LRESULT lenAndType = hwnd ? ::SendMessageW(hwnd, SB_GETTEXTLENGTHW, nPane, 0) : 0;
     if (pType) *pType = HIWORD(lenAndType);
     return LOWORD(lenAndType);
+}
+
+//=============================================================================
+// CStatusBarCtrl real C++ methods + export wrappers
+//=============================================================================
+
+CStatusBarCtrl::~CStatusBarCtrl() {
+}
+
+void CStatusBarCtrl::DrawItem(void* /*lpDrawItemStruct*/) {
+    // Default: unhandled (owner-draw hook for derived classes).
+}
+
+BOOL CStatusBarCtrl::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
+    return CWnd::OnChildNotify(message, wParam, lParam, pResult);
+}
+
+// Symbol: ??1CStatusBarCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CStatusBarCtrl__UEAA_XZ(void* pThis) {
+    if (pThis) {
+        reinterpret_cast<CStatusBarCtrl*>(pThis)->~CStatusBarCtrl();
+    }
+}
+
+// Symbol: ?DrawItem@CStatusBarCtrl@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
+extern "C" void MS_ABI impl__DrawItem_CStatusBarCtrl__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
+    CStatusBarCtrl* pThis, DRAWITEMSTRUCT* lpDrawItemStruct) {
+    if (pThis) {
+        pThis->DrawItem(lpDrawItemStruct);
+    }
+}
+
+// Symbol: ?OnChildNotify@CStatusBarCtrl@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnChildNotify_CStatusBarCtrl__MEAAHI_K_JPEA_J_Z(
+    CStatusBarCtrl* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam, __int64* pResult) {
+    if (pThis) {
+        return (int)pThis->OnChildNotify(message, wParam, lParam, pResult);
+    }
+    return 0;
 }
 
 namespace {
@@ -4338,7 +4852,11 @@ extern "C" void MS_ABI impl__FillStruct_CTaskDialog__AEAAXAEAU_TASKDIALOGCONFIG_
 }
 
 // Symbol: ?FreeStruct@CTaskDialog@@AEAAXAEAU_TASKDIALOGCONFIG@@@Z
-extern "C" void MS_ABI impl__FreeStruct_CTaskDialog__AEAAXAEAU_TASKDIALOGCONFIG___Z(CTaskDialog*, TASKDIALOGCONFIG*) {
+extern "C" void MS_ABI impl__FreeStruct_CTaskDialog__AEAAXAEAU_TASKDIALOGCONFIG___Z(
+    CTaskDialog* pThis, TASKDIALOGCONFIG* config) {
+    (void)pThis;
+    if (!config) return;
+    std::memset(config, 0, sizeof(*config));
 }
 
 // Symbol: ?GetButtonData@CTaskDialog@@AEBAPEAU_TASKDIALOG_BUTTON@@AEBV?$CArray@U_CTaskDialogButton@CTaskDialog@@AEBU12@@@@Z
@@ -4533,7 +5051,14 @@ extern "C" void MS_ABI impl__SetCommandControlOptions_CTaskDialog__QEAAXHHH_Z(CT
 }
 
 // Symbol: ?SetCommonButtonOptions@CTaskDialog@@QEAAXHH@Z
-extern "C" void MS_ABI impl__SetCommonButtonOptions_CTaskDialog__QEAAXHH_Z(CTaskDialog*, int, int) {
+extern "C" void MS_ABI impl__SetCommonButtonOptions_CTaskDialog__QEAAXHH_Z(
+    CTaskDialog* pThis, int commonButton, int bEnable) {
+    if (!pThis) return;
+    if (bEnable) {
+        pThis->m_nCommonButtons |= commonButton;
+    } else {
+        pThis->m_nCommonButtons &= ~commonButton;
+    }
 }
 
 // Symbol: ?SetCommonButtons@CTaskDialog@@QEAAXHHH@Z
@@ -5440,4 +5965,146 @@ extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_IPEAUHMENU____HPEB_W
 // Symbol: ?Initialize@CMFCToolBarMenuButton@@IEAAXIPEAUHMENU__@@HPEB_WH@Z
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(CMFCToolBarMenuButton* pThis, unsigned int p0, HMENU p1, int p2, const wchar_t* p3, int p4) {
     pThis->Initialize(p0, p1, (BOOL)p2, p3, (BOOL)p4);
+}
+
+//=== CMFCRibbonProgressBar remaining exports ==================================
+
+// Symbol: ?CommonInit@CMFCRibbonProgressBar@@IEAAXXZ
+extern "C" void MS_ABI impl__CommonInit_CMFCRibbonProgressBar__IEAAXXZ(CMFCRibbonProgressBar* pThis) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    g_progressStates.try_emplace(pThis->GetID(), RibbonProgressState());
+}
+
+// Symbol: ?CopyFrom@CMFCRibbonProgressBar@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonProgressBar__MEAAXAEBVCMFCRibbonBaseElement___Z(
+    CMFCRibbonProgressBar* pThis, const CMFCRibbonBaseElement* src) {
+    if (!pThis || !src) return;
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
+    // Copy progress state from source if it has one
+    auto it = g_progressStates.find(src->GetID());
+    if (it != g_progressStates.end()) {
+        g_progressStates[pThis->GetID()] = it->second;
+    } else {
+        g_progressStates[pThis->GetID()] = RibbonProgressState();
+    }
+}
+
+// Symbol: ?OnDrawOnList@CMFCRibbonProgressBar@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonProgressBar__MEAAXPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HVCRect__HH_Z(
+    CMFCRibbonProgressBar* pThis, CDC* pDC, void* /*CStringT<wchar_t> by-val*/, int /*nTextOffset*/,
+    CRect rect, int bIsHighlighted, int bIsDisabled) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc() || rect.Width() <= 0 || rect.Height() <= 0) return;
+
+    RibbonProgressState state;
+    {
+        std::lock_guard<std::mutex> lock(g_ribbonMutex);
+        auto it = g_progressStates.find(pThis->GetID());
+        if (it != g_progressStates.end()) state = it->second;
+    }
+
+    CRect chunk = rect;
+    if (!state.bInfinite) {
+        const int range = state.nMax - state.nMin;
+        const int completed = range > 0 ? std::clamp(state.nPos - state.nMin, 0, range) : 0;
+        chunk.right = chunk.left + (range > 0 ? ::MulDiv(rect.Width(), completed, range) : 0);
+    }
+
+    CMFCVisualManager::GetInstance()->OnDrawRibbonProgressBar(
+        pDC, pThis, rect, chunk, state.bInfinite ? TRUE : FALSE);
+
+    const RECT drawRect = { rect.left, rect.top, rect.right, rect.bottom };
+    if (bIsDisabled) {
+        HBRUSH hatch = ::CreateHatchBrush(HS_BDIAGONAL, ::GetSysColor(COLOR_GRAYTEXT));
+        if (hatch) {
+            ::SetBkMode(pDC->GetSafeHdc(), TRANSPARENT);
+            ::FillRect(pDC->GetSafeHdc(), &drawRect, hatch);
+            ::DeleteObject(hatch);
+        }
+    } else if (bIsHighlighted) {
+        ::DrawFocusRect(pDC->GetSafeHdc(), &drawRect);
+    }
+}
+
+// Symbol: ?SetACCData@CMFCRibbonProgressBar@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+extern "C" int MS_ABI impl__SetACCData_CMFCRibbonProgressBar__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
+    CMFCRibbonProgressBar* pThis, CWnd* pParentWnd, void* data) {
+    if (!pThis || !data) return FALSE;
+
+    RibbonProgressState state;
+    {
+        std::lock_guard<std::mutex> lock(g_ribbonMutex);
+        auto it = g_progressStates.find(pThis->GetID());
+        if (it != g_progressStates.end()) state = it->second;
+    }
+
+    CAccessibilityData& acc = *static_cast<CAccessibilityData*>(data);
+    acc.m_strAccName = pThis->GetText();
+    if (acc.m_strAccName.IsEmpty()) acc.m_strAccName = L"Progress";
+
+    const int range = state.nMax - state.nMin;
+    const int completed = range > 0 ? std::clamp(state.nPos - state.nMin, 0, range) : 0;
+    const int percent = range > 0 ? ::MulDiv(completed, 100, range) : 0;
+    wchar_t value[16] = {};
+    _snwprintf(value, sizeof(value) / sizeof(value[0]) - 1, L"%d%%", percent);
+    acc.m_strAccValue = value;
+    acc.m_nAccRole = ROLE_SYSTEM_PROGRESSBAR;
+    acc.m_bAccState = STATE_SYSTEM_READONLY;
+    acc.m_nAccHit = CHILDID_SELF;
+
+    HWND parent = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
+    RECT location = {};
+    if (parent && ::GetClientRect(parent, &location)) {
+        ::MapWindowPoints(parent, nullptr, reinterpret_cast<POINT*>(&location), 2);
+        acc.m_rectAccLocation = location;
+    } else {
+        acc.m_rectAccLocation.SetRectEmpty();
+    }
+    return TRUE;
+}
+
+//=== CMFCStatusBar progress exports ===========================================
+
+namespace {
+    struct StatusBarProgressState {
+        long nTotal = 100;
+        int nMax = 100;
+        long nProgress = 0;
+        unsigned long clrBar = 0;
+        unsigned long clrProgressBarDest = 0;
+        unsigned long clrProgressText = 0;
+        bool bEnabled = false;
+    };
+    std::unordered_map<int, StatusBarProgressState> g_statusBarProgress;
+    std::mutex g_statusBarProgressMutex;
+}
+
+// Symbol: ?EnablePaneProgressBar@CMFCStatusBar@@QEAAXHJHKKK@Z
+extern "C" void MS_ABI impl__EnablePaneProgressBar_CMFCStatusBar__QEAAXHJHKKK_Z(
+    CMFCStatusBar* /*pThis*/, int nIndex, long nTotal, int nMax,
+    unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText) {
+    std::lock_guard<std::mutex> lock(g_statusBarProgressMutex);
+    auto& st = g_statusBarProgress[nIndex];
+    st.nTotal = nTotal;
+    st.nMax = nMax;
+    st.clrBar = clrBar;
+    st.clrProgressBarDest = clrProgressBarDest;
+    st.clrProgressText = clrProgressText;
+    st.bEnabled = true;
+}
+
+// Symbol: ?GetPaneProgress@CMFCStatusBar@@QEBAJH@Z
+extern "C" long MS_ABI impl__GetPaneProgress_CMFCStatusBar__QEBAJH_Z(
+    const CMFCStatusBar* /*pThis*/, int nIndex) {
+    std::lock_guard<std::mutex> lock(g_statusBarProgressMutex);
+    auto it = g_statusBarProgress.find(nIndex);
+    return (it != g_statusBarProgress.end()) ? it->second.nProgress : 0;
+}
+
+// Symbol: ?SetPaneProgress@CMFCStatusBar@@QEAAXHJH@Z
+extern "C" void MS_ABI impl__SetPaneProgress_CMFCStatusBar__QEAAXHJH_Z(
+    CMFCStatusBar* /*pThis*/, int nIndex, long nProgress, int /*bRedraw*/) {
+    std::lock_guard<std::mutex> lock(g_statusBarProgressMutex);
+    auto& st = g_statusBarProgress[nIndex];
+    st.nProgress = nProgress;
 }

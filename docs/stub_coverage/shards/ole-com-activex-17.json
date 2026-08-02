@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-17",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 1840,
+      "symbol": "?AddDockSite@COleCntrFrameWndEx@@QEAAXXZ"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 1914,
+      "symbol": "?AddPane@COleCntrFrameWndEx@@QEAAHPEAVCBasePane@@H@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 2040,
+      "symbol": "?AdjustClientArea@COleCntrFrameWndEx@@QEAAXXZ"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 2050,
+      "symbol": "?AdjustDockingLayout@COleCntrFrameWndEx@@UEAAXPEAX@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 3889,
+      "symbol": "?DockPane@COleCntrFrameWndEx@@QEAAXPEAVCBasePane@@IPEBUtagRECT@@@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 3900,
+      "symbol": "?DockPaneLeftOf@COleCntrFrameWndEx@@QEAAHPEAVCPane@@0@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 4210,
+      "symbol": "?EnableAutoHidePanes@COleCntrFrameWndEx@@QEAAHK@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 4246,
+      "symbol": "?EnableDocking@COleCntrFrameWndEx@@QEAAHK@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 6040,
+      "symbol": "?GetPane@COleCntrFrameWndEx@@QEAAPEAVCBasePane@@I@Z"
+    },
+    {
+      "class": "COleCntrFrameWndEx",
+      "ordinal": 7794,
+      "symbol": "?InsertPane@COleCntrFrameWndEx@@QEAAHPEAVCBasePane@@0H@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 17/77: COleCntrFrameWndEx"
+}

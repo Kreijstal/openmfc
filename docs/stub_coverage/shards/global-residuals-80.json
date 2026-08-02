@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-80",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 12526,
+      "symbol": "?ResizeBorder@XDocHostUIHandler@CHtmlControlSite@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12527,
+      "symbol": "?ResizeBorder@XOleInPlaceActiveObject@COleControl@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12528,
+      "symbol": "?ResizeBorder@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12571,
+      "symbol": "?RFX_BigInt@@YAXPEAVCFieldExchange@@PEB_WAEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12572,
+      "symbol": "?RFX_Binary@@YAXPEAVCFieldExchange@@PEB_WAEAVCByteArray@@_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12573,
+      "symbol": "?RFX_Binary_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_JH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12574,
+      "symbol": "?RFX_Bool@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12575,
+      "symbol": "?RFX_Bool_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12576,
+      "symbol": "?RFX_Byte@@YAXPEAVCFieldExchange@@PEB_WAEAE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12577,
+      "symbol": "?RFX_Byte_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_J@Z"
+    }
+  ],
+  "title": "global_residuals shard 80/95: global"
+}

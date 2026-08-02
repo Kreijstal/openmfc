@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-40",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControlContainer",
+      "ordinal": 11426,
+      "symbol": "?OnUIActivate@COleControlContainer@@UEAAXPEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 11429,
+      "symbol": "?OnUIDeactivate@COleControlContainer@@UEAAXPEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 12709,
+      "symbol": "?ScrollChildren@COleControlContainer@@UEAAXHH@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 12778,
+      "symbol": "?SendDlgItemMessageW@COleControlContainer@@UEAA_JHI_K_J@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 13133,
+      "symbol": "?SetDlgItemInt@COleControlContainer@@UEAAXHIH@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 13135,
+      "symbol": "?SetDlgItemTextW@COleControlContainer@@UEAAXHPEB_W@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 2497,
+      "symbol": "?AttachWindow@COleControlSite@@QEAAXXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 2519,
+      "symbol": "?BindDefaultProperty@COleControlSite@@UEAAXJGPEB_WPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 2527,
+      "symbol": "?BindProperty@COleControlSite@@UEAAXJPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 2930,
+      "symbol": "?ConnectSink@COleControlSite@@IEAAKAEBU_GUID@@PEAUIUnknown@@@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 40/77: COleControlContainer, COleControlSite"
+}

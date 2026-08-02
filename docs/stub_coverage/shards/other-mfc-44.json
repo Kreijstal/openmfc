@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-44",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CHtmlView",
+      "ordinal": 10003,
+      "symbol": "?OnGetDropTarget@CHtmlView@@UEAAJPEAUIDropTarget@@PEAPEAU2@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10007,
+      "symbol": "?OnGetExternal@CHtmlView@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10015,
+      "symbol": "?OnGetHostInfo@CHtmlView@@UEAAJPEAU_DOCHOSTUIINFO@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10095,
+      "symbol": "?OnHideUI@CHtmlView@@UEAAJXZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11171,
+      "symbol": "?OnShowContextMenu@CHtmlView@@UEAAJKPEAUtagPOINT@@PEAUIUnknown@@PEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11231,
+      "symbol": "?OnSize@CHtmlView@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11422,
+      "symbol": "?OnTranslateAccelerator@CHtmlView@@UEAAJPEAUtagMSG@@PEBU_GUID@@K@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11570,
+      "symbol": "?OnUpdateUI@CHtmlView@@UEAAJXZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11786,
+      "symbol": "?PreCreateWindow@CHtmlView@@UEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 11861,
+      "symbol": "?PreTranslateMessage@CHtmlView@@UEAAHPEAUtagMSG@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 44/91: CHtmlView"
+}

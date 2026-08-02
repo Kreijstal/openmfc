@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-44",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 13385,
+      "symbol": "?SetNewParent@CGlobalUtils@@QEAAXAEAVCObList@@PEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 13947,
+      "symbol": "?StringFromCy@CGlobalUtils@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEATtagCY@@@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 13948,
+      "symbol": "?StringFromDecimal@CGlobalUtils@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAUtagDEC@@@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 4552,
+      "symbol": "?FindDefaultAccelerator@CKeyboardManager@@SAHIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 7926,
+      "symbol": "?IsKeyHandled@CKeyboardManager@@SAHGEPEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 8081,
+      "symbol": "?LoadAcceleratorState@CKeyboardManager@@IEAAHPEB_WIAEAPEAUHACCEL__@@@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 12622,
+      "symbol": "?SaveAcceleratorState@CKeyboardManager@@IEAAHPEB_WIPEAUHACCEL__@@@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 12886,
+      "symbol": "?SetAccelTable@CKeyboardManager@@KAXAEAPEAUtagACCEL@@AEAPEAUHACCEL__@@AEAHQEAU3@@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 14106,
+      "symbol": "?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUHACCEL__@@PEAVCFrameWnd@@@Z"
+    },
+    {
+      "class": "CKeyboardManager",
+      "ordinal": 14107,
+      "symbol": "?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUtagACCEL@@HPEAVCFrameWnd@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 44/439: CKeyboardManager, CGlobalUtils"
+}

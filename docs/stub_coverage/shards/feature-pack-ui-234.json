@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-234",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 7590,
+      "symbol": "?Hide@CMFCRibbonKeyTip@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 8400,
+      "symbol": "?m_strClassName@CMFCRibbonKeyTip@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 9135,
+      "symbol": "?OnDestroy@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 9772,
+      "symbol": "?OnEraseBkgnd@CMFCRibbonKeyTip@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 10450,
+      "symbol": "?OnMouseActivate@CMFCRibbonKeyTip@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 10747,
+      "symbol": "?OnPaint@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 13781,
+      "symbol": "?Show@CMFCRibbonKeyTip@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonKeyTip",
+      "ordinal": 14147,
+      "symbol": "?UpdateMenuShadow@CMFCRibbonKeyTip@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 1257,
+      "symbol": "??1CMFCRibbonKeyboardCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonKeyboardCustomizeDialog",
+      "ordinal": 1883,
+      "symbol": "?AddKeyEntry@CMFCRibbonKeyboardCustomizeDialog@@IEAAXPEAUtagACCEL@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 234/439: CMFCRibbonKeyTip, CMFCRibbonKeyboardCustomizeDialog"
+}

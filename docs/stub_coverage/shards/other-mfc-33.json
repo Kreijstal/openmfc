@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-33",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDialogImpl",
+      "ordinal": 11922,
+      "symbol": "?ProcessMouseClick@CDialogImpl@@IEAAHUtagPOINT@@@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 11924,
+      "symbol": "?ProcessMouseMove@CDialogImpl@@IEAAHUtagPOINT@@@Z"
+    },
+    {
+      "class": "CDialogImpl",
+      "ordinal": 12894,
+      "symbol": "?SetActiveMenu@CDialogImpl@@IEAAXPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 3827,
+      "symbol": "?Detach@CDialogTemplate@@QEAAPEAXXZ"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 6681,
+      "symbol": "?GetSizeInDialogUnits@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 6682,
+      "symbol": "?GetSizeInPixels@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 6774,
+      "symbol": "?GetTemplateSize@CDialogTemplate@@KAIPEBUDLGTEMPLATE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 8066,
+      "symbol": "?Load@CDialogTemplate@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 2582,
+      "symbol": "?CalcFixedLayout@CDockBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 3075,
+      "symbol": "?Create@CDockBar@@UEAAHPEAVCWnd@@KI@Z"
+    }
+  ],
+  "title": "other_mfc shard 33/91: CDialogTemplate, CDialogImpl, CDockBar"
+}

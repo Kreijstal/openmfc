@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-36",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControl",
+      "ordinal": 12745,
+      "symbol": "?SelectFontObject@COleControl@@QEAAPEAVCFont@@PEAVCDC@@AEAVCFontHolder@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 12770,
+      "symbol": "?SelectStockFont@COleControl@@QEAAPEAVCFont@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 12775,
+      "symbol": "?SendAdvise@COleControl@@IEAAXI@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 12843,
+      "symbol": "?SerializeExtent@COleControl@@QEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 12846,
+      "symbol": "?SerializeStockProps@COleControl@@QEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 12849,
+      "symbol": "?SerializeVersion@COleControl@@QEAAKAEAVCArchive@@KH@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 13196,
+      "symbol": "?SetFocus@COleControl@@QEAAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 13288,
+      "symbol": "?SetInitialDataFormats@COleControl@@MEAAXXZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 13389,
+      "symbol": "?SetNotPermitted@COleControl@@QEAAXXZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 13391,
+      "symbol": "?SetNotSupported@COleControl@@QEAAXXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 36/77: COleControl"
+}

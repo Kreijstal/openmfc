@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-46",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 4318,
+      "symbol": "?EnableTaskbarThumbnailClipRect@CMDIChildWndEx@@QEAAXH@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 5268,
+      "symbol": "?GetDocumentName@CMDIChildWndEx@@UEAAPEB_WPEAPEAVCObject@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 5441,
+      "symbol": "?GetFrameIcon@CMDIChildWndEx@@UEBAPEAUHICON__@@XZ"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 5442,
+      "symbol": "?GetFrameText@CMDIChildWndEx@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 6037,
+      "symbol": "?GetPane@CMDIChildWndEx@@QEAAPEAVCBasePane@@I@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 6767,
+      "symbol": "?GetTaskbarPreviewWnd@CMDIChildWndEx@@UEAAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 6768,
+      "symbol": "?GetTaskbarThumbnailClipRect@CMDIChildWndEx@@UEBA?AVCRect@@XZ"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 7791,
+      "symbol": "?InsertPane@CMDIChildWndEx@@QEAAHPEAVCBasePane@@0H@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 7817,
+      "symbol": "?InvalidateIconicBitmaps@CMDIChildWndEx@@QEAAHXZ"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 7970,
+      "symbol": "?IsPointNearDockSite@CMDIChildWndEx@@QEBAHVCPoint@@AEAKAEAH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 46/439: CMDIChildWndEx"
+}

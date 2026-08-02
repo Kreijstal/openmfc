@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-61",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 10775,
+      "symbol": "?OnPaneCheck@CMDIFrameWndEx@@IEAAHI@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 10799,
+      "symbol": "?OnPostPreviewFrame@CMDIFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 10802,
+      "symbol": "?OnPowerBroadcast@CMDIFrameWndEx@@IEAAII_J@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11105,
+      "symbol": "?OnSetMenu@CMDIFrameWndEx@@MEAAHPEAUHMENU__@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11122,
+      "symbol": "?OnSetPreviewMode@CMDIFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11133,
+      "symbol": "?OnSetText@CMDIFrameWndEx@@IEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11235,
+      "symbol": "?OnSize@CMDIFrameWndEx@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11306,
+      "symbol": "?OnSysColorChange@CMDIFrameWndEx@@IEAAXXZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11371,
+      "symbol": "?OnToolbarContextMenu@CMDIFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 11379,
+      "symbol": "?OnToolbarDelete@CMDIFrameWndEx@@IEAA_J_K_J@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 61/439: CMDIFrameWndEx"
+}

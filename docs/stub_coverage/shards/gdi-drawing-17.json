@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-17",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CRichEditView",
+      "ordinal": 5036,
+      "symbol": "?GetClipboardData@CRichEditView@@MEAAJPEAU_charrange@@KPEAUIDataObject@@PEAPEAU3@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 5543,
+      "symbol": "?GetInPlaceActiveItem@CRichEditView@@QEBAPEAVCRichEditCntrItem@@XZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 6652,
+      "symbol": "?GetSelectedItem@CRichEditView@@QEBAPEAVCRichEditCntrItem@@XZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 7778,
+      "symbol": "?InsertFileAsObject@CRichEditView@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 7782,
+      "symbol": "?InsertItem@CRichEditView@@QEAAJPEAVCRichEditCntrItem@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 7989,
+      "symbol": "?IsRichEditFormat@CRichEditView@@SAHG@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 8002,
+      "symbol": "?IsSelected@CRichEditView@@MEBAHPEBVCObject@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 8613,
+      "symbol": "?OnActivateView@CRichEditView@@MEAAXHPEAVCView@@0@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 8701,
+      "symbol": "?OnBeginPrinting@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 8706,
+      "symbol": "?OnBullet@CRichEditView@@IEAAXXZ"
+    }
+  ],
+  "title": "gdi_drawing shard 17/24: CRichEditView"
+}

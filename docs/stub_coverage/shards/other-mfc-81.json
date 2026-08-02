@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-81",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 3157,
+      "symbol": "?Create@CSmartDockingHighlighterWnd@@QEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 7591,
+      "symbol": "?Hide@CSmartDockingHighlighterWnd@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 8882,
+      "symbol": "?OnClose@CSmartDockingHighlighterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 9791,
+      "symbol": "?OnEraseBkgnd@CSmartDockingHighlighterWnd@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 13793,
+      "symbol": "?ShowAt@CSmartDockingHighlighterWnd@@QEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 13853,
+      "symbol": "?ShowTabbedAt@CSmartDockingHighlighterWnd@@QEAAXVCRect@@0@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 1415,
+      "symbol": "??1CSmartDockingManager@@UEAA@XZ"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 2682,
+      "symbol": "?CauseCancelMode@CSmartDockingManager@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 3158,
+      "symbol": "?Create@CSmartDockingManager@@QEAAXPEAVCWnd@@PEAUCRuntimeClass@@1@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 3793,
+      "symbol": "?Destroy@CSmartDockingManager@@QEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 81/91: CSmartDockingHighlighterWnd, CSmartDockingManager"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-58",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 7971,
+      "symbol": "?IsPointNearDockSite@CMDIFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8124,
+      "symbol": "?LoadMDIState@CMDIFrameWndEx@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8523,
+      "symbol": "?NegotiateBorderSpace@CMDIFrameWndEx@@UEAAHIPEAUtagRECT@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8587,
+      "symbol": "?OnActivate@CMDIFrameWndEx@@IEAAXIPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8597,
+      "symbol": "?OnActivateApp@CMDIFrameWndEx@@IEAAXHK@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8654,
+      "symbol": "?OnAfterTaskbarActivate@CMDIFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8796,
+      "symbol": "?OnChangeVisualManager@CMDIFrameWndEx@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8868,
+      "symbol": "?OnClose@CMDIFrameWndEx@@IEAAXXZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8908,
+      "symbol": "?OnCmdMsg@CMDIFrameWndEx@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 8931,
+      "symbol": "?OnCommand@CMDIFrameWndEx@@MEAAH_K_J@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 58/439: CMDIFrameWndEx"
+}

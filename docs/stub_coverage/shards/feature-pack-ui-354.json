@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-354",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 10928,
+      "symbol": "?OnResetFrameMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 10929,
+      "symbol": "?OnResetMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 10979,
+      "symbol": "?OnSelchangeContextMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 10984,
+      "symbol": "?OnSelchangeMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 12640,
+      "symbol": "?SaveMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsMenuPropertyPage",
+      "ordinal": 12759,
+      "symbol": "?SelectMenu@CMFCToolBarsMenuPropertyPage@@QEAAHPEAVCDocTemplate@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarsOptionsPropertyPage",
+      "ordinal": 1307,
+      "symbol": "??1CMFCToolBarsOptionsPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarsOptionsPropertyPage",
+      "ordinal": 3450,
+      "symbol": "?CreateObject@CMFCToolBarsOptionsPropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarsOptionsPropertyPage",
+      "ordinal": 3929,
+      "symbol": "?DoDataExchange@CMFCToolBarsOptionsPropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCToolBarsOptionsPropertyPage",
+      "ordinal": 10183,
+      "symbol": "?OnInitDialog@CMFCToolBarsOptionsPropertyPage@@MEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 354/439: CMFCToolBarsMenuPropertyPage, CMFCToolBarsOptionsPropertyPage"
+}

@@ -120,6 +120,22 @@ static void InitializeClasses() {
     g_classesInitialized = true;
 }
 
+static const CRuntimeClass* GetObjectRuntimeClass(const CObject* pObject) {
+    if (!pObject) {
+        return nullptr;
+    }
+
+    void* const* vtable = *reinterpret_cast<void* const* const*>(pObject);
+    if (!vtable || !vtable[0]) {
+        return nullptr;
+    }
+
+    using GetRuntimeClassFn = CRuntimeClass* (MS_ABI *)(const CObject*);
+    GetRuntimeClassFn getRuntimeClass =
+        reinterpret_cast<GetRuntimeClassFn>(vtable[0]);
+    return getRuntimeClass(pObject);
+}
+
 // =============================================================================
 // CObject Methods
 // =============================================================================
@@ -175,20 +191,7 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
         return FALSE;
     }
 
-    // Get this object's runtime class by calling GetRuntimeClass() through the vtable
-    // MSVC vtable layout: GetRuntimeClass is at vtable[0]
-    // Our headers declare GetRuntimeClass() before destructor to match this layout
-    typedef CRuntimeClass* (MS_ABI *GetRuntimeClassFn)(const CObject*);
-
-    // Get vptr (first pointer in the object)
-    void** vptr = *(void***)pThis;
-    if (!vptr) {
-        return FALSE;
-    }
-
-    // vtable[0] is GetRuntimeClass (verified by header declaration order)
-    GetRuntimeClassFn getRuntimeClass = (GetRuntimeClassFn)vptr[0];
-    const CRuntimeClass* pThisClass = getRuntimeClass(pThis);
+    const CRuntimeClass* pThisClass = GetObjectRuntimeClass(pThis);
 
     if (!pThisClass) {
         return FALSE;
@@ -211,11 +214,8 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
 extern "C" int MS_ABI impl__IsSerializable_CObject__QEBAHXZ(
     const CObject* pThis  // RCX = this pointer
 ) {
-    (void)pThis;
-    // CObject itself is not serializable (m_wSchema == 0xFFFF)
-    // Derived classes that are serializable have m_wSchema != 0xFFFF
-    // For CObject base implementation, always return FALSE
-    return FALSE;
+    const CRuntimeClass* pClass = GetObjectRuntimeClass(pThis);
+    return pClass && pClass->m_wSchema != 0xFFFF ? TRUE : FALSE;
 }
 
 // CObject::Serialize() - virtual member function
@@ -453,11 +453,15 @@ extern "C" CObject* MS_ABI impl__AfxDynamicDownCast__YAPEAVCObject__PEAUCRuntime
         return nullptr;
     }
 
-    // Get the object's runtime class through vtable
-    // For now, we assume caller handles this properly
-    // In real MFC, this would call pObject->GetRuntimeClass() virtually
+    const CRuntimeClass* pObjectClass = GetObjectRuntimeClass(pObject);
+    while (pObjectClass) {
+        if (pObjectClass == pClass) {
+            return pObject;
+        }
+        pObjectClass = pObjectClass->m_pfnGetBaseClass
+            ? pObjectClass->m_pfnGetBaseClass()
+            : pObjectClass->m_pBaseClass;
+    }
 
-    // Simplified: just return the object (caller responsibility)
-    // Real implementation needs vtable access
-    return pObject;
+    return nullptr;
 }

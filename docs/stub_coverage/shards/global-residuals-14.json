@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-14",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2098,
+      "symbol": "?Advise@XOleObject@COleControl@@UEAAJPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2099,
+      "symbol": "?Advise@XOleObject@COleServerDoc@@UEAAJPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2100,
+      "symbol": "?Advise@XOleObject@COleServerItem@@UEAAJPEAUIAdviseSink@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2147,
+      "symbol": "?AfxApplicationRecoveryWrapper@@YAKPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2148,
+      "symbol": "?AfxAutosaveTimerProc@@YAXPEAUHWND__@@I_KK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2149,
+      "symbol": "?AfxBeginThread@@YAPEAVCWinThread@@P6AIPEAX@Z0HIKPEAU_SECURITY_ATTRIBUTES@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2150,
+      "symbol": "?AfxBeginThread@@YAPEAVCWinThread@@PEAUCRuntimeClass@@HIKPEAU_SECURITY_ATTRIBUTES@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2152,
+      "symbol": "?AfxCallWndProc@@YA_JPEAVCWnd@@PEAUHWND__@@I_K_J@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2153,
+      "symbol": "?AfxCancelModes@@YAXPEAUHWND__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2154,
+      "symbol": "?AfxCheckError@@YAXJ@Z"
+    }
+  ],
+  "title": "global_residuals shard 14/95: global"
+}

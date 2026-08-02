@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-207",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 7642,
+      "symbol": "?HitTestScrollButtons@CMFCRibbonCategory@@QEBAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8045,
+      "symbol": "?IsWindows7Look@CMFCRibbonCategory@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8537,
+      "symbol": "?NormalizeFloatingRect@CMFCRibbonCategory@@AEAAXPEAVCMFCRibbonBar@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8552,
+      "symbol": "?NotifyControlCommand@CMFCRibbonCategory@@UEAAHHH_K_J@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 8748,
+      "symbol": "?OnCancelMode@CMFCRibbonCategory@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 9240,
+      "symbol": "?OnDraw@CMFCRibbonCategory@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 9387,
+      "symbol": "?OnDrawImage@CMFCRibbonCategory@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCRibbonBaseElement@@HHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10229,
+      "symbol": "?OnKey@CMFCRibbonCategory@@UEAAHI@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10345,
+      "symbol": "?OnLButtonDown@CMFCRibbonCategory@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 10396,
+      "symbol": "?OnLButtonUp@CMFCRibbonCategory@@UEAAXVCPoint@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 207/439: CMFCRibbonCategory"
+}

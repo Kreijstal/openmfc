@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-347",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 2009,
+      "symbol": "?AddToolBar@CMFCToolBarsCustomizeDialog@@QEAAHPEB_WI@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 2029,
+      "symbol": "?AddUserTools@CMFCToolBarsCustomizeDialog@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 3125,
+      "symbol": "?Create@CMFCToolBarsCustomizeDialog@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 4329,
+      "symbol": "?EnableUserDefinedToolbars@CMFCToolBarsCustomizeDialog@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 4470,
+      "symbol": "?FillAllCommandsList@CMFCToolBarsCustomizeDialog@@UEBAXAEAVCListBox@@@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 4473,
+      "symbol": "?FillCategoriesComboBox@CMFCToolBarsCustomizeDialog@@QEBAXAEAVCComboBox@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 4474,
+      "symbol": "?FillCategoriesListBox@CMFCToolBarsCustomizeDialog@@QEBAXAEAVCListBox@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 5064,
+      "symbol": "?GetCommandName@CMFCToolBarsCustomizeDialog@@QEBAPEB_WI@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 5137,
+      "symbol": "?GetCountInCategory@CMFCToolBarsCustomizeDialog@@QEBAHPEB_WAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 8872,
+      "symbol": "?OnClose@CMFCToolBarsCustomizeDialog@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 347/439: CMFCToolBarsCustomizeDialog"
+}

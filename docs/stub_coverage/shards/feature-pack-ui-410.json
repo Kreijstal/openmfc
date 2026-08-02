@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-410",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 7793,
+      "symbol": "?InsertPane@CMultiPaneFrameWnd@@UEAAHPEAVCBasePane@@0H@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 8150,
+      "symbol": "?LoadState@CMultiPaneFrameWnd@@UEAAHPEB_WI@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 8813,
+      "symbol": "?OnCheckEmptyState@CMultiPaneFrameWnd@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 9027,
+      "symbol": "?OnCreate@CMultiPaneFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 9171,
+      "symbol": "?OnDockToRecentPos@CMultiPaneFrameWnd@@UEAAXXZ"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 10034,
+      "symbol": "?OnGetMinMaxInfo@CMultiPaneFrameWnd@@IEAAXPEAUtagMINMAXINFO@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 10135,
+      "symbol": "?OnIdleUpdateCmdUI@CMultiPaneFrameWnd@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 10272,
+      "symbol": "?OnKillRollUpTimer@CMultiPaneFrameWnd@@UEAAXXZ"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 10308,
+      "symbol": "?OnLButtonDblClk@CMultiPaneFrameWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 10783,
+      "symbol": "?OnPaneRecalcLayout@CMultiPaneFrameWnd@@UEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 410/439: CMultiPaneFrameWnd"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-317",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13411,
+      "symbol": "?SetOrigButtons@CMFCToolBar@@QEAAXAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13556,
+      "symbol": "?SetRoundedRgn@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13588,
+      "symbol": "?SetSiblingToolBar@CMFCToolBar@@QEAAXPEAV1@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13702,
+      "symbol": "?SetToolBarBtnText@CMFCToolBar@@QEAAXIPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13718,
+      "symbol": "?SetTwoRowsWithSibling@CMFCToolBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13733,
+      "symbol": "?SetUserImages@CMFCToolBar@@SAHPEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13803,
+      "symbol": "?ShowCommandMessageString@CMFCToolBar@@MEAAXI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13877,
+      "symbol": "?SizeToolBar@CMFCToolBar@@IEAAXHH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13884,
+      "symbol": "?SmartUpdate@CMFCToolBar@@MEAAHAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13942,
+      "symbol": "?StretchPane@CMFCToolBar@@UEAA?AVCSize@@HH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 317/439: CMFCToolBar"
+}

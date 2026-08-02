@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-38",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDockState",
+      "ordinal": 12800,
+      "symbol": "?Serialize@CDockState@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CDockState",
+      "ordinal": 13565,
+      "symbol": "?SetScreenSize@CDockState@@QEAAXAEAVCSize@@@Z"
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "ordinal": 3348,
+      "symbol": "?CreateObject@CDockablePaneAdapter@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "ordinal": 8137,
+      "symbol": "?LoadState@CDockablePaneAdapter@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "ordinal": 11227,
+      "symbol": "?OnSize@CDockablePaneAdapter@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "ordinal": 12662,
+      "symbol": "?SaveState@CDockablePaneAdapter@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CDockablePaneAdapter",
+      "ordinal": 13772,
+      "symbol": "?SetWrappedWnd@CDockablePaneAdapter@@UEAAHPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CEnumArray",
+      "ordinal": 8861,
+      "symbol": "?OnClone@CEnumArray@@MEAAPEAV1@XZ"
+    },
+    {
+      "class": "CEnumArray",
+      "ordinal": 10674,
+      "symbol": "?OnNext@CEnumArray@@MEAAHPEAX@Z"
+    },
+    {
+      "class": "CEnumArray",
+      "ordinal": 10922,
+      "symbol": "?OnReset@CEnumArray@@MEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 38/91: CDockablePaneAdapter, CEnumArray, CDockState"
+}

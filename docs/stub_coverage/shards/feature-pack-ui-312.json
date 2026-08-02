@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-312",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11318,
+      "symbol": "?OnSysColorChange@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11368,
+      "symbol": "?OnToolbarAppearance@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11380,
+      "symbol": "?OnToolbarDelete@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11383,
+      "symbol": "?OnToolbarImage@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11385,
+      "symbol": "?OnToolbarImageAndText@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11386,
+      "symbol": "?OnToolbarNewMenu@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11388,
+      "symbol": "?OnToolbarReset@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11389,
+      "symbol": "?OnToolbarStartGroup@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11391,
+      "symbol": "?OnToolbarText@CMFCToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 11402,
+      "symbol": "?OnToolHitTest@CMFCToolBar@@MEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 312/439: CMFCToolBar"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-404",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9524,
+      "symbol": "?OnDrawRibbonCategoryTab@CMFCVisualManagerWindows7@@UEAAKPEAVCDC@@PEAVCMFCRibbonTab@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9531,
+      "symbol": "?OnDrawRibbonDefaultPaneButton@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9539,
+      "symbol": "?OnDrawRibbonGalleryButton@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonGalleryIcon@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9545,
+      "symbol": "?OnDrawRibbonLaunchButton@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonLaunchButton@@PEAVCMFCRibbonPanel@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9553,
+      "symbol": "?OnDrawRibbonMenuCheckFrame@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9556,
+      "symbol": "?OnDrawRibbonPanel@CMFCVisualManagerWindows7@@UEAAKPEAVCDC@@PEAVCMFCRibbonPanel@@VCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9559,
+      "symbol": "?OnDrawRibbonPanelCaption@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanel@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9570,
+      "symbol": "?OnDrawRibbonRecentFilesFrame@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9574,
+      "symbol": "?OnDrawRibbonSliderChannel@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonSlider@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 9578,
+      "symbol": "?OnDrawRibbonSliderThumb@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonSlider@@VCRect@@HHH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 404/439: CMFCVisualManagerWindows7"
+}

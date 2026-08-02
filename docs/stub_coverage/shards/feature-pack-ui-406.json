@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-406",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 10556,
+      "symbol": "?OnNcActivate@CMFCVisualManagerWindows7@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 10648,
+      "symbol": "?OnNcPaint@CMFCVisualManagerWindows7@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 11546,
+      "symbol": "?OnUpdateSystemColors@CMFCVisualManagerWindows7@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerWindows7",
+      "ordinal": 13552,
+      "symbol": "?SetResourceHandle@CMFCVisualManagerWindows7@@SAXPEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 3931,
+      "symbol": "?DoDataExchange@CMFCWindowsManagerDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 4502,
+      "symbol": "?FillWindowList@CMFCWindowsManagerDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 8434,
+      "symbol": "?MDIMessage@CMFCWindowsManagerDialog@@IEAAXI_K@Z"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 8590,
+      "symbol": "?OnActivate@CMFCWindowsManagerDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 8762,
+      "symbol": "?OnCascade@CMFCWindowsManagerDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCWindowsManagerDialog",
+      "ordinal": 8873,
+      "symbol": "?OnClose@CMFCWindowsManagerDialog@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 406/439: CMFCWindowsManagerDialog, CMFCVisualManagerWindows7"
+}

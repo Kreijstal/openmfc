@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-111",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 4348,
+      "symbol": "?EndDrawDragFrame@CMFCDragFrameImpl@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 7659,
+      "symbol": "?Init@CMFCDragFrameImpl@@QEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 8487,
+      "symbol": "?MoveDragFrame@CMFCDragFrameImpl@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 11738,
+      "symbol": "?PlaceTabPreDocking@CMFCDragFrameImpl@@QEAAXPEAVCBaseTabbedPane@@H@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 11739,
+      "symbol": "?PlaceTabPreDocking@CMFCDragFrameImpl@@QEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 12423,
+      "symbol": "?RemoveTabPreDocking@CMFCDragFrameImpl@@QEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CMFCDragFrameImpl",
+      "ordinal": 12516,
+      "symbol": "?ResetState@CMFCDragFrameImpl@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCDropDownFrame",
+      "ordinal": 1206,
+      "symbol": "??1CMFCDropDownFrame@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCDropDownFrame",
+      "ordinal": 3106,
+      "symbol": "?Create@CMFCDropDownFrame@@UEAAHPEAVCWnd@@HHPEAVCMFCDropDownToolBar@@@Z"
+    },
+    {
+      "class": "CMFCDropDownFrame",
+      "ordinal": 3382,
+      "symbol": "?CreateObject@CMFCDropDownFrame@@SAPEAVCObject@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 111/439: CMFCDragFrameImpl, CMFCDropDownFrame"
+}

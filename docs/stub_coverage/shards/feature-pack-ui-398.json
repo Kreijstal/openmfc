@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-398",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9434,
+      "symbol": "?OnDrawMiniFrameBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCPaneFrameWnd@@VCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9457,
+      "symbol": "?OnDrawOutlookPageButtonBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@AEAVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9468,
+      "symbol": "?OnDrawPaneBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCBasePane@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9475,
+      "symbol": "?OnDrawPaneCaption@CMFCVisualManagerWindows@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9484,
+      "symbol": "?OnDrawPopupWindowButtonBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWndButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9595,
+      "symbol": "?OnDrawScrollButtons@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@AEBVCRect@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9602,
+      "symbol": "?OnDrawSeparator@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9609,
+      "symbol": "?OnDrawSpinButtons@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@HHPEAVCMFCSpinButtonCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9620,
+      "symbol": "?OnDrawStatusBarPaneBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@II@Z"
+    },
+    {
+      "class": "CMFCVisualManagerWindows",
+      "ordinal": 9627,
+      "symbol": "?OnDrawStatusBarSizeBox@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 398/439: CMFCVisualManagerWindows"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-43",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 11860,
+      "symbol": "?PreTranslateMessage@CFrameWndEx@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 12143,
+      "symbol": "?RecalcLayout@CFrameWndEx@@UEAAXH@Z"
+    },
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 12403,
+      "symbol": "?RemovePaneFromDockManager@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH0@Z"
+    },
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 13831,
+      "symbol": "?ShowPane@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH@Z"
+    },
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 13842,
+      "symbol": "?ShowPopupMenu@CFrameWndEx@@IEAAHPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CFrameWndEx",
+      "ordinal": 14212,
+      "symbol": "?WinHelpW@CFrameWndEx@@UEAAX_KI@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 2576,
+      "symbol": "?CalcExpectedDockedRect@CGlobalUtils@@QEAAXAEAVCPaneContainerManager@@PEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 2694,
+      "symbol": "?CheckAlignment@CGlobalUtils@@QEBAHVCPoint@@PEAVCBasePane@@HPEBVCDockingManager@@HAEAKKPEBUtagRECT@@@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 4651,
+      "symbol": "?ForceAdjustLayout@CGlobalUtils@@QEAAXPEAVCDockingManager@@HH@Z"
+    },
+    {
+      "class": "CGlobalUtils",
+      "ordinal": 6045,
+      "symbol": "?GetPaneAndAlignFromPoint@CGlobalUtils@@QEAAHAEAVCPaneContainerManager@@VCPoint@@PEAPEAVCDockablePane@@AEAKAEAH4@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 43/439: CFrameWndEx, CGlobalUtils"
+}

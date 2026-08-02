@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-34",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDockBar",
+      "ordinal": 3878,
+      "symbol": "?DockControlBar@CDockBar@@QEAAXPEAVCControlBar@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 4527,
+      "symbol": "?FindBar@CDockBar@@QEAAHPEAVCControlBar@@H@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 4927,
+      "symbol": "?GetBarInfo@CDockBar@@QEAAXPEAVCControlBarInfo@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 5249,
+      "symbol": "?GetDockedControlBar@CDockBar@@IEBAPEAVCControlBar@@H@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 5250,
+      "symbol": "?GetDockedCount@CDockBar@@QEBAHXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 5251,
+      "symbol": "?GetDockedVisibleCount@CDockBar@@UEBAHXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 7748,
+      "symbol": "?Insert@CDockBar@@IEAAHPEAVCControlBar@@VCRect@@VCPoint@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 7884,
+      "symbol": "?IsDockBar@CDockBar@@UEBAHXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 9749,
+      "symbol": "?OnEraseBkgnd@CDockBar@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10560,
+      "symbol": "?OnNcCalcSize@CDockBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 34/91: CDockBar"
+}

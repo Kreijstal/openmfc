@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-231",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 8674,
+      "symbol": "?OnAutoRepeat@CMFCRibbonGalleryIcon@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 8835,
+      "symbol": "?OnClick@CMFCRibbonGalleryIcon@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 9247,
+      "symbol": "?OnDraw@CMFCRibbonGalleryIcon@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 10097,
+      "symbol": "?OnHighlight@CMFCRibbonGalleryIcon@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 10349,
+      "symbol": "?OnLButtonDown@CMFCRibbonGalleryIcon@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryIcon",
+      "ordinal": 12867,
+      "symbol": "?SetACCData@CMFCRibbonGalleryIcon@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 1254,
+      "symbol": "??1CMFCRibbonGalleryMenuButton@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 2894,
+      "symbol": "?CommonInit@CMFCRibbonGalleryMenuButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 3013,
+      "symbol": "?CopyFrom@CMFCRibbonGalleryMenuButton@@UEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGalleryMenuButton",
+      "ordinal": 3411,
+      "symbol": "?CreateObject@CMFCRibbonGalleryMenuButton@@SAPEAVCObject@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 231/439: CMFCRibbonGalleryIcon, CMFCRibbonGalleryMenuButton"
+}

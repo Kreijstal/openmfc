@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-88",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCCaptionBar",
+      "ordinal": 12986,
+      "symbol": "?SetButtonPressed@CMFCCaptionBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCCaptionBar",
+      "ordinal": 12995,
+      "symbol": "?SetButtonToolTip@CMFCCaptionBar@@QEAAXPEB_W0@Z"
+    },
+    {
+      "class": "CMFCCaptionBar",
+      "ordinal": 13250,
+      "symbol": "?SetIcon@CMFCCaptionBar@@QEAAXPEAUHICON__@@W4BarElementAlignment@1@@Z"
+    },
+    {
+      "class": "CMFCCaptionBar",
+      "ordinal": 13280,
+      "symbol": "?SetImageToolTip@CMFCCaptionBar@@QEAAXPEB_W0@Z"
+    },
+    {
+      "class": "CMFCCaptionBar",
+      "ordinal": 14171,
+      "symbol": "?UpdateTooltips@CMFCCaptionBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCCmdUsageCount",
+      "ordinal": 1819,
+      "symbol": "?AddCmd@CMFCCmdUsageCount@@QEAAXI@Z"
+    },
+    {
+      "class": "CMFCCmdUsageCount",
+      "ordinal": 5127,
+      "symbol": "?GetCount@CMFCCmdUsageCount@@QEBAII@Z"
+    },
+    {
+      "class": "CMFCCmdUsageCount",
+      "ordinal": 7581,
+      "symbol": "?HasEnoughInformation@CMFCCmdUsageCount@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCCmdUsageCount",
+      "ordinal": 7914,
+      "symbol": "?IsFrequentlyUsedCmd@CMFCCmdUsageCount@@QEBAHI@Z"
+    },
+    {
+      "class": "CMFCCmdUsageCount",
+      "ordinal": 12494,
+      "symbol": "?Reset@CMFCCmdUsageCount@@QEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 88/439: CMFCCaptionBar, CMFCCmdUsageCount"
+}

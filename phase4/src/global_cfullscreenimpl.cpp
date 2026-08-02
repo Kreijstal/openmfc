@@ -14,6 +14,8 @@
 //
 #include <windows.h>
 #include <cstddef>
+#include <unordered_map>
+#include <vector>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -53,6 +55,11 @@ static inline HWND FrameHwnd(void* pFrame)
 
 static inline LONG RcW(const RECT& r) { return r.right  - r.left; }
 static inline LONG RcH(const RECT& r) { return r.bottom - r.top;  }
+static inline bool IsRectMatch(RECT child, RECT whole)
+{
+    return child.left <= whole.left && child.top <= whole.top &&
+           child.right >= whole.right && child.bottom >= whole.bottom;
+}
 
 // Forward decls of the exported thunks used from the vtable / cross-calls.
 extern "C" void MS_ABI impl___1CFullScreenImpl__UEAA_XZ(void* pThis);
@@ -68,6 +75,51 @@ void* MS_ABI vdtor(void* p, unsigned f)
 }
 
 void* const g_CFullScreenImpl_vtbl[1] = { reinterpret_cast<void*>(&vdtor) };
+
+struct FullScreenPaneState
+{
+    HMENU menu = nullptr;
+    bool menuStored = false;
+    std::vector<HWND> hiddenBars;
+};
+
+static std::unordered_map<void*, FullScreenPaneState> g_fullScreenState;
+
+struct HidePanesContext
+{
+    HWND frame;
+    FullScreenPaneState* state;
+};
+
+static BOOL CALLBACK HidePanesEnumProc(HWND child, LPARAM lp)
+{
+    auto* ctx = reinterpret_cast<HidePanesContext*>(lp);
+    if (!ctx || !ctx->state || !ctx->frame || child == ctx->frame || !::IsWindow(child)) {
+        return TRUE;
+    }
+
+    if (!::IsWindowVisible(child)) return TRUE;
+
+    wchar_t cls[64] = {};
+    int clsLen = ::GetClassNameW(child, cls, static_cast<int>(sizeof(cls) / sizeof(cls[0])));
+    if (clsLen > 0 && ::wcscmp(cls, L"MDIClient") == 0) return TRUE;
+
+    RECT childRect{};
+    if (!::GetWindowRect(child, &childRect)) return TRUE;
+
+    RECT client{};
+    if (!::GetClientRect(ctx->frame, &client)) return TRUE;
+    POINT ptClientMin{client.left, client.top};
+    POINT ptClientMax{client.right, client.bottom};
+    ::ClientToScreen(ctx->frame, &ptClientMin);
+    ::ClientToScreen(ctx->frame, &ptClientMax);
+    RECT clientScreen{ptClientMin.x, ptClientMin.y, ptClientMax.x, ptClientMax.y};
+    if (IsRectMatch(childRect, clientScreen)) return TRUE;
+
+    ctx->state->hiddenBars.push_back(child);
+    ::ShowWindow(child, SW_HIDE);
+    return TRUE;
+}
 
 } // namespace
 
@@ -115,15 +167,42 @@ extern "C" void MS_ABI impl__OnGetMinMaxInfo_CFullScreenImpl__QEAAXPEAUtagMINMAX
 }
 
 // Symbol: ?UndockAndHidePanes@CFullScreenImpl@@IEAAXPEAVCFrameWnd@@@Z
-extern "C" void MS_ABI impl__UndockAndHidePanes_CFullScreenImpl__IEAAXPEAVCFrameWnd___Z(void* /*pThis*/, void* pFrame)
+extern "C" void MS_ABI impl__UndockAndHidePanes_CFullScreenImpl__IEAAXPEAVCFrameWnd___Z(void* pThis, void* pFrame)
 {
-    // The real helper walks the frame's CDockingManager, undocks every
-    // CPane and hides it so the client area can fill the screen. That
-    // requires the docking-manager internals, which are not available in
-    // this self-contained unit. As a faithful approximation we hide the
-    // immediate non-client child bars we can reach: nothing observable can
-    // be done without the dock manager, so this is left minimal.
-    (void)pFrame; // see notes: stub — needs CDockingManager internals
+    if (!pFrame) return;
+
+    HWND hWnd = FrameHwnd(pFrame);
+    if (!hWnd || !::IsWindow(hWnd)) return;
+
+    auto& st = g_fullScreenState[pFrame];
+    if (st.menuStored) {
+        return; // already saved/hid for this frame instance
+    }
+
+    if (pThis)
+    {
+        S* self = reinterpret_cast<S*>(pThis);
+        // Preserve and optionally hide the frame menu.
+        if (self->m_bShowMenu)
+        {
+            st.menu = ::GetMenu(hWnd);
+            if (st.menu)
+            {
+                st.menuStored = true;
+                ::SetMenu(hWnd, NULL);
+                ::DrawMenuBar(hWnd);
+                st.menuStored = true;
+            }
+        }
+    }
+
+    HidePanesContext ctx{hWnd, &st};
+    ::EnumChildWindows(hWnd, HidePanesEnumProc, reinterpret_cast<LPARAM>(&ctx));
+
+    if (!st.hiddenBars.empty() && !st.menuStored)
+    {
+        st.menuStored = true; // ensure cleanup path is still symmetric when no menu exists
+    }
 }
 
 // Symbol: ?ShowFullScreen@CFullScreenImpl@@QEAAXPEAVCFrameWnd@@@Z
@@ -172,6 +251,25 @@ extern "C" void MS_ABI impl__RestoreState_CFullScreenImpl__QEAAXPEAVCFrameWnd___
     const RECT& r = self->m_rectFramePrev;
     ::SetWindowPos(hWnd, NULL, r.left, r.top, RcW(r), RcH(r),
                    SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    auto it = g_fullScreenState.find(pFrame);
+    if (it != g_fullScreenState.end())
+    {
+        if (it->second.menuStored && it->second.menu)
+        {
+            ::SetMenu(hWnd, it->second.menu);
+            ::DrawMenuBar(hWnd);
+        }
+
+        for (HWND hwnd : it->second.hiddenBars)
+        {
+            if (hwnd && ::IsWindow(hwnd))
+            {
+                ::ShowWindow(hwnd, SW_SHOW);
+            }
+        }
+        g_fullScreenState.erase(it);
+    }
 }
 
 // Symbol: ?ShowFullScreen@CFullScreenImpl@@QEAAXXZ

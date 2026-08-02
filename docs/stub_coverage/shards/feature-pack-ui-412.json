@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-412",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 12823,
+      "symbol": "?Serialize@CMultiPaneFrameWnd@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 13142,
+      "symbol": "?SetDockState@CMultiPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 13476,
+      "symbol": "?SetPreDockState@CMultiPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 13926,
+      "symbol": "?StoreRecentDockSiteInfo@CMultiPaneFrameWnd@@UEAAXPEAVCPane@@@Z"
+    },
+    {
+      "class": "CMultiPaneFrameWnd",
+      "ordinal": 13933,
+      "symbol": "?StoreRecentTabRelatedInfo@CMultiPaneFrameWnd@@UEAAXPEAVCDockablePane@@0@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 2389,
+      "symbol": "?AllocElements@CPane@@QEAAHHH@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 2565,
+      "symbol": "?CalcAvailableSize@CPane@@UEAA?AVCSize@@VCRect@@@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 2599,
+      "symbol": "?CalcInsideRect@CPane@@QEBAXAEAVCRect@@H@Z"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 2649,
+      "symbol": "?CanBeTabbedDocument@CPane@@UEBAHXZ"
+    },
+    {
+      "class": "CPane",
+      "ordinal": 2978,
+      "symbol": "?ConvertToTabbedDocument@CPane@@UEAAXH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 412/439: CMultiPaneFrameWnd, CPane"
+}

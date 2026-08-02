@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-387",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9324,
+      "symbol": "?OnDrawCaptionButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCCaptionButton@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9327,
+      "symbol": "?OnDrawCaptionButtonIcon@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCCaptionButton@@W4IMAGES_IDS@CMenuImages@@HHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9340,
+      "symbol": "?OnDrawComboBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9345,
+      "symbol": "?OnDrawComboDropButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9362,
+      "symbol": "?OnDrawEditBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHPEAVCMFCToolBarEditBoxButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9371,
+      "symbol": "?OnDrawFloatingToolbarBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCBaseToolBar@@VCRect@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9398,
+      "symbol": "?OnDrawMenuArrowOnCustomizeList@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9404,
+      "symbol": "?OnDrawMenuBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCPopupMenu@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9416,
+      "symbol": "?OnDrawMenuLabel@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9420,
+      "symbol": "?OnDrawMenuResizeBar@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 387/439: CMFCVisualManagerOfficeXP"
+}

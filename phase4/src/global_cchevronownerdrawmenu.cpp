@@ -13,6 +13,7 @@
 
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -63,13 +64,22 @@ static void* MS_ABI slot_GetRuntimeClass(const void* pThis) {
 }
 
 // Slot 2: CObject::Serialize — base implementation is a no-op.
-static void MS_ABI slot_Serialize(void* /*pThis*/, void* /*ar*/) {}
+static void MS_ABI slot_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
 
 // Slot 3: CObject::AssertValid — const, no-op in release.
-static void MS_ABI slot_AssertValid(const void* /*pThis*/) {}
+static void MS_ABI slot_AssertValid(const void* pThis) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::AssertValid();
+}
 
 // Slot 4: CObject::Dump — const, no-op in release.
-static void MS_ABI slot_Dump(const void* /*pThis*/, void* /*dc*/) {}
+static void MS_ABI slot_Dump(const void* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::Dump();
+}
 
 } // namespace
 

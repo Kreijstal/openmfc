@@ -10,6 +10,7 @@
 #include "openmfc/afxdisp.h"
 #include "openmfc/afxole.h"
 
+#include <cstdio>
 #include <new>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +29,13 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRun
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CNotSupportedException__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInvalidArgException__SAPEAUCRuntimeClass__XZ();
 
+extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
+extern "C" void MS_ABI impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, FILE* pStream, void* pTM);
+extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
+
 // CWnd::CWnd(HWND) — private constructor MFC uses internally to wrap an existing
 // window handle. Default-initializes the CWnd members (validated layout) and
 // then binds the handle, matching the observable state of the real ctor.
@@ -36,6 +44,28 @@ extern "C" void* MS_ABI impl___0CWnd__AEAA_PEAUHWND_____Z(void* pThis, HWND hWnd
 {
     CWnd* p = new (pThis) CWnd();
     p->m_hWnd = hWnd;
+    return p;
+}
+
+// CFile::CFile(ATL::CAtlTransactionManager*) — transaction-aware constructor.
+// There is no file handle until Open(...) is called, so initialize a default
+// CFile and keep the transaction pointer unused.
+// Symbol: ??0CFile@@QEAA@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void* MS_ABI impl___0CFile__QEAA_PEAVCAtlTransactionManager_ATL___Z(void* pThis, void* /*pTM*/)
+{
+    return pThis ? new (pThis) CFile() : nullptr;
+}
+
+// CFile::CFile(const wchar_t*, UINT, ATL::CAtlTransactionManager*) — route through
+// the existing CommonInit helper so behavior matches the normal constructor/Open
+// path with the same transaction-manager signature.
+// Symbol: ??0CFile@@QEAA@PEB_WIPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void* MS_ABI impl___0CFile__QEAA_PEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, const wchar_t* p0, unsigned int p1, void* pTM)
+{
+    if (!pThis) return nullptr;
+    CFile* p = new(pThis) CFile();
+    impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(pThis, p0, p1, pTM);
     return p;
 }
 
@@ -119,6 +149,44 @@ extern "C" void* MS_ABI impl___0CWindowlessDC__QEAA_PEAUHDC____AEAVCPoint___Z(
     CDC* p = new (pThis) CDC();
     p->m_hDC = hDC;
     p->m_hAttribDC = hDC;
+    return p;
+}
+
+// CStdioFile::CStdioFile(_iobuf*, ATL::CAtlTransactionManager*) — set up an
+// stdio-backed file wrapper over the supplied FILE stream using the existing
+// CommonBaseInit helper. Transaction-manager behavior is not modeled, so pTM is
+// currently unused.
+// Symbol: ??0CStdioFile@@QEAA@PEAU_iobuf@@@Z
+extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEAU_iobuf___Z(
+    void* pThis, FILE* p0)
+{
+    if (!pThis) return nullptr;
+    CStdioFile* p = new (pThis) CStdioFile();
+    impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(pThis, p0, nullptr);
+    return p;
+}
+
+// CStdioFile::CStdioFile(ATL::CAtlTransactionManager*) — transaction-aware
+// constructor. The transaction manager is not tracked by the wrapper state in
+// openmfc, so this simply initializes the same baseline CStdioFile state and
+// keeps the argument unused.
+// Symbol: ??0CStdioFile@@QEAA@PEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, void* pTM)
+{
+    if (!pThis) return nullptr;
+    return impl___0CStdioFile__QEAA_PEAU_iobuf___Z(pThis, nullptr);
+}
+
+// CStdioFile::CStdioFile(const wchar_t*, UINT, ATL::CAtlTransactionManager*)
+// follows the same path as CommonInit after placement construction.
+// Symbol: ??0CStdioFile@@QEAA@PEB_WIPEAVCAtlTransactionManager@ATL@@@Z
+extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEB_WIPEAVCAtlTransactionManager_ATL___Z(
+    void* pThis, const wchar_t* p0, unsigned int p1, void* pTM)
+{
+    if (!pThis) return nullptr;
+    CStdioFile* p = new (pThis) CStdioFile();
+    impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(pThis, p0, p1, pTM);
     return p;
 }
 

@@ -249,6 +249,16 @@ extern "C" int MS_ABI impl__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     return pThis->m_hMenu != nullptr;
 }
 
+// C++ members used by in-repo C++ code (the export impls above are the
+// MSVC-ABI entry points; these satisfy internal C++ calls).
+int CMenu::CreatePopupMenu() {
+    return impl__CreatePopupMenu_CMenu__QEAAHXZ(this);
+}
+
+int CMenu::AppendMenu(UINT nFlags, UINT_PTR nIDNewItem, const wchar_t* lpszNewItem) {
+    return m_hMenu ? ::AppendMenuW(m_hMenu, nFlags, nIDNewItem, lpszNewItem) : FALSE;
+}
+
 // CMenu::LoadMenuW
 extern "C" int MS_ABI impl__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
@@ -331,6 +341,12 @@ extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU h
         return permanent;
     }
     return FromHandleTemp(hMenu);
+}
+
+// C++ method definition so other TUs (e.g. wincore) can call CMenu::FromHandle
+// directly, mirroring CWnd::FromHandle.
+CMenu* CMenu::FromHandle(HMENU hMenu) {
+    return impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(hMenu);
 }
 
 // CMenu::FromHandlePermanent

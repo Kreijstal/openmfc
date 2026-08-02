@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-86",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 13097,
+      "symbol": "?SetData@XDataObject@COleControl@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13098,
+      "symbol": "?SetData@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13099,
+      "symbol": "?SetData@XDataObject@COleServerDoc@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13100,
+      "symbol": "?SetData@XDataObject@COleServerItem@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13101,
+      "symbol": "?SetData@XOleCache@COleControl@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13176,
+      "symbol": "?SetError@XInfoError@CMFCRibbonInfo@@QEAAXW4XError@12@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@JJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13182,
+      "symbol": "?SetExtent@XOleObject@CDocObjectServer@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13183,
+      "symbol": "?SetExtent@XOleObject@COleControl@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13184,
+      "symbol": "?SetExtent@XOleObject@COleServerDoc@@UEAAJKPEAUtagSIZE@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13185,
+      "symbol": "?SetExtent@XOleObject@COleServerItem@@UEAAJKPEAUtagSIZE@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 86/95: global"
+}

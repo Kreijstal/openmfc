@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-209",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12861,
+      "symbol": "?SetACCData@CMFCRibbonCategory@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 12887,
+      "symbol": "?SetActive@CMFCRibbonCategory@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13033,
+      "symbol": "?SetCollapseOrder@CMFCRibbonCategory@@QEAAXAEBV?$CArray@HH@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13315,
+      "symbol": "?SetKeys@CMFCRibbonCategory@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13382,
+      "symbol": "?SetName@CMFCRibbonCategory@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13445,
+      "symbol": "?SetPanelsLayout@CMFCRibbonCategory@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13816,
+      "symbol": "?ShowElements@CMFCRibbonCategory@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 13817,
+      "symbol": "?ShowFloating@CMFCRibbonCategory@@IEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 14157,
+      "symbol": "?UpdateScrollButtons@CMFCRibbonCategory@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 1244,
+      "symbol": "??1CMFCRibbonCollector@@UEAA@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 209/439: CMFCRibbonCategory, CMFCRibbonCollector"
+}

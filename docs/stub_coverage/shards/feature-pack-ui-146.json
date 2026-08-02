@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-146",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 9207,
+      "symbol": "?OnDragOver@CMFCOutlookBarPane@@MEAAKPEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 9763,
+      "symbol": "?OnEraseBkgnd@CMFCOutlookBarPane@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 9819,
+      "symbol": "?OnEraseWorkArea@CMFCOutlookBarPane@@MEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 10387,
+      "symbol": "?OnLButtonUp@CMFCOutlookBarPane@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 10568,
+      "symbol": "?OnNcCalcSize@CMFCOutlookBarPane@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 10595,
+      "symbol": "?OnNcDestroy@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 11067,
+      "symbol": "?OnSetFocus@CMFCOutlookBarPane@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 11243,
+      "symbol": "?OnSize@CMFCOutlookBarPane@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 11313,
+      "symbol": "?OnSysColorChange@CMFCOutlookBarPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarPane",
+      "ordinal": 11356,
+      "symbol": "?OnTimer@CMFCOutlookBarPane@@IEAAX_K@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 146/439: CMFCOutlookBarPane"
+}

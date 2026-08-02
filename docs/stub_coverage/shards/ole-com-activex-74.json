@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-74",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleServerItem",
+      "ordinal": 5182,
+      "symbol": "?GetDataObject@COleServerItem@@QEAAPEAUIDataObject@@XZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5315,
+      "symbol": "?GetEmbedSourceData@COleServerItem@@QEAAXPEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5691,
+      "symbol": "?GetLinkSourceData@COleServerItem@@QEAAHPEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5921,
+      "symbol": "?GetMetafileData@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5938,
+      "symbol": "?GetMoniker@COleServerItem@@QEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5993,
+      "symbol": "?GetObjectDescriptorData@COleServerItem@@QEAAXPEAUtagPOINT@@PEAUtagSIZE@@PEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 6009,
+      "symbol": "?GetOleObject@COleServerItem@@QEAAPEAUIOleObject@@XZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 7849,
+      "symbol": "?IsBlank@COleServerItem@@MEBAHXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 8545,
+      "symbol": "?NotifyClient@COleServerItem@@QEAAXW4OLE_NOTIFICATION@@_K@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 9189,
+      "symbol": "?OnDoVerb@COleServerItem@@UEAAXJ@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 74/77: COleServerItem"
+}

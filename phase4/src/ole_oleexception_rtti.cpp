@@ -31,7 +31,6 @@
   #define MS_ABI
 #endif
 
-namespace {
 // Order: m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
 //        m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
 // DYNAMIC (not DYNCREATE): no factory; schema 0xFFFF (not serializable).
@@ -53,7 +52,6 @@ CRuntimeClass classCOleDispatchException = {
     &classCOleException,       // chains through COleException, like retail
     nullptr
 };
-} // namespace
 
 // Symbol: ?GetThisClass@COleException@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ() {

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-150",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 4304,
+      "symbol": "?EnableScrollButtons@CMFCOutlookBarTabCtrl@@QEAAXHHH@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 4613,
+      "symbol": "?FindTargetWnd@CMFCOutlookBarTabCtrl@@UEAAPEAVCWnd@@AEBVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 6740,
+      "symbol": "?GetTabArea@CMFCOutlookBarTabCtrl@@UEBAXAEAVCRect@@0@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 6759,
+      "symbol": "?GetTabNumberToDetach@CMFCOutlookBarTabCtrl@@MEBAHH@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 7950,
+      "symbol": "?IsMode2003@CMFCOutlookBarTabCtrl@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 7978,
+      "symbol": "?IsPtInTabArea@CMFCOutlookBarTabCtrl@@UEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 8019,
+      "symbol": "?IsTabDetachable@CMFCOutlookBarTabCtrl@@UEBAHH@Z"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 8745,
+      "symbol": "?OnCancelMode@CMFCOutlookBarTabCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 8792,
+      "symbol": "?OnChangeTabs@CMFCOutlookBarTabCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCOutlookBarTabCtrl",
+      "ordinal": 8934,
+      "symbol": "?OnCommand@CMFCOutlookBarTabCtrl@@MEAAH_K_J@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 150/439: CMFCOutlookBarTabCtrl"
+}

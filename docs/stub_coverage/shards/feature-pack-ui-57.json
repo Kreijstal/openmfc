@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-57",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 4268,
+      "symbol": "?EnableMDITabbedGroups@CMDIFrameWndEx@@QEAAXHAEBVCMDITabInfo@@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 4270,
+      "symbol": "?EnableMDITabs@CMDIFrameWndEx@@QEAAXHHW4Location@CMFCBaseTabCtrl@@HW4Style@CMFCTabCtrl@@HH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 4336,
+      "symbol": "?EnableWindowsDialog@CMDIFrameWndEx@@QEAAXIIHH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 4337,
+      "symbol": "?EnableWindowsDialog@CMDIFrameWndEx@@QEAAXIPEB_WHH@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 5540,
+      "symbol": "?GetInPlaceActiveItem@CMDIFrameWndEx@@MEAAPEAVCOleClientItem@@XZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 6038,
+      "symbol": "?GetPane@CMDIFrameWndEx@@QEAAPEAVCBasePane@@I@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 6183,
+      "symbol": "?GetRegisteredWithTaskBarMDIChildCount@CMDIFrameWndEx@@QEAAHXZ"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 7540,
+      "symbol": "?GetWindowMenuPopup@CMDIFrameWndEx@@MEAAPEAUHMENU__@@PEAU2@@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 7647,
+      "symbol": "?HtmlHelpW@CMDIFrameWndEx@@MEAAX_KI@Z"
+    },
+    {
+      "class": "CMDIFrameWndEx",
+      "ordinal": 7792,
+      "symbol": "?InsertPane@CMDIFrameWndEx@@QEAAHPEAVCBasePane@@0H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 57/439: CMDIFrameWndEx"
+}

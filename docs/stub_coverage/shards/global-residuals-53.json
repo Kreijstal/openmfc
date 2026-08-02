@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-53",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 5362,
+      "symbol": "?GetExternal@XDocHostUIHandler@CHtmlControlSite@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5418,
+      "symbol": "?GetFocus@XOleIPSite@COleControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 5461,
+      "symbol": "?GetGUID@XProvideClassInfo@COleControl@@UEAAJKPEAU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5492,
+      "symbol": "?GetHostInfo@XDocHostUIHandler@CHtmlControlSite@@UEAAJPEAU_DOCHOSTUIINFO@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5501,
+      "symbol": "?GetHWND@XAccessibleServer@CWnd@@UEAAJPEAPEAUHWND__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5522,
+      "symbol": "?GetIDsOfNames@XAccessible@CMFCBaseAccessibleObject@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5523,
+      "symbol": "?GetIDsOfNames@XAccessible@CWnd@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5524,
+      "symbol": "?GetIDsOfNames@XAmbientProps@COleControlSite@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5525,
+      "symbol": "?GetIDsOfNames@XEventSink@COleControlSite@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 5529,
+      "symbol": "?GetIID@XEventConnPt@COleControl@@UEAAAEBU_GUID@@XZ"
+    }
+  ],
+  "title": "global_residuals shard 53/95: global"
+}

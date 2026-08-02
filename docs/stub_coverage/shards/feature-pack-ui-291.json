@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-291",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 9963,
+      "symbol": "?OnForward@CMFCTasksPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10013,
+      "symbol": "?OnGetFont@CMFCTasksPane@@IEAAPEAUHFONT__@@XZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10113,
+      "symbol": "?OnHome@CMFCTasksPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10356,
+      "symbol": "?OnLButtonDown@CMFCTasksPane@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10404,
+      "symbol": "?OnLButtonUp@CMFCTasksPane@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10500,
+      "symbol": "?OnMouseMove@CMFCTasksPane@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10516,
+      "symbol": "?OnMouseWheel@CMFCTasksPane@@IEAAHIFVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10661,
+      "symbol": "?OnNeedTipText@CMFCTasksPane@@IEAAHIPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10706,
+      "symbol": "?OnOK@CMFCTasksPane@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 10719,
+      "symbol": "?OnOther@CMFCTasksPane@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 291/439: CMFCTasksPane"
+}

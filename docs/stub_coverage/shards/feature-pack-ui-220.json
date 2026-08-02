@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-220",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonContextCaption",
+      "ordinal": 10398,
+      "symbol": "?OnLButtonUp@CMFCRibbonContextCaption@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonContextCaption",
+      "ordinal": 11014,
+      "symbol": "?OnSetAccData@CMFCRibbonContextCaption@@MEAAHJ@Z"
+    },
+    {
+      "class": "CMFCRibbonContextCaption",
+      "ordinal": 12864,
+      "symbol": "?SetACCData@CMFCRibbonContextCaption@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 1250,
+      "symbol": "??1CMFCRibbonCustomizePropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 1831,
+      "symbol": "?AddCustomCategory@CMFCRibbonCustomizePropertyPage@@QEAAXPEB_WAEBV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 3405,
+      "symbol": "?CreateObject@CMFCRibbonCustomizePropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 3920,
+      "symbol": "?DoDataExchange@CMFCRibbonCustomizePropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 8489,
+      "symbol": "?MoveItem@CMFCRibbonCustomizePropertyPage@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 8616,
+      "symbol": "?OnAdd@CMFCRibbonCustomizePropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonCustomizePropertyPage",
+      "ordinal": 9070,
+      "symbol": "?OnCustomizeKeyboard@CMFCRibbonCustomizePropertyPage@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 220/439: CMFCRibbonCustomizePropertyPage, CMFCRibbonContextCaption"
+}

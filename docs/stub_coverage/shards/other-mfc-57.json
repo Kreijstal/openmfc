@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-57",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMouseManager",
+      "ordinal": 7501,
+      "symbol": "?GetViewNames@CMouseManager@@QEBAXAEAVCStringList@@@Z"
+    },
+    {
+      "class": "CMouseManager",
+      "ordinal": 8149,
+      "symbol": "?LoadState@CMouseManager@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMouseManager",
+      "ordinal": 12675,
+      "symbol": "?SaveState@CMouseManager@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMouseManager",
+      "ordinal": 12822,
+      "symbol": "?Serialize@CMouseManager@@MEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMouseManager",
+      "ordinal": 13056,
+      "symbol": "?SetCommandForDblClk@CMouseManager@@QEAAXHI@Z"
+    },
+    {
+      "class": "CMultiPageDHtmlDialog",
+      "ordinal": 1329,
+      "symbol": "??1CMultiPageDHtmlDialog@@UEAA@XZ"
+    },
+    {
+      "class": "CMultiPageDHtmlDialog",
+      "ordinal": 5225,
+      "symbol": "?GetDHtmlEventMap@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@XZ"
+    },
+    {
+      "class": "CMultiPageDHtmlDialog",
+      "ordinal": 5337,
+      "symbol": "?GetEventMapForUrl@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@PEB_W@Z"
+    },
+    {
+      "class": "CMultiPageDHtmlDialog",
+      "ordinal": 10540,
+      "symbol": "?OnNavigateComplete@CMultiPageDHtmlDialog@@MEAAXPEAUIDispatch@@PEB_W@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 2517,
+      "symbol": "?BindControls@COccManager@@IEAAXPEAVCWnd@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 57/91: CMouseManager, CMultiPageDHtmlDialog, COccManager"
+}

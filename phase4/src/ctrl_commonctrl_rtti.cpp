@@ -19,6 +19,27 @@
   #define MS_ABI
 #endif
 
+extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+    CWnd* pThis,
+    const wchar_t* lpszClassName,
+    const wchar_t* lpszWindowName,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID,
+    CCreateContext* pContext);
+
+extern "C" int MS_ABI impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+    CWnd* pThis,
+    unsigned long dwExStyle,
+    const wchar_t* lpszClassName,
+    const wchar_t* lpszWindowName,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID,
+    void* lpParam);
+
 namespace {
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
 // m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
@@ -43,6 +64,46 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CAnimateCtrl__SAPEAUCRuntime
 // Symbol: ?GetRuntimeClass@CAnimateCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CAnimateCtrl__UEBAPEAUCRuntimeClass__XZ(const void*) {
     return &classCAnimateCtrl;
+}
+
+// Symbol: ?Create@CAnimateCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CAnimateCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        static_cast<CWnd*>(pThis),
+        L"SysAnimate32",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
+}
+
+// Symbol: ?CreateEx@CAnimateCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CAnimateCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwExStyle,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+        static_cast<CWnd*>(pThis),
+        dwExStyle,
+        L"SysAnimate32",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
 }
 
 // Symbol: ?GetThisClass@CHeaderCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -70,6 +131,60 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CIPAddressCtrl__SAPEAUCRunti
 // Symbol: ?GetRuntimeClass@CIPAddressCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CIPAddressCtrl__UEBAPEAUCRuntimeClass__XZ(const void*) {
     return &classCIPAddressCtrl;
+}
+
+// Symbol: ?Create@CIPAddressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CIPAddressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        static_cast<CWnd*>(pThis),
+        L"SysIPAddress32",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
+}
+
+// Symbol: ?CreateEx@CIPAddressCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CIPAddressCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwExStyle,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+        static_cast<CWnd*>(pThis),
+        dwExStyle,
+        L"SysIPAddress32",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
+}
+
+// Symbol: ?GetAddress@CIPAddressCtrl@@QEBAHAEAE000@Z
+extern "C" int MS_ABI impl__GetAddress_CIPAddressCtrl__QEBAHAEAE000_Z(
+    void* pThis,
+    unsigned char& nField0,
+    unsigned char& nField1,
+    unsigned char& nField2,
+    unsigned char& nField3)
+{
+    CWnd* pWnd = static_cast<CWnd*>(pThis);
+    if (!pWnd || !pWnd->m_hWnd) return 0;
+    return (int)::SendMessageW(pWnd->m_hWnd, IPM_GETADDRESS, 0,
+        (LPARAM)(LPDWORD)&nField0);
 }
 
 // Symbol: ?GetThisClass@CPagerCtrl@@SAPEAUCRuntimeClass@@XZ
@@ -106,4 +221,44 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CNetAddressCtrl__SAPEAUCRunt
 // Symbol: ?GetRuntimeClass@CNetAddressCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CNetAddressCtrl__UEBAPEAUCRuntimeClass__XZ(const void*) {
     return &classCNetAddressCtrl;
+}
+
+// Symbol: ?Create@CNetAddressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__Create_CNetAddressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        static_cast<CWnd*>(pThis),
+        L"SysAddressCtrl",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
+}
+
+// Symbol: ?CreateEx@CNetAddressCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
+extern "C" int MS_ABI impl__CreateEx_CNetAddressCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
+    void* pThis,
+    unsigned long dwExStyle,
+    unsigned long dwStyle,
+    const RECT& rect,
+    CWnd* pParentWnd,
+    unsigned int nID)
+{
+    return impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+        static_cast<CWnd*>(pThis),
+        dwExStyle,
+        L"SysAddressCtrl",
+        nullptr,
+        dwStyle,
+        rect,
+        pParentWnd,
+        nID,
+        nullptr);
 }
