@@ -6831,7 +6831,7 @@ void COleControl::OnDraw(CDC* pDC, const CRect& rcBounds, const CRect& rcInvalid
     (void)rcInvalid;
     if (!pDC || !pDC->GetSafeHdc()) return;
 
-    const RECT rc = *rcBounds;
+    RECT rc = *rcBounds;
     const COLORREF backColor = m_bEnabled ? AmbientBackColor() : RGB(240, 240, 240);
     HBRUSH hBrush = ::CreateSolidBrush(backColor);
     if (hBrush) {

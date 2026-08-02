@@ -2439,7 +2439,12 @@ inline int CWnd::PostMessageW(unsigned int message, uintptr_t wParam, intptr_t l
 inline intptr_t CWnd::WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam) {
     intptr_t lResult = 0;
     if (!OnWndMsg(message, wParam, lParam, &lResult)) {
+#if defined(OPENMFC_APPCORE_IMPL)
+        lResult = m_hWnd ? static_cast<intptr_t>(::DefWindowProcW(
+            m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam))) : 0;
+#else
         lResult = static_cast<intptr_t>(DefWindowProcW(message, wParam, lParam));
+#endif
     }
     return lResult;
 }
@@ -2452,7 +2457,11 @@ inline int CWnd::OnCommand(uintptr_t wParam, intptr_t lParam) {
         return TRUE;
     }
     if (lParam) {
+#if defined(OPENMFC_APPCORE_IMPL)
+        CWnd* pSender = nullptr;
+#else
         CWnd* pSender = CWnd::FromHandle(reinterpret_cast<HWND>(lParam));
+#endif
         if (pSender && pSender != this && pSender->OnCmdMsg(nID, nCode, pExtra, nullptr)) {
             return TRUE;
         }
@@ -2475,7 +2484,11 @@ inline int CWnd::OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult) 
         return TRUE;
     }
 
+#if defined(OPENMFC_APPCORE_IMPL)
+    CWnd* pSender = nullptr;
+#else
     CWnd* pSender = CWnd::FromHandle(pNotify->hwndFrom);
+#endif
     if (pSender && pSender != this &&
         pSender->OnCmdMsg(nID, nCode, reinterpret_cast<void*>(lParam), nullptr)) {
         return TRUE;
