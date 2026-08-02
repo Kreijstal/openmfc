@@ -24,6 +24,8 @@
 #  define MS_ABI
 #endif
 
+extern "C" void OpenMfcResetDockState(void* pState);
+
 namespace {
 struct CMFCBaseToolBarObject : public CObject {};
 struct COutlookCustomizeButtonObject : public CObject {};
@@ -2090,6 +2092,7 @@ extern "C" void* MS_ABI impl___0CDockContext__QEAA_PEAVCControlBar___Z(void* pTh
 
 // Symbol: ??0CDockState@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CDockState__QEAA_XZ(void* pThis) {
+    OpenMfcResetDockState(pThis);
     return pThis;
 }
 
@@ -3688,7 +3691,7 @@ extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* pThis) {
 
 // Symbol: ??1CDockState@@UEAA@XZ
 extern "C" void MS_ABI impl___1CDockState__UEAA_XZ(void* pThis) {
-    (void)pThis;
+    OpenMfcResetDockState(pThis);
 }
 
 // Symbol: ??1CDockablePaneAdapter@@UEAA@XZ

@@ -5,7 +5,7 @@
 // shim representation used in menucore.cpp.
 
 #include <cstddef>
-#include <new>
+#include <cstring>
 
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -34,11 +34,7 @@ static_assert(offsetof(CCmdUIShim, m_nIndex) == 24, "m_nIndex @24");
 static_assert(offsetof(CCmdUIShim, m_pMenu) == 32, "m_pMenu @32");
 static_assert(offsetof(CCmdUIShim, m_pSubMenu) == 40, "m_pSubMenu @40");
 
-// Optional hardening: make sure construction always starts from the same base
-// layout that all command UI types in this project assume.
-inline void* MS_ABI ConstructAsCCmdUI(void* pThis) {
-    return new (pThis) CCmdUI();
-}
+extern void* const g_CTestCmdUI_vtbl[4];
 
 } // namespace
 
@@ -47,7 +43,10 @@ extern "C" void* MS_ABI impl___0CTestCmdUI__QEAA_XZ(void* pThis) {
     if (!pThis) {
         return nullptr;
     }
-    return ConstructAsCCmdUI(pThis);
+    auto* ui = static_cast<CCmdUIShim*>(pThis);
+    std::memset(ui, 0, sizeof(*ui));
+    ui->vfptr = g_CTestCmdUI_vtbl;
+    return ui;
 }
 
 // Symbol: ?Enable@CTestCmdUI@@UEAAXH@Z
@@ -59,7 +58,7 @@ extern "C" void MS_ABI impl__Enable_CTestCmdUI__UEAAXH_Z(CCmdUI* pThis, int bOn)
     if (!ui->m_pMenu && !ui->m_pSubMenu) {
         return;
     }
-    pThis->Enable(bOn);
+    pThis->CCmdUI::Enable(bOn);
 }
 
 // Symbol: ?SetCheck@CTestCmdUI@@UEAAXH@Z
@@ -67,7 +66,7 @@ extern "C" void MS_ABI impl__SetCheck_CTestCmdUI__UEAAXH_Z(CCmdUI* pThis, int nC
     if (!pThis) {
         return;
     }
-    pThis->SetCheck(nCheck);
+    pThis->CCmdUI::SetCheck(nCheck);
 }
 
 // Symbol: ?SetRadio@CTestCmdUI@@UEAAXH@Z
@@ -75,7 +74,7 @@ extern "C" void MS_ABI impl__SetRadio_CTestCmdUI__UEAAXH_Z(CCmdUI* pThis, int bO
     if (!pThis) {
         return;
     }
-    pThis->SetCheck(bOn ? 1 : 0);
+    pThis->CCmdUI::SetCheck(bOn ? 1 : 0);
 }
 
 // Symbol: ?SetText@CTestCmdUI@@UEAAXPEB_W@Z
@@ -83,5 +82,32 @@ extern "C" void MS_ABI impl__SetText_CTestCmdUI__UEAAXPEB_W_Z(CCmdUI* pThis, con
     if (!pThis) {
         return;
     }
-    pThis->SetText(lpszText);
+    pThis->CCmdUI::SetText(lpszText);
 }
+
+namespace {
+
+void MS_ABI vt_Enable(void* pThis, int bOn) {
+    impl__Enable_CTestCmdUI__UEAAXH_Z(static_cast<CCmdUI*>(pThis), bOn);
+}
+
+void MS_ABI vt_SetCheck(void* pThis, int nCheck) {
+    impl__SetCheck_CTestCmdUI__UEAAXH_Z(static_cast<CCmdUI*>(pThis), nCheck);
+}
+
+void MS_ABI vt_SetRadio(void* pThis, int bOn) {
+    impl__SetRadio_CTestCmdUI__UEAAXH_Z(static_cast<CCmdUI*>(pThis), bOn);
+}
+
+void MS_ABI vt_SetText(void* pThis, const wchar_t* text) {
+    impl__SetText_CTestCmdUI__UEAAXPEB_W_Z(static_cast<CCmdUI*>(pThis), text);
+}
+
+void* const g_CTestCmdUI_vtbl[4] = {
+    reinterpret_cast<void*>(&vt_Enable),
+    reinterpret_cast<void*>(&vt_SetCheck),
+    reinterpret_cast<void*>(&vt_SetRadio),
+    reinterpret_cast<void*>(&vt_SetText),
+};
+
+} // namespace

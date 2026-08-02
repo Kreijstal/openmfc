@@ -70,6 +70,15 @@ struct CFrameWndRuntimeState {
 };
 std::map<CFrameWnd*, CFrameWndRuntimeState> g_frameWndRuntimeStates;
 
+struct DockBarSnapshot {
+    CControlBar* bar = nullptr;
+    UINT id = 0;
+    bool visible = false;
+    DWORD dockStyle = 0;
+    RECT windowRect{};
+};
+std::map<const CDockState*, std::vector<DockBarSnapshot>> g_dockStateSnapshots;
+
 // Track temporary CWnd wrappers allocated by OpenMfcAttachCWnd
 // These need to be deleted when the underlying window is destroyed
 static std::set<CWnd*> g_tempWrappers;
@@ -97,6 +106,14 @@ static CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd) {
 static CFrameWndRuntimeState& GetFrameRuntimeState(CFrameWnd* pWnd) {
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     return g_frameWndRuntimeStates[pWnd];
+}
+
+extern "C" void OpenMfcResetDockState(void* pState) {
+    if (!pState) {
+        return;
+    }
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
+    g_dockStateSnapshots.erase(static_cast<const CDockState*>(pState));
 }
 
 static void CleanupWindowRuntimeState(CWnd* pWnd) {
@@ -4534,15 +4551,29 @@ CView* CFrameWnd::GetActiveView() const {
     return dynamic_cast<CView*>(CWnd::FromHandle(hWndView));
 }
 void CFrameWnd::GetDockState(CDockState& state) const {
-    (void)state;
     if (!m_hWnd) {
         return;
     }
     auto& frameState = GetFrameRuntimeState(const_cast<CFrameWnd*>(this));
-    std::wstring message = L"Dock state has ";
-    message += std::to_wstring(frameState.controlBars.size());
-    message += L" bar(s)";
-    const_cast<CFrameWnd*>(this)->SetMessageText(message.c_str());
+    std::vector<DockBarSnapshot> snapshot;
+    snapshot.reserve(frameState.controlBars.size());
+    for (CControlBar* bar : frameState.controlBars) {
+        if (!bar) {
+            continue;
+        }
+        DockBarSnapshot item;
+        item.bar = bar;
+        item.dockStyle = bar->m_dwDockStyle;
+        if (bar->m_hWnd) {
+            item.id = static_cast<UINT>(::GetWindowLongPtrW(bar->m_hWnd, GWLP_ID));
+            item.visible = ::IsWindowVisible(bar->m_hWnd) != FALSE;
+            ::GetWindowRect(bar->m_hWnd, &item.windowRect);
+        }
+        snapshot.push_back(item);
+    }
+
+    std::lock_guard<std::mutex> lk(g_wndStateMutex);
+    g_dockStateSnapshots[&state] = std::move(snapshot);
 }
 
 const wchar_t* CFrameWnd::GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource) {
@@ -5387,7 +5418,48 @@ void CFrameWnd::SetActiveView(CView* pViewNew, int bNotify) {
     }
 }
 void CFrameWnd::SetDockState(const CDockState& state) {
-    (void)state;
+    std::vector<DockBarSnapshot> snapshot;
+    {
+        std::lock_guard<std::mutex> lk(g_wndStateMutex);
+        auto it = g_dockStateSnapshots.find(&state);
+        if (it == g_dockStateSnapshots.end()) {
+            return;
+        }
+        snapshot = it->second;
+    }
+
+    auto& frameState = GetFrameRuntimeState(this);
+    for (const DockBarSnapshot& item : snapshot) {
+        CControlBar* bar = nullptr;
+        auto byPointer = std::find(frameState.controlBars.begin(), frameState.controlBars.end(), item.bar);
+        if (byPointer != frameState.controlBars.end()) {
+            bar = *byPointer;
+        } else if (item.id != 0) {
+            for (CControlBar* candidate : frameState.controlBars) {
+                if (candidate && candidate->m_hWnd &&
+                    static_cast<UINT>(::GetWindowLongPtrW(candidate->m_hWnd, GWLP_ID)) == item.id) {
+                    bar = candidate;
+                    break;
+                }
+            }
+        }
+        if (!bar) {
+            continue;
+        }
+
+        bar->m_dwDockStyle = item.dockStyle;
+        if (bar->m_hWnd) {
+            const int width = item.windowRect.right - item.windowRect.left;
+            const int height = item.windowRect.bottom - item.windowRect.top;
+            if (width > 0 && height > 0) {
+                ::SetWindowPos(bar->m_hWnd, nullptr,
+                               item.windowRect.left, item.windowRect.top,
+                               width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+            }
+            ::ShowWindow(bar->m_hWnd, item.visible ? SW_SHOWNA : SW_HIDE);
+        }
+    }
+
     if (m_hWnd) {
         RECT clientRect = {};
         if (::GetClientRect(m_hWnd, &clientRect)) {

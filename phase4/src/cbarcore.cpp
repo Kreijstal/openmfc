@@ -95,9 +95,11 @@ struct TypeLibCacheState {
     std::unordered_map<unsigned long, ITypeLib*> typeLibs;
     std::unordered_map<std::wstring, ITypeInfo*> typeInfos;
 };
+struct TypeLibCacheHandle {};
 std::mutex g_typeLibCacheMutex;
 std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
-std::unordered_map<std::wstring, void*> g_guidTypeLibCaches;
+std::unordered_map<const CCmdTarget*, std::unique_ptr<TypeLibCacheHandle>> g_targetTypeLibCaches;
+std::unordered_map<std::wstring, std::unique_ptr<TypeLibCacheHandle>> g_guidTypeLibCaches;
 
 struct UserToolState {
     std::wstring command;
@@ -429,10 +431,11 @@ void* GetGuidTypeLibCache(const GUID& guid) {
     std::wstring key = guidText;
     auto it = g_guidTypeLibCaches.find(key);
     if (it != g_guidTypeLibCaches.end()) {
-        return it->second;
+        return it->second.get();
     }
-    void* cache = new int(0);
-    g_guidTypeLibCaches.emplace(std::move(key), cache);
+    auto ownedCache = std::make_unique<TypeLibCacheHandle>();
+    void* cache = ownedCache.get();
+    g_guidTypeLibCaches.emplace(std::move(key), std::move(ownedCache));
     return cache;
 }
 
@@ -1579,7 +1582,12 @@ extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache_
     if (!pThis) {
         return nullptr;
     }
-    return pThis;
+    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+    auto& ownedCache = g_targetTypeLibCaches[pThis];
+    if (!ownedCache) {
+        ownedCache = std::make_unique<TypeLibCacheHandle>();
+    }
+    return ownedCache.get();
 }
 
 // Symbol: ?AfxGetTypeLibCache@@YAPEAVCTypeLibCache@@PEBU_GUID@@@Z
@@ -1603,7 +1611,11 @@ extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis
         }
     }
     if (pThis && !pExcept) {
-        g_typeLibCaches.erase(pThis);
+        auto it = g_typeLibCaches.find(pThis);
+        if (it != g_typeLibCaches.end()) {
+            ReleaseTypeLibCache(it->second);
+            g_typeLibCaches.erase(it);
+        }
     }
 }
 
@@ -1745,7 +1757,10 @@ extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(_AFX_D2D_STATE* pThis) {
     state.initialized = false;
     state.d2dFactoryType = 0;
     state.dWriteFactoryType = 0;
-    g_d2dInitialized.erase(pThis);
+    {
+        std::lock_guard<std::mutex> lock(g_userToolMutex);
+        g_d2dInitialized.erase(pThis);
+    }
     pThis->~_AFX_D2D_STATE();
 }
 
