@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-45",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CHtmlView",
+      "ordinal": 11988,
+      "symbol": "?QueryFormsCommand@CHtmlView@@QEAAJKPEAH00@Z"
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "ordinal": 2476,
+      "symbol": "?Attach@CHwndRenderTarget@@QEAAXPEAUID2D1HwndRenderTarget@@@Z"
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "ordinal": 3087,
+      "symbol": "?Create@CHwndRenderTarget@@QEAAHPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "ordinal": 3829,
+      "symbol": "?Detach@CHwndRenderTarget@@QEAAPEAUID2D1HwndRenderTarget@@XZ"
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "ordinal": 12174,
+      "symbol": "?ReCreate@CHwndRenderTarget@@QEAAHPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CHwndRenderTarget",
+      "ordinal": 12522,
+      "symbol": "?Resize@CHwndRenderTarget@@QEAAHAEBVCD2DSizeU@@@Z"
+    },
+    {
+      "class": "CJumpList",
+      "ordinal": 1833,
+      "symbol": "?AddDestination@CJumpList@@QEAAHPEB_W0@Z"
+    },
+    {
+      "class": "CJumpList",
+      "ordinal": 1834,
+      "symbol": "?AddDestination@CJumpList@@QEAAHPEB_WPEAUIShellItem@@@Z"
+    },
+    {
+      "class": "CJumpList",
+      "ordinal": 1835,
+      "symbol": "?AddDestination@CJumpList@@QEAAHPEB_WPEAUIShellLinkW@@@Z"
+    },
+    {
+      "class": "CJumpList",
+      "ordinal": 1887,
+      "symbol": "?AddKnownCategory@CJumpList@@QEAAHW4KNOWNDESTCATEGORY@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 45/91: CHwndRenderTarget, CJumpList, CHtmlView"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-359",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 4984,
+      "symbol": "?GetCaptionBarTextColor@CMFCVisualManager@@UEAAKPEAVCMFCCaptionBar@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 5482,
+      "symbol": "?GetHighlightedMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 5738,
+      "symbol": "?GetMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 5952,
+      "symbol": "?GetNcBtnSize@CMFCVisualManager@@UEBA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6133,
+      "symbol": "?GetPropertyGridGroupColor@CMFCVisualManager@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6137,
+      "symbol": "?GetPropertyGridGroupTextColor@CMFCVisualManager@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6208,
+      "symbol": "?GetRibbonEditBackgroundColor@CMFCVisualManager@@UEAAKPEAVCMFCRibbonRichEditCtrl@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6211,
+      "symbol": "?GetRibbonHyperlinkTextColor@CMFCVisualManager@@UEAAKPEAVCMFCRibbonLinkCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6216,
+      "symbol": "?GetRibbonSliderColors@CMFCVisualManager@@UEAAXPEAVCMFCRibbonSlider@@HHHAEAK1@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6218,
+      "symbol": "?GetRibbonStatusBarTextColor@CMFCVisualManager@@UEAAKPEAVCMFCRibbonStatusBar@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 359/439: CMFCVisualManager"
+}

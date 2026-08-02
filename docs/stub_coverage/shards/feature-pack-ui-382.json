@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-382",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9599,
+      "symbol": "?OnDrawSeparator@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9605,
+      "symbol": "?OnDrawShowAllMenuItems@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9618,
+      "symbol": "?OnDrawStatusBarPaneBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@II@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9626,
+      "symbol": "?OnDrawStatusBarSizeBox@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9631,
+      "symbol": "?OnDrawTab@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9644,
+      "symbol": "?OnDrawTabsButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEAVCRect@@PEAVCMFCButton@@IPEAVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9649,
+      "symbol": "?OnDrawTask@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9659,
+      "symbol": "?OnDrawTasksGroupCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9665,
+      "symbol": "?OnDrawTearOffCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 9796,
+      "symbol": "?OnEraseMDIClientArea@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@VCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 382/439: CMFCVisualManagerOffice2007"
+}

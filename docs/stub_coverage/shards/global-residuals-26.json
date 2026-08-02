@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-26",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2295,
+      "symbol": "?AfxOleUnregisterHelper@@YAHPEBQEB_W0HPEAUHKEY__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2296,
+      "symbol": "?AfxOleUnregisterServerClass@@YAHAEBU_GUID@@PEB_W11W4OLE_APPTYPE@@PEAPEB_W3@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2297,
+      "symbol": "?AfxOleUnregisterTypeLib@@YAHAEBU_GUID@@GGK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2298,
+      "symbol": "?AfxParseURL@@YAHPEB_WAEAKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2AEAG@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2299,
+      "symbol": "?AfxParseURLEx@@YAHPEB_WAEAKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2AEAG22K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2300,
+      "symbol": "?AFXPlaySystemSound@@YAXH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2302,
+      "symbol": "?AfxPreTranslateMessage@@YAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2303,
+      "symbol": "?AFXPrintPreview@@YAXPEAVCView@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2304,
+      "symbol": "?AfxProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2305,
+      "symbol": "?AfxPropPageCallback@@YAIPEAUHWND__@@IPEAU_PROPSHEETPAGEW@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 26/95: global"
+}

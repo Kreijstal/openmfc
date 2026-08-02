@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-439",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12679,
+      "symbol": "?SaveState@CPaneFrameWnd@@UEAAHPEB_WI@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 12833,
+      "symbol": "?Serialize@CPaneFrameWnd@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13000,
+      "symbol": "?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13001,
+      "symbol": "?SetCaptionButtonsToolTips@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13138,
+      "symbol": "?SetDockingTimer@CPaneFrameWnd@@QEAAXI@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13144,
+      "symbol": "?SetDockState@CPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13477,
+      "symbol": "?SetPreDockState@CPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13554,
+      "symbol": "?SetRollUpTimer@CPaneFrameWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13797,
+      "symbol": "?ShowButton@CPaneFrameWnd@@IEAAXIH@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 13876,
+      "symbol": "?SizeToContent@CPaneFrameWnd@@UEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 439/439: CPaneFrameWnd"
+}

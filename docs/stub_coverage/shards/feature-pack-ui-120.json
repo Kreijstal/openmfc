@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-120",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 12979,
+      "symbol": "?SetBrowseButtonImage@CMFCEditBrowseCtrl@@QEAAXI@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 12980,
+      "symbol": "?SetBrowseButtonImage@CMFCEditBrowseCtrl@@QEAAXPEAUHBITMAP__@@H@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 12981,
+      "symbol": "?SetBrowseButtonImage@CMFCEditBrowseCtrl@@QEAAXPEAUHICON__@@H@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 13294,
+      "symbol": "?SetInternalImage@CMFCEditBrowseCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 14342,
+      "symbol": "?EnableFileBrowseButton@CMFCEditBrowseCtrl@@QEAAXPEB_W0K@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 1210,
+      "symbol": "??1CMFCFilterChunkValueImpl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 2758,
+      "symbol": "?Clear@CMFCFilterChunkValueImpl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 2995,
+      "symbol": "?CopyChunk@CMFCFilterChunkValueImpl@@UEAAJPEAUtagSTAT_CHUNK@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 3001,
+      "symbol": "?CopyFrom@CMFCFilterChunkValueImpl@@UEAAXPEAUIFilterChunkValue@ATL@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 7488,
+      "symbol": "?GetValue@CMFCFilterChunkValueImpl@@UEAAJPEAPEAUtagPROPVARIANT@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 120/439: CMFCEditBrowseCtrl, CMFCFilterChunkValueImpl"
+}

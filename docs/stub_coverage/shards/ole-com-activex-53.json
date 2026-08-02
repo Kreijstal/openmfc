@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-53",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleDocument",
+      "ordinal": 5975,
+      "symbol": "?GetNextItemOfKind@COleDocument@@IEBAPEAVCDocItem@@AEAPEAU__POSITION@@PEAUCRuntimeClass@@@Z"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 5979,
+      "symbol": "?GetNextServerItem@COleDocument@@QEBAPEAVCOleServerItem@@AEAPEAU__POSITION@@@Z"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 8118,
+      "symbol": "?LoadFromStorage@COleDocument@@MEAAXXZ"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 8889,
+      "symbol": "?OnCloseDocument@COleDocument@@UEAAXXZ"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 8913,
+      "symbol": "?OnCmdMsg@COleDocument@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 9847,
+      "symbol": "?OnFileSendMail@COleDocument@@IEAAXXZ"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 10123,
+      "symbol": "?OnIdle@COleDocument@@UEAAXXZ"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 10412,
+      "symbol": "?OnLoadDocumentFromStream@COleDocument@@MEAAJPEAUIStream@@K@Z"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 10667,
+      "symbol": "?OnNewDocument@COleDocument@@UEAAHXZ"
+    },
+    {
+      "class": "COleDocument",
+      "ordinal": 10715,
+      "symbol": "?OnOpenDocument@COleDocument@@UEAAHPEB_W@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 53/77: COleDocument"
+}

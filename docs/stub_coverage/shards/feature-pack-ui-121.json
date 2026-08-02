@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-121",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 12970,
+      "symbol": "?SetBoolValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@FW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 12971,
+      "symbol": "?SetBoolValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@HW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13022,
+      "symbol": "?SetChunk@CMFCFilterChunkValueImpl@@IEAAJAEBU_tagpropertykey@@W4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13161,
+      "symbol": "?SetDwordValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@KW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13191,
+      "symbol": "?SetFileTimeValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@U_FILETIME@@W4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13293,
+      "symbol": "?SetInt64Value@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@_JW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13296,
+      "symbol": "?SetIntValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@HW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13337,
+      "symbol": "?SetLongValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@JW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13631,
+      "symbol": "?SetSystemTimeValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@AEBU_SYSTEMTIME@@W4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    },
+    {
+      "class": "CMFCFilterChunkValueImpl",
+      "ordinal": 13685,
+      "symbol": "?SetTextValue@CMFCFilterChunkValueImpl@@UEAAJAEBU_tagpropertykey@@PEB_WW4tagCHUNKSTATE@@KKKW4tagCHUNK_BREAKTYPE@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 121/439: CMFCFilterChunkValueImpl"
+}

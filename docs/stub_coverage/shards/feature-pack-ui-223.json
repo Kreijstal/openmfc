@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-223",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 3238,
+      "symbol": "?CreateEdit@CMFCRibbonEdit@@UEAAPEAVCMFCRibbonRichEditCtrl@@PEAVCWnd@@K@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 3527,
+      "symbol": "?CreateSpinButton@CMFCRibbonEdit@@IEAAHPEAVCMFCRibbonRichEditCtrl@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 3796,
+      "symbol": "?DestroyCtrl@CMFCRibbonEdit@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 4309,
+      "symbol": "?EnableSpinButtons@CMFCRibbonEdit@@QEAAXHH@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 8637,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonEdit@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 9395,
+      "symbol": "?OnDrawLabelAndImage@CMFCRibbonEdit@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 9447,
+      "symbol": "?OnDrawOnList@CMFCRibbonEdit@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 10096,
+      "symbol": "?OnHighlight@CMFCRibbonEdit@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 10231,
+      "symbol": "?OnKey@CMFCRibbonEdit@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 10348,
+      "symbol": "?OnLButtonDown@CMFCRibbonEdit@@UEAAXVCPoint@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 223/439: CMFCRibbonEdit"
+}

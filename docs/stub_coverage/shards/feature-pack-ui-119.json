@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-119",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10382,
+      "symbol": "?OnLButtonUp@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10483,
+      "symbol": "?OnMouseMove@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10567,
+      "symbol": "?OnNcCalcSize@CMFCEditBrowseCtrl@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10607,
+      "symbol": "?OnNcHitTest@CMFCEditBrowseCtrl@@IEAA_JVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10617,
+      "symbol": "?OnNcLButtonDblClk@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10629,
+      "symbol": "?OnNcMouseMove@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10639,
+      "symbol": "?OnNcPaint@CMFCEditBrowseCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10874,
+      "symbol": "?OnRButtonDown@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 10880,
+      "symbol": "?OnRButtonUp@CMFCEditBrowseCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCEditBrowseCtrl",
+      "ordinal": 11874,
+      "symbol": "?PreTranslateMessage@CMFCEditBrowseCtrl@@UEAAHPEAUtagMSG@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 119/439: CMFCEditBrowseCtrl"
+}

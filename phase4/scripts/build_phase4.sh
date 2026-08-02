@@ -178,7 +178,7 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxRegisterWndClass@@YAPEB_WIPEAUHICON__@@P
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetInstanceHandle@@YAPEAUHINSTANCE__@@XZ,?AfxGetResourceHandle@@YAPEAUHINSTANCE__@@XZ"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxSetResourceHandle@@YAXPEAUHINSTANCE__@@@Z"
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetMainWnd@@YAPEAVCWnd@@XZ,?AfxGetApp@@YAPEAVCWinApp@@XZ"
-EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAUAFX_MODULE_STATE@@XZ,?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ"
+EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@XZ"
 
 # Automatically exclude any symbols that have a real implementation in Phase 4.
 # The weak stubs generator can't rely on PE/COFF weak symbols, so duplicates
@@ -465,6 +465,8 @@ IMPL_SOURCES=(
     "$ROOT/phase4/src/mfccore.cpp"
     "$ROOT/phase4/src/thunks.cpp"
     "$ROOT/phase4/src/manual_thunks.cpp"
+    "$ROOT/phase4/src/manual_small_stub_implementations.cpp"
+    "$ROOT/phase4/src/richedit_ole_ext.cpp"
     "$ROOT/phase4/src/frame_font_exports.cpp"
 )
 

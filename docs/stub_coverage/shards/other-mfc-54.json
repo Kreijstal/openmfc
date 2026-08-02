@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-54",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMonikerFile",
+      "ordinal": 11649,
+      "symbol": "?Open@CMonikerFile@@UEAAHPEB_WPEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonikerFile",
+      "ordinal": 11753,
+      "symbol": "?PostBindToStream@CMonikerFile@@MEAAHPEAVCFileException@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 1325,
+      "symbol": "??1CMonthCalCtrl@@UEAA@XZ"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 3130,
+      "symbol": "?Create@CMonthCalCtrl@@UEAAHKAEBUtagPOINT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 3131,
+      "symbol": "?Create@CMonthCalCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5156,
+      "symbol": "?GetCurSel@CMonthCalCtrl@@QEBAHAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5397,
+      "symbol": "?GetFirstDayOfWeek@CMonthCalCtrl@@QEBAHPEAH@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5946,
+      "symbol": "?GetMonthRange@CMonthCalCtrl@@QEBAHAEAVCTime@ATL@@0K@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 5947,
+      "symbol": "?GetMonthRange@CMonthCalCtrl@@QEBAHPEAU_SYSTEMTIME@@0K@Z"
+    },
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 6161,
+      "symbol": "?GetRange@CMonthCalCtrl@@QEBAKPEAU_SYSTEMTIME@@0@Z"
+    }
+  ],
+  "title": "other_mfc shard 54/91: CMonthCalCtrl, CMonikerFile"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-169",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10299,
+      "symbol": "?OnLButtonDblClk@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10339,
+      "symbol": "?OnLButtonDown@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10391,
+      "symbol": "?OnLButtonUp@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10489,
+      "symbol": "?OnMouseMove@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10513,
+      "symbol": "?OnMouseWheel@CMFCPropertyGridCtrl@@IEAAHIFVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10571,
+      "symbol": "?OnNcCalcSize@CMFCPropertyGridCtrl@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10642,
+      "symbol": "?OnNcPaint@CMFCPropertyGridCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10658,
+      "symbol": "?OnNeedTipText@CMFCPropertyGridCtrl@@IEAAHIPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10687,
+      "symbol": "?OnNotify@CMFCPropertyGridCtrl@@MEAAH_K_JPEA_J@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 10743,
+      "symbol": "?OnPaint@CMFCPropertyGridCtrl@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 169/439: CMFCPropertyGridCtrl"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-315",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12649,
+      "symbol": "?SaveOriginalState@CMFCToolBar@@MEAAXAEAVCSettingsStore@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12650,
+      "symbol": "?SaveParameters@CMFCToolBar@@SAHPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12654,
+      "symbol": "?SaveResetOriginalState@CMFCToolBar@@IEAAXAEAVCSettingsStore@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12674,
+      "symbol": "?SaveState@CMFCToolBar@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12814,
+      "symbol": "?Serialize@CMFCToolBar@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12957,
+      "symbol": "?SetBasicCommands@CMFCToolBar@@SAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12984,
+      "symbol": "?SetButtonInfo@CMFCToolBar@@QEAAXHIIH@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12991,
+      "symbol": "?SetButtonStyle@CMFCToolBar@@UEAAXHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 12993,
+      "symbol": "?SetButtonText@CMFCToolBar@@QEAAHHPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 13060,
+      "symbol": "?SetCommandUsageOptions@CMFCToolBar@@SAHII@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 315/439: CMFCToolBar"
+}

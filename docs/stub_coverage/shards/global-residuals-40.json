@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-40",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 4147,
+      "symbol": "?DrawY@CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@QEAAXPEAVCDC@@VCRect@@VCSize@@HE@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4162,
+      "symbol": "?DUnadvise@XDataObject@COleControl@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4163,
+      "symbol": "?DUnadvise@XDataObject@COleDataSource@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4164,
+      "symbol": "?DUnadvise@XDataObject@COleServerDoc@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4165,
+      "symbol": "?DUnadvise@XDataObject@COleServerItem@@UEAAJK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4177,
+      "symbol": "?EditProperty@XPropertyPage@COlePropertyPage@@UEAAJJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4186,
+      "symbol": "?Empty@XInfoError@CMFCRibbonInfo@@QEAAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 4278,
+      "symbol": "?EnableModeless@XDocHostUIHandler@CHtmlControlSite@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4279,
+      "symbol": "?EnableModeless@XOleInPlaceActiveObject@COleControl@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 4280,
+      "symbol": "?EnableModeless@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z"
+    }
+  ],
+  "title": "global_residuals shard 40/95: global"
+}

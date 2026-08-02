@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-67",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 1726,
+      "symbol": "?accLocation@CMFCBaseAccessibleObject@@UEAAJPEAJ000UtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 1737,
+      "symbol": "?accNavigate@CMFCBaseAccessibleObject@@UEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 1753,
+      "symbol": "?accSelect@CMFCBaseAccessibleObject@@UEAAJJUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4746,
+      "symbol": "?get_accChild@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4756,
+      "symbol": "?get_accChildCount@CMFCBaseAccessibleObject@@UEAAJPEAJ@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4772,
+      "symbol": "?get_accDefaultAction@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4780,
+      "symbol": "?get_accDescription@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4786,
+      "symbol": "?get_accFocus@CMFCBaseAccessibleObject@@UEAAJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4792,
+      "symbol": "?get_accHelp@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 4798,
+      "symbol": "?get_accHelpTopic@CMFCBaseAccessibleObject@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 67/439: CMFCBaseAccessibleObject"
+}

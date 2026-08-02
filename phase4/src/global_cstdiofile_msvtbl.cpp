@@ -56,9 +56,21 @@ namespace {
 // --- slot wrappers: qualified (non-virtual) member calls, no re-dispatch ---
 CRuntimeClass* MS_ABI v_GetRuntimeClass(CStdioFile*)             { return &CFile::classCFile; }
 void*          MS_ABI v_dtor(CStdioFile* p, unsigned int flags)  { p->CStdioFile::~CStdioFile(); if (flags & 1) ::operator delete(p); return p; }
-void           MS_ABI v_Serialize(CStdioFile*, void*)            {}
-void           MS_ABI v_AssertValid(const CStdioFile*)           {}
-void           MS_ABI v_Dump(const CStdioFile*, void*)           {}
+void           MS_ABI v_Serialize(CStdioFile* pThis, void* pAr)            {
+    if (!pThis || !pAr) return;
+    CObject* obj = reinterpret_cast<CObject*>(pThis);
+    obj->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
+void           MS_ABI v_AssertValid(const CStdioFile* pThis)           {
+    if (!pThis) return;
+    const CObject* obj = reinterpret_cast<const CObject*>(pThis);
+    obj->CObject::AssertValid();
+}
+void           MS_ABI v_Dump(const CStdioFile* pThis, void*)           {
+    if (!pThis) return;
+    const CObject* obj = reinterpret_cast<const CObject*>(pThis);
+    obj->CObject::Dump();
+}
 unsigned long long MS_ABI v_GetPosition(const CStdioFile* p)     { return const_cast<CStdioFile*>(p)->CStdioFile::Seek(0, 1 /*current*/); }
 // CString returned by value via sret. Proven repo convention (impl__GetFileName_CFile
 // thunk): this=RCX, sret=RDX, void return — construct into the caller's buffer.

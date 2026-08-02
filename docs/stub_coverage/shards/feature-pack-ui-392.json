@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-392",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9923,
+      "symbol": "?OnFillRibbonMenuFrame@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9931,
+      "symbol": "?OnFillTab@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9934,
+      "symbol": "?OnFillTasksGroupInterior@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 10100,
+      "symbol": "?OnHighlightMenuItem@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 10105,
+      "symbol": "?OnHighlightQuickCustomizeMenuButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 10109,
+      "symbol": "?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 11542,
+      "symbol": "?OnUpdateSystemColors@CMFCVisualManagerOfficeXP@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 3175,
+      "symbol": "?CreateAutoHideButtonRegion@CMFCVisualManagerVS2005@@IEAAHVCRect@@KAEAPEAUtagPOINT@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 5258,
+      "symbol": "?GetDockingTabsBordersSize@CMFCVisualManagerVS2005@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCVisualManagerVS2005",
+      "ordinal": 6136,
+      "symbol": "?GetPropertyGridGroupColor@CMFCVisualManagerVS2005@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 392/439: CMFCVisualManagerOfficeXP, CMFCVisualManagerVS2005"
+}

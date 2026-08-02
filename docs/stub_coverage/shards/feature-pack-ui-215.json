@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-215",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 5605,
+      "symbol": "?GetItemData@CMFCRibbonComboBox@@QEBA_KH@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 8636,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonComboBox@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 9242,
+      "symbol": "?OnDraw@CMFCRibbonComboBox@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 9358,
+      "symbol": "?OnDrawDropListItem@CMFCRibbonComboBox@@MEAAHPEAVCDC@@HPEAVCMFCToolBarMenuButton@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 10001,
+      "symbol": "?OnGetDropListItemSize@CMFCRibbonComboBox@@MEAA?AVCSize@@PEAVCDC@@HPEAVCMFCToolBarMenuButton@@V2@@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 10346,
+      "symbol": "?OnLButtonDown@CMFCRibbonComboBox@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 10397,
+      "symbol": "?OnLButtonUp@CMFCRibbonComboBox@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 10995,
+      "symbol": "?OnSelectItem@CMFCRibbonComboBox@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 12306,
+      "symbol": "?RemoveAllItems@CMFCRibbonComboBox@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonComboBox",
+      "ordinal": 12748,
+      "symbol": "?SelectItem@CMFCRibbonComboBox@@QEAAH_K@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 215/439: CMFCRibbonComboBox"
+}

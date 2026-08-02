@@ -20,12 +20,24 @@
 #include <windows.h>
 #include <cstddef>
 #include <new>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+struct CRuntimeClass;
+struct AFX_CMDHANDLERINFO;
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCTabCtrl__UEBAPEAUCRuntimeClass__XZ(
+    const void* pThis);
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeClass__XZ(const void* pThis);
+extern "C" int MS_ABI impl__SetActivePage_CPropertySheet__QEAAHH_Z(void* pThis, int p0);
+extern "C" int MS_ABI impl__OnCmdMsg_CPropertySheet__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    void* pThis, unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
+extern "C" void MS_ABI impl__OnFinalRelease_CWnd__UEAAXXZ(void* pThis);
 
 namespace {
 
@@ -41,9 +53,39 @@ struct S {
     void*        m_pParent;       // 15720: CMFCPropertySheet*
 };
 
+struct OpenMfcRuntimeClass {
+    const char* m_lpszClassName;
+    int m_nObjectSize;
+    unsigned short m_wSchema;
+    void* m_pfnCreateObject;
+    void* m_pfnGetBaseClass;
+    OpenMfcRuntimeClass* m_pBaseClass;
+    void* m_pClassContext;
+};
+
 static_assert(sizeof(S) == 15728, "CMFCPropertySheetTabCtrl size mismatch");
 static_assert(offsetof(S, m_dwRef) == 8, "m_dwRef offset");
 static_assert(offsetof(S, m_pParent) == 15720, "m_pParent offset");
+
+static OpenMfcRuntimeClass* GetBaseClass() {
+    static OpenMfcRuntimeClass* base = reinterpret_cast<OpenMfcRuntimeClass*>(
+        impl__GetRuntimeClass_CMFCTabCtrl__UEBAPEAUCRuntimeClass__XZ(nullptr));
+    if (!base) {
+        base = reinterpret_cast<OpenMfcRuntimeClass*>(
+            impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeClass__XZ(nullptr));
+    }
+    return base;
+}
+
+static OpenMfcRuntimeClass g_classCMFCPropertySheetTabCtrl = {
+    "CMFCPropertySheetTabCtrl",
+    sizeof(S),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+};
 
 // ---- vtable slot wrappers (MSVC slot order per harvest) --------------------
 // The harvested vtable exposes the CObject/CCmdTarget-level virtual prefix. Each
@@ -51,8 +93,14 @@ static_assert(offsetof(S, m_pParent) == 15720, "m_pParent offset");
 // this prefix belong to CWnd and are supplied by the framework at runtime.
 
 // GetRuntimeClass: returns the class' CRuntimeClass descriptor. The descriptor
-// lives in another TU; from this self-contained unit we return null (approximate).
-void* MS_ABI v_GetRuntimeClass(S*) { return nullptr; }
+// lives in another TU; we provide a local derived descriptor for the class and
+// resolve the base pointer to CMFCTabCtrl at runtime when available.
+void* MS_ABI v_GetRuntimeClass(S*) {
+    if (!g_classCMFCPropertySheetTabCtrl.m_pBaseClass) {
+        g_classCMFCPropertySheetTabCtrl.m_pBaseClass = GetBaseClass();
+    }
+    return &g_classCMFCPropertySheetTabCtrl;
+}
 
 // Vector-deleting destructor (the single MSVC dtor slot). No owned resources.
 void* MS_ABI v_vecdel_dtor(void* p, unsigned int flags) {
@@ -61,26 +109,47 @@ void* MS_ABI v_vecdel_dtor(void* p, unsigned int flags) {
 }
 
 // CMFCBaseTabCtrl::Serialize — no persistent state to stream here.
-void MS_ABI v_Serialize(S*, void* /*ar*/) {}
+void MS_ABI v_Serialize(S* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    reinterpret_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
 
 // CObject::AssertValid / Dump — diagnostic no-ops in release form.
-void MS_ABI v_AssertValid(const S*) {}
-void MS_ABI v_Dump(const S*, void* /*dc*/) {}
+void MS_ABI v_AssertValid(const S* pThis) {
+    if (!pThis) return;
+    reinterpret_cast<const CObject*>(pThis)->CObject::AssertValid();
+}
+
+void MS_ABI v_Dump(const S* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    reinterpret_cast<const CObject*>(pThis)->CObject::Dump();
+}
 
 // CCmdTarget::OnCmdMsg — default: command not handled here.
-int MS_ABI v_OnCmdMsg(S*, unsigned int, int, void*, void*) { return 0; }
+int MS_ABI v_OnCmdMsg(S* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
+    if (!pThis || !pThis->m_pParent) return FALSE;
+    return impl__OnCmdMsg_CPropertySheet__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+        pThis->m_pParent, nID, nCode, pExtra, static_cast<AFX_CMDHANDLERINFO*>(pHandlerInfo));
+}
 
 // CWnd::OnFinalRelease — default releases the object; nothing extra to do.
-void MS_ABI v_OnFinalRelease(S*) {}
+void MS_ABI v_OnFinalRelease(S* pThis) {
+    if (pThis) {
+        impl__OnFinalRelease_CWnd__UEAAXXZ(pThis);
+    }
+}
 
 // CCmdTarget::IsInvokeAllowed — default allows automation invocation.
-int MS_ABI v_IsInvokeAllowed(S*, long /*dispid*/) { return 1; }
+int MS_ABI v_IsInvokeAllowed(S* pThis, long /*dispid*/) { return pThis ? TRUE : FALSE; }
 
 // CCmdTarget::GetDispatchIID — no dispatch interface exposed.
-int MS_ABI v_GetDispatchIID(S*, void* /*piid*/) { return 0; }
+int MS_ABI v_GetDispatchIID(S* pThis, void* /*piid*/) {
+    if (!pThis) return 0;
+    return 0;
+}
 
 // CCmdTarget::GetTypeInfoCount — no type info exposed.
-unsigned int MS_ABI v_GetTypeInfoCount(S*) { return 0; }
+unsigned int MS_ABI v_GetTypeInfoCount(S* pThis) { return pThis ? 0u : 0u; }
 
 // Exact order per bundle.vtable.
 void* const g_CMFCPropertySheetTabCtrl_vtbl[10] = {
@@ -115,12 +184,12 @@ extern "C" void* MS_ABI impl___0CMFCPropertySheetTabCtrl__AEAA_XZ(void* pThis) {
 extern "C" int MS_ABI impl__SetActiveTab_CMFCPropertySheetTabCtrl__EEAAHH_Z(
     void* pThis, int iTab) {
     S* self = static_cast<S*>(pThis);
-    // The real override forwards the selection to the base tab control and lets
-    // the owning property sheet swap the active page. A negative index is never
-    // a valid tab, so reject it; otherwise the selection succeeds. (Full base
-    // tab-collection validation lives in CMFCTabCtrl, outside this TU.)
-    if (iTab < 0)
+    // The real override forwards the selection to the owning property sheet.
+    // This class only stores the parent pointer; base tab validation remains in
+    // CMFCPropertySheet/CPropertySheet.
+    if (iTab < 0 || !self->m_pParent) {
         return 0;
+    }
     (void)self;
-    return 1;
+    return impl__SetActivePage_CPropertySheet__QEAAHH_Z(self->m_pParent, iTab);
 }

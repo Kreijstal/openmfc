@@ -234,7 +234,7 @@ extern "C" HRESULT MS_ABI impl__get_accState_CCheckListBox__MEAAJUtagVARIANT__PE
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CCheckListBox__MEBAPEBUAFX_MSGMAP__XZ(
     const CCheckListBox* pThis) {
     (void)pThis;
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?GetRuntimeClass@CCheckListBox@@UEBAPEAUCRuntimeClass@@XZ
@@ -251,7 +251,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CCheckListBox__SAPEAUCRuntim
 
 // Symbol: ?GetThisMessageMap@CCheckListBox@@KAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCheckListBox__KAPEBUAFX_MSGMAP__XZ() {
-    return nullptr;
+    return CWnd::GetThisMessageMap();
 }
 
 // Symbol: ?InvalidateCheck@CCheckListBox@@IEAAXH@Z

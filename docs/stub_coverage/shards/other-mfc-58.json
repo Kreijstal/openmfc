@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-58",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COccManager",
+      "ordinal": 3227,
+      "symbol": "?CreateDlgControl@COccManager@@IEAAHPEAVCWnd@@PEAUHWND__@@HPEAUDLGITEMTEMPLATE@@GPEAEKPEAPEAU3@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 3228,
+      "symbol": "?CreateDlgControls@COccManager@@UEAAHPEAVCWnd@@PEAXPEAU_AFX_OCC_DIALOG_INFO@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 3229,
+      "symbol": "?CreateDlgControls@COccManager@@UEAAHPEAVCWnd@@PEB_WPEAU_AFX_OCC_DIALOG_INFO@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 5206,
+      "symbol": "?GetDefBtnCode@COccManager@@SAKPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 7873,
+      "symbol": "?IsDialogMessageW@COccManager@@UEAAHPEAVCWnd@@PEAUtagMSG@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 7930,
+      "symbol": "?IsLabelControl@COccManager@@SAHPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 7943,
+      "symbol": "?IsMatchingMnemonic@COccManager@@SAHPEAVCWnd@@PEAUtagMSG@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 9821,
+      "symbol": "?OnEvent@COccManager@@UEAAHPEAVCCmdTarget@@IPEAUAFX_EVENT@@PEAUAFX_CMDHANDLERINFO@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 11755,
+      "symbol": "?PostCreateDialog@COccManager@@UEAAXPEAU_AFX_OCC_DIALOG_INFO@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 11779,
+      "symbol": "?PreCreateDialog@COccManager@@UEAAPEBUDLGTEMPLATE@@PEAU_AFX_OCC_DIALOG_INFO@@PEBU2@@Z"
+    }
+  ],
+  "title": "other_mfc shard 58/91: COccManager"
+}

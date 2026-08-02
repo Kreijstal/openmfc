@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-331",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarDropSource",
+      "ordinal": 11983,
+      "symbol": "?QueryContinueDrag@CMFCToolBarDropSource@@UEAAJHK@Z"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 1292,
+      "symbol": "??1CMFCToolBarDropTarget@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 9198,
+      "symbol": "?OnDragEnter@CMFCToolBarDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 9203,
+      "symbol": "?OnDragLeave@CMFCToolBarDropTarget@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 9213,
+      "symbol": "?OnDragOver@CMFCToolBarDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 9680,
+      "symbol": "?OnDropEx@CMFCToolBarDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KKVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDropTarget",
+      "ordinal": 12206,
+      "symbol": "?Register@CMFCToolBarDropTarget@@QEAAHPEAVCMFCToolBar@@@Z"
+    },
+    {
+      "class": "CMFCToolBarEditBoxButton",
+      "ordinal": 3027,
+      "symbol": "?CopyFrom@CMFCToolBarEditBoxButton@@UEAAXAEBVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarEditBoxButton",
+      "ordinal": 3240,
+      "symbol": "?CreateEdit@CMFCToolBarEditBoxButton@@UEAAPEAVCEdit@@PEAVCWnd@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCToolBarEditBoxButton",
+      "ordinal": 5291,
+      "symbol": "?GetEditBorder@CMFCToolBarEditBoxButton@@UEAAXAEAVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 331/439: CMFCToolBarDropTarget, CMFCToolBarEditBoxButton, CMFCToolBarDropSource"
+}

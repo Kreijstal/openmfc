@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-337",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 2974,
+      "symbol": "?ConvertTo32Bits@CMFCToolBarImages@@QEAAHK@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 2982,
+      "symbol": "?Copy@CMFCToolBarImages@@SAPEAUHBITMAP__@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3038,
+      "symbol": "?CopyImageToClipboard@CMFCToolBarImages@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3046,
+      "symbol": "?CopyTemp@CMFCToolBarImages@@IEAAXAEAV1@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3048,
+      "symbol": "?CopyTo@CMFCToolBarImages@@QEAAHAEAV1@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3291,
+      "symbol": "?CreateFromImageList@CMFCToolBarImages@@QEAAHAEBVCImageList@@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3326,
+      "symbol": "?CreateMask@CMFCToolBarImages@@IEAAXHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3520,
+      "symbol": "?CreateRegionFromImage@CMFCToolBarImages@@SAPEAUHRGN__@@PEAUHBITMAP__@@K@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 3744,
+      "symbol": "?DeleteImage@CMFCToolBarImages@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 4023,
+      "symbol": "?Draw@CMFCToolBarImages@@QEAAHPEAVCDC@@HHHHHHHHE@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 337/439: CMFCToolBarImages"
+}

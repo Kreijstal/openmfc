@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-253",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonPanelMenuBar",
+      "ordinal": 13478,
+      "symbol": "?SetPreferedSize@CMFCRibbonPanelMenuBar@@IEAAXVCSize@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1268,
+      "symbol": "??1CMFCRibbonQuickAccessToolBar@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1697,
+      "symbol": "?accDoDefaultAction@CMFCRibbonQuickAccessToolBar@@MEAAJUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1718,
+      "symbol": "?accHitTest@CMFCRibbonQuickAccessToolBar@@MEAAJJJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1732,
+      "symbol": "?accLocation@CMFCRibbonQuickAccessToolBar@@MEAAJPEAJ000UtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1744,
+      "symbol": "?accNavigate@CMFCRibbonQuickAccessToolBar@@MEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 1781,
+      "symbol": "?Add@CMFCRibbonQuickAccessToolBar@@IEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 3421,
+      "symbol": "?CreateObject@CMFCRibbonQuickAccessToolBar@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 4763,
+      "symbol": "?get_accChildCount@CMFCRibbonQuickAccessToolBar@@MEAAJPEAJ@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 4825,
+      "symbol": "?get_accParent@CMFCRibbonQuickAccessToolBar@@MEAAJPEAPEAUIDispatch@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 253/439: CMFCRibbonQuickAccessToolBar, CMFCRibbonPanelMenuBar"
+}

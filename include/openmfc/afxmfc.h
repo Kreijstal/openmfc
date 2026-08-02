@@ -25,6 +25,7 @@ class CMFCRibbonButton;
 class CMFCBaseTabCtrl;
 class CMFCTabCtrl;
 class CMFCButton;
+class CMFCSpinButtonCtrl;
 class CMFCPopupMenu;
 class CMFCPropertyGridCtrl;
 class CMFCPropertyGridProperty;
@@ -176,7 +177,7 @@ public:
     virtual void OnDrawPaneDivider(CDC* pDC, CPaneDivider* pSlider, CRect rect, BOOL bAutoHideMode);
     virtual void OnDrawPopupWindowBorder(CDC* pDC, CRect rect);
     virtual void OnDrawPopupWindowButtonBorder(CDC* pDC, CRect rectClient, CMFCDesktopAlertWndButton* pButton);
-    virtual void OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd* pPopupWnd);
+    virtual COLORREF OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd* pPopupWnd);
     virtual void OnDrawRibbonApplicationButton(CDC* pDC, CMFCRibbonButton* pButton);
     virtual void OnDrawRibbonButtonBorder(CDC* pDC, CMFCRibbonButton* pButton);
     virtual unsigned long OnDrawRibbonButtonsGroup(CDC* pDC, CMFCRibbonButtonsGroup* pGroup, CRect rectGroup);
@@ -185,7 +186,7 @@ public:
     virtual void OnDrawRibbonCategory(CDC* pDC, CMFCRibbonCategory* pCategory, CRect rectCategory);
     virtual unsigned long OnDrawRibbonCategoryCaption(CDC* pDC, CMFCRibbonContextCaption* pCaption);
     virtual void OnDrawRibbonCategoryScroll(CDC* pDC, CMFCRibbonCategoryScroll* pScroll);
-    virtual void OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab* pTab, BOOL bIsActive);
+    virtual COLORREF OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab* pTab, BOOL bIsActive);
     virtual void OnDrawRibbonCheckBoxOnList(CDC* pDC, CMFCRibbonCheckBox* pCheckBox, CRect rect, BOOL bIsSelected, BOOL bHighlighted);
     virtual void OnDrawRibbonDefaultPaneButton(CDC* pDC, CMFCRibbonButton* pButton);
     virtual void OnDrawRibbonDefaultPaneButtonContext(CDC* pDC, CMFCRibbonButton* pButton);
@@ -195,7 +196,7 @@ public:
     virtual void OnDrawRibbonLabel(CDC* pDC, CMFCRibbonLabel* pLabel, CRect rect);
     virtual void OnDrawRibbonMainPanelButtonBorder(CDC* pDC, CMFCRibbonButton* pButton);
     virtual void OnDrawRibbonMainPanelFrame(CDC* pDC, CMFCRibbonMainPanel* pPanel, CRect rect);
-    virtual void OnDrawRibbonPanel(CDC* pDC, CMFCRibbonPanel* pPanel, CRect rectPanel, CRect rectCaption);
+    virtual COLORREF OnDrawRibbonPanel(CDC* pDC, CMFCRibbonPanel* pPanel, CRect rectPanel, CRect rectCaption);
     virtual void OnDrawRibbonPanelCaption(CDC* pDC, CMFCRibbonPanel* pPanel, CRect rectCaption);
     virtual void OnDrawRibbonProgressBar(CDC* pDC, CMFCRibbonProgressBar* pProgress, CRect rectProgress, CRect rectChunk, BOOL bInfiniteMode);
     virtual void OnDrawRibbonQATSeparator(CDC* pDC, CMFCRibbonSeparator* pSeparator, CRect rect);
@@ -203,8 +204,8 @@ public:
     virtual void OnDrawRibbonSliderChannel(CDC* pDC, CMFCRibbonSlider* pSlider, CRect rect);
     virtual void OnDrawRibbonSliderThumb(CDC* pDC, CMFCRibbonSlider* pSlider, CRect rect, BOOL bIsHighlighted, BOOL bIsPressed, BOOL bIsDisabled);
     virtual void OnDrawRibbonSliderZoomButton(CDC* pDC, CMFCRibbonSlider* pSlider, CRect rect, BOOL bIsZoomOut, BOOL bIsHighlighted, BOOL bIsPressed, BOOL bIsDisabled);
-    virtual void OnDrawRibbonStatusBarPane(CDC* pDC, CMFCRibbonStatusBar* pBar, CMFCRibbonStatusBarPane* pPane);
-    virtual void OnDrawRibbonTabsFrame(CDC* pDC, CMFCRibbonBar* pBar, CRect rectTab);
+    virtual COLORREF OnDrawRibbonStatusBarPane(CDC* pDC, CMFCRibbonStatusBar* pBar, CMFCRibbonStatusBarPane* pPane);
+    virtual COLORREF OnDrawRibbonTabsFrame(CDC* pDC, CMFCRibbonBar* pBar, CRect rectTab);
     virtual void OnDrawScrollButtons(CDC* pDC, const CRect& rect, const int nBorderSize, int iImage, BOOL bHilited);
     virtual void OnDrawSeparator(CDC* pDC, CBasePane* pBar, CRect rect, BOOL bHorz);
     virtual void OnDrawShowAllMenuItems(CDC* pDC, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state);
@@ -1184,8 +1185,12 @@ protected:
 class CMFCPropertyGridProperty : public CObject {
     DECLARE_DYNAMIC(CMFCPropertyGridProperty)
 public:
-    CMFCPropertyGridProperty(const wchar_t* lpszName, const COleVariant& varValue,
-                              const wchar_t* lpszDescr = nullptr, DWORD_PTR dwData = 0);
+    CMFCPropertyGridProperty(const CString& strName, const COleVariant& varValue,
+                              const wchar_t* lpszDescr = nullptr, DWORD_PTR dwData = 0,
+                              const wchar_t* lpszEditMask = nullptr,
+                              const wchar_t* lpszEditTemplate = nullptr,
+                              const wchar_t* lpszValidChars = nullptr);
+    CMFCPropertyGridProperty(const CString& strName, DWORD_PTR dwData, int nRowHeight);
     virtual ~CMFCPropertyGridProperty();
 
     const CString& GetName() const;
@@ -1333,6 +1338,11 @@ public:
     int AddGroup(const wchar_t* lpszName, BOOL bBottomHasGripper = FALSE, BOOL bSpecial = FALSE, int nIcon = -1);
     int AddGroup(int nGroup, const wchar_t* lpszName, BOOL bBottomHasGripper = FALSE, BOOL bSpecial = FALSE, HICON hIcon = nullptr);
 
+    // Command UI update handlers
+    void OnUpdateBack(CCmdUI* pCmdUI);
+    void OnUpdateClose(CCmdUI* pCmdUI);
+    void OnUpdateForward(CCmdUI* pCmdUI);
+
 protected:
     char _taskspane_padding[128];
 };
@@ -1397,14 +1407,17 @@ public:
     CFrameWndEx();
     virtual ~CFrameWndEx();
 
-    virtual BOOL Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName, DWORD dwStyle,
-                        const RECT& rect, CWnd* pParentWnd, LPCTSTR lpszMenuName,
+    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+                        const RECT& rect, CWnd* pParentWnd, const wchar_t* lpszMenuName,
                         DWORD dwExStyle, CCreateContext* pContext) override;
     BOOL LoadFrame(UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext) override;
 
     CMFCVisualManager* GetVisualManager() const;
     CDockingManager* GetDockingManager();
-    void EnableDocking(DWORD dwDockStyle);
+    BOOL EnableDocking(DWORD dwDockStyle);
+
+    // Command UI update handlers
+    void OnUpdatePaneMenu(CCmdUI* pCmdUI);
 
 protected:
     CMFCVisualManager* m_pVisualManager;
@@ -1419,6 +1432,9 @@ public:
     virtual ~CMDIFrameWndEx();
 
     CMFCVisualManager* GetVisualManager() const;
+
+    // Command UI update handlers
+    void OnUpdatePaneMenu(CCmdUI* pCmdUI);
 
 protected:
     CMFCVisualManager* m_pVisualManager;
@@ -1727,7 +1743,7 @@ class CMFCDesktopAlertWndButton : public CObject {
 public: CMFCDesktopAlertWndButton() {} char _pad[16]; };
 class CMFCStatusBar : public CStatusBar {
     DECLARE_DYNAMIC(CMFCStatusBar)
-public: CMFCStatusBar(); virtual ~CMFCStatusBar(); char _pad[64]; };
+public: CMFCStatusBar(); virtual ~CMFCStatusBar(); void EnablePaneProgressBar(int nIndex, long nTotal, int nMax, unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText); long GetPaneProgress(int nIndex) const; void SetPaneProgress(int nIndex, long nProgress, int bRedraw); char _pad[64]; };
 class CPaneDivider : public CObject {
 public:
     CPaneDivider() {}
@@ -1755,7 +1771,7 @@ class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbon
 class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT nID, const wchar_t* lpszText, int, int, UINT, int) : CMFCRibbonGallery() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonGallery(); char _pad[32]; };
 class CMFCRibbonLabel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonLabel) public: CMFCRibbonLabel(); CMFCRibbonLabel(const wchar_t*, int) : CMFCRibbonLabel() {} virtual ~CMFCRibbonLabel(); char _pad[32]; };
 class CMFCRibbonMainPanel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonMainPanel) public: CMFCRibbonMainPanel(); virtual ~CMFCRibbonMainPanel(); char _pad[32]; };
-class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); CMFCRibbonProgressBar(UINT nID, int, int) : CMFCRibbonProgressBar() { SetID(nID); } virtual ~CMFCRibbonProgressBar(); char _pad[32]; };
+class CMFCRibbonProgressBar : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonProgressBar) public: CMFCRibbonProgressBar(); CMFCRibbonProgressBar(UINT nID, int, int) : CMFCRibbonProgressBar() { SetID(nID); } virtual ~CMFCRibbonProgressBar(); void SetRange(int nMin, int nMax); void SetPos(int nPos, int bRedraw); void SetInfiniteMode(int bSet); virtual void OnDraw(CDC* pDC); virtual CSize GetRegularSize(CDC* pDC) const; virtual void CopyFrom(const CMFCRibbonBaseElement& src); virtual void OnDrawOnList(CDC* pDC, const CString& strText, int nTextOffset, CRect rect, int bIsHighlighted, int bIsDisabled); virtual int SetACCData(CWnd* pParentWnd, CAccessibilityData& data); protected: void CommonInit(); char _pad[32]; };
 class CMFCRibbonSeparator : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSeparator) public: CMFCRibbonSeparator(); CMFCRibbonSeparator(int) : CMFCRibbonSeparator() {} virtual ~CMFCRibbonSeparator(); char _pad[32]; };
 class CMFCRibbonSlider : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonSlider) public: CMFCRibbonSlider(); CMFCRibbonSlider(UINT nID, int) : CMFCRibbonSlider() { SetID(nID); } virtual ~CMFCRibbonSlider(); char _pad[32]; };
 class CMFCRibbonStatusBar : public CBasePane { DECLARE_DYNAMIC(CMFCRibbonStatusBar) public: CMFCRibbonStatusBar(); virtual ~CMFCRibbonStatusBar(); char _pad[64]; };

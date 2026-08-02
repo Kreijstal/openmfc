@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-74",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4645,
+      "symbol": "?Flush@CRenderTarget@@QEAAXPEA_K0@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4900,
+      "symbol": "?GetAntialiasMode@CRenderTarget@@QEBA?AW4D2D1_ANTIALIAS_MODE@@XZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 6094,
+      "symbol": "?GetPixelFormat@CRenderTarget@@QEBA?AUD2D1_PIXEL_FORMAT@@XZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 6096,
+      "symbol": "?GetPixelSize@CRenderTarget@@QEBA?AVCD2DSizeU@@XZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 6782,
+      "symbol": "?GetTextAntialiasMode@CRenderTarget@@QEBA?AW4D2D1_TEXT_ANTIALIAS_MODE@@XZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 6788,
+      "symbol": "?GetTextRenderingParams@CRenderTarget@@QEAAXPEAPEAUIDWriteRenderingParams@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 7434,
+      "symbol": "?GetTransform@CRenderTarget@@QEAAXPEAUD2D_MATRIX_3X2_F@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 8013,
+      "symbol": "?IsSupported@CRenderTarget@@QEBAHAEBUD2D1_RENDER_TARGET_PROPERTIES@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 11747,
+      "symbol": "?PopAxisAlignedClip@CRenderTarget@@QEAAXXZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 11748,
+      "symbol": "?PopLayer@CRenderTarget@@QEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 74/91: CRenderTarget"
+}

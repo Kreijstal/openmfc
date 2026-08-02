@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-20",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControl",
+      "ordinal": 2787,
+      "symbol": "?ClipCaretRect@COleControl@@QEAAHPEAUtagRECT@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 2970,
+      "symbol": "?ControlInfoChanged@COleControl@@QEAAXXZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3213,
+      "symbol": "?CreateControlWindow@COleControl@@MEAAHPEAUHWND__@@AEBVCRect@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3282,
+      "symbol": "?CreateFrameWindow@COleControl@@MEAAPEAVCControlFrameWnd@@XZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3540,
+      "symbol": "?CreateTracker@COleControl@@IEAAXHH@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3541,
+      "symbol": "?CreateTracker@COleControl@@IEAAXHHPEBUtagRECT@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3549,
+      "symbol": "?CreateWindowForSubclassedControl@COleControl@@IEAAXXZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3716,
+      "symbol": "?DefWindowProcW@COleControl@@MEAA_JI_K_J@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3805,
+      "symbol": "?DestroySharedMenu@COleControl@@MEAAXXZ"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 3809,
+      "symbol": "?DestroyTracker@COleControl@@IEAAXXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 20/77: COleControl"
+}

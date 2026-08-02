@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-374",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 2738,
+      "symbol": "?CleanUp@CMFCVisualManagerOffice2007@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4107,
+      "symbol": "?DrawNcBtn@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@IW4AFX_BUTTON_STATE@CMFCVisualManager@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4109,
+      "symbol": "?DrawNcCaption@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@VCRect@@KKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2PEAUHICON__@@HHHAEBVCObList@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4111,
+      "symbol": "?DrawNcText@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEAVCRect@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2HHHHHHK@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4129,
+      "symbol": "?DrawSeparator@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@AEAVCPen@@2H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4130,
+      "symbol": "?DrawSeparator@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 4985,
+      "symbol": "?GetCaptionBarTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCCaptionBar@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 5483,
+      "symbol": "?GetHighlightedMenuItemTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 5739,
+      "symbol": "?GetMenuItemTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarMenuButton@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 5953,
+      "symbol": "?GetNcBtnSize@CMFCVisualManagerOffice2007@@UEBA?AVCSize@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 374/439: CMFCVisualManagerOffice2007"
+}

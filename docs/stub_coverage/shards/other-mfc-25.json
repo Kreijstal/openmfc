@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-25",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3626,
+      "symbol": "?DDX_DHtml_ElementTextFloatFormat@CDHtmlDialog@@IEAAXPEB_WJPEAXNHH@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3627,
+      "symbol": "?DDX_DHtml_ElementTextWithFormat@CDHtmlDialog@@IEAAXPEB_WJ0IHZZ"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3628,
+      "symbol": "?DDX_DHtml_Radio@CDHtmlDialog@@IEAAXPEB_WAEAJH@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3629,
+      "symbol": "?DDX_DHtml_Radio@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAJ@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3630,
+      "symbol": "?DDX_DHtml_SelectIndex@CDHtmlDialog@@IEAAXPEB_WAEAJH@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3631,
+      "symbol": "?DDX_DHtml_SelectIndex@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAJ@Z"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3804,
+      "symbol": "?DestroyModeless@CDHtmlDialog@@QEAAXXZ"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3858,
+      "symbol": "?DisconnectDHtmlElementEvents@CDHtmlDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 3859,
+      "symbol": "?DisconnectDHtmlEvents@CDHtmlDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CDHtmlDialog",
+      "ordinal": 5224,
+      "symbol": "?GetDHtmlEventMap@CDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@XZ"
+    }
+  ],
+  "title": "other_mfc shard 25/91: CDHtmlDialog"
+}

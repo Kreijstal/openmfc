@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-74",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 10873,
+      "symbol": "?OnRButtonDown@CMFCBaseTabCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 11307,
+      "symbol": "?OnSysColorChange@CMFCBaseTabCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 11604,
+      "symbol": "?OnWindowPosChanged@CMFCBaseTabCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 11867,
+      "symbol": "?PreTranslateMessage@CMFCBaseTabCtrl@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12314,
+      "symbol": "?RemoveAllTabs@CMFCBaseTabCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12438,
+      "symbol": "?RenameTab@CMFCBaseTabCtrl@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12504,
+      "symbol": "?ResetImageList@CMFCBaseTabCtrl@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12808,
+      "symbol": "?Serialize@CMFCBaseTabCtrl@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12908,
+      "symbol": "?SetActiveTabColor@CMFCBaseTabCtrl@@UEAAXK@Z"
+    },
+    {
+      "class": "CMFCBaseTabCtrl",
+      "ordinal": 12909,
+      "symbol": "?SetActiveTabTextColor@CMFCBaseTabCtrl@@UEAAXK@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 74/439: CMFCBaseTabCtrl"
+}

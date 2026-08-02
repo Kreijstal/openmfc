@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-288",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 3328,
+      "symbol": "?CreateMenu@CMFCTasksPane@@QEBAPEAUHMENU__@@XZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 3331,
+      "symbol": "?CreateNavigationToolbar@CMFCTasksPane@@IEAAHXZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 3984,
+      "symbol": "?DoPaint@CMFCTasksPane@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 4042,
+      "symbol": "?DrawCaption@CMFCTasksPane@@MEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 4258,
+      "symbol": "?EnableHistoryMenuButtons@CMFCTasksPane@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 4285,
+      "symbol": "?EnableNavigationToolbar@CMFCTasksPane@@QEAAXHIVCSize@@0@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 5459,
+      "symbol": "?GetGroupLocation@CMFCTasksPane@@QEBAHPEAVCMFCTasksPaneTaskGroup@@AEAH@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 5949,
+      "symbol": "?GetMRUFileName@CMFCTasksPane@@MEAAHPEAVCRecentFileList@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 5977,
+      "symbol": "?GetNextPages@CMFCTasksPane@@QEBAXAEAVCStringList@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 6027,
+      "symbol": "?GetPageByGroup@CMFCTasksPane@@QEBAHHAEAH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 288/439: CMFCTasksPane"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-89",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CStatusBar",
+      "ordinal": 2596,
+      "symbol": "?CalcFixedLayout@CStatusBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 2600,
+      "symbol": "?CalcInsideRect@CStatusBar@@UEBAXAEAVCRect@@H@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 3271,
+      "symbol": "?CreateEx@CStatusBar@@UEAAHPEAVCWnd@@KKI@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 8682,
+      "symbol": "?OnBarStyleChange@CStatusBar@@UEAAXKK@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 8827,
+      "symbol": "?OnChildNotify@CStatusBar@@MEAAHI_K_JPEA_J@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10045,
+      "symbol": "?OnGetText@CStatusBar@@IEAAHHPEA_W@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10048,
+      "symbol": "?OnGetTextLength@CStatusBar@@IEAAIXZ"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10577,
+      "symbol": "?OnNcCalcSize@CStatusBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10615,
+      "symbol": "?OnNcHitTest@CStatusBar@@IEAA_JVCPoint@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11114,
+      "symbol": "?OnSetMinHeight@CStatusBar@@IEAA_J_K_J@Z"
+    }
+  ],
+  "title": "other_mfc shard 89/91: CStatusBar"
+}

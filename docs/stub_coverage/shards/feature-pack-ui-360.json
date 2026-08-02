@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-360",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6687,
+      "symbol": "?GetSmartDockingBaseGuideColors@CMFCVisualManager@@UEAAXAEAK0@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6690,
+      "symbol": "?GetSmartDockingHighlightToneColor@CMFCVisualManager@@UEAAKXZ"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6711,
+      "symbol": "?GetStatusBarPaneTextColor@CMFCVisualManager@@UEAAKPEAVCMFCStatusBar@@PEAVCMFCStatusBarPaneInfo@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 6744,
+      "symbol": "?GetTabFrameColors@CMFCVisualManager@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 7406,
+      "symbol": "?GetToolbarButtonTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarButton@@W4AFX_BUTTON_STATE@1@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 7413,
+      "symbol": "?GetToolTipInfo@CMFCVisualManager@@UEAAHAEAVCMFCToolTipInfo@@I@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 8600,
+      "symbol": "?OnActivateApp@CMFCVisualManager@@UEAAXPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9275,
+      "symbol": "?OnDrawAutoHideButtonBorder@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@1PEAVCMFCAutoHideButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9299,
+      "symbol": "?OnDrawBrowseButton@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCEditBrowseCtrl@@W4AFX_BUTTON_STATE@1@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 9316,
+      "symbol": "?OnDrawCaptionBarBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@KH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 360/439: CMFCVisualManager"
+}

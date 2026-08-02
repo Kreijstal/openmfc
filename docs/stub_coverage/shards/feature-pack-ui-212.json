@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-212",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 4072,
+      "symbol": "?DrawImage@CMFCRibbonColorButton@@MEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 4217,
+      "symbol": "?EnableAutomaticButton@CMFCRibbonColorButton@@QEAAXPEB_WKH0HH@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 4291,
+      "symbol": "?EnableOtherButton@CMFCRibbonColorButton@@QEAAXPEB_W0@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 5051,
+      "symbol": "?GetColorByIndex@CMFCRibbonColorButton@@IEBAKH@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 5481,
+      "symbol": "?GetHighlightedColor@CMFCRibbonColorButton@@QEBAKXZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 5510,
+      "symbol": "?GetIconToolTip@CMFCRibbonColorButton@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEBVCMFCRibbonGalleryIcon@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 8557,
+      "symbol": "?NotifyHighlightListItem@CMFCRibbonColorButton@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 8854,
+      "symbol": "?OnClickPaletteIcon@CMFCRibbonColorButton@@MEAAXPEAVCMFCRibbonGalleryIcon@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 8856,
+      "symbol": "?OnClickPaletteSubItem@CMFCRibbonColorButton@@MEAAHPEAVCMFCRibbonButton@@PEAVCMFCRibbonPanelMenuBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 9460,
+      "symbol": "?OnDrawPaletteIcon@CMFCRibbonColorButton@@MEAAXPEAVCDC@@VCRect@@HPEAVCMFCRibbonGalleryIcon@@K@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 212/439: CMFCRibbonColorButton"
+}

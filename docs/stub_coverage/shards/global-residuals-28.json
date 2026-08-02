@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-28",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2318,
+      "symbol": "?AfxRegOpenKeyEx@@YAJPEAUHKEY__@@PEB_WKKPEAPEAU1@PEAVCAtlTransactionManager@ATL@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2319,
+      "symbol": "?AfxRegQueryValue@@YAJPEAUHKEY__@@PEB_WPEA_WPEAJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2320,
+      "symbol": "?AfxRegSetValue@@YAJPEAUHKEY__@@PEB_WK1K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2321,
+      "symbol": "?AfxReleaseD2DRefs@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2322,
+      "symbol": "?AfxRepositionWindow@@YAXPEAUAFX_SIZEPARENTPARAMS@@PEAUHWND__@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2323,
+      "symbol": "?AfxResetMsgCache@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2324,
+      "symbol": "?AfxResolveShortcut@@YAHPEAVCWnd@@PEB_WPEA_WH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2325,
+      "symbol": "?AfxRFXBulkDefault@@YAXPEAVCFieldExchange@@PEB_WPEAXPEA_JH_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2326,
+      "symbol": "?AfxSafeArrayInit@@YAXPEAVCOleSafeArray@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2327,
+      "symbol": "?AfxSetModuleState@@YAPEAVAFX_MODULE_STATE@@PEAV1@@Z"
+    }
+  ],
+  "title": "global_residuals shard 28/95: global"
+}

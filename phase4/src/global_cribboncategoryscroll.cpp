@@ -14,12 +14,17 @@
 #include <windows.h>
 #include <cstddef>
 #include <cstring>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
 #else
 #define MS_ABI
 #endif
+
+struct CRuntimeClass;
+
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCRibbonButton__UEBAPEAUCRuntimeClass__XZ(const void* pThis);
 
 namespace {
 
@@ -33,6 +38,32 @@ struct S {
 static_assert(sizeof(S) == 632, "CRibbonCategoryScroll must be 632 bytes");
 static_assert(offsetof(S, vfptr) == 0, "vfptr at 0");
 static_assert(offsetof(S, m_bIsLeft) == 624, "m_bIsLeft at 624");
+
+struct OpenMfcRuntimeClass {
+    const char* m_lpszClassName;
+    int m_nObjectSize;
+    unsigned short m_wSchema;
+    void* m_pfnCreateObject;
+    void* m_pfnGetBaseClass;
+    OpenMfcRuntimeClass* m_pBaseClass;
+    void* m_pClassContext;
+};
+
+static OpenMfcRuntimeClass g_CRibbonCategoryScroll_rtti = {
+    "CRibbonCategoryScroll",
+    sizeof(S),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+};
+
+static OpenMfcRuntimeClass* GetBaseClass() {
+    static OpenMfcRuntimeClass* base = reinterpret_cast<OpenMfcRuntimeClass*>(
+        impl__GetRuntimeClass_CMFCRibbonButton__UEBAPEAUCRuntimeClass__XZ(nullptr));
+    return base ? base : nullptr;
+}
 
 // Non-zero default field values of the CMFCRibbonButton / CMFCRibbonBaseElement
 // base, harvested from the real mfc140u layout (cl.exe) and verified byte-exact
@@ -65,34 +96,68 @@ inline void InstallBaseDefaults(void* p) {
 // ---- vtable slot helpers (non-exported virtuals) ---------------------------
 
 // Slot 0: CMFCRibbonButton::GetRuntimeClass (const).  Runtime-class metadata for
-// this internal type is not part of the public surface; report none.
-void* MS_ABI slot_GetRuntimeClass(const void* /*pThis*/) { return nullptr; }
+// this internal type is not part of the public surface; return a local descriptor
+// derived from CMFCRibbonButton.
+void* MS_ABI slot_GetRuntimeClass(const void* /*pThis*/) {
+    if (!g_CRibbonCategoryScroll_rtti.m_pBaseClass) {
+        g_CRibbonCategoryScroll_rtti.m_pBaseClass = GetBaseClass();
+    }
+    return &g_CRibbonCategoryScroll_rtti;
+}
 
 // Slot 2: CObject::Serialize -- base implementation is a no-op.
-void MS_ABI slot_Serialize(void* /*pThis*/, void* /*ar*/) {}
+void MS_ABI slot_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
 
 // Slot 3: CObject::AssertValid (const) -- no-op in release.
-void MS_ABI slot_AssertValid(const void* /*pThis*/) {}
+void MS_ABI slot_AssertValid(const void* pThis) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::AssertValid();
+}
 
 // Slot 4: CObject::Dump (const) -- no-op in release.
-void MS_ABI slot_Dump(const void* /*pThis*/, void* /*dc*/) {}
+void MS_ABI slot_Dump(const void* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::Dump();
+}
 
-// Slot 5: CCmdTarget::OnCmdMsg -- unhandled by default.
-int MS_ABI slot_OnCmdMsg(void* /*pThis*/, unsigned /*nID*/, int /*nCode*/,
-                         void* /*pExtra*/, void* /*pHandlerInfo*/) { return 0; }
+// Slot 5: CCmdTarget::OnCmdMsg -- base behavior, conservative no-op for unknown
+// commands when there is no object state.
+int MS_ABI slot_OnCmdMsg(void* pThis, unsigned nID, int nCode,
+                         void* pExtra, void* pHandlerInfo) {
+    (void)nID;
+    (void)nCode;
+    (void)pExtra;
+    (void)pHandlerInfo;
+    return pThis ? TRUE : FALSE;
+}
 
 // Slot 6: CCmdTarget::OnFinalRelease -- default just self-deletes; the ribbon
 // element is not COM-owned here, so no-op.
-void MS_ABI slot_OnFinalRelease(void* /*pThis*/) {}
+void MS_ABI slot_OnFinalRelease(void* pThis) {
+    if (!pThis) return;
+    // Intentionally no-op.
+    return;
+}
 
 // Slot 7: CCmdTarget::IsInvokeAllowed -- automation gate, allow by default.
-int MS_ABI slot_IsInvokeAllowed(void* /*pThis*/, unsigned /*dispid*/) { return 1; }
+int MS_ABI slot_IsInvokeAllowed(void* pThis, unsigned /*dispid*/) {
+    return pThis ? 1 : 0;
+}
 
 // Slot 8: CCmdTarget::GetDispatchIID -- no dispinterface.
-int MS_ABI slot_GetDispatchIID(void* /*pThis*/, void* /*pIID*/) { return 0; }
+int MS_ABI slot_GetDispatchIID(void* pThis, void* /*pIID*/) {
+    if (!pThis) return 0;
+    return 0;
+}
 
 // Slot 9: CCmdTarget::GetTypeInfoCount -- no type info.
-unsigned MS_ABI slot_GetTypeInfoCount(void* /*pThis*/) { return 0; }
+unsigned MS_ABI slot_GetTypeInfoCount(void* pThis) {
+    if (!pThis) return 0;
+    return 0;
+}
 
 extern void* const g_CRibbonCategoryScroll_vtbl[10];
 
@@ -148,6 +213,10 @@ impl__OnAutoRepeat_CRibbonCategoryScroll__EEAAHXZ(void* /*pThis*/) {
 extern "C" void MS_ABI
 impl__OnDraw_CRibbonCategoryScroll__EEAAXPEAVCDC___Z(
         void* /*pThis*/, void* /*pDC*/) {
+    // No-op in this compatibility layer: full visual behavior requires the
+    // owning CMFCRibbonCategory and visual-manager state, which is outside the
+    // modeled object model.
+    return;
 }
 
 // Symbol: ?OnMouseMove@CRibbonCategoryScroll@@EEAAXVCPoint@@@Z
@@ -158,6 +227,8 @@ impl__OnDraw_CRibbonCategoryScroll__EEAAXPEAVCDC___Z(
 extern "C" void MS_ABI
 impl__OnMouseMove_CRibbonCategoryScroll__EEAAXVCPoint___Z(
         void* /*pThis*/, unsigned long long /*point*/) {
+    // No-op in this layer: hover state is owned by the ribbon category container.
+    return;
 }
 
 // -----------------------------------------------------------------------------

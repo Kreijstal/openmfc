@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-10",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMonthCalCtrl",
+      "ordinal": 13700,
+      "symbol": "?SetToday@CMonthCalCtrl@@QEAAXAEBVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 3195,
+      "symbol": "?CreateContainer@COccManager@@UEAAPEAVCOleControlContainer@@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 3525,
+      "symbol": "?CreateSite@COccManager@@UEAAPEAVCOleControlSite@@PEAVCOleControlContainer@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 3526,
+      "symbol": "?CreateSite@COccManager@@UEAAPEAVCOleControlSite@@PEAVCOleControlContainer@@AEBVCControlCreationInfo@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 7929,
+      "symbol": "?IsLabelControl@COccManager@@SAHPEAUCOleControlSiteOrWnd@@@Z"
+    },
+    {
+      "class": "COccManager",
+      "ordinal": 7942,
+      "symbol": "?IsMatchingMnemonic@COccManager@@SAHPEAUCOleControlSiteOrWnd@@PEAUtagMSG@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 1814,
+      "symbol": "?AddCachedData@COleClientItem@@IEAAXPEAVCOleDataSource@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 2664,
+      "symbol": "?CanCreateFromData@COleClientItem@@SAHPEBVCOleDataObject@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 2665,
+      "symbol": "?CanCreateLinkFromData@COleClientItem@@SAHPEBVCOleDataObject@@@Z"
+    },
+    {
+      "class": "COleClientItem",
+      "ordinal": 2675,
+      "symbol": "?CanPaste@COleClientItem@@SAHXZ"
+    }
+  ],
+  "title": "ole_com_activex shard 10/77: COccManager, COleClientItem, CMonthCalCtrl"
+}

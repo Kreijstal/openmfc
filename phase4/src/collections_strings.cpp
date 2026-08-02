@@ -38,6 +38,7 @@ struct MenuTearOffState {
     unsigned int firstId = 0;
     unsigned int lastId = 0;
     std::set<unsigned int> inUse;
+    std::vector<unsigned int> tearOffItems;
 };
 
 struct ControlRendererInfoState {
@@ -795,7 +796,12 @@ void CMFCControlRenderer::Mirror() {
     g_controlRendererStates[this].mirrored = !g_controlRendererStates[this].mirrored;
 }
 
-void CMFCControlRenderer::OnSysColorChange() {}
+void CMFCControlRenderer::OnSysColorChange() {
+    auto it = g_controlRendererStates.find(this);
+    if (it == g_controlRendererStates.end()) return;
+    it->second.valid = it->second.info.hasImage || !it->second.info.resourceId.empty();
+    it->second.imageScale = 1.0;
+}
 
 BOOL CMFCControlRenderer::SmoothResize(double dblImageScale) {
     g_controlRendererStates[this].imageScale = dblImageScale;
@@ -1059,6 +1065,35 @@ extern "C" unsigned int MS_ABI impl__Parse_CMenuTearOffManager__QEAAIAEAV__CStri
     if (!value || !ParseUnsignedDecimalOrHex(CStringText(value), &parsed)) return 0;
     g_menuTearOffStates[self].inUse.insert(static_cast<unsigned int>(parsed));
     return static_cast<unsigned int>(parsed);
+}
+
+// Symbol: ?Reset@CMenuTearOffManager@@QEAAXPEAUHMENU__@@@Z
+extern "C" void MS_ABI impl__Reset_CMenuTearOffManager__QEAAXPEAUHMENU_____Z(void* self, HMENU hMenu) {
+    if (!::IsMenu(hMenu)) return;
+    auto it = g_menuTearOffStates.find(self);
+    if (it == g_menuTearOffStates.end()) return;
+    MenuTearOffState& state = it->second;
+    for (unsigned int id : state.tearOffItems) {
+        ::RemoveMenu(hMenu, id, MF_BYCOMMAND);
+    }
+    state.tearOffItems.clear();
+}
+
+// Symbol: ?SetupTearOffMenus@CMenuTearOffManager@@QEAAXPEAUHMENU__@@@Z
+extern "C" void MS_ABI impl__SetupTearOffMenus_CMenuTearOffManager__QEAAXPEAUHMENU_____Z(void* self, HMENU hMenu) {
+    if (!::IsMenu(hMenu)) return;
+    auto it = g_menuTearOffStates.find(self);
+    if (it == g_menuTearOffStates.end()) return;
+    MenuTearOffState& state = it->second;
+    state.tearOffItems.clear();
+    int pos = 0;
+    for (unsigned int id : state.inUse) {
+        wchar_t buffer[32] = {};
+        wsprintfW(buffer, L"%u", id);
+        ::InsertMenuW(hMenu, pos, MF_BYPOSITION | MF_STRING, id, buffer);
+        state.tearOffItems.push_back(id);
+        ++pos;
+    }
 }
 
 // Symbol: ?ParseColor@CTagManager@@SAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAK@Z

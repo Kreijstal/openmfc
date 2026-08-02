@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-10",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11633,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEB_WPEAUIServiceProvider@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11634,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEB_WPEAUIUnknown@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11635,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEB_WPEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11752,
+      "symbol": "?PostBindToStream@CAsyncMonikerFile@@MEAAHPEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 12032,
+      "symbol": "?Read@CAsyncMonikerFile@@UEAAIPEAXI@Z"
+    },
+    {
+      "class": "CAsyncPropExchange",
+      "ordinal": 4405,
+      "symbol": "?ExchangeBlobProp@CAsyncPropExchange@@UEAAHPEB_WPEAPEAXPEAX@Z"
+    },
+    {
+      "class": "CAsyncPropExchange",
+      "ordinal": 4416,
+      "symbol": "?ExchangePersistentProp@CAsyncPropExchange@@UEAAHPEB_WPEAPEAUIUnknown@@AEBU_GUID@@PEAU2@@Z"
+    },
+    {
+      "class": "CAsyncPropExchange",
+      "ordinal": 4421,
+      "symbol": "?ExchangeProp@CAsyncPropExchange@@UEAAHPEB_WGPEAXPEBX@Z"
+    },
+    {
+      "class": "CAsyncPropExchange",
+      "ordinal": 4426,
+      "symbol": "?ExchangeVersion@CAsyncPropExchange@@UEAAHAEAKKH@Z"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 2633,
+      "symbol": "?CanAcceptPane@CAutoHideDockSite@@UEBAHPEBVCBasePane@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 10/91: CAsyncMonikerFile, CAsyncPropExchange, CAutoHideDockSite"
+}

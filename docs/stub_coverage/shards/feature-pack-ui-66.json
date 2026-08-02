@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-66",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 8480,
+      "symbol": "?Move@CMFCAutoHideButton@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 9221,
+      "symbol": "?OnDraw@CMFCAutoHideButton@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 9285,
+      "symbol": "?OnDrawBorder@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@1@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 9852,
+      "symbol": "?OnFillBackground@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 12459,
+      "symbol": "?ReplacePane@CMFCAutoHideButton@@QEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 13794,
+      "symbol": "?ShowAttachedWindow@CMFCAutoHideButton@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 13796,
+      "symbol": "?ShowButton@CMFCAutoHideButton@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 14097,
+      "symbol": "?UnSetAutoHideMode@CMFCAutoHideButton@@UEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 1692,
+      "symbol": "?accDoDefaultAction@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCBaseAccessibleObject",
+      "ordinal": 1712,
+      "symbol": "?accHitTest@CMFCBaseAccessibleObject@@UEAAJJJPEAUtagVARIANT@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 66/439: CMFCAutoHideButton, CMFCBaseAccessibleObject"
+}

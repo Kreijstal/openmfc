@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-376",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 6734,
+      "symbol": "?GetSystemBorders@CMFCVisualManagerOffice2007@@IEBA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 6746,
+      "symbol": "?GetTabFrameColors@CMFCVisualManagerOffice2007@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 6754,
+      "symbol": "?GetTabHorzMargin@CMFCVisualManagerOffice2007@@UEAAHPEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 6762,
+      "symbol": "?GetTabTextColor@CMFCVisualManagerOffice2007@@UEAAKPEBVCMFCBaseTabCtrl@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 7407,
+      "symbol": "?GetToolbarButtonTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarButton@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 7415,
+      "symbol": "?GetToolTipInfo@CMFCVisualManagerOffice2007@@UEAAHAEAVCMFCToolTipInfo@@I@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 7917,
+      "symbol": "?IsHighlightWholeMenuItem@CMFCVisualManagerOffice2007@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 7961,
+      "symbol": "?IsOwnerDrawMenuCheck@CMFCVisualManagerOffice2007@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 7987,
+      "symbol": "?IsRibbonPresent@CMFCVisualManagerOffice2007@@QEBAHPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 8040,
+      "symbol": "?IsWindowActive@CMFCVisualManagerOffice2007@@IEBAHPEAVCWnd@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 376/439: CMFCVisualManagerOffice2007"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-30",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControl",
+      "ordinal": 10361,
+      "symbol": "?OnLButtonDown@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10406,
+      "symbol": "?OnLButtonUp@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10417,
+      "symbol": "?OnMButtonDblClk@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10418,
+      "symbol": "?OnMButtonDown@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10419,
+      "symbol": "?OnMButtonUp@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10438,
+      "symbol": "?OnMenuSelect@COleControl@@IEAAXIIPEAUHMENU__@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10452,
+      "symbol": "?OnMouseActivate@COleControl@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10504,
+      "symbol": "?OnMouseMove@COleControl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10523,
+      "symbol": "?OnMove@COleControl@@IEAAXHH@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10574,
+      "symbol": "?OnNcCalcSize@COleControl@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 30/77: COleControl"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-257",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonSeparator",
+      "ordinal": 3019,
+      "symbol": "?CopyFrom@CMFCRibbonSeparator@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSeparator",
+      "ordinal": 6195,
+      "symbol": "?GetRegularSize@CMFCRibbonSeparator@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSeparator",
+      "ordinal": 9253,
+      "symbol": "?OnDraw@CMFCRibbonSeparator@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSeparator",
+      "ordinal": 9449,
+      "symbol": "?OnDrawOnList@CMFCRibbonSeparator@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 2898,
+      "symbol": "?CommonInit@CMFCRibbonSlider@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 3020,
+      "symbol": "?CopyFrom@CMFCRibbonSlider@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 5488,
+      "symbol": "?GetHitTest@CMFCRibbonSlider@@IEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 6100,
+      "symbol": "?GetPosFromPoint@CMFCRibbonSlider@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 7847,
+      "symbol": "?IsAutoRepeatMode@CMFCRibbonSlider@@MEBAHAEAH@Z"
+    },
+    {
+      "class": "CMFCRibbonSlider",
+      "ordinal": 8547,
+      "symbol": "?NotifyCommand@CMFCRibbonSlider@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 257/439: CMFCRibbonSlider, CMFCRibbonSeparator"
+}

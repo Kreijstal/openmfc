@@ -22,6 +22,7 @@
 
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -80,16 +81,28 @@ void* MS_ABI sd_VectorDeletingDtor(void* p, unsigned int flags) {
     return p;
 }
 
-// slot 2: CObject::Serialize — base implementation is a no-op.
-void MS_ABI sd_Serialize(void* /*pThis*/, void* /*ar*/) {
+// slot 2: CObject::Serialize — delegate to the base implementation.
+void MS_ABI sd_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) {
+        return;
+    }
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
 }
 
-// slot 3: CObject::AssertValid — no-op in release.
-void MS_ABI sd_AssertValid(void* /*pThis*/) {
+// slot 3: CObject::AssertValid — base implementation.
+void MS_ABI sd_AssertValid(void* pThis) {
+    if (!pThis) {
+        return;
+    }
+    static_cast<CObject*>(pThis)->CObject::AssertValid();
 }
 
-// slot 4: CObject::Dump — no-op in release.
-void MS_ABI sd_Dump(void* /*pThis*/, void* /*dc*/) {
+// slot 4: CObject::Dump — base implementation.
+void MS_ABI sd_Dump(void* pThis, void* /*dc*/) {
+    if (!pThis) {
+        return;
+    }
+    static_cast<CObject*>(pThis)->CObject::Dump();
 }
 
 void* const g_CSmartDockingInfo_vtbl[5] = {

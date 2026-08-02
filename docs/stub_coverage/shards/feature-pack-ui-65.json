@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-65",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 10593,
+      "symbol": "?OnNcDestroy@CMFCAutoHideBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 11352,
+      "symbol": "?OnTimer@CMFCAutoHideBar@@IEAAX_K@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 12328,
+      "symbol": "?RemoveAutoHideWindow@CMFCAutoHideBar@@QEAAHPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 12890,
+      "symbol": "?SetActiveInGroup@CMFCAutoHideBar@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 13795,
+      "symbol": "?ShowAutoHideWindow@CMFCAutoHideBar@@QEAAHPEAVCDockablePane@@HH@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 13941,
+      "symbol": "?StretchPane@CMFCAutoHideBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 14096,
+      "symbol": "?UnSetAutoHideMode@CMFCAutoHideBar@@QEAAXPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CMFCAutoHideBar",
+      "ordinal": 14186,
+      "symbol": "?UpdateVisibleState@CMFCAutoHideBar@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 3100,
+      "symbol": "?Create@CMFCAutoHideButton@@UEAAHPEAVCMFCAutoHideBar@@PEAVCDockablePane@@K@Z"
+    },
+    {
+      "class": "CMFCAutoHideButton",
+      "ordinal": 3371,
+      "symbol": "?CreateObject@CMFCAutoHideButton@@SAPEAVCObject@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 65/439: CMFCAutoHideBar, CMFCAutoHideButton"
+}

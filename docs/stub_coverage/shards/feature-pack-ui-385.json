@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-385",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 10647,
+      "symbol": "?OnNcPaint@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 11156,
+      "symbol": "?OnSetWindowRegion@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@VCSize@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 11541,
+      "symbol": "?OnUpdateSystemColors@CMFCVisualManagerOffice2007@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2007",
+      "ordinal": 13551,
+      "symbol": "?SetResourceHandle@CMFCVisualManagerOffice2007@@SAXPEAUHINSTANCE__@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 3301,
+      "symbol": "?CreateGripperBrush@CMFCVisualManagerOfficeXP@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 4458,
+      "symbol": "?ExtendMenuButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCMFCToolBarMenuButton@@AEAVCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 4917,
+      "symbol": "?GetAutoHideButtonTextColor@CMFCVisualManagerOfficeXP@@MEAAKPEAVCMFCAutoHideButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 5484,
+      "symbol": "?GetHighlightedMenuItemTextColor@CMFCVisualManagerOfficeXP@@MEAAKPEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 6135,
+      "symbol": "?GetPropertyGridGroupColor@CMFCVisualManagerOfficeXP@@MEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 6139,
+      "symbol": "?GetPropertyGridGroupTextColor@CMFCVisualManagerOfficeXP@@MEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 385/439: CMFCVisualManagerOfficeXP, CMFCVisualManagerOffice2007"
+}

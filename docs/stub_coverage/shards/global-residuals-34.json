@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-34",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2961,
+      "symbol": "?ContextSensitiveHelp@XOleIPSite@COleClientItem@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2962,
+      "symbol": "?ContextSensitiveHelp@XOleIPSite@COleControlSite@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2963,
+      "symbol": "?ContextSensitiveHelp@XOleWindow@CDocument@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2964,
+      "symbol": "?ContextSensitiveHelp@XRichEditOleCallback@CRichEditView@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2968,
+      "symbol": "?ControlBarCleanUp@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2971,
+      "symbol": "?ConvertObject@XOleUIObjInfo@COlePropertiesDialog@@UEAAJKAEBU_GUID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3298,
+      "symbol": "?CreateFromTag@XBase@CMFCRibbonInfo@@SAPEAV12@AEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3299,
+      "symbol": "?CreateFromType@XBase@CMFCRibbonInfo@@SAPEAV12@W4XElementType@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3300,
+      "symbol": "?CreateFromType@XElement@CMFCRibbonInfo@@SAPEAV12@W4XElementType@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 3547,
+      "symbol": "?CreateView@XOleDocument@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@PEAUIStream@@KPEAPEAUIOleDocumentView@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 34/95: global"
+}

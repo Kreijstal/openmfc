@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-420",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7895,
+      "symbol": "?IsEmpty@CPaneContainer@@QEBAHXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7936,
+      "symbol": "?IsLeftPane@CPaneContainer@@QEBAHPEAVCDockablePane@@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7937,
+      "symbol": "?IsLeftPaneContainer@CPaneContainer@@QEBAHXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7938,
+      "symbol": "?IsLeftPartEmpty@CPaneContainer@@QEBAHH@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7964,
+      "symbol": "?IsPaneDividerHorz@CPaneContainer@@IEBAHXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 7990,
+      "symbol": "?IsRightPartEmpty@CPaneContainer@@QEBAHH@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 8039,
+      "symbol": "?IsVisible@CPaneContainer@@QEBAHXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 8168,
+      "symbol": "?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 8481,
+      "symbol": "?Move@CPaneContainer@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 8509,
+      "symbol": "?MoveWnd@CPaneContainer@@IEAAXPEAVCWnd@@HH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 420/439: CPaneContainer"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-43",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControlSite",
+      "ordinal": 8470,
+      "symbol": "?ModifyStyleEx@COleControlSite@@UEAAHKKI@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 8506,
+      "symbol": "?MoveWindow@COleControlSite@@UEAAXHHHH@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 9822,
+      "symbol": "?OnEvent@COleControlSite@@IEAAHPEAUAFX_EVENT@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 12025,
+      "symbol": "?QuickActivate@COleControlSite@@UEAAHXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 12611,
+      "symbol": "?SafeSetProperty@COleControlSite@@UEAAHJGZZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 12784,
+      "symbol": "?SendMnemonic@COleControlSite@@QEAAXPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 13104,
+      "symbol": "?SetDefaultButton@COleControlSite@@QEAAXH@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 13131,
+      "symbol": "?SetDlgCtrlID@COleControlSite@@UEAAHH@Z"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 13181,
+      "symbol": "?SetExtent@COleControlSite@@IEAAHXZ"
+    },
+    {
+      "class": "COleControlSite",
+      "ordinal": 13197,
+      "symbol": "?SetFocus@COleControlSite@@UEAAPEAVCWnd@@PEAUtagMSG@@@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 43/77: COleControlSite"
+}

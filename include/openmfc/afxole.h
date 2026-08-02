@@ -191,7 +191,7 @@ public:
     // Appearance
     void SetButtonStyle(int nIndex, UINT nStyle);
     UINT GetButtonStyle(int nIndex) const;
-    void SetButtonText(int nIndex, const wchar_t* lpszText);
+    BOOL SetButtonText(int nIndex, const wchar_t* lpszText);
     CString GetButtonText(int nIndex) const;
     void GetButtonText(int nIndex, CString& rString) const;
     BOOL SetBitmap(HBITMAP hbmImageWell);
@@ -507,7 +507,11 @@ class COleResizeBar;
 class COleStreamFile;
 class COlePropertyPage;
 class COleControl;
-class COleControlModule;
+class COleControlModule : public CWinApp {
+public:
+    virtual BOOL InitInstance() override;
+    virtual int ExitInstance() override;
+};
 class COleSafeArray;
 class COleConnPtContainer;
 class COleDialog;
@@ -712,8 +716,29 @@ public:
     CWnd* m_pWnd;
     BOOL m_bRegistered;
 
+    // Nested COM drop target (implements IDropTarget) — mirrors XMessageFilter precedent
+    class XDropTarget : public IDropTarget {
+    public:
+        XDropTarget() : m_pDropTarget(nullptr), m_refCount(0) {}
+        // IUnknown
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
+        STDMETHOD_(ULONG, AddRef)();
+        STDMETHOD_(ULONG, Release)();
+        // IDropTarget
+        STDMETHOD(DragEnter)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
+        STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
+        STDMETHOD(DragLeave)();
+        STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
+        COleDropTarget* m_pDropTarget;
+        LONG m_refCount;
+    };
+    friend class XDropTarget;
+    XDropTarget m_xDropTarget;
 protected:
-    char _oledroptarget_padding[48];
+    static UINT nScrollDelay;     // 200 ms
+    static int nScrollInset;      // 1 px
+    static UINT nScrollInterval;  // 50 ms
+    char _oledroptarget_padding[24];
 };
 
 //=============================================================================
@@ -727,12 +752,33 @@ public:
 
     virtual SCODE QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState);
     virtual SCODE GiveFeedback(DROPEFFECT dropEffect);
+    virtual BOOL OnBeginDrag(CWnd* pWnd);
+
+    static UINT nDragDelay;
+    static UINT nDragMinDist;
 
 public:
     ULONG m_lRefCount;
 
+    // Nested COM drop source (implements IDropSource) — mirrors XDropTarget
+    class XDropSource : public IDropSource {
+    public:
+        XDropSource() : m_pDropSource(nullptr), m_refCount(0) {}
+        // IUnknown
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
+        STDMETHOD_(ULONG, AddRef)();
+        STDMETHOD_(ULONG, Release)();
+        // IDropSource
+        STDMETHOD(QueryContinueDrag)(BOOL fEscapePressed, DWORD grfKeyState);
+        STDMETHOD(GiveFeedback)(DWORD dwEffect);
+        COleDropSource* m_pDropSource;
+        LONG m_refCount;
+    };
+    friend class XDropSource;
+    XDropSource m_xDropSource;
+
 protected:
-    char _oledropsource_padding[64];
+    char _oledropsource_padding[40];
 };
 
 //=============================================================================
@@ -760,7 +806,9 @@ public:
 
     // Filter overrides
     virtual BOOL OnMessagePending(const MSG* pMsg);
+    virtual BOOL IsSignificantMessage(MSG* pMsg);
     virtual int OnBusyDialog(HTASK hTaskBusy);
+    virtual int OnNotRespondingDialog(HTASK hTaskBusy);
 
 public:
     int m_nBusyCount;
@@ -770,8 +818,28 @@ public:
     DWORD m_nRetryReply;
     DWORD m_nTimeout;
 
-protected:
-    char _olemessagefilter_padding[48];
+public:
+    // Nested COM message filter (implements IMessageFilter)
+    class XMessageFilter : public IMessageFilter {
+    public:
+        XMessageFilter() : m_pMessageFilter(nullptr), m_refCount(0) {}
+        // IUnknown
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
+        STDMETHOD_(ULONG, AddRef)();
+        STDMETHOD_(ULONG, Release)();
+        // IMessageFilter
+        STDMETHOD_(ULONG, HandleInComingCall)(DWORD dwCallType, HTASK htaskCaller,
+                                              DWORD dwTickCount, LPINTERFACEINFO lpInterfaceInfo);
+        STDMETHOD_(ULONG, RetryRejectedCall)(HTASK htaskCallee,
+                                             DWORD dwTickCount, DWORD dwRejectType);
+        STDMETHOD_(ULONG, MessagePending)(HTASK htaskCallee,
+                                          DWORD dwTickCount, DWORD dwType);
+        COleMessageFilter* m_pMessageFilter;
+        LONG m_refCount;
+    };
+    friend class XMessageFilter;
+    XMessageFilter m_xMessageFilter;
+    char _olemessagefilter_padding[32];
 };
 
 //=============================================================================
@@ -886,7 +954,7 @@ public:
     virtual BOOL OnSetPageSite();
     virtual void OnObjectsChanged();
     virtual BOOL OnApply();
-    virtual void OnEditProperty(DISPID dispid);
+    virtual BOOL OnEditProperty(DISPID dispid);
 
     BOOL IsModified() const { return m_bModified; }
     void SetModified(BOOL bModified = TRUE) { m_bModified = bModified; }
@@ -938,6 +1006,14 @@ public:
 
     // OLE support
     LPOLEITEMCONTAINER GetItemContainer();
+
+    // Command UI update handlers
+    void OnUpdateEditChangeIcon(CCmdUI* pCmdUI);
+    void OnUpdateEditLinksMenu(CCmdUI* pCmdUI);
+    void OnUpdateObjectVerbMenu(CCmdUI* pCmdUI);
+    void OnUpdateObjectVerbPopup(CCmdUI* pCmdUI);
+    void OnUpdatePasteLinkMenu(CCmdUI* pCmdUI);
+    void OnUpdatePasteMenu(CCmdUI* pCmdUI);
 
 public:
     BOOL m_bCompoundFile;
@@ -998,6 +1074,11 @@ public:
 
     // Server state
     BOOL IsEmbedded() const { return m_bEmbedded; }
+
+    // Command UI update handlers
+    void OnUpdateFileExit(CCmdUI* pCmdUI);
+    void OnUpdateFileUpdate(CCmdUI* pCmdUI);
+    void UpdateUsingHostObj(unsigned int nID, CCmdUI* pCmdUI);
 
 public:
     BOOL m_bEmbedded;
@@ -1079,7 +1160,7 @@ public:
     BOOL ConvertTo(REFCLSID clsidNew);
     BOOL ActivateAs(REFCLSID clsidNew, REFCLSID clsidOld);
     BOOL Reload();
-    void UpdateLink();
+    BOOL UpdateLink();
     BOOL IsLinkUpToDate() const;
     BOOL CanActivate();
     BOOL IsOpen() const;
@@ -1189,7 +1270,7 @@ public:
     virtual BOOL OnDraw(CDC* pDC, CSize& rSize);
     virtual BOOL OnDrawEx(CDC* pDC, DVASPECT nDrawAspect, CSize& rSize);
     virtual BOOL OnGetExtent(DVASPECT nDrawAspect, CSize& rSize);
-    virtual void OnSetExtent(DVASPECT nDrawAspect, const CSize& size);
+    virtual BOOL OnSetExtent(DVASPECT nDrawAspect, const CSize& size);
 
     // Data
     virtual void Serialize(CArchive& ar) override;
@@ -1236,7 +1317,7 @@ public:
 
     virtual CCmdTarget* OnCreateObject();
     virtual BOOL OnVerifyFile(LPCTSTR lpszFileName);
-    virtual void UpdateRegistry(BOOL bRegister = TRUE);
+    virtual BOOL UpdateRegistry(BOOL bRegister = TRUE);
     virtual BOOL VerifyUserLicense();
     virtual BOOL VerifyLicenseKey(BSTR bstrKey);
     virtual BOOL GetLicenseKey(DWORD dwReserved, BSTR* pbstrKey);
@@ -1251,6 +1332,29 @@ public:
     void CommonConstruct(REFCLSID clsid, CRuntimeClass* pRuntimeClass,
                          BOOL bMultiInstance, BOOL bFreeOnRelease, const wchar_t* lpszProgID);
 
+    // Nested COM class factory (implements IClassFactory2)
+    class XClassFactory : public IClassFactory2 {
+    public:
+        explicit XClassFactory(COleObjectFactory* pOuter);
+
+        // IUnknown
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
+        STDMETHOD_(ULONG, AddRef)();
+        STDMETHOD_(ULONG, Release)();
+        // IClassFactory
+        STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppv);
+        STDMETHOD(LockServer)(BOOL fLock);
+        // IClassFactory2
+        STDMETHOD(GetLicInfo)(LICINFO* pLicInfo);
+        STDMETHOD(RequestLicKey)(DWORD dwReserved, BSTR* pbstrKey);
+        STDMETHOD(CreateInstanceLic)(IUnknown* pUnkOuter, IUnknown* pUnkReserved,
+                                     REFIID riid, BSTR bstrKey, void** ppv);
+
+        COleObjectFactory* m_pOuter;
+        LONG m_refCount;
+        LONG m_lockCount;
+    };
+
 public:
     CLSID m_clsid;
     CRuntimeClass* m_pRuntimeClass;
@@ -1258,9 +1362,10 @@ public:
     CString m_strProgID;
     DWORD m_dwRegister;
     COleTemplateServer* m_pTemplate;
+    XClassFactory m_xClassFactory;
 
 protected:
-    char _oleobjectfactory_padding[48];
+    char _oleobjectfactory_padding[24];
 };
 
 //=============================================================================
@@ -1306,7 +1411,7 @@ public:
                        BOOL bStorage = FALSE, BSTR bstrLicKey = nullptr);
     BOOL CreateControl(CWnd* pWndCtrl, const wchar_t* lpszProgID,
                        DWORD dwStyle, const RECT& rect, UINT nID);
-    void DestroyControl();
+    virtual BOOL DestroyControl();
 
     // Activation
     void Activate(BOOL bActivate);
@@ -1389,6 +1494,9 @@ public:
     virtual BOOL OnCreateAggregates();
     virtual BOOL OnCreateControlBars(CFrameWnd* pWndFrame, CFrameWnd* pWndDoc);
     virtual void OnRequestPositionChange(LPCRECT lpRect);
+
+    // Command UI update handlers
+    void OnUpdateControlBarMenu(CCmdUI* pCmdUI);
 
     COleResizeBar* m_pResizeBar;
 
@@ -1819,7 +1927,8 @@ public:
     void SetAppearance(short nAppearance);
     short GetBorderStyle() const;
     void SetBorderStyle(short nBorderStyle);
-    CString GetText() const;
+    wchar_t* GetText();
+    const CString& InternalGetText();
     void SetText(const wchar_t* lpszText);
     void GetText(CString& strText) const;
     long GetReadyState() const;
@@ -1834,13 +1943,13 @@ public:
     ULONG InternalRelease();
     ULONG InternalQueryInterface(REFIID riid, void** ppv);
     void GetControlSize(int* pCX, int* pCY);
-    void SetControlSize(int cx, int cy);
+    BOOL SetControlSize(int cx, int cy);
     virtual void OnSetClientSite();
     virtual void OnGetControlInfo(LPCONTROLINFO pControlInfo);
     virtual BOOL OnMnemonic(LPMSG pMsg);
     virtual void OnAmbientPropertyChange(DISPID dispid);
     void BoundPropertyChanged(DISPID dispid);
-    void BoundPropertyRequestEdit(DISPID dispid);
+    BOOL BoundPropertyRequestEdit(DISPID dispid);
     void InvalidateControl(LPCRECT lpRect = nullptr, BOOL bErase = TRUE);
 
     // Property pages
@@ -1863,8 +1972,8 @@ public:
     virtual LONG OnPosRectChange(LPCRECT lprcPosRect);
     virtual BOOL OnSetObjectRects(LPCRECT lprcPosRect, LPCRECT lprcClipRect);
     virtual void OnClose(DWORD dwSaveOption);
-    void SetCapture();
-    void ReleaseCapture();
+    CWnd* SetCapture();
+    BOOL ReleaseCapture();
     void BringWindowToTop();
     void MoveWindow(int X, int Y, int nWidth, int nHeight, BOOL bRepaint = TRUE);
     void MoveWindow(LPCRECT lpRect, BOOL bRepaint = TRUE);

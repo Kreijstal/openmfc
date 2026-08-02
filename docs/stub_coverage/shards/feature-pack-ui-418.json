@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-418",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneContainer",
+      "ordinal": 1958,
+      "symbol": "?AddRef@CPaneContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 1978,
+      "symbol": "?AddSubPaneContainer@CPaneContainer@@QEAAHPEAV1@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2564,
+      "symbol": "?CalcAvailablePaneSpace@CPaneContainer@@UEAAHHPEAVCPane@@PEAV1@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2566,
+      "symbol": "?CalcAvailableSpace@CPaneContainer@@UEAA?AVCSize@@V2@H@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2623,
+      "symbol": "?CalculateRecentSize@CPaneContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2712,
+      "symbol": "?CheckPaneDividerVisibility@CPaneContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2740,
+      "symbol": "?CleanUp@CPaneContainer@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 2985,
+      "symbol": "?Copy@CPaneContainer@@UEAAPEAV1@PEAV1@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 3758,
+      "symbol": "?DeletePane@CPaneContainer@@UEAAXPEAVCDockablePane@@W4BC_FIND_CRITERIA@1@@Z"
+    },
+    {
+      "class": "CPaneContainer",
+      "ordinal": 4606,
+      "symbol": "?FindSubPaneContainer@CPaneContainer@@QEAAPEAV1@PEBVCObject@@W4BC_FIND_CRITERIA@1@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 418/439: CPaneContainer"
+}

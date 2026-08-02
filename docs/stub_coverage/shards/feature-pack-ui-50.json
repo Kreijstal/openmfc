@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-50",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11338,
+      "symbol": "?OnTaskbarTabThumbnailActivate@CMDIChildWndEx@@UEAAXIPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11339,
+      "symbol": "?OnTaskbarTabThumbnailMouseActivate@CMDIChildWndEx@@UEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11340,
+      "symbol": "?OnTaskbarTabThumbnailStretch@CMDIChildWndEx@@UEAAHPEAUHBITMAP__@@AEBVCRect@@01@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11492,
+      "symbol": "?OnUpdateFrameTitle@CMDIChildWndEx@@UEAAXH@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11602,
+      "symbol": "?OnWindowPosChanged@CMDIChildWndEx@@IEAAXPEAUtagWINDOWPOS@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11692,
+      "symbol": "?PaneFromPoint@CMDIChildWndEx@@QEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11693,
+      "symbol": "?PaneFromPoint@CMDIChildWndEx@@QEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11789,
+      "symbol": "?PreCreateWindow@CMDIChildWndEx@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 11863,
+      "symbol": "?PreTranslateMessage@CMDIChildWndEx@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMDIChildWndEx",
+      "ordinal": 12144,
+      "symbol": "?RecalcLayout@CMDIChildWndEx@@UEAAXH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 50/439: CMDIChildWndEx"
+}

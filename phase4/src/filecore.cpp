@@ -4,6 +4,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afx.h"
+#include "atl_strt_core.h"
 #include <windows.h>
 #include <algorithm>
 #include <cstring>
@@ -79,6 +80,55 @@ State* FindCollectionState(const Wrapper* self) {
 template<typename Wrapper, typename State>
 void RemoveCollectionState(const Wrapper* self) {
     GetCollectionStates<Wrapper, State>().erase(self);
+}
+
+struct CMemFileLockState {
+    std::vector<std::pair<unsigned long long, unsigned long long>> ranges;
+};
+
+static unsigned long long EndOffset(unsigned long long pos, unsigned long long count) {
+    if (count == 0) return std::numeric_limits<unsigned long long>::max();
+    if (pos > std::numeric_limits<unsigned long long>::max() - count) return std::numeric_limits<unsigned long long>::max();
+    return pos + count - 1;
+}
+
+static bool RangesOverlap(const std::pair<unsigned long long, unsigned long long>& lhs,
+                         const std::pair<unsigned long long, unsigned long long>& rhs) {
+    return !(lhs.second < rhs.first || rhs.second < lhs.first);
+}
+
+static void AddMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count) {
+    std::pair<unsigned long long, unsigned long long> merged{pos, EndOffset(pos, count)};
+    for (auto it = state.ranges.begin(); it != state.ranges.end();) {
+        if (!RangesOverlap(*it, merged)) {
+            ++it;
+            continue;
+        }
+        merged.first = std::min(merged.first, it->first);
+        merged.second = std::max(merged.second, it->second);
+        it = state.ranges.erase(it);
+    }
+    state.ranges.push_back(merged);
+}
+
+static void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count) {
+    const std::pair<unsigned long long, unsigned long long> target{pos, EndOffset(pos, count)};
+    for (auto it = state.ranges.begin(); it != state.ranges.end();) {
+        if (!RangesOverlap(*it, target)) {
+            ++it;
+            continue;
+        }
+
+        std::pair<unsigned long long, unsigned long long> current = *it;
+        it = state.ranges.erase(it);
+
+        if (current.first < target.first) {
+            state.ranges.emplace_back(current.first, target.first - 1);
+        }
+        if (current.second > target.second && target.second != std::numeric_limits<unsigned long long>::max()) {
+            state.ranges.emplace_back(target.second + 1, current.second);
+        }
+    }
 }
 
 template<typename TYPE, typename ARG_TYPE>
@@ -2260,8 +2310,8 @@ CArchive& CArchive::operator<<(const CString& str) {
 }
 
 // String operations
-int CArchive::ReadString(wchar_t* lpsz, UINT nMax) {
-    if (!lpsz || nMax == 0) return 0;
+wchar_t* CArchive::ReadString(wchar_t* lpsz, UINT nMax) {
+    if (!lpsz || nMax == 0) return nullptr;
 
     UINT nRead = 0;
     while (nRead < nMax - 1) {
@@ -2275,7 +2325,7 @@ int CArchive::ReadString(wchar_t* lpsz, UINT nMax) {
         lpsz[nRead++] = ch;
     }
     lpsz[nRead] = L'\0';
-    return nRead;
+    return nRead != 0 ? lpsz : nullptr;
 }
 
 int CArchive::ReadString(CString& rString) {
@@ -2284,8 +2334,8 @@ int CArchive::ReadString(CString& rString) {
     int nTotal = 0;
 
     while (true) {
-        int nRead = ReadString(buf, 256);
-        if (nRead == 0) break;
+        if (!ReadString(buf, 256)) break;
+        int nRead = static_cast<int>(wcslen(buf));
         rString += buf;
         nTotal += nRead;
         if (buf[nRead - 1] == L'\n') break;
@@ -2725,10 +2775,24 @@ extern "C" void MS_ABI impl__GrowFile_CMemFile__MEAAX_K_Z(CMemFile* pThis, unsig
 }
 
 // Symbol: ?LockRange@CMemFile@@UEAAX_K0@Z
-extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/, unsigned long long /*dwPos*/, unsigned long long /*dwCount*/) {}
+extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    auto& state = EnsureCollectionState<CMemFile, CMemFileLockState>(pThis);
+    AddMemFileRange(state, dwPos, dwCount);
+}
 
 // Symbol: ?UnlockRange@CMemFile@@UEAAX_K0@Z
-extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* /*pThis*/, unsigned long long /*dwPos*/, unsigned long long /*dwCount*/) {}
+extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
+    auto* state = FindCollectionState<CMemFile, CMemFileLockState>(pThis);
+    if (!state) return;
+    RemoveMemFileRange(*state, dwPos, dwCount);
+    if (state->ranges.empty()) {
+        RemoveCollectionState<CMemFile, CMemFileLockState>(pThis);
+    }
+}
 
 // CMemFile runtime-class descriptor. DECLARE_DYNAMIC in real MFC: base CFile,
 // schema 0xFFFF, no factory. m_nObjectSize is the real mfc140u sizeof(CMemFile) (88).
@@ -2965,4 +3029,48 @@ extern "C" void MS_ABI impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long lOsEr
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileException__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {
     (void)pThis;
     return impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ();
+}
+
+// Symbol: ??$SerializeElements@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@@YAXAEAVCArchive@@PEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@_J@Z
+extern "C" void MS_ABI impl____SerializeElements_V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL____YAXAEAVCArchive__PEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___J_Z(
+    CArchive* ar, void* pElements, __int64 nCount) {
+    CString* elems = static_cast<CString*>(pElements);
+    if (!ar) return;
+    if (ar->IsStoring())
+        for (__int64 i = 0; i < nCount; ++i) (*ar) << elems[i];
+    else
+        for (__int64 i = 0; i < nCount; ++i) (*ar) >> elems[i];
+}
+
+// Symbol: ??$SerializeElements@V?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@@YAXAEAVCArchive@@PEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@_J@Z
+extern "C" void MS_ABI impl____SerializeElements_V__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL____YAXAEAVCArchive__PEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___J_Z(
+    CArchive* ar, void* pElements, __int64 nCount) {
+    using SA = openmfc_str::AtlStrT<char>;
+    SA* elems = static_cast<SA*>(pElements);
+    if (!ar) return;
+    if (ar->IsStoring())
+        for (__int64 i = 0; i < nCount; ++i) {
+            UINT n = (UINT)elems[i].GetLength();
+            (*ar) << n;
+            if (n) ar->Write(elems[i].GetString(), n * sizeof(char));
+        }
+    else
+        for (__int64 i = 0; i < nCount; ++i) {
+            UINT n = 0; ar->Read(&n, sizeof(n));
+            if (n && n < 0x10000000) {
+                char* b = elems[i].GetBuffer((int)n + 1);
+                ar->Read(b, n * sizeof(char)); b[n] = '\0';
+                elems[i].ReleaseBuffer((int)n);
+            } else elems[i].Empty();
+        }
+}
+
+//=== CAsyncMonikerFile export =================================================
+
+// Symbol: ?OnProgress@CAsyncMonikerFile@@MEAAXKKKPEB_W@Z
+extern "C" void MS_ABI impl__OnProgress_CAsyncMonikerFile__MEAAXKKKPEB_W_Z(
+    void* /*CAsyncMonikerFile**/ pThis, unsigned long ulProgress, unsigned long ulProgressMax,
+    unsigned long ulStatusCode, const wchar_t* wszStatusText) {
+    (void)pThis; (void)ulProgress; (void)ulProgressMax; (void)ulStatusCode; (void)wszStatusText;
+    // Default MFC implementation is a no-op callback for download progress.
 }

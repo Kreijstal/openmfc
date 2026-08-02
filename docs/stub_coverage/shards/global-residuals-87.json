@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-87",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 13200,
+      "symbol": "?SetFocus@XOleIPSite@COleControlSite@@UEAAJH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13201,
+      "symbol": "?SetFocus@XPreviewHandler@CDocument@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 13210,
+      "symbol": "?SetFont@XPreviewHandlerVisuals@CDocument@@UEAAJPEBUtagLOGFONTW@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13241,
+      "symbol": "?SetHostNames@XOleObject@CDocObjectServer@@UEAAJPEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13242,
+      "symbol": "?SetHostNames@XOleObject@COleControl@@UEAAJPEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13243,
+      "symbol": "?SetHostNames@XOleObject@COleServerDoc@@UEAAJPEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13244,
+      "symbol": "?SetHostNames@XOleObject@COleServerItem@@UEAAJPEB_W0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13289,
+      "symbol": "?SetInitialPageNum@XPrint@CDocObjectServer@@UEAAJJ@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13292,
+      "symbol": "?SetInPlaceSite@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 13355,
+      "symbol": "?SetMenu@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAXPEAUHWND__@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 87/95: global"
+}

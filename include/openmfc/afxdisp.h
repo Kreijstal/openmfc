@@ -64,6 +64,9 @@ public:
     }
     ~COleVariant() { VariantClear(this); }
     void Clear() { VariantClear(this); VariantInit(this); }
+
+    // Extract raw byte payload from a VARIANT array into CByteArray.
+    void GetByteArrayFromVariantArray(CByteArray& ba);
 };
 
 class COleDispatchDriver {

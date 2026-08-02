@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-218",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 2951,
+      "symbol": "?ConstructQATElements@CMFCRibbonConstructor@@MEBAXAEAVCMFCRibbonBar@@AEBVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 2952,
+      "symbol": "?ConstructRibbonBar@CMFCRibbonConstructor@@UEBAXAEAVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 2953,
+      "symbol": "?ConstructTabElements@CMFCRibbonConstructor@@MEBAXAEAVCMFCRibbonBar@@AEBVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3174,
+      "symbol": "?CreateApplicationButton@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonApplicationButton@@AEAVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3182,
+      "symbol": "?CreateCategory@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonCategory@@AEAVCMFCRibbonBar@@AEBVXCategory@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3183,
+      "symbol": "?CreateCategoryContext@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonCategory@@AEAVCMFCRibbonBar@@AEBVXContext@CMFCRibbonInfo@@AEBVXCategory@5@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3184,
+      "symbol": "?CreateCategoryMain@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonMainPanel@@AEAVCMFCRibbonBar@@AEBVXCategoryMain@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3242,
+      "symbol": "?CreateElement@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonBaseElement@@AEBVXElement@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 3508,
+      "symbol": "?CreatePanel@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonPanel@@AEAVCMFCRibbonCategory@@AEBVXPanel@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonConstructor",
+      "ordinal": 13251,
+      "symbol": "?SetIcon@CMFCRibbonConstructor@@MEBAXAEAVCMFCRibbonButton@@W4RibbonImageType@CMFCRibbonBaseElement@@AEBVCMFCToolBarImages@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 218/439: CMFCRibbonConstructor"
+}

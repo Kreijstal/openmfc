@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-123",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 10154,
+      "symbol": "?OnInitControl@CMFCFontComboBox@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 11841,
+      "symbol": "?PreSubclassWindow@CMFCFontComboBox@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 11875,
+      "symbol": "?PreTranslateMessage@CMFCFontComboBox@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 12742,
+      "symbol": "?SelectFont@CMFCFontComboBox@@QEAAHPEAVCMFCFontInfo@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 12743,
+      "symbol": "?SelectFont@CMFCFontComboBox@@QEAAHPEB_WE@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 13722,
+      "symbol": "?Setup@CMFCFontComboBox@@QEAAHHEE@Z"
+    },
+    {
+      "class": "CMFCHeaderCtrl",
+      "ordinal": 2885,
+      "symbol": "?CommonInit@CMFCHeaderCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCHeaderCtrl",
+      "ordinal": 4283,
+      "symbol": "?EnableMultipleSort@CMFCHeaderCtrl@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCHeaderCtrl",
+      "ordinal": 5057,
+      "symbol": "?GetColumnState@CMFCHeaderCtrl@@QEBAHH@Z"
+    },
+    {
+      "class": "CMFCHeaderCtrl",
+      "ordinal": 6695,
+      "symbol": "?GetSortColumn@CMFCHeaderCtrl@@QEBAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 123/439: CMFCFontComboBox, CMFCHeaderCtrl"
+}

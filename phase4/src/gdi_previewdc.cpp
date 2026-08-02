@@ -77,6 +77,26 @@ HDC AttribDC(void* pThis) {
 }
 } // namespace
 
+// Symbol: ??0CPreviewDC@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CPreviewDC__QEAA_XZ(void* pThis) {
+    if (!pThis) return nullptr;
+    CDC* dc = PreviewAsCDC(pThis);
+    dc->m_hDC = nullptr;
+    dc->m_hAttribDC = nullptr;
+    SetPreviewScale(pThis, 1, 1);
+    SetPreviewOffset(pThis, CSize(0, 0));
+    return pThis;
+}
+
+// Symbol: ??1CPreviewDC@@UEAA@XZ
+extern "C" void MS_ABI impl___1CPreviewDC__UEAA_XZ(void* pThis) {
+    if (!pThis) return;
+    CDC* dc = PreviewAsCDC(pThis);
+    dc->m_hDC = nullptr;
+    dc->m_hAttribDC = nullptr;
+    { std::lock_guard<std::mutex> lock(g_previewDcMutex); g_previewDcState.erase(pThis); }
+}
+
 // Symbol: ?SaveDC@CPreviewDC@@UEAAHXZ
 extern "C" int MS_ABI impl__SaveDC_CPreviewDC__UEAAHXZ(void* pThis) {
     HDC hdc = OutputDC(pThis);

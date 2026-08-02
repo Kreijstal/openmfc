@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-323",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11257,
+      "symbol": "?OnSize@CMFCToolBarButtonsListButton@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11319,
+      "symbol": "?OnSysColorChange@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 11590,
+      "symbol": "?OnVScroll@CMFCToolBarButtonsListButton@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12133,
+      "symbol": "?RebuildLocations@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12197,
+      "symbol": "?RedrawSelection@CMFCToolBarButtonsListButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12337,
+      "symbol": "?RemoveButtons@CMFCToolBarButtonsListButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12733,
+      "symbol": "?SelectButton@CMFCToolBarButtonsListButton@@IEAAXPEAVCMFCToolBarButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 12734,
+      "symbol": "?SelectButton@CMFCToolBarButtonsListButton@@QEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonsListButton",
+      "ordinal": 13279,
+      "symbol": "?SetImages@CMFCToolBarButtonsListButton@@QEAAXPEAVCMFCToolBarImages@@@Z"
+    },
+    {
+      "class": "CMFCToolBarComboBoxButton",
+      "ordinal": 2080,
+      "symbol": "?AdjustRect@CMFCToolBarComboBoxButton@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 323/439: CMFCToolBarButtonsListButton, CMFCToolBarComboBoxButton"
+}

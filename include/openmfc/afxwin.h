@@ -760,7 +760,7 @@ public:
     void OnHelp();
     void OnHelpFinder();
     void OnHelpIndex();
-    void OnHelpInfo(HELPINFO* p0);
+    BOOL OnHelpInfo(HELPINFO* p0);
     void OnHelpUsing();
     void OnMeasureItem(int p0, MEASUREITEMSTRUCT* p1);
     LONGLONG OnNTCtlColor(ULONGLONG p0, LONGLONG p1);
@@ -776,9 +776,9 @@ public:
     LONGLONG OnTouchMessage(ULONGLONG p0, LONGLONG p1);
     int OnVKeyToItem(UINT p0, CListBox* p1, UINT p2);
     void OnVScroll(UINT p0, UINT p1, CScrollBar* p2);
-    void PaintWindowlessControls(CDC* p0);
+    BOOL PaintWindowlessControls(CDC* p0);
     void PostNcDestroy();
-    void PreTranslateInput(MSG* p0);
+    BOOL PreTranslateInput(MSG* p0);
     void PrepareForHelp();
     int ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3);
     int RegisterTouchWindow(ULONGLONG p0);
@@ -790,12 +790,12 @@ public:
     int ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p4, RECT* p5, UINT p6);
     int SendChildNotifyLastMsg(LONGLONG* p0);
     LONGLONG SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3);
-    void SetDlgCtrlID(int p0);
+    BOOL SetDlgCtrlID(int p0);
     void SetDlgItemInt(int p0, UINT p1, int p2);
     void SetDlgItemTextW(int p0, const WCHAR* p1);
     void* SetFocus();
     int SetGestureConfig(CGestureConfig* p0);
-    void SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* p0);
+    BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* p0);
     int SetProperty(long p0, WORD p1, void* p2);
     int SetScrollInfo(int p0, SCROLLINFO* p1, int p2);
     int SetScrollPos(int p0, int p1, int p2);
@@ -884,7 +884,7 @@ public:
     virtual void SetMenuBarVisibility(DWORD dwStyle);
     void OnHideMenuBar();
     void OnShowMenuBar();
-    void LoadAccelTable(const wchar_t* lpszAccelTable);
+    BOOL LoadAccelTable(const wchar_t* lpszAccelTable);
 
     // View management
     virtual CView* GetActiveView() const;
@@ -966,8 +966,8 @@ public:
     __int64 OnPopMessageString(unsigned __int64 wParam, __int64 lParam);
     __int64 OnSetMessageString(unsigned __int64 wParam, __int64 lParam);
     void PostNcDestroy();
-    void OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult);
-    void OnToolTipText(unsigned int nID, NMHDR* pNMHDR, __int64* lResult);
+    BOOL OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult);
+    BOOL OnToolTipText(unsigned int nID, NMHDR* pNMHDR, __int64* lResult);
     void OnUpdateContextHelp(CCmdUI* pCmdUI);
     void OnUpdateKeyIndicator(CCmdUI* pCmdUI);
 
@@ -1088,6 +1088,7 @@ class CDialogEx : public CDialog {
 public:
     CDialogEx();
     explicit CDialogEx(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
+    explicit CDialogEx(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
     virtual ~CDialogEx() = default;
 
     void SetBackgroundColor(unsigned long color, int bRepaint = 1);
@@ -1298,7 +1299,10 @@ protected:
 class CFontDialog : public CDialog {
     DECLARE_DYNAMIC(CFontDialog)
 public:
-    CFontDialog(void* lpLogFont = nullptr, unsigned long dwFlags = 0, void* pdcPrinter = nullptr, CWnd* pParentWnd = nullptr);
+    CFontDialog(LOGFONTW* lpLogFont = nullptr, unsigned long dwFlags = 0,
+                CDC* pdcPrinter = nullptr, CWnd* pParentWnd = nullptr);
+    CFontDialog(const CHARFORMATW& charformat, unsigned long dwFlags = 0,
+                CDC* pdcPrinter = nullptr, CWnd* pParentWnd = nullptr);
     virtual ~CFontDialog() = default;
 
     virtual intptr_t DoModal();
@@ -2261,72 +2265,98 @@ inline CWnd::~CWnd() {
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
                          const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext) {
-    (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
-    (void)rect; (void)pParentWnd; (void)nID; (void)pContext;
-    // Stub - needs Win32 CreateWindowExW implementation
-    return 0;
+    (void)pContext;
+    HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
+    HWND hWnd = ::CreateWindowExW(
+        0,
+        lpszClassName,
+        lpszWindowName,
+        dwStyle,
+        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+        hWndParent,
+        reinterpret_cast<HMENU>(static_cast<uintptr_t>(nID)),
+        AfxGetInstanceHandle(),
+        nullptr
+    );
+    if (!hWnd) return FALSE;
+    m_hWnd = hWnd;
+    m_dwStyle = dwStyle;
+    return TRUE;
 }
 
 inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                            DWORD dwStyle, int x, int y, int nWidth, int nHeight,
                            HWND hWndParent, HMENU nIDorHMenu, void* lpParam) {
-    (void)dwExStyle; (void)lpszClassName; (void)lpszWindowName; (void)dwStyle;
-    (void)x; (void)y; (void)nWidth; (void)nHeight;
-    (void)hWndParent; (void)nIDorHMenu; (void)lpParam;
-    // Stub - simulate success for testing
-    m_hWnd = (HWND)(uintptr_t)0x1234; // Dummy handle
-    return 1;
+    HWND hWnd = ::CreateWindowExW(
+        dwExStyle,
+        lpszClassName,
+        lpszWindowName,
+        dwStyle,
+        x, y, nWidth, nHeight,
+        hWndParent,
+        nIDorHMenu,
+        AfxGetInstanceHandle(),
+        lpParam
+    );
+    if (!hWnd) return FALSE;
+    m_hWnd = hWnd;
+    m_dwStyle = dwStyle;
+    return TRUE;
 }
 
 inline int CWnd::DestroyWindow() {
     if (m_hWnd == nullptr) return 0;
-    // Stub - needs Win32 DestroyWindow
-    m_hWnd = nullptr;
-    return 1;
+    int result = ::DestroyWindow(m_hWnd) ? 1 : 0;
+    if (result) {
+        m_hWnd = nullptr;
+    }
+    return result;
 }
 
 inline int CWnd::ShowWindow(int nCmdShow) {
-    (void)nCmdShow;
-    // Stub - needs Win32 ShowWindow
-    return 1;
+    return m_hWnd ? ::ShowWindow(m_hWnd, nCmdShow) : 0;
 }
 
 inline int CWnd::UpdateWindow() {
-    // Stub - needs Win32 UpdateWindow
-    return 1;
+    return m_hWnd ? ::UpdateWindow(m_hWnd) : 0;
 }
 
 inline int CWnd::IsWindowVisible() const {
-    // Stub
-    return m_hWnd != nullptr;
+    return m_hWnd ? ::IsWindowVisible(m_hWnd) : 0;
 }
 
 inline int CWnd::IsWindowEnabled() const {
-    // Stub
-    return 1;
+    return m_hWnd ? ::IsWindowEnabled(m_hWnd) : 0;
 }
 
 inline int CWnd::EnableWindow(int bEnable) {
-    (void)bEnable;
-    // Stub
-    return 1;
+    return m_hWnd ? (::EnableWindow(m_hWnd, bEnable ? TRUE : FALSE) ? 1 : 0) : 0;
 }
 
 inline void CWnd::GetWindowRect(struct tagRECT* lpRect) const {
     if (lpRect) {
-        lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+        if (m_hWnd) {
+            ::GetWindowRect(m_hWnd, lpRect);
+        } else {
+            lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+        }
     }
 }
 
 inline void CWnd::GetClientRect(struct tagRECT* lpRect) const {
     if (lpRect) {
-        lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+        if (m_hWnd) {
+            ::GetClientRect(m_hWnd, lpRect);
+        } else {
+            lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+        }
     }
 }
 
 inline void CWnd::MoveWindow(int x, int y, int nWidth, int nHeight, int bRepaint) {
-    (void)x; (void)y; (void)nWidth; (void)nHeight; (void)bRepaint;
-    // Stub
+    if (m_hWnd) {
+        ::MoveWindow(m_hWnd, x, y, nWidth, nHeight, bRepaint ? TRUE : FALSE);
+    }
 }
 
 inline void CWnd::MoveWindow(const struct tagRECT* lpRect, int bRepaint) {
@@ -2337,93 +2367,134 @@ inline void CWnd::MoveWindow(const struct tagRECT* lpRect, int bRepaint) {
 }
 
 inline int CWnd::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
-    (void)pWndInsertAfter; (void)x; (void)y; (void)cx; (void)cy; (void)nFlags;
-    // Stub
-    return 1;
+    if (!m_hWnd) return 0;
+    HWND hwndInsertAfter = pWndInsertAfter ? pWndInsertAfter->m_hWnd : nullptr;
+    return ::SetWindowPos(m_hWnd, hwndInsertAfter, x, y, cx, cy, nFlags) ? 1 : 0;
 }
 
 inline void CWnd::SetWindowTextW(const wchar_t* lpszString) {
-    (void)lpszString;
-    // Stub
+    if (m_hWnd) {
+        ::SetWindowTextW(m_hWnd, lpszString ? lpszString : L"");
+    }
 }
 
 inline int CWnd::GetWindowTextW(wchar_t* lpszStringBuf, int nMaxCount) const {
     if (lpszStringBuf && nMaxCount > 0) {
         lpszStringBuf[0] = L'\0';
+        if (m_hWnd) {
+            return ::GetWindowTextW(m_hWnd, lpszStringBuf, nMaxCount);
+        }
     }
     return 0;
 }
 
 inline int CWnd::GetWindowTextLengthW() const {
-    return 0;
+    return m_hWnd ? ::GetWindowTextLengthW(m_hWnd) : 0;
 }
 
 inline CWnd* CWnd::GetParent() const {
-    // Stub
-    return nullptr;
+    return m_hWnd ? CWnd::FromHandle(::GetParent(m_hWnd)) : nullptr;
 }
 
 inline CWnd* CWnd::SetParent(CWnd* pWndNewParent) {
-    (void)pWndNewParent;
-    // Stub
-    return nullptr;
+    if (!m_hWnd) {
+        return nullptr;
+    }
+    HWND newParent = pWndNewParent ? pWndNewParent->m_hWnd : nullptr;
+    HWND old = ::SetParent(m_hWnd, newParent);
+    if (old == nullptr) {
+        return nullptr;
+    }
+    return CWnd::FromHandle(old);
 }
 
 inline CWnd* CWnd::GetDlgItem(int nID) const {
-    (void)nID;
-    // Stub
-    return nullptr;
+    return m_hWnd ? CWnd::FromHandle(::GetDlgItem(m_hWnd, nID)) : nullptr;
 }
 
 inline void CWnd::Invalidate(int bErase) {
-    (void)bErase;
-    // Stub
+    if (m_hWnd) {
+        ::InvalidateRect(m_hWnd, nullptr, bErase ? TRUE : FALSE);
+    }
 }
 
 inline void CWnd::InvalidateRect(const struct tagRECT* lpRect, int bErase) {
-    (void)lpRect; (void)bErase;
-    // Stub
+    if (m_hWnd) {
+        ::InvalidateRect(m_hWnd, lpRect, bErase ? TRUE : FALSE);
+    }
 }
 
 inline int CWnd::RedrawWindow(const struct tagRECT* lpRectUpdate, void* prgnUpdate, unsigned int flags) {
-    (void)lpRectUpdate; (void)prgnUpdate; (void)flags;
-    // Stub
-    return 1;
+    return (m_hWnd && ::RedrawWindow(m_hWnd, lpRectUpdate, static_cast<HRGN>(prgnUpdate), flags)) ? 1 : 0;
 }
 
 inline intptr_t CWnd::SendMessageW(unsigned int message, uintptr_t wParam, intptr_t lParam) {
-    (void)message; (void)wParam; (void)lParam;
-    // Stub
-    return 0;
+    return m_hWnd ? ::SendMessageW(m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)) : 0;
 }
 
 inline int CWnd::PostMessageW(unsigned int message, uintptr_t wParam, intptr_t lParam) {
-    (void)message; (void)wParam; (void)lParam;
-    // Stub  
-    return 1;
+    return m_hWnd ? ::PostMessageW(m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)) : 0;
 }
 
 inline intptr_t CWnd::WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam) {
     intptr_t lResult = 0;
     if (!OnWndMsg(message, wParam, lParam, &lResult)) {
-        // Default handling
+        lResult = static_cast<intptr_t>(DefWindowProcW(message, wParam, lParam));
     }
     return lResult;
 }
 
 inline int CWnd::OnCommand(uintptr_t wParam, intptr_t lParam) {
-    (void)wParam; (void)lParam;
-    return 0;
+    unsigned int nID = static_cast<unsigned int>(LOWORD(static_cast<uintptr_t>(wParam)));
+    int nCode = static_cast<int>(HIWORD(static_cast<uintptr_t>(wParam)));
+    void* pExtra = reinterpret_cast<void*>(lParam);
+    if (OnCmdMsg(nID, nCode, pExtra, nullptr)) {
+        return TRUE;
+    }
+    if (lParam) {
+        CWnd* pSender = CWnd::FromHandle(reinterpret_cast<HWND>(lParam));
+        if (pSender && pSender != this && pSender->OnCmdMsg(nID, nCode, pExtra, nullptr)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 inline int CWnd::OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult) {
-    (void)wParam; (void)lParam; (void)pResult;
-    return 0;
+    if (pResult) {
+        *pResult = 0;
+    }
+    const NMHDR* pNotify = reinterpret_cast<const NMHDR*>(lParam);
+    if (!pNotify || !pNotify->hwndFrom) {
+        return FALSE;
+    }
+
+    int nID = static_cast<int>(wParam);
+    int nCode = static_cast<int>(pNotify->code);
+    if (OnCmdMsg(nID, nCode, reinterpret_cast<void*>(lParam), nullptr)) {
+        return TRUE;
+    }
+
+    CWnd* pSender = CWnd::FromHandle(pNotify->hwndFrom);
+    if (pSender && pSender != this &&
+        pSender->OnCmdMsg(nID, nCode, reinterpret_cast<void*>(lParam), nullptr)) {
+        return TRUE;
+    }
+    return FALSE;
 }
 
 inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lParam, intptr_t* pResult) {
-    (void)message; (void)wParam; (void)lParam; (void)pResult;
-    return 0;
+    if (pResult) {
+        *pResult = 0;
+    }
+    switch (message) {
+    case WM_COMMAND:
+        return OnCommand(wParam, lParam);
+    case WM_NOTIFY:
+        return OnNotify(wParam, lParam, pResult);
+    default:
+        return 0;
+    }
 }
 
 inline void CWnd::OnFinalRelease() {
@@ -2431,15 +2502,12 @@ inline void CWnd::OnFinalRelease() {
 }
 
 inline uintptr_t CWnd::SetTimer(uintptr_t nIDEvent, unsigned int nElapse, void* lpfnTimer) {
-    (void)nIDEvent; (void)nElapse; (void)lpfnTimer;
-    // Stub
-    return 0;
+    if (!m_hWnd) return 0;
+    return static_cast<uintptr_t>(::SetTimer(m_hWnd, nIDEvent, nElapse, reinterpret_cast<TIMERPROC>(lpfnTimer)));
 }
 
 inline int CWnd::KillTimer(uintptr_t nIDEvent) {
-    (void)nIDEvent;
-    // Stub
-    return 1;
+    return m_hWnd ? (::KillTimer(m_hWnd, nIDEvent) ? 1 : 0) : 0;
 }
 
 //=============================================================================
@@ -2857,6 +2925,13 @@ public:
     void SetMarquee(int fMarqueeMode, int nInterval) {
         if (m_hWnd) ::SendMessageW(m_hWnd, PBM_SETMARQUEE, fMarqueeMode ? TRUE : FALSE, nInterval);
     }
+    void GetRange(int& lower, int& upper) const {
+        if (m_hWnd) {
+            PBRANGE range = {};
+            ::SendMessageW(m_hWnd, PBM_GETRANGE, TRUE, (LPARAM)&range);
+            lower = range.iLow; upper = range.iHigh;
+        } else { lower = 0; upper = 0; }
+    }
 };
 
 // CSpinButtonCtrl - Spin button (up-down) control wrapper
@@ -2915,6 +2990,25 @@ public:
     unsigned int GetBase() const {
         return m_hWnd ? (unsigned int)::SendMessageW(m_hWnd, UDM_GETBASE, 0, 0) : 10;
     }
+};
+
+// CStatusBarCtrl - Status bar common control wrapper
+class CStatusBarCtrl : public CWnd {
+public:
+    CStatusBarCtrl() = default;
+    virtual ~CStatusBarCtrl();
+
+    int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
+    int CreateEx(DWORD dwExStyle, DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID);
+    int GetBorders(int& nHorz, int& nVert, int& nSpacing) const;
+    int GetText(wchar_t* lpszText, int nPane, int* pType) const;
+    CString GetText(int nPane, int* pType) const;
+    int GetTextLength(int nPane, int* pType) const;
+    CString GetTipText(int nPane) const;
+
+    // Overridables (declared public for thunk compatibility, matching CWnd::OnChildNotify)
+    virtual void DrawItem(void* lpDrawItemStruct);
+    virtual BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 };
 
 // CListCtrl - List view control wrapper
@@ -3476,11 +3570,11 @@ public:
     void GetCharFormat(CHARFORMAT2W& cf) const;
 
     // Paragraph formatting
-    void SetParaFormat(const PARAFORMAT2& pf);
+    BOOL SetParaFormat(const PARAFORMAT2& pf);
     void GetParaFormat(PARAFORMAT2& pf) const;
 
     // Printing
-    void PrintInsideRect(CDC* pDC, RECT& rectLayout, LONG nIndexStart,
+    LONG PrintInsideRect(CDC* pDC, RECT& rectLayout, LONG nIndexStart,
                          LONG nIndexEnd, BOOL bOutput);
     LONG PrintPage(CDC* pDC, LONG nIndexStart, LONG nIndexEnd);
     void PrintReplaceSel(const wchar_t* lpszNewText, BOOL bCanUndo = FALSE);
@@ -3514,6 +3608,25 @@ public:
     CRect GetMargins() const;
     CRect GetPrintRect() const;
     CRect GetPageRect() const;
+
+    // Command UI update handlers
+    void OnUpdateBullet(CCmdUI* pCmdUI);
+    void OnUpdateCharBold(CCmdUI* pCmdUI);
+    void OnUpdateCharEffect(CCmdUI* pCmdUI, unsigned long dwMask, unsigned long dwEffects);
+    void OnUpdateCharItalic(CCmdUI* pCmdUI);
+    void OnUpdateCharUnderline(CCmdUI* pCmdUI);
+    void OnUpdateEditPasteSpecial(CCmdUI* pCmdUI);
+    void OnUpdateEditProperties(CCmdUI* pCmdUI);
+    void OnUpdateEditRedo(CCmdUI* pCmdUI);
+    void OnUpdateEditUndo(CCmdUI* pCmdUI);
+    void OnUpdateNeedClip(CCmdUI* pCmdUI);
+    void OnUpdateNeedFind(CCmdUI* pCmdUI);
+    void OnUpdateNeedSel(CCmdUI* pCmdUI);
+    void OnUpdateNeedText(CCmdUI* pCmdUI);
+    void OnUpdateParaAlign(CCmdUI* pCmdUI, unsigned short nAlign);
+    void OnUpdateParaCenter(CCmdUI* pCmdUI);
+    void OnUpdateParaLeft(CCmdUI* pCmdUI);
+    void OnUpdateParaRight(CCmdUI* pCmdUI);
 
 public:
     CRichEditCtrl m_richEdit;
@@ -3635,6 +3748,11 @@ public:
     virtual void OnVisible(BOOL bVisible);
     virtual HRESULT OnTranslateUrl(DWORD dwTranslate, wchar_t* pchURLIn, wchar_t** ppchURLOut);
 
+    // Command UI update handlers
+    void OnUpdateEditCopy(CCmdUI* pCmdUI);
+    void OnUpdateEditCut(CCmdUI* pCmdUI);
+    void OnUpdateEditPaste(CCmdUI* pCmdUI);
+
 public:
     IWebBrowser2* m_pBrowser;
     CWnd* m_pControlWnd;
@@ -3755,6 +3873,8 @@ public:
     IWebBrowser2* m_pBrowser;
     CWnd* m_pCtrlWnd;
     BOOL m_bCreated;
+    IDispatch* m_pExternalDispatch;
+    DWORD m_dwHostFlags;
 
 protected:
     char _dhtmldialog_padding[328];

@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-77",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 12062,
+      "symbol": "?Read@XElementButtonUndo@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12063,
+      "symbol": "?Read@XElementComboBox@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12064,
+      "symbol": "?Read@XElementEdit@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12065,
+      "symbol": "?Read@XElementFontComboBox@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12066,
+      "symbol": "?Read@XElementGroup@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12067,
+      "symbol": "?Read@XElementLabel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12069,
+      "symbol": "?Read@XElementSeparator@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12070,
+      "symbol": "?Read@XElementSlider@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12071,
+      "symbol": "?Read@XGalleryGroup@XElementButtonGallery@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 12072,
+      "symbol": "?Read@XID@CMFCRibbonInfo@@QEAAHAEAVXRibbonInfoParser@2@@Z"
+    }
+  ],
+  "title": "global_residuals shard 77/95: global"
+}

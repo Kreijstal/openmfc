@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-366",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 2563,
+      "symbol": "?CacheY@CMFCVisualManagerBitmapCache@@QEAAHHAEAVCMFCControlRenderer@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 2761,
+      "symbol": "?Clear@CMFCVisualManagerBitmapCache@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 4567,
+      "symbol": "?FindIndex@CMFCVisualManagerBitmapCache@@QEBAHAEBVCSize@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 4737,
+      "symbol": "?Get@CMFCVisualManagerBitmapCache@@QEAAPEAVCMFCVisualManagerBitmapCacheItem@1@AEBVCSize@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 4738,
+      "symbol": "?Get@CMFCVisualManagerBitmapCache@@QEAAPEAVCMFCVisualManagerBitmapCacheItem@1@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 7853,
+      "symbol": "?IsCached@CMFCVisualManagerBitmapCache@@QEBAHAEBVCSize@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 4050,
+      "symbol": "?DrawCustomizeButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HW4AFX_BUTTON_STATE@CMFCVisualManager@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 4928,
+      "symbol": "?GetBaseThemeColor@CMFCVisualManagerOffice2003@@UEAAKXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 6134,
+      "symbol": "?GetPropertyGridGroupColor@CMFCVisualManagerOffice2003@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 6138,
+      "symbol": "?GetPropertyGridGroupTextColor@CMFCVisualManagerOffice2003@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 366/439: CMFCVisualManagerBitmapCache, CMFCVisualManagerOffice2003"
+}

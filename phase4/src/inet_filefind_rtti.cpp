@@ -531,3 +531,16 @@ extern "C" int MS_ABI impl__IsDots_CGopherFileFind__UEBAHXZ(const CFtpFileFind* 
     CString name = FinderName(pThis);
     return wcscmp(name.GetString(), L".") == 0 || wcscmp(name.GetString(), L"..") == 0;
 }
+
+// Symbol: ??0CGopherFileFind@@QEAA@PEAVCGopherConnection@@_K@Z
+extern "C" void* MS_ABI impl___0CGopherFileFind__QEAA_PEAVCGopherConnection___K_Z(
+        void* p, CGopherConnection* pConn, unsigned long long dwContext) {
+    // GopherFileFind ctor takes CFtpConnection*; reinterpret_cast is the
+    // established precedent (inetcore.cpp:1534 does the same cast).
+    return new (p) GopherFileFind(reinterpret_cast<CFtpConnection*>(pConn), dwContext);
+}
+
+// Symbol: ??1CGopherFileFind@@UEAA@XZ
+extern "C" void MS_ABI impl___1CGopherFileFind__UEAA_XZ(void* pThis) {
+    ((GopherFileFind*)pThis)->~GopherFileFind();
+}

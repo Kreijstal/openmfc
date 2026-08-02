@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-15",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2157,
+      "symbol": "?AfxCompareValueByRef@@YAHPEAX0H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2158,
+      "symbol": "?AfxConnectionAdvise@@YAHPEAUIUnknown@@AEBU_GUID@@0HPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2159,
+      "symbol": "?AfxConnectionUnadvise@@YAHPEAUIUnknown@@AEBU_GUID@@0HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2160,
+      "symbol": "?AfxCopyValueByRef@@YAXPEAX0PEA_JH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2161,
+      "symbol": "?AfxCoreInitModule@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2162,
+      "symbol": "?AfxCreateDC@@YAPEAUHDC__@@PEAX0@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2163,
+      "symbol": "?AfxCriticalInit@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2164,
+      "symbol": "?AfxCriticalNewHandler@@YAH_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2165,
+      "symbol": "?AfxCriticalTerm@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2166,
+      "symbol": "?AfxCustomLogFont@@YAHIPEAUtagLOGFONTW@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 15/95: global"
+}

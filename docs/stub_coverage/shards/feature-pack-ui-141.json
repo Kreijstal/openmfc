@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-141",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 13875,
+      "symbol": "?SizeToContent@CMFCMenuButton@@UEAA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 1220,
+      "symbol": "??1CMFCMousePropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 3386,
+      "symbol": "?CreateObject@CMFCMousePropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 3919,
+      "symbol": "?DoDataExchange@CMFCMousePropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 4237,
+      "symbol": "?EnableDblClkControls@CMFCMousePropertyPage@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 10170,
+      "symbol": "?OnInitDialog@CMFCMousePropertyPage@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 10219,
+      "symbol": "?OnItemchangedListViews@CMFCMousePropertyPage@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 10682,
+      "symbol": "?OnNoDblcliick@CMFCMousePropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 10983,
+      "symbol": "?OnSelchangeListOfCommands@CMFCMousePropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCMousePropertyPage",
+      "ordinal": 11575,
+      "symbol": "?OnUseDblcliick@CMFCMousePropertyPage@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 141/439: CMFCMousePropertyPage, CMFCMenuButton"
+}

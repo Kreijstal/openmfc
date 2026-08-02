@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-90",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CStatusBar",
+      "ordinal": 11138,
+      "symbol": "?OnSetText@CStatusBar@@IEAAHPEB_W@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11272,
+      "symbol": "?OnSize@CStatusBar@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11464,
+      "symbol": "?OnUpdateCmdUI@CStatusBar@@UEAAXPEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11618,
+      "symbol": "?OnWindowPosChanging@CStatusBar@@IEAAXPEAUtagWINDOWPOS@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11803,
+      "symbol": "?PreCreateWindow@CStatusBar@@UEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 14109,
+      "symbol": "?UpdateAllPanes@CStatusBar@@IEAAXHH@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 3493,
+      "symbol": "?CreateObject@CTabView@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 8767,
+      "symbol": "?OnChangeActiveTab@CTabView@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 9036,
+      "symbol": "?OnCreate@CTabView@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 10198,
+      "symbol": "?OnInitialUpdate@CTabView@@UEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 90/91: CStatusBar, CTabView"
+}

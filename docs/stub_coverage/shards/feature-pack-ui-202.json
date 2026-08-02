@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-202",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 8635,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonButtonsGroup@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 9238,
+      "symbol": "?OnDraw@CMFCRibbonButtonsGroup@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 9386,
+      "symbol": "?OnDrawImage@CMFCRibbonButtonsGroup@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCRibbonBaseElement@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 10946,
+      "symbol": "?OnRTLChanged@CMFCRibbonButtonsGroup@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 11160,
+      "symbol": "?OnShow@CMFCRibbonButtonsGroup@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 11453,
+      "symbol": "?OnUpdateCmdUI@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 12284,
+      "symbol": "?RemoveAll@CMFCRibbonButtonsGroup@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 12452,
+      "symbol": "?ReplaceByID@CMFCRibbonButtonsGroup@@MEAAHIPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13278,
+      "symbol": "?SetImages@CMFCRibbonButtonsGroup@@QEAAXPEAVCMFCToolBarImages@@00@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13414,
+      "symbol": "?SetOriginal@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonBaseElement@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 202/439: CMFCRibbonButtonsGroup"
+}

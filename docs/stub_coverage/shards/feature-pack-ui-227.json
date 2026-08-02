@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-227",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5280,
+      "symbol": "?GetDroppedDown@CMFCRibbonGallery@@UEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5460,
+      "symbol": "?GetGroupName@CMFCRibbonGallery@@QEBAPEB_WH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5477,
+      "symbol": "?GetHighlighted@CMFCRibbonGallery@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5502,
+      "symbol": "?GetIconDescription@CMFCRibbonGallery@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEBVCMFCRibbonGalleryIcon@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5507,
+      "symbol": "?GetIconSize@CMFCRibbonGallery@@MEBA?AVCSize@@XZ"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5511,
+      "symbol": "?GetIconToolTip@CMFCRibbonGallery@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEBVCMFCRibbonGalleryIcon@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5645,
+      "symbol": "?GetItemToolTip@CMFCRibbonGallery@@QEBAPEB_WH@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5650,
+      "symbol": "?GetKeyTipRect@CMFCRibbonGallery@@MEAA?AVCRect@@PEAVCDC@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5737,
+      "symbol": "?GetMenuItems@CMFCRibbonGallery@@IEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonGallery",
+      "ordinal": 5741,
+      "symbol": "?GetMenuRowHeight@CMFCRibbonGallery@@IEBAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 227/439: CMFCRibbonGallery"
+}

@@ -7,7 +7,9 @@
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
 #include <windows.h>
+#include <d2d1.h>
 #include <cmath>
+#include <algorithm>
 #include <cstring>
 #include <mutex>
 #include <unordered_map>
@@ -106,12 +108,19 @@ struct CRenderTargetState {
     CD2DSizeF size = CD2DSizeF(0.0f, 0.0f);
     CString lastText;
     CD2DRectF lastTextRect;
+    CD2DColorF lastClearColor = {};
+    bool clearWasCalled = false;
+    int drawCallCount = 0;
     unsigned __int64 tag1 = 0;
     unsigned __int64 tag2 = 0;
 };
 
 struct CAnimationVariableState {
     double value = 0.0;
+    std::vector<void*> transitions;
+    bool valueChangedEventEnabled = false;
+    bool integerValueChangedEventEnabled = false;
+    int pendingAutodestroy = TRUE;
 };
 
 std::unordered_map<const CRenderTarget*, CRenderTargetState> g_renderTargetState;
@@ -610,11 +619,33 @@ extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_XZ(CBrush* pThis) {
     return pThis;
 }
 
+// C++ member (used by in-repo C++ code): default ctor, m_hObject = nullptr.
+CBrush::CBrush() : CGdiObject() {}
+
 // CBrush constructor with color
 // Symbol: ??0CBrush@@QEAA@K@Z
 extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_K_Z(CBrush* pThis, unsigned long crColor) {
     if (!pThis) return nullptr;
     pThis->m_hObject = ::CreateSolidBrush(crColor);
+    return pThis;
+}
+
+// Symbol: ??0CBrush@@QEAA@HK@Z
+extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_HK_Z(CBrush* pThis, int nIndex, unsigned long crColor) {
+    if (!pThis) return nullptr;
+    pThis = new(pThis) CBrush();
+    pThis->m_hObject = ::CreateHatchBrush(nIndex, crColor);
+    return pThis;
+}
+
+// CBrush constructor with bitmap
+// Symbol: ??0CBrush@@QEAA@PEAVCBitmap@@@Z
+extern "C" CBrush* MS_ABI impl___0CBrush__QEAA_PEAVCBitmap___Z(CBrush* pThis, const CBitmap* pBitmap) {
+    if (!pThis) return nullptr;
+    pThis = new(pThis) CBrush();
+    pThis->m_hObject = ::CreatePatternBrush(
+        pBitmap ? static_cast<HBITMAP>(pBitmap->m_hObject) : nullptr
+    );
     return pThis;
 }
 
@@ -1671,8 +1702,16 @@ extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* p
 // Symbol: ??1CRenderTarget@@UEAA@XZ
 extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* pThis) {
     if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState.erase(pThis);
+    ID2D1RenderTarget* resource = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto it = g_renderTargetState.find(pThis);
+        if (it != g_renderTargetState.end()) {
+            resource = static_cast<ID2D1RenderTarget*>(it->second.resource);
+            g_renderTargetState.erase(it);
+        }
+    }
+    if (resource) resource->Release();
 }
 
 CRenderTarget::CRenderTarget() {
@@ -1687,8 +1726,14 @@ CRenderTarget::~CRenderTarget() {
 // Symbol: ?Attach@CRenderTarget@@QEAAXPEAUID2D1RenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(CRenderTarget* pThis, void* pRenderTarget) {
     if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis].resource = pRenderTarget;
+    ID2D1RenderTarget* old = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        old = static_cast<ID2D1RenderTarget*>(state.resource);
+        state.resource = pRenderTarget;
+    }
+    if (old && old != pRenderTarget) old->Release();
 }
 
 void CRenderTarget::Attach(void* pRenderTarget) {
@@ -1712,8 +1757,14 @@ void* CRenderTarget::Detach() {
 // Symbol: ?BeginDraw@CRenderTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__BeginDraw_CRenderTarget__QEAAXXZ(CRenderTarget* pThis) {
     if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis].drawing = true;
+    ID2D1RenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.drawing = true;
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+    }
+    if (target) target->BeginDraw();
 }
 
 void CRenderTarget::BeginDraw() {
@@ -1723,9 +1774,23 @@ void CRenderTarget::BeginDraw() {
 // Symbol: ?EndDraw@CRenderTarget@@QEAAJXZ
 extern "C" long MS_ABI impl__EndDraw_CRenderTarget__QEAAJXZ(CRenderTarget* pThis) {
     if (!pThis) return E_POINTER;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis].drawing = false;
-    return S_OK;
+    ID2D1RenderTarget* target = nullptr;
+    unsigned __int64 tag1 = 0;
+    unsigned __int64 tag2 = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.drawing = false;
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+    }
+    HRESULT hr = target ? target->EndDraw(&tag1, &tag2) : E_POINTER;
+    if (target) {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.tag1 = tag1;
+        state.tag2 = tag2;
+    }
+    return hr;
 }
 
 long CRenderTarget::EndDraw() {
@@ -1734,16 +1799,20 @@ long CRenderTarget::EndDraw() {
 
 // Symbol: ?Destroy@CRenderTarget@@QEAAHH@Z
 extern "C" int MS_ABI impl__Destroy_CRenderTarget__QEAAHH_Z(CRenderTarget* pThis, int bReleasing) {
-    (void)bReleasing;
     if (!pThis) return FALSE;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.resource = nullptr;
-    state.drawing = false;
-    state.size = CD2DSizeF(0.0f, 0.0f);
-    state.tag1 = 0;
-    state.tag2 = 0;
-    return TRUE;
+    ID2D1RenderTarget* resource = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        resource = static_cast<ID2D1RenderTarget*>(state.resource);
+        state.resource = nullptr;
+        state.drawing = false;
+        state.size = CD2DSizeF(0.0f, 0.0f);
+        state.tag1 = 0;
+        state.tag2 = 0;
+    }
+    if (resource && bReleasing) resource->Release();
+    return resource != nullptr;
 }
 
 int CRenderTarget::Destroy(int bReleasing) {
@@ -1752,8 +1821,20 @@ int CRenderTarget::Destroy(int bReleasing) {
 
 // Symbol: ?Clear@CRenderTarget@@QEAAXU_D3DCOLORVALUE@@@Z
 extern "C" void MS_ABI impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(CRenderTarget* pThis, CD2DColorF color) {
-    (void)pThis;
-    (void)color;
+    if (!pThis) return;
+    ID2D1RenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.lastClearColor = color;
+        state.clearWasCalled = true;
+        state.drawCallCount += 1;
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+    }
+    if (target) {
+        D2D1_COLOR_F nativeColor = {color.r, color.g, color.b, color.a};
+        target->Clear(&nativeColor);
+    }
 }
 
 void CRenderTarget::Clear(CD2DColorF color) {
@@ -1763,12 +1844,16 @@ void CRenderTarget::Clear(CD2DColorF color) {
 // Symbol: ?DrawLine@CRenderTarget@@QEAAXAEBVCD2DPointF@@0PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawLine_CRenderTarget__QEAAXAEBVCD2DPointF__0PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DPointF* p0, const CD2DPointF* p1, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
+    if (!pThis) return;
+    if (!p0 || !p1) return;
     (void)pBrush;
     (void)strokeWidth;
     (void)pStrokeStyle;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, std::max(p0->x, p1->x));
+    state.size.height = std::max(state.size.height, std::max(p0->y, p1->y));
 }
 
 void CRenderTarget::DrawLine(const CD2DPointF& p0, const CD2DPointF& p1) {
@@ -1779,11 +1864,15 @@ void CRenderTarget::DrawLine(const CD2DPointF& p0, const CD2DPointF& p1) {
 // Symbol: ?DrawRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    (void)pThis;
-    (void)pRect;
+    if (!pThis || !pRect) return;
     (void)pBrush;
     (void)strokeWidth;
     (void)pStrokeStyle;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, std::max(pRect->left, pRect->right));
+    state.size.height = std::max(state.size.height, std::max(pRect->top, pRect->bottom));
 }
 
 void CRenderTarget::DrawRectangle(const CD2DRectF& rect) {
@@ -1794,11 +1883,15 @@ void CRenderTarget::DrawRectangle(const CD2DRectF& rect) {
 // Symbol: ?DrawEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    (void)pThis;
-    (void)pEllipse;
+    if (!pThis || !pEllipse) return;
     (void)pBrush;
     (void)strokeWidth;
     (void)pStrokeStyle;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, pEllipse->point.x + pEllipse->radius.width);
+    state.size.height = std::max(state.size.height, pEllipse->point.y + pEllipse->radius.height);
 }
 
 void CRenderTarget::DrawEllipse(const CD2DEllipse& ellipse) {
@@ -1809,11 +1902,15 @@ void CRenderTarget::DrawEllipse(const CD2DEllipse& ellipse) {
 // Symbol: ?DrawRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    (void)pThis;
-    (void)pRect;
+    if (!pThis || !pRect) return;
     (void)pBrush;
     (void)strokeWidth;
     (void)pStrokeStyle;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, std::max(pRect->rect.left, pRect->rect.right));
+    state.size.height = std::max(state.size.height, std::max(pRect->rect.top, pRect->rect.bottom));
 }
 
 void CRenderTarget::DrawRoundedRectangle(const CD2DRoundedRect& rect) {
@@ -1824,9 +1921,13 @@ void CRenderTarget::DrawRoundedRectangle(const CD2DRoundedRect& rect) {
 // Symbol: ?FillRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush) {
-    (void)pThis;
-    (void)pRect;
+    if (!pThis || !pRect) return;
     (void)pBrush;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, std::max(pRect->left, pRect->right));
+    state.size.height = std::max(state.size.height, std::max(pRect->top, pRect->bottom));
 }
 
 void CRenderTarget::FillRectangle(const CD2DRectF& rect) {
@@ -1836,9 +1937,13 @@ void CRenderTarget::FillRectangle(const CD2DRectF& rect) {
 // Symbol: ?FillEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush) {
-    (void)pThis;
-    (void)pEllipse;
+    if (!pThis || !pEllipse) return;
     (void)pBrush;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, pEllipse->point.x + pEllipse->radius.width);
+    state.size.height = std::max(state.size.height, pEllipse->point.y + pEllipse->radius.height);
 }
 
 void CRenderTarget::FillEllipse(const CD2DEllipse& ellipse) {
@@ -1848,9 +1953,13 @@ void CRenderTarget::FillEllipse(const CD2DEllipse& ellipse) {
 // Symbol: ?FillRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush) {
-    (void)pThis;
-    (void)pRect;
+    if (!pThis || !pRect) return;
     (void)pBrush;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_renderTargetState[pThis];
+    state.drawCallCount += 1;
+    state.size.width = std::max(state.size.width, std::max(pRect->rect.left, pRect->rect.right));
+    state.size.height = std::max(state.size.height, std::max(pRect->rect.top, pRect->rect.bottom));
 }
 
 void CRenderTarget::FillRoundedRectangle(const CD2DRoundedRect& rect) {
@@ -1903,8 +2012,16 @@ CD2DColorF CRenderTarget::COLORREF_TO_D2DCOLOR(COLORREF color, int alpha) {
 // Symbol: ?GetDpi@CRenderTarget@@QEBA?AVCD2DSizeF@@XZ
 extern "C" CD2DSizeF MS_ABI impl__GetDpi_CRenderTarget__QEBA_AVCD2DSizeF__XZ(const CRenderTarget* pThis) {
     if (!pThis) return CD2DSizeF();
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    return g_renderTargetState[pThis].dpi;
+    ID2D1RenderTarget* target = nullptr;
+    CD2DSizeF dpi;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        dpi = state.dpi;
+    }
+    if (target) target->GetDpi(&dpi.width, &dpi.height);
+    return dpi;
 }
 
 CD2DSizeF CRenderTarget::GetDpi() const {
@@ -1914,8 +2031,15 @@ CD2DSizeF CRenderTarget::GetDpi() const {
 // Symbol: ?SetDpi@CRenderTarget@@QEAAXAEBVCD2DSizeF@@@Z
 extern "C" void MS_ABI impl__SetDpi_CRenderTarget__QEAAXAEBVCD2DSizeF___Z(CRenderTarget* pThis, const CD2DSizeF* pDpi) {
     if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis].dpi = pDpi ? *pDpi : CD2DSizeF(96.0f, 96.0f);
+    CD2DSizeF dpi = pDpi ? *pDpi : CD2DSizeF(96.0f, 96.0f);
+    ID2D1RenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.dpi = dpi;
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+    }
+    if (target) target->SetDpi(dpi.width, dpi.height);
 }
 
 void CRenderTarget::SetDpi(const CD2DSizeF& dpi) {
@@ -1925,8 +2049,19 @@ void CRenderTarget::SetDpi(const CD2DSizeF& dpi) {
 // Symbol: ?GetSize@CRenderTarget@@QEBA?AVCD2DSizeF@@XZ
 extern "C" CD2DSizeF MS_ABI impl__GetSize_CRenderTarget__QEBA_AVCD2DSizeF__XZ(const CRenderTarget* pThis) {
     if (!pThis) return CD2DSizeF();
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    return g_renderTargetState[pThis].size;
+    ID2D1RenderTarget* target = nullptr;
+    CD2DSizeF size;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        size = state.size;
+    }
+    if (target) {
+        D2D1_SIZE_F nativeSize = target->GetSize();
+        size = CD2DSizeF(nativeSize.width, nativeSize.height);
+    }
+    return size;
 }
 
 CD2DSizeF CRenderTarget::GetSize() const {
@@ -1941,10 +2076,15 @@ extern "C" void MS_ABI impl__GetTags_CRenderTarget__QEBAXPEA_K0_Z(
         if (pTag2) *pTag2 = 0;
         return;
     }
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    const auto& state = g_renderTargetState[pThis];
-    if (pTag1) *pTag1 = state.tag1;
-    if (pTag2) *pTag2 = state.tag2;
+    ID2D1RenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        const auto& state = g_renderTargetState[pThis];
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        if (pTag1) *pTag1 = state.tag1;
+        if (pTag2) *pTag2 = state.tag2;
+    }
+    if (target) target->GetTags(pTag1, pTag2);
 }
 
 void CRenderTarget::GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) const {
@@ -1954,10 +2094,15 @@ void CRenderTarget::GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) co
 // Symbol: ?SetTags@CRenderTarget@@QEAAX_K0@Z
 extern "C" void MS_ABI impl__SetTags_CRenderTarget__QEAAX_K0_Z(CRenderTarget* pThis, unsigned __int64 tag1, unsigned __int64 tag2) {
     if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.tag1 = tag1;
-    state.tag2 = tag2;
+    ID2D1RenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        state.tag1 = tag1;
+        state.tag2 = tag2;
+        target = static_cast<ID2D1RenderTarget*>(state.resource);
+    }
+    if (target) target->SetTags(tag1, tag2);
 }
 
 void CRenderTarget::SetTags(unsigned __int64 tag1, unsigned __int64 tag2) {
@@ -1977,9 +2122,7 @@ CDCRenderTarget::CDCRenderTarget() {
 
 // Symbol: ?Attach@CDCRenderTarget@@QEAAXPEAUID2D1DCRenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(CDCRenderTarget* pThis, void* pRenderTarget) {
-    if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis].resource = pRenderTarget;
+    impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(pThis, pRenderTarget);
 }
 
 void CDCRenderTarget::Attach(void* pRenderTarget) {
@@ -1998,13 +2141,23 @@ void* CDCRenderTarget::Detach() {
 // Symbol: ?Create@CDCRenderTarget@@QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES@@@Z
 extern "C" int MS_ABI impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(
     CDCRenderTarget* pThis, const void* pRenderTargetProperties) {
-    (void)pRenderTargetProperties;
-    if (!pThis) return FALSE;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawing = false;
-    state.size = CD2DSizeF(0.0f, 0.0f);
-    state.dpi = CD2DSizeF(96.0f, 96.0f);
+    if (!pThis || !pRenderTargetProperties) return FALSE;
+    using CreateFactoryFn = HRESULT (WINAPI*)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**);
+    static HMODULE module = ::LoadLibraryW(L"d2d1.dll");
+    static CreateFactoryFn createFactory = module
+        ? reinterpret_cast<CreateFactoryFn>(::GetProcAddress(module, "D2D1CreateFactory")) : nullptr;
+    if (!createFactory) return FALSE;
+
+    ID2D1Factory* factory = nullptr;
+    HRESULT hr = createFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), nullptr,
+                               reinterpret_cast<void**>(&factory));
+    if (FAILED(hr) || !factory) return FALSE;
+    ID2D1DCRenderTarget* target = nullptr;
+    hr = factory->CreateDCRenderTarget(
+        static_cast<const D2D1_RENDER_TARGET_PROPERTIES*>(pRenderTargetProperties), &target);
+    factory->Release();
+    if (FAILED(hr) || !target) return FALSE;
+    impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(pThis, target);
     return TRUE;
 }
 
@@ -2015,15 +2168,17 @@ int CDCRenderTarget::Create(const void* pRenderTargetProperties) {
 // Symbol: ?BindDC@CDCRenderTarget@@QEAAHAEBVCDC@@AEBVCRect@@@Z
 extern "C" int MS_ABI impl__BindDC_CDCRenderTarget__QEAAHAEBVCDC__AEBVCRect___Z(
     CDCRenderTarget* pThis, const CDC* pDC, const CRect* pRect) {
-    if (!pThis || !pDC || !pDC->GetSafeHdc()) return FALSE;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    if (pRect) {
+    if (!pThis || !pDC || !pDC->GetSafeHdc() || !pRect) return FALSE;
+    ID2D1DCRenderTarget* target = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto& state = g_renderTargetState[pThis];
+        target = static_cast<ID2D1DCRenderTarget*>(state.resource);
         state.size = CD2DSizeF((float)(pRect->right - pRect->left), (float)(pRect->bottom - pRect->top));
-    } else {
-        state.size = CD2DSizeF(0.0f, 0.0f);
     }
-    return TRUE;
+    if (!target) return FALSE;
+    RECT rect = {pRect->left, pRect->top, pRect->right, pRect->bottom};
+    return SUCCEEDED(target->BindDC(pDC->GetSafeHdc(), &rect));
 }
 
 int CDCRenderTarget::BindDC(const CDC& dc, const CRect& rect) {
@@ -2078,8 +2233,9 @@ int CAnimationVariable::CreateTransitions(void* pTransitionLibrary, void* pTrans
 
 // Symbol: ?AddTransition@CAnimationVariable@@QEAAXPEAVCBaseTransition@@@Z
 extern "C" void MS_ABI impl__AddTransition_CAnimationVariable__QEAAXPEAVCBaseTransition___Z(CAnimationVariable* pThis, void* pTransition) {
-    (void)pThis;
-    (void)pTransition;
+    if (!pThis || !pTransition) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_animationVariableState[pThis].transitions.push_back(pTransition);
 }
 
 void CAnimationVariable::AddTransition(void* pTransition) {
@@ -2088,8 +2244,10 @@ void CAnimationVariable::AddTransition(void* pTransition) {
 
 // Symbol: ?ClearTransitions@CAnimationVariable@@QEAAXH@Z
 extern "C" void MS_ABI impl__ClearTransitions_CAnimationVariable__QEAAXH_Z(CAnimationVariable* pThis, int bAutodestroy) {
-    (void)pThis;
-    (void)bAutodestroy;
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_animationVariableState[pThis].transitions.clear();
+    g_animationVariableState[pThis].pendingAutodestroy = bAutodestroy;
 }
 
 void CAnimationVariable::ClearTransitions(int bAutodestroy) {
@@ -2099,9 +2257,10 @@ void CAnimationVariable::ClearTransitions(int bAutodestroy) {
 // Symbol: ?EnableValueChangedEvent@CAnimationVariable@@QEAAXPEAVCAnimationController@@H@Z
 extern "C" void MS_ABI impl__EnableValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(
     CAnimationVariable* pThis, void* pController, int bEnable) {
-    (void)pThis;
     (void)pController;
-    (void)bEnable;
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_animationVariableState[pThis].valueChangedEventEnabled = (bEnable != 0);
 }
 
 void CAnimationVariable::EnableValueChangedEvent(void* pController, int bEnable) {
@@ -2111,9 +2270,10 @@ void CAnimationVariable::EnableValueChangedEvent(void* pController, int bEnable)
 // Symbol: ?EnableIntegerValueChangedEvent@CAnimationVariable@@QEAAXPEAVCAnimationController@@H@Z
 extern "C" void MS_ABI impl__EnableIntegerValueChangedEvent_CAnimationVariable__QEAAXPEAVCAnimationController__H_Z(
     CAnimationVariable* pThis, void* pController, int bEnable) {
-    (void)pThis;
     (void)pController;
-    (void)bEnable;
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_animationVariableState[pThis].integerValueChangedEventEnabled = (bEnable != 0);
 }
 
 void CAnimationVariable::EnableIntegerValueChangedEvent(void* pController, int bEnable) {
@@ -2123,10 +2283,17 @@ void CAnimationVariable::EnableIntegerValueChangedEvent(void* pController, int b
 // Symbol: ?ApplyTransitions@CAnimationVariable@@QEAAXPEAVCAnimationController@@PEAUIUIAnimationStoryboard@@H@Z
 extern "C" void MS_ABI impl__ApplyTransitions_CAnimationVariable__QEAAXPEAVCAnimationController__PEAUIUIAnimationStoryboard__H_Z(
     CAnimationVariable* pThis, void* pController, void* pStoryboard, int bAutodestroy) {
-    (void)pThis;
     (void)pController;
-    (void)pStoryboard;
-    (void)bAutodestroy;
+    if (!pThis) return;
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& state = g_animationVariableState[pThis];
+    state.pendingAutodestroy = bAutodestroy;
+    if (state.transitions.empty()) {
+        state.value = state.value;
+    }
+    if (bAutodestroy) {
+        state.transitions.clear();
+    }
 }
 
 void CAnimationVariable::ApplyTransitions(void* pController, void* pStoryboard, int bAutodestroy) {

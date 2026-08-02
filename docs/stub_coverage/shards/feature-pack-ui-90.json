@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-90",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 4213,
+      "symbol": "?EnableAutomaticButton@CMFCColorBar@@QEAAXPEB_WKH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 4287,
+      "symbol": "?EnableOtherButton@CMFCColorBar@@QEAAXPEB_WHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5052,
+      "symbol": "?GetColorGridSize@CMFCColorBar@@IEBA?AVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5365,
+      "symbol": "?GetExtraHeight@CMFCColorBar@@IEBAHH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 5480,
+      "symbol": "?GetHighlightedColor@CMFCColorBar@@QEBAKXZ"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 7671,
+      "symbol": "?InitColors@CMFCColorBar@@KAHPEAVCPalette@@AEAV?$CArray@KK@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 8296,
+      "symbol": "?m_ColorNames@CMFCColorBar@@1V?$CMap@KKV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@@A"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 8774,
+      "symbol": "?OnChangeHot@CMFCColorBar@@MEAAXH@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 9001,
+      "symbol": "?OnCreate@CMFCColorBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCColorBar",
+      "ordinal": 9124,
+      "symbol": "?OnDestroy@CMFCColorBar@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 90/439: CMFCColorBar"
+}

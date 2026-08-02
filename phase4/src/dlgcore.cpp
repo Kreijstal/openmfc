@@ -35,7 +35,11 @@ static INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, 
 #include <map>
 static std::map<HWND, CDialog*> g_dlgMap;
 static std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
+static std::map<CDialog*, HWND> g_dlgParents;
 static std::map<CPropertyPage*, PROPSHEETPAGEW> g_propertyPagePspMap;
+static std::map<HWND, CPropertySheet*> g_propertySheetMap;
+static std::map<CPropertySheet*, CString> g_propertySheetCaptions;
+static thread_local CPropertySheet* g_pendingPropertySheet = nullptr;
 
 namespace {
 static const AFX_MSGMAP* EmptyMessageMap() {
@@ -56,6 +60,14 @@ struct CPropertyPageAccess : CPropertyPage {
 struct CPropertySheetAccess : CPropertySheet {
     using CPropertySheet::_propertysheet_padding;
 };
+
+struct CDialogExBackgroundState {
+    int location = 0;
+    bool ownsBitmap = false;
+    HBRUSH brush = nullptr;
+};
+
+static std::map<CDialogEx*, CDialogExBackgroundState> g_dialogExBackgroundState;
 
 static CDialogExAccess* DialogExAccess(CDialogEx* pThis) {
     return static_cast<CDialogExAccess*>(pThis);
@@ -78,33 +90,37 @@ extern "C" void MS_ABI impl__CommonConstruct_CDialogEx__IEAAXXZ(CDialogEx* pThis
 
 // Default constructor
 // Ordinal: 448
-extern "C" void MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
+extern "C" void* MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
     // Zero initialize the object
     pThis->m_hWnd = nullptr;
     pThis->m_lpszTemplateName = nullptr;
     pThis->m_nIDHelp = 0;
+    g_dlgParents.erase(pThis);
+    return pThis;
 }
 
 // Constructor with resource ID
 // Ordinal: 446
-extern "C" void MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
+extern "C" void* MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
-    (void)pParentWnd;
     pThis->m_hWnd = nullptr;
     pThis->m_lpszTemplateName = MAKEINTRESOURCEW(nIDTemplate);
     pThis->m_nIDHelp = nIDTemplate;
+    g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
+    return pThis;
 }
 
 // Constructor with template name
 // Ordinal: 447
-extern "C" void MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
+extern "C" void* MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
-    (void)pParentWnd;
     pThis->m_hWnd = nullptr;
     pThis->m_lpszTemplateName = lpszTemplateName;
     pThis->m_nIDHelp = 0;
+    g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
+    return pThis;
 }
 
 // Destructor
@@ -117,6 +133,7 @@ extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
     }
     if (pThis) {
         g_dlgIndirectTemplates.erase(pThis);
+        g_dlgParents.erase(pThis);
     }
 }
 
@@ -137,8 +154,9 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     }
 
     // Get parent window
+    auto parentIt = g_dlgParents.find(pThis);
     CWnd* pParent = AfxGetMainWnd();
-    HWND hWndParent = pParent ? pParent->m_hWnd : nullptr;
+    HWND hWndParent = parentIt != g_dlgParents.end() ? parentIt->second : (pParent ? pParent->m_hWnd : nullptr);
 
     // Store the CDialog pointer so the dialog proc can find it
     // Use a thread-local for the pending dialog
@@ -182,6 +200,7 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
     }
 
     HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
+    g_dlgParents[pThis] = hWndParent;
 
     // Store template name
     pThis->m_lpszTemplateName = lpszTemplateName;
@@ -367,10 +386,10 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialog__KAPEBUAFX_M
 // Symbol: ?InitModalIndirect@CDialog@@QEAAHPEAXPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__InitModalIndirect_CDialog__QEAAHPEAXPEAVCWnd___Z(
     CDialog* pThis, void* lpDialogTemplate, CWnd* pParentWnd) {
-    (void)pParentWnd;
     if (!pThis || !lpDialogTemplate) return FALSE;
     pThis->m_lpszTemplateName = nullptr;
     g_dlgIndirectTemplates[pThis] = static_cast<const DLGTEMPLATE*>(lpDialogTemplate);
+    g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     return TRUE;
 }
 
@@ -470,6 +489,19 @@ extern "C" int MS_ABI impl__SetOccDialogInfo_CDialog__MEAAHPEAU_AFX_OCC_DIALOG_I
     return TRUE;
 }
 
+// Symbol: ?OnSetFont@CDialog@@IEAAXPEAVCFont@@H@Z
+extern "C" void MS_ABI impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(
+    CDialog* pThis, CFont* pFont, int bRedraw) {
+    if (!pThis || !pThis->m_hWnd || !pFont) return;
+    ::SendMessageW(pThis->m_hWnd, WM_SETFONT, (WPARAM)pFont->GetSafeHandle(), (LPARAM)bRedraw);
+}
+
+// Symbol: ?OnSetFont@CDialog@@UEAAXPEAVCFont@@@Z
+extern "C" void MS_ABI impl__OnSetFont_CDialog__UEAAXPEAVCFont___Z(
+    CDialog* pThis, CFont* pFont) {
+    impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(pThis, pFont, TRUE);
+}
+
 static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     CDialog* pDlg = nullptr;
@@ -529,25 +561,28 @@ static INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 // =============================================================================
 
 // CDialogEx default constructor
-extern "C" void MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
+extern "C" void* MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
     impl___0CDialog__QEAA_XZ(pThis);
     impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
+    return pThis;
 }
 
 // CDialogEx constructor with ID
-extern "C" void MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
+extern "C" void* MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
     CDialogEx* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
     impl___0CDialog__QEAA_IPEAVCWnd___Z(pThis, nIDTemplate, pParentWnd);
     impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
+    return pThis;
 }
 
 // CDialogEx constructor with template name
-extern "C" void MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
+extern "C" void* MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
     CDialogEx* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
     impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(pThis, lpszTemplateName, pParentWnd);
     impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
+    return pThis;
 }
 
 // Symbol: ?CommonConstruct@CDialogEx@@IEAAXXZ
@@ -556,6 +591,7 @@ extern "C" void MS_ABI impl__CommonConstruct_CDialogEx__IEAAXXZ(CDialogEx* pThis
     CDialogExAccess* access = DialogExAccess(pThis);
     access->m_clrBackground = GetSysColor(COLOR_BTNFACE);
     access->m_hBackgroundImage = nullptr;
+    g_dialogExBackgroundState[pThis] = CDialogExBackgroundState();
 }
 
 // Symbol: ?GetMessageMap@CDialogEx@@MEBAPEBUAFX_MSGMAP@@XZ
@@ -611,11 +647,17 @@ extern "C" int MS_ABI impl__OnCommand_CDialogEx__MEAAH_K_J_Z(
 // Symbol: ?OnCtlColor@CDialogEx@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
 extern "C" HBRUSH MS_ABI impl__OnCtlColor_CDialogEx__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
     CDialogEx* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
-    (void)pThis;
-    (void)pDC;
     (void)pWnd;
     (void)nCtlColor;
-    return GetSysColorBrush(COLOR_BTNFACE);
+    if (!pThis) return GetSysColorBrush(COLOR_BTNFACE);
+    if (pDC && pDC->GetSafeHdc()) {
+        ::SetBkColor(pDC->GetSafeHdc(), DialogExAccess(pThis)->m_clrBackground);
+    }
+    auto& state = g_dialogExBackgroundState[pThis];
+    if (!state.brush) {
+        state.brush = ::CreateSolidBrush(DialogExAccess(pThis)->m_clrBackground);
+    }
+    return state.brush ? state.brush : GetSysColorBrush(COLOR_BTNFACE);
 }
 
 // Symbol: ?OnDestroy@CDialogEx@@IEAAXXZ
@@ -623,13 +665,54 @@ extern "C" void MS_ABI impl__OnDestroy_CDialogEx__IEAAXXZ(CDialogEx* pThis) {
     if (pThis && pThis->m_hWnd) {
         g_dlgMap.erase(pThis->m_hWnd);
     }
+    auto it = g_dialogExBackgroundState.find(pThis);
+    if (it != g_dialogExBackgroundState.end()) {
+        if (it->second.brush) ::DeleteObject(it->second.brush);
+        if (it->second.ownsBitmap && DialogExAccess(pThis)->m_hBackgroundImage) {
+            ::DeleteObject(DialogExAccess(pThis)->m_hBackgroundImage);
+            DialogExAccess(pThis)->m_hBackgroundImage = nullptr;
+        }
+        g_dialogExBackgroundState.erase(it);
+    }
 }
 
 // Symbol: ?OnEraseBkgnd@CDialogEx@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CDialogEx__IEAAHPEAVCDC___Z(CDialogEx* pThis, CDC* pDC) {
-    (void)pThis;
-    (void)pDC;
-    return FALSE;
+    if (!pThis || !pDC || !pDC->GetSafeHdc() || !pThis->GetSafeHwnd()) return FALSE;
+
+    RECT client;
+    if (!::GetClientRect(pThis->GetSafeHwnd(), &client)) return FALSE;
+    HDC hdc = pDC->GetSafeHdc();
+    auto& state = g_dialogExBackgroundState[pThis];
+    if (!state.brush) state.brush = ::CreateSolidBrush(DialogExAccess(pThis)->m_clrBackground);
+    if (state.brush) ::FillRect(hdc, &client, state.brush);
+
+    HBITMAP bitmap = static_cast<HBITMAP>(DialogExAccess(pThis)->m_hBackgroundImage);
+    if (!bitmap) return state.brush != nullptr;
+
+    BITMAP bm;
+    if (::GetObjectW(bitmap, sizeof(bm), &bm) != sizeof(bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0) return FALSE;
+    HDC source = ::CreateCompatibleDC(hdc);
+    if (!source) return FALSE;
+    HGDIOBJ old = ::SelectObject(source, bitmap);
+    int x = 0;
+    int y = 0;
+    if (state.location == 2) x = client.right - bm.bmWidth;
+    else if (state.location == 3) y = client.bottom - bm.bmHeight;
+    else if (state.location == 4) { x = client.right - bm.bmWidth; y = client.bottom - bm.bmHeight; }
+
+    if (state.location == 0) {
+        for (int tileY = 0; tileY < client.bottom; tileY += bm.bmHeight) {
+            for (int tileX = 0; tileX < client.right; tileX += bm.bmWidth) {
+                ::BitBlt(hdc, tileX, tileY, bm.bmWidth, bm.bmHeight, source, 0, 0, SRCCOPY);
+            }
+        }
+    } else {
+        ::BitBlt(hdc, x, y, bm.bmWidth, bm.bmHeight, source, 0, 0, SRCCOPY);
+    }
+    ::SelectObject(source, old);
+    ::DeleteDC(source);
+    return TRUE;
 }
 
 // Symbol: ?OnNcActivate@CDialogEx@@IEAAHH@Z
@@ -671,29 +754,41 @@ extern "C" void MS_ABI impl__SetBackgroundColor_CDialogEx__QEAAXKH_Z(
     CDialogEx* pThis, COLORREF color, BOOL bRepaint) {
     if (!pThis) return;
     DialogExAccess(pThis)->m_clrBackground = color;
+    auto& state = g_dialogExBackgroundState[pThis];
+    if (state.brush) ::DeleteObject(state.brush);
+    state.brush = ::CreateSolidBrush(color);
     if (bRepaint && pThis->m_hWnd) {
         InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
     }
 }
 
 // Symbol: ?SetBackgroundImage@CDialogEx@@QEAAHIW4BackgroundLocation@1@H@Z
+extern "C" void MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W4BackgroundLocation_1_HH_Z(
+    CDialogEx* pThis, HBITMAP hBitmap, int backgroundLocation, BOOL bAutoDestroy, BOOL bRepaint);
+
 extern "C" int MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAHIW4BackgroundLocation_1_H_Z(
     CDialogEx* pThis, UINT uiBmpResId, int backgroundLocation, BOOL bRepaint) {
-    (void)uiBmpResId;
-    (void)backgroundLocation;
-    if (bRepaint && pThis && pThis->m_hWnd) {
-        InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
-    }
-    return FALSE;
+    if (!pThis || uiBmpResId == 0) return FALSE;
+    HINSTANCE instance = AfxGetInstanceHandle();
+    if (!instance) instance = ::GetModuleHandleW(nullptr);
+    HBITMAP bitmap = static_cast<HBITMAP>(::LoadImageW(
+        instance, MAKEINTRESOURCEW(uiBmpResId), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    if (!bitmap) return FALSE;
+    impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W4BackgroundLocation_1_HH_Z(
+        pThis, bitmap, backgroundLocation, TRUE, bRepaint);
+    return TRUE;
 }
 
 // Symbol: ?SetBackgroundImage@CDialogEx@@QEAAXPEAUHBITMAP__@@W4BackgroundLocation@1@HH@Z
 extern "C" void MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W4BackgroundLocation_1_HH_Z(
     CDialogEx* pThis, HBITMAP hBitmap, int backgroundLocation, BOOL bAutoDestroy, BOOL bRepaint) {
-    (void)backgroundLocation;
-    (void)bAutoDestroy;
     if (!pThis) return;
+    auto& state = g_dialogExBackgroundState[pThis];
+    HBITMAP oldBitmap = static_cast<HBITMAP>(DialogExAccess(pThis)->m_hBackgroundImage);
+    if (oldBitmap && oldBitmap != hBitmap && state.ownsBitmap) ::DeleteObject(oldBitmap);
     DialogExAccess(pThis)->m_hBackgroundImage = hBitmap;
+    state.location = backgroundLocation;
+    state.ownsBitmap = bAutoDestroy != FALSE;
     if (bRepaint && pThis->m_hWnd) {
         InvalidateRect(pThis->m_hWnd, nullptr, TRUE);
     }
@@ -1026,12 +1121,8 @@ CPropertySheet* CPropertyPage::GetParentSheet() {
     if (!m_hWnd) return nullptr;
     HWND hParent = ::GetParent(m_hWnd);
     if (!hParent) return nullptr;
-    // Try to find CPropertySheet from the window map
-    auto it = g_dlgMap.find(hParent);
-    if (it != g_dlgMap.end()) {
-        return dynamic_cast<CPropertySheet*>(reinterpret_cast<CWnd*>(it->second));
-    }
-    return nullptr;
+    auto it = g_propertySheetMap.find(hParent);
+    return it != g_propertySheetMap.end() ? it->second : nullptr;
 }
 
 // Symbol: ?AllocPSP@CPropertyPage@@IEAAXK@Z
@@ -1083,11 +1174,24 @@ extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertyPage__IEAAPEAUHBRUSH____PEAVC
 // Symbol: ?OnNotify@CPropertyPage@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CPropertyPage__MEAAH_K_JPEA_J_Z(
     CPropertyPage* pThis, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
-    (void)pThis;
     (void)wParam;
-    (void)lParam;
-    if (pResult) *pResult = 0;
-    return FALSE;
+    if (!pThis || !lParam) return FALSE;
+    NMHDR* header = reinterpret_cast<NMHDR*>(lParam);
+    LRESULT result = 0;
+    switch (header->code) {
+    case PSN_SETACTIVE: result = pThis->OnSetActive() ? 0 : -1; break;
+    case PSN_KILLACTIVE: result = pThis->OnKillActive() ? FALSE : TRUE; break;
+    case PSN_APPLY: result = pThis->OnApply() ? PSNRET_NOERROR : PSNRET_INVALID; break;
+    case PSN_RESET: pThis->OnReset(); break;
+    case PSN_QUERYCANCEL: result = pThis->OnQueryCancel() ? FALSE : TRUE; break;
+    case PSN_WIZBACK: result = pThis->OnWizardBack(); break;
+    case PSN_WIZNEXT: result = pThis->OnWizardNext(); break;
+    case PSN_WIZFINISH: result = pThis->OnWizardFinish() ? FALSE : TRUE; break;
+    default: return FALSE;
+    }
+    if (pResult) *pResult = result;
+    if (pThis->GetSafeHwnd()) ::SetWindowLongPtrW(pThis->GetSafeHwnd(), DWLP_MSGRESULT, result);
+    return TRUE;
 }
 
 // Symbol: ?OnWizardFinishEx@CPropertyPage@@UEAAPEAUHWND__@@XZ
@@ -1133,9 +1237,7 @@ extern "C" void MS_ABI impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PRO
 // Symbol: ?PreTranslateMessage@CPropertyPage@@MEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CPropertyPage__MEAAHPEAUtagMSG___Z(
     CPropertyPage* pThis, MSG* pMsg) {
-    (void)pThis;
-    (void)pMsg;
-    return FALSE;
+    return impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(pThis, pMsg);
 }
 
 // =============================================================================
@@ -1148,8 +1250,10 @@ IMPLEMENT_DYNAMIC(CPropertySheet, CWnd)
 static int CALLBACK PropSheetCallback(HWND hDlg, UINT message, LPARAM lParam) {
     (void)lParam;
     if (message == PSCB_INITIALIZED) {
-        // Sheet is initialized
-        (void)hDlg;
+        if (g_pendingPropertySheet) {
+            g_pendingPropertySheet->m_hWnd = hDlg;
+            g_propertySheetMap[hDlg] = g_pendingPropertySheet;
+        }
     }
     return 0;
 }
@@ -1239,7 +1343,13 @@ CPropertySheet::CPropertySheet(unsigned int nIDCaption, CWnd* pParentWnd, unsign
     : CWnd(), m_pszCaption(nullptr), m_pParentWnd(pParentWnd),
       m_nActivePage(iSelectPage), m_bWizardMode(FALSE), m_nPageCount(0)
 {
-    (void)nIDCaption;  // Would load from resources
+    wchar_t caption[256] = {};
+    HINSTANCE instance = AfxGetInstanceHandle();
+    if (!instance) instance = ::GetModuleHandleW(nullptr);
+    if (nIDCaption && ::LoadStringW(instance, nIDCaption, caption, 256) > 0) {
+        g_propertySheetCaptions[this] = caption;
+        m_pszCaption = static_cast<const wchar_t*>(g_propertySheetCaptions[this]);
+    }
     memset(m_pages, 0, sizeof(m_pages));
     memset(_propertysheet_padding, 0, sizeof(_propertysheet_padding));
 }
@@ -1251,6 +1361,47 @@ CPropertySheet::CPropertySheet(const wchar_t* pszCaption, CWnd* pParentWnd, unsi
 {
     memset(m_pages, 0, sizeof(m_pages));
     memset(_propertysheet_padding, 0, sizeof(_propertysheet_padding));
+}
+
+// =============================================================================
+// CPropertySheet constructor thunks (ords 910-913)
+// These are placement-new wrappers that call the C++ ctors defined above.
+// =============================================================================
+
+// Symbol: ??0CPropertySheet@@QEAA@IPEAVCWnd@@I@Z
+// Constructor: CPropertySheet::CPropertySheet(unsigned int, CWnd*, unsigned int)
+extern "C" void* MS_ABI impl___0CPropertySheet__QEAA_IPEAVCWnd__I_Z(
+    void* pThis, unsigned int nIDCaption, CWnd* pParentWnd, unsigned int iSelectPage) {
+    return new(pThis) CPropertySheet(nIDCaption, pParentWnd, iSelectPage);
+}
+
+// Symbol: ??0CPropertySheet@@QEAA@IPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@1@Z
+// Constructor: CPropertySheet::CPropertySheet(unsigned int, CWnd*, unsigned int, HBITMAP, HPALETTE, HBITMAP)
+extern "C" void* MS_ABI impl___0CPropertySheet__QEAA_IPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____1_Z(
+    void* pThis, unsigned int nIDCaption, CWnd* pParentWnd, unsigned int iSelectPage,
+    HBITMAP hbmWatermark, HPALETTE hpalWatermark, HBITMAP hbmHeader) {
+    (void)hbmWatermark;
+    (void)hpalWatermark;
+    (void)hbmHeader;
+    return new(pThis) CPropertySheet(nIDCaption, pParentWnd, iSelectPage);
+}
+
+// Symbol: ??0CPropertySheet@@QEAA@PEB_WPEAVCWnd@@I@Z
+// Constructor: CPropertySheet::CPropertySheet(wchar_t const*, CWnd*, unsigned int)
+extern "C" void* MS_ABI impl___0CPropertySheet__QEAA_PEB_WPEAVCWnd__I_Z(
+    void* pThis, const wchar_t* pszCaption, CWnd* pParentWnd, unsigned int iSelectPage) {
+    return new(pThis) CPropertySheet(pszCaption, pParentWnd, iSelectPage);
+}
+
+// Symbol: ??0CPropertySheet@@QEAA@PEB_WPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@2@Z
+// Constructor: CPropertySheet::CPropertySheet(wchar_t const*, CWnd*, unsigned int, HBITMAP, HPALETTE, HBITMAP)
+extern "C" void* MS_ABI impl___0CPropertySheet__QEAA_PEB_WPEAVCWnd__IPEAUHBITMAP____PEAUHPALETTE____2_Z(
+    void* pThis, const wchar_t* pszCaption, CWnd* pParentWnd, unsigned int iSelectPage,
+    HBITMAP hbmWatermark, HPALETTE hpalWatermark, HBITMAP hbmHeader) {
+    (void)hbmWatermark;
+    (void)hpalWatermark;
+    (void)hbmHeader;
+    return new(pThis) CPropertySheet(pszCaption, pParentWnd, iSelectPage);
 }
 
 // Symbol: ?CommonConstruct@CPropertySheet@@QEAAXPEAVCWnd@@I@Z
@@ -1279,8 +1430,14 @@ extern "C" void MS_ABI impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__IPEA
 // Symbol: ?Construct@CPropertySheet@@QEAAXIPEAVCWnd@@I@Z
 extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXIPEAVCWnd__I_Z(
     CPropertySheet* pThis, UINT nIDCaption, CWnd* pParentWnd, UINT iSelectPage) {
-    (void)nIDCaption;
     impl__CommonConstruct_CPropertySheet__QEAAXPEAVCWnd__I_Z(pThis, pParentWnd, iSelectPage);
+    wchar_t caption[256] = {};
+    HINSTANCE instance = AfxGetInstanceHandle();
+    if (!instance) instance = ::GetModuleHandleW(nullptr);
+    if (pThis && nIDCaption && ::LoadStringW(instance, nIDCaption, caption, 256) > 0) {
+        g_propertySheetCaptions[pThis] = caption;
+        pThis->m_pszCaption = static_cast<const wchar_t*>(g_propertySheetCaptions[pThis]);
+    }
 }
 
 // Symbol: ?Construct@CPropertySheet@@QEAAXIPEAVCWnd@@IPEAUHBITMAP__@@PEAUHPALETTE__@@1@Z
@@ -1309,7 +1466,14 @@ extern "C" void MS_ABI impl__Construct_CPropertySheet__QEAAXPEB_WPEAVCWnd__IPEAU
 
 // Symbol: ?BuildPropPageArray@CPropertySheet@@UEAAXXZ
 extern "C" void MS_ABI impl__BuildPropPageArray_CPropertySheet__UEAAXXZ(CPropertySheet* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    for (int i = 0; i < pThis->m_nPageCount; ++i) {
+        CPropertyPage* page = pThis->m_pages[i];
+        if (!page) continue;
+        PROPSHEETPAGEW psp;
+        impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PROPSHEETPAGEW__H_Z(
+            page, psp, pThis->m_bWizardMode);
+    }
 }
 
 // Symbol: ?ContinueModal@CPropertySheet@@UEAAHXZ
@@ -1319,8 +1483,14 @@ extern "C" int MS_ABI impl__ContinueModal_CPropertySheet__UEAAHXZ(CPropertySheet
 
 // Symbol: ?EnableStackedTabs@CPropertySheet@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableStackedTabs_CPropertySheet__QEAAXH_Z(CPropertySheet* pThis, int bStacked) {
-    (void)pThis;
-    (void)bStacked;
+    if (!pThis || !pThis->GetSafeHwnd()) return;
+    HWND tab = PropSheet_GetTabControl(pThis->GetSafeHwnd());
+    if (!tab) return;
+    LONG_PTR style = ::GetWindowLongPtrW(tab, GWL_STYLE);
+    style = bStacked ? (style | TCS_MULTILINE) : (style & ~static_cast<LONG_PTR>(TCS_MULTILINE));
+    ::SetWindowLongPtrW(tab, GWL_STYLE, style);
+    ::SetWindowPos(tab, nullptr, 0, 0, 0, 0,
+                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 }
 
 // Symbol: ?GetMessageMap@CPropertySheet@@MEBAPEBUAFX_MSGMAP@@XZ
@@ -1524,7 +1694,12 @@ intptr_t CPropertySheet::DoModal() {
     psh.pfnCallback = PropSheetCallback;
 
     // Show the property sheet
+    g_pendingPropertySheet = this;
     INT_PTR nResult = PropertySheetW(&psh);
+    g_pendingPropertySheet = nullptr;
+    for (auto it = g_propertySheetMap.begin(); it != g_propertySheetMap.end();) {
+        if (it->second == this) it = g_propertySheetMap.erase(it); else ++it;
+    }
 
     delete[] pPages;
 
@@ -1541,9 +1716,6 @@ int CPropertySheet::Create(CWnd* pParentWnd, unsigned long dwStyle, unsigned lon
     if (m_nPageCount == 0) {
         return FALSE;
     }
-
-    (void)dwStyle;
-    (void)dwExStyle;
 
     HINSTANCE hInst = AfxGetInstanceHandle();
     if (!hInst) {
@@ -1579,8 +1751,19 @@ int CPropertySheet::Create(CWnd* pParentWnd, unsigned long dwStyle, unsigned lon
     psh.pfnCallback = PropSheetCallback;
 
     // Create the modeless property sheet
+    g_pendingPropertySheet = this;
     m_hWnd = (HWND)PropertySheetW(&psh);
+    g_pendingPropertySheet = nullptr;
     m_pParentWnd = pParentWnd;
+
+    if (m_hWnd) {
+        if (dwStyle != 0xFFFFFFFFUL) ::SetWindowLongPtrW(m_hWnd, GWL_STYLE, static_cast<LONG_PTR>(dwStyle));
+        if (dwExStyle != 0) ::SetWindowLongPtrW(m_hWnd, GWL_EXSTYLE, static_cast<LONG_PTR>(dwExStyle));
+        if (dwStyle != 0xFFFFFFFFUL || dwExStyle != 0) {
+            ::SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
+                           SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        }
+    }
 
     delete[] pPages;
 
@@ -1644,10 +1827,12 @@ extern "C" LRESULT MS_ABI impl__OnCommandHelp_CPropertySheet__IEAA_J_K_J_Z(
 extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertySheet__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
     CPropertySheet* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
     (void)pThis;
-    (void)pDC;
     (void)pWnd;
-    (void)nCtlColor;
-    return nullptr;
+    int colorIndex = nCtlColor == CTLCOLOR_EDIT ? COLOR_WINDOW : COLOR_BTNFACE;
+    if (pDC && pDC->GetSafeHdc()) {
+        ::SetBkColor(pDC->GetSafeHdc(), ::GetSysColor(colorIndex));
+    }
+    return ::GetSysColorBrush(colorIndex);
 }
 
 // Symbol: ?OnGetMinMaxInfo@CPropertySheet@@IEAAXPEAUtagMINMAXINFO@@@Z
@@ -1677,10 +1862,9 @@ extern "C" int MS_ABI impl__OnNcCreate_CPropertySheet__IEAAHPEAUtagCREATESTRUCTW
 // Symbol: ?OnSetDefID@CPropertySheet@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnSetDefID_CPropertySheet__IEAA_J_K_J_Z(
     CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)pThis;
-    (void)wParam;
-    (void)lParam;
-    return 0;
+    return pThis && pThis->GetSafeHwnd()
+        ? ::DefWindowProcW(pThis->GetSafeHwnd(), DM_SETDEFID, wParam, lParam)
+        : 0;
 }
 
 // Symbol: ?OnSysCommand@CPropertySheet@@IEAAXI_J@Z
@@ -1699,4 +1883,46 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CPropertySheet__UEAAHPEAUtagMSG_
         return ::IsDialogMessageW(pThis->m_hWnd, pMsg);
     }
     return FALSE;
+}
+
+// =============================================================================
+// CCommonDialog::OnOK / OnCancel / OnPaint / OnHelpInfo
+// =============================================================================
+
+// Symbol: ?OnOK@CCommonDialog@@MEAAXXZ
+// Ordinal: 10703
+extern "C" void MS_ABI impl__OnOK_CCommonDialog__MEAAXXZ(CDialog* pThis) {
+    (void)pThis;
+    // Retail MFC: CCommonDialog has no OK button — must NOT close the dialog
+    // (deliberately different from CDialog::OnOK, which calls EndDialog(IDOK)).
+}
+
+// Symbol: ?OnCancel@CCommonDialog@@MEAAXXZ
+// Ordinal: 8730
+extern "C" void MS_ABI impl__OnCancel_CCommonDialog__MEAAXXZ(CDialog* pThis) {
+    (void)pThis;
+    // Retail MFC: CCommonDialog has no Cancel button — must NOT close the dialog
+    // (deliberately different from CDialog::OnCancel, which calls EndDialog(IDCANCEL)).
+}
+
+// Symbol: ?OnPaint@CCommonDialog@@IEAAXXZ
+// Ordinal: 10724
+extern "C" void MS_ABI impl__OnPaint_CCommonDialog__IEAAXXZ(CDialog* pThis) {
+    // Mirror CDialog::OnPaint: BeginPaint/EndPaint guard on pThis->m_hWnd
+    if (!pThis || !pThis->m_hWnd) return;
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(pThis->m_hWnd, &ps);
+    if (hdc) {
+        EndPaint(pThis->m_hWnd, &ps);
+    }
+}
+
+// Symbol: ?OnHelpInfo@CCommonDialog@@IEAAHPEAUtagHELPINFO@@@Z
+// Ordinal: 10082
+extern "C" int MS_ABI impl__OnHelpInfo_CCommonDialog__IEAAHPEAUtagHELPINFO___Z(
+    CDialog* pThis, HELPINFO* pHelpInfo) {
+    (void)pThis;
+    (void)pHelpInfo;
+    // Mirror CWnd::OnHelpInfo — at minimum return TRUE (handled).
+    return TRUE;
 }

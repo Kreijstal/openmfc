@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-23",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2263,
+      "symbol": "?AfxLoadString@@YAHIPEADI@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2264,
+      "symbol": "?AfxLoadSysColorBitmap@@YAPEAUHBITMAP__@@PEAUHINSTANCE__@@PEAUHRSRC__@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2265,
+      "symbol": "?AfxLockGlobals@@YAXH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2266,
+      "symbol": "?AfxLockTempMaps@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2267,
+      "symbol": "?afxMenuHash@@3VCMenuHash@@A"
+    },
+    {
+      "class": null,
+      "ordinal": 2268,
+      "symbol": "?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2271,
+      "symbol": "?AfxOleCanExitApp@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2272,
+      "symbol": "?AfxOleGetUserCtrl@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2273,
+      "symbol": "?AfxOleInit@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2274,
+      "symbol": "?AfxOleInprocRegisterHelper@@YAHPEAUHKEY__@@0H@Z"
+    }
+  ],
+  "title": "global_residuals shard 23/95: global"
+}

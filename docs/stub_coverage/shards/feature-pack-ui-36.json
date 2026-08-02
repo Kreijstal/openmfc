@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-36",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CFrameImpl",
+      "ordinal": 12428,
+      "symbol": "?RemoveTearOffToolbar@CFrameImpl@@IEAAXPEAVCBasePane@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 12556,
+      "symbol": "?RestorePosition@CFrameImpl@@IEAAXAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 12633,
+      "symbol": "?SaveDockState@CFrameImpl@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 12688,
+      "symbol": "?SaveTearOffMenus@CFrameImpl@@IEAAXH@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 12693,
+      "symbol": "?SaveUserToolbars@CFrameImpl@@IEAAXH@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 13140,
+      "symbol": "?SetDockState@CFrameImpl@@IEAAXAEBVCDockState@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 13235,
+      "symbol": "?SetHighlightedSysButton@CFrameImpl@@IEAAXI@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 13386,
+      "symbol": "?SetNewUserToolBarRTC@CFrameImpl@@QEAAXPEAUCRuntimeClass@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 13727,
+      "symbol": "?SetupToolbarMenu@CFrameImpl@@IEAAXAEAVCMenu@@II@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 13848,
+      "symbol": "?ShowQuickCustomizePane@CFrameImpl@@IEAAXPEAVCMFCPopupMenu@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 36/439: CFrameImpl"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-60",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10709,
+      "symbol": "?OnOK@COutlookOptionsDlg@@MEAAXXZ"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10923,
+      "symbol": "?OnReset@COutlookOptionsDlg@@IEAAXXZ"
+    },
+    {
+      "class": "COutlookOptionsDlg",
+      "ordinal": 10970,
+      "symbol": "?OnSelchange@COutlookOptionsDlg@@IEAAXXZ"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 1373,
+      "symbol": "??1CPaneDialog@@UEAA@XZ"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 3139,
+      "symbol": "?Create@CPaneDialog@@QEAAHPEB_WPEAVCWnd@@H0IIKK@Z"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 3140,
+      "symbol": "?Create@CPaneDialog@@QEAAHPEB_WPEAVCWnd@@HIII@Z"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 3476,
+      "symbol": "?CreateObject@CPaneDialog@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 7569,
+      "symbol": "?HandleInitDialog@CPaneDialog@@QEAA_J_K_J@Z"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 9783,
+      "symbol": "?OnEraseBkgnd@CPaneDialog@@QEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CPaneDialog",
+      "ordinal": 10311,
+      "symbol": "?OnLButtonDblClk@CPaneDialog@@QEAAXIVCPoint@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 60/91: CPaneDialog, COutlookOptionsDlg"
+}

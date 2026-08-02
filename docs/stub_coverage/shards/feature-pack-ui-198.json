@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-198",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8634,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonButton@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 8834,
+      "symbol": "?OnClick@CMFCRibbonButton@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 9444,
+      "symbol": "?OnDrawOnList@CMFCRibbonButton@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10228,
+      "symbol": "?OnKey@CMFCRibbonButton@@MEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10344,
+      "symbol": "?OnLButtonDown@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10394,
+      "symbol": "?OnLButtonUp@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 10493,
+      "symbol": "?OnMouseMove@CMFCRibbonButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 11201,
+      "symbol": "?OnShowPopupMenu@CMFCRibbonButton@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 12313,
+      "symbol": "?RemoveAllSubItems@CMFCRibbonButton@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonButton",
+      "ordinal": 12420,
+      "symbol": "?RemoveSubItem@CMFCRibbonButton@@QEAAHH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 198/439: CMFCRibbonButton"
+}

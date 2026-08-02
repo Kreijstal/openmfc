@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-22",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CRichEditView",
+      "ordinal": 10971,
+      "symbol": "?OnSelChange@CRichEditView@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11683,
+      "symbol": "?PaginateTo@CRichEditView@@IEAAHPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11802,
+      "symbol": "?PreCreateWindow@CRichEditView@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11979,
+      "symbol": "?QueryAcceptData@CRichEditView@@MEAAJPEAUIDataObject@@PEAGKHPEAX@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 12613,
+      "symbol": "?SameAsSelected@CRichEditView@@IEAAHPEB_WHH@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 13805,
+      "symbol": "?ShowContainerUI@CRichEditView@@QEAAJH@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuide",
+      "ordinal": 4027,
+      "symbol": "?Draw@CSmartDockingGroupGuide@@MEAAXAEAVCDC@@H@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuidesManager",
+      "ordinal": 4043,
+      "symbol": "?DrawCentralGroupGuides@CSmartDockingGroupGuidesManager@@IEAAXAEAVCDC@@AEAVCBrush@@1VCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuidesWnd",
+      "ordinal": 10761,
+      "symbol": "?OnPaint@CSmartDockingGroupGuidesWnd@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 10762,
+      "symbol": "?OnPaint@CSmartDockingHighlighterWnd@@IEAAXXZ"
+    }
+  ],
+  "title": "gdi_drawing shard 22/24: CRichEditView, CSmartDockingGroupGuide, CSmartDockingGroupGuidesManager"
+}

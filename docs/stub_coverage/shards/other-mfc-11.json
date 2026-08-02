@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-11",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 3343,
+      "symbol": "?CreateObject@CAutoHideDockSite@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 3882,
+      "symbol": "?DockPane@CAutoHideDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 4887,
+      "symbol": "?GetAlignRect@CAutoHideDockSite@@QEBAXAEAVCRect@@@Z"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 8347,
+      "symbol": "?m_nExtraSpace@CAutoHideDockSite@@1HA"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 12476,
+      "symbol": "?RepositionPanes@CAutoHideDockSite@@UEAAXAEAVCRect@@@Z"
+    },
+    {
+      "class": "CAutoHideDockSite",
+      "ordinal": 14094,
+      "symbol": "?UnSetAutoHideMode@CAutoHideDockSite@@QEAAXPEAVCMFCAutoHideBar@@@Z"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 1949,
+      "symbol": "?AddRef@CBlobProperty@@UEAAKXZ"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 4933,
+      "symbol": "?GetBlob@CBlobProperty@@QEAAPEAXXZ"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 5012,
+      "symbol": "?GetClassID@CBlobProperty@@UEAAJPEAU_GUID@@@Z"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 6683,
+      "symbol": "?GetSizeMax@CBlobProperty@@UEAAJPEAT_ULARGE_INTEGER@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 11/91: CAutoHideDockSite, CBlobProperty"
+}

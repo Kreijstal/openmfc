@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-255",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 12499,
+      "symbol": "?ResetCommands@CMFCRibbonQuickAccessToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 12873,
+      "symbol": "?SetACCData@CMFCRibbonQuickAccessToolBar@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 13058,
+      "symbol": "?SetCommands@CMFCRibbonQuickAccessToolBar@@IEAAXPEAVCMFCRibbonBar@@AEBV?$CList@II@@PEAVCMFCRibbonQuickAccessCustomizeButton@@@Z"
+    },
+    {
+      "class": "CMFCRibbonQuickAccessToolBar",
+      "ordinal": 13059,
+      "symbol": "?SetCommands@CMFCRibbonQuickAccessToolBar@@IEAAXPEAVCMFCRibbonBar@@AEBV?$CList@II@@PEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 3422,
+      "symbol": "?CreateObject@CMFCRibbonRecentFilesList@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 4490,
+      "symbol": "?FillList@CMFCRibbonRecentFilesList@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 6194,
+      "symbol": "?GetRegularSize@CMFCRibbonRecentFilesList@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 8642,
+      "symbol": "?OnAfterChangeRect@CMFCRibbonRecentFilesList@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 9252,
+      "symbol": "?OnDraw@CMFCRibbonRecentFilesList@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonRecentFilesList",
+      "ordinal": 10436,
+      "symbol": "?OnMenuKey@CMFCRibbonRecentFilesList@@MEAAHI@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 255/439: CMFCRibbonRecentFilesList, CMFCRibbonQuickAccessToolBar"
+}

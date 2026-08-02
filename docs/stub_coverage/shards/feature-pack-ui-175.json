@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-175",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 9769,
+      "symbol": "?OnEraseBkgnd@CMFCPropertyPage@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 10171,
+      "symbol": "?OnInitDialog@CMFCPropertyPage@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 10553,
+      "symbol": "?OnNcActivate@CMFCPropertyPage@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 11021,
+      "symbol": "?OnSetActive@CMFCPropertyPage@@UEAAHXZ"
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 11883,
+      "symbol": "?PreTranslateMessage@CMFCPropertyPage@@UEAAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CMFCPropertyPage",
+      "ordinal": 12895,
+      "symbol": "?SetActiveMenu@CMFCPropertyPage@@IEAAXPEAVCMFCPopupMenu@@@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 1790,
+      "symbol": "?AddBar@CMFCReBar@@QEAAHPEAVCWnd@@KKPEB_WK@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 1791,
+      "symbol": "?AddBar@CMFCReBar@@QEAAHPEAVCWnd@@PEB_WPEAVCBitmap@@K@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 2589,
+      "symbol": "?CalcFixedLayout@CMFCReBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMFCReBar",
+      "ordinal": 3116,
+      "symbol": "?Create@CMFCReBar@@QEAAHPEAVCWnd@@KKI@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 175/439: CMFCPropertyPage, CMFCReBar"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-33",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CFrameImpl",
+      "ordinal": 7887,
+      "symbol": "?IsDockStateValid@CFrameImpl@@IEAAHAEBVCDockState@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 7916,
+      "symbol": "?IsHelpKey@CFrameImpl@@KAHPEAUtagMSG@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 7975,
+      "symbol": "?IsPrintPreview@CFrameImpl@@IEAAHXZ"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8034,
+      "symbol": "?IsUserDefinedToolbar@CFrameImpl@@IEBAHPEBVCMFCToolBar@@@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8092,
+      "symbol": "?LoadDockState@CFrameImpl@@IEAAXPEB_W@Z"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8121,
+      "symbol": "?LoadLargeIconsState@CFrameImpl@@IEAAHXZ"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8169,
+      "symbol": "?LoadTearOffMenus@CFrameImpl@@IEAAXXZ"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8175,
+      "symbol": "?LoadUserToolbars@CFrameImpl@@IEAAXXZ"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8327,
+      "symbol": "?m_lstFrames@CFrameImpl@@1V?$CList@PEAVCFrameWnd@@PEAV1@@@A"
+    },
+    {
+      "class": "CFrameImpl",
+      "ordinal": 8595,
+      "symbol": "?OnActivateApp@CFrameImpl@@IEAAXH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 33/439: CFrameImpl"
+}

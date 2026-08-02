@@ -14,6 +14,7 @@
 
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -89,9 +90,18 @@ CRuntimeClassLite g_rtc = {
 static void* MS_ABI slot_GetRuntimeClass(const void* /*pThis*/) {
     return &g_rtc;
 }
-static void MS_ABI slot_Serialize(void* /*pThis*/, void* /*ar*/) {}
-static void MS_ABI slot_AssertValid(const void* /*pThis*/) {}
-static void MS_ABI slot_Dump(const void* /*pThis*/, void* /*dc*/) {}
+static void MS_ABI slot_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
+static void MS_ABI slot_AssertValid(const void* pThis) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::AssertValid();
+}
+static void MS_ABI slot_Dump(const void* pThis, void* /*dc*/) {
+    if (!pThis) return;
+    static_cast<const CObject*>(pThis)->CObject::Dump();
+}
 
 // Slot 5: CMFCCaptionButton::GetRect — CRect returned by value (large struct
 // via hidden return pointer under the MS x64 ABI).

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-276",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 10175,
+      "symbol": "?OnInitDialog@CMFCStandardColorsPropertyPage@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 11252,
+      "symbol": "?OnSize@CMFCStandardColorsPropertyPage@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 2592,
+      "symbol": "?CalcFixedLayout@CMFCStatusBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 2858,
+      "symbol": "?CommandToIndex@CMFCStatusBar@@QEBAHI@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 3122,
+      "symbol": "?Create@CMFCStatusBar@@QEAAHPEAVCWnd@@KI@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 3258,
+      "symbol": "?CreateEx@CMFCStatusBar@@QEAAHPEAVCWnd@@KKI@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 3983,
+      "symbol": "?DoPaint@CMFCStatusBar@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 4295,
+      "symbol": "?EnablePaneDoubleClick@CMFCStatusBar@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 5151,
+      "symbol": "?GetCurrentFont@CMFCStatusBar@@IEBAPEAUHFONT__@@XZ"
+    },
+    {
+      "class": "CMFCStatusBar",
+      "ordinal": 5349,
+      "symbol": "?GetExtendedArea@CMFCStatusBar@@UEBAHAEAVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 276/439: CMFCStatusBar, CMFCStandardColorsPropertyPage"
+}

@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-12",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CBlobProperty",
+      "ordinal": 7875,
+      "symbol": "?IsDirty@CBlobProperty@@UEAAJXZ"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 8065,
+      "symbol": "?Load@CBlobProperty@@UEAAJPEAUIStream@@@Z"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 12002,
+      "symbol": "?QueryInterface@CBlobProperty@@UEAAJAEBU_GUID@@PEAPEAX@Z"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 12225,
+      "symbol": "?Release@CBlobProperty@@UEAAKXZ"
+    },
+    {
+      "class": "CBlobProperty",
+      "ordinal": 12614,
+      "symbol": "?Save@CBlobProperty@@UEAAJPEAUIStream@@H@Z"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 1950,
+      "symbol": "?AddRef@CBrowserControlSite@@MEAAKXZ"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 4275,
+      "symbol": "?EnableModeless@CBrowserControlSite@@MEAAJH@Z"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 4504,
+      "symbol": "?FilterDataObject@CBrowserControlSite@@MEAAJPEAUIDataObject@@PEAPEAU2@@Z"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 5285,
+      "symbol": "?GetDropTarget@CBrowserControlSite@@MEAAJPEAUIDropTarget@@PEAPEAU2@@Z"
+    },
+    {
+      "class": "CBrowserControlSite",
+      "ordinal": 5360,
+      "symbol": "?GetExternal@CBrowserControlSite@@MEAAJPEAPEAUIDispatch@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 12/91: CBlobProperty, CBrowserControlSite"
+}

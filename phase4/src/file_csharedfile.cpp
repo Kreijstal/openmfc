@@ -56,6 +56,16 @@ public:
 // Confirm the repo-targeted layout at compile time.
 static_assert(sizeof(CSharedFile) == 72, "CSharedFile must be 72 bytes (repo CMemFile family layout)");
 
+static CRuntimeClass g_classCSharedFile = {
+    "CSharedFile",
+    sizeof(CSharedFile),
+    0xFFFF,
+    nullptr,
+    nullptr,
+    &CMemFile::classCMemFile,
+    nullptr
+};
+
 // Accessor to reach CSharedFile's protected virtual-override entry points from
 // the extern "C" thunks (mirrors CMemFileAccessor in filecore.cpp).
 struct CSharedFileAccessor : CSharedFile {
@@ -233,17 +243,15 @@ extern "C" void MS_ABI impl__Free_CSharedFile__MEAAXPEAE_Z(
 }
 
 // Symbol: ?GetRuntimeClass@CSharedFile@@UEBAPEAUCRuntimeClass@@XZ
-// The repo's CFile family is intentionally NOT CObject-derived; CFile and
-// CMemFile both return nullptr here (filecore.cpp:2499,2612). Follow suit.
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSharedFile__UEBAPEAUCRuntimeClass__XZ(
     const void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &g_classCSharedFile;
 }
 
 // Symbol: ?GetThisClass@CSharedFile@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSharedFile__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &g_classCSharedFile;
 }
 
 // Symbol: ?Realloc@CSharedFile@@MEAAPEAEPEAE_K@Z

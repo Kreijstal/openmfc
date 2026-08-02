@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-191",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 1740,
+      "symbol": "?accNavigate@CMFCRibbonBaseElement@@UEAAJJUtagVARIANT@@PEAU2@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 1999,
+      "symbol": "?AddToKeyList@CMFCRibbonBaseElement@@UEAAXAEAV?$CArray@PEAVCMFCRibbonKeyTip@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 2001,
+      "symbol": "?AddToListBox@CMFCRibbonBaseElement@@UEAAHPEAVCMFCRibbonCommandsListBox@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 2641,
+      "symbol": "?CanBeAddedToQuickAccessToolBar@CMFCRibbonBaseElement@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 2834,
+      "symbol": "?ClosePopupMenu@CMFCRibbonBaseElement@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 3002,
+      "symbol": "?CopyFrom@CMFCRibbonBaseElement@@UEAAXAEBV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4322,
+      "symbol": "?EnableTooltipInfoShortcut@CMFCRibbonBaseElement@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4328,
+      "symbol": "?EnableUpdateTooltipInfo@CMFCRibbonBaseElement@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4514,
+      "symbol": "?Find@CMFCRibbonBaseElement@@UEAAPEAV1@PEBV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4534,
+      "symbol": "?FindByData@CMFCRibbonBaseElement@@UEAAPEAV1@_K@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 191/439: CMFCRibbonBaseElement"
+}

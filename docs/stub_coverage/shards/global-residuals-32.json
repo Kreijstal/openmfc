@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-32",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2557,
+      "symbol": "?Cache@CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@QEAAXAEBVCSize@@AEAVCMFCControlRenderer@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2559,
+      "symbol": "?Cache@XOleCache@COleControl@@UEAAJPEAUtagFORMATETC@@KPEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2655,
+      "symbol": "?Cancelled@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2672,
+      "symbol": "?CanInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2673,
+      "symbol": "?CanInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2681,
+      "symbol": "?CanWindowlessActivate@XOleIPSite@COleControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2724,
+      "symbol": "?ChWindowFromPoint@@YAPEAUHWND__@@PEAU1@UtagPOINT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2791,
+      "symbol": "?Clone@XEnumVOID@CEnumArray@@UEAAJPEAPEAUIEnumVOID@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2792,
+      "symbol": "?Clone@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@PEAPEAUIOleDocumentView@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2816,
+      "symbol": "?Close@XOleObject@CDocObjectServer@@UEAAJK@Z"
+    }
+  ],
+  "title": "global_residuals shard 32/95: global"
+}

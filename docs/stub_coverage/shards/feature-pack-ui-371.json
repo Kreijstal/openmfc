@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-371",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9625,
+      "symbol": "?OnDrawStatusBarSizeBox@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9630,
+      "symbol": "?OnDrawTab@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9643,
+      "symbol": "?OnDrawTabsButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEAVCRect@@PEAVCMFCButton@@IPEAVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9648,
+      "symbol": "?OnDrawTask@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9654,
+      "symbol": "?OnDrawTasksGroupAreaBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9658,
+      "symbol": "?OnDrawTasksGroupCaption@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9664,
+      "symbol": "?OnDrawTearOffCaption@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9798,
+      "symbol": "?OnErasePopupWindowButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWndButton@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9802,
+      "symbol": "?OnEraseTabsArea@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9809,
+      "symbol": "?OnEraseTabsButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 371/439: CMFCVisualManagerOffice2003"
+}

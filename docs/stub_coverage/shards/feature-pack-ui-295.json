@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-295",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13207,
+      "symbol": "?SetFont@CMFCTasksPane@@IEAAPEAUHFONT__@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13227,
+      "symbol": "?SetGroupTextColor@CMFCTasksPane@@QEAAHHKK@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13255,
+      "symbol": "?SetIconsList@CMFCTasksPane@@QEAAHIHK@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13256,
+      "symbol": "?SetIconsList@CMFCTasksPane@@QEAAXPEAU_IMAGELIST@@@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13425,
+      "symbol": "?SetPageCaption@CMFCTasksPane@@QEAAXHPEB_W@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13572,
+      "symbol": "?SetScrollSizes@CMFCTasksPane@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13654,
+      "symbol": "?SetTaskName@CMFCTasksPane@@QEAAHHHPEB_W@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13656,
+      "symbol": "?SetTaskTextColor@CMFCTasksPane@@QEAAHHHKK@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13755,
+      "symbol": "?SetWindowHeight@CMFCTasksPane@@QEAAHHPEAUHWND__@@H@Z"
+    },
+    {
+      "class": "CMFCTasksPane",
+      "ordinal": 13756,
+      "symbol": "?SetWindowHeight@CMFCTasksPane@@QEAAHPEAUHWND__@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 295/439: CMFCTasksPane"
+}

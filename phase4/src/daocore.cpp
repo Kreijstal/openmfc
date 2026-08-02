@@ -7,6 +7,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxdao.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <mutex>
 #include <unordered_map>
@@ -30,6 +31,8 @@ struct DaoTableDefState {
     CString name;
     CString connect;
     CString sourceTableName;
+    CString validationRule;
+    CString validationText;
     long attributes = 0;
     std::vector<CDaoFieldInfo> fields;
     std::vector<CDaoIndexInfo> indexes;
@@ -39,6 +42,7 @@ struct DaoDatabaseState {
     CString name;
     CString connect;
     BOOL inTransaction = FALSE;
+    BOOL bReadOnly = FALSE;
     std::vector<const CDaoTableDef*> tableDefs;
     std::vector<const CDaoQueryDef*> queryDefs;
     std::vector<DaoTableDefState> tableDefInfos;
@@ -65,6 +69,8 @@ struct DaoRecordsetState {
     long lRecordCount = 0;
     CString strCurrentIndex;
     CString strSQL;
+    CString validationRule;
+    CString validationText;
     std::vector<CDaoFieldInfo> fields;
     std::vector<CDaoIndexInfo> indexes;
     std::vector<COleVariant> currentFieldValues;
@@ -102,6 +108,339 @@ static void EnsureVariantCopy(COleVariant& target, const COleVariant& source) {
     // the call is semantically const (it only reads the source), so cast the
     // constness away. COleVariant publicly derives from VARIANT (=VARIANTARG).
     VariantCopy(&target, const_cast<COleVariant*>(&source));
+}
+
+static int FindFieldIndexByName(const DaoRecordsetState& state, const wchar_t* lpszName) {
+    if (!lpszName) return -1;
+    for (size_t i = 0; i < state.fields.size(); ++i) {
+        if (state.fields[i].m_strName == lpszName) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+static int EnsureFieldIndexByName(CDaoRecordset* pRecordset, DaoRecordsetState& state,
+                                 const wchar_t* lpszName) {
+    int index = FindFieldIndexByName(state, lpszName);
+    if (index >= 0) return index;
+
+    if (!pRecordset || !lpszName || !*lpszName) return -1;
+    CDaoFieldInfo info;
+    info.m_strName = lpszName;
+    state.fields.push_back(info);
+    if (state.currentFieldValues.size() < state.fields.size()) {
+        state.currentFieldValues.resize(state.fields.size());
+    }
+    return static_cast<int>(state.fields.size() - 1);
+}
+
+static BOOL ConvertVariantToCString(const COleVariant& source, CString& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) {
+        out.Empty();
+        return TRUE;
+    }
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_BSTR) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_BSTR))) return FALSE;
+    }
+    out = (tmp.bstrVal != nullptr) ? CString(tmp.bstrVal) : CString();
+    return TRUE;
+}
+
+static BOOL ConvertVariantToLong(const COleVariant& source, long& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) return FALSE;
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_I4 && tmp.vt != VT_I8) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_I4))) return FALSE;
+    }
+    out = (tmp.vt == VT_I8) ? static_cast<long>(tmp.llVal) : tmp.lVal;
+    return TRUE;
+}
+
+static BOOL ConvertVariantToShort(const COleVariant& source, short& out) {
+    long value = 0;
+    if (!ConvertVariantToLong(source, value)) return FALSE;
+    out = static_cast<short>(value);
+    return TRUE;
+}
+
+static BOOL ConvertVariantToDouble(const COleVariant& source, double& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) return FALSE;
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_R8) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_R8))) return FALSE;
+    }
+    out = tmp.dblVal;
+    return TRUE;
+}
+
+static BOOL ConvertVariantToBool(const COleVariant& source, BOOL& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) return FALSE;
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_BOOL) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_BOOL))) return FALSE;
+    }
+    out = (tmp.boolVal != VARIANT_FALSE);
+    return TRUE;
+}
+
+static BOOL ConvertVariantToCurrency(const COleVariant& source, COleCurrency& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) {
+        out.SetStatus(COleCurrency::CY_NULL);
+        return TRUE;
+    }
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_CY) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_CY))) return FALSE;
+    }
+    out = tmp.cyVal;
+    out.SetStatus(COleCurrency::CY_VALID);
+    return TRUE;
+}
+
+static BOOL ConvertVariantToDateTime(const COleVariant& source, COleDateTime& out) {
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) {
+        out.SetStatus(COleDateTime::DT_NULL);
+        return TRUE;
+    }
+    COleVariant tmp{};
+    EnsureVariantCopy(tmp, source);
+    if (tmp.vt != VT_DATE) {
+        if (FAILED(VariantChangeType(&tmp, &tmp, 0, VT_DATE))) return FALSE;
+    }
+    out = tmp.date;
+    out.SetStatus(COleDateTime::DT_VALID);
+    return TRUE;
+}
+
+static BOOL ConvertVariantToByteArray(const COleVariant& source, CByteArray& out, long maxLength) {
+    out.RemoveAll();
+    if (source.vt == VT_EMPTY || source.vt == VT_NULL) return TRUE;
+    if ((source.vt & VT_ARRAY) == 0 || (source.vt & VT_TYPEMASK) != VT_UI1) return FALSE;
+    if (!source.parray) return FALSE;
+
+    LONG lower = 0;
+    LONG upper = -1;
+    if (SafeArrayGetLBound(source.parray, 1, &lower) != S_OK) return FALSE;
+    if (SafeArrayGetUBound(source.parray, 1, &upper) != S_OK) return FALSE;
+    if (upper < lower) {
+        out.RemoveAll();
+        return TRUE;
+    }
+    LONG count = upper - lower + 1;
+    if (count < 0) return TRUE;
+    if (maxLength > 0 && maxLength < count) count = maxLength;
+
+    void* pData = nullptr;
+    if (SafeArrayAccessData(source.parray, &pData) != S_OK || !pData) return FALSE;
+    BYTE* bytes = static_cast<BYTE*>(pData);
+    out.SetSize(static_cast<INT_PTR>(count));
+    for (LONG i = 0; i < count; ++i) {
+        out[static_cast<INT_PTR>(i)] = bytes[static_cast<size_t>(i + lower)];
+    }
+    SafeArrayUnaccessData(source.parray);
+    return TRUE;
+}
+
+static BOOL ConvertByteArrayToVariant(COleVariant& target, const CByteArray& source) {
+    VariantClear(&target);
+    const LONG count = static_cast<LONG>(source.GetSize());
+    if (count <= 0) {
+        target.vt = VT_ARRAY | VT_UI1;
+        target.parray = SafeArrayCreateVector(VT_UI1, 0, 0);
+        return TRUE;
+    }
+    SAFEARRAY* psa = SafeArrayCreateVector(VT_UI1, 0, count);
+    if (!psa) return FALSE;
+    void* pData = nullptr;
+    if (SafeArrayAccessData(psa, &pData) != S_OK || !pData) {
+        SafeArrayDestroy(psa);
+        return FALSE;
+    }
+    BYTE* bytes = static_cast<BYTE*>(pData);
+    for (LONG i = 0; i < count; ++i) {
+        bytes[i] = source.GetAt(i);
+    }
+    SafeArrayUnaccessData(psa);
+    target.vt = VT_ARRAY | VT_UI1;
+    target.parray = psa;
+    return TRUE;
+}
+
+static BOOL ConvertLongBinaryToVariant(COleVariant& target, const CLongBinary& source) {
+    if (!source.m_hData || source.m_dwDataLength == 0) {
+        VariantClear(&target);
+        target.vt = VT_NULL;
+        return TRUE;
+    }
+    void* pData = ::GlobalLock(source.m_hData);
+    if (!pData) return FALSE;
+    CByteArray bytes;
+    bytes.SetSize(source.m_dwDataLength);
+    const BYTE* pBytes = static_cast<const BYTE*>(pData);
+    for (DWORD i = 0; i < source.m_dwDataLength; ++i) {
+        bytes[static_cast<INT_PTR>(i)] = pBytes[i];
+    }
+    ::GlobalUnlock(source.m_hData);
+    return ConvertByteArrayToVariant(target, bytes);
+}
+
+static BOOL ConvertVariantToLongBinary(const COleVariant& source, CLongBinary& target) {
+    if (target.m_hData) {
+        ::GlobalFree(target.m_hData);
+        target.m_hData = nullptr;
+        target.m_dwDataLength = 0;
+    }
+    CByteArray bytes;
+    if ((source.vt & VT_ARRAY) == 0 || (source.vt & VT_TYPEMASK) != VT_UI1) {
+        target.m_dwDataLength = 0;
+        return TRUE;
+    }
+    if (!ConvertVariantToByteArray(source, bytes, 0)) return FALSE;
+    if (bytes.GetSize() == 0) {
+        target.m_dwDataLength = 0;
+        return TRUE;
+    }
+    target.m_hData = ::GlobalAlloc(GPTR, static_cast<size_t>(bytes.GetSize()));
+    if (!target.m_hData) return FALSE;
+    void* pData = ::GlobalLock(target.m_hData);
+    if (!pData) {
+        ::GlobalFree(target.m_hData);
+        target.m_hData = nullptr;
+        return FALSE;
+    }
+    for (INT_PTR i = 0; i < bytes.GetSize(); ++i) {
+        static_cast<BYTE*>(pData)[i] = bytes.GetAt(i);
+    }
+    ::GlobalUnlock(target.m_hData);
+    target.m_dwDataLength = static_cast<DWORD>(bytes.GetSize());
+    return TRUE;
+}
+
+static BOOL EnsureRecordsetField(CDaoRecordset* pRecordset, DaoRecordsetState& state,
+                                const wchar_t* lpszName, int& outIndex) {
+    if (!pRecordset) return FALSE;
+    outIndex = EnsureFieldIndexByName(pRecordset, state, lpszName);
+    if (outIndex < 0) return FALSE;
+    if (state.currentFieldValues.size() <= static_cast<size_t>(outIndex)) {
+        state.currentFieldValues.resize(outIndex + 1);
+    }
+    return TRUE;
+}
+
+static void SetVariantFromValue(COleVariant& target, const CString& value) {
+    target.Clear();
+    target.vt = VT_BSTR;
+    target.bstrVal = SysAllocString(value);
+}
+
+static void SetVariantFromValue(COleVariant& target, long value) {
+    target.Clear();
+    target.vt = VT_I4;
+    target.lVal = value;
+}
+
+static void SetVariantFromValue(COleVariant& target, short value) {
+    target.Clear();
+    target.vt = VT_I2;
+    target.iVal = value;
+}
+
+static void SetVariantFromValue(COleVariant& target, double value) {
+    target.Clear();
+    target.vt = VT_R8;
+    target.dblVal = value;
+}
+
+static void SetVariantFromValue(COleVariant& target, BOOL value) {
+    target.Clear();
+    target.vt = VT_BOOL;
+    target.boolVal = value ? VARIANT_TRUE : VARIANT_FALSE;
+}
+
+static void SetVariantFromValue(COleVariant& target, const COleCurrency& value) {
+    if (value.GetStatus() == COleCurrency::CY_NULL) {
+        target.Clear();
+        target.vt = VT_NULL;
+        return;
+    }
+    target.Clear();
+    target.vt = VT_CY;
+    target.cyVal = value;
+}
+
+static void SetVariantFromValue(COleVariant& target, const COleDateTime& value) {
+    if (value.GetStatus() == COleDateTime::DT_NULL) {
+        target.Clear();
+        target.vt = VT_NULL;
+        return;
+    }
+    target.Clear();
+    target.vt = VT_DATE;
+    target.date = static_cast<DATE>(value);
+}
+
+static long ParseCriteriaIndex(const wchar_t* lpszCriteria, BOOL& bLast, BOOL& bFirst) {
+    bFirst = FALSE;
+    bLast = FALSE;
+    if (!lpszCriteria) return -1;
+    CString criteria = lpszCriteria;
+    criteria.MakeUpper();
+    criteria.Trim();
+    if (criteria.IsEmpty()) return -1;
+    if (criteria == L"FIRST") {
+        bFirst = TRUE;
+        return 0;
+    }
+    if (criteria == L"LAST") {
+        bLast = TRUE;
+        return -1;
+    }
+    int eq = criteria.Find(L'=');
+    const wchar_t* p = eq >= 0 ? criteria.GetString() + eq + 1 : criteria.GetString();
+    while (*p == L' ' || *p == L'\t') ++p;
+    wchar_t* end = nullptr;
+    long value = std::wcstol(p, &end, 10);
+    if (!end || end == p) return -1;
+    return value;
+}
+
+static void ApplyPosition(DaoRecordsetState& state, long position) {
+    if (position < 0) {
+        if (position == -1) {
+            state.lAbsolutePosition = state.lRecordCount > 0 ? state.lRecordCount - 1 : -1;
+        } else {
+            state.lAbsolutePosition = -1;
+        }
+        state.bBOF = (state.lAbsolutePosition < 0);
+        state.bEOF = (state.lRecordCount == 0);
+        state.dPercentPosition = 0.0;
+        return;
+    }
+    if (state.lRecordCount <= 0) {
+        state.lAbsolutePosition = -1;
+        state.bBOF = TRUE;
+        state.bEOF = TRUE;
+        state.dPercentPosition = 0.0;
+        return;
+    }
+    if (position >= state.lRecordCount) {
+        state.lAbsolutePosition = state.lRecordCount;
+        state.bBOF = FALSE;
+        state.bEOF = TRUE;
+        state.dPercentPosition = 100.0;
+        return;
+    }
+    state.lAbsolutePosition = position;
+    state.bBOF = FALSE;
+    state.bEOF = FALSE;
+    state.dPercentPosition = (state.lRecordCount > 0)
+        ? (double)state.lAbsolutePosition / static_cast<double>(state.lRecordCount) * 100.0
+        : 0.0;
 }
 
 static CDaoTableDef* FindTableDefByName(CDaoDatabase* pDatabase, const wchar_t* lpszName) {
@@ -224,8 +563,8 @@ static void ApplyTableDefInfoFromState(CDaoTableDefInfo& dst, const DaoTableDefS
     dst.m_strConnect = state.connect;
     dst.m_lRecordCount = 0;
     dst.m_bUpdatable = TRUE;
-    dst.m_strValidationRule = CString();
-    dst.m_strValidationText = CString();
+    dst.m_strValidationRule = state.validationRule;
+    dst.m_strValidationText = state.validationText;
 }
 
 static void ClearTableDefState(DaoTableDefState& state) {
@@ -401,12 +740,13 @@ CDaoDatabase::~CDaoDatabase() {
 
 void CDaoDatabase::Open(const wchar_t* lpszName, BOOL bExclusive,
                         BOOL bReadOnly, const wchar_t* lpszConnect) {
-    (void)bExclusive; (void)bReadOnly;
+    (void)bExclusive;
     m_bOpen = TRUE;
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     DaoDatabaseState& state = g_databaseStates[this];
     state.name = lpszName ? CString(lpszName) : CString();
     state.connect = lpszConnect ? CString(lpszConnect) : CString();
+    state.bReadOnly = bReadOnly;
     state.inTransaction = FALSE;
 }
 
@@ -438,11 +778,16 @@ long CDaoDatabase::GetRecordsAffected() const {
 }
 
 BOOL CDaoDatabase::CanUpdate() const {
-    return TRUE;
+    if (!m_bOpen) return FALSE;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_databaseStates.find(this);
+    return (it != g_databaseStates.end()) ? !it->second.bReadOnly : FALSE;
 }
 
 BOOL CDaoDatabase::CanTransact() const {
-    return TRUE;
+    if (!m_bOpen) return FALSE;
+    if (!m_pWorkspace) return FALSE;
+    return m_pWorkspace->IsOpen() && CanUpdate();
 }
 
 int CDaoDatabase::GetTableDefCount() const {
@@ -483,8 +828,8 @@ void CDaoDatabase::GetTableDefInfo(int nIndex, CDaoTableDefInfo& tabledefinfo,
     tabledefinfo.m_strConnect = infoState.connect;
     tabledefinfo.m_lRecordCount = 0;
     tabledefinfo.m_bUpdatable = TRUE;
-    tabledefinfo.m_strValidationRule = CString();
-    tabledefinfo.m_strValidationText = CString();
+    tabledefinfo.m_strValidationRule = infoState.validationRule;
+    tabledefinfo.m_strValidationText = infoState.validationText;
 }
 
 void CDaoDatabase::CreateTableDef(const wchar_t* lpszName, long lAttributes,
@@ -584,7 +929,24 @@ BOOL CDaoDatabase::GetInTransaction() const {
 }
 
 void CDaoDatabase::Execute(const wchar_t* lpszSQL, int nOptions) {
-    (void)lpszSQL; (void)nOptions;
+    (void)nOptions;
+    if (!lpszSQL) {
+        std::lock_guard<std::mutex> lock(g_daoStateMutex);
+        m_lRecordsAffected = 0;
+        return;
+    }
+
+    CString sql = lpszSQL;
+    sql.Trim();
+    sql.MakeUpper();
+
+    long affected = 0;
+    if (sql.Find(L"INSERT") == 0 || sql.Find(L"UPDATE") == 0 || sql.Find(L"DELETE") == 0) {
+        affected = 1;
+    }
+
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    m_lRecordsAffected = affected;
 }
 
 void CDaoDatabase::CreateRelation(const wchar_t* lpszName, const wchar_t* lpszTable,
@@ -754,11 +1116,21 @@ BOOL CDaoRecordset::IsEOF() const {
     return (it != g_recordsetStates.end()) ? it->second.bEOF : TRUE;
 }
 
-BOOL CDaoRecordset::CanUpdate() const { return TRUE; }
-BOOL CDaoRecordset::CanAppend() const { return TRUE; }
+BOOL CDaoRecordset::CanUpdate() const {
+    return IsOpen() && m_pDatabase && m_pDatabase->CanUpdate();
+}
+BOOL CDaoRecordset::CanAppend() const {
+    return IsOpen() && m_pDatabase && m_pDatabase->CanUpdate();
+}
 
 void CDaoRecordset::DoFieldExchange(CDaoFieldExchange* pFX) {
-    (void)pFX;
+    if (!pFX) return;
+    pFX->m_pRecordset = this;
+    pFX->m_pRecordsetDAO = this;
+    if (m_pDatabase) {
+        pFX->m_pDatabase = m_pDatabase;
+        pFX->m_pWorkspace = m_pDatabase->GetWorkspace();
+    }
 }
 
 void CDaoRecordset::MoveFirst() {
@@ -900,22 +1272,239 @@ void CDaoRecordset::SetPercentPosition(double dPosition) {
     }
 }
 
-void CDaoRecordset::FindFirst(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
-void CDaoRecordset::FindLast(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
-void CDaoRecordset::FindNext(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
-void CDaoRecordset::FindPrev(const wchar_t* lpszCriteria) { (void)lpszCriteria; }
+void CDaoRecordset::FindFirst(const wchar_t* lpszCriteria) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    BOOL isFirst = FALSE;
+    BOOL isLast = FALSE;
+    long requestedPos = ParseCriteriaIndex(lpszCriteria, isLast, isFirst);
+    if (it->second.lRecordCount == 0) {
+        it->second.bBOF = TRUE;
+        it->second.bEOF = TRUE;
+        it->second.lAbsolutePosition = -1;
+        it->second.dPercentPosition = 0.0;
+        return;
+    }
+    if (isFirst) {
+        ApplyPosition(it->second, 0);
+    } else if (isLast) {
+        ApplyPosition(it->second, it->second.lRecordCount - 1);
+    } else if (requestedPos >= 0) {
+        ApplyPosition(it->second, requestedPos);
+    } else {
+        ApplyPosition(it->second, 0);
+    }
+}
+void CDaoRecordset::FindLast(const wchar_t* lpszCriteria) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    BOOL isFirst = FALSE;
+    BOOL isLast = FALSE;
+    long requestedPos = ParseCriteriaIndex(lpszCriteria, isLast, isFirst);
+    if (it->second.lRecordCount == 0) {
+        it->second.bBOF = TRUE;
+        it->second.bEOF = TRUE;
+        it->second.lAbsolutePosition = -1;
+        it->second.dPercentPosition = 0.0;
+        return;
+    }
+    if (isLast) {
+        ApplyPosition(it->second, it->second.lRecordCount - 1);
+    } else if (isFirst) {
+        ApplyPosition(it->second, 0);
+    } else if (requestedPos >= 0) {
+        ApplyPosition(it->second, requestedPos);
+    } else {
+        ApplyPosition(it->second, it->second.lRecordCount - 1);
+    }
+}
+void CDaoRecordset::FindNext(const wchar_t* lpszCriteria) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    BOOL isFirst = FALSE;
+    BOOL isLast = FALSE;
+    long requestedPos = ParseCriteriaIndex(lpszCriteria, isLast, isFirst);
+    if (it->second.lRecordCount == 0) {
+        it->second.bBOF = TRUE;
+        it->second.bEOF = TRUE;
+        it->second.lAbsolutePosition = -1;
+        it->second.dPercentPosition = 0.0;
+        return;
+    }
+    if (isLast) {
+        ApplyPosition(it->second, it->second.lRecordCount - 1);
+    } else if (requestedPos >= 0) {
+        ApplyPosition(it->second, requestedPos);
+    } else {
+        MoveNext();
+    }
+}
+void CDaoRecordset::FindPrev(const wchar_t* lpszCriteria) {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    BOOL isFirst = FALSE;
+    BOOL isLast = FALSE;
+    long requestedPos = ParseCriteriaIndex(lpszCriteria, isLast, isFirst);
+    if (it->second.lRecordCount == 0) {
+        it->second.bBOF = TRUE;
+        it->second.bEOF = TRUE;
+        it->second.lAbsolutePosition = -1;
+        it->second.dPercentPosition = 0.0;
+        return;
+    }
+    if (isFirst) {
+        ApplyPosition(it->second, 0);
+    } else if (requestedPos >= 0) {
+        ApplyPosition(it->second, requestedPos);
+    } else {
+        MovePrev();
+    }
+}
 
-void CDaoRecordset::AddNew() {}
-void CDaoRecordset::Edit() {}
-void CDaoRecordset::Update() {}
-void CDaoRecordset::Delete() {}
-void CDaoRecordset::CancelUpdate() {}
+void CDaoRecordset::AddNew() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || !m_bOpen) return;
+    DaoRecordsetState& state = it->second;
+    if (state.currentFieldValues.size() < state.fields.size()) {
+        state.currentFieldValues.resize(state.fields.size());
+    }
+    if (state.lRecordCount == 0) {
+        state.lAbsolutePosition = 0;
+        state.bBOF = FALSE;
+        state.bEOF = TRUE;
+    } else {
+        state.bBOF = FALSE;
+        state.bEOF = FALSE;
+        state.lAbsolutePosition = state.lRecordCount;
+    }
+    state.dPercentPosition = (state.lRecordCount > 0)
+        ? (double)state.lAbsolutePosition / (state.lRecordCount + 1) * 100.0
+        : 100.0;
+}
 
-void CDaoRecordset::SetBookmark() {}
+void CDaoRecordset::Edit() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || !m_bOpen) return;
+    DaoRecordsetState& state = it->second;
+    if (state.lRecordCount == 0 || state.lAbsolutePosition < 0 || state.lAbsolutePosition >= state.lRecordCount) return;
+    if (state.currentFieldValues.size() < state.fields.size()) {
+        state.currentFieldValues.resize(state.fields.size());
+    }
+    state.bBOF = FALSE;
+    state.bEOF = FALSE;
+}
+
+void CDaoRecordset::Update() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || !m_bOpen) return;
+    DaoRecordsetState& state = it->second;
+    if (state.lAbsolutePosition < 0 || state.lAbsolutePosition >= state.lRecordCount) {
+        state.lRecordCount += 1;
+        m_lRecordCount = state.lRecordCount;
+        state.lAbsolutePosition = state.lRecordCount - 1;
+        state.dPercentPosition = 100.0;
+        state.bBOF = FALSE;
+        state.bEOF = FALSE;
+    } else {
+        if (state.lRecordCount > 0) {
+            state.dPercentPosition = (double)state.lAbsolutePosition / state.lRecordCount * 100.0;
+        } else {
+            state.dPercentPosition = 0.0;
+        }
+        state.bBOF = FALSE;
+        state.bEOF = (state.lAbsolutePosition >= state.lRecordCount);
+    }
+}
+
+void CDaoRecordset::Delete() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || !m_bOpen) return;
+    DaoRecordsetState& state = it->second;
+    if (state.lRecordCount <= 0 || state.lAbsolutePosition < 0 || state.lAbsolutePosition >= state.lRecordCount) {
+        return;
+    }
+    state.lRecordCount -= 1;
+    m_lRecordCount = state.lRecordCount;
+    if (state.lRecordCount == 0) {
+        state.lAbsolutePosition = -1;
+        state.bBOF = TRUE;
+        state.bEOF = TRUE;
+        state.dPercentPosition = 0.0;
+        state.currentFieldValues.clear();
+        return;
+    }
+    if (state.lAbsolutePosition >= state.lRecordCount) {
+        state.lAbsolutePosition = state.lRecordCount - 1;
+    }
+    state.bBOF = (state.lAbsolutePosition < 0);
+    state.bEOF = FALSE;
+    state.dPercentPosition = (double)state.lAbsolutePosition / state.lRecordCount * 100.0;
+    state.currentFieldValues.clear();
+}
+
+void CDaoRecordset::CancelUpdate() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return;
+    DaoRecordsetState& state = it->second;
+    if (state.lRecordCount == 0) {
+        state.lAbsolutePosition = -1;
+        state.bBOF = TRUE;
+        state.bEOF = TRUE;
+        state.dPercentPosition = 0.0;
+        return;
+    }
+    if (state.lAbsolutePosition < 0 || state.lAbsolutePosition >= state.lRecordCount) {
+        state.lAbsolutePosition = 0;
+    }
+    state.bBOF = FALSE;
+    state.bEOF = FALSE;
+    state.dPercentPosition = (double)state.lAbsolutePosition / (state.lRecordCount > 0 ? state.lRecordCount : 1) * 100.0;
+}
+
+void CDaoRecordset::SetBookmark() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end() || !m_bOpen) return;
+    DaoRecordsetState& state = it->second;
+    if (state.lAbsolutePosition < 0 && state.lRecordCount > 0) {
+        state.lAbsolutePosition = 0;
+    }
+    if (state.lAbsolutePosition >= 0 && state.lAbsolutePosition < state.lRecordCount) {
+        wchar_t bookmark[32];
+        std::swprintf(bookmark, 32, L"%ld", state.lAbsolutePosition);
+        state.strCurrentIndex = bookmark;
+        m_strCurrentIndex = state.strCurrentIndex;
+        state.bBOF = FALSE;
+        state.bEOF = FALSE;
+    }
+}
 
 COleVariant CDaoRecordset::GetBookmark() {
     COleVariant var;
-    var.Clear();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) {
+        var.Clear();
+        return var;
+    }
+
+    const DaoRecordsetState& state = it->second;
+    if (state.lAbsolutePosition < 0 || state.lAbsolutePosition >= state.lRecordCount) {
+        var.Clear();
+        return var;
+    }
+
+    var.vt = VT_I4;
+    var.lVal = state.lAbsolutePosition;
     return var;
 }
 
@@ -1100,19 +1689,65 @@ void CDaoRecordset::GetIndexInfo(const wchar_t* lpszName, CDaoIndexInfo& indexin
 
 BOOL CDaoRecordset::Seek(const wchar_t* lpszComparison, COleVariant* pKey1,
                           COleVariant* pKey2, COleVariant* pKey3) {
-    (void)lpszComparison; (void)pKey1; (void)pKey2; (void)pKey3;
+    (void)pKey2; (void)pKey3;
     if (!IsOpen()) return FALSE;
     if (GetRecordCount() == 0) return FALSE;
-    MoveFirst();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    if (it == g_recordsetStates.end()) return FALSE;
+    DaoRecordsetState& state = it->second;
+    CString op = lpszComparison ? CString(lpszComparison) : CString(L"FIRST");
+    op.MakeUpper();
+    op.Trim();
+
+    long target = 0;
+    if (op == L"FIRST") {
+        target = 0;
+    } else if (op == L"LAST") {
+        target = state.lRecordCount - 1;
+    } else if (op == L"NEXT") {
+        target = state.lAbsolutePosition + 1;
+    } else if (op == L"PREVIOUS" || op == L"PREV") {
+        target = state.lAbsolutePosition - 1;
+    } else if (op == L"BEFORE") {
+        target = -1;
+    } else if (op == L"AFTER") {
+        target = state.lRecordCount;
+    } else if (op == L"=") {
+        target = state.lAbsolutePosition >= 0 ? state.lAbsolutePosition : 0;
+    } else if (!ConvertVariantToLong(*pKey1, target)) {
+        return FALSE;
+    }
+
+    if (target < 0) {
+        state.lAbsolutePosition = -1;
+        state.bBOF = TRUE;
+        state.bEOF = FALSE;
+        state.dPercentPosition = 0.0;
+        return FALSE;
+    }
+    if (target >= state.lRecordCount) {
+        state.lAbsolutePosition = state.lRecordCount;
+        state.bBOF = FALSE;
+        state.bEOF = TRUE;
+        state.dPercentPosition = 100.0;
+        return FALSE;
+    }
+
+    ApplyPosition(state, target);
     return TRUE;
 }
 
 CString CDaoRecordset::GetValidationRule() const {
-    return CString();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.validationRule : CString();
 }
 
 CString CDaoRecordset::GetValidationText() const {
-    return CString();
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(this);
+    return (it != g_recordsetStates.end()) ? it->second.validationText : CString();
 }
 
 CDaoDatabase* CDaoRecordset::GetDefaultDB() {
@@ -1209,7 +1844,9 @@ void CDaoTableDef::SetAttributes(long lAttributes) {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     g_tableDefStates[this].attributes = lAttributes;
 }
-BOOL CDaoTableDef::CanUpdate() const { return TRUE; }
+BOOL CDaoTableDef::CanUpdate() const {
+    return m_pDatabase ? m_pDatabase->CanUpdate() : FALSE;
+}
 
 void CDaoTableDef::CreateField(const wchar_t* lpszName, short nType, long lSize,
                                 long lAttributes) {
@@ -1357,9 +1994,34 @@ void CDaoTableDef::GetIndexInfo(const wchar_t* lpszName, CDaoIndexInfo& indexinf
     }
 }
 
-CString CDaoTableDef::GetValidationRule() const { return CString(); }
-CString CDaoTableDef::GetValidationText() const { return CString(); }
-void CDaoTableDef::RefreshLink() {}
+CString CDaoTableDef::GetValidationRule() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.validationRule : CString();
+}
+
+CString CDaoTableDef::GetValidationText() const {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_tableDefStates.find(this);
+    return (it != g_tableDefStates.end()) ? it->second.validationText : CString();
+}
+void CDaoTableDef::RefreshLink() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    if (!m_pDatabase) return;
+    auto tableStateIt = g_tableDefStates.find(this);
+    if (tableStateIt == g_tableDefStates.end()) return;
+    DaoTableDefState& state = tableStateIt->second;
+    auto dbIt = g_databaseStates.find(m_pDatabase);
+    if (dbIt == g_databaseStates.end()) return;
+    for (const auto& info : dbIt->second.tableDefInfos) {
+        if (info.name == state.name) {
+            state = info;
+            state.fields = {};
+            state.indexes = {};
+            break;
+        }
+    }
+}
 
 //=============================================================================
 // CDaoQueryDef
@@ -1430,7 +2092,11 @@ void CDaoQueryDef::SetSQL(const wchar_t* lpszSQL) {
         g_queryDefStates[this].sql = lpszSQL;
     }
 }
-BOOL CDaoQueryDef::CanUpdate() const { return TRUE; }
+BOOL CDaoQueryDef::CanUpdate() const {
+    if (!m_bOpen) return FALSE;
+    if (!m_pDatabase) return FALSE;
+    return m_pDatabase->CanUpdate();
+}
 long CDaoQueryDef::GetType() const {
     std::lock_guard<std::mutex> lock(g_daoStateMutex);
     auto it = g_queryDefStates.find(this);
@@ -1531,6 +2197,42 @@ void CDaoQueryDef::SetParamValue(const wchar_t* lpszName, const COleVariant& var
 
 void CDaoQueryDef::Execute(int nOptions) {
     (void)nOptions;
+    if (!m_pDatabase) {
+        std::lock_guard<std::mutex> lock(g_daoStateMutex);
+        g_queryDefStates[this].recordsAffected = 0;
+        return;
+    }
+
+    CString sql;
+    long recordsAffected = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_daoStateMutex);
+        if (!m_bOpen) {
+            m_pDatabase->m_lRecordsAffected = 0;
+            return;
+        }
+        auto it = g_queryDefStates.find(this);
+        if (it == g_queryDefStates.end()) {
+            m_pDatabase->m_lRecordsAffected = 0;
+            return;
+        }
+        sql = it->second.sql;
+    }
+
+    sql.Trim();
+    sql.MakeUpper();
+    if (sql.Find(L"INSERT") == 0 || sql.Find(L"UPDATE") == 0 || sql.Find(L"DELETE") == 0) {
+        recordsAffected = 1;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(g_daoStateMutex);
+        auto it = g_queryDefStates.find(this);
+        if (it != g_queryDefStates.end()) {
+            it->second.recordsAffected = recordsAffected;
+        }
+        m_pDatabase->m_lRecordsAffected = recordsAffected;
+    }
 }
 
 //=============================================================================
@@ -1544,7 +2246,9 @@ CDaoFieldExchange::CDaoFieldExchange(UINT nOperation, CDaoRecordset* pRecordset,
 }
 
 BOOL CDaoFieldExchange::IsValidOperation() {
-    return TRUE;
+    if (!m_pRecordset) return FALSE;
+    if (m_nOperation != outputColumn && m_nOperation != param) return FALSE;
+    return m_pRecordset->IsOpen();
 }
 
 //=============================================================================
@@ -1573,62 +2277,385 @@ CDaoRecordset* CDaoRecordView::OnGetRecordset() {
 }
 
 BOOL CDaoRecordView::OnMove(UINT nIDMoveCommand) {
-    (void)nIDMoveCommand;
+    if (!m_pSet || !m_pSet->IsOpen()) return FALSE;
+
+    switch (nIDMoveCommand) {
+    case 0xE900: // ID_RECORD_FIRST
+        m_pSet->MoveFirst();
+        break;
+    case 0xE901: // ID_RECORD_LAST
+        m_pSet->MoveLast();
+        break;
+    case 0xE902: // ID_RECORD_NEXT
+        m_pSet->MoveNext();
+        break;
+    case 0xE903: // ID_RECORD_PREV
+        m_pSet->MovePrev();
+        break;
+    default:
+        return FALSE;
+    }
+
+    m_bOnFirstRecord = m_pSet->IsBOF() || m_pSet->GetAbsolutePosition() <= 1;
+    m_bOnLastRecord = m_pSet->IsEOF() ||
+        (m_pSet->GetRecordCount() > 0 && m_pSet->GetAbsolutePosition() >= m_pSet->GetRecordCount());
     return TRUE;
 }
 
 //=============================================================================
 // Global DAO Functions
 //=============================================================================
-void AFXAPI AfxDaoInit() {}
-void AFXAPI AfxDaoTerm() {}
+void AFXAPI AfxDaoInit() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    for (auto& workspace : g_workspaceStates) {
+        workspace.second.inTransaction = FALSE;
+        if (workspace.second.name.IsEmpty()) workspace.second.name = CString(L"#Default Workspace#");
+    }
+    for (auto& db : g_databaseStates) {
+        db.second.inTransaction = FALSE;
+    }
+    for (auto& recordset : g_recordsetStates) {
+        if (recordset.second.lRecordCount == 0) {
+            recordset.second.bEOF = TRUE;
+            recordset.second.bBOF = TRUE;
+            recordset.second.lAbsolutePosition = -1;
+        }
+    }
+}
+
+void AFXAPI AfxDaoTerm() {
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    for (auto& workspace : g_workspaceStates) {
+        workspace.second.inTransaction = FALSE;
+        workspace.second.databases.clear();
+    }
+    for (auto& db : g_databaseStates) {
+        db.second.inTransaction = FALSE;
+    }
+    for (auto& tableDef : g_tableDefStates) {
+        tableDef.second.attributes = 0;
+        tableDef.second.connect.Empty();
+        tableDef.second.sourceTableName.Empty();
+    }
+    for (auto& queryDef : g_queryDefStates) {
+        queryDef.second.recordsAffected = 0;
+        queryDef.second.parameters.clear();
+        queryDef.second.fields.clear();
+    }
+    for (auto& recordset : g_recordsetStates) {
+        recordset.second.bEOF = TRUE;
+        recordset.second.bBOF = TRUE;
+        recordset.second.lAbsolutePosition = -1;
+        recordset.second.dPercentPosition = 0.0;
+        recordset.second.currentFieldValues.clear();
+        recordset.second.fields.clear();
+        recordset.second.indexes.clear();
+    }
+}
 
 void AFXAPI AfxDaoCheck(DAO_ERR scode, long lAfxDaoError,
                         long* pErrorInfo, CDaoException** ppException) {
-    (void)scode; (void)lAfxDaoError; (void)pErrorInfo;
-    if (ppException) *ppException = nullptr;
+    if (!ppException) return;
+
+    if (*ppException) {
+        delete *ppException;
+        *ppException = nullptr;
+    }
+
+    if (scode == 0 && lAfxDaoError == 0 && pErrorInfo == nullptr) {
+        return;
+    }
+
+    CDaoException* pExc = new CDaoException();
+    pExc->m_scode = scode;
+    pExc->m_nAfxDaoError = lAfxDaoError;
+    pExc->m_pErrorInfo = pErrorInfo ? *pErrorInfo : 0;
+    pExc->m_strDaoOrigin = CString(L"DAO error");
+    if (scode != 0) {
+        CString detail;
+        detail.Format(L"DAO error (%ld)", scode);
+        pExc->m_strDaoOrigin = detail;
+    }
+    pExc->m_strError.Empty();
+    if (scode != 0) {
+        pExc->m_strError.Format(L"DAO error (code=%ld, daoError=%ld)", scode, lAfxDaoError);
+    } else if (lAfxDaoError != 0) {
+        pExc->m_strError.Format(L"DAO error (daoError=%ld)", lAfxDaoError);
+    } else {
+        pExc->m_strError.Format(L"DAO error");
+    }
+    *ppException = pExc;
 }
 
 // DFX functions
 void AFXAPI DFX_Text(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                      CString& value, int nMaxLength, DWORD dwColumnType) {
-    (void)pFX; (void)lpszFieldName; (void)value; (void)nMaxLength; (void)dwColumnType;
+    (void)dwColumnType;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        if (nMaxLength > 0 && static_cast<int>(value.GetLength()) > nMaxLength) {
+            value = value.Left(nMaxLength);
+        }
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    CString fieldValue;
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size())) {
+        ConvertVariantToCString(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], fieldValue);
+    } else {
+        fieldValue.Empty();
+    }
+    if (nMaxLength > 0 && static_cast<int>(fieldValue.GetLength()) > nMaxLength) {
+        fieldValue = fieldValue.Left(nMaxLength);
+    }
+    value = fieldValue;
 }
 
 void AFXAPI DFX_Long(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName, long& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size()) &&
+        !ConvertVariantToLong(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+        value = 0;
+    }
 }
 
 void AFXAPI DFX_Short(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName, short& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size()) &&
+        !ConvertVariantToShort(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+        value = 0;
+    }
 }
 
 void AFXAPI DFX_Double(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName, double& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size()) &&
+        !ConvertVariantToDouble(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+        value = 0.0;
+    }
 }
 
 void AFXAPI DFX_Bool(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName, BOOL& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size()) &&
+        !ConvertVariantToBool(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+        value = FALSE;
+    }
 }
 
 void AFXAPI DFX_Currency(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                          COleCurrency& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size())) {
+        if (!ConvertVariantToCurrency(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+            value.SetStatus(COleCurrency::CY_NULL);
+        }
+    } else {
+        value.SetStatus(COleCurrency::CY_NULL);
+    }
 }
 
 void AFXAPI DFX_DateTime(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                          COleDateTime& value) {
-    (void)pFX; (void)lpszFieldName; (void)value;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        SetVariantFromValue(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size())) {
+        if (!ConvertVariantToDateTime(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value)) {
+            value.SetStatus(COleDateTime::DT_NULL);
+        }
+    } else {
+        value.SetStatus(COleDateTime::DT_NULL);
+    }
 }
 
 void AFXAPI DFX_Binary(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                        CByteArray& value, long nMaxLength) {
-    (void)pFX; (void)lpszFieldName; (void)value; (void)nMaxLength;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        ConvertByteArrayToVariant(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size())) {
+        ConvertVariantToByteArray(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value, nMaxLength);
+    } else {
+        value.RemoveAll();
+    }
 }
 
 void AFXAPI DFX_LongBinary(CDaoFieldExchange* pFX, const wchar_t* lpszFieldName,
                            CLongBinary& value, DWORD dwBufSize) {
-    (void)pFX; (void)lpszFieldName; (void)value; (void)dwBufSize;
+    if (!pFX || !lpszFieldName || !pFX->IsValidOperation() || !pFX->m_pRecordset) return;
+    std::lock_guard<std::mutex> lock(g_daoStateMutex);
+    auto it = g_recordsetStates.find(pFX->m_pRecordset);
+    if (it == g_recordsetStates.end()) return;
+
+    int fieldIndex = EnsureFieldIndexByName(pFX->m_pRecordset, it->second, lpszFieldName);
+    if (fieldIndex < 0) return;
+
+    if (pFX->m_nOperation == CDaoFieldExchange::param) {
+        COleVariant var;
+        ConvertLongBinaryToVariant(var, value);
+        if (it->second.currentFieldValues.size() <= static_cast<size_t>(fieldIndex)) {
+            it->second.currentFieldValues.resize(static_cast<size_t>(fieldIndex) + 1);
+        }
+        EnsureVariantCopy(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], var);
+        return;
+    }
+
+    if (fieldIndex < static_cast<int>(it->second.currentFieldValues.size())) {
+        ConvertVariantToLongBinary(it->second.currentFieldValues[static_cast<size_t>(fieldIndex)], value);
+        if (dwBufSize > 0 && value.m_dwDataLength > dwBufSize) {
+            HGLOBAL hTrimmed = ::GlobalAlloc(GPTR, dwBufSize);
+            if (!hTrimmed) return;
+            void* pTrimmed = ::GlobalLock(hTrimmed);
+            if (!pTrimmed) {
+                ::GlobalFree(hTrimmed);
+                return;
+            }
+            void* pSource = ::GlobalLock(value.m_hData);
+            if (pSource) {
+                std::memcpy(pTrimmed, pSource, dwBufSize);
+                ::GlobalUnlock(value.m_hData);
+            }
+            ::GlobalUnlock(hTrimmed);
+            ::GlobalFree(value.m_hData);
+            value.m_hData = hTrimmed;
+            value.m_dwDataLength = dwBufSize;
+        }
+    } else {
+        if (value.m_hData) {
+            ::GlobalFree(value.m_hData);
+            value.m_hData = nullptr;
+        }
+        value.m_dwDataLength = 0;
+    }
 }
 
 //=============================================================================

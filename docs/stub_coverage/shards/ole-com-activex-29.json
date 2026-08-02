@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-29",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControl",
+      "ordinal": 10146,
+      "symbol": "?OnInactiveMouseMove@COleControl@@UEAAXPEBUtagRECT@@JJK@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10148,
+      "symbol": "?OnInactiveSetCursor@COleControl@@UEAAHPEBUtagRECT@@JJKH@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10203,
+      "symbol": "?OnInitMenuPopup@COleControl@@IEAAXPEAVCMenu@@IH@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10248,
+      "symbol": "?OnKeyDown@COleControl@@IEAAXIII@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10253,
+      "symbol": "?OnKeyDownEvent@COleControl@@UEAAXGG@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10254,
+      "symbol": "?OnKeyPressEvent@COleControl@@UEAAXG@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10255,
+      "symbol": "?OnKeyUp@COleControl@@IEAAXIII@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10256,
+      "symbol": "?OnKeyUpEvent@COleControl@@UEAAXGG@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10271,
+      "symbol": "?OnKillFocus@COleControl@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "COleControl",
+      "ordinal": 10309,
+      "symbol": "?OnLButtonDblClk@COleControl@@IEAAXIVCPoint@@@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 29/77: COleControl"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-173",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCPropertyGridProperty",
+      "ordinal": 9059,
+      "symbol": "?OnCtlColor@CMFCPropertyGridProperty@@MEAAPEAUHBRUSH__@@PEAVCDC@@I@Z"
+    },
+    {
+      "class": "CMFCPropertyGridProperty",
+      "ordinal": 9161,
+      "symbol": "?OnDestroyWindow@CMFCPropertyGridProperty@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridProperty",
+      "ordinal": 12470,
+      "symbol": "?Reposition@CMFCPropertyGridProperty@@IEAAXAEAH@Z"
+    },
+    {
+      "class": "CMFCPropertyGridProperty",
+      "ordinal": 13194,
+      "symbol": "?SetFlags@CMFCPropertyGridProperty@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridProperty",
+      "ordinal": 13976,
+      "symbol": "?TextToVar@CMFCPropertyGridProperty@@MEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "ordinal": 1234,
+      "symbol": "??1CMFCPropertyGridToolTipCtrl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "ordinal": 3115,
+      "symbol": "?Create@CMFCPropertyGridToolTipCtrl@@UEAAHPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "ordinal": 3701,
+      "symbol": "?Deactivate@CMFCPropertyGridToolTipCtrl@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "ordinal": 7589,
+      "symbol": "?Hide@CMFCPropertyGridToolTipCtrl@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridToolTipCtrl",
+      "ordinal": 8399,
+      "symbol": "?m_strClassName@CMFCPropertyGridToolTipCtrl@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A"
+    }
+  ],
+  "title": "feature_pack_ui shard 173/439: CMFCPropertyGridProperty, CMFCPropertyGridToolTipCtrl"
+}

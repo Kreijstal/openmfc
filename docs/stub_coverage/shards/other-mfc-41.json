@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-41",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CHtmlEditDoc",
+      "ordinal": 7951,
+      "symbol": "?IsModified@CHtmlEditDoc@@UEAAHXZ"
+    },
+    {
+      "class": "CHtmlEditDoc",
+      "ordinal": 10666,
+      "symbol": "?OnNewDocument@CHtmlEditDoc@@UEAAHXZ"
+    },
+    {
+      "class": "CHtmlEditDoc",
+      "ordinal": 10714,
+      "symbol": "?OnOpenDocument@CHtmlEditDoc@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CHtmlEditDoc",
+      "ordinal": 10957,
+      "symbol": "?OnSaveDocument@CHtmlEditDoc@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CHtmlEditDoc",
+      "ordinal": 11676,
+      "symbol": "?OpenURL@CHtmlEditDoc@@UEAAHPEB_W@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 3085,
+      "symbol": "?Create@CHtmlEditView@@UEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 3357,
+      "symbol": "?CreateObject@CHtmlEditView@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 4436,
+      "symbol": "?ExecHandler@CHtmlEditView@@UEAAHI@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 5219,
+      "symbol": "?GetDHtmlCommandMapping@CHtmlEditView@@UEAAIIAEAHAEAI@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 5222,
+      "symbol": "?GetDHtmlDocument@CHtmlEditView@@QEBAHPEAPEAUIHTMLDocument2@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 41/91: CHtmlEditDoc, CHtmlEditView"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-102",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13415,
+      "symbol": "?SetOriginalColor@CMFCColorPickerCtrl@@QEAAXK@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13431,
+      "symbol": "?SetPalette@CMFCColorPickerCtrl@@QEAAXPEAVCPalette@@@Z"
+    },
+    {
+      "class": "CMFCColorPickerCtrl",
+      "ordinal": 13719,
+      "symbol": "?SetType@CMFCColorPickerCtrl@@QEAAXW4COLORTYPE@1@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 1198,
+      "symbol": "??1CMFCControlContainer@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 2769,
+      "symbol": "?ClearControlData@CMFCControlContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 3226,
+      "symbol": "?CreateDlgControl@CMFCControlContainer@@IEAAPEAVCWnd@@PEB_W@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 4714,
+      "symbol": "?FreeSubclassedControls@CMFCControlContainer@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 5106,
+      "symbol": "?GetControlData@CMFCControlContainer@@QEAAHGAEAKAEAPEAE@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 8011,
+      "symbol": "?IsSubclassedFeaturePackControl@CMFCControlContainer@@QEAAHPEAUHWND__@@@Z"
+    },
+    {
+      "class": "CMFCControlContainer",
+      "ordinal": 11903,
+      "symbol": "?PreUnsubclassControl@CMFCControlContainer@@IEAAXPEAVCWnd@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 102/439: CMFCControlContainer, CMFCColorPickerCtrl"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-60",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 7607,
+      "symbol": "?HideUI@XDocHostUIHandler@CHtmlControlSite@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 7670,
+      "symbol": "?InitCache@XOleCache@COleControl@@UEAAJPEAUIDataObject@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7678,
+      "symbol": "?InitFromData@XOleObject@CDocObjectServer@@UEAAJPEAUIDataObject@@HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7679,
+      "symbol": "?InitFromData@XOleObject@COleControl@@UEAAJPEAUIDataObject@@HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7680,
+      "symbol": "?InitFromData@XOleObject@COleServerDoc@@UEAAJPEAUIDataObject@@HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7681,
+      "symbol": "?InitFromData@XOleObject@COleServerItem@@UEAAJPEAUIDataObject@@HK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7707,
+      "symbol": "?Initialize@XInitializeWithStream@CDocument@@UEAAJPEAUIStream@@K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 7728,
+      "symbol": "?InitNew@XPersistMemory@COleControl@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 7729,
+      "symbol": "?InitNew@XPersistPropertyBag@COleControl@@UEAAJXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 7730,
+      "symbol": "?InitNew@XPersistStorage@COleControl@@UEAAJPEAUIStorage@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 60/95: global"
+}

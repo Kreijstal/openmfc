@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-349",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 13219,
+      "symbol": "?SetFrameCustMode@CMFCToolBarsCustomizeDialog@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 13725,
+      "symbol": "?SetupFromMenus@CMFCToolBarsCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 13732,
+      "symbol": "?SetUserCategory@CMFCToolBarsCustomizeDialog@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CMFCToolBarsCustomizeDialog",
+      "ordinal": 13857,
+      "symbol": "?ShowToolBar@CMFCToolBarsCustomizeDialog@@IEAAXPEAVCMFCToolBar@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 1303,
+      "symbol": "??1CMFCToolBarsKeyboardPropertyPage@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 1884,
+      "symbol": "?AddKeyEntry@CMFCToolBarsKeyboardPropertyPage@@IEAAXPEAUtagACCEL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 3447,
+      "symbol": "?CreateObject@CMFCToolBarsKeyboardPropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 3926,
+      "symbol": "?DoDataExchange@CMFCToolBarsKeyboardPropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 8673,
+      "symbol": "?OnAssign@CMFCToolBarsKeyboardPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarsKeyboardPropertyPage",
+      "ordinal": 10180,
+      "symbol": "?OnInitDialog@CMFCToolBarsKeyboardPropertyPage@@MEAAHXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 349/439: CMFCToolBarsKeyboardPropertyPage, CMFCToolBarsCustomizeDialog"
+}

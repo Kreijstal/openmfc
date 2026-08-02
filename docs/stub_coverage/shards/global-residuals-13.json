@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-13",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 1750,
+      "symbol": "?accNavigate@XAccessible@CWnd@@UEAAJJUtagVARIANT@@PEAU3@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1756,
+      "symbol": "?accSelect@XAccessible@CMFCBaseAccessibleObject@@UEAAJJUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1757,
+      "symbol": "?accSelect@XAccessible@CWnd@@UEAAJJUtagVARIANT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1759,
+      "symbol": "?Activate@XPropertyPage@COlePropertyPage@@UEAAJPEAUHWND__@@PEBUtagRECT@@H@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1771,
+      "symbol": "?ActivateMe@XOleDocumentSite@COleDocObjectItem@@UEAAJPEAUIOleDocumentView@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1877,
+      "symbol": "?AddImage@CMFCVisualManagerBitmapCacheItem@CMFCVisualManagerBitmapCache@@QEAAXPEAUHBITMAP__@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 1882,
+      "symbol": "?AddItem@XQAT@CMFCRibbonInfo@@QEAA_JAEBVXQATItem@12@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2083,
+      "symbol": "?AdjustRect@XOleIPSite@COleControlSite@@UEAAJPEAUtagRECT@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2096,
+      "symbol": "?Advise@XConnPt@CConnectionPoint@@UEAAJPEAUIUnknown@@PEAK@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2097,
+      "symbol": "?Advise@XOleObject@CDocObjectServer@@UEAAJPEAUIAdviseSink@@PEAK@Z"
+    }
+  ],
+  "title": "global_residuals shard 13/95: global"
+}

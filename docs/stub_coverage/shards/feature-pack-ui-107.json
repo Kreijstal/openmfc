@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-107",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 7582,
+      "symbol": "?HasFocus@CMFCDesktopAlertDialog@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 8932,
+      "symbol": "?OnCommand@CMFCDesktopAlertDialog@@MEAAH_K_J@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 9003,
+      "symbol": "?OnCreate@CMFCDesktopAlertDialog@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 9057,
+      "symbol": "?OnCtlColor@CMFCDesktopAlertDialog@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 9229,
+      "symbol": "?OnDraw@CMFCDesktopAlertDialog@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 9757,
+      "symbol": "?OnEraseBkgnd@CMFCDesktopAlertDialog@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 10167,
+      "symbol": "?OnInitDialog@CMFCDesktopAlertDialog@@MEAAHXZ"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 10329,
+      "symbol": "?OnLButtonDown@CMFCDesktopAlertDialog@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 10734,
+      "symbol": "?OnPaint@CMFCDesktopAlertDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCDesktopAlertDialog",
+      "ordinal": 10839,
+      "symbol": "?OnPrintClient@CMFCDesktopAlertDialog@@IEAA_JPEAVCDC@@I@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 107/439: CMFCDesktopAlertDialog"
+}

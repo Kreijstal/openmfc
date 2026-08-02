@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-07",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDateTimeCtrl",
+      "ordinal": 7396,
+      "symbol": "?GetTime@CDateTimeCtrl@@QEBAHAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CDateTimeCtrl",
+      "ordinal": 13527,
+      "symbol": "?SetRange@CDateTimeCtrl@@QEAAHPEBVCOleDateTime@ATL@@0@Z"
+    },
+    {
+      "class": "CDateTimeCtrl",
+      "ordinal": 13687,
+      "symbol": "?SetTime@CDateTimeCtrl@@QEAAHAEBVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 1764,
+      "symbol": "?ActivateDocObject@CDocObjectServer@@QEAAXXZ"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 3869,
+      "symbol": "?DoBeginPrinting@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 3941,
+      "symbol": "?DoEndPrinting@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 3987,
+      "symbol": "?DoPrepareDC@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 3988,
+      "symbol": "?DoPreparePrinting@CDocObjectServer@@IEAAHPEAVCView@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 3991,
+      "symbol": "?DoPrint@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 5112,
+      "symbol": "?GetControllingFrame@CDocObjectServer@@QEBAPEAVCOleDocIPFrameWnd@@XZ"
+    }
+  ],
+  "title": "ole_com_activex shard 07/77: CDocObjectServer, CDateTimeCtrl"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-203",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13461,
+      "symbol": "?SetParentCategory@CMFCRibbonButtonsGroup@@UEAAXPEAVCMFCRibbonCategory@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13464,
+      "symbol": "?SetParentMenu@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonPanelMenuBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 13466,
+      "symbol": "?SetParentRibbonBar@CMFCRibbonButtonsGroup@@MEAAXPEAVCMFCRibbonBar@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 3398,
+      "symbol": "?CreateObject@CMFCRibbonCaptionButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 6187,
+      "symbol": "?GetRegularSize@CMFCRibbonCaptionButton@@MEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 9239,
+      "symbol": "?OnDraw@CMFCRibbonCaptionButton@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCaptionButton",
+      "ordinal": 10395,
+      "symbol": "?OnLButtonUp@CMFCRibbonCaptionButton@@MEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1716,
+      "symbol": "?accHitTest@CMFCRibbonCategory@@UEAAJJJPEAUtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1730,
+      "symbol": "?accLocation@CMFCRibbonCategory@@UEAAJPEAJ000UtagVARIANT@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCategory",
+      "ordinal": 1741,
+      "symbol": "?accNavigate@CMFCRibbonCategory@@UEAAJJUtagVARIANT@@PEAU2@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 203/439: CMFCRibbonCaptionButton, CMFCRibbonButtonsGroup, CMFCRibbonCategory"
+}

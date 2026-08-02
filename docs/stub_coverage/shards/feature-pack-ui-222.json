@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-222",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 3406,
+      "symbol": "?CreateObject@CMFCRibbonDefaultPanelButton@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 4073,
+      "symbol": "?DrawImage@CMFCRibbonDefaultPanelButton@@UEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 9244,
+      "symbol": "?OnDraw@CMFCRibbonDefaultPanelButton@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 9446,
+      "symbol": "?OnDrawOnList@CMFCRibbonDefaultPanelButton@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 10230,
+      "symbol": "?OnKey@CMFCRibbonDefaultPanelButton@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 10347,
+      "symbol": "?OnLButtonDown@CMFCRibbonDefaultPanelButton@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 11203,
+      "symbol": "?OnShowPopupMenu@CMFCRibbonDefaultPanelButton@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonDefaultPanelButton",
+      "ordinal": 12865,
+      "symbol": "?SetACCData@CMFCRibbonDefaultPanelButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 2892,
+      "symbol": "?CommonInit@CMFCRibbonEdit@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonEdit",
+      "ordinal": 3009,
+      "symbol": "?CopyFrom@CMFCRibbonEdit@@UEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 222/439: CMFCRibbonDefaultPanelButton, CMFCRibbonEdit"
+}

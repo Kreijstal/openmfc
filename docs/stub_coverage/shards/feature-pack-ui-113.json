@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-113",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCDropDownFrame",
+      "ordinal": 11765,
+      "symbol": "?PostNcDestroy@CMFCDropDownFrame@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCDropDownFrame",
+      "ordinal": 12147,
+      "symbol": "?RecalcLayout@CMFCDropDownFrame@@UEAAXH@Z"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 1207,
+      "symbol": "??1CMFCDropDownListBox@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 1973,
+      "symbol": "?AddString@CMFCDropDownListBox@@QEAAXPEB_W@Z"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 2884,
+      "symbol": "?CommonInit@CMFCDropDownListBox@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 5128,
+      "symbol": "?GetCount@CMFCDropDownListBox@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 5154,
+      "symbol": "?GetCurSel@CMFCDropDownListBox@@QEAAHXZ"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 5598,
+      "symbol": "?GetItem@CMFCDropDownListBox@@IEBAPEAVCMFCToolBarButton@@H@Z"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 6776,
+      "symbol": "?GetText@CMFCDropDownListBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCDropDownListBox",
+      "ordinal": 7613,
+      "symbol": "?HighlightItem@CMFCDropDownListBox@@IEAAXH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 113/439: CMFCDropDownListBox, CMFCDropDownFrame"
+}

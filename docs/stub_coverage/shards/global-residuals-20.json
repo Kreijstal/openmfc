@@ -1,0 +1,63 @@
+{
+  "category": "global_residuals",
+  "id": "global-residuals-20",
+  "primary_files": [
+    "phase4/src/manual_thunks.cpp",
+    "phase4/src/thunks.cpp",
+    "phase4/scripts/build_phase4.sh"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": null,
+      "ordinal": 2225,
+      "symbol": "?afxGlobalData@@3UAFX_GLOBAL_DATA@@A"
+    },
+    {
+      "class": null,
+      "ordinal": 2226,
+      "symbol": "?AfxGlobalFree@@YAXPEAX@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2227,
+      "symbol": "?AfxGlobalsAddRef@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2228,
+      "symbol": "?AfxGlobalsRelease@@YAXXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2229,
+      "symbol": "?afxGlobalUtils@@3VCGlobalUtils@@A"
+    },
+    {
+      "class": null,
+      "ordinal": 2230,
+      "symbol": "?AfxHelpEnabled@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2231,
+      "symbol": "?AfxHookWindowCreate@@YAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2232,
+      "symbol": "?AfxHtmlHelp@@YAPEAUHWND__@@PEAU1@PEB_WI_K@Z"
+    },
+    {
+      "class": null,
+      "ordinal": 2233,
+      "symbol": "?AfxInitCurrentStateApp@@YAHXZ"
+    },
+    {
+      "class": null,
+      "ordinal": 2234,
+      "symbol": "?AfxInitExtensionModule@@YAHAEAUAFX_EXTENSION_MODULE@@PEAUHINSTANCE__@@@Z"
+    }
+  ],
+  "title": "global_residuals shard 20/95: global"
+}

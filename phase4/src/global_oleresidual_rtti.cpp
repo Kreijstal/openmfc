@@ -22,6 +22,7 @@
 // Named global_*_rtti.cpp so build_phase4.sh's shard glob compiles it.
 
 #include "openmfc/afxwin.h"   // CCmdTarget/CWinApp/CDialog/CObject + CRuntimeClass
+#include "openmfc/afxole.h"   // COleControlModule class definition
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -102,3 +103,72 @@ OR_GETTERS(CUserTool,
            impl__GetRuntimeClass_CUserTool__UEBAPEAUCRuntimeClass__XZ)
 
 #undef OR_GETTERS
+
+//=============================================================================
+// COleControlModule lifecycle methods
+// Both delegate to CWinApp (non-virtual qualified call to avoid vtable recursion).
+//=============================================================================
+
+BOOL COleControlModule::InitInstance() { return CWinApp::InitInstance(); }
+int  COleControlModule::ExitInstance() { return CWinApp::ExitInstance(); }
+
+// Symbol: ?InitInstance@COleControlModule@@UEAAHXZ
+extern "C" int MS_ABI impl__InitInstance_COleControlModule__UEAAHXZ(COleControlModule* pThis) {
+    return pThis ? pThis->CWinApp::InitInstance() : 0;
+}
+// Symbol: ?ExitInstance@COleControlModule@@UEAAHXZ
+extern "C" int MS_ABI impl__ExitInstance_COleControlModule__UEAAHXZ(COleControlModule* pThis) {
+    return pThis ? pThis->CWinApp::ExitInstance() : 0;
+}
+
+//=============================================================================
+// CDynLinkLibrary - MFC dynamic-link library registration
+// Object size: 128 bytes (OR_DESC above). OpenMFC's AFX_MODULE_STATE has no
+// library list, so constructors only store handles; dtor is a no-op.
+//=============================================================================
+
+// Real MFC afxext.h: AFX_EXTENSION_MODULE (BOOL + 3 ptrs = 32 bytes on x64)
+struct AFX_EXTENSION_MODULE {
+    int   bInitialized;       // BOOL
+    HINSTANCE hModule;
+    HINSTANCE hResource;
+    CRuntimeClass* pFirstSharedClass;
+    void*  pFirstSharedFactory; // COleObjectFactory* (opaque)
+};
+
+class CDynLinkLibrary : public CCmdTarget {
+public:
+    CDynLinkLibrary(AFX_EXTENSION_MODULE& state, int bSystem);
+    CDynLinkLibrary(HINSTANCE hModule, HINSTANCE hResource);
+    virtual ~CDynLinkLibrary();
+    HINSTANCE m_hModule;
+    HINSTANCE m_hResource;
+    CDynLinkLibrary* m_pNextDLL;
+protected:
+    char _dll_padding[72];    // pad CCmdTarget(32)+24 members to 128
+};
+static_assert(sizeof(CDynLinkLibrary) == 128, "OR_DESC(CDynLinkLibrary,128,...)");
+
+// Symbol: ??0CDynLinkLibrary@@QEAA@AEAUAFX_EXTENSION_MODULE@@H@Z
+extern "C" CDynLinkLibrary* MS_ABI impl___0CDynLinkLibrary__QEAA_AEAUAFX_EXTENSION_MODULE__H_Z(
+    CDynLinkLibrary* pThis, AFX_EXTENSION_MODULE& state, int bSystem) {
+    (void)bSystem;
+    pThis->m_hModule   = state.hModule;
+    pThis->m_hResource = state.hResource;
+    pThis->m_pNextDLL  = nullptr;
+    return pThis;
+}
+
+// Symbol: ??0CDynLinkLibrary@@QEAA@PEAUHINSTANCE__@@0@Z
+extern "C" CDynLinkLibrary* MS_ABI impl___0CDynLinkLibrary__QEAA_PEAUHINSTANCE____0_Z(
+    CDynLinkLibrary* pThis, HINSTANCE hModule, HINSTANCE hResource) {
+    pThis->m_hModule   = hModule;
+    pThis->m_hResource = hResource;
+    pThis->m_pNextDLL  = nullptr;
+    return pThis;
+}
+
+// Symbol: ??1CDynLinkLibrary@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDynLinkLibrary__UEAA_XZ(CDynLinkLibrary* pThis) {
+    (void)pThis;  // no-op: OpenMFC AFX_MODULE_STATE has no library list
+}

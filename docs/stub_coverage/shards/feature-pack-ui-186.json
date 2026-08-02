@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-186",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11012,
+      "symbol": "?OnSetAccData@CMFCRibbonBar@@UEAAHJ@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11039,
+      "symbol": "?OnSetCursor@CMFCRibbonBar@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11069,
+      "symbol": "?OnSetFocus@CMFCRibbonBar@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11092,
+      "symbol": "?OnSetFont@CMFCRibbonBar@@IEAAXPEAVCFont@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11125,
+      "symbol": "?OnSetPrintPreviewKeys@CMFCRibbonBar@@MEAAXPEAVCMFCRibbonPanel@@00@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11146,
+      "symbol": "?OnSettingChange@CMFCRibbonBar@@IEAAXIPEB_W@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11207,
+      "symbol": "?OnShowRibbonContextMenu@CMFCRibbonBar@@UEAAHPEAVCWnd@@HHPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11208,
+      "symbol": "?OnShowRibbonQATMenu@CMFCRibbonBar@@UEAAHPEAVCWnd@@HHPEAVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11217,
+      "symbol": "?OnShowWindow@CMFCRibbonBar@@IEAAXHI@Z"
+    },
+    {
+      "class": "CMFCRibbonBar",
+      "ordinal": 11248,
+      "symbol": "?OnSize@CMFCRibbonBar@@IEAAXIHH@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 186/439: CMFCRibbonBar"
+}

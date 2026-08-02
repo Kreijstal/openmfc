@@ -15,6 +15,7 @@
 #include <cwctype>
 #include <cstring>
 #include <cstdlib>
+#include <climits>
 #include <new>
 #include <shlobj.h>
 #include <string>
@@ -27,6 +28,14 @@
 #else
   #define MS_ABI
 #endif
+
+// CCmdUI export helpers (defined in olecore.cpp).
+extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
+extern "C" void MS_ABI impl__SetCheck_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int nCheck);
+
+// CMFCPropertyGridProperty export helpers (defined in thunks.cpp).
+extern "C" void MS_ABI impl__SetOriginalValue_CMFCPropertyGridProperty__UEAAXAEBVCOleVariant___Z(
+    CMFCPropertyGridProperty* pThis, const COleVariant* varValue);
 
 //=============================================================================
 // CMFCVisualManager - Base visual manager
@@ -72,7 +81,18 @@ struct DockingManagerState {
     CString paneContextMenuName;
 };
 
+struct DockingManagerSnapshot {
+    std::vector<UINT> ids;
+    std::vector<CRect> rects;
+    std::vector<BOOL> hidden;
+    std::vector<BOOL> floating;
+};
+
 thread_local std::unordered_map<const CDockingManager*, DockingManagerState> g_dockingStates;
+static std::mutex g_dockingProfileMutex;
+static std::unordered_map<const CDockingManager*,
+                          std::unordered_map<std::wstring, DockingManagerSnapshot>>
+    g_dockingProfileStates;
 
 DockingManagerState& EnsureDockingState(const CDockingManager* pManager) {
     return g_dockingStates[pManager];
@@ -85,6 +105,20 @@ const DockingManagerState* FindDockingState(const CDockingManager* pManager) {
 
 void RemoveDockingState(const CDockingManager* pManager) {
     g_dockingStates.erase(pManager);
+}
+
+static std::wstring DockingProfileName(const wchar_t* section) {
+    return section && *section ? std::wstring(section) : std::wstring(L"DockingManager");
+}
+
+static DockingManagerSnapshot* FindDockingProfileSnapshot(const CDockingManager* pManager, const wchar_t* section) {
+    auto it = g_dockingProfileStates.find(pManager);
+    if (it == g_dockingProfileStates.end()) return nullptr;
+
+    const std::wstring profile = DockingProfileName(section);
+    auto profileIt = it->second.find(profile);
+    if (profileIt == it->second.end()) return nullptr;
+    return &profileIt->second;
 }
 
 template <typename T>
@@ -120,6 +154,23 @@ void RemoveDockingPane(CDockingManager* pManager, CBasePane* pPane) {
 
 bool IsPaneVisibleForDocking(const DockingManagerState& state, CBasePane* pPane) {
     return pPane != nullptr && state.hiddenPanes.find(pPane) == state.hiddenPanes.end();
+}
+
+static int MiniFrameZRank(HWND hWnd) {
+    if (!hWnd) return INT_MAX;
+    int rank = 0;
+    for (HWND current = ::GetTopWindow(nullptr); current; current = ::GetWindow(current, GW_HWNDNEXT), ++rank) {
+        if (current == hWnd) return rank;
+    }
+    return INT_MAX;
+}
+
+static CRect DefaultMiniFrameRect(int index) {
+    constexpr int kDockingMiniFrameWidth = 240;
+    constexpr int kDockingMiniFrameHeight = 180;
+    constexpr int kDockingMiniFrameSpacing = 18;
+    int offset = index * kDockingMiniFrameSpacing;
+    return CRect(offset, offset, offset + kDockingMiniFrameWidth, offset + kDockingMiniFrameHeight);
 }
 
 CBasePane* FirstDockingPane(const CDockingManager* pManager, bool visibleOnly = false) {
@@ -949,7 +1000,7 @@ unsigned long CMFCVisualManager::OnDrawPaneCaption(CDC* pDC, CDockablePane*, int
 void CMFCVisualManager::OnDrawPaneDivider(CDC* pDC, CPaneDivider*, CRect rect, BOOL) { FillSolid(pDC, rect, ::GetSysColor(COLOR_3DFACE)); FrameSolid(pDC, rect, ::GetSysColor(COLOR_3DSHADOW)); }
 void CMFCVisualManager::OnDrawPopupWindowBorder(CDC* pDC, CRect rect) { FrameSolid(pDC, rect, g_visualBorderColor); }
 void CMFCVisualManager::OnDrawPopupWindowButtonBorder(CDC* pDC, CRect rectClient, CMFCDesktopAlertWndButton*) { FillAndFrame(pDC, rectClient, ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
-void CMFCVisualManager::OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd*) { FillSolid(pDC, rectCaption, g_visualAccentColor); }
+COLORREF CMFCVisualManager::OnDrawPopupWindowCaption(CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd*) { FillSolid(pDC, rectCaption, g_visualAccentColor); return ::GetSysColor(COLOR_CAPTIONTEXT); }
 void CMFCVisualManager::OnDrawRibbonApplicationButton(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 28, 28), g_visualAccentColor, ::GetSysColor(COLOR_3DDKSHADOW)); }
 void CMFCVisualManager::OnDrawRibbonButtonBorder(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 24, 22), ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
 unsigned long CMFCVisualManager::OnDrawRibbonButtonsGroup(CDC* pDC, CMFCRibbonButtonsGroup*, CRect rect) { FillAndFrame(pDC, rect, ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); return ::GetSysColor(COLOR_BTNTEXT); }
@@ -961,7 +1012,7 @@ void CMFCVisualManager::OnDrawRibbonCaptionButton(CDC* pDC, CMFCRibbonCaptionBut
 void CMFCVisualManager::OnDrawRibbonCategory(CDC* pDC, CMFCRibbonCategory*, CRect rect) { FillSolid(pDC, rect, g_visualBackgroundColor); }
 unsigned long CMFCVisualManager::OnDrawRibbonCategoryCaption(CDC* pDC, CMFCRibbonContextCaption*) { FillSolid(pDC, CRect(0, 0, 120, 18), g_visualAccentColor); return ::GetSysColor(COLOR_CAPTIONTEXT); }
 void CMFCVisualManager::OnDrawRibbonCategoryScroll(CDC* pDC, CMFCRibbonCategoryScroll*) { FillAndFrame(pDC, CRect(0, 0, 18, 18), ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); }
-void CMFCVisualManager::OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab*, BOOL bIsActive) { FillAndFrame(pDC, CRect(0, 0, 80, 24), bIsActive ? ::GetSysColor(COLOR_WINDOW) : g_visualBackgroundColor, g_visualBorderColor); }
+COLORREF CMFCVisualManager::OnDrawRibbonCategoryTab(CDC* pDC, CMFCRibbonTab*, BOOL bIsActive) { FillAndFrame(pDC, CRect(0, 0, 80, 24), bIsActive ? ::GetSysColor(COLOR_WINDOW) : g_visualBackgroundColor, g_visualBorderColor); return ::GetSysColor(COLOR_BTNTEXT); }
 void CMFCVisualManager::OnDrawRibbonCheckBoxOnList(CDC* pDC, CMFCRibbonCheckBox*, CRect rect, BOOL bIsSelected, BOOL bHighlighted) { OnDrawCheckBoxEx(pDC, rect, bIsSelected, bHighlighted, FALSE, TRUE); }
 void CMFCVisualManager::OnDrawRibbonDefaultPaneButton(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 80, 22), ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); }
 void CMFCVisualManager::OnDrawRibbonDefaultPaneButtonContext(CDC* pDC, CMFCRibbonButton*) { OnDrawRibbonDefaultPaneButton(pDC, nullptr); }
@@ -976,7 +1027,7 @@ void CMFCVisualManager::OnDrawRibbonLabel(CDC* pDC, CMFCRibbonLabel*, CRect rect
 }
 void CMFCVisualManager::OnDrawRibbonMainPanelButtonBorder(CDC* pDC, CMFCRibbonButton*) { FillAndFrame(pDC, CRect(0, 0, 120, 24), ButtonFillForState(ButtonsIsHighlighted), g_visualBorderColor); }
 void CMFCVisualManager::OnDrawRibbonMainPanelFrame(CDC* pDC, CMFCRibbonMainPanel*, CRect rect) { FillAndFrame(pDC, rect, ::GetSysColor(COLOR_MENU), g_visualBorderColor); }
-void CMFCVisualManager::OnDrawRibbonPanel(CDC* pDC, CMFCRibbonPanel*, CRect rectPanel, CRect rectCaption) { FillAndFrame(pDC, rectPanel, ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); if (IsDrawableRect(rectCaption)) FillSolid(pDC, rectCaption, ::GetSysColor(COLOR_3DLIGHT)); }
+COLORREF CMFCVisualManager::OnDrawRibbonPanel(CDC* pDC, CMFCRibbonPanel*, CRect rectPanel, CRect rectCaption) { FillAndFrame(pDC, rectPanel, ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); if (IsDrawableRect(rectCaption)) FillSolid(pDC, rectCaption, ::GetSysColor(COLOR_3DLIGHT)); return ::GetSysColor(COLOR_BTNTEXT); }
 void CMFCVisualManager::OnDrawRibbonPanelCaption(CDC* pDC, CMFCRibbonPanel*, CRect rectCaption) { FillSolid(pDC, rectCaption, ::GetSysColor(COLOR_3DLIGHT)); }
 void CMFCVisualManager::OnDrawRibbonProgressBar(CDC* pDC, CMFCRibbonProgressBar*, CRect rectProgress, CRect rectChunk, BOOL bInfiniteMode) {
     FillAndFrame(pDC, rectProgress, ::GetSysColor(COLOR_WINDOW), g_visualBorderColor);
@@ -992,8 +1043,8 @@ void CMFCVisualManager::OnDrawRibbonSliderZoomButton(CDC* pDC, CMFCRibbonSlider*
     OnDrawRibbonSliderThumb(pDC, nullptr, rect, bIsHighlighted, bIsPressed, bIsDisabled);
     DrawPlusMinus(pDC, CRect(rect.left + 4, rect.top + 4, rect.right - 4, rect.bottom - 4), bIsZoomOut, ::GetSysColor(COLOR_BTNTEXT));
 }
-void CMFCVisualManager::OnDrawRibbonStatusBarPane(CDC* pDC, CMFCRibbonStatusBar*, CMFCRibbonStatusBarPane*) { FillAndFrame(pDC, CRect(0, 0, 80, 22), ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); }
-void CMFCVisualManager::OnDrawRibbonTabsFrame(CDC* pDC, CMFCRibbonBar*, CRect rectTab) { FillAndFrame(pDC, rectTab, g_visualBackgroundColor, g_visualBorderColor); }
+COLORREF CMFCVisualManager::OnDrawRibbonStatusBarPane(CDC* pDC, CMFCRibbonStatusBar*, CMFCRibbonStatusBarPane*) { FillAndFrame(pDC, CRect(0, 0, 80, 22), ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); return ::GetSysColor(COLOR_BTNTEXT); }
+COLORREF CMFCVisualManager::OnDrawRibbonTabsFrame(CDC* pDC, CMFCRibbonBar*, CRect rectTab) { FillAndFrame(pDC, rectTab, g_visualBackgroundColor, g_visualBorderColor); return ::GetSysColor(COLOR_BTNTEXT); }
 void CMFCVisualManager::OnDrawScrollButtons(CDC* pDC, const CRect& rect, const int, int iImage, BOOL bHilited) { FillAndFrame(pDC, rect, bHilited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE), g_visualBorderColor); DrawArrowGlyph(pDC, rect, iImage != 0, ::GetSysColor(COLOR_BTNTEXT)); }
 void CMFCVisualManager::OnDrawSeparator(CDC* pDC, CBasePane*, CRect rect, BOOL bHorz) { OnDrawButtonSeparator(pDC, nullptr, rect, bHorz); }
 void CMFCVisualManager::OnDrawShowAllMenuItems(CDC* pDC, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) { FillAndFrame(pDC, rect, ButtonFillForState(state), g_visualBorderColor); DrawArrowGlyph(pDC, rect, true, ::GetSysColor(COLOR_BTNTEXT)); }
@@ -1135,36 +1186,60 @@ extern "C" int MS_ABI impl__GetShowAllMenuItemsHeight_CMFCVisualManager__UEAAHPE
 
 // Symbol: ?OnDrawButtonBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
 extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(
-    void* /*class*/*, void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/) {}
+    CMFCVisualManager* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawButtonBorder(pDC, pButton, rect, state);
+}
 
 // Symbol: ?OnDrawButtonSeparator@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@H@Z
 extern "C" void MS_ABI impl__OnDrawButtonSeparator_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1_H_Z(
-    void* /*class*/*, void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/,
-    void*, void*, double, int, void*, void*, void**, unsigned char, void* /*class*/, int) {}
+    CMFCVisualManager* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE /*state*/, int bHorz) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawButtonSeparator(pDC, pButton, rect, bHorz);
+}
 
 // Symbol: ?OnDrawCaptionButton@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCCaptionButton@@HHHHH@Z
 extern "C" void MS_ABI impl__OnDrawCaptionButton_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCCaptionButton__HHHHH_Z(
-    void* /*class*/*, void* /*class*/*, int, int, int, int, int) {}
+    CMFCVisualManager* pThis, CDC* pDC, CMFCCaptionButton* pButton, int a, int b, BOOL bDisabled, int, int) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawCaptionButton(pDC, pButton, a, b, bDisabled);
+}
 
 // Symbol: ?OnDrawFloatingToolbarBorder@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCBaseToolBar@@VCRect@@2@Z
 extern "C" void MS_ABI impl__OnDrawFloatingToolbarBorder_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCBaseToolBar__VCRect__2_Z(
-    void* /*class*/*, void* /*class*/*, void* /*class*/, void*) {}
+    CMFCVisualManager* pThis, CDC* pDC, CMFCBaseToolBar* pBar, CRect rectBorder, CRect rect) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawFloatingToolbarBorder(pDC, reinterpret_cast<CMFCToolBar*>(pBar), rectBorder, rect);
+}
 
 // Symbol: ?OnDrawMenuShadow@CMFCVisualManager@@UEAAXPEAVCDC@@AEBVCRect@@1HHHPEAVCBitmap@@2H@Z
 extern "C" void MS_ABI impl__OnDrawMenuShadow_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__1HHHPEAVCBitmap__2H_Z(
-    void* /*class*/*, const void* /*class*/*, const void* /*class*/*, int, int, int, void* /*class*/*, int, int) {}
+    CMFCVisualManager* pThis, CDC* pDC, const CRect& rectClient, const CRect& rectExclude, int nDepth, int, int,
+    CBitmap* pBmp, CBitmap* pBmp2, COLORREF color) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawMenuShadow(pDC, rectClient, rectExclude, nDepth, 0, 0, pBmp, pBmp2, color);
+}
 
 // Symbol: ?OnDrawRibbonCategoryScroll@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCRibbonCategoryScroll@@@Z
 extern "C" void MS_ABI impl__OnDrawRibbonCategoryScroll_CMFCVisualManager__UEAAXPEAVCDC__PEAVCRibbonCategoryScroll___Z(
-    void* /*class*/*, void* /*class*/*) {}
+    CMFCVisualManager* pThis, CDC* pDC, CMFCRibbonCategoryScroll* pScroll) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawRibbonCategoryScroll(pDC, pScroll);
+}
 
 // Symbol: ?OnDrawShowAllMenuItems@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
 extern "C" void MS_ABI impl__OnDrawShowAllMenuItems_CMFCVisualManager__UEAAXPEAVCDC__VCRect__W4AFX_BUTTON_STATE_1__Z(
-    void* /*class*/*, void* /*class*/, int /*enum*/, short*, int, void*, void* /*struct*/) {}
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawShowAllMenuItems(pDC, rect, state);
+}
 
 // Symbol: ?OnDrawSpinButtons@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@HHPEAVCMFCSpinButtonCtrl@@@Z
 extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHPEAVCMFCSpinButtonCtrl___Z(
-    void* /*class*/*, void* /*class*/, int, int, void* /*class*/*) {}
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, int nState, BOOL bIsHovered, CMFCSpinButtonCtrl* pSpinBtn) {
+    if (!pThis || !pDC) return;
+    pThis->CMFCVisualManager::OnDrawSpinButtons(pDC, rect, nState, TRUE, bIsHovered);
+}
 
 // Office variant visual managers
 IMPLEMENT_DYNAMIC(CMFCVisualManagerOffice2003, CMFCVisualManager)
@@ -1399,7 +1474,41 @@ void* CBasePane::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx,
     }
     return pExtra;
 }
-void CBasePane::CalcFixedLayout(BOOL, BOOL) {}
+void CBasePane::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[this];
+
+    if (state.minSize.cx <= 0) state.minSize.cx = bHorz ? 120 : 64;
+    if (state.minSize.cy <= 0) state.minSize.cy = bHorz ? 64 : 120;
+
+    if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
+        state.recentRect = CRect(0, 0, state.minSize.cx, state.minSize.cy);
+    }
+
+    if (bStretch) {
+        if (bHorz) {
+            if (state.recentRect.Height() < state.minSize.cy) {
+                state.recentRect.bottom = state.recentRect.top + state.minSize.cy;
+            }
+            if (state.recentRect.Width() < state.minSize.cx) {
+                state.recentRect.right = state.recentRect.left + state.minSize.cx;
+            }
+        } else {
+            if (state.recentRect.Width() < state.minSize.cx) {
+                state.recentRect.right = state.recentRect.left + state.minSize.cx;
+            }
+            if (state.recentRect.Height() < state.minSize.cy) {
+                state.recentRect.bottom = state.recentRect.top + state.minSize.cy;
+            }
+        }
+    } else {
+        state.recentRect.right = state.recentRect.left + state.minSize.cx;
+        state.recentRect.bottom = state.recentRect.top + state.minSize.cy;
+    }
+
+    m_rectBar = state.recentRect;
+    state.visible = (m_hWnd != nullptr) ? TRUE : FALSE;
+}
 void CBasePane::RecalcLayout() {
     HWND hwnd = GetSafeHwnd();
     if (hwnd) {
@@ -1424,6 +1533,14 @@ CPane::CPane() {
     g_paneCoreState[this].canFloat = TRUE;
 }
 CPane::~CPane() {}
+
+IMPLEMENT_DYNAMIC(CMFCAutoHideBar, CPane)
+
+CMFCAutoHideBar::CMFCAutoHideBar() {
+    std::memset(_pad, 0, sizeof(_pad));
+}
+
+CMFCAutoHideBar::~CMFCAutoHideBar() {}
 
 BOOL CPane::CanBeDocked() const { return TRUE; }
 BOOL CPane::CanFloat() const { return TRUE; }
@@ -1516,8 +1633,38 @@ CUserTool::CUserTool() : m_uiCmdId(0), m_hIcon(nullptr) {}
 
 CUserTool::~CUserTool() {}
 
-int CUserTool::Invoke() { return 0; }
-void CUserTool::Serialize(CArchive&) {}
+int CUserTool::Invoke() {
+    if (m_strCommand.IsEmpty()) return 0;
+
+    HINSTANCE result = ::ShellExecuteW(
+        nullptr,
+        L"open",
+        m_strCommand.GetString(),
+        m_strArguments.IsEmpty() ? nullptr : m_strArguments.GetString(),
+        m_strInitialDirectory.IsEmpty() ? nullptr : m_strInitialDirectory.GetString(),
+        SW_SHOWNORMAL);
+
+    return (UINT_PTR)result > 32;
+}
+void CUserTool::Serialize(CArchive& ar) {
+    if (ar.IsStoring()) {
+        ar << m_strLabel << m_strArguments << m_strInitialDirectory;
+        ar << m_uiCmdId << m_strCommand;
+        ar << static_cast<BOOL>(m_hIcon != nullptr);
+    } else {
+        ar >> m_strLabel;
+        ar >> m_strArguments;
+        ar >> m_strInitialDirectory;
+        ar >> m_uiCmdId;
+        ar >> m_strCommand;
+        BOOL hasIcon = FALSE;
+        ar >> hasIcon;
+        if (!hasIcon && m_hIcon) {
+            DestroyIcon(m_hIcon);
+            m_hIcon = nullptr;
+        }
+    }
+}
 
 // Draws the tool's icon centred inside rectImage. Retail (mfc140u
 // ?DrawToolIcon@CUserTool@@) computes
@@ -1633,7 +1780,15 @@ CMFCToolBarButton::~CMFCToolBarButton() {}
 // Retail base chain is CMFCToolBar : CMFCBaseToolBar : CPane : CBasePane.
 IMPLEMENT_DYNAMIC(CMFCBaseToolBar, CPane)
 
-CMFCBaseToolBar::CMFCBaseToolBar() {}
+CMFCBaseToolBar::CMFCBaseToolBar() {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& state = g_paneCoreState[this];
+    state.canFloat = TRUE;
+    state.canAutoHide = FALSE;
+    state.hasGripper = FALSE;
+    state.autoHideMode = FALSE;
+    state.tabbed = FALSE;
+}
 CMFCBaseToolBar::~CMFCBaseToolBar() {}
 
 IMPLEMENT_DYNAMIC(CMFCToolBar, CMFCBaseToolBar)
@@ -2806,6 +2961,10 @@ struct PropertyGridCtrlState {
 #define ROLE_SYSTEM_OUTLINEITEM 0x24
 #endif
 
+#ifndef ROLE_SYSTEM_PROGRESSBAR
+#define ROLE_SYSTEM_PROGRESSBAR 0x30
+#endif
+
 #ifndef STATE_SYSTEM_UNAVAILABLE
 #define STATE_SYSTEM_UNAVAILABLE 0x00000001
 #endif
@@ -3407,12 +3566,26 @@ void ExpandPropertyRecursive(CMFCPropertyGridProperty* pProp, BOOL bExpand) {
 //=============================================================================
 IMPLEMENT_DYNAMIC(CMFCPropertyGridProperty, CObject)
 
-CMFCPropertyGridProperty::CMFCPropertyGridProperty(const wchar_t* lpszName, const COleVariant& varValue,
-                                                     const wchar_t* lpszDescr, DWORD_PTR dwData)
+CMFCPropertyGridProperty::CMFCPropertyGridProperty(const CString& strName, const COleVariant& varValue,
+                                                     const wchar_t* lpszDescr, DWORD_PTR dwData,
+                                                     const wchar_t* lpszEditMask,
+                                                     const wchar_t* lpszEditTemplate,
+                                                     const wchar_t* lpszValidChars)
     : m_varValue(varValue), m_dwData(dwData),
       m_bModified(FALSE), m_bEnabled(TRUE), m_bVisible(TRUE), m_bExpanded(FALSE) {
-    if (lpszName) m_strName = lpszName;
+    m_strName = strName;
     if (lpszDescr) m_strDescr = lpszDescr;
+    (void)lpszEditMask; (void)lpszEditTemplate; (void)lpszValidChars;
+    memset(_propgridproperty_padding, 0, sizeof(_propgridproperty_padding));
+    auto& state = EnsurePropertyGridPropertyState(this);
+    state.originalValue.Assign(m_varValue);
+    state.hasOriginalValue = TRUE;
+}
+
+CMFCPropertyGridProperty::CMFCPropertyGridProperty(const CString& strName, DWORD_PTR dwData, int nRowHeight)
+    : m_strName(strName), m_dwData(dwData),
+      m_bModified(FALSE), m_bEnabled(TRUE), m_bVisible(TRUE), m_bExpanded(FALSE) {
+    (void)nRowHeight;
     memset(_propgridproperty_padding, 0, sizeof(_propgridproperty_padding));
     auto& state = EnsurePropertyGridPropertyState(this);
     state.originalValue.Assign(m_varValue);
@@ -4102,7 +4275,7 @@ extern "C" void MS_ABI impl__OnDrawExpandBox_CMFCPropertyGridProperty__UEAAXPEAV
 // Symbol: ?OnSetCursor@CMFCPropertyGridProperty@@UEBAHXZ
 extern "C" int MS_ABI impl__OnSetCursor_CMFCPropertyGridProperty__UEBAHXZ(CMFCPropertyGridProperty* pThis) {
     if (!pThis || !pThis->IsEnabled()) return FALSE;
-    ::SetCursor(::LoadCursorW(nullptr, IDC_ARROW));
+    ::SetCursor(::LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW)));
     return TRUE;
 }
 
@@ -4585,6 +4758,8 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
 }
 CDockingManager::~CDockingManager() {
     RemoveDockingState(this);
+    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
+    g_dockingProfileStates.erase(this);
 }
 
 void CDockingManager::DockPane(CBasePane* pBar, UINT, LPCRECT) {
@@ -4718,42 +4893,284 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(CD
 }
 
 // Symbol: ?AdjustPaneFrames@CDockingManager@@UEAAXXZ
-extern "C" void MS_ABI impl__AdjustPaneFrames_CDockingManager__UEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__AdjustPaneFrames_CDockingManager__UEAAXXZ(CDockingManager* pThis) {
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state || state->miniFrames.empty()) return;
+
+    int index = 0;
+    for (void* pFrame : state->miniFrames) {
+        if (!pFrame) continue;
+        CWnd* frame = static_cast<CWnd*>(pFrame);
+        HWND hWnd = frame ? frame->GetSafeHwnd() : nullptr;
+        if (!hWnd) continue;
+
+        RECT currentRect{};
+        ::GetWindowRect(hWnd, &currentRect);
+        CRect rect(currentRect);
+        if (!IsDrawableRect(rect)) {
+            rect = DefaultMiniFrameRect(index++);
+        }
+
+        frame->SetWindowPos(nullptr,
+                            rect.left, rect.top,
+                            std::max(rect.Width(), 80),
+                            std::max(rect.Height(), 60),
+                            SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+}
 
 // Symbol: ?AdjustRectToClientArea@CDockingManager@@UEAAHAEAVCRect@@K@Z
-extern "C" int MS_ABI impl__AdjustRectToClientArea_CDockingManager__UEAAHAEAVCRect__K_Z(CDockingManager*, CRect*, unsigned long) {
+extern "C" int MS_ABI impl__AdjustRectToClientArea_CDockingManager__UEAAHAEAVCRect__K_Z(CDockingManager* pThis, CRect* pRect, unsigned long) {
+    if (!pThis || !pRect) return FALSE;
+
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state || state->panes.empty()) return FALSE;
+
+    CWnd* parentWnd = nullptr;
+    for (CBasePane* pane : state->panes) {
+        if (!pane || !pane->GetSafeHwnd()) continue;
+        if (CWnd* parent = pane->GetParent()) {
+            if (parent->GetSafeHwnd()) {
+                parentWnd = parent;
+                break;
+            }
+        }
+    }
+
+    if (!parentWnd) return FALSE;
+
+    CRect original = *pRect;
+    POINT topLeft = original.TopLeft();
+    POINT bottomRight = original.BottomRight();
+    ::ScreenToClient(parentWnd->GetSafeHwnd(), &topLeft);
+    ::ScreenToClient(parentWnd->GetSafeHwnd(), &bottomRight);
+    original = CRect(topLeft, bottomRight);
+    RECT client{};
+    parentWnd->GetClientRect(&client);
+    CRect clientRect(client);
+    original.IntersectRect(original, clientRect);
+    if (original.IsRectEmpty()) return FALSE;
+    *pRect = original;
     return TRUE;
 }
 
 // Symbol: ?AlignAutoHidePane@CDockingManager@@QEAAXPEAVCPaneDivider@@H@Z
-extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(CDockingManager*, void*, int) {}
+extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
+    CDockingManager* pThis, void* pDivider, int nAlignment) {
+    if (!pThis || !pDivider) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    DockingManagerState& state = EnsureDockingState(pThis);
+    for (CBasePane* pane : state.panes) {
+        if (!pane) continue;
+        auto& paneState = g_paneCoreState[pane];
+        paneState.autoHideMode = TRUE;
+        paneState.autoHideAlignment = static_cast<DWORD>(nAlignment);
+        paneState.autoHideBar = pDivider;
+    }
+    (void)state;
+}
 
 // Symbol: ?AutoHidePane@CDockingManager@@QEAAPEAVCMFCAutoHideBar@@PEAVCDockablePane@@PEAV2@@Z
 extern "C" CMFCAutoHideBar* MS_ABI impl__AutoHidePane_CDockingManager__QEAAPEAVCMFCAutoHideBar__PEAVCDockablePane__PEAV2__Z(
     CDockingManager* pThis, CDockablePane* pPane, CDockablePane*) {
+    if (!pThis || !pPane) return nullptr;
     AddDockingPane(pThis, pPane);
-    return nullptr;
+    pThis->HidePane(pPane);
+
+    DockingManagerState& state = EnsureDockingState(pThis);
+    state.floatingPanes.erase(pPane);
+    state.hiddenPanes.insert(pPane);
+
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+    PaneCoreState& paneState = g_paneCoreState[pPane];
+    if (!paneState.autoHideAlignment) {
+        paneState.autoHideAlignment = state.enabledAlignment ? state.enabledAlignment : 0;
+    }
+
+    CMFCAutoHideBar* bar = static_cast<CMFCAutoHideBar*>(paneState.autoHideBar);
+    if (!bar) {
+        bar = new (std::nothrow) CMFCAutoHideBar();
+        if (!bar) return nullptr;
+        paneState.autoHideBar = bar;
+    }
+    pPane->SetAutoHideMode(TRUE, paneState.autoHideAlignment, bar, FALSE);
+    return bar;
 }
 
 // Symbol: ?BringBarsToTop@CDockingManager@@QEAAXKH@Z
-extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(CDockingManager*, unsigned long, int) {}
+extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(
+    CDockingManager* pThis, unsigned long nFlags, int bActivate) {
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return;
+
+    UINT flags = SWP_NOMOVE | SWP_NOSIZE | (bActivate ? 0 : SWP_NOACTIVATE);
+    for (CBasePane* pane : state->panes) {
+        if (!pane) continue;
+        HWND hWnd = pane->GetSafeHwnd();
+        if (!hWnd) continue;
+        ::SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, flags);
+        pane->InvalidateRect(nullptr, FALSE);
+    }
+
+    for (void* pFrame : state->miniFrames) {
+        if (!pFrame) continue;
+        CWnd* frame = static_cast<CWnd*>(pFrame);
+        HWND hWnd = frame ? frame->GetSafeHwnd() : nullptr;
+        if (!hWnd) continue;
+        ::SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, flags);
+        ::InvalidateRect(hWnd, nullptr, FALSE);
+    }
+    (void)nFlags;
+}
 
 // Symbol: ?BuildPanesMenu@CDockingManager@@QEAAXAEAVCMenu@@H@Z
-extern "C" void MS_ABI impl__BuildPanesMenu_CDockingManager__QEAAXAEAVCMenu__H_Z(CDockingManager*, CMenu*, int) {}
+extern "C" void MS_ABI impl__BuildPanesMenu_CDockingManager__QEAAXAEAVCMenu__H_Z(
+    CDockingManager* pThis, CMenu* pMenu, int nIDBase) {
+    if (!pThis || !pMenu) return;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return;
+
+    HMENU hMenu = pMenu->GetSafeHmenu();
+    if (!hMenu) {
+        if (!pMenu->CreatePopupMenu()) return;
+        hMenu = pMenu->GetSafeHmenu();
+    }
+    if (!hMenu) return;
+
+    while (::GetMenuItemCount(hMenu) > 0) {
+        ::RemoveMenu(hMenu, 0, MF_BYPOSITION);
+    }
+
+    int idx = 0;
+    const UINT baseId = static_cast<UINT>(nIDBase == 0 ? 5000 : nIDBase);
+    for (CBasePane* pane : state->panes) {
+        if (!pane) continue;
+        UINT cmd = PaneCommandID(pane);
+        if (cmd == 0) cmd = baseId + idx;
+        ++idx;
+
+        CString label;
+        const int len = pane->GetWindowTextLengthW();
+        if (len > 0) {
+            std::wstring tmp(static_cast<size_t>(len + 1), L'\0');
+            pane->GetWindowTextW(&tmp[0], len + 1);
+            label = tmp.c_str();
+        } else {
+            label = L"Pane";
+        }
+        pMenu->AppendMenu(MF_STRING | MF_ENABLED, cmd, (const wchar_t*)label);
+    }
+
+    if (idx == 0) {
+        pMenu->AppendMenu(MF_STRING | MF_ENABLED | MF_GRAYED, baseId, L"(No panes)");
+    }
+}
+
+extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+    const CDockingManager* pThis, CPoint point, int bIncludeHidden, int bCheckForPoint,
+    CRuntimeClass* pRTCFilter, int, const CDockingManager* pDockManager);
+extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager* pThis);
 
 // Symbol: ?CalcExpectedDockedRect@CDockingManager@@QEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
-    CDockingManager*, CWnd*, CPoint ptMouse, CRect* rectResult, int* pnAlignment, CDockablePane** ppTargetBar) {
-    if (rectResult) *rectResult = CRect(ptMouse.x, ptMouse.y, ptMouse.x, ptMouse.y);
-    if (pnAlignment) *pnAlignment = 0;
-    if (ppTargetBar) *ppTargetBar = nullptr;
+    CDockingManager* pThis, CWnd* pWnd, CPoint ptMouse, CRect* rectResult, int* pnAlignment, CDockablePane** ppTargetBar) {
+    if (!rectResult) return;
+
+    CRect bestRect;
+    int alignment = 0;
+    CDockablePane* targetBar = nullptr;
+
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (state && !state->panes.empty()) {
+        CBasePane* target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+            pThis, ptMouse, FALSE, FALSE, nullptr, FALSE, nullptr);
+        if (!target) target = FirstDockingPane(pThis, true);
+        if (target) {
+            RECT rect{};
+            target->GetWindowRect(&rect);
+            targetBar = static_cast<CDockablePane*>(target);
+
+            int left = rect.left;
+            int right = rect.right;
+            int top = rect.top;
+            int bottom = rect.bottom;
+            const int cx = right - left;
+            const int cy = bottom - top;
+            const int midX = left + cx / 2;
+            const int midY = top + cy / 2;
+
+            if (cx > cy) {
+                if (ptMouse.x < midX) {
+                    alignment = 2;
+                    right = midX;
+                } else {
+                    alignment = 3;
+                    left = midX;
+                }
+            } else {
+                if (ptMouse.y < midY) {
+                    alignment = 4;
+                    bottom = midY;
+                } else {
+                    alignment = 5;
+                    top = midY;
+                }
+            }
+
+            bestRect.SetRect(left, top, right, bottom);
+        }
+    }
+
+    if (bestRect.IsRectEmpty() && pWnd && pWnd->GetSafeHwnd()) {
+        RECT r{};
+        pWnd->GetWindowRect(&r);
+        bestRect.SetRect(r.left, r.top, r.right, r.bottom);
+        alignment = 0;
+    } else if (bestRect.IsRectEmpty()) {
+        bestRect = CRect(ptMouse.x, ptMouse.y, ptMouse.x, ptMouse.y);
+    }
+
+    if (pnAlignment) *pnAlignment = alignment;
+    if (ppTargetBar) *ppTargetBar = targetBar;
+    *rectResult = bestRect;
 }
 
 // Symbol: ?DeterminePaneAndStatus@CDockingManager@@UEAA?AW4AFX_CS_STATUS@@VCPoint@@HKPEAPEAVCBasePane@@PEBV4@2@Z
 extern "C" int MS_ABI impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_CS_STATUS__VCPoint__HKPEAPEAVCBasePane__PEBV4_2_Z(
-    CDockingManager* pThis, CPoint, int, unsigned long, CBasePane** ppTargetBar, const CDockingManager*, const CDockingManager*) {
-    if (ppTargetBar) *ppTargetBar = FirstDockingPane(pThis);
-    return 0;
+    CDockingManager* pThis, CPoint point, int nAlignment, unsigned long, CBasePane** ppTargetBar, const CDockingManager*, const CDockingManager*) {
+    if (!pThis || !ppTargetBar) return 0;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state || state->panes.empty()) return 0;
+
+    CPoint pt = point;
+    CBasePane* bestPane = nullptr;
+    for (CBasePane* pane : state->panes) {
+        if (!pane || !pane->GetSafeHwnd()) continue;
+        RECT rect{};
+        pane->GetWindowRect(&rect);
+        if (::PtInRect(&rect, pt)) {
+            bestPane = pane;
+            break;
+        }
+    }
+
+    if (!bestPane) {
+        bestPane = FirstDockingPane(pThis, true);
+        if (!bestPane) return 0;
+    }
+
+    *ppTargetBar = bestPane;
+    RECT rect{};
+    bestPane->GetWindowRect(&rect);
+    int status = 1;
+    if (nAlignment & 1) {
+        status = pt.x < (rect.left + rect.right) / 2 ? 2 : 3;
+    } else if (nAlignment & 2) {
+        status = pt.y < (rect.top + rect.bottom) / 2 ? 4 : 5;
+    } else if (!state->panes.empty()) {
+        status = 1;
+    }
+    return status;
 }
 
 // Symbol: ?EnableAutoHidePanes@CDockingManager@@QEAAHK@Z
@@ -4779,15 +5196,45 @@ extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePa
     if (!state) return nullptr;
 
     for (CBasePane* pane : state->panes) {
+        if (!bSearchMiniFrames && state->hiddenPanes.find(pane) != state->hiddenPanes.end()) {
+            continue;
+        }
         if (PaneCommandID(pane) == nID) return pane;
     }
 
-    (void)bSearchMiniFrames;
+    if (!bSearchMiniFrames) return nullptr;
     return nullptr;
 }
 
 // Symbol: ?FixupVirtualRects@CDockingManager@@UEAAXXZ
-extern "C" void MS_ABI impl__FixupVirtualRects_CDockingManager__UEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__FixupVirtualRects_CDockingManager__UEAAXXZ(CDockingManager* pThis) {
+    if (!pThis) return;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return;
+
+    int idx = 0;
+    for (CBasePane* pane : state->panes) {
+        if (!pane || !pane->GetSafeHwnd()) continue;
+        CRect rect{};
+        {
+            std::lock_guard<std::mutex> lock(g_paneCoreStateMutex);
+            PaneCoreState& paneState = g_paneCoreState[pane];
+            rect = paneState.recentRect;
+            paneState.visible = TRUE;
+        }
+
+        if (!IsDrawableRect(rect)) rect = DefaultMiniFrameRect(idx++);
+        if (rect.Width() <= 0 || rect.Height() <= 0) {
+            rect.right = rect.left + 240;
+            rect.bottom = rect.top + 180;
+        }
+
+        HWND hWnd = pane->GetSafeHwnd();
+        if (hWnd) {
+            pane->SetWindowPos(nullptr, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+        }
+    }
+}
 
 // Symbol: ?FloatPane@CDockingManager@@QEAAXPEAVCBasePane@@VCPoint@@K@Z
 extern "C" void MS_ABI impl__FloatPane_CDockingManager__QEAAXPEAVCBasePane__VCPoint__K_Z(
@@ -4797,9 +5244,29 @@ extern "C" void MS_ABI impl__FloatPane_CDockingManager__QEAAXPEAVCBasePane__VCPo
 
 // Symbol: ?FrameFromPoint@CDockingManager@@UEBAPEAVCPaneFrameWnd@@VCPoint@@PEAV2@H@Z
 extern "C" void* MS_ABI impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(
-    const CDockingManager* pThis, CPoint, void*, int) {
+    const CDockingManager* pThis, CPoint point, void*, int) {
     const DockingManagerState* state = FindDockingState(pThis);
-    return (state && !state->miniFrames.empty()) ? state->miniFrames.front() : nullptr;
+    if (!pThis || !state || state->miniFrames.empty()) return nullptr;
+
+    void* bestFrame = nullptr;
+    int bestRank = INT_MAX;
+    CPoint pt = point;
+    for (void* frame : state->miniFrames) {
+        if (!frame) continue;
+        CWnd* wnd = static_cast<CWnd*>(frame);
+        HWND hWnd = wnd ? wnd->GetSafeHwnd() : nullptr;
+        if (!hWnd) continue;
+        RECT rect{};
+        ::GetWindowRect(hWnd, &rect);
+        if (!::PtInRect(&rect, pt)) continue;
+        int rank = MiniFrameZRank(hWnd);
+        if (rank < bestRank) {
+            bestRank = rank;
+            bestFrame = frame;
+        }
+    }
+
+    return bestFrame ? bestFrame : state->miniFrames.front();
 }
 
 // Symbol: ?GetPaneList@CDockingManager@@QEAAXAEAVCObList@@HPEAUCRuntimeClass@@H@Z
@@ -4832,8 +5299,42 @@ extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z
 }
 
 // Symbol: ?LoadState@CDockingManager@@UEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__LoadState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t*, unsigned int) {
-    if (pThis) EnsureDockingState(pThis);
+extern "C" int MS_ABI impl__LoadState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t* lpszProfileName, unsigned int) {
+    if (!pThis) return FALSE;
+    DockingManagerState& state = EnsureDockingState(pThis);
+    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
+    DockingManagerSnapshot* snapshot = FindDockingProfileSnapshot(pThis, lpszProfileName);
+    if (!snapshot) return TRUE;
+
+    const std::size_t kCap = snapshot->ids.size();
+    std::vector<CBasePane*> ordered;
+    std::unordered_set<CBasePane*> restored;
+    ordered.reserve(state.panes.size());
+
+    for (std::size_t i = 0; i < kCap; ++i) {
+        if (i >= snapshot->rects.size() || i >= snapshot->hidden.size() || i >= snapshot->floating.size()) break;
+        CBasePane* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+            pThis, snapshot->ids[i], TRUE);
+        if (!pane) continue;
+        if (restored.find(pane) != restored.end()) continue;
+
+        if (snapshot->hidden[i]) state.hiddenPanes.insert(pane); else state.hiddenPanes.erase(pane);
+        if (snapshot->floating[i]) state.floatingPanes.insert(pane); else state.floatingPanes.erase(pane);
+
+        std::lock_guard<std::mutex> paneLock(g_paneCoreStateMutex);
+        g_paneCoreState[pane].recentRect = snapshot->rects[i];
+        g_paneCoreState[pane].visible = !snapshot->hidden[i];
+
+        ordered.push_back(pane);
+        restored.insert(pane);
+    }
+
+    for (CBasePane* pane : state.panes) {
+        if (pane && restored.find(pane) == restored.end()) ordered.push_back(pane);
+    }
+    if (!ordered.empty()) state.panes = ordered;
+
+    pThis->RecalcLayout();
     return TRUE;
 }
 
@@ -4843,47 +5344,129 @@ extern "C" void MS_ABI impl__LockUpdate_CDockingManager__QEAAXH_Z(CDockingManage
 }
 
 // Symbol: ?OnActivateFrame@CDockingManager@@UEAAXH@Z
-extern "C" void MS_ABI impl__OnActivateFrame_CDockingManager__UEAAXH_Z(CDockingManager*, int) {}
+extern "C" void MS_ABI impl__OnActivateFrame_CDockingManager__UEAAXH_Z(CDockingManager* pThis, int bActivate) {
+    if (!pThis || !bActivate) return;
+    pThis->RecalcLayout();
+    impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(pThis);
+}
 
 // Symbol: ?OnClosePopupMenu@CDockingManager@@QEAAXXZ
-extern "C" void MS_ABI impl__OnClosePopupMenu_CDockingManager__QEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__OnClosePopupMenu_CDockingManager__QEAAXXZ(CDockingManager*) {
+    if (CMFCPopupMenu* popup = CMFCPopupMenu::GetSafeActivePopupMenu()) {
+        popup->CloseMenu(TRUE);
+    }
+}
 
 // Symbol: ?OnMoveMiniFrame@CDockingManager@@UEAAHPEAVCWnd@@@Z
-extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager*, CWnd*) {
+extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager* pThis, CWnd* pFrame) {
+    if (!pThis || !pFrame) return FALSE;
+
+    auto& frames = EnsureDockingState(pThis).miniFrames;
+    auto it = std::find(frames.begin(), frames.end(), pFrame);
+    if (it == frames.end()) {
+        frames.push_back(pFrame);
+    }
+
+    HWND hWnd = pFrame->GetSafeHwnd();
+    if (!hWnd) return TRUE;
+
+    RECT rect{};
+    ::GetWindowRect(hWnd, &rect);
+    if (!IsDrawableRect(CRect(rect))) return FALSE;
+
+    pFrame->InvalidateRect(nullptr, FALSE);
     return TRUE;
 }
 
 // Symbol: ?OnPaneContextMenu@CDockingManager@@QEAAXVCPoint@@@Z
-extern "C" void MS_ABI impl__OnPaneContextMenu_CDockingManager__QEAAXVCPoint___Z(CDockingManager*, CPoint) {}
+extern "C" void MS_ABI impl__OnPaneContextMenu_CDockingManager__QEAAXVCPoint___Z(CDockingManager* pThis, CPoint pt) {
+    if (!pThis) return;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state || state->panes.empty()) return;
+
+    CMenu menu;
+    if (!menu.CreatePopupMenu()) return;
+    impl__BuildPanesMenu_CDockingManager__QEAAXAEAVCMenu__H_Z(pThis, &menu, 5000);
+
+    HMENU hMenu = menu.GetSafeHmenu();
+    if (!hMenu) return;
+    if (::GetMenuItemCount(hMenu) <= 0) return;
+    ::TrackPopupMenu(hMenu, TPM_LEFTBUTTON | TPM_TOPALIGN | TPM_LEFTALIGN,
+                     pt.x, pt.y, 0, nullptr, nullptr);
+}
 
 // Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@HPEBV2@@Z
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-    const CDockingManager* pThis, CPoint, int bIncludeHidden, int, CRuntimeClass* pRTCFilter, int, const CDockingManager*) {
+    const CDockingManager* pThis, CPoint point, int bIncludeHidden, int, CRuntimeClass* pRTCFilter, int, const CDockingManager*) {
     const DockingManagerState* state = FindDockingState(pThis);
     if (!state) return nullptr;
 
+    CBasePane* bestPane = nullptr;
+    int bestArea = INT_MAX;
     for (CBasePane* pane : state->panes) {
-        if (!pane) continue;
+        if (!pane || !pane->GetSafeHwnd()) continue;
         if (!bIncludeHidden && state->hiddenPanes.find(pane) != state->hiddenPanes.end()) continue;
         if (pRTCFilter && !pane->IsKindOf(pRTCFilter)) continue;
-        return pane;
+        RECT r;
+        pane->GetWindowRect(&r);
+        if (!::PtInRect(&r, point)) continue;
+        CRect rect(r);
+        const int area = rect.Width() * rect.Height();
+        if (!bestPane || area < bestArea) {
+            bestPane = pane;
+            bestArea = area;
+        }
     }
 
-    return nullptr;
+    return bestPane ? bestPane : FirstDockingPane(pThis, !bIncludeHidden);
 }
 
 // Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@PEBV2@@Z
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
     const CDockingManager* pThis, CPoint point, int bIncludeHidden, unsigned long* dwAlignment, CRuntimeClass* pRTCFilter, const CDockingManager* pDockManager) {
+    if (!pThis) return nullptr;
     if (dwAlignment) *dwAlignment = 0;
-    return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-        pThis, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pDockManager);
+    CBasePane* target = nullptr;
+    if (pDockManager) {
+        target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+            pDockManager, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pThis);
+    }
+
+    if (!target) {
+        target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+            pThis, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pDockManager);
+    }
+
+    if (!target) return nullptr;
+    if (!dwAlignment) return target;
+
+    CBasePane* targetFromManager = nullptr;
+    const int status = impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_CS_STATUS__VCPoint__HKPEAPEAVCBasePane__PEBV4_2_Z(
+        const_cast<CDockingManager*>(pThis), point, 0, 0, &targetFromManager, pThis, pDockManager);
+    *dwAlignment = status;
+    if (targetFromManager && targetFromManager != target) {
+        return targetFromManager;
+    }
+    return target;
 }
 
 // Symbol: ?ProcessPaneContextMenuCommand@CDockingManager@@QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__ProcessPaneContextMenuCommand_CDockingManager__QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
-    CDockingManager*, unsigned int, int, void*, void*) {
-    return FALSE;
+    CDockingManager* pThis, unsigned int nID, int, void*, void*) {
+    if (!pThis || nID == 0) return FALSE;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return FALSE;
+
+    CBasePane* target = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(pThis, nID, TRUE);
+    if (!target) return FALSE;
+
+    if (state->hiddenPanes.find(target) == state->hiddenPanes.end()) {
+        pThis->HidePane(target);
+    } else {
+        pThis->ShowPane(target, FALSE);
+    }
+
+    return TRUE;
 }
 
 // Symbol: ?RecalcLayout@CDockingManager@@UEAAXH@Z
@@ -4892,10 +5475,48 @@ extern "C" void MS_ABI impl__RecalcLayout_CDockingManager__UEAAXH_Z(CDockingMana
 }
 
 // Symbol: ?RedrawAllMiniFrames@CDockingManager@@QEAAXXZ
-extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager* pThis) {
+    if (!pThis) return;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return;
+
+    for (void* pFrame : state->miniFrames) {
+        if (!pFrame) continue;
+        CWnd* frame = static_cast<CWnd*>(pFrame);
+        HWND hWnd = frame ? frame->GetSafeHwnd() : nullptr;
+        if (!hWnd) continue;
+        ::InvalidateRect(hWnd, nullptr, TRUE);
+        ::UpdateWindow(hWnd);
+    }
+}
 
 // Symbol: ?ReleaseEmptyPaneContainers@CDockingManager@@QEAAXXZ
-extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ(CDockingManager* pThis) {
+    if (!pThis) return;
+    DockingManagerState& state = EnsureDockingState(pThis);
+    std::vector<CBasePane*> oldPanes = state.panes;
+    state.panes.erase(std::remove_if(state.panes.begin(), state.panes.end(),
+                                    [](CBasePane* pane) { return pane == nullptr || !pane->GetSafeHwnd(); }),
+                     state.panes.end());
+
+    const auto isAlive = [&state](CBasePane* pane) {
+        return std::find(state.panes.begin(), state.panes.end(), pane) != state.panes.end();
+    };
+    for (CBasePane* pane : oldPanes) {
+        if (!pane || isAlive(pane)) continue;
+        state.hiddenPanes.erase(pane);
+        state.floatingPanes.erase(pane);
+        g_paneCoreState.erase(pane);
+    }
+
+    state.miniFrames.erase(std::remove_if(state.miniFrames.begin(), state.miniFrames.end(),
+                                          [](void* frame) {
+                                              if (!frame) return true;
+                                              CWnd* wnd = static_cast<CWnd*>(frame);
+                                              return wnd->GetSafeHwnd() == nullptr;
+                                          }),
+                           state.miniFrames.end());
+}
 
 // Symbol: ?RemoveHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__RemoveHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(CDockingManager* pThis, CDockablePane* pPane) {
@@ -4931,17 +5552,81 @@ extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane_
 }
 
 // Symbol: ?ResortMiniFramesForZOrder@CDockingManager@@QEAAXXZ
-extern "C" void MS_ABI impl__ResortMiniFramesForZOrder_CDockingManager__QEAAXXZ(CDockingManager*) {}
+extern "C" void MS_ABI impl__ResortMiniFramesForZOrder_CDockingManager__QEAAXXZ(CDockingManager* pThis) {
+    if (!pThis) return;
+    DockingManagerState& state = EnsureDockingState(pThis);
+    if (state.miniFrames.size() < 2) return;
+
+    std::sort(state.miniFrames.begin(), state.miniFrames.end(),
+              [](void* lhs, void* rhs) {
+                  HWND left = lhs ? static_cast<CWnd*>(lhs)->GetSafeHwnd() : nullptr;
+                  HWND right = rhs ? static_cast<CWnd*>(rhs)->GetSafeHwnd() : nullptr;
+                  return MiniFrameZRank(left) < MiniFrameZRank(right);
+              });
+
+    for (void* frame : state.miniFrames) {
+        if (!frame) continue;
+        CWnd* wnd = static_cast<CWnd*>(frame);
+        HWND hWnd = wnd ? wnd->GetSafeHwnd() : nullptr;
+        if (!hWnd) continue;
+        ::SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+}
 
 // Symbol: ?SaveState@CDockingManager@@UEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t*, unsigned int) {
-    if (pThis) EnsureDockingState(pThis);
+extern "C" int MS_ABI impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t* lpszProfileName, unsigned int) {
+    if (!pThis) return FALSE;
+    const DockingManagerState& state = EnsureDockingState(pThis);
+    DockingManagerSnapshot snapshot;
+
+    std::unordered_set<UINT> usedIds;
+    for (CBasePane* pane : state.panes) {
+        if (!pane) continue;
+        UINT id = PaneCommandID(pane);
+        if (id == 0 || usedIds.find(id) != usedIds.end()) continue;
+        std::lock_guard<std::mutex> paneLock(g_paneCoreStateMutex);
+        const auto paneStateIt = g_paneCoreState.find(pane);
+
+        CRect rect = paneStateIt == g_paneCoreState.end() ? CRect() : paneStateIt->second.recentRect;
+        if (rect.Width() <= 0 || rect.Height() <= 0) {
+            HWND hWnd = pane->GetSafeHwnd();
+            if (hWnd) {
+                RECT rc{};
+                pane->GetWindowRect(&rc);
+                rect = rc;
+            }
+        }
+
+        snapshot.ids.push_back(id);
+        snapshot.rects.push_back(rect);
+        snapshot.hidden.push_back(state.hiddenPanes.find(pane) != state.hiddenPanes.end() ? TRUE : FALSE);
+        snapshot.floating.push_back(state.floatingPanes.find(pane) != state.floatingPanes.end() ? TRUE : FALSE);
+        usedIds.insert(id);
+    }
+
+    const std::wstring profile = DockingProfileName(lpszProfileName);
+    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
+    g_dockingProfileStates[pThis][profile] = std::move(snapshot);
     return TRUE;
 }
 
 // Symbol: ?SendMessageToMiniFrames@CDockingManager@@QEAAHI_K_J@Z
-extern "C" int MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_J_Z(CDockingManager*, unsigned int, unsigned __int64, __int64) {
-    return 0;
+extern "C" int MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_J_Z(
+    CDockingManager* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam) {
+    if (!pThis) return FALSE;
+    const DockingManagerState* state = FindDockingState(pThis);
+    if (!state) return FALSE;
+
+    int sent = 0;
+    for (void* pFrame : state->miniFrames) {
+        CWnd* frame = static_cast<CWnd*>(pFrame);
+        if (!frame) continue;
+        HWND hWnd = frame->GetSafeHwnd();
+        if (!hWnd) continue;
+        ::SendMessageW(hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam));
+        ++sent;
+    }
+    return sent > 0 ? TRUE : FALSE;
 }
 
 //=============================================================================
@@ -4957,8 +5642,8 @@ CFrameWndEx::~CFrameWndEx() {
     if (m_pDockingManager) delete m_pDockingManager;
 }
 
-BOOL CFrameWndEx::Create(LPCTSTR lpszClassName, LPCTSTR lpszWindowName, DWORD dwStyle,
-                          const RECT& rect, CWnd* pParentWnd, LPCTSTR lpszMenuName,
+BOOL CFrameWndEx::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+                          const RECT& rect, CWnd* pParentWnd, const wchar_t* lpszMenuName,
                           DWORD dwExStyle, CCreateContext* pContext) {
     return CFrameWnd::Create(lpszClassName, lpszWindowName, dwStyle, rect,
                              pParentWnd, lpszMenuName, dwExStyle, pContext);
@@ -4971,9 +5656,9 @@ CDockingManager* CFrameWndEx::GetDockingManager() {
     if (!m_pDockingManager) m_pDockingManager = new CDockingManager(this);
     return m_pDockingManager;
 }
-void CFrameWndEx::EnableDocking(DWORD dwDockStyle) {
+BOOL CFrameWndEx::EnableDocking(DWORD dwDockStyle) {
     if (!m_pDockingManager) m_pDockingManager = new CDockingManager(this);
-    m_pDockingManager->EnableDocking(dwDockStyle);
+    return m_pDockingManager && m_pDockingManager->EnableDocking(dwDockStyle);
 }
 
 //=============================================================================
@@ -5242,6 +5927,42 @@ extern "C" CMFCPopupMenu* MS_ABI impl__ShowPopupMenu_CContextMenuManager__UEAAPE
 extern "C" unsigned int MS_ABI impl__TrackPopupMenu_CContextMenuManager__UEAAIPEAUHMENU____HHPEAVCWnd__H_Z(CContextMenuManager* pThis, HMENU menu, int x, int y, CWnd* owner, int right) { return pThis ? pThis->TrackPopupMenu(menu, x, y, owner, right) : 0; }
 // Symbol: ?ResetState@CContextMenuManager@@UEAAHXZ
 extern "C" int MS_ABI impl__ResetState_CContextMenuManager__UEAAHXZ(CContextMenuManager* pThis) { return pThis ? pThis->ResetState() : FALSE; }
+// Symbol: ?CopyOriginalMenuItemsFromMenu@CContextMenuManager@@IEAAXIAEAVCMFCPopupMenuBar@@@Z
+extern "C" void MS_ABI impl__CopyOriginalMenuItemsFromMenu_CContextMenuManager__IEAAXIAEAVCMFCPopupMenuBar___Z(
+    CContextMenuManager* pThis,
+    unsigned int uiMenuResId,
+    CMFCPopupMenuBar& menuBar)
+{
+    if (!pThis) return;
+    auto stateIt = g_contextMenuStates.find(pThis);
+    if (stateIt == g_contextMenuStates.end()) return;
+    auto it = stateIt->second.menusById.find(uiMenuResId);
+    if (it == stateIt->second.menusById.end()) return;
+    if (!it->second) return;
+    menuBar.ImportFromMenu(it->second, FALSE);
+}
+// Symbol: ?CopyOriginalMenuItemsToMenu@CContextMenuManager@@IEAAXIAEAVCMFCPopupMenuBar@@@Z
+extern "C" void MS_ABI impl__CopyOriginalMenuItemsToMenu_CContextMenuManager__IEAAXIAEAVCMFCPopupMenuBar___Z(
+    CContextMenuManager* pThis,
+    unsigned int uiMenuResId,
+    CMFCPopupMenuBar& menuBar)
+{
+    if (!pThis) return;
+    auto stateIt = g_contextMenuStates.find(pThis);
+    if (stateIt == g_contextMenuStates.end()) return;
+    auto it = stateIt->second.menusById.find(uiMenuResId);
+    if (it == stateIt->second.menusById.end()) return;
+    if (!it->second) return;
+    HMENU originalMenu = it->second;
+    HMENU oldOwnedMenu = stateIt->second.ownedMenusById[uiMenuResId];
+    HMENU clonedMenu = menuBar.ExportToMenu();
+    if (!clonedMenu) return;
+    stateIt->second.menusById[uiMenuResId] = clonedMenu;
+    stateIt->second.ownedMenusById[uiMenuResId] = clonedMenu;
+    if (oldOwnedMenu && oldOwnedMenu == originalMenu && oldOwnedMenu != clonedMenu) {
+        ::DestroyMenu(oldOwnedMenu);
+    }
+}
 // Symbol: ?LoadState@CContextMenuManager@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadState_CContextMenuManager__UEAAHPEB_W_Z(CContextMenuManager* pThis, const wchar_t* profile) { return pThis ? pThis->LoadState(profile) : FALSE; }
 // Symbol: ?SaveState@CContextMenuManager@@UEAAHPEB_W@Z
@@ -5308,7 +6029,21 @@ void CTooltipManager::SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC, CMFCToo
     TooltipManagerState& state = g_tooltipManagerStates[this];
     state.types = nTypes; state.runtimeClass = pRTC; state.params = pParams;
 }
-void CTooltipManager::UpdateTooltips() {}
+void CTooltipManager::UpdateTooltips() {
+    TooltipManagerState& state = g_tooltipManagerStates[this];
+    for (size_t i = 0; i < state.tooltips.size();) {
+        CToolTipCtrl* pTip = state.tooltips[i];
+        if (!pTip || !pTip->GetSafeHwnd()) {
+            state.tooltips.erase(state.tooltips.begin() + static_cast<std::ptrdiff_t>(i));
+            continue;
+        }
+        pTip->Activate(TRUE);
+        if (state.params) {
+            pTip->SetMaxTipWidth(400);
+        }
+        ++i;
+    }
+}
 // Symbol: ??0CTooltipManager@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CTooltipManager__QEAA_XZ(void* pThis) { return new (pThis) CTooltipManager(); }
 // Symbol: ??1CTooltipManager@@UEAA@XZ
@@ -5960,6 +6695,16 @@ extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_
     return pThis ? pThis->SaveState(section, nullptr) : FALSE;
 }
 
+// Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCOleIPFrameWndEx__PEB_W_Z(CWinAppEx* pThis, void* frame, const wchar_t* section) {
+    return pThis ? pThis->LoadState(section, frame) : FALSE;
+}
+
+// Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCOleIPFrameWndEx__PEB_W_Z(CWinAppEx* pThis, void* frame, const wchar_t* section) {
+    return pThis ? pThis->SaveState(section, frame) : FALSE;
+}
+
 // Symbol: ?ReloadWindowPlacement@CWinAppEx@@MEAAHPEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__ReloadWindowPlacement_CWinAppEx__MEAAHPEAVCFrameWnd___Z(CWinAppEx* pThis, CFrameWnd* frame) {
     if (!pThis || !frame) return FALSE;
@@ -6019,6 +6764,10 @@ IMPLEMENT_DYNAMIC(CMFCRibbonTab, CMFCRibbonBaseElement)
 CMFCRibbonTab::CMFCRibbonTab() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonTab::~CMFCRibbonTab() {}
 
+IMPLEMENT_DYNAMIC(CMFCRibbonContextCaption, CObject)
+CMFCRibbonContextCaption::CMFCRibbonContextCaption() { memset(_pad, 0, sizeof(_pad)); }
+CMFCRibbonContextCaption::~CMFCRibbonContextCaption() {}
+
 IMPLEMENT_DYNAMIC(CMFCRibbonCheckBox, CMFCRibbonBaseElement)
 CMFCRibbonCheckBox::CMFCRibbonCheckBox() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonCheckBox::~CMFCRibbonCheckBox() {}
@@ -6043,6 +6792,33 @@ IMPLEMENT_DYNAMIC(CMFCRibbonProgressBar, CMFCRibbonBaseElement)
 CMFCRibbonProgressBar::CMFCRibbonProgressBar() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonProgressBar::~CMFCRibbonProgressBar() {}
 
+// Virtuals required by the vtable (MFC-default no-ops; the export impls in
+// this file carry the same behavior).
+void CMFCRibbonProgressBar::OnDraw(CDC* pDC) { (void)pDC; }
+CSize CMFCRibbonProgressBar::GetRegularSize(CDC* pDC) const { (void)pDC; return CSize(0, 0); }
+void CMFCRibbonProgressBar::CopyFrom(const CMFCRibbonBaseElement& src) { (void)src; }
+void CMFCRibbonProgressBar::OnDrawOnList(CDC* pDC, const CString& strText, int nTextOffset, CRect rect, int bIsHighlighted, int bIsDisabled) {
+    (void)pDC; (void)strText; (void)nTextOffset; (void)rect; (void)bIsHighlighted; (void)bIsDisabled;
+}
+int CMFCRibbonProgressBar::SetACCData(CWnd* pParentWnd, CAccessibilityData& data) {
+    (void)pParentWnd;
+
+    data.m_strAccName = GetText();
+    if (data.m_strAccName.IsEmpty()) {
+        data.m_strAccName = L"Progress";
+    }
+
+    data.m_nAccRole = ROLE_SYSTEM_PROGRESSBAR;
+    data.m_bAccState = STATE_SYSTEM_READONLY;
+    data.m_nAccHit = CHILDID_SELF;
+    data.m_strAccValue.Empty();
+    data.m_strDescription.Empty();
+    data.m_strAccKeys.Empty();
+    data.m_strAccHelp.Empty();
+    data.m_strAccDefAction.Empty();
+    return TRUE;
+}
+
 IMPLEMENT_DYNAMIC(CMFCRibbonSeparator, CMFCRibbonBaseElement)
 CMFCRibbonSeparator::CMFCRibbonSeparator() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonSeparator::~CMFCRibbonSeparator() {}
@@ -6062,3 +6838,246 @@ CMFCRibbonStatusBarPane::~CMFCRibbonStatusBarPane() {}
 IMPLEMENT_DYNAMIC(CMFCTasksPaneTaskGroup, CObject)
 CMFCTasksPaneTaskGroup::CMFCTasksPaneTaskGroup() { memset(_pad, 0, sizeof(_pad)); }
 CMFCTasksPaneTaskGroup::~CMFCTasksPaneTaskGroup() {}
+
+// =============================================================================
+// CMFCVisualManager::OnDrawPropertySheetListItem virtuals (ords 9490-9492)
+// These are stubbed because CMFCPropertySheet is not declared in our headers.
+// MFC default returns FALSE (did not handle — let the property sheet do default
+// drawing).
+// =============================================================================
+
+namespace {
+
+unsigned long MS_ABI DrawPropertySheetListItemFallback(
+    void* pThis, CDC* pDC, const CRect& rect, int nItem, int nState) {
+    (void)pThis;
+    if (!pDC || !pDC->m_hDC) {
+        return FALSE;
+    }
+
+    HDC hdc = pDC->m_hDC;
+    const bool selected = (nState & 1) != 0;
+    const bool disabled = (nState & 2) != 0;
+
+    RECT r = { rect.left, rect.top, rect.right, rect.bottom };
+    const COLORREF bg = selected ? GetSysColor(COLOR_HIGHLIGHT) : GetSysColor(COLOR_WINDOW);
+    const COLORREF text = disabled ? GetSysColor(COLOR_GRAYTEXT)
+                                  : (selected ? GetSysColor(COLOR_HIGHLIGHTTEXT)
+                                             : GetSysColor(COLOR_WINDOWTEXT));
+
+    HBRUSH brush = ::CreateSolidBrush(bg);
+    if (brush) {
+        ::FillRect(hdc, &r, brush);
+        ::DeleteObject(brush);
+    }
+
+    RECT rcText = r;
+    ::InflateRect(&rcText, -4, 0);
+    wchar_t label[64];
+    ::swprintf(label, 64, L"Item %d", nItem + 1);
+
+    ::SetBkMode(hdc, TRANSPARENT);
+    ::SetTextColor(hdc, text);
+    ::DrawTextW(hdc, label, -1, &rcText,
+                DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS | DT_NOPREFIX);
+    ::DrawFocusRect(hdc, &r);
+
+    return TRUE;
+}
+
+}  // namespace
+
+// Symbol: ?OnDrawPropertySheetListItem@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCPropertySheet@@VCRect@@HH@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPropertySheetListItem_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCPropertySheet__VCRect__HH_Z(
+    void* pThis, CDC* pDC, void*, const CRect& rect, int nItem, int nState) {
+    (void)pThis;
+    return DrawPropertySheetListItemFallback(pThis, pDC, rect, nItem, nState);
+}
+
+// Symbol: ?OnDrawPropertySheetListItem@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCPropertySheet@@VCRect@@HH@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPropertySheetListItem_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCPropertySheet__VCRect__HH_Z(
+    void* pThis, CDC* pDC, void* pPropSheet, const CRect& rect, int nItem, int nState) {
+    (void)pPropSheet;
+    return impl__OnDrawPropertySheetListItem_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCPropertySheet__VCRect__HH_Z(
+        pThis, pDC, pPropSheet, rect, nItem, nState);
+}
+
+// Symbol: ?OnDrawPropertySheetListItem@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@PEAVCMFCPropertySheet@@VCRect@@HH@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPropertySheetListItem_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCPropertySheet__VCRect__HH_Z(
+    void* pThis, CDC* pDC, void* pPropSheet, const CRect& rect, int nItem, int nState) {
+    (void)pPropSheet;
+    return impl__OnDrawPropertySheetListItem_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCPropertySheet__VCRect__HH_Z(
+        pThis, pDC, pPropSheet, rect, nItem, nState);
+}
+
+//=============================================================================
+// CMFCTasksPane OnUpdate* command-UI handlers
+//=============================================================================
+
+// Symbol: ?OnUpdateBack@CMFCTasksPane@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateBack_CMFCTasksPane__IEAAXPEAVCCmdUI___Z(CMFCTasksPane*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateClose@CMFCTasksPane@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateClose_CMFCTasksPane__IEAAXPEAVCCmdUI___Z(CMFCTasksPane*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateForward@CMFCTasksPane@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateForward_CMFCTasksPane__IEAAXPEAVCCmdUI___Z(CMFCTasksPane*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+//=============================================================================
+// Frame Window Ex OnUpdate* handlers
+//=============================================================================
+
+// Symbol: ?OnUpdatePaneMenu@CFrameWndEx@@QEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdatePaneMenu_CFrameWndEx__QEAAXPEAVCCmdUI___Z(CFrameWndEx*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdatePaneMenu@CMDIFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdatePaneMenu_CMDIFrameWndEx__IEAAXPEAVCCmdUI___Z(CMDIFrameWndEx*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+//=============================================================================
+// CMFCOutlookBarTabCtrl OnUpdate* handler (no header class yet)
+//=============================================================================
+
+// Symbol: ?OnUpdateToolbarCommand@CMFCOutlookBarTabCtrl@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolbarCommand_CMFCOutlookBarTabCtrl__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+//=============================================================================
+// CMFCImageEditorDialog OnUpdate* handlers (no header class yet)
+//=============================================================================
+
+// Symbol: ?OnUpdateToolEllipse@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolEllipse_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolFill@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolFill_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolLine@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolLine_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolPaste@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolPaste_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolPen@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolPen_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolPick@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolPick_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+// Symbol: ?OnUpdateToolRect@CMFCImageEditorDialog@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdateToolRect_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
+    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
+}
+
+//=== CMFCBaseVisualManager / CMFCVisualManager derived progress exports =======
+
+// Symbol: ?DrawStatusBarProgress@CMFCBaseVisualManager@@UEAAHPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@HHKKKH@Z
+extern "C" int MS_ABI impl__DrawStatusBarProgress_CMFCBaseVisualManager__UEAAHPEAVCDC__PEAVCMFCStatusBar__VCRect__HHKKKH_Z(
+    void* /*CMFCBaseVisualManager**/ pThis, CDC* pDC, CMFCStatusBar* pBar,
+    CRect rectProgress, int nProgressTotal, int nProgressCurr,
+    unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText, int bProgressText) {
+    (void)pThis;
+    // Delegate to the same drawing logic as CMFCVisualManager::OnDrawStatusBarProgress.
+    // CMFCBaseVisualManager is the abstract root; the real impl is in CMFCVisualManager.
+    if (CMFCVisualManager* mgr = CMFCVisualManager::GetInstance()) {
+        mgr->OnDrawStatusBarProgress(pDC, pBar, rectProgress, nProgressTotal, nProgressCurr,
+                                     clrBar, clrProgressBarDest, clrProgressText, (BOOL)bProgressText);
+    }
+    return 1;  // handled
+}
+
+// Symbol: ?OnDrawRibbonProgressBar@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonProgressBar@@VCRect@@2H@Z
+extern "C" void MS_ABI impl__OnDrawRibbonProgressBar_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCRibbonProgressBar__VCRect__2H_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CMFCRibbonProgressBar* pProgress,
+    CRect rectProgress, CRect rectChunk, int bInfiniteMode) {
+    pThis->OnDrawRibbonProgressBar(pDC, pProgress, rectProgress, rectChunk, bInfiniteMode);
+}
+
+// Symbol: ?OnDrawRibbonProgressBar@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonProgressBar@@VCRect@@2H@Z
+extern "C" void MS_ABI impl__OnDrawRibbonProgressBar_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonProgressBar__VCRect__2H_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonProgressBar* pProgress,
+    CRect rectProgress, CRect rectChunk, int bInfiniteMode) {
+    pThis->OnDrawRibbonProgressBar(pDC, pProgress, rectProgress, rectChunk, bInfiniteMode);
+}
+
+// Symbol: ?OnDrawRibbonProgressBar@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonProgressBar@@VCRect@@2H@Z
+extern "C" void MS_ABI impl__OnDrawRibbonProgressBar_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCRibbonProgressBar__VCRect__2H_Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCRibbonProgressBar* pProgress,
+    CRect rectProgress, CRect rectChunk, int bInfiniteMode) {
+    pThis->OnDrawRibbonProgressBar(pDC, pProgress, rectProgress, rectChunk, bInfiniteMode);
+}
+
+// Symbol: ?OnDrawStatusBarProgress@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@HHKKKH@Z
+extern "C" void MS_ABI impl__OnDrawStatusBarProgress_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCStatusBar__VCRect__HHKKKH_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CMFCStatusBar* pBar,
+    CRect rectProgress, int nProgressTotal, int nProgressCurr,
+    unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText, int bProgressText) {
+    pThis->OnDrawStatusBarProgress(pDC, pBar, rectProgress, nProgressTotal, nProgressCurr,
+                                   clrBar, clrProgressBarDest, clrProgressText, bProgressText);
+}
+
+// Symbol: ?OnDrawStatusBarProgress@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@HHKKKH@Z
+extern "C" void MS_ABI impl__OnDrawStatusBarProgress_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCStatusBar__VCRect__HHKKKH_Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCStatusBar* pBar,
+    CRect rectProgress, int nProgressTotal, int nProgressCurr,
+    unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText, int bProgressText) {
+    pThis->OnDrawStatusBarProgress(pDC, pBar, rectProgress, nProgressTotal, nProgressCurr,
+                                   clrBar, clrProgressBarDest, clrProgressText, bProgressText);
+}
+
+//=== CAnimationController export ==============================================
+
+// Symbol: ?IsAnimationInProgress@CAnimationController@@UEAAHXZ
+extern "C" int MS_ABI impl__IsAnimationInProgress_CAnimationController__UEAAHXZ(void* /*pThis*/) {
+    return 0;  // no animation system; always report no animation in progress
+}
+
+//=== CMFCPropertyGridProperty ctor exports (ord 640, 641) ====================
+
+// Symbol: ??0CMFCPropertyGridProperty@@QEAA@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCOleVariant@@PEB_W_K222@Z
+extern "C" void* MS_ABI impl___0CMFCPropertyGridProperty__QEAA_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCOleVariant__PEB_W_K222_Z(
+    CMFCPropertyGridProperty* pThis, const CString* strName, const COleVariant* varValue,
+    const wchar_t* lpszDescr, DWORD_PTR dwData, const wchar_t* lpszEditMask,
+    const wchar_t* lpszEditTemplate, const wchar_t* lpszValidChars)
+{
+    return new(pThis) CMFCPropertyGridProperty(*strName, *varValue, lpszDescr, dwData,
+                                                lpszEditMask, lpszEditTemplate, lpszValidChars);
+}
+
+// Symbol: ??0CMFCPropertyGridProperty@@QEAA@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@_KH@Z
+extern "C" void* MS_ABI impl___0CMFCPropertyGridProperty__QEAA_AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___KH_Z(
+    CMFCPropertyGridProperty* pThis, const CString* strName, DWORD_PTR dwData, int nRowHeight)
+{
+    return new(pThis) CMFCPropertyGridProperty(*strName, dwData, nRowHeight);
+}
+
+//=== CMFCPropertyGridColorProperty::SetOriginalValue ==========================
+
+// Symbol: ?SetOriginalValue@CMFCPropertyGridColorProperty@@UEAAXAEBVCOleVariant@@@Z
+extern "C" void MS_ABI impl__SetOriginalValue_CMFCPropertyGridColorProperty__UEAAXAEBVCOleVariant___Z(
+    CMFCPropertyGridProperty* pThis, const COleVariant* varValue)
+{
+    impl__SetOriginalValue_CMFCPropertyGridProperty__UEAAXAEBVCOleVariant___Z(pThis, varValue);
+}

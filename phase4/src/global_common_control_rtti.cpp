@@ -104,6 +104,11 @@ extern "C" void MS_ABI impl___1CFileDialog__UEAA_XZ(CFileDialog* pThis) {
     if (pThis) pThis->~CFileDialog();
 }
 
+// Symbol: ??1CFolderPickerDialog@@UEAA@XZ
+extern "C" void MS_ABI impl___1CFolderPickerDialog__UEAA_XZ(CFileDialog* pThis) {
+    if (pThis) pThis->~CFileDialog();
+}
+
 // Symbol: ??1CPropertyPage@@UEAA@XZ
 extern "C" void MS_ABI impl___1CPropertyPage__UEAA_XZ(CPropertyPage* pThis) {
     if (pThis) pThis->~CPropertyPage();

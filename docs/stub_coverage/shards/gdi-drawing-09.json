@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-09",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4101,
+      "symbol": "?DrawLineA@CDrawingManager@@QEAAXNNNNK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4120,
+      "symbol": "?DrawRect@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4125,
+      "symbol": "?DrawRotated@CDrawingManager@@QEAAXVCRect@@AEAVCDC@@H@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4132,
+      "symbol": "?DrawShadow@CDrawingManager@@QEAAHVCRect@@HHHPEAVCBitmap@@1KH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4469,
+      "symbol": "?Fill4ColorsGradient@CDrawingManager@@QEAAXVCRect@@KKKKHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4471,
+      "symbol": "?FillAlpha@CDrawingManager@@QEAAXAEBVCRect@@E@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4483,
+      "symbol": "?FillGradient@CDrawingManager@@QEAAXVCRect@@KKHHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4484,
+      "symbol": "?FillGradient2@CDrawingManager@@QEAAXVCRect@@KKH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7559,
+      "symbol": "?GrayRect@CDrawingManager@@QEAAHVCRect@@HKK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7615,
+      "symbol": "?HighlightRect@CDrawingManager@@QEAAHVCRect@@HKHK@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 09/24: CDrawingManager"
+}

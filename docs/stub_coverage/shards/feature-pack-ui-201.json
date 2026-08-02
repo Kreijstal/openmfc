@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-201",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5405,
+      "symbol": "?GetFirstTabStop@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5421,
+      "symbol": "?GetFocused@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5475,
+      "symbol": "?GetHighlighted@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5536,
+      "symbol": "?GetImageSize@CMFCRibbonButtonsGroup@@QEBA?BVCSize@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5618,
+      "symbol": "?GetItemIDsList@CMFCRibbonButtonsGroup@@MEBAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 5659,
+      "symbol": "?GetLastTabStop@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6110,
+      "symbol": "?GetPressed@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@XZ"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 6186,
+      "symbol": "?GetRegularSize@CMFCRibbonButtonsGroup@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 7513,
+      "symbol": "?GetVisibleElements@CMFCRibbonButtonsGroup@@MEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonButtonsGroup",
+      "ordinal": 7624,
+      "symbol": "?HitTest@CMFCRibbonButtonsGroup@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 201/439: CMFCRibbonButtonsGroup"
+}

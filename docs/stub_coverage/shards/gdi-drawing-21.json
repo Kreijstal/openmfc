@@ -1,0 +1,62 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-21",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CRichEditView",
+      "ordinal": 10785,
+      "symbol": "?OnParaAlign@CRichEditView@@QEAAXG@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10786,
+      "symbol": "?OnParaCenter@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10787,
+      "symbol": "?OnParaLeft@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10788,
+      "symbol": "?OnParaRight@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10791,
+      "symbol": "?OnPasteNativeObject@CRichEditView@@MEAAHPEAUIStorage@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10805,
+      "symbol": "?OnPrepareDC@CRichEditView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10834,
+      "symbol": "?OnPrint@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10847,
+      "symbol": "?OnPrinterChanged@CRichEditView@@MEAAXAEBVCDC@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10914,
+      "symbol": "?OnReplaceAll@CRichEditView@@MEAAXPEB_W0HH@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10916,
+      "symbol": "?OnReplaceSel@CRichEditView@@MEAAXPEB_WHHH0@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 21/24: CRichEditView"
+}

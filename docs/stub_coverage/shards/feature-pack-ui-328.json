@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-328",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 4457,
+      "symbol": "?ExportToMenuButton@CMFCToolBarDateTimeCtrl@@UEBAHAEAVCMFCToolBarMenuButton@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 4973,
+      "symbol": "?GetByCmd@CMFCToolBarDateTimeCtrl@@SAPEAV1@I@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7398,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAHIAEAVCOleDateTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7399,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAKIAEAVCTime@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7400,
+      "symbol": "?GetTimeAll@CMFCToolBarDateTimeCtrl@@SAKIPEAU_SYSTEMTIME@@@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 7702,
+      "symbol": "?Initialize@CMFCToolBarDateTimeCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8549,
+      "symbol": "?NotifyCommand@CMFCToolBarDateTimeCtrl@@UEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8619,
+      "symbol": "?OnAddToCustomizePage@CMFCToolBarDateTimeCtrl@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8725,
+      "symbol": "?OnCalculateSize@CMFCToolBarDateTimeCtrl@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarDateTimeCtrl",
+      "ordinal": 8788,
+      "symbol": "?OnChangeParentWnd@CMFCToolBarDateTimeCtrl@@UEAAXPEAVCWnd@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 328/439: CMFCToolBarDateTimeCtrl"
+}

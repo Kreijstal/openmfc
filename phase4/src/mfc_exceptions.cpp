@@ -146,10 +146,38 @@ int CException::GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsi
     if (pnHelpContext) {
         *pnHelpContext = 0;
     }
-    if (lpszError && nMaxError > 0) {
-        lpszError[0] = L'\0';
+    if (!lpszError || nMaxError == 0) {
+        return 0;
     }
-    return 0;
+
+    wchar_t className[64];
+    CopyClassName(this, className, sizeof(className) / sizeof(className[0]));
+
+    const wchar_t* message = nullptr;
+    if (wcscmp(className, L"CMemoryException") == 0) {
+        message = L"Out of memory.";
+    } else if (wcscmp(className, L"CNotSupportedException") == 0) {
+        message = L"Operation not supported.";
+    } else if (wcscmp(className, L"CResourceException") == 0) {
+        message = L"Resource failure.";
+    } else if (wcscmp(className, L"CUserException") == 0) {
+        message = L"User terminated the operation.";
+    } else if (wcscmp(className, L"CInvalidArgException") == 0) {
+        message = L"Invalid argument.";
+    } else if (wcscmp(className, L"COleException") == 0) {
+        message = L"OLE exception.";
+    } else if (wcscmp(className, L"COleDispatchException") == 0) {
+        message = L"OLE dispatch exception.";
+    } else if (wcscmp(className, L"CFileException") == 0) {
+        message = L"File exception.";
+    } else if (wcscmp(className, L"CArchiveException") == 0) {
+        message = L"Archive exception.";
+    } else {
+        message = L"MFC exception.";
+    }
+
+    CopyErrorText(lpszError, nMaxError, message);
+    return 1;
 }
 
 void CException::Dump() const {
@@ -430,8 +458,8 @@ static uintptr_t GetOurImageBase() {
 
 // Dummy type_info vftable
 static void* MS_ABI dummy_dtor(void* p) { return p; }
-static int MS_ABI dummy_eq(void*, void*) { return 0; }
-static int MS_ABI dummy_ne(void*, void*) { return 1; }
+static int MS_ABI dummy_eq(const void* pThis, const void* pOther) { return pThis == pOther; }
+static int MS_ABI dummy_ne(const void* pThis, const void* pOther) { return pThis != pOther; }
 static const char* MS_ABI dummy_name(void*) { return "dummy"; }
 
 static void* g_dummyTypeInfoVFTable[] = {
@@ -794,7 +822,7 @@ static void InitAllRTTI() {
 // Static exceptions (m_bAutoDelete=0, never deleted):
 // - CMemoryException: Uses static instance (g_ManualMemoryException)
 // - CResourceException, CUserException: Use static instances
-// - These use stub_dtor_static which does nothing (safe, no cleanup needed)
+// - These use vtbl_DeleteStatic for static lifetime behavior.
 //
 // Heap-allocated exceptions (m_bAutoDelete=1, may be deleted by MSVC):
 // - CFileException, CArchiveException: Created with 'new'
@@ -802,9 +830,14 @@ static void InitAllRTTI() {
 // - The shims call the actual C++ destructor to clean up members
 // - Memory deallocation uses MinGW's operator delete (via the same heap)
 //
-// Destructor stub for static exceptions (CMemoryException, etc.) - no cleanup needed
-// Returns 'this' as MSVC destructors do; caller won't deallocate since m_bAutoDelete=0
-extern "C" void* MS_ABI stub_dtor_static(void* pThis) { return pThis; }
+// Static destructor shim for static exceptions (CMemoryException and peers).
+// Returns 'this' as MSVC destructors do; caller won't deallocate since
+// m_bAutoDelete is initialized to 0 for these objects.
+extern "C" void* MS_ABI vtbl_DeleteStatic(void* pThis) {
+    if (!pThis) return nullptr;
+    static_cast<CException*>(pThis)->Delete();
+    return pThis;
+}
 
 // Padding for the slot past ReportError. The harvested CException-family vtable
 // (phase1/harvest/vtable_slots.json) is exactly:
@@ -813,9 +846,47 @@ extern "C" void* MS_ABI stub_dtor_static(void* pThis) { return pThis; }
 //   [6] GetErrorMessage (CSimpleException, const)   <- the one CMemoryException uses
 //   [7] ReportError
 // We serve the message thunk at both [5] and [6] (the two distinct GetErrorMessage
-// virtuals) and treat [7] ReportError as a safe no-op (returns 0) since nothing
-// in our surface invokes it.
-extern "C" int MS_ABI stub_vtable_pad(void*) { return 0; }
+// virtuals) and map [7] to a diagnostic helper since MSVC ABI can call this slot
+// during failure paths.
+extern "C" int MS_ABI vtbl_ReportErrorPad(void* pThis) {
+    if (!pThis) return 0;
+
+    const CException* pException = static_cast<const CException*>(pThis);
+    wchar_t className[64];
+    CopyClassName(pException, className, sizeof(className) / sizeof(className[0]));
+
+    unsigned int helpContext = 0;
+    wchar_t errorText[512];
+    const int hasMessage = pException->CException::GetErrorMessage(
+        errorText,
+        static_cast<unsigned int>(sizeof(errorText) / sizeof(errorText[0])),
+        &helpContext
+    );
+
+    wchar_t diag[640];
+    if (hasMessage) {
+        _snwprintf(
+            diag,
+            sizeof(diag) / sizeof(diag[0]),
+            L"Exception::ReportError fallback for %ls (help=%u): %ls\n",
+            className,
+            helpContext,
+            errorText
+        );
+    } else {
+        _snwprintf(
+            diag,
+            sizeof(diag) / sizeof(diag[0]),
+            L"Exception::ReportError fallback for %ls (help=%u)\n",
+            className,
+            helpContext
+        );
+    }
+    diag[(sizeof(diag) / sizeof(diag[0])) - 1] = L'\0';
+    EmitDiagnosticText(L"Exception::ReportError slot fallback\n");
+    EmitDiagnosticText(diag);
+    return 1;
+}
 
 // =============================================================================
 // Proper destructor shims for heap-allocated exceptions
@@ -852,20 +923,55 @@ extern "C" void MS_ABI opdelete_shim(void* pThis) {
     ::operator delete(pThis);
 }
 
-// Serialize does nothing for exceptions
-extern "C" void MS_ABI stub_Serialize(CObject*, CArchive*) {}
+// Serialize path for exceptions. The shipped MFC exception types are not
+// archive-serializable in this project, so this delegates to the base CObject
+// implementation for consistent behavior while keeping the slot ABI-compatible.
+extern "C" void MS_ABI vtbl_Serialize(CObject* pThis, CArchive* pArchive) {
+    if (!pThis || !pArchive) {
+        return;
+    }
+    pThis->CObject::Serialize(*pArchive);
+}
 
-// No-ops by design. These vtable slots are invoked by MSVC code on objects
-// whose vptr we patched to our MSVC-layout vtable. Dispatching into a C++ method
-// that performs an internal virtual call (e.g. CException::AssertValid ->
-// GetRuntimeClass) would resolve through the patched vtable using MinGW's
-// Itanium slot indices, which don't line up with the MSVC layout -> crash.
-// Release-mode MFC AssertValid/Dump are effectively no-ops, so this is correct.
-extern "C" void MS_ABI stub_AssertValid(const CObject* pThis) { (void)pThis; }
+extern "C" void MS_ABI vtbl_AssertValid(const CObject* pThis) {
+    if (!pThis) {
+        return;
+    }
 
-extern "C" void MS_ABI stub_Dump(const CObject* pThis) { (void)pThis; }
+    if (pThis->IsKindOf(&CFileException::classCFileException)) {
+        static_cast<const CFileException*>(pThis)->CFileException::AssertValid();
+        return;
+    }
 
-extern "C" int MS_ABI stub_GetErrorMessage(
+    if (pThis->IsKindOf(&CArchiveException::classCArchiveException)) {
+        static_cast<const CArchiveException*>(pThis)->CArchiveException::AssertValid();
+        return;
+    }
+
+    const CException* pEx = static_cast<const CException*>(pThis);
+    pEx->CException::AssertValid();
+}
+
+extern "C" void MS_ABI vtbl_Dump(const CObject* pThis) {
+    if (!pThis) {
+        return;
+    }
+
+    if (pThis->IsKindOf(&CFileException::classCFileException)) {
+        static_cast<const CFileException*>(pThis)->CFileException::Dump();
+        return;
+    }
+
+    if (pThis->IsKindOf(&CArchiveException::classCArchiveException)) {
+        static_cast<const CArchiveException*>(pThis)->CArchiveException::Dump();
+        return;
+    }
+
+    const CException* pEx = static_cast<const CException*>(pThis);
+    pEx->CException::Dump();
+}
+
+extern "C" int MS_ABI vtbl_GetErrorMessage(
     const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
 ) {
     if (!pThis) {
@@ -916,13 +1022,13 @@ extern "C" int MS_ABI vtbl_CMemoryException_GetErrorMessage(
 // CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
 static void* g_vtbl_CMemoryException[] = {
     reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(stub_dtor_static),                        // [1] destructor (no-op, static instance)
-    reinterpret_cast<void*>(stub_Serialize),                          // [2] Serialize
-    reinterpret_cast<void*>(stub_AssertValid),                        // [3] AssertValid
-    reinterpret_cast<void*>(stub_Dump),                               // [4] Dump
+    reinterpret_cast<void*>(vtbl_DeleteStatic),                        // [1] destructor (static instance)
+    reinterpret_cast<void*>(vtbl_Serialize),                          // [2] Serialize
+    reinterpret_cast<void*>(vtbl_AssertValid),                        // [3] AssertValid
+    reinterpret_cast<void*>(vtbl_Dump),                               // [4] Dump
     reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
     reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
-    reinterpret_cast<void*>(stub_vtable_pad)                          // [7] pad
+    reinterpret_cast<void*>(vtbl_ReportErrorPad)                       // [7] pad
 };
 
 // CFileException vtable
@@ -956,12 +1062,12 @@ extern "C" int MS_ABI vtbl_CFileException_GetErrorMessage(
 static void* g_vtbl_CFileException[] = {
     reinterpret_cast<void*>(vtbl_CFileException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CFileException),                   // [1] destructor (calls ~CFileException)
-    reinterpret_cast<void*>(stub_Serialize),                        // [2] Serialize
-    reinterpret_cast<void*>(stub_AssertValid),                      // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
-    reinterpret_cast<void*>(stub_Dump),                             // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
+    reinterpret_cast<void*>(vtbl_Serialize),                        // [2] Serialize
+    reinterpret_cast<void*>(vtbl_CFileException_AssertValid),       // [3] AssertValid
+    reinterpret_cast<void*>(vtbl_CFileException_Dump),              // [4] Dump
     reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
     reinterpret_cast<void*>(vtbl_CFileException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
-    reinterpret_cast<void*>(stub_vtable_pad)                        // [7] pad
+    reinterpret_cast<void*>(vtbl_ReportErrorPad)                   // [7] pad
 };
 
 // CArchiveException vtable
@@ -995,12 +1101,12 @@ extern "C" int MS_ABI vtbl_CArchiveException_GetErrorMessage(
 static void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(vtbl_CArchiveException_GetRuntimeClass),  // [0] GetRuntimeClass
     reinterpret_cast<void*>(dtor_CArchiveException),                   // [1] destructor (calls ~CArchiveException)
-    reinterpret_cast<void*>(stub_Serialize),                           // [2] Serialize
-    reinterpret_cast<void*>(stub_AssertValid),                         // [3] AssertValid (no-op: avoids cross-ABI virtual dispatch)
-    reinterpret_cast<void*>(stub_Dump),                                // [4] Dump (no-op: avoids cross-ABI virtual dispatch)
+    reinterpret_cast<void*>(vtbl_Serialize),                           // [2] Serialize
+    reinterpret_cast<void*>(vtbl_CArchiveException_AssertValid),       // [3] AssertValid
+    reinterpret_cast<void*>(vtbl_CArchiveException_Dump),              // [4] Dump
     reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
     reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
-    reinterpret_cast<void*>(stub_vtable_pad)                           // [7] pad
+    reinterpret_cast<void*>(vtbl_ReportErrorPad)                        // [7] pad
 };
 
 // Patch vptr to point to our MSVC-compatible vtable
@@ -1093,6 +1199,11 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
     // This avoids any issues with MinGW vtable layout
     CMemoryException* pEx = reinterpret_cast<CMemoryException*>(&g_ManualMemoryException);
     ThrowStatic(pEx, &TI_CMemoryException, nullptr);  // vtable already set
+}
+
+// C++ entry point for in-repo code (delegates to the MSVC-ABI export impl).
+void AFXAPI AfxThrowMemoryException() {
+    impl__AfxThrowMemoryException__YAXXZ();
 }
 
 // AfxThrowNotSupportedException - void()
@@ -1244,6 +1355,51 @@ extern "C" int MS_ABI impl__GetErrorMessage_COleDispatchException__UEBAHPEA_WIPE
     return 1;
 }
 
+// Runtime class descriptors for COleException/COleDispatchException
+// (defined with external linkage in ole_oleexception_rtti.cpp)
+extern CRuntimeClass classCOleException;
+extern CRuntimeClass classCOleDispatchException;
+
+// Symbol: ??0COleDispatchException@@QEAA@PEB_WIG@Z
+// Constructor: (const wchar_t* lpszDescription, unsigned int wCode, unsigned short dwHelpContext)
+extern "C" COleDispatchException* MS_ABI impl___0COleDispatchException__QEAA_PEB_WIG_Z(
+    COleDispatchException* pThis, const wchar_t* lpszDescription,
+    unsigned int wCode, unsigned short dwHelpContext
+) {
+    if (!pThis) return nullptr;
+    new (pThis) COleDispatchException();
+    pThis->m_wCode = static_cast<WORD>(wCode);
+    pThis->m_strDescription = lpszDescription;
+    pThis->m_dwHelpContext = static_cast<DWORD>(dwHelpContext);
+    return pThis;
+}
+
+// Symbol: ?Process@COleDispatchException@@SAXPEAUtagEXCEPINFO@@PEBVCException@@@Z
+extern "C" void MS_ABI impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z(
+    EXCEPINFO* pExcepInfo, const CException* pAnyException
+) {
+    if (!pExcepInfo || !pAnyException) return;
+
+    if (pAnyException->IsKindOf(&classCOleDispatchException)) {
+        const auto* pDE = static_cast<const COleDispatchException*>(pAnyException);
+        pExcepInfo->wCode = pDE->m_wCode;
+        const wchar_t* appName = (AfxGetApp() && AfxGetApp()->m_pszAppName) ? AfxGetApp()->m_pszAppName : L"";
+        pExcepInfo->bstrSource = SysAllocString(appName);
+        if (pDE->m_strDescription)
+            pExcepInfo->bstrDescription = SysAllocString(pDE->m_strDescription);
+        pExcepInfo->dwHelpContext = pDE->m_dwHelpContext;
+        return;
+    }
+    if (pAnyException->IsKindOf(&classCOleException)) {
+        const auto* pOE = static_cast<const COleException*>(pAnyException);
+        pExcepInfo->wCode = 0;
+        pExcepInfo->scode = pOE->m_sc;
+        return;
+    }
+    pExcepInfo->wCode = 0;
+    pExcepInfo->scode = E_FAIL;
+}
+
 // AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
 extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     DWORD dwContext, DWORD dwError
@@ -1268,8 +1424,17 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     int nAfxDaoError, SCODE scode
 ) {
     CDaoException* pEx = new CDaoException();
-    pEx->m_nAfxDaoError = (short)nAfxDaoError;
+    pEx->m_nAfxDaoError = nAfxDaoError;
     pEx->m_scode = scode;
+    pEx->m_strDaoOrigin = CString(L"DAO exception");
+    if (scode != 0) {
+        pEx->m_strError.Format(L"DAO error (code=%ld, daoError=%ld)",
+                               static_cast<long>(scode),
+                               static_cast<long>(nAfxDaoError));
+    } else {
+        pEx->m_strError.Format(L"DAO error (daoError=%ld)",
+                               static_cast<long>(nAfxDaoError));
+    }
     ThrowNew(pEx, &TI_CDaoException, nullptr);
 }
 

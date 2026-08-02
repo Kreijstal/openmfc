@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-340",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 11825,
+      "symbol": "?PrepareDrawImage@CMFCToolBarImages@@QEAAHAEAUtagAFXDrawState@@VCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 13589,
+      "symbol": "?SetSingleImage@CMFCToolBarImages@@QEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 13886,
+      "symbol": "?SmoothResize@CMFCToolBarImages@@QEAAHN@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 14023,
+      "symbol": "?TransparentBlt@CMFCToolBarImages@@KAXPEAUHDC__@@HHHHPEAVCDC@@HHKHH@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 14125,
+      "symbol": "?UpdateCount@CMFCToolBarImages@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 14134,
+      "symbol": "?UpdateImage@CMFCToolBarImages@@QEAAHHPEAUHBITMAP__@@@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 14137,
+      "symbol": "?UpdateInternalImage@CMFCToolBarImages@@IEAAHH@Z"
+    },
+    {
+      "class": "CMFCToolBarMenuButton",
+      "ordinal": 4051,
+      "symbol": "?DrawDocumentIcon@CMFCToolBarMenuButton@@IEAAXPEAVCDC@@AEBVCRect@@PEAUHICON__@@@Z"
+    },
+    {
+      "class": "CMFCToolBarMenuButton",
+      "ordinal": 4104,
+      "symbol": "?DrawMenuItem@CMFCToolBarMenuButton@@IEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarMenuButton",
+      "ordinal": 5533,
+      "symbol": "?GetImageRect@CMFCToolBarMenuButton@@QEAAXAEAVCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 340/439: CMFCToolBarImages, CMFCToolBarMenuButton"
+}

@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-211",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5000,
+      "symbol": "?GetCategoryImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonCategory@@AEAVXCategory@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5001,
+      "symbol": "?GetCategoryImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonCategory@@AEAVXImage@CMFCRibbonInfo@@1@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5300,
+      "symbol": "?GetElementImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXImage@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 5513,
+      "symbol": "?GetID@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXID@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonCollector",
+      "ordinal": 6207,
+      "symbol": "?GetRibbonBarImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXRibbonBar@CMFCRibbonInfo@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 1245,
+      "symbol": "??1CMFCRibbonColorButton@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 1820,
+      "symbol": "?AddColorsGroup@CMFCRibbonColorButton@@QEAAXPEB_WAEBV?$CList@KK@@H@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 2890,
+      "symbol": "?CommonInit@CMFCRibbonColorButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 3006,
+      "symbol": "?CopyFrom@CMFCRibbonColorButton@@MEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonColorButton",
+      "ordinal": 3401,
+      "symbol": "?CreateObject@CMFCRibbonColorButton@@SAPEAVCObject@@XZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 211/439: CMFCRibbonCollector, CMFCRibbonColorButton"
+}

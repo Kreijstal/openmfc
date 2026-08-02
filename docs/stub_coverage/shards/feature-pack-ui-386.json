@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-386",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 6217,
+      "symbol": "?GetRibbonSliderColors@CMFCVisualManagerOfficeXP@@MEAAXPEAVCMFCRibbonSlider@@HHHAEAK1@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 6689,
+      "symbol": "?GetSmartDockingBaseGuideColors@CMFCVisualManagerOfficeXP@@MEAAXAEAK0@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 7408,
+      "symbol": "?GetToolbarButtonTextColor@CMFCVisualManagerOfficeXP@@MEAAKPEAVCMFCToolBarButton@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 7531,
+      "symbol": "?GetWindowColor@CMFCVisualManagerOfficeXP@@MEBAKXZ"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9283,
+      "symbol": "?OnDrawBarGripper@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HPEAVCBasePane@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9301,
+      "symbol": "?OnDrawBrowseButton@CMFCVisualManagerOfficeXP@@MEAAHPEAVCDC@@VCRect@@PEAVCMFCEditBrowseCtrl@@W4AFX_BUTTON_STATE@CMFCVisualManager@@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9308,
+      "symbol": "?OnDrawButtonBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9314,
+      "symbol": "?OnDrawButtonSeparator@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9319,
+      "symbol": "?OnDrawCaptionBarButtonBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOfficeXP",
+      "ordinal": 9322,
+      "symbol": "?OnDrawCaptionBarInfoArea@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 386/439: CMFCVisualManagerOfficeXP"
+}

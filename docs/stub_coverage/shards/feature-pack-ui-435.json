@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-435",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10312,
+      "symbol": "?OnLButtonDblClk@CPaneFrameWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10366,
+      "symbol": "?OnLButtonDown@CPaneFrameWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10409,
+      "symbol": "?OnLButtonUp@CPaneFrameWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10453,
+      "symbol": "?OnMouseActivate@CPaneFrameWnd@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10507,
+      "symbol": "?OnMouseMove@CPaneFrameWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10535,
+      "symbol": "?OnMovePane@CPaneFrameWnd@@UEAAXPEAVCPane@@VCPoint@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10538,
+      "symbol": "?OnMoving@CPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10558,
+      "symbol": "?OnNcActivate@CPaneFrameWnd@@IEAAHH@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10575,
+      "symbol": "?OnNcCalcSize@CPaneFrameWnd@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CPaneFrameWnd",
+      "ordinal": 10584,
+      "symbol": "?OnNcCreate@CPaneFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 435/439: CPaneFrameWnd"
+}

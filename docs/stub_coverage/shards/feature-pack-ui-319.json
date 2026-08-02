@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-319",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 5042,
+      "symbol": "?GetClipboardFormat@CMFCToolBarButton@@SAGXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7700,
+      "symbol": "?Initialize@CMFCToolBarButton@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7910,
+      "symbol": "?IsFirstInGroup@CMFCToolBarButton@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 7933,
+      "symbol": "?IsLastInGroup@CMFCToolBarButton@@UEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8328,
+      "symbol": "?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8401,
+      "symbol": "?m_strClipboardFormatName@CMFCToolBarButton@@2V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8723,
+      "symbol": "?OnCalculateSize@CMFCToolBarButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 8786,
+      "symbol": "?OnChangeParentWnd@CMFCToolBarButton@@UEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 9260,
+      "symbol": "?OnDraw@CMFCToolBarButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 9438,
+      "symbol": "?OnDrawOnCustomizeList@CMFCToolBarButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 319/439: CMFCToolBarButton"
+}

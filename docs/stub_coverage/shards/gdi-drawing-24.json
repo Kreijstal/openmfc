@@ -1,0 +1,27 @@
+{
+  "category": "gdi_drawing",
+  "id": "gdi-drawing-24",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/gdicore.cpp"
+  ],
+  "symbol_count": 3,
+  "symbols": [
+    {
+      "class": "CToolBar",
+      "ordinal": 10653,
+      "symbol": "?OnNcPaint@CToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 10766,
+      "symbol": "?OnPaint@CToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 11023,
+      "symbol": "?OnSetBitmapSize@CToolBar@@IEAA_J_K_J@Z"
+    }
+  ],
+  "title": "gdi_drawing shard 24/24: CToolBar"
+}

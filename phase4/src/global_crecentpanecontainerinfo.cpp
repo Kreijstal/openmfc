@@ -2,6 +2,7 @@
 // Layout-faithful; MS_ABI thunks aliased from the .def as impl_ symbols.
 #include <windows.h>
 #include <cstddef>
+#include "openmfc/afx.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -122,17 +123,25 @@ extern "C" void  MS_ABI impl__StoreDockInfo_CRecentPaneContainerInfo__UEAAXPEAVC
 namespace {
 
 void* MS_ABI vslot_GetRuntimeClass(void* /*pThis*/) {
-    // No RTTI descriptor available in this translation unit; CObject default.
-    return nullptr;
+    return &CObject::classCObject;
 }
 void* MS_ABI vslot_deleting_dtor(void* pThis, unsigned flags) {
     impl___1CRecentPaneContainerInfo__UEAA_XZ(pThis);
     if (flags & 1) ::operator delete(pThis);
     return pThis;
 }
-void MS_ABI vslot_Serialize(void* /*pThis*/, void* /*pAr*/) {}
-void MS_ABI vslot_AssertValid(void* /*pThis*/) {}
-void MS_ABI vslot_Dump(void* /*pThis*/, void* /*pDC*/) {}
+void MS_ABI vslot_Serialize(void* pThis, void* pAr) {
+    if (!pThis || !pAr) return;
+    static_cast<CObject*>(pThis)->CObject::Serialize(*static_cast<CArchive*>(pAr));
+}
+void MS_ABI vslot_AssertValid(void* pThis) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::AssertValid();
+}
+void MS_ABI vslot_Dump(void* pThis, void* /*pDC*/) {
+    if (!pThis) return;
+    static_cast<CObject*>(pThis)->CObject::Dump();
+}
 void MS_ABI vslot_StoreDockInfo(void* pThis, void* a, void* b, void* c) {
     impl__StoreDockInfo_CRecentPaneContainerInfo__UEAAXPEAVCPaneContainer__PEAVCDockablePane__1_Z(pThis, a, b, c);
 }

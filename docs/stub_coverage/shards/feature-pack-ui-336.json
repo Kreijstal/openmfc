@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-336",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 1296,
+      "symbol": "??1CMFCToolBarFontSizeComboBox@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 3191,
+      "symbol": "?CreateCombo@CMFCToolBarFontSizeComboBox@@MEAAPEAVCComboBox@@PEAVCWnd@@AEBVCRect@@@Z"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 3443,
+      "symbol": "?CreateObject@CMFCToolBarFontSizeComboBox@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 4393,
+      "symbol": "?EnumSizeCallBack@CMFCToolBarFontSizeComboBox@@KAHPEAUtagLOGFONTW@@PEAUtagNEWTEXTMETRICW@@HPEAX@Z"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 7438,
+      "symbol": "?GetTwipSize@CMFCToolBarFontSizeComboBox@@QEBAHXZ"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 7803,
+      "symbol": "?InsertSize@CMFCToolBarFontSizeComboBox@@IEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 12128,
+      "symbol": "?RebuildFontSizes@CMFCToolBarFontSizeComboBox@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 13717,
+      "symbol": "?SetTwipSize@CMFCToolBarFontSizeComboBox@@QEAAXH@Z"
+    },
+    {
+      "class": "CMFCToolBarFontSizeComboBox",
+      "ordinal": 14045,
+      "symbol": "?TwipsToPointString@CMFCToolBarFontSizeComboBox@@IEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z"
+    },
+    {
+      "class": "CMFCToolBarImages",
+      "ordinal": 1778,
+      "symbol": "?AdaptColors@CMFCToolBarImages@@QEAAXKK@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 336/439: CMFCToolBarFontSizeComboBox, CMFCToolBarImages"
+}

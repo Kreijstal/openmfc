@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-167",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 8799,
+      "symbol": "?OnChar@CMFCPropertyGridCtrl@@IEAAXIII@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 8845,
+      "symbol": "?OnClickButton@CMFCPropertyGridCtrl@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 8885,
+      "symbol": "?OnCloseCombo@CMFCPropertyGridCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 8925,
+      "symbol": "?OnComboKillFocus@CMFCPropertyGridCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9015,
+      "symbol": "?OnCreate@CMFCPropertyGridCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9058,
+      "symbol": "?OnCtlColor@CMFCPropertyGridCtrl@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9133,
+      "symbol": "?OnDestroy@CMFCPropertyGridCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9291,
+      "symbol": "?OnDrawBorder@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9354,
+      "symbol": "?OnDrawDescription@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCPropertyGridCtrl",
+      "ordinal": 9705,
+      "symbol": "?OnEditKillFocus@CMFCPropertyGridCtrl@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 167/439: CMFCPropertyGridCtrl"
+}

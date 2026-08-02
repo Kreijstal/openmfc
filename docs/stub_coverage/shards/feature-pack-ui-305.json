@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-305",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8129,
+      "symbol": "?LoadResetOriginalState@CMFCToolBar@@IEAAHAEAVCSettingsStore@@@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8148,
+      "symbol": "?LoadState@CMFCToolBar@@UEAAHPEB_WHI@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8174,
+      "symbol": "?LoadToolBarEx@CMFCToolBar@@UEAAHIAEAVCMFCToolBarInfo@@H@Z"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8295,
+      "symbol": "?m_ColdImages@CMFCToolBar@@1VCMFCToolBarImages@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8300,
+      "symbol": "?m_DefaultImages@CMFCToolBar@@1V?$CMap@IIHH@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8301,
+      "symbol": "?m_DisabledImages@CMFCToolBar@@1VCMFCToolBarImages@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8302,
+      "symbol": "?m_DisabledMenuImages@CMFCToolBar@@1VCMFCToolBarImages@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8304,
+      "symbol": "?m_DropSource@CMFCToolBar@@1VCMFCToolBarDropSource@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8313,
+      "symbol": "?m_Images@CMFCToolBar@@1VCMFCToolBarImages@@A"
+    },
+    {
+      "class": "CMFCToolBar",
+      "ordinal": 8320,
+      "symbol": "?m_LargeColdImages@CMFCToolBar@@1VCMFCToolBarImages@@A"
+    }
+  ],
+  "title": "feature_pack_ui shard 305/439: CMFCToolBar"
+}

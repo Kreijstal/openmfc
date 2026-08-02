@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-320",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 11403,
+      "symbol": "?OnToolHitTest@CMFCToolBarButton@@UEAAHPEBVCWnd@@PEAUtagTOOLINFOW@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 11824,
+      "symbol": "?PrepareDrag@CMFCToolBarButton@@UEAAHAEAVCOleDataSource@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 12880,
+      "symbol": "?SetACCData@CMFCToolBarButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButton",
+      "ordinal": 13512,
+      "symbol": "?SetProtectedCommands@CMFCToolBarButton@@SAXAEBV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 1286,
+      "symbol": "??1CMFCToolBarButtonCustomizeDialog@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 3923,
+      "symbol": "?DoDataExchange@CMFCToolBarButtonCustomizeDialog@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 4230,
+      "symbol": "?EnableControls@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 8617,
+      "symbol": "?OnAddImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 9100,
+      "symbol": "?OnDefaultImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCToolBarButtonCustomizeDialog",
+      "ordinal": 9704,
+      "symbol": "?OnEditImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 320/439: CMFCToolBarButtonCustomizeDialog, CMFCToolBarButton"
+}

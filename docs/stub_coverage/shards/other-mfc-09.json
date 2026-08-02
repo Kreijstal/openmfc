@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-09",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 6120,
+      "symbol": "?GetPriority@CAsyncMonikerFile@@MEBAJXZ"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 9075,
+      "symbol": "?OnDataAvailable@CAsyncMonikerFile@@MEAAXKK@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 10414,
+      "symbol": "?OnLowResource@CAsyncMonikerFile@@MEAAXXZ"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11291,
+      "symbol": "?OnStartBinding@CAsyncMonikerFile@@MEAAXXZ"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11295,
+      "symbol": "?OnStopBinding@CAsyncMonikerFile@@MEAAXJPEB_W@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11628,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEAUIMoniker@@PEAUIBindHost@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11629,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEAUIMoniker@@PEAUIServiceProvider@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11630,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEAUIMoniker@@PEAUIUnknown@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11631,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEAUIMoniker@@PEAVCFileException@@@Z"
+    },
+    {
+      "class": "CAsyncMonikerFile",
+      "ordinal": 11632,
+      "symbol": "?Open@CAsyncMonikerFile@@UEAAHPEB_WPEAUIBindHost@@PEAVCFileException@@@Z"
+    }
+  ],
+  "title": "other_mfc shard 09/91: CAsyncMonikerFile"
+}

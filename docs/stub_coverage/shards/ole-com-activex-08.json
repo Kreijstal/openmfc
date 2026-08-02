@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-08",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 8610,
+      "symbol": "?OnActivateView@CDocObjectServer@@MEAAJXZ"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 8670,
+      "symbol": "?OnApplyViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 8887,
+      "symbol": "?OnCloseDocument@CDocObjectServer@@UEAAXXZ"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 9824,
+      "symbol": "?OnExecOleCmd@CDocObjectServer@@IEAAJPEBU_GUID@@KKPEAUtagVARIANT@@1@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 10963,
+      "symbol": "?OnSaveViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 11101,
+      "symbol": "?OnSetItemRects@CDocObjectServer@@IEAAXPEAUtagRECT@@0@Z"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 12251,
+      "symbol": "?ReleaseDocSite@CDocObjectServer@@QEAAXXZ"
+    },
+    {
+      "class": "CDocObjectServer",
+      "ordinal": 13145,
+      "symbol": "?SetDocSite@CDocObjectServer@@QEAAXPEAUIOleDocumentSite@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 3211,
+      "symbol": "?CreateControlSite@CHtmlView@@UEAAHPEAVCOleControlContainer@@PEAPEAVCOleControlSite@@IAEBU_GUID@@@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10933,
+      "symbol": "?OnResizeBorder@CHtmlView@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 08/77: CDocObjectServer, CHtmlView"
+}

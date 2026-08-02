@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-275",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCSpinButtonCtrl",
+      "ordinal": 10402,
+      "symbol": "?OnLButtonUp@CMFCSpinButtonCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCSpinButtonCtrl",
+      "ordinal": 10464,
+      "symbol": "?OnMouseLeave@CMFCSpinButtonCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCSpinButtonCtrl",
+      "ordinal": 10498,
+      "symbol": "?OnMouseMove@CMFCSpinButtonCtrl@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCSpinButtonCtrl",
+      "ordinal": 10750,
+      "symbol": "?OnPaint@CMFCSpinButtonCtrl@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 2041,
+      "symbol": "?AdjustControlWidth@CMFCStandardColorsPropertyPage@@AEAAXPEAVCMFCColorPickerCtrl@@H@Z"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 3431,
+      "symbol": "?CreateObject@CMFCStandardColorsPropertyPage@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 3922,
+      "symbol": "?DoDataExchange@CMFCStandardColorsPropertyPage@@MEAAXPEAVCDataExchange@@@Z"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 9186,
+      "symbol": "?OnDoubleClickedColor@CMFCStandardColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 10057,
+      "symbol": "?OnGreyscale@CMFCStandardColorsPropertyPage@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCStandardColorsPropertyPage",
+      "ordinal": 10089,
+      "symbol": "?OnHexColor@CMFCStandardColorsPropertyPage@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 275/439: CMFCStandardColorsPropertyPage, CMFCSpinButtonCtrl"
+}

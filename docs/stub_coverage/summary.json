@@ -1,36 +1,24 @@
 {
-  "base_commit": "51f61b0b6b023e635a45021b7388d1eec87f4349",
-  "base_commit_short": "51f61b0b6b02",
+  "base_commit": "223ee39cddc7d725071e5b42d6dd41daba80fe8a",
+  "base_commit_short": "223ee39cddc7",
   "category_counts": {
-    "app_runtime_globals": 1,
-    "collections_strings": 1,
-    "core_windows_common_controls": 3,
-    "database_dao_odbc": 1,
-    "docview_files_archive": 2,
-    "feature_pack_ui": 27,
-    "gdi_drawing": 2,
-    "global_residuals": 12,
-    "internet_wininet": 1,
-    "ole_com_activex": 6,
-    "other_mfc": 8
+    "feature_pack_ui": 439,
+    "gdi_drawing": 24,
+    "global_residuals": 95,
+    "ole_com_activex": 77,
+    "other_mfc": 91
   },
   "category_symbol_counts": {
-    "app_runtime_globals": 113,
-    "collections_strings": 85,
-    "core_windows_common_controls": 402,
-    "database_dao_odbc": 111,
-    "docview_files_archive": 212,
-    "feature_pack_ui": 5285,
-    "gdi_drawing": 398,
-    "global_residuals": 2222,
-    "internet_wininet": 42,
-    "ole_com_activex": 1021,
-    "other_mfc": 1537
+    "feature_pack_ui": 4390,
+    "gdi_drawing": 233,
+    "global_residuals": 942,
+    "ole_com_activex": 767,
+    "other_mfc": 903
   },
-  "max_symbols_per_shard": 200,
-  "real_count": 2492,
-  "shard_count": 64,
-  "skip_count": 183,
-  "stub_count": 11428,
+  "max_symbols_per_shard": 10,
+  "real_count": 6720,
+  "shard_count": 726,
+  "skip_count": 148,
+  "stub_count": 7235,
   "total_exports": 14103
 }

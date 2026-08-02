@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-122",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 1211,
+      "symbol": "??1CMFCFontComboBox@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 2736,
+      "symbol": "?CleanUp@CMFCFontComboBox@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 2908,
+      "symbol": "?CompareItem@CMFCFontComboBox@@UEAAHPEAUtagCOMPAREITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 3761,
+      "symbol": "?DeleteString@CMFCFontComboBox@@QEAAHI@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 4089,
+      "symbol": "?DrawItem@CMFCFontComboBox@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 6661,
+      "symbol": "?GetSelFont@CMFCFontComboBox@@QEBAPEAVCMFCFontInfo@@XZ"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 7660,
+      "symbol": "?Init@CMFCFontComboBox@@IEAAXXZ"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 8442,
+      "symbol": "?MeasureItem@CMFCFontComboBox@@UEAAXPEAUtagMEASUREITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 9005,
+      "symbol": "?OnCreate@CMFCFontComboBox@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CMFCFontComboBox",
+      "ordinal": 9128,
+      "symbol": "?OnDestroy@CMFCFontComboBox@@IEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 122/439: CMFCFontComboBox"
+}

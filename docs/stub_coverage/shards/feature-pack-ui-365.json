@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-365",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 10098,
+      "symbol": "?OnHighlightMenuItem@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 10106,
+      "symbol": "?OnHighlightRarelyUsedMenuItems@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 10554,
+      "symbol": "?OnNcActivate@CMFCVisualManager@@UEAAHPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 10646,
+      "symbol": "?OnNcPaint@CMFCVisualManager@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 11155,
+      "symbol": "?OnSetWindowRegion@CMFCVisualManager@@UEAAHPEAVCWnd@@VCSize@@@Z"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 11539,
+      "symbol": "?OnUpdateSystemColors@CMFCVisualManager@@UEAAXXZ"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 12188,
+      "symbol": "?RedrawAll@CMFCVisualManager@@SAXXZ"
+    },
+    {
+      "class": "CMFCVisualManager",
+      "ordinal": 12599,
+      "symbol": "?RibbonCategoryColorToRGB@CMFCVisualManager@@UEAAKW4AFX_RibbonCategoryColor@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 1313,
+      "symbol": "??1CMFCVisualManagerBitmapCache@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCVisualManagerBitmapCache",
+      "ordinal": 2556,
+      "symbol": "?Cache@CMFCVisualManagerBitmapCache@@QEAAHAEBVCSize@@AEAVCMFCControlRenderer@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 365/439: CMFCVisualManager, CMFCVisualManagerBitmapCache"
+}

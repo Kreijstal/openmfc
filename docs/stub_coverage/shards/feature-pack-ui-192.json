@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-192",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4540,
+      "symbol": "?FindByID@CMFCRibbonBaseElement@@UEAAPEAV1@I@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4546,
+      "symbol": "?FindByOriginal@CMFCRibbonBaseElement@@UEAAPEAV1@PEAV1@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 4821,
+      "symbol": "?get_accParent@CMFCRibbonBaseElement@@UEAAJPEAPEAUIDispatch@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5275,
+      "symbol": "?GetDropDownImageWidth@CMFCRibbonBaseElement@@MEBAHXZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5277,
+      "symbol": "?GetDroppedDown@CMFCRibbonBaseElement@@UEAAPEAV1@XZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5307,
+      "symbol": "?GetElementsByID@CMFCRibbonBaseElement@@UEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5420,
+      "symbol": "?GetFocused@CMFCRibbonBaseElement@@UEAAPEAV1@XZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5474,
+      "symbol": "?GetHighlighted@CMFCRibbonBaseElement@@UEAAPEAV1@XZ"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5617,
+      "symbol": "?GetItemIDsList@CMFCRibbonBaseElement@@MEBAXAEAV?$CList@II@@@Z"
+    },
+    {
+      "class": "CMFCRibbonBaseElement",
+      "ordinal": 5653,
+      "symbol": "?GetKeyTipSize@CMFCRibbonBaseElement@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 192/439: CMFCRibbonBaseElement"
+}

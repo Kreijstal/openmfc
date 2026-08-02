@@ -199,18 +199,14 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
         if not info.params and info.ret_type == 'void':
             continue
         
-        # Extract class name from symbol (everything between @ and @@)
-        # Pattern: ?method@ClassName@@...
-        match = re.search(r'@(\w+)@@', symbol)
-        if not match:
-            # Constructor: ??0ClassName@@...
+        # Extract class name from symbol
+        # Check ctors/dtors first — their @@-delimited parts are unambiguous
+        if symbol.startswith('??0'):
             match = re.search(r'\?\?0(\w+)@@', symbol)
-        if not match:
-            # Destructor: ??1ClassName@@...
+        elif symbol.startswith('??1'):
             match = re.search(r'\?\?1(\w+)@@', symbol)
-        if not match:
-            # Template: ??$name@ClassName@@...
-            match = re.search(r'@(\w+)@@[YQUS]', symbol)
+        else:
+            match = re.search(r'@(\w+)@@', symbol)
         
         if match:
             class_name = match.group(1)
@@ -255,17 +251,33 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
             continue
         
         # Extract class name (supports nested classes: Outer::Inner)
-        match = re.search(r'@(\w+)@(\w+)@@', symbol)  # nested: Inner@Outer@@
-        if match:
-            class_name = match.group(2) + '::' + match.group(1)  # Outer::Inner
-        else:
-            match = re.search(r'@(\w+)@@', symbol)
-            if not match:
+        # Check ctors/dtors first — the generic @word@@ pattern matches
+        # parameter types in constructor symbols, causing false positives.
+        match = None
+        if symbol.startswith('??0'):
+            nested_match = re.search(r'\?\?0(\w+)@(\w+)@@', symbol)
+            if nested_match:
+                class_name = nested_match.group(2) + '::' + nested_match.group(1)
+            else:
                 match = re.search(r'\?\?0(\w+)@@', symbol)
-            if not match:
+                if match:
+                    class_name = match.group(1)
+        elif symbol.startswith('??1'):
+            nested_match = re.search(r'\?\?1(\w+)@(\w+)@@', symbol)
+            if nested_match:
+                class_name = nested_match.group(2) + '::' + nested_match.group(1)
+            else:
                 match = re.search(r'\?\?1(\w+)@@', symbol)
+                if match:
+                    class_name = match.group(1)
+        else:
+            match = re.search(r'@(\w+)@(\w+)@@', symbol)  # nested: Inner@Outer@@
             if match:
-                class_name = match.group(1)
+                class_name = match.group(2) + '::' + match.group(1)  # Outer::Inner
+            else:
+                match = re.search(r'@(\w+)@@', symbol)
+                if match:
+                    class_name = match.group(1)
         
         if not match:
             continue

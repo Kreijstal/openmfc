@@ -73,13 +73,10 @@
 ?OnPreparePrinting@COleDocObjectItem@@SAHPEAVCView@@PEAUCPrintInfo@@H@Z
 ?OnPrint@COleDocObjectItem@@SAXPEAVCView@@PEAUCPrintInfo@@H@Z
 ?OnSetExtent@COleControl@@UEAAHPEAUtagSIZE@@@Z
-?OnSetFont@CDialog@@IEAAXPEAVCFont@@H@Z
-?OnSetFont@CDialog@@UEAAXPEAVCFont@@@Z
 ?OnUpdate@CView@@MEAAXPEAV1@_JPEAVCObject@@@Z
 ?OpenFile@CGopherConnection@@QEAAPEAVCGopherFile@@AEAVCGopherLocator@@KPEB_W_K@Z
 ?OpenRequest@CHttpConnection@@QEAAPEAVCHttpFile@@HPEB_W0_KPEAPEB_W0K@Z
 ?OpenStream@COleStreamFile@@QEAAHPEAUIStorage@@PEB_WKPEAVCFileException@@@Z
-?PrintInsideRect@CEditView@@QEAAIPEAVCDC@@AEAUtagRECT@@II@Z
 ?PumpMessages@CSocket@@MEAAHI@Z
 ?QueryInfo@CHttpFile@@QEBAHKAEAKPEAK@Z
 ?QueryInfo@CHttpFile@@QEBAHKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAK@Z

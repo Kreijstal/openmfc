@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-47",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CJumpList",
+      "ordinal": 7710,
+      "symbol": "?InitializeList@CJumpList@@QEAAHXZ"
+    },
+    {
+      "class": "CJumpList",
+      "ordinal": 12258,
+      "symbol": "?ReleaseObjectArray@CJumpList@@IEAAXPEAUIObjectArray@@H@Z"
+    },
+    {
+      "class": "CLinkCtrl",
+      "ordinal": 3094,
+      "symbol": "?Create@CLinkCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CLinkCtrl",
+      "ordinal": 3095,
+      "symbol": "?Create@CLinkCtrl@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CLinkCtrl",
+      "ordinal": 3252,
+      "symbol": "?CreateEx@CLinkCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CLinkCtrl",
+      "ordinal": 3253,
+      "symbol": "?CreateEx@CLinkCtrl@@UEAAHPEB_WKKAEBUtagRECT@@PEAVCWnd@@I@Z"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 3368,
+      "symbol": "?CreateObject@CMDITabProxyWnd@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 7945,
+      "symbol": "?IsMDIChildActive@CMDITabProxyWnd@@IEAAHXZ"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 8588,
+      "symbol": "?OnActivate@CMDITabProxyWnd@@IEAAXIPEAVCWnd@@H@Z"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 8869,
+      "symbol": "?OnClose@CMDITabProxyWnd@@IEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 47/91: CLinkCtrl, CMDITabProxyWnd, CJumpList"
+}

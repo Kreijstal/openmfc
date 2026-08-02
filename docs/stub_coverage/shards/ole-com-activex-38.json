@@ -1,0 +1,62 @@
+{
+  "category": "ole_com_activex",
+  "id": "ole-com-activex-38",
+  "primary_files": [
+    "include/openmfc/afxole.h",
+    "phase4/src/olecore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "COleControlContainer",
+      "ordinal": 2702,
+      "symbol": "?CheckDlgButton@COleControlContainer@@UEAAXHI@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 2714,
+      "symbol": "?CheckRadioButton@COleControlContainer@@UEAAXHHH@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 3197,
+      "symbol": "?CreateControl@COleControlContainer@@QEAAHPEAVCWnd@@AEBU_GUID@@PEB_WKAEBUtagRECT@@IPEAVCFile@@HPEA_WPEAPEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 3198,
+      "symbol": "?CreateControl@COleControlContainer@@QEAAHPEAVCWnd@@AEBU_GUID@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_WPEAPEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 3199,
+      "symbol": "?CreateControl@COleControlContainer@@QEAAHPEAVCWnd@@AEBVCControlCreationInfo@@KPEBUtagPOINT@@PEBUtagSIZE@@I@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 3207,
+      "symbol": "?CreateControlCommon@COleControlContainer@@QEAAHPEAVCWnd@@AEBU_GUID@@AEBVCControlCreationInfo@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_WPEAPEAVCOleControlSite@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 3501,
+      "symbol": "?CreateOleFont@COleControlContainer@@QEAAXPEAVCFont@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 4491,
+      "symbol": "?FillListSitesOrWnds@COleControlContainer@@UEAAHPEAU_AFX_OCC_DIALOG_INFO@@@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 4717,
+      "symbol": "?FreezeAllEvents@COleControlContainer@@QEAAXH@Z"
+    },
+    {
+      "class": "COleControlContainer",
+      "ordinal": 4892,
+      "symbol": "?GetAmbientProp@COleControlContainer@@UEAAHPEAVCOleControlSite@@JPEAUtagVARIANT@@@Z"
+    }
+  ],
+  "title": "ole_com_activex shard 38/77: COleControlContainer"
+}

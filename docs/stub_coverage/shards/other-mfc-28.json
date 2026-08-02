@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-28",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 3860,
+      "symbol": "?DisconnectFromConnectionPoint@CDHtmlEventSink@@QEAAXPEAUIUnknown@@AEBU_GUID@@AEAK@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 4554,
+      "symbol": "?FindDHtmlEventEntry@CDHtmlEventSink@@QEAAHPEBUDHtmlEventMapEntry@@JPEAPEAUIHTMLElement@@@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 5520,
+      "symbol": "?GetIDsOfNames@CDHtmlEventSink@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 7444,
+      "symbol": "?GetTypeInfo@CDHtmlEventSink@@UEAAJIKPEAPEAUITypeInfo@@@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 7453,
+      "symbol": "?GetTypeInfoCount@CDHtmlEventSink@@UEAAJPEAI@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 7826,
+      "symbol": "?Invoke@CDHtmlEventSink@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z"
+    },
+    {
+      "class": "CDHtmlEventSink",
+      "ordinal": 12229,
+      "symbol": "?Release@CDHtmlEventSink@@UEAAKXZ"
+    },
+    {
+      "class": "CDataBoundProperty",
+      "ordinal": 5158,
+      "symbol": "?GetCursor@CDataBoundProperty@@QEAAPEAUIUnknown@@XZ"
+    },
+    {
+      "class": "CDataBoundProperty",
+      "ordinal": 5956,
+      "symbol": "?GetNext@CDataBoundProperty@@QEAAPEAV1@XZ"
+    },
+    {
+      "class": "CDataBoundProperty",
+      "ordinal": 8539,
+      "symbol": "?Notify@CDataBoundProperty@@QEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 28/91: CDHtmlEventSink, CDataBoundProperty"
+}

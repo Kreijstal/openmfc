@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-140",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 9234,
+      "symbol": "?OnDraw@CMFCMenuButton@@MEAAXPEAVCDC@@AEBVCRect@@I@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 9995,
+      "symbol": "?OnGetDlgCode@CMFCMenuButton@@IEAAIXZ"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10157,
+      "symbol": "?OnInitControl@CMFCMenuButton@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10242,
+      "symbol": "?OnKeyDown@CMFCMenuButton@@IEAAXIII@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10264,
+      "symbol": "?OnKillFocus@CMFCMenuButton@@IEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10297,
+      "symbol": "?OnLButtonDblClk@CMFCMenuButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10335,
+      "symbol": "?OnLButtonDown@CMFCMenuButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 10386,
+      "symbol": "?OnLButtonUp@CMFCMenuButton@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 11183,
+      "symbol": "?OnShowMenu@CMFCMenuButton@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCMenuButton",
+      "ordinal": 11878,
+      "symbol": "?PreTranslateMessage@CMFCMenuButton@@UEAAHPEAUtagMSG@@@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 140/439: CMFCMenuButton"
+}

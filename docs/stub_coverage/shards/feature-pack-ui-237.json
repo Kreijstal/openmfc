@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-237",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCRibbonLaunchButton",
+      "ordinal": 12869,
+      "symbol": "?SetACCData@CMFCRibbonLaunchButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 1260,
+      "symbol": "??1CMFCRibbonLinkCtrl@@UEAA@XZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 3014,
+      "symbol": "?CopyFrom@CMFCRibbonLinkCtrl@@UEAAXAEBVCMFCRibbonBaseElement@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 3414,
+      "symbol": "?CreateObject@CMFCRibbonLinkCtrl@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 5076,
+      "symbol": "?GetCompactSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 6191,
+      "symbol": "?GetRegularSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 8579,
+      "symbol": "?OnAccDefaultAction@CMFCRibbonLinkCtrl@@MEAAXXZ"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 9250,
+      "symbol": "?OnDraw@CMFCRibbonLinkCtrl@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 10495,
+      "symbol": "?OnMouseMove@CMFCRibbonLinkCtrl@@UEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CMFCRibbonLinkCtrl",
+      "ordinal": 11099,
+      "symbol": "?OnSetIcon@CMFCRibbonLinkCtrl@@UEAAXXZ"
+    }
+  ],
+  "title": "feature_pack_ui shard 237/439: CMFCRibbonLinkCtrl, CMFCRibbonLaunchButton"
+}

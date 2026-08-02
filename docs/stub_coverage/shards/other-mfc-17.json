@@ -1,0 +1,62 @@
+{
+  "category": "other_mfc",
+  "id": "other-mfc-17",
+  "primary_files": [
+    "include/openmfc/afxwin.h",
+    "phase4/src/manual_thunks.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CControlFrameWnd",
+      "ordinal": 11781,
+      "symbol": "?PreCreateWindow@CControlFrameWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CCtrlView",
+      "ordinal": 10837,
+      "symbol": "?OnPrintClient@CCtrlView@@IEAA_JPEAVCDC@@I@Z"
+    },
+    {
+      "class": "CCtrlView",
+      "ordinal": 11782,
+      "symbol": "?PreCreateWindow@CCtrlView@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2466,
+      "symbol": "?Attach@CD2DGeometry@@QEAAXPEAUID2D1Geometry@@@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2856,
+      "symbol": "?CombineWithGeometry@CD2DGeometry@@QEBAHAEAV1@W4D2D1_COMBINE_MODE@@AEBUD2D_MATRIX_3X2_F@@PEAUID2D1SimplifiedGeometrySink@@M@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2916,
+      "symbol": "?CompareWithGeometry@CD2DGeometry@@QEBA?AW4D2D1_GEOMETRY_RELATION@@AEAV1@AEBUD2D_MATRIX_3X2_F@@M@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2917,
+      "symbol": "?ComputeArea@CD2DGeometry@@QEBAHAEBUD2D_MATRIX_3X2_F@@AEAMM@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2919,
+      "symbol": "?ComputeLength@CD2DGeometry@@QEBAHAEBUD2D_MATRIX_3X2_F@@AEAMM@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 2920,
+      "symbol": "?ComputePointAtLength@CD2DGeometry@@QEBAHMAEBUD2D_MATRIX_3X2_F@@AEAVCD2DPointF@@1M@Z"
+    },
+    {
+      "class": "CD2DGeometry",
+      "ordinal": 3780,
+      "symbol": "?Destroy@CD2DGeometry@@UEAAXXZ"
+    }
+  ],
+  "title": "other_mfc shard 17/91: CD2DGeometry, CCtrlView, CControlFrameWnd"
+}

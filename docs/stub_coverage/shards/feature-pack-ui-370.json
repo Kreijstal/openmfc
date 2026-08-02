@@ -1,0 +1,63 @@
+{
+  "category": "feature_pack_ui",
+  "id": "feature-pack-ui-370",
+  "primary_files": [
+    "include/openmfc/afxmfc.h",
+    "phase4/src/cbarcore.cpp",
+    "phase4/src/mfccore.cpp"
+  ],
+  "symbol_count": 10,
+  "symbols": [
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9522,
+      "symbol": "?OnDrawRibbonCategoryTab@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCMFCRibbonTab@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9565,
+      "symbol": "?OnDrawRibbonQuickAccessToolBarSeparator@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonSeparator@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9572,
+      "symbol": "?OnDrawRibbonSliderChannel@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonSlider@@VCRect@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9576,
+      "symbol": "?OnDrawRibbonSliderThumb@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonSlider@@VCRect@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9580,
+      "symbol": "?OnDrawRibbonSliderZoomButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonSlider@@VCRect@@HHHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9584,
+      "symbol": "?OnDrawRibbonStatusBarPane@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCMFCRibbonStatusBar@@PEAVCMFCRibbonStatusBarPane@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9592,
+      "symbol": "?OnDrawScrollButtons@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEBVCRect@@HHH@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9598,
+      "symbol": "?OnDrawSeparator@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@H@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9604,
+      "symbol": "?OnDrawShowAllMenuItems@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z"
+    },
+    {
+      "class": "CMFCVisualManagerOffice2003",
+      "ordinal": 9617,
+      "symbol": "?OnDrawStatusBarPaneBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@II@Z"
+    }
+  ],
+  "title": "feature_pack_ui shard 370/439: CMFCVisualManagerOffice2003"
+}
