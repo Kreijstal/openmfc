@@ -111,7 +111,7 @@ extern "C" const COleCurrency* MS_ABI impl___4COleCurrency__QEAAAEBV0_AEBUtagVAR
 
     VARIANT copy;
     VariantInit(&copy);
-    if (FAILED(VariantCopy(&copy, pSrc))) {
+    if (FAILED(VariantCopy(&copy, const_cast<VARIANT*>(pSrc)))) {
         pThis->SetStatus(COleCurrency::CY_INVALID);
         return pThis;
     }
