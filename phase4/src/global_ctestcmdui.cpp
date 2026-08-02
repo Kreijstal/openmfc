@@ -18,7 +18,7 @@
 namespace {
 
 struct CCmdUIShim {
-    void* vfptr;
+    void* const* vfptr;
     unsigned m_nID;
     CCmdUI* m_pOther;
     int m_nIndex;
