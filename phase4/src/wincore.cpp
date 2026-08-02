@@ -4012,10 +4012,9 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
     if (pResult) {
         *pResult = 0;
     }
-    int handled = pThis->OnWndMsg(message, wParam, lParam, pResult);
-    if (handled) {
-        return handled;
-    }
+    // Objects constructed through the MSVC import library do not have a
+    // cross-compiler-compatible CWnd vtable yet.  Dispatch the base handlers
+    // directly instead of making a virtual call through an invalid vptr.
     switch (message) {
     case WM_COMMAND:
         return impl__OnCommand_CWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
