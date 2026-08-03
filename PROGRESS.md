@@ -9,11 +9,11 @@
 | Category | Count | % of Total |
 |----------|-------|------------|
 | **Total MSVC exports** | 14,103 | 100% |
-| **Real implementations** | 7,512 | 53.3% |
+| **Real implementations** | 7,991 | 56.7% |
 | ├─ Auto-generated thunks (`thunks.cpp`) | 1,073 | 7.6% |
-| └─ Manual implementations (other `phase4/src/*.cpp`) | 6,439 | 45.7% |
+| └─ Manual implementations (other `phase4/src/*.cpp`) | 6,918 | 49.1% |
 | **Skip list** (signature mismatch, return defaults) | 146 | 1.0% |
-| **Remaining stubs** (return 0/nullptr/void) | 6,445 | 45.7% |
+| **Remaining stubs** (return 0/nullptr/void) | 5,966 | 42.3% |
 
 ⚠ **47 stale `// Symbol:` comments** — markers naming symbols
 that are not exports.
@@ -71,25 +71,25 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `frame_font_exports.cpp` | 63 |
 | `inetcore.cpp` | 59 |
 | `wincore.cpp` | 58 |
+| `global_cmfcbasetabctrl.cpp` | 57 |
 | `global_interface_maps.cpp` | 50 |
+| `global_cmfcoutlookbarpane.cpp` | 47 |
 | `global_toolbar_buttons_rtti.cpp` | 46 |
 | `ctrlcore.cpp` | 45 |
+| `global_cmfccaptionbar.cpp` | 45 |
 | `ctrl_checklist.cpp` | 44 |
 | `sockcore.cpp` | 43 |
 | `global_afx_messages.cpp` | 42 |
+| `global_cmfccolorbar.cpp` | 40 |
 | `inet_filefind_rtti.cpp` | 40 |
+| `global_cmfccolorpickerctrl.cpp` | 37 |
+| `global_cmfcoutlookbartabctrl.cpp` | 37 |
 | `gdi_previewdc.cpp` | 34 |
 | `global_cmfcpropertysheet.cpp` | 34 |
 | `ctrl_listctrl.cpp` | 32 |
 | `global_other-6_impl.cpp` | 31 |
 | `global_cdumpcontext.cpp` | 30 |
-| `global_core-frames-1_impl.cpp` | 30 |
-| `global_mfc-feature-17_impl.cpp` | 30 |
-| `global_mfc-feature-20_impl.cpp` | 30 |
-| `global_mfc-feature-22_impl.cpp` | 30 |
-| `global_mfc-feature-23_impl.cpp` | 30 |
-| `global_mfc-feature-30_impl.cpp` | 30 |
-| *(+171 further files)* | 1,943 |
+| *(+195 further files)* | 2,339 |
 
 ## Per-Class Implementation Counts
 
@@ -103,6 +103,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | **CFrameWnd** | 122 | 0 |
 | **CMFCVisualManager** | 118 | 0 |
 | **CRecordset** | 117 | 2 |
+| **CMFCBaseTabCtrl** | 100 | 2 |
 | **CWinApp** | 89 | 0 |
 | **CDC** | 79 | 0 |
 | **CMFCRibbonBar** | 76 | 0 |
@@ -111,20 +112,19 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | **CHtmlView** | 68 | 2 |
 | **CFileDialog** | 67 | 0 |
 | **CDHtmlDialog** | 66 | 1 |
+| **CMFCButton** | 65 | 3 |
 | **CTaskDialog** | 65 | 0 |
 | **CDocument** | 60 | 0 |
 | **CDockingManager** | 57 | 0 |
 | **CEditView** | 57 | 0 |
 | **CPaneFrameWnd** | 57 | 0 |
 | **CMFCPropertyGridProperty** | 56 | 1 |
+| **CMFCCaptionBar** | 54 | 0 |
 | **CMFCPropertyGridCtrl** | 54 | 0 |
 | **CControlBar** | 52 | 0 |
-| **CMFCToolBarImages** | 50 | 0 |
-| **CMFCTasksPane** | 48 | 0 |
-| **CWinAppEx** | 48 | 6 |
 
 ### Partially implemented classes (5–9 symbols)
-CFrameImpl (9), CGopherConnection (9), CMDIClientAreaWnd (9), CMFCBaseToolBar (9), CMFCCaptionBar (9), CMFCColorBar (9), CMFCRibbonCheckBox (9), CMFCRibbonPanelMenu (9), CMFCRibbonPanelMenuBar (9), CMFCRibbonSeparator (9), CMFCToolBarMenuButtonsButton (9), CMenuTearOffManager (9), COleDocObjectItem (9), COleLinkingDoc (9), CSharedFile (9), CSliderCtrl (9), CAnimationValue (8), CCommandLineInfo (8), CCommonDialog (8), CD2DTextLayout (8), CDocObjectServer (8), CException (8), CFontDialog (8), CFtpFileFind (8), CGdiObject (8), CHotKeyCtrl (8), CInternetConnection (8), CMFCCaptionButton (8), CMFCOutlookBarPaneAdapter (8), COleDropSource (8), COleInsertDialog (8), CPaneContainer (8), CRuntimeClass (8), CThreadSlotData (8), CTooltipManager (8), CTreeView (8), CColorDialog (7), CDBException (7), CDCRenderTarget (7), CDataRecoveryHandler (7), CDocItem (7), CDocObjectServerItem (7), CDrawingManager (7), CEnumConnections (7), CFileException (7), CFullScreenImpl (7), CHttpConnection (7), CKeyFrame (7), CMFCColorPopupMenu (7), CMFCDropDownListBox (7), CMFCOutlookBarTabCtrl (7), CMFCPrintPreviewToolBar (7), CMFCPropertyPage (7), CMFCPropertySheetListBox (7), CMFCToolBarFontComboBox (7), COleConvertDialog (7), COleResizeBar (7), CRichEditDoc (7), CSplitterWndEx (7), CAnimationRect (6), CAppDestinations (6), CAutoHideDockSite (6), CBaseTabbedPane (6), CBitmapButton (6), CBrush (6), CButton (6), CCmdUI (6), CCtrlView (6), CD2DRadialGradientBrush (6), CD2DTextFormat (6), CDialogTemplate (6), CDockBar (6), CDockablePaneAdapter (6), CEnumConnPoints (6), CFindReplaceDialog (6), CGopherFile (6), CHtmlEditView (6), CIPAddressCtrl (6), CMDITabProxyWnd (6), CMFCBaseAccessibleObject (6), CMFCColorButton (6), CMFCControlBarImpl (6), CMFCCustomizeMenuButton (6), CMFCDesktopAlertWnd (6), CMFCHeaderCtrl (6), CMFCPropertyGridFileProperty (6), CMFCRibbonButtonsGroup (6), CMFCRibbonLabel (6), CMFCRibbonMiniToolBar (6), CMFCRibbonStatusBar (6), CMFCShellListCtrl (6), CMFCShellTreeCtrl (6), CMFCToolBarNameDialog (6), CMFCVisualManagerOfficeXP (6), CMFCVisualManagerVS2005 (6), CMenuHash (6), CMiniFrameWnd (6), COleChangeIconDialog (6), COleChangeSourceDialog (6), COleCntrFrameWnd (6), COleDispatchException (6), COleDocIPFrameWndEx (6), COlePropertiesDialog (6), COleTemplateServer (6), CPngImage (6), CPreviewViewEx (6), CProgressCtrl (6), CSpinButtonCtrl (6), CStatic (6), CTypeLibCache (6), CVSToolsListBox (6), AFX_GLOBAL_DATA (5), CAnimateCtrl (5), CAnimationBaseObject (5), CAnimationController (5), CAsyncMonikerFile (5), CBaseTransition (5), CBitmapRenderTarget (5), CCachedDataPathProperty (5), CControlSiteFactoryMgr (5), CD2DGradientBrush (5), CD2DResource (5), CD2DSolidColorBrush (5), CDataExchange (5), CDynLinkLibrary (5), CEnumFormatEtc (5), CEvent (5), CFieldExchange (5), CFixedAlloc (5), CFixedAllocNoSync (5), CInternetException (5), CMFCAcceleratorKey (5), CMFCCaptionMenuButton (5), CMFCCustomColorsPropertyPage (5), CMFCCustomizeButton (5), CMFCDesktopAlertDialog (5), CMFCDropDownFrame (5), CMFCDropDownToolbarButton (5), CMFCEditBrowseCtrl (5), CMFCLinkCtrl (5), CMFCListCtrl (5), CMFCMaskedEdit (5), CMFCMenuButton (5), CMFCMousePropertyPage (5), CMFCOutlookBar (5), CMFCOutlookBarPane (5), CMFCOutlookBarToolBar (5), CMFCPreviewCtrlImpl (5), CMFCPropertyGridToolTipCtrl (5), CMFCReBar (5), CMFCRibbonCmdUI (5), CMFCRibbonColorButton (5), CMFCRibbonCustomizePropertyPage (5), CMFCRibbonFontComboBox (5), CMFCRibbonGalleryMenuButton (5), CMFCRibbonMainPanel (5), CMFCRibbonMainPanelButton (5), CMFCRibbonRichEditCtrl (5), CMFCRibbonUndoButton (5), CMFCStandardColorsPropertyPage (5), CMFCTabDropTarget (5), CMFCTasksPaneFrameWnd (5), CMFCToolBarDateTimeCtrlImpl (5), CMFCToolBarsCommandsPropertyPage (5), CMFCToolBarsCustomizeDialog (5), CMFCToolBarsKeyboardPropertyPage (5), CMFCToolBarsListPropertyPage (5), CMFCToolBarsMenuPropertyPage (5), CMFCToolBarsOptionsPropertyPage (5), CMFCToolTipCtrl (5), CMiniDockFrameWnd (5), CMultiLock (5), CMultiPageDHtmlDialog (5), CMutex (5), COleBusyDialog (5), COleCmdUI (5), COleCntrFrameWndEx (5), COleConnPtContainer (5), COleControlContainer (5), COleControlSiteOrWnd (5), COleDocIPFrameWnd (5), COleFrameHook (5), COleIPFrameWndEx (5), COleLinksDialog (5), COleUpdateDialog (5), COutlookCustomizeButton (5), CPaneDialog (5), CReBar (5), CRecentPaneContainerInfo (5), CRibbonCategoryScroll (5), CRichEditCntrItem (5), CSemaphore (5), CSocketWnd (5), CSyncObject (5), CTestCmdUI (5)
+CFrameImpl (9), CGopherConnection (9), CMDIClientAreaWnd (9), CMFCBaseToolBar (9), CMFCOutlookBarPaneButton (9), CMFCRibbonCheckBox (9), CMFCRibbonPanelMenu (9), CMFCRibbonPanelMenuBar (9), CMFCRibbonSeparator (9), CMFCToolBarMenuButtonsButton (9), CMenuTearOffManager (9), COleDocObjectItem (9), COleLinkingDoc (9), CSharedFile (9), CSliderCtrl (9), CAnimationValue (8), CCommandLineInfo (8), CCommonDialog (8), CD2DTextLayout (8), CDocObjectServer (8), CException (8), CFontDialog (8), CFtpFileFind (8), CGdiObject (8), CHotKeyCtrl (8), CInternetConnection (8), CMFCAcceleratorKeyAssignCtrl (8), CMFCCaptionButton (8), CMFCOutlookBarPaneAdapter (8), COleDropSource (8), COleInsertDialog (8), CPaneContainer (8), CRuntimeClass (8), CThreadSlotData (8), CTooltipManager (8), CTreeView (8), CColorDialog (7), CDBException (7), CDCRenderTarget (7), CDataRecoveryHandler (7), CDocItem (7), CDocObjectServerItem (7), CDrawingManager (7), CEnumConnections (7), CFileException (7), CFullScreenImpl (7), CHttpConnection (7), CKeyFrame (7), CMFCColorPopupMenu (7), CMFCDropDownListBox (7), CMFCPrintPreviewToolBar (7), CMFCPropertyPage (7), CMFCPropertySheetListBox (7), CMFCToolBarFontComboBox (7), COleConvertDialog (7), COleResizeBar (7), CRichEditDoc (7), CSplitterWndEx (7), CAnimationRect (6), CAppDestinations (6), CAutoHideDockSite (6), CBaseTabbedPane (6), CBitmapButton (6), CBrush (6), CButton (6), CCmdUI (6), CCtrlView (6), CD2DRadialGradientBrush (6), CD2DTextFormat (6), CDialogTemplate (6), CDockBar (6), CDockablePaneAdapter (6), CEnumConnPoints (6), CFindReplaceDialog (6), CGopherFile (6), CHtmlEditView (6), CIPAddressCtrl (6), CMDITabProxyWnd (6), CMFCControlBarImpl (6), CMFCDesktopAlertWnd (6), CMFCHeaderCtrl (6), CMFCOutlookBar (6), CMFCPropertyGridFileProperty (6), CMFCRibbonButtonsGroup (6), CMFCRibbonLabel (6), CMFCRibbonMiniToolBar (6), CMFCRibbonStatusBar (6), CMFCShellListCtrl (6), CMFCShellTreeCtrl (6), CMFCToolBarNameDialog (6), CMFCVisualManagerOfficeXP (6), CMFCVisualManagerVS2005 (6), CMenuHash (6), CMiniFrameWnd (6), COleChangeIconDialog (6), COleChangeSourceDialog (6), COleCntrFrameWnd (6), COleDispatchException (6), COleDocIPFrameWndEx (6), COlePropertiesDialog (6), COleTemplateServer (6), CPngImage (6), CPreviewViewEx (6), CProgressCtrl (6), CSpinButtonCtrl (6), CStatic (6), CTypeLibCache (6), CVSToolsListBox (6), AFX_GLOBAL_DATA (5), CAnimateCtrl (5), CAnimationBaseObject (5), CAnimationController (5), CAsyncMonikerFile (5), CBaseTransition (5), CBitmapRenderTarget (5), CCachedDataPathProperty (5), CControlSiteFactoryMgr (5), CD2DGradientBrush (5), CD2DResource (5), CD2DSolidColorBrush (5), CDataExchange (5), CDynLinkLibrary (5), CEnumFormatEtc (5), CEvent (5), CFieldExchange (5), CFixedAlloc (5), CFixedAllocNoSync (5), CInternetException (5), CMFCAcceleratorKey (5), CMFCCaptionMenuButton (5), CMFCDesktopAlertDialog (5), CMFCDropDownFrame (5), CMFCDropDownToolbarButton (5), CMFCEditBrowseCtrl (5), CMFCLinkCtrl (5), CMFCListCtrl (5), CMFCMaskedEdit (5), CMFCMenuButton (5), CMFCMousePropertyPage (5), CMFCPreviewCtrlImpl (5), CMFCPropertyGridToolTipCtrl (5), CMFCReBar (5), CMFCRibbonCmdUI (5), CMFCRibbonColorButton (5), CMFCRibbonCustomizePropertyPage (5), CMFCRibbonFontComboBox (5), CMFCRibbonGalleryMenuButton (5), CMFCRibbonMainPanel (5), CMFCRibbonMainPanelButton (5), CMFCRibbonRichEditCtrl (5), CMFCRibbonUndoButton (5), CMFCStandardColorsPropertyPage (5), CMFCTabDropTarget (5), CMFCTasksPaneFrameWnd (5), CMFCToolBarDateTimeCtrlImpl (5), CMFCToolBarsCommandsPropertyPage (5), CMFCToolBarsCustomizeDialog (5), CMFCToolBarsKeyboardPropertyPage (5), CMFCToolBarsListPropertyPage (5), CMFCToolBarsMenuPropertyPage (5), CMFCToolBarsOptionsPropertyPage (5), CMFCToolTipCtrl (5), CMiniDockFrameWnd (5), CMultiLock (5), CMultiPageDHtmlDialog (5), CMutex (5), COleBusyDialog (5), COleCmdUI (5), COleCntrFrameWndEx (5), COleConnPtContainer (5), COleControlContainer (5), COleControlSiteOrWnd (5), COleDocIPFrameWnd (5), COleFrameHook (5), COleIPFrameWndEx (5), COleLinksDialog (5), COleUpdateDialog (5), COutlookCustomizeButton (5), CPaneDialog (5), CReBar (5), CRecentPaneContainerInfo (5), CRibbonCategoryScroll (5), CRichEditCntrItem (5), CSemaphore (5), CSocketWnd (5), CSyncObject (5), CTestCmdUI (5)
 
 ### Top skip-list offenders
 
@@ -156,9 +156,9 @@ MSVC .def file (14,103 exports)
 ```
 
 - **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 1,073 auto-generated
-- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 6,439 symbols
+- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 6,918 symbols
 - **skip list**: Correct ABI signatures but return defaults because method signatures fundamentally differ from MSVC exports — 146 symbols
-- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 6,445 symbols
+- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 5,966 symbols
 
 ## Key Tools
 
