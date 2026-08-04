@@ -7,7 +7,9 @@
 // m_pBaseClass points at the correct base descriptor. The base CRuntimeClass
 // statics referenced by the impl are defined here so the TU links standalone.
 
-#include "../phase4/src/global_view_dialog_ctrl_rtti.cpp"
+#include "../phase4/src/core/controls/RuntimeClasses.cpp"
+#include "../phase4/src/core/dialog/RuntimeClasses.cpp"
+#include "../phase4/src/core/view/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

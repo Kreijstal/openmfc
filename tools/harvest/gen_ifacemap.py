@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import stub_coverage as sc
 import gen_weak_stubs as gw
 
-OUT = ROOT / "phase4" / "src" / "global_interface_maps.cpp"
+OUT = ROOT / "phase4" / "src" / "core" / "ole" / "InterfaceMaps.cpp"
 
 # Direct in-set interface-map parents (others chain straight to the CCmdTarget root).
 PARENT = {

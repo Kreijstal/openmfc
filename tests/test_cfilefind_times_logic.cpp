@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../phase4/src/inet_cfilefind_times.cpp"
+#include "../phase4/src/core/file/CFileFind.cpp"
 
 static int g_failures = 0;
 static void check(bool cond, const char* what) {

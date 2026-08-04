@@ -1,6 +1,7 @@
 // Behavioral test for CFixedAlloc: drive the allocator THROUGH the exported
 // impl_ thunks and assert real allocator semantics.
-#include "../phase4/src/collections_cfixedalloc.cpp"
+#include "../phase4/src/core/collections/CFixedAlloc.cpp"
+#include "../phase4/src/core/collections/CFixedAllocNoSync.cpp"
 
 #include <cstdio>
 #include <cstring>

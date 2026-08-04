@@ -13,7 +13,29 @@
 // base members (ctor/dtor, Read/Write/Seek/SetLength/GetLength/Flush, and the
 // vtable entries) that CSharedFile inherits, then include the CSharedFile impl
 // under test directly. (Same approach as test_cmirrorfile_logic.cpp.)
-#include "../phase4/src/filecore.cpp"
+#include "../phase4/src/core/collections/CByteArray.cpp"
+#include "../phase4/src/core/collections/CDWordArray.cpp"
+#include "../phase4/src/core/collections/CMapPtrToPtr.cpp"
+#include "../phase4/src/core/collections/CMapPtrToWord.cpp"
+#include "../phase4/src/core/collections/CMapStringToOb.cpp"
+#include "../phase4/src/core/collections/CMapStringToPtr.cpp"
+#include "../phase4/src/core/collections/CMapStringToString.cpp"
+#include "../phase4/src/core/collections/CMapWordToOb.cpp"
+#include "../phase4/src/core/collections/CMapWordToPtr.cpp"
+#include "../phase4/src/core/collections/CObArray.cpp"
+#include "../phase4/src/core/collections/CObList.cpp"
+#include "../phase4/src/core/collections/CPtrArray.cpp"
+#include "../phase4/src/core/collections/CStringArray.cpp"
+#include "../phase4/src/core/collections/CStringList.cpp"
+#include "../phase4/src/core/collections/CUIntArray.cpp"
+#include "../phase4/src/core/collections/CWordArray.cpp"
+#include "../phase4/src/core/collections/Globals.cpp"
+#include "../phase4/src/core/exceptions/CFileException.cpp"
+#include "../phase4/src/core/file/CFile.cpp"
+#include "../phase4/src/core/file/CMemFile.cpp"
+#include "../phase4/src/core/file/CStdioFile.cpp"
+#include "../phase4/src/core/ole/CAsyncMonikerFile.cpp"
+#include "../phase4/src/core/runtime/CArchive.cpp"
 
 // filecore.cpp's CArchive serialization code references a handful of symbols
 // that live in other translation units. None are reached by the CSharedFile
@@ -34,7 +56,7 @@ impl__GetThisClass_CFileException__SAPEAUCRuntimeClass__XZ() {
     return nullptr;
 }
 
-#include "../phase4/src/file_csharedfile.cpp"
+#include "../phase4/src/core/file/CSharedFile.cpp"
 
 #include <cstdio>
 #include <cstring>

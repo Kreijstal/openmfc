@@ -49,8 +49,10 @@ echo ""
 echo "[3/4] Checking implementation safety..."
 # Only check Phase 4 implementations (src/mfc/ may have legacy code)
 if [[ -d "$ROOT/phase4/src" ]]; then
-    UNSAFE_COUNT=$(python3 "$ROOT/scripts/validate_implementation_safety.py" \
-        "$ROOT/phase4/src"/*.cpp 2>/dev/null | grep -c "unsafe pattern" || true)
+    # Sources are nested by subsystem (core/…, featurepack/…, detail/…), so recurse.
+    UNSAFE_COUNT=$(find "$ROOT/phase4/src" -name '*.cpp' -print0 \
+        | xargs -0 python3 "$ROOT/scripts/validate_implementation_safety.py" 2>/dev/null \
+        | grep -c "unsafe pattern" || true)
     
     if [[ $UNSAFE_COUNT -eq 0 ]]; then
         echo "  ✅ Phase 4 implementations are safe"

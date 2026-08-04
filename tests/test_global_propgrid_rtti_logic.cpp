@@ -1,5 +1,6 @@
 // Logic test for global_propgrid_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_propgrid_rtti.cpp"
+#include "../phase4/src/featurepack/propertygrid/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/ribbon/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

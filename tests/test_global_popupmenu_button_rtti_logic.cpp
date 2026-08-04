@@ -1,5 +1,7 @@
 // Logic test for global_popupmenu_button_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_popupmenu_button_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/menu/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/ribbon/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

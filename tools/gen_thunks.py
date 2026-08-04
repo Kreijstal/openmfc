@@ -12,7 +12,7 @@ Usage:
         --mapping mfc_complete_ordinal_mapping.json \
         --source-dir phase4/src \
         --include-dir include/openmfc \
-        --out phase4/src/thunks.cpp
+        --out phase4/src/core/runtime/Thunks.cpp
 """
 
 import argparse
@@ -142,8 +142,8 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
     # Also skip symbols that are already manually implemented in other source files
     # (they have // Symbol: comments in other phase4/src/*.cpp files)
     SOURCE_DIR = Path(__file__).parent.parent / 'phase4' / 'src'
-    for src_file in SOURCE_DIR.glob('*.cpp'):
-        if src_file.name == 'thunks.cpp':
+    for src_file in sorted(SOURCE_DIR.rglob('*.cpp')):
+        if src_file.name in ('Thunks.cpp', 'thunks.cpp'):
             continue
         try:
             content = src_file.read_text(encoding='utf-8', errors='replace')
@@ -158,8 +158,8 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
     
     # Pre-compute set of existing stub names from manual source files
     EXISTING_STUBS = set()
-    for src_file in SOURCE_DIR.glob('*.cpp'):
-        if src_file.name == 'thunks.cpp':
+    for src_file in sorted(SOURCE_DIR.rglob('*.cpp')):
+        if src_file.name in ('Thunks.cpp', 'thunks.cpp'):
             continue
         try:
             content = src_file.read_text(encoding='utf-8', errors='replace')

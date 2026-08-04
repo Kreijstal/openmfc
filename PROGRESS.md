@@ -10,12 +10,12 @@
 |----------|-------|------------|
 | **Total MSVC exports** | 14,103 | 100% |
 | **Real implementations** | 7,991 | 56.7% |
-| ├─ Auto-generated thunks (`thunks.cpp`) | 1,073 | 7.6% |
-| └─ Manual implementations (other `phase4/src/*.cpp`) | 6,918 | 49.1% |
+| ├─ Auto-generated thunks (`thunks.cpp`) | 0 | 0.0% |
+| └─ Manual implementations (other units under `phase4/src/`) | 7,991 | 56.7% |
 | **Skip list** (signature mismatch, return defaults) | 146 | 1.0% |
 | **Remaining stubs** (return 0/nullptr/void) | 5,966 | 42.3% |
 
-⚠ **47 stale `// Symbol:` comments** — markers naming symbols
+⚠ **49 stale `// Symbol:` comments** — markers naming symbols
 that are not exports.
 
 Most are harmless: `build_phase4.sh` builds its `AUTO_EXCLUDES` list by
@@ -33,63 +33,74 @@ marker is orphaned and never reachable. Every metric counts it as done.
 
 | Source file | Stale markers |
 |-------------|---------------|
-| `manual_small_stub_implementations.cpp` | 13 |
-| `ctrlcore.cpp` | 8 |
-| `viewrich.cpp` | 8 |
-| `mfc_exceptions.cpp` | 6 |
-| `gdicore.cpp` | 4 |
-| `appcore.cpp` | 2 |
-| `ole_olectors_exports.cpp` | 2 |
-| `feature_static_data.cpp` | 1 |
-| `global_common_control_rtti.cpp` | 1 |
-| `mfccore.cpp` | 1 |
-| `regcore.cpp` | 1 |
+| `core/view/CHtmlView.cpp` | 8 |
+| `featurepack/ribbon/Globals.cpp` | 7 |
+| `core/controls/CComboBox.cpp` | 4 |
+| `core/controls/CListBox.cpp` | 4 |
+| `core/gdi/CDC.cpp` | 3 |
+| `core/exceptions/CArchiveException.cpp` | 2 |
+| `core/exceptions/CException.cpp` | 2 |
+| `core/exceptions/CFileException.cpp` | 2 |
+| `core/exceptions/RuntimeClasses.cpp` | 2 |
+| `core/ole/Globals.cpp` | 2 |
+| `featurepack/outlookbar/CMFCOutlookBarPaneList.cpp` | 2 |
+| `core/app/CWinApp.cpp` | 1 |
+| `core/app/Globals.cpp` | 1 |
+| `core/controls/RuntimeClasses.cpp` | 1 |
+| `core/d2d/CRenderTarget.cpp` | 1 |
+| `core/runtime/AFX_MAINTAIN_STATE.cpp` | 1 |
+| `core/runtime/AFX_MAINTAIN_STATE2.cpp` | 1 |
+| `core/runtime/Globals.cpp` | 1 |
+| `featurepack/controls/CMFCCaptionButton.cpp` | 1 |
+| `featurepack/controls/CMFCDropDownListBox.cpp` | 1 |
+| `featurepack/docking/CDockingManager.cpp` | 1 |
+| `featurepack/docking/StaticData.cpp` | 1 |
 
 ## Per-File Breakdown
 
 | Source file | Implemented symbols |
 |-------------|-------------------|
-| `thunks.cpp` (auto-generated) | 1,073 |
-| `manual_small_stub_implementations.cpp` | 494 |
-| `cbarcore.cpp` | 440 |
-| `mfccore.cpp` | 320 |
-| `filecore.cpp` | 319 |
-| `docview.cpp` | 263 |
-| `global_string_atl_thunks.cpp` | 253 |
-| `gdicore.cpp` | 191 |
-| `dlgcommon.cpp` | 177 |
-| `appcore.cpp` | 168 |
-| `viewrich.cpp` | 152 |
-| `olecore.cpp` | 148 |
-| `collections_strings.cpp` | 143 |
-| `dbcore.cpp` | 132 |
-| `feature_static_data.cpp` | 129 |
-| `dlgcore.cpp` | 116 |
-| `global_ddx_exchange.cpp` | 83 |
-| `ctrl_ownerdraw.cpp` | 73 |
-| `global_ribbon_elements_rtti.cpp` | 64 |
-| `frame_font_exports.cpp` | 63 |
-| `inetcore.cpp` | 59 |
-| `wincore.cpp` | 58 |
-| `global_cmfcbasetabctrl.cpp` | 57 |
-| `global_interface_maps.cpp` | 50 |
-| `global_cmfcoutlookbarpane.cpp` | 47 |
-| `global_toolbar_buttons_rtti.cpp` | 46 |
-| `ctrlcore.cpp` | 45 |
-| `global_cmfccaptionbar.cpp` | 45 |
-| `ctrl_checklist.cpp` | 44 |
-| `sockcore.cpp` | 43 |
-| `global_afx_messages.cpp` | 42 |
-| `global_cmfccolorbar.cpp` | 40 |
-| `inet_filefind_rtti.cpp` | 40 |
-| `global_cmfccolorpickerctrl.cpp` | 37 |
-| `global_cmfcoutlookbartabctrl.cpp` | 37 |
-| `gdi_previewdc.cpp` | 34 |
-| `global_cmfcpropertysheet.cpp` | 34 |
-| `ctrl_listctrl.cpp` | 32 |
-| `global_other-6_impl.cpp` | 31 |
-| `global_cdumpcontext.cpp` | 30 |
-| *(+195 further files)* | 2,339 |
+| `core/ole/Thunks.cpp` | 251 |
+| `core/collections/Thunks.cpp` | 248 |
+| `core/frame/Thunks.cpp` | 142 |
+| `core/window/Thunks.cpp` | 133 |
+| `featurepack/toolbar/CMFCToolBar.cpp` | 104 |
+| `core/db/CRecordset.cpp` | 99 |
+| `core/app/CWinApp.cpp` | 88 |
+| `featurepack/tabs/CMFCBaseTabCtrl.cpp` | 87 |
+| `core/runtime/DdxExchange.cpp` | 83 |
+| `core/gdi/CDC.cpp` | 79 |
+| `core/ole/COleControl.cpp` | 78 |
+| `featurepack/ribbon/RuntimeClasses.cpp` | 78 |
+| `featurepack/visualmanager/Thunks.cpp` | 78 |
+| `featurepack/ribbon/CMFCRibbonBar.cpp` | 73 |
+| `core/net/Thunks.cpp` | 67 |
+| `core/runtime/Globals.cpp` | 66 |
+| `core/dialog/CFileDialog.cpp` | 65 |
+| `core/ole/RuntimeClasses.cpp` | 63 |
+| `core/view/CHtmlView.cpp` | 63 |
+| `core/view/CDHtmlDialog.cpp` | 61 |
+| `featurepack/controls/MessageMaps.cpp` | 60 |
+| `core/dialog/Thunks.cpp` | 58 |
+| `featurepack/ribbon/Thunks.cpp` | 58 |
+| `core/dialog/CTaskDialog.cpp` | 57 |
+| `core/view/CEditView.cpp` | 56 |
+| `core/doc/CDocument.cpp` | 55 |
+| `core/window/CWnd.cpp` | 55 |
+| `featurepack/controls/CMFCButton.cpp` | 53 |
+| `featurepack/controls/RuntimeClasses.cpp` | 52 |
+| `core/controls/RuntimeClasses.cpp` | 51 |
+| `featurepack/controls/CMFCCaptionBar.cpp` | 50 |
+| `core/view/CRichEditView.cpp` | 49 |
+| `featurepack/visualmanager/CMFCVisualManager.cpp` | 49 |
+| `core/app/CWinAppEx.cpp` | 48 |
+| `detail/OlecoreSupport.cpp` | 48 |
+| `featurepack/docking/CPaneFrameWnd.cpp` | 48 |
+| `featurepack/outlookbar/CMFCOutlookBarPane.cpp` | 48 |
+| `featurepack/propertygrid/Thunks.cpp` | 48 |
+| `core/controlbar/CControlBar.cpp` | 46 |
+| `featurepack/controls/CMFCColorBar.cpp` | 45 |
+| *(+637 further files)* | 4,951 |
 
 ## Per-Class Implementation Counts
 
@@ -155,8 +166,8 @@ MSVC .def file (14,103 exports)
   (real)    (return 0)
 ```
 
-- **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 1,073 auto-generated
-- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 6,918 symbols
+- **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 0 auto-generated
+- **manual implementations**: Implemented directly under `phase4/src/` with `// Symbol:` comments — 7,991 symbols
 - **skip list**: Correct ABI signatures but return defaults because method signatures fundamentally differ from MSVC exports — 146 symbols
 - **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 5,966 symbols
 
@@ -177,8 +188,8 @@ MSVC .def file (14,103 exports)
 ## How to Add More Implementations
 
 1. Add method declaration to the appropriate header (`include/openmfc/afx*.h`)
-2. Add implementation to the matching source file (`phase4/src/*.cpp`) **without** `// Symbol:` comment
-3. Run: `python3 tools/gen_thunks.py --mapping mfc_complete_ordinal_mapping.json --source-dir phase4/src --include-dir include/openmfc --out phase4/src/thunks.cpp`
+2. Add the implementation to the class file (`phase4/src/<subsystem>/<Class>.cpp`) **without** a `// Symbol:` comment
+3. Run: `python3 tools/gen_thunks.py --mapping mfc_complete_ordinal_mapping.json --source-dir phase4/src --include-dir include/openmfc --out phase4/src/<subsystem>/Thunks.cpp`
 4. Run: `python3 tools/gen_manifest.py --out /tmp/manifest.json` to verify accounting
 5. Build: `bash phase4/scripts/build_phase4.sh`
 6. If build fails due to signature mismatch: add the symbol to `tools/thunks_skip.txt`

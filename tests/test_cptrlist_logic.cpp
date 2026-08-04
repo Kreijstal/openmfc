@@ -1,6 +1,6 @@
 // Behavioral test for the faithful CPtrList implementation.
 // Drives the class THROUGH the exported extern-C impl_ thunks.
-#include "../phase4/src/collections_cptrlist.cpp"
+#include "../phase4/src/core/collections/CPtrList.cpp"
 
 #include <cstdio>
 #include <cstdlib>

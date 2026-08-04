@@ -4,7 +4,7 @@
 // extern-"C" impl_ functions, and drives the real allocator logic through the
 // exported ABI wrappers.
 
-#include "../phase4/src/collections_cplex.cpp"
+#include "../phase4/src/core/collections/CPlex.cpp"
 
 #include <cstdio>
 #include <cstring>

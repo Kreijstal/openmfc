@@ -18,9 +18,13 @@ def main():
     r = sh(f'python3 tools/harvest/gen_msgmap_batch.py {slug} {" ".join(classes)}')
     print(r.stdout.strip() or r.stderr.strip())
     if r.returncode: sys.exit('gen failed')
+    # The batch lands in the MessageMaps.cpp of whichever subsystem owns most
+    # of its classes, so take the path the generator reports.
+    written = [l.split(' ', 1)[1] for l in r.stdout.splitlines() if l.startswith('wrote ')]
+    cpp_path = next(p for p in written if p.endswith('.cpp') and '/tests/' not in p)
     flags = ('-std=c++17 -fpermissive -fms-extensions -Wno-attributes -D_WIN32_WINNT=0x0601 '
-             '-DUNICODE -D_UNICODE -DOPENMFC_EXPORTS -Iinclude -Ibuild-phase4/include')
-    r = sh(f'x86_64-w64-mingw32-g++ {flags} -fsyntax-only phase4/src/global_{slug}_msgmap.cpp')
+             '-DUNICODE -D_UNICODE -DOPENMFC_EXPORTS -Iinclude -Iphase4/src -Ibuild-phase4/include')
+    r = sh(f'x86_64-w64-mingw32-g++ {flags} -fsyntax-only {cpp_path}')
     if r.returncode: print(r.stderr[-2000:]); sys.exit('cpp syntax FAILED')
     print('  cpp syntax OK')
     r = sh(f'bash tools/harvest/fix_test_bases.sh {slug} msgmap')

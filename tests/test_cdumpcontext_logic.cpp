@@ -9,7 +9,7 @@
 #include <string>
 #include <windows.h>
 
-#include "../phase4/src/global_cdumpcontext.cpp"
+#include "../phase4/src/core/runtime/CDumpContext.cpp"
 
 // ---------------------------------------------------------------------------
 // Self-contained CFile virtuals.

@@ -1,5 +1,6 @@
 // Logic test for global_toolbar_customize_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_toolbar_customize_rtti.cpp"
+#include "../phase4/src/featurepack/customize/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/taskspane/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

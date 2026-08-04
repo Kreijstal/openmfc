@@ -6,7 +6,7 @@
 // m_pBaseClass equals the descriptor the base class's own GetThisClass returns,
 // so IsKindOf walks an unbroken graph up to CObject.
 
-#include "../phase4/src/global_animation_rtti.cpp"
+#include "../phase4/src/core/animation/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

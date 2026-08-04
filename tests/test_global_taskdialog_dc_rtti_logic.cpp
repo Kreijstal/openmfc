@@ -1,5 +1,6 @@
 // Logic test for global_taskdialog_dc_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_taskdialog_dc_rtti.cpp"
+#include "../phase4/src/core/dialog/RuntimeClasses.cpp"
+#include "../phase4/src/core/gdi/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

@@ -9,7 +9,7 @@
 // (COleDialog / CFrameWnd members plus the in-file COleIPFrameWnd /
 // COleDocIPFrameWnd chains), including a COleDocIPFrameWndEx IsDerivedFrom walk.
 
-#include "../phase4/src/global_oleframe_rtti.cpp"
+#include "../phase4/src/core/ole/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

@@ -1,5 +1,10 @@
 // Logic test for global_mfc_toolbars_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_mfc_toolbars_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/menu/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/outlookbar/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/ribbon/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/taskspane/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/toolbar/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

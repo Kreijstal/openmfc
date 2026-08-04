@@ -1,5 +1,9 @@
 // Logic test for global_tabctrl_renderer_list_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_tabctrl_renderer_list_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/docking/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/outlookbar/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/tabs/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/visualmanager/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

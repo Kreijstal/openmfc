@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Generate one RTTI-getter batch (phase4/src/global_<cat>_rtti.cpp + test) from
+"""Generate one RTTI-getter batch (a section of <subsystem>/RuntimeClasses.cpp + test) from
 harvested real values. Replicates the established pattern (anonymous-namespace
 file-internal CRuntimeClass descriptors, parents-before-children, MS_ABI getters
 returning the static descriptor directly, // Symbol: markers for auto-exclude).
 
 Usage:
   gen_rtti_batch.py <cat> <header_includes_csv> <Class1> <Class2> ...
-    <cat>     : file slug, e.g. mfcbutton  -> global_mfcbutton_rtti.cpp
+    <cat>     : batch slug, e.g. mfcbutton; the section lands in the
+                RuntimeClasses.cpp of the subsystem most of its classes
+                belong to (see tools/source_layout.py)
     <header_includes_csv> : e.g. "openmfc/afxmfc.h" (comma-separated)
 Reads tools/harvest/rtti_layouts.json and mfc_complete_ordinal_mapping.json.
 Bases that are in the batch set -> chained in-file (&class<Base>), parents emitted
@@ -15,6 +17,9 @@ static, the build is the gate). Emits to stdout the .cpp; writes test to tests/.
 """
 import json, re, sys, os
 
+import emit_batch
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def impl(sym):
@@ -65,7 +70,8 @@ def main():
     L.append('// File-internal CRuntimeClass descriptors; real m_nObjectSize / m_wSchema harvested')
     L.append('// from mfc140u.dll (tools/harvest). GetRuntimeClass returns the static descriptor')
     L.append('// directly (no self-dispatch). // Symbol: markers auto-exclude the weak stubs.')
-    L.append('// Named global_*_rtti.cpp so build_phase4.sh\'s shard glob compiles it.')
+    L.append('// Descriptors are file-internal, so a batch stays in one file: its')
+    L.append('// in-batch base chaining refers to them directly.')
     L.append('')
     for h in includes:
         L.append(f'#include "{h}"')
@@ -98,14 +104,22 @@ def main():
         L.append(f'           {impl(grc_sym(c))})')
     L.append(f'#undef {P}_GETTERS')
     L.append('')
-    cpp = '\n'.join(L)
-    cpp_path = os.path.join(ROOT, f'phase4/src/global_{cat}_rtti.cpp')
-    open(cpp_path, 'w').write(cpp)
+    # The batch's classes may span subsystems; the section goes to the
+    # directory that owns most of them, since in-batch base chaining refers to
+    # descriptors defined alongside it.
+    groups = emit_batch.group_by_directory(ordered)
+    directory = max(groups.items(), key=lambda kv: len(kv[1]))[0]
+    marker = f'rtti batch {cat}'
+    emit_batch.drop_sections(marker)
+    preamble = '\n'.join(L[:L.index('')]) + '\n'
+    cpp_path = emit_batch.emit(directory, 'RuntimeClasses.cpp', preamble,
+                               emit_batch.fence(marker, '\n'.join(L)))
+    cpp_rel = os.path.relpath(cpp_path, ROOT)
 
     # ---- test ----
     T = []
-    T.append(f'// Logic test for global_{cat}_rtti.cpp (run under wine/host).')
-    T.append(f'#include "../phase4/src/global_{cat}_rtti.cpp"')
+    T.append(f'// Logic test for the {cat} RTTI batch in {cpp_rel} (run under wine/host).')
+    T.append(f'#include "../{cpp_rel}"')
     T.append('#include <cstdio>')
     T.append('#include <cstring>')
     T.append('')

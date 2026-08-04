@@ -1,5 +1,5 @@
 // Logic test for global_toolbar_23_msgmap.cpp (compiles+links; runs on Windows CI).
-#include "../phase4/src/global_toolbar_23_msgmap.cpp"
+#include "../phase4/src/featurepack/customize/MessageMaps.cpp"
 #include <cstdio>
 
 // Out-of-batch base GetThisMessageMap getters: define sentinels so the

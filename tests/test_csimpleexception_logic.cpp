@@ -12,7 +12,7 @@
 
 // Pull in the impl under test (brings in afxwin.h -> CException, CObject,
 // CRuntimeClass, and defines classCSimpleException + the four thunks).
-#include "../phase4/src/global_csimpleexception_rtti.cpp"
+#include "../phase4/src/core/exceptions/RuntimeClasses.cpp"
 
 // ---- Standalone definition of the base descriptor the impl references ----
 // CObject::classCObject is already provided inline (weak) by afx.h. But

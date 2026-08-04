@@ -11,7 +11,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../phase4/src/ole_colestreamfile_ext.cpp"
+#include "../phase4/src/core/ole/COleStreamFile.cpp"
 
 // 64-byte COleStreamFile-shaped storage; m_lpStream view at offset 24.
 struct alignas(8) OSF {

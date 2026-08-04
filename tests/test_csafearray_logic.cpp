@@ -11,7 +11,8 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../phase4/src/ole_csafearray_ext.cpp"
+#include "../phase4/src/core/ole/COleSafeArray.cpp"
+#include "../phase4/src/core/ole/COleVariant.cpp"
 
 // Mirror COleSafeArray's layout: tagVARIANT + m_dwElementSize + m_dwDims (32).
 struct alignas(8) OleSA {

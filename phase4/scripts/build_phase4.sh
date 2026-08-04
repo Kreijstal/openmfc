@@ -54,6 +54,7 @@ CFLAGS=(
     -DOPENMFC_EXPORTS
     -fms-extensions
     -I"$ROOT/include"
+    -I"$ROOT/phase4/src"
     -I"$BUILD/include"
     -Wno-attributes
 )
@@ -181,16 +182,18 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetMainWnd@@YAPEAVCWnd@@XZ,?AfxGetApp@@Y
 EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@XZ"
 
 # Automatically exclude any symbols that have a real implementation in Phase 4.
+# Headers are scanned too: a marker can sit next to a definition that lives in
+# a unit's shared internals (phase4/src/detail).
 # The weak stubs generator can't rely on PE/COFF weak symbols, so duplicates
 # must be excluded up-front.
 AUTO_EXCLUDES=""
 if command -v rg >/dev/null 2>&1; then
-    AUTO_EXCLUDES="$(rg -N --no-heading --no-line-number --no-filename '^// Symbol: ' "$ROOT/phase4/src"/*.cpp \
+    AUTO_EXCLUDES="$(rg -N --no-heading --no-line-number --no-filename '^// Symbol: ' "$ROOT/phase4/src" -g '*.cpp' -g '*.h' \
         | sed -E 's%^// Symbol: %%' \
         | tr -d '\r' \
         | paste -sd, - || true)"
 else
-    AUTO_EXCLUDES="$(grep -hE '^// Symbol: ' "$ROOT/phase4/src"/*.cpp 2>/dev/null \
+    AUTO_EXCLUDES="$(find "$ROOT/phase4/src" \( -name '*.cpp' -o -name '*.h' \) -exec grep -hE '^// Symbol: ' {} + 2>/dev/null \
         | sed -E 's%^// Symbol: %%' \
         | tr -d '\r' \
         | paste -sd, - || true)"
@@ -436,81 +439,64 @@ echo "[3/4] Compiling..."
 "$CXX" "${CFLAGS[@]}" -c "$BUILD/typed_stubs.cpp" -o "$BUILD/typed_stubs.o"
 "$CC" "${CFLAGS_C[@]}" -c "$BUILD/generated_rtti.c" -o "$BUILD/generated_rtti.o"
 
-# Compile implementation files
-IMPL_SOURCES=(
-    "$ROOT/phase4/src/mfc_exceptions.cpp"
-    "$ROOT/phase4/src/crt_memory.cpp"
-    "$ROOT/phase4/src/version_impl.cpp"
-    "$ROOT/phase4/src/cobject_impl.cpp"
-    "$ROOT/phase4/src/appcore.cpp"
-    "$ROOT/phase4/src/memcore.cpp"
-    "$ROOT/phase4/src/strcore.cpp"
-    "$ROOT/phase4/src/wincore.cpp"
-    "$ROOT/phase4/src/dlgcore.cpp"
-    "$ROOT/phase4/src/gdicore.cpp"
-    "$ROOT/phase4/src/menucore.cpp"
-    "$ROOT/phase4/src/regcore.cpp"
-    "$ROOT/phase4/src/ctrlcore.cpp"
-    "$ROOT/phase4/src/docview.cpp"
-    "$ROOT/phase4/src/filecore.cpp"
-    "$ROOT/phase4/src/synccore.cpp"
-    "$ROOT/phase4/src/dlgcommon.cpp"
-    "$ROOT/phase4/src/inetcore.cpp"
-    "$ROOT/phase4/src/sockcore.cpp"
-    "$ROOT/phase4/src/olecore.cpp"
-    "$ROOT/phase4/src/dbcore.cpp"
-    "$ROOT/phase4/src/cbarcore.cpp"
-    "$ROOT/phase4/src/viewrich.cpp"
-    "$ROOT/phase4/src/daocore.cpp"
-    "$ROOT/phase4/src/mfccore.cpp"
-    "$ROOT/phase4/src/thunks.cpp"
-    "$ROOT/phase4/src/manual_thunks.cpp"
-    "$ROOT/phase4/src/manual_small_stub_implementations.cpp"
-    "$ROOT/phase4/src/richedit_ole_ext.cpp"
-    "$ROOT/phase4/src/frame_font_exports.cpp"
+# Compile implementation files.
+#
+# phase4/src is organised one class per file under subsystem directories
+# (core/window/CWnd.cpp, featurepack/ribbon/CMFCRibbonBar.cpp, ...), with the
+# shared internals of the former aggregate units in phase4/src/detail.  Every
+# .cpp in the tree is part of the DLL, so the list is discovered rather than
+# maintained by hand.
+#
+# EXCLUDED_SOURCES holds units that must not be linked into the DLL itself.
+EXCLUDED_SOURCES=(
+    "core/runtime/OpenMfcExports.cpp"   # helper exports for OpenMFC-built apps
 )
 
-# Preserve the established compile order above, then append new class/category
-# shards. Keep the patterns narrow so legacy helper files that were not part of
-# the old build do not start compiling accidentally.
-SHARD_SOURCE_PATTERNS=(
-    'app_*.cpp'
-    'collections_*.cpp'
-    'ctrl_*.cpp'
-    'dao_*.cpp'
-    'db_*.cpp'
-    'doc_*.cpp'
-    'feature_*.cpp'
-    'file_*.cpp'
-    'gdi_*.cpp'
-    'global_*.cpp'
-    'inet_*.cpp'
-    'ole_*.cpp'
-    'sock_*.cpp'
-)
+# Objects mirror the source tree under $BUILD/obj so the checkout stays clean.
+impl_object_path() {
+    local rel="${1#"$ROOT/phase4/src/"}"
+    echo "$BUILD/obj/${rel%.cpp}.o"
+}
 
-for pattern in "${SHARD_SOURCE_PATTERNS[@]}"; do
-    while IFS= read -r src; do
-        found=false
-        for existing in "${IMPL_SOURCES[@]}"; do
-            if [[ "$existing" == "$src" ]]; then
-                found=true
-                break
-            fi
-        done
-        if [[ "$found" == false ]]; then
-            IMPL_SOURCES+=("$src")
+IMPL_SOURCES=()
+while IFS= read -r src; do
+    rel="${src#"$ROOT/phase4/src/"}"
+    skip=false
+    for excluded in "${EXCLUDED_SOURCES[@]}"; do
+        if [[ "$rel" == "$excluded" ]]; then
+            skip=true
+            break
         fi
-    done < <(find "$ROOT/phase4/src" -maxdepth 1 -type f -name "$pattern" -print | sort)
-done
-
-for src in "${IMPL_SOURCES[@]}"; do
-    if [[ -f "$src" ]]; then
-        obj="${src%.cpp}.o"
-        echo "  Compiling implementation: $(basename "$src")"
-        "$CXX" "${CFLAGS[@]}" -c "$src" -o "$obj"
+    done
+    if [[ "$skip" == false ]]; then
+        IMPL_SOURCES+=("$src")
     fi
-done
+done < <(find "$ROOT/phase4/src" -type f -name '*.cpp' -print | sort)
+
+# One class per file means several hundred translation units, so they are
+# compiled in parallel; JOBS=1 restores serial output when debugging a failure.
+JOBS="${JOBS:-$(nproc 2>/dev/null || echo 4)}"
+echo "  Compiling ${#IMPL_SOURCES[@]} implementation units with $JOBS jobs"
+
+compile_one() {
+    local src="$1"
+    local rel="${src#"$ROOT/phase4/src/"}"
+    local obj="$BUILD/obj/${rel%.cpp}.o"
+    mkdir -p "$(dirname "$obj")"
+    if ! "$CXX" "${CFLAGS[@]}" -c "$src" -o "$obj"; then
+        echo "  FAILED: $rel" >&2
+        return 1
+    fi
+}
+export -f compile_one
+export ROOT BUILD CXX
+export CFLAGS_STR="${CFLAGS[*]}"
+
+printf '%s\0' "${IMPL_SOURCES[@]}" \
+    | xargs -0 -P "$JOBS" -I{} bash -c '
+        set -eu
+        read -r -a CFLAGS <<< "$CFLAGS_STR"
+        compile_one "$@"' _ {}
 
 # Step 4: Link DLL
 echo ""
@@ -555,8 +541,7 @@ OBJ_FILES=(
 # Add implementation object files
 for src in "${IMPL_SOURCES[@]}"; do
     if [[ -f "$src" ]]; then
-        obj="${src%.cpp}.o"
-        OBJ_FILES+=("$obj")
+        OBJ_FILES+=("$(impl_object_path "$src")")
     fi
 done
 

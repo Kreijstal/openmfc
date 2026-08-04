@@ -1,0 +1,94 @@
+#pragma once
+// Shared internals of the former global_other_12_msgmap.cpp translation unit.
+// Definitions live in detail/Other12MsgmapSupport.cpp, so file-scope state keeps a
+// single instance across the classes this unit was split into.
+namespace openmfc { namespace detail { namespace other12msgmap {} } }
+using namespace openmfc::detail::other12msgmap;
+// OpenMFC: message-map metadata (GetMessageMap / GetThisMessageMap) for
+// 8 classes. Each gets a base-chained AFX_MSGMAP with an empty
+// terminator entry array (real handler entries are mfc140u code addresses we
+// cannot replicate). pfnGetBaseMap delegates to the base's exported
+// GetThisMessageMap (real-MFC _AFXDLL base resolution); base harvested by
+// pointer identity from mfc140u.dll. GetMessageMap is virtual-const (takes a
+// this ptr), GetThisMessageMap is static; both return the static map. The
+// // Symbol: markers drive build_phase4.sh's weak-stub auto-exclude.
+// Named global_*_msgmap.cpp so the shard glob compiles it.
+
+#include "openmfc/afxwin.h"   // AFX_MSGMAP, AFX_MSGMAP_ENTRY, AfxSig_end, AFXAPI
+
+#ifdef __GNUC__
+  #define MS_ABI __attribute__((ms_abi))
+#else
+  #define MS_ABI
+#endif
+
+// Shared empty message-map entries (terminator only): the class exposes no
+// handlers we implement; routing falls through to the base via pfnGetBaseMap.
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP_ENTRY g_emptyMsgEntries_Other12Msgmap[];
+} } }
+
+// Base GetThisMessageMap getters (exported elsewhere in this DLL).
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCommonDialog__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CControlBar__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCtrlView__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialog__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFormView__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CScrollView__KAPEBUAFX_MSGMAP__XZ();
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ();
+
+// __cdecl (AFXAPI) base-map thunks matching AFX_MSGMAP::pfnGetBaseMap exactly.
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CHtmlView();
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_COutlookOptionsDlg();
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CPreviewView();
+} } }
+const AFX_MSGMAP* AFXAPI gbm_CPreviewViewEx();  // defined after maps (in-batch base CPreviewView)
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CPrintDialogEx();
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CReBar();
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CRichEditView();
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+const AFX_MSGMAP* AFXAPI gbm_CScreenWnd();
+} } }
+
+// The static maps. m_pfnGetBaseMap delegates to the base (or null at the root).
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCHtmlView_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCOutlookOptionsDlg_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCPreviewView_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCPreviewViewEx_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCPrintDialogEx_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCReBar_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCRichEditView_msgmap;
+} } }
+namespace openmfc { namespace detail { namespace other12msgmap {
+extern const AFX_MSGMAP classCScreenWnd_msgmap;
+} } }
+const AFX_MSGMAP* AFXAPI gbm_CPreviewViewEx();
+
+#define DEF_MM(Cls, GMSym, GTMSym) \
+    extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
+    extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
+

@@ -11,9 +11,8 @@ on:
       - 'phase4/tests/test_exception_mfc.cpp'
       - 'phase4/tests/test_cobject_rtti.cpp'
       - 'phase4/tests/test_openmfc_suite.cpp'
-      - 'phase4/src/mfc_exceptions.cpp'
-      - 'phase4/src/cobject_impl.cpp'
-      - 'phase4/src/version_impl.cpp'
+      - 'phase4/src/core/exceptions/**'
+      - 'phase4/src/core/runtime/**'
       - '.github/workflows/explore_exceptions.yml'
 
 jobs:

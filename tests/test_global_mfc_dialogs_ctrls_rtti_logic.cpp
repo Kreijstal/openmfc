@@ -1,5 +1,5 @@
 // Logic test for global_mfc_dialogs_ctrls_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_mfc_dialogs_ctrls_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

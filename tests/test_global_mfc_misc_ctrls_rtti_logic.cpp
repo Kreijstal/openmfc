@@ -1,5 +1,7 @@
 // Logic test for global_mfc_misc_ctrls_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_mfc_misc_ctrls_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/customize/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/visualmanager/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

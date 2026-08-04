@@ -6,7 +6,7 @@
 #include <oleauto.h>
 #include <cstdio>
 
-#include "../phase4/src/ole_colecurrency_parse.cpp"
+#include "../phase4/src/core/ole/COleCurrency.cpp"
 
 // COleCurrency layout: CY m_cur @0, int m_status @8 (sizeof 32 with padding).
 struct OCC { CY m_cur; int m_status; char pad[20]; };

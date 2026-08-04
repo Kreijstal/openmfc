@@ -17,7 +17,7 @@
 //       tests/test_chandlemap_logic.cpp -o /tmp/t2_CHandleMap.exe
 //   WINEDEBUG=-all wine /tmp/t2_CHandleMap.exe; echo EXIT=$?
 
-#include "../phase4/src/global_chandlemap.cpp"
+#include "../phase4/src/core/collections/CHandleMap.cpp"
 
 #include <cstdio>
 
@@ -37,14 +37,14 @@ int main() {
     // MFC's ctor would, then seed m_pClass / m_nOffset as MFC does.
     CHandleMap map;
     std::memset(&map, 0, sizeof(map));
-    map.m_pClass = &CTempHandleObject::classCTempHandleObject;
+    map.m_pClass = &CTempHandleObject_Chandlemap::classCTempHandleObject;
     map.m_nOffset = 0;
 
     check("sizeof(CHandleMap)==136", sizeof(CHandleMap) == 136);
 
     // A fabricated permanent wrapper (as if SetPermanent had been called by an
-    // attach path). We use a CTempHandleObject as a stand-in CObject*.
-    CTempHandleObject permWrapper;
+    // attach path). We use a CTempHandleObject_Chandlemap as a stand-in CObject*.
+    CTempHandleObject_Chandlemap permWrapper;
     permWrapper.m_hHandle = reinterpret_cast<void*>(0x1000);
 
     void* hPerm = reinterpret_cast<void*>(0x1000);
@@ -74,7 +74,7 @@ int main() {
     check("temporary count is 1 after one temp", CHandleMap_TemporaryCount(&map) == 1);
 
     // 5) temp wrapper carries the handle value
-    auto* tmpA1Typed = static_cast<CTempHandleObject*>(tmpA1);
+    auto* tmpA1Typed = static_cast<CTempHandleObject_Chandlemap*>(tmpA1);
     check("temp wrapper carries correct handle", tmpA1Typed->m_hHandle == hTempA);
 
     // 6) second call for same handle returns SAME temporary wrapper (cached)
@@ -108,7 +108,7 @@ int main() {
     check("FromHandle(temp) creates non-null wrapper after DeleteTemp",
           tmpA3 != nullptr);
     check("fresh wrapper carries correct handle",
-          static_cast<CTempHandleObject*>(tmpA3)->m_hHandle == hTempA);
+          static_cast<CTempHandleObject_Chandlemap*>(tmpA3)->m_hHandle == hTempA);
     check("temporary count 1 after fresh temp", CHandleMap_TemporaryCount(&map) == 1);
 
     // 12) HARDER: a permanent-handle lookup must NOT register a temporary, even

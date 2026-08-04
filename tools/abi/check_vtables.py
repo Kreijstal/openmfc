@@ -19,7 +19,7 @@ import json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 GOLDEN = os.path.join(ROOT, "phase1/harvest/vtable_slots.json")
-SRC = os.path.join(ROOT, "phase4/src/mfc_exceptions.cpp")
+SRC = os.path.join(ROOT, "phase4/src")   # tables live with the exception unit's internals
 
 # Map a role/symbol string to a canonical family key. Slots 5 and 6 are two
 # distinct GetErrorMessage virtuals in the real vtable; the hand-written code
@@ -41,7 +41,16 @@ ARR_RE = re.compile(r"static\s+void\*\s+g_vtbl_(\w+)\[\]\s*=\s*\{(.*?)\};", re.S
 CAST_RE = re.compile(r"reinterpret_cast<void\*>\(\s*([A-Za-z_]\w*)\s*\)")
 
 def parse_src(path):
-    text = open(path).read()
+    """Read the exception vtable tables, wherever in the tree they now live."""
+    if os.path.isdir(path):
+        text = ''
+        for root, _dirs, files in os.walk(path):
+            for fname in sorted(files):
+                if fname.endswith(('.cpp', '.h')):
+                    text += open(os.path.join(root, fname),
+                                 encoding='utf-8', errors='replace').read()
+    else:
+        text = open(path).read()
     out = {}
     for m in ARR_RE.finditer(text):
         name = m.group(1)

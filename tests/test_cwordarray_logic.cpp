@@ -5,7 +5,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "../phase4/src/collections_cwordarray.cpp"
+#include "../phase4/src/core/collections/CWordArray.cpp"
+#include "../phase4/src/core/collections/Globals.cpp"
 
 // The real CArchive insertion/extraction operators live in phase4/src/filecore.cpp,
 // which is not part of this standalone test TU. Serialize() references a few of

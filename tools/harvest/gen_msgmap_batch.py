@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate one message-map batch (phase4/src/global_<slug>_msgmap.cpp + test) from
+"""Generate one message-map batch (a section of <subsystem>/MessageMaps.cpp + test) from
 tools/harvest/msgmap_bases.json. Each stub class C gets a static AFX_MSGMAP whose
 pfnGetBaseMap delegates to the base's exported GetThisMessageMap (real-MFC _AFXDLL
 mechanism), and an empty terminator entry array (handler entries are real mfc140u
@@ -8,6 +8,9 @@ GetThisMessageMap (static) both return the map. // Symbol: markers auto-exclude 
 weak stubs.  Usage: gen_msgmap_batch.py <slug> <Class1> <Class2> ...
 """
 import json, re, sys, os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import emit_batch
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def impl(sym):
@@ -93,13 +96,21 @@ def main():
         L.append(f'       {impl(gtm_sym(c))})')
     L.append('#undef DEF_MM')
     L.append('')
-    cpp_path = f'{ROOT}/phase4/src/global_{slug}_msgmap.cpp'
-    open(cpp_path, 'w', encoding='utf-8').write('\n'.join(L))
+    # A batch's classes may span subsystems; the section goes to the directory
+    # that owns most of them (see tools/source_layout.py).
+    groups = emit_batch.group_by_directory(classes)
+    directory = max(groups.items(), key=lambda kv: len(kv[1]))[0]
+    marker = f'message-map batch {slug}'
+    emit_batch.drop_sections(marker)
+    preamble = '\n'.join(L[:L.index('')]) + '\n'
+    cpp_path = emit_batch.emit(directory, 'MessageMaps.cpp', preamble,
+                               emit_batch.fence(marker, '\n'.join(L)))
+    cpp_rel = os.path.relpath(cpp_path, ROOT)
 
     # ---- test: provide stub defs for out-of-batch base getters, assert structure ----
     T = []
-    T.append(f'// Logic test for global_{slug}_msgmap.cpp (compiles+links; runs on Windows CI).')
-    T.append(f'#include "../phase4/src/global_{slug}_msgmap.cpp"')
+    T.append(f'// Logic test for the {slug} message-map batch in {cpp_rel}.')
+    T.append(f'#include "../{cpp_rel}"')
     T.append('#include <cstdio>')
     T.append('')
     T.append('// Out-of-batch base GetThisMessageMap getters: define sentinels so the')

@@ -4,7 +4,7 @@ These are ABI-compatible stubs for symbols where our C++ method signatures
 differ from the MSVC DLL exports, preventing auto-generation.
 
 Usage:
-    python3 tools/gen_manual_thunks.py --out phase4/src/manual_thunks.cpp
+    python3 tools/gen_manual_thunks.py --out phase4/src/core/runtime/ManualThunks.cpp
 
 After generating, empty thunks_skip.txt and regenerate thunks.cpp.
 """
@@ -137,7 +137,7 @@ def generate(skip_file: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="phase4/src/manual_thunks.cpp")
+    parser.add_argument("--out", default="phase4/src/core/runtime/ManualThunks.cpp")
     args = parser.parse_args()
     skip_file = Path(__file__).parent / 'thunks_skip.txt'
     if not skip_file.exists():
