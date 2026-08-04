@@ -15,6 +15,3 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CScrollBar__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollBar__SAPEAUCRuntimeClass__XZ() {
     return CScrollBar::GetThisClass();
 }
-// Symbol: ?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CScrollBar__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");

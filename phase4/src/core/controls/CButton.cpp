@@ -33,6 +33,3 @@ extern "C" int MS_ABI impl__OnChildNotify_CButton__MEAAHI_K_JPEA_J_Z(
     return FALSE;
 }
 // MSVC symbol aliases for Create methods
-// Symbol: ?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CButton__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");

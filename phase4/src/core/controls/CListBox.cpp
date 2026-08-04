@@ -91,21 +91,6 @@ extern "C" int MS_ABI impl__VKeyToItem_CListBox__UEAAHII_Z(CListBox* pThis, UINT
     (void)nIndex;
     return -1;
 }
-// Symbol: ?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
-// Symbol: ?AddString@CListBox@@QEAAHPEB_W@Z
-asm(".globl \"?AddString@CListBox@@QEAAHPEB_W@Z\"\n"
-    ".set \"?AddString@CListBox@@QEAAHPEB_W@Z\", impl__AddString_CListBox__QEAAHPEB_W_Z\n");
-// Symbol: ?DeleteString@CListBox@@QEAAHI@Z
-asm(".globl \"?DeleteString@CListBox@@QEAAHI@Z\"\n"
-    ".set \"?DeleteString@CListBox@@QEAAHI@Z\", impl__DeleteString_CListBox__QEAAHI_Z\n");
-// Symbol: ?InsertString@CListBox@@QEAAHHPEB_W@Z
-asm(".globl \"?InsertString@CListBox@@QEAAHHPEB_W@Z\"\n"
-    ".set \"?InsertString@CListBox@@QEAAHHPEB_W@Z\", impl__InsertString_CListBox__QEAAHHPEB_W_Z\n");
-// Symbol: ?FindString@CListBox@@QEBAHPEB_WH@Z
-asm(".globl \"?FindString@CListBox@@QEBAHPEB_WH@Z\"\n"
-    ".set \"?FindString@CListBox@@QEBAHPEB_WH@Z\", impl__FindString_CListBox__QEBAHPEB_WH_Z\n");
 // Symbol: ?GetText@CListBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__GetText_CListBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CListBox* pThis, int nIndex, CString* rString) {

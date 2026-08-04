@@ -11,9 +11,6 @@
 // Symbol: ?GetRuntimeClass@CProgressCtrl@@UEBAPEAUCRuntimeClass@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetThisClass@CProgressCtrl@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CProgressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
 // Symbol: ?CreateEx@CProgressCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CProgressCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
     CProgressCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {

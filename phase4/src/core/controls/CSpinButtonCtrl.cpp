@@ -15,9 +15,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSpinButtonCtrl__UEBAPEAU
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSpinButtonCtrl__SAPEAUCRuntimeClass__XZ() {
     return CSpinButtonCtrl::GetThisClass();
 }
-// Symbol: ?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSpinButtonCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
 // Symbol: ?CreateEx@CSpinButtonCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CSpinButtonCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
     CSpinButtonCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {

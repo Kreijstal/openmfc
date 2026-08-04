@@ -16,8 +16,6 @@ void AFXAPI AfxThrowOleDispatchException(WORD wCode, UINT nDescriptionID, UINT n
 void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID) {
     impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(wCode, lpszDescription, nHelpID);
 }
-asm(".globl \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\"\n"
-    ".set \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CException__SAPEAUCRuntimeClass__XZ\n");
 static_assert(sizeof(ManualCMemoryException) == sizeof(CMemoryException),
               "ManualCMemoryException must match CMemoryException size for ABI compatibility");
 static_assert(alignof(ManualCMemoryException) == alignof(CMemoryException),

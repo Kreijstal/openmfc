@@ -33,6 +33,3 @@ extern "C" int MS_ABI impl__OnChildNotify_CStatic__MEAAHI_K_JPEA_J_Z(
     }
     return FALSE;
 }
-// Symbol: ?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CStatic__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");

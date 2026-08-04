@@ -67,21 +67,6 @@ extern "C" int MS_ABI impl__OnChildNotify_CComboBox__MEAAHI_K_JPEA_J_Z(
         return FALSE;
     }
 }
-// Symbol: ?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
-// Symbol: ?AddString@CComboBox@@QEAAHPEB_W@Z
-asm(".globl \"?AddString@CComboBox@@QEAAHPEB_W@Z\"\n"
-    ".set \"?AddString@CComboBox@@QEAAHPEB_W@Z\", impl__AddString_CComboBox__QEAAHPEB_W_Z\n");
-// Symbol: ?DeleteString@CComboBox@@QEAAHI@Z
-asm(".globl \"?DeleteString@CComboBox@@QEAAHI@Z\"\n"
-    ".set \"?DeleteString@CComboBox@@QEAAHI@Z\", impl__DeleteString_CComboBox__QEAAHI_Z\n");
-// Symbol: ?InsertString@CComboBox@@QEAAHHPEB_W@Z
-asm(".globl \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\"\n"
-    ".set \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\", impl__InsertString_CComboBox__QEAAHHPEB_W_Z\n");
-// Symbol: ?FindString@CComboBox@@QEBAHPEB_WH@Z
-asm(".globl \"?FindString@CComboBox@@QEBAHPEB_WH@Z\"\n"
-    ".set \"?FindString@CComboBox@@QEBAHPEB_WH@Z\", impl__FindString_CComboBox__QEBAHPEB_WH_Z\n");
 // Symbol: ?GetLBText@CComboBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CComboBox* pThis, int nIndex, CString* pText) {

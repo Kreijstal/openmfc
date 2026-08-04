@@ -97,9 +97,6 @@ extern "C" int MS_ABI impl__SetItemState_CTabCtrl__QEAAHHKK_Z(
     item.dwState = dwState;
     return (int)::SendMessageW(pThis->m_hWnd, TCM_SETITEMW, nItem, (LPARAM)&item);
 }
-// Symbol: ?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
 // Symbol: ?CreateEx@CTabCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CTabCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
     CTabCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {

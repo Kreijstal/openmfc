@@ -235,6 +235,3 @@ extern "C" int MS_ABI impl__SetItemEx_CTreeCtrl__QEAAHPEAU_TREEITEM__IPEB_WHHII_
     item.iExpandedImage = iExpandedImage;
     return (int)::SendMessageW(TreeCtrlHwnd(pThis), TVM_SETITEMW, 0, (LPARAM)&item);
 }
-// Symbol: ?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTreeCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");

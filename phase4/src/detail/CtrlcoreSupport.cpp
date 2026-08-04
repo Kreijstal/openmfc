@@ -430,3 +430,68 @@ extern "C" int MS_ABI impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
         pThis, L"SysTabControl32", L"", dwStyle, *pRect, pParentWnd, nID, nullptr);
 }
 } } }  // namespace openmfc::detail::ctrlcore
+
+// MSVC symbol aliases for exports implemented in this unit. The .set
+// directive resolves at assembly time, so an alias must be emitted in the
+// same translation unit as its target; lld rejects a cross-unit .set that
+// GNU ld happens to tolerate.
+// Symbol: ?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CButton@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CButton__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?FindString@CComboBox@@QEBAHPEB_WH@Z
+asm(".globl \"?FindString@CComboBox@@QEBAHPEB_WH@Z\"\n"
+    ".set \"?FindString@CComboBox@@QEBAHPEB_WH@Z\", impl__FindString_CComboBox__QEBAHPEB_WH_Z\n");
+// Symbol: ?InsertString@CComboBox@@QEAAHHPEB_W@Z
+asm(".globl \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\"\n"
+    ".set \"?InsertString@CComboBox@@QEAAHHPEB_W@Z\", impl__InsertString_CComboBox__QEAAHHPEB_W_Z\n");
+// Symbol: ?DeleteString@CComboBox@@QEAAHI@Z
+asm(".globl \"?DeleteString@CComboBox@@QEAAHI@Z\"\n"
+    ".set \"?DeleteString@CComboBox@@QEAAHI@Z\", impl__DeleteString_CComboBox__QEAAHI_Z\n");
+// Symbol: ?AddString@CComboBox@@QEAAHPEB_W@Z
+asm(".globl \"?AddString@CComboBox@@QEAAHPEB_W@Z\"\n"
+    ".set \"?AddString@CComboBox@@QEAAHPEB_W@Z\", impl__AddString_CComboBox__QEAAHPEB_W_Z\n");
+// Symbol: ?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CComboBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CEdit@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?FindString@CListBox@@QEBAHPEB_WH@Z
+asm(".globl \"?FindString@CListBox@@QEBAHPEB_WH@Z\"\n"
+    ".set \"?FindString@CListBox@@QEBAHPEB_WH@Z\", impl__FindString_CListBox__QEBAHPEB_WH_Z\n");
+// Symbol: ?InsertString@CListBox@@QEAAHHPEB_W@Z
+asm(".globl \"?InsertString@CListBox@@QEAAHHPEB_W@Z\"\n"
+    ".set \"?InsertString@CListBox@@QEAAHHPEB_W@Z\", impl__InsertString_CListBox__QEAAHHPEB_W_Z\n");
+// Symbol: ?DeleteString@CListBox@@QEAAHI@Z
+asm(".globl \"?DeleteString@CListBox@@QEAAHI@Z\"\n"
+    ".set \"?DeleteString@CListBox@@QEAAHI@Z\", impl__DeleteString_CListBox__QEAAHI_Z\n");
+// Symbol: ?AddString@CListBox@@QEAAHPEB_W@Z
+asm(".globl \"?AddString@CListBox@@QEAAHPEB_W@Z\"\n"
+    ".set \"?AddString@CListBox@@QEAAHPEB_W@Z\", impl__AddString_CListBox__QEAAHPEB_W_Z\n");
+// Symbol: ?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CProgressCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CProgressCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CScrollBar@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CScrollBar__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSliderCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CSpinButtonCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSpinButtonCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CStatic@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CStatic__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+// Symbol: ?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
+asm(".globl \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
+    ".set \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTreeCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");

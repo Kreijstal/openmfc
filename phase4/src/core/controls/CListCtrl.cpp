@@ -255,6 +255,3 @@ extern "C" int MS_ABI impl__SetItemText_CListCtrl__QEAAHHHPEB_W_Z(
     CListCtrl* pThis, int nItem, int nSubItem, const wchar_t* lpszText) {
     return pThis ? pThis->SetItemText(nItem, nSubItem, lpszText) : FALSE;
 }
-// Symbol: ?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CListCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CListCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");

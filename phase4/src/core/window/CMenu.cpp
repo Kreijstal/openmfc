@@ -9,11 +9,6 @@
 // Symbol: ?GetRuntimeClass@CMenu@@UEBAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetThisClass@CMenu@@SAPEAUCRuntimeClass@@XZ
 
-#ifdef __GNUC__
-// MSVC symbol alias for CMenu::classCMenu
-asm(".globl \"?classCMenu@CMenu@@2UCRuntimeClass@@A\"\n"
-    ".set \"?classCMenu@CMenu@@2UCRuntimeClass@@A\", _ZN5CMenu10classCMenuE\n");
-#endif
 
 // =============================================================================
 // CMenu Implementation

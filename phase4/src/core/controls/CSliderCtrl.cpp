@@ -15,9 +15,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CSliderCtrl__UEBAPEAUCRun
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CSliderCtrl__SAPEAUCRuntimeClass__XZ() {
     return CSliderCtrl::GetThisClass();
 }
-// Symbol: ?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
-asm(".globl \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
-    ".set \"?Create@CSliderCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CSliderCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
 // Symbol: ?CreateEx@CSliderCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CSliderCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
     CSliderCtrl* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {

@@ -239,3 +239,12 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMenu__SAPEAUCRuntimeClass__
     return CMenu::GetThisClass();
 }
 } } }  // namespace openmfc::detail::cmenu
+
+// The alias must sit with the IMPLEMENT_DYNAMIC above that defines
+// CMenu::classCMenu: .set resolves at assembly time, so lld rejects it
+// when the target lives in another unit.
+#ifdef __GNUC__
+// MSVC symbol alias for CMenu::classCMenu
+asm(".globl \"?classCMenu@CMenu@@2UCRuntimeClass@@A\"\n"
+    ".set \"?classCMenu@CMenu@@2UCRuntimeClass@@A\", _ZN5CMenu10classCMenuE\n");
+#endif
