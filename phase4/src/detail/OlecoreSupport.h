@@ -1432,13 +1432,7 @@ MS_ABI int impl__AfxOleGetMessageFilter();
 //=============================================================================
 
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::AddRef();
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::Release();
-} } }
 
 
 
@@ -1465,13 +1459,7 @@ STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::Release();
 //=============================================================================
 
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleDropSource::XDropSource::AddRef();
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleDropSource::XDropSource::Release();
-} } }
 
 
 
@@ -1505,28 +1493,10 @@ STDMETHODIMP_(ULONG) COleDropSource::XDropSource::Release();
 //=============================================================================
 
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::AddRef();
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::Release();
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::HandleInComingCall(
-    DWORD dwCallType, HTASK htaskCaller, DWORD dwTickCount, LPINTERFACEINFO lpInterfaceInfo);
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::RetryRejectedCall(
-    HTASK htaskCallee, DWORD dwTickCount, DWORD dwRejectType);
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::MessagePending(
-    HTASK htaskCallee, DWORD dwTickCount, DWORD dwType);
-} } }
 
 
 
@@ -1718,13 +1688,7 @@ STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::MessagePending(
 
 
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleObjectFactory::XClassFactory::AddRef();
-} } }
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) COleObjectFactory::XClassFactory::Release();
-} } }
 
 
 
@@ -2499,12 +2463,6 @@ MS_ABI int impl__AfxOleUnregisterTypeLib(REFGUID guid, WORD wVerMajor, WORD wVer
 // CEnumFormatEtc
 //=============================================================================
 
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) CEnumFormatEtc::AddRef();
-} } }
-namespace openmfc { namespace detail { namespace olecore {
-STDMETHODIMP_(ULONG) CEnumFormatEtc::Release();
-} } }
 
 
 //=============================================================================

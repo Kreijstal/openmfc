@@ -1621,6 +1621,7 @@ DataCacheEntry* FindCacheEntry(DataCacheState* state, const FORMATETC& format) {
 }
 thread_local OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
 thread_local IMessageFilter* g_previousMessageFilter = nullptr;
+} } }
 STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::AddRef() {
     return InterlockedIncrement(&m_refCount);
 }
@@ -1680,6 +1681,7 @@ STDMETHODIMP_(ULONG) COleObjectFactory::XClassFactory::Release() {
     }
     return ref;
 }
+namespace openmfc { namespace detail { namespace olecore {
 HWND GetSiteParentWindow(const COleControlSite* pSite) {
     if (!pSite) {
         return nullptr;
@@ -1773,10 +1775,12 @@ ControlSiteAdapter* GetControlSiteAdapter(COleControlSite* pSite, bool create) {
     }
     return it->second.adapter;
 }
+} } }
 STDMETHODIMP_(ULONG) CEnumFormatEtc::AddRef() { return ++m_refCount; }
 STDMETHODIMP_(ULONG) CEnumFormatEtc::Release() {
     ULONG ref = --m_refCount;
     if (ref == 0) delete this;
     return ref;
 }
+namespace openmfc { namespace detail { namespace olecore {
 } } }  // namespace openmfc::detail::olecore

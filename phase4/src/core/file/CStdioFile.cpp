@@ -264,7 +264,7 @@ extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEAU_iobuf___Z(
 {
     if (!pThis) return nullptr;
     CStdioFile* p = new (pThis) CStdioFile();
-    impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(pThis, p0, nullptr);
+    impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(p, p0, nullptr);
     return p;
 }
 // CStdioFile::CStdioFile(ATL::CAtlTransactionManager*) — transaction-aware
@@ -286,6 +286,6 @@ extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEB_WIPEAVCAtlTransactionManage
 {
     if (!pThis) return nullptr;
     CStdioFile* p = new (pThis) CStdioFile();
-    impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(pThis, p0, p1, pTM);
+    impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(p, p0, p1, pTM);
     return p;
 }

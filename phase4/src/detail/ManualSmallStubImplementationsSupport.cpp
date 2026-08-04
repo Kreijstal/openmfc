@@ -736,6 +736,8 @@ extern "C" int MS_ABI impl__SetActiveTab_CMFCPropertySheetTabCtrl__EEAAHH_Z(
         return 0;
     }
 
-    return impl__SetActivePage_CPropertySheet__QEAAHH_Z(self->m_pParent, nTab);
+    // m_pParent is stored opaquely; the export is defined over CPropertySheet*.
+    return impl__SetActivePage_CPropertySheet__QEAAHH_Z(
+        static_cast<CPropertySheet*>(self->m_pParent), nTab);
 }
 } } }  // namespace openmfc::detail::manualsmallstubimplementations
