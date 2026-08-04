@@ -1,5 +1,8 @@
 // Logic test for global_mfc_06_msgmap.cpp (compiles+links; runs on Windows CI).
-#include "../phase4/src/global_mfc_06_msgmap.cpp"
+#include "../phase4/src/featurepack/controls/MessageMaps.cpp"
+#include "../phase4/src/featurepack/menu/MessageMaps.cpp"
+#include "../phase4/src/featurepack/outlookbar/MessageMaps.cpp"
+#include "../phase4/src/featurepack/toolbar/MessageMaps.cpp"
 #include <cstdio>
 
 // Out-of-batch base GetThisMessageMap getters: define sentinels so the

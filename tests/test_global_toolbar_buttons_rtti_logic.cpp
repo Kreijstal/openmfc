@@ -1,5 +1,11 @@
 // Logic test for global_toolbar_buttons_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_toolbar_buttons_rtti.cpp"
+#include "../phase4/src/featurepack/controls/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/customize/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/menu/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/outlookbar/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/ribbon/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/taskspane/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/toolbar/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

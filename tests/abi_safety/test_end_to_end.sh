@@ -32,11 +32,14 @@ echo "2. Testing implementation safety..."
 # Check Phase 4 implementation files
 PHASE4_SRC="$ROOT/phase4/src"
 if [[ -d "$PHASE4_SRC" ]]; then
-    if python3 "$ROOT/scripts/validate_implementation_safety.py" "$PHASE4_SRC"/*.cpp 2>/dev/null | grep -q "All implementation files are MSVC ABI safe"; then
+    # Sources are nested by subsystem (core/…, featurepack/…, detail/…), so recurse.
+    if find "$PHASE4_SRC" -name '*.cpp' -print0 \
+         | xargs -0 python3 "$ROOT/scripts/validate_implementation_safety.py" 2>/dev/null \
+         | grep -q "All implementation files are MSVC ABI safe"; then
         echo "  ✅ PASS: Phase 4 implementations are safe"
     else
         echo "  ⚠️  WARNING: Phase 4 implementations may have issues"
-        echo "     Run: python3 scripts/validate_implementation_safety.py phase4/src/*.cpp"
+        echo "     Run: find phase4/src -name '*.cpp' -print0 | xargs -0 python3 scripts/validate_implementation_safety.py"
     fi
 else
     echo "  ⚠️  SKIP: No Phase 4 source directory"
@@ -44,7 +47,9 @@ fi
 
 echo ""
 echo "3. Testing comprehensive safety check..."
-if "$ROOT/scripts/phase4_safety_check.sh" 2>&1 | grep -q "Local MSVC ABI checks PASSED"; then
+# phase4_safety_check.sh reports success as "NO ABI REGRESSIONS"; it has never
+# printed "Local MSVC ABI checks PASSED", so the old grep always failed.
+if "$ROOT/scripts/phase4_safety_check.sh" 2>&1 | grep -q "NO ABI REGRESSIONS"; then
     echo "  ✅ PASS: Comprehensive safety check passed"
 else
     echo "  ❌ FAIL: Comprehensive safety check failed"

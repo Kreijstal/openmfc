@@ -7,7 +7,8 @@
 // m_pBaseClass points at the correct base descriptor (external members and the
 // in-file CBaseTabbedPane), including a CTabbedPane IsDerivedFrom walk.
 
-#include "../phase4/src/global_docktab_rtti.cpp"
+#include "../phase4/src/core/controlbar/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/docking/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

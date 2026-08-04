@@ -1,7 +1,7 @@
 // Behavioral test for CThreadSlotData. Drives the real exported impl_
 // functions and asserts concrete outcomes around TLS-backed slot storage.
 #include <cstdio>
-#include "../phase4/src/global_cthreadslotdata.cpp"
+#include "../phase4/src/core/runtime/CThreadSlotData.cpp"
 
 static int g_fail = 0;
 

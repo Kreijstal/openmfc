@@ -6,7 +6,7 @@
 // (no self-dispatch recursion), and that m_pBaseClass chains correctly down to the
 // CFile::classCFile root, including a CCachedDataPathProperty IsDerivedFrom walk.
 
-#include "../phase4/src/global_olefile_rtti.cpp"
+#include "../phase4/src/core/ole/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

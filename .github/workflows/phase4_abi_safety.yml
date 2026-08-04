@@ -62,7 +62,7 @@ jobs:
         echo ""
         echo "3. Implementation safety validation..."
         python3 scripts/validate_implementation_safety.py \
-          "phase4/src/*.cpp"
+          "phase4/src/**/*.cpp"
         
         # 4. ABI regression detection
         echo ""

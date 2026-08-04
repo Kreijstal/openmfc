@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import stub_coverage as sc
 import gen_weak_stubs as gw
 
-OUT = ROOT / "phase4" / "src" / "global_ddx_exchange.cpp"
+OUT = ROOT / "phase4" / "src" / "core" / "dialog" / "DdxExchange.cpp"
 CSTR = "V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@"
 
 # value-type single-char code -> (C type, DDX TCode enum, is CString)
@@ -38,7 +38,7 @@ def collect():
     m, _ = sc.load_current_manifest()
     import glob
     elsewhere = set()
-    for f in glob.glob(str(ROOT / "phase4" / "src" / "*.cpp")):
+    for f in glob.glob(str(ROOT / "phase4" / "src" / "**" / "*.cpp"), recursive=True):
         if Path(f).name == OUT.name: continue
         for mm in re.finditer(r'\bimpl_[A-Za-z0-9_]+', Path(f).read_text(errors='ignore')):
             elsewhere.add(mm.group(0))

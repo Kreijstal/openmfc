@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cmath>
 
-#include "../phase4/src/global_cglobalutils_conv.cpp"
+#include "../phase4/src/core/runtime/CGlobalUtils.cpp"
 
 static int g_failures = 0;
 static void check(bool cond, const char* what) {

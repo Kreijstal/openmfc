@@ -8,7 +8,7 @@
 #include <cstring>
 
 // Pull in the impl under test (defines the thunks + the two descriptors).
-#include "../phase4/src/ole_oleexception_rtti.cpp"
+#include "../phase4/src/core/exceptions/RuntimeClasses.cpp"
 
 // The impl references &CException::classCException, defined in mfc_exceptions.cpp
 // (not linked here). afxwin.h inline code also drags in a few other

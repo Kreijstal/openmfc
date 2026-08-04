@@ -14,7 +14,7 @@ CRuntimeClass CWinThread::classCWinThread={"CWinThread",sizeof(CWinThread),0xFFF
 CRuntimeClass CWinApp::classCWinApp={"CWinApp",sizeof(CWinApp),0xFFFF,nullptr,nullptr,&CWinThread::classCWinThread,nullptr};
 CRuntimeClass CWnd::classCWnd={"CWnd",sizeof(CWnd),0xFFFF,nullptr,nullptr,&CCmdTarget::classCCmdTarget,nullptr};
 
-#include "../phase4/src/global_clongbinary_rtti.cpp"
+#include "../phase4/src/core/file/RuntimeClasses.cpp"
 
 static_assert(sizeof(CLongBinary) == 24, "descriptor size literal (24) must match real CLongBinary");
 

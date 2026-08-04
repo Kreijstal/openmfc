@@ -5,7 +5,7 @@
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
 // m_pBaseClass points at the correct (external) base descriptor.
 
-#include "../phase4/src/global_pane2_rtti.cpp"
+#include "../phase4/src/featurepack/docking/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

@@ -8,7 +8,12 @@
 // m_pfnGetBaseClass/m_pNextClass shape, and that m_pBaseClass chains to the right
 // base, including a CMultiPageDHtmlDialog IsDerivedFrom walk onto CDialog.
 
-#include "../phase4/src/global_oleresidual_rtti.cpp"
+#include "../phase4/src/core/app/RuntimeClasses.cpp"
+#include "../phase4/src/core/ole/COleControlModule.cpp"
+#include "../phase4/src/core/ole/RuntimeClasses.cpp"
+#include "../phase4/src/core/runtime/RuntimeClasses.cpp"
+#include "../phase4/src/core/view/RuntimeClasses.cpp"
+#include "../phase4/src/featurepack/customize/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

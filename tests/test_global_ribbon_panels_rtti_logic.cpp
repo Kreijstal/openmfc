@@ -1,5 +1,5 @@
 // Logic test for global_ribbon_panels_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_ribbon_panels_rtti.cpp"
+#include "../phase4/src/featurepack/ribbon/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

@@ -8,7 +8,7 @@
 #include <cstring>
 
 // Pull in the impl under test (defines the extern "C" impl_ thunks + descriptors).
-#include "../phase4/src/global_simple_exceptions_rtti.cpp"
+#include "../phase4/src/core/exceptions/RuntimeClasses.cpp"
 
 // The impl references &CException::classCException, whose real definition lives in
 // mfc_exceptions.cpp (not linked here). afxwin.h's inline code also drags in a few
@@ -116,13 +116,13 @@ int main() {
     int dummy = 0;
     const void* pThis = &dummy;
 
-    test_one("CInvalidArgException", a,
+    test_one("CInvalidArgException_SimpleExceptionsRtti", a,
              impl__GetRuntimeClass_CInvalidArgException__UEBAPEAUCRuntimeClass__XZ(pThis));
-    test_one("CNotSupportedException", b,
+    test_one("CNotSupportedException_SimpleExceptionsRtti", b,
              impl__GetRuntimeClass_CNotSupportedException__UEBAPEAUCRuntimeClass__XZ(pThis));
-    test_one("CResourceException", c,
+    test_one("CResourceException_SimpleExceptionsRtti", c,
              impl__GetRuntimeClass_CResourceException__UEBAPEAUCRuntimeClass__XZ(pThis));
-    test_one("CUserException", d,
+    test_one("CUserException_SimpleExceptionsRtti", d,
              impl__GetRuntimeClass_CUserException__UEBAPEAUCRuntimeClass__XZ(pThis));
 
     if (g_failures == 0) {

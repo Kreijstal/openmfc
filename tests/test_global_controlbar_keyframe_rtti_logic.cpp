@@ -1,5 +1,7 @@
 // Logic test for global_controlbar_keyframe_rtti.cpp (run under wine/host).
-#include "../phase4/src/global_controlbar_keyframe_rtti.cpp"
+#include "../phase4/src/core/animation/RuntimeClasses.cpp"
+#include "../phase4/src/core/controlbar/RuntimeClasses.cpp"
+#include "../phase4/src/core/view/RuntimeClasses.cpp"
 #include <cstdio>
 #include <cstring>
 

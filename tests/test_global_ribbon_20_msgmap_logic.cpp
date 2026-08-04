@@ -1,5 +1,5 @@
 // Logic test for global_ribbon_20_msgmap.cpp (compiles+links; runs on Windows CI).
-#include "../phase4/src/global_ribbon_20_msgmap.cpp"
+#include "../phase4/src/featurepack/ribbon/MessageMaps.cpp"
 #include <cstdio>
 
 // Out-of-batch base GetThisMessageMap getters: define sentinels so the

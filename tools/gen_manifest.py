@@ -52,15 +52,21 @@ def load_skip_list(skip_path):
     return skips
 
 
+def iter_sources(src_dir):
+    """Yield every .cpp in the phase4 source tree, which is nested by subsystem."""
+    for root, _dirs, files in os.walk(src_dir):
+        for fname in sorted(files):
+            if fname.endswith('.cpp'):
+                yield os.path.join(root, fname)
+
+
 def collect_symbol_comments(src_dir):
     """Scan source files for // Symbol: comments.
     Returns dict: symbol -> {'file': str, 'line': int}
     """
     comments = {}
-    for fname in sorted(os.listdir(src_dir)):
-        if not fname.endswith('.cpp'):
-            continue
-        fpath = os.path.join(src_dir, fname)
+    for fpath in iter_sources(src_dir):
+        fname = os.path.relpath(fpath, src_dir)
         with open(fpath) as f:
             for i, line in enumerate(f, 1):
                 if line.startswith('// Symbol:'):
@@ -100,10 +106,10 @@ def collect_impl_functions(src_dir):
     Returns dict: impl_name -> {'file': str, 'line': int}
     """
     impl_funcs = {}
-    for fname in sorted(os.listdir(src_dir)):
-        if not fname.endswith('.cpp') or fname == 'thunks.cpp':
+    for fpath in iter_sources(src_dir):
+        fname = os.path.relpath(fpath, src_dir)
+        if os.path.basename(fname) == 'Thunks.cpp':
             continue
-        fpath = os.path.join(src_dir, fname)
         with open(fpath) as f:
             for i, line in enumerate(f, 1):
                 for m in re.finditer(r'(impl_[A-Za-z0-9_]+)\s*\(', line):

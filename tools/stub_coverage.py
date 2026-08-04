@@ -263,18 +263,18 @@ APP_RUNTIME_CLASSES = {
 
 
 PRIMARY_FILES = {
-    "feature_pack_ui": ["include/openmfc/afxmfc.h", "phase4/src/cbarcore.cpp", "phase4/src/mfccore.cpp"],
-    "ole_com_activex": ["include/openmfc/afxole.h", "phase4/src/olecore.cpp"],
-    "global_residuals": ["phase4/src/manual_thunks.cpp", "phase4/src/thunks.cpp", "phase4/scripts/build_phase4.sh"],
-    "other_mfc": ["include/openmfc/afxwin.h", "phase4/src/manual_thunks.cpp"],
-    "gdi_drawing": ["include/openmfc/afxwin.h", "phase4/src/gdicore.cpp"],
-    "core_windows_common_controls": ["include/openmfc/afxwin.h", "phase4/src/wincore.cpp", "phase4/src/dlgcore.cpp", "phase4/src/ctrlcore.cpp"],
-    "collections_strings": ["include/openmfc/afx.h", "phase4/src/strcore.cpp", "phase4/src/filecore.cpp"],
-    "app_runtime_globals": ["include/openmfc/afxwin.h", "phase4/src/appcore.cpp", "phase4/src/mfc_exceptions.cpp"],
-    "docview_files_archive": ["include/openmfc/afxwin.h", "phase4/src/docview.cpp", "phase4/src/filecore.cpp"],
-    "database_dao_odbc": ["include/openmfc/afxdb.h", "include/openmfc/afxdao.h", "phase4/src/dbcore.cpp", "phase4/src/daocore.cpp"],
-    "internet_wininet": ["include/openmfc/afxinet.h", "phase4/src/inetcore.cpp"],
-    "sockets": ["include/openmfc/afxsock.h", "phase4/src/sockcore.cpp"],
+    "feature_pack_ui": ["include/openmfc/afxmfc.h", "phase4/src/featurepack"],
+    "ole_com_activex": ["include/openmfc/afxole.h", "phase4/src/core/ole"],
+    "global_residuals": ["phase4/scripts/build_phase4.sh"],
+    "other_mfc": ["include/openmfc/afxwin.h"],
+    "gdi_drawing": ["include/openmfc/afxwin.h", "phase4/src/core/gdi"],
+    "core_windows_common_controls": ["include/openmfc/afxwin.h", "phase4/src/core/window", "phase4/src/core/dialog", "phase4/src/core/controls"],
+    "collections_strings": ["include/openmfc/afx.h", "phase4/src/core/collections"],
+    "app_runtime_globals": ["include/openmfc/afxwin.h", "phase4/src/core/app", "phase4/src/core/exceptions"],
+    "docview_files_archive": ["include/openmfc/afxwin.h", "phase4/src/core/doc", "phase4/src/core/view", "phase4/src/core/file"],
+    "database_dao_odbc": ["include/openmfc/afxdb.h", "include/openmfc/afxdao.h", "phase4/src/core/db", "phase4/src/core/dao"],
+    "internet_wininet": ["include/openmfc/afxinet.h", "phase4/src/core/net"],
+    "sockets": ["include/openmfc/afxsock.h", "phase4/src/core/net"],
 }
 
 

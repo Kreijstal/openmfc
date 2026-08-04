@@ -34,7 +34,7 @@ WIDE_STR = "?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@"
 CLASS_STRINGS = [NARROW_SIMPLE, NARROW_SIMPLE0, NARROW_STR,
                  WIDE_SIMPLE, WIDE_SIMPLE0, WIDE_STR]
 
-OUT_FILE = ROOT / "phase4" / "src" / "global_string_atl_thunks.cpp"
+OUT_FILE = ROOT / "phase4" / "src" / "core" / "collections" / "AtlStringThunks.cpp"
 
 
 def owner_string(sym):
@@ -45,7 +45,7 @@ def owner_string(sym):
 def _impls_defined_elsewhere():
     import glob
     names = set()
-    for f in glob.glob(str(ROOT / "phase4" / "src" / "*.cpp")):
+    for f in glob.glob(str(ROOT / "phase4" / "src" / "**" / "*.cpp"), recursive=True):
         if Path(f).name == OUT_FILE.name:
             continue
         for m in re.finditer(r'\bimpl_[A-Za-z0-9_]+', Path(f).read_text(errors='ignore')):

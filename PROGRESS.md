@@ -9,13 +9,13 @@
 | Category | Count | % of Total |
 |----------|-------|------------|
 | **Total MSVC exports** | 14,103 | 100% |
-| **Real implementations** | 5,887 | 41.7% |
-| ├─ Auto-generated thunks (`thunks.cpp`) | 1,078 | 7.6% |
-| └─ Manual implementations (other `phase4/src/*.cpp`) | 4,809 | 34.1% |
-| **Skip list** (signature mismatch, return defaults) | 149 | 1.1% |
-| **Remaining stubs** (return 0/nullptr/void) | 8,067 | 57.2% |
+| **Real implementations** | 7,991 | 56.7% |
+| ├─ Auto-generated thunks (`thunks.cpp`) | 0 | 0.0% |
+| └─ Manual implementations (other units under `phase4/src/`) | 7,991 | 56.7% |
+| **Skip list** (signature mismatch, return defaults) | 146 | 1.0% |
+| **Remaining stubs** (return 0/nullptr/void) | 5,966 | 42.3% |
 
-⚠ **31 stale `// Symbol:` comments** — markers naming symbols
+⚠ **49 stale `// Symbol:` comments** — markers naming symbols
 that are not exports.
 
 Most are harmless: `build_phase4.sh` builds its `AUTO_EXCLUDES` list by
@@ -33,60 +33,74 @@ marker is orphaned and never reachable. Every metric counts it as done.
 
 | Source file | Stale markers |
 |-------------|---------------|
-| `ctrlcore.cpp` | 8 |
-| `viewrich.cpp` | 8 |
-| `mfc_exceptions.cpp` | 6 |
-| `gdicore.cpp` | 4 |
-| `appcore.cpp` | 2 |
-| `feature_static_data.cpp` | 1 |
-| `global_common_control_rtti.cpp` | 1 |
-| `mfccore.cpp` | 1 |
+| `core/view/CHtmlView.cpp` | 8 |
+| `featurepack/ribbon/Globals.cpp` | 7 |
+| `core/controls/CComboBox.cpp` | 4 |
+| `core/controls/CListBox.cpp` | 4 |
+| `core/gdi/CDC.cpp` | 3 |
+| `core/exceptions/CArchiveException.cpp` | 2 |
+| `core/exceptions/CException.cpp` | 2 |
+| `core/exceptions/CFileException.cpp` | 2 |
+| `core/exceptions/RuntimeClasses.cpp` | 2 |
+| `core/ole/Globals.cpp` | 2 |
+| `featurepack/outlookbar/CMFCOutlookBarPaneList.cpp` | 2 |
+| `core/app/CWinApp.cpp` | 1 |
+| `core/app/Globals.cpp` | 1 |
+| `core/controls/RuntimeClasses.cpp` | 1 |
+| `core/d2d/CRenderTarget.cpp` | 1 |
+| `core/runtime/AFX_MAINTAIN_STATE.cpp` | 1 |
+| `core/runtime/AFX_MAINTAIN_STATE2.cpp` | 1 |
+| `core/runtime/Globals.cpp` | 1 |
+| `featurepack/controls/CMFCCaptionButton.cpp` | 1 |
+| `featurepack/controls/CMFCDropDownListBox.cpp` | 1 |
+| `featurepack/docking/CDockingManager.cpp` | 1 |
+| `featurepack/docking/StaticData.cpp` | 1 |
 
 ## Per-File Breakdown
 
 | Source file | Implemented symbols |
 |-------------|-------------------|
-| `thunks.cpp` (auto-generated) | 1,078 |
-| `cbarcore.cpp` | 422 |
-| `filecore.cpp` | 315 |
-| `mfccore.cpp` | 292 |
-| `docview.cpp` | 258 |
-| `global_string_atl_thunks.cpp` | 251 |
-| `gdicore.cpp` | 189 |
-| `dlgcommon.cpp` | 172 |
-| `appcore.cpp` | 165 |
-| `collections_strings.cpp` | 141 |
-| `dbcore.cpp` | 132 |
-| `feature_static_data.cpp` | 129 |
-| `viewrich.cpp` | 123 |
-| `dlgcore.cpp` | 99 |
-| `global_ddx_exchange.cpp` | 83 |
-| `ctrl_ownerdraw.cpp` | 73 |
-| `global_ribbon_elements_rtti.cpp` | 64 |
-| `frame_font_exports.cpp` | 63 |
-| `inetcore.cpp` | 57 |
-| `wincore.cpp` | 56 |
-| `global_interface_maps.cpp` | 50 |
-| `global_toolbar_buttons_rtti.cpp` | 46 |
-| `ctrl_checklist.cpp` | 44 |
-| `ctrlcore.cpp` | 43 |
-| `sockcore.cpp` | 43 |
-| `global_afx_messages.cpp` | 42 |
-| `olecore.cpp` | 39 |
-| `inet_filefind_rtti.cpp` | 38 |
-| `ctrl_listctrl.cpp` | 32 |
-| `gdi_previewdc.cpp` | 32 |
-| `global_cdumpcontext.cpp` | 30 |
-| `global_d2d_rtti.cpp` | 28 |
-| `app_feature_factories.cpp` | 26 |
-| `global_string_buffer_format.cpp` | 26 |
-| `global_ctordtor_placement.cpp` | 24 |
-| `global_mfc_toolbars_rtti.cpp` | 22 |
-| `manual_thunks.cpp` | 22 |
-| `global_common_control_rtti.cpp` | 20 |
-| `gdi_object_rtti.cpp` | 19 |
-| `global_crecttracker.cpp` | 19 |
-| *(+136 further files)* | 1,080 |
+| `core/ole/Thunks.cpp` | 251 |
+| `core/collections/Thunks.cpp` | 248 |
+| `core/frame/Thunks.cpp` | 142 |
+| `core/window/Thunks.cpp` | 133 |
+| `featurepack/toolbar/CMFCToolBar.cpp` | 104 |
+| `core/db/CRecordset.cpp` | 99 |
+| `core/app/CWinApp.cpp` | 88 |
+| `featurepack/tabs/CMFCBaseTabCtrl.cpp` | 87 |
+| `core/runtime/DdxExchange.cpp` | 83 |
+| `core/gdi/CDC.cpp` | 79 |
+| `core/ole/COleControl.cpp` | 78 |
+| `featurepack/ribbon/RuntimeClasses.cpp` | 78 |
+| `featurepack/visualmanager/Thunks.cpp` | 78 |
+| `featurepack/ribbon/CMFCRibbonBar.cpp` | 73 |
+| `core/net/Thunks.cpp` | 67 |
+| `core/runtime/Globals.cpp` | 66 |
+| `core/dialog/CFileDialog.cpp` | 65 |
+| `core/ole/RuntimeClasses.cpp` | 63 |
+| `core/view/CHtmlView.cpp` | 63 |
+| `core/view/CDHtmlDialog.cpp` | 61 |
+| `featurepack/controls/MessageMaps.cpp` | 60 |
+| `core/dialog/Thunks.cpp` | 58 |
+| `featurepack/ribbon/Thunks.cpp` | 58 |
+| `core/dialog/CTaskDialog.cpp` | 57 |
+| `core/view/CEditView.cpp` | 56 |
+| `core/doc/CDocument.cpp` | 55 |
+| `core/window/CWnd.cpp` | 55 |
+| `featurepack/controls/CMFCButton.cpp` | 53 |
+| `featurepack/controls/RuntimeClasses.cpp` | 52 |
+| `core/controls/RuntimeClasses.cpp` | 51 |
+| `featurepack/controls/CMFCCaptionBar.cpp` | 50 |
+| `core/view/CRichEditView.cpp` | 49 |
+| `featurepack/visualmanager/CMFCVisualManager.cpp` | 49 |
+| `core/app/CWinAppEx.cpp` | 48 |
+| `detail/OlecoreSupport.cpp` | 48 |
+| `featurepack/docking/CPaneFrameWnd.cpp` | 48 |
+| `featurepack/outlookbar/CMFCOutlookBarPane.cpp` | 48 |
+| `featurepack/propertygrid/Thunks.cpp` | 48 |
+| `core/controlbar/CControlBar.cpp` | 46 |
+| `featurepack/controls/CMFCColorBar.cpp` | 45 |
+| *(+637 further files)* | 4,951 |
 
 ## Per-Class Implementation Counts
 
@@ -94,34 +108,34 @@ marker is orphaned and never reachable. Every metric counts it as done.
 
 | Class | Implemented | Skip list |
 |-------|-------------|-----------|
-| **CWnd** | 186 | 54 |
-| **CFrameWnd** | 120 | 0 |
-| **CRecordset** | 115 | 2 |
-| **CWinApp** | 87 | 0 |
-| **CMFCVisualManager** | 85 | 0 |
-| **CDC** | 77 | 0 |
-| **COleControl** | 68 | 2 |
-| **CFileDialog** | 65 | 0 |
-| **CHtmlView** | 63 | 2 |
-| **CDHtmlDialog** | 62 | 1 |
-| **CTaskDialog** | 62 | 0 |
-| **CDocument** | 58 | 0 |
-| **CDockingManager** | 55 | 0 |
-| **CEditView** | 54 | 1 |
-| **CMFCPropertyGridProperty** | 53 | 1 |
-| **CMFCPropertyGridCtrl** | 52 | 0 |
-| **CWinAppEx** | 46 | 6 |
-| **CCheckListBox** | 44 | 0 |
-| **CToolBar** | 42 | 1 |
-| **CMFCToolBar** | 40 | 0 |
-| **CPropertySheet** | 39 | 0 |
-| **CView** | 38 | 1 |
-| **CPropertyPage** | 37 | 0 |
-| **COleClientItem** | 34 | 3 |
-| **CPreviewDC** | 34 | 0 |
+| **CWnd** | 189 | 54 |
+| **CMFCToolBar** | 132 | 0 |
+| **COleControl** | 131 | 2 |
+| **CFrameWnd** | 122 | 0 |
+| **CMFCVisualManager** | 118 | 0 |
+| **CRecordset** | 117 | 2 |
+| **CMFCBaseTabCtrl** | 100 | 2 |
+| **CWinApp** | 89 | 0 |
+| **CDC** | 79 | 0 |
+| **CMFCRibbonBar** | 76 | 0 |
+| **COleClientItem** | 74 | 3 |
+| **CRichEditView** | 70 | 3 |
+| **CHtmlView** | 68 | 2 |
+| **CFileDialog** | 67 | 0 |
+| **CDHtmlDialog** | 66 | 1 |
+| **CMFCButton** | 65 | 3 |
+| **CTaskDialog** | 65 | 0 |
+| **CDocument** | 60 | 0 |
+| **CDockingManager** | 57 | 0 |
+| **CEditView** | 57 | 0 |
+| **CPaneFrameWnd** | 57 | 0 |
+| **CMFCPropertyGridProperty** | 56 | 1 |
+| **CMFCCaptionBar** | 54 | 0 |
+| **CMFCPropertyGridCtrl** | 54 | 0 |
+| **CControlBar** | 52 | 0 |
 
 ### Partially implemented classes (5–9 symbols)
-CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (9), COleDispatchDriver (9), COleServerItem (9), CSingleDocTemplate (9), CSplitButton (9), CStatusBarCtrl (9), CTabView (9), CDragListBox (8), CGdiObject (8), CMFCRibbonBaseElement (8), CMFCRibbonPanel (8), CMFCRibbonProgressBar (8), CMFCToolBarEditBoxButton (8), COleControlSite (8), COleDocument (8), COleMessageFilter (8), COlePasteSpecialDialog (8), CPaneContainerManager (8), CRuntimeClass (8), CSliderCtrl (8), CTreeView (8), CUserToolsManager (8), CVSListBoxEditCtrl (8), CCmdTarget (7), CFileException (7), CFrameImpl (7), CMDIClientAreaWnd (7), CMFCCaptionBar (7), CMFCRibbonEdit (7), CMFCStatusBar (7), CMFCVisualManagerWindows (7), CMFCVisualManagerWindows7 (7), COleDocObjectItem (7), COleLinkingDoc (7), CSharedFile (7), CColorDialog (6), CCommandLineInfo (6), CD2DTextLayout (6), CDCRenderTarget (6), CDocObjectServer (6), CException (6), CFontDialog (6), CFtpFileFind (6), CGopherConnection (6), CInternetConnection (6), CMFCRibbonCategory (6), CMFCTabCtrl (6), CMFCVisualManagerOffice2003 (6), COleIPFrameWnd (6), COleInsertDialog (6), CPaneContainer (6), CThreadSlotData (6), CTooltipManager (6), CTypeLibCache (6), CVSToolsListBox (6), CButton (5), CCmdUI (5), CDBException (5), CDataRecoveryHandler (5), CDialogBar (5), CDrawingManager (5), CFindReplaceDialog (5), CFullScreenImpl (5), CMFCOutlookBarTabCtrl (5), CMFCRibbonMiniToolBar (5), CMFCShellListCtrl (5), CMFCShellTreeCtrl (5), CMFCTabDropTarget (5), CMenuTearOffManager (5), COleConnPtContainer (5), COleConvertDialog (5), COleResizeBar (5), COleTemplateServer (5), COleVariant (5), CProgressCtrl (5), CSpinButtonCtrl (5), CStatic (5)
+CFrameImpl (9), CGopherConnection (9), CMDIClientAreaWnd (9), CMFCBaseToolBar (9), CMFCOutlookBarPaneButton (9), CMFCRibbonCheckBox (9), CMFCRibbonPanelMenu (9), CMFCRibbonPanelMenuBar (9), CMFCRibbonSeparator (9), CMFCToolBarMenuButtonsButton (9), CMenuTearOffManager (9), COleDocObjectItem (9), COleLinkingDoc (9), CSharedFile (9), CSliderCtrl (9), CAnimationValue (8), CCommandLineInfo (8), CCommonDialog (8), CD2DTextLayout (8), CDocObjectServer (8), CException (8), CFontDialog (8), CFtpFileFind (8), CGdiObject (8), CHotKeyCtrl (8), CInternetConnection (8), CMFCAcceleratorKeyAssignCtrl (8), CMFCCaptionButton (8), CMFCOutlookBarPaneAdapter (8), COleDropSource (8), COleInsertDialog (8), CPaneContainer (8), CRuntimeClass (8), CThreadSlotData (8), CTooltipManager (8), CTreeView (8), CColorDialog (7), CDBException (7), CDCRenderTarget (7), CDataRecoveryHandler (7), CDocItem (7), CDocObjectServerItem (7), CDrawingManager (7), CEnumConnections (7), CFileException (7), CFullScreenImpl (7), CHttpConnection (7), CKeyFrame (7), CMFCColorPopupMenu (7), CMFCDropDownListBox (7), CMFCPrintPreviewToolBar (7), CMFCPropertyPage (7), CMFCPropertySheetListBox (7), CMFCToolBarFontComboBox (7), COleConvertDialog (7), COleResizeBar (7), CRichEditDoc (7), CSplitterWndEx (7), CAnimationRect (6), CAppDestinations (6), CAutoHideDockSite (6), CBaseTabbedPane (6), CBitmapButton (6), CBrush (6), CButton (6), CCmdUI (6), CCtrlView (6), CD2DRadialGradientBrush (6), CD2DTextFormat (6), CDialogTemplate (6), CDockBar (6), CDockablePaneAdapter (6), CEnumConnPoints (6), CFindReplaceDialog (6), CGopherFile (6), CHtmlEditView (6), CIPAddressCtrl (6), CMDITabProxyWnd (6), CMFCControlBarImpl (6), CMFCDesktopAlertWnd (6), CMFCHeaderCtrl (6), CMFCOutlookBar (6), CMFCPropertyGridFileProperty (6), CMFCRibbonButtonsGroup (6), CMFCRibbonLabel (6), CMFCRibbonMiniToolBar (6), CMFCRibbonStatusBar (6), CMFCShellListCtrl (6), CMFCShellTreeCtrl (6), CMFCToolBarNameDialog (6), CMFCVisualManagerOfficeXP (6), CMFCVisualManagerVS2005 (6), CMenuHash (6), CMiniFrameWnd (6), COleChangeIconDialog (6), COleChangeSourceDialog (6), COleCntrFrameWnd (6), COleDispatchException (6), COleDocIPFrameWndEx (6), COlePropertiesDialog (6), COleTemplateServer (6), CPngImage (6), CPreviewViewEx (6), CProgressCtrl (6), CSpinButtonCtrl (6), CStatic (6), CTypeLibCache (6), CVSToolsListBox (6), AFX_GLOBAL_DATA (5), CAnimateCtrl (5), CAnimationBaseObject (5), CAnimationController (5), CAsyncMonikerFile (5), CBaseTransition (5), CBitmapRenderTarget (5), CCachedDataPathProperty (5), CControlSiteFactoryMgr (5), CD2DGradientBrush (5), CD2DResource (5), CD2DSolidColorBrush (5), CDataExchange (5), CDynLinkLibrary (5), CEnumFormatEtc (5), CEvent (5), CFieldExchange (5), CFixedAlloc (5), CFixedAllocNoSync (5), CInternetException (5), CMFCAcceleratorKey (5), CMFCCaptionMenuButton (5), CMFCDesktopAlertDialog (5), CMFCDropDownFrame (5), CMFCDropDownToolbarButton (5), CMFCEditBrowseCtrl (5), CMFCLinkCtrl (5), CMFCListCtrl (5), CMFCMaskedEdit (5), CMFCMenuButton (5), CMFCMousePropertyPage (5), CMFCPreviewCtrlImpl (5), CMFCPropertyGridToolTipCtrl (5), CMFCReBar (5), CMFCRibbonCmdUI (5), CMFCRibbonColorButton (5), CMFCRibbonCustomizePropertyPage (5), CMFCRibbonFontComboBox (5), CMFCRibbonGalleryMenuButton (5), CMFCRibbonMainPanel (5), CMFCRibbonMainPanelButton (5), CMFCRibbonRichEditCtrl (5), CMFCRibbonUndoButton (5), CMFCStandardColorsPropertyPage (5), CMFCTabDropTarget (5), CMFCTasksPaneFrameWnd (5), CMFCToolBarDateTimeCtrlImpl (5), CMFCToolBarsCommandsPropertyPage (5), CMFCToolBarsCustomizeDialog (5), CMFCToolBarsKeyboardPropertyPage (5), CMFCToolBarsListPropertyPage (5), CMFCToolBarsMenuPropertyPage (5), CMFCToolBarsOptionsPropertyPage (5), CMFCToolTipCtrl (5), CMiniDockFrameWnd (5), CMultiLock (5), CMultiPageDHtmlDialog (5), CMutex (5), COleBusyDialog (5), COleCmdUI (5), COleCntrFrameWndEx (5), COleConnPtContainer (5), COleControlContainer (5), COleControlSiteOrWnd (5), COleDocIPFrameWnd (5), COleFrameHook (5), COleIPFrameWndEx (5), COleLinksDialog (5), COleUpdateDialog (5), COutlookCustomizeButton (5), CPaneDialog (5), CReBar (5), CRecentPaneContainerInfo (5), CRibbonCategoryScroll (5), CRichEditCntrItem (5), CSemaphore (5), CSocketWnd (5), CSyncObject (5), CTestCmdUI (5)
 
 ### Top skip-list offenders
 
@@ -129,7 +143,7 @@ CComboBox (9), CMFCRibbonGallery (9), CMFCRibbonSlider (9), CMultiPaneFrameWnd (
 |-------|-----------|--------|
 | CWnd | 54 | Overloads with incompatible signatures |
 | CRichEditCtrl | 8 | ABI struct incompatibilities |
-| CHttpFile | 6 | QueryInfo overloads |
+| CHttpFile | 7 | QueryInfo overloads |
 | CWinAppEx | 6 |  |
 | COleDocument | 4 | EditChangeIcon/EditConvert |
 | COleSafeArray | 4 | Attach/Create/Copy/Detach |
@@ -152,10 +166,10 @@ MSVC .def file (14,103 exports)
   (real)    (return 0)
 ```
 
-- **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 1,078 auto-generated
-- **manual implementations**: Implemented directly in `phase4/src/*.cpp` with `// Symbol:` comments — 4,809 symbols
-- **skip list**: Correct ABI signatures but return defaults because method signatures fundamentally differ from MSVC exports — 149 symbols
-- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 8,067 symbols
+- **thunks**: Call real C++ method implementations via `pThis->Method(args)` — 0 auto-generated
+- **manual implementations**: Implemented directly under `phase4/src/` with `// Symbol:` comments — 7,991 symbols
+- **skip list**: Correct ABI signatures but return defaults because method signatures fundamentally differ from MSVC exports — 146 symbols
+- **stubs**: Generated by `gen_typed_stubs.py`, return 0/nullptr/void — 5,966 symbols
 
 ## Key Tools
 
@@ -174,8 +188,8 @@ MSVC .def file (14,103 exports)
 ## How to Add More Implementations
 
 1. Add method declaration to the appropriate header (`include/openmfc/afx*.h`)
-2. Add implementation to the matching source file (`phase4/src/*.cpp`) **without** `// Symbol:` comment
-3. Run: `python3 tools/gen_thunks.py --mapping mfc_complete_ordinal_mapping.json --source-dir phase4/src --include-dir include/openmfc --out phase4/src/thunks.cpp`
+2. Add the implementation to the class file (`phase4/src/<subsystem>/<Class>.cpp`) **without** a `// Symbol:` comment
+3. Run: `python3 tools/gen_thunks.py --mapping mfc_complete_ordinal_mapping.json --source-dir phase4/src --include-dir include/openmfc --out phase4/src/<subsystem>/Thunks.cpp`
 4. Run: `python3 tools/gen_manifest.py --out /tmp/manifest.json` to verify accounting
 5. Build: `bash phase4/scripts/build_phase4.sh`
 6. If build fails due to signature mismatch: add the symbol to `tools/thunks_skip.txt`

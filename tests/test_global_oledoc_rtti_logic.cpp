@@ -8,7 +8,7 @@
 // (the in-file chains plus the external CDocument / CDocItem / COleClientItem /
 // CCmdTarget roots), so IsKindOf walks an unbroken graph.
 
-#include "../phase4/src/global_oledoc_rtti.cpp"
+#include "../phase4/src/core/ole/RuntimeClasses.cpp"
 
 #include <cstdio>
 #include <cstring>

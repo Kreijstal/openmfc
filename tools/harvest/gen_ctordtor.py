@@ -133,6 +133,14 @@ CTOR_RE = re.compile(r'^\?\?0([A-Za-z][A-Za-z0-9_]*)@@[A-Z]EAA@XZ$')
 DTOR_RE = re.compile(r'^\?\?1([A-Za-z][A-Za-z0-9_]*)@@[A-Z]EAA@XZ$')
 
 
+def _iter_sources(src_dir):
+    """Yield every .cpp in the phase4 tree, which is nested by subsystem."""
+    for root, _dirs, files in os.walk(src_dir):
+        for fname in sorted(files):
+            if fname.endswith('.cpp'):
+                yield os.path.join(root, fname)
+
+
 def collect():
     m, _ = s.load_current_manifest()
     ctors = []  # (cls, symbol)
@@ -151,16 +159,16 @@ def collect():
 def main():
     # Remove our own output first so neither the manifest scan (collect) nor the
     # "existing" scan below ever sees it -> idempotent regeneration.
-    out = os.path.join(ROOT, 'phase4', 'src', 'global_ctordtor_placement.cpp')
+    out = os.path.join(ROOT, 'phase4', 'src', 'core', 'runtime', 'CtorDtorPlacement.cpp')
     if os.path.exists(out):
         os.remove(out)
     ctors, dtors = collect()
     # load existing impl names from other files
     existing = set()
-    for fn in os.listdir(os.path.join(ROOT, 'phase4', 'src')):
-        if not fn.endswith('.cpp') or fn == 'global_ctordtor_placement.cpp':
+    for path in _iter_sources(os.path.join(ROOT, 'phase4', 'src')):
+        if os.path.basename(path) == 'CtorDtorPlacement.cpp':
             continue
-        with open(os.path.join(ROOT, 'phase4', 'src', fn)) as f:
+        with open(path) as f:
             for name in re.findall(r'impl_[A-Za-z0-9_]+', f.read()):
                 existing.add(name)
 

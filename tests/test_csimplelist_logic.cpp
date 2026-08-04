@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstddef>
 
-#include "../phase4/src/collections_csimplelist.cpp"
+#include "../phase4/src/core/collections/CSimpleList.cpp"
 
 static int g_fail = 0;
 #define CHECK(cond, msg) do { \
