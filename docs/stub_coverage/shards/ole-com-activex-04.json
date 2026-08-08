@@ -3,60 +3,260 @@
   "id": "ole-com-activex-04",
   "primary_files": [
     "include/openmfc/afxole.h",
-    "phase4/src/olecore.cpp"
+    "phase4/src/core/ole"
   ],
-  "symbol_count": 10,
+  "symbol_count": 50,
   "symbols": [
     {
-      "class": "CCmdTarget",
-      "ordinal": 6225,
-      "symbol": "?GetRoutingFrame_@CCmdTarget@@KAPEAVCFrameWnd@@XZ"
+      "class": "COleServerDoc",
+      "ordinal": 14108,
+      "symbol": "?UpdateAllItems@COleServerDoc@@QEAAXPEAVCOleServerItem@@_JPEAVCObject@@W4tagDVASPECT@@@Z"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 6226,
-      "symbol": "?GetRoutingView@CCmdTarget@@IEAAPEAVCView@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 862,
+      "symbol": "??0COleServerDocEx@@IEAA@XZ"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 6227,
-      "symbol": "?GetRoutingView_@CCmdTarget@@KAPEAVCView@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 1365,
+      "symbol": "??1COleServerDocEx@@UEAA@XZ"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 6697,
-      "symbol": "?GetStackSize@CCmdTarget@@KAIPEBEG@Z"
+      "class": "COleServerDocEx",
+      "ordinal": 3472,
+      "symbol": "?CreateObject@COleServerDocEx@@SAPEAVCObject@@XZ"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 6698,
-      "symbol": "?GetStandardProp@CCmdTarget@@IEAAXPEBUAFX_DISPMAP_ENTRY@@PEAUtagVARIANT@@PEAI@Z"
+      "class": "COleServerDocEx",
+      "ordinal": 9181,
+      "symbol": "?OnDocWindowActivate@COleServerDocEx@@MEAAXH@Z"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 7184,
-      "symbol": "?GetThisCommandMap@CCmdTarget@@KAPEBUAFX_OLECMDMAP@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 10004,
+      "symbol": "?OnGetEmbeddedItem@COleServerDocEx@@MEAAPEAVCOleServerItem@@XZ"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 7186,
-      "symbol": "?GetThisConnectionMap@CCmdTarget@@KAPEBUAFX_CONNECTIONMAP@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 10669,
+      "symbol": "?OnNewDocument@COleServerDocEx@@MEAAHXZ"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 7188,
-      "symbol": "?GetThisDispatchMap@CCmdTarget@@KAPEBUAFX_DISPMAP@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 10935,
+      "symbol": "?OnResizeBorder@COleServerDocEx@@MEAAXPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 7191,
-      "symbol": "?GetThisEventSinkMap@CCmdTarget@@KAPEBUAFX_EVENTSINKMAP@@XZ"
+      "class": "COleServerDocEx",
+      "ordinal": 11176,
+      "symbol": "?OnShowControlBars@COleServerDocEx@@MEAAXPEAVCFrameWnd@@H@Z"
     },
     {
-      "class": "CCmdTarget",
-      "ordinal": 7450,
-      "symbol": "?GetTypeInfoCount@CCmdTarget@@UEAAIXZ"
+      "class": "COleServerDocEx",
+      "ordinal": 12829,
+      "symbol": "?Serialize@COleServerDocEx@@UEAAXAEAVCArchive@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 1902,
+      "symbol": "?AddOtherClipboardData@COleServerItem@@QEAAXPEAVCOleDataSource@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 3937,
+      "symbol": "?DoDragDrop@COleServerItem@@QEAAKPEBUtagRECT@@VCPoint@@HK0@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5035,
+      "symbol": "?GetClipboardData@COleServerItem@@QEAAXPEAVCOleDataSource@@HPEAUtagPOINT@@PEAUtagSIZE@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5182,
+      "symbol": "?GetDataObject@COleServerItem@@QEAAPEAUIDataObject@@XZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5315,
+      "symbol": "?GetEmbedSourceData@COleServerItem@@QEAAXPEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5691,
+      "symbol": "?GetLinkSourceData@COleServerItem@@QEAAHPEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5921,
+      "symbol": "?GetMetafileData@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5938,
+      "symbol": "?GetMoniker@COleServerItem@@QEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 5993,
+      "symbol": "?GetObjectDescriptorData@COleServerItem@@QEAAXPEAUtagPOINT@@PEAUtagSIZE@@PEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 6009,
+      "symbol": "?GetOleObject@COleServerItem@@QEAAPEAUIOleObject@@XZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 7849,
+      "symbol": "?IsBlank@COleServerItem@@MEBAHXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 8545,
+      "symbol": "?NotifyClient@COleServerItem@@QEAAXW4OLE_NOTIFICATION@@_K@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 9189,
+      "symbol": "?OnDoVerb@COleServerItem@@UEAAXJ@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 9945,
+      "symbol": "?OnFinalRelease@COleServerItem@@UEAAXXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 9986,
+      "symbol": "?OnGetClipboardData@COleServerItem@@UEAAPEAVCOleDataSource@@HPEAUtagPOINT@@PEAUtagSIZE@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10092,
+      "symbol": "?OnHide@COleServerItem@@MEAAXXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10191,
+      "symbol": "?OnInitFromData@COleServerItem@@UEAAHPEAVCOleDataObject@@H@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10712,
+      "symbol": "?OnOpen@COleServerItem@@MEAAXXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10868,
+      "symbol": "?OnQueryUpdateItems@COleServerItem@@UEAAHXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10902,
+      "symbol": "?OnRenderData@COleServerItem@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10907,
+      "symbol": "?OnRenderFileData@COleServerItem@@UEAAHPEAUtagFORMATETC@@PEAVCFile@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10912,
+      "symbol": "?OnRenderGlobalData@COleServerItem@@UEAAHPEAUtagFORMATETC@@PEAPEAX@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 10962,
+      "symbol": "?OnSaveEmbedding@COleServerItem@@MEAAXPEAUIStorage@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 11027,
+      "symbol": "?OnSetColorScheme@COleServerItem@@UEAAHPEBUtagLOGPALETTE@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 11053,
+      "symbol": "?OnSetData@COleServerItem@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 11167,
+      "symbol": "?OnShow@COleServerItem@@MEAAXXZ"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 11434,
+      "symbol": "?OnUpdate@COleServerItem@@UEAAXPEAV1@_JPEAVCObject@@W4tagDVASPECT@@@Z"
+    },
+    {
+      "class": "COleServerItem",
+      "ordinal": 11496,
+      "symbol": "?OnUpdateItems@COleServerItem@@UEAAXXZ"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 1957,
+      "symbol": "?AddRef@COleUILinkInfo@@UEAAKXZ"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 2656,
+      "symbol": "?CancelLink@COleUILinkInfo@@UEAAJK@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 5661,
+      "symbol": "?GetLastUpdate@COleUILinkInfo@@UEAAJKPEAU_FILETIME@@@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 5688,
+      "symbol": "?GetLinkItem@COleUILinkInfo@@AEAAPEAVCOleClientItem@@K@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 5689,
+      "symbol": "?GetLinkSource@COleUILinkInfo@@UEAAJKPEAPEA_WPEAK00PEAH2@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 5693,
+      "symbol": "?GetLinkUpdateOptions@COleUILinkInfo@@UEAAJKPEAK@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 5976,
+      "symbol": "?GetNextLink@COleUILinkInfo@@UEAAKK@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 11670,
+      "symbol": "?OpenLinkSource@COleUILinkInfo@@UEAAJK@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 12009,
+      "symbol": "?QueryInterface@COleUILinkInfo@@UEAAJAEBU_GUID@@PEAPEAX@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 12236,
+      "symbol": "?Release@COleUILinkInfo@@UEAAKXZ"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 13328,
+      "symbol": "?SetLinkSource@COleUILinkInfo@@UEAAJKPEA_WKPEAKH@Z"
+    },
+    {
+      "class": "COleUILinkInfo",
+      "ordinal": 13330,
+      "symbol": "?SetLinkUpdateOptions@COleUILinkInfo@@UEAAJKK@Z"
     }
   ],
-  "title": "ole_com_activex shard 04/77: CCmdTarget"
+  "title": "ole_com_activex shard 04/04: COleServerItem, COleUILinkInfo, COleServerDocEx"
 }

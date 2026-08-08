@@ -3,9 +3,9 @@
   "id": "gdi-drawing-01",
   "primary_files": [
     "include/openmfc/afxwin.h",
-    "phase4/src/gdicore.cpp"
+    "phase4/src/core/gdi"
   ],
-  "symbol_count": 10,
+  "symbol_count": 136,
   "symbols": [
     {
       "class": "AFX_GLOBAL_DATA",
@@ -56,7 +56,637 @@
       "class": "CD2DBitmap",
       "ordinal": 2463,
       "symbol": "?Attach@CD2DBitmap@@QEAAXPEAUID2D1Bitmap@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 3786,
+      "symbol": "?Destroy@CD2DRadialGradientBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 3823,
+      "symbol": "?Detach@CD2DRadialGradientBrush@@QEAAPEAUID2D1RadialGradientBrush@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 5003,
+      "symbol": "?GetCenter@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 5454,
+      "symbol": "?GetGradientOriginOffset@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6156,
+      "symbol": "?GetRadiusX@CD2DRadialGradientBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 6157,
+      "symbol": "?GetRadiusY@CD2DRadialGradientBrush@@QEBAMXZ"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13004,
+      "symbol": "?SetCenter@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13221,
+      "symbol": "?SetGradientOriginOffset@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13525,
+      "symbol": "?SetRadiusX@CD2DRadialGradientBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DRadialGradientBrush",
+      "ordinal": 13526,
+      "symbol": "?SetRadiusY@CD2DRadialGradientBrush@@QEAAXM@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 2472,
+      "symbol": "?Attach@CD2DSolidColorBrush@@QEAAXPEAUID2D1SolidColorBrush@@@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3068,
+      "symbol": "?Create@CD2DSolidColorBrush@@UEAAJPEAVCRenderTarget@@@Z"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3787,
+      "symbol": "?Destroy@CD2DSolidColorBrush@@UEAAXXZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 3824,
+      "symbol": "?Detach@CD2DSolidColorBrush@@QEAAPEAUID2D1SolidColorBrush@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 5049,
+      "symbol": "?GetColor@CD2DSolidColorBrush@@QEBA?AU_D3DCOLORVALUE@@XZ"
+    },
+    {
+      "class": "CD2DSolidColorBrush",
+      "ordinal": 13034,
+      "symbol": "?SetColor@CD2DSolidColorBrush@@QEAAXU_D3DCOLORVALUE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 5436,
+      "symbol": "?GetFontSizeField@CDialogTemplate@@KAPEAEPEBUDLGTEMPLATE@@@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 7584,
+      "symbol": "?HasFont@CDialogTemplate@@QEBAHXZ"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 13204,
+      "symbol": "?SetFont@CDialogTemplate@@QEAAHPEB_WG@Z"
+    },
+    {
+      "class": "CDialogTemplate",
+      "ordinal": 13630,
+      "symbol": "?SetSystemFont@CDialogTemplate@@QEAAHG@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 3973,
+      "symbol": "?DoPaint@CDockBar@@UEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10632,
+      "symbol": "?OnNcPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockBar",
+      "ordinal": 10729,
+      "symbol": "?OnPaint@CDockBar@@IEAAXXZ"
+    },
+    {
+      "class": "CDockContext",
+      "ordinal": 4061,
+      "symbol": "?DrawFocusRect@CDockContext@@QEAAXH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3179,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@AEBVCSize@@PEAPEAX@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 3180,
+      "symbol": "?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@PEAU2@K@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4033,
+      "symbol": "?DrawAlpha@CDrawingManager@@QEAAXPEAVCDC@@AEBVCRect@@01@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4056,
+      "symbol": "?DrawEllipse@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4067,
+      "symbol": "?DrawGradientRing@CDrawingManager@@QEAAHVCRect@@KKKHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4099,
+      "symbol": "?DrawLine@CDrawingManager@@QEAAXHHHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4101,
+      "symbol": "?DrawLineA@CDrawingManager@@QEAAXNNNNK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4120,
+      "symbol": "?DrawRect@CDrawingManager@@QEAAXAEBVCRect@@KK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4125,
+      "symbol": "?DrawRotated@CDrawingManager@@QEAAXVCRect@@AEAVCDC@@H@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4132,
+      "symbol": "?DrawShadow@CDrawingManager@@QEAAHVCRect@@HHHPEAVCBitmap@@1KH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4469,
+      "symbol": "?Fill4ColorsGradient@CDrawingManager@@QEAAXVCRect@@KKKKHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4471,
+      "symbol": "?FillAlpha@CDrawingManager@@QEAAXAEBVCRect@@E@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4483,
+      "symbol": "?FillGradient@CDrawingManager@@QEAAXVCRect@@KKHHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 4484,
+      "symbol": "?FillGradient2@CDrawingManager@@QEAAXVCRect@@KKH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7559,
+      "symbol": "?GrayRect@CDrawingManager@@QEAAHVCRect@@HKK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7615,
+      "symbol": "?HighlightRect@CDrawingManager@@QEAAHVCRect@@HKHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7643,
+      "symbol": "?HLStoRGB_ONE@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7644,
+      "symbol": "?HLStoRGB_TWO@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 7645,
+      "symbol": "?HSVtoRGB@CDrawingManager@@SAKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 8462,
+      "symbol": "?MirrorRect@CDrawingManager@@QEAAXVCRect@@H@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11737,
+      "symbol": "?PixelAlpha@CDrawingManager@@SAKKNNN@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 11829,
+      "symbol": "?PrepareShadowMask@CDrawingManager@@SAPEAUHBITMAP__@@HKHH@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 12598,
+      "symbol": "?RGBtoHSV@CDrawingManager@@SAXKPEAN00@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 13472,
+      "symbol": "?SetPixel@CDrawingManager@@SAXPEAKHHHHK@Z"
+    },
+    {
+      "class": "CDrawingManager",
+      "ordinal": 13882,
+      "symbol": "?SmartMixColors@CDrawingManager@@SAKKKNHH@Z"
+    },
+    {
+      "class": "CHeaderCtrl",
+      "ordinal": 4082,
+      "symbol": "?DrawItem@CHeaderCtrl@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CHtmlEditView",
+      "ordinal": 10731,
+      "symbol": "?OnPaint@CHtmlEditView@@QEAAXXZ"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 9383,
+      "symbol": "?OnDrawIconicThumbnailOrLivePreview@CHtmlView@@UEAAXAEAVCDC@@VCRect@@VCSize@@HAEAH@Z"
+    },
+    {
+      "class": "CHtmlView",
+      "ordinal": 10732,
+      "symbol": "?OnPaint@CHtmlView@@IEAAXXZ"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 5023,
+      "symbol": "?GetClientBitmap@CMDITabProxyWnd@@QEAAPEAUHBITMAP__@@HHH@Z"
+    },
+    {
+      "class": "CMDITabProxyWnd",
+      "ordinal": 11007,
+      "symbol": "?OnSendIconicLivePreviewBitmap@CMDITabProxyWnd@@IEAAHXZ"
+    },
+    {
+      "class": "CMenuImages",
+      "ordinal": 4019,
+      "symbol": "?Draw@CMenuImages@@SAXPEAVCDC@@W4IMAGES_IDS@1@AEBVCPoint@@W4IMAGE_STATE@1@AEBVCSize@@@Z"
+    },
+    {
+      "class": "CMenuImages",
+      "ordinal": 4020,
+      "symbol": "?Draw@CMenuImages@@SAXPEAVCDC@@W4IMAGES_IDS@1@AEBVCRect@@W4IMAGE_STATE@1@AEBVCSize@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 4136,
+      "symbol": "?DrawTextExW@CMetaFileDC@@UEAAHPEA_WHPEAUtagRECT@@IPEAUtagDRAWTEXTPARAMS@@@Z"
+    },
+    {
+      "class": "CMetaFileDC",
+      "ordinal": 4141,
+      "symbol": "?DrawTextW@CMetaFileDC@@UEAAHPEB_WHPEAUtagRECT@@I@Z"
+    },
+    {
+      "class": "CPreviewView",
+      "ordinal": 1379,
+      "symbol": "??1CPreviewView@@UEAA@XZ"
+    },
+    {
+      "class": "CPropbagPropExchange",
+      "ordinal": 4412,
+      "symbol": "?ExchangeFontProp@CPropbagPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CPropsetPropExchange",
+      "ordinal": 4413,
+      "symbol": "?ExchangeFontProp@CPropsetPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CReBar",
+      "ordinal": 1793,
+      "symbol": "?AddBar@CReBar@@QEAAHPEAVCWnd@@PEB_WPEAVCBitmap@@K@Z"
+    },
+    {
+      "class": "CReBar",
+      "ordinal": 10651,
+      "symbol": "?OnNcPaint@CReBar@@IEAAXXZ"
+    },
+    {
+      "class": "CReBar",
+      "ordinal": 10760,
+      "symbol": "?OnPaint@CReBar@@IEAAXXZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 3193,
+      "symbol": "?CreateCompatibleRenderTarget@CRenderTarget@@QEAAHAEAVCBitmapRenderTarget@@VCD2DSizeF@@VCD2DSizeU@@PEAUD2D1_PIXEL_FORMAT@@W4D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4036,
+      "symbol": "?DrawBitmap@CRenderTarget@@QEAAXPEAVCD2DBitmap@@AEBVCD2DRectF@@MW4D2D1_BITMAP_INTERPOLATION_MODE@@PEBV3@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4065,
+      "symbol": "?DrawGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4066,
+      "symbol": "?DrawGlyphRun@CRenderTarget@@QEAAXAEBVCD2DPointF@@AEBUDWRITE_GLYPH_RUN@@PEAVCD2DBrush@@W4DWRITE_MEASURING_MODE@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4138,
+      "symbol": "?DrawTextLayout@CRenderTarget@@QEAAXAEBVCD2DPointF@@PEAVCD2DTextLayout@@PEAVCD2DBrush@@W4D2D1_DRAW_TEXT_OPTIONS@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4482,
+      "symbol": "?FillGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@1@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4492,
+      "symbol": "?FillMesh@CRenderTarget@@QEAAXPEAVCD2DMesh@@PEAVCD2DBrush@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 4493,
+      "symbol": "?FillOpacityMask@CRenderTarget@@QEAAXPEAVCD2DBitmap@@PEAVCD2DBrush@@W4D2D1_OPACITY_MASK_CONTENT@@AEBVCD2DRectF@@3@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 5716,
+      "symbol": "?GetMaximumBitmapSize@CRenderTarget@@QEBAIXZ"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 12550,
+      "symbol": "?RestoreDrawingState@CRenderTarget@@QEAAXAEAUID2D1DrawingStateBlock@@@Z"
+    },
+    {
+      "class": "CRenderTarget",
+      "ordinal": 12634,
+      "symbol": "?SaveDrawingState@CRenderTarget@@QEBAXAEAUID2D1DrawingStateBlock@@@Z"
+    },
+    {
+      "class": "CResetPropExchange",
+      "ordinal": 4414,
+      "symbol": "?ExchangeFontProp@CResetPropExchange@@UEAAHPEB_WAEAVCFontHolder@@PEBUtagFONTDESC@@PEAUIFontDisp@@@Z"
+    },
+    {
+      "class": "CRichEditCntrItem",
+      "ordinal": 13152,
+      "symbol": "?SetDrawAspect@CRichEditCntrItem@@UEAAXW4tagDVASPECT@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 2043,
+      "symbol": "?AdjustDialogPosition@CRichEditView@@QEAAXPEAVCDialog@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 3741,
+      "symbol": "?DeleteContents@CRichEditView@@UEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 4178,
+      "symbol": "?EditStreamCallBack@CRichEditView@@SAK_KPEAEJPEAJ@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 4521,
+      "symbol": "?FindAndSelect@CRichEditView@@QEAAJKAEAU_findtextexw@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 5036,
+      "symbol": "?GetClipboardData@CRichEditView@@MEAAJPEAU_charrange@@KPEAUIDataObject@@PEAPEAU3@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 5543,
+      "symbol": "?GetInPlaceActiveItem@CRichEditView@@QEBAPEAVCRichEditCntrItem@@XZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9717,
+      "symbol": "?OnEditReplace@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9719,
+      "symbol": "?OnEditSelectAll@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9722,
+      "symbol": "?OnEditUndo@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9737,
+      "symbol": "?OnEndPrinting@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9949,
+      "symbol": "?OnFindNext@CRichEditView@@MEAAXPEB_WHHH@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9951,
+      "symbol": "?OnFindReplaceCmd@CRichEditView@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 9962,
+      "symbol": "?OnFormatFont@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10214,
+      "symbol": "?OnInsertObject@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10249,
+      "symbol": "?OnKeyDown@CRichEditView@@IEAAXIII@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10785,
+      "symbol": "?OnParaAlign@CRichEditView@@QEAAXG@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10786,
+      "symbol": "?OnParaCenter@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10787,
+      "symbol": "?OnParaLeft@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10788,
+      "symbol": "?OnParaRight@CRichEditView@@IEAAXXZ"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10791,
+      "symbol": "?OnPasteNativeObject@CRichEditView@@MEAAHPEAUIStorage@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10805,
+      "symbol": "?OnPrepareDC@CRichEditView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10834,
+      "symbol": "?OnPrint@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10847,
+      "symbol": "?OnPrinterChanged@CRichEditView@@MEAAXAEBVCDC@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10914,
+      "symbol": "?OnReplaceAll@CRichEditView@@MEAAXPEB_W0HH@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10916,
+      "symbol": "?OnReplaceSel@CRichEditView@@MEAAXPEB_WHHH0@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 10971,
+      "symbol": "?OnSelChange@CRichEditView@@IEAAXPEAUtagNMHDR@@PEA_J@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11683,
+      "symbol": "?PaginateTo@CRichEditView@@IEAAHPEAVCDC@@PEAUCPrintInfo@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11802,
+      "symbol": "?PreCreateWindow@CRichEditView@@MEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 11979,
+      "symbol": "?QueryAcceptData@CRichEditView@@MEAAJPEAUIDataObject@@PEAGKHPEAX@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 12613,
+      "symbol": "?SameAsSelected@CRichEditView@@IEAAHPEB_WHH@Z"
+    },
+    {
+      "class": "CRichEditView",
+      "ordinal": 13805,
+      "symbol": "?ShowContainerUI@CRichEditView@@QEAAJH@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuide",
+      "ordinal": 4027,
+      "symbol": "?Draw@CSmartDockingGroupGuide@@MEAAXAEAVCDC@@H@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuidesManager",
+      "ordinal": 4043,
+      "symbol": "?DrawCentralGroupGuides@CSmartDockingGroupGuidesManager@@IEAAXAEAVCDC@@AEAVCBrush@@1VCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingGroupGuidesWnd",
+      "ordinal": 10761,
+      "symbol": "?OnPaint@CSmartDockingGroupGuidesWnd@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 10762,
+      "symbol": "?OnPaint@CSmartDockingHighlighterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 10763,
+      "symbol": "?OnPaint@CSmartDockingStandaloneGuideWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 4032,
+      "symbol": "?DrawAllSplitBars@CSplitterWnd@@MEAAXPEAVCDC@@HH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 9272,
+      "symbol": "?OnDraw@CSplitterWnd@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10764,
+      "symbol": "?OnPaint@CSplitterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 4096,
+      "symbol": "?DrawItem@CStatusBar@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10652,
+      "symbol": "?OnNcPaint@CStatusBar@@IEAAXXZ"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10765,
+      "symbol": "?OnPaint@CStatusBar@@IEAAXXZ"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 9273,
+      "symbol": "?OnDraw@CTabView@@MEAAXPEAVCDC@@@Z"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 1962,
+      "symbol": "?AddReplaceBitmap@CToolBar@@QEAAHPEAUHBITMAP__@@@Z"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 8089,
+      "symbol": "?LoadBitmapW@CToolBar@@QEAAHPEB_W@Z"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 10653,
+      "symbol": "?OnNcPaint@CToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 10766,
+      "symbol": "?OnPaint@CToolBar@@IEAAXXZ"
+    },
+    {
+      "class": "CToolBar",
+      "ordinal": 11023,
+      "symbol": "?OnSetBitmapSize@CToolBar@@IEAA_J_K_J@Z"
     }
   ],
-  "title": "gdi_drawing shard 01/24: AFX_GLOBAL_DATA, CCtrlView, CArchivePropExchange"
+  "title": "gdi_drawing shard 01/01: CRichEditView, CDrawingManager, CRenderTarget"
 }
