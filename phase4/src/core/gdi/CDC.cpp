@@ -686,9 +686,9 @@ CDC::~CDC() {
 // Symbol: ?GetRuntimeClass@CDC@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CDC__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CDC::classCDC;
 }
 // Symbol: ?GetThisClass@CDC@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CDC__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CDC::classCDC;
 }

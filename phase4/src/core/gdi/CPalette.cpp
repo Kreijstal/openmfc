@@ -64,9 +64,9 @@ unsigned int CPalette::GetNearestPaletteIndex(unsigned long crColor) const {
 extern "C" void* MS_ABI impl__GetRuntimeClass_CPalette__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CPalette::classCPalette;
 }
 // Symbol: ?GetThisClass@CPalette@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CPalette__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CPalette::classCPalette;
 }

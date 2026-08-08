@@ -92,9 +92,9 @@ extern "C" CPen* MS_ABI impl___0CPen__QEAA_HHPEBUtagLOGBRUSH__HPEBK_Z(
 extern "C" void* MS_ABI impl__GetRuntimeClass_CPen__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CPen::classCPen;
 }
 // Symbol: ?GetThisClass@CPen@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CPen__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CPen::classCPen;
 }

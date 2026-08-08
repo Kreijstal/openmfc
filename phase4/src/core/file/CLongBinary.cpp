@@ -2,14 +2,15 @@
 // Sources: manual_small_stub_implementations.cpp
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/ClongbinaryRttiSupport.h"
 
 // Symbol: ?GetRuntimeClass@CLongBinary@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CLongBinary__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &classCLongBinary;
 }
 // Symbol: ?GetThisClass@CLongBinary@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CLongBinary__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &classCLongBinary;
 }

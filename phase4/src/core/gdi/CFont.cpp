@@ -49,9 +49,9 @@ extern "C" int MS_ABI impl__CreatePointFontIndirect_CFont__QEAAHPEBUtagLOGFONTW_
 extern "C" void* MS_ABI impl__GetRuntimeClass_CFont__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CFont::classCFont;
 }
 // Symbol: ?GetThisClass@CFont@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CFont__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CFont::classCFont;
 }

@@ -45,9 +45,9 @@ CBrush::CBrush() : CGdiObject() {}
 // Symbol: ?GetRuntimeClass@CBrush@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CBrush__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CBrush::classCBrush;
 }
 // Symbol: ?GetThisClass@CBrush@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CBrush__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CBrush::classCBrush;
 }

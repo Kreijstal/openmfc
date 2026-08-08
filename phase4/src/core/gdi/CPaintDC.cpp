@@ -40,9 +40,9 @@ extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis) {
 extern "C" void* MS_ABI impl__GetRuntimeClass_CPaintDC__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &CPaintDC::classCPaintDC;
 }
 // Symbol: ?GetThisClass@CPaintDC@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CPaintDC__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &CPaintDC::classCPaintDC;
 }
