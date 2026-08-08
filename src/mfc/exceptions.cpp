@@ -9,6 +9,18 @@ IMPLEMENT_DYNAMIC(CArchiveException, CException)
 
 namespace {
 
+void CopyExceptionTextA(wchar_t* out, UINT maxLen, const char* text) {
+    if (out == nullptr || maxLen == 0) {
+        return;
+    }
+    const char* src = text ? text : "";
+    UINT i = 0;
+    for (; i + 1 < maxLen && src[i] != '\0'; ++i) {
+        out[i] = static_cast<unsigned char>(src[i]);
+    }
+    out[i] = L'\0';
+}
+
 void CopyExceptionText(wchar_t* out, UINT maxLen, const wchar_t* text) {
     if (out == nullptr || maxLen == 0) {
         return;
@@ -100,10 +112,39 @@ int CException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelp
     if (pnHelpContext != nullptr) {
         *pnHelpContext = 0;
     }
-    if (lpszError != nullptr && nMaxError > 0) {
-        lpszError[0] = L'\0';
+    if (lpszError == nullptr || nMaxError == 0) {
+        return 0;
     }
-    return 0;
+
+    const CRuntimeClass* pClass = GetRuntimeClass();
+    const char* pszMessage = "Unknown MFC exception.";
+    if (pClass && pClass->m_lpszClassName) {
+        const char* pClassName = pClass->m_lpszClassName;
+        if (strcmp(pClassName, "CMemoryException") == 0) {
+            pszMessage = "Out of memory.";
+        } else if (strcmp(pClassName, "CFileException") == 0) {
+            pszMessage = "File exception.";
+        } else if (strcmp(pClassName, "CArchiveException") == 0) {
+            pszMessage = "Archive exception.";
+        } else if (strcmp(pClassName, "CInvalidArgException") == 0) {
+            pszMessage = "Invalid argument.";
+        } else if (strcmp(pClassName, "CNotSupportedException") == 0) {
+            pszMessage = "Operation not supported.";
+        } else if (strcmp(pClassName, "CResourceException") == 0) {
+            pszMessage = "Resource failure.";
+        } else if (strcmp(pClassName, "CUserException") == 0) {
+            pszMessage = "User terminated the operation.";
+        } else if (strcmp(pClassName, "COleException") == 0) {
+            pszMessage = "OLE exception.";
+        } else if (strcmp(pClassName, "COleDispatchException") == 0) {
+            pszMessage = "OLE dispatch exception.";
+        } else {
+            pszMessage = pClass->m_lpszClassName;
+        }
+    }
+
+    CopyExceptionTextA(lpszError, nMaxError, pszMessage);
+    return 1;
 }
 
 void CException::Dump() const {
