@@ -5,6 +5,7 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/CAnimationControllerSupport.h"
 
 namespace {
 struct AnimationControllerGroupToken {
@@ -13,15 +14,13 @@ struct AnimationControllerGroupToken {
 
 struct AnimationControllerObjectToken {};
 
-struct AnimationControllerKeyframeStoryboardToken {};
-
-struct AnimationControllerUIAnimationManager {};
-struct AnimationControllerUIAnimationTimer {};
-struct AnimationControllerUIAnimationTransitionFactory {};
-struct AnimationControllerUIAnimationTransitionLibrary {};
-
 struct AnimationControllerKeyframeToken {
     void* creator = nullptr;
+};
+
+struct AnimationControllerObjectAssociation {
+    void* object = nullptr;
+    void* group = nullptr;
 };
 
 struct CAnimationControllerObjectImpl : CObject {};
@@ -33,13 +32,10 @@ std::unordered_map<void*, unsigned int> g_animationControllerGroupByHandle;
 std::unordered_map<unsigned int, AnimationControllerGroupToken*> g_animationControllerGroupById;
 std::unordered_map<void*, void*> g_animationControllerGroupByObject;
 std::unordered_map<void*, void*> g_animationControllerGroupByStoryboard;
+std::unordered_map<void*, AnimationControllerObjectAssociation> g_animationControllerObjectByVariable;
 std::unordered_map<void*, AnimationControllerKeyframeToken> g_animationControllerKeyframes;
 std::unordered_map<unsigned int, double> g_animationControllerGroupScheduleTimes;
-AnimationControllerKeyframeStoryboardToken g_animationControllerKeyframeStoryboardStart;
-AnimationControllerUIAnimationManager g_animationManager;
-AnimationControllerUIAnimationTimer g_animationTimer;
-AnimationControllerUIAnimationTransitionFactory g_transitionFactory;
-AnimationControllerUIAnimationTransitionLibrary g_transitionLibrary;
+std::unordered_set<unsigned int> g_animationControllerActiveGroups;
 
 unsigned int AllocateAnimationControllerGroupId() {
     std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
@@ -71,6 +67,7 @@ void UnregisterAnimationControllerGroup(AnimationControllerGroupToken* token) {
     g_animationControllerGroupIds.erase(groupId);
     g_animationControllerGroupByHandle.erase(handleIt);
     g_animationControllerGroupScheduleTimes.erase(groupId);
+    g_animationControllerActiveGroups.erase(groupId);
 
     for (auto it = g_animationControllerGroupByObject.begin();
          it != g_animationControllerGroupByObject.end();) {
@@ -85,6 +82,15 @@ void UnregisterAnimationControllerGroup(AnimationControllerGroupToken* token) {
          it != g_animationControllerGroupByStoryboard.end();) {
         if (it->second == token) {
             it = g_animationControllerGroupByStoryboard.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto it = g_animationControllerObjectByVariable.begin();
+         it != g_animationControllerObjectByVariable.end();) {
+        if (it->second.group == token) {
+            it = g_animationControllerObjectByVariable.erase(it);
         } else {
             ++it;
         }
@@ -145,6 +151,7 @@ void RemoveAnimationControllerGroupById(unsigned int groupId) {
             g_animationControllerGroupById.erase(it);
             g_animationControllerGroupByHandle.erase(token);
             g_animationControllerGroupScheduleTimes.erase(groupId);
+            g_animationControllerActiveGroups.erase(groupId);
             for (auto objectIt = g_animationControllerGroupByObject.begin();
                  objectIt != g_animationControllerGroupByObject.end();) {
                 if (objectIt->second == token) {
@@ -161,6 +168,14 @@ void RemoveAnimationControllerGroupById(unsigned int groupId) {
                     ++storyboardIt;
                 }
             }
+            for (auto variableIt = g_animationControllerObjectByVariable.begin();
+                 variableIt != g_animationControllerObjectByVariable.end();) {
+                if (variableIt->second.group == token) {
+                    variableIt = g_animationControllerObjectByVariable.erase(variableIt);
+                } else {
+                    ++variableIt;
+                }
+            }
         }
     }
     UnregisterKeyframesForGroupId(groupId);
@@ -173,7 +188,30 @@ void RegisterAnimationControllerKeyframe(void* pKeyframe, void* creator) {
     std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
     g_animationControllerKeyframes[pKeyframe] = AnimationControllerKeyframeToken{creator};
 }
+
+void RegisterAnimationControllerVariable(
+    void* pAnimationVariable, void* pAnimationObject, void* pAnimationGroup) {
+    if (!pAnimationVariable || !pAnimationObject || !pAnimationGroup) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+    g_animationControllerObjectByVariable[pAnimationVariable] = {
+        pAnimationObject, pAnimationGroup
+    };
+}
 } // namespace
+
+namespace openmfc { namespace detail { namespace animationcontroller {
+void RegisterStoryboard(void* animationGroup, void* storyboard) {
+    if (!animationGroup || !storyboard) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+    if (g_animationControllerGroupByHandle.count(animationGroup) != 0) {
+        g_animationControllerGroupByStoryboard[storyboard] = animationGroup;
+    }
+}
+} } }
 
 // Symbol: ??0CAnimationController@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CAnimationController__QEAA_XZ(void* pThis) {
@@ -185,11 +223,14 @@ extern "C" void MS_ABI impl___1CAnimationController__UEAA_XZ(void* pThis) {
 }
 // Symbol: ?IsAnimationInProgress@CAnimationController@@UEAAHXZ
 extern "C" int MS_ABI impl__IsAnimationInProgress_CAnimationController__UEAAHXZ(void* /*pThis*/) {
-    return 0;
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+    return (!g_animationControllerActiveGroups.empty() ||
+            !g_animationControllerGroupScheduleTimes.empty()) ? TRUE : FALSE;
 }
 
 // Symbol: ?AddAnimationObject@CAnimationController@@QEAAPEAVCAnimationGroup@@PEAVCAnimationBaseObject@@@Z
-extern "C" void* MS_ABI impl__AddAnimationObject_CAnimationController__QEAAPEAVCAnimationGroup__PEAVCAnimationBaseObject___Z(void* pAnimationObject) {
+extern "C" void* MS_ABI impl__AddAnimationObject_CAnimationController__QEAAPEAVCAnimationGroup__PEAVCAnimationBaseObject___Z(
+    void* /*pThis*/, void* pAnimationObject) {
     if (pAnimationObject == nullptr) {
         return nullptr;
     }
@@ -217,10 +258,13 @@ extern "C" int MS_ABI impl__AddKeyframeToGroup_CAnimationController__QEAAHIPEAVC
 }
 
 // Symbol: ?AnimateGroup@CAnimationController@@QEAAHIH@Z
-extern "C" int MS_ABI impl__AnimateGroup_CAnimationController__QEAAHIH_Z(unsigned int groupId, int /*bAnimateNow*/) {
+extern "C" int MS_ABI impl__AnimateGroup_CAnimationController__QEAAHIH_Z(
+    void* /*pThis*/, unsigned int groupId, int /*bAnimateNow*/) {
     if (!IsValidAnimationControllerGroup(groupId)) {
         return FALSE;
     }
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+    g_animationControllerActiveGroups.insert(groupId);
     return TRUE;
 }
 
@@ -299,13 +343,13 @@ extern "C" int MS_ABI impl__EnableStoryboardEventHandler_CAnimationController__U
 
 // Symbol: ?FindAnimationGroup@CAnimationController@@QEAAPEAVCAnimationGroup@@I@Z
 extern "C" void* MS_ABI impl__FindAnimationGroup_CAnimationController__QEAAPEAVCAnimationGroup__I_Z(
-    unsigned int groupId) {
+    void* /*pThis*/, unsigned int groupId) {
     return FindAnimationControllerGroupById(groupId);
 }
 
 // Symbol: ?FindAnimationGroup@CAnimationController@@QEAAPEAVCAnimationGroup@@PEAUIUIAnimationStoryboard@@@Z
 extern "C" void* MS_ABI impl__FindAnimationGroup_CAnimationController__QEAAPEAVCAnimationGroup__PEAUIUIAnimationStoryboard___Z(
-    void* pStoryboard) {
+    void* /*pThis*/, void* pStoryboard) {
     if (pStoryboard == nullptr) {
         return nullptr;
     }
@@ -316,43 +360,56 @@ extern "C" void* MS_ABI impl__FindAnimationGroup_CAnimationController__QEAAPEAVC
 
 // Symbol: ?FindAnimationObject@CAnimationController@@QEAAHPEAUIUIAnimationVariable@@PEAPEAVCAnimationBaseObject@@PEAPEAVCAnimationGroup@@@Z
 extern "C" int MS_ABI impl__FindAnimationObject_CAnimationController__QEAAHPEAUIUIAnimationVariable__PEAPEAVCAnimationBaseObject__PEAPEAVCAnimationGroup___Z(
-    void* /*pAnimationVariable*/, void** pAnimationObject, void** pAnimationGroup) {
+    void* /*pThis*/, void* pAnimationVariable,
+    void** pAnimationObject, void** pAnimationGroup) {
     if (pAnimationObject == nullptr || pAnimationGroup == nullptr) {
         return E_POINTER;
     }
-    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
-    if (g_animationControllerGroupByObject.empty()) {
+    *pAnimationObject = nullptr;
+    *pAnimationGroup = nullptr;
+    if (pAnimationVariable == nullptr) {
         return FALSE;
     }
-    auto* group = g_animationControllerGroupByObject.begin()->second;
-    *pAnimationObject = g_animationControllerGroupByObject.begin()->first;
-    *pAnimationGroup = group;
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+    auto it = g_animationControllerObjectByVariable.find(pAnimationVariable);
+    if (it == g_animationControllerObjectByVariable.end()) {
+        return FALSE;
+    }
+    *pAnimationObject = it->second.object;
+    *pAnimationGroup = it->second.group;
     return TRUE;
 }
 
 // Symbol: ?GetKeyframeStoryboardStart@CAnimationController@@SAPEAVCBaseKeyFrame@@XZ
 extern "C" void* MS_ABI impl__GetKeyframeStoryboardStart_CAnimationController__SAPEAVCBaseKeyFrame__XZ() {
-    return &g_animationControllerKeyframeStoryboardStart;
+    // OpenMFC does not yet provide a CBaseKeyFrame implementation suitable for
+    // this process-wide sentinel. A null result is safe and truthful; returning
+    // an unrelated empty object lets callers dispatch through an invalid vtable.
+    return nullptr;
 }
 
 // Symbol: ?GetUIAnimationManager@CAnimationController@@QEAAPEAUIUIAnimationManager@@XZ
-extern "C" void* MS_ABI impl__GetUIAnimationManager_CAnimationController__QEAAPEAUIUIAnimationManager__XZ() {
-    return &g_animationManager;
+extern "C" void* MS_ABI impl__GetUIAnimationManager_CAnimationController__QEAAPEAUIUIAnimationManager__XZ(
+    void* /*pThis*/) {
+    return nullptr;
 }
 
 // Symbol: ?GetUIAnimationTimer@CAnimationController@@QEAAPEAUIUIAnimationTimer@@XZ
-extern "C" void* MS_ABI impl__GetUIAnimationTimer_CAnimationController__QEAAPEAUIUIAnimationTimer__XZ() {
-    return &g_animationTimer;
+extern "C" void* MS_ABI impl__GetUIAnimationTimer_CAnimationController__QEAAPEAUIUIAnimationTimer__XZ(
+    void* /*pThis*/) {
+    return nullptr;
 }
 
 // Symbol: ?GetUITransitionFactory@CAnimationController@@QEAAPEAUIUIAnimationTransitionFactory@@XZ
-extern "C" void* MS_ABI impl__GetUITransitionFactory_CAnimationController__QEAAPEAUIUIAnimationTransitionFactory__XZ() {
-    return &g_transitionFactory;
+extern "C" void* MS_ABI impl__GetUITransitionFactory_CAnimationController__QEAAPEAUIUIAnimationTransitionFactory__XZ(
+    void* /*pThis*/) {
+    return nullptr;
 }
 
 // Symbol: ?GetUITransitionLibrary@CAnimationController@@QEAAPEAUIUIAnimationTransitionLibrary@@XZ
-extern "C" void* MS_ABI impl__GetUITransitionLibrary_CAnimationController__QEAAPEAUIUIAnimationTransitionLibrary__XZ() {
-    return &g_transitionLibrary;
+extern "C" void* MS_ABI impl__GetUITransitionLibrary_CAnimationController__QEAAPEAUIUIAnimationTransitionLibrary__XZ(
+    void* /*pThis*/) {
+    return nullptr;
 }
 
 // Symbol: ?OnAfterSchedule@CAnimationController@@MEAAXPEAVCAnimationGroup@@@Z
@@ -360,8 +417,11 @@ extern "C" void MS_ABI impl__OnAfterSchedule_CAnimationController__MEAAXPEAVCAni
 
 // Symbol: ?OnAnimationIntegerValueChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@PEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@HH@Z
 extern "C" void MS_ABI impl__OnAnimationIntegerValueChanged_CAnimationController__UEAAXPEAVCAnimationGroup__PEAVCAnimationBaseObject__PEAUIUIAnimationVariable__HH_Z(
-    void* /*pAnimationGroup*/, void* /*pAnimationObject*/,
-    void* /*pAnimationVariable*/, int /*oldValue*/, int /*newValue*/) {}
+    void* /*pThis*/, void* pAnimationGroup, void* pAnimationObject,
+    void* pAnimationVariable, int /*oldValue*/, int /*newValue*/) {
+    RegisterAnimationControllerVariable(
+        pAnimationVariable, pAnimationObject, pAnimationGroup);
+}
 
 // Symbol: ?OnAnimationManagerStatusChanged@CAnimationController@@UEAAXW4__MIDL___MIDL_itf_UIAnimation_0000_0000_0002@@0@Z
 extern "C" void MS_ABI impl__OnAnimationManagerStatusChanged_CAnimationController__UEAAXW4__MIDL___MIDL_itf_UIAnimation_0000_0000_0002__0_Z(
@@ -379,8 +439,11 @@ extern "C" void MS_ABI impl__OnAnimationTimerRenderingTooSlow_CAnimationControll
 
 // Symbol: ?OnAnimationValueChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@PEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@NN@Z
 extern "C" void MS_ABI impl__OnAnimationValueChanged_CAnimationController__UEAAXPEAVCAnimationGroup__PEAVCAnimationBaseObject__PEAUIUIAnimationVariable__NN_Z(
-    void* /*pAnimationGroup*/, void* /*pAnimationObject*/,
-    void* /*pAnimationVariable*/, double /*oldValue*/, double /*newValue*/) {}
+    void* /*pThis*/, void* pAnimationGroup, void* pAnimationObject,
+    void* pAnimationVariable, double /*oldValue*/, double /*newValue*/) {
+    RegisterAnimationControllerVariable(
+        pAnimationVariable, pAnimationObject, pAnimationGroup);
+}
 
 // Symbol: ?OnBeforeAnimationStart@CAnimationController@@UEAAXPEAVCAnimationGroup@@@Z
 extern "C" void MS_ABI impl__OnBeforeAnimationStart_CAnimationController__UEAAXPEAVCAnimationGroup___Z(
@@ -419,7 +482,8 @@ extern "C" void MS_ABI impl__OnStoryboardUpdated_CAnimationController__UEAAXPEAV
     void* /*pAnimationGroup*/) {}
 
 // Symbol: ?RemoveAllAnimationGroups@CAnimationController@@QEAAXXZ
-extern "C" void MS_ABI impl__RemoveAllAnimationGroups_CAnimationController__QEAAXXZ() {
+extern "C" void MS_ABI impl__RemoveAllAnimationGroups_CAnimationController__QEAAXXZ(
+    void* /*pThis*/) {
     std::vector<AnimationControllerGroupToken*> groupsToDelete;
     {
         std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
@@ -435,7 +499,9 @@ extern "C" void MS_ABI impl__RemoveAllAnimationGroups_CAnimationController__QEAA
         g_animationControllerGroupById.clear();
         g_animationControllerGroupByObject.clear();
         g_animationControllerGroupByStoryboard.clear();
+        g_animationControllerObjectByVariable.clear();
         g_animationControllerGroupScheduleTimes.clear();
+        g_animationControllerActiveGroups.clear();
         g_animationControllerKeyframes.clear();
     }
     for (auto* pGroup : groupsToDelete) {
@@ -464,6 +530,14 @@ extern "C" void MS_ABI impl__RemoveAnimationObject_CAnimationController__QEAAXPE
     }
     std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
     g_animationControllerGroupByObject.erase(pAnimationObject);
+    for (auto it = g_animationControllerObjectByVariable.begin();
+         it != g_animationControllerObjectByVariable.end();) {
+        if (it->second.object == pAnimationObject) {
+            it = g_animationControllerObjectByVariable.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 // Symbol: ?RemoveTransitions@CAnimationController@@QEAAXI@Z
@@ -475,7 +549,8 @@ extern "C" void MS_ABI impl__RemoveTransitions_CAnimationController__QEAAXI_Z(un
 }
 
 // Symbol: ?ScheduleGroup@CAnimationController@@QEAAHIN@Z
-extern "C" int MS_ABI impl__ScheduleGroup_CAnimationController__QEAAHIN_Z(unsigned int groupId, double time) {
+extern "C" int MS_ABI impl__ScheduleGroup_CAnimationController__QEAAHIN_Z(
+    void* /*pThis*/, unsigned int groupId, double time) {
     if (!IsValidAnimationControllerGroup(groupId)) {
         return FALSE;
     }
@@ -485,4 +560,19 @@ extern "C" int MS_ABI impl__ScheduleGroup_CAnimationController__QEAAHIN_Z(unsign
 }
 
 // Symbol: ?UpdateAnimationManager@CAnimationController@@UEAAXXZ
-extern "C" void MS_ABI impl__UpdateAnimationManager_CAnimationController__UEAAXXZ() {}
+extern "C" void MS_ABI impl__UpdateAnimationManager_CAnimationController__UEAAXXZ(
+    void* /*pThis*/) {
+    std::lock_guard<std::mutex> lock(g_animationControllerStateMutex);
+
+    // This compatibility layer has no UIAnimation COM backend yet. Treat one
+    // update as the completion boundary for groups that were explicitly
+    // animated or scheduled, keeping IsAnimationInProgress truthful without
+    // pretending asynchronous work continues forever.
+    for (const auto& scheduled : g_animationControllerGroupScheduleTimes) {
+        if (g_animationControllerGroupIds.count(scheduled.first) != 0) {
+            g_animationControllerActiveGroups.insert(scheduled.first);
+        }
+    }
+    g_animationControllerGroupScheduleTimes.clear();
+    g_animationControllerActiveGroups.clear();
+}

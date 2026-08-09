@@ -5,6 +5,7 @@
 
 #include "detail/GdicoreSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CRuntimeClassSupport.h"
 
 // CBrush constructor with color
 // Symbol: ??0CBrush@@QEAA@K@Z
@@ -45,9 +46,11 @@ CBrush::CBrush() : CGdiObject() {}
 // Symbol: ?GetRuntimeClass@CBrush@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CBrush__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
     (void)pThis;
+    InitializeClasses();
     return &CBrush::classCBrush;
 }
 // Symbol: ?GetThisClass@CBrush@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CBrush__SAPEAUCRuntimeClass__XZ() {
+    InitializeClasses();
     return &CBrush::classCBrush;
 }
