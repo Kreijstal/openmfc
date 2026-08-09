@@ -1,24 +1,24 @@
 {
-  "base_commit": "223ee39cddc7d725071e5b42d6dd41daba80fe8a",
-  "base_commit_short": "223ee39cddc7",
+  "base_commit": "788edaf90f6be6680a256e877361c4f0497bd449",
+  "base_commit_short": "788edaf90f6b",
   "category_counts": {
-    "feature_pack_ui": 439,
-    "gdi_drawing": 24,
-    "global_residuals": 95,
-    "ole_com_activex": 77,
-    "other_mfc": 91
+    "feature_pack_ui": 17,
+    "gdi_drawing": 1,
+    "global_residuals": 5,
+    "ole_com_activex": 4,
+    "other_mfc": 5
   },
   "category_symbol_counts": {
-    "feature_pack_ui": 4390,
-    "gdi_drawing": 233,
-    "global_residuals": 942,
-    "ole_com_activex": 767,
+    "feature_pack_ui": 3299,
+    "gdi_drawing": 136,
+    "global_residuals": 938,
+    "ole_com_activex": 650,
     "other_mfc": 903
   },
-  "max_symbols_per_shard": 10,
-  "real_count": 6720,
-  "shard_count": 726,
-  "skip_count": 148,
-  "stub_count": 7235,
+  "max_symbols_per_shard": 200,
+  "real_count": 8031,
+  "shard_count": 32,
+  "skip_count": 146,
+  "stub_count": 5926,
   "total_exports": 14103
 }

@@ -2,61 +2,525 @@
   "category": "other_mfc",
   "id": "other-mfc-05",
   "primary_files": [
-    "include/openmfc/afxwin.h",
-    "phase4/src/manual_thunks.cpp"
+    "include/openmfc/afxwin.h"
   ],
-  "symbol_count": 10,
+  "symbol_count": 103,
   "symbols": [
     {
-      "class": "CAnimationGroup",
-      "ordinal": 12379,
-      "symbol": "?RemoveKeyframes@CAnimationGroup@@QEAAXXZ"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 3157,
+      "symbol": "?Create@CSmartDockingHighlighterWnd@@QEAAXPEAVCWnd@@@Z"
     },
     {
-      "class": "CAnimationGroup",
-      "ordinal": 12432,
-      "symbol": "?RemoveTransitions@CAnimationGroup@@QEAAXXZ"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 7591,
+      "symbol": "?Hide@CSmartDockingHighlighterWnd@@QEAAXXZ"
     },
     {
-      "class": "CAnimationGroup",
-      "ordinal": 12702,
-      "symbol": "?Schedule@CAnimationGroup@@QEAAHPEAUIUIAnimationTimer@@N@Z"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 8882,
+      "symbol": "?OnClose@CSmartDockingHighlighterWnd@@IEAAXXZ"
     },
     {
-      "class": "CAnimationGroup",
-      "ordinal": 12940,
-      "symbol": "?SetAutodestroyTransitions@CAnimationGroup@@QEAAXH@Z"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 9791,
+      "symbol": "?OnEraseBkgnd@CSmartDockingHighlighterWnd@@IEAAHPEAVCDC@@@Z"
     },
     {
-      "class": "CAnimationPoint",
-      "ordinal": 2021,
-      "symbol": "?AddTransition@CAnimationPoint@@QEAAXPEAVCBaseTransition@@0@Z"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 13793,
+      "symbol": "?ShowAt@CSmartDockingHighlighterWnd@@QEAAXVCRect@@@Z"
     },
     {
-      "class": "CAnimationPoint",
-      "ordinal": 4896,
-      "symbol": "?GetAnimationVariableList@CAnimationPoint@@MEAAXAEAV?$CList@PEAVCAnimationVariable@@PEAV1@@@@Z"
+      "class": "CSmartDockingHighlighterWnd",
+      "ordinal": 13853,
+      "symbol": "?ShowTabbedAt@CSmartDockingHighlighterWnd@@QEAAXVCRect@@0@Z"
     },
     {
-      "class": "CAnimationPoint",
-      "ordinal": 5203,
-      "symbol": "?GetDefaultValue@CAnimationPoint@@QEAA?AVCPoint@@XZ"
+      "class": "CSmartDockingManager",
+      "ordinal": 1415,
+      "symbol": "??1CSmartDockingManager@@UEAA@XZ"
     },
     {
-      "class": "CAnimationPoint",
-      "ordinal": 7481,
-      "symbol": "?GetValue@CAnimationPoint@@QEAAHAEAVCPoint@@@Z"
+      "class": "CSmartDockingManager",
+      "ordinal": 2682,
+      "symbol": "?CauseCancelMode@CSmartDockingManager@@QEAAXXZ"
     },
     {
-      "class": "CAnimationPoint",
-      "ordinal": 13118,
-      "symbol": "?SetDefaultValue@CAnimationPoint@@QEAAXAEBUtagPOINT@@@Z"
+      "class": "CSmartDockingManager",
+      "ordinal": 3158,
+      "symbol": "?Create@CSmartDockingManager@@QEAAXPEAVCWnd@@PEAUCRuntimeClass@@1@Z"
     },
     {
-      "class": "CAnimationRect",
-      "ordinal": 2022,
-      "symbol": "?AddTransition@CAnimationRect@@QEAAXPEAVCBaseTransition@@000@Z"
+      "class": "CSmartDockingManager",
+      "ordinal": 3793,
+      "symbol": "?Destroy@CSmartDockingManager@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 7601,
+      "symbol": "?HidePlace@CSmartDockingManager@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 8486,
+      "symbol": "?MoveCentralGroup@CSmartDockingManager@@QEAAXVCRect@@HK@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 10510,
+      "symbol": "?OnMouseMove@CSmartDockingManager@@QEAAXVCPoint@@@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 10795,
+      "symbol": "?OnPosChange@CSmartDockingManager@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13418,
+      "symbol": "?SetOuterRect@CSmartDockingManager@@QEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13785,
+      "symbol": "?Show@CSmartDockingManager@@QEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13799,
+      "symbol": "?ShowCentralGroup@CSmartDockingManager@@QEAAXHK@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13838,
+      "symbol": "?ShowPlaceAt@CSmartDockingManager@@QEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13854,
+      "symbol": "?ShowTabbedPlaceAt@CSmartDockingManager@@QEAAXVCRect@@HHH@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13896,
+      "symbol": "?Start@CSmartDockingManager@@QEAAXPEAVCWnd@@@Z"
+    },
+    {
+      "class": "CSmartDockingManager",
+      "ordinal": 13910,
+      "symbol": "?Stop@CSmartDockingManager@@QEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 1416,
+      "symbol": "??1CSmartDockingStandaloneGuide@@UEAA@XZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 2079,
+      "symbol": "?AdjustPos@CSmartDockingStandaloneGuide@@UEAAXVCRect@@@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 3159,
+      "symbol": "?Create@CSmartDockingStandaloneGuide@@UEAAXW4SDMarkerPlace@1@PEAVCWnd@@@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 3489,
+      "symbol": "?CreateObject@CSmartDockingStandaloneGuide@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 3794,
+      "symbol": "?Destroy@CSmartDockingStandaloneGuide@@UEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 7610,
+      "symbol": "?Highlight@CSmartDockingStandaloneGuide@@UEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 7714,
+      "symbol": "?InitImages@CSmartDockingStandaloneGuide@@MEAAXAEAVCSmartDockingInfo@@@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 7977,
+      "symbol": "?IsPtIn@CSmartDockingStandaloneGuide@@UEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8340,
+      "symbol": "?m_nBottomOffsetY@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8353,
+      "symbol": "?m_nLeftOffsetX@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8358,
+      "symbol": "?m_nRightOffsetX@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 8370,
+      "symbol": "?m_nTopOffsetY@CSmartDockingStandaloneGuide@@1HB"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuide",
+      "ordinal": 13786,
+      "symbol": "?Show@CSmartDockingStandaloneGuide@@UEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 1417,
+      "symbol": "??1CSmartDockingStandaloneGuideWnd@@UEAA@XZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 2456,
+      "symbol": "?Assign@CSmartDockingStandaloneGuideWnd@@QEAAHPEAUHBITMAP__@@H@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 3160,
+      "symbol": "?Create@CSmartDockingStandaloneGuideWnd@@QEAAHPEAUtagRECT@@PEAUHBITMAP__@@PEAUHRGN__@@PEAVCWnd@@HH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 7611,
+      "symbol": "?Highlight@CSmartDockingStandaloneGuideWnd@@QEAAXH@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 8883,
+      "symbol": "?OnClose@CSmartDockingStandaloneGuideWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 9792,
+      "symbol": "?OnEraseBkgnd@CSmartDockingStandaloneGuideWnd@@IEAAHPEAVCDC@@@Z"
+    },
+    {
+      "class": "CSmartDockingStandaloneGuideWnd",
+      "ordinal": 14139,
+      "symbol": "?UpdateLayered@CSmartDockingStandaloneGuideWnd@@QEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3192,
+      "symbol": "?CreateCommon@CSplitterWnd@@IEAAHPEAVCWnd@@UtagSIZE@@KI@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3523,
+      "symbol": "?CreateScrollBarCtrl@CSplitterWnd@@UEAAHKI@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3734,
+      "symbol": "?DeleteColumn@CSplitterWnd@@UEAAXH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3760,
+      "symbol": "?DeleteRow@CSplitterWnd@@UEAAXH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3774,
+      "symbol": "?DeleteView@CSplitterWnd@@UEAAXHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 3999,
+      "symbol": "?DoScroll@CSplitterWnd@@UEAAHPEAVCView@@IH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 4000,
+      "symbol": "?DoScrollBy@CSplitterWnd@@UEAAHPEAVCView@@VCSize@@H@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 5487,
+      "symbol": "?GetHitRect@CSplitterWnd@@MEAAXHAEAVCRect@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 5548,
+      "symbol": "?GetInsideRect@CSplitterWnd@@MEBAXAEAVCRect@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 6639,
+      "symbol": "?GetScrollStyle@CSplitterWnd@@QEBAKXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 6686,
+      "symbol": "?GetSizingParent@CSplitterWnd@@IEAAPEAVCWnd@@XZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7635,
+      "symbol": "?HitTest@CSplitterWnd@@MEBAHVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7654,
+      "symbol": "?IdFromRowCol@CSplitterWnd@@QEBAHHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 7859,
+      "symbol": "?IsChildPane@CSplitterWnd@@QEAAHPEAVCWnd@@PEAH1@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 8759,
+      "symbol": "?OnCancelMode@CSplitterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 8945,
+      "symbol": "?OnCommand@CSplitterWnd@@MEAAH_K_J@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 9166,
+      "symbol": "?OnDisplayChange@CSplitterWnd@@IEAAXXZ"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10118,
+      "symbol": "?OnHScroll@CSplitterWnd@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10250,
+      "symbol": "?OnKeyDown@CSplitterWnd@@IEAAXIII@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10313,
+      "symbol": "?OnLButtonDblClk@CSplitterWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10369,
+      "symbol": "?OnLButtonDown@CSplitterWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10410,
+      "symbol": "?OnLButtonUp@CSplitterWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10511,
+      "symbol": "?OnMouseMove@CSplitterWnd@@IEAAXIVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10518,
+      "symbol": "?OnMouseWheel@CSplitterWnd@@IEAAHIFVCPoint@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10587,
+      "symbol": "?OnNcCreate@CSplitterWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10690,
+      "symbol": "?OnNotify@CSplitterWnd@@MEAAH_K_JPEA_J@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 10844,
+      "symbol": "?OnPrintClient@CSplitterWnd@@IEAA_JPEAVCDC@@I@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 11048,
+      "symbol": "?OnSetCursor@CSplitterWnd@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 11271,
+      "symbol": "?OnSize@CSplitterWnd@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 11331,
+      "symbol": "?OnSysCommand@CSplitterWnd@@IEAAXI_J@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 11593,
+      "symbol": "?OnVScroll@CSplitterWnd@@IEAAXIIPEAVCScrollBar@@@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13574,
+      "symbol": "?SetScrollStyle@CSplitterWnd@@QEAAXK@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13893,
+      "symbol": "?SplitColumn@CSplitterWnd@@UEAAHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13895,
+      "symbol": "?SplitRow@CSplitterWnd@@UEAAHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13906,
+      "symbol": "?StartTracking@CSplitterWnd@@MEAAXH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13919,
+      "symbol": "?StopTracking@CSplitterWnd@@MEAAXH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 13994,
+      "symbol": "?TrackColumnSize@CSplitterWnd@@MEAAXHH@Z"
+    },
+    {
+      "class": "CSplitterWnd",
+      "ordinal": 14001,
+      "symbol": "?TrackRowSize@CSplitterWnd@@MEAAXHH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 2390,
+      "symbol": "?AllocElements@CStatusBar@@QEAAHHH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 2596,
+      "symbol": "?CalcFixedLayout@CStatusBar@@UEAA?AVCSize@@HH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 2600,
+      "symbol": "?CalcInsideRect@CStatusBar@@UEBAXAEAVCRect@@H@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 3271,
+      "symbol": "?CreateEx@CStatusBar@@UEAAHPEAVCWnd@@KKI@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 8682,
+      "symbol": "?OnBarStyleChange@CStatusBar@@UEAAXKK@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 8827,
+      "symbol": "?OnChildNotify@CStatusBar@@MEAAHI_K_JPEA_J@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10045,
+      "symbol": "?OnGetText@CStatusBar@@IEAAHHPEA_W@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10048,
+      "symbol": "?OnGetTextLength@CStatusBar@@IEAAIXZ"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10577,
+      "symbol": "?OnNcCalcSize@CStatusBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 10615,
+      "symbol": "?OnNcHitTest@CStatusBar@@IEAA_JVCPoint@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11114,
+      "symbol": "?OnSetMinHeight@CStatusBar@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11138,
+      "symbol": "?OnSetText@CStatusBar@@IEAAHPEB_W@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11272,
+      "symbol": "?OnSize@CStatusBar@@IEAAXIHH@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11464,
+      "symbol": "?OnUpdateCmdUI@CStatusBar@@UEAAXPEAVCFrameWnd@@H@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11618,
+      "symbol": "?OnWindowPosChanging@CStatusBar@@IEAAXPEAUtagWINDOWPOS@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 11803,
+      "symbol": "?PreCreateWindow@CStatusBar@@UEAAHAEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CStatusBar",
+      "ordinal": 14109,
+      "symbol": "?UpdateAllPanes@CStatusBar@@IEAAXHH@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 3493,
+      "symbol": "?CreateObject@CTabView@@SAPEAVCObject@@XZ"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 8767,
+      "symbol": "?OnChangeActiveTab@CTabView@@IEAA_J_K_J@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 9036,
+      "symbol": "?OnCreate@CTabView@@IEAAHPEAUtagCREATESTRUCTW@@@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 10198,
+      "symbol": "?OnInitialUpdate@CTabView@@UEAAXXZ"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 10454,
+      "symbol": "?OnMouseActivate@CTabView@@IEAAHPEAVCWnd@@II@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 10845,
+      "symbol": "?OnPrintClient@CTabView@@IEAA_JPEAVCDC@@I@Z"
+    },
+    {
+      "class": "CTabView",
+      "ordinal": 11273,
+      "symbol": "?OnSize@CTabView@@IEAAXIHH@Z"
     }
   ],
-  "title": "other_mfc shard 05/91: CAnimationPoint, CAnimationGroup, CAnimationRect"
+  "title": "other_mfc shard 05/05: CSplitterWnd, CStatusBar, CSmartDockingManager"
 }

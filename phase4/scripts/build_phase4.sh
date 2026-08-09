@@ -189,11 +189,14 @@ EXCLUDED_SYMBOLS="$EXCLUDED_SYMBOLS,?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@
 AUTO_EXCLUDES=""
 if command -v rg >/dev/null 2>&1; then
     AUTO_EXCLUDES="$(rg -N --no-heading --no-line-number --no-filename '^// Symbol: ' "$ROOT/phase4/src" -g '*.cpp' -g '*.h' \
+        -g '!ManualThunks.cpp' \
         | sed -E 's%^// Symbol: %%' \
         | tr -d '\r' \
         | paste -sd, - || true)"
 else
-    AUTO_EXCLUDES="$(find "$ROOT/phase4/src" \( -name '*.cpp' -o -name '*.h' \) -exec grep -hE '^// Symbol: ' {} + 2>/dev/null \
+    AUTO_EXCLUDES="$(find "$ROOT/phase4/src" \( -name '*.cpp' -o -name '*.h' \) \
+        ! -path "$ROOT/phase4/src/core/runtime/ManualThunks.cpp" \
+        -exec grep -hE '^// Symbol: ' {} + 2>/dev/null \
         | sed -E 's%^// Symbol: %%' \
         | tr -d '\r' \
         | paste -sd, - || true)"
@@ -450,6 +453,10 @@ echo "[3/4] Compiling..."
 # EXCLUDED_SOURCES holds units that must not be linked into the DLL itself.
 EXCLUDED_SOURCES=(
     "core/runtime/OpenMfcExports.cpp"   # helper exports for OpenMFC-built apps
+    # Legacy output location of gen_manual_thunks.py. Generated default-return
+    # fallbacks belong in the build directory and must never count as Phase 4
+    # implementations or make local builds differ from clean CI checkouts.
+    "core/runtime/ManualThunks.cpp"
 )
 
 # Objects mirror the source tree under $BUILD/obj so the checkout stays clean.

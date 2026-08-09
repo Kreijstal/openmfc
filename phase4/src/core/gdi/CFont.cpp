@@ -5,6 +5,7 @@
 
 #include "detail/GdicoreSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CRuntimeClassSupport.h"
 
 // CFont::CreatePointFont
 // Symbol: ?CreatePointFont@CFont@@QEAAHHPEB_WPEAVCDC@@@Z
@@ -49,9 +50,11 @@ extern "C" int MS_ABI impl__CreatePointFontIndirect_CFont__QEAAHPEBUtagLOGFONTW_
 extern "C" void* MS_ABI impl__GetRuntimeClass_CFont__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    InitializeClasses();
+    return &CFont::classCFont;
 }
 // Symbol: ?GetThisClass@CFont@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CFont__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    InitializeClasses();
+    return &CFont::classCFont;
 }

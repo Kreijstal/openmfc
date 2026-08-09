@@ -5,6 +5,7 @@
 
 #include "detail/GdicoreSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CRuntimeClassSupport.h"
 
 // CDC default constructor
 // Symbol: ??0CDC@@QEAA@XZ
@@ -686,9 +687,11 @@ CDC::~CDC() {
 // Symbol: ?GetRuntimeClass@CDC@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CDC__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
     (void)pThis;
-    return nullptr;
+    InitializeClasses();
+    return &CDC::classCDC;
 }
 // Symbol: ?GetThisClass@CDC@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CDC__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    InitializeClasses();
+    return &CDC::classCDC;
 }

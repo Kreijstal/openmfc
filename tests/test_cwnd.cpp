@@ -113,7 +113,8 @@ TEST(cexception) {
     ASSERT(pEx->IsKindOf(RUNTIME_CLASS(CObject)));
     
     wchar_t buf[100];
-    ASSERT(pEx->GetErrorMessage(buf, 100) == FALSE); // Not implemented
+    ASSERT(pEx->GetErrorMessage(buf, 100) == TRUE);
+    ASSERT(buf[0] != L'\0');
     
     delete pEx;
 }

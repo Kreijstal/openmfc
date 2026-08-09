@@ -4,7 +4,7 @@ These are ABI-compatible stubs for symbols where our C++ method signatures
 differ from the MSVC DLL exports, preventing auto-generation.
 
 Usage:
-    python3 tools/gen_manual_thunks.py --out phase4/src/core/runtime/ManualThunks.cpp
+    python3 tools/gen_manual_thunks.py --out build-phase4/manual_thunks.cpp
 
 After generating, empty thunks_skip.txt and regenerate thunks.cpp.
 """
@@ -137,14 +137,16 @@ def generate(skip_file: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="phase4/src/core/runtime/ManualThunks.cpp")
+    parser.add_argument("--out", default="build-phase4/manual_thunks.cpp")
     args = parser.parse_args()
     skip_file = Path(__file__).parent / 'thunks_skip.txt'
     if not skip_file.exists():
         print(f"Error: {skip_file} not found", file=sys.stderr)
         return 1
     content = generate(str(skip_file))
-    Path(args.out).write_text(content, encoding="ascii", errors="replace")
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(content, encoding="ascii", errors="replace")
     print(f"Generated: {args.out} ({len(content)} bytes, {content.count(chr(10))} lines)")
 
 
