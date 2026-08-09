@@ -98,7 +98,7 @@ marker is orphaned and never reachable. Every metric counts it as done.
 | `featurepack/propertygrid/Thunks.cpp` | 48 |
 | `core/controlbar/CControlBar.cpp` | 46 |
 | `featurepack/controls/CMFCColorBar.cpp` | 45 |
-| *(+638 further files)* | 4,994 |
+| *(+637 further files)* | 4,994 |
 
 ## Per-Class Implementation Counts
 
