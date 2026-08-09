@@ -34,6 +34,7 @@ jobs:
         # while a real implementation sits unreachable beside the marker --
         # every coverage metric counts it as done. Fails the build.
         # Reads only static source/JSON, so it runs before the build to fail fast.
+        python3 tests/abi_safety/test_manifest_classification.py
         python3 tools/gen_manifest.py --out /tmp/manifest.json
         python3 tools/check_symbol_markers.py --manifest /tmp/manifest.json
 

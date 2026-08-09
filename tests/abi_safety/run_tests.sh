@@ -21,8 +21,19 @@ fi
 
 echo ""
 
+# Verify generated fallback sources never count as implementations
+echo "2. Testing manifest fallback classification..."
+if python3 "$TEST_DIR/test_manifest_classification.py"; then
+    echo "  ✅ PASS"
+else
+    echo "  ❌ FAIL"
+    exit 1
+fi
+
+echo ""
+
 # Run end-to-end test
-echo "2. Running end-to-end test..."
+echo "3. Running end-to-end test..."
 if "$TEST_DIR/test_end_to_end.sh"; then
     echo "  ✅ PASS"
 else
