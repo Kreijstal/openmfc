@@ -253,11 +253,11 @@ jobs:
         name: abi-safety-report
         path: build-phase4
 
-    - name: Install Wine
+    - name: Install Wine and MinGW C compiler
       timeout-minutes: 5
       run: |
         sudo apt-get update
-        sudo apt-get install -y wine64
+        sudo apt-get install -y wine64 gcc-mingw-w64-x86-64
 
     - name: Run Wine runtime test
       timeout-minutes: 2
