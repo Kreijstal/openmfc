@@ -42,8 +42,5 @@ extern "C" int MS_ABI impl__Show_CMFCRibbonKeyTip__QEAAHH_Z(int p0) {
 // ?UpdateMenuShadow@CMFCRibbonKeyTip@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateMenuShadow_CMFCRibbonKeyTip__IEAAXXZ() {}
 
-// ?m_strClassName@CMFCRibbonKeyTip@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCRibbonKeyTip__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
-
 // Symbol: ?m_strClassName@CMFCRibbonKeyTip@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCRibbonKeyTip__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};

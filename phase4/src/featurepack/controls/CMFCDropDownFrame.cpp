@@ -65,8 +65,5 @@ extern "C" void MS_ABI impl__PostNcDestroy_CMFCDropDownFrame__MEAAXXZ() {}
 // ?RecalcLayout@CMFCDropDownFrame@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_CMFCDropDownFrame__UEAAXH_Z(int p0) {}
 
-// ?m_strClassName@CMFCDropDownFrame@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCDropDownFrame__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
-
 // Symbol: ?m_strClassName@CMFCDropDownFrame@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCDropDownFrame__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};

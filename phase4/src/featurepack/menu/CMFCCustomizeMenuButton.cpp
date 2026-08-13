@@ -123,8 +123,5 @@ extern "C" void MS_ABI impl__SetItemIndex_CMFCCustomizeMenuButton__QEAAXIHH_Z(un
 // ?UpdateCustomizeButton@CMFCCustomizeMenuButton@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateCustomizeButton_CMFCCustomizeMenuButton__IEAAXXZ() {}
 
-// ?m_mapPresentIDs@CMFCCustomizeMenuButton@@2V?$CMap@IIHH@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_mapPresentIDs_CMFCCustomizeMenuButton__2V__CMap_IIHH__A = {};
-
 // Symbol: ?m_mapPresentIDs@CMFCCustomizeMenuButton@@2V?$CMap@IIHH@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_mapPresentIDs_CMFCCustomizeMenuButton__2V__CMap_IIHH__A = {};

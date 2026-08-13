@@ -40,18 +40,6 @@ extern "C" int MS_ABI impl__IsPtIn_CSmartDockingStandaloneGuide__UEBAHVCPoint___
 // ?Show@CSmartDockingStandaloneGuide@@UEAAXH@Z
 extern "C" void MS_ABI impl__Show_CSmartDockingStandaloneGuide__UEAAXH_Z(int p0) {}
 
-// ?m_nBottomOffsetY@CSmartDockingStandaloneGuide@@1HB
-extern "C" int MS_ABI impl__m_nBottomOffsetY_CSmartDockingStandaloneGuide__1HB = {};
-
-// ?m_nLeftOffsetX@CSmartDockingStandaloneGuide@@1HB
-extern "C" int MS_ABI impl__m_nLeftOffsetX_CSmartDockingStandaloneGuide__1HB = {};
-
-// ?m_nRightOffsetX@CSmartDockingStandaloneGuide@@1HB
-extern "C" int MS_ABI impl__m_nRightOffsetX_CSmartDockingStandaloneGuide__1HB = {};
-
-// ?m_nTopOffsetY@CSmartDockingStandaloneGuide@@1HB
-extern "C" int MS_ABI impl__m_nTopOffsetY_CSmartDockingStandaloneGuide__1HB = {};
-
 // Symbol: ?m_nBottomOffsetY@CSmartDockingStandaloneGuide@@1HB
 extern "C" int MS_ABI impl__m_nBottomOffsetY_CSmartDockingStandaloneGuide__1HB = {};
 

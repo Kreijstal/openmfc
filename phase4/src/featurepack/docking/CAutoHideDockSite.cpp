@@ -36,8 +36,5 @@ extern "C" void MS_ABI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect__
 // ?UnSetAutoHideMode@CAutoHideDockSite@@QEAAXPEAVCMFCAutoHideBar@@@Z
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(void* /*class*/* p0) {}
 
-// ?m_nExtraSpace@CAutoHideDockSite@@1HA
-extern "C" int MS_ABI impl__m_nExtraSpace_CAutoHideDockSite__1HA = {};
-
 // Symbol: ?m_nExtraSpace@CAutoHideDockSite@@1HA
 extern "C" int MS_ABI impl__m_nExtraSpace_CAutoHideDockSite__1HA = {};

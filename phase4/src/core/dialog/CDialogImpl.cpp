@@ -49,12 +49,6 @@ extern "C" int MS_ABI impl__ProcessMouseMove_CDialogImpl__IEAAHUtagPOINT___Z(voi
 // ?SetActiveMenu@CDialogImpl@@IEAAXPEAVCMFCPopupMenu@@@Z
 extern "C" void MS_ABI impl__SetActiveMenu_CDialogImpl__IEAAXPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {}
 
-// ?m_hookMouse@CDialogImpl@@1PEAUHHOOK__@@EA
-extern "C" void* MS_ABI impl__m_hookMouse_CDialogImpl__1PEAUHHOOK____EA = {};
-
-// ?m_pMenuDlgImpl@CDialogImpl@@1PEAV1@EA
-extern "C" void* MS_ABI impl__m_pMenuDlgImpl_CDialogImpl__1PEAV1_EA = {};
-
 // Symbol: ?m_hookMouse@CDialogImpl@@1PEAUHHOOK__@@EA
 extern "C" void* MS_ABI impl__m_hookMouse_CDialogImpl__1PEAUHHOOK____EA = {};
 

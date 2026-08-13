@@ -1,3 +1,13 @@
+// OpenMFC class-specific generated fallback stubs for unresolved symbols
+
+#include <cstddef>
+
+#ifdef __GNUC__
+  #define MS_ABI __attribute__((ms_abi))
+#else
+  #define MS_ABI
+#endif
+
 // Symbol: ?CommonCreate@CMFCDesktopAlertWnd@@IEAAHVCPoint@@PEAVCMFCDesktopAlertWndInfo@@@Z
 extern "C" int MS_ABI impl__CommonCreate_CMFCDesktopAlertWnd__IEAAHVCPoint__PEAVCMFCDesktopAlertWndInfo___Z(void* /*class*/ p0, void* /*class*/* p1) {
     return 0;

@@ -42,8 +42,5 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPropertyGridToolTipCtrl__UEA
 // ?Track@CMFCPropertyGridToolTipCtrl@@QEAAXVCRect@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__Track_CMFCPropertyGridToolTipCtrl__QEAAXVCRect__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/ p0, const void* /*class*/* p1, void** p2, void* p3) {}
 
-// ?m_strClassName@CMFCPropertyGridToolTipCtrl@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCPropertyGridToolTipCtrl__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
-
 // Symbol: ?m_strClassName@CMFCPropertyGridToolTipCtrl@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strClassName_CMFCPropertyGridToolTipCtrl__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};

@@ -736,7 +736,7 @@ extern "C" void* MS_ABI impl___0CMFCOutlookBarTabCtrl__QEAA_XZ(void* pThis) {
 // Symbol: ??1CMFCOutlookBarTabCtrl@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCOutlookBarTabCtrl__UEAA_XZ(void* pThis) {
     if (pThis != nullptr) {
-        impl__Destroy_CWnd__IEAAXXZ(reinterpret_cast<CWnd*>(pThis));
+        static_cast<CWnd*>(pThis)->~CWnd();
     }
 }
 // Symbol: ?OnUpdateToolbarCommand@CMFCOutlookBarTabCtrl@@IEAAXPEAVCCmdUI@@@Z

@@ -82,8 +82,5 @@ extern "C" int MS_ABI impl__SetFont_CMFCToolBarFontComboBox__QEAAHPEB_WEH_Z(cons
     return 0;
 }
 
-// ?m_lstFonts@CMFCToolBarFontComboBox@@1VCObList@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstFonts_CMFCToolBarFontComboBox__1VCObList__A = {};
-
 // Symbol: ?m_lstFonts@CMFCToolBarFontComboBox@@1VCObList@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstFonts_CMFCToolBarFontComboBox__1VCObList__A = {};

@@ -53,8 +53,5 @@ extern "C" int MS_ABI impl__SelectMenu_CMFCToolBarsMenuPropertyPage__QEAAHPEAVCD
     return 0;
 }
 
-// ?m_ptMenuLastPos@CMFCToolBarsMenuPropertyPage@@1VCPoint@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_ptMenuLastPos_CMFCToolBarsMenuPropertyPage__1VCPoint__A = {};
-
 // Symbol: ?m_ptMenuLastPos@CMFCToolBarsMenuPropertyPage@@1VCPoint@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_ptMenuLastPos_CMFCToolBarsMenuPropertyPage__1VCPoint__A = {};

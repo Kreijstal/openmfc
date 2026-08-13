@@ -1023,7 +1023,7 @@ extern "C" int MS_ABI impl__SmartUpdate_CMFCOutlookBarPane__UEAAHAEBVCObList___Z
 // Symbol: ??1CMFCOutlookBarPane@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCOutlookBarPane__UEAA_XZ(void* pThis) {
     if (pThis != nullptr) {
-        impl__Destroy_CMFCToolBar__UEAAXXZ(reinterpret_cast<CMFCToolBar*>(pThis));
+        static_cast<CWnd*>(pThis)->~CWnd();
     }
 }
 // Symbol: ??0CMFCOutlookBarPane@@QEAA@XZ
