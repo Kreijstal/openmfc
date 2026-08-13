@@ -86,3 +86,71 @@ int CMFCToolBarMenuButton::CompareWith(const CMFCToolBarButton& other) const {
     }
     return m_strText.Compare(other.m_strText);
 }
+// Symbol: ?DrawDocumentIcon@CMFCToolBarMenuButton@@IEAAXPEAVCDC@@AEBVCRect@@PEAUHICON__@@@Z
+extern "C" void MS_ABI impl__DrawDocumentIcon_CMFCToolBarMenuButton__IEAAXPEAVCDC__AEBVCRect__PEAUHICON_____Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DrawMenuItem@CMFCToolBarMenuButton@@IEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHH@Z
+extern "C" void MS_ABI impl__DrawMenuItem_CMFCToolBarMenuButton__IEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHH_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, int p3, int p4, int p5, int p6) {}
+
+// Symbol: ?GetImageRect@CMFCToolBarMenuButton@@QEAAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__GetImageRect_CMFCToolBarMenuButton__QEAAXAEAVCRect___Z(void* /*class*/* p0) {}
+
+// Symbol: ?GetTextHorzOffsets@CMFCToolBarMenuButton@@KAXAEAH0@Z
+extern "C" void MS_ABI impl__GetTextHorzOffsets_CMFCToolBarMenuButton__KAXAEAH0_Z(int* p0, int* p1) {}
+
+// Symbol: ?OnBeforeDrag@CMFCToolBarMenuButton@@UEBAHXZ
+extern "C" int MS_ABI impl__OnBeforeDrag_CMFCToolBarMenuButton__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?OnCalculateSize@CMFCToolBarMenuButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z
+extern "C" void* MS_ABI impl__OnCalculateSize_CMFCToolBarMenuButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(void* /*struct*/* p0, void* /*class*/* p1, const void* /*class*/* p2, int p3) {
+    return nullptr;
+}
+
+// Symbol: ?OnCancelMode@CMFCToolBarMenuButton@@UEAAXXZ
+extern "C" void MS_ABI impl__OnCancelMode_CMFCToolBarMenuButton__UEAAXXZ() {}
+
+// Symbol: ?OnChangeParentWnd@CMFCToolBarMenuButton@@UEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarMenuButton__UEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnClick@CMFCToolBarMenuButton@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__OnClick_CMFCToolBarMenuButton__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?OnDraw@CMFCToolBarMenuButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCToolBarMenuButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, int p3, int p4, int p5, int p6, int p7) {}
+
+// Symbol: ?OnDrawOnCustomizeList@CMFCToolBarMenuButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z
+extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarMenuButton__UEAAHPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OpenPopupMenu@CMFCToolBarMenuButton@@UEAAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__OpenPopupMenu_CMFCToolBarMenuButton__UEAAHPEAVCWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?ResetImageToDefault@CMFCToolBarMenuButton@@UEAAXXZ
+extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarMenuButton__UEAAXXZ() {}
+
+// Symbol: ?SaveBarState@CMFCToolBarMenuButton@@UEAAXXZ
+extern "C" void MS_ABI impl__SaveBarState_CMFCToolBarMenuButton__UEAAXXZ() {}
+
+// Symbol: ?Serialize@CMFCToolBarMenuButton@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarMenuButton__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetACCData@CMFCToolBarMenuButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+extern "C" int MS_ABI impl__SetACCData_CMFCToolBarMenuButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?SetMenuPaletteMode@CMFCToolBarMenuButton@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetMenuPaletteMode_CMFCToolBarMenuButton__QEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?SetRadio@CMFCToolBarMenuButton@@UEAAXXZ
+extern "C" void MS_ABI impl__SetRadio_CMFCToolBarMenuButton__UEAAXXZ() {}
+
+// Symbol: ?SetTearOff@CMFCToolBarMenuButton@@UEAAXI@Z
+extern "C" void MS_ABI impl__SetTearOff_CMFCToolBarMenuButton__UEAAXI_Z(unsigned int p0) {}

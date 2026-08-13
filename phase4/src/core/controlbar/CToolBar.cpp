@@ -473,3 +473,35 @@ BOOL CToolBar::IsVisible() const {
 BOOL CToolBar::IsFloating() const {
     return (m_dwStyle & CBRS_FLOATING) != 0;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetButtonInfo@CToolBar@@QEBAXHAEAI0AEAH@Z
+extern "C" void MS_ABI impl__GetButtonInfo_CToolBar__QEBAXHAEAI0AEAH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+
+// ?AddReplaceBitmap@CToolBar@@QEAAHPEAUHBITMAP__@@@Z
+extern "C" int MS_ABI impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// ?LoadBitmapW@CToolBar@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__LoadBitmapW_CToolBar__QEAAHPEB_W_Z(const wchar_t* p0) {
+    return 0;
+}
+
+// ?OnNcPaint@CToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CToolBar__IEAAXXZ() {}
+
+// ?OnPaint@CToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CToolBar__IEAAXXZ() {}
+
+// ?OnSetBitmapSize@CToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnSetBitmapSize_CToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+

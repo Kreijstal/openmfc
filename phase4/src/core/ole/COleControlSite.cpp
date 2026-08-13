@@ -357,3 +357,519 @@ LPOLEINPLACEOBJECT COleControlSite::GetInPlaceObject() {
 LPDISPATCH COleControlSite::GetDispatch() {
     return m_lpDispatch;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?CreateControl@COleControlSite@@QEAAJPEAVCWnd@@AEBVCControlCreationInfo@@KPEBUtagPOINT@@PEBUtagSIZE@@I@Z
+extern "C" long MS_ABI impl__CreateControl_COleControlSite__QEAAJPEAVCWnd__AEBVCControlCreationInfo__KPEBUtagPOINT__PEBUtagSIZE__I_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    return 0L;
+}
+
+
+// Symbol: ?CreateControl@COleControlSite@@UEAAJPEAVCWnd@@AEBU_GUID@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_W@Z
+extern "C" long MS_ABI impl__CreateControl_COleControlSite__UEAAJPEAVCWnd__AEBU_GUID__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    (void)p7;
+    (void)p8;
+    (void)p9;
+    return 0L;
+}
+
+
+// Symbol: ?GetProperty@COleControlSite@@UEBAXJGPEAX@Z
+extern "C" void MS_ABI impl__GetProperty_COleControlSite__UEBAXJGPEAX_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+// Symbol: ?AttachWindow@COleControlSite@@QEAAXXZ
+extern "C" void MS_ABI impl__AttachWindow_COleControlSite__QEAAXXZ() {}
+
+// Symbol: ?BindDefaultProperty@COleControlSite@@UEAAXJGPEB_WPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__BindDefaultProperty_COleControlSite__UEAAXJGPEB_WPEAVCWnd___Z(long p0, unsigned short p1, const wchar_t* p2, void* /*class*/* p3) {}
+
+// Symbol: ?BindProperty@COleControlSite@@UEAAXJPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__BindProperty_COleControlSite__UEAAXJPEAVCWnd___Z(long p0, void* /*class*/* p1) {}
+
+// Symbol: ?ConnectSink@COleControlSite@@IEAAKAEBU_GUID@@PEAUIUnknown@@@Z
+extern "C" unsigned long MS_ABI impl__ConnectSink_COleControlSite__IEAAKAEBU_GUID__PEAUIUnknown___Z(const void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?CreateControlCommon@COleControlSite@@MEAAJPEAVCWnd@@AEBU_GUID@@AEBVCControlCreationInfo@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_W@Z
+extern "C" long MS_ABI impl__CreateControlCommon_COleControlSite__MEAAJPEAVCWnd__AEBU_GUID__AEBVCControlCreationInfo__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(void* /*class*/* p0, const void* /*struct*/* p1, const void* /*class*/* p2, const wchar_t* p3, unsigned long p4, const void* /*struct*/* p5, const void* /*struct*/* p6, unsigned int p7, void* /*class*/* p8, int p9, wchar_t* p10) {
+    return 0;
+}
+
+// Symbol: ?CreateOrLoad@COleControlSite@@MEAAJAEBU_GUID@@PEAVCFile@@HPEA_W@Z
+extern "C" long MS_ABI impl__CreateOrLoad_COleControlSite__MEAAJAEBU_GUID__PEAVCFile__HPEA_W_Z(const void* /*struct*/* p0, void* /*class*/* p1, int p2, wchar_t* p3) {
+    return 0;
+}
+
+// Symbol: ?CreateOrLoad@COleControlSite@@MEAAJAEBVCControlCreationInfo@@@Z
+extern "C" long MS_ABI impl__CreateOrLoad_COleControlSite__MEAAJAEBVCControlCreationInfo___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?DetachWindow@COleControlSite@@QEAAXXZ
+extern "C" void MS_ABI impl__DetachWindow_COleControlSite__QEAAXXZ() {}
+
+// Symbol: ?DisconnectSink@COleControlSite@@IEAAXAEBU_GUID@@K@Z
+extern "C" void MS_ABI impl__DisconnectSink_COleControlSite__IEAAXAEBU_GUID__K_Z(const void* /*struct*/* p0, unsigned long p1) {}
+
+// Symbol: ?DoVerb@COleControlSite@@UEAAJJPEAUtagMSG@@@Z
+extern "C" long MS_ABI impl__DoVerb_COleControlSite__UEAAJJPEAUtagMSG___Z(long p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?EnableDSC@COleControlSite@@UEAAXXZ
+extern "C" void MS_ABI impl__EnableDSC_COleControlSite__UEAAXXZ() {}
+
+// Symbol: ?FreezeEvents@COleControlSite@@QEAAXH@Z
+extern "C" void MS_ABI impl__FreezeEvents_COleControlSite__QEAAXH_Z(int p0) {}
+
+// Symbol: ?GetControlInfo@COleControlSite@@IEAAXXZ
+extern "C" void MS_ABI impl__GetControlInfo_COleControlSite__IEAAXXZ() {}
+
+// Symbol: ?GetCursor@COleControlSite@@IEAAJJPEAPEAUIUnknown@@PEAPEAX@Z
+extern "C" long MS_ABI impl__GetCursor_COleControlSite__IEAAJJPEAPEAUIUnknown__PEAPEAX_Z(long p0, void* /*struct*/** p1, void** p2) {
+    return 0;
+}
+
+// Symbol: ?GetDefBtnCode@COleControlSite@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetDefBtnCode_COleControlSite__QEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetDlgCtrlID@COleControlSite@@UEBAHXZ
+extern "C" int MS_ABI impl__GetDlgCtrlID_COleControlSite__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?GetEventIID@COleControlSite@@QEAAHPEAU_GUID@@@Z
+extern "C" int MS_ABI impl__GetEventIID_COleControlSite__QEAAHPEAU_GUID___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetExStyle@COleControlSite@@UEBAKXZ
+extern "C" unsigned long MS_ABI impl__GetExStyle_COleControlSite__UEBAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetStyle@COleControlSite@@UEBAKXZ
+extern "C" unsigned long MS_ABI impl__GetStyle_COleControlSite__UEBAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetWindowTextW@COleControlSite@@UEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetWindowTextW_COleControlSite__UEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, void** p1, void* p2) {}
+
+// Symbol: ?IsDefaultButton@COleControlSite@@QEAAHXZ
+extern "C" int MS_ABI impl__IsDefaultButton_COleControlSite__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsMatchingMnemonic@COleControlSite@@QEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__IsMatchingMnemonic_COleControlSite__QEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?IsWindowEnabled@COleControlSite@@UEBAHXZ
+extern "C" int MS_ABI impl__IsWindowEnabled_COleControlSite__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?ModifyStyle@COleControlSite@@UEAAHKKI@Z
+extern "C" int MS_ABI impl__ModifyStyle_COleControlSite__UEAAHKKI_Z(unsigned long p0, unsigned long p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?ModifyStyleEx@COleControlSite@@UEAAHKKI@Z
+extern "C" int MS_ABI impl__ModifyStyleEx_COleControlSite__UEAAHKKI_Z(unsigned long p0, unsigned long p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?MoveWindow@COleControlSite@@UEAAXHHHH@Z
+extern "C" void MS_ABI impl__MoveWindow_COleControlSite__UEAAXHHHH_Z(int p0, int p1, int p2, int p3) {}
+
+// Symbol: ?OnEvent@COleControlSite@@IEAAHPEAUAFX_EVENT@@@Z
+extern "C" int MS_ABI impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?QuickActivate@COleControlSite@@UEAAHXZ
+extern "C" int MS_ABI impl__QuickActivate_COleControlSite__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?SafeSetProperty@COleControlSite@@UEAAHJGZZ
+extern "C" int MS_ABI impl__SafeSetProperty_COleControlSite__UEAAHJGZZ(long p0, unsigned short p1) {
+    return 0;
+}
+
+// Symbol: ?SendMnemonic@COleControlSite@@QEAAXPEAUtagMSG@@@Z
+extern "C" void MS_ABI impl__SendMnemonic_COleControlSite__QEAAXPEAUtagMSG___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SetDefaultButton@COleControlSite@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetDefaultButton_COleControlSite__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetDlgCtrlID@COleControlSite@@UEAAHH@Z
+extern "C" int MS_ABI impl__SetDlgCtrlID_COleControlSite__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SetExtent@COleControlSite@@IEAAHXZ
+extern "C" int MS_ABI impl__SetExtent_COleControlSite__IEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?SetFocus@COleControlSite@@UEAAPEAVCWnd@@PEAUtagMSG@@@Z
+extern "C" void* MS_ABI impl__SetFocus_COleControlSite__UEAAPEAVCWnd__PEAUtagMSG___Z(void* /*struct*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?SetFocus@COleControlSite@@UEAAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__SetFocus_COleControlSite__UEAAPEAVCWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?SetPropertyV@COleControlSite@@UEAAXJGPEAD@Z
+extern "C" void MS_ABI impl__SetPropertyV_COleControlSite__UEAAXJGPEAD_Z(long p0, unsigned short p1, char* p2) {}
+
+// Symbol: ?SetWindowPos@COleControlSite@@UEAAHPEBVCWnd@@HHHHI@Z
+extern "C" int MS_ABI impl__SetWindowPos_COleControlSite__UEAAHPEBVCWnd__HHHHI_Z(const void* /*class*/* p0, int p1, int p2, int p3, int p4, unsigned int p5) {
+    return 0;
+}
+
+// Symbol: ?SetWindowTextW@COleControlSite@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetWindowTextW_COleControlSite__UEAAXPEB_W_Z(const wchar_t* p0) {}
+
+// Symbol: ?ShowWindow@COleControlSite@@UEAAHH@Z
+extern "C" int MS_ABI impl__ShowWindow_COleControlSite__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?AboutToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__AboutToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?AdjustRect@XOleIPSite@COleControlSite@@UEAAJPEAUtagRECT@@@Z
+extern "C" long MS_ABI impl__AdjustRect_XOleIPSite_COleControlSite__UEAAJPEAUtagRECT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?CanInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?CanWindowlessActivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__CanWindowlessActivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?Cancelled@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__Cancelled_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?ContextSensitiveHelp@XOleIPSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?DeactivateAndUndo@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?DidEvent@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__DidEvent_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?DiscardUndoState@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?FailedToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__FailedToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?FireEvent@XNotifyDBEvents@COleControlSite@@QEAAJKKQEAUtagDBNOTIFYREASON@@W4DSCSTATE@@@Z
+extern "C" long MS_ABI impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4, int /*enum*/ p5, char p6, void* p7, void* p8, void* p9, void* p10, void** p11, unsigned char p12) {
+    return 0;
+}
+
+// Symbol: ?GetCapture@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__GetCapture_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?GetContainer@XOleClientSite@COleControlSite@@UEAAJPEAPEAUIOleContainer@@@Z
+extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleControlSite__UEAAJPEAPEAUIOleContainer___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetCursor@XBoundObjectSite@COleControlSite@@UEAAJJPEAPEAUICursor@@PEAPEAX@Z
+extern "C" long MS_ABI impl__GetCursor_XBoundObjectSite_COleControlSite__UEAAJJPEAPEAUICursor__PEAPEAX_Z(long p0, void* /*struct*/** p1, void** p2) {
+    return 0;
+}
+
+// Symbol: ?GetDC@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@KPEAPEAUHDC__@@@Z
+extern "C" long MS_ABI impl__GetDC_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT__KPEAPEAUHDC_____Z(const void* /*struct*/* p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetExtendedControl@XOleControlSite@COleControlSite@@UEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__GetExtendedControl_XOleControlSite_COleControlSite__UEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetFocus@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__GetFocus_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?GetIDsOfNames@XAmbientProps@COleControlSite@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
+extern "C" long MS_ABI impl__GetIDsOfNames_XAmbientProps_COleControlSite__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(const void* /*struct*/* p0, wchar_t** p1, unsigned int p2, unsigned long p3, long* p4) {
+    return 0;
+}
+
+// Symbol: ?GetIDsOfNames@XEventSink@COleControlSite@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
+extern "C" long MS_ABI impl__GetIDsOfNames_XEventSink_COleControlSite__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(const void* /*struct*/* p0, wchar_t** p1, unsigned int p2, unsigned long p3, long* p4) {
+    return 0;
+}
+
+// Symbol: ?GetMoniker@XOleClientSite@COleControlSite@@UEAAJKKPEAPEAUIMoniker@@@Z
+extern "C" long MS_ABI impl__GetMoniker_XOleClientSite_COleControlSite__UEAAJKKPEAPEAUIMoniker___Z(unsigned long p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfo@XAmbientProps@COleControlSite@@UEAAJIKPEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfo_XAmbientProps_COleControlSite__UEAAJIKPEAPEAUITypeInfo___Z(unsigned int p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfo@XEventSink@COleControlSite@@UEAAJIKPEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfo_XEventSink_COleControlSite__UEAAJIKPEAPEAUITypeInfo___Z(unsigned int p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoCount@XAmbientProps@COleControlSite@@UEAAJPEAI@Z
+extern "C" long MS_ABI impl__GetTypeInfoCount_XAmbientProps_COleControlSite__UEAAJPEAI_Z(unsigned int* p0) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoCount@XEventSink@COleControlSite@@UEAAJPEAI@Z
+extern "C" long MS_ABI impl__GetTypeInfoCount_XEventSink_COleControlSite__UEAAJPEAI_Z(unsigned int* p0) {
+    return 0;
+}
+
+// Symbol: ?GetWindow@XOleIPSite@COleControlSite@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__GetWindow_XOleIPSite_COleControlSite__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetWindowContext@XOleIPSite@COleControlSite@@UEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagRECT@@2PEAUtagOIFI@@@Z
+extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleControlSite__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagRECT__2PEAUtagOIFI___Z(void* /*struct*/** p0, void* /*struct*/** p1, void* /*struct*/* p2, void* p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?InvalidateRect@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@H@Z
+extern "C" long MS_ABI impl__InvalidateRect_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT__H_Z(const void* /*struct*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?InvalidateRgn@XOleIPSite@COleControlSite@@UEAAJPEAUHRGN__@@H@Z
+extern "C" long MS_ABI impl__InvalidateRgn_XOleIPSite_COleControlSite__UEAAJPEAUHRGN____H_Z(void* /*struct*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?Invoke@XAmbientProps@COleControlSite@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_XAmbientProps_COleControlSite__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(long p0, const void* /*struct*/* p1, unsigned long p2, unsigned short p3, void* /*struct*/* p4, void* /*struct*/* p5, void* /*struct*/* p6, unsigned int* p7) {
+    return 0;
+}
+
+// Symbol: ?Invoke@XEventSink@COleControlSite@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_XEventSink_COleControlSite__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(long p0, const void* /*struct*/* p1, unsigned long p2, unsigned short p3, void* /*struct*/* p4, void* /*struct*/* p5, void* /*struct*/* p6, unsigned int* p7) {
+    return 0;
+}
+
+// Symbol: ?LockInPlaceActive@XOleControlSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__LockInPlaceActive_XOleControlSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OKToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__OKToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?OnChanged@XPropertyNotifySink@COleControlSite@@UEAAJJ@Z
+extern "C" long MS_ABI impl__OnChanged_XPropertyNotifySink_COleControlSite__UEAAJJ_Z(long p0) {
+    return 0;
+}
+
+// Symbol: ?OnControlInfoChanged@XOleControlSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__OnControlInfoChanged_XOleControlSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnDefWindowMessage@XOleIPSite@COleControlSite@@UEAAJI_K_JPEA_J@Z
+extern "C" long MS_ABI impl__OnDefWindowMessage_XOleIPSite_COleControlSite__UEAAJI_K_JPEA_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2, __int64* p3) {
+    return 0;
+}
+
+// Symbol: ?OnFieldChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@_K1QEA_KKKH@Z
+extern "C" long MS_ABI impl__OnFieldChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___K1QEA_KKKH_Z(void* /*struct*/* p0, unsigned __int64 p1, unsigned __int64 p2, void* p3, unsigned char p4, unsigned __int64* p5, unsigned long p6, unsigned long p7, int p8) {
+    return 0;
+}
+
+// Symbol: ?OnFocus@XOleControlSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnFocus_XOleControlSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnInPlaceActivateEx@XOleIPSite@COleControlSite@@UEAAJPEAHK@Z
+extern "C" long MS_ABI impl__OnInPlaceActivateEx_XOleIPSite_COleControlSite__UEAAJPEAHK_Z(int* p0, unsigned long p1) {
+    return 0;
+}
+
+// Symbol: ?OnInPlaceDeactivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnInPlaceDeactivateEx@XOleIPSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnInPlaceDeactivateEx_XOleIPSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnPosRectChange@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@@Z
+extern "C" long MS_ABI impl__OnPosRectChange_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnRequestEdit@XPropertyNotifySink@COleControlSite@@UEAAJJ@Z
+extern "C" long MS_ABI impl__OnRequestEdit_XPropertyNotifySink_COleControlSite__UEAAJJ_Z(long p0) {
+    return 0;
+}
+
+// Symbol: ?OnRowChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@_KQEB_KKKH@Z
+extern "C" long MS_ABI impl__OnRowChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___KQEB_KKKH_Z(void* /*struct*/* p0, unsigned __int64 p1, void* p2, unsigned char p3, void* p4, unsigned __int64 p5, unsigned long p6, unsigned long p7, int p8) {
+    return 0;
+}
+
+// Symbol: ?OnRowsetChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@KKH@Z
+extern "C" long MS_ABI impl__OnRowsetChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset__KKH_Z(void* /*struct*/* p0, unsigned long p1, unsigned long p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?OnShowWindow@XOleClientSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnShowWindow_XOleClientSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnUIActivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnUIDeactivate@XOleIPSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnUIDeactivate_XOleIPSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?ReleaseDC@XOleIPSite@COleControlSite@@UEAAJPEAUHDC__@@@Z
+extern "C" long MS_ABI impl__ReleaseDC_XOleIPSite_COleControlSite__UEAAJPEAUHDC_____Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RequestNewObjectLayout@XOleClientSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?RequestUIActivate@XOleIPSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__RequestUIActivate_XOleIPSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?SaveObject@XOleClientSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?Scroll@XOleIPSite@COleControlSite@@UEAAJUtagSIZE@@@Z
+extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleControlSite__UEAAJUtagSIZE___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// Symbol: ?ScrollRect@XOleIPSite@COleControlSite@@UEAAJHHPEBUtagRECT@@0@Z
+extern "C" long MS_ABI impl__ScrollRect_XOleIPSite_COleControlSite__UEAAJHHPEBUtagRECT__0_Z(int p0, int p1, const void* /*struct*/* p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?SetCapture@XOleIPSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__SetCapture_XOleIPSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SetFocus@XOleIPSite@COleControlSite@@UEAAJH@Z
+extern "C" long MS_ABI impl__SetFocus_XOleIPSite_COleControlSite__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?ShowObject@XOleClientSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?ShowPropertyFrame@XOleControlSite@COleControlSite@@UEAAJXZ
+extern "C" long MS_ABI impl__ShowPropertyFrame_XOleControlSite_COleControlSite__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?SyncAfter@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__SyncAfter_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?SyncBefore@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
+extern "C" long MS_ABI impl__SyncBefore_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(unsigned long p0, unsigned long p1, void* p2, unsigned char p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?TransformCoords@XOleControlSite@COleControlSite@@UEAAJPEAU_POINTL@@PEAUtagPOINTF@@K@Z
+extern "C" long MS_ABI impl__TransformCoords_XOleControlSite_COleControlSite__UEAAJPEAU_POINTL__PEAUtagPOINTF__K_Z(void* /*struct*/* p0, void* /*struct*/* p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?TranslateAcceleratorW@XOleControlSite@COleControlSite@@UEAAJPEAUtagMSG@@K@Z
+extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleControlSite_COleControlSite__UEAAJPEAUtagMSG__K_Z(void* /*struct*/* p0, unsigned long p1) {
+    return 0;
+}

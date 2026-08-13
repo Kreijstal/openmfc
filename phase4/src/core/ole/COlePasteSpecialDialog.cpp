@@ -136,3 +136,15 @@ void COlePasteSpecialDialog::AddStandardFormats(BOOL bEnableLink) {
         AddFormat(CF_UNICODETEXT, TYMED_HGLOBAL, CF_UNICODETEXT, FALSE, TRUE);
     }
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?AddFormat@COlePasteSpecialDialog@@QEAAXIKIHH@Z
+extern "C" void MS_ABI impl__AddFormat_COlePasteSpecialDialog__QEAAXIKIHH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+}
+

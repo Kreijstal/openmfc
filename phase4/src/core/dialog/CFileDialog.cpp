@@ -687,3 +687,63 @@ extern "C" void* MS_ABI impl___0CFileDialog__QEAA_HPEB_W0K0PEAVCWnd__KH_Z(
     return new (p) CFileDialog(bOpenFileDialog, lpszDefExt, lpszFileName, dwFlags,
                                lpszFilter, pParentWnd, dwSize, bVistaStyle);
 }
+
+// Symbol: ?OnButtonClicked@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
+extern "C" long MS_ABI impl__OnButtonClicked_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(void* /*struct*/* p0, unsigned long p1) {
+    return 0;
+}
+
+// Symbol: ?OnCheckButtonToggled@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KH@Z
+extern "C" long MS_ABI impl__OnCheckButtonToggled_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KH_Z(void* /*struct*/* p0, unsigned long p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OnControlActivating@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
+extern "C" long MS_ABI impl__OnControlActivating_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(void* /*struct*/* p0, unsigned long p1) {
+    return 0;
+}
+
+// Symbol: ?OnFileOk@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnFileOk_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnFolderChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnFolderChanging@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@@Z
+extern "C" long MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnHelp@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnHelp_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnItemSelected@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KK@Z
+extern "C" long MS_ABI impl__OnItemSelected_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KK_Z(void* /*struct*/* p0, unsigned long p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?OnOverwrite@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_OVERWRITE_RESPONSE@@@Z
+extern "C" long MS_ABI impl__OnOverwrite_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_OVERWRITE_RESPONSE___Z(void* /*struct*/* p0, void* /*struct*/* p1, int /*enum*/* p2, short p3, char p4, unsigned char p5, int p6, void* p7, void* /*class*/ p8) {
+    return 0;
+}
+
+// Symbol: ?OnSelectionChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnSelectionChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnShareViolation@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_SHAREVIOLATION_RESPONSE@@@Z
+extern "C" long MS_ABI impl__OnShareViolation_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_SHAREVIOLATION_RESPONSE___Z(void* /*struct*/* p0, void* /*struct*/* p1, int /*enum*/* p2, short p3, char p4, unsigned char p5, int p6, void* p7, int p8, void** p9, unsigned char p10, void* /*class*/ p11) {
+    return 0;
+}
+
+// Symbol: ?OnTypeChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
+extern "C" long MS_ABI impl__OnTypeChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
+    return 0;
+}

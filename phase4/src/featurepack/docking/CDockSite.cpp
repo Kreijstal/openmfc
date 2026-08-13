@@ -145,3 +145,136 @@ extern "C" void* MS_ABI impl___0CDockSite__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
+// Symbol: ?AddRow@CDockSite@@QEAAPEAVCDockingPanesRow@@PEAU__POSITION@@H@Z
+extern "C" void* MS_ABI impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(void* /*struct*/* p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?AlignDockSite@CDockSite@@QEAAXAEBVCRect@@AEAV2@H@Z
+extern "C" void MS_ABI impl__AlignDockSite_CDockSite__QEAAXAEBVCRect__AEAV2_H_Z(const void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?CalcFixedLayout@CDockSite@@UEAA?AVCSize@@HH@Z
+extern "C" void* MS_ABI impl__CalcFixedLayout_CDockSite__UEAA_AVCSize__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?CalcWindowRect@CDockSite@@MEAAXPEAUtagRECT@@I@Z
+extern "C" void MS_ABI impl__CalcWindowRect_CDockSite__MEAAXPEAUtagRECT__I_Z(void* /*struct*/* p0, unsigned int p1) {}
+
+// Symbol: ?CanAcceptPane@CDockSite@@UEBAHPEBVCBasePane@@@Z
+extern "C" int MS_ABI impl__CanAcceptPane_CDockSite__UEBAHPEBVCBasePane___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?CreateRow@CDockSite@@UEAAPEAVCDockingPanesRow@@PEAV1@HH@Z
+extern "C" void* MS_ABI impl__CreateRow_CDockSite__UEAAPEAVCDockingPanesRow__PEAV1_HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?FindNextVisibleRow@CDockSite@@IEAAPEAVCDockingPanesRow@@AEAPEAU__POSITION@@H@Z
+extern "C" void* MS_ABI impl__FindNextVisibleRow_CDockSite__IEAAPEAVCDockingPanesRow__AEAPEAU__POSITION__H_Z(void* /*struct*/** p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?FindPaneByID@CDockSite@@QEAAPEAVCPane@@I@Z
+extern "C" void* MS_ABI impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(unsigned int p0) {
+    return nullptr;
+}
+
+// Symbol: ?FindRowByRect@CDockSite@@IEAAPEAVCDockingPanesRow@@VCRect@@@Z
+extern "C" void* MS_ABI impl__FindRowByRect_CDockSite__IEAAPEAVCDockingPanesRow__VCRect___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?FindRowIndex@CDockSite@@QEAAHPEAVCDockingPanesRow@@@Z
+extern "C" int MS_ABI impl__FindRowIndex_CDockSite__QEAAHPEAVCDockingPanesRow___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?IsDragMode@CDockSite@@UEBAHXZ
+extern "C" int MS_ABI impl__IsDragMode_CDockSite__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsLastRow@CDockSite@@QEBA_NPEAVCDockingPanesRow@@@Z
+extern "C" int MS_ABI impl__IsLastRow_CDockSite__QEBA_NPEAVCDockingPanesRow___Z(void* /*class*/* p0) {
+    return 0;  // false
+}
+
+// Symbol: ?IsRectWithinDockSite@CDockSite@@QEAAHVCRect@@AEAVCPoint@@@Z
+extern "C" int MS_ABI impl__IsRectWithinDockSite_CDockSite__QEAAHVCRect__AEAVCPoint___Z(void* /*class*/ p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?MovePane@CDockSite@@UEAAHPEAVCPane@@IVCPoint@@@Z
+extern "C" int MS_ABI impl__MovePane_CDockSite__UEAAHPEAVCPane__IVCPoint___Z(void* /*class*/* p0, unsigned int p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnContextMenu@CDockSite@@IEAAXPEAVCWnd@@VCPoint@@@Z
+extern "C" void MS_ABI impl__OnContextMenu_CDockSite__IEAAXPEAVCWnd__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnDestroy@CDockSite@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CDockSite__IEAAXXZ() {}
+
+// Symbol: ?OnEraseBkgnd@CDockSite@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CDockSite__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcDestroy@CDockSite@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcDestroy_CDockSite__IEAAXXZ() {}
+
+// Symbol: ?OnPaint@CDockSite@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CDockSite__IEAAXXZ() {}
+
+// Symbol: ?OnResizeRow@CDockSite@@UEAAHPEAVCDockingPanesRow@@H@Z
+extern "C" int MS_ABI impl__OnResizeRow_CDockSite__UEAAHPEAVCDockingPanesRow__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?OnShowRow@CDockSite@@UEAAXPEAU__POSITION@@H@Z
+extern "C" void MS_ABI impl__OnShowRow_CDockSite__UEAAXPEAU__POSITION__H_Z(void* /*struct*/* p0, int p1) {}
+
+// Symbol: ?OnSize@CDockSite@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CDockSite__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?PaneFromPoint@CDockSite@@UEAAPEAVCPane@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__PaneFromPoint_CDockSite__UEAAPEAVCPane__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?RectSideFromPoint@CDockSite@@SAHAEBVCRect@@AEBVCPoint@@@Z
+extern "C" int MS_ABI impl__RectSideFromPoint_CDockSite__SAHAEBVCRect__AEBVCPoint___Z(const void* /*class*/* p0, const void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?RemovePane@CDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@@Z
+extern "C" void MS_ABI impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, char p4, void* p5, void* p6, unsigned long p7, int p8, float p9, unsigned char p10, void* p11, int p12, void* p13, char p14) {}
+
+// Symbol: ?RemoveRow@CDockSite@@QEAAXPEAVCDockingPanesRow@@@Z
+extern "C" void MS_ABI impl__RemoveRow_CDockSite__QEAAXPEAVCDockingPanesRow___Z(void* /*class*/* p0) {}
+
+// Symbol: ?ReplacePane@CDockSite@@QEAAHPEAVCPane@@0@Z
+extern "C" int MS_ABI impl__ReplacePane_CDockSite__QEAAHPEAVCPane__0_Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?RepositionPanes@CDockSite@@UEAAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__RepositionPanes_CDockSite__UEAAXAEAVCRect___Z(void* /*class*/* p0) {}
+
+// Symbol: ?RowFromPane@CDockSite@@IEBAPEAVCDockingPanesRow@@PEAVCBasePane@@@Z
+extern "C" void* MS_ABI impl__RowFromPane_CDockSite__IEBAPEAVCDockingPanesRow__PEAVCBasePane___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?RowFromPoint@CDockSite@@IEBAPEAVCDockingPanesRow@@VCPoint@@AEA_N@Z
+extern "C" void* MS_ABI impl__RowFromPoint_CDockSite__IEBAPEAVCDockingPanesRow__VCPoint__AEA_N_Z(void* /*class*/ p0, bool* p1) {
+    return nullptr;
+}
+
+// Symbol: ?ShowRow@CDockSite@@QEAAXPEAVCDockingPanesRow@@HH@Z
+extern "C" void MS_ABI impl__ShowRow_CDockSite__QEAAXPEAVCDockingPanesRow__HH_Z(void* /*class*/* p0, int p1, int p2) {}
+
+// Symbol: ?SwapRows@CDockSite@@QEAAXPEAVCDockingPanesRow@@0@Z
+extern "C" void MS_ABI impl__SwapRows_CDockSite__QEAAXPEAVCDockingPanesRow__0_Z(void* /*class*/* p0, void* /*class*/* p1) {}

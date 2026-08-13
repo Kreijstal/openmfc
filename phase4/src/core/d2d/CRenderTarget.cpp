@@ -388,3 +388,100 @@ void CRenderTarget::GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) co
 void CRenderTarget::SetTags(unsigned __int64 tag1, unsigned __int64 tag2) {
     impl__SetTags_CRenderTarget__QEAAX_K0_Z(this, tag1, tag2);
 }
+// Symbol: ?CreateCompatibleRenderTarget@CRenderTarget@@QEAAHAEAVCBitmapRenderTarget@@VCD2DSizeF@@VCD2DSizeU@@PEAUD2D1_PIXEL_FORMAT@@W4D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS@@@Z
+extern "C" int MS_ABI impl__CreateCompatibleRenderTarget_CRenderTarget__QEAAHAEAVCBitmapRenderTarget__VCD2DSizeF__VCD2DSizeU__PEAUD2D1_PIXEL_FORMAT__W4D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/ p2, void* /*struct*/* p3, int /*enum*/ p4, char p5, void* /*struct*/* p6, char p7, void* /*class*/ p8, int p9, void* p10, void* p11, float p12, void** p13, unsigned int p14, void* p15, void* p16, unsigned char p17, int p18, void* p19, unsigned char p20, double p21, char p22, unsigned char p23, void* p24, int p25, void* p26, void** p27, unsigned short p28, unsigned char p29, void* p30, int p31, void* p32, void** p33, unsigned int p34, void* p35, double p36, void* p37) {
+    return 0;
+}
+
+// Symbol: ?DrawBitmap@CRenderTarget@@QEAAXPEAVCD2DBitmap@@AEBVCD2DRectF@@MW4D2D1_BITMAP_INTERPOLATION_MODE@@PEBV3@@Z
+extern "C" void MS_ABI impl__DrawBitmap_CRenderTarget__QEAAXPEAVCD2DBitmap__AEBVCD2DRectF__MW4D2D1_BITMAP_INTERPOLATION_MODE__PEBV3__Z(void* /*class*/* p0, const void* /*class*/* p1, float p2, int /*enum*/ p3, char p4, float p5, char p6, const void* /*class*/* p7, int p8, void* p9, unsigned int p10, void* p11, float p12, int** p13, unsigned int p14, double p15, void* p16, unsigned char p17, void* p18, void** p19, void* p20, void** p21, unsigned int p22, void* p23, double p24, int p25, float p26, void* p27, char p28, unsigned char p29, const void* /*class*/* p30) {}
+
+// Symbol: ?DrawGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
+extern "C" void MS_ABI impl__DrawGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(void* /*class*/* p0, void* /*class*/* p1, float p2, void* /*struct*/* p3) {}
+
+// Symbol: ?DrawGlyphRun@CRenderTarget@@QEAAXAEBVCD2DPointF@@AEBUDWRITE_GLYPH_RUN@@PEAVCD2DBrush@@W4DWRITE_MEASURING_MODE@@@Z
+extern "C" void MS_ABI impl__DrawGlyphRun_CRenderTarget__QEAAXAEBVCD2DPointF__AEBUDWRITE_GLYPH_RUN__PEAVCD2DBrush__W4DWRITE_MEASURING_MODE___Z(const void* /*class*/* p0, const void* /*struct*/* p1, void* /*class*/* p2, int /*enum*/ p3, char p4, int /*enum*/ p5) {}
+
+// Symbol: ?DrawTextLayout@CRenderTarget@@QEAAXAEBVCD2DPointF@@PEAVCD2DTextLayout@@PEAVCD2DBrush@@W4D2D1_DRAW_TEXT_OPTIONS@@@Z
+extern "C" void MS_ABI impl__DrawTextLayout_CRenderTarget__QEAAXAEBVCD2DPointF__PEAVCD2DTextLayout__PEAVCD2DBrush__W4D2D1_DRAW_TEXT_OPTIONS___Z(const void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int /*enum*/ p3, char p4, int /*enum*/ p5, char p6, void* /*class*/* p7, int p8, char p9, void* p10, int /*enum*/* p11) {}
+
+// Symbol: ?FillGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@1@Z
+extern "C" void MS_ABI impl__FillGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__1_Z(void* /*class*/* p0, void* /*class*/* p1, void* p2) {}
+
+// Symbol: ?FillMesh@CRenderTarget@@QEAAXPEAVCD2DMesh@@PEAVCD2DBrush@@@Z
+extern "C" void MS_ABI impl__FillMesh_CRenderTarget__QEAAXPEAVCD2DMesh__PEAVCD2DBrush___Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?FillOpacityMask@CRenderTarget@@QEAAXPEAVCD2DBitmap@@PEAVCD2DBrush@@W4D2D1_OPACITY_MASK_CONTENT@@AEBVCD2DRectF@@3@Z
+extern "C" void MS_ABI impl__FillOpacityMask_CRenderTarget__QEAAXPEAVCD2DBitmap__PEAVCD2DBrush__W4D2D1_OPACITY_MASK_CONTENT__AEBVCD2DRectF__3_Z(void* /*class*/* p0, void* /*class*/* p1, int /*enum*/ p2, char p3, char p4, char p5, int /*enum*/ p6, int p7, void* p8, void** p9, unsigned int p10, void* p11, void* p12, int p13, float p14, void** p15, unsigned long p16, int p17, void* p18, void* p19, double p20, void* p21, unsigned char p22, double p23, void* p24, const void* /*class*/* p25, int p26) {}
+
+// Symbol: ?Flush@CRenderTarget@@QEAAXPEA_K0@Z
+extern "C" void MS_ABI impl__Flush_CRenderTarget__QEAAXPEA_K0_Z(unsigned __int64* p0, unsigned __int64* p1) {}
+
+// Symbol: ?GetAntialiasMode@CRenderTarget@@QEBA?AW4D2D1_ANTIALIAS_MODE@@XZ
+extern "C" void* MS_ABI impl__GetAntialiasMode_CRenderTarget__QEBA_AW4D2D1_ANTIALIAS_MODE__XZ(int /*enum*/* p0, char p1, void* p2, char p3, char p4, int p5, double* p6, void* p7, unsigned int p8, void** p9, unsigned int p10, void** p11, int p12, float p13, void* p14, char p15, unsigned char p16) {
+    return nullptr;
+}
+
+// Symbol: ?GetMaximumBitmapSize@CRenderTarget@@QEBAIXZ
+extern "C" unsigned int MS_ABI impl__GetMaximumBitmapSize_CRenderTarget__QEBAIXZ() {
+    return 0;
+}
+
+// Symbol: ?GetPixelFormat@CRenderTarget@@QEBA?AUD2D1_PIXEL_FORMAT@@XZ
+extern "C" void* MS_ABI impl__GetPixelFormat_CRenderTarget__QEBA_AUD2D1_PIXEL_FORMAT__XZ(void* /*struct*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetPixelSize@CRenderTarget@@QEBA?AVCD2DSizeU@@XZ
+extern "C" void* MS_ABI impl__GetPixelSize_CRenderTarget__QEBA_AVCD2DSizeU__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetTextAntialiasMode@CRenderTarget@@QEBA?AW4D2D1_TEXT_ANTIALIAS_MODE@@XZ
+extern "C" void* MS_ABI impl__GetTextAntialiasMode_CRenderTarget__QEBA_AW4D2D1_TEXT_ANTIALIAS_MODE__XZ(int /*enum*/* p0, char p1, void* p2, char p3, char p4, int p5, void* p6, unsigned char p7, void* p8, int p9, double* p10, void* p11, unsigned int p12, void** p13, unsigned int p14, void** p15, int p16, float p17, void* p18, char p19, unsigned char p20) {
+    return nullptr;
+}
+
+// Symbol: ?GetTextRenderingParams@CRenderTarget@@QEAAXPEAPEAUIDWriteRenderingParams@@@Z
+extern "C" void MS_ABI impl__GetTextRenderingParams_CRenderTarget__QEAAXPEAPEAUIDWriteRenderingParams___Z(void* /*struct*/** p0) {}
+
+// Symbol: ?GetTransform@CRenderTarget@@QEAAXPEAUD2D_MATRIX_3X2_F@@@Z
+extern "C" void MS_ABI impl__GetTransform_CRenderTarget__QEAAXPEAUD2D_MATRIX_3X2_F___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?IsSupported@CRenderTarget@@QEBAHAEBUD2D1_RENDER_TARGET_PROPERTIES@@@Z
+extern "C" int MS_ABI impl__IsSupported_CRenderTarget__QEBAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?PopAxisAlignedClip@CRenderTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__PopAxisAlignedClip_CRenderTarget__QEAAXXZ() {}
+
+// Symbol: ?PopLayer@CRenderTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__PopLayer_CRenderTarget__QEAAXXZ() {}
+
+// Symbol: ?PushAxisAlignedClip@CRenderTarget@@QEAAXAEBVCD2DRectF@@W4D2D1_ANTIALIAS_MODE@@@Z
+extern "C" void MS_ABI impl__PushAxisAlignedClip_CRenderTarget__QEAAXAEBVCD2DRectF__W4D2D1_ANTIALIAS_MODE___Z(const void* /*class*/* p0, int /*enum*/ p1, char p2, char p3, char p4, int /*enum*/ p5, int p6, double* p7, void* p8, unsigned int p9, void** p10, unsigned int p11, void** p12, int p13, float p14, void* p15, char p16, unsigned char p17) {}
+
+// Symbol: ?PushLayer@CRenderTarget@@QEAAXAEBUD2D1_LAYER_PARAMETERS@@AEAVCD2DLayer@@@Z
+extern "C" void MS_ABI impl__PushLayer_CRenderTarget__QEAAXAEBUD2D1_LAYER_PARAMETERS__AEAVCD2DLayer___Z(const void* /*struct*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?RestoreDrawingState@CRenderTarget@@QEAAXAEAUID2D1DrawingStateBlock@@@Z
+extern "C" void MS_ABI impl__RestoreDrawingState_CRenderTarget__QEAAXAEAUID2D1DrawingStateBlock___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SaveDrawingState@CRenderTarget@@QEBAXAEAUID2D1DrawingStateBlock@@@Z
+extern "C" void MS_ABI impl__SaveDrawingState_CRenderTarget__QEBAXAEAUID2D1DrawingStateBlock___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SetAntialiasMode@CRenderTarget@@QEAAXW4D2D1_ANTIALIAS_MODE@@@Z
+extern "C" void MS_ABI impl__SetAntialiasMode_CRenderTarget__QEAAXW4D2D1_ANTIALIAS_MODE___Z(int /*enum*/ p0, char p1, void* p2, char p3, char p4, int p5, double* p6, void* p7, unsigned int p8, void** p9, unsigned int p10, void** p11, int p12, float p13, void* p14, char p15, unsigned char p16) {}
+
+// Symbol: ?SetTextAntialiasMode@CRenderTarget@@QEAAXW4D2D1_TEXT_ANTIALIAS_MODE@@@Z
+extern "C" void MS_ABI impl__SetTextAntialiasMode_CRenderTarget__QEAAXW4D2D1_TEXT_ANTIALIAS_MODE___Z(int /*enum*/ p0, char p1, void* p2, char p3, char p4, int p5, void* p6, unsigned char p7, void* p8, int p9, double* p10, void* p11, unsigned int p12, void** p13, unsigned int p14, void** p15, int p16, float p17, void* p18, char p19, unsigned char p20) {}
+
+// Symbol: ?SetTextRenderingParams@CRenderTarget@@QEAAXPEAUIDWriteRenderingParams@@@Z
+extern "C" void MS_ABI impl__SetTextRenderingParams_CRenderTarget__QEAAXPEAUIDWriteRenderingParams___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SetTransform@CRenderTarget@@QEAAXAEBUD2D_MATRIX_3X2_F@@@Z
+extern "C" void MS_ABI impl__SetTransform_CRenderTarget__QEAAXAEBUD2D_MATRIX_3X2_F___Z(const void* /*struct*/* p0) {}
+
+// Symbol: ?SetTransform@CRenderTarget@@QEAAXPEBUD2D_MATRIX_3X2_F@@@Z
+extern "C" void MS_ABI impl__SetTransform_CRenderTarget__QEAAXPEBUD2D_MATRIX_3X2_F___Z(const void* /*struct*/* p0) {}

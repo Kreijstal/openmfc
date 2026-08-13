@@ -150,3 +150,66 @@ void CPrintDialogEx::SetPageRange(int nMinPage, int nMaxPage, BOOL bPageRange) {
     m_pdex.nMaxPage = nMaxPage;
     if (bPageRange) m_pdex.Flags |= PD_PAGENUMS;
 }
+// ?AddRef@CPrintDialogEx@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__AddRef_CPrintDialogEx__UEAAKXZ() {
+    return 0;
+}
+
+// ?DefWindowProcW@CPrintDialogEx@@UEAA_JI_K_J@Z
+extern "C" __int64 MS_ABI impl__DefWindowProcW_CPrintDialogEx__UEAA_JI_K_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2) {
+    return 0;
+}
+
+// ?GetDefaults@CPrintDialogEx@@QEAAHXZ
+extern "C" int MS_ABI impl__GetDefaults_CPrintDialogEx__QEAAHXZ() {
+    return 0;
+}
+
+// ?GetSite@CPrintDialogEx@@UEAAJAEBU_GUID@@PEAPEAX@Z
+extern "C" long MS_ABI impl__GetSite_CPrintDialogEx__UEAAJAEBU_GUID__PEAPEAX_Z(const void* /*struct*/* p0, void** p1) {
+    return 0;
+}
+
+// ?HandleInitDialog@CPrintDialogEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__HandleInitDialog_CPrintDialogEx__QEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// ?HandleMessage@CPrintDialogEx@@UEAAJPEAUHWND__@@I_K_JPEA_J@Z
+extern "C" long MS_ABI impl__HandleMessage_CPrintDialogEx__UEAAJPEAUHWND____I_K_JPEA_J_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, __int64 p3, __int64* p4) {
+    return 0;
+}
+
+// ?InitDone@CPrintDialogEx@@UEAAJXZ
+extern "C" long MS_ABI impl__InitDone_CPrintDialogEx__UEAAJXZ() {
+    return 0;
+}
+
+// ?PostModal@CPrintDialogEx@@QEAAXXZ
+extern "C" void MS_ABI impl__PostModal_CPrintDialogEx__QEAAXXZ() {}
+
+// ?PreModal@CPrintDialogEx@@QEAAPEAUHWND__@@XZ
+extern "C" void* MS_ABI impl__PreModal_CPrintDialogEx__QEAAPEAUHWND____XZ() {
+    return nullptr;
+}
+
+// ?QueryInterface@CPrintDialogEx@@UEAAJAEBU_GUID@@PEAPEAX@Z
+extern "C" long MS_ABI impl__QueryInterface_CPrintDialogEx__UEAAJAEBU_GUID__PEAPEAX_Z(const void* /*struct*/* p0, void** p1) {
+    return 0;
+}
+
+// ?Release@CPrintDialogEx@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__Release_CPrintDialogEx__UEAAKXZ() {
+    return 0;
+}
+
+// ?SelectionChange@CPrintDialogEx@@UEAAJXZ
+extern "C" long MS_ABI impl__SelectionChange_CPrintDialogEx__UEAAJXZ() {
+    return 0;
+}
+
+// ?SetSite@CPrintDialogEx@@UEAAJPEAUIUnknown@@@Z
+extern "C" long MS_ABI impl__SetSite_CPrintDialogEx__UEAAJPEAUIUnknown___Z(void* /*struct*/* p0) {
+    return 0;
+}
+

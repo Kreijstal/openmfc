@@ -2365,3 +2365,435 @@ CString CMFCToolBar::GetButtonText(int nIndex) const {
 void CMFCToolBar::GetButtonText(int nIndex, CString& rString) const {
     rString = GetButtonText(nIndex);
 }
+// Symbol: ?m_lstBasicCommands@CMFCToolBar@@1V?$CList@II@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstBasicCommands_CMFCToolBar__1V__CList_II__A = {};
+
+// Symbol: ?m_lstUnpermittedCommands@CMFCToolBar@@1V?$CList@II@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstUnpermittedCommands_CMFCToolBar__1V__CList_II__A = {};
+
+// Symbol: ?m_pUserImages@CMFCToolBar@@1PEAVCMFCToolBarImages@@EA
+extern "C" void* MS_ABI impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA = {};
+
+// Symbol: ?m_sizeButton@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeButton_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_sizeCurButton@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeCurButton_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_sizeCurImage@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeCurImage_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_sizeImage@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeImage_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_sizeMenuButton@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_sizeMenuImage@CMFCToolBar@@1VCSize@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeMenuImage_CMFCToolBar__1VCSize__A = {};
+
+// Symbol: ?m_UsageCount@CMFCToolBar@@1VCMFCCmdUsageCount@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A = {};
+
+// Symbol: ?AccGetButtonByChildId@CMFCToolBar@@IEAAPEAVCMFCToolBarButton@@J@Z
+extern "C" void* MS_ABI impl__AccGetButtonByChildId_CMFCToolBar__IEAAPEAVCMFCToolBarButton__J_Z(long p0) {
+    return nullptr;
+}
+
+// Symbol: ?AccGetButtonsCount@CMFCToolBar@@MEAAHXZ
+extern "C" int MS_ABI impl__AccGetButtonsCount_CMFCToolBar__MEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?AccGetChildIdByButtonIndex@CMFCToolBar@@IEAAHH@Z
+extern "C" int MS_ABI impl__AccGetChildIdByButtonIndex_CMFCToolBar__IEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?AccNotifyObjectFocusEvent@CMFCToolBar@@MEAAXH@Z
+extern "C" void MS_ABI impl__AccNotifyObjectFocusEvent_CMFCToolBar__MEAAXH_Z(int p0) {}
+
+// Symbol: ?AddBasicCommand@CMFCToolBar@@SAXI@Z
+extern "C" void MS_ABI impl__AddBasicCommand_CMFCToolBar__SAXI_Z(unsigned int p0) {}
+
+// Symbol: ?AddCommandUsage@CMFCToolBar@@SAXI@Z
+extern "C" void MS_ABI impl__AddCommandUsage_CMFCToolBar__SAXI_Z(unsigned int p0) {}
+
+// Symbol: ?AddRemoveSeparator@CMFCToolBar@@MEAAXPEBVCMFCToolBarButton@@AEBVCPoint@@1@Z
+extern "C" void MS_ABI impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(const void* /*class*/* p0, const void* /*class*/* p1, const void* /*class*/* p2) {}
+
+// Symbol: ?AddToolBarForImageCollection@CMFCToolBar@@SAHIIIIII@Z
+extern "C" int MS_ABI impl__AddToolBarForImageCollection_CMFCToolBar__SAHIIIIII_Z(unsigned int p0, unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned int p5) {
+    return 0;
+}
+
+// Symbol: ?AdjustLocations@CMFCToolBar@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustLocations_CMFCToolBar__MEAAXXZ() {}
+
+// Symbol: ?AutoGrayInactiveImages@CMFCToolBar@@SAXHHH@Z
+extern "C" void MS_ABI impl__AutoGrayInactiveImages_CMFCToolBar__SAXHHH_Z(int p0, int p1, int p2) {}
+
+// Symbol: ?ButtonToIndex@CMFCToolBar@@QEBAHPEBVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?CalcFixedLayout@CMFCToolBar@@UEAA?AVCSize@@HH@Z
+extern "C" void* MS_ABI impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?CalcLayout@CMFCToolBar@@MEAA?AVCSize@@KH@Z
+extern "C" void* MS_ABI impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(void* /*class*/* p0, unsigned long p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?CalcMaxButtonHeight@CMFCToolBar@@MEAAHXZ
+extern "C" int MS_ABI impl__CalcMaxButtonHeight_CMFCToolBar__MEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?CalcSize@CMFCToolBar@@UEAA?AVCSize@@H@Z
+extern "C" void* MS_ABI impl__CalcSize_CMFCToolBar__UEAA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?CanHandleSiblings@CMFCToolBar@@QEAAHXZ
+extern "C" int MS_ABI impl__CanHandleSiblings_CMFCToolBar__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?CleanUpImages@CMFCToolBar@@SAXXZ
+extern "C" void MS_ABI impl__CleanUpImages_CMFCToolBar__SAXXZ() {}
+
+// Symbol: ?CleanUpLockedImages@CMFCToolBar@@QEAAXXZ
+extern "C" void MS_ABI impl__CleanUpLockedImages_CMFCToolBar__QEAAXXZ() {}
+
+// Symbol: ?CommandToIndex@CMFCToolBar@@QEBAHIH@Z
+extern "C" int MS_ABI impl__CommandToIndex_CMFCToolBar__QEBAHIH_Z(unsigned int p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?CreateDroppedButton@CMFCToolBar@@MEAAPEAVCMFCToolBarButton@@PEAVCOleDataObject@@@Z
+extern "C" void* MS_ABI impl__CreateDroppedButton_CMFCToolBar__MEAAPEAVCMFCToolBarButton__PEAVCOleDataObject___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?Deactivate@CMFCToolBar@@UEAAXXZ
+extern "C" void MS_ABI impl__Deactivate_CMFCToolBar__UEAAXXZ() {}
+
+// Symbol: ?DoPaint@CMFCToolBar@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__DoPaint_CMFCToolBar__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?DrawButton@CMFCToolBar@@MEAAHPEAVCDC@@PEAVCMFCToolBarButton@@PEAVCMFCToolBarImages@@HH@Z
+extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBarButton__PEAVCMFCToolBarImages__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {
+    return 0;
+}
+
+// Symbol: ?DrawDragCursor@CMFCToolBar@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__DrawDragCursor_CMFCToolBar__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?DrawSeparator@CMFCToolBar@@MEAAXPEAVCDC@@AEBVCRect@@H@Z
+extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {}
+
+// Symbol: ?DropDownMenu@CMFCToolBar@@IEAAHPEAVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__DropDownMenu_CMFCToolBar__IEAAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?EnableContextMenuItems@CMFCToolBar@@MEAAHPEAVCMFCToolBarButton@@PEAVCMenu@@@Z
+extern "C" int MS_ABI impl__EnableContextMenuItems_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__PEAVCMenu___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(int p0, int p1, const void* /*class*/* p2, void** p3, void* p4, int p5) {}
+
+// Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHIH@Z
+extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHIH_Z(int p0, int p1, unsigned int p2, int p3) {}
+
+// Symbol: ?FindDropIndex@CMFCToolBar@@MEBAHVCPoint@@AEAVCRect@@@Z
+extern "C" int MS_ABI impl__FindDropIndex_CMFCToolBar__MEBAHVCPoint__AEAVCRect___Z(void* /*class*/ p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?FromHandlePermanent@CMFCToolBar@@SAPEAV1@PEAUHWND__@@@Z
+extern "C" void* MS_ABI impl__FromHandlePermanent_CMFCToolBar__SAPEAV1_PEAUHWND_____Z() {
+    return nullptr;
+}
+
+// Symbol: ?GetAllToolbars@CMFCToolBar@@SAAEBVCObList@@XZ
+extern "C" void* MS_ABI impl__GetAllToolbars_CMFCToolBar__SAAEBVCObList__XZ(void* p0, void* /*class*/ p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetButtonInfo@CMFCToolBar@@QEBAXHAEAI0AEAH@Z
+extern "C" void MS_ABI impl__GetButtonInfo_CMFCToolBar__QEBAXHAEAI0AEAH_Z(int p0, unsigned int* p1, int p2, int* p3) {}
+
+// Symbol: ?GetButtonStyle@CMFCToolBar@@QEBAIH@Z
+extern "C" unsigned int MS_ABI impl__GetButtonStyle_CMFCToolBar__QEBAIH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?GetCommandButtons@CMFCToolBar@@SAHIAEAVCObList@@@Z
+extern "C" int MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(unsigned int p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetDroppedDownMenu@CMFCToolBar@@QEBAPEAVCMFCToolBarMenuButton@@PEAH@Z
+extern "C" void* MS_ABI impl__GetDroppedDownMenu_CMFCToolBar__QEBAPEAVCMFCToolBarMenuButton__PEAH_Z(int* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetHotTextColor@CMFCToolBar@@SAKXZ
+extern "C" unsigned long MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetImageList@CMFCToolBar@@IEBAPEAVCMFCToolBarImages@@AEAV2@000@Z
+extern "C" void* MS_ABI impl__GetImageList_CMFCToolBar__IEBAPEAVCMFCToolBarImages__AEAV2_000_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, void* /*class*/* p3) {
+    return nullptr;
+}
+
+// Symbol: ?GetInvalidateItemRect@CMFCToolBar@@UEBAXHPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__GetInvalidateItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?GetItemID@CMFCToolBar@@QEBAIH@Z
+extern "C" unsigned int MS_ABI impl__GetItemID_CMFCToolBar__QEBAIH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?GetItemRect@CMFCToolBar@@UEBAXHPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__GetItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?GetMenuButtonSize@CMFCToolBar@@SA?AVCSize@@XZ
+extern "C" void* MS_ABI impl__GetMenuButtonSize_CMFCToolBar__SA_AVCSize__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetMenuImageSize@CMFCToolBar@@SA?AVCSize@@XZ
+extern "C" void* MS_ABI impl__GetMenuImageSize_CMFCToolBar__SA_AVCSize__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetRowHeight@CMFCToolBar@@UEBAHXZ
+extern "C" int MS_ABI impl__GetRowHeight_CMFCToolBar__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?HitTest@CMFCToolBar@@UEAAHVCPoint@@@Z
+extern "C" int MS_ABI impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?InsertButton@CMFCToolBar@@MEAAHPEAVCMFCToolBarButton@@H@Z
+extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?InsertButton@CMFCToolBar@@UEAAHAEBVCMFCToolBarButton@@_J@Z
+extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__UEAAHAEBVCMFCToolBarButton___J_Z(const void* /*class*/* p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?InsertResetStateButton@CMFCToolBar@@IEAAHAEBVCMFCToolBarButton@@H@Z
+extern "C" int MS_ABI impl__InsertResetStateButton_CMFCToolBar__IEAAHAEBVCMFCToolBarButton__H_Z(const void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?InsertSeparator@CMFCToolBar@@UEAAH_J@Z
+extern "C" int MS_ABI impl__InsertSeparator_CMFCToolBar__UEAAH_J_Z(__int64 p0) {
+    return 0;
+}
+
+// Symbol: ?OnDragLeave@CMFCToolBar@@MEAAXXZ
+extern "C" void MS_ABI impl__OnDragLeave_CMFCToolBar__MEAAXXZ() {}
+
+// Symbol: ?OnDragOver@CMFCToolBar@@MEAAKPEAVCOleDataObject@@KVCPoint@@@Z
+extern "C" unsigned long MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(void* /*class*/* p0, unsigned long p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnDrop@CMFCToolBar@@MEAAHPEAVCOleDataObject@@KVCPoint@@@Z
+extern "C" int MS_ABI impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoint___Z(void* /*class*/* p0, unsigned long p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnEraseBkgnd@CMFCToolBar@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCToolBar__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnGetButton@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnGetButton_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnGetButtonCount@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnGetButtonCount_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnGetButtonText@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnGetButtonText_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnGetItemRect@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnGetItemRect_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnGlobalFontsChanged@CMFCToolBar@@UEAAXXZ
+extern "C" void MS_ABI impl__OnGlobalFontsChanged_CMFCToolBar__UEAAXXZ() {}
+
+// Symbol: ?OnHelpHitTest@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnHelpHitTest_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnKillFocus@CMFCToolBar@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnKillFocus_CMFCToolBar__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnLButtonDblClk@CMFCToolBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCToolBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonDown@CMFCToolBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CMFCToolBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCToolBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseLeave@CMFCToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnMouseLeave_CMFCToolBar__IEAAXXZ() {}
+
+// Symbol: ?OnMouseMove@CMFCToolBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CMFCToolBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcCalcSize@CMFCToolBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CMFCToolBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcHitTest@CMFCToolBar@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CMFCToolBar__IEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcPaint@CMFCToolBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CMFCToolBar__IEAAXXZ() {}
+
+// Symbol: ?OnNeedTipText@CMFCToolBar@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
+extern "C" int MS_ABI impl__OnNeedTipText_CMFCToolBar__IEAAHIPEAUtagNMHDR__PEA_J_Z(unsigned int p0, void* /*struct*/* p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPromptReset@CMFCToolBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnPromptReset_CMFCToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnRButtonDown@CMFCToolBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnRButtonDown_CMFCToolBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnSetAccData@CMFCToolBar@@UEAAHJ@Z
+extern "C" int MS_ABI impl__OnSetAccData_CMFCToolBar__UEAAHJ_Z(long p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetCursor@CMFCToolBar@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CMFCToolBar__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetDefaultButtonText@CMFCToolBar@@UEAAHPEAVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__OnSetDefaultButtonText_CMFCToolBar__UEAAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?ResetAllImages@CMFCToolBar@@SAXXZ
+extern "C" void MS_ABI impl__ResetAllImages_CMFCToolBar__SAXXZ() {}
+
+// Symbol: ?ResetImages@CMFCToolBar@@UEAAXXZ
+extern "C" void MS_ABI impl__ResetImages_CMFCToolBar__UEAAXXZ() {}
+
+// Symbol: ?RestoreFocus@CMFCToolBar@@UEAAXXZ
+extern "C" void MS_ABI impl__RestoreFocus_CMFCToolBar__UEAAXXZ() {}
+
+// Symbol: ?RestoreOriginalState@CMFCToolBar@@UEAAHXZ
+extern "C" int MS_ABI impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?SaveOriginalState@CMFCToolBar@@MEAAXAEAVCSettingsStore@@@Z
+extern "C" void MS_ABI impl__SaveOriginalState_CMFCToolBar__MEAAXAEAVCSettingsStore___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SaveParameters@CMFCToolBar@@SAHPEB_W@Z
+extern "C" int MS_ABI impl__SaveParameters_CMFCToolBar__SAHPEB_W_Z(const wchar_t* p0) {
+    return 0;
+}
+
+// Symbol: ?SaveResetOriginalState@CMFCToolBar@@IEAAXAEAVCSettingsStore@@@Z
+extern "C" void MS_ABI impl__SaveResetOriginalState_CMFCToolBar__IEAAXAEAVCSettingsStore___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SaveState@CMFCToolBar@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?Serialize@CMFCToolBar@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBar__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetBasicCommands@CMFCToolBar@@SAXAEAV?$CList@II@@@Z
+extern "C" void MS_ABI impl__SetBasicCommands_CMFCToolBar__SAXAEAV__CList_II___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetButtonInfo@CMFCToolBar@@QEAAXHIIH@Z
+extern "C" void MS_ABI impl__SetButtonInfo_CMFCToolBar__QEAAXHIIH_Z(int p0, unsigned int p1, unsigned int p2, int p3) {}
+
+// Symbol: ?SetButtonStyle@CMFCToolBar@@UEAAXHI@Z
+extern "C" void MS_ABI impl__SetButtonStyle_CMFCToolBar__UEAAXHI_Z(int p0, unsigned int p1) {}
+
+// Symbol: ?SetButtonText@CMFCToolBar@@QEAAHHPEB_W@Z
+extern "C" int MS_ABI impl__SetButtonText_CMFCToolBar__QEAAHHPEB_W_Z(int p0, const wchar_t* p1) {
+    return 0;
+}
+
+// Symbol: ?SetCommandUsageOptions@CMFCToolBar@@SAHII@Z
+extern "C" int MS_ABI impl__SetCommandUsageOptions_CMFCToolBar__SAHII_Z(unsigned int p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?SetCustomizeMode@CMFCToolBar@@SAHH@Z
+extern "C" int MS_ABI impl__SetCustomizeMode_CMFCToolBar__SAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SetHeight@CMFCToolBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetHeight_CMFCToolBar__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetHelpMode@CMFCToolBar@@SAXH@Z
+extern "C" void MS_ABI impl__SetHelpMode_CMFCToolBar__SAXH_Z(int p0) {}
+
+// Symbol: ?SetHot@CMFCToolBar@@QEAAHPEAVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__SetHot_CMFCToolBar__QEAAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetHotTextColor@CMFCToolBar@@SAXK@Z
+extern "C" void MS_ABI impl__SetHotTextColor_CMFCToolBar__SAXK_Z(unsigned long p0) {}
+
+// Symbol: ?SetLargeIcons@CMFCToolBar@@SAXH@Z
+extern "C" void MS_ABI impl__SetLargeIcons_CMFCToolBar__SAXH_Z(int p0) {}
+
+// Symbol: ?SetLockedSizes@CMFCToolBar@@QEAAXUtagSIZE@@0H@Z
+extern "C" void MS_ABI impl__SetLockedSizes_CMFCToolBar__QEAAXUtagSIZE__0H_Z(void* /*struct*/ p0, void* /*struct*/ p1, int p2) {}
+
+// Symbol: ?SetMenuSizes@CMFCToolBar@@SAXUtagSIZE@@0@Z
+extern "C" void MS_ABI impl__SetMenuSizes_CMFCToolBar__SAXUtagSIZE__0_Z(void* /*struct*/ p0, void* /*struct*/ p1) {}
+
+// Symbol: ?SetNonPermittedCommands@CMFCToolBar@@SAXAEAV?$CList@II@@@Z
+extern "C" void MS_ABI impl__SetNonPermittedCommands_CMFCToolBar__SAXAEAV__CList_II___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetOneRowWithSibling@CMFCToolBar@@QEAAXXZ
+extern "C" void MS_ABI impl__SetOneRowWithSibling_CMFCToolBar__QEAAXXZ() {}
+
+// Symbol: ?SetOrigButtons@CMFCToolBar@@QEAAXAEBVCObList@@@Z
+extern "C" void MS_ABI impl__SetOrigButtons_CMFCToolBar__QEAAXAEBVCObList___Z(const void* /*class*/* p0) {}

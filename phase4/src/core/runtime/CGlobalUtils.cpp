@@ -154,3 +154,22 @@ HICON CGlobalUtils::GetWndIcon(CWnd* pWnd) { return pWnd ? reinterpret_cast<HICO
 BOOL CGlobalUtils::CanBeAttached(CWnd* pWnd) const { return pWnd != nullptr; }
 BOOL CGlobalUtils::CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const { return pWnd != nullptr; }
 CDockingManager* CGlobalUtils::GetDockingManager(CWnd* pWnd) { return pWnd && pWnd->IsKindOf(RUNTIME_CLASS(CFrameWndEx)) ? static_cast<CFrameWndEx*>(pWnd)->GetDockingManager() : nullptr; }
+// ?CalcExpectedDockedRect@CGlobalUtils@@QEAAXAEAVCPaneContainerManager@@PEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CGlobalUtils__QEAAXAEAVCPaneContainerManager__PEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* /*class*/* p3, int* p4, void* /*class*/** p5) {}
+
+// ?CheckAlignment@CGlobalUtils@@QEBAHVCPoint@@PEAVCBasePane@@HPEBVCDockingManager@@HAEAKKPEBUtagRECT@@@Z
+extern "C" int MS_ABI impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(void* /*class*/ p0, void* /*class*/* p1, int p2, const void* /*class*/* p3, int p4, unsigned long* p5, unsigned long p6, const void* /*struct*/* p7) {
+    return 0;
+}
+
+// ?ForceAdjustLayout@CGlobalUtils@@QEAAXPEAVCDockingManager@@HH@Z
+extern "C" void MS_ABI impl__ForceAdjustLayout_CGlobalUtils__QEAAXPEAVCDockingManager__HH_Z(void* /*class*/* p0, int p1, int p2) {}
+
+// ?GetPaneAndAlignFromPoint@CGlobalUtils@@QEAAHAEAVCPaneContainerManager@@VCPoint@@PEAPEAVCDockablePane@@AEAKAEAH4@Z
+extern "C" int MS_ABI impl__GetPaneAndAlignFromPoint_CGlobalUtils__QEAAHAEAVCPaneContainerManager__VCPoint__PEAPEAVCDockablePane__AEAKAEAH4_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/** p2, unsigned long* p3, int* p4, int* p5) {
+    return 0;
+}
+
+// ?SetNewParent@CGlobalUtils@@QEAAXAEAVCObList@@PEAVCWnd@@H@Z
+extern "C" void MS_ABI impl__SetNewParent_CGlobalUtils__QEAAXAEAVCObList__PEAVCWnd__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+

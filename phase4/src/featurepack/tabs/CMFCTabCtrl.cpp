@@ -616,3 +616,114 @@ void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     state.tabsHeight = nTabHeight;
 }
+// Symbol: ?m_mapDocIcons@CMFCTabCtrl@@1V?$CMap@IIPEAUHICON__@@PEAU1@@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A = {};
+
+// Symbol: ?ActivateMDITab@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?AdjustTabs@CMFCTabCtrl@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustTabs_CMFCTabCtrl__MEAAXXZ() {}
+
+// Symbol: ?AdjustTabsScroll@CMFCTabCtrl@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustTabsScroll_CMFCTabCtrl__MEAAXXZ() {}
+
+// Symbol: ?AdjustWndScroll@CMFCTabCtrl@@MEAAXXZ
+extern "C" void MS_ABI impl__AdjustWndScroll_CMFCTabCtrl__MEAAXXZ() {}
+
+// Symbol: ?Create@CMFCTabCtrl@@QEAAHW4Style@1@AEBUtagRECT@@PEAVCWnd@@IW4Location@CMFCBaseTabCtrl@@H@Z
+extern "C" int MS_ABI impl__Create_CMFCTabCtrl__QEAAHW4Style_1_AEBUtagRECT__PEAVCWnd__IW4Location_CMFCBaseTabCtrl__H_Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, const void* /*struct*/* p7, void* /*class*/* p8, unsigned int p9, int /*enum*/ p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, float p20, short p21, void* p22, void* p23, void* p24, void* p25, void* p26, void* p27, void* p28, void* p29, void* p30, void* p31, void* p32, void* p33, int p34) {
+    return 0;
+}
+
+// Symbol: ?Draw3DTab@CMFCTabCtrl@@MEAAXPEAVCDC@@PEAVCMFCTabInfo@@H@Z
+extern "C" void MS_ABI impl__Draw3DTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?DrawFlatTab@CMFCTabCtrl@@MEAAXPEAVCDC@@PEAVCMFCTabInfo@@H@Z
+extern "C" void MS_ABI impl__DrawFlatTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?OnSetCursor@CMFCTabCtrl@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CMFCTabCtrl__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetFocus@CMFCTabCtrl@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CMFCTabCtrl__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnSettingChange@CMFCTabCtrl@@IEAAXIPEB_W@Z
+extern "C" void MS_ABI impl__OnSettingChange_CMFCTabCtrl__IEAAXIPEB_W_Z(unsigned int p0, const wchar_t* p1) {}
+
+// Symbol: ?OnShowTabDocumentsMenu@CMFCTabCtrl@@UEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnShowTabDocumentsMenu_CMFCTabCtrl__UEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// Symbol: ?OnSize@CMFCTabCtrl@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CMFCTabCtrl__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnSysColorChange@CMFCTabCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnSysColorChange_CMFCTabCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnUpdateToolTips@CMFCTabCtrl@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CMFCTabCtrl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnWindowPosChanged@CMFCTabCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanged_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?OnWindowPosChanging@CMFCTabCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanging_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?PreTranslateMessage@CMFCTabCtrl@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCTabCtrl__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RecalcLayout@CMFCTabCtrl@@UEAAXXZ
+extern "C" void MS_ABI impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ() {}
+
+// Symbol: ?ReposButtons@CMFCTabCtrl@@IEAAXVCPoint@@VCSize@@HH@Z
+extern "C" void MS_ABI impl__ReposButtons_CMFCTabCtrl__IEAAXVCPoint__VCSize__HH_Z(void* /*class*/ p0, void* /*class*/ p1, int p2, int p3) {}
+
+// Symbol: ?SetActiveTab@CMFCTabCtrl@@UEAAHH@Z
+extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SetActiveTabBoldFont@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetDrawFrame@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetDrawFrame_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHIHK@Z
+extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHIHK_Z(unsigned int p0, int p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHPEAU_IMAGELIST@@@Z
+extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHPEAU_IMAGELIST___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetResizeMode@CMFCTabCtrl@@QEAAXW4ResizeMode@1@@Z
+extern "C" void MS_ABI impl__SetResizeMode_CMFCTabCtrl__QEAAXW4ResizeMode_1__Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, float p7, void* p8, void* p9, void* p10, void* p11) {}
+
+// Symbol: ?SetScrollButtons@CMFCTabCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__SetScrollButtons_CMFCTabCtrl__IEAAXXZ() {}
+
+// Symbol: ?SetTabMaxWidth@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?StopResize@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z
+extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?SynchronizeScrollBar@CMFCTabCtrl@@QEAAHPEAUtagSCROLLINFO@@@Z
+extern "C" int MS_ABI impl__SynchronizeScrollBar_CMFCTabCtrl__QEAAHPEAUtagSCROLLINFO___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?UpdateScrollButtonsState@CMFCTabCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateScrollButtonsState_CMFCTabCtrl__IEAAXXZ() {}

@@ -180,3 +180,21 @@ int CSocket::PumpMessages(UINT uStopFlag) {
     }
     return TRUE;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?ConnectHelper@CSocket@@MEAAHPEBUsockaddr@@H@Z
+extern "C" int MS_ABI impl__ConnectHelper_CSocket__MEAAHPEBUsockaddr__H_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+
+// Symbol: ?PumpMessages@CSocket@@MEAAHI@Z
+extern "C" int MS_ABI impl__PumpMessages_CSocket__MEAAHI_Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+

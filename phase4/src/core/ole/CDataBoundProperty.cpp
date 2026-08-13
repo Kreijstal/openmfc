@@ -11,3 +11,25 @@ extern "C" void* MS_ABI impl___0CDataBoundProperty__QEAA_PEAV0_JG_Z(
     (void)unusedFlags;
     return pThis;
 }
+// ?GetCursor@CDataBoundProperty@@QEAAPEAUIUnknown@@XZ
+extern "C" void* MS_ABI impl__GetCursor_CDataBoundProperty__QEAAPEAUIUnknown__XZ() {
+    return nullptr;
+}
+
+// ?GetNext@CDataBoundProperty@@QEAAPEAV1@XZ
+extern "C" void* MS_ABI impl__GetNext_CDataBoundProperty__QEAAPEAV1_XZ() {
+    return nullptr;
+}
+
+// ?Notify@CDataBoundProperty@@QEAAXXZ
+extern "C" void MS_ABI impl__Notify_CDataBoundProperty__QEAAXXZ() {}
+
+// ?RemoveSource@CDataBoundProperty@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveSource_CDataBoundProperty__QEAAXXZ() {}
+
+// ?SetClientSite@CDataBoundProperty@@QEAAXPEAVCOleControlSite@@@Z
+extern "C" void MS_ABI impl__SetClientSite_CDataBoundProperty__QEAAXPEAVCOleControlSite___Z(void* /*class*/* p0) {}
+
+// ?SetDSCSite@CDataBoundProperty@@QEAAXPEAVCOleControlSite@@@Z
+extern "C" void MS_ABI impl__SetDSCSite_CDataBoundProperty__QEAAXPEAVCOleControlSite___Z(void* /*class*/* p0) {}
+

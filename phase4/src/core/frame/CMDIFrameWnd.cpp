@@ -272,3 +272,12 @@ void CMDIFrameWnd::MDICascade(int nType) {
         ::SendMessageW(m_hWndMDIClient, WM_MDICASCADE, nType, 0);
     }
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetWindowMenuPopup@CMDIFrameWnd@@UEAAPEAUHMENU__@@PEAU2@@Z
+extern "C" void* MS_ABI impl__GetWindowMenuPopup_CMDIFrameWnd__UEAAPEAUHMENU____PEAU2__Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return nullptr;
+}
+

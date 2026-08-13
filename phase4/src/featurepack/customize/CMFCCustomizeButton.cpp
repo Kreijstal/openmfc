@@ -175,6 +175,12 @@ extern "C" void MS_ABI impl__OnDraw_CMFCCustomizeButton__UEAAXPEAVCDC__AEBVCRect
     // (0x18015e300), the toolbar image list and the visual-manager drawing
     // helpers; not modeled.
 }
+// Symbol: ??1CMFCCustomizeButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCCustomizeButton__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        // No owned resources are modelled for this opaque helper class.
+    }
+}
 // Symbol: ??0CMFCCustomizeButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCCustomizeButton__QEAA_XZ(void* pThis) {
     return pThis;

@@ -143,3 +143,127 @@ CSize CPaneDivider::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
     impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(&size, this, bStretch, bHorz);
     return size;
 }
+// Symbol: ?AddPaneContainer@CPaneDivider@@UEAAHAEAVCPaneContainerManager@@H@Z
+extern "C" int MS_ABI impl__AddPaneContainer_CPaneDivider__UEAAHAEAVCPaneContainerManager__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?AddPaneContainer@CPaneDivider@@UEAAHPEAVCDockablePane@@AEAVCPaneContainerManager@@K@Z
+extern "C" int MS_ABI impl__AddPaneContainer_CPaneDivider__UEAAHPEAVCDockablePane__AEAVCPaneContainerManager__K_Z(void* /*class*/* p0, void* /*class*/* p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?AddRecentPane@CPaneDivider@@UEAAPEAVCDockablePane@@PEAV2@@Z
+extern "C" void* MS_ABI impl__AddRecentPane_CPaneDivider__UEAAPEAVCDockablePane__PEAV2__Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?CalcExpectedDockedRect@CPaneDivider@@UEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CPaneDivider__UEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int* p3, void* /*class*/** p4) {}
+
+// Symbol: ?Create@CPaneDivider@@UEAAHKAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__Create_CPaneDivider__UEAAHKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(unsigned long p0, const void* /*struct*/* p1, void* /*class*/* p2, unsigned int p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?CreateEx@CPaneDivider@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@IPEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(unsigned long p0, unsigned long p1, const void* /*struct*/* p2, void* /*class*/* p3, unsigned int p4, void* /*struct*/* p5) {
+    return 0;
+}
+
+// Symbol: ?DoesAllowDynInsertBefore@CPaneDivider@@UEBAHXZ
+extern "C" int MS_ABI impl__DoesAllowDynInsertBefore_CPaneDivider__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?DoesContainFloatingPane@CPaneDivider@@UEAAHXZ
+extern "C" int MS_ABI impl__DoesContainFloatingPane_CPaneDivider__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?FindTabbedPane@CPaneDivider@@QEAAPEAVCDockablePane@@I@Z
+extern "C" void* MS_ABI impl__FindTabbedPane_CPaneDivider__QEAAPEAVCDockablePane__I_Z(unsigned int p0) {
+    return nullptr;
+}
+
+// Symbol: ?Init@CPaneDivider@@QEAAXHPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(int p0, void* /*class*/* p1) {}
+
+// Symbol: ?InsertPane@CPaneDivider@@UEAAHPEAVCDockablePane@@0KPEBUtagRECT@@@Z
+extern "C" int MS_ABI impl__InsertPane_CPaneDivider__UEAAHPEAVCDockablePane__0KPEBUtagRECT___Z(void* /*class*/* p0, void* /*class*/* p1, unsigned long p2, const void* /*struct*/* p3) {
+    return 0;
+}
+
+// Symbol: ?Move@CPaneDivider@@UEAAXAEAVCPoint@@H@Z
+extern "C" void MS_ABI impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?NotifyAboutRelease@CPaneDivider@@UEAAXXZ
+extern "C" void MS_ABI impl__NotifyAboutRelease_CPaneDivider__UEAAXXZ() {}
+
+// Symbol: ?OnCancelMode@CPaneDivider@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCancelMode_CPaneDivider__IEAAXXZ() {}
+
+// Symbol: ?OnCreate@CPaneDivider@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CPaneDivider__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnDestroy@CPaneDivider@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CPaneDivider__IEAAXXZ() {}
+
+// Symbol: ?OnEraseBkgnd@CPaneDivider@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CPaneDivider__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnLButtonDown@CPaneDivider@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CPaneDivider@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CPaneDivider__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseMove@CPaneDivider@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CPaneDivider__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcDestroy@CPaneDivider@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ() {}
+
+// Symbol: ?OnPaint@CPaneDivider@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CPaneDivider__IEAAXXZ() {}
+
+// Symbol: ?OnSetCursor@CPaneDivider@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CPaneDivider__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnShowPane@CPaneDivider@@UEAAXPEAVCDockablePane@@H@Z
+extern "C" void MS_ABI impl__OnShowPane_CPaneDivider__UEAAXPEAVCDockablePane__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?OnSize@CPaneDivider@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CPaneDivider__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?ReleaseEmptyPaneContainers@CPaneDivider@@QEAAXXZ
+extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CPaneDivider__QEAAXXZ() {}
+
+// Symbol: ?ReplacePane@CPaneDivider@@UEAAHPEAVCDockablePane@@0@Z
+extern "C" int MS_ABI impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?RepositionPanes@CPaneDivider@@UEAAXAEAVCRect@@AEAPEAX@Z
+extern "C" void MS_ABI impl__RepositionPanes_CPaneDivider__UEAAXAEAVCRect__AEAPEAX_Z(void* /*class*/* p0, void** p1) {}
+
+// Symbol: ?Serialize@CPaneDivider@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?ShowWindow@CPaneDivider@@QEAAXH@Z
+extern "C" void MS_ABI impl__ShowWindow_CPaneDivider__QEAAXH_Z(int p0) {}
+
+// Symbol: ?StopTracking@CPaneDivider@@MEAAXH@Z
+extern "C" void MS_ABI impl__StopTracking_CPaneDivider__MEAAXH_Z(int p0) {}
+
+// Symbol: ?StoreRecentDockSiteInfo@CPaneDivider@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPaneDivider__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+
+// Symbol: ?StoreRecentTabRelatedInfo@CPaneDivider@@QEAAXPEAVCDockablePane@@0@Z
+extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCDockablePane__0_Z(void* /*class*/* p0, void* /*class*/* p1) {}

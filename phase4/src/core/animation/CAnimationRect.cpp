@@ -37,3 +37,22 @@ extern "C" void* MS_ABI impl___0CAnimationRect__QEAA_HHHHII_K_Z(
 extern "C" void* MS_ABI impl___0CAnimationRect__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// ?AddTransition@CAnimationRect@@QEAAXPEAVCBaseTransition@@000@Z
+extern "C" void MS_ABI impl__AddTransition_CAnimationRect__QEAAXPEAVCBaseTransition__000_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, void* /*class*/* p3) {}
+
+// ?GetAnimationVariableList@CAnimationRect@@MEAAXAEAV?$CList@PEAVCAnimationVariable@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetAnimationVariableList_CAnimationRect__MEAAXAEAV__CList_PEAVCAnimationVariable__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// ?GetDefaultValue@CAnimationRect@@QEAA?AVCRect@@XZ
+extern "C" void* MS_ABI impl__GetDefaultValue_CAnimationRect__QEAA_AVCRect__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// ?GetValue@CAnimationRect@@QEAAHAEAVCRect@@@Z
+extern "C" int MS_ABI impl__GetValue_CAnimationRect__QEAAHAEAVCRect___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// ?SetDefaultValue@CAnimationRect@@QEAAXAEBVCRect@@@Z
+extern "C" void MS_ABI impl__SetDefaultValue_CAnimationRect__QEAAXAEBVCRect___Z(const void* /*class*/* p0) {}
+

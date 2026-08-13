@@ -412,6 +412,12 @@ extern "C" void MS_ABI impl__SetScaledSize_CPreviewView__IEAAXI_Z(
     // the per-page array (0x180) via CalcPageDisplaySize and MulDiv; the array
     // is unmodeled.
 }
+// Symbol: ??1CPreviewView@@UEAA@XZ
+extern "C" void MS_ABI impl___1CPreviewView__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        // No owned resources are modelled for this helper view class.
+    }
+}
 // Symbol: ??0CPreviewView@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CPreviewView__QEAA_XZ(void* pThis) {
     return pThis;

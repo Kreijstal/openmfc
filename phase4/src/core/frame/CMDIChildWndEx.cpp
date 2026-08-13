@@ -419,3 +419,183 @@ CMDIChildWndEx::CMDIChildWndEx() {
     memset(_mdichildwndex_padding, 0, sizeof(_mdichildwndex_padding));
 }
 CMDIChildWndEx::~CMDIChildWndEx() {}
+// Symbol: ?ActivateFrame@CMDIChildWndEx@@UEAAXH@Z
+extern "C" void MS_ABI impl__ActivateFrame_CMDIChildWndEx__UEAAXH_Z(int p0) {}
+
+// Symbol: ?ActivateTopLevelFrame@CMDIChildWndEx@@MEAAXXZ
+extern "C" void MS_ABI impl__ActivateTopLevelFrame_CMDIChildWndEx__MEAAXXZ() {}
+
+// Symbol: ?AddDockSite@CMDIChildWndEx@@QEAAXXZ
+extern "C" void MS_ABI impl__AddDockSite_CMDIChildWndEx__QEAAXXZ() {}
+
+// Symbol: ?AddPane@CMDIChildWndEx@@QEAAHPEAVCBasePane@@H@Z
+extern "C" int MS_ABI impl__AddPane_CMDIChildWndEx__QEAAHPEAVCBasePane__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?AddTabbedPane@CMDIChildWndEx@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__AddTabbedPane_CMDIChildWndEx__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+
+// Symbol: ?AdjustClientArea@CMDIChildWndEx@@IEAAXXZ
+extern "C" void MS_ABI impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ() {}
+
+// Symbol: ?AdjustDockingLayout@CMDIChildWndEx@@UEAAXPEAX@Z
+extern "C" void MS_ABI impl__AdjustDockingLayout_CMDIChildWndEx__UEAAXPEAX_Z(void* p0) {}
+
+// Symbol: ?DockPane@CMDIChildWndEx@@QEAAXPEAVCBasePane@@IPEBUtagRECT@@@Z
+extern "C" void MS_ABI impl__DockPane_CMDIChildWndEx__QEAAXPEAVCBasePane__IPEBUtagRECT___Z(void* /*class*/* p0, unsigned int p1, const void* /*struct*/* p2) {}
+
+// Symbol: ?DockPaneLeftOf@CMDIChildWndEx@@QEAAHPEAVCPane@@0@Z
+extern "C" int MS_ABI impl__DockPaneLeftOf_CMDIChildWndEx__QEAAHPEAVCPane__0_Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?EnableAutoHidePanes@CMDIChildWndEx@@QEAAHK@Z
+extern "C" int MS_ABI impl__EnableAutoHidePanes_CMDIChildWndEx__QEAAHK_Z(unsigned long p0) {
+    return 0;
+}
+
+// Symbol: ?EnableTaskbarThumbnailClipRect@CMDIChildWndEx@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableTaskbarThumbnailClipRect_CMDIChildWndEx__QEAAXH_Z(int p0) {}
+
+// Symbol: ?GetDocumentName@CMDIChildWndEx@@UEAAPEB_WPEAPEAVCObject@@@Z
+extern "C" void* MS_ABI impl__GetDocumentName_CMDIChildWndEx__UEAAPEB_WPEAPEAVCObject___Z(void* /*class*/** p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetFrameIcon@CMDIChildWndEx@@UEBAPEAUHICON__@@XZ
+extern "C" void* MS_ABI impl__GetFrameIcon_CMDIChildWndEx__UEBAPEAUHICON____XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetFrameText@CMDIChildWndEx@@UEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
+extern "C" void* MS_ABI impl__GetFrameText_CMDIChildWndEx__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(void* /*class*/* p0, void** p1, void* p2) {
+    return nullptr;
+}
+
+// Symbol: ?GetPane@CMDIChildWndEx@@QEAAPEAVCBasePane@@I@Z
+extern "C" void* MS_ABI impl__GetPane_CMDIChildWndEx__QEAAPEAVCBasePane__I_Z(unsigned int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetTaskbarPreviewWnd@CMDIChildWndEx@@UEAAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetTaskbarPreviewWnd_CMDIChildWndEx__UEAAPEAVCWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetTaskbarThumbnailClipRect@CMDIChildWndEx@@UEBA?AVCRect@@XZ
+extern "C" void* MS_ABI impl__GetTaskbarThumbnailClipRect_CMDIChildWndEx__UEBA_AVCRect__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?InsertPane@CMDIChildWndEx@@QEAAHPEAVCBasePane@@0H@Z
+extern "C" int MS_ABI impl__InsertPane_CMDIChildWndEx__QEAAHPEAVCBasePane__0H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?InvalidateIconicBitmaps@CMDIChildWndEx@@QEAAHXZ
+extern "C" int MS_ABI impl__InvalidateIconicBitmaps_CMDIChildWndEx__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsPointNearDockSite@CMDIChildWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
+extern "C" int MS_ABI impl__IsPointNearDockSite_CMDIChildWndEx__QEBAHVCPoint__AEAKAEAH_Z(void* /*class*/ p0, unsigned long* p1, int* p2) {
+    return 0;
+}
+
+// Symbol: ?IsRegisteredWithTaskbarTabs@CMDIChildWndEx@@QEAAHXZ
+extern "C" int MS_ABI impl__IsRegisteredWithTaskbarTabs_CMDIChildWndEx__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsTabbedMDIChild@CMDIChildWndEx@@UEAAHXZ
+extern "C" int MS_ABI impl__IsTabbedMDIChild_CMDIChildWndEx__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsTaskbarTabsSupportEnabled@CMDIChildWndEx@@QEAAHXZ
+extern "C" int MS_ABI impl__IsTaskbarTabsSupportEnabled_CMDIChildWndEx__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?OnChangeVisualManager@CMDIChildWndEx@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnChangeVisualManager_CMDIChildWndEx__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnCreate@CMDIChildWndEx@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CMDIChildWndEx__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnDestroy@CMDIChildWndEx@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CMDIChildWndEx__IEAAXXZ() {}
+
+// Symbol: ?OnEraseBkgnd@CMDIChildWndEx@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMDIChildWndEx__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnGetMinMaxInfo@CMDIChildWndEx@@IEAAXPEAUtagMINMAXINFO@@@Z
+extern "C" void MS_ABI impl__OnGetMinMaxInfo_CMDIChildWndEx__IEAAXPEAUtagMINMAXINFO___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?OnIdleUpdateCmdUI@CMDIChildWndEx@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CMDIChildWndEx__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnLButtonDown@CMDIChildWndEx@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMDIChildWndEx__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CMDIChildWndEx@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMDIChildWndEx__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMDIActivate@CMDIChildWndEx@@IEAAXHPEAVCWnd@@0@Z
+extern "C" void MS_ABI impl__OnMDIActivate_CMDIChildWndEx__IEAAXHPEAVCWnd__0_Z(int p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?OnMouseMove@CMDIChildWndEx@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CMDIChildWndEx__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMoveMiniFrame@CMDIChildWndEx@@UEAAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__OnMoveMiniFrame_CMDIChildWndEx__UEAAHPEAVCWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcActivate@CMDIChildWndEx@@IEAAHH@Z
+extern "C" int MS_ABI impl__OnNcActivate_CMDIChildWndEx__IEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcCalcSize@CMDIChildWndEx@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CMDIChildWndEx__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcHitTest@CMDIChildWndEx@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CMDIChildWndEx__IEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcMouseMove@CMDIChildWndEx@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcMouseMove_CMDIChildWndEx__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcPaint@CMDIChildWndEx@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CMDIChildWndEx__IEAAXXZ() {}
+
+// Symbol: ?OnNcRButtonUp@CMDIChildWndEx@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcRButtonUp_CMDIChildWndEx__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnPressTaskbarThmbnailCloseButton@CMDIChildWndEx@@UEAAXXZ
+extern "C" void MS_ABI impl__OnPressTaskbarThmbnailCloseButton_CMDIChildWndEx__UEAAXXZ() {}
+
+// Symbol: ?OnSendIconicLivePreviewBitmap@CMDIChildWndEx@@IEAAX_K_J@Z
+extern "C" void MS_ABI impl__OnSendIconicLivePreviewBitmap_CMDIChildWndEx__IEAAX_K_J_Z(unsigned __int64 p0, __int64 p1) {}
+
+// Symbol: ?OnSendIconicThumbnail@CMDIChildWndEx@@IEAAX_K_J@Z
+extern "C" void MS_ABI impl__OnSendIconicThumbnail_CMDIChildWndEx__IEAAX_K_J_Z(unsigned __int64 p0, __int64 p1) {}
+
+// Symbol: ?OnSetIcon@CMDIChildWndEx@@IEAAPEAUHICON__@@HPEAU2@@Z
+extern "C" void* MS_ABI impl__OnSetIcon_CMDIChildWndEx__IEAAPEAUHICON____HPEAU2__Z(int p0, void* /*struct*/* p1) {
+    return nullptr;
+}
+
+// Symbol: ?OnSetPreviewMode@CMDIChildWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
+extern "C" void MS_ABI impl__OnSetPreviewMode_CMDIChildWndEx__UEAAXHPEAUCPrintPreviewState___Z(int p0, void* /*struct*/* p1) {}

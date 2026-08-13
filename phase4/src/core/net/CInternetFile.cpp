@@ -224,3 +224,17 @@ int CInternetFile::SetWriteBufferSize(UINT nWriteSize) {
     return InternetSetOptionW(m_hFile, INTERNET_OPTION_WRITE_BUFFER_SIZE,
                                &nWriteSize, sizeof(nWriteSize));
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ??0CInternetFile@@IEAA@PEAX0PEB_W1_KH@Z
+extern "C" void* MS_ABI impl___0CInternetFile__IEAA_PEAX0PEB_W1_KH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    return nullptr;
+}
+

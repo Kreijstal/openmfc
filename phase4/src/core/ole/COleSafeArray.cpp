@@ -347,6 +347,47 @@ extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBVCOleVariant___Z(
     if (v->var.vt != pSrc->vt) return FALSE;
     return _AfxCompareSafeArrays_OleCsafearrayExt(v->var.parray, pSrc->parray);
 }
+
+// Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBUtagVARIANT@@@Z
+extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBUtagVARIANT___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBV0@@Z
+extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBV0__Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ??4COleSafeArray@@QEAAAEAV0@PEBUtagVARIANT@@@Z
+extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_PEBUtagVARIANT___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHAEBUtagSAFEARRAY@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagSAFEARRAY___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHAEBUtagVARIANT@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagVARIANT___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHAEBV0@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBV0__Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHPEBUtagSAFEARRAY@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagSAFEARRAY___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ??8COleSafeArray@@QEBAHPEBUtagVARIANT@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagVARIANT___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
 void COleSafeArray::Destroy() {
     if (parray) {
         SafeArrayDestroy(parray);

@@ -113,3 +113,14 @@ void COleInsertDialog::AddClassIDToList(CLSID*& rgclsid, int& nCount, int& nAllo
     }
     rgclsid[nCount++] = *pClassID;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?AddClassIDToList@COleInsertDialog@@IEAAXAEAPEAU_GUID@@AEAH1PEAU2@@Z
+extern "C" void MS_ABI impl__AddClassIDToList_COleInsertDialog__IEAAXAEAPEAU_GUID__AEAH1PEAU2__Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+

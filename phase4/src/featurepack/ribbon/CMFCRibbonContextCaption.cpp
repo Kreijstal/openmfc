@@ -58,3 +58,57 @@ extern "C" void* MS_ABI impl___0CMFCRibbonContextCaption__IEAA_PEB_WIW4AFX_Ribbo
     (void)p19; (void)p20; (void)p21; (void)p22;
     return new CMFCRibbonContextCaption();
 }
+// ?CreateObject@CMFCRibbonContextCaption@@SAPEAVCObject@@XZ
+extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonContextCaption__SAPEAVCObject__XZ() {
+    return nullptr;
+}
+
+// ?GetContextCaptionIndex@CMFCRibbonContextCaption@@QEAAHPEAV1@@Z
+extern "C" int MS_ABI impl__GetContextCaptionIndex_CMFCRibbonContextCaption__QEAAHPEAV1__Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// ?GetContextCategories@CMFCRibbonContextCaption@@QEAAXAEAV?$CArray@PEAVCMFCRibbonCategory@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetContextCategories_CMFCRibbonContextCaption__QEAAXAEAV__CArray_PEAVCMFCRibbonCategory__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// ?GetContextCategoryCount@CMFCRibbonContextCaption@@QEAAHXZ
+extern "C" int MS_ABI impl__GetContextCategoryCount_CMFCRibbonContextCaption__QEAAHXZ() {
+    return 0;
+}
+
+// ?OnDraw@CMFCRibbonContextCaption@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonContextCaption__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// ?OnLButtonUp@CMFCRibbonContextCaption@@MEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonContextCaption__MEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// ?OnSetAccData@CMFCRibbonContextCaption@@MEAAHJ@Z
+extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonContextCaption__MEAAHJ_Z(long p0) {
+    return 0;
+}
+
+// ?SetACCData@CMFCRibbonContextCaption@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+extern "C" int MS_ABI impl__SetACCData_CMFCRibbonContextCaption__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// ?accDoDefaultAction@CMFCRibbonContextCaption@@MEAAJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accDoDefaultAction_CMFCRibbonContextCaption__MEAAJUtagVARIANT___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// ?accNavigate@CMFCRibbonContextCaption@@MEAAJJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__accNavigate_CMFCRibbonContextCaption__MEAAJJUtagVARIANT__PEAU2__Z(long p0, void* /*struct*/ p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// ?get_accChildCount@CMFCRibbonContextCaption@@MEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_CMFCRibbonContextCaption__MEAAJPEAJ_Z(long* p0) {
+    return 0;
+}
+
+// ?get_accParent@CMFCRibbonContextCaption@@MEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accParent_CMFCRibbonContextCaption__MEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+

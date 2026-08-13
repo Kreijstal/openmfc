@@ -13,3 +13,52 @@ extern "C" void* MS_ABI impl___0CMFCToolBarButtonCustomizeDialog__QEAA_PEAVCMFCT
     (void)p1;
     return pThis;
 }
+// ??1CMFCToolBarButtonCustomizeDialog@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCToolBarButtonCustomizeDialog__UEAA_XZ() {
+    return nullptr;
+}
+
+// ?DoDataExchange@CMFCToolBarButtonCustomizeDialog@@MEAAXPEAVCDataExchange@@@Z
+extern "C" void MS_ABI impl__DoDataExchange_CMFCToolBarButtonCustomizeDialog__MEAAXPEAVCDataExchange___Z(void* /*class*/* p0) {}
+
+// ?EnableControls@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__EnableControls_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnAddImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnAddImage_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnDefaultImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDefaultImage_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnEditImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditImage_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnImage_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnImageList@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnImageList_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnImageText@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnImageText_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnInitDialog@CMFCToolBarButtonCustomizeDialog@@MEAAHXZ
+extern "C" int MS_ABI impl__OnInitDialog_CMFCToolBarButtonCustomizeDialog__MEAAHXZ() {
+    return 0;
+}
+
+// ?OnOK@CMFCToolBarButtonCustomizeDialog@@MEAAXXZ
+extern "C" void MS_ABI impl__OnOK_CMFCToolBarButtonCustomizeDialog__MEAAXXZ() {}
+
+// ?OnPaint@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnText@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnText_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?OnUserImage@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnUserImage_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+
+// ?RebuildImageList@CMFCToolBarButtonCustomizeDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__RebuildImageList_CMFCToolBarButtonCustomizeDialog__IEAAXXZ() {}
+

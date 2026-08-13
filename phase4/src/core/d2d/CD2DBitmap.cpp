@@ -93,6 +93,16 @@ extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void* p
     it->second.m_resource = nullptr;
     return bitmap;
 }
+// Symbol: ?Attach@CD2DBitmap@@QEAAXPEAUID2D1Bitmap@@@Z
+extern "C" void MS_ABI impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z(
+    void* pThis, void* pBitmap)
+{
+    if (pThis == nullptr) {
+        return;
+    }
+    auto& state = EnsureCD2DBitmapState(pThis);
+    state.m_resource = pBitmap;
+}
 // Symbol: ??1CD2DBitmap@@UEAA@XZ
 extern "C" void MS_ABI impl___1CD2DBitmap__UEAA_XZ(void* pThis) {
     if (pThis != nullptr) {

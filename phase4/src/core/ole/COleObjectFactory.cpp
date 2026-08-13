@@ -291,3 +291,11 @@ STDMETHODIMP COleObjectFactory::XClassFactory::CreateInstanceLic(
 
     return CreateInstance(nullptr, riid, ppv);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?UpdateRegistry@COleObjectFactory@@QEAAXPEB_W@Z
+extern "C" void MS_ABI impl__UpdateRegistry_COleObjectFactory__QEAAXPEB_W_Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+}
+

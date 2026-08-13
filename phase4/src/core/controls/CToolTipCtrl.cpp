@@ -168,3 +168,35 @@ extern "C" void MS_ABI impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagR
     if (pRect) info.rect = *pRect;
     ::SendMessageW(ToolTipHwnd(pThis), TTM_NEWTOOLRECTW, 0, (LPARAM)&info);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?AddTool@CToolTipCtrl@@QEAAHPEAVCWnd@@IPEBUtagRECT@@_K@Z
+extern "C" int MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__IPEBUtagRECT___K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+
+// Symbol: ?GetText@CToolTipCtrl@@QEBAXAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCWnd@@_K@Z
+extern "C" void MS_ABI impl__GetText_CToolTipCtrl__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCWnd___K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+}
+
+
+// Symbol: ?UpdateTipText@CToolTipCtrl@@QEAAXIPEAVCWnd@@_K@Z
+extern "C" void MS_ABI impl__UpdateTipText_CToolTipCtrl__QEAAXIPEAVCWnd___K_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+

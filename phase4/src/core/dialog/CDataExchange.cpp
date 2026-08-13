@@ -76,3 +76,113 @@ impl__Fail_CDataExchange__QEAAXXZ(void* pThis)
     // AfxThrowUserException(): never returns normally.
     impl__AfxThrowUserException__YAXXZ();
 }
+
+// Symbol: ?AfxFailMaxChars@@YAXPEAVCDataExchange@@H@Z
+extern "C" void MS_ABI impl__AfxFailMaxChars__YAXPEAVCDataExchange__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?AfxFailRadio@@YAXPEAVCDataExchange@@@Z
+extern "C" void MS_ABI impl__AfxFailRadio__YAXPEAVCDataExchange___Z(void* /*class*/* p0) {}
+
+// Symbol: ?AfxFieldText@@YAHPEAVCDataExchange@@HPEAXPEAVCRecordset@@@Z
+extern "C" int MS_ABI impl__AfxFieldText__YAHPEAVCDataExchange__HPEAXPEAVCRecordset___Z(void* /*class*/* p0, int p1, void* p2, void* /*class*/* p3) {
+    return 0;
+}
+
+// Symbol: ?AfxTextFloatFormat@@YAXPEAVCDataExchange@@HPEAXNH@Z
+extern "C" void MS_ABI impl__AfxTextFloatFormat__YAXPEAVCDataExchange__HPEAXNH_Z(void* /*class*/* p0, int p1, void* p2, double p3, int p4) {}
+
+// Symbol: ?DDV_MinMaxDateTime@@YAXPEAVCDataExchange@@AEAVCOleDateTime@ATL@@PEBV23@2@Z
+extern "C" void MS_ABI impl__DDV_MinMaxDateTime__YAXPEAVCDataExchange__AEAVCOleDateTime_ATL__PEBV23_2_Z(void* /*class*/* p0, void* /*class*/* p1, const void* /*class*/* p2, void* p3, const void* /*class*/* p4) {}
+
+// Symbol: ?DDV_MinMaxDateTime@@YAXPEAVCDataExchange@@AEAVCTime@ATL@@PEBV23@2@Z
+extern "C" void MS_ABI impl__DDV_MinMaxDateTime__YAXPEAVCDataExchange__AEAVCTime_ATL__PEBV23_2_Z(void* /*class*/* p0, void* /*class*/* p1, const void* /*class*/* p2, void* p3, const void* /*class*/* p4) {}
+
+// Symbol: ?DDV_MinMaxMonth@@YAXPEAVCDataExchange@@AEAVCOleDateTime@ATL@@PEBV23@2@Z
+extern "C" void MS_ABI impl__DDV_MinMaxMonth__YAXPEAVCDataExchange__AEAVCOleDateTime_ATL__PEBV23_2_Z(void* /*class*/* p0, void* /*class*/* p1, const void* /*class*/* p2, void* p3, const void* /*class*/* p4) {}
+
+// Symbol: ?DDV_MinMaxMonth@@YAXPEAVCDataExchange@@AEAVCTime@ATL@@PEBV23@2@Z
+extern "C" void MS_ABI impl__DDV_MinMaxMonth__YAXPEAVCDataExchange__AEAVCTime_ATL__PEBV23_2_Z(void* /*class*/* p0, void* /*class*/* p1, const void* /*class*/* p2, void* p3, const void* /*class*/* p4) {}
+
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAUtagDBDATE___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBTIME@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAUtagDBTIME___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_DateTimeCtrl@@YAXPEAVCDataExchange@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_DateTimeCtrl__YAXPEAVCDataExchange__HAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, int p1, void* /*class*/* p2, void** p3, void* p4) {}
+
+// Symbol: ?DDX_MonthCalCtrl@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z
+extern "C" void MS_ABI impl__DDX_MonthCalCtrl__YAXPEAVCDataExchange__HAEAUtagDBDATE___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_OCBool@@YAXPEAVCDataExchange@@HJAEAH@Z
+extern "C" void MS_ABI impl__DDX_OCBool__YAXPEAVCDataExchange__HJAEAH_Z(void* /*class*/* p0, int p1, long p2, int* p3) {}
+
+// Symbol: ?DDX_OCBoolRO@@YAXPEAVCDataExchange@@HJAEAH@Z
+extern "C" void MS_ABI impl__DDX_OCBoolRO__YAXPEAVCDataExchange__HJAEAH_Z(void* /*class*/* p0, int p1, long p2, int* p3) {}
+
+// Symbol: ?DDX_OCColor@@YAXPEAVCDataExchange@@HJAEAK@Z
+extern "C" void MS_ABI impl__DDX_OCColor__YAXPEAVCDataExchange__HJAEAK_Z(void* /*class*/* p0, int p1, long p2, unsigned long* p3) {}
+
+// Symbol: ?DDX_OCColorRO@@YAXPEAVCDataExchange@@HJAEAK@Z
+extern "C" void MS_ABI impl__DDX_OCColorRO__YAXPEAVCDataExchange__HJAEAK_Z(void* /*class*/* p0, int p1, long p2, unsigned long* p3) {}
+
+// Symbol: ?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAM@Z
+extern "C" void MS_ABI impl__DDX_OCFloat__YAXPEAVCDataExchange__HJAEAM_Z(void* /*class*/* p0, int p1, long p2, float* p3) {}
+
+// Symbol: ?DDX_OCFloat@@YAXPEAVCDataExchange@@HJAEAN@Z
+extern "C" void MS_ABI impl__DDX_OCFloat__YAXPEAVCDataExchange__HJAEAN_Z(void* /*class*/* p0, int p1, long p2, double* p3) {}
+
+// Symbol: ?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAM@Z
+extern "C" void MS_ABI impl__DDX_OCFloatRO__YAXPEAVCDataExchange__HJAEAM_Z(void* /*class*/* p0, int p1, long p2, float* p3) {}
+
+// Symbol: ?DDX_OCFloatRO@@YAXPEAVCDataExchange@@HJAEAN@Z
+extern "C" void MS_ABI impl__DDX_OCFloatRO__YAXPEAVCDataExchange__HJAEAN_Z(void* /*class*/* p0, int p1, long p2, double* p3) {}
+
+// Symbol: ?DDX_OCInt@@YAXPEAVCDataExchange@@HJAEAH@Z
+extern "C" void MS_ABI impl__DDX_OCInt__YAXPEAVCDataExchange__HJAEAH_Z(void* /*class*/* p0, int p1, long p2, int* p3) {}
+
+// Symbol: ?DDX_OCInt@@YAXPEAVCDataExchange@@HJAEAJ@Z
+extern "C" void MS_ABI impl__DDX_OCInt__YAXPEAVCDataExchange__HJAEAJ_Z(void* /*class*/* p0, int p1, long p2, long* p3) {}
+
+// Symbol: ?DDX_OCIntRO@@YAXPEAVCDataExchange@@HJAEAH@Z
+extern "C" void MS_ABI impl__DDX_OCIntRO__YAXPEAVCDataExchange__HJAEAH_Z(void* /*class*/* p0, int p1, long p2, int* p3) {}
+
+// Symbol: ?DDX_OCIntRO@@YAXPEAVCDataExchange@@HJAEAJ@Z
+extern "C" void MS_ABI impl__DDX_OCIntRO__YAXPEAVCDataExchange__HJAEAJ_Z(void* /*class*/* p0, int p1, long p2, long* p3) {}
+
+// Symbol: ?DDX_OCShort@@YAXPEAVCDataExchange@@HJAEAF@Z
+extern "C" void MS_ABI impl__DDX_OCShort__YAXPEAVCDataExchange__HJAEAF_Z(void* /*class*/* p0, int p1, long p2, short* p3) {}
+
+// Symbol: ?DDX_OCShortRO@@YAXPEAVCDataExchange@@HJAEAF@Z
+extern "C" void MS_ABI impl__DDX_OCShortRO__YAXPEAVCDataExchange__HJAEAF_Z(void* /*class*/* p0, int p1, long p2, short* p3) {}
+
+// Symbol: ?DDX_OCText@@YAXPEAVCDataExchange@@HJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_OCText__YAXPEAVCDataExchange__HJAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, int p1, long p2, void* /*class*/* p3, void** p4, void* p5) {}
+
+// Symbol: ?DDX_OCTextRO@@YAXPEAVCDataExchange@@HJAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_OCTextRO__YAXPEAVCDataExchange__HJAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, int p1, long p2, void* /*class*/* p3, void** p4, void* p5) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAU_FILETIME@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAU_FILETIME___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAU_GUID@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAU_GUID___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDBDATE@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDBDATE___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDBTIME@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDBTIME___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDB_NUMERIC@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDB_NUMERIC___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAUtagDEC@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDEC___Z(void* /*class*/* p0, int p1, void* /*struct*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAVCOleCurrency@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAVCOleCurrency___Z(void* /*class*/* p0, int p1, void* /*class*/* p2) {}
+
+// Symbol: ?DDX_Text@@YAXPEAVCDataExchange@@HAEAVCOleDateTime@ATL@@@Z
+extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAVCOleDateTime_ATL___Z(void* /*class*/* p0, int p1, void* /*class*/* p2) {}

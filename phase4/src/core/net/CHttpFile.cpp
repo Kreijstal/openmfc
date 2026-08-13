@@ -179,3 +179,82 @@ int CHttpFile::SendRequestEx(LPINTERNET_BUFFERS lpBuffIn, LPINTERNET_BUFFERS lpB
     if (!m_hFile) return FALSE;
     return ::HttpSendRequestExW(m_hFile, lpBuffIn, lpBuffOut, dwFlags, dwContext);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ??0CHttpFile@@IEAA@PEAX0PEB_W11_K@Z
+extern "C" void* MS_ABI impl___0CHttpFile__IEAA_PEAX0PEB_W11_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    return nullptr;
+}
+
+
+// Symbol: ?AddRequestHeaders@CHttpFile@@QEAAHPEB_WKH@Z
+extern "C" int MS_ABI impl__AddRequestHeaders_CHttpFile__QEAAHPEB_WKH_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+
+// Symbol: ?QueryInfo@CHttpFile@@QEBAHKAEAKPEAK@Z
+extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKAEAKPEAK_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+
+// Symbol: ?QueryInfo@CHttpFile@@QEBAHKAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAK@Z
+extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0;
+}
+
+
+// Symbol: ?QueryInfo@CHttpFile@@QEBAHKPEAU_SYSTEMTIME@@PEAK@Z
+extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKPEAU_SYSTEMTIME__PEAK_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+
+// Symbol: ?QueryInfo@CHttpFile@@QEBAHKPEAXPEAK1@Z
+extern "C" int MS_ABI impl__QueryInfo_CHttpFile__QEBAHKPEAXPEAK1_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+
+// Symbol: ?SendRequest@CHttpFile@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAXK@Z
+extern "C" int MS_ABI impl__SendRequest_CHttpFile__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAXK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0;
+}
+

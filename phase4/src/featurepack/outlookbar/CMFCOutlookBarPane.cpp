@@ -1020,6 +1020,12 @@ extern "C" int MS_ABI impl__SmartUpdate_CMFCOutlookBarPane__UEAAHAEBVCObList___Z
     // the caller's CObList (retail 0x18009a220).
     return 0;
 }
+// Symbol: ??1CMFCOutlookBarPane@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCOutlookBarPane__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        impl__Destroy_CMFCToolBar__UEAAXXZ(reinterpret_cast<CMFCToolBar*>(pThis));
+    }
+}
 // Symbol: ??0CMFCOutlookBarPane@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCOutlookBarPane__QEAA_XZ(void* pThis) {
     return pThis;

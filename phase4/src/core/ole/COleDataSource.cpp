@@ -151,3 +151,73 @@ LPDATAOBJECT COleDataSource::GetInterface(BOOL bAddRef) {
     if (bAddRef) state->dataObject.AddRef();
     return &state->dataObject;
 }
+// ?DelaySetData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
+extern "C" void MS_ABI impl__DelaySetData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(unsigned short p0, void* /*struct*/* p1) {}
+
+// ?FlushClipboard@COleDataSource@@SAXXZ
+extern "C" void MS_ABI impl__FlushClipboard_COleDataSource__SAXXZ() {}
+
+// ?GetCacheEntry@COleDataSource@@IEAAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
+extern "C" void* MS_ABI impl__GetCacheEntry_COleDataSource__IEAAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(void* /*struct*/* p0, int /*enum*/ p1, void* p2, void* p3, void* p4, char p5, void** p6, char* p7, unsigned int p8, void* p9) {
+    return nullptr;
+}
+
+// ?Lookup@COleDataSource@@IEBAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
+extern "C" void* MS_ABI impl__Lookup_COleDataSource__IEBAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(void* /*struct*/* p0, int /*enum*/ p1, void* p2, void* p3, void* p4, char p5, void** p6, char* p7, unsigned int p8, void* p9) {
+    return nullptr;
+}
+
+// ?OnRenderData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+extern "C" int MS_ABI impl__OnRenderData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// ?OnSetData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
+extern "C" int MS_ABI impl__OnSetData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?DAdvise@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@KPEAUIAdviseSink@@PEAK@Z
+extern "C" long MS_ABI impl__DAdvise_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__KPEAUIAdviseSink__PEAK_Z(void* /*struct*/* p0, unsigned long p1, void* /*struct*/* p2, unsigned long* p3) {
+    return 0;
+}
+
+// Symbol: ?DUnadvise@XDataObject@COleDataSource@@UEAAJK@Z
+extern "C" long MS_ABI impl__DUnadvise_XDataObject_COleDataSource__UEAAJK_Z(unsigned long p0) {
+    return 0;
+}
+
+// Symbol: ?EnumDAdvise@XDataObject@COleDataSource@@UEAAJPEAPEAUIEnumSTATDATA@@@Z
+extern "C" long MS_ABI impl__EnumDAdvise_XDataObject_COleDataSource__UEAAJPEAPEAUIEnumSTATDATA___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?EnumFormatEtc@XDataObject@COleDataSource@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z
+extern "C" long MS_ABI impl__EnumFormatEtc_XDataObject_COleDataSource__UEAAJKPEAPEAUIEnumFORMATETC___Z(unsigned long p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?GetCanonicalFormatEtc@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@0@Z
+extern "C" long MS_ABI impl__GetCanonicalFormatEtc_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__0_Z(void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetData@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+extern "C" long MS_ABI impl__GetData_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetDataHere@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+extern "C" long MS_ABI impl__GetDataHere_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?QueryGetData@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@@Z
+extern "C" long MS_ABI impl__QueryGetData_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetData@XDataObject@COleDataSource@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
+extern "C" long MS_ABI impl__SetData_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
+    return 0;
+}

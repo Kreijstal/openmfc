@@ -17,6 +17,32 @@ extern "C" void* MS_ABI impl___0CMFCRibbonMainPanelButton__QEAA_IPEB_WPEAUHICON_
     (void)icon;
     return pThis;
 }
+
+// Symbol: ??1CMFCRibbonMainPanelButton@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCRibbonMainPanelButton__UEAA_XZ(void* pThis) {
+    return pThis;
+}
+
+// Symbol: ?CreateObject@CMFCRibbonMainPanelButton@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonMainPanelButton__SAPEAVCObject__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?OnDrawBorder@CMFCRibbonMainPanelButton@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDrawBorder_CMFCRibbonMainPanelButton__MEAAXPEAVCDC___Z(
+    void* pThis, void* pDC) {
+    (void)pThis;
+    (void)pDC;
+}
+
+// Symbol: ?OnFillBackground@CMFCRibbonMainPanelButton@@MEAAKPEAVCDC@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonMainPanelButton__MEAAKPEAVCDC___Z(
+    void* pThis, void* pDC) {
+    (void)pThis;
+    (void)pDC;
+    return 0;
+}
+
 // Symbol: ??0CMFCRibbonMainPanelButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonMainPanelButton__QEAA_XZ(void* pThis) {
     return pThis;

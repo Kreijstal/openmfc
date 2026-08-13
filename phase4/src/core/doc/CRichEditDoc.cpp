@@ -92,3 +92,53 @@ CRichEditCntrItem* CRichEditDoc::LookupItem(IOleObject* pOleObject) const {
     }
     return nullptr;
 }
+// ?CreateClientItem@CRichEditDoc@@UEBAPEAVCRichEditCntrItem@@PEAU_reobject@@@Z
+extern "C" void* MS_ABI impl__CreateClientItem_CRichEditDoc__UEBAPEAVCRichEditCntrItem__PEAU_reobject___Z(void* /*struct*/* p0) {
+    return nullptr;
+}
+
+// ?DeleteContents@CRichEditDoc@@UEAAXXZ
+extern "C" void MS_ABI impl__DeleteContents_CRichEditDoc__UEAAXXZ() {}
+
+// ?DeleteUnmarkedItems@CRichEditDoc@@IEBAXXZ
+extern "C" void MS_ABI impl__DeleteUnmarkedItems_CRichEditDoc__IEBAXXZ() {}
+
+// ?GetStartPosition@CRichEditDoc@@UEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetStartPosition_CRichEditDoc__UEBAPEAU__POSITION__XZ() {
+    return nullptr;
+}
+
+// ?GetView@CRichEditDoc@@UEBAPEAVCRichEditView@@XZ
+extern "C" void* MS_ABI impl__GetView_CRichEditDoc__UEBAPEAVCRichEditView__XZ() {
+    return nullptr;
+}
+
+// ?IsModified@CRichEditDoc@@UEAAHXZ
+extern "C" int MS_ABI impl__IsModified_CRichEditDoc__UEAAHXZ() {
+    return 0;
+}
+
+// ?MarkItemsClear@CRichEditDoc@@IEBAXXZ
+extern "C" void MS_ABI impl__MarkItemsClear_CRichEditDoc__IEBAXXZ() {}
+
+// ?PreCloseFrame@CRichEditDoc@@UEAAXPEAVCFrameWnd@@@Z
+extern "C" void MS_ABI impl__PreCloseFrame_CRichEditDoc__UEAAXPEAVCFrameWnd___Z(void* /*class*/* p0) {}
+
+// ?Serialize@CRichEditDoc@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CRichEditDoc__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// ?SetModifiedFlag@CRichEditDoc@@UEAAXH@Z
+extern "C" void MS_ABI impl__SetModifiedFlag_CRichEditDoc__UEAAXH_Z(int p0) {}
+
+// ?SetPathName@CRichEditDoc@@UEAAXPEB_WH@Z
+extern "C" void MS_ABI impl__SetPathName_CRichEditDoc__UEAAXPEB_WH_Z(const wchar_t* p0, int p1) {}
+
+// ?SetTitle@CRichEditDoc@@UEAAXPEB_W@Z
+extern "C" void MS_ABI impl__SetTitle_CRichEditDoc__UEAAXPEB_W_Z(const wchar_t* p0) {}
+
+// ?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ
+extern "C" void MS_ABI impl__UpdateModifiedFlag_CRichEditDoc__UEAAXXZ() {}
+
+// ?UpdateObjectCache@CRichEditDoc@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateObjectCache_CRichEditDoc__IEAAXXZ() {}
+

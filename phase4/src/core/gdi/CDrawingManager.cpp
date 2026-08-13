@@ -97,3 +97,101 @@ extern "C" void* MS_ABI impl___0CDrawingManager__QEAA_AEAVCDC___Z(void* pThis, v
 extern "C" void MS_ABI impl___1CDrawingManager__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
+// Symbol: ?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@AEBVCSize@@PEAPEAX@Z
+extern "C" void* MS_ABI impl__CreateBitmap_32_CDrawingManager__SAPEAUHBITMAP____AEBVCSize__PEAPEAX_Z(const void* /*class*/* p0, void** p1) {
+    return nullptr;
+}
+
+// Symbol: ?CreateBitmap_32@CDrawingManager@@SAPEAUHBITMAP__@@PEAU2@K@Z
+extern "C" void* MS_ABI impl__CreateBitmap_32_CDrawingManager__SAPEAUHBITMAP____PEAU2_K_Z(void* /*struct*/* p0, unsigned long p1) {
+    return nullptr;
+}
+
+// Symbol: ?DrawAlpha@CDrawingManager@@QEAAXPEAVCDC@@AEBVCRect@@01@Z
+extern "C" void MS_ABI impl__DrawAlpha_CDrawingManager__QEAAXPEAVCDC__AEBVCRect__01_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, const void* /*class*/* p3) {}
+
+// Symbol: ?DrawEllipse@CDrawingManager@@QEAAXAEBVCRect@@KK@Z
+extern "C" void MS_ABI impl__DrawEllipse_CDrawingManager__QEAAXAEBVCRect__KK_Z(const void* /*class*/* p0, unsigned long p1, unsigned long p2) {}
+
+// Symbol: ?DrawGradientRing@CDrawingManager@@QEAAHVCRect@@KKKHHK@Z
+extern "C" int MS_ABI impl__DrawGradientRing_CDrawingManager__QEAAHVCRect__KKKHHK_Z(void* /*class*/ p0, unsigned long p1, unsigned long p2, unsigned long p3, int p4, int p5, unsigned long p6) {
+    return 0;
+}
+
+// Symbol: ?DrawLine@CDrawingManager@@QEAAXHHHHK@Z
+extern "C" void MS_ABI impl__DrawLine_CDrawingManager__QEAAXHHHHK_Z(int p0, int p1, int p2, int p3, unsigned long p4) {}
+
+// Symbol: ?DrawLineA@CDrawingManager@@QEAAXNNNNK@Z
+extern "C" void MS_ABI impl__DrawLineA_CDrawingManager__QEAAXNNNNK_Z(double p0, double p1, double p2, double p3, unsigned long p4) {}
+
+// Symbol: ?DrawRect@CDrawingManager@@QEAAXAEBVCRect@@KK@Z
+extern "C" void MS_ABI impl__DrawRect_CDrawingManager__QEAAXAEBVCRect__KK_Z(const void* /*class*/* p0, unsigned long p1, unsigned long p2) {}
+
+// Symbol: ?DrawRotated@CDrawingManager@@QEAAXVCRect@@AEAVCDC@@H@Z
+extern "C" void MS_ABI impl__DrawRotated_CDrawingManager__QEAAXVCRect__AEAVCDC__H_Z(void* /*class*/ p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?DrawShadow@CDrawingManager@@QEAAHVCRect@@HHHPEAVCBitmap@@1KH@Z
+extern "C" int MS_ABI impl__DrawShadow_CDrawingManager__QEAAHVCRect__HHHPEAVCBitmap__1KH_Z(void* /*class*/ p0, int p1, int p2, int p3, void* /*class*/* p4, int p5, unsigned long p6, int p7) {
+    return 0;
+}
+
+// Symbol: ?Fill4ColorsGradient@CDrawingManager@@QEAAXVCRect@@KKKKHH@Z
+extern "C" void MS_ABI impl__Fill4ColorsGradient_CDrawingManager__QEAAXVCRect__KKKKHH_Z(void* /*class*/ p0, unsigned long p1, unsigned long p2, unsigned long p3, unsigned long p4, int p5, int p6) {}
+
+// Symbol: ?FillAlpha@CDrawingManager@@QEAAXAEBVCRect@@E@Z
+extern "C" void MS_ABI impl__FillAlpha_CDrawingManager__QEAAXAEBVCRect__E_Z(const void* /*class*/* p0, unsigned char p1) {}
+
+// Symbol: ?FillGradient@CDrawingManager@@QEAAXVCRect@@KKHHH@Z
+extern "C" void MS_ABI impl__FillGradient_CDrawingManager__QEAAXVCRect__KKHHH_Z(void* /*class*/ p0, unsigned long p1, unsigned long p2, int p3, int p4, int p5) {}
+
+// Symbol: ?FillGradient2@CDrawingManager@@QEAAXVCRect@@KKH@Z
+extern "C" void MS_ABI impl__FillGradient2_CDrawingManager__QEAAXVCRect__KKH_Z(void* /*class*/ p0, unsigned long p1, unsigned long p2, int p3) {}
+
+// Symbol: ?GrayRect@CDrawingManager@@QEAAHVCRect@@HKK@Z
+extern "C" int MS_ABI impl__GrayRect_CDrawingManager__QEAAHVCRect__HKK_Z(void* /*class*/ p0, int p1, unsigned long p2, unsigned long p3) {
+    return 0;
+}
+
+// Symbol: ?HighlightRect@CDrawingManager@@QEAAHVCRect@@HKHK@Z
+extern "C" int MS_ABI impl__HighlightRect_CDrawingManager__QEAAHVCRect__HKHK_Z(void* /*class*/ p0, int p1, unsigned long p2, int p3, unsigned long p4) {
+    return 0;
+}
+
+// Symbol: ?HLStoRGB_ONE@CDrawingManager@@SAKNNN@Z
+extern "C" unsigned long MS_ABI impl__HLStoRGB_ONE_CDrawingManager__SAKNNN_Z(double p0, double p1, double p2) {
+    return 0;
+}
+
+// Symbol: ?HLStoRGB_TWO@CDrawingManager@@SAKNNN@Z
+extern "C" unsigned long MS_ABI impl__HLStoRGB_TWO_CDrawingManager__SAKNNN_Z(double p0, double p1, double p2) {
+    return 0;
+}
+
+// Symbol: ?HSVtoRGB@CDrawingManager@@SAKNNN@Z
+extern "C" unsigned long MS_ABI impl__HSVtoRGB_CDrawingManager__SAKNNN_Z(double p0, double p1, double p2) {
+    return 0;
+}
+
+// Symbol: ?MirrorRect@CDrawingManager@@QEAAXVCRect@@H@Z
+extern "C" void MS_ABI impl__MirrorRect_CDrawingManager__QEAAXVCRect__H_Z(void* /*class*/ p0, int p1) {}
+
+// Symbol: ?PixelAlpha@CDrawingManager@@SAKKNNN@Z
+extern "C" unsigned long MS_ABI impl__PixelAlpha_CDrawingManager__SAKKNNN_Z(unsigned long p0, double p1, double p2, double p3) {
+    return 0;
+}
+
+// Symbol: ?PrepareShadowMask@CDrawingManager@@SAPEAUHBITMAP__@@HKHH@Z
+extern "C" void* MS_ABI impl__PrepareShadowMask_CDrawingManager__SAPEAUHBITMAP____HKHH_Z(int p0, unsigned long p1, int p2, int p3) {
+    return nullptr;
+}
+
+// Symbol: ?RGBtoHSV@CDrawingManager@@SAXKPEAN00@Z
+extern "C" void MS_ABI impl__RGBtoHSV_CDrawingManager__SAXKPEAN00_Z(unsigned long p0, double* p1, unsigned long p2, unsigned long p3) {}
+
+// Symbol: ?SetPixel@CDrawingManager@@SAXPEAKHHHHK@Z
+extern "C" void MS_ABI impl__SetPixel_CDrawingManager__SAXPEAKHHHHK_Z(unsigned long* p0, int p1, int p2, int p3, int p4, unsigned long p5) {}
+
+// Symbol: ?SmartMixColors@CDrawingManager@@SAKKKNHH@Z
+extern "C" unsigned long MS_ABI impl__SmartMixColors_CDrawingManager__SAKKKNHH_Z(unsigned long p0, unsigned long p1, double p2, int p3, int p4) {
+    return 0;
+}

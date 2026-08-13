@@ -172,3 +172,18 @@ CHttpFile* CHttpConnection::OpenRequest(DWORD dwRequestFlags,
 
     return new CHttpFile(hRequest, m_hConnection, pstrVerb, pstrObjectName, this);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?OpenRequest@CHttpConnection@@QEAAPEAVCHttpFile@@HPEB_W0_KPEAPEB_W0K@Z
+extern "C" void* MS_ABI impl__OpenRequest_CHttpConnection__QEAAPEAVCHttpFile__HPEB_W0_KPEAPEB_W0K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    return nullptr;
+}
+

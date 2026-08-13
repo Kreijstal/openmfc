@@ -132,3 +132,96 @@ void CFieldExchange::SetNull(const wchar_t* lpszName) {
     if (index < 0) return;
     EnsureRecordsetState(m_pRecordset).nullFields.insert(static_cast<unsigned long>(index));
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
+extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+}
+
+// Symbol: ?AfxRFXBulkDefault@@YAXPEAVCFieldExchange@@PEB_WPEAXPEA_JH_K@Z
+extern "C" void MS_ABI impl__AfxRFXBulkDefault__YAXPEAVCFieldExchange__PEB_WPEAXPEA_JH_K_Z(void* /*class*/* p0, const wchar_t* p1, void* p2, __int64* p3, int p4, unsigned __int64 p5) {}
+
+// Symbol: ?RFX_BigInt@@YAXPEAVCFieldExchange@@PEB_WAEA_J@Z
+extern "C" void MS_ABI impl__RFX_BigInt__YAXPEAVCFieldExchange__PEB_WAEA_J_Z(void* /*class*/* p0, const wchar_t* p1, __int64* p2) {}
+
+// Symbol: ?RFX_Binary@@YAXPEAVCFieldExchange@@PEB_WAEAVCByteArray@@_J@Z
+extern "C" void MS_ABI impl__RFX_Binary__YAXPEAVCFieldExchange__PEB_WAEAVCByteArray___J_Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2, __int64 p3) {}
+
+// Symbol: ?RFX_Binary_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_JH@Z
+extern "C" void MS_ABI impl__RFX_Binary_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAEPEAPEA_JH_Z(void* /*class*/* p0, const wchar_t* p1, unsigned char** p2, __int64** p3, int p4) {}
+
+// Symbol: ?RFX_Bool@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z
+extern "C" void MS_ABI impl__RFX_Bool__YAXPEAVCFieldExchange__PEB_WAEAH_Z(void* /*class*/* p0, const wchar_t* p1, int* p2) {}
+
+// Symbol: ?RFX_Bool_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Bool_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAHPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, int** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Byte@@YAXPEAVCFieldExchange@@PEB_WAEAE@Z
+extern "C" void MS_ABI impl__RFX_Byte__YAXPEAVCFieldExchange__PEB_WAEAE_Z(void* /*class*/* p0, const wchar_t* p1, unsigned char* p2) {}
+
+// Symbol: ?RFX_Byte_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Byte_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAEPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, unsigned char** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAUtagTIMESTAMP_STRUCT@@@Z
+extern "C" void MS_ABI impl__RFX_Date__YAXPEAVCFieldExchange__PEB_WAEAUtagTIMESTAMP_STRUCT___Z(void* /*class*/* p0, const wchar_t* p1, void* /*struct*/* p2) {}
+
+// Symbol: ?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAVCOleDateTime@ATL@@@Z
+extern "C" void MS_ABI impl__RFX_Date__YAXPEAVCFieldExchange__PEB_WAEAVCOleDateTime_ATL___Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2) {}
+
+// Symbol: ?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAVCTime@ATL@@@Z
+extern "C" void MS_ABI impl__RFX_Date__YAXPEAVCFieldExchange__PEB_WAEAVCTime_ATL___Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2) {}
+
+// Symbol: ?RFX_Date_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAUtagTIMESTAMP_STRUCT@@PEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Date_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAUtagTIMESTAMP_STRUCT__PEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, void* /*struct*/** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Double@@YAXPEAVCFieldExchange@@PEB_WAEAN@Z
+extern "C" void MS_ABI impl__RFX_Double__YAXPEAVCFieldExchange__PEB_WAEAN_Z(void* /*class*/* p0, const wchar_t* p1, double* p2) {}
+
+// Symbol: ?RFX_Double_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEANPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Double_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEANPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, double** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Int@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z
+extern "C" void MS_ABI impl__RFX_Int__YAXPEAVCFieldExchange__PEB_WAEAH_Z(void* /*class*/* p0, const wchar_t* p1, int* p2) {}
+
+// Symbol: ?RFX_Int_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Int_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAHPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, int** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Long@@YAXPEAVCFieldExchange@@PEB_WAEAJ@Z
+extern "C" void MS_ABI impl__RFX_Long__YAXPEAVCFieldExchange__PEB_WAEAJ_Z(void* /*class*/* p0, const wchar_t* p1, long* p2) {}
+
+// Symbol: ?RFX_LongBinary@@YAXPEAVCFieldExchange@@PEB_WAEAVCLongBinary@@@Z
+extern "C" void MS_ABI impl__RFX_LongBinary__YAXPEAVCFieldExchange__PEB_WAEAVCLongBinary___Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2) {}
+
+// Symbol: ?RFX_Long_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAJPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Long_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAJPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, long** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Single@@YAXPEAVCFieldExchange@@PEB_WAEAM@Z
+extern "C" void MS_ABI impl__RFX_Single__YAXPEAVCFieldExchange__PEB_WAEAM_Z(void* /*class*/* p0, const wchar_t* p1, float* p2) {}
+
+// Symbol: ?RFX_Single_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAMPEAPEA_J@Z
+extern "C" void MS_ABI impl__RFX_Single_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAMPEAPEA_J_Z(void* /*class*/* p0, const wchar_t* p1, float** p2, __int64** p3) {}
+
+// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WAEAV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@HHF@Z
+extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__HHF_Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2, void** p3, void* p4, int p5, int p6, short p7) {}
+
+// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HHF@Z
+extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HHF_Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2, void** p3, void* p4, int p5, int p6, short p7) {}
+
+// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WPEADHHF@Z
+extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WPEADHHF_Z(void* /*class*/* p0, const wchar_t* p1, char* p2, int p3, int p4, short p5) {}
+
+// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WPEA_WHHF@Z
+extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WPEA_WHHF_Z(void* /*class*/* p0, const wchar_t* p1, wchar_t* p2, int p3, int p4, short p5) {}
+
+// Symbol: ?RFX_Text_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEADPEAPEA_JH@Z
+extern "C" void MS_ABI impl__RFX_Text_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEADPEAPEA_JH_Z(void* /*class*/* p0, const wchar_t* p1, char** p2, __int64** p3, int p4) {}
+
+// Symbol: ?RFX_Text_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEA_WPEAPEA_JH@Z
+extern "C" void MS_ABI impl__RFX_Text_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEA_WPEAPEA_JH_Z(void* /*class*/* p0, const wchar_t* p1, wchar_t** p2, __int64** p3, int p4) {}

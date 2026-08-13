@@ -385,3 +385,161 @@ CMFCVisualManagerOffice2003::CMFCVisualManagerOffice2003() {
 }
 CMFCVisualManagerOffice2003::~CMFCVisualManagerOffice2003() {}
 CObject* CMFCVisualManagerOffice2003::CreateObject() { return new CMFCVisualManagerOffice2003(); }
+// Symbol: ?DrawCustomizeButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HW4AFX_BUTTON_STATE@CMFCVisualManager@@HH@Z
+extern "C" void MS_ABI impl__DrawCustomizeButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HW4AFX_BUTTON_STATE_CMFCVisualManager__HH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7, int p8, int p9) {}
+
+// Symbol: ?GetBaseThemeColor@CMFCVisualManagerOffice2003@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetBaseThemeColor_CMFCVisualManagerOffice2003__UEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetPropertyGridGroupColor@CMFCVisualManagerOffice2003@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z
+extern "C" unsigned long MS_ABI impl__GetPropertyGridGroupColor_CMFCVisualManagerOffice2003__UEAAKPEAVCMFCPropertyGridCtrl___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetPropertyGridGroupTextColor@CMFCVisualManagerOffice2003@@UEAAKPEAVCMFCPropertyGridCtrl@@@Z
+extern "C" unsigned long MS_ABI impl__GetPropertyGridGroupTextColor_CMFCVisualManagerOffice2003__UEAAKPEAVCMFCPropertyGridCtrl___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetShowAllMenuItemsHeight@CMFCVisualManagerOffice2003@@UEAAHPEAVCDC@@AEBVCSize@@@Z
+extern "C" int MS_ABI impl__GetShowAllMenuItemsHeight_CMFCVisualManagerOffice2003__UEAAHPEAVCDC__AEBVCSize___Z(void* /*class*/* p0, const void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetSmartDockingBaseGuideColors@CMFCVisualManagerOffice2003@@UEAAXAEAK0@Z
+extern "C" void MS_ABI impl__GetSmartDockingBaseGuideColors_CMFCVisualManagerOffice2003__UEAAXAEAK0_Z(unsigned long* p0, unsigned long* p1) {}
+
+// Symbol: ?GetSmartDockingHighlightToneColor@CMFCVisualManagerOffice2003@@UEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetSmartDockingHighlightToneColor_CMFCVisualManagerOffice2003__UEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetTabFrameColors@CMFCVisualManagerOffice2003@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z
+extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerOffice2003__UEAAXPEBVCMFCBaseTabCtrl__AEAK11111AEAPEAVCBrush__2_Z(const void* /*class*/* p0, unsigned long* p1, unsigned long* p2, unsigned long* p3, unsigned long* p4, unsigned long* p5, unsigned long* p6, void* /*class*/** p7, void* /*class*/** p8) {}
+
+// Symbol: ?GetThemeColor@CMFCVisualManagerOffice2003@@IEBAKPEAXH@Z
+extern "C" unsigned long MS_ABI impl__GetThemeColor_CMFCVisualManagerOffice2003__IEBAKPEAXH_Z(void* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?GetToolTipInfo@CMFCVisualManagerOffice2003@@UEAAHAEAVCMFCToolTipInfo@@I@Z
+extern "C" int MS_ABI impl__GetToolTipInfo_CMFCVisualManagerOffice2003__UEAAHAEAVCMFCToolTipInfo__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?GetWindowColor@CMFCVisualManagerOffice2003@@MEBAKXZ
+extern "C" unsigned long MS_ABI impl__GetWindowColor_CMFCVisualManagerOffice2003__MEBAKXZ() {
+    return 0;
+}
+
+// Symbol: ?IsToolbarRoundShape@CMFCVisualManagerOffice2003@@UEAAHPEAVCMFCToolBar@@@Z
+extern "C" int MS_ABI impl__IsToolbarRoundShape_CMFCVisualManagerOffice2003__UEAAHPEAVCMFCToolBar___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?ModifyGlobalColors@CMFCVisualManagerOffice2003@@MEAAXXZ
+extern "C" void MS_ABI impl__ModifyGlobalColors_CMFCVisualManagerOffice2003__MEAAXXZ() {}
+
+// Symbol: ?OnDrawAutoHideButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@1PEAVCMFCAutoHideButton@@@Z
+extern "C" void MS_ABI impl__OnDrawAutoHideButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__1PEAVCMFCAutoHideButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/ p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnDrawBarGripper@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HPEAVCBasePane@@@Z
+extern "C" void MS_ABI impl__OnDrawBarGripper_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HPEAVCBasePane___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnDrawBrowseButton@CMFCVisualManagerOffice2003@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCEditBrowseCtrl@@W4AFX_BUTTON_STATE@CMFCVisualManager@@AEAK@Z
+extern "C" int MS_ABI impl__OnDrawBrowseButton_CMFCVisualManagerOffice2003__UEAAHPEAVCDC__VCRect__PEAVCMFCEditBrowseCtrl__W4AFX_BUTTON_STATE_CMFCVisualManager__AEAK_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7, unsigned long* p8) {
+    return 0;
+}
+
+// Symbol: ?OnDrawButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7) {}
+
+// Symbol: ?OnDrawCaptionBarBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@KH@Z
+extern "C" void MS_ABI impl__OnDrawCaptionBarBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCCaptionBar__VCRect__KH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long p3, int p4) {}
+
+// Symbol: ?OnDrawCheckBoxEx@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HHHH@Z
+extern "C" void MS_ABI impl__OnDrawCheckBoxEx_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HHHH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, int p5) {}
+
+// Symbol: ?OnDrawComboBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, void* /*class*/* p5) {}
+
+// Symbol: ?OnDrawComboDropButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, void* /*class*/* p5) {}
+
+// Symbol: ?OnDrawControlBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnDrawControlBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnDrawExpandingBox@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HK@Z
+extern "C" void MS_ABI impl__OnDrawExpandingBox_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HK_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, unsigned long p3) {}
+
+// Symbol: ?OnDrawHeaderCtrlBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCMFCHeaderCtrl@@PEAVCDC@@AEAVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawHeaderCtrlBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCMFCHeaderCtrl__PEAVCDC__AEAVCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawMenuBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCPopupMenu@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawMenuBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCPopupMenu__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnDrawOutlookBarSplitter@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnDrawOutlookPageButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEAVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEAVCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3) {}
+
+// Symbol: ?OnDrawPaneBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCBasePane@@AEAVCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawPaneBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCBasePane__AEAVCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnDrawPaneCaption@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/ p3, void* /*class*/ p4) {
+    return 0;
+}
+
+// Symbol: ?OnDrawPopupWindowBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawPopupWindowBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnDrawPopupWindowButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWndButton@@@Z
+extern "C" void MS_ABI impl__OnDrawPopupWindowButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCMFCDesktopAlertWndButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnDrawPopupWindowCaption@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWnd@@@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnDrawRibbonButtonsGroup@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCMFCRibbonButtonsGroup@@VCRect@@@Z
+extern "C" unsigned long MS_ABI impl__OnDrawRibbonButtonsGroup_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCMFCRibbonButtonsGroup__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnDrawRibbonCategoryCaption@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCMFCRibbonContextCaption@@@Z
+extern "C" unsigned long MS_ABI impl__OnDrawRibbonCategoryCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCMFCRibbonContextCaption___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnDrawRibbonCategoryTab@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCMFCRibbonTab@@H@Z
+extern "C" unsigned long MS_ABI impl__OnDrawRibbonCategoryTab_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCMFCRibbonTab__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OnDrawRibbonQuickAccessToolBarSeparator@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCRibbonSeparator@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawRibbonQuickAccessToolBarSeparator_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCRibbonSeparator__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillTasksPaneBackground@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnHighlightQuickCustomizeMenuButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnHighlightQuickCustomizeMenuButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnUpdateSystemColors@CMFCVisualManagerOffice2003@@UEAAXXZ
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2003__UEAAXXZ() {}
+
+// Symbol: ?SetDefaultWinXPColors@CMFCVisualManagerOffice2003@@SAXH@Z
+extern "C" void MS_ABI impl__SetDefaultWinXPColors_CMFCVisualManagerOffice2003__SAXH_Z(int p0) {}
+
+// Symbol: ?SetStatusBarOfficeXPLook@CMFCVisualManagerOffice2003@@SAXH@Z
+extern "C" void MS_ABI impl__SetStatusBarOfficeXPLook_CMFCVisualManagerOffice2003__SAXH_Z(int p0) {}
+
+// Symbol: ?SetUseGlobalTheme@CMFCVisualManagerOffice2003@@SAXH@Z
+extern "C" void MS_ABI impl__SetUseGlobalTheme_CMFCVisualManagerOffice2003__SAXH_Z(int p0) {}

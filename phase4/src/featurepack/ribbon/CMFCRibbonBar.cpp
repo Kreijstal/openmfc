@@ -1375,3 +1375,234 @@ BOOL CMFCRibbonBar::IsMinimized() const {
     auto it = g_ribbonBarStates.find(this);
     return it != g_ribbonBarStates.end() && it->second.minimized ? TRUE : FALSE;
 }
+// Symbol: ?accDoDefaultAction@CMFCRibbonBar@@UEAAJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accDoDefaultAction_CMFCRibbonBar__UEAAJUtagVARIANT___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// Symbol: ?AccessibleObjectByIndex@CMFCRibbonBar@@QEAAPEAVCMFCBaseAccessibleObject@@J@Z
+extern "C" void* MS_ABI impl__AccessibleObjectByIndex_CMFCRibbonBar__QEAAPEAVCMFCBaseAccessibleObject__J_Z(long p0) {
+    return nullptr;
+}
+
+// Symbol: ?AccessibleObjectFromPoint@CMFCRibbonBar@@QEAAPEAVCMFCBaseAccessibleObject@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__AccessibleObjectFromPoint_CMFCRibbonBar__QEAAPEAVCMFCBaseAccessibleObject__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?accHitTest@CMFCRibbonBar@@UEAAJJJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accHitTest_CMFCRibbonBar__UEAAJJJPEAUtagVARIANT___Z(long p0, long p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?accLocation@CMFCRibbonBar@@UEAAJPEAJ000UtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accLocation_CMFCRibbonBar__UEAAJPEAJ000UtagVARIANT___Z(long* p0, long* p1, long* p2, long* p3, void* /*struct*/ p4) {
+    return 0;
+}
+
+// Symbol: ?accNavigate@CMFCRibbonBar@@UEAAJJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__accNavigate_CMFCRibbonBar__UEAAJJUtagVARIANT__PEAU2__Z(long p0, void* /*struct*/ p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?ActivateContextCategory@CMFCRibbonBar@@QEAAHI@Z
+extern "C" int MS_ABI impl__ActivateContextCategory_CMFCRibbonBar__QEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?AddContextCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_W0IW4AFX_RibbonCategoryColor@@IIVCSize@@2PEAUCRuntimeClass@@@Z
+extern "C" void* MS_ABI impl__AddContextCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_W0IW4AFX_RibbonCategoryColor__IIVCSize__2PEAUCRuntimeClass___Z(const wchar_t* p0, const wchar_t* p1, unsigned int p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, void* p20, void* p21, void* p22, void* p23, void* p24, unsigned int p25, unsigned int p26, void* /*class*/ p27, int /*enum*/ p28, void* /*struct*/* p29) {
+    return nullptr;
+}
+
+// Symbol: ?AddMainCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonMainPanel@@PEB_WIIVCSize@@1PEAUCRuntimeClass@@@Z
+extern "C" void* MS_ABI impl__AddMainCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonMainPanel__PEB_WIIVCSize__1PEAUCRuntimeClass___Z(const wchar_t* p0, unsigned int p1, unsigned int p2, void* /*class*/ p3, unsigned int p4, void* /*struct*/* p5) {
+    return nullptr;
+}
+
+// Symbol: ?AddPrintPreviewCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@XZ
+extern "C" void* MS_ABI impl__AddPrintPreviewCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?AddQATOnlyCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_WIVCSize@@@Z
+extern "C" void* MS_ABI impl__AddQATOnlyCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIVCSize___Z(const wchar_t* p0, unsigned int p1, void* /*class*/ p2) {
+    return nullptr;
+}
+
+// Symbol: ?CalcFixedLayout@CMFCRibbonBar@@MEAA?AVCSize@@HH@Z
+extern "C" void* MS_ABI impl__CalcFixedLayout_CMFCRibbonBar__MEAA_AVCSize__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?CreateEx@CMFCRibbonBar@@QEAAHPEAVCWnd@@KKI@Z
+extern "C" int MS_ABI impl__CreateEx_CMFCRibbonBar__QEAAHPEAVCWnd__KKI_Z(void* /*class*/* p0, unsigned long p1, unsigned long p2, unsigned int p3) {
+    return 0;
+}
+
+// Symbol: ?DeactivateKeyboardFocus@CMFCRibbonBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__DeactivateKeyboardFocus_CMFCRibbonBar__QEAAXH_Z(int p0) {}
+
+// Symbol: ?DrawMenuImage@CMFCRibbonBar@@QEAAHPEAVCDC@@PEBVCMFCToolBarMenuButton@@AEBVCRect@@@Z
+extern "C" int MS_ABI impl__DrawMenuImage_CMFCRibbonBar__QEAAHPEAVCDC__PEBVCMFCToolBarMenuButton__AEBVCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, const void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?DWMCompositionChanged@CMFCRibbonBar@@UEAAXXZ
+extern "C" void MS_ABI impl__DWMCompositionChanged_CMFCRibbonBar__UEAAXXZ() {}
+
+// Symbol: ?EnablePrintPreview@CMFCRibbonBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnablePrintPreview_CMFCRibbonBar__QEAAXH_Z(int p0) {}
+
+// Symbol: ?FindByData@CMFCRibbonBar@@QEBAPEAVCMFCRibbonBaseElement@@_KH@Z
+extern "C" void* MS_ABI impl__FindByData_CMFCRibbonBar__QEBAPEAVCMFCRibbonBaseElement___KH_Z(unsigned __int64 p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?FindByID@CMFCRibbonBar@@QEBAPEAVCMFCRibbonBaseElement@@IHH@Z
+extern "C" void* MS_ABI impl__FindByID_CMFCRibbonBar__QEBAPEAVCMFCRibbonBaseElement__IHH_Z(unsigned int p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?get_accChild@CMFCRibbonBar@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accChild_CMFCRibbonBar__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* /*struct*/ p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChildCount@CMFCRibbonBar@@UEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_CMFCRibbonBar__UEAAJPEAJ_Z(long* p0) {
+    return 0;
+}
+
+// Symbol: ?OnClickButton@CMFCRibbonBar@@UEAAXPEAVCMFCRibbonButton@@VCPoint@@@Z
+extern "C" void MS_ABI impl__OnClickButton_CMFCRibbonBar__UEAAXPEAVCMFCRibbonButton__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnCommand@CMFCRibbonBar@@MEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CMFCRibbonBar__MEAAH_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnCreate@CMFCRibbonBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CMFCRibbonBar__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnDestroy@CMFCRibbonBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CMFCRibbonBar__IEAAXXZ() {}
+
+// Symbol: ?OnEditContextMenu@CMFCRibbonBar@@UEAAXPEAVCMFCRibbonRichEditCtrl@@VCPoint@@@Z
+extern "C" void MS_ABI impl__OnEditContextMenu_CMFCRibbonBar__UEAAXPEAVCMFCRibbonRichEditCtrl__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnEraseBkgnd@CMFCRibbonBar@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCRibbonBar__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnFillBackground@CMFCRibbonBar@@MEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillBackground_CMFCRibbonBar__MEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnGetFont@CMFCRibbonBar@@IEAAPEAUHFONT__@@XZ
+extern "C" void* MS_ABI impl__OnGetFont_CMFCRibbonBar__IEAAPEAUHFONT____XZ() {
+    return nullptr;
+}
+
+// Symbol: ?OnKillFocus@CMFCRibbonBar@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnKillFocus_CMFCRibbonBar__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnLButtonDblClk@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonDown@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseLeave@CMFCRibbonBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnMouseLeave_CMFCRibbonBar__IEAAXXZ() {}
+
+// Symbol: ?OnMouseMove@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseWheel@CMFCRibbonBar@@IEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CMFCRibbonBar__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnNeedTipText@CMFCRibbonBar@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
+extern "C" int MS_ABI impl__OnNeedTipText_CMFCRibbonBar__IEAAHIPEAUtagNMHDR__PEA_J_Z(unsigned int p0, void* /*struct*/* p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPaint@CMFCRibbonBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CMFCRibbonBar__IEAAXXZ() {}
+
+// Symbol: ?OnPaneContextMenu@CMFCRibbonBar@@MEAAXPEAVCWnd@@VCPoint@@@Z
+extern "C" void MS_ABI impl__OnPaneContextMenu_CMFCRibbonBar__MEAAXPEAVCWnd__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnPostRecalcLayout@CMFCRibbonBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnPostRecalcLayout_CMFCRibbonBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnRTLChanged@CMFCRibbonBar@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonBar__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnSetAccData@CMFCRibbonBar@@UEAAHJ@Z
+extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonBar__UEAAHJ_Z(long p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetCursor@CMFCRibbonBar@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CMFCRibbonBar__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetFocus@CMFCRibbonBar@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CMFCRibbonBar__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnSetFont@CMFCRibbonBar@@IEAAXPEAVCFont@@H@Z
+extern "C" void MS_ABI impl__OnSetFont_CMFCRibbonBar__IEAAXPEAVCFont__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?OnSetPrintPreviewKeys@CMFCRibbonBar@@MEAAXPEAVCMFCRibbonPanel@@00@Z
+extern "C" void MS_ABI impl__OnSetPrintPreviewKeys_CMFCRibbonBar__MEAAXPEAVCMFCRibbonPanel__00_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2) {}
+
+// Symbol: ?SetPrintPreviewMode@CMFCRibbonBar@@IEAAXH@Z
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CMFCRibbonBar__IEAAXH_Z(int p0) {}
+
+// Symbol: ?SetQuickAccessCommands@CMFCRibbonBar@@QEAAXAEBV?$CList@II@@H@Z
+extern "C" void MS_ABI impl__SetQuickAccessCommands_CMFCRibbonBar__QEAAXAEBV__CList_II__H_Z(const void* /*class*/* p0, int p1) {}
+
+// Symbol: ?SetQuickAccessDefaultState@CMFCRibbonBar@@QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState@@@Z
+extern "C" void MS_ABI impl__SetQuickAccessDefaultState_CMFCRibbonBar__QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?SetTooltipFixedWidth@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetTooltipFixedWidth_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?SetWindows7Look@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetWindows7Look_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?ShowCategory@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__ShowCategory_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?ShowContextCategories@CMFCRibbonBar@@QEAAXIH@Z
+extern "C" void MS_ABI impl__ShowContextCategories_CMFCRibbonBar__QEAAXIH_Z(unsigned int p0, int p1) {}
+
+// Symbol: ?ShowKeyTips@CMFCRibbonBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__ShowKeyTips_CMFCRibbonBar__QEAAXH_Z(int p0) {}
+
+// Symbol: ?ShowSysMenu@CMFCRibbonBar@@IEAAXAEBVCPoint@@@Z
+extern "C" void MS_ABI impl__ShowSysMenu_CMFCRibbonBar__IEAAXAEBVCPoint___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?TranslateChar@CMFCRibbonBar@@UEAAHI@Z
+extern "C" int MS_ABI impl__TranslateChar_CMFCRibbonBar__UEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?UpdateToolTipsRect@CMFCRibbonBar@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateToolTipsRect_CMFCRibbonBar__IEAAXXZ() {}
+
+// Symbol: ?WindowProc@CMFCRibbonBar@@MEAA_JI_K_J@Z
+extern "C" __int64 MS_ABI impl__WindowProc_CMFCRibbonBar__MEAA_JI_K_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2) {
+    return 0;
+}

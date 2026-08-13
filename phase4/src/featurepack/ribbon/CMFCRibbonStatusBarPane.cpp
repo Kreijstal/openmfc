@@ -121,3 +121,20 @@ extern "C" void MS_ABI impl__StopAnimation_CMFCRibbonStatusBarPane__QEAAXXZ(CMFC
 }
 CMFCRibbonStatusBarPane::CMFCRibbonStatusBarPane() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonStatusBarPane::~CMFCRibbonStatusBarPane() {}
+// ?AnimTimerProc@CMFCRibbonStatusBarPane@@KAXPEAUHWND__@@I_KK@Z
+extern "C" void MS_ABI impl__AnimTimerProc_CMFCRibbonStatusBarPane__KAXPEAUHWND____I_KK_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, unsigned long p3) {}
+
+// ?CommonInit@CMFCRibbonStatusBarPane@@IEAAXXZ
+extern "C" void MS_ABI impl__CommonInit_CMFCRibbonStatusBarPane__IEAAXXZ() {}
+
+// ?CopyFrom@CMFCRibbonStatusBarPane@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonStatusBarPane__MEAAXAEBVCMFCRibbonBaseElement___Z(const void* /*class*/* p0) {}
+
+// ?DrawRibbonText@CMFCRibbonStatusBarPane@@MEAAHPEAVCDC@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@IK@Z
+extern "C" int MS_ABI impl__DrawRibbonText_CMFCRibbonStatusBarPane__MEAAHPEAVCDC__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__IK_Z(void* /*class*/* p0, const void* /*class*/* p1, void** p2, void* p3, void* /*class*/ p4, unsigned int p5, unsigned long p6) {
+    return 0;
+}
+
+// ?OnRTLChanged@CMFCRibbonStatusBarPane@@MEAAXH@Z
+extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonStatusBarPane__MEAAXH_Z(int p0) {}
+

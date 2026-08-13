@@ -733,6 +733,12 @@ extern "C" int MS_ABI impl__SetToolbarImageList_CMFCOutlookBarTabCtrl__QEAAHIHK_
 extern "C" void* MS_ABI impl___0CMFCOutlookBarTabCtrl__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// Symbol: ??1CMFCOutlookBarTabCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCOutlookBarTabCtrl__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        impl__Destroy_CWnd__IEAAXXZ(reinterpret_cast<CWnd*>(pThis));
+    }
+}
 // Symbol: ?OnUpdateToolbarCommand@CMFCOutlookBarTabCtrl@@IEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__OnUpdateToolbarCommand_CMFCOutlookBarTabCtrl__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
     if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);

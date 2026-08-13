@@ -186,3 +186,15 @@ CFtpFileFind* CGopherConnection::CreateFileFind(CGopherLocator* pLocator) {
     if (pFind && pLocator) pFind->m_strRoot = LocatorToString(pLocator);
     return pFind;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?OpenFile@CGopherConnection@@QEAAPEAVCGopherFile@@AEAVCGopherLocator@@KPEB_W_K@Z
+extern "C" void* MS_ABI impl__OpenFile_CGopherConnection__QEAAPEAVCGopherFile__AEAVCGopherLocator__KPEB_W_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return nullptr;
+}
+

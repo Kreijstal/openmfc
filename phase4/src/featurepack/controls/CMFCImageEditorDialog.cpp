@@ -42,3 +42,54 @@ extern "C" void MS_ABI impl__OnUpdateToolPick_CMFCImageEditorDialog__IEAAXPEAVCC
 extern "C" void MS_ABI impl__OnUpdateToolRect_CMFCImageEditorDialog__IEAAXPEAVCCmdUI___Z(void*, CCmdUI* ui) {
     if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, TRUE);
 }
+// ?DoDataExchange@CMFCImageEditorDialog@@MEAAXPEAVCDataExchange@@@Z
+extern "C" void MS_ABI impl__DoDataExchange_CMFCImageEditorDialog__MEAAXPEAVCDataExchange___Z(void* /*class*/* p0) {}
+
+// ?OnColors@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnColors_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnInitDialog@CMFCImageEditorDialog@@MEAAHXZ
+extern "C" int MS_ABI impl__OnInitDialog_CMFCImageEditorDialog__MEAAHXZ() {
+    return 0;
+}
+
+// ?OnKickIdle@CMFCImageEditorDialog@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnKickIdle_CMFCImageEditorDialog__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// ?OnPaint@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnPickColor@CMFCImageEditorDialog@@IEAAHK@Z
+extern "C" int MS_ABI impl__OnPickColor_CMFCImageEditorDialog__IEAAHK_Z(unsigned long p0) {
+    return 0;
+}
+
+// ?OnToolClear@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolClear_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolCopy@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolCopy_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolEllipse@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolEllipse_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolFill@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolFill_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolLine@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolLine_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolPaste@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolPaste_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolPen@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolPen_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolPick@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolPick_CMFCImageEditorDialog__IEAAXXZ() {}
+
+// ?OnToolRect@CMFCImageEditorDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__OnToolRect_CMFCImageEditorDialog__IEAAXXZ() {}
+

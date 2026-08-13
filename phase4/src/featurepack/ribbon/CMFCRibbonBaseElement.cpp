@@ -459,3 +459,103 @@ UINT CMFCRibbonBaseElement::GetID() const { return m_nID; }
 void CMFCRibbonBaseElement::SetID(UINT nID) { m_nID = nID; }
 CString CMFCRibbonBaseElement::GetText() const { return m_strText; }
 void CMFCRibbonBaseElement::SetText(const wchar_t* lpszText) { if(lpszText) m_strText = lpszText; }
+// Symbol: ?GetKeyTipSize@CMFCRibbonBaseElement@@UEAA?AVCSize@@PEAVCDC@@@Z
+extern "C" void* MS_ABI impl__GetKeyTipSize_CMFCRibbonBaseElement__UEAA_AVCSize__PEAVCDC___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetParentPanel@CMFCRibbonBaseElement@@UEBAPEAVCMFCRibbonPanel@@XZ
+extern "C" void* MS_ABI impl__GetParentPanel_CMFCRibbonBaseElement__UEBAPEAVCMFCRibbonPanel__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetParentWnd@CMFCRibbonBaseElement@@UEBAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetParentWnd_CMFCRibbonBaseElement__UEBAPEAVCWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetPressed@CMFCRibbonBaseElement@@UEAAPEAV1@XZ
+extern "C" void* MS_ABI impl__GetPressed_CMFCRibbonBaseElement__UEAAPEAV1_XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetTopLevelRibbonBar@CMFCRibbonBaseElement@@QEBAPEAVCMFCRibbonBar@@XZ
+extern "C" void* MS_ABI impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetVisibleElements@CMFCRibbonBaseElement@@UEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetVisibleElements_CMFCRibbonBaseElement__UEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?HitTest@CMFCRibbonBaseElement@@UEAAPEAV1@VCPoint@@@Z
+extern "C" void* MS_ABI impl__HitTest_CMFCRibbonBaseElement__UEAAPEAV1_VCPoint___Z() {
+    return nullptr;
+}
+
+// Symbol: ?IsMenuMode@CMFCRibbonBaseElement@@QEBAHXZ
+extern "C" int MS_ABI impl__IsMenuMode_CMFCRibbonBaseElement__QEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?NotifyCommand@CMFCRibbonBaseElement@@QEAAHH@Z
+extern "C" int MS_ABI impl__NotifyCommand_CMFCRibbonBaseElement__QEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?NotifyControlCommand@CMFCRibbonBaseElement@@MEAAHHH_K_J@Z
+extern "C" int MS_ABI impl__NotifyControlCommand_CMFCRibbonBaseElement__MEAAHHH_K_J_Z(int p0, int p1, unsigned __int64 p2, __int64 p3) {
+    return 0;
+}
+
+// Symbol: ?NotifyHighlightListItem@CMFCRibbonBaseElement@@UEAAXH@Z
+extern "C" void MS_ABI impl__NotifyHighlightListItem_CMFCRibbonBaseElement__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnAccDefaultAction@CMFCRibbonBaseElement@@UEAAXXZ
+extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonBaseElement__UEAAXXZ() {}
+
+// Symbol: ?OnAddToQAToolbar@CMFCRibbonBaseElement@@UEAAHAEAVCMFCRibbonQuickAccessToolBar@@@Z
+extern "C" int MS_ABI impl__OnAddToQAToolbar_CMFCRibbonBaseElement__UEAAHAEAVCMFCRibbonQuickAccessToolBar___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnAfterChangeRect@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonBaseElement__UEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnDrawKeyTip@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@AEBVCRect@@H@Z
+extern "C" void MS_ABI impl__OnDrawKeyTip_CMFCRibbonBaseElement__UEAAXPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {}
+
+// Symbol: ?OnDrawOnList@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonBaseElement__UEAAXPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HVCRect__HH_Z(void* /*class*/* p0, void* /*class*/ p1, void** p2, void* p3, int p4, void* /*class*/ p5, int p6, int p7) {}
+
+// Symbol: ?OnKey@CMFCRibbonBaseElement@@UEAAHH@Z
+extern "C" int MS_ABI impl__OnKey_CMFCRibbonBaseElement__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnLButtonDown@CMFCRibbonBaseElement@@MEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBaseElement__MEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// Symbol: ?OnShowPopupMenu@CMFCRibbonBaseElement@@UEAAXXZ
+extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonBaseElement__UEAAXXZ() {}
+
+// Symbol: ?OnUpdateCmdUI@CMFCRibbonBaseElement@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCRibbonBaseElement__MEAAXPEAVCMFCRibbonCmdUI__PEAVCFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?PostMenuCommand@CMFCRibbonBaseElement@@QEAAXI@Z
+extern "C" void MS_ABI impl__PostMenuCommand_CMFCRibbonBaseElement__QEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?Redraw@CMFCRibbonBaseElement@@UEAAXXZ
+extern "C" void MS_ABI impl__Redraw_CMFCRibbonBaseElement__UEAAXXZ() {}
+
+// Symbol: ?ReplaceByID@CMFCRibbonBaseElement@@MEAAHIPEAV1@@Z
+extern "C" int MS_ABI impl__ReplaceByID_CMFCRibbonBaseElement__MEAAHIPEAV1__Z(unsigned int p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?SetACCData@CMFCRibbonBaseElement@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+extern "C" int MS_ABI impl__SetACCData_CMFCRibbonBaseElement__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?SetDroppedDown@CMFCRibbonBaseElement@@IEAAXPEAVCMFCPopupMenu@@@Z
+extern "C" void MS_ABI impl__SetDroppedDown_CMFCRibbonBaseElement__IEAAXPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {}

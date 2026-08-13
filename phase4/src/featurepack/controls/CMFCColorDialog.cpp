@@ -314,3 +314,9 @@ extern "C" void* MS_ABI impl___0CMFCColorDialog__QEAA_KKPEAVCWnd__PEAUHPALETTE__
     (void)pPalette;
     return pThis;
 }
+
+// Symbol: ??1CMFCColorDialog@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCColorDialog__UEAA_XZ(void* pThis) {
+    if (!pThis) return;
+    reinterpret_cast<CColorDlg*>(pThis)->~CColorDlg();
+}

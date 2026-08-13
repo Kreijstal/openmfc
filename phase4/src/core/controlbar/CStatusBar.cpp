@@ -240,3 +240,82 @@ BOOL CStatusBar::IsSimple() const {
     if (!m_hWnd) return FALSE;
     return (BOOL)::SendMessageW(m_hWnd, SB_ISSIMPLE, 0, 0);
 }
+// Symbol: ?AllocElements@CStatusBar@@QEAAHHH@Z
+extern "C" int MS_ABI impl__AllocElements_CStatusBar__QEAAHHH_Z(int p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?CalcFixedLayout@CStatusBar@@UEAA?AVCSize@@HH@Z
+extern "C" void* MS_ABI impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?CalcInsideRect@CStatusBar@@UEBAXAEAVCRect@@H@Z
+extern "C" void MS_ABI impl__CalcInsideRect_CStatusBar__UEBAXAEAVCRect__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?CreateEx@CStatusBar@@UEAAHPEAVCWnd@@KKI@Z
+extern "C" int MS_ABI impl__CreateEx_CStatusBar__UEAAHPEAVCWnd__KKI_Z(void* /*class*/* p0, unsigned long p1, unsigned long p2, unsigned int p3) {
+    return 0;
+}
+
+// Symbol: ?DrawItem@CStatusBar@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
+extern "C" void MS_ABI impl__DrawItem_CStatusBar__UEAAXPEAUtagDRAWITEMSTRUCT___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?OnBarStyleChange@CStatusBar@@UEAAXKK@Z
+extern "C" void MS_ABI impl__OnBarStyleChange_CStatusBar__UEAAXKK_Z(unsigned long p0, unsigned long p1) {}
+
+// Symbol: ?OnChildNotify@CStatusBar@@MEAAHI_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnChildNotify_CStatusBar__MEAAHI_K_JPEA_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2, __int64* p3) {
+    return 0;
+}
+
+// Symbol: ?OnGetText@CStatusBar@@IEAAHHPEA_W@Z
+extern "C" int MS_ABI impl__OnGetText_CStatusBar__IEAAHHPEA_W_Z(int p0, wchar_t* p1) {
+    return 0;
+}
+
+// Symbol: ?OnGetTextLength@CStatusBar@@IEAAIXZ
+extern "C" unsigned int MS_ABI impl__OnGetTextLength_CStatusBar__IEAAIXZ() {
+    return 0;
+}
+
+// Symbol: ?OnNcCalcSize@CStatusBar@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CStatusBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcHitTest@CStatusBar@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CStatusBar__IEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcPaint@CStatusBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CStatusBar__IEAAXXZ() {}
+
+// Symbol: ?OnPaint@CStatusBar@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CStatusBar__IEAAXXZ() {}
+
+// Symbol: ?OnSetMinHeight@CStatusBar@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnSetMinHeight_CStatusBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnSetText@CStatusBar@@IEAAHPEB_W@Z
+extern "C" int MS_ABI impl__OnSetText_CStatusBar__IEAAHPEB_W_Z(const wchar_t* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSize@CStatusBar@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CStatusBar__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnUpdateCmdUI@CStatusBar@@UEAAXPEAVCFrameWnd@@H@Z
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CStatusBar__UEAAXPEAVCFrameWnd__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?OnWindowPosChanging@CStatusBar@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanging_CStatusBar__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?PreCreateWindow@CStatusBar@@UEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CStatusBar__UEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?UpdateAllPanes@CStatusBar@@IEAAXHH@Z
+extern "C" void MS_ABI impl__UpdateAllPanes_CStatusBar__IEAAXHH_Z(int p0, int p1) {}

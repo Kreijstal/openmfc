@@ -244,3 +244,69 @@ int CRichEditCtrl::SetWordCharFormat(CHARFORMATW& cf) {
     if (!m_hWnd) return FALSE;
     return (int)::SendMessageW(m_hWnd, EM_SETCHARFORMAT, SCF_SELECTION | SCF_WORD, (LPARAM)&cf);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetDefaultCharFormat@CRichEditCtrl@@QEBAKAEAU_charformatw@@@Z
+extern "C" unsigned long MS_ABI impl__GetDefaultCharFormat_CRichEditCtrl__QEBAKAEAU_charformatw___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0UL;
+}
+
+
+// Symbol: ?GetLine@CRichEditCtrl@@QEBAHHPEA_W@Z
+extern "C" int MS_ABI impl__GetLine_CRichEditCtrl__QEBAHHPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+
+// Symbol: ?GetParaFormat@CRichEditCtrl@@QEBAKAEAU_paraformat@@@Z
+extern "C" unsigned long MS_ABI impl__GetParaFormat_CRichEditCtrl__QEBAKAEAU_paraformat___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0UL;
+}
+
+
+// Symbol: ?GetSel@CRichEditCtrl@@QEBAXAEAJ0@Z
+extern "C" void MS_ABI impl__GetSel_CRichEditCtrl__QEBAXAEAJ0_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+
+// Symbol: ?GetSelectionCharFormat@CRichEditCtrl@@QEBAKAEAU_charformatw@@@Z
+extern "C" unsigned long MS_ABI impl__GetSelectionCharFormat_CRichEditCtrl__QEBAKAEAU_charformatw___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0UL;
+}
+
+
+// Symbol: ?SetDefaultCharFormat@CRichEditCtrl@@QEAAHAEAU_charformatw@@@Z
+extern "C" int MS_ABI impl__SetDefaultCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+
+// Symbol: ?SetParaFormat@CRichEditCtrl@@QEAAHAEAU_paraformat@@@Z
+extern "C" int MS_ABI impl__SetParaFormat_CRichEditCtrl__QEAAHAEAU_paraformat___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+
+// Symbol: ?SetSelectionCharFormat@CRichEditCtrl@@QEAAHAEAU_charformatw@@@Z
+extern "C" int MS_ABI impl__SetSelectionCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+

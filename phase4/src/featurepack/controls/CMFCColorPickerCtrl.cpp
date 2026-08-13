@@ -734,6 +734,12 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCColorPickerCtrl__MEAAXXZ(
     (void)impl__ModifyStyle_CWnd__QEAAHKKI_Z(
         reinterpret_cast<CWnd*>(pThis), 1, 0xb, 0);
 }
+// Symbol: ??1CMFCColorPickerCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCColorPickerCtrl__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        // No owned resources are modelled for this opaque helper class.
+    }
+}
 // Symbol: ??0CMFCColorPickerCtrl@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCColorPickerCtrl__QEAA_XZ(void* pThis) {
     return pThis;

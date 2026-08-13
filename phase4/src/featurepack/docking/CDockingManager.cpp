@@ -835,3 +835,70 @@ void CDockingManager::SetDockState() {
         }
     }
 }
+// Symbol: ?m_SDParams@CDockingManager@@1VCSmartDockingInfo@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_SDParams_CDockingManager__1VCSmartDockingInfo__A = {};
+
+// Symbol: ?AddDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@PEAPEAVCDockSite@@@Z
+extern "C" int MS_ABI impl__AddDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__PEAPEAVCDockSite___Z(const void* /*struct*/* p0, void* /*class*/** p1) {
+    return 0;
+}
+
+// Symbol: ?AddHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+
+// Symbol: ?AlignByRect@CDockingManager@@IEAAXAEBVCRect@@AEAV2@KHH@Z
+extern "C" void MS_ABI impl__AlignByRect_CDockingManager__IEAAXAEBVCRect__AEAV2_KHH_Z(const void* /*class*/* p0, void* /*class*/* p1, unsigned long p2, int p3, int p4) {}
+
+// Symbol: ?CalcPaneOffset@CDockingManager@@IEAAXPEAVCAutoHideDockSite@@@Z
+extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(void* /*class*/* p0) {}
+
+// Symbol: ?Create@CDockingManager@@QEAAHPEAVCFrameWnd@@@Z
+extern "C" int MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?FindDockSite@CDockingManager@@UEAAPEAVCDockSite@@KH@Z
+extern "C" void* MS_ABI impl__FindDockSite_CDockingManager__UEAAPEAVCDockSite__KH_Z(unsigned long p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?FindDockSiteByPane@CDockingManager@@UEAAPEAVCDockSite@@PEAVCPane@@@Z
+extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockSite__PEAVCPane___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?HideForPrintPreview@CDockingManager@@IEAAXAEBVCObList@@@Z
+extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?InsertDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@KPEAPEAVCDockSite@@@Z
+extern "C" int MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(const void* /*struct*/* p0, unsigned long p1, void* /*class*/** p2) {
+    return 0;
+}
+
+// Symbol: ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z
+extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(void* /*class*/ p0, unsigned long* p1, int* p2) {
+    return 0;
+}
+
+// Symbol: ?Serialize@CDockingManager@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetAutohideZOrder@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void MS_ABI impl__SetAutohideZOrder_CDockingManager__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetDockingMode@CDockingManager@@SAXW4AFX_DOCK_TYPE@@W4AFX_SMARTDOCK_THEME@@@Z
+extern "C" void MS_ABI impl__SetDockingMode_CDockingManager__SAXW4AFX_DOCK_TYPE__W4AFX_SMARTDOCK_THEME___Z(int /*enum*/ p0, short* p1, int p2, char p3, void* p4, void* p5, unsigned long p6, int p7, void* p8, void* p9, unsigned char* p10, int /*enum*/ p11, short* p12, int p13, void* p14, float p15, void** p16, void* p17, char p18, void* p19, void* p20, unsigned long p21, int p22, void* p23, int p24, unsigned char p25, float p26, unsigned char p27) {}
+
+// Symbol: ?SetPrintPreviewMode@CDockingManager@@QEAAXHPEAUCPrintPreviewState@@@Z
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?SetSmartDockingParams@CDockingManager@@SAXAEAVCSmartDockingInfo@@@Z
+extern "C" void MS_ABI impl__SetSmartDockingParams_CDockingManager__SAXAEAVCSmartDockingInfo___Z(void* /*class*/* p0) {}
+
+// Symbol: ?ShowDelayShowMiniFrames@CDockingManager@@UEAAXH@Z
+extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(int p0) {}
+
+// Symbol: ?ShowPanes@CDockingManager@@UEAAHH@Z
+extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(int p0) {
+    return 0;
+}

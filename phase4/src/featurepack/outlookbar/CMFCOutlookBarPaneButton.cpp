@@ -181,6 +181,12 @@ extern "C" void MS_ABI impl__SetImage_CMFCOutlookBarPaneButton__UEAAXH_Z(
         return;
     reinterpret_cast<CMFCToolBarButton*>(pThis)->m_iImage = iImage;
 }
+// Symbol: ??1CMFCOutlookBarPaneButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCOutlookBarPaneButton__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        // No owned resources are modelled for this opaque helper class.
+    }
+}
 // Symbol: ??0CMFCOutlookBarPaneButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCOutlookBarPaneButton__QEAA_XZ(void* pThis) {
     return pThis;

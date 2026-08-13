@@ -96,3 +96,145 @@ void CMFCMenuBar::AdjustLocations() {
 CFont& CMFCMenuBar::GetMenuFont(BOOL) {
     return EnsureMenuFont_Mfccore();
 }
+// Symbol: ?BuildOrigItems@CMFCMenuBar@@MEAAHI@Z
+extern "C" int MS_ABI impl__BuildOrigItems_CMFCMenuBar__MEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?CalcMaxButtonHeight@CMFCMenuBar@@UEAAHXZ
+extern "C" int MS_ABI impl__CalcMaxButtonHeight_CMFCMenuBar__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?CalcSysButtonSize@CMFCMenuBar@@IEAAXXZ
+extern "C" void MS_ABI impl__CalcSysButtonSize_CMFCMenuBar__IEAAXXZ() {}
+
+// Symbol: ?EnableHelpCombobox@CMFCMenuBar@@QEAAXIPEB_WH@Z
+extern "C" void MS_ABI impl__EnableHelpCombobox_CMFCMenuBar__QEAAXIPEB_WH_Z(unsigned int p0, const wchar_t* p1, int p2) {}
+
+// Symbol: ?FindDropIndex@CMFCMenuBar@@MEBAHVCPoint@@AEAVCRect@@@Z
+extern "C" int MS_ABI impl__FindDropIndex_CMFCMenuBar__MEBAHVCPoint__AEAVCRect___Z(void* /*class*/ p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?FindMenuItemText@CMFCMenuBar@@KAHPEAUHMENU__@@IAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__FindMenuItemText_CMFCMenuBar__KAHPEAUHMENU____IAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*struct*/* p0, unsigned int p1, void* /*class*/* p2, void** p3, void* p4) {
+    return 0;
+}
+
+// Symbol: ?GetFloatPopupDirection@CMFCMenuBar@@QEAAHPEAVCMFCToolBarMenuButton@@@Z
+extern "C" int MS_ABI impl__GetFloatPopupDirection_CMFCMenuBar__QEAAHPEAVCMFCToolBarMenuButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetHelpCombobox@CMFCMenuBar@@QEAAPEAVCMFCToolBarComboBoxButton@@XZ
+extern "C" void* MS_ABI impl__GetHelpCombobox_CMFCMenuBar__QEAAPEAVCMFCToolBarComboBoxButton__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRowHeight@CMFCMenuBar@@UEBAHXZ
+extern "C" int MS_ABI impl__GetRowHeight_CMFCMenuBar__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?GetSystemButton@CMFCMenuBar@@QEBAPEAVCMFCToolBarMenuButtonsButton@@IH@Z
+extern "C" void* MS_ABI impl__GetSystemButton_CMFCMenuBar__QEBAPEAVCMFCToolBarMenuButtonsButton__IH_Z(unsigned int p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetSystemMenu@CMFCMenuBar@@QEBAPEAVCMFCToolBarSystemMenuButton@@XZ
+extern "C" void* MS_ABI impl__GetSystemMenu_CMFCMenuBar__QEBAPEAVCMFCToolBarSystemMenuButton__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?IsPureMenuButton@CMFCMenuBar@@MEBAHPEAVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__IsPureMenuButton_CMFCMenuBar__MEBAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?LoadState@CMFCMenuBar@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__LoadState_CMFCMenuBar__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnChangeHot@CMFCMenuBar@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnChangeHot_CMFCMenuBar__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnCreate@CMFCMenuBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CMFCMenuBar__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnLButtonDblClk@CMFCMenuBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCMenuBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonDown@CMFCMenuBar@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCMenuBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnSendCommand@CMFCMenuBar@@UEAAHPEBVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__OnSendCommand_CMFCMenuBar__UEAAHPEBVCMFCToolBarButton___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetDefaultButtonText@CMFCMenuBar@@UEAAHPEAVCMFCToolBarButton@@@Z
+extern "C" int MS_ABI impl__OnSetDefaultButtonText_CMFCMenuBar__UEAAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetFocus@CMFCMenuBar@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CMFCMenuBar__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnSettingChange@CMFCMenuBar@@IEAAXIPEB_W@Z
+extern "C" void MS_ABI impl__OnSettingChange_CMFCMenuBar__IEAAXIPEB_W_Z(unsigned int p0, const wchar_t* p1) {}
+
+// Symbol: ?OnTimer@CMFCMenuBar@@IEAAX_K@Z
+extern "C" void MS_ABI impl__OnTimer_CMFCMenuBar__IEAAX_K_Z(unsigned __int64 p0) {}
+
+// Symbol: ?OnToolHitTest@CMFCMenuBar@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
+extern "C" __int64 MS_ABI impl__OnToolHitTest_CMFCMenuBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(void* /*class*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?PreTranslateMessage@CMFCMenuBar@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCMenuBar__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?ResetImages@CMFCMenuBar@@MEAAXXZ
+extern "C" void MS_ABI impl__ResetImages_CMFCMenuBar__MEAAXXZ() {}
+
+// Symbol: ?RestoreMaximizeMode@CMFCMenuBar@@IEAAXH@Z
+extern "C" void MS_ABI impl__RestoreMaximizeMode_CMFCMenuBar__IEAAXH_Z(int p0) {}
+
+// Symbol: ?RestoreOriginalState@CMFCMenuBar@@UEAAHXZ
+extern "C" int MS_ABI impl__RestoreOriginalState_CMFCMenuBar__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?SaveState@CMFCMenuBar@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__SaveState_CMFCMenuBar__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?SetDefaultMenuResId@CMFCMenuBar@@QEAAXI@Z
+extern "C" void MS_ABI impl__SetDefaultMenuResId_CMFCMenuBar__QEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?SetMaximizeMode@CMFCMenuBar@@QEAAXHPEAVCWnd@@H@Z
+extern "C" void MS_ABI impl__SetMaximizeMode_CMFCMenuBar__QEAAXHPEAVCWnd__H_Z(int p0, void* /*class*/* p1, int p2) {}
+
+// Symbol: ?SetMenuButtonRTC@CMFCMenuBar@@QEAAXPEAUCRuntimeClass@@@Z
+extern "C" void MS_ABI impl__SetMenuButtonRTC_CMFCMenuBar__QEAAXPEAUCRuntimeClass___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SetMenuFont@CMFCMenuBar@@SAHPEAUtagLOGFONTW@@H@Z
+extern "C" int MS_ABI impl__SetMenuFont_CMFCMenuBar__SAHPEAUtagLOGFONTW__H_Z(void* /*struct*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?SetRecentlyUsedMenus@CMFCMenuBar@@SAXH@Z
+extern "C" void MS_ABI impl__SetRecentlyUsedMenus_CMFCMenuBar__SAXH_Z(int p0) {}
+
+// Symbol: ?SetShowAllCommands@CMFCMenuBar@@SAXH@Z
+extern "C" void MS_ABI impl__SetShowAllCommands_CMFCMenuBar__SAXH_Z(int p0) {}
+
+// Symbol: ?UpdateMDIChildrenMenus@CMFCMenuBar@@KAXPEAVCMultiDocTemplate@@@Z
+extern "C" void MS_ABI impl__UpdateMDIChildrenMenus_CMFCMenuBar__KAXPEAVCMultiDocTemplate___Z(void* /*class*/* p0) {}

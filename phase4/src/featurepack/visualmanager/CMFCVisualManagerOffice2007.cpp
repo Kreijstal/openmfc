@@ -405,3 +405,329 @@ int CMFCVisualManagerOffice2007::SetStyle(CMFCVisualManagerOffice2007::Style sty
     return TRUE;
 }
 CMFCVisualManagerOffice2007::Style CMFCVisualManagerOffice2007::GetStyle() { return g_office2007Style; }
+// Symbol: ?m_strStylePrefix@CMFCVisualManagerOffice2007@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strStylePrefix_CMFCVisualManagerOffice2007__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
+
+// Symbol: ?CleanStyle@CMFCVisualManagerOffice2007@@SAXXZ
+extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerOffice2007__SAXXZ() {}
+
+// Symbol: ?CleanUp@CMFCVisualManagerOffice2007@@MEAAXXZ
+extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerOffice2007__MEAAXXZ() {}
+
+// Symbol: ?DrawNcBtn@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@IW4AFX_BUTTON_STATE@CMFCVisualManager@@HHH@Z
+extern "C" void MS_ABI impl__DrawNcBtn_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__AEBVCRect__IW4AFX_BUTTON_STATE_CMFCVisualManager__HHH_Z(void* /*class*/* p0, const void* /*class*/* p1, unsigned int p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7, int p8, int p9, int p10) {}
+
+// Symbol: ?DrawNcCaption@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@VCRect@@KKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2PEAUHICON__@@HHHAEBVCObList@@@Z
+extern "C" void MS_ABI impl__DrawNcCaption_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__VCRect__KKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__2PEAUHICON____HHHAEBVCObList___Z(void* /*class*/* p0, void* /*class*/ p1, unsigned long p2, unsigned long p3, const void* /*class*/* p4, void** p5, void* p6, unsigned long p7, void* /*struct*/* p8, int p9, int p10, int p11, const void* /*class*/* p12) {}
+
+// Symbol: ?DrawNcText@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEAVCRect@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2HHHHHHK@Z
+extern "C" void MS_ABI impl__DrawNcText_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__AEAVCRect__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__2HHHHHHK_Z(void* /*class*/* p0, void* /*class*/* p1, const void* /*class*/* p2, void** p3, void* p4, const void* /*class*/* p5, int p6, int p7, int p8, int p9, int p10, int p11, unsigned long p12) {}
+
+// Symbol: ?DrawSeparator@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@AEAVCPen@@2H@Z
+extern "C" void MS_ABI impl__DrawSeparator_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__AEBVCRect__AEAVCPen__2H_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, void* /*class*/* p3, int p4) {}
+
+// Symbol: ?DrawSeparator@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@H@Z
+extern "C" void MS_ABI impl__DrawSeparator_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {}
+
+// Symbol: ?GetCaptionBarTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCCaptionBar@@@Z
+extern "C" unsigned long MS_ABI impl__GetCaptionBarTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCCaptionBar___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetHighlightedMenuItemTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarMenuButton@@@Z
+extern "C" unsigned long MS_ABI impl__GetHighlightedMenuItemTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCToolBarMenuButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetMenuItemTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarMenuButton@@HH@Z
+extern "C" unsigned long MS_ABI impl__GetMenuItemTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCToolBarMenuButton__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?GetNcBtnSize@CMFCVisualManagerOffice2007@@UEBA?AVCSize@@H@Z
+extern "C" void* MS_ABI impl__GetNcBtnSize_CMFCVisualManagerOffice2007__UEBA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetRibbonBar@CMFCVisualManagerOffice2007@@QEBAPEAVCMFCRibbonBar@@PEAVCWnd@@@Z
+extern "C" void* MS_ABI impl__GetRibbonBar_CMFCVisualManagerOffice2007__QEBAPEAVCMFCRibbonBar__PEAVCWnd___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetRibbonEditBackgroundColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCRibbonRichEditCtrl@@HHH@Z
+extern "C" unsigned long MS_ABI impl__GetRibbonEditBackgroundColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCRibbonRichEditCtrl__HHH_Z(void* /*class*/* p0, int p1, int p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?GetRibbonHyperlinkTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCRibbonLinkCtrl@@@Z
+extern "C" unsigned long MS_ABI impl__GetRibbonHyperlinkTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCRibbonLinkCtrl___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetRibbonPopupBorderSize@CMFCVisualManagerOffice2007@@UEBAHPEBVCMFCRibbonPanelMenu@@@Z
+extern "C" int MS_ABI impl__GetRibbonPopupBorderSize_CMFCVisualManagerOffice2007__UEBAHPEBVCMFCRibbonPanelMenu___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetRibbonQuickAccessToolBarRightMargin@CMFCVisualManagerOffice2007@@UEAAHXZ
+extern "C" int MS_ABI impl__GetRibbonQuickAccessToolBarRightMargin_CMFCVisualManagerOffice2007__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?GetRibbonStatusBarTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCRibbonStatusBar@@@Z
+extern "C" unsigned long MS_ABI impl__GetRibbonStatusBarTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCRibbonStatusBar___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetShowAllMenuItemsHeight@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@AEBVCSize@@@Z
+extern "C" int MS_ABI impl__GetShowAllMenuItemsHeight_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__AEBVCSize___Z(void* /*class*/* p0, const void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetSmartDockingTheme@CMFCVisualManagerOffice2007@@UEAA?AW4AFX_SMARTDOCK_THEME@@XZ
+extern "C" void* MS_ABI impl__GetSmartDockingTheme_CMFCVisualManagerOffice2007__UEAA_AW4AFX_SMARTDOCK_THEME__XZ(int /*enum*/* p0, short* p1, int p2, void* p3, float p4, void** p5, void* p6, char p7, void* p8, void* p9, unsigned long p10, int p11, void* p12, int p13, unsigned char p14, float p15, unsigned char p16) {
+    return nullptr;
+}
+
+// Symbol: ?GetStatusBarPaneTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCStatusBar@@PEAVCMFCStatusBarPaneInfo@@@Z
+extern "C" unsigned long MS_ABI impl__GetStatusBarPaneTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCStatusBar__PEAVCMFCStatusBarPaneInfo___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetStyleResourceID@CMFCVisualManagerOffice2007@@KA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@W4Style@1@@Z
+extern "C" void* MS_ABI impl__GetStyleResourceID_CMFCVisualManagerOffice2007__KA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__W4Style_1__Z(void* /*class*/* p0, void** p1, void* p2, int /*enum*/ p3, void* p4, void* p5, void* p6, void* p7, void* p8, void** p9) {
+    return nullptr;
+}
+
+// Symbol: ?GetSystemBorders@CMFCVisualManagerOffice2007@@IEBA?AVCSize@@H@Z
+extern "C" void* MS_ABI impl__GetSystemBorders_CMFCVisualManagerOffice2007__IEBA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetTabFrameColors@CMFCVisualManagerOffice2007@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z
+extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerOffice2007__UEAAXPEBVCMFCBaseTabCtrl__AEAK11111AEAPEAVCBrush__2_Z(const void* /*class*/* p0, unsigned long* p1, unsigned long* p2, unsigned long* p3, unsigned long* p4, unsigned long* p5, unsigned long* p6, void* /*class*/** p7, void* /*class*/** p8) {}
+
+// Symbol: ?GetTabHorzMargin@CMFCVisualManagerOffice2007@@UEAAHPEBVCMFCBaseTabCtrl@@@Z
+extern "C" int MS_ABI impl__GetTabHorzMargin_CMFCVisualManagerOffice2007__UEAAHPEBVCMFCBaseTabCtrl___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetTabTextColor@CMFCVisualManagerOffice2007@@UEAAKPEBVCMFCBaseTabCtrl@@HH@Z
+extern "C" unsigned long MS_ABI impl__GetTabTextColor_CMFCVisualManagerOffice2007__UEAAKPEBVCMFCBaseTabCtrl__HH_Z(const void* /*class*/* p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?GetToolbarButtonTextColor@CMFCVisualManagerOffice2007@@UEAAKPEAVCMFCToolBarButton@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" unsigned long MS_ABI impl__GetToolbarButtonTextColor_CMFCVisualManagerOffice2007__UEAAKPEAVCMFCToolBarButton__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, void* p4, void* /*struct*/ p5) {
+    return 0;
+}
+
+// Symbol: ?GetToolTipInfo@CMFCVisualManagerOffice2007@@UEAAHAEAVCMFCToolTipInfo@@I@Z
+extern "C" int MS_ABI impl__GetToolTipInfo_CMFCVisualManagerOffice2007__UEAAHAEAVCMFCToolTipInfo__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?IsHighlightWholeMenuItem@CMFCVisualManagerOffice2007@@UEAAHXZ
+extern "C" int MS_ABI impl__IsHighlightWholeMenuItem_CMFCVisualManagerOffice2007__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsOwnerDrawMenuCheck@CMFCVisualManagerOffice2007@@UEAAHXZ
+extern "C" int MS_ABI impl__IsOwnerDrawMenuCheck_CMFCVisualManagerOffice2007__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?IsRibbonPresent@CMFCVisualManagerOffice2007@@QEBAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__IsRibbonPresent_CMFCVisualManagerOffice2007__QEBAHPEAVCWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?IsWindowActive@CMFCVisualManagerOffice2007@@IEBAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__IsWindowActive_CMFCVisualManagerOffice2007__IEBAHPEAVCWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?MakeResourceID@CMFCVisualManagerOffice2007@@KA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
+extern "C" void* MS_ABI impl__MakeResourceID_CMFCVisualManagerOffice2007__KA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(void* /*class*/* p0, void** p1, void* p2, const wchar_t* p3) {
+    return nullptr;
+}
+
+// Symbol: ?OnDrawBarGripper@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HPEAVCBasePane@@@Z
+extern "C" void MS_ABI impl__OnDrawBarGripper_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HPEAVCBasePane___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnDrawButtonSeparator@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@H@Z
+extern "C" void MS_ABI impl__OnDrawButtonSeparator_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager__H_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7, int p8) {}
+
+// Symbol: ?OnDrawCaptionBarInfoArea@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawCaptionBarInfoArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCCaptionBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnDrawCheckBoxEx@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHHH@Z
+extern "C" void MS_ABI impl__OnDrawCheckBoxEx_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, int p5) {}
+
+// Symbol: ?OnDrawComboBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, void* /*class*/* p5) {}
+
+// Symbol: ?OnDrawDefaultRibbonImage@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHH@Z
+extern "C" void MS_ABI impl__OnDrawDefaultRibbonImage_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawEditBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHPEAVCMFCToolBarEditBoxButton@@@Z
+extern "C" void MS_ABI impl__OnDrawEditBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHPEAVCMFCToolBarEditBoxButton___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, void* /*class*/* p4) {}
+
+// Symbol: ?OnDrawFloatingToolbarBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCBaseToolBar@@VCRect@@2@Z
+extern "C" void MS_ABI impl__OnDrawFloatingToolbarBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCBaseToolBar__VCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* p3) {}
+
+// Symbol: ?OnDrawHeaderCtrlBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCMFCHeaderCtrl@@PEAVCDC@@AEAVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawHeaderCtrlBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCMFCHeaderCtrl__PEAVCDC__AEAVCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawMenuCheck@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawMenuCheck_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawMenuItemButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawMenuItemButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawMenuLabel@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@@Z
+extern "C" unsigned long MS_ABI impl__OnDrawMenuLabel_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return 0;
+}
+
+// Symbol: ?OnDrawMenuResizeBar@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@H@Z
+extern "C" void MS_ABI impl__OnDrawMenuResizeBar_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+
+// Symbol: ?OnDrawMenuScrollButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHHH@Z
+extern "C" void MS_ABI impl__OnDrawMenuScrollButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, int p5) {}
+
+// Symbol: ?OnDrawMenuSystemButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@IIH@Z
+extern "C" void MS_ABI impl__OnDrawMenuSystemButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__IIH_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned int p2, unsigned int p3, int p4) {}
+
+// Symbol: ?OnDrawMiniFrameBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCPaneFrameWnd@@VCRect@@2@Z
+extern "C" void MS_ABI impl__OnDrawMiniFrameBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCPaneFrameWnd__VCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* p3) {}
+
+// Symbol: ?OnDrawOutlookBarSplitter@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnDrawOutlookPageButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEAVCRect@@HH@Z
+extern "C" void MS_ABI impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3) {}
+
+// Symbol: ?OnDrawPaneCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/ p3, void* /*class*/ p4) {
+    return 0;
+}
+
+// Symbol: ?OnDrawPopupWindowCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWnd@@@Z
+extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnDrawRibbonApplicationButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" void MS_ABI impl__OnDrawRibbonApplicationButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?OnDrawRibbonButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?OnDrawTab@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnDrawTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, const void* /*class*/* p4) {}
+
+// Symbol: ?OnDrawTabsButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEAVCRect@@PEAVCMFCButton@@IPEAVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnDrawTabsButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__PEAVCMFCButton__IPEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, unsigned int p3, void* /*class*/* p4) {}
+
+// Symbol: ?OnDrawTask@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z
+extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawTasksGroupCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z
+extern "C" void MS_ABI impl__OnDrawTasksGroupCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3, int p4) {}
+
+// Symbol: ?OnDrawTearOffCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@H@Z
+extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+
+// Symbol: ?OnEraseMDIClientArea@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@VCRect@@@Z
+extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return 0;
+}
+
+// Symbol: ?OnEraseTabsArea@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {}
+
+// Symbol: ?OnEraseTabsButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnEraseTabsFrame@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnFillBarBackground@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@2H@Z
+extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* p3, int p4) {}
+
+// Symbol: ?OnFillButtonInterior@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7) {}
+
+// Symbol: ?OnFillCaptionBarButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z
+extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, int p6, int p7) {
+    return 0;
+}
+
+// Symbol: ?OnFillHighlightedArea@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@PEAVCMFCToolBarButton@@@Z
+extern "C" void MS_ABI impl__OnFillHighlightedArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__PEAVCMFCToolBarButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnFillMiniFrameCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?OnFillOutlookBarCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@AEAK@Z
+extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned long* p2) {}
+
+// Symbol: ?OnFillOutlookPageButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2, int p3, unsigned long* p4) {}
+
+// Symbol: ?OnFillPopupWindowBackground@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnFillRibbonButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnFillRibbonEdit@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonRichEditCtrl@@VCRect@@HHHAEAK33@Z
+extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, unsigned long* p6, unsigned long* p7, unsigned long* p8) {}
+
+// Symbol: ?OnFillRibbonMainPanelButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnFillRibbonMenuFrame@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillTab@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3, int p4, const void* /*class*/* p5) {}
+
+// Symbol: ?OnHighlightMenuItem@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+
+// Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcActivate@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?OnNcPaint@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
+extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetWindowRegion@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@VCSize@@@Z
+extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__VCSize___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return 0;
+}
+
+// Symbol: ?OnUpdateSystemColors@CMFCVisualManagerOffice2007@@UEAAXXZ
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2007__UEAAXXZ() {}
+
+// Symbol: ?SetResourceHandle@CMFCVisualManagerOffice2007@@SAXPEAUHINSTANCE__@@@Z
+extern "C" void MS_ABI impl__SetResourceHandle_CMFCVisualManagerOffice2007__SAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {}

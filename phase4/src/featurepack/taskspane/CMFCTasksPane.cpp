@@ -555,3 +555,269 @@ int CMFCTasksPane::AddGroup(int nGroup, const wchar_t* lpszName, BOOL bBottomHas
     state.groups.push_back(std::move(group));
     return static_cast<int>(state.groups.size() - 1);
 }
+// Symbol: ?AddMRUFilesList@CMFCTasksPane@@QEAAHHH@Z
+extern "C" int MS_ABI impl__AddMRUFilesList_CMFCTasksPane__QEAAHHH_Z(int p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?AddPage@CMFCTasksPane@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__AddPage_CMFCTasksPane__QEAAHPEB_W_Z(const wchar_t* p0) {
+    return 0;
+}
+
+// Symbol: ?AddWindow@CMFCTasksPane@@QEAAHHPEAUHWND__@@HH_K@Z
+extern "C" int MS_ABI impl__AddWindow_CMFCTasksPane__QEAAHHPEAUHWND____HH_K_Z(int p0, void* /*struct*/* p1, int p2, int p3, unsigned __int64 p4) {
+    return 0;
+}
+
+// Symbol: ?AdjustScroll@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__AdjustScroll_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?ChangeActivePage@CMFCTasksPane@@IEAAXHH@Z
+extern "C" void MS_ABI impl__ChangeActivePage_CMFCTasksPane__IEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?CollapseAllGroups@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__CollapseAllGroups_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?CollapseAllGroups@CMFCTasksPane@@QEAAXHH@Z
+extern "C" void MS_ABI impl__CollapseAllGroups_CMFCTasksPane__QEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?CollapseGroup@CMFCTasksPane@@QEAAHPEAVCMFCTasksPaneTaskGroup@@H@Z
+extern "C" int MS_ABI impl__CollapseGroup_CMFCTasksPane__QEAAHPEAVCMFCTasksPaneTaskGroup__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?CreateDefaultMiniframe@CMFCTasksPane@@UEAAPEAVCPaneFrameWnd@@VCRect@@@Z
+extern "C" void* MS_ABI impl__CreateDefaultMiniframe_CMFCTasksPane__UEAAPEAVCPaneFrameWnd__VCRect___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?CreateFonts@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__CreateFonts_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?CreateMenu@CMFCTasksPane@@QEBAPEAUHMENU__@@XZ
+extern "C" void* MS_ABI impl__CreateMenu_CMFCTasksPane__QEBAPEAUHMENU____XZ() {
+    return nullptr;
+}
+
+// Symbol: ?CreateNavigationToolbar@CMFCTasksPane@@IEAAHXZ
+extern "C" int MS_ABI impl__CreateNavigationToolbar_CMFCTasksPane__IEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?DoPaint@CMFCTasksPane@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__DoPaint_CMFCTasksPane__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?DrawCaption@CMFCTasksPane@@MEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__DrawCaption_CMFCTasksPane__MEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?EnableHistoryMenuButtons@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__EnableHistoryMenuButtons_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?EnableNavigationToolbar@CMFCTasksPane@@QEAAXHIVCSize@@0@Z
+extern "C" void MS_ABI impl__EnableNavigationToolbar_CMFCTasksPane__QEAAXHIVCSize__0_Z(int p0, unsigned int p1, void* /*class*/ p2, int p3) {}
+
+// Symbol: ?GetGroupLocation@CMFCTasksPane@@QEBAHPEAVCMFCTasksPaneTaskGroup@@AEAH@Z
+extern "C" int MS_ABI impl__GetGroupLocation_CMFCTasksPane__QEBAHPEAVCMFCTasksPaneTaskGroup__AEAH_Z(void* /*class*/* p0, int* p1) {
+    return 0;
+}
+
+// Symbol: ?GetMRUFileName@CMFCTasksPane@@MEAAHPEAVCRecentFileList@@HAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__GetMRUFileName_CMFCTasksPane__MEAAHPEAVCRecentFileList__HAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, int p1, void* /*class*/* p2, void** p3, void* p4) {
+    return 0;
+}
+
+// Symbol: ?GetNextPages@CMFCTasksPane@@QEBAXAEAVCStringList@@@Z
+extern "C" void MS_ABI impl__GetNextPages_CMFCTasksPane__QEBAXAEAVCStringList___Z(void* /*class*/* p0) {}
+
+// Symbol: ?GetPageByGroup@CMFCTasksPane@@QEBAHHAEAH@Z
+extern "C" int MS_ABI impl__GetPageByGroup_CMFCTasksPane__QEBAHHAEAH_Z(int p0, int* p1) {
+    return 0;
+}
+
+// Symbol: ?GetPreviousPages@CMFCTasksPane@@QEBAXAEAVCStringList@@@Z
+extern "C" void MS_ABI impl__GetPreviousPages_CMFCTasksPane__QEBAXAEAVCStringList___Z(void* /*class*/* p0) {}
+
+// Symbol: ?GetScrollBarCtrl@CMFCTasksPane@@UEBAPEAVCScrollBar@@H@Z
+extern "C" void* MS_ABI impl__GetScrollBarCtrl_CMFCTasksPane__UEBAPEAVCScrollBar__H_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetTask@CMFCTasksPane@@QEBAPEAVCMFCTasksPaneTask@@HH@Z
+extern "C" void* MS_ABI impl__GetTask_CMFCTasksPane__QEBAPEAVCMFCTasksPaneTask__HH_Z(int p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetTaskGroup@CMFCTasksPane@@QEBAPEAVCMFCTasksPaneTaskGroup@@H@Z
+extern "C" void* MS_ABI impl__GetTaskGroup_CMFCTasksPane__QEBAPEAVCMFCTasksPaneTaskGroup__H_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetTaskLocation@CMFCTasksPane@@QEBAHIAEAH0@Z
+extern "C" int MS_ABI impl__GetTaskLocation_CMFCTasksPane__QEBAHIAEAH0_Z(unsigned int p0, int* p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?GetTaskLocation@CMFCTasksPane@@QEBAHPEAUHWND__@@AEAH1@Z
+extern "C" int MS_ABI impl__GetTaskLocation_CMFCTasksPane__QEBAHPEAUHWND____AEAH1_Z(void* /*struct*/* p0, int* p1, int* p2) {
+    return 0;
+}
+
+// Symbol: ?GetTaskLocation@CMFCTasksPane@@QEBAHPEAVCMFCTasksPaneTask@@AEAH1@Z
+extern "C" int MS_ABI impl__GetTaskLocation_CMFCTasksPane__QEBAHPEAVCMFCTasksPaneTask__AEAH1_Z(void* /*class*/* p0, int* p1, int* p2) {
+    return 0;
+}
+
+// Symbol: ?GetTasksGroupBorders@CMFCTasksPane@@MEBA?AVCSize@@XZ
+extern "C" void* MS_ABI impl__GetTasksGroupBorders_CMFCTasksPane__MEBA_AVCSize__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GroupCaptionHitTest@CMFCTasksPane@@MEBAPEAVCMFCTasksPaneTaskGroup@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__GroupCaptionHitTest_CMFCTasksPane__MEBAPEAVCMFCTasksPaneTaskGroup__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?LoadState@CMFCTasksPane@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__LoadState_CMFCTasksPane__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnBack@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__OnBack_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?OnCancel@CMFCTasksPane@@UEAAXXZ
+extern "C" void MS_ABI impl__OnCancel_CMFCTasksPane__UEAAXXZ() {}
+
+// Symbol: ?OnCancelMode@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCancelMode_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?OnClickTask@CMFCTasksPane@@UEAAXHHI_K@Z
+extern "C" void MS_ABI impl__OnClickTask_CMFCTasksPane__UEAAXHHI_K_Z(int p0, int p1, unsigned int p2, unsigned __int64 p3) {}
+
+// Symbol: ?OnUpdateCmdUI@CMFCTasksPane@@UEAAXPEAVCFrameWnd@@H@Z
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCTasksPane__UEAAXPEAVCFrameWnd__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?OnVScroll@CMFCTasksPane@@IEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnVScroll_CMFCTasksPane__IEAAXIIPEAVCScrollBar___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {}
+
+// Symbol: ?PreTranslateMessage@CMFCTasksPane@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCTasksPane__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RebuildMenu@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__RebuildMenu_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?RecalcLayout@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__RecalcLayout_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?RemoveAllGroups@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__RemoveAllGroups_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?RemoveAllPages@CMFCTasksPane@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllPages_CMFCTasksPane__QEAAXXZ() {}
+
+// Symbol: ?RemoveGroup@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__RemoveGroup_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?RemovePage@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__RemovePage_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?RemoveTask@CMFCTasksPane@@QEAAHHHH@Z
+extern "C" int MS_ABI impl__RemoveTask_CMFCTasksPane__QEAAHHHH_Z(int p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?ReposTasks@CMFCTasksPane@@MEAAHH@Z
+extern "C" int MS_ABI impl__ReposTasks_CMFCTasksPane__MEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SaveHistory@CMFCTasksPane@@IEAAXH@Z
+extern "C" void MS_ABI impl__SaveHistory_CMFCTasksPane__IEAAXH_Z(int p0) {}
+
+// Symbol: ?SaveState@CMFCTasksPane@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__SaveState_CMFCTasksPane__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?Serialize@CMFCTasksPane@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCTasksPane__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetActivePage@CMFCTasksPane@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetActivePage_CMFCTasksPane__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetCaptionButtons@CMFCTasksPane@@MEAAXXZ
+extern "C" void MS_ABI impl__SetCaptionButtons_CMFCTasksPane__MEAAXXZ() {}
+
+// Symbol: ?SetFont@CMFCTasksPane@@IEAAPEAUHFONT__@@PEAVCDC@@@Z
+extern "C" void* MS_ABI impl__SetFont_CMFCTasksPane__IEAAPEAUHFONT____PEAVCDC___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?SetGroupTextColor@CMFCTasksPane@@QEAAHHKK@Z
+extern "C" int MS_ABI impl__SetGroupTextColor_CMFCTasksPane__QEAAHHKK_Z(int p0, unsigned long p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?SetIconsList@CMFCTasksPane@@QEAAHIHK@Z
+extern "C" int MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAHIHK_Z(unsigned int p0, int p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?SetIconsList@CMFCTasksPane@@QEAAXPEAU_IMAGELIST@@@Z
+extern "C" void MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?SetPageCaption@CMFCTasksPane@@QEAAXHPEB_W@Z
+extern "C" void MS_ABI impl__SetPageCaption_CMFCTasksPane__QEAAXHPEB_W_Z(int p0, const wchar_t* p1) {}
+
+// Symbol: ?SetScrollSizes@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ() {}
+
+// Symbol: ?SetTaskName@CMFCTasksPane@@QEAAHHHPEB_W@Z
+extern "C" int MS_ABI impl__SetTaskName_CMFCTasksPane__QEAAHHHPEB_W_Z(int p0, int p1, const wchar_t* p2) {
+    return 0;
+}
+
+// Symbol: ?SetTaskTextColor@CMFCTasksPane@@QEAAHHHKK@Z
+extern "C" int MS_ABI impl__SetTaskTextColor_CMFCTasksPane__QEAAHHHKK_Z(int p0, int p1, unsigned long p2, unsigned long p3) {
+    return 0;
+}
+
+// Symbol: ?SetWindowHeight@CMFCTasksPane@@QEAAHHPEAUHWND__@@H@Z
+extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHHPEAUHWND____H_Z(int p0, void* /*struct*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?SetWindowHeight@CMFCTasksPane@@QEAAHPEAUHWND__@@H@Z
+extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHPEAUHWND____H_Z(void* /*struct*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?ShowCommandMessageString@CMFCTasksPane@@UEAAXI@Z
+extern "C" void MS_ABI impl__ShowCommandMessageString_CMFCTasksPane__UEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?ShowTask@CMFCTasksPane@@QEAAHHHHH@Z
+extern "C" int MS_ABI impl__ShowTask_CMFCTasksPane__QEAAHHHHH_Z(int p0, int p1, int p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?ShowTaskByCmdId@CMFCTasksPane@@QEAAHIHH@Z
+extern "C" int MS_ABI impl__ShowTaskByCmdId_CMFCTasksPane__QEAAHIHH_Z(unsigned int p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?StopCaptionButtonsTracking@CMFCTasksPane@@MEAAXXZ
+extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CMFCTasksPane__MEAAXXZ() {}
+
+// Symbol: ?TaskHitTest@CMFCTasksPane@@IEBAPEAVCMFCTasksPaneTask@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__TaskHitTest_CMFCTasksPane__IEBAPEAVCMFCTasksPaneTask__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?Update@CMFCTasksPane@@UEAAXXZ
+extern "C" void MS_ABI impl__Update_CMFCTasksPane__UEAAXXZ() {}
+
+// Symbol: ?UpdateCaption@CMFCTasksPane@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateCaption_CMFCTasksPane__IEAAXXZ() {}

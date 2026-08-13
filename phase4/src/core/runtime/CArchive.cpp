@@ -429,3 +429,281 @@ extern "C" void* MS_ABI impl___0CArchive__QEAA_PEAVCFile__IHPEAX_Z(
         void* p, CFile* pFile, unsigned int nMode, int nBufSize, void* lpBuf) {
     return new (p) CArchive(pFile, nMode, nBufSize, lpBuf);
 }
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDocItem@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDocItem___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockState@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockState___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePane@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePane___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePaneAdapter@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePaneAdapter___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCHelpComboBoxButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCHelpComboBoxButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCColorBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCColorMenuButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorMenuButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCCustomizeButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCCustomizeButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownFrame@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownFrame___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownToolBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownToolbarButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolbarButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCMenuBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCMenuBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPane@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPane___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPaneAdapter@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneAdapter___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPaneButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCPopupMenu@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenu___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCPopupMenuBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenuBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPane@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPane___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPaneFrameWnd@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneFrameWnd___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPaneToolBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneToolBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBar@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBar___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarColorButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarColorButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarComboBoxButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarComboBoxButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarDateTimeCtrl@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarDateTimeCtrl___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarEditBoxButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarEditBoxButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarFontComboBox@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontComboBox___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarFontSizeComboBox@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontSizeComboBox___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarMenuButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarMenuButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarSpinEditBoxButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSpinEditBoxButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarSystemMenuButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSystemMenuButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMouseManager@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMouseManager___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMultiPaneFrameWnd@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMultiPaneFrameWnd___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCPaneDialog@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneDialog___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCPaneFrameWnd@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneFrameWnd___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCRichEditCntrItem@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCRichEditCntrItem___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTabbedPane@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTabbedPane___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneHistoryButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneHistoryButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneMenuButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneMenuButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneNavigateButton@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneNavigateButton___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCUserTool@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCUserTool___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCComBSTR@ATL@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleCurrency@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleCurrency___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleDateTime@ATL@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTime_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleDateTimeSpan@ATL@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTimeSpan_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCTime@ATL@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTime_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCTimeSpan@ATL@@@Z
+extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTimeSpan_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCComBSTR@ATL@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCComBSTR_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleCurrency@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleCurrency___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleDateTime@ATL@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTime_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleDateTimeSpan@ATL@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTimeSpan_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCTime@ATL@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTime_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ??6@YAAEAVCArchive@@AEAV0@VCTimeSpan@ATL@@@Z
+extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTimeSpan_ATL___Z() {
+    return nullptr;
+}
+
+// Symbol: ?AfxReadStringLength@@YA_KAEAVCArchive@@AEAH@Z
+extern "C" unsigned __int64 MS_ABI impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(void* /*class*/* p0, int* p1) {
+    return 0;
+}
+
+// Symbol: ?AfxWriteStringLength@@YAXAEAVCArchive@@_KH@Z
+extern "C" void MS_ABI impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(void* /*class*/* p0, unsigned __int64 p1, int p2) {}

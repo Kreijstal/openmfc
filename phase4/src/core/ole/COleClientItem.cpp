@@ -1462,3 +1462,200 @@ void COleClientItem::AttachDataObject(COleDataObject& dataObject) const {
 
     state->attachedDataObject = dataObject.GetIDataObject(TRUE);
 }
+// Symbol: ?GetItemStorageCompound@COleClientItem@@QEAAXXZ
+extern "C" void MS_ABI impl__GetItemStorageCompound_COleClientItem__QEAAXXZ() {}
+
+// Symbol: ?GetItemStorageFlat@COleClientItem@@QEAAXXZ
+extern "C" void MS_ABI impl__GetItemStorageFlat_COleClientItem__QEAAXXZ() {}
+
+// Symbol: ?GetLinkSourceData@COleClientItem@@IEAAHPEAUtagSTGMEDIUM@@@Z
+extern "C" int MS_ABI impl__GetLinkSourceData_COleClientItem__IEAAHPEAUtagSTGMEDIUM___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetLinkUpdateOptions@COleClientItem@@QEAA?AW4tagOLEUPDATE@@XZ
+extern "C" void* MS_ABI impl__GetLinkUpdateOptions_COleClientItem__QEAA_AW4tagOLEUPDATE__XZ(int /*enum*/* p0, void* p1, void* p2, void* p3, void* p4, void* p5, unsigned char p6, void* /*struct*/ p7) {
+    return nullptr;
+}
+
+// Symbol: ?GetNewItemNumber@COleClientItem@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetObjectDescriptorData@COleClientItem@@IEAAXPEAUtagPOINT@@PEAUtagSIZE@@PEAUtagSTGMEDIUM@@@Z
+extern "C" void MS_ABI impl__GetObjectDescriptorData_COleClientItem__IEAAXPEAUtagPOINT__PEAUtagSIZE__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1, void* /*struct*/* p2) {}
+
+// Symbol: ?GetPrintDeviceInfo@COleClientItem@@IEAAHPEAPEAUIOleCache@@PEAPEAUtagDVTARGETDEVICE@@PEAK@Z
+extern "C" int MS_ABI impl__GetPrintDeviceInfo_COleClientItem__IEAAHPEAPEAUIOleCache__PEAPEAUtagDVTARGETDEVICE__PEAK_Z(void* /*struct*/** p0, void* /*struct*/** p1, unsigned long* p2) {
+    return 0;
+}
+
+// Symbol: ?GetUserType@COleClientItem@@QEAAXW4tagUSERCLASSTYPE@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" void MS_ABI impl__GetUserType_COleClientItem__QEAAXW4tagUSERCLASSTYPE__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* /*struct*/ p4, void* /*class*/* p5, void** p6, void* p7) {}
+
+// Symbol: ?OnActivateUI@COleClientItem@@UEAAXXZ
+extern "C" void MS_ABI impl__OnActivateUI_COleClientItem__UEAAXXZ() {}
+
+// Symbol: ?OnDataChange@COleClientItem@@MEAAXPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+extern "C" void MS_ABI impl__OnDataChange_COleClientItem__MEAAXPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnDeactivateAndUndo@COleClientItem@@MEAAXXZ
+extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ() {}
+
+// Symbol: ?OnDeactivateUI@COleClientItem@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnDeactivateUI_COleClientItem__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnGetClipboardData@COleClientItem@@UEAAPEAVCOleDataSource@@HPEAUtagPOINT@@PEAUtagSIZE@@@Z
+extern "C" void* MS_ABI impl__OnGetClipboardData_COleClientItem__UEAAPEAVCOleDataSource__HPEAUtagPOINT__PEAUtagSIZE___Z(int p0, void* /*struct*/* p1, void* /*struct*/* p2) {
+    return nullptr;
+}
+
+// Symbol: ?OnGetClipRect@COleClientItem@@MEAAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnGetWindowContext@COleClientItem@@MEAAHPEAPEAVCFrameWnd@@0PEAUtagOIFI@@@Z
+extern "C" int MS_ABI impl__OnGetWindowContext_COleClientItem__MEAAHPEAPEAVCFrameWnd__0PEAUtagOIFI___Z(void* /*class*/** p0, void* /*class*/** p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnInsertMenus@COleClientItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
+extern "C" void MS_ABI impl__OnInsertMenus_COleClientItem__UEAAXPEAVCMenu__PEAUtagOleMenuGroupWidths___Z(void* /*class*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnRemoveMenus@COleClientItem@@UEAAXPEAVCMenu@@@Z
+extern "C" void MS_ABI impl__OnRemoveMenus_COleClientItem__UEAAXPEAVCMenu___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnScrollBy@COleClientItem@@MEAAHVCSize@@@Z
+extern "C" int MS_ABI impl__OnScrollBy_COleClientItem__MEAAHVCSize___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetMenu@COleClientItem@@UEAAXPEAVCMenu@@PEAXPEAUHWND__@@@Z
+extern "C" void MS_ABI impl__OnSetMenu_COleClientItem__UEAAXPEAVCMenu__PEAXPEAUHWND_____Z(void* /*class*/* p0, void* p1, void* /*struct*/* p2) {}
+
+// Symbol: ?OnUpdateFrameTitle@COleClientItem@@UEAAHXZ
+extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?ReactivateAndUndo@COleClientItem@@QEAAHXZ
+extern "C" int MS_ABI impl__ReactivateAndUndo_COleClientItem__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?ReadItem@COleClientItem@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__ReadItem_COleClientItem__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?ReadItemCompound@COleClientItem@@QEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__ReadItemCompound_COleClientItem__QEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?ReadItemFlat@COleClientItem@@QEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__ReadItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?Release@COleClientItem@@UEAAXW4tagOLECLOSE@@@Z
+extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, unsigned char p6, void* p7, void* p8, void* p9, void* p10, unsigned char p11) {}
+
+// Symbol: ?CanInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?ContextSensitiveHelp@XOleIPSite@COleClientItem@@UEAAJH@Z
+extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleClientItem__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?DeactivateAndUndo@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?DiscardUndoState@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?GetContainer@XOleClientSite@COleClientItem@@UEAAJPEAPEAUIOleContainer@@@Z
+extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleClientItem__UEAAJPEAPEAUIOleContainer___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetMoniker@XOleClientSite@COleClientItem@@UEAAJKKPEAPEAUIMoniker@@@Z
+extern "C" long MS_ABI impl__GetMoniker_XOleClientSite_COleClientItem__UEAAJKKPEAPEAUIMoniker___Z(unsigned long p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetWindow@XOleIPSite@COleClientItem@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__GetWindow_XOleIPSite_COleClientItem__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetWindowContext@XOleIPSite@COleClientItem@@UEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagRECT@@2PEAUtagOIFI@@@Z
+extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleClientItem__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagRECT__2PEAUtagOIFI___Z(void* /*struct*/** p0, void* /*struct*/** p1, void* /*struct*/* p2, void* p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?OnClose@XAdviseSink@COleClientItem@@UEAAXXZ
+extern "C" void MS_ABI impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ() {}
+
+// Symbol: ?OnDataChange@XAdviseSink@COleClientItem@@UEAAXPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+extern "C" void MS_ABI impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnInPlaceDeactivate@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnPosRectChange@XOleIPSite@COleClientItem@@UEAAJPEBUtagRECT@@@Z
+extern "C" long MS_ABI impl__OnPosRectChange_XOleIPSite_COleClientItem__UEAAJPEBUtagRECT___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnRename@XAdviseSink@COleClientItem@@UEAAXPEAUIMoniker@@@Z
+extern "C" void MS_ABI impl__OnRename_XAdviseSink_COleClientItem__UEAAXPEAUIMoniker___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?OnSave@XAdviseSink@COleClientItem@@UEAAXXZ
+extern "C" void MS_ABI impl__OnSave_XAdviseSink_COleClientItem__UEAAXXZ() {}
+
+// Symbol: ?OnShowWindow@XOleClientSite@COleClientItem@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnShowWindow_XOleClientSite_COleClientItem__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnUIActivate@XOleIPSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnUIDeactivate@XOleIPSite@COleClientItem@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnUIDeactivate_XOleIPSite_COleClientItem__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnViewChange@XAdviseSink@COleClientItem@@UEAAXKJ@Z
+extern "C" void MS_ABI impl__OnViewChange_XAdviseSink_COleClientItem__UEAAXKJ_Z(unsigned long p0, long p1) {}
+
+// Symbol: ?RequestNewObjectLayout@XOleClientSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?SaveObject@XOleClientSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?Scroll@XOleIPSite@COleClientItem@@UEAAJUtagSIZE@@@Z
+extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// Symbol: ?ShowObject@XOleClientSite@COleClientItem@@UEAAJXZ
+extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ() {
+    return 0;
+}

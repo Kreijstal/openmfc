@@ -784,3 +784,164 @@ void CHtmlView::PutProperty(const wchar_t* lpszProperty, const VARIANT& vtValue)
     m_pBrowser->PutProperty(bstrProp, const_cast<VARIANT&>(vtValue));
     SysFreeString(bstrProp);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetProperty@CHtmlView@@QEAA?AVCOleVariant@@PEB_W@Z
+extern "C" void* MS_ABI impl__GetProperty_CHtmlView__QEAA_AVCOleVariant__PEB_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return nullptr;
+}
+
+
+// Symbol: ?Navigate2@CHtmlView@@QEAAXPEB_WKAEAVCByteArray@@00@Z
+extern "C" void MS_ABI impl__Navigate2_CHtmlView__QEAAXPEB_WKAEAVCByteArray__00_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+}
+
+// Symbol: ?BeforeNavigate2@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@1111PEAF@Z
+extern "C" void MS_ABI impl__BeforeNavigate2_CHtmlView__MEAAXPEAUIDispatch__PEAUtagVARIANT__1111PEAF_Z(void* /*struct*/* p0, void* /*struct*/* p1, void* p2, void* p3, void* p4, void* p5, short* p6) {}
+
+// Symbol: ?CreateControlSite@CHtmlView@@UEAAHPEAVCOleControlContainer@@PEAPEAVCOleControlSite@@IAEBU_GUID@@@Z
+extern "C" int MS_ABI impl__CreateControlSite_CHtmlView__UEAAHPEAVCOleControlContainer__PEAPEAVCOleControlSite__IAEBU_GUID___Z(void* /*class*/* p0, void* /*class*/** p1, unsigned int p2, const void* /*struct*/* p3) {
+    return 0;
+}
+
+// Symbol: ?DocumentComplete@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__DocumentComplete_CHtmlView__MEAAXPEAUIDispatch__PEAUtagVARIANT___Z(void* /*struct*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?ExecFormsCommand@CHtmlView@@QEAAJKPEAUtagVARIANT@@0@Z
+extern "C" long MS_ABI impl__ExecFormsCommand_CHtmlView__QEAAJKPEAUtagVARIANT__0_Z(unsigned long p0, void* /*struct*/* p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?GetEventSinkMap@CHtmlView@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetEventSinkMap_CHtmlView__MEBAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetThisEventSinkMap@CHtmlView@@KAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisEventSinkMap_CHtmlView__KAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?NavigateComplete2@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__NavigateComplete2_CHtmlView__MEAAXPEAUIDispatch__PEAUtagVARIANT___Z(void* /*struct*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?NavigateError@CHtmlView@@MEAAXPEAUIDispatch@@PEAUtagVARIANT@@11PEAF@Z
+extern "C" void MS_ABI impl__NavigateError_CHtmlView__MEAAXPEAUIDispatch__PEAUtagVARIANT__11PEAF_Z(void* /*struct*/* p0, void* /*struct*/* p1, void* p2, void* p3, short* p4) {}
+
+// Symbol: ?OnDestroy@CHtmlView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CHtmlView__IEAAXXZ() {}
+
+// Symbol: ?OnDocWindowActivate@CHtmlView@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnDocWindowActivate_CHtmlView__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnDrawIconicThumbnailOrLivePreview@CHtmlView@@UEAAXAEAVCDC@@VCRect@@VCSize@@HAEAH@Z
+extern "C" void MS_ABI impl__OnDrawIconicThumbnailOrLivePreview_CHtmlView__UEAAXAEAVCDC__VCRect__VCSize__HAEAH_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/ p2, int p3, int* p4) {}
+
+// Symbol: ?OnEditCopy@CHtmlView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditCopy_CHtmlView__IEAAXXZ() {}
+
+// Symbol: ?OnEditCut@CHtmlView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditCut_CHtmlView__IEAAXXZ() {}
+
+// Symbol: ?OnEditPaste@CHtmlView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditPaste_CHtmlView__IEAAXXZ() {}
+
+// Symbol: ?OnEnableModeless@CHtmlView@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnEnableModeless_CHtmlView__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnFilePrint@CHtmlView@@QEAAXXZ
+extern "C" void MS_ABI impl__OnFilePrint_CHtmlView__QEAAXXZ() {}
+
+// Symbol: ?OnFilterDataObject@CHtmlView@@UEAAJPEAUIDataObject@@PEAPEAU2@@Z
+extern "C" long MS_ABI impl__OnFilterDataObject_CHtmlView__UEAAJPEAUIDataObject__PEAPEAU2__Z(void* /*struct*/* p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?OnFrameWindowActivate@CHtmlView@@UEAAJH@Z
+extern "C" long MS_ABI impl__OnFrameWindowActivate_CHtmlView__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnGetDropTarget@CHtmlView@@UEAAJPEAUIDropTarget@@PEAPEAU2@@Z
+extern "C" long MS_ABI impl__OnGetDropTarget_CHtmlView__UEAAJPEAUIDropTarget__PEAPEAU2__Z(void* /*struct*/* p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?OnGetExternal@CHtmlView@@UEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__OnGetExternal_CHtmlView__UEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?OnGetHostInfo@CHtmlView@@UEAAJPEAU_DOCHOSTUIINFO@@@Z
+extern "C" long MS_ABI impl__OnGetHostInfo_CHtmlView__UEAAJPEAU_DOCHOSTUIINFO___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnHideUI@CHtmlView@@UEAAJXZ
+extern "C" long MS_ABI impl__OnHideUI_CHtmlView__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?OnPaint@CHtmlView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CHtmlView__IEAAXXZ() {}
+
+// Symbol: ?OnResizeBorder@CHtmlView@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z
+extern "C" long MS_ABI impl__OnResizeBorder_CHtmlView__UEAAJPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(const void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OnShowContextMenu@CHtmlView@@UEAAJKPEAUtagPOINT@@PEAUIUnknown@@PEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__OnShowContextMenu_CHtmlView__UEAAJKPEAUtagPOINT__PEAUIUnknown__PEAUIDispatch___Z(unsigned long p0, void* /*struct*/* p1, void* /*struct*/* p2, void* /*struct*/* p3) {
+    return 0;
+}
+
+// Symbol: ?OnShowUI@CHtmlView@@UEAAJKPEAUIOleInPlaceActiveObject@@PEAUIOleCommandTarget@@PEAUIOleInPlaceFrame@@PEAUIOleInPlaceUIWindow@@@Z
+extern "C" long MS_ABI impl__OnShowUI_CHtmlView__UEAAJKPEAUIOleInPlaceActiveObject__PEAUIOleCommandTarget__PEAUIOleInPlaceFrame__PEAUIOleInPlaceUIWindow___Z(unsigned long p0, void* /*struct*/* p1, void* /*struct*/* p2, void* /*struct*/* p3, void* /*struct*/* p4) {
+    return 0;
+}
+
+// Symbol: ?OnSize@CHtmlView@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CHtmlView__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnTranslateAccelerator@CHtmlView@@UEAAJPEAUtagMSG@@PEBU_GUID@@K@Z
+extern "C" long MS_ABI impl__OnTranslateAccelerator_CHtmlView__UEAAJPEAUtagMSG__PEBU_GUID__K_Z(void* /*struct*/* p0, const void* /*struct*/* p1, unsigned long p2) {
+    return 0;
+}
+
+// Symbol: ?OnUpdateUI@CHtmlView@@UEAAJXZ
+extern "C" long MS_ABI impl__OnUpdateUI_CHtmlView__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?PreCreateWindow@CHtmlView@@UEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CHtmlView__UEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?PreTranslateMessage@CHtmlView@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CHtmlView__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?QueryFormsCommand@CHtmlView@@QEAAJKPEAH00@Z
+extern "C" long MS_ABI impl__QueryFormsCommand_CHtmlView__QEAAJKPEAH00_Z(unsigned long p0, int* p1, unsigned long p2, unsigned long p3) {
+    return 0;
+}
+
+// Symbol: ?QueryStatusWB@CHtmlView@@QEBA?AW4OLECMDF@@W4OLECMDID@@@Z
+extern "C" void* MS_ABI impl__QueryStatusWB_CHtmlView__QEBA_AW4OLECMDF__W4OLECMDID___Z(int /*enum*/* p0, void* p1, void* p2, unsigned char p3, void* p4, float p5, char p6, short p7, int /*enum*/ p8, void* p9, void* p10, unsigned char p11, void* p12, float p13, char p14, unsigned int p15, char p16) {
+    return nullptr;
+}

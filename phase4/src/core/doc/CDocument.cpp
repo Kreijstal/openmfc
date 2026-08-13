@@ -349,3 +349,78 @@ int CDocument::SaveModified() { return impl__SaveModified_CDocument__UEAAHXZ(thi
 int CDocument::DoSave(const wchar_t* lpszPathName, int bReplace) { return impl__DoSave_CDocument__UEAAHPEB_WH_Z(this, lpszPathName, bReplace); }
 int CDocument::DoFileSave() { return impl__DoFileSave_CDocument__UEAAHXZ(this); }
 void CDocument::Serialize(CArchive& ar) { impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(this, &ar); }
+
+// Symbol: ?ContextSensitiveHelp@XOleWindow@CDocument@@UEAAJH@Z
+extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleWindow_CDocument__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?DoPreview@XPreviewHandler@CDocument@@UEAAJXZ
+extern "C" long MS_ABI impl__DoPreview_XPreviewHandler_CDocument__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?GetSite@XObjectWithSite@CDocument@@UEAAJAEBU_GUID@@PEAPEAX@Z
+extern "C" long MS_ABI impl__GetSite_XObjectWithSite_CDocument__UEAAJAEBU_GUID__PEAPEAX_Z(const void* /*struct*/* p0, void** p1) {
+    return 0;
+}
+
+// Symbol: ?GetWindow@XOleWindow@CDocument@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__GetWindow_XOleWindow_CDocument__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?Initialize@XInitializeWithStream@CDocument@@UEAAJPEAUIStream@@K@Z
+extern "C" long MS_ABI impl__Initialize_XInitializeWithStream_CDocument__UEAAJPEAUIStream__K_Z(void* /*struct*/* p0, unsigned long p1) {
+    return 0;
+}
+
+// Symbol: ?QueryFocus@XPreviewHandler@CDocument@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__QueryFocus_XPreviewHandler_CDocument__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?SetBackgroundColor@XPreviewHandlerVisuals@CDocument@@UEAAJK@Z
+extern "C" long MS_ABI impl__SetBackgroundColor_XPreviewHandlerVisuals_CDocument__UEAAJK_Z(unsigned long p0) {
+    return 0;
+}
+
+// Symbol: ?SetFocus@XPreviewHandler@CDocument@@UEAAJXZ
+extern "C" long MS_ABI impl__SetFocus_XPreviewHandler_CDocument__UEAAJXZ() {
+    return 0;
+}
+
+// Symbol: ?SetFont@XPreviewHandlerVisuals@CDocument@@UEAAJPEBUtagLOGFONTW@@@Z
+extern "C" long MS_ABI impl__SetFont_XPreviewHandlerVisuals_CDocument__UEAAJPEBUtagLOGFONTW___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetRect@XPreviewHandler@CDocument@@UEAAJPEBUtagRECT@@@Z
+extern "C" long MS_ABI impl__SetRect_XPreviewHandler_CDocument__UEAAJPEBUtagRECT___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetSite@XObjectWithSite@CDocument@@UEAAJPEAUIUnknown@@@Z
+extern "C" long MS_ABI impl__SetSite_XObjectWithSite_CDocument__UEAAJPEAUIUnknown___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?SetTextColor@XPreviewHandlerVisuals@CDocument@@UEAAJK@Z
+extern "C" long MS_ABI impl__SetTextColor_XPreviewHandlerVisuals_CDocument__UEAAJK_Z(unsigned long p0) {
+    return 0;
+}
+
+// Symbol: ?SetWindow@XPreviewHandler@CDocument@@UEAAJPEAUHWND__@@PEBUtagRECT@@@Z
+extern "C" long MS_ABI impl__SetWindow_XPreviewHandler_CDocument__UEAAJPEAUHWND____PEBUtagRECT___Z(void* /*struct*/* p0, const void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?TranslateAcceleratorW@XPreviewHandler@CDocument@@UEAAJPEAUtagMSG@@@Z
+extern "C" long MS_ABI impl__TranslateAcceleratorW_XPreviewHandler_CDocument__UEAAJPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?Unload@XPreviewHandler@CDocument@@UEAAJXZ
+extern "C" long MS_ABI impl__Unload_XPreviewHandler_CDocument__UEAAJXZ() {
+    return 0;
+}

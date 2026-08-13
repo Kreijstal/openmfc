@@ -16,3 +16,22 @@ extern "C" void* MS_ABI impl___0CAnimationSize__QEAA_AEBVCSize__II_K_Z(
 extern "C" void* MS_ABI impl___0CAnimationSize__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// ?AddTransition@CAnimationSize@@QEAAXPEAVCBaseTransition@@0@Z
+extern "C" void MS_ABI impl__AddTransition_CAnimationSize__QEAAXPEAVCBaseTransition__0_Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// ?GetAnimationVariableList@CAnimationSize@@MEAAXAEAV?$CList@PEAVCAnimationVariable@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetAnimationVariableList_CAnimationSize__MEAAXAEAV__CList_PEAVCAnimationVariable__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// ?GetDefaultValue@CAnimationSize@@QEAA?AVCSize@@XZ
+extern "C" void* MS_ABI impl__GetDefaultValue_CAnimationSize__QEAA_AVCSize__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// ?GetValue@CAnimationSize@@QEAAHAEAVCSize@@@Z
+extern "C" int MS_ABI impl__GetValue_CAnimationSize__QEAAHAEAVCSize___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// ?SetDefaultValue@CAnimationSize@@QEAAXAEBVCSize@@@Z
+extern "C" void MS_ABI impl__SetDefaultValue_CAnimationSize__QEAAXAEBVCSize___Z(const void* /*class*/* p0) {}
+

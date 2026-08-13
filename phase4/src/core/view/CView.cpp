@@ -351,3 +351,11 @@ extern "C" void* MS_ABI impl___0CView__IEAA_XZ() {
     };
     return new CViewFactoryShim();
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?OnUpdate@CView@@MEAAXPEAV1@_JPEAVCObject@@@Z
+extern "C" void MS_ABI impl__OnUpdate_CView__MEAAXPEAV1__JPEAVCObject___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+}
+

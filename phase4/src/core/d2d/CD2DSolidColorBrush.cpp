@@ -25,3 +25,27 @@ extern "C" void* MS_ABI impl___0CD2DSolidColorBrush__QEAA_PEAVCRenderTarget__U_D
 extern "C" void MS_ABI impl___1CD2DSolidColorBrush__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
+// ?Attach@CD2DSolidColorBrush@@QEAAXPEAUID2D1SolidColorBrush@@@Z
+extern "C" void MS_ABI impl__Attach_CD2DSolidColorBrush__QEAAXPEAUID2D1SolidColorBrush___Z(void* /*struct*/* p0) {}
+
+// ?Create@CD2DSolidColorBrush@@UEAAJPEAVCRenderTarget@@@Z
+extern "C" long MS_ABI impl__Create_CD2DSolidColorBrush__UEAAJPEAVCRenderTarget___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// ?Destroy@CD2DSolidColorBrush@@UEAAXXZ
+extern "C" void MS_ABI impl__Destroy_CD2DSolidColorBrush__UEAAXXZ() {}
+
+// ?Detach@CD2DSolidColorBrush@@QEAAPEAUID2D1SolidColorBrush@@XZ
+extern "C" void* MS_ABI impl__Detach_CD2DSolidColorBrush__QEAAPEAUID2D1SolidColorBrush__XZ() {
+    return nullptr;
+}
+
+// ?GetColor@CD2DSolidColorBrush@@QEBA?AU_D3DCOLORVALUE@@XZ
+extern "C" void* MS_ABI impl__GetColor_CD2DSolidColorBrush__QEBA_AU_D3DCOLORVALUE__XZ(void* /*struct*/* p0) {
+    return nullptr;
+}
+
+// ?SetColor@CD2DSolidColorBrush@@QEAAXU_D3DCOLORVALUE@@@Z
+extern "C" void MS_ABI impl__SetColor_CD2DSolidColorBrush__QEAAXU_D3DCOLORVALUE___Z(void* /*struct*/ p0) {}
+

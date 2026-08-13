@@ -44,3 +44,14 @@ BOOL COleTemplateServer::OnCmdMsg(UINT nID, int nCode, void* pExtra,
     }
     return COleObjectFactory::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?ConnectTemplate@COleTemplateServer@@QEAAXAEBU_GUID@@PEAVCDocTemplate@@HH@Z
+extern "C" void MS_ABI impl__ConnectTemplate_COleTemplateServer__QEAAXAEBU_GUID__PEAVCDocTemplate__HH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+}
+

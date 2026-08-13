@@ -3688,3 +3688,349 @@ void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int 
         *p4 = bounds.right - bounds.left;
     }
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?accNavigate@CWnd@@UEAAJJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__accNavigate_CWnd__UEAAJJUtagVARIANT__PEAU2__Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0L;
+}
+
+
+// Symbol: ?accDoDefaultAction@CWnd@@UEAAJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accDoDefaultAction_CWnd__UEAAJUtagVARIANT___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0L;
+}
+
+
+// Symbol: ?accHitTest@CWnd@@UEAAJJJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accHitTest_CWnd__UEAAJJJPEAUtagVARIANT___Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0L;
+}
+
+
+// Symbol: ?accLocation@CWnd@@UEAAJPEAJ000UtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accLocation_CWnd__UEAAJPEAJ000UtagVARIANT___Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return 0L;
+}
+
+
+// Symbol: ?accSelect@CWnd@@UEAAJJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accSelect_CWnd__UEAAJJUtagVARIANT___Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accChildCount@CWnd@@UEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_CWnd__UEAAJPEAJ_Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0L;
+}
+
+
+// Symbol: ?get_accChild@CWnd@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accChild_CWnd__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accDefaultAction@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDefaultAction_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accDescription@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDescription_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accFocus@CWnd@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accFocus_CWnd__UEAAJPEAUtagVARIANT___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0L;
+}
+
+
+// Symbol: ?get_accHelp@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accHelp_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accHelpTopic@CWnd@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
+extern "C" long MS_ABI impl__get_accHelpTopic_CWnd__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0L;
+}
+
+
+// Symbol: ?get_accKeyboardShortcut@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accKeyboardShortcut_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accName@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accName_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accParent@CWnd@@UEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accParent_CWnd__UEAAJPEAPEAUIDispatch___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0L;
+}
+
+
+// Symbol: ?get_accRole@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__get_accRole_CWnd__UEAAJUtagVARIANT__PEAU2__Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accSelection@CWnd@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accSelection_CWnd__UEAAJPEAUtagVARIANT___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0L;
+}
+
+
+// Symbol: ?get_accState@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__get_accState_CWnd__UEAAJUtagVARIANT__PEAU2__Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?get_accValue@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accValue_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?put_accName@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accName_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?put_accValue@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accValue_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0L;
+}
+
+
+// Symbol: ?WinHelpInternal@CWnd@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__WinHelpInternal_CWnd__UEAAX_KI_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+
+// Symbol: ?WinHelpW@CWnd@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+}
+
+// Symbol: ?GetEnumVariant@XAccessibleServer@CWnd@@UEAAJPEAPEAUIEnumVARIANT@@@Z
+extern "C" long MS_ABI impl__GetEnumVariant_XAccessibleServer_CWnd__UEAAJPEAPEAUIEnumVARIANT___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetHWND@XAccessibleServer@CWnd@@UEAAJPEAPEAUHWND__@@@Z
+extern "C" long MS_ABI impl__GetHWND_XAccessibleServer_CWnd__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetIDsOfNames@XAccessible@CWnd@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
+extern "C" long MS_ABI impl__GetIDsOfNames_XAccessible_CWnd__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(const void* /*struct*/* p0, wchar_t** p1, unsigned int p2, unsigned long p3, long* p4) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfo@XAccessible@CWnd@@UEAAJIKPEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfo_XAccessible_CWnd__UEAAJIKPEAPEAUITypeInfo___Z(unsigned int p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoCount@XAccessible@CWnd@@UEAAJPEAI@Z
+extern "C" long MS_ABI impl__GetTypeInfoCount_XAccessible_CWnd__UEAAJPEAI_Z(unsigned int* p0) {
+    return 0;
+}
+
+// Symbol: ?Invoke@XAccessible@CWnd@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_XAccessible_CWnd__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(long p0, const void* /*struct*/* p1, unsigned long p2, unsigned short p3, void* /*struct*/* p4, void* /*struct*/* p5, void* /*struct*/* p6, unsigned int* p7) {
+    return 0;
+}
+
+// Symbol: ?SetProxy@XAccessibleServer@CWnd@@UEAAJPEAUIAccessibleProxy@@@Z
+extern "C" long MS_ABI impl__SetProxy_XAccessibleServer_CWnd__UEAAJPEAUIAccessibleProxy___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?accDoDefaultAction@XAccessible@CWnd@@UEAAJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accDoDefaultAction_XAccessible_CWnd__UEAAJUtagVARIANT___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// Symbol: ?accHitTest@XAccessible@CWnd@@UEAAJJJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accHitTest_XAccessible_CWnd__UEAAJJJPEAUtagVARIANT___Z(long p0, long p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?accLocation@XAccessible@CWnd@@UEAAJPEAJ000UtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accLocation_XAccessible_CWnd__UEAAJPEAJ000UtagVARIANT___Z(long* p0, long* p1, long* p2, long* p3, void* /*struct*/ p4) {
+    return 0;
+}
+
+// Symbol: ?accNavigate@XAccessible@CWnd@@UEAAJJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__accNavigate_XAccessible_CWnd__UEAAJJUtagVARIANT__PEAU3__Z(long p0, void* /*struct*/ p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?accSelect@XAccessible@CWnd@@UEAAJJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accSelect_XAccessible_CWnd__UEAAJJUtagVARIANT___Z(long p0, void* /*struct*/ p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChild@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accChild_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* /*struct*/ p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChildCount@XAccessible@CWnd@@UEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_XAccessible_CWnd__UEAAJPEAJ_Z(long* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accDefaultAction@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDefaultAction_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accDescription@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDescription_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accFocus@XAccessible@CWnd@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accFocus_XAccessible_CWnd__UEAAJPEAUtagVARIANT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accHelp@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accHelp_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accHelpTopic@XAccessible@CWnd@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
+extern "C" long MS_ABI impl__get_accHelpTopic_XAccessible_CWnd__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(wchar_t** p0, void* /*struct*/ p1, long* p2) {
+    return 0;
+}
+
+// Symbol: ?get_accKeyboardShortcut@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accKeyboardShortcut_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accName@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accName_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accParent@XAccessible@CWnd@@UEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accParent_XAccessible_CWnd__UEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?get_accRole@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__get_accRole_XAccessible_CWnd__UEAAJUtagVARIANT__PEAU3__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?get_accSelection@XAccessible@CWnd@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accSelection_XAccessible_CWnd__UEAAJPEAUtagVARIANT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accState@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__get_accState_XAccessible_CWnd__UEAAJUtagVARIANT__PEAU3__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?get_accValue@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accValue_XAccessible_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?put_accName@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accName_XAccessible_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* /*struct*/ p0, wchar_t* p1) {
+    return 0;
+}
+
+// Symbol: ?put_accValue@XAccessible@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accValue_XAccessible_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* /*struct*/ p0, wchar_t* p1) {
+    return 0;
+}

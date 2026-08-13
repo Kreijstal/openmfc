@@ -144,3 +144,116 @@ extern "C" void MS_ABI impl__SetParentCategory_CMFCRibbonGallery__MEAAXPEAVCMFCR
 }
 CMFCRibbonGallery::CMFCRibbonGallery() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonGallery::~CMFCRibbonGallery() {}
+// Symbol: ?AddGroup@CMFCRibbonGallery@@QEAAXPEB_WAEAVCMFCToolBarImages@@@Z
+extern "C" void MS_ABI impl__AddGroup_CMFCRibbonGallery__QEAAXPEB_WAEAVCMFCToolBarImages___Z(const wchar_t* p0, void* /*class*/* p1) {}
+
+// Symbol: ?AddGroup@CMFCRibbonGallery@@QEAAXPEB_WH@Z
+extern "C" void MS_ABI impl__AddGroup_CMFCRibbonGallery__QEAAXPEB_WH_Z(const wchar_t* p0, int p1) {}
+
+// Symbol: ?AddGroup@CMFCRibbonGallery@@QEAAXPEB_WIH@Z
+extern "C" void MS_ABI impl__AddGroup_CMFCRibbonGallery__QEAAXPEB_WIH_Z(const wchar_t* p0, unsigned int p1, int p2) {}
+
+// Symbol: ?AddSubItem@CMFCRibbonGallery@@QEAAXPEAVCMFCRibbonBaseElement@@HH@Z
+extern "C" void MS_ABI impl__AddSubItem_CMFCRibbonGallery__QEAAXPEAVCMFCRibbonBaseElement__HH_Z(void* /*class*/* p0, int p1, int p2) {}
+
+// Symbol: ?Clear@CMFCRibbonGallery@@UEAAXXZ
+extern "C" void MS_ABI impl__Clear_CMFCRibbonGallery__UEAAXXZ() {}
+
+// Symbol: ?CommonInit@CMFCRibbonGallery@@IEAAXXZ
+extern "C" void MS_ABI impl__CommonInit_CMFCRibbonGallery__IEAAXXZ() {}
+
+// Symbol: ?CopyFrom@CMFCRibbonGallery@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonGallery__MEAAXAEBVCMFCRibbonBaseElement___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?CreateIcons@CMFCRibbonGallery@@IEAAXXZ
+extern "C" void MS_ABI impl__CreateIcons_CMFCRibbonGallery__IEAAXXZ() {}
+
+// Symbol: ?GetDroppedDown@CMFCRibbonGallery@@UEAAPEAVCMFCRibbonBaseElement@@XZ
+extern "C" void* MS_ABI impl__GetDroppedDown_CMFCRibbonGallery__UEAAPEAVCMFCRibbonBaseElement__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetGroupName@CMFCRibbonGallery@@QEBAPEB_WH@Z
+extern "C" void* MS_ABI impl__GetGroupName_CMFCRibbonGallery__QEBAPEB_WH_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetHighlighted@CMFCRibbonGallery@@MEAAPEAVCMFCRibbonBaseElement@@XZ
+extern "C" void* MS_ABI impl__GetHighlighted_CMFCRibbonGallery__MEAAPEAVCMFCRibbonBaseElement__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetIconDescription@CMFCRibbonGallery@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEBVCMFCRibbonGalleryIcon@@@Z
+extern "C" void* MS_ABI impl__GetIconDescription_CMFCRibbonGallery__MEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEBVCMFCRibbonGalleryIcon___Z(void* /*class*/* p0, void** p1, void* p2, const void* /*class*/* p3) {
+    return nullptr;
+}
+
+// Symbol: ?GetIconSize@CMFCRibbonGallery@@MEBA?AVCSize@@XZ
+extern "C" void* MS_ABI impl__GetIconSize_CMFCRibbonGallery__MEBA_AVCSize__XZ(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetIconToolTip@CMFCRibbonGallery@@MEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEBVCMFCRibbonGalleryIcon@@@Z
+extern "C" void* MS_ABI impl__GetIconToolTip_CMFCRibbonGallery__MEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEBVCMFCRibbonGalleryIcon___Z(void* /*class*/* p0, void** p1, void* p2, const void* /*class*/* p3) {
+    return nullptr;
+}
+
+// Symbol: ?GetItemToolTip@CMFCRibbonGallery@@QEBAPEB_WH@Z
+extern "C" void* MS_ABI impl__GetItemToolTip_CMFCRibbonGallery__QEBAPEB_WH_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetKeyTipRect@CMFCRibbonGallery@@MEAA?AVCRect@@PEAVCDC@@H@Z
+extern "C" void* MS_ABI impl__GetKeyTipRect_CMFCRibbonGallery__MEAA_AVCRect__PEAVCDC__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?GetMenuItems@CMFCRibbonGallery@@IEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetMenuItems_CMFCRibbonGallery__IEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?GetMenuRowHeight@CMFCRibbonGallery@@IEBAHXZ
+extern "C" int MS_ABI impl__GetMenuRowHeight_CMFCRibbonGallery__IEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?GetPressed@CMFCRibbonGallery@@MEAAPEAVCMFCRibbonBaseElement@@XZ
+extern "C" void* MS_ABI impl__GetPressed_CMFCRibbonGallery__MEAAPEAVCMFCRibbonBaseElement__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?HitTest@CMFCRibbonGallery@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__HitTest_CMFCRibbonGallery__MEAAPEAVCMFCRibbonBaseElement__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?OnAfterChangeRect@CMFCRibbonGallery@@UEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonGallery__UEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnClickPaletteIcon@CMFCRibbonGallery@@MEAAXPEAVCMFCRibbonGalleryIcon@@@Z
+extern "C" void MS_ABI impl__OnClickPaletteIcon_CMFCRibbonGallery__MEAAXPEAVCMFCRibbonGalleryIcon___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnDrawPaletteIcon@CMFCRibbonGallery@@MEAAXPEAVCDC@@VCRect@@HPEAVCMFCRibbonGalleryIcon@@K@Z
+extern "C" void MS_ABI impl__OnDrawPaletteIcon_CMFCRibbonGallery__MEAAXPEAVCDC__VCRect__HPEAVCMFCRibbonGalleryIcon__K_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, void* /*class*/* p3, unsigned long p4) {}
+
+// Symbol: ?OnKey@CMFCRibbonGallery@@MEAAHH@Z
+extern "C" int MS_ABI impl__OnKey_CMFCRibbonGallery__MEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnRTLChanged@CMFCRibbonGallery@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonGallery__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnSetFocus@CMFCRibbonGallery@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnSetFocus_CMFCRibbonGallery__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnShowPopupMenu@CMFCRibbonGallery@@MEAAXXZ
+extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonGallery__MEAAXXZ() {}
+
+// Symbol: ?RebuildIconLocations@CMFCRibbonGallery@@IEAAXXZ
+extern "C" void MS_ABI impl__RebuildIconLocations_CMFCRibbonGallery__IEAAXXZ() {}
+
+// Symbol: ?RedrawIcons@CMFCRibbonGallery@@QEAAXXZ
+extern "C" void MS_ABI impl__RedrawIcons_CMFCRibbonGallery__QEAAXXZ() {}
+
+// Symbol: ?RemoveAll@CMFCRibbonGallery@@IEAAXXZ
+extern "C" void MS_ABI impl__RemoveAll_CMFCRibbonGallery__IEAAXXZ() {}

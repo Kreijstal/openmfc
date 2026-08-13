@@ -35,3 +35,50 @@ extern "C" void* MS_ABI impl___0CMFCRibbonPanelMenu__QEAA_PEAVCMFCRibbonPanel___
     (void)pPanel;
     return pThis;
 }
+// ??1CMFCRibbonPanelMenu@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCRibbonPanelMenu__UEAA_XZ() {
+    return nullptr;
+}
+
+// ?DoPaint@CMFCRibbonPanelMenu@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__DoPaint_CMFCRibbonPanelMenu__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// ?GetBorderSize@CMFCRibbonPanelMenu@@MEBAHXZ
+extern "C" int MS_ABI impl__GetBorderSize_CMFCRibbonPanelMenu__MEBAHXZ() {
+    return 0;
+}
+
+// ?GetParentRibbonMenuBar@CMFCRibbonPanelMenu@@QEBAPEAVCMFCRibbonPanelMenuBar@@XZ
+extern "C" void* MS_ABI impl__GetParentRibbonMenuBar_CMFCRibbonPanelMenu__QEBAPEAVCMFCRibbonPanelMenuBar__XZ() {
+    return nullptr;
+}
+
+// ?IsAlwaysClose@CMFCRibbonPanelMenu@@UEBAHXZ
+extern "C" int MS_ABI impl__IsAlwaysClose_CMFCRibbonPanelMenu__UEBAHXZ() {
+    return 0;
+}
+
+// ?IsScrollDnAvailable@CMFCRibbonPanelMenu@@UEAAHXZ
+extern "C" int MS_ABI impl__IsScrollDnAvailable_CMFCRibbonPanelMenu__UEAAHXZ() {
+    return 0;
+}
+
+// ?IsScrollUpAvailable@CMFCRibbonPanelMenu@@UEAAHXZ
+extern "C" int MS_ABI impl__IsScrollUpAvailable_CMFCRibbonPanelMenu__UEAAHXZ() {
+    return 0;
+}
+
+// ?OnDestroy@CMFCRibbonPanelMenu@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CMFCRibbonPanelMenu__IEAAXXZ() {}
+
+// ?OnKeyDown@CMFCRibbonPanelMenu@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CMFCRibbonPanelMenu__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// ?OnLButtonDown@CMFCRibbonPanelMenu@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonPanelMenu__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// ?OnMouseWheel@CMFCRibbonPanelMenu@@IEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CMFCRibbonPanelMenu__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
+    return 0;
+}
+

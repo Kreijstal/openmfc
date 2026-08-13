@@ -990,3 +990,187 @@ void CRichEditView::TextNotFound(const wchar_t* lpszFind) {
 void CRichEditView::OnTextNotFound(const wchar_t* lpszFind) {
     TextNotFound(lpszFind);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?FindTextSimple@CRichEditView@@QEAAHPEB_WHHH@Z
+extern "C" int MS_ABI impl__FindTextSimple_CRichEditView__QEAAHPEB_WHHH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+
+// Symbol: ?GetCharFormatSelection@CRichEditView@@QEAAAEAUCHARFORMAT2W@@XZ
+extern "C" unsigned char MS_ABI impl__GetCharFormatSelection_CRichEditView__QEAAAEAUCHARFORMAT2W__XZ(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+// Symbol: ?AdjustDialogPosition@CRichEditView@@QEAAXPEAVCDialog@@@Z
+extern "C" void MS_ABI impl__AdjustDialogPosition_CRichEditView__QEAAXPEAVCDialog___Z(void* /*class*/* p0) {}
+
+// Symbol: ?DeleteContents@CRichEditView@@UEAAXXZ
+extern "C" void MS_ABI impl__DeleteContents_CRichEditView__UEAAXXZ() {}
+
+// Symbol: ?EditStreamCallBack@CRichEditView@@SAK_KPEAEJPEAJ@Z
+extern "C" unsigned long MS_ABI impl__EditStreamCallBack_CRichEditView__SAK_KPEAEJPEAJ_Z(unsigned __int64 p0, unsigned char* p1, long p2, long* p3) {
+    return 0;
+}
+
+// Symbol: ?FindAndSelect@CRichEditView@@QEAAJKAEAU_findtextexw@@@Z
+extern "C" long MS_ABI impl__FindAndSelect_CRichEditView__QEAAJKAEAU_findtextexw___Z(unsigned long p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?GetClipboardData@CRichEditView@@MEAAJPEAU_charrange@@KPEAUIDataObject@@PEAPEAU3@@Z
+extern "C" long MS_ABI impl__GetClipboardData_CRichEditView__MEAAJPEAU_charrange__KPEAUIDataObject__PEAPEAU3__Z(void* /*struct*/* p0, unsigned long p1, void* /*struct*/* p2, void* /*struct*/** p3) {
+    return 0;
+}
+
+// Symbol: ?GetInPlaceActiveItem@CRichEditView@@QEBAPEAVCRichEditCntrItem@@XZ
+extern "C" void* MS_ABI impl__GetInPlaceActiveItem_CRichEditView__QEBAPEAVCRichEditCntrItem__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?OnEditReplace@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditReplace_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnEditSelectAll@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditSelectAll_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnEditUndo@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditUndo_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnEndPrinting@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnEndPrinting_CRichEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(void* /*class*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnFindNext@CRichEditView@@MEAAXPEB_WHHH@Z
+extern "C" void MS_ABI impl__OnFindNext_CRichEditView__MEAAXPEB_WHHH_Z(const wchar_t* p0, int p1, int p2, int p3) {}
+
+// Symbol: ?OnFindReplaceCmd@CRichEditView@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnFindReplaceCmd_CRichEditView__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnFormatFont@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnFormatFont_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnInsertObject@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnInsertObject_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnKeyDown@CRichEditView@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CRichEditView__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// Symbol: ?OnParaAlign@CRichEditView@@QEAAXG@Z
+extern "C" void MS_ABI impl__OnParaAlign_CRichEditView__QEAAXG_Z(unsigned short p0) {}
+
+// Symbol: ?OnParaCenter@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnParaCenter_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnParaLeft@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnParaLeft_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnParaRight@CRichEditView@@IEAAXXZ
+extern "C" void MS_ABI impl__OnParaRight_CRichEditView__IEAAXXZ() {}
+
+// Symbol: ?OnPasteNativeObject@CRichEditView@@MEAAHPEAUIStorage@@@Z
+extern "C" int MS_ABI impl__OnPasteNativeObject_CRichEditView__MEAAHPEAUIStorage___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnPrepareDC@CRichEditView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrepareDC_CRichEditView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(void* /*class*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnPrint@CRichEditView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" void MS_ABI impl__OnPrint_CRichEditView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(void* /*class*/* p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnPrinterChanged@CRichEditView@@MEAAXAEBVCDC@@@Z
+extern "C" void MS_ABI impl__OnPrinterChanged_CRichEditView__MEAAXAEBVCDC___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?OnReplaceAll@CRichEditView@@MEAAXPEB_W0HH@Z
+extern "C" void MS_ABI impl__OnReplaceAll_CRichEditView__MEAAXPEB_W0HH_Z(const wchar_t* p0, const wchar_t* p1, int p2, int p3) {}
+
+// Symbol: ?OnReplaceSel@CRichEditView@@MEAAXPEB_WHHH0@Z
+extern "C" void MS_ABI impl__OnReplaceSel_CRichEditView__MEAAXPEB_WHHH0_Z(const wchar_t* p0, int p1, int p2, int p3, const wchar_t* p4) {}
+
+// Symbol: ?OnSelChange@CRichEditView@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnSelChange_CRichEditView__IEAAXPEAUtagNMHDR__PEA_J_Z(void* /*struct*/* p0, __int64* p1) {}
+
+// Symbol: ?PaginateTo@CRichEditView@@IEAAHPEAVCDC@@PEAUCPrintInfo@@@Z
+extern "C" int MS_ABI impl__PaginateTo_CRichEditView__IEAAHPEAVCDC__PEAUCPrintInfo___Z(void* /*class*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?PreCreateWindow@CRichEditView@@MEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CRichEditView__MEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?QueryAcceptData@CRichEditView@@MEAAJPEAUIDataObject@@PEAGKHPEAX@Z
+extern "C" long MS_ABI impl__QueryAcceptData_CRichEditView__MEAAJPEAUIDataObject__PEAGKHPEAX_Z(void* /*struct*/* p0, unsigned short* p1, unsigned long p2, int p3, void* p4) {
+    return 0;
+}
+
+// Symbol: ?SameAsSelected@CRichEditView@@IEAAHPEB_WHH@Z
+extern "C" int MS_ABI impl__SameAsSelected_CRichEditView__IEAAHPEB_WHH_Z(const wchar_t* p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?ShowContainerUI@CRichEditView@@QEAAJH@Z
+extern "C" long MS_ABI impl__ShowContainerUI_CRichEditView__QEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?ContextSensitiveHelp@XRichEditOleCallback@CRichEditView@@UEAAJH@Z
+extern "C" long MS_ABI impl__ContextSensitiveHelp_XRichEditOleCallback_CRichEditView__UEAAJH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?DeleteObject@XRichEditOleCallback@CRichEditView@@UEAAJPEAUIOleObject@@@Z
+extern "C" long MS_ABI impl__DeleteObject_XRichEditOleCallback_CRichEditView__UEAAJPEAUIOleObject___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetClipboardData@XRichEditOleCallback@CRichEditView@@UEAAJPEAU_charrange@@KPEAPEAUIDataObject@@@Z
+extern "C" long MS_ABI impl__GetClipboardData_XRichEditOleCallback_CRichEditView__UEAAJPEAU_charrange__KPEAPEAUIDataObject___Z(void* /*struct*/* p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetContextMenu@XRichEditOleCallback@CRichEditView@@UEAAJGPEAUIOleObject@@PEAU_charrange@@PEAPEAUHMENU__@@@Z
+extern "C" long MS_ABI impl__GetContextMenu_XRichEditOleCallback_CRichEditView__UEAAJGPEAUIOleObject__PEAU_charrange__PEAPEAUHMENU_____Z(unsigned short p0, void* /*struct*/* p1, void* /*struct*/* p2, void* /*struct*/** p3) {
+    return 0;
+}
+
+// Symbol: ?GetDragDropEffect@XRichEditOleCallback@CRichEditView@@UEAAJHKPEAK@Z
+extern "C" long MS_ABI impl__GetDragDropEffect_XRichEditOleCallback_CRichEditView__UEAAJHKPEAK_Z(int p0, unsigned long p1, unsigned long* p2) {
+    return 0;
+}
+
+// Symbol: ?GetInPlaceContext@XRichEditOleCallback@CRichEditView@@UEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagOIFI@@@Z
+extern "C" long MS_ABI impl__GetInPlaceContext_XRichEditOleCallback_CRichEditView__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagOIFI___Z(void* /*struct*/** p0, void* /*struct*/** p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?GetNewStorage@XRichEditOleCallback@CRichEditView@@UEAAJPEAPEAUIStorage@@@Z
+extern "C" long MS_ABI impl__GetNewStorage_XRichEditOleCallback_CRichEditView__UEAAJPEAPEAUIStorage___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?QueryAcceptData@XRichEditOleCallback@CRichEditView@@UEAAJPEAUIDataObject@@PEAGKHPEAX@Z
+extern "C" long MS_ABI impl__QueryAcceptData_XRichEditOleCallback_CRichEditView__UEAAJPEAUIDataObject__PEAGKHPEAX_Z(void* /*struct*/* p0, unsigned short* p1, unsigned long p2, int p3, void* p4) {
+    return 0;
+}
+
+// Symbol: ?QueryInsertObject@XRichEditOleCallback@CRichEditView@@UEAAJPEAU_GUID@@PEAUIStorage@@J@Z
+extern "C" long MS_ABI impl__QueryInsertObject_XRichEditOleCallback_CRichEditView__UEAAJPEAU_GUID__PEAUIStorage__J_Z(void* /*struct*/* p0, void* /*struct*/* p1, long p2) {
+    return 0;
+}
+
+// Symbol: ?ShowContainerUI@XRichEditOleCallback@CRichEditView@@UEAAJH@Z
+extern "C" long MS_ABI impl__ShowContainerUI_XRichEditOleCallback_CRichEditView__UEAAJH_Z(int p0) {
+    return 0;
+}

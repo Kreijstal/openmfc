@@ -765,3 +765,20 @@ void CRecordset::SetParamNull(int nIndex, BOOL bNull) {
     if (bNull) state.nullParams.insert(static_cast<unsigned long>(nIndex));
     else state.nullParams.erase(static_cast<unsigned long>(nIndex));
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?IsFieldNullable@CRecordset@@QEAAHPEAX@Z
+extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+
+// Symbol: ?IsFieldNullable@CRecordset@@QEBAHK@Z
+extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+

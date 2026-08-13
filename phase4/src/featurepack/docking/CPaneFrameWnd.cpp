@@ -647,3 +647,243 @@ void CPaneFrameWnd::AddPane(CBasePane* pBar) {
 void CPaneFrameWnd::RemovePane(CBasePane* pBar, BOOL bDestroy) {
     impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(this, pBar, bDestroy, FALSE);
 }
+// Symbol: ?m_mapFloatingBars@CPaneFrameWnd@@1V?$CMap@IIPEAUHWND__@@PEAU1@@@A
+extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_mapFloatingBars_CPaneFrameWnd__1V__CMap_IIPEAUHWND____PEAU1___A = {};
+
+// Symbol: ?AddButton@CPaneFrameWnd@@MEAAXI@Z
+extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?AddRemovePaneFromGlobalList@CPaneFrameWnd@@SAHPEAVCBasePane@@H@Z
+extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?ArrangeCaptionButtons@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?CanBeDockedToPane@CPaneFrameWnd@@UEBAHPEBVCDockablePane@@@Z
+extern "C" int MS_ABI impl__CanBeDockedToPane_CPaneFrameWnd__UEBAHPEBVCDockablePane___Z(const void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?CloseMiniFrame@CPaneFrameWnd@@MEAAXXZ
+extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ() {}
+
+// Symbol: ?ConvertToTabbedDocument@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__ConvertToTabbedDocument_CPaneFrameWnd__UEAAXXZ() {}
+
+// Symbol: ?CreateEx@CPaneFrameWnd@@UEAAHKPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z
+extern "C" int MS_ABI impl__CreateEx_CPaneFrameWnd__UEAAHKPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(unsigned long p0, const wchar_t* p1, unsigned long p2, const void* /*struct*/* p3, void* /*class*/* p4, void* /*struct*/* p5) {
+    return 0;
+}
+
+// Symbol: ?DockPane@CPaneFrameWnd@@UEAAPEAVCDockablePane@@AEAH@Z
+extern "C" void* MS_ABI impl__DockPane_CPaneFrameWnd__UEAAPEAVCDockablePane__AEAH_Z(int* p0) {
+    return nullptr;
+}
+
+// Symbol: ?DockPaneStandard@CPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z
+extern "C" void* MS_ABI impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(int* p0) {
+    return nullptr;
+}
+
+// Symbol: ?EnterDragMode@CPaneFrameWnd@@MEAAXPEAUHWND__@@@Z
+extern "C" void MS_ABI impl__EnterDragMode_CPaneFrameWnd__MEAAXPEAUHWND_____Z(void* /*struct*/* p0) {}
+
+// Symbol: ?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@I@Z
+extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__I_Z(unsigned int p0) {
+    return nullptr;
+}
+
+// Symbol: ?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@VCPoint@@@Z
+extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__VCPoint___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// Symbol: ?FindFloatingPaneByID@CPaneFrameWnd@@SAPEAVCBasePane@@I@Z
+extern "C" void* MS_ABI impl__FindFloatingPaneByID_CPaneFrameWnd__SAPEAVCBasePane__I_Z(unsigned int p0) {
+    return nullptr;
+}
+
+// Symbol: ?FrameFromPoint@CPaneFrameWnd@@SAPEAV1@VCPoint@@HPEAV1@H@Z
+extern "C" void* MS_ABI impl__FrameFromPoint_CPaneFrameWnd__SAPEAV1_VCPoint__HPEAV1_H_Z(int p0, void* /*class*/* p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?GetCaptionButtonTotalWidth@CPaneFrameWnd@@IEBAHXZ
+extern "C" int MS_ABI impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?GetDockingMode@CPaneFrameWnd@@UEBA?AW4AFX_DOCK_TYPE@@XZ
+extern "C" void* MS_ABI impl__GetDockingMode_CPaneFrameWnd__UEBA_AW4AFX_DOCK_TYPE__XZ(int /*enum*/* p0, short* p1, int p2, char p3, void* p4, void* p5, unsigned long p6, int p7, void* p8, void* p9, unsigned char* p10) {
+    return nullptr;
+}
+
+// Symbol: ?GetPaneList@CPaneFrameWnd@@KAXAEAVCObList@@PEAUCRuntimeClass@@H@Z
+extern "C" void MS_ABI impl__GetPaneList_CPaneFrameWnd__KAXAEAVCObList__PEAUCRuntimeClass__H_Z(void* /*class*/* p0, void* /*struct*/* p1, int p2) {}
+
+// Symbol: ?OnMouseActivate@CPaneFrameWnd@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnMouseActivate_CPaneFrameWnd__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnMouseMove@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMovePane@CPaneFrameWnd@@UEAAXPEAVCPane@@VCPoint@@@Z
+extern "C" void MS_ABI impl__OnMovePane_CPaneFrameWnd__UEAAXPEAVCPane__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMoving@CPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__OnMoving_CPaneFrameWnd__IEAAXIPEAUtagRECT___Z(unsigned int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcActivate@CPaneFrameWnd@@IEAAHH@Z
+extern "C" int MS_ABI impl__OnNcActivate_CPaneFrameWnd__IEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcCalcSize@CPaneFrameWnd@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CPaneFrameWnd__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcCreate@CPaneFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnNcCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcDestroy@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcDestroy_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?OnNcHitTest@CPaneFrameWnd@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CPaneFrameWnd__IEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcLButtonDblClk@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcLButtonDblClk_CPaneFrameWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcMouseMove@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcPaint@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?OnNeedTipText@CPaneFrameWnd@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
+extern "C" int MS_ABI impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA_J_Z(unsigned int p0, void* /*struct*/* p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPaneRecalcLayout@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ() {}
+
+// Symbol: ?OnPressButtons@CPaneFrameWnd@@MEAAXI@Z
+extern "C" void MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?OnSetCursor@CPaneFrameWnd@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CPaneFrameWnd__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetFocus@CPaneFrameWnd@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CPaneFrameWnd__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnSetRollUpTimer@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ() {}
+
+// Symbol: ?OnSettingChange@CPaneFrameWnd@@IEAAXIPEB_W@Z
+extern "C" void MS_ABI impl__OnSettingChange_CPaneFrameWnd__IEAAXIPEB_W_Z(unsigned int p0, const wchar_t* p1) {}
+
+// Symbol: ?OnSize@CPaneFrameWnd@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CPaneFrameWnd__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnSizing@CPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__OnSizing_CPaneFrameWnd__IEAAXIPEAUtagRECT___Z(unsigned int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnTimer@CPaneFrameWnd@@IEAAX_K@Z
+extern "C" void MS_ABI impl__OnTimer_CPaneFrameWnd__IEAAX_K_Z(unsigned __int64 p0) {}
+
+// Symbol: ?OnTrackCaptionButtons@CPaneFrameWnd@@MEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// Symbol: ?OnUpdateToolTips@CPaneFrameWnd@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CPaneFrameWnd__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnWindowPosChanging@CPaneFrameWnd@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanging_CPaneFrameWnd__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?PaneFromPoint@CPaneFrameWnd@@UEAAPEAVCBasePane@@VCPoint@@HH@Z
+extern "C" void* MS_ABI impl__PaneFromPoint_CPaneFrameWnd__UEAAPEAVCBasePane__VCPoint__HH_Z(void* /*class*/ p0, int p1, int p2) {
+    return nullptr;
+}
+
+// Symbol: ?PreCreateWindow@CPaneFrameWnd@@MEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CPaneFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?PreTranslateMessage@CPaneFrameWnd@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CPaneFrameWnd__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RecalcCaptionHeight@CPaneFrameWnd@@MEAAXXZ
+extern "C" void MS_ABI impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ() {}
+
+// Symbol: ?RedrawAll@CPaneFrameWnd@@SAXXZ
+extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ() {}
+
+// Symbol: ?RedrawCaptionButton@CPaneFrameWnd@@IEAAXPEAVCMFCCaptionButton@@@Z
+extern "C" void MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(void* /*class*/* p0) {}
+
+// Symbol: ?RemoveAllCaptionButtons@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?RemoveButton@CPaneFrameWnd@@IEAAXI@Z
+extern "C" void MS_ABI impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?RemoveNonValidPanes@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__RemoveNonValidPanes_CPaneFrameWnd__UEAAXXZ() {}
+
+// Symbol: ?ReplaceButton@CPaneFrameWnd@@IEAAXII@Z
+extern "C" void MS_ABI impl__ReplaceButton_CPaneFrameWnd__IEAAXII_Z(unsigned int p0, unsigned int p1) {}
+
+// Symbol: ?ReplacePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@0@Z
+extern "C" void MS_ABI impl__ReplacePane_CPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// Symbol: ?SaveRecentFloatingState@CPaneFrameWnd@@MEAAXXZ
+extern "C" void MS_ABI impl__SaveRecentFloatingState_CPaneFrameWnd__MEAAXXZ() {}
+
+// Symbol: ?SaveState@CPaneFrameWnd@@UEAAHPEB_WI@Z
+extern "C" int MS_ABI impl__SaveState_CPaneFrameWnd__UEAAHPEB_WI_Z(const wchar_t* p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?Serialize@CPaneFrameWnd@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z
+extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(unsigned long p0) {}
+
+// Symbol: ?SetCaptionButtonsToolTips@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?SetDockingTimer@CPaneFrameWnd@@QEAAXI@Z
+extern "C" void MS_ABI impl__SetDockingTimer_CPaneFrameWnd__QEAAXI_Z(unsigned int p0) {}
+
+// Symbol: ?SetDockState@CPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z
+extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetPreDockState@CPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
+extern "C" int MS_ABI impl__SetPreDockState_CPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(int /*enum*/ p0, short* p1, int p2, void** p3, unsigned char p4, char p5, void* p6, void* p7, unsigned long p8, int p9, void* p10, void* p11, void** p12, unsigned char p13, void* /*class*/* p14, int /*enum*/ p15, short* p16, int p17, char p18, void* p19, void* p20, unsigned long p21, int p22, float p23, unsigned char p24, void* p25, int p26, void* p27, char p28) {
+    return 0;
+}
+
+// Symbol: ?SetRollUpTimer@CPaneFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ() {}
+
+// Symbol: ?ShowButton@CPaneFrameWnd@@IEAAXIH@Z
+extern "C" void MS_ABI impl__ShowButton_CPaneFrameWnd__IEAAXIH_Z(unsigned int p0, int p1) {}
+
+// Symbol: ?SizeToContent@CPaneFrameWnd@@UEAAXXZ
+extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ() {}

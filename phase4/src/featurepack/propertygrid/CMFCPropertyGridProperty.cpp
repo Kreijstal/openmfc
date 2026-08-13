@@ -525,3 +525,46 @@ BOOL CMFCPropertyGridProperty::OnRotateListValue(BOOL bForward) {
     SetValue(value);
     return TRUE;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?AddSubItem@CMFCPropertyGridProperty@@QEAAHPEAV1@@Z
+extern "C" int MS_ABI impl__AddSubItem_CMFCPropertyGridProperty__QEAAHPEAV1__Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+    return 0;
+}
+
+// ?CreateCombo@CMFCPropertyGridProperty@@MEAAPEAVCComboBox@@PEAVCWnd@@VCRect@@@Z
+extern "C" void* MS_ABI impl__CreateCombo_CMFCPropertyGridProperty__MEAAPEAVCComboBox__PEAVCWnd__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return nullptr;
+}
+
+// ?CreateInPlaceEdit@CMFCPropertyGridProperty@@UEAAPEAVCWnd@@VCRect@@AEAH@Z
+extern "C" void* MS_ABI impl__CreateInPlaceEdit_CMFCPropertyGridProperty__UEAAPEAVCWnd__VCRect__AEAH_Z(void* /*class*/ p0, int* p1) {
+    return nullptr;
+}
+
+// ?CreateSpinControl@CMFCPropertyGridProperty@@UEAAPEAVCSpinButtonCtrl@@VCRect@@@Z
+extern "C" void* MS_ABI impl__CreateSpinControl_CMFCPropertyGridProperty__UEAAPEAVCSpinButtonCtrl__VCRect___Z(void* /*class*/ p0) {
+    return nullptr;
+}
+
+// ?OnCtlColor@CMFCPropertyGridProperty@@MEAAPEAUHBRUSH__@@PEAVCDC@@I@Z
+extern "C" void* MS_ABI impl__OnCtlColor_CMFCPropertyGridProperty__MEAAPEAUHBRUSH____PEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return nullptr;
+}
+
+// ?OnDestroyWindow@CMFCPropertyGridProperty@@MEAAXXZ
+extern "C" void MS_ABI impl__OnDestroyWindow_CMFCPropertyGridProperty__MEAAXXZ() {}
+
+// ?Reposition@CMFCPropertyGridProperty@@IEAAXAEAH@Z
+extern "C" void MS_ABI impl__Reposition_CMFCPropertyGridProperty__IEAAXAEAH_Z(int* p0) {}
+
+// ?SetFlags@CMFCPropertyGridProperty@@IEAAXXZ
+extern "C" void MS_ABI impl__SetFlags_CMFCPropertyGridProperty__IEAAXXZ() {}
+
+// ?TextToVar@CMFCPropertyGridProperty@@MEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__TextToVar_CMFCPropertyGridProperty__MEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const void* /*class*/* p0, void** p1, void* p2) {
+    return 0;
+}
+

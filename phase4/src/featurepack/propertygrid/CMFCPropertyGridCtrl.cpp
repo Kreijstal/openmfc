@@ -488,3 +488,213 @@ int CMFCPropertyGridCtrl::CompareProps(const CMFCPropertyGridProperty* pProp1, c
     if (!pProp2) return 1;
     return pProp1->GetName().Compare(pProp2->GetName());
 }
+// Symbol: ?CloseColorPopup@CMFCPropertyGridCtrl@@UEAAXXZ
+extern "C" void MS_ABI impl__CloseColorPopup_CMFCPropertyGridCtrl__UEAAXXZ() {}
+
+// Symbol: ?CreateBoldFont@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__CreateBoldFont_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?EnableHeaderCtrl@CMFCPropertyGridCtrl@@QEAAXHPEB_W0@Z
+extern "C" void MS_ABI impl__EnableHeaderCtrl_CMFCPropertyGridCtrl__QEAAXHPEB_W0_Z(int p0, const wchar_t* p1, int p2) {}
+
+// Symbol: ?GetScrollBarCtrl@CMFCPropertyGridCtrl@@UEBAPEAVCScrollBar@@H@Z
+extern "C" void* MS_ABI impl__GetScrollBarCtrl_CMFCPropertyGridCtrl__UEBAPEAVCScrollBar__H_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?InitHeader@CMFCPropertyGridCtrl@@UEAAXXZ
+extern "C" void MS_ABI impl__InitHeader_CMFCPropertyGridCtrl__UEAAXXZ() {}
+
+// Symbol: ?OnCancelMode@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCancelMode_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnChar@CMFCPropertyGridCtrl@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnChar_CMFCPropertyGridCtrl__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// Symbol: ?OnClickButton@CMFCPropertyGridCtrl@@UEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__OnClickButton_CMFCPropertyGridCtrl__UEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// Symbol: ?OnCloseCombo@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCloseCombo_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnComboKillFocus@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnComboKillFocus_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnCreate@CMFCPropertyGridCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnCreate_CMFCPropertyGridCtrl__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnCtlColor@CMFCPropertyGridCtrl@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
+extern "C" void* MS_ABI impl__OnCtlColor_CMFCPropertyGridCtrl__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(void* /*class*/* p0, void* /*class*/* p1, unsigned int p2) {
+    return nullptr;
+}
+
+// Symbol: ?OnDestroy@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDestroy_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnDrawBorder@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDrawBorder_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnDrawDescription@CMFCPropertyGridCtrl@@MEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawDescription_CMFCPropertyGridCtrl__MEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnEditKillFocus@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnEditKillFocus_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnEraseBkgnd@CMFCPropertyGridCtrl@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCPropertyGridCtrl__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnGetDlgCode@CMFCPropertyGridCtrl@@IEAAIXZ
+extern "C" unsigned int MS_ABI impl__OnGetDlgCode_CMFCPropertyGridCtrl__IEAAIXZ() {
+    return 0;
+}
+
+// Symbol: ?OnGetFont@CMFCPropertyGridCtrl@@IEAAPEAUHFONT__@@XZ
+extern "C" void* MS_ABI impl__OnGetFont_CMFCPropertyGridCtrl__IEAAPEAUHFONT____XZ() {
+    return nullptr;
+}
+
+// Symbol: ?OnGetObject@CMFCPropertyGridCtrl@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnGetObject_CMFCPropertyGridCtrl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnHeaderEndTrack@CMFCPropertyGridCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnHeaderEndTrack_CMFCPropertyGridCtrl__IEAAXPEAUtagNMHDR__PEA_J_Z(void* /*struct*/* p0, __int64* p1) {}
+
+// Symbol: ?OnHeaderItemChanged@CMFCPropertyGridCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnHeaderItemChanged_CMFCPropertyGridCtrl__IEAAXPEAUtagNMHDR__PEA_J_Z(void* /*struct*/* p0, __int64* p1) {}
+
+// Symbol: ?OnHeaderTrack@CMFCPropertyGridCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnHeaderTrack_CMFCPropertyGridCtrl__IEAAXPEAUtagNMHDR__PEA_J_Z(void* /*struct*/* p0, __int64* p1) {}
+
+// Symbol: ?OnInitControl@CMFCPropertyGridCtrl@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnInitControl_CMFCPropertyGridCtrl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnKeyDown@CMFCPropertyGridCtrl@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CMFCPropertyGridCtrl__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// Symbol: ?OnKillFocus@CMFCPropertyGridCtrl@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnKillFocus_CMFCPropertyGridCtrl__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnLButtonDblClk@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCPropertyGridCtrl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonDown@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCPropertyGridCtrl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCPropertyGridCtrl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseMove@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CMFCPropertyGridCtrl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseWheel@CMFCPropertyGridCtrl@@IEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CMFCPropertyGridCtrl__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnNcCalcSize@CMFCPropertyGridCtrl@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CMFCPropertyGridCtrl__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcPaint@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnNeedTipText@CMFCPropertyGridCtrl@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
+extern "C" int MS_ABI impl__OnNeedTipText_CMFCPropertyGridCtrl__IEAAHIPEAUtagNMHDR__PEA_J_Z(unsigned int p0, void* /*struct*/* p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnNotify@CMFCPropertyGridCtrl@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CMFCPropertyGridCtrl__MEAAH_K_JPEA_J_Z(unsigned __int64 p0, __int64 p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPaint@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnPrintClient@CMFCPropertyGridCtrl@@IEAA_JPEAVCDC@@I@Z
+extern "C" __int64 MS_ABI impl__OnPrintClient_CMFCPropertyGridCtrl__IEAA_JPEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?OnPropertyChanged@CMFCPropertyGridCtrl@@UEBAXPEAVCMFCPropertyGridProperty@@@Z
+extern "C" void MS_ABI impl__OnPropertyChanged_CMFCPropertyGridCtrl__UEBAXPEAVCMFCPropertyGridProperty___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnRButtonDown@CMFCPropertyGridCtrl@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnRButtonDown_CMFCPropertyGridCtrl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnSelectCombo@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__OnSelectCombo_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?OnSetCursor@CMFCPropertyGridCtrl@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CMFCPropertyGridCtrl__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetFocus@CMFCPropertyGridCtrl@@IEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnSetFocus_CMFCPropertyGridCtrl__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnSetFont@CMFCPropertyGridCtrl@@IEAAXPEAVCFont@@H@Z
+extern "C" void MS_ABI impl__OnSetFont_CMFCPropertyGridCtrl__IEAAXPEAVCFont__H_Z(void* /*class*/* p0, int p1) {}
+
+// Symbol: ?OnSize@CMFCPropertyGridCtrl@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CMFCPropertyGridCtrl__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnSpinDeltaPos@CMFCPropertyGridCtrl@@IEAAXPEAUtagNMHDR@@PEA_J@Z
+extern "C" void MS_ABI impl__OnSpinDeltaPos_CMFCPropertyGridCtrl__IEAAXPEAUtagNMHDR__PEA_J_Z(void* /*struct*/* p0, __int64* p1) {}
+
+// Symbol: ?OnStyleChanged@CMFCPropertyGridCtrl@@IEAAXHPEAUtagSTYLESTRUCT@@@Z
+extern "C" void MS_ABI impl__OnStyleChanged_CMFCPropertyGridCtrl__IEAAXHPEAUtagSTYLESTRUCT___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnUpdateSpin@CMFCPropertyGridCtrl@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnUpdateSpin_CMFCPropertyGridCtrl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnVScroll@CMFCPropertyGridCtrl@@IEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnVScroll_CMFCPropertyGridCtrl__IEAAXIIPEAVCScrollBar___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {}
+
+// Symbol: ?PreSubclassWindow@CMFCPropertyGridCtrl@@MEAAXXZ
+extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ() {}
+
+// Symbol: ?PreTranslateMessage@CMFCPropertyGridCtrl@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPropertyGridCtrl__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?ProcessClipboardAccelerators@CMFCPropertyGridCtrl@@MEAAHI@Z
+extern "C" int MS_ABI impl__ProcessClipboardAccelerators_CMFCPropertyGridCtrl__MEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?ReposProperties@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__ReposProperties_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?SetCurrFont@CMFCPropertyGridCtrl@@IEAAPEAUHFONT__@@PEAVCDC@@@Z
+extern "C" void* MS_ABI impl__SetCurrFont_CMFCPropertyGridCtrl__IEAAPEAUHFONT____PEAVCDC___Z(void* /*class*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?SetScrollSizes@CMFCPropertyGridCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__SetScrollSizes_CMFCPropertyGridCtrl__IEAAXXZ() {}
+
+// Symbol: ?SetVSDotNetLook@CMFCPropertyGridCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetVSDotNetLook_CMFCPropertyGridCtrl__QEAAXH_Z(int p0) {}
+
+// Symbol: ?TrackDescr@CMFCPropertyGridCtrl@@IEAAXH@Z
+extern "C" void MS_ABI impl__TrackDescr_CMFCPropertyGridCtrl__IEAAXH_Z(int p0) {}
+
+// Symbol: ?TrackHeader@CMFCPropertyGridCtrl@@IEAAXH@Z
+extern "C" void MS_ABI impl__TrackHeader_CMFCPropertyGridCtrl__IEAAXH_Z(int p0) {}
+
+// Symbol: ?TrackToolTip@CMFCPropertyGridCtrl@@IEAAXVCPoint@@@Z
+extern "C" void MS_ABI impl__TrackToolTip_CMFCPropertyGridCtrl__IEAAXVCPoint___Z(void* /*class*/ p0) {}
+
+// Symbol: ?UpdateColor@CMFCPropertyGridCtrl@@UEAAXK@Z
+extern "C" void MS_ABI impl__UpdateColor_CMFCPropertyGridCtrl__UEAAXK_Z(unsigned long p0) {}

@@ -276,6 +276,13 @@ extern "C" int MS_ABI impl__UTF8ToString_CMFCControlContainer__SAHPEBDAEAV__CStr
     std::free(buf);
     return cchWide;
 }
+// Symbol: ??1CMFCControlContainer@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCControlContainer__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        impl__ClearControlData_CMFCControlContainer__QEAAXXZ(pThis);
+        impl__FreeSubclassedControls_CMFCControlContainer__QEAAXXZ(pThis);
+    }
+}
 // Symbol: ??0CMFCControlContainer@@QEAA@PEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CMFCControlContainer__QEAA_PEAVCWnd___Z(void* pThis, void* pWnd) {
     (void)pWnd;

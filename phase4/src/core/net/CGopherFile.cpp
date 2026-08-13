@@ -87,3 +87,16 @@ CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
     : CInternetFile(hFile, LocatorToString(&refLocator), pConnection, 0) {
 }
 CGopherFile::~CGopherFile() {}
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ??0CGopherFile@@IEAA@PEAX0PEB_WK_K@Z
+extern "C" void* MS_ABI impl___0CGopherFile__IEAA_PEAX0PEB_WK_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    return nullptr;
+}
+

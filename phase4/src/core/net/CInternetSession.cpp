@@ -240,3 +240,24 @@ CGopherConnection* CInternetSession::GetGopherConnection(const wchar_t* pstrServ
                                                           INTERNET_PORT nPort) {
     return new CGopherConnection(this, pstrServer, pstrUserName, pstrPassword, m_dwContext, nPort);
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?QueryOption@CInternetSession@@QEBAHKAEAK@Z
+extern "C" int MS_ABI impl__QueryOption_CInternetSession__QEBAHKAEAK_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+
+// Symbol: ?SetOption@CInternetSession@@QEAAHKPEAXKK@Z
+extern "C" int MS_ABI impl__SetOption_CInternetSession__QEAAHKPEAXKK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+

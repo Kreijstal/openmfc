@@ -16,3 +16,22 @@ extern "C" void* MS_ABI impl___0CAnimationColor__QEAA_KII_K_Z(
 extern "C" void* MS_ABI impl___0CAnimationColor__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// ?AddTransition@CAnimationColor@@QEAAXPEAVCBaseTransition@@00@Z
+extern "C" void MS_ABI impl__AddTransition_CAnimationColor__QEAAXPEAVCBaseTransition__00_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2) {}
+
+// ?GetAnimationVariableList@CAnimationColor@@MEAAXAEAV?$CList@PEAVCAnimationVariable@@PEAV1@@@@Z
+extern "C" void MS_ABI impl__GetAnimationVariableList_CAnimationColor__MEAAXAEAV__CList_PEAVCAnimationVariable__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+
+// ?GetDefaultValue@CAnimationColor@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__GetDefaultValue_CAnimationColor__QEAAKXZ() {
+    return 0;
+}
+
+// ?GetValue@CAnimationColor@@QEAAHAEAK@Z
+extern "C" int MS_ABI impl__GetValue_CAnimationColor__QEAAHAEAK_Z(unsigned long* p0) {
+    return 0;
+}
+
+// ?SetDefaultValue@CAnimationColor@@QEAAXK@Z
+extern "C" void MS_ABI impl__SetDefaultValue_CAnimationColor__QEAAXK_Z(unsigned long p0) {}
+

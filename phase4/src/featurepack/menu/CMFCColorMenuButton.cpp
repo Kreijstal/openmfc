@@ -315,6 +315,12 @@ extern "C" void MS_ABI impl__SetColorName_CMFCColorMenuButton__SAXKAEBV__CString
     // TODO(clean-room): not transcribed -- needs the static name table
     // (0x180027990 / +0x3b1c00); not modeled.
 }
+// Symbol: ??1CMFCColorMenuButton@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCColorMenuButton__UEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        // No owned resources are modelled for this opaque helper class.
+    }
+}
 // Symbol: ??0CMFCColorMenuButton@@QEAA@IPEB_WPEAVCPalette@@@Z
 extern "C" void* MS_ABI impl___0CMFCColorMenuButton__QEAA_IPEB_WPEAVCPalette___Z(
     void* pThis, int id, const wchar_t* text, void* pPalette) {

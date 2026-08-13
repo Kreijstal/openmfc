@@ -11,3 +11,68 @@ extern "C" void* MS_ABI impl___0CConnectionPoint__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CConnectionPoint__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
+// ?CreateConnectionArray@CConnectionPoint@@QEAAXXZ
+extern "C" void MS_ABI impl__CreateConnectionArray_CConnectionPoint__QEAAXXZ() {}
+
+// ?GetConnectionCount@CConnectionPoint@@QEAAHXZ
+extern "C" int MS_ABI impl__GetConnectionCount_CConnectionPoint__QEAAHXZ() {
+    return 0;
+}
+
+// ?GetConnections@CConnectionPoint@@QEAAPEBVCPtrArray@@XZ
+extern "C" void* MS_ABI impl__GetConnections_CConnectionPoint__QEAAPEBVCPtrArray__XZ() {
+    return nullptr;
+}
+
+// ?GetContainer@CConnectionPoint@@UEAAPEAUIConnectionPointContainer@@XZ
+extern "C" void* MS_ABI impl__GetContainer_CConnectionPoint__UEAAPEAUIConnectionPointContainer__XZ() {
+    return nullptr;
+}
+
+// ?GetMaxConnections@CConnectionPoint@@UEAAHXZ
+extern "C" int MS_ABI impl__GetMaxConnections_CConnectionPoint__UEAAHXZ() {
+    return 0;
+}
+
+// ?GetNextConnection@CConnectionPoint@@QEBAPEAUIUnknown@@AEAPEAU__POSITION@@@Z
+extern "C" void* MS_ABI impl__GetNextConnection_CConnectionPoint__QEBAPEAUIUnknown__AEAPEAU__POSITION___Z(void* /*struct*/** p0) {
+    return nullptr;
+}
+
+// ?GetStartPosition@CConnectionPoint@@QEBAPEAU__POSITION@@XZ
+extern "C" void* MS_ABI impl__GetStartPosition_CConnectionPoint__QEBAPEAU__POSITION__XZ() {
+    return nullptr;
+}
+
+// ?OnAdvise@CConnectionPoint@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnAdvise_CConnectionPoint__UEAAXH_Z(int p0) {}
+
+// ?QuerySinkInterface@CConnectionPoint@@UEAAJPEAUIUnknown@@PEAPEAX@Z
+extern "C" long MS_ABI impl__QuerySinkInterface_CConnectionPoint__UEAAJPEAUIUnknown__PEAPEAX_Z(void* /*struct*/* p0, void** p1) {
+    return 0;
+}
+
+// Symbol: ?Advise@XConnPt@CConnectionPoint@@UEAAJPEAUIUnknown@@PEAK@Z
+extern "C" long MS_ABI impl__Advise_XConnPt_CConnectionPoint__UEAAJPEAUIUnknown__PEAK_Z(void* /*struct*/* p0, unsigned long* p1) {
+    return 0;
+}
+
+// Symbol: ?EnumConnections@XConnPt@CConnectionPoint@@UEAAJPEAPEAUIEnumConnections@@@Z
+extern "C" long MS_ABI impl__EnumConnections_XConnPt_CConnectionPoint__UEAAJPEAPEAUIEnumConnections___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?GetConnectionInterface@XConnPt@CConnectionPoint@@UEAAJPEAU_GUID@@@Z
+extern "C" long MS_ABI impl__GetConnectionInterface_XConnPt_CConnectionPoint__UEAAJPEAU_GUID___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetConnectionPointContainer@XConnPt@CConnectionPoint@@UEAAJPEAPEAUIConnectionPointContainer@@@Z
+extern "C" long MS_ABI impl__GetConnectionPointContainer_XConnPt_CConnectionPoint__UEAAJPEAPEAUIConnectionPointContainer___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?Unadvise@XConnPt@CConnectionPoint@@UEAAJK@Z
+extern "C" long MS_ABI impl__Unadvise_XConnPt_CConnectionPoint__UEAAJK_Z(unsigned long p0) {
+    return 0;
+}

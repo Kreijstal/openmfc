@@ -316,3 +316,189 @@ BOOL CSplitterWnd::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext)
     NormalizeSplitterState(this);
     return TRUE;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetActivePane@CSplitterWnd@@UEAAPEAVCWnd@@PEAH0@Z
+extern "C" void* MS_ABI impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return nullptr;
+}
+
+
+// Symbol: ?OnDrawSplitter@CSplitterWnd@@MEAAXPEAVCDC@@W4ESplitType@1@AEBVCRect@@@Z
+extern "C" void MS_ABI impl__OnDrawSplitter_CSplitterWnd__MEAAXPEAVCDC__W4ESplitType_1_AEBVCRect___Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    (void)p4;
+    (void)p5;
+    (void)p6;
+    (void)p7;
+    (void)p8;
+    (void)p9;
+    (void)p10;
+    (void)p11;
+    (void)p12;
+    (void)p13;
+}
+
+// Symbol: ?CreateCommon@CSplitterWnd@@IEAAHPEAVCWnd@@UtagSIZE@@KI@Z
+extern "C" int MS_ABI impl__CreateCommon_CSplitterWnd__IEAAHPEAVCWnd__UtagSIZE__KI_Z(void* /*class*/* p0, void* /*struct*/ p1, unsigned long p2, unsigned int p3) {
+    return 0;
+}
+
+// Symbol: ?CreateScrollBarCtrl@CSplitterWnd@@UEAAHKI@Z
+extern "C" int MS_ABI impl__CreateScrollBarCtrl_CSplitterWnd__UEAAHKI_Z(unsigned long p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?DeleteColumn@CSplitterWnd@@UEAAXH@Z
+extern "C" void MS_ABI impl__DeleteColumn_CSplitterWnd__UEAAXH_Z(int p0) {}
+
+// Symbol: ?DeleteRow@CSplitterWnd@@UEAAXH@Z
+extern "C" void MS_ABI impl__DeleteRow_CSplitterWnd__UEAAXH_Z(int p0) {}
+
+// Symbol: ?DeleteView@CSplitterWnd@@UEAAXHH@Z
+extern "C" void MS_ABI impl__DeleteView_CSplitterWnd__UEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?DoScroll@CSplitterWnd@@UEAAHPEAVCView@@IH@Z
+extern "C" int MS_ABI impl__DoScroll_CSplitterWnd__UEAAHPEAVCView__IH_Z(void* /*class*/* p0, unsigned int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?DoScrollBy@CSplitterWnd@@UEAAHPEAVCView@@VCSize@@H@Z
+extern "C" int MS_ABI impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?DrawAllSplitBars@CSplitterWnd@@MEAAXPEAVCDC@@HH@Z
+extern "C" void MS_ABI impl__DrawAllSplitBars_CSplitterWnd__MEAAXPEAVCDC__HH_Z(void* /*class*/* p0, int p1, int p2) {}
+
+// Symbol: ?GetHitRect@CSplitterWnd@@MEAAXHAEAVCRect@@@Z
+extern "C" void MS_ABI impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(int p0, void* /*class*/* p1) {}
+
+// Symbol: ?GetInsideRect@CSplitterWnd@@MEBAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__GetInsideRect_CSplitterWnd__MEBAXAEAVCRect___Z(void* /*class*/* p0) {}
+
+// Symbol: ?GetScrollStyle@CSplitterWnd@@QEBAKXZ
+extern "C" unsigned long MS_ABI impl__GetScrollStyle_CSplitterWnd__QEBAKXZ() {
+    return 0;
+}
+
+// Symbol: ?GetSizingParent@CSplitterWnd@@IEAAPEAVCWnd@@XZ
+extern "C" void* MS_ABI impl__GetSizingParent_CSplitterWnd__IEAAPEAVCWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?HitTest@CSplitterWnd@@MEBAHVCPoint@@@Z
+extern "C" int MS_ABI impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?IdFromRowCol@CSplitterWnd@@QEBAHHH@Z
+extern "C" int MS_ABI impl__IdFromRowCol_CSplitterWnd__QEBAHHH_Z(int p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?IsChildPane@CSplitterWnd@@QEAAHPEAVCWnd@@PEAH1@Z
+extern "C" int MS_ABI impl__IsChildPane_CSplitterWnd__QEAAHPEAVCWnd__PEAH1_Z(void* /*class*/* p0, int* p1, int* p2) {
+    return 0;
+}
+
+// Symbol: ?OnCancelMode@CSplitterWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnCancelMode_CSplitterWnd__IEAAXXZ() {}
+
+// Symbol: ?OnCommand@CSplitterWnd@@MEAAH_K_J@Z
+extern "C" int MS_ABI impl__OnCommand_CSplitterWnd__MEAAH_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnDisplayChange@CSplitterWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnDisplayChange_CSplitterWnd__IEAAXXZ() {}
+
+// Symbol: ?OnDraw@CSplitterWnd@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__OnDraw_CSplitterWnd__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnHScroll@CSplitterWnd@@IEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnHScroll_CSplitterWnd__IEAAXIIPEAVCScrollBar___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnKeyDown@CSplitterWnd@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CSplitterWnd__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// Symbol: ?OnLButtonDblClk@CSplitterWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDblClk_CSplitterWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonDown@CSplitterWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CSplitterWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CSplitterWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CSplitterWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseMove@CSplitterWnd@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CSplitterWnd__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseWheel@CSplitterWnd@@IEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CSplitterWnd__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnNcCreate@CSplitterWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__OnNcCreate_CSplitterWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnNotify@CSplitterWnd@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CSplitterWnd__MEAAH_K_JPEA_J_Z(unsigned __int64 p0, __int64 p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPaint@CSplitterWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CSplitterWnd__IEAAXXZ() {}
+
+// Symbol: ?OnPrintClient@CSplitterWnd@@IEAA_JPEAVCDC@@I@Z
+extern "C" __int64 MS_ABI impl__OnPrintClient_CSplitterWnd__IEAA_JPEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return 0;
+}
+
+// Symbol: ?OnSetCursor@CSplitterWnd@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CSplitterWnd__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnSize@CSplitterWnd@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CSplitterWnd__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnSysCommand@CSplitterWnd@@IEAAXI_J@Z
+extern "C" void MS_ABI impl__OnSysCommand_CSplitterWnd__IEAAXI_J_Z(unsigned int p0, __int64 p1) {}
+
+// Symbol: ?OnVScroll@CSplitterWnd@@IEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnVScroll_CSplitterWnd__IEAAXIIPEAVCScrollBar___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {}
+
+// Symbol: ?SetScrollStyle@CSplitterWnd@@QEAAXK@Z
+extern "C" void MS_ABI impl__SetScrollStyle_CSplitterWnd__QEAAXK_Z(unsigned long p0) {}
+
+// Symbol: ?SplitColumn@CSplitterWnd@@UEAAHH@Z
+extern "C" int MS_ABI impl__SplitColumn_CSplitterWnd__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SplitRow@CSplitterWnd@@UEAAHH@Z
+extern "C" int MS_ABI impl__SplitRow_CSplitterWnd__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?StartTracking@CSplitterWnd@@MEAAXH@Z
+extern "C" void MS_ABI impl__StartTracking_CSplitterWnd__MEAAXH_Z(int p0) {}
+
+// Symbol: ?StopTracking@CSplitterWnd@@MEAAXH@Z
+extern "C" void MS_ABI impl__StopTracking_CSplitterWnd__MEAAXH_Z(int p0) {}
+
+// Symbol: ?TrackColumnSize@CSplitterWnd@@MEAAXHH@Z
+extern "C" void MS_ABI impl__TrackColumnSize_CSplitterWnd__MEAAXHH_Z(int p0, int p1) {}
+
+// Symbol: ?TrackRowSize@CSplitterWnd@@MEAAXHH@Z
+extern "C" void MS_ABI impl__TrackRowSize_CSplitterWnd__MEAAXHH_Z(int p0, int p1) {}

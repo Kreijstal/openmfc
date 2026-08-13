@@ -911,3 +911,140 @@ void CDHtmlDialog::OnDestroy() {
     }
     CDialog::OnDestroy();
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?GetControlProperty@CDHtmlDialog@@QEAA?AUtagVARIANT@@PEAUIDispatch@@J@Z
+extern "C" void* MS_ABI impl__GetControlProperty_CDHtmlDialog__QEAA_AUtagVARIANT__PEAUIDispatch__J_Z(void* pThis, void* p0, void* p1, void* p2) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return nullptr;
+}
+
+// Symbol: ?ConnectDHtmlElementEvents@CDHtmlDialog@@IEAAJ_K@Z
+extern "C" long MS_ABI impl__ConnectDHtmlElementEvents_CDHtmlDialog__IEAAJ_K_Z(unsigned __int64 p0) {
+    return 0;
+}
+
+// Symbol: ?ConnectDHtmlEvents@CDHtmlDialog@@IEAAJPEAUIUnknown@@@Z
+extern "C" long MS_ABI impl__ConnectDHtmlEvents_CDHtmlDialog__IEAAJPEAUIUnknown___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?DDX_DHtml_AxControl@CDHtmlDialog@@IEAAXPEB_W0AEAUtagVARIANT@@H@Z
+extern "C" void MS_ABI impl__DDX_DHtml_AxControl_CDHtmlDialog__IEAAXPEB_W0AEAUtagVARIANT__H_Z(const wchar_t* p0, const wchar_t* p1, void* /*struct*/* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_AxControl@CDHtmlDialog@@IEAAXPEB_WJAEAUtagVARIANT@@H@Z
+extern "C" void MS_ABI impl__DDX_DHtml_AxControl_CDHtmlDialog__IEAAXPEB_WJAEAUtagVARIANT__H_Z(const wchar_t* p0, long p1, void* /*struct*/* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_AxControl@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_W1AEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__DDX_DHtml_AxControl_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_W1AEAUtagVARIANT___Z(void* /*class*/* p0, const wchar_t* p1, const wchar_t* p2, void* /*struct*/* p3) {}
+
+// Symbol: ?DDX_DHtml_AxControl@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAUtagVARIANT@@@Z
+extern "C" void MS_ABI impl__DDX_DHtml_AxControl_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAUtagVARIANT___Z(void* /*class*/* p0, const wchar_t* p1, long p2, void* /*struct*/* p3) {}
+
+// Symbol: ?DDX_DHtml_CheckBox@CDHtmlDialog@@IEAAXPEB_WAEAHH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_CheckBox_CDHtmlDialog__IEAAXPEB_WAEAHH_Z(const wchar_t* p0, int* p1, int p2) {}
+
+// Symbol: ?DDX_DHtml_CheckBox@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_CheckBox_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WAEAH_Z(void* /*class*/* p0, const wchar_t* p1, int* p2) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAFH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAFH_Z(const wchar_t* p0, long p1, short* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAHH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAHH_Z(const wchar_t* p0, long p1, int* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAJH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAJH_Z(const wchar_t* p0, long p1, long* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAKH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAKH_Z(const wchar_t* p0, long p1, unsigned long* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEAMH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEAMH_Z(const wchar_t* p0, long p1, float* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@IEAAXPEB_WJAEANH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__IEAAXPEB_WJAEANH_Z(const wchar_t* p0, long p1, double* p2, int p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAF@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAF_Z(void* /*class*/* p0, const wchar_t* p1, long p2, short* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAH_Z(void* /*class*/* p0, const wchar_t* p1, long p2, int* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAJ@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAJ_Z(void* /*class*/* p0, const wchar_t* p1, long p2, long* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAK@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAK_Z(void* /*class*/* p0, const wchar_t* p1, long p2, unsigned long* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAM@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAM_Z(void* /*class*/* p0, const wchar_t* p1, long p2, float* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementText@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WJAEAN@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementText_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WJAEAN_Z(void* /*class*/* p0, const wchar_t* p1, long p2, double* p3) {}
+
+// Symbol: ?DDX_DHtml_ElementTextFloatFormat@CDHtmlDialog@@IEAAXPEB_WJPEAXNHH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_ElementTextFloatFormat_CDHtmlDialog__IEAAXPEB_WJPEAXNHH_Z(const wchar_t* p0, long p1, void* p2, double p3, int p4, int p5) {}
+
+// Symbol: ?DDX_DHtml_ElementTextWithFormat@CDHtmlDialog@@IEAAXPEB_WJ0IHZZ
+extern "C" void MS_ABI impl__DDX_DHtml_ElementTextWithFormat_CDHtmlDialog__IEAAXPEB_WJ0IHZZ(const wchar_t* p0, long p1, const wchar_t* p2, unsigned int p3, int p4) {}
+
+// Symbol: ?DDX_DHtml_Radio@CDHtmlDialog@@IEAAXPEB_WAEAJH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_Radio_CDHtmlDialog__IEAAXPEB_WAEAJH_Z(const wchar_t* p0, long* p1, int p2) {}
+
+// Symbol: ?DDX_DHtml_Radio@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAJ@Z
+extern "C" void MS_ABI impl__DDX_DHtml_Radio_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WAEAJ_Z(void* /*class*/* p0, const wchar_t* p1, long* p2) {}
+
+// Symbol: ?DDX_DHtml_SelectIndex@CDHtmlDialog@@IEAAXPEB_WAEAJH@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectIndex_CDHtmlDialog__IEAAXPEB_WAEAJH_Z(const wchar_t* p0, long* p1, int p2) {}
+
+// Symbol: ?DDX_DHtml_SelectIndex@CDHtmlDialog@@QEAAXPEAVCDataExchange@@PEB_WAEAJ@Z
+extern "C" void MS_ABI impl__DDX_DHtml_SelectIndex_CDHtmlDialog__QEAAXPEAVCDataExchange__PEB_WAEAJ_Z(void* /*class*/* p0, const wchar_t* p1, long* p2) {}
+
+// Symbol: ?DestroyModeless@CDHtmlDialog@@QEAAXXZ
+extern "C" void MS_ABI impl__DestroyModeless_CDHtmlDialog__QEAAXXZ() {}
+
+// Symbol: ?DisconnectDHtmlElementEvents@CDHtmlDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__DisconnectDHtmlElementEvents_CDHtmlDialog__IEAAXXZ() {}
+
+// Symbol: ?DisconnectDHtmlEvents@CDHtmlDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__DisconnectDHtmlEvents_CDHtmlDialog__IEAAXXZ() {}
+
+// Symbol: ?GetDHtmlEventMap@CDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@XZ
+extern "C" void* MS_ABI impl__GetDHtmlEventMap_CDHtmlDialog__MEAAPEBUDHtmlEventMapEntry__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetEventSinkMap@CDHtmlDialog@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetEventSinkMap_CDHtmlDialog__MEBAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetThisEventSinkMap@CDHtmlDialog@@KAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisEventSinkMap_CDHtmlDialog__KAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?Initialize@CDHtmlDialog@@IEAAXXZ
+extern "C" void MS_ABI impl__Initialize_CDHtmlDialog__IEAAXXZ() {}
+
+// Symbol: ?IsSinkedElement@CDHtmlDialog@@IEAAHPEAUIDispatch@@@Z
+extern "C" int MS_ABI impl__IsSinkedElement_CDHtmlDialog__IEAAHPEAUIDispatch___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnDestroyModeless@CDHtmlDialog@@IEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnDestroyModeless_CDHtmlDialog__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnDocumentReadyStateChange@CDHtmlDialog@@QEAAJPEAUIHTMLElement@@@Z
+extern "C" long MS_ABI impl__OnDocumentReadyStateChange_CDHtmlDialog__QEAAJPEAUIHTMLElement___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSize@CDHtmlDialog@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CDHtmlDialog__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}

@@ -109,3 +109,11 @@ void CEnumFormatEtc::AddFormat(const FORMATETC& formatEtc) {
     }
     if (m_formats) m_formats[m_count++] = formatEtc;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?AddFormat@CEnumFormatEtc@@QEAAXPEBUtagFORMATETC@@@Z
+extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(void* pThis, void* p0) {
+    (void)pThis;
+    (void)p0;
+}
+

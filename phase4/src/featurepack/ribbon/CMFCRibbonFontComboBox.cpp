@@ -17,3 +17,48 @@ extern "C" void* MS_ABI impl___0CMFCRibbonFontComboBox__QEAA_IHEEH_Z(
     (void)unused3;
     return pThis;
 }
+// ??1CMFCRibbonFontComboBox@@UEAA@XZ
+extern "C" void* MS_ABI impl___1CMFCRibbonFontComboBox__UEAA_XZ() {
+    return nullptr;
+}
+
+// ?BuildFonts@CMFCRibbonFontComboBox@@QEAAXHEE@Z
+extern "C" void MS_ABI impl__BuildFonts_CMFCRibbonFontComboBox__QEAAXHEE_Z(int p0, unsigned char p1, unsigned char p2) {}
+
+// ?ClearData@CMFCRibbonFontComboBox@@MEAAXXZ
+extern "C" void MS_ABI impl__ClearData_CMFCRibbonFontComboBox__MEAAXXZ() {}
+
+// ?CopyFrom@CMFCRibbonFontComboBox@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonFontComboBox__MEAAXAEBVCMFCRibbonBaseElement___Z(const void* /*class*/* p0) {}
+
+// ?CreateObject@CMFCRibbonFontComboBox@@SAPEAVCObject@@XZ
+extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonFontComboBox__SAPEAVCObject__XZ() {
+    return nullptr;
+}
+
+// ?DropDownList@CMFCRibbonFontComboBox@@MEAAXXZ
+extern "C" void MS_ABI impl__DropDownList_CMFCRibbonFontComboBox__MEAAXXZ() {}
+
+// ?GetFontsCount@CMFCRibbonFontComboBox@@IEAAHPEB_WAEBVCObList@@@Z
+extern "C" int MS_ABI impl__GetFontsCount_CMFCRibbonFontComboBox__IEAAHPEB_WAEBVCObList___Z(const wchar_t* p0, const void* /*class*/* p1) {
+    return 0;
+}
+
+// ?OnDrawDropListItem@CMFCRibbonFontComboBox@@MEAAHPEAVCDC@@HPEAVCMFCToolBarMenuButton@@H@Z
+extern "C" int MS_ABI impl__OnDrawDropListItem_CMFCRibbonFontComboBox__MEAAHPEAVCDC__HPEAVCMFCToolBarMenuButton__H_Z(void* /*class*/* p0, int p1, void* /*class*/* p2, int p3) {
+    return 0;
+}
+
+// ?OnGetDropListItemSize@CMFCRibbonFontComboBox@@MEAA?AVCSize@@PEAVCDC@@HPEAVCMFCToolBarMenuButton@@V2@@Z
+extern "C" void* MS_ABI impl__OnGetDropListItemSize_CMFCRibbonFontComboBox__MEAA_AVCSize__PEAVCDC__HPEAVCMFCToolBarMenuButton__V2__Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/* p3, void* /*class*/ p4) {
+    return nullptr;
+}
+
+// ?RebuildFonts@CMFCRibbonFontComboBox@@QEAAXXZ
+extern "C" void MS_ABI impl__RebuildFonts_CMFCRibbonFontComboBox__QEAAXXZ() {}
+
+// ?SetFont@CMFCRibbonFontComboBox@@QEAAHPEB_WEH@Z
+extern "C" int MS_ABI impl__SetFont_CMFCRibbonFontComboBox__QEAAHPEB_WEH_Z(const wchar_t* p0, unsigned char p1, int p2) {
+    return 0;
+}
+

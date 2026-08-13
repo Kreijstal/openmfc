@@ -416,3 +416,128 @@ extern "C" void* MS_ABI impl___0CMFCBaseAccessibleObject__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CMFCBaseAccessibleObject__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
+
+// Symbol: ?GetIDsOfNames@XAccessible@CMFCBaseAccessibleObject@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
+extern "C" long MS_ABI impl__GetIDsOfNames_XAccessible_CMFCBaseAccessibleObject__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(const void* /*struct*/* p0, wchar_t** p1, unsigned int p2, unsigned long p3, long* p4) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfo@XAccessible@CMFCBaseAccessibleObject@@UEAAJIKPEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfo_XAccessible_CMFCBaseAccessibleObject__UEAAJIKPEAPEAUITypeInfo___Z(unsigned int p0, unsigned long p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoCount@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAI@Z
+extern "C" long MS_ABI impl__GetTypeInfoCount_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAI_Z(unsigned int* p0) {
+    return 0;
+}
+
+// Symbol: ?Invoke@XAccessible@CMFCBaseAccessibleObject@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_XAccessible_CMFCBaseAccessibleObject__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(long p0, const void* /*struct*/* p1, unsigned long p2, unsigned short p3, void* /*struct*/* p4, void* /*struct*/* p5, void* /*struct*/* p6, unsigned int* p7) {
+    return 0;
+}
+
+// Symbol: ?accDoDefaultAction@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accDoDefaultAction_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT___Z(void* /*struct*/ p0) {
+    return 0;
+}
+
+// Symbol: ?accHitTest@XAccessible@CMFCBaseAccessibleObject@@UEAAJJJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accHitTest_XAccessible_CMFCBaseAccessibleObject__UEAAJJJPEAUtagVARIANT___Z(long p0, long p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?accLocation@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAJ000UtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accLocation_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAJ000UtagVARIANT___Z(long* p0, long* p1, long* p2, long* p3, void* /*struct*/ p4) {
+    return 0;
+}
+
+// Symbol: ?accNavigate@XAccessible@CMFCBaseAccessibleObject@@UEAAJJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__accNavigate_XAccessible_CMFCBaseAccessibleObject__UEAAJJUtagVARIANT__PEAU3__Z(long p0, void* /*struct*/ p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?accSelect@XAccessible@CMFCBaseAccessibleObject@@UEAAJJUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__accSelect_XAccessible_CMFCBaseAccessibleObject__UEAAJJUtagVARIANT___Z(long p0, void* /*struct*/ p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChild@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accChild_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* /*struct*/ p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChildCount@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAJ_Z(long* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accDefaultAction@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDefaultAction_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accDescription@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accDescription_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accFocus@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accFocus_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAUtagVARIANT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accHelp@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accHelp_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accHelpTopic@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
+extern "C" long MS_ABI impl__get_accHelpTopic_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(wchar_t** p0, void* /*struct*/ p1, long* p2) {
+    return 0;
+}
+
+// Symbol: ?get_accKeyboardShortcut@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accKeyboardShortcut_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accName@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accName_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accParent@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accParent_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?get_accRole@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__get_accRole_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAU3__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?get_accSelection@XAccessible@CMFCBaseAccessibleObject@@UEAAJPEAUtagVARIANT@@@Z
+extern "C" long MS_ABI impl__get_accSelection_XAccessible_CMFCBaseAccessibleObject__UEAAJPEAUtagVARIANT___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accState@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAU3@@Z
+extern "C" long MS_ABI impl__get_accState_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAU3__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?get_accValue@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accValue_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?put_accName@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accName_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEA_W_Z(void* /*struct*/ p0, wchar_t* p1) {
+    return 0;
+}
+
+// Symbol: ?put_accValue@XAccessible@CMFCBaseAccessibleObject@@UEAAJUtagVARIANT@@PEA_W@Z
+extern "C" long MS_ABI impl__put_accValue_XAccessible_CMFCBaseAccessibleObject__UEAAJUtagVARIANT__PEA_W_Z(void* /*struct*/ p0, wchar_t* p1) {
+    return 0;
+}

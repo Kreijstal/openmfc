@@ -128,3 +128,77 @@ HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GU
     commandTarget->Release();
     return hr;
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?OnPreparePrinting@COleDocObjectItem@@SAHPEAVCView@@PEAUCPrintInfo@@H@Z
+extern "C" int MS_ABI impl__OnPreparePrinting_COleDocObjectItem__SAHPEAVCView__PEAUCPrintInfo__H_Z(void* p0, void* p1, void* p2) {
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    return 0;
+}
+
+
+// Symbol: ?OnPrint@COleDocObjectItem@@SAXPEAVCView@@PEAUCPrintInfo@@H@Z
+extern "C" void MS_ABI impl__OnPrint_COleDocObjectItem__SAXPEAVCView__PEAUCPrintInfo__H_Z(void* p0, void* p1, void* p2) {
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+
+// ?DoDefaultPrinting@COleDocObjectItem@@SAJPEAVCView@@PEAUCPrintInfo@@@Z
+extern "C" long MS_ABI impl__DoDefaultPrinting_COleDocObjectItem__SAJPEAVCView__PEAUCPrintInfo___Z(void* /*class*/* p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// ?GetCommandMap@COleDocObjectItem@@MEBAPEBUAFX_OLECMDMAP@@XZ
+extern "C" void* MS_ABI impl__GetCommandMap_COleDocObjectItem__MEBAPEBUAFX_OLECMDMAP__XZ() {
+    return nullptr;
+}
+
+// ?GetHelpMenu@COleDocObjectItem@@MEAAPEAVCMenu@@AEAI@Z
+extern "C" void* MS_ABI impl__GetHelpMenu_COleDocObjectItem__MEAAPEAVCMenu__AEAI_Z(unsigned int* p0) {
+    return nullptr;
+}
+
+// ?GetPageCount@COleDocObjectItem@@QEAAHPEAJ0@Z
+extern "C" int MS_ABI impl__GetPageCount_COleDocObjectItem__QEAAHPEAJ0_Z(long* p0, long* p1) {
+    return 0;
+}
+
+// ?GetThisCommandMap@COleDocObjectItem@@KAPEBUAFX_OLECMDMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisCommandMap_COleDocObjectItem__KAPEBUAFX_OLECMDMAP__XZ() {
+    return nullptr;
+}
+
+// ?OnCmdMsg@COleDocObjectItem@@MEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_COleDocObjectItem__MEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(unsigned int p0, int p1, void* p2, void* /*struct*/* p3) {
+    return 0;
+}
+
+// ?OnGetItemPosition@COleDocObjectItem@@MEAAXAEAVCRect@@@Z
+extern "C" void MS_ABI impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect___Z(void* /*class*/* p0) {}
+
+// ?OnInsertMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
+extern "C" void MS_ABI impl__OnInsertMenus_COleDocObjectItem__UEAAXPEAVCMenu__PEAUtagOleMenuGroupWidths___Z(void* /*class*/* p0, void* /*struct*/* p1) {}
+
+// ?OnRemoveMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@@Z
+extern "C" void MS_ABI impl__OnRemoveMenus_COleDocObjectItem__UEAAXPEAVCMenu___Z(void* /*class*/* p0) {}
+
+// ?QueryCommand@COleDocObjectItem@@QEAAJKPEAKPEAU_tagOLECMDTEXT@@PEBU_GUID@@@Z
+extern "C" long MS_ABI impl__QueryCommand_COleDocObjectItem__QEAAJKPEAKPEAU_tagOLECMDTEXT__PEBU_GUID___Z(unsigned long p0, unsigned long* p1, void* /*struct*/* p2, const void* /*struct*/* p3) {
+    return 0;
+}
+
+// ?Release@COleDocObjectItem@@UEAAXW4tagOLECLOSE@@@Z
+extern "C" void MS_ABI impl__Release_COleDocObjectItem__UEAAXW4tagOLECLOSE___Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, unsigned char p6, void* p7, void* p8, void* p9, void* p10, unsigned char p11) {}
+
+// ?SupportsIPrint@COleDocObjectItem@@IEAAHXZ
+extern "C" int MS_ABI impl__SupportsIPrint_COleDocObjectItem__IEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?ActivateMe@XOleDocumentSite@COleDocObjectItem@@UEAAJPEAUIOleDocumentView@@@Z
+extern "C" long MS_ABI impl__ActivateMe_XOleDocumentSite_COleDocObjectItem__UEAAJPEAUIOleDocumentView___Z(void* /*struct*/* p0) {
+    return 0;
+}

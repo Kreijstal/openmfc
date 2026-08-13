@@ -524,3 +524,162 @@ extern "C" void* MS_ABI impl___0CMFCPopupMenu__IEAA_PEAVCMFCToolBarsMenuProperty
     (void)pName;
     return new CMFCPopupMenu();
 }
+// Symbol: ?get_accChild@CMFCPopupMenu@@MEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accChild_CMFCPopupMenu__MEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* /*struct*/ p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accChildCount@CMFCPopupMenu@@MEAAJPEAJ@Z
+extern "C" long MS_ABI impl__get_accChildCount_CMFCPopupMenu__MEAAJPEAJ_Z(long* p0) {
+    return 0;
+}
+
+// Symbol: ?get_accName@CMFCPopupMenu@@MEAAJUtagVARIANT@@PEAPEA_W@Z
+extern "C" long MS_ABI impl__get_accName_CMFCPopupMenu__MEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
+    return 0;
+}
+
+// Symbol: ?get_accParent@CMFCPopupMenu@@MEAAJPEAPEAUIDispatch@@@Z
+extern "C" long MS_ABI impl__get_accParent_CMFCPopupMenu__MEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?get_accRole@CMFCPopupMenu@@MEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__get_accRole_CMFCPopupMenu__MEAAJUtagVARIANT__PEAU2__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?get_accState@CMFCPopupMenu@@MEAAJUtagVARIANT@@PEAU2@@Z
+extern "C" long MS_ABI impl__get_accState_CMFCPopupMenu__MEAAJUtagVARIANT__PEAU2__Z(void* /*struct*/ p0, void* /*struct*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnEraseBkgnd@CMFCPopupMenu@@IEAAHPEAVCDC@@@Z
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCPopupMenu__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnKeyDown@CMFCPopupMenu@@IEAAXIII@Z
+extern "C" void MS_ABI impl__OnKeyDown_CMFCPopupMenu__IEAAXIII_Z(unsigned int p0, unsigned int p1, unsigned int p2) {}
+
+// Symbol: ?OnLButtonDown@CMFCPopupMenu@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCPopupMenu__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnLButtonUp@CMFCPopupMenu@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCPopupMenu__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseActivate@CMFCPopupMenu@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnMouseActivate_CMFCPopupMenu__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnMouseMove@CMFCPopupMenu@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CMFCPopupMenu__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMouseWheel@CMFCPopupMenu@@IEAAHIFVCPoint@@@Z
+extern "C" int MS_ABI impl__OnMouseWheel_CMFCPopupMenu__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnNcHitTest@CMFCPopupMenu@@IEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CMFCPopupMenu__IEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcLButtonDown@CMFCPopupMenu@@IEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcLButtonDown_CMFCPopupMenu__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNotify@CMFCPopupMenu@@MEAAH_K_JPEA_J@Z
+extern "C" int MS_ABI impl__OnNotify_CMFCPopupMenu__MEAAH_K_JPEA_J_Z(unsigned __int64 p0, __int64 p1, __int64* p2) {
+    return 0;
+}
+
+// Symbol: ?OnPaint@CMFCPopupMenu@@IEAAXXZ
+extern "C" void MS_ABI impl__OnPaint_CMFCPopupMenu__IEAAXXZ() {}
+
+// Symbol: ?OnSetCursor@CMFCPopupMenu@@IEAAHPEAVCWnd@@II@Z
+extern "C" int MS_ABI impl__OnSetCursor_CMFCPopupMenu__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+    return 0;
+}
+
+// Symbol: ?OnShowWindow@CMFCPopupMenu@@IEAAXHI@Z
+extern "C" void MS_ABI impl__OnShowWindow_CMFCPopupMenu__IEAAXHI_Z(int p0, unsigned int p1) {}
+
+// Symbol: ?OnSize@CMFCPopupMenu@@IEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CMFCPopupMenu__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnTimer@CMFCPopupMenu@@IEAAX_K@Z
+extern "C" void MS_ABI impl__OnTimer_CMFCPopupMenu__IEAAX_K_Z(unsigned __int64 p0) {}
+
+// Symbol: ?OnVScroll@CMFCPopupMenu@@IEAAXIIPEAVCScrollBar@@@Z
+extern "C" void MS_ABI impl__OnVScroll_CMFCPopupMenu__IEAAXIIPEAVCScrollBar___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnWindowPosChanged@CMFCPopupMenu@@IEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanged_CMFCPopupMenu__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?PostCommand@CMFCPopupMenu@@QEAAHI@Z
+extern "C" int MS_ABI impl__PostCommand_CMFCPopupMenu__QEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?PostNcDestroy@CMFCPopupMenu@@MEAAXXZ
+extern "C" void MS_ABI impl__PostNcDestroy_CMFCPopupMenu__MEAAXXZ() {}
+
+// Symbol: ?PreTranslateMessage@CMFCPopupMenu@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPopupMenu__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RecalcLayout@CMFCPopupMenu@@UEAAXH@Z
+extern "C" void MS_ABI impl__RecalcLayout_CMFCPopupMenu__UEAAXH_Z(int p0) {}
+
+// Symbol: ?RemoveAllItems@CMFCPopupMenu@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllItems_CMFCPopupMenu__QEAAXXZ() {}
+
+// Symbol: ?RemoveItem@CMFCPopupMenu@@QEAAHH@Z
+extern "C" int MS_ABI impl__RemoveItem_CMFCPopupMenu__QEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?SaveState@CMFCPopupMenu@@UEAAXXZ
+extern "C" void MS_ABI impl__SaveState_CMFCPopupMenu__UEAAXXZ() {}
+
+// Symbol: ?SetAnimationSpeed@CMFCPopupMenu@@SAXI@Z
+extern "C" void MS_ABI impl__SetAnimationSpeed_CMFCPopupMenu__SAXI_Z(unsigned int p0) {}
+
+// Symbol: ?SetMaxWidth@CMFCPopupMenu@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetMaxWidth_CMFCPopupMenu__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetParentRibbonElement@CMFCPopupMenu@@QEAAXPEAVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__SetParentRibbonElement_CMFCPopupMenu__QEAAXPEAVCMFCRibbonBaseElement___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetQuickMode@CMFCPopupMenu@@QEAAXXZ
+extern "C" void MS_ABI impl__SetQuickMode_CMFCPopupMenu__QEAAXXZ() {}
+
+// Symbol: ?SetScrollBar@CMFCPopupMenu@@IEAAXXZ
+extern "C" void MS_ABI impl__SetScrollBar_CMFCPopupMenu__IEAAXXZ() {}
+
+// Symbol: ?ShowAllCommands@CMFCPopupMenu@@QEAAXXZ
+extern "C" void MS_ABI impl__ShowAllCommands_CMFCPopupMenu__QEAAXXZ() {}
+
+// Symbol: ?StartResize@CMFCPopupMenu@@IEAAHXZ
+extern "C" int MS_ABI impl__StartResize_CMFCPopupMenu__IEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?TearOff@CMFCPopupMenu@@MEAAHVCPoint@@@Z
+extern "C" int MS_ABI impl__TearOff_CMFCPopupMenu__MEAAHVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?TriggerResize@CMFCPopupMenu@@QEAAXXZ
+extern "C" void MS_ABI impl__TriggerResize_CMFCPopupMenu__QEAAXXZ() {}
+
+// Symbol: ?UpdateAllShadows@CMFCPopupMenu@@SAXPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__UpdateAllShadows_CMFCPopupMenu__SAXPEAUtagRECT___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?UpdateBottomWindows@CMFCPopupMenu@@IEAAXH@Z
+extern "C" void MS_ABI impl__UpdateBottomWindows_CMFCPopupMenu__IEAAXH_Z(int p0) {}
+
+// Symbol: ?UpdateShadow@CMFCPopupMenu@@QEAAXPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__UpdateShadow_CMFCPopupMenu__QEAAXPEAUtagRECT___Z(void* /*struct*/* p0) {}

@@ -515,3 +515,135 @@ BOOL CFrameWndEx::EnableDocking(DWORD dwDockStyle) {
     if (!m_pDockingManager) m_pDockingManager = new CDockingManager(this);
     return m_pDockingManager && m_pDockingManager->EnableDocking(dwDockStyle);
 }
+// Symbol: ?OnLButtonUp@CFrameWndEx@@QEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnLButtonUp_CFrameWndEx__QEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMenuChar@CFrameWndEx@@QEAA_JIIPEAVCMenu@@@Z
+extern "C" __int64 MS_ABI impl__OnMenuChar_CFrameWndEx__QEAA_JIIPEAVCMenu___Z(unsigned int p0, unsigned int p1, void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnMouseMove@CFrameWndEx@@QEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnMouseMove_CFrameWndEx__QEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnMoveMiniFrame@CFrameWndEx@@UEAAHPEAVCWnd@@@Z
+extern "C" int MS_ABI impl__OnMoveMiniFrame_CFrameWndEx__UEAAHPEAVCWnd___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcActivate@CFrameWndEx@@QEAAHH@Z
+extern "C" int MS_ABI impl__OnNcActivate_CFrameWndEx__QEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcCalcSize@CFrameWndEx@@QEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
+extern "C" void MS_ABI impl__OnNcCalcSize_CFrameWndEx__QEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnNcHitTest@CFrameWndEx@@QEAA_JVCPoint@@@Z
+extern "C" __int64 MS_ABI impl__OnNcHitTest_CFrameWndEx__QEAA_JVCPoint___Z(void* /*class*/ p0) {
+    return 0;
+}
+
+// Symbol: ?OnNcMouseMove@CFrameWndEx@@QEAAXIVCPoint@@@Z
+extern "C" void MS_ABI impl__OnNcMouseMove_CFrameWndEx__QEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcPaint@CFrameWndEx@@QEAAXXZ
+extern "C" void MS_ABI impl__OnNcPaint_CFrameWndEx__QEAAXXZ() {}
+
+// Symbol: ?OnPaneCheck@CFrameWndEx@@QEAAHI@Z
+extern "C" int MS_ABI impl__OnPaneCheck_CFrameWndEx__QEAAHI_Z(unsigned int p0) {
+    return 0;
+}
+
+// Symbol: ?OnPostPreviewFrame@CFrameWndEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnPostPreviewFrame_CFrameWndEx__QEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnPowerBroadcast@CFrameWndEx@@QEAAII_J@Z
+extern "C" unsigned int MS_ABI impl__OnPowerBroadcast_CFrameWndEx__QEAAII_J_Z(unsigned int p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnSetMenu@CFrameWndEx@@IEAAHPEAUHMENU__@@@Z
+extern "C" int MS_ABI impl__OnSetMenu_CFrameWndEx__IEAAHPEAUHMENU_____Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSetMenu@CFrameWndEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnSetMenu_CFrameWndEx__QEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnSetPreviewMode@CFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
+extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWndEx__UEAAXHPEAUCPrintPreviewState___Z(int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnSetText@CFrameWndEx@@QEAAHPEB_W@Z
+extern "C" int MS_ABI impl__OnSetText_CFrameWndEx__QEAAHPEB_W_Z(const wchar_t* p0) {
+    return 0;
+}
+
+// Symbol: ?OnSize@CFrameWndEx@@QEAAXIHH@Z
+extern "C" void MS_ABI impl__OnSize_CFrameWndEx__QEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+
+// Symbol: ?OnSizing@CFrameWndEx@@QEAAXIPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__OnSizing_CFrameWndEx__QEAAXIPEAUtagRECT___Z(unsigned int p0, void* /*struct*/* p1) {}
+
+// Symbol: ?OnSysColorChange@CFrameWndEx@@QEAAXXZ
+extern "C" void MS_ABI impl__OnSysColorChange_CFrameWndEx__QEAAXXZ() {}
+
+// Symbol: ?OnToolbarContextMenu@CFrameWndEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnToolbarContextMenu_CFrameWndEx__QEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnToolbarDelete@CFrameWndEx@@QEAA_J_K_J@Z
+extern "C" __int64 MS_ABI impl__OnToolbarDelete_CFrameWndEx__QEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+    return 0;
+}
+
+// Symbol: ?OnUpdateFrameMenu@CFrameWndEx@@UEAAXPEAUHMENU__@@@Z
+extern "C" void MS_ABI impl__OnUpdateFrameMenu_CFrameWndEx__UEAAXPEAUHMENU_____Z(void* /*struct*/* p0) {}
+
+// Symbol: ?OnUpdateFrameTitle@CFrameWndEx@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnUpdateFrameTitle_CFrameWndEx__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnWindowPosChanged@CFrameWndEx@@QEAAXPEAUtagWINDOWPOS@@@Z
+extern "C" void MS_ABI impl__OnWindowPosChanged_CFrameWndEx__QEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+
+// Symbol: ?PaneFromPoint@CFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@@Z
+extern "C" void* MS_ABI impl__PaneFromPoint_CFrameWndEx__QEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass___Z(void* /*class*/ p0, int p1, bool p2, void* /*struct*/* p3) {
+    return nullptr;
+}
+
+// Symbol: ?PaneFromPoint@CFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@@Z
+extern "C" void* MS_ABI impl__PaneFromPoint_CFrameWndEx__QEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass___Z(void* /*class*/ p0, int p1, unsigned long* p2, void* /*struct*/* p3) {
+    return nullptr;
+}
+
+// Symbol: ?PreCreateWindow@CFrameWndEx@@MEAAHAEAUtagCREATESTRUCTW@@@Z
+extern "C" int MS_ABI impl__PreCreateWindow_CFrameWndEx__MEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?PreTranslateMessage@CFrameWndEx@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWndEx__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?RecalcLayout@CFrameWndEx@@UEAAXH@Z
+extern "C" void MS_ABI impl__RecalcLayout_CFrameWndEx__UEAAXH_Z(int p0) {}
+
+// Symbol: ?RemovePaneFromDockManager@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH0@Z
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CFrameWndEx__QEAAXPEAVCBasePane__HHH0_Z(void* /*class*/* p0, int p1, int p2, int p3, void* /*class*/* p4) {}
+
+// Symbol: ?ShowPane@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH@Z
+extern "C" void MS_ABI impl__ShowPane_CFrameWndEx__QEAAXPEAVCBasePane__HHH_Z(void* /*class*/* p0, int p1, int p2, int p3) {}
+
+// Symbol: ?ShowPopupMenu@CFrameWndEx@@IEAAHPEAVCMFCPopupMenu@@@Z
+extern "C" int MS_ABI impl__ShowPopupMenu_CFrameWndEx__IEAAHPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?WinHelpW@CFrameWndEx@@UEAAX_KI@Z
+extern "C" void MS_ABI impl__WinHelpW_CFrameWndEx__UEAAX_KI_Z(unsigned __int64 p0, unsigned int p1) {}

@@ -850,3 +850,159 @@ COLORREF CMFCVisualManager::GetThemeColor(COLORREF clrBase, int nIntensity) {
         clampByte(static_cast<int>(GetGValue(clrBase)) + delta),
         clampByte(static_cast<int>(GetBValue(clrBase)) + delta));
 }
+// Symbol: ?DoDrawHeaderSortArrow@CMFCVisualManager@@QEAAXPEAVCDC@@VCRect@@HH@Z
+extern "C" void MS_ABI impl__DoDrawHeaderSortArrow_CMFCVisualManager__QEAAXPEAVCDC__VCRect__HH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3) {}
+
+// Symbol: ?DrawTextOnGlass@CMFCVisualManager@@UEAAHPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@KHK@Z
+extern "C" int MS_ABI impl__DrawTextOnGlass_CMFCVisualManager__UEAAHPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__KHK_Z(void* /*class*/* p0, void* /*class*/ p1, void** p2, void* p3, void* /*class*/ p4, unsigned long p5, int p6, unsigned long p7) {
+    return 0;
+}
+
+// Symbol: ?GetAutoHideButtonTextColor@CMFCVisualManager@@UEAAKPEAVCMFCAutoHideButton@@@Z
+extern "C" unsigned long MS_ABI impl__GetAutoHideButtonTextColor_CMFCVisualManager__UEAAKPEAVCMFCAutoHideButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetCaptionBarTextColor@CMFCVisualManager@@UEAAKPEAVCMFCCaptionBar@@@Z
+extern "C" unsigned long MS_ABI impl__GetCaptionBarTextColor_CMFCVisualManager__UEAAKPEAVCMFCCaptionBar___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetHighlightedMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@@Z
+extern "C" unsigned long MS_ABI impl__GetHighlightedMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@HH@Z
+extern "C" unsigned long MS_ABI impl__GetMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton__HH_Z(void* /*class*/* p0, int p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?GetNcBtnSize@CMFCVisualManager@@UEBA?AVCSize@@H@Z
+extern "C" void* MS_ABI impl__GetNcBtnSize_CMFCVisualManager__UEBA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?OnDrawTabResizeBar@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCBaseTabCtrl@@HVCRect@@PEAVCBrush@@PEAVCPen@@@Z
+extern "C" void MS_ABI impl__OnDrawTabResizeBar_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCBaseTabCtrl__HVCRect__PEAVCBrush__PEAVCPen___Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/ p3, void* /*class*/* p4, void* /*class*/* p5) {}
+
+// Symbol: ?OnDrawTasksGroupIcon@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHHH@Z
+extern "C" void MS_ABI impl__OnDrawTasksGroupIcon_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHHH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3, int p4, int p5) {}
+
+// Symbol: ?OnEraseMDIClientArea@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@@Z
+extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManager__UEAAHPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return 0;
+}
+
+// Symbol: ?OnErasePopupWindowButton@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWndButton@@@Z
+extern "C" void MS_ABI impl__OnErasePopupWindowButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCDesktopAlertWndButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnEraseTabsArea@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {}
+
+// Symbol: ?OnEraseTabsButton@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+
+// Symbol: ?OnEraseTabsFrame@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManager__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnFillAutoHideButtonBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCAutoHideButton@@@Z
+extern "C" void MS_ABI impl__OnFillAutoHideButtonBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCAutoHideButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {}
+
+// Symbol: ?OnFillButtonInterior@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7) {}
+
+// Symbol: ?OnFillCaptionBarButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z
+extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, int p6, int p7) {
+    return 0;
+}
+
+// Symbol: ?OnFillCommandsListBackground@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@H@Z
+extern "C" unsigned long MS_ABI impl__OnFillCommandsListBackground_CMFCVisualManager__UEAAKPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OnFillHeaderCtrlBackground@CMFCVisualManager@@UEAAXPEAVCMFCHeaderCtrl@@PEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillHeaderCtrlBackground_CMFCVisualManager__UEAAXPEAVCMFCHeaderCtrl__PEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillMiniFrameCaption@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManager__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3) {
+    return 0;
+}
+
+// Symbol: ?OnFillOutlookBarCaption@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@AEAK@Z
+extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManager__UEAAXPEAVCDC__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned long* p2) {}
+
+// Symbol: ?OnFillOutlookPageButton@CMFCVisualManager@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2, int p3, unsigned long* p4) {}
+
+// Symbol: ?OnFillPopupWindowBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnFillRibbonButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnFillRibbonEdit@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonRichEditCtrl@@VCRect@@HHHAEAK33@Z
+extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, unsigned long* p6, unsigned long* p7, unsigned long* p8) {}
+
+// Symbol: ?OnFillRibbonMainPanelButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?OnFillRibbonMenuFrame@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillSplitterBackground@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCSplitterWndEx@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillSplitterBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCSplitterWndEx__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+
+// Symbol: ?OnFillTab@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z
+extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3, int p4, const void* /*class*/* p5) {}
+
+// Symbol: ?OnFillTasksGroupInterior@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@H@Z
+extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+
+// Symbol: ?OnFillTasksPaneBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnFillToolTip@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolTipCtrl@@VCRect@@AEAK3@Z
+extern "C" void MS_ABI impl__OnFillToolTip_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolTipCtrl__VCRect__AEAK3_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3, void* p4) {}
+
+// Symbol: ?OnHighlightMenuItem@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+
+// Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+
+// Symbol: ?OnNcActivate@CMFCVisualManager@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManager__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?OnNcPaint@CMFCVisualManager@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
+extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManager__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/ p2) {
+    return 0;
+}
+
+// Symbol: ?OnSetWindowRegion@CMFCVisualManager@@UEAAHPEAVCWnd@@VCSize@@@Z
+extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManager__UEAAHPEAVCWnd__VCSize___Z(void* /*class*/* p0, void* /*class*/ p1) {
+    return 0;
+}
+
+// Symbol: ?OnUpdateSystemColors@CMFCVisualManager@@UEAAXXZ
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ() {}
+
+// Symbol: ?RedrawAll@CMFCVisualManager@@SAXXZ
+extern "C" void MS_ABI impl__RedrawAll_CMFCVisualManager__SAXXZ() {}
+
+// Symbol: ?RibbonCategoryColorToRGB@CMFCVisualManager@@UEAAKW4AFX_RibbonCategoryColor@@@Z
+extern "C" unsigned long MS_ABI impl__RibbonCategoryColorToRGB_CMFCVisualManager__UEAAKW4AFX_RibbonCategoryColor___Z(int /*enum*/ p0, short* p1, int p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, void* p20, void* p21) {
+    return 0;
+}

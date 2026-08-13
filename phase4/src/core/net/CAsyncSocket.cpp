@@ -409,3 +409,21 @@ void CAsyncSocket::OnConnect(int nErrorCode) { (void)nErrorCode; }
 void CAsyncSocket::OnOutOfBandData(int nErrorCode) { (void)nErrorCode; }
 void CAsyncSocket::OnReceive(int nErrorCode) { (void)nErrorCode; }
 void CAsyncSocket::OnSend(int nErrorCode) { (void)nErrorCode; }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?Accept@CAsyncSocket@@UEAAHAEAV1@PEAUsockaddr@@PEAH@Z
+extern "C" int MS_ABI impl__Accept_CAsyncSocket__UEAAHAEAV1_PEAUsockaddr__PEAH_Z(void* pThis, void* p0, void* p1) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    return 0;
+}
+
+
+// Symbol: ?AttachHandle@CAsyncSocket@@SAX_KPEAV1@H@Z
+extern "C" void MS_ABI impl__AttachHandle_CAsyncSocket__SAX_KPEAV1_H_Z(void* p0, void* p1, void* p2) {
+    (void)p0;
+    (void)p1;
+    (void)p2;
+}
+

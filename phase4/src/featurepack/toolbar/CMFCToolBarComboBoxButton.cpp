@@ -279,3 +279,107 @@ CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton() {
     UnregisterComboButton(this);
 }
 CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton() { memset(_pad, 0, sizeof(_pad)); }
+// Symbol: ?AdjustRect@CMFCToolBarComboBoxButton@@IEAAXXZ
+extern "C" void MS_ABI impl__AdjustRect_CMFCToolBarComboBoxButton__IEAAXXZ() {}
+
+// Symbol: ?CopyFrom@CMFCToolBarComboBoxButton@@UEAAXAEBVCMFCToolBarButton@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCToolBarButton___Z(const void* /*class*/* p0) {}
+
+// Symbol: ?CreateCombo@CMFCToolBarComboBoxButton@@UEAAPEAVCComboBox@@PEAVCWnd@@AEBVCRect@@@Z
+extern "C" void* MS_ABI impl__CreateCombo_CMFCToolBarComboBoxButton__UEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(void* /*class*/* p0, const void* /*class*/* p1) {
+    return nullptr;
+}
+
+// Symbol: ?CreateEdit@CMFCToolBarComboBoxButton@@UEAAPEAVCMFCToolBarComboBoxEdit@@PEAVCWnd@@AEBVCRect@@K@Z
+extern "C" void* MS_ABI impl__CreateEdit_CMFCToolBarComboBoxButton__UEAAPEAVCMFCToolBarComboBoxEdit__PEAVCWnd__AEBVCRect__K_Z(void* /*class*/* p0, const void* /*class*/* p1, unsigned long p2) {
+    return nullptr;
+}
+
+// Symbol: ?ExportToMenuButton@CMFCToolBarComboBoxButton@@UEBAHAEAVCMFCToolBarMenuButton@@@Z
+extern "C" int MS_ABI impl__ExportToMenuButton_CMFCToolBarComboBoxButton__UEBAHAEAVCMFCToolBarMenuButton___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetItemDataPtrAll@CMFCToolBarComboBoxButton@@SAPEAXIH@Z
+extern "C" void* MS_ABI impl__GetItemDataPtrAll_CMFCToolBarComboBoxButton__SAPEAXIH_Z(unsigned int p0, int p1) {
+    return nullptr;
+}
+
+// Symbol: ?HasFocus@CMFCToolBarComboBoxButton@@UEBAHXZ
+extern "C" int MS_ABI impl__HasFocus_CMFCToolBarComboBoxButton__UEBAHXZ() {
+    return 0;
+}
+
+// Symbol: ?Initialize@CMFCToolBarComboBoxButton@@IEAAXXZ
+extern "C" void MS_ABI impl__Initialize_CMFCToolBarComboBoxButton__IEAAXXZ() {}
+
+// Symbol: ?NotifyCommand@CMFCToolBarComboBoxButton@@UEAAHH@Z
+extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(int p0) {
+    return 0;
+}
+
+// Symbol: ?OnAddToCustomizePage@CMFCToolBarComboBoxButton@@UEAAXXZ
+extern "C" void MS_ABI impl__OnAddToCustomizePage_CMFCToolBarComboBoxButton__UEAAXXZ() {}
+
+// Symbol: ?OnCalculateSize@CMFCToolBarComboBoxButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z
+extern "C" void* MS_ABI impl__OnCalculateSize_CMFCToolBarComboBoxButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(void* /*struct*/* p0, void* /*class*/* p1, const void* /*class*/* p2, int p3) {
+    return nullptr;
+}
+
+// Symbol: ?OnChangeParentWnd@CMFCToolBarComboBoxButton@@UEAAXPEAVCWnd@@@Z
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+
+// Symbol: ?OnClick@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@H@Z
+extern "C" int MS_ABI impl__OnClick_CMFCToolBarComboBoxButton__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
+    return 0;
+}
+
+// Symbol: ?OnCtlColor@CMFCToolBarComboBoxButton@@UEAAPEAUHBRUSH__@@PEAVCDC@@I@Z
+extern "C" void* MS_ABI impl__OnCtlColor_CMFCToolBarComboBoxButton__UEAAPEAUHBRUSH____PEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
+    return nullptr;
+}
+
+// Symbol: ?OnDraw@CMFCToolBarComboBoxButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCToolBarComboBoxButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, int p3, int p4, int p5, int p6, int p7) {}
+
+// Symbol: ?OnDrawOnCustomizeList@CMFCToolBarComboBoxButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z
+extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarComboBoxButton__UEAAHPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {
+    return 0;
+}
+
+// Symbol: ?OnGlobalFontsChanged@CMFCToolBarComboBoxButton@@UEAAXXZ
+extern "C" void MS_ABI impl__OnGlobalFontsChanged_CMFCToolBarComboBoxButton__UEAAXXZ() {}
+
+// Symbol: ?OnMove@CMFCToolBarComboBoxButton@@UEAAXXZ
+extern "C" void MS_ABI impl__OnMove_CMFCToolBarComboBoxButton__UEAAXXZ() {}
+
+// Symbol: ?OnShow@CMFCToolBarComboBoxButton@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnSize@CMFCToolBarComboBoxButton@@UEAAXH@Z
+extern "C" void MS_ABI impl__OnSize_CMFCToolBarComboBoxButton__UEAAXH_Z(int p0) {}
+
+// Symbol: ?OnUpdateToolTip@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@HAEAVCToolTipCtrl@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+extern "C" int MS_ABI impl__OnUpdateToolTip_CMFCToolBarComboBoxButton__UEAAHPEAVCWnd__HAEAVCToolTipCtrl__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(void* /*class*/* p0, int p1, void* /*class*/* p2, void* /*class*/* p3, void** p4, void* p5) {
+    return 0;
+}
+
+// Symbol: ?RemoveAllItems@CMFCToolBarComboBoxButton@@QEAAXXZ
+extern "C" void MS_ABI impl__RemoveAllItems_CMFCToolBarComboBoxButton__QEAAXXZ() {}
+
+// Symbol: ?Serialize@CMFCToolBarComboBoxButton@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarComboBoxButton__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+
+// Symbol: ?SetACCData@CMFCToolBarComboBoxButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+extern "C" int MS_ABI impl__SetACCData_CMFCToolBarComboBoxButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
+    return 0;
+}
+
+// Symbol: ?SetDropDownHeight@CMFCToolBarComboBoxButton@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetDropDownHeight_CMFCToolBarComboBoxButton__QEAAXH_Z(int p0) {}
+
+// Symbol: ?SetHotEdit@CMFCToolBarComboBoxButton@@IEAAXH@Z
+extern "C" void MS_ABI impl__SetHotEdit_CMFCToolBarComboBoxButton__IEAAXH_Z(int p0) {}
+
+// Symbol: ?SetStyle@CMFCToolBarComboBoxButton@@UEAAXI@Z
+extern "C" void MS_ABI impl__SetStyle_CMFCToolBarComboBoxButton__UEAAXI_Z(unsigned int p0) {}

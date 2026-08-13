@@ -214,3 +214,256 @@ extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache_
     }
     return ownedCache.get();
 }
+
+// === Moved from ManualThunks.cpp ===
+// Symbol: ?OnCmdMsg@CCmdTarget@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
+    (void)pThis;
+    (void)p0;
+    (void)p1;
+    (void)p2;
+    (void)p3;
+    return 0;
+}
+
+// Symbol: ?CallMemberFunc@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@GPEAUtagVARIANT@@PEAUtagDISPPARAMS@@PEAI@Z
+extern "C" long MS_ABI impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(const void* /*struct*/* p0, unsigned short p1, void* /*struct*/* p2, void* /*struct*/* p3, unsigned int* p4) {
+    return 0;
+}
+
+// Symbol: ?DoOleVerb@CCmdTarget@@QEAAHJPEAUtagMSG@@PEAUHWND__@@PEBUtagRECT@@@Z
+extern "C" int MS_ABI impl__DoOleVerb_CCmdTarget__QEAAHJPEAUtagMSG__PEAUHWND____PEBUtagRECT___Z(long p0, void* /*struct*/* p1, void* /*struct*/* p2, const void* /*struct*/* p3) {
+    return 0;
+}
+
+// Symbol: ?EnableAggregation@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?EnableAutomation@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__EnableAutomation_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?EnableConnections@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__EnableConnections_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?EnableTypeLib@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__EnableTypeLib_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?EnumOleVerbs@CCmdTarget@@QEAAHPEAPEAUIEnumOLEVERB@@@Z
+extern "C" int MS_ABI impl__EnumOleVerbs_CCmdTarget__QEAAHPEAPEAUIEnumOLEVERB___Z(void* /*struct*/** p0) {
+    return 0;
+}
+
+// Symbol: ?ExternalAddRef@CCmdTarget@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__ExternalAddRef_CCmdTarget__QEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?ExternalDisconnect@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__ExternalDisconnect_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?ExternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
+extern "C" unsigned long MS_ABI impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(const void* p0, void** p1) {
+    return 0;
+}
+
+// Symbol: ?ExternalRelease@CCmdTarget@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__ExternalRelease_CCmdTarget__QEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?FromIDispatch@CCmdTarget@@SAPEAV1@PEAUIDispatch@@@Z
+extern "C" void* MS_ABI impl__FromIDispatch_CCmdTarget__SAPEAV1_PEAUIDispatch___Z() {
+    return nullptr;
+}
+
+// Symbol: ?GetCommandMap@CCmdTarget@@MEBAPEBUAFX_OLECMDMAP@@XZ
+extern "C" void* MS_ABI impl__GetCommandMap_CCmdTarget__MEBAPEBUAFX_OLECMDMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetConnectionHook@CCmdTarget@@MEAAPEAUIConnectionPoint@@AEBU_GUID@@@Z
+extern "C" void* MS_ABI impl__GetConnectionHook_CCmdTarget__MEAAPEAUIConnectionPoint__AEBU_GUID___Z(const void* /*struct*/* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetConnectionMap@CCmdTarget@@MEBAPEBUAFX_CONNECTIONMAP@@XZ
+extern "C" void* MS_ABI impl__GetConnectionMap_CCmdTarget__MEBAPEBUAFX_CONNECTIONMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetControllingUnknown@CCmdTarget@@QEAAPEAUIUnknown@@XZ
+extern "C" void* MS_ABI impl__GetControllingUnknown_CCmdTarget__QEAAPEAUIUnknown__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetDispatchIID@CCmdTarget@@UEAAHPEAU_GUID@@@Z
+extern "C" int MS_ABI impl__GetDispatchIID_CCmdTarget__UEAAHPEAU_GUID___Z(void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetDispatchMap@CCmdTarget@@MEBAPEBUAFX_DISPMAP@@XZ
+extern "C" void* MS_ABI impl__GetDispatchMap_CCmdTarget__MEBAPEBUAFX_DISPMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetDispEntry@CCmdTarget@@IEAAPEBUAFX_DISPMAP_ENTRY@@J@Z
+extern "C" void* MS_ABI impl__GetDispEntry_CCmdTarget__IEAAPEBUAFX_DISPMAP_ENTRY__J_Z(long p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetEntryCount@CCmdTarget@@KAIPEBUAFX_DISPMAP@@@Z
+extern "C" unsigned int MS_ABI impl__GetEntryCount_CCmdTarget__KAIPEBUAFX_DISPMAP___Z(const void* /*struct*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetEventSinkEntry@CCmdTarget@@IEAAPEBUAFX_EVENTSINKMAP_ENTRY@@IPEAUAFX_EVENT@@@Z
+extern "C" void* MS_ABI impl__GetEventSinkEntry_CCmdTarget__IEAAPEBUAFX_EVENTSINKMAP_ENTRY__IPEAUAFX_EVENT___Z(unsigned int p0, void* /*struct*/* p1) {
+    return nullptr;
+}
+
+// Symbol: ?GetEventSinkMap@CCmdTarget@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetEventSinkMap_CCmdTarget__MEBAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetExtraConnectionPoints@CCmdTarget@@MEAAHPEAVCPtrArray@@@Z
+extern "C" int MS_ABI impl__GetExtraConnectionPoints_CCmdTarget__MEAAHPEAVCPtrArray___Z(void* /*class*/* p0) {
+    return 0;
+}
+
+// Symbol: ?GetIDispatch@CCmdTarget@@QEAAPEAUIDispatch@@H@Z
+extern "C" void* MS_ABI impl__GetIDispatch_CCmdTarget__QEAAPEAUIDispatch__H_Z(int p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetInterface@CCmdTarget@@QEAAPEAUIUnknown@@PEBX@Z
+extern "C" void* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(const void* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetInterfaceHook@CCmdTarget@@UEAAPEAUIUnknown@@PEBX@Z
+extern "C" void* MS_ABI impl__GetInterfaceHook_CCmdTarget__UEAAPEAUIUnknown__PEBX_Z(const void* p0) {
+    return nullptr;
+}
+
+// Symbol: ?GetNotSupported@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__GetNotSupported_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?GetRoutingFrame@CCmdTarget@@IEAAPEAVCFrameWnd@@XZ
+extern "C" void* MS_ABI impl__GetRoutingFrame_CCmdTarget__IEAAPEAVCFrameWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRoutingFrame_@CCmdTarget@@KAPEAVCFrameWnd@@XZ
+extern "C" void* MS_ABI impl__GetRoutingFrame__CCmdTarget__KAPEAVCFrameWnd__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRoutingView@CCmdTarget@@IEAAPEAVCView@@XZ
+extern "C" void* MS_ABI impl__GetRoutingView_CCmdTarget__IEAAPEAVCView__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetRoutingView_@CCmdTarget@@KAPEAVCView@@XZ
+extern "C" void* MS_ABI impl__GetRoutingView__CCmdTarget__KAPEAVCView__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetStackSize@CCmdTarget@@KAIPEBEG@Z
+extern "C" unsigned int MS_ABI impl__GetStackSize_CCmdTarget__KAIPEBEG_Z(const unsigned char* p0, unsigned short p1) {
+    return 0;
+}
+
+// Symbol: ?GetStandardProp@CCmdTarget@@IEAAXPEBUAFX_DISPMAP_ENTRY@@PEAUtagVARIANT@@PEAI@Z
+extern "C" void MS_ABI impl__GetStandardProp_CCmdTarget__IEAAXPEBUAFX_DISPMAP_ENTRY__PEAUtagVARIANT__PEAI_Z(const void* /*struct*/* p0, void* /*struct*/* p1, unsigned int* p2) {}
+
+// Symbol: ?GetThisCommandMap@CCmdTarget@@KAPEBUAFX_OLECMDMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisCommandMap_CCmdTarget__KAPEBUAFX_OLECMDMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetThisConnectionMap@CCmdTarget@@KAPEBUAFX_CONNECTIONMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisConnectionMap_CCmdTarget__KAPEBUAFX_CONNECTIONMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetThisDispatchMap@CCmdTarget@@KAPEBUAFX_DISPMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisDispatchMap_CCmdTarget__KAPEBUAFX_DISPMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetThisEventSinkMap@CCmdTarget@@KAPEBUAFX_EVENTSINKMAP@@XZ
+extern "C" void* MS_ABI impl__GetThisEventSinkMap_CCmdTarget__KAPEBUAFX_EVENTSINKMAP__XZ() {
+    return nullptr;
+}
+
+// Symbol: ?GetTypeInfoCount@CCmdTarget@@UEAAIXZ
+extern "C" unsigned int MS_ABI impl__GetTypeInfoCount_CCmdTarget__UEAAIXZ() {
+    return 0;
+}
+
+// Symbol: ?GetTypeInfoOfGuid@CCmdTarget@@QEAAJKAEBU_GUID@@PEAPEAUITypeInfo@@@Z
+extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAPEAUITypeInfo___Z(unsigned long p0, const void* /*struct*/* p1, void* /*struct*/** p2) {
+    return 0;
+}
+
+// Symbol: ?GetTypeLib@CCmdTarget@@UEAAJKPEAPEAUITypeLib@@@Z
+extern "C" long MS_ABI impl__GetTypeLib_CCmdTarget__UEAAJKPEAPEAUITypeLib___Z(unsigned long p0, void* /*struct*/** p1) {
+    return 0;
+}
+
+// Symbol: ?InternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
+extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(const void* p0, void** p1) {
+    return 0;
+}
+
+// Symbol: ?InternalRelease@CCmdTarget@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ() {
+    return 0;
+}
+
+// Symbol: ?IsInvokeAllowed@CCmdTarget@@UEAAHJ@Z
+extern "C" int MS_ABI impl__IsInvokeAllowed_CCmdTarget__UEAAHJ_Z(long p0) {
+    return 0;
+}
+
+// Symbol: ?IsResultExpected@CCmdTarget@@QEAAHXZ
+extern "C" int MS_ABI impl__IsResultExpected_CCmdTarget__QEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?MemberIDFromName@CCmdTarget@@KAJPEBUAFX_DISPMAP@@PEB_W@Z
+extern "C" long MS_ABI impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PEB_W_Z(const void* /*struct*/* p0, const wchar_t* p1) {
+    return 0;
+}
+
+// Symbol: ?OnCreateAggregates@CCmdTarget@@UEAAHXZ
+extern "C" int MS_ABI impl__OnCreateAggregates_CCmdTarget__UEAAHXZ() {
+    return 0;
+}
+
+// Symbol: ?OnEvent@CCmdTarget@@QEAAHIPEAUAFX_EVENT@@PEAUAFX_CMDHANDLERINFO@@@Z
+extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(unsigned int p0, void* /*struct*/* p1, void* /*struct*/* p2) {
+    return 0;
+}
+
+// Symbol: ?OnFinalRelease@CCmdTarget@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ() {}
+
+// Symbol: ?PushStackArgs@CCmdTarget@@IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS@@PEAIPEAUtagVARIANT@@PEAVCVariantBoolConverter@@@Z
+extern "C" long MS_ABI impl__PushStackArgs_CCmdTarget__IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS__PEAIPEAUtagVARIANT__PEAVCVariantBoolConverter___Z(unsigned char* p0, const unsigned char* p1, void* p2, unsigned short p3, void* /*struct*/* p4, unsigned int* p5, void* /*struct*/* p6, void* /*class*/* p7) {
+    return 0;
+}
+
+// Symbol: ?QueryAggregates@CCmdTarget@@QEAAPEAUIUnknown@@PEBX@Z
+extern "C" void* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(const void* p0) {
+    return nullptr;
+}
+
+// Symbol: ?SetNotSupported@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__SetNotSupported_CCmdTarget__QEAAXXZ() {}
+
+// Symbol: ?SetStandardProp@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@PEAUtagDISPPARAMS@@PEAI@Z
+extern "C" long MS_ABI impl__SetStandardProp_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__PEAUtagDISPPARAMS__PEAI_Z(const void* /*struct*/* p0, void* /*struct*/* p1, unsigned int* p2) {
+    return 0;
+}
