@@ -1,6 +1,8 @@
 // OpenMFC class-specific generated fallback stubs for unresolved symbols
 
 #include <cstddef>
+#include <objbase.h>
+#include "openmfc/afxole.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -22,8 +24,13 @@ extern "C" int MS_ABI impl__Attach_CMonikerFile__IEAAHPEB_WPEAUIBindHost__PEAUIB
 extern "C" void MS_ABI impl__Close_CMonikerFile__UEAAXXZ() {}
 
 // Symbol: ?CreateBindContext@CMonikerFile@@IEAAPEAUIBindCtx@@PEAVCFileException@@@Z
-extern "C" void* MS_ABI impl__CreateBindContext_CMonikerFile__IEAAPEAUIBindCtx__PEAVCFileException___Z(void* /*class*/* p0) {
-    return nullptr;
+extern "C" IBindCtx* MS_ABI impl__CreateBindContext_CMonikerFile__IEAAPEAUIBindCtx__PEAVCFileException___Z(
+    void* pThis, void* pException) {
+    (void)pThis;
+    (void)pException;
+    IBindCtx* pBindCtx = nullptr;
+    if (FAILED(::CreateBindCtx(0, &pBindCtx))) return nullptr;
+    return pBindCtx;
 }
 
 // Symbol: ?CreateBindHost@CMonikerFile@@KAPEAUIBindHost@@XZ
@@ -65,6 +72,6 @@ extern "C" int MS_ABI impl__PostBindToStream_CMonikerFile__MEAAHPEAVCFileExcepti
 }
 
 // Symbol: ??1CMonikerFile@@UEAA@XZ
-extern "C" void* MS_ABI impl___1CMonikerFile__UEAA_XZ() {
-    return nullptr;
+extern "C" void MS_ABI impl___1CMonikerFile__UEAA_XZ(void* pThis) {
+    if (pThis) static_cast<COleStreamFile*>(pThis)->~COleStreamFile();
 }
