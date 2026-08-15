@@ -2,15 +2,21 @@
 // Kept intentionally grouped to ensure ABI coverage while class-specific
 // source placement is unresolved.
 #include <cstddef>
+#include <windows.h>
+#include "openmfc/afxwin.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+namespace {
+int g_bPerUserRegistration = 0;
+}
 // Symbol: ?AFXGetParentFrame@@YAPEAVCFrameWnd@@PEBVCWnd@@@Z
-extern "C" void* MS_ABI impl__AFXGetParentFrame__YAPEAVCFrameWnd__PEBVCWnd___Z(const void* /*class*/* p0) {
-    return nullptr;
+extern "C" CFrameWnd* MS_ABI impl__AFXGetParentFrame__YAPEAVCFrameWnd__PEBVCWnd___Z(const CWnd* pWnd) {
+    return pWnd ? pWnd->GetParentFrame() : nullptr;
 }
 // Symbol: ?AFXGetRegPath@@YA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W0@Z
 extern "C" void* MS_ABI impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(void* /*class*/* p0, void** p1, void* p2, const wchar_t* p3, void* /*class*/* p4) {
@@ -174,7 +180,7 @@ extern "C" void* MS_ABI impl__AfxGetParentOwner__YAPEAUHWND____PEAU1__Z(void* /*
 }
 // Symbol: ?AfxGetPerUserRegistration@@YAHXZ
 extern "C" int MS_ABI impl__AfxGetPerUserRegistration__YAHXZ() {
-    return 0;
+    return g_bPerUserRegistration;
 }
 // Symbol: ?AfxGetPropSheetFont@@YAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAGH@Z
 extern "C" int MS_ABI impl__AfxGetPropSheetFont__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAGH_Z(void* /*class*/* p0, void** p1, void* p2, unsigned short* p3, int p4) {
@@ -183,7 +189,9 @@ extern "C" int MS_ABI impl__AfxGetPropSheetFont__YAHAEAV__CStringT__WV__StrTrait
 // Symbol: ?AfxGetRoot@@YAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__AfxGetRoot__YAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const wchar_t* p0, void* /*class*/* p1, void** p2, void* p3) {}
 // Symbol: ?AfxGlobalFree@@YAXPEAX@Z
-extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void* p0) {}
+extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void* p0) {
+    ::GlobalFree(p0);
+}
 // Symbol: ?AfxGlobalsAddRef@@YAXXZ
 extern "C" void MS_ABI impl__AfxGlobalsAddRef__YAXXZ() {}
 // Symbol: ?AfxGlobalsRelease@@YAXXZ
@@ -267,12 +275,12 @@ extern "C" void* MS_ABI impl__AfxLoadLangResourceDLL__YAPEAUHINSTANCE____PEB_W_Z
     return nullptr;
 }
 // Symbol: ?AfxLoadString@@YAHIPEADI@Z
-extern "C" int MS_ABI impl__AfxLoadString__YAHIPEADI_Z(unsigned int p0, char* p1, unsigned int p2) {
-    return 0;
+extern "C" int MS_ABI impl__AfxLoadString__YAHIPEADI_Z(unsigned int nID, char* lpszBuf, unsigned int nMaxBuf) {
+    return ::LoadStringA(::GetModuleHandleW(nullptr), nID, lpszBuf, nMaxBuf);
 }
 // Symbol: ?AfxLoadString@@YAHIPEA_WI@Z
-extern "C" int MS_ABI impl__AfxLoadString__YAHIPEA_WI_Z(unsigned int p0, wchar_t* p1, unsigned int p2) {
-    return 0;
+extern "C" int MS_ABI impl__AfxLoadString__YAHIPEA_WI_Z(unsigned int nID, wchar_t* lpszBuf, unsigned int nMaxBuf) {
+    return ::LoadStringW(::GetModuleHandleW(nullptr), nID, lpszBuf, nMaxBuf);
 }
 // Symbol: ?AfxLoadSysColorBitmap@@YAPEAUHBITMAP__@@PEAUHINSTANCE__@@PEAUHRSRC__@@H@Z
 extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
@@ -461,7 +469,9 @@ extern "C" void* MS_ABI impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(void* /*fnpt
     return nullptr;
 }
 // Symbol: ?AfxSetPerUserRegistration@@YAXH@Z
-extern "C" void MS_ABI impl__AfxSetPerUserRegistration__YAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__AfxSetPerUserRegistration__YAXH_Z(int p0) {
+    g_bPerUserRegistration = p0;
+}
 // Symbol: ?AfxStoreField@@YAXAEAVCRecordset@@IPEAX@Z
 extern "C" void MS_ABI impl__AfxStoreField__YAXAEAVCRecordset__IPEAX_Z(void* /*class*/* p0, unsigned int p1, void* p2) {}
 // Symbol: ?AfxStringFromCLSID@@YA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBU_GUID@@@Z
