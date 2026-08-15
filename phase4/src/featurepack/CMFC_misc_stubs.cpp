@@ -3,6 +3,8 @@
 // source placement is unresolved.
 #include <cstddef>
 #include <windows.h>
+#include <objbase.h>
+#include <ocidl.h>
 #include "openmfc/afxwin.h"
 
 #ifdef __GNUC__
@@ -55,12 +57,35 @@ extern "C" int MS_ABI impl__AfxCompareValueByRef__YAHPEAX0H_Z(void* p0, void* p1
     return 0;
 }
 // Symbol: ?AfxConnectionAdvise@@YAHPEAUIUnknown@@AEBU_GUID@@0HPEAK@Z
-extern "C" int MS_ABI impl__AfxConnectionAdvise__YAHPEAUIUnknown__AEBU_GUID__0HPEAK_Z(void* /*struct*/* p0, const void* /*struct*/* p1, void* /*struct*/* p2, int p3, unsigned long* p4) {
-    return 0;
+extern "C" int MS_ABI impl__AfxConnectionAdvise__YAHPEAUIUnknown__AEBU_GUID__0HPEAK_Z(
+    IUnknown* pUnkSrc, const GUID* iid, IUnknown* pUnkSink, int bRefCount, unsigned long* pdwCookie) {
+    (void)bRefCount;
+    if (!pUnkSrc || !iid || !pUnkSink || !pdwCookie) return FALSE;
+    IConnectionPointContainer* pCPC = nullptr;
+    if (FAILED(pUnkSrc->QueryInterface(IID_IConnectionPointContainer, (void**)&pCPC))) return FALSE;
+    IConnectionPoint* pCP = nullptr;
+    HRESULT hr = pCPC->FindConnectionPoint(*iid, &pCP);
+    pCPC->Release();
+    if (FAILED(hr)) return FALSE;
+    hr = pCP->Advise(pUnkSink, pdwCookie);
+    pCP->Release();
+    return SUCCEEDED(hr);
 }
 // Symbol: ?AfxConnectionUnadvise@@YAHPEAUIUnknown@@AEBU_GUID@@0HK@Z
-extern "C" int MS_ABI impl__AfxConnectionUnadvise__YAHPEAUIUnknown__AEBU_GUID__0HK_Z(void* /*struct*/* p0, const void* /*struct*/* p1, void* /*struct*/* p2, int p3, unsigned long p4) {
-    return 0;
+extern "C" int MS_ABI impl__AfxConnectionUnadvise__YAHPEAUIUnknown__AEBU_GUID__0HK_Z(
+    IUnknown* pUnkSrc, const GUID* iid, IUnknown* pUnkSink, int bRefCount, unsigned long dwCookie) {
+    (void)pUnkSink;
+    (void)bRefCount;
+    if (!pUnkSrc || !iid) return FALSE;
+    IConnectionPointContainer* pCPC = nullptr;
+    if (FAILED(pUnkSrc->QueryInterface(IID_IConnectionPointContainer, (void**)&pCPC))) return FALSE;
+    IConnectionPoint* pCP = nullptr;
+    HRESULT hr = pCPC->FindConnectionPoint(*iid, &pCP);
+    pCPC->Release();
+    if (FAILED(hr)) return FALSE;
+    hr = pCP->Unadvise(dwCookie);
+    pCP->Release();
+    return SUCCEEDED(hr);
 }
 // Symbol: ?AfxCopyValueByRef@@YAXPEAX0PEA_JH@Z
 extern "C" void MS_ABI impl__AfxCopyValueByRef__YAXPEAX0PEA_JH_Z(void* p0, void* p1, __int64* p2, int p3) {}
@@ -304,7 +329,7 @@ extern "C" int MS_ABI impl__AfxOleGetUserCtrl__YAHXZ() {
 }
 // Symbol: ?AfxOleInit@@YAHXZ
 extern "C" int MS_ABI impl__AfxOleInit__YAHXZ() {
-    return 0;
+    return SUCCEEDED(::OleInitialize(nullptr));
 }
 // Symbol: ?AfxOleInprocRegisterHelper@@YAHPEAUHKEY__@@0H@Z
 extern "C" int MS_ABI impl__AfxOleInprocRegisterHelper__YAHPEAUHKEY____0H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
@@ -355,9 +380,16 @@ extern "C" void MS_ABI impl__AfxOleSetEditMenu__YAXPEAVCOleClientItem__PEAVCMenu
 // Symbol: ?AfxOleSetUserCtrl@@YAXH@Z
 extern "C" void MS_ABI impl__AfxOleSetUserCtrl__YAXH_Z(int p0) {}
 // Symbol: ?AfxOleTerm@@YAXH@Z
-extern "C" void MS_ABI impl__AfxOleTerm__YAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__AfxOleTerm__YAXH_Z(int p0) {
+    (void)p0;
+    ::OleUninitialize();
+}
 // Symbol: ?AfxOleTermOrFreeLib@@YAXHH@Z
-extern "C" void MS_ABI impl__AfxOleTermOrFreeLib__YAXHH_Z(int p0, int p1) {}
+extern "C" void MS_ABI impl__AfxOleTermOrFreeLib__YAXHH_Z(int p0, int p1) {
+    (void)p0;
+    (void)p1;
+    ::OleUninitialize();
+}
 // Symbol: ?AfxOleUnlockAllControls@@YAXXZ
 extern "C" void MS_ABI impl__AfxOleUnlockAllControls__YAXXZ() {}
 // Symbol: ?AfxOleUnlockApp@@YAXXZ
