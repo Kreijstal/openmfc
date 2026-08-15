@@ -447,28 +447,39 @@ extern "C" int MS_ABI impl__AfxPumpMessage__YAHXZ() {
     return 0;
 }
 // Symbol: ?AfxRegCreateKey@@YAJPEAUHKEY__@@PEB_WPEAPEAU1@PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" long MS_ABI impl__AfxRegCreateKey__YAJPEAUHKEY____PEB_WPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(void* /*struct*/* p0, const wchar_t* p1, void* /*struct*/** p2) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegCreateKey__YAJPEAUHKEY____PEB_WPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(
+    HKEY hKey, const wchar_t* lpszSubKey, HKEY* phkResult, void* pTransaction) {
+    (void)pTransaction;
+    return ::RegCreateKeyExW(hKey, lpszSubKey, 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, phkResult, nullptr);
 }
 // Symbol: ?AfxRegDeleteKey@@YAJPEAUHKEY__@@PEB_WPEAVCAtlTransactionManager@ATL@@@Z
-extern "C" long MS_ABI impl__AfxRegDeleteKey__YAJPEAUHKEY____PEB_WPEAVCAtlTransactionManager_ATL___Z(void* /*struct*/* p0, const wchar_t* p1, void* /*class*/* p2) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegDeleteKey__YAJPEAUHKEY____PEB_WPEAVCAtlTransactionManager_ATL___Z(
+    HKEY hKey, const wchar_t* lpszSubKey, void* pTransaction) {
+    (void)pTransaction;
+    return ::RegDeleteKeyW(hKey, lpszSubKey);
 }
 // Symbol: ?AfxRegOpenKey@@YAJPEAUHKEY__@@PEB_WPEAPEAU1@PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" long MS_ABI impl__AfxRegOpenKey__YAJPEAUHKEY____PEB_WPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(void* /*struct*/* p0, const wchar_t* p1, void* /*struct*/** p2) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegOpenKey__YAJPEAUHKEY____PEB_WPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(
+    HKEY hKey, const wchar_t* lpszSubKey, HKEY* phkResult, void* pTransaction) {
+    (void)pTransaction;
+    return ::RegOpenKeyExW(hKey, lpszSubKey, 0, KEY_ALL_ACCESS, phkResult);
 }
 // Symbol: ?AfxRegOpenKeyEx@@YAJPEAUHKEY__@@PEB_WKKPEAPEAU1@PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" long MS_ABI impl__AfxRegOpenKeyEx__YAJPEAUHKEY____PEB_WKKPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(void* /*struct*/* p0, const wchar_t* p1, unsigned long p2, unsigned long p3, void* /*struct*/** p4) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegOpenKeyEx__YAJPEAUHKEY____PEB_WKKPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(
+    HKEY hKey, const wchar_t* lpszSubKey, unsigned long ulOptions, unsigned long samDesired,
+    HKEY* phkResult, void* pTransaction) {
+    (void)pTransaction;
+    return ::RegOpenKeyExW(hKey, lpszSubKey, (DWORD)ulOptions, (REGSAM)samDesired, phkResult);
 }
 // Symbol: ?AfxRegQueryValue@@YAJPEAUHKEY__@@PEB_WPEA_WPEAJ@Z
-extern "C" long MS_ABI impl__AfxRegQueryValue__YAJPEAUHKEY____PEB_WPEA_WPEAJ_Z(void* /*struct*/* p0, const wchar_t* p1, wchar_t* p2, long* p3) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegQueryValue__YAJPEAUHKEY____PEB_WPEA_WPEAJ_Z(
+    HKEY hKey, const wchar_t* lpszSubKey, wchar_t* lpszValue, long* plValueLength) {
+    return ::RegQueryValueW(hKey, lpszSubKey, lpszValue, plValueLength);
 }
 // Symbol: ?AfxRegSetValue@@YAJPEAUHKEY__@@PEB_WK1K@Z
-extern "C" long MS_ABI impl__AfxRegSetValue__YAJPEAUHKEY____PEB_WK1K_Z(void* /*struct*/* p0, const wchar_t* p1, unsigned long p2, const wchar_t* p3, unsigned long p4) {
-    return 0;
+extern "C" long MS_ABI impl__AfxRegSetValue__YAJPEAUHKEY____PEB_WK1K_Z(
+    HKEY hKey, const wchar_t* lpszSubKey, unsigned long dwType, const wchar_t* lpszValue, unsigned long cbValue) {
+    return ::RegSetValueExW(hKey, lpszSubKey, 0, (DWORD)dwType, (const BYTE*)lpszValue, (DWORD)cbValue);
 }
 // Symbol: ?AfxRegisterMFCCtrlClasses@@YAXXZ
 extern "C" void MS_ABI impl__AfxRegisterMFCCtrlClasses__YAXXZ() {}
