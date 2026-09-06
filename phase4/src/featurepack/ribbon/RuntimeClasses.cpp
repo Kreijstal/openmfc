@@ -16,9 +16,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define MFC_TOOLBARS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 MFC_TOOLBARS_DESC(CMFCBaseToolBar, 1016, 0xFFFF, &CPane::classCPane);
 MFC_TOOLBARS_DESC(CMFCToolBar, 4944, 0x80000001, &classCMFCBaseToolBar);
 MFC_TOOLBARS_DESC(CMFCPopupMenuBar, 5152, 0x00000001, &classCMFCToolBar);
@@ -52,9 +53,10 @@ MFC_TOOLBARS_DESC(CMFCTasksPaneToolBar, 4960, 0x00000001, &classCMFCToolBar);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define POPUPMENU_BUTTON_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 POPUPMENU_BUTTON_DESC(CMFCPopupMenu, 6600, 0x80000001, &CMiniFrameWnd::classCMiniFrameWnd);
 POPUPMENU_BUTTON_DESC(CMFCColorPopupMenu, 11992, 0xFFFF, &classCMFCPopupMenu);
 POPUPMENU_BUTTON_DESC(CMFCDropDownListBox, 6640, 0xFFFF, &classCMFCPopupMenu);
@@ -87,9 +89,10 @@ POPUPMENU_BUTTON_DESC(CMFCMenuButton, 2888, 0xFFFF, &classCMFCButton);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define PROPGRID_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 PROPGRID_DESC(CMFCPropertyGridProperty, 352, 0xFFFF, &CObject::classCObject);
 PROPGRID_DESC(CMFCPropertyGridColorProperty, 440, 0xFFFF, &classCMFCPropertyGridProperty);
 PROPGRID_DESC(CMFCPropertyGridFileProperty, 384, 0xFFFF, &classCMFCPropertyGridProperty);
@@ -120,9 +123,10 @@ PROPGRID_DESC(CMFCPropertyGridCtrl, 1720, 0xFFFF, &CWnd::classCWnd);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define RIBBON_ELEMENTS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 RIBBON_ELEMENTS_DESC(CMFCBaseAccessibleObject, 160, 0xFFFF, &CCmdTarget::classCCmdTarget);
 RIBBON_ELEMENTS_DESC(CMFCRibbonBaseElement, 384, 0xFFFF, &classCMFCBaseAccessibleObject);
 RIBBON_ELEMENTS_DESC(CMFCRibbonButton, 624, 0xFFFF, &classCMFCRibbonBaseElement);
@@ -178,9 +182,10 @@ RIBBON_ELEMENTS_DESC(CRibbonUndoLabel, 624, 0xFFFF, &classCMFCRibbonButton);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define RIBBON_PANELS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 RIBBON_PANELS_DESC(CMFCRibbonCustomizeCategory, 72, 0xFFFF, &CObject::classCObject);
 RIBBON_PANELS_DESC(CMFCRibbonMainPanel, 1832, 0xFFFF, &CMFCRibbonPanel::classCMFCRibbonPanel);
 RIBBON_PANELS_DESC(CMFCRibbonRichEditCtrl, 264, 0xFFFF, &CRichEditCtrl::classCRichEditCtrl);
@@ -207,9 +212,10 @@ RIBBON_PANELS_DESC(CMFCRibbonStatusBar, 8728, 0xFFFF, &CMFCRibbonBar::classCMFCR
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define TOOLBAR_BUTTONS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TOOLBAR_BUTTONS_DESC(CMFCToolBarButton, 136, 0x80000001, &CObject::classCObject);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarComboBoxButton, 336, 0x00000001, &classCMFCToolBarButton);
 TOOLBAR_BUTTONS_DESC(CHelpComboBoxButton, 344, 0x80000001, &classCMFCToolBarComboBoxButton);

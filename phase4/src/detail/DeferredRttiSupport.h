@@ -6,7 +6,7 @@ namespace openmfc { namespace detail { namespace deferredrtti {} } }
 using namespace openmfc::detail::deferredrtti;
 // OpenMFC: RTTI getters for 6 classes whose direct base has no referenceable
 // member-static descriptor (the base descriptor is file-internal in another TU).
-// Instead of m_pBaseClass (a compile-time pointer we cannot form), each descriptor
+// Instead of a compile-time base pointer we cannot form, each descriptor
 // sets m_pfnGetBaseClass to the base's own exported GetThisClass — the real-MFC
 // _AFXDLL cross-module base-resolution mechanism — so IsKindOf/IsDerivedFrom walk
 // an unbroken, identity-consistent chain. Real m_nObjectSize/m_wSchema/base were
@@ -51,7 +51,7 @@ CRuntimeClass* AFXAPI gb_CMFCToolTipCtrl();
 } } }
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject, m_pfnGetBaseClass,
-// m_pBaseClass(null), m_pNextClass(null).
+// m_pNextClass(null), m_pNextClass(null).
 #define DEF_DESC(Cls, Size, Schema, GB) \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, GB, nullptr, nullptr }
 DEF_DESC(CAutoHideDockSite, 552, 0xFFFF, gb_CAutoHideDockSite);

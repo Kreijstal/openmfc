@@ -144,8 +144,9 @@ std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
 std::unordered_set<void*> g_d2dInitialized;
 thread_local _AFX_D2D_STATE g_d2dState;
+static CRuntimeClass* AFXAPI _openmfc_gb_g_classCUserException() { return &CException::classCException; }
 __attribute__((used)) CRuntimeClass g_classCUserException = {
-    "CUserException", sizeof(CException), 0xFFFF, nullptr, nullptr, &CException::classCException, nullptr
+    "CUserException", sizeof(CException), 0xFFFF, nullptr, &_openmfc_gb_g_classCUserException, nullptr, nullptr
 };
 void AddTaskDialogButton(TaskDialogButtonState& state, int id, const wchar_t* label, int enabled) {
     auto it = std::find_if(state.buttons.begin(), state.buttons.end(),
@@ -288,13 +289,14 @@ CRuntimeClass g_runtimeClassDockSite = {
 std::mutex g_featurePackStateMutex;
 std::unordered_map<CFrameImpl*, FrameImplState> g_frameImplStates;
 std::unordered_map<CMDIChildWndEx*, std::wstring> g_taskbarTabText;
+static CRuntimeClass* AFXAPI _openmfc_gb_g_cmdiClientAreaRuntimeClass() { return &CWnd::classCWnd; }
 CRuntimeClass g_cmdiClientAreaRuntimeClass = {
     "CMDIClientAreaWnd",
     sizeof(void*),
     0xFFFF,
     nullptr,
+    &_openmfc_gb_g_cmdiClientAreaRuntimeClass,
     nullptr,
-    &CWnd::classCWnd,
     nullptr
 };
 std::mutex g_statusBarTextMutex;

@@ -20,7 +20,7 @@ using namespace openmfc::detail::oleoleexceptionrtti;
 // RTTI identity graph (matches retail mfc140 RUNTIME_CLASS chains, which is what
 // IsKindOf walks):
 //   COleDispatchException -> COleException -> CException -> CObject
-// CException::classCException is defined in mfc_exceptions.cpp; its m_pBaseClass
+// CException::classCException is defined in mfc_exceptions.cpp; its base link
 // already points at CObject::classCObject. CDaoException RTTI is intentionally
 // NOT here — daocore.cpp already owns it (classCDaoException + getters).
 //
@@ -38,7 +38,7 @@ using namespace openmfc::detail::oleoleexceptionrtti;
 #endif
 
 // Order: m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-//        m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+//        m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 // DYNAMIC (not DYNCREATE): no factory; schema 0xFFFF (not serializable).
 extern CRuntimeClass classCOleException;
 extern CRuntimeClass classCOleDispatchException;

@@ -18,9 +18,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define PROPGRID_MISC_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 PROPGRID_MISC_DESC(CMFCPropertyGridToolTipCtrl, 280, 0xFFFF, &CWnd::classCWnd);
 PROPGRID_MISC_DESC(CMFCPropertySheetCategoryInfo, 168, 0xFFFF, &CObject::classCObject);
 #undef PROPGRID_MISC_DESC
@@ -46,9 +47,10 @@ PROPGRID_MISC_DESC(CMFCPropertySheetCategoryInfo, 168, 0xFFFF, &CObject::classCO
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define PROPGRID_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 PROPGRID_DESC(CMFCPropertyGridProperty, 352, 0xFFFF, &CObject::classCObject);
 PROPGRID_DESC(CMFCPropertyGridColorProperty, 440, 0xFFFF, &classCMFCPropertyGridProperty);
 PROPGRID_DESC(CMFCPropertyGridFileProperty, 384, 0xFFFF, &classCMFCPropertyGridProperty);

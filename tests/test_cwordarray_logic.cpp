@@ -106,7 +106,7 @@ int main() {
     CHECK(rc->m_nObjectSize == 40, "CRuntimeClass.m_nObjectSize == 40");
     CHECK(std::strcmp(rc->m_lpszClassName, "CWordArray") == 0,
           "CRuntimeClass name is \"CWordArray\"");
-    CHECK(rc->m_pBaseClass == CObject::GetThisClass(), "base class is CObject");
+    CHECK(rc->BaseClass() == CObject::GetThisClass(), "base class is CObject");
 
     CRuntimeClass* rcInst = impl__GetRuntimeClass_CWordArray__UEBAPEAUCRuntimeClass__XZ(a);
     CHECK(rcInst == rc, "instance GetRuntimeClass matches GetThisClass");

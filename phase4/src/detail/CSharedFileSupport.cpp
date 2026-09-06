@@ -104,13 +104,14 @@ void CSharedFile::SetHandle(HGLOBAL hGlobalMemory, BOOL bAllowGrow)
     m_bAutoDelete = bAllowGrow ? true : false;
 }
 namespace openmfc { namespace detail { namespace csharedfile {
+static CRuntimeClass* AFXAPI _openmfc_gb_g_classCSharedFile() { return &CMemFile::classCMemFile; }
 CRuntimeClass g_classCSharedFile = {
     "CSharedFile",
     sizeof(CSharedFile),
     0xFFFF,
     nullptr,
+    &_openmfc_gb_g_classCSharedFile,
     nullptr,
-    &CMemFile::classCMemFile,
     nullptr
 };
 } } }  // namespace openmfc::detail::csharedfile

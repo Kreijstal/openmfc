@@ -67,8 +67,8 @@ struct OpenMfcRuntimeClass_Cmfcpropertysheettabctrl {
     unsigned short m_wSchema;
     void* m_pfnCreateObject;
     void* m_pfnGetBaseClass;
-    OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* m_pBaseClass;
-    void* m_pClassContext;
+    OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* m_pNextClass;   // +0x20 (retail: module class list link)
+    const void* m_pClassInit;  // +0x28
 };
 } } }
 

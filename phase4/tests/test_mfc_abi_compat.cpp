@@ -211,7 +211,7 @@ void test_cruntimeclass() {
         TEST_EQ_STR("CObject::m_lpszClassName", "CObject", pCObject->m_lpszClassName);
         TEST_EQ_INT("CObject::m_nObjectSize", 8, pCObject->m_nObjectSize);
 #ifdef TEST_OPENMFC
-        TEST_NULL("CObject::base class (root)", pCObject->m_pBaseClass);
+        TEST_NULL("CObject::base class (root)", pCObject->BaseClass());
 #else
         TEST_NULL("CObject::base class (root)", pCObject->m_pfnGetBaseClass);
 #endif

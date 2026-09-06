@@ -67,7 +67,7 @@ TEST(runtime_class) {
     ASSERT(std::strcmp(pClass->m_lpszClassName, "CTestObject") == 0);
     
     // Base class should be CObject
-    ASSERT(pClass->m_pBaseClass == RUNTIME_CLASS(CObject));
+    ASSERT(pClass->BaseClass() == RUNTIME_CLASS(CObject));
 }
 
 TEST(is_kind_of) {
@@ -117,7 +117,7 @@ TEST(non_creatable) {
 TEST(cobject_base) {
     // CObject's base class should be nullptr
     CRuntimeClass* pClass = RUNTIME_CLASS(CObject);
-    ASSERT(pClass->m_pBaseClass == nullptr);
+    ASSERT(pClass->BaseClass() == nullptr);
     ASSERT(std::strcmp(pClass->m_lpszClassName, "CObject") == 0);
 }
 

@@ -33,7 +33,7 @@ int main() {
     check(rc->m_nObjectSize == 40, "m_nObjectSize == 40 (real MSVC sizeof)");
     check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, "schema 0xFFFF, no factory");
     check(rc->m_pfnGetBaseClass == nullptr && rc->m_pNextClass == nullptr, "getbase/next null");
-    check(rc->m_pBaseClass == &CObject::classCObject, "m_pBaseClass == CObject");
+    check(rc->BaseClass() == &CObject::classCObject, "base link == CObject");
 
     // IsDerivedFrom walks CFile -> CObject.
     check(rc->IsDerivedFrom(&CObject::classCObject), "CFile IsDerivedFrom CObject");

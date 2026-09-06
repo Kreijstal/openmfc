@@ -33,7 +33,7 @@ int main(){
         check(r && r->m_pfnCreateObject == nullptr, c.name);
         check(r && r->m_pfnGetBaseClass == nullptr, c.name);
         check(c.grc(nullptr) == r, c.name);   // no self-dispatch
-        check(r && r->m_pBaseClass == c.base, c.name);
+        check(r && r->BaseClass() == c.base, c.name);
     }
     printf("%s: %d checks failed\n", failures?"FAILED":"OK", failures);
     return failures ? 1 : 0;

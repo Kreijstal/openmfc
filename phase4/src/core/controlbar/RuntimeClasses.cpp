@@ -20,9 +20,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define CONTROLBAR_KEYFRAME_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 CONTROLBAR_KEYFRAME_DESC(CControlBar, 328, 0xFFFF, &CWnd::classCWnd);
 CONTROLBAR_KEYFRAME_DESC(CDockBar, 400, 0xFFFF, &classCControlBar);
 CONTROLBAR_KEYFRAME_DESC(COleResizeBar, 408, 0xFFFF, &classCControlBar);
@@ -67,7 +68,7 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set). Each chains to a descriptor that is
+// (the base link is the generated m_pfnGetBaseClass thunk). Each chains to a descriptor that is
 // consistent with what the base class's *exported* GetThisClass returns:
 // CObject::classCObject (afx.h); CDockablePane::classCDockablePane and
 // CMiniFrameWnd::classCMiniFrameWnd, whose exported getters in mfccore.cpp return
@@ -89,7 +90,7 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 //
 // m_wSchema matches the real mfc140u.dll descriptor (read by calling the exported
 // getters under Wine), which depends on the class's DECLARE macro: DECLARE_DYNAMIC
@@ -98,7 +99,8 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
 // left null even for DYNCREATE/SERIAL classes: OpenMFC has no class body for these
 // so it cannot manufacture instances, and null honestly signals "not constructible".
 #define DT_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // CBaseTabbedPane before CTabbedPane so the latter can take its address.
 DT_DESC(CDockState,           96,   0x00000000, &CObject::classCObject);          // DECLARE_SERIAL, schema 0

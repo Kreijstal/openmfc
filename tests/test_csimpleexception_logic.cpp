@@ -144,9 +144,9 @@ int main() {
         check(rc->m_nObjectSize == (int)sizeof(CSimpleException),
               "m_nObjectSize == sizeof(CSimpleException)");
         check(rc->m_wSchema == 0xFFFF, "schema is 0xFFFF");
-        check(rc->m_pBaseClass == &CException::classCException,
+        check(rc->BaseClass() == &CException::classCException,
               "base class chains to CException");
-        check(rc->m_pBaseClass->m_pBaseClass == &CObject::classCObject,
+        check(rc->BaseClass()->BaseClass() == &CObject::classCObject,
               "CException chains to CObject");
 
         CRuntimeClass* rrc =

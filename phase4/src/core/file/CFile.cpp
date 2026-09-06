@@ -535,8 +535,9 @@ void CFile::SetStatus(const wchar_t* lpszFileName, const CFileStatus& status) {
         CloseHandle(hFile);
     }
 }
+static CRuntimeClass* AFXAPI _openmfc_gb_classCFile() { return &CObject::classCObject; }
 CRuntimeClass CFile::classCFile = {
-    "CFile", 40, 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
+    "CFile", 40, 0xFFFF, nullptr, &_openmfc_gb_classCFile, nullptr, nullptr
 };
 // CFile::CFile(ATL::CAtlTransactionManager*) — transaction-aware constructor.
 // There is no file handle until Open(...) is called, so initialize a default

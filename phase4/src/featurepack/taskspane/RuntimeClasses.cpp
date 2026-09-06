@@ -16,9 +16,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define MFC_TOOLBARS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 MFC_TOOLBARS_DESC(CMFCBaseToolBar, 1016, 0xFFFF, &CPane::classCPane);
 MFC_TOOLBARS_DESC(CMFCToolBar, 4944, 0x80000001, &classCMFCBaseToolBar);
 MFC_TOOLBARS_DESC(CMFCPopupMenuBar, 5152, 0x00000001, &classCMFCToolBar);
@@ -52,9 +53,10 @@ MFC_TOOLBARS_DESC(CMFCTasksPaneToolBar, 4960, 0x00000001, &classCMFCToolBar);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define TOOLBAR_BUTTONS_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TOOLBAR_BUTTONS_DESC(CMFCToolBarButton, 136, 0x80000001, &CObject::classCObject);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarComboBoxButton, 336, 0x00000001, &classCMFCToolBarButton);
 TOOLBAR_BUTTONS_DESC(CHelpComboBoxButton, 344, 0x80000001, &classCMFCToolBarComboBoxButton);
@@ -100,9 +102,10 @@ TOOLBAR_BUTTONS_DESC(CTasksPaneNavigateButton, 136, 0x00000001, &classCMFCToolBa
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define TOOLBAR_CUSTOMIZE_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TOOLBAR_CUSTOMIZE_DESC(CMFCTasksPane, 6936, 0x80000001, &CDockablePane::classCDockablePane);
 TOOLBAR_CUSTOMIZE_DESC(CMFCTasksPaneFrameWnd, 608, 0x80000002, &CPaneFrameWnd::classCPaneFrameWnd);
 TOOLBAR_CUSTOMIZE_DESC(CMFCToolBarsCommandsPropertyPage, 848, 0xFFFF, &CPropertyPage::classCPropertyPage);

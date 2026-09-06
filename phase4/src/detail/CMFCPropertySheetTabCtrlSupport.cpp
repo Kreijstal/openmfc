@@ -4,6 +4,9 @@ static_assert(sizeof(S_Cmfcpropertysheettabctrl) == 15728, "CMFCPropertySheetTab
 static_assert(offsetof(S_Cmfcpropertysheettabctrl, m_dwRef) == 8, "m_dwRef offset");
 static_assert(offsetof(S_Cmfcpropertysheettabctrl, m_pParent) == 15720, "m_pParent offset");
 namespace openmfc { namespace detail { namespace cmfcpropertysheettabctrl {
+// Retail reads the base link at +0x18 as a FUNCTION pointer and calls it, so this
+// descriptor must publish a thunk there rather than a resolved CRuntimeClass*.
+static OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* MS_ABI _gb_thunk_cmfcpropertysheettabctrl();
 OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* GetBaseClass_Cmfcpropertysheettabctrl() {
     static OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* base = reinterpret_cast<OpenMfcRuntimeClass_Cmfcpropertysheettabctrl*>(
         impl__GetRuntimeClass_CMFCTabCtrl__UEBAPEAUCRuntimeClass__XZ(nullptr));
@@ -23,8 +26,9 @@ OpenMfcRuntimeClass_Cmfcpropertysheettabctrl g_classCMFCPropertySheetTabCtrl = {
     nullptr,
 };
 void* MS_ABI v_GetRuntimeClass(S_Cmfcpropertysheettabctrl*) {
-    if (!g_classCMFCPropertySheetTabCtrl.m_pBaseClass) {
-        g_classCMFCPropertySheetTabCtrl.m_pBaseClass = GetBaseClass_Cmfcpropertysheettabctrl();
+    if (!g_classCMFCPropertySheetTabCtrl.m_pfnGetBaseClass) {
+        g_classCMFCPropertySheetTabCtrl.m_pfnGetBaseClass =
+            reinterpret_cast<void*>(&_gb_thunk_cmfcpropertysheettabctrl);
     }
     return &g_classCMFCPropertySheetTabCtrl;
 }
@@ -60,4 +64,5 @@ int MS_ABI v_GetDispatchIID(S_Cmfcpropertysheettabctrl* pThis, void* /*piid*/) {
     return 0;
 }
 unsigned int MS_ABI v_GetTypeInfoCount(S_Cmfcpropertysheettabctrl* pThis) { return pThis ? 0u : 0u; }
+static OpenMfcRuntimeClass_Cmfcpropertysheettabctrl* MS_ABI _gb_thunk_cmfcpropertysheettabctrl() { return GetBaseClass_Cmfcpropertysheettabctrl(); }
 } } }  // namespace openmfc::detail::cmfcpropertysheettabctrl

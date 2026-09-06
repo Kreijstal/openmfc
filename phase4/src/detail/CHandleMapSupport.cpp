@@ -13,13 +13,14 @@ static_assert(offsetof(CHandleMap, m_pClass)        == 0x98, "m_pClass @0x98");
 static_assert(offsetof(CHandleMap, m_nOffset)       == 0xA0, "m_nOffset @0xA0");
 static_assert(offsetof(CHandleMap, m_nHandles)      == 0xA8, "m_nHandles @0xA8");
 static_assert(sizeof(CHandleMap) == 176, "CHandleMap must be 176 bytes (faithful x64)");
+static CRuntimeClass* AFXAPI _openmfc_gb_classCTempHandleObject() { return &CObject::classCObject; }
 CRuntimeClass CTempHandleObject_Chandlemap::classCTempHandleObject = {
     "CTempHandleObject_Chandlemap",
     sizeof(CTempHandleObject_Chandlemap),
     0xFFFF,
     nullptr,
+    &_openmfc_gb_classCTempHandleObject,
     nullptr,
-    &CObject::classCObject,
     nullptr
 };
 extern "C" CHandleMap* MS_ABI

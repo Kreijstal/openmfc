@@ -34,7 +34,7 @@ int main() {
     check(rc->m_nObjectSize == (int)sizeof(CLongBinary), "m_nObjectSize == sizeof(CLongBinary)");
     check(rc->m_wSchema == 0xFFFF, "schema 0xFFFF (not serializable)");
     check(rc->m_pfnCreateObject == nullptr, "no DYNCREATE factory");
-    check(rc->m_pBaseClass == &CObject::classCObject, "base chains to CObject");
+    check(rc->BaseClass() == &CObject::classCObject, "base chains to CObject");
 
     int dummy = 0;
     CRuntimeClass* rrc = impl__GetRuntimeClass_CLongBinary__UEBAPEAUCRuntimeClass__XZ(&dummy);
@@ -42,7 +42,7 @@ int main() {
 
     // IsKindOf-style walk: CLongBinary derives from CObject, not vice versa.
     bool reachesObject = false;
-    for (const CRuntimeClass* p = rc; p; p = p->m_pBaseClass)
+    for (const CRuntimeClass* p = rc; p; p = p->BaseClass())
         if (p == &CObject::classCObject) { reachesObject = true; break; }
     check(reachesObject, "base chain reaches CObject");
 

@@ -4,7 +4,7 @@
 // Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
 // each descriptor's name / object size, that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
-// m_pBaseClass points at the correct base descriptor. The base CRuntimeClass
+// the base-class link points at the correct base descriptor. The base CRuntimeClass
 // statics referenced by the impl are defined here so the TU links standalone.
 
 #include "../phase4/src/core/controls/RuntimeClasses.cpp"
@@ -16,7 +16,7 @@
 
 // Base descriptors the impl chains to (defined in the real DLL by the base
 // classes' own RTTI; provided here only for the standalone link so the
-// m_pBaseClass pointer-identity checks have a target).
+// base-link pointer-identity checks have a target).
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
 CRuntimeClass CWinApp::classCWinApp{};
@@ -74,8 +74,8 @@ int main() {
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass is the right base", c.name);
-        check(rc->m_pBaseClass == c.base, buf);
+        std::snprintf(buf, sizeof(buf), "%s: base-class link is the right base", c.name);
+        check(rc->BaseClass() == c.base, buf);
     }
 
     std::printf("RESULT: %s (%d failures)\n", g_fail == 0 ? "ALL PASS" : "FAILED", g_fail);

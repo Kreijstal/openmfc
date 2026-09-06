@@ -63,7 +63,7 @@ static bool chain_reaches(const CRuntimeClass* start, const CRuntimeClass* targe
     const CRuntimeClass* p = start;
     while (p != nullptr) {
         if (p == target) return true;
-        p = p->m_pfnGetBaseClass ? p->m_pfnGetBaseClass() : p->m_pBaseClass;
+        p = p->BaseClass();
     }
     return false;
 }
@@ -90,8 +90,8 @@ static void test_one(const char* expectedName,
     snprintf(buf, sizeof(buf), "%s: not DYNCREATE (no factory)", expectedName);
     check(viaThis->m_pfnCreateObject == nullptr, buf);
 
-    snprintf(buf, sizeof(buf), "%s: m_pBaseClass == &CException::classCException", expectedName);
-    check(viaThis->m_pBaseClass == &CException::classCException, buf);
+    snprintf(buf, sizeof(buf), "%s: base link == &CException::classCException", expectedName);
+    check(viaThis->BaseClass() == &CException::classCException, buf);
 
     snprintf(buf, sizeof(buf), "%s: base chain reaches CException", expectedName);
     check(chain_reaches(viaThis, &CException::classCException), buf);

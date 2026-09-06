@@ -146,7 +146,7 @@ extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
         if (pClass == pBaseClass) {
             return TRUE;
         }
-        pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : pClass->m_pBaseClass;
+        pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : nullptr;
     }
 
     return FALSE;

@@ -8,8 +8,8 @@
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's own IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set). The CD2D* tree chains within itself
-// (e.g. CD2DSolidColorBrush -> CD2DBrush -> CD2DResource), so m_pBaseClass points
+// (the base link is the generated m_pfnGetBaseClass thunk). The CD2D* tree chains within itself
+// (e.g. CD2DSolidColorBrush -> CD2DBrush -> CD2DResource), so each base thunk returns
 // at the in-file descriptor that the base class's own GetThisClass returns; the
 // root CD2DResource chains to CObject's real descriptor. This reproduces the
 // retail RUNTIME_CLASS graph that IsKindOf/IsDerivedFrom walk. m_nObjectSize is
@@ -29,11 +29,12 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 // BaseDesc is the address of the base class's CRuntimeClass descriptor — either
 // CObject's real member or an earlier in-file CD2D* descriptor.
 #define D2D_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // Declared parents-first so each derived descriptor can take the address of its
 // already-defined base descriptor.
@@ -78,9 +79,10 @@ D2D_DESC(CD2DRadialGradientBrush, 128, &classCD2DGradientBrush);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define VIEWS_RENDERTARGET_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 VIEWS_RENDERTARGET_DESC(CSplitterWnd, 384, 0xFFFF, &CWnd::classCWnd);
 VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &classCSplitterWnd);
 VIEWS_RENDERTARGET_DESC(CBaseTransition, 56, 0xFFFF, &CObject::classCObject);

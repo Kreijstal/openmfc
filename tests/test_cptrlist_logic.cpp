@@ -28,7 +28,7 @@ int main() {
     // GetThisClass / GetRuntimeClass sanity.
     CRuntimeClass* rc = impl__GetThisClass_CPtrList__SAPEAUCRuntimeClass__XZ();
     CHECK(rc != nullptr && rc->m_nObjectSize == 56, "runtime class object size 56");
-    CHECK(rc->m_pBaseClass == &CObject::classCObject, "base class is CObject");
+    CHECK(rc->BaseClass() == &CObject::classCObject, "base class is CObject");
     CRuntimeClass* rc2 = impl__GetRuntimeClass_CPtrList__UEBAPEAUCRuntimeClass__XZ(L);
     CHECK(rc2 == rc, "GetRuntimeClass matches GetThisClass");
 

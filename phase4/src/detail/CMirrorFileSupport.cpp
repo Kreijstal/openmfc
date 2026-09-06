@@ -25,7 +25,7 @@ CRuntimeClass g_runtimeClass_CMirrorFile = {
     0xFFFF,                        // m_wSchema (no serialization)
     nullptr,                       // m_pfnCreateObject
     nullptr,                       // m_pfnGetBaseClass
-    nullptr,                       // m_pBaseClass
+    nullptr,                       // m_pNextClass
     nullptr                        // m_pNextClass
 };
 } } }  // namespace openmfc::detail::cmirrorfile

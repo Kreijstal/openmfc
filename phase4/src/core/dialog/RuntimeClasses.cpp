@@ -81,9 +81,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define TASKDIALOG_DC_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TASKDIALOG_DC_DESC(CTaskDialog, 240, 0xFFFF, &CObject::classCObject);
 TASKDIALOG_DC_DESC(CWindowlessDC, 40, 0xFFFF, &CDC::classCDC);
 #undef TASKDIALOG_DC_DESC
@@ -98,7 +99,7 @@ TASKDIALOG_DC_DESC(CWindowlessDC, 40, 0xFFFF, &CDC::classCDC);
 // These are MFC DECLARE_DYNAMIC classes with no separately-exported CRuntimeClass
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
-// DYNAMIC, no factory) whose m_pBaseClass chains to the real base descriptor
+// DYNAMIC, no factory) whose the base-class link chains to the real base descriptor
 // (classCWnd / classCButton / classCView / classCDialog / classCFileDialog),
 // matching the retail RUNTIME_CLASS graph that IsKindOf walks. m_nObjectSize is
 // the real MSVC sizeof harvested with cl.exe /d1reportSingleClassLayout:
@@ -117,9 +118,10 @@ TASKDIALOG_DC_DESC(CWindowlessDC, 40, 0xFFFF, &CDC::classCDC);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define VDC_DESC(Cls, Base, Size) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, &Base::class##Base, nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return &Base::class##Base; } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 VDC_DESC(CDateTimeCtrl,       CWnd,        232);
 VDC_DESC(CBitmapButton,       CButton,     296);

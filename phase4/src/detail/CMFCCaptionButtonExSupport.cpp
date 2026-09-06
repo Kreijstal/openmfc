@@ -15,14 +15,18 @@ OpenMfcRuntimeClass_Cmfccaptionbuttonex g_CMFCCaptionButtonEx_rtti = {
     nullptr,
     nullptr,
 };
+// Retail reads the base link at +0x18 as a FUNCTION pointer and calls it, so this
+// descriptor must publish a thunk there rather than a resolved CRuntimeClass*.
+static OpenMfcRuntimeClass_Cmfccaptionbuttonex* MS_ABI _gb_thunk_cmfccaptionbuttonex();
 OpenMfcRuntimeClass_Cmfccaptionbuttonex* GetBaseClass_Cmfccaptionbuttonex() {
     static OpenMfcRuntimeClass_Cmfccaptionbuttonex* base = reinterpret_cast<OpenMfcRuntimeClass_Cmfccaptionbuttonex*>(
         impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(nullptr));
     return base ? base : nullptr;
 }
 void* MS_ABI vt_GetRuntimeClass_Cmfccaptionbuttonex(void* /*pThis*/) {
-    if (!g_CMFCCaptionButtonEx_rtti.m_pBaseClass) {
-        g_CMFCCaptionButtonEx_rtti.m_pBaseClass = GetBaseClass_Cmfccaptionbuttonex();
+    if (!g_CMFCCaptionButtonEx_rtti.m_pfnGetBaseClass) {
+        g_CMFCCaptionButtonEx_rtti.m_pfnGetBaseClass =
+            reinterpret_cast<void*>(&_gb_thunk_cmfccaptionbuttonex);
     }
     return &g_CMFCCaptionButtonEx_rtti;
 }
@@ -60,4 +64,5 @@ UINT MS_ABI vt_GetIconID(void* pThis, unsigned char /*bHorz*/) {
     S_Cmfccaptionbuttonex* self = (S_Cmfccaptionbuttonex*)pThis;
     return self->m_nHit;
 }
+static OpenMfcRuntimeClass_Cmfccaptionbuttonex* MS_ABI _gb_thunk_cmfccaptionbuttonex() { return GetBaseClass_Cmfccaptionbuttonex(); }
 } } }  // namespace openmfc::detail::cmfccaptionbuttonex

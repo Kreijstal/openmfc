@@ -25,8 +25,8 @@ CRuntimeClass g_classCToolTipCtrl = {
     sizeof(CToolTipCtrl),
     0xFFFF,
     nullptr,
-    CWnd::GetThisClass,
-    CWnd::GetThisClass(),
-    nullptr
+    CWnd::GetThisClass,   // m_pfnGetBaseClass
+    nullptr,              // m_pNextClass
+    nullptr               // m_pClassInit
 };
 } } }  // namespace openmfc::detail::ctooltipctrl

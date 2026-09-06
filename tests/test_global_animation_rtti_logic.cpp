@@ -3,7 +3,7 @@
 // Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
 // each descriptor's name / object size, that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
-// m_pBaseClass equals the descriptor the base class's own GetThisClass returns,
+// the base-class link equals the descriptor the base class's own GetThisClass returns,
 // so IsKindOf walks an unbroken graph up to CObject.
 
 #include "../phase4/src/core/animation/RuntimeClasses.cpp"
@@ -72,8 +72,8 @@ int main() {
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
-        check(rc->m_pBaseClass == (c.baseGetThis ? c.baseGetThis() : CObject::GetThisClass()), buf);
+        std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
+        check(rc->BaseClass() == (c.baseGetThis ? c.baseGetThis() : CObject::GetThisClass()), buf);
     }
 
     // Full IsDerivedFrom walk: CAnimationColor -> CAnimationBaseObject -> CObject,

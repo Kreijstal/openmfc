@@ -20,8 +20,9 @@ using namespace openmfc::detail::simpleexceptionsrtti;
 // This translation unit owns those 8 RTTI exports.
 //
 // The base chain is: CXxxException -> CException -> CObject. We chain
-// m_pBaseClass to CException::classCException (defined in mfc_exceptions.cpp);
-// CException::classCException.m_pBaseClass already points at CObject::classCObject.
+// m_pNextClass to CException::classCException (defined in mfc_exceptions.cpp);
+// CException::classCException already links to CObject::classCObject through its
+// m_pfnGetBaseClass thunk.
 
 #include "openmfc/afxwin.h"
 
@@ -66,7 +67,7 @@ public:
 
 // Real CRuntimeClass descriptors.
 // Order: m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-//        m_pfnGetBaseClass, m_pBaseClass, m_pNextClass
+//        m_pfnGetBaseClass, m_pNextClass, m_pClassInit
 // These exceptions are DYNAMIC, not DYNCREATE, so there is no factory function.
 namespace openmfc { namespace detail { namespace simpleexceptionsrtti {
 extern CRuntimeClass class_CInvalidArgException;

@@ -189,9 +189,15 @@ struct CRuntimeClass {
     int m_nObjectSize;                // sizeof(class) (offset 8)
     unsigned int m_wSchema;           // Schema number for serialization (offset 12)
     CObject* (AFXAPI *m_pfnCreateObject)();  // Factory function (offset 16)
-    CRuntimeClass* (AFXAPI *m_pfnGetBaseClass)(); // Get base class for DLL (offset 24)
-    CRuntimeClass* m_pBaseClass;      // Pointer to base class (offset 32)
-    CRuntimeClass* m_pNextClass;      // Linked list of registered classes (offset 40)
+    // The base link. In an _AFXDLL build -- which is what mfc140u.dll is, and what this
+    // project reimplements -- retail MFC stores a FUNCTION POINTER here, not a data
+    // pointer; afx.h's `#else` branch names the same slot m_pBaseClass for the static-lib
+    // build, and the two never coexist. Verified against the retail binary rather than the
+    // headers: CRuntimeClass::IsDerivedFrom (mfc140 RVA 0x233440) is `mov 0x18(%rax),%rax;
+    // test; je fail; call *%rax` with no data fallback at all.
+    CRuntimeClass* (AFXAPI *m_pfnGetBaseClass)(); // Get base class (offset 24)
+    CRuntimeClass* m_pNextClass;      // Module class list link (offset 32)
+    const void* m_pClassInit;         // AFX_CLASSINIT for IMPLEMENT_SERIAL (offset 40)
 
     // Helper methods
     CObject* CreateObject() const {
@@ -201,28 +207,54 @@ struct CRuntimeClass {
         return nullptr;
     }
 
+    // Convenience accessor for the base link. Returns nullptr at a root descriptor.
+    // Prefer this over touching the slot directly: there is no data member holding the
+    // base class any more, by design.
+    CRuntimeClass* BaseClass() const {
+        return m_pfnGetBaseClass ? m_pfnGetBaseClass() : nullptr;
+    }
+
     bool IsDerivedFrom(const CRuntimeClass* pBaseClass) const {
         const CRuntimeClass* pClassThis = this;
         while (pClassThis != nullptr) {
             if (pClassThis == pBaseClass) {
                 return true;
             }
-            // Use m_pfnGetBaseClass if available (DLL linking), otherwise m_pBaseClass
-            if (pClassThis->m_pfnGetBaseClass) {
-                pClassThis = pClassThis->m_pfnGetBaseClass();
-            } else {
-                pClassThis = pClassThis->m_pBaseClass;
+            if (pClassThis->m_pfnGetBaseClass == nullptr) {
+                return false;  // reached a root descriptor
             }
+            pClassThis = pClassThis->m_pfnGetBaseClass();
         }
         return false;
     }
 };
+
+// Offsets pinned against the retail binary, not against MSVC's headers. Evidence:
+//   CRuntimeClass::FromName  (mfc140 RVA 0x1cf1f0) walks the module list with
+//                            `mov 0x20(%rbx),%rbx`            -> m_pNextClass  == 0x20
+//   AfxClassInit             (mfc140 RVA 0x2333f0) uses CSimpleList::m_nNextOffset from
+//                            AFX_MODULE_STATE+0x40, which equals 0x20, same conclusion
+//   CRuntimeClass::IsDerivedFrom (0x233440) `mov 0x18(%rax),%rax; test; je; call *%rax`
+//                                                             -> base link   == 0x18, a pfn
+//   adjacent IMPLEMENT_SERIAL descriptors (CObList 0x1803aa928, CStringList 0x1803aa958)
+//   are 0x30 apart, and each holds a 1-byte AFX_CLASSINIT pointer at +0x28
+// Do not "simplify" this struct: an extra data member for the base class silently takes
+// m_pNextClass's slot and shifts everything after it, which is what this file used to do.
+static_assert(offsetof(CRuntimeClass, m_lpszClassName)   == 0x00, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_nObjectSize)     == 0x08, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_wSchema)         == 0x0c, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_pfnCreateObject) == 0x10, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_pfnGetBaseClass) == 0x18, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_pNextClass)      == 0x20, "CRuntimeClass layout");
+static_assert(offsetof(CRuntimeClass, m_pClassInit)      == 0x28, "CRuntimeClass layout");
+static_assert(sizeof(CRuntimeClass) == 0x30, "CRuntimeClass size");
 
 // DECLARE_DYNAMIC - adds runtime class support to a class
 // Use in class declaration (public section)
 #define DECLARE_DYNAMIC(class_name) \
 public: \
     static AFX_DATA CRuntimeClass class##class_name; \
+    static CRuntimeClass* AFXAPI _GetBaseClass(); \
     static CRuntimeClass* GetThisClass() { return &class##class_name; } \
     virtual CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
 
@@ -232,27 +264,34 @@ public: \
     static CObject* AFXAPI CreateObject() { return new class_name; }
 
 // IMPLEMENT_DYNAMIC - implements runtime class (put in .cpp file)
-// Order must match CRuntimeClass layout: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pBaseClass, pNextClass
+// Order must match CRuntimeClass layout: lpszClassName, nObjectSize, wSchema,
+// pfnCreateObject, pfnGetBaseClass, pNextClass, pClassInit.
+// The base class is reached through a generated _GetBaseClass thunk, exactly as retail's
+// IMPLEMENT_RUNTIMECLASS does in an _AFXDLL build.
 #define IMPLEMENT_DYNAMIC(class_name, base_class_name) \
+    CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
+        { return &base_class_name::class##base_class_name; } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
         0xFFFF, \
         nullptr, \
+        &class_name::_GetBaseClass, \
         nullptr, \
-        &base_class_name::class##base_class_name, \
         nullptr \
     };
 
 // IMPLEMENT_DYNCREATE - implements runtime class with factory
 #define IMPLEMENT_DYNCREATE(class_name, base_class_name) \
+    CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
+        { return &base_class_name::class##base_class_name; } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
         0xFFFF, \
         &class_name::CreateObject, \
+        &class_name::_GetBaseClass, \
         nullptr, \
-        &base_class_name::class##base_class_name, \
         nullptr \
     };
 
@@ -274,13 +313,15 @@ public: \
         if (pOb != nullptr) pOb->Serialize(ar); \
         return ar; \
     } \
+    CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
+        { return &base_class_name::class##base_class_name; } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
         wSchema, \
         &class_name::CreateObject, \
+        &class_name::_GetBaseClass, \
         nullptr, \
-        &base_class_name::class##base_class_name, \
         nullptr \
     };
 
@@ -1872,15 +1913,18 @@ CArchive& operator>>(CArchive& ar, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>& map) {
 #define OPENMFC_INLINE_VAR __attribute__((weak))
 #endif
 #endif
-// Order: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pBaseClass, pNextClass
+// Order: lpszClassName, nObjectSize, wSchema, pfnCreateObject, pfnGetBaseClass, pNextClass,
+// pClassInit. CObject is the root: m_pfnGetBaseClass must stay NULL, not a thunk returning
+// null -- retail's IsDerivedFrom loop tests the pointer and then dereferences whatever the
+// call returns, so a root that supplies a thunk would fault on the next iteration.
 OPENMFC_INLINE_VAR CRuntimeClass CObject::classCObject = {
     "CObject",
     sizeof(CObject),
     0xFFFF,         // m_wSchema
     nullptr,        // m_pfnCreateObject
-    nullptr,        // m_pfnGetBaseClass
-    nullptr,        // m_pBaseClass - CObject is root
-    nullptr         // m_pNextClass
+    nullptr,        // m_pfnGetBaseClass - CObject is root
+    nullptr,        // m_pNextClass
+    nullptr         // m_pClassInit
 };
 
 #endif

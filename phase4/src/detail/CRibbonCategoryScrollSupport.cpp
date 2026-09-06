@@ -14,14 +14,18 @@ OpenMfcRuntimeClass_Cribboncategoryscroll g_CRibbonCategoryScroll_rtti = {
     nullptr,
     nullptr,
 };
+// Retail reads the base link at +0x18 as a FUNCTION pointer and calls it, so this
+// descriptor must publish a thunk there rather than a resolved CRuntimeClass*.
+static OpenMfcRuntimeClass_Cribboncategoryscroll* MS_ABI _gb_thunk_cribboncategoryscroll();
 OpenMfcRuntimeClass_Cribboncategoryscroll* GetBaseClass_Cribboncategoryscroll() {
     static OpenMfcRuntimeClass_Cribboncategoryscroll* base = reinterpret_cast<OpenMfcRuntimeClass_Cribboncategoryscroll*>(
         impl__GetRuntimeClass_CMFCRibbonButton__UEBAPEAUCRuntimeClass__XZ(nullptr));
     return base ? base : nullptr;
 }
 void* MS_ABI slot_GetRuntimeClass_Cribboncategoryscroll(const void* /*pThis*/) {
-    if (!g_CRibbonCategoryScroll_rtti.m_pBaseClass) {
-        g_CRibbonCategoryScroll_rtti.m_pBaseClass = GetBaseClass_Cribboncategoryscroll();
+    if (!g_CRibbonCategoryScroll_rtti.m_pfnGetBaseClass) {
+        g_CRibbonCategoryScroll_rtti.m_pfnGetBaseClass =
+            reinterpret_cast<void*>(&_gb_thunk_cribboncategoryscroll);
     }
     return &g_CRibbonCategoryScroll_rtti;
 }
@@ -66,4 +70,5 @@ void* MS_ABI slot_vecDelDtor_Cribboncategoryscroll(void* pThis, unsigned flags) 
         ::operator delete(pThis);
     return pThis;
 }
+static OpenMfcRuntimeClass_Cribboncategoryscroll* MS_ABI _gb_thunk_cribboncategoryscroll() { return GetBaseClass_Cribboncategoryscroll(); }
 } } }  // namespace openmfc::detail::cribboncategoryscroll

@@ -64,8 +64,8 @@ struct OpenMfcRuntimeClass_Cmfccaptionbuttonex {
     unsigned short m_wSchema;
     void* m_pfnCreateObject;
     void* m_pfnGetBaseClass;
-    OpenMfcRuntimeClass_Cmfccaptionbuttonex* m_pBaseClass;
-    void* m_pClassContext;
+    OpenMfcRuntimeClass_Cmfccaptionbuttonex* m_pNextClass;   // +0x20 (retail: module class list link)
+    const void* m_pClassInit;  // +0x28
 };
 } } }
 

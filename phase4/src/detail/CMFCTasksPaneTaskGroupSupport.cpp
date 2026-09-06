@@ -16,14 +16,18 @@ OpenMfcRuntimeClass_Cmfctaskspanetaskgroup g_CMFCTasksPaneTaskGroup_rtti = {
     nullptr,
     nullptr,
 };
+// Retail reads the base link at +0x18 as a FUNCTION pointer and calls it, so this
+// descriptor must publish a thunk there rather than a resolved CRuntimeClass*.
+static OpenMfcRuntimeClass_Cmfctaskspanetaskgroup* MS_ABI _gb_thunk_cmfctaskspanetaskgroup();
 OpenMfcRuntimeClass_Cmfctaskspanetaskgroup* GetBaseClass_Cmfctaskspanetaskgroup() {
     static OpenMfcRuntimeClass_Cmfctaskspanetaskgroup* base = reinterpret_cast<OpenMfcRuntimeClass_Cmfctaskspanetaskgroup*>(
         impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(nullptr));
     return base ? base : nullptr;
 }
 const void* MS_ABI vslot_GetRuntimeClass_Cmfctaskspanetaskgroup(void* /*p*/) {
-    if (!g_CMFCTasksPaneTaskGroup_rtti.m_pBaseClass) {
-        g_CMFCTasksPaneTaskGroup_rtti.m_pBaseClass = GetBaseClass_Cmfctaskspanetaskgroup();
+    if (!g_CMFCTasksPaneTaskGroup_rtti.m_pfnGetBaseClass) {
+        g_CMFCTasksPaneTaskGroup_rtti.m_pfnGetBaseClass =
+            reinterpret_cast<void*>(&_gb_thunk_cmfctaskspanetaskgroup);
     }
     return &g_CMFCTasksPaneTaskGroup_rtti;
 }
@@ -46,4 +50,5 @@ void* MS_ABI vdtor_Cmfctaskspanetaskgroup(void* p, unsigned flags) {
         ::operator delete(p);
     return p;
 }
+static OpenMfcRuntimeClass_Cmfctaskspanetaskgroup* MS_ABI _gb_thunk_cmfctaskspanetaskgroup() { return GetBaseClass_Cmfctaskspanetaskgroup(); }
 } } }  // namespace openmfc::detail::cmfctaskspanetaskgroup

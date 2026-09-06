@@ -72,9 +72,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define FRAMES_DOCS_PREVIEW_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 FRAMES_DOCS_PREVIEW_DESC(CMultiPaneFrameWnd, 768, 0x80000002, &CPaneFrameWnd::classCPaneFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleCntrFrameWndEx, 1352, 0xFFFF, &CFrameWnd::classCFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleDBRecordView, 360, 0xFFFF, &CFormView::classCFormView);
@@ -97,7 +98,7 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set). The document chain
+// (the base link is the generated m_pfnGetBaseClass thunk). The document chain
 // (COleDocument -> COleLinkingDoc -> COleServerDoc -> COleServerDocEx) and the
 // server-item chain (COleServerItem -> CDocObjectServerItem) chain within this
 // file; the chain roots point at the existing real base descriptors that the DLL
@@ -120,9 +121,10 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define OLED_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // Parents-first so each derived descriptor can take its base's address.
 OLED_DESC(COleDocument,         488, &CDocument::classCDocument);
@@ -148,8 +150,7 @@ OLED_DESC(COleDocObjectItem,    280, &COleClientItem::classCOleClientItem);
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set; the exported IsDerivedFrom falls back
-// to m_pBaseClass). m_nObjectSize and m_wSchema are the real values read from
+// (the base link is the generated m_pfnGetBaseClass thunk). m_nObjectSize and m_wSchema are the real values read from
 // mfc140u.dll (compile against mfc140u.lib, call the exported getter under Wine,
 // read the raw descriptor) — all five are DECLARE_DYNAMIC, schema 0xFFFF.
 //
@@ -172,9 +173,10 @@ OLED_DESC(COleDocObjectItem,    280, &COleClientItem::classCOleClientItem);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define OFILE_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // Parents before children so each can take the previous descriptor's address.
 OFILE_DESC(COleStreamFile,          56,  &CFile::classCFile);
@@ -196,8 +198,7 @@ OFILE_DESC(CCachedDataPathProperty, 200, &classCDataPathProperty);
 // These are MFC classes with no separately-exported CRuntimeClass data symbol —
 // only the two getters are exported. The repo has no class body for them, so each
 // gets a file-internal CRuntimeClass descriptor following the repo's IMPLEMENT_*
-// convention (m_pfnGetBaseClass null, m_pBaseClass set; the exported IsDerivedFrom
-// falls back to m_pBaseClass). m_nObjectSize and m_wSchema are the real values read
+// convention (the base link is the generated m_pfnGetBaseClass thunk). m_nObjectSize and m_wSchema are the real values read
 // from mfc140u.dll (compile against mfc140u.lib, call the exported getter under
 // Wine, read the raw descriptor): the four COle*Dialog classes are DECLARE_DYNAMIC
 // and the four frame windows are DECLARE_DYNCREATE, so all carry schema 0xFFFF.
@@ -205,7 +206,7 @@ OFILE_DESC(CCachedDataPathProperty, 200, &classCDataPathProperty);
 // body so it cannot manufacture instances, and null honestly signals
 // "not constructible" (real mfc140u points it at a real factory we cannot replicate).
 //
-// Each m_pBaseClass chains to a descriptor consistent with what the base class's
+// Each the base-class link chains to a descriptor consistent with what the base class's
 // *exported* GetThisClass returns: COleDialog::classCOleDialog (olecore.cpp) and
 // CFrameWnd::classCFrameWnd (wincore.cpp), whose exported getters return those same
 // members, plus the in-file COleIPFrameWnd / COleDocIPFrameWnd descriptors. So
@@ -224,9 +225,10 @@ OFILE_DESC(CCachedDataPathProperty, 200, &classCDataPathProperty);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define OF_DESC(Cls, Size, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // OLE common dialogs (DECLARE_DYNAMIC) -> COleDialog.
 OF_DESC(COleInsertDialog,       1008, &COleDialog::classCOleDialog);

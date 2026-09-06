@@ -5,7 +5,7 @@
 // each descriptor's name / object size / schema (all DECLARE_DYNAMIC or
 // DECLARE_DYNCREATE, so 0xFFFF, no factory), that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
-// m_pBaseClass equals the descriptor the base class's own GetThisClass returns
+// the base-class link equals the descriptor the base class's own GetThisClass returns
 // (COleDialog / CFrameWnd members plus the in-file COleIPFrameWnd /
 // COleDocIPFrameWnd chains), including a COleDocIPFrameWndEx IsDerivedFrom walk.
 
@@ -83,8 +83,8 @@ int main() {
         check(rc->m_pfnGetBaseClass == nullptr && rc->m_pNextClass == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
-        check(rc->m_pBaseClass == c.base, buf);
+        std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
+        check(rc->BaseClass() == c.base, buf);
     }
 
     // COleDocIPFrameWndEx -> COleDocIPFrameWnd -> COleIPFrameWnd -> CFrameWnd:

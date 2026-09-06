@@ -94,7 +94,7 @@ extern "C" CObject* MS_ABI impl__AfxDynamicDownCast__YAPEAVCObject__PEAUCRuntime
         }
         pObjectClass = pObjectClass->m_pfnGetBaseClass
             ? pObjectClass->m_pfnGetBaseClass()
-            : pObjectClass->m_pBaseClass;
+            : nullptr;
     }
 
     return nullptr;

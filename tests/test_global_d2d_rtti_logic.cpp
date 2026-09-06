@@ -3,7 +3,7 @@
 // Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
 // each descriptor's name / object size, that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that the
-// m_pBaseClass chain matches the harvested CD2D* hierarchy — including that each
+// m_pNextClass chain matches the harvested CD2D* hierarchy — including that each
 // derived class points at the *same* descriptor its base class's GetThisClass
 // returns, so IsKindOf walks an unbroken graph up to CObject.
 
@@ -31,7 +31,7 @@ struct Case {
     CRuntimeClass* (MS_ABI *getRC)(const void*);
     const char*    name;
     int            size;
-    // GetThisClass of the base class — the descriptor m_pBaseClass must equal.
+    // GetThisClass of the base class — what the descriptor's base link must equal.
     CRuntimeClass* (MS_ABI *baseGetThis)();
     // Only the root chains straight to CObject (no in-batch baseGetThis).
     bool           baseIsCObject;
@@ -97,11 +97,11 @@ int main() {
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
+        std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
         if (c.baseIsCObject) {
-            check(rc->m_pBaseClass == CObject::GetThisClass(), buf);
+            check(rc->BaseClass() == CObject::GetThisClass(), buf);
         } else {
-            check(rc->m_pBaseClass == c.baseGetThis(), buf);
+            check(rc->BaseClass() == c.baseGetThis(), buf);
         }
     }
 

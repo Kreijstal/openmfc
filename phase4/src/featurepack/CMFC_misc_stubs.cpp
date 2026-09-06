@@ -1842,7 +1842,7 @@ extern "C" int MS_ABI impl__AfxIsMFCToolBar__YAHPEAVCWnd___Z(void* /*class*/* p0
     CWnd* pWnd = reinterpret_cast<CWnd*>(p0);
     if (pWnd == nullptr) return 0;
     for (const CRuntimeClass* pClass = pWnd->GetRuntimeClass(); pClass != nullptr;
-         pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : pClass->m_pBaseClass) {
+         pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : nullptr) {
         if (pClass->m_lpszClassName != nullptr &&
             std::strcmp(pClass->m_lpszClassName, "CMFCToolBar") == 0) {
             return 1;

@@ -99,13 +99,14 @@ CArchive& operator>>(CArchive& ar, OpenMfcWordArray*& pOb) {
     if (pOb != nullptr) pOb->Serialize(ar);
     return ar;
 }
+static CRuntimeClass* AFXAPI _openmfc_gb_classOpenMfcWordArray() { return &CObject::classCObject; }
 CRuntimeClass OpenMfcWordArray::classOpenMfcWordArray = {
     "CWordArray",
     static_cast<int>(sizeof(OpenMfcWordArray)),
     0xFFFF,
     &OpenMfcWordArray::CreateObject,
+    &_openmfc_gb_classOpenMfcWordArray,
     nullptr,
-    &CObject::classCObject,
     nullptr
 };
 

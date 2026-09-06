@@ -10,8 +10,7 @@ using namespace openmfc::detail::colecontrolmodule;
 // These are MFC classes with no separately-exported CRuntimeClass data symbol —
 // only the two getters are exported. The repo has no class body for them, so each
 // gets a file-internal CRuntimeClass descriptor following the repo's IMPLEMENT_*
-// convention (m_pfnGetBaseClass null, m_pBaseClass set; the exported IsDerivedFrom
-// falls back to m_pBaseClass). m_nObjectSize and m_wSchema are the real values read
+// convention (the base link is the generated m_pfnGetBaseClass thunk). m_nObjectSize and m_wSchema are the real values read
 // from mfc140u.dll (compile against mfc140u.lib, call the exported getter under
 // Wine, read the raw descriptor): most are DECLARE_DYNAMIC/DYNCREATE (schema
 // 0xFFFF), but CMouseManager and CUserTool are DECLARE_SERIAL and carry real schema
@@ -19,7 +18,7 @@ using namespace openmfc::detail::colecontrolmodule;
 // left null even for the DYNCREATE/SERIAL classes — OpenMFC has no class body to
 // manufacture instances, and null honestly signals "not constructible".
 //
-// Each m_pBaseClass chains to a descriptor consistent with the base's exported
+// Each the base-class link chains to a descriptor consistent with the base's exported
 // GetThisClass: CCmdTarget::classCCmdTarget / CWinApp::classCWinApp (appcore.cpp),
 // CObject::classCObject (afx.h), CDialog::classCDialog (dlgcore.cpp), and the
 // in-file CDHtmlDialog descriptor. GetRuntimeClass returns the static descriptor
@@ -37,9 +36,10 @@ using namespace openmfc::detail::colecontrolmodule;
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define OR_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // CDHtmlDialog before CMultiPageDHtmlDialog so the latter can take its address.
 OR_DESC(CDHtmlDialog,          664, 0xFFFF,     &CDialog::classCDialog);          // DECLARE_DYNAMIC

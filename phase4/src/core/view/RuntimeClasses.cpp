@@ -53,9 +53,9 @@
 // These are MFC DECLARE_DYNAMIC classes with no separately-exported CRuntimeClass
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
-// DYNAMIC, no factory) whose m_pBaseClass chains to the real base descriptor
+// DYNAMIC, no factory) whose the base-class link chains to the real base descriptor
 // (classCWnd / classCButton / classCView), following the repo's own
-// IMPLEMENT_DYNAMIC convention (m_pfnGetBaseClass null, m_pBaseClass set) so
+// IMPLEMENT_DYNAMIC convention (the base link is the generated m_pfnGetBaseClass thunk) so
 // IsKindOf/IsDerivedFrom walk the correct RUNTIME_CLASS graph. m_nObjectSize is
 // the real MSVC sizeof harvested with cl.exe /d1reportSingleClassLayout:
 //   CMonthCalCtrl 232, CReBarCtrl 232, CStatusBarCtrl 232, CToolBarCtrl 232,
@@ -76,9 +76,10 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define CC2_DESC(Cls, Base, Size) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, &Base::class##Base, nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return &Base::class##Base; } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 CC2_DESC(CMonthCalCtrl,  CWnd,    232);
 CC2_DESC(CReBarCtrl,     CWnd,    232);
@@ -112,9 +113,10 @@ CC2_DESC(CTabView,       CView,   15880);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define CONTROLBAR_KEYFRAME_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 CONTROLBAR_KEYFRAME_DESC(CControlBar, 328, 0xFFFF, &CWnd::classCWnd);
 CONTROLBAR_KEYFRAME_DESC(CDockBar, 400, 0xFFFF, &classCControlBar);
 CONTROLBAR_KEYFRAME_DESC(COleResizeBar, 408, 0xFFFF, &classCControlBar);
@@ -166,9 +168,10 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define FRAMES_DOCS_PREVIEW_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 FRAMES_DOCS_PREVIEW_DESC(CMultiPaneFrameWnd, 768, 0x80000002, &CPaneFrameWnd::classCPaneFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleCntrFrameWndEx, 1352, 0xFFFF, &CFrameWnd::classCFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleDBRecordView, 360, 0xFFFF, &CFormView::classCFormView);
@@ -190,7 +193,7 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 // These are MFC DECLARE_DYNAMIC classes with no separately-exported CRuntimeClass
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
-// DYNAMIC, no factory) whose m_pBaseClass chains to the real base descriptor
+// DYNAMIC, no factory) whose the base-class link chains to the real base descriptor
 // (classCWnd / classCButton / classCView / classCDialog / classCFileDialog),
 // matching the retail RUNTIME_CLASS graph that IsKindOf walks. m_nObjectSize is
 // the real MSVC sizeof harvested with cl.exe /d1reportSingleClassLayout:
@@ -209,9 +212,10 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define VDC_DESC(Cls, Base, Size) \
-    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, nullptr, &Base::class##Base, nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return &Base::class##Base; } \
+    CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 VDC_DESC(CDateTimeCtrl,       CWnd,        232);
 VDC_DESC(CBitmapButton,       CButton,     296);
@@ -242,9 +246,10 @@ VDC_DESC(CFolderPickerDialog, CFileDialog, 1424);
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define VIEWS_RENDERTARGET_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 VIEWS_RENDERTARGET_DESC(CSplitterWnd, 384, 0xFFFF, &CWnd::classCWnd);
 VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &classCSplitterWnd);
 VIEWS_RENDERTARGET_DESC(CBaseTransition, 56, 0xFFFF, &CObject::classCObject);

@@ -10,7 +10,7 @@
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set). Each chains to a descriptor that is
+// (the base link is the generated m_pfnGetBaseClass thunk). Each chains to a descriptor that is
 // consistent with what the base class's *exported* GetThisClass returns:
 // CObject::classCObject (afx.h); CDockablePane::classCDockablePane and
 // CMiniFrameWnd::classCMiniFrameWnd, whose exported getters in mfccore.cpp return
@@ -32,7 +32,7 @@
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 //
 // m_wSchema matches the real mfc140u.dll descriptor (read by calling the exported
 // getters under Wine), which depends on the class's DECLARE macro: DECLARE_DYNAMIC
@@ -41,7 +41,8 @@
 // left null even for DYNCREATE/SERIAL classes: OpenMFC has no class body for these
 // so it cannot manufacture instances, and null honestly signals "not constructible".
 #define DT_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // CBaseTabbedPane before CTabbedPane so the latter can take its address.
 DT_DESC(CDockState,           96,   0x00000000, &CObject::classCObject);          // DECLARE_SERIAL, schema 0
@@ -76,9 +77,10 @@ DT_DESC(CMiniDockFrameWnd,    896,  0xFFFF,     &CMiniFrameWnd::classCMiniFrameW
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define FRAMES_DOCS_PREVIEW_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 FRAMES_DOCS_PREVIEW_DESC(CMultiPaneFrameWnd, 768, 0x80000002, &CPaneFrameWnd::classCPaneFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleCntrFrameWndEx, 1352, 0xFFFF, &CFrameWnd::classCFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleDBRecordView, 360, 0xFFFF, &CFormView::classCFormView);
@@ -101,7 +103,7 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 // data symbol — only the two getters are exported. The repo has no class body for
 // them, so each gets a file-internal CRuntimeClass descriptor (schema 0xFFFF =
 // DYNAMIC, no factory), following the repo's IMPLEMENT_DYNAMIC convention
-// (m_pfnGetBaseClass null, m_pBaseClass set). Each chains to a real base
+// (the base link is the generated m_pfnGetBaseClass thunk). Each chains to a real base
 // descriptor the DLL already defines — CObject::classCObject (afx.h),
 // CWnd::classCWnd (wincore.cpp), CBasePane::classCBasePane and
 // CDockablePane::classCDockablePane (mfccore.cpp) — so IsKindOf/IsDerivedFrom
@@ -121,7 +123,7 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 //
 // m_wSchema matches the real mfc140u.dll descriptor (read by calling the exported
 // getters under Wine): DECLARE_DYNAMIC/DECLARE_DYNCREATE use 0xFFFF, DECLARE_SERIAL
@@ -129,7 +131,8 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 // stays null even for DYNCREATE/SERIAL classes — OpenMFC has no class body for these,
 // so it cannot manufacture instances, and null honestly signals "not constructible".
 #define PANE_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 PANE_DESC(CPaneContainer,        248,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 PANE_DESC(CPaneContainerManager, 160,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
@@ -161,9 +164,10 @@ PANE_DESC(CPaneFrameWnd,         600,  0x80000002, &CWnd::classCWnd);           
 #endif
 
 // m_lpszClassName, m_nObjectSize, m_wSchema, m_pfnCreateObject,
-// m_pfnGetBaseClass, m_pBaseClass, m_pNextClass.
+// m_pfnGetBaseClass, m_pNextClass, m_pClassInit.
 #define TABCTRL_RENDERER_LIST_DESC(Cls, Size, Schema, BaseDesc) \
-    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, nullptr, (BaseDesc), nullptr }
+    static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
+    CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TABCTRL_RENDERER_LIST_DESC(CMFCBaseTabCtrl, 960, 0xFFFF, &CWnd::classCWnd);
 TABCTRL_RENDERER_LIST_DESC(CMFCOutlookBarTabCtrl, 11768, 0xFFFF, &classCMFCBaseTabCtrl);
 TABCTRL_RENDERER_LIST_DESC(CMFCTabCtrl, 15720, 0xFFFF, &classCMFCBaseTabCtrl);

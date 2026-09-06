@@ -900,8 +900,7 @@ struct CStdioFileAccessor : CStdioFile {
 // CFile runtime-class descriptor. CFile is DECLARE_DYNAMIC in real MFC: base
 // CObject, schema 0xFFFF, no factory. m_nObjectSize is the real MSVC sizeof(CFile)
 // (40, harvested from mfc140u.dll), not the host sizeof. Following the repo's
-// IMPLEMENT_DYNAMIC convention (m_pfnGetBaseClass null, m_pBaseClass set; the
-// exported IsDerivedFrom falls back to m_pBaseClass). This descriptor is an internal
+// IMPLEMENT_DYNAMIC convention (the base link is the generated m_pfnGetBaseClass thunk). This descriptor is an internal
 // DLL symbol (not added to the .def) so the export set stays at the 14,109 match,
 // but it gives CFile-derived RTTI getters a real base to chain to.
 

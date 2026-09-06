@@ -54,7 +54,7 @@ static void check(bool cond, const char* what) {
 }
 
 static bool chain_reaches(const CRuntimeClass* start, const CRuntimeClass* target) {
-    for (const CRuntimeClass* p = start; p; p = p->m_pfnGetBaseClass ? p->m_pfnGetBaseClass() : p->m_pBaseClass)
+    for (const CRuntimeClass* p = start; p; p = p->BaseClass())
         if (p == target) return true;
     return false;
 }
@@ -75,7 +75,7 @@ int main() {
     check(oe->m_nObjectSize == (int)sizeof(COleException), "COleException m_nObjectSize == sizeof");
     check(oe->m_wSchema == 0xFFFFu, "COleException schema 0xFFFF");
     check(oe->m_pfnCreateObject == nullptr, "COleException not DYNCREATE");
-    check(oe->m_pBaseClass == &CException::classCException, "COleException base == CException");
+    check(oe->BaseClass() == &CException::classCException, "COleException base == CException");
     check(chain_reaches(oe, &CException::classCException), "COleException chain reaches CException");
     check(chain_reaches(oe, &CObject::classCObject), "COleException chain reaches CObject");
     check(oeR == oe, "COleException GetRuntimeClass == GetThisClass");
@@ -88,7 +88,7 @@ int main() {
           "COleDispatchException m_nObjectSize == sizeof");
     check(ode->m_wSchema == 0xFFFFu, "COleDispatchException schema 0xFFFF");
     check(ode->m_pfnCreateObject == nullptr, "COleDispatchException not DYNCREATE");
-    check(ode->m_pBaseClass == oe, "COleDispatchException base == COleException");
+    check(ode->BaseClass() == oe, "COleDispatchException base == COleException");
     check(chain_reaches(ode, oe), "COleDispatchException chain reaches COleException");
     check(chain_reaches(ode, &CException::classCException), "COleDispatchException chain reaches CException");
     check(chain_reaches(ode, &CObject::classCObject), "COleDispatchException chain reaches CObject");

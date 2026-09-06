@@ -5,7 +5,7 @@
 // each descriptor's name / object size / real m_wSchema (DYNAMIC/DYNCREATE 0xFFFF;
 // the two SERIAL classes carry real versions), that GetRuntimeClass returns the
 // same static descriptor as GetThisClass (no self-dispatch recursion), the null
-// m_pfnGetBaseClass/m_pNextClass shape, and that m_pBaseClass chains to the right
+// m_pfnGetBaseClass/m_pNextClass shape, and that the base-class link chains to the right
 // base, including a CMultiPageDHtmlDialog IsDerivedFrom walk onto CDialog.
 
 #include "../phase4/src/core/app/RuntimeClasses.cpp"
@@ -85,8 +85,8 @@ int main() {
         check(rc->m_pfnGetBaseClass == nullptr && rc->m_pNextClass == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
-        check(rc->m_pBaseClass == c.base, buf);
+        std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
+        check(rc->BaseClass() == c.base, buf);
     }
 
     // CMultiPageDHtmlDialog -> CDHtmlDialog -> CDialog: IsDerivedFrom walks the

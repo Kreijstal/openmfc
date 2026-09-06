@@ -51,14 +51,18 @@ static int g_failed = 0;
     } \
 } while(0)
 
-// Minimal MFC structures we need (must match binary layout)
+// Minimal MFC structures we need (must match binary layout).
+// Mirrors retail's _AFXDLL CRuntimeClass: the base link is the FUNCTION pointer at +0x18,
+// there is no base-class data member, and m_wSchema is a 4-byte UINT. This struct was
+// previously missing m_pfnGetBaseClass entirely, which put every field after it 8 bytes low.
 struct CRuntimeClass {
-    const char* m_lpszClassName;
-    int m_nObjectSize;
-    unsigned short m_wSchema;
-    void* m_pfnConstructObject;
-    void* m_pBaseClass;
-    void* m_pNextClass;
+    const char* m_lpszClassName;   // +0x00
+    int m_nObjectSize;             // +0x08
+    unsigned int m_wSchema;        // +0x0c
+    void* m_pfnCreateObject;       // +0x10
+    void* m_pfnGetBaseClass;       // +0x18
+    void* m_pNextClass;            // +0x20
+    const void* m_pClassInit;      // +0x28
 };
 
 struct AFX_MSGMAP_ENTRY {

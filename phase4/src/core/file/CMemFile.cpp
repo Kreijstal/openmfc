@@ -223,6 +223,7 @@ void CMemFile::Attach(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes) {
     m_nPosition = 0;
     m_bAutoDelete = false;
 }
+static CRuntimeClass* AFXAPI _openmfc_gb_classCMemFile() { return &CFile::classCFile; }
 CRuntimeClass CMemFile::classCMemFile = {
-    "CMemFile", 88, 0xFFFF, nullptr, nullptr, &CFile::classCFile, nullptr
+    "CMemFile", 88, 0xFFFF, nullptr, &_openmfc_gb_classCMemFile, nullptr, nullptr
 };

@@ -4,7 +4,7 @@
 // Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
 // each descriptor's name / object size, that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
-// m_pBaseClass equals the descriptor the base class's own GetThisClass returns
+// the base-class link equals the descriptor the base class's own GetThisClass returns
 // (the in-file chains plus the external CDocument / CDocItem / COleClientItem /
 // CCmdTarget roots), so IsKindOf walks an unbroken graph.
 
@@ -34,7 +34,7 @@ struct Case {
     CRuntimeClass* (MS_ABI *getRC)(const void*);
     const char*    name;
     int            size;
-    CRuntimeClass* base;   // the descriptor m_pBaseClass must equal
+    CRuntimeClass* base;   // what the descriptor's base link must equal
 };
 
 int main() {
@@ -79,8 +79,8 @@ int main() {
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass chains correctly", c.name);
-        check(rc->m_pBaseClass == c.base, buf);
+        std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
+        check(rc->BaseClass() == c.base, buf);
     }
 
     // Full IsDerivedFrom walk down the document chain: COleServerDocEx should be

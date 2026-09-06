@@ -128,13 +128,14 @@ std::unordered_map<const CDocManager*, DocManagerState> g_docManagerStates;
 std::unordered_map<const CRecentFileList*, RecentFileListState> g_recentFileListStates;
 std::unordered_map<const CWinApp*, AppRuntimeState> g_appRuntimeStates;
 std::unordered_map<const CCmdTarget*, int> g_waitCursorDepth;
+static CRuntimeClass* AFXAPI _openmfc_gb_g_classCDocManager() { return &CObject::classCObject; }
 CRuntimeClass g_classCDocManager = {
     "CDocManager",
     0,
     0xFFFF,
     nullptr,
+    &_openmfc_gb_g_classCDocManager,
     nullptr,
-    &CObject::classCObject,
     nullptr
 };
 std::wstring MakeProfileKey(const wchar_t* section, const wchar_t* entry) {

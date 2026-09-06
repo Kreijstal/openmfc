@@ -1,12 +1,13 @@
 #include "CPtrListSupport.h"
 
+static CRuntimeClass* AFXAPI _openmfc_gb_classOpenMFC_CPtrList() { return &CObject::classCObject; }
 CRuntimeClass OpenMFC_CPtrList::classOpenMFC_CPtrList = {
     "CPtrList",
     sizeof(OpenMFC_CPtrList),
     0xFFFF,
     nullptr,
+    &_openmfc_gb_classOpenMFC_CPtrList,
     nullptr,
-    &CObject::classCObject,
     nullptr
 };
 static_assert(sizeof(OpenMFC_CPtrList) == 56, "CPtrList must be 56 bytes (faithful MSVC x64 ABI)");

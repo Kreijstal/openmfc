@@ -4,7 +4,7 @@
 // Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
 // each descriptor's name / object size, that GetRuntimeClass returns the same
 // static descriptor as GetThisClass (no self-dispatch recursion), and that
-// m_pBaseClass points at the correct base descriptor (external members and the
+// the base-class link points at the correct base descriptor (external members and the
 // in-file CBaseTabbedPane), including a CTabbedPane IsDerivedFrom walk.
 
 #include "../phase4/src/core/controlbar/RuntimeClasses.cpp"
@@ -75,8 +75,8 @@ int main() {
         check(rc->m_wSchema == c.schema && rc->m_pfnCreateObject == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pBaseClass is the right base", c.name);
-        check(rc->m_pBaseClass == c.base, buf);
+        std::snprintf(buf, sizeof(buf), "%s: base-class link is the right base", c.name);
+        check(rc->BaseClass() == c.base, buf);
     }
 
     // CTabbedPane -> CBaseTabbedPane -> CDockablePane: IsDerivedFrom walks the
