@@ -65,7 +65,15 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
         if (pThisClass == pClass) {
             return TRUE;
         }
-        pThisClass = pThisClass->m_pBaseClass;
+        // Prefer m_pfnGetBaseClass: a client compiled against MSVC's MFC headers builds
+        // _AFXDLL descriptors, whose base link is the function pointer -- their
+        // m_pBaseClass slot is not a base pointer at all. Walking m_pBaseClass alone made
+        // IsKindOf return FALSE after one step for every client-defined class, and for the
+        // in-tree descriptors that are pfn-only. CRuntimeClass::IsDerivedFrom and
+        // AfxDynamicDownCast already do it this way; this walker did not.
+        pThisClass = pThisClass->m_pfnGetBaseClass
+                         ? pThisClass->m_pfnGetBaseClass()
+                         : pThisClass->m_pBaseClass;
     }
 
     return FALSE;

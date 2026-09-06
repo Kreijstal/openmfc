@@ -1097,15 +1097,22 @@ extern "C" void MS_ABI impl__UpdateAllItems_COleServerDoc__QEAAXPEAVCOleServerIt
 //   GetMiscStatus (0x267ed0): same GetUserClassID, then
 //                           ::OleRegGetMiscStatus(clsid, dwAspect, pdwStatus).
 //   GetClientSite (0x267420): *ppClientSite = m_lpClientSite@0x230; returns
-//                           E_INVALIDARG for a NULL out pointer and E_FAIL
-//                           when there is no client site.
+//                           E_POINTER (0x80004003) for a NULL out pointer --
+//                           re-checked instruction by instruction in the
+//                           wave-6 review; an earlier note here said
+//                           E_INVALIDARG, which the body does not contain --
+//                           and E_FAIL when there is no client site.
 //
 // OpenMFC models none of the machinery these depend on: COleServerDoc has no
 // nested interface sub-objects (so no caller can ever legally reach these
 // entry points, and the -0x278 style `this` adjustment would point at
 // unrelated memory), there is no interface map, and
-// CCmdTarget::GetInterface is itself an unimplemented stub returning NULL
-// (phase4/src/core/runtime/CCmdTarget.cpp:340).  Implementing any of them
+// CCmdTarget::GetInterface, though now really implemented
+// (phase4/src/core/runtime/CCmdTarget.cpp:899), returns NULL for every IID on
+// this class: it walks CCmdTarget's own map rather than the derived class's
+// (a deviation documented at that call site), and every g_imap_* in
+// detail/InterfaceMapsSupport.cpp -- g_imap_COleServerDoc at line 49 included
+// -- holds nothing but the g_ifaceEnd terminator.  Implementing any of them
 // would mean inventing a layout OpenMFC does not have, so they are left as
 // generated.  The `this` parameter is spelled out below only to document the
 // real calling convention; the bodies do not dereference it.
@@ -1244,152 +1251,837 @@ extern "C" long MS_ABI impl__GetMiscStatus_XOleObject_COleServerDoc__UEAAJKPEAK_
     return 0;
 }
 
+//-----------------------------------------------------------------------------
+// Wave-5 pass over the remaining COleServerDoc nested-interface entry points.
+// Every one below was disassembled in retail mfc140.dll (the image disas.py
+// opens; unless a comment says otherwise, the RVAs cited in THIS block are
+// mfc140.dll RVAs) and the comment on each is a transcription of that body, not
+// an inference.
+//
+// WAVE-6 REVIEW: all thirty were re-resolved and re-disassembled in mfc140u.dll
+// -- the image OpenMFC actually reimplements -- via disu.py /
+// sym2rva_mfc140u.dll.json, and the bodies agree with the mfc140.dll ones
+// instruction for instruction.  Four claims did not survive and are corrected
+// in place, each marked CORRECTION: TranslateAcceleratorW is NOT missing from
+// the RVA map (mfc140u 0x269b70); +0x48 is a CStringW in mfc140u, not a
+// CStringA; SetClientSite's transcription had dropped a ReleaseDocSite call;
+// and the vftable named below is COleServerDocEx's, not COleServerDoc's.
+// SetMoniker, previously stubbed, is now implemented.  The IIDs, the vtable
+// slots, the CRuntimeClass descriptors (COleClientItem, 240 bytes;
+// COleServerItem, 224) and every helper RVA were re-checked in both images and
+// all held.
+//
+// Sub-object offsets, read straight out of each METHOD_PROLOGUE (`lea -N(%rcx)`
+// / `add $-N,%rcx`), all relative to the COleServerDoc:
+//     XPersistStorage         doc+0x270
+//     XOleObject              doc+0x278
+//     XDataObject             doc+0x280
+//     XOleInPlaceObject       doc+0x288
+//     XOleInPlaceActiveObject doc+0x290
+//
+// COleServerDoc members these bodies touch (retail layout, NOT OpenMFC's):
+//     +0x08 m_dwRef        +0x38 m_pModuleState
+//     +0x48 a CString (path name; SaveCompleted calls Empty() on it -- see the
+//           note there for why it is CStringW, not CStringA, in mfc140u)
+//     +0x124 int (m_bEmbedded)
+//     +0x1c8 IStorage* (root storage)             +0x1d0/+0x1d4 save flags
+//     +0x1f0 defer-errors depth                   +0x230 m_lpClientSite
+//     +0x250 m_pInPlaceFrame (COleIPFrameWnd*)    +0x268 m_pDocObjectServer
+// (+0x90 m_bModified is reached only indirectly: no body in this block reads it,
+// but Save's two virtual calls do.  Slot 26 at 0x96d40 is literally
+// `mov 0x90(%rcx),%eax ; ret` and slot 27 at 0x96d30 is `mov %edx,0x90(%rcx) ;
+// ret`, which is both where +0x90 comes from and why those two slots are named
+// IsModified / SetModifiedFlag below -- neither has an exported name.)
+//
+// Vtable slots, recovered by locating in .rdata the one table in the image
+// whose slot 0x270 holds ?GetMoniker@COleServerDoc@@ (0x2efe28 in mfc140.dll,
+// 0x2f1ed8 in mfc140u.dll) and naming each entry through the RVA maps.  That
+// table's slot 0 is ?GetThisClass@COleServerDocEx@@, i.e. it is
+// COleServerDocEx's vftable: COleServerDoc itself has no vftable in the image,
+// so this is the only place its slot assignment can be read.  Slots 94 and 101
+// below therefore hold COleServerDocEx's overrides of those two virtuals; the
+// slot indices, which is all these bodies depend on, are the same either way:
+//     0x0d0 (26) IsModified      0x0d8 (27) SetModifiedFlag  (both unexported;
+//                                named from their bodies, see above)
+//     0x238 (71) GetStartPosition                0x270 (78) GetMoniker
+//     0x2c0 (88) OnSetHostNames  0x2d0 (90) GetDocObjectServer-style factory
+//     0x2e0 (92) OnDeactivate    0x2e8 (93) OnDeactivateUI
+//     0x2f0 (94) OnDocWindowActivate             0x300 (96) OnSetItemRects
+//     0x308 (97) OnReactivateAndUndo             0x310 (98) OnFrameWindowActivate
+//     0x328 (101) OnResizeBorder 0x338 (103) OnNewEmbedding
+//     0x340 (104) OnOpenEmbedding                0x348 (105) OnSaveEmbedding
+// Slots 90 and 97 both hold 0x7260 == `xor %eax,%eax ; ret`, i.e. the base
+// class returns NULL / FALSE from both.
+//
+// COleServerItem vtable slots reached through GetEmbeddedItem (retail 0x2647f0),
+// vftable base 0x32cf68:
+//     0x0d0 (26) OnSetExtent     0x0e8 (29) OnSetColorScheme (== 0x7260, FALSE)
+//     0x0f8 (31) OnQueryUpdateItems              0x100 (32) OnUpdateItems
+//     0x120 (36) OnInitFromData
+//
+// IIDs referenced (dumped from .rdata and checked against objidl/oleidl):
+//     0x2d79d8 IID_IPersistStorage {0000010a}    0x2d7a08 IID_IDataObject {0000010e}
+//     0x2d7a88 IID_IPersistFile   {0000010b}    0x2d7ae8 IID_IOleObject  {00000112}
+//     0x2d7b38 IID_IOleInPlaceActiveObject {00000117}
+// Helpers: 0x26ba50 = "QI or NULL" inline; 0x26ba84 = "Release member and NULL
+// it"; 0x26bb70 = CCmdTarget::InternalRelease; 0x133df0 = AFX_MAINTAIN_STATE2
+// ctor (the AFX_MANAGE_STATE prologue every one of these carries).
+//
+// WHY MOST OF THESE STAY STUBS.  Recovering `this` is the first thing every one
+// of these bodies does, and OpenMFC's COleServerDoc embeds no nested interface
+// sub-objects at all (afxole.h declares only m_bEmbedded plus 96 bytes of
+// padding, and detail/InterfaceMapsSupport.cpp gives it the empty interface map
+// g_imap_COleServerDoc = { base, g_ifaceEnd }).  So no caller can ever hold a
+// pointer for which `p - 0x278` is a document, CCmdTarget::GetInterface returns
+// NULL for every IID on this class, and none of the retail members above exist.
+// Doing the subtraction anyway would read and write unrelated memory.  Each
+// stub below therefore keeps `return 0` unless the retail body has a path that
+// depends only on its arguments, or unless OpenMFC's own state makes the retail
+// result determinate; those cases are implemented and each deviation is called
+// out where it happens.
+//
+// The `this` parameter is now spelled out in every signature below.  MSVC
+// mangles these methods without a leading `this`, so in an ms_abi function the
+// FIRST declared parameter lands in RCX and receives the sub-object pointer --
+// a body that dereferences its first named argument without a `void* pThisItf`
+// in front of it would write through the interface pointer.
+//-----------------------------------------------------------------------------
+
+// COleServerDoc::XOleObject::GetMoniker(DWORD, DWORD, IMoniker**) -- retail
+// 0x2676c0, transcribed in full:
+//     if (ppmk == NULL)                       // %r9, the 4th argument
+//         return E_POINTER;                   // 0x80004003
+//     COleServerDoc* pThis = this - 0x278;
+//     LPMONIKER pmk = pThis->GetMoniker(dwAssign);   // vtable slot 78 (0x270),
+//                                                    // retail 0x2650e0
+//     *ppmk = pmk;
+//     return pmk != NULL ? S_OK : E_FAIL;     // neg/sbb/not/and 0x80004005
+// (dwWhichMoniker, in R8, is never read: it is simply left in place across the
+// virtual call, which takes only dwAssign.)
+// IMPLEMENTED IN PART: the E_POINTER guard depends only on the argument, so it
+// is exact.  The document cannot be recovered, so the moniker cannot be asked
+// for; the body then takes retail's own "no moniker" outcome, *ppmk = NULL plus
+// E_FAIL.  That is a DEVIATION only in that retail might have produced a
+// moniker; it is deliberately preferred to the generated `return 0`, which
+// reported S_OK while leaving *ppmk uninitialised.
 // Symbol: ?GetMoniker@XOleObject@COleServerDoc@@UEAAJKKPEAPEAUIMoniker@@@Z
-extern "C" long MS_ABI impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAUIMoniker___Z(unsigned long p0, unsigned long p1, void* /*struct*/** p2) {
-    return 0;
+extern "C" long MS_ABI impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAUIMoniker___Z(
+    void* pThisItf, unsigned long dwAssign, unsigned long dwWhichMoniker, void** ppmk)
+{
+    (void)pThisItf; (void)dwAssign; (void)dwWhichMoniker;
+    if (!ppmk) return (long)0x80004003L;    // E_POINTER -- retail's own guard
+    *ppmk = nullptr;
+    return (long)0x80004005L;               // E_FAIL -- retail's no-moniker path
 }
 
+// COleServerDoc::XOleObject::GetUserClassID(CLSID*) -- retail 0x267aa0,
+// transcribed in full (it is a tail-jump, so there is nothing else in it):
+//     COleServerDoc* pThis = this - 0x278;
+//     return ((IPersistFile*)pThis->GetInterface(&IID_IPersistFile))
+//                ->GetClassID(pClassID);   // IPersist slot 3 (0x18)
+// The IID at 0x2d7a88 is {0000010b-...} == IID_IPersistFile, so this asks the
+// document's XPersistFile part (COleLinkingDoc's), not its XPersistStorage.
+// Stubbed: `this - 0x278` is not a document in OpenMFC and GetInterface returns
+// NULL for every IID on this class, so there is nothing to forward to.
 // Symbol: ?GetUserClassID@XOleObject@COleServerDoc@@UEAAJPEAU_GUID@@@Z
-extern "C" long MS_ABI impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(
+    void* pThisItf, GUID* pClassID)
+{
+    (void)pThisItf; (void)pClassID;
     return 0;
 }
 
+// COleServerDoc::XOleObject::GetUserType(DWORD, LPOLESTR*) -- retail 0x267ae0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     *ppszUserType = NULL;
+//     CLSID clsid;
+//     ((IOleObject*)pThis->GetInterface(&IID_IOleObject))
+//         ->GetUserClassID(&clsid);        // IOleObject slot 15 (0x78)
+//     return ::OleRegGetUserType(clsid, dwFormOfType, ppszUserType);
+//                                          // ole32 import at 0x2c5ba0
+// The GetUserClassID HRESULT is discarded; the return value is
+// OleRegGetUserType's.  Stubbed for the same reason as GetUserClassID above.
 // Symbol: ?GetUserType@XOleObject@COleServerDoc@@UEAAJKPEAPEA_W@Z
-extern "C" long MS_ABI impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(unsigned long p0, wchar_t** p1) {
+extern "C" long MS_ABI impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(
+    void* pThisItf, unsigned long dwFormOfType, wchar_t** ppszUserType)
+{
+    (void)pThisItf; (void)dwFormOfType; (void)ppszUserType;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceActiveObject::GetWindow(HWND*) -- retail 0x268870.
+// This one never materialises the document; it indexes off its own sub-object,
+// which is why it is ten instructions with no prologue (an earlier revision of
+// this comment said nine; the body is mov/test/je/mov/mov/neg/sbb/not/and/ret,
+// identical in mfc140u at 0x269ab0).  Transcribed in full:
+//     COleIPFrameWnd* pFrame = *(this - 0x40);   // == doc+0x250 for a
+//                                                // sub-object at doc+0x290
+//     HWND h = pFrame != NULL ? pFrame->m_hWnd@0x40 : NULL;
+//     *phwnd = h;                                 // written unconditionally
+//     return h != NULL ? S_OK : E_FAIL;           // neg/sbb/not/and 0x80004005
+// IMPLEMENTED: OpenMFC models no in-place frame for a server document at all
+// (there is no m_pInPlaceFrame member and nothing ever creates one), so the
+// pFrame == NULL branch is the only one that can be reached and its result is
+// determinate: *phwnd = NULL, E_FAIL.  DEVIATION: a NULL check on phwnd is
+// added, which retail does not have (retail would fault).  The generated
+// `return 0` was S_OK with *phwnd left uninitialised.
 // Symbol: ?GetWindow@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEAPEAUHWND__@@@Z
-extern "C" long MS_ABI impl__GetWindow_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
-    return 0;
+extern "C" long MS_ABI impl__GetWindow_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(
+    void* pThisItf, HWND* phwnd)
+{
+    (void)pThisItf;
+    if (phwnd) *phwnd = nullptr;
+    return (long)0x80004005L;               // E_FAIL -- no in-place frame
 }
 
+// COleServerDoc::XOleInPlaceObject::GetWindow(HWND*) -- retail 0x2685d0,
+// transcribed in full (again a tail-jump):
+//     COleServerDoc* pThis = this - 0x288;
+//     return ((IOleInPlaceActiveObject*)
+//                 pThis->GetInterface(&IID_IOleInPlaceActiveObject))
+//                ->GetWindow(phwnd);       // IOleWindow slot 3 (0x18)
+// i.e. it delegates to XOleInPlaceActiveObject::GetWindow above.
+// IMPLEMENTED: the delegation target is decoded (it is the function directly
+// above) and its OpenMFC result is determinate, so the composed answer is the
+// same -- *phwnd = NULL, E_FAIL.  Same phwnd NULL-check deviation.
 // Symbol: ?GetWindow@XOleInPlaceObject@COleServerDoc@@UEAAJPEAPEAUHWND__@@@Z
-extern "C" long MS_ABI impl__GetWindow_XOleInPlaceObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(void* /*struct*/** p0) {
-    return 0;
+extern "C" long MS_ABI impl__GetWindow_XOleInPlaceObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(
+    void* pThisItf, HWND* phwnd)
+{
+    (void)pThisItf;
+    if (phwnd) *phwnd = nullptr;
+    return (long)0x80004005L;               // E_FAIL -- delegate has no window
 }
 
+// COleServerDoc::XPersistStorage::HandsOffStorage() -- retail 0x267290,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x270;
+//     LPSTORAGE* ppRootStg = &pThis->[0x1c8];
+//     if (*ppRootStg != NULL) {
+//         POSITION pos = pThis->GetStartPosition();        // vtable slot 71
+//         COleClientItem* pItem;
+//         while ((pItem = (COleClientItem*)COleDocument::GetNextItemOfKind(
+//                     pThis, pos, RUNTIME_CLASS(COleClientItem))) != NULL) {
+//             // the CRuntimeClass at 0x32c5f8 names "COleClientItem",
+//             // m_nObjectSize 240 -- read out of the image, not assumed
+//             IPersistStorage* p = QI(pItem->m_lpObject@0x48,
+//                                     IID_IPersistStorage);   // helper 0x26ba50
+//             p->HandsOffStorage();       // IPersistStorage slot 9 (0x48)
+//             p->Release();               // slot 2 (0x10)
+//             pItem->[0x7f] = (BYTE)1;
+//         }
+//         RELEASE(*ppRootStg); *ppRootStg = NULL;             // helper 0x26ba84
+//     }
+//     return S_OK;                                            // unconditional
+// Stubbed: needs the document, its root storage and its client-item list, none
+// of which are reachable from the sub-object pointer here.  The retail return
+// value is S_OK on every path, so `return 0` matches it; only the side effects
+// are missing.
 // Symbol: ?HandsOffStorage@XPersistStorage@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__HandsOffStorage_XPersistStorage_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__HandsOffStorage_XPersistStorage_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceObject::InPlaceDeactivate() -- retail 0x268650,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x288;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->InternalAddRef();                    // lock incl 0x8(%rbx)
+//     if (pThis->m_pInPlaceFrame@0x250 != NULL)
+//         pThis->OnDeactivate();                  // vtable slot 92 (0x2e0),
+//                                                 // retail 0x266b30
+//     pThis->InternalRelease();                   // 0x26bb70
+//     return S_OK;
+// The 0x8000ffff (E_UNEXPECTED) stored into the return slot before the test is
+// the unwind value only: the S_OK store at 0x26869e is unconditional and the
+// jump at 0x2686a4 skips the funclet's reload, so the normal path always
+// returns S_OK whether or not the frame existed.
+// Stubbed: needs the document.  OpenMFC never has an in-place frame, so even
+// with one the OnDeactivate call would be skipped, and the retail return value
+// is S_OK either way -- `return 0` already matches it exactly.
 // Symbol: ?InPlaceDeactivate@XOleInPlaceObject@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }
 
+// COleServerDoc::XOleObject::InitFromData(IDataObject*, BOOL, DWORD) -- retail
+// 0x267710, transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();       // 0x2647f0
+//     COleDataObject dataObject;            // built in place on the stack
+//     dataObject.Attach(pDataObject, FALSE);                  // 0x2519b0
+//     BOOL b = pItem->OnInitFromData(&dataObject, fCreation); // item vtable
+//                                                             // slot 36 (0x120)
+//     // dataObject's destructor then releases what it holds
+//     return b ? S_OK : S_FALSE;            // sete: 1 when the BOOL was 0
+// (dwReserved is never read.)
+// Stubbed: needs the document and its embedded item.  Note the result is not a
+// constant either -- OpenMFC's COleServerItem::OnInitFromData throws
+// E_NOTIMPL (core/ole/COleServerItem.cpp), so there is no determinate answer
+// to substitute.
 // Symbol: ?InitFromData@XOleObject@COleServerDoc@@UEAAJPEAUIDataObject@@HK@Z
-extern "C" long MS_ABI impl__InitFromData_XOleObject_COleServerDoc__UEAAJPEAUIDataObject__HK_Z(void* /*struct*/* p0, int p1, unsigned long p2) {
+extern "C" long MS_ABI impl__InitFromData_XOleObject_COleServerDoc__UEAAJPEAUIDataObject__HK_Z(
+    void* pThisItf, void* pDataObject, int fCreation, unsigned long dwReserved)
+{
+    (void)pThisItf; (void)pDataObject; (void)fCreation; (void)dwReserved;
     return 0;
 }
 
+// COleServerDoc::XPersistStorage::InitNew(IStorage*) -- retail 0x266fd0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x270;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->OnNewEmbedding(pStg);      // vtable slot 103 (0x338), retail
+//                                       // 0x265950
+//     return S_OK;                      // EBX is zeroed before the call and
+//                                       // is the return value
+// Stubbed: needs the document.  The retail return value is S_OK unconditionally,
+// so `return 0` matches it; only the OnNewEmbedding call is missing.
 // Symbol: ?InitNew@XPersistStorage@COleServerDoc@@UEAAJPEAUIStorage@@@Z
-extern "C" long MS_ABI impl__InitNew_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__InitNew_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(
+    void* pThisItf, void* pStg)
+{
+    (void)pThisItf; (void)pStg;
     return 0;
 }
 
+// COleServerDoc::XPersistStorage::IsDirty() -- retail 0x266fa0, transcribed in
+// full (a tail-jump):
+//     COleServerDoc* pThis = this - 0x270;
+//     return ((IPersistFile*)pThis->GetInterface(&IID_IPersistFile))
+//                ->IsDirty();           // IPersistFile slot 4 (0x20)
+// The IID at 0x2d7a88 is {0000010b-...} == IID_IPersistFile, so this forwards
+// to the document's XPersistFile part (COleLinkingDoc's) rather than recursing
+// into itself.
+// Stubbed: needs the document; GetInterface returns NULL for every IID on
+// OpenMFC's COleServerDoc.  NOTE the generated `return 0` reports S_OK, which
+// for IPersistStorage::IsDirty means "dirty"; retail's answer would depend on
+// the document's modified flag.  Left alone rather than guessed at.
 // Symbol: ?IsDirty@XPersistStorage@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__IsDirty_XPersistStorage_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__IsDirty_XPersistStorage_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }
 
+// COleServerDoc::XOleObject::IsUpToDate() -- retail 0x267a30, transcribed in
+// full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();       // 0x2647f0
+//     BOOL b = pItem->OnQueryUpdateItems();  // item vtable slot 31 (0xf8),
+//                                            // retail 0x268fb0
+//     return b ? S_FALSE : S_OK;             // setne: 1 when the BOOL was set
+// (OnQueryUpdateItems answers "some contained item needs updating", so a TRUE
+// there means the object is NOT up to date -- hence the inversion.)
+// Stubbed: needs the document and its embedded item.  The value the generated
+// stub returns, S_OK, is what retail produces whenever no contained item is
+// stale, which is also what OpenMFC's own
+// COleServerItem::OnQueryUpdateItems would report for a document with no
+// client items -- but that is a coincidence of the common case, not a
+// transcription, so nothing here is claimed to be exact.
 // Symbol: ?IsUpToDate@XOleObject@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }
 
+// COleServerDoc::XPersistStorage::Load(IStorage*) -- retail 0x267040,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x270;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     ++pThis->[0x1f0];                 // BeginDeferErrors
+//     pThis->OnOpenEmbedding(pStg);     // vtable slot 104 (0x340), retail
+//                                       // 0x265a10
+//     return pThis->EndDeferErrors(S_OK);   // 0x25d560; EAX is not touched
+//                                           // afterwards, so this IS the
+//                                           // return value
+// Stubbed: needs the document.  With no deferred error to report EndDeferErrors
+// yields S_OK, so `return 0` matches the ordinary retail outcome; the
+// OnOpenEmbedding call is what is missing.
 // Symbol: ?Load@XPersistStorage@COleServerDoc@@UEAAJPEAUIStorage@@@Z
-extern "C" long MS_ABI impl__Load_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__Load_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(
+    void* pThisItf, void* pStg)
+{
+    (void)pThisItf; (void)pStg;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceActiveObject::OnDocWindowActivate(BOOL) -- retail
+// 0x268a80, transcribed in full:
+//     COleServerDoc* pThis = this - 0x290;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->OnDocWindowActivate(fActivate);   // vtable slot 94 (0x2f0)
+//     return S_OK;                             // the 0x8000ffff stored first
+//                                              // is the unwind value only
+// Stubbed: needs the document.  Retail returns S_OK unconditionally, so
+// `return 0` matches the return value exactly; the notification is missing.
 // Symbol: ?OnDocWindowActivate@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z
-extern "C" long MS_ABI impl__OnDocWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(int p0) {
+extern "C" long MS_ABI impl__OnDocWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(
+    void* pThisItf, int fActivate)
+{
+    (void)pThisItf; (void)fActivate;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceActiveObject::OnFrameWindowActivate(BOOL) -- retail
+// 0x268a10; identical in shape to OnDocWindowActivate above, transcribed:
+//     COleServerDoc* pThis = this - 0x290;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->OnFrameWindowActivate(fActivate); // vtable slot 98 (0x310),
+//                                              // retail 0x266540
+//     return S_OK;
+// Stubbed: needs the document; the S_OK return value already matches.
 // Symbol: ?OnFrameWindowActivate@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z
-extern "C" long MS_ABI impl__OnFrameWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(int p0) {
+extern "C" long MS_ABI impl__OnFrameWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(
+    void* pThisItf, int fActivate)
+{
+    (void)pThisItf; (void)fActivate;
     return 0;
 }
 
+// COleServerDoc::XDataObject::QueryGetData(FORMATETC*) -- retail 0x268140,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x280;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     return ((IDataObject*)pItem->GetInterface(&IID_IDataObject))
+//                ->QueryGetData(pformatetc);   // IDataObject slot 5 (0x28)
+// (The 0x8007000e / E_OUTOFMEMORY stored before GetEmbeddedItem is the unwind
+// value for the guarded region, not a returnable result.)
+// Stubbed: needs the document and its embedded item.  NOTE the generated
+// `return 0` reports S_OK, i.e. "yes, that format is available", for every
+// FORMATETC; that is not what retail would answer, but the correct answer is
+// the item's and cannot be obtained here.
 // Symbol: ?QueryGetData@XDataObject@COleServerDoc@@UEAAJPEAUtagFORMATETC@@@Z
-extern "C" long MS_ABI impl__QueryGetData_XDataObject_COleServerDoc__UEAAJPEAUtagFORMATETC___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__QueryGetData_XDataObject_COleServerDoc__UEAAJPEAUtagFORMATETC___Z(
+    void* pThisItf, void* pformatetc)
+{
+    (void)pThisItf; (void)pformatetc;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceObject::ReactivateAndUndo() -- retail 0x268800,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x288;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     BOOL b = pThis->OnReactivateAndUndo();   // vtable slot 97 (0x308)
+//     return b ? S_OK : INPLACE_E_NOTUNDOABLE; // 0x800401a0; neg/sbb/not/and
+// IMPLEMENTED: slot 97 of the COleServerDoc vftable holds 0x7260, which is the
+// shared `xor %eax,%eax ; ret`, so the base class returns FALSE and retail's
+// answer for a document that does not override is INPLACE_E_NOTUNDOABLE.
+// OpenMFC's own COleServerDoc::OnReactivateAndUndo (in this file, decoded from
+// mfc140u 0x71e0) likewise returns FALSE, so this result is determinate here.
+// A derived document that overrode OnReactivateAndUndo could return S_OK in
+// retail; that case cannot be reached at all in OpenMFC.  The generated
+// `return 0` claimed the undo had succeeded.
 // Symbol: ?ReactivateAndUndo@XOleInPlaceObject@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__ReactivateAndUndo_XOleInPlaceObject_COleServerDoc__UEAAJXZ() {
-    return 0;
+extern "C" long MS_ABI impl__ReactivateAndUndo_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
+    return (long)0x800401A0L;               // INPLACE_E_NOTUNDOABLE
 }
 
+// COleServerDoc::XOleInPlaceActiveObject::ResizeBorder(LPCRECT,
+// IOleInPlaceUIWindow*, BOOL) -- retail 0x268af0, transcribed in full:
+//     COleServerDoc* pThis = this - 0x290;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->OnResizeBorder(prcBorder, pUIWindow, fFrameWindow);
+//                                       // vtable slot 101 (0x328)
+//     return S_OK;
+// Stubbed: needs the document; the S_OK return value already matches.
 // Symbol: ?ResizeBorder@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z
-extern "C" long MS_ABI impl__ResizeBorder_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(const void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
+extern "C" long MS_ABI impl__ResizeBorder_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(
+    void* pThisItf, const RECT* prcBorder, void* pUIWindow, int fFrameWindow)
+{
+    (void)pThisItf; (void)prcBorder; (void)pUIWindow; (void)fFrameWindow;
     return 0;
 }
 
+// COleServerDoc::XPersistStorage::Save(IStorage*, BOOL) -- retail 0x2670d0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x270;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     if (fSameAsLoad && !pThis->IsModified())   // vtable slot 26 (0xd0)
+//         return S_OK;                           // nothing to write
+//     ++pThis->[0x1f0];                          // BeginDeferErrors
+//     pThis->[0x1d4] = 0;
+//     pThis->[0x1d0] = fSameAsLoad;
+//     pThis->OnSaveEmbedding(pStgSave);          // vtable slot 105 (0x348),
+//                                                // retail 0x265ad0
+//     if (fSameAsLoad) {
+//         pThis->SetModifiedFlag(FALSE);         // vtable slot 27 (0xd8)
+//         pThis->NotifyAllItems(1 /*OLE_SAVED*/, 0);      // 0x264950
+//     }
+//     HRESULT hr = pThis->EndDeferErrors(S_OK);  // 0x25d560 -- its EAX is the
+//                                                // return value
+//     pThis->[0x1d4] = 1;
+//     return hr;
+// Stubbed: needs the document, the two save flags at 0x1d0/0x1d4 and the
+// defer-errors depth at 0x1f0, none of which OpenMFC models.  Retail returns
+// S_OK on both the early-out and the ordinary path, so `return 0` matches the
+// return value; the embedding is simply never written.
 // Symbol: ?Save@XPersistStorage@COleServerDoc@@UEAAJPEAUIStorage@@H@Z
-extern "C" long MS_ABI impl__Save_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage__H_Z(void* /*struct*/* p0, int p1) {
+extern "C" long MS_ABI impl__Save_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage__H_Z(
+    void* pThisItf, void* pStgSave, int fSameAsLoad)
+{
+    (void)pThisItf; (void)pStgSave; (void)fSameAsLoad;
     return 0;
 }
 
+// COleServerDoc::XPersistStorage::SaveCompleted(IStorage*) -- retail 0x2671e0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x270;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->CommitItems(pStgNew != NULL, pStgNew);      // 0x2535e0
+//     if (pStgNew != NULL) {
+//         pStgNew->AddRef();                             // slot 1 (0x8)
+//         RELEASE(pThis->[0x1c8]); pThis->[0x1c8] = NULL;  // helper 0x26ba84
+//         pThis->[0x1c8] = pStgNew;
+//         pThis->[0x48].Empty();     // ATL::CSimpleStringT<T,true>::Empty
+//         pThis->[0x124] = 1;
+//         pThis->NotifyAllItems(1 /*OLE_SAVED*/, 0);     // 0x264950
+//     }
+//     return S_OK;                                       // unconditional
+// CORRECTION (wave-6 review): the previous note here read the callee as
+// "ATL::CSimpleStringT<char,true>::Empty at 0x3430, so +0x48 is a CStringA".
+// 0x3430 is indeed the <char> instantiation -- but only in mfc140.dll, which is
+// the MBCS build.  In mfc140u.dll, the image OpenMFC actually reimplements, the
+// same call goes to ?Empty@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ at 0x33b0, so
+// +0x48 holds a CStringW there.  It is a CString either way; the character type
+// simply follows the DLL flavour, and "CStringA" was wrong for our target.
+// The +0x48 string and the +0x124 int are the path name and the embedded flag
+// by MFC's documented behaviour for this method; the offsets themselves are
+// what the disassembly shows, and were not cross-checked against a layout dump.
+// Stubbed: needs the document and its root storage.  Retail returns S_OK on
+// every path, so `return 0` matches; the storage swap is missing.
 // Symbol: ?SaveCompleted@XPersistStorage@COleServerDoc@@UEAAJPEAUIStorage@@@Z
-extern "C" long MS_ABI impl__SaveCompleted_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__SaveCompleted_XPersistStorage_COleServerDoc__UEAAJPEAUIStorage___Z(
+    void* pThisItf, void* pStgNew)
+{
+    (void)pThisItf; (void)pStgNew;
     return 0;
 }
 
+// COleServerDoc::XOleObject::SetClientSite(IOleClientSite*) -- retail 0x267330,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     if (pClientSite != NULL) pClientSite->AddRef();        // slot 1 (0x8)
+//     RELEASE(pThis->m_lpClientSite@0x230);                  // helper 0x26ba84
+//     pThis->m_lpClientSite = pClientSite;
+//     if (pThis->m_pDocObjectServer@0x268 != NULL)
+//         pThis->m_pDocObjectServer->ReleaseDocSite();       // 0x255ec0
+//     if (pClientSite != NULL) {
+//         IOleDocumentSite* pDocSite;
+//         if (SUCCEEDED(pClientSite->QueryInterface(IID_IOleDocumentSite,
+//                                                   &pDocSite))) { // 0x2d7ee0
+//             if (pThis->m_pDocObjectServer != NULL) {
+//                 pThis->m_pDocObjectServer->ReleaseDocSite();   // 0x255ec0 --
+//                                    // a SECOND call, on top of the one above;
+//                                    // the earlier revision of this comment
+//                                    // omitted it (wave-6 review)
+//                 pThis->m_pDocObjectServer->[0x40] = pDocSite;
+//             }
+//             else
+//                 pThis->m_pDocObjectServer =
+//                     pThis-><vtable slot 90 (0x2d0)>(pDocSite);
+//         }
+//         // a failed QI falls straight through to the return
+//     } else if (pThis->m_pDocObjectServer != NULL) {
+//         pThis->m_pDocObjectServer->Release-style call (slot 1, arg 1);
+//         pThis->m_pDocObjectServer = NULL;
+//     }
+//     return S_OK;                                           // unconditional
+// Slot 90 holds 0x7260 == `xor %eax,%eax ; ret` in the base class, so a
+// COleServerDoc that does not override it stores NULL there.
+// Stubbed: needs the document, m_lpClientSite and m_pDocObjectServer.  Retail
+// returns S_OK on every path, so `return 0` matches the return value; the site
+// is simply not remembered.
 // Symbol: ?SetClientSite@XOleObject@COleServerDoc@@UEAAJPEAUIOleClientSite@@@Z
-extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(void* /*struct*/* p0) {
+extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
+    void* pThisItf, void* pClientSite)
+{
+    (void)pThisItf; (void)pClientSite;
     return 0;
 }
 
+// COleServerDoc::XOleObject::SetColorScheme(LOGPALETTE*) -- retail 0x267f50,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     BOOL b = pItem->OnSetColorScheme(lpLogpal);  // item vtable slot 29
+//                                                  // (0xe8)
+//     return b ? S_OK : E_NOTIMPL;                 // 0x80004001 preloaded,
+//                                                  // cmovne clears it
+// IMPLEMENTED: slot 29 of the COleServerItem vftable (base 0x32cf68) holds
+// 0x7260 == `xor %eax,%eax ; ret`, so the base item returns FALSE and retail's
+// answer for an item that does not override OnSetColorScheme is E_NOTIMPL.
+// OpenMFC's own COleServerItem::OnSetColorScheme (core/ole/COleServerItem.cpp)
+// also returns FALSE, so E_NOTIMPL is the determinate result here.  A derived
+// item that overrode it could yield S_OK in retail; that path cannot be reached
+// in OpenMFC.  The generated `return 0` claimed the palette had been accepted.
 // Symbol: ?SetColorScheme@XOleObject@COleServerDoc@@UEAAJPEAUtagLOGPALETTE@@@Z
-extern "C" long MS_ABI impl__SetColorScheme_XOleObject_COleServerDoc__UEAAJPEAUtagLOGPALETTE___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" long MS_ABI impl__SetColorScheme_XOleObject_COleServerDoc__UEAAJPEAUtagLOGPALETTE___Z(
+    void* pThisItf, void* lpLogpal)
+{
+    (void)pThisItf; (void)lpLogpal;
+    return (long)0x80004001L;               // E_NOTIMPL
 }
 
+// COleServerDoc::XDataObject::SetData(FORMATETC*, STGMEDIUM*, BOOL) -- retail
+// 0x2681f0, transcribed in full:
+//     COleServerDoc* pThis = this - 0x280;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     return ((IDataObject*)pItem->GetInterface(&IID_IDataObject))
+//                ->SetData(pformatetc, pmedium, fRelease);
+//                                       // IDataObject slot 7 (0x38)
+// Stubbed: needs the document and its embedded item.  NOTE the generated
+// `return 0` reports S_OK without ever taking ownership of *pmedium, so a
+// caller passing fRelease = TRUE would leak it; that cannot be fixed without
+// somewhere to put the data.
 // Symbol: ?SetData@XDataObject@COleServerDoc@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
-extern "C" long MS_ABI impl__SetData_XDataObject_COleServerDoc__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
+extern "C" long MS_ABI impl__SetData_XDataObject_COleServerDoc__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(
+    void* pThisItf, void* pformatetc, void* pmedium, int fRelease)
+{
+    (void)pThisItf; (void)pformatetc; (void)pmedium; (void)fRelease;
     return 0;
 }
 
+// COleServerDoc::XOleObject::SetExtent(DWORD, SIZEL*) -- retail 0x267b60,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     if (lpsizel == NULL)                     // %r8, the 2nd argument
+//         return E_INVALIDARG;                 // 0x80070057
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     CSize size = *lpsizel;                   // copied to the stack first
+//     BOOL b = pItem->OnSetExtent(dwDrawAspect, size);    // item vtable slot
+//                                                         // 26 (0xd0)
+//     return b ? S_OK : E_FAIL;                // neg/sbb/not/and 0x80004005
+// (Retail COleServerItem::OnSetExtent, 0x2690a0, stores the size only for
+// DVASPECT_CONTENT and returns FALSE for every other aspect.)
+// IMPLEMENTED IN PART: the E_INVALIDARG guard depends only on the argument, so
+// it is exact.  With no document there is no item to store the extent in, so
+// the body then reports E_FAIL -- retail's own "the item refused" outcome, and
+// an honest one here because nothing was stored.  DEVIATION: retail with a
+// DVASPECT_CONTENT extent and a live item would have returned S_OK.  The
+// generated `return 0` claimed the resize had been accepted.
 // Symbol: ?SetExtent@XOleObject@COleServerDoc@@UEAAJKPEAUtagSIZE@@@Z
-extern "C" long MS_ABI impl__SetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(unsigned long p0, void* /*struct*/* p1) {
-    return 0;
+extern "C" long MS_ABI impl__SetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(
+    void* pThisItf, unsigned long dwDrawAspect, SIZE* lpsizel)
+{
+    (void)pThisItf; (void)dwDrawAspect;
+    if (!lpsizel) return (long)0x80070057L;  // E_INVALIDARG -- retail's guard
+    return (long)0x80004005L;                // E_FAIL -- extent not stored
 }
 
+// COleServerDoc::XOleObject::SetHostNames(LPCOLESTR, LPCOLESTR) -- retail
+// 0x267460, transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     CString strHost(szContainerApp);      // CStringT ctor at 0x3b330
+//     CString strHostObj(szContainerObj);
+//     pThis->OnSetHostNames(szContainerApp != NULL ? (LPCTSTR)strHost : NULL,
+//                           szContainerObj != NULL ? (LPCTSTR)strHostObj : NULL);
+//                                           // vtable slot 88 (0x2c0), retail
+//                                           // 0x264ed0
+//     // both temporaries are then released (the lock xadd pairs)
+//     return S_OK;                          // unconditional
+// The `neg/sbb/and` pairs at 0x2674aa..0x2674bb are exactly that NULL-in /
+// NULL-out mapping: a NULL argument makes the corresponding OnSetHostNames
+// parameter NULL rather than a pointer to an empty string.
+// Stubbed: needs the document.  OpenMFC does implement
+// COleServerDoc::OnSetHostNames (it stores the two names in the ServerDocState
+// side table, see detail/OlecoreSupport.h), so this is the one entry point in
+// this block whose work OpenMFC could actually do -- it is blocked purely on
+// recovering `this`.  Retail returns S_OK unconditionally, so `return 0`
+// matches the return value.
 // Symbol: ?SetHostNames@XOleObject@COleServerDoc@@UEAAJPEB_W0@Z
-extern "C" long MS_ABI impl__SetHostNames_XOleObject_COleServerDoc__UEAAJPEB_W0_Z(const wchar_t* p0, const wchar_t* p1) {
+extern "C" long MS_ABI impl__SetHostNames_XOleObject_COleServerDoc__UEAAJPEB_W0_Z(
+    void* pThisItf, const wchar_t* szContainerApp, const wchar_t* szContainerObj)
+{
+    (void)pThisItf; (void)szContainerApp; (void)szContainerObj;
     return 0;
 }
 
+// COleServerDoc::XOleObject::SetMoniker(DWORD, IMoniker*) -- retail 0x2675e0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     LPOLECLIENTSITE pSite = pThis->m_lpClientSite@0x230;
+//     if (pSite == NULL)
+//         return E_FAIL;                     // 0x80004005
+//     LPMONIKER pmk = NULL;
+//     if (pSite->GetMoniker(OLEGETMONIKER_ONLYIFTHERE /*1*/,
+//                           OLEWHICHMK_OBJFULL /*3*/, &pmk) != S_OK)
+//         pmk = NULL;                        // IOleClientSite slot 4 (0x20);
+//                                            // r8d = edx + 2 with edx = 1
+//     POSITION pos = pThis->GetStartPosition();      // vtable slot 71 (0x238)
+//     COleClientItem* pItem;
+//     while ((pItem = (COleClientItem*)COleDocument::GetNextItemOfKind(
+//                 pThis, pos, RUNTIME_CLASS(COleClientItem))) != NULL) {
+//         // CRuntimeClass at 0x32c5f8, name "COleClientItem" read from .rdata
+//         if (pItem->[0x7d] != 0)            // BYTE flag
+//             pItem->m_lpObject@0x48->SetMoniker(OLEWHICHMK_CONTAINER /*1*/,
+//                                                pmk);   // IOleObject slot 7
+//     }
+//     pThis->NotifyAllItems(3 /*OLE_RENAMED*/, pmk);     // 0x264950
+//     RELEASE(pmk);
+//     return S_OK;
+// IMPLEMENTED (wave-6 review).  The previous revision left `return 0` here with
+// the note that the E_FAIL branch "is reached by reading doc+0x230, which is not
+// recoverable here, so the value is not asserted".  That is the same situation
+// as XOleInPlaceActiveObject::GetWindow above, which reads doc+0x250 and IS
+// implemented on the grounds that OpenMFC can never populate that member -- so
+// the two were inconsistent.  OpenMFC has no m_lpClientSite: COleServerDoc
+// declares only m_bEmbedded plus padding (afxole.h), the side table
+// detail/OlecoreSupport.h ServerDocState carries no client site either, and
+// XOleObject::SetClientSite above stores nothing.  A COleServerDoc here
+// therefore always takes retail's first branch, which returns E_FAIL and does
+// nothing else -- no moniker is fetched, no item is renamed, no OLE_RENAMED is
+// sent.  That is transcribed exactly; the previous S_OK claimed the rename had
+// been distributed to every contained item.
 // Symbol: ?SetMoniker@XOleObject@COleServerDoc@@UEAAJKPEAUIMoniker@@@Z
-extern "C" long MS_ABI impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMoniker___Z(unsigned long p0, void* /*struct*/* p1) {
-    return 0;
+extern "C" long MS_ABI impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMoniker___Z(
+    void* pThisItf, unsigned long dwWhichMoniker, void* pmk)
+{
+    (void)pThisItf; (void)dwWhichMoniker; (void)pmk;
+    return (long)0x80004005L;               // E_FAIL -- no client site, ever
 }
 
+// COleServerDoc::XOleInPlaceObject::SetObjectRects(LPCRECT, LPCRECT) -- retail
+// 0x268780, transcribed in full:
+//     COleServerDoc* pThis = this - 0x288;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->OnSetItemRects(lprcPosRect, lprcClipRect);
+//                                       // vtable slot 96 (0x300), retail
+//                                       // 0x266da0
+//     return S_OK;                      // the 0x8000ffff stored first is the
+//                                       // unwind value only
+// Stubbed: needs the document; the S_OK return value already matches.
 // Symbol: ?SetObjectRects@XOleInPlaceObject@COleServerDoc@@UEAAJPEBUtagRECT@@0@Z
-extern "C" long MS_ABI impl__SetObjectRects_XOleInPlaceObject_COleServerDoc__UEAAJPEBUtagRECT__0_Z(const void* /*struct*/* p0, const void* /*struct*/* p1) {
+extern "C" long MS_ABI impl__SetObjectRects_XOleInPlaceObject_COleServerDoc__UEAAJPEBUtagRECT__0_Z(
+    void* pThisItf, const RECT* lprcPosRect, const RECT* lprcClipRect)
+{
+    (void)pThisItf; (void)lprcPosRect; (void)lprcClipRect;
     return 0;
 }
 
+// COleServerDoc::XOleInPlaceActiveObject::TranslateAccelerator(MSG*).
+// CORRECTION (wave-6 review): the previous note here claimed the Unicode name
+// "?TranslateAcceleratorW@... has no entry in the RVA map" and fell back to the
+// MBCS twin ?TranslateAcceleratorA@... at mfc140 0x268930.  That is only true of
+// the MBCS map -- exactly the trap already flagged for OnReactivateAndUndo and
+// XDataObject::GetCanonicalFormatEtc earlier in this file.  The W symbol IS in
+// the mfc140u map, at RVA 0x269b70, and it has been re-disassembled here in the
+// Unicode image; the two bodies agree instruction for instruction.  Transcribed
+// from mfc140u 0x269b70:
+//     COleServerDoc* pThis = this - 0x290;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->InternalAddRef();                     // lock incl 0x8(%rbx)
+//     MSG msg = *lpmsg;                            // 48 bytes copied via xmm
+//     BOOL b = pThis->m_pInPlaceFrame@0x250->PreTranslateMessage(&msg);
+//                                       // COleIPFrameWnd virtual at 0x228.
+//                                       // Both frame vftables carry
+//                                       // ?PreTranslateMessage@COleIPFrameWnd@@
+//                                       // at +0x228, checked in BOTH images:
+//                                       // mfc140 0x32d9a8 / 0x32cb60 and
+//                                       // mfc140u 0x32fb58 / 0x32ed10, each
+//                                       // identified by its slot 0
+//                                       // ?GetThisClass@COleIPFrameWnd@@ /
+//                                       // @COleDocIPFrameWnd@@
+//     *lpmsg = msg;                                // copied back
+//     pThis->InternalRelease();                    // mfc140u 0x26cdb0
+//     return b ? S_OK : S_FALSE;                   // sete: 1 when b was 0
+// Note the frame pointer is dereferenced WITHOUT a NULL check, so retail is
+// only correct while the document is in-place active.
+// IMPLEMENTED as a DEVIATION: the document is not recoverable and OpenMFC never
+// has an in-place frame, so no translation can happen; the body reports
+// S_FALSE, "this message was not consumed".  That is the answer the retail
+// contract requires for an unhandled message and is what a live frame would
+// return for a message it did not translate.  The generated `return 0` reported
+// S_OK, which tells the container the keystroke was swallowed and silently eats
+// input.  Nothing about the frame's behaviour is being claimed here.
 // Symbol: ?TranslateAcceleratorW@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEAUtagMSG@@@Z
-extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAUtagMSG___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAUtagMSG___Z(
+    void* pThisItf, void* lpmsg)
+{
+    (void)pThisItf; (void)lpmsg;
+    return 1;                               // S_FALSE -- message not translated
 }
 
+// COleServerDoc::XOleInPlaceObject::UIDeactivate() -- retail 0x2686e0,
+// transcribed in full:
+//     COleServerDoc* pThis = this - 0x288;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     pThis->InternalAddRef();                     // lock incl 0x8(%rbx)
+//     COleIPFrameWnd* pFrame = pThis->m_pInPlaceFrame@0x250;
+//     if (pFrame != NULL && pFrame->[0x1d8] != 0)  // an int in the frame
+//         pThis->OnDeactivateUI(FALSE);            // vtable slot 93 (0x2e8),
+//                                                  // retail 0x266c10
+//     pThis->InternalRelease();                    // 0x26bb70
+//     return S_OK;
+// As in InPlaceDeactivate, the 0x8000ffff stored into the return slot before
+// the test is the unwind value; S_OK is stored unconditionally afterwards.
+// Stubbed: needs the document and the in-place frame.  OpenMFC never has a
+// frame, so the OnDeactivateUI call would be skipped anyway, and the retail
+// return value is S_OK on every path -- `return 0` matches it exactly.
 // Symbol: ?UIDeactivate@XOleInPlaceObject@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }
 
+// COleServerDoc::XOleObject::Unadvise(DWORD) -- retail 0x267d70, transcribed in
+// full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     return ((IOleObject*)pItem->GetInterface(&IID_IOleObject))
+//                ->Unadvise(dwConnection);   // IOleObject slot 20 (0xa0)
+// (The 0x8007000e stored beforehand is the guarded region's unwind value.)
+// Stubbed: needs the document and its embedded item.  The matching
+// XOleObject::Advise earlier in this file is stubbed for the same reason and
+// hands out no connection token, so there is never a token to revoke.
 // Symbol: ?Unadvise@XOleObject@COleServerDoc@@UEAAJK@Z
-extern "C" long MS_ABI impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(unsigned long p0) {
+extern "C" long MS_ABI impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(
+    void* pThisItf, unsigned long dwConnection)
+{
+    (void)pThisItf; (void)dwConnection;
     return 0;
 }
 
+// COleServerDoc::XOleObject::Update() -- retail 0x2679c0, transcribed in full:
+//     COleServerDoc* pThis = this - 0x278;
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
+//     pItem->OnUpdateItems();            // item vtable slot 32 (0x100),
+//                                        // retail 0x269020; its result is
+//                                        // discarded
+//     return S_OK;                       // EBX is zeroed before the call and
+//                                        // is the return value
+// Stubbed: needs the document and its embedded item.  Retail returns S_OK
+// unconditionally, so `return 0` matches the return value exactly; only the
+// OnUpdateItems call is missing.
 // Symbol: ?Update@XOleObject@COleServerDoc@@UEAAJXZ
-extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ() {
+extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf)
+{
+    (void)pThisItf;
     return 0;
 }

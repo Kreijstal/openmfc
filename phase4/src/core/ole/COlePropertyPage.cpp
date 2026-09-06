@@ -119,7 +119,12 @@
 // ordinals). Results:
 //
 //   * Every COlePropertyPage entry point in this file resolves in mfc140u,
-//     including the two the MBCS map has no row for. The MBCS map is a
+//     including the THREE the MBCS map has no row for. (This note used to say
+//     "the two"; re-counted against mfc140_rva_symbols.json, the thunks in
+//     this file with no MBCS row are ?OnHelp@, ?OnRequestEdit@ AND
+//     ?IsModified@ -- and two more COlePropertyPage exports that are plain
+//     C++ methods here rather than thunks, ?OnEditProperty@ and
+//     ?OnObjectsChanged@, are missing from it as well.) The MBCS map is a
 //     one-symbol-per-RVA dictionary, so any export whose body was folded onto
 //     an address another export already claimed simply drops out of it; that,
 //     not absence from the image, is why ?OnHelp@ and ?OnRequestEdit@ looked
@@ -134,8 +139,10 @@
 //     EnumControls, IgnoreApply, SetDialogResource, OnCommand, OnCtlColor,
 //     OnFinalRelease, OnInitDialog, PreTranslateMessage, WindowProc,
 //     MessageBoxW, GetPropText(int&), SetPropText(BYTE&) and each of the
-//     twelve nested-interface methods below, and every one matches the
-//     transcription written beside it here: same member offsets
+//     fourteen nested-interface methods below (twelve XPropertyPage plus
+//     XPropNotifySink::OnChanged and ::OnRequestEdit -- this note used to say
+//     "twelve", which counted only the XPropertyPage half), and every one
+//     matches the transcription written beside it here: same member offsets
 //     (0x158/0x15c/0x160/0x168/0x170/0x178/0x180/0x188/0x190/0x198/0x1a0/
 //     0x1a8/0x1ac/0x1b0/0x1b4/0x1b8/0x1c0/0x1e8/0x1f0/0x1f8), same sub-object
 //     adjustments (-0x1f0 / -0x1f8), same control flow.
@@ -211,6 +218,52 @@
 //     static_assert(offsetof(...)) on all six declared members plus
 //     sizeof(CDialog) == 0x130 and sizeof(COlePropertyPage) == 0x200, and
 //     every value in that table compiled clean.
+//
+// Adversarial review pass (2026-09, second reviewer). The pass above left a
+// set of GetProp*/SetProp* sibling bodies -- these fourteen RVAs, covering
+// seventeen exports -- asserted from "family shape" without having been
+// opened. They have now been opened in mfc140u, one at a time,
+// and every one of them has the same prologue (RCX/RDX/R8 saved, the CString
+// built from the property name at 0x18000dcb0, the return register zeroed)
+// and the same `xor %ebx,%ebx; cmp %ebx,0x1ac(<this>); jbe <epilogue>` guard
+// AHEAD of any write to the out-parameter, so the zero-iteration reduction
+// below is transcription, not inference, for all of them:
+//   GetPropText  BYTE&  0x1eaa80  short& 0x1ead30  UINT&  0x1eb150
+//                long&  0x1eb2c0  DWORD& 0x1eb430  float& 0x1eb6e0
+//                double&0x1eb9a0
+//   GetPropRadio 0x1ec240 (the GetPropIndex jmp target, walked in full)
+//   SetPropRadio 0x1ec100 (likewise)  SetPropCheck 0x1ebe50
+//   SetPropText  short& 0x1eabf0  int&/UINT&/long&/DWORD& 0x1eaea0
+//                float& 0x1eb5a0  double& 0x1eb860
+// The VARTYPE tables quoted in the two family headers were re-read out of the
+// bodies as well: VT_UI1 0x11 at 0x1ea9ef, VT_BOOL 0xb at 0x1ebf03
+// (SetPropCheck) and at 0x1ec043 (GetPropCheck), VT_I2 2 at 0x1ec1af
+// (SetPropRadio) and 0x1ec304 (GetPropRadio), VT_BSTR 8 at 0x1ebd54.
+// Independently re-confirmed in the same pass, against the images rather
+// than against these notes: the 15-slot XPropertyPage vtable (mfc140u
+// 0x324928, slot 14 EditProperty, slot 15 already the next .rdata object's
+// RTTI locator; mfc140 0x322768 identical) and the 5-slot XPropNotifySink
+// vtable (mfc140u 0x3248f8 / mfc140 0x322738, slot 2 Release and slot 4
+// OnRequestEdit sharing one `xor %eax,%eax; ret`); the folded-COMDAT export
+// counts (134 exports at mfc140u 0x71e0, 158 at 0x27d0 -- both exact); the
+// CRuntimeClass descriptors (mfc140u 0x3248c0 / mfc140 0x322700, each
+// naming "COlePropertyPage", m_nObjectSize 0x200, schema 0xffff); the CDialog
+// vtable ending at +0x320, so that 0x328/0x330/0x338/0x340 really are the
+// first four slots a CDialog-derived class appends; the three
+// GUIDs (0x2d9d28 = IID_IPropertyNotifySink, 0x2d9b48 = IID_IDispatch,
+// 0x2d98d8 = IID_NULL); the IAT slots named below in both builds; and the
+// six OpenMFC member offsets plus sizeof(CDialog)/sizeof(COlePropertyPage).
+// Six comment claims WERE found false and are corrected in place, each
+// marked "this comment used to say ...": the count of exports missing from
+// the MBCS map, the count of nested-interface methods, GetObjectArray's
+// instruction count, IgnoreApply's instruction count, the "two EnumControls
+// passes", and GetPageInfo's "the one method here with no module-state
+// frame". The two CStringT overloads' parameter comments named the wrong C++
+// type and are corrected too. No body was found wrong; nothing was reverted,
+// and no stub was found to be implementable after all -- g_imap_
+// COlePropertyPage (detail/InterfaceMapsSupport.cpp) was re-read and is still
+// the bare inherited CCmdTarget map with an empty entry list, so nothing in
+// this build can hand out either sub-object pointer.
 //
 // A recurring reduction is used below and is worth stating once. Nothing in
 // OpenMFC ever populates the object array: its only writer is
@@ -366,9 +419,10 @@ extern "C" int MS_ABI impl__EnumControls_COlePropertyPage__KAHPEAUHWND_____J_Z(H
 //     return TRUE;                                  ; not found => TRUE
 // The not-found answer is TRUE, not FALSE: MFC treats a control it is not
 // tracking as one whose value must be written back. m_pControlStatus is only
-// ever built by XPropertyPage::Activate (0x1e7a00) via the two EnumControls
-// passes, and Activate is a stub here, so m_nControls is permanently 0 and the
-// loop never runs. TRUE is therefore the retail answer for every nID in this
+// ever built by XPropertyPage::Activate (0x1e7a00) via its two
+// ::EnumChildWindows passes -- EnumChildProc counts, EnumControls fills; this
+// comment used to call them both "EnumControls" -- and Activate is a stub
+// here, so m_nControls is permanently 0 and the loop never runs. TRUE is therefore the retail answer for every nID in this
 // build; the generated stub's FALSE was the opposite. Tracking the table is a
 // headerRequest.
 // Symbol: ?GetControlStatus@COlePropertyPage@@QEAAHI@Z
@@ -378,7 +432,7 @@ extern "C" int MS_ABI impl__GetControlStatus_COlePropertyPage__QEAAHI_Z(
 }
 
 // COlePropertyPage::GetObjectArray(ULONG* pnObjects) -- retail (0x1e76f0) is
-// five instructions:
+// six instructions (test/je/mov/mov/mov/ret; this comment used to say five):
 //     if (pnObjects) *pnObjects = m_nObjects;   ; 0x1ac, a DWORD store
 //     return m_ppDisp;                          ; 0x198
 // Neither member is declared by OpenMFC (headerRequest) and neither is ever
@@ -517,12 +571,15 @@ extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAN_Z(
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*CString& strValue*/) {
+    // PEAV in the mangling: retail's third argument is CString* (a pointer
+    // that can legitimately be NULL), not CString&.
+    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*CString* pStrValue*/) {
     return 0;
 }
 
-// COlePropertyPage::IgnoreApply(UINT nID) -- retail (0x1e8660) is four
-// instructions and a tail jump:
+// COlePropertyPage::IgnoreApply(UINT nID) -- retail (0x1e8660) is three
+// instructions and a tail jump (`add $0x1c0,%rcx; mov %edx,%r8d;
+// mov 0x10(%rcx),%rdx; jmp`; this comment used to say four instructions):
 //     CDWordArray* a = &this->m_dwaIgnoreApply;  ; 0x1c0
 //     CDWordArray::SetAtGrow(a, a->m_nSize /*+0x10*/, nID);  ; a tail jmp --
 //         ; i.e. an inlined Add()
@@ -956,7 +1013,9 @@ extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAN_Z(
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*const CString& value*/) {
+    // AEAV, not AEBV: the reference is NON-const (retail reads the caller's
+    // string and MFC declares it `CString& strValue`).
+    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*CString& strValue*/) {
     return 0;
 }
 
@@ -1190,8 +1249,13 @@ extern "C" long MS_ABI impl__EditProperty_XPropertyPage_COlePropertyPage__UEAAJJ
     return 0;
 }
 
-// XPropertyPage::GetPageInfo(PROPPAGEINFO*) -- retail (0x1e7c60), the one
-// method here with no module-state frame:
+// XPropertyPage::GetPageInfo(PROPPAGEINFO*) -- retail (0x1e7c60). (This
+// comment used to call it "the one method here with no module-state frame".
+// That is false, and contradicted by this file's own Show and Move notes.
+// Re-counted in mfc140u: FIVE of the fourteen nested-interface bodies open
+// without the AFX_MAINTAIN_STATE2 call to 0x180133170 -- GetPageInfo
+// 0x1e9ec0, Show 0x1ea080, Move 0x1ea0c0, IsPageDirty 0x1ea100 and
+// OnRequestEdit 0x71e0 -- and the other nine make it.)
 //     if (pPageInfo == NULL) AfxThrowInvalidArgException();   ; 0x225b80
 //     pPageInfo->pszTitle      = dup(m_strPageName  /*outer+0x168*/); ; 0x1e5714
 //     pPageInfo->size          =     m_sizePage     /*outer+0x170*/;  ; one qword

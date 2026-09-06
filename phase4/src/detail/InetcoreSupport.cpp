@@ -140,9 +140,6 @@ __attribute__((used)) CRuntimeClass g_classCInternetException = {
 __attribute__((used)) CRuntimeClass g_classCHttpFile = {
     "CHttpFile", sizeof(CHttpFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
-__attribute__((used)) CRuntimeClass g_classCGopherFile = {
-    "CGopherFile", sizeof(CGopherFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
-};
 void openmfcConstructString(CString* pRet, const CString& value) {
     if (pRet) {
         new (pRet) CString(value);

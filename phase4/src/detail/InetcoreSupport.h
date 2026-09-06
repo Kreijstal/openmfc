@@ -157,9 +157,6 @@ namespace openmfc { namespace detail { namespace inetcore {
 extern __attribute__((used)) CRuntimeClass g_classCHttpFile;
 } } }
 
-namespace openmfc { namespace detail { namespace inetcore {
-extern __attribute__((used)) CRuntimeClass g_classCGopherFile;
-} } }
 
 //=============================================================================
 // CInternetFile

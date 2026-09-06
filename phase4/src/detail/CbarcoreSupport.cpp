@@ -147,18 +147,6 @@ thread_local _AFX_D2D_STATE g_d2dState;
 __attribute__((used)) CRuntimeClass g_classCUserException = {
     "CUserException", sizeof(CException), 0xFFFF, nullptr, nullptr, &CException::classCException, nullptr
 };
-__attribute__((used)) CRuntimeClass g_classCUserTool = {
-    "CUserTool", sizeof(void*), 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
-};
-__attribute__((used)) CRuntimeClass g_classCTabbedPane = {
-    "CTabbedPane", sizeof(void*), 0xFFFF, nullptr, nullptr, &CWnd::classCWnd, nullptr
-};
-__attribute__((used)) CRuntimeClass g_classCTaskDialog = {
-    "CTaskDialog", sizeof(CTaskDialog), 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
-};
-__attribute__((used)) CRuntimeClass g_classCWindowlessDC = {
-    "CWindowlessDC", sizeof(CDC), 0xFFFF, nullptr, nullptr, &CDC::classCDC, nullptr
-};
 void AddTaskDialogButton(TaskDialogButtonState& state, int id, const wchar_t* label, int enabled) {
     auto it = std::find_if(state.buttons.begin(), state.buttons.end(),
         [id](const TASKDIALOG_BUTTON& button) { return button.nButtonID == id; });

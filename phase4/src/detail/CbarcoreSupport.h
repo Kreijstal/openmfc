@@ -285,21 +285,9 @@ namespace openmfc { namespace detail { namespace cbarcore {
 extern __attribute__((used)) CRuntimeClass g_classCUserException;
 } } }
 
-namespace openmfc { namespace detail { namespace cbarcore {
-extern __attribute__((used)) CRuntimeClass g_classCUserTool;
-} } }
 
-namespace openmfc { namespace detail { namespace cbarcore {
-extern __attribute__((used)) CRuntimeClass g_classCTabbedPane;
-} } }
 
-namespace openmfc { namespace detail { namespace cbarcore {
-extern __attribute__((used)) CRuntimeClass g_classCTaskDialog;
-} } }
 
-namespace openmfc { namespace detail { namespace cbarcore {
-extern __attribute__((used)) CRuntimeClass g_classCWindowlessDC;
-} } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
 void AddTaskDialogButton(TaskDialogButtonState& state, int id, const wchar_t* label, int enabled);

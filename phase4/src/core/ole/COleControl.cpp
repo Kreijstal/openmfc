@@ -21,6 +21,25 @@
 //
 // Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass drops the
 // generated stubs for these ordinals.
+//
+// Resolving an export that mfc140_rva_symbols.json reports as "NOT FOUND":
+// that map is rva -> symbol, so when the linker's /OPT:ICF folded several
+// exports onto one address only one of them survives the inversion (14,022
+// exports, 12,478 distinct RVAs).  The lost ones are recoverable by joining
+// mfc_complete_ordinal_mapping.json (symbol -> ordinal, mfc140u) against the
+// export address table of
+//   ~/msvc/VC/Redist/MSVC/14.51.36231/x64/Microsoft.VC145.MFC/mfc140u.dll
+// (objdump -p, "Ordinal  Address" rows).  Several bodies below were decoded
+// that way and cite mfc140u RVAs; the DLL-wide folded bodies worth knowing are
+// 0x27d0 `ret` (158 exports fold onto it), 0x71e0 `xor eax,eax ; ret` (134) and
+// 0x3a60 `mov eax,1 ; ret` (101) -- counts measured by that same ordinal join
+// over mfc140u, not by mfc140_rva_symbols.json, whose own totals (14,022 named
+// ordinals resolving to 12,478 distinct RVAs) describe the MBCS mfc140.dll.
+// Do NOT mix the two RVA spaces: RVAs cited as
+// "mfc140" elsewhere in this file come from the MBCS mfc140.dll and differ.
+// The real MFC headers on this host
+// (~/msvc/VC/Tools/MSVC/14.51.36231/atlmfc/include/afxctl.h) give the virtual
+// declaration order, which is what pins the vtable slot numbers cited below.
 
 #include "openmfc/afxwin.h"
 #include "openmfc/afxdisp.h"
@@ -85,7 +104,132 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
 extern "C" void MS_ABI impl__SetControl_CReflectorWnd__QEAAXPEAVCOleControl___Z(
     void* pThis, void* pControl);
 
+// ---- further sibling impl_ exports used by the bodies added below ----
+// Every one of these was checked to have a definition before being declared
+// here, per the campaign's link rule:
+//   core/ole/Thunks.cpp                 IsSubclassedControl
+//   core/runtime/CCmdTarget.cpp         GetInterface, GetThisConnectionMap
+//   core/gdi/CRectTracker.cpp           HitTest, Draw
+//   featurepack/CMFC_misc_stubs.cpp     AfxLockTempMaps / AfxUnlockTempMaps
+extern "C" int MS_ABI impl__IsSubclassedControl_COleControl__UEAAHXZ(COleControl* pThis);
+extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(
+    CCmdTarget* pThis, const void* piid);
+extern "C" const void* MS_ABI
+impl__GetThisConnectionMap_CCmdTarget__KAPEBUAFX_CONNECTIONMAP__XZ();
+extern "C" int MS_ABI impl__HitTest_CRectTracker__QEBAHVCPoint___Z(
+    const void* pThis, unsigned long long point);
+extern "C" void MS_ABI impl__Draw_CRectTracker__QEBAXPEAVCDC___Z(
+    const void* pThis, void* pDC);
+extern "C" void MS_ABI impl__AfxLockTempMaps__YAXXZ();
+extern "C" int MS_ABI impl__AfxUnlockTempMaps__YAHH_Z(int bDeleteTemps);
+extern "C" int MS_ABI impl__SaveDC_CDC__QEAAHXZ(CDC* pThis);
+extern "C" int MS_ABI impl__RestoreDC_CDC__QEAAHH_Z(CDC* pThis, int nSavedDC);
+
 namespace {
+
+// ---- COleControl's two static maps, copied out of retail .rdata -------------
+// ?GetConnectionMap@COleControl@@ and ?GetThisConnectionMap@COleControl@@ are
+// one ICF-folded body at mfc140u 0x1deff0 (`lea rax,[rip+0x144301] ; ret`) that
+// hands back the AFX_CONNECTIONMAP at rva 0x3232f8.  Its 16 bytes read
+//     { pfnGetBaseMap = 0x1de8e0, lpEntries = 0x34b5d0 }
+// where 0x1de8e0 is CCmdTarget::GetThisConnectionMap (itself ICF-folded with
+// CCmdTarget::GetConnectionMap), and the entry table at 0x34b5d0 reads
+//     { piid = 0x2d9d28, nOffset = 0x330 }, { NULL, (size_t)-1 }
+// with the 16 bytes at 0x2d9d28 being 02 bc fb 9b f1 ef 1a 10 84 ed 00 aa 00 34
+// 1d 07 = IID_IPropertyNotifySink.  nOffset 0x330 is afxole.h's m_xPropConnPt.
+//
+// ?GetEventMap@COleControl@@ and ?GetThisEventMap@COleControl@@ are likewise
+// one body at mfc140u 0x1e3560 yielding the AFX_EVENTMAP at rva 0x33e2d0 --
+// whose 24 bytes are all zero.  COleControl is the root of the event-map chain
+// (pfnGetBaseMap NULL ends the walk) and declares no events, and its
+// lpStockEventMask is never dereferenced because InitStockEventMask reads that
+// field only from the *first* map in the chain, i.e. from the derived control's.
+//
+// The two struct shapes below are the real afxctl.h AFX_EVENTMAP /
+// AFX_EVENTMAP_ENTRY and afxwin.h AFX_CONNECTIONMAP / AFX_CONNECTIONMAP_ENTRY;
+// core/runtime/CCmdTarget.cpp models the same two for CCmdTarget's own maps.
+struct EventMapEntry {                          // AFX_EVENTMAP_ENTRY, 0x18 bytes
+    unsigned int   flags;                       // +0x00
+    long           dispid;                      // +0x04
+    const wchar_t* pszName;                     // +0x08
+    const char*    lpszParams;                  // +0x10
+};
+struct EventMap {                               // AFX_EVENTMAP
+    const EventMap* (MS_ABI* pfnGetBaseMap)();  // +0x00
+    const EventMapEntry* lpEntries;             // +0x08
+    unsigned long*       lpStockEventMask;      // +0x10
+};
+struct ConnectionMapEntry {                     // AFX_CONNECTIONMAP_ENTRY
+    const IID* piid;
+    size_t     nOffset;
+};
+struct ConnectionMap {                          // AFX_CONNECTIONMAP
+    const void* (MS_ABI* pfnGetBaseMap)();
+    const ConnectionMapEntry* pEntry;
+};
+static_assert(sizeof(EventMapEntry) == 0x18,
+              "AFX_EVENTMAP_ENTRY is 0x18 bytes -- retail strides the entry array by 0x18");
+static_assert(offsetof(EventMapEntry, dispid) == 0x04, "AFX_EVENTMAP_ENTRY::dispid at +0x04");
+static_assert(offsetof(EventMapEntry, pszName) == 0x08, "AFX_EVENTMAP_ENTRY::pszName at +0x08");
+static_assert(offsetof(EventMap, lpEntries) == 0x08, "AFX_EVENTMAP::lpEntries at +0x08");
+static_assert(offsetof(EventMap, lpStockEventMask) == 0x10,
+              "AFX_EVENTMAP::lpStockEventMask at +0x10");
+
+const EventMap g_eventMap_COleControl = { nullptr, nullptr, nullptr };
+
+// {9BFBBC02-EFF1-101A-84ED-00AA00341D07} -- the bytes at mfc140u rva 0x2d9d28.
+const IID kIID_IPropertyNotifySink =
+    { 0x9BFBBC02, 0xEFF1, 0x101A, { 0x84, 0xED, 0x00, 0xAA, 0x00, 0x34, 0x1D, 0x07 } };
+static_assert(offsetof(COleControl, m_xPropConnPt) == 0x330,
+              "retail's connection-map entry names nOffset 0x330");
+const ConnectionMapEntry g_connEntries_COleControl[] = {
+    { &kIID_IPropertyNotifySink, offsetof(COleControl, m_xPropConnPt) },
+    { nullptr, (size_t)-1 }
+};
+const ConnectionMap g_connectionMap_COleControl = {
+    &impl__GetThisConnectionMap_CCmdTarget__KAPEBUAFX_CONNECTIONMAP__XZ,
+    g_connEntries_COleControl
+};
+
+// CRectTracker as OpenMFC lays it out (phase4/src/core/gdi/CRectTracker.cpp,
+// harvested with cl.exe /d1reportSingleClassLayoutCRectTracker, size 80).  The
+// two fields the COleControl bodies below read are exactly the two the retail
+// disassembly reads at +0x08 and +0x24, so the layouts agree.
+struct TrackerView {
+    const void*  vfptr;          // 0x00
+    unsigned int m_nStyle;       // 0x08
+    RECT         m_rect;         // 0x0C
+    SIZE         m_sizeMin;      // 0x1C
+    int          m_nHandleSize;  // 0x24
+};
+static_assert(offsetof(TrackerView, m_nStyle) == 0x08, "CRectTracker::m_nStyle at +0x08");
+static_assert(offsetof(TrackerView, m_rect) == 0x0C, "CRectTracker::m_rect at +0x0C");
+static_assert(offsetof(TrackerView, m_nHandleSize) == 0x24, "CRectTracker::m_nHandleSize at +0x24");
+// CRectTracker::resizeInside | CRectTracker::resizeOutside
+const unsigned int kTrackerResizeMask = 0x18;
+
+// The unexported border helper the OnNcPaint body below calls, transcribed from
+// retail mfc140u 0x1e03a0.  It has no export, so it is reproduced here:
+//     lea rbx,[rcx+8]                 ; &pDC->m_hDC (CDC::m_hDC is at +8, which
+//                                     ;  is also where OpenMFC's CDC keeps it --
+//                                     ;  see DcHandle() in core/gdi/CRectTracker.cpp)
+//     if (bBorder)  DrawEdge(hdc, lpRect,
+//                            bClientEdge ? 0x0C : 0x03,
+//                            bClientEdge ? 0x600F : 0xA00F);
+//     if (bClientEdge) DrawEdge(hdc, lpRect, 0x0A, 0x200F);
+// The two flag words are literally what the `sbb`/`and`/`add` idioms compute:
+// 0xA00F = BF_MONO|BF_ADJUST|BF_RECT, 0x600F = BF_FLAT|BF_ADJUST|BF_RECT,
+// 0x200F = BF_ADJUST|BF_RECT, 0x0A = EDGE_SUNKEN.  BF_ADJUST means each call
+// shrinks *lpRect in place, and the caller depends on that: the scrollbar-corner
+// rectangle is computed from the rect AFTER these calls have adjusted it.
+void DrawTrackerBorder(HDC hdc, RECT* lpRect, int bBorder, int bClientEdge)
+{
+    if (bBorder)
+        ::DrawEdge(hdc, lpRect, bClientEdge ? 0x0Cu : 0x03u,
+                   (unsigned int)(bClientEdge ? 0x600F : 0xA00F));
+    if (bClientEdge)
+        ::DrawEdge(hdc, lpRect, 0x0Au, 0x200Fu);
+}
 
 // Retail's RELEASE helper (mfc140 0x26ba84), used by OnHide below:
 //     if (*ppUnk != NULL) { (*ppUnk)->Release(); *ppUnk = NULL; }
@@ -411,6 +555,11 @@ extern "C" void MS_ABI impl__ForwardActivationMsg_COleControl__IEAAXPEAUtagMSG__
 // OnGetDlgCode (0x1e3b10) gate on the very same slot, which is what MFC
 // documents as IsSubclassedControl().  (An older revision of this comment named
 // it PreCreateWindow(); nothing in the three call sites supports that.)
+// The real afxctl.h on this host settles it independently: COleControl declares
+// IsSubclassedControl, ReparentControlWindow and GetControlFlags consecutively,
+// and the retail slots 0x468 / 0x470 / 0x478 are consecutive too, with 0x478
+// pinned to GetControlFlags by GetInterfaceHook (this file).  OnMove (this
+// file) gates on 0x468 as well.
 // The two helpers, both read out of the retail bodies rather than guessed:
 //   u 0x1df440 -- returns an HWND, not a class name.  It caches a hidden
 //     module-wide parent window in AfxGetThreadState()->+0x1d0: on first call it
@@ -675,10 +824,19 @@ extern "C" void MS_ABI impl__DestroyTracker_COleControl__IEAAXXZ(COleControl* pT
 extern "C" const void* MS_ABI impl__GetConnectionMap_COleControl__MEBAPEBUAFX_CONNECTIONMAP__XZ(
     const COleControl* /*pThis*/)
 {
-    // TODO(clean-room): AFX_CONNECTIONMAP and the connection-point sub-objects
-    // it names are not modeled by OpenMFC, so there is no map to hand back.
-    // Returning null is a deviation from retail, which always returns non-null.
-    return nullptr;
+    // The map itself is now reproduced byte-for-byte from retail .rdata (see
+    // g_connectionMap_COleControl at the top of this file): base map getter =
+    // CCmdTarget::GetThisConnectionMap, one live entry
+    // { &IID_IPropertyNotifySink, offsetof(COleControl, m_xPropConnPt) = 0x330 },
+    // then the { NULL, (size_t)-1 } terminator.
+    //
+    // Remaining deviation, and it is the important one: OpenMFC never
+    // constructs the connection-point sub-object that lives at that offset, so
+    // a caller that walks this map and treats this+0x330 as a CConnectionPoint
+    // will read uninitialised storage.  Handing back the correct *map* is still
+    // strictly better than NULL, because a derived control's own connection map
+    // chains into this one and a NULL here breaks the walk outright.
+    return &g_connectionMap_COleControl;
 }
 // COleControl::GetConnectionHook(const IID&) — retail (0x1df000):
 //     if (!m_piidEvents) return NULL;
@@ -2263,13 +2421,12 @@ extern "C" int MS_ABI impl__GetDispatchIID_COleControl__MEAAHPEAU_GUID___Z(
 extern "C" const void* MS_ABI impl__GetEventMap_COleControl__MEBAPEBUAFX_EVENTMAP__XZ(
     const COleControl* /*pThis*/)
 {
-    // TODO(clean-room): AFX_EVENTMAP and the event-map machinery are not
-    // modeled by OpenMFC. Returning null is a deviation from retail, which
-    // always returns a non-null static map; nothing inside this DLL calls the
-    // accessor today (its would-be consumers, GetEventMapEntry, OnGetDlgCode
-    // and InitStockEventMask, all avoid it), so nothing dereferences the
-    // result -- but an external caller that does will get NULL.
-    return nullptr;
+    // Reproduced from retail: the 24 bytes at mfc140u rva 0x33e2d0 are all
+    // zero, so COleControl's own map is { NULL, NULL, NULL } -- no base map
+    // (COleControl is the root of the event-map chain), no entries, and no
+    // stock-event-mask word.  Returning it rather than NULL is what lets a
+    // derived control's BEGIN_EVENT_MAP chain terminate the way retail's does.
+    return &g_eventMap_COleControl;
 }
 
 
@@ -2290,16 +2447,44 @@ extern "C" const void* MS_ABI impl__GetEventMap_COleControl__MEBAPEBUAFX_EVENTMA
 //         pMap = pMap->pfnGetBaseMap();
 //         dwIndex = ((((dwIndex >> 16) + 1) & 0xffff) << 16) | 1;
 //     }
+// The walk itself is transcribed below over the EventMap/EventMapEntry shapes
+// declared at the top of this file (afxctl.h's AFX_EVENTMAP*, confirmed against
+// the strides and field offsets the disassembly uses: entries advance by 0x18,
+// pszName is read at +0x08 and dispid at +0x04).  Retail compares names with
+// KERNEL32 lstrcmpW; ::lstrcmpW is used here for the same reason.
+//
+// DEVIATION, and it is what makes this body a no-op today: retail seeds the
+// walk from the *virtual* GetEventMap (slot 0x4d0), so a derived control's map
+// is what gets walked.  OpenMFC's COleControl does not declare GetEventMap, so
+// there is no virtual to dispatch through and this code can only seed from
+// COleControl's own map -- which retail itself defines as all-NULL.  The loop
+// therefore always falls out at the first `pMap->lpEntries == NULL` test and
+// returns NULL, exactly as the previous stub did.
+// Two smaller, deliberate deviations on the found path: retail writes *pDispid
+// with no null check (`mov %ecx,(%r14)`) and calls lstrcmpW with whatever
+// lpszName it was handed; the body below guards both.
 // Symbol: ?GetEventMapEntry@COleControl@@IEBAPEBUAFX_EVENTMAP_ENTRY@@PEB_WPEAJ@Z
 extern "C" const void* MS_ABI impl__GetEventMapEntry_COleControl__IEBAPEBUAFX_EVENTMAP_ENTRY__PEB_WPEAJ_Z(
-    const COleControl* /*pThis*/, const wchar_t* /*lpszName*/, long* /*pDispid*/)
+    const COleControl* pThis, const wchar_t* lpszName, long* pDispid)
 {
-    // TODO(clean-room): neither AFX_EVENTMAP nor AFX_EVENTMAP_ENTRY is modeled
-    // by OpenMFC and GetEventMap above returns null, so the walk above has
-    // nothing to walk. "Not found" (null, *pDispid untouched) is the safe
-    // answer; note that retail leaves *pDispid untouched on the not-found path
-    // too, so only the found path is missing.
-    return nullptr;
+    if (!lpszName) return nullptr;
+    const EventMap* pMap = static_cast<const EventMap*>(
+        impl__GetEventMap_COleControl__MEBAPEBUAFX_EVENTMAP__XZ(pThis));
+    unsigned int dwIndex = 1;   // low word = entry index, high word = map depth
+    while (pMap != nullptr) {
+        for (const EventMapEntry* pEntry = pMap->lpEntries;
+             pEntry != nullptr && pEntry->pszName != nullptr; ++pEntry, ++dwIndex) {
+            if (::lstrcmpW(pEntry->pszName, lpszName) == 0) {
+                long id = pEntry->dispid;
+                if (pDispid) *pDispid = (id == -1) ? (long)dwIndex : id;
+                return pEntry;
+            }
+        }
+        if (pMap->pfnGetBaseMap == nullptr) break;
+        pMap = pMap->pfnGetBaseMap();
+        dwIndex = ((((dwIndex >> 16) + 1) & 0xffffu) << 16) | 1u;
+    }
+    return nullptr;   // not found: retail leaves *pDispid untouched here too
 }
 
 
@@ -2428,15 +2613,37 @@ extern "C" void MS_ABI impl__GetFontTextMetrics_COleControl__QEAAXPEAUtagTEXTMET
 // is abstract, so it emits no vtable to resolve the slot against).
 // Symbol: ?GetInterfaceHook@COleControl@@MEAAPEAUIUnknown@@PEBX@Z
 extern "C" IUnknown* MS_ABI impl__GetInterfaceHook_COleControl__MEAAPEAUIUnknown__PEBX_Z(
-    COleControl* /*pThis*/, const void* /*pv*/)
+    COleControl* pThis, const void* pv)
 {
-    // TODO(clean-room): left a stub deliberately, and both branches are why.
-    // The first resolves through CCmdTarget's interface map, which OpenMFC does
-    // not model. The second would hand out &m_xPointerInactive -- storage
-    // OpenMFC never initialises (the same hazard that keeps
-    // GetExtraConnectionPoints below a stub), and its gate reads a virtual slot
-    // OpenMFC's COleControl does not declare. Returning null means "no hook",
-    // which is what the base control's callers treat as the default.
+    if (!pThis || !pv) return nullptr;
+    const IID& iid = *static_cast<const IID*>(pv);
+
+    // Branch 1, transcribed: retail compares the four dwords of *piid against
+    // *m_piidPrimary (this+0xE8) and, on a match, tail-jumps to
+    // CCmdTarget::GetInterface(this, &IID_IDispatch) -- 0x18026ce40 with rdx
+    // pointing at the 16 bytes 00 04 02 00 00 00 00 00 c0 00 00 00 00 00 00 46
+    // at rva 0x2d9b48.  CCmdTarget::GetInterface is a real implementation in
+    // this DLL (phase4/src/core/runtime/CCmdTarget.cpp).
+    if (pThis->m_piidPrimary != nullptr && ::IsEqualGUID(iid, *pThis->m_piidPrimary)) {
+        static const IID kIID_IDispatch =
+            { 0x00020400, 0x0000, 0x0000, { 0xC0, 0, 0, 0, 0, 0, 0, 0x46 } };
+        return impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(
+            static_cast<CCmdTarget*>(pThis), &kIID_IDispatch);
+    }
+
+    // Branch 2, transcribed but deliberately not completed:
+    //     if (*piid == IID_IPointerInactive /* rva 0x2d9e08 */)
+    //         return (GetControlFlags() & 4) ? (IUnknown*)(this + 0x2C8) : NULL;
+    // where slot 0x478 is GetControlFlags (afxctl.h declares IsSubclassedControl,
+    // ReparentControlWindow, GetControlFlags consecutively and the retail slots
+    // 0x468/0x470/0x478 line up one-for-one), 4 is COleControl's pointerInactive
+    // flag, and this+0x2C8 is afxole.h's m_xPointerInactive.
+    // COleControl::GetControlFlags itself is `mov eax,2 ; ret` (mfc140u 0xf3790),
+    // so for a base control retail already returns NULL here.  A derived control
+    // that sets the pointerInactive bit would get &m_xPointerInactive, which
+    // OpenMFC never initialises -- handing that out would give the container a
+    // vtable-less object to QueryInterface through, so NULL is returned instead.
+    // (Same hazard, same decision as GetExtraConnectionPoints below.)
     return nullptr;
 }
 
@@ -2495,7 +2702,14 @@ extern "C" int MS_ABI impl__GetMetafileData_COleControl__IEAAHPEAUtagFORMATETC__
 // Symbol: ?GetNotSupported@COleControl@@QEAAXXZ
 extern "C" void MS_ABI impl__GetNotSupported_COleControl__QEAAXXZ(COleControl* /*pThis*/)
 {
-    // TODO(clean-room): left a no-op deliberately. OpenMFC's
+    // Retail mfc140u 0x1eeca0 is a four-instruction tail call:
+    //     ThrowError(0x800A018A, 0xFEC0, (UINT)-1);   // 0x1e29b0, then int3
+    // and COleControl::ThrowError(SCODE, UINT nDescriptionID, UINT nHelpID) at
+    // 0x1e29b0 does AfxLoadString(nDescriptionID, buf, 256) and forwards to the
+    // string-form ThrowError with nHelpID, or with nDescriptionID when nHelpID
+    // is (UINT)-1 (`cmp edi,-1 ; cmovne ebx,edi`), which allocates a 0x40-byte
+    // exception object and throws it -- the call never returns.
+    // TODO(clean-room): still a no-op deliberately. OpenMFC's
     // ?ThrowError@COleControl@@QEAAXJII@Z export (further down this file) is
     // itself an empty stub whose declared signature omits `this`, so calling it
     // would neither throw nor be ABI-correct. Returning normally is wrong
@@ -2541,9 +2755,9 @@ extern "C" void MS_ABI impl__GetStockTextMetrics_COleControl__QEAAXPEAUtagTEXTME
 // Symbol: ?GetThisConnectionMap@COleControl@@KAPEBUAFX_CONNECTIONMAP@@XZ
 extern "C" const void* MS_ABI impl__GetThisConnectionMap_COleControl__KAPEBUAFX_CONNECTIONMAP__XZ()
 {
-    // TODO(clean-room): AFX_CONNECTIONMAP is not modeled by OpenMFC; null is a
-    // deviation from retail, which always returns a non-null static map.
-    return nullptr;
+    // Same static as GetConnectionMap above -- retail ICF-folds the two bodies
+    // into the single `lea rax,[rip+0x144301] ; ret` at mfc140u 0x1deff0.
+    return &g_connectionMap_COleControl;
 }
 
 
@@ -2553,9 +2767,9 @@ extern "C" const void* MS_ABI impl__GetThisConnectionMap_COleControl__KAPEBUAFX_
 // Symbol: ?GetThisEventMap@COleControl@@KAPEBUAFX_EVENTMAP@@XZ
 extern "C" const void* MS_ABI impl__GetThisEventMap_COleControl__KAPEBUAFX_EVENTMAP__XZ()
 {
-    // TODO(clean-room): AFX_EVENTMAP is not modeled by OpenMFC; null is a
-    // deviation from retail, which always returns a non-null static map.
-    return nullptr;
+    // Same static as GetEventMap above -- retail ICF-folds the two bodies into
+    // the single `lea rax,[rip+0x15ad69] ; ret` at mfc140u 0x1e3560.
+    return &g_eventMap_COleControl;
 }
 
 
@@ -2660,6 +2874,15 @@ extern "C" void MS_ABI impl__InitializeIIDs_COleControl__QEAAXPEBU_GUID__0_Z(
 //             }
 //     *pMap->lpStockEventMask = dwMask;
 //     <leave the critical section>;
+// The 10 DWORDs at mfc140u 0x34b830, read out of .rdata, are simply
+//     1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200
+// i.e. one bit per stock event in DISPID order starting at DISPID_CLICK (-600):
+// Click, DblClick, KeyDown, KeyPress, KeyUp, MouseDown, MouseMove, MouseUp,
+// Error, ReadyStateChange.  Slot 0x4d0 is GetEventMap: afxctl.h declares
+// CreateControlWindow, SetInitialDataFormats, GetEventMap consecutively and the
+// retail slots 0x4c0 / 0x4c8 / 0x4d0 match one-for-one.  The critical section
+// is entered with AfxLockGlobals(0xe) (mfc140u 0x33540) and left by
+// LeaveCriticalSection on the object at 0x3c3d20.
 // Symbol: ?InitStockEventMask@COleControl@@IEAAXXZ
 extern "C" void MS_ABI impl__InitStockEventMask_COleControl__IEAAXXZ(
     COleControl* /*pThis*/)
@@ -2684,6 +2907,13 @@ extern "C" void MS_ABI impl__InitStockEventMask_COleControl__IEAAXXZ(
 //                                            (mfc140 rdata 0x345750)
 //         }
 //     *pMap->+0x18 = dwMask;  <leave the critical section>;
+// The 20 DWORDs at mfc140u 0x34bbb0, read out of .rdata, are sparse -- only
+// eight stock properties have a mask bit, the rest are 0:
+//     [0x00]=1  [0x03]=0x20  [0x0b]=4  [0x0c]=8  [0x0d]=0x40  [0x10]=0x10
+//     [0x11]=2  [0x13]=0x80
+// indexed by (-501 - dispid), so index 0 is DISPID_BACKCOLOR (-501) and index
+// 0x13 is DISPID (-520).  Note the loop's terminator test is the *entry's*
+// +0x30 field being (size_t)-1, not a NULL name, and the entry stride is 0x40.
 // Symbol: ?InitStockPropMask@COleControl@@IEAAXXZ
 extern "C" void MS_ABI impl__InitStockPropMask_COleControl__IEAAXXZ(
     COleControl* /*pThis*/)
@@ -3122,12 +3352,14 @@ extern "C" long MS_ABI impl__OnHide_COleControl__MEAAJXZ(COleControl* pThis)
     return 0;   // S_OK
 }
 
-// COleControl::OnHideToolBars() — this export has no entry in
-// mfc140_rva_symbols.json, so there is no retail body to disassemble and
-// nothing was established about what it does. Left as the no-op the generated
-// stub already was; the only change is the `this` pointer its prototype was
-// missing. (The sibling ?OnShowToolBars@COleControl@@UEAAXXZ *does* resolve,
-// at 0x1e34f0, but that is a different function and was not transcribed here.)
+// COleControl::OnHideToolBars() — no entry in mfc140_rva_symbols.json, but the
+// ordinal join described in this file's header resolves it: mfc140u RVA 0x27d0,
+// the DLL-wide `ret` that 158 exports fold onto. So the no-op below is the
+// retail body, not a placeholder. (The sibling
+// ?OnShowToolBars@COleControl@@UEAAXXZ is a different, non-empty function --
+// mfc140u 0x1e5580, which is the 0x1e34f0 that mfc140_rva_symbols.json reports
+// because that map is the MBCS mfc140.dll.  Do not read 0x1e34f0 as a mfc140u
+// address; it is not one.)
 // Symbol: ?OnHideToolBars@COleControl@@UEAAXXZ
 extern "C" void MS_ABI impl__OnHideToolBars_COleControl__UEAAXXZ(
     COleControl* /*pThis*/)
@@ -3255,10 +3487,10 @@ extern "C" void MS_ABI impl__OnKeyDown_COleControl__IEAAXIII_Z(
 // COleControl::KeyDown (0x1e1920) fires DISPID_KEYDOWN (-602) and then, when
 // *pnChar is still non-zero, calls virtual slot 0x348 with (this, *pnChar,
 // nShiftState) -- two 16-bit values, which is exactly this export's signature
-// (X G G). So slot 0x348 is OnKeyDownEvent, and the absence of an RVA for it is
-// consistent with the base body being folded into the DLL's shared empty `ret`.
-// Kept as a no-op; the only change is the `this` pointer the generated
-// prototype was missing.
+// (X G G). So slot 0x348 is OnKeyDownEvent. The ordinal join described in this
+// file's header confirms the rest: the export resolves to mfc140u RVA 0x27d0,
+// the DLL-wide `ret` that 158 exports fold onto, so the no-op below is
+// the retail body. The only prototype change was the missing `this`.
 // (The KeyDown/KeyUp/OnChar comments further up this file name slots
 // 0x348/0x350/0x358 as OnKeyDownEvent/OnKeyUpEvent/OnKeyPressEvent for the same
 // reason; do not confuse them with ?OnKeyDown@COleControl@@IEAAXIII@Z and
@@ -3275,7 +3507,9 @@ extern "C" void MS_ABI impl__OnKeyDownEvent_COleControl__UEAAXGG_Z(
 // mfc140_rva_symbols.json; same situation as OnKeyDownEvent above. Retail
 // COleControl::OnChar (0x1e1a90) fires DISPID_KEYPRESS (-603) and then, when
 // the character is non-zero, calls virtual slot 0x358 with (this, ch) -- one
-// 16-bit value, matching this export's signature (X G). Kept as a no-op.
+// 16-bit value, matching this export's signature (X G). The ordinal join
+// described in this file's header resolves the export to mfc140u RVA 0x27d0,
+// the DLL-wide empty `ret`, so the no-op below is the retail body.
 // Symbol: ?OnKeyPressEvent@COleControl@@UEAAXG@Z
 extern "C" void MS_ABI impl__OnKeyPressEvent_COleControl__UEAAXG_Z(
     COleControl* /*pThis*/, unsigned short /*nChar*/)
@@ -3304,7 +3538,9 @@ extern "C" void MS_ABI impl__OnKeyUp_COleControl__IEAAXIII_Z(
 // COleControl::OnKeyUpEvent(USHORT nChar, USHORT nShiftState) — no entry in
 // mfc140_rva_symbols.json; the mirror of OnKeyDownEvent above. Retail
 // COleControl::KeyUp (0x1e1890) is KeyDown's mirror image and reaches it
-// through virtual slot 0x350. Kept as a no-op.
+// through virtual slot 0x350. The ordinal join described in this file's header
+// resolves the export to mfc140u RVA 0x27d0, the DLL-wide empty `ret`, so the
+// no-op below is the retail body.
 // Symbol: ?OnKeyUpEvent@COleControl@@UEAAXGG@Z
 extern "C" void MS_ABI impl__OnKeyUpEvent_COleControl__UEAAXGG_Z(
     COleControl* /*pThis*/, unsigned short /*nChar*/,
@@ -3509,10 +3745,25 @@ extern "C" void MS_ABI impl__OnMouseMove_COleControl__IEAAXIVCPoint___Z(
 // nothing was established about what it does. Left a no-op rather than
 // guessing; the only change is the `this` pointer the generated prototype was
 // missing.
+// COleControl::OnMove(int, int) - retail mfc140u 0x1e2180:
+//     if (<virtual slot 0x468>())   // IsSubclassedControl
+//         CWnd::Default();          // 0x18028ac80
+//     (the x and y arguments are never read)
+// Slot 0x468 is IsSubclassedControl: afxctl.h declares IsSubclassedControl,
+// ReparentControlWindow and GetControlFlags consecutively, and the retail slots
+// 0x468 / 0x470 / 0x478 are consecutive too -- 0x478 being GetControlFlags is
+// independently pinned by GetInterfaceHook above.  CreateWindowForSubclassedControl
+// (this file) gates on the same slot.
+// Deviation: OpenMFC's COleControl does not declare IsSubclassedControl virtual,
+// so this calls the base implementation through its export thunk rather than
+// dispatching; a derived control that overrides it is not seen.
 // Symbol: ?OnMove@COleControl@@IEAAXHH@Z
 extern "C" void MS_ABI impl__OnMove_COleControl__IEAAXHH_Z(
-    COleControl* /*pThis*/, int /*x*/, int /*y*/)
+    COleControl* pThis, int /*x*/, int /*y*/)
 {
+    if (!pThis) return;
+    if (impl__IsSubclassedControl_COleControl__UEAAHXZ(pThis))
+        (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
 }
 
 // COleControl::OnNcCalcSize(BOOL, NCCALCSIZE_PARAMS*) — retail mfc140 0x1f3be0:
@@ -3560,78 +3811,489 @@ extern "C" int MS_ABI impl__OnNcCreate_COleControl__IEAAHPEAUtagCREATESTRUCTW___
     return static_cast<int>(impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis)));
 }
 
+// COleControl::OnNcHitTest(CPoint) - retail mfc140u 0x1f58e0, transcribed:
+//     if (m_bOpen) return Default();                     // bit 13 of 0x160
+//     CRectTracker* pT = m_pRectTracker;                 // 0x118
+//     if (pT == NULL) return Default();
+//     if (!(pT->m_nStyle & 0x18)) return Default();      // resizeInside|Outside
+//     LRESULT lr = Default();
+//     if ((ULONG_PTR)(lr - 4) <= 3 && lr != 5) return lr;   // the retail test is
+//         // `lea rcx,[rax-4] ; test rcx,-4 ; jne continue ; cmp rax,5 ; jne ret`
+//     CPoint ptClient = point; ScreenToClient(m_hWnd, &ptClient);
+//     RECT rc = {0,0,0,0};
+//     GetClientRect(&rc);                                // virtual slot 0x2d8
+//     if (PtInRect(&rc, ptClient)) return HTCLIENT;      // 1
+//     ::GetWindowRect(m_hWnd, &rc);                      // NOTE: window, not client
+//     int d = pT->m_nHandleSize - 1;
+//     ::InflateRect(&rc, -d, -d);
+//     if (PtInRect(&rc, point)) return HTBORDER;         // 18; the ORIGINAL
+//         // screen-coordinate point, which matches rc now being a screen rect
+//     return pT->HitTest(ptClient) != -1 ? HTBORDER : HTNOWHERE;   // 18 : 0
+//         // (`inc eax ; neg eax ; sbb rax,rax ; and eax,0x12`)
+// Slot 0x2d8 is COleControl::GetClientRect(LPRECT) const: afxctl.h declares
+// GetClientRect, DoPropExchange, OnResetState, OnDraw, OnDrawMetafile in that
+// order and the retail slots 0x2d8/0x2e0/0x2e8/0x2f0/0x2f8 match one-for-one
+// (0x2f0 = OnDraw and 0x2f8 = OnDrawMetafile are already relied on by
+// DrawContent/DrawMetafile above).  OpenMFC's COleControl does not declare
+// GetClientRect virtual, so the base implementation in this file is called
+// directly -- a derived override is not seen.
 // Symbol: ?OnNcHitTest@COleControl@@IEAA_JVCPoint@@@Z
-extern "C" __int64 MS_ABI impl__OnNcHitTest_COleControl__IEAA_JVCPoint___Z(void* /*class*/ p0) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnNcHitTest_COleControl__IEAA_JVCPoint___Z(
+    COleControl* pThis, unsigned long long point)
+{
+    if (!pThis) return 0;
+    const TrackerView* pT = static_cast<const TrackerView*>(pThis->m_pRectTracker);
+    if (pThis->m_bOpen || pT == nullptr || (pT->m_nStyle & kTrackerResizeMask) == 0)
+        return impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+
+    __int64 lr = impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    if ((unsigned long long)(lr - 4) <= 3 && lr != 5)
+        return lr;
+
+    POINT ptClient = { (LONG)(unsigned int)(point & 0xFFFFFFFFull),
+                       (LONG)(unsigned int)(point >> 32) };
+    ::ScreenToClient(pThis->m_hWnd, &ptClient);
+
+    RECT rc = { 0, 0, 0, 0 };
+    impl__GetClientRect_COleControl__UEBAXPEAUtagRECT___Z(pThis, &rc);
+    if (::PtInRect(&rc, ptClient)) return HTCLIENT;
+
+    ::GetWindowRect(pThis->m_hWnd, &rc);
+    const int d = pT->m_nHandleSize - 1;
+    ::InflateRect(&rc, -d, -d);
+    POINT ptScreen = { (LONG)(unsigned int)(point & 0xFFFFFFFFull),
+                       (LONG)(unsigned int)(point >> 32) };
+    if (::PtInRect(&rc, ptScreen)) return HTBORDER;
+
+    const unsigned long long ptClientPacked =
+        ((unsigned long long)(unsigned int)ptClient.y << 32) |
+        (unsigned long long)(unsigned int)ptClient.x;
+    return impl__HitTest_CRectTracker__QEBAHVCPoint___Z(pT, ptClientPacked) != -1
+               ? HTBORDER : HTNOWHERE;
 }
 
+// COleControl::OnNcLButtonDown(UINT, CPoint) - retail mfc140u 0x1f5a20.  Decoded
+// shape (not implemented, see below):
+//     if (m_bOpen) return Default();                        // bit 13 of 0x160
+//     if (m_pRectTracker == NULL) return Default();
+//     if (!(m_pRectTracker->m_nStyle & 0x18)) return Default();
+//     if ((UINT)(nHitTest - 6) <= 1) return Default();       // HTHSCROLL/HTVSCROLL
+//     CPoint pt = point; ScreenToClient(m_hWnd, &pt);
+//     CRect rcSave = m_pRectTracker->m_rect;                 // +0x0c, 16-byte copy
+//     CWnd* pClip = CWnd::FromHandle(GetParent((m_pReflect ? m_pReflect : this)->m_hWnd));
+//     if (!m_pRectTracker->Track(this, pt, FALSE, pClip))    // 0x180276650
+//         return;
+//         // NOTE the argument order: rdx is `this` (the tracked CWnd) and the
+//         // parent CWnd* goes in the FOURTH slot, [rsp+0x20], i.e. pWndClipTo.
+//         // An earlier revision of this comment had it as Track(pParent, pt,
+//         // FALSE, NULL); the disassembly says otherwise.
+//     if (EqualRect(&m_pRectTracker->m_rect, &rcSave)) return;
+//     OffsetRect(&m_pRectTracker->m_rect, -left, -top);      // back to the origin
+//     CWnd* pParent = CWnd::FromHandle(GetParent((m_pReflect ? m_pReflect : this)->m_hWnd));
+//     RECT rcWnd = {0}, rcParent = {0};
+//     ::GetWindowRect((m_pReflect ? m_pReflect : this)->m_hWnd, &rcWnd);
+//     ::GetClientRect(pParent->m_hWnd, &rcParent);
+//     pParent->ClientToScreen(&rcParent);                    // 0x1802a3310
+//     OffsetRect(&rect, (m_nHandleSize-1) - rcParent.left + m_sBorderStyle*GetSystemMetrics(SM_CXBORDER) + rcWnd.left,
+//                       (m_nHandleSize-1) - rcParent.top  + m_sBorderStyle*GetSystemMetrics(SM_CYBORDER) + rcWnd.top);
+//     SIZE sz = { rect.right-rect.left, rect.bottom-rect.top };
+//     <pixels->HIMETRIC, unexported 0x2607b4: MulDiv(px, 2540, LOGPIXELSX)>;
+//     if (sz != (m_cxExtent, m_cyExtent)) { m_bModified = TRUE; m_cxExtent = ...; }
+//     m_pInPlaceSite->OnPosRectChange(&rect);                // (this+0x1e0) vtable +0x70
+// TODO(clean-room): left a stub, but NOT for the reason an earlier revision of
+// this comment gave.  CRectTracker::Track *is* available -- OpenMFC implements
+// it for real at phase4/src/core/gdi/CRectTracker.cpp:371 (a genuine modal
+// capture loop) -- and CreateFrameWindow/CreateControlWindow are not on this
+// path at all.  What actually blocks it is the tail: it renegotiates the
+// control's extent with the container through IOleInPlaceSite::OnPosRectChange
+// (vtable slot 14 of the raw void* m_pInPlaceSite, an interface OpenMFC's
+// COleControl does not model as a typed pointer) after a pixel->HIMETRIC
+// transform that has no exported helper.  Running the drag loop and then
+// silently dropping the negotiated rect would leave the tracker and the
+// container disagreeing about the control's extent, which is worse than not
+// tracking at all -- so nothing is done.
 // Symbol: ?OnNcLButtonDown@COleControl@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnNcLButtonDown_COleControl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnNcLButtonDown_COleControl__IEAAXIVCPoint___Z(
+    COleControl* pThis, unsigned int /*nHitTest*/, unsigned long long /*point*/)
+{
+    if (!pThis) return;
+}
 
+// COleControl::OnNcPaint() - retail mfc140u 0x1f56a0, transcribed:
+//     if (m_bOpen || m_pRectTracker == NULL) { Default(); return; }
+//     DWORD dwStyle = GetStyle(), dwExStyle = GetExStyle();
+//     BOOL bScroll = (dwStyle & (WS_HSCROLL|WS_VSCROLL)) != 0;
+//     if (bScroll) Default();
+//     int d = m_pRectTracker->m_nHandleSize - 1;            // +0x24
+//     CWindowDC dc(this);
+//     CRect& rcT = m_pRectTracker->m_rect;                  // +0x0c
+//     int dx = rcT.left - d, dy = rcT.top - d;
+//     rcT.OffsetRect(-dx, -dy);                             // park it at (d,d)
+//     CRect rect = rcT;
+//     m_pRectTracker->Draw(&dc);                            // 0x180276120
+//     rcT.OffsetRect(dx, dy);                               // put it back
+//     <border helper 0x1e03a0>(&dc, &rect, dwStyle & WS_BORDER,
+//                              dwExStyle & WS_EX_CLIENTEDGE);
+//     if ((dwStyle & (WS_HSCROLL|WS_VSCROLL)) == (WS_HSCROLL|WS_VSCROLL)) {
+//         int cx = GetSystemMetrics(SM_CXVSCROLL);
+//         if (dwExStyle & WS_EX_LAYOUTRTL) rect.right = rect.left + cx;
+//         else                             rect.left  = rect.right - cx;
+//         rect.top = rect.bottom - GetSystemMetrics(SM_CYHSCROLL);
+//         CBrush br(GetSysColor(COLOR_BTNFACE));
+//         ::FillRect(dc.m_hDC, &rect, br);                  // the scrollbar corner
+//     }
+// Implemented.  (An earlier revision left this a stub and named CRectTracker::Draw
+// as one of the blockers; that was wrong -- OpenMFC implements Draw for real at
+// phase4/src/core/gdi/CRectTracker.cpp:329 and exports the thunk.  The border
+// helper at 0x1e03a0 has no export, so it is transcribed as DrawTrackerBorder at
+// the top of this file.)
+// DEVIATIONS, all of them in how the two stack objects are obtained:
+//  * retail builds a stack CWindowDC; OpenMFC's CWindowDC constructor thunk
+//    (core/gdi/CWindowDC.cpp) installs no vtable pointer, so ::GetWindowDC +
+//    CDC::FromHandle + ::ReleaseDC is used instead.  That is observationally the
+//    same DC; it just also parks a temp CDC in the handle map until the next
+//    AfxUnlockTempMaps.
+//  * retail builds a stack CBrush; a raw ::CreateSolidBrush/::DeleteObject pair
+//    is used here for the same reason.
+//  * retail does not null-check the DC.  This body returns without painting when
+//    ::GetWindowDC fails, rather than passing NULL down to DrawEdge/FillRect.
 // Symbol: ?OnNcPaint@COleControl@@IEAAXXZ
-extern "C" void MS_ABI impl__OnNcPaint_COleControl__IEAAXXZ() {}
+extern "C" void MS_ABI impl__OnNcPaint_COleControl__IEAAXXZ(COleControl* pThis)
+{
+    if (!pThis) return;
 
+    TrackerView* pT = static_cast<TrackerView*>(pThis->m_pRectTracker);
+    if (pThis->m_bOpen || pT == nullptr) {
+        (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+        return;
+    }
+
+    const DWORD dwStyle   = (DWORD)::GetWindowLongW(pThis->m_hWnd, GWL_STYLE);
+    const DWORD dwExStyle = (DWORD)::GetWindowLongW(pThis->m_hWnd, GWL_EXSTYLE);
+    const DWORD dwScroll  = dwStyle & (WS_HSCROLL | WS_VSCROLL);
+    if (dwScroll != 0)
+        (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+
+    const int d = pT->m_nHandleSize - 1;
+
+    HDC hDC = ::GetWindowDC(pThis->m_hWnd);
+    if (hDC == nullptr) return;
+
+    // Park the tracker rect at (d,d), draw it, then put it back exactly where it
+    // was -- retail mutates the member in place and restores it the same way.
+    const int dx = pT->m_rect.left - d;
+    const int dy = pT->m_rect.top  - d;
+    ::OffsetRect(&pT->m_rect, -dx, -dy);
+    RECT rect = pT->m_rect;
+    if (CDC* pDC = impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(hDC))
+        impl__Draw_CRectTracker__QEBAXPEAVCDC___Z(pT, pDC);
+    ::OffsetRect(&pT->m_rect, dx, dy);
+
+    DrawTrackerBorder(hDC, &rect, (int)(dwStyle & WS_BORDER),
+                      (int)(dwExStyle & WS_EX_CLIENTEDGE));
+
+    if (dwScroll == (WS_HSCROLL | WS_VSCROLL)) {
+        const int cx = ::GetSystemMetrics(SM_CXVSCROLL);
+        if (dwExStyle & WS_EX_LAYOUTRTL) rect.right = rect.left + cx;
+        else                             rect.left  = rect.right - cx;
+        rect.top = rect.bottom - ::GetSystemMetrics(SM_CYHSCROLL);
+        if (HBRUSH hbr = ::CreateSolidBrush(::GetSysColor(COLOR_BTNFACE))) {
+            ::FillRect(hDC, &rect, hbr);
+            ::DeleteObject(hbr);
+        }
+    }
+
+    ::ReleaseDC(pThis->m_hWnd, hDC);
+}
+
+// COleControl::OnOcmCtlColor*(WPARAM, LPARAM) - seven ICF-distinct one-liners at
+// retail mfc140u 0x1e28d0/0x1e28f0/0x1e2910/0x1e2930/0x1e2950/0x1e2970/0x1e2990.
+// Each is the same five instructions:
+//     mov rcx,[rcx+0x40]       ; m_hWnd
+//     mov r9,r8 ; mov r8,rdx   ; shuffle wParam/lParam up one slot
+//     mov edx,<WM_CTLCOLOR*>
+//     jmp  qword ptr [DefWindowProcW]    ; USER32 import at 0x2c7350
+// i.e. `return ::DefWindowProcW(m_hWnd, WM_CTLCOLORxxx, wParam, lParam);`
+// The tail-jump target is the USER32 IAT slot 0x2c7350, and objdump -p on
+// mfc140u names that slot DefWindowProcW -- NOT SendMessageW, which lives at
+// 0x2c7120.  (An earlier revision of this comment and of the seven bodies below
+// said SendMessageW; that was a misread of the import table.  It matters: these
+// handlers run on the control's OWN window, so ::SendMessageW(m_hWnd, ...) would
+// re-enter the control's window procedure instead of reaching the default one.)
+// The message numbers are the immediates the seven bodies load, in this order:
+//   MSGBOX 0x132, EDIT 0x133, LISTBOX 0x134, BTN 0x135, DLG 0x136,
+//   SCROLLBAR 0x137, STATIC 0x138.
+// These are the WM_OCM_* reflections: the container sends OCM_CTLCOLORxxx to the
+// control, and the control hands the plain WM_CTLCOLORxxx straight to the
+// default window procedure of its (usually superclassed) window.
 // Symbol: ?OnOcmCtlColorBtn@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorBtn_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorBtn_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORBTN,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorDlg@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorDlg_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorDlg_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORDLG,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorEdit@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorEdit_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorEdit_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLOREDIT,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorListBox@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorListBox_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorListBox_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORLISTBOX,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorMsgBox@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorMsgBox_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorMsgBox_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORMSGBOX,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorScrollBar@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorScrollBar_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorScrollBar_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORSCROLLBAR,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
 // Symbol: ?OnOcmCtlColorStatic@COleControl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnOcmCtlColorStatic_COleControl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
-    return 0;
+extern "C" __int64 MS_ABI impl__OnOcmCtlColorStatic_COleControl__IEAA_J_K_J_Z(
+    COleControl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+    return (__int64)::DefWindowProcW(pThis->m_hWnd, WM_CTLCOLORSTATIC,
+                                     (WPARAM)wParam, (LPARAM)lParam);
 }
 
+// COleControl::OnOpen(BOOL, LPMSG) - retail mfc140u 0x1e0e10.  Decoded shape
+// (not implemented, see below):
+//     if (!m_bOpen) {                                    // bit 13 of 0x160
+//         if (bTryInPlace) {
+//             HRESULT hr = OnActivateInPlace(bTryInPlace, pMsg);   // slot 0x508
+//             if (SUCCEEDED(hr)) return S_OK;
+//         }
+//         if (m_bInPlaceActive)                          // bit 10 of 0x160
+//             m_xOleInPlaceObject.InPlaceDeactivate();   // (this+0x280) vtable[5]
+//         m_bOpen = TRUE;                                // bts 13
+//         if (m_pWndOpenFrame == NULL) {                 // 0x118
+//             m_pWndOpenFrame = CreateFrameWindow();     // slot 0x4e8
+//             if (m_pWndOpenFrame == NULL) return E_FAIL;
+//             int cx, cy; GetControlSize(&cx, &cy);
+//             ResizeFrameWindow(cx, cy);                 // slot 0x4f0
+//             RECT rc = {0,0,0,0};
+//             ::GetClientRect(m_pWndOpenFrame->m_hWnd, &rc);
+//             if (!CreateControlWindow(m_pWndOpenFrame->m_hWnd, rc, &rc))  // 0x4c0
+//                 return E_FAIL;
+//         }
+//     }
+//     m_pWndOpenFrame->ShowWindow(SW_SHOW);              // 0x1802a9ad0
+//     CWnd::FromHandle(::SetActiveWindow(m_pWndOpenFrame->m_hWnd));
+//         // i.e. the inlined CWnd::SetActiveWindow(); the returned HWND is fed
+//         // to CWnd::FromHandle (0x18028ad70) and only the CWnd* is discarded.
+//     SendAdvise(5);                                     // 0x1801e0c10
+//     return S_OK;
+// The slot numbers come from afxctl.h's declaration order: OnOpen, then
+// CreateFrameWindow / ResizeFrameWindow / OnFrameClose / OnHide /
+// OnActivateInPlace are consecutive, matching 0x4e0/0x4e8/0x4f0/0x4f8/0x500/0x508.
+// TODO(clean-room): left a stub.  CreateFrameWindow above is itself a stub that
+// returns NULL, so a faithful transcription would take the E_FAIL path on every
+// call; and ?SendAdvise@COleControl@@IEAAXI@Z further down this file is a
+// generated stub whose declared signature omits `this`, so it cannot be called
+// ABI-correctly.  Returning S_OK ("opened") without opening anything would be a
+// lie to the container, so 0 is returned unchanged and nothing is claimed.
 // Symbol: ?OnOpen@COleControl@@MEAAJHPEAUtagMSG@@@Z
-extern "C" long MS_ABI impl__OnOpen_COleControl__MEAAJHPEAUtagMSG___Z(int p0, void* /*struct*/* p1) {
+extern "C" long MS_ABI impl__OnOpen_COleControl__MEAAJHPEAUtagMSG___Z(
+    COleControl* pThis, int /*bTryInPlace*/, void* /*pMsg*/)
+{
+    (void)pThis;
     return 0;
 }
 
+// COleControl::OnPaint(CDC*) - retail mfc140u 0x1e1470, transcribed:
+//     if (m_bNoRedraw) {                                 // bit 23 of 0x160
+//         ::ValidateRect(m_hWnd, NULL); m_bNoRedraw = FALSE; return;
+//     }
+//     AfxLockTempMaps();
+//     ::GetWindowRect(m_hWnd, &m_rcBounds);              // the member, in place
+//         // NOTE: the WINDOW rect, not the client rect.  The call at 0x1e14d5
+//         // goes through the USER32 IAT slot 0x2c6c08, which objdump -p names
+//         // GetWindowRect; GetClientRect is a different slot, 0x2c7330 (retail
+//         // uses that one three instructions into OnOpen, so both appear in this
+//         // file).  It has to be the window rect: the InflateRect below then
+//         // shrinks it by the tracker handle size to strip the tracker border.
+//     ::OffsetRect(&m_rcBounds, -m_rcBounds.left, -m_rcBounds.top);
+//     if (!m_bOpen && m_pRectTracker != NULL) {
+//         int d = 1 - m_pRectTracker->m_nHandleSize;     // +0x24
+//         ::InflateRect(&m_rcBounds, d, d);
+//     }
+//     CRect rcClient(0,0,0,0);
+//     GetClientRect(&rcClient);                          // virtual slot 0x2d8
+//     if (pDC != NULL) {
+//         int nSave = pDC->SaveDC();                     // CDC vtable +0x48
+//         OnDraw(pDC, rcClient, rcClient);               // virtual slot 0x2f0
+//         pDC->RestoreDC(nSave);                         // CDC vtable +0x50
+//         // (retail dispatches SaveDC/RestoreDC virtually; the code below calls
+//         //  the CDC export thunks non-virtually, so a CDC-derived override is
+//         //  not seen.  OnDraw *is* dispatched virtually -- OpenMFC's COleControl
+//         //  declares it -- so a derived control's OnDraw does run.)
+//     } else {
+//         CPaintDC dc(this);
+//         CRect rcInvalid; ::CopyRect(&rcInvalid, &dc.m_ps.rcPaint);
+//         OnDraw(&dc, rcClient, rcInvalid);
+//     }
+//     AfxUnlockTempMaps(TRUE);
+// DEVIATION in the pDC == NULL branch: retail builds a stack CPaintDC.  OpenMFC's
+// CPaintDC constructor thunk (core/gdi/CPaintDC.cpp) does not install a vtable
+// pointer, so a CPaintDC built on raw storage here would be handed to a derived
+// OnDraw with a null vptr.  BeginPaint/EndPaint are called directly instead and
+// the DC is wrapped with CDC::FromHandle, which yields a properly constructed
+// CDC from the handle map.  The rectangles passed to OnDraw are the same ones
+// retail passes (client rect, and the PAINTSTRUCT's rcPaint as rcInvalid).
+// Second, smaller deviation: that branch is skipped entirely when m_hWnd is
+// NULL, because BeginPaint on a null window would fail and leave an unbalanced
+// EndPaint; retail's CPaintDC constructor asserts on that case instead.
 // Symbol: ?OnPaint@COleControl@@IEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnPaint_COleControl__IEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__OnPaint_COleControl__IEAAXPEAVCDC___Z(
+    COleControl* pThis, CDC* pDC)
+{
+    if (!pThis) return;
 
+    if (pThis->m_bNoRedraw) {
+        ::ValidateRect(pThis->m_hWnd, nullptr);
+        pThis->m_bNoRedraw = 0;
+        return;
+    }
+
+    impl__AfxLockTempMaps__YAXXZ();
+
+    ::GetWindowRect(pThis->m_hWnd, pThis->m_rcBounds);
+    ::OffsetRect(pThis->m_rcBounds, -pThis->m_rcBounds.left, -pThis->m_rcBounds.top);
+    if (!pThis->m_bOpen && pThis->m_pRectTracker != nullptr) {
+        const TrackerView* pT = static_cast<const TrackerView*>(pThis->m_pRectTracker);
+        const int d = 1 - pT->m_nHandleSize;
+        ::InflateRect(pThis->m_rcBounds, d, d);
+    }
+
+    CRect rcClient(0, 0, 0, 0);
+    impl__GetClientRect_COleControl__UEBAXPEAUtagRECT___Z(pThis, rcClient);
+
+    if (pDC != nullptr) {
+        const int nSave = impl__SaveDC_CDC__QEAAHXZ(pDC);
+        pThis->OnDraw(pDC, rcClient, rcClient);
+        (void)impl__RestoreDC_CDC__QEAAHH_Z(pDC, nSave);
+    } else if (pThis->m_hWnd != nullptr) {
+        PAINTSTRUCT ps;
+        ::memset(&ps, 0, sizeof(ps));
+        HDC hDC = ::BeginPaint(pThis->m_hWnd, &ps);
+        if (hDC != nullptr) {
+            CDC* pPaintDC = impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(hDC);
+            if (pPaintDC != nullptr) {
+                CRect rcInvalid(ps.rcPaint);
+                pThis->OnDraw(pPaintDC, rcClient, rcInvalid);
+            }
+            ::EndPaint(pThis->m_hWnd, &ps);
+        }
+    }
+
+    (void)impl__AfxUnlockTempMaps__YAHH_Z(TRUE);
+}
+
+// COleControl::OnQueryHitPoint(DWORD, LPCRECT, POINT, LONG, DWORD*) and
+// COleControl::OnQueryHitRect(DWORD, LPCRECT, LPCRECT, LONG, DWORD*) are one
+// ICF-folded body at retail mfc140u 0x1f5db0 (the two exports resolve to the
+// same RVA), which is:
+//     mov ecx,1 ; cmp edx,ecx ; jne .no
+//     mov rax,[rsp+0x30] ; mov dword ptr [rax],3 ; jmp .ret
+//   .no: xor ecx,ecx
+//   .ret: mov eax,ecx ; ret
+// i.e. `if (dwAspect != DVASPECT_CONTENT) return FALSE;
+//       *pHitResult = HITRESULT_HIT; return TRUE;` -- the bounds rect, the
+// location and lCloseHint are all ignored, and pHitResult is written without a
+// null check.  The two functions fold because they take the same six argument
+// slots and neither reads the third one.
+// Deviation: the two bodies below DO null-check pHitResult before writing, in
+// line with the defensive style of the rest of this file.  Retail would fault.
 // Symbol: ?OnQueryHitPoint@COleControl@@UEAAHKPEBUtagRECT@@UtagPOINT@@JPEAK@Z
-extern "C" int MS_ABI impl__OnQueryHitPoint_COleControl__UEAAHKPEBUtagRECT__UtagPOINT__JPEAK_Z(unsigned long p0, const void* /*struct*/* p1, void* /*struct*/ p2, long p3, unsigned long* p4) {
-    return 0;
+extern "C" int MS_ABI impl__OnQueryHitPoint_COleControl__UEAAHKPEBUtagRECT__UtagPOINT__JPEAK_Z(
+    COleControl* /*pThis*/, unsigned long dwAspect, const RECT* /*pRectBounds*/,
+    unsigned long long /*ptlLoc*/, long /*lCloseHint*/, unsigned long* pHitResult)
+{
+    if (dwAspect != DVASPECT_CONTENT) return FALSE;
+    if (pHitResult) *pHitResult = HITRESULT_HIT;
+    return TRUE;
 }
 
 // Symbol: ?OnQueryHitRect@COleControl@@UEAAHKPEBUtagRECT@@0JPEAK@Z
-extern "C" int MS_ABI impl__OnQueryHitRect_COleControl__UEAAHKPEBUtagRECT__0JPEAK_Z(unsigned long p0, const void* /*struct*/* p1, unsigned long p2, long p3, unsigned long* p4) {
-    return 0;
+extern "C" int MS_ABI impl__OnQueryHitRect_COleControl__UEAAHKPEBUtagRECT__0JPEAK_Z(
+    COleControl* /*pThis*/, unsigned long dwAspect, const RECT* /*pRectBounds*/,
+    const RECT* /*prcLoc*/, long /*lCloseHint*/, unsigned long* pHitResult)
+{
+    if (dwAspect != DVASPECT_CONTENT) return FALSE;
+    if (pHitResult) *pHitResult = HITRESULT_HIT;
+    return TRUE;
 }
 
+// COleControl::OnRButtonDblClk(UINT, CPoint) - retail mfc140u 0x1e4240, the same
+// body as OnLButtonDblClk/OnMButtonDblClk above with the button code 2:
+//     HWND hWnd = m_hWnd;
+//     ButtonDblClk(2, nFlags, point);          // direct call 0x1e3fd0
+//     if (m_hWnd == hWnd) Default();
 // Symbol: ?OnRButtonDblClk@COleControl@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnRButtonDblClk_COleControl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnRButtonDblClk_COleControl__IEAAXIVCPoint___Z(
+    COleControl* pThis, unsigned int nFlags, unsigned long long pt)
+{
+    if (!pThis) return;
+    HWND hWnd = pThis->m_hWnd;
+    impl__ButtonDblClk_COleControl__IEAAXGIVCPoint___Z(pThis, 2, nFlags, pt);
+    if (pThis->m_hWnd == hWnd) {
+        (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    }
+}
 
+// COleControl::OnRButtonDown(UINT, CPoint) - retail mfc140u 0x1e4200 is a bare
+// argument shuffle and tail jump to OnButtonDown(2, nFlags, point) at 0x1e4280.
+// Note it does NOT carry the m_hWnd/Default() tail that OnRButtonDblClk has.
 // Symbol: ?OnRButtonDown@COleControl@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnRButtonDown_COleControl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnRButtonDown_COleControl__IEAAXIVCPoint___Z(
+    COleControl* pThis, unsigned int nFlags, unsigned long long pt)
+{
+    if (!pThis) return;
+    impl__OnButtonDown_COleControl__IEAAXGIVCPoint___Z(pThis, 2, nFlags, pt);
+}
 
+// COleControl::OnRButtonUp(UINT, CPoint) - retail mfc140u 0x1e4220 tail-jumps to
+// OnButtonUp(2, nFlags, point) at 0x1e42d0.
 // Symbol: ?OnRButtonUp@COleControl@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnRButtonUp_COleControl__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnRButtonUp_COleControl__IEAAXIVCPoint___Z(
+    COleControl* pThis, unsigned int nFlags, unsigned long long pt)
+{
+    if (!pThis) return;
+    impl__OnButtonUp_COleControl__IEAAXGIVCPoint___Z(pThis, 2, nFlags, pt);
+}
 
 // Symbol: ?OnReflectorDestroyed@COleControl@@MEAAXXZ
 extern "C" void MS_ABI impl__OnReflectorDestroyed_COleControl__MEAAXXZ() {}
