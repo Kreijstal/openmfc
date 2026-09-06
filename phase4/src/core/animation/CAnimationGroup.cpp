@@ -26,35 +26,35 @@ extern "C" void MS_ABI impl__AddTransitions_CAnimationGroup__IEAAXPEAUIUIAnimati
     void* pThis, void* pStoryboard, int /*bDeepAdd*/) {
     openmfc::detail::animationcontroller::RegisterStoryboard(pThis, pStoryboard);
 }
-// ?Animate@CAnimationGroup@@QEAAHPEAUIUIAnimationManager@@PEAUIUIAnimationTimer@@H@Z
+// Symbol: ?Animate@CAnimationGroup@@QEAAHPEAUIUIAnimationManager@@PEAUIUIAnimationTimer@@H@Z
 extern "C" int MS_ABI impl__Animate_CAnimationGroup__QEAAHPEAUIUIAnimationManager__PEAUIUIAnimationTimer__H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
     return 0;
 }
 
-// ?ApplyTransitions@CAnimationGroup@@QEAAXXZ
+// Symbol: ?ApplyTransitions@CAnimationGroup@@QEAAXXZ
 extern "C" void MS_ABI impl__ApplyTransitions_CAnimationGroup__QEAAXXZ() {}
 
-// ?CreateTransitions@CAnimationGroup@@IEAAHXZ
+// Symbol: ?CreateTransitions@CAnimationGroup@@IEAAHXZ
 extern "C" int MS_ABI impl__CreateTransitions_CAnimationGroup__IEAAHXZ() {
     return 0;
 }
 
-// ?FindAnimationObject@CAnimationGroup@@QEAAPEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@@Z
+// Symbol: ?FindAnimationObject@CAnimationGroup@@QEAAPEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@@Z
 extern "C" void* MS_ABI impl__FindAnimationObject_CAnimationGroup__QEAAPEAVCAnimationBaseObject__PEAUIUIAnimationVariable___Z(void* /*struct*/* p0) {
     return nullptr;
 }
 
-// ?RemoveKeyframes@CAnimationGroup@@QEAAXXZ
+// Symbol: ?RemoveKeyframes@CAnimationGroup@@QEAAXXZ
 extern "C" void MS_ABI impl__RemoveKeyframes_CAnimationGroup__QEAAXXZ() {}
 
-// ?RemoveTransitions@CAnimationGroup@@QEAAXXZ
+// Symbol: ?RemoveTransitions@CAnimationGroup@@QEAAXXZ
 extern "C" void MS_ABI impl__RemoveTransitions_CAnimationGroup__QEAAXXZ() {}
 
-// ?Schedule@CAnimationGroup@@QEAAHPEAUIUIAnimationTimer@@N@Z
+// Symbol: ?Schedule@CAnimationGroup@@QEAAHPEAUIUIAnimationTimer@@N@Z
 extern "C" int MS_ABI impl__Schedule_CAnimationGroup__QEAAHPEAUIUIAnimationTimer__N_Z(void* /*struct*/* p0, double p1) {
     return 0;
 }
 
-// ?SetAutodestroyTransitions@CAnimationGroup@@QEAAXH@Z
+// Symbol: ?SetAutodestroyTransitions@CAnimationGroup@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetAutodestroyTransitions_CAnimationGroup__QEAAXH_Z(int p0) {}
 

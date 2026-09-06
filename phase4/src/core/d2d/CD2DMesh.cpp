@@ -13,23 +13,23 @@ extern "C" void* MS_ABI impl___0CD2DMesh__QEAA_PEAVCRenderTarget__H_Z(void* pThi
 extern "C" void MS_ABI impl___1CD2DMesh__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?Attach@CD2DMesh@@QEAAXPEAUID2D1Mesh@@@Z
+// Symbol: ?Attach@CD2DMesh@@QEAAXPEAUID2D1Mesh@@@Z
 extern "C" void MS_ABI impl__Attach_CD2DMesh__QEAAXPEAUID2D1Mesh___Z(void* /*struct*/* p0) {}
 
-// ?Create@CD2DMesh@@UEAAJPEAVCRenderTarget@@@Z
+// Symbol: ?Create@CD2DMesh@@UEAAJPEAVCRenderTarget@@@Z
 extern "C" long MS_ABI impl__Create_CD2DMesh__UEAAJPEAVCRenderTarget___Z(void* /*class*/* p0) {
     return 0;
 }
 
-// ?Destroy@CD2DMesh@@UEAAXXZ
+// Symbol: ?Destroy@CD2DMesh@@UEAAXXZ
 extern "C" void MS_ABI impl__Destroy_CD2DMesh__UEAAXXZ() {}
 
-// ?Detach@CD2DMesh@@QEAAPEAUID2D1Mesh@@XZ
+// Symbol: ?Detach@CD2DMesh@@QEAAPEAUID2D1Mesh@@XZ
 extern "C" void* MS_ABI impl__Detach_CD2DMesh__QEAAPEAUID2D1Mesh__XZ() {
     return nullptr;
 }
 
-// ?Open@CD2DMesh@@QEAAPEAUID2D1TessellationSink@@XZ
+// Symbol: ?Open@CD2DMesh@@QEAAPEAUID2D1TessellationSink@@XZ
 extern "C" void* MS_ABI impl__Open_CD2DMesh__QEAAPEAUID2D1TessellationSink__XZ() {
     return nullptr;
 }

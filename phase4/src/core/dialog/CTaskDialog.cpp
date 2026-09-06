@@ -59,14 +59,11 @@ extern "C" int MS_ABI impl__GetCommonButtonFlag_CTaskDialog__MEBAHH_Z(const CTas
 extern "C" int MS_ABI impl__GetCommonButtonId_CTaskDialog__MEBAHH_Z(const CTaskDialog* pThis, int index) {
     return CommonButtonId(impl__GetCommonButtonFlag_CTaskDialog__MEBAHH_Z(pThis, index));
 }
-// Symbol: ?GetRuntimeClass@CTaskDialog@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTaskDialog__UEBAPEAUCRuntimeClass__XZ(const CTaskDialog*) {
-    return &g_classCTaskDialog;
-}
-// Symbol: ?GetThisClass@CTaskDialog@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTaskDialog__SAPEAUCRuntimeClass__XZ() {
-    return &g_classCTaskDialog;
-}
+// GetRuntimeClass/GetThisClass for CTaskDialog live in core/dialog/RuntimeClasses.cpp
+// (classCTaskDialog: size 240, schema 0xFFFF, base CObject), matching the retail
+// descriptor at 0x1803131a0 in mfc140u.dll. (CTaskDialog is exported only from the
+// Unicode build, so it has no mfc140.dll counterpart.) The copies that used to be here
+// returned g_classCTaskDialog, sized sizeof(the repo CTaskDialog) = 200.
 // Symbol: ?IsCommandControlEnabled@CTaskDialog@@QEBAHH@Z
 extern "C" int MS_ABI impl__IsCommandControlEnabled_CTaskDialog__QEBAHH_Z(const CTaskDialog* pThis, int id) {
     if (!pThis) return FALSE;

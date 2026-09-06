@@ -12,13 +12,3 @@ extern "C" void* MS_ABI impl___0CMFCRibbonCustomizeDialog__QEAA_PEAVCWnd__PEAVCM
 extern "C" void MS_ABI impl___1CMFCRibbonCustomizeDialog__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// Symbol: ?GetRuntimeClass@CMFCRibbonCustomizeDialog@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CMFCRibbonCustomizeDialog__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@CMFCRibbonCustomizeDialog@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_CMFCRibbonCustomizeDialog__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}

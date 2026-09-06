@@ -11,27 +11,27 @@ extern "C" void* MS_ABI impl___0CHtmlEditCtrl__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CHtmlEditCtrl__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?Create@CHtmlEditCtrl@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@HPEAUCCreateContext@@@Z
+// Symbol: ?Create@CHtmlEditCtrl@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@HPEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__Create_CHtmlEditCtrl__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__HPEAUCCreateContext___Z(const wchar_t* p0, unsigned long p1, const void* /*struct*/* p2, void* /*class*/* p3, int p4, void* /*struct*/* p5) {
     return 0;
 }
 
-// ?GetDHtmlDocument@CHtmlEditCtrl@@QEBAHPEAPEAUIHTMLDocument2@@@Z
+// Symbol: ?GetDHtmlDocument@CHtmlEditCtrl@@QEBAHPEAPEAUIHTMLDocument2@@@Z
 extern "C" int MS_ABI impl__GetDHtmlDocument_CHtmlEditCtrl__QEBAHPEAPEAUIHTMLDocument2___Z(void* /*struct*/** p0) {
     return 0;
 }
 
-// ?GetEventSinkMap@CHtmlEditCtrl@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
+// Symbol: ?GetEventSinkMap@CHtmlEditCtrl@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
 extern "C" void* MS_ABI impl__GetEventSinkMap_CHtmlEditCtrl__MEBAPEBUAFX_EVENTSINKMAP__XZ() {
     return nullptr;
 }
 
-// ?GetStartDocument@CHtmlEditCtrl@@UEAAPEB_WXZ
+// Symbol: ?GetStartDocument@CHtmlEditCtrl@@UEAAPEB_WXZ
 extern "C" void* MS_ABI impl__GetStartDocument_CHtmlEditCtrl__UEAAPEB_WXZ() {
     return nullptr;
 }
 
-// ?GetThisEventSinkMap@CHtmlEditCtrl@@KAPEBUAFX_EVENTSINKMAP@@XZ
+// Symbol: ?GetThisEventSinkMap@CHtmlEditCtrl@@KAPEBUAFX_EVENTSINKMAP@@XZ
 extern "C" void* MS_ABI impl__GetThisEventSinkMap_CHtmlEditCtrl__KAPEBUAFX_EVENTSINKMAP__XZ() {
     return nullptr;
 }

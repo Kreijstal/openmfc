@@ -163,6 +163,7 @@ CPropertyPageAccess* PropertyPageAccess(CPropertyPage* pThis) {
 CPropertySheetAccess* PropertySheetAccess(CPropertySheet* pThis) {
     return static_cast<CPropertySheetAccess*>(pThis);
 }
+// Symbol: ??0CDialog@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
     // Zero initialize the object
     pThis->m_hWnd = nullptr;
@@ -171,6 +172,7 @@ extern "C" void* MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
     g_dlgParents.erase(pThis);
     return pThis;
 }
+// Symbol: ??0CDialog@@QEAA@IPEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
@@ -180,6 +182,7 @@ extern "C" void* MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
     g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     return pThis;
 }
+// Symbol: ??0CDialog@@QEAA@PEB_WPEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
@@ -189,6 +192,7 @@ extern "C" void* MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
     g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
     return pThis;
 }
+// Symbol: ??1CDialog@@UEAA@XZ
 extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
     if (pThis && pThis->m_hWnd) {
         g_dlgMap.erase(pThis->m_hWnd);
@@ -290,11 +294,13 @@ extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
     // Call stub directly to avoid needing member function implementation
     impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDCANCEL);
 }
+// Symbol: ??0CDialogEx@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {
     impl___0CDialog__QEAA_XZ(pThis);
     impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
     return pThis;
 }
+// Symbol: ??0CDialogEx@@QEAA@IPEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
     CDialogEx* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
@@ -302,6 +308,7 @@ extern "C" void* MS_ABI impl___0CDialogEx__QEAA_IPEAVCWnd___Z(
     impl__CommonConstruct_CDialogEx__IEAAXXZ(pThis);
     return pThis;
 }
+// Symbol: ??0CDialogEx@@QEAA@PEB_WPEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CDialogEx__QEAA_PEB_WPEAVCWnd___Z(
     CDialogEx* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {

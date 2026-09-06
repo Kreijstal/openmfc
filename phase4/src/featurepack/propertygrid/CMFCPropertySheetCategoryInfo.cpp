@@ -28,13 +28,3 @@ extern "C" void MS_ABI impl___1CMFCPropertySheetCategoryInfo__UEAA_XZ(void* pThi
         static_cast<CObject*>(pThis)->~CObject();
     }
 }
-// Symbol: ?GetRuntimeClass@CMFCPropertySheetCategoryInfo@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CMFCPropertySheetCategoryInfo__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@CMFCPropertySheetCategoryInfo@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_CMFCPropertySheetCategoryInfo__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}

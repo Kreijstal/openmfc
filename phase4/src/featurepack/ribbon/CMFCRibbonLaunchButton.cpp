@@ -7,28 +7,28 @@
 extern "C" void* MS_ABI impl___0CMFCRibbonLaunchButton__QEAA_XZ(void* pThis) {
     return pThis;
 }
-// ?CreateObject@CMFCRibbonLaunchButton@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCRibbonLaunchButton@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonLaunchButton__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?GetKeyTipRect@CMFCRibbonLaunchButton@@UEAA?AVCRect@@PEAVCDC@@H@Z
+// Symbol: ?GetKeyTipRect@CMFCRibbonLaunchButton@@UEAA?AVCRect@@PEAVCDC@@H@Z
 extern "C" void* MS_ABI impl__GetKeyTipRect_CMFCRibbonLaunchButton__UEAA_AVCRect__PEAVCDC__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {
     return nullptr;
 }
 
-// ?GetRegularSize@CMFCRibbonLaunchButton@@UEAA?AVCSize@@PEAVCDC@@@Z
+// Symbol: ?GetRegularSize@CMFCRibbonLaunchButton@@UEAA?AVCSize@@PEAVCDC@@@Z
 extern "C" void* MS_ABI impl__GetRegularSize_CMFCRibbonLaunchButton__UEAA_AVCSize__PEAVCDC___Z(void* /*class*/* p0, void* /*class*/* p1) {
     return nullptr;
 }
 
-// ?OnClick@CMFCRibbonLaunchButton@@UEAAXVCPoint@@@Z
+// Symbol: ?OnClick@CMFCRibbonLaunchButton@@UEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnClick_CMFCRibbonLaunchButton__UEAAXVCPoint___Z(void* /*class*/ p0) {}
 
-// ?OnDraw@CMFCRibbonLaunchButton@@UEAAXPEAVCDC@@@Z
+// Symbol: ?OnDraw@CMFCRibbonLaunchButton@@UEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCRibbonLaunchButton__UEAAXPEAVCDC___Z(void* /*class*/* p0) {}
 
-// ?SetACCData@CMFCRibbonLaunchButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+// Symbol: ?SetACCData@CMFCRibbonLaunchButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonLaunchButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
     return 0;
 }

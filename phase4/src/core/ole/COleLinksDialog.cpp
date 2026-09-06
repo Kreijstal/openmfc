@@ -48,16 +48,6 @@ extern "C" void* MS_ABI impl___0COleLinksDialog__QEAA_PEAVCOleDocument__PEAVCVie
         CWnd* pParentWnd) {
     return new (p) COleLinksDialog(pDoc, pView, dwFlags, pParentWnd);
 }
-// Symbol: ?GetRuntimeClass@COleLinksDialog@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_COleLinksDialog__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@COleLinksDialog@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_COleLinksDialog__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}
 COleLinksDialog::COleLinksDialog(COleDocument* pDoc, CView* pView, DWORD dwFlags, CWnd* pParentWnd)
     : COleDialog(0, pParentWnd), m_dwFlags(dwFlags), m_pDoc(pDoc) {
     memset(&m_el, 0, sizeof(m_el));

@@ -32,35 +32,35 @@ void CKeyboardManager::CleanUp() { g_showAllAccelerators = FALSE; }
 void CKeyboardManager::ResetAll() { g_showAllAccelerators = FALSE; }
 BOOL CKeyboardManager::LoadState(const wchar_t*, CFrameWnd*) { return TRUE; }
 BOOL CKeyboardManager::SaveState(const wchar_t*, CFrameWnd*) { return TRUE; }
-// ?FindDefaultAccelerator@CKeyboardManager@@SAHIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCFrameWnd@@H@Z
+// Symbol: ?FindDefaultAccelerator@CKeyboardManager@@SAHIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCFrameWnd@@H@Z
 extern "C" int MS_ABI impl__FindDefaultAccelerator_CKeyboardManager__SAHIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCFrameWnd__H_Z(unsigned int p0, void* /*class*/* p1, void** p2, void* p3, void* /*class*/* p4, int p5) {
     return 0;
 }
 
-// ?IsKeyHandled@CKeyboardManager@@SAHGEPEAVCFrameWnd@@H@Z
+// Symbol: ?IsKeyHandled@CKeyboardManager@@SAHGEPEAVCFrameWnd@@H@Z
 extern "C" int MS_ABI impl__IsKeyHandled_CKeyboardManager__SAHGEPEAVCFrameWnd__H_Z(unsigned short p0, unsigned char p1, void* /*class*/* p2, int p3) {
     return 0;
 }
 
-// ?LoadAcceleratorState@CKeyboardManager@@IEAAHPEB_WIAEAPEAUHACCEL__@@@Z
+// Symbol: ?LoadAcceleratorState@CKeyboardManager@@IEAAHPEB_WIAEAPEAUHACCEL__@@@Z
 extern "C" int MS_ABI impl__LoadAcceleratorState_CKeyboardManager__IEAAHPEB_WIAEAPEAUHACCEL_____Z(const wchar_t* p0, unsigned int p1, void* /*struct*/** p2) {
     return 0;
 }
 
-// ?SaveAcceleratorState@CKeyboardManager@@IEAAHPEB_WIPEAUHACCEL__@@@Z
+// Symbol: ?SaveAcceleratorState@CKeyboardManager@@IEAAHPEB_WIPEAUHACCEL__@@@Z
 extern "C" int MS_ABI impl__SaveAcceleratorState_CKeyboardManager__IEAAHPEB_WIPEAUHACCEL_____Z(const wchar_t* p0, unsigned int p1, void* /*struct*/* p2) {
     return 0;
 }
 
-// ?SetAccelTable@CKeyboardManager@@KAXAEAPEAUtagACCEL@@AEAPEAUHACCEL__@@AEAHQEAU3@@Z
+// Symbol: ?SetAccelTable@CKeyboardManager@@KAXAEAPEAUtagACCEL@@AEAPEAUHACCEL__@@AEAHQEAU3@@Z
 extern "C" void MS_ABI impl__SetAccelTable_CKeyboardManager__KAXAEAPEAUtagACCEL__AEAPEAUHACCEL____AEAHQEAU3__Z(void* /*struct*/** p0, void* /*struct*/** p1, int* p2, void* p3, unsigned char p4, void* /*struct*/* p5) {}
 
-// ?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUHACCEL__@@PEAVCFrameWnd@@@Z
+// Symbol: ?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUHACCEL__@@PEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__UpdateAccelTable_CKeyboardManager__QEAAHPEAVCMultiDocTemplate__PEAUHACCEL____PEAVCFrameWnd___Z(void* /*class*/* p0, void* /*struct*/* p1, void* /*class*/* p2) {
     return 0;
 }
 
-// ?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUtagACCEL@@HPEAVCFrameWnd@@@Z
+// Symbol: ?UpdateAccelTable@CKeyboardManager@@QEAAHPEAVCMultiDocTemplate@@PEAUtagACCEL@@HPEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__UpdateAccelTable_CKeyboardManager__QEAAHPEAVCMultiDocTemplate__PEAUtagACCEL__HPEAVCFrameWnd___Z(void* /*class*/* p0, void* /*struct*/* p1, int p2, void* /*class*/* p3) {
     return 0;
 }

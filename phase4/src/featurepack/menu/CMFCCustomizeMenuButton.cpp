@@ -104,23 +104,23 @@ extern "C" void* MS_ABI impl___0CMFCCustomizeMenuButton__QEAA_IPEAUHMENU____HPEB
     (void)text;
     return pThis;
 }
-// ??1CMFCCustomizeMenuButton@@UEAA@XZ
+// Symbol: ??1CMFCCustomizeMenuButton@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCCustomizeMenuButton__UEAA_XZ() {
     return nullptr;
 }
 
-// ?OnDraw@CMFCCustomizeMenuButton@@MEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
+// Symbol: ?OnDraw@CMFCCustomizeMenuButton@@MEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCCustomizeMenuButton__MEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/* p2, int p3, int p4, int p5, int p6, int p7) {}
 
-// ?SearchCommandText@CMFCCustomizeMenuButton@@IEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCMenu@@I@Z
+// Symbol: ?SearchCommandText@CMFCCustomizeMenuButton@@IEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEAVCMenu@@I@Z
 extern "C" void* MS_ABI impl__SearchCommandText_CMFCCustomizeMenuButton__IEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEAVCMenu__I_Z(void* /*class*/* p0, void** p1, void* p2, void* /*class*/* p3, unsigned int p4) {
     return nullptr;
 }
 
-// ?SetItemIndex@CMFCCustomizeMenuButton@@QEAAXIHH@Z
+// Symbol: ?SetItemIndex@CMFCCustomizeMenuButton@@QEAAXIHH@Z
 extern "C" void MS_ABI impl__SetItemIndex_CMFCCustomizeMenuButton__QEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
 
-// ?UpdateCustomizeButton@CMFCCustomizeMenuButton@@IEAAXXZ
+// Symbol: ?UpdateCustomizeButton@CMFCCustomizeMenuButton@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateCustomizeButton_CMFCCustomizeMenuButton__IEAAXXZ() {}
 
 // Symbol: ?m_mapPresentIDs@CMFCCustomizeMenuButton@@2V?$CMap@IIHH@@A

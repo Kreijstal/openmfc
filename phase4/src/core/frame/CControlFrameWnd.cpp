@@ -9,21 +9,21 @@ extern "C" void* MS_ABI impl___0CControlFrameWnd__QEAA_PEAVCOleControl___Z(
     (void)pControl;
     return pThis;
 }
-// ?Create@CControlFrameWnd@@UEAAHPEB_W@Z
+// Symbol: ?Create@CControlFrameWnd@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__Create_CControlFrameWnd__UEAAHPEB_W_Z(const wchar_t* p0) {
     return 0;
 }
 
-// ?OnActivate@CControlFrameWnd@@IEAAXIPEAVCWnd@@H@Z
+// Symbol: ?OnActivate@CControlFrameWnd@@IEAAXIPEAVCWnd@@H@Z
 extern "C" void MS_ABI impl__OnActivate_CControlFrameWnd__IEAAXIPEAVCWnd__H_Z(unsigned int p0, void* /*class*/* p1, int p2) {}
 
-// ?OnClose@CControlFrameWnd@@IEAAXXZ
+// Symbol: ?OnClose@CControlFrameWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnClose_CControlFrameWnd__IEAAXXZ() {}
 
-// ?PostNcDestroy@CControlFrameWnd@@MEAAXXZ
+// Symbol: ?PostNcDestroy@CControlFrameWnd@@MEAAXXZ
 extern "C" void MS_ABI impl__PostNcDestroy_CControlFrameWnd__MEAAXXZ() {}
 
-// ?PreCreateWindow@CControlFrameWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
+// Symbol: ?PreCreateWindow@CControlFrameWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CControlFrameWnd__UEAAHAEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
     return 0;
 }

@@ -36,11 +36,13 @@
 
 // Symbol: ??0CMFCRibbonContextCaption@@IEAA_XZ
 // CMFCRibbonContextCaption::CMFCRibbonContextCaption()
+// Symbol: ??0CMFCRibbonContextCaption@@IEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonContextCaption__IEAA_XZ() {
     return new CMFCRibbonContextCaption();
 }
 // Symbol: ??0CMFCRibbonCaptionButton@@IEAA@IPEAUHWND__@@_Z
 // CMFCRibbonCaptionButton::CMFCRibbonCaptionButton()
+// Symbol: ??0CMFCRibbonCaptionButton@@IEAA@IPEAUHWND__@@@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonCaptionButton__IEAA_IPEAUHWND_____Z(
     unsigned int p0, void* /*struct*/* p1) {
     (void)p0;

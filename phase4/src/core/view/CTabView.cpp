@@ -67,37 +67,37 @@ extern "C" int MS_ABI impl__RemoveView_CTabView__QEAAHH_Z(void* self, int index)
     else if (state.active >= static_cast<int>(state.tabs.size())) state.active = static_cast<int>(state.tabs.size()) - 1;
     return TRUE;
 }
-// ?CreateObject@CTabView@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CTabView@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CTabView__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?OnChangeActiveTab@CTabView@@IEAA_J_K_J@Z
+// Symbol: ?OnChangeActiveTab@CTabView@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnChangeActiveTab_CTabView__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
     return 0;
 }
 
-// ?OnCreate@CTabView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
+// Symbol: ?OnCreate@CTabView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CTabView__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
     return 0;
 }
 
-// ?OnDraw@CTabView@@MEAAXPEAVCDC@@@Z
+// Symbol: ?OnDraw@CTabView@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CTabView__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
 
-// ?OnInitialUpdate@CTabView@@UEAAXXZ
+// Symbol: ?OnInitialUpdate@CTabView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnInitialUpdate_CTabView__UEAAXXZ() {}
 
-// ?OnMouseActivate@CTabView@@IEAAHPEAVCWnd@@II@Z
+// Symbol: ?OnMouseActivate@CTabView@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnMouseActivate_CTabView__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
     return 0;
 }
 
-// ?OnPrintClient@CTabView@@IEAA_JPEAVCDC@@I@Z
+// Symbol: ?OnPrintClient@CTabView@@IEAA_JPEAVCDC@@I@Z
 extern "C" __int64 MS_ABI impl__OnPrintClient_CTabView__IEAA_JPEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
     return 0;
 }
 
-// ?OnSize@CTabView@@IEAAXIHH@Z
+// Symbol: ?OnSize@CTabView@@IEAAXIHH@Z
 extern "C" void MS_ABI impl__OnSize_CTabView__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
 

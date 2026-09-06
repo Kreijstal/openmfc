@@ -104,47 +104,47 @@ long CRichEditCntrItem::GetWindowContext(IOleInPlaceFrame** ppFrame,
     }
     return S_OK;
 }
-// ??1CRichEditCntrItem@@UEAA@XZ
+// Symbol: ??1CRichEditCntrItem@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CRichEditCntrItem__UEAA_XZ() {
     return nullptr;
 }
 
-// ?ActivateAs@CRichEditCntrItem@@UEAAHPEB_WAEBU_GUID@@1@Z
+// Symbol: ?ActivateAs@CRichEditCntrItem@@UEAAHPEB_WAEBU_GUID@@1@Z
 extern "C" int MS_ABI impl__ActivateAs_CRichEditCntrItem__UEAAHPEB_WAEBU_GUID__1_Z(const wchar_t* p0, const void* /*struct*/* p1, const void* /*struct*/* p2) {
     return 0;
 }
 
-// ?CanActivate@CRichEditCntrItem@@UEAAHXZ
+// Symbol: ?CanActivate@CRichEditCntrItem@@UEAAHXZ
 extern "C" int MS_ABI impl__CanActivate_CRichEditCntrItem__UEAAHXZ() {
     return 0;
 }
 
-// ?ConvertTo@CRichEditCntrItem@@UEAAHAEBU_GUID@@@Z
+// Symbol: ?ConvertTo@CRichEditCntrItem@@UEAAHAEBU_GUID@@@Z
 extern "C" int MS_ABI impl__ConvertTo_CRichEditCntrItem__UEAAHAEBU_GUID___Z(const void* /*struct*/* p0) {
     return 0;
 }
 
-// ?CreateObject@CRichEditCntrItem@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CRichEditCntrItem@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CRichEditCntrItem__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?OnChangeItemPosition@CRichEditCntrItem@@MEAAHAEBVCRect@@@Z
+// Symbol: ?OnChangeItemPosition@CRichEditCntrItem@@MEAAHAEBVCRect@@@Z
 extern "C" int MS_ABI impl__OnChangeItemPosition_CRichEditCntrItem__MEAAHAEBVCRect___Z(const void* /*class*/* p0) {
     return 0;
 }
 
-// ?OnDeactivateUI@CRichEditCntrItem@@UEAAXH@Z
+// Symbol: ?OnDeactivateUI@CRichEditCntrItem@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnDeactivateUI_CRichEditCntrItem__UEAAXH_Z(int p0) {}
 
-// ?SetDrawAspect@CRichEditCntrItem@@UEAAXW4tagDVASPECT@@@Z
+// Symbol: ?SetDrawAspect@CRichEditCntrItem@@UEAAXW4tagDVASPECT@@@Z
 extern "C" void MS_ABI impl__SetDrawAspect_CRichEditCntrItem__UEAAXW4tagDVASPECT___Z(int /*enum*/ p0, void* p1, void* p2, void* p3, char p4, void* /*class*/ p5) {}
 
-// ?ShowContainerUI@CRichEditCntrItem@@QEAAJH@Z
+// Symbol: ?ShowContainerUI@CRichEditCntrItem@@QEAAJH@Z
 extern "C" long MS_ABI impl__ShowContainerUI_CRichEditCntrItem__QEAAJH_Z(int p0) {
     return 0;
 }
 
-// ?SyncToRichEditObject@CRichEditCntrItem@@QEAAXAEAU_reobject@@@Z
+// Symbol: ?SyncToRichEditObject@CRichEditCntrItem@@QEAAXAEAU_reobject@@@Z
 extern "C" void MS_ABI impl__SyncToRichEditObject_CRichEditCntrItem__QEAAXAEAU_reobject___Z(void* /*struct*/* p0) {}
 

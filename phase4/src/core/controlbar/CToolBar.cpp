@@ -48,11 +48,11 @@ extern "C" long MS_ABI impl__get_accName_CToolBar__UEAAJUtagVARIANT__PEAPEA_W_Z(
     *pszName = ::SysAllocString((const wchar_t*)text);
     return *pszName ? S_OK : E_OUTOFMEMORY;
 }
-// Symbol: ?GetMessageMap@CToolBar@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ(const CToolBar* pThis) {
-    (void)pThis;
-    return CWnd::GetThisMessageMap();
-}
+// GetMessageMap/GetThisMessageMap for CToolBar live in core/controlbar/MessageMaps.cpp
+// (classCToolBar_msgmap, base map CControlBar). Retail agrees: ?GetThisMessageMap@
+// CToolBar@@KAPEBUAFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at 0x180320648,
+// whose pfnGetBaseMap is ?GetThisMessageMap@CControlBar@@KAPEBUAFX_MSGMAP@@XZ. The copies
+// that used to be here returned CWnd's map, skipping CToolBar and CControlBar entirely.
 // Symbol: ?GetRuntimeClass@CToolBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntimeClass__XZ(const CToolBar* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CToolBar::GetThisClass();
@@ -60,10 +60,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntim
 // Symbol: ?GetThisClass@CToolBar@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ() {
     return CToolBar::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CToolBar@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CToolBar__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
 }
 // Symbol: ?Layout@CToolBar@@IEAAXXZ
 extern "C" void MS_ABI impl__Layout_CToolBar__IEAAXXZ(CToolBar* pThis) {
@@ -484,23 +480,23 @@ extern "C" void MS_ABI impl__GetButtonInfo_CToolBar__QEBAXHAEAI0AEAH_Z(void* pTh
     (void)p3;
 }
 
-// ?AddReplaceBitmap@CToolBar@@QEAAHPEAUHBITMAP__@@@Z
+// Symbol: ?AddReplaceBitmap@CToolBar@@QEAAHPEAUHBITMAP__@@@Z
 extern "C" int MS_ABI impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(void* /*struct*/* p0) {
     return 0;
 }
 
-// ?LoadBitmapW@CToolBar@@QEAAHPEB_W@Z
+// Symbol: ?LoadBitmapW@CToolBar@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadBitmapW_CToolBar__QEAAHPEB_W_Z(const wchar_t* p0) {
     return 0;
 }
 
-// ?OnNcPaint@CToolBar@@IEAAXXZ
+// Symbol: ?OnNcPaint@CToolBar@@IEAAXXZ
 extern "C" void MS_ABI impl__OnNcPaint_CToolBar__IEAAXXZ() {}
 
-// ?OnPaint@CToolBar@@IEAAXXZ
+// Symbol: ?OnPaint@CToolBar@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CToolBar__IEAAXXZ() {}
 
-// ?OnSetBitmapSize@CToolBar@@IEAA_J_K_J@Z
+// Symbol: ?OnSetBitmapSize@CToolBar@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnSetBitmapSize_CToolBar__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
     return 0;
 }

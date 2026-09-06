@@ -50,63 +50,63 @@ extern "C" void* MS_ABI impl___0CDataRecoveryHandler__QEAA_KH_Z(
 extern "C" void MS_ABI impl___1CDataRecoveryHandler__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?AutosaveAllDocumentInfo@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?AutosaveAllDocumentInfo@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__AutosaveAllDocumentInfo_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?AutosaveDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@H@Z
+// Symbol: ?AutosaveDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@H@Z
 extern "C" int MS_ABI impl__AutosaveDocumentInfo_CDataRecoveryHandler__UEAAHPEAVCDocument__H_Z(void* /*class*/* p0, int p1) {
     return 0;
 }
 
-// ?CreateDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
+// Symbol: ?CreateDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
 extern "C" int MS_ABI impl__CreateDocumentInfo_CDataRecoveryHandler__UEAAHPEAVCDocument___Z(void* /*class*/* p0) {
     return 0;
 }
 
-// ?DeleteAllAutosavedFiles@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?DeleteAllAutosavedFiles@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__DeleteAllAutosavedFiles_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?Initialize@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?Initialize@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__Initialize_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?QueryRestoreAutosavedDocuments@CDataRecoveryHandler@@UEAAXXZ
+// Symbol: ?QueryRestoreAutosavedDocuments@CDataRecoveryHandler@@UEAAXXZ
 extern "C" void MS_ABI impl__QueryRestoreAutosavedDocuments_CDataRecoveryHandler__UEAAXXZ() {}
 
-// ?ReadOpenDocumentList@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?ReadOpenDocumentList@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__ReadOpenDocumentList_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?RemoveDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
+// Symbol: ?RemoveDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
 extern "C" int MS_ABI impl__RemoveDocumentInfo_CDataRecoveryHandler__UEAAHPEAVCDocument___Z(void* /*class*/* p0) {
     return 0;
 }
 
-// ?ReopenPreviousDocuments@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?ReopenPreviousDocuments@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__ReopenPreviousDocuments_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?RestoreAutosavedDocuments@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?RestoreAutosavedDocuments@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__RestoreAutosavedDocuments_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?SaveOpenDocumentList@CDataRecoveryHandler@@UEAAHXZ
+// Symbol: ?SaveOpenDocumentList@CDataRecoveryHandler@@UEAAHXZ
 extern "C" int MS_ABI impl__SaveOpenDocumentList_CDataRecoveryHandler__UEAAHXZ() {
     return 0;
 }
 
-// ?SetAutosaveInterval@CDataRecoveryHandler@@UEAAXH@Z
+// Symbol: ?SetAutosaveInterval@CDataRecoveryHandler@@UEAAXH@Z
 extern "C" void MS_ABI impl__SetAutosaveInterval_CDataRecoveryHandler__UEAAXH_Z(int p0) {}
 
-// ?UpdateDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
+// Symbol: ?UpdateDocumentInfo@CDataRecoveryHandler@@UEAAHPEAVCDocument@@@Z
 extern "C" int MS_ABI impl__UpdateDocumentInfo_CDataRecoveryHandler__UEAAHPEAVCDocument___Z(void* /*class*/* p0) {
     return 0;
 }

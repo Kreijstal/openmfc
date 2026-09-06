@@ -5,11 +5,12 @@
 
 #include "detail/DlgcommonSupport.h"
 
-// Symbol: ?GetMessageMap@CVSListBoxEditCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBoxEditCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBoxEditCtrl* pThis) {
-    (void)pThis;
-    return CEdit::GetThisMessageMap();
-}
+// GetMessageMap/GetThisMessageMap for CVSListBoxEditCtrl live in
+// featurepack/controls/MessageMaps.cpp (classCVSListBoxEditCtrl_msgmap, base map
+// CMFCEditBrowseCtrl). Retail agrees: ?GetThisMessageMap@CVSListBoxEditCtrl@@KAPEBU
+// AFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at 0x18031de78, whose pfnGetBaseMap
+// is ?GetThisMessageMap@CMFCEditBrowseCtrl@@KAPEBUAFX_MSGMAP@@XZ. The copies that used to
+// be here returned CEdit's map, skipping CMFCEditBrowseCtrl.
 // Symbol: ?GetRuntimeClass@CVSListBoxEditCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxEditCtrl__UEBAPEAUCRuntimeClass__XZ(const CVSListBoxEditCtrl* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CVSListBoxEditCtrl::GetThisClass();
@@ -17,10 +18,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxEditCtrl__UEBAP
 // Symbol: ?GetThisClass@CVSListBoxEditCtrl@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxEditCtrl__SAPEAUCRuntimeClass__XZ() {
     return CVSListBoxEditCtrl::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CVSListBoxEditCtrl@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBoxEditCtrl__KAPEBUAFX_MSGMAP__XZ() {
-    return CEdit::GetThisMessageMap();
 }
 // Symbol: ?LockSize@CVSListBoxEditCtrl@@QEAAXPEAVCVSListBoxBase@@H@Z
 extern "C" void MS_ABI impl__LockSize_CVSListBoxEditCtrl__QEAAXPEAVCVSListBoxBase__H_Z(CVSListBoxEditCtrl* pThis, CVSListBoxBase*, int) {

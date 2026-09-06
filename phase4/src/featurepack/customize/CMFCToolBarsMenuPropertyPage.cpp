@@ -9,46 +9,46 @@ extern "C" void* MS_ABI impl___0CMFCToolBarsMenuPropertyPage__QEAA_PEAVCFrameWnd
     (void)flags;
     return pThis;
 }
-// ??1CMFCToolBarsMenuPropertyPage@@UEAA@XZ
+// Symbol: ??1CMFCToolBarsMenuPropertyPage@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCToolBarsMenuPropertyPage__UEAA_XZ() {
     return nullptr;
 }
 
-// ?CloseContextMenu@CMFCToolBarsMenuPropertyPage@@QEAAXPEAVCMFCPopupMenu@@@Z
+// Symbol: ?CloseContextMenu@CMFCToolBarsMenuPropertyPage@@QEAAXPEAVCMFCPopupMenu@@@Z
 extern "C" void MS_ABI impl__CloseContextMenu_CMFCToolBarsMenuPropertyPage__QEAAXPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {}
 
-// ?CreateObject@CMFCToolBarsMenuPropertyPage@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCToolBarsMenuPropertyPage@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCToolBarsMenuPropertyPage__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?DoDataExchange@CMFCToolBarsMenuPropertyPage@@MEAAXPEAVCDataExchange@@@Z
+// Symbol: ?DoDataExchange@CMFCToolBarsMenuPropertyPage@@MEAAXPEAVCDataExchange@@@Z
 extern "C" void MS_ABI impl__DoDataExchange_CMFCToolBarsMenuPropertyPage__MEAAXPEAVCDataExchange___Z(void* /*class*/* p0) {}
 
-// ?OnDestroy@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?OnDestroy@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?OnInitDialog@CMFCToolBarsMenuPropertyPage@@MEAAHXZ
+// Symbol: ?OnInitDialog@CMFCToolBarsMenuPropertyPage@@MEAAHXZ
 extern "C" int MS_ABI impl__OnInitDialog_CMFCToolBarsMenuPropertyPage__MEAAHXZ() {
     return 0;
 }
 
-// ?OnResetFrameMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?OnResetFrameMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnResetFrameMenu_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?OnResetMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?OnResetMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnResetMenu_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?OnSelchangeContextMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?OnSelchangeContextMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSelchangeContextMenuList_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?OnSelchangeMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?OnSelchangeMenuList@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSelchangeMenuList_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?SaveMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
+// Symbol: ?SaveMenu@CMFCToolBarsMenuPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__SaveMenu_CMFCToolBarsMenuPropertyPage__IEAAXXZ() {}
 
-// ?SelectMenu@CMFCToolBarsMenuPropertyPage@@QEAAHPEAVCDocTemplate@@H@Z
+// Symbol: ?SelectMenu@CMFCToolBarsMenuPropertyPage@@QEAAHPEAVCDocTemplate@@H@Z
 extern "C" int MS_ABI impl__SelectMenu_CMFCToolBarsMenuPropertyPage__QEAAHPEAVCDocTemplate__H_Z(void* /*class*/* p0, int p1) {
     return 0;
 }

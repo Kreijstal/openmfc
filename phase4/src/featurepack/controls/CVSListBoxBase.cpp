@@ -39,11 +39,12 @@ extern "C" int MS_ABI impl__GetButtonNum_CVSListBoxBase__QEBAHI_Z(const CVSListB
     (void)pThis;
     return (int)nID;
 }
-// Symbol: ?GetMessageMap@CVSListBoxBase@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBoxBase__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBoxBase* pThis) {
-    (void)pThis;
-    return CStatic::GetThisMessageMap();
-}
+// GetMessageMap/GetThisMessageMap for CVSListBoxBase live in featurepack/controls/MessageMaps.cpp
+// (classCVSListBoxBase_msgmap, base map CWnd). Retail agrees: ?GetThisMessageMap@
+// CVSListBoxBase@@KAPEBUAFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at
+// 0x18031d948, whose pfnGetBaseMap is ?GetThisMessageMap@CWnd@@KAPEBUAFX_MSGMAP@@XZ --
+// CWnd, even though the class's CRuntimeClass base is CStatic. The copies that used to be
+// here returned CStatic's map directly.
 // Symbol: ?GetRuntimeClass@CVSListBoxBase@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxBase__UEBAPEAUCRuntimeClass__XZ(const CVSListBoxBase* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CVSListBoxBase::GetThisClass();
@@ -56,10 +57,6 @@ extern "C" int MS_ABI impl__GetStdButtonNum_CVSListBoxBase__IEBAHI_Z(const CVSLi
 // Symbol: ?GetThisClass@CVSListBoxBase@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBoxBase__SAPEAUCRuntimeClass__XZ() {
     return CVSListBoxBase::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CVSListBoxBase@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBoxBase__KAPEBUAFX_MSGMAP__XZ() {
-    return CStatic::GetThisMessageMap();
 }
 // Symbol: ?Init@CVSListBoxBase@@IEAAXXZ
 extern "C" void MS_ABI impl__Init_CVSListBoxBase__IEAAXXZ(CVSListBoxBase* pThis) {

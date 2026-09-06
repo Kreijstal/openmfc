@@ -51,43 +51,43 @@ extern "C" void MS_ABI impl___1CD2DRadialGradientBrush__UEAA_XZ(void* pThis) {
         g_cd2dRadialGradientBrushStates.erase(pThis);
     }
 }
-// ?Destroy@CD2DRadialGradientBrush@@UEAAXXZ
+// Symbol: ?Destroy@CD2DRadialGradientBrush@@UEAAXXZ
 extern "C" void MS_ABI impl__Destroy_CD2DRadialGradientBrush__UEAAXXZ() {}
 
-// ?Detach@CD2DRadialGradientBrush@@QEAAPEAUID2D1RadialGradientBrush@@XZ
+// Symbol: ?Detach@CD2DRadialGradientBrush@@QEAAPEAUID2D1RadialGradientBrush@@XZ
 extern "C" void* MS_ABI impl__Detach_CD2DRadialGradientBrush__QEAAPEAUID2D1RadialGradientBrush__XZ() {
     return nullptr;
 }
 
-// ?GetCenter@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ
+// Symbol: ?GetCenter@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ
 extern "C" void* MS_ABI impl__GetCenter_CD2DRadialGradientBrush__QEBA_AVCD2DPointF__XZ(void* /*class*/* p0) {
     return nullptr;
 }
 
-// ?GetGradientOriginOffset@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ
+// Symbol: ?GetGradientOriginOffset@CD2DRadialGradientBrush@@QEBA?AVCD2DPointF@@XZ
 extern "C" void* MS_ABI impl__GetGradientOriginOffset_CD2DRadialGradientBrush__QEBA_AVCD2DPointF__XZ(void* /*class*/* p0) {
     return nullptr;
 }
 
-// ?GetRadiusX@CD2DRadialGradientBrush@@QEBAMXZ
+// Symbol: ?GetRadiusX@CD2DRadialGradientBrush@@QEBAMXZ
 extern "C" float MS_ABI impl__GetRadiusX_CD2DRadialGradientBrush__QEBAMXZ() {
     return 0.0;
 }
 
-// ?GetRadiusY@CD2DRadialGradientBrush@@QEBAMXZ
+// Symbol: ?GetRadiusY@CD2DRadialGradientBrush@@QEBAMXZ
 extern "C" float MS_ABI impl__GetRadiusY_CD2DRadialGradientBrush__QEBAMXZ() {
     return 0.0;
 }
 
-// ?SetCenter@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z
+// Symbol: ?SetCenter@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z
 extern "C" void MS_ABI impl__SetCenter_CD2DRadialGradientBrush__QEAAXVCD2DPointF___Z(void* /*class*/ p0) {}
 
-// ?SetGradientOriginOffset@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z
+// Symbol: ?SetGradientOriginOffset@CD2DRadialGradientBrush@@QEAAXVCD2DPointF@@@Z
 extern "C" void MS_ABI impl__SetGradientOriginOffset_CD2DRadialGradientBrush__QEAAXVCD2DPointF___Z(void* /*class*/ p0) {}
 
-// ?SetRadiusX@CD2DRadialGradientBrush@@QEAAXM@Z
+// Symbol: ?SetRadiusX@CD2DRadialGradientBrush@@QEAAXM@Z
 extern "C" void MS_ABI impl__SetRadiusX_CD2DRadialGradientBrush__QEAAXM_Z(float p0) {}
 
-// ?SetRadiusY@CD2DRadialGradientBrush@@QEAAXM@Z
+// Symbol: ?SetRadiusY@CD2DRadialGradientBrush@@QEAAXM@Z
 extern "C" void MS_ABI impl__SetRadiusY_CD2DRadialGradientBrush__QEAAXM_Z(float p0) {}
 

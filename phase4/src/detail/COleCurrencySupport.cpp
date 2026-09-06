@@ -2,6 +2,7 @@
 
 static_assert(offsetof(COleCurrencyView, m_status) == 8, "m_status @8");
 namespace openmfc { namespace detail { namespace colecurrency {
+// Symbol: ?Format@COleCurrency@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@KK@Z
 extern "C" void MS_ABI impl__Format_COleCurrency__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__KK_Z(
     CString* pRet, const void* pThis, unsigned long dwFormat, unsigned long lcid)
 {

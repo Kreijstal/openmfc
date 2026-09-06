@@ -13,23 +13,23 @@ extern "C" void* MS_ABI impl___0CD2DLayer__QEAA_PEAVCRenderTarget__H_Z(void* pTh
 extern "C" void MS_ABI impl___1CD2DLayer__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?Attach@CD2DLayer@@QEAAXPEAUID2D1Layer@@@Z
+// Symbol: ?Attach@CD2DLayer@@QEAAXPEAUID2D1Layer@@@Z
 extern "C" void MS_ABI impl__Attach_CD2DLayer__QEAAXPEAUID2D1Layer___Z(void* /*struct*/* p0) {}
 
-// ?Create@CD2DLayer@@UEAAJPEAVCRenderTarget@@@Z
+// Symbol: ?Create@CD2DLayer@@UEAAJPEAVCRenderTarget@@@Z
 extern "C" long MS_ABI impl__Create_CD2DLayer__UEAAJPEAVCRenderTarget___Z(void* /*class*/* p0) {
     return 0;
 }
 
-// ?Destroy@CD2DLayer@@UEAAXXZ
+// Symbol: ?Destroy@CD2DLayer@@UEAAXXZ
 extern "C" void MS_ABI impl__Destroy_CD2DLayer__UEAAXXZ() {}
 
-// ?Detach@CD2DLayer@@QEAAPEAUID2D1Layer@@XZ
+// Symbol: ?Detach@CD2DLayer@@QEAAPEAUID2D1Layer@@XZ
 extern "C" void* MS_ABI impl__Detach_CD2DLayer__QEAAPEAUID2D1Layer__XZ() {
     return nullptr;
 }
 
-// ?GetSize@CD2DLayer@@QEBA?AVCD2DSizeF@@XZ
+// Symbol: ?GetSize@CD2DLayer@@QEBA?AVCD2DSizeF@@XZ
 extern "C" void* MS_ABI impl__GetSize_CD2DLayer__QEBA_AVCD2DSizeF__XZ(void* /*class*/* p0) {
     return nullptr;
 }

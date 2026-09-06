@@ -46,55 +46,55 @@ extern "C" void MS_ABI impl__SetZoomIncrement_CMFCRibbonSlider__QEAAXH_Z(CMFCRib
 }
 CMFCRibbonSlider::CMFCRibbonSlider() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonSlider::~CMFCRibbonSlider() {}
-// ?CommonInit@CMFCRibbonSlider@@IEAAXXZ
+// Symbol: ?CommonInit@CMFCRibbonSlider@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonSlider__IEAAXXZ() {}
 
-// ?CopyFrom@CMFCRibbonSlider@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+// Symbol: ?CopyFrom@CMFCRibbonSlider@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonSlider__MEAAXAEBVCMFCRibbonBaseElement___Z(const void* /*class*/* p0) {}
 
-// ?GetHitTest@CMFCRibbonSlider@@IEBAHVCPoint@@@Z
+// Symbol: ?GetHitTest@CMFCRibbonSlider@@IEBAHVCPoint@@@Z
 extern "C" int MS_ABI impl__GetHitTest_CMFCRibbonSlider__IEBAHVCPoint___Z(void* /*class*/ p0) {
     return 0;
 }
 
-// ?GetPosFromPoint@CMFCRibbonSlider@@IEAAHH@Z
+// Symbol: ?GetPosFromPoint@CMFCRibbonSlider@@IEAAHH@Z
 extern "C" int MS_ABI impl__GetPosFromPoint_CMFCRibbonSlider__IEAAHH_Z(int p0) {
     return 0;
 }
 
-// ?IsAutoRepeatMode@CMFCRibbonSlider@@MEBAHAEAH@Z
+// Symbol: ?IsAutoRepeatMode@CMFCRibbonSlider@@MEBAHAEAH@Z
 extern "C" int MS_ABI impl__IsAutoRepeatMode_CMFCRibbonSlider__MEBAHAEAH_Z(int* p0) {
     return 0;
 }
 
-// ?NotifyCommand@CMFCRibbonSlider@@IEAAXXZ
+// Symbol: ?NotifyCommand@CMFCRibbonSlider@@IEAAXXZ
 extern "C" void MS_ABI impl__NotifyCommand_CMFCRibbonSlider__IEAAXXZ() {}
 
-// ?OnAfterChangeRect@CMFCRibbonSlider@@MEAAXPEAVCDC@@@Z
+// Symbol: ?OnAfterChangeRect@CMFCRibbonSlider@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonSlider__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
 
-// ?OnAutoRepeat@CMFCRibbonSlider@@MEAAHXZ
+// Symbol: ?OnAutoRepeat@CMFCRibbonSlider@@MEAAHXZ
 extern "C" int MS_ABI impl__OnAutoRepeat_CMFCRibbonSlider__MEAAHXZ() {
     return 0;
 }
 
-// ?OnDrawOnList@CMFCRibbonSlider@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z
+// Symbol: ?OnDrawOnList@CMFCRibbonSlider@@MEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z
 extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonSlider__MEAAXPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HVCRect__HH_Z(void* /*class*/* p0, void* /*class*/ p1, void** p2, void* p3, int p4, void* /*class*/ p5, int p6, int p7) {}
 
-// ?OnLButtonDown@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
+// Symbol: ?OnLButtonDown@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonSlider__MEAAXVCPoint___Z(void* /*class*/ p0) {}
 
-// ?OnLButtonUp@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
+// Symbol: ?OnLButtonUp@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonSlider__MEAAXVCPoint___Z(void* /*class*/ p0) {}
 
-// ?OnMouseMove@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
+// Symbol: ?OnMouseMove@CMFCRibbonSlider@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonSlider__MEAAXVCPoint___Z(void* /*class*/ p0) {}
 
-// ?SetACCData@CMFCRibbonSlider@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+// Symbol: ?SetACCData@CMFCRibbonSlider@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonSlider__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
     return 0;
 }
 
-// ?SetThumbRect@CMFCRibbonSlider@@IEAAXXZ
+// Symbol: ?SetThumbRect@CMFCRibbonSlider@@IEAAXXZ
 extern "C" void MS_ABI impl__SetThumbRect_CMFCRibbonSlider__IEAAXXZ() {}
 

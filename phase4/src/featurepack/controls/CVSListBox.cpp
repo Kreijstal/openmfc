@@ -5,11 +5,12 @@
 
 #include "detail/DlgcommonSupport.h"
 
-// Symbol: ?GetMessageMap@CVSListBox@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CVSListBox__MEBAPEBUAFX_MSGMAP__XZ(const CVSListBox* pThis) {
-    (void)pThis;
-    return CListBox::GetThisMessageMap();
-}
+// GetMessageMap/GetThisMessageMap for CVSListBox live in featurepack/controls/MessageMaps.cpp
+// (classCVSListBox_msgmap, base map CVSListBoxBase). Retail agrees: ?GetThisMessageMap@
+// CVSListBox@@KAPEBUAFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at 0x18031d498,
+// whose pfnGetBaseMap is ?GetThisMessageMap@CVSListBoxBase@@KAPEBUAFX_MSGMAP@@XZ. The
+// copies that used to be here returned CListBox's map; retail's CVSListBox derives from
+// CVSListBoxBase (itself over CStatic), so CListBox is nowhere in the chain.
 // Symbol: ?GetRuntimeClass@CVSListBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBox__UEBAPEAUCRuntimeClass__XZ(const CVSListBox* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CVSListBox::GetThisClass();
@@ -17,10 +18,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBox__UEBAPEAUCRunt
 // Symbol: ?GetThisClass@CVSListBox@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CVSListBox__SAPEAUCRuntimeClass__XZ() {
     return CVSListBox::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CVSListBox@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CVSListBox__KAPEBUAFX_MSGMAP__XZ() {
-    return CListBox::GetThisMessageMap();
 }
 // Symbol: ?OnCreateList@CVSListBox@@MEAAPEAVCWnd@@XZ
 extern "C" CWnd* MS_ABI impl__OnCreateList_CVSListBox__MEAAPEAVCWnd__XZ(CVSListBox* pThis) {

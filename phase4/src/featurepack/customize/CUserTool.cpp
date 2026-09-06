@@ -34,14 +34,13 @@ extern "C" void MS_ABI impl__DeleteIcon_CUserTool__MEAAXXZ(void* pThis) {
         state.icon = nullptr;
     }
 }
-// Symbol: ?GetRuntimeClass@CUserTool@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CUserTool__UEBAPEAUCRuntimeClass__XZ(const void*) {
-    return &g_classCUserTool;
-}
-// Symbol: ?GetThisClass@CUserTool@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CUserTool__SAPEAUCRuntimeClass__XZ() {
-    return &g_classCUserTool;
-}
+// GetRuntimeClass/GetThisClass for CUserTool live in featurepack/customize/RuntimeClasses.cpp
+// (classCUserTool from detail/COleControlModuleSupport.h: size 56, schema 0x80000001,
+// base CObject). That matches the retail descriptor at 0x1803b17d8 in mfc140u.dll
+// (0x1803aa7d8 in mfc140.dll): "CUserTool", 56, 0x80000001, base CObject. The copies
+// that used to be here returned g_classCUserTool, sized sizeof(void*) = 8 with schema
+// 0xFFFF; 0x80000001 is VERSIONABLE_SCHEMA|1, which only IMPLEMENT_SERIAL emits, so the
+// 0xFFFF value would have mis-versioned CUserTool serialization.
 // Symbol: ?Invoke@CUserTool@@UEAAHXZ
 extern "C" int MS_ABI impl__Invoke_CUserTool__UEAAHXZ(void* pThis) {
     std::wstring command;

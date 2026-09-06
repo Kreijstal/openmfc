@@ -92,18 +92,19 @@ extern "C" void MS_ABI impl__GetRoot_CGopherFileFind__UEBA_AV__CStringT__WV__Str
     CString* pRet, const GopherFileFind* pThis) {
     openmfcConstructString(pRet, pThis ? pThis->GetRoot() : CString());
 }
-// Symbol: ?GetRuntimeClass@CGopherFileFind@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherFileFind__UEBAPEAUCRuntimeClass__XZ(const GopherFileFind* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : GopherFileFind::GetThisClass();
-}
+// GetRuntimeClass/GetThisClass for CGopherFileFind live in core/net/RuntimeClasses.cpp
+// (classCGopherFileFind: name "CGopherFileFind", size 72, schema 0xFFFF, base CFileFind),
+// which matches the retail descriptor at 0x180329f30 in mfc140u.dll (0x180327d70 in
+// mfc140.dll, reached by ?GetThisClass@CGopherFileFind@@SAPEAUCRuntimeClass@@XZ). The
+// copies that used to be here returned GopherFileFind::classGopherFileFind, built by
+// IMPLEMENT_DYNAMIC(GopherFileFind, CFtpFileFind) in detail/InetcoreSupport.cpp: the
+// class-name string is "GopherFileFind" and the base link is CFtpFileFind, neither of
+// which matches retail. GetRuntimeClass also self-dispatched through
+// pThis->GetRuntimeClass(), which recurses through this very export in a drop-in client.
 // Symbol: ?GetScreenName@CGopherFileFind@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" void MS_ABI impl__GetScreenName_CGopherFileFind__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
     CString* pRet, const GopherFileFind* pThis) {
     openmfcConstructString(pRet, pThis ? pThis->GetScreenName() : CString());
-}
-// Symbol: ?GetThisClass@CGopherFileFind@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherFileFind__SAPEAUCRuntimeClass__XZ() {
-    return GopherFileFind::GetThisClass();
 }
 // Symbol: ?IsDots@CGopherFileFind@@UEBAHXZ
 extern "C" int MS_ABI impl__IsDots_CGopherFileFind__UEBAHXZ(const GopherFileFind* pThis) {

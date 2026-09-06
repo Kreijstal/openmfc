@@ -61,13 +61,3 @@ extern "C" int MS_ABI impl__AddToStoryboardAtOffset_CKeyFrame__UEAAHPEAUIUIAnima
     state.m_lastKeyFrameID = keyFrameID;
     return static_cast<int>(S_OK);
 }
-// Symbol: ?GetRuntimeClass@CKeyFrame@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CKeyFrame__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@CKeyFrame@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_CKeyFrame__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}

@@ -15,41 +15,41 @@ extern "C" void* MS_ABI impl___0CMFCToolBarFontSizeComboBox__QEAA_IHKH_Z(
     (void)c;
     return pThis;
 }
-// ??1CMFCToolBarFontSizeComboBox@@UEAA@XZ
+// Symbol: ??1CMFCToolBarFontSizeComboBox@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCToolBarFontSizeComboBox__UEAA_XZ() {
     return nullptr;
 }
 
-// ?CreateCombo@CMFCToolBarFontSizeComboBox@@MEAAPEAVCComboBox@@PEAVCWnd@@AEBVCRect@@@Z
+// Symbol: ?CreateCombo@CMFCToolBarFontSizeComboBox@@MEAAPEAVCComboBox@@PEAVCWnd@@AEBVCRect@@@Z
 extern "C" void* MS_ABI impl__CreateCombo_CMFCToolBarFontSizeComboBox__MEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(void* /*class*/* p0, const void* /*class*/* p1) {
     return nullptr;
 }
 
-// ?CreateObject@CMFCToolBarFontSizeComboBox@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCToolBarFontSizeComboBox@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCToolBarFontSizeComboBox__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?EnumSizeCallBack@CMFCToolBarFontSizeComboBox@@KAHPEAUtagLOGFONTW@@PEAUtagNEWTEXTMETRICW@@HPEAX@Z
+// Symbol: ?EnumSizeCallBack@CMFCToolBarFontSizeComboBox@@KAHPEAUtagLOGFONTW@@PEAUtagNEWTEXTMETRICW@@HPEAX@Z
 extern "C" int MS_ABI impl__EnumSizeCallBack_CMFCToolBarFontSizeComboBox__KAHPEAUtagLOGFONTW__PEAUtagNEWTEXTMETRICW__HPEAX_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2, void* p3) {
     return 0;
 }
 
-// ?GetTwipSize@CMFCToolBarFontSizeComboBox@@QEBAHXZ
+// Symbol: ?GetTwipSize@CMFCToolBarFontSizeComboBox@@QEBAHXZ
 extern "C" int MS_ABI impl__GetTwipSize_CMFCToolBarFontSizeComboBox__QEBAHXZ() {
     return 0;
 }
 
-// ?InsertSize@CMFCToolBarFontSizeComboBox@@IEAAXH@Z
+// Symbol: ?InsertSize@CMFCToolBarFontSizeComboBox@@IEAAXH@Z
 extern "C" void MS_ABI impl__InsertSize_CMFCToolBarFontSizeComboBox__IEAAXH_Z(int p0) {}
 
-// ?RebuildFontSizes@CMFCToolBarFontSizeComboBox@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// Symbol: ?RebuildFontSizes@CMFCToolBarFontSizeComboBox@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__RebuildFontSizes_CMFCToolBarFontSizeComboBox__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const void* /*class*/* p0, void** p1, void* p2) {}
 
-// ?SetTwipSize@CMFCToolBarFontSizeComboBox@@QEAAXH@Z
+// Symbol: ?SetTwipSize@CMFCToolBarFontSizeComboBox@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetTwipSize_CMFCToolBarFontSizeComboBox__QEAAXH_Z(int p0) {}
 
-// ?TwipsToPointString@CMFCToolBarFontSizeComboBox@@IEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+// Symbol: ?TwipsToPointString@CMFCToolBarFontSizeComboBox@@IEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
 extern "C" void* MS_ABI impl__TwipsToPointString_CMFCToolBarFontSizeComboBox__IEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(void* /*class*/* p0, void** p1, void* p2, int p3) {
     return nullptr;
 }

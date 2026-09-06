@@ -13,55 +13,55 @@ extern "C" void* MS_ABI impl___0CMFCRibbonTabsGroup__QEAA_PEAVCMFCRibbonBaseElem
 extern "C" void* MS_ABI impl___0CMFCRibbonTabsGroup__QEAA_XZ(void* pThis) {
     return pThis;
 }
-// ??1CMFCRibbonTabsGroup@@UEAA@XZ
+// Symbol: ??1CMFCRibbonTabsGroup@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCRibbonTabsGroup__UEAA_XZ() {
     return nullptr;
 }
 
-// ?CreateObject@CMFCRibbonTabsGroup@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCRibbonTabsGroup@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonTabsGroup__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?OnSetAccData@CMFCRibbonTabsGroup@@MEAAHJ@Z
+// Symbol: ?OnSetAccData@CMFCRibbonTabsGroup@@MEAAHJ@Z
 extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonTabsGroup__MEAAHJ_Z(long p0) {
     return 0;
 }
 
-// ?SetACCData@CMFCRibbonTabsGroup@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
+// Symbol: ?SetACCData@CMFCRibbonTabsGroup@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonTabsGroup__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
     return 0;
 }
 
-// ?UpdateTabs@CMFCRibbonTabsGroup@@QEAAXAEAV?$CArray@PEAVCMFCRibbonCategory@@PEAV1@@@@Z
+// Symbol: ?UpdateTabs@CMFCRibbonTabsGroup@@QEAAXAEAV?$CArray@PEAVCMFCRibbonCategory@@PEAV1@@@@Z
 extern "C" void MS_ABI impl__UpdateTabs_CMFCRibbonTabsGroup__QEAAXAEAV__CArray_PEAVCMFCRibbonCategory__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
 
-// ?accDoDefaultAction@CMFCRibbonTabsGroup@@MEAAJUtagVARIANT@@@Z
+// Symbol: ?accDoDefaultAction@CMFCRibbonTabsGroup@@MEAAJUtagVARIANT@@@Z
 extern "C" long MS_ABI impl__accDoDefaultAction_CMFCRibbonTabsGroup__MEAAJUtagVARIANT___Z(void* /*struct*/ p0) {
     return 0;
 }
 
-// ?accHitTest@CMFCRibbonTabsGroup@@MEAAJJJPEAUtagVARIANT@@@Z
+// Symbol: ?accHitTest@CMFCRibbonTabsGroup@@MEAAJJJPEAUtagVARIANT@@@Z
 extern "C" long MS_ABI impl__accHitTest_CMFCRibbonTabsGroup__MEAAJJJPEAUtagVARIANT___Z(long p0, long p1, void* /*struct*/* p2) {
     return 0;
 }
 
-// ?accNavigate@CMFCRibbonTabsGroup@@MEAAJJUtagVARIANT@@PEAU2@@Z
+// Symbol: ?accNavigate@CMFCRibbonTabsGroup@@MEAAJJUtagVARIANT@@PEAU2@@Z
 extern "C" long MS_ABI impl__accNavigate_CMFCRibbonTabsGroup__MEAAJJUtagVARIANT__PEAU2__Z(long p0, void* /*struct*/ p1, void* /*struct*/* p2) {
     return 0;
 }
 
-// ?get_accChildCount@CMFCRibbonTabsGroup@@MEAAJPEAJ@Z
+// Symbol: ?get_accChildCount@CMFCRibbonTabsGroup@@MEAAJPEAJ@Z
 extern "C" long MS_ABI impl__get_accChildCount_CMFCRibbonTabsGroup__MEAAJPEAJ_Z(long* p0) {
     return 0;
 }
 
-// ?get_accDefaultAction@CMFCRibbonTabsGroup@@MEAAJUtagVARIANT@@PEAPEA_W@Z
+// Symbol: ?get_accDefaultAction@CMFCRibbonTabsGroup@@MEAAJUtagVARIANT@@PEAPEA_W@Z
 extern "C" long MS_ABI impl__get_accDefaultAction_CMFCRibbonTabsGroup__MEAAJUtagVARIANT__PEAPEA_W_Z(void* /*struct*/ p0, wchar_t** p1) {
     return 0;
 }
 
-// ?get_accParent@CMFCRibbonTabsGroup@@MEAAJPEAPEAUIDispatch@@@Z
+// Symbol: ?get_accParent@CMFCRibbonTabsGroup@@MEAAJPEAPEAUIDispatch@@@Z
 extern "C" long MS_ABI impl__get_accParent_CMFCRibbonTabsGroup__MEAAJPEAPEAUIDispatch___Z(void* /*struct*/** p0) {
     return 0;
 }

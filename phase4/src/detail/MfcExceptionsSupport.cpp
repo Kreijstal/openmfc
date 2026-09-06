@@ -27,12 +27,15 @@ static_assert(offsetof(ManualCMemoryException, m_bAutoDelete) == sizeof(void*),
 void AFXAPI AfxThrowMemoryException() {
     impl__AfxThrowMemoryException__YAXXZ();
 }
+// Symbol: ?AfxThrowUserException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ() {
     ThrowNew(new CUserException_MfcExceptions(), &TI_CUserException, nullptr);
 }
+// Symbol: ?AfxThrowInvalidArgException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
     ThrowNew(new CInvalidArgException_MfcExceptions(), &TI_CInvalidArgException, nullptr);
 }
+// Symbol: ?AfxThrowFileException@@YAXHJPEB_W@Z
 extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     int cause, LONG lOsError, const wchar_t* lpszFileName
 ) {
@@ -42,11 +45,13 @@ extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     }
     ThrowNew(pEx, &TI_CFileException, g_vtbl_CFileException);
 }
+// Symbol: ?AfxThrowOleException@@YAXJ@Z
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
     COleException* pEx = new COleException();
     pEx->m_sc = sc;
     ThrowNew(pEx, &TI_COleException, nullptr);
 }
+// Symbol: ?AfxThrowOleDispatchException@@YAXGII@Z
 extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     WORD wCode, UINT nDescriptionID, UINT nHelpID
 ) {
@@ -63,6 +68,7 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     }
     ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
+// Symbol: ?AfxThrowOleDispatchException@@YAXGPEB_WI@Z
 extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
 ) {
@@ -593,24 +599,29 @@ ManualCMemoryException g_ManualMemoryException = {
     static_cast<void*>(g_vtbl_CMemoryException),  // vptr: explicit cast to MSVC vtable
     0                                              // m_bAutoDelete = 0 (static, not auto-deleted)
 };
+// Symbol: ?AfxThrowMemoryException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
     // Use the manually constructed exception with pre-set MSVC vtable
     // This avoids any issues with MinGW vtable layout
     CMemoryException* pEx = reinterpret_cast<CMemoryException*>(&g_ManualMemoryException);
     ThrowStatic(pEx, &TI_CMemoryException, nullptr);  // vtable already set
 }
+// Symbol: ?AfxThrowNotSupportedException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() {
     ThrowNew(new CNotSupportedException_MfcExceptions(), &TI_CNotSupportedException, nullptr);
 }
+// Symbol: ?AfxThrowResourceException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {
     ThrowNew(new CResourceException_MfcExceptions(), &TI_CResourceException, nullptr);
 }
+// Symbol: ?AfxThrowArchiveException@@YAXHPEB_W@Z
 extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName
 ) {
     CArchiveException* pEx = new CArchiveException(cause, lpszArchiveName);
     ThrowNew(pEx, &TI_CArchiveException, g_vtbl_CArchiveException);
 }
+// Symbol: ?AfxThrowInternetException@@YAX_KK@Z
 extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     DWORD dwContext, DWORD dwError
 ) {
@@ -618,6 +629,7 @@ extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     pEx->m_dwContext = dwContext;
     ThrowNew(pEx, &TI_CInternetException, nullptr);
 }
+// Symbol: ?AfxThrowDBException@@YAXFPEAVCDatabase@@PEAX@Z
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
     short nRetCode, void* pdb, void* hstmt
 ) {
@@ -642,10 +654,12 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     }
     ThrowNew(pEx, &TI_CDaoException, nullptr);
 }
+// Symbol: ?AfxThrowLastCleanup@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
     // This is typically called to throw a generic exception during cleanup
     ThrowNew(new CUserException_MfcExceptions(), &TI_CUserException, nullptr);
 }
+// Symbol: ?AfxAbort@@YAXXZ
 extern "C" void MS_ABI impl__AfxAbort__YAXXZ() {
     fprintf(stderr, "AfxAbort: Terminating application\n");
     abort();

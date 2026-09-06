@@ -23,21 +23,21 @@ extern "C" void* MS_ABI impl___0CMultiPageDHtmlDialog__QEAA_PEB_W0PEAVCWnd___Z(
 extern "C" void* MS_ABI impl___0CMultiPageDHtmlDialog__QEAA_XZ(void* pThis) {
     return pThis;
 }
-// ??1CMultiPageDHtmlDialog@@UEAA@XZ
+// Symbol: ??1CMultiPageDHtmlDialog@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMultiPageDHtmlDialog__UEAA_XZ() {
     return nullptr;
 }
 
-// ?GetDHtmlEventMap@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@XZ
+// Symbol: ?GetDHtmlEventMap@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@XZ
 extern "C" void* MS_ABI impl__GetDHtmlEventMap_CMultiPageDHtmlDialog__MEAAPEBUDHtmlEventMapEntry__XZ() {
     return nullptr;
 }
 
-// ?GetEventMapForUrl@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@PEB_W@Z
+// Symbol: ?GetEventMapForUrl@CMultiPageDHtmlDialog@@MEAAPEBUDHtmlEventMapEntry@@PEB_W@Z
 extern "C" void* MS_ABI impl__GetEventMapForUrl_CMultiPageDHtmlDialog__MEAAPEBUDHtmlEventMapEntry__PEB_W_Z(const wchar_t* p0) {
     return nullptr;
 }
 
-// ?OnNavigateComplete@CMultiPageDHtmlDialog@@MEAAXPEAUIDispatch@@PEB_W@Z
+// Symbol: ?OnNavigateComplete@CMultiPageDHtmlDialog@@MEAAXPEAUIDispatch@@PEB_W@Z
 extern "C" void MS_ABI impl__OnNavigateComplete_CMultiPageDHtmlDialog__MEAAXPEAUIDispatch__PEB_W_Z(void* /*struct*/* p0, const wchar_t* p1) {}
 

@@ -53,13 +53,3 @@ extern "C" void MS_ABI impl__OnDraw_COutlookCustomizeButton__UEAAXPEAVCDC__AEBVC
     (void)pImages;
     (void)flags;
 }
-// Symbol: ?GetRuntimeClass@COutlookCustomizeButton@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_COutlookCustomizeButton__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@COutlookCustomizeButton@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_COutlookCustomizeButton__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}

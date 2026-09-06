@@ -19,52 +19,52 @@ extern "C" void* MS_ABI impl___0CMFCPropertyPage__QEAA_PEB_WI_Z(void* pThis, con
 extern "C" void* MS_ABI impl___0CMFCPropertyPage__QEAA_XZ(void* pThis) {
     return pThis;
 }
-// ??1CMFCPropertyPage@@UEAA@XZ
+// Symbol: ??1CMFCPropertyPage@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCPropertyPage__UEAA_XZ() {
     return nullptr;
 }
 
-// ?CommonInit@CMFCPropertyPage@@IEAAXXZ
+// Symbol: ?CommonInit@CMFCPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCPropertyPage__IEAAXXZ() {}
 
-// ?CreateObject@CMFCPropertyPage@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCPropertyPage@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCPropertyPage__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?OnActivate@CMFCPropertyPage@@IEAAXIPEAVCWnd@@H@Z
+// Symbol: ?OnActivate@CMFCPropertyPage@@IEAAXIPEAVCWnd@@H@Z
 extern "C" void MS_ABI impl__OnActivate_CMFCPropertyPage__IEAAXIPEAVCWnd__H_Z(unsigned int p0, void* /*class*/* p1, int p2) {}
 
-// ?OnCommand@CMFCPropertyPage@@MEAAH_K_J@Z
+// Symbol: ?OnCommand@CMFCPropertyPage@@MEAAH_K_J@Z
 extern "C" int MS_ABI impl__OnCommand_CMFCPropertyPage__MEAAH_K_J_Z(unsigned __int64 p0, __int64 p1) {
     return 0;
 }
 
-// ?OnEraseBkgnd@CMFCPropertyPage@@IEAAHPEAVCDC@@@Z
+// Symbol: ?OnEraseBkgnd@CMFCPropertyPage@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCPropertyPage__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
     return 0;
 }
 
-// ?OnInitDialog@CMFCPropertyPage@@MEAAHXZ
+// Symbol: ?OnInitDialog@CMFCPropertyPage@@MEAAHXZ
 extern "C" int MS_ABI impl__OnInitDialog_CMFCPropertyPage__MEAAHXZ() {
     return 0;
 }
 
-// ?OnNcActivate@CMFCPropertyPage@@IEAAHH@Z
+// Symbol: ?OnNcActivate@CMFCPropertyPage@@IEAAHH@Z
 extern "C" int MS_ABI impl__OnNcActivate_CMFCPropertyPage__IEAAHH_Z(int p0) {
     return 0;
 }
 
-// ?OnSetActive@CMFCPropertyPage@@UEAAHXZ
+// Symbol: ?OnSetActive@CMFCPropertyPage@@UEAAHXZ
 extern "C" int MS_ABI impl__OnSetActive_CMFCPropertyPage__UEAAHXZ() {
     return 0;
 }
 
-// ?PreTranslateMessage@CMFCPropertyPage@@UEAAHPEAUtagMSG@@@Z
+// Symbol: ?PreTranslateMessage@CMFCPropertyPage@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPropertyPage__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
     return 0;
 }
 
-// ?SetActiveMenu@CMFCPropertyPage@@IEAAXPEAVCMFCPopupMenu@@@Z
+// Symbol: ?SetActiveMenu@CMFCPropertyPage@@IEAAXPEAVCMFCPopupMenu@@@Z
 extern "C" void MS_ABI impl__SetActiveMenu_CMFCPropertyPage__IEAAXPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {}
 

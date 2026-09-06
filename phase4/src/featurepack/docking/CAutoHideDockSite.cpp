@@ -11,29 +11,29 @@ extern "C" void* MS_ABI impl___0CAutoHideDockSite__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CAutoHideDockSite__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?CanAcceptPane@CAutoHideDockSite@@UEBAHPEBVCBasePane@@@Z
+// Symbol: ?CanAcceptPane@CAutoHideDockSite@@UEBAHPEBVCBasePane@@@Z
 extern "C" int MS_ABI impl__CanAcceptPane_CAutoHideDockSite__UEBAHPEBVCBasePane___Z(const void* /*class*/* p0) {
     return 0;
 }
 
-// ?CreateObject@CAutoHideDockSite@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CAutoHideDockSite@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CAutoHideDockSite__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?DockPane@CAutoHideDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
+// Symbol: ?DockPane@CAutoHideDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
 extern "C" void MS_ABI impl__DockPane_CAutoHideDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, char p4, void* p5, void* p6, unsigned long p7, int p8, float p9, unsigned char p10, void* p11, int p12, void* p13, char p14, const void* /*struct*/* p15) {}
 
-// ?GetAlignRect@CAutoHideDockSite@@QEBAXAEAVCRect@@@Z
+// Symbol: ?GetAlignRect@CAutoHideDockSite@@QEBAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__GetAlignRect_CAutoHideDockSite__QEBAXAEAVCRect___Z(void* /*class*/* p0) {}
 
-// ?OnPaint@CAutoHideDockSite@@IEAAXXZ
+// Symbol: ?OnPaint@CAutoHideDockSite@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CAutoHideDockSite__IEAAXXZ() {}
 
-// ?RepositionPanes@CAutoHideDockSite@@UEAAXAEAVCRect@@@Z
+// Symbol: ?RepositionPanes@CAutoHideDockSite@@UEAAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(void* /*class*/* p0) {}
 
-// ?UnSetAutoHideMode@CAutoHideDockSite@@QEAAXPEAVCMFCAutoHideBar@@@Z
+// Symbol: ?UnSetAutoHideMode@CAutoHideDockSite@@QEAAXPEAVCMFCAutoHideBar@@@Z
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(void* /*class*/* p0) {}
 
 // Symbol: ?m_nExtraSpace@CAutoHideDockSite@@1HA

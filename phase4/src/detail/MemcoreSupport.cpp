@@ -1,12 +1,14 @@
 #include "MemcoreSupport.h"
 
 namespace openmfc { namespace detail { namespace memcore {
+// Symbol: ??2@YAPEAX_K@Z
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size) {
     if (size == 0) {
         size = 1;
     }
     return std::malloc(size);
 }
+// Symbol: ??3@YAXPEAX@Z
 extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* ptr) {
     std::free(ptr);
 }

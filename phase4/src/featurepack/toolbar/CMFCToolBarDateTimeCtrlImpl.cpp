@@ -54,13 +54,3 @@ extern "C" void MS_ABI impl__OnDateTimeDropDown_CMFCToolBarDateTimeCtrlImpl__IEA
         ::SendMessageW(hParent, WM_NOTIFY, static_cast<WPARAM>(header->idFrom), reinterpret_cast<LPARAM>(header));
     }
 }
-// Symbol: ?GetMessageMap@CMFCToolBarDateTimeCtrlImpl@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" void* MS_ABI impl__GetMessageMap_CMFCToolBarDateTimeCtrlImpl__MEBAPEBUAFX_MSGMAP__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisMessageMap@CMFCToolBarDateTimeCtrlImpl@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" void* MS_ABI impl__GetThisMessageMap_CMFCToolBarDateTimeCtrlImpl__KAPEBUAFX_MSGMAP__XZ() {
-    return nullptr;
-}

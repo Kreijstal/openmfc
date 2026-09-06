@@ -41,13 +41,3 @@ extern "C" void MS_ABI impl__OnShow_CDocObjectServerItem__MEAAXXZ(void* pThis) {
     auto& state = EnsureCDocObjectServerItemState(pThis);
     state.m_visible = true;
 }
-// Symbol: ?GetRuntimeClass@CDocObjectServerItem@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CDocObjectServerItem__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-// Symbol: ?GetThisClass@CDocObjectServerItem@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_CDocObjectServerItem__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
-}

@@ -72,11 +72,13 @@ extern "C" void MS_ABI impl__Serialize_CObject__UEAAXAEAVCArchive___Z(
     (void)ar;
     // Base CObject::Serialize does nothing
 }
+// Symbol: ?AfxClassInit@@YAXPEAUCRuntimeClass@@@Z
 extern "C" void MS_ABI impl__AfxClassInit__YAXPEAUCRuntimeClass___Z(
     CRuntimeClass* pNewClass  // RCX = class to register
 ) {
     RegisterRuntimeClass(pNewClass);
 }
+// Symbol: ?AfxDynamicDownCast@@YAPEAVCObject@@PEAUCRuntimeClass@@PEAV1@@Z
 extern "C" CObject* MS_ABI impl__AfxDynamicDownCast__YAPEAVCObject__PEAUCRuntimeClass__PEAV1__Z(
     CRuntimeClass* pClass,  // RCX = target class
     CObject* pObject        // RDX = object to cast

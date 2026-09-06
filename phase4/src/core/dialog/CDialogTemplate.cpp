@@ -36,43 +36,43 @@ extern "C" int MS_ABI impl__GetFont_CDialogTemplate__SAHPEBUDLGTEMPLATE__AEAV__C
     const DLGTEMPLATE* tmpl, CString* fontName, unsigned short* fontSize) {
     return ReadDialogFont(tmpl, fontName, fontSize) ? TRUE : FALSE;
 }
-// ?Detach@CDialogTemplate@@QEAAPEAXXZ
+// Symbol: ?Detach@CDialogTemplate@@QEAAPEAXXZ
 extern "C" void* MS_ABI impl__Detach_CDialogTemplate__QEAAPEAXXZ() {
     return nullptr;
 }
 
-// ?GetFontSizeField@CDialogTemplate@@KAPEAEPEBUDLGTEMPLATE@@@Z
+// Symbol: ?GetFontSizeField@CDialogTemplate@@KAPEAEPEBUDLGTEMPLATE@@@Z
 extern "C" void* MS_ABI impl__GetFontSizeField_CDialogTemplate__KAPEAEPEBUDLGTEMPLATE___Z(const void* /*struct*/* p0) {
     return nullptr;
 }
 
-// ?GetSizeInDialogUnits@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z
+// Symbol: ?GetSizeInDialogUnits@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z
 extern "C" void MS_ABI impl__GetSizeInDialogUnits_CDialogTemplate__QEBAXPEAUtagSIZE___Z(void* /*struct*/* p0) {}
 
-// ?GetSizeInPixels@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z
+// Symbol: ?GetSizeInPixels@CDialogTemplate@@QEBAXPEAUtagSIZE@@@Z
 extern "C" void MS_ABI impl__GetSizeInPixels_CDialogTemplate__QEBAXPEAUtagSIZE___Z(void* /*struct*/* p0) {}
 
-// ?GetTemplateSize@CDialogTemplate@@KAIPEBUDLGTEMPLATE@@@Z
+// Symbol: ?GetTemplateSize@CDialogTemplate@@KAIPEBUDLGTEMPLATE@@@Z
 extern "C" unsigned int MS_ABI impl__GetTemplateSize_CDialogTemplate__KAIPEBUDLGTEMPLATE___Z(const void* /*struct*/* p0) {
     return 0;
 }
 
-// ?HasFont@CDialogTemplate@@QEBAHXZ
+// Symbol: ?HasFont@CDialogTemplate@@QEBAHXZ
 extern "C" int MS_ABI impl__HasFont_CDialogTemplate__QEBAHXZ() {
     return 0;
 }
 
-// ?Load@CDialogTemplate@@QEAAHPEB_W@Z
+// Symbol: ?Load@CDialogTemplate@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__Load_CDialogTemplate__QEAAHPEB_W_Z(const wchar_t* p0) {
     return 0;
 }
 
-// ?SetFont@CDialogTemplate@@QEAAHPEB_WG@Z
+// Symbol: ?SetFont@CDialogTemplate@@QEAAHPEB_WG@Z
 extern "C" int MS_ABI impl__SetFont_CDialogTemplate__QEAAHPEB_WG_Z(const wchar_t* p0, unsigned short p1) {
     return 0;
 }
 
-// ?SetSystemFont@CDialogTemplate@@QEAAHG@Z
+// Symbol: ?SetSystemFont@CDialogTemplate@@QEAAHG@Z
 extern "C" int MS_ABI impl__SetSystemFont_CDialogTemplate__QEAAHG_Z(unsigned short p0) {
     return 0;
 }

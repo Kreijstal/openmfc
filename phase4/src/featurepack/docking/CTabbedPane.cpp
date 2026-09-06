@@ -43,14 +43,13 @@ extern "C" int MS_ABI impl__FloatTab_CTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_MET
     tabs.erase(std::remove(tabs.begin(), tabs.end(), pane), tabs.end());
     return TRUE;
 }
-// Symbol: ?GetMessageMap@CTabbedPane@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CTabbedPane__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
-    return CWnd::GetThisMessageMap();
-}
-// Symbol: ?GetRuntimeClass@CTabbedPane@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ(const void*) {
-    return &g_classCTabbedPane;
-}
+// GetMessageMap/GetThisMessageMap/GetRuntimeClass/GetThisClass for CTabbedPane live in
+// featurepack/docking/MessageMaps.cpp and featurepack/docking/RuntimeClasses.cpp, whose
+// descriptors match retail: the message map at 0x18030f6c0 in mfc140.dll chains to
+// ?GetThisMessageMap@CBaseTabbedPane@@KAPEBUAFX_MSGMAP@@XZ, and the CRuntimeClass at
+// 0x1803b14a8 in mfc140u.dll (0x1803aa4a8 in mfc140.dll) is "CTabbedPane", size 1304,
+// schema 0x80000002, base CBaseTabbedPane. The copies that used to be here returned
+// CWnd's message map and g_classCTabbedPane, an 8-byte descriptor based on CWnd.
 // Symbol: ?GetTabArea@CTabbedPane@@UEBAXAEAVCRect@@0@Z
 extern "C" void MS_ABI impl__GetTabArea_CTabbedPane__UEBAXAEAVCRect__0_Z(void* pThis, CRect* tabArea, CRect* paneArea) {
     CRect bounds(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
@@ -67,14 +66,6 @@ extern "C" void MS_ABI impl__GetTabArea_CTabbedPane__UEBAXAEAVCRect__0_Z(void* p
         if (tabArea) *tabArea = CRect(bounds.left, bounds.bottom - tabHeight, bounds.right, bounds.bottom);
         if (paneArea) *paneArea = CRect(bounds.left, bounds.top, bounds.right, bounds.bottom - tabHeight);
     }
-}
-// Symbol: ?GetThisClass@CTabbedPane@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ() {
-    return &g_classCTabbedPane;
-}
-// Symbol: ?GetThisMessageMap@CTabbedPane@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CTabbedPane__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
 }
 // Symbol: ?IsTabLocationBottom@CTabbedPane@@UEBAHXZ
 extern "C" int MS_ABI impl__IsTabLocationBottom_CTabbedPane__UEBAHXZ(void*) {

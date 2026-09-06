@@ -3,7 +3,7 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
-// Symbol: ?CopyFromBitmap@CD2DBitmap@@QEAAJPEBV1@PEBVCD2DPointU@PEBVCD2DRectU@XZ
+// Symbol: ?CopyFromBitmap@CD2DBitmap@@QEAAJPEBV1@PEBVCD2DPointU@@PEBVCD2DRectU@@@Z
 extern "C" long MS_ABI impl__CopyFromBitmap_CD2DBitmap__QEAAJPEBV1_PEBVCD2DPointU__PEBVCD2DRectU___Z(
     void* pThis, const void* pBitmap, const CD2DPointU* /*pPoint*/, const CD2DRectU* pRect) {
     if (pThis == nullptr || pBitmap == nullptr) {
@@ -30,7 +30,7 @@ extern "C" long MS_ABI impl__CopyFromBitmap_CD2DBitmap__QEAAJPEBV1_PEBVCD2DPoint
     }
     return S_OK;
 }
-// Symbol: ?CopyFromMemory@CD2DBitmap@@QEAAJPEBXIPEBVCD2DRectU@XZ
+// Symbol: ?CopyFromMemory@CD2DBitmap@@QEAAJPEBXIPEBVCD2DRectU@@@Z
 extern "C" long MS_ABI impl__CopyFromMemory_CD2DBitmap__QEAAJPEBXIPEBVCD2DRectU___Z(
     void* pThis, const void* pData, unsigned int dataSize, const CD2DRectU* pRect) {
     if (pThis == nullptr || (pData == nullptr && dataSize != 0)) {
@@ -46,7 +46,7 @@ extern "C" long MS_ABI impl__CopyFromMemory_CD2DBitmap__QEAAJPEBXIPEBVCD2DRectU_
     }
     return S_OK;
 }
-// Symbol: ?CopyFromRenderTarget@CD2DBitmap@@QEAAJPEBVCRenderTarget@PEBVCD2DPointU@PEBVCD2DRectU@XZ
+// Symbol: ?CopyFromRenderTarget@CD2DBitmap@@QEAAJPEBVCRenderTarget@@PEBVCD2DPointU@@PEBVCD2DRectU@@@Z
 extern "C" long MS_ABI impl__CopyFromRenderTarget_CD2DBitmap__QEAAJPEBVCRenderTarget__PEBVCD2DPointU__PEBVCD2DRectU___Z(
     void* pThis, const void* pRenderTarget, const CD2DPointU* /*pPoint*/, const CD2DRectU* pRect) {
     if (pThis == nullptr || pRenderTarget == nullptr) {
@@ -61,7 +61,7 @@ extern "C" long MS_ABI impl__CopyFromRenderTarget_CD2DBitmap__QEAAJPEBVCRenderTa
     }
     return S_OK;
 }
-// Symbol: ?Create@CD2DBitmap@@UEAAJPEAVCRenderTarget@@XZ
+// Symbol: ?Create@CD2DBitmap@@UEAAJPEAVCRenderTarget@@@Z
 extern "C" long MS_ABI impl__Create_CD2DBitmap__UEAAJPEAVCRenderTarget___Z(
     void* pThis, void* pRenderTarget) {
     if (pThis == nullptr || pRenderTarget == nullptr) {
@@ -73,7 +73,7 @@ extern "C" long MS_ABI impl__Create_CD2DBitmap__UEAAJPEAVCRenderTarget___Z(
     state.m_resource = pThis;
     return S_OK;
 }
-// Symbol: ?GetDPI@CD2DBitmap@@QEBA?AVCD2DSizeF@XZ
+// Symbol: ?GetDPI@CD2DBitmap@@QEBA?AVCD2DSizeF@@XZ
 extern "C" ::CD2DSizeF MS_ABI impl__GetDPI_CD2DBitmap__QEBA_AVCD2DSizeF__XZ(const void* pThis) {
     if (pThis == nullptr) {
         return ::CD2DSizeF(96.0f, 96.0f);
@@ -85,7 +85,7 @@ extern "C" ::CD2DSizeF MS_ABI impl__GetDPI_CD2DBitmap__QEBA_AVCD2DSizeF__XZ(cons
     }
     return ::CD2DSizeF(state.m_dpi.width, state.m_dpi.height);
 }
-// Symbol: ?GetPixelFormat@CD2DBitmap@@QEBA?AUD2D1_PIXEL_FORMAT@XZ
+// Symbol: ?GetPixelFormat@CD2DBitmap@@QEBA?AUD2D1_PIXEL_FORMAT@@XZ
 extern "C" D2D1_PIXEL_FORMAT MS_ABI impl__GetPixelFormat_CD2DBitmap__QEBA_AUD2D1_PIXEL_FORMAT__XZ(const void* pThis) {
     if (pThis == nullptr) {
         return D2D1_PIXEL_FORMAT{0, 0};
@@ -97,7 +97,7 @@ extern "C" D2D1_PIXEL_FORMAT MS_ABI impl__GetPixelFormat_CD2DBitmap__QEBA_AUD2D1
     }
     return state.m_pixelFormat;
 }
-// Symbol: ?GetPixelSize@CD2DBitmap@@QEBA?AVCD2DSizeU@XZ
+// Symbol: ?GetPixelSize@CD2DBitmap@@QEBA?AVCD2DSizeU@@XZ
 extern "C" CD2DSizeU MS_ABI impl__GetPixelSize_CD2DBitmap__QEBA_AVCD2DSizeU__XZ(const void* pThis) {
     if (pThis == nullptr) {
         return CD2DSizeU{0, 0};

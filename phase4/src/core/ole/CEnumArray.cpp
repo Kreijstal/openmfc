@@ -16,20 +16,20 @@ extern "C" void* MS_ABI impl___0CEnumArray__QEAA__KPEBXIH_Z(
 extern "C" void MS_ABI impl___1CEnumArray__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?OnClone@CEnumArray@@MEAAPEAV1@XZ
+// Symbol: ?OnClone@CEnumArray@@MEAAPEAV1@XZ
 extern "C" void* MS_ABI impl__OnClone_CEnumArray__MEAAPEAV1_XZ() {
     return nullptr;
 }
 
-// ?OnNext@CEnumArray@@MEAAHPEAX@Z
+// Symbol: ?OnNext@CEnumArray@@MEAAHPEAX@Z
 extern "C" int MS_ABI impl__OnNext_CEnumArray__MEAAHPEAX_Z(void* p0) {
     return 0;
 }
 
-// ?OnReset@CEnumArray@@MEAAXXZ
+// Symbol: ?OnReset@CEnumArray@@MEAAXXZ
 extern "C" void MS_ABI impl__OnReset_CEnumArray__MEAAXXZ() {}
 
-// ?OnSkip@CEnumArray@@MEAAHXZ
+// Symbol: ?OnSkip@CEnumArray@@MEAAHXZ
 extern "C" int MS_ABI impl__OnSkip_CEnumArray__MEAAHXZ() {
     return 0;
 }

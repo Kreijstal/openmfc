@@ -83,7 +83,7 @@ extern "C" std::intptr_t MS_ABI impl__WindowProc_CReflectorWnd__MEAA_JI_K_J_Z(
     }
     return static_cast<CWnd*>(pThis)->WindowProc(message, wParam, lParam);
 }
-// ?Create@CReflectorWnd@@QEAAHAEBVCRect@@PEAUHWND__@@@Z
+// Symbol: ?Create@CReflectorWnd@@QEAAHAEBVCRect@@PEAUHWND__@@@Z
 extern "C" int MS_ABI impl__Create_CReflectorWnd__QEAAHAEBVCRect__PEAUHWND_____Z(const void* /*class*/* p0, void* /*struct*/* p1) {
     return 0;
 }

@@ -24,6 +24,14 @@
   #define MS_ABI
 #endif
 
+// BSTR + SysReAllocStringLen/SysFreeString, used by the CComBSTR loader below.
+#include <oleauto.h>
+
+// AfxThrowArchiveException lives in another translation unit and exists only as
+// its extern "C" thunk (definition: phase4/src/detail/MfcExceptionsSupport.cpp).
+extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
+    int cause, const wchar_t* lpszArchiveName);
+
 
 
 
@@ -97,9 +105,50 @@ extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTra
     return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
 }
 // Symbol: ?MapObject@CArchive@@QEAAXPEBVCObject@@@Z
+// STUB.  Retail body disassembled at RVA 0x1d08f0; it cannot be transcribed
+// onto OpenMFC's CArchive because every field it touches is missing here.
+// What retail does, from the disassembly:
+//   storing (m_nMode&load clear):
+//     if (this+0x58 /*m_pStoreMap*/ == NULL) {
+//         m_pStoreMap = new CMapPtrToPtr(0x38 bytes);      // operator new @0x2840
+//         m_pStoreMap->InitHashTable(*(DWORD*)(this+0x6c), TRUE);  // @0x231200
+//         (*m_pStoreMap)[NULL] = 0;                        // operator[] @0x231460
+//         *(UINT*)(this+0x50) /*m_nMapCount*/ = 1;
+//     }
+//     if (pOb) { if (m_nMapCount >= 0x3ffffffe)
+//                    AfxThrowArchiveException(5 /*badIndex*/,
+//                        m_strFileName.GetString());  // CString at this+0x18
+//                (*m_pStoreMap)[pOb] = m_nMapCount++; }
+//   loading:
+//     if (m_pLoadArray /*same slot, this+0x58*/ == NULL) {
+//         m_pLoadArray = new CPtrArray(0x28 bytes);
+//         m_pLoadArray->SetSize(1, *(DWORD*)(this+0x68));  // @0x1d2560
+//         (*m_pLoadArray)[0] = NULL;  m_nMapCount = 1;
+//     }
+//     if (this+0x60 /*m_pSchemaMap*/ == NULL) {
+//         EnsureSchemaMapExists(&pArray);                      // @0x1d03b0
+//         <seed entry 0 of the returned array>;                // @0x1d1218
+//     }
+//     if (pOb) { if (m_nMapCount >= 0x3ffffffe)
+//                    AfxThrowArchiveException(5 /*badIndex*/, m_strFileName);
+//                m_pLoadArray->InsertAt(m_nMapCount, pOb, 1);  // @0x1d28f0
+//                <record a schema entry in m_pSchemaMap>;  m_nMapCount++; }
+// OpenMFC's CArchive (include/openmfc/afx.h) has no m_nMapCount, no
+// m_pStoreMap/m_pLoadArray, no m_pSchemaMap and no m_nGrowSize, and its
+// operator<</operator>> for CObject* do not consult an object map at all, so
+// there is nothing for this to register into.  See headerRequests.
 extern "C" void MS_ABI impl__MapObject_CArchive__QEAAXPEBVCObject___Z(CArchive*, const CObject*) {
 }
 // Symbol: ?EnsureSchemaMapExists@CArchive@@QEAAXPEAPEAV?$CArray@W4LoadArrayObjType@CArchive@@AEBW412@@@@Z
+// STUB.  Retail body disassembled at RVA 0x1d03b0.  It works exclusively on
+// m_pSchemaMap at this+0x60: if that CMapPtrToPtr is null it allocates one
+// (0x38 bytes, hash-table size seeded to 10), then Lookup()s key 1
+// (CMapPtrToPtr::Lookup @0x231430) and, when absent, allocates the
+// CArray<LoadArrayObjType> (0x28 bytes) that the out-parameter receives,
+// sizing it from m_nGrowSize at this+0x68.
+// OpenMFC's CArchive has neither m_pSchemaMap nor m_nGrowSize, and nothing in
+// this tree produces or consumes a LoadArrayObjType array, so the function is
+// left inert rather than given an invented map.  See headerRequests.
 extern "C" void MS_ABI impl__EnsureSchemaMapExists_CArchive__QEAAXPEAPEAV__CArray_W4LoadArrayObjType_CArchive__AEBW412____Z(CArchive*, void**) {
 }
 CArchive::CArchive(CFile* pFile, UINT nMode, int nBufSize, void* lpBuf)
@@ -430,219 +479,334 @@ extern "C" void* MS_ABI impl___0CArchive__QEAA_PEAVCFile__IHPEAX_Z(
     return new (p) CArchive(pFile, nMode, nBufSize, lpBuf);
 }
 
+// ---------------------------------------------------------------------------
+// IMPLEMENT_SERIAL extraction operators:  CArchive& operator>>(CArchive&, T*&)
+//
+// All 42 retail bodies below were disassembled and are instruction-identical
+// apart from the one data address they load.  Taking CDocItem (RVA 0x254730)
+// as the worked example:
+//
+//     mov  %rdx,%rbx                    ; rbx = &pOb   (2nd arg)
+//     mov  %rcx,%rdi                    ; rdi = &ar    (1st arg)
+//     lea  0x1562d1(%rip),%rdx          ; 2nd arg to the call below
+//     call 0x1801d06e0                  ; ?ReadObject@CArchive@@QEAAPEAVCObject@@PEBUCRuntimeClass@@@Z
+//     mov  %rax,(%rbx)                  ; pOb = returned CObject*
+//     mov  %rdi,%rax                    ; return ar
+//
+// The %rdx operand is the callee's `const CRuntimeClass*` parameter and is a
+// distinct data address per class, i.e. the class's own runtime-class
+// descriptor -- the IMPLEMENT_SERIAL expansion
+//     pOb = (T*)ar.ReadObject(RUNTIME_CLASS(T));  return ar;
+//
+// No CRuntimeClass descriptor carries a name in this host's RVA map, so the
+// per-class identity was established from the data rather than from a symbol
+// lookup: the first qword of a descriptor is CRuntimeClass::m_lpszClassName,
+// and the ASCII string it points at was read out of the retail image for each
+// of the 42 lea targets.  Every one spells its own class ("CDocItem" via
+// 0x1803aaa18 for the worked example above), so no operator below hands
+// ReadObject a sibling's descriptor.  The 42 cited RVAs were likewise checked
+// against the export map, and once addresses and rip displacements are
+// blanked all 42 bodies collapse to the single 13-instruction shape shown,
+// whose only call target is ?ReadObject@CArchive@@QEAAPEAVCObject@@... .
+//
+// The descriptor is reached here through each class's
+// impl__GetThisClass_*__SAPEAUCRuntimeClass__XZ thunk rather than through
+// RUNTIME_CLASS(T).  The reason was checked per class, not assumed: 27 of the
+// 42 (CDockState, CMouseManager, CMFCColorBar, CPaneDialog, ...) are only
+// forward-declared in include/openmfc, so RUNTIME_CLASS(T) would not compile
+// here at all; and for several of those the descriptor the DLL really defines
+// is a file-scope object in a RuntimeClasses.cpp (e.g. `CRuntimeClass
+// classCMouseManager` in featurepack/customize/RuntimeClasses.cpp), not the
+// T::classT static that RUNTIME_CLASS names.  The thunk is the one route valid
+// for all 42.  It is NOT true that these statics are never linkable from
+// inside the DLL -- CDocItem's, for one, is defined by IMPLEMENT_DYNAMIC at
+// phase4/src/detail/OlecoreSupport.cpp:4 -- so do not generalise that from
+// BRIEFING2 s1, which is about methods.
+// Every thunk named below was checked to have a definition under phase4/src.
+//
+// Caveat worth knowing: OpenMFC's own ReadObject
+// (impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z, defined
+// above in this file) currently ignores its CRuntimeClass* argument and just
+// runs `ar >> pObject`.  The class is passed anyway so these stay correct if
+// ReadObject starts validating it.
+// ---------------------------------------------------------------------------
+#define OPENMFC_ARCHIVE_EXTRACT_OBJ(fn_name, getthisclass_fn)                  \
+    extern "C" CRuntimeClass* MS_ABI getthisclass_fn();                        \
+    extern "C" CArchive* MS_ABI fn_name(CArchive* ar, CObject** ppOb) {        \
+        if (ar == nullptr || ppOb == nullptr) return ar;                       \
+        *ppOb = impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z( \
+            ar, getthisclass_fn());                                            \
+        return ar;                                                             \
+    }
+
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDocItem@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDocItem___Z() {
-    return nullptr;
-}
+// retail RVA 0x254730
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDocItem___Z,
+                            impl__GetThisClass_CDocItem__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockState@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockState___Z() {
-    return nullptr;
-}
+// retail RVA 0x220540
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockState___Z,
+                            impl__GetThisClass_CDockState__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePane@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePane___Z() {
-    return nullptr;
-}
+// retail RVA 0x3fc80
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePane___Z,
+                            impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePaneAdapter@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePaneAdapter___Z() {
-    return nullptr;
-}
+// retail RVA 0x466c0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePaneAdapter___Z,
+                            impl__GetThisClass_CDockablePaneAdapter__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCHelpComboBoxButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCHelpComboBoxButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x8b290
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCHelpComboBoxButton___Z,
+                            impl__GetThisClass_CHelpComboBoxButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCColorBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x245e0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorBar___Z,
+                            impl__GetThisClass_CMFCColorBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCColorMenuButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorMenuButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x2a5f0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCColorMenuButton___Z,
+                            impl__GetThisClass_CMFCColorMenuButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCCustomizeButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCCustomizeButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x34eb0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCCustomizeButton___Z,
+                            impl__GetThisClass_CMFCCustomizeButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownFrame@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownFrame___Z() {
-    return nullptr;
-}
+// retail RVA 0x5d0c0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownFrame___Z,
+                            impl__GetThisClass_CMFCDropDownFrame__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownToolBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x5cb90
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolBar___Z,
+                            impl__GetThisClass_CMFCDropDownToolBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCDropDownToolbarButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolbarButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x5dd40
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCDropDownToolbarButton___Z,
+                            impl__GetThisClass_CMFCDropDownToolbarButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCMenuBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCMenuBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x8b300
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCMenuBar___Z,
+                            impl__GetThisClass_CMFCMenuBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x97120
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBar___Z,
+                            impl__GetThisClass_CMFCOutlookBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPane@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPane___Z() {
-    return nullptr;
-}
+// retail RVA 0x98670
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPane___Z,
+                            impl__GetThisClass_CMFCOutlookBarPane__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPaneAdapter@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneAdapter___Z() {
-    return nullptr;
-}
+// retail RVA 0x9ab70
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneAdapter___Z,
+                            impl__GetThisClass_CMFCOutlookBarPaneAdapter__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCOutlookBarPaneButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x9ac50
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCOutlookBarPaneButton___Z,
+                            impl__GetThisClass_CMFCOutlookBarPaneButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCPopupMenu@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenu___Z() {
-    return nullptr;
-}
+// retail RVA 0xb5240
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenu___Z,
+                            impl__GetThisClass_CMFCPopupMenu__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCPopupMenuBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenuBar___Z() {
-    return nullptr;
-}
+// retail RVA 0xbc4f0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCPopupMenuBar___Z,
+                            impl__GetThisClass_CMFCPopupMenuBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPane@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPane___Z() {
-    return nullptr;
-}
+// retail RVA 0x142680
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPane___Z,
+                            impl__GetThisClass_CMFCTasksPane__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPaneFrameWnd@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneFrameWnd___Z() {
-    return nullptr;
-}
+// retail RVA 0x14a6a0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneFrameWnd___Z,
+                            impl__GetThisClass_CMFCTasksPaneFrameWnd__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCTasksPaneToolBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneToolBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x142160
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCTasksPaneToolBar___Z,
+                            impl__GetThisClass_CMFCTasksPaneToolBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBar@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBar___Z() {
-    return nullptr;
-}
+// retail RVA 0x14b8f0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBar___Z,
+                            impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x15a4f0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarButton___Z,
+                            impl__GetThisClass_CMFCToolBarButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarColorButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarColorButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x23e90
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarColorButton___Z,
+                            impl__GetThisClass_CMFCToolBarColorButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarComboBoxButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarComboBoxButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x15faf0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarComboBoxButton___Z,
+                            impl__GetThisClass_CMFCToolBarComboBoxButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarDateTimeCtrl@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarDateTimeCtrl___Z() {
-    return nullptr;
-}
+// retail RVA 0x164010
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarDateTimeCtrl___Z,
+                            impl__GetThisClass_CMFCToolBarDateTimeCtrl__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarEditBoxButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarEditBoxButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x165cb0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarEditBoxButton___Z,
+                            impl__GetThisClass_CMFCToolBarEditBoxButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarFontComboBox@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontComboBox___Z() {
-    return nullptr;
-}
+// retail RVA 0x167640
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontComboBox___Z,
+                            impl__GetThisClass_CMFCToolBarFontComboBox__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarFontSizeComboBox@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontSizeComboBox___Z() {
-    return nullptr;
-}
+// retail RVA 0x168520
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarFontSizeComboBox___Z,
+                            impl__GetThisClass_CMFCToolBarFontSizeComboBox__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarMenuButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarMenuButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x170dd0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarMenuButton___Z,
+                            impl__GetThisClass_CMFCToolBarMenuButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarSpinEditBoxButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSpinEditBoxButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x17d5a0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSpinEditBoxButton___Z,
+                            impl__GetThisClass_CMFCToolBarSpinEditBoxButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMFCToolBarSystemMenuButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSystemMenuButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x17dc90
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMFCToolBarSystemMenuButton___Z,
+                            impl__GetThisClass_CMFCToolBarSystemMenuButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMouseManager@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMouseManager___Z() {
-    return nullptr;
-}
+// retail RVA 0x90870
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMouseManager___Z,
+                            impl__GetThisClass_CMouseManager__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCMultiPaneFrameWnd@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMultiPaneFrameWnd___Z() {
-    return nullptr;
-}
+// retail RVA 0x92420
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCMultiPaneFrameWnd___Z,
+                            impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCPaneDialog@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneDialog___Z() {
-    return nullptr;
-}
+// retail RVA 0xaaf60
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneDialog___Z,
+                            impl__GetThisClass_CPaneDialog__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCPaneFrameWnd@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneFrameWnd___Z() {
-    return nullptr;
-}
+// retail RVA 0xad6a0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCPaneFrameWnd___Z,
+                            impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCRichEditCntrItem@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCRichEditCntrItem___Z() {
-    return nullptr;
-}
+// retail RVA 0x285c10
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCRichEditCntrItem___Z,
+                            impl__GetThisClass_CRichEditCntrItem__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTabbedPane@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTabbedPane___Z() {
-    return nullptr;
-}
+// retail RVA 0x1371b0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTabbedPane___Z,
+                            impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneHistoryButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneHistoryButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x141f60
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneHistoryButton___Z,
+                            impl__GetThisClass_CTasksPaneHistoryButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneMenuButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneMenuButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x1420c0
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneMenuButton___Z,
+                            impl__GetThisClass_CTasksPaneMenuButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCTasksPaneNavigateButton@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneNavigateButton___Z() {
-    return nullptr;
-}
+// retail RVA 0x141c80
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCTasksPaneNavigateButton___Z,
+                            impl__GetThisClass_CTasksPaneNavigateButton__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCUserTool@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCUserTool___Z() {
-    return nullptr;
-}
+// retail RVA 0x181140
+OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCUserTool___Z,
+                            impl__GetThisClass_CUserTool__SAPEAUCRuntimeClass__XZ)
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCComBSTR@ATL@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, ATL::CComBSTR& bstr)
+// Transcribed from the retail body at RVA 0x26de30:
+//     testb $0x1,0x20(%rcx)          ; m_nMode & CArchive::load
+//     je    0x26def9                 ;   -> AfxThrowArchiveException(4, m_strFileName)
+//     <inline 4-byte read of the length out of the archive buffer, with
+//      FillBuffer @0x1cfc70 when m_lpBufCur+4 > m_lpBufMax>
+//     mov   (%rsi),%rcx              ; rcx = bstr.m_str
+//     if (nLen != 0) {
+//         movq $0,(%rsi)             ; bstr.m_str = NULL
+//         tmp = old m_str;
+//         SysReAllocStringLen(&tmp, NULL, nLen)   ; oleaut32 ord#5
+//         if (that succeeded)
+//             if (CArchive::Read(ar, tmp, nLen*2) != nLen*2)   ; Read @0x1cf7f0
+//                 AfxThrowArchiveException(3 /*endOfFile*/, NULL);
+//         if (bstr.m_str != tmp) { SysFreeString(bstr.m_str);  ; oleaut32 ord#6
+//                                  bstr.m_str = tmp; }
+//     } else {
+//         SysFreeString(bstr.m_str); bstr.m_str = NULL;
+//     }
+//     return ar;
+// The two oleaut32 entries were resolved through the import table: IAT slot
+// 0x1802c4ac8 -> OLEAUT32 ord#5 (SysReAllocStringLen), 0x1802c4a08 -> ord#6
+// (SysFreeString).  Exception causes 4 and 3 match CArchiveException::writeOnly
+// and ::endOfFile in include/openmfc/afxwin.h.
+// ATL::CComBSTR is not declared anywhere in this tree; retail dereferences the
+// reference straight at offset 0 as a BSTR, so the parameter is taken as BSTR*.
+// One deliberate difference: retail passes its m_strFileName to
+// AfxThrowArchiveException, and OpenMFC's CArchive has no such member, so NULL
+// is passed instead.
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z(
+        CArchive* ar, BSTR* pbstr) {
+    if (ar == nullptr || pbstr == nullptr) return ar;
+    if (!ar->IsLoading()) {
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, nullptr);
+        return ar;
+    }
+
+    unsigned int nLen = 0;
+    ar->Read(&nLen, sizeof(nLen));
+
+    BSTR bstrTmp = *pbstr;
+    *pbstr = nullptr;
+    if (nLen != 0) {
+        if (::SysReAllocStringLen(&bstrTmp, nullptr, nLen)) {
+            const unsigned int nBytes = nLen * 2u;
+            if (ar->Read(bstrTmp, nBytes) != nBytes) {
+                impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::endOfFile, nullptr);
+            }
+        }
+        if (*pbstr != bstrTmp) {
+            if (*pbstr != nullptr) ::SysFreeString(*pbstr);
+            *pbstr = bstrTmp;
+        }
+    } else if (bstrTmp != nullptr) {
+        ::SysFreeString(bstrTmp);
+    }
+    return ar;
 }
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleCurrency@@@Z

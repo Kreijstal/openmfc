@@ -74,57 +74,57 @@ extern "C" int MS_ABI impl__OnContextHelp_COleFrameHook__UEAAHH_Z(void* pThis, v
     return 0;
 }
 
-// ?DoContextSensitiveHelp@COleFrameHook@@QEAAHH@Z
+// Symbol: ?DoContextSensitiveHelp@COleFrameHook@@QEAAHH@Z
 extern "C" int MS_ABI impl__DoContextSensitiveHelp_COleFrameHook__QEAAHH_Z(int p0) {
     return 0;
 }
 
-// ?DoEnableModeless@COleFrameHook@@QEAAHH@Z
+// Symbol: ?DoEnableModeless@COleFrameHook@@QEAAHH@Z
 extern "C" int MS_ABI impl__DoEnableModeless_COleFrameHook__QEAAHH_Z(int p0) {
     return 0;
 }
 
-// ?NotifyAllInPlace@COleFrameHook@@QEAAHHP81@EAAHH@Z@Z
+// Symbol: ?NotifyAllInPlace@COleFrameHook@@QEAAHHP81@EAAHH@Z@Z
 extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(int p0, void* /*fnptr*/ p1) {
     return 0;
 }
 
-// ?OnActivate@COleFrameHook@@UEAAXH@Z
+// Symbol: ?OnActivate@COleFrameHook@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnActivate_COleFrameHook__UEAAXH_Z(int p0) {}
 
-// ?OnEnableModeless@COleFrameHook@@UEAAXH@Z
+// Symbol: ?OnEnableModeless@COleFrameHook@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(int p0) {}
 
-// ?OnInitMenu@COleFrameHook@@UEAAXPEAVCMenu@@@Z
+// Symbol: ?OnInitMenu@COleFrameHook@@UEAAXPEAVCMenu@@@Z
 extern "C" void MS_ABI impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(void* /*class*/* p0) {}
 
-// ?OnInitMenuPopup@COleFrameHook@@UEAAHPEAVCMenu@@HH@Z
+// Symbol: ?OnInitMenuPopup@COleFrameHook@@UEAAHPEAVCMenu@@HH@Z
 extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(void* /*class*/* p0, int p1, int p2) {
     return 0;
 }
 
-// ?OnMenuSelect@COleFrameHook@@UEAAHIIPEAUHMENU__@@@Z
+// Symbol: ?OnMenuSelect@COleFrameHook@@UEAAHIIPEAUHMENU__@@@Z
 extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(unsigned int p0, unsigned int p1, void* /*struct*/* p2) {
     return 0;
 }
 
-// ?OnPaletteChanged@COleFrameHook@@UEAAXPEAVCWnd@@@Z
+// Symbol: ?OnPaletteChanged@COleFrameHook@@UEAAXPEAVCWnd@@@Z
 extern "C" void MS_ABI impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
 
-// ?OnPreTranslateMessage@COleFrameHook@@UEAAHPEAUtagMSG@@@Z
+// Symbol: ?OnPreTranslateMessage@COleFrameHook@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
     return 0;
 }
 
-// ?OnQueryNewPalette@COleFrameHook@@UEAAHXZ
+// Symbol: ?OnQueryNewPalette@COleFrameHook@@UEAAHXZ
 extern "C" int MS_ABI impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ() {
     return 0;
 }
 
-// ?OnRecalcLayout@COleFrameHook@@UEAAXXZ
+// Symbol: ?OnRecalcLayout@COleFrameHook@@UEAAXXZ
 extern "C" void MS_ABI impl__OnRecalcLayout_COleFrameHook__UEAAXXZ() {}
 
-// ?OnUpdateFrameTitle@COleFrameHook@@UEAAHXZ
+// Symbol: ?OnUpdateFrameTitle@COleFrameHook@@UEAAHXZ
 extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ() {
     return 0;
 }

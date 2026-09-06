@@ -231,6 +231,7 @@ extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z
         ::SetScrollInfo(pThis->m_hWnd, SB_VERT, &si, TRUE);
     }
 }
+// Symbol: ?SetScrollSizes@CScrollView@@QEAAXHUtagSIZE@@AEBU2@1@Z
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(
     CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine)
 {

@@ -11,27 +11,27 @@ extern "C" void* MS_ABI impl___0CGestureConfig__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1CGestureConfig__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
-// ?EnablePan@CGestureConfig@@QEAAXHK@Z
+// Symbol: ?EnablePan@CGestureConfig@@QEAAXHK@Z
 extern "C" void MS_ABI impl__EnablePan_CGestureConfig__QEAAXHK_Z(int p0, unsigned long p1) {}
 
-// ?EnablePressAndTap@CGestureConfig@@QEAAXH@Z
+// Symbol: ?EnablePressAndTap@CGestureConfig@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnablePressAndTap_CGestureConfig__QEAAXH_Z(int p0) {}
 
-// ?EnableRotate@CGestureConfig@@QEAAXH@Z
+// Symbol: ?EnableRotate@CGestureConfig@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableRotate_CGestureConfig__QEAAXH_Z(int p0) {}
 
-// ?EnableTwoFingerTap@CGestureConfig@@QEAAXH@Z
+// Symbol: ?EnableTwoFingerTap@CGestureConfig@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableTwoFingerTap_CGestureConfig__QEAAXH_Z(int p0) {}
 
-// ?EnableZoom@CGestureConfig@@QEAAXH@Z
+// Symbol: ?EnableZoom@CGestureConfig@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableZoom_CGestureConfig__QEAAXH_Z(int p0) {}
 
-// ?Get@CGestureConfig@@QEBAKKH@Z
+// Symbol: ?Get@CGestureConfig@@QEBAKKH@Z
 extern "C" unsigned long MS_ABI impl__Get_CGestureConfig__QEBAKKH_Z(unsigned long p0, int p1) {
     return 0;
 }
 
-// ?Modify@CGestureConfig@@QEAAHKKK@Z
+// Symbol: ?Modify@CGestureConfig@@QEAAHKKK@Z
 extern "C" int MS_ABI impl__Modify_CGestureConfig__QEAAHKKK_Z(unsigned long p0, unsigned long p1, unsigned long p2) {
     return 0;
 }

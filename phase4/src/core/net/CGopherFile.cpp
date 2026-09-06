@@ -65,15 +65,13 @@ extern "C" void* MS_ABI impl___0CGopherFile__IEAA_PEAXAEAVCGopherLocator__PEAVCG
 {
     return new (pThis) CGopherFile(static_cast<HINTERNET>(hFile), *pLocator, pConnection);
 }
-// Symbol: ?GetRuntimeClass@CGopherFile@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CGopherFile__UEBAPEAUCRuntimeClass__XZ(const CGopherFile* pThis) {
-    (void)pThis;
-    return &g_classCGopherFile;
-}
-// Symbol: ?GetThisClass@CGopherFile@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CGopherFile__SAPEAUCRuntimeClass__XZ() {
-    return &g_classCGopherFile;
-}
+// GetRuntimeClass/GetThisClass for CGopherFile live in core/net/RuntimeClasses.cpp
+// (classCGopherFile, from detail/DeferredRttiSupport.h: size 152, schema 0xFFFF, base
+// CInternetFile). That agrees with the retail descriptor at 0x18032a020 in mfc140u.dll
+// -- "CGopherFile", m_nObjectSize 152, m_wSchema 0xFFFF, m_pfnGetBaseClass resolving to
+// CInternetFile. The copies that used to be here returned g_classCGopherFile, sized
+// sizeof(the repo CGopherFile) = 88 with a null base link, so an IsKindOf walk to
+// CInternetFile would fail.
 // Symbol: ?Write@CGopherFile@@UEAAXPEBXI@Z
 extern "C" void MS_ABI impl__Write_CGopherFile__UEAAXPEBXI_Z(CGopherFile* pThis, const void* lpBuf, unsigned int nCount) {
     if (pThis) pThis->CInternetFile::Write(lpBuf, nCount);

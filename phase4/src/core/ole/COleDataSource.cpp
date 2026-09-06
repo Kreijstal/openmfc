@@ -151,28 +151,28 @@ LPDATAOBJECT COleDataSource::GetInterface(BOOL bAddRef) {
     if (bAddRef) state->dataObject.AddRef();
     return &state->dataObject;
 }
-// ?DelaySetData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
+// Symbol: ?DelaySetData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
 extern "C" void MS_ABI impl__DelaySetData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(unsigned short p0, void* /*struct*/* p1) {}
 
-// ?FlushClipboard@COleDataSource@@SAXXZ
+// Symbol: ?FlushClipboard@COleDataSource@@SAXXZ
 extern "C" void MS_ABI impl__FlushClipboard_COleDataSource__SAXXZ() {}
 
-// ?GetCacheEntry@COleDataSource@@IEAAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
+// Symbol: ?GetCacheEntry@COleDataSource@@IEAAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
 extern "C" void* MS_ABI impl__GetCacheEntry_COleDataSource__IEAAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(void* /*struct*/* p0, int /*enum*/ p1, void* p2, void* p3, void* p4, char p5, void** p6, char* p7, unsigned int p8, void* p9) {
     return nullptr;
 }
 
-// ?Lookup@COleDataSource@@IEBAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
+// Symbol: ?Lookup@COleDataSource@@IEBAPEAUAFX_DATACACHE_ENTRY@@PEAUtagFORMATETC@@W4tagDATADIR@@@Z
 extern "C" void* MS_ABI impl__Lookup_COleDataSource__IEBAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(void* /*struct*/* p0, int /*enum*/ p1, void* p2, void* p3, void* p4, char p5, void** p6, char* p7, unsigned int p8, void* p9) {
     return nullptr;
 }
 
-// ?OnRenderData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
+// Symbol: ?OnRenderData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
 extern "C" int MS_ABI impl__OnRenderData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
     return 0;
 }
 
-// ?OnSetData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
+// Symbol: ?OnSetData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
 extern "C" int MS_ABI impl__OnSetData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
     return 0;
 }

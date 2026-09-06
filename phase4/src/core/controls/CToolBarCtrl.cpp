@@ -38,11 +38,11 @@ extern "C" long MS_ABI impl__GetDropTarget_CToolBarCtrl__QEBAJPEAPEAUIDropTarget
     if (ppDropTarget) *ppDropTarget = nullptr;
     return E_NOTIMPL;
 }
-// Symbol: ?GetMessageMap@CToolBarCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CToolBarCtrl__MEBAPEBUAFX_MSGMAP__XZ(const CWnd* pThis) {
-    (void)pThis;
-    return CWnd::GetThisMessageMap();
-}
+// GetMessageMap/GetThisMessageMap for CToolBarCtrl live in core/controls/MessageMaps.cpp
+// (classCToolBarCtrl_msgmap, base map CWnd). Retail agrees: ?GetThisMessageMap@
+// CToolBarCtrl@@KAPEBUAFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at 0x180336c20,
+// whose pfnGetBaseMap is ?GetThisMessageMap@CWnd@@KAPEBUAFX_MSGMAP@@XZ. The copies that
+// used to be here returned CWnd's own map, collapsing CToolBarCtrl out of the chain.
 // Symbol: ?GetRuntimeClass@CToolBarCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBarCtrl__UEBAPEAUCRuntimeClass__XZ(const CWnd* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CWnd::GetThisClass();
@@ -50,10 +50,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBarCtrl__UEBAPEAUCRu
 // Symbol: ?GetThisClass@CToolBarCtrl@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBarCtrl__SAPEAUCRuntimeClass__XZ() {
     return CWnd::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CToolBarCtrl@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CToolBarCtrl__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
 }
 // Symbol: ?OnCreate@CToolBarCtrl@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CToolBarCtrl__IEAAHPEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW* lpCreateStruct) {

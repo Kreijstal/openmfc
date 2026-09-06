@@ -921,36 +921,36 @@ extern "C" int MS_ABI impl__ConvertTo32Bits_CMFCToolBarImages__QEAAHK_Z(
     // the well through the 32bpp helper (0x180056660); not modeled.
     return 0;
 }
-// ?PreMultiplyAlpha@CMFCToolBarImages@@SAHPEAUHBITMAP__@@H@Z
+// Symbol: ?PreMultiplyAlpha@CMFCToolBarImages@@SAHPEAUHBITMAP__@@H@Z
 extern "C" int MS_ABI impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(void* /*struct*/* p0, int p1) {
     return 0;
 }
 
-// ?PrepareDrawImage@CMFCToolBarImages@@QEAAHAEAUtagAFXDrawState@@VCSize@@H@Z
+// Symbol: ?PrepareDrawImage@CMFCToolBarImages@@QEAAHAEAUtagAFXDrawState@@VCSize@@H@Z
 extern "C" int MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(void* /*struct*/* p0, void* /*class*/ p1, int p2) {
     return 0;
 }
 
-// ?SetSingleImage@CMFCToolBarImages@@QEAAXXZ
+// Symbol: ?SetSingleImage@CMFCToolBarImages@@QEAAXXZ
 extern "C" void MS_ABI impl__SetSingleImage_CMFCToolBarImages__QEAAXXZ() {}
 
-// ?SmoothResize@CMFCToolBarImages@@QEAAHN@Z
+// Symbol: ?SmoothResize@CMFCToolBarImages@@QEAAHN@Z
 extern "C" int MS_ABI impl__SmoothResize_CMFCToolBarImages__QEAAHN_Z(double p0) {
     return 0;
 }
 
-// ?TransparentBlt@CMFCToolBarImages@@KAXPEAUHDC__@@HHHHPEAVCDC@@HHKHH@Z
+// Symbol: ?TransparentBlt@CMFCToolBarImages@@KAXPEAUHDC__@@HHHHPEAVCDC@@HHKHH@Z
 extern "C" void MS_ABI impl__TransparentBlt_CMFCToolBarImages__KAXPEAUHDC____HHHHPEAVCDC__HHKHH_Z(void* /*struct*/* p0, int p1, int p2, int p3, int p4, void* /*class*/* p5, int p6, int p7, unsigned long p8, int p9, int p10) {}
 
-// ?UpdateCount@CMFCToolBarImages@@IEAAXXZ
+// Symbol: ?UpdateCount@CMFCToolBarImages@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateCount_CMFCToolBarImages__IEAAXXZ() {}
 
-// ?UpdateImage@CMFCToolBarImages@@QEAAHHPEAUHBITMAP__@@@Z
+// Symbol: ?UpdateImage@CMFCToolBarImages@@QEAAHHPEAUHBITMAP__@@@Z
 extern "C" int MS_ABI impl__UpdateImage_CMFCToolBarImages__QEAAHHPEAUHBITMAP_____Z(int p0, void* /*struct*/* p1) {
     return 0;
 }
 
-// ?UpdateInternalImage@CMFCToolBarImages@@IEAAHH@Z
+// Symbol: ?UpdateInternalImage@CMFCToolBarImages@@IEAAHH@Z
 extern "C" int MS_ABI impl__UpdateInternalImage_CMFCToolBarImages__IEAAHH_Z(int p0) {
     return 0;
 }

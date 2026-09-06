@@ -68,14 +68,10 @@ extern "C" HDC MS_ABI impl__Detach_CWindowlessDC__QEAAPEAUHDC____XZ(void* pThis)
     }
     return hdc;
 }
-// Symbol: ?GetRuntimeClass@CWindowlessDC@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWindowlessDC__UEBAPEAUCRuntimeClass__XZ(const void*) {
-    return &g_classCWindowlessDC;
-}
-// Symbol: ?GetThisClass@CWindowlessDC@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWindowlessDC__SAPEAUCRuntimeClass__XZ() {
-    return &g_classCWindowlessDC;
-}
+// GetRuntimeClass/GetThisClass for CWindowlessDC live in core/gdi/RuntimeClasses.cpp
+// (classCWindowlessDC: size 40, schema 0xFFFF, base CDC), matching the retail descriptor
+// at 0x180324810 in mfc140u.dll (0x180322650 in mfc140.dll). The copies that used to be
+// here returned g_classCWindowlessDC, sized sizeof(the repo CDC) = 32.
 // CWindowlessDC::CWindowlessDC(HDC, CPoint&) — the DC wrapper windowless OLE
 // controls use to draw into a host-supplied device context. The harvested
 // descriptor (global_taskdialog_dc_rtti.cpp) gives sizeof 40 over base CDC

@@ -25,23 +25,23 @@ extern "C" void* MS_ABI impl___0CMFCRibbonGalleryMenuButton__QEAA_IHPEB_WIH_Z(
     (void)unknown;
     return pThis;
 }
-// ??1CMFCRibbonGalleryMenuButton@@UEAA@XZ
+// Symbol: ??1CMFCRibbonGalleryMenuButton@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CMFCRibbonGalleryMenuButton__UEAA_XZ() {
     return nullptr;
 }
 
-// ?CommonInit@CMFCRibbonGalleryMenuButton@@IEAAXXZ
+// Symbol: ?CommonInit@CMFCRibbonGalleryMenuButton@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonGalleryMenuButton__IEAAXXZ() {}
 
-// ?CopyFrom@CMFCRibbonGalleryMenuButton@@UEAAXAEBVCMFCToolBarButton@@@Z
+// Symbol: ?CopyFrom@CMFCRibbonGalleryMenuButton@@UEAAXAEBVCMFCToolBarButton@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonGalleryMenuButton__UEAAXAEBVCMFCToolBarButton___Z(const void* /*class*/* p0) {}
 
-// ?CreateObject@CMFCRibbonGalleryMenuButton@@SAPEAVCObject@@XZ
+// Symbol: ?CreateObject@CMFCRibbonGalleryMenuButton@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonGalleryMenuButton__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// ?CreatePopupMenu@CMFCRibbonGalleryMenuButton@@UEAAPEAVCMFCPopupMenu@@XZ
+// Symbol: ?CreatePopupMenu@CMFCRibbonGalleryMenuButton@@UEAAPEAVCMFCPopupMenu@@XZ
 extern "C" void* MS_ABI impl__CreatePopupMenu_CMFCRibbonGalleryMenuButton__UEAAPEAVCMFCPopupMenu__XZ() {
     return nullptr;
 }
