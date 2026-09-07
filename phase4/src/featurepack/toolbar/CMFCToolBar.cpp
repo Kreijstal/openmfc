@@ -32,6 +32,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <cwchar>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -61,6 +62,49 @@ extern "C" void MS_ABI impl__OnAfterButtonDelete_CMFCToolBar__MEAAXXZ(CMFCToolBa
 extern "C" int MS_ABI impl__RemoveButton_CMFCToolBar__UEAAHH_Z(CMFCToolBar* pThis, int iIndex);
 extern "C" void MS_ABI impl__RedrawCustomizeButton_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis);
 extern "C" void MS_ABI impl__RebuildAccelerationKeys_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis);
+
+// Exported helpers from sibling shards used by the accessibility / image /
+// usage-count exports at the end of this file.
+//   featurepack/toolbar/CMFCToolBarImages.cpp : Clear / CleanUp / CopyTo / GrayImages
+//   featurepack/customize/CMFCCmdUsageCount.cpp : AddCmd
+extern "C" void MS_ABI impl__Clear_CMFCToolBarImages__QEAAXXZ(CMFCToolBarImages* pThis);
+extern "C" void MS_ABI impl__CleanUp_CMFCToolBarImages__SAXXZ();
+extern "C" int  MS_ABI impl__CopyTo_CMFCToolBarImages__QEAAHAEAV1__Z(
+                           CMFCToolBarImages* pThis, CMFCToolBarImages* pDst);
+extern "C" int  MS_ABI impl__GrayImages_CMFCToolBarImages__QEAAHH_Z(
+                           CMFCToolBarImages* pThis, int nLuminancePercentage);
+extern "C" void MS_ABI impl__AddCmd_CMFCCmdUsageCount__QEAAXI_Z(void* pThis, unsigned int cmd);
+
+// Class statics with storage in featurepack/toolbar/StaticData.cpp, written by
+// AutoGrayInactiveImages (retail globals 0x1803be358 / 0x1803be34c).
+extern "C" std::int32_t impl__m_bAutoGrayInactiveImages_CMFCToolBar__1HA;
+extern "C" std::int32_t impl__m_nGrayImagePercentage_CMFCToolBar__1HA;
+
+// CalcFixedLayout forwards to CalcLayout, which is defined after it.
+extern "C" CSize* MS_ABI impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(
+                             CMFCToolBar* pThis, CSize* pRet, unsigned long dwMode, int nLength);
+
+// ---------------------------------------------------------------------------
+// Additional cross-reference declarations used by the exports at the end of
+// this file.
+//
+// Class statics with storage in featurepack/toolbar/StaticData.cpp.
+//   ?m_clrTextHot@CMFCToolBar@@1KA   is the retail global at 0x3aab54,
+//   ?m_sizeMenuButton@ / ?m_sizeButton@ are defined further down in THIS file.
+extern "C" std::uint32_t impl__m_clrTextHot_CMFCToolBar__1KA;
+
+// ResetAll / Deactivate re-enter CMFCToolBar exports defined later in this file.
+extern "C" int  MS_ABI impl__CanBeRestored_CMFCToolBar__UEBAHXZ(const CMFCToolBar* pThis);
+extern "C" int  MS_ABI impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(CMFCToolBar* pThis);
+extern "C" void MS_ABI impl__RestoreFocus_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis);
+
+// CObList exports used by GetAllToolbars (definitions in
+// core/collections/CObList.cpp).  The C++ methods CObList::AddTail/RemoveAll
+// exist in the DLL only as those thunks from this translation unit's point of
+// view, so they are called through the thunks -- see AGENTS.md §"impl__".
+extern "C" void MS_ABI impl__RemoveAll_CObList__QEAAXXZ(CObList* pThis);
+extern "C" CObList::POSITION MS_ABI
+    impl__AddTail_CObList__QEAAPEAU__POSITION__PEAVCObject___Z(CObList* pThis, CObject* value);
 
 //=============================================================================
 // CMFCToolBar::OnSetFocus
@@ -273,8 +317,19 @@ extern "C" int MS_ABI impl__IsLastCommandFromButton_CMFCToolBar__SAHPEAVCMFCTool
     // TODO(clean-room): not transcribed -- needs the global last-command state.
     return FALSE;
 }
-// Retail (0x1801596a0): consults a global pane-collection singleton
-// (0x1803be1b8), two RTTI checks and an internal map lookup. Not modeled.
+// Retail (0x1801596a0), transcribed:
+//     pFrame = *(CFrameWnd**)0x1803be1b8;           // cached top-level frame
+//     if (pFrame == NULL) { pFrame = GetTopLevelFrame();   // 0x18028e490
+//                           if (pFrame == NULL) return FALSE; }
+//     if      (pFrame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)))  pImpl = pFrame + 0x590;
+//     else if (pFrame->IsKindOf(RUNTIME_CLASS(CFrameWndEx)))     pImpl = pFrame + 0x1f0;
+//     else return FALSE;
+//     return CFrameImpl::IsUserDefinedToolbar(pImpl, this);      // 0x180062840
+// (RTTI descriptors 0x1802ee478 / 0x1802e9210 read back as "CMDIFrameWndEx" /
+// "CFrameWndEx"; 0x180062840 is
+// ?IsUserDefinedToolbar@CFrameImpl@@IEBAHPEBVCMFCToolBar@@@Z.)
+// Not implemented: neither the cached-frame global, the CFrameImpl subobject at
+// those two offsets, nor IsUserDefinedToolbar is modelled by OpenMFC.
 // Symbol: ?IsUserDefined@CMFCToolBar@@QEBAHXZ
 extern "C" int MS_ABI impl__IsUserDefined_CMFCToolBar__QEBAHXZ(const CMFCToolBar* pThis)
 {
@@ -360,9 +415,30 @@ extern "C" int MS_ABI impl__LoadBitmapW_CMFCToolBar__UEAAHIIIHII_Z(
     info.m_uiMenuDisabledResID  = p5;
     return impl__LoadBitmapEx_CMFCToolBar__UEAAHAEAVCMFCToolBarInfo__H_Z(pThis, info, p3);
 }
-// Retail (0x180158520): opens registry key 0x180342a60, reads the large-icons
-// value into the class static m_bLargeIcons (0x1803be368) via a CRegKey /
-// CSettingsStore chain and returns it. Registry access is not modeled.
+// Retail (0x180158520), transcribed:
+//     strPath = AFXGetRegPath(L"MFCToolBars", lpszProfileName);   // 0x1800d2070
+//     strKey.Format(L"%TsMFCToolBarParameters", strPath);         // 0x18000da00
+//     CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, TRUE); // 0x18012a550
+//     if (!reg.Open(strKey)) return FALSE;                        // vslot 0x30
+//     return reg.Read(L"LargeIcons", CMFCToolBar::m_bLargeIcons); // vslot 0xb8
+// (The three wide literals are the ones at 0x180342a60 / 0x180342ad8 /
+// 0x180342b40; the destination is ?m_bLargeIcons@CMFCToolBar@@1HA at
+// 0x1803be368.)
+// Not implemented -- but not for the reason an earlier revision of this comment
+// gave.  That revision said "OpenMFC models neither CSettingsStore nor
+// CSettingsStoreSP"; that is false.  Both are modelled:
+// phase4/src/core/app/CSettingsStore.cpp exports Open/CreateKey/DeleteKey and
+// the whole Read/Write family as impl__ thunks, and
+// phase4/src/core/app/CSettingsStoreSP.cpp exports
+// ?Create@CSettingsStoreSP@@QEAAAEAVCSettingsStore@@HH@Z.  The real blockers
+// are: (a) that store is an in-memory map, not the registry, and nothing in
+// OpenMFC ever writes the MFCToolBar* keys (every Save* entry point in this
+// file is still a stub), so a faithful transcription would open an empty store,
+// read nothing and return FALSE -- which is what this stub already returns;
+// and (b) CSettingsStoreSP is not declared in any OpenMFC header and has no
+// destructor thunk, so the transcription would have to hand-roll its 16-byte
+// owner object and would leak the CSettingsStore that Create allocates.
+// Nothing is read and m_bLargeIcons is left alone.
 // Symbol: ?LoadLargeIconsState@CMFCToolBar@@SAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadLargeIconsState_CMFCToolBar__SAHPEB_W_Z(
     const wchar_t* lpszProfileName)
@@ -371,10 +447,27 @@ extern "C" int MS_ABI impl__LoadLargeIconsState_CMFCToolBar__SAHPEB_W_Z(
     // TODO(clean-room): not transcribed -- registry read skipped.
     return 0;
 }
-// Retail (0x18015a660): asks the CSettingsStore for the "LastOriginalState"
-// profile string, loads a serialized button list and calls virtual slot 0x870.
-// CSettingsStore is not declared in OpenMFC headers and the serialization format
-// is not modeled.
+// Retail (0x18015a660), transcribed:
+//     CObList lst;
+//     BOOL bRet = FALSE;
+//     if (store.Read(L"OriginalItems", lst))      // vslot 0x90, literal 0x180342c08
+//         bRet = SmartUpdate(lst);                // vslot 0x870
+//     while (lst not empty) delete lst.RemoveHead();
+//     return bRet;
+// (Slot 0x870 of the retail mfc140u CMFCToolBar vtable at 0x1803157c8 is
+// ?SmartUpdate@CMFCToolBar@@MEAAHAEBVCObList@@@Z; the read value name is
+// "OriginalItems", not the class name.)
+// Not implemented.  Correcting an earlier revision of this comment: OpenMFC
+// DOES model CSettingsStore -- phase4/src/core/app/CSettingsStore.cpp exports
+// the whole Read family, including
+// ?Read@CSettingsStore@@UEAAHPEB_WAEAVCObject@@@Z, as impl__ thunks, and the
+// class is forward-declared for this very signature in
+// phase4/src/detail/CMFCToolBarSupport.h.  The real blockers are that that
+// CObject& overload only looks a pointer up in an in-memory map and never
+// deserialises anything into the reference (see its body, which discards what
+// it reads), that nothing in OpenMFC ever writes an "OriginalItems" value, and
+// that CMFCToolBar::SmartUpdate is itself a stub -- so the transcription would
+// hand an empty CObList to a no-op.
 // Symbol: ?LoadLastOriginalState@CMFCToolBar@@MEAAHAEAVCSettingsStore@@@Z
 extern "C" int MS_ABI impl__LoadLastOriginalState_CMFCToolBar__MEAAHAEAVCSettingsStore___Z(
     CMFCToolBar* pThis, CSettingsStore& store)
@@ -383,9 +476,27 @@ extern "C" int MS_ABI impl__LoadLastOriginalState_CMFCToolBar__MEAAHAEAVCSetting
     // TODO(clean-room): not transcribed -- CSettingsStore + serialized buttons.
     return 0;
 }
-// Retail (0x1801582b0): registry read of the toolbar parameter values into three
-// class statics (m_bDontScaleImages @0x1803b1b64, @0x1803b1b60, m_bLargeIcons
-// @0x1803be368). Registry access is not modeled.
+// Retail (0x1801582b0), transcribed:
+//     strPath = AFXGetRegPath(L"MFCToolBars", lpszProfileName);
+//     strKey.Format(L"%TsMFCToolBarParameters", strPath);
+//     CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, TRUE);
+//     if (!reg.Open(strKey)) return FALSE;                     // vslot 0x30
+//     reg.Read(L"Tooltips",     m_bShowTooltips)     &&        // vslot 0xb8
+//     reg.Read(L"ShortcutKeys", m_bShowShortcutKeys) && ...    // and further values
+// The two statics are named by the export map:
+// ?m_bShowTooltips@CMFCToolBar@@1HA at 0x1803b1b64 and
+// ?m_bShowShortcutKeys@CMFCToolBar@@1HA at 0x1803b1b60 -- an earlier revision of
+// this comment called the first one m_bDontScaleImages, which it is not.
+// Not implemented.  A further correction: CSettingsStore/CSettingsStoreSP ARE
+// modelled (phase4/src/core/app/CSettingsStore.cpp and CSettingsStoreSP.cpp
+// export Open/Read/Create as impl__ thunks) -- the claim that they are not,
+// which this comment used to make, is false.  What blocks the transcription is
+// that the modelled store is an in-memory map rather than the registry and
+// nothing ever writes the MFCToolBarParameters key (SaveParameters below is a
+// stub), so every Read would miss and the function would still return FALSE;
+// and that CSettingsStoreSP has no header declaration and no destructor thunk,
+// so its owner object would have to be hand-rolled and the store it allocates
+// would leak.
 // Symbol: ?LoadParameters@CMFCToolBar@@SAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadParameters_CMFCToolBar__SAHPEB_W_Z(
     const wchar_t* lpszProfileName)
@@ -394,10 +505,27 @@ extern "C" int MS_ABI impl__LoadParameters_CMFCToolBar__SAHPEB_W_Z(
     // TODO(clean-room): not transcribed -- registry read skipped.
     return 0;
 }
-// Retail (0x18015af10): iterates the m_OrigResetButtons list (0x11f8) and
-// removes the buttons whose runtime class matches CMFCToolBarButton (RTTI at
-// 0x1803b1628). The CObList contents are side-table backed in OpenMFC and the
-// removal path also needs the CSettingsStore; not modeled.
+// Retail (0x18015af10), transcribed.  Note the direction: it REPLACES
+// m_OrigResetButtons with what it read, it does not filter the existing list.
+//     CObList lst;
+//     if (store.Read(L"OrigResetItems", lst) && lst.GetCount() > 0) {  // vslot 0x90
+//         while (m_OrigResetButtons.GetCount() != 0)                   // 0x11f8/0x1210
+//             delete m_OrigResetButtons.RemoveHead();
+//         for (p in lst)
+//             if (p->IsKindOf(RUNTIME_CLASS(CMFCToolBarButton)))       // 0x1803b1628
+//                 m_OrigResetButtons.AddTail(p);
+//     }
+//     lst.RemoveAll();
+//     return TRUE;                       // unconditional -- even when Read failed
+// (0x1803b1628 reads back as "CMFCToolBarButton"; 0x180231f40/0x180231e70/
+// 0x180008350 are CObList::RemoveHead/AddTail/RemoveAll.)
+// Not implemented.  Not because CSettingsStore is missing -- it is modelled,
+// see the correction on LoadLastOriginalState above -- but because its
+// ?Read@CSettingsStore@@UEAAHPEB_WAEAVCObject@@@Z thunk never deserialises
+// anything into the CObList it is handed, and nothing in OpenMFC writes an
+// "OrigResetItems" value, so the read list would always be empty.  Retail's
+// unconditional TRUE is deliberately not reproduced from an empty body: it
+// would claim a load that did not happen, so FALSE is kept.
 // Symbol: ?LoadResetOriginalState@CMFCToolBar@@IEAAHAEAVCSettingsStore@@@Z
 extern "C" int MS_ABI impl__LoadResetOriginalState_CMFCToolBar__IEAAHAEAVCSettingsStore___Z(
     CMFCToolBar* pThis, CSettingsStore& store)
@@ -406,8 +534,19 @@ extern "C" int MS_ABI impl__LoadResetOriginalState_CMFCToolBar__IEAAHAEAVCSettin
     // TODO(clean-room): not transcribed.
     return 0;
 }
-// Retail (0x1801539c0): registry state restoration -- builds the profile key
-// name, opens a CSettingsStore and reads the toolbar layout. Not modeled.
+// Retail (0x1801539c0), transcribed down to the key construction:
+//     strPath = AFXGetRegPath(L"MFCToolBars", lpszProfileName);
+//     if (nIndex == -1) nIndex = GetDlgCtrlID();                 // 0x1802a99a0
+//     strKey.Format(uiID == -1 ? L"%TsMFCToolBar-%d"
+//                              : L"%TsMFCToolBar-%d%x", strPath, nIndex, uiID);
+//     CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, TRUE);
+//     if (!reg.Open(strKey)) return FALSE;                       // vslot 0x30
+//     ... reg.Read(L"Buttons", <CObList>) and the remaining layout values ...
+// (Literals at 0x180342a60 / 0x180342a78 / 0x180342aa0 / 0x180342ac8.)
+// Not implemented.  CSettingsStore and CSettingsStoreSP are modelled (see the
+// correction on LoadLargeIconsState above); what is missing is the serialised
+// button list -- OpenMFC's CObject Read overload deserialises nothing -- and a
+// SaveState that would have written the key in the first place.
 // Symbol: ?LoadState@CMFCToolBar@@UEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__LoadState_CMFCToolBar__UEAAHPEB_WHI_Z(
     CMFCToolBar* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID)
@@ -786,9 +925,24 @@ extern "C" void MS_ABI impl__OnCopyImage_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis
     (void)pThis;
     // TODO(clean-room): not transcribed -- internal image-copy helpers skipped.
 }
-// Retail (0x180151ff0): calls base CWnd::OnCreate, one-time static init, loads
-// the 0x7904/0x7905 cursors and registers the tooltip control class. Base
-// OnCreate and the static registration are not modeled.
+// Retail (0x180151ff0).  The first call is CWnd::Default (0x18028ac80), not a
+// base-class OnCreate -- an earlier revision of this comment said otherwise.
+//     if (CWnd::Default() == -1) return -1;
+//     afxGlobalData.Initialize() if not yet initialised;         // 0x18006a790
+//     lazily LoadCursorW's 0x7904, 0x7905 and 0x7f86 into three afxGlobalData
+//         cursor slots (0x1803c1778 / 0x1803c1780 / 0x1803c1790);
+//     if (AFXGetParentFrame(this) != NULL)                       // 0x18006bd00
+//         cache (frame->GetStyle() & 0x400000) in the global at 0x1803be390;
+//     if (!m_bNoDropTarget && <module flag>) m_DropTarget.Register(this); // 0x1230
+//     create the drag pen into m_penDrag (0x12c0) and the tooltip control into
+//         m_pToolTip (0x12e8) with nType 2;
+//     m_bRoundShape = GetVisualManager()->IsToolBarRoundShape(this); // 0x1118
+//     if (m_bRoundShape) SetRoundedRgn(); else ::SetWindowRgn(m_hWnd, NULL, 0);
+//     add this toolbar to the global toolbar list at 0x1803b2090;
+//     return 0;
+// Not implemented: the afxGlobalData cursor cache, the visual manager and the
+// global toolbar list are all unmodelled, and a partial body would create a
+// tooltip and a drop target without the state the rest of the flow expects.
 // Symbol: ?OnCreate@CMFCToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CMFCToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(
     CMFCToolBar* pThis, LPCREATESTRUCTW lpCreateStruct)
@@ -1243,10 +1397,21 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CMFCToolBar__IEAA_J_K_J_Z(
     }
     return 0;
 }
-// Retail (0x180159370) walks the AFXGetParentFrame() chain (skipping a
-// CMDIChildWndEx frame) and delegates to the frame's OnGetToolTipText virtual
-// (vslot 0x400 on CMDIFrameWndEx, 0x3d8 on CFrameWndEx, 0x3b8 on
-// CMDIChildWndEx). Those frame virtuals are not declared in OpenMFC.
+// Retail (0x180159370), transcribed:
+//     pFrame = AFXGetParentFrame(this);  if (!pFrame) return FALSE;
+//     if (pFrame->IsKindOf(RUNTIME_CLASS(CMFCDropDownFrame)))     // 0x1803b1208
+//         { pFrame = AFXGetParentFrame(pFrame); if (!pFrame) return FALSE; }
+//     if      (pFrame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)))  // 0x1802ee478
+//          return pFrame->vslot0x400(pButton, strText);
+//     else if (pFrame->IsKindOf(RUNTIME_CLASS(CFrameWndEx)))     // 0x1802e9210
+//          return pFrame->vslot0x3d8(pButton, strText);
+//     else if (pFrame->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx)))  // 0x1802ed888
+//          return pFrame->vslot0x3b8(pButton, strText);
+//     return FALSE;
+// The frame that is skipped is a CMFCDropDownFrame, not a CMDIChildWndEx -- an
+// earlier revision of this comment had that wrong; all four names were read back
+// out of the CRuntimeClass descriptors.  Those OnGetToolTipText virtuals are not
+// declared in OpenMFC, so nothing is transcribed.
 // Symbol: ?OnUserToolTip@CMFCToolBar@@UEBAHPEAVCMFCToolBarButton@@AEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__OnUserToolTip_CMFCToolBar__UEBAHPEAVCMFCToolBarButton__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CMFCToolBar* pThis, CMFCToolBarButton* pButton, CString& strText)
@@ -1424,9 +1589,22 @@ extern "C" int MS_ABI impl__ProcessCommand_CMFCToolBar__QEAAHPEAVCMFCToolBarButt
     ::PostMessageW(pParent->GetSafeHwnd(), WM_COMMAND, nID, 0);
     return 1;
 }
-// Retail (0x1801563b0) clears the m_AccelKeys CMap (0x1318) and rebuilds it
-// from every button's accelerator (&x) text. The CMap internals are not
-// modeled.
+// Retail (0x1801563b0), transcribed:
+//     m_AccelKeys.RemoveAll();                       // 0x1318, CMap::RemoveAll
+//     for (pButton in m_Buttons) {
+//         if (pButton->m_nStyle & TBBS_SEPARATOR)  continue;
+//         if (!pButton->m_bText)                   continue;
+//         if (pButton->m_strText.GetLength() <= 0) continue;
+//         p = ::wcschr(pButton->m_strText, L'&');  if (!p) continue;
+//         i = p - pButton->m_strText;
+//         if (i < 0 || i >= GetLength() - 1) continue;   // no char after the '&'
+//         wch = pButton->m_strText[i + 1];
+//         ::CharUpperW(&wch);
+//         m_AccelKeys.SetAt(wch, pButton);
+//     }
+// m_AccelKeys is modelled only as an opaque 56-byte block
+// (include/openmfc/afxmfc.h), so the map cannot be populated and nothing is
+// transcribed.
 // Symbol: ?RebuildAccelerationKeys@CMFCToolBar@@IEAAXXZ
 extern "C" void MS_ABI impl__RebuildAccelerationKeys_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis)
 {
@@ -1456,15 +1634,62 @@ extern "C" void MS_ABI impl__RedrawCustomizeButton_CMFCToolBar__IEAAXXZ(CMFCTool
     rect.bottom += 10;
     ::RedrawWindow(pThis->GetSafeHwnd(), (const struct tagRECT*)&rect, nullptr, 0x505);
 }
-// Retail (0x18015b970) iterates the global toolbar list (0x1803b2098), and for
-// every CMFCToolBar whose buttons have text with a '&' accelerator it
-// invalidates each button rect and finally calls UpdateWindow. The global
-// toolbar list is not modeled.
+// Retail (0x18015b970), transcribed:
+//     for (pPane in the global pane list at 0x1803b2098) {
+//         if (pPane == NULL) break;
+//         if (!pPane->IsKindOf(RUNTIME_CLASS(CMFCToolBar))) continue;   // 0x1803b15f8
+//         if (CWnd::FromHandlePermanent(pPane->m_hWnd) == NULL) continue;
+//         bAny = FALSE;
+//         for (node = pBar->m_Buttons.head; node; node = node->next) {
+//             pButton = node->data;  if (pButton == NULL) break;
+//             if (pButton->m_nStyle & TBBS_SEPARATOR)  continue;  // 0x28
+//             if (!pButton->m_bText)                   continue;  // 0x0c
+//             if (pButton->m_strText.GetLength() <= 0) continue;  // 0x38, len at -0x10
+//             if (::wcschr(pButton->m_strText, L'&') == NULL) continue;
+//             ::InvalidateRect(pBar->m_hWnd, &pButton->m_rect, TRUE);  // 0x68
+//             bAny = TRUE;
+//         }
+//         if (bAny) ::UpdateWindow(pBar->m_hWnd);
+//     }
+// The three IAT slots resolve to USER32!InvalidateRect (0x1802c7128),
+// USER32!UpdateWindow (0x1802c7300) and VCRUNTIME140!wcschr (0x1802c7400);
+// 0x26 is L'&'.  Retail also computes the '&' offset in wchar units and skips
+// a negative one, which is unreachable, so it is not reproduced.
+//
+// Deviations: OpenMFC has no equivalent of the retail global pane list, so the
+// outer loop runs over the mfccore.cpp toolbar side table -- which is already
+// CMFCToolBar-only, making the IsKindOf filter implicit -- and the buttons come
+// from that same side table rather than from the m_Buttons CObList (empty
+// here).  CWnd::FromHandlePermanent, i.e. "this pane object is attached to a
+// live window", becomes a GetSafeHwnd() test, because CMFCToolBar::Create does
+// not register its HWND in the permanent map.
 // Symbol: ?RedrawUnderlines@CMFCToolBar@@SAXXZ
 extern "C" void MS_ABI impl__RedrawUnderlines_CMFCToolBar__SAXXZ()
 {
-    // TODO(clean-room): not transcribed -- the global toolbar list
-    // (0x1803b2098) is not modeled.
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (!pBar) continue;
+        const HWND hwnd = pBar->GetSafeHwnd();
+        if (!hwnd) continue;
+
+        BOOL bAny = FALSE;
+        const int nCount = pBar->GetCount();
+        for (int i = 0; i < nCount; ++i) {
+            CMFCToolBarButton* pButton = pBar->GetButton(i);
+            if (!pButton) break;                       // retail breaks on a NULL element
+            if (pButton->m_nStyle & 1u) continue;      // TBBS_SEPARATOR
+            if (!pButton->m_bText) continue;
+            if (pButton->m_strText.IsEmpty()) continue;
+            if (::wcschr(pButton->m_strText.GetString(), L'&') == nullptr) continue;
+
+            ::InvalidateRect(hwnd, reinterpret_cast<const RECT*>(&pButton->m_rect), TRUE);
+            bAny = TRUE;
+        }
+
+        if (bAny) {
+            ::UpdateWindow(hwnd);
+        }
+    }
 }
 // Retail (0x18014ec50):
 //     m_iButtonCapture = m_iHighlighted = m_iSelected = -1;
@@ -1594,9 +1819,22 @@ extern "C" int MS_ABI impl__RemoveResetStateButton_CMFCToolBar__IEAAHI_Z(
     }
     return FALSE;
 }
-// Retail (0x180153880) deletes the toolbar's layout from the registry through
-// a CSettingsStore chain (0x1800d2070 / 0x18000da00 / 0x18012a550).
-// CSettingsStore is not modeled.
+// Retail (0x180153880), transcribed:
+//     strPath = AFXGetRegPath(L"MFCToolBars", lpszProfileName);   // 0x1800d2070
+//     if (nIndex == -1) nIndex = GetDlgCtrlID();                  // 0x1802a99a0
+//     strKey.Format(uiID == -1 ? L"%TsMFCToolBar-%d"              // 0x18000da00
+//                              : L"%TsMFCToolBar-%d%x", strPath, nIndex, uiID);
+//     CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, FALSE); // 0x18012a550
+//     return reg.DeleteKey(strKey, FALSE);                        // vslot 0x48
+// Not implemented.  Correction to an earlier revision of this comment:
+// CSettingsStore IS modelled -- phase4/src/core/app/CSettingsStore.cpp exports
+// ?DeleteKey@CSettingsStore@@UEAAHPEB_WH@Z and
+// phase4/src/core/app/CSettingsStoreSP.cpp exports Create.  The transcription
+// is still not written because that store is an in-memory map that nothing in
+// OpenMFC ever writes an MFCToolBar-* key into, so the DeleteKey would always
+// miss and return FALSE, and because CSettingsStoreSP has no header
+// declaration and no destructor thunk (its owner object would have to be
+// hand-rolled and the store it allocates would leak).
 // Symbol: ?RemoveStateFromRegistry@CMFCToolBar@@UEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__RemoveStateFromRegistry_CMFCToolBar__UEAAHPEB_WHI_Z(
     CMFCToolBar* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID)
@@ -1605,15 +1843,70 @@ extern "C" int MS_ABI impl__RemoveStateFromRegistry_CMFCToolBar__UEAAHPEB_WHI_Z(
     // TODO(clean-room): not transcribed -- registry access via CSettingsStore.
     return FALSE;
 }
-// Retail (0x1801594b0) resets the CCommandManager and then every registered
-// toolbar through the global toolbar list (0x1803b2098), calling the
-// CanBeRestored / RestoreOriginalState virtuals. Neither the manager nor the
-// global list is modeled.
+// Retail (0x1801594b0), transcribed:
+//     CCommandManager::ClearAllCmdImages(&g_CmdManager);          // 0x18002f010
+//     for (each entry of the CMap at 0x1803b1fa8)
+//         CCommandManager::SetCmdImage(&g_CmdManager, uiCmd, iImage, FALSE); // 0x18002ef30
+//     for (pBar in the global toolbar list at 0x1803b2098)
+//         if (pBar->CanBeRestored())        // vslot 0x718
+//             pBar->RestoreOriginalState(); // vslot 0x720
+//
+// Re-checked against mfc140.dll (the ANSI twin the disassembler reads), where
+// ResetAll is at RVA 0x157b10.  Instruction for instruction it is:
+//     CCommandManager::ClearAllCmdImages(&afxCommandManager);   // 0x2f0d0
+//     for ((uiCmd, iImage) in CMFCToolBar::m_DefaultImages)     // CMap 0x3aaf90
+//         afxCommandManager.SetCmdImage(uiCmd, iImage, FALSE);  // 0x2eff0
+//     for (node = <all-toolbars CObList>.m_pNodeHead; node; node = node->pNext) {
+//         CMFCToolBar* pBar = node->data;                       // node + 0x10
+//         if (pBar == NULL) AfxThrowInvalidArgException();      // 0x225b80
+//         if (pBar->CanBeRestored())        pBar->RestoreOriginalState();
+//     }
+// The two vtable byte offsets are 0x718 and 0x720; in mfc140.dll the
+// CMFCToolBar vftable is at 0x180313618 (its slot 0 is
+// ?GetThisClass@CMFCToolBar@@SAPEAUCRuntimeClass@@XZ), where 0x718 ->
+// ?CanBeRestored@CMFCToolBar@@UEBAHXZ and 0x720 ->
+// ?RestoreOriginalState@CMFCToolBar@@UEAAHXZ.
+//
+// Read the two vtable addresses used in this file carefully: they name the
+// SAME class in two different binaries, and an earlier revision of this comment
+// wrongly "corrected" one into the other.  0x1803157c8, quoted by the older
+// comments here, is the CMFCToolBar vftable in mfc140u.dll (the Unicode DLL
+// OpenMFC reimplements, and the one those comments take their 0x180xxxxxx RVAs
+// from): its +0x710/+0x718/+0x720 hold 0x180153880/0x180156950/0x180156520,
+// which are exactly the mfc140u RemoveStateFromRegistry / CanBeRestored /
+// RestoreOriginalState RVAs cited elsewhere in this file.  0x180313618 is the
+// same vftable in mfc140.dll, the ANSI twin that scratchpad/wf2/disas.py reads,
+// and it is the right one to pair with an "mfc140.dll RVA" citation.  Neither
+// address is wrong; they simply belong to different images.
+//
+// Deviations, both deliberate:
+//  * the CCommandManager half is skipped -- CMFCToolBar::m_DefaultImages is
+//    inert storage here (a 56-byte blob, not a CMap), and
+//    CCommandManager::ClearAllCmdImages / SetCmdImage are empty stubs in
+//    phase4/src/featurepack/customize/CCommandManager.cpp, so there is nothing
+//    to replay.
+//  * the pane walk runs over the mfccore.cpp toolbar side table (every live
+//    CMFCToolBar on this thread) instead of retail's private CObList of all
+//    toolbars, which OpenMFC has no equivalent of.  This is the same
+//    substitution AutoGrayInactiveImages above makes.
+// CMFCToolBar::RestoreOriginalState is itself still a stub in this file, so
+// today the loop has no visible effect; the control flow is reproduced so that
+// it starts working the moment that stub is filled in.  Warning for whoever
+// fills it in: this walks g_toolBarStates by reference, so a RestoreOriginalState
+// that inserts or erases a g_toolBarStates entry would invalidate the iterator.
+// Snapshot the keys into a local vector first if that becomes possible.
 // Symbol: ?ResetAll@CMFCToolBar@@SAXXZ
 extern "C" void MS_ABI impl__ResetAll_CMFCToolBar__SAXXZ()
 {
-    // TODO(clean-room): not transcribed -- needs the CCommandManager and the
-    // global toolbar list (0x1803b2098).
+    // TODO(clean-room): partially transcribed -- the CCommandManager /
+    // m_DefaultImages replay is skipped (neither is modelled).
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (!pBar) continue;
+        if (impl__CanBeRestored_CMFCToolBar__UEBAHXZ(pBar)) {
+            impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(pBar);
+        }
+    }
 }
 // Symbol: ?m_DefaultImages@CMFCToolBar@@1V?$CMap@IIHH@@A
 extern "C" CMap_IIHH_56Bytes impl__m_DefaultImages_CMFCToolBar__1V__CMap_IIHH__A = {};
@@ -2365,210 +2658,1242 @@ CString CMFCToolBar::GetButtonText(int nIndex) const {
 void CMFCToolBar::GetButtonText(int nIndex, CString& rString) const {
     rString = GetButtonText(nIndex);
 }
+// The class statics below were generated as 8-byte `void*` blobs.  Sizes and
+// initial values are taken from the retail image: the .data bytes at each
+// symbol's RVA, and the distance to the next static in declaration order.
+//
+//   ?m_sizeButton@       0x3b1e38  17 00 00 00 16 00 00 00   ->  CSize(23, 22)
+//   ?m_sizeCurButton@    0x3b1ee8  17 00 00 00 16 00 00 00   ->  CSize(23, 22)
+//   ?m_sizeImage@        0x3b1cb8  10 00 00 00 0f 00 00 00   ->  CSize(16, 15)
+//   ?m_sizeCurImage@     0x3b1c78  10 00 00 00 0f 00 00 00   ->  CSize(16, 15)
+//   ?m_sizeMenuButton@   0x3b1d08  ff..ff ff..ff             ->  CSize(-1, -1)
+//   ?m_sizeMenuImage@    0x3b1c38  ff..ff ff..ff             ->  CSize(-1, -1)
+//
+// (m_sizeImage's pair is confirmed a second time by the retail body at
+// 0x180159280, which resets 0x3b1cb8/0x3b1cbc to 0x10/0xf after clearing the
+// eight static image wells.)
+//
+// A plain two-LONG POD is used rather than CSize so the initialisation is a
+// constant one -- these are read from other translation units and must not
+// depend on a dynamic initialiser running first.  The 8-byte footprint is
+// unchanged, so nothing that already links against them moves.
+namespace {
+struct StaticCSize { long cx; long cy; };
+}
+
+// ?m_lstBasicCommands@ 0x3b2020 and ?m_lstUnpermittedCommands@ 0x3b2058 are
+// 0x38 = 56 bytes apart, which is sizeof(CList<UINT,UINT>) (CObject vfptr plus
+// m_pNodeHead/m_pNodeTail/m_nCount/m_pNodeFree/m_pBlocks/m_nBlockSize).  The
+// list internals are not modelled, so the storage is right-sized and zeroed;
+// retail's image bytes hold only the CList vfptr at +0, which OpenMFC has no
+// equivalent for.
 // Symbol: ?m_lstBasicCommands@CMFCToolBar@@1V?$CList@II@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstBasicCommands_CMFCToolBar__1V__CList_II__A = {};
+extern "C" alignas(8) unsigned char impl__m_lstBasicCommands_CMFCToolBar__1V__CList_II__A[56] = {};
 
 // Symbol: ?m_lstUnpermittedCommands@CMFCToolBar@@1V?$CList@II@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstUnpermittedCommands_CMFCToolBar__1V__CList_II__A = {};
+extern "C" alignas(8) unsigned char impl__m_lstUnpermittedCommands_CMFCToolBar__1V__CList_II__A[56] = {};
 
+// A pointer; 0x3b70d0/0x3be370 lives in .bss in the retail image, i.e. it
+// starts NULL.  Already correct at 8 zero bytes.
 // Symbol: ?m_pUserImages@CMFCToolBar@@1PEAVCMFCToolBarImages@@EA
-extern "C" void* MS_ABI impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA = {};
+extern "C" void* impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA = nullptr;
 
 // Symbol: ?m_sizeButton@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeButton_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeButton_CMFCToolBar__1VCSize__A = { 23, 22 };
 
 // Symbol: ?m_sizeCurButton@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeCurButton_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeCurButton_CMFCToolBar__1VCSize__A = { 23, 22 };
 
 // Symbol: ?m_sizeCurImage@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeCurImage_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeCurImage_CMFCToolBar__1VCSize__A = { 16, 15 };
 
 // Symbol: ?m_sizeImage@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeImage_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeImage_CMFCToolBar__1VCSize__A = { 16, 15 };
 
 // Symbol: ?m_sizeMenuButton@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A = { -1, -1 };
 
 // Symbol: ?m_sizeMenuImage@CMFCToolBar@@1VCSize@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_sizeMenuImage_CMFCToolBar__1VCSize__A = {};
+extern "C" StaticCSize impl__m_sizeMenuImage_CMFCToolBar__1VCSize__A = { -1, -1 };
 
+// ?m_UsageCount@ sits at 0x3b1fd0 and the next static (?m_lstBasicCommands@)
+// at 0x3b2020, i.e. 0x50 further on; the shadow struct in
+// detail/CMFCCmdUsageCountSupport.h models the object as 0x48 bytes, so the
+// remaining 8 are 16-byte alignment padding.  0x50 is used here as the safe
+// upper bound.  The size matters: AddCommandUsage below hands this object to
+// CMFCCmdUsageCount::AddCmd, which writes m_nTotalCount at +0x40 -- against the
+// previous 8-byte blob that was a straight overrun.  Zero-initialised: OpenMFC
+// models neither the CMap at +8 nor the two vfptrs the retail image starts
+// with (0x1802dfee8 at +0 and 0x1802dfeb8 at +8).
 // Symbol: ?m_UsageCount@CMFCToolBar@@1VCMFCCmdUsageCount@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A = {};
+extern "C" alignas(8) unsigned char impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A[80] = {};
 
+// ---------------------------------------------------------------------------
+// Accessibility helper shared by the three Acc* exports below.
+//
+// Retail dispatches CMFCToolBarButton::GetAccCount through vtable slot 0x188.
+// mfc140u exports exactly one GetAccCount body (?GetAccCount@CMFCToolBarButton@@UEAAHXZ,
+// RVA 0x15eab0) and no derived button class overrides it, so inlining that one
+// body here is equivalent to the virtual dispatch.  Fully transcribed:
+//     if (m_bVisible == 0)              return 0;   // 0x64
+//     if (::IsRectEmpty(&m_rect))       return 0;   // 0x68
+//     return (~m_nStyle) & 1;                       // 0x28 -- 0 for a separator
+// The three offsets match include/openmfc/afxmfc.h (m_nStyle @40, m_bVisible
+// @100, m_rect @104).
+namespace {
+inline int ToolBarButtonAccCount(const CMFCToolBarButton* pButton)
+{
+    if (!pButton) return 0;
+    if (!pButton->m_bVisible) return 0;
+    if (::IsRectEmpty(reinterpret_cast<const RECT*>(&pButton->m_rect))) return 0;
+    return static_cast<int>((~pButton->m_nStyle) & 1u);
+}
+} // namespace
+
+// Retail (0x18015ba90) walks m_Buttons (0x1190) with a 1-based counter that is
+// advanced only for buttons whose GetAccCount() is > 0, and returns the button
+// whose counter equals lVal (NULL when the walk runs out):
+//     nId = 1;
+//     for (node = m_Buttons.head; node != NULL; node = node->next) {
+//         pButton = node->data;                 // NULL -> AfxThrowInvalidArgException
+//         if (pButton->GetAccCount() <= 0) continue;
+//         if (nId == lVal) return pButton;
+//         nId++;
+//     }
+//     return NULL;
+// Deviation: OpenMFC keeps the live buttons in the mfccore.cpp side table, so
+// the walk runs over GetCount()/GetButton() instead of the m_Buttons CObList
+// (which stays empty here).  The retail NULL-element throw has no counterpart;
+// a NULL entry is skipped by ToolBarButtonAccCount returning 0.
 // Symbol: ?AccGetButtonByChildId@CMFCToolBar@@IEAAPEAVCMFCToolBarButton@@J@Z
-extern "C" void* MS_ABI impl__AccGetButtonByChildId_CMFCToolBar__IEAAPEAVCMFCToolBarButton__J_Z(long p0) {
+extern "C" CMFCToolBarButton* MS_ABI impl__AccGetButtonByChildId_CMFCToolBar__IEAAPEAVCMFCToolBarButton__J_Z(
+    CMFCToolBar* pThis, long lVal)
+{
+    if (!pThis) return nullptr;
+
+    long nId = 1;
+    const int nCount = pThis->GetCount();
+    for (int i = 0; i < nCount; ++i) {
+        CMFCToolBarButton* pButton = pThis->GetButton(i);
+        if (ToolBarButtonAccCount(pButton) <= 0) continue;
+        if (nId == lVal) return pButton;
+        ++nId;
+    }
     return nullptr;
 }
 
+// Retail (0x18015ba50), fully transcribed: the sum of GetAccCount() over every
+// button in m_Buttons (0x1190).  Same side-table deviation as above.
 // Symbol: ?AccGetButtonsCount@CMFCToolBar@@MEAAHXZ
-extern "C" int MS_ABI impl__AccGetButtonsCount_CMFCToolBar__MEAAHXZ() {
-    return 0;
+extern "C" int MS_ABI impl__AccGetButtonsCount_CMFCToolBar__MEAAHXZ(CMFCToolBar* pThis)
+{
+    if (!pThis) return 0;
+
+    int nTotal = 0;
+    const int nCount = pThis->GetCount();
+    for (int i = 0; i < nCount; ++i) {
+        nTotal += ToolBarButtonAccCount(pThis->GetButton(i));
+    }
+    return nTotal;
 }
 
+// Retail (0x18015baf0) is the inverse of AccGetButtonByChildId: it maps a
+// button index to the 1-based accessibility child id.
+//     if (nButtonIndex < 0 || nButtonIndex >= m_Buttons.GetCount()) return 0;
+//     nId = 1; iButton = 0;
+//     for (node = m_Buttons.head; node != NULL; node = node->next) {
+//         if (node->data->GetAccCount() > 0) {
+//             if (iButton == nButtonIndex) return nId;
+//             nId++;
+//         }
+//         iButton++;
+//     }
+//     return 0;
+// Note the asymmetry that is deliberately reproduced: the running index
+// iButton advances for every button, but nId only for accessible ones, so a
+// hidden/separator button consumes an index without consuming a child id.
+// Same side-table deviation as above.
 // Symbol: ?AccGetChildIdByButtonIndex@CMFCToolBar@@IEAAHH@Z
-extern "C" int MS_ABI impl__AccGetChildIdByButtonIndex_CMFCToolBar__IEAAHH_Z(int p0) {
+extern "C" int MS_ABI impl__AccGetChildIdByButtonIndex_CMFCToolBar__IEAAHH_Z(
+    CMFCToolBar* pThis, int nButtonIndex)
+{
+    if (!pThis) return 0;
+
+    const int nCount = pThis->GetCount();
+    if (nButtonIndex < 0 || nButtonIndex >= nCount) return 0;
+
+    int nId = 1;
+    for (int i = 0; i < nCount; ++i) {
+        if (ToolBarButtonAccCount(pThis->GetButton(i)) > 0) {
+            if (i == nButtonIndex) return nId;
+            ++nId;
+        }
+    }
     return 0;
 }
 
+// Retail (0x18015a560):
+//     if (afxGlobalData not yet initialised) afxGlobalData.Initialize();
+//     if (*(int*)(&afxGlobalData + 0x278) == 0) return;   // accessibility gate
+//     pButton = GetButton(iButton); if (pButton == NULL) return;
+//     pButton->SetACCData(this, this->m_AccData);          // vslot 0x180, this+0x150
+//     nChildId = AccGetChildIdByButtonIndex(iButton);
+//     if (nChildId <= 0) return;
+//     ::NotifyWinEvent(EVENT_OBJECT_FOCUS, m_hWnd, OBJID_CLIENT, nChildId);
+// (0x1802c7210 resolves to USER32!NotifyWinEvent; 0x8005 is EVENT_OBJECT_FOCUS
+// and 0xfffffffc is OBJID_CLIENT.)
+//
+// Two deviations, both because OpenMFC models neither side:
+//   * the afxGlobalData flag at +0x278 is not modelled, so the gate is dropped
+//     and the event is always sent.  NotifyWinEvent is inert when no
+//     accessibility client is hooked, which is exactly when retail's flag is
+//     clear, so the observable difference is confined to sessions that already
+//     have a client attached;
+//   * SetACCData (CMFCToolBarButton vslot 0x180) and the CAccessibilityData at
+//     this+0x150 are not declared in OpenMFC, so that call is skipped.
 // Symbol: ?AccNotifyObjectFocusEvent@CMFCToolBar@@MEAAXH@Z
-extern "C" void MS_ABI impl__AccNotifyObjectFocusEvent_CMFCToolBar__MEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__AccNotifyObjectFocusEvent_CMFCToolBar__MEAAXH_Z(
+    CMFCToolBar* pThis, int iButton)
+{
+    if (!pThis) return;
 
+    // TODO(clean-room): retail gates on afxGlobalData+0x278 and calls
+    // pButton->SetACCData(this, m_AccData) first; neither is modelled.
+    CMFCToolBarButton* pButton = pThis->GetButton(iButton);
+    if (!pButton) return;
+
+    const int nChildId = impl__AccGetChildIdByButtonIndex_CMFCToolBar__IEAAHH_Z(pThis, iButton);
+    if (nChildId <= 0) return;
+
+    ::NotifyWinEvent(EVENT_OBJECT_FOCUS, pThis->GetSafeHwnd(), OBJID_CLIENT, nChildId);
+}
+
+// Retail (0x180156fa0):
+//     if (m_lstBasicCommands.Find(uiCmd, NULL) == NULL)
+//         m_lstBasicCommands.AddTail(uiCmd);
+// (the two calls are 0x180011f1c / 0x180012284 on the static CList<UINT,UINT>
+// at 0x1803b2020, which the map names ?m_lstBasicCommands@CMFCToolBar@@1V?$CList@II@@A).
+// OpenMFC has no CList<UINT,UINT> implementation and the static above is
+// right-sized but inert storage, so nothing is recorded.
 // Symbol: ?AddBasicCommand@CMFCToolBar@@SAXI@Z
-extern "C" void MS_ABI impl__AddBasicCommand_CMFCToolBar__SAXI_Z(unsigned int p0) {}
+extern "C" void MS_ABI impl__AddBasicCommand_CMFCToolBar__SAXI_Z(unsigned int uiCmd) {
+    (void)uiCmd;
+    // TODO(clean-room): not transcribed -- CList<UINT,UINT> Find/AddTail.
+}
 
+// Retail (0x18015a780) is a single tail jump, fully transcribed:
+//     jmp CMFCCmdUsageCount::AddCmd(&CMFCToolBar::m_UsageCount, uiCmd)
+// (rcx = 0x1803b1fd0 = ?m_UsageCount@CMFCToolBar@@1VCMFCCmdUsageCount@@A,
+//  target 0x1800232e0 = ?AddCmd@CMFCCmdUsageCount@@QEAAXI@Z).
+// AddCmd itself is only partly modelled -- see the note on its definition in
+// featurepack/customize/CMFCCmdUsageCount.cpp -- but the command-range gate and
+// the total-count bump it does implement now run against real storage, which is
+// why m_UsageCount above had to grow from 8 bytes to the retail 80.
 // Symbol: ?AddCommandUsage@CMFCToolBar@@SAXI@Z
-extern "C" void MS_ABI impl__AddCommandUsage_CMFCToolBar__SAXI_Z(unsigned int p0) {}
+extern "C" void MS_ABI impl__AddCommandUsage_CMFCToolBar__SAXI_Z(unsigned int uiCmd) {
+    impl__AddCmd_CMFCCmdUsageCount__QEAAXI_Z(
+        impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A, uiCmd);
+}
 
+// Retail (0x180155fd0), transcribed but NOT implemented -- see below.
+//     iIndex = ButtonToIndex(pButton);
+//     if (iIndex <= 0) return;                       // nothing before button 0
+//     if (GetCurrentAlignment() & (CBRS_ALIGN_TOP|CBRS_ALIGN_BOTTOM))  // 0xa000
+//          nDelta = ptDrop.x - ptStart.x;            // horizontal bar
+//     else nDelta = ptDrop.y - ptStart.y;
+//     if (::abs(nDelta) < 6) return;
+//     pPrev = GetButton(iIndex - 1);
+//     if (nDelta > 0) {
+//         if (pPrev->m_nStyle & TBBS_SEPARATOR) return;      // already there
+//         InsertSeparator(iIndex);                           // vslot 0x6a0
+//     } else {
+//         if (!(pPrev->m_nStyle & TBBS_SEPARATOR)) return;
+//         if (pPrev->m_bVisible) RemoveButton(iIndex - 1);    // vslot 0x6a8
+//     }
+//     AdjustLayout();                                        // vslot 0x428
+//     m_iSelected = -1;
+//     ::RedrawWindow(m_hWnd, NULL, NULL, RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW|
+//                                        RDW_ALLCHILDREN|RDW_FRAME);  // 0x505
+// Vtable slots named from the retail CMFCToolBar vtable at 0x1803157c8
+// (0x338 -> CBasePane::GetCurrentAlignment, 0x6a0 -> InsertSeparator,
+//  0x6a8 -> RemoveButton, 0x428 -> AdjustLayout).
+//
+// Left a stub deliberately: RemoveButton and AdjustLayout are available here,
+// but CMFCToolBar::InsertSeparator is itself an unimplemented stub, so a
+// half-transcription would delete separators during a customize drag and never
+// create them -- an asymmetry that is worse than doing nothing.
 // Symbol: ?AddRemoveSeparator@CMFCToolBar@@MEAAXPEBVCMFCToolBarButton@@AEBVCPoint@@1@Z
-extern "C" void MS_ABI impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(const void* /*class*/* p0, const void* /*class*/* p1, const void* /*class*/* p2) {}
+extern "C" void MS_ABI impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(
+    CMFCToolBar* pThis, const CMFCToolBarButton* pButton,
+    const CPoint* ptStart, const CPoint* ptDrop)
+{
+    (void)pThis; (void)pButton; (void)ptStart; (void)ptDrop;
+    // TODO(clean-room): not implemented -- needs a working InsertSeparator.
+}
 
+// Retail (0x1801569b0), fully transcribed: it builds a throwaway CMFCToolBar on
+// the stack (ctor 0x18014d2b0, dtor 0x18014d6b0) purely so the image-loading
+// path runs, and returns what LoadToolBar (0x18014e300) returns:
+//     CMFCToolBar bar;
+//     return bar.LoadToolBar(uiResID, uiColdResID, uiMenuResID,
+//                            /*bLocked*/ FALSE, uiDisabledResID,
+//                            uiMenuDisabledResID, /*uiHotResID*/ uiBmpResID);
+// The argument shuffle is worth spelling out because it is not the identity:
+// the collection's uiBmpResID lands in LoadToolBar's *uiHotResID* slot (arg 8),
+// bLocked is hard-wired to 0 (arg 5), and the remaining four pass straight
+// through.
+// Caveat: OpenMFC's CMFCToolBar::LoadToolBar accepts everything without parsing
+// the RT_TOOLBAR resource, so this reproduces retail's control flow and return
+// value but loads no images.
 // Symbol: ?AddToolBarForImageCollection@CMFCToolBar@@SAHIIIIII@Z
-extern "C" int MS_ABI impl__AddToolBarForImageCollection_CMFCToolBar__SAHIIIIII_Z(unsigned int p0, unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned int p5) {
-    return 0;
+extern "C" int MS_ABI impl__AddToolBarForImageCollection_CMFCToolBar__SAHIIIIII_Z(
+    unsigned int uiResID, unsigned int uiBmpResID, unsigned int uiColdResID,
+    unsigned int uiMenuResID, unsigned int uiDisabledResID,
+    unsigned int uiMenuDisabledResID)
+{
+    CMFCToolBar bar;
+    return bar.LoadToolBar(uiResID, uiColdResID, uiMenuResID, FALSE,
+                           uiDisabledResID, uiMenuDisabledResID, uiBmpResID) ? 1 : 0;
 }
 
+// Retail (0x180155990) lays every button out row by row: it bails when
+// m_Buttons is empty (0x11a0) or m_hWnd is NULL (0x40), reads
+// GetCurrentAlignment() (vslot 0x338) to pick the horizontal or vertical pass,
+// takes a CClientDC (0x1802a3b20) and then drives each button's
+// OnCalculateSize/OnMove through its vtable while tracking wrap points.
+// The blocker is the per-button OnCalculateSize/OnMove virtuals: OpenMFC has no
+// dispatchable CMFCToolBarButton vtable and both exist only as empty exported
+// stubs, so every measured size would come back zero.  (CClientDC itself is NOT
+// the obstacle -- an earlier revision of this comment said the "CClientDC
+// plumbing" was unmodelled, but include/openmfc/afxwin.h declares CClientDC and
+// phase4/src/core/gdi/CClientDC.cpp implements it.)
 // Symbol: ?AdjustLocations@CMFCToolBar@@MEAAXXZ
-extern "C" void MS_ABI impl__AdjustLocations_CMFCToolBar__MEAAXXZ() {}
+extern "C" void MS_ABI impl__AdjustLocations_CMFCToolBar__MEAAXXZ(CMFCToolBar* pThis) {
+    (void)pThis;
+    // TODO(clean-room): not transcribed -- needs the button layout virtuals.
+}
 
+// Retail (0x18015b3a0), transcribed:
+//     m_bAutoGrayInactiveImages = bEnable;            // 0x1803be358
+//     m_nGrayImagePercentage    = nGrayImagePercentage; // 0x1803be34c
+//     if (bEnable) { m_Images.CopyTo(m_ColdImages);
+//                    m_ColdImages.GrayImages(m_nGrayImagePercentage); }
+//     else         { m_ColdImages.Clear(); }
+//     for (pBar in the global toolbar list at 0x1803b2098) {
+//         if (CWnd::FromHandlePermanent(pBar->m_hWnd) == NULL) continue;
+//         if (pBar->m_bLocked) {                       // 0x10b8
+//             if (m_bAutoGrayInactiveImages) {
+//                 pBar->m_ImagesLocked.CopyTo(pBar->m_ColdImagesLocked);
+//                 pBar->m_ColdImagesLocked.GrayImages(m_nGrayImagePercentage);
+//             } else pBar->m_ColdImagesLocked.Clear();
+//         }
+//         if (bRedrawAllToolbars)
+//             ::RedrawWindow(pBar->m_hWnd, NULL, NULL, 0x585);
+//     }
+// (0x18016f2f0 = CMFCToolBarImages::CopyTo, 0x180170110 =
+//  CMFCToolBarImages::GrayImages, 0x18016f690 = CMFCToolBarImages::Clear,
+//  0x1802c7130 = USER32!RedrawWindow.  Note the second CopyTo/GrayImages pair
+//  re-reads the class static rather than the parameter, which is reproduced.)
+//
+// Deviations: OpenMFC has no equivalent of the retail global pane list, so the
+// loop runs over the mfccore.cpp toolbar side table (every live CMFCToolBar on
+// this thread), and the CWnd::FromHandlePermanent test -- "this pane object is
+// attached to a live window" -- becomes a GetSafeHwnd() test, because
+// CMFCToolBar::Create does not put its HWND in the permanent map.
+// CMFCToolBarImages::CopyTo and ::GrayImages are themselves partial in this
+// repo (the pixel work is not modelled); only their state writes take effect.
 // Symbol: ?AutoGrayInactiveImages@CMFCToolBar@@SAXHHH@Z
-extern "C" void MS_ABI impl__AutoGrayInactiveImages_CMFCToolBar__SAXHHH_Z(int p0, int p1, int p2) {}
+extern "C" void MS_ABI impl__AutoGrayInactiveImages_CMFCToolBar__SAXHHH_Z(
+    int bEnable, int nGrayImagePercentage, int bRedrawAllToolbars)
+{
+    impl__m_bAutoGrayInactiveImages_CMFCToolBar__1HA = bEnable;
+    impl__m_nGrayImagePercentage_CMFCToolBar__1HA    = nGrayImagePercentage;
 
+    if (bEnable) {
+        impl__CopyTo_CMFCToolBarImages__QEAAHAEAV1__Z(
+            &impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A,
+            &impl__m_ColdImages_CMFCToolBar__1VCMFCToolBarImages__A);
+        impl__GrayImages_CMFCToolBarImages__QEAAHH_Z(
+            &impl__m_ColdImages_CMFCToolBar__1VCMFCToolBarImages__A,
+            impl__m_nGrayImagePercentage_CMFCToolBar__1HA);
+    } else {
+        impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_ColdImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    }
+
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (!pBar) continue;
+        const HWND hwnd = pBar->GetSafeHwnd();
+        if (!hwnd) continue;
+
+        if (pBar->m_bLocked) {
+            if (impl__m_bAutoGrayInactiveImages_CMFCToolBar__1HA) {
+                impl__CopyTo_CMFCToolBarImages__QEAAHAEAV1__Z(
+                    &pBar->m_ImagesLocked, &pBar->m_ColdImagesLocked);
+                impl__GrayImages_CMFCToolBarImages__QEAAHH_Z(
+                    &pBar->m_ColdImagesLocked,
+                    impl__m_nGrayImagePercentage_CMFCToolBar__1HA);
+            } else {
+                impl__Clear_CMFCToolBarImages__QEAAXXZ(&pBar->m_ColdImagesLocked);
+            }
+        }
+
+        if (bRedrawAllToolbars) {
+            ::RedrawWindow(hwnd, nullptr, nullptr, 0x585);
+        }
+    }
+}
+
+// Retail (0x18014f000), fully transcribed: a linear scan of m_Buttons (0x1190)
+// returning the 0-based position of pButton, or -1.
+//     iIndex = 0;
+//     for (node = m_Buttons.head; node != NULL; node = node->next) {
+//         if (node->data == NULL) AfxThrowInvalidArgException();  // 0x180227720
+//         if (node->data == pButton) return iIndex;
+//         iIndex++;
+//     }
+//     return -1;
+// Deviation: the scan runs over the mfccore.cpp side table via
+// GetCount()/GetButton(), which is where OpenMFC keeps the live buttons; the
+// retail NULL-element throw therefore has no counterpart (a NULL slot simply
+// does not match).
 // Symbol: ?ButtonToIndex@CMFCToolBar@@QEBAHPEBVCMFCToolBarButton@@@Z
-extern "C" int MS_ABI impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(const void* /*class*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(
+    const CMFCToolBar* pThis, const CMFCToolBarButton* pButton)
+{
+    if (!pThis) return -1;
+
+    const int nCount = pThis->GetCount();
+    for (int i = 0; i < nCount; ++i) {
+        if (pThis->GetButton(i) == pButton) return i;
+    }
+    return -1;
 }
 
+// Retail (0x18014f0b0), fully transcribed: it packs the two BOOLs into
+// CalcLayout's mode word and tail-calls CalcLayout with an unconstrained
+// length.
+//     dwMode = (bStretch ? LM_STRETCH : 0) | (bHorz ? LM_HORZ : 0);   // 1 | 2
+//     return CalcLayout(dwMode, -1);                                  // vslot 0x780
+// (The vtable slot is named from the retail CMFCToolBar vtable at 0x1803157c8:
+// 0x780 -> ?CalcLayout@CMFCToolBar@@MEAA?AVCSize@@KH@Z.)
+//
+// Deviation: OpenMFC's DLL-internal vtable does not carry that slot, so the
+// CalcLayout export below is called directly rather than virtually -- a derived
+// class overriding CalcLayout would not be re-entered here.  CalcLayout is
+// itself a stub, so the returned size is (0, 0) rather than a real layout.
+//
+// The generated stub this replaces also had the struct return wrong: the hidden
+// CSize slot arrives in rdx and must be returned in rax, and it returned
+// nullptr.  Both are fixed here and in CalcLayout/CalcSize below.
 // Symbol: ?CalcFixedLayout@CMFCToolBar@@UEAA?AVCSize@@HH@Z
-extern "C" void* MS_ABI impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(void* /*class*/* p0, int p1, int p2) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(
+    CMFCToolBar* pThis, CSize* pRet, int bStretch, int bHorz)
+{
+    const unsigned long dwMode =
+        static_cast<unsigned long>((bStretch ? 1 : 0) | (bHorz ? 2 : 0));
+    return impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(pThis, pRet, dwMode, -1);
 }
 
+// Retail (0x180154d70) computes the docked size: it clears a flag on
+// m_pCustomizeBtn (0x1300), caches CalcMaxButtonHeight() (vslot 0x848) into
+// m_nMaxBtnHeight (0x1130), works out an available length from m_dwStyle
+// (0x104) and the LM_* bits, calls WrapToolBar (0x1801555b0) and CalcSize
+// (vslot 0x558), then adds the pane borders (0x1800a1950) and clamps against
+// 0x7fff before calling RebuildAccelerationKeys (0x1801563b0).  Almost every
+// step goes through a virtual or an internal helper OpenMFC does not model, so
+// only the ABI is honoured here: the hidden CSize slot is zeroed and returned.
 // Symbol: ?CalcLayout@CMFCToolBar@@MEAA?AVCSize@@KH@Z
-extern "C" void* MS_ABI impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(void* /*class*/* p0, unsigned long p1, int p2) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(
+    CMFCToolBar* pThis, CSize* pRet, unsigned long dwMode, int nLength)
+{
+    (void)pThis; (void)dwMode; (void)nLength;
+    // TODO(clean-room): not transcribed -- wrapping, CalcSize and the border
+    // helpers are unmodelled.  Retail also stores CalcMaxButtonHeight() into
+    // m_nMaxBtnHeight here; that is skipped because CalcMaxButtonHeight is a
+    // stub and would write a bogus 0.
+    if (!pRet) return pRet;
+    pRet->cx = 0;
+    pRet->cy = 0;
+    return pRet;
 }
 
+// Retail (0x1801590b0) measures the tallest button: it clears m_bDrawTextLabels
+// (0x10cc), returns 0 immediately unless m_bTextLabels (0x10c8) is set AND the
+// bar is horizontally aligned, then takes a CClientDC (0x1802a3b20), selects
+// either the menu font or afxGlobalData's regular font, walks m_Buttons calling
+// OnSetDefaultButtonText (vslot 0x750) for empty labels and OnCalculateSize
+// (button vslot 0x48) for each, keeps the maximum height and finally sets
+// m_bDrawTextLabels from the comparison against the default button height.
+// The blockers are the fonts (afxGlobalData is unmodelled) and the two virtuals
+// -- CMFCToolBarButton has no dispatchable vtable here and OnCalculateSize is
+// an empty stub, so every height would measure zero.  CClientDC is not a
+// blocker: an earlier revision of this comment listed "the DC" among the
+// unmodelled pieces, but phase4/src/core/gdi/CClientDC.cpp implements it.
+// Note that the retail early return also leaves m_bDrawTextLabels cleared,
+// which is the one visible side effect being skipped.
 // Symbol: ?CalcMaxButtonHeight@CMFCToolBar@@MEAAHXZ
-extern "C" int MS_ABI impl__CalcMaxButtonHeight_CMFCToolBar__MEAAHXZ() {
+extern "C" int MS_ABI impl__CalcMaxButtonHeight_CMFCToolBar__MEAAHXZ(CMFCToolBar* pThis) {
+    (void)pThis;
+    // TODO(clean-room): not transcribed -- needs the button size virtuals and
+    // the afxGlobalData fonts.
     return 0;
 }
 
+// Retail (0x180154f90) returns CSize(0,0) at once when m_Buttons is empty
+// (0x11a0), and otherwise runs the full row/column measurement: a CClientDC,
+// the menu or global font, GetRowHeight (vslot 0x6b8) and GetColumnWidth
+// (vslot 0x6c0), then a walk of m_Buttons accumulating wrapped extents.  None
+// of that is modelled here, so only the ABI is honoured: the hidden CSize slot
+// is zeroed and returned -- which does coincide with retail's empty-toolbar
+// answer.
 // Symbol: ?CalcSize@CMFCToolBar@@UEAA?AVCSize@@H@Z
-extern "C" void* MS_ABI impl__CalcSize_CMFCToolBar__UEAA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__CalcSize_CMFCToolBar__UEAA_AVCSize__H_Z(
+    CMFCToolBar* pThis, CSize* pRet, int bVertDock)
+{
+    (void)pThis; (void)bVertDock;
+    // TODO(clean-room): not transcribed -- needs CClientDC and the row/column
+    // virtuals.
+    if (!pRet) return pRet;
+    pRet->cx = 0;
+    pRet->cy = 0;
+    return pRet;
 }
 
+// Retail (0x18015b2f0), fully transcribed:
+//     if (!m_bHasBrother)        return FALSE;   // 0x110c
+//     if (!m_pBrotherToolBar)    return FALSE;   // 0x12f8
+//     dwThis    = GetCurrentAlignment();                    // vslot 0x338
+//     dwBrother = m_pBrotherToolBar->GetCurrentAlignment();
+//     if (dwBrother == 0)        return FALSE;
+//     return dwThis == dwBrother;
+// GetCurrentAlignment is not overridden by CMFCToolBar -- slot 0x338 of the
+// retail CMFCToolBar vtable (0x1803157c8) points at
+// ?GetCurrentAlignment@CBasePane@@UEBAKXZ (RVA 0xcdb0), whose whole body is
+// `return m_dwStyle & 0xF000;` -- so it is inlined here rather than dispatched.
+// m_dwStyle sits at 0x104, which include/openmfc/afxmfc.h already pins.
 // Symbol: ?CanHandleSiblings@CMFCToolBar@@QEAAHXZ
-extern "C" int MS_ABI impl__CanHandleSiblings_CMFCToolBar__QEAAHXZ() {
-    return 0;
+extern "C" int MS_ABI impl__CanHandleSiblings_CMFCToolBar__QEAAHXZ(CMFCToolBar* pThis) {
+    if (!pThis) return FALSE;
+    if (!pThis->m_bHasBrother) return FALSE;
+
+    CMFCToolBar* pBrother = pThis->m_pBrotherToolBar;
+    if (!pBrother) return FALSE;
+
+    const DWORD dwThis    = pThis->m_dwStyle & 0xF000u;
+    const DWORD dwBrother = pBrother->m_dwStyle & 0xF000u;
+    if (dwBrother == 0) return FALSE;
+    return dwThis == dwBrother ? TRUE : FALSE;
 }
 
+// Retail (0x180159720), transcribed:
+//     m_Images.Clear(); m_ColdImages.Clear(); m_MenuImages.Clear();
+//     m_DisabledImages.Clear(); m_DisabledMenuImages.Clear();
+//     m_LargeImages.Clear(); m_LargeColdImages.Clear();
+//     m_LargeDisabledImages.Clear();
+//     m_DefaultImages.RemoveAll();          // 0x1803b1f90
+//     m_UsageCount.<map at +8>.RemoveAll(); // 0x1803b1fd8
+//     m_UsageCount.m_nTotalCount = 0;       // 0x1803b2010 == m_UsageCount+0x40
+//     CMFCToolBarImages::CleanUp();         // tail jump, 0x18016b080
+// The eight statics are the ones defined above in this file; the retail
+// addresses 0x1803c25a0/0x3c2740/0x3c28e0/0x3c2a80/0x3c2c20/0x3c2dc0/0x3c2f60/
+// 0x3c3100 map to m_Images / m_ColdImages / m_MenuImages / m_DisabledImages /
+// m_DisabledMenuImages / m_LargeImages / m_LargeColdImages /
+// m_LargeDisabledImages in that order.  The one omission is the CMap::RemoveAll
+// on m_DefaultImages and on the usage-count map: OpenMFC models neither CMap,
+// though the total-count reset next to it is done because m_UsageCount is now
+// real storage.
 // Symbol: ?CleanUpImages@CMFCToolBar@@SAXXZ
-extern "C" void MS_ABI impl__CleanUpImages_CMFCToolBar__SAXXZ() {}
+extern "C" void MS_ABI impl__CleanUpImages_CMFCToolBar__SAXXZ() {
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_ColdImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_DisabledImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_DisabledMenuImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_LargeImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_LargeColdImages_CMFCToolBar__1VCMFCToolBarImages__A);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&impl__m_LargeDisabledImages_CMFCToolBar__1VCMFCToolBarImages__A);
 
-// Symbol: ?CleanUpLockedImages@CMFCToolBar@@QEAAXXZ
-extern "C" void MS_ABI impl__CleanUpLockedImages_CMFCToolBar__QEAAXXZ() {}
+    // TODO(clean-room): retail also empties the m_DefaultImages CMap and the
+    // per-command CMap inside m_UsageCount; neither CMap is modelled.
+    // m_nTotalCount lives at +0x40 of the CMFCCmdUsageCount object (see
+    // detail/CMFCCmdUsageCountSupport.h).
+    std::memset(impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A + 0x40, 0,
+                sizeof(unsigned int));
 
-// Symbol: ?CommandToIndex@CMFCToolBar@@QEBAHIH@Z
-extern "C" int MS_ABI impl__CommandToIndex_CMFCToolBar__QEBAHIH_Z(unsigned int p0, int p1) {
-    return 0;
+    impl__CleanUp_CMFCToolBarImages__SAXXZ();
 }
 
+// Retail (0x1801597b0), fully transcribed:
+//     if (!m_bLocked) return;                       // 0x10b8
+//     m_ImagesLocked.Clear();              // 0x3f8
+//     m_ColdImagesLocked.Clear();          // 0x590
+//     m_DisabledImagesLocked.Clear();      // 0x728
+//     m_LargeImagesLocked.Clear();         // 0x8c0
+//     m_LargeColdImagesLocked.Clear();     // 0xa58
+//     m_LargeDisabledImagesLocked.Clear(); // 0xbf0
+//     m_MenuImagesLocked.Clear();          // 0xd88
+//     m_DisabledMenuImagesLocked.Clear();  // 0xf20
+// The eight offsets are exactly the ones include/openmfc/afxmfc.h documents for
+// the locked image block, in the same order.
+// Symbol: ?CleanUpLockedImages@CMFCToolBar@@QEAAXXZ
+extern "C" void MS_ABI impl__CleanUpLockedImages_CMFCToolBar__QEAAXXZ(CMFCToolBar* pThis) {
+    if (!pThis) return;
+    if (!pThis->m_bLocked) return;
+
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_ImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_ColdImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_DisabledImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_LargeImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_LargeColdImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_LargeDisabledImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_MenuImagesLocked);
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(&pThis->m_DisabledMenuImagesLocked);
+}
+
+// Retail (0x18014eed0), fully transcribed: the index of the first button at or
+// after iIndexFirst whose m_nID (0x24) is nIDFind, or -1.
+//     iIndex = 0;
+//     for (node = m_Buttons.head; node != NULL; node = node->next) {
+//         if (node->data == NULL) AfxThrowInvalidArgException();   // 0x180227720
+//         if (iIndex >= iIndexFirst && node->data->m_nID == nIDFind) return iIndex;
+//         iIndex++;
+//     }
+//     return -1;
+// Note the guard is `iIndex >= iIndexFirst`, i.e. iIndexFirst is inclusive.
+// Same side-table deviation as ButtonToIndex above; m_nID @36 in
+// include/openmfc/afxmfc.h matches the retail 0x24.
+// Symbol: ?CommandToIndex@CMFCToolBar@@QEBAHIH@Z
+extern "C" int MS_ABI impl__CommandToIndex_CMFCToolBar__QEBAHIH_Z(
+    const CMFCToolBar* pThis, unsigned int nIDFind, int iIndexFirst)
+{
+    if (!pThis) return -1;
+
+    const int nCount = pThis->GetCount();
+    for (int i = 0; i < nCount; ++i) {
+        if (i < iIndexFirst) continue;
+        const CMFCToolBarButton* pButton = pThis->GetButton(i);
+        if (pButton && pButton->m_nID == nIDFind) return i;
+    }
+    return -1;
+}
+// Retail (mfc140.dll RVA 0x154850): it calls
+// ?CreateFromOleData@CMFCToolBarButton@@SAPEAV1@PEAVCOleDataObject@@@Z
+// (0x15adf0) to rebuild a button from the drag-and-drop payload, then, if that
+// button carries text, splits m_strText at the first TAB and keeps only the
+// part before it as the label.
+// Not implemented: OpenMFC models neither COleDataObject clipboard extraction
+// nor CMFCToolBarButton::CreateFromOleData (itself a stub), so there is nothing
+// to build a button from.
 // Symbol: ?CreateDroppedButton@CMFCToolBar@@MEAAPEAVCMFCToolBarButton@@PEAVCOleDataObject@@@Z
 extern "C" void* MS_ABI impl__CreateDroppedButton_CMFCToolBar__MEAAPEAVCMFCToolBarButton__PEAVCOleDataObject___Z(void* /*class*/* p0) {
     return nullptr;
 }
 
+// Retail (mfc140.dll RVA 0x156620), transcribed instruction for instruction:
+//     int iHighlighted = m_iHighlighted;                 // 0x1138
+//     if (iHighlighted >= 0 && iHighlighted < m_Buttons.m_nCount) {  // 0x11a0
+//         m_iHot         = -1;                           // 0x1140
+//         m_iHighlighted = -1;
+//         InvalidateButton(iHighlighted);                // 0x14e4c0
+//         ::UpdateWindow(m_hWnd);                        // USER32 import
+//         HWND h = m_hWndOwner;                          // CWnd + 0xa0
+//         if (h == NULL) h = ::GetParent(m_hWnd);
+//         CWnd* p = CWnd::FromHandle(h);                 // 0x289180
+//         ::SendMessage(p->m_hWnd, 0x362 /*WM_SETMESSAGESTRING*/,
+//                       0xE001 /*AFX_IDS_IDLEMESSAGE*/, 0);
+//     }
+//     RestoreFocus();          // tail jump through vtable +0x6d8
+// Notes on the evidence: the old index is read into %rdx BEFORE m_iHighlighted
+// is overwritten, and %rdx is still what InvalidateButton receives.  When the
+// index is out of range the entire body is skipped, but RestoreFocus still
+// runs, because the vtable load and tail jump sit after the join at 0x156691.
+// CWnd::m_hWndOwner is at +0xa0: ?SetOwner@CToolBar@@QEAAXPEAVCWnd@@@Z
+// (RVA 0x1d93a0) ends with `mov %rax,0xa0(%rdi)` where rax is the new owner's
+// m_hWnd.  Slot 0x6d8 of the CMFCToolBar vtable (0x180313618) is
+// ?RestoreFocus@CMFCToolBar@@UEAAXXZ.
+//
+// Deviation: OpenMFC's CWnd does not name m_hWndOwner (that byte range is
+// anonymous padding, so reading it would read uninitialised memory), so the
+// ::GetParent(m_hWnd) branch is taken unconditionally.  For a toolbar whose
+// owner was never overridden with SetOwner that is the same window retail
+// picks.  The CWnd::FromHandle round trip is skipped as well: retail sends to
+// the returned wrapper's m_hWnd, which is by construction the handle it was
+// given.  A null-handle guard is added around the window calls (retail has
+// none), and the range test uses GetCount(), which reads the mfccore.cpp side
+// table where OpenMFC keeps the live buttons, rather than m_Buttons.m_nCount.
+// RestoreFocus is still a stub here, so the focus half is a no-op.
 // Symbol: ?Deactivate@CMFCToolBar@@UEAAXXZ
-extern "C" void MS_ABI impl__Deactivate_CMFCToolBar__UEAAXXZ() {}
+extern "C" void MS_ABI impl__Deactivate_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis)
+{
+    if (!pThis) return;
 
+    const int iHighlighted = pThis->m_iHighlighted;
+    if (iHighlighted >= 0 && iHighlighted < pThis->GetCount()) {
+        pThis->m_iHot         = -1;
+        pThis->m_iHighlighted = -1;
+
+        impl__InvalidateButton_CMFCToolBar__QEAAPEAVCMFCToolBarButton__H_Z(pThis, iHighlighted);
+
+        const HWND hWnd = pThis->GetSafeHwnd();
+        if (hWnd != nullptr) {
+            ::UpdateWindow(hWnd);
+            // TODO(clean-room): retail prefers CWnd::m_hWndOwner (CWnd + 0xa0)
+            // and only falls back to ::GetParent; OpenMFC does not model it.
+            const HWND hOwner = ::GetParent(hWnd);
+            if (hOwner != nullptr) {
+                // 0x362 == WM_SETMESSAGESTRING, 0xE001 == AFX_IDS_IDLEMESSAGE;
+                // neither is spelled in the OpenMFC public headers.
+                ::SendMessage(hOwner, 0x362, 0xE001, 0);
+            }
+        }
+    }
+
+    impl__RestoreFocus_CMFCToolBar__UEAAXXZ(pThis);
+}
+
+// Retail (mfc140.dll RVA 0x14d900) is the whole toolbar paint: it takes the
+// DC clip box (CDC vtable +0xb0), reads GetCurrentAlignment() (CMFCToolBar
+// vtable 0x180313618 +0x338) to decide horizontal vs vertical, then walks
+// m_Buttons drawing separators and calling DrawButton for every visible
+// button, with the image collection picked by GetImageList.
+// Not implemented: the CDC clip/box virtuals and the per-button draw virtuals
+// are not modelled -- see the note on DrawButton below, which is the same
+// blocker one level down.
 // Symbol: ?DoPaint@CMFCToolBar@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__DoPaint_CMFCToolBar__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
 
+// Retail (mfc140.dll RVA 0x14e370), fully decoded but NOT implemented:
+//     if (!pButton->m_bVisible)  return TRUE;                  // +0x64
+//     if ( pButton->m_bIsHidden) return TRUE;                  // +0x54
+//     if (!pDC->RectVisible(pButton->m_rect)) return TRUE;     // CDC vtable +0xc0
+//     BOOL bHorz = (GetCurrentAlignment() & 0xA000) != 0;      // vtable +0x338
+//     BOOL bGray = m_bGrayDisabledButtons && !bDrawDisabledImages;   // +0x1100
+//     BOOL bCust = CMFCToolBar::m_bCustomizeMode &&            // 0x3b70bc
+//                  !CMFCToolBar::m_bAltCustomizeMode &&        // 0x3b70cc
+//                  !m_bLocked;                                 // +0x10b8
+//     pButton->OnDraw(pDC, pButton->m_rect, pImages, bHorz, bCust,
+//                     bHighlighted, m_bShowHotBorder /*+0x10fc*/, bGray);
+//     return TRUE;
+// (OnDraw is slot 8 of the button vtable -- +0x40 of both 0x180313e98 and
+// 0x180316338 resolves to ?OnDraw@CMFCToolBarButton@@ / @CMFCToolBarMenuButton@@.
+// The bGray expression is the `neg/sbb/and` idiom at 0x14e3e2; note it is the
+// NEGATION of the bDrawDisabledImages argument, not a copy of it.)
+// Left a stub deliberately: nothing in phase4/src defines a CDC::RectVisible
+// entry point at all (neither the C++ method nor an impl__ thunk),
+// and CMFCToolBarButton::OnDraw exists only as an empty exported stub with no
+// virtual dispatch behind it, so nothing would be drawn -- the flags above
+// would be computed and thrown away.
 // Symbol: ?DrawButton@CMFCToolBar@@MEAAHPEAVCDC@@PEAVCMFCToolBarButton@@PEAVCMFCToolBarImages@@HH@Z
 extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBarButton__PEAVCMFCToolBarImages__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {
     return 0;
 }
 
+// Retail (mfc140.dll RVA 0x151410) draws the customize-drag insertion marker:
+// it reads GetCurrentAlignment() (vtable +0x338) to pick the horizontal or
+// vertical form, selects m_penDrag (+0x12c0) into the DC
+// (?SelectObject@CDC@@UEAAPEAVCFont@@PEAV2@@Z, 0x2a0670) and strokes a caret
+// around m_rectDrag (+0x12a0).
+// Not implemented: OpenMFC models neither CDC pen selection nor the drawing
+// primitives this needs.
 // Symbol: ?DrawDragCursor@CMFCToolBar@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__DrawDragCursor_CMFCToolBar__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
 
+// Retail (mfc140.dll RVA 0x154800) is a single forward, fully transcribed:
+//     CMFCVisualManager* pVM = CMFCVisualManager::GetInstance();   // 0x97f4
+//     pVM->OnDrawSeparator(pDC, this, rect, bHorz);                // vtable +0xa0
+// (the CRect argument is copied by value into the outgoing frame; slot 20 of
+// the visual-manager vtable is OnDrawSeparator).
+// Not implemented here: CMFCVisualManager::GetInstance exists in this tree only
+// as a C++ method (phase4/src/featurepack/visualmanager/CMFCVisualManager.cpp),
+// not as an impl__ export, so it cannot be called from this translation unit
+// without tripping the link rule in AGENTS.md; and the base
+// CMFCVisualManager::OnDrawSeparator is itself a stub, so the forward would
+// draw nothing.  See the header request filed with this change.
 // Symbol: ?DrawSeparator@CMFCToolBar@@MEAAXPEAVCDC@@AEBVCRect@@H@Z
 extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {}
 
+// Retail (mfc140.dll RVA 0x156470), fully decoded but NOT implemented:
+//     if (pButton == NULL) return FALSE;
+//     if (!pButton->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) return FALSE;
+//     if (!pButton->OnClick(this, TRUE)) return FALSE;      // button vtable +0x50
+//     if (pButton->IsDroppedDown())                         // button vtable +0xf0
+//         ::SendMessage(pButton->m_pPopupMenu->m_hWnd, WM_KEYDOWN, VK_HOME, 0);
+//     SetHot(pButton);                                      // 0x1563e0
+//     return TRUE;
+// (The runtime-class descriptor the IsKindOf test uses is at 0x3aa748; its
+// name string reads back as "CMFCToolBarMenuButton" and its object size as
+// 296.  Slot +0xf0 of that class' vtable, 0x180316338, is the two-instruction
+// body at 0x2a580 -- `return this->[0xc0] != NULL`, i.e. m_pPopupMenu.  The
+// SendMessage import slot 0x2c5378 resolves to USER32!SendMessageA in this
+// ANSI twin, i.e. SendMessageW in mfc140u.)
+// Left a stub: CMFCToolBarMenuButton::m_pPopupMenu (+0xC0) is inside the
+// anonymous padding of the OpenMFC class, so the dropped-down test cannot be
+// evaluated, and CMFCToolBarButton::OnClick has no dispatchable virtual here.
 // Symbol: ?DropDownMenu@CMFCToolBar@@IEAAHPEAVCMFCToolBarButton@@@Z
 extern "C" int MS_ABI impl__DropDownMenu_CMFCToolBar__IEAAHPEAVCMFCToolBarButton___Z(void* /*class*/* p0) {
     return 0;
 }
 
+// Retail (mfc140.dll RVA 0x155bb0) greys the entries of the customize context
+// menu according to the button under the cursor: it asks the button a virtual
+// question (button vtable +0xe0) and then drives ::EnableMenuItem /
+// ::CheckMenuItem over the command ids 0x420E..0x4214, using
+// m_dwStyle & 0xA000 (+0x104) to tell a horizontal bar from a vertical one and
+// the button's image index (m_bUserButton ? m_iUserImage : m_iImage) to decide
+// whether the image commands apply.
+//
+// Correcting an earlier revision of this comment, which said "neither the
+// button virtual nor CMenu::EnableMenuItem is reachable from here": both are.
+// The calls at 0x155c19 / 0x155c76 go through the import slots 0x1802c4d58 and
+// 0x1802c4e30, which iat.py resolves to USER32!EnableMenuItem and
+// USER32!CheckMenuItem -- plain Win32, not CMenu methods -- and they are passed
+// pMenu->m_hMenu read straight from CMenu + 8.  (OpenMFC does also export
+// ?EnableMenuItem@CMenu@@QEAAIIH@Z, from phase4/src/detail/CMenuSupport.cpp.)
+// The button virtual at +0xe0 folds to RVA 0x7260, `xor eax,eax ; ret`, in both
+// the CMFCToolBarButton (0x180313e98) and CMFCToolBarMenuButton (0x180316338)
+// vftables, and the CMFCToolBar virtual at +0x828 is RVA 0x23b30,
+// `return m_bMenuMode` (+0x10ec) -- so neither dispatch is a real obstacle
+// either.
+// Still left a stub, deliberately and for a different reason: the body is a
+// ~100-instruction chain of greying decisions over the AFX_ID_* customize-menu
+// ids, OpenMFC builds no such menu (CMFCToolBarsCustomizeDialog and
+// InsertSeparator/InsertButton are stubs), and the generated signature below is
+// also missing its `this`.  Transcribing it half-checked would be a confidently
+// wrong body in an entry point real apps can call.
 // Symbol: ?EnableContextMenuItems@CMFCToolBar@@MEAAHPEAVCMFCToolBarButton@@PEAVCMenu@@@Z
 extern "C" int MS_ABI impl__EnableContextMenuItems_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__PEAVCMenu___Z(void* /*class*/* p0, void* /*class*/* p1) {
     return 0;
 }
 
+// Retail (mfc140.dll RVA 0x157490 -- the ANSI twin of this Unicode export):
+//     if (bEnable) {
+//         if (m_pCustomizeBtn != NULL) {          // +0x1300
+//             m_pCustomizeBtn->[+0x128] = iCustomizeCmd;
+//             m_pCustomizeBtn->m_strText = strCustomizeText;   // +0x38
+//         } else {
+//             CMFCCustomizeButton btn(iCustomizeCmd, strCustomizeText); // 0x35000
+//             if (InsertButton(btn, -1) < 0) return;   // vtable +0x698
+//             CObject* p = m_Buttons.m_pNodeTail->data;         // +0x1198
+//             m_pCustomizeBtn = (p && p->IsKindOf(RUNTIME_CLASS(CMFCCustomizeButton)))
+//                             ? p : NULL;                       // RTC 0x3aa148
+//         }
+//         m_bQuickCustomize = bQuickCustomize;                  // +0x1108
+//     } else if (m_pCustomizeBtn != NULL) {
+//         m_Buttons.RemoveTail();                               // 0x2305d0
+//         delete m_pCustomizeBtn;
+//         m_pCustomizeBtn = NULL;
+//     }
+//     UpdateVirtualRect();                                      // 0xa1ae0
+// Not implemented: CMFCCustomizeButton construction and CMFCToolBar::InsertButton
+// (the CMFCToolBarButton& overload, vtable slot 211) are both unavailable here.
 // Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
 extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(int p0, int p1, const void* /*class*/* p2, void** p3, void* p4, int p5) {}
 
+// Retail (mfc140.dll RVA 0x1575d0), fully decoded: it is only a string-resource
+// wrapper around the overload above.
+//     CString str;
+//     HINSTANCE h = AfxFindStringResourceHandle(uiTextResID);   // 0x2accf0
+//     if (h == NULL) AfxThrowInvalidArgException();
+//     if (!str.LoadString(h, uiTextResID)) AfxThrowInvalidArgException();
+//     EnableCustomizeButton(bEnable, iCustomizeCmd, str, bQuickCustomize); // 0x157490
+// Not implemented: the target overload is itself a stub (see just above), so
+// loading the string would accomplish nothing.
 // Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHIH@Z
 extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHIH_Z(int p0, int p1, unsigned int p2, int p3) {}
 
+// Retail (mfc140.dll RVA 0x151070) maps a screen point onto an insertion index
+// during a customize drag: it converts the incoming rect with a USER32 call
+// (import slot 0x2c5368), reads GetCurrentAlignment() (vtable +0x338) for the
+// horizontal/vertical split, then walks m_Buttons comparing the point against
+// each button rect and fills the reference rect with the drop marker.
+// Not implemented: the walk depends on laid-out button rectangles, which
+// OpenMFC does not produce (AdjustLocations and CalcLayout are stubs), so any
+// index returned here would be meaningless.
 // Symbol: ?FindDropIndex@CMFCToolBar@@MEBAHVCPoint@@AEAVCRect@@@Z
 extern "C" int MS_ABI impl__FindDropIndex_CMFCToolBar__MEBAHVCPoint__AEAVCRect___Z(void* /*class*/ p0, void* /*class*/* p1) {
     return 0;
 }
 
+// Retail (mfc140.dll RVA 0x153270), fully transcribed: a linear scan of the
+// private "all toolbars" CObList (object at 0x3ab090, its m_pNodeHead read at
+// 0x3ab098) for the bar whose window handle matches.
+//     for (node = lstAllToolbars.m_pNodeHead; node; node = node->pNext) {
+//         CMFCToolBar* pBar = node->data;          // node + 0x10
+//         HWND h = (pBar == NULL) ? NULL : pBar->m_hWnd;   // CWnd + 0x40
+//         if (h == hWnd) return pBar;
+//     }
+//     return NULL;
+// (0x3ab090 is not exported; it is bracketed by
+// ?m_lstUnpermittedCommands@CMFCToolBar@@1V?$CList@II@@A at 0x3ab058 and
+// ?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A at 0x3ab0c8, i.e.
+// exactly one 56-byte CObList wide, and it is the same object
+// ?GetAllToolbars@CMFCToolBar@@SAAEBVCObList@@XZ returns.)
+//
+// Deviation: OpenMFC has no equivalent of that list, so the scan runs over the
+// mfccore.cpp toolbar side table -- every live CMFCToolBar on this thread --
+// which is the same substitution AutoGrayInactiveImages and ResetAll make.  A
+// NULL hWnd never matches, because a detached bar has GetSafeHwnd() == NULL and
+// retail would compare NULL == NULL; the explicit guard keeps that from
+// returning an arbitrary detached toolbar.
 // Symbol: ?FromHandlePermanent@CMFCToolBar@@SAPEAV1@PEAUHWND__@@@Z
-extern "C" void* MS_ABI impl__FromHandlePermanent_CMFCToolBar__SAPEAV1_PEAUHWND_____Z() {
+extern "C" CMFCToolBar* MS_ABI impl__FromHandlePermanent_CMFCToolBar__SAPEAV1_PEAUHWND_____Z(
+    HWND hWnd)
+{
+    if (hWnd == nullptr) return nullptr;
+
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (pBar && pBar->GetSafeHwnd() == hWnd) return pBar;
+    }
     return nullptr;
 }
 
+// Retail (mfc140.dll RVA 0x157c70) is two instructions:
+//     lea rax, [rip + <0x3ab090>] ; ret
+// i.e. it hands back a reference to the private static CObList of every live
+// CMFCToolBar (see the note on FromHandlePermanent above for how that address
+// is identified).  Retail maintains that list from the window handlers, not
+// from the constructor: ?OnCreate@CMFCToolBar@@ (RVA 0x150650) takes its
+// address at 0x150890 to append, and ?OnDestroy@CMFCToolBar@@ (0x151630) at
+// 0x1516af to remove -- so a bar only appears once its window exists.
+//
+// Deviation: OpenMFC has no such list.  A file-scope CObList stands in and is
+// rebuilt from the mfccore.cpp toolbar side table on every call, so callers see
+// the live toolbars of the calling thread.  Two consequences worth knowing:
+// the returned list is rebuilt (so a POSITION held across two calls is stale),
+// and the order is the side table's, not creation order.  The important part
+// versus the previous stub is that the reference is now valid at all -- the
+// generated body returned a null reference, which faults in the caller.
+namespace {
+CObList& OpenMFC_AllToolbars()
+{
+    static CObList s_lstAllToolbars;
+    impl__RemoveAll_CObList__QEAAXXZ(&s_lstAllToolbars);
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (pBar) {
+            impl__AddTail_CObList__QEAAPEAU__POSITION__PEAVCObject___Z(
+                &s_lstAllToolbars, static_cast<CObject*>(pBar));
+        }
+    }
+    return s_lstAllToolbars;
+}
+}  // namespace
 // Symbol: ?GetAllToolbars@CMFCToolBar@@SAAEBVCObList@@XZ
-extern "C" void* MS_ABI impl__GetAllToolbars_CMFCToolBar__SAAEBVCObList__XZ(void* p0, void* /*class*/ p1) {
-    return nullptr;
+extern "C" const CObList* MS_ABI impl__GetAllToolbars_CMFCToolBar__SAAEBVCObList__XZ() {
+    return &OpenMFC_AllToolbars();
 }
 
+// Retail (mfc140.dll RVA 0x14d760), fully transcribed:
+//     CMFCToolBarButton* p = GetButton(nIndex);        // 0x14e470
+//     if (p == NULL) { nID = 0; nStyle = 0; iImage = -1; return; }
+//     nID    = p->m_nID;                               // +0x24
+//     nStyle = p->m_nStyle;                            // +0x28
+//     iImage = p->m_bUserButton ? p->m_iUserImage : p->m_iImage;  // +0x08, +0x4c/+0x48
+// The image selection is the `neg/sbb/and $4` idiom at 0x14d790: it turns
+// m_bUserButton into a 0 or 4 byte displacement added to +0x48, i.e. exactly
+// CMFCToolBarButton::GetImage().  All four offsets match the layout pinned in
+// include/openmfc/afxmfc.h (m_nID @36, m_nStyle @40, m_bUserButton @8,
+// m_iImage @72, m_iUserImage @76).  Note that iImage is written on BOTH paths,
+// including the not-found one -- the -1 is set up before the join.
 // Symbol: ?GetButtonInfo@CMFCToolBar@@QEBAXHAEAI0AEAH@Z
-extern "C" void MS_ABI impl__GetButtonInfo_CMFCToolBar__QEBAXHAEAI0AEAH_Z(int p0, unsigned int* p1, int p2, int* p3) {}
+extern "C" void MS_ABI impl__GetButtonInfo_CMFCToolBar__QEBAXHAEAI0AEAH_Z(
+    const CMFCToolBar* pThis, int nIndex, unsigned int* pnID,
+    unsigned int* pnStyle, int* piImage)
+{
+    if (!pThis) return;
 
+    const CMFCToolBarButton* pButton = pThis->GetButton(nIndex);
+    if (!pButton) {
+        if (pnID)    *pnID = 0;
+        if (pnStyle) *pnStyle = 0;
+        if (piImage) *piImage = -1;
+        return;
+    }
+
+    if (pnID)    *pnID    = pButton->m_nID;
+    if (pnStyle) *pnStyle = pButton->m_nStyle;
+    if (piImage) *piImage = pButton->m_bUserButton ? pButton->m_iUserImage
+                                                   : pButton->m_iImage;
+}
+
+// Retail (mfc140.dll RVA 0x14d650), fully transcribed:
+//     CMFCToolBarButton* p = GetButton(nIndex);   // 0x14e470
+//     return p ? p->m_nStyle : 0;                 // +0x28
+// (On the NULL path retail simply leaves eax as GetButton returned it, i.e. 0.)
 // Symbol: ?GetButtonStyle@CMFCToolBar@@QEBAIH@Z
-extern "C" unsigned int MS_ABI impl__GetButtonStyle_CMFCToolBar__QEBAIH_Z(int p0) {
-    return 0;
+extern "C" unsigned int MS_ABI impl__GetButtonStyle_CMFCToolBar__QEBAIH_Z(
+    const CMFCToolBar* pThis, int nIndex)
+{
+    if (!pThis) return 0;
+    const CMFCToolBarButton* pButton = pThis->GetButton(nIndex);
+    return pButton ? pButton->m_nStyle : 0u;
 }
 
+// Retail (mfc140.dll RVA 0x150ff0), fully transcribed:
+//     lstButtons.RemoveAll();                              // 0x83d0
+//     if (uiCmd == 0) return 0;                            // before the walk
+//     for (node = <all-toolbars CObList>.m_pNodeHead; node; node = node->pNext) {
+//         CMFCToolBar* pBar = node->data;
+//         if (pBar == NULL) AfxThrowInvalidArgException(); // 0x225b80
+//         if (CWnd::FromHandlePermanent(pBar->m_hWnd) == NULL) continue;  // 0x2891d0
+//         for (b = pBar->m_Buttons.m_pNodeHead; b; b = b->pNext) {
+//             CMFCToolBarButton* pButton = b->data;
+//             if (pButton == NULL) break;                  // moves to the next bar
+//             if (pButton->m_nID == uiCmd)                 // +0x24
+//                 lstButtons.AddTail(pButton);             // 0x230490
+//         }
+//     }
+//     return lstButtons.m_nCount;                          // CObList + 0x18
+// (0x83d0/0x230490 disassemble as CPtrList::RemoveAll/AddTail -- the identical
+// CObList bodies are folded onto them by ICF; the parameter is AEAVCObList@@.
+// The zero-command early return happens AFTER the list has already been
+// emptied, which is why the RemoveAll is unconditional here too.)
+//
+// Deviations, the same two the other whole-toolbar walks in this file make:
+// the scan runs over the mfccore.cpp side table instead of retail's private
+// all-toolbars CObList, and the "this pane object owns a live window" test
+// becomes a GetSafeHwnd() test because CMFCToolBar::Create does not put its
+// HWND into CWnd's permanent map.  The count is accumulated while adding
+// rather than read back from the list.
 // Symbol: ?GetCommandButtons@CMFCToolBar@@SAHIAEAVCObList@@@Z
-extern "C" int MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(unsigned int p0, void* /*class*/* p1) {
-    return 0;
+extern "C" int MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(
+    unsigned int uiCmd, CObList* pLstButtons)
+{
+    if (!pLstButtons) return 0;
+    impl__RemoveAll_CObList__QEAAXXZ(pLstButtons);
+    if (uiCmd == 0) return 0;
+
+    int nCount = 0;
+    for (auto& entry : g_toolBarStates) {
+        CMFCToolBar* pBar = const_cast<CMFCToolBar*>(entry.first);
+        if (!pBar || pBar->GetSafeHwnd() == nullptr) continue;
+
+        const int nButtons = pBar->GetCount();
+        for (int i = 0; i < nButtons; ++i) {
+            CMFCToolBarButton* pButton = pBar->GetButton(i);
+            if (!pButton) break;
+            if (pButton->m_nID == uiCmd) {
+                impl__AddTail_CObList__QEAAPEAU__POSITION__PEAVCObject___Z(
+                    pLstButtons, static_cast<CObject*>(pButton));
+                ++nCount;
+            }
+        }
+    }
+    return nCount;
 }
 
+// Retail (mfc140.dll RVA 0x156590), fully decoded but NOT implemented:
+//     if (m_Buttons.m_nCount == 0) return NULL;   // note: *pIndex NOT written
+//     int i = 0;
+//     for (node = m_Buttons.m_pNodeHead; node; node = node->pNext, ++i) {
+//         CMFCToolBarButton* p = node->data;
+//         if (p != NULL &&
+//             p->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton)) &&  // RTC 0x3aa748
+//             p->IsDroppedDown()) {                                 // vtable +0xf0
+//             if (pIndex) *pIndex = i;
+//             return p;
+//         }
+//     }
+//     if (pIndex) *pIndex = -1;
+//     return NULL;
+// Left a stub for the same reason as DropDownMenu above: the dropped-down test
+// is `m_pPopupMenu != NULL` at button offset 0xC0, and OpenMFC keeps no popup
+// pointer there -- reading it would read uninitialised padding and could hand
+// the caller an arbitrary button.
 // Symbol: ?GetDroppedDownMenu@CMFCToolBar@@QEBAPEAVCMFCToolBarMenuButton@@PEAH@Z
 extern "C" void* MS_ABI impl__GetDroppedDownMenu_CMFCToolBar__QEBAPEAVCMFCToolBarMenuButton__PEAH_Z(int* p0) {
     return nullptr;
 }
 
+// Retail (mfc140.dll RVA 0x1550d0), fully transcribed:
+//     if (CMFCToolBar::m_clrTextHot != (COLORREF)-1)   // 0x3aab54
+//         return CMFCToolBar::m_clrTextHot;
+//     if (afxGlobalData.<first DWORD> == 0) {          // 0x3ba380
+//         afxGlobalData.Initialize();                  // 0x6a5c0
+//         afxGlobalData.<first DWORD> = 1;
+//     }
+//     return *(COLORREF*)(&afxGlobalData + 0x34);
+// afxGlobalData + 0x34 is the cached button-text colour:
+// ?UpdateSysColors@AFX_GLOBAL_DATA@@QEAAXXZ (RVA 0x6afd0) fills it at 0x6b0bb
+// with ::GetSysColor(0x12), and 0x12 is COLOR_BTNTEXT.  (Its neighbours check
+// out the same way: +0x28 <- COLOR_BTNFACE(15), +0x2c <- COLOR_BTNSHADOW(16),
+// +0x30 <- COLOR_BTNHIGHLIGHT(20).)
+//
+// Deviations: OpenMFC models neither afxGlobalData nor its lazy Initialize, so
+// the fallback reads the colour live from the system instead of from the
+// cache.  Also note that retail's m_clrTextHot static is initialised to
+// 0xFFFFFFFF (verified in the retail image at 0x3aab54) whereas OpenMFC's
+// storage in featurepack/toolbar/StaticData.cpp starts at 0, so today the
+// sentinel branch is never taken and this returns black; see the header
+// request filed alongside this change.
 // Symbol: ?GetHotTextColor@CMFCToolBar@@SAKXZ
 extern "C" unsigned long MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ() {
-    return 0;
+    if (impl__m_clrTextHot_CMFCToolBar__1KA != 0xFFFFFFFFu) {
+        return impl__m_clrTextHot_CMFCToolBar__1KA;
+    }
+    return static_cast<unsigned long>(::GetSysColor(COLOR_BTNTEXT));
 }
 
+// Retail (mfc140.dll RVA 0x158df0), fully transcribed.  It is a four-way pick
+// between the caller's two "regular" collections and its two "large" ones.
+// With the parameters numbered by register (rdx, r8, r9, [rsp+0x28]):
+//     BOOL bMenuMode = m_bMenuMode;                       // 0x10ec
+//     if (m_bLocked) {                                    // 0x10b8
+//         if (bMenuMode)                       return p2;
+//         if (CMFCToolBar::m_bLargeIcons == 0) return p2; // 0x3b70c8
+//         if (p4->m_iCount > 0)                return p4; // CMFCToolBarImages +8
+//         return p2;
+//     }
+//     if (bMenuMode)                       return p1;
+//     if (CMFCToolBar::m_bLargeIcons == 0) return p1;
+//     if (p3->m_iCount > 0)                return p3;
+//     return p1;
+// So the odd parameters serve the unlocked bar and the even ones the locked
+// bar, and the large pair is only taken when large icons are on AND that
+// collection actually holds images.  m_iCount at CMFCToolBarImages + 8 is the
+// offset pinned in include/openmfc/afxmfc.h; retail's GetCount() is inline
+// (mfc140 exports no ?GetCount@CMFCToolBarImages@@ at all), which is why the
+// count appears here as a bare member load.
+//
+// Deviation, and it matters: the count is read straight out of that member,
+// exactly as retail does, using the same raw-offset idiom the sibling
+// featurepack/toolbar/CMFCToolBarImages.cpp uses on its own members.  OpenMFC
+// keeps the live image count in a side table and writes the member only in
+// CopyTemp, so until m_iCount is maintained the large-image branches will not
+// fire and this returns the regular collection -- which is also what retail
+// returns whenever large icons are off.  The control flow is otherwise exact.
 // Symbol: ?GetImageList@CMFCToolBar@@IEBAPEAVCMFCToolBarImages@@AEAV2@000@Z
-extern "C" void* MS_ABI impl__GetImageList_CMFCToolBar__IEBAPEAVCMFCToolBarImages__AEAV2_000_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, void* /*class*/* p3) {
-    return nullptr;
+extern "C" CMFCToolBarImages* MS_ABI
+impl__GetImageList_CMFCToolBar__IEBAPEAVCMFCToolBarImages__AEAV2_000_Z(
+    const CMFCToolBar* pThis,
+    CMFCToolBarImages* pRegularUnlocked,   // p1: chosen when !m_bLocked
+    CMFCToolBarImages* pRegularLocked,     // p2: chosen when  m_bLocked
+    CMFCToolBarImages* pLargeUnlocked,     // p3
+    CMFCToolBarImages* pLargeLocked)       // p4
+// (The parameters are named for the roles the disassembly proves, not for the
+// names the shipping afxtoolbar.h gives them, which are not evidenced here.)
+{
+    if (!pThis) return pRegularUnlocked;
+
+    // CMFCToolBarImages::m_iCount lives at +8 (see the layout comment in
+    // include/openmfc/afxmfc.h); it is protected, so it is read by offset the
+    // way featurepack/toolbar/CMFCToolBarImages.cpp reads its own members.
+    const auto imageCount = [](const CMFCToolBarImages* p) -> int {
+        return p ? *reinterpret_cast<const int*>(
+                        reinterpret_cast<const char*>(p) + 8) : 0;
+    };
+
+    const bool bLargeAvailable =
+        pThis->m_bMenuMode == 0 && impl__m_bLargeIcons_CMFCToolBar__1HA != 0;
+
+    if (pThis->m_bLocked) {
+        if (bLargeAvailable && imageCount(pLargeLocked) > 0) {
+            return pLargeLocked;
+        }
+        return pRegularLocked;
+    }
+
+    if (bLargeAvailable && imageCount(pLargeUnlocked) > 0) {
+        return pLargeUnlocked;
+    }
+    return pRegularUnlocked;
 }
 
+// Retail (mfc140.dll RVA 0x14d5e0), fully transcribed:
+//     if (lpRect == NULL) AfxThrowInvalidArgException();   // 0x225b80
+//     CMFCToolBarButton* p = GetButton(nIndex);            // 0x14e470
+//     *lpRect = (p == NULL) ? CRect(0,0,0,0)
+//                           : p->GetInvalidateRect();      // button vtable +0x120
+//
+// Deviation: OpenMFC has no DLL-internal vtable for CMFCToolBarButton, so the
+// virtual cannot be dispatched.  Both the base CMFCToolBarButton vtable
+// (0x180313e98) and the CMFCToolBarMenuButton one (0x180316338) put the same
+// body at +0x120 (RVA 0x23890), whose whole text is
+// `movups 0x68(%rcx),%xmm0 ; mov %rdx,%rax ; movdqu %xmm0,(%rdx) ; ret`
+// -- i.e. `return m_rect` into the hidden CRect slot.
+// That body is inlined here, which is exact for those two classes; a derived
+// button that overrides GetInvalidateRect to report a larger repaint area (the
+// combo/edit box buttons do) will not be re-entered.
+// The null-lpRect throw becomes a plain early return: OpenMFC does not raise
+// MFC exceptions from these thunks.
 // Symbol: ?GetInvalidateItemRect@CMFCToolBar@@UEBAXHPEAUtagRECT@@@Z
-extern "C" void MS_ABI impl__GetInvalidateItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(int p0, void* /*struct*/* p1) {}
+extern "C" void MS_ABI impl__GetInvalidateItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(
+    const CMFCToolBar* pThis, int nIndex, RECT* lpRect)
+{
+    if (!lpRect) return;
+    ::SetRectEmpty(lpRect);
+    if (!pThis) return;
 
-// Symbol: ?GetItemID@CMFCToolBar@@QEBAIH@Z
-extern "C" unsigned int MS_ABI impl__GetItemID_CMFCToolBar__QEBAIH_Z(int p0) {
-    return 0;
+    if (const CMFCToolBarButton* pButton = pThis->GetButton(nIndex)) {
+        const CRect& rc = pButton->m_rect;
+        lpRect->left   = rc.left;
+        lpRect->top    = rc.top;
+        lpRect->right  = rc.right;
+        lpRect->bottom = rc.bottom;
+    }
 }
 
-// Symbol: ?GetItemRect@CMFCToolBar@@UEBAXHPEAUtagRECT@@@Z
-extern "C" void MS_ABI impl__GetItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(int p0, void* /*struct*/* p1) {}
+// Retail (mfc140.dll RVA 0x14d580), fully transcribed:
+//     CMFCToolBarButton* p = GetButton(nIndex);   // 0x14e470
+//     return p ? p->m_nID : 0;                    // +0x24
+// (As in GetButtonStyle, the NULL path just leaves GetButton's zero in eax.)
+// Symbol: ?GetItemID@CMFCToolBar@@QEBAIH@Z
+extern "C" unsigned int MS_ABI impl__GetItemID_CMFCToolBar__QEBAIH_Z(
+    const CMFCToolBar* pThis, int nIndex)
+{
+    if (!pThis) return 0;
+    const CMFCToolBarButton* pButton = pThis->GetButton(nIndex);
+    return pButton ? pButton->m_nID : 0u;
+}
 
+// Retail (mfc140.dll RVA 0x14d5a0), fully transcribed:
+//     if (lpRect == NULL) AfxThrowInvalidArgException();   // 0x225b80
+//     CMFCToolBarButton* p = GetButton(nIndex);            // 0x14e470
+//     *lpRect = (p == NULL) ? CRect(0,0,0,0) : p->m_rect;  // +0x68
+// (the copy is a single 16-byte movups/movdqu pair, so all four LONGs move).
+// m_rect @104 in include/openmfc/afxmfc.h is the same 0x68.  The only
+// deviation is the null-lpRect throw, which becomes an early return.
+// Symbol: ?GetItemRect@CMFCToolBar@@UEBAXHPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__GetItemRect_CMFCToolBar__UEBAXHPEAUtagRECT___Z(
+    const CMFCToolBar* pThis, int nIndex, RECT* lpRect)
+{
+    if (!lpRect) return;
+    ::SetRectEmpty(lpRect);
+    if (!pThis) return;
+
+    if (const CMFCToolBarButton* pButton = pThis->GetButton(nIndex)) {
+        const CRect& rc = pButton->m_rect;
+        lpRect->left   = rc.left;
+        lpRect->top    = rc.top;
+        lpRect->right  = rc.right;
+        lpRect->bottom = rc.bottom;
+    }
+}
+
+// Retail (mfc140.dll RVA 0x155b90), fully transcribed:
+//     CSize sz = CMFCToolBar::m_sizeMenuButton;       // 0x3aaee8, loaded as one qword
+//     if (sz.cx == -1) sz = CMFCToolBar::m_sizeButton; // 0x3aaf88 (cmove on the qword)
+//     *pRet = sz; return pRet;
+// Only cx is tested; the whole 8-byte CSize is then swapped.  Both statics are
+// defined in this file and already carry retail's initial values, verified
+// against the retail image: m_sizeMenuButton = (-1,-1), m_sizeButton = (23,22).
+//
+// The generated stub this replaces also had the struct return wrong -- the
+// hidden CSize slot arrives in rcx for a static (no `this`) and must come back
+// in rax; it returned nullptr.  Both are fixed here.
 // Symbol: ?GetMenuButtonSize@CMFCToolBar@@SA?AVCSize@@XZ
-extern "C" void* MS_ABI impl__GetMenuButtonSize_CMFCToolBar__SA_AVCSize__XZ(void* /*class*/* p0) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__GetMenuButtonSize_CMFCToolBar__SA_AVCSize__XZ(CSize* pRet) {
+    if (!pRet) return pRet;
+    if (impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A.cx == -1) {
+        pRet->cx = impl__m_sizeButton_CMFCToolBar__1VCSize__A.cx;
+        pRet->cy = impl__m_sizeButton_CMFCToolBar__1VCSize__A.cy;
+    } else {
+        pRet->cx = impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A.cx;
+        pRet->cy = impl__m_sizeMenuButton_CMFCToolBar__1VCSize__A.cy;
+    }
+    return pRet;
 }
 
 // Symbol: ?GetMenuImageSize@CMFCToolBar@@SA?AVCSize@@XZ
@@ -2715,11 +4040,21 @@ extern "C" void MS_ABI impl__ResetAllImages_CMFCToolBar__SAXXZ() {}
 // Symbol: ?ResetImages@CMFCToolBar@@UEAAXXZ
 extern "C" void MS_ABI impl__ResetImages_CMFCToolBar__UEAAXXZ() {}
 
+// Still a stub, but the generated signature was missing the `this` argument;
+// Deactivate below tail-calls this the way retail does, so it needs the real
+// one-argument shape.
 // Symbol: ?RestoreFocus@CMFCToolBar@@UEAAXXZ
-extern "C" void MS_ABI impl__RestoreFocus_CMFCToolBar__UEAAXXZ() {}
+extern "C" void MS_ABI impl__RestoreFocus_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis) {
+    (void)pThis;
+    // TODO(clean-room): not transcribed.
+}
 
+// Still a stub; signature corrected to take `this` because ResetAll above calls
+// it for every live toolbar, exactly as retail does.
 // Symbol: ?RestoreOriginalState@CMFCToolBar@@UEAAHXZ
-extern "C" int MS_ABI impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ() {
+extern "C" int MS_ABI impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(CMFCToolBar* pThis) {
+    (void)pThis;
+    // TODO(clean-room): not transcribed.
     return 0;
 }
 
