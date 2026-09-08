@@ -42,9 +42,13 @@
 //    make every loop here a no-op, so PaneIsVisible() below implements the
 //    third (ordinary-window) branch only.  The tabbed / restoring branches are
 //    NOT implemented.
-//  * `pWnd->ScreenToClient(CRect&)` / `ClientToScreen(CRect&)` are expanded to
-//    the two ::ScreenToClient / ::ClientToScreen point calls that MFC's own
-//    LPRECT overloads perform, so the code does not depend on CWnd temp maps.
+//  * Retail's `pWnd->ScreenToClient(CRect&)` (0x2a11f0) is reached here through
+//    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z, which has a real body in
+//    phase4/src/core/window/Thunks.cpp:1658.  Where the mapping target is a bare
+//    HWND rather than a CWnd*, and for retail's ClientToScreen(CRect&) (0x2a1250),
+//    the ScreenToClientRect() / ClientToScreenRect() helpers below expand the call
+//    into the two ::ScreenToClient / ::ClientToScreen point calls that MFC's own
+//    LPRECT overloads perform, so those sites need no CWnd temp map.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
@@ -339,16 +343,127 @@ extern "C" void MS_ABI impl___1CDockingPanesRow__UEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, char p4, void* p5, void* p6, unsigned long p7, int p8, float p9, unsigned char p10, void* p11, int p12, void* p13, char p14, const void* /*struct*/* p15, int p16) {}
 
 // Symbol: ?AddPaneFromRow@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@@Z
-// Retail 0x4f6f0.  Same reason as AddPane: needs the dock-method dispatch and
-// the CDockSite row bookkeeping.  Left a stub deliberately.
-extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, char p4, void* p5, void* p6, unsigned long p7, int p8, float p9, unsigned char p10, void* p11, int p12, void* p13, char p14) {}
+// Retail 0x4f6f0 (mfc140, the ANSI twin), transcribed in full -- 114 instructions:
+//   CRect rectBar; ::GetWindowRect(pBar->m_hWnd, &rectBar);       // screen coords
+//   int nOffset;
+//   if (dockMethod == 1) {                        // cmp $0x1,%ebx / jne
+//       CPoint pt; ::GetCursorPos(&pt);
+//       ::ScreenToClient(m_pParentDockBar->m_hWnd, &pt);
+//       CRect rectClient; ::GetClientRect(pBar->m_hWnd, &rectClient);
+//       pBar->ClientToScreen(rectClient);                          // 0x2a1250
+//       int nBorder = rectClient.left - rectBar.left;
+//       pt.x -= nBorder + pBar->m_ptClientHotSpot.x;               // CPane +0x208
+//       pt.y -= nBorder + pBar->m_ptClientHotSpot.y;               // CPane +0x20c
+//       nOffset = IsHorizontal() ? pt.x : pt.y;   // test $0xa000,m_dwRowAlignment
+//   } else {
+//       m_pParentDockBar->ScreenToClient(rectBar);                 // 0x2a11f0
+//       nOffset = IsHorizontal() ? rectBar.left : rectBar.top;
+//   }
+//   CRect rectNew;
+//   if (IsHorizontal()) ::SetRect(&rectNew, nOffset, m_nRowOffset,
+//                                 nOffset + rectBar.Width(),
+//                                 m_nRowOffset + rectBar.Height());
+//   else                ::SetRect(&rectNew, m_nRowOffset, nOffset,
+//                                 m_nRowOffset + rectBar.Width(),
+//                                 nOffset + rectBar.Height());
+//   pBar->SetWindowPos(NULL, rectNew.left, rectNew.top,
+//                      rectNew.right, rectNew.bottom, 0x15, NULL);  // vslot 0x480
+//   OnInsertPane(pBar);                            // vslot 0xd8 == slot 27
+//   pBar->UpdateVirtualRect();                     // 0xa1ae0
+// Two things worth knowing before editing this: retail really does pass
+// rectNew.right/bottom in the cx/cy slots of SetWindowPos, which is harmless
+// only because 0x15 is SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE and cx/cy are
+// therefore ignored; and on the dockMethod==1 path rectBar is never mapped out
+// of screen coordinates, so only its WIDTH and HEIGHT feed rectNew there.
+// `dockMethod` is compared against the literal 1 because this tree does not
+// model the AFX_DOCK_METHOD enum; the retail instruction is `cmp $0x1,%ebx`.
+extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(
+    void* pThis, CPane* pBar, int dockMethod) {
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pBar == nullptr) return;
+
+    CRect rectBar(0, 0, 0, 0);
+    ::GetWindowRect(pBar->m_hWnd, RP(&rectBar));
+
+    const bool bHorz = RowIsHorz(s);
+    int nOffset;
+    if (dockMethod == 1) {
+        POINT pt = { 0, 0 };
+        ::GetCursorPos(&pt);
+        if (s->m_pParentDockBar != nullptr)
+            ::ScreenToClient(s->m_pParentDockBar->m_hWnd, &pt);
+
+        CRect rectClient(0, 0, 0, 0);
+        ::GetClientRect(pBar->m_hWnd, RP(&rectClient));
+        ClientToScreenRect(pBar->m_hWnd, &rectClient);
+
+        const int nBorder = rectClient.left - rectBar.left;
+        pt.x -= nBorder + pBar->m_ptClientHotSpot.x;
+        pt.y -= nBorder + pBar->m_ptClientHotSpot.y;
+        nOffset = bHorz ? pt.x : pt.y;
+    } else {
+        if (s->m_pParentDockBar != nullptr)
+            impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(s->m_pParentDockBar, RP(&rectBar));
+        nOffset = bHorz ? rectBar.left : rectBar.top;
+    }
+
+    CRect rectNew(0, 0, 0, 0);
+    if (bHorz)
+        ::SetRect(RP(&rectNew), nOffset, s->m_nRowOffset,
+                  nOffset + rectBar.Width(), s->m_nRowOffset + rectBar.Height());
+    else
+        ::SetRect(RP(&rectNew), s->m_nRowOffset, nOffset,
+                  s->m_nRowOffset + rectBar.Width(), nOffset + rectBar.Height());
+
+    impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+        pBar, nullptr, rectNew.left, rectNew.top, rectNew.right, rectNew.bottom,
+        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+
+    impl__OnInsertPane_CDockingPanesRow__MEAAXPEAVCPane___Z(pThis, pBar);
+    impl__UpdateVirtualRect_CPane__QEAAXXZ(pBar);
+}
 
 // Symbol: ?AdjustPaneToRowArea@CDockingPanesRow@@IEAAXPEAVCPane@@AEBVCRect@@AEAPEAX@Z
-// Retail 0x520f0 pushes the pane back inside rectRow with up to two calls to
-// MovePane(pPane, CPoint, FALSE, hdwp) (0x50300).  That MovePane overload is
-// itself left stubbed below (it needs CheckPanes), so implementing this one
-// would only produce a no-op wearing a real body.  Left a stub deliberately.
-extern "C" void MS_ABI impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPane__AEBVCRect__AEAPEAX_Z(void* pThis, CPane* pPane, const CRect* pRectRow, void** phdwp) {}
+// Retail 0x520f0, transcribed in full (71 instructions).  It takes the pane's
+// live window rect ONCE and then makes up to two MovePane(CPoint) calls to push
+// it back inside rectRow along the row axis:
+//   CRect rectPane; ::GetWindowRect(pPane->m_hWnd, &rectPane);
+//   if (IsHorizontal()) {
+//       if (rectPane.left  < rectRow.left)
+//           MovePane(pPane, CPoint(rectRow.left - rectPane.left, 0), 0, hdwp);
+//       if (rectPane.right > rectRow.right)
+//           MovePane(pPane, CPoint(rectRow.right - rectPane.right, 0), 0, hdwp);
+//   } else {
+//       if (rectPane.top    < rectRow.top)
+//           MovePane(pPane, CPoint(0, rectRow.top - rectPane.top), 0, hdwp);
+//       if (rectPane.bottom > rectRow.bottom)
+//           MovePane(pPane, CPoint(0, rectRow.bottom - rectPane.bottom), 0, hdwp);
+//   }
+// rectPane is deliberately NOT re-read between the two tests -- retail reloads
+// the same stack slot (0x38(%rsp)/0x40(%rsp)) for the second comparison.
+extern "C" void MS_ABI impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPane__AEBVCRect__AEAPEAX_Z(void* pThis, CPane* pPane, const CRect* pRectRow, void** phdwp) {
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pPane == nullptr || pRectRow == nullptr) return;
+
+    CRect rectPane(0, 0, 0, 0);
+    ::GetWindowRect(pPane->m_hWnd, RP(&rectPane));
+
+    if (RowIsHorz(s)) {
+        if (rectPane.left < pRectRow->left)
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(
+                pThis, pPane, MakePt(pRectRow->left - rectPane.left, 0), 0, phdwp);
+        if (rectPane.right > pRectRow->right)
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(
+                pThis, pPane, MakePt(pRectRow->right - rectPane.right, 0), 0, phdwp);
+    } else {
+        if (rectPane.top < pRectRow->top)
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(
+                pThis, pPane, MakePt(0, pRectRow->top - rectPane.top), 0, phdwp);
+        if (rectPane.bottom > pRectRow->bottom)
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(
+                pThis, pPane, MakePt(0, pRectRow->bottom - rectPane.bottom), 0, phdwp);
+    }
+}
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXHH@Z
 // Retail 0x51510.  Not transcribed: the margin/spacing walk drives
@@ -357,19 +472,197 @@ extern "C" void MS_ABI impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPan
 extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(int p0, int p1) {}
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXPEAVCPane@@@Z
-// Retail 0x51740.  Not transcribed: depends on ResolveIntersection /
-// MoveTrailingPanes, both left stubbed here.
+// Retail 0x51740, transcribed in full.  Every helper it calls now has a real
+// body in this file, so nothing here is a stand-in:
+//   if (m_lstControlBars.GetCount() == 0) return;
+//   CRect rectClient; GetClientRect(rectClient);            // 0x4fd50
+//   if (::IsRectEmpty(&rectClient)) return;
+//   HDWP hdwp = NULL;                                       // never handed to
+//                                                           // ::DeferWindowPos
+//   int nAvail = GetAvailableLength(FALSE);                 // vslot 0xc8
+//   if (GetCount() == 1) {
+//       if (pInitialBar == NULL) pInitialBar = GetHead();
+//       if (nAvail < 0) {                                   // jns -> general path
+//           pInitialBar->StretchPaneDeferWndPos(nAvail, hdwp);   // vslot 0x568
+//           CRect rectBar; ::GetWindowRect(pInitialBar->m_hWnd, &rectBar);
+//           m_pParentDockBar->ScreenToClient(rectBar);
+//           ::OffsetRect(&rectBar, horz ? -rectBar.left : m_nRowOffset - rectBar.left,
+//                                  horz ? m_nRowOffset - rectBar.top : -rectBar.top);
+//           pInitialBar->SetWindowPos(NULL, rectBar.left, rectBar.top,
+//                                     rectBar.Width(), rectBar.Height(),
+//                                     SWP_NOZORDER|SWP_NOACTIVATE, NULL);
+//           return;
+//       }
+//   }
+//   if (pInitialBar != NULL) ResolveIntersection(pInitialBar, FALSE, hdwp);
+//   else                     pInitialBar = GetHead();
+//   ResolveIntersection(pInitialBar, TRUE, hdwp);
+//   CPane* p = FindFirstVisiblePane(TRUE);
+//   int n = GetOutOfBoundsOffset(p, TRUE);
+//   if (n > 0) ShiftPanes(p, n, TRUE);
+//   p = FindFirstVisiblePane(FALSE);
+//   n = GetOutOfBoundsOffset(p, FALSE);
+//   if (n <= 0) return;
+//   if (nAvail > 0) { ShiftPanes(p, -n, FALSE); return; }
+//   ShiftPanes(p, abs(nAvail) - n, FALSE);
+//   if (nAvail >= 0) return;
+//   for (node = tail; node != NULL; node = node->pPrev) {      // 0x5195b
+//       pBar = node->data;
+//       if (!pBar->IsVisible() && !m_bIgnoreBarVisibility) continue;
+//       int nStretched = pBar->StretchPaneDeferWndPos(nAvail, hdwp);
+//       MovePane(pBar, abs(nAvail) - abs(nStretched), FALSE, hdwp);
+//       if (nStretched == nAvail) return;
+//       nAvail -= nStretched;
+//   }
+// Note the count==1 / nAvail>=0 combination falls THROUGH into the general
+// path with pInitialBar already defaulted to the head pane -- that is retail's
+// `jns 0x180051893`, not a return.
 extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXPEAVCPane___Z(void* pThis, CPane* pInitialBar) {
-    (void)pThis;
-    (void)pInitialBar;
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr) return;
+
+    ObNode* pHead = HeadNode(s);
+    if (pHead == nullptr) return;
+
+    CRect rectClient(0, 0, 0, 0);
+    impl__GetClientRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectClient);
+    if (::IsRectEmpty(RP(&rectClient))) return;
+
+    void* hdwp = nullptr;
+    int nAvailable = impl__GetAvailableLength_CDockingPanesRow__UEBAHH_Z(pThis, FALSE);
+
+    if (ListCount(s) == 1) {
+        if (pInitialBar == nullptr) pInitialBar = PaneOf(pHead);
+        if (nAvailable < 0) {
+            if (pInitialBar == nullptr) return;
+            impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(pInitialBar, nAvailable, &hdwp);
+
+            CRect rectBar(0, 0, 0, 0);
+            ::GetWindowRect(pInitialBar->m_hWnd, RP(&rectBar));
+            if (s->m_pParentDockBar != nullptr)
+                impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(s->m_pParentDockBar, RP(&rectBar));
+
+            if (RowIsHorz(s))
+                ::OffsetRect(RP(&rectBar), -rectBar.left, s->m_nRowOffset - rectBar.top);
+            else
+                ::OffsetRect(RP(&rectBar), s->m_nRowOffset - rectBar.left, -rectBar.top);
+
+            impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+                pInitialBar, nullptr, rectBar.left, rectBar.top,
+                rectBar.Width(), rectBar.Height(), SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+            return;
+        }
+    }
+
+    if (pInitialBar != nullptr)
+        impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPane___NAEAPEAX_Z(pThis, pInitialBar, false, &hdwp);
+    else
+        pInitialBar = PaneOf(pHead);
+    impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPane___NAEAPEAX_Z(pThis, pInitialBar, true, &hdwp);
+
+    CPane* pFirst = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, TRUE);
+    const int nLead = impl__GetOutOfBoundsOffset_CDockingPanesRow__AEAAHPEAVCPane__H_Z(pThis, pFirst, TRUE);
+    if (nLead > 0)
+        impl__ShiftPanes_CDockingPanesRow__AEAAXPEAVCPane__HH_Z(pThis, pFirst, nLead, TRUE);
+
+    CPane* pLast = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, FALSE);
+    const int nTrail = impl__GetOutOfBoundsOffset_CDockingPanesRow__AEAAHPEAVCPane__H_Z(pThis, pLast, FALSE);
+    if (nTrail <= 0) return;
+
+    if (nAvailable > 0) {
+        impl__ShiftPanes_CDockingPanesRow__AEAAXPEAVCPane__HH_Z(pThis, pLast, -nTrail, FALSE);
+        return;
+    }
+    impl__ShiftPanes_CDockingPanesRow__AEAAXPEAVCPane__HH_Z(
+        pThis, pLast, AbsInt(nAvailable) - nTrail, FALSE);
+    if (nAvailable >= 0) return;
+
+    for (ObNode* n = TailNode(s); n != nullptr; ) {
+        CPane* pBar = PaneOf(n);
+        ObNode* pPrev = n->pPrev;
+        if (pBar != nullptr && PaneCounts(s, pBar)) {
+            const int nStretched =
+                impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(pBar, nAvailable, &hdwp);
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                pThis, pBar, AbsInt(nAvailable) - AbsInt(nStretched), false, &hdwp);
+            if (nStretched == nAvailable) return;
+            nAvailable -= nStretched;
+        }
+        n = pPrev;
+    }
 }
 
 // Symbol: ?ArrangePanesRect@CDockingPanesRow@@IEAAXPEAVCPane@@@Z
-// Retail 0x52730 -- the m_rectBar ("Rect") twin of ArrangePanes(CPane*), and it
-// depends on ResolveIntersectionRect the same way.  Left a stub deliberately.
+// Retail 0x52730 -- the m_rectBar ("Rect") twin of ArrangePanes(CPane*),
+// instruction-for-instruction the same shape with the staged-rect helpers
+// substituted: GetAvailableLengthRect (0x525a0) for GetAvailableLength,
+// ResolveIntersectionRect (0x52920), GetOutOfBoundsOffsetRect (0x52b10),
+// ShiftPanesRect (0x52bd0) and MovePaneRect (0x52d60).  Two real differences:
+//   * the single-pane / nAvail<0 case is one call to StretchPaneRect(pBar,
+//     nAvail) (0x52660) instead of the stretch + ScreenToClient + SetWindowPos
+//     sequence the window-rect twin runs;
+//   * the trailing walk still calls the WINDOW-rect CPane::StretchPaneDeferWndPos
+//     (vslot 0x568) -- there is no "Rect" stretch there -- and then MovePaneRect,
+//     which takes no HDWP.
+// The HDWP local exists in retail only to be handed to StretchPaneDeferWndPos.
 extern "C" void MS_ABI impl__ArrangePanesRect_CDockingPanesRow__IEAAXPEAVCPane___Z(void* pThis, CPane* pInitialBar) {
-    (void)pThis;
-    (void)pInitialBar;
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr) return;
+
+    ObNode* pHead = HeadNode(s);
+    if (pHead == nullptr) return;
+
+    CRect rectClient(0, 0, 0, 0);
+    impl__GetClientRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectClient);
+    if (::IsRectEmpty(RP(&rectClient))) return;
+
+    void* hdwp = nullptr;
+    int nAvailable = impl__GetAvailableLengthRect_CDockingPanesRow__IEAAHXZ(pThis);
+
+    if (ListCount(s) == 1) {
+        if (pInitialBar == nullptr) pInitialBar = PaneOf(pHead);
+        if (nAvailable < 0) {
+            impl__StretchPaneRect_CDockingPanesRow__IEAAHPEAVCPane__H_Z(pThis, pInitialBar, nAvailable);
+            return;
+        }
+    }
+
+    if (pInitialBar != nullptr)
+        impl__ResolveIntersectionRect_CDockingPanesRow__IEAAXPEAVCPane___N_Z(pThis, pInitialBar, false);
+    else
+        pInitialBar = PaneOf(pHead);
+    impl__ResolveIntersectionRect_CDockingPanesRow__IEAAXPEAVCPane___N_Z(pThis, pInitialBar, true);
+
+    CPane* pFirst = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, TRUE);
+    const int nLead = impl__GetOutOfBoundsOffsetRect_CDockingPanesRow__IEAAHPEAVCPane__H_Z(pThis, pFirst, TRUE);
+    if (nLead > 0)
+        impl__ShiftPanesRect_CDockingPanesRow__IEAAXPEAVCPane__HH_Z(pThis, pFirst, nLead, TRUE);
+
+    CPane* pLast = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, FALSE);
+    const int nTrail = impl__GetOutOfBoundsOffsetRect_CDockingPanesRow__IEAAHPEAVCPane__H_Z(pThis, pLast, FALSE);
+    if (nTrail <= 0) return;
+
+    if (nAvailable > 0) {
+        impl__ShiftPanesRect_CDockingPanesRow__IEAAXPEAVCPane__HH_Z(pThis, pLast, -nTrail, FALSE);
+        return;
+    }
+    impl__ShiftPanesRect_CDockingPanesRow__IEAAXPEAVCPane__HH_Z(
+        pThis, pLast, AbsInt(nAvailable) - nTrail, FALSE);
+    if (nAvailable >= 0) return;
+
+    for (ObNode* n = TailNode(s); n != nullptr; ) {
+        CPane* pBar = PaneOf(n);
+        ObNode* pPrev = n->pPrev;
+        if (pBar != nullptr && PaneCounts(s, pBar)) {
+            const int nStretched =
+                impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(pBar, nAvailable, &hdwp);
+            impl__MovePaneRect_CDockingPanesRow__IEAAXPEAVCPane__H_N_Z(
+                pThis, pBar, AbsInt(nAvailable) - AbsInt(nStretched), false);
+            if (nStretched == nAvailable) return;
+            nAvailable -= nStretched;
+        }
+        n = pPrev;
+    }
 }
 
 // Symbol: ?BeginTrans@CDockingPanesRow@@IEAAXXZ
@@ -459,13 +752,165 @@ extern "C" int MS_ABI impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(void* p
 }
 
 // Symbol: ?CheckPanes@CDockingPanesRow@@IEAAHAEAVCRect@@PEAVCPane@@_NVCPoint@@HAEAPEAX@Z
-// Retail 0x1800507e0 (~400 instructions): the collision/swap engine that
-// MovePane(CPoint) drives.  It walks the list forwards or backwards, calls
-// CPane::IsLeftOf, swaps list nodes, and issues DeferWindowPos moves for every
-// displaced pane.  Not transcribed -- too entangled to reproduce faithfully
-// without the CPane drag-state members this tree does not model.
+// Retail 0x507e0, transcribed.  It is the collision resolver MovePane(CPoint)
+// runs after it has computed where pBar wants to land (rect, in SCREEN
+// coordinates).  Every exit path is `mov $0x1,%eax`, so it ALWAYS returns TRUE;
+// the return value tells the caller nothing.
+//
+//   if (m_lstControlBars.GetCount() < 2) return TRUE;
+//   if (GetVisibleCount() < 2)           return TRUE;      // vslot 0x38
+//   posBar = the node holding pBar (NULL if pBar is not in this row)
+//   // first other visible pane whose window rect intersects rect:
+//   for (node = head; node; node = node->pNext) {
+//       p = node->data;
+//       if (!p->IsVisible() && !m_bIgnoreBarVisibility) continue;
+//       if (p == pBar) continue;
+//       ::GetWindowRect(p->m_hWnd, &rectHit);
+//       if (::IntersectRect(&rectIsect, &rectHit, &rect)) { hit = p; break; }
+//   }
+//   if (hit != NULL) {
+//       hit->GetVirtualRect(rectVirtual);                   // 0xa1ca0
+//       bSwap = ::IntersectRect(&dummy, &rectVirtual, &rect) && nExtra != 0 &&
+//               (pBar->IsLeftOf(rectVirtual, TRUE) == bForward);   // 0xa1660
+//       if (!bSwap) {
+//           MovePane(hit, horz ? rectIsect.Width() : rectIsect.Height(),
+//                    bForward, hdwp);                       // 0x505b0
+//           ResolveIntersection(hit, bForward, hdwp);       // 0x50dd0
+//           // and fall through to MoveTrailingPanes below
+//       } else {
+//           // park `hit` on the far side of rect, keeping its size ...
+//           MovePane(hit, rectNew, hdwp);                   // 0x504e0
+//           // ... and relink its node next to pBar's
+//           m_lstControlBars.RemoveAt(posHit);
+//           bForward ? InsertBefore(posBar, hit) : InsertAfter(posBar, hit);
+//           ResolveIntersection(hit, !bForward, hdwp);
+//           // then push everything past pBar back by the slack the swap left:
+//           for (node = bForward ? posBar->pNext : posBar->pPrev; node; ) {
+//               p = node->data; node = bForward ? node->pNext : node->pPrev;
+//               if (!p->IsVisible() && !m_bIgnoreBarVisibility) continue;
+//               ::GetWindowRect(p->m_hWnd, &rectWnd); p->GetVirtualRect(rectV);
+//               if (::EqualRect(&rectWnd, &rectV)) continue;
+//               MovePane(p, nSize - labs(horz ? ptOffset.x : ptOffset.y),
+//                        !bForward, hdwp);
+//           }
+//           return TRUE;                                    // no MoveTrailingPanes
+//       }
+//   }
+//   MoveTrailingPanes(posBar, ptOffset, bForward, pBar, hdwp);   // 0x50be0
+//   return TRUE;
+//
+// `nSize` above is the moved pane's extent along the row axis; retail keeps it
+// as the difference of the two edge values it had just stored for the new rect
+// (0x3c(%rsp)-0x40(%rsp) horizontally, 0x38(%rsp)-0x34(%rsp) vertically), which
+// is the same number.  Retail traps (call 0x180225b80 / int3 at 0x50bd3) if
+// posBar is NULL on the swap path; the body below leaves the list untouched and
+// returns instead.
 extern "C" int MS_ABI impl__CheckPanes_CDockingPanesRow__IEAAHAEAVCRect__PEAVCPane___NVCPoint__HAEAPEAX_Z(void* pThis, CRect* pRect, CPane* pBar, bool bForward, long long ptOffset, int nExtra, void** phdwp) {
-    return 0;
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pRect == nullptr) return 1;
+    if (ListCount(s) < 2) return 1;
+    if (impl__GetVisibleCount_CDockingPanesRow__UEAAHXZ(pThis) < 2) return 1;
+
+    ObNode* pNodeBar = nullptr;
+    for (ObNode* n = HeadNode(s); n != nullptr; n = n->pNext) {
+        if (n->data == reinterpret_cast<CObject*>(pBar)) { pNodeBar = n; break; }
+    }
+
+    ObNode* pNodeHit = nullptr;
+    CPane*  pHit = nullptr;
+    CRect   rectHit(0, 0, 0, 0);
+    CRect   rectIsect(0, 0, 0, 0);
+    for (ObNode* n = HeadNode(s); n != nullptr; n = n->pNext) {
+        CPane* p = PaneOf(n);
+        if (p == nullptr || !PaneCounts(s, p)) continue;
+        if (p == pBar) continue;
+        ::GetWindowRect(p->m_hWnd, RP(&rectHit));
+        if (::IntersectRect(RP(&rectIsect), RP(&rectHit), RP(pRect))) {
+            pNodeHit = n;
+            pHit = p;
+            break;
+        }
+    }
+
+    const bool bHorz = RowIsHorz(s);
+
+    if (pHit != nullptr) {
+        CRect rectVirtual(0, 0, 0, 0);
+        GetPaneVirtualRect(pHit, rectVirtual);
+
+        CRect rectDummy(0, 0, 0, 0);
+        bool bSwap = false;
+        if (::IntersectRect(RP(&rectDummy), RP(&rectVirtual), RP(pRect)) && nExtra != 0) {
+            CRect rectArg = rectVirtual;
+            const bool bLeftOf =
+                impl__IsLeftOf_CPane__QEBA_NVCRect___N_Z(pBar, &rectArg, true) != 0;
+            bSwap = (bLeftOf == bForward);
+        }
+
+        if (!bSwap) {
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                pThis, pHit, bHorz ? rectIsect.Width() : rectIsect.Height(), bForward, phdwp);
+            impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPane___NAEAPEAX_Z(
+                pThis, pHit, bForward, phdwp);
+        } else {
+            const int nSize = bHorz ? rectHit.Width() : rectHit.Height();
+
+            CRect rectNew = rectHit;
+            if (bHorz) {
+                if (bForward) { rectNew.left = pRect->left - nSize;  rectNew.right = pRect->left; }
+                else          { rectNew.left = pRect->right;         rectNew.right = pRect->right + nSize; }
+            } else {
+                if (bForward) { rectNew.top = pRect->top - nSize;    rectNew.bottom = pRect->top; }
+                else          { rectNew.top = pRect->bottom;         rectNew.bottom = pRect->bottom + nSize; }
+            }
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCRect__AEAPEAX_Z(
+                pThis, pHit, &rectNew, phdwp);
+
+            // Retail relinks unconditionally and traps (call 0x180225b80 / int3
+            // at 0x50bd3) when pBar has no node in this row, so there is no retail
+            // behaviour to copy for that case.  BOTH halves of the relink are
+            // skipped together: doing only the RemoveAt would take pHit out of the
+            // row and never put it back.
+            if (pNodeBar != nullptr) {
+                CObList::POSITION posHit = PosFromNode(pNodeHit);
+                impl__RemoveAt_CObList__QEAAXPEAU__POSITION___Z(&s->m_lstControlBars, &posHit);
+                CObList::POSITION posBar = PosFromNode(pNodeBar);
+                if (bForward)
+                    impl__InsertBefore_CObList__QEAAPEAU__POSITION__PEAU2_PEAVCObject___Z(
+                        &s->m_lstControlBars, &posBar, reinterpret_cast<CObject*>(pHit));
+                else
+                    impl__InsertAfter_CObList__QEAAPEAU__POSITION__PEAU2_PEAVCObject___Z(
+                        &s->m_lstControlBars, &posBar, reinterpret_cast<CObject*>(pHit));
+            }
+
+            impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPane___NAEAPEAX_Z(
+                pThis, pHit, !bForward, phdwp);
+
+            if (pNodeBar == nullptr) return 1;
+
+            const int nShift = nSize - AbsInt(bHorz ? PtX(ptOffset) : PtY(ptOffset));
+            for (ObNode* n = bForward ? pNodeBar->pNext : pNodeBar->pPrev; n != nullptr; ) {
+                CPane* p = PaneOf(n);
+                ObNode* pNext = bForward ? n->pNext : n->pPrev;
+                if (p != nullptr && PaneCounts(s, p)) {
+                    CRect rectWnd(0, 0, 0, 0);
+                    ::GetWindowRect(p->m_hWnd, RP(&rectWnd));
+                    CRect rectV(0, 0, 0, 0);
+                    GetPaneVirtualRect(p, rectV);
+                    if (!::EqualRect(RP(&rectWnd), RP(&rectV))) {
+                        impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                            pThis, p, nShift, !bForward, phdwp);
+                    }
+                }
+                n = pNext;
+            }
+            return 1;
+        }
+    }
+
+    impl__MoveTrailingPanes_CDockingPanesRow__AEAAXPEAU__POSITION__VCPoint___NPEAVCPane__AEAPEAX_Z(
+        pThis, pNodeBar, ptOffset, bForward, pBar, phdwp);
+    return 1;
 }
 
 // Symbol: ?CommitTrans@CDockingPanesRow@@IEAAXXZ
@@ -967,9 +1412,67 @@ extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__HAEAPEAX
 }
 
 // Symbol: ?MovePane@CDockingPanesRow@@QEAAXPEAVCPane@@VCPoint@@HAEAPEAX@Z
-// Retail 0x50300.  Not transcribed: it clamps the offset with
-// IsEnoughSpaceToMove and then runs CheckPanes, which is left stubbed above.
-extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(void* pThis, CPane* pBar, long long ptOffset, int nExtra, void** phdwp) {}
+// Retail 0x50300, transcribed in full:
+//   CRect rectVirtual; pBar->GetVirtualRect(rectVirtual);       // 0xa1ca0
+//   CRect rectBar;     ::GetWindowRect(pBar->m_hWnd, &rectBar);
+//   // (retail then offsets a COPY of rectVirtual by ptOffset and never reads
+//   //  it again -- a dead local, so it is not reproduced here)
+//   CPoint ptMove(0, 0);
+//   int nDelta = IsHorizontal() ? ptOffset.x : ptOffset.y;
+//   if (IsHorizontal()) ptMove.x = ptOffset.x; else ptMove.y = ptOffset.y;
+//   BOOL bForward = (nDelta >= 0);            // shr $0x1f,%ebx / xor $0x1,%bl
+//   int nAllowed = nDelta;
+//   if (!IsEnoughSpaceToMove(pBar, bForward, nAllowed)) return;  // 0x50fc0
+//   if (abs(nAllowed) < labs(nDelta))         // clamp on the row axis only
+//       (IsHorizontal() ? ptMove.x : ptMove.y) = nAllowed;
+//   ::OffsetRect(&rectBar, ptMove.x, ptMove.y);
+//   if (CheckPanes(rectBar, pBar, bForward, ptMove, nExtra, hdwp)) {  // 0x507e0
+//       m_pParentDockBar->ScreenToClient(rectBar);
+//       pBar->SetWindowPos(NULL, rectBar.left, rectBar.top,
+//                          rectBar.Width(), rectBar.Height(),
+//                          SWP_NOZORDER|SWP_NOACTIVATE, NULL);   // vslot 0x480
+//   }
+//   ArrangePanes(pBar);                                          // vslot 0x60
+// The ArrangePanes call is UNCONDITIONAL -- it runs whether or not CheckPanes
+// agreed to the move (and CheckPanes in fact always returns TRUE).
+extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(void* pThis, CPane* pBar, long long ptOffset, int nExtra, void** phdwp) {
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pBar == nullptr) return;
+
+    CRect rectVirtual(0, 0, 0, 0);
+    GetPaneVirtualRect(pBar, rectVirtual);
+
+    CRect rectBar(0, 0, 0, 0);
+    ::GetWindowRect(pBar->m_hWnd, RP(&rectBar));
+
+    const bool bHorz = RowIsHorz(s);
+    const int nDelta = bHorz ? PtX(ptOffset) : PtY(ptOffset);
+    int nMoveX = bHorz ? PtX(ptOffset) : 0;
+    int nMoveY = bHorz ? 0 : PtY(ptOffset);
+
+    const bool bForward = (nDelta >= 0);
+    int nAllowed = nDelta;
+    if (!impl__IsEnoughSpaceToMove_CDockingPanesRow__AEAAHPEAVCPane___NAEAH_Z(
+            pThis, pBar, bForward, &nAllowed))
+        return;
+
+    if (AbsInt(nAllowed) < AbsInt(nDelta)) {
+        if (bHorz) nMoveX = nAllowed;
+        else       nMoveY = nAllowed;
+    }
+    ::OffsetRect(RP(&rectBar), nMoveX, nMoveY);
+
+    if (impl__CheckPanes_CDockingPanesRow__IEAAHAEAVCRect__PEAVCPane___NVCPoint__HAEAPEAX_Z(
+            pThis, &rectBar, pBar, bForward, MakePt(nMoveX, nMoveY), nExtra, phdwp)) {
+        if (s->m_pParentDockBar != nullptr)
+            impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(s->m_pParentDockBar, RP(&rectBar));
+        impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+            pBar, nullptr, rectBar.left, rectBar.top, rectBar.Width(), rectBar.Height(),
+            SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+    }
+
+    impl__ArrangePanes_CDockingPanesRow__UEAAXPEAVCPane___Z(pThis, pBar);
+}
 
 // Symbol: ?MovePane@CDockingPanesRow@@QEAAXPEAVCPane@@VCRect@@AEAPEAX@Z
 // Retail 0x504e0: take pBar's window rect, replace the row-axis edges with
@@ -1016,11 +1519,71 @@ extern "C" void MS_ABI impl__MovePaneRect_CDockingPanesRow__IEAAXPEAVCPane__H_N_
 }
 
 // Symbol: ?MoveTrailingPanes@CDockingPanesRow@@AEAAXPEAU__POSITION@@VCPoint@@_NPEAVCPane@@AEAPEAX@Z
-// Retail 0x50700 (~400 instructions): pushes every pane after posStart along the
-// row inside a DeferWindowPos chain, re-checking bounds against the row rect at
-// each step.  Not transcribed -- it is the other half of the CheckPanes engine
-// and shares its unmodelled drag state.
-extern "C" void MS_ABI impl__MoveTrailingPanes_CDockingPanesRow__AEAAXPEAU__POSITION__VCPoint___NPEAVCPane__AEAPEAX_Z(void* pThis, void* pos, long long ptOffset, bool bForward, CPane* pBarToExclude, void** phdwp) {}
+// Retail 0x50be0 (the 0x50700 an earlier revision of this file quoted is not
+// this function's entry), transcribed in full.  Note the walk direction: when
+// bForward is set retail steps through node->pPrev (`lea 0x8(%rdx),%rax`), and
+// through node->pNext otherwise.
+//   for (node = pos; node != NULL; node = bForward ? node->pPrev : node->pNext) {
+//       pBar = node->data;
+//       if (pBar == pBarToExclude) continue;
+//       if (!pBar->IsVisible() && !m_bIgnoreBarVisibility) continue;
+//       ::GetWindowRect(pBar->m_hWnd, &rectWnd);
+//       pBar->GetVirtualRect(rectVirtual);                       // 0xa1ca0
+//       if (::EqualRect(&rectWnd, &rectVirtual)) continue;
+//       BOOL bLeftOf = pBar->IsLeftOf(rectVirtual, TRUE);        // 0xa1660
+//       int nAxis = IsHorizontal() ? ptOffset.x : ptOffset.y;
+//       int nBack = IsHorizontal() ? rectVirtual.left - rectWnd.left
+//                                  : rectVirtual.top  - rectWnd.top;
+//       int nOffset = (bLeftOf == bForward)
+//                   ? labs(nAxis)
+//                   : labs(labs(nAxis) < labs(nBack) ? nAxis : nBack);
+//       MovePane(pBar, nOffset, bForward, hdwp);                 // 0x505b0
+//       ResolveIntersection(pBar, !bForward, hdwp);              // 0x50dd0
+//   }
+// Retail evaluates IsLeftOf up to three times on the same arguments (the
+// compiler duplicated the test across the branch); it is called once here.
+// One arm of that duplication (nOffset forced to 0) is unreachable in retail
+// and is not reproduced.
+extern "C" void MS_ABI impl__MoveTrailingPanes_CDockingPanesRow__AEAAXPEAU__POSITION__VCPoint___NPEAVCPane__AEAPEAX_Z(void* pThis, void* pos, long long ptOffset, bool bForward, CPane* pBarToExclude, void** phdwp) {
+    if (pos == nullptr) return;
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr) return;
+
+    const bool bHorz = RowIsHorz(s);
+    const int nAxis = bHorz ? PtX(ptOffset) : PtY(ptOffset);
+
+    for (ObNode* n = static_cast<ObNode*>(pos); n != nullptr; ) {
+        CPane* pBar = PaneOf(n);
+        ObNode* pNext = bForward ? n->pPrev : n->pNext;
+        n = pNext;
+
+        if (pBar == pBarToExclude || pBar == nullptr) continue;
+        if (!PaneCounts(s, pBar)) continue;
+
+        CRect rectWnd(0, 0, 0, 0);
+        ::GetWindowRect(pBar->m_hWnd, RP(&rectWnd));
+        CRect rectVirtual(0, 0, 0, 0);
+        GetPaneVirtualRect(pBar, rectVirtual);
+        if (::EqualRect(RP(&rectWnd), RP(&rectVirtual))) continue;
+
+        CRect rectArg = rectVirtual;
+        const bool bLeftOf = impl__IsLeftOf_CPane__QEBA_NVCRect___N_Z(pBar, &rectArg, true) != 0;
+
+        int nOffset;
+        if (bLeftOf == bForward) {
+            nOffset = AbsInt(nAxis);
+        } else {
+            const int nBack = bHorz ? (rectVirtual.left - rectWnd.left)
+                                    : (rectVirtual.top - rectWnd.top);
+            nOffset = AbsInt(AbsInt(nAxis) < AbsInt(nBack) ? nAxis : nBack);
+        }
+
+        impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+            pThis, pBar, nOffset, bForward, phdwp);
+        impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPane___NAEAPEAX_Z(
+            pThis, pBar, !bForward, phdwp);
+    }
+}
 
 // Symbol: ?OffsetFromRect@CDockingPanesRow@@AEAAXAEBVCRect@@AEAVCPoint@@_N@Z
 // Retail 0x51120: pure arithmetic on the row alignment.  For a horizontal row
@@ -1095,10 +1658,29 @@ extern "C" void MS_ABI impl__OnInsertPane_CDockingPanesRow__MEAAXPEAVCPane___Z(
 }
 
 // Symbol: ?OnResizePane@CDockingPanesRow@@UEAAXPEAVCBasePane@@@Z
-// This export has no resolved RVA in the retail map, so there is no body to
-// transcribe.  afxdockingpanesrow.h declares it as a plain virtual hook.
-// Left a stub deliberately.
-extern "C" void MS_ABI impl__OnResizePane_CDockingPanesRow__UEAAXPEAVCBasePane___Z(void* /*class*/* p0) {}
+// The empty body IS the retail body; this is not an unfinished stub.
+// disas.py cannot resolve the mangled name (NOT FOUND in both RVA maps), but the
+// function is still reachable through the class vftable the constructor installs
+// (mfc140 0x2e4148).  Matching that table against the virtual declaration order
+// in afxdockingpanesrow.h accounts for every one of slots 5..27 exactly:
+//   5  Create                 -> 0x3ae0  `mov $1,%eax; ret`   (return TRUE)
+//   6..13  GetAvailableSpace, GetVisibleCount, CalcFixedLayout, AddPane,
+//          AddPaneFromRow, RemovePane, ArrangePanes(CPane*), ArrangePanes(int,int)
+//   14 ResizeByPaneDivider    -> 0x7260  `xor %eax,%eax; ret` (return 0)
+//   15..17 Resize, Move, RepositionPanes
+//   18 IsEmpty                -> 0x4f3d0 compares m_nCount (+0x40) with 0
+//   19..22 UpdateVisibleState, ShowDockSiteRow, ReplacePane, ShowPane
+//   23 OnResizePane           -> 0x2820  `ret`
+//   24 IsVisible              -> 0x97e0  `mov 0xc(%rcx),%eax` -- m_bVisible at
+//          +0x0C, which independently confirms the shadow layout above
+//   25..27 GetAvailableLength, IsExclusiveRow, OnInsertPane
+// Slot 23 (+0xb8) therefore holds a bare `ret`: identical-code folding shares that
+// one address with every empty void virtual in the image, which is why the RVA map
+// labels it ?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ and why the export itself has
+// no RVA of its own.  Retail's CDockingPanesRow::OnResizePane does nothing, so
+// neither does this.  The auto-generated placeholder parameter list was also
+// corrected to the shape the mangled name pins.
+extern "C" void MS_ABI impl__OnResizePane_CDockingPanesRow__UEAAXPEAVCBasePane___Z(void* pThis, CBasePane* pPane) { (void)pThis; (void)pPane; }
 
 // Symbol: ?RedrawAll@CDockingPanesRow@@QEAAXXZ
 // Retail 0x52340: ::RedrawWindow(pane, NULL, NULL, RDW_INVALIDATE|RDW_FRAME)
@@ -1187,11 +1769,233 @@ extern "C" int MS_ABI impl__ReplacePane_CDockingPanesRow__UEAAHPEAVCPane__0_Z(
 }
 
 // Symbol: ?RepositionPanes@CDockingPanesRow@@UEAAXAEAVCRect@@IHH@Z
-// Retail 0x51b50 (~395 instructions): re-lays the whole row into a new dock-site
-// client area, growing/shrinking panes proportionally through a DeferWindowPos
-// chain and calling back into ArrangePanes / ExpandStretchedPanes.  Not
-// transcribed -- it depends on ArrangePanes, which is left stubbed here.
-extern "C" void MS_ABI impl__RepositionPanes_CDockingPanesRow__UEAAXAEAVCRect__IHH_Z(void* pThis, CRect* pRectNew, unsigned int nSide, int bAdjust, int nSizeDelta) {}
+// Retail 0x51b50, transcribed.  rectNew arrives in the dock site's CLIENT
+// coordinates and is mapped to screen immediately; everything after that works
+// in screen space.
+//   if (m_lstControlBars.GetCount() == 0) return;
+//   if (GetVisibleCount() == 0) return;                    // vslot 0x38
+//   CRect rectNew = rectNeighbourhood;
+//   m_pParentDockBar->ClientToScreen(rectNew);             // 0x2a1250
+//   CRect rectRow; GetWindowRect(rectRow);                 // 0x4fcf0
+//   if (::IsRectEmpty(&rectRow)) return;
+//   int nDelta = IsHorizontal() ? rectNew.Width()  - rectRow.Width()
+//                               : rectNew.Height() - rectRow.Height();
+//   HDWP hdwp = NULL;
+//   if (IsExclusiveRow()) {                                // vslot 0xd0
+//       CPane* p = GetHead();
+//       p->SetWindowPos(NULL, rectRow.left, rectRow.top,
+//                       horz ? rectNew.Width()  : rectRow.Width(),
+//                       horz ? rectRow.Height() : rectNew.Height(),
+//                       0x16 /*NOMOVE|NOZORDER|NOACTIVATE*/, NULL);
+//       ::RedrawWindow(p->m_hWnd, NULL, NULL, 0x105);
+//       return;
+//   }
+//   int nAvail = GetAvailableLength(TRUE);                 // vslot 0xc8
+//   // three-way dispatch (0x51cdf..0x51d00):
+//   //   nAvail >= 0 && bAdjust      -> straight to the "settle" block
+//   //   nAvail >= 0 && !bAdjust     -> nAvail < abs(nDelta) ? BLOCK_D : settle
+//   //   nAvail <  0 && bAdjust      -> BLOCK_E, then settle
+//   //   nAvail <  0 && !bAdjust     -> BLOCK_D
+//   BLOCK_D (0x51d06) -- redistribute and RETURN:
+//     BOOL bFwd = (nSide == 1 || nSide == 3);   // test $0xfffffffd on nSide-1
+//     if (nAvail >= 0) {
+//         int nSign = (nDelta < 0) ? -1 : 1;
+//         int nOut  = abs(GetOutOfBoundsOffset(NULL, bFwd));
+//         ShiftPanes(NULL, (nAvail - nOut) * nSign, bFwd);
+//         nDelta = (abs(nDelta) - nAvail) * nSign;
+//     }
+//     for (node = tail; node; node = node->pPrev) {
+//         p = node->data;  if (!counts) continue;
+//         int st = p->StretchPaneDeferWndPos(nDelta, hdwp);   // vslot 0x568
+//         MovePane(p, abs(nDelta) - abs(st), bFwd, hdwp);     // 0x505b0
+//         if (st == nDelta) return;
+//         nDelta -= st;
+//     }
+//     return;
+//   BLOCK_E (0x51e00) -- absorb the shortfall from the head, then fall through:
+//     int nRest = nDelta;
+//     for (node = head; node; node = node->pNext) {
+//         p = node->data;  if (!counts) continue;
+//         int st = p->StretchPaneDeferWndPos(nRest, hdwp);
+//         if (st != 0) for (q = node->pNext; q; q = q->pNext)
+//             if (counts(q->data)) MovePane(q->data, st, TRUE, hdwp);
+//         nRest -= st;  if (nRest <= 0) break;
+//     }
+//   SETTLE (0x51eb5):
+//     if (horz) { rectRow.left = rectNew.left; rectRow.right = rectNew.right; }
+//     else      { rectRow.top  = rectNew.top;  rectRow.bottom = rectNew.bottom; }
+//     CPane* a = FindFirstVisiblePane(TRUE);  AdjustPaneToRowArea(a, rectRow, hdwp);
+//     CPane* b = FindFirstVisiblePane(FALSE); if (b != a) AdjustPaneToRowArea(b, ...);
+//     if (nSide == (UINT)-1) return;
+//     if (!bAdjust) return;
+//     if (GetAvailableLength(TRUE) + nDelta <= 0) return;
+//     for (node = head; node; node = node->pNext) {
+//         p = node->data;  if (!counts) continue;
+//         ::GetWindowRect(p->m_hWnd, &rectWnd); p->GetVirtualRect(rectV);
+//         if (::EqualRect(&rectWnd, &rectV)) continue;
+//         BOOL bFwd2 = horz ? !(rectWnd.left > rectV.left)
+//                           : !(rectWnd.top  > rectV.top);
+//         int n = 0;
+//         if (horz  && (nSide == 1 || nSide == 2)) n = <min-by-abs of nSizeDelta
+//                                                       and rectV.left - rectWnd.left>;
+//         if (!horz && (nSide == 3 || nSide == 6)) n = <same, on top>;
+//         int nAllowed = n;
+//         if (IsEnoughSpaceToMove(p, bFwd2, nAllowed))          // 0x50fc0
+//             MovePane(p, n, bFwd2, hdwp);                      // 0x505b0
+//     }
+// The nSide constants are transcribed as the literals retail compares against
+// (1/2/3/6 and (UINT)-1); this tree does not model the enum they belong to, and
+// the parameter NAMES below are the ones the forward declaration already in
+// this file uses -- what is verified is the role each one plays above, not the
+// name.
+// The HDWP local is never handed to ::DeferWindowPos, exactly as in retail.
+extern "C" void MS_ABI impl__RepositionPanes_CDockingPanesRow__UEAAXAEAVCRect__IHH_Z(void* pThis, CRect* pRectNew, unsigned int nSide, int bAdjust, int nSizeDelta) {
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pRectNew == nullptr) return;
+    if (HeadNode(s) == nullptr) return;
+    if (impl__GetVisibleCount_CDockingPanesRow__UEAAHXZ(pThis) == 0) return;
+
+    CRect rectNew = *pRectNew;
+    if (s->m_pParentDockBar != nullptr)
+        ClientToScreenRect(s->m_pParentDockBar->m_hWnd, &rectNew);
+
+    CRect rectRow(0, 0, 0, 0);
+    impl__GetWindowRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectRow);
+    if (::IsRectEmpty(RP(&rectRow))) return;
+
+    const bool bHorz = RowIsHorz(s);
+    int nDelta = bHorz ? (rectNew.Width() - rectRow.Width())
+                       : (rectNew.Height() - rectRow.Height());
+
+    void* hdwp = nullptr;
+
+    if (impl__IsExclusiveRow_CDockingPanesRow__UEBAHXZ(pThis)) {
+        CPane* pBar = PaneOf(HeadNode(s));
+        if (pBar == nullptr) return;
+        impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+            pBar, nullptr, rectRow.left, rectRow.top,
+            bHorz ? rectNew.Width() : rectRow.Width(),
+            bHorz ? rectRow.Height() : rectNew.Height(),
+            SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
+        ::RedrawWindow(pBar->m_hWnd, nullptr, nullptr,
+                       RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+        return;
+    }
+
+    const int nAvailable = impl__GetAvailableLength_CDockingPanesRow__UEBAHH_Z(pThis, TRUE);
+
+    if (bAdjust == 0 && (nAvailable < 0 || nAvailable < AbsInt(nDelta))) {
+        // BLOCK_D -- retail 0x51d06; this arm returns without settling.
+        const int bFwd = (nSide == 1u || nSide == 3u) ? 1 : 0;
+        if (nAvailable >= 0) {
+            const int nSign = (nDelta < 0) ? -1 : 1;
+            const int nOut = AbsInt(
+                impl__GetOutOfBoundsOffset_CDockingPanesRow__AEAAHPEAVCPane__H_Z(pThis, nullptr, bFwd));
+            impl__ShiftPanes_CDockingPanesRow__AEAAXPEAVCPane__HH_Z(
+                pThis, nullptr, (nAvailable - nOut) * nSign, bFwd);
+            nDelta = (AbsInt(nDelta) - nAvailable) * nSign;
+        }
+        for (ObNode* n = TailNode(s); n != nullptr; ) {
+            CPane* pBar = PaneOf(n);
+            ObNode* pPrev = n->pPrev;
+            if (pBar != nullptr && PaneCounts(s, pBar)) {
+                const int nStretched =
+                    impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(pBar, nDelta, &hdwp);
+                impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                    pThis, pBar, AbsInt(nDelta) - AbsInt(nStretched), bFwd != 0, &hdwp);
+                if (nStretched == nDelta) return;
+                nDelta -= nStretched;
+            }
+            n = pPrev;
+        }
+        return;
+    }
+
+    if (nAvailable < 0 && bAdjust != 0) {
+        // BLOCK_E -- retail 0x51e00; falls through into the settle block.
+        int nRest = nDelta;
+        for (ObNode* n = HeadNode(s); n != nullptr; ) {
+            CPane* pBar = PaneOf(n);
+            ObNode* pNext = n->pNext;
+            if (pBar != nullptr && PaneCounts(s, pBar)) {
+                const int nStretched =
+                    impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(pBar, nRest, &hdwp);
+                if (nStretched != 0) {
+                    for (ObNode* q = pNext; q != nullptr; ) {
+                        CPane* p2 = PaneOf(q);
+                        ObNode* qNext = q->pNext;
+                        if (p2 != nullptr && PaneCounts(s, p2)) {
+                            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                                pThis, p2, nStretched, true, &hdwp);
+                        }
+                        q = qNext;
+                    }
+                }
+                nRest -= nStretched;
+                if (nRest <= 0) break;
+            }
+            n = pNext;
+        }
+    }
+
+    // SETTLE -- retail 0x51eb5.
+    if (bHorz) {
+        rectRow.left = rectNew.left;
+        rectRow.right = rectNew.right;
+    } else {
+        rectRow.top = rectNew.top;
+        rectRow.bottom = rectNew.bottom;
+    }
+
+    CPane* pFirst = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, TRUE);
+    impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPane__AEBVCRect__AEAPEAX_Z(
+        pThis, pFirst, &rectRow, &hdwp);
+    CPane* pLast = impl__FindFirstVisiblePane_CDockingPanesRow__IEAAPEAVCPane__H_Z(pThis, FALSE);
+    if (pLast != pFirst) {
+        impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPane__AEBVCRect__AEAPEAX_Z(
+            pThis, pLast, &rectRow, &hdwp);
+    }
+
+    if (nSide == 0xFFFFFFFFu) return;
+    if (bAdjust == 0) return;
+    if (impl__GetAvailableLength_CDockingPanesRow__UEBAHH_Z(pThis, TRUE) + nDelta <= 0) return;
+
+    for (ObNode* n = HeadNode(s); n != nullptr; ) {
+        CPane* pBar = PaneOf(n);
+        ObNode* pNext = n->pNext;
+        n = pNext;
+        if (pBar == nullptr || !PaneCounts(s, pBar)) continue;
+
+        CRect rectWnd(0, 0, 0, 0);
+        ::GetWindowRect(pBar->m_hWnd, RP(&rectWnd));
+        CRect rectV(0, 0, 0, 0);
+        GetPaneVirtualRect(pBar, rectV);
+        if (::EqualRect(RP(&rectWnd), RP(&rectV))) continue;
+
+        const bool bFwd2 = bHorz ? !(rectWnd.left > rectV.left)
+                                 : !(rectWnd.top > rectV.top);
+
+        int nOffset = 0;
+        if (bHorz) {
+            if (nSide == 1u || nSide == 2u) {
+                const int d = rectV.left - rectWnd.left;
+                nOffset = AbsInt(AbsInt(nSizeDelta) < AbsInt(d) ? nSizeDelta : d);
+            }
+        } else {
+            if (nSide == 3u || nSide == 6u) {
+                const int d = rectV.top - rectWnd.top;
+                nOffset = AbsInt(AbsInt(nSizeDelta) < AbsInt(d) ? nSizeDelta : d);
+            }
+        }
+
+        int nAllowed = nOffset;
+        if (impl__IsEnoughSpaceToMove_CDockingPanesRow__AEAAHPEAVCPane___NAEAH_Z(
+                pThis, pBar, bFwd2, &nAllowed)) {
+            impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__H_NAEAPEAX_Z(
+                pThis, pBar, nOffset, bFwd2, &hdwp);
+        }
+    }
+}
 
 // Symbol: ?Resize@CDockingPanesRow@@UEAAHH@Z
 // Retail 0x4fc20: m_nRowHeight += nOffset, every CPane in the row gets
