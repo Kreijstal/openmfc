@@ -131,7 +131,8 @@ public:
 class CMFCVisualManager : public CObject {
     DECLARE_DYNAMIC(CMFCVisualManager)
 public:
-    enum AFX_BUTTON_STATE { ButtonsIsRegular = 0, ButtonsIsHighlighted = 1, ButtonsIsPressed = 2, ButtonsIsDisabled = 3 };
+    // Order matches afxvisualmanager.h (Regular=0, Pressed=1, Highlighted=2); ABI-visible to callers.
+    enum AFX_BUTTON_STATE { ButtonsIsRegular = 0, ButtonsIsPressed = 1, ButtonsIsHighlighted = 2, ButtonsIsDisabled = 3 };
 
     CMFCVisualManager();
     CMFCVisualManager(int) : CMFCVisualManager() {}

@@ -4,6 +4,11 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+// CMFCCaptionBar is only forward-declared in afxmfc.h; its retail layout is
+// mirrored by openmfc::detail::cmfccaptionbar::CB (m_bDrawBackground at 0x404
+// is the flag retail's caption-bar bodies and the two caption-bar visual-manager
+// bodies below test -- retail MFC calls it m_bIsMessageBarMode).
+#include "detail/CMFCCaptionBarSupport.h"
 
 // CMFCVisualManager exports implemented for the wave2_mfc-feature-56 batch
 // (30 symbols). All are virtuals of the base visual manager.
@@ -58,6 +63,83 @@
 #else
   #define MS_ABI
 #endif
+
+// Sibling impl__ thunks used by the bodies below (each definition was located
+// in the tree before being declared here; see the comment at each call site).
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);                 // core/runtime/CObject.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCBaseToolBar__SAPEAUCRuntimeClass__XZ(); // toolbar/RuntimeClasses.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ();     // toolbar/RuntimeClasses.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();           // docking/CPane.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCShowAllButton__SAPEAUCRuntimeClass__XZ();      // controls/RuntimeClasses.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCOutlookBarPaneButton__SAPEAUCRuntimeClass__XZ(); // outlookbar/RuntimeClasses.cpp
+extern "C" void* MS_ABI impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis);              // docking/CPaneFrameWnd.cpp
+extern "C" const CObList* MS_ABI impl__GetAllToolbars_CMFCToolBar__SAAEBVCObList__XZ();       // toolbar/CMFCToolBar.cpp
+extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(
+    const CObList* pThis, long long nIndex);                                                    // core/collections/CObList.cpp
+// (impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z comes from detail/CMFCCaptionBarSupport.h)
+extern "C" void MS_ABI impl__OnChangeVisualManager_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis);    // toolbar/CMFCToolBar.cpp
+extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ();                                  // docking/CPaneFrameWnd.cpp
+extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ();                                  // detail/CWinAppSupport.cpp
+extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;                                // toolbar/StaticData.cpp
+
+namespace {
+
+// Mirror of CList<CObject*, CObject*>::CNode (include/openmfc/afx.h), the node a
+// CObList::POSITION points at.  CObList::GetHeadPosition / GetNext are inline in
+// retail MFC, so they have no export and no impl__ thunk; the exported FindIndex
+// thunk plus this read-only view is how a CObList is walked from another
+// translation unit (the same pattern docking/CDockingPanesRow.cpp uses).
+struct VmObNode {
+    VmObNode* pNext;
+    VmObNode* pPrev;
+    CObject*  data;
+};
+static_assert(sizeof(CObList::POSITION) == sizeof(void*), "POSITION is one pointer");
+
+inline VmObNode* VmNodeFromPos(CObList::POSITION pos)
+{
+    VmObNode* p = nullptr;
+    std::memcpy(&p, &pos, sizeof(p));
+    return p;
+}
+
+// Walks OpenMFC's GetAllToolbars list and hands every toolbar that
+// IsKindOf(pClass) and whose HWND still maps to a permanent CWnd -- the filter
+// both AdjustToolbars and RedrawAll apply to retail's gAllToolbars list -- to
+// `fn`.  The matching bars are snapshotted first, because OpenMFC's
+// GetAllToolbars rebuilds its CObList on every call (see
+// toolbar/CMFCToolBar.cpp), so a node pointer must not be held across the
+// per-toolbar callbacks.  (malloc rather than std::vector: the latter drags in
+// libstdc++ throw helpers this DLL does not link.)
+void VmForEachLiveToolBar(CRuntimeClass* pClass, void (*fn)(CMFCToolBar*))
+{
+    const CObList* pList = impl__GetAllToolbars_CMFCToolBar__SAAEBVCObList__XZ();
+    if (pList == nullptr) return;
+    size_t n = 0;
+    for (VmObNode* p = VmNodeFromPos(impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(pList, 0));
+         p != nullptr; p = p->pNext) {
+        ++n;
+    }
+    if (n == 0) return;
+    CMFCToolBar** bars = static_cast<CMFCToolBar**>(std::malloc(n * sizeof(CMFCToolBar*)));
+    if (bars == nullptr) return;
+    size_t count = 0;
+    for (VmObNode* p = VmNodeFromPos(impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(pList, 0));
+         p != nullptr && count < n; p = p->pNext) {
+        CObject* pObj = p->data;
+        if (pObj == nullptr) continue;
+        if (!impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pObj, pClass)) continue;
+        CMFCToolBar* pBar = static_cast<CMFCToolBar*>(pObj);
+        if (impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(pBar->m_hWnd) == nullptr) continue;
+        bars[count++] = pBar;
+    }
+    for (size_t i = 0; i < count; ++i) fn(bars[i]);
+    std::free(bars);
+}
+
+} // namespace
+
 
 //=============================================================================
 // Color getters (all read AFX_GLOBAL_DATA color fields in retail)
@@ -289,12 +371,15 @@ extern "C" unsigned long MS_ABI impl__GetToolbarButtonTextColor_CMFCVisualManage
     }
     return ::GetSysColor(COLOR_BTNTEXT);
 }
-// CMFCVisualManager::OnActivateApp(...) -- retail body is `ret $0` (no-op).
+// CMFCVisualManager::OnActivateApp(CWnd*, BOOL) -- faithful transcription: the
+// retail body is a bare `ret` at RVA 0x27d0 (mfc140u), an ICF-folded empty
+// virtual shared with OnFillTasksGroupInterior and OnUpdateSystemColors (the
+// name that survives at that RVA in the symbol map is OnDrawRibbonLabel).
 // Symbol: ?OnActivateApp@CMFCVisualManager@@UEAAXPEAVCWnd@@H@Z
 extern "C" void MS_ABI impl__OnActivateApp_CMFCVisualManager__UEAAXPEAVCWnd__H_Z(
     CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
 {
-    // Retail is a pure no-op (verified: `ret $0`).
+    // Retail is a pure no-op (RVA 0x27d0 is a bare `ret`).
 }
 // CMFCVisualManager::OnDrawAutoHideButtonBorder(...) -- retail draws up to
 // four 1px border segments of the auto-hide button using clrBarShadow (0x1684)
@@ -485,11 +570,48 @@ extern "C" void MS_ABI impl__OnDrawSplitterBox_CMFCVisualManager__UEAAXPEAVCDC__
 {
     if (!pThis || !pDC) return;
 }
+// CMFCVisualManager::AdjustFrames() -- retail body (RVA 0x184420, mfc140u)
+// walks CFrameImpl::m_lstFrames (the CList at 0x3b1cc0; its head node pointer
+// is the qword at 0x3b1cc8, nodes are +0x00 next / +0x10 element) and, for
+// every frame whose HWND still maps to a permanent CWnd
+// (?FromHandlePermanent@CWnd@@SAPEAV1@PEAUHWND__@@@Z, RVA 0x28adc0), issues
+// ::SendMessage(pFrame->m_hWnd, AFX_WM_CHANGEVISUALMANAGER, 0, 0) -- the
+// message id is the exported UINT at 0x3c2508, ?AFX_WM_CHANGEVISUALMANAGER@@3IA.
+// OpenMFC does register that message (impl__AFX_WM_CHANGEVISUALMANAGER__3IA in
+// core/runtime/Globals.cpp) and does keep the frame list (AddFrame / RemoveFrame
+// in core/frame/CFrameImpl.cpp), but the live list is the file-local
+// g_pFrameListHead inside that translation unit's anonymous namespace and the
+// exported ?m_lstFrames@CFrameImpl@@ storage is a zero blob, so there is no way
+// to enumerate the frames from here.
+// TODO(clean-room): not transcribed -- CFrameImpl.cpp exposes no accessor for
+// its frame list; once it does, the walk above is a five-line body.
 // Symbol: ?AdjustFrames@CMFCVisualManager@@SAXXZ
 extern "C" void MS_ABI impl__AdjustFrames_CMFCVisualManager__SAXXZ() {
 }
+// CMFCVisualManager::AdjustToolbars() -- transcription of the retail body
+// (RVA 0x1843b0, mfc140u):
+//     for (node = gAllToolbars.head /* 0x3b2098 */; node; node = node->next) {
+//         CObject* p = node->data;                              // +0x10
+//         if (p == NULL) continue;
+//         if (!p->IsKindOf(RUNTIME_CLASS(CMFCToolBar)))          // 0x234cf0 vs 0x3b15f8
+//             continue;
+//         if (CWnd::FromHandlePermanent(p->m_hWnd) == NULL)      // 0x28adc0, m_hWnd @ +0x40
+//             continue;
+//         p->vftable[+0x778]();   // CMFCToolBar::OnChangeVisualManager (0x15b6d0)
+//     }
+// 0x3b2098 is the head pointer of the CObList at 0x3b2090 that
+// ?GetAllToolbars@CMFCToolBar@@SAAEBVCObList@@XZ (RVA 0x159610) returns, 0x3b15f8
+// is the CRuntimeClass ?GetThisClass@CMFCToolBar@@ hands out, and slot +0x778 of
+// the CMFCToolBar vftable (0x3157c8) holds the OnChangeVisualManager export.
+// OpenMFC's list comes from the impl__GetAllToolbars thunk (rebuilt from the
+// toolbar side table on each call, see toolbar/CMFCToolBar.cpp).
+// Deviation: retail dispatches OnChangeVisualManager virtually; OpenMFC's
+// CMFCToolBar has no matching vtable slot, so the base thunk is called directly
+// and a derived toolbar's override is not reached.
 // Symbol: ?AdjustToolbars@CMFCVisualManager@@SAXXZ
 extern "C" void MS_ABI impl__AdjustToolbars_CMFCVisualManager__SAXXZ() {
+    VmForEachLiveToolBar(impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ(),
+                         impl__OnChangeVisualManager_CMFCToolBar__UEAAXXZ);
 }
 // Symbol: ?CreateVisualManager@CMFCVisualManager@@KAPEAV1@PEAUCRuntimeClass@@@Z
 extern "C" CMFCVisualManager* MS_ABI impl__CreateVisualManager_CMFCVisualManager__KAPEAV1_PEAUCRuntimeClass___Z(CRuntimeClass* pRTI) {
@@ -850,159 +972,1021 @@ COLORREF CMFCVisualManager::GetThemeColor(COLORREF clrBase, int nIntensity) {
         clampByte(static_cast<int>(GetGValue(clrBase)) + delta),
         clampByte(static_cast<int>(GetBValue(clrBase)) + delta));
 }
+//=============================================================================
+// wave: base-class defaults decoded from retail mfc140u.dll (14.51.36231, x64)
+//
+// Every body below was transcribed from the retail disassembly.  The retail
+// bodies read their colors out of the global `?afxGlobalData@@3UAFX_GLOBAL_DATA@@A`
+// object, which lives at RVA 0x3c1620 (mfc140u); each read is preceded by the
+// inlined "if (!afxGlobalData.<+0x00>) { afxGlobalData.Initialize(); ... }"
+// guard, which is pure lazy-init bookkeeping and is not modeled here.
+//
+// The color fields themselves are nothing but cached ::GetSysColor() results:
+// AFX_GLOBAL_DATA's color initializer (RVA 0x6b1c0, called from
+// ?Initialize@AFX_GLOBAL_DATA@@QEAAXXZ at 0x6a790) fills them like this --
+// this table was read straight off that function and is the authority used by
+// the implementations below:
+//
+//   +0x28 = GetSysColor(COLOR_BTNFACE)        +0x60 = GetSysColor(COLOR_BTNFACE)
+//   +0x2c = GetSysColor(COLOR_BTNSHADOW)      +0x64 = GetSysColor(COLOR_BTNSHADOW)
+//   +0x30 = GetSysColor(COLOR_BTNHIGHLIGHT)   +0x68 = GetSysColor(COLOR_BTNHIGHLIGHT)
+//   +0x34 = GetSysColor(COLOR_BTNTEXT)        +0x6c = GetSysColor(COLOR_3DDKSHADOW)
+//   +0x38 = GetSysColor(COLOR_WINDOWFRAME)    +0x70 = GetSysColor(COLOR_3DLIGHT)
+//   +0x3c = GetSysColor(COLOR_3DDKSHADOW)     +0x74 = GetSysColor(COLOR_BTNTEXT)
+//   +0x40 = GetSysColor(COLOR_3DLIGHT)        +0x78 = GetSysColor(COLOR_WINDOW)
+//   +0x44 = GetSysColor(COLOR_GRAYTEXT)       +0x7c = GetSysColor(COLOR_WINDOWTEXT)
+//   +0x48 = GetSysColor(COLOR_HIGHLIGHT)      +0x80 = GetSysColor(COLOR_CAPTIONTEXT)
+//   +0x4c = GetSysColor(COLOR_HIGHLIGHTTEXT)  +0x84 = GetSysColor(COLOR_MENUTEXT)
+//   +0x50 = GetSysColor(COLOR_HOTLIGHT)       +0x88 = GetSysColor(COLOR_ACTIVECAPTION)
+//   +0x54 = 0x00ff0000 (blue)                 +0x8c = GetSysColor(COLOR_INACTIVECAPTION)
+//   +0x58 = 0x00800080 (purple)               +0x90 = GetSysColor(COLOR_INACTIVECAPTIONTEXT)
+//   +0x5c = GetSysColor(COLOR_WINDOW)         +0x94 = GetSysColor(COLOR_GRADIENTACTIVECAPTION)
+//                                             +0x98 = GetSysColor(COLOR_GRADIENTINACTIVECAPTION)
+//   (+0x50/+0x54/+0x58 all collapse to GetSysColor(COLOR_WINDOWTEXT) when the
+//    black-high-contrast flag at +0x260 is set)
+//   +0x260 = (GetSysColor(COLOR_3DLIGHT)==0xffffff && GetSysColor(COLOR_BTNFACE)==0)
+//   +0x264 = (GetSysColor(COLOR_3DDKSHADOW)==0 && GetSysColor(COLOR_BTNFACE)==0xffffff)
+//   +0x288 = GetDeviceCaps(screen DC, BITSPIXEL)
+//
+// Cached solid brushes (CBrush objects; the HBRUSH sits at +8 inside each):
+//   brush at +0xa8 (handle +0xb0) = CreateSolidBrush(field +0x28) -> COLOR_BTNFACE
+//   brush at +0xb8 (handle +0xc0) = CreateSolidBrush(field +0x48) -> COLOR_HIGHLIGHT
+//   brush at +0x108 (handle +0x110) = CreateSolidBrush(field +0x78) -> COLOR_WINDOW
+//   brush at +0x118 (handle +0x120) = CreateSolidBrush(field +0x60) -> COLOR_BTNFACE
+//
+// NOTE on the older offset table at the top of this file: those "0x16xx"
+// numbers are the low 16 bits of the ABSOLUTE addresses (afxGlobalData base
+// 0x1803c1620 + the offsets above), not member offsets -- 0x1648 is +0x28,
+// 0x1694 is +0x74, and so on.  Two of its color names disagree with the
+// initializer decoded above: 0x1654 (+0x34) is GetSysColor(COLOR_BTNTEXT), not
+// COLOR_MENUTEXT, and 0x1674 (+0x54) is the constant 0x00ff0000, not
+// COLOR_HOTLIGHT.  Bodies written before this batch were not touched.
+//=============================================================================
+
+namespace {
+
+// Retail draws through ::FillRect with the cached afxGlobalData brushes and
+// through CDC/CPen; OpenMFC models neither afxGlobalData nor the in-DLL CDC
+// method symbols, so these file-local helpers go straight to GDI with the
+// equivalent handles.
+inline HDC VmHdc(CDC* pDC) { return pDC != nullptr ? pDC->GetSafeHdc() : nullptr; }
+
+inline RECT VmRect(const CRect& rect)
+{
+    return RECT{ rect.left, rect.top, rect.right, rect.bottom };
+}
+
+// ::FillRect(pDC->m_hDC, rect, <cached solid brush of ::GetSysColor(nSysColor)>)
+void VmFillSysColor(CDC* pDC, const CRect& rect, int nSysColor)
+{
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    RECT r = VmRect(rect);
+    HBRUSH hbr = ::CreateSolidBrush(::GetSysColor(nSysColor));
+    if (hbr != nullptr) {
+        ::FillRect(hdc, &r, hbr);
+        ::DeleteObject(hbr);
+    }
+}
+
+// CDC::MoveTo/LineTo with a 1px PS_SOLID pen of `clr` (LineTo excludes the
+// end point, exactly as the retail sequence does).
+void VmLine(CDC* pDC, int x1, int y1, int x2, int y2, COLORREF clr)
+{
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    HPEN hpen = ::CreatePen(PS_SOLID, 1, clr);
+    if (hpen == nullptr) return;
+    HGDIOBJ hOld = ::SelectObject(hdc, hpen);
+    ::MoveToEx(hdc, x1, y1, nullptr);
+    ::LineTo(hdc, x2, y2);
+    ::SelectObject(hdc, hOld);
+    ::DeleteObject(hpen);
+}
+
+// afxGlobalData +0x260 / +0x264, recomputed live (retail caches them).
+bool VmIsBlackHighContrast()
+{
+    return ::GetSysColor(COLOR_3DLIGHT) == 0x00ffffff && ::GetSysColor(COLOR_BTNFACE) == 0;
+}
+bool VmIsWhiteHighContrast()
+{
+    return ::GetSysColor(COLOR_3DDKSHADOW) == 0 && ::GetSysColor(COLOR_BTNFACE) == 0x00ffffff;
+}
+
+// afxGlobalData +0x288: GetDeviceCaps(BITSPIXEL) of a screen DC.
+int VmScreenBitsPerPixel()
+{
+    HDC hdc = ::GetDC(nullptr);
+    if (hdc == nullptr) return 32;
+    int bpp = ::GetDeviceCaps(hdc, BITSPIXEL);
+    ::ReleaseDC(nullptr, hdc);
+    return bpp;
+}
+
+} // namespace
+
+// CMFCVisualManager::DoDrawHeaderSortArrow(CDC*, CRect, int, int) -- faithful
+// transcription of the retail body at RVA 0x18b530 (mfc140u).  Retail builds
+// two 1px PS_SOLID CPens and walks a three-segment triangle:
+//   light pen = afxGlobalData +0x30 (p3 != 0) or +0x68 (p3 == 0); both are
+//               ::GetSysColor(COLOR_BTNHIGHLIGHT)
+//   dark pen  = afxGlobalData +0x3c (p3 != 0) or +0x6c (p3 == 0); both are
+//               ::GetSysColor(COLOR_3DDKSHADOW)
+// p2 != 0 (up):   MoveTo(left,bottom) -light-> (right,bottom) -light-> (mid,top)
+//                 -dark-> (left,bottom)
+// p2 == 0 (down): MoveTo(right,top) -light-> (mid,bottom) -dark-> (left,top)
+//                 -dark-> (right,top)
+// where mid == (left + right) / 2 truncated toward zero.  The p3 palette pair
+// only picks between two fields that hold the same system color, so the two
+// palettes are indistinguishable here.
 // Symbol: ?DoDrawHeaderSortArrow@CMFCVisualManager@@QEAAXPEAVCDC@@VCRect@@HH@Z
-extern "C" void MS_ABI impl__DoDrawHeaderSortArrow_CMFCVisualManager__QEAAXPEAVCDC__VCRect__HH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3) {}
+extern "C" void MS_ABI impl__DoDrawHeaderSortArrow_CMFCVisualManager__QEAAXPEAVCDC__VCRect__HH_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, int bIsUp, int /*bUseBtnPalette*/)
+{
+    if (!pThis || !pDC) return;
+    const COLORREF clrLight = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+    const COLORREF clrDark = ::GetSysColor(COLOR_3DDKSHADOW);
+    const int mid = (rect.left + rect.right) / 2;
+    if (bIsUp) {
+        VmLine(pDC, rect.left, rect.bottom, rect.right, rect.bottom, clrLight);
+        VmLine(pDC, rect.right, rect.bottom, mid, rect.top, clrLight);
+        VmLine(pDC, mid, rect.top, rect.left, rect.bottom, clrDark);
+    } else {
+        VmLine(pDC, rect.right, rect.top, mid, rect.bottom, clrLight);
+        VmLine(pDC, mid, rect.bottom, rect.left, rect.top, clrDark);
+        VmLine(pDC, rect.left, rect.top, rect.right, rect.top, clrDark);
+    }
+}
 
+// CMFCVisualManager::DrawTextOnGlass(CDC*, CString, CRect, DWORD, int, COLORREF)
+// -- retail (RVA 0x18f1d0, mfc140u) saves ::GetTextColor(pDC->m_hAttribDC),
+// calls the virtual CDC::SetTextColor(0), forwards to
+// ?DrawTextOnGlass@AFX_GLOBAL_DATA@@QEAAH... (RVA 0x6c500) passing the theme
+// handle cached at CMFCVisualManager+0x20 with iPartId/iStateId = 0, then
+// restores the saved text color and returns that call's result.
+// CMFCVisualManager+0x20 is not modeled here (OpenMFC's CMFCVisualManager
+// carries only _visualmanager_padding), so the NULL-theme terminal of
+// AFX_GLOBAL_DATA::DrawTextOnGlass (its entry test at 0x6c536 / the
+// IsDwmCompositionEnabled test at 0x6c53f, both landing on 0x6c711) is what is
+// transcribed: CDC::DrawText(str, str.GetLength(), rect, dwFlags) followed by
+// `return FALSE`.  On that path nGlowSize and clrText are unused by retail too.
 // Symbol: ?DrawTextOnGlass@CMFCVisualManager@@UEAAHPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@KHK@Z
-extern "C" int MS_ABI impl__DrawTextOnGlass_CMFCVisualManager__UEAAHPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__KHK_Z(void* /*class*/* p0, void* /*class*/ p1, void** p2, void* p3, void* /*class*/ p4, unsigned long p5, int p6, unsigned long p7) {
-    return 0;
+extern "C" int MS_ABI impl__DrawTextOnGlass_CMFCVisualManager__UEAAHPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__KHK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, const CString& strText, CRect rect,
+    unsigned long dwFlags, int /*nGlowSize*/, unsigned long /*clrText*/)
+{
+    if (!pThis) return FALSE;
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return FALSE;
+    const COLORREF clrOld = ::SetTextColor(hdc, RGB(0, 0, 0));
+    RECT r = VmRect(rect);
+    ::DrawTextW(hdc, strText.GetString(), strText.GetLength(), &r, static_cast<UINT>(dwFlags));
+    ::SetTextColor(hdc, clrOld);
+    return FALSE; // retail's NULL-theme terminal returns FALSE (0x6c760)
 }
 
+// CMFCVisualManager::GetAutoHideButtonTextColor(CMFCAutoHideButton*) -- retail
+// body (RVA 0x18ae00, mfc140u; ICF-folded with GetRibbonStatusBarTextColor)
+// returns afxGlobalData +0x74 unconditionally; pButton is unused.
 // Symbol: ?GetAutoHideButtonTextColor@CMFCVisualManager@@UEAAKPEAVCMFCAutoHideButton@@@Z
-extern "C" unsigned long MS_ABI impl__GetAutoHideButtonTextColor_CMFCVisualManager__UEAAKPEAVCMFCAutoHideButton___Z(void* /*class*/* p0) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__GetAutoHideButtonTextColor_CMFCVisualManager__UEAAKPEAVCMFCAutoHideButton___Z(
+    CMFCVisualManager* pThis, void* /*pButton*/)
+{
+    return pThis ? ::GetSysColor(COLOR_BTNTEXT) : 0;
 }
 
+// CMFCVisualManager::GetCaptionBarTextColor(CMFCCaptionBar*) -- faithful
+// transcription of the retail body (RVA 0x1885a0, mfc140u):
+//     if (pBar->[+0x404] != 0) return ::GetSysColor(COLOR_INFOTEXT);  // tail jmp, ecx = 0x17
+//     return afxGlobalData +0x78;                                    // COLOR_WINDOW
+// +0x404 is the flag the CMFCCaptionBar shadow struct in
+// detail/CMFCCaptionBarSupport.h names m_bDrawBackground (retail MFC's
+// m_bIsMessageBarMode; the caption bar's own OnDrawBackground at RVA 0x208a0
+// gates on the same slot).  Retail dereferences pBar unconditionally; the NULL
+// guard is OpenMFC's and yields the default-state (flag clear) answer.
 // Symbol: ?GetCaptionBarTextColor@CMFCVisualManager@@UEAAKPEAVCMFCCaptionBar@@@Z
-extern "C" unsigned long MS_ABI impl__GetCaptionBarTextColor_CMFCVisualManager__UEAAKPEAVCMFCCaptionBar___Z(void* /*class*/* p0) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__GetCaptionBarTextColor_CMFCVisualManager__UEAAKPEAVCMFCCaptionBar___Z(
+    CMFCVisualManager* pThis, CMFCCaptionBar* pBar)
+{
+    if (!pThis) return 0;
+    const CB* pShadow = reinterpret_cast<const CB*>(pBar);
+    if (pShadow != nullptr && pShadow->m_bDrawBackground != 0) {
+        return ::GetSysColor(COLOR_INFOTEXT);
+    }
+    return ::GetSysColor(COLOR_WINDOW);
 }
 
+// CMFCVisualManager::GetHighlightedMenuItemTextColor(CMFCToolBarMenuButton*)
+// -- faithful transcription of the retail body (RVA 0x184db0, mfc140u):
+//     if (pButton->[+0x28] & 0x40000) return afxGlobalData +0x44;  // COLOR_GRAYTEXT
+//     return afxGlobalData +0x4c;                                  // COLOR_HIGHLIGHTTEXT
+// CMFCToolBarButton::m_nStyle is the member at retail +0x28 (the same test the
+// already-implemented GetToolbarButtonTextColor in this file uses).
 // Symbol: ?GetHighlightedMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@@Z
-extern "C" unsigned long MS_ABI impl__GetHighlightedMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton___Z(void* /*class*/* p0) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__GetHighlightedMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton___Z(
+    CMFCVisualManager* pThis, CMFCToolBarMenuButton* pButton)
+{
+    if (!pThis) return 0;
+    if (pButton != nullptr && (pButton->m_nStyle & 0x40000)) {
+        return ::GetSysColor(COLOR_GRAYTEXT);
+    }
+    return ::GetSysColor(COLOR_HIGHLIGHTTEXT);
 }
 
+// CMFCVisualManager::GetMenuItemTextColor(CMFCToolBarMenuButton*, BOOL, BOOL)
+// -- faithful transcription of the retail body (RVA 0x18b7c0, mfc140u).  The
+// button pointer is never dereferenced; the result is a pure 2x2 table:
+//     bHighlighted && bDisabled  -> afxGlobalData +0x28  (COLOR_BTNFACE)
+//     bHighlighted && !bDisabled -> afxGlobalData +0x4c  (COLOR_HIGHLIGHTTEXT)
+//     !bHighlighted && bDisabled -> afxGlobalData +0x44  (COLOR_GRAYTEXT)
+//     neither                    -> afxGlobalData +0x7c  (COLOR_WINDOWTEXT)
 // Symbol: ?GetMenuItemTextColor@CMFCVisualManager@@UEAAKPEAVCMFCToolBarMenuButton@@HH@Z
-extern "C" unsigned long MS_ABI impl__GetMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton__HH_Z(void* /*class*/* p0, int p1, int p2) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__GetMenuItemTextColor_CMFCVisualManager__UEAAKPEAVCMFCToolBarMenuButton__HH_Z(
+    CMFCVisualManager* pThis, CMFCToolBarMenuButton* /*pButton*/, int bHighlighted, int bDisabled)
+{
+    if (!pThis) return 0;
+    if (bHighlighted) {
+        return bDisabled ? ::GetSysColor(COLOR_BTNFACE) : ::GetSysColor(COLOR_HIGHLIGHTTEXT);
+    }
+    return bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_WINDOWTEXT);
 }
 
+// CMFCVisualManager::GetNcBtnSize(BOOL) const -- faithful transcription of the
+// retail body (RVA 0x88e0, mfc140u, ICF-folded with CMFCRibbonTab::GetRegularSize):
+//     movq $0,(%rdx) ; mov %rdx,%rax ; ret
+// i.e. it writes CSize(0, 0) into the hidden return slot (rdx, because rcx
+// carries `this`) and returns that slot.  The BOOL argument is ignored.
 // Symbol: ?GetNcBtnSize@CMFCVisualManager@@UEBA?AVCSize@@H@Z
-extern "C" void* MS_ABI impl__GetNcBtnSize_CMFCVisualManager__UEBA_AVCSize__H_Z(void* /*class*/* p0, int p1) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__GetNcBtnSize_CMFCVisualManager__UEBA_AVCSize__H_Z(
+    const CMFCVisualManager* /*pThis*/, CSize* pRet, int /*bHorz*/)
+{
+    if (pRet != nullptr) {
+        pRet->cx = 0;
+        pRet->cy = 0;
+    }
+    return pRet;
 }
 
+// CMFCVisualManager::OnDrawTabResizeBar(CDC*, CMFCBaseTabCtrl*, BOOL, CRect,
+// CBrush*, CPen*) -- faithful transcription of the retail body (RVA 0x187280,
+// mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, pbrFace ? pbrFace->m_hObject : NULL);
+//     pOld = pDC->SelectObject(pPen);
+//     pDC->MoveTo(rect.left, rect.top);
+//     pDC->LineTo(bIsHorz ? rect.left  : rect.right,
+//                 bIsHorz ? rect.bottom : rect.top);
+//     pDC->SelectObject(pOld);
+// The tab control is not touched at all.  Retail passes the brush handle to
+// ::FillRect even when it is NULL, so a NULL pbrFace simply paints nothing.
 // Symbol: ?OnDrawTabResizeBar@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCBaseTabCtrl@@HVCRect@@PEAVCBrush@@PEAVCPen@@@Z
-extern "C" void MS_ABI impl__OnDrawTabResizeBar_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCBaseTabCtrl__HVCRect__PEAVCBrush__PEAVCPen___Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/ p3, void* /*class*/* p4, void* /*class*/* p5) {}
+extern "C" void MS_ABI impl__OnDrawTabResizeBar_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCBaseTabCtrl__HVCRect__PEAVCBrush__PEAVCPen___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCBaseTabCtrl* /*pTabWnd*/, int bIsHorz,
+    CRect rect, CBrush* pbrFace, CPen* pPen)
+{
+    if (!pThis) return;
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    RECT r = VmRect(rect);
+    ::FillRect(hdc, &r, pbrFace != nullptr ? static_cast<HBRUSH>(pbrFace->GetSafeHandle()) : nullptr);
+    HGDIOBJ hOld = nullptr;
+    if (pPen != nullptr && pPen->GetSafeHandle() != nullptr) {
+        hOld = ::SelectObject(hdc, pPen->GetSafeHandle());
+    }
+    ::MoveToEx(hdc, rect.left, rect.top, nullptr);
+    if (bIsHorz) {
+        ::LineTo(hdc, rect.left, rect.bottom);
+    } else {
+        ::LineTo(hdc, rect.right, rect.top);
+    }
+    if (hOld != nullptr) ::SelectObject(hdc, hOld);
+}
 
+// CMFCVisualManager::OnDrawTasksGroupIcon(...) -- retail body (RVA 0x189520,
+// mfc140u) reads six CMFCTasksPaneTaskGroup members (the HICON at +0x88, the
+// origin at +0x5c/+0x60, +0x68, and the icon extent at +0x7c/+0x80), plus the
+// int at +0x538 of the object two hops away (group+0x08 -> that object's +0x10
+// -> +0x538; falling back to CMFCVisualManager+0xe4 when it is -1), centres the
+// icon, and calls ::DrawIconEx(pDC->m_hDC, x, y, hIcon, cx, cy, 0, NULL,
+// DI_NORMAL /* 3 */) through the import at 0x1802c72e0.  Returns immediately
+// when the +0x88 icon handle is NULL.
+// None of those members are modeled by OpenMFC: afxmfc.h declares
+// CMFCTasksPaneTaskGroup as an opaque CObject with a 32-byte pad (no shadow
+// struct pins the retail offsets) and CMFCVisualManager carries only padding,
+// so nothing can be drawn without inventing a layout.
+// TODO(clean-room): not transcribed -- CMFCTasksPaneTaskGroup layout unmodeled.
 // Symbol: ?OnDrawTasksGroupIcon@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHHH@Z
-extern "C" void MS_ABI impl__OnDrawTasksGroupIcon_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHHH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3, int p4, int p5) {}
+extern "C" void MS_ABI impl__OnDrawTasksGroupIcon_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHHH_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCTasksPaneTaskGroup* /*pGroup*/,
+    int /*nIconHOffset*/, int /*bIsHighlighted*/, int /*bIsSelected*/, int /*bCanCollapse*/)
+{
+    if (!pThis || !pDC) return;
+}
 
+// CMFCVisualManager::OnEraseMDIClientArea(CDC*, CRect) -- faithful
+// transcription: the retail body is `xor %eax,%eax ; ret` at RVA 0x71e0
+// (mfc140u), i.e. it draws nothing and returns FALSE so the caller falls back
+// to its own erase.  (That two-instruction body is ICF-folded and shared with
+// several other "return FALSE" exports, e.g. CPageSetupDialog::OnDrawPage.)
 // Symbol: ?OnEraseMDIClientArea@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@@Z
-extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManager__UEAAHPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
-    return 0;
+extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManager__UEAAHPEAVCDC__VCRect___Z(
+    CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/)
+{
+    return FALSE; // retail: xor eax,eax; ret
 }
 
+// CMFCVisualManager::OnErasePopupWindowButton(CDC*, CRect, CMFCDesktopAlertWndButton*)
+// -- retail body (RVA 0x18b2a0, mfc140u):
+//     if (pButton->[+0xb20] != 0)
+//         ::FillRect(pDC->m_hDC, &rectClient, <brush at afxGlobalData+0xb0>);  // COLOR_BTNFACE
+//     else {
+//         // map the parent's client rect into the button's coordinates and
+//         // let the virtual at CMFCVisualManager vftable +0x3c8
+//         // (OnFillPopupWindowBackground) paint it:
+//         ::GetClientRect(::GetParent(pButton->m_hWnd), &rc);
+//         ::MapWindowPoints(hwndParent, pButton->m_hWnd, &rc, 2);
+//         this->OnFillPopupWindowBackground(pDC, rc);
+//     }
+// (0x1802c72d8 = USER32!GetParent, 0x1802c7330 = GetClientRect, 0x1802c7228 =
+// MapWindowPoints; each HWND goes through CWnd::FromHandle at 0x28ad70 first.)
+// afxmfc.h declares CMFCDesktopAlertWndButton as an opaque 16-byte-padded
+// CObject -- not the retail CMFCButton-derived window -- so neither the +0xb20
+// selector nor an m_hWnd exists on the OpenMFC object, and there is no virtual
+// slot to dispatch through.
+// TODO(clean-room): not transcribed -- CMFCDesktopAlertWndButton unmodeled.
 // Symbol: ?OnErasePopupWindowButton@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWndButton@@@Z
-extern "C" void MS_ABI impl__OnErasePopupWindowButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCDesktopAlertWndButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {}
+extern "C" void MS_ABI impl__OnErasePopupWindowButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCDesktopAlertWndButton___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect /*rectClient*/, CMFCDesktopAlertWndButton* /*pButton*/)
+{
+    if (!pThis || !pDC) return;
+}
 
+// CMFCVisualManager::OnEraseTabsArea(CDC*, CRect, const CMFCBaseTabCtrl*) --
+// faithful transcription of the retail body at RVA 0x185680 (mfc140u), a body
+// ICF-shared by OnEraseTabsArea, OnEraseTabsButton, OnFillAutoHideButtonBackground
+// and OnFillPopupWindowBackground (it is also CMFCVisualManager vftable +0x3c8):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);
+// where that brush is CreateSolidBrush(afxGlobalData+0x60) == COLOR_BTNFACE.
+// The tab control is never touched.
 // Symbol: ?OnEraseTabsArea@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {}
+extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, const CMFCBaseTabCtrl* /*pTabWnd*/)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnEraseTabsButton(...) -- same retail body as
+// OnEraseTabsArea (RVA 0x185680, mfc140u; the two exports are ICF-folded onto
+// it): fill the rect with the cached COLOR_BTNFACE brush at afxGlobalData+0x120.
+// Neither the button nor the tab control is touched.
 // Symbol: ?OnEraseTabsButton@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, CMFCButton* /*pButton*/,
+    CMFCBaseTabCtrl* /*pTabWnd*/)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnEraseTabsFrame(CDC*, CRect, const CMFCBaseTabCtrl*) --
+// retail body (RVA 0x186c10, mfc140u):
+//     int n = pTabWnd->vftable[+0x428]();          // active-tab getter
+//     COLORREF clr = pTabWnd->vftable[+0x3c8](n);  // per-tab background color
+//     if (clr == (COLORREF)-1) return FALSE;
+//     pDC->FillSolidRect(&rect, clr);
+//     return TRUE;
+// Both calls are virtuals of CMFCBaseTabCtrl.  OpenMFC's CMFCBaseTabCtrl has a
+// different vtable, its GetActiveTab is a non-virtual C++ method with no impl__
+// thunk, and while an impl__GetTabBkColor_CMFCBaseTabCtrl thunk does exist
+// (tabs/CMFCBaseTabCtrl.cpp) it returns -1 for every tab because the per-tab
+// record is unmodeled -- so the only value this body could ever compute is the
+// -1 that makes retail return FALSE without painting.
+// TODO(clean-room): not transcribed -- CMFCBaseTabCtrl vtable slots +0x428 /
+// +0x3c8 are not modeled and the per-tab color is not available.
 // Symbol: ?OnEraseTabsFrame@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
-extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManager__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManager__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, const CMFCBaseTabCtrl* /*pTabWnd*/)
+{
+    return FALSE;
 }
 
+// CMFCVisualManager::OnFillAutoHideButtonBackground(CDC*, CRect, CMFCAutoHideButton*)
+// -- same retail body as OnEraseTabsArea (RVA 0x185680, mfc140u, ICF-folded):
+// fill the rect with the cached COLOR_BTNFACE brush at afxGlobalData+0x120.
+// The button is not touched.
 // Symbol: ?OnFillAutoHideButtonBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCAutoHideButton@@@Z
-extern "C" void MS_ABI impl__OnFillAutoHideButtonBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCAutoHideButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {}
+extern "C" void MS_ABI impl__OnFillAutoHideButtonBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCAutoHideButton___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, void* /*pButton*/)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillButtonInterior(CDC*, CMFCToolBarButton*, CRect,
+// AFX_BUTTON_STATE) -- retail body (RVA 0x184bb0, mfc140u), decoded in full:
+//     if (pButton->IsKindOf(<0x30f268 = CMFCShowAllButton>)) {
+//         if (state == 2) CDrawingManager(*pDC).HighlightRect(rect, -1, -1, 0, -1);
+//         return;
+//     }
+//     if (this->[+0xb0] == 0) {                       // m_bEnableToolbarButtonFill
+//         if (!pButton || !pButton->IsKindOf(<0x3b1748 = CMFCToolBarMenuButton>)
+//             || !pButton->m_pWndParent /* +0x80 */
+//             || !pButton->m_pWndParent->IsKindOf(<0x3b1478 = CMFCPopupMenuBar>))
+//             return;
+//     }
+//     if (pButton->IsKindOf(<0x3b13b8 = CMFCOutlookBarPaneButton>)) return;
+//     if (CMFCToolBar::m_bCustomizeMode /* 0x3be35c */) return;
+//     if (state == 2) return;
+//     if (!(pButton->m_nStyle /* +0x28 */ & 0x110000)) return;   // TBBS_CHECKED | TBBS_INDETERMINATE
+//     CRect r = rect; ::InflateRect(&r, -afxData.cxBorder2, -afxData.cyBorder2);  // 0x3c32d0 / 0x3c32d4
+//     CMFCToolBarImages::FillDitheredRect(pDC, r);                             // 0x16d4b0
+// The four CRuntimeClass addresses were read off the matching ?GetThisClass@
+// getters; 0x3c32c0 is ?afxData@@3UAUX_DATA@@A, so the two deflate amounts are
+// AUX_DATA::cxBorder2 / cyBorder2 (both 2 in retail -- CX_BORDER*2; OpenMFC's
+// exported afxData is a zero blob, so the constant is used).  FillDitheredRect
+// is `::FillRect(pDC->m_hDC, &rect, afxGlobalData+0xd0)`, the handle of the
+// CBrush at +0xc8 ("brLight"), which the color initializer at 0x6b1c0 builds as
+// a solid brush of the per-channel midpoint between field +0x28 (COLOR_BTNFACE)
+// and +0x30 (COLOR_BTNHIGHLIGHT) -- face + trunc((hilite - face) / 2) -- when
+// the screen is deeper than 8bpp (0x6b5bc..0x6b608), and as a CreatePatternBrush
+// of a dither bitmap (helper 0x6b8b0) otherwise.
+// What is transcribed: the checked / indeterminate fill on the default path,
+// with this+0xb0 taken as TRUE -- the value the retail constructor stores at
+// 0x18409f (`mov %rsi,0xb0(%rbx)`, rsi == 1) and that OpenMFC's padding-only
+// CMFCVisualManager cannot represent -- and the solid midpoint brush on every
+// color depth.  NOT transcribed: the CDrawingManager::HighlightRect highlight of
+// a hovered CMFCShowAllButton (returns without painting instead), the
+// m_bEnableToolbarButtonFill == FALSE menu-button exception, and the <= 8bpp
+// dither pattern.  The NULL guards are OpenMFC's; retail's IsKindOf takes its
+// range-check-failure path on a NULL button.
+// TODO(clean-room): transcribed partially -- see the list above.
 // Symbol: ?OnFillButtonInterior@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@1@@Z
-extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7) {}
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, int nState)
+{
+    if (!pThis || !pDC || !pButton) return;
+    const CObject* pObj = pButton;
+    if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            pObj, impl__GetThisClass_CMFCShowAllButton__SAPEAUCRuntimeClass__XZ())) {
+        // retail: state == 2 -> CDrawingManager::HighlightRect (not modeled)
+        return;
+    }
+    if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            pObj, impl__GetThisClass_CMFCOutlookBarPaneButton__SAPEAUCRuntimeClass__XZ())) {
+        return;
+    }
+    if (impl__m_bCustomizeMode_CMFCToolBar__1HA != 0) return;
+    if (nState == 2) return;
+    if ((pButton->m_nStyle & 0x110000) == 0) return;
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    RECT r = VmRect(rect);
+    ::InflateRect(&r, -2, -2);
+    const COLORREF clrFace = ::GetSysColor(COLOR_BTNFACE);
+    const COLORREF clrHilite = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+    auto mid = [](int face, int hilite) -> BYTE {
+        return static_cast<BYTE>(face + (hilite - face) / 2);
+    };
+    HBRUSH hbr = ::CreateSolidBrush(RGB(mid(GetRValue(clrFace), GetRValue(clrHilite)),
+                                        mid(GetGValue(clrFace), GetGValue(clrHilite)),
+                                        mid(GetBValue(clrFace), GetBValue(clrHilite))));
+    if (hbr != nullptr) {
+        ::FillRect(hdc, &r, hbr);
+        ::DeleteObject(hbr);
+    }
+}
 
+// CMFCVisualManager::OnFillCaptionBarButton(CDC*, CMFCCaptionBar*, CRect,
+// BOOL bIsPressed, BOOL bIsHighlighted, BOOL bIsDisabled, BOOL bHasDropDownArrow,
+// BOOL bIsSysButton) -- faithful transcription of the retail body (RVA 0x188810,
+// mfc140u):
+//     if (pBar->[+0x404] == 0) return (COLORREF)-1;   // nothing painted
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);  // COLOR_BTNFACE
+//     return bIsDisabled ? afxGlobalData+0x44   // COLOR_GRAYTEXT
+//                        : afxGlobalData+0x74;  // COLOR_BTNTEXT
+// bIsDisabled is the 7th argument (stack slot 0x60 after the 0x20 prologue
+// shift); bIsPressed / bIsHighlighted / bHasDropDownArrow / bIsSysButton are not
+// read.  +0x404 is the CMFCCaptionBar flag the shadow struct in
+// detail/CMFCCaptionBarSupport.h calls m_bDrawBackground (retail's
+// m_bIsMessageBarMode), the same slot GetCaptionBarTextColor tests.  Retail
+// dereferences pBar unconditionally; the NULL guard is OpenMFC's and takes the
+// flag-clear arm.
 // Symbol: ?OnFillCaptionBarButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z
-extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, int p6, int p7) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCCaptionBar* pBar, CRect rect,
+    int /*bIsPressed*/, int /*bIsHighlighted*/, int bIsDisabled,
+    int /*bHasDropDownArrow*/, int /*bIsSysButton*/)
+{
+    if (!pThis) return static_cast<unsigned long>(-1);
+    const CB* pShadow = reinterpret_cast<const CB*>(pBar);
+    if (pShadow == nullptr || pShadow->m_bDrawBackground == 0) {
+        return static_cast<unsigned long>(-1);
+    }
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+    return bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_BTNTEXT);
 }
 
+// CMFCVisualManager::OnFillCommandsListBackground(CDC*, CRect, BOOL bIsSelected)
+// -- faithful transcription of the retail body (RVA 0x187320, mfc140u):
+//   bIsSelected:
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0xc0>);  // COLOR_HIGHLIGHT
+//     ::InflateRect(&rect, -1, -1);  rect.bottom--;  rect.right--;
+//     four ::PatBlt(hdc, ..., PATINVERT) calls trace a 1px frame:
+//       (left,        top+1, 1,            bottom-top)
+//       (left,        top,   right-left,   1)
+//       (right,       top,   1,            bottom-top)
+//       (left+1,      bottom, right-left,  1)
+//     return afxGlobalData+0x4c;   // COLOR_HIGHLIGHTTEXT
+//   otherwise:
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);  // COLOR_BTNFACE
+//     return afxGlobalData+0x74;   // COLOR_BTNTEXT
 // Symbol: ?OnFillCommandsListBackground@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@H@Z
-extern "C" unsigned long MS_ABI impl__OnFillCommandsListBackground_CMFCVisualManager__UEAAKPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillCommandsListBackground_CMFCVisualManager__UEAAKPEAVCDC__VCRect__H_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect, int bIsSelected)
+{
+    if (!pThis) return 0;
+    if (!bIsSelected) {
+        VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+        return ::GetSysColor(COLOR_BTNTEXT);
+    }
+    VmFillSysColor(pDC, rect, COLOR_HIGHLIGHT);
+    HDC hdc = VmHdc(pDC);
+    if (hdc != nullptr) {
+        RECT r = VmRect(rect);
+        ::InflateRect(&r, -1, -1);
+        r.bottom -= 1;
+        r.right -= 1;
+        const int cy = r.bottom - r.top;
+        const int cx = r.right - r.left;
+        ::PatBlt(hdc, r.left, r.top + 1, 1, cy, PATINVERT);
+        ::PatBlt(hdc, r.left, r.top, cx, 1, PATINVERT);
+        ::PatBlt(hdc, r.right, r.top, 1, cy, PATINVERT);
+        ::PatBlt(hdc, r.left + 1, r.bottom, cx, 1, PATINVERT);
+    }
+    return ::GetSysColor(COLOR_HIGHLIGHTTEXT);
 }
 
+// CMFCVisualManager::OnFillHeaderCtrlBackground(CMFCHeaderCtrl*, CDC*, CRect)
+// -- faithful transcription of the retail body (RVA 0x188c40, mfc140u):
+//     HBRUSH hbr = pCtrl->[+0x130] != 0 ? <brush at afxGlobalData+0xb0>
+//                                       : <brush at afxGlobalData+0x120>;
+//     ::FillRect(pDC->m_hDC, &rect, hbr);
+// Both cached brushes are CreateSolidBrush(::GetSysColor(COLOR_BTNFACE)) --
+// the first from field +0x28, the second from field +0x60 -- so the two arms
+// paint the same color and the unmodeled CMFCHeaderCtrl +0x130 selector makes
+// no visible difference.
 // Symbol: ?OnFillHeaderCtrlBackground@CMFCVisualManager@@UEAAXPEAVCMFCHeaderCtrl@@PEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillHeaderCtrlBackground_CMFCVisualManager__UEAAXPEAVCMFCHeaderCtrl__PEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+extern "C" void MS_ABI impl__OnFillHeaderCtrlBackground_CMFCVisualManager__UEAAXPEAVCMFCHeaderCtrl__PEAVCDC__VCRect___Z(
+    CMFCVisualManager* pThis, CMFCHeaderCtrl* /*pCtrl*/, CDC* pDC, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillMiniFrameCaption(CDC*, CRect, CPaneFrameWnd*, BOOL)
+// -- transcription of the retail body (RVA 0x187d80, mfc140u):
+//     CObject* p = pFrameWnd->vftable[+0x360]();          // CPaneFrameWnd::GetPane (0xaf340)
+//     if (p != NULL && !p->IsKindOf(<CRuntimeClass at 0x2deb80>)) p = NULL;
+//     BOOL bAct = (p != NULL) ? TRUE : bActive;            // cmove 0x80(%rsp),%ebx
+//     CBrush br(bAct ? afxGlobalData+0x88 : afxGlobalData+0x8c);
+//     ::FillRect(pDC->m_hDC, &rectCaption, br);
+//     return bAct ? afxGlobalData+0x80 : afxGlobalData+0x90;
+// i.e. COLOR_ACTIVECAPTION / COLOR_INACTIVECAPTION for the fill and
+// COLOR_CAPTIONTEXT / COLOR_INACTIVECAPTIONTEXT for the returned text color.
+// Slot +0x360 of the CPaneFrameWnd vftable (0x2f7b88) holds the GetPane export,
+// and 0x2deb80 is the CRuntimeClass ?GetThisClass@CMFCBaseToolBar@@ returns
+// (read from that getter's `lea`), so a floating toolbar's caption always
+// paints active.  OpenMFC has both pieces: the impl__GetPane_CPaneFrameWnd thunk
+// (docking/CPaneFrameWnd.cpp, side-table backed) and the CMFCBaseToolBar RTTI
+// descriptor (toolbar/RuntimeClasses.cpp).
+// Deviation: retail dispatches GetPane virtually; OpenMFC's CPaneFrameWnd has
+// no matching vtable slot, so the base thunk is called directly and a derived
+// frame's override is not reached.  The NULL guards are OpenMFC's.
 // Symbol: ?OnFillMiniFrameCaption@CMFCVisualManager@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
-extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManager__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManager__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rectCaption, CPaneFrameWnd* pFrameWnd, int bActive)
+{
+    if (!pThis) return 0;
+    if (pFrameWnd != nullptr) {
+        void* pPane = impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pFrameWnd);
+        if (pPane != nullptr &&
+            impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                reinterpret_cast<const CObject*>(pPane),
+                impl__GetThisClass_CMFCBaseToolBar__SAPEAUCRuntimeClass__XZ())) {
+            bActive = TRUE;
+        }
+    }
+    VmFillSysColor(pDC, rectCaption, bActive ? COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION);
+    return bActive ? ::GetSysColor(COLOR_CAPTIONTEXT) : ::GetSysColor(COLOR_INACTIVECAPTIONTEXT);
 }
 
+// CMFCVisualManager::OnFillOutlookBarCaption(CDC*, CRect, COLORREF&) --
+// faithful transcription of the retail body (RVA 0x18aee0, mfc140u):
+//     pDC->FillSolidRect(&rectCaption, afxGlobalData+0x64);  // COLOR_BTNSHADOW
+//     clrText = afxGlobalData+0x68;                          // COLOR_BTNHIGHLIGHT
 // Symbol: ?OnFillOutlookBarCaption@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManager__UEAAXPEAVCDC__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned long* p2) {}
+extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManager__UEAAXPEAVCDC__VCRect__AEAK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rectCaption, unsigned long& clrText)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rectCaption, COLOR_BTNSHADOW);
+    clrText = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+}
 
+// CMFCVisualManager::OnFillOutlookPageButton(CDC*, const CRect&, BOOL, BOOL,
+// COLORREF&) -- faithful transcription of the retail body (RVA 0x188380,
+// mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);  // COLOR_BTNFACE
+//     clrText = afxGlobalData+0x74;                                   // COLOR_BTNTEXT
+// The two BOOLs are read into registers but never used by the base body.
 // Symbol: ?OnFillOutlookPageButton@CMFCVisualManager@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
-extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2, int p3, unsigned long* p4) {}
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, const CRect& rect, int /*bIsHighlighted*/,
+    int /*bIsPressed*/, unsigned long& clrText)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+    clrText = ::GetSysColor(COLOR_BTNTEXT);
+}
 
+// CMFCVisualManager::OnFillPopupWindowBackground(CDC*, CRect) -- same retail
+// body as OnEraseTabsArea (RVA 0x185680, mfc140u, ICF-folded; it is also the
+// virtual sitting at CMFCVisualManager vftable +0x3c8):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);  // COLOR_BTNFACE
 // Symbol: ?OnFillPopupWindowBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillRibbonButton(CDC*, CMFCRibbonButton*) -- retail body
+// (RVA 0x18d090, mfc140u) branches three ways on the element type:
+//   * pButton->IsKindOf(<CRuntimeClass at 0x180304ac0>): paints the rect built
+//     from pButton+0x1a8 / pButton+0xc8 either through
+//     CDrawingManager::DrawRect(rect, afxGlobalData+0x78, afxGlobalData+0x64)
+//     or through ::FillRect + CDrawingManager::HighlightRect + CDC::Draw3dRect,
+//     gated on the two virtuals at CMFCRibbonBaseElement vftable +0x1d8/+0x1b0
+//     and on the global BOOL at 0x1803be394;
+//   * a second arm keyed on ?IsMenuMode@CMFCRibbonBaseElement@@QEBAHXZ (RVA
+//     0x10520) and the virtuals at
+//     +0x418/+0x1b0 fills pButton+0xc8 with the COLOR_HIGHLIGHT brush at
+//     afxGlobalData+0xc0 and returns afxGlobalData+0x4c (COLOR_HIGHLIGHTTEXT);
+//   * a third arm (+0x1d0/+0x1b0) fills pButton+0xc8 with afxGlobalData+0x78
+//     (COLOR_WINDOW) or dithers it via CMFCToolBarImages::FillDitheredRect.
+// Every other path returns (COLORREF)-1.  CMFCRibbonButton's member layout, the
+// CMFCRibbonBaseElement vtable and CDrawingManager are all unmodeled in
+// OpenMFC, so only the "-1" terminal can be produced.
+// TODO(clean-room): not transcribed -- CMFCRibbonButton layout / ribbon element
+// vtable / CDrawingManager unmodeled.
 // Symbol: ?OnFillRibbonButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CMFCRibbonButton* /*pButton*/)
+{
+    return static_cast<unsigned long>(-1);
 }
 
+// CMFCVisualManager::OnFillRibbonEdit(CDC*, CMFCRibbonRichEditCtrl*, CRect,
+// BOOL bIsHighlighted, BOOL bIsPaneHighlighted, BOOL bIsDisabled, COLORREF&,
+// COLORREF&, COLORREF&) -- retail body (RVA 0x18d3e0, mfc140u):
+//     if (bIsHighlighted && !bIsDisabled)
+//         fill rect with afxGlobalData+0x78  (COLOR_WINDOW)
+//     else {
+//         fill rect with afxGlobalData+0x60  (COLOR_BTNFACE)
+//         if the global BOOL at 0x1803be394 is clear, additionally run
+//         CDrawingManager::HighlightRect(rect, -1, -1, 0, -1) over it
+//     }
+// The fill is done either by CDrawingManager::DrawRect(rect, clr, -1) (border
+// suppressed) or by ::FillRect with the matching cached brush, depending on
+// that same global; both paint the identical color, which is why the fill below
+// is unconditional.  None of the three COLORREF& out-parameters is written by
+// the base body.  The rich-edit pointer is never dereferenced.
+// TODO(clean-room): transcribed partially -- the CDrawingManager::HighlightRect
+// overlay on the non-highlighted path is not modeled.
 // Symbol: ?OnFillRibbonEdit@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonRichEditCtrl@@VCRect@@HHHAEAK33@Z
-extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, unsigned long* p6, unsigned long* p7, unsigned long* p8) {}
+extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* /*pEdit*/, CRect rect,
+    int bIsHighlighted, int /*bIsPaneHighlighted*/, int bIsDisabled,
+    unsigned long& /*clrText*/, unsigned long& /*clrSelBackground*/, unsigned long& /*clrSelText*/)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, (bIsHighlighted && !bIsDisabled) ? COLOR_WINDOW : COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillRibbonMainPanelButton(CDC*, CMFCRibbonButton*) --
+// faithful transcription of the retail body (RVA 0x18d3a0, mfc140u), which is
+// three instructions:
+//     mov (%rcx),%rax ; mov 0x480(%rax),%rax ; jmp <cfg dispatch>
+// i.e. an unconditional tail-call through CMFCVisualManager vftable +0x480.
+// That slot holds OnFillRibbonButton (verified: the vftable at 0x31c128 stores
+// 0x18d090 there, which is the OnFillRibbonButton export).  OpenMFC's
+// CMFCVisualManager declares no such virtual, so the base thunk is called
+// directly -- a derived visual manager's override is therefore NOT picked up,
+// which is a deviation from retail's virtual dispatch.
 // Symbol: ?OnFillRibbonMainPanelButton@CMFCVisualManager@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCRibbonButton* pButton)
+{
+    return impl__OnFillRibbonButton_CMFCVisualManager__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(pThis, pDC, pButton);
 }
 
+// CMFCVisualManager::OnFillRibbonMenuFrame(CDC*, CMFCRibbonMainPanel*, CRect)
+// -- faithful transcription of the retail body (RVA 0x18da70, mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x110>);
+// where that brush is CreateSolidBrush(afxGlobalData+0x78) == COLOR_WINDOW.
+// The panel pointer is not touched.
 // Symbol: ?OnFillRibbonMenuFrame@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCRibbonMainPanel* /*pPanel*/, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_WINDOW);
+}
 
+// CMFCVisualManager::OnFillRibbonQuickAccessToolBarPopup(CDC*,
+// CMFCRibbonPanelMenuBar*, CRect) -- faithful transcription of the retail body
+// (RVA 0x18e670, mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x120>);  // COLOR_BTNFACE
+// The menu bar pointer is not touched.
 // Symbol: ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* /*pMenuBar*/, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillSplitterBackground(CDC*, CSplitterWndEx*, CRect) --
+// faithful transcription of the retail body (RVA 0x189fe0, mfc140u):
+//     pDC->FillSolidRect(&rect, afxGlobalData+0x60);   // COLOR_BTNFACE
+// The splitter pointer is not touched.
 // Symbol: ?OnFillSplitterBackground@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCSplitterWndEx@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillSplitterBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCSplitterWndEx__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+extern "C" void MS_ABI impl__OnFillSplitterBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCSplitterWndEx__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* /*pSplitterWnd*/, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_BTNFACE);
+}
 
+// CMFCVisualManager::OnFillTab(CDC*, CRect, CBrush*, int iTab, BOOL bIsActive,
+// const CMFCBaseTabCtrl*) -- retail body (RVA 0x186b00, mfc140u):
+//     HBRUSH hbr = pbrFill ? pbrFill->m_hObject : NULL;
+//     if (bIsActive && !afxGlobalData[+0x264] && !afxGlobalData[+0x260]
+//         && (pTabWnd->vftable[+0x520]() || pTabWnd->vftable[+0x528]()
+//             || pTabWnd->vftable[+0x530]())
+//         && pTabWnd->vftable[+0x3c8](iTab) == (COLORREF)-1)
+//         hbr = <brush at afxGlobalData+0x110>;          // COLOR_WINDOW
+//     ::FillRect(pDC->m_hDC, &rectFill, hbr);
+// The three style predicates and the per-tab background-color getter are
+// CMFCBaseTabCtrl virtuals whose slots OpenMFC does not model, so only the
+// general arm -- fill with the caller's brush -- is transcribed.
+// TODO(clean-room): transcribed partially -- the active-tab special case that
+// substitutes the COLOR_WINDOW brush needs CMFCBaseTabCtrl vftable slots
+// +0x520/+0x528/+0x530/+0x3c8.
 // Symbol: ?OnFillTab@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3, int p4, const void* /*class*/* p5) {}
+extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rectFill, CBrush* pbrFill,
+    int /*iTab*/, int /*bIsActive*/, const CMFCBaseTabCtrl* /*pTabWnd*/)
+{
+    if (!pThis) return;
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    RECT r = VmRect(rectFill);
+    ::FillRect(hdc, &r, pbrFill != nullptr ? static_cast<HBRUSH>(pbrFill->GetSafeHandle()) : nullptr);
+}
 
+// CMFCVisualManager::OnFillTasksGroupInterior(CDC*, CRect, BOOL) -- faithful
+// transcription: the retail body is `ret` at RVA 0x27d0 (mfc140u), a pure
+// no-op that the linker folded together with several other empty virtuals
+// (the symbol that survives at that RVA in the map is OnDrawRibbonLabel).
 // Symbol: ?OnFillTasksGroupInterior@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@H@Z
-extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bIsSpecial*/)
+{
+    // Retail draws nothing here (RVA 0x27d0 is a bare `ret`).
+}
 
+// CMFCVisualManager::OnFillTasksPaneBackground(CDC*, CRect) -- faithful
+// transcription of the retail body (RVA 0x189020, mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0x110>);  // COLOR_WINDOW
 // Symbol: ?OnFillTasksPaneBackground@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_WINDOW);
+}
 
+// CMFCVisualManager::OnFillToolTip(CDC*, CMFCToolTipCtrl*, CRect, COLORREF&
+// clrText, COLORREF& clrLine) -- retail body (RVA 0x18f100, mfc140u):
+//     HTHEME h = this->[+0x88];
+//     if (h != NULL) {
+//         ::DrawThemeBackground(h, pDC->m_hDC, 1, 0, &rect, NULL);
+//         ::GetThemeColor(h, 1, 0, 0xedb, &clrText);
+//         ::GetThemeColor(h, 1, 0, 0xedf, &clrLine);
+//     } else {
+//         ::FillRect(pDC->m_hDC, &rect, ::GetSysColorBrush(COLOR_INFOBK));
+//     }
+// CMFCVisualManager+0x88 (the tooltip theme handle) is not modeled by OpenMFC,
+// so the NULL-theme arm is the terminal: fill with the COLOR_INFOBK system
+// brush and leave both COLORREF& out-parameters untouched, exactly as retail
+// does on that path.  The tooltip control pointer is never dereferenced.
 // Symbol: ?OnFillToolTip@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolTipCtrl@@VCRect@@AEAK3@Z
-extern "C" void MS_ABI impl__OnFillToolTip_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolTipCtrl__VCRect__AEAK3_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3, void* p4) {}
+extern "C" void MS_ABI impl__OnFillToolTip_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolTipCtrl__VCRect__AEAK3_Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* /*pToolTip*/, CRect rect,
+    unsigned long& /*clrText*/, unsigned long& /*clrLine*/)
+{
+    if (!pThis) return;
+    HDC hdc = VmHdc(pDC);
+    if (hdc == nullptr) return;
+    RECT r = VmRect(rect);
+    ::FillRect(hdc, &r, ::GetSysColorBrush(COLOR_INFOBK));
+}
 
+// CMFCVisualManager::OnHighlightMenuItem(CDC*, CMFCToolBarMenuButton*, CRect,
+// COLORREF& clrText) -- faithful transcription of the retail body (RVA
+// 0x184d60, mfc140u):
+//     ::FillRect(pDC->m_hDC, &rect, <brush at afxGlobalData+0xc0>);  // COLOR_HIGHLIGHT
+// The button is never dereferenced and clrText is NOT written by the base
+// implementation (derived managers override that).
 // Symbol: ?OnHighlightMenuItem@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCToolBarMenuButton* /*pButton*/, CRect rect,
+    unsigned long& /*clrText*/)
+{
+    if (!pThis) return;
+    VmFillSysColor(pDC, rect, COLOR_HIGHLIGHT);
+}
 
+// CMFCVisualManager::OnHighlightRarelyUsedMenuItems(CDC*, CRect) -- retail body
+// (RVA 0x184e10, mfc140u):
+//     CDrawingManager dm(*pDC);
+//     dm.HighlightRect(rect, -1, (COLORREF)-1, 0);
+//     pDC->Draw3dRect(&rect, afxGlobalData+0x64, afxGlobalData+0x68);
+// i.e. an alpha highlight pass followed by a 3D frame whose top/left edges use
+// ::GetSysColor(COLOR_BTNSHADOW) and whose bottom/right edges use
+// ::GetSysColor(COLOR_BTNHIGHLIGHT).  CDrawingManager is not modeled by
+// OpenMFC, so only the Draw3dRect is reproduced.
+// The four segments below reproduce CDC::Draw3dRect's edge extents exactly
+// (top cx-1, left cy-1, bottom cx, right cy) for a non-empty rect.  The
+// empty-rect early-out is OpenMFC's: retail's Draw3dRect passes negative
+// extents to FillSolidRect and would still touch the pixels just outside a
+// degenerate rect; no caller hands this function such a rect.
+// TODO(clean-room): transcribed partially -- the CDrawingManager::HighlightRect
+// pass that precedes the frame is not modeled.
 // Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rect)
+{
+    if (!pThis || !pDC) return;
+    if (rect.right <= rect.left || rect.bottom <= rect.top) return;
+    const COLORREF clrTopLeft = ::GetSysColor(COLOR_BTNSHADOW);
+    const COLORREF clrBottomRight = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+    VmLine(pDC, rect.left, rect.top, rect.right - 1, rect.top, clrTopLeft);
+    VmLine(pDC, rect.left, rect.top, rect.left, rect.bottom - 1, clrTopLeft);
+    VmLine(pDC, rect.left, rect.bottom - 1, rect.right, rect.bottom - 1, clrBottomRight);
+    VmLine(pDC, rect.right - 1, rect.top, rect.right - 1, rect.bottom, clrBottomRight);
+}
 
+// CMFCVisualManager::OnNcActivate(CWnd*, BOOL) -- faithful transcription: the
+// retail body is `xor %eax,%eax ; ret` at RVA 0x71e0 (mfc140u), i.e. the base
+// manager declines to handle WM_NCACTIVATE and returns FALSE.
 // Symbol: ?OnNcActivate@CMFCVisualManager@@UEAAHPEAVCWnd@@H@Z
-extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManager__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
-    return 0;
+extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManager__UEAAHPEAVCWnd__H_Z(
+    CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
+{
+    return FALSE; // retail: xor eax,eax; ret
 }
 
+// CMFCVisualManager::OnNcPaint(CWnd*, const CObList&, CRect) -- faithful
+// transcription: the retail body is `xor %eax,%eax ; ret` at RVA 0x71e0
+// (mfc140u), i.e. the base manager declines to paint the non-client area and
+// returns FALSE so the caller falls back to the default frame drawing.
 // Symbol: ?OnNcPaint@CMFCVisualManager@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
-extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManager__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/ p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManager__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(
+    CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, const CObList& /*lstSysButtons*/, CRect /*rect*/)
+{
+    return FALSE; // retail: xor eax,eax; ret
 }
 
+// CMFCVisualManager::OnSetWindowRegion(CWnd*, CSize) -- retail body (RVA
+// 0x18ede0, mfc140u):
+//     if (afxGlobalData.IsDwmCompositionEnabled()) return FALSE;
+//     if      (pWnd->IsKindOf(<CRuntimeClass at 0x1802e9210>)) p = pWnd->[+0x370];
+//     else if (pWnd->IsKindOf(<CRuntimeClass at 0x1802ee478>)) p = pWnd->[+0x710];
+//     else return FALSE;
+//     if (!p || !::IsWindowVisible(p->m_hWnd) || p->[+0x468] == 0) return FALSE;
+//     ... builds a rounded region out of ::CreateRectRgn / ::CreateEllipticRgn
+//     and four ::CombineRgn passes, then ::SetWindowRgn(pWnd->m_hWnd, hrgn, TRUE)
+//     and returns TRUE.
+// 0x1802e9210 is the CRuntimeClass ?GetThisClass@CFrameWndEx@@ returns and
+// 0x1802ee478 the one ?GetThisClass@CMDIFrameWndEx@@ returns (both read from
+// those getters' `lea`).  +0x370 / +0x710 are the frames' ribbon-bar pointers:
+// CFrameWndEx::AddPane (0x67d00) stores the pane there after
+// IsKindOf(<CMFCRibbonBar CRuntimeClass at 0x2fea10>), and CMDIFrameWndEx::AddPane
+// (0x890e0) does the same into +0x710.  +0x468 is a BOOL of the ribbon bar that
+// CMFCRibbonBar::CreateEx (0xd9880) also tests (the public MFC source calls it
+// m_bReplaceFrameCaption); so the region is the rounded top of a ribbon frame.
+// OpenMFC has no GetRibbonBar thunk for either frame class and models none of
+// those offsets, so the region cannot be built; every retail path that is
+// reachable here ends in FALSE.
+// TODO(clean-room): not transcribed -- the CFrameWndEx / CMDIFrameWndEx
+// ribbon-bar members the region depends on are unmodeled.
 // Symbol: ?OnSetWindowRegion@CMFCVisualManager@@UEAAHPEAVCWnd@@VCSize@@@Z
-extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManager__UEAAHPEAVCWnd__VCSize___Z(void* /*class*/* p0, void* /*class*/ p1) {
-    return 0;
+extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManager__UEAAHPEAVCWnd__VCSize___Z(
+    CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, long long /*sizeWindow*/)
+{
+    return FALSE;
 }
 
+// CMFCVisualManager::OnUpdateSystemColors() -- faithful transcription: the
+// retail body is `ret` at RVA 0x27d0 (mfc140u), the same folded no-op body
+// OnFillTasksGroupInterior and OnActivateApp use.  The base manager caches no
+// colors of its own (afxGlobalData does the caching), so there is nothing to
+// refresh; every derived manager overrides this.
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManager@@UEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(
+    CMFCVisualManager* /*pThis*/)
+{
+    // Retail is a pure no-op (RVA 0x27d0 is a bare `ret`).
+}
 
+// CMFCVisualManager::RedrawAll() -- retail body (RVA 0x1842b0, mfc140u):
+//     CWinThread* pThread = AfxGetModuleThreadState()->[+0x08];   // 0x133a20
+//     CWnd* pMain = pThread ? pThread->vftable[+0xf8]() : NULL;    // GetMainWnd
+//     for each node of CFrameImpl::m_lstFrames (head qword at 0x3b1cc8):
+//         if (CWnd::FromHandlePermanent(pFrame->m_hWnd))           // 0x28adc0
+//             ::RedrawWindow(pFrame->m_hWnd, NULL, NULL, 0x585);   // 0x1802c7130
+//     if (pMain && pMain->m_hWnd && CWnd::FromHandlePermanent(pMain->m_hWnd))
+//         ::RedrawWindow(pMain->m_hWnd, NULL, NULL, 0x585);
+//     for each node of gAllToolbars (head qword at 0x3b2098):
+//         if (p && p->IsKindOf(<CRuntimeClass at 0x2f5918>)        // CPane
+//               && CWnd::FromHandlePermanent(p->m_hWnd))
+//             ::RedrawWindow(p->m_hWnd, NULL, NULL, 0x185);
+//     tail-jump ?RedrawAll@CPaneFrameWnd@@SAXXZ (0xb3060).
+// (0x585 = RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME,
+//  0x185 = the same without RDW_ALLCHILDREN.  0x2f5918 is the CRuntimeClass
+//  ?GetThisClass@CPane@@ returns -- note it is CPane here, not the CMFCToolBar
+//  class AdjustToolbars filters on.)
+// Transcribed: the main-window redraw (through the impl__AfxGetMainWnd thunk,
+// since the module-thread-state / CWinThread vtable path is not modeled), the
+// toolbar walk (through impl__GetAllToolbars, IsKindOf CPane) and the
+// CPaneFrameWnd::RedrawAll tail call (its OpenMFC thunk is currently an empty
+// stub).  NOT transcribed: the CFrameImpl::m_lstFrames walk -- OpenMFC keeps
+// that list file-local inside core/frame/CFrameImpl.cpp with no accessor, so
+// secondary frames are not repainted from here (see AdjustFrames).
+// TODO(clean-room): transcribed partially -- the frame-list walk needs an
+// accessor from CFrameImpl.cpp.
 // Symbol: ?RedrawAll@CMFCVisualManager@@SAXXZ
-extern "C" void MS_ABI impl__RedrawAll_CMFCVisualManager__SAXXZ() {}
+extern "C" void MS_ABI impl__RedrawAll_CMFCVisualManager__SAXXZ() {
+    CWnd* pMain = impl__AfxGetMainWnd__YAPEAVCWnd__XZ();
+    if (pMain != nullptr && pMain->m_hWnd != nullptr &&
+        impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(pMain->m_hWnd) != nullptr) {
+        ::RedrawWindow(pMain->m_hWnd, nullptr, nullptr, 0x585);
+    }
+    VmForEachLiveToolBar(impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ(), [](CMFCToolBar* pBar) {
+        ::RedrawWindow(pBar->m_hWnd, nullptr, nullptr, 0x185);
+    });
+    impl__RedrawAll_CPaneFrameWnd__SAXXZ();
+}
 
+// CMFCVisualManager::RibbonCategoryColorToRGB(AFX_RibbonCategoryColor) --
+// faithful transcription of the retail body (RVA 0x18dc60, mfc140u).  Retail
+// picks between two palettes: the pastel one when the display is deeper than
+// 8bpp (afxGlobalData+0x288) and neither high-contrast flag (+0x264, +0x260) is
+// set, the saturated one otherwise.  Both flags and the bit depth are just
+// cached ::GetSysColor / ::GetDeviceCaps results (see the table at the top of
+// this batch), so they are recomputed live here.  Any value outside 1..7 --
+// including AFX_CategoryColor_None (0) -- returns (COLORREF)-1 on both paths.
 // Symbol: ?RibbonCategoryColorToRGB@CMFCVisualManager@@UEAAKW4AFX_RibbonCategoryColor@@@Z
-extern "C" unsigned long MS_ABI impl__RibbonCategoryColorToRGB_CMFCVisualManager__UEAAKW4AFX_RibbonCategoryColor___Z(int /*enum*/ p0, short* p1, int p2, void* p3, void* p4, void* p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, void* p20, void* p21) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__RibbonCategoryColorToRGB_CMFCVisualManager__UEAAKW4AFX_RibbonCategoryColor___Z(
+    CMFCVisualManager* pThis, int nColor)
+{
+    if (!pThis) return static_cast<unsigned long>(-1);
+    const bool bRichColors = VmScreenBitsPerPixel() > 8 &&
+                             !VmIsWhiteHighContrast() && !VmIsBlackHighContrast();
+    if (bRichColors) {
+        switch (nColor) {
+        case 1: return 0x00a0a0ff; // Red
+        case 2: return 0x0037bdef; // Orange
+        case 3: return 0x001be5fd; // Yellow
+        case 4: return 0x0059be71; // Green
+        case 5: return 0x00c4b580; // Blue
+        case 6: return 0x00e0a372; // Indigo
+        case 7: return 0x00d1b2d6; // Violet
+        default: return static_cast<unsigned long>(-1);
+        }
+    }
+    switch (nColor) {
+    case 1: return 0x000000ff; // Red
+    case 2: return 0x000080ff; // Orange
+    case 3: return 0x0000ffff; // Yellow
+    case 4: return 0x0000ff00; // Green
+    case 5: return 0x00ff0000; // Blue
+    case 6: return 0x00800000; // Indigo
+    case 7: return 0x00ff00ff; // Violet
+    default: return static_cast<unsigned long>(-1);
+    }
 }
