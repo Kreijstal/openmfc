@@ -31,11 +31,11 @@ extern "C" std::int32_t impl__m_bDisableAnimation_CDockablePane__2HA = 0;
 // Symbol: ?m_bHideInAutoHideMode@CDockablePane@@2HA
 extern "C" std::int32_t impl__m_bHideInAutoHideMode_CDockablePane__2HA = 0;
 // Symbol: ?m_nSlideDefaultTimeOut@CDockablePane@@1HA
-extern "C" std::int32_t impl__m_nSlideDefaultTimeOut_CDockablePane__1HA = 0;
+extern "C" std::int32_t impl__m_nSlideDefaultTimeOut_CDockablePane__1HA = 1;    // retail .data (mfc140 RVA 0x3aaac0)
 // Symbol: ?m_nSlideSteps@CDockablePane@@2HA
-extern "C" std::int32_t impl__m_nSlideSteps_CDockablePane__2HA = 0;
+extern "C" std::int32_t impl__m_nSlideSteps_CDockablePane__2HA = 12;          // retail .data (mfc140 RVA 0x3aaabc)
 // Symbol: ?m_nTimeOutBeforeAutoHide@CDockablePane@@2HA
-extern "C" std::int32_t impl__m_nTimeOutBeforeAutoHide_CDockablePane__2HA = 0;
+extern "C" std::int32_t impl__m_nTimeOutBeforeAutoHide_CDockablePane__2HA = 700; // retail .data (mfc140 RVA 0x3aaac4)
 // Symbol: ?m_ahSlideModeGlobal@CDockingManager@@2IA
 extern "C" std::uint32_t impl__m_ahSlideModeGlobal_CDockingManager__2IA = 0;
 // Symbol: ?m_bDisableRecalcLayout@CDockingManager@@2HA

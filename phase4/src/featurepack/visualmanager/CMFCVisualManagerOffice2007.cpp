@@ -589,9 +589,22 @@ extern "C" void MS_ABI impl__DrawNcCaption_CMFCVisualManagerOffice2007__IEAAXPEA
 
 // Symbol: ?DrawNcText@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEAVCRect@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@2HHHHHHK@Z
 // As above: the ANSI twin is at mfc140 0x1a0cc0, the Unicode export at
-// mfc140u 0x1a26c0. It measures and draws the
-// caption text/document name with the Office2007 caption font and colours.
-// Left a stub -- the fonts and colours are unmodelled members.
+// mfc140u 0x1a26c0. Re-read 2026-09-14 (mfc140u): after the early-outs
+// (both strings empty, or rect.right <= rect.left) it does
+// SetBkMode(TRANSPARENT), saves ::GetTextColor(m_hAttribDC), builds
+// DT_END_ELLIPSIS|DT_NOPREFIX|DT_SINGLELINE|DT_VCENTER (0x8824, plus
+// DT_RTLREADING when the 8th argument is set), and takes its text colours
+// from the Office2007 block: the pairs this->[+0xc590 / +0xc594] and
+// [+0xc598 / +0xc59c], each indexed by the 7th argument, the 6th argument
+// choosing which string gets which pair (a lone title uses the second
+// pair). It then measures with ::GetTextExtentPoint32W, centres when the
+// 9th argument is set, and draws either through vftable +0x5a8
+// (DrawTextOnGlass, when the 10th is set, passing the 11th and 12th
+// through) or SetTextColor + DrawText. The parameter names on the stub
+// below are the earlier generation's and were NOT re-derived here. Those
+// four colours are the palette the style module loads; nothing in this
+// build holds them, so the body is left a stub rather than painted in a
+// colour retail never uses.
 extern "C" void MS_ABI impl__DrawNcText_CMFCVisualManagerOffice2007__IEAAXPEAVCDC__AEAVCRect__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__2HHHHHHK_Z(
     void* /*pThis*/, CDC* /*pDC*/, CRect* /*pRect*/, const void* /*strTitle*/,
     const void* /*strDocument*/, int /*bPrefix*/, int /*bActive*/, int /*bTextCenter*/,
@@ -1394,144 +1407,904 @@ extern "C" unsigned long MS_ABI impl__OnDrawMenuLabel_CMFCVisualManagerOffice200
     return impl__OnDrawMenuLabel_CMFCVisualManager__UEAAKPEAVCDC__VCRect___Z(pThis, pDC, rect);
 }
 
+//=============================================================================
+// CMFCVisualManagerOffice2007 - third batch: menu/tab/pane/outlook/ribbon
+// fills, NC handling, OnUpdateSystemColors, SetResourceHandle
+//=============================================================================
+//
+// Decoded from the retail disassembly. RVAs in this batch are mfc140u.dll
+// entry points (resolved through the mfc140u export table). Review re-diffed
+// all 44 bodies against the mfc140.dll twin: 42 are identical apart from
+// RIP-relative displacements; OnNcPaint differs by one wchar_t pointer-
+// difference shift and OnUpdateSystemColors by its (wider) frame size --
+// both were read in mfc140u anyway. Every address quoted is the ENTRY of
+// the named function unless the text says "the call at".
+//
+// The predicate is the same non-exported helper the second batch describes
+// (mfc140 0x1972e8; its body is `afxGlobalData.Initialize() if needed;
+// return bpp > 8 && !whiteHC && !blackHC && this->[+0x2f0] != 0`). In this
+// build this->[+0x2f0] -- the "style resources loaded" flag -- has no
+// representation and nothing ever sets it, so the predicate is FALSE and
+// only its FALSE edge is reachable. Exactly as CMFCVisualManagerWindows7.cpp
+// does, each body below implements that reachable edge and documents the
+// themed edge (offsets, callees, colours) without inventing the members it
+// needs. Where the FALSE edge is itself a bare `return 0`, the symbol is
+// left an honest stub and says so.
+//
+// Retail's FALSE edge calls the base-class method: CMFCVisualManagerOffice2007
+// derives from CMFCVisualManagerOffice2003 (which derives from OfficeXP, then
+// Windows), and the callee named by each `call` below is the one the object
+// code resolves to. OpenMFC declares the three classes as siblings under
+// CMFCVisualManager with the same layout (CMFCVisualManager + char _pad[64];
+// the static_asserts in the helper block below pin that), and the Office2003 /
+// OfficeXP thunks reach `this` only through CMFCVisualManager-level thunks
+// and their own on-demand palette helpers (O2003_Theme / XP_Colors), never
+// through the derived block, so those thunks are called directly here with
+// the Office2007 object as `this`. That is the retail control flow; how
+// faithful the pixels are is a property of the callee's own file. Several of
+// those callees are still delegating stubs (noted per function).
+
+// Sibling-class entry points this batch calls, declared with the parameter
+// lists of their definitions (CMFCVisualManagerOffice2003.cpp,
+// CMFCVisualManagerOfficeXP.cpp, CMFCVisualManager.cpp, core/runtime/CObject.cpp).
+extern "C" void MS_ABI impl__OnDrawMenuResizeBar_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rect, int nResizeBarHeight);
+extern "C" void MS_ABI impl__OnDrawMenuScrollButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HHHH_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rect,
+    int bIsScrollDown, int bIsHighlited, int bIsPressed, int bIsDisabled);
+extern "C" void MS_ABI impl__OnDrawMenuSystemButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__IIH_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rect, unsigned int uiSystemCommand, unsigned int nStyle, int bHighlight);
+extern "C" void MS_ABI impl__OnDrawMiniFrameBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCPaneFrameWnd__VCRect__2_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CPaneFrameWnd* pFrameWnd, CRect rectBorder, CRect rectBorderSize);
+extern "C" void MS_ABI impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectSplitter);
+extern "C" void MS_ABI impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEAVCRect__HH_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect& rect, int bIsHighlighted, int bIsPressed);
+extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CDockablePane* pBar, int bActive, CRect rectCaption, CRect rectButtons);
+extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd* pPopupWnd);
+extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCRibbonButton* pButton);
+extern "C" void MS_ABI impl__OnDrawTab_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectTab, int iTab, int bIsActive, const CMFCBaseTabCtrl* pTabWnd);
+extern "C" void MS_ABI impl__OnDrawTabsButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEAVCRect__PEAVCMFCButton__IPEAVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect& rect, CMFCButton* pButton, unsigned int uiState, CMFCBaseTabCtrl* pWndTab);
+extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CMFCTasksPaneTask* pTask, CImageList* pIcons, int bIsHighlighted, int bIsSelected);
+extern "C" void MS_ABI impl__OnDrawTasksGroupCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CMFCTasksPaneTaskGroup* pGroup, int bIsHighlighted, int bIsSelected, int bCanCollapse);
+extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectCaption, int bIsActive);
+extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectArea, const CMFCBaseTabCtrl* pTabWnd);
+extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rect, CMFCButton* pButton, CMFCBaseTabCtrl* pWndTab);
+extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManagerOffice2003__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rect, const CMFCBaseTabCtrl* pTabWnd);
+extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CBasePane* pBar, CRect rectClient, CRect rectClip, int bNCArea);
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state);
+extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCCaptionBar* pBar, CRect rect,
+    int bIsPressed, int bIsHighlighted, int bIsDisabled, int bHasDropDownArrow, int bIsSysButton);
+extern "C" void MS_ABI impl__OnFillHighlightedArea_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCBrush__PEAVCMFCToolBarButton___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rect, CBrush* pBrush, CMFCToolBarButton* pButton);
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rectCaption, CPaneFrameWnd* pFrameWnd, int bActive);
+extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__AEAK_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectCaption, unsigned long& clrText);
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, const CRect& rect, int bIsHighlighted, int bIsPressed, unsigned long& clrText);
+extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rect);
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCRibbonButton* pButton);
+extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* pEdit, CRect rect,
+    int bIsHighlighted, int bIsPaneHighlighted, int bIsDisabled,
+    unsigned long& clrText, unsigned long& clrSelBackground, unsigned long& clrSelText);
+extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, void* pPanel, CRect rect);
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* pMenuBar, CRect rect);
+extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rectFill, CBrush* pBrush, int iTab, int bIsActive, const CMFCBaseTabCtrl* pTabWnd);
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, unsigned long* pclrText);
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2003* pThis, CDC* pDC, CRect rect);
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rectRarelyUsed);
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2003__UEAAXXZ(
+    CMFCVisualManagerOffice2003* pThis);
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+// This file's own entry points that retail reaches through the vftable.
+extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerOffice2007__MEAAXXZ(void* pThis);
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton);
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2007__UEAAXXZ(CMFCVisualManagerOffice2007* pThis);
+
+namespace {
+// See the batch banner: the retail base classes are OpenMFC siblings with an
+// identical layout, and the callees never touch the derived block.
+static_assert(sizeof(CMFCVisualManagerOffice2003) == sizeof(CMFCVisualManagerOffice2007),
+              "Office2003/Office2007 layouts must match for the sibling-thunk calls below");
+static_assert(sizeof(CMFCVisualManagerOfficeXP) == sizeof(CMFCVisualManagerOffice2007),
+              "OfficeXP/Office2007 layouts must match for the sibling-thunk calls below");
+inline CMFCVisualManagerOffice2003* AsOffice2003(CMFCVisualManagerOffice2007* p)
+{
+    return reinterpret_cast<CMFCVisualManagerOffice2003*>(p);
+}
+inline CMFCVisualManagerOfficeXP* AsOfficeXP(CMFCVisualManagerOffice2007* p)
+{
+    return reinterpret_cast<CMFCVisualManagerOfficeXP*>(p);
+}
+} // namespace
+
 // Symbol: ?OnDrawMenuResizeBar@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@H@Z
-extern "C" void MS_ABI impl__OnDrawMenuResizeBar_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+// Retail 0x1a5dc0 (mfc140u). The !predicate edge calls
+// ?OnDrawMenuResizeBar@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@H@Z
+// with the same three arguments. The themed edge picks an object by
+// nResizeFlags (1 -> this+0x1630, 3 -> this+0x17c8, else this+0x1960; it is
+// drawn with CMFCToolBarImages::DrawEx, so a CMFCToolBarImages), requires
+// its +0xa0 and the +0xa8 of the object at this+0x36f0 to be non-NULL,
+// fills through the this+0x36f0 object's vftable +0x30 and then draws the
+// grip image -- all unmodelled Office2007 state.
+extern "C" void MS_ABI impl__OnDrawMenuResizeBar_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect, int nResizeFlags)
+{
+    if (!pThis) return;
+    impl__OnDrawMenuResizeBar_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__H_Z(
+        AsOfficeXP(pThis), pDC, rect, nResizeFlags);
+}
 
 // Symbol: ?OnDrawMenuScrollButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHHH@Z
-extern "C" void MS_ABI impl__OnDrawMenuScrollButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHH_Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, int p4, int p5) {}
+// Retail 0x1a5f00 (mfc140u). The !predicate edge calls
+// ?OnDrawMenuScrollButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHHH@Z
+// with the same six arguments. The themed edge does `rect.top--`, fills via
+// the renderer at this+0x44f0 (this+0x46f0 when bIsScrollDown and the
+// pointer at this+0x4798 is non-NULL) with bIsHighlited selecting the image
+// index, then draws the arrow with
+// ?Draw@CMenuImages@@SAXPEAVCDC@@W4IMAGES_IDS@1@AEBVCRect@@W4IMAGE_STATE@1@AEBVCSize@@@Z
+// (image id 0 when bIsScrollDown, else 7). Unmodelled.
+extern "C" void MS_ABI impl__OnDrawMenuScrollButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHHH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect,
+    int bIsScrollDown, int bIsHighlited, int bIsPressed, int bIsDisabled)
+{
+    if (!pThis) return;
+    impl__OnDrawMenuScrollButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HHHH_Z(
+        AsOfficeXP(pThis), pDC, rect, bIsScrollDown, bIsHighlited, bIsPressed, bIsDisabled);
+}
 
 // Symbol: ?OnDrawMenuSystemButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@IIH@Z
-extern "C" void MS_ABI impl__OnDrawMenuSystemButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__IIH_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned int p2, unsigned int p3, int p4) {}
+// Retail 0x1a5ff0 (mfc140u). The !predicate edge calls
+// ?OnDrawMenuSystemButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@IIH@Z
+// with the same five arguments. The themed edge selects one of the
+// CMFCToolBarImages arrays by uiSystemCommand (SC_MINIMIZE 0xf020 -> +0x1300,
+// SC_CLOSE 0xf060 -> +0x970, SC_RESTORE 0xf120 -> +0xca0; anything else
+// draws nothing), picks image 3 when nStyle & 0x40000 else 0, fills the
+// highlight through the renderer at this+0x86f0 depending on bHighlight and
+// nStyle bit 0x20000, and draws with CMFCToolBarImages::DrawEx. Unmodelled.
+extern "C" void MS_ABI impl__OnDrawMenuSystemButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__IIH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect,
+    unsigned int uiSystemCommand, unsigned int nStyle, int bHighlight)
+{
+    if (!pThis) return;
+    impl__OnDrawMenuSystemButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__IIH_Z(
+        AsOfficeXP(pThis), pDC, rect, uiSystemCommand, nStyle, bHighlight);
+}
 
 // Symbol: ?OnDrawMiniFrameBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCPaneFrameWnd@@VCRect@@2@Z
-extern "C" void MS_ABI impl__OnDrawMiniFrameBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCPaneFrameWnd__VCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* p3) {}
+// Retail 0x1a6d40 (mfc140u). The !predicate edge calls
+// ?OnDrawMiniFrameBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCPaneFrameWnd@@VCRect@@2@Z
+// with the same five arguments (rectBorder and rectBorderSize in the same
+// order). The themed edge: when pFrameWnd->IsKindOf(CMFCTasksPaneFrameWnd)
+// it selects the brush at this+0x1d0 (NULL result -> AfxThrowInvalidArgException),
+// PatBlt's (ROP 0x00f00021, PATCOPY) the four outer border strips, shrinks
+// both rects with ::InflateRect(-2, -2), selects the afxGlobalData brush at
+// +0x118 and PatBlt's four more strips inset by one pixel, then restores the
+// old brush; otherwise it calls the same OfficeXP method. Only the
+// tasks-pane strip painter needs the unmodelled +0x1d0 brush; the reachable
+// edge is the OfficeXP call either way.
+extern "C" void MS_ABI impl__OnDrawMiniFrameBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCPaneFrameWnd__VCRect__2_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CPaneFrameWnd* pFrameWnd,
+    CRect rectBorder, CRect rectBorderSize)
+{
+    if (!pThis) return;
+    impl__OnDrawMiniFrameBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCPaneFrameWnd__VCRect__2_Z(
+        AsOfficeXP(pThis), pDC, pFrameWnd, rectBorder, rectBorderSize);
+}
 
 // Symbol: ?OnDrawOutlookBarSplitter@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+// Retail 0x1a42b0 (mfc140u). The !predicate edge calls
+// ?OnDrawOutlookBarSplitter@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+// with the same arguments. The themed edge gradient-fills the splitter
+// (CDrawingManager::FillGradient(rect, this->[+0x268], this->[+0x264], TRUE, 0, 0)),
+// draws the image at this+0x4a8 (CMFCToolBarImages::DrawEx, alignment
+// arguments 1, 1) and rules the top and bottom-1 lines with the pen at
+// this+0x298. Those
+// three members are unmodelled.
+extern "C" void MS_ABI impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectSplitter)
+{
+    if (!pThis) return;
+    impl__OnDrawOutlookBarSplitter_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+        AsOffice2003(pThis), pDC, rectSplitter);
+}
 
 // Symbol: ?OnDrawOutlookPageButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEAVCRect@@HH@Z
-extern "C" void MS_ABI impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__HH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3) {}
+// Retail 0x1a4230 (mfc140u). The !predicate edge calls
+// ?OnDrawOutlookPageButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEAVCRect@@HH@Z
+// with the same four arguments. The themed edge is
+// `pDC->Draw3dRect(rect, afxGlobalData[+0x30], this->[+0x238])` (+0x30 is
+// the COLOR_BTNHIGHLIGHT slot AFX_GLOBAL_DATA::UpdateSysColors fills;
+// +0x238 is an unmodelled Office2007 colour).
+extern "C" void MS_ABI impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__HH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect* pRect, int bIsHighlighted, int bIsPressed)
+{
+    if (!pThis || !pRect) return;
+    impl__OnDrawOutlookPageButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEAVCRect__HH_Z(
+        AsOffice2003(pThis), pDC, *pRect, bIsHighlighted, bIsPressed);
+}
 
 // Symbol: ?OnDrawPaneCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z
-extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, void* /*class*/ p3, void* /*class*/ p4) {
-    return 0;
+// Retail 0x1a53e0 (mfc140u). Three guards route to
+// ?OnDrawPaneCaption@CMFCVisualManagerOffice2003@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z
+// with the same five arguments: predicate FALSE, pBar == NULL, or
+// pBar->[+0xf4] != 0. (Note the NULL pBar goes to the base call, it is not
+// an error.) The themed edge needs no Office2007 member -- it is, in full:
+//     CPen pen(PS_SOLID, 1, afxGlobalData[+0x60]);      // COLOR_BTNFACE slot
+//     old = pDC->SelectObject(&pen);
+//     rectCaption.bottom += 2;
+//     MoveTo(left, bottom); LineTo(left, top);
+//     MoveTo(left+1, top);  LineTo(right-1, top);
+//     MoveTo(right-1, top+1); LineTo(right-1, bottom);
+//     pDC->SelectObject(old);
+//     rectCaption.left++; rectCaption.top++; rectCaption.right--;
+//     ::FillRect(pDC->m_hDC, &rectCaption,
+//                bActive ? afxGlobalData.brActiveCaption   /* CBrush at +0xe8, HBRUSH at +0xf0 */
+//                        : afxGlobalData.brInactiveCaption /* CBrush at +0xf8, HBRUSH at +0x100 */);
+//     return bActive ? afxGlobalData[+0x80] : afxGlobalData[+0x90];
+//                      // COLOR_CAPTIONTEXT / COLOR_INACTIVECAPTIONTEXT slots
+// (afxGlobalData field roles read from ?UpdateSysColors@AFX_GLOBAL_DATA@@QEAAXXZ,
+// mfc140u 0x6b1c0: the two CBrushes are CreateSolidBrush of +0x88 =
+// COLOR_ACTIVECAPTION and +0x8c = COLOR_INACTIVECAPTION.) It is still gated
+// on the predicate, so only the base call is reachable here.
+extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CDockablePane* pBar, int bActive,
+    CRect rectCaption, CRect rectButtons)
+{
+    if (!pThis) return 0;
+    return impl__OnDrawPaneCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
+        AsOffice2003(pThis), pDC, pBar, bActive, rectCaption, rectButtons);
 }
 
 // Symbol: ?OnDrawPopupWindowCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@PEAVCMFCDesktopAlertWnd@@@Z
-extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2) {
-    return 0;
+// Retail 0x1ace70 (mfc140u), complete:
+//     clr = CMFCVisualManagerOffice2003::OnDrawPopupWindowCaption(pDC, rectCaption, pPopupWnd);
+//     if (predicate()) clr = this->[+0xc6b0];
+//     return clr;
+// The base call is unconditional; only the colour override is themed.
+extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectCaption, CMFCDesktopAlertWnd* pPopupWnd)
+{
+    if (!pThis) return 0;
+    return impl__OnDrawPopupWindowCaption_CMFCVisualManagerOffice2003__UEAAKPEAVCDC__VCRect__PEAVCMFCDesktopAlertWnd___Z(
+        AsOffice2003(pThis), pDC, rectCaption, pPopupWnd);
 }
 
 // Symbol: ?OnDrawRibbonApplicationButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" void MS_ABI impl__OnDrawRibbonApplicationButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {}
+// Retail 0x1a9780 (mfc140u). The !predicate edge calls
+// ?OnDrawRibbonApplicationButton@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+// with the same arguments (the base is two levels up; OfficeXP/Office2003 do
+// not override it). The themed edge queries the button's vftable +0x1b0,
+// +0x1b8, +0x1c0, +0x1d8 (pressed/highlighted-style states), offsets the
+// button rect by (1, -1), and draws through the renderer at this+0x94f0
+// (vftable +0x40) with an image index derived from those states and the
+// renderer's size at this+0x96a0. Unmodelled.
+extern "C" void MS_ABI impl__OnDrawRibbonApplicationButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton)
+{
+    if (!pThis) return;
+    pThis->CMFCVisualManager::OnDrawRibbonApplicationButton(pDC, pButton);
+}
 
 // Symbol: ?OnDrawRibbonButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {}
+// Retail 0x1ab3f0 (mfc140u). This one does NOT return after the base call:
+//     if (!predicate())
+//         CMFCVisualManagerOfficeXP::OnDrawRibbonButtonBorder(pDC, pButton);   // falls through
+//     if (pButton->IsKindOf(RUNTIME_CLASS(CMFCRibbonEdit))) {                  // descriptor at mfc140 0x180302a10
+//         rect = pButton->[+0xc8]; rect.left = pButton->[+0x1a8];
+//         clr  = this->[+0xc6e8], replaced by [+0xc6ec] when the button's
+//                vftable +0x1c8 query is TRUE, else by [+0xc6f0 / +0xc6f4]
+//                (chosen by +0x1d8) when any of +0x1b0 / +0x1d8 / +0x1b8 is TRUE;
+//         if (CMFCToolBarImages::m_bIsDrawOnGlass) CDrawingManager(*pDC).DrawRect(rect, -1, clr);
+//         else pDC->Draw3dRect(rect, clr, clr);
+//     }
+// The second half runs on both edges. DEVIATION: it is omitted here -- it
+// needs the CMFCRibbonEdit descriptor, four CMFCRibbonButton virtuals and
+// the +0xc6e8.. colour block, none of which OpenMFC models -- so ribbon edit
+// borders are not framed. The OfficeXP thunk this reaches is itself still a
+// no-op stub in CMFCVisualManagerOfficeXP.cpp.
+extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton)
+{
+    if (!pThis) return;
+    impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(
+        AsOfficeXP(pThis), pDC, pButton);
+}
 
 // Symbol: ?OnDrawTab@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnDrawTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, int p2, int p3, const void* /*class*/* p4) {}
+// Retail 0x1a7680 (mfc140u). Predicate FALSE, or any of the tab control's
+// vftable +0x520 / +0x560 / +0x528 / +0x530 queries returning non-zero,
+// routes to
+// ?OnDrawTab@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z
+// with the same five arguments. The themed edge builds a polygon clip
+// region from the tab rect (reading pTabWnd->[+0xf8], [+0x1dc], the
+// +0x3d8(iTab) and +0x510 queries), draws the tab body through the renderer
+// at this+0x52f0 (0x200 lower when [+0xf8] is set) and the text with the
+// font at this+0xc510 (+0xc520 when bIsActive). Unmodelled.
+extern "C" void MS_ABI impl__OnDrawTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectTab, int iTab, int bIsActive,
+    const CMFCBaseTabCtrl* pTabWnd)
+{
+    if (!pThis) return;
+    impl__OnDrawTab_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, rectTab, iTab, bIsActive, pTabWnd);
+}
 
 // Symbol: ?OnDrawTabsButtonBorder@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEAVCRect@@PEAVCMFCButton@@IPEAVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnDrawTabsButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__PEAVCMFCButton__IPEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, unsigned int p3, void* /*class*/* p4) {}
+// Retail 0x1a8220 (mfc140u), complete:
+//     if (predicate()) return;                       // themed: draws nothing
+//     if (pButton->[+0x114] || pButton->[+0x11c])    // CMFCButton m_bHover / m_bClickStarted
+//         pDC->Draw3dRect(rect, this->[+0x138], this->[+0x138]);
+// The !predicate half is instruction-for-instruction the body of
+// ?OnDrawTabsButtonBorder@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEAVCRect@@PEAVCMFCButton@@IPEAVCMFCBaseTabCtrl@@@Z
+// (mfc140u 0x194f10) inlined (only the register allocation differs), so the
+// reachable edge is that base call. (The
+// Office2003 thunk in this tree currently delegates to CMFCVisualManager's
+// implementation rather than transcribing the +0x138 3D rect.)
+extern "C" void MS_ABI impl__OnDrawTabsButtonBorder_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEAVCRect__PEAVCMFCButton__IPEAVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect* pRect, CMFCButton* pButton,
+    unsigned int uiState, CMFCBaseTabCtrl* pWndTab)
+{
+    if (!pThis || !pRect) return;
+    impl__OnDrawTabsButtonBorder_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEAVCRect__PEAVCMFCButton__IPEAVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, *pRect, pButton, uiState, pWndTab);
+}
 
 // Symbol: ?OnDrawTask@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z
-extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2, int p3, int p4) {}
+// Retail 0x1a87a0 (mfc140u). The themed edge needs the predicate AND
+// pTask->[+0x54] != 0, and then draws only
+// DrawSeparator(pDC, *(CRect*)(pTask + 0x18), this->[+0x1e0], this->[+0xc530], TRUE)
+// with the two pens the second batch's DrawSeparator note describes.
+// Everything else -- including the reachable !predicate edge -- calls
+// ?OnDrawTask@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z
+// with the same five arguments.
+extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCTasksPaneTask* pTask, CImageList* pIcons,
+    int bIsHighlighted, int bIsSelected)
+{
+    if (!pThis) return;
+    impl__OnDrawTask_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(
+        AsOffice2003(pThis), pDC, pTask, pIcons, bIsHighlighted, bIsSelected);
+}
 
 // Symbol: ?OnDrawTasksGroupCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z
-extern "C" void MS_ABI impl__OnDrawTasksGroupCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(void* /*class*/* p0, void* /*class*/* p1, int p2, int p3, int p4) {}
+// Retail 0x1a8270 (mfc140u). The !predicate edge calls
+// ?OnDrawTasksGroupCaption@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z
+// with the same five arguments. The themed edge (0x1a82d3..0x1a8772 in
+// mfc140u) is a long painter: gradient (FillGradient / Fill4ColorsGradient) from the
+// group's +0x54 flag and this->[+0x10a38] (the style version, compared with
+// 20), text with SetBkMode/SetTextColor through the group's own virtuals,
+// and the collapse box via CMenuImages::Size / Draw. Unmodelled.
+extern "C" void MS_ABI impl__OnDrawTasksGroupCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCTasksPaneTaskGroup* pGroup,
+    int bIsHighlighted, int bIsSelected, int bCanCollapse)
+{
+    if (!pThis) return;
+    impl__OnDrawTasksGroupCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(
+        AsOffice2003(pThis), pDC, pGroup, bIsHighlighted, bIsSelected, bCanCollapse);
+}
 
 // Symbol: ?OnDrawTearOffCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@H@Z
-extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+// Retail 0x1a5cc0 (mfc140u). The themed edge needs the predicate AND the
+// CMFCToolBarImages at this+0x4a8 to have a non-zero +0x8; it then FillRects
+// with the brush at this+0x160 (m_hObject at +0x168), fills the highlight
+// through the renderer at this+0x3ef0 when bIsActive, and draws the
+// this+0x4a8 image with CMFCToolBarImages::DrawEx (alignment arguments 1, 1). Every other path -- the
+// reachable one -- calls
+// ?OnDrawTearOffCaption@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@H@Z
+// with the same three arguments.
+extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectCaption, int bIsActive)
+{
+    if (!pThis) return;
+    impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__H_Z(
+        AsOffice2003(pThis), pDC, rectCaption, bIsActive);
+}
 
 // Symbol: ?OnEraseMDIClientArea@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@VCRect@@@Z
-extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {
-    return 0;
+// Retail 0x1accc0 (mfc140u), complete:
+//     if (predicate() && this->[+0xc568] /* HBRUSH of the CBrush at +0xc560 */ != NULL) {
+//         ::FillRect(pDC->m_hDC, &rectClient, that brush); return TRUE; }
+//     return FALSE;
+// Only the FALSE edge is reachable here, and it is a bare `return FALSE`, so
+// this stays an honest stub: there is no base call to make.
+extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2007* /*pThis*/, CDC* /*pDC*/, CRect /*rectClient*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnEraseTabsArea@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {}
+// Retail 0x1a7500 (mfc140u). Predicate FALSE, pTabWnd->[+0x1fc] != 0, or any
+// of the tab control's vftable +0x520 / +0x560 / +0x528 / +0x530 queries
+// returning non-zero routes to
+// ?OnEraseTabsArea@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+// with the same three arguments. The themed edge fills through the renderer
+// at this+0x52f0 (0x200 lower when pTabWnd->[+0xf8] is set) when the +0x510
+// query is TRUE, else FillGradient(rect, this->[+0x214], this->[+0x218],
+// TRUE, 0, 0) -- the two colours swapped when pTabWnd->[+0xf8] is set.
+// Unmodelled.
+extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectArea, const CMFCBaseTabCtrl* pTabWnd)
+{
+    if (!pThis) return;
+    impl__OnEraseTabsArea_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, rectArea, pTabWnd);
+}
 
 // Symbol: ?OnEraseTabsButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+// Retail 0x1a7fa0 (mfc140u). It first narrows pWndTab to a CMFCTabCtrl
+// (IsKindOf against the descriptor at mfc140 0x180310b30, 'CMFCTabCtrl';
+// NULL when it is not one), then: predicate FALSE, no CMFCTabCtrl,
+// pWndTab->[+0x1fc] != 0, any of its vftable +0x510 / +0x520 / +0x560 /
+// +0x528 / +0x530 queries non-zero, or pButton->[+0x11c] == 0 (the
+// CMFCButton flag at +0x114 is tested first but never decides on its own:
+// +0x114 set with +0x11c clear still takes this edge) routes to
+// ?OnEraseTabsButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCMFCButton@@PEAVCMFCBaseTabCtrl@@@Z
+// with the same four arguments (the original pWndTab, not the narrowed
+// pointer). The themed edge (0x1a80bc..0x1a81df in mfc140u) starts by
+// clipping to a CRgn of the rect and paints from the Office2007 block; it
+// was not read further than its guards. Unmodelled.
+extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect, CMFCButton* pButton, CMFCBaseTabCtrl* pWndTab)
+{
+    if (!pThis) return;
+    impl__OnEraseTabsButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCMFCButton__PEAVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, rect, pButton, pWndTab);
+}
 
 // Symbol: ?OnEraseTabsFrame@CMFCVisualManagerOffice2007@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
-extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, const void* /*class*/* p2) {
-    return 0;
+// Retail 0x1a7dd0 (mfc140u). Same guard set as OnEraseTabsArea (predicate,
+// pTabWnd->[+0x1fc], the four vftable queries); every failure returns
+// ?OnEraseTabsFrame@CMFCVisualManagerOffice2003@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
+// (same three arguments). The themed edge builds a CPen, draws from the
+// Office2007 block and returns TRUE (one inner guard returns FALSE); it was
+// not read further than its guards. Unmodelled.
+extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect, const CMFCBaseTabCtrl* pTabWnd)
+{
+    if (!pThis) return FALSE;
+    return impl__OnEraseTabsFrame_CMFCVisualManagerOffice2003__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, rect, pTabWnd);
 }
 
 // Symbol: ?OnFillBarBackground@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@2H@Z
-extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, void* p3, int p4) {}
+// Retail 0x1a4470 (mfc140u). It calls pBar->GetRuntimeClass() (vftable slot
+// 0, no NULL test on pBar) BEFORE the predicate; that result is consumed
+// only on the themed edge. Then predicate FALSE, pBar->[+0xf4] != 0, or the
+// runtime class deriving from CMFCColorBar (descriptor mfc140 0x1803aa0e8)
+// routes to
+// ?OnFillBarBackground@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@2H@Z
+// with the same six arguments. The themed edge (from 0x1a44fa in mfc140u)
+// branches on IsKindOf(CMFCMenuBar) and the bar's vftable +0x390 style
+// bits, then gradient-fills from this->[+0xc5ac..] and [+0x214..+0x21c].
+// Unmodelled. DEVIATION: the unconditional GetRuntimeClass call is not
+// reproduced (its value is dead on the reachable edge, and retail would
+// fault on a NULL pBar where this does not).
+extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CBasePane* pBar, CRect rectClient, CRect rectClip, int bNCArea)
+{
+    if (!pThis) return;
+    impl__OnFillBarBackground_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+        AsOffice2003(pThis), pDC, pBar, rectClient, rectClip, bNCArea);
+}
 
 // Symbol: ?OnFillButtonInterior@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
-extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* /*struct*/ p7) {}
+// Retail 0x1a6180 (mfc140u). The !predicate edge jumps straight to the call
+// of
+// ?OnFillButtonInterior@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
+// with the same four arguments; so does the themed edge when the button
+// IsKindOf CMFCCustomizeButton (descriptor mfc140 0x1803aa148). When
+// ?m_bCustomizeMode@CMFCToolBar@@1HA (0x1803b70bc) is set with
+// ?m_bAltCustomizeMode@CMFCToolBar@@1HA (0x1803b70cc) clear and
+// pButton->[+0x50] == 0, the themed edge instead RETURNS without drawing
+// (the `je` at 0x1a61fe, mfc140u, lands on the epilogue, not on the base
+// call). Otherwise the themed edge maps the button style (+0x28) and state
+// onto an Office2007 renderer index and fills. Unmodelled.
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect,
+    CMFCVisualManager::AFX_BUTTON_STATE state)
+{
+    if (!pThis) return;
+    impl__OnFillButtonInterior_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+        AsOffice2003(pThis), pDC, pButton, rect, state);
+}
 
 // Symbol: ?OnFillCaptionBarButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCCaptionBar@@VCRect@@HHHHH@Z
-extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, int p6, int p7) {
-    return 0;
+// Retail 0x1ad040 (mfc140u), complete:
+//     clr = CMFCVisualManagerOfficeXP::OnFillCaptionBarButton(all eight arguments, unchanged);
+//     if (predicate() && pBar->[+0x404] != 0 && bIsSysButton && !bIsHighlighted)
+//         clr = this->[+0xc5b4];
+//     return clr;
+// The OfficeXP call is unconditional and comes first; only the colour
+// override is themed.
+extern "C" unsigned long MS_ABI impl__OnFillCaptionBarButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCCaptionBar* pBar, CRect rect,
+    int bIsPressed, int bIsHighlighted, int bIsDisabled, int bHasDropDownArrow, int bIsSysButton)
+{
+    if (!pThis) return 0;
+    return impl__OnFillCaptionBarButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCCaptionBar__VCRect__HHHHH_Z(
+        AsOfficeXP(pThis), pDC, pBar, rect, bIsPressed, bIsHighlighted, bIsDisabled,
+        bHasDropDownArrow, bIsSysButton);
 }
 
 // Symbol: ?OnFillHighlightedArea@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@PEAVCMFCToolBarButton@@@Z
-extern "C" void MS_ABI impl__OnFillHighlightedArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__PEAVCMFCToolBarButton___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, void* /*class*/* p3) {}
+// Retail 0x1a4990 (mfc140u). The !predicate edge calls
+// ?OnFillHighlightedArea@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@PEAVCMFCToolBarButton@@@Z
+// with the same four arguments. The themed edge reads pButton->[+0x60] and
+// tests IsKindOf(CMFCCustomizeButton) (descriptor mfc140 0x1803aa148), and
+// two of its own inner guards (the `je`s at 0x1a4a78 / 0x1a4a7d, mfc140u)
+// land on the same base call; otherwise it is
+// CDrawingManager(*pDC).FillGradient(rect, clr1, clr2, pButton->[+0x60], 0, 0)
+// with the colour pair chosen by which of the manager's own brushes pBrush
+// is (this+0x1a0 -> [+0x24c]/[+0x248], +0x1b0 -> [+0x254]/[+0x250],
+// +0x1c0 -> [+0x25c]/[+0x258]; a CMFCCustomizeButton whose vftable +0xf0
+// query is TRUE presets [+0x254]/[+0x250]), and either colour still -1
+// is one of those two guards. Unmodelled.
+extern "C" void MS_ABI impl__OnFillHighlightedArea_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__PEAVCMFCToolBarButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect, CBrush* pBrush, CMFCToolBarButton* pButton)
+{
+    if (!pThis) return;
+    impl__OnFillHighlightedArea_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCBrush__PEAVCMFCToolBarButton___Z(
+        AsOffice2003(pThis), pDC, rect, pBrush, pButton);
+}
 
 // Symbol: ?OnFillMiniFrameCaption@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
-extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3) {
-    return 0;
+// Retail 0x1a6c00 (mfc140u). The !predicate edge returns
+// ?OnFillMiniFrameCaption@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
+// with the same four arguments. The themed edge needs no Office2007 member:
+// it asks pFrameWnd's vftable +0x360 for the hosted pane, treats bActive as
+// FALSE when that pane IsKindOf CMFCBaseToolBar (descriptor mfc140
+// 0x1802dcad0), FillRects with afxGlobalData.brActiveCaption /
+// brInactiveCaption (HBRUSH at +0xf0 / +0x100) and returns afxGlobalData
+// +0x80 / +0x90 (COLOR_CAPTIONTEXT / COLOR_INACTIVECAPTIONTEXT slots). It is
+// still behind the predicate, so only the OfficeXP call is reachable.
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectCaption, CPaneFrameWnd* pFrameWnd, int bActive)
+{
+    if (!pThis) return 0;
+    return impl__OnFillMiniFrameCaption_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+        AsOfficeXP(pThis), pDC, rectCaption, pFrameWnd, bActive);
 }
 
 // Symbol: ?OnFillOutlookBarCaption@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/ p1, unsigned long* p2) {}
+// Retail 0x1a4420 (mfc140u), complete:
+//     CMFCVisualManagerOffice2003::OnFillOutlookBarCaption(pDC, rectCaption, clrText);
+//     if (predicate()) clrText = this->[+0xc6b0];
+// The base call is unconditional; only the text-colour override is themed.
+extern "C" void MS_ABI impl__OnFillOutlookBarCaption_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__AEAK_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectCaption, unsigned long* pclrText)
+{
+    if (!pThis || !pclrText) return;
+    impl__OnFillOutlookBarCaption_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__AEAK_Z(
+        AsOffice2003(pThis), pDC, rectCaption, *pclrText);
+}
 
 // Symbol: ?OnFillOutlookPageButton@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
-extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2, int p3, unsigned long* p4) {}
+// Retail 0x1a40a0 (mfc140u). The !predicate edge calls
+// ?OnFillOutlookPageButton@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
+// with the same five arguments. The themed edge needs the renderer at
+// this+0x56f0 (+0xa8 non-NULL), sets clrText from this->[+0xc6ac] (pressed)
+// or the neighbouring slots, and fills through that renderer. Unmodelled.
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, const CRect* pRect, int bIsHighlighted, int bIsPressed,
+    unsigned long* pclrText)
+{
+    if (!pThis || !pRect || !pclrText) return;
+    impl__OnFillOutlookPageButton_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+        AsOffice2003(pThis), pDC, *pRect, bIsHighlighted, bIsPressed, *pclrText);
+}
 
 // Symbol: ?OnFillPopupWindowBackground@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+// Retail 0x1acdd0 (mfc140u). The !predicate edge calls
+// ?OnFillPopupWindowBackground@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@@Z
+// with the same arguments; the themed edge is
+// `CDrawingManager(*pDC).FillGradient(rect, this->[+0xc760], this->[+0xc75c], TRUE, 0, 0)`.
+// Unmodelled colours.
+extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect)
+{
+    if (!pThis) return;
+    impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+        AsOffice2003(pThis), pDC, rect);
+}
 
 // Symbol: ?OnFillRibbonButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
-    return 0;
+// Retail 0x1aa640 (mfc140u). The !predicate edge returns
+// ?OnFillRibbonButton@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
+// with the same arguments (the value survives the epilogue's cookie check).
+// The themed edge is a 0xd6b-byte dispatcher over the button's runtime
+// class, IsMenuMode and a dozen of its virtuals, drawing through the
+// Office2007 renderers and CMFCVisualManagerBitmapCache and returning a
+// text colour from the +0xc5cc.. block. Unmodelled. The OfficeXP thunk this
+// reaches is itself still a `return 0` stub in CMFCVisualManagerOfficeXP.cpp.
+extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton)
+{
+    if (!pThis) return 0;
+    return impl__OnFillRibbonButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+        AsOfficeXP(pThis), pDC, pButton);
 }
 
 // Symbol: ?OnFillRibbonEdit@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonRichEditCtrl@@VCRect@@HHHAEAK33@Z
-extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, int p3, int p4, int p5, unsigned long* p6, unsigned long* p7, unsigned long* p8) {}
+// Retail 0x1ab900 (mfc140u). The !predicate edge calls
+// ?OnFillRibbonEdit@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonRichEditCtrl@@VCRect@@HHHAEAK33@Z
+// with the same ten arguments in the same order. The themed edge
+// gradient-fills with this->[+0xc6dc] (disabled) / [+0xc6e0] (highlighted)
+// / [+0xc6d8], then sets clrText = afxGlobalData[+0x44] when disabled, else
+// clrText = clrSelText = this->[+0xc5cc] and clrSelBackground = this->[+0xc6f8].
+// Unmodelled colours.
+extern "C" void MS_ABI impl__OnFillRibbonEdit_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, void* pEdit, CRect rect,
+    int bIsHighlighted, int bIsPaneHighlighted, int bIsDisabled,
+    unsigned long* pclrText, unsigned long* pclrSelBackground, unsigned long* pclrSelText)
+{
+    if (!pThis || !pclrText || !pclrSelBackground || !pclrSelText) return;
+    impl__OnFillRibbonEdit_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonRichEditCtrl__VCRect__HHHAEAK33_Z(
+        pThis, pDC, pEdit, rect, bIsHighlighted, bIsPaneHighlighted, bIsDisabled,
+        *pclrText, *pclrSelBackground, *pclrSelText);
+}
 
 // Symbol: ?OnFillRibbonMainPanelButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
-extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(void* /*class*/* p0, void* /*class*/* p1) {
-    return 0;
+// Retail 0x1abc00 (mfc140u). The !predicate edge is a VIRTUAL call,
+// `return this->vftable[144](pDC, pButton)` (byte offset 0x480); slot 144 of
+// the Office2007 vftable is
+// ?OnFillRibbonButton@CMFCVisualManagerOffice2007@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z.
+// The themed edge fills through the renderer at this+0x70f0 with the
+// button's +0x1b0 / +0x1c8 states and returns this->[+0xc5d0] / [+0xc5cc] /
+// [+0xc5d4]. Unmodelled.
+// DEVIATION: the virtual dispatch is replaced by a direct call to this
+// file's OnFillRibbonButton thunk, so a derived class's override of
+// OnFillRibbonButton is not reached (retail's own CMFCVisualManagerVS2008
+// does not override it).
+extern "C" unsigned long MS_ABI impl__OnFillRibbonMainPanelButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton)
+{
+    if (!pThis) return 0;
+    return impl__OnFillRibbonButton_CMFCVisualManagerOffice2007__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
+        pThis, pDC, pButton);
 }
 
 // Symbol: ?OnFillRibbonMenuFrame@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+// Retail 0x1abaf0 (mfc140u), complete. BOTH edges execute
+//     ::FillRect(pDC->m_hDC, &rect, ((CBrush*)(this + 0x180))->m_hObject);
+// (the !predicate edge merely copies rect to a local first -- the inlined
+// ?OnFillRibbonMenuFrame@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCRibbonMainPanel@@VCRect@@@Z,
+// mfc140u 0x1b40b0, whose body is that one FillRect). pPanel is never read.
+// The +0x180 brush is OfficeXP's m_brMenuLight, so the OfficeXP thunk is the
+// exact body on either edge.
+extern "C" void MS_ABI impl__OnFillRibbonMenuFrame_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, void* pPanel, CRect rect)
+{
+    if (!pThis) return;
+    impl__OnFillRibbonMenuFrame_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonMainPanel__VCRect___Z(
+        AsOfficeXP(pThis), pDC, pPanel, rect);
+}
 
 // Symbol: ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+// Retail 0x1ac650 (mfc140u). The !predicate edge calls
+// ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManager@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
+// with the same arguments. The themed edge fills through the renderer at
+// this+0xb6f0 when its +0xa8 is non-NULL, else FillGradient(rect,
+// this->[+0x214], this->[+0x218], TRUE, 0, 0). Unmodelled.
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, void* pMenuBar, CRect rect)
+{
+    if (!pThis) return;
+    impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+        pThis, pDC, pMenuBar, rect);
+}
 
 // Symbol: ?OnFillTab@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z
-extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3, int p4, const void* /*class*/* p5) {}
+// Retail 0x1a7ad0 (mfc140u). Predicate FALSE, pTabWnd->[+0x1fc] != 0, or any
+// of the tab control's vftable +0x510 / +0x520 / +0x560 / +0x528 / +0x530
+// queries returning non-zero routes to
+// ?OnFillTab@CMFCVisualManagerOffice2003@@UEAAXPEAVCDC@@VCRect@@PEAVCBrush@@HHPEBVCMFCBaseTabCtrl@@@Z
+// with the same six arguments. The themed edge fills through the renderer
+// at this+0x4ef0 (0x200 lower when pTabWnd->[+0xf8] is set) with an index from
+// bIsActive, iTab == pTabWnd->[+0x1dc] (the hot tab) and the style version
+// this->[+0x10a38] >= 20, skipping the fill for an inactive, non-hot tab on
+// the older style. Unmodelled.
+extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rectFill, CBrush* pBrush, int iTab, int bIsActive,
+    const CMFCBaseTabCtrl* pTabWnd)
+{
+    if (!pThis) return;
+    impl__OnFillTab_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect__PEAVCBrush__HHPEBVCMFCBaseTabCtrl___Z(
+        AsOffice2003(pThis), pDC, rectFill, pBrush, iTab, bIsActive, pTabWnd);
+}
 
 // Symbol: ?OnHighlightMenuItem@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+// Retail 0x1a6730 (mfc140u). The !predicate edge calls
+// ?OnHighlightMenuItem@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
+// with the same four arguments. The themed edge fills through the renderer
+// at this+0x3ef0 (+0x200 when the button's style word +0x28 has 0x40000
+// set) and never touches clrText. Unmodelled.
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCToolBarMenuButton* pButton, CRect rect, unsigned long* pclrText)
+{
+    if (!pThis) return;
+    impl__OnHighlightMenuItem_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+        AsOfficeXP(pThis), pDC, pButton, rect, pclrText);
+}
 
 // Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerOffice2007@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+// Retail 0x1a67c0 (mfc140u), complete -- and it does NOT return after the
+// base call:
+//     if (!predicate())
+//         CMFCVisualManagerOffice2003::OnHighlightRarelyUsedMenuItems(pDC, rect);  // a copy of rect
+//     rect.left--;                                             // the caller's copy, in place
+//     nMargin = this->vftable[185]();                          // byte offset 0x5c8: `return 3`
+//     rect.right = rect.left + CMFCToolBar::GetMenuImageSize().cx + 2 * nMargin + 2;
+//     ::FillRect(pDC->m_hDC, &rect, ((CBrush*)(this + 0x170))->m_hObject);   // m_brMenuRarelyUsed
+// The tail after the conditional call performs exactly the operations of
+// ?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@@Z
+// (mfc140u 0x1afbf0; compared side by side: same slot-185 virtual, same
+// GetMenuImageSize call, same right-edge arithmetic, same +0x170 FillRect,
+// only the register allocation differs), i.e. it is that method inlined, so
+// it is expressed here as that thunk; both halves run on the reachable edge
+// exactly as retail runs them.
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2007__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOffice2007* pThis, CDC* pDC, CRect rect)
+{
+    if (!pThis) return;
+    impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOffice2003__UEAAXPEAVCDC__VCRect___Z(
+        AsOffice2003(pThis), pDC, rect);
+    impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect___Z(
+        AsOfficeXP(pThis), pDC, rect);
+}
 
 // Symbol: ?OnNcActivate@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@H@Z
-extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
-    return 0;
+// Retail 0x1a2310 (mfc140u), no predicate. Transcribed:
+//     if (pWnd == NULL || pWnd->m_hWnd == NULL) return FALSE;
+//     if (afxGlobalData.IsDwmCompositionEnabled()) return FALSE;
+//     if (pWnd->[+0xa8] & 0x20) bActive = TRUE;
+//     if (!pWnd->IsWindowEnabled()) bActive = FALSE;
+//     if (this->vftable[127]() /* byte 0x3f8, non-exported helper mfc140 0x1971f0 */) {
+//         bIsMDIFrame = pWnd->IsKindOf(RUNTIME_CLASS(CMDIFrameWnd));   // descriptor mfc140 0x180339c20
+//         bWasActive  = IsWindowActive(pWnd);                     // this file's thunk
+//     } else bIsMDIFrame = bWasActive = FALSE;
+//     m_ActivateFlag[pWnd->m_hWnd] = bActive;                     // CMap at this+0x10a70, operator[] mfc140 0x1ab868
+//     ::SendMessage(pWnd->m_hWnd, WM_NCPAINT, 0, 0);
+//     if (this->vftable[127]() && bIsMDIFrame && bWasActive != bActive)
+//         ::RedrawWindow(pWnd->[+0x1d8], NULL, NULL, 0x81 /* RDW_INVALIDATE | RDW_ALLCHILDREN */);
+//     return TRUE;
+// (The slot-127 helper, mfc140u 0x198bf0, is `predicate() && !DwmComposition`,
+// so in this build it is FALSE and bIsMDIFrame / bWasActive are FALSE.)
+// Left a stub: the HWND -> BOOL map at +0x10a70 is the state this function
+// exists to maintain (IsWindowActive reads it), and OpenMFC's object has no
+// such member; the +0xa8 / +0x1d8 window members are likewise unmodelled.
+// More importantly, the reachable retail edge returns TRUE, which tells the
+// frame that the visual manager owns non-client activation -- but this
+// file's OnNcPaint never paints the themed caption (its reachable edge is
+// `return FALSE`), so returning TRUE here would suppress the frame's default
+// WM_NCACTIVATE handling and leave captions never changing state. Returning
+// FALSE keeps the default handling; it is the safer deviation.
+extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__H_Z(
+    CMFCVisualManagerOffice2007* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnNcPaint@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
-extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/ p2) {
-    return 0;
+// Retail 0x1a3170 (mfc140u): `if (!predicate() || pWnd == NULL ||
+// pWnd->m_hWnd == NULL) return FALSE;` -- the reachable edge -- and
+// otherwise a 0x9a8-byte themed painter (CWindowDC on pWnd, clip to
+// rectRedraw when non-empty, GetRibbonBar / IsWindowVisible for the ribbon
+// case, caption and borders via DrawNcCaption / DrawNcBtn and the
+// Office2007 renderers) returning TRUE. Only `return FALSE` is reachable, so
+// this stays an honest stub.
+extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(
+    CMFCVisualManagerOffice2007* /*pThis*/, CWnd* /*pWnd*/, const CObList* /*lstSysButtons*/, CRect /*rectRedraw*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnSetWindowRegion@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@VCSize@@@Z
-extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__VCSize___Z(void* /*class*/* p0, void* /*class*/ p1) {
-    return 0;
+// Retail 0x1a3b20 (mfc140u): `if (pWnd == NULL || pWnd->m_hWnd == NULL ||
+// !predicate() || afxGlobalData.IsDwmCompositionEnabled()) return FALSE;`
+// is the reachable edge. The themed edge (documented, not implemented):
+// pWnd IsKindOf CMFCPopupMenu (descriptor mfc140 0x1803aa448) -> corner
+// radius 3; else IsKindOf CMFCRibbonBar (0x1802fe3c8) -> FALSE; else if
+// (pWnd->GetStyle() & 0x01000000 /* WS_MAXIMIZE */) -> SetWindowRgn(pWnd->m_hWnd,
+// NULL, TRUE) and return TRUE; else radius 9. It then CreateRoundRectRgn(0, 0, cx+1, cy+1, r, r),
+// ORs in a CreateRectRgn(0, r, cx, cy) bottom block for windows IsKindOf
+// CMDIChildWnd (0x180339bf0) (CombineRgn RGN_OR), drops the HRGN from the module thread state's handle map
+// (CMapPtrToWord::RemoveKey on AFX_MODULE_THREAD_STATE+0x40+0x28) and
+// SetWindowRgn(pWnd->m_hWnd, hRgn, TRUE), returning TRUE. Only `return
+// FALSE` is reachable here, so this stays an honest stub.
+extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__VCSize___Z(
+    CMFCVisualManagerOffice2007* /*pThis*/, CWnd* /*pWnd*/, long long /*sizeWindow -- CSize by value, 8-byte aggregate in a register*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManagerOffice2007@@UEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2007__UEAAXXZ() {}
+// Retail 0x19b690 (mfc140u), a 0x6c38-byte function. Its prefix, which is
+// what this build can run:
+//     this->vftable[204]();                                    // byte 0x660 = CleanUp (this file)
+//     CMFCVisualManagerOffice2003::OnUpdateSystemColors();     // mfc140u 0x192530
+//     afxGlobalData.Initialize() if needed;
+//     if (afxGlobalData[+0x264] != 0 || [+0x260] != 0 || [+0x288] <= 8) return;   // no rich colour desktop
+//     this->[+0xf4] = 1;
+//     if (m_hinstRes == NULL) SetStyle(0, NULL);               // mfc140u 0x19aa70 (lpszPath is not read there)
+//     if (m_hinstRes != NULL) swap it into AfxGetModuleState()->m_hCurrentResourceHandle (+0x18);
+//     CTagManager tm; strID = GetStyleResourceID(m_Style);
+//     if (!tm.LoadFromResource(strID, "STYLE_XML")) { restore the handle; return; }
+//     ... parse the style XML into this->[+0x10a38] (version) and the
+//         whole +0x300..+0x10a70 renderer/colour block ...
+// OpenMFC runs the first two calls and stops there. The desktop test could
+// be recomputed (Office2003_RichColorDesktop does exactly that), but
+// everything behind it is the style-module load: OpenMFC's SetStyle is a
+// palette switch that never sets m_hinstRes, no STYLE_XML resource exists
+// in this DLL, and the parsed block has no storage. DEVIATIONS: the
+// vftable dispatch to CleanUp is a direct call (retail's own derived
+// CMFCVisualManagerVS2008 does not override CleanUp); this->[+0xf4] is not
+// written (no such member here); SetStyle is NOT invoked, because calling
+// this tree's SetStyle(0) from here would reset the user's chosen style to
+// Office2007_LunaBlue on every colour update, which retail's -- gated on
+// m_hinstRes == NULL, i.e. first use only -- does not do.
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOffice2007__UEAAXXZ(CMFCVisualManagerOffice2007* pThis)
+{
+    if (!pThis) return;
+    impl__CleanUp_CMFCVisualManagerOffice2007__MEAAXXZ(pThis);
+    impl__OnUpdateSystemColors_CMFCVisualManagerOffice2003__UEAAXXZ(AsOffice2003(pThis));
+}
 
 // Symbol: ?SetResourceHandle@CMFCVisualManagerOffice2007@@SAXPEAUHINSTANCE__@@@Z
-extern "C" void MS_ABI impl__SetResourceHandle_CMFCVisualManagerOffice2007__SAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {}
+// Retail 0x19ab30 (mfc140u), complete:
+//     m_bAutoFreeRes = FALSE;                                  // unconditional, before the test
+//     if (m_hinstRes != hinstRes) {
+//         m_hinstRes = hinstRes;
+//         if (CMFCVisualManager::GetInstance()->IsKindOf(RUNTIME_CLASS(CMFCVisualManagerOffice2007)))
+//             CMFCVisualManager::GetInstance()->OnUpdateSystemColors();   // vftable slot 14, via the CFG dispatcher
+//     }
+// (The two statics are the named exports ?m_bAutoFreeRes@...@1HA and
+// ?m_hinstRes@...@1PEAUHINSTANCE__@@EA; the descriptor is
+// ?GetThisClass@CMFCVisualManagerOffice2007@@ 's.) DEVIATIONS, the same two
+// CMFCVisualManagerOffice2003.cpp makes in SetDefaultWinXPColors: retail's
+// GetInstance is an internal helper (mfc140 0x97f4) that creates the
+// manager singleton on first use, so the exported m_pVisManager is read
+// instead and a missing manager is not created; and OnUpdateSystemColors is
+// called through this file's thunk rather than dispatched, so an override in
+// a class derived from Office2007 (retail's CMFCVisualManagerVS2008 has one)
+// is not reached.
+extern "C" void MS_ABI impl__SetResourceHandle_CMFCVisualManagerOffice2007__SAXPEAUHINSTANCE_____Z(HINSTANCE hinstRes)
+{
+    impl__m_bAutoFreeRes_CMFCVisualManagerOffice2007__1HA = FALSE;
+    if (impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE____EA == hinstRes) return;
+    impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE____EA = hinstRes;
+    CMFCVisualManager* pManager =
+        static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+    if (pManager != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pManager, CMFCVisualManagerOffice2007::GetThisClass())) {
+        impl__OnUpdateSystemColors_CMFCVisualManagerOffice2007__UEAAXXZ(
+            static_cast<CMFCVisualManagerOffice2007*>(pManager));
+    }
+}
