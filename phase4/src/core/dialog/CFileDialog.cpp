@@ -24,6 +24,46 @@
   #define MS_ABI
 #endif
 
+// ---------------------------------------------------------------------------
+// Retail layout note (read from the mfc140u.dll ctor, RVA 0x20a1c0, and the
+// Vista-style wrappers below).  The retail CFileDialog keeps, after the CDialog
+// base (0x130 bytes):
+//   0x130 OPENFILENAMEW* m_pOFN            (malloc'd, dwSize or 0x98)
+//   0x138 BOOL  m_bVistaStyle              (GetVersionExW major >= 6 ? bVistaStyle : 0;
+//                                            reset to 0 if CoInitializeEx/CoCreateInstance fail)
+//   0x13c BOOL  m_bPickFoldersMode
+//   0x140 BOOL  m_bPickNonFileSysFoldersMode
+//   0x144 DWORD m_dwCookie                  (IFileDialog::Advise cookie)
+//   0x148 IFileDialog*          m_pIFileDialog
+//   0x150 IFileDialogCustomize* m_pIFileDialogCustomize
+//   0x158 BOOL  m_bOpenFileDialog
+//   0x160 CString m_strFilter
+//   0x168 WCHAR m_szFileTitle[256]
+//   0x368 WCHAR m_szFileName[260]
+//   0x570 OPENFILENAMEW* m_pofnTemp
+//   0x578 BOOL  m_bFileTypesSet
+//   0x580 XFileDialogEvents        (vptr; IFileDialogEvents interface part)
+//   0x588 XFileDialogControlEvents (vptr; IFileDialogControlEvents part)
+//   sizeof == 0x590 (1424)
+// The clean-room class in include/openmfc/afxwin.h has the same total size but
+// a different member set (m_bOpenFileDialog, m_dwFlags, nine CStrings, m_pFileList,
+// 1032 bytes of padding) and NO m_pOFN / m_bVistaStyle / COM pointers / interface
+// parts.  Every export below that retail routes through m_pIFileDialog or
+// m_pIFileDialogCustomize therefore stays a documented stub until the header
+// grows those members; the retail control flow is recorded above each one.
+// ---------------------------------------------------------------------------
+
+// Thunks used by the bodies below (definitions seen in core/window/CWnd.cpp:590
+// and core/window/Thunks.cpp:1148).
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
+extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd* pThis, void* pAlternateOwner);
+
+// Opaque COM interface types for the nested-class event sinks.  Only pointers
+// are passed through, so forward declarations suffice (shobjidl.h is not
+// included by this TU).
+struct IFileDialog;
+struct IFileDialogCustomize;
+struct IShellItem;
 
 
 
@@ -266,20 +306,51 @@ extern "C" HRESULT MS_ABI impl__AddText_CFileDialog__QEAAJKAEBV__CStringT__WV__S
     return S_OK;
 }
 // Symbol: ?AddPlace@CFileDialog@@QEAAXPEAUIShellItem@@W4FDAP@@@Z
+// Retail (RVA 0x20b840, mfc140u): if m_bVistaStyle (+0x138) is zero the call is
+// a no-op; otherwise m_pIFileDialog (+0x148)->AddPlace(psi, fdap) (vtable slot
+// 0xa8/8 = 21) and a failed HRESULT throws AfxThrowInvalidArgException.
+// STUB: the clean-room object has neither m_bVistaStyle nor m_pIFileDialog, so
+// only the non-Vista no-op path can be honoured here.
 extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEAUIShellItem__W4FDAP___Z(
-    CFileDialog* pThis, void* p0, int p1) {
+    CFileDialog* pThis, IShellItem* psi, int fdap) {
     (void)pThis;
-    (void)p0;
-    (void)p1;
+    (void)psi;
+    (void)fdap;
 }
 // Symbol: ?AddPlace@CFileDialog@@QEAAXPEB_WW4FDAP@@@Z
+// Retail (RVA 0x20b7c0, mfc140u): returns immediately when m_bVistaStyle (+0x138)
+// is zero.  Otherwise calls the internal helper at 0x1cab08 (not an export: it
+// GetProcAddress()es shell32!SHCreateItemFromParsingName and returns E_FAIL when
+// that is unavailable) as SHCreateItemFromParsingName(lpszFolder, NULL,
+// IID_IShellItem (at 0x2d9958), &psi), throws AfxThrowInvalidArgException on a
+// failed HRESULT, then calls the IShellItem* overload (0x20b840) and Release()s
+// the item (slot 2) when non-null.
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object; only the
+// non-Vista no-op path can be honoured here.
 extern "C" void MS_ABI impl__AddPlace_CFileDialog__QEAAXPEB_WW4FDAP___Z(
-    CFileDialog* pThis, const wchar_t* p0, int p1) {
+    CFileDialog* pThis, const wchar_t* lpszFolder, int fdap) {
     (void)pThis;
-    (void)p0;
-    (void)p1;
+    (void)lpszFolder;
+    (void)fdap;
 }
 // Symbol: ?ApplyOFNToShellDialog@CFileDialog@@QEAAXXZ
+// Retail (RVA 0x20af70, mfc140u; ~0x770 bytes): returns immediately unless
+// m_bVistaStyle (+0x138) == 1.  Then pushes m_pOFN (+0x130) into
+// m_pIFileDialog (+0x148): lpstrTitle -> SetTitle (slot 0x88/8 = 17),
+// lpstrDefExt -> SetDefaultExtension (slot 0xb0/8 = 22); walks the
+// double-NUL-terminated lpstrFilter counting name/spec pairs, builds a heap
+// COMDLG_FILTERSPEC array (16 bytes/entry; the array and each copied string
+// come from the exported operator new, ??2@YAPEAX_K@Z at RVA 0x27f0, not
+// new[]), passes it to SetFileTypes (slot 0x20/8 = 4) only while
+// m_bFileTypesSet (+0x578) is 0 and then sets that flag, free()s every string
+// and the array through the CRT free import, and calls
+// SetFileTypeIndex (slot 5) with max(1, nFilterIndex); it then continues with
+// lpstrFile (+0x30) and the remaining OFN fields (that tail was not read in
+// full).  Failed HRESULTs throw AfxThrowInvalidArgException; a failed
+// allocation throws AfxThrowMemoryException.
+// STUB: needs m_bVistaStyle, m_pOFN and m_pIFileDialog, none of which exist in
+// the clean-room object (the clean-room OFN is a per-call snapshot, see
+// OpenMfcGetOFNSnapshot).
 extern "C" void MS_ABI impl__ApplyOFNToShellDialog_CFileDialog__QEAAXXZ(CFileDialog* pThis) {
     (void)pThis;
 }
@@ -393,27 +464,52 @@ extern "C" HRESULT MS_ABI impl__GetControlState_CFileDialog__QEAAJKAEAW4CDCONTRO
     return (it == state->controlStates.end()) ? S_FALSE : S_OK;
 }
 // Symbol: ?GetIFileDialogCustomize@CFileDialog@@QEAAPEAUIFileDialogCustomize@@XZ
+// Retail (RVA 0x20b780, mfc140u): result = NULL; if m_bVistaStyle (+0x138) == 1,
+// m_pIFileDialog (+0x148)->QueryInterface(IID at 0x34c608, &result); the HRESULT
+// is ignored; returns result (the caller owns the AddRef).
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object, so this can
+// only return the non-Vista NULL.
 extern "C" void* MS_ABI impl__GetIFileDialogCustomize_CFileDialog__QEAAPEAUIFileDialogCustomize__XZ(
     CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
 }
 // Symbol: ?GetIFileOpenDialog@CFileDialog@@QEAAPEAUIFileOpenDialog@@XZ
+// Retail (RVA 0x20b700, mfc140u): same shape as GetIFileDialogCustomize with the
+// IID at 0x34c5f8 (IID_IFileOpenDialog): NULL unless m_bVistaStyle == 1, else
+// m_pIFileDialog->QueryInterface(..., &result), HRESULT ignored.
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.
 extern "C" void* MS_ABI impl__GetIFileOpenDialog_CFileDialog__QEAAPEAUIFileOpenDialog__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
 }
 // Symbol: ?GetIFileSaveDialog@CFileDialog@@QEAAPEAUIFileSaveDialog@@XZ
+// Retail (RVA 0x20b740, mfc140u): same shape as GetIFileDialogCustomize with the
+// IID at 0x34c5d8 (IID_IFileSaveDialog): NULL unless m_bVistaStyle == 1, else
+// m_pIFileDialog->QueryInterface(..., &result), HRESULT ignored.
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.
 extern "C" void* MS_ABI impl__GetIFileSaveDialog_CFileDialog__QEAAPEAUIFileSaveDialog__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
 }
 // Symbol: ?GetResult@CFileDialog@@QEAAPEAUIShellItem@@XZ
+// Retail (RVA 0x20c220, mfc140u): returns NULL when m_bVistaStyle (+0x138) is 0.
+// Otherwise m_pIFileDialog (+0x148)->GetResult(&psi) (slot 0xa0/8 = 20); if that
+// fails it falls back to the late-bound shell32!SHCreateItemFromParsingName
+// helper at 0x1cab08 with GetPathName() (0x20c350), NULL, IID_IShellItem, &psi
+// and throws AfxThrowInvalidArgException if that fails too; returns psi.
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object; only the
+// non-Vista NULL can be returned here.
 extern "C" void* MS_ABI impl__GetResult_CFileDialog__QEAAPEAUIShellItem__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
 }
 // Symbol: ?GetResults@CFileDialog@@QEAAPEAUIShellItemArray@@XZ
+// Retail (RVA 0x20c2c0, mfc140u): returns NULL when m_bVistaStyle (+0x138) is 0.
+// Otherwise m_pIFileDialog->QueryInterface(IID at 0x34c5f8 = IID_IFileOpenDialog,
+// &pfod), pfod->GetResults(&psia) (slot 0xd8/8 = 27), pfod->Release(); any
+// failed HRESULT throws AfxThrowInvalidArgException; returns psia.
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.
 extern "C" void* MS_ABI impl__GetResults_CFileDialog__QEAAPEAUIShellItemArray__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
@@ -443,60 +539,96 @@ extern "C" void MS_ABI impl__HideControl_CFileDialog__QEAAXH_Z(CFileDialog* pThi
     }
 }
 // Symbol: ?MakeProminent@CFileDialog@@QEAAJK@Z
-extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long p0) {
+// Retail (RVA 0x20e2a0, mfc140u): if m_bVistaStyle (+0x138) is 0 returns
+// E_NOTIMPL (0x80004001).  Otherwise p = GetIFileDialogCustomize() (0x20b780),
+// hr = p->MakeProminent(dwIDCtl) (slot 0xe0/8 = 28), p->Release(), return hr.
+// Note retail does not null-check p on the Vista path; on that path the result
+// is whatever IFileDialogCustomize::MakeProminent returned (S_OK on success).
+// STUB: the clean-room object never owns an IFileDialogCustomize.  The rest of
+// the customization family in this file (AddPushButton, AddCheckButton, ...)
+// emulates the Vista-style path through the CFileDialogControlState side table
+// and reports S_OK, so this returns S_OK for consistency with those siblings;
+// nothing is actually made prominent.  (Retail's non-Vista result would be
+// E_NOTIMPL.)
+extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog* pThis, unsigned long dwIDCtl) {
     (void)pThis;
-    (void)p0;
+    (void)dwIDCtl;
     return S_OK;
 }
+// The eight overridables below share one retail body: export RVA 0x27d0 in
+// mfc140u (resolved through the export ordinal table; COMDAT-folded onto
+// CFrameWndEx::AddDockSite) which is a bare `ret`.  Retail does nothing in the
+// base class; only application overrides add behaviour.  Empty by design.
 // Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
-extern "C" void MS_ABI impl__OnButtonClicked_CFileDialog__MEAAXK_Z(CFileDialog* pThis, unsigned long p0) {
+extern "C" void MS_ABI impl__OnButtonClicked_CFileDialog__MEAAXK_Z(CFileDialog* pThis, unsigned long dwIDCtl) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
-    (void)p0;
+    (void)dwIDCtl;
 }
 // Symbol: ?OnCheckButtonToggled@CFileDialog@@MEAAXKH@Z
 extern "C" void MS_ABI impl__OnCheckButtonToggled_CFileDialog__MEAAXKH_Z(
-    CFileDialog* pThis, unsigned long p0, int p1) {
+    CFileDialog* pThis, unsigned long dwIDCtl, int bChecked) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
-    (void)p0;
-    (void)p1;
+    (void)dwIDCtl;
+    (void)bChecked;
 }
 // Symbol: ?OnControlActivating@CFileDialog@@MEAAXK@Z
 extern "C" void MS_ABI impl__OnControlActivating_CFileDialog__MEAAXK_Z(
-    CFileDialog* pThis, unsigned long p0) {
+    CFileDialog* pThis, unsigned long dwIDCtl) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
-    (void)p0;
+    (void)dwIDCtl;
 }
 // Symbol: ?OnFileNameChange@CFileDialog@@MEAAXXZ
 extern "C" void MS_ABI impl__OnFileNameChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
 }
 // Symbol: ?OnFileNameOK@CFileDialog@@MEAAHXZ
+// Retail RVA 0x71e0 (mfc140u, COMDAT-folded onto COleUILinkInfo::AddRef):
+// `xor eax,eax; ret` -- the base class accepts every file name (FALSE).
 extern "C" int MS_ABI impl__OnFileNameOK_CFileDialog__MEAAHXZ(CFileDialog* pThis) {
     (void)pThis;
     return FALSE;
 }
 // Symbol: ?OnFolderChange@CFileDialog@@MEAAXXZ
 extern "C" void MS_ABI impl__OnFolderChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
 }
 // Symbol: ?OnInitDone@CFileDialog@@MEAAXXZ
+// Retail (RVA 0x20d540, mfc140u):
+//     CWnd::FromHandle(::GetParent(m_hWnd))->CenterWindow(NULL);
+// (GetParent via the IAT, FromHandle at 0x28ad70, tail-jump to CenterWindow at
+// 0x291180 with rdx = 0).  m_hWnd is the explorer-style hook child; its parent
+// is the actual file dialog, which gets centred over its owner.
+// Deviations: retail tests neither `this` nor the FromHandle result
+// (CHandleMap::FromHandle at 0x2a6080 returns NULL for a NULL handle, and
+// CenterWindow would then fault reading m_hWnd); we return early in both cases.
 extern "C" void MS_ABI impl__OnInitDone_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
+    if (pParent) {
+        impl__CenterWindow_CWnd__QEAAXPEAV1__Z(pParent, nullptr);
+    }
 }
 // Symbol: ?OnItemSelected@CFileDialog@@MEAAXKK@Z
 extern "C" void MS_ABI impl__OnItemSelected_CFileDialog__MEAAXKK_Z(
-    CFileDialog* pThis, unsigned long p0, unsigned long p1) {
+    CFileDialog* pThis, unsigned long dwIDCtl, unsigned long dwIDItem) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
-    (void)p0;
-    (void)p1;
+    (void)dwIDCtl;
+    (void)dwIDItem;
 }
 // Symbol: ?OnLBSelChangedNotify@CFileDialog@@MEAAXIII@Z
 extern "C" void MS_ABI impl__OnLBSelChangedNotify_CFileDialog__MEAAXIII_Z(
-    CFileDialog* pThis, unsigned int p0, unsigned int p1, unsigned int p2) {
+    CFileDialog* pThis, unsigned int nIDBox, unsigned int iCurSel, unsigned int nCode) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
+    (void)nIDBox;
+    (void)iCurSel;
+    (void)nCode;
 }
 // Symbol: ?OnNotify@CFileDialog@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CFileDialog__MEAAH_K_JPEA_J_Z(
@@ -510,14 +642,17 @@ extern "C" int MS_ABI impl__OnNotify_CFileDialog__MEAAH_K_JPEA_J_Z(
     return FALSE;
 }
 // Symbol: ?OnShareViolation@CFileDialog@@MEAAIPEB_W@Z
+// Retail RVA 0x71e0 (mfc140u): `xor eax,eax; ret` == OFN_SHAREWARN (0), i.e. let
+// the common dialog show its own sharing-violation warning.
 extern "C" unsigned int MS_ABI impl__OnShareViolation_CFileDialog__MEAAIPEB_W_Z(
-    CFileDialog* pThis, const wchar_t* p0) {
+    CFileDialog* pThis, const wchar_t* lpszPathName) {
     (void)pThis;
-    (void)p0;
-    return 0;
+    (void)lpszPathName;
+    return OFN_SHAREWARN;
 }
 // Symbol: ?OnTypeChange@CFileDialog@@MEAAXXZ
 extern "C" void MS_ABI impl__OnTypeChange_CFileDialog__MEAAXXZ(CFileDialog* pThis) {
+    // Retail RVA 0x27d0 (mfc140u): `ret`.
     (void)pThis;
 }
 // Symbol: ?RemoveControlItem@CFileDialog@@QEAAJKK@Z
@@ -624,11 +759,20 @@ extern "C" HRESULT MS_ABI impl__SetSelectedControlItem_CFileDialog__QEAAJKK_Z(
     return S_OK;
 }
 // Symbol: ?SetTemplate@CFileDialog@@QEAAXPEB_W0@Z
+// Retail (RVA 0x20d140, mfc140u):
+//     if (m_bVistaStyle == 1) AfxThrowNotSupportedException();
+//     m_pOFN->lpTemplateName = (m_pOFN->Flags & OFN_EXPLORER) ? lpWin4ID : lpWin3ID;
+//     m_pOFN->Flags |= OFN_ENABLETEMPLATE;
+// (+0x138 m_bVistaStyle, +0x130 m_pOFN, OFN +0x60 Flags, +0x80 lpTemplateName.)
+// STUB: the clean-room object has no persistent OPENFILENAMEW (GetOFN() hands
+// out a per-call snapshot) and no m_bVistaStyle, so lpTemplateName cannot be
+// stored; setting OFN_ENABLETEMPLATE alone would make GetOpenFileName fail, so
+// nothing is done.
 extern "C" void MS_ABI impl__SetTemplate_CFileDialog__QEAAXPEB_W0_Z(
-    CFileDialog* pThis, const wchar_t* p0, const wchar_t* p1) {
+    CFileDialog* pThis, const wchar_t* lpWin3ID, const wchar_t* lpWin4ID) {
     (void)pThis;
-    (void)p0;
-    (void)p1;
+    (void)lpWin3ID;
+    (void)lpWin4ID;
 }
 // Symbol: ?StartVisualGroup@CFileDialog@@QEAAJKAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" HRESULT MS_ABI impl__StartVisualGroup_CFileDialog__QEAAJKAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
@@ -641,6 +785,20 @@ extern "C" HRESULT MS_ABI impl__StartVisualGroup_CFileDialog__QEAAJKAEBV__CStrin
     return S_OK;
 }
 // Symbol: ?UpdateOFNFromShellDialog@CFileDialog@@UEAAXXZ
+// Retail (RVA 0x20a680, mfc140u; ~0x900 bytes): returns immediately unless
+// m_bVistaStyle (+0x138) == 1; then m_pIFileDialog (+0x148)->GetResult(&psi)
+// (slot 0xa0/8 = 20).  On success: if GetIFileSaveDialog() (0x20b740) is
+// non-null, GetProperties (slot 0xf0/8 = 30) + ApplyProperties(psi, store,
+// m_hWnd, NULL) (slot 0xf8/8 = 31) and both are Release()d; then
+// psi->GetDisplayName(SIGDN_FILESYSPATH = 0x80058000, &pszPath) and the path
+// is copied back into m_pOFN.  On GetResult FAILURE it is not an error: if
+// m_pOFN->Flags (+0x60) has OFN_ALLOWMULTISELECT (0x200) it QIs
+// IID_IFileOpenDialog (0x34c5f8), GetResults (slot 0xd8/8 = 27),
+// IShellItemArray::EnumItems (slot 0x48/8 = 9) and walks IEnumShellItems::Next
+// (slot 3) to build the multi-selection.  (The copy-back tails were not read
+// instruction by instruction.)
+// STUB: needs m_bVistaStyle, m_pIFileDialog and m_pOFN, none present in the
+// clean-room object.
 extern "C" void MS_ABI impl__UpdateOFNFromShellDialog_CFileDialog__UEAAXXZ(CFileDialog* pThis) {
     (void)pThis;
 }
@@ -688,62 +846,174 @@ extern "C" void* MS_ABI impl___0CFileDialog__QEAA_HPEB_W0K0PEAVCWnd__KH_Z(
                                lpszFilter, pParentWnd, dwSize, bVistaStyle);
 }
 
+// ---------------------------------------------------------------------------
+// Nested interface parts: CFileDialog::XFileDialogEvents (IFileDialogEvents) and
+// CFileDialog::XFileDialogControlEvents (IFileDialogControlEvents).
+//
+// In retail these are the two interface-part sub-objects that the ctor
+// (RVA 0x20a1c0, mfc140u) installs at +0x580 / +0x588 of CFileDialog and hands
+// to IFileDialog::Advise.  Every method starts with METHOD_PROLOGUE:
+//     CFileDialog* pThis = (CFileDialog*)((char*)this - 0x580 /* or 0x588 */);
+//     AFX_MAINTAIN_STATE2 state(pThis->m_pModuleState /* CCmdTarget +0x38 */);
+// and then dispatches to a CFileDialog virtual by vtable slot:
+//     0x328/8 = 101 UpdateOFNFromShellDialog   0x330/8 = 102 OnShareViolation
+//     0x338/8 = 103 OnFileNameOK               0x350/8 = 106 OnFileNameChange
+//     0x358/8 = 107 OnFolderChange             0x360/8 = 108 OnTypeChange
+//     0x368/8 = 109 OnItemSelected             0x370/8 = 110 OnButtonClicked
+//     0x378/8 = 111 OnCheckButtonToggled       0x380/8 = 112 OnControlActivating
+// The clean-room CFileDialog has neither the two sub-objects nor those vtable
+// slots (afxwin.h declares none of the overridables as virtual), so there is no
+// pointer a caller could legitimately pass as `this` here and no outer object to
+// recover from it.  The methods that dispatch to the outer object therefore stay
+// stubs (signatures corrected from the mangled names); the three whose retail
+// body is only the module-state guard plus `return S_OK` are complete as written.
+// ---------------------------------------------------------------------------
+
 // Symbol: ?OnButtonClicked@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
-extern "C" long MS_ABI impl__OnButtonClicked_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(void* /*struct*/* p0, unsigned long p1) {
-    return 0;
+// Retail (RVA 0x20bf70, mfc140u): METHOD_PROLOGUE(-0x588); pThis->OnButtonClicked(dwIDCtl)
+// via slot 110; return S_OK.  STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnButtonClicked_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(
+    void* pInner, IFileDialogCustomize* pfdc, unsigned long dwIDCtl) {
+    (void)pInner;
+    (void)pfdc;
+    (void)dwIDCtl;
+    return S_OK;
 }
 
 // Symbol: ?OnCheckButtonToggled@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KH@Z
-extern "C" long MS_ABI impl__OnCheckButtonToggled_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KH_Z(void* /*struct*/* p0, unsigned long p1, int p2) {
-    return 0;
+// Retail (RVA 0x20bfd0, mfc140u): METHOD_PROLOGUE(-0x588);
+// pThis->OnCheckButtonToggled(dwIDCtl, bChecked) via slot 111; return S_OK.
+// STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnCheckButtonToggled_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KH_Z(
+    void* pInner, IFileDialogCustomize* pfdc, unsigned long dwIDCtl, int bChecked) {
+    (void)pInner;
+    (void)pfdc;
+    (void)dwIDCtl;
+    (void)bChecked;
+    return S_OK;
 }
 
 // Symbol: ?OnControlActivating@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
-extern "C" long MS_ABI impl__OnControlActivating_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(void* /*struct*/* p0, unsigned long p1) {
-    return 0;
+// Retail (RVA 0x20c040, mfc140u): METHOD_PROLOGUE(-0x588); pThis->OnControlActivating(dwIDCtl)
+// via slot 112; return S_OK.  STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnControlActivating_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__K_Z(
+    void* pInner, IFileDialogCustomize* pfdc, unsigned long dwIDCtl) {
+    (void)pInner;
+    (void)pfdc;
+    (void)dwIDCtl;
+    return S_OK;
 }
 
 // Symbol: ?OnFileOk@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
-extern "C" long MS_ABI impl__OnFileOk_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
-    return 0;
+// Retail (RVA 0x20b9b0, mfc140u): METHOD_PROLOGUE(-0x580);
+// pThis->UpdateOFNFromShellDialog() (slot 101); return pThis->OnFileNameOK()
+// (slot 103) ? S_FALSE : S_OK.  STUB: no outer object / slots in the clean-room
+// layout; S_OK is what the base-class OnFileNameOK (FALSE) yields.
+extern "C" HRESULT MS_ABI impl__OnFileOk_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pInner, IFileDialog* pfd) {
+    (void)pInner;
+    (void)pfd;
+    return S_OK;
 }
 
 // Symbol: ?OnFolderChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
-extern "C" long MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
-    return 0;
+// Retail (RVA 0x20ba20, mfc140u): METHOD_PROLOGUE(-0x580); pThis->OnFolderChange()
+// via slot 107; return S_OK.  STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pInner, IFileDialog* pfd) {
+    (void)pInner;
+    (void)pfd;
+    return S_OK;
 }
 
+// OnFolderChanging, OnHelp and OnOverwrite share one retail body (RVA 0x20ba70,
+// mfc140u, reached through three export ordinals): read the outer object's
+// m_pModuleState (rcx - 0x548 == (this - 0x580) + 0x38), construct and destroy
+// an AFX_MAINTAIN_STATE2 around nothing, return S_OK.  The guard has no effect
+// that outlives the call, so `return S_OK` is the complete behaviour.
+
 // Symbol: ?OnFolderChanging@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@@Z
-extern "C" long MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(void* /*struct*/* p0, void* /*struct*/* p1) {
-    return 0;
+extern "C" HRESULT MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(
+    void* pInner, IFileDialog* pfd, IShellItem* psiFolder) {
+    // Retail RVA 0x20ba70 (mfc140u): module-state guard only; S_OK.
+    (void)pInner;
+    (void)pfd;
+    (void)psiFolder;
+    return S_OK;
 }
 
 // Symbol: ?OnHelp@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
-extern "C" long MS_ABI impl__OnHelp_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" HRESULT MS_ABI impl__OnHelp_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pInner, IFileDialog* pfd) {
+    // Retail RVA 0x20ba70 (mfc140u): module-state guard only; S_OK.
+    (void)pInner;
+    (void)pfd;
+    return S_OK;
 }
 
 // Symbol: ?OnItemSelected@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@KK@Z
-extern "C" long MS_ABI impl__OnItemSelected_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KK_Z(void* /*struct*/* p0, unsigned long p1, unsigned long p2) {
-    return 0;
+// Retail (RVA 0x20bf00, mfc140u): METHOD_PROLOGUE(-0x588);
+// pThis->OnItemSelected(dwIDCtl, dwIDItem) via slot 109; return S_OK.
+// STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnItemSelected_XFileDialogControlEvents_CFileDialog__UEAAJPEAUIFileDialogCustomize__KK_Z(
+    void* pInner, IFileDialogCustomize* pfdc, unsigned long dwIDCtl, unsigned long dwIDItem) {
+    (void)pInner;
+    (void)pfdc;
+    (void)dwIDCtl;
+    (void)dwIDItem;
+    return S_OK;
 }
 
 // Symbol: ?OnOverwrite@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_OVERWRITE_RESPONSE@@@Z
-extern "C" long MS_ABI impl__OnOverwrite_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_OVERWRITE_RESPONSE___Z(void* /*struct*/* p0, void* /*struct*/* p1, int /*enum*/* p2, short p3, char p4, unsigned char p5, int p6, void* p7, void* /*class*/ p8) {
-    return 0;
+extern "C" HRESULT MS_ABI impl__OnOverwrite_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_OVERWRITE_RESPONSE___Z(
+    void* pInner, IFileDialog* pfd, IShellItem* psi, int* pResponse) {
+    // Retail RVA 0x20ba70 (mfc140u): module-state guard only; *pResponse is
+    // never written (no store through r9 anywhere in the body); S_OK.
+    (void)pInner;
+    (void)pfd;
+    (void)psi;
+    (void)pResponse;
+    return S_OK;
 }
 
 // Symbol: ?OnSelectionChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
-extern "C" long MS_ABI impl__OnSelectionChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
-    return 0;
+// Retail (RVA 0x20baa0, mfc140u): METHOD_PROLOGUE(-0x580); pThis->OnFileNameChange()
+// via slot 106; return S_OK.  STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnSelectionChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pInner, IFileDialog* pfd) {
+    (void)pInner;
+    (void)pfd;
+    return S_OK;
 }
 
 // Symbol: ?OnShareViolation@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_SHAREVIOLATION_RESPONSE@@@Z
-extern "C" long MS_ABI impl__OnShareViolation_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_SHAREVIOLATION_RESPONSE___Z(void* /*struct*/* p0, void* /*struct*/* p1, int /*enum*/* p2, short p3, char p4, unsigned char p5, int p6, void* p7, int p8, void** p9, unsigned char p10, void* /*class*/ p11) {
-    return 0;
+// Retail (RVA 0x20bb70, mfc140u): METHOD_PROLOGUE(-0x580); if psi == NULL or
+// psi->GetDisplayName(SIGDN_FILESYSPATH = 0x80058000, &pszPath) fails ->
+// AfxThrowInvalidArgException; CString strPath(pszPath) (the inlined CString
+// ctor, including its MAKEINTRESOURCE branch), CoTaskMemFree(pszPath);
+// r = pThis->OnShareViolation(strPath) via slot 102; if pResponse == NULL ->
+// AfxThrowInvalidArgException; if r is 0, 1 or 2 (FDESVR_DEFAULT / ACCEPT /
+// REFUSE) *pResponse = r, any other value leaves *pResponse untouched; S_OK.
+// STUB: no outer object / slot in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnShareViolation_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_SHAREVIOLATION_RESPONSE___Z(
+    void* pInner, IFileDialog* pfd, IShellItem* psi, int* pResponse) {
+    (void)pInner;
+    (void)pfd;
+    (void)psi;
+    (void)pResponse;
+    return S_OK;
 }
 
 // Symbol: ?OnTypeChange@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@@Z
-extern "C" long MS_ABI impl__OnTypeChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(void* /*struct*/* p0) {
-    return 0;
+// Retail (RVA 0x20baf0, mfc140u): METHOD_PROLOGUE(-0x580);
+// pThis->m_pIFileDialog->GetFileTypeIndex(&idx) (IFileDialog slot 6, idx
+// preset to 0, HRESULT ignored); pThis->m_pOFN->nFilterIndex (+0x2c) = idx;
+// pThis->OnTypeChange() via slot 108; return S_OK.
+// STUB: needs the outer object, m_pIFileDialog and m_pOFN, none of which exist
+// in the clean-room layout.
+extern "C" HRESULT MS_ABI impl__OnTypeChange_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
+    void* pInner, IFileDialog* pfd) {
+    (void)pInner;
+    (void)pfd;
+    return S_OK;
 }

@@ -438,12 +438,27 @@ extern "C" int MS_ABI impl__IsCaptionButtons_CMFCRibbonBar__QEAAHXZ(
     return 0;
 }
 // CMFCRibbonBar::FindNearest(CPoint, const CArray<CMFCRibbonBaseElement*,
-// CMFCRibbonBaseElement*>&) [static] -- retail returns the first element
-// whose rect (+0xc8) contains the point (PtInRect). The element rect is not
-// a declared member of OpenMFC's CMFCRibbonBaseElement, so the containment
-// test cannot be reproduced.
-// TODO(clean-room): partially transcribed -- needs the element rect member
-// at +0xc8.
+// CMFCRibbonBaseElement*>&) [static] -- retail (RVA 0xe3d50, mfc140u),
+// transcribed in full (point arrives in RCX as an 8-byte aggregate, the array
+// reference in RDX; there is no `this`):
+//     for (int i = 0; i < ar.GetSize(); i++) {          // m_nSize at ar+0x10
+//         CMFCRibbonBaseElement* pElem = ar[i];         // m_pData at ar+0x8
+//         if (::PtInRect(&pElem->m_rect, point))        // rect at elem+0xc8
+//             return pElem;
+//     }
+//     return NULL;
+// The IAT slot 0x1802c72f8 called in the loop resolves to USER32!PtInRect
+// (iatu.py). The inlined CArray::operator[] bounds check jumps to
+// ?AfxThrowInvalidArgException@@YAXXZ (RVA 0x227720, mfc140u) for a
+// negative / out-of-range index, which the loop guard makes unreachable.
+// NOT implemented: the only state the body reads is the element rect at
+// +0xc8, and OpenMFC's CMFCRibbonBaseElement (include/openmfc/afxmfc.h) is a
+// 0x38-byte clean-room object with no rect member and no side-table entry
+// for it (RibbonState.h models only ownership, not geometry), so the
+// containment test cannot be reproduced without reading past the object.
+// Left returning NULL, which is retail's answer when no rect contains the
+// point.
+// TODO(clean-room): needs the element rect member at +0xc8.
 // Symbol: ?FindNearest@CMFCRibbonBar@@KAPEAVCMFCRibbonBaseElement@@VCPoint@@AEBV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__FindNearest_CMFCRibbonBar__KAPEAVCMFCRibbonBaseElement__VCPoint__AEBV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
     CPoint /*point*/,
@@ -995,28 +1010,80 @@ extern "C" int MS_ABI impl__ProcessKey_CMFCRibbonBar__IEAAHH_Z(
     if (!pThis) return 0;
     return 0;
 }
-// CMFCRibbonBar::SetKeyboardNavigationLevel(CObject*, int) -- retail
-// (RVA 0xe1db0) returns immediately when key tips are disabled or the bar is
-// hidden (m_dwHideFlags bit 1); otherwise it removes all key tips, resets the
-// navigation cursor (m_nCurrKeyChar, m_pKeyboardNavLevelParent,
-// m_pKeyboardNavLevelCurrent, m_nKeyboardNavLevel) and drives the key-tip
-// show/hide machinery through GetFocus/IsChild checks and the category groups.
-// The declared-member cursor reset is reproduced; the key-tip machinery is
-// not.
-// TODO(clean-room): partially transcribed -- the key-tip show/hide and focus
-// checks are not modeled.
+// Thunks used by SetKeyboardNavigationLevel below; each definition was
+// located before it was declared here (RemoveAllKeys and ShowKeyTips are
+// defined further down in this file; FromHandle in core/window/CWnd.cpp,
+// GetParentFrame and SetFocus in core/window/Thunks.cpp).
+extern "C" void MS_ABI impl__RemoveAllKeys_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pThis);
+extern "C" void MS_ABI impl__ShowKeyTips_CMFCRibbonBar__QEAAXH_Z(CMFCRibbonBar* pThis, int bRepos);
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
+extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis);
+extern "C" void* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
+// CMFCRibbonBar::SetKeyboardNavigationLevel(CObject* pObj, BOOL bSetFocus) --
+// retail (RVA 0xe1db0 in mfc140u, 0xe29c0 in mfc140), transcribed:
+//     if (!m_bKeyTips || (m_dwHideFlags & 0x2)) return;          // +0x458, +0x478
+//     if (bSetFocus) SetFocus();                                  // CWnd::SetFocus
+//     RemoveAllKeys();
+//     m_nCurrKeyChar = 0;                                         // +0x418
+//     m_pKeyboardNavLevelParent = NULL;                           // +0xc08
+//     m_pKeyboardNavLevelCurrent = pObj;                          // +0xc10
+//     pFrame = GetParentFrame();
+//     pFocus = CWnd::FromHandle(::GetFocus());
+//     if (pFocus == NULL || pFocus->m_hWnd == NULL) return;
+//     if (!::IsChild(pFrame->m_hWnd, pFocus->m_hWnd)             // pFrame deref'd unchecked
+//         && pFocus->m_hWnd != (pFrame ? pFrame->m_hWnd : NULL)) return;
+//     if (pObj == NULL) {
+//         m_nKeyboardNavLevel = 0;                                // +0x414
+//         ... key tips for the main button, the QAT, the tab elements and the
+//             context captions are built into m_arKeyElements (+0xb78) ...
+//     } else {
+//         ... a category / panel / button level: key tips for the panels or
+//             the object's own elements are built into m_arKeyElements ...
+//         m_nKeyboardNavLevel = 1;    // both sub-paths converge on `mov $1,%edi`
+//     }
+//     ShowKeyTips(FALSE);                                         // mfc140 0xe3ed0
+//     ::RedrawWindow(m_hWnd, NULL, NULL, 0x105);
+// IAT slots resolved (mfc140): 0x1802c51d8 GetFocus, 0x1802c51e0 IsChild,
+// 0x1802c5388 RedrawWindow. Reproduced: the guards, the optional SetFocus,
+// RemoveAllKeys, the cursor reset, the focus gate, the level store and the
+// ShowKeyTips + RedrawWindow tail. Not reproduced: the key-tip construction
+// (CMFCRibbonKeyTip and the element groups are not modeled, so ShowKeyTips
+// is a no-op here). Deviation: a NULL GetParentFrame() result returns
+// instead of faulting in the first IsChild argument.
+// An earlier revision of this body skipped the focus gate, RemoveAllKeys
+// and SetFocus and stored level 0 for every pObj; that was a silent
+// deviation and, for a non-NULL pObj, the wrong value.
 // Symbol: ?SetKeyboardNavigationLevel@CMFCRibbonBar@@QEAAXPEAVCObject@@H@Z
 extern "C" void MS_ABI impl__SetKeyboardNavigationLevel_CMFCRibbonBar__QEAAXPEAVCObject__H_Z(
-    CMFCRibbonBar* pThis, CObject* pObj, int /*nLevel*/)
+    CMFCRibbonBar* pThis, CObject* pObj, int bSetFocus)
 {
     if (!pThis) return;
     if (!pThis->m_bKeyTips) return;
     if ((pThis->m_dwHideFlags & 0x2) != 0) return;
 
+    if (bSetFocus) {
+        impl__SetFocus_CWnd__QEAAPEAV1_XZ(pThis);
+    }
+    impl__RemoveAllKeys_CMFCRibbonBar__IEAAXXZ(pThis);
+
     pThis->m_nCurrKeyChar = 0;
     pThis->m_pKeyboardNavLevelParent = nullptr;
     pThis->m_pKeyboardNavLevelCurrent = pObj;
-    pThis->m_nKeyboardNavLevel = 0;
+
+    CFrameWnd* pFrame = impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pThis);
+    CWnd* pFocus = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetFocus());
+    if (pFocus == nullptr || pFocus->m_hWnd == nullptr) return;
+    if (pFrame == nullptr) return;   // retail faults here
+    if (!::IsChild(pFrame->m_hWnd, pFocus->m_hWnd) && pFocus->m_hWnd != pFrame->m_hWnd) return;
+
+    // Retail builds the level's key tips into m_arKeyElements here (not
+    // modeled, see above).
+    pThis->m_nKeyboardNavLevel = (pObj == nullptr) ? 0 : 1;
+
+    impl__ShowKeyTips_CMFCRibbonBar__QEAAXH_Z(pThis, FALSE);
+    if (pThis->m_hWnd) {
+        ::RedrawWindow(pThis->m_hWnd, nullptr, nullptr, 0x105);
+    }
 }
 // CMFCRibbonBar::RecalcLayout() -- retail (RVA 0xdc480) is a large geometry
 // pass over the main category, the caption buttons, the QAT and the tab group
@@ -1403,6 +1470,116 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonBar__IEAAXIVCPoint___Z(
     CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point);
 extern "C" void MS_ABI impl__ShowSysMenu_CMFCRibbonBar__IEAAXAEBVCPoint___Z(
     CMFCRibbonBar* pThis, const CPoint& point);
+
+// Thunks used by the handlers implemented in the 2026-09 batch (TranslateChar,
+// WindowProc, the WM_LBUTTON* handlers, OnNeedTipText, OnCreate, CreateEx,
+// ShowSysMenu, UpdateToolTipsRect). Every one was located in the tree before
+// it was declared here; the file:line of the definition is given so the next
+// reader can re-check the signature against it.
+extern "C" int MS_ABI impl__IsKeyPrintable_CKeyboardManager__SAHI_Z(unsigned int nChar);          // customize/CKeyboardManager.cpp:13
+extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    const CWnd* pThis, CString* rString);                                                          // core/window/CWnd.cpp:887
+extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(CWnd* pThis, const wchar_t* lpsz);  // core/window/CWnd.cpp:867
+extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+    CWnd* pThis, const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
+    const RECT& rect, CWnd* pParentWnd, UINT nID, CCreateContext* pContext);                        // core/window/CWnd.cpp:603
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);                                            // core/runtime/CObject.cpp:49
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWndEx__SAPEAUCRuntimeClass__XZ();         // core/frame/CFrameWndEx.cpp:218
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIFrameWndEx__SAPEAUCRuntimeClass__XZ();      // core/frame/CMDIFrameWndEx.cpp:591
+extern "C" int MS_ABI impl__AddPane_CFrameWndEx__QEAAHPEAVCBasePane__H_Z(
+    CFrameWndEx* pThis, CBasePane* pBar, int bSelect);                                             // core/frame/CFrameWndEx.cpp:406
+extern "C" int MS_ABI impl__AddPane_CMDIFrameWndEx__QEAAHPEAVCBasePane__H_Z(
+    CMDIFrameWndEx* pThis, CBasePane* pBar, int bSelect);                                          // core/frame/CMDIFrameWndEx.cpp:875 (returns FALSE, unmodeled)
+extern "C" int MS_ABI impl__SetMenu_CFrameWnd__UEAAHPEAVCMenu___Z(CFrameWnd* pThis, CMenu* pMenu); // core/frame/Thunks.cpp:1753
+extern "C" void MS_ABI impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+    CString* ret, void* pThis, const wchar_t* lpszClassNamePrefix);                                // core/runtime/AFX_GLOBAL_DATA.cpp:15 (no `this` instance in OpenMFC)
+extern "C" int MS_ABI impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(
+    CToolTipCtrl** ppToolTip, CWnd* pWndParent, unsigned int nType);                               // customize/CTooltipManager.cpp:19
+extern "C" int MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+    CToolTipCtrl* pThis, CWnd* pWnd, const wchar_t* lpszText, const RECT* lpRectTool,
+    unsigned __int64 nIDTool);                                                                     // core/controls/Thunks.cpp:1123
+extern "C" void MS_ABI impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagRECT___Z(
+    CToolTipCtrl* pThis, CWnd* pWnd, UINT_PTR nIDTool, const RECT* pRect);                        // core/controls/CToolTipCtrl.cpp:164
+// CPane mouse handlers. OnLButtonDblClk (docking/CPane.cpp:1213) is a documented
+// no-op, OnLButtonUp (docking/CPane.cpp:1290) is a real body; OnLButtonDown has
+// NO source definition -- it is a build-generated empty stub (typed_stubs.cpp,
+// `(unsigned int, void*) {}`) that docking/CMFCAutoHideBar.cpp:60 already
+// declares and calls with this same real signature. Retail passes CPoint by
+// value in a register, which is what `CPoint` produces under MS_ABI here.
+extern "C" void MS_ABI impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(CPane* pThis, unsigned int nFlags, CPoint point);
+extern "C" void MS_ABI impl__OnLButtonDown_CPane__IEAAXIVCPoint___Z(CPane* pThis, unsigned int nFlags, CPoint point);
+extern "C" void MS_ABI impl__OnLButtonUp_CPane__IEAAXIVCPoint___Z(CPane* pThis, unsigned int nFlags, CPoint point);
+// CPane::OnMouseMove (docking/CPane.cpp:1394) and CPane::OnDestroy
+// (docking/CPane.cpp:1178) are real transcribed bodies now; the OnMouseMove
+// definition spells the packed CPoint as `void*`, which is the same 8-byte
+// register argument under MS_ABI.
+extern "C" void MS_ABI impl__OnMouseMove_CPane__IEAAXIVCPoint___Z(CPane* pThis, unsigned int nFlags, CPoint point);
+extern "C" void MS_ABI impl__OnDestroy_CPane__IEAAXXZ(CPane* pThis);
+// CBasePane::WindowProc is still a placeholder in docking/CBasePane.cpp:1439
+// (`(unsigned int, unsigned __int64, __int64) { return 0; }`, no `this`). This
+// is the signature the mangled name actually describes; the definition's
+// parameter list must be brought in line with it when that body is written.
+extern "C" __int64 MS_ABI impl__WindowProc_CBasePane__MEAA_JI_K_J_Z(
+    CBasePane* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam);
+// CMFCPopupMenu::m_pActivePopupMenu, the exported static behind retail's
+// 0x1803b6fe8 (mfc140) reads (menu/CMFCPopupMenu.cpp:148).
+extern "C" void* impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA;
+
+// Classes named by exported signatures below that the clean-room headers do
+// not declare. Only pointers / references to them are formed.
+class CMFCRibbonQuickAccessToolBarDefaultState;
+class CMFCRibbonRichEditCtrl;
+
+namespace {
+// Retail's non-exported lazily-bound dwmapi!DwmDefWindowProc wrapper (mfc140
+// 0x1c9288; CMFCRibbonBar::WindowProc calls it for WM_NCHITTEST). Retail loads
+// L"dwmapi.dll" (the UTF-16 string at mfc140 0x341790) through its
+// system-directory-only loader at 0xd8230 -- LoadLibraryExW(name, NULL,
+// LOAD_LIBRARY_SEARCH_SYSTEM32) when kernel32 exports SetDefaultDllDirectories,
+// otherwise GetSystemDirectoryW + L"\\" + name and LoadLibraryW -- then
+// GetProcAddress("DwmDefWindowProc") (0x3417a8), caches the EncodePointer'd
+// result and calls it; on any failure it returns 0 without touching *plResult.
+// Same two-way load here (the encoded cache is an in-process hardening detail
+// with no observable effect). core/frame/CFrameImpl.cpp keeps an identical
+// private copy for CFrameImpl::OnNcHitTest; it is file-local there and cannot
+// be shared without a header change, so it is duplicated rather than exported.
+typedef BOOL (WINAPI* RibbonDwmDefWindowProcFn)(HWND, UINT, WPARAM, LPARAM, LRESULT*);
+RibbonDwmDefWindowProcFn g_pfnRibbonDwmDefWindowProc = nullptr;
+bool g_bRibbonDwmDefWindowProcResolved = false;
+
+HMODULE RibbonLoadSystemLibrary(const wchar_t* lpszName) {
+    HMODULE hKernel = ::GetModuleHandleW(L"kernel32.dll");
+    if (hKernel != nullptr && ::GetProcAddress(hKernel, "SetDefaultDllDirectories") != nullptr) {
+        return ::LoadLibraryExW(lpszName, nullptr, 0x00000800 /*LOAD_LIBRARY_SEARCH_SYSTEM32*/);
+    }
+    wchar_t szPath[MAX_PATH + 1] = {};
+    const UINT nLen = ::GetSystemDirectoryW(szPath, MAX_PATH + 1);
+    if (nLen == 0 || nLen > MAX_PATH) return nullptr;
+    UINT nPos = nLen;
+    if (szPath[nPos - 1] != L'\\') {
+        if (nPos + 1 > MAX_PATH) return nullptr;
+        szPath[nPos++] = L'\\';
+    }
+    const size_t nName = ::wcslen(lpszName);
+    if (nPos + nName > MAX_PATH) return nullptr;
+    ::memcpy(szPath + nPos, lpszName, (nName + 1) * sizeof(wchar_t));
+    return ::LoadLibraryW(szPath);
+}
+
+BOOL RibbonCallDwmDefWindowProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam, LRESULT* plResult) {
+    if (!g_bRibbonDwmDefWindowProcResolved) {
+        g_bRibbonDwmDefWindowProcResolved = true;
+        HMODULE hDwm = RibbonLoadSystemLibrary(L"dwmapi.dll");
+        if (hDwm != nullptr) {
+            g_pfnRibbonDwmDefWindowProc =
+                reinterpret_cast<RibbonDwmDefWindowProcFn>(::GetProcAddress(hDwm, "DwmDefWindowProc"));
+        }
+    }
+    if (g_pfnRibbonDwmDefWindowProc == nullptr) return FALSE;
+    return g_pfnRibbonDwmDefWindowProc(hWnd, nMsg, wParam, lParam, plResult);
+}
+} // namespace
 // CMFCRibbonBar::accDoDefaultAction(VARIANT) -- retail (RVA 0xe38e0):
 //   if (varChild.vt != VT_I4) return E_INVALIDARG;
 //   if (!m_bSingleLevelAccessibilityMode) return S_FALSE;      // +0x1a50
@@ -1625,33 +1802,84 @@ extern "C" int MS_ABI impl__ActivateContextCategory_CMFCRibbonBar__QEAAHI_Z(
     return FALSE;
 }
 
-// CMFCRibbonBar::AddContextCategory(...) -- the Unicode export is not in this
-// host's RVA map; its ANSI twin (same source, LPCTSTR) is at RVA 0xdb270.
-// Retail creates a category through the same AddCategory path and then stamps
-// the category's context ID (+0xac) and context colour on it, and appends a
-// CMFCRibbonContextCaption to m_arContextCaptions (+0xb28). OpenMFC models
-// neither the per-category context ID/colour nor context captions (see
-// FindContextCaption above), so a context category cannot be represented and
-// no object is created.
-// TODO(clean-room): not transcribed -- category context IDs (+0xac), category
-// colours and the context-caption array are not modeled.
+// CMFCRibbonBar::AddContextCategory(LPCTSTR lpszName, LPCTSTR lpszContextName,
+// UINT uiContextID, AFX_RibbonCategoryColor clrContext, UINT uiSmallImagesResID,
+// UINT uiLargeImagesResID, CSize sizeSmallImage, CSize sizeLargeImage,
+// CRuntimeClass* pRTI) -- retail (RVA 0xda650 in mfc140u; the ANSI twin is
+// 0xdb270 in mfc140), transcribed:
+//     if (lpszContextName == NULL || uiContextID == 0) AfxThrowInvalidArgException();
+//     pCat = AddCategory(lpszName, uiSmallImagesResID, uiLargeImagesResID,
+//                        sizeSmallImage, sizeLargeImage, -1, pRTI);       // 0xda450 mfc140u
+//     if (pCat == NULL) return NULL;
+//     pCat->m_bIsVisible = FALSE;                                          // +0xa8
+//     for each caption in m_arContextCaptions (+0xb30/+0xb38):
+//         if (caption->m_uiID /*+0x274*/ == uiContextID) {
+//             caption->m_strText /*+0xa0*/ = lpszContextName;   // wcslen + the non-exported assign at 0x2e30
+//             caption->m_Color   /*+0x270*/ = clrContext;  goto stamp;
+//         }
+//     caption = new CMFCRibbonContextCaption(lpszContextName, uiContextID, clrContext);  // 0x280 bytes, ctor 0xd7e30
+//     caption->m_pRibbonBar /*+0xd8*/ = this;
+//     m_arContextCaptions.Add(caption);
+//   stamp:
+//     pCat->m_Color /*+0x258*/ = clrContext;  pCat->m_uiContextID /*+0xac*/ = uiContextID;
+//     return pCat;
+// The category is created hidden and only becomes a tab when
+// ActivateContextCategory/ShowContextCategories flips +0xa8. OpenMFC's
+// CMFCRibbonCategory has no visibility, context-id or colour member (it is 80
+// bytes; all three offsets lie beyond it) and models no context captions, so
+// a category created through the side-table AddCategory here would be an
+// always-visible ordinary tab -- the opposite of what the caller asked for.
+// Left unimplemented as the smaller error. The generated parameter list was
+// replaced with the one the mangled name describes.
+// TODO(clean-room): not transcribed -- category visibility (+0xa8), context
+// ID (+0xac), colour (+0x258) and the context-caption array are not modeled.
 // Symbol: ?AddContextCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_W0IW4AFX_RibbonCategoryColor@@IIVCSize@@2PEAUCRuntimeClass@@@Z
-extern "C" void* MS_ABI impl__AddContextCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_W0IW4AFX_RibbonCategoryColor__IIVCSize__2PEAUCRuntimeClass___Z(const wchar_t* p0, const wchar_t* p1, unsigned int p2, int /*enum*/ p3, short* p4, int p5, void* p6, void* p7, void* p8, void* p9, void* p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, void* p20, void* p21, void* p22, void* p23, void* p24, unsigned int p25, unsigned int p26, void* /*class*/ p27, int /*enum*/ p28, void* /*struct*/* p29) {
+extern "C" CMFCRibbonCategory* MS_ABI impl__AddContextCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_W0IW4AFX_RibbonCategoryColor__IIVCSize__2PEAUCRuntimeClass___Z(
+    CMFCRibbonBar* pThis, const wchar_t* /*lpszName*/, const wchar_t* /*lpszContextName*/,
+    unsigned int /*uiContextID*/, int /*clrContext*/, unsigned int /*uiSmallImagesResID*/,
+    unsigned int /*uiLargeImagesResID*/, CSize /*sizeSmallImage*/, CSize /*sizeLargeImage*/,
+    CRuntimeClass* /*pRTI*/)
+{
+    if (!pThis) return nullptr;
     return nullptr;
 }
 
-// CMFCRibbonBar::AddMainCategory(...) -- the Unicode export is not in this
-// host's RVA map; its ANSI twin is at RVA 0xdaf30. Retail deletes any existing
-// main category (m_pMainCategory +0xb18, virtual dtor through vtable+0x8),
-// then either instantiates pRTI (CreateObject, rejecting a class that is not
-// kind-of CMFCRibbonMainPanel) or allocates a 0xb30-byte CMFCRibbonMainPanel,
-// initialises it against the bar and stores it in m_pMainCategory.
+// CMFCRibbonBar::AddMainCategory(LPCTSTR lpszName, UINT uiSmallImagesResID,
+// UINT uiLargeImagesResID, CSize sizeSmallImage, CSize sizeLargeImage,
+// CRuntimeClass* pRTI) -- retail (RVA 0xda310 in mfc140u; the ANSI twin is
+// 0xdaf30 in mfc140), re-read from the mfc140u listing:
+//     if (lpszName == NULL) AfxThrowInvalidArgException();
+//     if (m_pMainCategory) delete m_pMainCategory;          // +0xb18, vtable+0x8
+//     if (pRTI != NULL) {
+//         pCat = (CMFCRibbonCategory*)pRTI->CreateObject();   // 0x234d60
+//         if (pCat == NULL || !pCat->IsKindOf(RUNTIME_CLASS(CMFCRibbonCategory)))  // rtc 0x1803020a8
+//             { m_pMainCategory = NULL; return NULL; }
+//         m_pMainCategory = pCat;
+//         pCat->CommonInit(this, lpszName, uiSmall, uiLarge, sizeSmall, sizeLarge);  // 0xed240
+//     } else {
+//         m_pMainCategory = new CMFCRibbonCategory(this, lpszName, uiSmall, uiLarge,
+//                                                  sizeSmall, sizeLarge);   // 0xb30 bytes, ctor 0xed0c0
+//     }
+//     return (CMFCRibbonMainPanel*)m_pMainCategory->AddPanel(lpszName, NULL,
+//                                      RUNTIME_CLASS(CMFCRibbonMainPanel));  // 0xed860, rtc 0x1803080b8
+// The kind-of test is against CMFCRibbonCategory (the object created is the
+// main *category*; the main *panel* is what AddPanel instantiates from the
+// CMFCRibbonMainPanel runtime class, m_nObjectSize 0x728). An earlier
+// revision of this comment named CMFCRibbonMainPanel as the rejected class;
+// that was wrong. All addresses mfc140u.
 // OpenMFC declares CMFCRibbonMainPanel only as a forward reference with no
 // layout or behaviour, and nothing in this library maintains m_pMainCategory,
-// so no main panel can be constructed.
-// TODO(clean-room): not transcribed -- CMFCRibbonMainPanel is not modeled.
+// so no main panel can be constructed. The generated parameter list was
+// replaced with the one the mangled name describes.
+// TODO(clean-room): not transcribed -- CMFCRibbonMainPanel and the category
+// initialisation (image lists at +0x838/+0x9d0) are not modeled.
 // Symbol: ?AddMainCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonMainPanel@@PEB_WIIVCSize@@1PEAUCRuntimeClass@@@Z
-extern "C" void* MS_ABI impl__AddMainCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonMainPanel__PEB_WIIVCSize__1PEAUCRuntimeClass___Z(const wchar_t* p0, unsigned int p1, unsigned int p2, void* /*class*/ p3, unsigned int p4, void* /*struct*/* p5) {
+extern "C" void* MS_ABI impl__AddMainCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonMainPanel__PEB_WIIVCSize__1PEAUCRuntimeClass___Z(
+    CMFCRibbonBar* pThis, const wchar_t* /*lpszName*/, unsigned int /*uiSmallImagesResID*/,
+    unsigned int /*uiLargeImagesResID*/, CSize /*sizeSmallImage*/, CSize /*sizeLargeImage*/,
+    CRuntimeClass* /*pRTI*/)
+{
+    if (!pThis) return nullptr;
     return nullptr;
 }
 
@@ -1675,11 +1903,11 @@ extern "C" void* MS_ABI impl__AddPrintPreviewCategory_CMFCRibbonBar__QEAAPEAVCMF
     return nullptr;
 }
 
-// CMFCRibbonBar::AddQATOnlyCategory(const wchar_t*, UINT, CSize) -- the
-// Unicode export is not in this host's RVA map; its ANSI twin is at RVA
-// 0xdb3e0 and is a two-liner:
+// CMFCRibbonBar::AddQATOnlyCategory(const wchar_t*, UINT, CSize) -- retail
+// (RVA 0xda7c0 in mfc140u; the ANSI twin is 0xdb3e0 in mfc140) is a
+// two-liner, re-read from the mfc140u listing:
 //     pCat = AddCategory(lpszName, uiSmallImagesResID, 0, sizeSmallImage,
-//                        CSize(32, 32), -1, NULL);
+//                        CSize(32, 32), -1, NULL);            // 0xda450 mfc140u
 //     if (pCat != NULL) pCat->m_bIsVisible /*+0xa8*/ = FALSE;
 // The whole point of the call is the second line: the category exists only to
 // host quick-access-toolbar commands and must never appear as a tab.
@@ -1687,10 +1915,16 @@ extern "C" void* MS_ABI impl__AddPrintPreviewCategory_CMFCRibbonBar__QEAAPEAVCMF
 // GetVisibleCategoryCount above), so a category created here would be
 // indistinguishable from a normal tab and would be counted and shown as one.
 // Leaving it unimplemented is the smaller error.
+// The generated parameter list was replaced with the one the mangled name
+// describes (this, name, resource id, CSize by value).
 // TODO(clean-room): partially transcribed -- the category visibility flag
 // (+0xa8) is not modeled.
 // Symbol: ?AddQATOnlyCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_WIVCSize@@@Z
-extern "C" void* MS_ABI impl__AddQATOnlyCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIVCSize___Z(const wchar_t* p0, unsigned int p1, void* /*class*/ p2) {
+extern "C" CMFCRibbonCategory* MS_ABI impl__AddQATOnlyCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIVCSize___Z(
+    CMFCRibbonBar* pThis, const wchar_t* /*lpszName*/, unsigned int /*uiSmallImagesResID*/,
+    CSize /*sizeSmallImage*/)
+{
+    if (!pThis) return nullptr;
     return nullptr;
 }
 
@@ -1725,24 +1959,105 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCRibbonBar__MEAA_AVCSize__HH_Z
     return pRet;
 }
 
-// CMFCRibbonBar::CreateEx(CWnd*, DWORD, DWORD, UINT) -- retail (RVA 0xda4a0)
-// sets CBRS_HIDE_INPLACE (0x8) in m_dwStyle (+0x104), calls the virtual at
-// vtable+0x3d0 with (dwCtrlStyle & 0x40ffff), clears m_dwControlBarStyle
-// (+0x108), ORs WS_MAXIMIZE|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX
-// (0x010b0000) into dwStyle when m_bReplaceFrameCaption is set and DWM
-// composition is on, sets WS_EX/style bit 26, registers the pane window class
-// through AFX_GLOBAL_DATA::RegisterWindowClass and calls CWnd::Create; on
-// success it hands the bar to CFrameWndEx::AddPane or CMDIFrameWndEx::AddPane
-// depending on the parent's runtime class, shows the parent, and finishes with
-// a SetWindowPos(SWP_FRAMECHANGED) or a WS_CAPTION removal.
-// The docking-manager handshake (AddPane) and the ribbon window class are not
-// modeled in OpenMFC, and creating the window without them would leave a bar
-// that no frame lays out, so this is left unimplemented.
-// TODO(clean-room): partially transcribed -- pane registration with
-// CFrameWndEx/CMDIFrameWndEx and the ribbon window class are not modeled.
+// CMFCRibbonBar::CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle,
+// UINT nID) -- retail (RVA 0xd9880 in mfc140u, 0xda4a0 in mfc140; the
+// ordinary Create at 0xda480 mfc140 is a one-line forward to it with
+// dwCtrlStyle = 0), transcribed:
+//     m_dwStyle |= CBRS_HIDE_INPLACE;                                 // +0x104 |= 0x8
+//     this->vtable[0x3d0](dwStyle & 0x40ffff);   // CBasePane::SetPaneStyle
+//     CRect rect; ::SetRectEmpty(&rect);
+//     m_dwControlBarStyle = 0;                                        // +0x108
+//     if (m_bReplaceFrameCaption) {                                   // +0x468
+//         afxGlobalData.Initialize();  // once, guarded by the flag at 0x3ba380
+//         if (afxGlobalData.IsDwmCompositionEnabled())                // 0x6c260
+//             dwStyle |= 0x010b0000;   // WS_MAXIMIZE|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX
+//     }
+//     afxGlobalData.Initialize();  // same guard
+//     CString strClass = afxGlobalData.RegisterWindowClass("Afx:RibbonBar");  // 0x6bce0
+//     dwStyle |= 0x04000000;                                          // bts $26 = WS_CLIPCHILDREN
+//     BOOL bOK = CWnd::Create(strClass, NULL, dwStyle, rect, pParentWnd, nID, NULL);  // 0x289b10
+//     if (!bOK) return FALSE;
+//     if (pParentWnd->IsKindOf(RUNTIME_CLASS(CFrameWndEx)))           // rtc 0x2e7160
+//         ((CFrameWndEx*)pParentWnd)->AddPane(this, TRUE);            // 0x67b30, result ignored
+//     else if (pParentWnd->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)))   // rtc 0x2ec3c8
+//         ((CMDIFrameWndEx*)pParentWnd)->AddPane(this, TRUE);         // 0x89690, result ignored
+//     else return FALSE;
+//     pParentWnd->vtable[0xf0](NULL);           // slot 30 = CFrameWnd::SetMenu(NULL)
+//     if (m_bReplaceFrameCaption) {
+//         if (afxGlobalData.IsDwmCompositionEnabled())
+//             pParentWnd->SetWindowPos(NULL, -1, -1, -1, -1, 0x37);   // 0x2a7970
+//         else
+//             pParentWnd->ModifyStyle(WS_CAPTION, 0, 0);              // 0x2a7600
+//     }
+//     return TRUE;
+// Checked, not assumed: dwCtrlStyle (r8) is never read -- the masked value
+// handed to SetPaneStyle is dwStyle (r9d), which corrects an earlier revision
+// of this comment; slot 0x3d0 of the CMFCRibbonBar vftable (mfc140 0x2fccd8)
+// is the non-exported CBasePane::SetPaneStyle body at mfc140 0x8890,
+// `m_dwStyle = (m_dwStyle & 0xffff0fff) | dwNewStyle`, inlined here because
+// it has no export to call; slot 0xf0 of both the CFrameWndEx (0x2e7658) and
+// CMDIFrameWndEx (0x2ec8f8) vftables is ?SetMenu@CFrameWnd@@UEAAHPEAVCMenu@@@Z,
+// so the impl__ thunk of that export is exact for the two parent classes this
+// function accepts (an app-level override would not be reached). The runtime
+// classes at 0x2e7160 / 0x2ec3c8 read as "CFrameWndEx" / "CMDIFrameWndEx".
+// All mfc140 addresses. IAT slot 0x1802c5368 = SetRectEmpty.
+// Deviations: afxGlobalData.Initialize() is not called (OpenMFC has no
+// AFX_GLOBAL_DATA instance and its IsDwmCompositionEnabled stub always reports
+// FALSE, so only the composition-off branches can run); the SetPaneStyle
+// virtual is folded in non-virtually; a NULL pParentWnd returns FALSE instead
+// of faulting in IsKindOf. CMDIFrameWndEx::AddPane is still a FALSE-returning
+// partial in this tree (core/frame/CMDIFrameWndEx.cpp:875), but retail ignores
+// AddPane's result too, so the MDI path still completes.
 // Symbol: ?CreateEx@CMFCRibbonBar@@QEAAHPEAVCWnd@@KKI@Z
-extern "C" int MS_ABI impl__CreateEx_CMFCRibbonBar__QEAAHPEAVCWnd__KKI_Z(void* /*class*/* p0, unsigned long p1, unsigned long p2, unsigned int p3) {
-    return 0;
+extern "C" int MS_ABI impl__CreateEx_CMFCRibbonBar__QEAAHPEAVCWnd__KKI_Z(
+    CMFCRibbonBar* pThis, CWnd* pParentWnd, unsigned long /*dwCtrlStyle*/, unsigned long dwStyle,
+    unsigned int nID)
+{
+    if (!pThis || !pParentWnd) return FALSE;
+
+    pThis->m_dwStyle |= 0x8; // CBRS_HIDE_INPLACE
+    pThis->m_dwStyle = (pThis->m_dwStyle & 0xffff0fffu) | (dwStyle & 0x40ffffu); // CBasePane::SetPaneStyle
+
+    RECT rect;
+    ::SetRectEmpty(&rect);
+    pThis->m_dwControlBarStyle = 0;
+
+    if (pThis->m_bReplaceFrameCaption && impl__IsDwmCompositionEnabled_AFX_GLOBAL_DATA__QEAAHXZ()) {
+        dwStyle |= 0x010b0000ul;
+    }
+
+    CString strClassName;
+    impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+        &strClassName, nullptr, L"Afx:RibbonBar");
+
+    dwStyle |= 0x04000000ul; // WS_CLIPCHILDREN
+
+    const int bCreated = impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+        pThis, strClassName.GetString(), nullptr, dwStyle, rect, pParentWnd, nID, nullptr);
+    if (!bCreated) return FALSE;
+
+    if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            pParentWnd, impl__GetThisClass_CFrameWndEx__SAPEAUCRuntimeClass__XZ())) {
+        (void)impl__AddPane_CFrameWndEx__QEAAHPEAVCBasePane__H_Z(
+            static_cast<CFrameWndEx*>(pParentWnd), pThis, TRUE);
+    } else if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                   pParentWnd, impl__GetThisClass_CMDIFrameWndEx__SAPEAUCRuntimeClass__XZ())) {
+        (void)impl__AddPane_CMDIFrameWndEx__QEAAHPEAVCBasePane__H_Z(
+            static_cast<CMDIFrameWndEx*>(pParentWnd), pThis, TRUE);
+    } else {
+        return FALSE;
+    }
+
+    impl__SetMenu_CFrameWnd__UEAAHPEAVCMenu___Z(static_cast<CFrameWnd*>(pParentWnd), nullptr);
+
+    if (pThis->m_bReplaceFrameCaption) {
+        if (impl__IsDwmCompositionEnabled_AFX_GLOBAL_DATA__QEAAHXZ()) {
+            pParentWnd->SetWindowPos(nullptr, -1, -1, -1, -1, 0x37);
+        } else {
+            impl__ModifyStyle_CWnd__QEAAHKKI_Z(pParentWnd, WS_CAPTION, 0, 0);
+        }
+    }
+    return TRUE;
 }
 
 // CMFCRibbonBar::DeactivateKeyboardFocus(BOOL bSetFocus) -- retail
@@ -1798,20 +2113,34 @@ extern "C" void MS_ABI impl__DeactivateKeyboardFocus_CMFCRibbonBar__QEAAXH_Z(
 }
 
 // CMFCRibbonBar::DrawMenuImage(CDC*, const CMFCToolBarMenuButton*, const
-// CRect&) -- retail (RVA 0xdf500) reads the button's command id (+0x24),
-// returns FALSE for id 0, remaps the four standard MDI system commands
-// (0xffffd8ee/ed/ec/eb -> 0xe123/0xe122/0xe125/0xe12a), calls
-// FindByID(id, FALSE, TRUE) and, when an element is found, draws that
-// element's image into the rect through the element's vtable+0x238 virtual
-// while temporarily clearing a global drawing flag at afxGlobalData+0x2c0.
-// FindByID is implemented over the ribbon side table below, but the element
-// image-drawing virtual and the ribbon image lists are not modeled, so
-// nothing can be drawn and FALSE (retail's "no image" result) is returned.
-// TODO(clean-room): partially transcribed -- the element image-draw virtual
-// (+0x238) and the ribbon image lists are not modeled.
+// CRect&) -- retail (RVA 0xde8e0 in mfc140u, 0xdf500 in mfc140) reads the
+// button's command id (+0x24), returns FALSE for id 0, remaps the four
+// standard MDI system commands (0xffffd8ee/ed/ec/eb -> 0xe123/0xe122/
+// 0xe125/0xe12a), calls FindByID(id, FALSE, TRUE) (0xddd80 mfc140u) and
+// returns FALSE when nothing is found. With an element it initialises
+// afxGlobalData (guard at 0x3c1620 mfc140u), saves and clears the global at
+// 0x3c18e0, asks the element for its image size (vtable +0x238, into a local
+// CSize), rejects an empty size or one larger than the rect, centres the
+// image (`neg` of half the slack in both axes via ::OffsetRect), reads two
+// more element virtuals (+0x1c8/+0x1d0) into locals, stores
+// `button->m_nStyle & 0x40000` into the element's +0x148 and
+// `button->m_nStyle & 0x10000` into +0x14c, calls the element draw-image
+// virtual (+0x2c0) with (pDC, &rectCentred), restores +0x148/+0x14c from the
+// two locals and the global from its saved value, and returns whatever the
+// draw virtual returned (not a literal TRUE).
+// FindByID is the side-table body above, but the element virtuals (+0x238,
+// +0x1c8, +0x1d0, the draw) and the element flag at +0x148 are not modeled,
+// so nothing can be drawn and FALSE -- retail's "no image" result -- is
+// returned. The generated parameter list was replaced with the one the
+// mangled name describes.
+// TODO(clean-room): partially transcribed -- the element image virtuals and
+// the ribbon image lists are not modeled.
 // Symbol: ?DrawMenuImage@CMFCRibbonBar@@QEAAHPEAVCDC@@PEBVCMFCToolBarMenuButton@@AEBVCRect@@@Z
-extern "C" int MS_ABI impl__DrawMenuImage_CMFCRibbonBar__QEAAHPEAVCDC__PEBVCMFCToolBarMenuButton__AEBVCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, const void* /*class*/* p2) {
-    return 0;
+extern "C" int MS_ABI impl__DrawMenuImage_CMFCRibbonBar__QEAAHPEAVCDC__PEBVCMFCToolBarMenuButton__AEBVCRect___Z(
+    CMFCRibbonBar* pThis, CDC* /*pDC*/, const CMFCToolBarMenuButton* /*pMenuButton*/, const CRect& /*rectImage*/)
+{
+    if (!pThis) return FALSE;
+    return FALSE;
 }
 
 // CMFCRibbonBar::DWMCompositionChanged() -- retail (RVA 0xe20a0):
@@ -2079,11 +2408,12 @@ extern "C" int MS_ABI impl__OnCommand_CMFCRibbonBar__MEAAH_K_J_Z(
     return FALSE;
 }
 
-// CMFCRibbonBar::OnCreate(LPCREATESTRUCT) -- the Unicode-named export is not
-// in this host's RVA map (the map is built from mfc140.dll, so only the ANSI
-// twin has an RVA, exactly as for AddCategory/AddQATOnlyCategory below); the
-// ANSI twin ?OnCreate@CMFCRibbonBar@@IEAAHPEAUtagCREATESTRUCTA@@@Z is at RVA
-// 0xdac00 and was disassembled:
+// CMFCRibbonBar::OnCreate(LPCREATESTRUCT) -- retail. The Unicode export is
+// at RVA 0xd9fe0 in mfc140u (resolved by this host's mfc140u map, and also the
+// WM_CREATE entry of the mfc140u message map at 0x2feb00); its ANSI twin
+// ?OnCreate@CMFCRibbonBar@@IEAAHPEAUtagCREATESTRUCTA@@@Z is at RVA 0xdac00 in
+// mfc140. Both were disassembled; they are the same instruction sequence up
+// to relocated call targets and are transcribed as:
 //     if ((int)CWnd::Default() == -1) return -1;
 //     m_CaptionButtons[0/1/2] (+0xc18, +0xe90, +0x1108): each gets its
 //         vtable+0x170 called with SC_MINIMIZE / SC_MAXIMIZE / SC_CLOSE
@@ -2099,15 +2429,65 @@ extern "C" int MS_ABI impl__OnCommand_CMFCRibbonBar__MEAAH_K_J_Z(
 //     *(this + 0x1458) = this;   // back-link inside m_QAToolbar (+0x1380)
 //     *(this + 0x1b30) = this;   // back-link inside m_Tabs      (+0x1a58)
 //     return 0;
-// Everything but the window-text copy writes into the three caption buttons and
-// the QAT/tab blobs, which OpenMFC reserves as opaque bytes and never
-// constructs into -- writing back-links into them would be scribbling on
-// uninitialised storage. Left unimplemented rather than half-done.
-// Note that returning 0 means "creation succeeded" for a WM_CREATE handler.
-// TODO(clean-room): not transcribed -- the caption-button group, the QAT/tab
-// blobs and the tooltip handshake are not modeled.
+// Callees named in the mfc140u listing:
+// 0x28ac80 CWnd::Default, 0x28ad70 CWnd::FromHandle, 0x28be00
+// CWnd::GetWindowTextW(CString&), 0x2a9790 the non-exported CWnd::SetWindowText
+// inline (IsWindow check, then ::SetWindowTextW or the control-site virtual),
+// 0x1822c0 CTooltipManager::CreateToolTip, 0x275060 CToolTipCtrl::AddTool
+// (all mfc140u); IAT slot 0x1802c7120 = SendMessageW, 0x1802c72d8 = GetParent.
+// Reproduced: the Default() failure check, the parent-title copy and the
+// tooltip creation / TTM_SETMAXTIPWIDTH / two LPSTR_TEXTCALLBACK tools -- all
+// of which have working OpenMFC bodies (CreateToolTip news a CToolTipCtrl and
+// creates the tooltips_class32 window; AddTool sends TTM_ADDTOOL; OnDestroy
+// above tears the same m_pToolTip down through DeleteToolTip).
+// Not reproduced: the SC_MINIMIZE/SC_MAXIMIZE/SC_CLOSE SetID virtuals (+0x170)
+// on the three caption buttons and the four back-links written into the
+// caption-button, QAT and tab blobs (+0xcf0+i*0x278, +0x1458, +0x1b30). Those
+// blobs are opaque, never-constructed bytes in OpenMFC; writing into them
+// would scribble on storage no reader interprets.
+// Deviation: retail dereferences the FromHandle(GetParent()) result without a
+// NULL check; a parentless bar skips the title copy here.
+// TODO(clean-room): partially transcribed -- the caption-button group and the
+// QAT/tab back-links are not modeled.
 // Symbol: ?OnCreate@CMFCRibbonBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-extern "C" int MS_ABI impl__OnCreate_CMFCRibbonBar__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+extern "C" int MS_ABI impl__OnCreate_CMFCRibbonBar__IEAAHPEAUtagCREATESTRUCTW___Z(
+    CMFCRibbonBar* pThis, CREATESTRUCTW* /*lpCreateStruct*/)
+{
+    if (!pThis) return -1;
+
+    if (static_cast<int>(impl__Default_CWnd__IEAA_JXZ(pThis)) == -1) return -1;
+
+    // Retail: m_CaptionButtons[0..2].SetID(SC_MINIMIZE / SC_MAXIMIZE /
+    // SC_CLOSE) and their m_pRibbonBar back-links -- not modeled (see above).
+
+    {
+        CString strText;
+        CWnd* pParent = pThis->m_hWnd
+            ? impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd))
+            : nullptr;
+        if (pParent != nullptr) {
+            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+                pParent, &strText);
+            impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(pThis, strText.GetString());
+        }
+    }
+
+    impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(
+        reinterpret_cast<CToolTipCtrl**>(&pThis->m_pToolTip), pThis, 0x200 /*AFX_TOOLTIP_TYPE_RIBBON*/);
+
+    CToolTipCtrl* pToolTip = static_cast<CToolTipCtrl*>(pThis->m_pToolTip);
+    if (pToolTip != nullptr && pToolTip->m_hWnd != nullptr) {
+        ::SendMessage(pToolTip->m_hWnd, TTM_SETMAXTIPWIDTH, 0, 0x280);
+
+        RECT rectNull = { 0, 0, 0, 0 };
+        impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+            pToolTip, pThis, LPSTR_TEXTCALLBACKW, &rectNull, 1);
+        impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+            pToolTip, pThis, LPSTR_TEXTCALLBACKW, &rectNull, 2);
+    }
+
+    // Retail: m_QAToolbar.m_pRibbonBar (+0x1458) and m_Tabs.m_pRibbonBar
+    // (+0x1b30) = this -- not modeled (see above).
     return 0;
 }
 
@@ -2115,12 +2495,14 @@ extern "C" int MS_ABI impl__OnCreate_CMFCRibbonBar__IEAAHPEAUtagCREATESTRUCTW___
 //     CTooltipManager::DeleteToolTip(m_pToolTip);   // +0xc00, by reference
 //     RemoveAllKeys();
 //     CPane::OnDestroy();                           // tail call
-// The tooltip teardown and RemoveAllKeys are reproduced. The CPane base call
-// is not made: OpenMFC's impl__OnDestroy_CPane__IEAAXXZ is a generated stub
-// that does nothing and does not even take `this`, so calling it would only
-// pass mismatched arguments to an empty body.
-// TODO(clean-room): partially transcribed -- CPane::OnDestroy is an empty
-// generated stub and is not chained to.
+// (mfc140 addresses: 0xdadc0 is the export, 0x1824a0 DeleteToolTip, 0xe3d70
+// RemoveAllKeys, 0xa1d40 CPane::OnDestroy; in mfc140u the same body sits at
+// 0xda1a0 -- the WM_DESTROY entry of the message map at 0x2feb00 -- and
+// tail-jumps to 0xa1780.) All three calls are reproduced. CPane::OnDestroy
+// is the real transcribed body in docking/CPane.cpp (the tabbed-pane
+// RemovePane hand-off, then CWnd::OnDestroy); an earlier revision of this
+// comment described it as an argument-less generated stub and skipped the
+// base call, which was true when written and is not any more.
 // Symbol: ?OnDestroy@CMFCRibbonBar@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pThis)
 {
@@ -2128,6 +2510,7 @@ extern "C" void MS_ABI impl__OnDestroy_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pTh
     impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCtrl___Z(
         reinterpret_cast<CToolTipCtrl**>(&pThis->m_pToolTip));
     impl__RemoveAllKeys_CMFCRibbonBar__IEAAXXZ(pThis);
+    impl__OnDestroy_CPane__IEAAXXZ(pThis);
 }
 
 // CMFCRibbonBar::OnEditContextMenu(CMFCRibbonRichEditCtrl*, CPoint) -- retail
@@ -2140,19 +2523,38 @@ extern "C" void MS_ABI impl__OnDestroy_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pTh
 // shown.
 // TODO(clean-room): not transcribed -- CMFCRibbonRichEditCtrl and the context
 // menu manager are not modeled.
+// (The RVA above is mfc140; the export is not in this host's mfc140u map.
+// The gate global is the same unexported afxContextMenuManager pointer that
+// ShowSysMenu below documents. The generated parameter list was replaced
+// with the one the mangled name describes; CMFCRibbonRichEditCtrl is only
+// forward-declared here.)
 // Symbol: ?OnEditContextMenu@CMFCRibbonBar@@UEAAXPEAVCMFCRibbonRichEditCtrl@@VCPoint@@@Z
-extern "C" void MS_ABI impl__OnEditContextMenu_CMFCRibbonBar__UEAAXPEAVCMFCRibbonRichEditCtrl__VCPoint___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnEditContextMenu_CMFCRibbonBar__UEAAXPEAVCMFCRibbonRichEditCtrl__VCPoint___Z(
+    CMFCRibbonBar* pThis, CMFCRibbonRichEditCtrl* /*pEdit*/, CPoint /*point*/)
+{
+    if (!pThis) return;
+}
 
-// CMFCRibbonBar::OnEraseBkgnd(CDC*) -- this export has no RVA in the retail
-// map on this host (--find lists OnEraseBkgnd for many classes but not for
-// CMFCRibbonBar), so there is no disassembly to transcribe. Returning 0 means
-// "background not erased", which lets the WM_PAINT handler paint it; that is
-// the conservative answer while OnPaint below is also unimplemented.
-// TODO(clean-room): not transcribed -- no RVA for this export in the retail
-// symbol map.
+// CMFCRibbonBar::OnEraseBkgnd(CDC*) -- this export has no RVA in either
+// symbol map on this host, but the body is reachable through the message map:
+// the WM_ERASEBKGND (0x14) entry of CMFCRibbonBar's AFX_MSGMAP (mfc140u
+// 0x2feb00, read via GetMessageMap at 0xd9850; mfc140 0x2fc960 via
+// GetThisMessageMap at 0xda470) points at 0x3a60 (mfc140u) / 0x3ae0 (mfc140),
+// a two-instruction COMDAT-folded body shared with dozens of other exports
+// (the symbol map names it ?accDoDefaultAction@CMFCBaseAccessibleObject@@,
+// whose body is the same two instructions):
+//     mov $0x1,%eax ; ret
+// i.e. `return TRUE;` -- the background is never erased by Windows, OnPaint
+// fills it. pDC is not read. The entry's nSig is 1 (AfxSig_bD, BOOL
+// (CWnd::*)(CDC*)), confirming it is the OnEraseBkgnd slot (re-verified
+// 2026-09-17 with msgmap_u.py against 0x2feb00). This IS the complete retail
+// body, not a placeholder: the campaign's stub metric flags any bare
+// `return TRUE` and cannot tell the two apart. An earlier revision of this
+// comment said the function could not be located and returned 0; that was
+// the wrong value.
 // Symbol: ?OnEraseBkgnd@CMFCRibbonBar@@IEAAHPEAVCDC@@@Z
-extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCRibbonBar__IEAAHPEAVCDC___Z(void* /*class*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCRibbonBar__IEAAHPEAVCDC___Z(CMFCRibbonBar* /*pThis*/, CDC* /*pDC*/) {
+    return TRUE;
 }
 
 // CMFCRibbonBar::OnFillBackground(CDC*, CRect) -- retail (RVA 0xde350),
@@ -2260,52 +2662,281 @@ extern "C" void MS_ABI impl__OnKillFocus_CMFCRibbonBar__IEAAXPEAVCWnd___Z(
     (void)impl__GetFocused_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__XZ(pThis);
 }
 
-// CMFCRibbonBar::OnLButtonDblClk(UINT, CPoint) -- retail (RVA 0xdc890):
-// CPane::OnLButtonDblClk, then HitTest(point, FALSE, FALSE) (vtable +0x670);
-// a hit element that is kind-of the ribbon-tab class gets its vtable+0x448
-// virtual (double-click) and the handler returns. Otherwise, when the point is
-// inside m_rectCaption (+0xbc8) and outside m_rectSysButtons (+0xbe8), it
-// forwards WM_NCLBUTTONDBLCLK (0xa3) to the parent frame with HTCAPTION or
-// HTSYSMENU depending on a caption-strip hit test.
-// HitTest returns NULL in OpenMFC and the frame forwarding needs the caption
-// geometry that RecalcLayout (also unimplemented) would have produced, so
-// nothing here can be reproduced faithfully.
-// TODO(clean-room): not transcribed -- HitTest, the element vtable +0x448 and
-// the caption geometry are not modeled.
+// CMFCRibbonBar::OnLButtonDblClk(UINT, CPoint) -- retail (RVA 0xdc890 in
+// mfc140; reached from the WM_LBUTTONDBLCLK entry of the mfc140u message map,
+// 0xdbc70), transcribed:
+//     CPane::OnLButtonDblClk(nFlags, point);                          // 0xa2010
+//     pHit = HitTest(point, FALSE, FALSE);                            // vtable +0x670
+//     if (pHit != NULL && !pHit->IsKindOf(RUNTIME_CLASS(CMFCRibbonContextCaption))) {
+//         pHit->vtable[0x448](point);   // the element's own double-click
+//         return;
+//     }
+//     if (!::PtInRect(&m_rectCaption, point))   return;               // +0xbc8
+//     if ( ::PtInRect(&m_rectSysButtons, point)) return;              // +0xbe8
+//     BOOL bSysMenu = FALSE;
+//     if ((m_dwHideFlags & 0x2) || m_bWindows7Look) {                 // +0x478, +0x20c8
+//         CRect rc = m_rectCaption;
+//         rc.right = rc.left + (rc.bottom - rc.top);   // the square system-icon area
+//         bSysMenu = ::PtInRect(&rc, point);
+//     }
+//     ::SendMessage(CWnd::FromHandle(::GetParent(m_hWnd))->m_hWnd,
+//                   WM_NCLBUTTONDBLCLK, bSysMenu ? HTSYSMENU : HTCAPTION,
+//                   MAKELPARAM(point.x, point.y));
+// (The class compared against is the CRuntimeClass at mfc140 0x2fd900, whose
+// m_lpszClassName is "CMFCRibbonContextCaption"; the `jne` after IsKindOf
+// jumps to the caption path, so the element virtual runs only for a hit that
+// is NOT a context caption. An earlier revision of this comment had that test
+// inverted and named the tab class; both were wrong.)
+// IAT slots resolved: 0x1802c5320 PtInRect, 0x1802c5300 GetParent,
+// 0x1802c5378 SendMessageA (SendMessageW in mfc140u). HTSYSMENU/HTCAPTION
+// come from `neg %esi; sbb; neg; add $2` = 3 / 2.
+// Reproduced: the base call (docking/CPane.cpp:1213, a documented no-op), the
+// HitTest call and the whole caption path. Not reproduced: the element
+// double-click virtual (+0x448), unreachable here because HitTest is the
+// NULL stub above and OpenMFC's elements have no vtable model. The
+// FromHandle round trip only yields the parent HWND and is collapsed into
+// ::GetParent.
 // Symbol: ?OnLButtonDblClk@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCRibbonBar__IEAAXIVCPoint___Z(
+    CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point)
+{
+    if (!pThis) return;
 
-// CMFCRibbonBar::OnLButtonDown(UINT, CPoint) -- retail (RVA 0xdc430):
-// CPane::OnLButtonDown, DeactivateKeyboardFocus(TRUE), then the bar's
-// vtable+0x678 virtual (GetDroppedDown) closes any open drop-down through its
-// vtable+0x340; after that it works out the caption strip from m_rectCaption
-// (+0xbc8), the QAT rect (+0x1448) and m_bQuickAccessToolbarOnTop (+0x434),
-// and either starts a caption drag or presses the hit element (m_pPressed
-// +0x490) found through HitTest.
-// GetDroppedDown and HitTest both return NULL in OpenMFC and the caption/QAT
-// geometry is not modeled, so only DeactivateKeyboardFocus would run -- which
-// on its own would silently eat key-tip state on every click without doing any
-// of the press handling. Left unimplemented.
-// TODO(clean-room): not transcribed -- HitTest, GetDroppedDown and the
-// caption/QAT geometry are not modeled.
+    impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(pThis, nFlags, point);
+
+    CMFCRibbonBaseElement* pHit =
+        impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(pThis, point, FALSE, FALSE);
+    if (pHit != nullptr) {
+        // Retail: if (!pHit->IsKindOf(RUNTIME_CLASS(CMFCRibbonContextCaption)))
+        //             { pHit->OnLButtonDblClk(point); return; }
+        // Unreachable in OpenMFC (HitTest is a NULL stub) and the element
+        // virtual is not modeled, so the caption path below is taken for any
+        // hit, which is retail's behaviour for a context-caption hit only.
+    }
+
+    const POINT pt = { point.x, point.y };
+    RECT rcCaption = { pThis->m_rectCaption.left,  pThis->m_rectCaption.top,
+                       pThis->m_rectCaption.right, pThis->m_rectCaption.bottom };
+    if (!::PtInRect(&rcCaption, pt)) return;
+
+    const RECT rcSysButtons = { pThis->m_rectSysButtons.left,  pThis->m_rectSysButtons.top,
+                                pThis->m_rectSysButtons.right, pThis->m_rectSysButtons.bottom };
+    if (::PtInRect(&rcSysButtons, pt)) return;
+
+    BOOL bSysMenu = FALSE;
+    if ((pThis->m_dwHideFlags & 0x2) != 0 || pThis->m_bWindows7Look) {
+        RECT rcSysIcon = rcCaption;
+        rcSysIcon.right = rcSysIcon.left + (rcSysIcon.bottom - rcSysIcon.top);
+        bSysMenu = ::PtInRect(&rcSysIcon, pt);
+    }
+
+    HWND hwndParent = pThis->m_hWnd ? ::GetParent(pThis->m_hWnd) : nullptr;
+    if (hwndParent != nullptr) {
+        ::SendMessage(hwndParent, WM_NCLBUTTONDBLCLK,
+                      static_cast<WPARAM>(bSysMenu ? HTSYSMENU : HTCAPTION),
+                      MAKELPARAM(point.x, point.y));
+    }
+}
+
+// CMFCRibbonBar::OnLButtonDown(UINT, CPoint) -- retail (RVA 0xdc430 in
+// mfc140; reached from the WM_LBUTTONDOWN entry of the mfc140u message map,
+// 0xdb810), transcribed:
+//     CPane::OnLButtonDown(nFlags, point);                            // 0x9fdd0
+//     DeactivateKeyboardFocus(TRUE);                                  // 0xe28e0
+//     pDropped = GetDroppedDown();                                    // vtable +0x678
+//     if (pDropped) pDropped->vtable[0x340]();                        // close it
+//     if ((m_dwHideFlags & 0x2) || m_bWindows7Look) {                 // +0x478, +0x20c8
+//         CRect rc = m_rectCaption;                                   // +0xbc8
+//         if (m_bQuickAccessToolbarOnTop && m_bReplaceFrameCaption    // +0x434, +0x468
+//             && !::IsRectEmpty(&m_QAToolbar.m_rect))                 // +0x1448 = QAT +0xc8
+//             rc.right = m_QAToolbar.m_rect.left - 1;
+//         else
+//             rc.right = rc.left + (rc.bottom - rc.top);
+//         if (::PtInRect(&rc, point)) {
+//             CPoint pt(m_rectCaption.left, m_rectCaption.bottom);
+//             ::ClientToScreen(m_hWnd, &pt);
+//             ShowSysMenu(pt);                                        // 0xdf730
+//             return;
+//         }
+//     }
+//     OnMouseMove(nFlags, point);                                     // 0xdc9f0
+//     pHit = HitTest(point, FALSE, FALSE);                            // vtable +0x670
+//     if (pHit != NULL) {
+//         pHit->vtable[0x430](point);                                 // element OnLButtonDown
+//         CRect rc = pHit->m_rect;  pHit->+0x144 = TRUE;              // +0xc8, +0x144
+//         ::InflateRect(&rc, 1, 1);  ::RedrawWindow(m_hWnd, &rc, NULL, 0x105);
+//         m_pPressed = pHit;                                          // +0x490
+//     } else if (::PtInRect(&m_rectCaption, point)) {
+//         if (CMFCPopupMenu::m_pActivePopupMenu)                       // 0x3b6fe8
+//             ::SendMessage(m_pActivePopupMenu->m_hWnd, WM_CLOSE, 0, 0);
+//         if (::PtInRect(&m_rectSysButtons, point)) return;           // +0xbe8
+//         ::SendMessage(CWnd::FromHandle(::GetParent(m_hWnd))->m_hWnd,
+//                       WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
+//         return;
+//     } else if (m_pActiveCategory && !(m_dwHideFlags & 0x1)) {       // +0xb08
+//         m_pPressed = m_pActiveCategory->vtable[0x188](point);       // category OnLButtonDown
+//     }
+//     if (m_pPressed) {
+//         int nDelay = 250;
+//         if (m_pPressed->vtable[0x2a8](&nDelay)) {                   // auto-repeat query
+//             ::SetTimer(m_hWnd, 0xec19, nDelay, NULL);
+//             m_bAutoCommandTimer = TRUE;                             // +0x440
+//         }
+//     }
+// IAT slots resolved: 0x1802c52c8 IsRectEmpty, 0x1802c5320 PtInRect,
+// 0x1802c5270 ClientToScreen, 0x1802c5310 InflateRect, 0x1802c5388
+// RedrawWindow, 0x1802c5300 GetParent, 0x1802c5378 SendMessageA (SendMessageW
+// in mfc140u), 0x1802c5330 SetTimer; 0x1803b6fe8 is the exported
+// CMFCPopupMenu::m_pActivePopupMenu.
+// Reproduced: the base call (a build-generated empty stub, see the
+// declaration block), DeactivateKeyboardFocus, the GetDroppedDown and HitTest
+// calls, the whole system-menu / caption-drag geometry and the caption
+// forwarding. The QAT rect is read from inside the opaque m_QAToolbar block at
+// its retail offset; nothing in OpenMFC ever writes it, so it is always empty
+// and the square-icon width is used -- which is also what happens because the
+// declared m_bQuickAccessToolbarOnTop member is never set (the side-table flag
+// SetQuickAccessToolbarOnTop writes is a different variable).
+// Not reproduced: the three element/category virtuals (+0x430, +0x188,
+// +0x2a8) and the element rect/flag writes -- their inputs (a HitTest hit,
+// m_pActiveCategory, m_pPressed) are all NULL in this library, so those
+// branches are dead rather than mis-modeled. The dropped-down close
+// (+0x340) is likewise dead because GetDroppedDown is a NULL stub. The
+// FromHandle round trip only yields the parent HWND and is collapsed.
 // Symbol: ?OnLButtonDown@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBar__IEAAXIVCPoint___Z(
+    CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point)
+{
+    if (!pThis) return;
 
-// CMFCRibbonBar::OnLButtonUp(UINT, CPoint) -- retail (RVA 0xdc6f0):
-// CPane::OnLButtonUp; kills the auto-command timer (0xec19) when
-// m_bAutoCommandTimer (+0x440) is set; HitTest(point) (vtable +0x670) and, on
-// a hit, the element's vtable+0x438 (OnLButtonUp) followed by a repaint of the
-// element rect (+0xc8) if the window still exists; then the active category's
-// vtable+0x190; finally it releases m_pPressed (+0x490), repaints its rect,
-// clears the element's +0x144 flag and replays OnMouseMove at the current
-// cursor position.
-// HitTest returns NULL, m_pActiveCategory and m_pPressed are never set in this
-// library and the element rects are not modeled, so nothing but the timer kill
-// would run -- and OnCancelMode above already performs that same teardown.
-// TODO(clean-room): not transcribed -- HitTest, the element rects/flags and
-// the pressed-element tracking are not modeled.
+    impl__OnLButtonDown_CPane__IEAAXIVCPoint___Z(pThis, nFlags, point);
+    impl__DeactivateKeyboardFocus_CMFCRibbonBar__QEAAXH_Z(pThis, TRUE);
+
+    CMFCRibbonBaseElement* pDropped =
+        impl__GetDroppedDown_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__XZ(pThis);
+    if (pDropped != nullptr) {
+        // Retail: pDropped->ClosePopupMenu() (vtable +0x340); unreachable here.
+    }
+
+    const POINT pt = { point.x, point.y };
+    const RECT rcCaption = { pThis->m_rectCaption.left,  pThis->m_rectCaption.top,
+                             pThis->m_rectCaption.right, pThis->m_rectCaption.bottom };
+
+    if ((pThis->m_dwHideFlags & 0x2) != 0 || pThis->m_bWindows7Look) {
+        RECT rcSysIcon = rcCaption;
+        // CMFCRibbonQuickAccessToolBar::m_rect (CMFCRibbonBaseElement +0xc8)
+        // inside the opaque m_QAToolbar block: bar +0x1448 - +0x1380 = +0xc8.
+        const RECT* pQATRect = reinterpret_cast<const RECT*>(pThis->m_QAToolbar + 0xc8);
+        if (pThis->m_bQuickAccessToolbarOnTop && pThis->m_bReplaceFrameCaption &&
+            !::IsRectEmpty(pQATRect)) {
+            rcSysIcon.right = pQATRect->left - 1;
+        } else {
+            rcSysIcon.right = rcSysIcon.left + (rcSysIcon.bottom - rcSysIcon.top);
+        }
+        if (::PtInRect(&rcSysIcon, pt)) {
+            POINT ptMenu = { pThis->m_rectCaption.left, pThis->m_rectCaption.bottom };
+            if (pThis->m_hWnd) ::ClientToScreen(pThis->m_hWnd, &ptMenu);
+            impl__ShowSysMenu_CMFCRibbonBar__IEAAXAEBVCPoint___Z(pThis, CPoint(ptMenu.x, ptMenu.y));
+            return;
+        }
+    }
+
+    impl__OnMouseMove_CMFCRibbonBar__IEAAXIVCPoint___Z(pThis, nFlags, point);
+
+    CMFCRibbonBaseElement* pHit =
+        impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(pThis, point, FALSE, FALSE);
+    if (pHit != nullptr) {
+        // Retail presses the element here (vtable +0x430, rect +0xc8, flag
+        // +0x144, m_pPressed); unreachable with the NULL HitTest stub.
+    } else if (::PtInRect(&rcCaption, pt)) {
+        CWnd* pActivePopup = static_cast<CWnd*>(impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA);
+        if (pActivePopup != nullptr) {
+            ::SendMessage(pActivePopup->m_hWnd, WM_CLOSE, 0, 0);
+        }
+        const RECT rcSysButtons = { pThis->m_rectSysButtons.left,  pThis->m_rectSysButtons.top,
+                                    pThis->m_rectSysButtons.right, pThis->m_rectSysButtons.bottom };
+        if (::PtInRect(&rcSysButtons, pt)) return;
+
+        HWND hwndParent = pThis->m_hWnd ? ::GetParent(pThis->m_hWnd) : nullptr;
+        if (hwndParent != nullptr) {
+            ::SendMessage(hwndParent, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
+        }
+        return;
+    } else if (pThis->m_pActiveCategory != nullptr && (pThis->m_dwHideFlags & 0x1) == 0) {
+        // Retail: m_pPressed = m_pActiveCategory->OnLButtonDown(point)
+        // (category vtable +0x188). m_pActiveCategory is never assigned in
+        // this library and the category vtable is not modeled.
+    }
+
+    if (pThis->m_pPressed != nullptr) {
+        // Retail: auto-repeat query through the element's vtable +0x2a8, then
+        // SetTimer(0xec19, nDelay) and m_bAutoCommandTimer = TRUE. m_pPressed
+        // is never assigned in this library and the virtual is not modeled.
+    }
+}
+
+// CMFCRibbonBar::OnLButtonUp(UINT, CPoint) -- retail (RVA 0xdc6f0 in mfc140;
+// reached from the WM_LBUTTONUP entry of the mfc140u message map, 0xdbad0),
+// transcribed:
+//     CPane::OnLButtonUp(nFlags, point);                              // 0xa0040
+//     if (m_bAutoCommandTimer) {                                      // +0x440
+//         ::KillTimer(m_hWnd, 0xec19);  m_bAutoCommandTimer = FALSE;
+//     }
+//     HWND hwndThis = m_hWnd;
+//     pHit = HitTest(point, FALSE, FALSE);                            // vtable +0x670
+//     if (pHit != NULL) {
+//         pHit->vtable[0x438](point);                                 // element OnLButtonUp
+//         if (!::IsWindow(hwndThis)) return;
+//         CRect rc = pHit->m_rect;  pHit->+0x144 = FALSE;             // +0xc8, +0x144
+//         ::RedrawWindow(m_hWnd, &rc, NULL, 0x105);
+//     }
+//     if (m_pActiveCategory != NULL) {                                // +0xb08
+//         m_pActiveCategory->vtable[0x190](point);                    // category OnLButtonUp
+//         if (!::IsWindow(hwndThis)) return;
+//     }
+//     if (m_pPressed != NULL) {                                       // +0x490
+//         CRect rc = m_pPressed->m_rect;  m_pPressed->+0x144 = FALSE;
+//         m_pPressed = NULL;
+//         ::RedrawWindow(m_hWnd, &rc, NULL, 0x105);
+//         CPoint pt; ::GetCursorPos(&pt); ::ScreenToClient(m_hWnd, &pt);
+//         OnMouseMove(nFlags, pt);                                    // 0xdc9f0
+//     }
+// IAT slots resolved: 0x1802c5360 KillTimer, 0x1802c5390 IsWindow,
+// 0x1802c5388 RedrawWindow, 0x1802c5348 GetCursorPos, 0x1802c5340
+// ScreenToClient.
+// Reproduced: the base call (docking/CPane.cpp:1290, a real body), the timer
+// teardown and the HitTest call. Not reproduced: the three blocks that need
+// a hit element, m_pActiveCategory or m_pPressed -- all of which are NULL in
+// this library (NULL HitTest stub, never-assigned members) -- and the element
+// / category virtuals (+0x438, +0x190) and rect/flag members they touch,
+// which are not modeled. Those blocks are therefore dead here, not skipped.
 // Symbol: ?OnLButtonUp@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonBar__IEAAXIVCPoint___Z(unsigned int p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonBar__IEAAXIVCPoint___Z(
+    CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point)
+{
+    if (!pThis) return;
+
+    impl__OnLButtonUp_CPane__IEAAXIVCPoint___Z(pThis, nFlags, point);
+
+    if (pThis->m_bAutoCommandTimer) {
+        if (pThis->m_hWnd) ::KillTimer(pThis->m_hWnd, 0xec19);
+        pThis->m_bAutoCommandTimer = FALSE;
+    }
+
+    CMFCRibbonBaseElement* pHit =
+        impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(pThis, point, FALSE, FALSE);
+    if (pHit != nullptr) {
+        // Retail: pHit->OnLButtonUp(point) (vtable +0x438), IsWindow guard,
+        // flag reset and rect repaint. Unreachable with the NULL HitTest stub.
+    }
+    if (pThis->m_pActiveCategory != nullptr) {
+        // Retail: m_pActiveCategory->OnLButtonUp(point) (category vtable
+        // +0x190) and IsWindow guard. m_pActiveCategory is never assigned here.
+    }
+    if (pThis->m_pPressed != nullptr) {
+        // Retail: release m_pPressed, repaint its rect, replay OnMouseMove at
+        // the cursor. m_pPressed is never assigned in this library.
+    }
+}
 
 // CMFCRibbonBar::OnMouseLeave() -- retail (RVA 0xdce80), transcribed in full:
 //     CPoint pt(0, 0); ::GetCursorPos(&pt);
@@ -2335,7 +2966,8 @@ extern "C" void MS_ABI impl__OnMouseLeave_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* 
     pThis->m_bTracked = FALSE;
 }
 
-// CMFCRibbonBar::OnMouseMove(UINT, CPoint) -- retail (RVA 0xdc9f0):
+// CMFCRibbonBar::OnMouseMove(UINT, CPoint) -- retail (RVA 0xdc9f0 in mfc140,
+// 0xdbdd0 in mfc140u):
 //     CPane::OnMouseMove(nFlags, point);
 //     pHit = HitTest(point, FALSE, FALSE);               // vtable +0x670
 //     if (point.x == -1 && point.y == -1) {
@@ -2358,9 +2990,12 @@ extern "C" void MS_ABI impl__OnMouseLeave_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* 
 // OpenMFC anyway: HitTest always returns NULL and m_pHighlighted is never
 // assigned, so retail's own "unchanged and NULL" path is taken; the same holds
 // for m_pPressed and m_pActiveCategory, which nothing in this library sets.
-// The CPane base call is omitted: OpenMFC's impl__OnMouseMove_CPane thunk
-// (phase4/src/featurepack/docking/CPane.cpp:235) is an empty generated stub
-// whose signature is (UINT, void*) with no `this`.
+// The CPane base call is made first, as retail does (mfc140u 0xdbdd0 calls
+// 0x9fce0, the WM_MOUSEMOVE entry of CPane's message map): OpenMFC's
+// impl__OnMouseMove_CPane thunk (docking/CPane.cpp:1394) is the real
+// transcribed body -- Default() when the pane is not captured, otherwise the
+// drag-frame move. An earlier revision of this comment called it an
+// argument-less generated stub and skipped it; that is no longer true.
 // One control-flow deviation: retail does NOT return after the (-1, -1) reset
 // of m_bTracked -- it falls through into the highlight hand-off and the
 // m_pActiveCategory forward. This returns instead, which is observationally
@@ -2371,9 +3006,11 @@ extern "C" void MS_ABI impl__OnMouseLeave_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* 
 // element rects and CMFCRibbonCategory::OnMouseMove are not modeled.
 // Symbol: ?OnMouseMove@CMFCRibbonBar@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonBar__IEAAXIVCPoint___Z(
-    CMFCRibbonBar* pThis, unsigned int /*nFlags*/, CPoint point)
+    CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point)
 {
     if (!pThis) return;
+
+    impl__OnMouseMove_CPane__IEAAXIVCPoint___Z(pThis, nFlags, point);
 
     (void)impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(
         pThis, point, FALSE, FALSE);
@@ -2413,24 +3050,77 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonBar__IEAAXIVCPoint___Z(
 // produce in this library's state.
 // TODO(clean-room): partially transcribed -- m_arCategories, category
 // visibility and m_pActiveCategory are not modeled.
+// (Re-verified against the mfc140 listing at 0xdcc70 -- reached from the
+// WM_MOUSEWHEEL entry of the mfc140u message map, 0xdc050: the gate order is
+// exactly m_pActivePopupMenu, m_pActiveCategory, m_dwHideFlags bit 0,
+// m_nKeyboardNavLevel, the GetFocus/IsChild test, then GetCursorPos +
+// ScreenToClient + GetClientRect + PtInRect. zDelta is sign-extended from
+// r8w and divided by 120 with the 0x77777777 multiply. The generated
+// parameter list was replaced with the one the mangled name describes.)
 // Symbol: ?OnMouseWheel@CMFCRibbonBar@@IEAAHIFVCPoint@@@Z
-extern "C" int MS_ABI impl__OnMouseWheel_CMFCRibbonBar__IEAAHIFVCPoint___Z(unsigned int p0, short p1, void* /*class*/ p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnMouseWheel_CMFCRibbonBar__IEAAHIFVCPoint___Z(
+    CMFCRibbonBar* pThis, unsigned int /*nFlags*/, short /*zDelta*/, CPoint /*pt*/)
+{
+    if (!pThis) return FALSE;
+    return FALSE;
 }
 
-// CMFCRibbonBar::OnNeedTipText(UINT, NMHDR*, LRESULT*) -- retail (RVA 0xdef00)
-// bails out unless m_bToolTip (+0x450) is set, m_pToolTip (+0xc00) exists, its
-// m_hWnd is the window the notification came from, and the global pointer at
-// 0x3b6fe8 is NULL. It then hit-tests the cursor position and fills the
-// tooltip control from the element's tooltip text and description.
-// The tooltip control handshake and the per-element tooltip state are not
-// modeled in OpenMFC, so no tip can be produced; FALSE means "not handled",
-// which lets the default tooltip processing run.
-// TODO(clean-room): not transcribed -- the tooltip control handshake and the
-// per-element tooltip state are not modeled.
+// CMFCRibbonBar::OnNeedTipText(UINT, NMHDR*, LRESULT*) -- retail (RVA 0xdef00
+// in mfc140; reached from the TTN_NEEDTEXT entry of the mfc140u message map,
+// 0xde2e0), transcribed as far as it is reachable here:
+//     if (!m_bToolTip) return TRUE;                                   // +0x450
+//     if (m_pToolTip == NULL || m_pToolTip->m_hWnd == NULL
+//         || pNMH->hwndFrom != m_pToolTip->m_hWnd) return FALSE;      // +0xc00
+//     if (CMFCPopupMenu::m_pActivePopupMenu != NULL) return FALSE;    // 0x3b6fe8
+//     CPoint pt; ::GetCursorPos(&pt); ::ScreenToClient(m_hWnd, &pt);
+//     pHit = HitTest(pt, TRUE, FALSE);                                // vtable +0x670
+//     if (pHit == NULL) return TRUE;
+//     CString strTip; pHit->vtable[0x190](strTip);                    // GetToolTipText
+//     <static CString at 0x3bb1e8> = strTip;
+//     if (that string is empty) return TRUE;
+//     if (m_pToolTip->IsKindOf(<class at 0x319df0>)) {                // CMFCToolTipCtrl setup
+//         ... description (m_bToolTipDescr, element vtable +0x198) and the
+//         fixed widths (+0x41c/+0x420 -> tooltip +0x1a0/+0x1a4) ...
+//     }
+//     if (m_nKeyboardNavLevel >= 0)
+//         m_pToolTip->SetWindowPos(&wndTopMost, -1,-1,-1,-1, 0x13);
+//     ((TOOLTIPTEXT*)pNMH)->lpszText = <the static CString's buffer>;
+//     return TRUE;
+// Note the two distinct exits: the m_bToolTip and no-hit paths return TRUE
+// (`mov $1,%eax` at 0xdf149), the tooltip-identity and popup gates return
+// FALSE (0xdf173). An earlier revision of this comment described every
+// early-out as FALSE; that was wrong for the first one. IAT slots resolved:
+// 0x1802c5348 GetCursorPos, 0x1802c5340 ScreenToClient.
+// Reproduced: everything down to and including the HitTest call (plus a NULL
+// guard on pNMH that retail does not have -- it dereferences it). HitTest is
+// the NULL stub above and OpenMFC's elements have no tooltip-text virtual, so
+// the element/description block is unreachable here and is not transcribed.
+// TODO(clean-room): partially transcribed -- the element tooltip text (vtable
+// +0x190/+0x198) and the CMFCToolTipCtrl description setup are not modeled.
 // Symbol: ?OnNeedTipText@CMFCRibbonBar@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
-extern "C" int MS_ABI impl__OnNeedTipText_CMFCRibbonBar__IEAAHIPEAUtagNMHDR__PEA_J_Z(unsigned int p0, void* /*struct*/* p1, __int64* p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnNeedTipText_CMFCRibbonBar__IEAAHIPEAUtagNMHDR__PEA_J_Z(
+    CMFCRibbonBar* pThis, unsigned int /*id*/, NMHDR* pNMH, __int64* /*pResult*/)
+{
+    if (!pThis) return FALSE;
+    if (!pThis->m_bToolTip) return TRUE;
+
+    CToolTipCtrl* pToolTip = static_cast<CToolTipCtrl*>(pThis->m_pToolTip);
+    if (pToolTip == nullptr || pToolTip->m_hWnd == nullptr) return FALSE;
+    if (pNMH == nullptr || pNMH->hwndFrom != pToolTip->m_hWnd) return FALSE;
+    if (impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA != nullptr) return FALSE;
+
+    POINT pt = { 0, 0 };
+    ::GetCursorPos(&pt);
+    if (pThis->m_hWnd) ::ScreenToClient(pThis->m_hWnd, &pt);
+
+    CMFCRibbonBaseElement* pHit =
+        impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(
+            pThis, CPoint(pt.x, pt.y), TRUE, FALSE);
+    if (pHit == nullptr) return TRUE;
+
+    // Retail fills the tooltip from pHit's text/description here and returns
+    // TRUE; unreachable in OpenMFC (see above).
+    return TRUE;
 }
 
 // CMFCRibbonBar::OnPaint() -- retail (RVA 0xdbf10) opens a CPaintDC, sets up a
@@ -2443,10 +3133,18 @@ extern "C" int MS_ABI impl__OnNeedTipText_CMFCRibbonBar__IEAAHIPEAUtagNMHDR__PEA
 // -- is reached from this handler in retail; painting only that would fill the
 // bar with the pane background and leave it blank, which is not obviously
 // better than leaving the default WM_PAINT processing alone.
+// (Re-read from the mfc140 listing at 0xdbf10 -- the WM_PAINT entry of the
+// mfc140u message map is 0xdb2f0: CPaintDC ctor 0x2a1c60, CMemDC ctor
+// 0x69d80, then a ~300-instruction drawing pass whose every input is a
+// ribbon group blob or a rect RecalcLayout would have produced. The
+// generated parameter list dropped `this`; it is restored here.)
 // TODO(clean-room): not transcribed -- the ribbon drawing pass and its
 // geometry are not modeled.
 // Symbol: ?OnPaint@CMFCRibbonBar@@IEAAXXZ
-extern "C" void MS_ABI impl__OnPaint_CMFCRibbonBar__IEAAXXZ() {}
+extern "C" void MS_ABI impl__OnPaint_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pThis)
+{
+    if (!pThis) return;
+}
 
 // CMFCRibbonBar::OnPaneContextMenu(CWnd*, CPoint) -- retail (RVA 0xdf980):
 //     if (point == CPoint(-1, -1)) {                 // keyboard context menu
@@ -2670,62 +3368,479 @@ extern "C" void MS_ABI impl__OnSetFocus_CMFCRibbonBar__IEAAXPEAVCWnd___Z(
     pThis->m_bDontSetKeyTips = FALSE;
 }
 
+// CMFCRibbonBar::OnSetFont(CFont*, BOOL) -- retail (RVA 0xdb290 in mfc140u,
+// reached from the WM_SETFONT entry of the mfc140u message map at 0x2feb00;
+// 0xdbeb0 in mfc140), transcribed in full:
+//     m_hFont = (pFont != NULL) ? pFont->m_hObject : NULL;   // +0x470 <- +0x8
+//     ForceRecalcLayout();                                   // tail jump
+// bRedraw is never read. ForceRecalcLayout is the partial OpenMFC body above.
 // Symbol: ?OnSetFont@CMFCRibbonBar@@IEAAXPEAVCFont@@H@Z
-extern "C" void MS_ABI impl__OnSetFont_CMFCRibbonBar__IEAAXPEAVCFont__H_Z(void* /*class*/* p0, int p1) {}
-
-// Symbol: ?OnSetPrintPreviewKeys@CMFCRibbonBar@@MEAAXPEAVCMFCRibbonPanel@@00@Z
-extern "C" void MS_ABI impl__OnSetPrintPreviewKeys_CMFCRibbonBar__MEAAXPEAVCMFCRibbonPanel__00_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/* p2) {}
-
-// Symbol: ?SetPrintPreviewMode@CMFCRibbonBar@@IEAAXH@Z
-extern "C" void MS_ABI impl__SetPrintPreviewMode_CMFCRibbonBar__IEAAXH_Z(int p0) {}
-
-// Symbol: ?SetQuickAccessCommands@CMFCRibbonBar@@QEAAXAEBV?$CList@II@@H@Z
-extern "C" void MS_ABI impl__SetQuickAccessCommands_CMFCRibbonBar__QEAAXAEBV__CList_II__H_Z(const void* /*class*/* p0, int p1) {}
-
-// Symbol: ?SetQuickAccessDefaultState@CMFCRibbonBar@@QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState@@@Z
-extern "C" void MS_ABI impl__SetQuickAccessDefaultState_CMFCRibbonBar__QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState___Z(const void* /*class*/* p0) {}
-
-// Symbol: ?SetTooltipFixedWidth@CMFCRibbonBar@@QEAAXHH@Z
-extern "C" void MS_ABI impl__SetTooltipFixedWidth_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
-
-// Symbol: ?SetWindows7Look@CMFCRibbonBar@@QEAAXHH@Z
-extern "C" void MS_ABI impl__SetWindows7Look_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
-
-// Symbol: ?ShowCategory@CMFCRibbonBar@@QEAAXHH@Z
-extern "C" void MS_ABI impl__ShowCategory_CMFCRibbonBar__QEAAXHH_Z(int p0, int p1) {}
-
-// Symbol: ?ShowContextCategories@CMFCRibbonBar@@QEAAXIH@Z
-extern "C" void MS_ABI impl__ShowContextCategories_CMFCRibbonBar__QEAAXIH_Z(unsigned int p0, int p1) {}
-
-// Symbol: ?ShowKeyTips@CMFCRibbonBar@@QEAAXH@Z
-extern "C" void MS_ABI impl__ShowKeyTips_CMFCRibbonBar__QEAAXH_Z(int p0) {}
-
-// CMFCRibbonBar::ShowSysMenu(const CPoint&) -- retail (RVA 0xdf730) takes the
-// parent frame's ::GetSystemMenu(FALSE), enables/greys SC_RESTORE, SC_MOVE,
-// SC_SIZE, SC_MINIMIZE and SC_MAXIMIZE according to ::IsZoomed and the
-// parent's style bits, removes SC_CLOSE's default marking, and finally tracks
-// the menu at the supplied screen point, posting the chosen SC_* command back
-// to the frame. None of the menu-manager plumbing that MFC layers on top of
-// ::TrackPopupMenu is modeled here, so the menu is not shown.
-// The generated stub dropped `this` and typed the CPoint reference as
-// `const void**`; the signature is corrected here (rcx = this, rdx = the
-// CPoint reference, confirmed at 0xdf73a/0xdf73d) so that OnPaneContextMenu
-// above can reach it with retail's own control flow. The body stays empty.
-// TODO(clean-room): not transcribed -- the frame system menu handling is not
-// modeled.
-// Symbol: ?ShowSysMenu@CMFCRibbonBar@@IEAAXAEBVCPoint@@@Z
-extern "C" void MS_ABI impl__ShowSysMenu_CMFCRibbonBar__IEAAXAEBVCPoint___Z(
-    CMFCRibbonBar* /*pThis*/, const CPoint& /*point*/) {}
-
-// Symbol: ?TranslateChar@CMFCRibbonBar@@UEAAHI@Z
-extern "C" int MS_ABI impl__TranslateChar_CMFCRibbonBar__UEAAHI_Z(unsigned int p0) {
-    return 0;
+extern "C" void MS_ABI impl__OnSetFont_CMFCRibbonBar__IEAAXPEAVCFont__H_Z(
+    CMFCRibbonBar* pThis, CFont* pFont, int /*bRedraw*/)
+{
+    if (!pThis) return;
+    pThis->m_hFont = (pFont != nullptr) ? static_cast<HFONT>(pFont->m_hObject) : nullptr;
+    impl__ForceRecalcLayout_CMFCRibbonBar__QEAAXXZ(pThis);
 }
 
-// Symbol: ?UpdateToolTipsRect@CMFCRibbonBar@@IEAAXXZ
-extern "C" void MS_ABI impl__UpdateToolTipsRect_CMFCRibbonBar__IEAAXXZ() {}
+// CMFCRibbonBar::OnSetPrintPreviewKeys(CMFCRibbonPanel* pPanelMain,
+// CMFCRibbonPanel* pPanelZoom, CMFCRibbonPanel* pPanelClose) -- retail (RVA
+// 0xe1ae0 in mfc140; not in this host's mfc140u map), transcribed:
+//     pPanelMain ->m_btnDefault.SetKeys("zp", NULL);   // panel +0x3f0, vtable +0x180
+//     pPanelZoom ->m_btnDefault.SetKeys("zz", NULL);
+//     pPanelClose->m_btnDefault.SetKeys("zv", NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_NEXT    /*0xe302*/, "x",  NULL);   // 0xdebc0
+//     SetElementKeys(AFX_ID_PREVIEW_PREV    /*0xe303*/, "v",  NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_CLOSE   /*0xe300*/, "c",  NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_ZOOMIN  /*0xe305*/, "qi", NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_ZOOMOUT /*0xe306*/, "qo", NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_PRINT   /*0xe304*/, "p",  NULL);
+//     SetElementKeys(AFX_ID_PREVIEW_NUMPAGE /*0xe301*/, "1",  NULL);   // tail jump
+// (Key strings read from the mfc140 .rdata at 0x33d75c..0x33d77c and
+// 0x33d05c.) OpenMFC's CMFCRibbonPanel has no embedded default button at
+// +0x3f0 and its elements have no SetKeys virtual, and SetElementKeys above
+// is itself still a no-match stub, so none of the ten assignments can take
+// effect. Left a stub rather than seven calls into an empty body. The
+// generated parameter list was replaced with the one the mangled name
+// describes.
+// TODO(clean-room): not transcribed -- CMFCRibbonPanel::m_btnDefault and
+// CMFCRibbonBaseElement::SetKeys are not modeled; SetElementKeys is a stub.
+// Symbol: ?OnSetPrintPreviewKeys@CMFCRibbonBar@@MEAAXPEAVCMFCRibbonPanel@@00@Z
+extern "C" void MS_ABI impl__OnSetPrintPreviewKeys_CMFCRibbonBar__MEAAXPEAVCMFCRibbonPanel__00_Z(
+    CMFCRibbonBar* pThis, CMFCRibbonPanel* /*pPanelMain*/, CMFCRibbonPanel* /*pPanelZoom*/,
+    CMFCRibbonPanel* /*pPanelClose*/)
+{
+    if (!pThis) return;
+}
 
+// CMFCRibbonBar::SetPrintPreviewMode(BOOL bSet) -- retail (RVA 0xe0fd0 in
+// mfc140; not in this host's mfc140u map), transcribed:
+//     if (!m_bIsPrintPreview) return;                                  // +0x430
+//     m_bPrintPreviewMode = bSet;                                      // +0x444
+//     if (bSet) {
+//         pPP = m_pPrintPreviewCategory;                               // +0xb20
+//         if (pPP->m_arPanels.GetSize() /*+0x7b0*/ <= 2) AfxThrowInvalidArgException();
+//         OnSetPrintPreviewKeys(pPP->panel[0], panel[1], panel[2]);    // vtable +0x6c8
+//         m_arVisibleCategoriesSaved.RemoveAll();                      // +0xba0
+//         for i in m_arCategories (+0xb58/+0xb60):
+//             if (cat->m_bIsVisible /*+0xa8*/) { m_arVisibleCategoriesSaved.Add(i);
+//                                              cat->m_bIsVisible = FALSE; }
+//         pPP->m_bIsVisible = TRUE;
+//         if (m_pActiveCategory) m_pActiveCategory->SetActive(FALSE);  // +0xb08, 0xef5e0
+//         m_pActiveCategorySaved = m_pActiveCategory;                  // +0xb10
+//         m_pActiveCategory = pPP;
+//     } else {
+//         for each saved index: ShowCategory(index, TRUE);             // 0xdb870
+//         m_arVisibleCategoriesSaved.RemoveAll();
+//         m_pPrintPreviewCategory->m_bIsVisible = FALSE;
+//         m_pActiveCategory = m_pActiveCategorySaved;
+//         if (m_pActiveCategory == NULL) goto relayout;
+//     }
+//     m_pActiveCategory->SetActive(TRUE);
+//   relayout:
+//     this->RecalcLayout();                                            // vtable +0x430
+//     ::RedrawWindow(m_hWnd, NULL, NULL, 0x105);
+// Reproduced: the guard and the flag store, which are exact. Not reproduced:
+// everything after them -- the category swap needs m_arCategories, the
+// per-category visibility flag (+0xa8) and CMFCRibbonCategory::SetActive,
+// none of which OpenMFC models (its categories live in the side table and
+// are 80 bytes), and m_pPrintPreviewCategory is never created here
+// (AddPrintPreviewCategory above returns NULL). Running the relayout/repaint
+// tail alone would repaint a bar whose state did not change, so it is left
+// out too. The generated parameter list dropped `this`; it is restored.
+// TODO(clean-room): partially transcribed -- only the guard and the
+// m_bPrintPreviewMode store; the category hide/restore and the active
+// category swap are not modeled.
+// Symbol: ?SetPrintPreviewMode@CMFCRibbonBar@@IEAAXH@Z
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CMFCRibbonBar__IEAAXH_Z(CMFCRibbonBar* pThis, int bSet)
+{
+    if (!pThis) return;
+    if (!pThis->m_bIsPrintPreview) return;
+    pThis->m_bPrintPreviewMode = bSet;
+}
+
+// CMFCRibbonBar::SetQuickAccessCommands(const CList<UINT,UINT>& lstCommands,
+// BOOL bRecalcLayout) -- retail (RVA 0xde6c0 in mfc140; not in this host's
+// mfc140u map), transcribed:
+//     OnCancelMode();                                                  // 0xdcf20
+//     CString str;
+//     if (!str.LoadString(AfxFindStringResourceHandle(0x42c8), 0x42c8))  // 0x2accf0 / 0xdc00
+//         AfxThrowInvalidArgException();
+//     m_QAToolbar.SetCommands(this, lstCommands, str);   // +0x1380, 0x1235a0
+//     if (bRecalcLayout) { m_bForceRedraw = TRUE; this->RecalcLayout(); }   // +0x438, vtable +0x430
+// The work is CMFCRibbonQuickAccessToolBar::SetCommands(CMFCRibbonBar*,
+// const CList&, LPCTSTR), which in OpenMFC is still a placeholder with an
+// auto-generated parameter list (ribbon/CMFCRibbonQuickAccessToolBar.cpp:101)
+// operating on the opaque, never-constructed m_QAToolbar block. Calling
+// OnCancelMode and forcing a relayout around an empty callee would present
+// as "commands set" while setting none, so this stays a stub until that body
+// exists. The generated parameter list dropped `this`; it is restored.
+// TODO(clean-room): not transcribed -- CMFCRibbonQuickAccessToolBar::
+// SetCommands is a placeholder and m_QAToolbar is an opaque block.
+// Symbol: ?SetQuickAccessCommands@CMFCRibbonBar@@QEAAXAEBV?$CList@II@@H@Z
+extern "C" void MS_ABI impl__SetQuickAccessCommands_CMFCRibbonBar__QEAAXAEBV__CList_II__H_Z(
+    CMFCRibbonBar* pThis, const CList<UINT, UINT>& /*lstCommands*/, int /*bRecalcLayout*/)
+{
+    if (!pThis) return;
+}
+
+// CMFCRibbonBar::SetQuickAccessDefaultState(const
+// CMFCRibbonQuickAccessToolBarDefaultState& state) -- retail (RVA 0xde620 in
+// mfc140; not in this host's mfc140u map), transcribed:
+//     m_QAToolbar.m_DefaultState.CopyFrom(state);   // bar +0x19f0 = QAT +0x670, 0x122b60
+//     CList<UINT,UINT> lst;
+//     m_QAToolbar.GetDefaultCommands(lst);          // 0x123ea0
+//     SetQuickAccessCommands(lst, FALSE);           // 0xde6c0
+// CopyFrom has a real OpenMFC body, but the default-state object it would
+// copy into lives at +0x670 of the opaque, never-constructed m_QAToolbar
+// block, CMFCRibbonQuickAccessToolBar::GetDefaultCommands is a placeholder
+// (ribbon/CMFCRibbonQuickAccessToolBar.cpp:62) and SetQuickAccessCommands
+// above is a stub for the same reason -- so the sequence would copy state
+// nothing reads and then set no commands. Left a stub. The generated
+// parameter list dropped `this`; it is restored, and the state class is only
+// forward-declared here.
+// TODO(clean-room): not transcribed -- the QAT default-state member and
+// GetDefaultCommands are not modeled.
+// Symbol: ?SetQuickAccessDefaultState@CMFCRibbonBar@@QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState@@@Z
+extern "C" void MS_ABI impl__SetQuickAccessDefaultState_CMFCRibbonBar__QEAAXAEBVCMFCRibbonQuickAccessToolBarDefaultState___Z(
+    CMFCRibbonBar* pThis, const CMFCRibbonQuickAccessToolBarDefaultState& /*state*/)
+{
+    if (!pThis) return;
+}
+
+// CMFCRibbonBar::SetTooltipFixedWidth(int, int) -- retail (RVA 0xe2600 in
+// mfc140; the export is not in this host's mfc140u map) is two stores and a
+// return, transcribed in full:
+//     mov %edx,0x41c(%rcx)     ; m_nTooltipWidthRegular    (1052)
+//     mov %r8d,0x420(%rcx)     ; m_nTooltipWidthLargeImage (1056)
+// No validation, no relayout.
+// Symbol: ?SetTooltipFixedWidth@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetTooltipFixedWidth_CMFCRibbonBar__QEAAXHH_Z(
+    CMFCRibbonBar* pThis, int nWidthRegular, int nWidthLargeImage)
+{
+    if (!pThis) return;
+    pThis->m_nTooltipWidthRegular    = nWidthRegular;
+    pThis->m_nTooltipWidthLargeImage = nWidthLargeImage;
+}
+
+// CMFCRibbonBar::SetWindows7Look(BOOL, BOOL) -- retail (RVA 0xda8b0 in
+// mfc140; not in this host's mfc140u map), transcribed in full:
+//     if (m_bWindows7Look == bWindows7Look) return;       // +0x20c8
+//     m_bWindows7Look = bWindows7Look;                      // stored verbatim
+//     if (m_hWnd != NULL && bRecalc) ForceRecalcLayout();   // 0xe0ab0 mfc140
+// The m_hWnd test is evaluated before the store (`cmpq $0,0x40(%rcx)` then
+// `mov %edx,0x20c8(%rcx)`, whose flags are not reused), which changes nothing
+// observable. ForceRecalcLayout is the partial OpenMFC body above.
+// Symbol: ?SetWindows7Look@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__SetWindows7Look_CMFCRibbonBar__QEAAXHH_Z(
+    CMFCRibbonBar* pThis, int bWindows7Look, int bRecalc)
+{
+    if (!pThis) return;
+    if (pThis->m_bWindows7Look == bWindows7Look) return;
+
+    pThis->m_bWindows7Look = bWindows7Look;
+    if (pThis->m_hWnd != nullptr && bRecalc) {
+        impl__ForceRecalcLayout_CMFCRibbonBar__QEAAXXZ(pThis);
+    }
+}
+
+// CMFCRibbonBar::ShowCategory(int nIndex, BOOL bShow) -- retail (RVA 0xdb870
+// in mfc140; not in this host's mfc140u map), transcribed in full:
+//     if (nIndex < 0 || nIndex >= m_arCategories.GetSize()) return;   // +0xb60
+//     m_arCategories[nIndex]->m_bIsVisible = bShow;                   // +0xb58, +0xa8
+// (The second bounds check that throws AfxThrowInvalidArgException is
+// CArray::operator[]'s own and can never fire after the first.)
+// OpenMFC's categories are kept in the ribbon side table, not in
+// m_arCategories, and CMFCRibbonCategory has no visibility member (+0xa8 lies
+// beyond its 80 bytes), so there is nothing to write. The generated
+// parameter list dropped `this`; it is restored.
+// TODO(clean-room): not transcribed -- category visibility (+0xa8) is not
+// modeled.
+// Symbol: ?ShowCategory@CMFCRibbonBar@@QEAAXHH@Z
+extern "C" void MS_ABI impl__ShowCategory_CMFCRibbonBar__QEAAXHH_Z(CMFCRibbonBar* pThis, int /*nIndex*/, int /*bShow*/)
+{
+    if (!pThis) return;
+}
+
+// CMFCRibbonBar::ShowContextCategories(UINT uiContextID, BOOL bShow) --
+// retail (RVA 0xdb8b0 in mfc140; not in this host's mfc140u map),
+// transcribed in full:
+//     if (uiContextID == 0) return;
+//     BOOL bActiveHidden = FALSE;
+//     for each cat in m_arCategories (+0xb58/+0xb60):
+//         if (cat->m_uiContextID /*+0xac*/ == uiContextID) {
+//             cat->m_bIsVisible /*+0xa8*/ = bShow;
+//             if (!bShow && cat == m_pActiveCategory /*+0xb08*/) bActiveHidden = TRUE;
+//         }
+//     if (!bActiveHidden) return;
+//     for each cat in m_arCategories:
+//         if (cat->m_bIsVisible) { this->SetActiveCategory(cat, FALSE); return; }  // vtable +0x668
+//     m_pActiveCategory = NULL;
+// (The loop increment is the constant 1 held in esi -- the back-edge lands
+// after the `lea 0x1(%r10),%esi` -- so the cmove into r10d does not change
+// the stride.) Category context IDs and visibility are not members of
+// OpenMFC's CMFCRibbonCategory and the categories do not live in
+// m_arCategories, so nothing here can be reproduced. The generated
+// parameter list dropped `this`; it is restored.
+// TODO(clean-room): not transcribed -- category context IDs (+0xac) and
+// visibility (+0xa8) are not modeled.
+// Symbol: ?ShowContextCategories@CMFCRibbonBar@@QEAAXIH@Z
+extern "C" void MS_ABI impl__ShowContextCategories_CMFCRibbonBar__QEAAXIH_Z(
+    CMFCRibbonBar* pThis, unsigned int /*uiContextID*/, int /*bShow*/)
+{
+    if (!pThis) return;
+}
+
+// CMFCRibbonBar::ShowKeyTips(BOOL bRepos) -- retail (RVA 0xe3ed0 in mfc140;
+// not in this host's mfc140u map), transcribed:
+//     for each pKeyTip in m_arKeyElements (+0xb80/+0xb88):
+//         if (m_nCurrKeyChar != 0) {                                   // +0x418
+//             pElem = pKeyTip->m_pElement;                             // +0xe8
+//             CString keys = pKeyTip->m_bIsMenu /*+0x100*/ ? pElem->+0xb0 : pElem->+0xa8;
+//             keys.MakeUpper();                                        // 0x1fc30
+//             if (keys.GetLength() < 2 || keys[0] != m_nCurrKeyChar) { pKeyTip->Hide(); continue; }  // 0x10f2e0
+//         }
+//         pKeyTip->Show(bRepos);                                       // 0x10efe0
+//     if (m_pToolTip && m_pToolTip->m_hWnd && ::IsWindowVisible(m_pToolTip->m_hWnd))
+//         m_pToolTip->SetWindowPos(&CWnd::wndTopMost /*0x3bc290*/, -1, -1, -1, -1, 0x13);
+// (HideKeyTips, the sibling at 0xe4050, is the same loop calling only Hide.)
+// OpenMFC has no key-tip state: m_arKeyElements is an opaque blob nothing
+// populates and CMFCRibbonKeyTip is not modeled, so the loop has no body to
+// run and the tooltip re-raise alone would be meaningless. The generated
+// parameter list dropped `this`; it is restored.
+// TODO(clean-room): not transcribed -- key tips are not modeled.
+// Symbol: ?ShowKeyTips@CMFCRibbonBar@@QEAAXH@Z
+extern "C" void MS_ABI impl__ShowKeyTips_CMFCRibbonBar__QEAAXH_Z(CMFCRibbonBar* pThis, int /*bRepos*/)
+{
+    if (!pThis) return;
+}
+
+// CMFCRibbonBar::ShowSysMenu(const CPoint&) -- retail (RVA 0xdf730 in mfc140;
+// not in this host's mfc140u map; rcx = this, rdx = the CPoint reference),
+// transcribed:
+//     pParent = CWnd::FromHandle(::GetParent(m_hWnd));
+//     if (pParent == NULL || pParent->m_hWnd == NULL) return;
+//     pMenu = CMenu::FromHandle(::GetSystemMenu(pParent->m_hWnd, FALSE));   // 0x2a5fc0
+//     if (pMenu == NULL || pMenu->m_hMenu == NULL) return;
+//     ::SetMenuDefaultItem(hMenu, SC_CLOSE, FALSE);
+//     if (::IsZoomed(CWnd::FromHandle(::GetParent(m_hWnd))->m_hWnd)) {
+//         ::EnableMenuItem(hMenu, SC_SIZE,     MF_BYCOMMAND | MF_GRAYED | MF_DISABLED);  // 3
+//         ::EnableMenuItem(hMenu, SC_MOVE,     3);
+//         ::EnableMenuItem(hMenu, SC_MAXIMIZE, 3);
+//         ::EnableMenuItem(hMenu, SC_RESTORE,  MF_BYCOMMAND | MF_ENABLED);               // 0
+//     } else {
+//         ::EnableMenuItem(hMenu, SC_RESTORE,  3);
+//         ::EnableMenuItem(hMenu, SC_SIZE,     0);
+//         ::EnableMenuItem(hMenu, SC_MOVE,     0);
+//         ::EnableMenuItem(hMenu, SC_MAXIMIZE, 0);
+//     }
+//     if (!(pParent->GetStyle() & WS_MAXIMIZEBOX)) {         // 0x2a75a0, bit 16
+//         ::DeleteMenu(hMenu, SC_RESTORE,  MF_BYCOMMAND);
+//         ::DeleteMenu(hMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+//     }
+//     if (!(pParent->GetStyle() & WS_MINIMIZEBOX))           // bit 17
+//         ::DeleteMenu(hMenu, SC_MINIMIZE, MF_BYCOMMAND);
+//     if (<afxContextMenuManager, .data 0x3b6f10> != NULL) {
+//         afxContextMenuManager->vtable[0x28](hMenu, point.x, point.y,
+//             CWnd::FromHandle(::GetParent(m_hWnd)), TRUE, TRUE, FALSE);
+//             // = ShowPopupMenu(HMENU, x, y, pWndOwner, bOwnMessage, bAutoDestroy, bRightAlign)
+//     } else {
+//         hOwner = m_hWndOwner /*+0xa0*/ ? m_hWndOwner : ::GetParent(m_hWnd);
+//         ::TrackPopupMenu(hMenu, 0x4 /*TPM_CENTERALIGN*/, point.x, point.y, 0,
+//                          CWnd::FromHandle(hOwner)->m_hWnd, NULL);
+//     }
+// IAT slots resolved: 0x1802c5300 GetParent, 0x1802c4d68 GetSystemMenu,
+// 0x1802c4e88 SetMenuDefaultItem, 0x1802c4d78 IsZoomed, 0x1802c4d58
+// EnableMenuItem, 0x1802c4d88 DeleteMenu, 0x1802c51e8 TrackPopupMenu. The
+// SC_* ids are the literals 0xf000/0xf010/0xf020/0xf030/0xf060/0xf120.
+// 0x3b6f10 is the pointer CWinAppEx::InitContextMenuManager (mfc140 0x1c5e10)
+// fills and CWinAppEx::GetContextMenuManager (0x1c6040) returns; it has no
+// export of its own.
+// Reproduced: the whole menu preparation and the ::TrackPopupMenu branch.
+// Deviation, stated plainly: the context-menu-manager branch is NOT
+// reproduced. OpenMFC keeps its CContextMenuManager as a protected per-app
+// CWinAppEx member (include/openmfc/afxmfc.h:1733) with no process-global
+// pointer this DLL can read, so the ::TrackPopupMenu path -- retail's own
+// behaviour for an application that never called InitContextMenuManager --
+// is taken unconditionally. The CWnd::FromHandle / CMenu::FromHandle round
+// trips only serve to obtain the HWND / HMENU (a NULL handle makes both return
+// NULL) and are collapsed into the handles; CWnd::GetStyle is
+// ::GetWindowLong(GWL_STYLE) on the parent; m_hWndOwner (+0xa0) is not a
+// member of OpenMFC's CWnd, so retail's ::GetParent fallback is always used.
+// Symbol: ?ShowSysMenu@CMFCRibbonBar@@IEAAXAEBVCPoint@@@Z
+extern "C" void MS_ABI impl__ShowSysMenu_CMFCRibbonBar__IEAAXAEBVCPoint___Z(
+    CMFCRibbonBar* pThis, const CPoint& point)
+{
+    if (!pThis || !pThis->m_hWnd) return;
+
+    HWND hwndParent = ::GetParent(pThis->m_hWnd);
+    if (hwndParent == nullptr) return;
+
+    HMENU hMenu = ::GetSystemMenu(hwndParent, FALSE);
+    if (hMenu == nullptr) return;
+
+    ::SetMenuDefaultItem(hMenu, SC_CLOSE, FALSE);
+
+    const UINT nGrayed = MF_BYCOMMAND | MF_GRAYED | MF_DISABLED; // 3, as retail passes it
+    if (::IsZoomed(hwndParent)) {
+        ::EnableMenuItem(hMenu, SC_SIZE,     nGrayed);
+        ::EnableMenuItem(hMenu, SC_MOVE,     nGrayed);
+        ::EnableMenuItem(hMenu, SC_MAXIMIZE, nGrayed);
+        ::EnableMenuItem(hMenu, SC_RESTORE,  MF_BYCOMMAND | MF_ENABLED);
+    } else {
+        ::EnableMenuItem(hMenu, SC_RESTORE,  nGrayed);
+        ::EnableMenuItem(hMenu, SC_SIZE,     MF_BYCOMMAND | MF_ENABLED);
+        ::EnableMenuItem(hMenu, SC_MOVE,     MF_BYCOMMAND | MF_ENABLED);
+        ::EnableMenuItem(hMenu, SC_MAXIMIZE, MF_BYCOMMAND | MF_ENABLED);
+    }
+
+    const LONG lParentStyle = ::GetWindowLongW(hwndParent, GWL_STYLE);
+    if ((lParentStyle & WS_MAXIMIZEBOX) == 0) {
+        ::DeleteMenu(hMenu, SC_RESTORE,  MF_BYCOMMAND);
+        ::DeleteMenu(hMenu, SC_MAXIMIZE, MF_BYCOMMAND);
+    }
+    if ((lParentStyle & WS_MINIMIZEBOX) == 0) {
+        ::DeleteMenu(hMenu, SC_MINIMIZE, MF_BYCOMMAND);
+    }
+
+    // Retail: afxContextMenuManager->ShowPopupMenu(...) when a manager exists;
+    // not reachable in OpenMFC (see above), so retail's no-manager branch:
+    ::TrackPopupMenu(hMenu, 0x4 /*TPM_CENTERALIGN, the literal retail passes*/,
+                     point.x, point.y, 0, hwndParent, nullptr);
+}
+
+// CMFCRibbonBar::TranslateChar(UINT) -- retail (RVA 0xe2870 in mfc140; not in
+// this host's mfc140u map), transcribed in full:
+//     if (m_dwHideFlags & 0x2) return FALSE;                        // +0x478
+//     if (!CKeyboardManager::IsKeyPrintable(nChar)) return FALSE;   // 0x74a30
+//     if (m_nKeyboardNavLevel < 0)                                  // +0x414
+//         SetKeyboardNavigationLevel(NULL, FALSE);                  // 0xe29c0
+//     if (ProcessKey(nChar)) return TRUE;                           // 0xe3b40
+//     DeactivateKeyboardFocus(FALSE);                               // 0xe28e0
+//     return FALSE;
+// All four callees are non-virtual calls in retail too. In OpenMFC
+// SetKeyboardNavigationLevel and DeactivateKeyboardFocus are the partial
+// bodies in this file and ProcessKey is still the no-match stub above, so the
+// reachable result is always FALSE -- but the call sequence, including the
+// keyboard-focus teardown a printable key triggers, is retail's.
+// Symbol: ?TranslateChar@CMFCRibbonBar@@UEAAHI@Z
+extern "C" int MS_ABI impl__TranslateChar_CMFCRibbonBar__UEAAHI_Z(CMFCRibbonBar* pThis, unsigned int nChar)
+{
+    if (!pThis) return FALSE;
+    if ((pThis->m_dwHideFlags & 0x2) != 0) return FALSE;
+    if (!impl__IsKeyPrintable_CKeyboardManager__SAHI_Z(nChar)) return FALSE;
+
+    if (pThis->m_nKeyboardNavLevel < 0) {
+        impl__SetKeyboardNavigationLevel_CMFCRibbonBar__QEAAXPEAVCObject__H_Z(pThis, nullptr, FALSE);
+    }
+    if (impl__ProcessKey_CMFCRibbonBar__IEAAHH_Z(pThis, static_cast<int>(nChar))) {
+        return TRUE;
+    }
+    impl__DeactivateKeyboardFocus_CMFCRibbonBar__QEAAXH_Z(pThis, FALSE);
+    return FALSE;
+}
+
+// CMFCRibbonBar::UpdateToolTipsRect() -- retail (RVA 0xe21d0 in mfc140; not
+// in this host's mfc140u map), transcribed in full:
+//     if (m_pToolTip == NULL || m_pToolTip->m_hWnd == NULL) return;   // +0xc00
+//     CRect rectClient(0,0,0,0);  ::GetClientRect(m_hWnd, &rectClient);
+//     CRect rectCaption(0,0,0,0);
+//     if (m_bIsTransparentCaption) {                                  // +0x448
+//         rectCaption = m_rectCaption;                                // +0xbc8
+//         rectClient.top = m_rectCaption.bottom + 1;
+//         rectCaption.right = m_rectSysButtons.left - 1;              // +0xbe8
+//     }
+//     m_pToolTip->SetToolRect(this, 1, &rectClient);    // 0x274010 mfc140
+//     m_pToolTip->SetToolRect(this, 2, &rectCaption);
+// (Tools 1 and 2 are the two LPSTR_TEXTCALLBACK tools OnCreate registers.)
+// The two IAT slots were resolved: 0x1802c5358 = USER32!GetClientRect and the
+// SetToolRect callee is the exported CToolTipCtrl::SetToolRect, whose OpenMFC
+// body (core/controls/CToolTipCtrl.cpp:164) sends TTM_NEWTOOLRECT.
+// Symbol: ?UpdateToolTipsRect@CMFCRibbonBar@@IEAAXXZ
+extern "C" void MS_ABI impl__UpdateToolTipsRect_CMFCRibbonBar__IEAAXXZ(CMFCRibbonBar* pThis)
+{
+    if (!pThis) return;
+
+    CToolTipCtrl* pToolTip = static_cast<CToolTipCtrl*>(pThis->m_pToolTip);
+    if (pToolTip == nullptr || pToolTip->m_hWnd == nullptr) return;
+
+    RECT rectClient = { 0, 0, 0, 0 };
+    ::GetClientRect(pThis->m_hWnd, &rectClient);
+
+    RECT rectCaption = { 0, 0, 0, 0 };
+    if (pThis->m_bIsTransparentCaption) {
+        rectCaption.left   = pThis->m_rectCaption.left;
+        rectCaption.top    = pThis->m_rectCaption.top;
+        rectCaption.right  = pThis->m_rectCaption.right;
+        rectCaption.bottom = pThis->m_rectCaption.bottom;
+        rectClient.top     = pThis->m_rectCaption.bottom + 1;
+        rectCaption.right  = pThis->m_rectSysButtons.left - 1;
+    }
+
+    impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagRECT___Z(pToolTip, pThis, 1, &rectClient);
+    impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagRECT___Z(pToolTip, pThis, 2, &rectCaption);
+}
+
+// CMFCRibbonBar::WindowProc(UINT, WPARAM, LPARAM) -- retail (RVA 0xe1db0 in
+// mfc140; not in this host's mfc140u map), transcribed:
+//     if (m_bIsTransparentCaption && message == WM_NCHITTEST) {      // +0x448
+//         LRESULT lResult = 0;
+//         pParent = CWnd::FromHandle(::GetParent(m_hWnd));
+//         DwmDefWindowProc(pParent ? pParent->m_hWnd : NULL, WM_NCHITTEST,
+//                          wParam, lParam, &lResult);                 // 0x1c9288, lazy-bound
+//         if (lResult == HTCLOSE || lResult == HTMINBUTTON || lResult == HTMAXBUTTON)
+//             return HTTRANSPARENT;                                   // -1
+//         pParent = CWnd::FromHandle(::GetParent(m_hWnd));
+//         if (!::IsZoomed(pParent->m_hWnd)) {
+//             CRect rc = m_rectCaption;                               // +0xbc8
+//             rc.right  = m_rectSysButtons.left - 1;                  // +0xbe8
+//             rc.bottom = rc.top + ::GetSystemMetrics(SM_CYFRAME) / 2;
+//             ClientToScreen(&rc);                                    // 0x2a1250
+//             CPoint pt(LOWORD(lParam), HIWORD(lParam));              // zero-extended words
+//             if (::PtInRect(&rc, pt)) return HTTOP;                  // 12
+//         }
+//     }
+//     return CBasePane::WindowProc(message, wParam, lParam);          // 0xcaa0
+// IAT slots resolved: 0x1802c5300 GetParent, 0x1802c4d78 IsZoomed,
+// 0x1802c4c50 GetSystemMetrics, 0x1802c5320 PtInRect. The HT* test is
+// `cmp $0x14,%rax; je` then `add $-8,%rax; cmp $1,%rax; jbe`, i.e. exactly {20, 8, 9}.
+// Deviations: the two CWnd::FromHandle round trips only serve to obtain the
+// parent HWND and are collapsed into ::GetParent (retail would fault on a
+// parentless bar; a NULL parent skips the branch here). The base call goes
+// to the impl__ thunk of CBasePane::WindowProc, which is still an empty
+// placeholder returning 0 (docking/CBasePane.cpp:1439) -- so every message
+// other than a caption WM_NCHITTEST still yields 0, exactly as this export
+// did before; the fix belongs in that file, not here.
 // Symbol: ?WindowProc@CMFCRibbonBar@@MEAA_JI_K_J@Z
-extern "C" __int64 MS_ABI impl__WindowProc_CMFCRibbonBar__MEAA_JI_K_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2) {
-    return 0;
+extern "C" __int64 MS_ABI impl__WindowProc_CMFCRibbonBar__MEAA_JI_K_J_Z(
+    CMFCRibbonBar* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam)
+{
+    if (!pThis) return 0;
+
+    if (pThis->m_bIsTransparentCaption && message == WM_NCHITTEST) {
+        HWND hwndParent = pThis->m_hWnd ? ::GetParent(pThis->m_hWnd) : nullptr;
+
+        LRESULT lResult = 0;
+        RibbonCallDwmDefWindowProc(hwndParent, WM_NCHITTEST,
+                                   static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam), &lResult);
+        if (lResult == HTCLOSE || lResult == HTMINBUTTON || lResult == HTMAXBUTTON) {
+            return HTTRANSPARENT;
+        }
+
+        if (hwndParent != nullptr && !::IsZoomed(hwndParent)) {
+            RECT rc;
+            rc.left   = pThis->m_rectCaption.left;
+            rc.top    = pThis->m_rectCaption.top;
+            rc.right  = pThis->m_rectSysButtons.left - 1;
+            rc.bottom = rc.top + ::GetSystemMetrics(SM_CYFRAME) / 2;
+            impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(pThis, &rc);
+
+            POINT pt = { static_cast<int>(static_cast<unsigned short>(lParam & 0xffff)),
+                         static_cast<int>(static_cast<unsigned short>((lParam >> 16) & 0xffff)) };
+            if (::PtInRect(&rc, pt)) {
+                return HTTOP;
+            }
+        }
+    }
+    return impl__WindowProc_CBasePane__MEAA_JI_K_J_Z(pThis, message, wParam, lParam);
 }
