@@ -29,7 +29,7 @@ extern "C" std::int32_t impl__m_bHighlightDisabledItems_CMFCMenuBar__1HA = 0;
 // Symbol: ?m_bMenuShadows@CMFCMenuBar@@1HA
 extern "C" std::int32_t impl__m_bMenuShadows_CMFCMenuBar__1HA = 0;
 // Symbol: ?m_bRecentlyUsedMenus@CMFCMenuBar@@1HA
-extern "C" std::int32_t impl__m_bRecentlyUsedMenus_CMFCMenuBar__1HA = 0;
+extern "C" std::int32_t impl__m_bRecentlyUsedMenus_CMFCMenuBar__1HA = 1;   // retail mfc140u .data 0x3b1b08 = 1
 // Symbol: ?m_bShowAllCommands@CMFCMenuBar@@1HA
 extern "C" std::int32_t impl__m_bShowAllCommands_CMFCMenuBar__1HA = 0;
 // Symbol: ?m_bShowAllMenusDelay@CMFCMenuBar@@1HA
@@ -51,6 +51,6 @@ extern "C" std::int32_t impl__m_bSendMenuSelectMsg_CMFCPopupMenu__1HA = 0;
 // Symbol: ?m_nMinWidth@CMFCPopupMenu@@1HA
 extern "C" std::int32_t impl__m_nMinWidth_CMFCPopupMenu__1HA = 0;
 // Symbol: ?m_nLastCommandIndex@CMFCPopupMenuBar@@1HA
-extern "C" std::int32_t impl__m_nLastCommandIndex_CMFCPopupMenuBar__1HA = 0;
+extern "C" std::int32_t impl__m_nLastCommandIndex_CMFCPopupMenuBar__1HA = -1;   // retail mfc140u .data 0x3b1b3c = 0xffffffff
 // Symbol: ?m_uiPopupTimerDelay@CMFCPopupMenuBar@@1IA
-extern "C" std::uint32_t impl__m_uiPopupTimerDelay_CMFCPopupMenuBar__1IA = 0;
+extern "C" std::uint32_t impl__m_uiPopupTimerDelay_CMFCPopupMenuBar__1IA = 0xffffffffu;   // retail mfc140u .data 0x3b1b38 = 0xffffffff (arms the lazy registry read in OnCreate)
