@@ -4,277 +4,97 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include <cstddef>
+#include <cstdlib>
 
 // ---------------------------------------------------------------------------
-// Retail decoding notes (mfc140.dll, RVAs quoted per function below).
+// Retail layout (mfc140u.dll, all RVAs in this file are mfc140u RVAs unless
+// a note says otherwise).
 //
-// The retail COlePropertyPage carries a set of members that include/openmfc's
-// declaration of the class does not have. Their retail offsets, established by
-// disassembly, are:
+// Read out of the constructor ??0COlePropertyPage@@QEAA@II@Z (RVA 0x1e8ee0),
+// which stores or zeroes every one of these slots, and cross-checked against
+// each reader named in the per-function notes below:
 //
-//   0x130  CPtrArray        embedded, 0x28 bytes: vfptr 0x31efd0 (slot 0 of
-//                           that table is ?GetThisClass@CPtrArray@@), then
-//                           m_pData 0x138, m_nSize 0x140, m_nMaxSize 0x148,
-//                           m_nGrowBy 0x150. The ctor (??0COlePropertyPage@
-//                           0x1e6e20) stores the vtable and zeroes the four
-//                           fields; the dtor (??1 0x1e7450) destroys it at
-//                           0x1e7491. WHAT it holds was not established --
-//                           nothing else disassembled here reads it.
-//   0x158  BOOL             m_bDirty            (?SetModifiedFlag@ 0x1e7710)
-//   0x15c  UINT             template id         (ctor arg 1; ?Activate@ reads
-//                                                it at 0x1e7a8c)
-//   0x160  UINT             caption id          (ctor arg 2, 0x1e6e73)
-//   0x168  CString          m_strPageName       (?SetPageName@     0x1e7770)
-//   0x170  SIZE             m_sizePage          (?SetDialogResource@0x1e77b0)
-//   0x178  CString          doc string          (?GetPageInfo@XPropertyPage@
-//                                                            0x1e7c60, -0x78)
-//   0x180  CString          help file           (?GetPageInfo@ 0x1e7c60, -0x70)
-//   0x188  DWORD            m_dwHelpContext     (?GetPageInfo@ 0x1e7c60, -0x68)
-//   0x190  IPropertyPageSite* m_pPageSite       (?GetPageSite@     0x1e7890)
-//   0x198  IDispatch**      m_ppDisp            (?GetObjectArray@  0x1e76f0)
-//   0x1a0  DWORD*           m_pdwConnections    (?CleanupObjectArray@0x1e7380)
-//   0x1a8  int              deferred-refill flg (?OnChanged@XPropNotifySink@
-//                                                                   0x1e8370)
-//   0x1ac  ULONG            m_nObjects          (?GetObjectArray@  0x1e76f0)
-//   0x1b0  int              in-page-update flag (?Activate@XPropertyPage@
-//                                                                   0x1e7a00)
-//   0x1b4  int              m_nControls         (?GetControlStatus@0x1e8680)
-//   0x1b8  {UINT,BOOL}*     m_pControlStatus    (?EnumControls@    0x1e7bc0)
-//   0x1c0  CDWordArray      ignore-apply list   (?IgnoreApply@     0x1e8660;
-//                           vfptr 0x31ef70, m_pData 0x1c8, m_nSize 0x1d0 --
-//                           both read by ?OnCommand@ 0x1e843d/0x1e8469)
-//                           CORRECTION (this file previously said CUIntArray):
-//                           the embedded array's vptr is CDWordArray's vtable,
-//                           not CUIntArray's. The ctor stores mfc140u 0x321130
-//                           at 0x1c0; slot 0 of that table is
-//                           ?GetRuntimeClass@CDWordArray@@ (0x1d4550), whose
-//                           descriptor at 0x3b1838 spells "CDWordArray",
-//                           object size 0x28. CUIntArray has its OWN vtable
-//                           (0x321250, ??0CUIntArray@ 0x1d5600) and its own
-//                           descriptor (0x321218), so the two are not the same
-//                           object. The "CUIntArray" name came from the MBCS
-//                           symbol map naming the ICF-folded SetAtGrow body --
-//                           see the IgnoreApply note below.
-//   0x1e8  HGLOBAL          m_hDialogTemplate   (?SetDialogResource@0x1e77b0)
-//   0x1f0  XPropertyPage    nested interface    (?Move@XPropertyPage@0x1e7e60)
-//   0x1f8  XPropNotifySink  nested interface    (?CleanupObjectArray@0x1e7380)
+//   0x130  CPtrArray       m_arrayDDP     vfptr 0x321190, four zeroed qwords
+//   0x158  BOOL            m_bDirty
+//   0x15c  UINT            m_idDialog     (ctor arg 1; its low word is also
+//                                          mirrored into 0xf0, CDialog's
+//                                          m_lpszTemplateName: `movzwl
+//                                          0x15c(%rsi),%eax; mov %rax,0xf0`)
+//   0x160  UINT            m_idCaption    (ctor arg 2)
+//   0x168  CString         m_strPageName
+//   0x170  SIZE            m_sizePage
+//   0x178  CString         m_strDocString
+//   0x180  CString         m_strHelpFile
+//   0x188  DWORD           m_dwHelpContext
+//   0x190  IPropertyPageSite* m_pPageSite
+//   0x198  LPDISPATCH*     m_ppDisp
+//   0x1a0  DWORD*          m_pAdvisors    (connection cookies)
+//   0x1a8  BOOL            m_bPropsChanged (deferred-refill flag)
+//   0x1ac  ULONG           m_nObjects
+//   0x1b0  BOOL            m_bInitializing (ctor: `movq $1,0x1b0`, which also
+//                                          zeroes 0x1b4)
+//   0x1b4  int             m_nControls
+//   0x1b8  {UINT,BOOL}*    m_pStatus      (8-byte entries: id, dirty)
+//   0x1c0  CDWordArray     m_IDArray      vfptr 0x321130 (slot 0 is
+//                                          ?GetRuntimeClass@CDWordArray@@,
+//                                          0x1d4550), m_pData 0x1c8,
+//                                          m_nSize 0x1d0, m_nMaxSize 0x1d8,
+//                                          m_nGrowBy 0x1e0 (INT_PTRs: the
+//                                          ctor zeroes them as qwords and
+//                                          IgnoreApply reads m_nSize as one)
+//   0x1e8  HGLOBAL         m_hDialog
+//   0x1f0  XPropertyPage   vfptr 0x324928 (15 slots, IPropertyPage2)
+//   0x1f8  XPropNotifySink vfptr 0x3248f8 (5 slots)
+//   sizeof 0x200 (CRuntimeClass descriptor at 0x3248c0, m_nObjectSize 0x200)
 //
-// Every offset in that table was re-checked instruction by instruction against
-// the RVA named beside it, and every callee RVA and IAT slot quoted in this
-// file was resolved through the symbol map / the import table of the SAME
-// binary that was disassembled (mfc140.dll -- note that mfc140u.dll is also on
-// this host and has a different IAT layout; do not mix them).
+// The member names are the ones MFC's public afxctl.h gives these slots; the
+// offsets and types are what the disassembly shows.
 //
-// Those rows account for every byte from 0x130 to the 0x200 end of the object
-// except two alignment gaps, 0x164 and 0x18c; the CDWordArray at 0x1c0 runs to
-// 0x1e8 (m_nMaxSize 0x1d8, m_nGrowBy 0x1e0, both zeroed by the ctor). Nothing
-// is claimed about the CDialog part below 0x130.
+// OpenMFC's declaration (include/openmfc/afxole.h) lays the class out
+// differently. Measured under this file's own build flags (the static_asserts
+// below fail the compile if any of it drifts):
 //
-// OpenMFC's COlePropertyPage lays its members out differently. Measured with
-// offsetof under this file's own build flags (a temporary
-// `template<int> struct Show; Show<offsetof(...)>` probe, since the compiler
-// prints the value in the incomplete-type diagnostic):
+//     sizeof(CDialog)          0x130    (agrees with retail)
+//     m_pPageSite              0x130    retail 0x190
+//     m_bModified              0x138    retail m_bDirty 0x158
+//     m_pszPageName            0x140    retail CString m_strPageName 0x168
+//     m_pszHelpFile            0x148    retail CString 0x180
+//     m_dwHelpContext          0x150    retail 0x188
+//     m_pszDocString           0x158    retail CString 0x178
+//     _olepropertypage_padding 0x160..0x200
+//     sizeof(COlePropertyPage) 0x200    (agrees with retail)
 //
-//     member             OpenMFC   retail equivalent
-//     sizeof(CDialog)    0x130     0x130   -- the bases agree exactly
-//     m_pPageSite        0x130     0x190
-//     m_bModified        0x138     0x158  (retail m_bDirty)
-//     m_pszPageName      0x140     0x168  (retail CString m_strPageName)
-//     m_pszHelpFile      0x148     0x180  (retail CString)
-//     m_dwHelpContext    0x150     0x188
-//     m_pszDocString     0x158     0x178  (retail CString)
-//     padding[160]       0x160..0x200
-//     sizeof(class)      0x200     0x200   -- agree
+// So the six members OpenMFC declares occupy 0x130..0x160 (where retail keeps
+// m_arrayDDP, m_bDirty and the two ids) and are used here in place of their
+// retail counterparts: m_bModified for m_bDirty, m_pPageSite for the site,
+// the three wchar_t* for the three CStrings, and CDialog::m_lpszTemplateName
+// (which the CDialog(UINT) ctor sets to MAKEINTRESOURCE(id)) for m_idDialog.
+// Everything retail keeps at >= 0x160 has no OpenMFC counterpart and lives
+// entirely inside _olepropertypage_padding, so it is modelled below at its
+// exact retail offset by S_COlePropertyPageTail (see the static_asserts).
+// Two retail slots in that window duplicate members OpenMFC already declares
+// (0x168..0x190) and are deliberately left unused. The DDP array at 0x130 is
+// NOT modelled: it collides with the declared members, and the DDP_ family is
+// not in this file (headerRequest).
 //
-// So the six members OpenMFC does declare all sit in the 0x130..0x160 window
-// that retail uses for its embedded CPtrArray plus m_bDirty and the template/
-// caption ids -- every one of them at the wrong retail offset -- and OpenMFC
-// declares none of the object-array, control-status, ignore-apply,
-// dialog-template or nested-interface members at all. Those all live at
-// >= 0x160, i.e. entirely inside _olepropertypage_padding, so they can be
-// added without moving the class's size. Nothing in the tree static_asserts
-// any COlePropertyPage offset (checked), so a re-lay is not blocked by an
-// existing assertion.
+// The nested COM sub-objects ARE modelled: the constructors install the two
+// vtables defined in this file at 0x1f0 and 0x1f8, so the XPropertyPage /
+// XPropNotifySink entry points below recover the outer object with the same
+// -0x1f0 / -0x1f8 adjustment retail uses. What is still missing is the
+// interface map: g_imap_COlePropertyPage (detail/InterfaceMapsSupport.cpp) is
+// the bare inherited CCmdTarget map, and CCmdTarget::GetInterface only walks
+// CCmdTarget's own map, so QueryInterface(IID_IPropertyPage[2]) on a page
+// still fails and nothing outside this file hands out either sub-object.
+// Both are headerRequests; the bodies here are complete and waiting on them.
+// (Inside this file the sink IS reachable: SetObjects passes &m_xPropNotifySink
+// to AfxConnectionAdvise, exactly as retail does.)
 //
-// Every entry point below that needs one of the unmodelled members is
-// therefore left as a stub with a note saying what the retail body does and
-// what is missing; the ones that need only members OpenMFC already declares
-// are implemented from the retail disassembly.
-//
-// ---------------------------------------------------------------------------
-// Which retail binary the RVAs above refer to, and the Unicode cross-check.
-//
-// Unless a note says "mfc140u" outright, every RVA quoted above and in the
-// per-function notes below is an offset into mfc140.dll -- the MBCS build,
-// which is what the repo's mfc140_rva_symbols.json and the disassembly helper
-// resolve against. (The exceptions are the mfc140u table below, the ?OnHelp@
-// and ?OnRequestEdit@ notes, the ?IsModified@ note and the CDWordArray
-// correction above, each of which names its binary.) OpenMFC actually
-// reimplements mfc140u.dll, the Unicode build, and that file is on this host
-// beside it. The two are NOT interchangeable: different RVAs, different IAT
-// slots.
-//
-// The Unicode build was cross-checked directly (its ordinal->RVA export table
-// joined against mfc_complete_ordinal_mapping.json, which is keyed by mfc140u
-// ordinals). Results:
-//
-//   * Every COlePropertyPage entry point in this file resolves in mfc140u,
-//     including the THREE the MBCS map has no row for. (This note used to say
-//     "the two"; re-counted against mfc140_rva_symbols.json, the thunks in
-//     this file with no MBCS row are ?OnHelp@, ?OnRequestEdit@ AND
-//     ?IsModified@ -- and two more COlePropertyPage exports that are plain
-//     C++ methods here rather than thunks, ?OnEditProperty@ and
-//     ?OnObjectsChanged@, are missing from it as well.) The MBCS map is a
-//     one-symbol-per-RVA dictionary, so any export whose body was folded onto
-//     an address another export already claimed simply drops out of it; that,
-//     not absence from the image, is why ?OnHelp@ and ?OnRequestEdit@ looked
-//     unresolvable. Both are resolved below.
-//
-//   * On COlePropertyPage's OWN members the two builds agree. Re-checked
-//     instruction by instruction in mfc140u on the constructor (0x1e8ee0 --
-//     which alone pins the whole table above: it stores the two array vptrs,
-//     both sub-object vptrs at 0x1f0/0x1f8, and zeroes or seeds every scalar
-//     from 0x130 to 0x1e8), GetObjectArray, GetPageSite, SetModifiedFlag,
-//     SetHelpInfo, GetControlStatus, SetControlStatus, EnumChildProc,
-//     EnumControls, IgnoreApply, SetDialogResource, OnCommand, OnCtlColor,
-//     OnFinalRelease, OnInitDialog, PreTranslateMessage, WindowProc,
-//     MessageBoxW, GetPropText(int&), SetPropText(BYTE&) and each of the
-//     fourteen nested-interface methods below (twelve XPropertyPage plus
-//     XPropNotifySink::OnChanged and ::OnRequestEdit -- this note used to say
-//     "twelve", which counted only the XPropertyPage half), and every one
-//     matches the transcription written beside it here: same member offsets
-//     (0x158/0x15c/0x160/0x168/0x170/0x178/0x180/0x188/0x190/0x198/0x1a0/
-//     0x1a8/0x1ac/0x1b0/0x1b4/0x1b8/0x1c0/0x1e8/0x1f0/0x1f8), same sub-object
-//     adjustments (-0x1f0 / -0x1f8), same control flow.
-//     sizeof is 0x200 in both -- read out of the retail CRuntimeClass
-//     descriptors themselves (mfc140u 0x3248c0 and mfc140 0x322700, each
-//     naming "COlePropertyPage" with m_nObjectSize 0x200 and schema 0xffff),
-//     not inferred from the last member.
-//
-//     They do NOT agree on offsets into OTHER structures. The one that matters
-//     here: XPropNotifySink::OnChanged compares against a field of
-//     AFX_THREAD_STATE that is at +0x138 in mfc140.dll but at +0x198 in
-//     mfc140u.dll. Do not carry a non-COlePropertyPage offset across builds
-//     without re-reading it -- see the OnChanged note below.
-//
-//   * mfc140u RVAs for the entry points in this file, if you need to re-check
-//     one in the build OpenMFC actually targets:
-//       CleanupObjectArray 0x1e95e0   EnumChildProc      0x1e9e00
-//       EnumControls       0x1e9e20   GetControlStatus   0x1ea8e0
-//       GetObjectArray     0x1e9950   GetPageSite        0x1e9af0
-//       IgnoreApply        0x1ea8c0   IsModified         0x1d02f0
-//       MessageBoxW        0x1e9b00   OnCommand          0x1ea640
-//       OnCtlColor         0x1e98e0   OnFinalRelease     0x1e97f0
-//       OnInitDialog       0x1e9460   PreTranslateMessage 0x1e9470
-//       SetControlStatus   0x1ea910   SetDialogResource  0x1e9a10
-//       WindowProc         0x1e9830   OnHelp             0x0071e0
-//       GetPropCheck       0x1ebf90   GetPropRadio       0x1ec240
-//       GetPropIndex       0x1ec3c0 (jmp -> GetPropRadio)
-//       GetPropText  BYTE& 0x1eaa80  short& 0x1ead30   int&    0x1eafe0
-//                    UINT& 0x1eb150   long& 0x1eb2c0   DWORD&  0x1eb430
-//                   float& 0x1eb6e0 double& 0x1eb9a0  CString& 0x1ebc60
-//       SetPropCheck       0x1ebe50   SetPropRadio       0x1ec100
-//       SetPropIndex       0x1ec3b0 (jmp -> SetPropRadio)
-//       SetPropText  BYTE& 0x1ea940  short& 0x1eabf0
-//                     int& / UINT& / long& / DWORD& all 0x1eaea0 -- one body,
-//                     which is the Unicode build stating outright what the
-//                     MBCS map could only imply by the three missing rows
-//                   float& 0x1eb5a0 double& 0x1eb860  CString& 0x1ebb20
-//       XPropertyPage: Activate 0x1e9c60  SetPageSite  0x1e9bd0
-//                      Deactivate 0x1e9e70  GetPageInfo 0x1e9ec0
-//                      SetObjects 0x1e9f20  Show 0x1ea080  Move 0x1ea0c0
-//                      IsPageDirty 0x1ea100  Apply 0x1ea110  Help 0x1ea1d0
-//                      TranslateAcceleratorW 0x1ea270  EditProperty 0x1ea500
-//       XPropNotifySink: OnChanged 0x1ea5d0   OnRequestEdit 0x0071e0
-// ---------------------------------------------------------------------------
-//
-// Independent re-verification pass (2026-09). Every claim this file makes
-// about a symbol on the current assignment list was re-disassembled in
-// mfc140u -- NOT re-read from these notes -- and each one held:
-//   CleanupObjectArray 0x1e95e0, EnumChildProc 0x1e9e00, EnumControls
-//   0x1e9e20, GetControlStatus 0x1ea8e0, SetControlStatus 0x1ea910,
-//   IgnoreApply 0x1ea8c0, SetDialogResource 0x1e9a10, OnHelp 0x71e0,
-//   GetPropText(int&) 0x1eafe0, GetPropCheck 0x1ebf90,
-//   GetPropText(CString&) 0x1ebc60, SetPropText(BYTE&) 0x1ea940,
-//   SetPropText(CString&) 0x1ebb20, GetPropIndex 0x1ec3c0 and SetPropIndex
-//   0x1ec3b0 (each a single `jmp` to GetPropRadio 0x1ec240 / SetPropRadio
-//   0x1ec100), and the nested-interface bodies Activate 0x1e9c60,
-//   SetPageSite 0x1e9bd0, Deactivate 0x1e9e70, GetPageInfo 0x1e9ec0,
-//   SetObjects 0x1e9f20, Show 0x1ea080, Move 0x1ea0c0, IsPageDirty 0x1ea100,
-//   Apply 0x1ea110, Help 0x1ea1d0, EditProperty 0x1ea500,
-//   OnChanged 0x1ea5d0. Nothing was found to correct.
-// Two details worth pinning while they were in front of me:
-//   * The constructor (mfc140u 0x1e8ee0) stores 0x321130 into 0x1c0 -- the
-//     CDWordArray correction below is confirmed at its source -- writes
-//     0x1b0 as a QWORD `movq $0x1,0x1b0(%rsi)`, which sets the 0x1b0 flag to
-//     1 and zeroes m_nControls at 0x1b4 in one store, and installs the two
-//     sub-object vptrs 0x324928 (XPropertyPage) at 0x1f0 and 0x3248f8
-//     (XPropNotifySink) at 0x1f8. It also mirrors the low word of the
-//     template id at 0x15c into 0xf0 (`movzwl 0x15c(%rsi),%eax; mov
-//     %rax,0xf0(%rsi)`) -- that is inside the CDialog part, and is the only
-//     claim this file makes about it.
-//   * The OpenMFC-side offset table further down was not taken on trust
-//     either: it was re-measured under this file's own build flags with
-//     static_assert(offsetof(...)) on all six declared members plus
-//     sizeof(CDialog) == 0x130 and sizeof(COlePropertyPage) == 0x200, and
-//     every value in that table compiled clean.
-//
-// Adversarial review pass (2026-09, second reviewer). The pass above left a
-// set of GetProp*/SetProp* sibling bodies -- these fourteen RVAs, covering
-// seventeen exports -- asserted from "family shape" without having been
-// opened. They have now been opened in mfc140u, one at a time,
-// and every one of them has the same prologue (RCX/RDX/R8 saved, the CString
-// built from the property name at 0x18000dcb0, the return register zeroed)
-// and the same `xor %ebx,%ebx; cmp %ebx,0x1ac(<this>); jbe <epilogue>` guard
-// AHEAD of any write to the out-parameter, so the zero-iteration reduction
-// below is transcription, not inference, for all of them:
-//   GetPropText  BYTE&  0x1eaa80  short& 0x1ead30  UINT&  0x1eb150
-//                long&  0x1eb2c0  DWORD& 0x1eb430  float& 0x1eb6e0
-//                double&0x1eb9a0
-//   GetPropRadio 0x1ec240 (the GetPropIndex jmp target, walked in full)
-//   SetPropRadio 0x1ec100 (likewise)  SetPropCheck 0x1ebe50
-//   SetPropText  short& 0x1eabf0  int&/UINT&/long&/DWORD& 0x1eaea0
-//                float& 0x1eb5a0  double& 0x1eb860
-// The VARTYPE tables quoted in the two family headers were re-read out of the
-// bodies as well: VT_UI1 0x11 at 0x1ea9ef, VT_BOOL 0xb at 0x1ebf03
-// (SetPropCheck) and at 0x1ec043 (GetPropCheck), VT_I2 2 at 0x1ec1af
-// (SetPropRadio) and 0x1ec304 (GetPropRadio), VT_BSTR 8 at 0x1ebd54.
-// Independently re-confirmed in the same pass, against the images rather
-// than against these notes: the 15-slot XPropertyPage vtable (mfc140u
-// 0x324928, slot 14 EditProperty, slot 15 already the next .rdata object's
-// RTTI locator; mfc140 0x322768 identical) and the 5-slot XPropNotifySink
-// vtable (mfc140u 0x3248f8 / mfc140 0x322738, slot 2 Release and slot 4
-// OnRequestEdit sharing one `xor %eax,%eax; ret`); the folded-COMDAT export
-// counts (134 exports at mfc140u 0x71e0, 158 at 0x27d0 -- both exact); the
-// CRuntimeClass descriptors (mfc140u 0x3248c0 / mfc140 0x322700, each
-// naming "COlePropertyPage", m_nObjectSize 0x200, schema 0xffff); the CDialog
-// vtable ending at +0x320, so that 0x328/0x330/0x338/0x340 really are the
-// first four slots a CDialog-derived class appends; the three
-// GUIDs (0x2d9d28 = IID_IPropertyNotifySink, 0x2d9b48 = IID_IDispatch,
-// 0x2d98d8 = IID_NULL); the IAT slots named below in both builds; and the
-// six OpenMFC member offsets plus sizeof(CDialog)/sizeof(COlePropertyPage).
-// Six comment claims WERE found false and are corrected in place, each
-// marked "this comment used to say ...": the count of exports missing from
-// the MBCS map, the count of nested-interface methods, GetObjectArray's
-// instruction count, IgnoreApply's instruction count, the "two EnumControls
-// passes", and GetPageInfo's "the one method here with no module-state
-// frame". The two CStringT overloads' parameter comments named the wrong C++
-// type and are corrected too. No body was found wrong; nothing was reverted,
-// and no stub was found to be implementable after all -- g_imap_
-// COlePropertyPage (detail/InterfaceMapsSupport.cpp) was re-read and is still
-// the bare inherited CCmdTarget map with an empty entry list, so nothing in
-// this build can hand out either sub-object pointer.
-//
-// A recurring reduction is used below and is worth stating once. Nothing in
-// OpenMFC ever populates the object array: its only writer is
-// XPropertyPage::SetObjects (retail 0x1e7cc0), which allocates m_ppDisp/
-// m_pdwConnections and sets m_nObjects, and that entry point is a stub here
-// because the XPropertyPage sub-object does not exist. So m_ppDisp is
-// permanently NULL and m_nObjects permanently 0, and any retail body whose
-// whole effect is a `for (i = 0; i < m_nObjects; ++i)` loop reduces to its
-// zero-iteration result. Where that is what the generated stub already
-// returns, the stub is left alone with a comment saying so; where it is not,
-// it is corrected.
+// Not reproduced anywhere in this file, and stated once: every nested-interface
+// body except GetPageInfo, Show, Move, IsPageDirty and OnRequestEdit opens
+// with an AFX_MAINTAIN_STATE2 frame (??0AFX_MAINTAIN_STATE2@@ 0x133170 on
+// this->m_pModuleState at +0x38); WindowProc has one too. OpenMFC's thunks do
+// not push module state at these boundaries.
 // ---------------------------------------------------------------------------
 
 // Implementations owned by other translation units. C++ methods of these
@@ -288,23 +108,440 @@ extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
 extern "C" const MSG* MS_ABI impl__GetCurrentMessage_CWnd__KAPEBUtagMSG__XZ();
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
 extern "C" unsigned long MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis);
+extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID);
+extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis);
 extern "C" HWND MS_ABI impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z(HWND hParent, HWND* pWndTop);
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam);
 extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd* pThis, WPARAM wParam, LPARAM lParam);
+extern "C" void MS_ABI impl__MoveWindow_CWnd__QEAAXHHHHH_Z(CWnd* pThis, int x, int y, int nWidth, int nHeight, int bRepaint);
+extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow);
+extern "C" void* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
+extern "C" int MS_ABI impl__UpdateData_CWnd__QEAAHH_Z(CWnd* pThis, int bSaveAndValidate);
+extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd);
+extern "C" int MS_ABI impl__CreateIndirect_CDialog__UEAAHPEAXPEAVCWnd___Z(CDialog* pThis, void* lpDialogTemplate, CWnd* pParentWnd);
+extern "C" unsigned long MS_ABI impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(CCmdTarget* pThis, const void* iid, void** ppvObj);
+extern "C" unsigned long MS_ABI impl__ExternalAddRef_CCmdTarget__QEAAKXZ(CCmdTarget* pThis);
+extern "C" unsigned long MS_ABI impl__ExternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis);
+extern "C" int MS_ABI impl__AfxConnectionAdvise__YAHPEAUIUnknown__AEBU_GUID__0HPEAK_Z(IUnknown* pUnkSrc, const GUID* iid, IUnknown* pUnkSink, int bRefCount, unsigned long* pdwCookie);
+extern "C" int MS_ABI impl__AfxConnectionUnadvise__YAHPEAUIUnknown__AEBU_GUID__0HK_Z(IUnknown* pUnkSrc, const GUID* iid, IUnknown* pUnkSink, int bRefCount, unsigned long dwCookie);
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+// COleDispatchDriver (detail/OlecoreSupport.cpp). GetProperty
+// (?GetProperty@COleDispatchDriver@@QEBAXJGPEAX@Z, mfc140u 0x252690) is
+// InvokeHelper(dispid, DISPATCH_PROPERTYGET, vt, pv, NULL) -- retail's body
+// is exactly that one call onto InvokeHelper (0x252660) -- and SetProperty
+// (0x2526c0) is InvokeHelperV(dispid, DISPATCH_PROPERTYPUT, VT_EMPTY, NULL,
+// {vt, 0}, ...). The retail GetProp* bodies call InvokeHelper (0x252660)
+// directly with those same arguments and the retail SetProp* bodies call
+// SetProperty (0x2526c0); calling the two exported thunks here rather than
+// the inline InvokeHelper in afxdisp.h keeps this TU's undefined-symbol set
+// unchanged.
+extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(const COleDispatchDriver* pThis, long dwDispID, unsigned short vtProp, void* pvProp);
+extern "C" void MS_ABI impl__SetProperty_COleDispatchDriver__QEAAXJGZZ(COleDispatchDriver* pThis, long dwDispID, unsigned short vtProp, ...);
+// CDialogTemplate (core/dialog/CDialogTemplate.cpp). The two prototypes below
+// are derived from the mangled names -- `this` in RCX, the argument in RDX.
+// GetSizeInPixels' DEFINITION in that file still carries an auto-generated
+// one-parameter placeholder list and an empty body (headerRequest); calling
+// it through the correct prototype is harmless today (it reads nothing) and
+// becomes right the moment that file is fixed.
+extern "C" void MS_ABI impl___0CDialogTemplate__QEAA_PEAX_Z(void* pThis, void* hTemplate);
+extern "C" void MS_ABI impl___1CDialogTemplate__QEAA_XZ(void* pThis);
+extern "C" void MS_ABI impl__GetSizeInPixels_CDialogTemplate__QEBAXPEAUtagSIZE___Z(const void* pThis, SIZE* pSize);
+
+// Forward declarations of this file's own thunks that the sub-object vtables
+// and the C++ members below refer to before their definitions.
+extern "C" void MS_ABI impl__CleanupObjectArray_COlePropertyPage__IEAAXXZ(COlePropertyPage* pThis);
+extern "C" int MS_ABI impl__EnumChildProc_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND hWnd, __int64 lParam);
+extern "C" int MS_ABI impl__EnumControls_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND hWnd, __int64 lParam);
+extern "C" int MS_ABI impl__OnHelp_COlePropertyPage__UEAAHPEB_W_Z(COlePropertyPage* pThis, const wchar_t* lpszHelpDir);
+extern "C" int MS_ABI impl__PreTranslateMessage_COlePropertyPage__MEAAHPEAUtagMSG___Z(COlePropertyPage* pThis, MSG* pMsg);
+// GetPropIndex / SetPropIndex are single `jmp`s onto these two in retail
+// (0x1ec3c0 -> 0x1ec240, 0x1ec3b0 -> 0x1ec100, mfc140u).
+extern "C" int MS_ABI impl__GetPropRadio_COlePropertyPage__QEAAHPEB_WPEAH_Z(COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue);
+extern "C" int MS_ABI impl__SetPropRadio_COlePropertyPage__QEAAHPEB_WH_Z(COlePropertyPage* pThis, const wchar_t* pszPropName, int nValue);
+extern "C" long MS_ABI impl__SetPageSite_XPropertyPage_COlePropertyPage__UEAAJPEAUIPropertyPageSite___Z(void* pThis, void* pPageSite);
+extern "C" long MS_ABI impl__Activate_XPropertyPage_COlePropertyPage__UEAAJPEAUHWND____PEBUtagRECT__H_Z(void* pThis, HWND hWndParent, const RECT* prc, int bModal);
+extern "C" long MS_ABI impl__Deactivate_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis);
+extern "C" long MS_ABI impl__GetPageInfo_XPropertyPage_COlePropertyPage__UEAAJPEAUtagPROPPAGEINFO___Z(void* pThis, void* pPageInfo);
+extern "C" long MS_ABI impl__SetObjects_XPropertyPage_COlePropertyPage__UEAAJKPEAPEAUIUnknown___Z(void* pThis, unsigned long nObjects, void** ppUnk);
+extern "C" long MS_ABI impl__Show_XPropertyPage_COlePropertyPage__UEAAJI_Z(void* pThis, unsigned int nCmdShow);
+extern "C" long MS_ABI impl__Move_XPropertyPage_COlePropertyPage__UEAAJPEBUtagRECT___Z(void* pThis, const RECT* prc);
+extern "C" long MS_ABI impl__IsPageDirty_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis);
+extern "C" long MS_ABI impl__Apply_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis);
+extern "C" long MS_ABI impl__Help_XPropertyPage_COlePropertyPage__UEAAJPEB_W_Z(void* pThis, const wchar_t* pszHelpDir);
+extern "C" long MS_ABI impl__TranslateAcceleratorW_XPropertyPage_COlePropertyPage__UEAAJPEAUtagMSG___Z(void* pThis, void* pMsg);
+extern "C" long MS_ABI impl__EditProperty_XPropertyPage_COlePropertyPage__UEAAJJ_Z(void* pThis, long dispid);
+extern "C" long MS_ABI impl__OnChanged_XPropNotifySink_COlePropertyPage__UEAAJJ_Z(void* pThis, long dispid);
+extern "C" long MS_ABI impl__OnRequestEdit_XPropNotifySink_COlePropertyPage__UEAAJJ_Z(void* pThis, long dispid);
+
+namespace {
+
+// ---------------------------------------------------------------------------
+// The retail members at 0x160..0x200, overlaid on _olepropertypage_padding.
+// ---------------------------------------------------------------------------
+struct AFX_PPFIELDSTATUS {
+    UINT nID;       // +0  (EnumControls: `mov %eax,(%rcx,%r8,8)`)
+    BOOL bDirty;    // +4  (EnumControls: `movl $0,0x4(%rax,%rcx,8)`)
+};
+static_assert(sizeof(AFX_PPFIELDSTATUS) == 8, "retail control-status entries are 8 bytes");
+
+struct S_COlePropertyPageTail {
+    UINT               m_idCaption;            // 0x160
+    UINT               _pad164;                // 0x164
+    void*              _retail_strPageName;    // 0x168  unused: OpenMFC keeps m_pszPageName (0x140)
+    SIZE               m_sizePage;             // 0x170
+    void*              _retail_strDocString;   // 0x178  unused: m_pszDocString (0x158)
+    void*              _retail_strHelpFile;    // 0x180  unused: m_pszHelpFile (0x148)
+    DWORD              _retail_dwHelpContext;  // 0x188  unused: m_dwHelpContext (0x150)
+    DWORD              _pad18c;                // 0x18c
+    void*              _retail_pPageSite;      // 0x190  unused: m_pPageSite (0x130)
+    LPDISPATCH*        m_ppDisp;               // 0x198
+    DWORD*             m_pAdvisors;            // 0x1a0
+    BOOL               m_bPropsChanged;        // 0x1a8
+    ULONG              m_nObjects;             // 0x1ac
+    BOOL               m_bInitializing;        // 0x1b0
+    int                m_nControls;            // 0x1b4
+    AFX_PPFIELDSTATUS* m_pStatus;              // 0x1b8
+    // Retail's CDWordArray m_IDArray, 0x1c0..0x1e8. OpenMFC's CDWordArray is
+    // an 8-byte CObject whose elements live in a side table (detail/
+    // FilecoreSupport.h) with no exported GetSize/GetAt, so the retail element
+    // storage is kept here directly at the retail offsets instead; the vfptr
+    // slot stays NULL because no CDWordArray object is constructed on it.
+    const void*        m_IDArray_vfptr;        // 0x1c0  (NULL here; retail 0x321130)
+    DWORD*             m_IDArray_pData;        // 0x1c8
+    INT_PTR            m_IDArray_nSize;        // 0x1d0
+    INT_PTR            m_IDArray_nMaxSize;     // 0x1d8
+    INT_PTR            m_IDArray_nGrowBy;      // 0x1e0
+    HGLOBAL            m_hDialog;              // 0x1e8
+    const void*        m_xPropertyPage_vfptr;  // 0x1f0
+    const void*        m_xPropNotifySink_vfptr;// 0x1f8
+};
+constexpr size_t kTailOffset            = 0x160;
+constexpr size_t kXPropertyPageOffset   = 0x1f0;
+constexpr size_t kXPropNotifySinkOffset = 0x1f8;
+
+static_assert(sizeof(S_COlePropertyPageTail) == 0xa0, "tail must cover 0x160..0x200 exactly");
+static_assert(offsetof(S_COlePropertyPageTail, m_sizePage)      == 0x170 - kTailOffset, "m_sizePage");
+static_assert(offsetof(S_COlePropertyPageTail, m_ppDisp)        == 0x198 - kTailOffset, "m_ppDisp");
+static_assert(offsetof(S_COlePropertyPageTail, m_pAdvisors)     == 0x1a0 - kTailOffset, "m_pAdvisors");
+static_assert(offsetof(S_COlePropertyPageTail, m_bPropsChanged) == 0x1a8 - kTailOffset, "m_bPropsChanged");
+static_assert(offsetof(S_COlePropertyPageTail, m_nObjects)      == 0x1ac - kTailOffset, "m_nObjects");
+static_assert(offsetof(S_COlePropertyPageTail, m_bInitializing) == 0x1b0 - kTailOffset, "m_bInitializing");
+static_assert(offsetof(S_COlePropertyPageTail, m_nControls)     == 0x1b4 - kTailOffset, "m_nControls");
+static_assert(offsetof(S_COlePropertyPageTail, m_pStatus)       == 0x1b8 - kTailOffset, "m_pStatus");
+static_assert(offsetof(S_COlePropertyPageTail, m_IDArray_vfptr) == 0x1c0 - kTailOffset, "m_IDArray");
+static_assert(offsetof(S_COlePropertyPageTail, m_IDArray_pData) == 0x1c8 - kTailOffset, "m_IDArray.m_pData");
+static_assert(offsetof(S_COlePropertyPageTail, m_IDArray_nSize) == 0x1d0 - kTailOffset, "m_IDArray.m_nSize");
+static_assert(offsetof(S_COlePropertyPageTail, m_hDialog)       == 0x1e8 - kTailOffset, "m_hDialog");
+static_assert(offsetof(S_COlePropertyPageTail, m_xPropertyPage_vfptr)   == kXPropertyPageOffset   - kTailOffset, "m_xPropertyPage");
+static_assert(offsetof(S_COlePropertyPageTail, m_xPropNotifySink_vfptr) == kXPropNotifySinkOffset - kTailOffset, "m_xPropNotifySink");
+
+// The OpenMFC side of the table in the header comment, pinned. The padding
+// member is protected, so a derived probe re-exposes it and the offsets are
+// taken once the probe type is complete.
+struct COlePropertyPageProbe : COlePropertyPage {
+    using COlePropertyPage::_olepropertypage_padding;
+};
+constexpr size_t kProbePadding     = offsetof(COlePropertyPageProbe, _olepropertypage_padding);
+constexpr size_t kProbePaddingSize = sizeof(COlePropertyPageProbe::_olepropertypage_padding);
+static_assert(sizeof(CDialog) == 0x130, "CDialog size");
+static_assert(sizeof(COlePropertyPage) == 0x200, "COlePropertyPage size (retail 0x200)");
+static_assert(offsetof(COlePropertyPage, m_pPageSite)    == 0x130, "m_pPageSite");
+static_assert(offsetof(COlePropertyPage, m_bModified)    == 0x138, "m_bModified");
+static_assert(offsetof(COlePropertyPage, m_pszPageName)  == 0x140, "m_pszPageName");
+static_assert(offsetof(COlePropertyPage, m_pszHelpFile)  == 0x148, "m_pszHelpFile");
+static_assert(offsetof(COlePropertyPage, m_dwHelpContext)== 0x150, "m_dwHelpContext");
+static_assert(offsetof(COlePropertyPage, m_pszDocString) == 0x158, "m_pszDocString");
+static_assert(kProbePadding == kTailOffset, "padding must start at 0x160");
+static_assert(kProbePaddingSize == sizeof(S_COlePropertyPageTail), "padding must be 0xa0 bytes");
+
+inline S_COlePropertyPageTail* Tail(COlePropertyPage* p) {
+    return reinterpret_cast<S_COlePropertyPageTail*>(reinterpret_cast<unsigned char*>(p) + kTailOffset);
+}
+inline COlePropertyPage* OuterFromPropPage(void* pSub) {
+    return reinterpret_cast<COlePropertyPage*>(reinterpret_cast<unsigned char*>(pSub) - kXPropertyPageOffset);
+}
+inline COlePropertyPage* OuterFromNotifySink(void* pSub) {
+    return reinterpret_cast<COlePropertyPage*>(reinterpret_cast<unsigned char*>(pSub) - kXPropNotifySinkOffset);
+}
+inline IUnknown* NotifySinkOf(COlePropertyPage* p) {
+    return reinterpret_cast<IUnknown*>(&Tail(p)->m_xPropNotifySink_vfptr);
+}
+
+// GUIDs, spelled out so this file does not depend on which uuid library the
+// final link pulls in. Each was read out of mfc140u .rdata at the address the
+// retail bodies load: IID_NULL 0x2d98d8 (all zero), IID_IUnknown 0x2d9a58,
+// IID_IDispatch 0x2d9b48, IID_IPropertyNotifySink 0x2d9d28
+// ({9BFBBC02-EFF1-101A-84ED-00AA00341D07}).
+const GUID kIID_NULL               = { 0x00000000, 0x0000, 0x0000, { 0,0,0,0,0,0,0,0 } };
+const GUID kIID_IUnknown           = { 0x00000000, 0x0000, 0x0000, { 0xC0,0,0,0,0,0,0,0x46 } };
+const GUID kIID_IDispatch          = { 0x00020400, 0x0000, 0x0000, { 0xC0,0,0,0,0,0,0,0x46 } };
+const GUID kIID_IPropertyNotifySink= { 0x9BFBBC02, 0xEFF1, 0x101A, { 0x84,0xED,0x00,0xAA,0x00,0x34,0x1D,0x07 } };
+
+// ---------------------------------------------------------------------------
+// The lockout window. Retail CWnd::UpdateData (0x2910d0) parks m_hWnd in
+// AFX_THREAD_STATE::m_hLockoutNotifyWindow (+0x198 in mfc140u; +0x138 in the
+// MBCS twin) for the duration of DoDataExchange and restores the previous
+// value afterwards, and XPropNotifySink::OnChanged (0x1ea5d0) reads it back
+// to decide between an immediate refill and a deferred one. OpenMFC's
+// CWnd::UpdateData maintains no such field and AFX_THREAD_STATE does not
+// model it (headerRequest). This file emulates it for the UpdateData calls
+// it makes itself -- which is every one the retail COlePropertyPage bodies
+// make -- so an OnChanged fired from inside Apply's own DoDataExchange is
+// deferred exactly as in retail. DEVIATION: a derived page's own direct
+// UpdateData() calls are not covered until CWnd::UpdateData maintains the
+// real field.
+thread_local HWND t_hLockoutNotifyWindow = nullptr;
+
+int PageUpdateData(COlePropertyPage* pPage, BOOL bSaveAndValidate) {
+    HWND hSave = t_hLockoutNotifyWindow;
+    t_hLockoutNotifyWindow = pPage->m_hWnd;
+    int bResult = impl__UpdateData_CWnd__QEAAHH_Z(static_cast<CWnd*>(pPage), bSaveAndValidate);
+    t_hLockoutNotifyWindow = hSave;
+    return bResult;
+}
+
+// XPropertyPage::GetPageInfo's string helper (0x1e77b4, called three times):
+//     if (!s) return NULL;
+//     n = wcslen(s); if (n == (size_t)-1) return NULL;      ; `not; cmp $1; jb`
+//     bytes = (n + 1) * 2, with an overflow check;         ; `div; cmp $2; jb`
+//     p = CoTaskMemAlloc(bytes); if (p) memcpy(p, s, bytes); return p;
+// (IAT 0x2c7748 wcslen, 0x2c7968 ole32!CoTaskMemAlloc, 0x2c7420 memcpy.)
+LPOLESTR TaskAllocString(const wchar_t* s) {
+    if (s == nullptr) return nullptr;
+    size_t n = ::wcslen(s);
+    if (n == static_cast<size_t>(-1)) return nullptr;
+    size_t bytes = (n + 1) * sizeof(wchar_t);
+    if (bytes / sizeof(wchar_t) != n + 1) return nullptr;
+    LPOLESTR p = static_cast<LPOLESTR>(::CoTaskMemAlloc(bytes));
+    if (p) ::memcpy(p, s, bytes);
+    return p;
+}
+
+// ---------------------------------------------------------------------------
+// The GetProp* / SetProp* shape, shared by all 24 entry points. Every retail
+// body opens the same way (checked one by one, RVAs at each thunk below):
+//     COleDispatchDriver driver;                    ; m_lpDispatch 0, auto 1
+//     BOOL bResult = FALSE;                         ; ESI
+//     CString strName(pszPropName);                 ; 0xdcb0, CStringT(LPCWSTR)
+//     LPOLESTR rgszNames[1] = { pszPropName ? (LPCWSTR)strName : NULL };
+//                                       ; `neg %rbx; sbb %rcx,%rcx; and buf`
+//     for (i = 0; i < m_nObjects; ++i) {            ; unsigned compare
+//         LPDISPATCH p = m_ppDisp[i];
+//         if (FAILED(p->GetIDsOfNames(IID_NULL, rgszNames, 1, 0 /*lcid*/,
+//                                     &dispid)))    ; vtable slot 5 (+0x28)
+//             continue;                             ; `js` -> next object
+//         driver.AttachDispatch(p, FALSE);          ; 0x251e40
+//         <get or put, see each thunk>
+//         driver.m_lpDispatch = NULL;               ; detach without Release
+//         <merge, see each thunk>
+//         bResult = TRUE;
+//     }
+//     return bResult;                               ; strName / driver dtors
+// Here the name is passed straight through: retail's CString copy is only ever
+// read, and CString(NULL) followed by the NULL mask yields the same pointer
+// value the caller supplied. The put side goes through
+// COleDispatchDriver::SetProperty (0x2526c0), which is InvokeHelperV with
+// wFlags = DISPATCH_PROPERTYPUT (DISPATCH_PROPERTYPUTREF only for
+// VT_DISPATCH, never the case here) and a one-byte param-info of the VARTYPE.
+// Both sides are called through the exported COleDispatchDriver thunks
+// (declared at the top of this file); the get side is the GetProperty thunk
+// (0x252690), whose body is exactly the InvokeHelper (0x252660,
+// DISPATCH_PROPERTYGET, pbParamInfo NULL) call the retail GetProp* bodies
+// make directly. Either one throws COleException on a failed Invoke
+// (OpenMFC's InvokeHelperV in afxdisp.h), exactly as retail does, and the
+// retail bodies have no handler either.
+// DEVIATION (defensive, both families): retail dereferences `this` and the
+// out-parameter unconditionally; a NULL either returns FALSE here.
+bool LookupDispID(LPDISPATCH pDisp, const wchar_t* pszPropName, DISPID* pDispID) {
+    LPOLESTR rgszNames[1] = { const_cast<LPOLESTR>(pszPropName) };
+    return SUCCEEDED(pDisp->GetIDsOfNames(kIID_NULL, rgszNames, 1, 0, pDispID));
+}
+
+template <typename T>
+int GetPropScalar(COlePropertyPage* pThis, const wchar_t* pszPropName, T* pValue,
+                  VARTYPE vt, T indeterminate) {
+    if (!pThis || !pValue) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    int bResult = FALSE;
+    for (ULONG i = 0; i < t->m_nObjects; ++i) {
+        LPDISPATCH pDisp = t->m_ppDisp[i];
+        DISPID dispid = 0;
+        if (!LookupDispID(pDisp, pszPropName, &dispid)) continue;
+        T value = T();
+        COleDispatchDriver driver;
+        driver.AttachDispatch(pDisp, FALSE);
+        impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(&driver, dispid, vt, &value);
+        driver.DetachDispatch();
+        if (i == 0) *pValue = value;
+        if (*pValue != value) *pValue = indeterminate;
+        bResult = TRUE;
+    }
+    return bResult;
+}
+
+template <typename T>
+int SetPropScalar(COlePropertyPage* pThis, const wchar_t* pszPropName, VARTYPE vt, T value) {
+    if (!pThis) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    int bResult = FALSE;
+    for (ULONG i = 0; i < t->m_nObjects; ++i) {
+        LPDISPATCH pDisp = t->m_ppDisp[i];
+        DISPID dispid = 0;
+        if (!LookupDispID(pDisp, pszPropName, &dispid)) continue;
+        COleDispatchDriver driver;
+        driver.AttachDispatch(pDisp, FALSE);
+        impl__SetProperty_COleDispatchDriver__QEAAXJGZZ(&driver, dispid, vt, value);
+        driver.DetachDispatch();
+        bResult = TRUE;
+    }
+    return bResult;
+}
+
+// ---------------------------------------------------------------------------
+// XPropertyPage (IPropertyPage2) -- vtable 0x324928, 15 slots, dumped out of
+// mfc140u .rdata:
+//     0 0x1e9ba0 QueryInterface   5 0x1e9e70 Deactivate  10 0x1ea100 IsPageDirty
+//     1 0x1e9b60 AddRef           6 0x1e9ec0 GetPageInfo 11 0x1ea110 Apply
+//     2 0x1e9b70 Release          7 0x1e9f20 SetObjects  12 0x1ea1d0 Help
+//     3 0x1e9bd0 SetPageSite      8 0x1ea080 Show        13 0x1ea270 TranslateAccelerator
+//     4 0x1e9c60 Activate         9 0x1ea0c0 Move        14 0x1ea500 EditProperty
+// (the qword after slot 14, 0x3249a0, is the next object's RTTI locator).
+// Slots 0-2 are not exported; each is `add $-0x1f0,%rcx` followed by the body
+// of CCmdTarget::External{QueryInterface,AddRef,Release}:
+//     QI      0x1e9ba0: m_pOuterUnknown (+0x10) ? ->QueryInterface : InternalQueryInterface (0x26cfe0)
+//     AddRef  0x1e9b60: jmp ExternalAddRef (0x26cd80)
+//     Release 0x1e9b70: m_pOuterUnknown ? ->Release : InternalRelease (0x26cdb0)
+// which is exactly what the three External* thunks do, so they are called.
+// ---------------------------------------------------------------------------
+unsigned long MS_ABI XPropertyPage_QueryInterface(void* pSub, const void* iid, void** ppv) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(OuterFromPropPage(pSub), iid, ppv);
+}
+unsigned long MS_ABI XPropertyPage_AddRef(void* pSub) {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(OuterFromPropPage(pSub));
+}
+unsigned long MS_ABI XPropertyPage_Release(void* pSub) {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(OuterFromPropPage(pSub));
+}
+
+const void* const g_xPropertyPage_vtbl[15] = {
+    reinterpret_cast<const void*>(&XPropertyPage_QueryInterface),
+    reinterpret_cast<const void*>(&XPropertyPage_AddRef),
+    reinterpret_cast<const void*>(&XPropertyPage_Release),
+    reinterpret_cast<const void*>(&impl__SetPageSite_XPropertyPage_COlePropertyPage__UEAAJPEAUIPropertyPageSite___Z),
+    reinterpret_cast<const void*>(&impl__Activate_XPropertyPage_COlePropertyPage__UEAAJPEAUHWND____PEBUtagRECT__H_Z),
+    reinterpret_cast<const void*>(&impl__Deactivate_XPropertyPage_COlePropertyPage__UEAAJXZ),
+    reinterpret_cast<const void*>(&impl__GetPageInfo_XPropertyPage_COlePropertyPage__UEAAJPEAUtagPROPPAGEINFO___Z),
+    reinterpret_cast<const void*>(&impl__SetObjects_XPropertyPage_COlePropertyPage__UEAAJKPEAPEAUIUnknown___Z),
+    reinterpret_cast<const void*>(&impl__Show_XPropertyPage_COlePropertyPage__UEAAJI_Z),
+    reinterpret_cast<const void*>(&impl__Move_XPropertyPage_COlePropertyPage__UEAAJPEBUtagRECT___Z),
+    reinterpret_cast<const void*>(&impl__IsPageDirty_XPropertyPage_COlePropertyPage__UEAAJXZ),
+    reinterpret_cast<const void*>(&impl__Apply_XPropertyPage_COlePropertyPage__UEAAJXZ),
+    reinterpret_cast<const void*>(&impl__Help_XPropertyPage_COlePropertyPage__UEAAJPEB_W_Z),
+    reinterpret_cast<const void*>(&impl__TranslateAcceleratorW_XPropertyPage_COlePropertyPage__UEAAJPEAUtagMSG___Z),
+    reinterpret_cast<const void*>(&impl__EditProperty_XPropertyPage_COlePropertyPage__UEAAJJ_Z),
+};
+
+// ---------------------------------------------------------------------------
+// XPropNotifySink (IPropertyNotifySink) -- vtable 0x3248f8, 5 slots:
+//     0 0x1ea560 QueryInterface   3 0x1ea5d0 OnChanged
+//     1 0x003a60 AddRef           4 0x0071e0 OnRequestEdit
+//     2 0x0071e0 Release
+// QueryInterface (0x1ea560), in full: two 16-byte memcmp (IAT 0x2c73e0)
+// against IID_IPropertyNotifySink (0x2d9d28) and IID_IUnknown (0x2d9a58);
+// on either match `*ppv = this; return S_OK` -- with NO AddRef -- otherwise
+// `*ppv = NULL; return E_NOINTERFACE (0x80004002)`. AddRef is the shared
+// `mov $1,%eax; ret` at 0x3a60 and Release the shared `xor %eax,%eax; ret`
+// at 0x71e0: the sink is owned by the page and is deliberately not
+// reference-counted, which is why QueryInterface does not AddRef either.
+// ---------------------------------------------------------------------------
+unsigned long MS_ABI XPropNotifySink_QueryInterface(void* pSub, const void* iid, void** ppv) {
+    if (::memcmp(iid, &kIID_IPropertyNotifySink, sizeof(GUID)) == 0 ||
+        ::memcmp(iid, &kIID_IUnknown, sizeof(GUID)) == 0) {
+        *ppv = pSub;
+        return S_OK;
+    }
+    *ppv = nullptr;
+    return 0x80004002UL; // E_NOINTERFACE
+}
+unsigned long MS_ABI XPropNotifySink_AddRef(void* /*pSub*/)  { return 1; }
+unsigned long MS_ABI XPropNotifySink_Release(void* /*pSub*/) { return 0; }
+
+const void* const g_xPropNotifySink_vtbl[5] = {
+    reinterpret_cast<const void*>(&XPropNotifySink_QueryInterface),
+    reinterpret_cast<const void*>(&XPropNotifySink_AddRef),
+    reinterpret_cast<const void*>(&XPropNotifySink_Release),
+    reinterpret_cast<const void*>(&impl__OnChanged_XPropNotifySink_COlePropertyPage__UEAAJJ_Z),
+    reinterpret_cast<const void*>(&impl__OnRequestEdit_XPropNotifySink_COlePropertyPage__UEAAJJ_Z),
+};
+
+// Shared by both constructors. Retail (0x1e8ee0), for the 0x160..0x200
+// window: m_idCaption = nIDCaption; every pointer/count zero; m_bInitializing
+// = 1 (`movq $1,0x1b0`); the CDWordArray vptr at 0x1c0 and its four zeroed
+// fields; the two sub-object vptrs at 0x1f0 / 0x1f8; then
+// `lock incl 0x60(AfxGetModuleState())` -- the inlined AfxOleLockApp. The
+// memset in the constructors zeroes the whole window first, so only the
+// non-zero slots are written here. The CDWordArray vptr is left NULL (see the
+// tail struct). AfxOleLockApp is OpenMFC's impl__AfxOleLockApp (detail/
+// OlecoreSupport.cpp), whose counting mechanism is its own.
+void InitTail(COlePropertyPage* pThis, UINT nIDCaption) {
+    S_COlePropertyPageTail* t = Tail(pThis);
+    t->m_idCaption = nIDCaption;
+    t->m_bInitializing = TRUE;
+    t->m_xPropertyPage_vfptr = g_xPropertyPage_vtbl;
+    t->m_xPropNotifySink_vfptr = g_xPropNotifySink_vtbl;
+    impl__AfxOleLockApp();
+}
+
+} // namespace
 
 COlePropertyPage::COlePropertyPage()
     : CDialog(), m_pPageSite(nullptr), m_bModified(FALSE),
       m_pszPageName(nullptr), m_pszHelpFile(nullptr),
       m_dwHelpContext(0), m_pszDocString(nullptr) {
     memset(_olepropertypage_padding, 0, sizeof(_olepropertypage_padding));
+    InitTail(this, 0);
 }
 COlePropertyPage::COlePropertyPage(UINT nIDTemplate, UINT nIDCaption)
     : CDialog(nIDTemplate), m_pPageSite(nullptr), m_bModified(FALSE),
       m_pszPageName(nullptr), m_pszHelpFile(nullptr),
       m_dwHelpContext(0), m_pszDocString(nullptr) {
     memset(_olepropertypage_padding, 0, sizeof(_olepropertypage_padding));
+    InitTail(this, nIDCaption);
 }
+// Retail ??1COlePropertyPage@@UEAA@XZ (0x1e96b0), in order:
+//     if (m_hDialog) ::GlobalFree(m_hDialog);            ; IAT 0x2c66d0
+//     if (m_pStatus) { free(m_pStatus); m_pStatus = 0; } ; IAT 0x2c74e8
+//     <delete every entry of m_arrayDDP, then SetSize(0)> ; 0x1e8e64 -- the
+//                                          ; DDP array is not modelled here
+//     _AfxRelease(&m_pPageSite);                          ; 0x26ccc4
+//     CleanupObjectArray();                               ; 0x1e95e0
+//     if (--AfxGetModuleState()->m_nObjectCount == 0)     ; inlined
+//         AfxOleOnReleaseAllObjects();                    ;  AfxOleUnlockApp
+//     <CDWordArray dtor: free(m_IDArray.m_pData)>
+//     <three CString dtors, CPtrArray dtor>
+//     CDialog::~CDialog                                   ; tail jmp 0x207eb0
 COlePropertyPage::~COlePropertyPage() {
+    S_COlePropertyPageTail* t = Tail(this);
+    if (t->m_hDialog != nullptr) {
+        ::GlobalFree(t->m_hDialog);
+        t->m_hDialog = nullptr;
+    }
+    if (t->m_pStatus != nullptr) {
+        ::free(t->m_pStatus);
+        t->m_pStatus = nullptr;
+    }
+    if (m_pPageSite != nullptr) {
+        m_pPageSite->Release();
+        m_pPageSite = nullptr;
+    }
+    impl__CleanupObjectArray_COlePropertyPage__IEAAXXZ(this);
+    impl__AfxOleUnlockApp();
+    if (t->m_IDArray_pData != nullptr) {
+        ::free(t->m_IDArray_pData);
+        t->m_IDArray_pData = nullptr;
+    }
+    t->m_IDArray_nSize = 0;
+    t->m_IDArray_nMaxSize = 0;
 }
 void COlePropertyPage::SetPageName(const wchar_t* pszName) {
     m_pszPageName = (wchar_t*)pszName;
@@ -314,146 +551,175 @@ void COlePropertyPage::SetHelpInfo(const wchar_t* lpszDocString, const wchar_t* 
     m_pszHelpFile = (wchar_t*)lpszHelpFile;
     m_dwHelpContext = dwHelpContext;
 }
+// Retail ?OnSetPageSite@COlePropertyPage@@UEAAXXZ is ordinal 11118 -> RVA
+// 0x1e9050 and returns void: it loads the caption string for m_idCaption
+// (falling back to string 0xfe01), calls SetPageName on it, zeroes
+// m_sizePage and measures the dialog template MAKEINTRESOURCE(m_idDialog)
+// through CDialogTemplate::Load / HasFont / GetFont / GetSizeInPixels. Not
+// on this file's assignment list and not implemented; the declaration in
+// afxole.h returns BOOL, which is itself a mismatch to resolve
+// (headerRequest). The thunk in core/ole/Thunks.cpp calls this body.
 BOOL COlePropertyPage::OnSetPageSite() {
     return TRUE;
 }
-// DIVERGENCE, recorded not fixed -- OnObjectsChanged is not on this file's
-// assignment list, and changing it changes observable behaviour, so it is left
-// for whoever owns it. Retail's ?OnObjectsChanged@COlePropertyPage@@UEAAXXZ is
-// mfc140u ordinal -> RVA 0x27d0, and the body at 0x27d0 is a bare `ret`: the
-// base implementation does NOTHING. (0x27d0 is a folded COMDAT shared by 158
-// void exports; the folding is by identical code, so "empty" is exact, but the
-// name the symbol map attaches to that address says nothing about this one.)
-// The body below instead calls SetModifiedFlag(TRUE), which drives
-// IPropertyPageSite::OnStatusChange(PROPPAGESTATUS_DIRTY) at a point where
-// retail is silent -- and XPropertyPage::SetObjects (0x1e9f20 / MBCS 0x1e7cc0)
-// calls this virtual unconditionally on every SetObjects, so under retail
-// semantics a page would be marked dirty merely by being handed its objects.
+// Retail ?OnObjectsChanged@COlePropertyPage@@UEAAXXZ is ordinal 10695 -> RVA
+// 0x27d0, a bare `ret`: the base implementation does nothing. (0x27d0 is an
+// identical-code-folded COMDAT shared by many void exports; the folding is
+// by identical bytes, so "empty" is exact.) This body used to call
+// SetModifiedFlag(TRUE), which drove IPropertyPageSite::OnStatusChange at a
+// point where retail is silent and, now that XPropertyPage::SetObjects below
+// calls this virtual on every SetObjects as retail does, would have marked
+// the page dirty merely for being handed its objects. Corrected to the
+// retail no-op.
 void COlePropertyPage::OnObjectsChanged() {
-    SetModifiedFlag(TRUE);
 }
 BOOL COlePropertyPage::OnApply() {
     return TRUE;
 }
+// ?OnEditProperty@COlePropertyPage@@UEAAHJ@Z is ordinal 9712 -> RVA 0x71e0,
+// the shared `xor %eax,%eax; ret`: FALSE unconditionally.
 BOOL COlePropertyPage::OnEditProperty(DISPID dispid) {
     (void)dispid;
     return FALSE;
 }
-// Pre-existing body, left as it is; recording what retail (0x1e7710) actually
-// does so nobody has to re-derive it. Retail is EDGE-triggered and also drains
-// the deferral flag:
-//     if (!bModified) *(int*)(this+0x1a8) = 0;
-//     if ((m_bDirty /*0x158*/ != 0) == (bModified != 0)) return;  ; no change
-//     m_bDirty = bModified;
+// COlePropertyPage::SetModifiedFlag(BOOL) -- retail 0x1e9970 (the target of
+// the `call 0x1801e9970` in Activate, Apply and SetObjects), in full:
+//     if (!bModified) m_bPropsChanged /*0x1a8*/ = 0;
+//     if ((m_bDirty /*0x158*/ != 0) == (bModified != 0)) return;  ; no edge
+//     m_bDirty = bModified;                                ; stored raw
 //     if (m_pPageSite /*0x190*/)
 //         m_pPageSite->OnStatusChange(bModified ? PROPPAGESTATUS_DIRTY : 0);
-// The body below notifies on every call rather than only on a transition, and
-// has no 0x1a8 to clear. Not on this file's assignment list, so not changed.
+//                                                          ; slot 3, `setne`
+// Edge-triggered: the site is told only when the flag actually changes.
+// This body used to notify on every call and had no m_bPropsChanged to
+// clear; both are now as retail, using m_bModified for m_bDirty.
 void COlePropertyPage::SetModifiedFlag(BOOL bModified) {
-    m_bModified = bModified ? TRUE : FALSE;
-    if (m_pPageSite) {
+    S_COlePropertyPageTail* t = Tail(this);
+    if (!bModified) {
+        t->m_bPropsChanged = FALSE;
+    }
+    if ((m_bModified != 0) == (bModified != 0)) {
+        return;
+    }
+    m_bModified = bModified;
+    if (m_pPageSite != nullptr) {
         m_pPageSite->OnStatusChange(bModified ? PROPPAGESTATUS_DIRTY : 0);
     }
 }
-// COlePropertyPage::CleanupObjectArray() -- retail (0x1e7380):
-//     if (m_pdwConnections /*0x1a0*/) {
-//         for (i = 0; i < m_nObjects /*0x1ac*/; ++i)
+
+// COlePropertyPage::CleanupObjectArray() -- retail 0x1e95e0:
+//     if (m_pAdvisors /*0x1a0*/) {
+//         for (i = 0; i < m_nObjects /*0x1ac*/; ++i)        ; unsigned
 //             AfxConnectionUnadvise(m_ppDisp[i], IID_IPropertyNotifySink,
-//                                   &this->m_xPropNotifySink /*0x1f8*/,
-//                                   FALSE, m_pdwConnections[i]);   ; 0x1dd290
-//         free(m_pdwConnections); m_pdwConnections = NULL;
+//                                   &m_xPropNotifySink /*this+0x1f8*/,
+//                                   FALSE, m_pAdvisors[i]);  ; 0x1df360
+//         free(m_pAdvisors); m_pAdvisors = NULL;              ; IAT 0x2c74e8
 //     }
 //     if (m_ppDisp /*0x198*/) {
-//         for (i = 0; i < m_nObjects; ++i) release(&m_ppDisp[i]);  ; 0x26ba84
+//         for (i = 0; i < m_nObjects; ++i) _AfxRelease(&m_ppDisp[i]); ; 0x26ccc4
 //         free(m_ppDisp); m_ppDisp = NULL;
 //     }
-// Both pointers are permanently NULL here (see the note at the top of this
-// file), so the retail body's whole effect is nothing and the empty stub is
-// already the faithful reduction. Left empty deliberately, not by omission.
-// The members themselves are a headerRequest.
+// m_nObjects is NOT reset; SetObjects overwrites it afterwards.
 // Symbol: ?CleanupObjectArray@COlePropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__CleanupObjectArray_COlePropertyPage__IEAAXXZ(
-    COlePropertyPage* /*pThis*/) {}
+    COlePropertyPage* pThis) {
+    if (!pThis) return;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    if (t->m_pAdvisors != nullptr) {
+        for (ULONG i = 0; i < t->m_nObjects; ++i) {
+            impl__AfxConnectionUnadvise__YAHPEAUIUnknown__AEBU_GUID__0HK_Z(
+                t->m_ppDisp[i], &kIID_IPropertyNotifySink, NotifySinkOf(pThis),
+                FALSE, t->m_pAdvisors[i]);
+        }
+        ::free(t->m_pAdvisors);
+        t->m_pAdvisors = nullptr;
+    }
+    if (t->m_ppDisp != nullptr) {
+        for (ULONG i = 0; i < t->m_nObjects; ++i) {
+            if (t->m_ppDisp[i] != nullptr) {
+                t->m_ppDisp[i]->Release();
+                t->m_ppDisp[i] = nullptr;
+            }
+        }
+        ::free(t->m_ppDisp);
+        t->m_ppDisp = nullptr;
+    }
+}
 
-// COlePropertyPage::EnumChildProc(HWND, LPARAM) -- retail (0x1e7ba0) is a
-// static EnumChildWindows callback:
-//     if (lParam == 0) AfxThrowInvalidArgException();   ; 0x225b80
+// COlePropertyPage::EnumChildProc(HWND, LPARAM) -- retail 0x1e9e00, the
+// counting pass of XPropertyPage::Activate's two ::EnumChildWindows calls:
+//     if (lParam == 0) AfxThrowInvalidArgException();   ; 0x227720
 //     ++((COlePropertyPage*)lParam)->m_nControls;       ; 0x1b4
 //     return TRUE;
-// It is the counting pass that sizes m_pControlStatus. m_nControls is not
-// declared by OpenMFC (headerRequest), so the count is not kept -- but the
-// return value is the enumeration-continue flag and retail always returns
-// TRUE, so returning FALSE (what the generated stub did) would truncate any
-// enumeration this is ever passed to. The TRUE is transcribed; the increment
-// is what is missing.
-// Deviation, recorded: retail's lParam == 0 arm throws
-// AfxThrowInvalidArgException (mfc140u 0x227720) and never returns; the body
-// below returns TRUE for a NULL lParam like any other. Re-verified against
-// mfc140u 0x1e9e00. EnumControls (0x1e9e20) has no such test at all -- it
-// dereferences lParam straight away -- so there is no matching deviation
-// there.
+// hWnd is not read.
 // Symbol: ?EnumChildProc@COlePropertyPage@@KAHPEAUHWND__@@_J@Z
-extern "C" int MS_ABI impl__EnumChildProc_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND /*hWnd*/, __int64 /*lParam*/) {
+extern "C" int MS_ABI impl__EnumChildProc_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND /*hWnd*/, __int64 lParam) {
+    if (lParam == 0) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+    }
+    COlePropertyPage* pPage = reinterpret_cast<COlePropertyPage*>(lParam);
+    ++Tail(pPage)->m_nControls;
     return TRUE;
 }
 
-// COlePropertyPage::EnumControls(HWND, LPARAM) -- retail (0x1e7bc0), the
-// second EnumChildWindows pass, filling the table EnumChildProc sized:
+// COlePropertyPage::EnumControls(HWND, LPARAM) -- retail 0x1e9e20, the
+// filling pass (no lParam test at all in this one):
 //     COlePropertyPage* p = (COlePropertyPage*)lParam;
-//     p->m_pControlStatus[p->m_nControls].nID    = ::GetDlgCtrlID(hWnd);
-//     p->m_pControlStatus[p->m_nControls].bDirty = FALSE;   ; entries are 8
-//     ++p->m_nControls;                                     ; bytes: UINT,BOOL
+//     p->m_pStatus[p->m_nControls].nID    = ::GetDlgCtrlID(hWnd);  ; IAT 0x2c72a8
+//     p->m_pStatus[p->m_nControls].bDirty = FALSE;
+//     ++p->m_nControls;
 //     return TRUE;
-// m_nControls (0x1b4) and m_pControlStatus (0x1b8) are not declared by
-// OpenMFC (headerRequest), so the table cannot be filled. As with
-// EnumChildProc only the TRUE continue-flag is transcribed.
 // Symbol: ?EnumControls@COlePropertyPage@@KAHPEAUHWND__@@_J@Z
-extern "C" int MS_ABI impl__EnumControls_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND /*hWnd*/, __int64 /*lParam*/) {
+extern "C" int MS_ABI impl__EnumControls_COlePropertyPage__KAHPEAUHWND_____J_Z(HWND hWnd, __int64 lParam) {
+    COlePropertyPage* pPage = reinterpret_cast<COlePropertyPage*>(lParam);
+    S_COlePropertyPageTail* t = Tail(pPage);
+    t->m_pStatus[t->m_nControls].nID = static_cast<UINT>(::GetDlgCtrlID(hWnd));
+    t->m_pStatus[t->m_nControls].bDirty = FALSE;
+    ++t->m_nControls;
     return TRUE;
 }
 
-// COlePropertyPage::GetControlStatus(UINT nID) -- retail (0x1e8680):
-//     for (i = 0; i < m_nControls /*0x1b4*/; ++i)
-//         if (m_pControlStatus /*0x1b8*/ [i].nID == nID)
-//             return m_pControlStatus[i].bDirty;
-//     return TRUE;                                  ; not found => TRUE
-// The not-found answer is TRUE, not FALSE: MFC treats a control it is not
-// tracking as one whose value must be written back. m_pControlStatus is only
-// ever built by XPropertyPage::Activate (0x1e7a00) via its two
-// ::EnumChildWindows passes -- EnumChildProc counts, EnumControls fills; this
-// comment used to call them both "EnumControls" -- and Activate is a stub
-// here, so m_nControls is permanently 0 and the loop never runs. TRUE is therefore the retail answer for every nID in this
-// build; the generated stub's FALSE was the opposite. Tracking the table is a
-// headerRequest.
+// COlePropertyPage::GetControlStatus(UINT nID) -- retail 0x1ea8e0:
+//     for (i = 0; i < m_nControls /*0x1b4*/; ++i)      ; signed compare
+//         if (m_pStatus /*0x1b8*/ [i].nID == nID)
+//             return m_pStatus[i].bDirty;
+//     return TRUE;                                     ; not found => TRUE
+// A control the page is not tracking is treated as one whose value must be
+// written back.
 // Symbol: ?GetControlStatus@COlePropertyPage@@QEAAHI@Z
 extern "C" int MS_ABI impl__GetControlStatus_COlePropertyPage__QEAAHI_Z(
-    COlePropertyPage* /*pThis*/, unsigned int /*nID*/) {
+    COlePropertyPage* pThis, unsigned int nID) {
+    if (!pThis) return TRUE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    for (int i = 0; i < t->m_nControls; ++i) {
+        if (t->m_pStatus[i].nID == nID) {
+            return t->m_pStatus[i].bDirty;
+        }
+    }
     return TRUE;
 }
 
-// COlePropertyPage::GetObjectArray(ULONG* pnObjects) -- retail (0x1e76f0) is
-// six instructions (test/je/mov/mov/mov/ret; this comment used to say five):
+// COlePropertyPage::GetObjectArray(ULONG* pnObjects) -- retail 0x1e9950,
+// six instructions:
 //     if (pnObjects) *pnObjects = m_nObjects;   ; 0x1ac, a DWORD store
 //     return m_ppDisp;                          ; 0x198
-// Neither member is declared by OpenMFC (headerRequest) and neither is ever
-// populated here, so the pair is permanently (0, NULL). The count store is
-// what matters: callers pass the address of an uninitialised ULONG and read it
-// back, and the generated stub returned NULL without writing it, leaving that
-// variable indeterminate. Writing the 0 is the retail behaviour for this
-// object state.
 // Symbol: ?GetObjectArray@COlePropertyPage@@QEAAPEAPEAUIDispatch@@PEAK@Z
 extern "C" void* MS_ABI impl__GetObjectArray_COlePropertyPage__QEAAPEAPEAUIDispatch__PEAK_Z(
-    COlePropertyPage* /*pThis*/, unsigned long* pnObjects) {
-    if (pnObjects != nullptr) {
-        *pnObjects = 0;
+    COlePropertyPage* pThis, unsigned long* pnObjects) {
+    if (!pThis) {
+        if (pnObjects != nullptr) *pnObjects = 0;
+        return nullptr;
     }
-    return nullptr;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    if (pnObjects != nullptr) {
+        *pnObjects = t->m_nObjects;
+    }
+    return t->m_ppDisp;
 }
 
-// COlePropertyPage::GetPageSite() — retail (0x1e7890) is two instructions:
+// COlePropertyPage::GetPageSite() -- retail 0x1e9af0 is two instructions:
 //     mov 0x190(%rcx),%rax ; ret
-// i.e. it returns the IPropertyPageSite* member and nothing else. That member
-// is m_pPageSite in the OpenMFC declaration.
+// That member is m_pPageSite in the OpenMFC declaration.
 // Symbol: ?GetPageSite@COlePropertyPage@@QEAAPEAUIPropertyPageSite@@XZ
 extern "C" void* MS_ABI impl__GetPageSite_COlePropertyPage__QEAAPEAUIPropertyPageSite__XZ(
     COlePropertyPage* pThis) {
@@ -461,181 +727,227 @@ extern "C" void* MS_ABI impl__GetPageSite_COlePropertyPage__QEAAPEAUIPropertyPag
 }
 
 // ---------------------------------------------------------------------------
-// GetPropCheck / GetPropIndex / GetPropRadio / GetPropText(9 overloads)
-//
-// The DLL the disassembly helper resolves against is the MBCS build, so under
-// that binary these resolve only under their ...PEBD... names (the Unicode
-// RVAs, under the exact ...PEB_W... names this file exports, are in the binary
-// note at the top of the file, and the bodies were confirmed identical):
-// GetPropCheck 0x1e9d30, GetPropRadio 0x1e9fe0,
-// GetPropText 0x1e8820/0x1e8ad0/0x1e8d80/0x1e8ef0/0x1e9060/0x1e91d0/0x1e9480/
-// 0x1e9740/0x1e9a00. ?GetPropIndex@ (0x1ea160) is not a separate body at all:
-// it is a one-instruction `jmp 0x1801e9fe0`, i.e. an alias of GetPropRadio.
-//
-// All of them share one shape (transcribed from GetPropText(int&), 0x1e8d80):
-//     BOOL bRead = FALSE;
-//     for (i = 0; i < m_nObjects /*0x1ac*/; ++i) {
-//         IDispatch* p = m_ppDisp /*0x198*/ [i];
-//         if (FAILED(p->GetIDsOfNames(...)))    ; IDispatch vtable slot 5
-//             continue;                         ; property absent on object i
-//         <read the property through the dispatch helper at 0x250e50/0x251720>
-//         if (i == 0) *pValue = v;
-//         else if (*pValue != v) *pValue = <differing-values sentinel>;
-//         bRead = TRUE;
-//     }
-//     return bRead;                             ; the register is ESI
-// -- a multi-object merge that reports "the objects disagree" by writing a
-// sentinel into the out-parameter.
-//
-// m_ppDisp/m_nObjects are not declared by OpenMFC (headerRequest) and are
-// permanently NULL/0 here, so the loop never runs: retail writes nothing to
-// the out-parameter and returns FALSE. That is exactly what the generated
-// stubs below already do, so they are left as they are -- verified equivalent
-// for this object state, not skipped.
-//
-// Signatures: the generated stubs had no leading `COlePropertyPage* pThis`,
-// and the CStringT overload's was generated nonsense (four parameters). They
-// have been corrected below to the register assignment read out of the retail
-// bodies -- `this` in RCX, the property name in RDX, the out-parameter in R8
-// (checked on GetPropText(int&) 0x1eafe0, GetPropCheck 0x1ebf90 and
-// GetPropText(CString&) 0x1ebc60, all mfc140u). No body reads an argument, so
-// the correction changes no behaviour; it exists so the first real body is not
-// written against a prototype that is off by one register.
+// GetPropCheck / GetPropIndex / GetPropRadio / GetPropText (9 overloads).
+// Shape: see GetPropScalar above. Per body, the VARTYPE handed to
+// InvokeHelper(dispid, DISPATCH_PROPERTYGET, vt, &value, NULL) (0x252660),
+// the merge, and the "objects disagree" value written on a mismatch:
+//     GetPropCheck  0x1ebf90  VT_BOOL  b = (value != 0); mismatch -> 2
+//                                      (BST_INDETERMINATE; `lea -0x9(%r9)`)
+//     GetPropRadio  0x1ec240  VT_I2    *p = (int)(short)v; mismatch -> -1
+//     GetPropIndex  0x1ec3c0  a single `jmp 0x1ec240`: an alias of GetPropRadio
+//     GetPropText   BYTE&  0x1eaa80 VT_UI1  short& 0x1ead30 VT_I2
+//                   int&   0x1eafe0 VT_I4   UINT&  0x1eb150 VT_I4
+//                   long&  0x1eb2c0 VT_I4   DWORD& 0x1eb430 VT_I4
+//                   float& 0x1eb6e0 VT_R4   double&0x1eb9a0 VT_R8
+//                   CString* 0x1ebc60 VT_BSTR
+// The GetPropText mismatch value is loaded from a per-type global --
+// double 0x3c3f88, float 0x3c3f90, DWORD 0x3c3f94, long 0x3c3f98,
+// UINT 0x3c3f9c, int 0x3c3fa0, short 0x3c3fa4, BYTE 0x3c3fa6 -- and every
+// one of those sits in .bss and has exactly one reference in the whole image
+// (its read in the body above; grepped the full mfc140u disassembly), so
+// each is a never-written zero. The CString overload's is a function-static
+// CString built once from the empty string at 0x34b94a (guard word 0x3c4148,
+// object 0x3c4150): an empty string.
 // ---------------------------------------------------------------------------
 
 // Symbol: ?GetPropCheck@COlePropertyPage@@QEAAHPEB_WPEAH@Z
 extern "C" int MS_ABI impl__GetPropCheck_COlePropertyPage__QEAAHPEB_WPEAH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue) {
+    // Retail: `xor %eax,%eax; cmp %eax,value; setne %al` on the BOOL
+    // InvokeHelper wrote, then the merge with 2 as the mismatch value.
+    // (OpenMFC's InvokeHelper stores VT_BOOL as `boolVal == VARIANT_TRUE`
+    // where retail stores `boolVal != 0`; a non-canonical VARIANT_BOOL
+    // therefore reads as unchecked here. That is afxdisp.h's, not this
+    // body's.)
+    if (!pThis || !pValue) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    int bResult = FALSE;
+    for (ULONG i = 0; i < t->m_nObjects; ++i) {
+        LPDISPATCH pDisp = t->m_ppDisp[i];
+        DISPID dispid = 0;
+        if (!LookupDispID(pDisp, pszPropName, &dispid)) continue;
+        BOOL bValue = FALSE;
+        COleDispatchDriver driver;
+        driver.AttachDispatch(pDisp, FALSE);
+        impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(&driver, dispid, VT_BOOL, &bValue);
+        driver.DetachDispatch();
+        int nCheck = (bValue != 0) ? 1 : 0;
+        if (i == 0) *pValue = nCheck;
+        if (*pValue != nCheck) *pValue = 2;   // BST_INDETERMINATE
+        bResult = TRUE;
+    }
+    return bResult;
 }
 
 // Symbol: ?GetPropIndex@COlePropertyPage@@QEAAHPEB_WPEAH@Z
 extern "C" int MS_ABI impl__GetPropIndex_COlePropertyPage__QEAAHPEB_WPEAH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue) {
+    // Retail 0x1ec3c0 is `jmp 0x1801ec240` -- GetPropRadio's body.
+    return impl__GetPropRadio_COlePropertyPage__QEAAHPEB_WPEAH_Z(pThis, pszPropName, pValue);
 }
 
 // Symbol: ?GetPropRadio@COlePropertyPage@@QEAAHPEB_WPEAH@Z
 extern "C" int MS_ABI impl__GetPropRadio_COlePropertyPage__QEAAHPEB_WPEAH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue) {
+    // Retail 0x1ec240: VT_I2 into a short, `movswl` into *pValue, -1 on a
+    // mismatch (`movl $0xffffffff,(%rdi)`).
+    if (!pThis || !pValue) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    int bResult = FALSE;
+    for (ULONG i = 0; i < t->m_nObjects; ++i) {
+        LPDISPATCH pDisp = t->m_ppDisp[i];
+        DISPID dispid = 0;
+        if (!LookupDispID(pDisp, pszPropName, &dispid)) continue;
+        short sValue = 0;
+        COleDispatchDriver driver;
+        driver.AttachDispatch(pDisp, FALSE);
+        impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(&driver, dispid, VT_I2, &sValue);
+        driver.DetachDispatch();
+        if (i == 0) *pValue = static_cast<int>(sValue);
+        if (*pValue != static_cast<int>(sValue)) *pValue = -1;
+        bResult = TRUE;
+    }
+    return bResult;
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAE@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAE_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned char* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned char* pValue) {
+    return GetPropScalar<unsigned char>(pThis, pszPropName, pValue, VT_UI1, 0);   // 0x1eaa80
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAF@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAF_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, short* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, short* pValue) {
+    return GetPropScalar<short>(pThis, pszPropName, pValue, VT_I2, 0);           // 0x1ead30
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAH@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue) {
+    return GetPropScalar<int>(pThis, pszPropName, pValue, VT_I4, 0);             // 0x1eafe0
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAI@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAI_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned int* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned int* pValue) {
+    return GetPropScalar<unsigned int>(pThis, pszPropName, pValue, VT_I4, 0);    // 0x1eb150
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAJ@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAJ_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, long* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, long* pValue) {
+    return GetPropScalar<long>(pThis, pszPropName, pValue, VT_I4, 0);            // 0x1eb2c0
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAK@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAK_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned long* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned long* pValue) {
+    return GetPropScalar<unsigned long>(pThis, pszPropName, pValue, VT_I4, 0);   // 0x1eb430
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAM@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAM_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, float* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, float* pValue) {
+    return GetPropScalar<float>(pThis, pszPropName, pValue, VT_R4, 0.0f);        // 0x1eb6e0
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAN@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAN_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, double* /*pValue*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, double* pValue) {
+    return GetPropScalar<double>(pThis, pszPropName, pValue, VT_R8, 0.0);        // 0x1eb9a0
 }
 
 // Symbol: ?GetPropText@COlePropertyPage@@QEAAHPEB_WPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__GetPropText_COlePropertyPage__QEAAHPEB_WPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    // PEAV in the mangling: retail's third argument is CString* (a pointer
-    // that can legitimately be NULL), not CString&.
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*CString* pStrValue*/) {
-    return 0;
+    // PEAV in the mangling: retail's third argument is CString* (a pointer),
+    // not CString&.
+    COlePropertyPage* pThis, const wchar_t* pszPropName, void* pStrValueRaw) {
+    // Retail 0x1ebc60, per object after the dispid lookup:
+    //     CString strTemp("");                                  ; 0x1cd550
+    //     <once: static CString strIndeterminate("")>           ; 0x3c4150
+    //     driver.AttachDispatch(p, FALSE);
+    //     InvokeHelper(dispid, DISPATCH_PROPERTYGET, VT_BSTR, &strTemp, NULL);
+    //     driver.m_lpDispatch = NULL;
+    //     if (i == 0) *pStrValue = strTemp;                      ; 0xde30
+    //     if (wcscmp(*pStrValue, strTemp) != 0)                  ; IAT 0x2c7770
+    //         *pStrValue = strIndeterminate;
+    //     bResult = TRUE;
+    // Retail's InvokeHelper writes a VT_BSTR result straight into a CString;
+    // OpenMFC's (afxdisp.h) hands back the raw BSTR, which is copied into a
+    // CString and freed here -- same resulting string. The `je 0x1ebe3d` on
+    // a NULL strTemp buffer is ATL's ATLENSURE in StringCompare (throws
+    // E_FAIL through 0x333c); a CString buffer is never NULL, so it is not
+    // reproduced.
+    CString* pStrValue = static_cast<CString*>(pStrValueRaw);
+    if (!pThis || !pStrValue) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    int bResult = FALSE;
+    for (ULONG i = 0; i < t->m_nObjects; ++i) {
+        LPDISPATCH pDisp = t->m_ppDisp[i];
+        DISPID dispid = 0;
+        if (!LookupDispID(pDisp, pszPropName, &dispid)) continue;
+        BSTR bstrTemp = nullptr;
+        COleDispatchDriver driver;
+        driver.AttachDispatch(pDisp, FALSE);
+        impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(&driver, dispid, VT_BSTR, &bstrTemp);
+        driver.DetachDispatch();
+        CString strTemp(bstrTemp ? bstrTemp : L"");
+        if (bstrTemp) ::SysFreeString(bstrTemp);
+        if (i == 0) *pStrValue = strTemp;
+        if (::wcscmp(pStrValue->GetString(), strTemp.GetString()) != 0) {
+            *pStrValue = CString(L"");
+        }
+        bResult = TRUE;
+    }
+    return bResult;
 }
 
-// COlePropertyPage::IgnoreApply(UINT nID) -- retail (0x1e8660) is three
-// instructions and a tail jump (`add $0x1c0,%rcx; mov %edx,%r8d;
-// mov 0x10(%rcx),%rdx; jmp`; this comment used to say four instructions):
-//     CDWordArray* a = &this->m_dwaIgnoreApply;  ; 0x1c0
-//     CDWordArray::SetAtGrow(a, a->m_nSize /*+0x10*/, nID);  ; a tail jmp --
-//         ; i.e. an inlined Add()
-// i.e. it appends nID to an array of control ids whose changes must not mark
-// the page dirty.
-// On the element type -- this file used to call the array a CUIntArray, from
-// the name the MBCS map put on the tail-jump target (0x1d21f0,
-// ?SetAtGrow@CUIntArray@@QEAAX_JI@Z). That name is NOT evidence: in mfc140u
-// the identical body sits at 0x1d4260 and BOTH ?SetAtGrow@CUIntArray@@ and
-// ?SetAtGrow@CDWordArray@@QEAAX_JK@Z export to it -- one ICF-folded body for
-// two four-byte-element arrays. The vptr settles it instead: the constructor
-// (mfc140u 0x1e8ee0) stores 0x321130 at 0x1c0, whose slot 0 is
-// ?GetRuntimeClass@CDWordArray@@ returning the descriptor named "CDWordArray";
-// CUIntArray's vtable is a different object at 0x321250. So the member is a
-// CDWordArray.
-// The array is not declared by OpenMFC (headerRequest), so there is nowhere to
-// record the id and this stays a no-op. Nothing else in this file reads such a
-// list, so the omission is self-consistent: no control is ignored.
-// The generated signature had no leading COlePropertyPage* -- its `p0` was
-// really `this` in RCX and the nID is in RDX; corrected below. Both are still
-// ignored, so the no-op is unaffected.
+// COlePropertyPage::IgnoreApply(UINT nID) -- retail 0x1ea8c0 is three
+// instructions and a tail jump:
+//     add $0x1c0,%rcx ; mov %edx,%r8d ; mov 0x10(%rcx),%rdx ; jmp 0x1d4260
+// i.e. CDWordArray::SetAtGrow(&m_IDArray, m_IDArray.m_nSize, nID) -- an
+// inlined Add(): append nID to the list of control ids whose changes must
+// not mark the page dirty (OnCommand reads m_pData/m_nSize at 0x1c8/0x1d0).
+// The element storage is kept at the retail offsets (see the tail struct);
+// the growth policy below is this file's own (double, minimum 4), not a
+// transcription of CDWordArray::SetAtGrow -- only the resulting contents
+// (nID appended at index m_nSize) are what retail observes.
 // Symbol: ?IgnoreApply@COlePropertyPage@@QEAAXI@Z
 extern "C" void MS_ABI impl__IgnoreApply_COlePropertyPage__QEAAXI_Z(
-    COlePropertyPage* /*pThis*/, unsigned int /*nID*/) {}
+    COlePropertyPage* pThis, unsigned int nID) {
+    if (!pThis) return;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    if (t->m_IDArray_nSize >= t->m_IDArray_nMaxSize) {
+        INT_PTR nNewMax = t->m_IDArray_nMaxSize < 4 ? 4 : t->m_IDArray_nMaxSize * 2;
+        DWORD* pNew = static_cast<DWORD*>(::realloc(t->m_IDArray_pData, static_cast<size_t>(nNewMax) * sizeof(DWORD)));
+        if (pNew == nullptr) return;
+        t->m_IDArray_pData = pNew;
+        t->m_IDArray_nMaxSize = nNewMax;
+    }
+    t->m_IDArray_pData[t->m_IDArray_nSize++] = nID;
+}
 
-// COlePropertyPage::IsModified() -- this file used to say the export "is NOT
-// in the retail RVA map, so it was not disassembled". That was wrong: it is
-// absent only from the MBCS map (0x1d02f0 there is claimed by
-// ?IsWindows7@CWinApp@@, which ICF folded onto the same two instructions).
-// In mfc140u it resolves under its own name at RVA 0x1d02f0 and is, in full:
+// COlePropertyPage::IsModified() -- mfc140u ordinal 7954 -> RVA 0x1d02f0
+// (the symbol is absent from both RVA maps; resolved through the mfc140u
+// export table), in full:
 //     mov 0x158(%rcx),%eax ; ret
-// i.e. it returns the dirty flag RAW -- not normalised to TRUE/FALSE. That is
-// the same 0x158 word retail's SetModifiedFlag (0x1e7710 / mfc140u 0x1e9970)
-// writes and hands to IPropertyPageSite::OnStatusChange. OpenMFC's member for
-// that role is m_bModified, and the inline COlePropertyPage::IsModified in
-// include/openmfc/afxole.h returns it raw as well, so this thunk does too;
-// the earlier `? TRUE : FALSE` here disagreed with both retail and that
-// inline for any value other than 0/1 (SetModified(2) is reachable, since the
-// inline SetModified stores its argument unchanged).
+// i.e. the dirty flag RAW, not normalised. OpenMFC's member for that role is
+// m_bModified and the inline IsModified in afxole.h returns it raw too.
 // Symbol: ?IsModified@COlePropertyPage@@QEAAHXZ
 extern "C" int MS_ABI impl__IsModified_COlePropertyPage__QEAAHXZ(COlePropertyPage* pThis) {
     return pThis ? pThis->m_bModified : FALSE;
 }
 
-// COlePropertyPage::MessageBox(LPCTSTR, LPCTSTR, UINT) — retail (0x1e78a0,
-// the MBCS build's ?MessageBoxA@COlePropertyPage@@QEAAHPEBD0I@Z):
-//     if (lpszCaption == NULL) lpszCaption = *(this+0x168)   ; m_strPageName
-//     hWnd = CWnd::GetSafeOwner_(*(this+0x40) /*m_hWnd*/, NULL)
-//     tail-jmp ::MessageBox(hWnd, lpszText, lpszCaption, nType)
-// The retail default caption is the page-name string set by SetPageName; the
-// OpenMFC member SetPageName writes is m_pszPageName. One deviation follows
-// from that substitution and is deliberate: retail's 0x168 is a CString, so
-// an unset page name yields a pointer to "" and the box gets an empty caption,
-// whereas OpenMFC's m_pszPageName is NULL until SetPageName is called, so an
-// unset page name reaches ::MessageBoxW as NULL and the system supplies its
-// default caption. Both dereference safely; only the caption text differs.
+// COlePropertyPage::MessageBox(LPCTSTR, LPCTSTR, UINT) -- retail 0x1e9b00:
+//     if (lpszCaption == NULL) lpszCaption = m_strPageName /*0x168*/;
+//     hWnd = CWnd::GetSafeOwner_(m_hWnd /*0x40*/, NULL);
+//     tail-jmp ::MessageBoxW(hWnd, lpszText, lpszCaption, nType)
+// The OpenMFC member SetPageName writes is m_pszPageName. Deviation that
+// follows from the substitution: retail's 0x168 is a CString, so an unset
+// page name yields "" and the box gets an empty caption, whereas
+// m_pszPageName is NULL until SetPageName is called, so ::MessageBoxW then
+// supplies its default caption.
 // Symbol: ?MessageBoxW@COlePropertyPage@@QEAAHPEB_W0I@Z
 extern "C" int MS_ABI impl__MessageBoxW_COlePropertyPage__QEAAHPEB_W0I_Z(
     COlePropertyPage* pThis, const wchar_t* lpszText, const wchar_t* lpszCaption,
@@ -648,30 +960,23 @@ extern "C" int MS_ABI impl__MessageBoxW_COlePropertyPage__QEAAHPEB_W0I_Z(
     return ::MessageBoxW(hWnd, lpszText, lpszCaption, nType);
 }
 
-// COlePropertyPage::OnCommand(WPARAM, LPARAM) -- retail (0x1e83e0):
-//     BOOL bRet = CWnd::OnCommand(wParam, lParam);      ; 0x28c4c0, first
-//     if (*(int*)(this+0x1b0) != 0) return bRet;
+// COlePropertyPage::OnCommand(WPARAM, LPARAM) -- retail 0x1ea640 (MBCS
+// 0x1e83e0):
+//     BOOL bRet = CWnd::OnCommand(wParam, lParam);      ; first
+//     if (m_bInitializing /*0x1b0*/) return bRet;
 //     if (m_ppDisp /*0x198*/ == NULL) return bRet;
 //     if (lParam == 0 /*not a control notification*/) return bRet;
-//     ... scan m_uaIgnoreApply (m_pData 0x1c8, m_nSize 0x1d0) for
-//         LOWORD(wParam); if found, return bRet. Otherwise classify the
-//         control by class name -- ::GetClassName into a 0x64-character
-//         buffer, then CompareString against two 8-entry, 16-byte-stride
-//         {const char* class; WORD notification} tables at 0x3455d0 and
-//         0x345550, plus a further CompareString against the class name
-//         "button" at 0x345508 (radio-button groups are then resolved with
-//         ::GetWindowLong GWL_STYLE / WS_GROUP and ::GetWindow GW_HWNDPREV) --
-//         and by notification code, set m_bDirty (0x158) and call
-//         SetControlStatus(nID, ...) (0x1e86b0), then notify the page site
-//         through m_pPageSite->OnStatusChange (0x190, vtable slot 3).
+//     ... scan m_IDArray (m_pData 0x1c8, m_nSize 0x1d0) for LOWORD(wParam);
+//         if found, return bRet. Otherwise classify the control by class
+//         name (::GetClassName into a 0x64-character buffer, CompareString
+//         against two 8-entry {class, notification} tables, and "button"
+//         with the WS_GROUP / GW_HWNDPREV radio-group walk) and by
+//         notification code, then set the dirty flag and call
+//         SetControlStatus(nID, ...) and m_pPageSite->OnStatusChange.
 //     return bRet;                                      ; always the base's
-// Every branch past the first two tests needs members OpenMFC does not
-// declare, and the second test alone settles it: m_ppDisp is permanently NULL
-// here, so retail returns CWnd::OnCommand's result unchanged. (The retail
-// constructor at 0x1e6e20 also initialises the dword at 0x1b0 to 1, which
-// would short-circuit at the first test, but the m_ppDisp test is the one that
-// holds unconditionally for OpenMFC.) The base dispatch is what the generated
-// `return 0` was dropping: WM_COMMAND would stop reaching the message map.
+// Only the base dispatch is implemented here; the dirty-tracking tail is
+// not on this file's assignment list and is left for its owner. The members
+// it needs (m_bInitializing, m_ppDisp, m_IDArray) are now modelled above.
 // Symbol: ?OnCommand@COlePropertyPage@@MEAAH_K_J@Z
 extern "C" int MS_ABI impl__OnCommand_COlePropertyPage__MEAAH_K_J_Z(
     COlePropertyPage* pThis, unsigned __int64 wParam, __int64 lParam) {
@@ -681,7 +986,7 @@ extern "C" int MS_ABI impl__OnCommand_COlePropertyPage__MEAAH_K_J_Z(
                                              static_cast<LPARAM>(lParam));
 }
 
-// COlePropertyPage::OnCtlColor(CDC*, CWnd*, UINT) — retail (0x1e7680):
+// COlePropertyPage::OnCtlColor(CDC*, CWnd*, UINT) -- retail 0x1e98e0:
 //     if (pWnd == NULL) AfxThrowInvalidArgException()
 //     if (pWnd->SendChildNotifyLastMsg(&lResult)) return (HBRUSH)lResult
 //     pMsg = CWnd::GetCurrentMessage()
@@ -692,11 +997,9 @@ extern "C" int MS_ABI impl__OnCommand_COlePropertyPage__MEAAH_K_J_Z(
 // The CDC* and the UINT code are not read by the retail body at all: the
 // unhandled colour message is reflected to the child and then forwarded
 // verbatim to the property frame that owns the page.
-// Two deliberate deviations from that transcription, both defensive: retail
-// THROWS on pWnd == NULL (AfxThrowInvalidArgException, 0x225b80) where this
-// returns NULL, and retail never null-checks CWnd::GetCurrentMessage()'s
-// result where this does. Neither changes the behaviour of any well-formed
-// call; both turn a retail access violation into a benign return.
+// Two deliberate deviations, both defensive: retail THROWS on pWnd == NULL
+// where this returns NULL, and retail never null-checks
+// CWnd::GetCurrentMessage()'s result where this does.
 // Symbol: ?OnCtlColor@COlePropertyPage@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
 extern "C" void* MS_ABI impl__OnCtlColor_COlePropertyPage__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
     COlePropertyPage* pThis, CDC* /*pDC*/, CWnd* pWnd, unsigned int /*nCtlColor*/) {
@@ -719,17 +1022,13 @@ extern "C" void* MS_ABI impl__OnCtlColor_COlePropertyPage__IEAAPEAUHBRUSH____PEA
     return reinterpret_cast<void*>(lr);
 }
 
-// COlePropertyPage::OnFinalRelease() — retail (0x1e7590):
-//     if (*(this+0x40) /*m_hWnd*/ != 0) this->vtbl[0xd0/8]()   ; CWnd::DestroyWindow
-//     tail-jmp this->vtbl[1](this, 1)                          ; deleting destructor
-// i.e. destroy the window if one is up, then delete the page. Slot 0xd0 was
-// read directly out of a CWnd-derived vtable in the retail image (slot 26 =
-// ?DestroyWindow@CWnd@@UEAAHXZ, 0x289f70) and slot 1 is the scalar deleting
-// destructor, which `delete pThis` reproduces through the virtual ~CObject.
-// Deviation: retail dispatches DestroyWindow VIRTUALLY; the thunk called here
-// is CWnd::DestroyWindow specifically, so an application override of
-// DestroyWindow on a derived page would be bypassed. That is a property of
-// this DLL's impl__ thunk model, not of this function.
+// COlePropertyPage::OnFinalRelease() -- retail 0x1e97f0:
+//     if (m_hWnd /*0x40*/ != 0) this->vtbl[0xd0/8]()   ; CWnd::DestroyWindow
+//     tail-jmp this->vtbl[1](this, 1)                  ; deleting destructor
+// Deviation: retail dispatches DestroyWindow VIRTUALLY; the thunk called
+// here is CWnd::DestroyWindow specifically, so an application override on a
+// derived page would be bypassed. That is a property of this DLL's impl__
+// thunk model, not of this function.
 // Symbol: ?OnFinalRelease@COlePropertyPage@@MEAAXXZ
 extern "C" void MS_ABI impl__OnFinalRelease_COlePropertyPage__MEAAXXZ(COlePropertyPage* pThis) {
     if (!pThis) return;
@@ -739,44 +1038,23 @@ extern "C" void MS_ABI impl__OnFinalRelease_COlePropertyPage__MEAAXXZ(COleProper
     delete pThis;
 }
 
-// COlePropertyPage::OnHelp(LPCTSTR) -- resolved in the Unicode build (see the
-// binary note at the top of this file). ?OnHelp@COlePropertyPage@@UEAAHPEB_W@Z
+// COlePropertyPage::OnHelp(LPCTSTR) -- ?OnHelp@COlePropertyPage@@UEAAHPEB_W@Z
 // is mfc140u ordinal 10068 -> RVA 0x71e0, and the body at 0x71e0 is, in full:
 //     xor %eax,%eax ; ret
-// i.e. `return FALSE;` unconditionally. It never touches `this`, never reads
-// the help directory it is handed, and never opens a help file: the base
-// COlePropertyPage declines help outright and leaves it to the derived page
-// to override. m_pszHelpFile / m_dwHelpContext are NOT consulted here -- the
-// only retail reader of the help members is XPropertyPage::GetPageInfo
-// (0x1e9ec0 / MBCS 0x1e7c60), which reports them to the property frame.
-//
-// This also settles what the caller does with it. XPropertyPage::Help
-// (0x1ea1d0 / MBCS 0x1e7f70) invokes the outer through vtable offset 0x338 and
-// maps the result with `test eax,eax; sete bl`, so a FALSE here becomes
-// S_FALSE -- "no help shown" -- which is the correct answer for a page that
-// has no help of its own.
-//
-// 0x71e0 is a folded COMDAT: 134 exports of this DLL share that address
-// (re-counted from the mfc140u export table), every one of them a trivial
-// `return 0` -- ?OnEditProperty@COlePropertyPage@@ among them, which is the
-// value the C++ OnEditProperty above already returns. The folding is by
-// identical code, so the behaviour it pins down for this slot is exact; the
-// fact that some other export's name also maps to 0x71e0 is not evidence about
-// this one and is not relied on. What IS evidence is the export directory: the
-// ordinal this DLL must publish for ?OnHelp@ points at 0x71e0, so that is the
-// code a caller of this export reaches.
-// Implemented rather than stubbed: the retail body needs nothing this build
-// lacks. The generated prototype had no leading COlePropertyPage*, so its
-// `const wchar_t*` was really `this` in RCX; the signature below has been
-// corrected to (this, lpszHelpDir). Neither parameter is read -- which is
-// exactly why this one is safe to implement -- so do not start using them.
+// i.e. `return FALSE;` unconditionally: it never touches `this`, never reads
+// the help directory, never opens a help file. The base page declines help
+// and leaves it to a derived page to override. (0x71e0 is an identical-code-
+// folded COMDAT shared by every trivial `return 0` export in the image; the
+// export directory is what ties this ordinal to it.) XPropertyPage::Help
+// below maps the FALSE to S_FALSE. m_pszHelpFile / m_dwHelpContext are only
+// read by XPropertyPage::GetPageInfo.
 // Symbol: ?OnHelp@COlePropertyPage@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__OnHelp_COlePropertyPage__UEAAHPEB_W_Z(
     COlePropertyPage* /*pThis*/, const wchar_t* /*lpszHelpDir*/) {
     return FALSE;
 }
 
-// COlePropertyPage::OnInitDialog() — retail (0x1e7200) is four instructions:
+// COlePropertyPage::OnInitDialog() -- retail 0x1e9460 is four instructions:
 //     call ?OnInitDialog@CDialog@@UEAAHXZ ; xor %eax,%eax ; ret
 // It calls the CDialog base and then returns FALSE (the page must not steal
 // the focus from the property frame), discarding the base's return value.
@@ -787,7 +1065,7 @@ extern "C" int MS_ABI impl__OnInitDialog_COlePropertyPage__UEAAHXZ(COlePropertyP
     return FALSE;
 }
 
-// COlePropertyPage::PreTranslateMessage(MSG*) — retail (0x1e7210):
+// COlePropertyPage::PreTranslateMessage(MSG*) -- retail 0x1e9470:
 //     if (pMsg == NULL) AfxThrowInvalidArgException()
 //     if (pMsg->message == 0x100 /*WM_KEYDOWN*/) {
 //         if (pMsg->wParam != VK_RETURN && pMsg->wParam != VK_ESCAPE)
@@ -798,7 +1076,7 @@ extern "C" int MS_ABI impl__OnInitDialog_COlePropertyPage__UEAAHXZ(COlePropertyP
 //             (pWnd->GetStyle() & 0x1000 /*ES_WANTRETURN*/) &&
 //             ::GetClassName(pWnd->m_hWnd, szClass, 10) &&
 //             ::CompareString(0x7f /*LOCALE_INVARIANT*/, NORM_IGNORECASE,
-//                             szClass, -1, "EDIT" /*0x33fbe4*/, -1) == CSTR_EQUAL) {
+//                             szClass, -1, "EDIT", -1) == CSTR_EQUAL) {
 //             ::SendMessage(pWnd->m_hWnd, 0x102 /*WM_CHAR*/,
 //                           pMsg->wParam, pMsg->lParam);
 //             return TRUE;
@@ -816,13 +1094,11 @@ extern "C" int MS_ABI impl__OnInitDialog_COlePropertyPage__UEAAHXZ(COlePropertyP
 //  base:
 //     return CDialog::PreTranslateMessage(pMsg)
 // Retail calls CWnd::FromHandle(::GetFocus()) twice on the Return/Escape path
-// (once before the VK_RETURN retest); only one call is kept here — the second
-// is a pure repeat with no additional effect beyond the handle-map lookup the
-// first already performed.
-// Deviation: retail throws AfxThrowInvalidArgException (0x225b80) on a NULL
-// pMsg; this returns FALSE instead. The MBCS retail body uses ::GetClassNameA
-// / ::CompareStringA against the char string "EDIT" at 0x33fbe4 with a
-// 10-character buffer; the wide equivalents with the same count are used here.
+// (once before the VK_RETURN retest); only one call is kept here -- the
+// second is a pure repeat with no additional effect beyond the handle-map
+// lookup the first already performed.
+// Deviation: retail throws AfxThrowInvalidArgException on a NULL pMsg; this
+// returns FALSE instead.
 // Symbol: ?PreTranslateMessage@COlePropertyPage@@MEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_COlePropertyPage__MEAAHPEAUtagMSG___Z(
     COlePropertyPage* pThis, MSG* pMsg) {
@@ -862,176 +1138,209 @@ extern "C" int MS_ABI impl__PreTranslateMessage_COlePropertyPage__MEAAHPEAUtagMS
 }
 
 // COlePropertyPage::SetControlStatus(UINT nID, BOOL bDirty) -- retail
-// (0x1e86b0), the mirror of GetControlStatus:
+// 0x1ea910, the mirror of GetControlStatus:
 //     for (i = 0; i < m_nControls /*0x1b4*/; ++i)
-//         if (m_pControlStatus /*0x1b8*/ [i].nID == nID) {
-//             m_pControlStatus[i].bDirty = bDirty;
+//         if (m_pStatus /*0x1b8*/ [i].nID == nID) {
+//             m_pStatus[i].bDirty = bDirty;
 //             return TRUE;
 //         }
 //     return FALSE;                                 ; not found => FALSE
 // Note the asymmetry with GetControlStatus, whose not-found answer is TRUE.
-// The table is never built here (m_nControls is permanently 0), so retail
-// falls straight to the FALSE the generated stub already returns; it is left
-// alone as the verified reduction. The members are a headerRequest.
 // Symbol: ?SetControlStatus@COlePropertyPage@@QEAAHIH@Z
 extern "C" int MS_ABI impl__SetControlStatus_COlePropertyPage__QEAAHIH_Z(
-    COlePropertyPage* /*pThis*/, unsigned int /*nID*/, int /*bDirty*/) {
+    COlePropertyPage* pThis, unsigned int nID, int bDirty) {
+    if (!pThis) return FALSE;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    for (int i = 0; i < t->m_nControls; ++i) {
+        if (t->m_pStatus[i].nID == nID) {
+            t->m_pStatus[i].bDirty = bDirty;
+            return TRUE;
+        }
+    }
     return FALSE;
 }
 
-// COlePropertyPage::SetDialogResource(HGLOBAL hDialog) -- retail (0x1e77b0):
-//     if (m_hDialogTemplate /*0x1e8*/) {
-//         ::GlobalFree(m_hDialogTemplate);          ; import at 0x2c4708
-//         m_hDialogTemplate = NULL;
-//     }
-//     <build a template wrapper on the stack from hDialog>          ; 0x218330
-//     <measure it into m_sizePage /*0x170*/>                        ; 0x218bb0
-//     m_hDialogTemplate = <the wrapper's handle>;
-// Both members it writes are absent from OpenMFC's declaration
-// (headerRequest), and m_sizePage is the value XPropertyPage::GetPageInfo
-// (0x1e7c60) reports to the property frame, so storing it somewhere this file
-// cannot read back would be pointless. Left a no-op: the page keeps whatever
-// template CDialog was constructed with.
+// COlePropertyPage::SetDialogResource(HGLOBAL hDialog) -- retail 0x1e9a10:
+//     if (m_hDialog /*0x1e8*/) { ::GlobalFree(m_hDialog); m_hDialog = NULL; }
+//     CDialogTemplate dt(hDialog);              ; ??0CDialogTemplate@@QEAA@PEAX@Z 0x219f00
+//     dt.GetSizeInPixels(&m_sizePage /*0x170*/); ; 0x21a6c0
+//     m_hDialog = dt.m_hTemplate;               ; dt's first qword; no
+//                                               ; CDialogTemplate destructor
+//                                               ; runs
+// What dt.m_hTemplate IS decides the ownership, so the ctor was read too.
+// Retail ??0CDialogTemplate@@QEAA@PEAX@Z (0x219f00): a NULL handle zeroes
+// m_hTemplate / m_dwTemplateSize and returns; otherwise it GlobalLock's
+// hDialog (IAT 0x2c6628), takes GetTemplateSize (0x21a1a0) of the locked
+// bytes, calls SetTemplate (0x219f70) -- which GlobalAlloc(GMEM_ZEROINIT,
+// size + 0x40)s (IAT 0x2c6620) a FRESH block, memcpy's the template into it
+// and AfxThrowMemoryException's (0x2276c0) if the allocation fails -- and
+// GlobalUnlock's hDialog (IAT 0x2c6630). So the page ends up owning a
+// private GMEM_FIXED copy: the caller's hDialog is only read and remains
+// the caller's to free, and ::LockResource(m_hDialog) in Activate works
+// because a fixed HGLOBAL is its own pointer.
+// OpenMFC's CDialogTemplate (core/dialog/CDialogTemplate.cpp) does none of
+// that: its ctor thunk parses the argument as a raw DLGTEMPLATE* into a
+// side table keyed by the object address (no GlobalLock, no copy),
+// GetTemplateSize is a `return 0` placeholder, GetSizeInPixels an empty
+// one-parameter placeholder, and its dtor thunk only drops the side-table
+// entry. The copy retail's ctor makes is therefore made here directly, and
+// the ctor / GetSizeInPixels / dtor sequence is kept -- on the locked
+// bytes, which is also what retail's ctor parses -- so m_sizePage is filled
+// the moment GetSizeInPixels is implemented (headerRequest); until then it
+// stays 0 and nothing else in this file writes it.
+// DEVIATION: the copy is sized by ::GlobalSize(hDialog) instead of
+// CDialogTemplate::GetTemplateSize (the placeholder above; headerRequest).
+// A real HGLOBAL -- which retail requires as well, since it GlobalLock's
+// it -- is at least as large as the template it holds, and nothing reads
+// the size back. DEVIATION (defensive): a handle that will not lock or size,
+// or a failed allocation, leaves m_hDialog NULL where retail would fault or
+// throw. (An earlier body stored hDialog itself and freed it in the
+// destructor, i.e. took ownership of the caller's handle; that was wrong.)
 // Symbol: ?SetDialogResource@COlePropertyPage@@QEAAXPEAX@Z
 extern "C" void MS_ABI impl__SetDialogResource_COlePropertyPage__QEAAXPEAX_Z(
-    COlePropertyPage* /*pThis*/, void* /*hDialog*/) {}
+    COlePropertyPage* pThis, void* hDialog) {
+    if (!pThis) return;
+    S_COlePropertyPageTail* t = Tail(pThis);
+    if (t->m_hDialog != nullptr) {
+        ::GlobalFree(t->m_hDialog);
+        t->m_hDialog = nullptr;
+    }
+    HGLOBAL hCopy = nullptr;
+    const void* pTemplate = nullptr;
+    if (hDialog != nullptr) {
+        pTemplate = ::GlobalLock(static_cast<HGLOBAL>(hDialog));
+        if (pTemplate != nullptr) {
+            const SIZE_T cb = ::GlobalSize(static_cast<HGLOBAL>(hDialog));
+            if (cb != 0 && cb + 0x40 > cb) {
+                hCopy = ::GlobalAlloc(GMEM_ZEROINIT, cb + 0x40);   // GMEM_FIXED
+                if (hCopy != nullptr) {
+                    ::memcpy(hCopy, pTemplate, cb);
+                }
+            }
+        }
+    }
+    alignas(8) unsigned char dt[16];
+    impl___0CDialogTemplate__QEAA_PEAX_Z(dt, const_cast<void*>(pTemplate));
+    impl__GetSizeInPixels_CDialogTemplate__QEBAXPEAUtagSIZE___Z(dt, &t->m_sizePage);
+    impl___1CDialogTemplate__QEAA_XZ(dt);
+    if (pTemplate != nullptr) {
+        ::GlobalUnlock(static_cast<HGLOBAL>(hDialog));
+    }
+    t->m_hDialog = hCopy;
+}
 
 // ---------------------------------------------------------------------------
-// SetPropCheck / SetPropIndex / SetPropRadio / SetPropText(9 overloads)
-//
-// Resolved under the MBCS build's ...PEBD... names (Unicode RVAs in the binary
-// note at the top of the file): SetPropCheck 0x1e9bf0,
-// SetPropRadio 0x1e9ea0, and six SetPropText bodies for the nine overloads.
-// ?SetPropIndex@ (0x1ea150) is again only a `jmp 0x1801e9ea0`, an alias of
-// SetPropRadio. The six SetPropText bodies are distinguished purely by the
-// VARTYPE they pass in R8D, read out of each:
-//     0x1e86e0  VT_UI1 (0x11)  BYTE&
-//     0x1e8990  VT_I2  (2)     short&
-//     0x1e8c40  VT_I4  (3)     int& / UINT& / long& / DWORD&  -- one body for
-//                              all four, which is why the int&, UINT& and
-//                              long& manglings have no RVA of their own
-//     0x1e9340  VT_R4  (4)     float&
-//     0x1e9600  VT_R8  (5)     double&
-//     0x1e98c0  VT_BSTR(8)     CString&
-// (SetPropCheck uses VT_BOOL 0xb and SetPropRadio VT_I2 2, likewise read out.)
-//
-// One shape, transcribed from SetPropText(BYTE&) at 0x1e86e0:
-//     BOOL bWrote = FALSE;
-//     for (i = 0; i < m_nObjects /*0x1ac*/; ++i) {
-//         IDispatch* p = m_ppDisp /*0x198*/ [i];
-//         if (FAILED(p->GetIDsOfNames(...)))    ; IDispatch vtable slot 5
-//             continue;                         ; 0x1e8772 `js` -- the object
-//                                               ; is skipped and bWrote is
-//                                               ; left alone for it
-//         COleDispatchDriver::AttachDispatch(p, FALSE);      ; 0x250e50
-//         COleDispatchDriver::SetProperty(dispid, <VARTYPE>, value); ; 0x251780
-//                                               ; the VARTYPE is from the
-//                                               ; table above -- R8D = 0x11
-//                                               ; (VT_UI1) in this body
-//         bWrote = TRUE;
-//     }
-//     return bWrote;                            ; the register is ESI
-//
-// As with the GetProp* family the loop bound is permanently 0 here, so retail
-// writes to no object and returns FALSE -- which is what the generated stubs
-// below already return. Left as-is, verified equivalent for this object
-// state. The object array is a headerRequest.
-//
-// Signatures: as in the GetProp* block, the generated stubs had no leading
-// `COlePropertyPage* pThis` and the CStringT overload had four parameters.
-// They are corrected below to the retail register assignment (`this` in RCX,
-// the property name in RDX, the value in R8), read out of SetPropText(BYTE&)
-// 0x1ea940 and SetPropText(CString&) 0x1ebb20 in mfc140u. The bodies still
-// ignore every argument, so nothing observable changes.
+// SetPropCheck / SetPropIndex / SetPropRadio / SetPropText (9 overloads).
+// Shape: see SetPropScalar above. Per body, the VARTYPE handed to
+// COleDispatchDriver::SetProperty (0x2526c0) in R8D and how the value is
+// loaded into R9:
+//     SetPropCheck  0x1ebe50  VT_BOOL  r9d = (nValue == 1)   ; `cmp $1; sete`
+//     SetPropRadio  0x1ec100  VT_I2    r9d = (short)nValue   ; `movswl %r15w`
+//     SetPropIndex  0x1ec3b0  a single `jmp 0x1ec100`: an alias of SetPropRadio
+//     SetPropText   BYTE&  0x1ea940 VT_UI1 `movzbl (%r15)`
+//                   short& 0x1eabf0 VT_I2  `movswl (%r15)`
+//                   int& / UINT& / long& / DWORD&  0x1eaea0 VT_I4 `mov (%r15),%r9d`
+//                        -- ordinals 13505..13508 all export the one body
+//                   float& 0x1eb5a0 VT_R4  `movss; cvtps2pd` (promoted double)
+//                   double&0x1eb860 VT_R8  `movsd (%r15)`
+//                   CString& 0x1ebb20 VT_BSTR `mov (%r15),%r9` (the buffer pointer)
 // ---------------------------------------------------------------------------
 
 // Symbol: ?SetPropCheck@COlePropertyPage@@QEAAHPEB_WH@Z
 extern "C" int MS_ABI impl__SetPropCheck_COlePropertyPage__QEAAHPEB_WH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int /*value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int nValue) {
+    return SetPropScalar<int>(pThis, pszPropName, VT_BOOL, (nValue == 1) ? 1 : 0);
 }
 
 // Symbol: ?SetPropIndex@COlePropertyPage@@QEAAHPEB_WH@Z
 extern "C" int MS_ABI impl__SetPropIndex_COlePropertyPage__QEAAHPEB_WH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int /*value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int nValue) {
+    // Retail 0x1ec3b0 is `jmp 0x1801ec100` -- SetPropRadio's body.
+    return impl__SetPropRadio_COlePropertyPage__QEAAHPEB_WH_Z(pThis, pszPropName, nValue);
 }
 
 // Symbol: ?SetPropRadio@COlePropertyPage@@QEAAHPEB_WH@Z
 extern "C" int MS_ABI impl__SetPropRadio_COlePropertyPage__QEAAHPEB_WH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int /*value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int nValue) {
+    return SetPropScalar<int>(pThis, pszPropName, VT_I2, static_cast<int>(static_cast<short>(nValue)));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAE@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAE_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned char* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned char* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<int>(pThis, pszPropName, VT_UI1, static_cast<int>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAF@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAF_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, short* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, short* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<int>(pThis, pszPropName, VT_I2, static_cast<int>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAH@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAH_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, int* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, int* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<long>(pThis, pszPropName, VT_I4, static_cast<long>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAI@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAI_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned int* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned int* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<long>(pThis, pszPropName, VT_I4, static_cast<long>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAJ@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAJ_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, long* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, long* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<long>(pThis, pszPropName, VT_I4, *pValue);
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAK@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAK_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, unsigned long* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, unsigned long* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<long>(pThis, pszPropName, VT_I4, static_cast<long>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAM@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAM_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, float* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, float* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<double>(pThis, pszPropName, VT_R4, static_cast<double>(*pValue));
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAN@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAN_Z(
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, double* /*&value*/) {
-    return 0;
+    COlePropertyPage* pThis, const wchar_t* pszPropName, double* pValue) {
+    if (!pValue) return FALSE;
+    return SetPropScalar<double>(pThis, pszPropName, VT_R8, *pValue);
 }
 
 // Symbol: ?SetPropText@COlePropertyPage@@QEAAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__SetPropText_COlePropertyPage__QEAAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    // AEAV, not AEBV: the reference is NON-const (retail reads the caller's
-    // string and MFC declares it `CString& strValue`).
-    COlePropertyPage* /*pThis*/, const wchar_t* /*pszPropName*/, void* /*CString& strValue*/) {
-    return 0;
+    // AEAV, not AEBV: the reference is NON-const (MFC declares it
+    // `CString& strValue`); retail only reads its buffer pointer.
+    COlePropertyPage* pThis, const wchar_t* pszPropName, void* pStrValueRaw) {
+    CString* pStrValue = static_cast<CString*>(pStrValueRaw);
+    if (!pStrValue) return FALSE;
+    return SetPropScalar<const wchar_t*>(pThis, pszPropName, VT_BSTR, pStrValue->GetString());
 }
 
-// COlePropertyPage::WindowProc(UINT, WPARAM, LPARAM) — retail (0x1e75d0):
-//     AFX_MAINTAIN_STATE2 _state(*(this+0x38))          ; m_pModuleState
+// COlePropertyPage::WindowProc(UINT, WPARAM, LPARAM) -- retail 0x1e9830:
+//     AFX_MAINTAIN_STATE2 _state(m_pModuleState /*0x38*/)
 //     if (message == 0x112 /*WM_SYSCOMMAND*/ &&
 //         (wParam & 0xfff0) != 0xf100 /*SC_KEYMENU*/) {
-//         pSite = *(this+0x190);                        ; m_pPageSite
+//         pSite = m_pPageSite /*0x190*/;
 //         if (pSite != NULL &&
 //             pSite->vtbl[6](pSite, CWnd::GetCurrentMessage()) == S_OK)
 //             return 0;                                 ; slot 6 =
 //     }                                                 ;  IPropertyPageSite::
 //     return CWnd::WindowProc(message, wParam, lParam)  ;  TranslateAccelerator
-// The module-state guard is a retail AFX_MAINTAIN_STATE2 frame; this
-// reimplementation does not reproduce it (OpenMFC's thunks do not push module
-// state at this boundary), only the accelerator forwarding.
 // Symbol: ?WindowProc@COlePropertyPage@@MEAA_JI_K_J@Z
 extern "C" __int64 MS_ABI impl__WindowProc_COlePropertyPage__MEAA_JI_K_J_Z(
     COlePropertyPage* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam) {
@@ -1052,417 +1361,562 @@ extern "C" __int64 MS_ABI impl__WindowProc_COlePropertyPage__MEAA_JI_K_J_Z(
 }
 
 // ===========================================================================
-// XPropertyPage (IPropertyPage) and XPropNotifySink (IPropertyNotifySink)
+// XPropertyPage (IPropertyPage2) and XPropNotifySink (IPropertyNotifySink)
 //
-// These are the two nested interface sub-objects MFC embeds in the retail
-// COlePropertyPage. Every one of their bodies opens by converting the
-// interface pointer it was handed into the outer object:
-//     XPropertyPage   methods: `lea -0x1f0(%rcx),%r*`   (checked on Activate,
-//                              Deactivate, Apply, Help, EditProperty, Move,
-//                              SetObjects; GetPageInfo instead addresses the
-//                              outer's members directly at -0x88..-0x68, and
-//                              IsPageDirty at -0x98, which is the same origin)
-//     XPropNotifySink methods: `lea -0x1f8(%rcx),%r*`   (checked on OnChanged)
-// -- i.e. the sub-objects sit at outer+0x1f0 and outer+0x1f8, which the retail
-// constructor (0x1e6e20) fills with the vtables at 0x180322768 and 0x180322738.
+// Every body below converts the interface pointer it was handed into the
+// outer object exactly as retail does -- `lea -0x1f0(%rcx)` for XPropertyPage
+// (GetPageInfo addresses the outer's members directly at -0x88..-0x68 and
+// IsPageDirty at -0x98, the same origin) and `lea -0x1f8(%rcx)` for
+// XPropNotifySink. The vtables the constructors install are defined at the
+// top of this file, with the retail slot tables.
 //
-// OpenMFC's COlePropertyPage declares neither sub-object; the bytes at those
-// offsets are inside _olepropertypage_padding and hold no vtable, and
-// g_imap_COlePropertyPage (detail/InterfaceMapsSupport.cpp) is the inherited
-// CCmdTarget map, so nothing in this build ever hands out a pointer to them.
-// Reproducing the retail `this` adjustment would therefore compute an outer
-// pointer from an address no caller can legitimately supply. Both sub-objects
-// (and the members most of these methods touch) are a headerRequest, and the
-// entry points below stay stubs with the decoded behaviour recorded.
-//
-// The two nested vtables themselves ARE in the retail image and were dumped
-// out of .rdata; every slot resolves through the symbol map, which is what
-// fixes the identity of each sub-object:
-//
-//   XPropNotifySink, vtable 0x322738, 5 slots (RTTI locator at 0x322730):
-//     0  0x1e8300  QueryInterface        3  0x1e8370  OnChanged
-//     1  0x003ae0  AddRef  -> `mov $1,%eax; ret`
-//     2  0x007260  Release -> `xor %eax,%eax; ret`
-//     4  0x007260  OnRequestEdit  -- SAME address as slot 2; the retail body
-//                  is `xor %eax,%eax; ret`, identical-COMDAT-folded with
-//                  every other trivial `return 0` in the image. See its entry
-//                  point below: the body ignores `this`, so it is
-//                  implementable even though the sub-object is unreachable.
-//   (AddRef returning a constant 1 and Release a constant 0 is not a decode
-//   error: this sink is owned by the page and is deliberately not refcounted.)
-//
-//   XPropertyPage, vtable 0x322768, 15 slots (RTTI locator at 0x322760):
-//     0  0x1e7940  QueryInterface        8  0x1e7e20  Show
-//     1  0x1e7900  AddRef                9  0x1e7e60  Move
-//     2  0x1e7910  Release              10  0x1e7ea0  IsPageDirty
-//     3  0x1e7970  SetPageSite          11  0x1e7eb0  Apply
-//     4  0x1e7a00  Activate             12  0x1e7f70  Help
-//     5  0x1e7c10  Deactivate           13  0x1e8010  TranslateAccelerator
-//     6  0x1e7c60  GetPageInfo          14  0x1e82a0  EditProperty
-//     7  0x1e7cc0  SetObjects
-//   -- CORRECTION (this file previously said "14 slots ... exactly IUnknown +
-//   IPropertyPage"): there are FIFTEEN. The qword at 0x3227d8 is
-//   ?EditProperty@XPropertyPage@ (0x1e82a0) and only the one after it,
-//   0x3227e0 = 0x18035ca68, is the next .rdata object's RTTI locator. So the
-//   sub-object implements IPropertyPage2, not IPropertyPage: EditProperty is
-//   slot 14 of THIS vtable, not a second interface part. Whoever adds the
-//   BEGIN_INTERFACE_PART must declare IPropertyPage2 and register
-//   IID_IPropertyPage2 in the interface map, or the frame's
-//   QueryInterface(IID_IPropertyPage2) will fail and property browsing will
-//   fall back to the IPropertyPage path.
-//   Slots 0-2
-//   are `add $-0x1f0,%rcx` thunks that delegate through the outer's
-//   CCmdTarget::m_pOuterUnknown at outer+0x10 (falling back to 0x26bda0 /
-//   0x26bb40 / 0x26bb70 when it is null), which independently re-confirms the
-//   0x1f0 sub-object offset.
-//
-// Outer vtable slots. Four of these methods call back into the outer object
-// through four CONSECUTIVE vtable slots, one each:
-//     0x328  SetPageSite  (0x1e7970)   ->  OnSetPageSite
-//     0x330  SetObjects   (0x1e7cc0)   ->  OnObjectsChanged
-//     0x338  Help         (0x1e7f70)   ->  OnHelp
-//     0x340  EditProperty (0x1e82a0)   ->  OnEditProperty
-// The four offsets and their call sites were read out of the disassembly and
-// are certain. That they are COlePropertyPage's OWN first four added virtuals
-// is now structural rather than guessed: CDialog's vtable (0x323498, installed
-// by ??0CDialog@ at 0x206015) is exactly 0x328 bytes long -- its last slot is
-// 0x3237b8 and the qword at 0x3237c0 is ?GetThisMessageMap@CWnd@@, i.e. the
-// first field of the next .rdata object, not a slot -- so 0x328/0x330/0x338/
-// 0x340 are precisely the first four slots a CDialog-derived class appends.
-// Which of the four each one is remains matched by position and by call site:
-// they are the four virtuals MFC's COlePropertyPage adds, in declaration
-// order, and each is called from the IPropertyPage method that documents it.
-//
-// COlePropertyPage's own vtable is NOT in the retail image -- re-checked by
-// scanning every section for a qword equal to the VA of OnInitDialog
-// 0x1e7200, WindowProc 0x1e75d0, OnFinalRelease 0x1e7590, PreTranslateMessage
-// 0x1e7210, OnCommand 0x1e83e0 or OnSetPageSite 0x1e6f90: zero hits, and the
-// single hit on OnCtlColor 0x1e7680 is its AFX_MSGMAP_ENTRY at 0x322838.
-// ??0COlePropertyPage@ (0x1e6e20) never stores a vptr either; it leaves the
-// CDialog vtable that ??0CDialog@ installed. Do not repeat that search.
-// Two other outer vtable offsets used below WERE read directly out of the
-// CDialog/CWnd vtable at 0x323498:
-//     0xd0   -> ?DestroyWindow@CWnd@@UEAAHXZ            (0x289f70)
-//     0x2d8  -> ?Create@CDialog@@UEAAHIPEAVCWnd@@@Z     (0x27fc0, a
-//               `movzwl %dx,%edx; jmp 0x206220` thunk onto the LPCTSTR form)
-//     0x2e8  -> ?CreateIndirect@CDialog@@UEAAHPEAXPEAVCWnd@@@Z (0x2062f0)
+// Outer vtable slots. Four of these methods call back into the outer through
+// four CONSECUTIVE vtable slots:
+//     0x328  SetPageSite  -> OnSetPageSite
+//     0x330  SetObjects   -> OnObjectsChanged
+//     0x338  Help         -> OnHelp
+//     0x340  EditProperty -> OnEditProperty
+// CDialog's retail vtable is exactly 0x328 bytes long (checked in the MBCS
+// image: the qword after its last slot is ?GetThisMessageMap@CWnd@@, the
+// first field of the next .rdata object), so these are precisely the first
+// four virtuals COlePropertyPage adds, in declaration order, each matched to
+// its name by the IPropertyPage method that documents it. OpenMFC's C++
+// vtable is unrelated to retail's, so here OnSetPageSite / OnObjectsChanged /
+// OnEditProperty are reached by C++ virtual dispatch on the OpenMFC
+// declaration (a derived page's override is honoured), while OnHelp -- which
+// afxole.h does not declare -- is called through its own thunk above
+// (DEVIATION: a derived page's OnHelp override is not reachable until the
+// header declares it; headerRequest). Two more outer slots are used:
+//     0xd0   -> ?DestroyWindow@CWnd@@UEAAHXZ
+//     0x2d8  -> CDialog::Create(UINT, CWnd*), an unexported inline that is
+//               `movzwl %dx,%edx; jmp` onto the LPCTSTR form -- i.e.
+//               Create(MAKEINTRESOURCE(id), parent)
+//     0x2e8  -> ?CreateIndirect@CDialog@@UEAAHPEAXPEAVCWnd@@@Z
 // ===========================================================================
 
-// XPropertyPage::Activate(HWND hWndParent, LPCRECT prc, BOOL) -- retail
-// (0x1e7a00), under AFX_MAINTAIN_STATE2:
-//     if (m_hDialogTemplate /*0x1e8*/) {
-//         LPVOID p = ::LockResource(m_hDialogTemplate);  ; IAT 0x2c4588,
-//                                                        ; = KERNEL32!LockResource
-//         if (p)
-//             ok = outer->vtbl[0x2e8/8](p, CWnd::FromHandle(hWndParent));
-//                                       ; = CDialog::CreateIndirect(void*,CWnd*)
-//         else
-//             ok = outer->vtbl[0x2d8/8](*(UINT*)(this+0x15c),
-//                                       CWnd::FromHandle(hWndParent));
+// XPropertyPage::Activate(HWND hWndParent, LPCRECT prc, BOOL bModal) --
+// retail 0x1e9c60, under AFX_MAINTAIN_STATE2 (bModal is never read):
+//     if (m_hDialog /*0x1e8*/) {
+//         LPVOID p = ::LockResource(m_hDialog);         ; IAT 0x2c6550
+//         if (p) ok = outer->vtbl[0x2e8/8](p, CWnd::FromHandle(hWndParent));
+//                                                       ; CreateIndirect
+//         else   ok = outer->vtbl[0x2d8/8](m_idDialog /*0x15c*/,
+//                                          CWnd::FromHandle(hWndParent));
 //     } else {
-//         ok = outer->vtbl[0x2d8/8](*(UINT*)(this+0x15c),
-//                                   CWnd::FromHandle(hWndParent));
-//                                       ; = CDialog::Create(UINT,CWnd*)
-//     }
-//         ; CWnd::FromHandle is 0x289180 and is called separately on each of
-//         ; the three arms (0x1e7a46 / 0x1e7a63 / 0x1e7a81), always after the
-//         ; LockResource; the LockResource-failed arm then falls into the same
-//         ; by-id Create as the no-template arm -- both reach 0x1e7a8c.
-//     if (!ok) return E_FAIL /*0x80004005*/;         ; 0x1e7a9d -> 0x1e7b7c
+//         ok = outer->vtbl[0x2d8/8](m_idDialog, CWnd::FromHandle(hWndParent));
+//     }                                                 ; FromHandle 0x28ad70
+//     if (!ok) return E_FAIL /*0x80004005*/;
 //     CWnd::MoveWindow(prc->left, prc->top, prc->right - prc->left,
-//                      prc->bottom - prc->top, TRUE);
-//         ; 0x2a7920 = ?MoveWindow@CWnd@@QEAAXHHHHH@Z -- the five-int
-//         ; overload with the rect decomposed inline, NOT MoveWindow(LPCRECT,
-//         ; BOOL); same call shape as XPropertyPage::Move below
-//     *(int*)(this+0x1b0) = 1;
-//     CWnd::UpdateData(FALSE);                      ; 0x28f530
-//     SetModifiedFlag(FALSE);                       ; 0x1e7710
-//     *(int*)(this+0x1b0) = 0;
-//     free(m_pControlStatus /*0x1b8*/); m_pControlStatus = NULL;
+//                      prc->bottom - prc->top, TRUE);   ; 0x2a9a10, five ints
+//     m_bInitializing /*0x1b0*/ = TRUE;
+//     CWnd::UpdateData(FALSE);                          ; 0x2910d0
+//     SetModifiedFlag(FALSE);                           ; 0x1e9970
+//     m_bInitializing = FALSE;
+//     if (m_pStatus /*0x1b8*/) { free(m_pStatus); m_pStatus = NULL; }
 //     m_nControls /*0x1b4*/ = 0;
-//     ::EnumChildWindows(m_hWnd, EnumChildProc, this);   ; count  (0x1e7ba0)
+//     ::EnumChildWindows(m_hWnd, EnumChildProc, this);  ; count, IAT 0x2c6e10
 //     if (m_nControls > 0)
-//         m_pControlStatus = operator new(m_nControls * 8);
+//         m_pStatus = operator new(m_nControls * 8);    ; 0x27f0, overflow-checked
 //     m_nControls = 0;
-//     ::EnumChildWindows(m_hWnd, EnumControls, this);    ; fill   (0x1e7bc0)
+//     ::EnumChildWindows(m_hWnd, EnumControls, this);   ; fill
 //     return S_OK;
-// This is where the control-status table that GetControlStatus/
-// SetControlStatus/Apply read is built. It needs the dialog template, the
-// control table and the 0x1b0 flag, none of which OpenMFC declares.
+// m_idDialog is CDialog::m_lpszTemplateName here (see the layout note), and
+// SetModifiedFlag is the C++ member above. The status table is malloc'ed so
+// that the free() retail pairs it with in the destructor and here is exact.
+// DEVIATION: a NULL prc returns E_POINTER instead of faulting.
 // Symbol: ?Activate@XPropertyPage@COlePropertyPage@@UEAAJPEAUHWND__@@PEBUtagRECT@@H@Z
 extern "C" long MS_ABI impl__Activate_XPropertyPage_COlePropertyPage__UEAAJPEAUHWND____PEBUtagRECT__H_Z(
-    void* /*pThis: the XPropertyPage sub-object*/, HWND /*hWndParent*/,
-    const RECT* /*prc*/, int /*bModal*/) {
-    return 0;
+    void* pThis, HWND hWndParent, const RECT* prc, int /*bModal*/) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    S_COlePropertyPageTail* t = Tail(pPage);
+
+    int bOK;
+    LPVOID pTemplate = (t->m_hDialog != nullptr) ? ::LockResource(t->m_hDialog) : nullptr;
+    if (pTemplate != nullptr) {
+        bOK = impl__CreateIndirect_CDialog__UEAAHPEAXPEAVCWnd___Z(
+            static_cast<CDialog*>(pPage), pTemplate,
+            impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(hWndParent));
+    } else {
+        bOK = impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
+            static_cast<CDialog*>(pPage), pPage->m_lpszTemplateName,
+            impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(hWndParent));
+    }
+    if (!bOK) return static_cast<long>(0x80004005L); // E_FAIL
+    if (prc == nullptr) return static_cast<long>(0x80004003L); // E_POINTER
+
+    impl__MoveWindow_CWnd__QEAAXHHHHH_Z(static_cast<CWnd*>(pPage), prc->left, prc->top,
+                                        prc->right - prc->left, prc->bottom - prc->top, TRUE);
+    t->m_bInitializing = TRUE;
+    PageUpdateData(pPage, FALSE);
+    pPage->SetModifiedFlag(FALSE);
+    t->m_bInitializing = FALSE;
+
+    if (t->m_pStatus != nullptr) {
+        ::free(t->m_pStatus);
+        t->m_pStatus = nullptr;
+    }
+    t->m_nControls = 0;
+    ::EnumChildWindows(pPage->m_hWnd, impl__EnumChildProc_COlePropertyPage__KAHPEAUHWND_____J_Z,
+                       reinterpret_cast<LPARAM>(pPage));
+    if (t->m_nControls > 0) {
+        t->m_pStatus = static_cast<AFX_PPFIELDSTATUS*>(
+            ::malloc(static_cast<size_t>(t->m_nControls) * sizeof(AFX_PPFIELDSTATUS)));
+        if (t->m_pStatus == nullptr) {
+            t->m_nControls = 0;
+            return static_cast<long>(0x8007000EL); // E_OUTOFMEMORY (retail: operator new throws)
+        }
+    }
+    t->m_nControls = 0;
+    ::EnumChildWindows(pPage->m_hWnd, impl__EnumControls_COlePropertyPage__KAHPEAUHWND_____J_Z,
+                       reinterpret_cast<LPARAM>(pPage));
+    return S_OK;
 }
 
-// XPropertyPage::Apply() -- retail (0x1e7eb0). Note the early exit: when the
-// page is not dirty NOTHING else runs -- not the deferred-refill drain, not
-// the control-status reset. (`cmp %edi,0x158(%rbx); je <exit>` at 0x1e7ed1
-// jumps straight to the `mov %edi,%eax` return with EDI still 0.)
+// XPropertyPage::Apply() -- retail 0x1ea110, under AFX_MAINTAIN_STATE2. Note
+// the early exit: when the page is not dirty NOTHING else runs (`cmp
+// %edi,0x158(%rbx); je <exit>` with EDI still 0 = S_OK).
 //     HRESULT hr = S_OK;
 //     if (m_bDirty /*0x158*/ == 0) return S_OK;
-//     BOOL bOK = CWnd::UpdateData(TRUE);            ; 0x28f530
+//     BOOL bOK = CWnd::UpdateData(TRUE);            ; 0x2910d0
 //     if (bOK) m_bDirty = 0; else hr = E_FAIL /*0x80004005*/;
-//     if (*(int*)(this+0x1a8)) {                    ; deferred refill pending
-//         CWnd::UpdateData(FALSE); *(int*)(this+0x1a8) = 0;
+//     if (m_bPropsChanged /*0x1a8*/) {              ; deferred refill pending
+//         CWnd::UpdateData(FALSE); m_bPropsChanged = 0;
 //     } else if (!bOK) {
-//         return hr;                                ; 0x1e7f1b: skip the reset
+//         return hr;                                ; skip the reset
 //     }
-//     if (m_pControlStatus /*0x1b8*/)
+//     if (m_pStatus /*0x1b8*/)
 //         for (i = 0; i < m_nControls /*0x1b4*/; ++i)
-//             m_pControlStatus[i].bDirty = FALSE;
+//             m_pStatus[i].bDirty = FALSE;
 //     return hr;
-// Needs the retail dirty flag (0x158, distinct from OpenMFC's m_bModified at
-// 0x138), the 0x1a8 flag XPropNotifySink::OnChanged sets, and the control
-// table -- plus a reachable sub-object. Stub.
+// m_bDirty is m_bModified here. Note that the flag is cleared by a direct
+// store, NOT through SetModifiedFlag, so the site is not told.
 // Symbol: ?Apply@XPropertyPage@COlePropertyPage@@UEAAJXZ
-extern "C" long MS_ABI impl__Apply_XPropertyPage_COlePropertyPage__UEAAJXZ(
-    void* /*pThis: the XPropertyPage sub-object*/) {
-    return 0;
+extern "C" long MS_ABI impl__Apply_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    S_COlePropertyPageTail* t = Tail(pPage);
+
+    long hr = S_OK;
+    if (pPage->m_bModified == 0) return S_OK;
+    int bOK = PageUpdateData(pPage, TRUE);
+    if (bOK) {
+        pPage->m_bModified = 0;
+    } else {
+        hr = static_cast<long>(0x80004005L); // E_FAIL
+    }
+    if (t->m_bPropsChanged) {
+        PageUpdateData(pPage, FALSE);
+        t->m_bPropsChanged = FALSE;
+    } else if (!bOK) {
+        return hr;
+    }
+    if (t->m_pStatus != nullptr) {
+        for (int i = 0; i < t->m_nControls; ++i) {
+            t->m_pStatus[i].bDirty = FALSE;
+        }
+    }
+    return hr;
 }
 
-// XPropertyPage::Deactivate() -- retail (0x1e7c10): under
-// AFX_MAINTAIN_STATE2, call the outer through vtable offset 0xd0 --
-// CWnd::DestroyWindow, confirmed by reading offset 0xd0 of a CWnd-derived
-// vtable in the retail image -- and return S_OK. The call itself is
-// expressible here (impl__DestroyWindow_CWnd__UEAAHXZ is declared above), but
-// the outer pointer is not recoverable from an unreachable sub-object. Stub.
+// XPropertyPage::Deactivate() -- retail 0x1e9e70: under AFX_MAINTAIN_STATE2,
+// call the outer through vtable offset 0xd0 (CWnd::DestroyWindow) and
+// return S_OK. DEVIATION: dispatched to CWnd::DestroyWindow's thunk, not
+// virtually (see OnFinalRelease).
 // Symbol: ?Deactivate@XPropertyPage@COlePropertyPage@@UEAAJXZ
-extern "C" long MS_ABI impl__Deactivate_XPropertyPage_COlePropertyPage__UEAAJXZ(
-    void* /*pThis: the XPropertyPage sub-object*/) {
-    return 0;
+extern "C" long MS_ABI impl__Deactivate_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    impl__DestroyWindow_CWnd__UEAAHXZ(static_cast<CWnd*>(OuterFromPropPage(pThis)));
+    return S_OK;
 }
 
-// XPropertyPage::EditProperty(DISPID) -- retail (0x1e82a0): under
-// AFX_MAINTAIN_STATE2, call the outer's vtable offset 0x340 (see the
-// "outer vtable slots" note in this section's header: 0x340 is
-// COlePropertyPage::OnEditProperty by position, not by a vtable that was
-// read) and map the BOOL it returns to an HRESULT:
-//     return ret ? S_OK : E_NOTIMPL /*0x80004001*/;
-// (`neg; sbb; not; and $0x80004001` is that select.) OpenMFC does declare
-// OnEditProperty as a virtual and defines it above to return FALSE, so only
-// the unreachable sub-object blocks this. Stub.
+// XPropertyPage::EditProperty(DISPID) -- retail 0x1ea500: under
+// AFX_MAINTAIN_STATE2, call the outer's vtable slot 0x340 (OnEditProperty)
+// and map the BOOL to an HRESULT:
+//     return ret ? S_OK : E_NOTIMPL /*0x80004001*/;   ; `neg; sbb; not; and`
 // Symbol: ?EditProperty@XPropertyPage@COlePropertyPage@@UEAAJJ@Z
 extern "C" long MS_ABI impl__EditProperty_XPropertyPage_COlePropertyPage__UEAAJJ_Z(
-    void* /*pThis: the XPropertyPage sub-object*/, long /*dispid*/) {
-    return 0;
+    void* pThis, long dispid) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    return OuterFromPropPage(pThis)->OnEditProperty(dispid) ? S_OK : static_cast<long>(0x80004001L);
 }
 
-// XPropertyPage::GetPageInfo(PROPPAGEINFO*) -- retail (0x1e7c60). (This
-// comment used to call it "the one method here with no module-state frame".
-// That is false, and contradicted by this file's own Show and Move notes.
-// Re-counted in mfc140u: FIVE of the fourteen nested-interface bodies open
-// without the AFX_MAINTAIN_STATE2 call to 0x180133170 -- GetPageInfo
-// 0x1e9ec0, Show 0x1ea080, Move 0x1ea0c0, IsPageDirty 0x1ea100 and
-// OnRequestEdit 0x71e0 -- and the other nine make it.)
-//     if (pPageInfo == NULL) AfxThrowInvalidArgException();   ; 0x225b80
-//     pPageInfo->pszTitle      = dup(m_strPageName  /*outer+0x168*/); ; 0x1e5714
+// XPropertyPage::GetPageInfo(PROPPAGEINFO*) -- retail 0x1e9ec0, no
+// module-state frame:
+//     if (pPageInfo == NULL) AfxThrowInvalidArgException();      ; 0x227720
+//     pPageInfo->pszTitle      = dup(m_strPageName  /*outer+0x168*/); ; 0x1e77b4
 //     pPageInfo->size          =     m_sizePage     /*outer+0x170*/;  ; one qword
-//     pPageInfo->pszDocString  = dup(*(outer+0x178));
-//     pPageInfo->pszHelpFile   = dup(*(outer+0x180));
-//     pPageInfo->dwHelpContext =    *(outer+0x188);
+//     pPageInfo->pszDocString  = dup(m_strDocString /*outer+0x178*/);
+//     pPageInfo->pszHelpFile   = dup(m_strHelpFile  /*outer+0x180*/);
+//     pPageInfo->dwHelpContext =     m_dwHelpContext/*outer+0x188*/;
 //     return S_OK;
-// It notably does not write pPageInfo->cb. Retail keeps the three strings as
-// CStrings at 0x168/0x178/0x180 and copies them into task-allocated strings;
-// OpenMFC keeps borrowed wchar_t* in m_pszPageName/m_pszDocString/
-// m_pszHelpFile at different offsets and has no m_sizePage at all. Stub.
+// It does not write pPageInfo->cb. dup() is TaskAllocString above. The
+// three strings are the OpenMFC wchar_t* members; because retail's are
+// CStrings, an unset one reads "" and is still duplicated, so a NULL member
+// is duplicated as "" here to give the frame the same non-NULL result.
 // Symbol: ?GetPageInfo@XPropertyPage@COlePropertyPage@@UEAAJPEAUtagPROPPAGEINFO@@@Z
 extern "C" long MS_ABI impl__GetPageInfo_XPropertyPage_COlePropertyPage__UEAAJPEAUtagPROPPAGEINFO___Z(
-    void* /*pThis: the XPropertyPage sub-object*/, void* /*PROPPAGEINFO* pPageInfo*/) {
-    return 0;
+    void* pThis, void* pPageInfoRaw) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    if (pPageInfoRaw == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+    }
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    PROPPAGEINFO* pPageInfo = static_cast<PROPPAGEINFO*>(pPageInfoRaw);
+    pPageInfo->pszTitle      = TaskAllocString(pPage->m_pszPageName  ? pPage->m_pszPageName  : L"");
+    pPageInfo->size          = Tail(pPage)->m_sizePage;
+    pPageInfo->pszDocString  = TaskAllocString(pPage->m_pszDocString ? pPage->m_pszDocString : L"");
+    pPageInfo->pszHelpFile   = TaskAllocString(pPage->m_pszHelpFile  ? pPage->m_pszHelpFile  : L"");
+    pPageInfo->dwHelpContext = pPage->m_dwHelpContext;
+    return S_OK;
 }
 
-// XPropertyPage::Help(LPCOLESTR pszHelpDir) -- retail (0x1e7f70): under
-// AFX_MAINTAIN_STATE2,
-//     CString str(pszHelpDir);                      ; 0x3b330
+// XPropertyPage::Help(LPCOLESTR pszHelpDir) -- retail 0x1ea1d0, under
+// AFX_MAINTAIN_STATE2:
+//     CString str(pszHelpDir);                      ; 0xdcb0
 //     LPCTSTR arg = pszHelpDir ? (LPCTSTR)str : NULL;
-//         ; `neg %rbx; sbb %rdx,%rdx; and 0x40(%rsp),%rdx` -- when pszHelpDir
-//         ; is NULL the CString pointer is masked to 0, so OnHelp is called
-//         ; with NULL, not with the nil string
-//     BOOL b = outer->vtbl[0x338/8](arg);           ; see the section header
+//         ; `neg %rbx; sbb %rdx,%rdx; and 0x40(%rsp),%rdx` -- a NULL
+//         ; pszHelpDir reaches OnHelp as NULL, not as the nil string
+//     BOOL b = outer->vtbl[0x338/8](arg);           ; OnHelp
 //     return b ? S_OK : S_FALSE;                    ; `test eax,eax; sete bl`
-// Blocked on ONE thing only: the sub-object is unreachable. (This file used to
-// add "and OnHelp itself has no resolvable RVA" -- that was stale even as it
-// was written; OnHelp resolves in mfc140u at 0x71e0 and is implemented above.)
+// The CString copy is only read, so pszHelpDir is passed straight through.
 // Symbol: ?Help@XPropertyPage@COlePropertyPage@@UEAAJPEB_W@Z
 extern "C" long MS_ABI impl__Help_XPropertyPage_COlePropertyPage__UEAAJPEB_W_Z(
-    void* /*pThis: the XPropertyPage sub-object*/, const wchar_t* /*pszHelpDir*/) {
-    return 0;
+    void* pThis, const wchar_t* pszHelpDir) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    int b = impl__OnHelp_COlePropertyPage__UEAAHPEB_W_Z(OuterFromPropPage(pThis), pszHelpDir);
+    return b ? S_OK : S_FALSE;
 }
 
-// XPropertyPage::IsPageDirty() -- retail (0x1e7ea0) is four instructions:
+// XPropertyPage::IsPageDirty() -- retail 0x1ea100 is four instructions:
 //     xor eax,eax ; cmp eax,[rcx-0x98] ; sete al ; ret
-// rcx is outer+0x1f0, so -0x98 is outer+0x158, the retail dirty flag: the
-// result is 1 (S_FALSE) when the page is clean and 0 (S_OK) when it is dirty.
-// OpenMFC's dirty flag is m_bModified at 0x138, not 0x158, and the sub-object
-// is unreachable, so this cannot be wired up from here. Stub.
+// rcx is outer+0x1f0, so -0x98 is outer+0x158, m_bDirty: 1 (S_FALSE) when
+// the page is clean, 0 (S_OK) when it is dirty. m_bDirty is m_bModified.
 // Symbol: ?IsPageDirty@XPropertyPage@COlePropertyPage@@UEAAJXZ
-extern "C" long MS_ABI impl__IsPageDirty_XPropertyPage_COlePropertyPage__UEAAJXZ(
-    void* /*pThis: the XPropertyPage sub-object*/) {
-    return 0;
+extern "C" long MS_ABI impl__IsPageDirty_XPropertyPage_COlePropertyPage__UEAAJXZ(void* pThis) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    return (OuterFromPropPage(pThis)->m_bModified == 0) ? S_FALSE : S_OK;
 }
 
-// XPropertyPage::Move(LPCRECT prc) -- retail (0x1e7e60), no module-state
+// XPropertyPage::Move(LPCRECT prc) -- retail 0x1ea0c0, no module-state
 // frame:
 //     CWnd::MoveWindow(outer, prc->left, prc->top,
 //                      prc->right - prc->left, prc->bottom - prc->top,
-//                      TRUE);                          ; 0x2a7920
+//                      TRUE);                          ; 0x2a9a10
 //     return S_OK;
-// The only thing it needs is the outer pointer, which an unreachable
-// sub-object cannot yield. Stub.
+// DEVIATION: a NULL prc returns E_POINTER instead of faulting.
 // Symbol: ?Move@XPropertyPage@COlePropertyPage@@UEAAJPEBUtagRECT@@@Z
 extern "C" long MS_ABI impl__Move_XPropertyPage_COlePropertyPage__UEAAJPEBUtagRECT___Z(
-    void* /*pThis: the XPropertyPage sub-object*/, const RECT* /*prc*/) {
-    return 0;
+    void* pThis, const RECT* prc) {
+    if (!pThis || !prc) return static_cast<long>(0x80004003L); // E_POINTER
+    impl__MoveWindow_CWnd__QEAAXHHHHH_Z(static_cast<CWnd*>(OuterFromPropPage(pThis)),
+                                        prc->left, prc->top,
+                                        prc->right - prc->left, prc->bottom - prc->top, TRUE);
+    return S_OK;
 }
 
-// XPropNotifySink::OnChanged(DISPID) -- retail (0x1e8370): under
-// AFX_MAINTAIN_STATE2,
-//     if (outer->m_hWnd /*0x40*/ && AfxGetThreadState()->[0x138] != m_hWnd)
-//                                 ; 0x138 is the MBCS field offset. In
-//                                 ; mfc140u -- the build OpenMFC targets --
-//                                 ; the same compare reads +0x198
-//                                 ; (0x1801ea5f9: cmp %rcx,0x198(%rax)).
-//                                 ; This is the one place in this file where
-//                                 ; the two builds differ; the field is in
-//                                 ; AFX_THREAD_STATE, not in this class.
-//         CWnd::UpdateData(outer, FALSE);   ; 0x28f530 -- refill the controls
+// XPropNotifySink::OnChanged(DISPID) -- retail 0x1ea5d0, under
+// AFX_MAINTAIN_STATE2 (the dispid is never read):
+//     if (outer->m_hWnd /*0x40*/ &&
+//         AfxGetThreadState()->m_hLockoutNotifyWindow /*+0x198*/ != m_hWnd)
+//         CWnd::UpdateData(outer, FALSE);   ; 0x2910d0 -- refill the controls
 //     else
-//         *(int*)(outer+0x1a8) = 1;         ; defer it; Apply drains this flag
+//         m_bPropsChanged /*outer+0x1a8*/ = TRUE;   ; defer; Apply drains it
 //     return S_OK;
-// The thread-state compare suppresses the refill while the page's own window
-// is the one being edited. Needs the 0x1a8 deferral flag and a reachable
-// sub-object. Stub.
+// The lockout compare suppresses the refill while the page's own
+// DoDataExchange is running; see t_hLockoutNotifyWindow at the top of this
+// file for how, and how far, that is emulated here.
 // Symbol: ?OnChanged@XPropNotifySink@COlePropertyPage@@UEAAJJ@Z
 extern "C" long MS_ABI impl__OnChanged_XPropNotifySink_COlePropertyPage__UEAAJJ_Z(
-    void* /*pThis: the XPropNotifySink sub-object*/, long /*dispid*/) {
-    return 0;
+    void* pThis, long /*dispid*/) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromNotifySink(pThis);
+    if (pPage->m_hWnd != nullptr && t_hLockoutNotifyWindow != pPage->m_hWnd) {
+        PageUpdateData(pPage, FALSE);
+    } else {
+        Tail(pPage)->m_bPropsChanged = TRUE;
+    }
+    return S_OK;
 }
 
-// XPropNotifySink::OnRequestEdit(DISPID) -- resolved two independent ways,
-// both giving the same body.
-//   1. In the Unicode build it is mfc140u ordinal 10919 -> RVA 0x71e0.
-//   2. In the MBCS build it is slot 4 of the XPropNotifySink vtable at
-//      0x322738 (see this section's header), which holds 0x180007260.
-// Both addresses disassemble to the same two instructions:
-//     xor %eax,%eax ; ret
-// i.e. `return S_OK;` unconditionally. It never touches `this`, never consults
-// the dispid, and never vetoes an edit -- MFC's property page always permits
-// the change and waits for the matching OnChanged.
-//
-// Both addresses are folded COMDATs shared with every other trivial
-// `return 0` in their image (0x180007260 is also this sub-object's own
-// Release), so the NAME the symbol map happens to attach to either address is
-// not evidence about this method -- but the folding is by identical code, so
-// the behaviour it pins down for this slot is exact. The two builds agreeing
-// is what makes it safe to rely on.
-//
-// Because the retail body ignores its `this`, this is the one entry point in
-// this section that does not need the unreachable sub-object: it is
-// implemented here rather than stubbed. (The generated stub already returned
-// 0; what changes is that the value is now established, not assumed.)
-// Signature, as for OnHelp: the generated prototype had no leading `this`,
-// so its `long` was really the sub-object pointer in RCX; it is corrected
-// below to (this, dispid). Both are ignored -- which is what makes this safe.
+// XPropNotifySink::OnRequestEdit(DISPID) -- mfc140u ordinal 10919 -> RVA
+// 0x71e0, and slot 4 of the retail sink vtable (0x3248f8) holds the same
+// address; the body is `xor %eax,%eax ; ret`: S_OK unconditionally. It never
+// touches `this` or the dispid -- the page always permits the edit and waits
+// for the matching OnChanged.
 // Symbol: ?OnRequestEdit@XPropNotifySink@COlePropertyPage@@UEAAJJ@Z
 extern "C" long MS_ABI impl__OnRequestEdit_XPropNotifySink_COlePropertyPage__UEAAJJ_Z(
-    void* /*pThis: the XPropNotifySink sub-object*/, long /*dispid*/) {
+    void* /*pThis*/, long /*dispid*/) {
     return S_OK;
 }
 
 // XPropertyPage::SetObjects(ULONG nObjects, IUnknown** ppUnk) -- retail
-// (0x1e7cc0), the sole writer of the object array the whole GetProp*/SetProp*
-// family reads:
-//     CleanupObjectArray();                              ; 0x1e7380
+// 0x1e9f20, under AFX_MAINTAIN_STATE2; the sole writer of the object array
+// the GetProp*/SetProp* family reads:
+//     CleanupObjectArray();                              ; 0x1e95e0
 //     if (nObjects) {
-//         m_ppDisp /*0x198*/         = operator new(nObjects * 8);
-//         m_pdwConnections /*0x1a0*/ = operator new(nObjects * 4);
+//         m_ppDisp /*0x198*/    = operator new(nObjects * 8);  ; 0x27f0, both
+//         m_pAdvisors /*0x1a0*/ = operator new(nObjects * 4);  ; overflow-checked
 //         for (i = 0; i < nObjects; ++i) {
 //             hr = ppUnk[i]->QueryInterface(IID_IDispatch, &m_ppDisp[i]);
-//             if (FAILED(hr)) return hr;   ; NOT a break: 0x1e7d60 `js` goes
-//                 ; straight to the epilogue at 0x1e7dff with the failing
-//                 ; HRESULT still in EAX, so m_nObjects is left UNWRITTEN and
-//                 ; OnObjectsChanged is never called on this path.
+//             if (FAILED(hr)) return hr;   ; straight to the epilogue: m_nObjects
+//                 ; is left UNWRITTEN and OnObjectsChanged is never called
 //             AfxConnectionAdvise(ppUnk[i], IID_IPropertyNotifySink,
-//                                 &this->m_xPropNotifySink /*0x1f8*/, FALSE,
-//                                 &m_pdwConnections[i]);  ; 0x1dd1c0
+//                                 &m_xPropNotifySink /*this+0x1f8*/, FALSE,
+//                                 &m_pAdvisors[i]);          ; 0x1df290
 //         }
 //     }
 //     m_nObjects /*0x1ac*/ = nObjects;
 //     BOOL bLocked = FALSE;
-//     if (outer->m_hWnd /*0x40*/ && ::IsWindowVisible(m_hWnd)) {  ; 0x2c5350
-//         ::LockWindowUpdate(m_hWnd); bLocked = TRUE;             ; 0x2c4d18
+//     if (outer->m_hWnd /*0x40*/ && ::IsWindowVisible(m_hWnd)) {  ; IAT 0x2c7328
+//         ::LockWindowUpdate(m_hWnd); bLocked = TRUE;             ; IAT 0x2c6c98
 //     }
-//     outer->vtbl[0x330/8]();          ; OnObjectsChanged -- UNCONDITIONAL,
-//                                      ; it is not inside the m_hWnd test
+//     outer->vtbl[0x330/8]();          ; OnObjectsChanged -- UNCONDITIONAL
 //     if (nObjects && outer->m_hWnd) {
-//         CWnd::UpdateData(FALSE);     ; 0x28f530
-//         SetModifiedFlag(FALSE);      ; 0x1e7710
+//         CWnd::UpdateData(FALSE);     ; 0x2910d0
+//         SetModifiedFlag(FALSE);      ; 0x1e9970
 //     }
 //     if (bLocked) ::LockWindowUpdate(NULL);
 //     return S_OK;
-// This is the entry point whose absence makes the object array permanently
-// empty, which is what every "loop never runs" reduction in this file rests
-// on. Implementing it needs m_ppDisp, m_pdwConnections, m_nObjects and the
-// XPropNotifySink sub-object -- the headerRequest below. Stub.
+// DEVIATIONS, both on the failure path only: the two arrays are zero-filled
+// (retail's operator new leaves them uninitialised, and retail's early
+// return leaves the OLD m_nObjects standing over the NEW arrays, which the
+// next CleanupObjectArray then walks); here m_nObjects is set to the number
+// of entries actually filled before returning the failing HRESULT, so that
+// walk stays inside the arrays. The AfxConnectionAdvise result is ignored,
+// as in retail.
 // Symbol: ?SetObjects@XPropertyPage@COlePropertyPage@@UEAAJKPEAPEAUIUnknown@@@Z
 extern "C" long MS_ABI impl__SetObjects_XPropertyPage_COlePropertyPage__UEAAJKPEAPEAUIUnknown___Z(
-    void* /*pThis: the XPropertyPage sub-object*/, unsigned long /*nObjects*/,
-    void** /*IUnknown** ppUnk*/) {
-    return 0;
+    void* pThis, unsigned long nObjects, void** ppUnk) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    S_COlePropertyPageTail* t = Tail(pPage);
+
+    impl__CleanupObjectArray_COlePropertyPage__IEAAXXZ(pPage);
+    if (nObjects != 0) {
+        if (ppUnk == nullptr) return static_cast<long>(0x80004003L); // E_POINTER
+        t->m_ppDisp    = static_cast<LPDISPATCH*>(::calloc(nObjects, sizeof(LPDISPATCH)));
+        t->m_pAdvisors = static_cast<DWORD*>(::calloc(nObjects, sizeof(DWORD)));
+        if (t->m_ppDisp == nullptr || t->m_pAdvisors == nullptr) {
+            t->m_nObjects = 0;
+            impl__CleanupObjectArray_COlePropertyPage__IEAAXXZ(pPage);
+            return static_cast<long>(0x8007000EL); // E_OUTOFMEMORY (retail: operator new throws)
+        }
+        for (ULONG i = 0; i < nObjects; ++i) {
+            IUnknown* pUnk = static_cast<IUnknown*>(ppUnk[i]);
+            HRESULT hr = pUnk->QueryInterface(kIID_IDispatch, reinterpret_cast<void**>(&t->m_ppDisp[i]));
+            if (FAILED(hr)) {
+                t->m_nObjects = i;
+                return static_cast<long>(hr);
+            }
+            impl__AfxConnectionAdvise__YAHPEAUIUnknown__AEBU_GUID__0HPEAK_Z(
+                pUnk, &kIID_IPropertyNotifySink, NotifySinkOf(pPage), FALSE, &t->m_pAdvisors[i]);
+        }
+    }
+    t->m_nObjects = nObjects;
+
+    BOOL bLocked = FALSE;
+    if (pPage->m_hWnd != nullptr && ::IsWindowVisible(pPage->m_hWnd)) {
+        ::LockWindowUpdate(pPage->m_hWnd);
+        bLocked = TRUE;
+    }
+    pPage->OnObjectsChanged();
+    if (nObjects != 0 && pPage->m_hWnd != nullptr) {
+        PageUpdateData(pPage, FALSE);
+        pPage->SetModifiedFlag(FALSE);
+    }
+    if (bLocked) {
+        ::LockWindowUpdate(nullptr);
+    }
+    return S_OK;
 }
 
-// XPropertyPage::SetPageSite(IPropertyPageSite*) -- retail (0x1e7970), under
+// XPropertyPage::SetPageSite(IPropertyPageSite*) -- retail 0x1e9bd0, under
 // AFX_MAINTAIN_STATE2:
-//     release(&outer->m_pPageSite /*0x190*/);       ; 0x26ba84
+//     _AfxRelease(&outer->m_pPageSite /*0x190*/);   ; 0x26ccc4: Release + NULL
 //     outer->m_pPageSite = pPageSite;
 //     if (pPageSite) {
 //         pPageSite->AddRef();                      ; IUnknown slot 1
 //         outer->vtbl[0x328/8]();                   ; OnSetPageSite
 //     }
 //     return S_OK;
-// Note that retail's ?OnSetPageSite@COlePropertyPage@@UEAAXXZ (0x1e6f90)
-// returns void, while OpenMFC's afxole.h declares it `virtual BOOL
-// OnSetPageSite()`. Not on this file's assignment list; recorded here because
-// it is a real declaration mismatch someone will have to resolve. Blocked, as
-// the rest of this section, on the sub-object being unreachable. Stub.
+// Retail's OnSetPageSite returns void; OpenMFC's declaration returns BOOL
+// and its result is ignored here, which is all retail could do with it.
 // Symbol: ?SetPageSite@XPropertyPage@COlePropertyPage@@UEAAJPEAUIPropertyPageSite@@@Z
 extern "C" long MS_ABI impl__SetPageSite_XPropertyPage_COlePropertyPage__UEAAJPEAUIPropertyPageSite___Z(
-    void* /*pThis: the XPropertyPage sub-object*/, void* /*IPropertyPageSite* pPageSite*/) {
-    return 0;
+    void* pThis, void* pPageSiteRaw) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    IPropertyPageSite* pPageSite = static_cast<IPropertyPageSite*>(pPageSiteRaw);
+    if (pPage->m_pPageSite != nullptr) {
+        pPage->m_pPageSite->Release();
+        pPage->m_pPageSite = nullptr;
+    }
+    pPage->m_pPageSite = pPageSite;
+    if (pPageSite != nullptr) {
+        pPageSite->AddRef();
+        (void)pPage->OnSetPageSite();
+    }
+    return S_OK;
 }
 
-// XPropertyPage::Show(UINT nCmdShow) -- retail (0x1e7e20), no module-state
-// frame; the whole body past the prologue is:
-//     CWnd::ShowWindow(outer, nCmdShow);            ; 0x2a79e0
-//     if (nCmdShow == SW_SHOWNORMAL /*1*/) CWnd::SetFocus(outer);  ; 0x2a7a70
+// XPropertyPage::Show(UINT nCmdShow) -- retail 0x1ea080, no module-state
+// frame:
+//     CWnd::ShowWindow(outer, nCmdShow);            ; 0x2a9ad0
+//     if (nCmdShow == SW_SHOWNORMAL /*1*/) CWnd::SetFocus(outer);  ; 0x2a9b60
 //     return S_OK;
-// (The two callee RVAs are quoted from the call targets; only the outer
-// pointer, which an unreachable sub-object cannot yield, blocks this.) Stub.
+// (0x2a9ad0 / 0x2a9b60 are absent from the mfc140u symbol map; they are the
+// bodies at the MBCS map's ?ShowWindow@CWnd@@QEAAHH@Z 0x2a79e0 and
+// ?SetFocus@CWnd@@QEAAPEAV1@XZ 0x2a7a70.)
 // Symbol: ?Show@XPropertyPage@COlePropertyPage@@UEAAJI@Z
 extern "C" long MS_ABI impl__Show_XPropertyPage_COlePropertyPage__UEAAJI_Z(
-    void* /*pThis: the XPropertyPage sub-object*/, unsigned int /*nCmdShow*/) {
-    return 0;
+    void* pThis, unsigned int nCmdShow) {
+    if (!pThis) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pPage), static_cast<int>(nCmdShow));
+    if (nCmdShow == SW_SHOWNORMAL) {
+        impl__SetFocus_CWnd__QEAAPEAV1_XZ(static_cast<CWnd*>(pPage));
+    }
+    return S_OK;
 }
 
-// XPropertyPage::TranslateAccelerator(MSG*) -- retail (0x1e8010, the MBCS
-// build's ?TranslateAcceleratorA@...). Only partially decoded here: it filters
-// on WM_KEYDOWN (0x100) with wParam == VK_TAB (9), consults ::GetKeyState
-// (IAT 0x2c4d20) for VK_CONTROL (0x11) and VK_SHIFT (0x10), checks
-// ::IsChild(outer->m_hWnd, CWnd::FromHandle(::GetFocus())->m_hWnd) and then
-// walks the focus chain with ::GetParent to move the focus between the page's
-// controls; the WM_GETDLGCODE (0x87) probe at 0x1e80b0 is used to skip
-// controls that want the tab themselves. The tail of the body was not walked,
-// so nothing more is asserted. Stub -- unreachable sub-object regardless.
-// (Re-checked in mfc140u at 0x1ea270: `lea -0x1f0(%rcx),%rbx`, the WM_KEYDOWN
-// /VK_TAB filter, the two ::GetKeyState calls for VK_CONTROL and VK_SHIFT and
-// the ::GetFocus/::IsChild pair are all as described. This entry point is not
-// on the current assignment list; only its signature was corrected, to the
-// same retail register assignment as its siblings -- `this` in RCX, the MSG*
-// in RDX.)
+// XPropertyPage::TranslateAccelerator(MSG*) -- retail 0x1ea270 (mfc140u,
+// ordinal 14015), under AFX_MAINTAIN_STATE2. The page owns the Tab key;
+// everything else goes to PreTranslateMessage. In full (IAT slots via
+// iatu.py: 0x2c6ca0 GetKeyState, 0x2c71b0 GetFocus, 0x2c71b8 IsChild,
+// 0x2c7120 SendMessageW, 0x2c72d8 GetParent, 0x2c6c10 GetWindow, 0x2c6d20
+// GetTopWindow; 0x2c7b30 is the CFG __guard_dispatch_icall_fptr, i.e. the
+// two `call *0x2c7b30` sites are ordinary virtual calls):
+//     HRESULT hr = S_FALSE;                                       ; EBP = 1
+//     if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB &&
+//         ::GetKeyState(VK_CONTROL) >= 0) {                       ; `test %ax,%ax; js`
+//         CWnd* pFocus = CWnd::FromHandle(::GetFocus());          ; 0x28ad70
+//         if (::IsChild(m_hWnd, pFocus ? pFocus->m_hWnd : NULL)) {
+//             // --- focus is inside the page ---
+//             short sShift = ::GetKeyState(VK_SHIFT);             ; ESI
+//             if (::SendMessage(m_hWnd /*the PAGE, not the control*/,
+//                               WM_GETDLGCODE, 0, 0) & (DLGC_WANTTAB|DLGC_WANTALLKEYS))
+//                 goto deflt;                                     ; `test $0x6,%al`
+//             pFocus = CWnd::FromHandle(::GetFocus());            ; repeated
+//             if (!::IsChild(m_hWnd, pFocus ? pFocus->m_hWnd : NULL)) goto deflt;
+//             CWnd* pWnd = pFocus;                                ; climb to the
+//             while (CWnd::FromHandle(::GetParent(pWnd->m_hWnd)) != this)  ; page's own
+//                 pWnd = CWnd::FromHandle(::GetParent(pWnd->m_hWnd));      ; child
+//             UINT nDir = sShift < 0 ? GW_HWNDPREV : GW_HWNDNEXT; ; `sar $0x1f; and $1; +2`
+//             for (;;) {
+//                 pWnd = CWnd::FromHandle(::GetWindow(pWnd->m_hWnd, nDir));
+//                 if (pWnd == NULL) break;                        ; end of the order
+//                 if ((pWnd->GetStyle() & (WS_TABSTOP|WS_DISABLED)) == WS_TABSTOP)
+//                     goto deflt;   ; a later tab stop exists: the dialog's own
+//             }                     ; PreTranslateMessage moves the focus
+//             // end of the page's tab order: park the focus on the default
+//             // button, then let the frame take the Tab
+//             LRESULT lr = ::SendMessage(m_hWnd, DM_GETDEFID /*WM_USER*/, 0, 0);
+//             if (HIWORD(lr) == DC_HASDEFID /*0x534b*/) {
+//                 CWnd* pDef = GetDlgItem(LOWORD(lr));            ; 0x2a9390
+//                 if (pDef && pDef->IsWindowEnabled())            ; 0x2a9b00
+//                     ::SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)pDef->m_hWnd, TRUE);
+//             }
+//             if (m_pPageSite /*0x190*/ &&
+//                 m_pPageSite->TranslateAccelerator(pMsg) == S_OK) ; slot 6 (+0x30)
+//                 return S_OK;
+//             goto deflt;
+//         }
+//         // --- focus is outside the page: bring it in ---
+//         CWnd* pWnd = CWnd::FromHandle(::GetTopWindow(m_hWnd));
+//         if (pWnd == NULL) goto deflt;
+//         WORD w = (WORD)::GetKeyState(VK_SHIFT);
+//         BOOL bShift = (short)w < 0;                             ; ESI
+//         pWnd = CWnd::FromHandle(::GetWindow(pWnd->m_hWnd, w >> 15)); ; GW_HWNDFIRST /
+//         while (pWnd != NULL) {                                       ; GW_HWNDLAST
+//             if ((pWnd->GetStyle() & (WS_TABSTOP|WS_DISABLED)) == WS_TABSTOP) {
+//                 ::SendMessage(m_hWnd, WM_NEXTDLGCTL, (WPARAM)pWnd->m_hWnd, TRUE);
+//                 return S_OK;
+//             }
+//             pWnd = CWnd::FromHandle(::GetWindow(pWnd->m_hWnd,
+//                                     bShift ? GW_HWNDPREV : GW_HWNDNEXT));
+//         }
+//     }
+//   deflt:
+//     BOOL b = this->vtbl[0x228/8](pMsg);                          ; PreTranslateMessage
+//     return b ? S_OK : S_FALSE;                                   ; `je; mov %r15d,%ebp`
+// Slot 0x228 is ?PreTranslateMessage@CDialog@@ (0x207c40) in the CDialog
+// vftable at 0x325658 (mfc140u); on a page it resolves to
+// COlePropertyPage::PreTranslateMessage (0x1e9470), so it is called through
+// that thunk above. DEVIATION: retail dispatches it virtually, so a derived
+// page's PreTranslateMessage override would be honoured there and is not
+// here (afxole.h does not declare the override; the same limitation as
+// OnHelp). DEVIATION (defensive): retail dereferences pMsg and, in the
+// parent climb, every CWnd::FromHandle result unconditionally; a NULL pMsg
+// returns E_POINTER and a NULL step in the climb ends it.
 // Symbol: ?TranslateAcceleratorW@XPropertyPage@COlePropertyPage@@UEAAJPEAUtagMSG@@@Z
 extern "C" long MS_ABI impl__TranslateAcceleratorW_XPropertyPage_COlePropertyPage__UEAAJPEAUtagMSG___Z(
-    void* /*pThis: the XPropertyPage sub-object*/, void* /*MSG* pMsg*/) {
-    return 0;
+    void* pThis, void* pMsgRaw) {
+    if (!pThis || !pMsgRaw) return static_cast<long>(0x80004003L); // E_POINTER
+    COlePropertyPage* pPage = OuterFromPropPage(pThis);
+    MSG* pMsg = static_cast<MSG*>(pMsgRaw);
+    const HWND hPage = pPage->m_hWnd;
+
+    if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB &&
+        ::GetKeyState(VK_CONTROL) >= 0) {
+        CWnd* pFocus = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetFocus());
+        if (::IsChild(hPage, pFocus ? pFocus->m_hWnd : nullptr)) {
+            // Focus is inside the page.
+            const short sShift = ::GetKeyState(VK_SHIFT);
+            if ((::SendMessage(hPage, WM_GETDLGCODE, 0, 0) & (DLGC_WANTTAB | DLGC_WANTALLKEYS)) != 0) {
+                goto deflt;
+            }
+            pFocus = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetFocus());
+            if (!::IsChild(hPage, pFocus ? pFocus->m_hWnd : nullptr)) {
+                goto deflt;
+            }
+            CWnd* pWnd = pFocus;
+            for (;;) {
+                CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pWnd->m_hWnd));
+                if (pParent == static_cast<CWnd*>(pPage)) break;
+                if (pParent == nullptr) goto deflt;   // defensive; retail would fault
+                pWnd = pParent;
+            }
+            const UINT nDir = (sShift < 0) ? GW_HWNDPREV : GW_HWNDNEXT;
+            for (;;) {
+                pWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetWindow(pWnd->m_hWnd, nDir));
+                if (pWnd == nullptr) break;
+                if ((impl__GetStyle_CWnd__QEBAKXZ(pWnd) & (WS_TABSTOP | WS_DISABLED)) == WS_TABSTOP) {
+                    goto deflt;
+                }
+            }
+            const LRESULT lr = ::SendMessage(hPage, DM_GETDEFID, 0, 0);
+            if (HIWORD(lr) == DC_HASDEFID) {
+                CWnd* pDef = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(pPage, static_cast<int>(LOWORD(lr)));
+                if (pDef != nullptr && impl__IsWindowEnabled_CWnd__QEBAHXZ(pDef)) {
+                    ::SendMessage(hPage, WM_NEXTDLGCTL, reinterpret_cast<WPARAM>(pDef->m_hWnd), TRUE);
+                }
+            }
+            if (pPage->m_pPageSite != nullptr &&
+                pPage->m_pPageSite->TranslateAccelerator(pMsg) == S_OK) {
+                return S_OK;
+            }
+            goto deflt;
+        }
+
+        // Focus is outside the page: move it onto the first (last, with
+        // Shift) enabled tab stop among the page's children.
+        CWnd* pWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetTopWindow(hPage));
+        if (pWnd == nullptr) goto deflt;
+        const WORD wShift = static_cast<WORD>(::GetKeyState(VK_SHIFT));
+        const BOOL bShift = static_cast<short>(wShift) < 0;
+        pWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
+            ::GetWindow(pWnd->m_hWnd, static_cast<UINT>(wShift >> 15)));   // GW_HWNDFIRST / GW_HWNDLAST
+        while (pWnd != nullptr) {
+            if ((impl__GetStyle_CWnd__QEBAKXZ(pWnd) & (WS_TABSTOP | WS_DISABLED)) == WS_TABSTOP) {
+                ::SendMessage(hPage, WM_NEXTDLGCTL, reinterpret_cast<WPARAM>(pWnd->m_hWnd), TRUE);
+                return S_OK;
+            }
+            pWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
+                ::GetWindow(pWnd->m_hWnd, bShift ? GW_HWNDPREV : GW_HWNDNEXT));
+        }
+    }
+
+deflt:
+    return impl__PreTranslateMessage_COlePropertyPage__MEAAHPEAUtagMSG___Z(pPage, pMsg) ? S_OK : S_FALSE;
 }
