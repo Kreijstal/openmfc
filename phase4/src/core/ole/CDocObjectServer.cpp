@@ -37,9 +37,13 @@
 // The retail constructor (0x255da0) does exactly: CCmdTarget::CCmdTarget()
 // (0x1dc320), store the class vptr plus the five interface-part vptrs,
 // m_pDocSite = pDocSite, m_pOwner = pDoc, m_pViewSite = NULL,
-// m_nFirstPage = -1, and additionally `pDoc->[0x1c0] = 1` -- a BOOL inside the
-// COleDocument/CDocument base of the owning document that has NOT been
-// identified here.  The four data-member stores ARE reproduced below (see the
+// m_nFirstPage = -1, and additionally `pDoc->[0x1c0] = 1`, which is
+// COleDocument::m_bCompoundFile = TRUE (retail COleDocument layout, decoded
+// from ??0COleDocument at mfc140u 0x253e90 against the real afxole.h member
+// order and recorded in core/ole/COleDocument.cpp: +0x1c0 is m_bCompoundFile).
+// OpenMFC's COleDocument declares that member too (afxole.h, public), so the
+// store IS reproduced, through the member rather than the retail offset.  The
+// four CDocObjectServer data-member stores are reproduced as well (see the
 // constructor's own comment for exactly which parts are and are not), so
 // m_pDocSite / m_pOwner / m_nFirstPage / m_pViewSite may be relied on by the
 // bodies in this file.  The six vptr stores are not, so nothing here may
@@ -58,28 +62,65 @@
 //   m_pOwner + 0x278   COleServerDoc::m_xOleObject          (IOleObject)
 //   m_pOwner + 0x288   COleServerDoc::m_xOleInPlaceObject   (IOleInPlaceObject)
 //
-// Why most of these stay stubs.  The whole IOleObject part, plus much of
-// IOleDocument / IOleDocumentView / IPrint, is a pure forwarder into the
-// *owning document's* own nested interface parts at m_pOwner + 0x278 /
-// m_pOwner + 0x288.  OpenMFC's COleServerDoc (include/openmfc/afxole.h) is a
-// placeholder built from COleLinkingDoc plus `char _coleserverdoc_padding[96]`;
-// it has no interface parts and no relationship to the retail layout, so
-// `m_pOwner + 0x278` names nothing here.  (COleServerDoc's own IOleObject entry
-// points do exist in this DLL as impl__ thunks in
-// phase4/src/core/ole/COleServerDoc.cpp, and -- checked, not assumed -- their
-// first parameter is the interface SUB-OBJECT pointer, `pThisItf`, exactly as
-// retail's is; today none of them dereferences it.  The load-bearing objection
-// is that there is no such sub-object to hand them: OpenMFC's COleServerDoc
-// embeds no interface parts, so `m_pOwner + 0x278` is off the end of the object
-// and forwarding would mean passing a pointer that becomes a fault the moment
-// those thunks acquire real bodies.  Contrast OnSetItemRects / OnExecOleCmd
-// below, whose thunks take a plain COleServerDoc* and ARE forwarded.)  Those
-// forwards are therefore left as documented stubs.
+// The owning document's interface parts, and how the forwards into them are
+// made.  The whole IOleObject part, plus Open / Show / SetInPlaceSite /
+// UIActivate of IOleDocumentView, is a forwarder into the *owning document's*
+// own nested interface parts at m_pOwner + 0x278 (COleServerDoc::m_xOleObject)
+// and m_pOwner + 0x288 (COleServerDoc::m_xOleInPlaceObject), each a vptr-only
+// 8-byte sub-object that retail dispatches through.
 //
-// Where a forward's target IS reachable -- OnSetItemRects, SetRect,
-// OnExecOleCmd and OnCloseDocument go to plain COleServerDoc/CDocument methods
-// rather than to an interface part -- it is made, and the way it deviates from
-// retail's virtual dispatch is spelled out at the function.
+// An earlier version of this file left every one of those as a stub on the
+// claim that "m_pOwner + 0x278 is off the end of the object".  That claim was
+// measured and is false.  OpenMFC's COleServerDoc (include/openmfc/afxole.h)
+// is COleLinkingDoc (0x230 bytes), then BOOL m_bEmbedded at +0x230, then
+// `char _coleserverdoc_padding[96]` at +0x234 .. +0x294, for sizeof == 0x298
+// (measured with the phase4 compiler) -- retail's size exactly, because
+// retail's five interface parts occupy +0x270 .. +0x298.  Both construction
+// paths zero-fill that padding: COleServerDoc::COleServerDoc
+// (core/ole/COleServerDoc.cpp:441-443, memset) is what the exported ctor thunk
+// in core/ole/Thunks.cpp:1178 placement-news.  So every retail owner offset
+// this file touches -- +0x250 m_pInPlaceFrame, +0x268 m_pDocObjectServer,
+// +0x278 m_xOleObject, +0x288 m_xOleInPlaceObject -- lies inside that
+// padding: addressable, and zero unless COleServerDoc.cpp starts to model it.
+// (+0x230, retail's m_lpClientSite, is NOT padding -- it is OpenMFC's
+// m_bEmbedded -- and nothing in this file reads it.)  The static_assert on
+// sizeof(COleServerDoc) in the namespace below pins the size.
+//
+// Retail reaches the parts VIRTUALLY (`mov (%rcx),%rax; call *0xNN(%rax)`,
+// through the part's vptr and the CFG dispatch pointer).  In this DLL the
+// padding holds no vptr, so the dispatch is made as a direct call to the
+// COleServerDoc part's own impl__ thunk (core/ole/COleServerDoc.cpp) with the
+// SAME `this` retail passes: the sub-object address m_pOwner + 0x278 or
+// + 0x288.  That direct call is the retail call, not an approximation of it:
+// XOleObject and XOleInPlaceObject are BEGIN_INTERFACE_PART nested classes
+// (declared under `public:` in the real afxole.h, read on this host, so "public
+// nested", not private) that nothing derives from, hence one vtable each and
+// no slot can be overridden; and the thunks -- checked, not assumed --
+// take the interface sub-object pointer `pThisItf` first, as retail does.
+// Today every one of those thunks ignores pThisItf and reads no document
+// state, but they do NOT all return S_OK (checked against
+// core/ole/COleServerDoc.cpp, not assumed): ActivateInPlace returns FALSE;
+// GetMoniker writes *ppmk = NULL and returns E_FAIL (E_POINTER for a NULL
+// ppmk); SetColorScheme returns E_NOTIMPL; SetExtent returns E_INVALIDARG for
+// a NULL size and E_FAIL otherwise; SetMoniker returns E_FAIL; the remaining
+// nineteen targets (the other seventeen IOleObject thunks plus
+// InPlaceDeactivate and UIDeactivate) return S_OK.  So five of the forwards
+// below now report a failure where the bare `return 0` stubs they replace
+// reported S_OK: GetMoniker, SetColorScheme, SetExtent, SetMoniker, and
+// Show(TRUE), which maps ActivateInPlace's FALSE to E_FAIL.  Each of the five
+// is the determinate retail outcome for a document with no client site / no
+// embedded item, as that file documents (retail ActivateInPlace, mfc140u
+// 0x266da0, returns FALSE at 0x267483 when m_lpClientSite is NULL) -- and the
+// rest are observationally unchanged.  All of them pick up an implementation
+// there automatically.
+//
+// Where a forward's target is a COleServerDoc / CDocument method rather than
+// an interface part -- OnSetItemRects, SetRect, OnExecOleCmd, OnCloseDocument,
+// GetRect -- it goes to that class's thunk (or, for OnCloseDocument, through
+// OpenMFC's CDocument vtable).  Only GetItemPosition (GetRect's target) is
+// non-virtual in retail; OnSetItemRects, OnExecOleCmd and OnCloseDocument are
+// retail VIRTUALS, and where the direct thunk call bypasses that dispatch it
+// is spelled out at the function.
 //
 // Signatures.  Every entry point in this file now carries its real signature,
 // with the interface sub-object pointer (`pThis`, RCX on entry) first.  The
@@ -89,14 +130,18 @@
 // throughout; the bodies that are still stubs ignore every argument, so the
 // parameter names below are documentation of the ABI and nothing more.
 //
-// Return values of the stubs.  The generated bodies return 0 = S_OK, and that
-// was left alone because nothing here establishes a better answer.  Be aware
-// that for the entry points with [out] parameters it is a hazard rather than a
-// no-op: the caller is told the call succeeded and then reads an out pointer
-// that was never written.  Where the retail body DOES pin the out parameter the
-// store is reproduced and the return value follows it: CreateView and EnumViews
-// NULL theirs unconditionally, and EnumViews / GetDocument report E_NOINTERFACE
-// rather than S_OK when they have nothing to hand back.
+// Return values of the remaining stubs.  DoPrepareDC and DoPrint are void
+// no-ops.  OnActivateView returns 0 = S_OK, which is retail's own early-out
+// value for a document with no client site (see its comment).  GetPageInfo
+// and Print are PARTIAL rather than bare stubs: the argument validation and
+// the stores retail makes before it needs the printing subsystem are
+// reproduced, and the leg this DLL cannot run reports E_UNEXPECTED -- retail's
+// own failure code on that path -- instead of the generated S_OK, which told
+// the caller the call had succeeded and left the out pointers unwritten.
+// Where a retail body DOES pin its out parameter the store is reproduced and
+// the return value follows it: CreateView and EnumViews NULL theirs
+// unconditionally, and EnumViews / GetDocument report E_NOINTERFACE rather
+// than S_OK when they have nothing to hand back.
 // ---------------------------------------------------------------------------
 
 // ---- sibling impl_ exports called by the bodies in this file ----
@@ -126,7 +171,8 @@ extern "C" long MS_ABI impl__OnExecOleCmd_COleServerDoc__MEAAJPEBU_GUID__KKPEAUt
 // the caller's storage held.
 //
 // ::ExternalQueryInterface -- which is what retail's XOleDocument::QueryInterface
-// (vtable 0x32d2b0 slot 0 = 0x256e00) reduces to, METHOD_PROLOGUE_EX plus the
+// (mfc140 vtable 0x32d2b0 slot 0 = 0x256e00 in mfc140; NOT the mfc140u
+// 0x256e00, which is ReleaseDocSite) reduces to, METHOD_PROLOGUE_EX plus the
 // m_pOuterUnknown test at 0x256e28 and the fall-through to
 // InternalQueryInterface at 0x26bda0 -- is deliberately NOT called from this
 // file.  Its OpenMFC body reads m_pOuterUnknown at server + 0x10 and, when that
@@ -142,6 +188,62 @@ extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEB
 // (phase4/src/detail/MfcExceptionsSupport.cpp:35, a real throw).  ApplyViewState
 // and SaveViewState below reproduce retail's NULL-stream throw with it.
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
+// The owning COleServerDoc's entry points that the forwards below target.
+// Every declaration matches a definition that exists today in
+// phase4/src/core/ole/COleServerDoc.cpp (the definitions there spell the COM
+// interface pointers as void*, the same ABI; the types here are the ones the
+// mangled names describe).  The X* thunks take the interface SUB-OBJECT
+// pointer first -- m_pOwner + 0x278 for XOleObject, m_pOwner + 0x288 for
+// XOleInPlaceObject -- which is what the bodies below hand them.
+extern "C" int MS_ABI impl__ActivateInPlace_COleServerDoc__QEAAHXZ(COleServerDoc* pThis);
+extern "C" void MS_ABI impl__GetItemPosition_COleServerDoc__QEBAXPEAUtagRECT___Z(
+    const COleServerDoc* pThis, RECT* lpRect);
+extern "C" long MS_ABI impl__Advise_XOleObject_COleServerDoc__UEAAJPEAUIAdviseSink__PEAK_Z(
+    void* pThisItf, IAdviseSink* pAdvSink, unsigned long* pdwConnection);
+extern "C" long MS_ABI impl__Close_XOleObject_COleServerDoc__UEAAJK_Z(
+    void* pThisItf, unsigned long dwSaveOption);
+extern "C" long MS_ABI impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(
+    void* pThisItf, long iVerb, MSG* lpmsg, IOleClientSite* pActiveSite, long lindex,
+    HWND hwndParent, const RECT* lprcPosRect);
+extern "C" long MS_ABI impl__EnumAdvise_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumSTATDATA___Z(
+    void* pThisItf, IEnumSTATDATA** ppenumAdvise);
+extern "C" long MS_ABI impl__EnumVerbs_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumOLEVERB___Z(
+    void* pThisItf, IEnumOLEVERB** ppenumOleVerb);
+extern "C" long MS_ABI impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(
+    void* pThisItf, IOleClientSite** ppClientSite);
+extern "C" long MS_ABI impl__GetClipboardData_XOleObject_COleServerDoc__UEAAJKPEAPEAUIDataObject___Z(
+    void* pThisItf, unsigned long dwReserved, IDataObject** ppDataObject);
+extern "C" long MS_ABI impl__GetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(
+    void* pThisItf, unsigned long dwDrawAspect, SIZE* psizel);
+extern "C" long MS_ABI impl__GetMiscStatus_XOleObject_COleServerDoc__UEAAJKPEAK_Z(
+    void* pThisItf, unsigned long dwAspect, unsigned long* pdwStatus);
+extern "C" long MS_ABI impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAUIMoniker___Z(
+    void* pThisItf, unsigned long dwAssign, unsigned long dwWhichMoniker, IMoniker** ppmk);
+extern "C" long MS_ABI impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(
+    void* pThisItf, CLSID* pClsid);
+extern "C" long MS_ABI impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(
+    void* pThisItf, unsigned long dwFormOfType, wchar_t** pszUserType);
+extern "C" long MS_ABI impl__InitFromData_XOleObject_COleServerDoc__UEAAJPEAUIDataObject__HK_Z(
+    void* pThisItf, IDataObject* pDataObject, int fCreation, unsigned long dwReserved);
+extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(void* pThisItf);
+extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
+    void* pThisItf, IOleClientSite* pClientSite);
+extern "C" long MS_ABI impl__SetColorScheme_XOleObject_COleServerDoc__UEAAJPEAUtagLOGPALETTE___Z(
+    void* pThisItf, LOGPALETTE* pLogpal);
+extern "C" long MS_ABI impl__SetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(
+    void* pThisItf, unsigned long dwDrawAspect, SIZE* psizel);
+extern "C" long MS_ABI impl__SetHostNames_XOleObject_COleServerDoc__UEAAJPEB_W0_Z(
+    void* pThisItf, const wchar_t* szContainerApp, const wchar_t* szContainerObj);
+extern "C" long MS_ABI impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMoniker___Z(
+    void* pThisItf, unsigned long dwWhichMoniker, IMoniker* pmk);
+extern "C" long MS_ABI impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(
+    void* pThisItf, unsigned long dwConnection);
+extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(void* pThisItf);
+extern "C" long MS_ABI impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf);
+extern "C" long MS_ABI impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+    void* pThisItf);
 
 namespace {
 
@@ -160,9 +262,25 @@ constexpr long kOff_m_pViewSite  = 0x60;
 // Offsets of the nested interface sub-objects inside the CDocObjectServer.
 // A retail X* method reaches the server by subtracting its own part's offset;
 // the displacements the disassembly actually uses are quoted per function.
+constexpr long kOff_m_xOleObject        = 0x68;
 constexpr long kOff_m_xOleDocument      = 0x70;
 constexpr long kOff_m_xOleDocumentView  = 0x78;
 constexpr long kOff_m_xOleCommandTarget = 0x80;
+constexpr long kOff_m_xPrint            = 0x88;
+
+// Offsets inside the OWNING COleServerDoc that retail bodies in this file read,
+// each named at the function that reads it and in the layout note at the top
+// (they are also the offsets core/ole/COleServerDoc.cpp records in its own
+// header comment).  All four sit inside OpenMFC's zero-filled
+// _coleserverdoc_padding (+0x234 .. +0x294), which the static_assert pins by
+// size: retail's COleServerDoc is 0x298 bytes and so is OpenMFC's.
+constexpr long kOwnerOff_m_pInPlaceFrame     = 0x250;   // COleIPFrameWnd*
+constexpr long kOwnerOff_m_pDocObjectServer  = 0x268;   // CDocObjectServer*
+constexpr long kOwnerOff_m_xOleObject        = 0x278;   // XOleObject part (IOleObject)
+constexpr long kOwnerOff_m_xOleInPlaceObject = 0x288;   // XOleInPlaceObject part
+static_assert(sizeof(COleServerDoc) == 0x298,
+              "OpenMFC COleServerDoc must be retail-sized (0x298) for the owner "
+              "offsets above to lie inside the object");
 
 // IID_IOleDocumentView.  Read out of retail .rdata at 0x2d7ef0 -- the operand of
 // the `lea` at 0x256ece (CreateView) and at 0x256fbd (EnumViews) -- with
@@ -180,6 +298,13 @@ const GUID kIID_IOleDocumentView = {
 const GUID kIID_IUnknown = {
     0x00000000, 0x0000, 0x0000, { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
 
+// IID_IOleDocumentSite.  Read out of mfc140u .rdata at RVA 0x2d9f90 -- the
+// operand of the `lea` at 0x258109 inside XOleObject::SetClientSite (0x2580b0):
+//     c7 bc 22 b7  68 4e  1b 10  a2 bc 00 aa 00 40 47 70
+// i.e. {B722BCC7-4E68-101B-A2BC-00AA00404770}.
+const GUID kIID_IOleDocumentSite = {
+    0xB722BCC7, 0x4E68, 0x101B, { 0xA2, 0xBC, 0x00, 0xAA, 0x00, 0x40, 0x47, 0x70 } };
+
 // this (an interface sub-object) -> the owning CDocObjectServer.
 inline void* ServerFromPart(void* pPart, long nPartOffset) {
     return static_cast<char*>(pPart) - nPartOffset;
@@ -191,6 +316,50 @@ inline void* ServerFromPart(void* pPart, long nPartOffset) {
 template <class T>
 inline T& Member(void* pServer, long nOffset) {
     return *reinterpret_cast<T*>(static_cast<char*>(pServer) + nOffset);
+}
+
+// A sub-object / member address inside the owning COleServerDoc, at one of the
+// kOwnerOff_* offsets above.
+inline void* OwnerAt(COleServerDoc* pOwner, long nOffset) {
+    return reinterpret_cast<char*>(pOwner) + nOffset;
+}
+
+// ---- the IOleObject forwards ----
+// Nineteen XOleObject entry points of CDocObjectServer (Advise, Close, DoVerb,
+// EnumAdvise, EnumVerbs, GetClientSite, GetClipboardData, GetExtent,
+// GetMiscStatus, GetMoniker, GetUserClassID, GetUserType, InitFromData,
+// IsUpToDate, SetColorScheme, SetHostNames, SetMoniker, Unadvise, Update) have
+// the identical retail shape; each was disassembled from mfc140u and its RVA,
+// displacement and slot are cited at the function:
+//     AFX_MANAGE_STATE(server->m_pModuleState)   // `mov -0x30(%rcx),%rdx`:
+//                                                //   m_xOleObject is at +0x68,
+//                                                //   so -0x30 is +0x38
+//     rcx = server->m_pOwner + 0x278             // `mov -0x20(%rbx),%rcx` (+0x48)
+//                                                //   then `add $0x278,%rcx`
+//     return rcx->vtbl[slot](args...)            // IOleObject slot, called via
+//                                                //   the CFG dispatch pointer
+// i.e. a straight forward -- arguments untouched, HRESULT returned unchanged --
+// to the owning COleServerDoc's IOleObject part.  OwnerOleObjectPart() computes
+// that `this`; each body then calls the matching COleServerDoc thunk (see the
+// layout note at the top for why the direct call is the retail call).  The
+// module-state push is not reproduced (uniform across this file).  One
+// deviation, shared by all of them: pThis and m_pOwner are null-checked and
+// E_UNEXPECTED is returned; retail dereferences both and would fault.
+// SetClientSite and SetExtent do more than forward and are commented
+// individually.
+inline void* OwnerOleObjectPart(void* pThis) {
+    if (pThis == nullptr) return nullptr;
+    void* pServer = ServerFromPart(pThis, kOff_m_xOleObject);
+    COleServerDoc* pOwner = Member<COleServerDoc*>(pServer, kOff_m_pOwner);
+    return pOwner != nullptr ? OwnerAt(pOwner, kOwnerOff_m_xOleObject) : nullptr;
+}
+
+// The same for the XOleDocumentView part (server + 0x78): the owning document,
+// or NULL.  Open / Show / SetInPlaceSite / UIActivate / GetRect use it.
+inline COleServerDoc* OwnerFromDocumentViewPart(void* pThis) {
+    if (pThis == nullptr) return nullptr;
+    void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
+    return Member<COleServerDoc*>(pServer, kOff_m_pOwner);
 }
 
 }  // namespace
@@ -212,39 +381,54 @@ inline T& Member(void* pServer, long nOffset) {
 //     m_pDocSite   (+0x40) = pDocSite       (the 3rd register argument, R8)
 //     m_pViewSite  (+0x60) = NULL
 //     m_pOwner     (+0x48) = pDoc           (the 2nd register argument, RDX)
-//     pDoc->[0x1c0]        = 1
+//     pDoc->m_bCompoundFile = TRUE          (`movl $0x1,0x1c0(%rdi)` at mfc140u
+//                                            0x256d5c; +0x1c0 of a COleDocument
+//                                            is m_bCompoundFile, see the top note)
 //     m_nFirstPage (+0x50) = -1
 //     return this
+// Re-read in mfc140u at RVA 0x256ce0: the same stores, base ctor at 0x1de3f0.
 // The four data-member stores ARE reproduced below: they are inside the 144
 // bytes this repo records for the class (detail/COleControlModuleSupport.h,
 // OR_DESC(CDocObjectServer, 144, ...)).  Three of the four are read by an
-// implemented body in this file -- m_pDocSite by ReleaseDocSite, m_pOwner by
-// GetControllingFrame / OnCloseDocument / OnExecOleCmd / OnSetItemRects /
-// SetRect, m_pViewSite by GetInPlaceSite.  m_nFirstPage is written by
-// SetInitialPageNum but its only retail reader, GetPageInfo, is still a stub,
+// implemented body in this file -- m_pDocSite by ReleaseDocSite /
+// ActivateDocObject / SetClientSite, m_pOwner by GetControllingFrame /
+// OnCloseDocument / OnExecOleCmd / OnSetItemRects / SetRect and by every
+// forward into the owning document's interface parts, m_pViewSite by
+// GetInPlaceSite / SetInPlaceSite / CreateView.  m_nFirstPage is written by
+// SetInitialPageNum and by XPrint::Print, but its only retail reader,
+// GetPageInfo, reads it on the OnPreparePrinting leg that is not reproduced,
 // so today nothing reads back the -1.
 //
-// Three things retail does are deliberately NOT reproduced, and no body in this
+// The m_bCompoundFile store is reproduced through OpenMFC's own member
+// (COleDocument::m_bCompoundFile, at +0x180 here rather than retail's +0x1c0 --
+// OpenMFC's COleDocument keeps only that BOOL and m_bRemember of the retail
+// members, in its own order, so the retail offset must not be used).  An
+// earlier note here called +0x1c0 "an unidentified field"; it is identified
+// (top note) and a doc-object server's document is a compound file in retail,
+// which core/ole/COleDocument.cpp consults on every save path.
+//
+// Two things retail does are deliberately NOT reproduced, and no body in this
 // file may assume them:
 //   * the CCmdTarget base construction -- so m_dwRef (+0x08) and
 //     m_pModuleState (+0x38) stay whatever the caller's storage held;
 //   * the six vptr stores -- this DLL builds no vtable for CDocObjectServer or
 //     for any of the five nested interface classes, so there is nothing to
 //     store.  Anything that dispatches through one of those vtables therefore
-//     stays a stub below;
-//   * `pDoc->[0x1c0] = 1` -- that offset is inside the owning COleServerDoc,
-//     whose OpenMFC layout (include/openmfc/afxole.h: COleLinkingDoc plus
-//     `char _coleserverdoc_padding[96]`) is unrelated to the retail one, so the
-//     store would land on an unidentified field.
+//     stays a stub below.
+// Deviations: the pThis guard, and pDoc is null-checked before the
+// m_bCompoundFile store (retail would fault on a NULL pDoc).
 extern "C" void* MS_ABI impl___0CDocObjectServer__QEAA_PEAVCOleServerDoc__PEAUIOleDocumentSite___Z(
     void* pThis, void* pDoc, void* pDocSite) {
     if (pThis == nullptr) {
         return pThis;   // deviation: retail has no such guard (it would fault)
     }
-    Member<void*>(pThis, kOff_m_pDocSite) = pDocSite;
-    Member<void*>(pThis, kOff_m_pViewSite) = nullptr;
-    Member<void*>(pThis, kOff_m_pOwner) = pDoc;
-    Member<LONG>(pThis, kOff_m_nFirstPage) = -1;
+    Member<void*>(pThis, kOff_m_pDocSite) = pDocSite;                  // 0x256d47
+    Member<void*>(pThis, kOff_m_pViewSite) = nullptr;                  // 0x256d50
+    Member<void*>(pThis, kOff_m_pOwner) = pDoc;                        // 0x256d58
+    if (pDoc != nullptr) {
+        static_cast<COleServerDoc*>(pDoc)->m_bCompoundFile = TRUE;     // 0x256d5c
+    }
+    Member<LONG>(pThis, kOff_m_nFirstPage) = -1;                       // 0x256d66
     return pThis;
 }
 
@@ -263,18 +447,31 @@ extern "C" void MS_ABI impl___1CDocObjectServer__UEAA_XZ(void* pThis) {
     impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(pThis);
 }
 
-// STUB: CDocObjectServer::ActivateDocObject -- retail (0x255f50) is
-//     if (m_pOwner->[0x268] != NULL)
-//         m_pDocSite->vtbl[0x18/8 = 3](NULL);   // IOleDocumentSite::ActivateMe
-// m_pOwner + 0x268 is COleServerDoc::m_pDocObjectServer (see the layout note at
-// the top of this file).  OpenMFC's COleServerDoc has no such member and no
-// relationship to the retail layout, so the guard cannot be evaluated.  It is
-// left unimplemented rather than approximated: substituting `m_pDocSite != NULL`
-// for it would call ActivateMe in the one case retail deliberately skips, and a
-// spurious activation is worse than none.
 // Symbol: ?ActivateDocObject@CDocObjectServer@@QEAAXXZ
+// CDocObjectServer::ActivateDocObject() -- retail RVA 0x256e90 (mfc140u; the
+// same body sits at 0x255f50 in mfc140), the whole body:
+//     if (m_pOwner->m_pDocObjectServer != NULL)   // +0x48, then `cmpq $0,0x268(%rax)`
+//         m_pDocSite->vtbl[0x18/8 = 3](NULL);     // +0x40; IOleDocumentSite::ActivateMe,
+//                                                 //   via the CFG dispatch pointer
+// Slot 3 is ActivateMe: IOleDocumentSite declares exactly one method after
+// IUnknown's three.  m_pOwner + 0x268 is COleServerDoc::m_pDocObjectServer and
+// is read exactly as retail reads it; in this DLL that word is inside the
+// zero-filled padding of OpenMFC's COleServerDoc (layout note at the top) and
+// nothing writes it, so the guard is false and ActivateMe is not called --
+// which is also what retail does for a document that was never handed a
+// doc-object server.  It starts activating the moment COleServerDoc.cpp models
+// the member.  Deviations: the pThis / m_pOwner / m_pDocSite null guards;
+// retail has none (a NULL m_pDocSite would fault there).
 extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;
+    COleServerDoc* pOwner = Member<COleServerDoc*>(pThis, kOff_m_pOwner);
+    if (pOwner == nullptr) return;
+    if (*static_cast<void**>(OwnerAt(pOwner, kOwnerOff_m_pDocObjectServer)) == nullptr) {
+        return;                                                    // 0x256ea0
+    }
+    IOleDocumentSite* pDocSite = Member<IOleDocumentSite*>(pThis, kOff_m_pDocSite);
+    if (pDocSite == nullptr) return;   // deviation: retail would fault
+    pDocSite->ActivateMe(nullptr);                                 // 0x256eaf
 }
 
 // The five CDocObjectServer::Do* printing helpers are, in retail, one-instruction
@@ -316,9 +513,16 @@ extern "C" void MS_ABI impl__DoEndPrinting_CDocObjectServer__IEAAXPEAVCView__PEA
     pView->OnEndPrinting(pDC, pInfo);
 }
 
-// STUB: retail (0x256070) tail-jumps to pView->vtbl[0x320/8 = 100], CView::
-// OnPrepareDC(CDC*, CPrintInfo*).  OpenMFC's CView declares no OnPrepareDC, so
-// there is no virtual to dispatch to and no impl__ thunk for one either.
+// STUB: retail (0x256070 in mfc140; the same seven instructions at RVA
+// 0x256fb0 in mfc140u, re-read there) tail-jumps to pView->vtbl[0x320/8 = 100],
+// CView::OnPrepareDC(CDC*, CPrintInfo*), through the CFG dispatch pointer.
+// OpenMFC's CView (include/openmfc/afxwin.h, re-checked) still declares no
+// OnPrepareDC virtual.  An impl__ thunk for the BASE body does exist
+// (core/view/CView.cpp: ?OnPrepareDC@CView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z),
+// but calling it here would replace retail's virtual dispatch with the base
+// implementation and silently bypass the override that every printing view
+// supplies -- a wrong answer rather than a missing one -- so this stays a stub
+// until the header carries the virtual (header request filed).
 // Symbol: ?DoPrepareDC@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__DoPrepareDC_CDocObjectServer__IEAAXPEAVCView__PEAVCDC__PEAUCPrintInfo___Z(
     void* pThis, CView* pView, void* pDC, void* pInfo) {
@@ -336,9 +540,15 @@ extern "C" int MS_ABI impl__DoPreparePrinting_CDocObjectServer__IEAAHPEAVCView__
     return pView->OnPreparePrinting(pInfo);
 }
 
-// STUB: retail (0x256090) tail-jumps to pView->vtbl[0x360/8 = 108], CView::
-// OnPrint(CDC*, CPrintInfo*).  OpenMFC's CView declares no OnPrint, so there is
-// no virtual to dispatch to and no impl__ thunk for one either.
+// STUB: retail (0x256090 in mfc140; the same seven instructions at RVA
+// 0x256fd0 in mfc140u, re-read there) tail-jumps to pView->vtbl[0x360/8 = 108],
+// CView::OnPrint(CDC*, CPrintInfo*), through the CFG dispatch pointer.
+// OpenMFC's CView (include/openmfc/afxwin.h, re-checked) still declares no
+// OnPrint virtual.  An impl__ thunk for the BASE body does exist
+// (core/view/CView.cpp: ?OnPrint@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z), but
+// a direct call to it would bypass the OnPrint override that is the whole point
+// of the helper, so this stays a stub until the header carries the virtual
+// (header request filed).
 // Symbol: ?DoPrint@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__DoPrint_CDocObjectServer__IEAAXPEAVCView__PEAVCDC__PEAUCPrintInfo___Z(
     void* pThis, CView* pView, void* pDC, void* pInfo) {
@@ -397,9 +607,19 @@ extern "C" CFrameWnd* MS_ABI impl__GetControllingFrame_CDocObjectServer__QEBAPEA
     return pFrame;
 }
 
-// STUB: CDocObjectServer::OnActivateView -- retail (0x2586a0) is the in-place
-// activation path and is far outside what this DLL can express.  What was read
-// from the disassembly, so the next reader does not have to start over:
+// STUB: CDocObjectServer::OnActivateView -- retail (0x2586a0 in mfc140; RVA
+// 0x259620 in mfc140u, 326 instructions up to the `ret` at 0x259b65, re-read
+// there: the first test is `mov 0x48(%rcx),%rax; cmpq $0,0x230(%rax); jne` at
+// 0x25964e with `xor %eax,%eax` on the fall-through) is the in-place
+// activation path and is far outside what this DLL can express.  Note that
+// +0x230 of the owner is retail's m_lpClientSite but OpenMFC's m_bEmbedded
+// (layout note at the top), so the early-out cannot be read from the object
+// here.  It does not need to be: OpenMFC's COleServerDoc has no client site
+// at all (its XOleObject::SetClientSite thunk in core/ole/COleServerDoc.cpp
+// stores nothing, and no member or side table holds one), so every document
+// this DLL builds is one retail would early-out on, and the S_OK below is
+// that early-out's value, not a guess.  What was read from the disassembly,
+// so the next reader does not have to start over:
 //     if (m_pOwner->[0x230] == NULL) return S_OK;         // 0x2586ce, early out
 //     ...build three CStrings from the module state (0x3ab440 / +0x18)...
 //     if (!m_pOwner->vtbl[0x330/8 = 102](&str)) goto fail;
@@ -426,7 +646,11 @@ extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThi
 // RVA 0x2820 disassembles to a single `ret` -- an empty void body that every
 // such body in the image was COMDAT-folded into (the RVA map happens to name it
 // ?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ, which is one of the folded-in
-// bodies, not this one).  afxdocob.h on this host declares CDocObjectServer's
+// bodies, not this one).  The same holds in mfc140u, read directly this time:
+// the export directory maps ordinal 8670 (OnApplyViewState) and ordinal 10963
+// (OnSaveViewState) both to RVA 0x27d0 (mfc140u), which is a single `ret`
+// (the mfc140u map names that address ?AddDockSite@CFrameWndEx@@QEAAXXZ, again
+// one of the folded-in empties).  afxdocob.h on this host declares CDocObjectServer's
 // new virtuals in the order OnApplyViewState, OnSaveViewState, OnActivateView,
 // OnCloseDocument, and slots 24/25 carry those last two by name, so 22 is
 // OnApplyViewState and 23 is OnSaveViewState.  Retail reads nothing from the
@@ -523,7 +747,8 @@ extern "C" void MS_ABI impl__OnSetItemRects_CDocObjectServer__IEAAXPEAUtagRECT__
 }
 
 // Symbol: ?ReleaseDocSite@CDocObjectServer@@QEAAXXZ
-// CDocObjectServer::ReleaseDocSite() -- retail (0x255ec0), transcribed in full:
+// CDocObjectServer::ReleaseDocSite() -- retail (0x255ec0 in mfc140; the same
+// body at RVA 0x256e00 in mfc140u, re-read there), transcribed in full:
 //     rcx = m_pDocSite (+0x40)
 //     if (rcx != NULL) {
 //         rcx->vtbl[0x10/8 = 2]();      // IUnknown::Release
@@ -566,18 +791,18 @@ extern "C" long MS_ABI impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(vo
 extern "C" long MS_ABI impl__SetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite___Z(
     void* pThis, IOleInPlaceSite* pSite);
 
-// STUB: retail (0x257800) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x98/8 = 19 = IOleObject::Advise] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?Advise@XOleObject@CDocObjectServer@@UEAAJPEAUIAdviseSink@@PEAK@Z
+// IOleObject::Advise -- retail RVA 0x258770 (mfc140u; the same body at 0x257800 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x98/8 = 19, IOleObject::Advise, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__Advise_XOleObject_CDocObjectServer__UEAAJPEAUIAdviseSink__PEAK_Z(
     void* pThis, IAdviseSink* pAdvSink, unsigned long* pdwConnection) {
-    (void)pThis;
-    (void)pAdvSink;
-    (void)pdwConnection;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__Advise_XOleObject_COleServerDoc__UEAAJPEAUIAdviseSink__PEAK_Z(
+        pPart, pAdvSink, pdwConnection);
 }
 
 // STUB: retail (0x259280).  Whole body, in program order:
@@ -655,12 +880,15 @@ extern "C" long MS_ABI impl__ApplyViewState_XOleDocumentView_CDocObjectServer__U
 }
 
 // Symbol: ?Clone@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@PEAPEAUIOleDocumentView@@@Z
-// IOleDocumentView::Clone.  This export has no RVA of its own in the map, but
-// slot 15 of the XOleDocumentView vtable (.rdata 0x18032d1a8, inside the vtable
-// at 0x18032d130) holds 0x180258f50 -- byte-identical to the SetRectComplex
-// slot at 0x18032d170, i.e. the two bodies were COMDAT-folded.  That body
-// (disassembled below, under SetRectComplex) is AFX_MANAGE_STATE followed by
-// `return E_NOTIMPL`.
+// IOleDocumentView::Clone.  This export has no RVA of its own in the mfc140
+// map, but slot 15 of the XOleDocumentView vtable (.rdata 0x18032d1a8, inside
+// the vtable at 0x18032d130) holds 0x180258f50 -- byte-identical to the
+// SetRectComplex slot at 0x18032d170, i.e. the two bodies were COMDAT-folded.
+// That body (disassembled below, under SetRectComplex) is AFX_MANAGE_STATE
+// followed by `return E_NOTIMPL`.  In mfc140u the export resolves to its own
+// RVA 0x259ed0, which was disassembled: AFX_MANAGE_STATE(this - 0x40) and then
+// `mov $0x80004001,%eax` -- neither parameter is read.  The body below IS the
+// retail body, not a placeholder.
 extern "C" long MS_ABI impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAPEAUIOleDocumentView___Z(
     void* pThis, IOleInPlaceSite* pIPSiteNew, IOleDocumentView** ppViewNew) {
     (void)pThis;
@@ -669,17 +897,17 @@ extern "C" long MS_ABI impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUI
     return E_NOTIMPL;
 }
 
-// STUB: retail (0x2572b0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x30/8 = 6 = IOleObject::Close] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?Close@XOleObject@CDocObjectServer@@UEAAJK@Z
+// IOleObject::Close -- retail RVA 0x258220 (mfc140u; the same body at 0x2572b0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x30/8 = 6, IOleObject::Close, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__Close_XOleObject_CDocObjectServer__UEAAJK_Z(
     void* pThis, unsigned long dwSaveOption) {
-    (void)pThis;
-    (void)dwSaveOption;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__Close_XOleObject_COleServerDoc__UEAAJK_Z(pPart, dwSaveOption);
 }
 
 // Symbol: ?CloseView@XOleDocumentView@CDocObjectServer@@UEAAJK@Z
@@ -691,10 +919,11 @@ extern "C" long MS_ABI impl__Close_XOleObject_CDocObjectServer__UEAAJK_Z(
 // dwReserved is ignored.  Slots 9 and 3 of the XOleDocumentView vtable
 // (.rdata RVA 0x32d130) hold 0x258f80 (Show) and 0x258d10 (SetInPlaceSite);
 // the dispatch is transcribed as direct calls because XOleDocumentView is a
-// private nested class with a single vtable, so nothing can override those
-// slots.
-// NOTE: both callees are still stubs below (they need the owning document's
-// retail interface-part layout), so today this reduces to returning S_OK.
+// BEGIN_INTERFACE_PART nested class that nothing derives from -- a single
+// vtable, so nothing can override those slots.
+// Both callees are implemented below; Show(FALSE) forwards to the owning
+// document's InPlaceDeactivate and SetInPlaceSite(NULL) releases m_pViewSite,
+// so this returns the S_OK SetInPlaceSite always ends on.
 extern "C" long MS_ABI impl__CloseView_XOleDocumentView_CDocObjectServer__UEAAJK_Z(
     void* pThis, DWORD dwReserved) {
     (void)dwReserved;
@@ -771,49 +1000,47 @@ extern "C" long MS_ABI impl__CreateView_XOleDocument_CDocObjectServer__UEAAJPEAU
     return hr;
 }
 
-// STUB: retail (0x2574b0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x58/8 = 11 = IOleObject::DoVerb] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?DoVerb@XOleObject@CDocObjectServer@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z
+// IOleObject::DoVerb -- retail RVA 0x258420 (mfc140u; the same body at 0x2574b0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x58/8 = 11, IOleObject::DoVerb, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__DoVerb_XOleObject_CDocObjectServer__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(
     void* pThis, long iVerb, MSG* lpmsg, IOleClientSite* pActiveSite, long lindex,
     HWND hwndParent, const RECT* lprcPosRect) {
-    (void)pThis;
-    (void)iVerb;
-    (void)lpmsg;
-    (void)pActiveSite;
-    (void)lindex;
-    (void)hwndParent;
-    (void)lprcPosRect;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(
+        pPart, iVerb, lpmsg, pActiveSite, lindex, hwndParent, lprcPosRect);
 }
 
-// STUB: retail (0x2578d0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0xa8/8 = 21 = IOleObject::EnumAdvise] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?EnumAdvise@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIEnumSTATDATA@@@Z
+// IOleObject::EnumAdvise -- retail RVA 0x258840 (mfc140u; the same body at 0x2578d0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0xa8/8 = 21, IOleObject::EnumAdvise, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__EnumAdvise_XOleObject_CDocObjectServer__UEAAJPEAPEAUIEnumSTATDATA___Z(
     void* pThis, IEnumSTATDATA** ppenumAdvise) {
-    (void)pThis;
-    (void)ppenumAdvise;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__EnumAdvise_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumSTATDATA___Z(
+        pPart, ppenumAdvise);
 }
 
-// STUB: retail (0x257540) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x60/8 = 12 = IOleObject::EnumVerbs] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?EnumVerbs@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIEnumOLEVERB@@@Z
+// IOleObject::EnumVerbs -- retail RVA 0x2584b0 (mfc140u; the same body at 0x257540 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x60/8 = 12, IOleObject::EnumVerbs, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__EnumVerbs_XOleObject_CDocObjectServer__UEAAJPEAPEAUIEnumOLEVERB___Z(
     void* pThis, IEnumOLEVERB** ppenumOleVerb) {
-    (void)pThis;
-    (void)ppenumOleVerb;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__EnumVerbs_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumOLEVERB___Z(
+        pPart, ppenumOleVerb);
 }
 
 // Symbol: ?EnumViews@XOleDocument@CDocObjectServer@@UEAAJPEAPEAUIEnumOleDocumentViews@@PEAPEAUIOleDocumentView@@@Z
@@ -838,8 +1065,9 @@ extern "C" long MS_ABI impl__EnumVerbs_XOleObject_CDocObjectServer__UEAAJPEAPEAU
 // retail's InternalQueryInterface assigns the GetInterface result through the
 // out parameter before testing it).
 // How the QI is reproduced, and why NOT the obvious way.  Retail's
-// XOleDocument::QueryInterface (vtable slot 0 = 0x256e00) is METHOD_PROLOGUE_EX
-// plus an inlined CCmdTarget::ExternalQueryInterface, so calling this DLL's
+// XOleDocument::QueryInterface (mfc140 vtable slot 0 = 0x256e00 in mfc140) is
+// METHOD_PROLOGUE_EX plus an inlined CCmdTarget::ExternalQueryInterface, so
+// calling this DLL's
 // impl__ExternalQueryInterface_CCmdTarget thunk looks like the exact
 // transcription -- and it is NOT SAFE HERE.  That body reads m_pOuterUnknown at
 // server + 0x10 and, when the word is non-zero, calls QueryInterface through it;
@@ -926,31 +1154,32 @@ extern "C" long MS_ABI impl__Exec_XOleCommandTarget_CDocObjectServer__UEAAJPEBU_
     return OLECMDERR_E_NOTSUPPORTED;      // 0x80040100, helper 0x258128 at 0x25819e
 }
 
-// STUB: retail (0x2571e0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x20/8 = 4 = IOleObject::GetClientSite] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetClientSite@XOleObject@CDocObjectServer@@UEAAJPEAPEAUIOleClientSite@@@Z
+// IOleObject::GetClientSite -- retail RVA 0x258150 (mfc140u; the same body at 0x2571e0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x20/8 = 4, IOleObject::GetClientSite, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetClientSite_XOleObject_CDocObjectServer__UEAAJPEAPEAUIOleClientSite___Z(
     void* pThis, IOleClientSite** ppClientSite) {
-    (void)pThis;
-    (void)ppClientSite;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(
+        pPart, ppClientSite);
 }
 
-// STUB: retail (0x257440) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x50/8 = 10 = IOleObject::GetClipboardData] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetClipboardData@XOleObject@CDocObjectServer@@UEAAJKPEAPEAUIDataObject@@@Z
+// IOleObject::GetClipboardData -- retail RVA 0x2583b0 (mfc140u; the same body at 0x257440 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x50/8 = 10, IOleObject::GetClipboardData, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetClipboardData_XOleObject_CDocObjectServer__UEAAJKPEAPEAUIDataObject___Z(
     void* pThis, unsigned long dwReserved, IDataObject** ppDataObject) {
-    (void)pThis;
-    (void)dwReserved;
-    (void)ppDataObject;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetClipboardData_XOleObject_COleServerDoc__UEAAJKPEAPEAUIDataObject___Z(
+        pPart, dwReserved, ppDataObject);
 }
 
 // Symbol: ?GetDocMiscStatus@XOleDocument@CDocObjectServer@@UEAAJPEAK@Z
@@ -978,8 +1207,8 @@ extern "C" long MS_ABI impl__GetDocMiscStatus_XOleDocument_CDocObjectServer__UEA
 // The IID at .rdata 0x2d79a8 was dumped with objdump -s and reads
 // {00000000-0000-0000-C000-000000000046} = IID_IUnknown.
 // PARTIAL, in exactly the same one respect as EnumViews above, and reproduced
-// the same way.  XOleDocument::QueryInterface (vtable 0x32d2b0 slot 0 =
-// 0x256e00) is METHOD_PROLOGUE_EX plus an inlined CCmdTarget::
+// the same way.  XOleDocument::QueryInterface (mfc140 vtable 0x32d2b0 slot 0 =
+// 0x256e00 in mfc140) is METHOD_PROLOGUE_EX plus an inlined CCmdTarget::
 // ExternalQueryInterface, whose OpenMFC body reads m_pOuterUnknown at
 // server + 0x10 -- storage this DLL's CDocObjectServer constructor never
 // initialises -- so the non-aggregated leg is reproduced directly instead:
@@ -1002,18 +1231,18 @@ extern "C" long MS_ABI impl__GetDocument_XOleDocumentView_CDocObjectServer__UEAA
     return pUnk != nullptr ? S_OK : E_NOINTERFACE;
 }
 
-// STUB: retail (0x257790) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x90/8 = 18 = IOleObject::GetExtent] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetExtent@XOleObject@CDocObjectServer@@UEAAJKPEAUtagSIZE@@@Z
+// IOleObject::GetExtent -- retail RVA 0x258700 (mfc140u; the same body at 0x257790 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x90/8 = 18, IOleObject::GetExtent, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetExtent_XOleObject_CDocObjectServer__UEAAJKPEAUtagSIZE___Z(
     void* pThis, unsigned long dwDrawAspect, SIZE* psizel) {
-    (void)pThis;
-    (void)dwDrawAspect;
-    (void)psizel;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(
+        pPart, dwDrawAspect, psizel);
 }
 
 // Symbol: ?GetInPlaceSite@XOleDocumentView@CDocObjectServer@@UEAAJPEAPEAUIOleInPlaceSite@@@Z
@@ -1025,12 +1254,10 @@ extern "C" long MS_ABI impl__GetExtent_XOleObject_CDocObjectServer__UEAAJKPEAUta
 //     return S_OK;
 // m_xOleDocumentView sits at server + 0x78, so the -0x18 the disassembly uses is
 // m_pViewSite at +0x60, and -0x40 is m_pModuleState at +0x38.
-// This is now safe to reproduce because the constructor above seeds
-// m_pViewSite = NULL.  SetInPlaceSite is still a stub, so in this DLL the answer
-// is always (NULL, S_OK) -- which is exactly what retail returns for a view that
-// has never had an in-place site set.  Deviations: the module-state push is not
-// reproduced (that is uniform across this file), and ppIPSite is null-checked,
-// which retail does not do.
+// This is safe to reproduce because the constructor above seeds
+// m_pViewSite = NULL and SetInPlaceSite below keeps it reference-counted.
+// Deviations: the module-state push is not reproduced (that is uniform across
+// this file), and ppIPSite is null-checked, which retail does not do.
 extern "C" long MS_ABI impl__GetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAPEAUIOleInPlaceSite___Z(
     void* pThis, IOleInPlaceSite** ppIPSite) {
     if (pThis == nullptr || ppIPSite == nullptr) {
@@ -1045,173 +1272,277 @@ extern "C" long MS_ABI impl__GetInPlaceSite_XOleDocumentView_CDocObjectServer__U
     return S_OK;
 }
 
-// STUB: retail (0x257930) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0xb0/8 = 22 = IOleObject::GetMiscStatus] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetMiscStatus@XOleObject@CDocObjectServer@@UEAAJKPEAK@Z
+// IOleObject::GetMiscStatus -- retail RVA 0x2588a0 (mfc140u; the same body at 0x257930 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0xb0/8 = 22, IOleObject::GetMiscStatus, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetMiscStatus_XOleObject_CDocObjectServer__UEAAJKPEAK_Z(
     void* pThis, unsigned long dwAspect, unsigned long* pdwStatus) {
-    (void)pThis;
-    (void)dwAspect;
-    (void)pdwStatus;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetMiscStatus_XOleObject_COleServerDoc__UEAAJKPEAK_Z(pPart, dwAspect, pdwStatus);
 }
 
-// STUB: retail (0x257380) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x40/8 = 8 = IOleObject::GetMoniker] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetMoniker@XOleObject@CDocObjectServer@@UEAAJKKPEAPEAUIMoniker@@@Z
+// IOleObject::GetMoniker -- retail RVA 0x2582f0 (mfc140u; the same body at 0x257380 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x40/8 = 8, IOleObject::GetMoniker, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetMoniker_XOleObject_CDocObjectServer__UEAAJKKPEAPEAUIMoniker___Z(
     void* pThis, unsigned long dwAssign, unsigned long dwWhichMoniker, IMoniker** ppmk) {
-    (void)pThis;
-    (void)dwAssign;
-    (void)dwWhichMoniker;
-    (void)ppmk;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAUIMoniker___Z(
+        pPart, dwAssign, dwWhichMoniker, ppmk);
 }
 
-// STUB: retail (0x256250) reaches the active view through two virtuals of the
-// OWNING DOCUMENT -- m_pOwner (read at this-0x40) vtable slots 0xe0/8 = 28 and
-// 0xe8/8 = 29, which take no argument / take &POSITION and match
-// CDocument::GetFirstViewPosition and CDocument::GetNextView.  It then builds a
-// CPrintInfo on the stack (0x281530), writes two constants into it (1 at +0x08
-// and 0x10 at +0x48 of that CPrintInfo -- fields not identified here), and calls
-// the view virtual at slot 0x350/8 = 106 with &printInfo, testing the result as
-// a BOOL; that signature and use match CView::OnPreparePrinting.  Only then does
-// it report the page range.  The page numbers do NOT come out of the
-// CPrintDialog directly (an earlier note in this file said "m_pPD->[0x30]",
-// which is wrong -- it is one indirection short): retail loads
-// pInfo->m_pPD (the CPrintInfo's first member) and then m_pPD->[0x130], which
-// is CPrintDialog's `PRINTDLG& m_pd` reference, and reads WORD fields of that
-// PRINTDLG -- +0x2c nFromPage, +0x2e nToPage, +0x30 nMinPage.  So
-// *pnFirstPage = (m_nFirstPage != -1 ? m_nFirstPage : m_pd.nMinPage), and
-// *pcPages = (m_pd.nToPage == 0xffff ? 0xffff : nToPage - nFromPage + 1).
-// Returns E_UNEXPECTED (0x8000ffff) both when there is no view (0x256367) and
-// when OnPreparePrinting returns FALSE (0x256308).  Needs CView/CPrintInfo
-// printing infrastructure.
+// PARTIAL: IPrint::GetPageInfo -- retail (0x256250 in mfc140; RVA 0x257190 in
+// mfc140u, re-read there instruction by instruction), in program order.  The
+// XPrint part sits at server + 0x88, so the `-0x50` / `-0x40` / `-0x38` the
+// body uses are m_pModuleState (+0x38), m_pOwner (+0x48) and m_nFirstPage
+// (+0x50):
+//     AFX_MANAGE_STATE(server + 0x38)
+//     pos = m_pOwner->vtbl[0xe0/8 = 28]();        // GetFirstViewPosition, 0x2571d6
+//     if (pos == NULL) return E_UNEXPECTED;       // 0x2572a7
+//     pView = m_pOwner->vtbl[0xe8/8 = 29](&pos);  // GetNextView, 0x2571fd
+//     if (pView == NULL) return E_UNEXPECTED;     // 0x2572a7
+//     CPrintInfo info;                            // ctor 0x2830a0 = ??0CPrintInfo@@QEAA@XZ
+//     info.m_bDocObject = TRUE;                   // +0x08, 0x257219
+//     info.m_dwFlags = 0x10;                      // +0x48, 0x257226
+//     if (!pView->vtbl[0x350/8 = 106](&info))     // OnPreparePrinting, 0x25723e
+//         hr = E_UNEXPECTED;                      // 0x257248
+//     else {
+//         PRINTDLG& pd = *info.m_pPD->m_pd;       // m_pPD is +0x00 of the CPrintInfo,
+//                                                 //   m_pd the reference at +0x130 of
+//                                                 //   the CPrintDialog
+//         if (pnFirstPage) *pnFirstPage = m_nFirstPage != -1 ? m_nFirstPage
+//                                                            : pd.nMinPage;   // +0x30
+//         if (pcPages) *pcPages = pd.nToPage == 0xffff ? 0xffff               // +0x2e
+//                                : pd.nToPage - pd.nFromPage + 1;             // +0x2c
+//         hr = S_OK;
+//     }
+//     ~CPrintInfo();                              // 0x283160
+//     return hr;
+// The CPrintInfo field names come from the real afxext.h on this host
+// (m_pPD +0x00, m_bDocObject +0x08, m_nOffsetPage +0x44, m_dwFlags +0x48);
+// the PRINTDLG WORD offsets are nFromPage/nToPage/nMinPage.  An earlier note
+// said the pages came from "m_pPD->[0x30]", one indirection short.
+//
+// What is reproduced: the view walk, through OpenMFC's CDocument virtuals as
+// GetControllingFrame above does it, and the E_UNEXPECTED for a document with
+// no view.  What is NOT, and why: OpenMFC declares no CPrintInfo type and its
+// ??0CPrintInfo thunk (core/view/CPrintInfo.cpp) only registers the address --
+// it allocates no m_pPD -- so neither OnPreparePrinting nor the m_pPD->m_pd
+// reads can be made.  That leg therefore reports E_UNEXPECTED, which is
+// retail's own answer when OnPreparePrinting fails, with the out parameters
+// left unwritten exactly as retail leaves them on that path.  The generated
+// `return 0` told the caller the page range had been filled in.  Deviation:
+// the pThis / m_pOwner null guards; retail would fault.
 // Symbol: ?GetPageInfo@XPrint@CDocObjectServer@@UEAAJPEAJ0@Z
 extern "C" long MS_ABI impl__GetPageInfo_XPrint_CDocObjectServer__UEAAJPEAJ0_Z(
     void* pThis, long* pnFirstPage, long* pcPages) {
-    (void)pThis;
-    (void)pnFirstPage;
+    (void)pnFirstPage;   // written only on the OnPreparePrinting leg (see above)
     (void)pcPages;
-    return 0;
+    if (pThis == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    void* pServer = ServerFromPart(pThis, kOff_m_xPrint);
+    COleServerDoc* pOwnerDoc = Member<COleServerDoc*>(pServer, kOff_m_pOwner);
+    if (pOwnerDoc == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    CDocument* pOwner = pOwnerDoc;   // single, non-virtual inheritance
+    void* pos = pOwner->GetFirstViewPosition();
+    if (pos == nullptr) return E_UNEXPECTED;                                 // 0x2572a7
+    CView* pView = pOwner->GetNextView(pos);
+    if (pView == nullptr) return E_UNEXPECTED;                               // 0x2572a7
+    // CPrintInfo / OnPreparePrinting leg not reproducible here (see above).
+    return E_UNEXPECTED;                                                     // 0x257248
 }
 
-// STUB: retail (0x258ef0) copies the 16-byte RECT at
-// m_pOwner->m_pInPlaceFrame (+0x250) + 0x248 into *prcView with one movups and
-// returns S_OK.  m_pInPlaceFrame's own +0x248 field is a COleIPFrameWnd member
-// that has not been identified; either way OpenMFC lays out neither object.
 // Symbol: ?GetRect@XOleDocumentView@CDocObjectServer@@UEAAJPEAUtagRECT@@@Z
+// IOleDocumentView::GetRect -- retail RVA 0x259e70 (mfc140u; the same body at
+// 0x258ef0 in mfc140), the whole body.  server = this - 0x78:
+//     AFX_MANAGE_STATE(server + 0x38)                        // -0x40
+//     *prcView = *(RECT*)(m_pOwner->m_pInPlaceFrame + 0x248) // -0x30 = +0x48, then
+//                                                            //   +0x250, then one
+//                                                            //   movups/movdqu pair
+//     return S_OK                                            // xor %eax,%eax
+// That 16-byte copy is COleServerDoc::GetItemPosition inlined: its own retail
+// body (core/ole/COleServerDoc.cpp cites it, mfc140u 0x265e00) is the same
+// load of m_pInPlaceFrame + 0x248 with the same absent null check.
+// GetItemPosition is non-virtual, so the forward to its impl__ thunk below IS
+// the retail call; no dispatch is bypassed.  PARTIAL only in that the thunk is
+// itself a documented partial today: it reports an empty rect because OpenMFC
+// models no in-place frame.  When it starts copying the real rect, so does
+// this.  Deviations: pThis / m_pOwner / prcView null guards (retail faults on
+// a NULL frame, and m_pInPlaceFrame is never set in this DLL, so the thunk's
+// empty rect is what a caller sees today rather than a fault).
 extern "C" long MS_ABI impl__GetRect_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT___Z(
     void* pThis, RECT* prcView) {
-    (void)pThis;
-    (void)prcView;
-    return 0;
+    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
+    if (pOwner == nullptr || prcView == nullptr) {
+        return E_UNEXPECTED;   // deviation: retail would fault
+    }
+    impl__GetItemPosition_COleServerDoc__QEBAXPEAUtagRECT___Z(pOwner, prcView);
+    return S_OK;
 }
 
-// STUB: retail (0x257640) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x78/8 = 15 = IOleObject::GetUserClassID] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetUserClassID@XOleObject@CDocObjectServer@@UEAAJPEAU_GUID@@@Z
+// IOleObject::GetUserClassID -- retail RVA 0x2585b0 (mfc140u; the same body at 0x257640 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x78/8 = 15, IOleObject::GetUserClassID, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetUserClassID_XOleObject_CDocObjectServer__UEAAJPEAU_GUID___Z(
     void* pThis, CLSID* pClsid) {
-    (void)pThis;
-    (void)pClsid;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(pPart, pClsid);
 }
 
-// STUB: retail (0x2576a0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x80/8 = 16 = IOleObject::GetUserType] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?GetUserType@XOleObject@CDocObjectServer@@UEAAJKPEAPEA_W@Z
+// IOleObject::GetUserType -- retail RVA 0x258610 (mfc140u; the same body at 0x2576a0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x80/8 = 16, IOleObject::GetUserType, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__GetUserType_XOleObject_CDocObjectServer__UEAAJKPEAPEA_W_Z(
     void* pThis, unsigned long dwFormOfType, wchar_t** pszUserType) {
-    (void)pThis;
-    (void)dwFormOfType;
-    (void)pszUserType;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(
+        pPart, dwFormOfType, pszUserType);
 }
 
-// STUB: retail (0x2573e0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x48/8 = 9 = IOleObject::InitFromData] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?InitFromData@XOleObject@CDocObjectServer@@UEAAJPEAUIDataObject@@HK@Z
+// IOleObject::InitFromData -- retail RVA 0x258350 (mfc140u; the same body at 0x2573e0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x48/8 = 9, IOleObject::InitFromData, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__InitFromData_XOleObject_CDocObjectServer__UEAAJPEAUIDataObject__HK_Z(
     void* pThis, IDataObject* pDataObject, int fCreation, unsigned long dwReserved) {
-    (void)pThis;
-    (void)pDataObject;
-    (void)fCreation;
-    (void)dwReserved;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__InitFromData_XOleObject_COleServerDoc__UEAAJPEAUIDataObject__HK_Z(
+        pPart, pDataObject, fCreation, dwReserved);
 }
 
-// STUB: retail (0x2575f0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x70/8 = 14 = IOleObject::IsUpToDate] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?IsUpToDate@XOleObject@CDocObjectServer@@UEAAJXZ
+// IOleObject::IsUpToDate -- retail RVA 0x258560 (mfc140u; the same body at 0x2575f0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x70/8 = 14, IOleObject::IsUpToDate, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__IsUpToDate_XOleObject_CDocObjectServer__UEAAJXZ(
     void* pThis) {
-    (void)pThis;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(pPart);
 }
 
-// STUB: retail (0x259060) forwards to (m_pOwner + 0x278)->vtbl[0x58/8 = 11],
-// IOleObject::DoVerb, with iVerb = -2 (OLEIVERB_OPEN) and every other argument
-// zero.  Same missing COleServerDoc interface part as the IOleObject group.
 // Symbol: ?Open@XOleDocumentView@CDocObjectServer@@UEAAJXZ
+// IOleDocumentView::Open -- retail RVA 0x259fe0 (mfc140u; the same body at
+// 0x259060 in mfc140), the whole body.  server = this - 0x78: the module state
+// is `-0x40(%rcx)` = +0x38 and m_pOwner is `-0x30(%rbx)` = +0x48:
+//     AFX_MANAGE_STATE(server + 0x38)
+//     return (m_pOwner + 0x278)->vtbl[0x58/8 = 11](   // IOleObject::DoVerb
+//         -2,      // OLEIVERB_OPEN: `lea -0x2(%rbx),%edx` with rbx zeroed
+//         NULL,    // lpmsg        (r8d zeroed)
+//         NULL,    // pActiveSite  (r9d zeroed)
+//         0,       // lindex       ([rsp+0x20] = ebx = 0)
+//         NULL,    // hwndParent   ([rsp+0x28] = rbx = 0)
+//         NULL)    // lprcPosRect  ([rsp+0x30] = rbx = 0)
+// Forwarded to COleServerDoc's XOleObject::DoVerb thunk with the sub-object
+// address as `this` (layout note at the top); the HRESULT is returned
+// unchanged.  Deviation: the pThis / m_pOwner null guard; retail would fault.
 extern "C" long MS_ABI impl__Open_XOleDocumentView_CDocObjectServer__UEAAJXZ(
     void* pThis) {
-    (void)pThis;
-    return 0;
+    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
+    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(
+        OwnerAt(pOwner, kOwnerOff_m_xOleObject), OLEIVERB_OPEN, nullptr, nullptr, 0,
+        nullptr, nullptr);
 }
 
-// STUB: retail (0x2563b0) is the full IPrint::Print pump.  Its argument
-// validation returns E_POINTER (0x80004003) when pcPagesPrinted, pptd or
-// ppPageSet is NULL and E_INVALIDARG (0x80070057) when *pptd is NULL; it then
-// stores nFirstPage into m_nFirstPage, zeroes *pcPagesPrinted, walks to the
-// active view through the owning document's GetFirstViewPosition /
-// GetNextView (slots 28 / 29, E_UNEXPECTED if there is none) and drives a
-// CPrintInfo + printer DC through the view virtuals at slots 0x358/8 = 107 and
-// 0x368/8 = 109 -- one slot after and three after the slot GetPageInfo uses for
-// OnPreparePrinting, which in CView's declaration order is OnBeginPrinting and
-// OnEndPrinting -- plus 0x360/8 = 108 (OnPrint) and 0x320/8 = 100
-// (OnPrepareDC), with the IContinueCallback's slot 4 (FContinuePrinting,
-// 0x256aa4) polled per page.  Correction to an earlier note here: retail Print
-// does NOT call this class's DoPreparePrinting / DoBeginPrinting / DoPrint /
-// DoEndPrinting helpers -- those are one-instruction tail-jumps into exactly
-// the same CView slots (0x256050 -> 0x350, 0x2560b0 -> 0x358,
-// 0x256090 -> 0x360, 0x2560d0 -> 0x368, 0x256070 -> 0x320; they ignore their
-// own `this`) and the compiler inlined them here, so the disassembly dispatches
-// on the view directly.  The blocker is the CView/CDC/CPrintInfo printing
-// subsystem, not those helpers.
+// PARTIAL: IPrint::Print -- retail (0x2563b0 in mfc140; RVA 0x2572f0 in
+// mfc140u, re-read there) is the full IPrint print pump.  Its opening, in
+// program order (XPrint part at server + 0x88, so `-0x50` / `-0x40` / `-0x38`
+// of `this` are m_pModuleState, m_pOwner and m_nFirstPage; the stack
+// arguments are pstgmOptions, pcallback, nFirstPage, pcPagesPrinted,
+// pnLastPage in that order):
+//     AFX_MANAGE_STATE(server + 0x38)
+//     if (pcPagesPrinted == NULL || pptd == NULL || ppPageSet == NULL)
+//         return E_POINTER;                       // 0x25734b..0x257360 -> 0x257c7e
+//     if (*pptd == NULL) return E_INVALIDARG;     // 0x257366 -> 0x25736e, 0x80070057
+//     m_nFirstPage = nFirstPage;                  // 0x25737f, `mov %edi,-0x38(%r14)`
+//     *pcPagesPrinted = 0;                        // 0x257383
+//     pos = m_pOwner->vtbl[0xe0/8 = 28]();        // GetFirstViewPosition, 0x257398
+//     if (pos == NULL) return E_UNEXPECTED;       // 0x257c76
+//     pView = m_pOwner->vtbl[0xe8/8 = 29](&pos);  // GetNextView, 0x2573bf
+//     if (pView == NULL) return E_UNEXPECTED;     // 0x257c76
+//     CPrintInfo info;                            // ctor 0x2830a0; m_bDocObject = TRUE,
+//     info.m_dwFlags = grfFlags;                  //   m_nOffsetPage = nFirstPage
+//     info.m_pPD->m_pd.hDC = _AfxOleCreateDC(*pptd);   // unexported helper 0x260690:
+//                                                 //   CreateDC from the four
+//                                                 //   td*Offset WORDs at +4..+0xa
+//     if (info.m_pPD->m_pd.hDC == NULL) {         // 0x257409
+//         if (grfFlags & PRINTFLAG_MAYBOTHERUSER) AfxMessageBox(0xf106);  // 0x257420
+//         return E_UNEXPECTED;                    // 0x257425
+//     }
+//     ...the print pump: CPrintDialog / printer CDC and CView slots
+//     0x350/8 = 106 (OnPreparePrinting), 0x358/8 = 107 (OnBeginPrinting),
+//     0x320/8 = 100 (OnPrepareDC), 0x360/8 = 108 (OnPrint), 0x368/8 = 109
+//     (OnEndPrinting), with the IContinueCallback's slot 4 (FContinuePrinting)
+//     polled per page, and *pcPagesPrinted accumulated at 0x257a86...
+// Correction to an earlier note here: retail Print does NOT call this class's
+// DoPreparePrinting / DoBeginPrinting / DoPrint / DoEndPrinting helpers --
+// those are one-instruction tail-jumps into exactly the same CView slots
+// (0x256050 -> 0x350, 0x2560b0 -> 0x358, 0x256090 -> 0x360, 0x2560d0 -> 0x368,
+// 0x256070 -> 0x320 in mfc140; they ignore their own `this`) and the compiler
+// inlined them here, so the disassembly dispatches on the view directly.
+//
+// What is reproduced: the three E_POINTER tests, the E_INVALIDARG test, the
+// m_nFirstPage store, the *pcPagesPrinted = 0 store and the view walk (through
+// OpenMFC's CDocument virtuals, as GetControllingFrame above does it) with its
+// E_UNEXPECTED.  What is NOT, and why: the pump needs a CPrintInfo with a real
+// CPrintDialog behind m_pPD (OpenMFC's ??0CPrintInfo in core/view/CPrintInfo.cpp
+// allocates none, and no CPrintInfo type is declared), a printer CDC, and the
+// two CView virtuals (OnPrepareDC, OnPrint) that DoPrepareDC / DoPrint are
+// stubbed for.  That leg therefore reports E_UNEXPECTED -- retail's own answer
+// when no printer DC can be created for *pptd -- with *pcPagesPrinted already
+// zero, which is also what retail leaves there on that path; the
+// AfxMessageBox for PRINTFLAG_MAYBOTHERUSER is not reproduced.  The generated
+// `return 0` told the caller the job had printed and left *pcPagesPrinted
+// unwritten.  Deviation: the pThis / m_pOwner null guards; retail would fault.
 // Symbol: ?Print@XPrint@CDocObjectServer@@UEAAJKPEAPEAUtagDVTARGETDEVICE@@PEAPEAUtagPAGESET@@PEAUtagSTGMEDIUM@@PEAUIContinueCallback@@JPEAJ4@Z
 extern "C" long MS_ABI impl__Print_XPrint_CDocObjectServer__UEAAJKPEAPEAUtagDVTARGETDEVICE__PEAPEAUtagPAGESET__PEAUtagSTGMEDIUM__PEAUIContinueCallback__JPEAJ4_Z(
     void* pThis, unsigned long grfFlags, DVTARGETDEVICE** pptd, PAGESET** ppPageSet,
     STGMEDIUM* pstgmOptions, IContinueCallback* pcallback, long nFirstPage,
     long* pcPagesPrinted, long* pnLastPage) {
-    (void)pThis;
-    (void)grfFlags;
-    (void)pptd;
-    (void)ppPageSet;
+    (void)grfFlags;        // consumed only by the print pump (see above)
     (void)pstgmOptions;
     (void)pcallback;
-    (void)nFirstPage;
-    (void)pcPagesPrinted;
     (void)pnLastPage;
-    return 0;
+    if (pcPagesPrinted == nullptr || pptd == nullptr || ppPageSet == nullptr) {
+        return E_POINTER;                                                    // 0x257c7e
+    }
+    if (*pptd == nullptr) {
+        return E_INVALIDARG;                                                 // 0x25736e
+    }
+    if (pThis == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    void* pServer = ServerFromPart(pThis, kOff_m_xPrint);
+    Member<LONG>(pServer, kOff_m_nFirstPage) = static_cast<LONG>(nFirstPage);   // 0x25737f
+    *pcPagesPrinted = 0;                                                     // 0x257383
+    COleServerDoc* pOwnerDoc = Member<COleServerDoc*>(pServer, kOff_m_pOwner);
+    if (pOwnerDoc == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    CDocument* pOwner = pOwnerDoc;   // single, non-virtual inheritance
+    void* pos = pOwner->GetFirstViewPosition();
+    if (pos == nullptr) return E_UNEXPECTED;                                 // 0x257c76
+    CView* pView = pOwner->GetNextView(pos);
+    if (pView == nullptr) return E_UNEXPECTED;                               // 0x257c76
+    // CPrintInfo / printer-DC / print-pump leg not reproducible here (see above).
+    return E_UNEXPECTED;                                                     // 0x257425
 }
 
 // Symbol: ?QueryStatus@XOleCommandTarget@CDocObjectServer@@UEAAJPEBU_GUID@@KQEAU_tagOLECMD@@PEAU_tagOLECMDTEXT@@@Z
@@ -1288,84 +1619,140 @@ extern "C" long MS_ABI impl__SaveViewState_XOleDocumentView_CDocObjectServer__UE
     return S_OK;                                         // retail 0x25916e, hr = 0
 }
 
-// STUB: retail (0x257140) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x18/8 = 3 = IOleObject::SetClientSite] -- the owning COleServerDoc's IOleObject part.
-// On success it then calls CDocObjectServer::ReleaseDocSite (0x255ec0) and, when
-// pClientSite is non-NULL, QueryInterfaces it for the IID at .rdata 0x2d7ee0
-// (verified there as {B722BCC7-4E68-101B-A2BC-00AA00404770} = IID_IOleDocumentSite)
-// straight into m_pDocSite (+0x40), overwriting the returned HRESULT.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?SetClientSite@XOleObject@CDocObjectServer@@UEAAJPEAUIOleClientSite@@@Z
+// IOleObject::SetClientSite -- retail RVA 0x2580b0 (mfc140u; the same body at
+// 0x257140 in mfc140), in program order.  server = this - 0x68 (the
+// `lea -0x68(%rcx),%rdi` at 0x2580bf):
+//     AFX_MANAGE_STATE(server + 0x38)
+//     hr = (m_pOwner + 0x278)->vtbl[0x18/8 = 3](pClientSite)   // IOleObject::SetClientSite
+//     if (hr == S_OK) {                          // `test %eax,%eax; jne` at 0x2580f1: exactly 0
+//         CDocObjectServer::ReleaseDocSite(server)                // call 0x256e00
+//         if (pClientSite != NULL)                                // 0x2580fd
+//             hr = pClientSite->QueryInterface(&IID_IOleDocumentSite,
+//                                              &m_pDocSite)      // slot 0; out = server + 0x40
+//     }
+//     return hr
+// The IID is the `lea` operand at 0x258109, .rdata RVA 0x2d9f90 (mfc140u), whose
+// sixteen bytes read c7 bc 22 b7 68 4e 1b 10 a2 bc 00 aa 00 40 47 70 =
+// {B722BCC7-4E68-101B-A2BC-00AA00404770}, IID_IOleDocumentSite.  Note that the
+// QueryInterface writes straight into m_pDocSite (NULL on failure, per COM) and
+// its HRESULT replaces the SetClientSite one, and that a NULL pClientSite
+// leaves m_pDocSite released and NULL with hr == S_OK.  The forward is to
+// COleServerDoc's own XOleObject::SetClientSite thunk with the sub-object
+// address as `this` (layout note at the top).  Deviation: the pThis / m_pOwner
+// null guard; retail would fault.
 extern "C" long MS_ABI impl__SetClientSite_XOleObject_CDocObjectServer__UEAAJPEAUIOleClientSite___Z(
     void* pThis, IOleClientSite* pClientSite) {
-    (void)pThis;
-    (void)pClientSite;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    long hr = impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
+        pPart, pClientSite);
+    if (hr == S_OK) {
+        void* pServer = ServerFromPart(pThis, kOff_m_xOleObject);
+        impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(pServer);          // 0x2580f8
+        if (pClientSite != nullptr) {
+            hr = pClientSite->QueryInterface(
+                kIID_IOleDocumentSite,
+                reinterpret_cast<void**>(&Member<IOleDocumentSite*>(pServer, kOff_m_pDocSite)));
+        }
+    }
+    return hr;
 }
 
-// STUB: retail (0x2579a0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0xb8/8 = 23 = IOleObject::SetColorScheme] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?SetColorScheme@XOleObject@CDocObjectServer@@UEAAJPEAUtagLOGPALETTE@@@Z
+// IOleObject::SetColorScheme -- retail RVA 0x258910 (mfc140u; the same body at 0x2579a0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0xb8/8 = 23, IOleObject::SetColorScheme, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__SetColorScheme_XOleObject_CDocObjectServer__UEAAJPEAUtagLOGPALETTE___Z(
     void* pThis, LOGPALETTE* pLogpal) {
-    (void)pThis;
-    (void)pLogpal;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__SetColorScheme_XOleObject_COleServerDoc__UEAAJPEAUtagLOGPALETTE___Z(
+        pPart, pLogpal);
 }
 
-// STUB: retail (0x257710) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x88/8 = 17 = IOleObject::SetExtent] -- the owning COleServerDoc's IOleObject part.
-// It first returns E_FAIL outright when m_pOwner->m_pDocObjectServer (+0x268)
-// is non-NULL.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?SetExtent@XOleObject@CDocObjectServer@@UEAAJKPEAUtagSIZE@@@Z
+// IOleObject::SetExtent -- retail RVA 0x258680 (mfc140u; the same body at
+// 0x257710 in mfc140), in program order:
+//     AFX_MANAGE_STATE(server + 0x38)                    // this - 0x30
+//     if (m_pOwner->m_pDocObjectServer != NULL)          // this - 0x20 -> +0x268, 0x2586a9
+//         return E_FAIL;                                 // 0x80004005 at 0x2586b3
+//     return (m_pOwner + 0x278)->vtbl[0x88/8 = 17](dwDrawAspect, psizel)   // IOleObject::SetExtent
+// The guard reads m_pOwner + 0x268 exactly as retail does; in this DLL that is
+// zero-filled padding (layout note at the top), so the forward is always taken
+// -- as it is in retail for a document that owns no doc-object server.  The
+// target thunk (core/ole/COleServerDoc.cpp) is a documented partial that
+// returns E_INVALIDARG for a NULL psizel and otherwise E_FAIL, retail's
+// "item refused the extent" outcome, so this no longer reports the S_OK the
+// bare stub did.  Deviation: the pThis / m_pOwner null guard; retail would
+// fault.
 extern "C" long MS_ABI impl__SetExtent_XOleObject_CDocObjectServer__UEAAJKPEAUtagSIZE___Z(
     void* pThis, unsigned long dwDrawAspect, SIZE* psizel) {
-    (void)pThis;
-    (void)dwDrawAspect;
-    (void)psizel;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    COleServerDoc* pOwner = Member<COleServerDoc*>(
+        ServerFromPart(pThis, kOff_m_xOleObject), kOff_m_pOwner);
+    if (*static_cast<void**>(OwnerAt(pOwner, kOwnerOff_m_pDocObjectServer)) != nullptr) {
+        return E_FAIL;                                                       // 0x2586b3
+    }
+    return impl__SetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(
+        pPart, dwDrawAspect, psizel);
 }
 
-// STUB: retail (0x257240) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x28/8 = 5 = IOleObject::SetHostNames] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?SetHostNames@XOleObject@CDocObjectServer@@UEAAJPEB_W0@Z
+// IOleObject::SetHostNames -- retail RVA 0x2581b0 (mfc140u; the same body at 0x257240 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x28/8 = 5, IOleObject::SetHostNames, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__SetHostNames_XOleObject_CDocObjectServer__UEAAJPEB_W0_Z(
     void* pThis, const wchar_t* szContainerApp, const wchar_t* szContainerObj) {
-    (void)pThis;
-    (void)szContainerApp;
-    (void)szContainerObj;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__SetHostNames_XOleObject_COleServerDoc__UEAAJPEB_W0_Z(
+        pPart, szContainerApp, szContainerObj);
 }
 
 // Symbol: ?SetInPlaceSite@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@@Z
-// IOleDocumentView::SetInPlaceSite -- retail (0x258d10):
-//     AFX_MANAGE_STATE(this[-0x40])
-//     if (m_pOwner->m_pInPlaceFrame != NULL)          // m_pOwner + 0x250
-//         (m_pOwner + 0x288)->vtbl[0x28/8 = 5]()      // IOleInPlaceObject::InPlaceDeactivate
-//     if (m_pViewSite) m_pViewSite->Release()         // this - 0x18, slot 2
-//     m_pViewSite = pIPSite; if (pIPSite) pIPSite->AddRef()
-//     return S_OK
-// STUB: the first step needs the retail COleServerDoc layout, which OpenMFC's
-// COleServerDoc does not have.  The reference-counting half is deliberately not
-// implemented on its own -- swapping m_pViewSite without the owner-side
-// deactivation would leave the two halves of the state inconsistent.  (The
-// constructor above now does seed m_pViewSite = NULL, so a release here would no
-// longer touch uninitialised storage; the objection is the split state, not the
-// seeding.)  Signature corrected so CloseView can dispatch to it.
+// IOleDocumentView::SetInPlaceSite -- retail RVA 0x259c90 (mfc140u; the same
+// body at 0x258d10 in mfc140), transcribed in full.  server = this - 0x78:
+//     AFX_MANAGE_STATE(server + 0x38)                  // -0x40
+//     rcx = m_pOwner                                   // -0x30 = +0x48
+//     if (m_pOwner->m_pInPlaceFrame != NULL)           // `cmpq $0,0x250(%rcx)` at 0x259cb2
+//         (m_pOwner + 0x288)->vtbl[0x28/8 = 5]();      // IOleInPlaceObject::InPlaceDeactivate,
+//                                                      //   result discarded
+//     if (m_pViewSite != NULL) m_pViewSite->Release(); // -0x18 = +0x60; slot 0x10/8 = 2
+//     m_pViewSite = pIPSite;                           // 0x259ce6
+//     if (pIPSite != NULL) pIPSite->AddRef();          // slot 0x8/8 = 1
+//     return S_OK;                                     // xor %eax,%eax at 0x259d17
+// The guard reads m_pOwner + 0x250 exactly as retail does; in this DLL that
+// word is zero-filled padding (layout note at the top), so the deactivation is
+// skipped -- retail's own behaviour for a document with no in-place frame --
+// and it starts firing when COleServerDoc.cpp models the frame.  The
+// deactivation goes to COleServerDoc's own XOleInPlaceObject thunk with the
+// sub-object address as `this`.  The reference-counting half is exact and is
+// safe because the constructor seeds m_pViewSite = NULL.  Deviation: the pThis
+// / m_pOwner null guard; retail would fault.
 extern "C" long MS_ABI impl__SetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite___Z(
     void* pThis, IOleInPlaceSite* pIPSite) {
-    (void)pThis;
-    (void)pIPSite;
-    return 0;
+    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
+    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    if (*static_cast<void**>(OwnerAt(pOwner, kOwnerOff_m_pInPlaceFrame)) != nullptr) {
+        impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(       // 0x259cca
+            OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
+    }
+    void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
+    IOleInPlaceSite*& pViewSite = Member<IOleInPlaceSite*>(pServer, kOff_m_pViewSite);
+    if (pViewSite != nullptr) {
+        pViewSite->Release();                                                   // 0x259ce0
+    }
+    pViewSite = pIPSite;                                                        // 0x259ce6
+    if (pIPSite != nullptr) {
+        pIPSite->AddRef();                                                      // 0x259cf9
+    }
+    return S_OK;
 }
 
 // Symbol: ?SetInitialPageNum@XPrint@CDocObjectServer@@UEAAJJ@Z
@@ -1391,18 +1778,18 @@ extern "C" long MS_ABI impl__SetInitialPageNum_XPrint_CDocObjectServer__UEAAJJ_Z
     return S_OK;
 }
 
-// STUB: retail (0x257310) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x38/8 = 7 = IOleObject::SetMoniker] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?SetMoniker@XOleObject@CDocObjectServer@@UEAAJKPEAUIMoniker@@@Z
+// IOleObject::SetMoniker -- retail RVA 0x258280 (mfc140u; the same body at 0x257310 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x38/8 = 7, IOleObject::SetMoniker, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__SetMoniker_XOleObject_CDocObjectServer__UEAAJKPEAUIMoniker___Z(
     void* pThis, unsigned long dwWhichMoniker, IMoniker* pmk) {
-    (void)pThis;
-    (void)dwWhichMoniker;
-    (void)pmk;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMoniker___Z(
+        pPart, dwWhichMoniker, pmk);
 }
 
 // Symbol: ?SetRect@XOleDocumentView@CDocObjectServer@@UEAAJPEAUtagRECT@@@Z
@@ -1452,19 +1839,34 @@ extern "C" long MS_ABI impl__SetRectComplex_XOleDocumentView_CDocObjectServer__U
 }
 
 // Symbol: ?Show@XOleDocumentView@CDocObjectServer@@UEAAJH@Z
-// IOleDocumentView::Show -- retail (0x258f80):
-//     bShow != 0 : call COleServerDoc::ActivateInPlace (0x265b50) with m_pOwner
-//                  in RCX, then `neg/sbb/not/and $0x80004005` -- i.e. map its
-//                  BOOL result to S_OK (non-zero) / E_FAIL (zero)
-//     bShow == 0 : call (m_pOwner + 0x288)->vtbl[0x28/8 = 5], which is
-//                  IOleInPlaceObject::InPlaceDeactivate on the owning document
-// STUB: both arms need the retail COleServerDoc layout (m_pOwner + 0x288 is one
-// of that object's nested interface parts), which OpenMFC's COleServerDoc does
-// not have.  Signature corrected so CloseView can dispatch to it.
+// IOleDocumentView::Show -- retail RVA 0x259f00 (mfc140u; the same body at
+// 0x258f80 in mfc140), transcribed in full.  server = this - 0x78:
+//     AFX_MANAGE_STATE(server + 0x38)                 // -0x40
+//     rcx = m_pOwner                                  // -0x30 = +0x48
+//     if (bShow != 0) {                               // 0x259f21
+//         BOOL b = COleServerDoc::ActivateInPlace(m_pOwner);   // call 0x266da0, non-virtual
+//         hr = b ? S_OK : E_FAIL;                     // neg/sbb/not/and $0x80004005,
+//                                                     //   0x259f2a .. 0x259f30
+//     } else {
+//         hr = (m_pOwner + 0x288)->vtbl[0x28/8 = 5]();   // IOleInPlaceObject::InPlaceDeactivate
+//     }
+//     return hr
+// ActivateInPlace is a plain (non-virtual) member, so the call to its thunk is
+// the retail call; the InPlaceDeactivate arm goes to COleServerDoc's own
+// XOleInPlaceObject thunk with the sub-object address as `this` (layout note
+// at the top).  Today both targets are documented stubs in
+// core/ole/COleServerDoc.cpp -- ActivateInPlace returns FALSE, so bShow != 0
+// yields E_FAIL here, which is retail's own answer when in-place activation
+// fails; InPlaceDeactivate returns S_OK, which is retail's value on every
+// normal path.  Deviation: the pThis / m_pOwner null guard; retail would fault.
 extern "C" long MS_ABI impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(void* pThis, int bShow) {
-    (void)pThis;
-    (void)bShow;
-    return 0;
+    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
+    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    if (bShow != 0) {
+        return impl__ActivateInPlace_COleServerDoc__QEAAHXZ(pOwner) ? S_OK : E_FAIL;
+    }
+    return impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+        OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
 }
 
 // Symbol: ?UIActivate@XOleDocumentView@CDocObjectServer@@UEAAJH@Z
@@ -1473,22 +1875,29 @@ extern "C" long MS_ABI impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(vo
 //     if (fUIActivate != 0)                    // test %ebx,%ebx; je, 0x25900e
 //         return server->vtbl[0xc0/8 = 24]();  // CDocObjectServer::OnActivateView
 //     return (m_pOwner + 0x288)->vtbl[0x30/8 = 6]();   // IOleInPlaceObject::UIDeactivate
-// Both arms are one tail call and the HRESULT is returned unchanged.  Slot 24 is
+// Both arms are a single call (through the CFG dispatch pointer, followed by
+// the module-state restore) whose HRESULT is returned unchanged.  Slot 24 is
 // OnActivateView: the class vtable at .rdata 0x32d2e8 holds 0x2586a0 there, and
 // 0x2586a0 is the RVA the map gives for
 // ?OnActivateView@CDocObjectServer@@MEAAJXZ.  m_pOwner + 0x288 is
 // COleServerDoc::m_xOleInPlaceObject (see the layout note at the top).
-// PARTIAL.
+// Re-read in mfc140u at RVA 0x259f70 (same body): `lea -0x78(%rcx),%rdi`,
+// `test %ebx,%ebx; je` at 0x259f8e, slot 0xc0 on the server for the non-zero
+// arm and `add $0x288` / slot 0x30 on m_pOwner for the zero arm.
+// PARTIAL, in one respect:
 //   * fUIActivate != 0 IS reproduced, as a direct call to OnActivateView's own
 //     impl__ thunk (defined above in this file) instead of a dispatch through
 //     the CDocObjectServer vtable, which this DLL does not build.  Consequence,
 //     stated plainly: a derived class that overrides OnActivateView is bypassed.
 //     Today that thunk is itself a documented stub returning S_OK, so this arm
 //     has no observable effect yet -- it picks one up automatically.
-//   * fUIActivate == 0 is NOT reproduced: it needs the owning document's nested
-//     IOleInPlaceObject part, which OpenMFC's COleServerDoc does not have.  The
-//     S_OK returned on that path is the generated stub's value, not retail's --
-//     retail returns whatever the document's UIDeactivate returns.
+//   * fUIActivate == 0 is reproduced as a direct call to COleServerDoc's own
+//     XOleInPlaceObject::UIDeactivate thunk with the sub-object address
+//     m_pOwner + 0x288 as `this` (layout note at the top: a nested interface
+//     class with one vtable, so the direct call is the retail dispatch).  That
+//     thunk is a documented stub returning S_OK today, which is also retail's
+//     value on every normal path of UIDeactivate.
+// Deviations: the pThis / m_pOwner null guards; retail would fault.
 extern "C" long MS_ABI impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJH_Z(
     void* pThis, int fUIActivate) {
     if (pThis == nullptr) {
@@ -1498,30 +1907,34 @@ extern "C" long MS_ABI impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJ
         void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
         return impl__OnActivateView_CDocObjectServer__MEAAJXZ(pServer);
     }
-    return S_OK;   // NOT retail -- see the note above.
+    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
+    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
+        OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
 }
 
-// STUB: retail (0x257870) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0xa0/8 = 20 = IOleObject::Unadvise] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?Unadvise@XOleObject@CDocObjectServer@@UEAAJK@Z
+// IOleObject::Unadvise -- retail RVA 0x2587e0 (mfc140u; the same body at 0x257870 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0xa0/8 = 20, IOleObject::Unadvise, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__Unadvise_XOleObject_CDocObjectServer__UEAAJK_Z(
     void* pThis, unsigned long dwConnection) {
-    (void)pThis;
-    (void)dwConnection;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(pPart, dwConnection);
 }
 
-// STUB: retail (0x2575a0) is AFX_MANAGE_STATE followed by a straight forward to
-// (m_pOwner + 0x278)->vtbl[0x68/8 = 13 = IOleObject::Update] -- the owning COleServerDoc's IOleObject part.
-// Arguments are passed straight through and the HRESULT is returned unchanged.
-// OpenMFC's COleServerDoc has no such interface part, so the forward is not
-// reproducible; see the layout note at the top of this file.
 // Symbol: ?Update@XOleObject@CDocObjectServer@@UEAAJXZ
+// IOleObject::Update -- retail RVA 0x258510 (mfc140u; the same body at 0x2575a0 in
+// mfc140).  The IOleObject-forward shape described above the helper: module
+// state from server + 0x38 (`-0x30` of the part), m_pOwner from server + 0x48
+// (`-0x20`), then `add $0x278` and slot 0x68/8 = 13, IOleObject::Update, on the
+// owning document's XOleObject part, arguments and HRESULT untouched.
 extern "C" long MS_ABI impl__Update_XOleObject_CDocObjectServer__UEAAJXZ(
     void* pThis) {
-    (void)pThis;
-    return 0;
+    void* pPart = OwnerOleObjectPart(pThis);
+    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
+    return impl__Update_XOleObject_COleServerDoc__UEAAJXZ(pPart);
 }
