@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>   // placement new only
+#include <commctrl.h>   // ImageList_* (comctl32 is on the phase4 link line)
 
 // ---------------------------------------------------------------------------
 // Retail object model used by the bodies below (all offsets read from the
@@ -154,6 +155,26 @@ extern "C" int MS_ABI impl__GetDisplayName_CRecentFileList__UEBAHAEAV__CStringT_
     const CRecentFileList* pThis, CString* stringOut, int index, const wchar_t* curDir, int nCurDir, int bAtLeastName);
 extern "C" int MS_ABI impl__GetMRUFileName_CMFCTasksPane__MEAAHPEAVCRecentFileList__HAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CMFCTasksPane* pThis, CRecentFileList* pRecentFileList, int nIndex, CString& strName);
+// Added by the setter/layout batch.  Every one of these is defined either
+// further down in THIS file (the GetTaskLocation overloads, ShowTask, the
+// three-argument SetWindowHeight, the HIMAGELIST SetIconsList) or in
+// featurepack/docking/CDockablePane.cpp / core/runtime/Globals.cpp; the
+// parameter lists are the ones the mangled names describe, and the
+// definitions below were rewritten to match where a placeholder list
+// disagreed.
+extern "C" int MS_ABI impl__GetTaskLocation_CMFCTasksPane__QEBAHIAEAH0_Z(
+    const CMFCTasksPane* pThis, unsigned int uiCommandID, int* pnGroup, int* pnTask);
+extern "C" int MS_ABI impl__GetTaskLocation_CMFCTasksPane__QEBAHPEAUHWND____AEAH1_Z(
+    const CMFCTasksPane* pThis, HWND hwndTask, int* pnGroup, int* pnTask);
+extern "C" int MS_ABI impl__ShowTask_CMFCTasksPane__QEAAHHHHH_Z(
+    CMFCTasksPane* pThis, int nGroup, int nTask, int bShow, int bRedraw);
+extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHHPEAUHWND____H_Z(
+    CMFCTasksPane* pThis, int nGroup, HWND hwndTask, int nWndHeight);
+extern "C" void MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z(
+    CMFCTasksPane* pThis, HIMAGELIST hIcons);
+extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(CDockablePane* pThis);
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+    const wchar_t* lpszResource, const wchar_t* lpszType);   // core/runtime/Globals.cpp
 
 namespace {
 
@@ -179,6 +200,25 @@ static_assert(offsetof(TPTask, m_hwndTask)   == 0x40, "CMFCTasksPaneTask::m_hwnd
 static_assert(offsetof(TPPage, m_strName)    == 0x8,  "CMFCTasksPanePropertyPage::m_strName @8");
 static_assert(sizeof(TPTask) == 0x68 && sizeof(TPPage) == 0x18 && sizeof(TPGroup) == 0x98,
               "retail record sizes (operator new sizes read at 0x146c8c / 0x145a58 / 0x145f62)");
+// Added by review: offsets the setter/layout batch reads that the shadow
+// headers' own static_asserts do not pin (values read from the mfc140
+// disassembly cited at each body below).
+static_assert(offsetof(TP, m_bMenuBtnPressed) == 0x4F8, "m_bMenuBtnPressed @0x4F8 (StopCaptionButtonsTracking)");
+static_assert(offsetof(TP, m_hFont)          == 0x550, "m_hFont @0x550 (SetFont)");
+static_assert(offsetof(TP, m_sizeIcon)       == 0x588, "m_sizeIcon @0x588 (SetIconsList)");
+static_assert(offsetof(TP, m_lstIcons)       == 0x768, "m_lstIcons @0x768, m_hImageList at +8 (SetIconsList)");
+static_assert(offsetof(TP, m_rectTasks)      == 0x5D8, "m_rectTasks @0x5D8 (TaskHitTest)");
+static_assert(offsetof(TPTask, m_nWindowHeight) == 0x2c, "CMFCTasksPaneTask::m_nWindowHeight @0x2c");
+static_assert(offsetof(TPTask, m_bVisible)   == 0x4c, "CMFCTasksPaneTask::m_bVisible @0x4c");
+static_assert(offsetof(TPTask, m_clrText)    == 0x5c && offsetof(TPTask, m_clrTextHot) == 0x60,
+              "CMFCTasksPaneTask::m_clrText/m_clrTextHot @0x5c/0x60");
+static_assert(offsetof(TPGroup, m_clrText)   == 0x90 && offsetof(TPGroup, m_clrTextHot) == 0x94,
+              "CMFCTasksPaneTaskGroup::m_clrText/m_clrTextHot @0x90/0x94");
+// CWnd::m_hWndOwner (retail CWnd +0xa0; see ShowCommandMessageString).
+constexpr size_t kCWndOwnerOffset = 0xa0;
+static_assert(offsetof(CWnd, _cwnd_padding2) <= kCWndOwnerOffset &&
+              kCWndOwnerOffset + sizeof(HWND) <= offsetof(CWnd, _cwnd_padding2) + sizeof(CWnd::_cwnd_padding2),
+              "m_hWndOwner slot must lie inside CWnd's zero-filled padding");
 
 inline TP* View(CMFCTasksPane* p)             { return reinterpret_cast<TP*>(p); }
 inline const TP* View(const CMFCTasksPane* p) { return reinterpret_cast<const TP*>(p); }
@@ -1384,8 +1424,9 @@ extern "C" HMENU MS_ABI impl__CreateMenu_CMFCTasksPane__QEBAPEAUHMENU____XZ(cons
 
 // STUB.  CMFCTasksPane::CreateNavigationToolbar() -- retail mfc140u RVA
 // 0x14a930.  Creates m_wndToolBar (+0x7b8, a CMFCTasksPaneToolBar) with the
-// back/forward/home/other buttons (three CMFCToolBarButton ctors 0x15bf40,
-// strings loaded via AfxFindStringResourceHandle + CStringT::LoadString).
+// back/forward/home/other buttons (four CMFCToolBarButton ctors at mfc140u
+// 0x15bf40, strings loaded via AfxFindStringResourceHandle 0x2aee00 +
+// CStringT::LoadString 0xdb70).
 // Blocked: CMFCTasksPaneToolBar is unimplemented and the sub-object is never
 // constructed by OpenMFC's CMFCTasksPane.  Signature corrected to carry `this`.
 // Symbol: ?CreateNavigationToolbar@CMFCTasksPane@@IEAAHXZ
@@ -2415,13 +2456,104 @@ extern "C" void MS_ABI impl__SaveHistory_CMFCTasksPane__IEAAXH_Z(CMFCTasksPane* 
     HistoryAdd(self, nPage);
 }
 
+// STUB.  CMFCTasksPane::SaveState(LPCTSTR lpszProfileName, int nIndex, UINT
+// uiID) -- retail entry RVA 0x1482a0 (mfc140; the mfc140u map has no RVA for
+// this export, and the two images share the body byte-for-byte):
+//   strProfile = AFXGetRegPath("MFCTasksPanes", lpszProfileName);   // 0xd2540
+//   if (nIndex == -1) nIndex = GetDlgCtrlID();                      // 0x2a78b0
+//   strSection.Format(uiID == -1 ? "%TsMFCTasksPane-%d"
+//                                : "%TsMFCTasksPane-%d%x",
+//                     strProfile, nIndex [, uiID]);                 // 0xda80
+//   CMemFile file(0x400);                                           // 0x229510
+//   CArchive ar(&file, CArchive::store, 0x1000, NULL);              // 0x1cf500
+//   this->Serialize(ar);                  // vtable +0x10, i.e. the Serialize below
+//   ar.Flush() (0x1cfb90); ar.~CArchive() (0x1cf6b0);
+//   UINT nLen = (UINT)file.GetLength();   // inlined: m_nFileSize, file +0x40
+//   BYTE* pBuf = file.Detach();           // inlined: m_lpBuffer (+0x48) is taken,
+//                                         // then m_lpBuffer / m_nFileSize /
+//                                         // m_nBufferSize / m_nPosition zeroed
+//   and:
+//   if (pBuf != NULL) {
+//       CSettingsStoreSP regSP;
+//       CSettingsStore& reg = regSP.Create(FALSE, FALSE);           // 0x12b320
+//       if (reg.<vslot 5>(strSection))            // the key-creating virtual
+//           reg.<vslot 12>("Settings", pBuf, nLen);   // the blob-writing virtual
+//       free(pBuf);                                                 // CRT free
+//       reg's deleting destructor (vslot 1, flags = 1) runs;
+//   }
+//   file.~CMemFile();                                               // 0x229640
+//   return CPane::SaveState(lpszProfileName, nIndex, uiID);         // 0xa24e0
+// Blocked by this class's Serialize (below), which is a stub: the CMemFile
+// would stay empty, so pBuf would be NULL, retail's `if (pBuf != NULL)` would
+// never fire and the whole function would collapse to its
+// `return CPane::SaveState(...)` tail -- reporting a successful save that
+// stored nothing.  Everything else the body needs is exported by this tree:
+// ?AFXGetRegPath@@ (featurepack/CMFC_misc_stubs.cpp),
+// ?Create@CSettingsStoreSP@@ (core/app/CSettingsStoreSP.cpp),
+// ?SaveState@CPane@@ (featurepack/docking/CPane.cpp) and ?GetDlgCtrlID@CWnd@@
+// (core/window/Thunks.cpp); core/app/CSettingsStore.cpp also exports
+// ?CreateKey@CSettingsStore@@UEAAHPEB_W@Z and
+// ?Write@CSettingsStore@@UEAAHPEB_WPEAEI@Z, whose signatures are the ones the
+// two virtual calls above use, though the slot numbers were not confirmed
+// against OpenMFC's vtable.  So this becomes implementable as soon as
+// Serialize is.  Signature corrected to carry `this`.
 // Symbol: ?SaveState@CMFCTasksPane@@UEAAHPEB_WHI@Z
-extern "C" int MS_ABI impl__SaveState_CMFCTasksPane__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
-    return 0;
+extern "C" int MS_ABI impl__SaveState_CMFCTasksPane__UEAAHPEB_WHI_Z(
+    CMFCTasksPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
+    (void)pThis; (void)lpszProfileName; (void)nIndex; (void)uiID;
+    return FALSE;
 }
 
+// STUB.  CMFCTasksPane::Serialize(CArchive& ar) -- retail entry RVA 0x1475f0
+// (mfc140; not in the mfc140u map, bodies are identical between the images):
+//   CDockablePane::Serialize(ar);                                   // 0x45660
+//   nine ints are read or written in this order -- m_nVertMargin (+0x524),
+//   m_nHorzMargin (+0x528), m_nGroupVertOffset (+0x52c),
+//   m_nGroupCaptionHeight (+0x530), m_nGroupCaptionHorzOffset (+0x534),
+//   m_nGroupCaptionVertOffset (+0x538), m_nTasksHorzOffset (+0x53c),
+//   m_nTasksIconHorzOffset (+0x540), m_nTasksIconVertOffset (+0x544) --
+//   each as an inlined `ar >> n` / `ar << n` against the archive buffer
+//   (m_lpBufCur +0x38, m_lpBufMax +0x40, FillBuffer 0x1cfc70 / Flush 0x1cfb90;
+//   the load/store branch is `m_nMode & CArchive::load`, the byte at +0x20).
+//   loading: then one more int -- the saved active page.  If it is negative or
+//     >= m_lstTasksPanes.m_nCount it is forced to 0.  A local CStringArray is
+//     Serialize'd in (0x1d3470) and, when its size equals the page count, each
+//     page's m_strName (page +8) is assigned from it (0x0dee0).  Then
+//     SetActivePage(nPage) (0x147170), m_nVertScrollOffset = 0 (+0x510),
+//     AdjustScroll() (0x146870), then m_strCaption (+0x678) is read through
+//     an internal archive-to-CString helper (0x1b58c) and UpdateCaption()
+//     (0x149dd0) runs.
+//   storing: m_arrHistoryStack[m_iActivePage] is written (with retail's
+//     ENSURE on the index), a local CStringArray is filled with every page's
+//     m_strName via SetAtGrow (0x1d30e0) and Serialize'd out, then
+//     m_strCaption is written through the store-direction helper (0x1b8b0).
+// Blocked: every archive access above is an inlined read/write of retail's
+// own CArchive fields, and OpenMFC's CArchive (include/openmfc/afx.h) has a
+// different layout -- m_nMode at +0x10, m_lpBufCur at +0x20 -- so none of
+// those offsets can be reused.  Rebuilding the body out of OpenMFC's exported
+// thunks gets most of the way -- ?Serialize@CDockablePane@@, the CArchive
+// Read/Write thunks (core/runtime/Thunks.cpp) for the ten raw ints,
+// ??0CStringArray@@ / ?Serialize@CStringArray@@ / ?SetAtGrow@CStringArray@@
+// (core/collections/CStringArray.cpp) for the page names -- but there is no
+// exported CArchive insertion or extraction for a CString itself (the tree has
+// ??5@YAAEAVCArchive@@ overloads for the collection classes and for
+// COleVariant only).  Retail's store-direction helper (0x1b8b0, not an export)
+// is the inlined CString operator<<: AfxWriteStringLength (0x1cedf0) then
+// CArchive::Write (0x1cfa20); the load helper (0x1b58c) is the matching
+// operator>> built on AfxReadStringLength.  Both length helpers are exported
+// by this tree but are stubs (core/runtime/CArchive.cpp: AfxReadStringLength
+// returns 0, AfxWriteStringLength writes nothing), so m_strCaption could not
+// be carried either way.  A
+// Serialize that silently dropped the caption would write a stream whose
+// layout is neither retail's nor readable by a future faithful LoadState, and
+// both LoadState and SaveState above are stubs today, so nothing in this DLL
+// produces or consumes the stream anyway.  Signature corrected to carry
+// `this`.
 // Symbol: ?Serialize@CMFCTasksPane@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCTasksPane__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__Serialize_CMFCTasksPane__UEAAXAEAVCArchive___Z(
+    CMFCTasksPane* pThis, CArchive* pAr) {
+    (void)pThis; (void)pAr;
+}
 
 // CMFCTasksPane::SetActivePage(int nPage) -- transcribed from mfc140u RVA
 // 0x148b00 (ANSI twin 0x147170 carries the name; the CMFCTasksPane callers
@@ -2450,76 +2582,620 @@ extern "C" void MS_ABI impl__SetActivePage_CMFCTasksPane__QEAAXH_Z(CMFCTasksPane
     impl__ChangeActivePage_CMFCTasksPane__IEAAXHH_Z(pThis, self->m_iActivePage, nOld);
 }
 
+// STUB.  CMFCTasksPane::SetCaptionButtons() -- retail entry RVA 0x1471d0
+// (mfc140; no mfc140u RVA in the map, identical body):
+//   CDockablePane::SetCaptionButtons();                              // 0x45f30
+//   arr = m_arrButtons;  // CDockablePane, this+0x488; declared in
+//                        // afxdockablepane.h as
+//                        // CTypedPtrArray<CObArray, CMFCCaptionButton*>
+//                        // (m_pData +0x490, m_nSize +0x498).  The SetAtGrow
+//                        // call lands on 0x1d28a0, whose export name is
+//                        // CPtrArray::SetAtGrow (CObArray::SetAtGrow has no
+//                        // entry of its own in the RVA map; presumably the
+//                        // two identical bodies were folded).
+//   p = operator new(0x38) (0x2840);   // sizeof(CMFCCaptionButton)
+//        vfptr = the CMFCCaptionButton vftable;
+//        m_bPushed/m_bFocused/m_bHidden = FALSE  (+0x8/+0xc/+0x10),
+//        m_bEnabled = TRUE (+0x14), m_bDroppedDown = FALSE (+0x18),
+//        m_bLeftAlign = TRUE (+0x1c), m_nHit = 0x17 (+0x20),
+//        m_clrForeground = (COLORREF)-1 (+0x24), m_ptOrg = (0,0) (+0x28),
+//        m_bIsMiniFrameButton = FALSE (+0x30);
+//   arr.SetAtGrow(arr.m_nSize, p);                                   // 0x1d28a0
+//   the same again with m_nHit = 0x18;
+//   p = operator new(0x48);            // sizeof(CMFCCaptionMenuButton)
+//        same fields, except m_bLeftAlign = FALSE and m_nHit = 0x19, plus the
+//        derived class's own trailing members zeroed;
+//   arr.SetAtGrow(arr.m_nSize, p);                                   // tail jmp
+// (the member offsets are those of the retail CMFCCaptionButton declaration in
+// afxcaptionbutton.h, whose size 56 is the 0x38 allocated above; 0x17/0x18/
+// 0x19 are the same hit codes OnPressButtons above dispatches on -- back,
+// forward and the history menu button.)
+// Blocked: OpenMFC's CDockablePane has no m_arrButtons storage at all --
+// featurepack/docking/CDockablePane.cpp notes that offsets from +0x478 up are
+// past the end of its 1144-byte object, which is also why
+// CDockablePane::FindButtonByHit is a NULL-returning stub there.  There is
+// nothing to append the three buttons to.  Signature corrected to carry `this`.
 // Symbol: ?SetCaptionButtons@CMFCTasksPane@@MEAAXXZ
-extern "C" void MS_ABI impl__SetCaptionButtons_CMFCTasksPane__MEAAXXZ() {}
+extern "C" void MS_ABI impl__SetCaptionButtons_CMFCTasksPane__MEAAXXZ(CMFCTasksPane* pThis) {
+    (void)pThis;
+}
 
+// CMFCTasksPane::SetFont(CDC* pDC) -- transcribed from the retail body at
+// RVA 0x1456a0 (mfc140; the mfc140u map has no RVA for this export and the
+// bodies are byte-identical, so only the control flow is quoted):
+//   HFONT h = m_hFont;                                        // +0x550
+//   if (h == NULL) h = ::GetStockObject(DEFAULT_GUI_FONT);    // 0x11, GDI32
+//   return ::SelectObject(pDC ? pDC->m_hDC : NULL, h);        // CDC +8, tail jmp
+// Retail passes a NULL HDC straight to ::SelectObject when pDC is NULL; that
+// is reproduced rather than short-circuited.  Placeholder parameter list
+// (`void** p0`) replaced by the one the mangled name describes.
 // Symbol: ?SetFont@CMFCTasksPane@@IEAAPEAUHFONT__@@PEAVCDC@@@Z
-extern "C" void* MS_ABI impl__SetFont_CMFCTasksPane__IEAAPEAUHFONT____PEAVCDC___Z(void* /*class*/* p0) {
-    return nullptr;
+extern "C" void* MS_ABI impl__SetFont_CMFCTasksPane__IEAAPEAUHFONT____PEAVCDC___Z(
+    CMFCTasksPane* pThis, CDC* pDC)
+{
+    if (pThis == nullptr) return nullptr;
+    HFONT hFont = View(pThis)->m_hFont;
+    if (hFont == nullptr) {
+        hFont = static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+    }
+    return ::SelectObject(pDC != nullptr ? pDC->m_hDC : nullptr, hFont);
 }
 
+// CMFCTasksPane::SetGroupTextColor(int nGroup, COLORREF color, COLORREF
+// colorHot) -- transcribed from the retail body at RVA 0x1449e0 (mfc140):
+//   if (nGroup >= m_lstTaskGroups.m_nCount || nGroup < 0) return FALSE;
+//   node = m_lstTaskGroups.head; while (nGroup--) node = node->pNext;
+//   if (node == NULL) return FALSE;
+//   pGroup = node->data;
+//   pGroup->m_clrText    (+0x90) = color;
+//   pGroup->m_clrTextHot (+0x94) = colorHot;
+//   ::InvalidateRect(m_hWnd, &pGroup->m_rect /*+0x5c*/, TRUE);
+//   ::UpdateWindow(m_hWnd);
+//   return TRUE;
+// (bounds test + walk = the FindIndex thunk; see the storage note at the top.)
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetGroupTextColor@CMFCTasksPane@@QEAAHHKK@Z
-extern "C" int MS_ABI impl__SetGroupTextColor_CMFCTasksPane__QEAAHHKK_Z(int p0, unsigned long p1, unsigned long p2) {
-    return 0;
+extern "C" int MS_ABI impl__SetGroupTextColor_CMFCTasksPane__QEAAHHKK_Z(
+    CMFCTasksPane* pThis, int nGroup, unsigned long color, unsigned long colorHot)
+{
+    if (pThis == nullptr) return FALSE;
+    TpNode* node = NodeAt(GroupList(pThis), nGroup);
+    if (node == nullptr) return FALSE;
+    TPGroup* pGroup = reinterpret_cast<TPGroup*>(node->data);
+    pGroup->m_clrText    = static_cast<COLORREF>(color);
+    pGroup->m_clrTextHot = static_cast<COLORREF>(colorHot);
+    ::InvalidateRect(pThis->m_hWnd, &pGroup->m_rect, TRUE);
+    ::UpdateWindow(pThis->m_hWnd);
+    return TRUE;
 }
 
+// CMFCTasksPane::SetIconsList(UINT uiImageListResID, int cx, COLORREF
+// clrTransparent) -- transcribed from the retail body at RVA 0x143f40
+// (mfc140; the mfc140u map has no RVA for this export, and the bodies are
+// byte-identical between the two images):
+//   CBitmap bmp;
+//   HINSTANCE h = AfxFindResourceHandle(MAKEINTRESOURCE((WORD)uiImageListResID),
+//                                       RT_BITMAP);                  // 0x2aca40
+//   if (!bmp.Attach(::LoadBitmap(h, MAKEINTRESOURCE((WORD)uiImageListResID))))
+//       return FALSE;                                                // 0x2a1e10
+//   CImageList il;
+//   BITMAP bm; ::GetObject(bmp.m_hObject, sizeof(BITMAP), &bm);
+//   UINT nMask = (clrTransparent != (COLORREF)-1) ? ILC_MASK : 0;
+//   switch (bm.bmBitsPixel) {              // the flag value equals the depth
+//   case 4:  f = ILC_COLOR4  | nMask; break;
+//   case 8:  f = ILC_COLOR8  | nMask; break;
+//   case 16: f = ILC_COLOR16 | nMask; break;
+//   case 24: f = ILC_COLOR24 | nMask; break;
+//   case 32: f = ILC_COLOR32 | ILC_MASK; break;   // mask forced on
+//   default: f = ILC_COLOR4  | nMask; break; }
+//   il.Create(cx, bm.bmHeight, f, 0, 0);                             // 0x294db0
+//   if (bm.bmBitsPixel == 32 && clrTransparent == (COLORREF)-1)
+//        ImageList_Add(il.m_hImageList, bmp.m_hObject, NULL);        // 0x14a574
+//   else ImageList_AddMasked(il.m_hImageList, bmp.m_hObject, clrTransparent);
+//                                                                    // 0x1c660
+//   SetIconsList(il.m_hImageList);                                   // 0x143e90
+//   /* il and bmp destructors: ImageList_Destroy then DeleteObject */
+//   return TRUE;
+// Retail returns TRUE even when CImageList::Create failed, and passes the
+// resulting NULL handle on to the HIMAGELIST overload (which then clears the
+// pane's icon list); that is reproduced.
+// (0x14a574 / 0x1c660 are not exports: they are MFC's activation-context
+// wrappers that resolve comctl32 by name -- the name strings they pass are
+// "ImageList_Add" and "ImageList_AddMasked".)
+// Deviations: the CBitmap / CImageList locals are replaced by the raw handles
+// and the GDI32 / comctl32 entry points their members call.  CBitmap has no
+// exported constructor (it is inline in the MFC headers); CImageList does
+// (core/gdi/CImageList.cpp), but its Create/Attach would only add the
+// temporary to the HIMAGELIST handle map for the lifetime of this call, which
+// is not observable from outside.  The two ImageList_Add* calls are skipped
+// when the list handle is NULL instead of being made with a NULL handle.
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetIconsList@CMFCTasksPane@@QEAAHIHK@Z
-extern "C" int MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAHIHK_Z(unsigned int p0, int p1, unsigned long p2) {
-    return 0;
+extern "C" int MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAHIHK_Z(
+    CMFCTasksPane* pThis, unsigned int uiImageListResID, int cx, unsigned long clrTransparent)
+{
+    if (pThis == nullptr) return FALSE;
+
+    const wchar_t* lpszRes = MAKEINTRESOURCEW(static_cast<WORD>(uiImageListResID));
+    HINSTANCE hInst = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(lpszRes, RT_BITMAP);
+    HBITMAP hBmp = ::LoadBitmapW(hInst, lpszRes);
+    if (hBmp == nullptr) return FALSE;      // retail: CBitmap::Attach(NULL) fails
+
+    BITMAP bm;
+    std::memset(&bm, 0, sizeof(bm));
+    ::GetObjectW(hBmp, static_cast<int>(sizeof(BITMAP)), &bm);
+
+    const UINT nMask = (clrTransparent != static_cast<unsigned long>(-1)) ? ILC_MASK : 0u;
+    UINT nFlags;
+    switch (bm.bmBitsPixel) {
+    case 4:  nFlags = ILC_COLOR4  | nMask;    break;
+    case 8:  nFlags = ILC_COLOR8  | nMask;    break;
+    case 16: nFlags = ILC_COLOR16 | nMask;    break;
+    case 24: nFlags = ILC_COLOR24 | nMask;    break;
+    case 32: nFlags = ILC_COLOR32 | ILC_MASK; break;
+    default: nFlags = ILC_COLOR4  | nMask;    break;
+    }
+
+    HIMAGELIST hIL = ::ImageList_Create(cx, bm.bmHeight, nFlags, 0, 0);
+    if (hIL != nullptr) {
+        if (bm.bmBitsPixel == 32 && clrTransparent == static_cast<unsigned long>(-1)) {
+            ::ImageList_Add(hIL, hBmp, nullptr);
+        } else {
+            ::ImageList_AddMasked(hIL, hBmp, static_cast<COLORREF>(clrTransparent));
+        }
+    }
+    impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z(pThis, hIL);
+    if (hIL != nullptr) ::ImageList_Destroy(hIL);
+    ::DeleteObject(hBmp);
+    return TRUE;
 }
 
+// CMFCTasksPane::SetIconsList(HIMAGELIST hIcons) -- transcribed from the
+// retail body at RVA 0x143e90 (mfc140; no mfc140u RVA in the map, identical
+// body):
+//   if (m_lstIcons.m_hImageList != NULL) m_lstIcons.DeleteImageList();  // 0x294d20
+//                       // Detach()s the handle and ImageList_Destroy()s it
+//   if (hIcons == NULL) { *(void**)&m_sizeIcon = 0; }   // both halves zeroed
+//   else {
+//       m_lstIcons.Attach(ImageList_Duplicate(
+//           CImageList::FromHandle(hIcons)->m_hImageList));   // 0x294d50/0x29a7c4/0x294f00
+//       ImageList_GetIconSize(hIcons, &m_sizeIcon.cx, &m_sizeIcon.cy);  // 0x6f1e0
+//   }
+//   AdjustScroll();                                                  // 0x146870
+//   ReposTasks(FALSE);                                               // vtable +0x7d0
+//   ::RedrawWindow(m_hWnd, NULL, NULL,
+//                  RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW);          // tail jmp
+// m_lstIcons is the CImageList at +0x768; its m_hImageList is at +0x770.
+// Deviations: the CImageList wrapper is replaced by the comctl32 entry points
+// it calls (CImageList::FromHandle(h)->m_hImageList is h, so the round trip is
+// elided).  Retail's Attach (0x294f00) also enters the handle into MFC's
+// permanent HIMAGELIST map and DeleteImageList's Detach removes it; that map
+// bookkeeping is not reproduced.  The refresh
+// tail goes through this file's RetailRefresh helper, so a derived ReposTasks
+// override is not honoured.  Per the KNOWN GAP at the top of this file,
+// +0x770 is only meaningful once the ctor thunk initialises the retail member
+// range; until then the handle destroyed first is whatever that slot holds.
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetIconsList@CMFCTasksPane@@QEAAXPEAU_IMAGELIST@@@Z
-extern "C" void MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z(void* /*struct*/* p0) {}
+extern "C" void MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z(
+    CMFCTasksPane* pThis, HIMAGELIST hIcons)
+{
+    if (pThis == nullptr) return;
+    TP* self = View(pThis);
+    HIMAGELIST* phIL = reinterpret_cast<HIMAGELIST*>(self->m_lstIcons + 8);
+    if (*phIL != nullptr) {
+        ::ImageList_Destroy(*phIL);
+        *phIL = nullptr;
+    }
+    if (hIcons == nullptr) {
+        self->m_sizeIcon.cx = 0;
+        self->m_sizeIcon.cy = 0;
+    } else {
+        *phIL = ::ImageList_Duplicate(hIcons);
+        int cx = 0, cy = 0;
+        ::ImageList_GetIconSize(hIcons, &cx, &cy);
+        self->m_sizeIcon.cx = cx;
+        self->m_sizeIcon.cy = cy;
+    }
+    RetailRefresh(pThis, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+}
 
+// CMFCTasksPane::SetPageCaption(int nPageIdx, LPCTSTR lpszName) --
+// transcribed from the retail body at RVA 0x147d70 (mfc140, whose export
+// spells the parameter PEBD; mfc140u exports the PEB_W spelling of the same
+// bytes):
+//   if (lpszName == NULL)                                AfxThrowInvalidArgException();
+//   if (nPageIdx >= m_lstTasksPanes.m_nCount || nPageIdx < 0)
+//                                                        AfxThrowInvalidArgException();
+//   node = m_lstTasksPanes.head; while (nPageIdx--) node = node->pNext;
+//   if (node == NULL)                                    AfxThrowInvalidArgException();
+//   node->data->m_strName.SetString(lpszName, strlen(lpszName));  // page +0x8
+//   UpdateCaption();                                     // tail jmp 0x149dd0
+// (bounds test + walk = the FindIndex thunk; see the storage note at the top.
+// UpdateCaption is still a stub in this file, so the caption is not repainted.)
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetPageCaption@CMFCTasksPane@@QEAAXHPEB_W@Z
-extern "C" void MS_ABI impl__SetPageCaption_CMFCTasksPane__QEAAXHPEB_W_Z(int p0, const wchar_t* p1) {}
+extern "C" void MS_ABI impl__SetPageCaption_CMFCTasksPane__QEAAXHPEB_W_Z(
+    CMFCTasksPane* pThis, int nPageIdx, const wchar_t* lpszName)
+{
+    if (pThis == nullptr) return;
+    if (lpszName == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    TpNode* node = NodeAt(PageList(pThis), nPageIdx);
+    if (node == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    TPPage* pPage = reinterpret_cast<TPPage*>(node->data);
+    *reinterpret_cast<CString*>(&pPage->m_strName) = lpszName;
+    impl__UpdateCaption_CMFCTasksPane__IEAAXXZ(pThis);
+}
 
+// STUB.  CMFCTasksPane::SetScrollSizes() -- retail entry RVA 0x146670
+// (mfc140) / 0x148000 (mfc140u, where AdjustScroll at 0x148200 calls it):
+//   if (m_wndScrollVert.m_hWnd == NULL) return;           // +0x680, CWnd +0x40
+//   if (m_nRowHeight /*+0x51c*/ == 0) {
+//       m_nVertScrollTotal = m_nVertScrollPage = 0;       // +0x514 / +0x518
+//       nPos = 0;
+//   } else {
+//       int h = m_rectTasks.bottom - m_rectTasks.top;     // +0x5e4 - +0x5dc
+//       if (m_bUseScrollButtons /*+0x4ec*/)
+//           h -= m_iScrollBtnHeight /*+0x50c*/ + 1;
+//       if (m_bUseNavigationToolbar /*+0x4e4*/ || ForceShowNavToolbar())
+//           // inlined: GetParentTabbedPane() != NULL (0xc9b0), or
+//           // GetParentMiniFrame(TRUE) (vtable +0x460) is non-NULL and is NOT
+//           // a CMFCTasksPaneFrameWnd (CObject::IsKindOf 0x233310 against the
+//           // descriptor whose name string is "CMFCTasksPaneFrameWnd")
+//           if (m_lstTasksPanes.m_nCount /*+0x620*/ > 1)
+//               h += m_rectToolbar.bottom - m_rectToolbar.top;   // +0x5b4 - +0x5ac
+//       m_nVertScrollPage = h / m_nRowHeight - 1;
+//       int nRepos = ReposTasks(TRUE);                    // vtable +0x7d0
+//       if (nRepos != 0 && nRepos > h) m_nVertScrollTotal = nRepos / m_nRowHeight - 1;
+//       else { m_nVertScrollPage = m_nVertScrollOffset = 0;   // +0x518 / +0x510
+//              m_nVertScrollTotal = 0; }
+//   }
+//   m_nVertScrollOffset is then set -- 0 on the m_nRowHeight == 0 path,
+//   otherwise clamped into [0, total - page + 1] -- and when
+//   m_bUseScrollButtons is FALSE a SCROLLINFO {nMin = 0, nMax = total,
+//   nPage = page, nPos = offset, fMask = SIF_RANGE|SIF_PAGE|SIF_POS} goes to
+//   SetScrollInfo(SB_VERT, &si, TRUE) (CWnd::SetScrollInfo, 0x28cd10); finally
+//   ::EnableScrollBar(m_wndScrollVert.m_hWnd /*+0x6c0*/, SB_CTL,
+//                     (m_bUseScrollButtons || m_nVertScrollTotal <= 0)
+//                         ? ESB_DISABLE_BOTH : ESB_ENABLE_BOTH).
+// Blocked: the scroll-bar sub-window at +0x680 is constructed by the retail
+// constructor and created by retail OnCreate; OpenMFC's ctor thunk does not
+// construct it and OnCreate above is a stub, so the early-return guard has no
+// real window to test.  The one substantive input, the content height from
+// ReposTasks(TRUE), comes from a stub that returns 0 (above), so a
+// transcription would always take the `nRepos == 0` branch and zero the
+// scroll state -- no information a caller could use.  Signature corrected to
+// carry `this`.
 // Symbol: ?SetScrollSizes@CMFCTasksPane@@IEAAXXZ
-extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ() {}
+extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis) {
+    (void)pThis;
+}
 
+// CMFCTasksPane::SetTaskName(int nGroup, int nTask, LPCTSTR lpszTaskName) --
+// transcribed from the retail body at RVA 0x144d30 (mfc140, PEBD spelling of
+// the same bytes mfc140u exports as PEB_W):
+//   if (nGroup >= m_lstTaskGroups.m_nCount || nGroup < 0) return FALSE;
+//   gnode = walk m_lstTaskGroups nGroup;  if (gnode == NULL) return FALSE;
+//   pGroup = gnode->data;
+//   if (nTask >= pGroup->m_lstTasks.m_nCount || nTask < 0) return FALSE;
+//   tnode = walk pGroup->m_lstTasks nTask; if (tnode == NULL) return FALSE;
+//   pTask = tnode->data;
+//   pTask->m_strName.SetString(lpszTaskName,
+//                              lpszTaskName ? strlen(lpszTaskName) : 0);  // +0x10
+//   if (pTask->m_bVisible /*+0x4c*/)
+//       ::InvalidateRect(m_hWnd, &pTask->m_rect /*+0x18*/, TRUE);
+//   return TRUE;
+// (both bounds tests + walks are the FindIndex thunk; see the storage note at
+// the top.)  Placeholder parameter list replaced by the one the mangled name
+// describes.
 // Symbol: ?SetTaskName@CMFCTasksPane@@QEAAHHHPEB_W@Z
-extern "C" int MS_ABI impl__SetTaskName_CMFCTasksPane__QEAAHHHPEB_W_Z(int p0, int p1, const wchar_t* p2) {
-    return 0;
+extern "C" int MS_ABI impl__SetTaskName_CMFCTasksPane__QEAAHHHPEB_W_Z(
+    CMFCTasksPane* pThis, int nGroup, int nTask, const wchar_t* lpszTaskName)
+{
+    if (pThis == nullptr) return FALSE;
+    TpNode* gnode = NodeAt(GroupList(pThis), nGroup);
+    if (gnode == nullptr) return FALSE;
+    TPGroup* pGroup = reinterpret_cast<TPGroup*>(gnode->data);
+    TpNode* tnode = NodeAt(TaskList(pGroup), nTask);
+    if (tnode == nullptr) return FALSE;
+    TPTask* pTask = reinterpret_cast<TPTask*>(tnode->data);
+    *reinterpret_cast<CString*>(&pTask->m_strName) = (lpszTaskName != nullptr ? lpszTaskName : L"");
+    if (pTask->m_bVisible != 0) {
+        ::InvalidateRect(pThis->m_hWnd, &pTask->m_rect, TRUE);
+    }
+    return TRUE;
 }
 
+// CMFCTasksPane::SetTaskTextColor(int nGroup, int nTask, COLORREF color,
+// COLORREF colorHot) -- transcribed from the retail body at RVA 0x144e00
+// (mfc140).  The group/task lookup is the same four bounds-checked walks as
+// SetTaskName above, then:
+//   pTask->m_clrText    (+0x5c) = color;
+//   pTask->m_clrTextHot (+0x60) = colorHot;
+//   if (pTask->m_bVisible /*+0x4c*/)
+//       ::InvalidateRect(m_hWnd, &pTask->m_rect /*+0x18*/, TRUE);
+//   return TRUE;                 // any failed lookup returns FALSE
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetTaskTextColor@CMFCTasksPane@@QEAAHHHKK@Z
-extern "C" int MS_ABI impl__SetTaskTextColor_CMFCTasksPane__QEAAHHHKK_Z(int p0, int p1, unsigned long p2, unsigned long p3) {
-    return 0;
+extern "C" int MS_ABI impl__SetTaskTextColor_CMFCTasksPane__QEAAHHHKK_Z(
+    CMFCTasksPane* pThis, int nGroup, int nTask, unsigned long color, unsigned long colorHot)
+{
+    if (pThis == nullptr) return FALSE;
+    TpNode* gnode = NodeAt(GroupList(pThis), nGroup);
+    if (gnode == nullptr) return FALSE;
+    TPGroup* pGroup = reinterpret_cast<TPGroup*>(gnode->data);
+    TpNode* tnode = NodeAt(TaskList(pGroup), nTask);
+    if (tnode == nullptr) return FALSE;
+    TPTask* pTask = reinterpret_cast<TPTask*>(tnode->data);
+    pTask->m_clrText    = static_cast<COLORREF>(color);
+    pTask->m_clrTextHot = static_cast<COLORREF>(colorHot);
+    if (pTask->m_bVisible != 0) {
+        ::InvalidateRect(pThis->m_hWnd, &pTask->m_rect, TRUE);
+    }
+    return TRUE;
 }
 
+// CMFCTasksPane::SetWindowHeight(int nGroup, HWND hwndTask, int nWndHeight)
+// -- transcribed from the retail body at RVA 0x145390 (mfc140):
+//   if (nGroup >= m_lstTaskGroups.m_nCount || nGroup < 0) return -1;
+//   gnode = walk m_lstTaskGroups nGroup;  if (gnode == NULL) return -1;
+//   if (!::IsWindow(hwndTask))                       AfxThrowInvalidArgException();
+//   pGroup = gnode->data;
+//   for (t = pGroup->m_lstTasks.head; t; t = t->pNext)
+//       if (t->data->m_hwndTask /*+0x40*/ == hwndTask) goto found;
+//   return;                    // EAX still holds ::IsWindow's non-zero result
+//   found:
+//       t->data->m_nWindowHeight (+0x2c) = nWndHeight;
+//       if (pGroup->m_bIsCollapsed /*+0x58*/ == 0) {
+//           AdjustScroll();                                          // 0x146870
+//           ReposTasks(FALSE);                                       // vtable +0x7d0
+//           ::RedrawWindow(m_hWnd, NULL, NULL,
+//                          RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW);
+//       }
+//       return TRUE;
+// Note the three distinct results: -1 for a bad group index, TRUE when the
+// window was found, and -- on the not-found path -- whatever ::IsWindow
+// returned, which the code above has already proved non-zero; that is written
+// as TRUE here.  Deviation: the refresh goes through this file's RetailRefresh
+// helper, so a derived ReposTasks override is not honoured.  Placeholder
+// parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetWindowHeight@CMFCTasksPane@@QEAAHHPEAUHWND__@@H@Z
-extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHHPEAUHWND____H_Z(int p0, void* /*struct*/* p1, int p2) {
-    return 0;
+extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHHPEAUHWND____H_Z(
+    CMFCTasksPane* pThis, int nGroup, HWND hwndTask, int nWndHeight)
+{
+    if (pThis == nullptr) return -1;
+    TpNode* gnode = NodeAt(GroupList(pThis), nGroup);
+    if (gnode == nullptr) return -1;
+    if (!::IsWindow(hwndTask)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return -1;
+    }
+    TPGroup* pGroup = reinterpret_cast<TPGroup*>(gnode->data);
+    for (TpNode* t = HeadNode(TaskList(pGroup)); t != nullptr; t = t->pNext) {
+        TPTask* pTask = reinterpret_cast<TPTask*>(t->data);
+        if (pTask->m_hwndTask != hwndTask) continue;
+        pTask->m_nWindowHeight = nWndHeight;
+        if (pGroup->m_bIsCollapsed == 0) {
+            RetailRefresh(pThis, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+        }
+        return TRUE;
+    }
+    return TRUE;
 }
 
+// CMFCTasksPane::SetWindowHeight(HWND hwndTask, int nWndHeight) --
+// transcribed from the retail body at RVA 0x145450 (mfc140):
+//   if (!::IsWindow(hwndTask))                       AfxThrowInvalidArgException();
+//   int nGroup, nTask;
+//   if (!GetTaskLocation(hwndTask, nGroup, nTask)) return FALSE;     // 0x1451a0
+//   return SetWindowHeight(nGroup, hwndTask, nWndHeight);            // 0x145390
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?SetWindowHeight@CMFCTasksPane@@QEAAHPEAUHWND__@@H@Z
-extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHPEAUHWND____H_Z(void* /*struct*/* p0, int p1) {
-    return 0;
+extern "C" int MS_ABI impl__SetWindowHeight_CMFCTasksPane__QEAAHPEAUHWND____H_Z(
+    CMFCTasksPane* pThis, HWND hwndTask, int nWndHeight)
+{
+    if (pThis == nullptr) return FALSE;
+    if (!::IsWindow(hwndTask)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+    int nGroup = 0, nTask = 0;
+    if (!impl__GetTaskLocation_CMFCTasksPane__QEBAHPEAUHWND____AEAH1_Z(pThis, hwndTask, &nGroup, &nTask)) {
+        return FALSE;
+    }
+    return impl__SetWindowHeight_CMFCTasksPane__QEAAHHPEAUHWND____H_Z(pThis, nGroup, hwndTask, nWndHeight);
 }
 
+// CMFCTasksPane::ShowCommandMessageString(UINT uiCmdId) -- transcribed from
+// the retail body at RVA 0x148f40 (mfc140):
+//   HWND hOwner = m_hWndOwner;                       // CWnd +0xa0
+//   if (hOwner == NULL) hOwner = ::GetParent(m_hWnd);
+//   UINT id = (uiCmdId == (UINT)-1) ? AFX_IDS_IDLEMESSAGE /*0xE001*/ : uiCmdId;
+//   CWnd::FromHandle(hOwner)->SendMessage(WM_SETMESSAGESTRING /*0x362*/, id, 0);
+//                                                    // 0x289180, then tail jmp
+// OpenMFC's CWnd does not name m_hWndOwner: +0xa0 lies inside its
+// _cwnd_padding2 block, which the CWnd constructor zero-fills.  MSVC clients
+// inline CWnd::SetOwner (`m_hWndOwner = ...`) and so DO write that slot, so it
+// is read here at the retail offset with the ::GetParent fallback -- the same
+// treatment core/controlbar/CControlBar.cpp's OwnerHwnd gives it.  The
+// CWnd::FromHandle round trip is elided because the wrapper it returns carries
+// exactly that handle in m_hWnd, so the SendMessage target is unchanged --
+// except when the owner handle is NULL, where retail dereferences FromHandle's
+// NULL result and faults and this sends to a NULL window instead.
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?ShowCommandMessageString@CMFCTasksPane@@UEAAXI@Z
-extern "C" void MS_ABI impl__ShowCommandMessageString_CMFCTasksPane__UEAAXI_Z(unsigned int p0) {}
+extern "C" void MS_ABI impl__ShowCommandMessageString_CMFCTasksPane__UEAAXI_Z(
+    CMFCTasksPane* pThis, unsigned int uiCmdId)
+{
+    if (pThis == nullptr) return;
+    const CWnd* pWnd = pThis;
+    HWND hOwner = nullptr;
+    std::memcpy(&hOwner, reinterpret_cast<const unsigned char*>(pWnd) + kCWndOwnerOffset, sizeof(hOwner));
+    if (hOwner == nullptr) hOwner = ::GetParent(pThis->m_hWnd);
+    const unsigned int id = (uiCmdId == static_cast<unsigned int>(-1)) ? 0xE001u : uiCmdId;
+    ::SendMessage(hOwner, 0x362u /* WM_SETMESSAGESTRING */, static_cast<WPARAM>(id), 0);
+}
 
+// CMFCTasksPane::ShowTask(int nGroup, int nTask, BOOL bShow, BOOL bRedraw) --
+// transcribed from the retail body at RVA 0x144e90 (mfc140).  The group/task
+// lookup is the same four bounds-checked walks as SetTaskName above (any
+// failure returns FALSE), then:
+//   old = pTask->m_bVisible;                                        // +0x4c
+//   if (bShow) { if (old) return TRUE; } else { if (!old) return TRUE; }
+//   pTask->m_bVisible = bShow;
+//   AdjustScroll();                                                 // 0x146870
+//   ReposTasks(FALSE);                                              // vtable +0x7d0
+//   if (bRedraw) ::RedrawWindow(m_hWnd, NULL, NULL,
+//                               RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW);
+//   return TRUE;
+// i.e. nothing at all happens when the task is already in the requested
+// state, and bRedraw gates only the RedrawWindow -- the scroll/reposition
+// work runs either way.  Deviation: ReposTasks is called as this class's own
+// export, so a derived override is not honoured; it is still a stub here.
+// Placeholder parameter list replaced by the one the mangled name describes.
 // Symbol: ?ShowTask@CMFCTasksPane@@QEAAHHHHH@Z
-extern "C" int MS_ABI impl__ShowTask_CMFCTasksPane__QEAAHHHHH_Z(int p0, int p1, int p2, int p3) {
-    return 0;
+extern "C" int MS_ABI impl__ShowTask_CMFCTasksPane__QEAAHHHHH_Z(
+    CMFCTasksPane* pThis, int nGroup, int nTask, int bShow, int bRedraw)
+{
+    if (pThis == nullptr) return FALSE;
+    TpNode* gnode = NodeAt(GroupList(pThis), nGroup);
+    if (gnode == nullptr) return FALSE;
+    TPGroup* pGroup = reinterpret_cast<TPGroup*>(gnode->data);
+    TpNode* tnode = NodeAt(TaskList(pGroup), nTask);
+    if (tnode == nullptr) return FALSE;
+    TPTask* pTask = reinterpret_cast<TPTask*>(tnode->data);
+
+    if (bShow != 0) {
+        if (pTask->m_bVisible != 0) return TRUE;
+    } else {
+        if (pTask->m_bVisible == 0) return TRUE;
+    }
+    pTask->m_bVisible = bShow;
+    impl__AdjustScroll_CMFCTasksPane__IEAAXXZ(pThis);
+    impl__ReposTasks_CMFCTasksPane__MEAAHH_Z(pThis, FALSE);
+    if (bRedraw != 0) {
+        ::RedrawWindow(pThis->m_hWnd, nullptr, nullptr,
+                       RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+    }
+    return TRUE;
 }
 
+// CMFCTasksPane::ShowTaskByCmdId(UINT uiCommandID, BOOL bShow, BOOL bRedraw)
+// -- transcribed from the retail body at RVA 0x144f60 (mfc140):
+//   int nGroup, nTask;
+//   if (!GetTaskLocation(uiCommandID, nGroup, nTask)) return FALSE;  // 0x145130
+//   return ShowTask(nGroup, nTask, bShow, bRedraw);                  // 0x144e90
+// (retail leaves GetTaskLocation's zero in EAX on the failure path, so the
+// function returns FALSE there.)  Placeholder parameter list replaced by the
+// one the mangled name describes.
 // Symbol: ?ShowTaskByCmdId@CMFCTasksPane@@QEAAHIHH@Z
-extern "C" int MS_ABI impl__ShowTaskByCmdId_CMFCTasksPane__QEAAHIHH_Z(unsigned int p0, int p1, int p2) {
-    return 0;
+extern "C" int MS_ABI impl__ShowTaskByCmdId_CMFCTasksPane__QEAAHIHH_Z(
+    CMFCTasksPane* pThis, unsigned int uiCommandID, int bShow, int bRedraw)
+{
+    if (pThis == nullptr) return FALSE;
+    int nGroup = 0, nTask = 0;
+    if (!impl__GetTaskLocation_CMFCTasksPane__QEBAHIAEAH0_Z(pThis, uiCommandID, &nGroup, &nTask)) {
+        return FALSE;
+    }
+    return impl__ShowTask_CMFCTasksPane__QEAAHHHHH_Z(pThis, nGroup, nTask, bShow, bRedraw);
 }
 
+// CMFCTasksPane::StopCaptionButtonsTracking() -- transcribed from the retail
+// body at RVA 0x147f60 (mfc140), which is the whole function:
+//   if (m_bMenuBtnPressed /*+0x4f8*/ == 0)
+//       CDockablePane::StopCaptionButtonsTracking();                 // 0x45030
+// i.e. while the pane's own menu button is being held down the base class is
+// deliberately NOT allowed to clear the caption-button tracking state.
+// (featurepack/docking/CDockablePane.cpp's body is itself a stub -- that class
+// has no m_arrButtons storage -- so the call currently does nothing, but the
+// condition and the call site are retail's.)  Signature corrected to carry
+// `this`.
 // Symbol: ?StopCaptionButtonsTracking@CMFCTasksPane@@MEAAXXZ
-extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CMFCTasksPane__MEAAXXZ() {}
+extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CMFCTasksPane__MEAAXXZ(CMFCTasksPane* pThis) {
+    if (pThis == nullptr) return;
+    if (View(pThis)->m_bMenuBtnPressed == 0) {
+        impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(reinterpret_cast<CDockablePane*>(pThis));
+    }
+}
 
+// CMFCTasksPane::TaskHitTest(CPoint pt) const -- transcribed from the retail
+// body at RVA 0x1456e0 (mfc140):
+//   if (!::PtInRect(&m_rectTasks /*+0x5d8*/, pt)) return NULL;
+//   nPage = m_arrHistoryStack[m_iActivePage];  ENSURE(bounds) else AfxThrowInvalidArgException
+//   pPage = m_lstTasksPanes.FindIndex(nPage)->data;  ENSURE(bounds / non-NULL)
+//   for (g = m_lstTaskGroups.head; g; g = g->pNext) {
+//       if (g->data->m_pPage /*+0x8*/ != pPage) continue;
+//       for (t = g->data->m_lstTasks.head; t; t = t->pNext)
+//           if (t->data->m_bVisible /*+0x4c*/ &&
+//               ::PtInRect(&t->data->m_rect /*+0x18*/, pt) &&
+//               t->data->m_uiCommandID /*+0x30*/ != 0)
+//               return t->data;
+//   }
+//   return NULL;
+// Note the empty group list is short-circuited before the loop and also
+// returns NULL, and that a task with command id 0 (a separator or a plain
+// label) never wins the hit test even when the point is inside its rectangle.
+// The by-value CPoint arrives packed in one register (x low, y high), exactly
+// as in GroupCaptionHitTest above.  Placeholder parameter list replaced by the
+// one the mangled name describes.
 // Symbol: ?TaskHitTest@CMFCTasksPane@@IEBAPEAVCMFCTasksPaneTask@@VCPoint@@@Z
-extern "C" void* MS_ABI impl__TaskHitTest_CMFCTasksPane__IEBAPEAVCMFCTasksPaneTask__VCPoint___Z(void* /*class*/ p0) {
+extern "C" void* MS_ABI impl__TaskHitTest_CMFCTasksPane__IEBAPEAVCMFCTasksPaneTask__VCPoint___Z(
+    const CMFCTasksPane* pThis, long long packedPoint)
+{
+    if (pThis == nullptr) return nullptr;
+    const TP* self = View(pThis);
+    POINT pt;
+    pt.x = static_cast<LONG>(packedPoint & 0xffffffffLL);
+    pt.y = static_cast<LONG>((packedPoint >> 32) & 0xffffffffLL);
+    if (!::PtInRect(&self->m_rectTasks, pt)) return nullptr;
+    int nPage = 0;
+    if (!HistoryAt(self, self->m_iActivePage, nPage)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return nullptr;
+    }
+    TpNode* pageNode = NodeAt(PageList(pThis), nPage);
+    if (pageNode == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return nullptr;
+    }
+    const CObject* pPage = pageNode->data;
+    for (TpNode* g = HeadNode(GroupList(pThis)); g != nullptr; g = g->pNext) {
+        const TPGroup* pGroup = reinterpret_cast<const TPGroup*>(g->data);
+        if (pGroup->m_pPage != pPage) continue;
+        for (TpNode* t = HeadNode(TaskList(pGroup)); t != nullptr; t = t->pNext) {
+            TPTask* pTask = reinterpret_cast<TPTask*>(t->data);
+            if (pTask->m_bVisible == 0) continue;
+            if (!::PtInRect(&pTask->m_rect, pt)) continue;
+            if (pTask->m_uiCommandID == 0) continue;
+            return pTask;
+        }
+    }
     return nullptr;
 }
 
+// CMFCTasksPane::Update() -- transcribed from the retail body at RVA 0x149f50
+// (mfc140), which is the whole function:
+//   UpdateCaption();                                                 // 0x149dd0
+//   AdjustScroll();                                                  // 0x146870
+//   ReposTasks(FALSE);                                               // vtable +0x7d0
+//   ::RedrawWindow(m_hWnd, NULL, NULL,
+//                  RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW);          // tail jmp
+// Deviation: the refresh tail goes through this file's RetailRefresh helper,
+// so a derived ReposTasks override is not honoured; UpdateCaption, AdjustScroll
+// and ReposTasks are all still stubs in this file, so today only the
+// RedrawWindow has an observable effect.  Signature corrected to carry `this`.
 // Symbol: ?Update@CMFCTasksPane@@UEAAXXZ
-extern "C" void MS_ABI impl__Update_CMFCTasksPane__UEAAXXZ() {}
+extern "C" void MS_ABI impl__Update_CMFCTasksPane__UEAAXXZ(CMFCTasksPane* pThis) {
+    if (pThis == nullptr) return;
+    impl__UpdateCaption_CMFCTasksPane__IEAAXXZ(pThis);
+    RetailRefresh(pThis, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+}
 
 // Symbol: ?UpdateCaption@CMFCTasksPane@@IEAAXXZ
 // Parameter list corrected to carry `this` (called from ChangeActivePage above); body still a stub.
