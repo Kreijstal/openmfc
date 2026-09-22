@@ -42,20 +42,27 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 // OpenMFC's CCmdTarget (include/openmfc/afxwin.h) is only 32 bytes -- CObject's
 // vfptr plus `char _padding[24]` -- so ONLY m_dwRef, m_pOuterUnknown and
 // m_xInnerUnknown are addressable.  Entry points that need +0x20 or beyond are
-// either left stubbed or, in InternalRelease's case, implemented without the
-// part that needs it; each one says so at its own definition.  Growing
+// either left stubbed or, in InternalRelease's and SetStandardProp's case,
+// implemented without the part that needs it; each one says so at its own
+// definition.  Growing
 // CCmdTarget to the retail 0x40 bytes is a header change (CWnd's
 // _cwnd_padding1[32] would have to shrink to keep m_hWnd at 64) and is NOT
 // made here.
 //
-// Two further deviations apply to the whole block and are repeated where they
-// bite: (1) retail reaches GetInterfaceMap / GetInterfaceHook / GetDispatchMap
-// / GetEventSinkMap through fixed vtable slots, which is impossible here
-// because OpenMFC's C++ vtable is unrelated to retail's, so the three map
-// lookups fall back to CCmdTarget's own map and the GetInterfaceHook call is
-// skipped entirely; (2) retail null-checks neither `this` nor its pointer
-// arguments, whereas these thunks do, matching the style of the rest of this
-// file.
+// Two further points apply to the whole block and are repeated where they
+// bite: (1) retail reaches its own virtuals through fixed MSVC vtable slots.
+// GetInterface, GetDispEntry and GetEventSinkEntry below do not: they fall
+// back to CCmdTarget's own map and skip GetInterfaceHook.  The bodies that
+// were transcribed later -- OnCmdMsg, EnableTypeLib, OnFinalRelease,
+// QueryAggregates -- DO dispatch by retail slot index (kVs_* below), on the
+// basis that every caller of these exports passes an object with an
+// MSVC-layout vtable (client objects, and the hand-authored MSVC tables in
+// this tree); an object still carrying g++'s own vtable must not reach them.
+// (2) retail null-checks neither `this` nor its pointer arguments; most of
+// these thunks check `this` (and some their pointers) anyway, matching the
+// style of the rest of this file.  Not every comment below repeats that --
+// read the first lines of a body for its checks.  PushStackArgs and
+// SetStandardProp check nothing, as retail.
 //
 // One initialisation gap the reference-counting entry points below inherit and
 // cannot fix from this file: the retail CCmdTarget constructor (mfc140u
@@ -233,6 +240,111 @@ extern "C" unsigned int MS_ABI impl__GetEntryCount_CCmdTarget__KAIPEBUAFX_DISPMA
 extern "C" long MS_ABI impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PEB_W_Z(const void*, const wchar_t*);
 extern "C" const void* MS_ABI impl__GetDispatchMap_CCmdTarget__MEBAPEBUAFX_DISPMAP__XZ(const CCmdTarget*);
 extern "C" const void* MS_ABI impl__GetEventSinkMap_CCmdTarget__MEBAPEBUAFX_EVENTSINKMAP__XZ(const CCmdTarget*);
+extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*, unsigned int, void*, void*);
+
+// The COccManager* AfxEnableControlContainer was handed.  Defined with
+// external C linkage in featurepack/CMFC_misc_stubs.cpp (retail keeps it in
+// AFX_MODULE_STATE+0xa0, which OpenMFC's AFX_MODULE_STATE has no room for).
+extern "C" void* g4_g_pOccManager;
+
+// Thunks defined in other translation units that the retail bodies below call.
+// Each is declared with the parameter list its mangled name describes.
+extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int nLockType);            // featurepack/CMFC_misc_stubs.cpp
+extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int nLockType);          // featurepack/CMFC_misc_stubs.cpp
+extern "C" void MS_ABI impl__Lock_CTypeLibCache__QEAAXXZ(void* pCache);        // core/ole/CTypeLibCache.cpp
+extern "C" void MS_ABI impl__Unlock_CTypeLibCache__QEAAXXZ(void* pCache);      // core/ole/CTypeLibCache.cpp
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);                 // ??2@YAPEAX_K@Z, detail/MemcoreSupport.cpp
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* p);                            // ??3@YAXPEAX@Z, detail/MemcoreSupport.cpp
+extern "C" void MS_ABI impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
+    CString* pStr, wchar_t* bstr);                                              // core/collections/Globals.cpp
+
+namespace {
+
+// --- retail (MSVC) vtable slots --------------------------------------------
+// The exported CCmdTarget entry points are called with objects that carry an
+// MSVC-layout vtable: a client class's own vftable, or one of the
+// hand-authored MSVC tables in this tree (e.g. g_CMFCBaseAccessibleObject_vtbl
+// in featurepack/controls/CMFCBaseAccessibleObject.cpp, whose slot comments
+// list the same CCmdTarget order).  The slot numbers below are each read off a
+// retail call site (byte offset / 8), cited where used.  They are NOT the slots
+// of g++'s own C++ vtable for CCmdTarget (there GetMessageMap is slot 6, which
+// is OnFinalRelease in the MSVC table), so an object that still carries the
+// g++ vtable must not be handed to the bodies that use them.
+constexpr size_t kVs_ScalarDeletingDtor = 1;   // OnFinalRelease: mov 0x8(%rax)
+constexpr size_t kVs_GetTypeLibCache    = 10;  // EnableTypeLib / OnFinalRelease: 0x50
+constexpr size_t kVs_GetMessageMap      = 12;  // OnCmdMsg: 0x60
+constexpr size_t kVs_GetCommandMap      = 13;  // OnCmdMsg (CN_OLECOMMAND): 0x68
+constexpr size_t kVs_GetInterfaceMap    = 16;  // QueryAggregates: 0x80
+
+template <typename Fn>
+inline Fn VSlot(const void* pObj, size_t nSlot) {
+    return reinterpret_cast<Fn>((*static_cast<void* const* const*>(pObj))[nSlot]);
+}
+
+// --- retail message-map layout (afxwin.h, _AFXDLL) -------------------------
+// OpenMFC's own AFX_MSGMAP_ENTRY (include/openmfc/afxwin.h) is compiled by g++,
+// whose member-function pointers are 16 bytes, so its stride is not retail's.
+// The export walks retail-layout maps: 0x20-byte entries (OnCmdMsg's
+// `add $0x20,%rax`) with an 8-byte MSVC member-function pointer at +0x18.
+// Every map OpenMFC itself exports is a lone AfxSig_end terminator, whose nSig
+// word (+0x10) is 0 in either layout, so both kinds end the walk correctly.
+struct S_MsgMapEntry {
+    unsigned int nMessage;   // +0x00
+    unsigned int nCode;      // +0x04
+    unsigned int nID;        // +0x08
+    unsigned int nLastID;    // +0x0c
+    UINT_PTR     nSig;       // +0x10
+    void*        pfn;        // +0x18
+};
+static_assert(sizeof(S_MsgMapEntry) == 0x20, "retail AFX_MSGMAP_ENTRY stride is 0x20");
+static_assert(offsetof(S_MsgMapEntry, nSig) == 0x10, "AFX_MSGMAP_ENTRY::nSig at +0x10");
+static_assert(offsetof(S_MsgMapEntry, pfn) == 0x18, "AFX_MSGMAP_ENTRY::pfn at +0x18");
+
+struct S_MsgMap {
+    const S_MsgMap* (*pfnGetBaseMap)();   // +0x00
+    const S_MsgMapEntry* lpEntries;       // +0x08
+};
+
+// AFX_CMDHANDLERINFO (afxwin.h): { CCmdTarget* pTarget; AFX_PMSG pmf; }.
+struct S_CmdHandlerInfo {
+    void* pTarget;   // +0x00
+    void* pmf;       // +0x08
+};
+static_assert(offsetof(S_CmdHandlerInfo, pmf) == 0x08, "AFX_CMDHANDLERINFO::pmf at +0x08");
+
+// The CCmdUI / COleCmdUI members OnCmdMsg touches.  Retail afxwin.h declares
+// vfptr, m_nID (+0x08), m_nIndex (+0x0c), m_pMenu (+0x10), m_pSubMenu (+0x18),
+// m_pOther (+0x20), m_bEnableChanged (+0x28), m_bContinueRouting (+0x2c),
+// m_nIndexMax (+0x30), m_pParentMenu (+0x38); afxdocob.h's COleCmdUI adds
+// m_nCmdTextFlag (+0x40), m_rgCmds (+0x48), m_pguidCmdGroup (+0x50).  The
+// disassembly reads exactly +0x08, +0x2c and +0x50 (core/controlbar/
+// CStatusBar.cpp pins the same +0x2c).
+struct S_OleCmdUI {
+    void*        vfptr;              // +0x00
+    unsigned int m_nID;              // +0x08
+    unsigned int m_nIndex;           // +0x0c
+    void*        m_pMenu;            // +0x10
+    void*        m_pSubMenu;         // +0x18
+    void*        m_pOther;           // +0x20
+    int          m_bEnableChanged;   // +0x28
+    int          m_bContinueRouting; // +0x2c
+    unsigned int m_nIndexMax;        // +0x30
+    void*        m_pParentMenu;      // +0x38
+    unsigned long m_nCmdTextFlag;    // +0x40
+    void*        m_rgCmds;           // +0x48
+    const GUID*  m_pguidCmdGroup;    // +0x50
+};
+static_assert(offsetof(S_OleCmdUI, m_nID) == 0x08, "CCmdUI::m_nID at +0x08");
+static_assert(offsetof(S_OleCmdUI, m_bContinueRouting) == 0x2c, "CCmdUI::m_bContinueRouting at +0x2c");
+static_assert(offsetof(S_OleCmdUI, m_pguidCmdGroup) == 0x50, "COleCmdUI::m_pguidCmdGroup at +0x50");
+
+// AFX_NOTIFY (afxpriv.h): { LRESULT* pResult; NMHDR* pNMHDR; }.
+struct S_Notify {
+    void* pResult;   // +0x00
+    void* pNMHDR;    // +0x08
+};
+
+} // namespace
 
 // Symbol: ?GetThisClass@CCmdTarget@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CCmdTarget__SAPEAUCRuntimeClass__XZ() {
@@ -280,10 +392,14 @@ const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
 };
 int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo)
 {
-    // Simple command routing
+    // Simple command routing over OpenMFC's own (g++-layout) message maps.
+    // This C++ method is NOT what the exported ?OnCmdMsg@CCmdTarget@@ thunk
+    // runs -- see impl__OnCmdMsg_CCmdTarget_... below for the retail body.
+    // The root map (CCmdTarget::messageMap, defined above) has a NULL
+    // pfnGetBaseMap, so the step must test it before calling through it.
     const AFX_MSGMAP* pMap = GetMessageMap();
-    
-    for (; pMap != nullptr; pMap = (*pMap->pfnGetBaseMap)())
+
+    for (; pMap != nullptr; pMap = pMap->pfnGetBaseMap ? (*pMap->pfnGetBaseMap)() : nullptr)
     {
         const AFX_MSGMAP_ENTRY* lpEntry = pMap->lpEntries;
         while (lpEntry->nSig != AfxSig_end)
@@ -430,37 +546,218 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
         return FALSE;
     }
 }
+// CCmdTarget::GetTypeLibCache() -- retail mfc140u resolves this export (by
+// ordinal) to 0x71e0, the image-wide `xor %eax,%eax ; ret` shared by every
+// ICF-folded "return NULL" method.  The base class has no type-library cache;
+// a class using DECLARE_/IMPLEMENT_OLETYPELIB overrides it (afxdisp.h:839:
+// `return AfxGetTypeLibCache(&tlid);`).  EnableTypeLib and OnFinalRelease below both
+// test the result for NULL before using it, exactly as retail does.
+// (This thunk used to hand out a per-object TypeLibCacheHandle from
+// g_targetTypeLibCaches; nothing in the tree consumed that handle.)
 // Symbol: ?GetTypeLibCache@CCmdTarget@@UEAAPEAVCTypeLibCache@@XZ
 extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache__XZ(CCmdTarget* pThis) {
-    if (!pThis) {
-        return nullptr;
-    }
-    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
-    auto& ownedCache = g_targetTypeLibCaches[pThis];
-    if (!ownedCache) {
-        ownedCache = std::make_unique<TypeLibCacheHandle>();
-    }
-    return ownedCache.get();
+    (void)pThis;
+    return nullptr;
 }
 
 // === Moved from ManualThunks.cpp ===
+// CCmdTarget::OnCmdMsg(UINT nID, int nCode, void* pExtra,
+//                      AFX_CMDHANDLERINFO* pHandlerInfo)
+// -- retail mfc140u 0x1de460, transcribed (_AfxDispatchCmdMsg is inlined there):
+//   if (nCode == CN_EVENT /*-2*/) {
+//       ENSURE(AfxGetModuleState()->m_pOccManager);          ; +0xa0, else throw
+//       return m_pOccManager->OnEvent(this, nID, pExtra, pHandlerInfo); ; vslot 1
+//   }
+//   if (nCode == CN_OLECOMMAND /*-3*/) {
+//       ENSURE(pExtra);   COleCmdUI* pUI = pExtra;           ; else throw
+//       const GUID* pguid = pUI->m_pguidCmdGroup;            ; +0x50
+//       BOOL bResult = FALSE;
+//       for (pMap = GetCommandMap() /*vslot 13*/; pMap->pfnGetBaseMap && !bResult;
+//            pMap = pMap->pfnGetBaseMap())
+//           for (e = pMap->lpEntries; e->cmdID && e->nID && !bResult; ++e)
+//               if (nID == e->cmdID && IsEqualNULLGuid(pguid, e->pguid))
+//                   { pUI->m_nID = e->nID; bResult = TRUE; }  ; +0x08
+//       return bResult;
+//   }
+//   if (nCode == CN_UPDATE_COMMAND_UI /*-1*/) nMsg = WM_COMMAND;  ; nCode kept whole
+//   else { nMsg = HIWORD(nCode); nCode = LOWORD(nCode); if (nMsg == 0) nMsg = WM_COMMAND; }
+//   for (pMap = GetMessageMap() /*vslot 12*/; pMap->pfnGetBaseMap; pMap = pMap->pfnGetBaseMap())
+//       for (e = pMap->lpEntries; e->nSig != AfxSig_end; ++e)
+//           if (e->nMessage == nMsg && e->nCode == nCode &&
+//               e->nID <= nID && nID <= e->nLastID) goto found;
+//   return FALSE;
+//  found:
+//   if (pHandlerInfo) { pHandlerInfo->pTarget = this; pHandlerInfo->pmf = e->pfn; return TRUE; }
+//   switch (e->nSig) { ... }   -- see the case comments below
+// The CN_EVENT test runs before anything else, and the walk never scans the
+// map whose pfnGetBaseMap is NULL (CCmdTarget's own, which is empty).
+//
+// DEVIATION, CN_EVENT only: OpenMFC's AFX_MODULE_STATE (detail/RegcoreSupport.h)
+// has no m_pOccManager (+0xa0).  AfxEnableControlContainer instead stores its
+// argument in the process-wide extern "C" g4_g_pOccManager
+// (featurepack/CMFC_misc_stubs.cpp), which is read here:
+//   * non-NULL: a caller-supplied manager; forwarded through its vslot 1
+//     (`mov 0x8(%rax)` at 0x1801de4ba) exactly as retail does.
+//   * NULL: OpenMFC's AfxEnableControlContainer(NULL) does not build retail's
+//     default COccManager, so the default manager's OnEvent is inlined here
+//     instead.  That OnEvent (mfc140u 0x2373d0, by export ordinal) only drops
+//     its own `this` and tail-jumps to CCmdTarget::OnEvent (0x236e70), so the
+//     call below is what the default manager would do.  The one case this
+//     gets wrong is "AfxEnableControlContainer never called", where retail
+//     throws AfxThrowInvalidArgException; it cannot be told apart from
+//     "called with NULL" here.
+//
+// `this` must carry an MSVC-layout vtable: GetMessageMap / GetCommandMap are
+// reached through retail slots 12 / 13 (see kVs_* above).  The callers are a
+// client object's own vtable (slot 5), a hand-authored MSVC vtable
+// (CMFCBaseAccessibleObject slot 5), and core/controlbar/CStatusBar.cpp's
+// OnUpdateCmdUI export, which passes its own `this` -- a CStatusBar that the
+// OpenMFC ctor export built with g++'s vtable unless a client class derived
+// from it and installed its own.  That last caller is only safe for the
+// latter kind: on a g++ vtable, slot 12 is an unrelated CWnd virtual.  The
+// C++ method
+// CCmdTarget::OnCmdMsg earlier in this file is deliberately NOT called: it
+// dispatches GetMessageMap through g++'s vtable (slot 6), which in an MSVC
+// vtable is OnFinalRelease.
+// Retail does not null-check `this`; this thunk returns FALSE for a NULL
+// `this`, matching the rest of this file.  Every other NULL check below is
+// retail's own: a NULL pExtra where one is required throws through
+// AfxThrowInvalidArgException (the `call 0x180227720` the ENSUREs share).
 // Symbol: ?OnCmdMsg@CCmdTarget@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
-extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
+    if (!pThis) return FALSE;
+
+    if (nCode == -2) {                       // CN_EVENT -- see DEVIATION above
+        void* const pOccManager = g4_g_pOccManager;
+        if (pOccManager != nullptr) {
+            using OccOnEventFn = int (MS_ABI*)(void*, void*, unsigned int, void*, void*);
+            return VSlot<OccOnEventFn>(pOccManager, 1)(pOccManager, pThis, nID, pExtra, pHandlerInfo);
+        }
+        return impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(
+            pThis, nID, pExtra, pHandlerInfo);
+    }
+
+    if (nCode == -3) {                       // CN_OLECOMMAND
+        if (!pExtra) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        S_OleCmdUI* pUI = static_cast<S_OleCmdUI*>(pExtra);
+        const GUID* pguidCmdGroup = pUI->m_pguidCmdGroup;
+        using GetCmdMapFn = const AFX_OLECMDMAP* (MS_ABI*)(const void*);
+        int bResult = FALSE;
+        for (const AFX_OLECMDMAP* pMap = VSlot<GetCmdMapFn>(pThis, kVs_GetCommandMap)(pThis);
+             pMap->pfnGetBaseMap != nullptr && !bResult;
+             pMap = pMap->pfnGetBaseMap()) {
+            for (const AFX_OLECMDMAP_ENTRY* e = pMap->lpEntries;
+                 e->cmdID != 0 && e->nID != 0 && !bResult; ++e) {
+                if (nID != e->cmdID) continue;
+                // IsEqualNULLGuid: NULL matches only NULL; otherwise memcmp(16).
+                const bool bMatch = (pguidCmdGroup == nullptr)
+                    ? (e->pguid == nullptr)
+                    : (e->pguid != nullptr && ::memcmp(pguidCmdGroup, e->pguid, sizeof(GUID)) == 0);
+                if (bMatch) {
+                    pUI->m_nID = e->nID;
+                    bResult = TRUE;
+                }
+            }
+        }
+        return bResult;
+    }
+
+    unsigned int nMsg;
+    unsigned int nCodeLow;
+    if (nCode == -1) {                       // CN_UPDATE_COMMAND_UI: whole value
+        nMsg = WM_COMMAND;
+        nCodeLow = static_cast<unsigned int>(nCode);
+    } else {
+        nCodeLow = static_cast<unsigned int>(nCode) & 0xffffu;
+        nMsg = (static_cast<unsigned int>(nCode) >> 16) & 0xffffu;
+        if (nMsg == 0) nMsg = WM_COMMAND;
+    }
+
+    using GetMsgMapFn = const S_MsgMap* (MS_ABI*)(const void*);
+    const S_MsgMapEntry* pEntry = nullptr;
+    const S_MsgMap* pMap = VSlot<GetMsgMapFn>(pThis, kVs_GetMessageMap)(pThis);
+    while (pMap->pfnGetBaseMap != nullptr) {
+        for (const S_MsgMapEntry* e = pMap->lpEntries; e->nSig != 0; ++e) {
+            if (e->nMessage == nMsg && e->nCode == nCodeLow &&
+                e->nID <= nID && nID <= e->nLastID) {
+                pEntry = e;
+                break;
+            }
+        }
+        if (pEntry != nullptr) break;
+        pMap = pMap->pfnGetBaseMap();
+    }
+    if (pEntry == nullptr) return FALSE;
+
+    void* const pfn = pEntry->pfn;
+    if (pHandlerInfo != nullptr) {           // query only: report, do not call
+        S_CmdHandlerInfo* pInfo = static_cast<S_CmdHandlerInfo*>(pHandlerInfo);
+        pInfo->pTarget = pThis;
+        pInfo->pmf = pfn;
+        return TRUE;
+    }
+
+    // _AfxDispatchCmdMsg, inlined.  pfn is an 8-byte MSVC member-function
+    // pointer (single inheritance), i.e. a plain code address called with
+    // `this` in RCX.  AfxSig values are retail afxmsg_.h's enum.
+    S_Notify* pNotify = static_cast<S_Notify*>(pExtra);
+    switch (pEntry->nSig) {
+    case 0x3a:   // AfxSigCmd_v: void ()                                  -> TRUE
+        reinterpret_cast<void (MS_ABI*)(void*)>(pfn)(pThis);
+        return TRUE;
+    case 0x3b:   // AfxSigCmd_b: BOOL ()
+        return reinterpret_cast<int (MS_ABI*)(void*)>(pfn)(pThis);
+    case 0x3c:   // AfxSigCmd_RANGE: void (UINT nID)                      -> TRUE
+        reinterpret_cast<void (MS_ABI*)(void*, unsigned int)>(pfn)(pThis, nID);
+        return TRUE;
+    case 0x3d:   // AfxSigCmd_EX: BOOL (UINT nID)
+        return reinterpret_cast<int (MS_ABI*)(void*, unsigned int)>(pfn)(pThis, nID);
+    case 0x3e:   // AfxSigNotify_v: void (NMHDR*, LRESULT*)               -> TRUE
+        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        reinterpret_cast<void (MS_ABI*)(void*, void*, void*)>(pfn)(pThis, pNotify->pNMHDR, pNotify->pResult);
+        return TRUE;
+    case 0x3f:   // AfxSigNotify_b: BOOL (NMHDR*, LRESULT*)
+        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        return reinterpret_cast<int (MS_ABI*)(void*, void*, void*)>(pfn)(pThis, pNotify->pNMHDR, pNotify->pResult);
+    case 0x40:   // AfxSigNotify_RANGE: void (UINT, NMHDR*, LRESULT*)     -> TRUE
+        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        reinterpret_cast<void (MS_ABI*)(void*, unsigned int, void*, void*)>(pfn)(pThis, nID, pNotify->pNMHDR, pNotify->pResult);
+        return TRUE;
+    case 0x41:   // AfxSigNotify_EX: BOOL (UINT, NMHDR*, LRESULT*)
+        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        return reinterpret_cast<int (MS_ABI*)(void*, unsigned int, void*, void*)>(pfn)(pThis, nID, pNotify->pNMHDR, pNotify->pResult);
+    case 0x42:   // AfxSigCmdUI: void (CCmdUI*)
+    case 0x43: { // AfxSigCmdUI_RANGE: void (CCmdUI*, UINT nID)
+        if (!pExtra) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+        S_OleCmdUI* pCmdUI = static_cast<S_OleCmdUI*>(pExtra);
+        if (pEntry->nSig == 0x42)
+            reinterpret_cast<void (MS_ABI*)(void*, void*)>(pfn)(pThis, pCmdUI);
+        else
+            reinterpret_cast<void (MS_ABI*)(void*, void*, unsigned int)>(pfn)(pThis, pCmdUI, nID);
+        // `cmp %ebp,0x2c(%rdi) ; movl $0,0x2c(%rdi) ; sete %bpl`
+        const int bResult = (pCmdUI->m_bContinueRouting == 0) ? TRUE : FALSE;
+        pCmdUI->m_bContinueRouting = FALSE;
+        return bResult;
+    }
+    case 0x44:   // AfxSigCmd_v_pv: void (void*) -- no NULL check in retail -> TRUE
+        reinterpret_cast<void (MS_ABI*)(void*, void*)>(pfn)(pThis, pExtra);
+        return TRUE;
+    case 0x45:   // AfxSigCmd_b_pv: BOOL (void*) -- no NULL check in retail
+        return reinterpret_cast<int (MS_ABI*)(void*, void*)>(pfn)(pThis, pExtra);
+    default:     // any other signature is not a command handler
+        return FALSE;
+    }
 }
 
 // CCmdTarget::CallMemberFunc -- STUB.  Retail (mfc140u 0x2501b0) pushes an
 // AFX_MAINTAIN_STATE2 (ctor at 0x180133170) built from this->m_pModuleState
 // (+0x38), sizes a raw argument block with GetStackSize (0x24fd70), marshals
 // the DISPPARAMS into it with PushStackArgs (0x24fdf0) and then calls the
-// AFX_DISPMAP_ENTRY's member-function pointer through hand-written thunk code.  None of that machinery exists in OpenMFC
-// (no m_pModuleState -- see the layout note above -- and no PushStackArgs
-// implementation), so this is left as a no-op returning S_OK-shaped 0.
+// AFX_DISPMAP_ENTRY's member-function pointer through hand-written thunk code.
+// GetStackSize and PushStackArgs are transcribed in this file, but the rest of
+// that machinery does not exist in OpenMFC (no m_pModuleState -- see the
+// layout note above -- and no call thunk that replays a marshalled argument
+// block), so this is left as a no-op returning S_OK-shaped 0.
 // Symbol: ?CallMemberFunc@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@GPEAUtagVARIANT@@PEAUtagDISPPARAMS@@PEAI@Z
 extern "C" long MS_ABI impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntry, unsigned short wFlags, void* pvarResult, void* pDispParams, unsigned int* puArgErr) {
     (void)pThis; (void)pEntry; (void)wFlags; (void)pvarResult; (void)pDispParams; (void)puArgErr;
@@ -499,10 +796,16 @@ extern "C" int MS_ABI impl__DoOleVerb_CCmdTarget__QEAAHJPEAUtagMSG__PEAUHWND____
 // 0x180331188 holds ?QueryInterface@CInnerUnknown@@, ?AddRef@CInnerUnknown@@,
 // ?Release@CInnerUnknown@@, so this parks CInnerUnknown's IUnknown vtable in
 // m_xInnerUnknown (+0x18).
-// That offset IS addressable here, but OpenMFC implements no such nested
-// IUnknown, and GetInterface treats a non-zero word at an interface-map offset
-// as "this sub-object is live".  Storing a pointer to something that cannot be
-// called would be worse than doing nothing, so nothing is stored.
+// That offset IS addressable here, but there is no table to store.  Retail's
+// CInnerUnknown methods work on the owning object: AddRef (0x26d060) is
+// `lock xadd` on this-0x10 (the owner's m_dwRef) and QueryInterface
+// (0x26d0b0) answers IID_IUnknown itself and otherwise calls
+// InternalQueryInterface on this-0x18.  The CInnerUnknown thunks OpenMFC does
+// define (core/ole/CInnerUnknown.cpp) do neither -- they keep a side-table
+// refcount keyed by their `this` and answer QI for IUnknown/IClassFactory
+// themselves -- so a vtable built from them would give an aggregating outer
+// object an inner unknown that never reaches this CCmdTarget.  Nothing is
+// stored.
 // Symbol: ?EnableAggregation@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
 
@@ -523,19 +826,32 @@ extern "C" void MS_ABI impl__EnableAutomation_CCmdTarget__QEAAXXZ(CCmdTarget* pT
 // Symbol: ?EnableConnections@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__EnableConnections_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
 
-// CCmdTarget::EnableTypeLib -- STUB.  Retail (mfc140u 0x26bf60):
-//     ?AfxLockGlobals@@YAXH@Z(13)                     ; call 0x180033540
-//     pCache = this->vtable[+0x50]()                  ; virtual GetTypeLibCache
-//     if (pCache) { if (pCache->[0x30] == 0) pCache->[0x08] = -1;
-//                   lock incl pCache->[0x30]; }       ; a refcount
-//     LeaveCriticalSection(&<globals lock>)           ; AfxUnlockGlobals, inlined
-// The +0x50 virtual really is GetTypeLibCache: GetTypeInfoOfGuid calls the same
-// slot and feeds the result straight to CTypeLibCache::Lookup (0x26c360).
-// OpenMFC's GetTypeLibCache (defined earlier in this file) hands back an opaque
-// TypeLibCacheHandle out of a side map, not a retail-layout CTypeLibCache, so
-// the +0x08/+0x30 fields this needs do not exist.
+// CCmdTarget::EnableTypeLib() -- retail mfc140u 0x26bf60, transcribed:
+//     AfxLockGlobals(CRIT_TYPELIBCACHE /*13*/);        ; call 0x180033540
+//     CTypeLibCache* pCache = GetTypeLibCache();        ; vslot 10 (+0x50)
+//     if (pCache != NULL) pCache->Lock();               ; CTypeLibCache::Lock
+//     AfxUnlockGlobals(CRIT_TYPELIBCACHE);              ; inlined
+// Lock is inlined there: its body is byte-for-byte the exported
+// ?Lock@CTypeLibCache@@ at mfc140u 0x26c340 (`if (m_cRef == 0) m_lcid = -1;
+// lock incl m_cRef` -- m_lcid +0x08, m_cRef +0x30 per afxstat_.h:96), and the unlock is AfxUnlockGlobals(13) inlined -- a
+// jmp to the LeaveCriticalSection import (0x1802c65a0) on the lock-table
+// element 0x1803c3cf8 = 0x1803c3af0 + 13 * 0x28, the table
+// ?AfxUnlockGlobals@@YAXH@Z (0x335e0) indexes.  The exported thunks for
+// those three are called here.  Note that OpenMFC's CTypeLibCache::Lock
+// (core/ole/CTypeLibCache.cpp) keeps its state in a side table keyed by the
+// cache pointer rather than in a retail-layout m_cRef.
+// `this` must carry an MSVC-layout vtable (see kVs_* above); the caller in
+// this tree is COleControl::InitializeIIDs, run on the client's control.
 // Symbol: ?EnableTypeLib@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__EnableTypeLib_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
+extern "C" void MS_ABI impl__EnableTypeLib_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    impl__AfxLockGlobals__YAXH_Z(13);
+    using GetCacheFn = void* (MS_ABI*)(void*);
+    void* pCache = VSlot<GetCacheFn>(pThis, kVs_GetTypeLibCache)(pThis);
+    if (pCache != nullptr)
+        impl__Lock_CTypeLibCache__QEAAXXZ(pCache);
+    impl__AfxUnlockGlobals__YAXH_Z(13);
+}
 
 // CCmdTarget::EnumOleVerbs -- STUB.  Retail (mfc140u 0x270f70) collects the
 // same ON_OLEVERB message-map records DoOleVerb matches (nMessage == 0xC002,
@@ -1041,8 +1357,11 @@ extern "C" const void* MS_ABI impl__GetThisEventSinkMap_CCmdTarget__KAPEBUAFX_EV
     return &g_eventSinkMap_CCmdTarget;
 }
 
-// CCmdTarget::GetTypeInfoCount() -- retail mfc140u resolves this to the shared
-// `xor %eax,%eax ; ret` at 0x71e0: the base class exposes no type information.
+// CCmdTarget::GetTypeInfoCount() -- retail mfc140u resolves this export (by
+// ordinal) to the shared `xor %eax,%eax ; ret` at 0x71e0: the base class
+// exposes no type information.  That is the whole retail body, so the body
+// below is complete, not a placeholder; IMPLEMENT_OLETYPELIB (afxdisp.h:835)
+// is what overrides it with `return 1;`.
 // Symbol: ?GetTypeInfoCount@CCmdTarget@@UEAAIXZ
 extern "C" unsigned int MS_ABI impl__GetTypeInfoCount_CCmdTarget__UEAAIXZ(CCmdTarget* pThis) {
     (void)pThis;
@@ -1063,10 +1382,12 @@ extern "C" unsigned int MS_ABI impl__GetTypeInfoCount_CCmdTarget__UEAAIXZ(CCmdTa
 //                     pTypeLib->Release();
 //                     pCache->CacheTypeInfo(lcid, guid, *ppTypeInfo); }  ; 0x26c470
 //     LeaveCriticalSection(...); return hr;
-// OpenMFC's GetTypeLibCache returns an opaque TypeLibCacheHandle with none of
-// those fields and there is no CTypeLibCache, so the whole path is
-// unavailable.  Retail's own failure value, TYPE_E_CANTLOADLIBRARY, is
-// returned rather than a fake success.
+// Not transcribed: OpenMFC's CTypeLibCache (core/ole/CTypeLibCache.cpp) is a
+// side table keyed by the cache pointer rather than the retail record, and the
+// module-state LoadTypeLib fallback is not modelled.  Retail's own failure
+// value, TYPE_E_CANTLOADLIBRARY, is returned rather than a fake success.
+// (Retail passes the vslot-10 result to CTypeLibCache::LookupTypeInfo at
+// 0x26c400 without a NULL check, and for the base class that result is NULL.)
 // Symbol: ?GetTypeInfoOfGuid@CCmdTarget@@QEAAJKAEBU_GUID@@PEAPEAUITypeInfo@@@Z
 extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAPEAUITypeInfo___Z(CCmdTarget* pThis, unsigned long lcid, const void* guid, void** ppTypeInfo) {
     (void)pThis; (void)lcid; (void)guid;
@@ -1089,13 +1410,13 @@ extern "C" long MS_ABI impl__GetTypeLib_CCmdTarget__UEAAJKPEAPEAUITypeLib___Z(CC
 //     if (*ppvObj) { ExternalAddRef(); return S_OK; }
 //     *ppvObj = QueryAggregates(iid);               ; call 0x26cf50
 //     return *ppvObj ? S_OK : E_NOINTERFACE;        ; neg/sbb/not/and 0x80004002
-// DEVIATION: the QueryAggregates leg is not taken.  QueryAggregates walks the
-// aggregate half of the interface map -- the records that follow the
-// piid == NULL terminator, up to nOffset == (size_t)-1 -- and OpenMFC's maps
-// have no such records: g_ifaceEnd is the single { nullptr, (size_t)-1 } entry
-// that terminates both halves at once, so QueryAggregates would return NULL.
-// (The exported impl__QueryAggregates_... thunk further down this file is also
-// still a generated stub whose signature carries no `this`.)
+// DEVIATION: the QueryAggregates leg is not taken.  QueryAggregates (further
+// down this file) walks the aggregate half of the object's own interface map,
+// reached through retail vtable slot 16, whereas GetInterface above still reads
+// CCmdTarget's own map.  The aggregate leg is left out until GetInterface is
+// moved onto the same slot, so that both halves of this lookup see the same
+// map.  For every map OpenMFC itself exports (g_ifaceEnd, the single
+// { nullptr, (size_t)-1 } terminator) the leg would return NULL anyway.
 // Symbol: ?InternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
 extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(CCmdTarget* pThis, const void* iid, void** ppvObj) {
     if (!ppvObj) return 0x80004003UL;                  // E_POINTER
@@ -1117,8 +1438,13 @@ extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPE
 //     return nRef;
 // DEVIATION: neither the module-state push nor the OnFinalRelease call is made.
 // m_pModuleState lives at +0x38, past the end of OpenMFC's 32-byte CCmdTarget
-// (see the layout note above), and the virtual cannot be reached by slot
-// because OpenMFC's C++ vtable is unrelated to retail's.  Only the reference
+// (see the layout note above), and the virtual is not dispatched by retail
+// slot 6 because, unlike the slot-dispatching bodies in this file, this one
+// is reached from other thunks in the tree (core/ole/COleLinkingDoc.cpp, and
+// via ExternalRelease from core/view/CBrowserControlSite.cpp and
+// core/ole/COlePropertyPage.cpp) with objects an OpenMFC ctor export may have
+// built, i.e. with g++'s vtable, where slot 6 is not OnFinalRelease; and
+// m_dwRef starts at 0 here (see the note above).  Only the reference
 // count is maintained, so an object that would have deleted itself on the last
 // Release simply stays alive.
 // Symbol: ?InternalRelease@CCmdTarget@@QEAAKXZ
@@ -1202,33 +1528,467 @@ extern "C" long MS_ABI impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PE
     return -1;  // DISPID_UNKNOWN
 }
 
+// CCmdTarget::OnCreateAggregates() -- retail mfc140u resolves this export (by
+// ordinal) to 0x3a60, the image-wide `mov $0x1,%eax ; ret` shared by every
+// ICF-folded "return TRUE" method: the base class creates no aggregates and
+// reports success.
 // Symbol: ?OnCreateAggregates@CCmdTarget@@UEAAHXZ
-extern "C" int MS_ABI impl__OnCreateAggregates_CCmdTarget__UEAAHXZ() {
-    return 0;
+extern "C" int MS_ABI impl__OnCreateAggregates_CCmdTarget__UEAAHXZ(CCmdTarget* pThis) {
+    (void)pThis;
+    return TRUE;
 }
 
+// CCmdTarget::OnEvent(UINT idCtrl, AFX_EVENT* pEvent,
+//                     AFX_CMDHANDLERINFO* pHandlerInfo)
+// -- retail mfc140u 0x236e70 (reached by export ordinal), transcribed:
+//   pEntry = GetEventSinkEntry(idCtrl, pEvent);          ; call 0x2371c0
+//   if (pEntry == NULL) return FALSE;
+//   if (pHandlerInfo != NULL) {                          ; query only
+//       pHandlerInfo->pTarget = this;
+//       switch (pEvent->m_eventKind) {
+//       case event: case propRequest: pHandlerInfo->pmf = pEntry->dispEntry.pfn;    break; ; +0x20
+//       case propChanged:             pHandlerInfo->pmf = pEntry->dispEntry.pfnSet; break; ; +0x28
+//       }                                                ; other kinds leave pmf alone
+//       return pHandlerInfo->pmf != NULL;
+//   }
+//   bRange = (pEntry->nCtrlIDLast != (UINT)-1);         ; +0x44
+//   hResult = S_OK; bHandled = FALSE; uArgError = (UINT)-1;
+//   switch (pEvent->m_eventKind) {
+//   case event:        VARIANT var = {0};  (AfxVariantInit, memset 0x18)
+//                      with bRange, copy *m_pDispParams, grow rgvarg by one
+//                      VARIANT (??2, then memcpy of the old ones) and put
+//                      VT_I4 idCtrl in the new last slot;
+//                      hResult = CallMemberFunc(&pEntry->dispEntry, DISPATCH_METHOD,
+//                                               &var, dispparams, &uArgError);  ; 0x2501b0
+//                      bHandled = (short)V_BOOL(&var);   ; movswl
+//                      with bRange, free the grown rgvarg
+//   case propRequest:  bAllow = TRUE; bHandled = pfn([idCtrl,] &bAllow);
+//                      hResult = bAllow ? S_OK : S_FALSE;
+//   case propChanged:  bHandled = pfnSet([idCtrl]);
+//   case propDSCNotify:bAllow = TRUE;
+//                      bHandled = pfn([idCtrl,] m_nDSCState, m_nDSCReason, &bAllow); ; +0x28/+0x2c
+//                      hResult = bAllow ? S_OK : S_FALSE;
+//   }                                                    ; any other kind: FALSE, S_OK
+//   if (FAILED(hResult) && pEvent->m_puArgError && uArgError != (UINT)-1)
+//       *pEvent->m_puArgError = uArgError;               ; `test %r14d ; jns` skips it
+//   pEvent->m_hResult = hResult;                         ; +0x24
+//   return bHandled;
+// where "[idCtrl,]" is passed only when bRange.  A NULL pEvent never gets
+// here: GetEventSinkEntry throws AfxThrowInvalidArgException for it.
+// DEVIATIONS:
+//   * retail wraps the dispatch switch in TRY/CATCH_ALL (its continuation is
+//     at 0x18023712a); no catch is reproduced here, so an exception thrown by
+//     a handler propagates to the caller.
+//   * a NULL `this` returns FALSE, and a NULL result from ??2 throws
+//     AfxThrowInvalidArgException (retail's ??2 never returns NULL; OpenMFC's
+//     malloc-based one can).
+//   * when the ranged copy finds pDispParams->rgvarg NULL, retail zeroes the
+//     new buffer and throws without freeing it (memcpy_s EINVAL path at
+//     0x180237110); this frees it first.  Retail frees the grown array with
+//     the CRT `free` import; this uses OpenMFC's ??3.
+// Both callees are in this file: GetEventSinkEntry still consults CCmdTarget's
+// own (empty) event-sink map rather than the virtual one, so today this always
+// takes the first `return FALSE`; and CallMemberFunc is still a stub, so the
+// `event` kind does not yet reach its handler even once an entry is found.
 // Symbol: ?OnEvent@CCmdTarget@@QEAAHIPEAUAFX_EVENT@@PEAUAFX_CMDHANDLERINFO@@@Z
-extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(unsigned int p0, void* /*struct*/* p1, void* /*struct*/* p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(CCmdTarget* pThis, unsigned int idCtrl, void* pEventV, void* pHandlerInfoV) {
+    if (!pThis) return FALSE;
+    const AFX_EVENTSINKMAP_ENTRY* pEntry = static_cast<const AFX_EVENTSINKMAP_ENTRY*>(
+        impl__GetEventSinkEntry_CCmdTarget__IEAAPEBUAFX_EVENTSINKMAP_ENTRY__IPEAUAFX_EVENT___Z(pThis, idCtrl, pEventV));
+    if (pEntry == nullptr) return FALSE;
+    AFX_EVENT* pEvent = static_cast<AFX_EVENT*>(pEventV);
+
+    if (pHandlerInfoV != nullptr) {
+        S_CmdHandlerInfo* pInfo = static_cast<S_CmdHandlerInfo*>(pHandlerInfoV);
+        pInfo->pTarget = pThis;
+        switch (pEvent->m_eventKind) {
+        case 0:     // AFX_EVENT::event
+        case 1:     // AFX_EVENT::propRequest
+            pInfo->pmf = pEntry->dispEntry.pfn;
+            break;
+        case 2:     // AFX_EVENT::propChanged
+            pInfo->pmf = pEntry->dispEntry.pfnSet;
+            break;
+        default:
+            break;
+        }
+        return pInfo->pmf != nullptr ? TRUE : FALSE;
+    }
+
+    const bool bRange = (pEntry->nCtrlIDLast != 0xffffffffu);
+    long hResult = 0;                         // S_OK
+    int bHandled = FALSE;
+    unsigned int uArgError = 0xffffffffu;
+    int bAllow = TRUE;
+    void* const pfn = pEntry->dispEntry.pfn;
+
+    switch (pEvent->m_eventKind) {
+    case 0: {   // AFX_EVENT::event
+        VARIANT var;
+        std::memset(&var, 0, sizeof(var));    // AfxVariantInit
+        DISPPARAMS dispparams;
+        std::memset(&dispparams, 0, sizeof(dispparams));
+        DISPPARAMS* pDP = static_cast<DISPPARAMS*>(pEvent->m_pDispParams);
+        if (bRange) {
+            if (pDP == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+            std::memcpy(&dispparams, pDP, sizeof(DISPPARAMS));
+            const unsigned int cArgs = ++dispparams.cArgs;
+            VARIANT* rgvarg = static_cast<VARIANT*>(
+                impl___2_YAPEAX_K_Z(static_cast<std::size_t>(cArgs) * sizeof(VARIANT)));
+            dispparams.rgvarg = rgvarg;
+            if (rgvarg == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
+            const std::size_t cbOld = static_cast<std::size_t>(cArgs - 1) * sizeof(VARIANT);
+            if (cbOld != 0) {
+                if (pDP->rgvarg == nullptr) {  // Checked::memcpy_s: EINVAL -> throw
+                    impl___3_YAXPEAX_Z(rgvarg);
+                    impl__AfxThrowInvalidArgException__YAXXZ();
+                    return FALSE;
+                }
+                std::memcpy(rgvarg, pDP->rgvarg, cbOld);
+            }
+            VARIANT* pvarID = &rgvarg[cArgs - 1];
+            pvarID->vt = VT_I4;
+            pvarID->lVal = static_cast<LONG>(idCtrl);
+            pDP = &dispparams;
+        }
+        hResult = impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(
+            pThis, &pEntry->dispEntry, DISPATCH_METHOD, &var, pDP, &uArgError);
+        bHandled = static_cast<short>(var.boolVal);
+        if (bRange) impl___3_YAXPEAX_Z(dispparams.rgvarg);
+        break;
+    }
+    case 1:     // AFX_EVENT::propRequest
+        if (bRange)
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*, unsigned int, int*)>(pfn)(pThis, idCtrl, &bAllow);
+        else
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*, int*)>(pfn)(pThis, &bAllow);
+        hResult = bAllow ? 0 : 1;             // S_OK : S_FALSE
+        break;
+    case 2: {   // AFX_EVENT::propChanged
+        void* const pfnSet = pEntry->dispEntry.pfnSet;
+        if (bRange)
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*, unsigned int)>(pfnSet)(pThis, idCtrl);
+        else
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*)>(pfnSet)(pThis);
+        break;
+    }
+    case 3:     // AFX_EVENT::propDSCNotify
+        if (bRange)
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*, unsigned int, int, int, int*)>(pfn)(
+                pThis, idCtrl, pEvent->m_nDSCState, pEvent->m_nDSCReason, &bAllow);
+        else
+            bHandled = reinterpret_cast<int (MS_ABI*)(void*, int, int, int*)>(pfn)(
+                pThis, pEvent->m_nDSCState, pEvent->m_nDSCReason, &bAllow);
+        hResult = bAllow ? 0 : 1;             // S_OK : S_FALSE
+        break;
+    default:
+        break;
+    }
+
+    if (hResult < 0 && pEvent->m_puArgError != nullptr && uArgError != 0xffffffffu)
+        *pEvent->m_puArgError = uArgError;
+    pEvent->m_hResult = hResult;
+    return bHandled;
 }
 
+// CCmdTarget::OnFinalRelease() -- retail mfc140u 0x1de880 (reached by export
+// ordinal), transcribed:
+//     AfxLockGlobals(CRIT_TYPELIBCACHE /*13*/);          ; call 0x180033540
+//     CTypeLibCache* pCache = GetTypeLibCache();          ; vslot 10 (+0x50)
+//     if (pCache != NULL) pCache->Unlock();               ; call 0x180133a50
+//     AfxUnlockGlobals(CRIT_TYPELIBCACHE);                ; inlined LeaveCriticalSection
+//     delete this;                                        ; tail jmp vslot 1 (+0x08), edx = 1
+// 0x133a50 is ?Unlock@CTypeLibCache@@QEAAXXZ (by ordinal); the unlock is the
+// same inlined AfxUnlockGlobals(13) EnableTypeLib uses (lock-table element
+// 0x1803c3cf8).  `delete this` goes through the scalar deleting destructor in
+// MSVC vtable slot 1 with flag 1, as retail's tail call does, so `this` must
+// carry an MSVC-layout vtable (see kVs_* above).
 // Symbol: ?OnFinalRelease@CCmdTarget@@UEAAXXZ
-extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    impl__AfxLockGlobals__YAXH_Z(13);
+    using GetCacheFn = void* (MS_ABI*)(void*);
+    void* pCache = VSlot<GetCacheFn>(pThis, kVs_GetTypeLibCache)(pThis);
+    if (pCache != nullptr)
+        impl__Unlock_CTypeLibCache__QEAAXXZ(pCache);
+    impl__AfxUnlockGlobals__YAXH_Z(13);
+    using DeletingDtorFn = void* (MS_ABI*)(void*, unsigned int);
+    VSlot<DeletingDtorFn>(pThis, kVs_ScalarDeletingDtor)(pThis, 1);
+}
 
+// CCmdTarget::PushStackArgs(BYTE* pStack, const BYTE* pbParams, void* pResult,
+//     VARTYPE vtResult, DISPPARAMS* pDispParams, UINT* puArgErr,
+//     VARIANT* rgTempVars, CVariantBoolConverter* pTempStackArgs)
+// -- retail mfc140u 0x24fdf0 (reached by export ordinal), transcribed:
+//   *(void**)pStack = this; pStack += 8;
+//   if (vtResult == VT_CY || vtResult == VT_VARIANT) { *(void**)pStack = pResult; pStack += 8; }
+//   iArg = cArgs; iArgMin = cNamedArgs; bNamedArgStart = FALSE;   ; signed compares (jl / jle)
+//   for (pb = pbParams; *pb; ++pb) {
+//       --iArg;
+//       vt = *pb;  if (vt != VT_MFCMARKER(0xff) && (vt & VT_MFCBYREF(0x40)))
+//                      vt = (vt & ~0x40) | VT_BYREF;
+//       if (iArg >= iArgMin) {
+//           if (vt == VT_MFCMARKER) break;
+//           pArg = &rgvarg[iArg];
+//           if (vt != VT_VARIANT && vt != pArg->vt) {
+//               hr = VariantChangeType(&rgTempVars[iArg], pArg, 0, vt);   ; OLEAUT32 #12
+//               if (FAILED(hr)) { *puArgErr = iArg; return hr; }
+//               pArg = &rgTempVars[iArg];
+//           }
+//       } else {
+//           if (vt == VT_MFCMARKER) { iArg = cNamedArgs; iArgMin = 0; bNamedArgStart = TRUE; continue; }
+//           if (bNamedArgStart || vt != VT_VARIANT) break;
+//           static VARIANT vaDefault = { VT_ERROR, .scode = DISP_E_PARAMNOTFOUND };  ; 0x1803c4198
+//           pArg = &vaDefault;
+//       }
+//       push pArg's value in one 8-byte slot (see the switch below);
+//       pStack = (pStack + 7) & ~7;
+//   }
+//   if (iArg > 0)  { *puArgErr = iArg;  return DISP_E_BADPARAMCOUNT; }
+//   if (*pb != 0)  { *puArgErr = cArgs; return DISP_E_PARAMNOTOPTIONAL; }
+//   return S_OK;
+// DEVIATION, VT_BOOL|VT_BYREF with a non-NULL pTempStackArgs only: retail
+// allocates a BOOL (??2, 4 bytes) holding *pboolVal != 0, appends the
+// {BOOL*, VARIANT_BOOL*} pair to the CVariantBoolConverter (a 0x18-byte-element
+// array grown through an unexported SetSize at mfc140u 0x2518a4) so the value
+// can be written back after the call, and pushes the BOOL*.  OpenMFC has no
+// CVariantBoolConverter (the class is opaque in the shipping headers, and the
+// only retail producer is CallMemberFunc, still a stub in this file), so that
+// argument is pushed exactly as retail pushes it when pTempStackArgs is NULL:
+// the VARIANT_BOOL* itself.
 // Symbol: ?PushStackArgs@CCmdTarget@@IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS@@PEAIPEAUtagVARIANT@@PEAVCVariantBoolConverter@@@Z
-extern "C" long MS_ABI impl__PushStackArgs_CCmdTarget__IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS__PEAIPEAUtagVARIANT__PEAVCVariantBoolConverter___Z(unsigned char* p0, const unsigned char* p1, void* p2, unsigned short p3, void* /*struct*/* p4, unsigned int* p5, void* /*struct*/* p6, void* /*class*/* p7) {
-    return 0;
+extern "C" long MS_ABI impl__PushStackArgs_CCmdTarget__IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS__PEAIPEAUtagVARIANT__PEAVCVariantBoolConverter___Z(CCmdTarget* pThis, unsigned char* pStack, const unsigned char* pbParams, void* pResult, unsigned short vtResult, DISPPARAMS* pDispParams, unsigned int* puArgErr, VARIANT* rgTempVars, void* pTempStackArgs) {
+    (void)pTempStackArgs;   // see DEVIATION above
+    *reinterpret_cast<void**>(pStack) = pThis;
+    pStack += 8;
+    if (vtResult == VT_CY || vtResult == VT_VARIANT) {
+        *reinterpret_cast<void**>(pStack) = pResult;
+        pStack += 8;
+    }
+
+    VARIANT* const pArgs = pDispParams->rgvarg;
+    int bNamedArgStart = FALSE;
+    int iArg = static_cast<int>(pDispParams->cArgs);
+    int iArgMin = static_cast<int>(pDispParams->cNamedArgs);
+    const unsigned char* pb = pbParams;
+    for (; *pb != 0; ++pb) {
+        --iArg;
+        unsigned short vt = *pb;
+        if (vt != 0xff && (vt & 0x40) != 0)
+            vt = static_cast<unsigned short>((vt & ~0x40) | VT_BYREF);
+
+        VARIANT* pArg;
+        if (iArg >= iArgMin) {
+            if (vt == 0xff) break;                      // VT_MFCMARKER
+            pArg = &pArgs[iArg];
+            if (vt != VT_VARIANT && vt != pArg->vt) {
+                VARIANT* pArgTemp = &rgTempVars[iArg];
+                const HRESULT hr = ::VariantChangeType(pArgTemp, pArg, 0, vt);
+                if (FAILED(hr)) {
+                    *puArgErr = static_cast<unsigned int>(iArg);
+                    return hr;
+                }
+                pArg = pArgTemp;
+            }
+        } else {
+            if (vt == 0xff) {                           // start of named args
+                iArg = static_cast<int>(pDispParams->cNamedArgs);
+                iArgMin = 0;
+                bNamedArgStart = TRUE;
+                continue;
+            }
+            if (bNamedArgStart || vt != VT_VARIANT) break;
+            static VARIANT s_vaDefault;
+            s_vaDefault.vt = VT_ERROR;
+            s_vaDefault.scode = DISP_E_PARAMNOTFOUND;
+            pArg = &s_vaDefault;
+        }
+
+        // The value lives at +0x08 in every VARIANT arm.
+        const unsigned char* pVal = reinterpret_cast<const unsigned char*>(pArg) + 8;
+        if (vt & VT_BYREF) {                            // `bt $0xe,%si`
+            *reinterpret_cast<void**>(pStack) = pArg->byref;
+            pStack += 8;
+        } else {
+            switch (vt) {
+            case VT_I2:     *reinterpret_cast<LONG64*>(pStack) = pArg->iVal;  pStack += 8; break;  // movswq
+            case VT_I4:
+            case VT_ERROR:  *reinterpret_cast<LONG64*>(pStack) = pArg->lVal;  pStack += 8; break;  // movslq
+            case VT_R4:     *reinterpret_cast<float*>(pStack) = pArg->fltVal; pStack += 4; break;  // 4-byte store
+            case VT_BOOL:   *reinterpret_cast<LONG64*>(pStack) = (pArg->boolVal != 0) ? 1 : 0; pStack += 8; break;
+            case VT_I1:     *reinterpret_cast<LONG64*>(pStack) = static_cast<signed char>(pArg->cVal); pStack += 8; break;  // movsbq
+            case VT_UI1:    *reinterpret_cast<ULONG64*>(pStack) = pArg->bVal;  pStack += 8; break;  // movzbl
+            case VT_UI2:    *reinterpret_cast<ULONG64*>(pStack) = pArg->uiVal; pStack += 8; break;  // movzwl
+            case VT_UI4:    *reinterpret_cast<ULONG64*>(pStack) = pArg->ulVal; pStack += 8; break;  // 32-bit mov
+            case VT_R8: case VT_CY: case VT_DATE: case VT_BSTR:
+            case VT_DISPATCH: case VT_UNKNOWN: case VT_I8: case VT_UI8:
+                std::memcpy(pStack, pVal, 8); pStack += 8; break;                                  // qword copy
+            case VT_VARIANT:                            // the VARIANT itself, by address
+                *reinterpret_cast<VARIANT**>(pStack) = pArg; pStack += 8; break;
+            default:                                    // nothing pushed
+                break;
+            }
+        }
+        pStack = reinterpret_cast<unsigned char*>(
+            (reinterpret_cast<UINT_PTR>(pStack) + 7) & ~static_cast<UINT_PTR>(7));
+    }
+
+    if (iArg > 0) {
+        *puArgErr = static_cast<unsigned int>(iArg);
+        return DISP_E_BADPARAMCOUNT;
+    }
+    if (*pb != 0) {
+        *puArgErr = pDispParams->cArgs;
+        return DISP_E_PARAMNOTOPTIONAL;
+    }
+    return S_OK;
 }
 
+// CCmdTarget::QueryAggregates(const void* iid) -- retail mfc140u 0x26cf50
+// (reached by export ordinal), transcribed:
+//   for (pMap = GetInterfaceMap() /*vslot 16, +0x80*/; ; pMap = pMap->pfnGetBaseMap()) {
+//       e = pMap->pEntry;
+//       while (e->piid != NULL) ++e;                     ; skip the interface half
+//       for (; e->nOffset != (size_t)-1; ++e) {          ; the aggregate half
+//           LPUNKNOWN pUnk = *(LPUNKNOWN*)((BYTE*)this + e->nOffset);
+//           if (pUnk != NULL) {
+//               void* pv = NULL;
+//               if (pUnk->QueryInterface(iid, &pv) == S_OK && pv != NULL)
+//                   return (LPUNKNOWN)pv;
+//           }
+//       }
+//       if (pMap->pfnGetBaseMap == NULL) return NULL;
+//   }
+// `this` must carry an MSVC-layout vtable (see kVs_* above).  Every interface
+// map OpenMFC itself exports is the lone { NULL, (size_t)-1 } terminator, so
+// only a client's own INTERFACE_AGGREGATE entries can be found here.
+// InternalQueryInterface (below) does not yet call this; see its comment.
 // Symbol: ?QueryAggregates@CCmdTarget@@QEAAPEAUIUnknown@@PEBX@Z
-extern "C" void* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(const void* p0) {
-    return nullptr;
+extern "C" IUnknown* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(CCmdTarget* pThis, const void* iid) {
+    if (!pThis || !iid) return nullptr;
+    using GetIfMapFn = const AFX_INTERFACEMAP* (MS_ABI*)(const void*);
+    const AFX_INTERFACEMAP* pMap = VSlot<GetIfMapFn>(pThis, kVs_GetInterfaceMap)(pThis);
+    for (;;) {
+        const AFX_INTERFACEMAP_ENTRY* e = pMap->pEntries;
+        while (e->piid != nullptr) ++e;
+        for (; e->nOffset != static_cast<size_t>(-1); ++e) {
+            IUnknown* pUnk = *reinterpret_cast<IUnknown* const*>(
+                reinterpret_cast<const unsigned char*>(pThis) + e->nOffset);
+            if (pUnk != nullptr) {
+                void* pv = nullptr;
+                if (pUnk->QueryInterface(*static_cast<const IID*>(iid), &pv) == S_OK && pv != nullptr)
+                    return static_cast<IUnknown*>(pv);
+            }
+        }
+        if (pMap->pfnGetBaseMap == nullptr) return nullptr;
+        pMap = pMap->pfnGetBaseMap();
+    }
 }
 
+// CCmdTarget::SetNotSupported() -- retail mfc140u 0x24fcd0 (reached by export
+// ordinal):
+//     mov $0xf18d,%edx ; or $-1,%r8d ; mov %edx,%ecx
+//     call ?AfxThrowOleDispatchException@@YAXGII@Z        ; 0x180251660
+// 0xF18D is AFX_IDP_SET_NOT_SUPPORTED (afxres.h:491), passed as both the
+// exception code and the description resource id, with nHelpID = -1 -- the
+// set-side twin of GetNotSupported above.
 // Symbol: ?SetNotSupported@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__SetNotSupported_CCmdTarget__QEAAXXZ() {}
+extern "C" void MS_ABI impl__SetNotSupported_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    (void)pThis;
+    impl__AfxThrowOleDispatchException__YAXGII_Z(0xf18d, 0xf18d, (UINT)-1);
+}
 
+// CCmdTarget::SetStandardProp(const AFX_DISPMAP_ENTRY* pEntry,
+//     DISPPARAMS* pDispParams, UINT* puArgErr)
+// -- retail mfc140u 0x24f900 (reached by export ordinal), transcribed:
+//   HRESULT hr = S_OK;  VARIANT va = {0};                ; memset 0x18
+//   VARIANT* pArg = &pDispParams->rgvarg[0];
+//   if (pEntry->vt != VT_VARIANT && pArg->vt != pEntry->vt) {   ; vt at +0x18
+//       hr = VariantChangeType(&va, pArg, 0, pEntry->vt);       ; OLEAUT32 #12
+//       if (FAILED(hr)) { *puArgErr = 0; return hr; }
+//       pArg = &va;
+//   }
+//   void* pProp = (BYTE*)this + pEntry->nPropOffset;             ; +0x30
+//   switch (pEntry->vt) {
+//   VT_I1, VT_UI1:                       1-byte copy
+//   VT_I2, VT_UI2:                       2-byte copy
+//   VT_I4, VT_R4, VT_ERROR, VT_UI4:      4-byte copy
+//   VT_R8, VT_CY, VT_DATE, VT_I8, VT_UI8:8-byte copy
+//   VT_BOOL:     *(BOOL*)pProp = (V_BOOL(pArg) != 0);
+//   VT_BSTR:     AfxBSTR2CString((CString*)pProp, V_BSTR(pArg));    ; 0x24b2b0
+//   VT_DISPATCH, VT_UNKNOWN:
+//                if (pArg->punkVal) pArg->punkVal->AddRef();         ; slot 1
+//                release the old pointer and NULL it                  ; 0x26ccc4
+//                *(LPUNKNOWN*)pProp = pArg->punkVal;
+//   VT_VARIANT:  if (VariantCopy((VARIANT*)pProp, pArg) != 0) *puArgErr = 0;  ; #10, hr kept
+//   default:     hr = DISP_E_BADVARTYPE; *puArgErr = 0;
+//   }
+//   VariantClear(&va);                                           ; OLEAUT32 #9
+//   if (SUCCEEDED(hr) && pEntry->pfnSet != NULL) {               ; +0x28
+//       AFX_MAINTAIN_STATE2 _ctlState(m_pModuleState);           ; this+0x38, 0x133170
+//       (this->*pfnSet)();
+//   }
+//   return hr;
+// DEVIATION: the AFX_MAINTAIN_STATE2 push is not made.  m_pModuleState is at
+// this+0x38, past OpenMFC's 32-byte CCmdTarget; OpenMFC's exported CCmdTarget
+// constructor (core/runtime/CtorDtorPlacement.cpp) never writes that word, so
+// even in a client object it holds whatever the allocation left there, and
+// handing it to AFX_MAINTAIN_STATE2 would install a garbage module state.
+// pfnSet is called without the push.
 // Symbol: ?SetStandardProp@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@PEAUtagDISPPARAMS@@PEAI@Z
-extern "C" long MS_ABI impl__SetStandardProp_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__PEAUtagDISPPARAMS__PEAI_Z(const void* /*struct*/* p0, void* /*struct*/* p1, unsigned int* p2) {
-    return 0;
+extern "C" long MS_ABI impl__SetStandardProp_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntryV, DISPPARAMS* pDispParams, unsigned int* puArgErr) {
+    const AFX_DISPMAP_ENTRY* pEntry = static_cast<const AFX_DISPMAP_ENTRY*>(pEntryV);
+    HRESULT hr = S_OK;
+    VARIANT va;
+    std::memset(&va, 0, sizeof(va));          // AfxVariantInit
+    VARIANT* pArg = &pDispParams->rgvarg[0];
+    if (pEntry->vt != VT_VARIANT && pArg->vt != pEntry->vt) {
+        hr = ::VariantChangeType(&va, pArg, 0, pEntry->vt);
+        if (FAILED(hr)) {
+            *puArgErr = 0;
+            return hr;
+        }
+        pArg = &va;
+    }
+
+    unsigned char* pProp = reinterpret_cast<unsigned char*>(pThis) + pEntry->nPropOffset;
+    const unsigned char* pVal = reinterpret_cast<const unsigned char*>(pArg) + 8;
+    switch (pEntry->vt) {
+    case VT_I1: case VT_UI1:
+        std::memcpy(pProp, pVal, 1); break;
+    case VT_I2: case VT_UI2:
+        std::memcpy(pProp, pVal, 2); break;
+    case VT_I4: case VT_R4: case VT_ERROR: case VT_UI4:
+        std::memcpy(pProp, pVal, 4); break;
+    case VT_R8: case VT_CY: case VT_DATE: case VT_I8: case VT_UI8:
+        std::memcpy(pProp, pVal, 8); break;
+    case VT_BOOL:
+        *reinterpret_cast<BOOL*>(pProp) = (pArg->boolVal != 0) ? TRUE : FALSE; break;
+    case VT_BSTR:
+        impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
+            reinterpret_cast<CString*>(pProp), pArg->bstrVal);
+        break;
+    case VT_DISPATCH:
+    case VT_UNKNOWN: {
+        IUnknown* pNew = pArg->punkVal;
+        if (pNew != nullptr) pNew->AddRef();
+        IUnknown*& rOld = *reinterpret_cast<IUnknown**>(pProp);
+        if (rOld != nullptr) { rOld->Release(); rOld = nullptr; }
+        rOld = pNew;
+        break;
+    }
+    case VT_VARIANT:
+        if (::VariantCopy(reinterpret_cast<VARIANT*>(pProp), pArg) != 0)
+            *puArgErr = 0;
+        break;
+    default:
+        hr = DISP_E_BADVARTYPE;
+        *puArgErr = 0;
+        break;
+    }
+    ::VariantClear(&va);
+
+    if (SUCCEEDED(hr) && pEntry->pfnSet != nullptr)
+        reinterpret_cast<void (MS_ABI*)(void*)>(pEntry->pfnSet)(pThis);
+    return hr;
 }

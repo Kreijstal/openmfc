@@ -4,6 +4,15 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+// Read-only: the retail tasks-pane record layouts OnDrawTask /
+// OnDrawTasksGroupCaption below read (same set CMFCTasksPane.cpp includes).
+#include "detail/CMFCTasksPaneSupport.h"              // S_MfcFeature20Impl (retail CMFCTasksPane)
+#include "detail/CMFCTasksPaneTaskGroupSupport.h"     // S_Cmfctaskspanetaskgroup
+#include "detail/CMFCTasksPaneTaskSupport.h"          // S_Cmfctaskspanetask
+#include "detail/CMFCTasksPanePropertyPageSupport.h"  // S_Cmfctaskspanepropertypage
+#include <commctrl.h>   // ImageList_GetIconSize / ImageList_Draw (comctl32 is on the phase4 link line)
+#include <cstddef>
+#include <cstring>
 
 
 // Implementations this unit calls that are defined with their own class.
@@ -33,9 +42,12 @@ extern "C" unsigned long MS_ABI impl__OnDrawPropertySheetListItem_CMFCVisualMana
 //
 //  * CMFCVisualManagerOfficeXP's own colour/brush/pen members at +0x108..+0x1f0,
 //    computed by CMFCVisualManagerOfficeXP::OnUpdateSystemColors (RVA 0x1ac0e0).
-//    OpenMFC's class is `CMFCVisualManager` plus `char _pad[64]` and has no
-//    storage at those offsets, so nothing can be read back from the object.
-//    Instead XP_Colors() below recomputes the colour members the way
+//    OpenMFC's class is `CMFCVisualManager` plus `char _pad[64]` (0x148
+//    bytes): the colour members (+0x108..+0x13b) fit in that padding, and
+//    OnUpdateSystemColors below now stores them there, but none of the GDI
+//    objects from +0x140 on does, and nothing guarantees OnUpdateSystemColors
+//    has run.  So the bodies here never read a colour back from the object:
+//    XP_Colors() below recomputes the colour members the way
 //    OnUpdateSystemColors derives them; that function's own comment states
 //    exactly which retail inputs are reproduced and which one (the +0x190 brush
 //    colour) is not.  Bodies that need one of the GDI objects built from those
@@ -101,15 +113,18 @@ extern "C" unsigned long MS_ABI impl__OnDrawPropertySheetListItem_CMFCVisualMana
 extern "C" unsigned long MS_ABI impl__PixelAlpha_CDrawingManager__SAKKH_Z(unsigned long srcPixel, int nPercent);
 extern "C" void MS_ABI impl__RGBtoHSL_CDrawingManager__SAXKPEAN00_Z(unsigned long rgb, double* pH, double* pS, double* pL);
 // CMenuImages::Draw(CDC*, IMAGES_IDS, const CRect&, IMAGE_STATE, const CSize&).
-// Defined -- as an empty stub with an auto-generated parameter list that does
-// NOT match the mangled name -- in phase4/src/featurepack/controls/CMFCReBar.cpp.
-// This declaration is the one derived from the mangled name; see the
-// headerRequest that goes with this file.
+// Defined in phase4/src/featurepack/controls/CMFCReBar.cpp, where both Draw
+// overloads are now transcribed from retail (that definition spells the two
+// references as pointers, which is the same ABI).  They do not paint anything
+// yet: the CPoint overload bottoms out in CMFCToolBarImages::PrepareDrawImage /
+// ::Draw, and ?Draw@CMFCToolBarImages@@QEAAHPEAVCDC@@HHHHHHHHE@Z is still a
+// `return 0` placeholder (phase4/src/featurepack/toolbar/CMFCToolBarImages.cpp).
+// That is why the arrow glyphs below go through XP_DrawMenuImage.
 extern "C" void MS_ABI impl__Draw_CMenuImages__SAXPEAVCDC__W4IMAGES_IDS_1_AEBVCRect__W4IMAGE_STATE_1_AEBVCSize___Z(
     CDC* pDC, int nImageID, const CRect& rect, int nImageState, const CSize& sizeImage);
 // CMenuImages::Draw(CDC*, IMAGES_IDS, const CPoint&, IMAGE_STATE, const CSize&)
-// -- the other overload, same situation (empty stub with a garbage parameter
-// list in CMFCReBar.cpp; CMFCVisualManagerOffice2003.cpp declares it this way too).
+// -- the other overload, same situation (CMFCReBar.cpp; CMFCVisualManagerOffice2003.cpp
+// declares it this way too).
 extern "C" void MS_ABI impl__Draw_CMenuImages__SAXPEAVCDC__W4IMAGES_IDS_1_AEBVCPoint__W4IMAGE_STATE_1_AEBVCSize___Z(
     CDC* pDC, int nImageID, const CPoint& pt, int nImageState, const CSize& sizeImage);
 extern "C" unsigned long MS_ABI impl__GetPropertyGridGroupColor_CMFCVisualManager__UEAAKPEAVCMFCPropertyGridCtrl___Z(
@@ -177,6 +192,39 @@ extern "C" std::int32_t impl__m_bAltCustomizeMode_CMFCToolBar__1HA;
 struct XP_StaticCSize { long cx; long cy; };
 extern "C" XP_StaticCSize impl__m_sizeMenuImage_CMFCToolBar__1VCSize__A;
 extern "C" XP_StaticCSize impl__m_sizeImage_CMFCToolBar__1VCSize__A;
+// ?afxGlobalData@@3UAFX_GLOBAL_DATA@@A -- OpenMFC exports it as a zero-filled
+// 720-byte blob (phase4/src/featurepack/CMFC_misc_stubs.cpp); the tasks-pane
+// bodies read its CFont handles out of it (see XP_GlobalFont below).
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
+// ?AfxThrowInvalidArgException@@YAXXZ (retail 0x225b80, mfc140), the ENSURE
+// target of OnDrawTask / OnDrawTasksGroupCaption / OnDrawMenuShadow.
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+// CDrawingManager (phase4/src/core/gdi/CDrawingManager.cpp): the constructor
+// only stores the CDC* at +0x8 and a vptr at +0x0 (a 0x10-byte object); the
+// CRect parameter of DrawShadow is passed by value, i.e. as a pointer to a
+// caller-owned copy under the x64 ABI.
+extern "C" void* MS_ABI impl___0CDrawingManager__QEAA_AEAVCDC___Z(void* pThis, void* pDC);
+extern "C" void MS_ABI impl___1CDrawingManager__UEAA_XZ(void* pThis);
+extern "C" int MS_ABI impl__DrawShadow_CDrawingManager__QEAAHVCRect__HHHPEAVCBitmap__1KH_Z(
+    void* pThis, CRect* pRect, int nDepth, int iMinBrightness, int iMaxBrightness,
+    CBitmap* pBmpSaveBottom, CBitmap* pBmpSaveRight, unsigned long clrBase, int bRightShadow);
+// DrawRect(const CRect&, COLORREF clrFill, COLORREF clrLine), DrawLine(x1, y1,
+// x2, y2, COLORREF) and HighlightRect(CRect, int nPercentage, COLORREF
+// clrTransparent, int nTolerance, COLORREF clrBlend) -- real bodies in
+// phase4/src/core/gdi/CDrawingManager.cpp; these declarations copy those
+// definitions' parameter lists (HighlightRect's by-value CRect is a pointer to
+// a caller-owned copy under the x64 ABI).
+extern "C" void MS_ABI impl__DrawRect_CDrawingManager__QEAAXAEBVCRect__KK_Z(
+    void* pThis, const CRect* pRect, unsigned long clrFill, unsigned long clrLine);
+extern "C" void MS_ABI impl__DrawLine_CDrawingManager__QEAAXHHHHK_Z(
+    void* pThis, int x1, int y1, int x2, int y2, unsigned long clrLine);
+extern "C" int MS_ABI impl__HighlightRect_CDrawingManager__QEAAHVCRect__HKHK_Z(
+    void* pThis, CRect* pRect, int nPercentage, unsigned long clrTransparent, int nTolerance, unsigned long clrBlend);
+// CMFCVisualManager::OnDrawTasksGroupIcon (CMFCVisualManager.cpp in this
+// directory), the virtual OnDrawTasksGroupCaption reaches through vtable +0x2e8.
+extern "C" void MS_ABI impl__OnDrawTasksGroupIcon_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHHH_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCTasksPaneTaskGroup* pGroup,
+    int nIconHOffset, int bIsHighlighted, int bIsSelected, int bCanCollapse);
 
 namespace {
 
@@ -232,8 +280,9 @@ inline bool GD_IsBlackHighContrast()
 // Retail caches them in the object and builds one GDI object per colour at
 // +0x160..+0x1f0 (the ::CreateSolidBrush / ::CreatePen run at 0x1ac8ed..0x1aca1f).
 // OpenMFC's CMFCVisualManagerOfficeXP is `CMFCVisualManager` plus
-// `char _pad[64]` and has no storage there, so XP_Colors() recomputes the whole
-// set on demand instead.  Every input OnUpdateSystemColors reads is available:
+// `char _pad[64]`: it has no storage for the GDI objects, and although the
+// colours fit (OnUpdateSystemColors writes them), nothing here reads them back,
+// so XP_Colors() recomputes the whole set on demand instead.  Every input OnUpdateSystemColors reads is available:
 //   * the afxGlobalData colour fields it reads are each assigned from exactly
 //     one ::GetSysColor call by AFX_GLOBAL_DATA::UpdateSysColors (0x6afd0), so
 //     the GD_* helpers above return the same values;
@@ -260,8 +309,11 @@ inline bool GD_IsBlackHighContrast()
 // at +0x190.  On the low-colour path it is just afxGlobalData.clrBtnFace
 // (0x1ac7bc), but on the gradient path it is a hue/saturation-adjusted
 // clrBarFace computed with CDrawingManager::RGBtoHSL plus HLStoRGB_ONE
-// (0x5b4a0) over 0x1ac298..0x1ac330, and HLStoRGB_ONE is still a `return 0`
-// stub in this tree.  Nothing in this file needs it.
+// (0x5b4a0) over 0x1ac298..0x1ac330.  (HLStoRGB_ONE has since been
+// implemented in phase4/src/core/gdi/CDrawingManager.cpp, so the value is now
+// computable; it is still not modelled because its only readers --
+// OnEraseTabsArea / OnEraseTabsButton, through the +0x190 brush -- are stubs
+// for reasons unrelated to it.)
 // ---------------------------------------------------------------------------
 struct XPColors
 {
@@ -303,9 +355,11 @@ inline COLORREF XP_Mix5to1(COLORREF a, COLORREF b)
 // CDrawingManager::PixelAlpha(COLORREF, double, double, double) (retail 0x5b160)
 // with the same factor on all three channels: v = (int)(channel * k + 0.5),
 // clamped high at 255.  Its "channel == 0 && k > 1.0" special case (0x5b18f)
-// cannot trigger for the k < 1 factors used below.  Transcribed here rather than
-// called because OpenMFC's ?PixelAlpha@CDrawingManager@@SAKKNNN@Z is a
-// `return 0` stub (phase4/src/core/gdi/CDrawingManager.cpp).
+// cannot trigger for the k < 1 factors used below.  Transcribed here because
+// OpenMFC's ?PixelAlpha@CDrawingManager@@SAKKNNN@Z was a `return 0` stub when
+// this was written; it has since been implemented in
+// phase4/src/core/gdi/CDrawingManager.cpp with the same per-channel formula, so
+// the two agree for these factors.
 inline COLORREF XP_PixelAlphaF(COLORREF c, double k)
 {
     int r = (int)((double)GetRValue(c) * k + 0.5); if (r > 255) r = 255;
@@ -473,6 +527,29 @@ void XP_DrawLine(CDC* pDC, int x1, int y1, int x2, int y2, COLORREF clr)
     if (pen != nullptr) ::DeleteObject(pen);
 }
 
+// `CDrawingManager dm(*pDC); dm.DrawRect(rect, clrFill, clrLine);` and
+// `dm.DrawLine(x1, y1, x2, y2, clrLine);` -- the on-glass arms retail takes when
+// CMFCToolBarImages::m_bIsDrawOnGlass is set.  The object is the 0x10-byte
+// { vptr, CDC* } CDrawingManager built by the exported constructor; the bodies
+// are the real exports in phase4/src/core/gdi/CDrawingManager.cpp.  The NULL
+// pDC return is OpenMFC's (both exports dereference the CDC).
+void XP_DmDrawRect(CDC* pDC, const CRect& rect, COLORREF clrFill, COLORREF clrLine)
+{
+    if (pDC == nullptr) return;
+    alignas(void*) unsigned char dm[16] = {};
+    impl___0CDrawingManager__QEAA_AEAVCDC___Z(dm, pDC);
+    impl__DrawRect_CDrawingManager__QEAAXAEBVCRect__KK_Z(dm, &rect, clrFill, clrLine);
+    impl___1CDrawingManager__UEAA_XZ(dm);
+}
+void XP_DmDrawLine(CDC* pDC, int x1, int y1, int x2, int y2, COLORREF clrLine)
+{
+    if (pDC == nullptr) return;
+    alignas(void*) unsigned char dm[16] = {};
+    impl___0CDrawingManager__QEAA_AEAVCDC___Z(dm, pDC);
+    impl__DrawLine_CDrawingManager__QEAAXHHHHK_Z(dm, x1, y1, x2, y2, clrLine);
+    impl___1CDrawingManager__UEAA_XZ(dm);
+}
+
 void XP_FillSolid(CDC* pDC, const CRect& rect, COLORREF clr)
 {
     HDC hdc = XP_Hdc(pDC);
@@ -483,6 +560,31 @@ void XP_FillSolid(CDC* pDC, const CRect& rect, COLORREF clr)
         ::FillRect(hdc, &r, brush);
         ::DeleteObject(brush);
     }
+}
+
+// CDC::Draw3dRect(LPCRECT, clrTopLeft, clrBottomRight) exactly as retail does
+// it: 0x2a3b00 tail-calls the x/y/cx/cy overload 0x2a3b40, which makes four
+// CDC::FillSolidRect calls (x,y,cx-1,1,tl) (x,y,1,cy-1,tl) (x+cx,y,-1,cy,br)
+// (x,y+cy,cx,-1,br); FillSolidRect (0x2a3a60) is ::SetBkColor(m_hDC, clr)
+// (IAT 0x1802c40b8) then ::ExtTextOut(m_hDC, 0, 0, ETO_OPAQUE, {x, y, x+cx,
+// y+cy}, NULL, 0, NULL) (IAT 0x1802c4088), with the rectangle passed as built
+// and the background colour left changed.  Used where the colour may be -1
+// (CLR_INVALID), so that GDI sees exactly the calls retail makes.
+void XP_FillSolidRectExact(HDC hdc, int x, int y, int cx, int cy, COLORREF clr)
+{
+    ::SetBkColor(hdc, clr);
+    RECT r;
+    r.left = x; r.top = y; r.right = x + cx; r.bottom = y + cy;
+    ::ExtTextOutW(hdc, 0, 0, ETO_OPAQUE, &r, nullptr, 0, nullptr);
+}
+void XP_Draw3dRectExact(HDC hdc, const CRect& rect, COLORREF clrTopLeft, COLORREF clrBottomRight)
+{
+    const int x = rect.left, y = rect.top;
+    const int cx = rect.right - rect.left, cy = rect.bottom - rect.top;
+    XP_FillSolidRectExact(hdc, x, y, cx - 1, 1, clrTopLeft);
+    XP_FillSolidRectExact(hdc, x, y, 1, cy - 1, clrTopLeft);
+    XP_FillSolidRectExact(hdc, x + cx, y, -1, cy, clrBottomRight);
+    XP_FillSolidRectExact(hdc, x, y + cy, cx, -1, clrBottomRight);
 }
 
 // CDC::Draw3dRect(LPCRECT, COLORREF clrTopLeft, COLORREF clrBottomRight)
@@ -584,15 +686,22 @@ const std::ptrdiff_t kXPWndHwnd = 0x40;
 //     } else {
 //         ::FillRect(pDC->m_hDC, rect, pBrush ? pBrush->m_hObject : NULL);
 //     }
-// The CMFCToolBarButton* argument is not read on either path.
-// Deviation: OpenMFC's ?DrawRect@CDrawingManager@@QEAAXAEBVCRect@@KK@Z is an
-// empty stub (phase4/src/core/gdi/CDrawingManager.cpp), so the on-glass branch
-// paints nothing there; this helper takes the same no-op rather than
-// substituting the opaque fill, which is the very thing m_bIsDrawOnGlass exists
-// to suppress.
+// The CMFCToolBarButton* argument is not read on either path.  Both arms are
+// reproduced: the on-glass one calls the real CDrawingManager ctor / DrawRect /
+// dtor exports in phase4/src/core/gdi/CDrawingManager.cpp (the ::GetObject
+// call is IAT 0x1802c4250, size 0x10; DrawRect's clrFill is lb.lbColor from
+// 0x34(%rsp) and clrLine is the `or $-1,%r9d` at 0x1b1450).  The LOGBRUSH is
+// zeroed first and the null-HDC return is OpenMFC's; retail dereferences both
+// pointers.
 void XP_FillHighlighted(CDC* pDC, const CRect& rect, HBRUSH hbr)
 {
-    if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0) return;
+    if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0) {
+        LOGBRUSH lb;
+        std::memset(&lb, 0, sizeof(lb));
+        ::GetObjectW(hbr, sizeof(LOGBRUSH), &lb);
+        XP_DmDrawRect(pDC, rect, lb.lbColor, static_cast<COLORREF>(-1));
+        return;
+    }
     HDC hdc = XP_Hdc(pDC);
     if (hdc == nullptr) return;
     RECT r = XP_ToRECT(rect);
@@ -601,7 +710,6 @@ void XP_FillHighlighted(CDC* pDC, const CRect& rect, HBRUSH hbr)
 
 void XP_FillHighlightedSolid(CDC* pDC, const CRect& rect, COLORREF clr)
 {
-    if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0) return;
     HBRUSH hbr = ::CreateSolidBrush(clr);
     if (hbr == nullptr) return;
     XP_FillHighlighted(pDC, rect, hbr);
@@ -704,9 +812,10 @@ inline COLORREF XP_MenuImageColor(int nState)
 // Stand-in for CMenuImages::Draw(pDC, id, rect, state, CSize(0,0)) (retail
 // 0x8fd40) for the four arrow glyphs used by the bodies below --
 // afxmenuimages.h IdArrowDown 0, IdArrowRight 1, IdArrowUp 7, IdArrowLeft 9 and
-// IdArrowRightLarge 14 -- because the exported CMenuImages::Draw is an empty
-// stub in this tree (see the declaration at the top of the file).  Any other id
-// is handed to that stub so the call structure stays visible.
+// IdArrowRightLarge 14 -- because the exported CMenuImages::Draw paints
+// nothing in this tree (its CMFCToolBarImages::Draw callee is a placeholder; see
+// the declaration at the top of the file).  Any other id is handed to that
+// export so the call structure stays visible.
 void XP_DrawMenuImage(CDC* pDC, int nImageID, const CRect& rect, int nState)
 {
     HDC hdc = XP_Hdc(pDC);
@@ -822,6 +931,154 @@ inline int XP_ReadInt(const void* pObject, std::ptrdiff_t off)
 // last two swapped -- a headerRequest is filed -- so raw values are compared.
 const int kXPStatePressed     = 1;
 const int kXPStateHighlighted = 2;
+
+// ---------------------------------------------------------------------------
+// Helpers added with the tasks-pane / menu-shadow / OnUpdateSystemColors batch.
+// ---------------------------------------------------------------------------
+
+// CMFCVisualManager members the bodies below read out of `this`.  Offsets from
+// the retail constructor ??0CMFCVisualManager@@QEAA@H@Z (0x182640, mfc140),
+// which stores 0xd / 7 / 5 / -1 into +0xe0 / +0xe4 / +0xec / +0xf8 (0x1826d9,
+// 0x1826e3, 0x1826f3, 0x182724); the names are afxvisualmanager.h's member list
+// laid from m_bMenuFlatLook at +0xa0 (the same anchoring that puts
+// m_bEnableToolbarButtonFill at +0xb0 above and m_nMenuBorderSize at +0xf4 in
+// phase4/src/featurepack/menu/CMFCPopupMenu.cpp).  OpenMFC's CMFCVisualManager
+// is CObject plus a zero-filled `char _visualmanager_padding[256]`
+// (include/openmfc/afxmfc.h), so a manager OpenMFC constructed reads 0 at all
+// four -- not the retail defaults above -- until CMFCVisualManager's
+// constructor stores them (a request is filed for that); the bodies read the
+// member exactly as retail does and do not substitute the defaults.
+const std::ptrdiff_t kXPVmGroupCaptionHorzOffset = 0xe0;
+const std::ptrdiff_t kXPVmGroupCaptionVertOffset = 0xe4;
+const std::ptrdiff_t kXPVmTasksIconHorzOffset    = 0xec;
+const std::ptrdiff_t kXPVmMenuShadowBase         = 0xf8;
+static_assert(sizeof(CMFCVisualManager) > 0xf8, "the CMFCVisualManager members read here lie inside OpenMFC's object");
+
+// The CMFCVisualManagerOfficeXP colour members OnUpdateSystemColors writes
+// (+0x108..+0x13b; see the file header for their names).  OpenMFC's class is
+// CMFCVisualManager (0x108 bytes) + `char _pad[64]`, i.e. 0x148 bytes, so the
+// thirteen COLORREFs fit in that padding -- but none of the GDI objects from
+// +0x140 on do (m_brGripperHorz alone would run to +0x150).
+// CMFCVisualManagerOffice2003::OnUpdateSystemColors passes its own `this` to
+// the OfficeXP body, so its object must be as large.
+static_assert(sizeof(CMFCVisualManager) == 0x108, "CMFCVisualManager ends where the OfficeXP members begin");
+static_assert(sizeof(CMFCVisualManagerOfficeXP) >= 0x13c, "OfficeXP colour members fit in OpenMFC's object");
+static_assert(sizeof(CMFCVisualManagerOffice2003) >= 0x13c, "Office2003 passes its own object to the OfficeXP body");
+
+inline void XP_WriteColor(void* pObject, std::ptrdiff_t off, COLORREF clr)
+{
+    std::memcpy(static_cast<char*>(pObject) + off, &clr, sizeof(clr));
+}
+
+// afxGlobalData.clrHotText (+0x50).  AFX_GLOBAL_DATA::UpdateSysColors (0x6afd0)
+// stores ::GetSysColor(COLOR_HOTLIGHT) there (0x6b1cd..0x6b1d8) unless the
+// +0x260 flag is set, in which case it stores clrWindowText (+0x7c)
+// (0x6b1b1..0x6b1c1).  +0x260 is GD_IsWhiteHighContrast() above.
+inline COLORREF GD_clrHotText()
+{
+    return GD_IsWhiteHighContrast() ? GD_clrWindowText() : ::GetSysColor(COLOR_HOTLIGHT);
+}
+
+// afxGlobalData's CFont objects fontRegular (+0x1a8), fontBold (+0x1c8) and
+// fontUnderline (+0x1e8); each HFONT is the CFont's m_hObject, 8 bytes further
+// on.  AFX_GLOBAL_DATA::UpdateFonts (0x6a810, mfc140) creates all three with
+// ::CreateFontIndirect from one LOGFONT: fontRegular from it as built
+// (0x6ab24); fontUnderline after lfWeight / lfItalic are put back to the menu
+// font's and lfUnderline is set to 1 (0x6abe1..0x6ac09); fontBold with
+// lfUnderline = 0 and lfWeight = FW_BOLD (0x6ac0e..0x6ac30).
+// The handle is read out of OpenMFC's exported afxGlobalData blob exactly where
+// retail reads it; that blob is zero-filled and its Initialize() never runs,
+// so today every handle is NULL and the fallback is taken.  Deviation, in the
+// fallback only: the base LOGFONT is the stock DEFAULT_GUI_FONT -- the
+// substitute featurepack/controls/CMFCStatusBar.cpp (fontRegular) and
+// CMFCToolTipCtrl.cpp (fontTooltip / fontBold) already use for a NULL
+// afxGlobalData font handle -- not UpdateFonts' menu-font LOGFONT (its
+// NONCLIENTMETRICS read and height adjustment are not reproduced); the bold and
+// underline variants are derived from it with the same two LOGFONT edits
+// UpdateFonts makes, and are destroyed when the object goes out of scope.
+const std::size_t kXPGdFontRegular   = 0x1a8;
+const std::size_t kXPGdFontBold      = 0x1c8;
+const std::size_t kXPGdFontUnderline = 0x1e8;
+
+class XP_GlobalFont
+{
+public:
+    explicit XP_GlobalFont(std::size_t cfontOffset)
+    {
+        std::memcpy(&m_hFont, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + cfontOffset + 8, sizeof(m_hFont));
+        if (m_hFont != nullptr) return;
+
+        HFONT hBase = static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+        m_hFont = hBase;
+        if (cfontOffset == kXPGdFontRegular || hBase == nullptr) return;
+
+        LOGFONTW lf;
+        std::memset(&lf, 0, sizeof(lf));
+        if (::GetObjectW(hBase, sizeof(lf), &lf) == 0) return;
+        if (cfontOffset == kXPGdFontUnderline) {
+            lf.lfUnderline = 1;
+        } else {
+            lf.lfUnderline = 0;
+            lf.lfWeight = FW_BOLD;
+        }
+        m_hOwned = ::CreateFontIndirectW(&lf);
+        if (m_hOwned != nullptr) m_hFont = m_hOwned;
+    }
+    ~XP_GlobalFont() { if (m_hOwned != nullptr) ::DeleteObject(m_hOwned); }
+    HFONT Get() const { return m_hFont; }
+private:
+    XP_GlobalFont(const XP_GlobalFont&);
+    XP_GlobalFont& operator=(const XP_GlobalFont&);
+    HFONT m_hFont = nullptr;
+    HFONT m_hOwned = nullptr;
+};
+
+// The tasks-pane records, read through the shadow structs this repo pins
+// (detail/CMFCTasksPaneTaskSupport.h, CMFCTasksPaneTaskGroupSupport.h,
+// CMFCTasksPanePropertyPageSupport.h, CMFCTasksPaneSupport.h).  The offsets
+// the two bodies below read are re-asserted here against the retail loads
+// cited at each body.
+typedef S_Cmfctaskspanetask         XPTask;
+typedef S_Cmfctaskspanetaskgroup    XPGroup;
+typedef S_Cmfctaskspanepropertypage XPPage;
+typedef S_MfcFeature20Impl          XPPane;
+static_assert(offsetof(XPTask, m_pGroup) == 0x08 && offsetof(XPTask, m_strName) == 0x10 &&
+              offsetof(XPTask, m_rect) == 0x18 && offsetof(XPTask, m_nIcon) == 0x28 &&
+              offsetof(XPTask, m_uiCommandID) == 0x30 && offsetof(XPTask, m_bEnabled) == 0x50 &&
+              offsetof(XPTask, m_bIsSeparator) == 0x54 && offsetof(XPTask, m_bIsBold) == 0x58 &&
+              offsetof(XPTask, m_clrText) == 0x5c && offsetof(XPTask, m_clrTextHot) == 0x60,
+              "CMFCTasksPaneTask offsets read by OnDrawTask");
+static_assert(offsetof(XPGroup, m_pPage) == 0x08 && offsetof(XPGroup, m_strName) == 0x10 &&
+              offsetof(XPGroup, m_bIsCollapsed) == 0x58 && offsetof(XPGroup, m_rect) == 0x5c &&
+              offsetof(XPGroup, m_sizeIcon) == 0x7c && offsetof(XPGroup, m_hIcon) == 0x88 &&
+              offsetof(XPGroup, m_clrText) == 0x90 && offsetof(XPGroup, m_clrTextHot) == 0x94,
+              "CMFCTasksPaneTaskGroup offsets read by OnDrawTasksGroupCaption");
+static_assert(offsetof(XPPage, m_pTaskPane) == 0x10, "CMFCTasksPanePropertyPage::m_pTaskPane");
+static_assert(offsetof(XPPane, m_bWrapTasks) == 0x4fc && offsetof(XPPane, m_bWrapLabels) == 0x500 &&
+              offsetof(XPPane, m_nGroupCaptionHorzOffset) == 0x534 &&
+              offsetof(XPPane, m_nGroupCaptionVertOffset) == 0x538 &&
+              offsetof(XPPane, m_nTasksIconHorzOffset) == 0x540,
+              "CMFCTasksPane offsets read by OnDrawTask / OnDrawTasksGroupCaption");
+
+// A CString member of a tasks-pane record.  CMFCTasksPane.cpp constructs these
+// in place as OpenMFC CStrings (placement new at the record's +0x10), and reads
+// them back the same way.
+inline const CString& XP_RecordString(const void* pField)
+{
+    return *static_cast<const CString*>(pField);
+}
+
+// The head of a CDC as this DLL lays it out -- { vptr, m_hDC, m_hAttribDC } --
+// for the temporary CDC OnDrawMenuShadow builds around a memory DC.  Only
+// CDrawingManager's constructor and DrawShadow see it, and they read nothing
+// but m_hDC (phase4/src/core/gdi/CDrawingManager.cpp: DmDC / DcHdc / SafeHdc).
+struct XP_CDCHead
+{
+    const void* vptr;
+    HDC m_hDC;
+    HDC m_hAttribDC;
+};
+static_assert(offsetof(XP_CDCHead, m_hDC) == offsetof(CDC, m_hDC), "XP_CDCHead mirrors CDC::m_hDC");
 
 } // namespace
 
@@ -1339,9 +1596,11 @@ extern "C" int MS_ABI impl__OnDrawBrowseButton_CMFCVisualManagerOfficeXP__MEAAHP
 //         rect.bottom++;                                                         // 0x1adea3
 //     }
 //     pDC->Draw3dRect(rect, clr, clr);                                           // 0x1adeb2
-// DEVIATION: as in OnFillButtonInterior, the IsDroppedDown() arm (m_pPopupMenu,
-// +0xc0, is unmodelled padding in this tree and CDrawingManager::DrawShadow is
-// a stub) is treated as not taken, so bNotDroppedDown is TRUE for every
+// DEVIATION: as in OnFillButtonInterior, the IsDroppedDown() arm is treated as
+// not taken (IsDroppedDown reads m_pPopupMenu, +0xc0, which no OpenMFC code
+// sets to a popup -- CMFCToolBarMenuButton.cpp only ever stores NULL there;
+// CDrawingManager::DrawShadow itself is implemented now), so bNotDroppedDown
+// is TRUE for every
 // non-popup button.  m_clrPressedButtonBorder is the constant -1 for this class
 // (OnUpdateSystemColors stores it at 0x1ac9e5), which makes both of the
 // +0x124 arms inert; they are kept as explicit constants.  The guards on
@@ -1528,7 +1787,7 @@ extern "C" void MS_ABI impl__OnDrawCaptionButton_CMFCVisualManagerOfficeXP__MEAA
 // S_Cmfccaptionmenubutton (phase4/src/detail/CMFCCaptionMenuButtonSupport.h:
 // m_bPushed 8, m_bFocused 12, m_clrForeground 36); m_clrHighlightDn /
 // m_clrHighlight are XP_Colors().c11c / c118.  The glyph itself goes to the
-// exported CMenuImages::Draw, which is an empty stub in this tree (see the
+// exported CMenuImages::Draw, which paints nothing in this tree (see the
 // declaration at the top of the file) -- the same situation as
 // OnDrawMenuSystemButton and OnDrawTabCloseButton, which also hand their
 // non-arrow ids to that stub.  Retail dereferences pButton unconditionally;
@@ -1595,7 +1854,7 @@ extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManagerOfficeXP__MEAAXP
 //     if (!bIsDropped && !bIsHighlighted) {                            // 0x1afa64/0x1afa6d
 //         ::FillRect(pDC->m_hDC, rect, afxGlobalData.brBarFace.m_hObject);       // +0x120, 0x1afaa3
 //         if (CMFCToolBarImages::m_bIsDrawOnGlass) { CDrawingManager dm(*pDC);
-//             dm.DrawRect(rect, afxGlobalData.clrWindow /*+0x78*/, (COLORREF)-1); }  // 0x5abf0, 0x1afaea
+//             dm.DrawRect(rect, (COLORREF)-1, afxGlobalData.clrWindow /*+0x78*/); }  // 0x5abf0, 0x1afaea
 //         else pDC->Draw3dRect(rect, afxGlobalData.clrBarWindow, afxGlobalData.clrBarWindow); // +0x5c, 0x1afb3f
 //     } else {
 //         this->OnFillHighlightedArea(pDC, rect,                       // 0x1afb84
@@ -1610,10 +1869,14 @@ extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManagerOfficeXP__MEAAXP
 //     pDC->SetTextColor(clrOldText);                                   // vtable +0x70, 0x1afc57
 // The combo button pointer is never read.  clrBarWindow (+0x5c) and clrWindow
 // (+0x78) are both ::GetSysColor(COLOR_WINDOW) per UpdateSysColors, brBarFace is
-// COLOR_BTNFACE.  Deviations: the on-glass DrawRect / DrawLine arms are not
-// taken -- OpenMFC's CDrawingManager exports are stubs -- and the 1px rule is
-// drawn with a local pen on both paths; the arrow is painted by XP_DrawMenuImage
-// (exported CMenuImages::Draw is a stub).  Brushes/border from XP_Colors().
+// COLOR_BTNFACE.  The on-glass DrawRect is an outline: clrFill (r8d) is the
+// `or $-1` at 0x1afadf and clrLine (r9d) is clrWindow, loaded at 0x1afad8.
+// Both on-glass arms call the real CDrawingManager exports (XP_DmDrawRect /
+// XP_DmDrawLine; DrawLine's arguments are left/top/left/bottom and +0x138,
+// 0x1afba2..0x1afbc2).  Deviations: the off-glass 1px rule is drawn with a
+// local pen of m_clrMenuItemBorder rather than the +0x1f0 CPen; the arrow is
+// painted by XP_DrawMenuImage (exported CMenuImages::Draw paints nothing yet).
+// Brushes/border from XP_Colors().
 // Symbol: ?OnDrawComboDropButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHHPEAVCMFCToolBarComboBoxButton@@@Z
 extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* pDC, CRect rect,
@@ -1626,11 +1889,17 @@ extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManagerOfficeXP__ME
 
     if (!bIsDropped && !bIsHighlighted) {
         XP_FillSolid(pDC, rect, GD_clrBtnFace());
-        DC_Draw3dRect(pDC, rect, GD_clrWindow(), GD_clrWindow());
+        if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0)
+            XP_DmDrawRect(pDC, rect, static_cast<COLORREF>(-1), GD_clrWindow());
+        else
+            DC_Draw3dRect(pDC, rect, GD_clrWindow(), GD_clrWindow());
     } else {
         const XPColors x = XP_Colors();
         XP_FillHighlightedSolid(pDC, rect, bIsDropped ? x.c11c : x.c118);
-        XP_DrawLine(pDC, rect.left, rect.top, rect.left, rect.bottom, x.c138);
+        if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0)
+            XP_DmDrawLine(pDC, rect.left, rect.top, rect.left, rect.bottom, x.c138);
+        else
+            XP_DrawLine(pDC, rect.left, rect.top, rect.left, rect.bottom, x.c138);
     }
 
     const int nState = bDisabled ? 1 : ((bIsDropped && bIsHighlighted) ? 3 : 0);
@@ -1729,7 +1998,7 @@ extern "C" void MS_ABI impl__OnDrawFloatingToolbarBorder_CMFCVisualManagerOffice
 // here is `jb` (0x1aef00/0x1aef08/0x1aef10): black for >= 0x80, unlike the
 // strict > 0x80 of XP_TextOverHighlight.  Deviations: CMenuImages::Size() is
 // the local 9 (XP_MenuImageEdge) and the glyph is painted by XP_DrawMenuImage
-// because the exported CMenuImages entry points are stubs; m_clrHighlight is
+// because the exported CMenuImages::Draw paints nothing yet; m_clrHighlight is
 // XP_Colors().c118.
 // Symbol: ?OnDrawMenuArrowOnCustomizeList@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@H@Z
 extern "C" void MS_ABI impl__OnDrawMenuArrowOnCustomizeList_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__H_Z(
@@ -1895,7 +2164,7 @@ extern "C" void MS_ABI impl__OnDrawMenuResizeBar_CMFCVisualManagerOfficeXP__MEAA
 //     ::RoundRect(pDC->m_hDC, rect.left, rect.top, rect.right, rect.bottom, 2, 2);
 //     pDC->SelectObject(pOldBrush); pDC->SelectObject(pOldPen);
 // bIsPressed and bIsDisabled are not read.  Deviation: OpenMFC's exported
-// CMenuImages::Draw is a no-op stub, so the arrow is painted with the local
+// CMenuImages::Draw paints nothing yet, so the arrow is painted with the local
 // XP_DrawArrow() helper instead (same up/down choice, drawn in black, which is
 // what CMenuImages::ImageBlack means).
 // Symbol: ?OnDrawMenuScrollButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHHH@Z
@@ -1925,17 +2194,115 @@ extern "C" void MS_ABI impl__OnDrawMenuScrollButton_CMFCVisualManagerOfficeXP__M
     if (pen != nullptr) ::DeleteObject(pen);
 }
 
-// Retail (RVA 0x1ad1f0, mfc140.dll) is a CDrawingManager::DrawShadow driver:
-// both of its painting arms end in a call to 0x58c80
-// (?DrawShadow@CDrawingManager@@QEAAHVCRect@@HHHPEAVCBitmap@@1KH@Z, at 0x1ad291
-// and 0x1ad410) that caches into the caller's CBitmap objects.  OpenMFC's
-// exported DrawShadow is a `return 0` stub (phase4/src/core/gdi/
-// CDrawingManager.cpp), so there is nothing to drive; left a stub.
+// CMFCVisualManagerOfficeXP::OnDrawMenuShadow(CDC*, const CRect& rectClient,
+//         const CRect& rectExclude, int nDepth, int iMinBrightness,
+//         int iMaxBrightness, CBitmap* pBmpSaveBottom, CBitmap* pBmpSaveRight,
+//         BOOL bRTL) -- retail RVA 0x1ad1f0 (mfc140.dll):
+//     if (rectExclude.IsRectNull()) {             // left, right, top, bottom all 0 (0x1ad218..0x1ad22d)
+//         CDrawingManager dm(*pDC);                // inline: vptr + m_dc (0x1ad22f..0x1ad23a)
+//         dm.DrawShadow(rectClient, nDepth, iMinBrightness, iMaxBrightness,
+//                       pBmpSaveBottom, pBmpSaveRight,
+//                       m_clrMenuShadowBase /*+0xf8*/, !bRTL);         // call at 0x1ad291 (0x58c80)
+//         return;
+//     }
+//     CDC dcMem;
+//     if (!dcMem.Attach(::CreateCompatibleDC(pDC ? pDC->m_hDC : NULL))) return;   // 0x1ad2bf / CDC::Attach 0x2a03c0
+//     int cx = rectClient.Width(), cy = rectClient.Height();
+//     CBitmap bmpMem;
+//     if (!bmpMem.Attach(::CreateCompatibleBitmap(pDC->m_hDC, cx + nDepth, cy + nDepth)))   // 0x1ad316 / 0x1ad323
+//         return;
+//     CBitmap* pOldBmp = dcMem.SelectObject(&bmpMem);                   // ::SelectObject 0x1ad353 + FromHandle
+//     ENSURE(pOldBmp != NULL);                                          // the throw call at 0x1ad4f7 (0x225b80)
+//     ::BitBlt(dcMem, 0, 0, cx + nDepth, cy + nDepth,
+//              pDC->m_hDC, rectClient.left, rectClient.top, SRCCOPY);   // 0x1ad3a1
+//     CDrawingManager dm(dcMem);
+//     dm.DrawShadow(CRect(0, 0, cx, cy), nDepth, iMinBrightness, iMaxBrightness,
+//                   pBmpSaveBottom, pBmpSaveRight, m_clrMenuShadowBase, !bRTL);   // call at 0x1ad410
+//     ::BitBlt(dcMem, rectExclude.left - rectClient.left, rectExclude.top - rectClient.top,
+//              rectExclude.Width(), rectExclude.Height(),
+//              pDC->m_hDC, rectExclude.left, rectExclude.top, SRCCOPY); // 0x1ad456: put the excluded area back
+//     ::BitBlt(pDC->m_hDC, rectClient.left, rectClient.top, cx + nDepth, cy + nDepth,
+//              dcMem, 0, 0, SRCCOPY);                                   // 0x1ad489
+//     dcMem.SelectObject(pOldBmp);                                      // 0x1ad49b
+//     // ~CBitmap deletes bmpMem; ~CDC ::DeleteDC's the memory DC (0x1ad4dc)
+// m_clrMenuShadowBase is CMFCVisualManager +0xf8 (see kXPVmMenuShadowBase: the
+// retail ctor stores -1 there, OpenMFC's zero-filled manager reads 0, which
+// DrawShadow treats as a black base colour rather than "no tint").  The IAT
+// slots resolve to GDI32 CreateCompatibleDC / CreateCompatibleBitmap /
+// SelectObject / BitBlt / DeleteDC.  DrawShadow is the real body in
+// phase4/src/core/gdi/CDrawingManager.cpp, which reads only the CDC's m_hDC.
+// Deviations: the memory DC and bitmap are raw handles rather than CDC /
+// CBitmap objects, so the DC is not entered in the thread's permanent handle
+// map as CDC::Attach does and the temporary-map CBitmap FromHandle creates
+// is not made -- neither is observable by the caller; retail dereferences pDC
+// unconditionally on the second path, where this build returns when the DC
+// has no HDC.
 // Symbol: ?OnDrawMenuShadow@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@AEBVCRect@@1HHHPEAVCBitmap@@2H@Z
 extern "C" void MS_ABI impl__OnDrawMenuShadow_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__AEBVCRect__1HHHPEAVCBitmap__2H_Z(
-    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, const CRect* /*rectClient*/, const CRect* /*rectExclude*/,
-    int /*nDepth*/, int /*iMinBrightness*/, int /*iMaxBrightness*/,
-    CBitmap* /*pBmpSaveBottom*/, CBitmap* /*pBmpSaveRight*/, int /*bRTL*/) {}
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, const CRect* rectClient, const CRect* rectExclude,
+    int nDepth, int iMinBrightness, int iMaxBrightness,
+    CBitmap* pBmpSaveBottom, CBitmap* pBmpSaveRight, int bRTL)
+{
+    if (pThis == nullptr || rectClient == nullptr || rectExclude == nullptr) return;
+
+    const COLORREF clrBase = static_cast<COLORREF>(XP_ReadInt(pThis, kXPVmMenuShadowBase));
+    const int bRightShadow = (bRTL == 0) ? 1 : 0;
+
+    if (rectExclude->left == 0 && rectExclude->right == 0 &&
+        rectExclude->top == 0 && rectExclude->bottom == 0) {
+        alignas(void*) unsigned char dm[16] = {};
+        impl___0CDrawingManager__QEAA_AEAVCDC___Z(dm, pDC);
+        CRect rect(*rectClient);
+        impl__DrawShadow_CDrawingManager__QEAAHVCRect__HHHPEAVCBitmap__1KH_Z(
+            dm, &rect, nDepth, iMinBrightness, iMaxBrightness,
+            pBmpSaveBottom, pBmpSaveRight, clrBase, bRightShadow);
+        impl___1CDrawingManager__UEAA_XZ(dm);
+        return;
+    }
+
+    HDC hdc = XP_Hdc(pDC);
+    if (hdc == nullptr) return;
+
+    HDC dcMem = ::CreateCompatibleDC(hdc);
+    if (dcMem == nullptr) return;
+
+    const int cy = rectClient->bottom - rectClient->top;
+    const int cx = rectClient->right - rectClient->left;
+
+    HBITMAP bmpMem = ::CreateCompatibleBitmap(hdc, cx + nDepth, cy + nDepth);
+    if (bmpMem == nullptr) {
+        ::DeleteDC(dcMem);
+        return;
+    }
+    HGDIOBJ hOldBmp = ::SelectObject(dcMem, bmpMem);
+    if (hOldBmp == nullptr) {
+        // ENSURE failure: retail throws, unwinding bmpMem and dcMem.
+        ::DeleteObject(bmpMem);
+        ::DeleteDC(dcMem);
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+
+    ::BitBlt(dcMem, 0, 0, cx + nDepth, cy + nDepth, hdc, rectClient->left, rectClient->top, SRCCOPY);
+
+    XP_CDCHead dcMemHead = { nullptr, dcMem, dcMem };
+    alignas(void*) unsigned char dm[16] = {};
+    impl___0CDrawingManager__QEAA_AEAVCDC___Z(dm, &dcMemHead);
+    CRect rectMem(0, 0, cx, cy);
+    impl__DrawShadow_CDrawingManager__QEAAHVCRect__HHHPEAVCBitmap__1KH_Z(
+        dm, &rectMem, nDepth, iMinBrightness, iMaxBrightness,
+        pBmpSaveBottom, pBmpSaveRight, clrBase, bRightShadow);
+
+    ::BitBlt(dcMem, rectExclude->left - rectClient->left, rectExclude->top - rectClient->top,
+             rectExclude->right - rectExclude->left, rectExclude->bottom - rectExclude->top,
+             hdc, rectExclude->left, rectExclude->top, SRCCOPY);
+    ::BitBlt(hdc, rectClient->left, rectClient->top, cx + nDepth, cy + nDepth, dcMem, 0, 0, SRCCOPY);
+
+    ::SelectObject(dcMem, hOldBmp);
+    impl___1CDrawingManager__UEAA_XZ(dm);
+    ::DeleteObject(bmpMem);
+    ::DeleteDC(dcMem);
+}
 
 
 // CMFCVisualManagerOfficeXP::OnDrawMenuSystemButton(CDC*, CRect rect,
@@ -2250,20 +2617,116 @@ extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOfficeXP_
 extern "C" void MS_ABI impl__OnDrawRibbonCategoryScroll_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCRibbonCategoryScroll___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, void* /*pScroll*/ /* CRibbonCategoryScroll* */) {}
 
-// Retail (RVA 0x1b2b10, mfc140.dll) fills the swatch through the visual-manager
-// virtual at +0x638 (two calls) with m_brHighlight (+0x1a0), then builds local
-// CPen / CBrush objects (0x2a1ed0 / 0x2a1fa0) and draws the box edges with four
-// CDC::MoveTo / LineTo pairs and three Draw3dRect calls, choosing between them
-// on bDrawTopEdge / bDrawBottomEdge / bIsHighlighted / bIsChecked / bIsDisabled
-// and the caller's colour.  Not yet transcribed: the 205-instruction body
-// interleaves the five flags with the CMFCRibbonGalleryIcon pointer, whose
-// class OpenMFC does not declare at all; left a stub rather than a partial
-// reading.
+// CMFCVisualManagerOfficeXP::OnDrawRibbonColorPaletteBox(CDC*, CMFCRibbonColorButton*,
+//         CMFCRibbonGalleryIcon*, COLORREF color, CRect rect, BOOL bDrawTopEdge,
+//         BOOL bDrawBottomEdge, BOOL bIsHighlighted, BOOL bIsChecked, BOOL bIsDisabled)
+// -- retail RVA 0x1b2b10 (mfc140.dll):
+//     CRect rectFill = rect; ::InflateRect(&rectFill, -1, 0);          // IAT 0x1802c5310, 0x1b2b59
+//     if (bIsHighlighted || bIsChecked) {                                // 0x80 / 0x88(%rbp), 0x1b2b65..0x1b2b70
+//         this->OnFillHighlightedArea(pDC, rect, &m_brHighlight /*+0x1a0*/, NULL);   // vtable +0x638, 0x1b2ba1
+//         ::InflateRect(&rectFill, -1, -2);                              // 0x1b2bb4
+//     }
+//     if (color != (COLORREF)-1) {                                       // 0x1b2bba
+//         CBrush br(color);                                              // ??0CBrush@@QEAA@K@Z 0x2a1fa0
+//         ::FillRect(pDC->m_hDC, &rectFill, br.m_hObject);               // IAT 0x1802c5230, 0x1b2bd6
+//     }
+//     if (bDrawTopEdge && bDrawBottomEdge)                               // 0x1b2bf8 / 0x1b2bfd
+//         pDC->Draw3dRect(&rect, RGB(197,197,197), RGB(197,197,197));    // 0xc5c5c5, 0x1b2c11
+//     else {
+//         CPen pen(PS_SOLID, 1, RGB(197,197,197));                       // ??0CPen@@QEAA@HHK@Z 0x2a1ed0
+//         CPen* pOldPen = pDC->SelectObject(&pen); ENSURE(pOldPen);      // 0x1b2c38; throw at 0x1b2d56
+//         pDC->MoveTo(rect.left, rect.top);      pDC->LineTo(rect.left, rect.bottom);       // 0x1b2c58 / 0x1b2c67
+//         pDC->MoveTo(rect.right - 1, rect.top); pDC->LineTo(rect.right - 1, rect.bottom);  // 0x1b2c7f / 0x1b2c8e
+//         if (bDrawTopEdge)    { pDC->MoveTo(rect.left, rect.top);        pDC->LineTo(rect.right, rect.top); }
+//         if (bDrawBottomEdge) { pDC->MoveTo(rect.left, rect.bottom - 1); pDC->LineTo(rect.right, rect.bottom - 1); }
+//         pDC->SelectObject(pOldPen);                                    // 0x1b2cec
+//     }
+//     if (bIsHighlighted || bIsChecked) {                                // 0x1b2d06..0x1b2d11
+//         COLORREF clr = bIsChecked ? m_clrPressedButtonBorder /*+0x124*/
+//                                   : m_clrMenuItemBorder /*+0x138*/;    // neg/sbb/and $-0x14, 0x1b2d13..0x1b2d1c
+//         pDC->Draw3dRect(&rect, clr, clr);                              // 0x1b2d2d
+//     }
+// pColorButton (r8, overwritten at 0x1b2b4b), pIcon (r9) and bIsDisabled
+// (0x90(%rbp)) are never read.  (An earlier stub comment here claimed two +0x638
+// calls, three Draw3dRect calls, a bIsDisabled test and a dependence on the
+// CMFCRibbonGalleryIcon object; none of that is in the body.)
+// The +0x638 virtual is the OfficeXP OnFillHighlightedArea, whose body is
+// XP_FillHighlighted (see the file header on why it is not dispatched);
+// m_brHighlight is XP_Colors().c118 and m_clrMenuItemBorder XP_Colors().c138.
+// m_clrPressedButtonBorder is the constant -1 that
+// CMFCVisualManagerOfficeXP::OnUpdateSystemColors stores (0x1ac9e5), used as a
+// constant here as in OnDrawButtonBorder (a retail CMFCVisualManagerVS2005,
+// whose OnUpdateSystemColors stores a real colour there at 0x1b33e0 / 0x1b37cc,
+// would differ).  The three CDC::Draw3dRect calls go through
+// XP_Draw3dRectExact, which issues the same four CDC::FillSolidRect runs
+// (::SetBkColor + ::ExtTextOut(ETO_OPAQUE), 0x2a3a60) as retail, so a -1
+// colour reaches GDI exactly as it does there.  Deviations: the pen and
+// brush are raw handles, so a failed ::CreatePen / ::CreateSolidBrush skips
+// the drawing instead of throwing a resource exception from the CPen / CBrush
+// constructor; the MoveTo / LineTo pairs go to m_hDC only; the NULL-HDC return
+// is OpenMFC's.
 // Symbol: ?OnDrawRibbonColorPaletteBox@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCRibbonColorButton@@PEAVCMFCRibbonGalleryIcon@@KVCRect@@HHHHH@Z
 extern "C" void MS_ABI impl__OnDrawRibbonColorPaletteBox_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonColorButton__PEAVCMFCRibbonGalleryIcon__KVCRect__HHHHH_Z(
-    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, void* /*pColorButton*/, void* /*pIcon*/,
-    unsigned long /*color*/, CRect /*rect*/, int /*bDrawTopEdge*/, int /*bDrawBottomEdge*/,
-    int /*bIsHighlighted*/, int /*bIsChecked*/, int /*bIsDisabled*/) {}
+    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* pDC, void* /*pColorButton*/, void* /*pIcon*/,
+    unsigned long color, CRect rect, int bDrawTopEdge, int bDrawBottomEdge,
+    int bIsHighlighted, int bIsChecked, int /*bIsDisabled*/)
+{
+    HDC hdc = XP_Hdc(pDC);
+    if (hdc == nullptr) return;
+
+    const XPColors x = XP_Colors();
+    const COLORREF clrBorder = RGB(197, 197, 197);
+    const COLORREF clrPressedButtonBorder = static_cast<COLORREF>(-1);   // m_clrPressedButtonBorder, see above
+
+    RECT rectFill = XP_ToRECT(rect);
+    ::InflateRect(&rectFill, -1, 0);
+
+    if (bIsHighlighted || bIsChecked) {
+        XP_FillHighlightedSolid(pDC, rect, x.c118);
+        ::InflateRect(&rectFill, -1, -2);
+    }
+
+    if (color != static_cast<unsigned long>(-1)) {
+        HBRUSH hbr = ::CreateSolidBrush(color);
+        if (hbr != nullptr) {
+            ::FillRect(hdc, &rectFill, hbr);
+            ::DeleteObject(hbr);
+        }
+    }
+
+    if (bDrawTopEdge && bDrawBottomEdge) {
+        XP_Draw3dRectExact(hdc, rect, clrBorder, clrBorder);
+    } else {
+        HPEN hPen = ::CreatePen(PS_SOLID, 1, clrBorder);
+        if (hPen != nullptr) {
+            HGDIOBJ hOldPen = ::SelectObject(hdc, hPen);
+            if (hOldPen == nullptr) {
+                ::DeleteObject(hPen);
+                impl__AfxThrowInvalidArgException__YAXXZ();   // ENSURE(pOldPen != NULL)
+                return;
+            }
+            ::MoveToEx(hdc, rect.left, rect.top, nullptr);
+            ::LineTo(hdc, rect.left, rect.bottom);
+            ::MoveToEx(hdc, rect.right - 1, rect.top, nullptr);
+            ::LineTo(hdc, rect.right - 1, rect.bottom);
+            if (bDrawTopEdge) {
+                ::MoveToEx(hdc, rect.left, rect.top, nullptr);
+                ::LineTo(hdc, rect.right, rect.top);
+            }
+            if (bDrawBottomEdge) {
+                ::MoveToEx(hdc, rect.left, rect.bottom - 1, nullptr);
+                ::LineTo(hdc, rect.right, rect.bottom - 1);
+            }
+            ::SelectObject(hdc, hOldPen);
+            ::DeleteObject(hPen);
+        }
+    }
+
+    if (bIsHighlighted || bIsChecked) {
+        const COLORREF clr = bIsChecked ? clrPressedButtonBorder : x.c138;
+        XP_Draw3dRectExact(hdc, rect, clr, clr);
+    }
+}
 
 // CMFCVisualManagerOfficeXP::OnDrawRibbonMenuCheckFrame(CDC*, CMFCRibbonButton*,
 //         CRect rect) -- retail RVA 0x1b2650 (mfc140.dll):
@@ -2364,8 +2827,8 @@ extern "C" unsigned long MS_ABI impl__OnDrawRibbonStatusBarPane_CMFCVisualManage
 // ::GetSysColorBrush(COLOR_WINDOW).  The two OfficeXP
 // members come from XPHighlightColor()/XPBorderColor() (see the file header).
 // Deviation: the glyph is not drawn -- iImage is a caller-supplied
-// CMenuImages::IMAGES_IDS and OpenMFC's exported CMenuImages::Draw is a no-op
-// stub, so there is nothing faithful to substitute for an arbitrary id.
+// CMenuImages::IMAGES_IDS and OpenMFC's exported CMenuImages::Draw paints
+// nothing yet, so there is nothing faithful to substitute for an arbitrary id.
 // Symbol: ?OnDrawScrollButtons@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@AEBVCRect@@HHH@Z
 extern "C" void MS_ABI impl__OnDrawScrollButtons_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__AEBVCRect__HHH_Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* pDC, const CRect* pRect,
@@ -2508,9 +2971,10 @@ extern "C" void MS_ABI impl__OnDrawSeparator_CMFCVisualManagerOfficeXP__MEAAXPEA
 //         if (m_bIsDrawOnGlass) dm.DrawRect(rect[nHighlighted], (COLORREF)-1, m_clrMenuItemBorder);  // 0x1b13bd
 //         else pDC->Draw3dRect(rect[nHighlighted], m_clrMenuItemBorder, m_clrMenuItemBorder);        // 0x1b13cf
 //     }
-// The spin control pointer is never read.  Deviations: the two on-glass
-// DrawRect arms are not taken (CDrawingManager exports are stubs here); the
-// glyphs are painted by XP_DrawMenuImage; brushes/border from XP_Colors().
+// The spin control pointer is never read.  The two on-glass DrawRect arms (the
+// m_bIsDrawOnGlass tests at 0x1b11bf and 0x1b1396) call the real
+// CDrawingManager exports through XP_DmDrawRect.  Deviations: the glyphs are
+// painted by XP_DrawMenuImage; brushes/border from XP_Colors().
 // Symbol: ?OnDrawSpinButtons@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HHPEAVCMFCSpinButtonCtrl@@@Z
 extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HHPEAVCMFCSpinButtonCtrl___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* pDC, CRect rectSpin, int nState, int bOrientation,
@@ -2536,6 +3000,9 @@ extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManagerOfficeXP__MEAAXP
     for (int i = 0; i < 2; i++) {
         if (i == nPressed || i == nHighlighted) {
             XP_FillHighlightedSolid(pDC, rect[i], (i == nPressed) ? x.c11c : x.c118);
+        } else if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0) {
+            XP_DmDrawRect(pDC, rect[i], GD_clrBtnFace() /*clrBarFace +0x60*/,
+                          GD_clrBarHilite() /*+0x68*/);
         } else {
             XP_FillSolid(pDC, rect[i], GD_clrBtnFace());
             DC_Draw3dRect(pDC, rect[i], GD_clrBarHilite(), GD_clrBarHilite());
@@ -2544,7 +3011,10 @@ extern "C" void MS_ABI impl__OnDrawSpinButtons_CMFCVisualManagerOfficeXP__MEAAXP
     }
 
     if (nHighlighted >= 0) {
-        DC_Draw3dRect(pDC, rect[nHighlighted], x.c138, x.c138);
+        if (impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA != 0)
+            XP_DmDrawRect(pDC, rect[nHighlighted], static_cast<COLORREF>(-1), x.c138);
+        else
+            DC_Draw3dRect(pDC, rect[nHighlighted], x.c138, x.c138);
     }
 }
 
@@ -2606,10 +3076,11 @@ extern "C" void MS_ABI impl__OnDrawSplitterBox_CMFCVisualManagerOfficeXP__MEAAXP
 // ::GetSysColor(COLOR_BTNSHADOW) (the two stores at 0x6b077 and 0x6b07a).  So
 // GD_clrBtnShadow() reproduces +0x130 exactly and the fact that OpenMFC has no
 // storage for the member does not matter here.
-// Deviation: the SBPS_POPOUT highlight is not drawn.  OpenMFC's exported
-// CDrawingManager::HighlightRect (phase4/src/core/gdi/CDrawingManager.cpp:156)
-// is an empty stub, and its generated signature also omits the implicit `this`,
-// so calling it would paint nothing and pass arguments in the wrong registers.
+// The SBPS_POPOUT highlight calls the real exported
+// CDrawingManager::HighlightRect (phase4/src/core/gdi/CDrawingManager.cpp) on a
+// copy of rectPane with nPercentage -1, clrTransparent -1, nTolerance 0 and
+// clrBlend -1 (r8d / r9d / 0x20(%rsp) / 0x28(%rsp) at 0x1af9dc..0x1af9ec).  The
+// NULL-pDC return on that arm is OpenMFC's.
 // Symbol: ?OnDrawStatusBarPaneBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@II@Z
 extern "C" void MS_ABI impl__OnDrawStatusBarPaneBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCStatusBar__VCRect__II_Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* pDC,
@@ -2617,6 +3088,14 @@ extern "C" void MS_ABI impl__OnDrawStatusBarPaneBorder_CMFCVisualManagerOfficeXP
     unsigned int /*uiID*/, unsigned int nStyle)
 {
     if ((nStyle & kXPStatusNoBorders) != 0) return;
+    if ((nStyle & 0x0200u /*SBPS_POPOUT*/) != 0 && pDC != nullptr) {
+        alignas(void*) unsigned char dm[16] = {};
+        impl___0CDrawingManager__QEAA_AEAVCDC___Z(dm, pDC);
+        CRect rectHighlight(rectPane);
+        impl__HighlightRect_CDrawingManager__QEAAHVCRect__HKHK_Z(
+            dm, &rectHighlight, -1, static_cast<unsigned long>(-1), 0, static_cast<unsigned long>(-1));
+        impl___1CDrawingManager__UEAA_XZ(dm);
+    }
     DC_Draw3dRect(pDC, rectPane, GD_clrBtnShadow(), GD_clrBtnShadow());
 }
 
@@ -2692,43 +3171,164 @@ extern "C" void MS_ABI impl__OnDrawTabsButtonBorder_CMFCVisualManagerOfficeXP__M
     unsigned int /*uiState*/, CMFCBaseTabCtrl* /*pWndTab*/) {}
 
 // CMFCVisualManagerOfficeXP::OnDrawTask(CDC*, CMFCTasksPaneTask* pTask, CImageList* pIcons,
-//         BOOL bIsHighlighted, BOOL bIsSelected) -- retail RVA 0x1b0b80 (mfc140.dll).
-// Retail throws (0x225b80) when pTask or pIcons is NULL, then:
-//     CRect rectText = pTask->m_rect;                                    // +0x18
-//     if (pTask->m_bIsSeparator /*+0x54*/) { select afxGlobalData.penBarShadow (+0x148);
-//         MoveTo(left, ymid); LineTo(right, ymid); restore; return; }    // 0x1b0c01..0x1b0c46
-//     ImageList_GetIconSize(pIcons->m_hImageList, &cx, &cy);            // 0x6f1e0
+//         BOOL bIsHighlighted, BOOL bIsSelected) -- retail RVA 0x1b0b80 (mfc140.dll):
+//     if (pTask == NULL || pIcons == NULL) AfxThrowInvalidArgException();   // 0x1b0bb1/0x1b0bba -> 0x1b0fa2
+//     CRect rectText = pTask->m_rect;                                    // +0x18, 0x1b0bc3
+//     if (pTask->m_bIsSeparator) {                                       // +0x54, 0x1b0bcd
+//         CPen* pOldPen = pDC->SelectObject(&afxGlobalData.penBarShadow);  // +0x148, 0x1b0c01
+//         int y = (rectText.top + rectText.bottom) / 2;
+//         pDC->MoveTo(rectText.left, y); pDC->LineTo(rectText.right, y);  // 0x1b0c22 / 0x1b0c3b
+//         pDC->SelectObject(pOldPen); return; }
+//     int cx = 0, cy = 0;
+//     ImageList_GetIconSize(pIcons->m_hImageList /*+0x8*/, &cx, &cy);    // 0x1b0c78
 //     if (pTask->m_nIcon /*+0x28*/ >= 0 && cx > 0)
-//         ImageList_Draw(pIcons->m_hImageList, m_nIcon, pDC->m_hDC, left, top, ILD_TRANSPARENT);  // 0x60b94
+//         ImageList_Draw(pIcons->m_hImageList, pTask->m_nIcon, pDC->GetSafeHdc(),
+//                        rectText.left, rectText.top, ILD_TRANSPARENT);   // 0x1b0cb3
 //     CMFCTasksPane* pPane = pTask->m_pGroup->m_pPage->m_pTaskPane;      // +0x8 -> +0x8 -> +0x10, 0x1b0cb8..0x1b0cc0
 //     int nOffset = pPane->m_nTasksIconHorzOffset;                       // +0x540, 0x1b0cc4
 //     if (nOffset == -1) nOffset = m_nTasksIconHorzOffset;               // CMFCVisualManager +0xec, 0x1b0ccf
-//     rectText.left += cx + nOffset;
-//     <select afxGlobalData.fontBold/fontRegular/fontUnderline (+0x1c8/+0x1a8/+0x1e8) and a
-//      text colour from m_clrText/m_clrTextHot (+0x5c/+0x60) or afxGlobalData, on m_uiCommandID
-//      (+0x30), m_bIsBold (+0x58), m_bEnabled (+0x50) and bIsSelected; DrawText the task name
-//      (+0x10) with DT_WORDBREAK when (m_uiCommandID ? pPane->m_bWrapTasks /*+0x4fc*/
-//      : pPane->m_bWrapLabels /*+0x500*/) is set (the `neg/sbb/and $-4` at 0x1b0eb3..0x1b0ec9
-//      selecting the offset), else with CR/LF stripped and DT_SINGLELINE|DT_VCENTER|
-//      DT_END_ELLIPSIS (0x8024, 0x1b0f23); restore>
-// Every object offset above IS pinned by a shadow struct in this repo:
-// S_Cmfctaskspanetask (phase4/src/detail/CMFCTasksPaneTaskSupport.h: m_pGroup
-// 8, m_strName 16, m_rect 24, m_nIcon 40, m_uiCommandID 48, m_bEnabled 80,
-// m_bIsSeparator 84, m_bIsBold 88, m_clrText 92, m_clrTextHot 96),
-// S_Cmfctaskspanetaskgroup (m_pPage 8), S_Cmfctaskspanepropertypage
-// (m_pTaskPane 16) and S_MfcFeature20Impl in CMFCTasksPaneSupport.h
-// (m_bWrapTasks 0x4fc, m_bWrapLabels 0x500, m_nTasksIconHorzOffset 0x540).
-// Left a stub for one reason only: the three fonts the text is drawn with
-// live in afxGlobalData (+0x1a8 / +0x1c8 / +0x1e8), which OpenMFC exports as a
-// zero-filled blob (phase4/src/featurepack/CMFC_misc_stubs.cpp), so the
-// bold / underline / regular distinction that is the visible point of this
-// body cannot be reproduced; a transcription would draw every task in
-// whatever font the caller left selected.  (An earlier comment here claimed
-// the CMFCTasksPane members were unmodelled and cited +0x504; both were wrong.)
+//     rectText.left += cx + nOffset;                                     // 0x1b0cd6/0x1b0cd9
+//     UINT uiCommandID = pTask->m_uiCommandID;                           // +0x30
+//     COLORREF clrOld = ::GetTextColor(pDC->m_hAttribDC);                // 0x1b0ce4
+//     CFont* pOldFont;
+//     if (uiCommandID == 0) {                                            // a label
+//         pOldFont = pDC->SelectObject(pTask->m_bIsBold /*+0x58*/ ? &afxGlobalData.fontBold
+//                                                                 : &afxGlobalData.fontRegular);  // 0x1b0d52
+//         pDC->SetTextColor(pTask->m_clrText /*+0x5c*/ == -1 ? afxGlobalData.clrWindowText /*+0x7c*/
+//                                                            : pTask->m_clrText);   // 0x1b0d91
+//     } else if (!pTask->m_bEnabled /*+0x50*/) {
+//         pDC->SetTextColor(afxGlobalData.clrGrayedText /*+0x44*/);
+//         pOldFont = pDC->SelectObject(&afxGlobalData.fontRegular);
+//     } else if (bIsHighlighted) {                                       // 5th argument, 0x68(%rbp), test at 0x1b0dcf
+//         pDC->SetTextColor(pTask->m_clrTextHot /*+0x60*/ == -1 ? afxGlobalData.clrHotText /*+0x50*/
+//                                                               : pTask->m_clrTextHot);  // 0x1b0e04
+//         pOldFont = pDC->SelectObject(&afxGlobalData.fontUnderline);   // +0x1e8
+//     } else {
+//         pDC->SetTextColor(pTask->m_clrText == -1 ? afxGlobalData.clrWindowText : pTask->m_clrText);
+//         pOldFont = pDC->SelectObject(&afxGlobalData.fontRegular);     // +0x1a8
+//     }
+//     int nOldBkMode = pDC->SetBkMode(TRANSPARENT);                      // 0x1b0ea7
+//     if (uiCommandID != 0 ? pPane->m_bWrapTasks /*+0x4fc*/ : pPane->m_bWrapLabels /*+0x500*/)
+//         // (the `neg/sbb/and $-4` at 0x1b0eb3..0x1b0ec9 picks the offset)
+//         pDC->DrawText(pTask->m_strName, pTask->m_strName.GetLength(), rectText, DT_WORDBREAK);  // 0x1b0ef1
+//     else {
+//         CString strText = pTask->m_strName;                            // +0x10
+//         strText.Remove(_T('\n')); strText.Remove(_T('\r'));            // 0x1b0f10 / 0x1b0f1b
+//         pDC->DrawText(strText, strText.GetLength(), rectText,
+//                       DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);   // 0x8024, 0x1b0f44
+//     }
+//     pDC->SetBkMode(nOldBkMode); pDC->SelectObject(pOldFont); pDC->SetTextColor(clrOld);
+// The CDC calls are vtable +0x60 SelectObject(CFont*), +0x70 SetTextColor,
+// +0xe0 DrawText and the non-virtual CDC::SelectObject (0x2a0670) / MoveTo
+// (0x2a1000) / LineTo (0x2a1060) / SetBkMode (0x2a07a0); 0x6f1e0 / 0x60b94 are
+// comctl32 trampolines that resolve "ImageList_GetIconSize" / "ImageList_Draw"
+// by name (strings at image addresses 0x18033c800 / 0x18033c630, mfc140); IAT slot
+// 0x1802c4228 is GDI32!GetTextColor.  bIsSelected is never read.
+// Every record offset is pinned by the shadow structs re-asserted in the
+// helper block at the top of this file.  The CDC calls go straight to GDI on
+// the DC's m_hDC, as elsewhere in this file.  Deviations:
+//   * afxGlobalData's fonts and the penBarShadow pen are OpenMFC's zero-filled
+//     blob: the fonts come from XP_GlobalFont (read the retail slot, fall back
+//     to DEFAULT_GUI_FONT and its bold / underlined variants), and the
+//     separator is drawn with a 1px PS_SOLID pen of clrBarShadow (+0x64), which
+//     is what AFX_GLOBAL_DATA::UpdateSysColors builds penBarShadow from
+//     (::CreatePen at 0x6b397, colour read from +0x64 at 0x6b38b);
+//   * m_nTasksIconHorzOffset is read from `this` +0xec as retail does, which
+//     is 0 rather than retail's 5 on a manager OpenMFC constructed (see
+//     kXPVmTasksIconHorzOffset);
+//   * the NULL checks on pDC's HDC and on the group / page / pane chain are
+//     OpenMFC's; retail dereferences all of them;
+//   * the saved text colour is read from m_hAttribDC as retail does, but from
+//     m_hDC when m_hAttribDC is NULL (retail would get CLR_INVALID there), and
+//     it is restored with ::SetTextColor on m_hDC only.
 // Symbol: ?OnDrawTask@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCTasksPaneTask@@PEAVCImageList@@HH@Z
 extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCTasksPaneTask__PEAVCImageList__HH_Z(
-    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCTasksPaneTask* /*pTask*/, CImageList* /*pIcons*/,
-    int /*bIsHighlighted*/, int /*bIsSelected*/) {}
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCTasksPaneTask* pTask, CImageList* pIcons,
+    int bIsHighlighted, int /*bIsSelected*/)
+{
+    if (pTask == nullptr || pIcons == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    const XPTask* t = reinterpret_cast<const XPTask*>(pTask);
+    RECT rectText = t->m_rect;
+
+    HDC hdc = XP_Hdc(pDC);
+    if (hdc == nullptr) return;
+
+    if (t->m_bIsSeparator) {
+        const int y = (rectText.top + rectText.bottom) / 2;
+        XP_DrawLine(pDC, rectText.left, y, rectText.right, y, GD_clrBtnShadow());
+        return;
+    }
+
+    int cxIcon = 0;
+    int cyIcon = 0;
+    ::ImageList_GetIconSize(pIcons->m_hImageList, &cxIcon, &cyIcon);
+    if (t->m_nIcon >= 0 && cxIcon > 0) {
+        ::ImageList_Draw(pIcons->m_hImageList, t->m_nIcon, hdc, rectText.left, rectText.top, ILD_TRANSPARENT);
+    }
+
+    const XPGroup* g = static_cast<const XPGroup*>(t->m_pGroup);
+    const XPPage* pg = (g != nullptr) ? static_cast<const XPPage*>(g->m_pPage) : nullptr;
+    const XPPane* pane = (pg != nullptr) ? static_cast<const XPPane*>(pg->m_pTaskPane) : nullptr;
+    if (pane == nullptr) return;
+
+    int nOffset = pane->m_nTasksIconHorzOffset;
+    if (nOffset == -1) nOffset = XP_ReadInt(pThis, kXPVmTasksIconHorzOffset);
+    rectText.left += cxIcon + nOffset;
+
+    const unsigned int uiCommandID = t->m_uiCommandID;
+    const COLORREF clrOld = ::GetTextColor(pDC->m_hAttribDC != nullptr ? pDC->m_hAttribDC : hdc);
+
+    std::size_t fontOffset;
+    COLORREF clrText;
+    if (uiCommandID == 0) {
+        fontOffset = t->m_bIsBold ? kXPGdFontBold : kXPGdFontRegular;
+        clrText = (t->m_clrText == static_cast<COLORREF>(-1)) ? GD_clrWindowText() : t->m_clrText;
+    } else if (!t->m_bEnabled) {
+        clrText = GD_clrGrayedText();
+        fontOffset = kXPGdFontRegular;
+    } else if (bIsHighlighted) {
+        clrText = (t->m_clrTextHot == static_cast<COLORREF>(-1)) ? GD_clrHotText() : t->m_clrTextHot;
+        fontOffset = kXPGdFontUnderline;
+    } else {
+        clrText = (t->m_clrText == static_cast<COLORREF>(-1)) ? GD_clrWindowText() : t->m_clrText;
+        fontOffset = kXPGdFontRegular;
+    }
+    const XP_GlobalFont font(fontOffset);
+    const HGDIOBJ hOldFont = (font.Get() != nullptr) ? ::SelectObject(hdc, font.Get()) : nullptr;
+    ::SetTextColor(hdc, clrText);
+
+    const int nOldBkMode = ::SetBkMode(hdc, TRANSPARENT);
+
+    const CString& strName = XP_RecordString(&t->m_strName);
+    const BOOL bWrap = (uiCommandID != 0) ? pane->m_bWrapTasks : pane->m_bWrapLabels;
+    if (bWrap) {
+        const wchar_t* psz = strName;
+        ::DrawTextW(hdc, psz != nullptr ? psz : L"", strName.GetLength(), &rectText, DT_WORDBREAK);
+    } else {
+        // The CR/LF-stripped copy lives in a heap buffer rather than a CString
+        // (the same choice OnDrawBarGripper makes for its caption).
+        const wchar_t* psz = strName;
+        const int nLen = (psz != nullptr) ? strName.GetLength() : 0;
+        wchar_t* strText = static_cast<wchar_t*>(::HeapAlloc(::GetProcessHeap(), 0,
+            (static_cast<std::size_t>(nLen > 0 ? nLen : 0) + 1) * sizeof(wchar_t)));
+        if (strText != nullptr) {
+            int n = 0;
+            for (int i = 0; i < nLen; ++i) {
+                if (psz[i] != L'\n' && psz[i] != L'\r') strText[n++] = psz[i];
+            }
+            strText[n] = L'\0';
+            ::DrawTextW(hdc, strText, n, &rectText, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
+            ::HeapFree(::GetProcessHeap(), 0, strText);
+        }
+    }
+
+    ::SetBkMode(hdc, nOldBkMode);
+    if (hOldFont != nullptr) ::SelectObject(hdc, hOldFont);
+    ::SetTextColor(hdc, clrOld);
+}
 
 // CMFCVisualManagerOfficeXP::OnDrawTasksGroupAreaBorder(CDC*, CRect, BOOL, BOOL)
 // -- the retail body is EMPTY: the OfficeXP look draws no border around the
@@ -2751,26 +3351,169 @@ extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC_
 // stub.
 // Symbol: ?OnDrawTasksGroupAreaBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HH@Z
 extern "C" void MS_ABI impl__OnDrawTasksGroupAreaBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HH_Z(
-    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bSpecial*/, int /*bNoTitle*/) {}
+    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bSpecial*/, int /*bNoTitle*/)
+{
+    // Retail body: a single `ret` (0x2820, mfc140) -- nothing to do.
+}
 
-// Retail (RVA 0x1b0730, mfc140.dll) throws when pGroup or pGroup->m_pPage (+0x8)
-// is NULL, reads the group's m_rect (+0x5c..) / m_sizeIcon (+0x7c) / m_hIcon
-// (+0x88) (loads at 0x1b0771..0x1b07ab; all pinned by S_Cmfctaskspanetaskgroup
-// in phase4/src/detail/CMFCTasksPaneTaskGroupSupport.h), and when an icon fits
-// hands it to this->OnDrawTasksGroupIcon (vtable +0x2e8, 0x1b07dc).  It then
-// selects afxGlobalData.fontBold (+0x1c8, 0x1b0811), sets colours from
-// m_clrText / m_clrTextHot (+0x90/+0x94) or afxGlobalData, draws the caption
-// text and a ::Rectangle frame (CDC::SelectObject 0x2a0670 and the GDI imports
-// GetBkColor 0x2c4178 / Rectangle 0x2c4218) and, for a collapsible group, a
-// CMenuImages::Draw glyph (0x8fc50,
-// 0x1b0ab8) sized by CMenuImages::Size (0x8fbb0).  Left a stub: the bold font
-// lives in afxGlobalData, which OpenMFC exports as a zero-filled blob, and the
-// icon / glyph calls go to virtuals and exports that are empty stubs here.
-// (An earlier comment here said the group was not laid out; it is.)
+// CMFCVisualManagerOfficeXP::OnDrawTasksGroupCaption(CDC*, CMFCTasksPaneTaskGroup* pGroup,
+//         BOOL bIsHighlighted, BOOL bIsSelected, BOOL bCanCollapse) -- retail RVA
+// 0x1b0730 (mfc140.dll):
+//     if (pGroup == NULL || pGroup->m_pPage /*+0x8*/ == NULL)
+//         AfxThrowInvalidArgException();                                 // 0x1b076b / 0x1b0776 -> 0x1b0ae1
+//     CRect rectGroup = pGroup->m_rect;                                  // +0x5c, loads at 0x1b0784..0x1b0790
+//     BOOL bShowIcon = FALSE;
+//     if (pGroup->m_hIcon /*+0x88*/ != NULL &&
+//         pGroup->m_sizeIcon.cx /*+0x7c*/ < rectGroup.Width() - rectGroup.Height()) {   // 0x1b07a3..0x1b07af
+//         OnDrawTasksGroupIcon(pDC, pGroup, 5, bIsHighlighted, bIsSelected, bCanCollapse);  // vtable +0x2e8, 0x1b07dc
+//         bShowIcon = TRUE; }
+//     CFont* pOldFont = pDC->SelectObject(&afxGlobalData.fontBold);      // +0x1c8, vtable +0x60, 0x1b081e
+//     ::GetTextColor(pDC->m_hAttribDC);                                  // 0x1b082c, result unused
+//     COLORREF clrOld = pDC->SetTextColor(
+//         (bCanCollapse && bIsHighlighted) ? (pGroup->m_clrTextHot /*+0x94*/ == -1 ? afxGlobalData.clrWindowText
+//                                                                            : pGroup->m_clrTextHot)
+//                                          : (pGroup->m_clrText /*+0x90*/ == -1 ? afxGlobalData.clrWindowText
+//                                                                         : pGroup->m_clrText));   // +0x7c, vtable +0x70, 0x1b088e
+//     int nOldBkMode = pDC->SetBkMode(TRANSPARENT);                      // 0x1b089f
+//     CMFCTasksPane* pPane = pGroup->m_pPage->m_pTaskPane;               // +0x8 -> +0x10
+//     int nCaptionHOffset = pPane->m_nGroupCaptionHorzOffset;            // +0x534
+//     if (nCaptionHOffset == -1) nCaptionHOffset = m_nGroupCaptionHorzOffset;   // CMFCVisualManager +0xe0
+//     int nCaptionVOffset = pPane->m_nGroupCaptionVertOffset;            // +0x538
+//     if (nCaptionVOffset == -1) nCaptionVOffset = m_nGroupCaptionVertOffset;   // CMFCVisualManager +0xe4
+//     CRect rectText;
+//     rectText.left   = rectGroup.left + (bShowIcon ? pGroup->m_sizeIcon.cx + 5 : nCaptionHOffset);
+//     rectText.top    = rectGroup.top + nCaptionVOffset;
+//     rectText.bottom = rectGroup.bottom;
+//     rectText.right  = max(rectText.left,
+//                           rectGroup.right - (bCanCollapse ? rectGroup.Height() : nCaptionHOffset));  // 0x1b08ff..0x1b092f
+//     pDC->DrawText(pGroup->m_strName /*+0x10*/, pGroup->m_strName.GetLength(), rectText,
+//                   DT_SINGLELINE | DT_VCENTER);                         // 0x24, vtable +0xe0, 0x1b0953
+//     pDC->SetBkMode(nOldBkMode); pDC->SelectObject(pOldFont); pDC->SetTextColor(clrOld);
+//     if (bCanCollapse && !pGroup->m_strName.IsEmpty()) {                // 0x1b098b / 0x1b0998
+//         CSize sizeImage = CMenuImages::Size();                         // 0x1b09a6 (0x8fbb0)
+//         CRect rectImage = rectGroup;
+//         rectImage.left = max(rectGroup.left, rectGroup.right - sizeImage.cx);
+//         rectImage.top  = max(rectGroup.top, rectGroup.bottom - sizeImage.cy);
+//         if (rectImage.Width() < sizeImage.cx || rectImage.Height() < sizeImage.cy) return;  // 0x1b09dd / 0x1b09eb
+//         if (bIsHighlighted) {
+//             CPen* pOldPen = pDC->SelectObject(&afxGlobalData.penHilite);    // +0x128, 0x1b0a24
+//             CBrush* pOldBrush = pDC->SelectObject(&m_brHighlight);          // +0x1a0, 0x1b0a3a
+//             COLORREF clrBkOld = ::GetBkColor(pDC->m_hAttribDC);             // 0x1b0a46
+//             ::Rectangle(pDC->m_hDC, rectImage.left, rectImage.top,
+//                         rectImage.right, rectImage.bottom);                // 0x1b0a63
+//             pDC->SetBkColor(clrBkOld);                                      // vtable +0x68, 0x1b0a75
+//             pDC->SelectObject(pOldPen); pDC->SelectObject(pOldBrush); }
+//         CMenuImages::Draw(pDC, pGroup->m_bIsCollapsed /*+0x58*/ ? IdArrowDown : IdArrowUp,
+//                           rectImage.TopLeft(), ImageBlack, CSize(0, 0));   // CPoint overload 0x8fc50, 0x1b0ab8
+//     }
+// (the SelectObject at 0x1b0a24 / 0x1b0a3a is CDC::SelectObject 0x2a0670, whose
+// ICF-shared body serves the CPen / CBrush / CFont overloads; the IAT slots
+// 0x1802c4228 / 0x1802c4178 / 0x1802c4218 are GDI32 GetTextColor / GetBkColor /
+// Rectangle; IdArrowDown is 0 and IdArrowUp is 7, the `lea 0x7(%r9)` at
+// 0x1b0ab4.)  The +0x2e8 slot of the OfficeXP vftable (image address
+// 0x18031b3d8, mfc140) holds 0x187b30, ?OnDrawTasksGroupIcon@CMFCVisualManager@@
+// -- no visual manager class overrides it -- so the call is made to that
+// export's OpenMFC thunk directly (which is itself still a stub in
+// CMFCVisualManager.cpp, so no icon is painted yet).  afxGlobalData.penHilite
+// is ::CreatePen(PS_SOLID, 1, clrHilite (+0x48)) in AFX_GLOBAL_DATA::UpdateSysColors
+// (0x6afd0: the CPen at +0x128 is taken at 0x6b324, the colour read at
+// 0x6b333, ::CreatePen called at 0x6b33f and attached at 0x6b34b; the width
+// register r14d is set to 0xf - 0xe = 1 at 0x6afed); m_brHighlight is
+// ::CreateSolidBrush(m_clrHighlight) (0x1ac944 in OnUpdateSystemColors), i.e.
+// XP_Colors().c118.
+// Deviations: fontBold comes from XP_GlobalFont (see there); the pen and brush
+// are created locally around their one use; CMenuImages::Size() is the
+// constant 9 (XP_MenuImageEdge) and the arrow is painted by the local
+// XP_DrawMenuImage stand-in in a 9x9 cell at rectImage.TopLeft(), because the
+// exported CMenuImages::Draw paints nothing here yet; the caption offsets fall
+// back to `this` +0xe0 / +0xe4, which read 0 rather than retail's 13 / 7 on a
+// manager OpenMFC constructed (see kXPVmGroupCaptionHorzOffset); the NULL
+// checks on pDC's HDC and on the pane pointer are OpenMFC's; the unused
+// ::GetTextColor at 0x1b082c is not issued; the saved background colour falls
+// back to m_hDC when m_hAttribDC is NULL, and the CDC colour / mode setters go
+// to m_hDC only.
 // Symbol: ?OnDrawTasksGroupCaption@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCTasksPaneTaskGroup@@HHH@Z
 extern "C" void MS_ABI impl__OnDrawTasksGroupCaption_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHH_Z(
-    CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCTasksPaneTaskGroup* /*pGroup*/,
-    int /*bIsHighlighted*/, int /*bIsSelected*/, int /*bCanCollapse*/) {}
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCTasksPaneTaskGroup* pGroup,
+    int bIsHighlighted, int bIsSelected, int bCanCollapse)
+{
+    const XPGroup* g = reinterpret_cast<const XPGroup*>(pGroup);
+    if (g == nullptr || g->m_pPage == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    const RECT rectGroup = g->m_rect;
+
+    HDC hdc = XP_Hdc(pDC);
+    if (hdc == nullptr) return;
+
+    bool bShowIcon = false;
+    if (g->m_hIcon != nullptr &&
+        g->m_sizeIcon.cx < (rectGroup.right - rectGroup.left) - (rectGroup.bottom - rectGroup.top)) {
+        impl__OnDrawTasksGroupIcon_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCTasksPaneTaskGroup__HHHH_Z(
+            pThis, pDC, pGroup, 5, bIsHighlighted, bIsSelected, bCanCollapse);
+        bShowIcon = true;
+    }
+
+    const XPPane* pane = static_cast<const XPPane*>(static_cast<const XPPage*>(g->m_pPage)->m_pTaskPane);
+    if (pane == nullptr) return;
+
+    const XP_GlobalFont fontBold(kXPGdFontBold);
+    const HGDIOBJ hOldFont = (fontBold.Get() != nullptr) ? ::SelectObject(hdc, fontBold.Get()) : nullptr;
+
+    COLORREF clrText = (bCanCollapse && bIsHighlighted) ? g->m_clrTextHot : g->m_clrText;
+    if (clrText == static_cast<COLORREF>(-1)) clrText = GD_clrWindowText();
+    const COLORREF clrOld = ::SetTextColor(hdc, clrText);
+    const int nOldBkMode = ::SetBkMode(hdc, TRANSPARENT);
+
+    int nCaptionHOffset = pane->m_nGroupCaptionHorzOffset;
+    if (nCaptionHOffset == -1) nCaptionHOffset = XP_ReadInt(pThis, kXPVmGroupCaptionHorzOffset);
+    int nCaptionVOffset = pane->m_nGroupCaptionVertOffset;
+    if (nCaptionVOffset == -1) nCaptionVOffset = XP_ReadInt(pThis, kXPVmGroupCaptionVertOffset);
+
+    RECT rectText;
+    rectText.left   = rectGroup.left + (bShowIcon ? g->m_sizeIcon.cx + 5 : nCaptionHOffset);
+    rectText.top    = rectGroup.top + nCaptionVOffset;
+    rectText.bottom = rectGroup.bottom;
+    const int nRight = rectGroup.right - (bCanCollapse ? (rectGroup.bottom - rectGroup.top) : nCaptionHOffset);
+    rectText.right  = (rectText.left > nRight) ? rectText.left : nRight;
+
+    const CString& strName = XP_RecordString(&g->m_strName);
+    const wchar_t* pszName = strName;
+    const int nNameLen = (pszName != nullptr) ? strName.GetLength() : 0;
+    ::DrawTextW(hdc, pszName != nullptr ? pszName : L"", nNameLen, &rectText, DT_SINGLELINE | DT_VCENTER);
+
+    ::SetBkMode(hdc, nOldBkMode);
+    if (hOldFont != nullptr) ::SelectObject(hdc, hOldFont);
+    ::SetTextColor(hdc, clrOld);
+
+    if (!bCanCollapse || nNameLen == 0) return;
+
+    const int cxImage = XP_MenuImageEdge();
+    const int cyImage = XP_MenuImageEdge();
+    RECT rectImage = rectGroup;
+    rectImage.left = (rectGroup.left > rectGroup.right - cxImage) ? rectGroup.left : rectGroup.right - cxImage;
+    rectImage.top  = (rectGroup.top > rectGroup.bottom - cyImage) ? rectGroup.top : rectGroup.bottom - cyImage;
+    if (rectImage.right - rectImage.left < cxImage) return;
+    if (rectImage.bottom - rectImage.top < cyImage) return;
+
+    if (bIsHighlighted) {
+        HPEN hPen = ::CreatePen(PS_SOLID, 1, GD_clrHilite());
+        HBRUSH hBrush = ::CreateSolidBrush(XPHighlightColor());
+        HGDIOBJ hOldPen = (hPen != nullptr) ? ::SelectObject(hdc, hPen) : nullptr;
+        HGDIOBJ hOldBrush = (hBrush != nullptr) ? ::SelectObject(hdc, hBrush) : nullptr;
+        const COLORREF clrBkOld = ::GetBkColor(pDC->m_hAttribDC != nullptr ? pDC->m_hAttribDC : hdc);
+        ::Rectangle(hdc, rectImage.left, rectImage.top, rectImage.right, rectImage.bottom);
+        ::SetBkColor(hdc, clrBkOld);
+        if (hOldPen != nullptr) ::SelectObject(hdc, hOldPen);
+        if (hOldBrush != nullptr) ::SelectObject(hdc, hOldBrush);
+        if (hPen != nullptr) ::DeleteObject(hPen);
+        if (hBrush != nullptr) ::DeleteObject(hBrush);
+    }
+
+    const CRect rectGlyph(rectImage.left, rectImage.top, rectImage.left + cxImage, rectImage.top + cyImage);
+    XP_DrawMenuImage(pDC, g->m_bIsCollapsed ? 0 /*IdArrowDown*/ : 7 /*IdArrowUp*/, rectGlyph, 0 /*ImageBlack*/);
+}
 
 // CMFCVisualManagerOfficeXP::OnDrawTearOffCaption(CDC*, CRect rect, BOOL bIsActive)
 // -- retail RVA 0x1aefd0 (mfc140.dll):
@@ -3209,10 +3952,13 @@ extern "C" unsigned long MS_ABI impl__OnFillCommandsListBackground_CMFCVisualMan
 
 // CMFCVisualManagerOfficeXP::OnFillHighlightedArea(CDC*, CRect rect,
 //         CBrush* pBrush, CMFCToolBarButton* pButton) -- retail RVA 0x1b1400.
-// The body is transcribed in XP_FillHighlighted() above, which also documents
-// the one deviation (the CMFCToolBarImages::m_bIsDrawOnGlass branch).  Retail
-// passes NULL to ::FillRect when pBrush is NULL rather than skipping the call
-// (the `test %r9,%r9` at 0x1b1469); that is reproduced.  pButton is not read.
+// The body is transcribed in XP_FillHighlighted() above, both the
+// CMFCToolBarImages::m_bIsDrawOnGlass (CDrawingManager::DrawRect) arm and the
+// ::FillRect arm.  Retail passes NULL to ::FillRect when pBrush is NULL rather
+// than skipping the call (the `test %r9,%r9` at 0x1b1469); that is reproduced.
+// (On the glass arm retail dereferences pBrush unconditionally; here a NULL
+// brush makes ::GetObject fail and DrawRect gets the zeroed lbColor.)
+// pButton is not read.
 // CBrush::m_hObject is at +8 -- retail reads 0x8(%r9), and OpenMFC's
 // CGdiObject (include/openmfc/afxwin.h) puts m_hObject directly after the
 // CObject vptr -- so CGdiObject::GetSafeHandle(), which is inline in the
@@ -3301,8 +4047,11 @@ extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice
 // descriptor at 0x180302a10, and fills through CDrawingManager::DrawRect /
 // HighlightRect (0x5abf0 / 0x56750) or the +0x638 virtual with the OfficeXP
 // brushes, returning a text colour.  OpenMFC's CMFCRibbonButton placeholder
-// carries none of those virtuals or members and both CDrawingManager exports
-// are stubs; left a stub.  The `return 0` is the generated stub's value.
+// carries none of those virtuals or members, so none of the branches can be
+// chosen; left a stub.  (The two CDrawingManager exports have since been
+// implemented in phase4/src/core/gdi/CDrawingManager.cpp; they were a second
+// blocker when this comment was first written and no longer are.)  The
+// `return 0` is the generated stub's value.
 // Symbol: ?OnFillRibbonButton@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
 extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCRibbonButton* /*pButton*/) {
@@ -3435,16 +4184,59 @@ extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOff
 }
 
 // CMFCVisualManagerOfficeXP::OnUpdateSystemColors() -- retail RVA 0x1ac0e0
-// (mfc140.dll).  It does NOT call the base class: it deletes the nine GDI
-// objects at +0x160..+0x1e0 and +0x190 (CGdiObject::DeleteObject, 0x2a1ea0, the
-// run at 0x1ac0fb..0x1ac15b), recomputes the thirteen colour members exactly
-// as XP_Colors() at the top of this file transcribes (its comment cites every
-// store), sets m_clrPressedButtonBorder (+0x124) to -1 (0x1ac9e5), and
-// re-creates the brushes and pens with ::CreateSolidBrush / ::CreatePen +
-// CGdiObject::Attach (0x1ac8ed..0x1aca0f).  Left a stub: OpenMFC's
-// CMFCVisualManagerOfficeXP has no storage for any of those members (see the
-// file header), so there is nothing to write; every body in this file that
-// needs one of the values recomputes it through XP_Colors() instead, which is
-// the deviation the header describes.
+// (mfc140.dll).  It does NOT call the base class.  In order:
+//     m_brBarBkgnd, m_brMenuRarelyUsed, m_brMenuLight, m_brHighlight,
+//     m_brHighlightDn, m_brHighlightChecked, m_brFloatToolBarBorder,
+//     m_penSeparator, m_brTabBack .DeleteObject();       // +0x160 +0x170 +0x180 +0x1a0 +0x1b0
+//                                                        // +0x1c0 +0x1d0 +0x1e0 +0x190 (0x2a1ea0,
+//                                                        // the run at 0x1ac0f4..0x1ac15b)
+//     <twelve colour stores, +0x108..+0x138 less +0x124> // 0x1ac160..0x1ac8e7, transcribed
+//                                                        // store by store in XP_Colors() above
+//     m_brBarBkgnd.Attach(::CreateSolidBrush(m_clrBarBkgnd));         // +0x160 <- +0x108, 0x1ac8f3
+//     m_brMenuRarelyUsed / m_brMenuLight / m_brHighlight / m_brHighlightDn /
+//     m_brHighlightChecked likewise from +0x10c / +0x110 / +0x118 / +0x11c / +0x120
+//                                                        // 0x1ac90e..0x1ac98a
+//     m_brTabBack.Attach(::CreateSolidBrush(<ebx>));     // +0x190, 0x1ac991 (the unmodelled colour)
+//     m_penSeparator.Attach(::CreatePen(PS_SOLID, 1, m_clrSeparator));  // +0x1e0 <- +0x12c, 0x1ac9b2
+//     m_brFloatToolBarBorder.Attach(::CreateSolidBrush(<ebp>));        // +0x1d0, 0x1ac9c9 (XP_Colors().c1d0)
+//     m_clrPressedButtonBorder = (COLORREF)-1;           // +0x124, 0x1ac9e5
+//     m_penMenuItemBorder.DeleteObject();                // +0x1f0, 0x1ac9f2
+//     m_penMenuItemBorder.Attach(::CreatePen(PS_SOLID, 1, m_clrMenuItemBorder));  // <- +0x138,
+//                                                        // 0x1aca03, then tail-jmp to Attach
+// (IAT slots: 0x1802c4258 GDI32!CreateSolidBrush, 0x1802c4150 GDI32!CreatePen.)
+// What this body does: the colour stores, all thirteen of them (the twelve
+// computed colours plus the -1 at +0x124), into the object -- OpenMFC's CMFCVisualManagerOfficeXP has
+// storage for exactly those (its 64-byte _pad spans +0x108..+0x147; see the
+// static_asserts on XP_WriteColor).  That is what an MSVC-built class derived
+// from CMFCVisualManagerOfficeXP reads when it touches the protected colour
+// members.
+// What it does not do: create or delete any of the GDI objects.  They start
+// at +0x140 and OpenMFC's object ends at +0x148, so writing them would run
+// off the end of every OfficeXP / Office2003 object OpenMFC allocates.  The
+// bodies in this file build the equivalent brush or pen locally from
+// XP_Colors() at each use instead, as the file header describes; they do not
+// read the stored colours back, so a colour-scheme change reaches them
+// without this call.
+// Deviations inherited from XP_Colors(): GetWindowColor (vtable +0x630, the
+// call at 0x1ac1d1) is taken as the OfficeXP body rather than dispatched, and
+// the NULL `this` guard is OpenMFC's.
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManagerOfficeXP@@MEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOfficeXP__MEAAXXZ(CMFCVisualManagerOfficeXP* /*pThis*/) {}
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOfficeXP__MEAAXXZ(CMFCVisualManagerOfficeXP* pThis)
+{
+    if (pThis == nullptr) return;
+
+    const XPColors x = XP_Colors();
+    XP_WriteColor(pThis, 0x108, x.c108);   // m_clrBarBkgnd
+    XP_WriteColor(pThis, 0x10c, x.c10c);   // m_clrMenuRarelyUsed
+    XP_WriteColor(pThis, 0x110, x.c110);   // m_clrMenuLight
+    XP_WriteColor(pThis, 0x114, x.c114);   // m_clrInactiveTabText
+    XP_WriteColor(pThis, 0x118, x.c118);   // m_clrHighlight
+    XP_WriteColor(pThis, 0x11c, x.c11c);   // m_clrHighlightDn
+    XP_WriteColor(pThis, 0x120, x.c120);   // m_clrHighlightChecked
+    XP_WriteColor(pThis, 0x128, x.c128);   // m_clrGripper
+    XP_WriteColor(pThis, 0x12c, x.c12c);   // m_clrSeparator
+    XP_WriteColor(pThis, 0x130, x.c130);   // m_clrPaneBorder
+    XP_WriteColor(pThis, 0x134, x.c134);   // m_clrMenuBorder
+    XP_WriteColor(pThis, 0x138, x.c138);   // m_clrMenuItemBorder
+    XP_WriteColor(pThis, 0x124, static_cast<COLORREF>(-1));   // m_clrPressedButtonBorder, 0x1ac9e5
+}
