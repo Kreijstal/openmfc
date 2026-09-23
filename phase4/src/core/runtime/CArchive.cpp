@@ -31,6 +31,66 @@
 // its extern "C" thunk (definition: phase4/src/detail/MfcExceptionsSupport.cpp).
 extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName);
+// Definition: phase4/src/detail/MfcExceptionsSupport.cpp.
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
+namespace {
+
+// Retail (client-header) layouts of the value types the free operators at the
+// bottom of this file serialize.  They are local on purpose: OpenMFC's own
+// COleCurrency/COleDateTime in include/openmfc/afxole.h carry extra padding
+// fields, and CTime/CTimeSpan/COleDateTimeSpan are not declared in this tree
+// at all.  The offsets are the ones the retail operator bodies address
+// (+0x0/+0x4/+0x8 for COleCurrency, +0x0/+0x8 for COleDateTime and
+// COleDateTimeSpan), which are also those of the real ATL/MFC headers:
+// COleCurrency = { CURRENCY m_cur; CurrencyStatus m_status; } (CURRENCY being
+// { ULONG Lo; LONG Hi; } on little-endian), COleDateTime = { DATE m_dt;
+// DateTimeStatus m_status; }, COleDateTimeSpan = { double m_span;
+// DateTimeSpanStatus m_status; }.
+struct S_ArchOleCurrency {
+    unsigned long Lo;       // +0x0  m_cur.Lo
+    long          Hi;       // +0x4  m_cur.Hi
+    long          m_status; // +0x8
+    long          _pad;     // +0xc  (alignment of the 8-byte CURRENCY)
+};
+static_assert(offsetof(S_ArchOleCurrency, Lo) == 0x0, "COleCurrency m_cur.Lo");
+static_assert(offsetof(S_ArchOleCurrency, Hi) == 0x4, "COleCurrency m_cur.Hi");
+static_assert(offsetof(S_ArchOleCurrency, m_status) == 0x8, "COleCurrency m_status");
+static_assert(sizeof(S_ArchOleCurrency) == 0x10, "COleCurrency size");
+
+struct S_ArchOleDate {      // COleDateTime and COleDateTimeSpan
+    double m_value;         // +0x0  m_dt / m_span
+    long   m_status;        // +0x8
+};
+static_assert(offsetof(S_ArchOleDate, m_value) == 0x0, "COleDateTime m_dt");
+static_assert(offsetof(S_ArchOleDate, m_status) == 0x8, "COleDateTime m_status");
+static_assert(sizeof(S_ArchOleDate) == 0x10, "COleDateTime size");
+
+// Stand-ins for retail's inline CArchive primitive operators (see the block
+// comment above the value-type operators at the bottom of this file).  A load
+// from a storing archive throws CArchiveException::writeOnly, a store into a
+// loading archive throws ::readOnly -- exactly the causes retail passes.
+// Retail also passes m_strFileName, which OpenMFC's CArchive lacks: NULL here.
+void ArRequireLoading(CArchive* ar) {
+    if (!ar->IsLoading())
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, nullptr);
+}
+void ArRequireStoring(CArchive* ar) {
+    if (ar->IsLoading())
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::readOnly, nullptr);
+}
+template <class T> void ArPut(CArchive* ar, T value) {
+    ArRequireStoring(ar);
+    ar->Write(&value, sizeof(value));
+}
+template <class T> T ArGet(CArchive* ar) {
+    ArRequireLoading(ar);
+    T value{};
+    ar->Read(&value, sizeof(value));
+    return value;
+}
+
+} // namespace
 
 
 
@@ -140,12 +200,22 @@ extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTra
 extern "C" void MS_ABI impl__MapObject_CArchive__QEAAXPEBVCObject___Z(CArchive*, const CObject*) {
 }
 // Symbol: ?EnsureSchemaMapExists@CArchive@@QEAAXPEAPEAV?$CArray@W4LoadArrayObjType@CArchive@@AEBW412@@@@Z
-// STUB.  Retail body disassembled at RVA 0x1d03b0.  It works exclusively on
-// m_pSchemaMap at this+0x60: if that CMapPtrToPtr is null it allocates one
-// (0x38 bytes, hash-table size seeded to 10), then Lookup()s key 1
-// (CMapPtrToPtr::Lookup @0x231430) and, when absent, allocates the
-// CArray<LoadArrayObjType> (0x28 bytes) that the out-parameter receives,
-// sizing it from m_nGrowSize at this+0x68.
+// STUB.  Retail body disassembled at RVA 0x1d2420 (mfc140u); it works
+// exclusively on m_pSchemaMap at this+0x60:
+//     pMap = m_pSchemaMap;  pArray = NULL;
+//     if (pMap == NULL) {
+//         pMap = operator new(0x38);            ; ??2 at 0x27f0 (mfc140u)
+//         <inline CMapPtrToPtr ctor: vptr, m_pHashTable=0,
+//          m_nHashTableSize(+0x10)=17, +0x18/+0x20/+0x28=0, m_nBlockSize(+0x30)=10>
+//     }
+//     if (!pMap->Lookup((void*)1, (void*&)pArray)) {   ; Lookup at 0x232e10
+//         pArray = operator new(0x28);  <inline CArray ctor: vptr, +0x8..+0x20 = 0>
+//         <non-exported helper at 0x1d30b8>(pArray, 1, *(UINT*)(this+0x68));
+//                                                     ; SetSize(1, m_nGrowSize) shape
+//         (*pMap)[(void*)1] = pArray;               ; operator[] at 0x232e40
+//     }
+//     m_pSchemaMap = pMap;
+//     if (ppArray) *ppArray = pArray;
 // OpenMFC's CArchive has neither m_pSchemaMap nor m_nGrowSize, and nothing in
 // this tree produces or consumes a LoadArrayObjType array, so the function is
 // left inert rather than given an invented map.  See headerRequests.
@@ -751,7 +821,10 @@ OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCUserTool___Z,
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCComBSTR@ATL@@@Z
 // CArchive& operator>>(CArchive& ar, ATL::CComBSTR& bstr)
-// Transcribed from the retail body at RVA 0x26de30:
+// Transcribed from the retail body at RVA 0x26de30 (mfc140, the ANSI twin;
+// the same bytes are the mfc140u export entry at RVA 0x26f020).  Every other
+// address in this comment (FillBuffer, Read, the IAT slots, the je target)
+// is likewise an mfc140 (ANSI) address:
 //     testb $0x1,0x20(%rcx)          ; m_nMode & CArchive::load
 //     je    0x26def9                 ;   -> AfxThrowArchiveException(4, m_strFileName)
 //     <inline 4-byte read of the length out of the archive buffer, with
@@ -809,65 +882,275 @@ extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z(
     return ar;
 }
 
+// ---------------------------------------------------------------------------
+// Value-type insertion/extraction operators and the string-length helpers.
+//
+// Every body below was transcribed from the retail mfc140u.dll export (RVA of
+// each function's entry cited per symbol).  Retail inlines CArchive's primitive
+// operator<</operator>> into all of them, so each primitive step there is
+//     test  $0x1,0x20(%rcx)              ; m_nMode & CArchive::load
+//     <throw on wrong mode>
+//     if (m_lpBufCur + n > m_lpBufMax) Flush() / FillBuffer(...)
+//     copy n bytes at m_lpBufCur;  m_lpBufCur += n
+// with Flush = ?Flush@CArchive@@QEAAXXZ (0x1d1be0, mfc140u), FillBuffer =
+// ?FillBuffer@CArchive@@QEAAXI@Z (0x1d1cc0, mfc140u) and the throw being
+// ?AfxThrowArchiveException@@YAXHPEB_W@Z (0x1d3610, mfc140u) called with
+// m_strFileName (the CString at this+0x18, read through GetString at 0x2e10).
+// The throw cause is CArchiveException::writeOnly (4) for a load from a storing
+// archive and ::readOnly (2) for a store into a loading archive.
+//
+// OpenMFC's CArchive (include/openmfc/afx.h) has a different member layout, so
+// those inline sequences are re-expressed with the ArRequire*/ArPut/ArGet
+// helpers in the anonymous namespace at the top of this file, which go through
+// CArchive::Read/Write (defined in this TU).  Deviations, all deliberate:
+//   * m_strFileName does not exist in OpenMFC's CArchive, so NULL is passed as
+//     the archive name to AfxThrowArchiveException (same as the CComBSTR
+//     loader above).
+//   * Retail's underflow path is FillBuffer; OpenMFC's Read returns short on
+//     EOF instead of throwing (retail FillBuffer throws ::endOfFile (3)), so
+//     ArGet zero-initialises its value first and a truncated archive yields
+//     zero or partially filled fields rather than an exception.
+//   * Retail tests the mode before EVERY primitive; the helpers do the same
+//     per primitive, so the observable order (which step throws) is unchanged.
+// ---------------------------------------------------------------------------
+
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleCurrency@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleCurrency___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, COleCurrency& curSrc)
+// Transcribed from retail RVA 0x26f9d0 (mfc140u): three 4-byte loads, stored
+// in this order to curSrc+0x8 (m_status), curSrc+0x4 (m_cur.Hi) and
+// curSrc+0x0 (m_cur.Lo).  Returns ar.
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleCurrency___Z(
+        CArchive* ar, S_ArchOleCurrency* cur) {
+    if (ar == nullptr || cur == nullptr) return ar;
+    cur->m_status = ArGet<long>(ar);
+    cur->Hi       = ArGet<long>(ar);
+    cur->Lo       = ArGet<unsigned long>(ar);
+    return ar;
 }
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleDateTime@ATL@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTime_ATL___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, ATL::COleDateTime& dtSrc)
+// Transcribed from retail RVA 0x26fb90 (mfc140u): a 4-byte load into
+// dtSrc+0x8 (m_status), then an 8-byte load into dtSrc+0x0 (m_dt).
+// The COleDateTimeSpan overload below resolves (by export ordinal, through
+// mfc140u's export address table) to this same entry, 0x26fb90: the two
+// classes share the {double at +0; status at +8} shape and the linker folded
+// the identical bodies.
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTime_ATL___Z(
+        CArchive* ar, S_ArchOleDate* dt) {
+    if (ar == nullptr || dt == nullptr) return ar;
+    dt->m_status = ArGet<long>(ar);
+    dt->m_value  = ArGet<double>(ar);
+    return ar;
 }
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleDateTimeSpan@ATL@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTimeSpan_ATL___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, ATL::COleDateTimeSpan& dtSpanSrc)
+// Same retail entry as the COleDateTime extractor: RVA 0x26fb90 (mfc140u).
+// Status (+0x8, 4 bytes) first, then m_span (+0x0, 8 bytes).
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTimeSpan_ATL___Z(
+        CArchive* ar, S_ArchOleDate* span) {
+    return impl___5_YAAEAVCArchive__AEAV0_AEAVCOleDateTime_ATL___Z(ar, span);
 }
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCTime@ATL@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTime_ATL___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, ATL::CTime& rtime)
+// Transcribed from retail RVA 0x274ac0 (mfc140u):
+//     n = <4-byte load, sign-extended (movslq)>;
+//     if ((DWORD)n == 0x8000000A) n = <8-byte load>;
+//     rtime.m_time = n;   return ar;
+// 0x8000000A is the marker the CTime inserter below writes ahead of the
+// 64-bit value; a bare 32-bit value is the older format and is sign-extended.
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTime_ATL___Z(
+        CArchive* ar, long long* ptime) {
+    if (ar == nullptr || ptime == nullptr) return ar;
+    long long t = ArGet<int>(ar);
+    if (static_cast<unsigned int>(t) == 0x8000000Au)
+        t = ArGet<long long>(ar);
+    *ptime = t;
+    return ar;
 }
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCTimeSpan@ATL@@@Z
-extern "C" void* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTimeSpan_ATL___Z() {
-    return nullptr;
+// CArchive& operator>>(CArchive& ar, ATL::CTimeSpan& rtimeSpan)
+// Transcribed from retail RVA 0x274bf0 (mfc140u): one 4-byte load,
+// sign-extended (movslq) into the 8-byte m_timeSpan.  Returns ar.
+extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTimeSpan_ATL___Z(
+        CArchive* ar, long long* pspan) {
+    if (ar == nullptr || pspan == nullptr) return ar;
+    *pspan = ArGet<int>(ar);
+    return ar;
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCComBSTR@ATL@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCComBSTR_ATL___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, ATL::CComBSTR string)
+// Transcribed from retail RVA 0x26ef70 (mfc140u):
+//     len = SysStringLen(string.m_str);            ; before the mode test
+//     <mode test: loading -> throw readOnly (2)>
+//     <4-byte store of len>
+//     if (SysStringLen(string.m_str) != 0)
+//         CArchive::Write(ar, string.m_str, SysStringLen(string.m_str)*2);
+//                                                  ; Write = 0x1d1a70 (mfc140u)
+//     SysFreeString(string.m_str);                 ; destroys the by-value arg
+//     return ar;
+// mfc140u IAT slots resolved with iatu.py: 0x1802c69d0 -> OLEAUT32 ord#7
+// (SysStringLen), 0x1802c69d8 -> OLEAUT32 ord#6 (SysFreeString).
+// The CComBSTR is passed by value; under the MSVC x64 ABI a non-trivially-
+// copyable argument arrives as a pointer to the caller's temporary and the
+// CALLEE destroys it, hence the SysFreeString at the end and BSTR* here.
+// Deviation: on the loading-archive throw path this frees the BSTR before
+// throwing.  Retail leaves that to unwinding (its unwind tables were not
+// inspected); this code has no MSVC unwind funclet to do it, so freeing first
+// keeps ownership identical without leaking.
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCComBSTR_ATL___Z(
+        CArchive* ar, BSTR* pbstr) {
+    if (ar == nullptr || pbstr == nullptr) return ar;
+    const unsigned int nLen = ::SysStringLen(*pbstr);
+    if (ar->IsLoading()) {
+        ::SysFreeString(*pbstr);
+        ArRequireStoring(ar);
+        return ar;
+    }
+    ArPut<unsigned int>(ar, nLen);
+    if (::SysStringLen(*pbstr) != 0)
+        ar->Write(*pbstr, ::SysStringLen(*pbstr) * 2u);
+    ::SysFreeString(*pbstr);
+    return ar;
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleCurrency@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleCurrency___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, COleCurrency curSrc)
+// Transcribed from retail RVA 0x26f8e0 (mfc140u).  The 16-byte COleCurrency
+// arrives by pointer (%rdx) to the caller's copy; retail stores, 4 bytes each,
+// curSrc+0x8 (m_status), curSrc+0x4 (m_cur.Hi), curSrc+0x0 (m_cur.Lo).
+// No destructor call follows (COleCurrency's is trivial).
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleCurrency___Z(
+        CArchive* ar, const S_ArchOleCurrency* cur) {
+    if (ar == nullptr || cur == nullptr) return ar;
+    ArPut<long>(ar, cur->m_status);
+    ArPut<long>(ar, cur->Hi);
+    ArPut<unsigned long>(ar, cur->Lo);
+    return ar;
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleDateTime@ATL@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTime_ATL___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, ATL::COleDateTime dateSrc)
+// Transcribed from retail RVA 0x26fad0 (mfc140u): by-pointer argument; stores
+// dateSrc+0x8 (m_status, 4 bytes) then dateSrc+0x0 (m_dt, 8 bytes, movsd).
+// The COleDateTimeSpan inserter resolves by ordinal to this same entry.
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTime_ATL___Z(
+        CArchive* ar, const S_ArchOleDate* dt) {
+    if (ar == nullptr || dt == nullptr) return ar;
+    ArPut<long>(ar, dt->m_status);
+    ArPut<double>(ar, dt->m_value);
+    return ar;
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCOleDateTimeSpan@ATL@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTimeSpan_ATL___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, ATL::COleDateTimeSpan dateSpanSrc)
+// Same retail entry as the COleDateTime inserter: RVA 0x26fad0 (mfc140u).
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCOleDateTimeSpan_ATL___Z(
+        CArchive* ar, const S_ArchOleDate* span) {
+    return impl___6_YAAEAVCArchive__AEAV0_VCOleDateTime_ATL___Z(ar, span);
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCTime@ATL@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTime_ATL___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, ATL::CTime time)
+// Transcribed from retail RVA 0x274a20 (mfc140u).  CTime is 8 bytes and is
+// passed by value IN %rdx (the __time64_t itself, not a pointer).  Retail
+// stores the 4-byte marker 0x8000000A, then the 8-byte time.
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTime_ATL___Z(
+        CArchive* ar, long long t) {
+    if (ar == nullptr) return ar;
+    ArPut<unsigned int>(ar, 0x8000000Au);
+    ArPut<long long>(ar, t);
+    return ar;
 }
 
 // Symbol: ??6@YAAEAVCArchive@@AEAV0@VCTimeSpan@ATL@@@Z
-extern "C" void* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTimeSpan_ATL___Z() {
-    return nullptr;
+// CArchive& operator<<(CArchive& ar, ATL::CTimeSpan timeSpan)
+// Transcribed from retail RVA 0x274b80 (mfc140u).  The 8-byte span arrives in
+// %rdx.  FIRST, before any mode test: if span > 0xFFFFFFFF (signed 64-bit
+// compare, `cmp %rax,%rdx; jg`) retail calls ?AfxThrowInvalidArgException@@YAXXZ
+// (0x227720, mfc140u).  Negative spans pass that test.  Then the low 32 bits
+// are stored as one 4-byte value.
+extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTimeSpan_ATL___Z(
+        CArchive* ar, long long span) {
+    if (ar == nullptr) return ar;
+    if (span > 0xFFFFFFFFll) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return ar;
+    }
+    ArPut<unsigned int>(ar, static_cast<unsigned int>(span));
+    return ar;
 }
 
 // Symbol: ?AfxReadStringLength@@YA_KAEAVCArchive@@AEAH@Z
-extern "C" unsigned __int64 MS_ABI impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(void* /*class*/* p0, int* p1) {
-    return 0;
+// ULONGLONG AfxReadStringLength(CArchive& ar, int& nCharSize)
+// Transcribed from retail RVA 0x1d0c10 (mfc140u):
+//     nCharSize = 1;                         ; written before the first mode test
+//     b = <BYTE>;  if (b < 0xFF) return b;
+//     w = <WORD>;
+//     if (w == 0xFFFE) {                     ; Unicode marker
+//         nCharSize = 2;
+//         b = <BYTE>;  if (b < 0xFF) return b;
+//         w = <WORD>;
+//     }
+//     if (w < 0xFFFF) return w;
+//     d = <DWORD>;  if (d < 0xFFFFFFFF) return d;
+//     return <QWORD>;
+// Every load is the inline primitive (mode test -> writeOnly (4) throw).
+extern "C" unsigned long long MS_ABI impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(
+        CArchive* ar, int* pnCharSize) {
+    if (ar == nullptr || pnCharSize == nullptr) return 0;
+    *pnCharSize = 1;
+    unsigned char b = ArGet<unsigned char>(ar);
+    if (b < 0xFF) return b;
+    unsigned short w = ArGet<unsigned short>(ar);
+    if (w == 0xFFFE) {
+        *pnCharSize = 2;
+        b = ArGet<unsigned char>(ar);
+        if (b < 0xFF) return b;
+        w = ArGet<unsigned short>(ar);
+    }
+    if (w < 0xFFFF) return w;
+    const unsigned int d = ArGet<unsigned int>(ar);
+    if (d < 0xFFFFFFFFu) return d;
+    return ArGet<unsigned long long>(ar);
 }
 
 // Symbol: ?AfxWriteStringLength@@YAXAEAVCArchive@@_KH@Z
-extern "C" void MS_ABI impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(void* /*class*/* p0, unsigned __int64 p1, int p2) {}
+// void AfxWriteStringLength(CArchive& ar, ULONGLONG nLength, BOOL bUnicode)
+// Transcribed from retail RVA 0x1d0e40 (mfc140u):
+//     if (bUnicode) { <BYTE 0xFF>; <WORD 0xFFFE>; }
+//     if      (nLength < 0xFF)       <BYTE nLength>;
+//     else if (nLength < 0xFFFE)     <BYTE 0xFF>; <WORD nLength>;
+//     else if (nLength < 0xFFFFFFFF) <BYTE 0xFF>; <WORD 0xFFFF>; <DWORD nLength>;
+//     else    <BYTE 0xFF>; <WORD 0xFFFF>; <DWORD 0xFFFFFFFF>; <QWORD nLength>;
+// Every store is the inline primitive (mode test -> readOnly (2) throw).
+// Note the WORD tier's bound is 0xFFFE, not 0xFFFF: 0xFFFE itself is the
+// Unicode marker, so a length of 0xFFFE must take the DWORD tier.
+// This is the exact inverse of AfxReadStringLength above.
+extern "C" void MS_ABI impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(
+        CArchive* ar, unsigned long long nLength, int bUnicode) {
+    if (ar == nullptr) return;
+    if (bUnicode != 0) {
+        ArPut<unsigned char>(ar, 0xFF);
+        ArPut<unsigned short>(ar, 0xFFFE);
+    }
+    if (nLength < 0xFFull) {
+        ArPut<unsigned char>(ar, static_cast<unsigned char>(nLength));
+    } else if (nLength < 0xFFFEull) {
+        ArPut<unsigned char>(ar, 0xFF);
+        ArPut<unsigned short>(ar, static_cast<unsigned short>(nLength));
+    } else if (nLength < 0xFFFFFFFFull) {
+        ArPut<unsigned char>(ar, 0xFF);
+        ArPut<unsigned short>(ar, 0xFFFF);
+        ArPut<unsigned int>(ar, static_cast<unsigned int>(nLength));
+    } else {
+        ArPut<unsigned char>(ar, 0xFF);
+        ArPut<unsigned short>(ar, 0xFFFF);
+        ArPut<unsigned int>(ar, 0xFFFFFFFFu);
+        ArPut<unsigned long long>(ar, nLength);
+    }
+}
