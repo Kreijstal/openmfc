@@ -72,11 +72,8 @@
 //   core/runtime/CObject.cpp            IsKindOf
 //   core/animation/RuntimeClasses.cpp   GetThisClass@CAnimationBaseObject / @CBaseKeyFrame
 //   core/animation/CAnimationController.cpp  GetKeyframeStoryboardStart
-//   core/animation/CAnimationBaseObject.cpp  CreateTransitions -- NOTE: that
-//       definition still carries an auto-generated placeholder parameter list
-//       `int ()` (no `this`) and returns 0.  The declaration here is the one the
-//       mangled name ?CreateTransitions@CAnimationBaseObject@@QEAAHXZ describes;
-//       see headerRequests.
+//   core/animation/CAnimationBaseObject.cpp  CreateTransitions (void* pThis),
+//       transcribed from retail RVA 0x4320 (mfc140u).
 extern "C" void* MS_ABI impl___0CObList__QEAA__J_Z(CObList* pThis, long long nBlockSize);
 extern "C" void MS_ABI impl___1CObList__UEAA_XZ(CObList* pThis);
 extern "C" void MS_ABI impl__RemoveAll_CObList__QEAAXXZ(CObList* pThis);
@@ -406,9 +403,6 @@ extern "C" int MS_ABI impl__CreateTransitions_CAnimationGroup__IEAAHXZ(void* pTh
     // each element that IsKindOf CAnimationBaseObject:
     //   if (!pObj->CreateTransitions()) return FALSE;   // direct call, 0x4320
     // return TRUE (also for an empty list).
-    // CAnimationBaseObject::CreateTransitions is still a placeholder stub that
-    // returns 0 (see the declaration block above), so today this returns FALSE
-    // as soon as the list holds an animation object.
     for (GrpNode* node = HeadNode(AnimationObjects(pThis)); node != nullptr;) {
         CObject* p = node->data;
         node = node->pNext;
