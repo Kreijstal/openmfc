@@ -84,6 +84,63 @@ extern "C" void MS_ABI impl__WriteItemCompound_COleClientItem__QEAAXAEAVCArchive
 extern "C" void MS_ABI impl__WriteItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
     COleClientItem* pThis, CArchive& ar);
 
+// ---- sibling thunks used by OnCloseDocument and the interface-part bodies
+// ---- (each definition was read before being declared here) ----
+extern "C" int MS_ABI impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(
+    const CDocument* pThis);                                 // core/doc/CDocument.cpp
+extern "C" void* MS_ABI impl__GetFirstViewPosition_CDocument__UEBAPEAU__POSITION__XZ(
+    const CDocument* pThis);                                 // core/doc/Thunks.cpp
+extern "C" void MS_ABI impl__UpdateVisibleLock_COleLinkingDoc__IEAAXHH_Z(
+    COleLinkingDoc* pThis, int bVisible, int bRemoveRefs);   // core/ole/COleLinkingDoc.cpp
+extern "C" void MS_ABI impl__OnCloseDocument_COleLinkingDoc__UEAAXXZ(
+    COleLinkingDoc* pThis);                                  // core/ole/COleLinkingDoc.cpp
+extern "C" long MS_ABI impl__IsDirty_XPersistFile_COleLinkingDoc__UEAAJXZ(
+    void* pThisItf);                                         // core/ole/COleLinkingDoc.cpp
+extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(
+    CCmdTarget* pThis, const void* iid);                     // core/runtime/CCmdTarget.cpp
+extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(
+    CCmdTarget* pThis);                                      // core/runtime/CCmdTarget.cpp
+
+namespace {
+// Retail COleServerDoc offsets used by the bodies that recover the document
+// from `this` or read its in-place frame.  Each is read out of the mfc140u
+// disassembly cited at its use; the part offsets are also the nOffset fields
+// of COleServerDoc's retail interface map (mfc140u .rdata 0x330b18, entries at
+// 0x34ea20: IPersistStorage +0x270, IOleObject +0x278, IOleWindow and
+// IOleInPlaceObject +0x288) and of COleLinkingDoc's (0x3304a8, entries at
+// 0x34e640: IPersist and IPersistFile +0x220).
+constexpr size_t kOff_CCmdTarget_m_dwRef  = 0x08;   // `lock incl 0x8(%rbx)`; also pinned by
+                                                    // static_assert in core/runtime/CCmdTarget.cpp
+constexpr size_t kOff_m_pInPlaceFrame     = 0x250;  // COleIPFrameWnd*
+constexpr size_t kOff_m_xPersistFile      = 0x220;  // COleLinkingDoc's XPersistFile part
+constexpr size_t kOff_m_xPersistStorage   = 0x270;
+constexpr size_t kOff_m_xOleObject        = 0x278;
+constexpr size_t kOff_m_xOleInPlaceObject = 0x288;
+// +0x250 must fall in OpenMFC's zero-filled _coleserverdoc_padding (the
+// constructor below memsets it), not on m_bEmbedded, which is where retail's
+// m_lpClientSite (+0x230) sits.
+static_assert(sizeof(COleServerDoc) == 0x298, "OpenMFC COleServerDoc must be retail-sized (0x298)");
+static_assert(offsetof(COleServerDoc, m_bEmbedded) + sizeof(BOOL) <= kOff_m_pInPlaceFrame,
+              "retail m_pInPlaceFrame (+0x250) must lie in _coleserverdoc_padding");
+
+// {00000000-0000-0000-C000-000000000046}, read at mfc140u .rdata 0x2d9a58 (the
+// operand OnCloseDocument passes to GetInterface), and
+// {0000010B-0000-0000-C000-000000000046}, read at 0x2d9b38 (the operand
+// XPersistStorage::IsDirty passes).  Spelled out so this unit needs no uuid lib.
+const GUID kIID_IUnknown     = { 0x00000000, 0x0000, 0x0000, { 0xC0,0,0,0,0,0,0,0x46 } };
+const GUID kIID_IPersistFile = { 0x0000010B, 0x0000, 0x0000, { 0xC0,0,0,0,0,0,0,0x46 } };
+
+inline COleServerDoc* DocFromPart(void* pThisItf, size_t off) {
+    return reinterpret_cast<COleServerDoc*>(static_cast<char*>(pThisItf) - off);
+}
+inline void*& InPlaceFrameWord(COleServerDoc* pDoc) {
+    return *reinterpret_cast<void**>(reinterpret_cast<char*>(pDoc) + kOff_m_pInPlaceFrame);
+}
+inline LONG volatile* RefWord(COleServerDoc* pDoc) {
+    return reinterpret_cast<LONG volatile*>(reinterpret_cast<char*>(pDoc) + kOff_CCmdTarget_m_dwRef);
+}
+} // namespace
+
 //=============================================================================
 // COleClientItem
 //=============================================================================
@@ -291,9 +348,16 @@ extern "C" HMENU MS_ABI impl__GetDefaultMenu_COleServerDoc__MEAAPEAUHMENU____XZ(
     // m_pInPlaceFrame@0x250 / m_lpClientSite@0x230; not modeled.
     return nullptr;
 }
-// COleServerDoc::GetDocObjectServer(IOleDocumentSite*) — retail (0x71e0) is a
-// bare `xor eax,eax; ret` for the base class: the base server document creates
-// no doc-object server. CDocObjectServer is not declared in OpenMFC, so the
+// COleServerDoc::GetDocObjectServer(IOleDocumentSite*) — retail RVA 0x71e0
+// (mfc140u; export ordinal 5262, read straight out of the export table) is
+// the whole body
+//     xor  %eax,%eax
+//     ret
+// so the base server document creates no doc-object server and `return
+// nullptr` is a literal transcription.  0x71e0 is a folded constant-zero body
+// shared with other exports (OnReactivateAndUndo, ordinal 10882, points at the
+// same address), which is why the name->RVA maps, keyed one name per RVA, do
+// not list this symbol.  CDocObjectServer is not declared in OpenMFC, so the
 // return is carried as void*.
 // Symbol: ?GetDocObjectServer@COleServerDoc@@MEAAPEAVCDocObjectServer@@PEAUIOleDocumentSite@@@Z
 extern "C" void* MS_ABI
@@ -659,31 +723,113 @@ extern "C" void MS_ABI impl__OnClose_COleServerDoc__MEAAXW4tagOLECLOSE___Z(
     pThis->m_bAutoDelete = bAutoDelete;
 }
 
-// COleServerDoc::OnCloseDocument() — retail 0x265420 is the full server
-// shutdown: it inspects four CDocument/COleDocument flags (retail offsets
-// 0x128/0x12c/0x130 and 0x94) to decide whether to run at all, releases the
-// in-place frame (0x250) and the moniker/registration state through
-// COleLinkingDoc::UpdateVisibleLock (0x25d2b0) and
-// COleLinkingDoc::OnCloseDocument (0x25d1f0), calls NotifyAllItems(OLE_CLOSED)
-// (0x264950), releases m_lpClientSite@0x230, and finally
-// ::CoDisconnectObject() on this document's IUnknown obtained through
-// CCmdTarget::GetInterface.  None of that state (client site, in-place frame,
-// registration lock) is modeled by OpenMFC and CCmdTarget::GetInterface is
-// itself an unimplemented stub, so this is left as a no-op rather than a
-// partially-correct shutdown.
+// COleServerDoc::OnCloseDocument() — retail RVA 0x266670 (mfc140u; the same
+// body is at 0x265420 in mfc140), transcribed from the mfc140u disassembly:
+//     if ((m_bPreviewHandlerMode@0x12c || m_bSearchMode@0x130 ||
+//          m_bGetThumbnailMode@0x128) && !m_bFinalRelease@0x94)
+//         return;                        // the three-flag test is exactly
+//                                        // IsSearchAndOrganizeHandler (0x21cdf0)
+//     if (m_pInPlaceFrame@0x250 != NULL) {
+//         if (GetFirstViewPosition() != NULL)   // vtable byte 0xe0 (slot 28),
+//             return;                           // ?GetFirstViewPosition@CDocument@@
+//         m_pInPlaceFrame = NULL;               // stores the NULL it just got back
+//     }
+//     InternalAddRef();                         // `lock incl 0x8(%rdi)`
+//     UpdateVisibleLock(FALSE, FALSE);          // call 0x25e3a0 (COleLinkingDoc)
+//     if (m_lpClientSite@0x230 != NULL && m_bCntrVisible@0x240) {
+//         m_lpClientSite->OnShowWindow(FALSE);  // IOleClientSite byte 0x38
+//         m_bCntrVisible = FALSE;
+//     }
+//     NotifyAllItems(OLE_CLOSED /*2*/, 0);      // call 0x265ba0
+//     BOOL bAutoDelete = m_bAutoDelete@0x120; m_bAutoDelete = FALSE;
+//     COleLinkingDoc::OnCloseDocument();        // call 0x25e2e0
+//     RELEASE(m_lpClientSite);                  // call 0x26ccc4: Release + NULL
+//     ::CoDisconnectObject(GetInterface(&IID_IUnknown), 0);
+//                                  // GetInterface = call 0x26ce40; the import is
+//                                  // slot 0x1802c7880 (mfc140u) = ole32!CoDisconnectObject
+//     InterlockedDecrement(&m_dwRef);           // `lock decl 0x8(%rdi)`, NOT
+//                                               // InternalRelease: no final-release
+//     if (bAutoDelete) delete this;             // vtable byte 0x08, arg 1
+// Slot 28 was named from the vftable at mfc140u .rdata 0x2f1ed8 (+0xe0 ->
+// 0x21c730).  That table is COleServerDocEx's (its slot 0 is
+// ?GetRuntimeClass@COleServerDocEx@@); COleServerDoc has no vftable of its
+// own in the image (see the "Vtable slots, recovered ..." note in the
+// wave-3 block header further down), and
+// slot 28 is not overridden there, so the name holds for COleServerDoc too.
+// Deviations, each forced by what OpenMFC models:
+//   * the early-out is the IsSearchAndOrganizeHandler thunk alone, as in
+//     COleLinkingDoc/COleDocument::OnCloseDocument.  m_bFinalRelease does
+//     exist in OpenMFC -- core/doc/CDocument.cpp lays it over the padding at
+//     retail +0x94 -- but it is only ever initialised to FALSE there, so the
+//     `&& !m_bFinalRelease` term is always true and is not re-read here: a
+//     handler-mode document is never closed here.  (OpenMFC's thunk tests its
+//     own side-table flag, not the +0x128/+0x12c/+0x130 words.)
+//   * the client-site block and RELEASE(m_lpClientSite) are left out.  OpenMFC
+//     never stores a client site (XOleObject::SetClientSite below does not
+//     remember it) and +0x230 is OpenMFC's own m_bEmbedded, so retail's
+//     m_lpClientSite is NULL in every OpenMFC document and both steps are
+//     no-ops there; reading +0x230 as a pointer would be wrong, not faithful.
+//   * GetFirstViewPosition and the final delete are not dispatched through
+//     retail's vtable slots: the thunk is called directly and `delete` goes
+//     through OpenMFC's own virtual destructor, as COleLinkingDoc's body does.
+//     The +0x250 frame word is zero-filled padding that nothing in OpenMFC
+//     writes, so that branch does not run today.
+//   * OpenMFC's GetInterface returns NULL for every IID on this class, so the
+//     CoDisconnectObject call is skipped for a NULL IUnknown; retail passes the
+//     pointer unconditionally.
+//   * a NULL pThis returns; retail would fault.
 // Symbol: ?OnCloseDocument@COleServerDoc@@UEAAXXZ
 extern "C" void MS_ABI impl__OnCloseDocument_COleServerDoc__UEAAXXZ(COleServerDoc* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    if (impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(pThis)) return;
+
+    void*& pInPlaceFrame = InPlaceFrameWord(pThis);
+    if (pInPlaceFrame != nullptr) {
+        if (impl__GetFirstViewPosition_CDocument__UEBAPEAU__POSITION__XZ(pThis) != nullptr)
+            return;
+        pInPlaceFrame = nullptr;
+    }
+
+    ::InterlockedIncrement(RefWord(pThis));
+    impl__UpdateVisibleLock_COleLinkingDoc__IEAAXHH_Z(pThis, FALSE, FALSE);
+    impl__NotifyAllItems_COleServerDoc__IEAAXW4OLE_NOTIFICATION___K_Z(pThis, 2 /*OLE_CLOSED*/, 0);
+
+    const int bAutoDelete = pThis->m_bAutoDelete;
+    pThis->m_bAutoDelete = FALSE;
+    impl__OnCloseDocument_COleLinkingDoc__UEAAXXZ(pThis);
+
+    IUnknown* pUnk = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IUnknown);
+    if (pUnk != nullptr) ::CoDisconnectObject(pUnk, 0);
+
+    ::InterlockedDecrement(RefWord(pThis));
+    if (bAutoDelete) delete pThis;
 }
 
-// COleServerDoc::OnDeactivate() — retail 0x266b30 operates entirely on
-// m_pInPlaceFrame@0x250: it calls OnDeactivateUI (slot 93) when the frame's
-// UI-active flag (frame+0x1d8) is set, tells the frame to tear down
-// (frame vtable slot 0x3b8), frees the two CStrings the frame caches at
-// +0x200/+0x208, calls DestroyInPlaceFrame(pFrame) (slot 100), clears the
-// member, and finally QueryInterface's m_lpClientSite@0x230 for
-// IID_IOleInPlaceSite to call OnInPlaceDeactivate (slot 11).  The in-place
-// frame and client site are not modeled; left a no-op.
+// COleServerDoc::OnDeactivate() — retail RVA 0x267d70 (mfc140u; 0x266b30 in
+// mfc140), read from the mfc140u disassembly:
+//     COleIPFrameWnd* pFrame = m_pInPlaceFrame@0x250;  // NOT null-checked first
+//     if (pFrame->[0x1d8] != 0) {                // retail COleIPFrameWnd::m_bUIActive
+//         OnDeactivateUI(FALSE);                 // vtable byte 0x2e8 (slot 93)
+//         if (m_pInPlaceFrame == NULL) return;   // re-read on this path only
+//     }
+//     m_pInPlaceFrame->vtbl[0x3b8/8 = 119]();    // a frame virtual, not named here
+//     RELEASE(m_pInPlaceFrame->[0x200]);         // call 0x26ccc4 = Release + NULL,
+//     RELEASE(m_pInPlaceFrame->[0x208]);         //   the frame's m_lpFrame / m_lpDocFrame
+//     DestroyInPlaceFrame(m_pInPlaceFrame);      // vtable byte 0x320 (slot 100)
+//     m_pInPlaceFrame = NULL;
+//     IOleInPlaceSite* p = QI(m_lpClientSite@0x230, IID_IOleInPlaceSite);
+//                              // helper 0x26cc90; IID {00000119-...} at .rdata 0x2d9c18
+//     if (p) { p->OnInPlaceDeactivate();         // byte 0x58 (slot 11)
+//              p->Release(); }
+// (An earlier note here said +0x200/+0x208 were CStrings; 0x26ccc4 is the
+// interface Release-and-NULL helper, and core/ole/COleIPFrameWnd.cpp pins
+// those two words as m_lpFrame / m_lpDocFrame.)
+// Stubbed: every step goes through the in-place frame, which OpenMFC never
+// creates (+0x250 stays zero; XOleInPlaceObject::InPlaceDeactivate below tests
+// it before calling here, as retail 0x269890 does), and through
+// retail's COleIPFrameWnd vtable slot 119 and m_bUIActive@0x1d8, neither of
+// which OpenMFC's COleIPFrameWnd has (its +0x1d8 is m_pResizeBar); the
+// client-site QI would read +0x230, which is OpenMFC's m_bEmbedded.
 // Symbol: ?OnDeactivate@COleServerDoc@@UEAAXXZ
 extern "C" void MS_ABI impl__OnDeactivate_COleServerDoc__UEAAXXZ(COleServerDoc* pThis) {
     (void)pThis;
@@ -838,14 +984,16 @@ extern "C" void MS_ABI impl__OnOpenEmbedding_COleServerDoc__MEAAXPEAUIStorage___
 
 // COleServerDoc::OnReactivateAndUndo() — DECODED (wave-4 review).  The
 // previous note here said "no entry in the RVA map ... documentation-derived,
-// not disassembled".  It is absent only from the MBCS map; in mfc140u.dll it
-// is at RVA 0x71e0 and its whole body is
+// not disassembled".  It is missing from both name->RVA maps only because
+// they keep one name per RVA and its body is folded; the mfc140u export table
+// resolves it (ordinal 10882) to RVA 0x71e0 (mfc140u), whose whole body is
 //     xor  %eax,%eax
 //     ret
 // so `return FALSE;` is a literal transcription, not an inference.  (0x71e0 is
-// a folded one-liner shared with other constant-FALSE bodies in the image; the
-// export table nonetheless points this symbol at it, so this is exactly what a
-// caller of the retail export observes.)
+// a folded one-liner shared with other constant-FALSE bodies in the image --
+// GetDocObjectServer, ordinal 5262, is one of them; the export table
+// nonetheless points this symbol at it, so this is exactly what a caller of
+// the retail export observes.)
 // Symbol: ?OnReactivateAndUndo@COleServerDoc@@MEAAHXZ
 extern "C" int MS_ABI impl__OnReactivateAndUndo_COleServerDoc__MEAAHXZ(COleServerDoc* pThis) {
     (void)pThis;
@@ -1474,10 +1622,21 @@ extern "C" long MS_ABI impl__GetWindow_XOleInPlaceObject_COleServerDoc__UEAAJPEA
 //         RELEASE(*ppRootStg); *ppRootStg = NULL;             // helper 0x26ba84
 //     }
 //     return S_OK;                                            // unconditional
-// Stubbed: needs the document, its root storage and its client-item list, none
-// of which are reachable from the sub-object pointer here.  The retail return
-// value is S_OK on every path, so `return 0` matches it; only the side effects
-// are missing.
+// (Addresses above are mfc140.dll.  Re-read 2026-09 in mfc140u at RVA 0x2684d0,
+// same bytes: `lea -0x270(%rcx),%rdi`, root storage at +0x1c8, slot 0x238 for
+// GetStartPosition, GetNextItemOfKind at 0x254120 with RUNTIME_CLASS operand
+// 0x32e788 -> descriptor named "COleClientItem", m_nObjectSize 0xf0;
+// IID_IPersistStorage {0000010A-...} at 0x2d9a88; `movb $0x1,0x7f(%rbp)`;
+// Release-and-NULL helper 0x26ccc4 on +0x1c8; `xor %eax,%eax` return.)
+// Stubbed, re-checked 2026-09: the document is recoverable (pThisItf - 0x270,
+// the IPersistStorage nOffset in COleServerDoc's retail interface map), but
+// the body's real work is not reachable from this file.  OpenMFC keeps the
+// root storage retail holds at +0x1c8 in COleDocument.cpp's file-private
+// OleDocExtra side table (no accessor thunk), and the per-item byte retail
+// sets at COleClientItem+0x7f and m_lpObject at retail +0x48 do not match
+// OpenMFC's COleClientItem (its m_lpObject is at +0x50; +0x7f is unmodeled).
+// The retail return value is S_OK on every path, so `return 0` matches it;
+// only the side effects are missing.
 // Symbol: ?HandsOffStorage@XPersistStorage@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__HandsOffStorage_XPersistStorage_COleServerDoc__UEAAJXZ(
     void* pThisItf)
@@ -1486,29 +1645,51 @@ extern "C" long MS_ABI impl__HandsOffStorage_XPersistStorage_COleServerDoc__UEAA
     return 0;
 }
 
-// COleServerDoc::XOleInPlaceObject::InPlaceDeactivate() -- retail 0x268650,
-// transcribed in full:
-//     COleServerDoc* pThis = this - 0x288;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     pThis->InternalAddRef();                    // lock incl 0x8(%rbx)
-//     if (pThis->m_pInPlaceFrame@0x250 != NULL)
-//         pThis->OnDeactivate();                  // vtable slot 92 (0x2e0),
-//                                                 // retail 0x266b30
-//     pThis->InternalRelease();                   // 0x26bb70
-//     return S_OK;
-// The 0x8000ffff (E_UNEXPECTED) stored into the return slot before the test is
-// the unwind value only: the S_OK store at 0x26869e is unconditional and the
-// jump at 0x2686a4 skips the funclet's reload, so the normal path always
-// returns S_OK whether or not the frame existed.
-// Stubbed: needs the document.  OpenMFC never has an in-place frame, so even
-// with one the OnDeactivate call would be skipped, and the retail return value
-// is S_OK either way -- `return 0` already matches it exactly.
+// COleServerDoc::XOleInPlaceObject::InPlaceDeactivate() -- retail RVA
+// 0x269890 (mfc140u; 0x268650 in mfc140), transcribed from the mfc140u
+// disassembly:
+//     COleServerDoc* pThis = this - 0x288;        // `lea -0x288(%rcx),%rbx`
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);   // call 0x133170 =
+//                                                 // ??0AFX_MAINTAIN_STATE2@@
+//     pThis->InternalAddRef();                    // `lock incl 0x8(%rbx)`
+//     if (pThis->m_pInPlaceFrame@0x250 != NULL)   // `cmpq $0x0,0x250(%rbx)`
+//         pThis->OnDeactivate();                  // vtable byte 0x2e0 (slot 92)
+//     pThis->InternalRelease();                   // call 0x26cdb0
+//     return S_OK;                                // `xor %edi,%edi`, stored at
+//                                                 // 0x2698e0 on the normal path
+// The OnDeactivate call runs inside an MFC TRY: 0x8000ffff (E_UNEXPECTED) is
+// stored to the frame's result slot before it, and the catch path re-enters
+// at 0x2698e6 and returns whatever that slot holds.  The normal path jumps
+// over that reload, so it returns S_OK whether or not the frame existed.
+// Slot 92 of the vftable at mfc140u .rdata 0x2f1ed8 -- COleServerDocEx's; the
+// base class has none of its own in the image, and this slot is not
+// overridden there -- holds ?OnDeactivate@COleServerDoc@@ (0x267d70), which
+// is how the call is named.
+// Reachability: core/ole/CDocObjectServer.cpp calls this thunk with
+// m_pOwner + 0x288 (IOleDocumentView::SetInPlaceSite and ::Show), so the
+// `this - 0x288` recovery lands on a real OpenMFC COleServerDoc there.
+// Deviations:
+//   * AFX_MANAGE_STATE is not reproduced: retail's m_pModuleState is at +0x38,
+//     but OpenMFC's CCmdTarget is 32 bytes and its CDocument keeps its own
+//     members from +0x20 on (m_bAutoDelete +0x34, per core/doc/CDocument.cpp),
+//     so +0x38 holds no module state in an OpenMFC document.
+//   * OnDeactivate is called through its thunk, not vtable slot 92, so a
+//     derived override is not picked up.  The +0x250 word is zero-filled
+//     padding nothing in OpenMFC writes, so the call does not run today (and
+//     OnDeactivate is itself still a documented stub).
+//   * the TRY/CATCH is not reproduced.
+// The AddRef/Release pair is kept: net zero, since OpenMFC's InternalRelease
+// never runs a final release.
 // Symbol: ?InPlaceDeactivate@XOleInPlaceObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
 {
-    (void)pThisItf;
-    return 0;
+    COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleInPlaceObject);
+    ::InterlockedIncrement(RefWord(pThis));
+    if (InPlaceFrameWord(pThis) != nullptr)
+        impl__OnDeactivate_COleServerDoc__UEAAXXZ(pThis);
+    impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
+    return S_OK;
 }
 
 // COleServerDoc::XOleObject::InitFromData(IDataObject*, BOOL, DWORD) -- retail
@@ -1553,42 +1734,62 @@ extern "C" long MS_ABI impl__InitNew_XPersistStorage_COleServerDoc__UEAAJPEAUISt
     return 0;
 }
 
-// COleServerDoc::XPersistStorage::IsDirty() -- retail 0x266fa0, transcribed in
-// full (a tail-jump):
-//     COleServerDoc* pThis = this - 0x270;
+// COleServerDoc::XPersistStorage::IsDirty() -- retail RVA 0x2681e0 (mfc140u;
+// 0x266fa0 in mfc140), the whole body, a tail-jump with no module state:
+//     COleServerDoc* pThis = this - 0x270;     // `add $-0x270,%rcx`
 //     return ((IPersistFile*)pThis->GetInterface(&IID_IPersistFile))
-//                ->IsDirty();           // IPersistFile slot 4 (0x20)
-// The IID at 0x2d7a88 is {0000010b-...} == IID_IPersistFile, so this forwards
-// to the document's XPersistFile part (COleLinkingDoc's) rather than recursing
-// into itself.
-// Stubbed: needs the document; GetInterface returns NULL for every IID on
-// OpenMFC's COleServerDoc.  NOTE the generated `return 0` reports S_OK, which
-// for IPersistStorage::IsDirty means "dirty"; retail's answer would depend on
-// the document's modified flag.  Left alone rather than guessed at.
+//                ->IsDirty();                  // call 0x26ce40, then byte 0x20
+//                                              // (IPersistFile slot 4)
+// The IID operand is mfc140u .rdata 0x2d9b38 = {0000010B-...} ==
+// IID_IPersistFile.  COleServerDoc's retail interface map has no IPersistFile
+// entry; COleLinkingDoc's (mfc140u 0x3304a8) maps it to nOffset 0x220, its
+// XPersistFile part, whose IsDirty (0x25e760, `lea -0x220(%rcx)`) answers
+// IsModified() ? S_OK : S_FALSE.  So the lookup lands on COleLinkingDoc's part
+// unless a derived class maps IPersistFile itself.
+// Deviation: OpenMFC's GetInterface returns NULL for every IID on this class
+// (it walks CCmdTarget's own map; see core/runtime/CCmdTarget.cpp), where
+// retail would dereference the NULL.  The GetInterface call is kept so a
+// derived map is honoured once lookup works; on NULL this forwards to the part
+// retail's base-class map resolves to -- COleLinkingDoc's XPersistFile at
+// doc + 0x220 -- through its implemented thunk.
+// Reachability: nothing hands out this doc + 0x270 part today (the OpenMFC
+// interface map for COleServerDoc is empty and no in-tree caller forwards to
+// this thunk); the body is written against the retail layout above.
 // Symbol: ?IsDirty@XPersistStorage@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__IsDirty_XPersistStorage_COleServerDoc__UEAAJXZ(
     void* pThisItf)
 {
-    (void)pThisItf;
-    return 0;
+    COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xPersistStorage);
+    IPersistFile* pPersistFile = reinterpret_cast<IPersistFile*>(
+        impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IPersistFile));
+    if (pPersistFile != nullptr)
+        return pPersistFile->IsDirty();
+    return impl__IsDirty_XPersistFile_COleLinkingDoc__UEAAJXZ(
+        reinterpret_cast<char*>(pThis) + kOff_m_xPersistFile);
 }
 
-// COleServerDoc::XOleObject::IsUpToDate() -- retail 0x267a30, transcribed in
-// full:
-//     COleServerDoc* pThis = this - 0x278;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     COleServerItem* pItem = pThis->GetEmbeddedItem();       // 0x2647f0
-//     BOOL b = pItem->OnQueryUpdateItems();  // item vtable slot 31 (0xf8),
-//                                            // retail 0x268fb0
-//     return b ? S_FALSE : S_OK;             // setne: 1 when the BOOL was set
-// (OnQueryUpdateItems answers "some contained item needs updating", so a TRUE
-// there means the object is NOT up to date -- hence the inversion.)
-// Stubbed: needs the document and its embedded item.  The value the generated
-// stub returns, S_OK, is what retail produces whenever no contained item is
-// stale, which is also what OpenMFC's own
-// COleServerItem::OnQueryUpdateItems would report for a document with no
-// client items -- but that is a coincidence of the common case, not a
-// transcription, so nothing here is claimed to be exact.
+// COleServerDoc::XOleObject::IsUpToDate() -- retail RVA 0x268c70 (mfc140u;
+// 0x267a30 in mfc140), read from the mfc140u disassembly:
+//     COleServerDoc* pThis = this - 0x278;      // `lea -0x278(%rcx),%rbx`
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);   // call 0x133170
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // call 0x265a40
+//     BOOL b = pItem->OnQueryUpdateItems();     // item vtable byte 0xf8 (slot 31)
+//     return b ? S_FALSE : S_OK;                // `setne %al`
+// inside an MFC TRY whose catch path re-enters at 0x268cb5 and returns the
+// frame's result slot.  (In mfc140u, ?OnQueryUpdateItems@COleServerItem@@
+// (0x26a1f0) and ?OnUpdateItems@ (0x26a260) sit adjacent in .rdata at
+// 0x32f220/0x32f228, consistent with slots 31/32.)  pItem is not null-checked.
+// Stubbed, re-checked 2026-09: the document IS recoverable here (CDocObjectServer
+// forwards with m_pOwner + 0x278), but the embedded item is not.  Retail's
+// GetEmbeddedItem (0x265a40) is `if (m_pEmbeddedItem@0x248 == NULL)
+// { m_pEmbeddedItem = OnGetEmbeddedItem() /*byte 0x2b0*/; ExternalAddRef on
+// it /*0x26cd80*/; } return m_pEmbeddedItem;`.  OpenMFC's exported
+// GetEmbeddedItem (core/ole/Thunks.cpp) instead returns
+// COleServerDoc::GetEmbeddedItem() -> COleDocument::OnGetEmbeddedItem(), the
+// primary SELECTED COleClientItem, cast to COleServerItem*.  Calling
+// OnQueryUpdateItems on that would run a COleServerItem body over a
+// COleClientItem object, so the call is not made.  `return 0` (S_OK) is
+// retail's value only when no contained item is stale.
 // Symbol: ?IsUpToDate@XOleObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
@@ -2023,28 +2224,51 @@ extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleInPlaceActiveObject_COleS
     return 1;                               // S_FALSE -- message not translated
 }
 
-// COleServerDoc::XOleInPlaceObject::UIDeactivate() -- retail 0x2686e0,
-// transcribed in full:
-//     COleServerDoc* pThis = this - 0x288;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     pThis->InternalAddRef();                     // lock incl 0x8(%rbx)
+// COleServerDoc::XOleInPlaceObject::UIDeactivate() -- retail RVA 0x269920
+// (mfc140u; 0x2686e0 in mfc140), transcribed from the mfc140u disassembly:
+//     COleServerDoc* pThis = this - 0x288;         // `lea -0x288(%rcx),%rbx`
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);    // call 0x133170
+//     pThis->InternalAddRef();                     // `lock incl 0x8(%rbx)`
 //     COleIPFrameWnd* pFrame = pThis->m_pInPlaceFrame@0x250;
-//     if (pFrame != NULL && pFrame->[0x1d8] != 0)  // an int in the frame
-//         pThis->OnDeactivateUI(FALSE);            // vtable slot 93 (0x2e8),
-//                                                  // retail 0x266c10
-//     pThis->InternalRelease();                    // 0x26bb70
-//     return S_OK;
-// As in InPlaceDeactivate, the 0x8000ffff stored into the return slot before
-// the test is the unwind value; S_OK is stored unconditionally afterwards.
-// Stubbed: needs the document and the in-place frame.  OpenMFC never has a
-// frame, so the OnDeactivateUI call would be skipped anyway, and the retail
-// return value is S_OK on every path -- `return 0` matches it exactly.
+//     if (pFrame != NULL && pFrame->[0x1d8] != 0)  // retail m_bUIActive
+//         pThis->OnDeactivateUI(FALSE);            // vtable byte 0x2e8 (slot 93),
+//                                                  // `xor %edx,%edx` = FALSE
+//     pThis->InternalRelease();                    // call 0x26cdb0
+//     return S_OK;                                 // `xor %edi,%edi` at 0x26997b
+// As in InPlaceDeactivate, the call runs inside an MFC TRY: 0x8000ffff is the
+// preloaded result the catch path (re-entering at 0x269983) returns; the
+// normal path stores S_OK and jumps past that reload.  Slot 93 of the vftable
+// at mfc140u .rdata 0x2f1ed8 (COleServerDocEx's -- COleServerDoc has none of
+// its own in the image -- and not overridden there) holds
+// ?OnDeactivateUI@COleServerDoc@@ (0x267e50).
+// Reachability: core/ole/CDocObjectServer.cpp's IOleDocumentView::UIActivate
+// calls this thunk with m_pOwner + 0x288 for fUIActivate == 0.
+// Deviations:
+//   * the m_bUIActive test is not made here.  Retail's word is at frame
+//     +0x1d8, where OpenMFC's COleIPFrameWnd has m_pResizeBar instead (see
+//     core/ole/COleIPFrameWnd.cpp), so reading it would test the wrong member.
+//     It is left to OnDeactivateUI, whose retail body (0x267e50) opens with
+//     the identical guard (`mov 0x250(%rcx),%rbx; test; je` then
+//     `cmpl $0x0,0x1d8(%rbx); je` to its return), so for the base class the
+//     outcome is the same.  (OpenMFC's OnDeactivateUI above is still a no-op
+//     stub and does not itself make that test; with it, a frame that is
+//     present but not UI-active reaches a call retail would skip, which is
+//     harmless only while that body stays empty.)
+//   * OnDeactivateUI is called through its thunk, not vtable slot 93, so a
+//     derived override is not picked up.  The +0x250 word is zero-filled
+//     padding nothing in OpenMFC writes, so the call does not run today.
+//   * AFX_MANAGE_STATE and the TRY/CATCH are not reproduced (see
+//     InPlaceDeactivate above).
 // Symbol: ?UIDeactivate@XOleInPlaceObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
 {
-    (void)pThisItf;
-    return 0;
+    COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleInPlaceObject);
+    ::InterlockedIncrement(RefWord(pThis));
+    if (InPlaceFrameWord(pThis) != nullptr)
+        impl__OnDeactivateUI_COleServerDoc__UEAAXH_Z(pThis, FALSE);
+    impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
+    return S_OK;
 }
 
 // COleServerDoc::XOleObject::Unadvise(DWORD) -- retail 0x267d70, transcribed in
@@ -2066,18 +2290,19 @@ extern "C" long MS_ABI impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(
     return 0;
 }
 
-// COleServerDoc::XOleObject::Update() -- retail 0x2679c0, transcribed in full:
-//     COleServerDoc* pThis = this - 0x278;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // 0x2647f0
-//     pItem->OnUpdateItems();            // item vtable slot 32 (0x100),
-//                                        // retail 0x269020; its result is
-//                                        // discarded
-//     return S_OK;                       // EBX is zeroed before the call and
-//                                        // is the return value
-// Stubbed: needs the document and its embedded item.  Retail returns S_OK
-// unconditionally, so `return 0` matches the return value exactly; only the
-// OnUpdateItems call is missing.
+// COleServerDoc::XOleObject::Update() -- retail RVA 0x268c00 (mfc140u;
+// 0x2679c0 in mfc140), read from the mfc140u disassembly:
+//     COleServerDoc* pThis = this - 0x278;      // `lea -0x278(%rcx),%rdi`
+//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);   // call 0x133170
+//     COleServerItem* pItem = pThis->GetEmbeddedItem();   // call 0x265a40
+//     pItem->OnUpdateItems();                   // item vtable byte 0x100 (slot 32)
+//     return S_OK;                              // EBX, zeroed before the call
+// inside an MFC TRY: the catch path re-enters at 0x268c40 and returns the
+// frame's result slot instead, so S_OK is the normal-path value only.
+// Stubbed for the same reason as IsUpToDate above: OpenMFC's GetEmbeddedItem
+// returns the primary selected COleClientItem cast to COleServerItem*, not
+// retail's m_pEmbeddedItem@0x248, so the OnUpdateItems call cannot be made
+// on it.  `return 0` matches retail's normal-path S_OK; the call is missing.
 // Symbol: ?Update@XOleObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
