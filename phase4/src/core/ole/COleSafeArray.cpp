@@ -6,6 +6,12 @@
 #include "detail/COleSafeArraySupport.h"
 #include "detail/OlecoreSupport.h"
 
+// Thunks called by the operator=/operator== transcriptions below. Signatures
+// match their definitions: AfxCheckError in featurepack/CMFC_misc_stubs.cpp,
+// AfxThrowInvalidArgException in detail/MfcExceptionsSupport.cpp.
+extern "C" void MS_ABI impl__AfxCheckError__YAXJ_Z(long hr);
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
 // ?Create@COleSafeArray@@QEAAXGKPEAK@Z
 // void Create(VARTYPE vt, DWORD dwDims, DWORD* rgElements)
 // rgElements[i] is the element count of dimension i+1 (rgElements[0] -> dim 1),
@@ -287,6 +293,10 @@ extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_PEBUtagVARIANT___Z(
     if (p0) {
         impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
             pThis, reinterpret_cast<const COleVariant*>(p0));
+        // operator= leaves the cached fields alone (retail 0x26fd80, mfc140u);
+        // the retail ctor body (RVA 0x26fcc0, mfc140u) refreshes them itself
+        // after the assignment via SafeArrayGetDim/SafeArrayGetElemsize.
+        RefreshCache(pThis);
     }
     return p;
 }
@@ -322,70 +332,175 @@ extern "C" COleSafeArray* MS_ABI impl___0COleSafeArray__QEAA_AEBVCOleVariant___Z
     RefreshCache(pThis);
     return static_cast<COleSafeArray*>(pThis);
 }
-// Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBVCOleVariant@@@Z
-extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
-    void* pThis, const COleVariant* varSrc)
+
+// ---------------------------------------------------------------------------
+// operator= / operator== overloads, transcribed from retail.
+//
+// Retail folds these exports onto shared bodies (identical-code folding); the
+// per-ordinal RVAs below were read from the mfc140u.dll export table:
+//   * all four operator= exports (ordinals 1518-1521: const VARIANT&,
+//     const COleSafeArray&, const COleVariant&, LPCVARIANT) -> RVA 0x26fd80 (mfc140u)
+//   * operator==(const SAFEARRAY&) / operator==(LPCSAFEARRAY)
+//     (ordinals 1624, 1628) -> RVA 0x26fdb0 (mfc140u)
+//   * operator==(const VARIANT&) / (const COleSafeArray&) / (const COleVariant&)
+//     / (LPCVARIANT) (ordinals 1625-1627, 1629) -> RVA 0x26fdc0 (mfc140u)
+// A reference and a pointer parameter are the same pointer in RDX under the
+// x64 ABI, which is why retail can fold them. COleSafeArray and COleVariant
+// both begin with a tagVARIANT, so every "variant-like" source is read as a
+// const VARIANT*.
+//
+// All ten exports route through the three helpers below, including the two
+// COleVariant overloads (ordinals 1520, 1627), which earlier revisions of this
+// file implemented separately with non-retail behaviour.
+//
+// Caveat on the two compare bodies: they reach retail's compare helper at
+// RVA 0x26d184 (mfc140u) through the repo's _AfxCompareSafeArrays_OleCsafearrayExt
+// (detail/COleSafeArraySupport.cpp), which is NOT a transcription of it. It
+// matches retail on the NULL, dimension-count, element-size, per-dimension
+// extent and memcmp checks, but where retail passes every SafeArrayGet*Bound /
+// SafeArrayAccessData / SafeArrayUnaccessData HRESULT to AfxCheckError (i.e.
+// throws), the repo helper returns FALSE; and on its success path it calls
+// SafeArrayUnaccessData twice per array. Those differences live in that file.
+// ---------------------------------------------------------------------------
+namespace {
+
+// Body at RVA 0x26fd80 (mfc140u):
+//   mov $0x2000,%eax ; test %ax,(%rdx)   ; src->vt & VT_ARRAY
+//   je   -> call AfxThrowInvalidArgException (RVA 0x227720 mfc140u), no return
+//   call *IAT OLEAUT32 #10         ; VariantCopy(this, src)
+//   call AfxCheckError (RVA 0x26d160 mfc140u) on the HRESULT
+//   return this
+// Retail does NOT test pThis/pSrc for NULL, does NOT free the old array itself
+// (releasing the destination's previous contents is left to VariantCopy), and
+// does NOT touch m_dwElementSize (+0x18) or m_dwDims (+0x1c): those cached
+// fields keep whatever value they had. This transcription reproduces all three.
+// The COleSafeArray constructors that assign through this body (retail
+// RVA 0x26fcc0, mfc140u) refresh the two cached fields themselves afterwards.
+inline COleSafeArray* AssignVariantRetail(void* pThis, const VARIANT* pSrc)
 {
-    if (!pThis || !varSrc) return static_cast<COleSafeArray*>(pThis);
-    const VARIANT* pSrc = reinterpret_cast<const VARIANT*>(varSrc);
     if (!(pSrc->vt & VT_ARRAY))
-        AfxThrowOleException(E_INVALIDARG);
-    ReleaseArray(pThis);
-    CSAView* v = reinterpret_cast<CSAView*>(pThis);
-    // VariantCopy into the tagVARIANT portion (first 24 bytes)
-    VariantCopy(&v->var, const_cast<VARIANT*>(pSrc));
-    RefreshCache(pThis);
+        impl__AfxThrowInvalidArgException__YAXXZ();   // does not return
+    impl__AfxCheckError__YAXJ_Z(
+        ::VariantCopy(static_cast<VARIANT*>(pThis), const_cast<VARIANT*>(pSrc)));
     return static_cast<COleSafeArray*>(pThis);
 }
-// Symbol: ??8COleSafeArray@@QEBAHAEBVCOleVariant@@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBVCOleVariant___Z(
-    const void* pThis, const COleVariant* varSrc)
+
+// Body at RVA 0x26fdb0 (mfc140u):
+//   mov 0x8(%rcx),%rcx ; jmp <unexported _AfxCompareSafeArrays at RVA 0x26d184 (mfc140u)>
+// i.e. compare this->parray against the caller's SAFEARRAY pointer. No vt
+// check. The retail compare helper returns (p1 == p2) when either pointer is
+// NULL (its NULL path is the instruction at 0x26d470 inside 0x26d184), which
+// _AfxCompareSafeArrays_OleCsafearrayExt also does (see the caveat above).
+inline int CompareSafeArrayRetail(const void* pThis, const SAFEARRAY* pSrc)
 {
-    if (!pThis || !varSrc) return FALSE;
     const CSAView* v = reinterpret_cast<const CSAView*>(pThis);
-    const VARIANT* pSrc = reinterpret_cast<const VARIANT*>(varSrc);
+    return _AfxCompareSafeArrays_OleCsafearrayExt(v->var.parray,
+                                                  const_cast<SAFEARRAY*>(pSrc));
+}
+
+// Body at RVA 0x26fdc0 (mfc140u):
+//   movzwl (%rdx),%eax ; cmp %ax,(%rcx) ; jne -> return 0
+//   jmp _AfxCompareSafeArrays(this->parray, src->parray)   (RVA 0x26d184 mfc140u)
+// No NULL test on pThis or pSrc.
+inline int CompareVariantRetail(const void* pThis, const VARIANT* pSrc)
+{
+    const CSAView* v = reinterpret_cast<const CSAView*>(pThis);
     if (v->var.vt != pSrc->vt) return FALSE;
     return _AfxCompareSafeArrays_OleCsafearrayExt(v->var.parray, pSrc->parray);
 }
 
+} // namespace
+
+// COleSafeArray& operator=(const VARIANT& varSrc) -- retail body RVA 0x26fd80 (mfc140u).
 // Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBUtagVARIANT@@@Z
-extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBUtagVARIANT___Z(void* /*class*/* p0) {
-    return nullptr;
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBUtagVARIANT___Z(
+    void* pThis, const VARIANT* pVarSrc)
+{
+    return AssignVariantRetail(pThis, pVarSrc);
 }
 
+// COleSafeArray& operator=(const COleVariant& varSrc) -- same folded body,
+// RVA 0x26fd80 (mfc140u), ordinal 1520. This used to call ReleaseArray before
+// VariantCopy (SafeArrayDestroy on a VT_BYREF pparray, and a destroyed source
+// on self-assignment), refresh the cache, silently return on NULL, and throw
+// AfxThrowOleException(E_INVALIDARG) where retail throws CInvalidArgException.
+// Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBVCOleVariant@@@Z
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBVCOleVariant___Z(
+    void* pThis, const COleVariant* varSrc)
+{
+    return AssignVariantRetail(pThis, reinterpret_cast<const VARIANT*>(varSrc));
+}
+
+// COleSafeArray& operator=(const COleSafeArray& saSrc) -- same folded body,
+// RVA 0x26fd80 (mfc140u); the source is read through its tagVARIANT base.
 // Symbol: ??4COleSafeArray@@QEAAAEAV0@AEBV0@@Z
-extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBV0__Z(void* /*class*/* p0) {
-    return nullptr;
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_AEBV0__Z(
+    void* pThis, const void* pSaSrc)
+{
+    return AssignVariantRetail(pThis, static_cast<const VARIANT*>(pSaSrc));
 }
 
+// COleSafeArray& operator=(LPCVARIANT pSrc) -- same folded body, RVA 0x26fd80
+// (mfc140u). Retail dereferences pSrc without a NULL check.
 // Symbol: ??4COleSafeArray@@QEAAAEAV0@PEBUtagVARIANT@@@Z
-extern "C" void* MS_ABI impl___4COleSafeArray__QEAAAEAV0_PEBUtagVARIANT___Z(void* /*class*/* p0) {
-    return nullptr;
+extern "C" COleSafeArray* MS_ABI impl___4COleSafeArray__QEAAAEAV0_PEBUtagVARIANT___Z(
+    void* pThis, const VARIANT* pSrc)
+{
+    return AssignVariantRetail(pThis, pSrc);
 }
 
+// BOOL operator==(const SAFEARRAY& saSrc) const -- retail body RVA 0x26fdb0 (mfc140u).
 // Symbol: ??8COleSafeArray@@QEBAHAEBUtagSAFEARRAY@@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagSAFEARRAY___Z(const void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagSAFEARRAY___Z(
+    const void* pThis, const SAFEARRAY* pSaSrc)
+{
+    return CompareSafeArrayRetail(pThis, pSaSrc);
 }
 
+// BOOL operator==(const VARIANT& varSrc) const -- retail body RVA 0x26fdc0 (mfc140u).
 // Symbol: ??8COleSafeArray@@QEBAHAEBUtagVARIANT@@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagVARIANT___Z(const void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBUtagVARIANT___Z(
+    const void* pThis, const VARIANT* pVarSrc)
+{
+    return CompareVariantRetail(pThis, pVarSrc);
 }
 
+// BOOL operator==(const COleSafeArray& saSrc) const -- same folded body,
+// RVA 0x26fdc0 (mfc140u): vt compared first, then the two parray values.
 // Symbol: ??8COleSafeArray@@QEBAHAEBV0@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBV0__Z(const void* /*class*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBV0__Z(
+    const void* pThis, const void* pSaSrc)
+{
+    return CompareVariantRetail(pThis, static_cast<const VARIANT*>(pSaSrc));
 }
 
+// BOOL operator==(const COleVariant& varSrc) const -- same folded body,
+// RVA 0x26fdc0 (mfc140u), ordinal 1627. Retail has no NULL test on either
+// operand (the previous revision returned FALSE for NULL).
+// Symbol: ??8COleSafeArray@@QEBAHAEBVCOleVariant@@@Z
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHAEBVCOleVariant___Z(
+    const void* pThis, const COleVariant* varSrc)
+{
+    return CompareVariantRetail(pThis, reinterpret_cast<const VARIANT*>(varSrc));
+}
+
+// BOOL operator==(LPCSAFEARRAY pSrc) const -- same folded body as the
+// const SAFEARRAY& overload, RVA 0x26fdb0 (mfc140u). A NULL pSrc is legal:
+// the compare helper returns TRUE only when this->parray is also NULL.
 // Symbol: ??8COleSafeArray@@QEBAHPEBUtagSAFEARRAY@@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagSAFEARRAY___Z(const void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagSAFEARRAY___Z(
+    const void* pThis, const SAFEARRAY* pSrc)
+{
+    return CompareSafeArrayRetail(pThis, pSrc);
 }
 
+// BOOL operator==(LPCVARIANT pSrc) const -- same folded body, RVA 0x26fdc0
+// (mfc140u). Retail dereferences pSrc without a NULL check.
 // Symbol: ??8COleSafeArray@@QEBAHPEBUtagVARIANT@@@Z
-extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagVARIANT___Z(const void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl___8COleSafeArray__QEBAHPEBUtagVARIANT___Z(
+    const void* pThis, const VARIANT* pSrc)
+{
+    return CompareVariantRetail(pThis, pSrc);
 }
 
 void COleSafeArray::Destroy() {
