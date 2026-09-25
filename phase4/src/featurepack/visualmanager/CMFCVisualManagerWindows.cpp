@@ -184,6 +184,14 @@ extern "C" unsigned long MS_ABI impl__GetHighlightedMenuItemTextColor_CMFCVisual
     CMFCVisualManagerOfficeXP* pThis, CMFCToolBarMenuButton* pButton);
 extern "C" unsigned long MS_ABI impl__GetToolbarButtonTextColor_CMFCVisualManagerOfficeXP__MEAAKPEAVCMFCToolBarButton__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
     CMFCVisualManagerOfficeXP* pThis, CMFCToolBarButton* pButton, int state);
+extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rect, int bSpecial);
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CMFCToolBarMenuButton* pButton, CRect rect, unsigned long* pclrText);
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerOfficeXP* pThis, CDC* pDC, CRect rectRarelyUsed);
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerOfficeXP__MEAAXXZ(
+    CMFCVisualManagerOfficeXP* pThis);
 
 extern "C" void MS_ABI impl__OnDrawCheckBoxEx_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHH_Z(
     CMFCVisualManager* pThis, CDC* pDC, CRect rect, int nState, int bHighlighted, int bPressed, int bEnabled);
@@ -207,6 +215,19 @@ extern "C" void MS_ABI impl__OnDrawStatusBarSizeBox_CMFCVisualManager__UEAAXPEAV
     CMFCVisualManager* pThis, CDC* pDC, CMFCStatusBar* pBar, CRect rectSizeBox);
 extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManager__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
     CMFCVisualManager* pThis, CDC* pDC, CRect rect, const CMFCBaseTabCtrl* pTabWnd);
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManager__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rectCaption, CPaneFrameWnd* pFrameWnd, int bActive);
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, const CRect* pRect, int bIsHighlighted, int bIsPressed, unsigned long* pclrText);
+extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, CRect rectWorkArea);
+
+// CMFCBaseVisualManager::UpdateSystemColors (CMFCBaseVisualManager.cpp; a
+// documented no-op there because the HTHEME members are not modelled).
+extern "C" void MS_ABI impl__UpdateSystemColors_CMFCBaseVisualManager__IEAAXXZ(void* pThis);
+
+// CObject::IsKindOf (core/runtime/CObject.cpp).
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* pThis, const CRuntimeClass* pClass);
 
 // CMFCBaseVisualManager::DrawCheckBox -- retail dispatches it through the
 // vtable at byte offset +0x50 (verified by reading slot +0x50 of the retail
@@ -246,6 +267,24 @@ inline COLORREF GD_clrBarHilite()   { return ::GetSysColor(COLOR_BTNHIGHLIGHT); 
 inline COLORREF GD_clrBarDkShadow() { return ::GetSysColor(COLOR_3DDKSHADOW); }     // +0x6c
 
 inline HDC VMW_Hdc(CDC* pDC) { return pDC ? pDC->GetSafeHdc() : nullptr; }
+
+// Retail member offsets read or written directly below.  CMFCBaseVisualManager
+// is CObject + nineteen HTHEMEs (+0x08..+0x98, afxvisualmanager.h order), and
+// CMFCVisualManager's own members follow from +0xa0: m_bMenuFlatLook +0xa0,
+// m_bShadowHighlightedImage +0xa4, ... m_bIsTemporary +0xb8 (the retail
+// ??0CMFCVisualManager@@QEAA@H@Z, 0x182640, stores its BOOL argument at +0xb8,
+// which pins that anchoring).  All of these fall inside OpenMFC's object:
+// CMFCVisualManager is CObject + a zero-filled `char _visualmanager_padding[256]`.
+const std::ptrdiff_t kVMW_hThemeWindow            = 0x08;   // m_hThemeWindow
+const std::ptrdiff_t kVMW_bShadowHighlightedImage = 0xa4;   // m_bShadowHighlightedImage
+static_assert(sizeof(CMFCVisualManager) >= 0xa8, "the CMFCVisualManager members touched here lie inside OpenMFC's object");
+
+inline void* VMW_ThemeHandle(const void* pVM, std::ptrdiff_t off)
+{
+    void* h = nullptr;
+    std::memcpy(&h, static_cast<const char*>(pVM) + off, sizeof(h));
+    return h;
+}
 
 // CDC::Draw3dRect(LPCRECT, COLORREF clrTopLeft, COLORREF clrBottomRight)
 // (retail 0x2a3b00): one-pixel top/left edges in clrTopLeft, one-pixel
@@ -347,11 +386,19 @@ extern "C" unsigned long MS_ABI impl__GetToolbarButtonTextColor_CMFCVisualManage
 }
 
 // CMFCVisualManagerWindows::IsDefaultWinXPPopupButton (retail 0x1ba640) is
-//     return m_hTheme@+0x08 != NULL && pButton->[+0xb24] != 0 && pButton->[+0xb20] != 0;
-// STUB, not an implementation: the +0x08 theme handle is never opened here, so
-// the correct answer under this tree's model is always FALSE, but that is a
-// bare `return FALSE` and the two CMFCDesktopAlertWndButton fields at +0xb20 /
-// +0xb24 are not modelled and not named here.
+//     return m_hThemeWindow(+0x08) != NULL
+//         && pButton->m_bIsCloseButton(+0xb24) != 0
+//         && pButton->m_bIsCaptionButton(+0xb20) != 0;
+// (the +0xb24 test comes first, at 0x1ba648).  The two field names follow the
+// declaration order in the retail afxdesktopalertwnd.h (m_bIsCaptionButton,
+// then m_bIsCloseButton, directly after the CMFCButton base whose retail size
+// 0xb20 is pinned in featurepack/menu/CMFCMenuButton.cpp).
+// STUB, not an implementation: OpenMFC's CMFCDesktopAlertWndButton
+// (include/openmfc/afxmfc.h) is CObject + `char _pad[16]`, 24 bytes, so the
+// +0xb20 / +0xb24 reads would run far off the end of every button this DLL
+// constructs.  The m_hThemeWindow gate is never non-NULL here, so FALSE is the
+// value retail would produce too, but the body cannot be transcribed until the
+// button's layout is modelled (headerRequest filed).
 // Symbol: ?IsDefaultWinXPPopupButton@CMFCVisualManagerWindows@@UEBAHPEAVCMFCDesktopAlertWndButton@@@Z
 extern "C" int MS_ABI impl__IsDefaultWinXPPopupButton_CMFCVisualManagerWindows__UEBAHPEAVCMFCDesktopAlertWndButton___Z(
     const CMFCVisualManagerWindows* /*pThis*/, CMFCDesktopAlertWndButton* /*pButton*/)
@@ -360,16 +407,37 @@ extern "C" int MS_ABI impl__IsDefaultWinXPPopupButton_CMFCVisualManagerWindows__
 }
 
 // CMFCVisualManagerWindows::IsWinXPThemeAvailable (retail 0x1b7110), a static:
-//     CMFCVisualManager* p = CMFCVisualManager::m_pVisManager;      // 0x3b7120
-//     if (p != NULL && p->IsKindOf(RUNTIME_CLASS(CMFCVisualManagerWindows)))
-//         return p->[+0x08] != NULL;
-//     CMFCVisualManagerWindows vm(1);       // ??0CMFCVisualManagerWindows@@QEAA@H@Z, 0x1b6fe0
-//     return vm.[+0x08] != NULL;            // then the inlined destructor
-// i.e. "did OpenThemeData succeed for the button class".  STUB: OpenMFC opens
-// no theme, so the answer is always FALSE and the body is a bare return.
+//     CMFCVisualManager* p = CMFCVisualManager::m_pVisManager;          // 0x1b7119
+//     if (p != NULL && p->IsKindOf(RUNTIME_CLASS(CMFCVisualManagerWindows)))  // 0x233310
+//         return p->m_hThemeWindow(+0x08) != NULL;                      // 0x1b7138..0x1b713e
+//     CMFCVisualManagerWindows vm(TRUE);   // ??0CMFCVisualManagerWindows@@QEAA@H@Z, 0x1b6fe0
+//     BOOL b = vm.m_hThemeWindow(+0x08) != NULL;                        // 0x1b715b
+//     vm.~CMFCVisualManagerWindows();      // inlined: the ctor's own vftable pointer
+//                                          // is stored back, then the call to
+//                                          // ??1CMFCVisualManagerOfficeXP (0x1abff0)
+//     return b;
+// The descriptor IsKindOf is handed (0x31cd98, mfc140 image) is the
+// CRuntimeClass named "CMFCVisualManagerWindows" (read out of the PE; its
+// m_nObjectSize is 0x218).  The first path is transcribed: OpenMFC keeps
+// m_pVisManager in sync with the live manager (SyncVisualManagerExports,
+// detail/MfccoreSupport.cpp), and +0x08 lies inside OpenMFC's object (the
+// zero-filled 256-byte padding of CMFCVisualManager, +0x08..+0x107).
+// DEVIATION on the second path: no temporary manager is constructed.
+// OpenMFC's constructor has global side effects retail's bIsTemporary=TRUE
+// constructor avoids -- CMFCVisualManager() installs itself as the current
+// manager when there is none, and CMFCVisualManagerWindows() sets
+// m_b3DTabsXPTheme and calls ApplyVisualPaletteForClass -- and it never opens
+// a theme (nothing in this tree writes +0x08; CMFCVisualManager() zero-fills
+// it), so the temporary's +0x08 would read NULL.  FALSE is returned directly.
 // Symbol: ?IsWinXPThemeAvailable@CMFCVisualManagerWindows@@SAHXZ
 extern "C" int MS_ABI impl__IsWinXPThemeAvailable_CMFCVisualManagerWindows__SAHXZ()
 {
+    const CMFCVisualManager* p =
+        static_cast<const CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+    if (p != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(p, CMFCVisualManagerWindows::GetThisClass())) {
+        return VMW_ThemeHandle(p, kVMW_hThemeWindow) != nullptr ? TRUE : FALSE;
+    }
     return FALSE;
 }
 
@@ -860,15 +928,16 @@ extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerWindows__UEAAXPEAVCDC__
 }
 
 // CMFCVisualManagerWindows::OnDrawTasksGroupAreaBorder (retail 0x1b9780):
-//     if (m_hTheme@+0x50 == NULL || bNoTitle == 0) return;
-//     CRect r = rect; r.bottom = r.top + 1;      // a one-pixel strip
-//     ::DrawThemeBackground(+0x50, pDC->m_hDC, ..., ..., &r, NULL);   // part/state
-//                                                // chosen from bSpecial
-// STUB by the campaign's definition -- the body below is empty -- but the empty
-// body IS the retail terminal here: the +0x50 handle is never opened in this
-// tree, so retail returns without drawing anything.  Note there is no
-// base-class call on this path: the theme test is the only guard, and failing
-// it simply falls through to the epilogue.
+//     if (m_hThemeExplorerBar(+0x50) == NULL || bNoTitle == 0) return;
+//     CRect r = rect; r.bottom = r.top + 1;      // a one-pixel strip (0x1b97a9..0x1b97bd)
+//     ::DrawThemeBackground(+0x50, pDC ? pDC->m_hDC : NULL,
+//                           bSpecial ? 12 /*EBP_SPECIALGROUPHEAD*/ : 8 /*EBP_NORMALGROUPHEAD*/,
+//                           0, &r, NULL);        // call at 0x1b9802, slot 0x2c53e0
+// STUB by the campaign's definition -- the body below is empty.  The empty
+// body is what retail executes on the path this tree can reach (the +0x50
+// handle is never opened here, so retail returns without drawing anything;
+// there is no base-class call on this path), but the themed branch is not
+// reproduced because no HTHEME is modelled in this tree.
 // Symbol: ?OnDrawTasksGroupAreaBorder@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@HH@Z
 extern "C" void MS_ABI impl__OnDrawTasksGroupAreaBorder_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect__HH_Z(
     CMFCVisualManagerWindows* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bSpecial*/, int /*bNoTitle*/)
@@ -1042,28 +1111,173 @@ extern "C" void MS_ABI impl__OnFillMenuImageRect_CMFCVisualManagerWindows__UEAAX
         pThis, pDC, pButton, rect, state);
 }
 
+// CMFCVisualManagerWindows::OnFillMiniFrameCaption (retail 0x1b8ca0):
+//     if (m_hThemeWindow(+0x08) == NULL)
+//         return CMFCVisualManager::OnFillMiniFrameCaption(pDC, rectCaption, pFrameWnd, bActive); // 0x186390
+//     if (afxGlobalData.[+0x00] == 0) { afxGlobalData.Initialize(); afxGlobalData.[+0x00] = 1; } // 0x6a5c0
+//     return afxGlobalData.[+0x80];          // nothing is drawn on the themed path
+// The +0x08 handle is NULL here, so the base call is the reachable branch and
+// its COLORREF is this function's result.  The CRect is forwarded by value
+// (retail copies it to its own stack at 0x1b8cbc and passes that copy).
 // Symbol: ?OnFillMiniFrameCaption@CMFCVisualManagerWindows@@UEAAKPEAVCDC@@VCRect@@PEAVCPaneFrameWnd@@H@Z
-extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerWindows__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/ p1, void* /*class*/* p2, int p3) {
-    return 0;
+extern "C" unsigned long MS_ABI impl__OnFillMiniFrameCaption_CMFCVisualManagerWindows__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CRect rectCaption, CPaneFrameWnd* pFrameWnd, int bActive)
+{
+    return impl__OnFillMiniFrameCaption_CMFCVisualManager__UEAAKPEAVCDC__VCRect__PEAVCPaneFrameWnd__H_Z(
+        pThis, pDC, rectCaption, pFrameWnd, bActive);
 }
 
+// CMFCVisualManagerWindows::OnFillOutlookPageButton (retail 0x1b8f80):
+//     if (m_hThemeButton(+0x20) == NULL)
+//         { CMFCVisualManager::OnFillOutlookPageButton(pDC, rect, bIsHighlighted, bIsPressed, clrText); return; } // 0x186990
+//     int state = bIsHighlighted ? 3 : (bIsPressed ? 2 : 1);     // 0x1b8fc3..0x1b8fdc
+//     CRect r = rect; ::InflateRect(&r, 1, 1);                    // slot 0x2c5310, 0x1b8ff5
+//     ::DrawThemeBackground(+0x20, pDC ? pDC->m_hDC : NULL, 1 /*BP_PUSHBUTTON*/, state, &r, NULL); // 0x1b9028
+// (clrText is not written on the themed path.)  The +0x20 handle is NULL here,
+// so the base call is the reachable branch; the rect and clrText references
+// are passed straight through, as retail passes them.
 // Symbol: ?OnFillOutlookPageButton@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@AEBVCRect@@HHAEAK@Z
-extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerWindows__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2, int p3, unsigned long* p4) {}
+extern "C" void MS_ABI impl__OnFillOutlookPageButton_CMFCVisualManagerWindows__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, const CRect* pRect, int bIsHighlighted, int bIsPressed,
+    unsigned long* pclrText)
+{
+    impl__OnFillOutlookPageButton_CMFCVisualManager__UEAAXPEAVCDC__AEBVCRect__HHAEAK_Z(
+        pThis, pDC, pRect, bIsHighlighted, bIsPressed, pclrText);
+}
 
+// CMFCVisualManagerWindows::OnFillTasksGroupInterior (retail 0x1b9700):
+//     if (m_hThemeExplorerBar(+0x50) == NULL)
+//         { CMFCVisualManagerOfficeXP::OnFillTasksGroupInterior(pDC, rect, FALSE); return; } // 0x1b0af0
+//     ::DrawThemeBackground(+0x50, pDC ? pDC->m_hDC : NULL,
+//                           bSpecial ? 9 /*EBP_SPECIALGROUPBACKGROUND*/ : 5 /*EBP_NORMALGROUPBACKGROUND*/,
+//                           0, &rect, NULL);                     // 0x1b9770
+// Note the base call passes FALSE, not bSpecial: r9d is zeroed at 0x1b9714
+// immediately before it.  The +0x50 handle is NULL here, so the OfficeXP call
+// is the reachable branch, and it is made with FALSE exactly as retail makes it.
 // Symbol: ?OnFillTasksGroupInterior@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@H@Z
-extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect__H_Z(void* /*class*/* p0, void* /*class*/ p1, int p2) {}
+extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect__H_Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CRect rect, int /*bSpecial*/)
+{
+    impl__OnFillTasksGroupInterior_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__H_Z(
+        reinterpret_cast<CMFCVisualManagerOfficeXP*>(pThis), pDC, rect, FALSE);
+}
 
+// CMFCVisualManagerWindows::OnFillTasksPaneBackground (retail 0x1b92a0):
+//     if (m_hThemeExplorerBar(+0x50) == NULL)
+//         { CMFCVisualManager::OnFillTasksPaneBackground(pDC, rectWorkArea); return; } // 0x187630
+//     ::DrawThemeBackground(+0x50, pDC ? pDC->m_hDC : NULL, 1 /*EBP_HEADERBACKGROUND*/, 0,
+//                           &rectWorkArea, NULL);                // 0x1b92e4
+// The +0x50 handle is NULL here, so the base call is the reachable branch.
 // Symbol: ?OnFillTasksPaneBackground@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnFillTasksPaneBackground_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CRect rectWorkArea)
+{
+    impl__OnFillTasksPaneBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect___Z(pThis, pDC, rectWorkArea);
+}
 
+// CMFCVisualManagerWindows::OnHighlightMenuItem (retail 0x1b7cc0):
+//     if (m_hThemeWindow(+0x08) != NULL && m_bOfficeStyleMenus(+0x210) == 0) {
+//         if (m_hThemeMenu(+0x98) == NULL)
+//             { CMFCVisualManager::OnHighlightMenuItem(pDC, pButton, rect, clrText); return; } // 0x183370
+//         ::DrawThemeBackground(+0x98, pDC ? pDC->m_hDC : NULL,
+//                               14 /*MENU_POPUPITEM*/, 2 /*MPI_HOT*/, &rect, NULL);   // 0x1b7d2e
+//         ::GetThemeColor(+0x98, 14, 2, 0xedb /*TMT_TEXTCOLOR*/, &clrText);            // 0x1b7d4f
+//         return;
+//     }
+//     CMFCVisualManagerOfficeXP::OnHighlightMenuItem(pDC, pButton, rect, clrText);    // 0x1ae070
+// The +0x08 handle is NULL here, so the && short-circuits before +0x210 is
+// read (which matters: +0x210 lies beyond OpenMFC's 0x148-byte object) and the
+// OfficeXP call is the reachable branch.
 // Symbol: ?OnHighlightMenuItem@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCToolBarMenuButton* pButton, CRect rect, unsigned long* pclrText)
+{
+    impl__OnHighlightMenuItem_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+        reinterpret_cast<CMFCVisualManagerOfficeXP*>(pThis), pDC, pButton, rect, pclrText);
+}
 
+// CMFCVisualManagerWindows::OnHighlightRarelyUsedMenuItems (retail 0x1b7df0):
+//     if (m_hThemeWindow(+0x08) == NULL || m_bOfficeStyleMenus(+0x210) != 0)
+//         { CMFCVisualManagerOfficeXP::OnHighlightRarelyUsedMenuItems(pDC, rectRarelyUsed); return; } // 0x1ae1f0
+//     CDrawingManager dm(*pDC);   // inlined: a vftable pointer and pDC stored
+//                                 // to rsp+0x30/+0x38 (0x1b7e0d..0x1b7e19), the
+//                                 // object HighlightRect is later called on
+//     rectRarelyUsed.left--;                                      // 0x1b7e1e
+//     int nMargin = this->vtbl[+0x5c8]();                         // 0x1b7e2b
+//                  // (named GetMenuImageMargin in CMFCVisualManagerOfficeXP.cpp's
+//                  //  transcription of the same slot)
+//     rectRarelyUsed.right = rectRarelyUsed.left + 2 + 2 * nMargin
+//                          + CMFCToolBar::GetMenuImageSize().cx;  // 0x155a60
+//     dm.HighlightRect(rectRarelyUsed, 94, (COLORREF)-1, 0, (COLORREF)-1); // 0x56750
+// The +0x08 handle is NULL here, so the || short-circuits before +0x210 is
+// read and the OfficeXP call is the reachable branch.
 // Symbol: ?OnHighlightRarelyUsedMenuItems@CMFCVisualManagerWindows@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect___Z(void* /*class*/* p0, void* /*class*/ p1) {}
+extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerWindows__UEAAXPEAVCDC__VCRect___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CRect rectRarelyUsed)
+{
+    impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect___Z(
+        reinterpret_cast<CMFCVisualManagerOfficeXP*>(pThis), pDC, rectRarelyUsed);
+}
 
+// CMFCVisualManagerWindows::OnUpdateSystemColors (retail 0x1b7190), in order:
+//     CMFCVisualManagerOfficeXP::OnUpdateSystemColors();          // 0x1ac0e0, call at 0x1b719c
+//     m_bShadowHighlightedImage(+0xa4) = TRUE;                    // 0x1b71a9
+//     CMFCBaseVisualManager::UpdateSystemColors();                // 0x18da80, call at 0x1b71af
+//     if (m_hThemeWindow(+0x08) != NULL)
+//         m_bShadowHighlightedImage = FALSE;                      // 0x1b71bc
+//     if (m_hThemeToolBar(+0x10) != NULL)   // six ::GetThemeColor(+0x10, 1, 0, 0xedb..0xedf, ...)
+//         ...                               // into afxGlobalData +0x74/+0x60/+0x70/+0x68/+0x64/+0x6c,
+//                                           // each preceded by the lazy afxGlobalData.Initialize()
+//     if (m_hThemeButton(+0x20) != NULL)    // the same six property ids into afxGlobalData
+//         ...                               // +0x34/+0x28/+0x40/+0x30/+0x2c/+0x3c
+// (GetThemeColor is import slot 0x2c53e8; the six ids are 0xedb, 0xeda, 0xedc,
+// 0xedd, 0xede, 0xedf in that order, all with part 1 / state 0.)
+// Transcribed: the two calls, the +0xa4 store, and the m_hThemeWindow test,
+// read from this object (it is never non-NULL in this tree, so +0xa4 ends TRUE).
+// NOT reproduced: the two GetThemeColor blocks.  Their handles are never
+// opened in this tree, and the colours they would store are afxGlobalData
+// fields, for which this file substitutes ::GetSysColor anyway (see the GD_*
+// helpers above).  Retail runs this with no NULL check on `this`; the guard
+// below is OpenMFC's.
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManagerWindows@@UEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows__UEAAXXZ(CMFCVisualManagerWindows* pThis)
+{
+    // CMFCVisualManagerOfficeXP::OnUpdateSystemColors writes its colour members
+    // at +0x108..+0x13b of the object it is handed.
+    static_assert(sizeof(CMFCVisualManagerWindows) >= 0x13c,
+                  "the OfficeXP colour members fit inside OpenMFC's CMFCVisualManagerWindows");
+    if (pThis == nullptr) return;
 
+    impl__OnUpdateSystemColors_CMFCVisualManagerOfficeXP__MEAAXXZ(reinterpret_cast<CMFCVisualManagerOfficeXP*>(pThis));
+
+    const BOOL bTrue = TRUE;
+    std::memcpy(reinterpret_cast<char*>(pThis) + kVMW_bShadowHighlightedImage, &bTrue, sizeof(bTrue));
+
+    impl__UpdateSystemColors_CMFCBaseVisualManager__IEAAXXZ(pThis);
+
+    if (VMW_ThemeHandle(pThis, kVMW_hThemeWindow) != nullptr) {
+        const BOOL bFalse = FALSE;
+        std::memcpy(reinterpret_cast<char*>(pThis) + kVMW_bShadowHighlightedImage, &bFalse, sizeof(bFalse));
+    }
+}
+
+// CMFCVisualManagerWindows::SetOfficeStyleMenus (retail 0x1b7180) is the single
+// instruction `mov %edx,0x210(%rcx)` -- m_bOfficeStyleMenus = bOn.
+// STUB, not an implementation: +0x210 lies past the end of OpenMFC's object.
+// OpenMFC's CMFCVisualManagerWindows is CMFCVisualManager (0x108) + `char
+// _pad[64]` = 0x148 bytes, while retail's is 0x218 (the m_nObjectSize of its
+// CRuntimeClass, 0x31cd98 in mfc140), deriving from CMFCVisualManagerOfficeXP
+// (0x210).  Every manager this DLL creates (CreateObject, the default-manager
+// path) is 0x148 bytes, so the store would corrupt the heap.  A side table
+// would not reach the other readers of the flag, which read +0x210 directly:
+// the retail header's inlines (IsOfficeStyleMenus, and GetPopupMenuGap /
+// IsHighlightWholeMenuItem / IsOfficeXPStyleMenus when a client binds them
+// statically), and retail CMFCVisualManagerWindows7::IsHighlightWholeMenuItem
+// (0x1bb550, mfc140: `cmp %eax,0x210(%rbx)` at 0x1bb562), whose OpenMFC thunk
+// in CMFCVisualManagerWindows7.cpp documents the same unmodelled +0x210.
+// Needs the class layout fixed in include/openmfc/afxmfc.h (headerRequest filed).
 // Symbol: ?SetOfficeStyleMenus@CMFCVisualManagerWindows@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetOfficeStyleMenus_CMFCVisualManagerWindows__QEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__SetOfficeStyleMenus_CMFCVisualManagerWindows__QEAAXH_Z(
+    CMFCVisualManagerWindows* /*pThis*/, int /*bOn*/)
+{
+}
