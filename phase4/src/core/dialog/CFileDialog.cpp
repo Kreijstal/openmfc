@@ -478,7 +478,13 @@ extern "C" void* MS_ABI impl__GetIFileDialogCustomize_CFileDialog__QEAAPEAUIFile
 // Retail (RVA 0x20b700, mfc140u): same shape as GetIFileDialogCustomize with the
 // IID at 0x34c5f8 (IID_IFileOpenDialog): NULL unless m_bVistaStyle == 1, else
 // m_pIFileDialog->QueryInterface(..., &result), HRESULT ignored.
-// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.
+// (Verified: `cmpl $1,0x138(%rcx)`, `mov 0x148(%rcx),%rcx`, vtable slot 0 =
+// QueryInterface called through the CFG dispatch pointer; the 16 bytes at RVA
+// 0x34c5f8 of mfc140u decode to {d57c7288-d4ad-4768-be02-9d969532d960}.)
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.  At +0x138
+// the clean-room layout (include/openmfc/afxwin.h) has CString m_strDefExt, so
+// a retail-offset view cannot be pinned here; the header would need the
+// retail member set (see the layout note at the top of this file).
 extern "C" void* MS_ABI impl__GetIFileOpenDialog_CFileDialog__QEAAPEAUIFileOpenDialog__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
@@ -487,7 +493,10 @@ extern "C" void* MS_ABI impl__GetIFileOpenDialog_CFileDialog__QEAAPEAUIFileOpenD
 // Retail (RVA 0x20b740, mfc140u): same shape as GetIFileDialogCustomize with the
 // IID at 0x34c5d8 (IID_IFileSaveDialog): NULL unless m_bVistaStyle == 1, else
 // m_pIFileDialog->QueryInterface(..., &result), HRESULT ignored.
-// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object.
+// (Verified: same instruction sequence as GetIFileOpenDialog; the 16 bytes at
+// RVA 0x34c5d8 of mfc140u decode to {84bccd23-5fde-4cdb-aea4-af64b83d78ab}.)
+// STUB: no m_bVistaStyle / m_pIFileDialog in the clean-room object (same
+// layout conflict as GetIFileOpenDialog above).
 extern "C" void* MS_ABI impl__GetIFileSaveDialog_CFileDialog__QEAAPEAUIFileSaveDialog__XZ(CFileDialog* pThis) {
     (void)pThis;
     return nullptr;
@@ -556,9 +565,17 @@ extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog*
     return S_OK;
 }
 // The eight overridables below share one retail body: export RVA 0x27d0 in
-// mfc140u (resolved through the export ordinal table; COMDAT-folded onto
-// CFrameWndEx::AddDockSite) which is a bare `ret`.  Retail does nothing in the
-// base class; only application overrides add behaviour.  Empty by design.
+// mfc140u, resolved through the mfc140u export address table (ordinals 8708
+// OnButtonClicked, 8811 OnCheckButtonToggled, 8983 OnControlActivating, 9832
+// OnFileNameChange, 9955 OnFolderChange, 10221 OnItemSelected, 10285
+// OnLBSelChangedNotify, 11424 OnTypeChange -- none of them is in the RVA symbol
+// map because the body is COMDAT-folded; the map names 0x27d0 as
+// CFrameWndEx::AddDockSite).  The body is the single instruction `ret 0`
+// (bytes c2 00 00): the base class does nothing, only application overrides
+// add behaviour.  The empty bodies below are therefore exact transcriptions,
+// not placeholders.  (OnFileNameOK, OnInitDone, OnNotify and OnShareViolation
+// are interleaved among them alphabetically; they are NOT part of this fold
+// and carry their own comments.)
 // Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
 extern "C" void MS_ABI impl__OnButtonClicked_CFileDialog__MEAAXK_Z(CFileDialog* pThis, unsigned long dwIDCtl) {
     // Retail RVA 0x27d0 (mfc140u): `ret`.
@@ -927,10 +944,24 @@ extern "C" HRESULT MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UE
 }
 
 // OnFolderChanging, OnHelp and OnOverwrite share one retail body (RVA 0x20ba70,
-// mfc140u, reached through three export ordinals): read the outer object's
-// m_pModuleState (rcx - 0x548 == (this - 0x580) + 0x38), construct and destroy
-// an AFX_MAINTAIN_STATE2 around nothing, return S_OK.  The guard has no effect
-// that outlives the call, so `return S_OK` is the complete behaviour.
+// mfc140u, reached through export ordinals 9957 / 10072 / 10721; the RVA symbol
+// map has no name for it because of the folding).  It reads the outer object's
+// m_pModuleState (rcx - 0x548 == (this - 0x580) + 0x38), calls
+// AFX_MAINTAIN_STATE2::AFX_MAINTAIN_STATE2(AFX_MODULE_STATE*) (RVA 0x133170,
+// mfc140u: fetches the thread state, saves its m_pModuleState and installs the
+// new one), then runs the inlined destructor (if the saved thread-state pointer
+// is non-null, restore thread-state +0x8 from the saved module state) and
+// returns 0 (S_OK).  Only rcx (the interface-part `this`) is read; the
+// interface arguments in rdx/r8/r9 are never read (rdx is overwritten with
+// the module state before the ctor call).  The guard's module-state swap does
+// not outlive the call, so `return S_OK` is the complete observable behaviour
+// apart from the ctor's internals, which are not modelled: the ctor gets the
+// thread state through CThreadLocalObject::GetData (RVA 0x14cf40, mfc140u),
+// which may lazily create it, and if that returns NULL it calls
+// AfxThrowInvalidArgException (RVA 0x227720, mfc140u; the call instruction is
+// at 0x1331b8 inside the ctor) -- an ENSURE-style check, not an out-of-memory
+// throw.  The clean-room CFileDialog has no interface part at +0x580 to
+// recover the outer object from anyway, see the block comment above.
 
 // Symbol: ?OnFolderChanging@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@@Z
 extern "C" HRESULT MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(
