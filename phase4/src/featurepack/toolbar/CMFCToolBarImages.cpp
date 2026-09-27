@@ -464,8 +464,11 @@ extern "C" void MS_ABI impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDraw
 
     const BOOL bStretch = TI_OFF_BOOL(pThis, 0x24);
     const int nBpp = TI_OFF_INT(pThis, 0x0C);
-    if (!bStretch && (nBpp != 32 &&
-                      TI_OFF_ULONG(pThis, 0xD8) != static_cast<unsigned long>(-1))) {
+    // Retail 0x16c2e1 (mfc140u): `cmpl $0,0x24(%rdi); jne <restore>`, then the
+    // (bpp == 32 ? -1 : m_clrTransparent) != -1 test -- i.e. m_bStretch OR
+    // the transparent-colour case, as the comment above says.
+    if (bStretch || (nBpp != 32 &&
+                     TI_OFF_ULONG(pThis, 0xD8) != static_cast<unsigned long>(-1))) {
         if (TI_OFF_PTR(pThis, 0xD0)) {              // m_pBmpOriginal
             // TODO(clean-room): retail first reselects the original bitmap
             // into m_dcMem (0x18016c2fb); the mem-DC contents are not modeled.
@@ -728,8 +731,8 @@ extern "C" int MS_ABI impl__MapBmpTo3dColors_CMFCToolBarImages__KAHAEAPEAUHBITMA
     return 0;
 }
 #define TI_OFF_BOOL(p, off) (*reinterpret_cast<BOOL*>(reinterpret_cast<char*>(p) + (off)))
-// Retail (0x180170000) tail-calls the internal premultiply helper
-// (0x18016fef0) with (hbmp, m_bAutoCheckPremlt).  The helper is transcribed
+// Retail (0x180170000, mfc140u) tail-calls the static PreMultiplyAlpha
+// (0x18016fef0, mfc140u; defined below) with (hbmp, m_bAutoCheckPremlt).  The helper is transcribed
 // inline: reject non-32bpp/bitmap-less handles, optionally skip already
 // premultiplied buffers, then multiply each channel by alpha/255 using the
 // 0x80808081 magic constant (equivalent to integer division by 255).
@@ -921,37 +924,340 @@ extern "C" int MS_ABI impl__ConvertTo32Bits_CMFCToolBarImages__QEAAHK_Z(
     // the well through the 32bpp helper (0x180056660); not modeled.
     return 0;
 }
+//=============================================================================
+// Wave-2 bodies below.  Every mfc140u RVA quoted here is the export's entry,
+// taken from the mfc140u export table by ordinal; the bodies were read in
+// mfc140.dll (byte-identical) and spot-checked at the mfc140u entry.
+//
+// Member offsets used by these bodies, pinned against the harvested retail
+// layout in include/openmfc/afxmfc.h through a derived accessor (the members
+// are protected, so offsetof must name a derived class).
+//=============================================================================
+namespace {
+struct TbiOffsetsProbe : CMFCToolBarImages {
+    static constexpr size_t kCount() { return offsetof(TbiOffsetsProbe, m_iCount); }
+    static constexpr size_t kUserImages() { return offsetof(TbiOffsetsProbe, m_bUserImagesList); }
+    static constexpr size_t kModified() { return offsetof(TbiOffsetsProbe, m_bModified); }
+    static constexpr size_t kIsTemporary() { return offsetof(TbiOffsetsProbe, m_bIsTemporary); }
+    static constexpr size_t kSizeImage() { return offsetof(TbiOffsetsProbe, m_sizeImage); }
+    static constexpr size_t kImageWell() { return offsetof(TbiOffsetsProbe, m_hbmImageWell); }
+    static constexpr size_t kImageLight() { return offsetof(TbiOffsetsProbe, m_hbmImageLight); }
+    static constexpr size_t kImageShadow() { return offsetof(TbiOffsetsProbe, m_hbmImageShadow); }
+};
+struct TbiOffsets {
+    static constexpr size_t kCount = TbiOffsetsProbe::kCount();
+    static constexpr size_t kUserImages = TbiOffsetsProbe::kUserImages();
+    static constexpr size_t kModified = TbiOffsetsProbe::kModified();
+    static constexpr size_t kIsTemporary = TbiOffsetsProbe::kIsTemporary();
+    static constexpr size_t kSizeImage = TbiOffsetsProbe::kSizeImage();
+    static constexpr size_t kImageWell = TbiOffsetsProbe::kImageWell();
+    static constexpr size_t kImageLight = TbiOffsetsProbe::kImageLight();
+    static constexpr size_t kImageShadow = TbiOffsetsProbe::kImageShadow();
+};
+static_assert(TbiOffsets::kCount       == 0x08, "m_iCount: mov %eax,0x8(%rbx) in UpdateCount");
+static_assert(TbiOffsets::kUserImages  == 0x1C, "m_bUserImagesList: cmpl $0,0x1c(%rcx) in UpdateImage");
+static_assert(TbiOffsets::kModified    == 0x20, "m_bModified: mov %esi,0x20(%rbx) in UpdateImage");
+static_assert(TbiOffsets::kIsTemporary == 0x2C, "m_bIsTemporary: cmpl $0,0x2c(%rcx) in UpdateImage");
+static_assert(TbiOffsets::kSizeImage   == 0x68, "m_sizeImage: 0x68/0x6c(%rbx) in SetSingleImage");
+static_assert(TbiOffsets::kImageWell   == 0xA0, "m_hbmImageWell: mov 0xa0(%rcx),%rcx");
+static_assert(TbiOffsets::kImageLight  == 0xA8, "m_hbmImageLight: lea 0xa8(%rbx) in UpdateImage");
+static_assert(TbiOffsets::kImageShadow == 0xB0, "m_hbmImageShadow: add $0xb0,%rbx in UpdateImage");
+static_assert(offsetof(CDC, m_hDC) == 0x08, "CDC::m_hDC: mov 0x8(%rbx),%rcx in TransparentBlt");
+
+template <typename T>
+inline T& TbiField(void* pThis, size_t off)
+{
+    return *reinterpret_cast<T*>(static_cast<char*>(pThis) + off);
+}
+
+// msimg32!TransparentBlt.  Retail calls it through the delay-load import slot
+// 0x1803e9018 (mfc140u; MSIMG32.dll / TransparentBlt per the delay-import
+// directory).  OpenMFC does not link msimg32, so it is resolved lazily -- the
+// same pattern CDrawingManager.cpp uses for AlphaBlend.
+typedef BOOL (WINAPI* PFN_TransparentBlt)(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
+PFN_TransparentBlt TbiGetTransparentBlt()
+{
+    static PFN_TransparentBlt s_pfn = nullptr;
+    static bool s_bTried = false;
+    if (!s_bTried) {
+        s_bTried = true;
+        HMODULE h = ::LoadLibraryW(L"msimg32.dll");
+        if (h != nullptr)
+            s_pfn = reinterpret_cast<PFN_TransparentBlt>(
+                reinterpret_cast<void*>(::GetProcAddress(h, "TransparentBlt")));
+    }
+    return s_pfn;
+}
+} // namespace
+
+extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ();   // detail/MfcExceptionsSupport.cpp
+
+// Retail RVA 0x16fef0 (mfc140u).  Transcribed:
+//   GetObject(hbmp, sizeof(DIBSECTION) /*0x68*/, &ds) -- failure -> FALSE;
+//   dsBm.bmBitsPixel != 32 or dsBm.bmBits == NULL -> FALSE;
+//   n = bmWidth * bmHeight;
+//   bAutoCheckPremlt: scan pixels, and if every pixel has B,G,R <= A the
+//     bitmap is taken as already premultiplied -> TRUE without touching it;
+//     the first pixel with a channel > A starts the conversion from pixel 0;
+//   conversion: each of B,G,R = channel * A / 255 (retail multiplies by the
+//     0x80808081 reciprocal and shifts by 39 -- exact floor division by 255
+//     for these ranges); returns TRUE (also when n <= 0).
 // Symbol: ?PreMultiplyAlpha@CMFCToolBarImages@@SAHPEAUHBITMAP__@@H@Z
-extern "C" int MS_ABI impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(void* /*struct*/* p0, int p1) {
-    return 0;
+extern "C" int MS_ABI impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(
+    HBITMAP hbmp, int bAutoCheckPremlt)
+{
+    DIBSECTION ds;
+    if (!::GetObjectW(hbmp, sizeof(DIBSECTION), &ds)) return FALSE;
+    if (ds.dsBm.bmBitsPixel != 32 || ds.dsBm.bmBits == nullptr) return FALSE;
+
+    const int nPixels = ds.dsBm.bmHeight * ds.dsBm.bmWidth;
+    unsigned char* const bits = static_cast<unsigned char*>(ds.dsBm.bmBits);
+
+    if (bAutoCheckPremlt) {
+        bool bNeedConvert = false;
+        for (int i = 0; i < nPixels; ++i) {
+            const unsigned char* px = bits + static_cast<size_t>(i) * 4;
+            if (px[2] > px[3] || px[1] > px[3] || px[0] > px[3]) {
+                bNeedConvert = true;
+                break;
+            }
+        }
+        if (!bNeedConvert) return TRUE;
+    }
+
+    for (int i = 0; i < nPixels; ++i) {
+        unsigned char* px = bits + static_cast<size_t>(i) * 4;
+        const unsigned int a = px[3];
+        px[2] = static_cast<unsigned char>((px[2] * a) / 255);
+        px[1] = static_cast<unsigned char>((px[1] * a) / 255);
+        px[0] = static_cast<unsigned char>((px[0] * a) / 255);
+    }
+    return TRUE;
 }
 
+// Retail RVA 0x16c060 (mfc140u).  LEFT A STUB (returns FALSE).  The body
+// (read in full): no m_hbmImageWell -> FALSE before any lock.  Otherwise it
+// enters the m_bMultiThreaded critical section (left held on success; the
+// matching LeaveCriticalSection is in EndDrawImage), clears m_bStretch,
+// requires m_dcMem, m_bmpMem and m_pBmpOriginal to be empty (else
+// AfxThrowInvalidArgException), selects the well into the global glyph DC
+// (mfc140u static 0x1803c38a8) storing the old bitmap in ds.hbmOldGlyphs,
+// and when m_bCreateMonoDC creates a (cx+2)x(cy+2) 1bpp ds.hbmMono selected
+// into the global mono DC (mfc140u static 0x1803c39b8).  m_sizeImageDest =
+// sizeImageDest when both extents are > 0, else m_sizeImage.  When
+// m_sizeImageDest != m_sizeImage, or when the image is not 32bpp and
+// m_clrTransparent != (COLORREF)-1, it sets m_bStretch = (sizes differ),
+// attaches CreateCompatibleDC(NULL) to m_dcMem and a (cx+2)x(cy+2) bitmap
+// compatible with the screen DC to m_bmpMem, and stores the bitmap it
+// displaces in m_pBmpOriginal.  bFadeInactive is never read.
+// OpenMFC does not model those two global DCs (EndDrawImage above leaves the
+// matching restore undone for the same reason), so the draw state cannot be
+// produced.  Parameters: CSize by value is one 8-byte register (long long).
 // Symbol: ?PrepareDrawImage@CMFCToolBarImages@@QEAAHAEAUtagAFXDrawState@@VCSize@@H@Z
-extern "C" int MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(void* /*struct*/* p0, void* /*class*/ p1, int p2) {
-    return 0;
+extern "C" int MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(
+    CMFCToolBarImages* pThis, tagAFXDrawState* pDrawState, long long sizeImageDest, int bFadeInactive)
+{
+    (void)pThis; (void)pDrawState; (void)sizeImageDest; (void)bFadeInactive;
+    return FALSE;
 }
 
+// Retail RVA 0x171320 (mfc140u).  Transcribed: when m_hbmImageWell is set and
+// GetObject(well, sizeof(BITMAP)) succeeds, m_sizeImage = (bmWidth, bmHeight)
+// and m_iCount = 1; otherwise nothing is changed.
 // Symbol: ?SetSingleImage@CMFCToolBarImages@@QEAAXXZ
-extern "C" void MS_ABI impl__SetSingleImage_CMFCToolBarImages__QEAAXXZ() {}
+extern "C" void MS_ABI impl__SetSingleImage_CMFCToolBarImages__QEAAXXZ(CMFCToolBarImages* pThis)
+{
+    HBITMAP hWell = TbiField<HBITMAP>(pThis, TbiOffsets::kImageWell);
+    if (hWell == nullptr) return;
+    BITMAP bmp;
+    if (!::GetObjectW(hWell, sizeof(BITMAP), &bmp)) return;
+    TbiField<int>(pThis, TbiOffsets::kSizeImage)     = bmp.bmWidth;   // m_sizeImage.cx
+    TbiField<int>(pThis, TbiOffsets::kSizeImage + 4) = bmp.bmHeight;  // m_sizeImage.cy
+    TbiField<int>(pThis, TbiOffsets::kCount)         = 1;             // m_iCount
+}
 
+// Retail RVA 0x171a30 (mfc140u).  LEFT A STUB (returns FALSE).  The body
+// resamples the well with a filtered (weight-table) scaler.  It returns FALSE
+// without a well, with m_nBitsPerPixel < 24, or with a scale of 0.0; it
+// returns TRUE WITHOUT doing anything for a scale of 1.0, when the rounded
+// new size equals m_sizeImage, when either size is not positive, or when
+// m_iCount == 0 -- this stub returns FALSE in those no-op cases too.  The
+// real path multiplies m_dblScale, builds source/destination DIBs through
+// internal helpers (0x1800564b0 / 0x1800563d0 / 0x180169510 in mfc140) and
+// per-axis contribution tables (0x180169170 in mfc140), then accumulates
+// each output pixel in double precision.  Those internal helpers are not
+// exported and are not reimplemented in OpenMFC, so a transcription is not
+// attempted here.
 // Symbol: ?SmoothResize@CMFCToolBarImages@@QEAAHN@Z
-extern "C" int MS_ABI impl__SmoothResize_CMFCToolBarImages__QEAAHN_Z(double p0) {
-    return 0;
+extern "C" int MS_ABI impl__SmoothResize_CMFCToolBarImages__QEAAHN_Z(
+    CMFCToolBarImages* pThis, double dblImageScale)
+{
+    (void)pThis; (void)dblImageScale;
+    return FALSE;
 }
 
+// Retail RVA 0x16f7a0 (mfc140u).  Static.  Transcribed:
+//   cxDest = (nWidthDest == -1) ? nWidth : nWidthDest;
+//   cyDest = (nHeightDest == -1) ? nHeight : nHeightDest;
+//   when the m_bIsRTL static is 0: msimg32!TransparentBlt(hdcDest, nXDest,
+//     nYDest, cxDest, cyDest, pDcSrc ? pDcSrc->m_hDC : NULL, nXSrc, nYSrc,
+//     nWidth, nHeight, colorTransparent); a nonzero result returns at once.
+//   Otherwise (RTL, or TransparentBlt failed) the classic mask path:
+//     two compatible DCs off hdcDest (mask, image); a cxDest x cyDest
+//     compatible bitmap in the image DC; copy the source in -- StretchBlt to
+//     (nWidthDest, nHeightDest) when nWidthDest != -1 and the destination size
+//     differs from (nWidth, nHeight), else BitBlt nWidth x nHeight -- SRCCOPY;
+//     a 1bpp cxDest x cyDest bitmap in the mask DC; image bk = transparent,
+//     BitBlt image->mask SRCCOPY; image bk = 0 / text = 0xFFFFFF, BitBlt
+//     mask->image SRCAND; dest bk = 0xFFFFFF / text = 0, BitBlt mask->dest
+//     SRCAND, then image->dest SRCPAINT.  The old bitmaps are reselected, both
+//     bitmaps and both memory DCs deleted.  Retail does NOT restore hdcDest's
+//     bk/text colours; neither does this.
+// Retail wraps the handles in stack CDC/CBitmap objects (Attach, CDC::
+// SetBkColor/SetTextColor on a freshly attached CDC, whose m_hAttribDC equals
+// m_hDC); the raw GDI calls below are the same GDI calls without the
+// handle-map traffic.  One retail side effect is therefore not reproduced:
+// retail also wraps hdcDest itself in a stack CDC (CDC::Attach, then
+// CDC::Detach at the end), which overwrites and then removes any permanent
+// HDC-map entry an existing CDC (e.g. a CPaintDC) held for hdcDest.
+// Deviation: retail's delay-load helper raises an exception when msimg32
+// cannot be loaded; here a missing TransparentBlt falls through to the mask
+// path instead.
 // Symbol: ?TransparentBlt@CMFCToolBarImages@@KAXPEAUHDC__@@HHHHPEAVCDC@@HHKHH@Z
-extern "C" void MS_ABI impl__TransparentBlt_CMFCToolBarImages__KAXPEAUHDC____HHHHPEAVCDC__HHKHH_Z(void* /*struct*/* p0, int p1, int p2, int p3, int p4, void* /*class*/* p5, int p6, int p7, unsigned long p8, int p9, int p10) {}
+extern "C" void MS_ABI impl__TransparentBlt_CMFCToolBarImages__KAXPEAUHDC____HHHHPEAVCDC__HHKHH_Z(
+    HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, CDC* pDcSrc,
+    int nXSrc, int nYSrc, unsigned long colorTransparent, int nWidthDest, int nHeightDest)
+{
+    const int cxDest = (nWidthDest == -1) ? nWidth : nWidthDest;
+    const int cyDest = (nHeightDest == -1) ? nHeight : nHeightDest;
+    const HDC hdcSrc = (pDcSrc != nullptr) ? pDcSrc->m_hDC : nullptr;
 
+    if (impl__m_bIsRTL_CMFCToolBarImages__1HA == 0) {
+        PFN_TransparentBlt pfn = TbiGetTransparentBlt();
+        if (pfn != nullptr &&
+            pfn(hdcDest, nXDest, nYDest, cxDest, cyDest, hdcSrc,
+                nXSrc, nYSrc, nWidth, nHeight, colorTransparent)) {
+            return;
+        }
+    }
+
+    HDC hdcMask = ::CreateCompatibleDC(hdcDest);
+    HDC hdcImage = ::CreateCompatibleDC(hdcDest);
+
+    HBITMAP hbmImage = ::CreateCompatibleBitmap(hdcDest, cxDest, cyDest);
+    HGDIOBJ hOldImage = ::SelectObject(hdcImage, hbmImage);
+
+    if (nWidthDest != -1 && (nWidthDest != nWidth || nHeightDest != nHeight)) {
+        ::StretchBlt(hdcImage, 0, 0, nWidthDest, nHeightDest,
+                     hdcSrc, nXSrc, nYSrc, nWidth, nHeight, SRCCOPY);
+    } else {
+        ::BitBlt(hdcImage, 0, 0, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, SRCCOPY);
+    }
+
+    HBITMAP hbmMask = ::CreateBitmap(cxDest, cyDest, 1, 1, nullptr);
+    HGDIOBJ hOldMask = ::SelectObject(hdcMask, hbmMask);
+
+    ::SetBkColor(hdcImage, colorTransparent);
+    ::BitBlt(hdcMask, 0, 0, cxDest, cyDest, hdcImage, 0, 0, SRCCOPY);
+
+    ::SetBkColor(hdcImage, RGB(0, 0, 0));
+    ::SetTextColor(hdcImage, RGB(255, 255, 255));
+    ::BitBlt(hdcImage, 0, 0, cxDest, cyDest, hdcMask, 0, 0, SRCAND);
+
+    ::SetBkColor(hdcDest, RGB(255, 255, 255));
+    ::SetTextColor(hdcDest, RGB(0, 0, 0));
+    ::BitBlt(hdcDest, nXDest, nYDest, cxDest, cyDest, hdcMask, 0, 0, SRCAND);
+    ::BitBlt(hdcDest, nXDest, nYDest, cxDest, cyDest, hdcImage, 0, 0, SRCPAINT);
+
+    if (hOldMask != nullptr) ::SelectObject(hdcMask, hOldMask);
+    if (hOldImage != nullptr) ::SelectObject(hdcImage, hOldImage);
+
+    if (hbmImage != nullptr) ::DeleteObject(hbmImage);
+    if (hbmMask != nullptr) ::DeleteObject(hbmMask);
+    if (hdcMask != nullptr) ::DeleteDC(hdcMask);
+    if (hdcImage != nullptr) ::DeleteDC(hdcImage);
+}
+
+// Retail RVA 0x16d840 (mfc140u).  Transcribed: m_iCount = 0 when there is no
+// well or GetObject(well, sizeof(BITMAP)) fails, else bmWidth / m_sizeImage.cx
+// (signed division).
+// Deviation: retail's idiv faults on m_sizeImage.cx == 0; that is undefined
+// behaviour in C++, so the zero-width case stores 0 instead.
 // Symbol: ?UpdateCount@CMFCToolBarImages@@IEAAXXZ
-extern "C" void MS_ABI impl__UpdateCount_CMFCToolBarImages__IEAAXXZ() {}
+extern "C" void MS_ABI impl__UpdateCount_CMFCToolBarImages__IEAAXXZ(CMFCToolBarImages* pThis)
+{
+    int nCount = 0;
+    HBITMAP hWell = TbiField<HBITMAP>(pThis, TbiOffsets::kImageWell);
+    BITMAP bmp;
+    if (hWell != nullptr && ::GetObjectW(hWell, sizeof(BITMAP), &bmp)) {
+        const int cx = TbiField<int>(pThis, TbiOffsets::kSizeImage);   // m_sizeImage.cx
+        nCount = (cx != 0) ? bmp.bmWidth / cx : 0;
+    }
+    TbiField<int>(pThis, TbiOffsets::kCount) = nCount;
+}
 
+// Retail RVA 0x16e260 (mfc140u).  Transcribed:
+//   m_bIsTemporary or !m_bUserImagesList -> FALSE.
+//   CWindowDC(NULL) (GetWindowDC(NULL); a NULL DC throws a resource
+//   exception); two memory DCs compatible with it: the well DC and the
+//   source DC.  Select m_hbmImageWell (if set) into the well DC and hbmp (if
+//   set) into the source DC; BitBlt source (0,0) -> well
+//   (m_sizeImage.cx * iImage, 0), m_sizeImage.cx x m_sizeImage.cy, SRCCOPY.
+//   iImage is NOT range-checked by retail, and the BitBlt runs even when a
+//   handle was NULL.  Reselect the old bitmaps, set m_bModified, delete and
+//   clear m_hbmImageLight and m_hbmImageShadow, free the DCs, return TRUE.
+// Retail uses stack CDC objects (Attach/Detach + DeleteDC); raw GDI calls are
+// the same operations without the temporary handle-map entries.
 // Symbol: ?UpdateImage@CMFCToolBarImages@@QEAAHHPEAUHBITMAP__@@@Z
-extern "C" int MS_ABI impl__UpdateImage_CMFCToolBarImages__QEAAHHPEAUHBITMAP_____Z(int p0, void* /*struct*/* p1) {
-    return 0;
+extern "C" int MS_ABI impl__UpdateImage_CMFCToolBarImages__QEAAHHPEAUHBITMAP_____Z(
+    CMFCToolBarImages* pThis, int iImage, HBITMAP hbmp)
+{
+    if (TbiField<BOOL>(pThis, TbiOffsets::kIsTemporary)) return FALSE;
+    if (!TbiField<BOOL>(pThis, TbiOffsets::kUserImages)) return FALSE;
+
+    HDC hdcScreen = ::GetWindowDC(nullptr);
+    if (hdcScreen == nullptr) {
+        impl__AfxThrowResourceException__YAXXZ();
+        return FALSE;
+    }
+
+    HDC hdcSrc = ::CreateCompatibleDC(hdcScreen);   // created first in retail
+    HDC hdcWell = ::CreateCompatibleDC(hdcScreen);
+
+    HBITMAP hWell = TbiField<HBITMAP>(pThis, TbiOffsets::kImageWell);
+    HGDIOBJ hOldWell = (hWell != nullptr) ? ::SelectObject(hdcWell, hWell) : nullptr;
+    HGDIOBJ hOldSrc = (hbmp != nullptr) ? ::SelectObject(hdcSrc, hbmp) : nullptr;
+
+    const int cx = TbiField<int>(pThis, TbiOffsets::kSizeImage);       // m_sizeImage.cx
+    const int cy = TbiField<int>(pThis, TbiOffsets::kSizeImage + 4);   // m_sizeImage.cy
+    ::BitBlt(hdcWell, cx * iImage, 0, cx, cy, hdcSrc, 0, 0, SRCCOPY);
+
+    if (hOldWell != nullptr) ::SelectObject(hdcWell, hOldWell);
+    if (hOldSrc != nullptr) ::SelectObject(hdcSrc, hOldSrc);
+
+    TbiField<BOOL>(pThis, TbiOffsets::kModified) = TRUE;
+
+    HBITMAP& hLight = TbiField<HBITMAP>(pThis, TbiOffsets::kImageLight);
+    if (hLight != nullptr) ::DeleteObject(hLight);
+    hLight = nullptr;
+    HBITMAP& hShadow = TbiField<HBITMAP>(pThis, TbiOffsets::kImageShadow);
+    if (hShadow != nullptr) ::DeleteObject(hShadow);
+    hShadow = nullptr;
+
+    if (hdcWell != nullptr) ::DeleteDC(hdcWell);
+    if (hdcSrc != nullptr) ::DeleteDC(hdcSrc);
+    ::ReleaseDC(nullptr, hdcScreen);
+    return TRUE;
 }
 
+// Retail: export ordinal 14137 resolves to RVA 0x3a60 (mfc140u), a shared
+// identical-code-folded body `mov $0x1,%eax; ret` (the same bytes serve
+// CMFCBaseAccessibleObject::accDoDefaultAction).  So UpdateInternalImage
+// ignores its argument and returns TRUE.
 // Symbol: ?UpdateInternalImage@CMFCToolBarImages@@IEAAHH@Z
-extern "C" int MS_ABI impl__UpdateInternalImage_CMFCToolBarImages__IEAAHH_Z(int p0) {
-    return 0;
+extern "C" int MS_ABI impl__UpdateInternalImage_CMFCToolBarImages__IEAAHH_Z(
+    CMFCToolBarImages* pThis, int nIndex)
+{
+    (void)pThis; (void)nIndex;
+    return TRUE;
 }
-
