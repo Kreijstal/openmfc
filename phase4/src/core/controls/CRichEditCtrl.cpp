@@ -254,12 +254,25 @@ extern "C" unsigned long MS_ABI impl__GetDefaultCharFormat_CRichEditCtrl__QEBAKA
 }
 
 
+// The five thunks below are transcribed from the retail mfc140u.dll export bodies.
+// Each reads the control HWND at this+0x40 (CWnd::m_hWnd) and calls
+// USER32!SendMessageW through IAT slot 0x1802c7120 (mfc140u; resolved with iatu.py).
+// None of the retail bodies null-checks pThis or m_hWnd, so neither do these.
+static_assert(offsetof(CWnd, m_hWnd) == 0x40, "retail reads m_hWnd at this+0x40");
+
 // Symbol: ?GetLine@CRichEditCtrl@@QEBAHHPEA_W@Z
-extern "C" int MS_ABI impl__GetLine_CRichEditCtrl__QEBAHHPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0;
+// int GetLine(int nIndex, LPTSTR lpszBuffer) const -- RVA 0x299910 (mfc140u), ordinal 5686:
+// tail-jumps to SendMessageW(m_hWnd, EM_GETLINE (0xc4), (WPARAM)(sign-extended)nIndex,
+// (LPARAM)lpszBuffer); the int result is the low 32 bits of the LRESULT. Unlike the
+// nMaxLength overload (RVA 0x299a90, mfc140u), which validates nMaxLength (> 0 and
+// nMaxLength*sizeof(TCHAR) >= 4, else calls 0x180227720 mfc140u) and then stores it as a
+// 32-bit DWORD at the start of lpszBuffer before sending, this one stores nothing and
+// validates nothing -- the caller must have put the
+// buffer size in the first WORD, as EM_GETLINE requires.
+// (Previous placeholder parameter list (void*, void*, void*) replaced to match the mangling.)
+extern "C" int MS_ABI impl__GetLine_CRichEditCtrl__QEBAHHPEA_W_Z(
+    const CRichEditCtrl* pThis, int nIndex, wchar_t* lpszBuffer) {
+    return (int)::SendMessageW(pThis->m_hWnd, EM_GETLINE, (WPARAM)nIndex, (LPARAM)lpszBuffer);
 }
 
 
@@ -272,10 +285,17 @@ extern "C" unsigned long MS_ABI impl__GetParaFormat_CRichEditCtrl__QEBAKAEAU_par
 
 
 // Symbol: ?GetSel@CRichEditCtrl@@QEBAXAEAJ0@Z
-extern "C" void MS_ABI impl__GetSel_CRichEditCtrl__QEBAXAEAJ0_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
+// void GetSel(long& nStartChar, long& nEndChar) const -- RVA 0x299ad0 (mfc140u), ordinal 6648:
+// SendMessageW(m_hWnd, EM_EXGETSEL (0x434), 0, &cr) with a CHARRANGE on the stack, then
+// nStartChar = cr.cpMin, nEndChar = cr.cpMax (both stores unconditional).
+// Deviation: retail leaves the CHARRANGE uninitialised, so a failed send stores stack
+// garbage; we zero it so a failed send stores 0,0 instead.
+extern "C" void MS_ABI impl__GetSel_CRichEditCtrl__QEBAXAEAJ0_Z(
+    const CRichEditCtrl* pThis, long* pnStartChar, long* pnEndChar) {
+    CHARRANGE cr = {};
+    ::SendMessageW(pThis->m_hWnd, EM_EXGETSEL, 0, (LPARAM)&cr);
+    *pnStartChar = cr.cpMin;
+    *pnEndChar = cr.cpMax;
 }
 
 
@@ -288,25 +308,37 @@ extern "C" unsigned long MS_ABI impl__GetSelectionCharFormat_CRichEditCtrl__QEBA
 
 
 // Symbol: ?SetDefaultCharFormat@CRichEditCtrl@@QEAAHAEAU_charformatw@@@Z
-extern "C" int MS_ABI impl__SetDefaultCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
+// BOOL SetDefaultCharFormat(CHARFORMAT& cf) -- RVA 0x299d80 (mfc140u), ordinal 13105 (RVA
+// taken from the mfc140u export table; the symbol map has no name at this RVA):
+// cf.cbSize = 0x5c (sizeof(CHARFORMATW)), then tail-jumps to
+// SendMessageW(m_hWnd, EM_SETCHARFORMAT (0x444), SCF_DEFAULT (0), &cf).
+extern "C" int MS_ABI impl__SetDefaultCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(
+    CRichEditCtrl* pThis, CHARFORMATW* pcf) {
+    static_assert(sizeof(CHARFORMATW) == 0x5c, "retail writes cbSize = 0x5c");
+    pcf->cbSize = sizeof(CHARFORMATW);
+    return (int)::SendMessageW(pThis->m_hWnd, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)pcf);
 }
 
 
 // Symbol: ?SetParaFormat@CRichEditCtrl@@QEAAHAEAU_paraformat@@@Z
-extern "C" int MS_ABI impl__SetParaFormat_CRichEditCtrl__QEAAHAEAU_paraformat___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
+// BOOL SetParaFormat(PARAFORMAT& pf) -- RVA 0x299f00 (mfc140u), ordinal 13453 (RVA taken
+// from the mfc140u export table): pf.cbSize = 0x9c (sizeof(PARAFORMAT)), then tail-jumps to
+// SendMessageW(m_hWnd, EM_SETPARAFORMAT (0x447), 0, &pf).
+extern "C" int MS_ABI impl__SetParaFormat_CRichEditCtrl__QEAAHAEAU_paraformat___Z(
+    CRichEditCtrl* pThis, PARAFORMAT* ppf) {
+    static_assert(sizeof(PARAFORMAT) == 0x9c, "retail writes cbSize = 0x9c");
+    ppf->cbSize = sizeof(PARAFORMAT);
+    return (int)::SendMessageW(pThis->m_hWnd, EM_SETPARAFORMAT, 0, (LPARAM)ppf);
 }
 
 
 // Symbol: ?SetSelectionCharFormat@CRichEditCtrl@@QEAAHAEAU_charformatw@@@Z
-extern "C" int MS_ABI impl__SetSelectionCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
+// BOOL SetSelectionCharFormat(CHARFORMAT& cf) -- RVA 0x299dc0 (mfc140u), ordinal 13580 (RVA
+// taken from the mfc140u export table): cf.cbSize = 0x5c (sizeof(CHARFORMATW)), then
+// tail-jumps to SendMessageW(m_hWnd, EM_SETCHARFORMAT (0x444), SCF_SELECTION (1), &cf).
+extern "C" int MS_ABI impl__SetSelectionCharFormat_CRichEditCtrl__QEAAHAEAU_charformatw___Z(
+    CRichEditCtrl* pThis, CHARFORMATW* pcf) {
+    pcf->cbSize = sizeof(CHARFORMATW);
+    return (int)::SendMessageW(pThis->m_hWnd, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)pcf);
 }
 
