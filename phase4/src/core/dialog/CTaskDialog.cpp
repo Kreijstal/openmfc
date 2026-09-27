@@ -108,7 +108,27 @@ extern "C" void MS_ABI impl__NavigateTo_CTaskDialog__IEBAXAEAV1__Z(CTaskDialog* 
     pThis->m_nCommonButtons = other->m_nCommonButtons;
     pThis->m_nTaskDialogOptions = other->m_nTaskDialogOptions;
 }
+// Retail CTaskDialog vftable: 0x180313108 in mfc140u.dll (RVA 0x313108 (mfc140u); slot 0 is
+// CTaskDialog::GetRuntimeClass, slots 16-18 are GetCommonButtonId/Flag/Count). Slots 0-4 are the
+// CObject virtuals (2-4 = Serialize/AssertValid/Dump, all folded to a bare `ret`), so the eleven
+// HRESULT handlers of afxtaskdialog.h occupy slots 5..15 in declaration order (corroborated by
+// ?TaskDialogCallback@@YAJPEAUHWND__@@I_K_J2@Z, RVA 0x140a60 (mfc140u), which dispatches
+// TDN_HYPERLINK_CLICKED through vtable +0x60, TDN_TIMER through +0x70 and TDN_NAVIGATED through
+// +0x78). Every handler is a named mfc140u export, and the mfc140u export table resolves each one
+// to the same RVA its vftable slot holds; mfc140u_rva_symbols.json (one name per RVA) just lists
+// the folded ones under another symbol, and omits the unfolded OnHyperlinkClick entirely.
+//
+// Retail layout note: the real class keeps `HWND m_hWnd` at +0x8 (right after the vptr).
+// TaskDialogCallback (RVA 0x140a60 (mfc140u)) stores the dialog HWND there (the store at
+// 0x140bbc) and zeroes it on TDN_DESTROYED (the store at 0x140b5e). The repo CTaskDialog (include/openmfc/
+// afxole.h) has no m_hWnd at all -- +0x8 is m_strContent there -- and DoModal passes no callback,
+// so this implementation never learns the dialog's HWND.
+//
 // Symbol: ?Notify@CTaskDialog@@AEBAXI_K_J@Z
+// Retail, RVA 0x1427e0 (mfc140u): `if (m_hWnd /* +0x8 */) ::SendMessageW(m_hWnd, uMsg, wParam,
+// lParam);` (IAT slot 0x1802c7120 in mfc140u resolves to USER32!SendMessageW). STUB: the repo
+// CTaskDialog has no m_hWnd member (see above), so there is no window to send to; retail with
+// a NULL m_hWnd also does nothing, which is the only state this implementation can be in.
 extern "C" void MS_ABI impl__Notify_CTaskDialog__AEBAXI_K_J_Z(const CTaskDialog*, UINT, uintptr_t, intptr_t) {
 }
 // Symbol: ?OnCommandControlClick@CTaskDialog@@MEAAJH@Z
@@ -137,19 +157,35 @@ extern "C" intptr_t MS_ABI impl__OnExpandButtonClick_CTaskDialog__MEAAJH_Z(CTask
     return S_OK;
 }
 // Symbol: ?OnHelp@CTaskDialog@@MEAAJXZ
+// Retail: vftable slot 13 -> RVA 0x3a60 (mfc140u), `mov $0x1,%eax; ret` (a COMDAT-folded body
+// shared with other exports), i.e. the base handler returns S_FALSE, not S_OK.
 extern "C" intptr_t MS_ABI impl__OnHelp_CTaskDialog__MEAAJXZ(CTaskDialog*) {
-    return S_OK;
+    return S_FALSE;
 }
 // Symbol: ?OnHyperlinkClick@CTaskDialog@@MEAAJAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
+// Retail: vftable slot 12 -> RVA 0x142910 (mfc140u), which is this export's own entry (not folded):
+//     ::ShellExecuteW(m_hWnd /* +0x8 */, NULL, strHref /* CString data ptr */, NULL, NULL, 5 /* SW_SHOW */);
+//     return S_OK;
+// (the call goes through delay-load slot 0x1803e91b8 in mfc140u = SHELL32!ShellExecuteW; the
+// ShellExecuteW result is discarded and S_OK returned unconditionally.)
+// DEVIATION: the owner window is NULL instead of m_hWnd, because the repo CTaskDialog has no
+// m_hWnd member (see the layout note above Notify). Per the ShellExecuteW documentation that
+// HWND is only the parent for any UI or error message the call displays, and NULL is allowed.
 extern "C" intptr_t MS_ABI impl__OnHyperlinkClick_CTaskDialog__MEAAJAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    CTaskDialog*, const CString*) {
+    CTaskDialog* pThis, const CString* strHref) {
+    (void)pThis;
+    // Retail dereferences strHref unconditionally (`mov (%rdx),%r8`); a const CString& is never NULL.
+    ::ShellExecuteW(nullptr, nullptr, (LPCWSTR)*strHref, nullptr, nullptr, SW_SHOW);
     return S_OK;
 }
 // Symbol: ?OnInit@CTaskDialog@@MEAAJXZ
+// Retail: vftable slot 6 -> RVA 0x71e0 (mfc140u), `xor %eax,%eax; ret` (COMDAT-folded; the map
+// names that address ?AddRef@COleUILinkInfo@@UEAAKXZ). The base handler does nothing and returns S_OK.
 extern "C" intptr_t MS_ABI impl__OnInit_CTaskDialog__MEAAJXZ(CTaskDialog*) {
     return S_OK;
 }
 // Symbol: ?OnNavigatePage@CTaskDialog@@MEAAJXZ
+// Retail: vftable slot 15 -> RVA 0x71e0 (mfc140u), `xor %eax,%eax; ret`: does nothing, returns S_OK.
 extern "C" intptr_t MS_ABI impl__OnNavigatePage_CTaskDialog__MEAAJXZ(CTaskDialog*) {
     return S_OK;
 }
@@ -159,7 +195,9 @@ extern "C" intptr_t MS_ABI impl__OnRadioButtonClick_CTaskDialog__MEAAJH_Z(CTaskD
     return S_OK;
 }
 // Symbol: ?OnTimer@CTaskDialog@@MEAAJJ@Z
-extern "C" intptr_t MS_ABI impl__OnTimer_CTaskDialog__MEAAJJ_Z(CTaskDialog*, intptr_t) {
+// Retail: vftable slot 14 -> RVA 0x71e0 (mfc140u), `xor %eax,%eax; ret`: ignores lTime, returns S_OK.
+// (Parameter is `long` per the mangled `J`; it was previously declared intptr_t.)
+extern "C" intptr_t MS_ABI impl__OnTimer_CTaskDialog__MEAAJJ_Z(CTaskDialog*, long) {
     return S_OK;
 }
 // Symbol: ?OnVerificationCheckboxClick@CTaskDialog@@MEAAJH@Z
