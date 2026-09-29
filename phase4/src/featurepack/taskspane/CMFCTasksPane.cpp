@@ -175,6 +175,24 @@ extern "C" void MS_ABI impl__SetIconsList_CMFCTasksPane__QEAAXPEAU_IMAGELIST___Z
 extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(CDockablePane* pThis);
 extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
     const wchar_t* lpszResource, const wchar_t* lpszType);   // core/runtime/Globals.cpp
+// Added by the AdjustScroll / SetScrollSizes batch.  Definitions read at:
+//   featurepack/docking/CBasePane.cpp   GetParentTabbedPane / GetParentMiniFrame
+//   core/runtime/CObject.cpp            IsKindOf
+//   core/window/CWnd.cpp                EnableWindow / SetWindowPos@CWnd
+//   featurepack/toolbar/CMFCToolBar.cpp CalcFixedLayout@CMFCToolBar (hidden
+//                                       CSize return slot in the 2nd register)
+//   this file                           SetScrollSizes (defined further down)
+extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(const CBasePane* pThis);
+extern "C" void* MS_ABI impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(
+    const CBasePane* pThis, int bNoAssert);
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+extern "C" int MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable);
+extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
+    CWnd* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags);
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(
+    CMFCToolBar* pThis, CSize* pRet, int bStretch, int bHorz);
+extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis);
 
 namespace {
 
@@ -291,7 +309,7 @@ inline void DeleteViaVtable(void* pObj) {
 //   RedrawWindow(NULL, NULL, flags);      // USER32!RedrawWindow via m_hWnd
 // Deviation: the virtual is called as this class's own export (OpenMFC does
 // not reproduce the retail vtable), so a derived override is not honoured.
-// Both siblings are still stubs in this file.
+// AdjustScroll is transcribed below; ReposTasks is still a stub in this file.
 inline void RetailRefresh(CMFCTasksPane* pThis, unsigned int rdwFlags) {
     impl__AdjustScroll_CMFCTasksPane__IEAAXXZ(pThis);
     impl__ReposTasks_CMFCTasksPane__MEAAHH_Z(pThis, FALSE);
@@ -514,6 +532,48 @@ inline bool HistoryAt(const TP* self, long long idx, int& out) {
     if (idx < 0 || idx >= self->m_nHistorySize || self->m_pHistoryData == nullptr) return false;
     out = self->m_pHistoryData[idx];
     return true;
+}
+
+// Offsets AdjustScroll / SetScrollSizes read that the static_asserts above do
+// not already pin (values from the mfc140u disassembly at 0x148200 / 0x148000).
+static_assert(offsetof(TP, m_bUseNavigationToolbar) == 0x4E4, "m_bUseNavigationToolbar @0x4E4");
+static_assert(offsetof(TP, m_bUseScrollButtons) == 0x4EC, "m_bUseScrollButtons @0x4EC");
+static_assert(offsetof(TP, m_iScrollMode)       == 0x508, "m_iScrollMode @0x508");
+static_assert(offsetof(TP, m_iScrollBtnHeight)  == 0x50C, "m_iScrollBtnHeight @0x50C");
+static_assert(offsetof(TP, m_nVertScrollOffset) == 0x510 && offsetof(TP, m_nVertScrollTotal) == 0x514 &&
+              offsetof(TP, m_nVertScrollPage) == 0x518 && offsetof(TP, m_nRowHeight) == 0x51C,
+              "m_nVertScrollOffset/Total/Page, m_nRowHeight @0x510..0x51C");
+static_assert(offsetof(TP, m_rectToolbar)  == 0x5A8 && offsetof(TP, m_rectScrollUp) == 0x5B8 &&
+              offsetof(TP, m_rectScrollDn) == 0x5C8, "m_rectToolbar/ScrollUp/ScrollDn @0x5A8/0x5B8/0x5C8");
+static_assert(offsetof(TP, m_pAnimatedGroup) == 0x7B0, "m_pAnimatedGroup @0x7B0");
+// The CWnd thunks read the sub-windows' HWND through OpenMFC's CWnd::m_hWnd;
+// retail reads m_wndScrollVert's at +0x6c0 = 0x680 + 0x40.
+static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd @0x40");
+
+// CMFCTasksPane::ForceShowNavToolbar() const -- inline in afxtaskspane.h:
+//   BOOL bIsAttached = GetParentTabbedPane() != NULL;
+//   CPaneFrameWnd* pMiniFrame = GetParentMiniFrame(TRUE);
+//   BOOL bNonTasksPaneMiniFrame = pMiniFrame != NULL &&
+//       !pMiniFrame->IsKindOf(RUNTIME_CLASS(CMFCTasksPaneFrameWnd));
+//   return bIsAttached || bNonTasksPaneMiniFrame;
+// Retail inlines it into AdjustScroll (0x148200) and SetScrollSizes (0x148000,
+// both mfc140u) with that evaluation order: GetParentTabbedPane (mfc140u
+// 0xc930) is called, then GetParentMiniFrame(TRUE) through vtable +0x460 (the
+// CMFCTasksPane vftable 0x1803135b8, mfc140u, holds
+// ?GetParentMiniFrame@CBasePane@@UEBAPEAVCPaneFrameWnd@@H@Z there), then
+// CObject::IsKindOf (mfc140u 0x234cf0) against the descriptor whose name
+// string is "CMFCTasksPaneFrameWnd".  Deviation: GetParentMiniFrame is called
+// as the CBasePane export, so a derived override is not honoured.
+BOOL TpForceShowNavToolbar(const CMFCTasksPane* pThis) {
+    const BOOL bIsAttached =
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pThis) != nullptr;
+    void* pMiniFrame = impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(pThis, TRUE);
+    const BOOL bNonTasksPaneMiniFrame =
+        pMiniFrame != nullptr &&
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(pMiniFrame),
+            impl__GetThisClass_CMFCTasksPaneFrameWnd__SAPEAUCRuntimeClass__XZ());
+    return bIsAttached || bNonTasksPaneMiniFrame;
 }
 
 } // namespace
@@ -1182,19 +1242,181 @@ extern "C" int MS_ABI impl__AddWindow_CMFCTasksPane__QEAAHHPEAUHWND____HH_K_Z(
     return static_cast<int>(ListCount(TaskList(pGroup))) - 1;
 }
 
-// STUB.  CMFCTasksPane::AdjustScroll() -- retail mfc140u RVA 0x148200.  It
-// lays out the navigation toolbar (m_wndToolBar +0x7b8: virtuals at +0x4d0 /
-// +0x480 of the CMFCToolBar vtable, GetParentTabbedPane, IsKindOf
-// CMFCTasksPaneFrameWnd), computes m_rectToolbar / m_rectTasks /
-// m_rectScrollUp / m_rectScrollDn, calls SetScrollSizes (0x148000),
-// EnableWindow / MoveWindow on the vertical CScrollBar sub-window (+0x680),
-// kills the animation timer 0xEC0C and invalidates the changed rectangles.
-// Blocked: the toolbar and scroll-bar sub-objects are never constructed by
-// OpenMFC's CMFCTasksPane and CMFCTasksPaneToolBar is entirely unimplemented.
-// Signature corrected to carry `this`.
+// CMFCTasksPane::AdjustScroll() -- transcribed from the retail entry at RVA
+// 0x148200 (mfc140u; the byte-identical ANSI twin is mfc140 0x146870):
+//   if (this == NULL || m_hWnd == NULL) return;
+//   CRect rectClient(0,0,0,0);  ::GetClientRect(m_hWnd, &rectClient);
+//   if (IsToolBox()) ::InflateRect(&rectClient, -1, -1);         // vtable +0x798
+//   CRect rectToolbarOld = m_rectToolbar;                          // +0x5a8
+//   if ((m_bUseNavigationToolbar /*+0x4e4*/ || ForceShowNavToolbar())
+//       && m_lstTasksPanes.m_nCount /*+0x620*/ > 1) {
+//       CSize size = m_wndToolBar.CalcFixedLayout(FALSE, TRUE);    // toolbar vtable +0x4d0
+//       m_rectToolbar = rectClient;
+//       m_rectToolbar.bottom = m_rectToolbar.top + size.cy;
+//       m_wndToolBar.SetWindowPos(NULL, m_rectToolbar.left, m_rectToolbar.top,
+//                                 m_rectToolbar.Width(), size.cy,
+//                                 SWP_NOZORDER | SWP_NOACTIVATE, NULL);  // toolbar vtable +0x480
+//       rectClient.top += size.cy;
+//       m_wndToolBar.ShowWindow(1);                                // CWnd::ShowWindow
+//   } else {
+//       ::SetRectEmpty(&m_rectToolbar);
+//       m_wndToolBar.ShowWindow(0);
+//   }
+//   m_rectTasks = rectClient;                                      // +0x5d8
+//   SetScrollSizes();                                              // mfc140u 0x148000
+//   m_wndScrollVert.EnableWindow(!m_bUseScrollButtons);            // +0x680, +0x4ec
+//   if (!m_bUseScrollButtons && m_nVertScrollTotal /*+0x514*/ > 0) {
+//       int cx = ::GetSystemMetrics(SM_CXHSCROLL);                 // 0x15
+//       m_rectTasks.right -= cx;
+//       m_wndScrollVert.SetWindowPos(NULL, rectClient.right - cx, rectClient.top,
+//                                    cx, rectClient.Height(),
+//                                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);  // 0x54
+//       rectClient.right -= cx;
+//   } else {
+//       m_wndScrollVert.SetWindowPos(NULL, 0, 0, 0, 0, SWP_HIDEWINDOW);  // 0x80
+//   }
+//   CRect rectScrollUpOld = m_rectScrollUp, rectScrollDnOld = m_rectScrollDn;  // +0x5b8 / +0x5c8
+//   ::SetRectEmpty(&m_rectScrollUp);  ::SetRectEmpty(&m_rectScrollDn);
+//   if (m_bUseScrollButtons) {
+//       if (m_nVertScrollOffset /*+0x510*/ > 0) {                  // IsScrollUpAvailable()
+//           m_rectScrollUp = rectClient;  m_rectScrollUp.top++;
+//           m_rectScrollUp.bottom = m_rectScrollUp.top + m_iScrollBtnHeight;   // +0x50c
+//           rectClient.top += m_iScrollBtnHeight + 1;
+//       }
+//       if (m_nVertScrollOffset <= m_nVertScrollTotal - m_nVertScrollPage /*+0x518*/
+//           && m_nVertScrollTotal > 0) {                           // IsScrollDnAvailable()
+//           m_rectScrollDn = rectClient;
+//           m_rectScrollDn.top = m_rectScrollDn.bottom - m_iScrollBtnHeight;
+//           rectClient.bottom -= m_iScrollBtnHeight + 1;
+//       }
+//       m_rectTasks = rectClient;
+//   } else if (m_pAnimatedGroup /*+0x7b0*/ != NULL) {
+//       ::KillTimer(m_hWnd, 0xEC0C);  m_iScrollMode /*+0x508*/ = 0;
+//   }
+//   if (!::EqualRect(&rectToolbarOld, &m_rectToolbar)) {
+//       ::InvalidateRect(m_hWnd, &m_rectToolbar, TRUE);
+//       ::InvalidateRect(m_hWnd, &rectToolbarOld, TRUE);
+//       ::UpdateWindow(m_hWnd);
+//   }
+//   BOOL bUpdate = FALSE;
+//   if (!::EqualRect(&rectScrollUpOld, &m_rectScrollUp)) {
+//       ::InvalidateRect(m_hWnd, &rectScrollUpOld, TRUE);
+//       ::InvalidateRect(m_hWnd, &m_rectScrollUp, TRUE);  bUpdate = TRUE;
+//   }
+//   if (!::EqualRect(&rectScrollDnOld, &m_rectScrollDn)) {
+//       ::InvalidateRect(m_hWnd, &rectScrollDnOld, TRUE);
+//       ::InvalidateRect(m_hWnd, &m_rectScrollDn, TRUE);   bUpdate = TRUE;
+//   }
+//   if (bUpdate) ::UpdateWindow(m_hWnd);
+// Every USER32 call above was resolved through the import table.
+// Dispatch notes:
+//  * m_wndToolBar is a member of fixed type CMFCTasksPaneToolBar, whose retail
+//    vftable (0x1803143c8, mfc140u) holds at +0x4d0 the
+//    ?CalcFixedLayout@CMFCToolBar@@UEAA?AVCSize@@HH@Z export (RVA 0x14f0b0)
+//    and at +0x480 ?SetWindowPos@CBasePane@@UEAAPEAXPEBVCWnd@@HHHHIPEAX@Z
+//    (RVA 0xb620).  With a NULL HDWP that CBasePane body only calls
+//    CWnd::SetWindowPos(pWndInsertAfter, x, y, cx, cy, nFlags) and returns
+//    NULL (read from its mfc140 twin, 0xb6a0), so the exports below are exactly
+//    what retail reaches.  They are called directly rather than through the
+//    toolbar's vptr because OpenMFC's CMFCTasksPane never constructs the
+//    toolbar sub-object (see KNOWN GAP at the top), so there is no vptr to use.
+//  * Deviation: IsToolBox (vtable +0x798) is an inline virtual with no export;
+//    CMFCTasksPane's slot holds RVA 0x71e0 (mfc140u; `xor eax,eax; ret`), so
+//    FALSE is assumed and the InflateRect never runs (same convention as
+//    GetTasksGroupBorders below).  A derived override is not honoured.
+//  * ForceShowNavToolbar: see TpForceShowNavToolbar above.
+//  * The list count at +0x620 is replaced by ListCount (storage note at top).
 // Symbol: ?AdjustScroll@CMFCTasksPane@@IEAAXXZ
-extern "C" void MS_ABI impl__AdjustScroll_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__AdjustScroll_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis)
+{
+    if (pThis == nullptr) return;
+    HWND hWnd = pThis->m_hWnd;
+    if (hWnd == nullptr) return;
+    TP* self = View(pThis);
+
+    RECT rectClient = {0, 0, 0, 0};
+    ::GetClientRect(hWnd, &rectClient);
+    // IsToolBox() assumed FALSE (see the deviation note above).
+
+    const RECT rectToolbarOld = self->m_rectToolbar;
+    CWnd* pToolBar = reinterpret_cast<CWnd*>(self->m_wndToolBar);
+    if ((self->m_bUseNavigationToolbar != 0 || TpForceShowNavToolbar(pThis)) &&
+        ListCount(PageList(pThis)) > 1) {
+        CSize size(0, 0);
+        impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(
+            reinterpret_cast<CMFCToolBar*>(pToolBar), &size, FALSE, TRUE);
+        self->m_rectToolbar = rectClient;
+        self->m_rectToolbar.bottom = self->m_rectToolbar.top + size.cy;
+        impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
+            pToolBar, nullptr, self->m_rectToolbar.left, self->m_rectToolbar.top,
+            self->m_rectToolbar.right - self->m_rectToolbar.left, size.cy,
+            SWP_NOZORDER | SWP_NOACTIVATE);
+        rectClient.top += size.cy;
+        impl__ShowWindow_CWnd__QEAAHH_Z(pToolBar, 1);
+    } else {
+        ::SetRectEmpty(&self->m_rectToolbar);
+        impl__ShowWindow_CWnd__QEAAHH_Z(pToolBar, 0);
+    }
+
+    self->m_rectTasks = rectClient;
+    impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ(pThis);
+
+    CWnd* pScrollVert = reinterpret_cast<CWnd*>(self->m_wndScrollVert);
+    impl__EnableWindow_CWnd__QEAAHH_Z(pScrollVert, self->m_bUseScrollButtons == 0);
+    if (self->m_bUseScrollButtons == 0 && self->m_nVertScrollTotal > 0) {
+        const int cxScroll = ::GetSystemMetrics(SM_CXHSCROLL);
+        self->m_rectTasks.right -= cxScroll;
+        impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
+            pScrollVert, nullptr, rectClient.right - cxScroll, rectClient.top,
+            cxScroll, rectClient.bottom - rectClient.top,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        rectClient.right -= cxScroll;
+    } else {
+        impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(pScrollVert, nullptr, 0, 0, 0, 0, SWP_HIDEWINDOW);
+    }
+
+    const RECT rectScrollUpOld = self->m_rectScrollUp;
+    const RECT rectScrollDnOld = self->m_rectScrollDn;
+    ::SetRectEmpty(&self->m_rectScrollUp);
+    ::SetRectEmpty(&self->m_rectScrollDn);
+
+    if (self->m_bUseScrollButtons != 0) {
+        if (self->m_nVertScrollOffset > 0) {
+            self->m_rectScrollUp = rectClient;
+            self->m_rectScrollUp.top += 1;
+            self->m_rectScrollUp.bottom = self->m_rectScrollUp.top + self->m_iScrollBtnHeight;
+            rectClient.top += self->m_iScrollBtnHeight + 1;
+        }
+        if (self->m_nVertScrollOffset <= self->m_nVertScrollTotal - self->m_nVertScrollPage &&
+            self->m_nVertScrollTotal > 0) {
+            self->m_rectScrollDn = rectClient;
+            self->m_rectScrollDn.top = self->m_rectScrollDn.bottom - self->m_iScrollBtnHeight;
+            rectClient.bottom -= self->m_iScrollBtnHeight + 1;
+        }
+        self->m_rectTasks = rectClient;
+    } else if (self->m_pAnimatedGroup != nullptr) {
+        ::KillTimer(pThis->m_hWnd, 0xEC0C);
+        self->m_iScrollMode = 0;
+    }
+
+    if (!::EqualRect(&rectToolbarOld, &self->m_rectToolbar)) {
+        ::InvalidateRect(pThis->m_hWnd, &self->m_rectToolbar, TRUE);
+        ::InvalidateRect(pThis->m_hWnd, &rectToolbarOld, TRUE);
+        ::UpdateWindow(pThis->m_hWnd);
+    }
+
+    BOOL bUpdate = FALSE;
+    if (!::EqualRect(&rectScrollUpOld, &self->m_rectScrollUp)) {
+        ::InvalidateRect(pThis->m_hWnd, &rectScrollUpOld, TRUE);
+        ::InvalidateRect(pThis->m_hWnd, &self->m_rectScrollUp, TRUE);
+        bUpdate = TRUE;
+    }
+    if (!::EqualRect(&rectScrollDnOld, &self->m_rectScrollDn)) {
+        ::InvalidateRect(pThis->m_hWnd, &rectScrollDnOld, TRUE);
+        ::InvalidateRect(pThis->m_hWnd, &self->m_rectScrollDn, TRUE);
+        bUpdate = TRUE;
+    }
+    if (bUpdate) ::UpdateWindow(pThis->m_hWnd);
 }
 
 // CMFCTasksPane::ChangeActivePage(int nNewPageHistIdx, int nOldPageHistIdx) --
@@ -1422,13 +1644,52 @@ extern "C" HMENU MS_ABI impl__CreateMenu_CMFCTasksPane__QEBAPEAUHMENU____XZ(cons
     return hMenu;
 }
 
-// STUB.  CMFCTasksPane::CreateNavigationToolbar() -- retail mfc140u RVA
-// 0x14a930.  Creates m_wndToolBar (+0x7b8, a CMFCTasksPaneToolBar) with the
-// back/forward/home/other buttons (four CMFCToolBarButton ctors at mfc140u
-// 0x15bf40, strings loaded via AfxFindStringResourceHandle 0x2aee00 +
-// CStringT::LoadString 0xdb70).
-// Blocked: CMFCTasksPaneToolBar is unimplemented and the sub-object is never
-// constructed by OpenMFC's CMFCTasksPane.  Signature corrected to carry `this`.
+// STUB.  CMFCTasksPane::CreateNavigationToolbar() -- retail entry RVA
+// 0x14a930 (mfc140u; ANSI twin mfc140 0x148fa0).  What the body does (read
+// from the mfc140u disassembly; not transcribed):
+//   if (this == NULL || m_hWnd == NULL) return FALSE;
+//   if (!m_wndToolBar.Create(this, 0x50402838, 1)) return FALSE;  // toolbar vtable +0x650
+//   toolbar vtable +0x3d8 (`m_dwStyle = edx`, 0x8830) with the value of
+//   vtable +0x390 (`return m_dwStyle`, 0x87c0; both +0x104) with bit
+//   0x400000 cleared (`btr $0x16`);
+//   this+0x858 (toolbar +0xa0) = m_hWnd;  this+0x18ac (toolbar +0x10f4) = 0;
+//   when m_uiToolbarBmpRes (+0x54c) is 0: default image/button sizes (16/20
+//   or 12/16, picked from afxGlobalData fields, which are initialised on
+//   demand) and bitmap 0x427b or 0x429c (same condition); otherwise
+//   m_sizeToolbarImage / m_sizeToolbarButton (+0x590 / +0x598, each replaced
+//   by a default when zero) and m_uiToolbarBmpRes; the button size is scaled
+//   by a double read from afxGlobalData when it is not 1.0; SetLockedSizes
+//   (mfc140u 0x14dc40, named in mfc140 at 0x14c2b0); LoadBitmap through
+//   toolbar vtable +0x668;
+//   four strings 0x427c..0x427f via AfxFindStringResourceHandle (0x2aee00) +
+//   CStringT::LoadStringW (0xdb70), each failure -> AfxThrowInvalidArgException;
+//   RemoveAllButtons (vtable +0x6b0); then, depending on m_bHistoryMenuButtons
+//   (+0x4e8), either two 0x168-byte history buttons (constructed by the
+//   unexported helper at mfc140u 0x143640, stored in the toolbar's
+//   m_pBtnBack / m_pBtnForward at this+0x1b08 / +0x1b10; after insertion
+//   each gets +0x100 = this, its vtable +0x60 called with this, +0xc8 = 1)
+//   or two 0x88-byte CTasksPaneNavigateButtons for 0x427c / 0x427d
+//   (??0CMFCToolBarButton at 0x15bf40, vfptr then set to 0x180314218, whose
+//   slot 0 is ?GetRuntimeClass@CTasksPaneNavigateButton); then, on both
+//   paths, a third navigate button for 0x427e (home); a separator
+//   (InsertSeparator, vtable +0x6a0); a 0x130-byte CTasksPaneMenuButton
+//   (??0CMFCToolBarMenuButton at 0x172870, vfptr then set to 0x180313df8,
+//   slot 0 ?GetRuntimeClass@CTasksPaneMenuButton) built on m_menuOther's
+//   HMENU (+0x5f0) and given further field setup after insertion; and a
+//   fourth navigate button for 0x427f.  So 0x15bf40 runs four times on the
+//   non-history path and twice on the history path.  Every insertion goes
+//   through InsertButton, toolbar vtable +0x690.  Returns TRUE.  (All
+//   addresses in this paragraph are mfc140u.)
+// Blocked: every step dispatches through m_wndToolBar's vptr, and OpenMFC's
+// CMFCTasksPane never constructs that sub-object (the exported ctor thunk in
+// taskspane/Thunks.cpp placement-news OpenMFC's own CMFCTasksPane, whose
+// afxmfc.h declaration has only a 128-byte padding member after CBasePane),
+// so there is no toolbar object to create.  The CTasksPaneNavigateButton /
+// CTasksPaneMenuButton constructors are inlined into this body and the
+// history-button helper (0x143640, mfc140u) is not exported; only the
+// CMFCToolBarButton / CMFCToolBarMenuButton base constructors are.  The CMFCTasksPaneToolBar exports in
+// taskspane/CMFCTasksPaneToolBar.cpp are implemented, but they operate on a
+// toolbar that already exists.  Signature corrected to carry `this`.
 // Symbol: ?CreateNavigationToolbar@CMFCTasksPane@@IEAAHXZ
 extern "C" int MS_ABI impl__CreateNavigationToolbar_CMFCTasksPane__IEAAHXZ(CMFCTasksPane* pThis) {
     (void)pThis;
@@ -2582,8 +2843,10 @@ extern "C" void MS_ABI impl__SetActivePage_CMFCTasksPane__QEAAXH_Z(CMFCTasksPane
     impl__ChangeActivePage_CMFCTasksPane__IEAAXHH_Z(pThis, self->m_iActivePage, nOld);
 }
 
-// STUB.  CMFCTasksPane::SetCaptionButtons() -- retail entry RVA 0x1471d0
-// (mfc140; no mfc140u RVA in the map, identical body):
+// STUB.  CMFCTasksPane::SetCaptionButtons() -- retail entry RVA 0x148b60
+// (mfc140u, resolved through its export table by ordinal although the
+// RVA-symbol map lacks it; ANSI twin mfc140 0x1471d0, identical body).  The
+// callee addresses below were read from the mfc140 twin:
 //   CDockablePane::SetCaptionButtons();                              // 0x45f30
 //   arr = m_arrButtons;  // CDockablePane, this+0x488; declared in
 //                        // afxdockablepane.h as
@@ -2614,7 +2877,10 @@ extern "C" void MS_ABI impl__SetActivePage_CMFCTasksPane__QEAAXH_Z(CMFCTasksPane
 // featurepack/docking/CDockablePane.cpp notes that offsets from +0x478 up are
 // past the end of its 1144-byte object, which is also why
 // CDockablePane::FindButtonByHit is a NULL-returning stub there.  There is
-// nothing to append the three buttons to.  Signature corrected to carry `this`.
+// nothing to append the three buttons to, and the base
+// CDockablePane::SetCaptionButtons export retail calls first is itself a
+// documented stub in that file (re-checked for this pass).  Signature
+// corrected to carry `this`.
 // Symbol: ?SetCaptionButtons@CMFCTasksPane@@MEAAXXZ
 extern "C" void MS_ABI impl__SetCaptionButtons_CMFCTasksPane__MEAAXXZ(CMFCTasksPane* pThis) {
     (void)pThis;
@@ -2833,48 +3099,128 @@ extern "C" void MS_ABI impl__SetPageCaption_CMFCTasksPane__QEAAXHPEB_W_Z(
     impl__UpdateCaption_CMFCTasksPane__IEAAXXZ(pThis);
 }
 
-// STUB.  CMFCTasksPane::SetScrollSizes() -- retail entry RVA 0x146670
-// (mfc140) / 0x148000 (mfc140u, where AdjustScroll at 0x148200 calls it):
-//   if (m_wndScrollVert.m_hWnd == NULL) return;           // +0x680, CWnd +0x40
+// CMFCTasksPane::SetScrollSizes() -- transcribed from the retail entry at RVA
+// 0x148000 (mfc140u, called from AdjustScroll 0x148200; the byte-identical
+// ANSI twin carries the export name at mfc140 0x146670):
+//   if (&m_wndScrollVert == NULL || m_wndScrollVert.m_hWnd == NULL) return;  // +0x680, HWND +0x6c0
 //   if (m_nRowHeight /*+0x51c*/ == 0) {
-//       m_nVertScrollTotal = m_nVertScrollPage = 0;       // +0x514 / +0x518
-//       nPos = 0;
+//       m_nVertScrollTotal = m_nVertScrollPage = 0;       // one 8-byte store at +0x514
+//       m_nVertScrollOffset = 0;                          // +0x510
 //   } else {
 //       int h = m_rectTasks.bottom - m_rectTasks.top;     // +0x5e4 - +0x5dc
 //       if (m_bUseScrollButtons /*+0x4ec*/)
 //           h -= m_iScrollBtnHeight /*+0x50c*/ + 1;
-//       if (m_bUseNavigationToolbar /*+0x4e4*/ || ForceShowNavToolbar())
-//           // inlined: GetParentTabbedPane() != NULL (0xc9b0), or
-//           // GetParentMiniFrame(TRUE) (vtable +0x460) is non-NULL and is NOT
-//           // a CMFCTasksPaneFrameWnd (CObject::IsKindOf 0x233310 against the
-//           // descriptor whose name string is "CMFCTasksPaneFrameWnd")
-//           if (m_lstTasksPanes.m_nCount /*+0x620*/ > 1)
-//               h += m_rectToolbar.bottom - m_rectToolbar.top;   // +0x5b4 - +0x5ac
-//       m_nVertScrollPage = h / m_nRowHeight - 1;
-//       int nRepos = ReposTasks(TRUE);                    // vtable +0x7d0
-//       if (nRepos != 0 && nRepos > h) m_nVertScrollTotal = nRepos / m_nRowHeight - 1;
-//       else { m_nVertScrollPage = m_nVertScrollOffset = 0;   // +0x518 / +0x510
-//              m_nVertScrollTotal = 0; }
+//       if ((m_bUseNavigationToolbar /*+0x4e4*/ || ForceShowNavToolbar())
+//           && m_lstTasksPanes.m_nCount /*+0x620*/ > 1)
+//           h += m_rectToolbar.bottom - m_rectToolbar.top;    // +0x5b4 - +0x5ac
+//       m_nVertScrollPage = h / m_nRowHeight - 1;         // +0x518 (cltd; idivl)
+//       int nRepos = ReposTasks(TRUE);                    // vtable +0x7d0, %edx = 1
+//       int nTotal;
+//       if (nRepos != 0 && nRepos > h) nTotal = nRepos / m_nRowHeight - 1;
+//       else { m_nVertScrollPage = 0; nTotal = 0; m_nVertScrollOffset = 0; }
+//       m_nVertScrollTotal = nTotal;
+//       m_nVertScrollOffset = min(max(m_nVertScrollOffset, 0),
+//                                 m_nVertScrollTotal - m_nVertScrollPage + 1);
 //   }
-//   m_nVertScrollOffset is then set -- 0 on the m_nRowHeight == 0 path,
-//   otherwise clamped into [0, total - page + 1] -- and when
-//   m_bUseScrollButtons is FALSE a SCROLLINFO {nMin = 0, nMax = total,
-//   nPage = page, nPos = offset, fMask = SIF_RANGE|SIF_PAGE|SIF_POS} goes to
-//   SetScrollInfo(SB_VERT, &si, TRUE) (CWnd::SetScrollInfo, 0x28cd10); finally
-//   ::EnableScrollBar(m_wndScrollVert.m_hWnd /*+0x6c0*/, SB_CTL,
-//                     (m_bUseScrollButtons || m_nVertScrollTotal <= 0)
-//                         ? ESB_DISABLE_BOTH : ESB_ENABLE_BOTH).
-// Blocked: the scroll-bar sub-window at +0x680 is constructed by the retail
-// constructor and created by retail OnCreate; OpenMFC's ctor thunk does not
-// construct it and OnCreate above is a stub, so the early-return guard has no
-// real window to test.  The one substantive input, the content height from
-// ReposTasks(TRUE), comes from a stub that returns 0 (above), so a
-// transcription would always take the `nRepos == 0` branch and zero the
-// scroll state -- no information a caller could use.  Signature corrected to
-// carry `this`.
+//   if (!m_bUseScrollButtons) {
+//       SCROLLINFO si;  memset(&si, 0, sizeof(si));       // VCRUNTIME140!memset, 0x1c
+//       si.cbSize = sizeof(SCROLLINFO);
+//       si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;        // 7 (nMin = 0 in the same 8-byte store)
+//       si.nMax = m_nVertScrollTotal;  si.nPage = m_nVertScrollPage;  si.nPos = m_nVertScrollOffset;
+//       SetScrollInfo(SB_VERT, &si, TRUE);                // CWnd::SetScrollInfo, mfc140u 0x28e890
+//   }                                                     // (named at mfc140 0x28cd10)
+//   ::EnableScrollBar(m_wndScrollVert.m_hWnd, SB_CTL,     // USER32, via the import table
+//                     (!m_bUseScrollButtons && m_nVertScrollTotal > 0)
+//                         ? ESB_ENABLE_BOTH : ESB_DISABLE_BOTH);
+// (m_bUseScrollButtons is re-read after SetScrollInfo, as retail does.)
+// CWnd::SetScrollInfo (mfc140u 0x28e890, disassembled) does NOT write to this
+// window's own SB_VERT bar: for nBar != SB_CTL it first asks the virtual
+// GetScrollBarCtrl(nBar) (vtable +0x100; the CMFCTasksPane vftable 0x1803135b8,
+// mfc140u, holds ?GetScrollBarCtrl@CMFCTasksPane at 0x147f00) and, when that
+// returns a CScrollBar, calls ::SetScrollInfo(pBar->m_hWnd, SB_CTL, lpsi,
+// bRedraw) instead; only otherwise ::SetScrollInfo(m_hWnd, nBar, ...).  It
+// sets lpsi->cbSize = 0x1c and returns TRUE either way.  CMFCTasksPane's
+// override returns &m_wndScrollVert whenever its HWND is non-NULL, which the
+// entry guard has just established, so retail's SCROLLINFO lands on the child
+// scroll-bar control.  OpenMFC's exported CWnd::SetScrollInfo thunk ignores
+// GetScrollBarCtrl and would have put a native SB_VERT bar on the pane itself
+// (an earlier revision of this body called it and did exactly that), so that
+// dispatch is transcribed inline below, with the virtual resolved to this
+// class's own GetScrollBarCtrl export.
+// Deviations:
+//  * GetScrollBarCtrl is called as this class's own export rather than
+//    through the vtable, so a derived override is not honoured.
+//  * ReposTasks is called as this class's own export rather than through the
+//    vtable (see RetailRefresh above); that export is still a stub returning
+//    0, so today the `else` arm always runs and the scroll state is zeroed.
+//  * ForceShowNavToolbar: see TpForceShowNavToolbar; the +0x620 count is
+//    replaced by ListCount (storage note at the top).
+// In practice the early return is taken until something creates the
+// scroll-bar window: OnCreate (above) is a stub and OpenMFC's ctor thunk does
+// not construct m_wndScrollVert.
 // Symbol: ?SetScrollSizes@CMFCTasksPane@@IEAAXXZ
-extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__SetScrollSizes_CMFCTasksPane__IEAAXXZ(CMFCTasksPane* pThis)
+{
+    if (pThis == nullptr) return;   // deviation: retail has no NULL-this test
+    TP* self = View(pThis);
+    CWnd* pScrollVert = reinterpret_cast<CWnd*>(self->m_wndScrollVert);
+    if (pScrollVert->m_hWnd == nullptr) return;
+
+    if (self->m_nRowHeight == 0) {
+        self->m_nVertScrollTotal = 0;
+        self->m_nVertScrollPage = 0;
+        self->m_nVertScrollOffset = 0;
+    } else {
+        int h = self->m_rectTasks.bottom - self->m_rectTasks.top;
+        if (self->m_bUseScrollButtons != 0) {
+            h -= self->m_iScrollBtnHeight + 1;
+        }
+        if ((self->m_bUseNavigationToolbar != 0 || TpForceShowNavToolbar(pThis)) &&
+            ListCount(PageList(pThis)) > 1) {
+            h += self->m_rectToolbar.bottom - self->m_rectToolbar.top;
+        }
+        self->m_nVertScrollPage = h / self->m_nRowHeight - 1;
+        const int nRepos = impl__ReposTasks_CMFCTasksPane__MEAAHH_Z(pThis, TRUE);
+        int nTotal;
+        if (nRepos != 0 && nRepos > h) {
+            nTotal = nRepos / self->m_nRowHeight - 1;
+        } else {
+            self->m_nVertScrollPage = 0;
+            nTotal = 0;
+            self->m_nVertScrollOffset = 0;
+        }
+        self->m_nVertScrollTotal = nTotal;
+        const int nMax = nTotal - self->m_nVertScrollPage + 1;
+        int nOffset = self->m_nVertScrollOffset;
+        if (nOffset < 0) nOffset = 0;
+        if (nOffset >= nMax) nOffset = nMax;
+        self->m_nVertScrollOffset = nOffset;
+    }
+
+    if (self->m_bUseScrollButtons == 0) {
+        SCROLLINFO si;
+        std::memset(&si, 0, sizeof(si));
+        si.cbSize = sizeof(SCROLLINFO);
+        si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+        si.nMin = 0;
+        si.nMax = self->m_nVertScrollTotal;
+        si.nPage = static_cast<UINT>(self->m_nVertScrollPage);
+        si.nPos = self->m_nVertScrollOffset;
+        // CWnd::SetScrollInfo(SB_VERT, &si, TRUE), dispatch transcribed (see above).
+        CWnd* pBar = static_cast<CWnd*>(
+            impl__GetScrollBarCtrl_CMFCTasksPane__UEBAPEAVCScrollBar__H_Z(pThis, SB_VERT));
+        HWND hWndTarget = pThis->m_hWnd;
+        int nBarTarget = SB_VERT;
+        if (pBar != nullptr) {
+            hWndTarget = pBar->m_hWnd;
+            nBarTarget = SB_CTL;
+        }
+        si.cbSize = sizeof(SCROLLINFO);
+        ::SetScrollInfo(hWndTarget, nBarTarget, &si, TRUE);
+    }
+    const UINT wArrows = (self->m_bUseScrollButtons == 0 && self->m_nVertScrollTotal > 0)
+                             ? ESB_ENABLE_BOTH : ESB_DISABLE_BOTH;
+    ::EnableScrollBar(pScrollVert->m_hWnd, SB_CTL, wArrows);
 }
 
 // CMFCTasksPane::SetTaskName(int nGroup, int nTask, LPCTSTR lpszTaskName) --

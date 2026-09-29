@@ -22,14 +22,24 @@
 //   0x190 m_uiStandardBtns   -- read by OnClickButton (mfc140u 0x1c5cc0)
 //   0x194 m_bNewItem         -- written by CreateNewItem / OnEndEditLabel
 //   0x198 m_bIsActualDelete  -- written by OnClickButton
+//   0x19c m_bBrowseButton
 //   0x1a0 m_bGrayDisabledButtons -- written by SetGrayDisabledButtons
-//   0x1a4 m_bDefaultCaption, 0x1b0 m_rectCaption, 0x1c0 m_font, 0x1d0 m_strCaption
+//   0x1a4 m_bDefaultCaption, 0x1a8 m_sizeButton, 0x1b0 m_rectCaption, 0x1c0 m_font, 0x1d0 m_strCaption
 //                            -- read by OnPaint (mfc140u 0x1c56f0)
 // Only the scalar BOOLs are touched by the bodies implemented in this file.
 // NOTE: OpenMFC's exported ctor (??0CVSListBoxBase, featurepack/controls/
 // CtorDtorPlacement.cpp) constructs only the 0xe8-byte CStatic part, so none of
 // these members is initialised in an object built through it; see the
-// headerRequests of the workflow that wrote this.
+// headerRequests of the workflow that wrote this.  Retail's ctor
+// (??0CVSListBoxBase@@IEAA@XZ, entry RVA 0x1c4d10 (mfc140u)) does initialise
+// them after ??0CWnd@@QEAA@XZ: both CLists (head/tail/count/free/blocks = 0,
+// block size 10), the CMap (hash table NULL, hash size 17, block size 10),
+// m_sizeButton (+0x1a8) and m_rectCaption (+0x1b0) zeroed, m_font.m_hObject
+// NULL, m_strCaption empty, then a qword 0 at +0x190 (m_uiStandardBtns and
+// m_bNewItem), a qword 1 at +0x198 (m_bIsActualDelete = TRUE and
+// m_bBrowseButton, +0x19c, = FALSE), m_bGrayDisabledButtons = FALSE (+0x1a0)
+// and m_bDefaultCaption = TRUE (+0x1a4).  OnClickButton, OnCommand and OnPaint
+// below stay stubs until the exported ctor does the same.
 //
 // Virtual calls use the retail vtable byte offsets read at the call sites:
 //   0x2e8 AddItem, 0x2f0 RemoveItem, 0x300 GetSelItem, 0x318 SetItemText,
@@ -182,9 +192,14 @@ extern "C" int MS_ABI impl__GetButtonNum_CVSListBoxBase__QEBAHI_Z(const CVSListB
 // 0x18031d948, whose pfnGetBaseMap is ?GetThisMessageMap@CWnd@@KAPEBUAFX_MSGMAP@@XZ --
 // CWnd, even though the class's CRuntimeClass base is CStatic. The copies that used to be
 // here returned CStatic's map directly.
+// Retail GetRuntimeClass and GetThisClass are one identical-code-folded body at
+// RVA 0x1c4b60 (mfc140u): `lea <classCVSListBoxBase>,%rax; ret`.  It must not
+// call pThis->GetRuntimeClass(): a client object whose vftable slot 0 is this
+// export would re-enter this thunk forever.
 // Symbol: ?GetRuntimeClass@CVSListBoxBase@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CVSListBoxBase__UEBAPEAUCRuntimeClass__XZ(const CVSListBoxBase* pThis) {
-    return pThis ? pThis->GetRuntimeClass() : CVSListBoxBase::GetThisClass();
+    (void)pThis;
+    return CVSListBoxBase::GetThisClass();
 }
 // Symbol: ?GetStdButtonNum@CVSListBoxBase@@IEBAHI@Z
 extern "C" int MS_ABI impl__GetStdButtonNum_CVSListBoxBase__IEBAHI_Z(const CVSListBoxBase* pThis, unsigned int nID) {
@@ -281,9 +296,12 @@ extern "C" void MS_ABI impl__OnEndEditLabel_CVSListBoxBase__UEAAXPEB_W_Z(CVSList
     }
     IntAt(pThis, kOffNewItem) = FALSE;
 }
-// Retail: the export's ordinal resolves to RVA 0x3a60 (mfc140u), an identical-
+// Retail: the export's ordinal (9794, per atlmfc/lib/x64/mfc140u.lib; the
+// export is by ordinal only, so disas.py's name map lacks it) resolves in the
+// mfc140u export address table to RVA 0x3a60 (mfc140u), an identical-
 // code-folded `mov $0x1,%eax; ret` shared with 100 other `return TRUE` exports
-// (CBasePane::OnEraseBkgnd among them).  The background is left to OnPaint.
+// (CBasePane::OnEraseBkgnd among them).  Nothing is erased; retail OnPaint
+// (0x1c56f0, mfc140u) fills only the caption strip m_rectCaption.
 // Symbol: ?OnEraseBkgnd@CVSListBoxBase@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CVSListBoxBase__IEAAHPEAVCDC___Z(CVSListBoxBase* pThis, CDC* pDC) {
     (void)pThis;

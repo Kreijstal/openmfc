@@ -31,6 +31,8 @@
 
 #include "openmfc/afxmfc.h"
 
+#include <cstring>
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
@@ -550,14 +552,39 @@ extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strStylePrefix_CMFCVisualManag
 extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerOffice2007__SAXXZ() {}
 
 // Symbol: ?CleanUp@CMFCVisualManagerOffice2007@@MEAAXXZ
-// Retail (0x1991e0) resets the whole Office2007 theme block: it stores -1 into
-// the 21 COLORREF fields at +0xc5e4..+0xc634 inclusive, then calls
-// ?Clear@CMFCToolBarImages@@QEAAXXZ (0x16dcb0) on the CMFCToolBarImages
-// members at +0x310, +0x4a8, +0x640, +0x7d8 ... and a virtual at vtable +0x60
-// on the sub-objects at +0x2cf0, +0x22f0, +0x24f0, +0x26f0, +0x28f0 ...
-// (whose class was not identified -- only the vtable slot is visible).
+// Retail (0x1991e0 (mfc140)) resets the whole Office2007 theme block: it
+// stores -1 into the 21 COLORREF fields at +0xc5e4..+0xc634 inclusive, then
+// calls ?Clear@CMFCToolBarImages@@QEAAXXZ (0x16dcb0 (mfc140), 0x16f690
+// (mfc140u)) on the CMFCToolBarImages members at +0x310, +0x4a8, +0x640,
+// +0x7d8 ... and a virtual at vtable +0x60 on the sub-objects at +0x2cf0,
+// +0x22f0, +0x24f0, +0x26f0, +0x28f0 ... (class identified below).
 // None of those members exist in OpenMFC's 64-byte derived block, so there is
 // no state to reset. Deliberately left a no-op.
+// Re-read 2026-09-29 in mfc140u (entry RVA 0x19abe0 (mfc140u)), which adds:
+// the vtable +0x60 sub-objects are CMFCControlRenderer -- the constructor
+// ??0CMFCVisualManagerOffice2007@@IEAA@XZ (0x199610 (mfc140u)) builds the ones
+// at +0x22f0 and +0x2cf0 with ??0CMFCControlRenderer@@QEAA@XZ (0x320c0
+// (mfc140u)), whose vftable 0x1802e30b0 (mfc140u) has
+// ?CleanUp@CMFCControlRenderer@@UEAAXXZ (0x323f0 (mfc140u)) in slot 12; the
+// constructor builds every block from +0x22f0 to +0xc2f0 with that same
+// constructor, directly or as the element constructor handed to the
+// vector-constructor helper 0x2b77c0 (mfc140u). The objects the 7-pass loop
+// below reaches (+0xc778 ...) are built by a different element constructor,
+// 0x19a110 (mfc140u, not exported), and their class was not identified. The body also
+// calls ?DeleteObject@CGdiObject@@QEAAHXZ (0x2a3f60 (mfc140u)) on the GDI
+// objects at +0xc4f0/+0xc500/+0xc510/+0xc520/+0xc530/+0xc540/+0xc550/+0xc560
+// /+0xc570, ?Clear@CMFCVisualManagerBitmapCache@@QEAAXXZ (0x199330
+// (mfc140u)) on the bitmap caches at +0x104b8..+0x109e0, and runs a 7-pass
+// loop (stride 0x8c0) that calls vtable +0x60 on the objects at
+// +0xc778/+0xc978/+0xcb78/+0xcd78 and Clear on the caches at +0xcf88/+0xcfe0;
+// it also stores 0xff000000 into +0xc694/+0xc698/+0xc69c/+0xc6a0, -1 into
+// +0xc66c, +0xc6d0, +0xc6d4 and +0xc764..+0xc770, 0 into +0x2fc, runs the
+// afxGlobalData init gate and copies afxGlobalData+0x78 into +0xc670,
+// re-seeds +0x10a3c..+0x10a6c, empties the map at +0x10a70 through the
+// unnamed helper 0x1ba40 (mfc140u; frees the hash table at +0x8 and the
+// block chain at +0x28, zeroes +0x18/+0x20), and -- last -- stores 0 into +0x2f0,
+// the "style resources loaded" flag the Office2007 predicate tests. It makes
+// no base-class call. There is no OpenMFC state behind any of it.
 extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerOffice2007__MEAAXXZ(void* /*pThis*/) {}
 
 // Symbol: ?DrawNcBtn@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@IW4AFX_BUTTON_STATE@CMFCVisualManager@@HHH@Z
@@ -1082,13 +1109,18 @@ extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerOffice2007__UEAA
 }
 
 // Symbol: ?GetTabHorzMargin@CMFCVisualManagerOffice2007@@UEAAHPEBVCMFCBaseTabCtrl@@@Z
-// Retail 0x1a62f0, complete. Every guard failure -- predicate FALSE, or any of
+// Retail 0x1a62f0 (mfc140), complete. Every guard failure -- predicate FALSE, or any of
 // the tab control's four vtable queries at +0x520/+0x560/+0x528/+0x530
 // returning non-zero, or the manager's pointer at [+0x4d98 (+0x400 when the
 // tab control's vtable +0x510 query returned non-zero)] being NULL -- lands on
 // `xor %eax,%eax`. Only the fully themed path returns this->[+0x4ec8, with the
 // same +0x400 adjustment] / 2. In this build the predicate is FALSE, so the
 // reachable result is 0.
+// STUB (re-checked 2026-09-29 at mfc140u entry 0x1a7cf0): the themed edge
+// needs this->[+0x2f0], [+0x4d98] and [+0x4ec8] (+0x400 variants), none of
+// which OpenMFC's CMFCVisualManager + char _pad[64] layout holds, and retail
+// with its style resources loaded returns the themed margin there. The
+// predicate's afxGlobalData init gate is also not run here.
 extern "C" int MS_ABI impl__GetTabHorzMargin_CMFCVisualManagerOffice2007__UEAAHPEBVCMFCBaseTabCtrl___Z(
     CMFCVisualManagerOffice2007* /*pThis*/, const CMFCBaseTabCtrl* /*pTabWnd*/)
 {
@@ -1139,27 +1171,62 @@ extern "C" int MS_ABI impl__GetToolTipInfo_CMFCVisualManagerOffice2007__UEAAHAEA
         pThis, params, (unsigned int)-1);
 }
 
+// afxGlobalData and its lazy initialiser (data object defined in
+// featurepack/CMFC_misc_stubs.cpp, thunk in core/runtime/AFX_GLOBAL_DATA.cpp,
+// where m_bInitialized is static_assert-pinned at +0).
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+
+namespace {
+// The only side effect of the Office2007 predicate (mfc140u 0x198ce8, no
+// export): its opening
+//     mov 0x1803c1620,%eax; test %eax,%eax; jne ...
+//     lea 0x1803c1620,%rcx; call 0x18006a790; mov %ebx(=1),0x1803c1620
+// where 0x1803c1620 is ?afxGlobalData@@3UAFX_GLOBAL_DATA@@A and 0x6a790 is
+// ?Initialize@AFX_GLOBAL_DATA@@QEAAXXZ (all mfc140u). Everything after it
+// only reads: its second Initialize call (at 0x198d2c) is taken only when
+// %eax is 0, but %eax holds either the non-zero gate value loaded at entry
+// or the 1 written by the first path, so that call is dead. A caller that
+// discards the predicate's result therefore observes exactly this.
+inline void Office2007PredicateInitGate()
+{
+    int gate = 0;
+    std::memcpy(&gate, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, sizeof gate);
+    if (gate == 0) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        const int one = 1;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, &one, sizeof one);
+    }
+}
+} // namespace
+
 // Symbol: ?IsHighlightWholeMenuItem@CMFCVisualManagerOffice2007@@UEAAHXZ
-// Retail 0x1a5800 in full: `sub $0x28,%rsp; call <predicate>; mov $1,%eax;
-// add $0x28,%rsp; ret`. That is the entire function -- five instructions, no
-// branch. The predicate is still called (it is not inlinable and has the
-// AFX_GLOBAL_DATA::Initialize side effect) but its result is never tested, so
+// Retail 0x1a7200 (mfc140u) (ANSI twin 0x1a5800) in full: `sub $0x28,%rsp;
+// call 0x180198ce8 <predicate>; mov $1,%eax; add $0x28,%rsp; ret`. That is
+// the entire function -- five instructions, no branch. The predicate is still
+// called (the compiler did not inline it) but its result is never tested, so
 // TRUE is the complete, unconditional retail answer for every input and every
-// object state. Why the source looks that way is not visible in the object
-// code and is not asserted here.
+// object state; the call's only observable effect is the afxGlobalData init
+// gate, reproduced by Office2007PredicateInitGate above. Why the source looks
+// that way is not visible in the object code and is not asserted here.
 extern "C" int MS_ABI impl__IsHighlightWholeMenuItem_CMFCVisualManagerOffice2007__UEAAHXZ(
     CMFCVisualManagerOffice2007* /*pThis*/)
 {
+    Office2007PredicateInitGate();
     return TRUE;
 }
 
 // Symbol: ?IsOwnerDrawMenuCheck@CMFCVisualManagerOffice2007@@UEAAHXZ
-// Retail 0x1a57f0, the same five-instruction shape as IsHighlightWholeMenuItem
-// but with `xor %eax,%eax`: the predicate's result is never tested, so FALSE
-// is unconditional.
+// Retail 0x1a71f0 (mfc140u), complete (ANSI twin 0x1a57f0):
+//     sub $0x28,%rsp; call 0x180198ce8 <predicate>; xor %eax,%eax;
+//     add $0x28,%rsp; ret
+// The predicate's result is never tested, so FALSE is unconditional; the
+// call is kept for its afxGlobalData init-gate side effect (see
+// Office2007PredicateInitGate above), which is all of it a caller can observe.
 extern "C" int MS_ABI impl__IsOwnerDrawMenuCheck_CMFCVisualManagerOffice2007__UEAAHXZ(
     CMFCVisualManagerOffice2007* /*pThis*/)
 {
+    Office2007PredicateInitGate();
     return FALSE;
 }
 
@@ -1834,6 +1901,12 @@ extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2007__U
 //     return FALSE;
 // Only the FALSE edge is reachable here, and it is a bare `return FALSE`, so
 // this stays an honest stub: there is no base call to make.
+// Re-checked 2026-09-29: the FillRect import slot 0x1802c7208 (mfc140u)
+// resolves to USER32!FillRect, pDC->m_hDC is read from pDC+0x8, and the
+// `lea 0xc560(%rbx); test` NULL check on the brush ADDRESS never fails for a
+// valid this; the HBRUSH at +0xc568 is the operative test.
+// STUB: the CBrush at +0xc560 and the +0x2f0 flag are Office2007 state
+// OpenMFC does not model; the predicate's afxGlobalData init gate is not run.
 extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect___Z(
     CMFCVisualManagerOffice2007* /*pThis*/, CDC* /*pDC*/, CRect /*rectClient*/)
 {

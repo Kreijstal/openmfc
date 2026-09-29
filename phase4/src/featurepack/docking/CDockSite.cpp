@@ -2,8 +2,11 @@
 // Sources: cbarcore.cpp, manual_small_stub_implementations.cpp
 //
 // The bodies marked "Retail 0x....." below were decoded from the retail export
-// the way phase4/src/core/ole/COleControl.cpp describes.  Every RVA quoted is a
-// FUNCTION ENTRY in mfc140.dll (the ANSI twin of mfc140u.dll -- function bodies
+// the way phase4/src/core/ole/COleControl.cpp describes.  Every address quoted
+// is in mfc140.dll; an RVA that names a function is that function's ENTRY,
+// while vftable / RTTI-descriptor / import-slot addresses are labelled as such
+// and single-instruction addresses are written "at 0x... (inside <entry>)"
+// (mfc140.dll is the ANSI twin of mfc140u.dll -- function bodies
 // are byte-identical between the two images, so the control flow, member
 // offsets and constants read off it are valid, but its addresses are NOT
 // mfc140u addresses and are never quoted as such).
@@ -959,8 +962,13 @@ extern "C" int MS_ABI impl__FindRowIndex_CDockSite__QEAAHPEAVCDockingPanesRow___
 //       if (pBar != NULL && pBar->IsDragMode()) return TRUE;         // pBar vslot +0x4e8
 //   }
 //   return FALSE;
-// CPane::IsDragMode is the afxpane.h:75 inline `return m_bDragMode;` (+0x214)
-// and has no export; it is read directly (a derived override is not reached).
+// CPane::IsDragMode is the afxpane.h:75 inline `return m_bDragMode;` and has no
+// export; it is read directly.  Checked: slot +0x4e8 of the retail CPane
+// vftable (0x1802f3a18, mfc140, stored by ??0CPane@@IEAA@XZ at 0x9f8b0) holds
+// 0x8900 (mfc140), which is `mov 0x214(%rcx),%eax; ret`.  In the shipping
+// headers only afxdocksite.h re-declares IsDragMode, and CDockSite is not a
+// CPane, so this matches retail for every MFC pane class; an override in a
+// user-derived CPane class is not reached.
 // Signature corrected: the generated stub had dropped `this`.
 extern "C" int MS_ABI impl__IsDragMode_CDockSite__UEBAHXZ(const void* pThis) {
     if (pThis == nullptr) return FALSE;
