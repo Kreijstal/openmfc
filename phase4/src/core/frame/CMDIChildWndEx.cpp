@@ -153,11 +153,15 @@ extern "C" void MS_ABI impl__AddFrame_CFrameImpl__SAXPEAVCFrameWnd___Z(CFrameWnd
 // AFX_WM_CHANGEVISUALMANAGER -- registered message id (runtime/Globals.cpp)
 extern "C" unsigned int impl__AFX_WM_CHANGEVISUALMANAGER__3IA;
 // afxGlobalData -- the 720-byte blob (featurepack/CMFC_misc_stubs.cpp), its
-// Initialize export and GetITaskbarList3 (runtime/AFX_GLOBAL_DATA.cpp; the
-// latter returns NULL in this tree).
+// Initialize export and GetITaskbarList3 (runtime/AFX_GLOBAL_DATA.cpp).  Both are
+// member functions, so `this` (the blob) goes in RCX exactly as retail passes
+// it (`lea afxGlobalData,%rcx` before each call, e.g. 0x8406c / 0x8561e).
+// Initialize is a real body (it sets bIsWindows7 at +0x258), and
+// GetITaskbarList3 forwards to CWinApp::GetITaskbarList3, which returns a live
+// ITaskbarList3 once the application has enabled taskbar interaction.
 extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
-extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ();
-extern "C" void* MS_ABI impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList3__XZ();
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" void* MS_ABI impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList3__XZ(void* pThis);
 
 // ---- sibling exports for the embedded sub-objects (2026-09-15 pass) ----
 // CDockingManager ctor/dtor (featurepack/docking/Thunks.cpp) and the exports
@@ -253,7 +257,7 @@ namespace {
 void EnsureGlobalDataInitialized() {
     int* pInitialized = reinterpret_cast<int*>(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
     if (*pInitialized == 0) {
-        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ();
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
         *pInitialized = 1;
     }
 }
@@ -272,7 +276,8 @@ int GlobalDataInt(size_t offset) {
 // the retail AFX_GLOBAL_DATA ctor) and end at +0x248, `CRect m_rectVirtual`
 // occupies +0x248..+0x258 and `BOOL bIsWindows7` is declared right after it.
 // core/frame/CMDIClientAreaWnd.cpp reads the same slot as kGlobalTaskbarFlag.
-// OpenMFC's Initialize export is a no-op, so this reads 0 in this tree.
+// OpenMFC's Initialize (core/runtime/AFX_GLOBAL_DATA.cpp) sets it from
+// VerifyVersionInfoW(6.1), so it reads nonzero on Windows 7+ once initialised.
 constexpr size_t kGlobalTaskbarFlag = 0x258;
 
 // The CMFCVisualManager vftable slot +0x3f8 (mfc140u vftable 0x31c128, installed
@@ -305,7 +310,7 @@ bool g_bInMDIActivate = false;
 //                                               i.e. this+0x558, stored by PreCreateWindow)
 //   +0x710  CDockablePane*  m_pTabbedControlBar (zeroed)
 //   +0x718  CMDIFrameWndEx* m_pMDIFrame         (zeroed; OnCreate stores it)
-//   +0x720  CMDITabProxyWnd m_wndTaskbarTabProxy (ctor 0x86bb0; its m_hWnd is +0x760)
+//   +0x720  CMDITabProxyWnd m_tabProxyWnd (ctor 0x86bb0; its m_hWnd is +0x760)
 //   +0x810  BOOL zeroed, +0x814 BOOL set to 1 (the taskbar thumbnail-clip enable)
 // OpenMFC's CMDIChildWndEx is 0x228 bytes (CMDIChildWnd + a 64-byte padding
 // blob; sizeof measured with this tree's headers), so nothing from +0x218 on
@@ -378,7 +383,7 @@ ChildExtra* AttachExtra(CMDIChildWndEx* pChild) {
     return p;
 }
 
-// Retail's destructor (0x83930) order is ~m_wndTaskbarTabProxy, ~m_dockManager,
+// Retail's destructor (0x83930) order is ~m_tabProxyWnd, ~m_dockManager,
 // ~m_Impl; the two we construct are torn down in that order here.
 void DetachExtra(CMDIChildWndEx* pChild) {
     AcquireSRWLockExclusive(&g_childExtraLock);
@@ -595,7 +600,7 @@ extern "C" void MS_ABI impl__UnregisterTaskbarTab_CMDIChildWndEx__QEAAXH_Z(CMDIC
 //     if (f && !f->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))) f = NULL;
 //     p->SetTabActive(m_tabProxyWnd.m_hWnd, f ? f->m_hWnd : NULL, 0);   // slot 0x70
 // The gate is transcribed; past it the proxy HWND at this+0x720+0x40 is
-// unmodeled (and GetITaskbarList3 returns NULL in this tree anyway).
+// unmodeled.
 // STUB past the gate.
 // Symbol: ?SetTaskbarTabActive@CMDIChildWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__SetTaskbarTabActive_CMDIChildWndEx__QEAAXXZ(CMDIChildWndEx* pThis) {
@@ -685,11 +690,11 @@ extern "C" void MS_ABI impl__SetTaskbarTabText_CMDIChildWndEx__MEAAXPEB_W_Z(CMDI
 // Slot 0xa0 is the 21st method of the interface (IUnknown 3 + ITaskbarList 5 +
 // ITaskbarList2 1 + ITaskbarList3 12 = 21 slots up to and including it), i.e.
 // ITaskbarList3::SetThumbnailClip in shobjidl.h's declaration order.
-// Every input exists here: the +0x258 flag is read out of the afxGlobalData
-// blob (0 in this tree, because AFX_GLOBAL_DATA::Initialize is a no-op), and
-// GetITaskbarList3 returns NULL in this tree, so the result today is FALSE on
-// the same early-outs retail takes when the taskbar is unavailable.  The
-// previous body was a bare `return FALSE`.
+// Every input exists here: the +0x258 flag (bIsWindows7) is read out of the
+// afxGlobalData blob that AFX_GLOBAL_DATA::Initialize fills, and
+// GetITaskbarList3 returns NULL until the application enables taskbar
+// interaction, which is the same early-out retail takes.  The previous body
+// was a bare `return FALSE`.
 // Symbol: ?SetTaskbarThumbnailClipRect@CMDIChildWndEx@@MEAAHVCRect@@@Z
 extern "C" int MS_ABI impl__SetTaskbarThumbnailClipRect_CMDIChildWndEx__MEAAHVCRect___Z(CMDIChildWndEx* pThis, const CRect& rectClip) {
     if (!pThis) {
@@ -718,7 +723,8 @@ extern "C" int MS_ABI impl__SetTaskbarThumbnailClipRect_CMDIChildWndEx__MEAAHVCR
     }
     EnsureGlobalDataInitialized();
     ITaskbarList3* pTaskbar = static_cast<ITaskbarList3*>(
-        impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList3__XZ());
+        impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList3__XZ(
+            impl__afxGlobalData__3UAFX_GLOBAL_DATA__A));
     if (pTaskbar == nullptr) {
         return FALSE;
     }
@@ -1196,7 +1202,7 @@ extern "C" void MS_ABI impl__UpdateTaskbarTabIcon_CMDIChildWndEx__UEAAXPEAUHICON
 // placement-news it) and CreateObject.  Retail (entry RVA 0x83820, mfc140u)
 // runs the CMDIChildWnd ctor (0x2a6d00), stores the vftable (0x2ee018), zeroes
 // +0x1fc..+0x20b, constructs m_Impl(this) at +0x218 (0x61ef0), m_dockManager at
-// +0x3a8 (default ctor 0x46ef0) and m_wndTaskbarTabProxy at +0x720 (0x86bb0),
+// +0x3a8 (default ctor 0x46ef0) and m_tabProxyWnd at +0x720 (0x86bb0),
 // zeroes +0x718, +0x1f0 (8 bytes) and +0x1f8, ::SetRectEmpty(+0x1fc), zeroes
 // +0x20c (8 bytes), +0x1e8, +0x710 and +0x810, and sets +0x814 = 1.
 // DEVIATIONS: the zero-fill covers the whole 64-byte padding (a superset of the
@@ -1208,7 +1214,7 @@ CMDIChildWndEx::CMDIChildWndEx() {
     AttachExtra(this);
 }
 // Retail (entry RVA 0x83930, mfc140u): stores the vftable, runs ~CWnd (0x28b740)
-// on m_wndTaskbarTabProxy (this+0x720), ~CDockingManager (0x472a0) on
+// on m_tabProxyWnd (this+0x720), ~CDockingManager (0x472a0) on
 // this+0x3a8, ~CFrameImpl (0x620b0) on this+0x218, then tail-jumps to
 // ~CFrameWnd (0x29cc60).  The two sub-objects this file constructs are torn
 // down in that order by DetachExtra; the base destructors run implicitly.
@@ -1797,9 +1803,9 @@ extern "C" int MS_ABI impl__IsPointNearDockSite_CMDIChildWndEx__QEBAHVCPoint__AE
 }
 
 // CMDIChildWndEx::IsRegisteredWithTaskbarTabs() — retail mfc140u.dll
-// RVA 0x83fe0 is `return m_wndTaskbarTabProxy.GetSafeHwnd() != NULL;` -- it
-// reads the HWND at this+0x720+0x40 (the tab-proxy CWnd's m_hWnd) and returns
-// whether it is non-NULL.  OpenMFC's CMDIChildWndEx has no proxy window at
+// RVA 0x83fe0 is `return m_tabProxyWnd.GetSafeHwnd() != NULL;` -- it reads
+// the HWND at this+0x720+0x40 (m_hWnd of the CMDITabProxyWnd m_tabProxyWnd,
+// afxmdichildwndex.h) and returns whether it is non-NULL.  OpenMFC's CMDIChildWndEx has no proxy window at
 // +0x720 (the object is 0x228 bytes; see the layout note above) and
 // RegisterTaskbarTab is a no-op, so no tab is ever registered and FALSE is the
 // consistent answer.
@@ -1851,16 +1857,20 @@ extern "C" int MS_ABI impl__IsTabbedMDIChild_CMDIChildWndEx__UEAAHXZ(
 // UpdateTaskbarTabIcon 0x3f0, CanShowOnTaskBarTabs 0x3f8, OnGetIconicThumbnail
 // 0x400, OnGetIconicLivePreviewBitmap 0x408, OnTaskbarTabThumbnailStretch 0x410;
 // the exported names at 0x3d8/0x3f0/0x410 pin the sequence.)
-// Every input of that chain reads FALSE in this tree today (the CWinApp
-// taskbar flag defaults to false in detail/CWinAppSupport.h and the +0x258 byte
-// is never set because AFX_GLOBAL_DATA::Initialize is a no-op), so the constant
-// below is the value retail would compute here.  It is kept a constant on
-// purpose rather than transcribed: core/frame/CMDIClientAreaWnd.cpp reads the
-// tab-proxy HWND at CMDIChildWndEx+0x760 only behind this export returning
-// FALSE, and that offset is past the end of OpenMFC's 0x228-byte object (the
-// proxy CMDITabProxyWnd at retail +0x720 is never constructed here).  Flipping
-// this to TRUE without modelling the proxy window would turn those reads into
-// out-of-bounds accesses.  STUB -- see the headerRequest filed with this file.
+// DEVIATION: this is NOT always the value retail would compute.  Every input
+// of that chain is live in this tree: CWinApp::EnableTaskbarInteraction(TRUE)
+// sets the flag IsTaskbarInteractionEnabled returns (it defaults to false in
+// detail/CWinAppSupport.h), CanShowOnTaskBarTabs defaults to TRUE, and
+// AFX_GLOBAL_DATA::Initialize sets the +0x258 dword (bIsWindows7) on Windows 7+.
+// So for an application that enables taskbar interaction, retail can return
+// TRUE for an MDIFrameWndEx child whose style lacks bit 19 (0x00080000).  The
+// constant is kept on purpose rather than transcribed:
+// core/frame/CMDIClientAreaWnd.cpp reads the tab-proxy HWND at
+// CMDIChildWndEx+0x760 only behind this export returning FALSE, and that offset
+// is past the end of OpenMFC's 0x228-byte object (the proxy CMDITabProxyWnd at
+// retail +0x720 is never constructed here).  Returning TRUE without modelling
+// the proxy window would turn those reads into out-of-bounds accesses.
+// STUB -- see the headerRequest filed with this file.
 // Symbol: ?IsTaskbarTabsSupportEnabled@CMDIChildWndEx@@QEAAHXZ
 extern "C" int MS_ABI impl__IsTaskbarTabsSupportEnabled_CMDIChildWndEx__QEAAHXZ(
     CMDIChildWndEx* pThis) {
@@ -2206,7 +2216,7 @@ extern "C" void MS_ABI impl__OnLButtonUp_CMDIChildWndEx__IEAAXIVCPoint___Z(
 //  tail:                                          // 0x845fc / 0x84600 /
 //                                                 // 0x8460c / 0x8461f
 //     if (!bActivate || IsTaskbarTabsSupportEnabled()) {   // 0x84600
-//         if (m_wndTaskbarTabProxy(this+0x720).m_hWnd != NULL)  // 0x8460c
+//         if (m_tabProxyWnd(this+0x720).m_hWnd != NULL)  // 0x8460c
 //             return;
 //     }
 //     this->vtbl[0x448](CRect(0,0,0,0));          // SetTaskbarThumbnailClipRect
@@ -2488,7 +2498,13 @@ extern "C" void MS_ABI impl__OnPressTaskbarThmbnailCloseButton_CMDIChildWndEx__U
 // dereferences it: this handler can only be safe because DWM never sends
 // WM_DWMSENDICONICLIVEPREVIEWBITMAP to the child frame itself (the
 // DWMWA_HAS_ICONIC_BITMAP attribute is set on the tab proxy window in
-// RegisterTaskbarTab, never on this window).  Not reproduced: a faithful body
+// RegisterTaskbarTab, never on this window).  Re-checked 2026-09-29: the retail
+// CMDIChildWndEx message map (returned by ?GetThisMessageMap@CMDIChildWndEx@@,
+// entry RVA 0x83980 mfc140u) has NO entry for WM_DWMSENDICONICTHUMBNAIL (0x323)
+// or WM_DWMSENDICONICLIVEPREVIEWBITMAP (0x326), and mfc140u.dll's .text holds
+// no rel32 call/jmp to 0x86180 or 0x860e0 and no section holds an absolute
+// pointer to either, so inside retail these two handlers are reachable only
+// by a client calling the export directly.  Not reproduced: a faithful body
 // would fault, and a WM_PRINTCLIENT with a NULL HDC has no useful effect.
 // STUB -- left a no-op deliberately.
 // Symbol: ?OnSendIconicLivePreviewBitmap@CMDIChildWndEx@@IEAAX_K_J@Z
@@ -2508,8 +2524,9 @@ extern "C" void MS_ABI impl__OnSendIconicLivePreviewBitmap_CMDIChildWndEx__IEAAX
 //     <DwmSetIconicThumbnail loader at 0x1cae54>(m_hWnd, pBmp->m_hObject /*+0x8*/, 1);
 //     if (dc.m_hDC) ::DeleteDC(dc.Detach());                      // 0x2a24d0, IAT 0x2c6148
 // Same shape and same NULL dereference (at 0x8613f) as
-// OnSendIconicLivePreviewBitmap above, and unreachable in practice for the same
-// reason.  STUB -- left a no-op deliberately.
+// OnSendIconicLivePreviewBitmap above, and unreachable inside retail for the
+// same reason (not in the message map, no internal caller -- see there).
+// STUB -- left a no-op deliberately.
 // Symbol: ?OnSendIconicThumbnail@CMDIChildWndEx@@IEAAX_K_J@Z
 extern "C" void MS_ABI impl__OnSendIconicThumbnail_CMDIChildWndEx__IEAAX_K_J_Z(
     CMDIChildWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {

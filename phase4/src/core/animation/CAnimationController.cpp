@@ -54,7 +54,7 @@
 //   10 IsAnimationInProgress           23 OnAnimationTimerRenderingTooSlow (ret)
 //   11 OnBeforeAnimationStart (ret)    24 OnAfterSchedule 0x7130
 //   12 OnAnimationManagerStatusChanged 0x7190
-// "(ret)" slots all point at the shared one-byte `ret` at 0x27d0.  The MSVC
+// "(ret)" slots all point at the shared `ret $0` (bytes C2 00 00) at 0x27d0.  The MSVC
 // declaration order in afxanimationcontroller.h agrees with this slot order.
 //
 // Group / keyframe bookkeeping in this file is a clean-room side table
@@ -1211,13 +1211,17 @@ extern "C" void MS_ABI impl__OnAnimationTimerPostUpdate_CAnimationController__UE
 
 // Symbol: ?OnAnimationTimerPreUpdate@CAnimationController@@UEAAXXZ
 extern "C" void MS_ABI impl__OnAnimationTimerPreUpdate_CAnimationController__UEAAXXZ(void* /*pThis*/) {
-    // Retail: the shared `ret` at 0x27d0 (mfc140u) -- no-op.
+    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
+    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
+    // no-op is the faithful transcription, not a placeholder.
 }
 
 // Symbol: ?OnAnimationTimerRenderingTooSlow@CAnimationController@@UEAAXI@Z
 extern "C" void MS_ABI impl__OnAnimationTimerRenderingTooSlow_CAnimationController__UEAAXI_Z(
     void* /*pThis*/, unsigned int /*fps*/) {
-    // Retail: the shared `ret` at 0x27d0 (mfc140u) -- no-op.
+    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
+    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
+    // no-op is the faithful transcription, not a placeholder.
 }
 
 // Symbol: ?OnAnimationValueChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@PEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@NN@Z
@@ -1231,13 +1235,19 @@ extern "C" void MS_ABI impl__OnAnimationValueChanged_CAnimationController__UEAAX
 // Symbol: ?OnBeforeAnimationStart@CAnimationController@@UEAAXPEAVCAnimationGroup@@@Z
 extern "C" void MS_ABI impl__OnBeforeAnimationStart_CAnimationController__UEAAXPEAVCAnimationGroup___Z(
     void* /*pThis*/, void* /*pGroup*/) {
-    // Retail: the shared `ret` at 0x27d0 (mfc140u) -- no-op.
+    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
+    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
+    // no-op is the faithful transcription, not a placeholder.
 }
 
-// The four OnHasPriority* virtuals share one retail body at 0x71e0 (mfc140u):
-// `xor %eax,%eax; ret` -- they return FALSE ("the scheduled storyboard does
-// not have priority").  The previous stubs here returned TRUE, which inverted
-// what UIAnimation is told through the priority-comparison handlers.
+// The four OnHasPriority* virtuals share one retail body at 0x71e0 (mfc140u;
+// each export's own export-address-table entry resolves there, and vftable
+// slots 17-20 point there): `xor %eax,%eax; ret` -- they return FALSE, which
+// afxanimationcontroller.h documents as "the storyboard owned by
+// pGroupScheduled has priority" (TRUE would mean pGroupNew has priority).
+// The bare `return FALSE` below is therefore the full transcription, not a
+// placeholder.  The previous stubs here returned TRUE, which inverted what
+// UIAnimation is told through the priority-comparison handlers.
 // Symbol: ?OnHasPriorityCancel@CAnimationController@@UEAAHPEAVCAnimationGroup@@0W4__MIDL___MIDL_itf_UIAnimation_0000_0008_0001@@@Z
 extern "C" int MS_ABI impl__OnHasPriorityCancel_CAnimationController__UEAAHPEAVCAnimationGroup__0W4__MIDL___MIDL_itf_UIAnimation_0000_0008_0001___Z(
     void* /*pThis*/, void* /*pGroupScheduled*/, void* /*pGroupNew*/, int /*priorityEffect*/) {
@@ -1265,13 +1275,17 @@ extern "C" int MS_ABI impl__OnHasPriorityTrim_CAnimationController__UEAAHPEAVCAn
 // Symbol: ?OnStoryboardStatusChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@W4__MIDL___MIDL_itf_UIAnimation_0000_0002_0001@@1@Z
 extern "C" void MS_ABI impl__OnStoryboardStatusChanged_CAnimationController__UEAAXPEAVCAnimationGroup__W4__MIDL___MIDL_itf_UIAnimation_0000_0002_0001__1_Z(
     void* /*pThis*/, void* /*pGroup*/, int /*newStatus*/, int /*previousStatus*/) {
-    // Retail: the shared `ret` at 0x27d0 (mfc140u) -- no-op.
+    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
+    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
+    // no-op is the faithful transcription, not a placeholder.
 }
 
 // Symbol: ?OnStoryboardUpdated@CAnimationController@@UEAAXPEAVCAnimationGroup@@@Z
 extern "C" void MS_ABI impl__OnStoryboardUpdated_CAnimationController__UEAAXPEAVCAnimationGroup___Z(
     void* /*pThis*/, void* /*pGroup*/) {
-    // Retail: the shared `ret` at 0x27d0 (mfc140u) -- no-op.
+    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
+    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
+    // no-op is the faithful transcription, not a placeholder.
 }
 
 // Symbol: ?RemoveAllAnimationGroups@CAnimationController@@QEAAXXZ

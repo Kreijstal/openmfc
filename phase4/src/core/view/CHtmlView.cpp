@@ -1121,15 +1121,20 @@ extern "C" void MS_ABI impl__NavigateError_CHtmlView__MEAAXPEAUIDispatch__PEAUta
 }
 
 // CHtmlView::OnDestroy: the mfc140u export table resolves ordinal 9116 to
-// 0x27d0, the ICF-folded `ret` shared by every empty function in the image
-// (OnDocumentComplete, ordinal 9174, and OnNavigateComplete2 resolve there too).
+// 0x27d0, the ICF-folded `ret 0` (c2 00 00) that all 158 empty-bodied exports
+// of mfc140u share (OnDocumentComplete, ordinal 9174, and OnNavigateComplete2
+// resolve there too).  It is not the only empty body in the image -- .text has
+// other standalone `ret 0` bodies (e.g. 0x2c4f90, 0x2c50e0), none exported.
 // Corroborated from the other direction: CHtmlView's message map (entries at
 // 0x180334b60, reached from GetMessageMap at 0x27aa70) lists WM_DESTROY (0x0002,
 // sig 19) with pfn 0x27d0, and the CHtmlView vftable at 0x1803340e8 holds 0x27d0
 // in slot 128 (OnNavigateComplete2) and slot 138 (OnDocumentComplete).  The
 // retail body is therefore empty -- it does NOT release m_pBrowserApp (that
-// happens in the destructor) and does NOT chain to CFormView::OnDestroy.  An
-// empty body is the complete transcription; there is nothing else to write.
+// happens in the destructor, RVA 0x27ab20 (mfc140u): vslot 2 on +0x248) and
+// does NOT chain to the inherited handler (CFormView exports no OnDestroy of
+// its own; the one it inherits is CView::OnDestroy).  Because the message-map
+// entry intercepts WM_DESTROY, retail CHtmlView never runs CView::OnDestroy.
+// An empty body is the complete transcription; there is nothing else to write.
 // Symbol: ?OnDestroy@CHtmlView@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CHtmlView__IEAAXXZ(CHtmlView* /*pThis*/) {}
 
@@ -1140,10 +1145,13 @@ extern "C" void MS_ABI impl__OnDestroy_CHtmlView__IEAAXXZ(CHtmlView* /*pThis*/) 
 // OnDocWindowActivate 9179, OnEnableModeless 9731, OnFrameWindowActivate 9967,
 // OnGetHostInfo 10015, OnHideUI 10095, OnResizeBorder 10933, OnUpdateUI 11570;
 // S_FALSE -> OnFilterDataObject 9940, OnGetDropTarget 10003, OnGetExternal
-// 10007, OnShowContextMenu 11171, OnShowUI 11213, OnTranslateAccelerator 11422.
+// 10007, OnShowContextMenu 11171, OnShowUI 11213, OnTranslateAccelerator 11422,
+// plus OnGetOptionKeyPath 10040 and OnTranslateUrl 11423 (defined further up
+// this file, not in this block).
 // Corroborated by the CHtmlView vftable at 0x1803340e8 (mfc140u): slots 115 and
 // 117-122 (seven, matching the seven S_OK exports) hold 0x71e0, and slots
-// 113-114, 116 and 123-127 hold 0x3a60.  A bare `return S_OK` / `return S_FALSE`
+// 113-114, 116 and 123-127 (eight, matching the eight S_FALSE exports) hold
+// 0x3a60.  A bare `return S_OK` / `return S_FALSE`
 // IS the complete retail body for each of these; nothing further can be
 // transcribed without inventing behaviour.
 // Symbol: ?OnDocWindowActivate@CHtmlView@@UEAAJH@Z

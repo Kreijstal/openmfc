@@ -215,8 +215,68 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCColorPopupMenu__SAPEAUCR
 extern "C" void* MS_ABI impl__FindMenuWithConnectedFloaty_CMFCPopupMenu__KAPEAV1_XZ();
 extern "C" CMFCToolBar* MS_ABI impl__FindDestintationToolBar_CMFCPopupMenuBar__QEAAPEAVCMFCToolBar__VCPoint___Z(
     CMFCPopupMenuBar* pThis, long long point);
+// SaveTearOffMenus: the CSettingsStoreSP owner and the CSettingsStore base bodies
+// (core/app/CSettingsStoreSP.cpp and core/app/CSettingsStore.cpp define each with
+// this parameter list), used for a store whose vtable lives in this image.
+extern "C" void* MS_ABI impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(void* pThis, int bAdmin, int bReadOnly);
+extern "C" int MS_ABI impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(void* pThis, const wchar_t* lpszPath);
+extern "C" int MS_ABI impl__DeleteKey_CSettingsStore__UEAAHPEB_WH_Z(void* pThis, const wchar_t* lpszPath, int bAdmin);
+extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WH_Z(void* pThis, const wchar_t* lpszValueName, int nValue);
+extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_W0_Z(void* pThis, const wchar_t* lpszValueName, const wchar_t* lpszVal);
+extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WPEAVCObject___Z(void* pThis, const wchar_t* lpszValueName, CObject* pObj);
+// OnShowPopupMenu: popup-menu parent walk and focus hand-off.
+extern "C" void* MS_ABI impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(const void* pThis);   // featurepack/menu/CMFCPopupMenu.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();         // featurepack/docking/CBasePane.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPopupMenuBar__SAPEAUCRuntimeClass__XZ();  // featurepack/menu/RuntimeClasses.cpp
+extern "C" int MS_ABI impl__IsDocked_CBasePane__UEBAHXZ(const CBasePane* pThis);                  // featurepack/docking/CBasePane.cpp
+extern "C" void* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);                          // core/window/Thunks.cpp
+extern "C" std::int32_t impl__m_bForceMenuFocus_CMFCPopupMenu__1HA;                              // featurepack/menu/StaticData.cpp
+// Defined further down in this file.
+extern "C" int MS_ABI impl__IsCustomizePane_CFrameImpl__IEBAHPEBVCMFCPopupMenu___Z(const void* pThis, const void* pMenuPopup);
+extern "C" void MS_ABI impl__ShowQuickCustomizePane_CFrameImpl__IEAAXPEAVCMFCPopupMenu___Z(void* pThis, void* pMenuPopup);
 // The linker-provided base of this DLL's own image (IsOwnObject).
 extern "C" IMAGE_DOS_HEADER __ImageBase;
+
+// Retail's layout of the exported ?m_lstFrames@CFrameImpl@@ object, a
+// CList<CFrameWnd*,CFrameWnd*> (afxtempl.h), and of its CNode.  Read out of retail:
+//   * the object's initial image bytes (mfc140u .data at RVA 0x3b1cc0) are
+//     { 0x1802e91d8, 0, 0, 0, 0, 0, 0xa }: the CList vftable, empty head / tail /
+//     count / free-list / block chain, and m_nBlockSize 10;
+//   * AddFrame (RVA 0x66110, mfc140u) starts its walk at +0x08, follows each node's
+//     +0x00 and reads the element at node +0x10, then hands the object to the
+//     non-exported CList::AddTail at 0x7908 (mfc140u), which carves 0x18-byte
+//     nodes out of CPlex blocks;
+//   * RemoveFrame (RVA 0x66160, mfc140u) unlinks through node +0x00 / +0x08, fixes
+//     up head +0x08 and tail +0x10, pushes the node onto the free list at +0x20,
+//     decrements the count at +0x18, and calls RemoveAll (0x8350, mfc140u) when
+//     the count reaches zero.
+// The public inline CFrameImpl::GetFrameList() (afxframeimpl.h) hands this object out
+// by const reference, and afxtempl.h's CList accessors (GetHeadPosition / GetNext /
+// GetCount) are inline, so a caller walks these bytes directly.
+struct OpenMfcRetailFrameListNode {
+    OpenMfcRetailFrameListNode* pNext;   // +0x00
+    OpenMfcRetailFrameListNode* pPrev;   // +0x08
+    CFrameWnd* data;                     // +0x10
+};
+struct OpenMfcRetailFrameList {
+    const void* vfptr;                        // +0x00
+    OpenMfcRetailFrameListNode* pNodeHead;    // +0x08
+    OpenMfcRetailFrameListNode* pNodeTail;    // +0x10
+    INT_PTR nCount;                           // +0x18
+    OpenMfcRetailFrameListNode* pNodeFree;    // +0x20
+    void* pBlocks;                            // +0x28 (CPlex*)
+    INT_PTR nBlockSize;                       // +0x30
+};
+static_assert(sizeof(OpenMfcRetailFrameListNode) == 0x18, "CList<CFrameWnd*>::CNode (AddTail allocates 0x18)");
+static_assert(offsetof(OpenMfcRetailFrameListNode, data) == 0x10, "AddFrame reads the element at node +0x10");
+static_assert(sizeof(OpenMfcRetailFrameList) == 56, "CList<CFrameWnd*,CFrameWnd*> is 0x38 bytes");
+static_assert(offsetof(OpenMfcRetailFrameList, pNodeHead) == 0x08, "m_pNodeHead");
+static_assert(offsetof(OpenMfcRetailFrameList, pNodeTail) == 0x10, "m_pNodeTail");
+static_assert(offsetof(OpenMfcRetailFrameList, nCount) == 0x18, "m_nCount");
+static_assert(offsetof(OpenMfcRetailFrameList, pNodeFree) == 0x20, "m_pNodeFree");
+static_assert(offsetof(OpenMfcRetailFrameList, nBlockSize) == 0x30, "m_nBlockSize");
+// Defined (and exported) further down, next to its // Symbol: marker.
+extern "C" OpenMfcRetailFrameList impl__m_lstFrames_CFrameImpl__1V__CList_PEAVCFrameWnd__PEAV1___A;
 
 namespace {
 
@@ -270,11 +330,23 @@ struct FrameImplExtra {
     UINT nIDDefaultResource = 0;                       // retail +0x10
     UINT uiHotSysButton = 0;                           // retail +0x14
     UINT uiHitSysButton = 0;                           // retail +0x18
+    UINT uiControlbarsMenuEntryID = 0;                 // retail +0x1c m_uiControlbarsMenuEntryID
+                                                       // (afxframeimpl.h member order; the ctor's
+                                                       // 8-byte zero store at +0x18 clears it).
+                                                       // In the headers it is set by the inline
+                                                       // CFrameImpl::SetControlbarsMenuId, which
+                                                       // the inline EnablePaneMenu of CFrameWndEx
+                                                       // / CMDIFrameWndEx calls on the frame's
+                                                       // embedded m_Impl; nothing in OpenMFC
+                                                       // forwards that here, so it stays 0.
     int nGate20 = 0;                                   // retail +0x20 (never written by this class)
     int nWindowRegionResult = 0;                       // retail +0x24
     BOOL bOleInPlaceActive = FALSE;                    // retail +0x30
     BOOL bHadCaption = TRUE;                           // retail +0x34
     BOOL bLoadDockState = TRUE;                        // retail +0x38 (low dword)
+    BOOL bViewMenuShowsToolbarsOnly = FALSE;           // retail +0x3c (high dword of the ctor's
+                                                       // 8-byte store of 1 at +0x38); same
+                                                       // writer and same caveat as +0x1c
     BOOL bWindowPosChanging = FALSE;                   // retail +0x40
     RECT rectRedraw = {};                              // retail +0x50 (SetRectEmpty in the ctor)
     PtrNode* pUserToolbars = nullptr;                  // retail +0x60 (CPtrList)
@@ -600,12 +672,37 @@ long long PackSize(LONG cx, LONG cy) {
                                   static_cast<unsigned long>(cx));
 }
 
-// Retail keeps the frame list in the exported CList below.  OpenMFC's list classes
-// keep their contents in a side table rather than in the object's own bytes (see
-// OPENMFC_DECLARE_LIST_WRAPPER in include/openmfc/afx.h), so the working storage for
-// AddFrame/RemoveFrame is here and the exported object is ABI storage only.
+// The frame list lives in the exported ?m_lstFrames@CFrameImpl@@ object itself, in
+// retail's CList node layout (OpenMfcRetailFrameList above), so a caller that reads
+// it through the inline CFrameImpl::GetFrameList() sees the live frames.  The mutex
+// serialises this file's own walkers and mutators; retail takes no lock.
 std::mutex g_frameListMutex;
-PtrNode* g_pFrameListHead = nullptr;
+
+OpenMfcRetailFrameList& FrameList() {
+    return impl__m_lstFrames_CFrameImpl__1V__CList_PEAVCFrameWnd__PEAV1___A;
+}
+
+// CList::AddTail as retail's non-exported copy at 0x7908 (mfc140u) performs it: the new
+// node's pPrev is the old tail, pNext is NULL, the old tail (or the head when the
+// list is empty) is pointed at it, and the count goes up.
+// DEVIATION: retail carves nodes out of CPlex blocks of m_nBlockSize (10) and
+// recycles them through m_pNodeFree; here each node is its own allocation, so
+// m_pNodeFree and m_pBlocks stay NULL.  Neither is read by afxtempl.h's inline
+// readers.
+void FrameListAddTail(CFrameWnd* pFrame) {
+    OpenMfcRetailFrameList& list = FrameList();
+    OpenMfcRetailFrameListNode* pNode = new OpenMfcRetailFrameListNode();
+    pNode->pNext = nullptr;
+    pNode->pPrev = list.pNodeTail;
+    pNode->data = pFrame;
+    if (list.pNodeTail != nullptr) {
+        list.pNodeTail->pNext = pNode;
+    } else {
+        list.pNodeHead = pNode;
+    }
+    list.pNodeTail = pNode;
+    ++list.nCount;
+}
 
 // ---------------------------------------------------------------------------
 // Virtual dispatch on objects this file did not create.
@@ -658,6 +755,12 @@ enum ToolBarSlot {
     kTbFloatPane = 129,              // +0x408  ?FloatPane@CPane@@UEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z
     kTbGetParentMiniFrame = 140,     // +0x460  ?GetParentMiniFrame@CBasePane@@UEBAPEAVCPaneFrameWnd@@H@Z
     kTbLoadState = 141,              // +0x468  ?LoadState@CMFCToolBar@@
+    kTbIsDocked = 92,                // +0x2e0  ?IsDocked@CBasePane@@UEBAHXZ (mfc140u 0xb280; the ANSI
+                                     //         map names the folded body at mfc140 0xb300 after
+                                     //         CDockablePane).  Same slot in the CBasePane table.
+    kTbSaveState = 142,              // +0x470  ?SaveState@CMFCToolBar@@ (mfc140 0x151b70); the same slot is
+                                     //         ?SaveState@CBasePane@@ (mfc140 0xc600) in the CBasePane
+                                     //         table ??0CBasePane@@QEAA@XZ installs (ANSI 0x2d9fa8)
     kTbCreate = 202,                 // +0x650  ?Create@CMFCToolBar@@UEAAHPEAVCWnd@@KI@Z
     kTbRemoveStateFromRegistry = 226 // +0x710  ?RemoveStateFromRegistry@CMFCToolBar@@
 };
@@ -931,9 +1034,10 @@ extern "C" void MS_ABI openmfc_CFrameImpl_SetLoadDockState(void* pFrameImpl, BOO
 extern "C" size_t MS_ABI openmfc_CFrameImpl_CopyFrameList(CFrameWnd** pOut, size_t nCapacity) {
     std::lock_guard<std::mutex> lock(g_frameListMutex);
     size_t nTotal = 0;
-    for (PtrNode* pNode = g_pFrameListHead; pNode != nullptr; pNode = pNode->pNext, ++nTotal) {
+    for (OpenMfcRetailFrameListNode* pNode = FrameList().pNodeHead; pNode != nullptr;
+         pNode = pNode->pNext, ++nTotal) {
         if (pOut != nullptr && nTotal < nCapacity) {
-            pOut[nTotal] = static_cast<CFrameWnd*>(pNode->pData);
+            pOut[nTotal] = pNode->data;
         }
     }
     return nTotal;
@@ -1027,22 +1131,156 @@ extern "C" void MS_ABI impl___1CFrameImpl__UEAA_XZ(void* pThis) {
         g_frameImplExtras.erase(it);
     }
 }
-// Retail 0x64130 reads m_pDockManager (+0x120) three times: it gates on
-// m_pDockManager->[+0x308]->[+0x8]/[+0xc], then builds a panes menu into a
-// ::CreatePopupMenu handle with ?BuildPanesMenu@CDockingManager@@ (0x4df60), and
-// finally re-reads +0x120 again.  The rest is CMFCPopupMenu work -- RemoveAllItems
-// (0xb7eb0), the popup's vtable slots +0x3a0 and +0x880, IsCustomizePane (0x64fc0)
-// and ShowQuickCustomizePane (0x647d0).  It never reads m_pFrame (+0x118).
-// The dock-manager pointer is now in this file's companion state, but the
-// CMFCPopupMenu item model and the popup vtable slots are not, so this stays a stub.
-// STUB.
+namespace {
+
+// The CDockingManager pointer retail reads at +0x308 and then tests at +0x0c and
+// +0x08 in OnShowPopupMenu is consistent with the inline
+// GetSmartDockingManagerPermanent()->IsStarted() of afxdockingmanager.h /
+// afxsmartdockingmanager.h (IsStarted = m_bCreated && m_bStarted, with m_bStarted
+// at +0x08 and m_bCreated at +0x0c after the CObject vfptr); the 0x308 offset
+// itself was not re-derived from the header.  A dock manager built in this image is
+// OpenMFC's CDockingManager (include/openmfc/afxmfc.h), which is far smaller than
+// 0x308 bytes and never creates a smart-docking manager, so for it the test reads
+// "not started".  A client-built one is read at retail's offsets.
+BOOL DockManagerSmartDockingStarted(const CDockingManager* pDockManager) {
+    if (pDockManager == nullptr || IsOwnObject(pDockManager)) {
+        return FALSE;
+    }
+    const unsigned char* pSD =
+        *reinterpret_cast<const unsigned char* const*>(reinterpret_cast<const unsigned char*>(pDockManager) + 0x308);
+    if (pSD == nullptr) {
+        return FALSE;
+    }
+    return *reinterpret_cast<const int*>(pSD + 0x0c) != 0 && *reinterpret_cast<const int*>(pSD + 0x08) != 0;
+}
+
+// pPane->IsDocked() through retail slot +0x2e0 for a client-built pane.
+// DEVIATION for a pane built in this image: ?IsDocked@CBasePane@@ is called
+// directly (an OpenMFC-side override is not reached), and that body
+// (featurepack/docking/CBasePane.cpp) answers FALSE whenever a parent mini-frame
+// exists, where retail's (0xb280, mfc140u) answers FALSE only when that mini-frame's
+// vftable +0x350 call returns 1.
+BOOL PaneIsDocked(CWnd* pPane) {
+    if (IsOwnObject(pPane)) {
+        return impl__IsDocked_CBasePane__UEBAHXZ(static_cast<const CBasePane*>(pPane));
+    }
+    typedef int (MS_ABI* Fn)(const void*);
+    return VSlot<Fn>(pPane, kTbIsDocked)(pPane);
+}
+
+// CMFCPopupMenu::m_pParentBtn (+0x228; featurepack/menu/CMFCPopupMenu.cpp kOffParentBtn,
+// detail/CMFCPopupMenuSupport.h) and CMFCToolBarButton::m_pWndParent (+0x80).
+constexpr size_t kPopupParentBtn = 0x228;
+static_assert(offsetof(CMFCToolBarButton, m_pWndParent) == 0x80, "CMFCToolBarButton::m_pWndParent");
+
+}  // namespace
+
+// Transcribed from retail 0x64130 (mfc140; RVA 0x64300 in mfc140u).  The pWndFrame
+// argument is never read.  Decoded (addresses mfc140):
+//     if (m_pDockManager (+0x120) != NULL
+//         && <+0x308 of it> != NULL && <that>+0x0c && <that>+0x08)            // smart docking started
+//         return FALSE;
+//     if (pMenuPopup != NULL && m_uiControlbarsMenuEntryID (+0x1c) != 0) {
+//         CMFCPopupMenuBar* pBar = pMenuPopup->GetMenuBar();                  // popup vftable +0x3a0 (body: this+0x230)
+//         if (m_pDockManager != NULL && pBar->CommandToIndex(+0x1c, 0) >= 0) {   // 0x14d540
+//             if (CMFCToolBar::m_bCustomizeMode) return FALSE;                  // 0x3b70bc
+//             pMenuPopup->RemoveAllItems();                                     // 0xb7eb0
+//             CMenu menu; menu.Attach(::CreatePopupMenu());                     // 0x2a6020
+//             m_pDockManager->BuildPanesMenu(menu, m_bViewMenuShowsToolbarsOnly (+0x3c));   // 0x4df60
+//             pMenuPopup->GetMenuBar()->ImportFromMenu(menu, TRUE);             // menu-bar vftable +0x880
+//             m_pDockManager-><+0x348> = 1;
+//             menu.DestroyMenu();                                               // inlined: handle-map RemoveKey, ::DestroyMenu
+//             CMFCPopupMenu::m_pActivePopupMenu = pMenuPopup;                   // 0x3b6fe8
+//             goto customize;
+//         }
+//     }
+//     CMFCPopupMenu::m_pActivePopupMenu = pMenuPopup;
+//     if (pMenuPopup == NULL) return TRUE;
+//   customize:
+//     if (IsCustomizePane(pMenuPopup)) ShowQuickCustomizePane(pMenuPopup);     // 0x64fc0, 0x647d0
+//     if (!CMFCToolBar::m_bCustomizeMode) {
+//         CBasePane* pWndParent = NULL;
+//         for (CMFCPopupMenu* p = pMenuPopup; p != NULL; p = p->GetParentPopupMenu()) {   // 0xb7b10
+//             if (p->m_pParentBtn (+0x228) == NULL) break;
+//             pWndParent = DYNAMIC_DOWNCAST(CBasePane, p->m_pParentBtn->m_pWndParent (+0x80));
+//         }
+//         if (pWndParent != NULL && !pWndParent->IsKindOf(RUNTIME_CLASS(CMFCPopupMenuBar))
+//             && pWndParent->IsDocked()                                         // pane vftable +0x2e0
+//             && pWndParent->m_hWnd != ::GetFocus()
+//             && CMFCPopupMenu::m_bForceMenuFocus)                              // 0x3aab28
+//             pWndParent->SetFocus();                                           // 0x2a7a70
+//     }
+//     return TRUE;
+// (The runtime classes were read out of the image: the descriptor at 0x2da490 is
+// "CBasePane", the one at 0x3aa478 "CMFCPopupMenuBar".)
+// Deviations:
+//   * the panes-menu branch is NOT transcribed, and this is a real behaviour gap,
+//     not dead code.  Its gate is m_uiControlbarsMenuEntryID, which in retail the
+//     inline EnablePaneMenu (afxframewndex.h / afxmdiframewndex.h, the AppWizard
+//     default) sets through SetControlbarsMenuId on the frame's embedded m_Impl.
+//     OpenMFC's frames hand this file a separately allocated token instead
+//     (FrameImplOf in core/frame/CMDIFrameWndEx.cpp), so a client's inline write
+//     lands in bytes nothing here reads and FrameImplExtra's copy stays 0: the
+//     View-menu placeholder is never replaced by BuildPanesMenu's list.  The branch
+//     would also write CDockingManager +0x348, which OpenMFC's dock manager does
+//     not have.  Were the field ever non-zero, the body below would fall through
+//     to the common path instead;
+//   * the smart-docking gate and IsDocked go through DockManagerSmartDockingStarted
+//     and PaneIsDocked above; IsCustomizePane / ShowQuickCustomizePane are this
+//     file's (stub) exports, so the customize-pane step is currently inert;
+//   * a pThis the constructor never saw reads as a frame with no dock manager.
 // Symbol: ?OnShowPopupMenu@CFrameImpl@@IEAAHPEAVCMFCPopupMenu@@PEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
     void* pThis, void* pPopupMenu, CFrameWnd* pWnd) {
-    (void)pThis;
-    (void)pPopupMenu;
     (void)pWnd;
-    return FALSE;
+    CDockingManager* pDockManager = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_frameImplExtraMutex);
+        FrameImplExtra* pExtra = FindExtra(pThis);
+        if (pExtra != nullptr) {
+            pDockManager = pExtra->pDockManager;
+        }
+    }
+    if (DockManagerSmartDockingStarted(pDockManager)) {
+        return FALSE;
+    }
+
+    impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA = pPopupMenu;
+    if (pPopupMenu == nullptr) {
+        return TRUE;
+    }
+    if (impl__IsCustomizePane_CFrameImpl__IEBAHPEBVCMFCPopupMenu___Z(pThis, pPopupMenu)) {
+        impl__ShowQuickCustomizePane_CFrameImpl__IEAAXPEAVCMFCPopupMenu___Z(pThis, pPopupMenu);
+    }
+    if (impl__m_bCustomizeMode_CMFCToolBar__1HA != 0) {
+        return TRUE;
+    }
+
+    CWnd* pWndParent = nullptr;
+    for (const void* pMenu = pPopupMenu; pMenu != nullptr;
+         pMenu = impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(pMenu)) {
+        const CMFCToolBarButton* pButton = *reinterpret_cast<const CMFCToolBarButton* const*>(
+            static_cast<const unsigned char*>(pMenu) + kPopupParentBtn);
+        if (pButton == nullptr) {
+            break;
+        }
+        CWnd* pCandidate = pButton->m_pWndParent;
+        pWndParent = (pCandidate != nullptr &&
+                      impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                          pCandidate, impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ()))
+                         ? pCandidate
+                         : nullptr;
+    }
+    if (pWndParent == nullptr ||
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            pWndParent, impl__GetThisClass_CMFCPopupMenuBar__SAPEAUCRuntimeClass__XZ()) ||
+        !PaneIsDocked(pWndParent) ||
+        pWndParent->m_hWnd == ::GetFocus() ||
+        impl__m_bForceMenuFocus_CMFCPopupMenu__1HA == 0) {
+        return TRUE;
+    }
+    (void)impl__SetFocus_CWnd__QEAAPEAV1_XZ(pWndParent);
+    return TRUE;
 }
 // Transcribed from retail 0x64c60 (mfc140; RVA 0x64e30 in mfc140u):
 //     if (m_pFrame && m_pFrame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)))        // descriptor 0x2ec3c8
@@ -1211,19 +1449,49 @@ extern "C" void MS_ABI impl__SetMenuBar_CFrameImpl__IEAAXPEAVCMFCMenuBar___Z(voi
     g_frameImplStates[frameImpl].menuBar = pMenuBar;
 }
 
-// Retail's private static frame list: a CList<CFrameWnd*,CFrameWnd*> at RVA 0x3aacc0,
-// 56 bytes -- AddFrame/RemoveFrame reach its head at 0x3aacc8, tail at 0x3aacd0,
-// count at 0x3aacd8 and free-node head at 0x3aace0, i.e. MFC's usual
-// vfptr/head/tail/count/free/blocks/blocksize shape.  OpenMFC exports storage of the
-// same size, so anything importing this data export sees an object of the right
-// footprint; the live list is the file-local g_pFrameListHead above, exactly
-// as OpenMFC's own list classes keep their contents outside the object.
+// Retail's static frame list: a CList<CFrameWnd*,CFrameWnd*> at RVA 0x3b1cc0
+// (mfc140u; 0x3aacc0 in mfc140), 56 bytes, laid out as OpenMfcRetailFrameList near
+// the top of this file.  It is the LIVE list: AddFrame / RemoveFrame /
+// openmfc_CFrameImpl_CopyFrameList all work on these bytes in retail's node layout,
+// so a client walking it through the inline CFrameImpl::GetFrameList() sees the
+// registered frames.  The initial value is retail's static image bytes (an empty
+// list with m_nBlockSize 10) except for the vfptr.
+// DEVIATION: retail's +0x00 is the CList<CFrameWnd*,CFrameWnd*> vftable
+// (0x1802e91d8 in mfc140u).  This image has no MSVC-layout vftable for that
+// template instantiation, so the vfptr stays NULL: the afxtempl.h readers are inline
+// and non-virtual, but a virtual call on this object (Serialize, the destructor)
+// would fault.  Retail's image also carries code at 0x2c5130 (mfc140u) that reads
+// as this object's destructor (re-store the vfptr, tail-jump to RemoveAll 0x8350);
+// how it is registered was not traced.  Nothing here tears the list down, so nodes
+// still in it when the DLL unloads are not freed.
 // Symbol: ?m_lstFrames@CFrameImpl@@1V?$CList@PEAVCFrameWnd@@PEAV1@@@A
-extern "C" alignas(8) unsigned char impl__m_lstFrames_CFrameImpl__1V__CList_PEAVCFrameWnd__PEAV1___A[56] = {};
+extern "C" alignas(8) OpenMfcRetailFrameList impl__m_lstFrames_CFrameImpl__1V__CList_PEAVCFrameWnd__PEAV1___A = {
+    nullptr, nullptr, nullptr, 0, nullptr, nullptr, 10};
 
-// Retail 0x64d40 returns immediately unless ?m_pWndToolBar@CMFCCustomizeMenuButton@@
-// (0x3b6f28) is set, then allocates a 0xdb8-byte object and fills the popup from it;
-// none of that customization state is modeled here.  STUB.
+// Retail 0x64d40 (mfc140; RVA 0x64f10 in mfc140u), addresses mfc140:
+//     CMFCToolBar* pBar = CMFCCustomizeMenuButton::m_pWndToolBar;              // 0x3b6f28
+//     if (pBar == NULL) return;
+//     CMFCToolBarsCustomizeDialog* pDlg =
+//         new CMFCToolBarsCustomizeDialog(m_pFrame (+0x118), TRUE, 0x40, NULL); // 0xdb8 bytes, ctor 0x1751d0
+//     for each node of the button list at pBar+0x1200 (i counts EVERY node, skipped
+//     ones included), skipping NULL entries, separators (+0x28 bit 0) and buttons
+//     that fail further filters (not a CMFCCustomizeButton; nID not found by the
+//     lookup at 0x2f6d0 in ?m_mapPresentIDs@CMFCCustomizeMenuButton@@ 0x3aac80; for a
+//     CMFCDropDownToolbarButton, CMFCToolBar::CommandToIndex 0x14d540 on its +0x88
+//     toolbar; for a CMFCToolBarMenuButton, a +0xe8-gated scan of its +0x90 list):
+//         CMFCCustomizeMenuButton btn(nID, NULL, image, pDlg->GetCommandName(nID), bUser);   // 0x36410, 0x177d30
+//         btn.SetItemIndex(i, FALSE, FALSE);                                    // 0x36470
+//         if (pMenuPane->InsertItem(btn, i) == -1) pMenuPane->InsertItem(btn, -1);   // 0xb7d00
+//     delete pDlg;
+// The uiToolbarID argument (r8) is never read.  (The per-filter branch polarity was
+// read off the jumps but not traced through the callees.)
+// NOT implemented: retail stores m_pWndToolBar in ShowQuickCustomizePane (a stub
+// below) and in ?CreatePopupMenu@CMFCCustomizeButton@@ (RVA 0x35380, mfc140u; the
+// store at 0x35d50), but no file under phase4/src assigns OpenMFC's
+// impl__m_pWndToolBar_CMFCCustomizeMenuButton__1PEAVCMFCToolBar__EA, so the body
+// past the gate is unreachable here; it would also need CMFCToolBarsCustomizeDialog
+// and CMFCCustomizeMenuButton objects and toolbar members (+0x1200, the 0x3aac80
+// map) that are not modeled.  STUB.
 // Symbol: ?AddDefaultButtonsToCustomizePane@CFrameImpl@@IEAAXPEAVCMFCPopupMenu@@I@Z
 extern "C" void MS_ABI impl__AddDefaultButtonsToCustomizePane_CFrameImpl__IEAAXPEAVCMFCPopupMenu__I_Z(
     void* pThis, void* pMenuPopup, unsigned int uiToolbarID) {
@@ -1240,13 +1508,13 @@ extern "C" void MS_ABI impl__AddDefaultButtonsToCustomizePane_CFrameImpl__IEAAXP
 extern "C" void MS_ABI impl__AddFrame_CFrameImpl__SAXPEAVCFrameWnd___Z(CFrameWnd* pFrame) {
     const HWND hWndNew = impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(pFrame);
     std::lock_guard<std::mutex> lock(g_frameListMutex);
-    for (PtrNode* pNode = g_pFrameListHead; pNode != nullptr; pNode = pNode->pNext) {
-        if (impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(
-                static_cast<const CFrameWnd*>(pNode->pData)) == hWndNew) {
+    for (OpenMfcRetailFrameListNode* pNode = FrameList().pNodeHead; pNode != nullptr;
+         pNode = pNode->pNext) {
+        if (impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(pNode->data) == hWndNew) {
             return;
         }
     }
-    PtrListAddTail(g_pFrameListHead, pFrame);
+    FrameListAddTail(pFrame);
 }
 
 // Transcribed from retail 0x62a40, which is a two-instruction tail jump:
@@ -1704,10 +1972,15 @@ extern "C" void MS_ABI impl__InitUserToolbars_CFrameImpl__IEAAXPEB_WII_Z(
 //     if (pButton != NULL && pButton->m_strText (+0x38).Find(strLabel) == -1) return FALSE;
 //     CMFCPopupMenu* pCustomize = pParent->GetParentPopupMenu();
 //     return pCustomize != NULL && pCustomize->[+0x19b0] == 1;
-// NOT implemented: string 0x427a is one of retail's own resources and OpenMFC's
-// image has no string table, so a faithful ENSURE would throw
-// CInvalidArgException on every call that reaches it; the label comparison has no
-// source of truth on this side.  STUB.
+// (0x2accf0 is AfxFindStringResourceHandle, 0xdc00 CStringT::LoadString, and the
+// substring test is the _mbsstr import in the ANSI image -- wcsstr in mfc140u.)
+// NOT implemented: string 0x427a is IDS_AFXBARRES_ADD_REMOVE_BTNS (afxribbonres.h),
+// one of retail's own resources, and OpenMFC's image has no string table (the
+// phase4 build links no .rc).  OpenMFC's AfxFindStringResourceHandle
+// (featurepack/CMFC_misc_stubs.cpp) only searches the resource, instance and main
+// module handles, so a faithful ENSURE would throw CInvalidArgException on every
+// call that reaches it unless the client's own resources happen to carry that
+// string; the label comparison has no source of truth on this side.  STUB.
 // Symbol: ?IsCustomizePane@CFrameImpl@@IEBAHPEBVCMFCPopupMenu@@@Z
 extern "C" int MS_ABI impl__IsCustomizePane_CFrameImpl__IEBAHPEBVCMFCPopupMenu___Z(const void* pThis, const void* pMenuPopup) {
     (void)pThis;
@@ -1861,19 +2134,32 @@ extern "C" int MS_ABI impl__LoadLargeIconsState_CFrameImpl__IEAAHXZ(void* pThis)
     return bResult;
 }
 
-// Retail 0x62a90 (~300 instructions, through 0x62f4d) is the registry counterpart of SaveTearOffMenus:
-// it builds "<CWinAppEx::GetRegSectionPath(L"")>ControlBars-TearOff" and, per
-// "%Ts-%d" section, opens a CSettingsStore (?Create@CSettingsStoreSP@@ 0x12b320),
-// reads the "ID" / "Name" / "State" values (vftable dispatches), recreates the bar
-// (CRuntimeClass::CreateObject, then the bar's Create / LoadState virtuals), docks it
-// with ?DockPane@CDockingManager@@ (0x483c0) and CPtrList::AddTail's (0x230490) it
-// onto the +0x98 list.  Not transcribed: the per-bar virtuals could now go through
-// the toolbar dispatch helpers LoadUserToolbars uses, and the stack CSettingsStoreSP
-// owner per section can be hand-rolled around ?Create@CSettingsStoreSP@@ (as
-// featurepack/toolbar/CMFCToolBar.cpp's SettingsStoreSP does), but the "State"
-// value is the bar's serialised state, which OpenMFC's toolbar does not model (its
-// Serialize and LoadState are stubs).  The ~300-instruction body was not re-decoded
-// end to end for this note.  STUB.
+// Retail 0x62a90 (mfc140; RVA 0x62c60 in mfc140u), decoded (addresses mfc140):
+//     for each pBar in the +0x98 tear-off list:                                  // head +0xa0
+//         if (pBar->IsDocked()) pBar->UndockPane(TRUE);                          // pane vftable +0x2e0, +0x490
+//         pBar->DestroyWindow(); delete pBar;                                    // +0xd0; slot 1 with flag 1
+//     m_lstTearOffToolbars.RemoveAll();                                          // ?RemoveAll@CPtrList@@ 0x83d0
+//     strPath = <SaveTearOffMenus' path>, i.e. GetRegSectionPath(L"") + "ControlBars-TearOff";
+//     for (i = 0; ; ++i) {
+//         strKey.Format("%Ts-%d", strPath, i); int nID = 0; CObject* pBar = NULL; CString strName;
+//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, TRUE);
+//         if (!reg.Open(strKey) || !reg.Read("ID", nID) || !reg.Read("Name", strName)
+//             || !reg.Read("State", pBar)) break;                                // +0x30, +0xb8, +0xa8, +0x88
+//         if (!pBar->Create(m_pFrame (+0x118), 0x50402808, nID)) { delete pBar; break; }   // +0x650
+//         pBar->SetWindowText(strName);                                          // inlined: ::IsWindow / m_pCtrlSite (+0xd0)
+//         pBar->SetPaneStyle(pBar->GetPaneStyle() | 0x34);                       // +0x3d8 / +0x390
+//         pBar->EnableDocking(0xf000);                                           // +0x3e8
+//         m_lstTearOffToolbars.AddTail(pBar);                                    // 0x230490
+//         pBar->LoadState(strPath, i, (UINT)-1);                                 // +0x468
+//         m_pDockManager (+0x120)->DockPane(pBar, 0, NULL);                      // 0x483c0
+//     }
+// NOT implemented.  The bar comes back through CSettingsStore::Read(LPCTSTR,
+// CObject*&), which in retail deserialises a NEW object from the "State" value.
+// OpenMFC's own store (core/app/CSettingsStore.cpp, ?Read@...AEAPEAVCObject@@) hands
+// back the raw pointer ?Write@...PEAVCObject@@ recorded -- i.e. the very bar
+// SaveTearOffMenus saved, which the first loop above has just destroyed and
+// deleted.  A faithful transcription over that store would call Create on freed
+// memory, so this stays a stub until the store round-trips objects.  STUB.
 // Symbol: ?LoadTearOffMenus@CFrameImpl@@IEAAXXZ
 extern "C" void MS_ABI impl__LoadTearOffMenus_CFrameImpl__IEAAXXZ(void* pThis) {
     (void)pThis;
@@ -2781,19 +3067,57 @@ extern "C" void MS_ABI impl__OnWindowPosChanging_CFrameImpl__IEAAXPEAUtagWINDOWP
     }
 }
 
-// Retail 0x63540: `*pnAccelIndex = 1` when the pointer is non-null; then, if
-// ?GetSafeActivePopupMenu@CMFCPopupMenu@@ (0xbc470) yields a popup, the key goes to
-// it (focus checks through ::GetFocus / CWnd::FromHandle / ::IsChild, the popup's
-// vtable +0x420 and +0x3a0, WM_KEYDOWN / WM_CLOSE via ::SendMessage) and the
-// function returns; otherwise it returns TRUE for an iconic frame, FALSE when
-// CMFCToolBar::m_bCustomizeMode (0x3b70bc) is set, and else walks
-// CMFCToolBar::m_lstAllToolbars (0x3ab090, head 0x3ab098) calling a no-argument BOOL
-// virtual (vtable +0x158) on every button (?GetButton@CMFCToolBar@@ 0x14e470) until
-// one answers TRUE, builds the Ctrl/Alt/Shift mask from ::GetAsyncKeyState, asks
-// ?IsKeyHandled@CKeyboardManager@@ (0x74c40) for the frame and for the active view
-// (frame vtable +0x2f0), and finally maps Ctrl+F1 with a visible ribbon whose +0xb08
-// is non-zero to ?ToggleMimimizeState@CMFCRibbonBar@@ (0xe26e0) and Alt+key to OnMenuChar
-// (0x64490).  The popup-menu and toolbar-button vtable slots are retail-only.  STUB.
+// Retail 0x63540 (mfc140; RVA 0x63710 in mfc140u), decoded (addresses mfc140):
+//     if (pbProcessAccel) *pbProcessAccel = TRUE;
+//     if (CMFCPopupMenu* pPopup = CMFCPopupMenu::GetSafeActivePopupMenu()) {   // 0xbc470
+//         CWnd* pFocus = CWnd::FromHandle(::GetFocus());
+//         if (pPopup-><vftable +0x420>()) {                                     // IsRibbonMiniToolBar
+//             if (pFocus == NULL || pFocus->m_hWnd == NULL
+//                 || (!::IsChild(pPopup->m_hWnd, pFocus->m_hWnd) && pFocus->m_hWnd != pPopup->m_hWnd))
+//                 ::SendMessage(pPopup->m_hWnd, WM_CLOSE, 0, 0);
+//             return FALSE;
+//         }
+//         if (pFocus && pFocus->m_hWnd && ::IsChild(pPopup->m_hWnd, pFocus->m_hWnd)) return FALSE;
+//         BOOL b = pPopup-><vftable +0x3a0>()-><+0x1398>;                        // a GetMenuBar() field
+//         ::SendMessage(pPopup->m_hWnd, WM_KEYDOWN, nKey, 0);
+//         if (b && (p = GetSafeActivePopupMenu()) && p->IsKindOf(<RTC 0x2e55a0 "CMFCDropDownListBox">)
+//             && (p-><+0x19e0> ? p-><+0x19e0>->m_hWnd : NULL) == ::GetFocus()) return FALSE;
+//         return TRUE;
+//     }
+//     if (::IsIconic(m_pFrame (+0x118)->m_hWnd)) return TRUE;
+//     if (CMFCToolBar::m_bCustomizeMode) return FALSE;                         // 0x3b70bc
+//     BOOL bButtonClaims = FALSE;
+//     for each toolbar in CMFCToolBar::m_lstAllToolbars (head 0x3ab098) that
+//         CWnd::FromHandlePermanent (0x2891d0) recognises (a NULL element throws via
+//         0x225b80), for each of its buttons (+0x11a0 count, ?GetButton@CMFCToolBar@@
+//         0x14e470): if (button-><vftable +0x158>()) { bButtonClaims = TRUE; stop the whole walk; }
+//     BYTE fMods = (Ctrl ? FCONTROL : 0) | (Alt ? FALT : 0) | (Shift ? FSHIFT : 0);   // ::GetAsyncKeyState 0x11/0x12/0x10
+//     if (!bButtonClaims) {
+//         if (CKeyboardManager::IsKeyHandled(nKey, fMods | FVIRTKEY, m_pFrame, TRUE)) return FALSE;   // 0x74c40
+//         if (CKeyboardManager::IsKeyHandled(nKey, fMods | FVIRTKEY, m_pFrame-><vftable +0x2f0>(), FALSE)) return FALSE;
+//     }
+//     if (m_pRibbonBar (+0x180) && ::IsWindowVisible(its m_hWnd) && fMods == FCONTROL) {
+//         if (nKey == VK_F1 && m_pRibbonBar-><+0xb08> != 0) { m_pRibbonBar->ToggleMimimizeState(); return TRUE; }   // 0xe26e0
+//     } else if (fMods == FALT && OnMenuChar(nKey)) return TRUE;                // 0x64490
+//     if (bButtonClaims && pbProcessAccel) *pbProcessAccel = FALSE;
+//     return FALSE;
+// The slots, named from the header order (afxpopupmenu.h / afxtoolbarbutton.h /
+// afxwin.h) and the retail tables: popup +0x420 is IsRibbonMiniToolBar (base body
+// `xor eax,eax; ret`), popup +0x3a0 is GetMenuBar, button +0x158 is HasFocus (base
+// body 0x239e0: GetHwnd() compared with ::GetFocus / ::IsChild), frame +0x2f0 is
+// GetActiveFrame.
+// NOT implemented.  The toolbar walk and GetMenuBar are NOT the blockers: OpenMFC has
+// ?GetAllToolbars@CMFCToolBar@@ (featurepack/toolbar/CMFCToolBar.cpp, rebuilt from
+// the g_toolBarStates side table, so its order is not retail's) and PopupMenuBar()
+// above.  What is missing is dispatch on buttons this image builds, whose Itanium
+// vftables do not have the retail slots: CMFCToolBarButton::HasFocus is an inline
+// virtual (no export) built on the GetHwnd virtual (+0x80, also inline in the
+// base), overridden by CMFCToolBarComboBoxButton (exported) and by other button
+// classes' GetHwnd, so an own button's answer cannot be reproduced through thunks.
+// (IsRibbonMiniToolBar would be derivable -- afxribbonminitoolbar.h's
+// CMFCRibbonMiniToolBar is the only popup class overriding it, with TRUE.)  The
+// +0x1398 read also goes into the embedded popup menu bar, which OpenMFC's
+// ??0CMFCPopupMenu thunk does not construct (see ProcessMouseMove below).  STUB.
 // Symbol: ?ProcessKeyboard@CFrameImpl@@IEAAHHPEAH@Z
 extern "C" int MS_ABI impl__ProcessKeyboard_CFrameImpl__IEAAHHPEAH_Z(void* pThis, int nKey, int* pnAccelIndex) {
     (void)pThis;
@@ -2802,13 +3126,35 @@ extern "C" int MS_ABI impl__ProcessKeyboard_CFrameImpl__IEAAHHPEAH_Z(void* pThis
     return FALSE;
 }
 
-// Retail 0x63840: when the ribbon bar (+0x180) is visible and the click is outside
-// its window rect it calls ?DeactivateKeyboardFocus@CMFCRibbonBar@@ (0xe28e0); it
-// then walks CMFCToolBar::m_lstAllToolbars (buttons via 0x14e470), the active popup
-// menu chain (?GetSafeActivePopupMenu@@ 0xbc470, ?CheckArea@CMFCPopupMenu@@ 0xba140,
-// ?FindMenuWithConnectedFloaty@@ 0xbbf50, the CMapPtrToPtr at the module thread
-// state, ?SetFocus@CWnd@@ 0x2a7a70) and several IsKindOf tests against popup-menu
-// runtime classes.  The popup-menu infrastructure it drives is not modeled.  STUB.
+// Retail 0x63840 (mfc140; RVA 0x63a10 in mfc140u).  Verified part (addresses mfc140):
+//     if (m_pRibbonBar (+0x180) && ::IsWindowVisible(its m_hWnd)) {
+//         CRect r; ::GetWindowRect(m_pRibbonBar->m_hWnd, &r);
+//         m_pRibbonBar->DeactivateKeyboardFocus(::PtInRect(&r, pt));             // 0xe28e0, called either way
+//     }
+//     if (uiMsg == WM_LBUTTONDOWN && (CMFCToolBar::m_bCustomizeMode || Alt held)) // 0x3b70bc, GetAsyncKeyState(VK_MENU)
+//         walk CMFCToolBar::m_lstAllToolbars (head 0x3ab098) to the first bar whose
+//         vftable +0x730 hit-test of the client point is >= 0; if that button's
+//         vftable +0x80 result is the hwnd argument and its rect (+0x68) contains
+//         the point, ::SendMessage(bar, WM_LBUTTONDOWN, 0, client pt) and return TRUE;
+// then (not customize mode) the active popup chain: GetSafeActivePopupMenu (0xbc470),
+// CheckArea (0xba140), FindMenuWithConnectedFloaty (0xbbf50), the module thread
+// state's handle maps (CMapPtrToPtr::GetValueAt 0x2313b0), the popup's vftable
+// slots +0x3a8 / +0x3b8 / +0x3c8 (InCommand / GetParentArea / DefaultMouseClickOnClose
+// by afxpopupmenu.h order), slots +0x890 / +0x8a8 on the CMFCPopupMenuBar that
+// GetParentArea returns (IsKindOf against the descriptor at 0x3aa478), WM_CLOSE via
+// ::SendMessage and CWnd::SetFocus (0x2a7a70) on m_pFrame; and finally, for uiMsg ==
+// WM_NCRBUTTONUP (0xa5) with the hwnd argument equal to m_pFrame's m_hWnd, the visual
+// manager's +0x3f8 predicate true and +0x30 clear, and OnNcHitTest (0x66040) answering
+// HTCAPTION / HTSYSMENU / HTMINBUTTON / HTMAXBUTTON / HTCLOSE (mask 0x10030c): a
+// system-menu ::TrackPopupMenu(TPM_RETURNCMD) (::GetSystemMenu, ::IsMenu,
+// ::EnableMenuItem of SC_MAXIMIZE / SC_RESTORE per ::IsZoomed / ::IsIconic) whose
+// choice is sent to m_pFrame as WM_SYSCOMMAND, returning TRUE.
+// The popup-chain section was not decoded instruction by instruction for this note.
+// NOT implemented.  The toolbar list itself is available (?GetAllToolbars@CMFCToolBar@@,
+// rebuilt from the g_toolBarStates side table), but the body dispatches through
+// retail toolbar (+0x730 hit test, button +0x80 GetHwnd) and popup-menu / menu-bar
+// vftable slots that objects built in this image do not have and that are mostly
+// inline virtuals with no export to call instead.  STUB.
 // Symbol: ?ProcessMouseClick@CFrameImpl@@IEAAHIUtagPOINT@@PEAUHWND__@@@Z
 extern "C" int MS_ABI impl__ProcessMouseClick_CFrameImpl__IEAAHIUtagPOINT__PEAUHWND_____Z(
     void* pThis, unsigned int uiMsg, long long pt, HWND hwnd) {
@@ -2960,25 +3306,36 @@ extern "C" void MS_ABI impl__RedrawCaptionButton_CFrameImpl__IEAAXPEAVCMFCCaptio
     }
 }
 
-// Transcribed from retail 0x65f90: find the first entry whose GetSafeHwnd() matches the
-// argument's and unlink it; a miss leaves the list untouched.  Retail additionally calls
-// ?RemoveAll@CPtrList@@ (0x83d0) once the count reaches zero, which only releases the
-// list's node blocks -- the node-per-entry storage here frees as it unlinks instead.
+// Transcribed from retail 0x65f90 (mfc140; RVA 0x66160 in mfc140u): find the first
+// entry whose GetSafeHwnd() matches the argument's and unlink it -- head = pNext when
+// it is the head, else pPrev->pNext = pNext; tail = pPrev when it is the tail, else
+// pNext->pPrev = pPrev -- then decrement the count; a miss leaves the list untouched.
+// Retail pushes the node onto m_pNodeFree and, once the count reaches zero, calls
+// the list's RemoveAll (0x8350, mfc140u), which zeroes head/tail/count/free and
+// releases the CPlex block chain.  DEVIATION: nodes here are individual allocations
+// (see FrameListAddTail), so the node is deleted as it is unlinked instead; at count
+// zero head and tail are already NULL and the free list and block chain were never
+// used, which is the state RemoveAll leaves behind.
 // Symbol: ?RemoveFrame@CFrameImpl@@SAXPEAVCFrameWnd@@@Z
 extern "C" void MS_ABI impl__RemoveFrame_CFrameImpl__SAXPEAVCFrameWnd___Z(CFrameWnd* pFrame) {
     const HWND hWndGone = impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(pFrame);
     std::lock_guard<std::mutex> lock(g_frameListMutex);
-    PtrNode* pPrev = nullptr;
-    for (PtrNode* pNode = g_pFrameListHead; pNode != nullptr; pPrev = pNode, pNode = pNode->pNext) {
-        if (impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(
-                static_cast<const CFrameWnd*>(pNode->pData)) != hWndGone) {
+    OpenMfcRetailFrameList& list = FrameList();
+    for (OpenMfcRetailFrameListNode* pNode = list.pNodeHead; pNode != nullptr; pNode = pNode->pNext) {
+        if (impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(pNode->data) != hWndGone) {
             continue;
         }
-        if (pPrev == nullptr) {
-            g_pFrameListHead = pNode->pNext;
+        if (pNode == list.pNodeHead) {
+            list.pNodeHead = pNode->pNext;
         } else {
-            pPrev->pNext = pNode->pNext;
+            pNode->pPrev->pNext = pNode->pNext;
         }
+        if (pNode == list.pNodeTail) {
+            list.pNodeTail = pNode->pPrev;
+        } else {
+            pNode->pNext->pPrev = pNode->pPrev;
+        }
+        --list.nCount;
         delete pNode;
         return;
     }
@@ -3133,41 +3490,215 @@ extern "C" void MS_ABI impl__SaveDockState_CFrameImpl__IEAAXPEB_W_Z(void* pThis,
     (void)impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(pDockManager, lpszProfileName, nIDDefaultResource);
 }
 
-// Retail 0x62f50:
-//     pApp = AfxGetModuleState()->m_pCurrentWinApp, NULL unless IsKindOf(CWinAppEx);
-//     CString strPath = pApp ? pApp->GetRegSectionPath(L"") : L"";               // 0x1c60b0 (the argument is the empty string at 0x33ac36)
+namespace {
+
+// Retail CSettingsStore vftable slots, read out of the table ??0CSettingsStore@@QEAA@HH@Z
+// installs (ANSI 0x30c560; the RVAs below are mfc140 too).  MSVC lays the Write/Read
+// overload groups out in reverse declaration order, which the table confirms:
+enum SettingsStoreSlot {
+    kSsDeletingDtor = 1,      // +0x08  scalar deleting destructor (flags in edx)
+    kSsCreateKey = 5,         // +0x28  ?CreateKey@CSettingsStore@@ (0x12a810)
+    kSsDeleteKey = 9,         // +0x48  ?DeleteKey@CSettingsStore@@ (0x12b250)
+    kSsWriteObjectPtr = 10,   // +0x50  ?Write@CSettingsStore@@ (LPCTSTR, CObject*) (0x12ab40)
+    kSsWriteString = 14,      // +0x70  ?Write@CSettingsStore@@ (LPCTSTR, LPCTSTR) (0x12a990)
+    kSsWriteInt = 16          // +0x80  ?Write@CSettingsStore@@ (LPCTSTR, int) (0x12a930)
+};
+
+// The 16-byte CSettingsStoreSP owner retail zeroes on the stack (m_pRegistry +0x00,
+// m_dwUserData +0x08, per core/app/CSettingsStoreSP.cpp).  Its destruction deletes
+// the store Create made: retail calls the store's vftable slot 1 with flag 1 when
+// m_pRegistry is non-NULL (e.g. the call at 0x630b8 inside SaveTearOffMenus 0x62f50).
+// An own store (Itanium vftable) is deleted through C++ instead, as ToolBarDelete does.
+struct TearOffSettingsStoreSP {
+    void* slots[2] = {nullptr, nullptr};
+    void* Create(int bAdmin, int bReadOnly) {
+        return impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(slots, bAdmin, bReadOnly);
+    }
+    ~TearOffSettingsStoreSP() {
+        void* pStore = slots[0];
+        if (pStore == nullptr) {
+            return;
+        }
+        if (IsOwnObject(pStore)) {
+            delete static_cast<CObject*>(pStore);
+            return;
+        }
+        typedef void* (MS_ABI* Fn)(void*, unsigned int);
+        VSlot<Fn>(pStore, kSsDeletingDtor)(pStore, 1u);
+    }
+};
+
+BOOL StoreDeleteKey(void* pStore, const wchar_t* lpszPath, BOOL bAdmin) {
+    if (IsOwnObject(pStore)) {
+        return impl__DeleteKey_CSettingsStore__UEAAHPEB_WH_Z(pStore, lpszPath, bAdmin);
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int);
+    return VSlot<Fn>(pStore, kSsDeleteKey)(pStore, lpszPath, bAdmin);
+}
+
+BOOL StoreCreateKey(void* pStore, const wchar_t* lpszPath) {
+    if (IsOwnObject(pStore)) {
+        return impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(pStore, lpszPath);
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*);
+    return VSlot<Fn>(pStore, kSsCreateKey)(pStore, lpszPath);
+}
+
+BOOL StoreWriteInt(void* pStore, const wchar_t* lpszValueName, int nValue) {
+    if (IsOwnObject(pStore)) {
+        return impl__Write_CSettingsStore__UEAAHPEB_WH_Z(pStore, lpszValueName, nValue);
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int);
+    return VSlot<Fn>(pStore, kSsWriteInt)(pStore, lpszValueName, nValue);
+}
+
+BOOL StoreWriteString(void* pStore, const wchar_t* lpszValueName, const wchar_t* lpszVal) {
+    if (IsOwnObject(pStore)) {
+        return impl__Write_CSettingsStore__UEAAHPEB_W0_Z(pStore, lpszValueName, lpszVal);
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*, const wchar_t*);
+    return VSlot<Fn>(pStore, kSsWriteString)(pStore, lpszValueName, lpszVal);
+}
+
+BOOL StoreWriteObject(void* pStore, const wchar_t* lpszValueName, CObject* pObj) {
+    if (IsOwnObject(pStore)) {
+        return impl__Write_CSettingsStore__UEAAHPEB_WPEAVCObject___Z(pStore, lpszValueName, pObj);
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*, CObject*);
+    return VSlot<Fn>(pStore, kSsWriteObjectPtr)(pStore, lpszValueName, pObj);
+}
+
+// pBar->SaveState(lpszProfileName, nIndex, uiID) through retail slot +0x470 for a
+// client-built pane.  DEVIATION for a pane built in this image: it is handed to the
+// ?SaveState@CMFCToolBar@@ thunk when IsKindOf(CMFCToolBar) says it is a toolbar
+// (tear-off bars are toolbars in practice), and otherwise not saved at all, because
+// the ?SaveState@CBasePane@@ thunk in featurepack/docking/CBasePane.cpp is still an
+// auto-generated stub with a placeholder parameter list.
+void TearOffBarSaveState(void* pBar, const wchar_t* lpszProfileName, int nIndex, UINT uiID) {
+    if (IsOwnObject(pBar)) {
+        if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                static_cast<const CObject*>(pBar), impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ())) {
+            (void)impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(static_cast<CMFCToolBar*>(pBar), lpszProfileName, nIndex, uiID);
+        }
+        return;
+    }
+    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int, UINT);
+    (void)VSlot<Fn>(pBar, kTbSaveState)(pBar, lpszProfileName, nIndex, uiID);
+}
+
+}  // namespace
+
+// Transcribed from retail 0x62f50 (mfc140; RVA 0x63120 in mfc140u):
+//     pApp = AfxGetModuleState()->m_pCurrentWinApp, NULL unless IsKindOf(CWinAppEx);  // 0x1345b0, +0x08
+//     CString strPath;                                                           // empty
+//     if (pApp) strPath = pApp->GetRegSectionPath(L"");                          // 0x1c60b0 (the argument is the empty string at 0x33ac36)
 //     strPath += "ControlBars-TearOff";                                          // 0x33c6e0
-//     for (i = 0; ; ++i) { strKey.Format("%Ts-%d", strPath, i);                 // 0x33c6f4
-//         CSettingsStore& reg = CSettingsStoreSP().Create(FALSE, FALSE);         // 0x12b320
-//         if (!reg.DeleteKey(strKey)) break; }                                   // CSettingsStore vftable (ANSI 0x30c560) +0x48 = 0x12b250
+//     for (i = 0; ; ++i) {
+//         CString strKey; strKey.Format("%Ts-%d", strPath, i);                   // 0x33c6f4
+//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, FALSE);    // 0x12b320
+//         if (!reg.DeleteKey(strKey, FALSE)) break;                              // vftable (ANSI 0x30c560) +0x48
+//     }                                                                          // (sp and strKey die on both paths)
 //     i = 0;
-//     for each pBar in the +0x98 tear-off list (head +0xa0), ++i:
-//         if (bFrameBarsOnly && pBar->GetTopLevelFrame() != m_pFrame) continue;
-//         if (!(pBar->GetStyle() & WS_VISIBLE)) continue;
+//     for each pBar in the +0x98 tear-off list (head +0xa0), ++i on EVERY node:
+//         if (bFrameBarsOnly && pBar->GetTopLevelFrame() != m_pFrame (+0x118)) continue;   // 0x28c910
+//         if (!(pBar->GetStyle() & WS_VISIBLE)) continue;                        // 0x2a75a0, bt $0x1c
 //         CString strName; pBar->GetWindowText(strName);                         // 0x28a280
-//         strKey.Format("%Ts-%d", strPath, i);
-//         CSettingsStore& reg = ...Create(FALSE, FALSE);
-//         reg.CreateKey(strKey);                                                 // +0x28
-//         reg.Write("ID", pBar->GetDlgCtrlID());                                 // +0x80, string 0x33c6fc
+//         CString strKey; strKey.Format("%Ts-%d", strPath, i);
+//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, FALSE);
+//         reg.CreateKey(strKey);                                                 // +0x28, result ignored
+//         reg.Write("ID", pBar->GetDlgCtrlID());                                 // +0x80, 0x2a78b0, string 0x33c6fc
 //         reg.Write("Name", strName);                                            // +0x70, 0x33c700
 //         reg.Write("State", (CObject*)pBar);                                    // +0x50, 0x33c708
-//         pBar->SaveState(strPath, i, -1);                                       // CMFCToolBar vftable +0x470
-// (Each CSettingsStoreSP above is a zeroed 16-byte stack owner; its destruction
-// deletes the store Create made through the store's vftable slot 1 with flag 1 --
-// the calls at 0x630b8 / 0x630f9 / 0x63297 inside this function, entry 0x62f50.)
-// Not transcribed.  Everything it needs exists: the tear-off list (filled by
-// AddTearOffToolbar) is in this file's companion state, the stack CSettingsStoreSP
-// owner can be hand-rolled around ?Create@CSettingsStoreSP@@ the way
-// featurepack/toolbar/CMFCToolBar.cpp (SettingsStoreSP) and
-// featurepack/docking/CPane.cpp already do, and ?SaveState@CMFCToolBar@@ is
-// implemented.  What is missing is fidelity of the payload: the "State" value goes
-// through CSettingsStore::Write(LPCTSTR, CObject*), i.e. the bar's Serialize, which
-// is still a stub on OpenMFC's CMFCToolBar, and the LoadTearOffMenus counterpart
-// that would read these keys back is a stub too.  STUB.
+//         pBar->SaveState(strPath, i, (UINT)-1);                                 // pane vftable +0x470
+// Every Write / SaveState result is discarded.  (All addresses above are mfc140;
+// the strings were read out of that image.)
+// Deviations:
+//   * store virtuals go through the retail slots for a client-built store and
+//     through the CSettingsStore thunks for one built in this image (see the
+//     Store* helpers above); likewise the bar's SaveState (TearOffBarSaveState);
+//   * OpenMFC's CSettingsStoreSP::Create can return NULL (retail's returns a
+//     reference).  A NULL store ends the delete loop as a failed DeleteKey would,
+//     and skips that bar's registry writes -- its SaveState is still called;
+//   * the tear-off list is snapshotted under this file's lock before the walk
+//     (retail walks the nodes in place), so the USER32 calls below run unlocked;
+//     a missing companion entry (a pThis the constructor never saw) reads as an
+//     empty list, where retail would dereference it;
+//   * the app lookup is impl__AfxGetApp (OpenMFC's AfxGetApp, which reads the
+//     module state's current app), and "%Ts" is written "%s", this being the
+//     Unicode build;
+//   * what "State" stores is up to the store: OpenMFC's own
+//     ?Write@CSettingsStore@@...PEAVCObject@@ (core/app/CSettingsStore.cpp) keeps
+//     the raw pointer rather than serialising the bar as retail's does.
 // Symbol: ?SaveTearOffMenus@CFrameImpl@@IEAAXH@Z
 extern "C" void MS_ABI impl__SaveTearOffMenus_CFrameImpl__IEAAXH_Z(void* pThis, int bFrameBarsOnly) {
-    (void)pThis;
-    (void)bFrameBarsOnly;
+    CWinAppEx* pAppEx = nullptr;
+    CWinApp* pApp = impl__AfxGetApp__YAPEAVCWinApp__XZ();
+    if (pApp != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            pApp, impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ())) {
+        pAppEx = static_cast<CWinAppEx*>(pApp);
+    }
+
+    CString strPath;
+    if (pAppEx != nullptr) {
+        alignas(CString) unsigned char storage[sizeof(CString)];
+        CString* pSection = reinterpret_cast<CString*>(storage);
+        impl__GetRegSectionPath_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+            pSection, pAppEx, L"");
+        strPath = *pSection;
+        pSection->~CString();
+    }
+    strPath += L"ControlBars-TearOff";
+
+    for (int i = 0;; ++i) {
+        CString strKey;
+        strKey.Format(L"%s-%d", strPath.GetString(), i);
+        TearOffSettingsStoreSP sp;
+        void* pStore = sp.Create(FALSE, FALSE);
+        if (pStore == nullptr || !StoreDeleteKey(pStore, strKey.GetString(), FALSE)) {
+            break;
+        }
+    }
+
+    PtrNode* pBars = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_frameImplExtraMutex);
+        FrameImplExtra* pExtra = FindExtra(pThis);
+        if (pExtra != nullptr) {
+            for (PtrNode* pNode = pExtra->pTearOffToolbars; pNode != nullptr; pNode = pNode->pNext) {
+                PtrListAddTail(pBars, pNode->pData);
+            }
+        }
+    }
+    CFrameWnd* pFrame = OwnerFrame(pThis);
+
+    int i = 0;
+    for (PtrNode* pNode = pBars; pNode != nullptr; pNode = pNode->pNext, ++i) {
+        CWnd* pBar = static_cast<CWnd*>(pNode->pData);
+        if (bFrameBarsOnly && impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pBar) != pFrame) {
+            continue;
+        }
+        if ((impl__GetStyle_CWnd__QEBAKXZ(pBar) & WS_VISIBLE) == 0) {
+            continue;
+        }
+        CString strName;
+        impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+            pBar, &strName);
+        CString strKey;
+        strKey.Format(L"%s-%d", strPath.GetString(), i);
+        {
+            TearOffSettingsStoreSP sp;
+            void* pStore = sp.Create(FALSE, FALSE);
+            if (pStore != nullptr) {
+                (void)StoreCreateKey(pStore, strKey.GetString());
+                (void)StoreWriteInt(pStore, L"ID", impl__GetDlgCtrlID_CWnd__QEBAHXZ(pBar));
+                (void)StoreWriteString(pStore, L"Name", strName.GetString());
+                (void)StoreWriteObject(pStore, L"State", static_cast<CObject*>(pBar));
+            }
+            TearOffBarSaveState(pBar, strPath.GetString(), i, static_cast<UINT>(-1));
+        }
+    }
+    PtrListRemoveAll(pBars);
 }
 
 // Transcribed from retail 0x625d0:
@@ -3306,12 +3837,35 @@ extern "C" void MS_ABI impl__SetupToolbarMenu_CFrameImpl__IEAAXAEAVCMenu__II_Z(
     }
 }
 
-// Retail 0x647d0 (~280 instructions, through 0x64c56) climbs the popup's parents
-// (?GetParentPopupMenu@CMFCPopupMenu@@ 0xb7b10), IsKindOf-tests the owning toolbar,
-// enumerates its buttons (?GetButton@CMFCToolBar@@ 0x14e470, ?GetDlgCtrlID@CWnd@@
-// 0x2a78b0), calls ?RemoveAllItems@CMFCPopupMenu@@ (0xb7eb0) and news the menu
-// items it inserts, reading m_pFrame (+0x118) for the owner.  The popup-menu item
-// model it fills is not modeled here.  STUB.
+// Retail 0x647d0 (mfc140; RVA 0x649a0 in mfc140u, ~280 instructions), in outline
+// (addresses mfc140):
+//     pParent = pMenuPopup->GetParentPopupMenu(); pGrand = pParent ? pParent->GetParentPopupMenu() : NULL;   // 0xb7b10
+//     if (pGrand == NULL) return;
+//     find the toolbar being customised: with a parent button on pGrand (+0x228),
+//       return unless it IsKindOf CMFCCustomizeButton (descriptor 0x3aa148); then
+//       the toolbar in CMFCToolBar::m_lstAllToolbars (head 0x3ab098; a NULL element
+//       throws via 0x225b80) whose GetDlgCtrlID (0x2a78b0) equals atoi() of the text
+//       (+0x38) of button 0 of pMenuPopup's menu bar and whose +0x1108 is set, else
+//       that parent button's +0x140; with no parent button, CWnd::FromHandle of
+//       pGrand's +0xa0 HWND (or ::GetParent of its m_hWnd), which must IsKindOf
+//       CPaneFrameWnd (0x3aa418) or the function returns, then that window's
+//       vftable +0x360 call;
+//     pMenuPopup->RemoveAllItems();                                             // 0xb7eb0
+//     pDlg = new CMFCToolBarsCustomizeDialog(m_pFrame (+0x118), TRUE, 0x40, NULL);   // 0x1751d0, for GetCommandName
+//     CMFCCustomizeMenuButton::m_pWndToolBar = <that toolbar>;                 // 0x3b6f28
+//     CMFCCustomizeMenuButton::m_mapPresentIDs.RemoveAll();                     // 0x3aac80; call 0x1bad0
+//     insert one CMFCCustomizeMenuButton per eligible toolbar button (InsertItem 0xb7d00);
+//     delete pDlg; pMenuPopup-><+0x19b0> = 0;
+//     OnShowCustomizePane(pMenuPopup, <toolbar>-><+0x1308>);                    // 0x64c60
+//     if anything was inserted, InsertSeparator (0xb7d50); then, on every path that
+//       got this far, a final item whose text is string resource 0x3fac (LoadString;
+//       ENSURE throws via 0x225b80).
+// NOT implemented: it depends on the CMFCToolBarsCustomizeDialog /
+// CMFCCustomizeMenuButton objects, on retail-only vftable slots (the CPaneFrameWnd's
+// +0x360), and on string resource 0x3fac, which OpenMFC's image does not carry
+// (the ENSURE throws unless the client's own resources happen to supply it).  The
+// toolbar list alone is not a blocker: ?GetAllToolbars@CMFCToolBar@@ supplies a
+// substitute rebuilt from the g_toolBarStates side table.  STUB.
 // Symbol: ?ShowQuickCustomizePane@CFrameImpl@@IEAAXPEAVCMFCPopupMenu@@@Z
 extern "C" void MS_ABI impl__ShowQuickCustomizePane_CFrameImpl__IEAAXPEAVCMFCPopupMenu___Z(void* pThis, void* pMenuPopup) {
     (void)pThis;

@@ -42,7 +42,8 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 // OpenMFC's CCmdTarget (include/openmfc/afxwin.h) is only 32 bytes -- CObject's
 // vfptr plus `char _padding[24]` -- so ONLY m_dwRef, m_pOuterUnknown and
 // m_xInnerUnknown are addressable.  Entry points that need +0x20 or beyond are
-// either left stubbed or, in InternalRelease's and SetStandardProp's case,
+// either left stubbed or, in the case of InternalRelease, SetStandardProp and
+// the file-local inner-unknown Release installed by EnableAggregation,
 // implemented without the part that needs it; each one says so at its own
 // definition.  Growing
 // CCmdTarget to the retail 0x40 bytes is a header change (CWnd's
@@ -791,23 +792,92 @@ extern "C" int MS_ABI impl__DoOleVerb_CCmdTarget__QEAAHJPEAUtagMSG__PEAUHWND____
     return 0;
 }
 
-// CCmdTarget::EnableAggregation -- STUB.  Retail (mfc140u 0x26cd70) is
-// literally `lea 0x180331188,%rax ; mov %rax,0x18(%rcx) ; ret`.  The table at
-// 0x180331188 holds ?QueryInterface@CInnerUnknown@@, ?AddRef@CInnerUnknown@@,
-// ?Release@CInnerUnknown@@, so this parks CInnerUnknown's IUnknown vtable in
-// m_xInnerUnknown (+0x18).
-// That offset IS addressable here, but there is no table to store.  Retail's
-// CInnerUnknown methods work on the owning object: AddRef (0x26d060) is
-// `lock xadd` on this-0x10 (the owner's m_dwRef) and QueryInterface
-// (0x26d0b0) answers IID_IUnknown itself and otherwise calls
-// InternalQueryInterface on this-0x18.  The CInnerUnknown thunks OpenMFC does
-// define (core/ole/CInnerUnknown.cpp) do neither -- they keep a side-table
-// refcount keyed by their `this` and answer QI for IUnknown/IClassFactory
-// themselves -- so a vtable built from them would give an aggregating outer
-// object an inner unknown that never reaches this CCmdTarget.  Nothing is
-// stored.
+// --- CCmdTarget's inner (non-delegating) IUnknown ---------------------------
+// Retail EnableAggregation (below) stores the vftable at 0x180331188 (mfc140u)
+// in m_xInnerUnknown.  Its first three slots are the CInnerUnknown exports,
+// resolved by ordinal in mfc140u: QueryInterface (ord 12006, RVA 0x26d0b0),
+// AddRef (ord 1954, RVA 0x26d060), Release (ord 12230, RVA 0x26d070).  In
+// every one of them `this` is &owner->m_xInnerUnknown, i.e. owner + 0x18.
+//
+// OpenMFC's own CInnerUnknown thunks (core/ole/CInnerUnknown.cpp, not this
+// file's) do not implement those bodies -- they keep a side-table refcount
+// keyed by their `this` and answer QI for IUnknown/IClassFactory themselves --
+// so a table built from them would give an aggregating outer object an inner
+// unknown that never reaches this CCmdTarget.  The three bodies are therefore
+// transcribed here as file-local MS_ABI functions and the table below is built
+// from them.  DEVIATION: the vftable pointer stored is this file's table, not
+// the retail one, so the stored pointer value differs from retail's.  The only
+// two references to 0x180331188 in mfc140u's code are stores into +0x18 --
+// EnableAggregation itself and an inlined copy at 0x1df86e inside COleControl's
+// constructor (0x1df5c0) -- so no retail code compares against it
+// (FromIDispatch compares the separate COleDispatchImpl table, 0x18032e450).
+namespace {
+
+inline S_CCmdTarget* InnerUnknownOwner(void* pInner) {
+    return reinterpret_cast<S_CCmdTarget*>(
+        static_cast<char*>(pInner) - offsetof(S_CCmdTarget, m_xInnerUnknown));
+}
+
+// CInnerUnknown::QueryInterface -- retail mfc140u 0x26d0b0, transcribed:
+//     if (memcmp(&iid, &IID_IUnknown, 16) == 0) {   ; call *memcmp (IAT slot
+//                                                   ;   0x1802c73e0, VCRUNTIME140)
+//         InterlockedIncrement(&owner->m_dwRef);    ; lock incl -0x10(%rsi)
+//         *ppvObj = this;                           ; mov %rsi,(%rdi)
+//         return 0;                                 ; eax still holds memcmp's 0
+//     }
+//     return owner->InternalQueryInterface(&iid, ppvObj);   ; call 0x26cfe0
+// Neither iid nor ppvObj is null-checked, as retail.
+long MS_ABI InnerUnknown_QueryInterface(void* pThis, const GUID* iid, void** ppvObj) {
+    S_CCmdTarget* pOwner = InnerUnknownOwner(pThis);
+    if (::memcmp(iid, &kIID_IUnknown, sizeof(GUID)) == 0) {
+        ::InterlockedIncrement(reinterpret_cast<LONG volatile*>(&pOwner->m_dwRef));
+        *ppvObj = pThis;
+        return 0;                                      // S_OK
+    }
+    return static_cast<long>(impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        reinterpret_cast<CCmdTarget*>(pOwner), iid, ppvObj));
+}
+
+// CInnerUnknown::AddRef -- retail mfc140u 0x26d060:
+//     mov $1,%eax ; lock xadd %eax,-0x10(%rcx) ; inc %eax ; ret
+// i.e. InterlockedIncrement(&owner->m_dwRef), returning the new count.  It
+// bumps m_dwRef directly -- it does NOT go through ExternalAddRef, so it never
+// delegates to m_pOuterUnknown.
+unsigned long MS_ABI InnerUnknown_AddRef(void* pThis) {
+    return static_cast<unsigned long>(::InterlockedIncrement(
+        reinterpret_cast<LONG volatile*>(&InnerUnknownOwner(pThis)->m_dwRef)));
+}
+
+// CInnerUnknown::Release -- retail mfc140u 0x26d070:
+//     AFX_MAINTAIN_STATE2 _state(owner->m_pModuleState); ; owner+0x38, ctor 0x133170
+//     return owner->InternalRelease();                    ; call 0x26cdb0
+// (the destructor's restore leaves eax, InternalRelease's result, untouched).
+// DEVIATION: the module-state switch is not made -- m_pModuleState (+0x38) is
+// past the end of OpenMFC's 32-byte CCmdTarget (see the layout note at the top
+// of this file).  The InternalRelease call is made as retail makes it.
+unsigned long MS_ABI InnerUnknown_Release(void* pThis) {
+    return impl__InternalRelease_CCmdTarget__QEAAKXZ(
+        reinterpret_cast<CCmdTarget*>(InnerUnknownOwner(pThis)));
+}
+
+void* const kInnerUnknownVtbl[3] = {
+    reinterpret_cast<void*>(&InnerUnknown_QueryInterface),   // slot 0
+    reinterpret_cast<void*>(&InnerUnknown_AddRef),           // slot 1
+    reinterpret_cast<void*>(&InnerUnknown_Release),          // slot 2
+};
+
+} // namespace
+
+// CCmdTarget::EnableAggregation() -- retail mfc140u 0x26cd70 is literally
+//     lea 0x180331188,%rax ; mov %rax,0x18(%rcx) ; ret
+// i.e. m_xInnerUnknown = <CInnerUnknown vftable>.  Transcribed, storing the
+// file-local table above (see the DEVIATION note there).  Retail does not
+// null-check `this`; this thunk does, as most in this file do.
 // Symbol: ?EnableAggregation@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
+extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    Shadow(pThis)->m_xInnerUnknown = const_cast<void**>(&kInnerUnknownVtbl[0]);
+}
 
 // CCmdTarget::EnableAutomation -- STUB.  Retail (mfc140u 0x24fcf0) stores the
 // vtable at 0x18032e450 -- whose first slots are ?QueryInterface@

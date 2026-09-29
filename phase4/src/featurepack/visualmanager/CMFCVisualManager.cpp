@@ -82,6 +82,21 @@ extern "C" void MS_ABI impl__OnChangeVisualManager_CMFCToolBar__UEAAXXZ(CMFCTool
 extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ();                                  // docking/CPaneFrameWnd.cpp
 extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ();                                  // detail/CWinAppSupport.cpp
 extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;                                // toolbar/StaticData.cpp
+// Snapshot accessor for OpenMFC's CFrameImpl::m_lstFrames (the list is owned by
+// core/frame/CFrameImpl.cpp and guarded there by its g_frameListMutex; this
+// helper, defined there at file scope with external linkage, copies up to
+// nCapacity CFrameWnd* under that lock and returns the total count -- a
+// (NULL, 0) call sizes the buffer).
+extern "C" size_t MS_ABI openmfc_CFrameImpl_CopyFrameList(CFrameWnd** pOut, size_t nCapacity); // core/frame/CFrameImpl.cpp
+// ?AFX_WM_CHANGEVISUALMANAGER@@3IA -- the registered message id (export RVA
+// 0x3c2508, mfc140u); OpenMFC defines it in core/runtime/Globals.cpp.
+extern "C" unsigned int impl__AFX_WM_CHANGEVISUALMANAGER__3IA;                                   // core/runtime/Globals.cpp
+extern "C" int MS_ABI impl__GetTabNumberToDetach_CMFCBaseTabCtrl__MEBAHH_Z(
+    const CMFCBaseTabCtrl* pThis, int iTab);                                                    // tabs/CMFCBaseTabCtrl.cpp
+extern "C" unsigned long MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(
+    const CMFCBaseTabCtrl* pThis, int iTab);                                                    // tabs/CMFCBaseTabCtrl.cpp
+extern "C" void MS_ABI impl__FillSolidRect_CDC__QEAAXPEBUtagRECT__K_Z(
+    CDC* pThis, const RECT* lpRect, unsigned long clr);                                         // core/gdi/CDC.cpp
 
 namespace {
 
@@ -136,6 +151,36 @@ void VmForEachLiveToolBar(CRuntimeClass* pClass, void (*fn)(CMFCToolBar*))
     }
     for (size_t i = 0; i < count; ++i) fn(bars[i]);
     std::free(bars);
+}
+
+// Walks OpenMFC's copy of CFrameImpl::m_lstFrames (see the accessor declared
+// above) and hands every frame whose HWND still maps to a permanent CWnd -- the
+// filter retail's AdjustFrames and RedrawAll both apply per node -- to `fn`.
+// The list is snapshotted first rather than walked in place because `fn`
+// sends / redraws synchronously and CFrameImpl.cpp's own comment notes that
+// can re-enter AddFrame / RemoveFrame (the accessor holds a non-recursive
+// mutex, so walking under it would deadlock).  The FromHandlePermanent test is
+// still made per frame, immediately before `fn`, as retail does.
+// DEVIATIONS: a NULL entry is skipped -- AddFrame(NULL) can enqueue one, and
+// retail would fault reading its m_hWnd; and the snapshot entries are not
+// re-checked against the live list, so a frame that one callback removes AND
+// deletes before its turn is still dereferenced (retail's live walk has the
+// equivalent hazard for the node it has already stepped to).
+void VmForEachLiveFrame(void (*fn)(CFrameWnd*))
+{
+    const size_t n = openmfc_CFrameImpl_CopyFrameList(nullptr, 0);
+    if (n == 0) return;
+    CFrameWnd** frames = static_cast<CFrameWnd**>(std::malloc(n * sizeof(CFrameWnd*)));
+    if (frames == nullptr) return;
+    size_t count = openmfc_CFrameImpl_CopyFrameList(frames, n);
+    if (count > n) count = n;   // the list grew between the two calls
+    for (size_t i = 0; i < count; ++i) {
+        CFrameWnd* pFrame = frames[i];
+        if (pFrame == nullptr) continue;   // DEVIATION: retail dereferences unconditionally
+        if (impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(pFrame->m_hWnd) == nullptr) continue;
+        fn(pFrame);
+    }
+    std::free(frames);
 }
 
 } // namespace
@@ -372,9 +417,10 @@ extern "C" unsigned long MS_ABI impl__GetToolbarButtonTextColor_CMFCVisualManage
     return ::GetSysColor(COLOR_BTNTEXT);
 }
 // CMFCVisualManager::OnActivateApp(CWnd*, BOOL) -- faithful transcription: the
-// retail body is a bare `ret` at RVA 0x27d0 (mfc140u), an ICF-folded empty
-// virtual shared with OnFillTasksGroupInterior and OnUpdateSystemColors (the
-// name that survives at that RVA in the symbol map is OnDrawRibbonLabel).
+// export's ordinal resolves (mfc140u export table) to RVA 0x27d0, whose body is
+// a bare `ret` -- an ICF-folded empty function shared with, among others,
+// OnFillTasksGroupInterior, OnUpdateSystemColors and OnDrawRibbonLabel
+// (mfc140u_rva_symbols.json labels that RVA ?AddDockSite@CFrameWndEx@@QEAAXXZ).
 // Symbol: ?OnActivateApp@CMFCVisualManager@@UEAAXPEAVCWnd@@H@Z
 extern "C" void MS_ABI impl__OnActivateApp_CMFCVisualManager__UEAAXPEAVCWnd__H_Z(
     CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
@@ -570,23 +616,28 @@ extern "C" void MS_ABI impl__OnDrawSplitterBox_CMFCVisualManager__UEAAXPEAVCDC__
 {
     if (!pThis || !pDC) return;
 }
-// CMFCVisualManager::AdjustFrames() -- retail body (RVA 0x184420, mfc140u)
-// walks CFrameImpl::m_lstFrames (the CList at 0x3b1cc0; its head node pointer
-// is the qword at 0x3b1cc8, nodes are +0x00 next / +0x10 element) and, for
-// every frame whose HWND still maps to a permanent CWnd
-// (?FromHandlePermanent@CWnd@@SAPEAV1@PEAUHWND__@@@Z, RVA 0x28adc0), issues
-// ::SendMessage(pFrame->m_hWnd, AFX_WM_CHANGEVISUALMANAGER, 0, 0) -- the
-// message id is the exported UINT at 0x3c2508, ?AFX_WM_CHANGEVISUALMANAGER@@3IA.
-// OpenMFC does register that message (impl__AFX_WM_CHANGEVISUALMANAGER__3IA in
-// core/runtime/Globals.cpp) and does keep the frame list (AddFrame / RemoveFrame
-// in core/frame/CFrameImpl.cpp), but the live list is the file-local
-// g_pFrameListHead inside that translation unit's anonymous namespace and the
-// exported ?m_lstFrames@CFrameImpl@@ storage is a zero blob, so there is no way
-// to enumerate the frames from here.
-// TODO(clean-room): not transcribed -- CFrameImpl.cpp exposes no accessor for
-// its frame list; once it does, the walk above is a five-line body.
+// CMFCVisualManager::AdjustFrames() -- transcription of the retail body
+// (RVA 0x184420, mfc140u):
+//     for (node = CFrameImpl::m_lstFrames.head /* qword at 0x3b1cc8 */; node; ) {
+//         CFrameWnd* pFrame = node->data;                         // +0x10
+//         node = node->next;                                      // +0x00
+//         if (CWnd::FromHandlePermanent(pFrame->m_hWnd) != NULL)  // 0x28adc0, m_hWnd @ +0x40
+//             ::SendMessage(pFrame->m_hWnd, AFX_WM_CHANGEVISUALMANAGER, 0, 0);
+//     }
+// (?m_lstFrames@CFrameImpl@@ is the CList exported at RVA 0x3b1cc0 (mfc140u),
+// so its head pointer is the qword at +0x08; the message id is the exported
+// UINT ?AFX_WM_CHANGEVISUALMANAGER@@3IA at RVA 0x3c2508 (mfc140u); the call
+// goes through import slot 0x1802c7120, which iatu.py resolves to
+// USER32!SendMessageW.)
+// DEVIATIONS: the walk runs over a snapshot taken through
+// openmfc_CFrameImpl_CopyFrameList rather than over the list's nodes in place
+// (the list and its mutex belong to core/frame/CFrameImpl.cpp), and a NULL
+// entry is skipped where retail would fault -- see VmForEachLiveFrame.
 // Symbol: ?AdjustFrames@CMFCVisualManager@@SAXXZ
 extern "C" void MS_ABI impl__AdjustFrames_CMFCVisualManager__SAXXZ() {
+    VmForEachLiveFrame([](CFrameWnd* pFrame) {
+        ::SendMessage(pFrame->m_hWnd, impl__AFX_WM_CHANGEVISUALMANAGER__3IA, 0, 0);
+    });
 }
 // CMFCVisualManager::AdjustToolbars() -- transcription of the retail body
 // (RVA 0x1843b0, mfc140u):
@@ -1356,19 +1407,34 @@ extern "C" void MS_ABI impl__OnEraseTabsButton_CMFCVisualManager__UEAAXPEAVCDC__
 //     if (clr == (COLORREF)-1) return FALSE;
 //     pDC->FillSolidRect(&rect, clr);
 //     return TRUE;
-// Both calls are virtuals of CMFCBaseTabCtrl.  OpenMFC's CMFCBaseTabCtrl has a
-// different vtable, its GetActiveTab is a non-virtual C++ method with no impl__
-// thunk, and while an impl__GetTabBkColor_CMFCBaseTabCtrl thunk does exist
-// (tabs/CMFCBaseTabCtrl.cpp) it returns -1 for every tab because the per-tab
-// record is unmodeled -- so the only value this body could ever compute is the
-// -1 that makes retail return FALSE without painting.
-// TODO(clean-room): not transcribed -- CMFCBaseTabCtrl vtable slots +0x428 /
-// +0x3c8 are not modeled and the per-tab color is not available.
+// (FillSolidRect is ?FillSolidRect@CDC@@QEAAXPEBUtagRECT@@K@Z, RVA 0x2a5aa0
+// (mfc140u).)  Both tab-control calls are virtual in retail.  Transcribed
+// non-virtually through the exported thunks, since OpenMFC's CMFCBaseTabCtrl
+// has no MSVC-layout vtable to index:
+//   * the active tab comes from impl__GetTabNumberToDetach(pTabWnd, -1) --
+//     retail's GetTabNumberToDetach (RVA 0x17040, mfc140u) substitutes
+//     the +0x154 active-tab index for -1, the same field retail's slot +0x428
+//     reads (in the CMFCBaseTabCtrl vftable at 0x1802dde38 (mfc140u) that
+//     slot points at RVA 0xdf30, an unexported `mov 0x154(%rcx),%eax; ret`),
+//     and OpenMFC's thunk returns GetActiveTab() there;
+//   * the colour comes from impl__GetTabBkColor -- slot +0x3c8 of that same
+//     vftable is ?GetTabBkColor@CMFCBaseTabCtrl@@UEBAKH@Z, RVA 0x199e0 (mfc140u).
+// DEVIATIONS: a derived control's override of either virtual is not reached,
+// and a NULL pTabWnd returns FALSE where retail would fault.  NOTE: OpenMFC's
+// GetTabBkColor thunk currently returns -1 for every tab (the per-tab record
+// +0x44 is unmodeled in tabs/CMFCBaseTabCtrl.cpp), so today this always takes
+// retail's FALSE branch; it paints once that colour is modeled.
 // Symbol: ?OnEraseTabsFrame@CMFCVisualManager@@UEAAHPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
 extern "C" int MS_ABI impl__OnEraseTabsFrame_CMFCVisualManager__UEAAHPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
-    CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, const CMFCBaseTabCtrl* /*pTabWnd*/)
+    CMFCVisualManager* /*pThis*/, CDC* pDC, CRect rect, const CMFCBaseTabCtrl* pTabWnd)
 {
-    return FALSE;
+    if (pTabWnd == nullptr) return FALSE;
+    const int iActive = impl__GetTabNumberToDetach_CMFCBaseTabCtrl__MEBAHH_Z(pTabWnd, -1);
+    const unsigned long clr = impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(pTabWnd, iActive);
+    if (clr == static_cast<unsigned long>(-1)) return FALSE;
+    const RECT r = VmRect(rect);
+    impl__FillSolidRect_CDC__QEAAXPEBUtagRECT__K_Z(pDC, &r, clr);
+    return TRUE;
 }
 
 // CMFCVisualManager::OnFillAutoHideButtonBackground(CDC*, CRect, CMFCAutoHideButton*)
@@ -1758,9 +1824,10 @@ extern "C" void MS_ABI impl__OnFillTab_CMFCVisualManager__UEAAXPEAVCDC__VCRect__
 }
 
 // CMFCVisualManager::OnFillTasksGroupInterior(CDC*, CRect, BOOL) -- faithful
-// transcription: the retail body is `ret` at RVA 0x27d0 (mfc140u), a pure
-// no-op that the linker folded together with several other empty virtuals
-// (the symbol that survives at that RVA in the map is OnDrawRibbonLabel).
+// transcription: the export's ordinal resolves (mfc140u export table) to RVA
+// 0x27d0, a bare `ret` that the linker folded together with other empty
+// functions (OnActivateApp, OnUpdateSystemColors and OnDrawRibbonLabel resolve
+// there too; mfc140u_rva_symbols.json labels it ?AddDockSite@CFrameWndEx@@QEAAXXZ).
 // Symbol: ?OnFillTasksGroupInterior@CMFCVisualManager@@UEAAXPEAVCDC@@VCRect@@H@Z
 extern "C" void MS_ABI impl__OnFillTasksGroupInterior_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(
     CMFCVisualManager* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bIsSpecial*/)
@@ -1889,11 +1956,17 @@ extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManager__UEAAHPEAVCWnd__AEBVCObL
 // (0x890e0) does the same into +0x710.  +0x468 is a BOOL of the ribbon bar that
 // CMFCRibbonBar::CreateEx (0xd9880) also tests (the public MFC source calls it
 // m_bReplaceFrameCaption); so the region is the rounded top of a ribbon frame.
-// OpenMFC has no GetRibbonBar thunk for either frame class and models none of
-// those offsets, so the region cannot be built; every retail path that is
-// reachable here ends in FALSE.
-// TODO(clean-room): not transcribed -- the CFrameWndEx / CMDIFrameWndEx
-// ribbon-bar members the region depends on are unmodeled.
+// The ribbon-side flag IS modeled (CMFCRibbonBar::m_bReplaceFrameCaption,
+// offset 0x468 pinned by a static_assert in ribbon/CMFCRibbonPanelMenuBar.cpp),
+// but the frame side is not: OpenMFC's CFrameWndEx does not carry the +0x370
+// ribbon pointer, CMDIFrameWndEx keeps its +0x710 mirror in a side table local
+// to core/frame/CMDIFrameWndEx.cpp (RibbonBarOf, anonymous namespace), the
+// CFrameImpl ribbon helper is a setter only, and the
+// CMFCVisualManagerWindows7::GetRibbonBar thunk is itself a NULL stub.  With
+// no ribbon pointer this returns FALSE, which diverges from retail for a
+// visible caption-replacing ribbon frame when DWM composition is off (retail
+// sets the rounded region and returns TRUE there).
+// TODO(clean-room): not transcribed -- needs a frame -> ribbon-bar getter.
 // Symbol: ?OnSetWindowRegion@CMFCVisualManager@@UEAAHPEAVCWnd@@VCSize@@@Z
 extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManager__UEAAHPEAVCWnd__VCSize___Z(
     CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, long long /*sizeWindow*/)
@@ -1902,10 +1975,9 @@ extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManager__UEAAHPEAVCWnd__
 }
 
 // CMFCVisualManager::OnUpdateSystemColors() -- faithful transcription: the
-// retail body is `ret` at RVA 0x27d0 (mfc140u), the same folded no-op body
-// OnFillTasksGroupInterior and OnActivateApp use.  The base manager caches no
-// colors of its own (afxGlobalData does the caching), so there is nothing to
-// refresh; every derived manager overrides this.
+// export's ordinal resolves (mfc140u export table) to RVA 0x27d0, the same
+// folded bare-`ret` body OnFillTasksGroupInterior and OnActivateApp resolve
+// to, so the base manager does nothing here.
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManager@@UEAAXXZ
 extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(
     CMFCVisualManager* /*pThis*/)
@@ -1930,18 +2002,21 @@ extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(
 //  0x185 = the same without RDW_ALLCHILDREN.  0x2f5918 is the CRuntimeClass
 //  ?GetThisClass@CPane@@ returns -- note it is CPane here, not the CMFCToolBar
 //  class AdjustToolbars filters on.)
-// Transcribed: the main-window redraw (through the impl__AfxGetMainWnd thunk,
-// since the module-thread-state / CWinThread vtable path is not modeled), the
+// Transcribed, in retail order: the main window is fetched first (through the
+// impl__AfxGetMainWnd thunk, since the module-thread-state / CWinThread vtable
+// path is not modeled), then the CFrameImpl::m_lstFrames walk (over the
+// openmfc_CFrameImpl_CopyFrameList snapshot, as in AdjustFrames -- a NULL
+// entry is skipped where retail would fault), the main-window redraw, the
 // toolbar walk (through impl__GetAllToolbars, IsKindOf CPane) and the
-// CPaneFrameWnd::RedrawAll tail call (its OpenMFC thunk is currently an empty
-// stub).  NOT transcribed: the CFrameImpl::m_lstFrames walk -- OpenMFC keeps
-// that list file-local inside core/frame/CFrameImpl.cpp with no accessor, so
-// secondary frames are not repainted from here (see AdjustFrames).
-// TODO(clean-room): transcribed partially -- the frame-list walk needs an
-// accessor from CFrameImpl.cpp.
+// CPaneFrameWnd::RedrawAll tail call (whose OpenMFC thunk in
+// docking/CPaneFrameWnd.cpp is still an empty stub, so floating pane frames
+// are not repainted from here yet).
 // Symbol: ?RedrawAll@CMFCVisualManager@@SAXXZ
 extern "C" void MS_ABI impl__RedrawAll_CMFCVisualManager__SAXXZ() {
     CWnd* pMain = impl__AfxGetMainWnd__YAPEAVCWnd__XZ();
+    VmForEachLiveFrame([](CFrameWnd* pFrame) {
+        ::RedrawWindow(pFrame->m_hWnd, nullptr, nullptr, 0x585);
+    });
     if (pMain != nullptr && pMain->m_hWnd != nullptr &&
         impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(pMain->m_hWnd) != nullptr) {
         ::RedrawWindow(pMain->m_hWnd, nullptr, nullptr, 0x585);

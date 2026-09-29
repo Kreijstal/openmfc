@@ -40,9 +40,12 @@
 // behind the same init gate every retail body inlines, at the offsets of the
 // AfxGlobalData transcription in that file: +0x28 clrBtnFace, +0x3c
 // clrBtnDkShadow, +0x48 clrHilite, +0x60 clrBarFace, +0x64 clrBarShadow, +0x74
-// clrBarText, +0x78 clrWindow, +0x260 / +0x264 the two high-contrast flags,
-// +0x288 m_nBitsPerPixel.  Of these, +0x28/+0x48/+0x60/+0x64/+0x78/+0x288 carry
-// their own static_assert there; +0x3c/+0x74/+0x260/+0x264 follow from the
+// clrBarText, +0x78 clrWindow, +0x80..+0x98 the six caption colours
+// (clrCaptionText, clrActiveCaption, clrInactiveCaption, clrInactiveCaptionText,
+// clrActiveCaptionGradient, clrInactiveCaptionGradient), +0x260 / +0x264 the
+// two high-contrast flags, +0x288 m_nBitsPerPixel.  Of these,
+// +0x28/+0x48/+0x60/+0x64/+0x78/+0x288 carry their own static_assert there;
+// +0x3c/+0x74/+0x80..+0x98/+0x260/+0x264 follow from the
 // member order (with the struct's total size asserted), and every one of them
 // is the offset the retail bodies below actually read.  (Same approach as
 // featurepack/controls/CMFCHeaderCtrl.cpp.)
@@ -76,11 +79,13 @@
 // are unreachable in this build; they are transcribed anyway, with the one
 // caveat stated where it applies.
 //
-// m_bOSColors (+0x330).  CMFCVisualManagerVS2008::OnUpdateSystemColors sets it
-// to (this->[+0x50] != NULL && rich-colour desktop), +0x50 being a UxTheme
-// HTHEME of CMFCBaseVisualManager.  No HTHEME is ever opened in OpenMFC, so the
-// value is 0 unless a derived client class writes the (protected) member
-// itself; the bodies below read the member rather than assume it.
+// m_bOSColors (+0x330).  CMFCVisualManagerVS2008::OnUpdateSystemColors (below)
+// sets it to (m_hThemeExplorerBar (+0x50) != NULL && rich-colour desktop),
+// +0x50 being a UxTheme HTHEME of CMFCBaseVisualManager.  No HTHEME is ever
+// opened in OpenMFC, so every colour update stores 0 there; it is non-zero
+// only if a derived client class stores an HTHEME at +0x50, or writes the
+// (protected) member itself after the last colour update.  The bodies below
+// read the member rather than assume it.
 //=============================================================================
 
 // ---- afxGlobalData (featurepack/CMFC_misc_stubs.cpp, core/runtime/AFX_GLOBAL_DATA.cpp) ----
@@ -125,6 +130,20 @@ extern "C" unsigned long MS_ABI impl__GetBaseThemeColor_CMFCVisualManagerOffice2
 extern "C" int MS_ABI impl__GetStandardWindowsTheme_CMFCBaseVisualManager__UEAA_AW4WinXpTheme_1_XZ(void* pThis);
 extern "C" int MS_ABI impl__GetSmartDockingTheme_CMFCVisualManagerOffice2007__UEAA_AW4AFX_SMARTDOCK_THEME__XZ(void* pThis);
 extern "C" std::int32_t impl__m_bDefaultWinXPColors_CMFCVisualManagerOffice2003__1HA;
+
+// ---- CMFCVisualManagerVS2005 bodies this class falls back to.  Declared from
+// the mangled names; they match the (real, transcribed) definitions in
+// CMFCVisualManagerVS2005.cpp (checked 2026-09-29: all four take `this` as
+// void* and the argument lists the names describe). ----
+extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerVS2005__UEAAXPEBVCMFCBaseTabCtrl__AEAK11111AEAPEAVCBrush__2_Z(
+    void* pThis, const CMFCBaseTabCtrl* pTabWnd, unsigned long& clrDark,
+    unsigned long& clrBlack, unsigned long& clrHighlight, unsigned long& clrFace,
+    unsigned long& clrDarkShadow, unsigned long& clrLight, CBrush*& pbrFace, CBrush*& pbrBlack);
+extern "C" void MS_ABI impl__OnDrawAutoHideButtonBorder_CMFCVisualManagerVS2005__UEAAXPEAVCDC__VCRect__1PEAVCMFCAutoHideButton___Z(
+    void* pThis, CDC* pDC, CRect rectBounds, CRect rectBorderSize, void* pButton /* CMFCAutoHideButton* */);
+extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerVS2005__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
+    void* pThis, CDC* pDC, void* pBar /* CDockablePane* */, int bActive, CRect rectCaption, CRect rectButtons);
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerVS2005__UEAAXXZ(void* pThis);
 
 // ---- CDrawingManager (core/gdi/CDrawingManager.cpp, real bodies) ----
 extern "C" void* MS_ABI impl___0CDrawingManager__QEAA_AEAVCDC___Z(void* pThis, void* pDC);
@@ -190,6 +209,14 @@ inline COLORREF GD_clrBarFace()     { return GD_U32(0x60); }
 inline COLORREF GD_clrBarShadow()   { return GD_U32(0x64); }
 inline COLORREF GD_clrBarText()     { return GD_U32(0x74); }
 inline COLORREF GD_clrWindow()      { return GD_U32(0x78); }
+// The caption colours OnDrawPaneCaption reads (member order of the
+// AfxGlobalData transcription in core/runtime/AFX_GLOBAL_DATA.cpp).
+inline COLORREF GD_clrCaptionText()             { return GD_U32(0x80); }
+inline COLORREF GD_clrActiveCaption()           { return GD_U32(0x88); }
+inline COLORREF GD_clrInactiveCaption()         { return GD_U32(0x8c); }
+inline COLORREF GD_clrInactiveCaptionText()     { return GD_U32(0x90); }
+inline COLORREF GD_clrActiveCaptionGradient()   { return GD_U32(0x94); }
+inline COLORREF GD_clrInactiveCaptionGradient() { return GD_U32(0x98); }
 inline int      GD_Flag260()        { return static_cast<int>(GD_U32(0x260)); }
 inline int      GD_Flag264()        { return static_cast<int>(GD_U32(0x264)); }
 inline int      GD_BitsPerPixel()   { return static_cast<int>(GD_U32(0x288)); }
@@ -211,6 +238,24 @@ inline int VS08_OSColors(const void* pThis)
     int v = 0;
     std::memcpy(&v, static_cast<const char*>(pThis) + kOffOSColors, sizeof v);
     return v;
+}
+
+// CMFCBaseVisualManager's UxTheme handles, afxvisualmanager.h:144.. order after
+// the CObject vptr (m_hThemeWindow +0x08, ... m_hThemeExplorerBar +0x50, ...
+// m_hThemeTab +0x80).  They lie inside OpenMFC's CMFCVisualManager object,
+// whose `_visualmanager_padding` the CMFCVisualManager constructor zero-fills
+// (CMFCVisualManager.cpp), and no OpenMFC body opens a theme into them
+// (CMFCBaseVisualManager.cpp), so they read NULL unless a client class stores
+// one itself.  Read at the retail offset, as CMFCVisualManagerWindows.cpp does.
+constexpr std::ptrdiff_t kOffThemeExplorerBar = 0x50;   // m_hThemeExplorerBar
+constexpr std::ptrdiff_t kOffThemeTab         = 0x80;   // m_hThemeTab
+static_assert(sizeof(CMFCVisualManager) >= 0x88, "the theme handles read here lie inside OpenMFC's object");
+
+inline void* VS08_ThemeHandle(const void* pThis, std::ptrdiff_t off)
+{
+    void* h = nullptr;
+    std::memcpy(&h, static_cast<const char*>(pThis) + off, sizeof h);
+    return h;
 }
 
 inline int VS08_IsKindOf(const void* pObj, const CRuntimeClass* pClass)
@@ -317,7 +362,10 @@ inline int VS08_StandardWindowsTheme(void* pThis)
 //   VS2005/VS2008
 //   object +0x2e8 is 0 and the default arm above runs whatever the theme
 //   (other than 3) is.  VS2005 then returns straight away when the latched
-//   value was 0 (0x1b340e).  Otherwise it also rewrites +0x114, +0x124,
+//   value was 0 (0x1b340e) -- the static was 0 already, so it is unchanged.
+//   Otherwise it RESTORES the static from the latch (0x1b384b), so the
+//   static's value is the same after the call as before it on every path,
+//   and it also rewrites +0x114, +0x124,
 //   +0x224, +0x234, +0x238, +0x2f0 and the GDI objects at +0x2f8/+0x308/
 //   +0x318 -- none of which this file reads -- and on a rich-colour desktop
 //   re-creates pen +0x1e0 with PixelAlpha(clrBarFace, 0x54) (0x1b38c4..
@@ -328,15 +376,22 @@ inline int VS08_StandardWindowsTheme(void* pThis)
 //   writes the palette only when m_bOSColors is set, and then only
 //   +0x214..+0x240 and three GDI objects this file does not read.
 //
-// APPROXIMATION (pen +0x1e0): because VS2005 clears m_bDefaultWinXPColors on
-// the very pass that consults it, retail's pen is PixelAlpha(clrBarFace, 0x54)
-// only after the first colour update of the process (normally this class's
-// constructor, see below) and clrBarShadow after any later one (e.g. a
-// WM_SYSCOLORCHANGE).  OpenMFC's VS2005::OnUpdateSystemColors is an empty
-// stub that never clears the static, and this file keeps no update history,
-// so VS08_Palette() simply reads the static's current value -- 0 as
-// featurepack/visualmanager/StaticData.cpp initialises it, i.e. retail's
-// post-first-update clrBarShadow.
+// APPROXIMATION (pen +0x1e0): since VS2005 restores m_bDefaultWinXPColors
+// before it returns (above), retail's pen after a colour update is
+// PixelAlpha(clrBarFace, 0x54) when the static was set at that update and
+// Office2003's clrBarShadow pen when it was clear -- it depends only on the
+// static's value at the last update, not on the update history.  This file
+// stores no pen, so VS08_Palette() reads the static's CURRENT value instead.
+// That differs from retail only if the static changes without a colour update
+// following (SetDefaultWinXPColors, the public setter, runs one itself -- see
+// CMFCVisualManagerOffice2003.cpp).  Note the initial value: retail's static
+// (0x1803aab84, mfc140) is 1 in the image, and the only stores to it in the
+// whole of mfc140.dll are SetDefaultWinXPColors (0x193a64) and VS2005's clear
+// / restore pair (0x1b33fc / 0x1b384b), so by default retail's pen is
+// PixelAlpha(clrBarFace, 0x54).  featurepack/visualmanager/StaticData.cpp
+// initialises OpenMFC's copy to 0, so by default this file (like VS2005's
+// latched paths) takes the clrBarShadow arm instead -- a discrepancy in
+// StaticData.cpp, not in this file's formula.
 //
 // The `== WinXpTheme_Blue` branches below read only +0x110 (through brush
 // +0x180) and pen +0x1e0 from this palette.  Per the VS2005 note above,
@@ -563,45 +618,78 @@ extern "C" int MS_ABI impl__GetSmartDockingTheme_CMFCVisualManagerVS2008__UEAA_A
 }
 
 // ?GetTabFrameColors@CMFCVisualManagerVS2008@@... -- entry 0x1b6c20 (mfc140),
-// 0x1b8620 (mfc140u):
+// 0x1b8620 (mfc140u), complete body:
 //     CMFCVisualManagerVS2005::GetTabFrameColors(pTabWnd, clrDark, clrBlack,
-//         clrHighlight, clrFace, clrDarkShadow, clrLight, pbrFace, pbrBlack);   // 0x1b4ad0, 0x1b6c7a
-//     if (bpp <= 8 || [+0x264] || [+0x260]) return;
+//         clrHighlight, clrFace, clrDarkShadow, clrLight, pbrFace, pbrBlack);   // 0x1b4ad0, call at 0x1b6c7a
+//     if (bpp (+0x288) <= 8 || [+0x264] || [+0x260]) return;                  // 0x1b6c7f..0x1b6cd3
 //     if (pTabWnd->vftable[+0x510]()) return;                                   // call at 0x1b6ce2
 //     clrBlack = afxGlobalData.clrBarShadow (+0x64);                            // store at 0x1b6d10
-// STUB: the VS2005 body it starts from is defined in CMFCVisualManagerVS2005.cpp
-// with an auto-generated parameter list (no `this`) -- see headerRequests --
-// and the CMFCBaseTabCtrl virtual at +0x510 (IsFlatTab in the slot map
-// CMFCVisualManagerOfficeXP.cpp derives; in the retail CMFCTabCtrl vftable
-// 0x180310520 (mfc140) that slot returns this->[+0x3c0]) cannot be dispatched
-// on OpenMFC's tab controls (the same limitation
-// CMFCVisualManagerOfficeXP.cpp records for OnDrawTab).  Parameter list
-// corrected from the mangled name.
+// (clrBlack is the r9 argument, kept in rdi from 0x1b6c34 to that store.)
+// DEVIATION: the +0x510 query (IsFlatTab in the slot map
+// CMFCVisualManagerOfficeXP.cpp derives; retail afxbasetabctrl.h:334 declares
+// CMFCBaseTabCtrl::IsFlatTab() { return FALSE; } and afxtabctrl.h:189 has
+// CMFCTabCtrl return m_bFlat) cannot be dispatched on OpenMFC's tab controls,
+// which model no flat style.  It is taken as FALSE -- the CMFCBaseTabCtrl
+// answer, and CMFCTabCtrl's for every style but the two flat (Excel-like)
+// ones: CMFCTabCtrl::Create (entry 0x137d40, mfc140) stores m_bFlat (+0x3c0)
+// = (style - 1) <= 1, i.e. STYLE_FLAT / STYLE_FLAT_SHARED_HORZ_SCROLL, at
+// 0x137d68 -- so on a rich-colour desktop a flat tab control gets clrBarShadow
+// here where retail would leave VS2005's clrDarkShadow in clrBlack.  Every
+// other store is exactly retail's.  Parameter list corrected from the
+// mangled name (AEAK / AEAPEAVCBrush@@ are references).
 // Symbol: ?GetTabFrameColors@CMFCVisualManagerVS2008@@UEAAXPEBVCMFCBaseTabCtrl@@AEAK11111AEAPEAVCBrush@@2@Z
 extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerVS2008__UEAAXPEBVCMFCBaseTabCtrl__AEAK11111AEAPEAVCBrush__2_Z(
-    void* /*pThis*/, const CMFCBaseTabCtrl* /*pTabWnd*/, unsigned long* /*clrDark*/,
-    unsigned long* /*clrBlack*/, unsigned long* /*clrHighlight*/, unsigned long* /*clrFace*/,
-    unsigned long* /*clrDarkShadow*/, unsigned long* /*clrLight*/, CBrush** /*pbrFace*/,
-    CBrush** /*pbrBlack*/) {}
+    void* pThis, const CMFCBaseTabCtrl* pTabWnd, unsigned long& clrDark,
+    unsigned long& clrBlack, unsigned long& clrHighlight, unsigned long& clrFace,
+    unsigned long& clrDarkShadow, unsigned long& clrLight, CBrush*& pbrFace, CBrush*& pbrBlack)
+{
+    impl__GetTabFrameColors_CMFCVisualManagerVS2005__UEAAXPEBVCMFCBaseTabCtrl__AEAK11111AEAPEAVCBrush__2_Z(
+        pThis, pTabWnd, clrDark, clrBlack, clrHighlight, clrFace, clrDarkShadow, clrLight, pbrFace, pbrBlack);
+    if (!VS08_RichColorDesktop()) return;
+    // pTabWnd->IsFlatTab() taken as FALSE -- see DEVIATION above.
+    clrBlack = GD_clrBarShadow();
+}
 
 // ?OnDrawAutoHideButtonBorder@CMFCVisualManagerVS2008@@... -- entry 0x1b6270
 // (mfc140), 0x1b7c70 (mfc140u):
-//     if (rich-colour desktop && this->[+0x80] /* HTHEME */ != NULL) {
-//         ... ::DrawThemeBackground on that theme, chosen by the
-//             0x1000/0x2000/0x4000/0x8000 bits of pButton->[+0x14] ...
+//     if (rich-colour desktop                                          // 0x1b62a6..0x1b6302
+//         && m_hThemeTab (+0x80) != NULL) {                            // 0x1b6308
+//         int nState = pButton->vftable[+0x48]() ? 2 : 1;              // call at 0x1b6320
+//         switch (pButton->m_dwAlignment (+0x14) & CBRS_ALIGN_ANY) {
+//         case TOP / BOTTOM:
+//             ::DrawThemeBackground(m_hThemeTab, pDC->m_hDC, 1 /* TABP_TABITEM */,
+//                                   nState, &rectBounds, NULL);        // UxTheme import, 0x1b6396
+//             if (TOP) dm.MirrorRect(rectBounds, FALSE);               // 0x56de0, call at 0x1b63bb
+//             break;
+//         case LEFT / RIGHT:
+//             ... the same DrawThemeBackground into a compatible memory DC /
+//             bitmap of the transposed size (0x1b63c5..0x1b648e), then
+//             dm.DrawRotated(rectBounds, dcMem, align == LEFT)         // 0x5bfe0, call at 0x1b64b5
+//         }
 //         return;
 //     }
 //     CMFCVisualManagerVS2005::OnDrawAutoHideButtonBorder(pDC, rectBounds,
-//         rectBorderSize, pButton);                                   // 0x1b48f0, 0x1b653a
-// No HTHEME is ever opened in OpenMFC, so the reachable behaviour is the
-// VS2005 fallback alone.
-// STUB: that VS2005 body is defined in CMFCVisualManagerVS2005.cpp with an
-// auto-generated parameter list (no `this`); see headerRequests.  Parameter
-// list corrected from the mangled name.
+//         rectBorderSize, pButton);                                   // 0x1b48f0, call at 0x1b653a
+// (Import slots resolved with iat.py: 0x1802c53e0 DrawThemeBackground,
+// 0x1802c4248 CreateCompatibleDC, 0x1802c41c0 CreateCompatibleBitmap.)
+// The gate is transcribed and reads m_hThemeTab at its retail offset (see
+// VS08_ThemeHandle).  DEVIATION: the themed branch is NOT transcribed -- no
+// OpenMFC body ever opens a theme into +0x80, so it is unreachable unless a
+// client class stores an HTHEME there itself, and its CMFCAutoHideButton
+// virtual (+0x48) cannot be dispatched on OpenMFC's objects.  If the handle is
+// ever non-NULL this body falls through to the VS2005 outline instead of the
+// themed tab.  The reachable path, the VS2005 call, is exact.
 // Symbol: ?OnDrawAutoHideButtonBorder@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@1PEAVCMFCAutoHideButton@@@Z
 extern "C" void MS_ABI impl__OnDrawAutoHideButtonBorder_CMFCVisualManagerVS2008__UEAAXPEAVCDC__VCRect__1PEAVCMFCAutoHideButton___Z(
-    void* /*pThis*/, CDC* /*pDC*/, CRect /*rectBounds*/, CRect /*rectBorderSize*/,
-    void* /*pButton*/ /* CMFCAutoHideButton* */) {}
+    void* pThis, CDC* pDC, CRect rectBounds, CRect rectBorderSize,
+    void* pButton /* CMFCAutoHideButton* */)
+{
+    if (VS08_RichColorDesktop() && VS08_ThemeHandle(pThis, kOffThemeTab) != nullptr) {
+        // Themed branch not transcribed -- see DEVIATION above.
+    }
+    impl__OnDrawAutoHideButtonBorder_CMFCVisualManagerVS2005__UEAAXPEAVCDC__VCRect__1PEAVCMFCAutoHideButton___Z(
+        pThis, pDC, rectBounds, rectBorderSize, pButton);
+}
 
 // ?OnDrawButtonBorder@CMFCVisualManagerVS2008@@... -- entry 0x1b5460 (mfc140),
 // 0x1b6e60 (mfc140u), complete body:
@@ -646,17 +734,31 @@ extern "C" void MS_ABI impl__OnDrawButtonBorder_CMFCVisualManagerVS2008__UEAAXPE
 //     return bActive ? afxGlobalData[+0x80] : [+0x90];                 // 0x1b66bd / 0x1b66e1
 // (+0x80/+0x88/+0x8c/+0x90/+0x94/+0x98 are clrCaptionText, clrActiveCaption,
 // clrInactiveCaption, clrInactiveCaptionText, clrActiveCaptionGradient,
-// clrInactiveCaptionGradient in core/runtime/AFX_GLOBAL_DATA.cpp's shadow.)
-// STUB: m_bOSColors is 0 unless a derived class sets it (see the file
-// header), so the ordinary path is the VS2005 fallback alone, and that body is
-// defined in
-// CMFCVisualManagerVS2005.cpp with an auto-generated parameter list (no
-// `this`); see headerRequests.  Parameter list corrected from the mangled name.
+// clrInactiveCaptionGradient in core/runtime/AFX_GLOBAL_DATA.cpp's shadow.
+// The gradient's colorStart is the r8 load at 0x1b6627 / 0x1b6666 and its
+// colorFinish the esi load at 0x1b660a / 0x1b6649, passed in r9 at 0x1b668b.)
+// m_bOSColors is 0 unless a derived class sets it (see the file header), so
+// the ordinary path is the VS2005 fallback.  Transcribed in full; the
+// CDrawingManager is built and destroyed around the one FillGradient call as
+// in the sibling bodies (retail builds it inline -- vptr and pDC stored at
+// 0x1b65d6..0x1b65e2 -- and calls no destructor).  Retail hands pDC to that
+// CDrawingManager without a NULL test on the m_bOSColors path; so does this
+// body.
 // Symbol: ?OnDrawPaneCaption@CMFCVisualManagerVS2008@@UEAAKPEAVCDC@@PEAVCDockablePane@@HVCRect@@2@Z
 extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerVS2008__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
-    void* /*pThis*/, CDC* /*pDC*/, void* /*pBar*/ /* CDockablePane* */, int /*bActive*/,
-    CRect /*rectCaption*/, CRect /*rectButtons*/) {
-    return 0;
+    void* pThis, CDC* pDC, void* pBar /* CDockablePane* */, int bActive,
+    CRect rectCaption, CRect rectButtons)
+{
+    if (VS08_OSColors(pThis) == 0) {
+        return impl__OnDrawPaneCaption_CMFCVisualManagerVS2005__UEAAKPEAVCDC__PEAVCDockablePane__HVCRect__2_Z(
+            pThis, pDC, pBar, bActive, rectCaption, rectButtons);
+    }
+
+    rectCaption.bottom++;
+    const COLORREF clrStart  = bActive ? GD_clrActiveCaptionGradient() : GD_clrInactiveCaptionGradient();
+    const COLORREF clrFinish = bActive ? GD_clrActiveCaption()         : GD_clrInactiveCaption();
+    VS08_FillGradient(pDC, rectCaption, clrStart, clrFinish, TRUE);
+    return bActive ? GD_clrCaptionText() : GD_clrInactiveCaptionText();
 }
 
 // ?OnDrawTab@CMFCVisualManagerVS2008@@... -- entry 0x1b5e10 (mfc140), 0x1b7810 (mfc140u).
@@ -668,9 +770,11 @@ extern "C" unsigned long MS_ABI impl__OnDrawPaneCaption_CMFCVisualManagerVS2008_
 // control's vftable +0x520 / +0x528 / +0x530 and this->[+0x80] (an HTHEME) and
 // paints or delegates along several paths (0x1b5f08..0x1b6227).
 // STUB: the CMFCBaseTabCtrl virtuals at +0x510 / +0x528 (IsFlatTab /
-// IsVS2005Style in the slot map CMFCVisualManagerOfficeXP.cpp derives) cannot
-// be dispatched on OpenMFC's tab controls, and the VS2005 fallback is defined
-// with an auto-generated parameter list; see headerRequests.
+// IsVS2005Style in the slot map CMFCVisualManagerOfficeXP.cpp derives), and
+// the +0x3c8 / +0x3d0 / +0x520 / +0x530 ones, cannot be dispatched on
+// OpenMFC's tab controls, so no branch can be chosen.  (The VS2005 fallback
+// in CMFCVisualManagerVS2005.cpp now has the correct parameter list, but it
+// is itself an empty stub for this same reason.)
 // Symbol: ?OnDrawTab@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@HHPEBVCMFCBaseTabCtrl@@@Z
 extern "C" void MS_ABI impl__OnDrawTab_CMFCVisualManagerVS2008__UEAAXPEAVCDC__VCRect__HHPEBVCMFCBaseTabCtrl___Z(
     void* /*pThis*/, CDC* /*pDC*/, CRect /*rectTab*/, int /*iTab*/, int /*bIsActive*/,
@@ -698,8 +802,12 @@ extern "C" void MS_ABI impl__OnDrawTabResizeBar_CMFCVisualManagerVS2008__UEAAXPE
 // FillGradient(rect, this->[+0x214], this->[+0x218], FALSE, 0, 0); otherwise
 // CMFCVisualManagerVS2005::OnEraseTabsArea (0x1b3dd0, the call at 0x1b5a81).
 // STUB: the +0x528 virtual (IsVS2005Style, see OnDrawTab) cannot be dispatched
-// on OpenMFC's tab controls, and the VS2005 fallback is defined with an
-// auto-generated parameter list; see headerRequests.
+// on OpenMFC's tab controls, so the branch cannot be chosen.  Unlike
+// GetTabFrameColors, where the query only decides one colour store, here it
+// selects between two whole painting paths, and the TRUE arm is the one
+// that paints STYLE_3D_VS2005 tab areas, so no default is assumed.  (The
+// VS2005 fallback now has the correct parameter list but is itself an empty
+// stub.)
 // Symbol: ?OnEraseTabsArea@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@VCRect@@PEBVCMFCBaseTabCtrl@@@Z
 extern "C" void MS_ABI impl__OnEraseTabsArea_CMFCVisualManagerVS2008__UEAAXPEAVCDC__VCRect__PEBVCMFCBaseTabCtrl___Z(
     void* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, const CMFCBaseTabCtrl* /*pTabWnd*/) {}
@@ -811,10 +919,12 @@ extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerVS2008__UEAAXP
 //     CMFCVisualManagerOffice2003::OnFillButtonInterior(pDC, pButton, rect, state);  // 0x190490, 0x1b5645
 // DEVIATION (dropped-down, m_bOSColors == 0 arm): vftable slot 199 of this
 // class is CMFCVisualManagerVS2005::OnFillHighlightedArea, which
-// CMFCVisualManagerVS2005.cpp defines with an auto-generated parameter list
-// (no `this`) and an empty body; it is not called here and nothing is painted
-// on that arm -- see headerRequests.  (The current stub would paint nothing
-// either.)  The m_bOSColors arm reads +0x118 through VS08_Palette().
+// CMFCVisualManagerVS2005.cpp now defines (correct parameter list) as a
+// forward to Office2003's body.  It is still not called here: the brush retail
+// passes is this object's own m_brBarBkgnd CBrush at +0x160, which lies past
+// OpenMFC's 0x148-byte VS2005 object and is never constructed, so its address
+// would hand the fill an uninitialised handle.  Nothing is painted on that
+// arm.  The m_bOSColors arm reads +0x118 through VS08_Palette().
 // Symbol: ?OnFillButtonInterior@CMFCVisualManagerVS2008@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
 extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerVS2008__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
     void* pThis, CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state)
@@ -1038,17 +1148,44 @@ extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManagerVS2
 
 // ?OnUpdateSystemColors@CMFCVisualManagerVS2008@@UEAAXXZ -- entry 0x1b6700
 // (mfc140), 0x1b8100 (mfc140u):
-//     m_bOSColors (+0x330) = this->[+0x50] /* HTHEME */ != NULL
+//     m_bOSColors (+0x330) = m_hThemeExplorerBar (+0x50) != NULL
 //                            && rich-colour desktop;              // 0x1b6716..0x1b6773
-//     CMFCVisualManagerVS2005::OnUpdateSystemColors();             // 0x1b33c0, 0x1b6779
+//     CMFCVisualManagerVS2005::OnUpdateSystemColors();             // 0x1b33c0, call at 0x1b6779
 //     if (!m_bOSColors) return;                                    // 0x1b677e
-//     ... ::GetThemeColor on +0x50 into +0x220 / +0x21c, then +0x214..+0x240,
-//         brushes +0x190 / +0x2d8 and pen +0x298 ...              // 0x1b678a..0x1b68c5
-// STUB: in this build the HTHEME is never opened, so the reachable behaviour
-// is the +0x330 store (always FALSE) and the VS2005 call, and that VS2005
-// body is defined in CMFCVisualManagerVS2005.cpp with an auto-generated
-// parameter list (no `this`); see headerRequests.  The constructor above
-// clears +0x330 itself, as retail's does, before calling this.  Parameter
-// list corrected from the mangled name (`this` was missing).
+//     ::GetThemeColor(m_hThemeExplorerBar, 0, 0, 0xedd, &+0x220);  // UxTheme import, 0x1b67a5
+//     ::GetThemeColor(m_hThemeExplorerBar, 0, 0, 0xee3, &+0x21c);  // 0x1b67c6
+//     ... then +0x214 = SmartMixColors(+0x21c, +0x220, 1.0, 2, 1), +0x218 =
+//         +0x228 = +0x220, +0x22c = PixelAlpha(+0x21c, 0x62), +0x230 = +0x214,
+//         +0x234 = +0x240 = +0x21c, +0x238 = PixelAlpha(+0x21c, 0x55),
+//         brushes +0x190 / +0x2d8 re-created from +0x220, +0x224 =
+//         SmartMixColors(+0x21c, +0x220, 0.92, 1, 1) and pen +0x298 =
+//         CreatePen(PS_SOLID, 1, +0x238)                           // 0x1b67cc..0x1b68c5
+// (GetThemeColor / CreateSolidBrush / CreatePen import slots resolved with
+// iat.py; 0x348bb0 = 1.0 and 0x348b80 = 0.92 as CMFCVisualManagerVS2005.cpp
+// reads them.)
+// Transcribed: the m_bOSColors store, the VS2005 call (a real transcribed
+// body, which runs Office2003's and hence OfficeXP's colour update) and the
+// early return.  DEVIATION: the themed tail is NOT transcribed -- no OpenMFC
+// body opens a theme into +0x50 (see VS08_ThemeHandle), so m_bOSColors is
+// always FALSE here unless a client class stores an HTHEME there itself, and
+// the CBrush / CPen members at +0x190 / +0x2d8 / +0x298 are objects OpenMFC
+// never constructs, so they could not be re-created in place anyway.  The
+// bodies in this file that read the palette under m_bOSColors recompute it
+// through VS08_Palette() instead.  The constructor above clears +0x330
+// itself, as retail's does, before calling this.  The NULL-`this` test is
+// OpenMFC's (retail reads +0x50 unconditionally).  Parameter list corrected
+// from the mangled name (`this` was missing).
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManagerVS2008@@UEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerVS2008__UEAAXXZ(void* /*pThis*/) {}
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerVS2008__UEAAXXZ(void* pThis)
+{
+    if (pThis == nullptr) return;
+
+    const int bOSColors =
+        (VS08_ThemeHandle(pThis, kOffThemeExplorerBar) != nullptr && VS08_RichColorDesktop()) ? TRUE : FALSE;
+    std::memcpy(static_cast<char*>(pThis) + kOffOSColors, &bOSColors, sizeof bOSColors);
+
+    impl__OnUpdateSystemColors_CMFCVisualManagerVS2005__UEAAXXZ(pThis);
+
+    if (VS08_OSColors(pThis) == 0) return;
+    // Themed palette tail not transcribed -- see DEVIATION above.
+}

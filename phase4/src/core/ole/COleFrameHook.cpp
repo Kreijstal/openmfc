@@ -16,8 +16,9 @@
 //     bodies below were read at their ANSI RVA.  Each comment names the image
 //     it is quoting; where both are known both are given.
 //   * The COleFrameHook class vftable is at mfc140u .rdata 0x32c0f0 (planted
-//     by the ctor at mfc140u 0x247db4) and at mfc140 .rdata 0x329f30 (ANSI
-//     ctor 0x246214).  Slots 22..33 are this class's own virtuals; slot 0 is
+//     by the store at mfc140u 0x247db4 inside the ctor, entry 0x247d90) and
+//     at mfc140 .rdata 0x329f30 (store at mfc140 0x246214 inside the ANSI
+//     ctor, entry 0x2461f0).  Slots 22..33 are this class's own virtuals; slot 0 is
 //     CCmdTarget::GetRuntimeClass and slot 16 is COleFrameHook's own
 //     GetInterfaceMap (mfc140u 0x2492f0).  The ANSI vftable names all twelve
 //     of the own virtuals outright, because the mfc140 map resolves all
@@ -70,10 +71,17 @@
 // WHAT OPENMFC MODELS, AND WHAT IT DOES NOT.  include/openmfc/afxole.h:871
 // declares only three members — m_pFrameWnd, m_pActiveItem and
 // m_lpActiveUIWindow — followed by char _oleframehook_padding[48].  Mapping
-// them onto retail:
-//   retail +0x40 m_pFrameWnd       -> OpenMFC m_pFrameWnd        (matches)
-//   retail +0x50 m_pActiveItem     -> OpenMFC m_pActiveItem      (matches by name)
-//   retail +0x48 m_lpActiveObject  -> OpenMFC m_lpActiveUIWindow (MISNAMED AND
+// them onto retail -- by NAME only, because none of the offsets agree.
+// OpenMFC's CCmdTarget (include/openmfc/afxwin.h:397, a CObject vptr plus
+// `char _padding[24]`) is 0x20 bytes where retail's is 0x40, so every OpenMFC
+// member sits 0x20 bytes lower than its retail counterpart and the class is
+// 0x68 bytes, not retail's 0x90 (measured 2026-09-29 by compiling
+// offsetof/sizeof probes with the phase4 mingw flags: m_pFrameWnd +0x20,
+// m_pActiveItem +0x28, m_lpActiveUIWindow +0x30, sizeof 0x68,
+// sizeof(CCmdTarget) 0x20):
+//   retail +0x40 m_pFrameWnd       -> OpenMFC m_pFrameWnd        (+0x20)
+//   retail +0x50 m_pActiveItem     -> OpenMFC m_pActiveItem      (+0x28)
+//   retail +0x48 m_lpActiveObject  -> OpenMFC m_lpActiveUIWindow (+0x30; MISNAMED AND
 //       MISTYPED: retail's member is an IOleInPlaceActiveObject*, set by
 //       XOleInPlaceFrame::SetActiveObject at `mov %rbx,-0x38(%rdi)` inside
 //       mfc140 0x247c50, and every use below calls IOleInPlaceActiveObject
@@ -109,7 +117,8 @@
 //                                    (mfc140 0x2477db) and QueryStatus the same
 //                                    at 0x24783b, and 0x88 - 0x38 == 0x50
 //                                    agrees with the vftable placement.
-// OpenMFC has neither sub-object: COleFrameHook's declaration has no nested
+// OpenMFC has neither sub-object -- both retail offsets, +0x80 and +0x88, lie
+// past the end of OpenMFC's 0x68-byte object: COleFrameHook's declaration has no nested
 // classes, the constructor plants no interface vftables, and the interface map
 // registered at phase4/src/detail/InterfaceMapsSupport.cpp:38-39 forwards
 // straight to CCmdTarget with no entries of its own, so OpenMFC's
@@ -198,8 +207,10 @@ struct RetailCOleFrameHook {
                                    //        no reader appears in the bodies decoded here
     void* m_hAccelTable;           // +0x68  ctor `mov %rcx,0x68(%rsi)` = 0  0x247e0d;
                                    //        XOleInPlaceFrame::TranslateAccelerator
-                                   //        (mfc140 0x247ff5) swaps it into
-                                   //        m_pFrameWnd+0xf8 around PreTranslateMessage
+                                   //        (entry mfc140 0x247fc0; the load of this
+                                   //        member is the instruction at 0x247ff5)
+                                   //        swaps it into m_pFrameWnd+0xf8 around
+                                   //        PreTranslateMessage
     unsigned int m_nModelessCount; // +0x70  ctor `mov %ecx,0x70(%rsi)` = 0  0x247e11;
                                    //        DoEnableModeless is its only user
     unsigned int pad_0x74;
@@ -735,70 +746,137 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 // for XOleInPlaceFrame (mfc140 0x24793f) and -0x88 for XOleCommandTarget
 // (mfc140 0x2477db reads m_pActiveItem as `mov -0x38(%rcx),%rdi`, and
 // 0x88 - 0x38 == 0x50) -- and OpenMFC's COleFrameHook contains neither
-// sub-object.  Its constructor plants no interface vftables, and the interface
-// map at detail/InterfaceMapsSupport.cpp:38-39 forwards to CCmdTarget with no
-// entries of its own, so nothing in this build can ever produce a pointer for
-// which that back-up is meaningful.  A body doing the arithmetic anyway would
-// synthesise a `this` pointing 0x80 bytes before a live object.
+// sub-object.  Both offsets lie past the end of OpenMFC's 0x68-byte object
+// (see the header comment for the measurement), its constructor plants no
+// interface vftables, and the interface map at
+// detail/InterfaceMapsSupport.cpp:38-39 forwards to CCmdTarget with no entries
+// of its own, so nothing in this build can ever produce a pointer for which
+// that back-up is meaningful.  A body doing the arithmetic anyway would
+// synthesise a `this` pointing 0x80 bytes before whatever the caller passed.
+// Even with a recoverable hook, six of the fourteen bodies would still be
+// blocked on members OpenMFC does not declare (named per entry below):
+// ContextSensitiveHelp (CFrameWnd +0x104), GetBorder (CFrameWnd +0x110),
+// SetBorderSpace (CFrameWnd +0x1d0), GetWindow (hook +0x58),
+// TranslateAccelerator (hook +0x68 and CFrameWnd +0xf8) and SetActiveObject
+// (hook +0x78).  The other eight -- RequestBorderSpace, InsertMenus, SetMenu,
+// RemoveMenus, SetStatusText, EnableModeless, Exec and QueryStatus -- need
+// only the hook's m_pFrameWnd / m_pActiveItem plus vtable slots; what blocks
+// them is solely the unrecoverable `this`.
 //
 // What IS fixed here is the parameter lists: the auto-generated ones omitted
 // the interface `this` entirely, which would have shifted every argument by
-// one register had any of these ever been reached.
+// one register had any of these ever been reached.  The E_NOTIMPL the stubs
+// return is NOT a retail value -- no retail body below returns it -- it is
+// the honest answer for "not implemented in this build".
 //
-// Retail behaviour, so that filling these in later needs no second pass
-// (mfc140 RVAs; H = the recovered COleFrameHook, all vtable slots are
-// IOleInPlaceFrame's unless noted):
+// Retail behaviour, so that filling these in later needs no second pass.
+// First RVA is mfc140 (ANSI, where every body below was read); the mfc140u RVA
+// is given where mfc140u_rva_symbols.json resolves the export.  H = the
+// recovered COleFrameHook.  "vtbl 0xNN" on H->m_pFrameWnd is the CFrameWnd
+// vftable byte offset, on H->m_pActiveItem the COleClientItem one (mfc140
+// .rdata 0x329c48: 0x158 OnInsertMenus, 0x160 OnSetMenu, 0x168 OnRemoveMenus
+// and 0x170 OnUpdateFrameTitle are identified at core/ole/COleClientItem.cpp:
+// 1535-1538; 0x178 holds mfc140 0x180246d10 =
+// ?OnShowControlBars@COleClientItem@@UEAAHPEAVCFrameWnd@@H@Z, read out of
+// that vftable for this comment).  Every XOleInPlaceFrame body except
+// GetWindow and SetStatusText opens with AFX_MAINTAIN_STATE2 on H's CCmdTarget
+// m_pModuleState (call mfc140 0x180133df0) and, where noted, seeds an
+// E_UNEXPECTED (0x8000ffff) result that only the catch path returns.
 //   0x247910 GetWindow            *phwnd = H->m_hWndFrame (read as -0x28(%rcx));
 //                                 return *phwnd ? S_OK : E_FAIL; E_POINTER if !phwnd
-//   0x247930 ContextSensitiveHelp pFrame = H->m_pFrameWnd->GetTopLevelFrame()
-//                                 (AfxThrowInvalidArgException if NULL).
+//   0x247930 ContextSensitiveHelp (mfc140u 0x2494d0)
+//                                 pFrame = H->m_pFrameWnd->GetTopLevelFrame()
+//                                 (call mfc140 0x18028c910); if NULL,
+//                                 AfxThrowInvalidArgException (0x180225b80).
 //                                 !fEnterMode: pFrame->ExitHelpMode() (vtbl 0x378);
-//                                 S_OK.
-//                                 fEnterMode: S_OK if pFrame->[+0x104] already
-//                                 set; else E_UNEXPECTED unless
-//                                 pFrame->CanEnterHelpMode() and
-//                                 H->OnContextHelp(TRUE) (H's vtbl 0xd0), then
+//                                 return S_OK.
+//                                 fEnterMode: if pFrame->[+0x104] != 0 (retail
+//                                 CFrameWnd m_bHelpMode; OpenMFC's CFrameWnd has
+//                                 no such member) return S_OK.  Otherwise
+//                                 return E_UNEXPECTED if
+//                                 !pFrame->CanEnterHelpMode() (call 0x18029fbb0),
+//                                 or if !H->OnContextHelp(TRUE) (H's own vtbl
+//                                 0xd0 = slot 26), or if
 //                                 ::PostMessage(pFrame->m_hWnd, WM_COMMAND (0x111),
-//                                 ID_CONTEXT_HELP (0xe145), 0) -- WM_COMMAND with
-//                                 a command ID, not WM_SYSCOMMAND/SC_CONTEXTHELP;
-//                                 the import slot mfc140 0x1802c52d8 resolves
-//                                 to PostMessageA (PostMessageW in mfc140u)
-//   0x247a20 GetBorder            H->m_pActiveItem->vf[0x178](m_pFrameWnd, FALSE);
-//                                 then three H->m_pFrameWnd->NegotiateBorderSpace
-//                                 calls (vtbl 0x348): (3, NULL), (1, lprectBorder),
-//                                 (3, &<frame+0x110 saved beforehand>); then
-//                                 vf[0x178](m_pFrameWnd, TRUE) again if the first
-//                                 vf[0x178] call returned nonzero; S_OK
-//   0x247b30 RequestBorderSpace   H->m_pFrameWnd->NegotiateBorderSpace(2 /*request*/);
-//                                 returns S_OK or OLE_E_INVALIDRECT (0x800401a1)
-//   0x247ba0 SetBorderSpace       NegotiateBorderSpace(3 /*set*/, pborderwidths);
-//                                 if nonzero: clear bits 0xc of
-//                                 m_pFrameWnd->[+0x1d0] and call
-//                                 m_pFrameWnd->RecalcLayout(FALSE) (vtbl 0x300);
+//                                 ID_CONTEXT_HELP (0xe145), 0) fails; else S_OK.
+//                                 WM_COMMAND with a command ID, not
+//                                 WM_SYSCOMMAND/SC_CONTEXTHELP; the import slot
+//                                 mfc140 0x1802c52d8 resolves to PostMessageA
+//                                 (PostMessageW in mfc140u).
+//   0x247a20 GetBorder            (mfc140u 0x2495c0)
+//                                 BOOL b = H->m_pActiveItem->OnShowControlBars(
+//                                          H->m_pFrameWnd, FALSE);   // vtbl 0x178
+//                                 RECT saved = m_pFrameWnd->[+0x110]  (16 bytes,
+//                                 copied AFTER that call; retail CFrameWnd
+//                                 m_rectBorder, undeclared in OpenMFC);
+//                                 then three m_pFrameWnd->NegotiateBorderSpace
+//                                 calls (vtbl 0x348): (3, NULL), (1, lprectBorder
+//                                 -- passed unchecked), (3, &saved); then
+//                                 OnShowControlBars(m_pFrameWnd, TRUE) only if b;
+//                                 return S_OK.
+//   0x247b30 RequestBorderSpace   return H->m_pFrameWnd->NegotiateBorderSpace(
+//                                 2 /*request*/, pborderwidths) ? S_OK
+//                                 : OLE_E_INVALIDRECT (0x800401a1)
+//                                 (`neg ; sbb ; not ; and $0x800401a1`).
+//   0x247ba0 SetBorderSpace       if (NegotiateBorderSpace(3 /*set*/, pborderwidths))
+//                                 { m_pFrameWnd->[+0x1d0] &= ~0xc;
+//                                   m_pFrameWnd->RecalcLayout(FALSE); } (vtbl 0x300)
 //                                 then always
-//                                 H->m_pActiveItem->vf[0x178](m_pFrameWnd,
-//                                 pborderwidths == NULL); S_OK
-//   0x247c50 SetActiveObject      RELEASE(H->m_lpActiveObject); H->m_lpActiveObject =
-//                                 pActiveObject (AddRef'd); H->m_strObjName.Empty();
-//                                 then ONLY if pszObjName && pActiveObject:
+//                                 H->m_pActiveItem->OnShowControlBars(m_pFrameWnd,
+//                                 pborderwidths == NULL); return S_OK.
+//                                 +0x1d0 is undeclared in OpenMFC's CFrameWnd.
+//   0x247c50 SetActiveObject      (seeds E_UNEXPECTED)  release H->m_lpActiveObject
+//                                 through the unexported helper mfc140
+//                                 0x18026ba84 (IUnknown slot 2, then NULL it);
+//                                 H->m_lpActiveObject = pActiveObject, AddRef'd
+//                                 (slot 1) when non-NULL; H->m_strObjName.Empty()
+//                                 (+0x78, undeclared in OpenMFC); then ONLY if
+//                                 pszObjName && pActiveObject:
 //                                 H->m_strObjName = pszObjName and
-//                                 H->m_pActiveItem->vf[0x170]() (OnUpdateFrameTitle)
-//   0x247d00 InsertMenus          H->m_pActiveItem->vf[0x158] (OnInsertMenus),
-//                                 with CMenu::FromHandle(hmenuShared)
-//   0x247d80 SetMenu              H->m_pActiveItem->vf[0x160] (OnSetMenu)
-//   0x247e20 RemoveMenus          H->m_pActiveItem->vf[0x168] (OnRemoveMenus)
-//   0x247ea0 SetStatusText        ::SendMessage(H->m_pFrameWnd->m_hWnd,
-//                                 0x362 /* AFX WM_SETMESSAGESTRING */, 0, (LPARAM)text)
-//   0x247f40 EnableModeless       H->m_pFrameWnd->BeginModalState() (vtbl 0x218)
-//                                 when !fEnable, EndModalState() (0x220) when fEnable
+//                                 H->m_pActiveItem->OnUpdateFrameTitle() (vtbl
+//                                 0x170); return S_OK.
+//   0x247d00 InsertMenus          (mfc140u 0x2498b0; seeds E_UNEXPECTED)
+//                                 H->m_pActiveItem->OnInsertMenus(          // 0x158
+//                                   CMenu::FromHandle(hmenuShared), lpMenuWidths);
+//                                 return S_OK.
+//   0x247d80 SetMenu              (seeds E_UNEXPECTED)
+//                                 H->m_pActiveItem->OnSetMenu(              // 0x160
+//                                   CMenu::FromHandle(hmenuShared), holemenu,
+//                                   hwndActiveObject); return S_OK.
+//   0x247e20 RemoveMenus          (seeds E_UNEXPECTED)
+//                                 H->m_pActiveItem->OnRemoveMenus(          // 0x168
+//                                   CMenu::FromHandle(hmenuShared)); return S_OK.
+//                                 (CMenu::FromHandle is the call to mfc140
+//                                 0x1802a5fc0 in all three menu methods.)
+//   0x247ea0 SetStatusText        no state prologue.  Builds a temporary CString
+//                                 from pszStatusText when it is non-NULL (call
+//                                 mfc140 0x18003b240, which in the ANSI image is
+//                                 CStringA's converting operator=(const wchar_t*);
+//                                 mfc140u calls its own CStringW assignment
+//                                 instead, at an address not checked here), then
+//                                 ::SendMessage(H->m_pFrameWnd->m_hWnd /*CWnd+0x40*/,
+//                                 0x362 /* AFX WM_SETMESSAGESTRING */, 0,
+//                                 text-or-NULL) -- slot mfc140 0x1802c5378 =
+//                                 SendMessageA, i.e. SendMessageW in mfc140u --
+//                                 releases the temporary, returns S_OK.
+//   0x247f40 EnableModeless       (mfc140u 0x249b00; seeds E_UNEXPECTED)
+//                                 H->m_pFrameWnd->BeginModalState() (vtbl 0x218)
+//                                 when !fEnable, EndModalState() (0x220) when
+//                                 fEnable; return S_OK.
 //   (CFrameWnd vtbl names above: read out of the mfc140 CFrameWnd vftable at
 //   .rdata 0x337fc8, whose byte 0x348 holds NegotiateBorderSpace, 0x218
 //   BeginModalState, 0x220 EndModalState, 0x228 PreTranslateMessage, 0x300
 //   RecalcLayout and 0x378 ExitHelpMode.)
-//   0x247fc0 TranslateAccelerator swaps H->m_hAccelTable into
-//                                 H->m_pFrameWnd->[+0xf8], copies the 0x30-byte MSG to
-//                                 the stack, calls m_pFrameWnd->vf[0x228]
-//                                 (PreTranslateMessage), returns S_OK/S_FALSE
+//   0x247fc0 TranslateAccelerator (seeds E_UNEXPECTED; mfc140 export name
+//                                 TranslateAcceleratorA)  saves
+//                                 H->m_pFrameWnd->[+0xf8] and stores
+//                                 H->m_hAccelTable there, copies the 0x30-byte MSG
+//                                 to the stack, calls m_pFrameWnd->vf[0x228]
+//                                 (PreTranslateMessage) on the copy, copies the
+//                                 MSG back over *lpmsg, restores [+0xf8], and
+//                                 returns S_OK if PreTranslateMessage returned
+//                                 nonzero, else S_FALSE (`test ; sete`).  wID is
+//                                 never read.
 //   0x2477d0 Exec (XOleCommandTarget)        } both: if m_pActiveItem is a
 //   0x247830 QueryStatus (XOleCommandTarget) } COleDocObjectItem, forward it to an
 //                                 unexported helper (mfc140 0x258128 / 0x257e68)
@@ -807,6 +885,9 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 // ---------------------------------------------------------------------------
 
 // Symbol: ?ContextSensitiveHelp@XOleInPlaceFrame@COleFrameHook@@UEAAJH@Z
+// STUB -- retail body decoded under "ContextSensitiveHelp" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleInPlaceFrame_COleFrameHook__UEAAJH_Z(
     void* pThis, int fEnterMode) {
     (void)pThis;
@@ -815,6 +896,9 @@ extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleInPlaceFrame_COleFrameHook
 }
 
 // Symbol: ?EnableModeless@XOleInPlaceFrame@COleFrameHook@@UEAAJH@Z
+// STUB -- retail body decoded under "EnableModeless" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__EnableModeless_XOleInPlaceFrame_COleFrameHook__UEAAJH_Z(
     void* pThis, int fEnable) {
     (void)pThis;
@@ -836,6 +920,9 @@ extern "C" long MS_ABI impl__Exec_XOleCommandTarget_COleFrameHook__UEAAJPEBU_GUI
 }
 
 // Symbol: ?GetBorder@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUtagRECT@@@Z
+// STUB -- retail body decoded under "GetBorder" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__GetBorder_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUtagRECT___Z(
     void* pThis, RECT* lprectBorder) {
     (void)pThis;
@@ -856,6 +943,9 @@ extern "C" long MS_ABI impl__GetWindow_XOleInPlaceFrame_COleFrameHook__UEAAJPEAP
 }
 
 // Symbol: ?InsertMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAUtagOleMenuGroupWidths@@@Z
+// STUB -- retail body decoded under "InsertMenus" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__InsertMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAUtagOleMenuGroupWidths___Z(
     void* pThis, HMENU hmenuShared, OLEMENUGROUPWIDTHS* lpMenuWidths) {
     (void)pThis;
@@ -877,6 +967,9 @@ extern "C" long MS_ABI impl__QueryStatus_XOleCommandTarget_COleFrameHook__UEAAJP
 }
 
 // Symbol: ?RemoveMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@@Z
+// STUB -- retail body decoded under "RemoveMenus" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU_____Z(
     void* pThis, HMENU hmenuShared) {
     (void)pThis;
@@ -885,6 +978,9 @@ extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPE
 }
 
 // Symbol: ?RequestBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
+// STUB -- retail body decoded under "RequestBorderSpace" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__RequestBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
     void* pThis, const RECT* pborderwidths) {
     (void)pThis;
@@ -893,6 +989,9 @@ extern "C" long MS_ABI impl__RequestBorderSpace_XOleInPlaceFrame_COleFrameHook__
 }
 
 // Symbol: ?SetActiveObject@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUIOleInPlaceActiveObject@@PEB_W@Z
+// STUB -- retail body decoded under "SetActiveObject" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__SetActiveObject_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUIOleInPlaceActiveObject__PEB_W_Z(
     void* pThis, IOleInPlaceActiveObject* pActiveObject, const wchar_t* pszObjName) {
     (void)pThis;
@@ -902,6 +1001,9 @@ extern "C" long MS_ABI impl__SetActiveObject_XOleInPlaceFrame_COleFrameHook__UEA
 }
 
 // Symbol: ?SetBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
+// STUB -- retail body decoded under "SetBorderSpace" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__SetBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
     void* pThis, const RECT* pborderwidths) {
     (void)pThis;
@@ -910,6 +1012,9 @@ extern "C" long MS_ABI impl__SetBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAA
 }
 
 // Symbol: ?SetMenu@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAXPEAUHWND__@@@Z
+// STUB -- retail body decoded under "SetMenu" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__SetMenu_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAXPEAUHWND_____Z(
     void* pThis, HMENU hmenuShared, void* holemenu, HWND hwndActiveObject) {
     (void)pThis;
@@ -920,6 +1025,9 @@ extern "C" long MS_ABI impl__SetMenu_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHM
 }
 
 // Symbol: ?SetStatusText@XOleInPlaceFrame@COleFrameHook@@UEAAJPEB_W@Z
+// STUB -- retail body decoded under "SetStatusText" in the block above; no
+// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
+// past the end of OpenMFC's 0x68-byte object).
 extern "C" long MS_ABI impl__SetStatusText_XOleInPlaceFrame_COleFrameHook__UEAAJPEB_W_Z(
     void* pThis, const wchar_t* pszStatusText) {
     (void)pThis;
