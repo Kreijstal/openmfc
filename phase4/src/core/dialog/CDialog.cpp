@@ -466,7 +466,8 @@ extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
 // AfxGetThreadState() is the call at 0x208025 (u RVA 0x1332a0), and +0xb0 is
 // m_lastSentMsg (+0x98) .lParam (+0x18) by the _AFX_THREAD_STATE declaration
 // in the retail afxstat_.h (offsets computed from it, x64).
-// OpenMFC's _AFX_THREAD_STATE (detail/CWinAppSupport.h) is a 0x28-byte struct
+// OpenMFC's _AFX_THREAD_STATE (detail/CWinAppSupport.h) is a 0x20-byte struct
+// (two ints and three pointers; sizeof measured under this file's flags)
 // with no m_lastSentMsg, and nothing records the last sent message, so the
 // gate cannot be evaluated; with the ENDSESSION_CLOSEAPP bit clear retail also
 // does nothing, which is what this body does.
@@ -513,7 +514,7 @@ extern "C" void MS_ABI impl__OnPaint_CDialog__IEAAXXZ(CDialog* pThis) {
 // SupportsRestartManager returning m_dwRestartManagerSupportFlags &
 // AFX_RESTART_MANAGER_SUPPORT_RESTART.)  As in OnEndSession above, the result
 // hinges on the lParam of the message being processed, read from the thread
-// state's m_lastSentMsg, which OpenMFC's 0x28-byte _AFX_THREAD_STATE
+// state's m_lastSentMsg, which OpenMFC's 0x20-byte _AFX_THREAD_STATE
 // (detail/CWinAppSupport.h) does not have and nothing records.  TRUE is what
 // retail returns whenever that ENDSESSION_CLOSEAPP bit is clear.
 // Symbol: ?OnQueryEndSession@CDialog@@IEAAHXZ
@@ -557,7 +558,13 @@ extern "C" void MS_ABI impl__PostModal_CDialog__IEAAXXZ(CDialog* pThis) {
 // 11813 in the mfc140u export address table) resolves to RVA 0x27d0 (mfc140u),
 // a lone `ret $0x0` shared by identical-code folding (the symbol map names that
 // RVA ?AddDockSite@CFrameWndEx@@QEAAXXZ).  So the empty body below IS the
-// retail behaviour, not a placeholder.
+// retail behaviour, not a placeholder.  Cross-check: slot 100 (+0x320) of the
+// CDialog vftable at RVA 0x325658 (mfc140u; the table ??0CDialog@@QEAA@XZ,
+// RVA 0x207e50 (mfc140u), stores into the vptr) also holds 0x27d0 (bytes
+// c2 00 00), next to slot 96 = 0x208d10 (OnInitDialog) and slots 98/99 =
+// OnOK/OnCancel -- PreInitDialog being the first virtual CDialog introduces
+// after OnCancel in the retail afxwin.h.  The same `ret` is the virtual the
+// CPrintDialogEx.cpp note reaches through slot 100.
 // Symbol: ?PreInitDialog@CDialog@@MEAAXXZ
 extern "C" void MS_ABI impl__PreInitDialog_CDialog__MEAAXXZ(CDialog* pThis) {
     (void)pThis;
@@ -591,16 +598,39 @@ extern "C" int MS_ABI impl__SetOccDialogInfo_CDialog__MEAAHPEAU_AFX_OCC_DIALOG_I
     }
     return TRUE;
 }
+// CDialog::OnSetFont(CFont*, BOOL) -- the WM_SETFONT afx_msg handler.  NOT
+// retail.  Retail, RVA 0x208b60 (mfc140u; ordinal 11084), is:
+//     this->OnSetFont(pFont);      // vslot 97 (+0x308), rdx passed through
+//     Default();                   // tail jmp 0x28ac80 (CWnd::Default, mfc140u)
+// i.e. it notifies the virtual and then lets DefWindowProc see the
+// WM_SETFONT that is being handled (replayed from m_lastSentMsg).  The body
+// below instead RE-SENDS WM_SETFONT to its own HWND and never calls the
+// virtual.  Its net effect today resembles retail's Default(): OpenMFC's
+// AfxDlgProc (detail/DlgcoreSupport.cpp) does not route WM_SETFONT to any
+// handler, so the re-sent message falls through to DefDlgProc.  But if
+// WM_SETFONT is ever dispatched to this handler (a message map entry, or a
+// client ON_WM_SETFONT handler chaining to the base), the SendMessage
+// re-enters it with no end.  A faithful transcription needs the retail
+// CWnd::Default (OpenMFC's replays CWinThread::m_msgCur, the last PUMPED
+// message, not the WM_SETFONT being handled) -- left as is, with this warning.
 // Symbol: ?OnSetFont@CDialog@@IEAAXPEAVCFont@@H@Z
 extern "C" void MS_ABI impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(
     CDialog* pThis, CFont* pFont, int bRedraw) {
     if (!pThis || !pThis->m_hWnd || !pFont) return;
     ::SendMessageW(pThis->m_hWnd, WM_SETFONT, (WPARAM)pFont->GetSafeHandle(), (LPARAM)bRedraw);
 }
+// CDialog::OnSetFont(CFont*) -- the overridable.  Retail is an empty function:
+// its export (ordinal 11085) resolves to RVA 0x27d0 (mfc140u), the same folded
+// lone `ret $0x0` as PreInitDialog above, and slot 97 (+0x308) of the CDialog
+// vftable at RVA 0x325658 (mfc140u) -- the slot the retail afx_msg OnSetFont
+// above calls -- holds 0x27d0 too.  So the empty body IS retail.  (It used to
+// forward to the afx_msg handler above and re-send WM_SETFONT to the dialog,
+// which retail's base overridable never does.)
 // Symbol: ?OnSetFont@CDialog@@UEAAXPEAVCFont@@@Z
 extern "C" void MS_ABI impl__OnSetFont_CDialog__UEAAXPEAVCFont___Z(
     CDialog* pThis, CFont* pFont) {
-    impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(pThis, pFont, TRUE);
+    (void)pThis;
+    (void)pFont;
 }
 // Symbol: ?DoModal@CDialog@@UEAA_JXZ
 intptr_t CDialog::DoModal() {

@@ -6,9 +6,75 @@
 #include "detail/DlgcoreSupport.h"
 
 
+#include <cstddef>
+
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__PreProcessPageTemplate_CPropertyPage__IEAAXAEAU_PROPSHEETPAGEW__H_Z(
     CPropertyPage* pThis, PROPSHEETPAGEW& psp, int bWizard);
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CCmdTarget* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);    // core/runtime/CCmdTarget.cpp
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);          // core/window/CWnd.cpp
+extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ();                  // core/app/Globals.cpp
+extern "C" CPropertyPage* MS_ABI impl__GetActivePage_CPropertySheet__QEBAPEAVCPropertyPage__XZ(
+    const CPropertySheet* pThis);                                                          // core/dialog/Thunks.cpp
+extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);                      // core/window/Thunks.cpp
+extern "C" int MS_ABI impl__ModifyStyleEx_CWnd__QEAAHKKI_Z(
+    CWnd* pThis, unsigned long dwRemove, unsigned long dwAdd, unsigned int nFlags);        // core/window/CWnd.cpp
+// ?AfxCallWndProc@@YA_JPEAVCWnd@@PEAUHWND__@@I_K_J@Z.  Declared here with the
+// signature its mangled name describes.  The definition in
+// featurepack/CMFC_misc_stubs.cpp still carries an auto-generated parameter
+// list (void**, void**, unsigned int, unsigned __int64, __int64); each of those
+// is passed in the same register with the same width as the real parameter, so
+// the call is ABI-correct, and that body already treats p0 as the CWnd* and p1
+// as the HWND.
+extern "C" __int64 MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
+    CWnd* pWnd, HWND hWnd, unsigned int nMsg, unsigned __int64 wParam, __int64 lParam);
+
+extern "C" IMAGE_DOS_HEADER __ImageBase;   // this DLL's own image base (linker-provided)
+
+namespace {
+
+// Every body below reads a window's HWND at +0x40 (`mov 0x40(%rsi),%rcx`,
+// `mov 0x40(%rax),%rcx`); OpenMFC's CWnd keeps m_hWnd there.
+static_assert(offsetof(CWnd, m_hWnd) == 0x40, "retail reads m_hWnd at +0x40");
+
+// MFC private messages (afxpriv.h), as the retail bodies pass them.
+constexpr UINT kWM_COMMANDHELP = 0x0365;   // `mov $0x365,%r8d` in OnCommandHelp
+constexpr UINT kWM_KICKIDLE    = 0x036A;   // `mov $0x36a,%edx` in OnKickIdle
+
+// CCmdTarget::OnCmdMsg is MSVC vftable slot 5: `mov 0x28(%rcx),%rax` at
+// 0x207df1 and `mov 0x28(%rax),%rax` at 0x207e20, both inside
+// CPropertySheet::OnCmdMsg (entry 0x207d80, mfc140u).
+constexpr std::size_t kVs_OnCmdMsg = 5;
+using OnCmdMsgFn = int (MS_ABI*)(void* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
+
+// True when p lies inside this DLL's own image -- i.e. a vptr that is one of
+// g++'s vtables, not an MSVC client's.  Same test as core/dialog/CDialog.cpp.
+bool PointsIntoThisImage(const void* p) {
+    const unsigned char* base = reinterpret_cast<const unsigned char*>(&__ImageBase);
+    const IMAGE_NT_HEADERS* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(
+        base + reinterpret_cast<const IMAGE_DOS_HEADER*>(base)->e_lfanew);
+    const unsigned char* q = static_cast<const unsigned char*>(p);
+    return q >= base && q < base + nt->OptionalHeader.SizeOfImage;
+}
+
+// pTarget->OnCmdMsg(...) for a target whose vtable may be either kind, the same
+// helper core/dialog/CDialog.cpp uses for the identical CDialog::OnCmdMsg.  A
+// client object (MSVC vftable) is dispatched through retail slot 5.  An object
+// carrying g++'s vtable -- e.g. the temporary CWnd wrapper FromHandle creates
+// for an HWND with no permanent CWnd -- has a different slot order (CDialog.cpp
+// records slot 5 as CObject::Dump there), so it goes through the g++ virtual.
+int DispatchOnCmdMsg(CCmdTarget* pTarget, UINT nID, int nCode, void* pExtra,
+                     AFX_CMDHANDLERINFO* pHandlerInfo) {
+    if (PointsIntoThisImage(*reinterpret_cast<void* const*>(pTarget))) {
+        return pTarget->OnCmdMsg(nID, nCode, pExtra, static_cast<void*>(pHandlerInfo));
+    }
+    OnCmdMsgFn fn = reinterpret_cast<OnCmdMsgFn>(
+        (*reinterpret_cast<void* const* const*>(pTarget))[kVs_OnCmdMsg]);
+    return fn(pTarget, nID, nCode, pExtra, pHandlerInfo);
+}
+
+} // namespace
 
 // Symbol: ??0CPropertySheet@@QEAA@IPEAVCWnd@@I@Z
 // Constructor: CPropertySheet::CPropertySheet(unsigned int, CWnd*, unsigned int)
@@ -152,14 +218,48 @@ extern "C" LRESULT MS_ABI impl__HandleInitDialog_CPropertySheet__IEAA_J_K_J_Z(
 extern "C" void MS_ABI impl__OnClose_CPropertySheet__IEAAXXZ(CPropertySheet* pThis) {
     if (pThis) pThis->EndDialog(IDCANCEL);
 }
+// CPropertySheet::OnCmdMsg -- transcribed from RVA 0x207d80 (mfc140u; the
+// export's ordinal resolves there through the mfc140u export address table).
+// That entry is shared: the linker folded this body with the byte-identical
+// CDialog::OnCmdMsg, which is also exported at 0x207d80 (mfc140u, ordinals
+// 8901 and 8916).  The ANSI twin folds them the same way: two export ordinals
+// share 0x205f30 (mfc140), a byte-identical body.  Retail:
+//     if (CCmdTarget::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo))  // direct call 0x1de460
+//         return TRUE;
+//     if ((nCode != CN_COMMAND && nCode != CN_UPDATE_COMMAND_UI)   // test ebx / cmp -1
+//         || !(nID & 0x8000) || nID >= 0xf000)                     // bt $0xf / cmp $0xf000
+//         return FALSE;
+//     CWnd* pOwner = CWnd::FromHandle(::GetParent(m_hWnd));       // IAT GetParent, +0x40
+//     if (pOwner != NULL && pOwner->OnCmdMsg(...)) return TRUE;   // vslot 5
+//     CWinThread* pThread = AfxGetModuleThreadState()->m_pCurrentWinThread;  // +0x8
+//     if (pThread != NULL && pThread->OnCmdMsg(...)) return TRUE; // vslot 5
+//     return FALSE;
+// OpenMFC stand-ins: AfxGetThread() for the inlined module-thread-state read,
+// and DispatchOnCmdMsg (top of file) for the two virtual calls so a g++-vtable
+// owner is not dispatched through the MSVC slot.  The NULL-`this` guard is
+// OpenMFC's; retail has none.
 // Symbol: ?OnCmdMsg@CPropertySheet@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__OnCmdMsg_CPropertySheet__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
     CPropertySheet* pThis, UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
-    (void)pThis;
-    (void)nID;
-    (void)nCode;
-    (void)pExtra;
-    (void)pHandlerInfo;
+    if (!pThis) return FALSE;
+    if (impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+            pThis, nID, nCode, pExtra, pHandlerInfo)) {
+        return TRUE;
+    }
+    if ((nCode != 0 /* CN_COMMAND */ && nCode != -1 /* CN_UPDATE_COMMAND_UI */) ||
+        (nID & 0x8000) == 0 || nID >= 0xf000) {
+        return FALSE;
+    }
+    CWnd* pOwner = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
+    if (pOwner != nullptr &&
+        DispatchOnCmdMsg(pOwner, nID, nCode, pExtra, pHandlerInfo)) {
+        return TRUE;
+    }
+    CWinThread* pThread = impl__AfxGetThread__YAPEAVCWinThread__XZ();
+    if (pThread != nullptr &&
+        DispatchOnCmdMsg(pThread, nID, nCode, pExtra, pHandlerInfo)) {
+        return TRUE;
+    }
     return FALSE;
 }
 // Symbol: ?OnCommand@CPropertySheet@@UEAAH_K_J@Z
@@ -173,13 +273,22 @@ extern "C" int MS_ABI impl__OnCommand_CPropertySheet__UEAAH_K_J_Z(
     }
     return FALSE;
 }
+// CPropertySheet::OnCommandHelp -- transcribed from RVA 0x218580 (mfc140u).
+// Retail forwards WM_COMMANDHELP to the active page through AfxCallWndProc:
+//     CPropertyPage* pPage = GetActivePage();                      // call 0x2174a0
+//     return AfxCallWndProc(pPage, pPage->m_hWnd, WM_COMMANDHELP,  // call 0x28aa70
+//                           wParam, lParam);                       // m_hWnd +0x40, 0x365
+// DEVIATION: retail does not test pPage and dereferences it unconditionally;
+// OpenMFC returns 0 when there is no active page (or no `this`) instead of
+// faulting.
 // Symbol: ?OnCommandHelp@CPropertySheet@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnCommandHelp_CPropertySheet__IEAA_J_K_J_Z(
     CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)pThis;
-    (void)wParam;
-    (void)lParam;
-    return 0;
+    if (!pThis) return 0;
+    CPropertyPage* pPage = impl__GetActivePage_CPropertySheet__QEBAPEAVCPropertyPage__XZ(pThis);
+    if (!pPage) return 0;
+    return static_cast<LRESULT>(impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
+        pPage, pPage->m_hWnd, kWM_COMMANDHELP, wParam, lParam));
 }
 // Symbol: ?OnCtlColor@CPropertySheet@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
 extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertySheet__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
@@ -192,26 +301,63 @@ extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertySheet__IEAAPEAUHBRUSH____PEAV
     }
     return ::GetSysColorBrush(colorIndex);
 }
+// CPropertySheet::OnGetMinMaxInfo -- transcribed from RVA 0x218620 (mfc140u).
+// Retail:
+//     CWnd::OnGetMinMaxInfo(lpMMI);            // call 0x28ac80 == CWnd::Default()
+//     if (m_pDynamicLayout != NULL             // CWnd +0x98
+//         && (m_sizeMin.cx != 0 || m_sizeMin.cy != 0)) {   // CPropertySheet +0x188/+0x18c
+//         lpMMI->ptMinTrackSize.x = m_sizeMin.cx;          // MINMAXINFO +0x18
+//         lpMMI->ptMinTrackSize.y = m_sizeMin.cy;          // MINMAXINFO +0x1c
+//     }
+// DEVIATION: only the Default() call is performed.  OpenMFC's CWnd has no
+// m_pDynamicLayout at +0x98 (that range is _cwnd_padding2) and OpenMFC's
+// CPropertySheet has no m_sizeMin (its own layout puts _propertysheet_padding
+// and tail padding at +0x184..+0x190), so neither operand of the guard exists
+// to be read; the minimum-track-size clamp is left out rather than read from
+// padding.  The NULL-`this` guard is OpenMFC's.
 // Symbol: ?OnGetMinMaxInfo@CPropertySheet@@IEAAXPEAUtagMINMAXINFO@@@Z
 extern "C" void MS_ABI impl__OnGetMinMaxInfo_CPropertySheet__IEAAXPEAUtagMINMAXINFO___Z(
     CPropertySheet* pThis, MINMAXINFO* lpMMI) {
-    (void)pThis;
-    (void)lpMMI;
+    (void)lpMMI;   // retail reads lpMMI only in the omitted clamp; Default() takes no arguments
+    if (!pThis) return;
+    (void)impl__Default_CWnd__IEAA_JXZ(pThis);
 }
+// CPropertySheet::OnKickIdle -- transcribed from RVA 0x217f70 (mfc140u).
+// Retail:
+//     CPropertyPage* pPage = GetActivePage();                  // call 0x2174a0
+//     if (pPage != NULL)
+//         return ::SendMessage(pPage->m_hWnd, WM_KICKIDLE,     // m_hWnd +0x40, 0x36a
+//                              wParam, lParam);                // IAT slot 0x1802c7120 (mfc140u) = SendMessageW
+//     return 0;                                                // (rax is the NULL pPage)
+// The NULL-`this` guard is OpenMFC's.
 // Symbol: ?OnKickIdle@CPropertySheet@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnKickIdle_CPropertySheet__IEAA_J_K_J_Z(
     CPropertySheet* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)pThis;
-    (void)wParam;
-    (void)lParam;
-    return 0;
+    if (!pThis) return 0;
+    CPropertyPage* pPage = impl__GetActivePage_CPropertySheet__QEBAPEAVCPropertyPage__XZ(pThis);
+    if (pPage == nullptr) return 0;
+    return ::SendMessage(pPage->m_hWnd, kWM_KICKIDLE, wParam, lParam);
 }
+// CPropertySheet::OnNcCreate -- transcribed from RVA 0x2182c0 (mfc140u).
+// Retail:
+//     ModifyStyleEx(WS_EX_CONTEXTHELP, 0);          // call 0x2a9740: edx=0x400, r8d=0, r9d=0
+//     if (m_pDynamicLayout != NULL                  // CWnd +0x98
+//         && !(GetStyle() & WS_CHILD))              // call 0x2a9690; bt $0x1e
+//         ModifyStyle(DS_MODALFRAME, WS_THICKFRAME); // call 0x2a96f0: edx=0x80, r8d=0x40000, r9d=0
+//     return (BOOL)Default();                       // tail jmp 0x28ac80 (CWnd::Default)
+// DEVIATION: the resizable-frame branch is left out.  Retail takes it only
+// when CWnd::m_pDynamicLayout (+0x98, allocated by EnableDynamicLayout(TRUE))
+// is non-NULL; OpenMFC's CWnd has no such member (+0x98 is _cwnd_padding2) and
+// never allocates a CMFCDynamicLayout, so there is nothing to test.  The
+// pCreateStruct argument is unused by retail as well.  The NULL-`this` guard is
+// OpenMFC's.
 // Symbol: ?OnNcCreate@CPropertySheet@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnNcCreate_CPropertySheet__IEAAHPEAUtagCREATESTRUCTW___Z(
     CPropertySheet* pThis, CREATESTRUCTW* pCreateStruct) {
-    (void)pThis;
     (void)pCreateStruct;
-    return TRUE;
+    if (!pThis) return FALSE;
+    (void)impl__ModifyStyleEx_CWnd__QEAAHKKI_Z(pThis, WS_EX_CONTEXTHELP, 0, 0);
+    return static_cast<int>(impl__Default_CWnd__IEAA_JXZ(pThis));
 }
 // Symbol: ?OnSetDefID@CPropertySheet@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnSetDefID_CPropertySheet__IEAA_J_K_J_Z(

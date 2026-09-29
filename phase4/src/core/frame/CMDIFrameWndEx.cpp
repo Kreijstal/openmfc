@@ -842,8 +842,7 @@ extern "C" void MS_ABI impl__ActiveItemRecalcLayout_CMDIFrameWndEx__QEAAXXZ(
 // export directory of mfc140u.dll places its ordinal 1839 at RVA 0x27d0, whose
 // body is a bare `ret` (shared with ?AddDockSite@CFrameWndEx@@QEAAXXZ, the name
 // the mfc140u map keeps for that address).  So the retail function does
-// nothing, which matches the documented "retained for backward compatibility"
-// note.  (An earlier revision of this file said exactly that -- "RVA 0x27d0 is
+// nothing.  (An earlier revision of this file said exactly that -- "RVA 0x27d0 is
 // a bare ret" -- and a later one removed it for not being in the symbol map;
 // the export directory confirms the original reading.)  Re-verified
 // 2026-09-15: ures.py -> ordinal 1839 -> RVA 0x27d0 (mfc140u), and the
@@ -955,8 +954,8 @@ extern "C" CMDIChildWndEx* MS_ABI impl__ControlBarToTabbedDocument_CMDIFrameWndE
 // RVA map (ICF-folded), but the export directory of mfc140u.dll places its
 // ordinal 3232 at RVA 0x71e0, whose body is `xor eax,eax; ret` -- the folded
 // `return NULL` that several trivial exports share.  So the retail default
-// returns NULL (derived frames override it to create the tabbed-document
-// child), which is what the documented behaviour says.  (An earlier revision
+// returns NULL; the method is declared virtual (afxmdiframewndex.h:284 in the
+// 14.51 SDK), so any non-NULL result comes from a derived override.  (An earlier revision
 // of this comment cited exactly that reading and a later one dropped it for
 // not being in the symbol map; the export directory confirms it.)
 // Re-verified 2026-09-15: ures.py -> ordinal 3232 -> RVA 0x71e0 (mfc140u),
@@ -2778,28 +2777,44 @@ extern "C" int MS_ABI impl__ShowPopupMenu_CMDIFrameWndEx__IEAAHPEAVCMFCPopupMenu
     return impl__OnShowPopupMenu_CMDIFrameWndEx__UEAAHPEAVCMFCPopupMenu___Z(pThis, pMenuPopup);
 }
 
-// CMDIFrameWndEx::ShowWindowsDialog() — retail entry RVA 0x89220 (mfc140;
-// 0x88c70 mfc140u), transcribed:
-//     CMFCWindowsManagerDialog dlg(this, m_bShowWindowsDlgHelpButton /* +0x204 */);   // 0x1c7e80 mfc140
-//     dlg.DoModal();                                                                  // CDialog::DoModal 0x206a60, called directly
-//     // ~CMFCWindowsManagerDialog, inlined: vftable 0x2e7198, two CPtrList::RemoveAll
-//     // (dlg+0x260, dlg+0x228), ~CListBox (dlg+0x130), ~CDialog
-// Left a stub: OpenMFC's CMFCWindowsManagerDialog constructor thunk
-// (featurepack/customize/CMFCWindowsManagerDialog.cpp) is a placeholder that
-// constructs nothing, so there is no dialog object to run modally; a DoModal on
-// it would operate on unconstructed bytes.
-// Re-checked 2026-09-15 against mfc140u 0x88c70: the callees are
-// ??0CMFCWindowsManagerDialog@@QEAA@PEAVCMDIFrameWndEx@@H@Z (0x1c98a0, with
-// r8d = this+0x204), ?DoModal@CDialog@@UEAA_JXZ (0x2088b0, called directly,
-// not through the vtable), then the inlined destructor: the vftable at
-// 0x2e9248 (mfc140u) is stored into the two list sub-objects at dlg+0x260
-// and dlg+0x228 (dlg sits at rsp+0x20) before each is passed to the
-// RemoveAll-shaped body at 0x8350 (zeroes +0x8..+0x20, frees the plex chain
-// at +0x28), then ??1CListBox@@UEAA@XZ (0x293f30) on dlg+0x130 and
-// ??1CDialog@@UEAA@XZ (0x207eb0) on dlg itself.  The +0x204 argument
-// is available here (Tail(pThis)->m_bShowWindowsDlgHelpButton), but the
-// dialog class is still the placeholder above and OpenMFC ships no dialog
-// template for it, so nothing can be run.  STUB.
+// CMDIFrameWndEx::ShowWindowsDialog() — retail entry RVA 0x88c70 (mfc140u;
+// ordinal 13865 through the export directory -- mfc140u_rva_symbols.json does
+// not list it; mfc140_rva_symbols.json does, at the ANSI-image entry 0x89220
+// (mfc140), byte-identical).  The whole body, re-read 2026-09-29:
+//     CMFCWindowsManagerDialog dlg(this, m_bShowWindowsDlgHelpButton);  // ctor 0x1c98a0, r8d = this+0x204; dlg at rsp+0x20
+//     dlg.CDialog::DoModal();                                          // 0x2088b0, a direct call, not through the vtable
+//     // ~CMFCWindowsManagerDialog, inlined:
+//     //   store the CList<HWND,HWND> vftable 0x1802e9248 (mfc140u) into dlg+0x260,
+//     //   run the RemoveAll body at 0x8350 on it (zeroes +0x18/+0x20/+0x10/+0x8,
+//     //   free()s each block of the chain at +0x28, zeroes +0x28); same for dlg+0x228;
+//     //   ??1CListBox@@UEAA@XZ (0x293f30) on dlg+0x130; ??1CDialog@@UEAA@XZ (0x207eb0) on dlg.
+// STUB, and deliberately so.  The dialog class itself is now transcribed in
+// featurepack/customize/CMFCWindowsManagerDialog.cpp (its ctor thunk builds the
+// 0x298-byte object), and every exported callee above has a thunk in the tree
+// (impl__DoModal_CDialog__UEAA_JXZ, impl___1CListBox__UEAA_XZ,
+// impl___1CDialog__UEAA_XZ); the unexported RemoveAll body at 0x8350 is not a
+// thunk, but that file reproduces it (its ListRemoveAll) over
+// impl__FreeDataChain_CPlex__QEAAXXZ.  What blocks
+// it is that NOTHING in that construction path installs a vtable pointer at
+// dlg+0x00: that file says so itself (its deviation (1)), and the CDialog ctor
+// thunk it calls (detail/DlgcoreSupport.cpp) only writes m_hWnd /
+// m_lpszTemplateName / m_nIDHelp and records the parent in a side map.
+// DoModal hands the object to AfxDlgProc, whose WM_INITDIALOG arm calls
+// pDlg->OnInitDialog() through that vtable pointer -- on a stack object here,
+// an uninitialised one.  DoModal reaches that arm whenever ::DialogBoxParamW
+// finds template 0x421f (IDD_AFXBARRES_WINDOWS_DLG) in AfxGetInstanceHandle()'s
+// module: there is no .rc file under phase4/, but an application that links
+// afxribbonres.rc into its own resources does have the template.  A vptr COULD
+// be installed from here -- OpenMFC does define C++ CDialog constructors
+// (core/dialog/CDialog.cpp) -- but it would be OpenMFC's CDialog vptr, so
+// AfxDlgProc would reach CDialog::OnInitDialog (a `return TRUE`), not the
+// dialog's own OnInitDialog (0x1c9fe0 mfc140u, which fills the window list):
+// the user would get the dialog with an empty list.  Nor would any button
+// work: OpenMFC's AfxDlgProc (detail/DlgcoreSupport.cpp) does no message-map
+// dispatch at all -- it handles only IDOK / IDCANCEL / WM_CLOSE / WM_DESTROY --
+// and the dialog's message map (classCMFCWindowsManagerDialog_msgmap in
+// detail/Mfc08MsgmapSupport.cpp) is empty besides.  A dialog that opens empty
+// and inert is worse than the no-op, so this stays a stub.  See headerRequests.
 // Symbol: ?ShowWindowsDialog@CMDIFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__ShowWindowsDialog_CMDIFrameWndEx__QEAAXXZ(CMDIFrameWndEx* pThis) {
     (void)pThis;

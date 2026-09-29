@@ -4,22 +4,209 @@
 #include "detail/CMFCColorBarSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+#include <cstdlib>
+#include <cstring>
+
+// ---------------------------------------------------------------------------
+// Thunks this file calls.  C++ methods of this DLL exist only as impl__
+// thunks, so every cross-class call below goes through one.
+// ---------------------------------------------------------------------------
+extern "C" void*   MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);                        // detail/MemcoreSupport.cpp:5 (operator new -> malloc)
+extern "C" void    MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();                    // detail/MfcExceptionsSupport.cpp:35
+extern "C" void    MS_ABI impl__AfxThrowMemoryException__YAXXZ();                        // detail/MfcExceptionsSupport.cpp:603
+extern "C" HGDIOBJ MS_ABI impl__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis);        // core/gdi/CGdiObject.cpp:36
+extern "C" int     MS_ABI impl__Attach_CGdiObject__QEAAHPEAX_Z(CGdiObject* pThis, HGDIOBJ hObject); // core/gdi/CGdiObject.cpp:29
+extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ hObject); // core/gdi/CGdiObject.cpp:16
+extern "C" void    MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);         // core/runtime/AFX_GLOBAL_DATA.cpp
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];                  // featurepack/CMFC_misc_stubs.cpp
+
+namespace {
+
+// CGdiObject::m_hObject is read at +8 by every retail body below (e.g. the
+// `cmpq $0x0,0x8(%rdx)` at the head of CreatePalette); OpenMFC's CGdiObject
+// agrees, so the Attach/Detach/FromHandle thunks see the same slot.
+static_assert(offsetof(CGdiObject, m_hObject) == 0x08, "CGdiObject::m_hObject @+0x08");
+
+// Retail-layout view of CArray<COLORREF,COLORREF> (afxtempl.h: CObject vfptr,
+// then TYPE* m_pData, INT_PTR m_nSize, m_nMaxSize, m_nGrowBy).  The array
+// arriving here is the caller's object -- a client built against the real
+// afxtempl.h, or CMFCColorBar's own m_colors at +0x1458 -- so it has THIS
+// layout, not the (non-ABI) OpenMFC CArray template in openmfc/afx.h.
+// Offsets as read by the retail code: m_pData +0x8 and m_nSize +0x10 (64-bit
+// compare) in CreatePalette (RVA 0x27650, mfc140u) and InitColors (RVA
+// 0x265f0, mfc140u); m_nMaxSize +0x18 and m_nGrowBy +0x20 in the SetSize
+// instantiation InitColors calls (RVA 0x15034, mfc140u).
+struct RetailColorArray {
+    void*          vfptr;       // 0x00
+    unsigned long* m_pData;     // 0x08
+    long long      m_nSize;     // 0x10
+    long long      m_nMaxSize;  // 0x18
+    long long      m_nGrowBy;   // 0x20
+};
+static_assert(offsetof(RetailColorArray, m_pData)    == 0x08, "CArray::m_pData");
+static_assert(offsetof(RetailColorArray, m_nSize)    == 0x10, "CArray::m_nSize");
+static_assert(offsetof(RetailColorArray, m_nMaxSize) == 0x18, "CArray::m_nMaxSize");
+static_assert(offsetof(RetailColorArray, m_nGrowBy)  == 0x20, "CArray::m_nGrowBy");
+static_assert(sizeof(RetailColorArray) == 0x28, "CArray<DWORD,DWORD> is 0x28 bytes");
+
+inline HGDIOBJ GdiHandle(const void* pGdiObject) {
+    return static_cast<const CGdiObject*>(pGdiObject)->m_hObject;
+}
+
+// `new BYTE[n]` as the retail SetSize instantiation does it: a call to the
+// DLL's operator new (RVA 0x27f0, mfc140u).  That operator new loops on
+// malloc, consulting the new handler held at +0x50 of the module thread
+// state, and returns NULL only when that handler is NULL or returns 0.  What
+// the SetSize instantiation does with such a NULL depends on the branch: the
+// m_pData == NULL branch and the grow branch with m_nSize == 0 memset it
+// without a NULL check; the grow branch with m_nSize != 0 goes through its
+// inlined memcpy_s check (errno = EINVAL, _invalid_parameter_noinfo, then
+// AfxThrowInvalidArgException).  MFC's default handler (AfxNewHandler) throws
+// CMemoryException -- documented MFC behaviour, not traced here.  OpenMFC's exported operator new is a bare
+// malloc, so DEVIATION: a NULL is turned into CMemoryException here, standing
+// in for the new handler, rather than being memset.
+inline unsigned long* NewColorBuffer(long long nElements) {
+    void* p = impl___2_YAPEAX_K_Z(static_cast<std::size_t>(nElements) * sizeof(unsigned long));
+    if (p == nullptr) impl__AfxThrowMemoryException__YAXXZ();
+    return static_cast<unsigned long*>(p);
+}
+
+// CArray<COLORREF,COLORREF>::SetSize(nNewSize, -1) -- the non-exported
+// template instantiation at RVA 0x15034 (mfc140u), which is afxtempl.h's
+// CArray::SetSize with nGrowBy == -1 folded in (m_nGrowBy is never written).
+// Transcribed branch for branch; `delete[] (BYTE*)` is a direct CRT `free`
+// in retail (IAT slot 0x1802c74e8 in mfc140u resolves to
+// api-ms-win-crt-heap free), and OpenMFC's operator delete is std::free too.
+// The element "constructors" are no-ops for DWORD; the memsets carry the
+// zeroing.  Retail copies with an inlined memcpy_s whose failure paths are
+// NULL destination, NULL source and short destination.  Here a NULL
+// destination cannot occur (NewColorBuffer throws first, see above); the
+// source is m_pData, which this branch has already tested non-NULL; and the
+// destination (nNewMax >= nNewSize > m_nMaxSize >= m_nSize elements) is
+// never shorter than the copy.  A plain memcpy is used.
+void RetailColorArraySetSize(RetailColorArray* a, long long nNewSize) {
+    if (nNewSize < 0) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    if (nNewSize == 0) {
+        if (a->m_pData != nullptr) {
+            std::free(a->m_pData);
+            a->m_pData = nullptr;
+        }
+        a->m_nMaxSize = 0;
+        a->m_nSize = 0;
+    } else if (a->m_pData == nullptr) {
+        const long long nAllocSize = (nNewSize > a->m_nGrowBy) ? nNewSize : a->m_nGrowBy;
+        a->m_pData = NewColorBuffer(nAllocSize);
+        std::memset(a->m_pData, 0, static_cast<std::size_t>(nAllocSize) * sizeof(unsigned long));
+        a->m_nSize = nNewSize;
+        a->m_nMaxSize = nAllocSize;
+    } else if (nNewSize <= a->m_nMaxSize) {
+        if (nNewSize > a->m_nSize) {
+            std::memset(a->m_pData + a->m_nSize, 0,
+                        static_cast<std::size_t>(nNewSize - a->m_nSize) * sizeof(unsigned long));
+        }
+        a->m_nSize = nNewSize;
+    } else {
+        long long nGrowBy = a->m_nGrowBy;
+        if (nGrowBy == 0) {
+            nGrowBy = a->m_nSize / 8;
+            nGrowBy = (nGrowBy < 4) ? 4 : ((nGrowBy > 1024) ? 1024 : nGrowBy);
+        }
+        long long nNewMax;
+        if (nNewSize < a->m_nMaxSize + nGrowBy) {
+            nNewMax = a->m_nMaxSize + nGrowBy;
+        } else {
+            nNewMax = nNewSize;
+        }
+        if (nNewMax < a->m_nMaxSize) {           // afxtempl.h wrap-around guard
+            impl__AfxThrowInvalidArgException__YAXXZ();
+            return;
+        }
+        unsigned long* pNewData = NewColorBuffer(nNewMax);
+        if (a->m_nSize != 0) {
+            std::memcpy(pNewData, a->m_pData,
+                        static_cast<std::size_t>(a->m_nSize) * sizeof(unsigned long));
+        }
+        std::memset(pNewData + a->m_nSize, 0,
+                    static_cast<std::size_t>(nNewSize - a->m_nSize) * sizeof(unsigned long));
+        std::free(a->m_pData);
+        a->m_pData = pNewData;
+        a->m_nSize = nNewSize;
+        a->m_nMaxSize = nNewMax;
+    }
+}
+
+// afxGlobalData read the way the retail bodies inline GetGlobalData():
+//     if (afxGlobalData.<+0> == 0) { afxGlobalData.Initialize(); <+0> = 1; }
+// (in CreatePalette, entry RVA 0x27650 (mfc140u): the `cmpl $0x0` / call
+// AFX_GLOBAL_DATA::Initialize (0x18006a790) / `movl $0x1` instructions at
+// 0x18002769d .. 0x1800276b2 on afxGlobalData, VA 0x1803c1620 in mfc140u.)
+// m_nBitsPerPixel is +0x288: the `cmpl $0x8,0x1803c18a8` at 0x1800276bc
+// (mfc140u) that follows; core/runtime/AFX_GLOBAL_DATA.cpp:240 pins the same
+// offset.
+int GlobalBitsPerPixel() {
+    int v;
+    std::memcpy(&v, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, sizeof v);
+    if (v == 0) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        const int one = 1;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, &one, sizeof one);
+    }
+    std::memcpy(&v, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + 0x288, sizeof v);
+    return v;
+}
+
+} // namespace
+
+// CMFCColorBar::m_ColorNames -- static CMap<COLORREF,COLORREF,CString,LPCTSTR>.
+// Retail constant-initialises it in .data: no code stores into it at start-up.
+// The only start-up code involving it is at 0x1800011a0 (mfc140u), which
+// passes the thunk 0x1802c5050 (lea m_ColorNames; jmp 0x180027b04, the CMap
+// destructor, which re-stores vftable 0x1802dff18) to 0x1802b7770 -- the
+// atexit-style registration of its destructor.  The 56 bytes at RVA 0x3b1c00
+// (mfc140u) are:
+//   +0x00 vfptr            = 0x1802dff18 (the CMap<...> vftable, mfc140u)
+//   +0x08 m_pHashTable     = NULL
+//   +0x10 m_nHashTableSize = 17        (CMap ctor default, afxtempl.h)
+//   +0x18 m_nCount         = 0
+//   +0x20 m_pFreeList      = NULL
+//   +0x28 m_pBlocks        = NULL
+//   +0x30 m_nBlockSize     = 10        (CMap ctor default nBlockSize)
+// The member order matches afxtempl.h's CMap.  The integer fields are
+// reproduced exactly; they are what the client-inlined template code
+// (CMFCColorBar::SetColorName -> m_ColorNames.SetAt, Lookup) depends on -- a
+// zero m_nHashTableSize divides by zero in GetAssocAt and a zero
+// m_nBlockSize makes NewAssoc throw.  DEVIATION: OpenMFC has no vftable for
+// this CMap instantiation, so the vfptr stays NULL; a virtual call on the
+// object (Serialize, IsKindOf, the destructor) would fault.  No atexit
+// destructor is registered either, so the hash table is not freed at unload.
 // Symbol: ?m_ColorNames@CMFCColorBar@@1V?$CMap@KKV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@@A
-extern "C" CMap_KKCS_56Bytes impl__m_ColorNames_CMFCColorBar__1V__CMap_KKV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W__A = {};
-// CreateObject(): CRuntimeClass factory.  Retail (RVA 0x244d0) allocates a
-// 0x1508-byte CMFCColorBar (operator new at 0x1800027f0) and runs the
-// constructor (RVA 0x180024550).  The class is opaque in OpenMFC -- no
-// constructor, vftable or member state is modeled -- so no valid object can
-// be produced and the factory conservatively fails (same pattern as
-// CMFCCaptionBar::CreateObject in global_cmfccaptionbar.cpp).
+extern "C" CMap_KKCS_56Bytes impl__m_ColorNames_CMFCColorBar__1V__CMap_KKV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W__A = { {
+    0, 0, 0, 0, 0, 0, 0, 0,          // +0x00 vfptr (NULL, see above)
+    0, 0, 0, 0, 0, 0, 0, 0,          // +0x08 m_pHashTable
+    17, 0, 0, 0, 0, 0, 0, 0,         // +0x10 m_nHashTableSize = 17 (+4 pad)
+    0, 0, 0, 0, 0, 0, 0, 0,          // +0x18 m_nCount
+    0, 0, 0, 0, 0, 0, 0, 0,          // +0x20 m_pFreeList
+    0, 0, 0, 0, 0, 0, 0, 0,          // +0x28 m_pBlocks
+    10, 0, 0, 0, 0, 0, 0, 0,         // +0x30 m_nBlockSize = 10
+} };
+// CreateObject(): CRuntimeClass factory.  Retail (RVA 0x244d0, mfc140u) is
+//     p = operator new(0x1508);          // 0x1800027f0
+//     return p ? new(p) CMFCColorBar() : NULL;   // ctor RVA 0x24550 (mfc140u)
+// STUB: the default-constructor thunk in this file
+// (impl___0CMFCColorBar__QEAA_XZ, ??0CMFCColorBar@@QEAA@XZ) is itself still a
+// stub that returns pThis untouched.  Retail's constructor calls the
+// CMFCPopupMenuBar constructor (0x1800bbf80), stores the CMFCColorBar vftable
+// 0x1802e0498 (mfc140u) and initialises the members (m_colors' vftable at
+// +0x1458, ...); none of that is reproduced, so an object allocated here
+// would be uninitialised memory with no vfptr.  NULL (retail's own
+// allocation-failure result) is returned until that constructor exists.
 // Symbol: ?CreateObject@CMFCColorBar@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCColorBar__SAPEAVCObject__XZ(
     void)
 {
-    // TODO(clean-room): transcribed partially -- retail allocates 0x1508
-    // bytes and runs the CMFCColorBar constructor (RVA 0x180024550, retail
-    // vftable at 0x1803b1478); the opaque class has no modeled constructor or
-    // vftable, so nullptr (the safe allocation-failure terminal) is returned.
     return nullptr;
 }
 // Create(CWnd* pWndParent, DWORD dwStyle, UINT nID, CPalette* pPalette, int
@@ -65,21 +252,72 @@ extern "C" int MS_ABI impl__CreateControl_CMFCColorBar__UEAAHPEAVCWnd__AEBVCRect
     // not modeled, so 0 (failure) is returned.
     return 0;
 }
-// CreatePalette(const CArray<DWORD,DWORD>& arColors, CPalette& palette):
-// builds a LOGPALETTE from the color array (or the default tables at
-// 0x1803c1620/0x1803c18a8) and attaches it to the palette.  The retail body
-// (RVA 0x27650) indexes the CArray with the CPtrArray-style layout
-// (m_pData@+8, count@+0x10) which does NOT match the OpenMFC CArray layout,
-// so no array access is performed (conservative failure).
+// CreatePalette(const CArray<COLORREF,COLORREF>& arColors, CPalette& palette)
+// -- static.  Transcribed from retail RVA 0x27650 (mfc140u; every address
+// below is an mfc140u VA):
+//   1. if (&palette != NULL && palette.m_hObject != NULL):
+//        ::DeleteObject(palette.Detach())   (Detach 0x1802a3f10, DeleteObject
+//        IAT 0x1802c6278), then ENSURE(palette.m_hObject == NULL) -- a
+//        non-NULL handle jumps to AfxThrowInvalidArgException (0x180227720).
+//   2. GetGlobalData(); if (m_nBitsPerPixel != 8) return FALSE.  The old
+//      palette is therefore released even when no new one is built.
+//   3. nColors = (int)arColors.GetSize() (32-bit read of +0x10); 0 -> FALSE.
+//      Clamped to 100 (signed `cmovg`), stored in a stack LOGPALETTE with
+//      palVersion 0x300 and room for 100 entries (0x1a0-byte frame buffer).
+//   4. for i < nColors: arColors[i] is bounds-checked against the 64-bit
+//      m_nSize (`jge` -> AfxThrowInvalidArgException), then its low three
+//      bytes become peRed/peGreen/peBlue and peFlags = 0.
+//   5. palette.Attach(::CreatePalette(&lp))  (IAT 0x1802c6240, Attach
+//      0x1802a3ed0); Attach's result is ignored and TRUE is returned.
 // Symbol: ?CreatePalette@CMFCColorBar@@KAHAEBV?$CArray@KK@@AEAVCPalette@@@Z
 extern "C" int MS_ABI impl__CreatePalette_CMFCColorBar__KAHAEBV__CArray_KK__AEAVCPalette___Z(
-    const void* /*pArray*/, void* /*pPalette*/)
+    const void* pArray, void* pPalette)
 {
-    // TODO(clean-room): transcribed partially -- retail (RVA 0x27650) reads
-    // the color array using a non-OpenMFC layout (m_pData@+8, count@+0x10)
-    // and calls CreatePalette/CPalette::Attach (0x1802c6240 / 0x1802a3ed0);
-    // neither is modeled, so 0 (failure) is returned.
-    return 0;
+    const RetailColorArray* arColors = static_cast<const RetailColorArray*>(pArray);
+    CGdiObject* palette = static_cast<CGdiObject*>(pPalette);
+
+    if (palette != nullptr && GdiHandle(palette) != nullptr) {
+        ::DeleteObject(impl__Detach_CGdiObject__QEAAPEAXXZ(palette));
+        if (GdiHandle(palette) != nullptr) {
+            impl__AfxThrowInvalidArgException__YAXXZ();
+            return FALSE;
+        }
+    }
+
+    if (GlobalBitsPerPixel() != 8) {
+        return FALSE;
+    }
+
+    int nNumColours = static_cast<int>(arColors->m_nSize);
+    if (nNumColours == 0) {
+        return FALSE;
+    }
+    if (nNumColours > 100) nNumColours = 100;
+
+    struct {
+        WORD         palVersion;
+        WORD         palNumEntries;
+        PALETTEENTRY palPalEntry[100];
+    } lp;
+    static_assert(offsetof(LOGPALETTE, palPalEntry) == 4, "LOGPALETTE header is 4 bytes");
+    lp.palVersion = 0x300;
+    lp.palNumEntries = static_cast<WORD>(nNumColours);
+
+    for (int i = 0; i < nNumColours; ++i) {
+        if (static_cast<long long>(static_cast<unsigned int>(i)) >= arColors->m_nSize) {
+            impl__AfxThrowInvalidArgException__YAXXZ();
+            return FALSE;
+        }
+        const unsigned long c = arColors->m_pData[i];
+        lp.palPalEntry[i].peRed   = static_cast<BYTE>(c & 0xff);
+        lp.palPalEntry[i].peGreen = static_cast<BYTE>((c >> 8) & 0xff);
+        lp.palPalEntry[i].peBlue  = static_cast<BYTE>((c >> 16) & 0xff);
+        lp.palPalEntry[i].peFlags = 0;
+    }
+
+    impl__Attach_CGdiObject__QEAAHPEAX_Z(
+        palette, ::CreatePalette(reinterpret_cast<const LOGPALETTE*>(&lp)));
+    return TRUE;
 }
 // AdjustLocations(): lays out the color buttons.  The retail body
 // (RVA 0x24eb0, ~0x350 bytes) guards on m_hWnd (0x40), the 0x111c flag and
@@ -249,21 +487,57 @@ extern "C" unsigned long MS_ABI impl__GetHighlightedColor_CMFCColorBar__QEBAKXZ(
     // not-found terminal (-1) is returned.
     return static_cast<unsigned long>(-1);
 }
-// InitColors(CPalette*, CArray<DWORD,DWORD>&): static helper that fills the
-// color array from the palette.  Retail (RVA 0x265f0) reads the palette entry
-// count (GetObjectW via 0x1802c6290), sizes the CArray (0x180015034) and
-// fills it via GetPaletteEntries (0x1802c6248) using the retail CArray layout
-// (m_pData@+0x8, count@+0x10).  The palette/array plumbing is not modeled, so
-// 0 (the empty-array terminal) is returned.
+// InitColors(CPalette* pPalette, CArray<COLORREF,COLORREF>& arColors) --
+// static.  Transcribed from retail RVA 0x265f0 (mfc140u; every address
+// below is an mfc140u VA):
+//   1. nColors = 20 when pPalette is NULL, otherwise the WORD entry count from
+//      ::GetObject(pPalette->m_hObject, sizeof(WORD), &w)  (IAT 0x1802c6290 =
+//      GetObjectW).
+//   2. arColors.SetSize(nColors)  (the SetSize instantiation at 0x180015034,
+//      nGrowBy -1 -- RetailColorArraySetSize above).
+//   3. A NULL pPalette is replaced by
+//      CGdiObject::FromHandle(::GetStockObject(DEFAULT_PALETTE))  (IAT
+//      0x1802c6250, FromHandle 0x1802a3ea0); this happens AFTER SetSize.
+//   4. for i < nColors: ::GetPaletteEntries(pPalette->m_hObject, i, 1, &pe)
+//      (IAT 0x1802c6248); then arColors[i] is bounds-checked against the
+//      64-bit m_nSize (AfxThrowInvalidArgException) and set to
+//      RGB(pe.peRed, pe.peGreen, pe.peBlue).
+//   5. return nColors.
+// DEVIATION: retail reads the WORD from GetObject without initialising it,
+// so a failing GetObject yields stack garbage; here it is zeroed first, so a
+// failing GetObject yields 0 colours.
 // Symbol: ?InitColors@CMFCColorBar@@KAHPEAVCPalette@@AEAV?$CArray@KK@@@Z
 extern "C" int MS_ABI impl__InitColors_CMFCColorBar__KAHPEAVCPalette__AEAV__CArray_KK___Z(
-    void* /*pPalette*/, void* /*arColors*/)
+    void* pPalette, void* pArColors)
 {
-    // TODO(clean-room): transcribed partially -- retail sizes the CArray to the
-    // palette entry count and copies the palette entries in (GetPaletteEntries
-    // at 0x1802c6248); the retail CArray layout (m_pData@+0x8, count@+0x10)
-    // differs from OpenMFC's, so nothing is written.
-    return 0;
+    RetailColorArray* arColors = static_cast<RetailColorArray*>(pArColors);
+
+    int nColors;
+    if (pPalette == nullptr) {
+        nColors = 20;
+    } else {
+        WORD nEntries = 0;
+        ::GetObject(GdiHandle(pPalette), sizeof(WORD), &nEntries);
+        nColors = nEntries;
+    }
+
+    RetailColorArraySetSize(arColors, nColors);
+
+    if (pPalette == nullptr) {
+        pPalette = impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(::GetStockObject(DEFAULT_PALETTE));
+    }
+
+    for (int i = 0; i < nColors; ++i) {
+        PALETTEENTRY pe;
+        ::GetPaletteEntries(static_cast<HPALETTE>(GdiHandle(pPalette)),
+                            static_cast<UINT>(i), 1, &pe);
+        if (static_cast<long long>(static_cast<unsigned int>(i)) >= arColors->m_nSize) {
+            impl__AfxThrowInvalidArgException__YAXXZ();
+            return 0;
+        }
+        arColors->m_pData[i] = RGB(pe.peRed, pe.peGreen, pe.peBlue);
+    }
+    return nColors;
 }
 // OnChangeHot(int nHot): forwards the hot-button change to the child menu
 // bar.  Retail (RVA 0x274a0) gates on the 0x1500 object, resolves the hot
@@ -744,6 +1018,29 @@ extern "C" void* MS_ABI impl___0CMFCColorBar__IEAA_AEBV__CArray_KK__KPEB_W11AEAV
 extern "C" void* MS_ABI impl___0CMFCColorBar__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// ~CMFCColorBar().  Retail (RVA 0x24de0, mfc140u):
+//     vfptr = CMFCColorBar vftable (0x1802e0498, mfc140u);
+//     release the CStrings at +0x14e8, +0x14e0, +0x14d8 (lock-decrement of
+//       nRefs at CStringData+0x10, CStringData = pszData-0x18; at <= 0 the
+//       string manager's vslot 1 frees it);
+//     +0x14c0 (m_Palette): vfptr = 0x1802e0468, then the non-exported base
+//       destructor 0x18001c6f0 (stores vftable 0x1802dddd8, calls
+//       CGdiObject::DeleteObject 0x1802a3f60);
+//     +0x1480 (m_lstDocColors): vfptr = 0x1802dff48, then the non-exported
+//       0x180008350;
+//     +0x1458 (m_colors): the non-exported 0x18001b85c (stores vftable
+//       0x1802ddbe0, then frees m_pData);
+//     tail-jump ~CMFCPopupMenuBar (0x1800bc0f0).
+//   (all addresses mfc140u; member names from afxcolorbar.h member order)
+// STUB: every constructor thunk in this file is still a stub that returns
+// pThis without constructing anything (no base CMFCPopupMenuBar, no
+// CString/CPalette/CList/CArray members), so the member slots this
+// destructor would release hold whatever the caller's allocator left there.
+// Transcribing it before the constructors exist would free garbage pointers.
+// It must be implemented together with ??0CMFCColorBar@@QEAA@XZ (and the
+// other constructors), and needs non-exported template destructors
+// (CList<COLORREF> / CArray<COLORREF>) plus the CMFCColorBar and member
+// vftables, none of which OpenMFC has.
 // Symbol: ??1CMFCColorBar@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCColorBar__UEAA_XZ(void* pThis) {
     (void)pThis;

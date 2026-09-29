@@ -392,20 +392,25 @@ extern "C" void MS_ABI impl__InsertFileAsObject_CRichEditView__QEAAXPEB_W_Z(
     // TODO(clean-room): partially transcribed.
 }
 // LONG CRichEditView::InsertItem(CRichEditCntrItem* pItem)
-// Retail (RVA 0x285750) collapses the selection to the insertion point and lets
-// the rich-edit OLE machinery insert the object, returning the HRESULT.  The
-// underlying insertion call goes through an internal interface slot that the
-// clean-room headers do not model, so a conservative version reports failure
-// without disturbing the current selection.
+// Retail RVA 0x285750 (mfc140u): CReObject reo(pItem) (0x283280: cbStruct 0x48,
+// clsid, poleobj +0x48 / pstg +0x68 / polesite +0xf0 of the item, each AddRef'd);
+// reo.cp = REO_CP_SELECTION; hr = m_lpRichEditOle (+0x110)->InsertObject(&reo)
+// (IRichEditOle vslot 7); then SendMessage(m_hWnd, EM_EXGETSEL, 0, &cr);
+// cr.cpMin = cr.cpMax - 1; SendMessage(m_hWnd, EM_EXSETSEL, 0, &cr) -- i.e. the
+// object is inserted FIRST and the character just before the caret (the new
+// object) is then selected; ~CReObject (0x283310); return hr.  The hr is returned
+// whether or not the insert succeeded.
+// Not transcribed: the retail view caches m_lpRichEditOle at +0x110 (not modelled,
+// see the layout notes above) and CReObject reads CRichEditCntrItem members at
+// +0x48/+0x68/+0xf0 that OpenMFC's item does not have in those places.  No object
+// is inserted, so E_NOTIMPL is reported rather than a success code a caller would
+// act on (retail's OnInsertObject turns any non-S_OK into AfxThrowOleException).
 // Symbol: ?InsertItem@CRichEditView@@QEAAJPEAVCRichEditCntrItem@@@Z
 extern "C" long MS_ABI impl__InsertItem_CRichEditView__QEAAJPEAVCRichEditCntrItem___Z(
     CRichEditView* pThis, CRichEditCntrItem* pItem) {
-    if (!pThis) {
-        return -1;
-    }
+    (void)pThis;
     (void)pItem;
-    // TODO(clean-room): partially transcribed.
-    return 0;
+    return E_NOTIMPL;
 }
 // BOOL CRichEditView::IsRichEditFormat(CLIPFORMAT cf)  [static]
 // Retail RVA 0x285350 (mfc140u): return cf == _oleData.cfRichTextFormat (.data
@@ -1634,11 +1639,17 @@ extern "C" void MS_ABI impl__OnFormatFont_CRichEditView__IEAAXXZ(CRichEditView* 
 // (0x2276c0); } hr = InsertItem(pItem) (0x285750); pItem->UpdateItemType() (0x244b20);
 // pItem->+0xfc = FALSE; if (hr != S_OK) AfxThrowOleException(hr) (0x25f2c0);
 // if (!(dlg+0x13c /* OLEUIINSERTOBJECT.dwFlags */ & IOF_SELECTCREATEFROMFILE))
-// pItem->DoVerb(OLEIVERB_SHOW, this, NULL) (vslot 25); } CATCH_ALL (funclet not
-// read); ~COleInsertDialog (0x24cf90).
-// Not transcribed: CRichEditDoc::CreateClientItem is a null stub, InsertItem above
-// is a conservative no-op, the COleClientItem flag at +0xfc lies beyond the 0xf0-byte
-// OpenMFC COleClientItem, and DoVerb must go through the MSVC vtable.  Left a no-op.
+// pItem->DoVerb(OLEIVERB_SHOW, this, NULL) (vslot 25); } exception handler (its
+// funclet was not read); ~COleInsertDialog (0x24cf90).  The wait cursor is
+// AfxGetModuleState() (0x133930)->m_pCurrentWinApp->BeginWaitCursor() (0x1de7b0),
+// ended by the call at 0x284854 into 0x7687c (EndWaitCursor, 0x1de7e0).
+// +0xfc is a CRichEditCntrItem member, not a COleClientItem one: retail's
+// CRichEditCntrItem ctor (0x2872e0) zeroes the qword at +0xf8, i.e. the two BOOLs
+// after the 0xf0-byte COleClientItem base (+0xf0 holds a third interface pointer).
+// Not transcribed: CRichEditDoc::CreateClientItem is a null stub and retail
+// dereferences its result unchecked, InsertItem above is a no-op that reports
+// E_NOTIMPL, OpenMFC's CRichEditCntrItem (COleClientItem + 32 bytes of padding)
+// has no member at +0xfc, and DoVerb must go through the MSVC vtable.  Left a no-op.
 // Symbol: ?OnInsertObject@CRichEditView@@IEAAXXZ
 extern "C" void MS_ABI impl__OnInsertObject_CRichEditView__IEAAXXZ(CRichEditView* pThis) {
     (void)pThis;
