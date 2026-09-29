@@ -115,8 +115,23 @@
 // sizeof(CMFCToolBarImages) blocks that a file-scope static initialiser
 // constructs through the exported ??0CMFCToolBarImages@@QEAA@XZ thunk (whose
 // body is `new(pThis) CMFCToolBarImages()`) and destroys through
-// ??1CMFCToolBarImages@@UEAA@XZ at exit -- the same construct/destroy pair
-// retail's own dynamic initialiser and atexit entries run for them.  (The
+// ??1CMFCToolBarImages@@UEAA@XZ at exit.  The destroy half matches retail:
+// each static's dynamic initialiser (0x1460 / 0x1490 / 0x14c0 / 0x14f0 /
+// 0x1520 / 0x1550, mfc140u) registers, through the CRT onexit helper at
+// 0x2b7770, a thunk (0x2c5210 .. 0x2c5260) that tail-jumps to
+// ??1CMFCToolBarImages@@UEAA@XZ (0x16b550).  The construct half does NOT:
+// DEVIATION -- retail constructs each static with the OTHER constructor,
+// `CMFCToolBarImages(TRUE)` (??0CMFCToolBarImages@@QEAA@H@Z, 0x16b2a0; its
+// parameter is `BOOL fDelayInitialize` in the shipping afxtoolbarimages.h).
+// Retail's H ctor only forwards that flag to CommonInit (0x16b410), which
+// skips Initialize() (0x16b450) when it is TRUE -- CMenuImages::Initialize
+// runs it later.  OpenMFC's H thunk instead treats the argument as
+// `bReadOnly` and stores it at +0x28 (featurepack/toolbar/CMFCToolBarImages.cpp),
+// which retail never does, and which a client's inline
+// CMFCToolBarImages::IsReadOnly() would then report as TRUE.  OpenMFC's
+// default ctor runs no retail-style Initialize() either, so it is the thunk
+// that leaves the retail-visible state; switch to the H thunk once that file
+// stops writing m_bReadOnly.  (The
 // C++-object form toolbar/CMFCToolBar.cpp uses for its eight would need the
 // Itanium-mangled ctor/dtor symbols, which the per-file link audit rejects.)
 //
@@ -992,8 +1007,12 @@ inline CMFCToolBarImages* TiBlack2() { return reinterpret_cast<CMFCToolBarImages
 
 // Runs the six constructions at DLL initialisation, in the order of their
 // retail .data addresses (Black, DkGray, Gray, LtGray, White, Black2), and
-// the six destructions, in reverse, at exit.  (Retail's own dynamic
-// initialiser order was not checked; nothing in the bodies depends on it.)
+// the six destructions, in reverse, at exit.  Retail's six initialiser
+// functions sit in that same address order (0x1460 .. 0x1550, mfc140u); the
+// order the CRT's initialiser table runs them in was not checked, and
+// nothing in the bodies depends on it.  Retail constructs them with
+// CMFCToolBarImages(TRUE), not the default ctor used here -- see the
+// DEVIATION in the header comment.
 struct MenuImagesStaticInit {
     MenuImagesStaticInit() {
         impl___0CMFCToolBarImages__QEAA_XZ(TiBlack());

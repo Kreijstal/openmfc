@@ -235,6 +235,9 @@ extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__
     void* pThis, void* pManager, void* pFirstPane, void* pSecondPane, void* pDivider);
 
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(CRuntimeClass* pThis);
+// ??2@YAPEAX_K@Z, MFC's exported operator new (detail/MemcoreSupport.cpp); the
+// allocator retail ?CreateObject@CPaneContainerManager@@ calls (0x2840, mfc140.dll).
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 
 // ?m_nDefaultWidth@CPaneDivider@@2HA -- the exported static that retail
@@ -842,10 +845,15 @@ extern "C" int MS_ABI impl__CanBeAttached_CPaneContainerManager__UEBAHXZ(const v
 //           ((CBaseTabbedPane*)pWnd)->GetTabsNum() > 0)   // vtable +0x758
 //           return TRUE;
 //   }
-//   <remove pWnd from m_lstControlBars if present>
+//   POSITION pos = m_lstControlBars.Find(pWnd);     // open-coded walk, 0xaad68
+//   if (pos != NULL) m_lstControlBars.RemoveAt(pos); // 0xaad87 -> 0x2306f0
 //   return FALSE;
 //
-// (::IsWindow is the import at 0x1802c5390, resolved with iat.py; the RTTI
+// Only the FIRST node whose data equals pWnd is unlinked (the open-coded Find
+// stops at the first match); this body erases the first match only, too.
+//
+// (All addresses in this note are mfc140.dll VAs/RVAs, not mfc140u ones.
+// ::IsWindow is the import at 0x1802c5390, resolved with iat.py; the RTTI
 // pointer is RUNTIME_CLASS(CBaseTabbedPane) at 0x1802db168; vtable +0x758 in
 // CBaseTabbedPane's vftable 0x1802db2a8 is the body at 0x12eb0, which is exactly
 // afxbasetabbedpane.h's inline `GetTabsNum()` --
@@ -869,7 +877,8 @@ extern "C" int MS_ABI impl__CheckAndRemoveNonValidPane_CPaneContainerManager__QE
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     std::vector<void*>* panes = PaneListLocked(pThis);
     if (panes != nullptr) {
-        panes->erase(std::remove(panes->begin(), panes->end(), pWnd), panes->end());
+        auto it = std::find(panes->begin(), panes->end(), pWnd);
+        if (it != panes->end()) panes->erase(it);
     }
     return FALSE;
 }
@@ -967,13 +976,34 @@ extern "C" int MS_ABI impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPa
 }
 
 // Symbol: ?CreateObject@CPaneContainerManager@@SAPEAVCObject@@XZ
-// Retail entry RVA 0xa8070 is `operator new(0xa0)` followed by the constructor.
-// Left a stub returning NULL: OpenMFC publishes no CPaneContainerManager vtable
-// (see the constructor note above), so a DYNCREATE-produced object would carry a
-// NULL vfptr and fault on the first virtual call its creator makes. Returning
-// NULL is the failure the callers already test for.
+// Decoded from retail ?CreateObject@CPaneContainerManager@@SAPEAVCObject@@XZ,
+// entry RVA 0xa8070 (mfc140.dll; 0xa7ab0 in mfc140u), the whole body:
+//
+//   void* p = ::operator new(0xa0);     // call 0x2840 = ??2@YAPEAX_K@Z, MFC's own export
+//   if (p == NULL) return NULL;
+//   return new (p) CPaneContainerManager;   // tail-jmp to ??0 at 0xa80b0
+//
+// The allocation goes through the same exported MFC operator new
+// (detail/MemcoreSupport.cpp) retail calls.
+//
+// Inherited DEVIATION, not a new one: the object comes back with a NULL vfptr,
+// because ??0CPaneContainerManager@@ above leaves all three vftable slots NULL
+// (OpenMFC publishes no CPaneContainerManager vtable). That is the same object a
+// client `new CPaneContainerManager` or CMultiPaneFrameWnd's embedded
+// m_barContainerManager (CMultiPaneFrameWnd.cpp runs the same ctor thunk)
+// already gets from this DLL. It is only usable by callers that reach this
+// file's entry points through their exports directly, as the DLL-internal
+// callers do. Most of this class's API is VIRTUAL (the UEAA/UEBA exports:
+// Create, AddPane, FindPaneContainer, ...), and so is the destructor, so a
+// client virtual call on the object -- including a plain `delete p` -- faults
+// on the NULL vfptr. Note also that RuntimeClasses.cpp leaves
+// classCPaneContainerManager.m_pfnCreateObject NULL, so
+// RUNTIME_CLASS(CPaneContainerManager)->CreateObject() does not reach this
+// export; only a direct call to the static does.
 extern "C" void* MS_ABI impl__CreateObject_CPaneContainerManager__SAPEAVCObject__XZ() {
-    return nullptr;
+    void* p = impl___2_YAPEAX_K_Z(kSizeCPaneContainerManager);
+    if (p == nullptr) return nullptr;
+    return impl___0CPaneContainerManager__QEAA_XZ(p);
 }
 
 // Symbol: ?CreatePaneDivider@CPaneContainerManager@@IEAAPEAVCPaneDivider@@VCRect@@KH@Z
@@ -1071,6 +1101,9 @@ extern "C" void* MS_ABI impl__CreatePaneDivider_CPaneContainerManager__IEAAPEAVC
 // CBasePane nor CDockablePane overrides +0x310, but a derived class that did
 // would be missed here, because OpenMFC's CBasePane has no
 // DoesAllowDynInsertBefore virtual to dispatch on.
+// DEVIATION: retail calls through the downcast result even when the downcast
+// produced NULL (`xor %ebx,%ebx` at 0xaab12, then `mov (%rbx),%rax` at 0xaab14)
+// and so faults; those entries are skipped here.
 extern "C" int MS_ABI impl__DoesAllowDynInsertBefore_CPaneContainerManager__UEBAHXZ(const void* pThis) {
     if (pThis == nullptr) return FALSE;
     CRuntimeClass* pBasePaneClass = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
@@ -1095,8 +1128,15 @@ extern "C" int MS_ABI impl__DoesAllowDynInsertBefore_CPaneContainerManager__UEBA
 //   }
 //   return FALSE;
 //
-// Slot +0x3a8 is ?CanFloat@CBasePane@@UEBAHXZ (0xc840 in mfc140.dll), which is
-// exported, so this one dispatches through the real thunk.
+// In both the CBasePane and CDockablePane vftables slot +0x3a8 holds
+// ?CanFloat@CBasePane@@UEBAHXZ (0xc840 in mfc140.dll). That is exported, so this
+// body calls its thunk (docking/Thunks.cpp), which itself does
+// `pThis->CanFloat()` through OpenMFC's own C++ CBasePane vtable -- not through
+// the retail +0x3a8 slot.
+//
+// DEVIATION: retail calls through the downcast result even when the downcast
+// produced NULL (the `xor %ebx,%ebx` at 0xaa882 falls straight into the
+// `mov (%rbx),%rax` at 0xaa884) and so faults; those entries are skipped here.
 extern "C" int MS_ABI impl__DoesContainFloatingPane_CPaneContainerManager__UEAAHXZ(void* pThis) {
     if (pThis == nullptr) return FALSE;
     CRuntimeClass* pBasePaneClass = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();

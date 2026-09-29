@@ -759,16 +759,116 @@ extern "C" CString* MS_ABI impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC
 extern "C" void MS_ABI impl__AFXPlaySystemSound__YAXH_Z(int p0) {
     ::MessageBeep(static_cast<UINT>(p0));
 }
+// --- AFXPrintPreview support ---------------------------------------------
+// Callees, each defined in the tree (file noted); signatures from the mangled
+// names.
+extern "C" int MS_ABI impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(
+    CView* pThis, unsigned int nIDResource, CView* pPrintView, CRuntimeClass* pPreviewViewClass,
+    void* pState);                                                               // core/view/CView.cpp
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPreviewViewEx__SAPEAUCRuntimeClass__XZ();  // core/view/RuntimeClasses.cpp
+extern "C" int MS_ABI impl__AfxMessageBox__YAHIII_Z(UINT nIDPrompt, UINT nType, UINT nIDHelp);  // core/collections/Globals.cpp
+extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID);        // core/window/CWnd.cpp
+extern "C" void MS_ABI impl__OnPreviewClose_CPreviewView__IEAAXXZ(void* pThis);                 // core/view/CPreviewView.cpp
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);                                 // detail/MemcoreSupport.cpp
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* ptr);                                          // detail/MemcoreSupport.cpp
+
+namespace {
+// CPrintPreviewState as declared in MSVC 14.51 atlmfc/include/afxext.h:1143
+// (six members, sizeof 0x30). The offsets below are the ones retail's inlined
+// constructor writes in AFXPrintPreview (RVA 0xc0700, mfc140u): +0x00, +0x08,
+// +0x10, +0x18, +0x20, +0x28, allocation size 0x30.
+struct g2_PrintPreviewState {
+    UINT nIDMainPane;
+    HMENU hMenu;
+    DWORD dwStates;
+    CView* pViewActiveOld;
+    BOOL (G2_MS_ABI* lpfnCloseProc)(CFrameWnd* pFrameWnd);   // CALLBACK == ms_abi on x64
+    HACCEL hAccelTable;
+};
+static_assert(offsetof(g2_PrintPreviewState, nIDMainPane) == 0x00, "nIDMainPane@0x00");
+static_assert(offsetof(g2_PrintPreviewState, hMenu) == 0x08, "hMenu@0x08");
+static_assert(offsetof(g2_PrintPreviewState, dwStates) == 0x10, "dwStates@0x10");
+static_assert(offsetof(g2_PrintPreviewState, pViewActiveOld) == 0x18, "pViewActiveOld@0x18");
+static_assert(offsetof(g2_PrintPreviewState, lpfnCloseProc) == 0x20, "lpfnCloseProc@0x20");
+static_assert(offsetof(g2_PrintPreviewState, hAccelTable) == 0x28, "hAccelTable@0x28");
+static_assert(sizeof(g2_PrintPreviewState) == 0x30, "CPrintPreviewState is 0x30 bytes");
+
+// _AfxPreviewCloseProc -- the non-exported close proc whose address retail's
+// CPrintPreviewState constructor stores in lpfnCloseProc (RVA 0x2802a0,
+// mfc140u). Transcribed whole:
+//     rcx = pFrameWnd->GetDlgItem(0xE900 /*AFX_IDW_PANE_FIRST*/);  // call 0x2a9390
+//     call 0x2809d0 (rcx)        // CPreviewView::OnPreviewClose
+//     return FALSE;
+// 0x2809d0 has no entry in the mfc140u export map; it is identified as
+// OnPreviewClose by its body: it destroys and NULLs this+0x178 (m_pToolBar,
+// vtable slot 0xd0/8), stores this+0x1e8 into (this+0x210)->+0x18
+// (m_pPreviewInfo->m_nCurPage = m_nCurrentPage) and ends with the virtual call
+// at slot 0x370/8 on this+0x130 with (this+0x140, this+0x210, a zeroed
+// 8-byte point, this) -- the argument shape of
+// m_pOrigView->OnEndPrintPreview(m_pPreviewDC, m_pPreviewInfo, CPoint(0,0),
+// this). Cross-checked: ?OnPreviewClose@CPreviewView@@IEAAXXZ is at RVA
+// 0x27ee60 in mfc140.dll (the ANSI twin), and that body matches 0x2809d0
+// (mfc140u) instruction for instruction apart from rip-relative
+// displacements. The repo's CPreviewView.cpp already maps OnPreviewClose to
+// the same address. Note the repo's impl__OnPreviewClose_CPreviewView is
+// itself still a no-op stub (core/view/CPreviewView.cpp:294), so this proc
+// currently closes nothing.
+// Retail does not null-check the GetDlgItem result before the call; neither
+// does this.
+BOOL G2_MS_ABI g2_AfxPreviewCloseProc(CFrameWnd* pFrameWnd) {
+    CWnd* pView = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pFrameWnd), 0xE900);
+    impl__OnPreviewClose_CPreviewView__IEAAXXZ(pView);
+    return FALSE;
+}
+} // namespace
+
 // Symbol: ?AFXPrintPreview@@YAXPEAVCView@@@Z
-// Left stubbed: real MFC's AFXPrintPreview(CView*) runs the print-preview
-// nested message pump. The closest existing piece,
-// CView::DoPrintPreview(UINT, CView*, CRuntimeClass*, CPrintPreviewState*)
-// in phase4/src/core/view/CView.cpp, needs a pre-built preview view /
-// runtime class / preview-state that this single-CView* entry point doesn't
-// receive, and it doesn't run a message loop -- it's not a drop-in forward
-// target, so nothing safe to call.
-extern "C" void MS_ABI impl__AFXPrintPreview__YAXPEAVCView___Z(void* /*class*/* p0) {
-    (void)p0;
+// Transcribed from retail AFXPrintPreview (RVA 0xc0700, mfc140u):
+//     pState = operator new(0x30)                     // call ??2@YAPEAX_K@Z
+//     if (pState) { inlined CPrintPreviewState ctor:
+//         nIDMainPane = 0xE900 (AFX_IDW_PANE_FIRST); dwStates = 2;
+//         lpfnCloseProc = _AfxPreviewCloseProc (RVA 0x2802a0);
+//         hMenu = pViewActiveOld = hAccelTable = NULL }
+//     if (!pView->DoPrintPreview(0x4112, pView,        // call 0x27fda0, non-virtual
+//                                RUNTIME_CLASS(CPreviewViewEx), pState)) {
+//         AfxMessageBox(0xF109 /*AFX_IDP_COMMAND_FAILURE*/, 0, (UINT)-1);
+//         operator delete(pState, 0x30);
+//     }
+// 0x4112 == 16658 == IDD_AFXBAR_RES_PRINT_PREVIEW (atlmfc afxribbonres.h:160).
+// The CRuntimeClass retail passes (RVA 0x2f98a8, mfc140u) was checked: its
+// m_lpszClassName is "CPreviewViewEx" and m_nObjectSize 0x15a0; here it is
+// obtained through CPreviewViewEx::GetThisClass, which returns that class's
+// descriptor. On success DoPrintPreview owns pState: in retail the preview
+// view keeps it at +0x170 and ~CPreviewView (RVA 0x280430, mfc140u) frees it
+// with the 0x30-byte sized delete.
+// KNOWN GAP IN THE CALLEE, not in this transcription: this repo's
+// DoPrintPreview (core/view/CView.cpp:100) is a simplified body that ignores
+// its pState and pPreviewViewClass arguments -- it only hides pThis and shows
+// pPrintView, which here are the same view, and returns TRUE for a non-null
+// view. So on this tree's success path pState is never freed (0x30 bytes per
+// call) and g2_AfxPreviewCloseProc is never invoked; both resolve once
+// DoPrintPreview is implemented for real.
+// Deviations: retail's operator new is MFC's throwing allocator; this uses the
+// DLL's own exported operator new/delete thunks (malloc/free-backed), so an
+// allocation failure passes NULL on exactly as retail's null-checked path
+// would. Retail frees with the sized delete (RVA 0x2b77b0, a jmp to
+// ??_V@YAXPEAX@Z); the unsized delete thunk is the matching free here.
+extern "C" void MS_ABI impl__AFXPrintPreview__YAXPEAVCView___Z(CView* pView) {
+    g2_PrintPreviewState* pState =
+        static_cast<g2_PrintPreviewState*>(impl___2_YAPEAX_K_Z(sizeof(g2_PrintPreviewState)));
+    if (pState != nullptr) {
+        pState->nIDMainPane = 0xE900;
+        pState->dwStates = 2;
+        pState->lpfnCloseProc = &g2_AfxPreviewCloseProc;
+        pState->hMenu = nullptr;
+        pState->pViewActiveOld = nullptr;
+        pState->hAccelTable = nullptr;
+    }
+    if (!impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(
+            pView, 0x4112, pView, impl__GetThisClass_CPreviewViewEx__SAPEAUCRuntimeClass__XZ(), pState)) {
+        impl__AfxMessageBox__YAHIII_Z(0xF109, 0, static_cast<UINT>(-1));
+        impl___3_YAXPEAX_Z(pState);
+    }
 }
 // Symbol: ?AFXSoundThreadProc@@YAXPEAX@Z
 extern "C" void MS_ABI impl__AFXSoundThreadProc__YAXPEAX_Z(void* p0) {
@@ -891,18 +991,23 @@ extern "C" void MS_ABI impl__AfxCopyValueByRef__YAXPEAX0PEA_JH_Z(void* p0, void*
 }
 // Symbol: ?AfxCoreInitModule@@YAXXZ
 extern "C" void MS_ABI impl__AfxCoreInitModule__YAXXZ() {
-    // Stand-alone-DLL hook (afxdll_.h groups it with AfxOleInitModule /
-    // AfxNetInitModule / AfxDbInitModule, all of which are empty macros in
-    // MFC 14): it chains a CDynLinkLibrary for the shared MFC core DLL onto
-    // the calling module's shared-DLL list so that module can reach MFC's
-    // resources, runtime classes and object factories.
-    // NOT MODELLED HERE: grepped the tree for a shared-DLL list head
-    // (m_libraryList / m_pFirstSharedDLL / any owner of
-    // CDynLinkLibrary::m_pNextDLL) and for callers of AfxCoreInitModule --
-    // there are none. CDynLinkLibrary is only declared, never chained
-    // (detail/COleControlModuleSupport.h:78), and AfxInitExtensionModule
-    // below likewise leaves pFirstSharedClass/pFirstSharedFactory null.
-    // Nothing exists for this hook to register, so it stays empty.
+    // STUB. Retail AfxCoreInitModule (RVA 0x2af4b0, mfc140u):
+    //     p = operator new(0x80);                       // sizeof(CDynLinkLibrary)
+    //     if (p) CDynLinkLibrary::CDynLinkLibrary(p, <static
+    //            AFX_EXTENSION_MODULE of the core DLL>, TRUE);  // call 0x2ae800
+    //     p->+0x60 = NULL;
+    //     pModuleState = AfxGetModuleState();           // call 0x133930
+    //     pAppState    = AfxGetAppModuleState();        // call 0x133900
+    //     if (pModuleState->+0x98 == NULL)              // m_appLangDLL
+    //         pModuleState->+0x98 = pAppState->+0x98;
+    // Not transcribable here: (1) the core DLL's own AFX_EXTENSION_MODULE static
+    // has no counterpart in this tree (grepped for m_libraryList /
+    // m_pFirstSharedDLL / any owner of CDynLinkLibrary::m_pNextDLL: none, so a
+    // CDynLinkLibrary built here would be chained onto nothing); (2) this repo's
+    // AFX_MODULE_STATE (detail/RegcoreSupport.h:124 and the
+    // LocalAFX_MODULE_STATE returned by impl__AfxGetModuleState,
+    // detail/ManualSmallStubImplementationsSupport.h:632) has three members
+    // and no field at +0x98, so the m_appLangDLL copy would write past it.
 }
 // Symbol: ?AfxCreateDC@@YAPEAUHDC__@@PEAX0@Z
 extern "C" void* MS_ABI impl__AfxCreateDC__YAPEAUHDC____PEAX0_Z(void* p0, void* p1) {
@@ -1172,21 +1277,21 @@ extern "C" void MS_ABI impl__AfxDrawGrayBitmap__YAXPEAVCDC__HHAEBVCBitmap__K_Z(v
 }
 // Symbol: ?AfxEditviewTerm@@YAXXZ
 extern "C" void MS_ABI impl__AfxEditviewTerm__YAXXZ() {
-    // Real MFC frees the process-local _AFX_EDIT_STATE (the shared
-    // find/replace strings and flags plus the find/replace dialog pointer).
-    // There is no process-wide find/replace state in this codebase: grepped
-    // detail/ for a global CFindReplaceDialog pointer -- CFindReplaceDialog
-    // (detail/DlgcommonSupport.*) is only ever a caller-owned object.
-    // The one piece of module-wide CEditView state that does exist is
-    // detail/DocviewSupport.h:111's
-    // openmfc::detail::docview::g_editViewExtraStates (per-view buffer,
-    // findText/replaceText, printer font, page count), which this hook ought
-    // to clear -- but that symbol cannot be referenced from this translation
-    // unit: it is a C++ (Itanium-mangled) data symbol and the workflow
-    // link-audit rejects any new _Z... undefined here. Clearing it needs
-    // either an impl__-style helper exported from
-    // detail/DocviewSupport.cpp or that symbol added to the audit baseline;
-    // see the report. Left empty rather than half-cleared.
+    // STUB. Retail AfxEditviewTerm (RVA 0x277ff0, mfc140u; the mfc140.dll
+    // export map has no RVA for it):
+    //     if (hFont != NULL) { ::DeleteObject(hFont); hFont = NULL; }
+    // where hFont is a module static (0x1803c4090 in mfc140u) that
+    // CEditView::OnCreate (RVA 0x278270, mfc140u) fills once, under
+    // AfxLockGlobals(6), with ::CreateFontIndirectW of a zeroed LOGFONT that
+    // takes lfHeight and lfWeight from ::GetObjectW(GetStockObject(SYSTEM_FONT)),
+    // sets lfCharSet = 1 (DEFAULT_CHARSET) and lfFaceName "Lucida Sans Unicode",
+    // and is then passed through AfxCustomLogFont(0xF232, ...); OnCreate then sends it to each edit view with WM_SETFONT, and
+    // registers AfxEditviewTerm once through the CRT atexit helper at RVA
+    // 0x2b7770.
+    // Not transcribable here: this repo's CEditView::OnCreate
+    // (core/view/CEditView.cpp:156) creates the EDIT window only and never
+    // creates or shares a font, so there is no handle for this hook to free.
+    // Deleting nothing is what retail does whenever the static is NULL.
 }
 // Symbol: ?AfxEnableControlContainer@@YAXPEAVCOccManager@@@Z
 // AfxEnableControlContainer(COccManager* pOccManager)
@@ -2433,18 +2538,20 @@ extern "C" void MS_ABI impl__AfxOleTermOrFreeLib__YAXHH_Z(int p0, int p1) {
 }
 // Symbol: ?AfxOleUnlockAllControls@@YAXXZ
 extern "C" void MS_ABI impl__AfxOleUnlockAllControls__YAXXZ() {
-    // Real MFC walks the module's list of controls locked by
-    // AfxOleLockControl and calls IClassFactory::LockServer(FALSE) on each.
-    // NOT POSSIBLE HERE: both AfxOleLockControl overloads (above in this
-    // file) resolve the CLSID, call CoGetClassObject + LockServer(TRUE),
-    // Release the factory and record nothing -- there is no per-module
-    // locked-control list to walk. Grepped detail/OlecoreSupport.{h,cpp}
-    // for one: it tracks only g_nOleLockCount (the AfxOleLockApp object
-    // count, a different counter) and g_oleObjectFactories (this module's own
-    // COleObjectFactory registrations, not foreign controls we locked).
-    // Implementing this needs AfxOleLockControl/AfxOleUnlockControl to keep
-    // the lock list; blindly unlocking anything else would drop refs this
-    // module never took. Left empty; see the report.
+    // STUB. Retail AfxOleUnlockAllControls (RVA 0x241390, mfc140u):
+    //     pState = AfxGetModuleState();                 // call 0x133930
+    //     AfxLockGlobals(11 /*CRIT_CTLLOCKLIST*/);      // call 0x33540
+    //     while ((p = pState->+0xa8 /*m_lockList head*/) != NULL) {
+    //         <CSimpleList remove>(&pState->+0xa8, p);  // call 0x14c800
+    //         p->vtbl[0](p, 1);                         // scalar deleting dtor
+    //     }
+    //     ::LeaveCriticalSection(<CRIT_CTLLOCKLIST section>);  // tail jmp
+    // Not transcribable here: this repo's AFX_MODULE_STATE
+    // (detail/RegcoreSupport.h:124) has no m_lockList at +0xa8, and neither
+    // AfxOleLockControl overload in this file records a lock -- each calls
+    // CoGetClassObject + LockServer(TRUE) and releases the factory. With no
+    // lock list there is nothing to walk; unlocking anything else would drop
+    // server locks this module never took.
 }
 // Symbol: ?AfxOleUnlockApp@@YAXXZ
 extern "C" void MS_ABI impl__AfxOleUnlockApp__YAXXZ() {
@@ -2984,16 +3091,13 @@ extern "C" void MS_ABI impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__P
 }
 // Symbol: ?AfxResetMsgCache@@YAXXZ
 extern "C" void MS_ABI impl__AfxResetMsgCache__YAXXZ() {
-    // Real MFC memsets its message-map lookup cache (the AFX_MSG_CACHE array
-    // CWnd::OnWndMsg consults) so that entries pointing into an unloading
-    // module's message map are dropped -- which is why afxpriv.h declares it
-    // next to AfxHookWindowCreate/AfxUnhookWindowCreate.
-    // OpenMFC caches nothing to invalidate: AfxFindMessageEntry (above in
-    // this file) walks the AFX_MSGMAP_ENTRY array linearly on every call with
-    // no memo, and CWnd::OnWndMsg (core/window/CWnd.cpp and the inline in
-    // openmfc/afxwin.h) is a plain switch that never consults a map at all.
-    // Grepped include/ and phase4/src for an AFX_MSG_CACHE / msgCache /
-    // cached lpEntry: no such state exists. Empty is correct.
+    // STUB. Retail AfxResetMsgCache (RVA 0x28d120, mfc140u) is one call:
+    //     memset(<module-static message-map lookup cache>, 0, 0x3000);
+    // (tail jmp through the VCRUNTIME140 memset import).
+    // Not transcribable here: grepped include/ and phase4/src for an
+    // AFX_MSG_CACHE / msgCache / cached message-map entry and found none --
+    // AfxFindMessageEntry (above in this file) walks the AFX_MSGMAP_ENTRY
+    // array on every call without memoising. There is no cache to clear.
 }
 // Symbol: ?AfxResolveShortcut@@YAHPEAVCWnd@@PEB_WPEA_WH@Z
 // Resolves a .lnk shortcut via IShellLinkW + IPersistFile::Load + Resolve.
@@ -3235,28 +3339,39 @@ extern "C" void MS_ABI impl__AfxTlsRelease__YAXXZ() {
 }
 // Symbol: ?AfxTrackerTerm@@YAXXZ
 extern "C" void MS_ABI impl__AfxTrackerTerm__YAXXZ() {
-    // Real MFC frees CRectTracker's cached hatch brush and its loaded
-    // resize/move cursors here. OpenMFC's CRectTracker
-    // (core/gdi/CRectTracker.cpp) is byte-exact but allocates no GDI objects
-    // at all: read the whole file -- its only handles are
-    // GetStockObject(BLACK_BRUSH) (stock, never deleted) and
-    // LoadCursorW(nullptr, IDC_*) (shared system cursors, which must not be
-    // destroyed). Grepped it for Create*Brush / CreatePen / DeleteObject /
-    // LoadBitmap: no matches. Nothing to release -- empty is correct.
+    // STUB. Retail AfxTrackerTerm (RVA 0x275e00, mfc140u):
+    //     for each of two module-static GDI handles (0x1803c4030 and
+    //     0x1803c4038 in mfc140u):
+    //         if (h != NULL) { ::DeleteObject(h); h = NULL; }
+    // i.e. it frees the GDI objects CRectTracker creates lazily and caches:
+    // a scan of mfc140u .text for rip-relative references to the two statics
+    // finds them stored inside CRectTracker::Construct (RVA 0x275eb0, mfc140u)
+    // and loaded inside CRectTracker::Draw (RVA 0x276120, mfc140u), besides
+    // this function.
+    // Not transcribable here: OpenMFC's CRectTracker (core/gdi/CRectTracker.cpp)
+    // caches no GDI objects -- grepped it for Create*Brush / CreatePen /
+    // DeleteObject / LoadBitmap: no matches; its only brush is
+    // GetStockObject(BLACK_BRUSH), which must not be deleted. Nothing to free.
 }
 // Symbol: ?AfxTryCleanup@@YAXXZ
 extern "C" void MS_ABI impl__AfxTryCleanup__YAXXZ() {
-    // Called from AFX_EXCEPTION_LINK::~AFX_EXCEPTION_LINK (inline in the
-    // client's afx.h): real MFC deletes the exception the link holds and
-    // unlinks it from the thread's AFX_EXCEPTION_CONTEXT::m_pLinkTop chain.
-    // NOT MODELLED HERE: grepped for AFX_EXCEPTION_CONTEXT, m_pLinkTop and
-    // m_pLinkPrev across include/ and phase4/src -- none exist, and the
-    // exported AFX_EXCEPTION_LINK constructor
-    // (core/exceptions/AFX_EXCEPTION_LINK.cpp) is a no-op that returns pThis
-    // without linking or even zeroing the frame. Since nothing is ever
-    // pushed, popping here would read uninitialised client stack memory;
-    // staying empty is the only consistent behaviour until the link chain is
-    // actually built by the constructor.
+    // STUB. Retail AfxTryCleanup (RVA 0x2274e0, mfc140u):
+    //     e = ::GetLastError();
+    //     pTS = _afxThreadState.GetData(<ctor>);        // CThreadLocalObject::GetData, call 0x14cf40
+    //     if (pTS == NULL) AfxThrowInvalidArgException();  // call 0x227720
+    //     ::SetLastError(e);
+    //     pLink = pTS->+0x20;                           // m_exceptionContext.m_pLinkTop
+    //     if (pLink != NULL) {
+    //         if (pLink->+0x08 != NULL)                 // m_pException
+    //             pLink->m_pException->Delete();        // CException::Delete, call 0x227370
+    //         pTS->+0x20 = pLink->+0x00;                // m_pLinkTop = m_pLinkPrev
+    //     }
+    // Not transcribable here: grepped include/ and phase4/src for
+    // AFX_EXCEPTION_CONTEXT, m_pLinkTop and m_exceptionContext -- none exist,
+    // and the exported AFX_EXCEPTION_LINK constructor
+    // (core/exceptions/AFX_EXCEPTION_LINK.cpp) returns pThis without linking
+    // the frame onto any chain. Since nothing is ever pushed, popping here
+    // would read memory no constructor wrote.
 }
 // Symbol: ?AfxUnRegisterPreviewHandler@@YAHPEB_W@Z
 // AfxUnRegisterPreviewHandler(LPCWSTR pszCLSID)

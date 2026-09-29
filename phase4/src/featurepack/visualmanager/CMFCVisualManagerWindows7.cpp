@@ -131,7 +131,37 @@ inline COLORREF W7SetTextColor(CDC* pDC, COLORREF clr) {
     return clrOld;
 }
 
+// The two style-module statics SetResourceHandle / CleanStyle /
+// OnUpdateSystemColors share. In retail they are unnamed .bss variables
+// (mfc140 0x3b7140 = the module handle, 0x3b713c = the auto-free flag; in
+// mfc140u 0x3be3e0 / 0x3be3dc, read out of SetResourceHandle at RVA 0x1bce00
+// (mfc140u)). They are not exports, so file-local statics model them exactly.
+// The flag sits in zero-initialised .bss and the only direct store to it in
+// the whole mfc140u image is SetResourceHandle's `movl $0x0` at 0x1bce0b
+// (mfc140u) -- so, as far as the object code shows, retail never makes it
+// TRUE either. It is kept so CleanStyle can be transcribed as written.
+HINSTANCE s_hinstW7Res = nullptr;
+BOOL      s_bW7AutoFreeRes = FALSE;
+
 } // namespace
+
+// Thunks the style-module entry points call (see SetResourceHandle and
+// OnUpdateSystemColors below).
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);                  // core/runtime/CObject.cpp
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(
+    CMFCVisualManager* pThis);                                          // CMFCVisualManager.cpp
+extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerWindows7__UEAAXXZ(
+    CMFCVisualManagerWindows7* pThis);                                  // this file
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows7__UEAAXXZ(
+    CMFCVisualManagerWindows7* pThis);                                  // this file
+// Both defined in CMFCVisualManager.cpp; retail's FALSE-predicate paths reach
+// them (directly, or as this file's substitute -- see each call site).
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+    CMFCVisualManager* pThis, CDC* pDC, void* pMenuBar, CRect rect);
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CMFCToolBarMenuButton* pButton, CRect rect,
+    unsigned long& clrText);
 
 // Base-class entry points this unit calls through their extern "C" impl__
 // thunks (all defined in CMFCVisualManager.cpp) because OpenMFC's headers
@@ -169,13 +199,21 @@ extern "C" int MS_ABI impl__DrawRadioButton_CMFCBaseVisualManager__UEAAHPEAVCDC_
 //     g_hinstRes = NULL;
 //     g_strStylePrefix /*0x3bbff0*/ .Empty(); // tail-jmp 0x3430 =
 //                                             // ?Empty@?$CSimpleStringT@D$00@ATL@@QEAAXXZ
-// All three statics live in .bss and none of them is an exported name, so
-// there is nothing here to attach OpenMFC state to. More to the point,
-// CMFCVisualManagerWindows7::SetStyle in this file never loads a resource
-// module (it only re-applies the palette), so no module handle and no prefix
-// can ever exist to release. Deliberately left a no-op, exactly as
-// ?CleanStyle@CMFCVisualManagerOffice2007@@SAXXZ is.
-extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerWindows7__SAXXZ() {}
+// None of the three statics is an exported name. The module handle and the
+// auto-free flag are modelled by this file's s_hinstW7Res / s_bW7AutoFreeRes
+// (SetResourceHandle is what fills the handle), so those two steps are
+// transcribed. g_strStylePrefix is not modelled: nothing in OpenMFC ever
+// fills it (see MakeResourceID), so emptying it has nothing to do.
+// s_bW7AutoFreeRes is never TRUE (see its declaration: retail itself has no
+// store of a non-zero value to it), so the FreeLibrary is transcribed but
+// unreachable -- a handle given to SetResourceHandle stays the caller's.
+extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerWindows7__SAXXZ()
+{
+    if (s_bW7AutoFreeRes && reinterpret_cast<UINT_PTR>(s_hinstW7Res) > 0x20) {
+        ::FreeLibrary(s_hinstW7Res);
+    }
+    s_hinstW7Res = nullptr;
+}
 
 // Symbol: ?CleanUp@CMFCVisualManagerWindows7@@UEAAXXZ
 // Retail 0x1bb9a0 tears down the whole Windows 7 theme block: it calls
@@ -368,8 +406,11 @@ extern "C" void MS_ABI impl__DrawNcText_CMFCVisualManagerWindows7__UEAAXPEAVCDC_
 // LineTo, restore) on pDC->m_hDC. The glass branch is not reproduced:
 // OpenMFC's ?DrawLine@CDrawingManager@@ thunk is an empty stub
 // (core/gdi/CDrawingManager.cpp), so there is nothing behind it to call, and
-// the flag is not consulted here. Retail also does not NULL-test the pens;
-// a NULL pen skips its line rather than drawing with whatever the DC holds.
+// the flag is not consulted here. The pen NULL tests are OpenMFC's, not
+// retail's: retail selects both pens unconditionally (the ?SelectObject@CDC@@
+// calls at 0x1a24af and 0x1a24e7 inside DrawSeparator), so a pen whose
+// m_hObject is NULL makes that ::SelectObject fail and its line is drawn with
+// whatever pen the DC already holds; here such a line is skipped.
 extern "C" void MS_ABI impl__DrawSeparator_CMFCVisualManagerWindows7__UEAAXPEAVCDC__AEBVCRect__AEAVCPen__2H_Z(
     CMFCVisualManagerWindows7* pThis, CDC* pDC, const CRect& rect, CPen& pen1, CPen& pen2, int bHorz)
 {
@@ -450,9 +491,12 @@ extern "C" unsigned long MS_ABI impl__GetRibbonEditBackgroundColor_CMFCVisualMan
 // (vtable +0x3a0, IsKindOf against the CRuntimeClass at 0x307f90, then a
 // chain of menu/manager members) before falling back to a virtual at vtable
 // +0x5f8 on `this`. Only the FALSE branch is reachable here.
-// +0xf4 is a CMFCVisualManager base member OpenMFC does not model, but its
-// value on a constructed Windows7 manager IS established by the constructor
-// chain 0x1ba8b0 -> 0x1b6fe0 -> 0x1abe10 -> 0x182640:
+// +0xf4 is a CMFCVisualManager base member. It lies inside OpenMFC's
+// zero-filled `_visualmanager_padding`, but no OpenMFC constructor stores the
+// retail value there (only this file's OnUpdateSystemColors, on its
+// non-NULL-handle path, writes it), so reading it would yield 0 on a fresh
+// manager. Its retail value on a constructed Windows7 manager IS established
+// by the constructor chain 0x1ba8b0 -> 0x1b6fe0 -> 0x1abe10 -> 0x182640:
 //   ??0CMFCVisualManager@@QEAA@H@Z          (0x182640) `movl $0x2,0xf4(%rbx)` at 0x18270e
 //   ??0CMFCVisualManagerOfficeXP@@IEAA@H@Z  (0x1abe10) `mov  %edi,0xf4(%rbx)` at 0x1abf49,
 //                                                      edi = 1 (`lea 0x1(%rdx)` at 0x1abeea)
@@ -571,7 +615,7 @@ extern "C" int MS_ABI impl__IsRibbonPresent_CMFCVisualManagerWindows7__QEBAHPEAV
 // comparing hash then key. Retail populates that map from
 // ?OnNcActivate@CMFCVisualManagerWindows7@@... (0x1c2bf0 touches +0x9258 at
 // 0x1c2ce8). OpenMFC models neither the map nor a working OnNcActivate
-// override (this file's is still a generated stub), so the lookup can never
+// override (this file's is a documented stub), so the lookup can never
 // hit and the retail answer reduces here to the two NULL guards followed by
 // TRUE. The lookup branch is a deliberate omission, not an oversight.
 extern "C" int MS_ABI impl__IsWindowActive_CMFCVisualManagerWindows7__IEBAHPEAVCWnd___Z(
@@ -1104,23 +1148,213 @@ extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerWindow
 }
 
 // Symbol: ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCRibbonPanelMenuBar@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2) {}
+// Retail entry 0x1c24d0 (mfc140; 0x1c3ed0 in mfc140u). Predicate FALSE, or
+// the CMFCControlRenderer at this->[+0x5b08] having a zero [+0xa8]
+// (`cmpq $0x0,0xa8(%rcx)` at 0x1c24f5), calls 0x18cc80 =
+// ?OnFillRibbonQuickAccessToolBarPopup@CMFCVisualManager@@... with the same
+// three arguments (the rect copied to the stack); past both guards retail
+// instead calls that renderer's vtable +0x48 with (pDC, &rectCopy, NULL, 0xff).
+// The predicate is FALSE here (see the banner), so the base call is the
+// reachable path, and it is retail's own callee -- no substitution.
+extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, void* pMenuBar, CRect rect)
+{
+    if (!pThis) return;
+    impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
+        pThis, pDC, pMenuBar, rect);
+}
 
 // Symbol: ?OnHighlightMenuItem@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCToolBarMenuButton@@VCRect@@AEAK@Z
-extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(void* /*class*/* p0, void* /*class*/* p1, void* /*class*/ p2, unsigned long* p3) {}
+// Retail entry 0x1bf4e0 (mfc140; 0x1c0ee0 in mfc140u). Predicate FALSE
+// (`jne` at 0x1bf4fc not taken) calls 0x1b7cc0 =
+// ?OnHighlightMenuItem@CMFCVisualManagerWindows@@... with the same four
+// arguments and returns. Predicate TRUE instead stores the COLORREF at
+// afxGlobalData+0x84 into clrText and draws the CMFCControlRenderer at
+// this->[+0x9c8], or [+0xbc8] when pButton->[+0x28] has bit 0x40000 set
+// (the `and $0x40000` / `or $0x139000` / `shr $9` at 0x1bf56e..0x1bf57b),
+// through its vtable +0x30 with (pDC, &rectCopy, 0, 0xff).
+// Only the FALSE branch is reachable here. Its retail callee (0x1b7cc0) has
+// three exits: when the window theme handle at [+0x8] is NULL or [+0x210] is
+// non-zero it calls ?OnHighlightMenuItem@CMFCVisualManagerOfficeXP@@
+// (0x1ae070); otherwise, when the menu theme handle at [+0x98] is NULL, it
+// calls ?OnHighlightMenuItem@CMFCVisualManager@@ (0x183370); otherwise it
+// draws UxTheme!DrawThemeBackground([+0x98], hdc, 14, 2, &rect, NULL) and
+// reads clrText with UxTheme!GetThemeColor([+0x98], 14, 2, 0xedb, &clrText)
+// (import slots 0x2c53e0 / 0x2c53e8). [+0x8] lies inside OpenMFC's
+// zero-filled CMFCVisualManager padding and no OpenMFC body opens a theme
+// into it, so retail's code over this object state would take the OfficeXP
+// exit. OpenMFC has neither CMFCVisualManagerWindows nor OfficeXP as an
+// ancestor of this class, and the OfficeXP body hands its fill virtual the
+// brush member at this+0x180 or this+0x1a0, past the end of this 0x148-byte
+// object, so the call is routed to
+// CMFCVisualManager's implementation (a COLOR_HIGHLIGHT fill that leaves
+// clrText untouched) -- a deliberate substitution, not a transcription. It is
+// retail's own second exit, but not the one this object state selects: the
+// OfficeXP body (InflateRect by -1 horizontally, a brush fill through
+// vtable +0x638, a Draw3dRect frame, clrText from vtable +0x138) also frames
+// the item and writes clrText; this does neither.
+extern "C" void MS_ABI impl__OnHighlightMenuItem_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCToolBarMenuButton* pButton, CRect rect,
+    unsigned long& clrText)
+{
+    if (!pThis) return;
+    impl__OnHighlightMenuItem_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarMenuButton__VCRect__AEAK_Z(
+        pThis, pDC, pButton, rect, clrText);
+}
 
 // Symbol: ?OnNcActivate@CMFCVisualManagerWindows7@@UEAAHPEAVCWnd@@H@Z
-extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerWindows7__UEAAHPEAVCWnd__H_Z(void* /*class*/* p0, int p1) {
-    return 0;
+// Retail entry 0x1c2bf0 (mfc140; 0x1c45f0 in mfc140u), transcribed:
+//     if (pWnd == NULL || pWnd->m_hWnd (+0x40) == NULL) return FALSE;
+//     if (afxGlobalData.IsDwmCompositionEnabled()) return FALSE;   // 0x6c260
+//     pBar = GetRibbonBar(pWnd);                                    // 0x1a16b0
+//     if (pBar == NULL || pBar->m_hWnd == NULL
+//         || !::IsWindowVisible(pBar->m_hWnd)                       // slot 0x2c5350
+//         || pBar->[+0x468] == 0) return FALSE;
+//     if (pWnd->[+0xa8] & 0x20) bActive = TRUE;                     // 0x1c2c8a..0x1c2c99
+//     bNew = pWnd->IsWindowEnabled() ? bActive : FALSE;             // 0x2a7a10
+//     if (this->vtable[+0x3f8]()) {
+//         bMDI = pWnd->IsKindOf(<CRuntimeClass at 0x339c20>);       // 0x233310
+//                // (that descriptor's m_lpszClassName is "CMDIFrameWnd")
+//         bOld = IsWindowActive(pWnd);                              // 0x1c2bb0
+//     } else bMDI = bOld = FALSE;
+//     m_mapActive(this+0x9258)[pWnd->m_hWnd] = bNew;                // CMap operator[] at 0x1ab868
+//     ::SendMessage(pWnd->m_hWnd, WM_NCPAINT, 0, 0);                // slot 0x2c5378
+//     if (this->vtable[+0x3f8]() && bMDI && bOld != bNew)
+//         ::RedrawWindow(pWnd->[+0x1d8], NULL, NULL,
+//                        RDW_INVALIDATE | RDW_ALLCHILDREN);          // slot 0x2c5388, flags 0x81
+//     return TRUE;
+// (vtable +0x3f8 of the Windows7 vftable at mfc140 0x31cdd0 is 0x7260, a
+// shared `xor %eax,%eax; ret` body, so for this class itself bMDI and bOld
+// are always FALSE and the RedrawWindow is reached only by a derived override.)
+// Every TRUE path goes through GetRibbonBar returning a visible ribbon bar,
+// and this file's GetRibbonBar is a stub returning NULL (the frame layout it
+// needs is not modelled); the per-HWND map at this+0x9258 has no storage in
+// OpenMFC's 64-byte derived block either. The reachable result is therefore
+// FALSE for every input, which is indistinguishable from a stub, so it is left
+// one -- the same call IsRibbonPresent makes above.
+extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerWindows7__UEAAHPEAVCWnd__H_Z(
+    CMFCVisualManagerWindows7* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnNcPaint@CMFCVisualManagerWindows7@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
-extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerWindows7__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(void* /*class*/* p0, const void* /*class*/* p1, void* /*class*/ p2) {
-    return 0;
+// Retail entry 0x1c2d60 (mfc140; 0x1c4760 in mfc140u). It returns FALSE
+// (the `xor %eax,%eax` at 0x1c30cf) when
+// afxGlobalData.IsDwmCompositionEnabled() (0x6c260) is
+// non-zero, when pWnd or pWnd->m_hWnd is NULL, when the theme handle at
+// this->[+0x8] is NULL, when GetRibbonBar(pWnd) (0x1a16b0) is NULL or not
+// ::IsWindowVisible (slot 0x2c5350), or when that bar's [+0x468] is zero.
+// Past those guards it returns TRUE immediately if pWnd->GetStyle()
+// (0x2a75a0) has bit 24 set (WS_MAXIMIZE). Otherwise it builds a CWindowDC
+// (0x2a1b60) and, if that DC's m_hDC is NULL, destroys it and returns FALSE
+// (the `mov %r12d,%r14d` at 0x1c30be, r12d still zero); else it returns TRUE
+// after painting the frame through it: clipped to the caller's rect
+// (CreateRectRgnIndirect slot 0x2c41a0 + ?SelectClipRgn@CDC@@ 0x2a0d60)
+// unless ::IsRectEmpty (slot 0x2c52c8), the client area removed with
+// ?ExcludeClipRect@CDC@@ (0x2a0e20) after GetWindowRect / ScreenToClient /
+// GetClientRect / OffsetRect (GetWindowRect slot 0x2c5370,
+// ?ScreenToClient@CWnd@@ 0x2a11f0, slots 0x2c5358 and 0x2c5318),
+// then four UxTheme!DrawThemeBackground calls (slot 0x2c53e0) on
+// this->[+0x8] with parts 1, 9, 7 and 8 and a state of 1 when the window
+// counts as active, else 2 -- activity from IsWindowActive (0x1c2bb0);
+// when that is TRUE, the virtual at vtable +0x3f8 returns TRUE (it is
+// `xor %eax,%eax; ret` for this class) and pWnd IsKindOf the descriptor
+// at 0x339bf0 ("CMDIChildWnd"), it is re-derived through
+// ?GetMDIFrame@CMDIChildWnd@@ (0x2a5790) and ?MDIGetActive@CMDIFrameWnd@@
+// (0x2a4a00): when both return non-NULL it stays active only if the active
+// child's m_hWnd is pWnd's and IsWindowActive(frame) holds (a NULL from
+// either leaves it active).
+// [+0x8] lies inside OpenMFC's zero-filled CMFCVisualManager padding and no
+// OpenMFC body opens a theme into it, and GetRibbonBar is a stub returning
+// NULL, so every reachable path returns FALSE -- indistinguishable from a
+// stub, and left one. (Retail never reads the system-button list at
+// all -- R8 is not even saved -- and reads the rect only on the paint path.)
+extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerWindows7__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(
+    CMFCVisualManagerWindows7* /*pThis*/, CWnd* /*pWnd*/, const CObList& /*lstSysButtons*/,
+    CRect /*rectRedraw*/)
+{
+    return FALSE;
 }
 
 // Symbol: ?OnUpdateSystemColors@CMFCVisualManagerWindows7@@UEAAXXZ
-extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows7__UEAAXXZ() {}
+// Retail entry 0x1bbea0 (mfc140; 0x1bd8a0 in mfc140u), vtable +0x70 of the
+// Windows7 vftable (mfc140 0x31cdd0). Its head, which decides everything:
+//     if (g_hinstRes /*0x3b7140*/ == NULL) {
+//         SetStyle(NULL);                     // `xor %ecx,%ecx; call 0x1bb460`
+//         return;                             // jmp 0x1bf200 = the epilogue
+//     }
+//     hOld = AfxGetModuleState()->[+0x18];    // 0x1345b0; swapped to g_hinstRes
+//     this->vtable[+0x658]();                 // = CleanUp (this class's, 0x1bb9a0)
+//     CMFCVisualManagerWindows::OnUpdateSystemColors(this);   // 0x1b7190
+//     this->[+0xf4] = 1;
+//     ...then load "WINDOWS7_IDX_STYLE" as a STYLE_XML resource through a
+//     CTagManager and, if that fails, put the saved resource handle back
+//     (only when it was non-NULL) and return; otherwise parse the style XML
+//     into the renderer, image and colour members -- the rest of a body
+//     that runs to 0x1bf222, some 13 KB of code, not transcribed here.
+// OpenMFC reproduces the head:
+//   * NULL handle: calls this file's CMFCVisualManagerWindows7::SetStyle
+//     (NULL), which is what retail calls. OpenMFC's SetStyle re-applies the
+//     Windows 7 palette where retail's would look for the style resource.
+//   * non-NULL handle (only after SetResourceHandle): the CleanUp call, made
+//     directly to this file's thunk rather than through vtable +0x658, then
+//     the base update routed to CMFCVisualManager's thunk -- a deliberate
+//     substitution for CMFCVisualManagerWindows's, which OpenMFC's hierarchy
+//     does not reach (see the banner) -- then the +0xf4 store, transcribed:
+//     +0xf4 is a CMFCVisualManager member (m_nMenuBorderSize, as
+//     featurepack/menu/CMFCPopupMenu.cpp's GetBorderSize reads it) that lies
+//     inside OpenMFC's zero-filled `_visualmanager_padding`, so it is written
+//     at the retail offset exactly as that reader expects.
+//     The module-state resource-handle swap and the style-XML load are NOT
+//     reproduced: nothing the XML would fill has storage in this 0x148-byte
+//     object, and with no load between the swap and its undo, swapping the
+//     handle would have no reader.
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows7__UEAAXXZ(
+    CMFCVisualManagerWindows7* pThis)
+{
+    if (s_hinstW7Res == nullptr) {
+        CMFCVisualManagerWindows7::SetStyle(nullptr);
+        return;
+    }
+    if (!pThis) return;
+    impl__CleanUp_CMFCVisualManagerWindows7__UEAAXXZ(pThis);
+    impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(pThis);
+    static_assert(sizeof(CMFCVisualManager) >= 0xf4 + sizeof(int),
+                  "CMFCVisualManager +0xf4 lies inside OpenMFC's object");
+    const int nOne = 1;
+    std::memcpy(reinterpret_cast<char*>(pThis) + 0xf4, &nOne, sizeof(nOne));
+}
 
 // Symbol: ?SetResourceHandle@CMFCVisualManagerWindows7@@SAXPEAUHINSTANCE__@@@Z
-extern "C" void MS_ABI impl__SetResourceHandle_CMFCVisualManagerWindows7__SAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {}
+// Retail entry 0x1bce00 (mfc140u; the ANSI twin is mfc140 0x1bb400), complete:
+//     g_bAutoFreeRes = FALSE;                     // unconditional: the store at
+//                                                 // 0x1bce0b sits between the
+//                                                 // cmp and its je
+//     if (g_hinstRes != hinstRes) {
+//         g_hinstRes = hinstRes;
+//         if (<GetInstance>()->IsKindOf(RUNTIME_CLASS(CMFCVisualManagerWindows7)))
+//             <GetInstance>()->OnUpdateSystemColors();   // vtable +0x70
+//     }
+// <GetInstance> is the internal helper at mfc140u 0x9774 (mfc140 0x97f4)
+// that creates the manager singleton on first use; the descriptor is the one
+// ?GetThisClass@CMFCVisualManagerWindows7@@ returns (mfc140 0x31d438).
+// DEVIATIONS, the same two CMFCVisualManagerOffice2007.cpp makes in its
+// SetResourceHandle: the exported m_pVisManager is read instead of calling
+// the creating helper, so a missing manager is not created; and
+// OnUpdateSystemColors is called through this file's thunk rather than
+// dispatched, so an override in a class derived from this one is not reached.
+extern "C" void MS_ABI impl__SetResourceHandle_CMFCVisualManagerWindows7__SAXPEAUHINSTANCE_____Z(
+    HINSTANCE hinstRes)
+{
+    s_bW7AutoFreeRes = FALSE;
+    if (s_hinstW7Res == hinstRes) return;
+    s_hinstW7Res = hinstRes;
+    CMFCVisualManager* pManager =
+        static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+    if (pManager != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pManager, CMFCVisualManagerWindows7::GetThisClass())) {
+        impl__OnUpdateSystemColors_CMFCVisualManagerWindows7__UEAAXXZ(
+            static_cast<CMFCVisualManagerWindows7*>(pManager));
+    }
+}

@@ -30,11 +30,23 @@
 // (the `mov $0xf8,%ecx; call 0x180002840` pair at 0xa7cc5) before running the
 // constructor on it.
 //
-// Nothing inside OpenMFC allocates a CPaneContainer -- the class has no public
-// declaration to allocate through -- so the only objects these entry points
-// ever see are ones a client allocated with the retail layout and handed to the
-// exported constructor below. Writing at these offsets is therefore correct and
-// is what makes the implementations in this file meaningful.
+// Exactly one OpenMFC code path allocates a CPaneContainer: the default
+// (m_pContainerRTC == NULL) arm of ?Create@CPaneContainerManager@ in
+// docking/CPaneContainerManager.cpp, which builds the ROOT node with
+// `::operator new(0xf8)`, zero-fills it and runs the exported constructor below
+// on it. Every other node these entry points see was allocated by a client (or
+// by a client CRuntimeClass) at this same 0xf8-byte retail layout. Either way
+// the storage (the whole object, or its base part for a client-derived class)
+// is 0xf8 bytes laid out as below, so writing at these offsets is correct.
+// What a node does NOT get from OpenMFC is a vftable: the exported constructor
+// below never writes +0x00. The root built by CPaneContainerManager::Create
+// therefore has the NULL vfptr its memset left there, and a plain
+// CPaneContainer a client constructs through this exported constructor has
+// whatever its allocator left there (the vfptr of a non-inline constructor is
+// written by that constructor, not by the caller). Only a client-DERIVED
+// node carries a real vftable, the one its own constructor stores after this
+// one returns. That is why the bodies below call sibling entry points
+// directly instead of dispatching through a node's vftable.
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -128,8 +140,12 @@ extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd)
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 
 // Same-file entry points, forward declared so the bodies below can call each
-// other the way retail does (retail recurses through the direct, non-virtual
-// entry point, never through the vtable).
+// other directly.  Retail mixes the two styles: most of its self-recursion is
+// direct (e.g. ?CleanUp@ calling 0xa3910 at 0xa3922, ?FindTabbedPane@ calling
+// itself at 0xa7b86), but ?Copy@ recurses through byte 0xb0 of the child's
+// vftable (0xa7d83) and ?Serialize@ through byte 0x10 (0xa7462).  Where retail
+// dispatches virtually, the bodies below call the export directly instead,
+// because OpenMFC's constructor installs no vftable (see the file header).
 extern "C" void MS_ABI impl__FreeReleasedPaneContainer_CPaneContainer__IEAAXXZ(void* pThis);
 extern "C" int MS_ABI impl__IsEmpty_CPaneContainer__QEBAHXZ(const void* pThis);
 extern "C" int MS_ABI impl__IsVisible_CPaneContainer__QEBAHXZ(const void* pThis);
@@ -335,17 +351,19 @@ inline const S_CListUINTNode* FindSiblingID(const S_CListUINT* pList, unsigned i
 
 // Symbol: ??0CPaneContainer@@QEAA@PEAVCPaneContainerManager@@PEAVCDockablePane@@1PEAVCPaneDivider@@@Z
 //
-// Retail constructor, entry RVA 0xa3750 (mfc140.dll). It stores the four
-// arguments at +0x38/+0x08/+0x10/+0x18, nulls the three container links,
-// seeds m_nPercent(+0x40) with 50 and +0x44/+0x48/+0x4c with -1, zeroes the
-// int fields at +0x50..+0x60, ::SetRectEmpty's the two CRects at +0x64/+0x74,
-// and constructs the two CList<UINT,UINT> members at +0x88/+0xc0.
+// Retail constructor, entry RVA 0xa3750 (mfc140.dll). It stores the
+// CPaneContainer vftable at +0x00 (`lea 0x1802f4070` / `mov %rax,(%rcx)` at
+// 0xa3777 / 0xa3782, an mfc140.dll address), stores the four arguments at
+// +0x38/+0x08/+0x10/+0x18, nulls the three container links, seeds
+// m_nPercent(+0x40) with 50 and +0x44/+0x48/+0x4c with -1, zeroes the int
+// fields at +0x50..+0x60, ::SetRectEmpty's the two CRects at +0x64/+0x74, and
+// constructs the two CList<UINT,UINT> members at +0x88/+0xc0.
 //
-// DEVIATION, deliberate: OpenMFC cannot store the retail CList<UINT,UINT>
-// vftable pointer that the retail constructor writes at +0x88 and +0xc0
-// (that vftable lives in mfc140u and has no OpenMFC counterpart), so the two
-// lists are zero-initialised with m_nBlockSize = 10 and a NULL vfptr. Every
-// other field retail writes is written here with retail's value.
+// DEVIATION, deliberate: OpenMFC has no retail-shaped CPaneContainer vftable
+// and no CList<UINT,UINT> vftable to store, so +0x00 is NOT written at all
+// (the object keeps whatever its allocator left there -- see the file header)
+// and the two lists are zero-initialised with m_nBlockSize = 10 and a NULL
+// vfptr. Every other field retail writes is written here with retail's value.
 //
 // The side-table registration below predates this file's layout work and is
 // kept because sibling translation units (CPaneContainerManager.cpp,
@@ -900,12 +918,29 @@ extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(
 //
 // Blocked on both halves.  Byte 0x08 of the CPaneContainer vftable (0x2f4070) is
 // RVA 0xa3860, the scalar deleting destructor, i.e. `~CPaneContainer(); operator
-// delete(this)`.  Nothing in OpenMFC allocates a CPaneContainer (see the file
-// header), so this DLL cannot know which heap a node came from, and calling
-// ::operator delete on it would be a cross-allocator free; unlinking the
-// children without freeing them would silently leak instead.  The divider half
-// needs CPaneDivider +0x1c4 and CWnd::m_hWnd, neither of which OpenMFC's
-// CObject-shaped CPaneDivider has (see PaneDividerHwnd above).
+// delete(this)`, and retail reaches it VIRTUALLY, so a client-derived node runs
+// its own destructor and its own operator delete.  OpenMFC cannot reproduce that.
+// When this was written the only node OpenMFC builds is a manager's root
+// (re-grep -- sibling files change), so every child CleanUp meets was created
+// outside this DLL.  A plain CPaneContainer built that way went through the
+// exported constructor above, which never writes +0x00, so its vfptr is
+// whatever the client's allocator left there and cannot be called through;
+// only a client-DERIVED node has a real vftable (see the file header), and
+// nothing here can tell the two apart.  A non-virtual `impl___1CPaneContainer
+// + ::operator delete` replacement would skip a derived destructor and could
+// pair the block with an operator delete other than the one its class uses
+// (which one that is, is decided by the object's own deleting destructor).
+// Unlinking the children without freeing them would silently leak instead.
+// The divider half tests CPaneDivider +0x1c4 (m_bDefaultDivider) and CWnd::
+// m_hWnd (+0x40).  OpenMFC never stores m_bDefaultDivider in the object:
+// ?Init@CPaneDivider@ in docking/CPaneDivider.cpp keeps it in that file's
+// file-local DividerState side table, which has no accessor reachable from
+// this translation unit.  So +0x1c4 holds nothing OpenMFC wrote -- on a
+// client-allocated 0x218-byte divider it is whatever the allocator left
+// there, and on the 24-byte
+// CObject that docking/DynCreateFactories.cpp allocates for CPaneDivider (the
+// class declared in include/openmfc/afxmfc.h) it lies past the end of the
+// object (see PaneDividerHwnd above).
 // Only the parameter list is corrected, to the (this) shape the export ABI
 // passes; the body stays a stub for the reasons above.
 // Symbol: ?CleanUp@CPaneContainer@@IEAAXXZ
@@ -925,7 +960,10 @@ extern "C" void MS_ABI impl__CleanUp_CPaneContainer__IEAAXXZ(void* pThis) {
 //       void* p = operator new(0xf8);                             // 0xa7cc5
 //       if (p == NULL) pNew = NULL;   // 0xa7cf8: retail does NOT return here,
 //                                     // it falls into the code below with a
-//                                     // NULL pNew and would fault at 0xa7d42
+//                                     // NULL pNew and faults at the first
+//                                     // store through it (0xa7d42 when the
+//                                     // left pane is hidden, at the latest
+//                                     // the unconditional one at 0xa7d70)
 //       else pNew = new(p) CPaneContainer(m_pContainerManager, m_pLeftPane,
 //                                    m_pRightPane, m_pSlider);    // call 0xa3750
 //   } else {
@@ -941,8 +979,13 @@ extern "C" void MS_ABI impl__CleanUp_CPaneContainer__IEAAXXZ(void* pThis) {
 //   // STAYS WITH THE ORIGINAL and is cleared from the clone at 0xa7d42
 //   // (`movq $0,0x8(%rbx)`, rbx == pNew).  Same shape for m_pRightPane.
 //   pNew->m_pParentContainer = pParentContainer;                  // 0xa7d70
-//   if (m_pLeftPaneContainer)  { pNew->m_pLeftPaneContainer  = left->Copy(pNew);  ... }
-//   if (m_pRightPaneContainer) { pNew->m_pRightPaneContainer = right->Copy(pNew); ... }
+//   // The two child copies recurse VIRTUALLY, through byte 0xb0 of the child's
+//   // vftable (0xa7d83 / 0xa7dac), and re-parent a non-NULL result:
+//   if (m_pLeftPaneContainer) {
+//       pNew->m_pLeftPaneContainer = m_pLeftPaneContainer->Copy(pNew);    // 0xa7d90
+//       if (pNew->m_pLeftPaneContainer) pNew->m_pLeftPaneContainer->m_pParentContainer = pNew;
+//   }
+//   ... the same for m_pRightPaneContainer (0xa7d9d..0xa7dc2) ...
 //   if (m_pSlider) {
 //       if (m_pSlider->GetStyle() & WS_VISIBLE) {                 // detach it
 //           this->m_nField60 = m_pSlider-><+0x1ac>;               // 0xa7de8
@@ -953,13 +996,24 @@ extern "C" void MS_ABI impl__CleanUp_CPaneContainer__IEAAXXZ(void* pThis) {
 //   }
 //   return pNew;
 //
-// Blocked.  Both allocation paths hand back an object whose +0x00 retail fills
-// with the CPaneContainer vftable and OpenMFC's exported constructor does not
-// write at all, so a client that dispatches on the clone would jump through
-// whatever operator new left there; and the divider-detach arm needs
-// CPaneDivider +0x1ac, m_hWnd and vftable byte 0x2d8, none of which OpenMFC's
-// CObject-shaped CPaneDivider has.  Only the parameter list is corrected, to the
-// (this, pParentContainer) shape the export ABI passes.
+// Blocked.  The operator-new arm hands back an object whose +0x00 retail's
+// constructor fills with the CPaneContainer vftable and OpenMFC's exported
+// constructor does not write at all, so a client that dispatches on the clone
+// -- including this function's own virtual recursion into the children --
+// would jump through whatever operator new left there.  (The CreateObject arm
+// gets whatever vftable the RTC's class constructor writes, so it is not
+// affected.)  The child recursion alone could be routed through this export
+// directly, as the other bodies here do.  The divider-detach arm cannot: it
+// copies CPaneDivider +0x1ac (m_dwDividerStyle) into m_nField60 and caches
+// the orientation from vftable byte 0x2d8, whose body (RVA 0xab490,
+// mfc140.dll) is `mov 0x1ac(%rcx),%eax; and $0x1,%eax` -- the same member.
+// OpenMFC keeps m_dwDividerStyle in the file-local DividerState side table of
+// docking/CPaneDivider.cpp, not in the object, and nothing reachable from this
+// translation unit exposes it; on the 24-byte CObject that
+// docking/DynCreateFactories.cpp allocates for CPaneDivider, +0x1ac is also
+// past the end of the object.  A guessed style would feed ?IsPaneDividerHorz@
+// and the layout code a wrong orientation.  Only the parameter list is
+// corrected, to the (this, pParentContainer) shape the export ABI passes.
 // Symbol: ?Copy@CPaneContainer@@UEAAPEAV1@PEAV1@@Z
 extern "C" void* MS_ABI impl__Copy_CPaneContainer__UEAAPEAV1_PEAV1__Z(
     void* pThis, void* pParentContainer) {
@@ -1192,19 +1246,33 @@ extern "C" void* MS_ABI impl__FindTabbedPane_CPaneContainer__QEAAPEAVCDockablePa
 //   if (m_pSlider && m_pSlider-><+0x1c4> != 0)      goto notify;   // 0xa4d65
 //   if (m_pParentContainer == NULL)                 goto notify;   // 0xa4d78
 //   if (m_pParentContainer == m_pContainerManager->m_pRootContainer) goto notify;
-//   // otherwise: drop this node out of the parent, promoting its single
-//   // survivor into the slot the parent used to point at (0xa4d8c..0xa4e38),
-//   // then destroy the divider window through CPaneDivider vftable byte 0xd0,
-//   // set m_bReleased (+0x5c) = 1, and park the node on a module-global
-//   // CPtrList (the ?AddTail@CPtrList@ call at 0xa4e6a onto the object at
-//   // 0x1803aad58) for deferred destruction.
-//   notify: m_pContainerManager->NotifyPaneDivider();             // 0xaab50
+//   // otherwise:
+//   CPaneContainer* pParent = m_pParentContainer;
+//   BOOL bLeft = (pParent->m_pLeftPaneContainer == this);         // 0xa4d8c, 0xa4d9f
+//   if (pParent->m_pLeftPaneContainer == NULL && pParent->m_pRightPaneContainer == NULL)
+//       AfxThrowInvalidArgException();                            // 0xa4d99 -> 0xa4e85
+//   (bLeft ? pParent->m_pLeftPaneContainer : pParent->m_pRightPaneContainer) = NULL;
+//   // then hand the single survivor to the parent, first match wins
+//   // (0xa4dae..0xa4e38): a surviving PANE goes into the parent's PANE slot on
+//   // the same side (m_pLeftPane when bLeft, else m_pRightPane); a surviving
+//   // CONTAINER goes back into the container slot just cleared and gets
+//   // m_pParentContainer = pParent; the survivor's own slot here is NULLed.
+//   if (m_pSlider) { m_pSlider-><vftable byte 0xd0>(); m_pSlider = NULL; } // DestroyWindow
+//   m_bReleased = 1;                                              // +0x5c, 0xa4e5c
+//   <module-global CPtrList at 0x1803aad58 (mfc140.dll)>.AddTail(this); // 0xa4e6a,
+//                                                                 // deferred destruction
+//   return;                          // 0xa4e6f jumps to the epilogue: NO notify
+//   notify: m_pContainerManager->NotifyPaneDivider();             // 0xa4e75 -> 0xaab50
 //
 // Blocked on the very first decision.  CPaneDivider +0x1c4 is the DWORD
 // ?Init@CPaneDivider@@QEAAXHPEAVCWnd@@@Z (entry RVA 0xab720) stores its first
-// argument into at 0xab757 -- the same word ?CleanUp@ above tests before
-// destroying the divider window -- and OpenMFC's CObject-shaped CPaneDivider has
-// no storage for it (see PaneDividerHwnd above).  Guessing it wrong in the
+// argument into at 0xab757 (m_bDefaultDivider) -- the same word ?CleanUp@
+// above tests before destroying the divider window.  OpenMFC's Init keeps that
+// value in the file-local DividerState side table of docking/CPaneDivider.cpp,
+// never at +0x1c4, and nothing reachable from this translation unit exposes it;
+// on the 24-byte CObject docking/DynCreateFactories.cpp allocates for
+// CPaneDivider, +0x1c4 is also past the end of the object (see
+// PaneDividerHwnd above).  Guessing it wrong in the
 // "not distinguished" direction would unlink a node retail only notifies about,
 // which rewrites the parent's child and pane slots: tree corruption, not a
 // no-op.  The deferred-free CPtrList has no counterpart here either.
@@ -1637,17 +1705,56 @@ extern "C" int MS_ABI impl__IsVisible_CPaneContainer__QEBAHXZ(const void* pThis)
 }
 
 // STUB. Retail ?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z,
-// entry RVA 0xa79f0 (mfc140.dll).  It opens with the two non-exported archive
-// helpers at 0x13ce0 and 0x3fc80 (0xa7a16 / 0xa7a26), then reads a raw int
-// straight out of the archive buffer -- `m_lpBufCur` at CArchive +0x38 against
-// `m_lpBufMax` at +0x40, refilled through 0x1cfc70, under the mode bit tested as
-// `testb $0x1,0x20(%rsi)` -- and drives the recovered pane through tabbed-pane
-// vftable bytes 0x398 and 0x658.
+// entry RVA 0xa79f0 (mfc140.dll).  Transcribed from that body:
 //
-// Blocked: OpenMFC's CArchive does not expose those buffer members at the retail
-// offsets, and the tabbed-pane reattachment path behind bytes 0x398/0x658 does
-// not exist here.  Only the parameter list is corrected, to the
-// (this, CArchive&, CList<UINT,UINT>&) shape the export ABI passes.
+//   CDockablePane* pPane = NULL;                                 // 0xa7a02
+//   CBaseTabbedPane::LoadSiblingPaneIDs(ar, lstBarIDs);          // call 0x13ce0 at 0xa7a16
+//   ar >> pPane;          // ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePane@@@Z,
+//                         // call 0x3fc80 at 0xa7a26
+//   DWORD dwStyle; ar >> dwStyle;  // inline operator>>: `testb $0x1,0x20(%rsi)`
+//                                  // (else AfxThrowArchiveException(4 /*writeOnly*/)
+//                                  // at 0xa7b2a), m_lpBufCur +0x38 vs m_lpBufMax
+//                                  // +0x40, CArchive::FillBuffer 0x1cfc70
+//   DWORD dwTabbedStyle = pPane-><vftable byte 0x398>();         // 0xa7a77
+//   BOOL bOK = pPane-><vftable byte 0x658>(                      // 0xa7ac9
+//       "",                                  // empty literal at 0x33ac36
+//       m_pContainerManager->m_pDockSite,    // manager +0x98
+//       pPane + 0x3d8,                       // a RECT inside the pane
+//       TRUE, (UINT)-1, dwStyle, dwTabbedStyle, 0xf, NULL);
+//   if (!bOK) {
+//       lstBarIDs.RemoveAll();               // call 0x83d0 (the map names it
+//                                            // ?RemoveAll@CPtrList@@ -- the same code)
+//       if (pPane) pPane-><vftable byte 0x08>(1);   // scalar deleting dtor
+//       return NULL;
+//   }
+//   pPane-><vftable byte 0x7c0>(ar);         // 0xa7b09
+//   pPane-><+0x4e0> = TRUE;                  // 0xa7b12
+//   return pPane;
+//
+// Note that pPane is dereferenced at 0xa7a6d without a NULL test.  Slot names,
+// read from the CBaseTabbedPane vftable its constructor ??0CBaseTabbedPane@@QEAA@H@Z
+// (RVA 0x12f50, mfc140.dll) installs at 0x1802db2a8 (mfc140.dll): byte 0x658 is
+// ?Create@CDockablePane@@UEAAHPEBDPEAVCWnd@@AEBUtagRECT@@HIKKKPEAUCCreateContext@@@Z
+// (so the arguments above are caption, parent, rect, bHasGripper, nID, dwStyle,
+// dwTabbedStyle, dwControlBarStyle, pContext), byte 0x7c0 is
+// ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z, and byte 0x398 is
+// the unexported accessor at RVA 0x8850 whose whole body is
+// `mov 0x108(%rcx),%eax; ret`.  +0x4e0 is the DWORD that constructor stores its
+// BOOL argument into (0x12f9a), i.e. bAutoDestroy in afxbasetabbedpane.h.
+//
+// Blocked on the siblings, not only on the archive.  The archive I/O alone
+// could be routed through the exported CArchive Read/Write thunks the way
+// detail/CMDITabInfoSupport.h does, but
+// impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z
+// and impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z are
+// still empty generated placeholders (CBaseTabbedPane.cpp, `p0` parameter
+// lists), and the pane-side virtuals at bytes 0x398 / 0x658 / 0x7c0 are
+// retail MSVC vftable offsets: the CDockablePane this DLL builds is the class
+// declared in include/openmfc/afxmfc.h, compiled by the mingw toolchain with an
+// Itanium-ABI vtable, so those byte offsets do not select the same functions
+// there (the failure path's virtual delete has the same problem).  Only
+// the parameter list is corrected, to the (this, CArchive&, CList<UINT,UINT>&)
+// shape the export ABI passes.
 // Symbol: ?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z
 extern "C" void* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
     void* pThis, void* pArchive, void* pListIDs) {
@@ -2245,20 +2352,50 @@ extern "C" void MS_ABI impl__ResizePartOfPaneContainer_CPaneContainer__UEAAXHHAE
 }
 
 // STUB. Retail ?SaveTabbedPane@CPaneContainer@@IEAAXAEAVCArchive@@PEAVCDockablePane@@@Z,
-// entry RVA 0xa78d0 (mfc140.dll).  It first narrows the pane --
-// `if (pPane == NULL || !pPane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) pPane = NULL;`
-// (CObject::IsKindOf at 0x233310 against the descriptor at 0x2db168, whose name
-// string reads "CBaseTabbedPane") -- then asks it for a count through pane
-// vftable byte 0x758, and, when that count is positive, writes ints directly
-// into the archive buffer (`m_lpBufCur` at CArchive +0x38 tested against
-// `m_lpBufMax` at +0x40, flushed through 0x1cfb90, the store mode read as
-// `testb $0x1,0x20(%rbx)`), interleaved with pane vftable bytes 0x7c8 and 0x7c0.
+// entry RVA 0xa78d0 (mfc140.dll).  Transcribed from that body:
 //
-// Blocked: OpenMFC's CArchive does not expose those buffer members at the retail
-// offsets, and it dereferences the narrowed pane at 0xa78ff even when the
-// narrowing produced NULL, so the shape cannot be reproduced safely either.
-// Only the parameter list is corrected, to the (this, CArchive&, CDockablePane*)
-// shape the export ABI passes.
+//   CBaseTabbedPane* pTabbed = NULL;
+//   if (pBar != NULL && pBar->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)))
+//       pTabbed = pBar;       // CObject::IsKindOf 0x233310 against the descriptor
+//                             // at 0x2db168 (mfc140.dll), named "CBaseTabbedPane"
+//   if (pTabbed-><vftable byte 0x758>() > 0) {       // 0xa78ff: NO NULL test --
+//                             // a non-tabbed pBar faults right here
+//       ar << (int)-1;        // inline operator<<: `testb $0x1,0x20(%rbx)` (a
+//                             // loading archive -> AfxThrowArchiveException(2
+//                             // /*readOnly*/) at 0xa79c1), m_lpBufCur +0x38 vs
+//                             // m_lpBufMax +0x40, CArchive::Flush 0x1cfb90
+//       pTabbed-><vftable byte 0x7c8>(ar);           // 0xa7959
+//       ar.WriteObject(pTabbed);                     // call 0x1d0500 at 0xa7965
+//       ar << (DWORD)pTabbed->GetStyle();            // CWnd::GetStyle 0x2a75a0
+//       pTabbed-><vftable byte 0x7c0>(ar);           // 0xa79ab
+//   }
+//
+// Slot names, read from the CBaseTabbedPane vftable its constructor
+// ??0CBaseTabbedPane@@QEAA@H@Z (RVA 0x12f50, mfc140.dll) installs at 0x1802db2a8
+// (mfc140.dll): byte 0x7c8 is ?SaveSiblingBarIDs@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z,
+// byte 0x7c0 is ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z, and
+// byte 0x758 is the unexported RVA 0x12eb0, which returns 0 when the pointer
+// at +0x4e8 is NULL and otherwise tail-calls byte 0x368 of that
+// object's vftable -- the inline GetTabsNum() of afxbasetabbedpane.h
+// (`m_pTabWnd->GetTabsNum()`).
+//
+// This is the save half of the record LoadTabbedPane below reads back: the -1
+// that Serialize's loader takes as "tabbed pane follows", the sibling IDs, the
+// pane object, its style and the tab window.
+//
+// Blocked on the siblings.  The archive I/O alone could go through the
+// exported CArchive Write/WriteObject thunks, but
+// impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z and
+// impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z are still
+// empty generated placeholders (CBaseTabbedPane.cpp, `p0` parameter lists),
+// the tab count needs CBaseTabbedPane +0x4e8 (m_pTabWnd), which OpenMFC's
+// CBaseTabbedPane does not pin, and bytes 0x758 / 0x7c8 / 0x7c0 are retail MSVC
+// vftable offsets that do not select the same functions in the Itanium-ABI
+// vtable of the pane classes this DLL compiles.  Writing the -1 marker without
+// the sibling IDs and tab window that must follow it would produce a record
+// LoadTabbedPane cannot parse, so nothing is written.  Only the parameter list
+// is corrected, to the (this, CArchive&, CDockablePane*) shape the export ABI
+// passes.
 // Symbol: ?SaveTabbedPane@CPaneContainer@@IEAAXAEAVCArchive@@PEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__PEAVCDockablePane___Z(
     void* pThis, void* pArchive, void* pPane) {
@@ -2268,17 +2405,80 @@ extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__P
 }
 
 // STUB. Retail ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z, entry RVA
-// 0xa7290 (mfc140.dll).  It persists the whole sub-tree, branching on the
-// archive's store bit (`test %r15b,0x20(%rdx)` at 0xa72a6, r15b == 1) and then
-// reading and writing ints straight through the archive buffer members --
-// `m_lpBufCur` at CArchive +0x38 compared against `m_lpBufMax` at +0x40, topped
-// up by the non-exported helper at 0x1cfb90 -- while calling ?SaveTabbedPane@
-// (0xa78d0) and ?LoadTabbedPane@ (0xa79f0) for the tabbed children.
+// 0xa7290 (mfc140.dll).  Every `ar << int` / `ar >> int` below is the inline
+// CArchive operator: the mode bit `test %r15b,0x20(ar)` (r15b == 1, wrong mode
+// -> AfxThrowArchiveException 0x1d15a0), m_lpBufCur at CArchive +0x38 against
+// m_lpBufMax at +0x40, topped up by CArchive::Flush 0x1cfb90 (store) or
+// CArchive::FillBuffer 0x1cfc70 (load).  Transcribed from that body:
 //
-// Blocked: OpenMFC's CArchive does not expose m_lpBufCur/m_lpBufMax/m_nMode at
-// the retail offsets, and the two helpers this drives are themselves stubs
-// above.  Only the parameter list is corrected, to the (this, CArchive&) shape
-// the export ABI passes.
+//   if (ar.IsStoring()) {                          // bit clear at 0xa72a6
+//       // left pane (0xa72b0..0xa7324), then the same for m_pRightPane:
+//       if (m_pLeftPane == NULL) ar << 0;
+//       else {
+//           int nID = m_pLeftPane->GetDlgCtrlID();          // CWnd, 0x2a78b0
+//           if (nID == -1) SaveTabbedPane(ar, m_pLeftPane); // direct call 0xa78d0
+//           else ar << nID;
+//       }
+//       if (m_pSlider == NULL) ar << 0;                     // 0xa73f1
+//       else { ar << m_pSlider->GetDlgCtrlID(); m_pSlider-><vftable byte 0x10>(ar); }
+//       ar << (m_pLeftPaneContainer != NULL);               // setne at 0xa7446
+//       if (m_pLeftPaneContainer) m_pLeftPaneContainer-><vftable byte 0x10>(ar);
+//       ar << (m_pRightPaneContainer != NULL);              // setne at 0xa7494
+//       if (m_pRightPaneContainer) m_pRightPaneContainer-><vftable byte 0x10>(ar);
+//   } else {                                       // 0xa74bf
+//       ar >> m_nField44;                                   // +0x44
+//       if (m_nField44 == -1) m_pLeftPane = LoadTabbedPane(ar, m_lstLeftSiblingIDs);
+//       ar >> m_nField48;                                   // +0x48
+//       if (m_nField48 == -1) m_pRightPane = LoadTabbedPane(ar, m_lstRightSiblingIDs);
+//       ar >> m_nField4C;                                   // +0x4c: divider id
+//       if (m_nField4C != 0) {                              // 0xa7594
+//           m_pSlider = DYNAMIC_DOWNCAST(CPaneDivider,
+//               CPaneDivider::m_pSliderRTC->CreateObject()); // 0x3aab10, 0x233380,
+//                                                            // IsKindOf vs 0x2f4b58
+//           m_pSlider->Init(FALSE, m_pContainerManager->m_pDockSite); // 0xab720,
+//                                                            // no NULL test
+//           m_pSlider-><vftable byte 0x10>(ar);              // Serialize
+//           m_pSlider-><+0x208> = m_pContainerManager;       // 0xa75f5
+//           m_pContainerManager-><+0x40 list>.AddTail(m_pSlider); // 0x230490
+//       }
+//       int bLeft; ar >> bLeft;                              // read at 0xa7638
+//       CRuntimeClass* pRTC = m_pContainerManager->m_pContainerRTC; // +0x80, 0xa7645
+//                                        // loaded once, reused for bRight
+//       if (bLeft) {
+//           if (pRTC == NULL)
+//               m_pLeftPaneContainer = new CPaneContainer(m_pContainerManager,
+//                                                         NULL, NULL, NULL); // 0xf8
+//           else {
+//               m_pLeftPaneContainer = pRTC->CreateObject();
+//               m_pLeftPaneContainer->m_pContainerManager = m_pContainerManager;
+//           }
+//           m_pLeftPaneContainer-><vftable byte 0x10>(ar);   // Serialize
+//           m_pLeftPaneContainer->m_pParentContainer = this;
+//       }
+//       ... the same for bRight / m_pRightPaneContainer (0xa76bb..0xa7758) ...
+//   }
+//
+// Blocked.  The archive I/O alone could be routed through the exported
+// CArchive Read/Write thunks the way detail/CMDITabInfoSupport.h does -- the
+// layout of OpenMFC's CArchive (include/openmfc/afx.h) differs from retail, so
+// the inline buffer arithmetic cannot be transcribed literally -- but:
+//  * the divider arms: Init and the divider's Serialize exist as exported
+//    thunks in docking/CPaneDivider.cpp and could be called directly, but the
+//    loader's `m_pSlider-><+0x208> = m_pContainerManager` store has no
+//    counterpart reachable from here -- OpenMFC keeps m_pContainerManager in
+//    that file's file-local DividerState side table, which only its own
+//    CreateEx path sets -- and CWnd::GetDlgCtrlID (RVA 0x2a78b0) reads
+//    m_pCtrlSite (+0xd0) and m_hWnd (+0x40), both past the end of the 24-byte
+//    CObject docking/DynCreateFactories.cpp allocates for CPaneDivider (the
+//    class declared in include/openmfc/afxmfc.h);
+//  * the tabbed-pane arms call SaveTabbedPane / LoadTabbedPane above, both of
+//    them blocked stubs;
+//  * the loader allocates child nodes whose vftable OpenMFC's constructor does
+//    not write, then immediately dispatches Serialize through it.
+// A store that wrote the pane IDs but not the divider record would produce a
+// stream the retail (or any future OpenMFC) loader misparses, so nothing is
+// written.  Only the parameter list is corrected, to the (this, CArchive&)
+// shape the export ABI passes.
 // Symbol: ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CPaneContainer__UEAAXAEAVCArchive___Z(
     void* pThis, void* pArchive) {

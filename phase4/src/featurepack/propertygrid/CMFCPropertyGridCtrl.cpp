@@ -886,9 +886,11 @@ int CMFCPropertyGridCtrl::CompareProps(const CMFCPropertyGridProperty* pProp1, c
 //         pSel->Redraw();                                                   // ?Redraw@CMFCPropertyGridProperty@@ 0xc1730 (mfc140u)
 //         if (pSel->m_pWndInPlace != NULL) pSel->m_pWndInPlace->SetFocus(); // +0x100
 //     }
-// DEVIATION: OpenMFC's colour property (CMFCPropertyGridColorProperty.cpp) keeps
-// no popup pointer and no button-down flag, and no in-place edit window is ever
-// created, so of the four statements only the Redraw has an effect here.
+// DEVIATION: OpenMFC's colour property (CMFCPropertyGridColorProperty.cpp) does
+// keep m_pPopup at retail +0x180, but only its ctor writes it (NULL; its
+// OnClickButton is a stub), so the NULL store is omitted as a no-op; the base
+// has no button-down flag, and no in-place edit window is ever created, so of
+// the four statements only the Redraw has an effect here.
 extern "C" void MS_ABI impl__CloseColorPopup_CMFCPropertyGridCtrl__UEAAXXZ(CMFCPropertyGridCtrl* pThis) {
     if (!pThis) return;
     CMFCPropertyGridProperty* pSel = CurSelOf(pThis);
@@ -1192,6 +1194,17 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z
 // colour slot is empty the system value UpdateSysColors would have put there is
 // used (GetSysColorBrush(COLOR_BTNFACE), GetSysColor(COLOR_BTNSHADOW)) instead
 // of a NULL brush / black line.
+// Substitutions: the temporary CBrush (??0CBrush@@QEAA@K@Z, RVA 0x2a4060
+// mfc140u) is a CreateSolidBrush/DeleteObject pair (retail's ctor throws if
+// creation fails; here FillRect just gets a NULL brush); CDC::Draw3dRect(LPCRECT,
+// ...) (RVA 0x2a5bc0 mfc140u, a direct call) is Draw3dRectHdc above, drawing on
+// m_hDC as retail's FillSolidRect-based body does.  DEVIATION: the two CDC
+// vslot-14 SetTextColor calls are ::SetTextColor on m_hDC only.  Retail's base
+// ?SetTextColor@CDC@@UEAAKK@Z (ordinal 13679, RVA 0x2a2960 mfc140u) applies the
+// colour to m_hDC when it differs from m_hAttribDC and then to m_hAttribDC
+// (+0x10) when that is non-NULL, so for a DC whose attribute handle differs
+// (metafile / print-preview DCs) retail also recolours m_hAttribDC and this body
+// does not; and a SetTextColor override in a CDC subclass is not honoured.
 extern "C" void MS_ABI impl__OnDrawDescription_CMFCPropertyGridCtrl__MEAAXPEAVCDC__VCRect___Z(
     CMFCPropertyGridCtrl* pThis, CDC* pDC, CRect rect) {
     if (!pThis || !pDC || !pDC->GetSafeHdc()) return;
@@ -1670,7 +1683,17 @@ extern "C" void MS_ABI impl__OnKeyDown_CMFCPropertyGridCtrl__IEAAXIII_Z(
 //     }
 //     CWnd::OnKillFocus(pNewWnd);  -> tail-jump to ?Default@CWnd@@
 // The property-side OnKillFocus is the `mov eax,1; ret` base body (entry
-// 0x3a60) in retail and is not modelled in OpenMFC, so it is taken as TRUE.
+// 0x3a60 in slot 37 of the mfc140u property vftable 0x1802fb460) in retail and
+// is not modelled in OpenMFC, so it is taken as TRUE.  DEVIATION: retail
+// dispatches that slot virtually, so an override is honoured -- notably
+// CMFCPropertyGridColorProperty's inline one (afxpropertygridctrl.h:271,
+// `pNewWnd->GetSafeHwnd() != m_pPopup->GetSafeHwnd()`).  It is not dispatched
+// here: OpenMFC's colour property keeps the base vptr (see its ctor's DEVIATION
+// 2 in CMFCPropertyGridColorProperty.cpp).  That file does keep m_pPopup at
+// +0x180 but never sets it (its OnClickButton is a stub), so the override
+// would reduce to `hNew != NULL`: with a colour property selected and focus
+// going to no window (pNewWnd NULL), retail skips EndEditItem / m_bFocused /
+// Redraw, and this body performs them.
 extern "C" void MS_ABI impl__OnKillFocus_CMFCPropertyGridCtrl__IEAAXPEAVCWnd___Z(CMFCPropertyGridCtrl* pThis, CWnd* pNewWnd) {
     if (!pThis) return;
     const HWND hNew = pNewWnd != nullptr ? pNewWnd->m_hWnd : nullptr;
@@ -1956,6 +1979,9 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CMFCPropertyGridCtrl__IEAAXHPEAUtagNCC
 // value is 3).  The manager is read from the exported ?m_pVisManager@ mirror of
 // CMFCVisualManager::GetInstance(), as docking/CPaneDivider.cpp does; the draw
 // is skipped when no manager exists yet (the C++ static is not linkable here).
+// DEVIATION: retail's helper (RVA 0x9774 mfc140u) creates the default manager on
+// first use instead.  Retail makes no CWnd::OnNcPaint / Default call at all, so
+// neither does this body.
 extern "C" void MS_ABI impl__OnNcPaint_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropertyGridCtrl* pThis) {
     if (!pThis) return;
     PropertyGridWndState& wnd = WndState(pThis);
@@ -2396,8 +2422,21 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 // the map at the top of this file.)
 // DEVIATIONS: m_ToolTip / m_IPToolTip have no OpenMFC member, so the two
 // TTM_RELAYEVENT sends and the SW_HIDE are skipped (TrackToolTip is still
-// dispatched, as retail does); AFX_PROP_HAS_BUTTON is the sibling's HasButton
-// thunk and m_bGroup is IsGroupOf, as in OnKeyDown; and because OpenMFC never
+// dispatched, as retail does, except that an added NULL m_hWnd guard skips the
+// whole GetCursorPos / ScreenToClient / TrackToolTip block when the control has
+// no window); `m_dwFlags & AFX_PROP_HAS_BUTTON` is the sibling's HasButton
+// thunk and m_bGroup is IsGroupOf, as in OnKeyDown.  That HasButton substitution
+// is not exact: retail tests bit 0x2 alone here (`testb $0x2,0x40(%rdx)`), while
+// retail HasButton (RVA 0xc11a0 mfc140u) tests 0x3 (HAS_LIST | HAS_BUTTON), and
+// OpenMFC's property has no m_dwFlags -- its HasButton means "has an option list",
+// matching its OnClickButton, which rotates that list.  So in this model a
+// list-valued property takes the Alt+Down/Right branch where retail would not
+// (retail AddOption, RVA 0xc12f0 mfc140u, sets m_dwFlags = 1), and a font or
+// file property (retail ctors set m_dwFlags = 2, e.g. the font ctor at RVA
+// 0xc59f0 mfc140u; OpenMFC option list empty) does not take it where retail
+// would.  The colour property agrees in both models: its retail ctor (RVA
+// 0xc4960 mfc140u) sets m_dwFlags = 1, so bit 0x2 is clear and retail skips
+// the branch too.  And because OpenMFC never
 // enters in-place editing (m_bInPlaceEdit is not modelled and is never set),
 // the `!m_pSel->m_bInPlaceEdit` test always hands off to CWnd::PreTranslateMessage
 // here -- nothing from the in-place branch above is reachable in this model.

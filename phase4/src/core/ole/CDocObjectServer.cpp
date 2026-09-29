@@ -609,8 +609,9 @@ extern "C" CFrameWnd* MS_ABI impl__GetControllingFrame_CDocObjectServer__QEBAPEA
 
 // STUB: CDocObjectServer::OnActivateView -- retail (0x2586a0 in mfc140; RVA
 // 0x259620 in mfc140u, 326 instructions up to the `ret` at 0x259b65, re-read
-// there: the first test is `mov 0x48(%rcx),%rax; cmpq $0,0x230(%rax); jne` at
-// 0x25964e with `xor %eax,%eax` on the fall-through) is the in-place
+// there: `mov 0x48(%rcx),%rax` at 0x25964a, then the test `cmpq
+// $0,0x230(%rax); jne` at 0x25964e, with `xor %eax,%eax` and a jump to the
+// epilogue on the fall-through) is the in-place
 // activation path and is far outside what this DLL can express.  Note that
 // +0x230 of the owner is retail's m_lpClientSite but OpenMFC's m_bEmbedded
 // (layout note at the top), so the early-out cannot be read from the object
@@ -619,17 +620,36 @@ extern "C" CFrameWnd* MS_ABI impl__GetControllingFrame_CDocObjectServer__QEBAPEA
 // stores nothing, and no member or side table holds one), so every document
 // this DLL builds is one retail would early-out on, and the S_OK below is
 // that early-out's value, not a guess.  What was read from the disassembly,
-// so the next reader does not have to start over:
-//     if (m_pOwner->[0x230] == NULL) return S_OK;         // 0x2586ce, early out
-//     ...build three CStrings from the module state (0x3ab440 / +0x18)...
-//     if (!m_pOwner->vtbl[0x330/8 = 102](&str)) goto fail;
-//     AfxGetThread()-relative fetch (0x1345b0) feeding a 0xe005 dispatch
-//         (0x1cbc00) with the three strings;
+// so the next reader does not have to start over (addresses are mfc140u
+// unless marked; callees named through the mfc140u export table, the owner
+// slots through the COleServerDocEx vtable at .rdata 0x2efe28 in mfc140):
+//     if (m_pOwner->[0x230] == NULL) return S_OK;   // 0x25964e (0x2586ce mfc140)
+//     three default-constructed, i.e. EMPTY, CStrings: each is the static
+//         string manager's vtable slot 3 (0x18) plus 0x18 past the
+//         CStringData header; the object is .data 0x3b25e8 (mfc140u) /
+//         0x3ab440 (mfc140), and that slot in mfc140 is
+//         ?GetNilString@CAfxStringMgr@@ -- nothing here reads the module state;
+//     if (!m_pOwner->vtbl[0x330/8 = 102](&strFileType)) goto fail;
+//         // slot 102 = ?GetFileTypeString@COleServerDoc@@
+//     AfxFormatStrings(strTitle, 0xE005, { AfxGetModuleState()->[0x20],
+//                      strFileType }, 2);       // call 0x1cdc90 at 0x259702
+//         // 0x133930 = AfxGetModuleState, +0x20 = m_lpszCurrentAppName
+//         // (i.e. AfxGetAppName()), 0xE005 = AFX_IDS_OBJ_TITLE_INPLACE
+//         // (afxres.h); this is AfxFormatString2 with TWO inserts
 //     pViewSite = m_pViewSite (+0x60); if (pViewSite == NULL) goto fail;
-//     pViewSite->AddRef(); if (pViewSite->vtbl[0x30/8 = 6]() != S_OK) goto fail;
-//     pViewSite->vtbl[0x18/8 = 3](&hwnd)  ...  and on from there.
-// It needs the retail COleServerDoc layout (+0x230, vtable slot 102), the
-// in-place frame and the CWnd side of activation, none of which exist here.
+//     pViewSite->AddRef();                        // slot 1
+//     if ((hr = pViewSite->vtbl[0x30/8 = 6]()) != S_OK) goto release;
+//         // IOleInPlaceSite::OnInPlaceActivate
+//     pViewSite->vtbl[0x18/8 = 3](&hwnd);         // IOleWindow::GetWindow
+//     CWnd::FromHandle(hwnd)                      // call 0x28ad70
+//     if (m_pOwner->[0x250] == NULL)              // m_pInPlaceFrame
+//         m_pOwner->[0x250] = m_pOwner->vtbl[0x318/8 = 99](pParent)
+//         // slot 99 = ?CreateInPlaceFrame@COleServerDoc@@
+//     ...  IOleInPlaceSite slots 8 (GetWindowContext) and 7 (OnUIActivate),
+//     and on from there.
+// It needs the retail COleServerDoc layout (+0x230, +0x250, vtable slots 99
+// and 102), the in-place frame and the CWnd side of activation, none of which
+// exist here.
 // Symbol: ?OnActivateView@CDocObjectServer@@MEAAJXZ
 extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThis) {
     (void)pThis;
@@ -643,12 +663,13 @@ extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThi
 //     slot 22 (0x32d398) -> 0x2820      slot 23 (0x32d3a0) -> 0x2820
 //     slot 24 (0x32d3a8) -> 0x2586a0    ?OnActivateView@CDocObjectServer@@
 //     slot 25 (0x32d3b0) -> 0x255f20    ?OnCloseDocument@CDocObjectServer@@
-// RVA 0x2820 disassembles to a single `ret` -- an empty void body that every
+// RVA 0x2820 (mfc140) disassembles to `ret $0` -- an empty void body that every
 // such body in the image was COMDAT-folded into (the RVA map happens to name it
 // ?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ, which is one of the folded-in
 // bodies, not this one).  The same holds in mfc140u, read directly this time:
 // the export directory maps ordinal 8670 (OnApplyViewState) and ordinal 10963
-// (OnSaveViewState) both to RVA 0x27d0 (mfc140u), which is a single `ret`
+// (OnSaveViewState) both to RVA 0x27d0 (mfc140u), which is `ret $0` (bytes
+// C2 00 00; re-read from the mfc140u export address table and image bytes)
 // (the mfc140u map names that address ?AddDockSite@CFrameWndEx@@QEAAXXZ, again
 // one of the folded-in empties).  afxdocob.h on this host declares CDocObjectServer's
 // new virtuals in the order OnApplyViewState, OnSaveViewState, OnActivateView,
@@ -657,6 +678,8 @@ extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThi
 // archive and touches no member.
 extern "C" void MS_ABI impl__OnApplyViewState_CDocObjectServer__MEAAXAEAVCArchive___Z(
     void* pThis, CArchive& ar) {
+    // The retail body is empty, so this no-op is the faithful transcription,
+    // not a placeholder.
     (void)pThis;
     (void)ar;
 }
@@ -717,10 +740,14 @@ extern "C" long MS_ABI impl__OnExecOleCmd_CDocObjectServer__IEAAJPEBU_GUID__KKPE
 // Symbol: ?OnSaveViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z
 // CDocObjectServer::OnSaveViewState(CArchive&) -- empty, on exactly the evidence
 // written out under OnApplyViewState above: class vtable slot 23 (.rdata
-// 0x32d3a0) holds 0x2820, a single `ret`.  Retail writes nothing to the archive
-// and touches no member.
+// 0x32d3a0, mfc140) holds 0x2820 (mfc140), `ret $0`; and the mfc140u export
+// address table maps this export (ordinal 10963) to RVA 0x27d0 (mfc140u), the
+// same `ret $0` (C2 00 00).  Retail writes nothing to the archive and touches
+// no member.
 extern "C" void MS_ABI impl__OnSaveViewState_CDocObjectServer__MEAAXAEAVCArchive___Z(
     void* pThis, CArchive& ar) {
+    // The retail body is empty, so this no-op is the faithful transcription,
+    // not a placeholder.
     (void)pThis;
     (void)ar;
 }
@@ -885,10 +912,17 @@ extern "C" long MS_ABI impl__ApplyViewState_XOleDocumentView_CDocObjectServer__U
 // the vtable at 0x18032d130) holds 0x180258f50 -- byte-identical to the
 // SetRectComplex slot at 0x18032d170, i.e. the two bodies were COMDAT-folded.
 // That body (disassembled below, under SetRectComplex) is AFX_MANAGE_STATE
-// followed by `return E_NOTIMPL`.  In mfc140u the export resolves to its own
-// RVA 0x259ed0, which was disassembled: AFX_MANAGE_STATE(this - 0x40) and then
-// `mov $0x80004001,%eax` -- neither parameter is read.  The body below IS the
-// retail body, not a placeholder.
+// followed by `return E_NOTIMPL`.  In mfc140u the export (ordinal 2792)
+// resolves through the export address table to RVA 0x259ed0 (mfc140u) --
+// NOT a body of its own: the same table maps
+// ?SetRectComplex@XOleDocumentView@CDocObjectServer@@ there as well, so the
+// two are COMDAT-folded in mfc140u too.  That RVA was disassembled:
+// AFX_MANAGE_STATE on `mov -0x40(%rcx),%rdx`
+// -- the part is at server + 0x78, so that is server + 0x38, m_pModuleState --
+// then `mov $0x80004001,%eax` and return.  Neither parameter is read and
+// *ppViewNew is NOT written.  The body below IS the retail body, not a
+// placeholder; the only omission is the module-state push, which this file
+// does not reproduce anywhere (see the IOleObject forwards note).
 extern "C" long MS_ABI impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAPEAUIOleDocumentView___Z(
     void* pThis, IOleInPlaceSite* pIPSiteNew, IOleDocumentView** ppViewNew) {
     (void)pThis;

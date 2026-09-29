@@ -100,6 +100,10 @@ extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEB
     CCmdTarget* pThis, const void* iid);                     // core/runtime/CCmdTarget.cpp
 extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(
     CCmdTarget* pThis);                                      // core/runtime/CCmdTarget.cpp
+extern "C" int MS_ABI impl__OnQueryUpdateItems_COleServerItem__UEAAHXZ(
+    COleServerItem* pThis);                                  // core/ole/COleServerItem.cpp
+extern "C" void MS_ABI impl__OnUpdateItems_COleServerItem__UEAAXXZ(
+    COleServerItem* pThis);                                  // core/ole/COleServerItem.cpp
 
 namespace {
 // Retail COleServerDoc offsets used by the bodies that recover the document
@@ -1774,28 +1778,52 @@ extern "C" long MS_ABI impl__IsDirty_XPersistStorage_COleServerDoc__UEAAJXZ(
 //     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);   // call 0x133170
 //     COleServerItem* pItem = pThis->GetEmbeddedItem();   // call 0x265a40
 //     BOOL b = pItem->OnQueryUpdateItems();     // item vtable byte 0xf8 (slot 31)
-//     return b ? S_FALSE : S_OK;                // `setne %al`
+//     return b ? S_FALSE : S_OK;                // `xor %eax,%eax; test; setne %al`
 // inside an MFC TRY whose catch path re-enters at 0x268cb5 and returns the
 // frame's result slot.  (In mfc140u, ?OnQueryUpdateItems@COleServerItem@@
 // (0x26a1f0) and ?OnUpdateItems@ (0x26a260) sit adjacent in .rdata at
 // 0x32f220/0x32f228, consistent with slots 31/32.)  pItem is not null-checked.
-// Stubbed, re-checked 2026-09: the document IS recoverable here (CDocObjectServer
-// forwards with m_pOwner + 0x278), but the embedded item is not.  Retail's
-// GetEmbeddedItem (0x265a40) is `if (m_pEmbeddedItem@0x248 == NULL)
-// { m_pEmbeddedItem = OnGetEmbeddedItem() /*byte 0x2b0*/; ExternalAddRef on
-// it /*0x26cd80*/; } return m_pEmbeddedItem;`.  OpenMFC's exported
-// GetEmbeddedItem (core/ole/Thunks.cpp) instead returns
-// COleServerDoc::GetEmbeddedItem() -> COleDocument::OnGetEmbeddedItem(), the
-// primary SELECTED COleClientItem, cast to COleServerItem*.  Calling
-// OnQueryUpdateItems on that would run a COleServerItem body over a
-// COleClientItem object, so the call is not made.  `return 0` (S_OK) is
-// retail's value only when no contained item is stale.
+// Retail's GetEmbeddedItem (0x265a40 mfc140u) is `if (m_pEmbeddedItem@0x248 ==
+// NULL) { m_pEmbeddedItem = OnGetEmbeddedItem() /*vtable byte 0x2b0*/;
+// <call 0x26cd80 on it>; } return m_pEmbeddedItem;`.
+// Reachability: core/ole/CDocObjectServer.cpp's XOleObject::IsUpToDate calls
+// this thunk with m_pOwner + 0x278, so `this - 0x278` lands on a real OpenMFC
+// COleServerDoc there.
+// Deviations, stated:
+//   * The item is NOT obtained the retail way.  OpenMFC's exported
+//     GetEmbeddedItem (core/ole/Thunks.cpp) returns
+//     COleServerDoc::GetEmbeddedItem() -> OnGetEmbeddedItem(), a
+//     COleClientItem cast to COleServerItem*, so it cannot be used, and
+//     retail's m_pEmbeddedItem@0x248 is not modeled.  This uses
+//     GetEmbeddedServerItem() (defined earlier in this file): the first
+//     COleServerItem registered for this document in the ServerDocState side
+//     table (the COleServerItem constructor registers it through
+//     AddServerDocItem, detail/OlecoreSupport.cpp, which sets both the item's
+//     m_pServerDoc and m_pDocument to this document).  Base
+//     COleServerItem::OnQueryUpdateItems (retail RVA 0x26a1f0 (mfc140u;
+//     0x268fb0 in mfc140), transcribed in core/ole/COleServerItem.cpp) reads
+//     only the item's document -- retail m_pDocument@0x40, the OpenMFC
+//     transcription GetDocument() == m_pServerDoc -- and walks that
+//     document's client items, so for the base implementation any server
+//     item of this document gives the same answer as retail's embedded item.
+//   * No lazy creation: retail creates the embedded item through
+//     OnGetEmbeddedItem when none exists; here, when the document has no
+//     server item, the body returns S_OK (nothing is known to be stale)
+//     instead of creating one.
+//   * OnQueryUpdateItems is called through its thunk, not item vtable slot 31,
+//     so a derived override is not picked up.
+//   * AFX_MANAGE_STATE and the TRY/CATCH are not reproduced (the +0x38 word is
+//     not a module-state pointer in an OpenMFC document; see
+//     XOleInPlaceObject::InPlaceDeactivate above).
 // Symbol: ?IsUpToDate@XOleObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
 {
-    (void)pThisItf;
-    return 0;
+    COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleObject);
+    COleServerItem* pItem = pThis->GetEmbeddedServerItem();
+    if (pItem == nullptr)
+        return S_OK;                              // deviation: retail never gets here
+    return impl__OnQueryUpdateItems_COleServerItem__UEAAHXZ(pItem) ? S_FALSE : S_OK;
 }
 
 // COleServerDoc::XPersistStorage::Load(IStorage*) -- retail 0x267040,
@@ -2299,14 +2327,25 @@ extern "C" long MS_ABI impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(
 //     return S_OK;                              // EBX, zeroed before the call
 // inside an MFC TRY: the catch path re-enters at 0x268c40 and returns the
 // frame's result slot instead, so S_OK is the normal-path value only.
-// Stubbed for the same reason as IsUpToDate above: OpenMFC's GetEmbeddedItem
-// returns the primary selected COleClientItem cast to COleServerItem*, not
-// retail's m_pEmbeddedItem@0x248, so the OnUpdateItems call cannot be made
-// on it.  `return 0` matches retail's normal-path S_OK; the call is missing.
+// pItem is not null-checked.
+// Reachability: core/ole/CDocObjectServer.cpp's XOleObject::Update calls this
+// thunk with m_pOwner + 0x278.
+// Deviations: the same four as XOleObject::IsUpToDate above -- the item comes
+// from GetEmbeddedServerItem() (the first server item registered for this
+// document) rather than retail's lazily created m_pEmbeddedItem@0x248;
+// base COleServerItem::OnUpdateItems (retail RVA 0x26a260 (mfc140u; 0x269020
+// in mfc140), transcribed in core/ole/COleServerItem.cpp) reads only the
+// item's document (retail m_pDocument@0x40; OpenMFC GetDocument()), so any
+// server item of this document drives the same update; with no server item
+// the call is skipped and S_OK returned; OnUpdateItems is called through its
+// thunk, not vtable slot 32; AFX_MANAGE_STATE and TRY/CATCH are not reproduced.
 // Symbol: ?Update@XOleObject@COleServerDoc@@UEAAJXZ
 extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(
     void* pThisItf)
 {
-    (void)pThisItf;
-    return 0;
+    COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleObject);
+    COleServerItem* pItem = pThis->GetEmbeddedServerItem();
+    if (pItem != nullptr)                         // deviation: retail does not check
+        impl__OnUpdateItems_COleServerItem__UEAAXXZ(pItem);
+    return S_OK;
 }
