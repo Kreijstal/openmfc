@@ -84,18 +84,6 @@ extern "C" int MS_ABI impl__Check_CDatabase__UEBAHF_Z(const CDatabase* pThis, sh
 extern "C" int MS_ABI impl__CheckHstmt_CDatabase__QEBAHFPEAX_Z(const CDatabase* pThis, short retCode, void*) {
     return impl__Check_CDatabase__UEBAHF_Z(pThis, retCode);
 }
-// Symbol: ?GetConnect@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void MS_ABI impl__GetConnect_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-    CString* ret, const CDatabase* pThis) {
-    new (ret) CString(pThis ? pThis->GetConnect() : CString());
-}
-// Symbol: ?GetDatabaseName@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void MS_ABI impl__GetDatabaseName_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-    CString* ret, const CDatabase* pThis) {
-    if (!pThis) { new (ret) CString(); return; }
-    auto it = g_databaseStates.find(pThis);
-    new (ret) CString((it != g_databaseStates.end() && !it->second.databaseName.IsEmpty()) ? it->second.databaseName : pThis->m_strConnect);
-}
 // Symbol: ?GetConnectInfo@CDatabase@@IEAAXXZ
 extern "C" void MS_ABI impl__GetConnectInfo_CDatabase__IEAAXXZ(CDatabase* pThis) {
     if (pThis) g_databaseStates[pThis].connectInfo = pThis->m_strConnect;
@@ -223,7 +211,6 @@ void CDatabase::Cancel() {
 }
 BOOL CDatabase::CanTransact() const {return m_bTransactions;}
 BOOL CDatabase::CanUpdate() const {return m_bUpdatable;}
-CString CDatabase::GetConnect() const {return m_strConnect;}
 int CDatabase::GetLoginTimeout() const {return static_cast<int>(m_dwLoginTimeout);}
 void CDatabase::SetLoginTimeout(DWORD seconds) {m_dwLoginTimeout=seconds;}
 int CDatabase::GetQueryTimeout() const {return static_cast<int>(m_dwQueryTimeout);}

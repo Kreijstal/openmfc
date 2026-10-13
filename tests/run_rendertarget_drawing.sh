@@ -169,7 +169,7 @@ lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
-for source in tests/test_d2d_resources.cpp phase4/src/core/db/CDatabase.cpp \
+for source in tests/test_d2d_resources.cpp phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp \
     phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp \
     phase4/src/core/d2d/CRenderTarget.cpp \
     phase4/src/core/d2d/CD2DTextFormat.cpp phase4/src/core/d2d/CD2DTextLayout.cpp; do
@@ -186,7 +186,7 @@ lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF /e
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" crypt32.lib odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 RUNNER=(wine)
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
     RUNNER=(xvfb-run -a wine)

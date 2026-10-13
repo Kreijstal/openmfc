@@ -639,6 +639,10 @@ public:
 
 private:
     wchar_t* m_pszData;
+    friend class CDatabase;
+    struct OwnedData {};
+    CString(CStringData* data,OwnedData) : m_pszData(data->data()) {}
+    static CString FromOwnedData(CStringData* data) {return CString(data,OwnedData{});}
 
     CStringData* GetData() const {
         return reinterpret_cast<CStringData*>(m_pszData) - 1;

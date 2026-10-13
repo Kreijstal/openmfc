@@ -534,6 +534,7 @@ LDLIBS=(
     -loleacc
     -luuid
     -loledlg
+    -lcrypt32
     -lodbc32
     -lriched20
     -luxtheme

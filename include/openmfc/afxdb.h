@@ -83,6 +83,7 @@ public:
     BOOL CanTransact() const;
     BOOL CanUpdate() const;
     CString GetConnect() const;
+    CString GetDatabaseName() const;
     virtual void OnSetOptions(HSTMT statement);
     virtual void BindParameters(HSTMT statement);
     virtual BOOL Check(RETCODE code) const;

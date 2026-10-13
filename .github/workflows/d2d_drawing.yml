@@ -62,6 +62,7 @@ on:
       - 'tests/rfx_scalar_tests.h'
       - 'tests/rfx_text_buffer_tests.h'
       - 'tests/database_layout_tests.h'
+      - 'tests/database_strings_tests.h'
       - 'phase4/src/detail/RFXTextFixup.h'
       - 'phase4/src/detail/CRecordsetSupport.*'
       - 'phase4/src/detail/CPtrListSupport.*'
@@ -230,6 +231,7 @@ on:
       - 'tests/rfx_scalar_tests.h'
       - 'tests/rfx_text_buffer_tests.h'
       - 'tests/database_layout_tests.h'
+      - 'tests/database_strings_tests.h'
       - 'phase4/src/detail/RFXTextFixup.h'
       - 'phase4/src/detail/CRecordsetSupport.*'
       - 'phase4/src/detail/CPtrListSupport.*'
@@ -501,6 +503,7 @@ jobs:
             echo uuid.lib
             echo d2d1.lib
             echo windowscodecs.lib
+            echo crypt32.lib
             echo odBc32.lib
             echo comctl32.lib
           )
@@ -562,6 +565,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPtrList.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CPtrListSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextBuffer.cpp"
@@ -659,6 +663,7 @@ jobs:
             echo uuid.lib
             echo d2d1.lib
             echo windowscodecs.lib
+            echo crypt32.lib
             echo odBc32.lib
             echo comctl32.lib
           )
@@ -701,6 +706,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDataSourceControl.cpp"
           )
