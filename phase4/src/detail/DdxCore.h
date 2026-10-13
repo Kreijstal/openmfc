@@ -15,24 +15,14 @@
 
 namespace openmfc_ddx {
 
-// CDataExchange, ABI-faithful to MFC (afxdd_.h): no vtable.
-struct CDX {
-    int   m_bSaveAndValidate;   // @0  BOOL
-    // 4 bytes tail pad before the 8-byte pointer
-    CWnd* m_pDlgWnd;            // @8
-    HWND  m_hWndLastControl;    // @16
-    int   m_bEditLastControl;   // @24 BOOL
-    // @28 UINT m_idLastControl (unused here)
-};
+using CDX = CDataExchange;
 
 inline bool Saving(void* pDX) { return pDX && static_cast<CDX*>(pDX)->m_bSaveAndValidate; }
 
-inline HWND Ctrl(void* pDX, int nIDC, bool edit = false) {
-    CDX* dx = static_cast<CDX*>(pDX);
-    HWND hDlg = (dx && dx->m_pDlgWnd) ? dx->m_pDlgWnd->GetSafeHwnd() : nullptr;
-    HWND h = hDlg ? ::GetDlgItem(hDlg, nIDC) : nullptr;
-    if (dx) { dx->m_hWndLastControl = h; dx->m_bEditLastControl = edit; }
-    return h;
+inline HWND Ctrl(void* pDX,int nIDC,bool edit=false) {
+    auto* dx=static_cast<CDataExchange*>(pDX);
+    if(!dx)return nullptr;
+    return edit ? dx->PrepareEditCtrl(nIDC) : dx->PrepareCtrl(nIDC);
 }
 
 // Numeric type tags for the templated text exchange.
@@ -118,8 +108,7 @@ inline void Radio(void* pDX, int nIDC, int* pv) {
     CDX* dx = static_cast<CDX*>(pDX);
     HWND hDlg = (dx && dx->m_pDlgWnd) ? dx->m_pDlgWnd->GetSafeHwnd() : nullptr;
     if (!hDlg) return;
-    HWND h = ::GetDlgItem(hDlg, nIDC);
-    if (dx) { dx->m_hWndLastControl = h; dx->m_bEditLastControl = false; }
+    HWND h = dx->PrepareCtrl(nIDC);
     if (Saving(pDX)) *pv = -1;
     int idx = 0;
     for (HWND w = h; w; w = ::GetWindow(w, GW_HWNDNEXT), ++idx) {
@@ -242,15 +231,10 @@ inline void IPAddress(void* pDX, int nIDC, unsigned long* pv) {
     else ::SendMessageW(h, IPM_SETADDRESS, 0, (LPARAM)*pv);
 }
 
-// DDV validation.  MFC aborts DoDataExchange by throwing; that path cannot be replicated
-// here because a mingw-thrown C++ exception cannot unwind through the MSVC client's
-// DoDataExchange frame (mismatched exception ABIs would crash).  We instead flag the
-// failure non-destructively -- beep and move focus to the offending control -- so an
-// invalid entry is surfaced to the user without corrupting the process.
+// Validation failures restore the last control and throw the framework user exception.
 inline void FailRange(void* pDX) {
     ::MessageBeep(MB_ICONEXCLAMATION);
-    CDX* dx = static_cast<CDX*>(pDX);
-    if (dx && dx->m_hWndLastControl) ::SetFocus(dx->m_hWndLastControl);
+    if(pDX)static_cast<CDataExchange*>(pDX)->Fail();
 }
 
 template <class T>

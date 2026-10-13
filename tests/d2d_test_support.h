@@ -227,3 +227,11 @@ extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOB
 UINT g_toolCommandStyle=0;int g_toolCommandIndex=-1;
 extern "C" UINT MS_ABI impl__GetButtonStyle_CToolBar__QEBAIH_Z(const void*,int index) { g_toolCommandIndex=index;return g_toolCommandStyle; }
 extern "C" void MS_ABI impl__SetButtonStyle_CToolBar__QEAAXHI_Z(void*,int index,UINT style) { g_toolCommandIndex=index;g_toolCommandStyle=style; }
+
+// Dialog tests exercise exchange/exception behavior; the user-facing message box
+// is captured so framework failures cannot open a blocking modal UI.
+int g_exchangeMessageBoxes=0;
+UINT g_exchangeMessageID=0,g_exchangeMessageFlags=0;
+extern "C" int MS_ABI impl__AfxMessageBox__YAHIII_Z(UINT id,UINT flags,UINT) { ++g_exchangeMessageBoxes;g_exchangeMessageID=id;g_exchangeMessageFlags=flags;return IDOK; }
+extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() { throw new CException; }
+extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException*,UINT,UINT) { std::abort(); }

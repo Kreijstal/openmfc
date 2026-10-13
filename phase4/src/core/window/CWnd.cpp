@@ -3327,15 +3327,6 @@ HWND CWnd::UnsubclassWindow()
     m_hWnd = nullptr;
     return hWnd;
 }
-int CWnd::UpdateData(int p0)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-
-    UpdateDialogControls(this, p0);
-    return TRUE;
-}
 void CWnd::UpdateDialogControls(void* p0, int p1)
 {
     (void)p0;

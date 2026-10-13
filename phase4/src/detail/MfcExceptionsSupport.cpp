@@ -27,10 +27,6 @@ static_assert(offsetof(ManualCMemoryException, m_bAutoDelete) == sizeof(void*),
 void AFXAPI AfxThrowMemoryException() {
     impl__AfxThrowMemoryException__YAXXZ();
 }
-// Symbol: ?AfxThrowUserException@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ() {
-    ThrowNew(new CUserException_MfcExceptions(), &TI_CUserException, nullptr);
-}
 // Symbol: ?AfxThrowInvalidArgException@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
     ThrowNew(new CInvalidArgException_MfcExceptions(), &TI_CInvalidArgException, nullptr);
@@ -218,10 +214,6 @@ TD_CResourceException_t TD_CResourceException = { nullptr, nullptr, ".PEAVCResou
 CatchableType CT_CResourceException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CResourceException_t CTA_CResourceException = { 3, {0,0,0} };
 ThrowInfo TI_CResourceException = { 0, 0, 0, 0 };
-TD_CUserException_t TD_CUserException = { nullptr, nullptr, ".PEAVCUserException@@" };
-CatchableType CT_CUserException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CUserException_t CTA_CUserException = { 3, {0,0,0} };
-ThrowInfo TI_CUserException = { 0, 0, 0, 0 };
 TD_CInvalidArgException_t TD_CInvalidArgException = { nullptr, nullptr, ".PEAVCInvalidArgException@@" };
 CatchableType CT_CInvalidArgException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CInvalidArgException_t CTA_CInvalidArgException = { 3, {0,0,0} };
@@ -292,15 +284,6 @@ void InitAllRTTI() {
     CTA_CResourceException.t[2] = TO_RVA(&CT_CObject);
     TI_CResourceException.pmfnUnwind = 0;
     TI_CResourceException.pCatchableTypeArray = TO_RVA(&CTA_CResourceException);
-
-    // CUserException_MfcExceptions
-    TD_CUserException.pVFTable = g_typeInfoVFT;
-    CT_CUserException.pType = TO_RVA(&TD_CUserException);
-    CTA_CUserException.t[0] = TO_RVA(&CT_CUserException);
-    CTA_CUserException.t[1] = TO_RVA(&CT_CException);
-    CTA_CUserException.t[2] = TO_RVA(&CT_CObject);
-    TI_CUserException.pmfnUnwind = 0;
-    TI_CUserException.pCatchableTypeArray = TO_RVA(&CTA_CUserException);
 
     // CInvalidArgException_MfcExceptions
     TD_CInvalidArgException.pVFTable = g_typeInfoVFT;
@@ -638,7 +621,7 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
 // Symbol: ?AfxThrowLastCleanup@@YAXXZ
 extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
     // This is typically called to throw a generic exception during cleanup
-    ThrowNew(new CUserException_MfcExceptions(), &TI_CUserException, nullptr);
+    impl__AfxThrowUserException__YAXXZ();
 }
 // Symbol: ?AfxAbort@@YAXXZ
 extern "C" void MS_ABI impl__AfxAbort__YAXXZ() {

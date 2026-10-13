@@ -140,10 +140,6 @@ std::unordered_map<CTaskDialog*, TaskDialogState> g_taskDialogs;
 std::mutex g_tabbedPaneMutex;
 std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
-static CRuntimeClass* AFXAPI _openmfc_gb_g_classCUserException() { return &CException::classCException; }
-__attribute__((used)) CRuntimeClass g_classCUserException = {
-    "CUserException", sizeof(CException), 0xFFFF, nullptr, &_openmfc_gb_g_classCUserException, nullptr, nullptr
-};
 void AddTaskDialogButton(TaskDialogButtonState& state, int id, const wchar_t* label, int enabled) {
     auto it = std::find_if(state.buttons.begin(), state.buttons.end(),
         [id](const TASKDIALOG_BUTTON& button) { return button.nButtonID == id; });

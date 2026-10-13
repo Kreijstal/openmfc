@@ -262,7 +262,7 @@ extern std::unordered_map<void*, HDC> g_windowlessDCs;
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
-extern __attribute__((used)) CRuntimeClass g_classCUserException;
+
 } } }
 
 

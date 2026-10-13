@@ -211,6 +211,7 @@ class CDockState;
 class CView;
 class CDocument;
 class CCmdUI;
+class CUserException;
 class CPrintPreviewState;
 class CMiniDockFrameWnd;
 class CFrameWnd;
@@ -236,6 +237,8 @@ public:
     CException(int bAutoDelete = 1) : m_bAutoDelete(bAutoDelete) {}
     virtual ~CException() = default;
     virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr) const;
+    virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr);
+    virtual int ReportError(UINT nType=MB_OK,UINT nMessageID=0);
     virtual void Dump() const override;
     virtual void AssertValid() const override;
     
@@ -254,6 +257,34 @@ protected:
 };
 
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
+
+// Unicode retail layout: 16-byte CException followed by the message cache.
+class CSimpleException : public CException {
+    DECLARE_DYNAMIC(CSimpleException)
+public:
+    CSimpleException();
+    explicit CSimpleException(BOOL bAutoDelete);
+    virtual ~CSimpleException() = 0;
+    int GetErrorMessage(wchar_t*,UINT,UINT* = nullptr) const override;
+    void InitString();
+    BOOL m_bAutoDelete;
+protected:
+    BOOL m_bInitialized;
+    BOOL m_bLoaded;
+    wchar_t m_szMessage[128];
+    UINT m_nResourceID;
+};
+static_assert(sizeof(CSimpleException)==288,"native Unicode CSimpleException layout");
+
+class CUserException : public CSimpleException {
+    DECLARE_DYNAMIC(CUserException)
+public:
+    CUserException();
+    explicit CUserException(BOOL bAutoDelete);
+    CUserException(BOOL bAutoDelete,UINT nResourceID);
+    ~CUserException() override;
+};
+void AFXAPI AfxThrowUserException();
 
 class CMemoryException : public CException {
     DECLARE_DYNAMIC(CMemoryException)
@@ -380,6 +411,20 @@ protected: \
     }
 
 #include "afxmsg_.h"
+
+class CDataExchange {
+public:
+    CDataExchange(CWnd* window,BOOL save);
+    HWND PrepareCtrl(int id);
+    HWND PrepareEditCtrl(int id);
+    COleControlSite* PrepareOleCtrl(int id);
+    void Fail();
+    BOOL m_bSaveAndValidate;
+    CWnd* m_pDlgWnd;
+    UINT m_idLastControl;
+    BOOL m_bEditLastControl;
+};
+static_assert(sizeof(CDataExchange)==24,"native dialog data exchange");
 
 // Native command UI has four virtual callbacks and no virtual destructor.
 class CCmdUI {

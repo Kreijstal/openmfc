@@ -1684,11 +1684,6 @@ extern "C" int MS_ABI impl__SubclassWindow_CWnd__QEAAHPEAUHWND_____Z(CWnd* pThis
 extern "C" HWND__* MS_ABI impl__UnsubclassWindow_CWnd__QEAAPEAUHWND____XZ(CWnd* pThis) {
     return (HWND__*)pThis->UnsubclassWindow();
 }
-// Symbol: ?UpdateData@CWnd@@QEAAHH@Z
-// CWnd::UpdateData
-extern "C" int MS_ABI impl__UpdateData_CWnd__QEAAHH_Z(CWnd* pThis, int p0) {
-    return (int)pThis->UpdateData(p0);
-}
 // Symbol: ?UpdateDialogControls@CWnd@@QEAAXPEAVCCmdTarget@@H@Z
 // CWnd::UpdateDialogControls
 extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(CWnd* pThis, CCmdTarget* p0, int p1) {

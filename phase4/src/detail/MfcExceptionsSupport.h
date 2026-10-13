@@ -148,12 +148,6 @@ public:
     CResourceException_MfcExceptions() : CException(TRUE) {}
 };
 
-// CUserException_MfcExceptions
-class CUserException_MfcExceptions : public CException {
-public:
-    CUserException_MfcExceptions() : CException(TRUE) {}
-};
-
 // CInvalidArgException_MfcExceptions
 class CInvalidArgException_MfcExceptions : public CException {
 public:
@@ -358,26 +352,6 @@ namespace openmfc { namespace detail { namespace mfcexceptions {
 extern ThrowInfo TI_CResourceException;
 } } }
 
-// CUserException_MfcExceptions
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CUserException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[24];
-};
-extern TD_CUserException_t TD_CUserException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CUserException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CUserException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CUserException_t CTA_CUserException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CUserException;
-} } }
-
 // CInvalidArgException_MfcExceptions
 namespace openmfc { namespace detail { namespace mfcexceptions {
 struct TD_CInvalidArgException_t {
@@ -580,7 +554,7 @@ void InitAllRTTI();
 //
 // Static exceptions (m_bAutoDelete=0, never deleted):
 // - CMemoryException: Uses static instance (g_ManualMemoryException)
-// - CResourceException_MfcExceptions, CUserException_MfcExceptions: Use static instances
+// - CUserException uses its native shared instance in core/exceptions/CUserException.cpp
 // - These use a static-lifetime destructor thunk.
 //
 // Heap-allocated exceptions (m_bAutoDelete=1, may be deleted by MSVC):

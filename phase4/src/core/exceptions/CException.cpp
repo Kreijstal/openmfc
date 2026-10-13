@@ -152,5 +152,8 @@ void CException::AssertValid() const {
 // directive resolves at assembly time, so an alias must be emitted in the
 // same translation unit as its target; lld rejects a cross-unit .set that
 // GNU ld happens to tolerate.
+#ifdef __GNUC__
 asm(".globl \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\"\n"
     ".set \"?GetThisClass@CException@@SAPEAUCRuntimeClass@@XZ\", impl__GetThisClass_CException__SAPEAUCRuntimeClass__XZ\n");
+
+#endif

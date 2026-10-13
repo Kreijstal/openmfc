@@ -275,6 +275,7 @@ static void ownershipAndRecreation() {
 #include "dynamic_layout_tests.h"
 #include "window_message_map_tests.h"
 #include "cmdui_tests.h"
+#include "data_exchange_tests.h"
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
@@ -289,6 +290,7 @@ int main() {
     if (SUCCEEDED(hr)) dynamicLayout();
     if (SUCCEEDED(hr)) windowMessageMaps();
     if (SUCCEEDED(hr)) commandUI();
+    if (SUCCEEDED(hr)) dataExchange();
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);
