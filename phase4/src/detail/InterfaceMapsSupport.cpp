@@ -1,8 +1,6 @@
 #include "InterfaceMapsSupport.h"
 
 namespace openmfc { namespace detail { namespace interfacemaps {
-const AFX_INTERFACEMAP_ENTRY g_ifaceEnd[] = { { nullptr, (size_t)-1 } };
-const AFX_INTERFACEMAP g_imap_CCmdTarget = { nullptr, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CDocObjectServer() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_CDocObjectServer = { gib_CDocObjectServer, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CEnumConnPoints() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

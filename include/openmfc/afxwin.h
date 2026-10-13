@@ -213,6 +213,11 @@ class CFrameWnd;
 struct _AFX_OCC_DIALOG_INFO;
 struct AFX_INTERFACEMAP;
 struct AFX_CMDHANDLERINFO;
+struct AFX_OLECMDMAP;
+struct AFX_DISPMAP;
+struct AFX_CONNECTIONMAP;
+struct AFX_EVENTSINKMAP;
+class CTypeLibCache;
 
 //=============================================================================
 // CException and derived classes
@@ -397,21 +402,41 @@ enum AfxSig
 
 class CCmdTarget : public CObject {
     DECLARE_DYNAMIC(CCmdTarget)
+public:
+    CCmdTarget() : m_dwRef(1), _cmd_alignment(0), m_pOuterUnknown(nullptr), m_xInnerUnknown(0) {}
+    virtual ~CCmdTarget();
+
+    // Retail x64 prefix: CObject occupies slots 0..4, followed by these
+    // methods in slots 5..21. DECLARE_MESSAGE_MAP must appear at slot 12.
+    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
+    virtual void OnFinalRelease();
+    virtual BOOL IsInvokeAllowed(DISPID dispid);
+    virtual BOOL GetDispatchIID(IID* iid);
+    virtual UINT GetTypeInfoCount();
+    virtual CTypeLibCache* GetTypeLibCache();
+    virtual HRESULT GetTypeLib(LCID lcid, ITypeLib** library);
     DECLARE_MESSAGE_MAP()
 public:
-    CCmdTarget() = default;
-    virtual ~CCmdTarget();
-    
-    // Message map support (simplified)
-    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
-    
-    // Static helper for dispatching
+    virtual const AFX_OLECMDMAP* GetCommandMap() const;
+    virtual const AFX_DISPMAP* GetDispatchMap() const;
+    virtual const AFX_CONNECTIONMAP* GetConnectionMap() const;
+    virtual const AFX_INTERFACEMAP* GetInterfaceMap() const;
+    virtual const AFX_EVENTSINKMAP* GetEventSinkMap() const;
+    virtual BOOL OnCreateAggregates();
+    virtual IUnknown* GetInterfaceHook(const void* iid);
+    virtual BOOL GetExtraConnectionPoints(CPtrArray* points);
+    virtual IConnectionPoint* GetConnectionHook(const IID& iid);
+    IUnknown* GetInterface(const void* iid);
+
     static int PASCAL DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                      AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo);
-    
-protected:
-    // Padding to reach correct size
-    char _padding[24];
+public:
+    long m_dwRef;                    // retail +0x08
+    DWORD _cmd_alignment;
+    IUnknown* m_pOuterUnknown;        // retail +0x10
+    ULONG_PTR m_xInnerUnknown;        // retail +0x18
+    // The remaining 64-byte retail object storage is addressed separately;
+    // CWnd currently reserves those bytes in its own padding.
 };
 
 // IMPLEMENT_DYNAMIC(CCmdTarget, CObject) moved to appcore.cpp

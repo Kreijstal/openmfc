@@ -29,3 +29,5 @@ CRuntimeClass CFileFind::classCFileFind{};
 CRuntimeClass CDocument::classCDocument{};
 CRuntimeClass CHtmlView::classCHtmlView{};
 
+// Rendering tests never delete a target through the base final-release body.
+extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget*) { std::abort(); }

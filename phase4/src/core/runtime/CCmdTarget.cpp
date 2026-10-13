@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include "detail/InterfaceMapsSupport.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
 
 // Declared rather than pulled in via detail/MfcExceptionsSupport.h: that header
 // drags in CException::classCException, which this translation unit must not
@@ -40,7 +41,7 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 //   sizeof == 0x40 (m_pModuleState is the last data member afxwin.h declares)
 //
 // OpenMFC's CCmdTarget (include/openmfc/afxwin.h) is only 32 bytes -- CObject's
-// vfptr plus `char _padding[24]` -- so ONLY m_dwRef, m_pOuterUnknown and
+// vfptr and the addressable aggregation fields -- so ONLY m_dwRef, m_pOuterUnknown and
 // m_xInnerUnknown are addressable.  Entry points that need +0x20 or beyond are
 // either left stubbed or, in the case of InternalRelease, SetStandardProp and
 // the file-local inner-unknown Release installed by EnableAggregation,
@@ -66,18 +67,9 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 // SetStandardProp check nothing, as retail.
 //
 // One initialisation gap the reference-counting entry points below inherit and
-// cannot fix from this file: the retail CCmdTarget constructor (mfc140u
-// 0x1de3f0) is
-//     m_pModuleState = AfxGetModuleState();   ; call 0x180133930, store +0x38
-//     m_dwRef = 1;                            ; mov $1,%ecx ; mov %ecx,0x8
-//     m_pOuterUnknown = m_xInnerUnknown = m_xDispatch = m_xConnPtContainer = 0;
-//     m_bResultExpected = 1;                  ; mov %ecx,0x28
-// so a freshly constructed retail CCmdTarget starts at ONE reference.  OpenMFC
-// builds the object with `new (pThis) CCmdTarget()` (CtorDtorPlacement.cpp),
-// which value-initialises `char _padding[24]` to zero, so m_dwRef starts at 0
-// here.  ExternalAddRef / InternalRelease / ExternalDisconnect below are each
-// faithful to their retail body, but they start counting from 0 rather than 1
-// until that constructor stores the initial reference.
+// The native base constructor initializes m_dwRef to ONE and the addressable
+// aggregation fields to NULL. Its module-state and dispatch/connection storage
+// still need the remaining 64-byte object layout.
 // ===========================================================================
 
 namespace {
@@ -98,62 +90,7 @@ static_assert(sizeof(CCmdTarget) == 32, "OpenMFC CCmdTarget is 32 bytes (afxwin.
 
 inline S_CCmdTarget* Shadow(void* pThis) { return static_cast<S_CCmdTarget*>(pThis); }
 
-// --- map structures ----------------------------------------------------------
-// Transcribed from the shipping afxwin.h (_AFXDLL flavour, which is what
-// mfc140u is built as: every pfnGetBaseMap slot below is a function pointer,
-// and the disassembly indirect-calls through it).  AFX_INTERFACEMAP itself is
-// already declared by detail/InterfaceMapsSupport.h and is reused as-is.
-enum AFX_DISPMAP_FLAGS_ { afxDispCustom_ = 0, afxDispStock_ = 1 };
-
-struct AFX_DISPMAP_ENTRY {
-    const wchar_t*      lpszName;     // +0x00
-    long                lDispID;      // +0x08
-    const char*         lpszParams;   // +0x10
-    unsigned short      vt;           // +0x18
-    void*               pfn;          // +0x20
-    void*               pfnSet;       // +0x28
-    size_t              nPropOffset;  // +0x30
-    AFX_DISPMAP_FLAGS_  flags;        // +0x38
-};
-static_assert(offsetof(AFX_DISPMAP_ENTRY, lDispID) == 0x08, "AFX_DISPMAP_ENTRY::lDispID at +0x08");
-static_assert(offsetof(AFX_DISPMAP_ENTRY, vt) == 0x18, "AFX_DISPMAP_ENTRY::vt at +0x18");
-static_assert(offsetof(AFX_DISPMAP_ENTRY, nPropOffset) == 0x30, "AFX_DISPMAP_ENTRY::nPropOffset at +0x30");
-static_assert(sizeof(AFX_DISPMAP_ENTRY) == 0x40, "AFX_DISPMAP_ENTRY stride is 0x40 (GetEntryCount: add $0x40 / sar $0x6)");
-
-struct AFX_DISPMAP {
-    const AFX_DISPMAP* (AFXAPI* pfnGetBaseMap)();  // +0x00
-    const AFX_DISPMAP_ENTRY*    lpEntries;         // +0x08
-    unsigned int*               lpEntryCount;      // +0x10
-    unsigned long*              lpStockPropMask;   // +0x18 (not read by anything here)
-};
-
-struct AFX_EVENTSINKMAP_ENTRY {
-    AFX_DISPMAP_ENTRY dispEntry;     // +0x00
-    unsigned int      nCtrlIDFirst;  // +0x40
-    unsigned int      nCtrlIDLast;   // +0x44
-};
-static_assert(sizeof(AFX_EVENTSINKMAP_ENTRY) == 0x48, "AFX_EVENTSINKMAP_ENTRY stride is 0x48 (GetEventSinkEntry: add $0x48)");
-static_assert(offsetof(AFX_EVENTSINKMAP_ENTRY, nCtrlIDFirst) == 0x40, "nCtrlIDFirst at +0x40");
-static_assert(offsetof(AFX_EVENTSINKMAP_ENTRY, nCtrlIDLast) == 0x44, "nCtrlIDLast at +0x44");
-
-struct AFX_EVENTSINKMAP {
-    const AFX_EVENTSINKMAP* (AFXAPI* pfnGetBaseMap)();
-    const AFX_EVENTSINKMAP_ENTRY*    lpEntries;
-    unsigned int*                    lpEntryCount;
-};
-
-struct AFX_CONNECTIONMAP_ENTRY { const void* piid; size_t nOffset; };
-struct AFX_CONNECTIONMAP {
-    const AFX_CONNECTIONMAP* (AFXAPI* pfnGetBaseMap)();
-    const AFX_CONNECTIONMAP_ENTRY*    pEntry;
-};
-
-struct AFX_OLECMDMAP_ENTRY { const GUID* pguid; unsigned long cmdID; unsigned int nID; };
-struct AFX_OLECMDMAP {
-    const AFX_OLECMDMAP* (AFXAPI* pfnGetBaseMap)();
-    const AFX_OLECMDMAP_ENTRY*    lpEntries;
-};
-
+// Map layouts are shared with the typed virtual implementation.
 // AFX_EVENT (afxpriv2.h).  Only the first two members are read by
 // GetEventSinkEntry; the rest are carried so the offsets stay honest.
 struct AFX_EVENT {
@@ -169,49 +106,6 @@ struct AFX_EVENT {
 };
 static_assert(offsetof(AFX_EVENT, m_eventKind) == 0x00, "AFX_EVENT::m_eventKind at +0x00");
 static_assert(offsetof(AFX_EVENT, m_dispid) == 0x04, "AFX_EVENT::m_dispid at +0x04");
-
-// --- CCmdTarget's own (empty) maps ------------------------------------------
-// Reproduced byte-for-byte from retail mfc140u .rdata:
-//   dispatch    map 0x18033e268 = { NULL, 0x18033e290, 0x1803b1b9c, 0x1803b1ba0 }
-//               entries at 0x18033e290: one terminator record --
-//               lpszName NULL, lDispID 0xffffffff, nPropOffset (size_t)-1
-//               entry count at 0x1803b1b9c holds 0xffffffff (filled in lazily
-//               by GetEntryCount) and the stock-property mask at 0x1803b1ba0
-//               holds 0xffffffff too -- BEGIN_DISPATCH_MAP (afxdisp.h:178)
-//               seeds _dwStockPropMask with (DWORD)-1 as its "not computed
-//               yet" sentinel, exactly like _dispatchEntryCount
-//   event sink  map 0x18033e200 = { NULL, 0x18033e220, 0x1803b1b98 };
-//               the count at 0x1803b1b98 is 0xffffffff.  AFX_EVENTSINKMAP has
-//               only those three fields (afxwin.h:1639), so the qword that
-//               follows the map in .rdata is a different object.
-//               entries at 0x18033e220: one terminator, +0x30 = -1 and the
-//               qword at +0x40 = -1, i.e. nCtrlIDFirst and nCtrlIDLast both -1
-//   connection  map 0x18033e1c0 = { NULL, 0x18033e1a0 }
-//               entries at 0x18033e1a0 = { NULL, (size_t)-1 }
-//   OLE command map 0x18033e1b0 = { NULL, 0x18033e190 }
-//               entries at 0x18033e190 = 16 bytes of zero
-const AFX_DISPMAP_ENTRY g_dispEntries_CCmdTarget[] = {
-    { nullptr, -1, nullptr, 0, nullptr, nullptr, (size_t)-1, afxDispCustom_ }
-};
-unsigned int  g_dispEntryCount_CCmdTarget = 0xffffffffu;
-unsigned long g_dispStockPropMask_CCmdTarget = 0xffffffffu;
-const AFX_DISPMAP g_dispatchMap_CCmdTarget = {
-    nullptr, g_dispEntries_CCmdTarget, &g_dispEntryCount_CCmdTarget, &g_dispStockPropMask_CCmdTarget
-};
-
-const AFX_EVENTSINKMAP_ENTRY g_evsinkEntries_CCmdTarget[] = {
-    { { nullptr, -1, nullptr, 0, nullptr, nullptr, (size_t)-1, afxDispCustom_ }, 0xffffffffu, 0xffffffffu }
-};
-unsigned int g_evsinkEntryCount_CCmdTarget = 0xffffffffu;
-const AFX_EVENTSINKMAP g_eventSinkMap_CCmdTarget = {
-    nullptr, g_evsinkEntries_CCmdTarget, &g_evsinkEntryCount_CCmdTarget
-};
-
-const AFX_CONNECTIONMAP_ENTRY g_connEntries_CCmdTarget[] = { { nullptr, (size_t)-1 } };
-const AFX_CONNECTIONMAP g_connectionMap_CCmdTarget = { nullptr, g_connEntries_CCmdTarget };
-
-const AFX_OLECMDMAP_ENTRY g_cmdEntries_CCmdTarget[] = { { nullptr, 0, 0 } };
-const AFX_OLECMDMAP g_commandMap_CCmdTarget = { nullptr, g_cmdEntries_CCmdTarget };
 
 // --- IIDs the retail bodies reference by address -----------------------------
 // mfc140u 0x1802d9a58 = {00000000-0000-0000-C000-000000000046} (IID_IUnknown)
@@ -263,14 +157,10 @@ namespace {
 
 // --- retail (MSVC) vtable slots --------------------------------------------
 // The exported CCmdTarget entry points are called with objects that carry an
-// MSVC-layout vtable: a client class's own vftable, or one of the
-// hand-authored MSVC tables in this tree (e.g. g_CMFCBaseAccessibleObject_vtbl
-// in featurepack/controls/CMFCBaseAccessibleObject.cpp, whose slot comments
-// list the same CCmdTarget order).  The slot numbers below are each read off a
-// retail call site (byte offset / 8), cited where used.  They are NOT the slots
-// of g++'s own C++ vtable for CCmdTarget (there GetMessageMap is slot 6, which
-// is OnFinalRelease in the MSVC table), so an object that still carries the
-// g++ vtable must not be handed to the bodies that use them.
+// MSVC-layout vtable: the native CCmdTarget prefix restored in afxwin.h,
+// a client class's own vftable, or a hand-authored MSVC table. The indices
+// below come from retail call sites (byte offset / 8). Non-MSVC vtables
+// cannot be used with these ABI entry points.
 constexpr size_t kVs_ScalarDeletingDtor = 1;   // OnFinalRelease: mov 0x8(%rax)
 constexpr size_t kVs_GetTypeLibCache    = 10;  // EnableTypeLib / OnFinalRelease: 0x50
 constexpr size_t kVs_GetMessageMap      = 12;  // OnCmdMsg: 0x60
@@ -283,12 +173,8 @@ inline Fn VSlot(const void* pObj, size_t nSlot) {
 }
 
 // --- retail message-map layout (afxwin.h, _AFXDLL) -------------------------
-// OpenMFC's own AFX_MSGMAP_ENTRY (include/openmfc/afxwin.h) is compiled by g++,
-// whose member-function pointers are 16 bytes, so its stride is not retail's.
-// The export walks retail-layout maps: 0x20-byte entries (OnCmdMsg's
-// `add $0x20,%rax`) with an 8-byte MSVC member-function pointer at +0x18.
-// Every map OpenMFC itself exports is a lone AfxSig_end terminator, whose nSig
-// word (+0x10) is 0 in either layout, so both kinds end the walk correctly.
+// Native x64 MSVC entries have an 8-byte member-function pointer at +0x18
+// and a 0x20-byte stride. Keep this raw view for imported client tables.
 struct S_MsgMapEntry {
     unsigned int nMessage;   // +0x00
     unsigned int nCode;      // +0x04
@@ -391,30 +277,9 @@ const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
 {
     {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 }
 };
-int CCmdTarget::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo)
-{
-    // Simple command routing over OpenMFC's own (g++-layout) message maps.
-    // This C++ method is NOT what the exported ?OnCmdMsg@CCmdTarget@@ thunk
-    // runs -- see impl__OnCmdMsg_CCmdTarget_... below for the retail body.
-    // The root map (CCmdTarget::messageMap, defined above) has a NULL
-    // pfnGetBaseMap, so the step must test it before calling through it.
-    const AFX_MSGMAP* pMap = GetMessageMap();
-
-    for (; pMap != nullptr; pMap = pMap->pfnGetBaseMap ? (*pMap->pfnGetBaseMap)() : nullptr)
-    {
-        const AFX_MSGMAP_ENTRY* lpEntry = pMap->lpEntries;
-        while (lpEntry->nSig != AfxSig_end)
-        {
-            if (lpEntry->nID == nID && lpEntry->nCode == (UINT)nCode)
-            {
-                // Found a match
-                return DispatchCmdMsg(this, nID, nCode, lpEntry->pfn, pExtra, lpEntry->nSig, pHandlerInfo);
-            }
-            lpEntry++;
-        }
-    }
-    
-    return FALSE; // Not handled
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*);
+int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,void* pHandlerInfo) {
+    return impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(this,nID,nCode,pExtra,pHandlerInfo);
 }
 int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                       AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo)
@@ -555,11 +420,7 @@ int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int
 // test the result for NULL before using it, exactly as retail does.
 // (This thunk used to hand out a per-object TypeLibCacheHandle from
 // g_targetTypeLibCaches; nothing in the tree consumed that handle.)
-// Symbol: ?GetTypeLibCache@CCmdTarget@@UEAAPEAVCTypeLibCache@@XZ
-extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache__XZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return nullptr;
-}
+
 
 // === Moved from ManualThunks.cpp ===
 // CCmdTarget::OnCmdMsg(UINT nID, int nCode, void* pExtra,
@@ -947,15 +808,7 @@ extern "C" int MS_ABI impl__EnumOleVerbs_CCmdTarget__QEAAHPEAPEAUIEnumOLEVERB___
 //                                        (IUnknown vtable slot 1 = AddRef)
 //     otherwise: mov $1,%eax ; lock xadd %eax,0x8(%rcx) ; inc %eax
 // i.e. delegate to the controlling unknown when aggregated, else bump m_dwRef.
-// Symbol: ?ExternalAddRef@CCmdTarget@@QEAAKXZ
-extern "C" unsigned long MS_ABI impl__ExternalAddRef_CCmdTarget__QEAAKXZ(CCmdTarget* pThis) {
-    if (!pThis) return 0;
-    S_CCmdTarget* p = Shadow(pThis);
-    if (p->m_pOuterUnknown != nullptr)
-        return p->m_pOuterUnknown->AddRef();
-    return static_cast<unsigned long>(
-        ::InterlockedIncrement(reinterpret_cast<LONG volatile*>(&p->m_dwRef)));
-}
+
 
 // CCmdTarget::ExternalDisconnect() -- retail mfc140u 0x26d100:
 //     if (m_dwRef != 0) {                       ; cmpl $0,0x8(%rcx)
@@ -1029,31 +882,19 @@ extern "C" void* MS_ABI impl__FromIDispatch_CCmdTarget__SAPEAV1_PEAUIDispatch___
 // ; ret`.  The virtual GetCommandMap and the static GetThisCommandMap are
 // ICF-folded onto the same instruction pair in the retail image, so both return
 // CCmdTarget's own (empty) OLE command map.
-// Symbol: ?GetCommandMap@CCmdTarget@@MEBAPEBUAFX_OLECMDMAP@@XZ
-extern "C" const void* MS_ABI impl__GetCommandMap_CCmdTarget__MEBAPEBUAFX_OLECMDMAP__XZ(const CCmdTarget* pThis) {
-    (void)pThis;
-    return &g_commandMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetConnectionHook() -- retail mfc140u resolves this to 0x71e0,
 // the image-wide `xor %eax,%eax ; ret` that identical-COMDAT-folding shares
 // between every "return NULL" method.  The base class supplies no extra
 // connection point for any IID.
-// Symbol: ?GetConnectionHook@CCmdTarget@@MEAAPEAUIConnectionPoint@@AEBU_GUID@@@Z
-extern "C" void* MS_ABI impl__GetConnectionHook_CCmdTarget__MEAAPEAUIConnectionPoint__AEBU_GUID___Z(CCmdTarget* pThis, const void* iid) {
-    (void)pThis; (void)iid;
-    return nullptr;
-}
+
 
 // CCmdTarget::GetConnectionMap() -- retail mfc140u 0x1de8e0, `lea 0x18033e1c0,
 // %rax ; ret`, ICF-folded with GetThisConnectionMap.  Returns CCmdTarget's own
 // connection map, whose entry table is the single { NULL, (size_t)-1 }
 // terminator.
-// Symbol: ?GetConnectionMap@CCmdTarget@@MEBAPEBUAFX_CONNECTIONMAP@@XZ
-extern "C" const void* MS_ABI impl__GetConnectionMap_CCmdTarget__MEBAPEBUAFX_CONNECTIONMAP__XZ(const CCmdTarget* pThis) {
-    (void)pThis;
-    return &g_connectionMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetControllingUnknown() -- retail mfc140u 0x26d140:
 //     mov 0x10(%rcx),%rax ; test ; jne -> return m_pOuterUnknown
@@ -1070,19 +911,11 @@ extern "C" IUnknown* MS_ABI impl__GetControllingUnknown_CCmdTarget__QEAAPEAUIUnk
 // CCmdTarget::GetDispatchIID() -- retail mfc140u resolves this to the shared
 // `xor %eax,%eax ; ret` at 0x71e0: the base class reports FALSE (it has no
 // dispatch IID) and leaves the caller's GUID untouched.
-// Symbol: ?GetDispatchIID@CCmdTarget@@UEAAHPEAU_GUID@@@Z
-extern "C" int MS_ABI impl__GetDispatchIID_CCmdTarget__UEAAHPEAU_GUID___Z(CCmdTarget* pThis, void* pIID) {
-    (void)pThis; (void)pIID;
-    return 0;
-}
+
 
 // CCmdTarget::GetDispatchMap() -- retail mfc140u 0x1de850, `lea 0x18033e268,
 // %rax ; ret`, ICF-folded with GetThisDispatchMap.
-// Symbol: ?GetDispatchMap@CCmdTarget@@MEBAPEBUAFX_DISPMAP@@XZ
-extern "C" const void* MS_ABI impl__GetDispatchMap_CCmdTarget__MEBAPEBUAFX_DISPMAP__XZ(const CCmdTarget* pThis) {
-    (void)pThis;
-    return &g_dispatchMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetDispEntry(LONG memid) -- retail mfc140u 0x24fba0, transcribed:
 //     pMap = this->vtable[+0x70]()                  ; virtual GetDispatchMap
@@ -1231,20 +1064,12 @@ extern "C" const void* MS_ABI impl__GetEventSinkEntry_CCmdTarget__IEAAPEBUAFX_EV
 
 // CCmdTarget::GetEventSinkMap() -- retail mfc140u 0x1de860, `lea 0x18033e200,
 // %rax ; ret`, ICF-folded with GetThisEventSinkMap.
-// Symbol: ?GetEventSinkMap@CCmdTarget@@MEBAPEBUAFX_EVENTSINKMAP@@XZ
-extern "C" const void* MS_ABI impl__GetEventSinkMap_CCmdTarget__MEBAPEBUAFX_EVENTSINKMAP__XZ(const CCmdTarget* pThis) {
-    (void)pThis;
-    return &g_eventSinkMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetExtraConnectionPoints() -- retail mfc140u resolves this to the
 // shared `xor %eax,%eax ; ret` at 0x71e0: the base class adds no extra
 // connection points and leaves the CPtrArray alone.
-// Symbol: ?GetExtraConnectionPoints@CCmdTarget@@MEAAHPEAVCPtrArray@@@Z
-extern "C" int MS_ABI impl__GetExtraConnectionPoints_CCmdTarget__MEAAHPEAVCPtrArray___Z(CCmdTarget* pThis, void* pConnPoints) {
-    (void)pThis; (void)pConnPoints;
-    return 0;
-}
+
 
 // CCmdTarget::GetIDispatch(BOOL bAddRef) -- retail mfc140u 0x24fd00:
 //     if (bAddRef) ExternalAddRef();                    ; call 0x26cd80
@@ -1270,43 +1095,11 @@ extern "C" void* MS_ABI impl__GetIDispatch_CCmdTarget__QEAAPEAUIDispatch__H_Z(CC
 // The "!= 0" test is the live-vtable check: a nested interface sub-object only
 // counts once Enable{Automation,Connections,Aggregation} has parked its vtable
 // pointer there.
-// DEVIATIONS: neither virtual can be dispatched by slot here (OpenMFC's C++
-// vtable is unrelated to retail's), so
-//   * GetInterfaceHook is not consulted.  CCmdTarget's own GetInterfaceHook is
-//     the shared "return NULL" thunk at mfc140u 0x71e0, so skipping it matches
-//     the base class exactly; a derived override would be missed.
-//   * the map used is always CCmdTarget's own.
-// Both are moot today: every g_imap_* in detail/InterfaceMapsSupport.cpp holds
-// only the shared g_ifaceEnd = { { nullptr, (size_t)-1 } } terminator, so this
-// returns NULL for every IID.  Whoever populates those tables must use OpenMFC
-// offsets, not the retail ones -- OpenMFC's objects do not embed the nested COM
-// sub-objects at the retail offsets.
-// Symbol: ?GetInterface@CCmdTarget@@QEAAPEAUIUnknown@@PEBX@Z
-extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(CCmdTarget* pThis, const void* iid) {
-    if (!pThis || !iid) return nullptr;
-    const GUID* pIID = static_cast<const GUID*>(iid);
-    const bool bUnknown = (::memcmp(pIID, &kIID_IUnknown, sizeof(GUID)) == 0);
-
-    for (const AFX_INTERFACEMAP* pMap = impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ();
-         pMap != nullptr;
-         pMap = pMap->pfnGetBaseMap ? pMap->pfnGetBaseMap() : nullptr) {
-        for (const AFX_INTERFACEMAP_ENTRY* e = pMap->pEntries; e->piid != nullptr; ++e) {
-            if (!bUnknown && ::memcmp(e->piid, pIID, sizeof(GUID)) != 0) continue;
-            unsigned char* pSub = reinterpret_cast<unsigned char*>(pThis) + e->nOffset;
-            if (*reinterpret_cast<const unsigned int*>(pSub) != 0)
-                return reinterpret_cast<IUnknown*>(pSub);
-        }
-    }
-    return nullptr;
-}
+// Implemented in CCmdTargetVirtuals.cpp with virtual hook and map dispatch.
 
 // CCmdTarget::GetInterfaceHook() -- retail mfc140u resolves this to the shared
 // `xor %eax,%eax ; ret` at 0x71e0.  The base class hooks nothing.
-// Symbol: ?GetInterfaceHook@CCmdTarget@@UEAAPEAUIUnknown@@PEBX@Z
-extern "C" IUnknown* MS_ABI impl__GetInterfaceHook_CCmdTarget__UEAAPEAUIUnknown__PEBX_Z(CCmdTarget* pThis, const void* iid) {
-    (void)pThis; (void)iid;
-    return nullptr;
-}
+
 
 // CCmdTarget::GetNotSupported() -- retail mfc140u 0x24fcb0:
 //     mov $0xf18c,%edx ; or $-1,%r8d ; mov %edx,%ecx
@@ -1401,42 +1194,26 @@ extern "C" void MS_ABI impl__GetStandardProp_CCmdTarget__IEAAXPEBUAFX_DISPMAP_EN
 
 // CCmdTarget::GetThisCommandMap() -- retail mfc140u 0x1de8f0 (see
 // GetCommandMap, with which it is ICF-folded).
-// Symbol: ?GetThisCommandMap@CCmdTarget@@KAPEBUAFX_OLECMDMAP@@XZ
-extern "C" const void* MS_ABI impl__GetThisCommandMap_CCmdTarget__KAPEBUAFX_OLECMDMAP__XZ() {
-    return &g_commandMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetThisConnectionMap() -- retail mfc140u 0x1de8e0 (ICF-folded
 // with GetConnectionMap).
-// Symbol: ?GetThisConnectionMap@CCmdTarget@@KAPEBUAFX_CONNECTIONMAP@@XZ
-extern "C" const void* MS_ABI impl__GetThisConnectionMap_CCmdTarget__KAPEBUAFX_CONNECTIONMAP__XZ() {
-    return &g_connectionMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetThisDispatchMap() -- retail mfc140u 0x1de850 (ICF-folded with
 // GetDispatchMap).
-// Symbol: ?GetThisDispatchMap@CCmdTarget@@KAPEBUAFX_DISPMAP@@XZ
-extern "C" const void* MS_ABI impl__GetThisDispatchMap_CCmdTarget__KAPEBUAFX_DISPMAP__XZ() {
-    return &g_dispatchMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetThisEventSinkMap() -- retail mfc140u 0x1de860 (ICF-folded with
 // GetEventSinkMap).
-// Symbol: ?GetThisEventSinkMap@CCmdTarget@@KAPEBUAFX_EVENTSINKMAP@@XZ
-extern "C" const void* MS_ABI impl__GetThisEventSinkMap_CCmdTarget__KAPEBUAFX_EVENTSINKMAP__XZ() {
-    return &g_eventSinkMap_CCmdTarget;
-}
+
 
 // CCmdTarget::GetTypeInfoCount() -- retail mfc140u resolves this export (by
 // ordinal) to the shared `xor %eax,%eax ; ret` at 0x71e0: the base class
 // exposes no type information.  That is the whole retail body, so the body
 // below is complete, not a placeholder; IMPLEMENT_OLETYPELIB (afxdisp.h:835)
 // is what overrides it with `return 1;`.
-// Symbol: ?GetTypeInfoCount@CCmdTarget@@UEAAIXZ
-extern "C" unsigned int MS_ABI impl__GetTypeInfoCount_CCmdTarget__UEAAIXZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return 0;
-}
+
 
 // CCmdTarget::GetTypeInfoOfGuid -- STUB.  Retail (mfc140u 0x26bfb0):
 //     AfxLockGlobals(13); pCache = this->vtable[+0x50]()   ; GetTypeLibCache
@@ -1469,34 +1246,14 @@ extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAP
 //     mov $0x80029c4a,%eax ; ret
 // The base class has no type library, so it always reports
 // TYPE_E_CANTLOADLIBRARY and leaves *ppTypeLib untouched.
-// Symbol: ?GetTypeLib@CCmdTarget@@UEAAJKPEAPEAUITypeLib@@@Z
-extern "C" long MS_ABI impl__GetTypeLib_CCmdTarget__UEAAJKPEAPEAUITypeLib___Z(CCmdTarget* pThis, unsigned long lcid, void** ppTypeLib) {
-    (void)pThis; (void)lcid; (void)ppTypeLib;
-    return static_cast<long>(0x80029c4aL); // TYPE_E_CANTLOADLIBRARY
-}
+
 
 // CCmdTarget::InternalQueryInterface() -- retail mfc140u 0x26cfe0:
 //     *ppvObj = GetInterface(iid);                  ; call 0x26ce40
 //     if (*ppvObj) { ExternalAddRef(); return S_OK; }
 //     *ppvObj = QueryAggregates(iid);               ; call 0x26cf50
 //     return *ppvObj ? S_OK : E_NOINTERFACE;        ; neg/sbb/not/and 0x80004002
-// DEVIATION: the QueryAggregates leg is not taken.  QueryAggregates (further
-// down this file) walks the aggregate half of the object's own interface map,
-// reached through retail vtable slot 16, whereas GetInterface above still reads
-// CCmdTarget's own map.  The aggregate leg is left out until GetInterface is
-// moved onto the same slot, so that both halves of this lookup see the same
-// map.  For every map OpenMFC itself exports (g_ifaceEnd, the single
-// { nullptr, (size_t)-1 } terminator) the leg would return NULL anyway.
-// Symbol: ?InternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
-extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(CCmdTarget* pThis, const void* iid, void** ppvObj) {
-    if (!ppvObj) return 0x80004003UL;                  // E_POINTER
-    *ppvObj = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, iid);
-    if (*ppvObj != nullptr) {
-        impl__ExternalAddRef_CCmdTarget__QEAAKXZ(pThis);
-        return 0;                                      // S_OK
-    }
-    return 0x80004002UL;                               // E_NOINTERFACE
-}
+// Implemented in CCmdTargetVirtuals.cpp, including aggregate lookup.
 
 // CCmdTarget::InternalRelease() -- retail mfc140u 0x26cdb0:
 //     if (m_dwRef == 0) return 0;                   ; cmpl $0,0x8(%rcx)
@@ -1506,35 +1263,14 @@ extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPE
 //         this->vtable[+0x30]();                        ; virtual OnFinalRelease
 //     }
 //     return nRef;
-// DEVIATION: neither the module-state push nor the OnFinalRelease call is made.
-// m_pModuleState lives at +0x38, past the end of OpenMFC's 32-byte CCmdTarget
-// (see the layout note above), and the virtual is not dispatched by retail
-// slot 6 because, unlike the slot-dispatching bodies in this file, this one
-// is reached from other thunks in the tree (core/ole/COleLinkingDoc.cpp, and
-// via ExternalRelease from core/view/CBrowserControlSite.cpp and
-// core/ole/COlePropertyPage.cpp) with objects an OpenMFC ctor export may have
-// built, i.e. with g++'s vtable, where slot 6 is not OnFinalRelease; and
-// m_dwRef starts at 0 here (see the note above).  Only the reference
-// count is maintained, so an object that would have deleted itself on the last
-// Release simply stays alive.
-// Symbol: ?InternalRelease@CCmdTarget@@QEAAKXZ
-extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis) {
-    if (!pThis) return 0;
-    S_CCmdTarget* p = Shadow(pThis);
-    if (p->m_dwRef == 0) return 0;
-    return static_cast<unsigned long>(
-        ::InterlockedDecrement(reinterpret_cast<LONG volatile*>(&p->m_dwRef)));
-}
+// Implemented in CCmdTargetVirtuals.cpp. The module-state push at +0x38
+// still requires the remaining CCmdTarget object layout.
 
 // CCmdTarget::IsInvokeAllowed() -- retail mfc140u 0x3a60 is
 //     mov $0x1,%eax ; ret
 // The base class allows every DISPID to be invoked; only derived classes
 // (COleControl, mfc140u 0x1e2a70) ever refuse.
-// Symbol: ?IsInvokeAllowed@CCmdTarget@@UEAAHJ@Z
-extern "C" int MS_ABI impl__IsInvokeAllowed_CCmdTarget__UEAAHJ_Z(CCmdTarget* pThis, long dispid) {
-    (void)pThis; (void)dispid;
-    return 1;
-}
+
 
 // CCmdTarget::IsResultExpected() -- retail mfc140u 0x24fd50 is
 //     mov 0x28(%rcx),%eax ; movl $0x1,0x28(%rcx) ; ret
@@ -1602,11 +1338,7 @@ extern "C" long MS_ABI impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PE
 // ordinal) to 0x3a60, the image-wide `mov $0x1,%eax ; ret` shared by every
 // ICF-folded "return TRUE" method: the base class creates no aggregates and
 // reports success.
-// Symbol: ?OnCreateAggregates@CCmdTarget@@UEAAHXZ
-extern "C" int MS_ABI impl__OnCreateAggregates_CCmdTarget__UEAAHXZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return TRUE;
-}
+
 
 // CCmdTarget::OnEvent(UINT idCtrl, AFX_EVENT* pEvent,
 //                     AFX_CMDHANDLERINFO* pHandlerInfo)
@@ -1932,28 +1664,8 @@ extern "C" long MS_ABI impl__PushStackArgs_CCmdTarget__IEAAJPEAEPEBEPEAXGPEAUtag
 // `this` must carry an MSVC-layout vtable (see kVs_* above).  Every interface
 // map OpenMFC itself exports is the lone { NULL, (size_t)-1 } terminator, so
 // only a client's own INTERFACE_AGGREGATE entries can be found here.
-// InternalQueryInterface (below) does not yet call this; see its comment.
-// Symbol: ?QueryAggregates@CCmdTarget@@QEAAPEAUIUnknown@@PEBX@Z
-extern "C" IUnknown* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(CCmdTarget* pThis, const void* iid) {
-    if (!pThis || !iid) return nullptr;
-    using GetIfMapFn = const AFX_INTERFACEMAP* (MS_ABI*)(const void*);
-    const AFX_INTERFACEMAP* pMap = VSlot<GetIfMapFn>(pThis, kVs_GetInterfaceMap)(pThis);
-    for (;;) {
-        const AFX_INTERFACEMAP_ENTRY* e = pMap->pEntries;
-        while (e->piid != nullptr) ++e;
-        for (; e->nOffset != static_cast<size_t>(-1); ++e) {
-            IUnknown* pUnk = *reinterpret_cast<IUnknown* const*>(
-                reinterpret_cast<const unsigned char*>(pThis) + e->nOffset);
-            if (pUnk != nullptr) {
-                void* pv = nullptr;
-                if (pUnk->QueryInterface(*static_cast<const IID*>(iid), &pv) == S_OK && pv != nullptr)
-                    return static_cast<IUnknown*>(pv);
-            }
-        }
-        if (pMap->pfnGetBaseMap == nullptr) return nullptr;
-        pMap = pMap->pfnGetBaseMap();
-    }
-}
+// InternalQueryInterface now calls this after the direct interface lookup.
+
 
 // CCmdTarget::SetNotSupported() -- retail mfc140u 0x24fcd0 (reached by export
 // ordinal):

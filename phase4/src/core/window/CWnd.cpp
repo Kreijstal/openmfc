@@ -1423,10 +1423,6 @@ HWND CWnd::GetSafeOwner_(void* p0, void** p1)
     }
     return hWnd;
 }
-const AFX_INTERFACEMAP* CWnd::GetThisInterfaceMap()
-{
-    return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ();
-}
 const AFX_MSGMAP* CWnd::GetThisMessageMap()
 {
     return &g_cwndMessageMap;
@@ -2265,10 +2261,6 @@ DWORD CWnd::GetGestureStatus(CPoint p0)
 {
     (void)p0;
     return IsD2DSupportEnabled() ? 1u : 0u;
-}
-const AFX_INTERFACEMAP* CWnd::GetInterfaceMap() const
-{
-    return GetThisInterfaceMap();
 }
 COleControlSiteOrWnd* CWnd::GetNextDlgGroupItem(void* p0) const
 {

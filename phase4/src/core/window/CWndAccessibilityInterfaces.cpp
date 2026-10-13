@@ -1,5 +1,6 @@
 #include "detail/CWndAccessibilityProtocol.h"
 #include <cstddef>
+#include "detail/InterfaceMapsSupport.h"
 
 // ---------------------------------------------------------------------------
 // CWnd::XAccessible / CWnd::XAccessibleServer -- the BEGIN_INTERFACE_PART
@@ -687,4 +688,17 @@ void CWnd::InitializeAccessibility() {
     };
     m_xAccessible = accessible;
     m_xAccessibleServer = server;
+}
+
+const AFX_INTERFACEMAP* CWnd::GetThisInterfaceMap()
+{
+    static const AFX_INTERFACEMAP map{
+        impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ,
+        openmfc::detail::interfacemaps::g_ifaceEnd};
+    return &map;
+}
+
+const AFX_INTERFACEMAP* CWnd::GetInterfaceMap() const
+{
+    return GetThisInterfaceMap();
 }
