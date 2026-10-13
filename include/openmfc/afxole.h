@@ -1515,25 +1515,35 @@ public:
 };
 
 //=============================================================================
-// CEnumOleVerb - OLE Verb Enumerator (minimal)
+// CEnumOleVerb - native OLE verb enumerator
 //=============================================================================
-class CEnumOleVerb {
+class CEnumOleVerb : public CCmdTarget {
 public:
     CEnumOleVerb();
-    ~CEnumOleVerb();
-
-    // Retail's CEnumOleVerb derives from CEnumArray; OnNext copies the element
-    // at the cursor and then hands the caller its *own* copy of the verb name.
-    // We carry the equivalent cursor state directly (same shape as
-    // CEnumFormatEtc). Total size stays 16 bytes, matching the block this
-    // replaces, so the object layout is unchanged.
-    int OnNext(void* pv);
-    void SetVerbs(OLEVERB* pVerbs, unsigned long nCount);
-
-    OLEVERB*      m_verbs;     // 0x00
-    unsigned long m_count;     // 0x08
-    unsigned long m_position;  // 0x0C
+    ~CEnumOleVerb() override;
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
+    virtual BOOL OnNext(void* value);
+    virtual BOOL OnSkip();
+    virtual void OnReset();
+    virtual void* OnClone();
+    void SetVerbs(OLEVERB* verbs,ULONG count);
+    IEnumOLEVERB* Interface();
+    size_t m_elementSize;                     // +0x40
+    CEnumOleVerb* m_clonedFrom;               // +0x48
+    OLEVERB* m_verbs;                         // +0x50
+    ULONG m_position,m_count;                // +0x58/+0x5c
+    BOOL m_needFree;DWORD m_enumPadding;      // +0x60
+    void* const* m_enumTable;                 // +0x68
 };
+static_assert(sizeof(CEnumOleVerb)==0x70,"native verb enumerator size");
+
+// Native message-map records used by CCmdTarget's OLE verb walker.
+#define ON_STDOLEVERB(verb, memberFxn) \
+    {0xc002,0,static_cast<UINT>(verb),static_cast<UINT>(verb),static_cast<UINT>(-1), \
+     (AFX_PMSG)(BOOL (AFXAPI CCmdTarget::*)(MSG*,HWND,const RECT*))&memberFxn},
+#define ON_OLEVERB(resource, memberFxn) \
+    {0xc002,0,1,1,resource, \
+     (AFX_PMSG)(BOOL (AFXAPI CCmdTarget::*)(MSG*,HWND,const RECT*))&memberFxn},
 
 //=============================================================================
 // CEnumFormatEtc - FORMATETC Enumerator

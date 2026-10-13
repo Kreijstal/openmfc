@@ -1351,35 +1351,7 @@ extern "C" void* MS_ABI impl__AfxFindMessageEntry__YAPEBUAFX_MSGMAP_ENTRY__PEBU1
     }
     return nullptr;
 }
-// Symbol: ?AfxFindStringResourceHandle@@YAPEAUHINSTANCE__@@I@Z
-extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(unsigned int p0) {
-    // Walk the string-table resource block that would contain nID, using the
-    // same module search order as AfxFindResourceHandle (Globals.cpp):
-    // resource handle, then instance handle, then the main module. (A
-    // local `extern "C"` re-declaration to forward straight to that
-    // function is not legal C++ inside a function body -- linkage
-    // specifications may only occur at namespace scope -- so the same
-    // small search is reproduced here via the ordinary C++-linkage
-    // AfxGetResourceHandle()/AfxGetInstanceHandle() accessors already
-    // available from CWinAppSupport.h.)
-    UINT nID = p0;
-    LPCWSTR lpszBlock = MAKEINTRESOURCEW(nID / 16 + 1);
-    LPCWSTR lpszType = MAKEINTRESOURCEW(6 /* RT_STRING */);
-
-    HINSTANCE hRes = AfxGetResourceHandle();
-    if (hRes && ::FindResourceW(hRes, lpszBlock, lpszType)) {
-        return hRes;
-    }
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    if (hInst && ::FindResourceW(hInst, lpszBlock, lpszType)) {
-        return hInst;
-    }
-    HINSTANCE hMain = ::GetModuleHandleW(nullptr);
-    if (hMain && hMain != hInst && hMain != hRes && ::FindResourceW(hMain, lpszBlock, lpszType)) {
-        return hMain;
-    }
-    return nullptr;
-}
+// String resource lookup lives in core/runtime/AfxFindResourceHandle.cpp.
 // Symbol: ?AfxGetAfxWndProc@@YAP6A_JPEAUHWND__@@I_K_J@ZXZ
 extern "C" void* MS_ABI impl__AfxGetAfxWndProc__YAP6A_JPEAUHWND____I_K_J_ZXZ() {
     return reinterpret_cast<void*>(static_cast<LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM)>(&AfxWndProc));

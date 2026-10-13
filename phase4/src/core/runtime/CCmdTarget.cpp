@@ -222,23 +222,6 @@ extern "C" void MS_ABI impl__RestoreWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* p
 CCmdTarget::~CCmdTarget() {
     // Base class destructor - nothing specific to clean up
 }
-const AFX_MSGMAP* AFXAPI CCmdTarget::GetThisMessageMap()
-{
-    return &CCmdTarget::messageMap;
-}
-const AFX_MSGMAP* CCmdTarget::GetMessageMap() const
-{
-    return GetThisMessageMap();
-}
-const AFX_MSGMAP CCmdTarget::messageMap =
-{
-    nullptr, // No base class with message map
-    &CCmdTarget::_messageEntries[0]
-};
-const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
-{
-    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 }
-};
 extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*);
 int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,void* pHandlerInfo) {
     return impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(this,nID,nCode,pExtra,pHandlerInfo);
@@ -575,32 +558,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
 
 // CallMemberFunc is implemented in CCmdTargetInvoke.cpp using native automation calls.
 
-// CCmdTarget::DoOleVerb -- STUB.  Retail (mfc140u 0x2711e0) walks the MESSAGE
-// map chain -- the virtual at vtable+0x60 is GetMessageMap -- looking for the
-// records ON_OLEVERB / ON_STDOLEVERB plant there: afxole.h emits them as
-// AFX_MSGMAP_ENTRYs with nMessage == 0xC002 and nCode == 0, and the retail code
-// matches exactly that (cmpl $0xc002,(%rbx) / cmpl $0x0,0x4(%rbx)), walks by
-// the 0x20-byte entry stride and finally calls the entry's pfn at +0x18 as
-// (this->*pfn)(lpMsg, hWndParent, lpRect).
-// It has TWO walks, selected on the sign of iVerb (test %edi,%edi / jns):
-//   * iVerb < 0 (standard verbs, 0x180271222): the entry matches when
-//     nID <= iVerb <= nLastID -- the +0x08/+0x0c pair ON_STDOLEVERB fills with
-//     the verb number.
-//   * iVerb >= 0 (custom verbs, 0x18027127c): the entry matches when
-//     nID <= 1 and nLastID >= 1 -- the constants ON_OLEVERB plants -- and a
-//     counter (esi) then skips the first iVerb such records.
-// Both walks return FALSE (xor %eax,%eax at 0x1802712b2) when nothing matches;
-// only a matching pfn that itself returns FALSE reaches 0x1802712c1.
-// OpenMFC has no ON_OLEVERB macro, so no OpenMFC class can put such an entry in
-// its message map, and CCmdTarget's own map (defined earlier in this file) is a
-// single AfxSig_end terminator: the walk would find nothing for every object.
-// Returning FALSE unconditionally is therefore the same answer the transcribed
-// walk would give, so the walk is not written out.
-// Symbol: ?DoOleVerb@CCmdTarget@@QEAAHJPEAUtagMSG@@PEAUHWND__@@PEBUtagRECT@@@Z
-extern "C" int MS_ABI impl__DoOleVerb_CCmdTarget__QEAAHJPEAUtagMSG__PEAUHWND____PEBUtagRECT___Z(CCmdTarget* pThis, long iVerb, void* lpMsg, void* hWndParent, const void* lpRect) {
-    (void)pThis; (void)iVerb; (void)lpMsg; (void)hWndParent; (void)lpRect;
-    return 0;
-}
+// OLE verb dispatch is implemented in CCmdTargetVerbs.cpp.
 
 // --- CCmdTarget's inner (non-delegating) IUnknown ---------------------------
 // Retail EnableAggregation (below) stores the vftable at 0x180331188 (mfc140u)
@@ -717,24 +675,7 @@ extern "C" void MS_ABI impl__EnableTypeLib_CCmdTarget__QEAAXXZ(CCmdTarget* pThis
     impl__AfxUnlockGlobals__YAXH_Z(13);
 }
 
-// CCmdTarget::EnumOleVerbs -- STUB.  Retail (mfc140u 0x270f70) collects the
-// same ON_OLEVERB message-map records DoOleVerb matches (nMessage == 0xC002,
-// nCode == 0) into a grown array and hands it to a heap-allocated CEnumOleVerb,
-// returning that object's IEnumOLEVERB.  OpenMFC has neither the ON_OLEVERB
-// macro (so no such record can exist) nor CEnumOleVerb, so the collection half
-// cannot be written; *ppEnumOleVerb is cleared and FALSE reported instead.
-// The one branch that IS reproducible is retail's argument check: at
-// 0x180270f8a, before it touches the message map, 0x270f70 does
-// `test %rdx,%rdx ; je 0x1802711da`, and 0x1802711da is `call 0x180227720` =
-// ?AfxThrowInvalidArgException@@YAXXZ -- a NULL out-parameter throws rather
-// than returning FALSE.  That branch is reproduced here.
-// Symbol: ?EnumOleVerbs@CCmdTarget@@QEAAHPEAPEAUIEnumOLEVERB@@@Z
-extern "C" int MS_ABI impl__EnumOleVerbs_CCmdTarget__QEAAHPEAPEAUIEnumOLEVERB___Z(CCmdTarget* pThis, void** ppEnumOleVerb) {
-    (void)pThis;
-    if (!ppEnumOleVerb) { impl__AfxThrowInvalidArgException__YAXXZ(); return 0; }
-    *ppEnumOleVerb = nullptr;
-    return 0;
-}
+// OLE verb enumeration is implemented in CCmdTargetVerbs.cpp.
 
 // CCmdTarget::ExternalAddRef() -- retail mfc140u 0x26cd80:
 //     mov 0x10(%rcx),%rdx ; test ; jne -> tail-call m_pOuterUnknown->[+0x08]
@@ -1014,30 +955,7 @@ extern "C" unsigned int MS_ABI impl__GetStackSize_CCmdTarget__KAIPEBEG_Z(const u
 
 // Event invocation is implemented in CCmdTargetEvents.cpp.
 
-// CCmdTarget::OnFinalRelease() -- retail mfc140u 0x1de880 (reached by export
-// ordinal), transcribed:
-//     AfxLockGlobals(CRIT_TYPELIBCACHE /*13*/);          ; call 0x180033540
-//     CTypeLibCache* pCache = GetTypeLibCache();          ; vslot 10 (+0x50)
-//     if (pCache != NULL) pCache->Unlock();               ; call 0x180133a50
-//     AfxUnlockGlobals(CRIT_TYPELIBCACHE);                ; inlined LeaveCriticalSection
-//     delete this;                                        ; tail jmp vslot 1 (+0x08), edx = 1
-// 0x133a50 is ?Unlock@CTypeLibCache@@QEAAXXZ (by ordinal); the unlock is the
-// same inlined AfxUnlockGlobals(13) EnableTypeLib uses (lock-table element
-// 0x1803c3cf8).  `delete this` goes through the scalar deleting destructor in
-// MSVC vtable slot 1 with flag 1, as retail's tail call does, so `this` must
-// carry an MSVC-layout vtable (see kVs_* above).
-// Symbol: ?OnFinalRelease@CCmdTarget@@UEAAXXZ
-extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget* pThis) {
-    if (!pThis) return;
-    impl__AfxLockGlobals__YAXH_Z(13);
-    using GetCacheFn = void* (MS_ABI*)(void*);
-    void* pCache = VSlot<GetCacheFn>(pThis, kVs_GetTypeLibCache)(pThis);
-    if (pCache != nullptr)
-        impl__Unlock_CTypeLibCache__QEAAXXZ(pCache);
-    impl__AfxUnlockGlobals__YAXH_Z(13);
-    using DeletingDtorFn = void* (MS_ABI*)(void*, unsigned int);
-    VSlot<DeletingDtorFn>(pThis, kVs_ScalarDeletingDtor)(pThis, 1);
-}
+// Native final release lives in CCmdTargetVirtuals.cpp.
 
 // CCmdTarget::PushStackArgs(BYTE* pStack, const BYTE* pbParams, void* pResult,
 //     VARTYPE vtResult, DISPPARAMS* pDispParams, UINT* puArgErr,

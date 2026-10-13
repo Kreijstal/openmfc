@@ -26,7 +26,6 @@ CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
 CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
 // Command routing is outside these rendering tests.
 CCmdTarget::~CCmdTarget() = default;
-const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { std::abort(); }
 int CCmdTarget::OnCmdMsg(unsigned int,int,void*,void*) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
@@ -36,8 +35,6 @@ CRuntimeClass CFileFind::classCFileFind{};
 CRuntimeClass CDocument::classCDocument{};
 CRuntimeClass CHtmlView::classCHtmlView{};
 
-// Rendering tests never delete a target through the base final-release body.
-extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget*) { std::abort(); }
 
 // Module switching is peripheral to rendering; these doubles model thread
 // state so the command-target tests can verify capture and balanced restore.
@@ -48,7 +45,9 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_ST
 }
 
 // Property getter allocation/type failures use the framework exception sibling.
-extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long) { std::abort(); }
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long result) {
+    auto* error=new COleException;error->m_sc=result;throw error;
+}
 
 // Invalid event arguments exercise the framework exception path.
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { throw 19; }
@@ -80,3 +79,10 @@ extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
     if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();
 }
+
+// Generic clone allocation uses the same malloc/free pair as MFC exports.
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t bytes) { return std::malloc(bytes); }
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* memory) { std::free(memory); }
+// Generic clone virtuals retain peripheral runtime-class and command siblings.
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CCmdTarget__UEBAPEAUCRuntimeClass__XZ(const CCmdTarget*) { return &CCmdTarget::classCCmdTarget; }
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*) { std::abort(); }

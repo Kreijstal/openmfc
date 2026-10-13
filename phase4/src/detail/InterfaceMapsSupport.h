@@ -86,10 +86,8 @@ extern const AFX_INTERFACEMAP g_imap_CEnumFormatEtc;
 } } }
 
 namespace openmfc { namespace detail { namespace interfacemaps {
-const AFX_INTERFACEMAP* AFXAPI gib_CEnumOleVerb();
 } } }
 namespace openmfc { namespace detail { namespace interfacemaps {
-extern const AFX_INTERFACEMAP g_imap_CEnumOleVerb;
 } } }
 
 namespace openmfc { namespace detail { namespace interfacemaps {

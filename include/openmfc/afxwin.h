@@ -218,6 +218,7 @@ struct AFX_DISPMAP;
 struct AFX_CONNECTIONMAP;
 struct AFX_EVENTSINKMAP;
 class CTypeLibCache;
+struct IEnumOLEVERB;
 class AFX_MODULE_STATE;
 extern "C" AFX_MODULE_STATE* __cdecl impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
 
@@ -323,7 +324,13 @@ public:
 // Message Map Definitions
 //=============================================================================
 
+#ifdef _MSC_VER
+// AFX_PMSG is declared before the full class. Pin its native eight-byte
+// representation rather than MSVC's general incomplete-class member pointer.
+class __single_inheritance CCmdTarget;
+#else
 class CCmdTarget;
+#endif
 
 typedef void (AFXAPI CCmdTarget::*AFX_PMSG)(void);
 
@@ -430,6 +437,8 @@ public:
     virtual BOOL GetExtraConnectionPoints(CPtrArray* points);
     virtual IConnectionPoint* GetConnectionHook(const IID& iid);
     IUnknown* GetInterface(const void* iid);
+    BOOL DoOleVerb(LONG verb,MSG* message,HWND parent,const RECT* rectangle);
+    BOOL EnumOleVerbs(IEnumOLEVERB** out);
 
     static int PASCAL DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                      AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo);

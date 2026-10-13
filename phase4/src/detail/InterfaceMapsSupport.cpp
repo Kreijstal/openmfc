@@ -9,8 +9,6 @@ const AFX_INTERFACEMAP* AFXAPI gib_CEnumConnections() { return impl__GetThisInte
 const AFX_INTERFACEMAP g_imap_CEnumConnections = { gib_CEnumConnections, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CEnumFormatEtc() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_CEnumFormatEtc = { gib_CEnumFormatEtc, g_ifaceEnd };
-const AFX_INTERFACEMAP* AFXAPI gib_CEnumOleVerb() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_CEnumOleVerb = { gib_CEnumOleVerb, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CEnumUnknown() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_CEnumUnknown = { gib_CEnumUnknown, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CHtmlControlSite() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

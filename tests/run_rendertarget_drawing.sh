@@ -21,7 +21,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp phase4/src/core/ole/CEnumArrayInterfaces.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
-    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/ole/CTypeLibCache.cpp
+    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/runtime/CCmdTargetVerbs.cpp phase4/src/core/ole/CEnumOleVerb.cpp phase4/src/core/ole/CEnumArray.cpp phase4/src/core/ole/CTypeLibCache.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
     phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
@@ -76,6 +76,10 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('core/runtime/CCmdTargetInvoke.cpp', 'CCmdTargetInvoke'),
                   ('core/runtime/CCmdTargetEvents.cpp', 'CCmdTargetEvents'),
                   ('core/runtime/CCmdTargetTypeInfo.cpp', 'CCmdTargetTypeInfo'),
+                  ('core/runtime/CCmdTargetVerbs.cpp', 'CCmdTargetVerbs'),
+                  ('core/ole/CEnumOleVerb.cpp', 'CEnumOleVerb'),
+                  ('core/ole/CEnumArray.cpp', 'CEnumArray'),
+                  ('core/runtime/AfxFindResourceHandle.cpp', 'AfxFindResourceHandle'),
                   ('core/ole/CTypeLibCache.cpp', 'CTypeLibCache'),
                   ('core/ole/COleConnPtContainer.cpp', 'COleConnPtContainer'),
                   ('core/ole/CConnectionPoint.cpp', 'CConnectionPoint'),

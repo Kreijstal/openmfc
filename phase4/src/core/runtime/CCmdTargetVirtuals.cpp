@@ -1,4 +1,5 @@
 // Typed CCmdTarget virtuals in retail x64 slot order.
+#define OPENMFC_APPCORE_IMPL
 #include "detail/CCmdTargetVirtualsSupport.h"
 #include <cstring>
 #include <cstddef>
@@ -282,4 +283,66 @@ extern "C" void MS_ABI impl__ExternalDisconnect_CCmdTarget__QEAAXXZ(CCmdTarget* 
     if (pUnk != nullptr)
         ::CoDisconnectObject(pUnk, 0);
     pThis->m_dwRef = 0;
+}
+
+extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int);
+extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int);
+extern "C" void MS_ABI impl__Unlock_CTypeLibCache__QEAAXXZ(void*);
+// CCmdTarget::OnFinalRelease() -- retail mfc140u 0x1de880 (reached by export
+// ordinal), transcribed:
+//     AfxLockGlobals(CRIT_TYPELIBCACHE /*13*/);          ; call 0x180033540
+//     CTypeLibCache* pCache = GetTypeLibCache();          ; vslot 10 (+0x50)
+//     if (pCache != NULL) pCache->Unlock();               ; call 0x180133a50
+//     AfxUnlockGlobals(CRIT_TYPELIBCACHE);                ; inlined LeaveCriticalSection
+//     delete this;                                        ; tail jmp vslot 1 (+0x08), edx = 1
+// 0x133a50 is ?Unlock@CTypeLibCache@@QEAAXXZ (by ordinal); the unlock is the
+// same inlined AfxUnlockGlobals(13) EnableTypeLib uses (lock-table element
+// 0x1803c3cf8).  `delete this` goes through the scalar deleting destructor in
+// MSVC vtable slot 1 with flag 1, as retail's tail call does, so `this` must
+// carry an MSVC-layout vtable (see kVs_* above).
+// Symbol: ?OnFinalRelease@CCmdTarget@@UEAAXXZ
+extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    impl__AfxLockGlobals__YAXH_Z(13);
+    using GetCacheFn = void* (MS_ABI*)(void*);
+    void* pCache = reinterpret_cast<GetCacheFn>((*reinterpret_cast<void***>(pThis))[10])(pThis);
+    if (pCache != nullptr)
+        impl__Unlock_CTypeLibCache__QEAAXXZ(pCache);
+    impl__AfxUnlockGlobals__YAXH_Z(13);
+    using DeletingDtorFn = void* (MS_ABI*)(void*, unsigned int);
+    reinterpret_cast<DeletingDtorFn>((*reinterpret_cast<void***>(pThis))[1])(pThis, 1);
+}
+
+
+const AFX_MSGMAP* AFXAPI CCmdTarget::GetThisMessageMap()
+{
+    return &CCmdTarget::messageMap;
+}
+const AFX_MSGMAP* CCmdTarget::GetMessageMap() const
+{
+    return GetThisMessageMap();
+}
+const AFX_MSGMAP CCmdTarget::messageMap =
+{
+    nullptr, // No base class with message map
+    &CCmdTarget::_messageEntries[0]
+};
+const AFX_MSGMAP_ENTRY CCmdTarget::_messageEntries[] =
+{
+    {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 }
+};
+
+namespace {
+struct MessageMapAccess : CCmdTarget {
+    static const AFX_MSGMAP* Root() { return CCmdTarget::GetThisMessageMap(); }
+};
+const AFX_MSGMAP* RootMessageMap() { return MessageMapAccess::Root(); }
+}
+// Symbol: ?GetMessageMap@CCmdTarget@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CCmdTarget__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return RootMessageMap();
+}
+// Symbol: ?GetThisMessageMap@CCmdTarget@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CCmdTarget__KAPEBUAFX_MSGMAP__XZ() {
+    return RootMessageMap();
 }

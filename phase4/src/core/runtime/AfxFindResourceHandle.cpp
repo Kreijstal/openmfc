@@ -35,3 +35,9 @@ extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_
     }
     return nullptr;
 }
+
+// Symbol: ?AfxFindStringResourceHandle@@YAPEAUHINSTANCE__@@I@Z
+extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT resource) {
+    return impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+        MAKEINTRESOURCEW(resource/16+1),MAKEINTRESOURCEW(6));
+}
