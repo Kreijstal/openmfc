@@ -54,3 +54,12 @@ CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }
 
 // Connection-array allocation failures use the framework memory exception.
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() { throw std::bad_alloc(); }
+
+// Exception diagnostics and application lookup are peripheral to automation.
+CRuntimeClass CException::classCException{"CException",sizeof(CException),0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
+int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
+void CException::Dump() const { std::abort(); }
+void CException::AssertValid() const { std::abort(); }
+CWinThread* AFXAPI AfxGetThread() { return nullptr; }
+CRuntimeClass g_automationMemoryExceptionClass{"CMemoryException",sizeof(CException),0xffff,nullptr,nullptr,nullptr,nullptr};
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() { return &g_automationMemoryExceptionClass; }

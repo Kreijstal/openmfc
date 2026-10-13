@@ -55,36 +55,18 @@ extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
 extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
     WORD wCode, UINT nDescriptionID, UINT nHelpID
 ) {
-    COleDispatchException* pEx = new COleDispatchException();
-    pEx->m_wCode = wCode;
-    pEx->m_dwHelpContext = nHelpID;
-    {
-        std::wstring description = LoadOleDispatchDescription(nDescriptionID);
-        if (!description.empty()) {
-            std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
-            g_oleDispatchDescriptions[pEx] = std::move(description);
-            pEx->m_strDescription = g_oleDispatchDescriptions[pEx].c_str();
-        }
-    }
+    std::wstring description=LoadOleDispatchDescription(nDescriptionID);
+    COleDispatchException* pEx = new COleDispatchException(description.c_str(),nHelpID==UINT_MAX ? nDescriptionID : nHelpID,wCode);
     ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 // Symbol: ?AfxThrowOleDispatchException@@YAXGPEB_WI@Z
 extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
     WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
 ) {
-    COleDispatchException* pEx = new COleDispatchException();
-    pEx->m_wCode = wCode;
-    pEx->m_dwHelpContext = nHelpID;
-    {
-        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
-        g_oleDispatchDescriptions[pEx] = lpszDescription ? lpszDescription : L"";
-        pEx->m_strDescription = g_oleDispatchDescriptions[pEx].c_str();
-    }
+    COleDispatchException* pEx = new COleDispatchException(lpszDescription,nHelpID,wCode);
     ThrowNew(pEx, &TI_COleDispatchException, nullptr);
 }
 namespace openmfc { namespace detail { namespace mfcexceptions {
-std::mutex g_oleDispatchDescriptionMutex;
-std::unordered_map<const COleDispatchException*, std::wstring> g_oleDispatchDescriptions;
 std::wstring LoadOleDispatchDescription(UINT nDescriptionID) {
     std::wstring description;
     if (nDescriptionID == 0) {
@@ -258,7 +240,7 @@ CTA_COleException_t CTA_COleException = { 3, {0,0,0} };
 ThrowInfo TI_COleException = { 0, 0, 0, 0 };
 TD_COleDispatchException_t TD_COleDispatchException = { nullptr, nullptr, ".PEAVCOleDispatchException@@" };
 CatchableType CT_COleDispatchException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_COleDispatchException_t CTA_COleDispatchException = { 4, {0,0,0,0} };
+CTA_COleDispatchException_t CTA_COleDispatchException = { 3, {0,0,0} };
 ThrowInfo TI_COleDispatchException = { 0, 0, 0, 0 };
 TD_CInternetException_t TD_CInternetException = { nullptr, nullptr, ".PEAVCInternetException@@" };
 CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, 8, 0 };
@@ -360,9 +342,8 @@ void InitAllRTTI() {
     TD_COleDispatchException.pVFTable = g_typeInfoVFT;
     CT_COleDispatchException.pType = TO_RVA(&TD_COleDispatchException);
     CTA_COleDispatchException.t[0] = TO_RVA(&CT_COleDispatchException);
-    CTA_COleDispatchException.t[1] = TO_RVA(&CT_COleException);
-    CTA_COleDispatchException.t[2] = TO_RVA(&CT_CException);
-    CTA_COleDispatchException.t[3] = TO_RVA(&CT_CObject);
+    CTA_COleDispatchException.t[1] = TO_RVA(&CT_CException);
+    CTA_COleDispatchException.t[2] = TO_RVA(&CT_CObject);
     TI_COleDispatchException.pmfnUnwind = 0;
     TI_COleDispatchException.pCatchableTypeArray = TO_RVA(&CTA_COleDispatchException);
 

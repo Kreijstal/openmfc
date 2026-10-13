@@ -22,7 +22,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp
-    phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/runtime/InterfaceMaps.cpp
+    phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
     phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
     phase4/src/core/runtime/D2DMessages.cpp
@@ -79,6 +79,8 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('core/ole/CConnectionPoint.cpp', 'CConnectionPoint'),
                   ('core/ole/CEnumConnections.cpp', 'CEnumConnections'),
                   ('core/ole/COleDispatchImpl.cpp', 'COleDispatchImpl'),
+                  ('core/exceptions/COleDispatchException.cpp', 'COleDispatchException'),
+                  ('detail/OleOleexceptionRttiSupport.cpp', 'OleOleexceptionRttiSupport'),
                   ('core/window/CWndD2D.cpp', 'CWndD2D'),
                   ('core/window/CWndAccessibility.cpp', 'CWndAccessibility'),
                   ('core/window/CWndAccessibilityInterfaces.cpp', 'CWndAccessibilityInterfaces'),

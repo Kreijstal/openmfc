@@ -8,7 +8,7 @@
 #include <cstring>
 
 // Pull in the impl under test (defines the thunks + the two descriptors).
-#include "../phase4/src/core/exceptions/RuntimeClasses.cpp"
+#include "../phase4/src/detail/OleOleexceptionRttiSupport.cpp"
 
 // The impl references &CException::classCException, defined in mfc_exceptions.cpp
 // (not linked here). afxwin.h inline code also drags in a few other
@@ -16,24 +16,24 @@
 // CException chains to CObject::classCObject (header-inline) so the base-chain
 // assertions exercise the real linkage the impl depends on.
 CRuntimeClass CException::classCException = {
-    "CException", sizeof(CException), 0xFFFF, nullptr, nullptr,
-    &CObject::classCObject, nullptr
+    "CException", sizeof(CException), 0xFFFF, nullptr, &CObject::GetThisClass,
+    nullptr, nullptr
 };
 CRuntimeClass CCmdTarget::classCCmdTarget = {
-    "CCmdTarget", sizeof(CCmdTarget), 0xFFFF, nullptr, nullptr,
-    &CObject::classCObject, nullptr
+    "CCmdTarget", sizeof(CCmdTarget), 0xFFFF, nullptr, &CObject::GetThisClass,
+    nullptr, nullptr
 };
 CRuntimeClass CWinThread::classCWinThread = {
-    "CWinThread", sizeof(CWinThread), 0xFFFF, nullptr, nullptr,
-    &CCmdTarget::classCCmdTarget, nullptr
+    "CWinThread", sizeof(CWinThread), 0xFFFF, nullptr, &CCmdTarget::GetThisClass,
+    nullptr, nullptr
 };
 CRuntimeClass CWinApp::classCWinApp = {
-    "CWinApp", sizeof(CWinApp), 0xFFFF, nullptr, nullptr,
-    &CWinThread::classCWinThread, nullptr
+    "CWinApp", sizeof(CWinApp), 0xFFFF, nullptr, &CWinThread::GetThisClass,
+    nullptr, nullptr
 };
 CRuntimeClass CWnd::classCWnd = {
-    "CWnd", sizeof(CWnd), 0xFFFF, nullptr, nullptr,
-    &CCmdTarget::classCCmdTarget, nullptr
+    "CWnd", sizeof(CWnd), 0xFFFF, nullptr, &CCmdTarget::GetThisClass,
+    nullptr, nullptr
 };
 
 // The m_nObjectSize literals baked into the descriptors must equal the repo's own
@@ -88,8 +88,8 @@ int main() {
           "COleDispatchException m_nObjectSize == sizeof");
     check(ode->m_wSchema == 0xFFFFu, "COleDispatchException schema 0xFFFF");
     check(ode->m_pfnCreateObject == nullptr, "COleDispatchException not DYNCREATE");
-    check(ode->BaseClass() == oe, "COleDispatchException base == COleException");
-    check(chain_reaches(ode, oe), "COleDispatchException chain reaches COleException");
+    check(ode->BaseClass() == &CException::classCException, "COleDispatchException base == CException");
+    check(!chain_reaches(ode, oe), "COleDispatchException is independent of COleException");
     check(chain_reaches(ode, &CException::classCException), "COleDispatchException chain reaches CException");
     check(chain_reaches(ode, &CObject::classCObject), "COleDispatchException chain reaches CObject");
     check(odeR == ode, "COleDispatchException GetRuntimeClass == GetThisClass");

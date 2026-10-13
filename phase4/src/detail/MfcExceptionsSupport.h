@@ -59,10 +59,10 @@ asm(".globl \"?classCException@CException@@2UCRuntimeClass@@A\"\n"
 
 
 namespace openmfc { namespace detail { namespace mfcexceptions {
-extern std::mutex g_oleDispatchDescriptionMutex;
+
 } } }
 namespace openmfc { namespace detail { namespace mfcexceptions {
-extern std::unordered_map<const COleDispatchException*, std::wstring> g_oleDispatchDescriptions;
+
 } } }
 
 namespace openmfc { namespace detail { namespace mfcexceptions {
@@ -471,7 +471,7 @@ namespace openmfc { namespace detail { namespace mfcexceptions {
 extern CatchableType CT_COleDispatchException;
 } } }
 namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_COleDispatchException_t { uint32_t n; int32_t t[4]; };
+struct CTA_COleDispatchException_t { uint32_t n; int32_t t[3]; };
 extern CTA_COleDispatchException_t CTA_COleDispatchException;
 } } }
 namespace openmfc { namespace detail { namespace mfcexceptions {

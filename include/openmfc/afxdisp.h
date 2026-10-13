@@ -8,19 +8,31 @@
 #include <objbase.h>
 #include <oleauto.h>
 
-// OLE exception classes (ABI-aligned with current OpenMFC implementation)
+extern "C" CRuntimeClass* AFXAPI impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* AFXAPI impl__GetThisClass_COleDispatchException__SAPEAUCRuntimeClass__XZ();
+// Native x64 MFC exception storage and runtime identities.
 class COleException : public CException {
 public:
     COleException() : CException(1), m_sc(0) {}
+    static CRuntimeClass* GetThisClass() { return impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ(); }
+    CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
     LONG m_sc;
 };
 
 class COleDispatchException : public CException {
 public:
-    COleDispatchException() : CException(1), m_wCode(0), m_strDescription(nullptr), m_dwHelpContext(0) {}
+    COleDispatchException(const wchar_t* description=nullptr,UINT helpID=0,WORD code=0)
+        : CException(1), m_wCode(code), m_strDescription(description ? description : L""),
+          m_dwHelpContext(helpID ? helpID+0x60000 : 0), m_scError(code ? S_OK : E_UNEXPECTED) {}
+    static CRuntimeClass* GetThisClass() { return impl__GetThisClass_COleDispatchException__SAPEAUCRuntimeClass__XZ(); }
+    CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
+    int GetErrorMessage(wchar_t*,UINT,UINT* =nullptr) const override;
     WORD m_wCode;
-    const wchar_t* m_strDescription;
+    CString m_strDescription;
     DWORD m_dwHelpContext;
+    CString m_strHelpFile;
+    CString m_strSource;
+    SCODE m_scError;
 };
 
 // OLE exception helpers

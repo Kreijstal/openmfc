@@ -1,86 +1,41 @@
-// COleDispatchException — OpenMFC implementation.
-// Sources: mfc_exceptions.cpp
-
+// Native dispatch exception ownership, layout, and metadata conversion.
 #define OPENMFC_APPCORE_IMPL
-
-#include "detail/MfcExceptionsSupport.h"
-
+#include "detail/OleExceptionTranslationSupport.h"
+#include <algorithm>
+#include <cstring>
+static_assert(sizeof(COleDispatchException)==0x40, "native dispatch exception size");
+static_assert(offsetof(COleDispatchException,m_wCode)==0x10, "native error code");
+static_assert(offsetof(COleDispatchException,m_strDescription)==0x18, "native description");
+static_assert(offsetof(COleDispatchException,m_dwHelpContext)==0x20, "native help context");
+static_assert(offsetof(COleDispatchException,m_strHelpFile)==0x28, "native help file");
+static_assert(offsetof(COleDispatchException,m_strSource)==0x30, "native source");
+static_assert(offsetof(COleDispatchException,m_scError)==0x38, "native SCODE");
 // Symbol: ??1COleDispatchException@@UEAA@XZ
-extern "C" COleDispatchException* MS_ABI impl___1COleDispatchException__UEAA_XZ(
-    COleDispatchException* pThis
-) {
-    if (!pThis) return nullptr;
-    {
-        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
-        g_oleDispatchDescriptions.erase(pThis);
-    }
-    pThis->~COleDispatchException();
-    return pThis;
+extern "C" COleDispatchException* MS_ABI impl___1COleDispatchException__UEAA_XZ(COleDispatchException* self) {
+    if(self)self->COleDispatchException::~COleDispatchException();
+    return self;
+}
+int COleDispatchException::GetErrorMessage(wchar_t* out,UINT capacity,UINT* help) const {
+    if(help)*help=m_dwHelpContext;
+    if(!out || !capacity)return FALSE;
+    size_t length=std::min(static_cast<size_t>(m_strDescription.GetLength()),static_cast<size_t>(capacity-1));
+    if(length)std::memcpy(out,static_cast<const wchar_t*>(m_strDescription),length*sizeof(wchar_t));
+    out[length]=L'\0';return TRUE;
 }
 // Symbol: ?GetErrorMessage@COleDispatchException@@UEBAHPEA_WIPEAI@Z
 extern "C" int MS_ABI impl__GetErrorMessage_COleDispatchException__UEBAHPEA_WIPEAI_Z(
-    const COleDispatchException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext
-) {
-    if (!lpszError || nMaxError == 0) return 0;
-    if (pnHelpContext) *pnHelpContext = pThis ? pThis->m_dwHelpContext : 0;
-    if (!pThis) {
-        lpszError[0] = L'\0';
-        return 0;
-    }
-
-    std::wstring desc;
-    {
-        std::lock_guard<std::mutex> lock(g_oleDispatchDescriptionMutex);
-        auto it = g_oleDispatchDescriptions.find(pThis);
-        if (it != g_oleDispatchDescriptions.end()) {
-            desc = it->second;
-        }
-    }
-    if (desc.empty() && pThis->m_strDescription) {
-        desc = pThis->m_strDescription;
-    }
-    if (desc.empty()) {
-        swprintf(lpszError, nMaxError, L"OLE dispatch exception (code %u)", pThis->m_wCode);
-        return 1;
-    }
-    CopyErrorText(lpszError, nMaxError, desc.c_str());
-    return 1;
+    const COleDispatchException* self,wchar_t* out,UINT capacity,UINT* help) {
+    if(!self) { if(help)*help=0;if(out && capacity)*out=L'\0';return FALSE; }
+    return self->COleDispatchException::GetErrorMessage(out,capacity,help);
 }
 // Symbol: ??0COleDispatchException@@QEAA@PEB_WIG@Z
-// Constructor: (const wchar_t* lpszDescription, unsigned int wCode, unsigned short dwHelpContext)
 extern "C" COleDispatchException* MS_ABI impl___0COleDispatchException__QEAA_PEB_WIG_Z(
-    COleDispatchException* pThis, const wchar_t* lpszDescription,
-    unsigned int wCode, unsigned short dwHelpContext
-) {
-    if (!pThis) return nullptr;
-    new (pThis) COleDispatchException();
-    pThis->m_wCode = static_cast<WORD>(wCode);
-    pThis->m_strDescription = lpszDescription;
-    pThis->m_dwHelpContext = static_cast<DWORD>(dwHelpContext);
-    return pThis;
+    COleDispatchException* self,const wchar_t* description,UINT helpID,WORD code) {
+    return self ? new(self)COleDispatchException(description,helpID,code) : nullptr;
 }
 // Symbol: ?Process@COleDispatchException@@SAXPEAUtagEXCEPINFO@@PEBVCException@@@Z
 extern "C" void MS_ABI impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z(
-    EXCEPINFO* pExcepInfo, const CException* pAnyException
-) {
-    if (!pExcepInfo || !pAnyException) return;
-
-    if (pAnyException->IsKindOf(&classCOleDispatchException)) {
-        const auto* pDE = static_cast<const COleDispatchException*>(pAnyException);
-        pExcepInfo->wCode = pDE->m_wCode;
-        const wchar_t* appName = (AfxGetApp() && AfxGetApp()->m_pszAppName) ? AfxGetApp()->m_pszAppName : L"";
-        pExcepInfo->bstrSource = SysAllocString(appName);
-        if (pDE->m_strDescription)
-            pExcepInfo->bstrDescription = SysAllocString(pDE->m_strDescription);
-        pExcepInfo->dwHelpContext = pDE->m_dwHelpContext;
-        return;
-    }
-    if (pAnyException->IsKindOf(&classCOleException)) {
-        const auto* pOE = static_cast<const COleException*>(pAnyException);
-        pExcepInfo->wCode = 0;
-        pExcepInfo->scode = pOE->m_sc;
-        return;
-    }
-    pExcepInfo->wCode = 0;
-    pExcepInfo->scode = E_FAIL;
+    EXCEPINFO* out,const CException* error) {
+    HRESULT hr=FillOleDispatchExceptionInfo(out,error);
+    if(FAILED(hr))impl__AfxThrowMemoryException__YAXXZ();
 }

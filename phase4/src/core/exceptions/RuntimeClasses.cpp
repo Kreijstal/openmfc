@@ -112,21 +112,3 @@ impl__GetRuntimeClass_CResourceException__UEBAPEAUCRuntimeClass__XZ(const void* 
 // Symbol: ?GetThisClass@CUserException@@SAPEAUCRuntimeClass@@XZ
 // Implemented in cbarcore.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetRuntimeClass@CUserException@@UEBAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetThisClass@COleException@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ() {
-    return &classCOleException;
-}
-// Symbol: ?GetRuntimeClass@COleException@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleException__UEBAPEAUCRuntimeClass__XZ(
-    const void* /*pThis*/) {
-    return &classCOleException;
-}
-// Symbol: ?GetThisClass@COleDispatchException@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDispatchException__SAPEAUCRuntimeClass__XZ() {
-    return &classCOleDispatchException;
-}
-// Symbol: ?GetRuntimeClass@COleDispatchException@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleDispatchException__UEBAPEAUCRuntimeClass__XZ(
-    const void* /*pThis*/) {
-    return &classCOleDispatchException;
-}

@@ -1,5 +1,7 @@
 // IDispatch embedded at CCmdTarget+0x20, using the owner's native COM lifetime.
+#define OPENMFC_APPCORE_IMPL
 #include "detail/CCmdTargetDispatchSupport.h"
+#include "detail/OleExceptionTranslationSupport.h"
 #include <cstring>
 namespace {
 CCmdTarget* Owner(void* self) {
@@ -59,15 +61,8 @@ extern "C" long MS_ABI impl__GetIDsOfNames_COleDispatchImpl__UEAAJAEBU_GUID__PEA
     }
     return hr;
 }
-// Symbol: ?Invoke@COleDispatchImpl@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
-extern "C" long MS_ABI impl__Invoke_COleDispatchImpl__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(
-    void* self,long id,const GUID* iid,unsigned long locale,unsigned short flags,DISPPARAMS* args,
-    VARIANT* result,EXCEPINFO* exception,unsigned int* argError) {
-    (void)locale; (void)exception;
-    if (!self || !iid || !args) return E_POINTER;
-    if (*iid!=IID_NULL) return DISP_E_UNKNOWNINTERFACE;
-    CCmdTarget* target=Owner(self);
-    openmfc::detail::CmdTargetModuleScope module(target->m_pModuleState);
+namespace {
+HRESULT InvokeTarget(CCmdTarget* target,long id,WORD flags,DISPPARAMS* args,VARIANT* result,UINT* argError) {
     target->m_bResultExpected=result!=nullptr;
     if (!target->IsInvokeAllowed(id)) return E_UNEXPECTED;
     auto* entry=static_cast<const AFX_DISPMAP_ENTRY*>(impl__GetDispEntry_CCmdTarget__IEAAPEBUAFX_DISPMAP_ENTRY__J_Z(target,id));
@@ -88,7 +83,30 @@ extern "C" long MS_ABI impl__Invoke_COleDispatchImpl__UEAAJJAEBU_GUID__KGPEAUtag
     HRESULT hr=ReadDispatchProperty(target,entry,result ? result : &ignored);
     if (!result) VariantClear(&ignored);
     return hr;
+
 }
+}
+// Symbol: ?Invoke@COleDispatchImpl@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
+extern "C" long MS_ABI impl__Invoke_COleDispatchImpl__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(
+    void* self,long id,const GUID* iid,unsigned long locale,unsigned short flags,DISPPARAMS* args,
+    VARIANT* result,EXCEPINFO* exception,unsigned int* argError) {
+    (void)locale;
+    if (!self || !iid || !args) return E_POINTER;
+    if (*iid!=IID_NULL) return DISP_E_UNKNOWNINTERFACE;
+    if(result)VariantInit(result);
+    CCmdTarget* target=Owner(self);
+    openmfc::detail::CmdTargetModuleScope module(target->m_pModuleState);
+    try { return InvokeTarget(target,id,flags,args,result,argError); }
+    catch(COleException* error) {
+        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+        return error ? error->m_sc : E_UNEXPECTED;
+    } catch(CException* error) {
+        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+        HRESULT translated=FillOleDispatchExceptionInfo(exception,error);
+        return FAILED(translated) ? translated : DISP_E_EXCEPTION;
+    }
+}
+
 void** CommandTargetDispatchTable() {
     static void* table[]={
         reinterpret_cast<void*>(impl__QueryInterface_COleDispatchImpl__UEAAJAEBU_GUID__PEAPEAX_Z),

@@ -19,7 +19,8 @@ using namespace openmfc::detail::oleoleexceptionrtti;
 //
 // RTTI identity graph (matches retail mfc140 RUNTIME_CLASS chains, which is what
 // IsKindOf walks):
-//   COleDispatchException -> COleException -> CException -> CObject
+//   COleException -> CException -> CObject
+//   COleDispatchException -> CException -> CObject
 // CException::classCException is defined in mfc_exceptions.cpp; its base link
 // already points at CObject::classCObject. CDaoException RTTI is intentionally
 // NOT here — daocore.cpp already owns it (classCDaoException + getters).
