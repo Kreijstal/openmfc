@@ -122,6 +122,7 @@ void CleanupWindowRuntimeState(CWnd* pWnd) {
         return;
     }
     // Resource destructors and COM releases may call back into window APIs.
+    pWnd->ReleaseAccessibility();
     pWnd->EnableD2DSupport(FALSE);
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     g_wndRuntimeStates.erase(pWnd);

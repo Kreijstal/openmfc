@@ -589,21 +589,26 @@ public:
     
     HWND m_hWnd;
     
-    // Additional CWnd members to reach sizeof = 232
-    WNDPROC m_pfnSuper;         // 8 bytes - window superclass procedure
-    DWORD m_nFlags;              // 4 bytes - internal flags
-    DWORD m_dwStyle;             // 4 bytes - cached window style
-    
-    // Platform-specific padding to reach 232 bytes total
-    // On Windows: DWORD is 4 bytes, need 136 bytes padding before the target.
-    // With an 8-byte DWORD typedef, need 128 bytes before the target.
-#if defined(_WIN32) || defined(__MINGW32__)
-    char _cwnd_padding2[136];
-#else
-    char _cwnd_padding2[128];
-#endif
-    CRenderTarget* m_pRenderTarget; // retail x64 +0xE0
-
+    // Retail x64 CWnd storage. Cached style occupies unused alignment bytes.
+    bool m_bEnableActiveAccessibility; // +0x48
+    unsigned char _accessibility_alignment[3];
+    DWORD m_dwStyle;                  // +0x4C, internal cache
+    IAccessible* m_pStdObject;         // +0x50
+    IAccessibleProxy* m_pProxy;        // +0x58
+    void* m_xAccessible;               // +0x60, embedded interface vfptr
+    void* m_xAccessibleServer;         // +0x68, embedded interface vfptr
+    unsigned char _cwnd_padding2[48];  // +0x70..0x9F
+    HWND m_hWndOwner;                  // +0xA0
+    DWORD m_nFlags;                    // +0xA8
+    DWORD _cwnd_flags_alignment;
+    WNDPROC m_pfnSuper;                // +0xB0
+    int m_nModalResult;                // +0xB8
+    DWORD _cwnd_modal_alignment;
+    void* m_pDropTarget;               // +0xC0
+    void* m_pOccDialogInfo;            // +0xC8
+    COleControlContainer* m_pCtrlCont;  // +0xD0
+    COleControlSite* m_pCtrlSite;       // +0xD8
+    CRenderTarget* m_pRenderTarget;     // +0xE0
 
     // Generated CWnd methods
     // Static methods
@@ -689,6 +694,7 @@ public:
     LONGLONG Default();
     LONGLONG DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2);
     HWND Detach();
+    void ReleaseAccessibility();
     int DoD2DPaint();
     void ResizeD2DRenderTarget(UINT width, UINT height);
     void EnableScrollBarCtrl(int p0, int p1);
@@ -2250,21 +2256,20 @@ protected:
 // CWnd implementation (inline for header-only)
 //=============================================================================
 
-inline CWnd::CWnd() 
-    : m_hWnd(nullptr)
-    , m_pfnSuper(nullptr)
-    , m_nFlags(0)
-    , m_dwStyle(0)
-    , m_pRenderTarget(nullptr)
+inline CWnd::CWnd()
+    : m_hWnd(nullptr), m_bEnableActiveAccessibility(false), _accessibility_alignment{}, m_dwStyle(0),
+      m_pStdObject(nullptr), m_pProxy(nullptr), m_xAccessible(nullptr), m_xAccessibleServer(nullptr),
+      _cwnd_padding2{}, m_hWndOwner(nullptr), m_nFlags(0), _cwnd_flags_alignment(0), m_pfnSuper(nullptr),
+      m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pOccDialogInfo(nullptr),
+      m_pCtrlCont(nullptr), m_pCtrlSite(nullptr), m_pRenderTarget(nullptr)
 {
-    // Zero padding
     memset(_cwnd_padding1, 0, sizeof(_cwnd_padding1));
-    memset(_cwnd_padding2, 0, sizeof(_cwnd_padding2));
 }
 
 inline CWnd::~CWnd() {
     if (m_hWnd != nullptr) DestroyWindow();
     if (m_pRenderTarget) EnableD2DSupport(FALSE);
+    if (m_pStdObject || m_pProxy) ReleaseAccessibility();
 }
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
@@ -2310,16 +2315,13 @@ inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const w
 
 inline int CWnd::DestroyWindow() {
     if (m_hWnd == nullptr) return 0;
-#if defined(OPENMFC_APPCORE_IMPL)
-    m_hWnd = nullptr;
-    return TRUE;
-#else
     int result = ::DestroyWindow(m_hWnd) ? 1 : 0;
     if (result) {
         m_hWnd = nullptr;
+        ReleaseAccessibility();
+        if (m_pRenderTarget) EnableD2DSupport(FALSE);
     }
     return result;
-#endif
 }
 
 inline int CWnd::ShowWindow(int nCmdShow) {

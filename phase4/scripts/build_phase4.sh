@@ -531,6 +531,7 @@ LDLIBS=(
     -ladvapi32
     -lole32
     -loleaut32
+    -loleacc
     -luuid
     -loledlg
     -lodbc32

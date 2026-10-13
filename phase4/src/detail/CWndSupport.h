@@ -45,7 +45,6 @@ namespace openmfc { namespace detail { namespace cwnd {
 extern std::mutex g_coreWndStateMutex;
 } } }
 namespace openmfc { namespace detail { namespace cwnd {
-extern std::map<const CWnd*, void*> g_coreWndProxies;
 } } }
 namespace openmfc { namespace detail { namespace cwnd {
 extern std::map<const CWnd*, int> g_coreWndModalResults;

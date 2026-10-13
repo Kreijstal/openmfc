@@ -5,6 +5,7 @@
 
 #include "detail/DlgcoreSupport.h"
 #include "detail/CWndSupport.h"
+#include "detail/CWndAccessibilitySupport.h"
 #include "detail/CMenuSupport.h"
 #include "detail/WincoreSupport.h"
 
@@ -158,9 +159,9 @@ extern "C" long MS_ABI impl__CreateAccessibleProxy_CWnd__UEAAJ_K_JPEA_J_Z(
     if (ppv) {
         *ppv = 0;
     }
-    // Retail requires dwProxy == 0xFFFFFFFC and then fabricates a COM
-    // accessibility proxy (CoCreateInstance + QueryInterface). OpenMFC does
-    // not host COM proxies, so report failure rather than fake success.
+    // Retail requires the LPARAM object ID to be OBJID_CLIENT and allocates
+    // an internal COM accessibility proxy bound to the embedded interfaces.
+    // Those vtables are not installed yet, so proxy creation remains incomplete.
     // TODO(clean-room): transcribed partially
     (void)dwProxy;
     return 0x80004005;  // E_FAIL
@@ -226,19 +227,6 @@ extern "C" void MS_ABI impl__EndModalLoop_CWnd__UEAAXH_Z(
         // AfxCancelModes sends WM_CANCELMODE to the window to end modal state.
         ::SendMessageW(pThis->m_hWnd, WM_CANCELMODE, 0, 0);
     }
-}
-// Symbol: ?EnsureStdObj@CWnd@@UEAAJXZ
-extern "C" long MS_ABI impl__EnsureStdObj_CWnd__UEAAJXZ(CWnd* pThis)
-{
-    if (!pThis) {
-        return 0x80004005;  // E_FAIL
-    }
-    // Retail: if m_pStdObj != NULL return S_OK; else create the standard OLE
-    // object via a helper and return its HRESULT. OpenMFC does not model the
-    // standard-object slot (retail offset 0x50 is not a declared member of the
-    // simplified CWnd layout), so treat the object as already present.
-    // TODO(clean-room): transcribed partially
-    return S_OK;  // 0
 }
 // Symbol: ?HtmlHelpW@CWnd@@UEAAX_KI@Z
 extern "C" void MS_ABI impl__HtmlHelpW_CWnd__UEAAX_KI_Z(
@@ -547,13 +535,7 @@ extern "C" long MS_ABI impl__SetProxy_CWnd__UEAAJPEAUIAccessibleProxy___Z(
     if (!pThis) {
         return 0x80004005;  // E_FAIL
     }
-    // Retail: m_pStdObj (offset 0x58) = pProxy; return S_OK. The offset has no
-    // declared member in the simplified CWnd layout, so keep the proxy in the
-    // per-window runtime state.
-    {
-        std::lock_guard<std::mutex> lk(g_coreWndStateMutex);
-        g_coreWndProxies[pThis] = pProxy;
-    }
+    pThis->m_pProxy = static_cast<IAccessibleProxy*>(pProxy);
     return S_OK;  // 0
 }
 // CWnd::CWnd(HWND) — private constructor MFC uses internally to wrap an existing
@@ -798,6 +780,7 @@ extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     }
 
     HWND hWnd = pThis->m_hWnd;
+    pThis->ReleaseAccessibility();
     pThis->EnableD2DSupport(FALSE);
     g_hwndMap.erase(hWnd);
     pThis->m_hWnd = nullptr;
@@ -3653,196 +3636,6 @@ void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int 
     }
 }
 
-// === Moved from ManualThunks.cpp ===
-// Symbol: ?accNavigate@CWnd@@UEAAJJUtagVARIANT@@PEAU2@@Z
-extern "C" long MS_ABI impl__accNavigate_CWnd__UEAAJJUtagVARIANT__PEAU2__Z(void* pThis, long p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0L;
-}
-
-
-// Symbol: ?accDoDefaultAction@CWnd@@UEAAJUtagVARIANT@@@Z
-extern "C" long MS_ABI impl__accDoDefaultAction_CWnd__UEAAJUtagVARIANT___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0L;
-}
-
-
-// Symbol: ?accHitTest@CWnd@@UEAAJJJPEAUtagVARIANT@@@Z
-extern "C" long MS_ABI impl__accHitTest_CWnd__UEAAJJJPEAUtagVARIANT___Z(void* pThis, long p0, long p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0L;
-}
-
-
-// Symbol: ?accLocation@CWnd@@UEAAJPEAJ000UtagVARIANT@@@Z
-extern "C" long MS_ABI impl__accLocation_CWnd__UEAAJPEAJ000UtagVARIANT___Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    return 0L;
-}
-
-
-// Symbol: ?accSelect@CWnd@@UEAAJJUtagVARIANT@@@Z
-extern "C" long MS_ABI impl__accSelect_CWnd__UEAAJJUtagVARIANT___Z(void* pThis, long p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accChildCount@CWnd@@UEAAJPEAJ@Z
-extern "C" long MS_ABI impl__get_accChildCount_CWnd__UEAAJPEAJ_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0L;
-}
-
-
-// Symbol: ?get_accChild@CWnd@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
-extern "C" long MS_ABI impl__get_accChild_CWnd__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accDefaultAction@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accDefaultAction_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accDescription@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accDescription_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accFocus@CWnd@@UEAAJPEAUtagVARIANT@@@Z
-extern "C" long MS_ABI impl__get_accFocus_CWnd__UEAAJPEAUtagVARIANT___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0L;
-}
-
-
-// Symbol: ?get_accHelp@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accHelp_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accHelpTopic@CWnd@@UEAAJPEAPEA_WUtagVARIANT@@PEAJ@Z
-extern "C" long MS_ABI impl__get_accHelpTopic_CWnd__UEAAJPEAPEA_WUtagVARIANT__PEAJ_Z(void* pThis, void* p0, void* p1, void* p2) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    return 0L;
-}
-
-
-// Symbol: ?get_accKeyboardShortcut@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accKeyboardShortcut_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accName@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accName_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accParent@CWnd@@UEAAJPEAPEAUIDispatch@@@Z
-extern "C" long MS_ABI impl__get_accParent_CWnd__UEAAJPEAPEAUIDispatch___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0L;
-}
-
-
-// Symbol: ?get_accRole@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
-extern "C" long MS_ABI impl__get_accRole_CWnd__UEAAJUtagVARIANT__PEAU2__Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accSelection@CWnd@@UEAAJPEAUtagVARIANT@@@Z
-extern "C" long MS_ABI impl__get_accSelection_CWnd__UEAAJPEAUtagVARIANT___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0L;
-}
-
-
-// Symbol: ?get_accState@CWnd@@UEAAJUtagVARIANT@@PEAU2@@Z
-extern "C" long MS_ABI impl__get_accState_CWnd__UEAAJUtagVARIANT__PEAU2__Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?get_accValue@CWnd@@UEAAJUtagVARIANT@@PEAPEA_W@Z
-extern "C" long MS_ABI impl__get_accValue_CWnd__UEAAJUtagVARIANT__PEAPEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?put_accName@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
-extern "C" long MS_ABI impl__put_accName_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
-
-// Symbol: ?put_accValue@CWnd@@UEAAJUtagVARIANT@@PEA_W@Z
-extern "C" long MS_ABI impl__put_accValue_CWnd__UEAAJUtagVARIANT__PEA_W_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0L;
-}
-
 // ---------------------------------------------------------------------------
 // CWnd::WinHelp / WinHelpInternal
 // ---------------------------------------------------------------------------
@@ -3933,20 +3726,12 @@ extern "C" void MS_ABI impl__WinHelpInternal_CWnd__UEAAX_KI_Z(CWnd* pThis, unsig
 // AFX_MAINTAIN_STATE2 constructor (0x133170), whose inlined destructor restores
 // the previous module state before returning.  The module-state juggling has no
 // OpenMFC equivalent (CCmdTarget carries no m_pModuleState in this build) and
-// is not reproduced; the displacement arithmetic is.  Both displacements fall
-// inside OpenMFC's _cwnd_padding2 (offset 0x58, zero-filled by the CWnd
-// constructor); nothing in this build reads or writes bytes +0x60/+0x68 of a
-// CWnd (the only other named slot in that padding is m_hWndOwner at +0xa0,
-// read by core/controlbar/CControlBar.cpp), so the layout is consistent once a
-// constructor installs the vftables (header request: name m_pStdObject +0x50,
-// m_pProxy +0x58, m_xAccessible +0x60 and m_xAccessibleServer +0x68 in
-// afxwin.h).
+// is not reproduced; the displacement arithmetic is. The interface pointers
+// now have named slots at +0x60/+0x68, but their vtables are not installed yet.
 //
-// After the prologue each IAccessible method makes a virtual call on the owner
-// (CWnd vtable slot noted per method; slot numbers read out of the mfc140u CWnd
-// vftable at RVA 0x3371b8).  Objects in this build carry no MSVC vtable, so --
-// as everywhere in core/ -- the call goes straight to the CWnd export of that
-// slot; a client override of the CWnd virtual is not reached.
+// Retail dispatches virtually to the owner. These entry points currently call
+// the corresponding default CWnd exports directly; client accessibility
+// overrides need the remaining CWnd virtual layout and proxy implementation.
 // ---------------------------------------------------------------------------
 namespace {
 
