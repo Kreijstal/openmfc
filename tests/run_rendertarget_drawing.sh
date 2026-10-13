@@ -23,7 +23,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/runtime/CCmdTargetVerbs.cpp phase4/src/core/runtime/CommandRouting.cpp phase4/src/core/runtime/_AFX_THREAD_STATE.cpp phase4/src/core/ole/CEnumOleVerb.cpp phase4/src/core/ole/CEnumArray.cpp phase4/src/core/ole/CTypeLibCache.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
-    phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/window/CWndVirtuals.cpp phase4/src/core/window/WindowMessageContext.cpp phase4/src/core/dialog/DialogMessageCallbacks.cpp phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
+    phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/window/CWndInput.cpp phase4/src/core/window/CWndVirtuals.cpp phase4/src/core/window/WindowMessageContext.cpp phase4/src/core/dialog/DialogMessageCallbacks.cpp phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
     phase4/src/core/runtime/D2DMessages.cpp
     phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
@@ -92,6 +92,7 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('detail/OleOleexceptionRttiSupport.cpp', 'OleOleexceptionRttiSupport'),
                   ('core/window/CWndD2D.cpp', 'CWndD2D'),
                   ('core/window/WindowMessageContext.cpp', 'WindowMessageContext'),
+                  ('core/window/CWndInput.cpp', 'CWndInput'),
                   ('core/dialog/DialogMessageCallbacks.cpp', 'DialogMessageCallbacks'),
                   ('core/window/CWndAccessibility.cpp', 'CWndAccessibility'),
                   ('core/window/CWndAccessibilityInterfaces.cpp', 'CWndAccessibilityInterfaces'),

@@ -1309,11 +1309,6 @@ extern "C" unsigned long MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* pThis
 extern "C" int MS_ABI impl__GetGestureConfig_CWnd__QEAAHPEAVCGestureConfig___Z(CWnd* pThis, CGestureConfig* p0) {
     return (int)pThis->GetGestureConfig(p0);
 }
-// Symbol: ?GetGestureStatus@CWnd@@MEAAKVCPoint@@@Z
-// CWnd::GetGestureStatus
-extern "C" unsigned long MS_ABI impl__GetGestureStatus_CWnd__MEAAKVCPoint___Z(CWnd* pThis, CPoint p0) {
-    return (unsigned long)pThis->GetGestureStatus(p0);
-}
 // Symbol: ?GetInterfaceMap@CWnd@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 // CWnd::GetInterfaceMap
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CWnd__MEBAPEBUAFX_INTERFACEMAP__XZ(const CWnd* pThis) {
@@ -1423,11 +1418,6 @@ extern "C" unsigned int MS_ABI impl__IsDlgButtonChecked_CWnd__QEBAIH_Z(const CWn
 // CWnd::IsTopParentActive
 extern "C" int MS_ABI impl__IsTopParentActive_CWnd__QEBAHXZ(const CWnd* pThis) {
     return (int)pThis->IsTopParentActive();
-}
-// Symbol: ?IsTouchWindow@CWnd@@QEBAHXZ
-// CWnd::IsTouchWindow
-extern "C" int MS_ABI impl__IsTouchWindow_CWnd__QEBAHXZ(const CWnd* pThis) {
-    return (int)pThis->IsTouchWindow();
 }
 // Symbol: ?MeasureItem@CMenu@@UEAAXPEAUtagMEASUREITEMSTRUCT@@@Z
 // CMenu::MeasureItem
@@ -1568,16 +1558,6 @@ extern "C" void MS_ABI impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(CWnd* pThis, un
 // CWnd::OnSysColorChange
 extern "C" void MS_ABI impl__OnSysColorChange_CWnd__IEAAXXZ(CWnd* pThis) {
     pThis->OnSysColorChange();
-}
-// Symbol: ?OnTabletQuerySystemGestureStatus@CWnd@@IEAA_J_K_J@Z
-// CWnd::OnTabletQuerySystemGestureStatus
-extern "C" __int64 MS_ABI impl__OnTabletQuerySystemGestureStatus_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
-    return (__int64)pThis->OnTabletQuerySystemGestureStatus(p0, p1);
-}
-// Symbol: ?OnTouchMessage@CWnd@@IEAA_J_K_J@Z
-// CWnd::OnTouchMessage
-extern "C" __int64 MS_ABI impl__OnTouchMessage_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
-    return (__int64)pThis->OnTouchMessage(p0, p1);
 }
 // Symbol: ?OnVKeyToItem@CWnd@@IEAAHIPEAVCListBox@@I@Z
 // CWnd::OnVKeyToItem

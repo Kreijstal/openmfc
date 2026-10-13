@@ -317,22 +317,6 @@ extern "C" void MS_ABI impl__OnDrawIconicThumbnailOrLivePreview_CWnd__UEAAXAEAVC
     HDC hdc = pDC ? pDC->GetSafeHdc() : nullptr;
     ::SendMessageW(pThis->m_hWnd, WM_PRINT, reinterpret_cast<WPARAM>(hdc), 0x1E);
 }
-// Symbol: ?OnGesture@CWnd@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnGesture_CWnd__IEAA_J_K_J_Z(
-    CWnd* pThis, unsigned __int64 wParam, __int64 lParam)
-{
-    (void)wParam;
-    (void)lParam;
-    if (!pThis) {
-        return 0;
-    }
-    // Retail lazily loads GetGestureInfo/CloseGestureInfoHandle, allocates a
-    // per-window gesture buffer (offset 0x90, not declared in this layout),
-    // decodes the gesture id and dispatches to the OnGesture* virtuals.
-    // Return unhandled (0) like the default DefWindowProc path.
-    // TODO(clean-room): transcribed partially
-    return 0;
-}
 // Symbol: ?OnGesturePan@CWnd@@MEAAHVCPoint@@0@Z
 extern "C" int MS_ABI impl__OnGesturePan_CWnd__MEAAHVCPoint__0_Z(
     CWnd* pThis, CPoint pt, CPoint pt2)
@@ -399,49 +383,6 @@ extern "C" int MS_ABI impl__OnTouchInput_CWnd__MEAAHVCPoint__HHPEAUtagTOUCHINPUT
         return FALSE;
     }
     return FALSE;  // default: not handled
-}
-// Symbol: ?OnTouchInputs@CWnd@@MEAAHIPEAUtagTOUCHINPUT@@@Z
-extern "C" int MS_ABI impl__OnTouchInputs_CWnd__MEAAHIPEAUtagTOUCHINPUT___Z(
-    CWnd* pThis, unsigned int nInputs, TOUCHINPUT* pInputs)
-{
-    if (!pThis) {
-        return FALSE;
-    }
-    if (nInputs == 0 || !pInputs) {
-        return TRUE;
-    }
-    // Retail: for each input, convert 1/100 pixel units to pixels, translate
-    // to screen coordinates and dispatch to the virtual
-    // OnTouchInput(i, nInputs, &pInputs[i]); abort (return FALSE) if a handler
-    // rejects it. The virtual dispatch slot is not part of this layout, so the
-    // per-input conversion is done and the call is skipped conservatively.
-    // TODO(clean-room): transcribed partially
-    for (unsigned int i = 0; i < nInputs; ++i) {
-        POINT pt = {
-            static_cast<LONG>(pInputs[i].x / 100),
-            static_cast<LONG>(pInputs[i].y / 100)
-        };
-        if (pThis->m_hWnd) {
-            ::ClientToScreen(pThis->m_hWnd, &pt);
-        }
-        (void)pt;
-    }
-    return TRUE;
-}
-// Symbol: ?RegisterTouchWindow@CWnd@@QEAAHHK@Z
-extern "C" int MS_ABI impl__RegisterTouchWindow_CWnd__QEAAHHK_Z(
-    CWnd* pThis, int bRegister, unsigned long dwFlags)
-{
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    // Retail lazily loads user32!RegisterTouchWindow/UnregisterTouchWindow and
-    // calls the matching one; the result is cached. The static imports are
-    // equivalent on the supported OS versions.
-    if (!bRegister) {
-        return ::UnregisterTouchWindow(pThis->m_hWnd) ? TRUE : FALSE;
-    }
-    return ::RegisterTouchWindow(pThis->m_hWnd, dwFlags) ? TRUE : FALSE;
 }
 // Symbol: ?RemoveRadioCheckFromGroup@CWnd@@QEBAXPEBUCOleControlSiteOrWnd@@@Z
 extern "C" void MS_ABI impl__RemoveRadioCheckFromGroup_CWnd__QEBAXPEBUCOleControlSiteOrWnd___Z(
@@ -2252,11 +2193,7 @@ int CWnd::GetGestureConfig(CGestureConfig* p0)
     (void)p0;
     return GetWindowRuntimeState(this).gestureConfigEnabled ? TRUE : FALSE;
 }
-DWORD CWnd::GetGestureStatus(CPoint p0)
-{
-    (void)p0;
-    return IsD2DSupportEnabled() ? 1u : 0u;
-}
+
 COleControlSiteOrWnd* CWnd::GetNextDlgGroupItem(void* p0) const
 {
     if (!m_hWnd) {
@@ -2512,13 +2449,6 @@ int CWnd::IsTopParentActive() const
         return FALSE;
     }
     return (::GetActiveWindow() == hWndTop || ::GetForegroundWindow() == hWndTop) ? TRUE : FALSE;
-}
-int CWnd::IsTouchWindow() const
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    return ::IsTouchWindow(m_hWnd, nullptr) ? TRUE : FALSE;
 }
 int CWnd::MessageBoxW(const WCHAR* p0, const WCHAR* p1, UINT p2)
 {
@@ -2784,53 +2714,6 @@ void CWnd::OnEnterIdle(UINT p0, void* p1)
 
     CWnd_SetMessageText(this, statusText.GetString());
 }
-void CWnd::OnGesture(void* p0, ULONGLONG p1, LONGLONG p2)
-{
-    (void)p0;
-    (void)p1;
-
-    if (!m_hWnd || p2 == 0) {
-        return;
-    }
-
-    HGESTUREINFO hGesture = reinterpret_cast<HGESTUREINFO>(static_cast<INT_PTR>(p2));
-    GESTUREINFO gestureInfo {};
-    gestureInfo.cbSize = sizeof(gestureInfo);
-    if (!::GetGestureInfo(hGesture, &gestureInfo)) {
-        return;
-    }
-
-    POINT ptScreen = { gestureInfo.ptsLocation.x, gestureInfo.ptsLocation.y };
-    POINT ptClient = ptScreen;
-    ::ScreenToClient(m_hWnd, &ptClient);
-    CPoint point(ptClient.x, ptClient.y);
-
-    int handled = FALSE;
-    switch (gestureInfo.dwID) {
-    case GID_PAN:
-        handled = OnGesturePan(p0, point);
-        break;
-    case GID_PRESSANDTAP:
-        handled = OnGesturePressAndTap(p0, point, gestureInfo.dwFlags);
-        break;
-    case GID_ROTATE:
-        handled = OnGestureRotate(p0, point, static_cast<DWORD>(gestureInfo.ullArguments));
-        break;
-    case GID_TWOFINGERTAP:
-        handled = OnGestureTwoFingerTap(p0, point);
-        break;
-    case GID_ZOOM:
-        handled = OnGestureZoom(p0, point, static_cast<DWORD>(gestureInfo.ullArguments));
-        break;
-    default:
-        break;
-    }
-
-    if (!handled) {
-        CWnd_SetMessageText(this, L"Unhandled gesture message");
-    }
-    ::CloseGestureInfoHandle(hGesture);
-}
 int CWnd::OnGesturePan(void* p0, CPoint p1)
 {
     if (!m_hWnd) {
@@ -3066,14 +2949,6 @@ void CWnd::OnSysColorChange()
     }
     ::InvalidateRect(m_hWnd, nullptr, TRUE);
 }
-LONGLONG CWnd::OnTabletQuerySystemGestureStatus(ULONGLONG p0, LONGLONG p1)
-{
-    (void)p1;
-    if (!m_hWnd) {
-        return 0;
-    }
-    return GetWindowRuntimeState(this).gestureConfigEnabled ? static_cast<LONGLONG>(p0) : 0;
-}
 void CWnd::OnTouchInput(ULONGLONG p0, ULONGLONG p1, TOUCHINPUT* p2, UINT p3)
 {
     if (!m_hWnd || !p2) {
@@ -3101,26 +2976,6 @@ int CWnd::OnTouchInputs(ULONGLONG p0, ULONGLONG p1, TOUCHINPUT* p2, UINT p3)
         OnTouchInput(p0, p1, &p2[i], 1);
     }
     return static_cast<int>(p3);
-}
-LONGLONG CWnd::OnTouchMessage(ULONGLONG p0, LONGLONG p1)
-{
-    if (!m_hWnd || p0 == 0 || p1 == 0) {
-        return 0;
-    }
-
-    UINT nInputs = static_cast<UINT>(p0);
-    if (nInputs == 0) {
-        return 0;
-    }
-
-    HTOUCHINPUT hInput = reinterpret_cast<HTOUCHINPUT>(static_cast<INT_PTR>(p1));
-    std::vector<TOUCHINPUT> inputs(nInputs);
-    int result = 0;
-    if (::GetTouchInputInfo(hInput, nInputs, inputs.data(), sizeof(TOUCHINPUT))) {
-        result = OnTouchInputs(p0, static_cast<ULONGLONG>(p1), inputs.data(), nInputs);
-    }
-    ::CloseTouchInputHandle(hInput);
-    return result;
 }
 int CWnd::OnVKeyToItem(UINT p0, CListBox* p1, UINT p2)
 {
@@ -3242,13 +3097,6 @@ int CWnd::ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3)
         return TRUE;
     }
     return 0;
-}
-int CWnd::RegisterTouchWindow(ULONGLONG p0)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    return ::RegisterTouchWindow(m_hWnd, static_cast<ULONG_PTR>(p0)) ? TRUE : FALSE;
 }
 void CWnd::RemoveRadioCheckFromGroup(const CObject* p0)
 {

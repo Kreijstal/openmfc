@@ -271,6 +271,7 @@ static void ownershipAndRecreation() {
 #include "cmdtarget_verb_tests.h"
 #include "command_routing_tests.h"
 #include "window_message_context_tests.h"
+#include "window_input_tests.h"
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
@@ -281,7 +282,7 @@ int main() {
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
-    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetVerbs(); commandRouting(); windowMessageContext(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); frameworkBoundaryExceptions(); typeLibCache(); }
+    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetVerbs(); commandRouting(); windowMessageContext(); windowInput(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); frameworkBoundaryExceptions(); typeLibCache(); }
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

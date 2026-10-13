@@ -140,8 +140,7 @@ extern "C" int MS_ABI impl__CreateControlSite_CWnd__MEAAHPEAVCOleControlContaine
     unsigned int nID,
     const GUID* pClsid) { std::abort(); }
 
-extern "C" int MS_ABI impl__OnTouchInputs_CWnd__MEAAHIPEAUtagTOUCHINPUT___Z(
-    CWnd* pThis, unsigned int nInputs, TOUCHINPUT* pInputs) { std::abort(); }
+
 
 extern "C" int MS_ABI impl__OnTouchInput_CWnd__MEAAHVCPoint__HHPEAUtagTOUCHINPUT___Z(
     CWnd* pThis, CPoint pt, int nInputNumber, int nTouchInputs, TOUCHINPUT* pInput) { std::abort(); }
@@ -163,7 +162,6 @@ extern "C" int MS_ABI impl__OnGesturePressAndTap_CWnd__MEAAHVCPoint__J_Z(
 
 extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) { std::abort(); }
 
-DWORD CWnd::GetGestureStatus(CPoint) { std::abort(); }
 void CWnd::ResizeDynamicLayout() { std::abort(); }
 BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
 BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }

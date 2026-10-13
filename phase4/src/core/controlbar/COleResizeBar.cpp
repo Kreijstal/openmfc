@@ -93,14 +93,9 @@ static_assert(offsetof(COleResizeBar, m_pClientItem) == kOffTracker,
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd @0x40");
 static_assert(offsetof(CDC, m_hDC) == 0x08, "CDC::m_hDC @0x08");
 
-// CWnd::m_hWndOwner (+0xa0), read by the inline CWnd::GetOwner. OpenMFC's CWnd
-// does not name it; the slot lies in _cwnd_padding2, which the CWnd constructor
-// zero-fills and which MSVC clients' inline CWnd::SetOwner writes. Same approach
-// as featurepack/toolbar/CMFCToolBarComboBoxEdit.cpp.
+// Native owner handle, shared with client-inlined CWnd::SetOwner.
 constexpr std::size_t kOffHWndOwner = 0xa0;
-static_assert(offsetof(CWnd, _cwnd_padding2) <= kOffHWndOwner &&
-              kOffHWndOwner + sizeof(HWND) <= offsetof(CWnd, _cwnd_padding2) + sizeof(CWnd::_cwnd_padding2),
-              "m_hWndOwner slot must lie inside CWnd's padding");
+static_assert(offsetof(CWnd,m_hWndOwner)==kOffHWndOwner,"native CWnd owner handle");
 
 // AFX_SIZEPARENTPARAMS (afxpriv.h): HDWP hDWP @0, RECT rect @8. Retail
 // OnSizeParent tests (lParam+0) and passes lParam+8 as the rect.

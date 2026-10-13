@@ -122,7 +122,7 @@ constexpr std::size_t kSizeofCReBar         = 0x150;
 static_assert(sizeof(CControlBar) == kOffReBarBandInfoSize, "CReBar::m_nReBarBandInfoSize follows the 0x148-byte CControlBar base");
 static_assert(kOffReBarBandInfoSize + sizeof(UINT) <= kSizeofCReBar, "sizeof(CReBar) == 0x150");
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd");
-static_assert(offsetof(CWnd, m_pfnSuper) == 0x48, "CWnd::m_pfnSuper (OpenMFC's slot; retail's is +0xb0, see CStatusBar.cpp)");
+static_assert(offsetof(CWnd, m_pfnSuper) == 0xb0, "native CWnd superclass procedure");
 static_assert(offsetof(CControlBar, m_cxLeftBorder) == 0xf4 && offsetof(CControlBar, m_cxRightBorder) == 0xf8 &&
               offsetof(CControlBar, m_cyTopBorder) == 0xfc && offsetof(CControlBar, m_cyBottomBorder) == 0x100,
               "CControlBar border ints the constructor zeroes (two 8-byte stores at +0xf4 / +0xfc)");
@@ -138,15 +138,9 @@ inline UINT BandInfoSizeOf(const CControlBar* pThis) {
     return n;
 }
 
-// CWnd::m_hWndOwner lives at CWnd + 0xa0 (retail OnNcCreate reads it there;
-// WindowProc's inlined GetOwner() does too).  OpenMFC's CWnd does not name it
-// -- the slot is inside the zero-initialised _cwnd_padding2 -- but MSVC
-// clients inline CWnd::SetOwner and write it, so it is read by offset exactly
-// as core/controlbar/CControlBar.cpp (OwnerHwnd) does.
+// Native owner handle, shared with client-inlined CWnd::SetOwner.
 constexpr std::size_t kOffHWndOwner = 0xa0;
-static_assert(offsetof(CWnd, _cwnd_padding2) <= kOffHWndOwner &&
-              kOffHWndOwner + sizeof(HWND) <= offsetof(CWnd, _cwnd_padding2) + sizeof(CWnd::_cwnd_padding2),
-              "m_hWndOwner slot must lie inside CWnd's padding");
+static_assert(offsetof(CWnd,m_hWndOwner)==kOffHWndOwner,"native CWnd owner handle");
 inline HWND RawOwnerHwnd(const CWnd* pWnd) {
     HWND h = nullptr;
     std::memcpy(&h, reinterpret_cast<const unsigned char*>(pWnd) + kOffHWndOwner, sizeof(h));

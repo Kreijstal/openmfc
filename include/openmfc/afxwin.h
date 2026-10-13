@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdlib>
 #include "afx.h"
 #include "afxstr.h"
 #include <cstring>
@@ -706,7 +707,19 @@ public:
     IAccessibleProxy* m_pProxy;        // +0x58
     void* m_xAccessible;               // +0x60, embedded interface vfptr
     void* m_xAccessibleServer;         // +0x68, embedded interface vfptr
-    unsigned char _cwnd_padding2[48];  // +0x70..0x9F
+    union {
+        unsigned char _cwnd_padding2[48];
+        struct {
+            BOOL m_bIsTouchWindowRegistered; // +0x70
+            POINT m_ptGestureFrom;           // +0x74
+            DWORD _gesture_alignment;
+            ULONGLONG m_ulGestureArg;        // +0x80
+            BOOL m_bGestureInited;           // +0x88
+            DWORD _gesture_pointer_alignment;
+            GESTUREINFO* m_pCurrentGestureInfo; // +0x90
+            void* m_pDynamicLayout;          // +0x98
+        };
+    };
     HWND m_hWndOwner;                  // +0xA0
     DWORD m_nFlags;                    // +0xA8
     DWORD _cwnd_flags_alignment;
@@ -787,6 +800,7 @@ public:
     IUnknown* GetDSCCursor();
     DWORD GetExStyle() const;
     int GetGestureConfig(CGestureConfig* p0);
+    GESTUREINFO* GetCurrentGestureInfo() const { return m_pCurrentGestureInfo; }
     const AFX_INTERFACEMAP* GetInterfaceMap() const;
     // GetMessageMap is declared via DECLARE_MESSAGE_MAP (protected)
     COleControlSiteOrWnd* GetNextDlgGroupItem(void* p0) const;
@@ -822,7 +836,7 @@ public:
     LONGLONG OnDragList(ULONGLONG p0, LONGLONG p1);
     int OnDrawItem(int p0, DRAWITEMSTRUCT* p1);
     void OnEnterIdle(UINT p0, void* p1);
-    void OnGesture(void* p0, ULONGLONG p1, LONGLONG p2);
+    LRESULT OnGesture(WPARAM wparam,LPARAM lparam);
     int OnGesturePan(void* p0, CPoint p1);
     int OnGesturePressAndTap(void* p0, CPoint p1, DWORD p2);
     int OnGestureRotate(void* p0, CPoint p1, DWORD p2);
@@ -853,7 +867,7 @@ public:
     BOOL PreTranslateInput(MSG* p0);
     void PrepareForHelp();
     int ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3);
-    int RegisterTouchWindow(ULONGLONG p0);
+    BOOL RegisterTouchWindow(BOOL registerWindow=TRUE,DWORD flags=0);
     void RemoveRadioCheckFromGroup(const CObject* p0);
     void RepositionBars(UINT p0, UINT p1, UINT p2, UINT p3, RECT* p4, RECT* p5, int p6);
     LONGLONG RunModalLoop(DWORD p0);
@@ -2325,6 +2339,7 @@ inline CWnd::CWnd()
       m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pCtrlCont(nullptr),
       m_pCtrlSite(nullptr), m_pMFCCtrlContainer(nullptr), m_pRenderTarget(nullptr)
 {
+    m_ptGestureFrom={-1,-1};
     InitializeAccessibility();
 }
 
@@ -2332,6 +2347,7 @@ inline CWnd::~CWnd() {
     if (m_hWnd != nullptr) DestroyWindow();
     if (m_pRenderTarget) EnableD2DSupport(FALSE);
     if (m_pStdObject || m_pProxy) ReleaseAccessibility();
+    std::free(m_pCurrentGestureInfo);m_pCurrentGestureInfo=nullptr;
 }
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
@@ -2566,6 +2582,15 @@ inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lPara
         *pResult = 0;
     }
     switch (message) {
+    case WM_TOUCH:
+        if(pResult)*pResult=OnTouchMessage(wParam,lParam);else OnTouchMessage(wParam,lParam);
+        return TRUE;
+    case WM_GESTURE:
+        if(pResult)*pResult=OnGesture(wParam,lParam);else OnGesture(wParam,lParam);
+        return TRUE;
+    case 0x02cc: // WM_TABLET_QUERYSYSTEMGESTURESTATUS
+        if(pResult)*pResult=OnTabletQuerySystemGestureStatus(wParam,lParam);else OnTabletQuerySystemGestureStatus(wParam,lParam);
+        return TRUE;
     case WM_PAINT:
         return m_pRenderTarget && DoD2DPaint();
     case WM_SIZE:

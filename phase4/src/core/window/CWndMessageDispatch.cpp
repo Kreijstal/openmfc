@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "detail/WindowMessageSupport.h"
+#include "detail/WindowInputSupport.h"
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
 #else
@@ -46,10 +47,19 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
     if (pResult) {
         *pResult = 0;
     }
-    // Objects constructed through the MSVC import library do not have a
-    // cross-compiler-compatible CWnd vtable yet.  Dispatch the base handlers
-    // directly instead of making a virtual call through an invalid vptr.
     switch (message) {
+    case WM_TOUCH:
+        if(pResult)*pResult=impl__OnTouchMessage_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        else impl__OnTouchMessage_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        return TRUE;
+    case WM_GESTURE:
+        if(pResult)*pResult=impl__OnGesture_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        else impl__OnGesture_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        return TRUE;
+    case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
+        if(pResult)*pResult=impl__OnTabletQuerySystemGestureStatus_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        else impl__OnTabletQuerySystemGestureStatus_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
+        return TRUE;
     case WM_PAINT:
         return pThis->m_pRenderTarget && pThis->DoD2DPaint();
     case WM_SIZE:

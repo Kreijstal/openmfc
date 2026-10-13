@@ -197,15 +197,9 @@ static_assert(offsetof(CControlBar, m_pDockSite) == 0x130, "CControlBar::m_pDock
 static_assert(offsetof(CControlBar, m_pDockBar) == 0x138, "CControlBar::m_pDockBar");
 static_assert(offsetof(CControlBar, m_pDockContext) == 0x140, "CControlBar::m_pDockContext");
 
-// CWnd::m_hWndOwner lives at CWnd + 0xa0 (retail reads it in every GetOwner()
-// inline: `m_hWndOwner ? m_hWndOwner : ::GetParent(m_hWnd)`).  OpenMFC's CWnd
-// does not name it -- the slot is inside the zero-initialised _cwnd_padding2 --
-// but MSVC clients inline CWnd::SetOwner and write it, so it is read here
-// exactly as retail does, with the ::GetParent fallback.
+// Native owner handle, shared with client-inlined CWnd::SetOwner.
 constexpr size_t kOffHWndOwner = 0xa0;
-static_assert(offsetof(CWnd, _cwnd_padding2) <= kOffHWndOwner &&
-              kOffHWndOwner + sizeof(HWND) <= offsetof(CWnd, _cwnd_padding2) + sizeof(CWnd::_cwnd_padding2),
-              "m_hWndOwner slot must lie inside CWnd's padding");
+static_assert(offsetof(CWnd,m_hWndOwner)==kOffHWndOwner,"native CWnd owner handle");
 inline HWND OwnerHwnd(const CWnd* pWnd) {
     HWND hOwner = nullptr;
     std::memcpy(&hOwner, reinterpret_cast<const unsigned char*>(pWnd) + kOffHWndOwner, sizeof(hOwner));
