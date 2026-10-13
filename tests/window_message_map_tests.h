@@ -5,6 +5,12 @@ extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(HDC);
 extern "C" void MS_ABI impl__AfxResetMsgCache__YAXXZ();
 extern "C" CPoint* MS_ABI impl__SetViewportOrg_CDC__UEAA_AVCPoint__HH_Z(CDC*,CPoint*,int,int);
 namespace window_map_tests {
+extern "C" BOOL (WINAPI* __imp_DeleteDC)(HDC);
+static auto nativeDeleteDC=__imp_DeleteDC;
+static int dcDeletes=0;
+static HDC deletedDC=nullptr;
+static BOOL dcDeleted=FALSE;
+static BOOL WINAPI DeleteOwnedDC(HDC dc) { ++dcDeletes;deletedDC=dc;return dcDeleted=nativeDeleteDC(dc); }
 static UINT registered=0;
 static CWnd* wrapped=nullptr;
 static CWnd* Lookup(HWND handle) { return wrapped && wrapped->m_hWnd==handle ? wrapped : nullptr; }
@@ -237,8 +243,12 @@ static void colorAndDC() {
     check(GetObjectType(handle)==OBJ_MEMDC,"temporary DC map cleanup preserves its borrowed Windows handle");
     DeleteDC(handle);DestroyWindow(child);
     HDC owned=CreateCompatibleDC(nullptr);
-    { CDC owner;owner.SetOutputDC(owned); }
-    check(!GetObjectType(owned),"native CDC destruction releases an owned output DC");
+    {
+        window_input_tests::Import deletion(__imp_DeleteDC,DeleteOwnedDC);
+        dcDeletes=0;
+        { CDC owner;owner.SetOutputDC(owned); }
+        check(dcDeletes==1 && deletedDC==owned && dcDeleted,"native CDC destruction successfully deletes its owned output DC once");
+    }
 }
 }
 static void windowMessageMaps() {
