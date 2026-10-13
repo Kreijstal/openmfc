@@ -124,8 +124,8 @@ static void dispatch() {
     check(get(disp,99,&result)==DISP_E_MEMBERNOTFOUND,
         "unknown DISPIDs return failure without claiming a property result");
     DISPPARAMS noArgs{};
-    check(disp->Invoke(16,IID_NULL,0,DISPATCH_METHOD,&noArgs,nullptr,nullptr,nullptr)==E_NOTIMPL && target.notifications==1,
-        "unimplemented generic method calls cannot report false success or invoke an unrelated property callback");
+    check(disp->Invoke(16,IID_NULL,0,DISPATCH_METHOD,&noArgs,nullptr,nullptr,nullptr)==S_OK && target.notifications==2,
+        "generic no-argument method dispatch executes the mapped callback");
     check(disp->Release()==1 && !target.finals,
         "releasing the dispatch interface returns ownership to the target without destroying it");
     g_cmdTestCurrentModule=nullptr;

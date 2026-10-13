@@ -10,7 +10,7 @@
 #include <cstring>
 
 #include "detail/InterfaceMapsSupport.h"
-#include "detail/CCmdTargetVirtualsSupport.h"
+#include "detail/CCmdTargetDispatchSupport.h"
 
 // Declared rather than pulled in via detail/MfcExceptionsSupport.h: that header
 // drags in CException::classCException, which this translation unit must not
@@ -588,18 +588,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
     }
 }
 
-// CCmdTarget::CallMemberFunc -- STUB.  Retail (mfc140u 0x2501b0) pushes an
-// AFX_MAINTAIN_STATE2 (ctor at 0x180133170) built from this->m_pModuleState
-// (+0x38), sizes a raw argument block with GetStackSize (0x24fd70), marshals
-// the DISPPARAMS into it with PushStackArgs (0x24fdf0) and then calls the
-// AFX_DISPMAP_ENTRY's member-function pointer through hand-written thunk code.
-// GetStackSize and PushStackArgs are transcribed in this file, but the rest of
-// the call thunk that replays the marshalled argument block is still missing, so this is left as a no-op returning S_OK-shaped 0.
-// Symbol: ?CallMemberFunc@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@GPEAUtagVARIANT@@PEAUtagDISPPARAMS@@PEAI@Z
-extern "C" long MS_ABI impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntry, unsigned short wFlags, void* pvarResult, void* pDispParams, unsigned int* puArgErr) {
-    (void)pThis; (void)pEntry; (void)wFlags; (void)pvarResult; (void)pDispParams; (void)puArgErr;
-    return 0;
-}
+// CallMemberFunc is implemented in CCmdTargetInvoke.cpp using native automation calls.
 
 // CCmdTarget::DoOleVerb -- STUB.  Retail (mfc140u 0x2711e0) walks the MESSAGE
 // map chain -- the virtual at vtable+0x60 is GetMessageMap -- looking for the
@@ -1158,10 +1147,9 @@ extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAP
 //     new buffer and throws without freeing it (memcpy_s EINVAL path at
 //     0x180237110); this frees it first.  Retail frees the grown array with
 //     the CRT `free` import; this uses OpenMFC's ??3.
-// Both callees are in this file: GetEventSinkEntry still consults CCmdTarget's
-// own (empty) event-sink map rather than the virtual one, so today this always
-// takes the first `return FALSE`; and CallMemberFunc is still a stub, so the
-// `event` kind does not yet reach its handler even once an entry is found.
+// GetEventSinkEntry still consults CCmdTarget's own (empty) event-sink map
+// rather than the virtual one, so today this always takes the first
+// `return FALSE`. CallMemberFunc is implemented in CCmdTargetInvoke.cpp.
 // Symbol: ?OnEvent@CCmdTarget@@QEAAHIPEAUAFX_EVENT@@PEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(CCmdTarget* pThis, unsigned int idCtrl, void* pEventV, void* pHandlerInfoV) {
     if (!pThis) return FALSE;
@@ -1325,7 +1313,7 @@ extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget* pThi
 // array grown through an unexported SetSize at mfc140u 0x2518a4) so the value
 // can be written back after the call, and pushes the BOOL*.  OpenMFC has no
 // CVariantBoolConverter (the class is opaque in the shipping headers, and the
-// only retail producer is CallMemberFunc, still a stub in this file), so that
+// native method invoker uses its own temporary BOOL storage), so that
 // argument is pushed exactly as retail pushes it when pTempStackArgs is NULL:
 // the VARIANT_BOOL* itself.
 // Symbol: ?PushStackArgs@CCmdTarget@@IEAAJPEAEPEBEPEAXGPEAUtagDISPPARAMS@@PEAIPEAUtagVARIANT@@PEAVCVariantBoolConverter@@@Z

@@ -72,9 +72,8 @@ extern "C" long MS_ABI impl__Invoke_COleDispatchImpl__UEAAJJAEBU_GUID__KGPEAUtag
     if (!target->IsInvokeAllowed(id)) return E_UNEXPECTED;
     auto* entry=static_cast<const AFX_DISPMAP_ENTRY*>(impl__GetDispEntry_CCmdTarget__IEAAPEBUAFX_DISPMAP_ENTRY__J_Z(target,id));
     if (!entry) return DISP_E_MEMBERNOTFOUND;
-    // Generic method invocation still needs the MSVC marshaled-call thunk.
-    // Avoid the old CallMemberFunc placeholder that returned success.
-    if (entry->nPropOffset==0) return E_NOTIMPL;
+    if (entry->nPropOffset==0)
+        return impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(target,entry,flags,result,args,argError);
     UINT localError=0;
     if (!argError) argError=&localError;
     if (flags & (DISPATCH_PROPERTYPUT | DISPATCH_PROPERTYPUTREF)) {
