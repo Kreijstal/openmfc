@@ -141,10 +141,6 @@ extern "C" void MS_ABI impl__GetLongBinaryData_CFieldExchange__QEAAXHAEAVCLongBi
     LongBinaryLength(binary) = static_cast<SQLULEN>(indicator);
     if (actualSize) *actualSize = indicator;
 }
-void CFieldExchange::Default(const wchar_t* name, void* value, SQLLEN* length,
-                             int type, SQLULEN size, SQLULEN precision) {
-    impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(this,name,value,length,type,size,precision);
-}
 SQLLEN CFieldExchange::GetLongBinarySize(int field) {
     return impl__GetLongBinarySize_CFieldExchange__QEAA_JH_Z(this,field);
 }
@@ -1010,105 +1006,6 @@ void RfxBulk(CFieldExchange* pFX, const wchar_t* szName, T** prgVals, __int64** 
 
 } // namespace
 
-// Symbol: ?Default@CFieldExchange@@QEAAXPEB_WPEAXPEA_JH_K3@Z
-// void CFieldExchange::Default(LPCTSTR szName, void* pv, SQLLEN* plLength, int nCFType,
-//                              SQLULEN cbValue, SQLULEN cbPrecision)
-// Transcribed from mfc140u RVA 0x1fe750.  nField is m_nFields for a column
-// operation and m_nParams for a parameter operation (retail: m_nFieldType == 0
-// selects +0x38 else +0x3c); n = nField - 1 indexes the status arrays, and the
-// retail range check (n >= m_nFields / m_nParams -> AfxThrowUserException)
-// precedes every status access.
-//   BindParam (0x1fe8ed):   ENSURE(plLength); *plLength = paramnull(n) ? SQL_NULL_DATA : cbValue;
-//       rc = SQLBindParameter(m_hstmt, nField, m_nFieldType, nCFType, nCFType /*ParameterType*/,
-//                             cbPrecision /*ColumnSize*/, 0, pv, 0 /*BufferLength*/, plLength);
-//       if (rc != SQL_SUCCESS) m_prs->ThrowDBException(rc, m_hstmt); m_prs->m_mapParamIndex[pv] = nField;
-//   RebindParam (0x1fe8ae): ENSURE(plLength); *plLength = paramnull(n) ? SQL_NULL_DATA : cbValue;
-//   BindFieldToColumn (0x1fe83a): rc = SQLBindCol(m_prs->m_hstmt, nField, nCFType, pv, cbValue, plLength);
-//       if (!m_prs->Check(rc)) m_prs->ThrowDBException(rc, SQL_NULL_HSTMT); m_prs->m_mapFieldIndex[pv] = nField;
-//   BindFieldForUpdate (0x1fe7ee): ENSURE(plLength); *plLength = !dirty(n) ? SQL_IGNORE : null(n) ? SQL_NULL_DATA : cbValue;
-//   UnbindFieldForUpdate (0x1fe7b7): if (!dirty(n)) { ENSURE(plLength); *plLength = cbValue; }
-//       (`testb $1,flags[n]; jne exit` -- a dirty field keeps the SQL_IGNORE / SQL_NULL_DATA /
-//       SQL_LEN_DATA_AT_EXEC length BindFieldForUpdate gave it; only a clean one is reset)
-//   Fixup, MarkForAddNew: nothing (0x1fe7ae falls to the epilogue).
-//   MarkForUpdate (0x1fe9a6): if the cached value was null (m_rgFieldInfos[n].m_bStatus & 2) set dirty
-//       when the field is no longer null; else set dirty when the field is null now or
-//       !AfxCompareValueByRef(pv, cache, m_nDataType); then if (m_pvField == NULL || m_pvField == pv)
-//       and dirty(n), m_bField = TRUE.
-//   Name (0x1fec11): if (dirty(n)) { *m_pstr += szName; *m_pstr += m_lpszSeparator; }
-//   NameValue (0x1feab0): if (dirty(n)) { *m_pstr += szName; *m_pstr += '='; } then Value.
-//   Value (0x1feaff): if (!dirty(n)) return; ENSURE(plLength); *plLength = null(n) ? SQL_NULL_DATA : cbValue;
-//       if (m_prs->[+0x40] & 0x4000) return; *m_pstr += '?'; *m_pstr += m_lpszSeparator; ++m_nParamFields;
-//       rc = SQLBindParameter(m_hstmt, m_nParamFields, SQL_PARAM_INPUT, nCFType, m_rgODBCFieldInfos[n].m_nSQLType,
-//                             .m_nPrecision, .m_nScale, pv, 0 /*BufferLength*/, plLength); if (rc != SQL_SUCCESS) ThrowDBException(rc, m_hstmt);
-//   StoreField (0x1feaa0): AfxStoreField(*m_prs, nField, pv);   LoadField (0x1fea90): AfxLoadField(*m_prs, nField, pv, plLength);
-//   every other value: return.
-// NOT IMPLEMENTED here: MarkForUpdate (recordset value-cache work remains),
-// Name / NameValue / Value. The native CFieldExchange fields are now present,
-// but these operation branches still return without
-// touching anything.  Deviation: the BindParam direction is SQL_PARAM_INPUT and
-// its statement handle is the recordset's m_hstmt, for want of m_nFieldType
-// and fx.m_hstmt.  The maps store the 0-based index this codebase's
-// CRecordset::IsFieldNull / IsFieldDirty expect (retail stores nField).  Only
-// the nField == 0 case of the range check is kept (it is out of range in
-// retail too).
-extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(
-    CFieldExchange* pThis, const wchar_t* szName, void* pv, __int64* plLength,
-    int nCFType, unsigned __int64 cbValue, unsigned __int64 cbPrecision) {
-    (void)szName;
-    if (!pThis || !pThis->m_pRecordset) return;
-    CRecordset* prs = pThis->m_pRecordset;
-    const UINT nField = IsParamOperation(pThis) ? pThis->m_nParams : pThis->m_nFields;
-    if (nField == 0) { impl__AfxThrowUserException__YAXXZ(); return; }
-    const unsigned long n = nField - 1;
-    switch (RfxOp(pThis)) {
-    case rfxop::BindParam: {
-        if (!plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-        *plLength = impl__IsParamStatusNull_CRecordset__QEBAHK_Z(prs, n) ? SQL_NULL_DATA : static_cast<__int64>(cbValue);
-        RETCODE rc = ::SQLBindParameter(prs->m_hstmt, static_cast<SQLUSMALLINT>(nField), SQL_PARAM_INPUT,
-                                        static_cast<SQLSMALLINT>(nCFType), static_cast<SQLSMALLINT>(nCFType),
-                                        static_cast<SQLULEN>(cbPrecision), 0, pv, 0, plLength);
-        if (rc != SQL_SUCCESS) ThrowDBException(pThis, rc, prs->m_hstmt);
-        prs->m_mapParamIndex.SetAt(pv,reinterpret_cast<void*>(UINT_PTR(nField)));
-        return;
-    }
-    case rfxop::RebindParam:
-        if (!plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-        *plLength = impl__IsParamStatusNull_CRecordset__QEBAHK_Z(prs, n) ? SQL_NULL_DATA : static_cast<__int64>(cbValue);
-        return;
-    case rfxop::BindFieldToColumn: {
-        RETCODE rc = ::SQLBindCol(prs->m_hstmt, static_cast<SQLUSMALLINT>(nField), static_cast<SQLSMALLINT>(nCFType),
-                                  pv, static_cast<SQLLEN>(cbValue), plLength);
-        if (!prs->Check(rc)) ThrowDBException(pThis, rc, SQL_NULL_HSTMT);
-        prs->m_mapFieldIndex.SetAt(pv,reinterpret_cast<void*>(UINT_PTR(nField)));
-        return;
-    }
-    case rfxop::BindFieldForUpdate:
-        if (!plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-        if (!impl__IsFieldStatusDirty_CRecordset__QEBAHK_Z(prs, n)) *plLength = SQL_IGNORE;
-        else if (impl__IsFieldStatusNull_CRecordset__QEBAHK_Z(prs, n)) *plLength = SQL_NULL_DATA;
-        else *plLength = static_cast<__int64>(cbValue);
-        return;
-    case rfxop::UnbindFieldForUpdate:
-        if (!impl__IsFieldStatusDirty_CRecordset__QEBAHK_Z(prs, n)) {
-            if (!plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-            *plLength = static_cast<__int64>(cbValue);
-        }
-        return;
-    case rfxop::StoreField:
-        impl__AfxStoreField__YAXAEAVCRecordset__IPEAX_Z(prs, nField, pv);
-        return;
-    case rfxop::LoadField:
-        impl__AfxLoadField__YAXAEAVCRecordset__IPEAXPEA_J_Z(prs, nField, pv, plLength);
-        return;
-    case rfxop::MarkForUpdate:   // not modelled (see above)
-    case rfxop::Name:
-    case rfxop::NameValue:
-    case rfxop::Value:
-    default:
-        return;
-    }
-}
-
 // Symbol: ?AfxRFXBulkDefault@@YAXPEAVCFieldExchange@@PEB_WPEAXPEA_JH_K@Z
 // void AfxRFXBulkDefault(CFieldExchange* pFX, LPCTSTR szName, void* pv, SQLLEN* plLength, int nCFType, SQLULEN cbValue)
 // Transcribed from mfc140u RVA 0x203e20:
@@ -1139,15 +1036,6 @@ extern "C" void MS_ABI impl__AfxRFXBulkDefault__YAXPEAVCFieldExchange__PEB_WPEAX
 extern "C" void MS_ABI impl__RFX_BigInt__YAXPEAVCFieldExchange__PEB_WAEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, __int64* value) {
     RfxScalar<__int64>(pFX, szName, value, SQL_C_SBIGINT, 19,
         [](const __int64& v) { return v == 0x4a4d4120LL; }, [](__int64& v) { v = 0x4a4d4120LL; }, FixupKeep<__int64>, false);
-}
-
-// Symbol: ?RFX_Binary@@YAXPEAVCFieldExchange@@PEB_WAEAVCByteArray@@_J@Z
-// mfc140u RVA 0x200dc0. Still pending the full native recordset field/cache
-// storage and RFX operation implementation. CByteArray and CFieldExchange now
-// provide the native layouts this body needs; their former layout blockers
-// have been removed. The binary exchange body itself remains unimplemented.
-extern "C" void MS_ABI impl__RFX_Binary__YAXPEAVCFieldExchange__PEB_WAEAVCByteArray___J_Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2, __int64 p3) {
-    (void)p0; (void)p1; (void)p2; (void)p3;
 }
 
 // Symbol: ?RFX_Binary_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_JH@Z

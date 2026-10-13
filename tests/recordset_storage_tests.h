@@ -173,7 +173,8 @@ std::vector<UINT64> exercise(const API& api) {
     StringManager manager;int binaryDestroyed=0;CStringData* shared=nullptr;
     for(int type=0;type<24;++type) {
         auto& f=rs->m_rgFieldInfos[type];f.m_nDataType=type;f.m_nLength=123;f.m_bStatus=0x40;
-        if(type==9)f.m_pvDataCache=new BinaryCache(&binaryDestroyed);
+        if(type==1 || type==2 || type==3 || type==4 || type==6)f.m_pvDataCache=reinterpret_cast<void*>(UINT_PTR(0x7ee4));
+        else if(type==9)f.m_pvDataCache=new BinaryCache(&binaryDestroyed);
         else if(type==20 || type==21) {
             auto* string=static_cast<char**>(std::malloc(sizeof(char*)));
             auto* data=manager.Allocate(1,type==20?2:1);

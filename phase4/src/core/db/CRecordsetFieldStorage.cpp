@@ -68,7 +68,8 @@ void CRecordset::FreeDataCache() {
     for(UINT i=0;i<m_nFields;++i) {
         auto& field=m_rgFieldInfos[i];bool released=true;
         switch(field.m_nDataType) {
-        case 1:case 2:case 3:case 4:case 6:case 7:case 8:case 15:case 16:case 18:case 19:case 22:
+        case 1:case 2:case 3:case 4:case 6:break; // cache value is inline, not an allocation
+        case 7:case 8:case 15:case 16:case 18:case 19:case 22:
             std::free(field.m_pvDataCache);break;
         case 9:
             if(field.m_pvDataCache) {

@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdarg>
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 // Windows type definitions
 #ifndef UINT
@@ -66,8 +69,20 @@ struct CStringData {
     wchar_t* data() { return reinterpret_cast<wchar_t*>(this + 1); }
     const wchar_t* data() const { return reinterpret_cast<const wchar_t*>(this + 1); }
 
-    void AddRef() { if (nRefs >= 0) ++nRefs; }
-    bool Release() { return (nRefs >= 0 && --nRefs <= 0); }
+    void AddRef() {
+#ifdef _MSC_VER
+        _InterlockedIncrement(&nRefs);
+#else
+        __atomic_add_fetch(&nRefs,1,__ATOMIC_SEQ_CST);
+#endif
+    }
+    bool Release() {
+#ifdef _MSC_VER
+        return _InterlockedDecrement(&nRefs)<=0;
+#else
+        return __atomic_sub_fetch(&nRefs,1,__ATOMIC_SEQ_CST)<=0;
+#endif
+    }
     bool IsLocked() const { return nRefs < 0; }
     bool IsShared() const { return nRefs > 1; }
 };
@@ -98,7 +113,7 @@ public:
         pNew->nAllocLength = nAllocLength;
         return pNew;
     }
-    CStringData* GetNilString() override { return GetNilStringData(); }
+    CStringData* GetNilString() override {auto* data=GetNilStringData();data->AddRef();return data;}
     IAtlStringMgr* Clone() override { return this; }
 };
 
@@ -107,12 +122,13 @@ inline IAtlStringMgr* OpenMFC_GetStringMgr() {
     return &mgr;
 }
 
-// Static nil string data for empty strings (locked: nRefs == -1, never freed).
+// Native ATL nil data retains two manager-owned references. Each attached
+// string adds one reference, so native client destruction cannot free it.
 inline CStringData* GetNilStringData() {
     static struct {
         CStringData header;
         wchar_t nul;
-    } nilData = { { nullptr, 0, 0, -1 }, L'\0' };
+    } nilData = { { nullptr, 0, 0, 2 }, L'\0' };
     if (nilData.header.pStringMgr == nullptr) {
         nilData.header.pStringMgr = OpenMFC_GetStringMgr();
     }
@@ -125,12 +141,14 @@ public:
     // Default constructor - empty string
     CString() noexcept {
         m_pszData = GetNilStringData()->data();
+        GetNilStringData()->AddRef();
     }
 
     // Constructor from wide string
     CString(const wchar_t* psz) {
         if (psz == nullptr || *psz == L'\0') {
             m_pszData = GetNilStringData()->data();
+        GetNilStringData()->AddRef();
         } else {
             int nLen = static_cast<int>(wcslen(psz));
             AllocBuffer(nLen);
@@ -208,6 +226,7 @@ public:
             FreeBuffer(pData);
         }
         m_pszData = GetNilStringData()->data();
+        GetNilStringData()->AddRef();
     }
 
     // Get the character buffer (read-only)

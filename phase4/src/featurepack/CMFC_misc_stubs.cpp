@@ -937,12 +937,6 @@ extern "C" void MS_ABI impl__AfxCheckError__YAXJ_Z(long p0) {
         }
     }
 }
-// Symbol: ?AfxCompareValueByRef@@YAHPEAX0H@Z
-extern "C" int MS_ABI impl__AfxCompareValueByRef__YAHPEAX0H_Z(void* p0, void* p1, int p2) {
-    if (p2 <= 0) return 0;
-    if (p0 == p1) return 0;
-    return std::memcmp(p0, p1, static_cast<size_t>(p2));
-}
 // Symbol: ?AfxConnectionAdvise@@YAHPEAUIUnknown@@AEBU_GUID@@0HPEAK@Z
 extern "C" int MS_ABI impl__AfxConnectionAdvise__YAHPEAUIUnknown__AEBU_GUID__0HPEAK_Z(
     IUnknown* pUnkSrc, const GUID* iid, IUnknown* pUnkSink, int bRefCount, unsigned long* pdwCookie) {
@@ -973,13 +967,6 @@ extern "C" int MS_ABI impl__AfxConnectionUnadvise__YAHPEAUIUnknown__AEBU_GUID__0
     hr = pCP->Unadvise(dwCookie);
     pCP->Release();
     return SUCCEEDED(hr);
-}
-// Symbol: ?AfxCopyValueByRef@@YAXPEAX0PEA_JH@Z
-extern "C" void MS_ABI impl__AfxCopyValueByRef__YAXPEAX0PEA_JH_Z(void* p0, void* p1, __int64* p2, int p3) {
-    if (p2) *p2 = 0;
-    if (!p0 || !p1 || p3 <= 0) return;
-    std::memcpy(p0, p1, static_cast<size_t>(p3));
-    if (p2) *p2 = p3;
 }
 // Symbol: ?AfxCoreInitModule@@YAXXZ
 extern "C" void MS_ABI impl__AfxCoreInitModule__YAXXZ() {
@@ -1930,48 +1917,6 @@ extern "C" int MS_ABI impl__AfxIsModuleDll__YAHXZ() {
     auto* nt = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dos->e_lfanew);
     if (nt->Signature != IMAGE_NT_SIGNATURE) return 0;
     return (nt->FileHeader.Characteristics & IMAGE_FILE_DLL) ? 1 : 0;
-}
-// Symbol: ?AfxLoadField@@YAXAEAVCRecordset@@IPEAXPEA_J@Z
-// void AFXAPI AfxLoadField(CRecordset& rs, UINT nField, void* pvField, long* plLength)
-// Restores field nField from the recordset's RFX value cache -- the "double
-// buffer" that AfxStoreField fills when Edit() starts and that CancelUpdate()
-// replays. The generated parameter list is already right: AEAVCRecordset@@ is
-// one pointer slot, so p0/p1/p2/p3 are rs, nField, pvField, plLength.
-//
-// Decoded from the real mfc140u.dll (x64 redist 14.51, ordinal 2257):
-//     i    = nField - 1;                  // status/cache arrays are 0-based
-//     info = &rs.m_pFieldInfo[i];         // rs+0x58, 24-byte entries:
-//                                         //   +0x00 void*  m_pvDataCache
-//                                         //   +0x08 SQLLEN m_nLength
-//                                         //   +0x10 int    m_nDataType
-//                                         //   +0x14 BYTE   m_bStatus
-//     rs.m_pbFieldFlags[i] |= info->m_bStatus;          // rs+0x178
-//     if (rs.m_pbFieldFlags[i] & 0x02) { *plLength = -1; return; }  // SQL_NULL_DATA
-//     src = (info->m_nDataType is 1..4 or 6)            // small scalars are stored
-//               ? (void*)info                           // inline in the cache slot
-//               : info->m_pvDataCache;                  // others in a heap buffer
-//     AfxCopyValue(src, pvField, plLength, info->m_nDataType);
-//
-// Only the NULL half is reproducible here. This codebase's CRecordset
-// (include/openmfc/afxdb.h) is 216 bytes with m_nFields at +0x38 -- it has no
-// m_pFieldInfo cache array and no m_pbFieldFlags byte array, and the real
-// offsets 0x58/0x178 lie outside the object. The side table that stands in for
-// them (RecordsetState in phase4/src/detail/CRecordsetSupport.h) keeps only
-// dirty/null index sets plus SQLLEN lengths: no per-field data type, no saved
-// bytes. Nothing would ever populate a cache either, since every RFX_* entry
-// point in phase4/src/core/db/CFieldExchange.cpp is an empty stub. So the value
-// copy stays unimplemented until CRecordset grows a real per-field cache
-// (m_pvDataCache / m_nLength / m_nDataType / m_bStatus).
-//
-// Without a saved m_bStatus the |= restore is a no-op, so the current field
-// status is tested instead: when the field is already NULL the observable
-// behaviour (report SQL_NULL_DATA, copy nothing) matches real MFC exactly.
-extern "C" void MS_ABI impl__AfxLoadField__YAXAEAVCRecordset__IPEAXPEA_J_Z(void* /*class*/* p0, unsigned int p1, void* p2, __int64* p3) {
-    (void)p2;  // no value cache to copy from -- see above
-    if (!p0 || p1 < 1) return;
-    if (impl__GetFieldStatus_CRecordset__QEAAEK_Z(p0, (unsigned long)(p1 - 1)) & g5_kFieldFlagNull) {
-        if (p3) *p3 = -1;  // SQL_NULL_DATA
-    }
 }
 // Symbol: ?AfxLoadLangResourceDLL@@YAPEAUHINSTANCE__@@PEB_W0@Z
 extern "C" void* MS_ABI impl__AfxLoadLangResourceDLL__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t* p0, const wchar_t* p1) {
@@ -3128,30 +3073,6 @@ extern "C" void* MS_ABI impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(void* /*fnpt
 extern "C" void MS_ABI impl__AfxSetPerUserRegistration__YAXH_Z(int p0) {
     g_bPerUserRegistration = p0;
 }
-// Symbol: ?AfxStoreField@@YAXAEAVCRecordset@@IPEAX@Z
-// void AFXAPI AfxStoreField(CRecordset& rs, UINT nField, void* pvField)
-// The write side of the pair above: snapshot field nField into the recordset's
-// RFX value cache. The generated parameter list is already right (the
-// CRecordset& is one pointer slot).
-//
-// Decoded from the real mfc140u.dll (x64 redist 14.51, ordinal 2334):
-//     i    = nField - 1;
-//     info = &rs.m_pFieldInfo[i];                       // rs+0x58, see AfxLoadField
-//     info->m_bStatus = rs.m_pbFieldFlags[i];           // rs+0x178
-//     if (rs.m_pbFieldFlags[i] & 0x02) return;          // NULL: nothing to snapshot
-//     dst = (info->m_nDataType is 1..4 or 6) ? (void*)info : info->m_pvDataCache;
-//     AfxCopyValue(pvField, dst, &ignoredLength, info->m_nDataType);
-//
-// Left stubbed: both halves of that need storage this codebase does not have.
-// CRecordset here (include/openmfc/afxdb.h, 216 bytes) has neither the
-// m_pFieldInfo cache array nor the m_pbFieldFlags byte array, and
-// RecordsetState (phase4/src/detail/CRecordsetSupport.h) records field status
-// only as dirty/null index sets -- it carries no per-field data type and no
-// value bytes, so there is no way to know how many bytes at pvField to copy,
-// let alone anywhere to put them. Implementing this requires the per-field
-// cache described above; a private side map here could not be freed with the
-// recordset and would go stale on pointer reuse, which is worse than no-op.
-extern "C" void MS_ABI impl__AfxStoreField__YAXAEAVCRecordset__IPEAX_Z(void* /*class*/* p0, unsigned int p1, void* p2) {}
 // Symbol: ?AfxStringFromCLSID@@YA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBU_GUID@@@Z
 // CString AfxStringFromCLSID(const GUID& clsid)
 // Signature rewritten for the same reason as AFXGetRegPath: the by-value

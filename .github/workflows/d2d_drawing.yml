@@ -58,6 +58,7 @@ on:
       - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
       - 'tests/pointer_map_tests.h'
       - 'tests/recordset_storage_tests.h'
+      - 'tests/rfx_binary_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -218,6 +219,7 @@ on:
       - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
       - 'tests/pointer_map_tests.h'
       - 'tests/recordset_storage_tests.h'
+      - 'tests/rfx_binary_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -390,6 +392,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
@@ -479,6 +484,7 @@ jobs:
             echo uuid.lib
             echo d2d1.lib
             echo windowscodecs.lib
+            echo odBc32.lib
             echo comctl32.lib
           )
           cl @drawing.rsp
@@ -538,6 +544,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
@@ -628,6 +637,7 @@ jobs:
             echo uuid.lib
             echo d2d1.lib
             echo windowscodecs.lib
+            echo odBc32.lib
             echo comctl32.lib
           )
           cl @resources.rsp
@@ -658,6 +668,9 @@ jobs:
             echo /I"%GITHUB_WORKSPACE%/phase4/src"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchange.cpp"

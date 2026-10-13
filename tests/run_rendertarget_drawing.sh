@@ -30,6 +30,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/gdi/CImageList.cpp phase4/src/core/gdi/CImageListLifetime.cpp phase4/src/core/controls/CComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBoxLifetime.cpp phase4/src/featurepack/controls/StaticData.cpp phase4/src/featurepack/toolbar/StaticData.cpp phase4/src/featurepack/toolbar/CMFCToolBarFontComboBox.cpp phase4/src/featurepack/toolbar/CMFCToolBarComboBoxButton.cpp phase4/src/featurepack/toolbar/CMFCToolBarButtonLifetime.cpp phase4/src/detail/ToolbarComboState.cpp phase4/src/core/collections/CStringList.cpp phase4/src/core/collections/CStringArray.cpp
     phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
     phase4/src/core/collections/CMapPtrToPtrStorage.cpp phase4/src/core/collections/CMapPtrToPtr.cpp
+    phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
     phase4/src/core/db/CFieldExchangeLifecycle.cpp
     phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp phase4/src/detail/CMFCRibbonCmdUISupport.cpp
@@ -85,7 +86,10 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CRecordsetFieldStorage.cpp', 'CRecordsetFieldStorage'),
+for path, obj in (('core/db/RFXBinary.cpp', 'RFXBinary'),
+                  ('core/db/RFXValueCache.cpp', 'RFXValueCache'),
+                  ('core/db/CFieldExchangeDefault.cpp', 'CFieldExchangeDefault'),
+                  ('core/db/CRecordsetFieldStorage.cpp', 'CRecordsetFieldStorage'),
                   ('core/collections/CMapPtrToPtr.cpp', 'CMapPtrToPtr'),
                   ('core/db/CFieldExchangeLifecycle.cpp', 'CFieldExchangeLifecycle'),
                   ('featurepack/ribbon/CMFCRibbonCmdUI.cpp', 'CMFCRibbonCmdUI'),
@@ -157,7 +161,7 @@ lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${OBJECTS[@]}" comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${OBJECTS[@]}" odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
@@ -176,7 +180,7 @@ lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF /e
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 RUNNER=(wine)
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
     RUNNER=(xvfb-run -a wine)

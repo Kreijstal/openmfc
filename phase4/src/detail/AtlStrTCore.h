@@ -79,14 +79,14 @@ static inline int LoadStringW(HINSTANCE, unsigned, wchar_t*, int) { return 0; }
 
 namespace openmfc_str {
 
-// Per-character-type nil (empty, locked: nRefs == -1, never freed). The wide nil reuses
+// Per-character-type nil retains two manager-owned references. The wide nil reuses
 // afxstr.h's, so wide strings we create interoperate with the existing wide thunks.
 template <class CH> CStringData* NilData();
 
 template <> inline CStringData* NilData<wchar_t>() { return GetNilStringData(); }
 
 template <> inline CStringData* NilData<char>() {
-    static struct { CStringData header; char nul; } nil = { { nullptr, 0, 0, -1 }, '\0' };
+    static struct { CStringData header; char nul; } nil = { { nullptr, 0, 0, 2 }, '\0' };
     if (nil.header.pStringMgr == nullptr) nil.header.pStringMgr = OpenMFC_GetStringMgr();
     return &nil.header;
 }
@@ -95,7 +95,7 @@ template <class CH>
 class AtlStrT {
 public:
     // --- lifetime ---------------------------------------------------------------
-    void Construct() { m_pszData = data(NilData<CH>()); }
+    void Construct() { m_pszData = data(NilData<CH>());NilData<CH>()->AddRef(); }
 
     void ConstructMgr(IAtlStringMgr* mgr) {
         // Empty string bound to a specific manager. ATL keeps the manager even when empty;
@@ -160,7 +160,7 @@ public:
         CStringData* pd = GetData();
         if (pd->nDataLength == 0) return;
         if (pd->Release()) FreeData(pd);
-        m_pszData = data(NilData<CH>());
+        m_pszData = data(NilData<CH>());NilData<CH>()->AddRef();
     }
 
     void SetAt(int i, CH ch) {

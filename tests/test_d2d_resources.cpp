@@ -279,6 +279,7 @@ static void ownershipAndRecreation() {
 #include "field_exchange_tests.h"
 #include "pointer_map_tests.h"
 #include "recordset_storage_tests.h"
+#include "rfx_binary_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -301,6 +302,7 @@ int main() {
     if (SUCCEEDED(hr)) fieldExchange();
     if (SUCCEEDED(hr)) pointerMap();
     if (SUCCEEDED(hr)) recordsetFieldStorage();
+    if (SUCCEEDED(hr)) binaryFieldExchange();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();
