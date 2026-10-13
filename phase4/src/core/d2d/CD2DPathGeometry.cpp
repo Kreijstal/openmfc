@@ -1,22 +1,6 @@
-// CD2DPathGeometry — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
-//
-// CD2DPathGeometry (retail afxrendertarget.h) is the ID2D1PathGeometry wrapper, derived
-// from CD2DGeometry, adding one member, m_pPathGeometry.  Every body below except Create
-// is transcribed from the retail mfc140u.dll export (the ctor's vftable store excepted --
-// see the ctor).  Function bodies are byte-identical in mfc140.dll; every RVA quoted here
-// is the mfc140u one.
-//
-// Open (ordinal 11637) and Stream (ordinal 13938, per mfc_complete_ordinal_mapping.json)
-// are missing from the campaign's mfc140u_rva_symbols.json, so `disas.py --u` says NOT
-// FOUND for them.  Their RVAs, 0xd6c40 and 0xd6c80, were read from the mfc140u.dll
-// export address table by ordinal and disassembled with `disas.py --u --at`.
-//
-// Layout: OpenMFC's own headers do not declare this class, so every object is laid out by
-// a client compiled against the retail header.  CD2DGeometry's m_pGeometry is read INLINE
-// there (Get(), operator ID2D1Geometry*(), IsValid()), so it must stay at +0x18, and this
-// class's m_pPathGeometry follows it at +0x20 -- see the shadow struct below.
+// CD2DPathGeometry: native resource lifecycle and Direct2D ABI forwarding.
 
+#include "detail/D2DResourceSupport.h"
 #include <cstddef>
 #include <windows.h>
 #include <d2d1.h>
@@ -46,8 +30,7 @@ namespace {
 //     40.  The deleting destructor (RVA 0xd6b00, mfc140u, slot 1 of the vftable the ctor
 //     stores) also loads `mov $0x28,%edx` as the size argument on its flags&4 path (the
 //     callee there, RVA 0x27d0, is a folded bare `ret` in mfc140u).
-// The CD2DResource members are listed only to pin the offsets; this tree keeps them in a
-// side table owned by CD2DResource.cpp and this file never touches them.
+// ABI view used by the existing COM forwarding methods.
 struct CD2DPathGeometryShadow {
     void*              vfptr;             // +0x00
     BOOL               m_bIsAutoDestroy;  // +0x08 (CD2DResource)
@@ -96,12 +79,8 @@ typedef HRESULT (MS_ABI* PfnGetCount)(ID2D1PathGeometry*, UINT32*);
 // Retail RVA 0xd6ad0 (mfc140u): call CD2DGeometry::CD2DGeometry (RVA 0xd66d0) with
 // pParentTarget and bAutoDestroy passed through untouched in rdx/r8, store the
 // CD2DPathGeometry vftable, zero m_pPathGeometry (+0x20), return this.
-// Deviation: the vftable store is not reproduced -- this tree has no CD2DPathGeometry
-// vftable to point at (the CD2DGeometry ctor here omits its own for the same reason).
 extern "C" void* MS_ABI impl___0CD2DPathGeometry__QEAA_PEAVCRenderTarget__H_Z(void* pThis, void* pRenderTarget, int bAutoDestroy) {
-    impl___0CD2DGeometry__QEAA_PEAVCRenderTarget__H_Z(pThis, pRenderTarget, bAutoDestroy);
-    Self(pThis)->m_pPathGeometry = nullptr;
-    return pThis;
+    return pThis ? new(pThis) CD2DPathGeometry(static_cast<CRenderTarget*>(pRenderTarget), bAutoDestroy) : nullptr;
 }
 // Symbol: ?Attach@CD2DPathGeometry@@QEAAXPEAUID2D1PathGeometry@@@Z
 // Retail RVA 0xd6d30 (mfc140u):
@@ -139,18 +118,11 @@ extern "C" long MS_ABI impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z
 }
 
 // Symbol: ?Destroy@CD2DPathGeometry@@UEAAXXZ
-// Retail RVA 0xd6c10 (mfc140u): if m_pPathGeometry (+0x20) is non-NULL, call its Release
-// (vtable offset 0x10, slot 2) and store NULL at +0x20.  m_pGeometry (+0x18) is neither
-// released nor cleared, and CD2DGeometry::Destroy is not called.  (So after Create/Attach
-// +0x18 still holds the released pointer; retail's ~CD2DGeometry, RVA 0xd6750, calls the
-// +0x18 Release-and-clear routine at RVA 0xd2a50 -- retail behaviour, not reproduced
-// differently here.)
+// The two inline interfaces alias one owned reference. Unlike the retail
+// body's lone +0x20 clear, clear +0x18 as well to prevent a failed recreation
+// from leaving a dangling pointer for CD2DGeometry's destructor.
 extern "C" void MS_ABI impl__Destroy_CD2DPathGeometry__UEAAXXZ(void* pThis) {
-    ID2D1PathGeometry* pPath = Self(pThis)->m_pPathGeometry;
-    if (pPath != nullptr) {
-        Slot<PfnRelease>(pPath, kSlotRelease)(pPath);
-        Self(pThis)->m_pPathGeometry = nullptr;
-    }
+    if (pThis) static_cast<CD2DPathGeometry*>(pThis)->CD2DPathGeometry::Destroy();
 }
 
 // Symbol: ?Detach@CD2DPathGeometry@@QEAAPEAUID2D1PathGeometry@@XZ
@@ -211,4 +183,18 @@ extern "C" int MS_ABI impl__Stream_CD2DPathGeometry__QEAAHPEAUID2D1GeometrySink_
     if (pPath == nullptr) return FALSE;
     HRESULT hr = Slot<PfnStream>(pPath, kSlotStream)(pPath, pGeometrySink);
     return hr >= 0 ? TRUE : FALSE;
+}
+
+CD2DPathGeometry::CD2DPathGeometry(CRenderTarget* parent, BOOL autoDestroy)
+    : CD2DGeometry(parent, autoDestroy), m_pPathGeometry(nullptr) {}
+HRESULT CD2DPathGeometry::Create(CRenderTarget* parent) {
+    return impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z(this, parent);
+}
+void CD2DPathGeometry::Destroy() {
+    // Both fields alias one owned reference. Clearing the base alias also
+    // prevents a failed recreation from leaving a dangling geometry pointer.
+    auto* path = m_pPathGeometry;
+    m_pPathGeometry = nullptr;
+    m_pGeometry = nullptr;
+    if (path) path->Release();
 }

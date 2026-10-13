@@ -1,29 +1,8 @@
-// CD2DGeometry — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
-//
-// CD2DGeometry (afxrendertarget.h) is the ID2D1Geometry wrapper, derived from
-// CD2DResource.  Every body below is transcribed from the retail mfc140u.dll export
-// (the ctor/dtor vftable stores excepted -- see those two functions); function bodies
-// are byte-identical in mfc140.dll, but every RVA quoted here is the mfc140u one.
-// Eight of these exports do not resolve by name through the campaign's mfc140u
-// RVA-to-symbol map (one name per RVA): Attach, Detach and Destroy share their code
-// with CD2DBitmap's (the map names those RVAs after CD2DBitmap), and Outline, Simplify,
-// StrokeContainsPoint, Tessellate and Widen are absent from it.  Their RVAs were read
-// from the mfc140u.dll export address table by ordinal (ordinals 2466, 3818, 3780,
-// 11680, 13867, 13953, 13972, 14196 per mfc_complete_ordinal_mapping.json).
-//
-// Unlike the side-table D2D wrappers in this directory (CD2DBrush, CD2DBitmap), the
-// wrapped interface is kept where retail keeps it: inline at +0x18 of the object.  This
-// is required, not just faithful: the retail afxrendertarget.h declares Get(),
-// operator ID2D1Geometry*() and IsValid() INLINE on m_pGeometry, so client code reads
-// +0x18 directly.  OpenMFC's own headers do not declare the class, so every object is
-// laid out by a client compiled against the retail header: retail sizeof(CD2DGeometry)
-// is 32 (m_nObjectSize of the retail CRuntimeClass, which D2D_DESC in RuntimeClasses.cpp
-// also records); derived objects (CD2DPathGeometry, 40) are larger but share +0x18.
-//
-// CD2DPathGeometry's constructor chains here before initializing its own +0x20
-// pointer, so both inline aliases start empty.
+// CD2DGeometry: native resource lifecycle and Direct2D ABI forwarding.
 
+#include "detail/D2DResourceSupport.h"
+#include <atomic>
+#include <cstdlib>
 #include <cstddef>
 #include <cstring>
 #include <windows.h>
@@ -52,10 +31,7 @@ namespace {
 //     `movq $0x0,0x18(%rbx)` -- m_pGeometry at +0x18 -- and stores its own vftable.
 //   sizeof == 32: m_nObjectSize in the retail CRuntimeClass returned by
 //     CD2DGeometry::GetRuntimeClass (RVA 0xd66c0, mfc140u).
-// Only m_pGeometry is touched in this file.  This tree's CD2DResource thunks keep the
-// parent target and auto-destroy flag in a side table keyed by `this` and never write
-// +0x0, +0x8 or +0x10 in the object itself (a deviation from retail, owned by
-// CD2DResource.cpp); those two shadow members are listed only to pin the offsets.
+// ABI view used by the existing COM forwarding methods.
 struct CD2DGeometryShadow {
     void*          vfptr;             // +0x00
     BOOL           m_bIsAutoDestroy;  // +0x08 (CD2DResource)
@@ -137,10 +113,11 @@ inline int Succeeded(HRESULT hr) { return hr >= 0 ? TRUE : FALSE; }
 // Retail RVA 0xd66d0 (mfc140u): call CD2DResource::CD2DResource(pParentTarget,
 // bAutoDestroy) (RVA 0xd2800), zero m_pGeometry (+0x18), store the CD2DGeometry
 // vftable, return this.
-// Deviation: the vftable store is not reproduced -- this tree has no CD2DGeometry
-// vftable to point at (the CD2DBitmap and CD2DPathGeometry ctors here omit it too).
 extern "C" void* MS_ABI impl___0CD2DGeometry__QEAA_PEAVCRenderTarget__H_Z(void* pThis, void* pRenderTarget, int bAutoDestroy) {
+    if (!pThis) return nullptr;
     impl___0CD2DResource__IEAA_PEAVCRenderTarget__H_Z(pThis, pRenderTarget, bAutoDestroy);
+    void* table = CD2DGeometry::ConstructorVtable();
+    std::memcpy(pThis, &table, sizeof(table));
     Self(pThis)->m_pGeometry = nullptr;
     return pThis;
 }
@@ -149,10 +126,8 @@ extern "C" void* MS_ABI impl___0CD2DGeometry__QEAA_PEAVCRenderTarget__H_Z(void* 
 // CD2DGeometry::Destroy directly (non-virtual `call 0x1800d2a50`, the Destroy export),
 // then tail-jump to CD2DResource::~CD2DResource (RVA 0xd28a0).  Destroy is called
 // unconditionally -- retail does not consult m_bIsAutoDestroy here.
-// Deviation: the vftable store is omitted (no vftable in this tree, as in the ctor).
 extern "C" void MS_ABI impl___1CD2DGeometry__UEAA_XZ(void* pThis) {
-    impl__Destroy_CD2DGeometry__UEAAXXZ(pThis);
-    impl___1CD2DResource__MEAA_XZ(pThis);
+    if (pThis) static_cast<CD2DGeometry*>(pThis)->CD2DGeometry::~CD2DGeometry();
 }
 // Symbol: ?Attach@CD2DGeometry@@QEAAXPEAUID2D1Geometry@@@Z
 // Retail RVA 0xd2ac0 (mfc140u, code shared with CD2DBitmap::Attach):
@@ -361,4 +336,25 @@ extern "C" int MS_ABI impl__Widen_CD2DGeometry__QEBAHMPEAUID2D1StrokeStyle__AEBU
     if (pGeometry == nullptr) return FALSE;
     return Succeeded(Slot<PfnWiden>(pGeometry, kSlotWiden)(
         pGeometry, strokeWidth, pStrokeStyle, pWorldTransform, flatteningTolerance, pGeometrySink));
+}
+
+namespace {
+std::atomic<void*> geometryConstructorVtable{nullptr};
+struct GeometryVtableProbe : CD2DGeometry {
+    GeometryVtableProbe() : CD2DGeometry(nullptr, FALSE) {}
+    HRESULT Create(CRenderTarget*) override { std::abort(); }
+};
+}
+CD2DGeometry::CD2DGeometry(CRenderTarget* parent, BOOL autoDestroy)
+    : CD2DResource(parent, autoDestroy), m_pGeometry(nullptr) {
+    geometryConstructorVtable.store(*reinterpret_cast<void**>(this), std::memory_order_relaxed);
+}
+CD2DGeometry::~CD2DGeometry() { CD2DGeometry::Destroy(); }
+void CD2DGeometry::Destroy() { impl__Destroy_CD2DGeometry__UEAAXXZ(this); }
+void* CD2DGeometry::ConstructorVtable() {
+    static void* const table = [] {
+        GeometryVtableProbe probe;
+        return geometryConstructorVtable.load(std::memory_order_relaxed);
+    }();
+    return table;
 }

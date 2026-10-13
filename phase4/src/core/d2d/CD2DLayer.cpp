@@ -1,29 +1,6 @@
-// CD2DLayer — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
-//
-// CD2DLayer (retail afxrendertarget.h) is the ID2D1Layer wrapper, derived from
-// CD2DResource.  Every body below is transcribed from the retail mfc140u.dll export,
-// with the deviations each function documents: the ctor/dtor omit the vftable store,
-// and Create reads the ID2D1RenderTarget* through the CRenderTarget Detach/Attach
-// thunks instead of from +0x8.  Function bodies are byte-identical in mfc140.dll, but
-// every RVA quoted here is the mfc140u one.
-//
-// Four of these exports do not resolve by name through the campaign's mfc140u
-// RVA-to-symbol map (one name per RVA): the linker folded their code with
-// CD2DBitmap's, and the map names those RVAs after CD2DBitmap.  Their RVAs were read
-// from the mfc140u.dll export address table by ordinal (per
-// mfc_complete_ordinal_mapping.json):
-//   Attach  ordinal 2467 -> RVA 0xd2ac0 (mfc140u)  (map name: CD2DBitmap::Attach)
-//   Destroy ordinal 3782 -> RVA 0xd2a50 (mfc140u)  (map name: CD2DBitmap::Destroy)
-//   Detach  ordinal 3819 -> RVA 0xd2ad0 (mfc140u)  (map name: CD2DBitmap::Detach)
-//   GetSize ordinal 6677 -> RVA 0xd2a80 (mfc140u)  (map name: CD2DBitmap::GetSize)
-// Those bodies only touch +0x18 of `this`, which is m_pLayer in a CD2DLayer.
-//
-// The wrapped interface is kept where retail keeps it: inline at +0x18.  The retail
-// afxrendertarget.h declares Get(), operator ID2D1Layer*() and IsValid() inline on
-// m_pLayer, so client code reads +0x18 directly.  include/openmfc does not declare
-// CD2DLayer, so the thunks take void* pThis and the layout is pinned below.
+// CD2DLayer: native resource lifecycle and Direct2D ABI forwarding.
 
+#include "detail/D2DResourceSupport.h"
 #include <cstddef>
 #include <cstring>
 
@@ -56,10 +33,7 @@ namespace {
 //   CD2DLayer ctor, RVA 0xd2940 (mfc140u): calls the CD2DResource ctor, then
 //     `movq $0x0,0x18(%rbx)` -- m_pLayer at +0x18 -- and stores its own vftable.
 //   sizeof == 32: D2D_DESC(CD2DLayer, 32, ...) in core/d2d/RuntimeClasses.cpp.
-// Only m_pLayer is touched in this file.  This tree's CD2DResource thunks keep the
-// parent target and auto-destroy flag in a side table keyed by `this` and never write
-// +0x0, +0x8 or +0x10 in the object itself (a deviation owned by CD2DResource.cpp);
-// those shadow members are listed only to pin the offsets.
+// ABI view used by the existing COM forwarding methods.
 struct CD2DLayerShadow {
     void* vfptr;             // +0x00
     int   m_bIsAutoDestroy;  // +0x08 (CD2DResource, BOOL)
@@ -120,22 +94,16 @@ constexpr long kE_FAIL = static_cast<long>(0x80004005L);
 // Retail RVA 0xd2940 (mfc140u): call CD2DResource::CD2DResource(pParentTarget,
 // bAutoDestroy) (RVA 0xd2800), zero m_pLayer (+0x18), store the CD2DLayer vftable,
 // return this.
-// Deviation: the vftable store is not reproduced -- this tree defines no CD2DLayer
-// vftable to point at (CD2DGeometry's ctor omits it for the same reason).
 extern "C" void* MS_ABI impl___0CD2DLayer__QEAA_PEAVCRenderTarget__H_Z(void* pThis, void* pRenderTarget, int bAutoDestroy) {
-    impl___0CD2DResource__IEAA_PEAVCRenderTarget__H_Z(pThis, pRenderTarget, bAutoDestroy);
-    Self(pThis)->m_pLayer = nullptr;
-    return pThis;
+    return pThis ? new(pThis) CD2DLayer(static_cast<CRenderTarget*>(pRenderTarget), bAutoDestroy) : nullptr;
 }
 // Symbol: ??1CD2DLayer@@UEAA@XZ
 // Retail RVA 0xd29c0 (mfc140u): store the CD2DLayer vftable, call CD2DLayer::Destroy
 // directly (non-virtual `call 0x1800d2a50`, the Destroy export), then tail-jump to
 // CD2DResource::~CD2DResource (RVA 0xd28a0).  Destroy is called unconditionally --
 // retail does not consult m_bIsAutoDestroy here.
-// Deviation: the vftable store is omitted (no vftable in this tree, as in the ctor).
 extern "C" void MS_ABI impl___1CD2DLayer__UEAA_XZ(void* pThis) {
-    impl__Destroy_CD2DLayer__UEAAXXZ(pThis);
-    impl___1CD2DResource__MEAA_XZ(pThis);
+    if (pThis) static_cast<CD2DLayer*>(pThis)->CD2DLayer::~CD2DLayer();
 }
 // Symbol: ?Attach@CD2DLayer@@QEAAXPEAUID2D1Layer@@@Z
 // Retail RVA 0xd2ac0 (mfc140u, code shared with CD2DBitmap::Attach):
@@ -156,30 +124,14 @@ extern "C" void MS_ABI impl__Attach_CD2DLayer__QEAAXPEAUID2D1Layer___Z(void* pTh
 //   return hr;
 // The NULL first argument is `xor %edx,%edx` (no D2D1_SIZE_F: the layer takes the
 // render target's size).
-// Deviations:
-//   * The ID2D1RenderTarget* is NOT read from +0x8 of the CRenderTarget object.
-//     OpenMFC's CRenderTarget (core/d2d/CRenderTarget.cpp) never stores the
-//     interface at +0x8 -- it keeps it in its g_renderTargetState side table.  +0x8
-//     is either zero (the internal C++ CRenderTarget() memsets its padding, which
-//     starts there) or, for a target built through the exported ctor thunk, never
-//     written at all; either way it is not the interface, and dereferencing it could
-//     fault.  The pointer is read instead by the round trip
-//     core/d2d/CD2DSolidColorBrush.cpp uses: the CRenderTarget Detach thunk returns
-//     it and nulls the slot, and the Attach thunk with the same pointer puts it back
-//     (releasing nothing, because the slot is then NULL).  That Detach inserts an
-//     empty side-table entry for a target it has never seen; the NULL it returns
-//     then takes the E_FAIL path, as retail's +0x8 test does.  Not atomic.
-//   * Retail makes the COM call through the CFG dispatch pointer; here it is a plain
-//     indirect call.
 extern "C" long MS_ABI impl__Create_CD2DLayer__UEAAJPEAVCRenderTarget___Z(void* pThis, void* pRenderTarget) {
     if (pRenderTarget == nullptr) {
         return kE_FAIL;
     }
-    void* pD2DTarget = impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(pRenderTarget);
+    void* pD2DTarget = static_cast<CRenderTarget*>(pRenderTarget)->GetRenderTarget();
     if (pD2DTarget == nullptr) {
         return kE_FAIL;
     }
-    impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(pRenderTarget, pD2DTarget);
     if (LayerOf(pThis) != nullptr) {
         return kE_FAIL;
     }
@@ -237,3 +189,11 @@ extern "C" void* MS_ABI impl__GetSize_CD2DLayer__QEBA_AVCD2DSizeF__XZ(const void
     std::memcpy(pRet, pSrc, sizeof(SizeF));
     return pRet;
 }
+
+CD2DLayer::CD2DLayer(CRenderTarget* parent, BOOL autoDestroy)
+    : CD2DResource(parent, autoDestroy), m_pLayer(nullptr) {}
+CD2DLayer::~CD2DLayer() { CD2DLayer::Destroy(); }
+HRESULT CD2DLayer::Create(CRenderTarget* parent) {
+    return impl__Create_CD2DLayer__UEAAJPEAVCRenderTarget___Z(this, parent);
+}
+void CD2DLayer::Destroy() { impl__Destroy_CD2DLayer__UEAAXXZ(this); }

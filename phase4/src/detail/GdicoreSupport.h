@@ -94,7 +94,7 @@ namespace openmfc { namespace detail { namespace gdicore {
 struct CRenderTargetState {
     void* resource = nullptr;
     std::shared_ptr<void> defaultTextFormat;
-    std::unordered_set<void*> textResources;
+    std::unordered_set<void*> resources;
     bool drawing = false;
     CD2DSizeF dpi = CD2DSizeF(96.0f, 96.0f);
     CD2DSizeF size = CD2DSizeF(0.0f, 0.0f);

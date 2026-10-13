@@ -36,9 +36,6 @@ ID2D1RenderTarget* RenderTargetOf(const CRenderTarget* pThis) {
 //                                                        // (slot 8 of the CD2DBrush vftable -> mfc140u RVA 0xd7160)
 //   return SUCCEEDED(pResource->Create(this));           // vslot 6 -- Create, not ReCreate: ReCreate (vslot 5,
 //                                                        // mfc140u RVA 0xd28f0) is Destroy() then Create()
-// The tree's thunk (CD2DResource.cpp) is side-table based, never dispatches to the
-// wrapper's virtuals, and returns TRUE for a NULL pResource, so the NULL case is
-// reproduced here rather than delegated.
 bool VerifyResourceOf(CRenderTarget* pThis, void* pResource) {
     return pResource != nullptr &&
            impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z(pThis, pResource) != 0;
@@ -99,7 +96,7 @@ std::shared_ptr<void> DefaultTextFormatOf(CRenderTarget* render) {
         DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, CString(), nullptr, TRUE);
     // This cache owns its format through shared_ptr; the generic resource list
     // must not delete the same object through a scalar deleting destructor.
-    OpenMfcUnregisterD2DTextResource(render, format.get());
+    OpenMfcUnregisterD2DResource(render, format.get());
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto& cached = g_renderTargetState[render].defaultTextFormat;
     if (!cached) cached = format;
@@ -113,15 +110,16 @@ ID2D1RenderTarget* OpenMfcD2DRenderTarget(const void* self) {
     return RenderTargetOf(static_cast<const CRenderTarget*>(self));
 }
 
-void OpenMfcRegisterD2DTextResource(CRenderTarget* parent, void* resource) {
+void OpenMfcRegisterD2DResource(CRenderTarget* parent, void* resource) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[parent].textResources.insert(resource);
-    parent->m_lstResources.AddTail(static_cast<CObject*>(resource));
+    g_renderTargetState[parent].resources.insert(resource);
+    if (!parent->m_lstResources.Find(static_cast<CObject*>(resource)).pNode)
+        parent->m_lstResources.AddTail(static_cast<CObject*>(resource));
 }
-void OpenMfcUnregisterD2DTextResource(CRenderTarget* parent, void* resource) {
+void OpenMfcUnregisterD2DResource(CRenderTarget* parent, void* resource) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto it = g_renderTargetState.find(parent);
-    if (it != g_renderTargetState.end()) it->second.textResources.erase(resource);
+    if (it != g_renderTargetState.end()) it->second.resources.erase(resource);
     auto position = parent->m_lstResources.Find(static_cast<CObject*>(resource));
     if (position.pNode) parent->m_lstResources.RemoveAt(position);
 }
@@ -149,7 +147,7 @@ static void DestroyOwnedResources(CRenderTarget* render) {
         child->m_pParentTarget = nullptr;
         {
             std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-            g_renderTargetState[render].textResources.erase(child);
+            g_renderTargetState[render].resources.erase(child);
         }
         if (child->m_bIsAutoDestroy) delete object;
     }

@@ -2,8 +2,12 @@
 // wrapper access/verification is doubled; render-target state and drawing code
 // come from the real source. A software WIC target checks actual pixel output.
 #define impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z test_VerifyResource
+#define impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z test_AttachBrush
+#define impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ test_DetachBrush
 #include "../phase4/src/core/d2d/CRenderTarget.cpp"
 #undef impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z
+#undef impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z
+#undef impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ
 #include "../phase4/src/core/d2d/CD2DTextFormat.cpp"
 #include "../phase4/src/core/d2d/CD2DTextLayout.cpp"
 #include "openmfc/afxinet.h"
@@ -29,26 +33,7 @@ extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(void*);
 extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void*, D2D1_FACTORY_TYPE, DWRITE_FACTORY_TYPE);
 extern "C" void MS_ABI impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(void*);
 
-// Unused GDI siblings in the shared support TU still need link definitions.
-// Abort if a drawing path unexpectedly reaches one of these test doubles.
-CImageList::CImageList() { std::abort(); }
-CImageList::~CImageList() { std::abort(); }
-CDC::CDC() { std::abort(); }
-CDC::~CDC() { std::abort(); }
-BOOL CGdiObject::DeleteObject() { std::abort(); }
-HINSTANCE AFXAPI AfxGetInstanceHandle() { std::abort(); }
-// List serialization is linked for its vtable but is outside these drawing tests.
-CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
-CArchive& CArchive::operator<<(const CObject*) { std::abort(); }
-CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
-CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
-CRuntimeClass CCmdTarget::classCCmdTarget{};
-CRuntimeClass CWinThread::classCWinThread{};
-CRuntimeClass CWinApp::classCWinApp{};
-CRuntimeClass CWnd::classCWnd{};
-CRuntimeClass CFileFind::classCFileFind{};
-CRuntimeClass CDocument::classCDocument{};
-CRuntimeClass CHtmlView::classCHtmlView{};
+#include "d2d_test_support.h"
 
 struct TestResource {
     void* resource;
@@ -60,13 +45,13 @@ extern "C" int MS_ABI test_VerifyResource(void*, void* wrapper) {
     if (verificationCount < 8) verified[verificationCount++] = wrapper;
     return wrapper && static_cast<TestResource*>(wrapper)->valid;
 }
-extern "C" void* MS_ABI impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ(void* wrapper) {
+extern "C" void* MS_ABI test_DetachBrush(void* wrapper) {
     auto* brush = static_cast<TestResource*>(wrapper);
     void* result = brush->resource;
     brush->resource = nullptr;
     return result;
 }
-extern "C" void MS_ABI impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z(void* wrapper, void* resource) {
+extern "C" void MS_ABI test_AttachBrush(void* wrapper, void* resource) {
     static_cast<TestResource*>(wrapper)->resource = resource;
 }
 
@@ -451,7 +436,7 @@ static void sharedTargetsAndGeometry() {
     }
 }
 
-static void textResources() {
+static void resources() {
     CRenderTarget parent;
     CString family(L"Arial"), locale(L"en-us"), text(L"ABCDEF");
     CD2DSizeF size(123, 45);
@@ -542,7 +527,7 @@ static void textResources() {
         check(format->m_pTextFormat == beforeDestroy, "string result construction leaves the receiver intact");
     }
     impl___1CD2DTextFormat__UEAA_XZ(format);
-    check(g_renderTargetState[&parent].textResources.count(format) == 0,
+    check(g_renderTargetState[&parent].resources.count(format) == 0,
           "format destructor unregisters the child from its parent");
     if (layout->m_pTextLayout) {
         DWRITE_TEXT_METRICS metrics{};
@@ -550,7 +535,7 @@ static void textResources() {
               "layout stays usable after the originating format is destroyed");
     }
     impl___1CD2DTextLayout__UEAA_XZ(layout);
-    check(g_renderTargetState[&parent].textResources.empty(), "layout destructor unregisters the remaining child");
+    check(g_renderTargetState[&parent].resources.empty(), "layout destructor unregisters the remaining child");
 
     CD2DTextFormat invalid(nullptr, family, -1, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
                            DWRITE_FONT_STRETCH_NORMAL, locale, nullptr, FALSE);
@@ -804,7 +789,7 @@ static void textPixels(CRenderTarget& render, ID2D1RenderTarget* target, IWICBit
     }, actual);
     auto cached = g_renderTargetState[&render].defaultTextFormat;
     check(cached && render.m_pTextFormatDefault == cached.get() &&
-          g_renderTargetState[&render].textResources.count(cached.get()) == 0,
+          g_renderTargetState[&render].resources.count(cached.get()) == 0,
           "missing format creates an owned default without duplicate ownership");
     if (cached) {
         auto* defaultFormat = static_cast<CD2DTextFormat*>(cached.get());
@@ -963,7 +948,7 @@ int main() {
     forwarding();
     factoryState();
     sharedTargetsAndGeometry();
-    textResources();
+    resources();
     targetStorageAndLifetime();
     hwndRecreation();
     textLifetime();

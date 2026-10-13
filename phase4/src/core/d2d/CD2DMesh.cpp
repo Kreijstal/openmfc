@@ -1,27 +1,6 @@
-// CD2DMesh — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
-//
-// CD2DMesh (retail afxrendertarget.h) is the ID2D1Mesh wrapper, derived directly from
-// CD2DResource, adding one member, m_pMesh.  Every body below is transcribed from the
-// retail mfc140u.dll export (the ctor/dtor vftable stores excepted, and Create's read
-// of the render target -- see those functions; retail also routes every COM call through
-// the CFG dispatch pointer, made here as a plain indirect call).  Function bodies are byte-identical in
-// mfc140.dll; every RVA quoted here is the mfc140u one and is a function entry.
-//
-// Four of these exports do not resolve by name through the campaign's mfc140u
-// RVA-to-symbol map (one name per RVA).  Their RVAs were read from the mfc140u.dll
-// export address table by ordinal (per mfc_complete_ordinal_mapping.json):
-//   Attach  ordinal 2469  -> RVA 0xd2ac0 (code shared with CD2DBitmap::Attach)
-//   Destroy ordinal 3784  -> RVA 0xd2a50 (code shared with CD2DBitmap::Destroy)
-//   Detach  ordinal 3821  -> RVA 0xd2ad0 (code shared with CD2DBitmap::Detach)
-//   Open    ordinal 11636 -> RVA 0xd70d0 (absent from the map; disassembled with
-//                            `disas.py --u --at 0xd70d0`)
-//
-// Layout: OpenMFC's own headers do not declare this class, so every object is laid out
-// by a client compiled against the retail header.  afxrendertarget.h declares Get() and
-// operator ID2D1Mesh*() INLINE on m_pMesh, so client code reads +0x18 directly; the
-// member is therefore kept inline, where retail keeps it, not in a side table.
+// CD2DMesh: native resource lifecycle and Direct2D ABI forwarding.
 
+#include "detail/D2DResourceSupport.h"
 #include <cstddef>
 #include <windows.h>
 #include <d2d1.h>
@@ -57,10 +36,7 @@ namespace {
 //     retail scalar deleting destructor (RVA 0xd7020, mfc140u, unexported; it calls
 //     ~CD2DMesh at 0xd7070) loads `mov $0x20,%edx` as the size argument on its
 //     flags&4 path.
-// Only m_pMesh is touched in this file.  This tree's CD2DResource thunks keep the parent
-// target and auto-destroy flag in a side table keyed by `this` and never write +0x0,
-// +0x8 or +0x10 in the object itself (a deviation owned by CD2DResource.cpp); those
-// shadow members are listed only to pin the offsets.
+// ABI view used by the existing COM forwarding methods.
 struct CD2DMeshShadow {
     void*      vfptr;             // +0x00
     BOOL       m_bIsAutoDestroy;  // +0x08 (CD2DResource)
@@ -105,24 +81,16 @@ typedef HRESULT (MS_ABI* PfnCreateMesh)(void* /*ID2D1RenderTarget*/, ID2D1Mesh**
 // Retail RVA 0xd6ff0 (mfc140u): call CD2DResource::CD2DResource (RVA 0xd2800) with
 // pParentTarget and bAutoDestroy passed through untouched in rdx/r8, zero m_pMesh
 // (+0x18), store the CD2DMesh vftable, return this.
-// Deviation: the vftable store is not reproduced -- this tree has no CD2DMesh vftable
-// to point at (the CD2DGeometry and CD2DPathGeometry ctors here omit theirs too).
-// (The previous placeholder chained to nothing and left +0x18 uninitialised, which
-// Create's m_pMesh test below depends on.)
 extern "C" void* MS_ABI impl___0CD2DMesh__QEAA_PEAVCRenderTarget__H_Z(void* pThis, void* pRenderTarget, int bAutoDestroy) {
-    impl___0CD2DResource__IEAA_PEAVCRenderTarget__H_Z(pThis, pRenderTarget, bAutoDestroy);
-    Self(pThis)->m_pMesh = nullptr;
-    return pThis;
+    return pThis ? new(pThis) CD2DMesh(static_cast<CRenderTarget*>(pRenderTarget), bAutoDestroy) : nullptr;
 }
 // Symbol: ??1CD2DMesh@@UEAA@XZ
 // Retail RVA 0xd7070 (mfc140u): store the CD2DMesh vftable, call CD2DMesh::Destroy
 // directly (non-virtual `call 0x1800d2a50`, the Destroy export's code), then tail-jump
 // to CD2DResource::~CD2DResource (RVA 0xd28a0).  Destroy is called unconditionally --
 // retail does not consult m_bIsAutoDestroy here.
-// Deviation: the vftable store is omitted (no vftable in this tree, as in the ctor).
 extern "C" void MS_ABI impl___1CD2DMesh__UEAA_XZ(void* pThis) {
-    impl__Destroy_CD2DMesh__UEAAXXZ(pThis);
-    impl___1CD2DResource__MEAA_XZ(pThis);
+    if (pThis) static_cast<CD2DMesh*>(pThis)->CD2DMesh::~CD2DMesh();
 }
 // Symbol: ?Attach@CD2DMesh@@QEAAXPEAUID2D1Mesh@@@Z
 // Retail RVA 0xd2ac0 (mfc140u, ordinal 2469, code shared with CD2DBitmap::Attach):
@@ -140,25 +108,14 @@ extern "C" void MS_ABI impl__Attach_CD2DMesh__QEAAXPEAUID2D1Mesh___Z(void* pThis
 //   return m_pRenderTarget->CreateMesh(&m_pMesh);   // vtable byte 0x70, slot 14
 // The COM call is a tail jump with &this->m_pMesh as the out-pointer, so D2D writes the
 // new mesh straight into +0x18 and its HRESULT is returned unchanged.
-// Deviations:
-//   * The ID2D1RenderTarget* is not read from +0x8 of the CRenderTarget: this tree's
-//     CRenderTarget (core/d2d/CRenderTarget.cpp) keeps it in a side table keyed by the
-//     object.  It is read through the CRenderTarget Detach/Attach thunks (Detach returns
-//     it and nulls the slot; Attach with the same pointer puts it back and releases
-//     nothing because the slot is then NULL) -- the same non-atomic read-by-round-trip
-//     core/d2d/CD2DSolidColorBrush.cpp uses.  A NULL result takes the E_FAIL path, as
-//     retail's +0x8 test does.
-//   * Retail makes the COM call through the CFG dispatch pointer; here it is a plain
-//     indirect call.
 extern "C" long MS_ABI impl__Create_CD2DMesh__UEAAJPEAVCRenderTarget___Z(void* pThis, void* pRenderTarget) {
     if (pRenderTarget == nullptr) {
         return static_cast<long>(E_FAIL);
     }
-    void* pD2DTarget = impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(pRenderTarget);
+    void* pD2DTarget = static_cast<CRenderTarget*>(pRenderTarget)->GetRenderTarget();
     if (pD2DTarget == nullptr) {
         return static_cast<long>(E_FAIL);
     }
-    impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(pRenderTarget, pD2DTarget);
 
     if (Self(pThis)->m_pMesh != nullptr) {
         return static_cast<long>(E_FAIL);
@@ -200,3 +157,11 @@ extern "C" ID2D1TessellationSink* MS_ABI impl__Open_CD2DMesh__QEAAPEAUID2D1Tesse
     HRESULT hr = Slot<PfnMeshOpen>(pMesh, kSlotMeshOpen)(pMesh, &pSink);
     return hr < 0 ? nullptr : pSink;
 }
+
+CD2DMesh::CD2DMesh(CRenderTarget* parent, BOOL autoDestroy)
+    : CD2DResource(parent, autoDestroy), m_pMesh(nullptr) {}
+CD2DMesh::~CD2DMesh() { CD2DMesh::Destroy(); }
+HRESULT CD2DMesh::Create(CRenderTarget* parent) {
+    return impl__Create_CD2DMesh__UEAAJPEAVCRenderTarget___Z(this, parent);
+}
+void CD2DMesh::Destroy() { impl__Destroy_CD2DMesh__UEAAXXZ(this); }

@@ -9,9 +9,13 @@ on:
       - 'phase4/src/detail/CollectionStateSupport.cpp'
       - 'phase4/src/core/collections/CObList.cpp'
       - 'phase4/src/detail/D2DTextSupport.h'
+      - 'phase4/src/detail/D2DResourceSupport.h'
       - 'phase4/src/detail/D2DFactorySupport.h'
       - 'include/openmfc/**'
       - 'tests/test_rendertarget_drawing.cpp'
+      - 'tests/test_d2d_resources.cpp'
+      - 'tests/d2d_test_support.h'
+      - 'tests/run_rendertarget_drawing.sh'
       - '.github/workflows/d2d_drawing.yml'
   pull_request:
     paths:
@@ -21,9 +25,13 @@ on:
       - 'phase4/src/detail/CollectionStateSupport.cpp'
       - 'phase4/src/core/collections/CObList.cpp'
       - 'phase4/src/detail/D2DTextSupport.h'
+      - 'phase4/src/detail/D2DResourceSupport.h'
       - 'phase4/src/detail/D2DFactorySupport.h'
       - 'include/openmfc/**'
       - 'tests/test_rendertarget_drawing.cpp'
+      - 'tests/test_d2d_resources.cpp'
+      - 'tests/d2d_test_support.h'
+      - 'tests/run_rendertarget_drawing.sh'
       - '.github/workflows/d2d_drawing.yml'
   workflow_dispatch:
 
@@ -38,8 +46,13 @@ jobs:
         shell: cmd
         working-directory: ${{ runner.temp }}
         run: |
-          cl /nologo /EHsc /MT /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /Fe:test_rendertarget_drawing.exe "%GITHUB_WORKSPACE%/tests/test_rendertarget_drawing.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CollectionStateSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CObList.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DResource.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/_AFX_D2D_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CDCRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CHwndRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CBitmapRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPathGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/RuntimeClasses.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPointF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSizeF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRectF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DEllipse.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRoundedRect.cpp" /link /OPT:REF kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
+          cl /nologo /EHsc /MT /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /Fe:test_rendertarget_drawing.exe "%GITHUB_WORKSPACE%/tests/test_rendertarget_drawing.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CollectionStateSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CObList.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DResource.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/_AFX_D2D_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CDCRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CHwndRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CBitmapRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPathGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DLayer.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DMesh.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DBrush.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSolidColorBrush.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/RuntimeClasses.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPointF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSizeF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRectF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DEllipse.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRoundedRect.cpp" /link /OPT:REF kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
+          if errorlevel 1 exit /b %errorlevel%
+          cl /nologo /EHsc /MT /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /Fe:test_d2d_resources.exe "%GITHUB_WORKSPACE%/tests/test_d2d_resources.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DTextFormat.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DTextLayout.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CollectionStateSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CObList.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DResource.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/_AFX_D2D_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CDCRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CHwndRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CBitmapRenderTarget.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPathGeometry.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DLayer.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DMesh.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DBrush.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSolidColorBrush.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/RuntimeClasses.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPointF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSizeF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRectF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DEllipse.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRoundedRect.cpp" /link /OPT:REF kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
       - name: Verify ABI forwarding and rendered pixels on native Windows
         shell: cmd
         working-directory: ${{ runner.temp }}
-        run: test_rendertarget_drawing.exe
+        run: |
+          test_rendertarget_drawing.exe
+          if errorlevel 1 exit /b %errorlevel%
+          test_d2d_resources.exe

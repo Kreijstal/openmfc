@@ -1,107 +1,90 @@
-// CD2DBrush — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
+// Native brush storage and COM properties, matching retail client-inline access.
+#include "detail/D2DResourceSupport.h"
+#include <atomic>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
 
-#include "detail/ManualSmallStubImplementationsSupport.h"
+extern "C" void* MS_ABI impl___0CD2DResource__IEAA_PEAVCRenderTarget__H_Z(void*, void*, int);
+namespace {
+std::atomic<void*> brushConstructorVtable{nullptr};
+struct BrushVtableProbe : CD2DBrush {
+    BrushVtableProbe() : CD2DBrush(nullptr, nullptr, FALSE) {}
+    HRESULT Create(CRenderTarget*) override { std::abort(); }
+};
+}
+CD2DBrush::CD2DBrush(CRenderTarget* parent, const D2D1_BRUSH_PROPERTIES* props, BOOL autoDestroy)
+    : CD2DResource(parent, autoDestroy), m_pBrush(nullptr),
+      m_pBrushProperties(props ? new D2D1_BRUSH_PROPERTIES(*props) : nullptr) {
+    brushConstructorVtable.store(*reinterpret_cast<void**>(this), std::memory_order_relaxed);
+}
+CD2DBrush::~CD2DBrush() { CD2DBrush::Destroy(); }
+void CD2DBrush::Destroy() {
+    auto* brush = m_pBrush;
+    m_pBrush = nullptr;
+    if (brush) brush->Release();
+    delete m_pBrushProperties;
+    m_pBrushProperties = nullptr;
+}
+void* CD2DBrush::ConstructorVtable() {
+    static void* const table = [] {
+        BrushVtableProbe probe;
+        return brushConstructorVtable.load(std::memory_order_relaxed);
+    }();
+    return table;
+}
 
 // Symbol: ?Attach@CD2DBrush@@QEAAXPEAUID2D1Brush@@@Z
-extern "C" void MS_ABI impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z(void* pThis, void* pBrush) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DBrushState(pThis);
-    state.m_resource = pBrush;
+extern "C" void MS_ABI impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z(void* self, void* brush) {
+    if (self) static_cast<CD2DBrush*>(self)->m_pBrush = static_cast<ID2D1Brush*>(brush);
 }
 // Symbol: ?Destroy@CD2DBrush@@UEAAXXZ
-extern "C" void MS_ABI impl__Destroy_CD2DBrush__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) {
-        return;
-    }
-    std::lock_guard<std::mutex> lock(g_cd2dBrushStateMutex);
-    g_cd2dBrushStates.erase(pThis);
+extern "C" void MS_ABI impl__Destroy_CD2DBrush__UEAAXXZ(void* self) {
+    if (self) static_cast<CD2DBrush*>(self)->CD2DBrush::Destroy();
 }
 // Symbol: ?Detach@CD2DBrush@@QEAAPEAUID2D1Brush@@XZ
-extern "C" void* MS_ABI impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ(void* pThis) {
-    if (pThis == nullptr) {
-        return nullptr;
-    }
-    std::lock_guard<std::mutex> lock(g_cd2dBrushStateMutex);
-    auto it = g_cd2dBrushStates.find(pThis);
-    if (it == g_cd2dBrushStates.end()) {
-        return nullptr;
-    }
-    void* brush = it->second.m_resource;
-    it->second.m_resource = nullptr;
+extern "C" void* MS_ABI impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ(void* self) {
+    if (!self) return nullptr;
+    auto* object = static_cast<CD2DBrush*>(self);
+    auto* brush = object->m_pBrush;
+    object->m_pBrush = nullptr;
     return brush;
 }
 // Symbol: ?GetOpacity@CD2DBrush@@QEBAMXZ
-extern "C" float MS_ABI impl__GetOpacity_CD2DBrush__QEBAMXZ(const void* pThis) {
-    if (pThis == nullptr) {
-        return 1.0f;
-    }
-    CD2DBrushState state{};
-    if (!TryLoadCD2DBrushState(const_cast<void*>(pThis), state)) {
-        return 1.0f;
-    }
-    return state.m_opacity;
+extern "C" float MS_ABI impl__GetOpacity_CD2DBrush__QEBAMXZ(const void* self) {
+    auto* brush = self ? static_cast<const CD2DBrush*>(self)->m_pBrush : nullptr;
+    return brush ? brush->GetOpacity() : 0.0f;
 }
 // Symbol: ?GetTransform@CD2DBrush@@QEBAXPEAUD2D_MATRIX_3X2_F@@@Z
-extern "C" void MS_ABI impl__GetTransform_CD2DBrush__QEBAXPEAUD2D_MATRIX_3X2_F___Z(
-    const void* pThis, D2D_MATRIX_3X2_F* pMatrix) {
-    if (pThis == nullptr || pMatrix == nullptr) {
-        return;
-    }
-
-    CD2DBrushState state{};
-    if (!TryLoadCD2DBrushState(const_cast<void*>(pThis), state)) {
-        pMatrix->_11 = 1.0f;
-        pMatrix->_12 = 0.0f;
-        pMatrix->_21 = 0.0f;
-        pMatrix->_22 = 1.0f;
-        pMatrix->_31 = 0.0f;
-        pMatrix->_32 = 0.0f;
-        return;
-    }
-    *pMatrix = state.m_transform;
+extern "C" void MS_ABI impl__GetTransform_CD2DBrush__QEBAXPEAUD2D_MATRIX_3X2_F___Z(const void* self, D2D_MATRIX_3X2_F* matrix) {
+    if (!matrix) return;
+    auto* brush = self ? static_cast<const CD2DBrush*>(self)->m_pBrush : nullptr;
+    if (brush) brush->GetTransform(matrix);
 }
 // Symbol: ?SetOpacity@CD2DBrush@@QEAAXM@Z
-extern "C" void MS_ABI impl__SetOpacity_CD2DBrush__QEAAXM_Z(void* pThis, float opacity) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DBrushState(pThis);
-    state.m_opacity = opacity;
+extern "C" void MS_ABI impl__SetOpacity_CD2DBrush__QEAAXM_Z(void* self, float opacity) {
+    auto* brush = self ? static_cast<CD2DBrush*>(self)->m_pBrush : nullptr;
+    if (brush) brush->SetOpacity(opacity);
 }
 // Symbol: ?SetTransform@CD2DBrush@@QEAAXPEBUD2D_MATRIX_3X2_F@@@Z
-extern "C" void MS_ABI impl__SetTransform_CD2DBrush__QEAAXPEBUD2D_MATRIX_3X2_F___Z(
-    void* pThis, const D2D_MATRIX_3X2_F* pMatrix) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DBrushState(pThis);
-    if (pMatrix == nullptr) {
-        state.m_transform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-        return;
-    }
-    state.m_transform = *pMatrix;
+extern "C" void MS_ABI impl__SetTransform_CD2DBrush__QEAAXPEBUD2D_MATRIX_3X2_F___Z(void* self, const D2D_MATRIX_3X2_F* matrix) {
+    auto* brush = self ? static_cast<CD2DBrush*>(self)->m_pBrush : nullptr;
+    if (brush && matrix) brush->SetTransform(matrix);
 }
 // Symbol: ??0CD2DBrush@@IEAA@PEAVCRenderTarget@@PEAVCD2DBrushProperties@@H@Z
-extern "C" void* MS_ABI impl___0CD2DBrush__IEAA_PEAVCRenderTarget__PEAVCD2DBrushProperties__H_Z(
-    void* pThis, void* pRenderTarget, void* pBrushProperties, int unusedFlags) {
-    (void)pRenderTarget;
-    (void)unusedFlags;
-    if (pThis == nullptr) {
-        return nullptr;
-    }
-
-    auto& state = EnsureCD2DBrushState(pThis);
-    state.m_parentRenderTarget = pRenderTarget;
-    ApplyCD2DBrushDefaults(state);
-    ApplyTransformFromBrushProperties(state, static_cast<const float*>(pBrushProperties));
-    return pThis;
+extern "C" void* MS_ABI impl___0CD2DBrush__IEAA_PEAVCRenderTarget__PEAVCD2DBrushProperties__H_Z(void* self, void* parent, void* properties, int autoDestroy) {
+    if (!self) return nullptr;
+    auto* props = static_cast<const D2D1_BRUSH_PROPERTIES*>(properties);
+    std::unique_ptr<D2D1_BRUSH_PROPERTIES> copy(props ? new D2D1_BRUSH_PROPERTIES(*props) : nullptr);
+    void* table = CD2DBrush::ConstructorVtable();
+    impl___0CD2DResource__IEAA_PEAVCRenderTarget__H_Z(self, parent, autoDestroy);
+    std::memcpy(self, &table, sizeof(table));
+    auto* brush = static_cast<CD2DBrush*>(self);
+    brush->m_pBrush = nullptr;
+    brush->m_pBrushProperties = copy.release();
+    return self;
 }
 // Symbol: ??1CD2DBrush@@MEAA@XZ
-extern "C" void MS_ABI impl___1CD2DBrush__MEAA_XZ(void* pThis) {
-    if (pThis != nullptr) {
-        impl__Destroy_CD2DBrush__UEAAXXZ(pThis);
-    }
+extern "C" void MS_ABI impl___1CD2DBrush__MEAA_XZ(void* self) {
+    if (self) static_cast<CD2DBrush*>(self)->CD2DBrush::~CD2DBrush();
 }

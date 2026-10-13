@@ -22,6 +22,8 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
     phase4/src/core/d2d/CHwndRenderTarget.cpp phase4/src/core/d2d/CBitmapRenderTarget.cpp
     phase4/src/core/d2d/CD2DGeometry.cpp phase4/src/core/d2d/CD2DPathGeometry.cpp
+    phase4/src/core/d2d/CD2DLayer.cpp phase4/src/core/d2d/CD2DMesh.cpp
+    phase4/src/core/d2d/CD2DBrush.cpp phase4/src/core/d2d/CD2DSolidColorBrush.cpp
     phase4/src/core/d2d/CD2DPointF.cpp phase4/src/core/d2d/CD2DSizeF.cpp
     phase4/src/core/d2d/CD2DRectF.cpp phase4/src/core/d2d/CD2DEllipse.cpp
     phase4/src/core/d2d/CD2DRoundedRect.cpp)
@@ -43,7 +45,9 @@ root = Path(sys.argv[1])
 sys.path.insert(0, str(root / 'tools'))
 import gen_weak_stubs
 for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
-             'CDCRenderTarget', 'CHwndRenderTarget', 'CBitmapRenderTarget'):
+             'CDCRenderTarget', 'CHwndRenderTarget', 'CBitmapRenderTarget',
+             'CD2DResource', 'CD2DGeometry', 'CD2DPathGeometry',
+             'CD2DLayer', 'CD2DMesh', 'CD2DBrush', 'CD2DSolidColorBrush'):
     obj = 'test_rendertarget_drawing' if name in (
         'CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout') else name
     defined = {line.split()[-1] for line in subprocess.check_output(
@@ -55,15 +59,31 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-print('Render target and text resource export aliases match the DLL generator')
+print('Render target and resource export aliases match the DLL generator')
 PY
 lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
     "${OBJECTS[@]}" kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
+# Link a second executable against production verification and wrapper access.
+# The forwarding test above deliberately doubles those calls for COM ABI probes.
+NATIVE_OBJECTS=("${OBJECTS[@]:1}")
+for source in tests/test_d2d_resources.cpp phase4/src/core/d2d/CRenderTarget.cpp \
+    phase4/src/core/d2d/CD2DTextFormat.cpp phase4/src/core/d2d/CD2DTextLayout.cpp; do
+    object="$BUILD_DIR/$(basename "${source%.cpp}").obj"
+    clang-cl "${FLAGS[@]}" /c "$ROOT/$source" /Fo"$object"
+    NATIVE_OBJECTS+=("$object")
+done
+lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
+    "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
+    "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
+    "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
+    "${NATIVE_OBJECTS[@]}" kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
 RUNNER=(wine)
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
     RUNNER=(xvfb-run -a wine)
 fi
 WINEDEBUG="${WINEDEBUG:--all}" timeout 45 "${RUNNER[@]}" "$BUILD_DIR/test_rendertarget_drawing.exe"
+
+WINEDEBUG="${WINEDEBUG:--all}" timeout 45 "${RUNNER[@]}" "$BUILD_DIR/test_d2d_resources.exe"
