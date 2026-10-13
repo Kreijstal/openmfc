@@ -5,8 +5,6 @@
 
 // Unused GDI siblings in the shared support TU still need link definitions.
 // Abort if a drawing path unexpectedly reaches one of these test doubles.
-CImageList::CImageList() { std::abort(); }
-CImageList::~CImageList() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE g_d2dTestResourceModule = nullptr;
 #define g_cmdTestCurrentModule (AfxGetThreadState()->m_pModuleState)
@@ -264,3 +262,59 @@ extern "C" BOOL MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog*) {std::ab
 extern "C" void MS_ABI impl__Delete_CWinThread__UEAAXXZ(CWinThread*) {std::abort();}
 extern "C" BOOL MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread*,int,MSG*) {std::abort();}
 extern "C" LRESULT MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(CWinThread*,CException*,const MSG*) {std::abort();}
+
+// Font picker tests use real font enumeration and item storage. These unrelated
+// frame, application printer and global appearance boundaries remain explicit.
+extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ(){return nullptr;}
+extern "C" BOOL MS_ABI impl__GetPrinterDeviceDefaults_CWinApp__QEAAHPEAUtagPDW___Z(CWinApp*,PRINTDLGW*){std::abort();}
+extern "C" HDC MS_ABI impl__AfxCreateDC__YAPEAUHDC____PEAX0_Z(void*,void*){std::abort();}
+extern "C" CFrameWnd* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA=nullptr;
+extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd*){std::abort();}
+extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* window){SetFocus(window->m_hWnd);return nullptr;}
+extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd*){}
+extern "C" BOOL MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*){std::abort();}
+CRuntimeClass g_fontTestToolbarClass{"CMFCToolBar",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ(){return &g_fontTestToolbarClass;}
+extern "C" BYTE impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720]{};
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void*){std::abort();}
+
+CArchive& CArchive::operator>>(int&){std::abort();}
+CArchive& CArchive::operator<<(int){std::abort();}
+CArchive& CArchive::operator>>(CString&){std::abort();}
+CArchive& CArchive::operator<<(const CString&){std::abort();}
+extern "C" UINT MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive*,void*,UINT){std::abort();}
+extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive*,const void*,UINT){std::abort();}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(const CObject*){return CObject::GetThisClass();}
+extern "C" BOOL MS_ABI impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CComboBox*,DWORD,const RECT*,CWnd*,UINT){std::abort();}
+extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CWnd*,CString*){std::abort();}
+extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(CWnd*,const wchar_t*){std::abort();}
+extern "C" BOOL MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd*){std::abort();}
+extern "C" void MS_ABI impl___1CWnd__UEAA_XZ(CWnd*){std::abort();}
+extern "C" int MS_ABI impl__GetRowHeight_CMFCToolBar__UEBAHXZ(const void*){std::abort();}
+extern "C" BOOL MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(CWnd*,const CWnd*,int,int,int,int,UINT){std::abort();}
+extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd*,RECT*){std::abort();}
+extern "C" BOOL MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd*,int){std::abort();}
+extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd*){std::abort();}
+extern "C" void* MS_ABI impl___0CWnd__QEAA_XZ(void*){std::abort();}
+extern "C" BOOL MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd*,BOOL){std::abort();}
+extern "C" DWORD MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ(){std::abort();}
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA=nullptr;
+extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void*,CDC*,CRect,BOOL,BOOL,BOOL,void*){std::abort();}
+extern "C" void MS_ABI impl__OnDrawComboDropButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void*,CDC*,CRect,BOOL,BOOL,BOOL,void*){std::abort();}
+extern "C" BOOL MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(UINT,CObList*){std::abort();}
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarComboBoxButton__SAPEAUCRuntimeClass__XZ(){return CMFCToolBarComboBoxButton::GetThisClass();}
+extern "C" BOOL MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(void*,CWnd*,const wchar_t*,const RECT*,UINT_PTR){std::abort();}
+// Tag-manager toolbar-image/style parsing is outside the font property path.
+CMFCControlRendererInfo::CMFCControlRendererInfo(){std::abort();}
+CMFCControlRendererInfo::~CMFCControlRendererInfo(){std::abort();}
+BOOL CMFCToolBarImages::Load(UINT,HINSTANCE,BOOL){std::abort();}
+BOOL CMFCToolBarImages::Load(const wchar_t*,DWORD){std::abort();}
+BOOL CMFCToolBarImages::LoadStr(const wchar_t*,HINSTANCE,BOOL){std::abort();}
+
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void*,CArchive*){std::abort();}
+extern "C" CSize MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(void*,CDC*,const CSize*,BOOL){std::abort();}
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(void*,CWnd*){std::abort();}
+extern "C" void MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(void*,CDC*,const CRect*,void*,BOOL,BOOL,BOOL,BOOL,BOOL){std::abort();}
+extern "C" BOOL MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarButton__UEAAHPEAVCDC__AEBVCRect__H_Z(void*,CDC*,const CRect*,BOOL){std::abort();}
+extern "C" BOOL MS_ABI impl__SetACCData_CMFCToolBarButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void*,CWnd*,void*){std::abort();}
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void*,const void*){std::abort();}

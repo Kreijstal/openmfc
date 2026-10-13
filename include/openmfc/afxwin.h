@@ -2882,9 +2882,15 @@ public:
     CComboBox() = default;
     virtual ~CComboBox() = default;
 
-    int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
+    virtual int Create(DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID) {
         return CWnd::Create(L"COMBOBOX", L"", dwStyle, rect, pParentWnd, nID);
     }
+
+    virtual void DrawItem(DRAWITEMSTRUCT*);
+    virtual void MeasureItem(MEASUREITEMSTRUCT*);
+    virtual int CompareItem(COMPAREITEMSTRUCT*);
+    virtual void DeleteItem(DELETEITEMSTRUCT*);
+    BOOL OnChildNotify(UINT,WPARAM,LPARAM,LRESULT*) override;
 
     int GetCount() const {
         return m_hWnd ? (int)::SendMessageW(m_hWnd, CB_GETCOUNT, 0, 0) : 0;

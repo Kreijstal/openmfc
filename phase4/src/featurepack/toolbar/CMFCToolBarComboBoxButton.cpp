@@ -2054,3 +2054,22 @@ extern "C" void* MS_ABI impl__GetItemDataPtrAll_CMFCToolBarComboBoxButton__SAPEA
     if (!HasWindow(pCombo)) return nullptr;
     return reinterpret_cast<void*>(::SendMessage(pCombo->m_hWnd, kCbGetItemData, static_cast<WPARAM>(static_cast<long long>(iIndex)), 0));
 }
+
+CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton(UINT id,int image,ULONG style,int width):CMFCToolBarComboBoxButton() {
+    m_nID=id;m_iImage=image;Style(this)=style|0x50200000;Width(this)=width ? width : 150;
+}
+// Symbol: ??0CMFCToolBarComboBoxButton@@QEAA@IHKH@Z
+// Constructor: CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton
+extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxButton__QEAA_IHKH_Z(void* pThis, unsigned int p0, int p1, unsigned long p2, int p3) {
+    return new(pThis) CMFCToolBarComboBoxButton(p0, p1, p2, p3);
+}
+// Symbol: ??0CMFCToolBarComboBoxButton@@QEAA@XZ
+// Constructor: CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton
+extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxButton__QEAA_XZ(void* pThis) {
+    return new(pThis) CMFCToolBarComboBoxButton();
+}
+// Symbol: ??1CMFCToolBarComboBoxButton@@UEAA@XZ
+// Destructor: CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton
+extern "C" void MS_ABI impl___1CMFCToolBarComboBoxButton__UEAA_XZ(void* pThis) {
+    ((CMFCToolBarComboBoxButton*)pThis)->~CMFCToolBarComboBoxButton();
+}

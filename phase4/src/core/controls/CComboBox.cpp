@@ -3,15 +3,13 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CtrlOwnerdrawSupport.h"
-#include "detail/CtrlcoreSupport.h"
+#include "detail/WindowMessageSupport.h"
 
+IMPLEMENT_DYNAMIC(CComboBox,CWnd)
 // Symbol: ?CompareItem@CComboBox@@UEAAHPEAUtagCOMPAREITEMSTRUCT@@@Z
 extern "C" int MS_ABI impl__CompareItem_CComboBox__UEAAHPEAUtagCOMPAREITEMSTRUCT___Z(
     CComboBox* pThis, COMPAREITEMSTRUCT* pCompare) {
-    (void)pThis;
-    (void)pCompare;
-    return 0;
+    (void)pThis;(void)pCompare;return 0;
 }
 // Symbol: ?DeleteItem@CComboBox@@UEAAXPEAUtagDELETEITEMSTRUCT@@@Z
 extern "C" void MS_ABI impl__DeleteItem_CComboBox__UEAAXPEAUtagDELETEITEMSTRUCT___Z(
@@ -23,7 +21,7 @@ extern "C" void MS_ABI impl__DeleteItem_CComboBox__UEAAXPEAUtagDELETEITEMSTRUCT_
 extern "C" void MS_ABI impl__DrawItem_CComboBox__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
     CComboBox* pThis, DRAWITEMSTRUCT* pDraw) {
     (void)pThis;
-    FillOwnerDrawItem(pDraw);
+    (void)pDraw;
 }
 // Symbol: ?GetRuntimeClass@CComboBox@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CComboBox__UEBAPEAUCRuntimeClass__XZ(const CComboBox* pThis) {
@@ -37,36 +35,10 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CComboBox__SAPEAUCRuntimeCla
 extern "C" void MS_ABI impl__MeasureItem_CComboBox__UEAAXPEAUtagMEASUREITEMSTRUCT___Z(
     CComboBox* pThis, MEASUREITEMSTRUCT* pMeasure) {
     (void)pThis;
-    if (pMeasure && pMeasure->itemHeight == 0) pMeasure->itemHeight = 16;
+    (void)pMeasure;
 }
 // Symbol: ?OnChildNotify@CComboBox@@MEAAHI_K_JPEA_J@Z
-extern "C" int MS_ABI impl__OnChildNotify_CComboBox__MEAAHI_K_JPEA_J_Z(
-    CComboBox* pThis, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
-    if (pResult) *pResult = 0;
-    switch (message) {
-    case WM_DRAWITEM:
-        if (!lParam) return FALSE;
-        impl__DrawItem_CComboBox__UEAAXPEAUtagDRAWITEMSTRUCT___Z(pThis, (DRAWITEMSTRUCT*)lParam);
-        if (pResult) *pResult = TRUE;
-        return TRUE;
-    case WM_MEASUREITEM:
-        if (!lParam) return FALSE;
-        impl__MeasureItem_CComboBox__UEAAXPEAUtagMEASUREITEMSTRUCT___Z(pThis, (MEASUREITEMSTRUCT*)lParam);
-        if (pResult) *pResult = TRUE;
-        return TRUE;
-    case WM_COMPAREITEM:
-        if (!lParam) return FALSE;
-        if (pResult) *pResult = impl__CompareItem_CComboBox__UEAAHPEAUtagCOMPAREITEMSTRUCT___Z(pThis, (COMPAREITEMSTRUCT*)lParam);
-        return TRUE;
-    case WM_DELETEITEM:
-        if (!lParam) return FALSE;
-        impl__DeleteItem_CComboBox__UEAAXPEAUtagDELETEITEMSTRUCT___Z(pThis, (DELETEITEMSTRUCT*)lParam);
-        return TRUE;
-    default:
-        (void)wParam;
-        return FALSE;
-    }
-}
+extern "C" BOOL MS_ABI impl__OnChildNotify_CComboBox__MEAAHI_K_JPEA_J_Z(CComboBox* self,UINT message,WPARAM wparam,LPARAM lparam,LRESULT* result) {return self->CComboBox::OnChildNotify(message,wparam,lparam,result);}
 // Symbol: ?GetLBText@CComboBox@@QEBAXHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CComboBox* pThis, int nIndex, CString* pText) {
@@ -85,4 +57,20 @@ void CComboBox::GetLBText(int nIndex, CString& rString) const {
     wchar_t* pBuf = rString.GetBuffer(nLen + 1);
     int nCopied = (int)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)pBuf);
     rString.ReleaseBuffer(nCopied >= 0 ? nCopied : 0);
+}
+
+void CComboBox::DrawItem(DRAWITEMSTRUCT*){}
+void CComboBox::MeasureItem(MEASUREITEMSTRUCT*){}
+int CComboBox::CompareItem(COMPAREITEMSTRUCT*){return 0;}
+void CComboBox::DeleteItem(DELETEITEMSTRUCT*){}
+extern "C" BOOL MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*);
+BOOL CComboBox::OnChildNotify(UINT message,WPARAM wparam,LPARAM lparam,LRESULT* result) {
+    switch(message) {
+    case WM_DRAWITEM:DrawItem(reinterpret_cast<DRAWITEMSTRUCT*>(lparam));break;
+    case WM_MEASUREITEM:MeasureItem(reinterpret_cast<MEASUREITEMSTRUCT*>(lparam));break;
+    case WM_COMPAREITEM:*result=CompareItem(reinterpret_cast<COMPAREITEMSTRUCT*>(lparam));break;
+    case WM_DELETEITEM:DeleteItem(reinterpret_cast<DELETEITEMSTRUCT*>(lparam));break;
+    default:return impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(this,message,wparam,lparam,result);
+    }
+    return TRUE;
 }

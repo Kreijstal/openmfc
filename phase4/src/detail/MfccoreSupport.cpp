@@ -17,7 +17,6 @@ IMPLEMENT_DYNAMIC(CBaseTabbedPane, CDockablePane)
 IMPLEMENT_SERIAL(CTabbedPane, CBaseTabbedPane, 0x80000002)
 IMPLEMENT_SERIAL(CUserTool, CObject, 0x80000001)
 IMPLEMENT_DYNAMIC(CUserToolsManager, CObject)
-IMPLEMENT_DYNAMIC(CMFCToolBarButton, CObject)
 IMPLEMENT_DYNAMIC(CMFCBaseToolBar, CPane)
 IMPLEMENT_DYNAMIC(CMFCToolBar, CMFCBaseToolBar)
 IMPLEMENT_DYNAMIC(CMFCMenuBar, CMFCToolBar)
@@ -72,7 +71,6 @@ IMPLEMENT_DYNAMIC(CDockingManager, CObject)
 IMPLEMENT_DYNAMIC(CFrameWndEx, CFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIFrameWndEx, CMDIFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIChildWndEx, CMDIChildWnd)
-IMPLEMENT_DYNAMIC(CMFCToolBarComboBoxButton, CMFCToolBarButton)
 IMPLEMENT_DYNAMIC(CMFCToolBarEditBoxButton, CMFCToolBarButton)
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButton, CMFCToolBarButton)
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButtonsButton, CMFCToolBarMenuButton)
@@ -669,30 +667,7 @@ CMFCVisualManager* CreateVisualManagerFromRuntimeClass(CRuntimeClass* pRTI) {
     SyncVisualManagerExports();
     return manager;
 }
-void OpenMFC_InitToolBarButton(CMFCToolBarButton* b) {
-    b->m_bUserButton = FALSE;
-    b->m_bText = FALSE;
-    b->m_bImage = TRUE;
-    b->m_bWrap = FALSE;
-    b->m_bWholeText = TRUE;
-    b->m_bTextBelow = FALSE;
-    b->m_bDragFromCollection = FALSE;
-    b->m_nID = 0;
-    b->m_nStyle = 0;
-    b->m_dwdItemData = 0;
-    b->m_iImage = -1;
-    b->m_iUserImage = -1;
-    b->m_bLocked = FALSE;
-    b->m_bIsHidden = FALSE;
-    b->m_bDisableFill = FALSE;
-    b->m_bExtraSize = FALSE;
-    b->m_bHorz = TRUE;
-    b->m_bVisible = TRUE;
-    b->m_rect.SetRectEmpty();
-    b->m_sizeText.cx = 0;
-    b->m_sizeText.cy = 0;
-    b->m_pWndParent = nullptr;
-}
+
 CSize CalcMenuBarFixedLayout(const CMFCMenuBar* pMenuBar) {
     if (!pMenuBar) return CSize();
     const auto it = g_menuBarStates.find(pMenuBar);

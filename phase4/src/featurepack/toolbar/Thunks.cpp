@@ -1128,16 +1128,6 @@ extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_IHPEB_WHH_Z(void* pThis,
 extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_XZ(void* pThis) {
     return new(pThis) CMFCToolBarButton();
 }
-// Symbol: ??0CMFCToolBarComboBoxButton@@QEAA@IHKH@Z
-// Constructor: CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton
-extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxButton__QEAA_IHKH_Z(void* pThis, unsigned int p0, int p1, unsigned long p2, int p3) {
-    return new(pThis) CMFCToolBarComboBoxButton(p0, p1, p2, p3);
-}
-// Symbol: ??0CMFCToolBarComboBoxButton@@QEAA@XZ
-// Constructor: CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton
-extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxButton__QEAA_XZ(void* pThis) {
-    return new(pThis) CMFCToolBarComboBoxButton();
-}
 // Symbol: ??0CMFCToolBarEditBoxButton@@QEAA@IHKH@Z
 // Constructor: CMFCToolBarEditBoxButton::CMFCToolBarEditBoxButton
 extern "C" void* MS_ABI impl___0CMFCToolBarEditBoxButton__QEAA_IHKH_Z(void* pThis, unsigned int p0, int p1, unsigned long p2, int p3) {
@@ -1162,11 +1152,6 @@ extern "C" void MS_ABI impl___1CMFCToolBar__UEAA_XZ(void* pThis) {
 // Destructor: CMFCToolBarButton::~CMFCToolBarButton
 extern "C" void MS_ABI impl___1CMFCToolBarButton__UEAA_XZ(void* pThis) {
     ((CMFCToolBarButton*)pThis)->~CMFCToolBarButton();
-}
-// Symbol: ??1CMFCToolBarComboBoxButton@@UEAA@XZ
-// Destructor: CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton
-extern "C" void MS_ABI impl___1CMFCToolBarComboBoxButton__UEAA_XZ(void* pThis) {
-    ((CMFCToolBarComboBoxButton*)pThis)->~CMFCToolBarComboBoxButton();
 }
 // Symbol: ??1CMFCToolBarEditBoxButton@@UEAA@XZ
 // Destructor: CMFCToolBarEditBoxButton::~CMFCToolBarEditBoxButton

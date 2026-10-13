@@ -27,6 +27,8 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/collections/NativeArrayStorage.cpp phase4/src/core/collections/CByteArray.cpp phase4/src/core/collections/CObArray.cpp phase4/src/core/collections/CMapWordToObStorage.cpp phase4/src/core/collections/CMapWordToOb.cpp phase4/src/featurepack/controls/CMFCControlContainer.cpp phase4/src/core/window/CWndDlgInit.cpp
     phase4/src/core/app/CWinThreadVirtualDispatch.cpp
     phase4/src/core/dialog/CDialogLifetime.cpp phase4/src/core/dialog/CDialogInitialization.cpp phase4/src/core/dialog/CDialogVirtuals.cpp phase4/src/core/dialog/AfxHelpEnabled.cpp
+    phase4/src/core/gdi/CImageList.cpp phase4/src/core/gdi/CImageListLifetime.cpp phase4/src/core/controls/CComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBoxLifetime.cpp phase4/src/featurepack/controls/StaticData.cpp phase4/src/featurepack/toolbar/StaticData.cpp phase4/src/featurepack/toolbar/CMFCToolBarFontComboBox.cpp phase4/src/featurepack/toolbar/CMFCToolBarComboBoxButton.cpp phase4/src/featurepack/toolbar/CMFCToolBarButtonLifetime.cpp phase4/src/detail/ToolbarComboState.cpp phase4/src/core/collections/CStringList.cpp phase4/src/core/collections/CStringArray.cpp
+    phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
     phase4/src/core/cmdui/CCmdUI.cpp phase4/src/core/cmdui/COleCmdUI.cpp phase4/src/core/cmdui/CTestCmdUI.cpp phase4/src/core/cmdui/CToolCmdUI.cpp
     phase4/src/core/window/CWndMessageMap.cpp phase4/src/core/window/WindowMessageMapDispatch.cpp phase4/src/core/runtime/CommandMessageDispatch.cpp phase4/src/core/gdi/CDC.cpp phase4/src/core/gdi/CDCMessageSupport.cpp
     phase4/src/core/window/CWndDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutLifetime.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp
@@ -47,6 +49,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
 OBJECTS=()
 for source in "${SOURCES[@]}"; do
     object="$BUILD_DIR/$(basename "${source%.cpp}").obj"
+    if [[ "$source" == phase4/src/featurepack/toolbar/StaticData.cpp ]]; then object="$BUILD_DIR/ToolbarStaticData.obj"; fi
     clang-cl "${FLAGS[@]}" /c "$ROOT/$source" /Fo"$object"
     OBJECTS+=("$object")
 done
@@ -78,7 +81,12 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/app/CWinThreadVirtualDispatch.cpp', 'CWinThreadVirtualDispatch'),
+for path, obj in (('core/gdi/CImageListLifetime.cpp', 'CImageListLifetime'),
+                  ('core/controls/CComboBox.cpp', 'CComboBox'),
+                  ('featurepack/controls/CMFCFontComboBox.cpp', 'CMFCFontComboBox'),
+                  ('featurepack/controls/CMFCFontComboBoxLifetime.cpp', 'CMFCFontComboBoxLifetime'),
+                  ('featurepack/controls/CTagManagerProperties.cpp', 'CTagManagerProperties'),
+                  ('core/app/CWinThreadVirtualDispatch.cpp', 'CWinThreadVirtualDispatch'),
                   ('core/dialog/CDialogLifetime.cpp', 'CDialogLifetime'),
                   ('core/dialog/CDialogInitialization.cpp', 'CDialogInitialization'),
                   ('core/dialog/CDialogVirtuals.cpp', 'CDialogVirtuals'),
@@ -137,11 +145,11 @@ for path, obj in (('core/app/CWinThreadVirtualDispatch.cpp', 'CWinThreadVirtualD
         assert gen_weak_stubs.generate_stub_name(symbol) in defined, 'Missing window D2D alias: ' + symbol
 print('Render target and resource export aliases match the DLL generator')
 PY
-lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
+lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF /errorlimit:0 \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${OBJECTS[@]}" kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${OBJECTS[@]}" comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
@@ -156,11 +164,11 @@ done
     widl --win64 -t -o typelib_cache_fixture.tlb "$ROOT/tests/typelib_cache_fixture.idl"
     llvm-rc /I "$BUILD_DIR" /fo typelib_cache_fixture.res "$ROOT/tests/typelib_cache_fixture.rc"
 )
-lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
+lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF /errorlimit:0 \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 RUNNER=(wine)
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
     RUNNER=(xvfb-run -a wine)

@@ -1,4 +1,5 @@
 #include "openmfc/afxstat_.h"
+#include "openmfc/afxfontcombobox.h"
 // CMFCFontComboBox — OpenMFC implementation.
 // Sources: manual_small_stub_implementations.cpp
 
@@ -49,8 +50,8 @@
 //                    value also equals the member layout: 0xf8 + 4, rounded
 //                    up to the 8-byte alignment the vfptr imposes.  No member
 //                    access in any body reaches past +0xfb.)
-// The class is not declared in OpenMFC's public headers, so this file is the
-// only place that layout lives (FontComboLayout below).
+// The public class and its native virtual bindings live in afxfontcombobox.h
+// and CMFCFontComboBoxLifetime.cpp.
 //
 // CMFCFontInfo (afxtoolbarfontcombobox.h: CObject base, then const CString
 // m_strName, const CString m_strScript, const BYTE m_nCharSet, const BYTE
@@ -61,21 +62,10 @@
 // pointer to the character buffer (CStringData header in front of it).
 // FontInfoLayout below reads those pointers as `const wchar_t*` -- which is
 // what the retail bodies do (`mov 0x8(%rax),%rdx` then wcscmp).  No
-// CMFCFontInfo reaching this file is built by OpenMFC today (Setup is a stub,
-// see there), so every object read here was built by client code compiled
-// against the shipping headers, i.e. with exactly this layout.
+// Font descriptors from Setup use the same 32-byte public class as SDK clients.
+// The raw layout view below preserves the imported ABI at the export boundary.
 //
-// Deviations applied throughout:
-//  (1) vptr.  Retail's ctor and dtor store the CMFCFontComboBox vftable
-//      (0x1802e8b98).  OpenMFC has no MSVC-layout vtable for this class; the
-//      ctor keeps the vptr ??0CWnd@@ installs and records it (g_ownVptr), and
-//      the dtor stores that recorded value back in place of retail's store,
-//      so that ??1CComboBox@@'s C++ virtual-destructor call dispatches on
-//      OpenMFC's table rather than on a client-derived class's MSVC table
-//      (the convention of controls/CMFCEditBrowseCtrl.cpp).  No body in this
-//      file makes a virtual call on `this`, so nothing else depends on it.
-//  (2) The embedded CImageList gets no vptr (same reason; the convention of
-//      controls/CMFCEditBrowseCtrl.cpp's m_ImageBrowse).
+// Implementation conventions:
 //  (3) CComboBox / CWnd inline wrappers that retail expands to a raw
 //      ::SendMessage on m_hWnd (GetCount, GetItemDataPtr, SetCurSel,
 //      GetCurSel, DeleteString, ResetContent, GetDroppedState, ShowDropDown)
@@ -88,10 +78,7 @@
 //  (4) NULL guards on `this` are added at every entry (retail has none).
 //      Other added guards are named at their sites.
 //
-// OpenMFC's message map for this class (detail/Mfc04MsgmapSupport.cpp,
-// classCMFCFontComboBox_msgmap) is EMPTY, so OnCreate / OnDestroy /
-// OnInitControl are reached only by callers that name them until that table
-// is filled in (reported as a headerRequest).
+// The live message map dispatches WM_CREATE, WM_DESTROY and WM_MFC_INITCTRL.
 // ===========================================================================
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
@@ -230,7 +217,6 @@ extern "C" int  MS_ABI impl__Setup_CMFCFontComboBox__QEAAHHEE_Z(void* pThis, int
 
 namespace {
 
-void* g_ownVptr = nullptr;   // the vptr ??0CWnd@@QEAA@XZ installs, recorded by the first ctor to run (deviation (1))
 
 inline FontComboLayout* L(void* p) { return static_cast<FontComboLayout*>(p); }
 inline const FontComboLayout* L(const void* p) { return static_cast<const FontComboLayout*>(p); }
@@ -310,37 +296,6 @@ using AfxThreadStateMirror=_AFX_THREAD_STATE;
 // ===========================================================================
 // Construction / destruction
 // ===========================================================================
-
-// Symbol: ??0CMFCFontComboBox@@QEAA@XZ
-// Transcribed from retail entry RVA 0x60ef0 (mfc140u):
-//     CWnd::CWnd();                                   // 0x28a700 (CComboBox's ctor is inline)
-//     vfptr = 0x1802e8b98;                            // deviation (1): OpenMFC's CWnd vptr kept, recorded
-//     m_Images: vfptr = 0x180337b38; m_hImageList = NULL;   // deviation (2): no vptr
-//     m_bToolBarMode = FALSE;                         // movl $0,0xf8
-//     return this;
-extern "C" void* MS_ABI impl___0CMFCFontComboBox__QEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return pThis;
-    impl___0CWnd__QEAA_XZ(pThis);
-    if (g_ownVptr == nullptr) g_ownVptr = *static_cast<void**>(pThis);
-    FontComboLayout* s = L(pThis);
-    std::memset(s->m_Images, 0, sizeof(s->m_Images));
-    impl___0CImageList__QEAA_XZ(Images(pThis));
-    s->m_bToolBarMode = FALSE;
-    return pThis;
-}
-// Symbol: ??1CMFCFontComboBox@@UEAA@XZ
-// Transcribed from retail entry RVA 0x60f90 (mfc140u):
-//     vfptr = 0x1802e8b98;                            // deviation (1): g_ownVptr stored instead
-//     CImageList::~CImageList(&m_Images);             // 0x296be0 on this+0xe8
-//     CComboBox::~CComboBox();                        // 0x2941a0 (tail jump)
-// The previous definition had no `this` parameter at all; the signature now
-// follows the mangled name.
-extern "C" void MS_ABI impl___1CMFCFontComboBox__UEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return;
-    if (g_ownVptr != nullptr) *static_cast<void**>(pThis) = g_ownVptr;
-    impl___1CImageList__UEAA_XZ(Images(pThis));
-    impl___1CComboBox__UEAA_XZ(pThis);
-}
 
 // ===========================================================================
 // Item bookkeeping
@@ -655,7 +610,7 @@ extern "C" void MS_ABI impl__OnDestroy_CMFCFontComboBox__IEAAXXZ(void* pThis) {
 // CTagManager exists in this DLL only as its impl__ thunks over a side table
 // keyed by the object address (controls/CTagManager.cpp), so it is built in
 // raw storage and torn down through the matching thunk, as
-// controls/CMFCMaskedEdit.cpp does.  (Setup is a stub today -- see there.)
+// controls/CMFCMaskedEdit.cpp does.
 extern "C" __int64 MS_ABI impl__OnInitControl_CMFCFontComboBox__IEAA_J_K_J_Z(
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
     if (pThis == nullptr) return 0;
@@ -849,38 +804,33 @@ extern "C" int MS_ABI impl__SelectFont_CMFCFontComboBox__QEAAHPEB_WE_Z(
     return FALSE;
 }
 
+extern "C" {
+void* MS_ABI impl___0CMFCToolBarFontComboBox__QEAA_IHHEKHE_Z(void*,UINT,int,int,BYTE,ULONG,int,BYTE);
+void MS_ABI impl___1CMFCToolBarFontComboBox__UEAA_XZ(void*);
+INT_PTR MS_ABI impl__GetCount_CMFCToolBarComboBoxButton__QEBA_JXZ(const void*);
+const wchar_t* MS_ABI impl__GetItem_CMFCToolBarComboBoxButton__QEBAPEB_WH_Z(const void*,int);
+DWORD_PTR MS_ABI impl__GetItemData_CMFCToolBarComboBoxButton__QEBA_KH_Z(const void*,int);
+}
 // Symbol: ?Setup@CMFCFontComboBox@@QEAAHHEE@Z
-// STUB -- returns FALSE without touching the control.  Retail (entry RVA
-// 0x61840, mfc140u) does:
-//     ENSURE(::IsWindow(m_hWnd));                     // else 0x227720
-//     if (m_bToolBarMode) return FALSE;
-//     CleanUp();                                      // 0x61780
-//     CMFCToolBarFontComboBox combo(0, -1, nFontType, nCharSet, 2, 0, nPitchAndFamily);
-//         // on the stack; ??0CMFCToolBarFontComboBox@@QEAA@IHHEKHE@Z (0x1690c0),
-//         // the constructor that enumerates the installed fonts
-//     for (int i = 0; i < <INT_PTR count at +0xf8 of that object>; i++) {
-//         CString strFont = combo.GetItem(i);         // ?GetItem@CMFCToolBarComboBoxButton (0x162a00)
-//         CMFCFontInfo* pDesc = (CMFCFontInfo*)combo.GetItemData(i);   // 0x162a80
-//         if (SendMessage(CB_FINDSTRINGEXACT, -1, strFont) <= 0) {     // sic: `jg` skips only results > 0
-//             CMFCFontInfo* pCopy = new CMFCFontInfo(*pDesc);          // operator new(0x20), vftable 0x1802e91a8
-//             SetItemDataPtr(AddString(strFont), pCopy);               // CB_ADDSTRING, CB_SETITEMDATA
-//         }
-//     }
-//     return TRUE;                                    // ~CMFCToolBarFontComboBox (0x1691b0)
-// Not reproduced because OpenMFC's ??0CMFCToolBarFontComboBox@@QEAA@IHHEKHE@Z
-// (featurepack/toolbar/CMFCToolBarFontComboBox.cpp) returns pThis without
-// constructing or enumerating anything, and that file's enumeration exports
-// (RebuildFonts, AddFont, the EnumFam*CallBackEx callbacks) are empty stubs,
-// so there is no font list to copy from; and OpenMFC has no MSVC-layout
-// CMFCFontInfo vftable to install in the copies, which clients would later
-// delete through slot 1 (see DeleteFontInfo).  Doing only the ENSURE /
-// CleanUp prefix would still return a different result than retail, so the
-// body stays empty.  Init and OnInitControl call it as retail does.
-extern "C" int MS_ABI impl__Setup_CMFCFontComboBox__QEAAHHEE_Z(
-    void* pThis, int nFontType, unsigned char nCharSet, unsigned char nPitchAndFamily) {
-    (void)pThis;
-    (void)nFontType;
-    (void)nCharSet;
-    (void)nPitchAndFamily;
-    return FALSE;
+extern "C" BOOL MS_ABI impl__Setup_CMFCFontComboBox__QEAAHHEE_Z(void* self,int type,BYTE charset,BYTE pitch) {
+    if(!EnsureIsWindow(self))return FALSE;
+    if(L(self)->m_bToolBarMode)return FALSE;
+    impl__CleanUp_CMFCFontComboBox__IEAAXXZ(self);
+    // The native helper occupies 0x160 bytes and builds the shared font catalog.
+    struct ToolbarFonts {
+        alignas(void*) BYTE storage[0x160];
+        ToolbarFonts(int type,BYTE charset,BYTE pitch){impl___0CMFCToolBarFontComboBox__QEAA_IHHEKHE_Z(storage,0,-1,type,charset,CBS_DROPDOWNLIST,0,pitch);}
+        ~ToolbarFonts(){impl___1CMFCToolBarFontComboBox__UEAA_XZ(storage);}
+    } fonts(type,charset,pitch);
+    INT_PTR count=impl__GetCount_CMFCToolBarComboBoxButton__QEBA_JXZ(fonts.storage);
+    for(INT_PTR i=0;i<count;++i) {
+        CString name=impl__GetItem_CMFCToolBarComboBoxButton__QEBAPEB_WH_Z(fonts.storage,static_cast<int>(i));
+        // Retail skips only matches above index zero.
+        if(::SendMessageW(HWndOf(self),CB_FINDSTRINGEXACT,static_cast<WPARAM>(-1),reinterpret_cast<LPARAM>(name.GetString()))>0)continue;
+        auto* source=reinterpret_cast<const CMFCFontInfo*>(impl__GetItemData_CMFCToolBarComboBoxButton__QEBA_KH_Z(fonts.storage,static_cast<int>(i)));
+        auto* copy=new CMFCFontInfo(*source);
+        LRESULT index=::SendMessageW(HWndOf(self),CB_ADDSTRING,0,reinterpret_cast<LPARAM>(name.GetString()));
+        ::SendMessageW(HWndOf(self),CB_SETITEMDATA,index,reinterpret_cast<LPARAM>(copy));
+    }
+    return TRUE;
 }

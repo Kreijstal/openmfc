@@ -277,6 +277,7 @@ static void ownershipAndRecreation() {
 #include "cmdui_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
+#include "fontcombo_tests.h"
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
@@ -294,6 +295,7 @@ int main() {
     if (SUCCEEDED(hr)) commandUI();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
+    if (SUCCEEDED(hr)) fontCombo();
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

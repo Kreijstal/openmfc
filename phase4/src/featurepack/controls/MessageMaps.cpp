@@ -94,11 +94,6 @@ DEF_MM(CMFCDropDownListBox,
 DEF_MM(CMFCEditBrowseCtrl,
        impl__GetMessageMap_CMFCEditBrowseCtrl__MEBAPEBUAFX_MSGMAP__XZ,
        impl__GetThisMessageMap_CMFCEditBrowseCtrl__KAPEBUAFX_MSGMAP__XZ)
-// Symbol: ?GetMessageMap@CMFCFontComboBox@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CMFCFontComboBox@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CMFCFontComboBox,
-       impl__GetMessageMap_CMFCFontComboBox__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CMFCFontComboBox__KAPEBUAFX_MSGMAP__XZ)
 // Symbol: ?GetMessageMap@CMFCHeaderCtrl@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@CMFCHeaderCtrl@@KAPEBUAFX_MSGMAP@@XZ
 DEF_MM(CMFCHeaderCtrl,

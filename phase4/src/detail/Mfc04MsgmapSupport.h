@@ -71,7 +71,7 @@ namespace openmfc { namespace detail { namespace mfc04msgmap {
 extern const AFX_MSGMAP classCMFCEditBrowseCtrl_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace mfc04msgmap {
-extern const AFX_MSGMAP classCMFCFontComboBox_msgmap;
+
 } } }
 namespace openmfc { namespace detail { namespace mfc04msgmap {
 extern const AFX_MSGMAP classCMFCHeaderCtrl_msgmap;

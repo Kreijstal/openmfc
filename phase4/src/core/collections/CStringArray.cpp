@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/FilecoreSupport.h"
+IMPLEMENT_SERIAL(CStringArray,CObject,0xffff)
 
 #define OPENMFC_WRAP_CTOR0(fn_name, class_name) \
 extern "C" void* MS_ABI fn_name(class_name* pThis) { \

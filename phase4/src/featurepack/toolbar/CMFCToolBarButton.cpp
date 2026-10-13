@@ -39,18 +39,6 @@ extern "C" void MS_ABI impl__SetImage_CMFCToolBarButton__UEAAXH_Z(void* pThis, i
 extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarButton__UEAAXXZ(void*) {
     /* base class: no-op (harvested from real mfc140u) */
 }
-CMFCToolBarButton::CMFCToolBarButton() {
-    OpenMFC_InitToolBarButton(this);
-}
-CMFCToolBarButton::CMFCToolBarButton(UINT uiCmdID, int iImage, const wchar_t* lpszText, BOOL bUserButton, BOOL bLocked) {
-    OpenMFC_InitToolBarButton(this);
-    m_nID = uiCmdID;
-    if (lpszText) m_strText = lpszText;
-    m_bUserButton = bUserButton;
-    m_bLocked = bLocked;
-    if (bUserButton) m_iUserImage = iImage; else m_iImage = iImage;
-}
-CMFCToolBarButton::~CMFCToolBarButton() {}
 // Symbol: ?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A
 extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A = {};
 

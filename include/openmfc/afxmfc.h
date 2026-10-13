@@ -1471,7 +1471,7 @@ class CMFCToolBarComboBoxButton : public CMFCToolBarButton {
     DECLARE_DYNAMIC(CMFCToolBarComboBoxButton)
 public:
     CMFCToolBarComboBoxButton();
-    CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0) : CMFCToolBarComboBoxButton() {}
+    CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0);
     virtual ~CMFCToolBarComboBoxButton();
 
     virtual INT_PTR AddItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);

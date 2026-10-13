@@ -3635,21 +3635,6 @@ extern "C" int MS_ABI impl__IsHelpKey__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
     if (::GetKeyState(VK_MENU) < 0) return FALSE;
     return TRUE;
 }
-// Symbol: ?ReadBoolProp@@YAHAEAVCTagManager@@PEB_WAEAH@Z
-// Mangled params are (CTagManager&, const wchar_t*, int&) -- no CStringT<>
-// reference appears in this signature, so the demangler-bug slot-shift that
-// affects AfxGetPropSheetFont/AfxParseURL doesn't apply here: the
-// auto-generated thunk's 3-parameter list (class*, wchar_t*, int*) already
-// matches faithfully. Thin forwarder to CTagManager::ReadBool(const
-// CString&, int&) (include/openmfc/afxmfc.h), now that this file includes
-// that header.
-extern "C" int MS_ABI impl__ReadBoolProp__YAHAEAVCTagManager__PEB_WAEAH_Z(void* /*class*/* p0, const wchar_t* p1, int* p2) {
-    if (!p0 || !p2) return FALSE;
-    CTagManager* pTagManager = reinterpret_cast<CTagManager*>(p0);
-    CString strTag(p1);
-    return impl__ReadBool_CTagManager__QEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAH_Z(
-        pTagManager, &strTag, p2);
-}
 // Symbol: ?TaskDialogCallback@@YAJPEAUHWND__@@I_K_J2@Z
 extern "C" long MS_ABI impl__TaskDialogCallback__YAJPEAUHWND____I_K_J2_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, __int64 p3, unsigned __int64 p4) {
     // PFTASKDIALOGCALLBACK. CTaskDialog.cpp (phase4/src/core/dialog) doesn't

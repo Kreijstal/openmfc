@@ -16,8 +16,6 @@ extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(C
 
 IMPLEMENT_DYNAMIC(CUIntArray, CObject)
 IMPLEMENT_SERIAL(CDWordArray, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CStringArray, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CStringList, CObject, 0xFFFF)
 IMPLEMENT_DYNAMIC(CMapPtrToPtr, CObject)
 IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
 IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0xFFFF)
@@ -74,9 +72,7 @@ void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsign
         }
     }
 }
-CString NormalizeStringKey(const wchar_t* key) {
-    return CString(key ? key : L"");
-}
+
 UINT HashCStringKey(const CString& key) {
     UINT hash = 0;
     const wchar_t* p = static_cast<const wchar_t*>(key);

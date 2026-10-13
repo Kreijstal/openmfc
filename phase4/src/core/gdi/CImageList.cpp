@@ -5,20 +5,6 @@
 
 #include "detail/GdicoreSupport.h"
 
-// Symbol: ??0CImageList@@QEAA@XZ
-extern "C" CImageList* MS_ABI impl___0CImageList__QEAA_XZ(CImageList* pThis) {
-    if (!pThis) return nullptr;
-    pThis->m_hImageList = nullptr;
-    return pThis;
-}
-// Symbol: ??1CImageList@@UEAA@XZ
-extern "C" void MS_ABI impl___1CImageList__UEAA_XZ(CImageList* pThis) {
-    if (!pThis) return;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-        pThis->m_hImageList = nullptr;
-    }
-}
 // Symbol: ?Create@CImageList@@QEAAHHHIHH@Z
 // Create(cx, cy, flags, cInitial, cGrow)
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHHHIHH_Z(
@@ -252,12 +238,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CImageList__SAPEAUCRuntimeCl
 // Symbol: ?CreateObject@CImageList@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CImageList__SAPEAVCObject__XZ() {
     return new CImageList();
-}
-CImageList::CImageList() {
-    impl___0CImageList__QEAA_XZ(this);
-}
-CImageList::~CImageList() {
-    impl___1CImageList__UEAA_XZ(this);
 }
 int CImageList::Create(int cx, int cy, UINT nFlags, int nInitial, int nGrow) {
     return impl__Create_CImageList__QEAAHHHIHH_Z(this, cx, cy, nFlags, nInitial, nGrow);

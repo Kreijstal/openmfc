@@ -13,7 +13,7 @@ const AFX_MSGMAP* AFXAPI gbm_CMFCKeyMapDialog() { return impl__GetThisMessageMap
 const AFX_MSGMAP classCMFCDropDownListBox_msgmap = { gbm_CMFCDropDownListBox, g_emptyMsgEntries_Mfc04Msgmap };
 const AFX_MSGMAP classCMFCDropDownToolBar_msgmap = { gbm_CMFCDropDownToolBar, g_emptyMsgEntries_Mfc04Msgmap };
 const AFX_MSGMAP classCMFCEditBrowseCtrl_msgmap = { gbm_CMFCEditBrowseCtrl, g_emptyMsgEntries_Mfc04Msgmap };
-const AFX_MSGMAP classCMFCFontComboBox_msgmap = { gbm_CMFCFontComboBox, g_emptyMsgEntries_Mfc04Msgmap };
+
 const AFX_MSGMAP classCMFCHeaderCtrl_msgmap = { gbm_CMFCHeaderCtrl, g_emptyMsgEntries_Mfc04Msgmap };
 const AFX_MSGMAP classCMFCImageEditorDialog_msgmap = { gbm_CMFCImageEditorDialog, g_emptyMsgEntries_Mfc04Msgmap };
 const AFX_MSGMAP classCMFCImagePaintArea_msgmap = { gbm_CMFCImagePaintArea, g_emptyMsgEntries_Mfc04Msgmap };

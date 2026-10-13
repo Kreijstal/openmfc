@@ -1,6 +1,7 @@
 // Native feature-pack container ownership and DLGINIT control data.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CMFCControlContainerSupport.h"
+#include "openmfc/afxfontcombobox.h"
 #include <memory>
 CMFCControlContainer::CMFCControlContainer(CWnd* parent):m_pWnd(parent),m_mapControlData(10) {}
 CMFCControlContainer::~CMFCControlContainer(){ClearControlData();FreeSubclassedControls();}
@@ -72,12 +73,13 @@ int __stdcall CMFCControlContainer::UTF8ToString(const char* source,CString& res
 void OpenMfcDeleteControlContainer(CMFCControlContainer* container) {delete container;}
 // Symbol: ?CreateDlgControl@CMFCControlContainer@@IEAAPEAVCWnd@@PEB_W@Z
 extern "C" CWnd* MS_ABI impl__CreateDlgControl_CMFCControlContainer__IEAAPEAVCWnd__PEB_W_Z(
-    void* pThis, const wchar_t* /*lpszClassName*/)
+    void* pThis, const wchar_t* lpszClassName)
 {
-    if (pThis == nullptr) return nullptr;
+    if (pThis == nullptr || !lpszClassName) return nullptr;
+    if(std::wcscmp(lpszClassName,L"MFCFontComboBox")==0)return new CMFCFontComboBox;
     // TODO(clean-room): transcribed partially -- retail compares the class
     // name (ATL CString, 0x18000dcb0 / CString::Compare 0x1802c7770) against
-    // "MFCButton", "MFCColorButton", "MFCEditBrowse", "MFCFontComboBox",
+    // "MFCButton", "MFCColorButton", "MFCEditBrowse",
     // "MFCLink", "MFCMaskedEdit", "MFCMenuButton", "MFCPropertyGrid",
     // "MFCShellList", "MFCShellTree" and "MFCVSListBox" (0x18033ed18..
     // 0x18033ee40), allocates the matching object (0xb20/0xbc8/0x150/0x100/
@@ -85,7 +87,7 @@ extern "C" CWnd* MS_ABI impl__CreateDlgControl_CMFCControlContainer__IEAAPEAVCWn
     // constructor (0x18001c930/0x180027ff0/0x18005f270/0x180060ef0/
     // 0x1800781b0/0x180078d70/0x18008e2c0/0x1800c5ef0/0x18012a760/
     // 0x18012d010/0x1801c6490).  The constructors are not all real here, so
-    // the not-created result (matching an unrecognized name) is returned.
+    // the other recognized controls remain pending their native constructors.
     return nullptr;
 }
 
