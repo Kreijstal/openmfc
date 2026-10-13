@@ -10,7 +10,14 @@ CDC::CDC() { std::abort(); }
 CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE g_d2dTestResourceModule = nullptr;
-HINSTANCE AFXAPI AfxGetInstanceHandle() { return GetModuleHandleW(nullptr); }
+extern thread_local AFX_MODULE_STATE* g_cmdTestCurrentModule;
+HINSTANCE g_typeCacheInstance=nullptr;
+AFX_MODULE_STATE* g_typeCacheInstanceModule=nullptr;
+bool g_typeCacheForceNoInstance=false;
+HINSTANCE AFXAPI AfxGetInstanceHandle() {
+    g_typeCacheInstanceModule=g_cmdTestCurrentModule;
+    return g_typeCacheForceNoInstance ? nullptr : g_typeCacheInstance ? g_typeCacheInstance : GetModuleHandleW(nullptr);
+}
 HINSTANCE AFXAPI AfxGetResourceHandle() { return g_d2dTestResourceModule ? g_d2dTestResourceModule : GetModuleHandleW(nullptr); }
 // List serialization is linked for its vtable but is outside these drawing tests.
 CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
@@ -63,3 +70,13 @@ void CException::AssertValid() const { std::abort(); }
 CWinThread* AFXAPI AfxGetThread() { return nullptr; }
 CRuntimeClass g_automationMemoryExceptionClass{"CMemoryException",sizeof(CException),0xffff,nullptr,nullptr,nullptr,nullptr};
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() { return &g_automationMemoryExceptionClass; }
+
+// Model the recursive CRIT_TYPELIBCACHE lock used by the production lookup.
+std::recursive_mutex g_typeCacheTestMutex;
+thread_local int g_typeCacheLockDepth=0;
+extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
+    if(id!=13)std::abort();g_typeCacheTestMutex.lock();++g_typeCacheLockDepth;
+}
+extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
+    if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();
+}

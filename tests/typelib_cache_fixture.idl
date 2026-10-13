@@ -1,0 +1,14 @@
+import "oaidl.idl";
+[
+    uuid(7395826c-735b-4c4a-8997-d3552bce1031),
+    version(1.0)
+]
+library OpenMfcTypeCacheFixture
+{
+    importlib("stdole2.tlb");
+    [object, uuid(872e528a-c2f2-4e8b-952d-135b910c6e12), dual, oleautomation, pointer_default(unique)]
+    interface ICacheFixture : IDispatch
+    {
+        [id(1)] HRESULT Value([out, retval] LONG* result);
+    };
+};

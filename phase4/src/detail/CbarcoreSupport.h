@@ -12,6 +12,7 @@ using namespace openmfc::detail::cbarcore;
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
 #include "openmfc/afxole.h"
+#include "detail/TypeLibCacheSupport.h"
 #include "detail/DockingState.h"
 #include "detail/RibbonState.h"
 #include <commctrl.h>
@@ -142,23 +143,15 @@ extern std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
-struct TypeLibCacheState {
-    bool locked = false;
-    std::unordered_map<unsigned long, ITypeLib*> typeLibs;
-    std::unordered_map<std::wstring, ITypeInfo*> typeInfos;
+struct TypeLibCacheHandle {
+    CTypeLibCache cache;
+    GUID id{};
+    explicit TypeLibCacheHandle(const GUID& value) : id(value) { cache.m_pTypeLibID=&id; }
+    ~TypeLibCacheHandle() { OpenMfcClearTypeLibCache(&cache); }
 };
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
-struct TypeLibCacheHandle {};
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
 extern std::mutex g_typeLibCacheMutex;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<const CCmdTarget*, std::unique_ptr<TypeLibCacheHandle>> g_targetTypeLibCaches;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
 extern std::unordered_map<std::wstring, std::unique_ptr<TypeLibCacheHandle>> g_guidTypeLibCaches;
@@ -375,19 +368,6 @@ namespace openmfc { namespace detail { namespace cbarcore {
 void* GetGuidTypeLibCache(const GUID& guid);
 } } }
 
-
-namespace openmfc { namespace detail { namespace cbarcore {
-inline void ReleaseTypeLibCache(TypeLibCacheState& state) {
-    for (auto& entry : state.typeLibs) {
-        if (entry.second) entry.second->Release();
-    }
-    for (auto& entry : state.typeInfos) {
-        if (entry.second) entry.second->Release();
-    }
-    state.typeLibs.clear();
-    state.typeInfos.clear();
-}
-} } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
 inline COLORREF SystemColor(int index) {

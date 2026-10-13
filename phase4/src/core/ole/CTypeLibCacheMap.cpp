@@ -7,20 +7,15 @@
 
 // Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis, void* pExcept) {
-    std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
-    for (auto it = g_typeLibCaches.begin(); it != g_typeLibCaches.end();) {
-        if (it->first == pExcept || it->second.locked) {
-            ++it;
-        } else {
-            ReleaseTypeLibCache(it->second);
-            it = g_typeLibCaches.erase(it);
+    (void)pThis;
+    std::vector<std::unique_ptr<TypeLibCacheHandle>> retired;
+    {
+        std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
+        for(auto it=g_guidTypeLibCaches.begin();it!=g_guidTypeLibCaches.end();) {
+            CTypeLibCache* cache=&it->second->cache;
+            if(cache==pExcept || cache->m_cRef!=0) { ++it;continue; }
+            retired.push_back(std::move(it->second));it=g_guidTypeLibCaches.erase(it);
         }
     }
-    if (pThis && !pExcept) {
-        auto it = g_typeLibCaches.find(pThis);
-        if (it != g_typeLibCaches.end()) {
-            ReleaseTypeLibCache(it->second);
-            g_typeLibCaches.erase(it);
-        }
-    }
+    // COM Release callbacks run after the registry mutex is unlocked.
 }

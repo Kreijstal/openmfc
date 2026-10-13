@@ -21,7 +21,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp phase4/src/core/ole/CEnumArrayInterfaces.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
-    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp
+    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/ole/CTypeLibCache.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
     phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
@@ -75,6 +75,8 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('core/runtime/CCmdTargetDispatch.cpp', 'CCmdTargetDispatch'),
                   ('core/runtime/CCmdTargetInvoke.cpp', 'CCmdTargetInvoke'),
                   ('core/runtime/CCmdTargetEvents.cpp', 'CCmdTargetEvents'),
+                  ('core/runtime/CCmdTargetTypeInfo.cpp', 'CCmdTargetTypeInfo'),
+                  ('core/ole/CTypeLibCache.cpp', 'CTypeLibCache'),
                   ('core/ole/COleConnPtContainer.cpp', 'COleConnPtContainer'),
                   ('core/ole/CConnectionPoint.cpp', 'CConnectionPoint'),
                   ('core/ole/CEnumConnections.cpp', 'CEnumConnections'),
@@ -108,11 +110,16 @@ for source in tests/test_d2d_resources.cpp phase4/src/core/window/CWndMessageDis
     clang-cl "${FLAGS[@]}" /c "$ROOT/$source" /Fo"$object"
     NATIVE_OBJECTS+=("$object")
 done
+(
+    cd "$BUILD_DIR"
+    widl --win64 -t -o typelib_cache_fixture.tlb "$ROOT/tests/typelib_cache_fixture.idl"
+    llvm-rc /I "$BUILD_DIR" /fo typelib_cache_fixture.res "$ROOT/tests/typelib_cache_fixture.rc"
+)
 lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${NATIVE_OBJECTS[@]}" kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${NATIVE_OBJECTS[@]}" "$BUILD_DIR/typelib_cache_fixture.res" kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 RUNNER=(wine)
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
     RUNNER=(xvfb-run -a wine)

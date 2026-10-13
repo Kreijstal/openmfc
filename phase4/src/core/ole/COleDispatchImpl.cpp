@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CCmdTargetDispatchSupport.h"
 #include "detail/OleExceptionTranslationSupport.h"
+#include "detail/TypeLibCacheSupport.h"
 #include <cstring>
 namespace {
 CCmdTarget* Owner(void* self) {
@@ -39,13 +40,7 @@ extern "C" long MS_ABI impl__GetTypeInfo_COleDispatchImpl__UEAAJIKPEAPEAUITypeIn
     IID iid{};
     if (index || !target->GetDispatchIID(&iid)) return DISP_E_BADINDEX;
     openmfc::detail::CmdTargetModuleScope module(target->m_pModuleState);
-    ITypeLib* library=nullptr;
-    HRESULT hr=target->GetTypeLib(locale,&library);
-    if (FAILED(hr)) return hr;
-    if (!library) return TYPE_E_CANTLOADLIBRARY;
-    hr=library->GetTypeInfoOfGuid(iid,result);
-    library->Release();
-    return hr;
+    return impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAPEAUITypeInfo___Z(target,locale,&iid,reinterpret_cast<void**>(result));
 }
 // Symbol: ?GetIDsOfNames@COleDispatchImpl@@UEAAJAEBU_GUID@@PEAPEA_WIKPEAJ@Z
 extern "C" long MS_ABI impl__GetIDsOfNames_COleDispatchImpl__UEAAJAEBU_GUID__PEAPEA_WIKPEAJ_Z(

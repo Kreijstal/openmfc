@@ -702,9 +702,8 @@ extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* p
 // jmp to the LeaveCriticalSection import (0x1802c65a0) on the lock-table
 // element 0x1803c3cf8 = 0x1803c3af0 + 13 * 0x28, the table
 // ?AfxUnlockGlobals@@YAXH@Z (0x335e0) indexes.  The exported thunks for
-// those three are called here.  Note that OpenMFC's CTypeLibCache::Lock
-// (core/ole/CTypeLibCache.cpp) keeps its state in a side table keyed by the
-// cache pointer rather than in a retail-layout m_cRef.
+// those three are called here. CTypeLibCache::Lock updates the native
+// m_cRef member at +0x30.
 // `this` must carry an MSVC-layout vtable (see kVs_* above); the caller in
 // this tree is COleControl::InitializeIIDs, run on the client's control.
 // Symbol: ?EnableTypeLib@CCmdTarget@@QEAAXXZ
@@ -953,32 +952,7 @@ extern "C" unsigned int MS_ABI impl__GetStackSize_CCmdTarget__KAIPEBEG_Z(const u
 // is what overrides it with `return 1;`.
 
 
-// CCmdTarget::GetTypeInfoOfGuid -- STUB.  Retail (mfc140u 0x26bfb0):
-//     AfxLockGlobals(13); pCache = this->vtable[+0x50]()   ; GetTypeLibCache
-//     if (pCache->LookupTypeInfo(lcid, guid, ppTypeInfo))  ; 0x26c400
-//         return S_OK;
-//     hr = TYPE_E_CANTLOADLIBRARY;
-//     if (!pCache->Lookup(lcid, &pTypeLib))                ; 0x26c360
-//         if (this->vtable[+0x58](lcid, &pTypeLib) < 0)    ; virtual GetTypeLib
-//             load it from GetModuleFileNameW(module state's hCurrentInstance)
-//             via the OLEAUT32 ordinal-161 import (LoadTypeLib), caching the
-//             ITypeLib back into the CTypeLibCache record at +0x08/+0x10/+0x18;
-//     if (pTypeLib) { hr = pTypeLib->GetTypeInfoOfGuid(guid, ppTypeInfo);
-//                     pTypeLib->Release();
-//                     pCache->CacheTypeInfo(lcid, guid, *ppTypeInfo); }  ; 0x26c470
-//     LeaveCriticalSection(...); return hr;
-// Not transcribed: OpenMFC's CTypeLibCache (core/ole/CTypeLibCache.cpp) is a
-// side table keyed by the cache pointer rather than the retail record, and the
-// module-state LoadTypeLib fallback is not modelled.  Retail's own failure
-// value, TYPE_E_CANTLOADLIBRARY, is returned rather than a fake success.
-// (Retail passes the vslot-10 result to CTypeLibCache::LookupTypeInfo at
-// 0x26c400 without a NULL check, and for the base class that result is NULL.)
-// Symbol: ?GetTypeInfoOfGuid@CCmdTarget@@QEAAJKAEBU_GUID@@PEAPEAUITypeInfo@@@Z
-extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAPEAUITypeInfo___Z(CCmdTarget* pThis, unsigned long lcid, const void* guid, void** ppTypeInfo) {
-    (void)pThis; (void)lcid; (void)guid;
-    if (ppTypeInfo) *ppTypeInfo = nullptr;
-    return static_cast<long>(0x80029c4aL); // TYPE_E_CANTLOADLIBRARY
-}
+// Cached type information and module fallback are implemented in CCmdTargetTypeInfo.cpp.
 
 // CCmdTarget::GetTypeLib() -- retail mfc140u 0x1de7a0 is exactly
 //     mov $0x80029c4a,%eax ; ret

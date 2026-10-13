@@ -35,8 +35,6 @@ std::unordered_map<UINT, RibbonStatusPaneState> g_statusPaneStates;
 std::mutex g_threadSlotMutex;
 std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
 std::mutex g_typeLibCacheMutex;
-std::unordered_map<void*, TypeLibCacheState> g_typeLibCaches;
-std::unordered_map<const CCmdTarget*, std::unique_ptr<TypeLibCacheHandle>> g_targetTypeLibCaches;
 std::unordered_map<std::wstring, std::unique_ptr<TypeLibCacheHandle>> g_guidTypeLibCaches;
 std::mutex g_splitterWndMutex;
 std::unordered_map<const CSplitterWnd*, SplitterLayoutState> g_splitterWndStates;
@@ -237,10 +235,10 @@ void* GetGuidTypeLibCache(const GUID& guid) {
     std::wstring key = guidText;
     auto it = g_guidTypeLibCaches.find(key);
     if (it != g_guidTypeLibCaches.end()) {
-        return it->second.get();
+        return &it->second->cache;
     }
-    auto ownedCache = std::make_unique<TypeLibCacheHandle>();
-    void* cache = ownedCache.get();
+    auto ownedCache = std::make_unique<TypeLibCacheHandle>(guid);
+    void* cache = &ownedCache->cache;
     g_guidTypeLibCaches.emplace(std::move(key), std::move(ownedCache));
     return cache;
 }
