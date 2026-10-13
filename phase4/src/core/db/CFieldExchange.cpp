@@ -642,94 +642,6 @@ void RfxTextString(CFieldExchange* pFX, const wchar_t* szName, void* pString, in
 }
 
 // ---------------------------------------------------------------------------
-// RFX_Text(TCHAR*) body shared by the wchar_t* (mfc140u RVA 0x1feca0) and
-// char* (RVA 0x1ff140) exports; they differ only in the C type and the
-// character size.
-// ---------------------------------------------------------------------------
-template <typename CharT>
-void RfxTextBuffer(CFieldExchange* pFX, const wchar_t* szName, CharT* value, int nMaxLength, int nColumnType, short nScale, int nCFType) {
-    if (!pFX || !szName || !value) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-    UINT nField = 0;
-    if (!pFX->IsFieldType(&nField)) return;
-    SQLLEN* plLength = LengthBuffer(pFX, nField);
-    CRecordset* prs = pFX->m_pRecordset;
-    const unsigned long n = nField - 1;
-    auto strLen = [](const CharT* s) -> size_t { size_t i = 0; while (s[i]) ++i; return i; };
-    switch (RfxOp(pFX)) {
-    case rfxop::BindParam:
-        // 0x1ff088: *plLength = paramnull ? SQL_NULL_DATA : SQL_NTS; rc = SQLBindParameter(m_hstmt, nField,
-        // m_nFieldType, nCFType, nColumnType, nMaxLength, nScale, value, nMaxLength * sizeof(CharT), plLength);
-        // if (rc != SQL_SUCCESS) ThrowDBException(rc, m_hstmt); m_mapParamIndex[value] = nField;
-        if (!plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-        *plLength = impl__IsParamStatusNull_CRecordset__QEBAHK_Z(prs, n) ? SQL_NULL_DATA : SQL_NTS;
-        {
-            // Deviation: SQL_PARAM_INPUT for the absent m_nFieldType, the recordset's m_hstmt for the absent fx.m_hstmt.
-            RETCODE rc = ::SQLBindParameter(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), SQL_PARAM_INPUT,
-                                            static_cast<SQLSMALLINT>(nCFType), static_cast<SQLSMALLINT>(nColumnType),
-                                            static_cast<SQLULEN>(nMaxLength), nScale, value,
-                                            static_cast<SQLLEN>(nMaxLength) * static_cast<SQLLEN>(sizeof(CharT)), plLength);
-            if (rc != SQL_SUCCESS) ThrowDBException(pFX, rc, RecordsetHstmt(pFX));
-        }
-        prs->m_mapParamIndex.SetAt(value,reinterpret_cast<void*>(UINT_PTR(nField)));
-        return;
-    case rfxop::BindFieldToColumn: {
-        // 0x1fef71: nLen as RetailTextLen / TextBindLength; value[nLen] = 0;
-        // rc = SQLBindCol(m_prs->m_hstmt, nField, nCFType, value, (nLen + 1) * sizeof(CharT), plLength);
-        // if (!Check(rc)) ThrowDBException(rc, SQL_NULL_HSTMT); m_mapFieldIndex[value] = nField;
-        SQLULEN nLen = TextBindLength(pFX, nField, static_cast<SQLULEN>(nMaxLength));
-        plLength = LengthBuffer(pFX, nField);  // native field-info storage retains the bound address
-        value[nLen] = 0;
-        RETCODE rc = ::SQLBindCol(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), static_cast<SQLSMALLINT>(nCFType),
-                                  value, static_cast<SQLLEN>((nLen + 1) * sizeof(CharT)), plLength);
-        if (!prs->Check(rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
-        prs->m_mapFieldIndex.SetAt(value,reinterpret_cast<void*>(UINT_PTR(nField)));
-        return;
-    }
-    case rfxop::Fixup:
-        // 0x1feeec: if (*plLength == SQL_NULL_DATA) { SetNullFieldStatus(n); value[0] = 0; }
-        // else { if (m_prs->m_pDatabase->m_bStripTrailingSpaces) <strip>; *plLength = strlen(value) * sizeof(CharT); }
-        if (plLength && *plLength == SQL_NULL_DATA) {
-            impl__SetNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-            value[0] = 0;
-        } else if (plLength) {
-            // Deviation: no m_bStripTrailingSpaces in this CDatabase (retail default FALSE), nothing stripped.
-            *plLength = static_cast<SQLLEN>(strLen(value) * sizeof(CharT));
-        }
-        return;
-    case rfxop::MarkForAddNew:
-        // 0x1feead: if (value[0] != 0) { SetDirtyFieldStatus(n); ClearNullFieldStatus(n); }
-        if (value[0] != 0) {
-            impl__SetDirtyFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-            impl__ClearNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-        }
-        return;
-    case rfxop::MarkForUpdate:
-        // 0x1fee81: if (value[0] == 0) SetNullFieldStatus(n); else ClearNullFieldStatus(n); then the default call
-        if (value[0] == 0) impl__SetNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-        else impl__ClearNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-        break;
-    case rfxop::StoreField:
-        // 0x1fee21: AfxStoreField(*m_prs, nField, value)
-        impl__AfxStoreField__YAXAEAVCRecordset__IPEAX_Z(prs, nField, value);
-        return;
-    case rfxop::LoadField:
-        // 0x1fedce: m_pbFieldFlags[n] |= m_bStatus; null -> *plLength = SQL_NULL_DATA, else
-        // *plLength = strlen(m_pvDataCache) * sizeof(CharT) (retail copies nothing back here).
-        // Retail does this inline; only the null half exists here (AfxLoadField thunk).
-        impl__AfxLoadField__YAXAEAVCRecordset__IPEAXPEA_J_Z(prs, nField, value, plLength);
-        return;
-    case rfxop::SetFieldNull:   // 0x1fee34: needs m_pvField / m_bField -- not modelled
-    case rfxop::AllocCache:     // 0x1fed9b: m_pvDataCache = new BYTE[nMaxLength * sizeof(CharT)], m_nDataType = AFX_RFX_LPTSTR (18) -- no cache here
-        return;
-    default:
-        break;
-    }
-    // 0x1fed58: Default(szName, value, plLength, nCFType, strlen(value) * sizeof(CharT), nMaxLength)
-    impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(pFX, szName, value, plLength, nCFType,
-        static_cast<unsigned __int64>(strLen(value) * sizeof(CharT)), static_cast<unsigned __int64>(nMaxLength));
-}
-
-// ---------------------------------------------------------------------------
 // RFX_Date(CTime&) (RVA 0x201140) and RFX_Date(COleDateTime&) (RVA 0x201e20)
 // share one body shape: the value is never bound directly, a TIMESTAMP_STRUCT
 // proxy is, and every operation converts between the two.  The differences are
@@ -1088,20 +1000,6 @@ extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WAEAV__CString
 // mfc140u RVA 0x1ff5c0 -- RfxTextString<wchar_t>: SQL_C_WCHAR (-8), wcsnlen, byte lengths x2.
 extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HHF_Z(CFieldExchange* pFX, const wchar_t* szName, void* value, int nMaxLength, int nColumnType, short nScale) {
     RfxTextString<wchar_t>(pFX, szName, value, nMaxLength, nColumnType, nScale, SQL_C_WCHAR);
-}
-
-// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WPEADHHF@Z
-// void RFX_Text(CFieldExchange*, LPCTSTR, char* value, int nMaxLength, int nColumnType, short nScale)
-// mfc140u RVA 0x1ff140 -- RfxTextBuffer over char with SQL_C_CHAR (1).
-extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WPEADHHF_Z(CFieldExchange* pFX, const wchar_t* szName, char* value, int nMaxLength, int nColumnType, short nScale) {
-    RfxTextBuffer<char>(pFX, szName, value, nMaxLength, nColumnType, nScale, SQL_C_CHAR);
-}
-
-// Symbol: ?RFX_Text@@YAXPEAVCFieldExchange@@PEB_WPEA_WHHF@Z
-// void RFX_Text(CFieldExchange*, LPCTSTR, wchar_t* value, int nMaxLength, int nColumnType, short nScale)
-// mfc140u RVA 0x1feca0 -- RfxTextBuffer over wchar_t with SQL_C_WCHAR (-8).
-extern "C" void MS_ABI impl__RFX_Text__YAXPEAVCFieldExchange__PEB_WPEA_WHHF_Z(CFieldExchange* pFX, const wchar_t* szName, wchar_t* value, int nMaxLength, int nColumnType, short nScale) {
-    RfxTextBuffer<wchar_t>(pFX, szName, value, nMaxLength, nColumnType, nScale, SQL_C_WCHAR);
 }
 
 // Symbol: ?RFX_Text_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEADPEAPEA_JH@Z

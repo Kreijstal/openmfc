@@ -281,6 +281,7 @@ static void ownershipAndRecreation() {
 #include "recordset_storage_tests.h"
 #include "rfx_binary_tests.h"
 #include "rfx_scalar_tests.h"
+#include "rfx_text_buffer_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -305,6 +306,7 @@ int main() {
     if (SUCCEEDED(hr)) recordsetFieldStorage();
     if (SUCCEEDED(hr)) binaryFieldExchange();
     if (SUCCEEDED(hr)) scalarFieldExchange();
+    if (SUCCEEDED(hr)) textBufferFieldExchange();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

@@ -60,6 +60,7 @@ on:
       - 'tests/recordset_storage_tests.h'
       - 'tests/rfx_binary_tests.h'
       - 'tests/rfx_scalar_tests.h'
+      - 'tests/rfx_text_buffer_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -222,6 +223,7 @@ on:
       - 'tests/recordset_storage_tests.h'
       - 'tests/rfx_binary_tests.h'
       - 'tests/rfx_scalar_tests.h'
+      - 'tests/rfx_text_buffer_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -394,6 +396,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXScalar.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
@@ -547,6 +550,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXScalar.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
@@ -672,6 +676,7 @@ jobs:
             echo /I"%GITHUB_WORKSPACE%/phase4/src"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXScalar.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
