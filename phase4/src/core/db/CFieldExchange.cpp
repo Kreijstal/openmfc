@@ -46,7 +46,6 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long sc);
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(short nRetCode, void* pdb, void* hstmt);
-extern "C" int MS_ABI impl__Check_CRecordset__UEBAHF_Z(const CRecordset* pThis, short retCode);
 extern "C" long long* MS_ABI impl__GetFieldLengthBuffer_CRecordset__QEAAPEA_JKH_Z(CRecordset* pThis, unsigned long field, int grow);
 extern "C" void MS_ABI impl__SetNullFieldStatus_CRecordset__QEAAXK_Z(CRecordset* pThis, unsigned long field);
 extern "C" void MS_ABI impl__ClearNullFieldStatus_CRecordset__QEAAXK_Z(CRecordset* pThis, unsigned long field);
@@ -198,27 +197,10 @@ void CFieldExchange::SetNull(const wchar_t* lpszName) {
 //   +0x144 m_bUpdatable, +0x148 m_bAppendable, +0x178 m_pbFieldFlags,
 //   +0x180 m_pbParamFlags, +0x188 m_plParamLength (GetFieldLengthBuffer's
 //   parameter array), +0x194 m_dwRowsetSize (ctor stores 25).
-// This codebase's CRecordset has m_hstmt (+8) and m_pDatabase (+0x10) at the
-// retail offsets and none of the arrays; the stand-ins are the exported status
-// thunks in core/db/CRecordset.cpp (backed by RecordsetState: dirtyFields /
-// nullFields / nullParams / boundFieldIndexes / boundParamIndexes /
-// fieldLengths / fields) plus the file-local proxy and parameter-length tables
-// below.  Field status bit 1 == dirty, bit 2 == null, exactly as in retail
-// m_pbFieldFlags.  Indexes passed to the status thunks are 0-based
-// (nField - 1), as in retail.  The two CMapPtrToPtr entries retail makes
-// (m_mapFieldIndex[pv] = nField, m_mapParamIndex[pv] = nField, 1-based) are
-// stored 0-based in boundFieldIndexes / boundParamIndexes because that is what
-// this CRecordset's IsFieldNull / IsFieldDirty look up.
-//
-// NOT reproduced: the retail range checks "nField - 1 < m_prs->m_nFields"
-// (AfxThrowUserException, RVA 0x2a4310) that precede every status-flag access.
-// This CRecordset::m_nFields is not maintained by an RFX pass, so the check
-// would misfire.  The retail vtable calls m_prs->Check(rc) (slot 21) and
-// m_prs->ThrowDBException(rc, hstmt) (slot 24) go through impl__Check_CRecordset
-// and the AfxThrowDBException thunk, because this CRecordset's vtable is not
-// the retail one.  Retail's SQLBindCol / SQLBindParameter / SQLGetData are the
-// ODBC32 delay-load slots 0x3e9038 (ordinal 4), 0x3e9040 (ordinal 72) and
-// 0x3e9120 (ordinal 43) -- resolved against ODBC32's export table.
+// Native recordset arrays and one-based binding maps are now represented
+// directly. RFX-specific proxy lifetime, metadata loading, cache comparison,
+// and SQL-building operations still require their remaining implementation.
+// Status and length helpers enforce the native field/parameter bounds.
 // =============================================================================
 
 namespace {
@@ -249,41 +231,12 @@ inline void* RecordsetDatabase(const CFieldExchange* pFX) {
 
 // Retail: m_prs->ThrowDBException(rc, hstmt) -- CRecordset vtable slot 24, body
 // at mfc140u RVA 0x1fdff0: `if (!hstmt) hstmt = m_hstmt; AfxThrowDBException(rc, m_pDatabase, hstmt)`.
-void ThrowDBException(const CFieldExchange* pFX, RETCODE rc, HSTMT hstmt) {
-    if (!hstmt) hstmt = RecordsetHstmt(pFX);
-    impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(rc, RecordsetDatabase(pFX), hstmt);
+void ThrowDBException(const CFieldExchange* fx,RETCODE code,HSTMT statement) {
+    fx->m_prs->ThrowDBException(code,statement);
 }
 
-// Retail: the length buffer comes from m_prs->GetFieldLengthBuffer(nField - 1,
-// m_nFieldType) (0x1fc950): &m_rgFieldInfos[n].m_nLength for a column,
-// &m_plParamLength[n] for a parameter, AfxThrowUserException out of range.  The
-// stand-in thunk in core/db/CRecordset.cpp keeps ONE std::vector (fieldLengths)
-// and its third argument means "grow", so parameter lengths get a file-local
-// table of their own here (std::deque: stable addresses); otherwise field 0 and
-// parameter 0 would share an SQLLEN that SQLBindCol and SQLBindParameter both
-// write through.
-std::unordered_map<const CRecordset*, std::deque<SQLLEN>>& ParamLengthTable() {
-    static std::unordered_map<const CRecordset*, std::deque<SQLLEN>> table;
-    return table;
-}
-// RecordsetState::fieldLengths is a std::vector, so growing it through the
-// thunk would move every SQLLEN that SQLBindCol already holds.  Loading the
-// column descriptions first (LoadRecordsetFields sizes the vector to the
-// column count) keeps later lookups inside the existing storage; it is a no-op
-// once loaded.  A column bound beyond that count still grows the vector.
-void PrepareLengthBuffers(CRecordset* prs) {
-    if (prs && prs->m_hstmt != SQL_NULL_HSTMT) LoadRecordsetFields(prs);
-}
-SQLLEN* LengthBuffer(CFieldExchange* pFX, UINT nField) {
-    if (!pFX->m_pRecordset || nField == 0) return nullptr;
-    PrepareLengthBuffers(pFX->m_pRecordset);
-    const unsigned long n = nField - 1;
-    if (!IsParamOperation(pFX)) {
-        return reinterpret_cast<SQLLEN*>(impl__GetFieldLengthBuffer_CRecordset__QEAAPEA_JKH_Z(pFX->m_pRecordset, n, 1));
-    }
-    std::deque<SQLLEN>& lengths = ParamLengthTable()[pFX->m_pRecordset];
-    while (lengths.size() <= n) lengths.push_back(0);
-    return &lengths[n];
+SQLLEN* LengthBuffer(CFieldExchange* fx,UINT field) {
+    return reinterpret_cast<SQLLEN*>(impl__GetFieldLengthBuffer_CRecordset__QEAAPEA_JKH_Z(fx->m_prs,field-1,fx->m_nFieldType));
 }
 
 // Retail m_pvFieldProxy / m_pvParamProxy: one heap TIMESTAMP_STRUCT per
@@ -698,7 +651,7 @@ void RfxTextString(CFieldExchange* pFX, const wchar_t* szName, void* pString, in
                                         static_cast<SQLLEN>(nMaxLength) * static_cast<SQLLEN>(sizeof(CH)), plLength);
         value.ReleaseBuffer();
         if (rc != SQL_SUCCESS) ThrowDBException(pFX, rc, RecordsetHstmt(pFX));
-        EnsureRecordsetState(prs).boundParamIndexes[pString] = static_cast<int>(n);
+        prs->m_mapParamIndex.SetAt(pString,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::BindFieldToColumn: {
@@ -708,15 +661,15 @@ void RfxTextString(CFieldExchange* pFX, const wchar_t* szName, void* pString, in
         // (nLen + 1) * sizeof(CH), plLength); value.ReleaseBuffer();
         // if (!Check(rc)) ThrowDBException(rc, SQL_NULL_HSTMT); m_mapFieldIndex[&value] = nField;
         SQLULEN nLen = TextBindLength(pFX, nField, static_cast<SQLULEN>(nMaxLength));
-        plLength = LengthBuffer(pFX, nField);  // re-read after the column load (see PrepareLengthBuffers)
+        plLength = LengthBuffer(pFX, nField);  // native field-info storage retains the bound address
         if (nLen > 0x7ffffffeULL) { impl__AfxThrowMemoryException__YAXXZ(); return; }
         CH* buffer = value.GetBufferSetLength(static_cast<int>(nLen) + 1);
         value.LockBuffer();
         RETCODE rc = ::SQLBindCol(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), static_cast<SQLSMALLINT>(nCFType),
                                   buffer, static_cast<SQLLEN>((nLen + 1) * sizeof(CH)), plLength);
         value.ReleaseBuffer();
-        if (!impl__Check_CRecordset__UEBAHF_Z(prs, rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
-        EnsureRecordsetState(prs).boundFieldIndexes[pString] = static_cast<int>(n);
+        if (!prs->Check(rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
+        prs->m_mapFieldIndex.SetAt(pString,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::Fixup:
@@ -808,19 +761,19 @@ void RfxTextBuffer(CFieldExchange* pFX, const wchar_t* szName, CharT* value, int
                                             static_cast<SQLLEN>(nMaxLength) * static_cast<SQLLEN>(sizeof(CharT)), plLength);
             if (rc != SQL_SUCCESS) ThrowDBException(pFX, rc, RecordsetHstmt(pFX));
         }
-        EnsureRecordsetState(prs).boundParamIndexes[value] = static_cast<int>(n);
+        prs->m_mapParamIndex.SetAt(value,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     case rfxop::BindFieldToColumn: {
         // 0x1fef71: nLen as RetailTextLen / TextBindLength; value[nLen] = 0;
         // rc = SQLBindCol(m_prs->m_hstmt, nField, nCFType, value, (nLen + 1) * sizeof(CharT), plLength);
         // if (!Check(rc)) ThrowDBException(rc, SQL_NULL_HSTMT); m_mapFieldIndex[value] = nField;
         SQLULEN nLen = TextBindLength(pFX, nField, static_cast<SQLULEN>(nMaxLength));
-        plLength = LengthBuffer(pFX, nField);  // re-read after the column load (see PrepareLengthBuffers)
+        plLength = LengthBuffer(pFX, nField);  // native field-info storage retains the bound address
         value[nLen] = 0;
         RETCODE rc = ::SQLBindCol(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), static_cast<SQLSMALLINT>(nCFType),
                                   value, static_cast<SQLLEN>((nLen + 1) * sizeof(CharT)), plLength);
-        if (!impl__Check_CRecordset__UEBAHF_Z(prs, rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
-        EnsureRecordsetState(prs).boundFieldIndexes[value] = static_cast<int>(n);
+        if (!prs->Check(rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
+        prs->m_mapFieldIndex.SetAt(value,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::Fixup:
@@ -917,7 +870,7 @@ void RfxDateProxied(CFieldExchange* pFX, const wchar_t* szName, typename Traits:
         RETCODE rc = ::SQLBindParameter(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), SQL_PARAM_INPUT,
                                         SQL_C_TIMESTAMP, SQL_TIMESTAMP, 23, 0, proxy, 0, plLength);
         if (rc != SQL_SUCCESS) ThrowDBException(pFX, rc, RecordsetHstmt(pFX));
-        EnsureRecordsetState(prs).boundParamIndexes[&value] = static_cast<int>(n);
+        prs->m_mapParamIndex.SetAt(&value,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::RebindParam: {
@@ -938,8 +891,8 @@ void RfxDateProxied(CFieldExchange* pFX, const wchar_t* szName, typename Traits:
         TIMESTAMP_STRUCT* proxy = DateProxy(prs, nField, false, true);
         RETCODE rc = ::SQLBindCol(RecordsetHstmt(pFX), static_cast<SQLUSMALLINT>(nField), SQL_C_TIMESTAMP, proxy,
                                   sizeof(TIMESTAMP_STRUCT), plLength);
-        if (!impl__Check_CRecordset__UEBAHF_Z(prs, rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
-        EnsureRecordsetState(prs).boundFieldIndexes[&value] = static_cast<int>(n);
+        if (!prs->Check(rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
+        prs->m_mapFieldIndex.SetAt(&value,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::BindFieldForUpdate: {
@@ -1115,7 +1068,7 @@ extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(
                                         static_cast<SQLSMALLINT>(nCFType), static_cast<SQLSMALLINT>(nCFType),
                                         static_cast<SQLULEN>(cbPrecision), 0, pv, 0, plLength);
         if (rc != SQL_SUCCESS) ThrowDBException(pThis, rc, prs->m_hstmt);
-        EnsureRecordsetState(prs).boundParamIndexes[pv] = static_cast<int>(n);
+        prs->m_mapParamIndex.SetAt(pv,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::RebindParam:
@@ -1125,8 +1078,8 @@ extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(
     case rfxop::BindFieldToColumn: {
         RETCODE rc = ::SQLBindCol(prs->m_hstmt, static_cast<SQLUSMALLINT>(nField), static_cast<SQLSMALLINT>(nCFType),
                                   pv, static_cast<SQLLEN>(cbValue), plLength);
-        if (!impl__Check_CRecordset__UEBAHF_Z(prs, rc)) ThrowDBException(pThis, rc, SQL_NULL_HSTMT);
-        EnsureRecordsetState(prs).boundFieldIndexes[pv] = static_cast<int>(n);
+        if (!prs->Check(rc)) ThrowDBException(pThis, rc, SQL_NULL_HSTMT);
+        prs->m_mapFieldIndex.SetAt(pv,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     }
     case rfxop::BindFieldForUpdate:
@@ -1173,7 +1126,7 @@ extern "C" void MS_ABI impl__AfxRFXBulkDefault__YAXPEAVCFieldExchange__PEB_WPEAX
         if (!pFX->m_pRecordset) return;
         RETCODE rc = ::SQLBindCol(pFX->m_pRecordset->m_hstmt, static_cast<SQLUSMALLINT>(pFX->m_nFields),
                                   static_cast<SQLSMALLINT>(nCFType), pv, static_cast<SQLLEN>(cbValue), plLength);
-        if (!impl__Check_CRecordset__UEBAHF_Z(pFX->m_pRecordset, rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
+        if (!pFX->m_pRecordset->Check(rc)) ThrowDBException(pFX, rc, SQL_NULL_HSTMT);
     } else if (RfxOp(pFX) == rfxop::Name) {
         if (!szName) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
         // *m_pstr += szName; *m_pstr += m_lpszSeparator;  -- no m_pstr here
@@ -1341,7 +1294,7 @@ extern "C" void MS_ABI impl__RFX_LongBinary__YAXPEAVCFieldExchange__PEB_WAEAVCLo
     const unsigned long n = nField - 1;
     switch (RfxOp(pFX)) {
     case rfxop::BindFieldToColumn:
-        if (prs) EnsureRecordsetState(prs).boundFieldIndexes[value] = static_cast<int>(n);
+        if (prs) prs->m_mapFieldIndex.SetAt(value,reinterpret_cast<void*>(UINT_PTR(nField)));
         return;
     case rfxop::BindFieldForUpdate:
         if (!plLength) return;

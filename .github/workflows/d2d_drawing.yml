@@ -57,6 +57,7 @@ on:
       - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
       - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
       - 'tests/pointer_map_tests.h'
+      - 'tests/recordset_storage_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -216,6 +217,7 @@ on:
       - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
       - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
       - 'tests/pointer_map_tests.h'
+      - 'tests/recordset_storage_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -388,6 +390,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -535,6 +538,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -654,6 +658,7 @@ jobs:
             echo /I"%GITHUB_WORKSPACE%/phase4/src"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"

@@ -145,101 +145,113 @@ public:
 //=============================================================================
 // CRecordset - ODBC Record Set
 //=============================================================================
+struct CFieldInfo {
+    void* m_pvDataCache;
+    SQLLEN m_nLength;
+    int m_nDataType;
+    BYTE m_bStatus;
+};
+struct CODBCFieldInfo {
+    CString m_strName;
+    SWORD m_nSQLType;
+    SQLULEN m_nPrecision;
+    SWORD m_nScale;
+    SWORD m_nNullability;
+};
 class CRecordset : public CObject {
     DECLARE_DYNAMIC(CRecordset)
 public:
-    CRecordset(CDatabase* pDatabase = nullptr);
-    virtual ~CRecordset();
-
-    // Opening and closing
-    virtual BOOL Open(UINT nOpenType = AFX_DB_USE_DEFAULT_TYPE,
-                      const wchar_t* lpszSQL = nullptr,
-                      DWORD dwOptions = CRecordset::none);
+    explicit CRecordset(CDatabase* database=nullptr);
+    ~CRecordset() override;
+    // Native release x64 virtual slots 5..26.
+    virtual BOOL Open(UINT type=AFX_DB_USE_DEFAULT_TYPE,const wchar_t* sql=nullptr,DWORD options=0);
     virtual void Close();
-    BOOL IsOpen() const { return m_hstmt != SQL_NULL_HSTMT; }
-    BOOL IsBOF() const { return m_bBOF; }
-    BOOL IsEOF() const { return m_bEOF; }
-    BOOL IsDeleted() const;
-    BOOL IsFieldDirty(void* pvField);
-    BOOL IsFieldNull(void* pvField);
-    BOOL IsFieldNullable(unsigned long dwField);
-
-    // Navigation
-    virtual void MoveFirst();
-    virtual void MoveLast();
-    virtual void MoveNext();
-    virtual void MovePrev();
-    virtual void Move(long nRows, WORD wFetchType = SQL_FETCH_RELATIVE);
-    void SetAbsolutePosition(long nRows);
-    long GetAbsolutePosition() const { return m_nAbsolutePosition; }
-
-    // Update operations
+    virtual void Move(long rows,WORD fetch=SQL_FETCH_RELATIVE);
+    virtual void SetRowsetSize(DWORD);
+    virtual void CheckRowsetError(RETCODE);
     virtual void AddNew();
     virtual void Edit();
-    virtual void Delete();
     virtual BOOL Update();
-    virtual void CancelUpdate();
-    void SetFieldNull(void* pvField, BOOL bNull = TRUE);
-    BOOL CanAppend() const;
-    BOOL CanRestart() const;
-    BOOL CanScroll() const;
-    BOOL CanTransact() const;
-    BOOL CanUpdate() const;
-
-    // Record count
-    long GetRecordCount() const { return m_nRecordCount; }
-    void SetRowsetSize(DWORD dwNewRowsetSize);
-    DWORD GetRowsetSize() const { return m_dwRowsetSize; }
-
-    // Native CRecordset prefix: statement@8, database@16, filter@24, sort@32.
-    HSTMT m_hstmt;
-    CDatabase* m_pDatabase;
-
-    // Filtering and sorting
-    CString m_strFilter;
-    CString m_strSort;
-
-    // Overridables
+    virtual void Delete();
+    virtual BOOL Requery();
     virtual CString GetDefaultConnect();
     virtual CString GetDefaultSQL();
-    virtual void DoFieldExchange(CFieldExchange* pFX);
-    virtual BOOL OnSetOptions(HSTMT hstmt);
-    virtual void OnFieldChange(void* pvField, LONG* plLength);
+    virtual void OnSetOptions(HSTMT);
+    virtual void OnSetUpdateOptions(HSTMT);
+    virtual void DoFieldExchange(CFieldExchange*);
+    virtual void DoBulkFieldExchange(CFieldExchange*);
+    virtual BOOL Check(RETCODE) const;
+    virtual void SetRowsetCurrencyStatus(RETCODE,WORD,long,SQLULEN);
+    virtual void PreBindFields();
+    virtual void ThrowDBException(RETCODE,HSTMT=nullptr);
+    virtual SQLLEN GetLBFetchSize(SQLLEN);
+    virtual SQLLEN GetLBReallocSize(SQLLEN);
 
-    // SQL access
-    HSTMT GetHSTMT() const { return m_hstmt; }
-    CDatabase* GetDatabase() const { return m_pDatabase; }
-    void SetDirtyFieldStatus(DWORD dwFieldStatus);
-    void ClearDirtyFieldStatus(DWORD dwFieldStatus);
+    BOOL IsOpen() const {return m_hstmt!=SQL_NULL_HSTMT;}
+    BOOL IsBOF() const {return m_bBOF;}
+    BOOL IsEOF() const {return m_bEOF;}
+    BOOL IsDeleted() const;
+    BOOL IsFieldDirty(void*);
+    BOOL IsFieldNull(void*);
+    BOOL IsFieldNullable(unsigned long);
+    void MoveFirst();void MoveLast();void MoveNext();void MovePrev();
+    void SetAbsolutePosition(long);
+    long GetAbsolutePosition() const {return m_lCurrentRecord;}
+    void CancelUpdate();
+    void SetFieldNull(void*,BOOL=TRUE);
+    void SetFieldDirty(void*,BOOL=TRUE);
+    BOOL CanAppend() const;BOOL CanRestart() const;BOOL CanScroll() const;BOOL CanTransact() const;BOOL CanUpdate() const;
+    long GetRecordCount() const {return m_lRecordCount;}
+    DWORD GetRowsetSize() const {return m_dwRowsetSize;}
+    HSTMT GetHSTMT() const {return m_hstmt;}
+    CDatabase* GetDatabase() const {return m_pDatabase;}
+    void OnFieldChange(void*,LONG*);
+    enum OpenOptions {none=0,readOnly=0x4,appendOnly=0x8,skipDeletedRecords=0x10,noDirtyFieldCheck=0x20,
+        useBookmarks=0x100,useMultiRowFetch=0x200,userAllocMultiRowBuffers=0x400,useExtendedFetch=0x800,
+        executeDirect=0x2000,optimizeBulkAdd=0x4000,firstBulkAdd=0x8000};
+    using OpenFlags=OpenOptions;
+    enum OpenType {dynaset=0,snapshot=1,forwardOnly=2,dynamic=3};
+    using FetchType=OpenType;
+    enum EditMode {noMode=0,edit=1,addnew=2};
+    void MarkForUpdate();void MarkForAddNew();
+    void FreeDataCache();
+    void AllocStatusArrays();
+    SQLLEN* GetFieldLengthBuffer(DWORD,int);
+    BYTE GetFieldStatus(DWORD);
+    void SetFieldStatus(DWORD,BYTE);
+    void ClearFieldStatus();
+    void SetDirtyFieldStatus(DWORD);void ClearDirtyFieldStatus(DWORD);
+    BOOL IsFieldStatusDirty(DWORD) const;
+    BOOL IsFieldStatusNull(DWORD) const;
+    void SetNullFieldStatus(DWORD);void ClearNullFieldStatus(DWORD);
+    BOOL IsParamStatusNull(DWORD) const;
+    void SetNullParamStatus(DWORD);void ClearNullParamStatus(DWORD);
+    int GetBoundFieldIndex(void*);int GetBoundParamIndex(void*);
+    void SetParamNull(int,BOOL=TRUE);
 
-    // Field exchange helpers
-    enum OpenFlags { none = 0, appendOnly = 1, readOnly = 2, optimizeBulkAdd = 4,
-                     useMultiRowFetch = 8, skipDeletedRecords = 16,
-                     executeDirect = 32, useExtendedFetch = 64,
-                     noDirtyFieldCheck = 128 };
-    enum FetchType { dynaset = 0, snapshot = 1, forwardOnly = 2, dynamic = 3 };
-
-    // Standard field exchange
-    void SetParamNull(int nIndex, BOOL bNull = TRUE);
-
-public:
-    // The remaining recordset fields still require their full native layout.
-    BOOL m_bBOF;
-    BOOL m_bEOF;
-    BOOL m_bDeleted;
-    BOOL m_bOpen;
-    int m_nFields;
-    int m_nParams;
-    long m_nRecordCount;
-    long m_nAbsolutePosition;
-    DWORD m_dwRowsetSize;
-    int m_nOpenType;
-    DWORD m_dwOptions;
-    int m_nEditMode;
-
-protected:
-    char _crecordset_padding[128];
+    HSTMT m_hstmt;CDatabase* m_pDatabase;CString m_strFilter;CString m_strSort;
+    UINT m_nFields,m_nParams;
+    BOOL m_bCheckCacheForDirtyFields,m_bRebindParams,m_bLongBinaryColumns,m_bUseUpdateSQL;
+    DWORD m_dwOptions;SWORD m_nResultCols;BOOL m_bUseODBCCursorLib;
+    CODBCFieldInfo* m_rgODBCFieldInfos;CFieldInfo* m_rgFieldInfos;
+    CMapPtrToPtr m_mapFieldIndex,m_mapParamIndex;
+    void** m_pvFieldProxy;void** m_pvParamProxy;UINT m_nProxyFields,m_nProxyParams;
+    UINT m_nOpenType,m_nDefaultType;
+    union {long m_lOpen;BOOL m_bOpen;};
+    UINT m_nEditMode;BOOL m_bEOFSeen;
+    union {long m_lRecordCount;long m_nRecordCount;};
+    union {long m_lCurrentRecord;long m_nAbsolutePosition;};
+    CString m_strCursorName;
+    BOOL m_nLockMode;UDWORD m_dwDriverConcurrency,m_dwConcurrency;
+    UWORD* m_rgRowStatus;SQLULEN m_dwRowsFetched;HSTMT m_hstmtUpdate;
+    BOOL m_bRecordsetDb,m_bBOF,m_bEOF,m_bUpdatable,m_bAppendable;
+    CString m_strSQL,m_strUpdateSQL,m_strTableName;
+    BOOL m_bScrollable,m_bDeleted;int m_nFieldsBound;
+    BYTE* m_pbFieldFlags;BYTE* m_pbParamFlags;SQLLEN* m_plParamLength;
+    DWORD m_dwInitialGetDataLen,m_dwRowsetSize,m_dwAllocatedRowsetSize;
+    CString m_strRequerySQL,m_strRequeryFilter,m_strRequerySort;
 };
+static_assert(sizeof(CRecordset)==440 && sizeof(CFieldInfo)==24 && sizeof(CODBCFieldInfo)==32,"native database field storage layouts");
 
 //=============================================================================
 // CRecordView - Record View (form view bound to a recordset)

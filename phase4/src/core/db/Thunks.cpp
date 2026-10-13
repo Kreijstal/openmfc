@@ -1166,11 +1166,6 @@ extern "C" void MS_ABI impl__Cancel_CDatabase__QEAAXXZ(CDatabase* pThis) {
 extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) {
     pThis->CancelUpdate();
 }
-// Symbol: ?ClearDirtyFieldStatus@CRecordset@@QEAAXK@Z
-// CRecordset::ClearDirtyFieldStatus
-extern "C" void MS_ABI impl__ClearDirtyFieldStatus_CRecordset__QEAAXK_Z(CRecordset* pThis, unsigned long p0) {
-    pThis->ClearDirtyFieldStatus(p0);
-}
 // Symbol: ?Close@CDatabase@@UEAAXXZ
 // CDatabase::Close
 extern "C" void MS_ABI impl__Close_CDatabase__UEAAXXZ(CDatabase* pThis) {
@@ -1190,11 +1185,6 @@ extern "C" int MS_ABI impl__CommitTrans_CDatabase__QEAAHXZ(CDatabase* pThis) {
 // CRecordset::Delete
 extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* pThis) {
     pThis->Delete();
-}
-// Symbol: ?DoFieldExchange@CRecordset@@UEAAXPEAVCFieldExchange@@@Z
-// CRecordset::DoFieldExchange
-extern "C" void MS_ABI impl__DoFieldExchange_CRecordset__UEAAXPEAVCFieldExchange___Z(CRecordset* pThis, CFieldExchange* p0) {
-    pThis->DoFieldExchange(p0);
 }
 // Symbol: ?Edit@CRecordset@@UEAAXXZ
 // CRecordset::Edit
@@ -1241,20 +1231,10 @@ extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, u
 extern "C" int MS_ABI impl__Rollback_CDatabase__QEAAHXZ(CDatabase* pThis) {
     return (int)pThis->Rollback();
 }
-// Symbol: ?SetDirtyFieldStatus@CRecordset@@QEAAXK@Z
-// CRecordset::SetDirtyFieldStatus
-extern "C" void MS_ABI impl__SetDirtyFieldStatus_CRecordset__QEAAXK_Z(CRecordset* pThis, unsigned long p0) {
-    pThis->SetDirtyFieldStatus(p0);
-}
 // Symbol: ?SetFieldNull@CRecordset@@QEAAXPEAXH@Z
 // CRecordset::SetFieldNull
 extern "C" void MS_ABI impl__SetFieldNull_CRecordset__QEAAXPEAXH_Z(CRecordset* pThis, void* p0, int p1) {
     pThis->SetFieldNull(p0, p1);
-}
-// Symbol: ?SetParamNull@CRecordset@@QEAAXHH@Z
-// CRecordset::SetParamNull
-extern "C" void MS_ABI impl__SetParamNull_CRecordset__QEAAXHH_Z(CRecordset* pThis, int p0, int p1) {
-    pThis->SetParamNull(p0, p1);
 }
 // Symbol: ?SetRowsetSize@CRecordset@@UEAAXK@Z
 // CRecordset::SetRowsetSize
