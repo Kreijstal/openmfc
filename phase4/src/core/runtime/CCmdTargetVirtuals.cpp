@@ -254,3 +254,32 @@ extern "C" int MS_ABI impl__IsResultExpected_CCmdTarget__QEAAHXZ(CCmdTarget* tar
     target->m_bResultExpected = TRUE;
     return expected;
 }
+
+
+// Symbol: ?ExternalRelease@CCmdTarget@@QEAAKXZ
+extern "C" unsigned long MS_ABI impl__ExternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis) {
+    if (!pThis) return 0;
+    if (pThis->m_pOuterUnknown != nullptr)
+        return pThis->m_pOuterUnknown->Release();
+    return impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
+}
+
+// Symbol: ?ExternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
+extern "C" unsigned long MS_ABI impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(CCmdTarget* pThis, const void* iid, void** ppvObj) {
+    if (!pThis || !iid || !ppvObj) return 0x80004003UL; // E_POINTER
+    if (pThis->m_pOuterUnknown != nullptr)
+        return static_cast<unsigned long>(
+            pThis->m_pOuterUnknown->QueryInterface(*static_cast<const IID*>(iid), ppvObj));
+    return impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(pThis, iid, ppvObj);
+}
+
+// Symbol: ?ExternalDisconnect@CCmdTarget@@QEAAXXZ
+extern "C" void MS_ABI impl__ExternalDisconnect_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
+    if (!pThis) return;
+    if (pThis->m_dwRef == 0) return;
+    IUnknown* pUnk = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IUnknown);
+    ::InterlockedIncrement(reinterpret_cast<LONG volatile*>(&pThis->m_dwRef));
+    if (pUnk != nullptr)
+        ::CoDisconnectObject(pUnk, 0);
+    pThis->m_dwRef = 0;
+}

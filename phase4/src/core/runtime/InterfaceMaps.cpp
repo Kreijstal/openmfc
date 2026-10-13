@@ -2,10 +2,15 @@
 // Sources: global_interface_maps.cpp
 
 #include "detail/InterfaceMapsSupport.h"
+#include <guiddef.h>
 
 namespace openmfc { namespace detail { namespace interfacemaps {
 const AFX_INTERFACEMAP_ENTRY g_ifaceEnd[] = { { nullptr, (size_t)-1 } };
-const AFX_INTERFACEMAP g_imap_CCmdTarget = { nullptr, g_ifaceEnd };
+namespace {
+constexpr IID dispatchIID={0x00020400,0,0,{0xc0,0,0,0,0,0,0,0x46}};
+const AFX_INTERFACEMAP_ENTRY rootEntries[]={{&dispatchIID,0x20},{nullptr,static_cast<size_t>(-1)}};
+}
+const AFX_INTERFACEMAP g_imap_CCmdTarget = { nullptr, rootEntries };
 }}}
 
 // Symbol: ?GetThisInterfaceMap@CCmdTarget@@KAPEBUAFX_INTERFACEMAP@@XZ

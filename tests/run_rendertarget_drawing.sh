@@ -21,7 +21,8 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
-    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/InterfaceMaps.cpp
+    phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp
+    phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/runtime/InterfaceMaps.cpp
     phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
     phase4/src/core/runtime/D2DMessages.cpp
@@ -71,6 +72,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
 for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
+                  ('core/runtime/CCmdTargetDispatch.cpp', 'CCmdTargetDispatch'),
+                  ('core/ole/COleDispatchImpl.cpp', 'COleDispatchImpl'),
                   ('core/window/CWndD2D.cpp', 'CWndD2D'),
                   ('core/window/CWndAccessibility.cpp', 'CWndAccessibility'),
                   ('core/window/CWndAccessibilityInterfaces.cpp', 'CWndAccessibilityInterfaces'),

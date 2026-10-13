@@ -39,3 +39,6 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_ST
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE* state) {
     AFX_MODULE_STATE* previous=g_cmdTestCurrentModule; g_cmdTestCurrentModule=state; return previous;
 }
+
+// Property getter allocation/type failures use the framework exception sibling.
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long) { std::abort(); }

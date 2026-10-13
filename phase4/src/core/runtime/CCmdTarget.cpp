@@ -713,14 +713,7 @@ extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* p
     Shadow(pThis)->m_xInnerUnknown = const_cast<void**>(&kInnerUnknownVtbl[0]);
 }
 
-// CCmdTarget::EnableAutomation -- STUB.  Retail (mfc140u 0x24fcf0) stores the
-// vtable at 0x18032e450 -- whose first slots are ?QueryInterface@
-// COleDispatchImpl@@, ?AddRef@COleDispatchImpl@@, ?Release@COleDispatchImpl@@ --
-// into m_xDispatch at this+0x20.
-// The storage is now available; the COleDispatchImpl table still needs its
-// live owner, dispatch-map and invocation behavior before activation.
-// Symbol: ?EnableAutomation@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__EnableAutomation_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
+// EnableAutomation is implemented in CCmdTargetDispatch.cpp with a live owner-backed table.
 
 // CCmdTarget::EnableConnections -- STUB.  Retail (mfc140u 0x24c230) stores the
 // vtable at 0x18032c2e0 -- whose first slots are ?QueryInterface@
@@ -795,58 +788,21 @@ extern "C" int MS_ABI impl__EnumOleVerbs_CCmdTarget__QEAAHPEAPEAUIEnumOLEVERB___
 // g_ifaceEnd terminator), and CoDisconnectObject(NULL, 0) would fault, so the
 // call is skipped when the lookup comes back NULL.  The refcount bookkeeping is
 // unchanged.
-// Symbol: ?ExternalDisconnect@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__ExternalDisconnect_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) {
-    if (!pThis) return;
-    S_CCmdTarget* p = Shadow(pThis);
-    if (p->m_dwRef == 0) return;
-    IUnknown* pUnk = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IUnknown);
-    ::InterlockedIncrement(reinterpret_cast<LONG volatile*>(&p->m_dwRef));
-    if (pUnk != nullptr)
-        ::CoDisconnectObject(pUnk, 0);
-    p->m_dwRef = 0;
-}
+
 
 // CCmdTarget::ExternalQueryInterface() -- retail mfc140u 0x26d040:
 //     mov 0x10(%rcx),%r9 ; test ; jne -> tail-call m_pOuterUnknown->[+0x00]
 //                                       (IUnknown vtable slot 0 = QueryInterface)
 //     otherwise: tail-jump to InternalQueryInterface (0x26cfe0)
-// Symbol: ?ExternalQueryInterface@CCmdTarget@@QEAAKPEBXPEAPEAX@Z
-extern "C" unsigned long MS_ABI impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(CCmdTarget* pThis, const void* iid, void** ppvObj) {
-    if (!pThis || !iid || !ppvObj) return 0x80004003UL; // E_POINTER
-    S_CCmdTarget* p = Shadow(pThis);
-    if (p->m_pOuterUnknown != nullptr)
-        return static_cast<unsigned long>(
-            p->m_pOuterUnknown->QueryInterface(*static_cast<const IID*>(iid), ppvObj));
-    return impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(pThis, iid, ppvObj);
-}
+
 
 // CCmdTarget::ExternalRelease() -- retail mfc140u 0x26ce20:
 //     mov 0x10(%rcx),%rdx ; test ; jne -> tail-call m_pOuterUnknown->[+0x10]
 //                                        (IUnknown vtable slot 2 = Release)
 //     otherwise: tail-jump to InternalRelease (0x26cdb0)
-// Symbol: ?ExternalRelease@CCmdTarget@@QEAAKXZ
-extern "C" unsigned long MS_ABI impl__ExternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis) {
-    if (!pThis) return 0;
-    S_CCmdTarget* p = Shadow(pThis);
-    if (p->m_pOuterUnknown != nullptr)
-        return p->m_pOuterUnknown->Release();
-    return impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
-}
 
-// CCmdTarget::FromIDispatch -- STUB.  Retail (mfc140u 0x24fd30) is
-//     xor %eax,%eax
-//     cmp <low dword of COleDispatchImpl's vtable, 0x18032e450>,(%rcx)
-//     lea -0x20(%rcx),%rdx ; cmove %rdx,%rax
-// i.e. "if this IDispatch is one of ours (its vptr is the COleDispatchImpl
-// vtable EnableAutomation installs),
-// back up 0x20 bytes to the owning CCmdTarget. The storage exists now, but
-// FromIDispatch still needs the installed live dispatch-table identity.
-// Symbol: ?FromIDispatch@CCmdTarget@@SAPEAV1@PEAUIDispatch@@@Z
-extern "C" void* MS_ABI impl__FromIDispatch_CCmdTarget__SAPEAV1_PEAUIDispatch___Z(void* pDispatch) {
-    (void)pDispatch;
-    return nullptr;
-}
+
+// FromIDispatch uses the installed dispatch table identity in CCmdTargetDispatch.cpp.
 
 // CCmdTarget::GetCommandMap() -- retail mfc140u 0x1de8f0, `lea 0x18033e1b0,%rax
 // ; ret`.  The virtual GetCommandMap and the static GetThisCommandMap are
@@ -887,107 +843,7 @@ extern "C" IUnknown* MS_ABI impl__GetControllingUnknown_CCmdTarget__QEAAPEAUIUnk
 // %rax ; ret`, ICF-folded with GetThisDispatchMap.
 
 
-// CCmdTarget::GetDispEntry(LONG memid) -- retail mfc140u 0x24fba0, transcribed:
-//     pMap = this->vtable[+0x70]()                  ; virtual GetDispatchMap
-//     if (memid == 0) {                             ; DISPID_VALUE
-//         walk the whole chain for the entry whose vt == 0xFFF (VT_MFCVALUE,
-//         afxdisp.h's "special value for DISPID_VALUE");
-//         if none is found fall through to the linear scan below;
-//         memid = thatEntry->lDispID;
-//         if (memid == DISPID_UNKNOWN)
-//             memid = MemberIDFromName(pMap, thatEntry->lpszName);
-//         if (memid == DISPID_UNKNOWN) return NULL;
-//     }
-//     if (memid > 0) {                              ; jle -> linear scan
-//         // memid may encode (inheritance depth << 16) | (1-based index)
-//         pM = pMap; for (i = 0; i < HIWORD(memid) && pM->pfnGetBaseMap; ++i)
-//                        pM = pM->pfnGetBaseMap();
-//         if (pM && LOWORD(memid) <= GetEntryCount(pM)) {
-//             e = &pM->lpEntries[LOWORD(memid) - 1];
-//             if (e->lDispID == DISPID_UNKNOWN || e->lDispID == memid) return e;
-//         }
-//     }
-//     // linear scan of the whole chain by lDispID
-//     for (pM = pMap; pM; pM = pM->pfnGetBaseMap ? pM->pfnGetBaseMap() : NULL)
-//         for (e = pM->lpEntries; e->nPropOffset != (size_t)-1; ++e)
-//             if (e->lDispID == memid) return e;
-//     return NULL;
-// DEVIATION: the virtual GetDispatchMap (retail vtable slot 14) is replaced by
-// CCmdTarget's own map -- OpenMFC's C++ vtable has no relation to retail's.
-// CCmdTarget's map is empty, so this currently returns NULL for every memid.
-// Symbol: ?GetDispEntry@CCmdTarget@@IEAAPEBUAFX_DISPMAP_ENTRY@@J@Z
-extern "C" const void* MS_ABI impl__GetDispEntry_CCmdTarget__IEAAPEBUAFX_DISPMAP_ENTRY__J_Z(CCmdTarget* pThis, long memid) {
-    if (!pThis) return nullptr;
-    const AFX_DISPMAP* pMap = static_cast<const AFX_DISPMAP*>(
-        impl__GetDispatchMap_CCmdTarget__MEBAPEBUAFX_DISPMAP__XZ(pThis));
-    if (!pMap) return nullptr;
-
-    if (memid == 0) {
-        const AFX_DISPMAP_ENTRY* pValue = nullptr;
-        for (const AFX_DISPMAP* pM = pMap; pM != nullptr && pValue == nullptr;
-             pM = pM->pfnGetBaseMap ? pM->pfnGetBaseMap() : nullptr) {
-            for (const AFX_DISPMAP_ENTRY* e = pM->lpEntries; e->nPropOffset != (size_t)-1; ++e) {
-                if (e->vt == 0xfff) { pValue = e; break; }   // VT_MFCVALUE
-            }
-        }
-        if (pValue != nullptr) {
-            memid = pValue->lDispID;
-            if (memid == -1) {
-                memid = impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PEB_W_Z(pMap, pValue->lpszName);
-                if (memid == -1) return nullptr;
-            }
-        }
-    }
-
-    if (memid > 0) {
-        const unsigned int nInherit = static_cast<unsigned int>(memid >> 16) & 0xffffu;
-        const AFX_DISPMAP* pM = pMap;
-        for (unsigned int i = 0; i < nInherit; ++i) {
-            if (!pM->pfnGetBaseMap) break;
-            pM = pM->pfnGetBaseMap();
-            if (!pM) break;
-        }
-        if (pM != nullptr) {
-            const unsigned int nIndex = static_cast<unsigned int>(memid) & 0xffffu;
-            // The `nIndex != 0` half of this test is an OpenMFC addition: retail
-            // computes lpEntries - 0x40 + nIndex * 0x40 unguarded and would read
-            // one record before the table when LOWORD(memid) is 0.
-            if (nIndex != 0 && nIndex <= impl__GetEntryCount_CCmdTarget__KAIPEBUAFX_DISPMAP___Z(pM)) {
-                const AFX_DISPMAP_ENTRY* e = pM->lpEntries + (nIndex - 1);
-                if (e->lDispID == -1 || e->lDispID == memid) return e;
-            }
-        }
-    }
-
-    for (const AFX_DISPMAP* pM = pMap; pM != nullptr;
-         pM = pM->pfnGetBaseMap ? pM->pfnGetBaseMap() : nullptr) {
-        for (const AFX_DISPMAP_ENTRY* e = pM->lpEntries; e->nPropOffset != (size_t)-1; ++e) {
-            if (e->lDispID == memid) return e;
-        }
-    }
-    return nullptr;
-}
-
-// CCmdTarget::GetEntryCount(const AFX_DISPMAP*) -- retail mfc140u 0x24fac0:
-//     pCount = pMap->lpEntryCount                       ; [pMap+0x10]
-//     if (*pCount == (UINT)-1) {                        ; not counted yet
-//         e = pMap->lpEntries;                          ; [pMap+0x08]
-//         while (e->nPropOffset != (size_t)-1) e += 1;   ; add $0x40
-//         *pCount = (e - pMap->lpEntries);              ; sub / sar $0x6
-//     }
-//     return *pCount;
-// Symbol: ?GetEntryCount@CCmdTarget@@KAIPEBUAFX_DISPMAP@@@Z
-extern "C" unsigned int MS_ABI impl__GetEntryCount_CCmdTarget__KAIPEBUAFX_DISPMAP___Z(const void* pDispMap) {
-    const AFX_DISPMAP* pMap = static_cast<const AFX_DISPMAP*>(pDispMap);
-    if (!pMap || !pMap->lpEntryCount || !pMap->lpEntries) return 0;
-    unsigned int* pCount = pMap->lpEntryCount;
-    if (*pCount == 0xffffffffu) {
-        const AFX_DISPMAP_ENTRY* e = pMap->lpEntries;
-        while (e->nPropOffset != (size_t)-1) ++e;
-        *pCount = static_cast<unsigned int>(e - pMap->lpEntries);
-    }
-    return *pCount;
-}
+// Dispatch lookup, entry counts and names are implemented in CCmdTargetDispatch.cpp.
 
 // CCmdTarget::GetEventSinkEntry(UINT idCtrl, AFX_EVENT* pEvent)
 // -- retail mfc140u 0x2371c0, transcribed:
@@ -1044,12 +900,7 @@ extern "C" const void* MS_ABI impl__GetEventSinkEntry_CCmdTarget__IEAAPEBUAFX_EV
 // CCmdTarget::GetIDispatch(BOOL bAddRef) -- retail mfc140u 0x24fd00:
 //     if (bAddRef) ExternalAddRef();                    ; call 0x26cd80
 //     tail-jump GetInterface(&IID_IDispatch)            ; rdx = 0x1802d9b48
-// Symbol: ?GetIDispatch@CCmdTarget@@QEAAPEAUIDispatch@@H@Z
-extern "C" void* MS_ABI impl__GetIDispatch_CCmdTarget__QEAAPEAUIDispatch__H_Z(CCmdTarget* pThis, int bAddRef) {
-    if (!pThis) return nullptr;
-    if (bAddRef) impl__ExternalAddRef_CCmdTarget__QEAAKXZ(pThis);
-    return impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IDispatch);
-}
+
 
 // CCmdTarget::GetInterface(const void* iid) -- retail mfc140u 0x26ce40:
 //     p = this->vtable[+0x98](iid)          ; virtual GetInterfaceHook
@@ -1149,18 +1000,7 @@ extern "C" unsigned int MS_ABI impl__GetStackSize_CCmdTarget__KAIPEBEG_Z(const u
     return nSize;
 }
 
-// CCmdTarget::GetStandardProp -- STUB.  Retail (mfc140u 0x24f7e0) computes
-// `(BYTE*)this + pEntry->nPropOffset` (the +0x30 field) and copies that member
-// into the VARIANT, switching on pEntry->vt (the WORD at +0x18); pvarResult->vt
-// is set from the entry except when the entry's vt is 12 (VT_VARIANT), which is
-// passed through untouched.  It is blocked here on two
-// counts: OpenMFC declares no dispatch maps at all, so no AFX_DISPMAP_ENTRY
-// with a meaningful nPropOffset ever reaches this, and the offsets a retail map
-// carries index a retail object layout, not OpenMFC's.
-// Symbol: ?GetStandardProp@CCmdTarget@@IEAAXPEBUAFX_DISPMAP_ENTRY@@PEAUtagVARIANT@@PEAI@Z
-extern "C" void MS_ABI impl__GetStandardProp_CCmdTarget__IEAAXPEBUAFX_DISPMAP_ENTRY__PEAUtagVARIANT__PEAI_Z(CCmdTarget* pThis, const void* pEntry, void* pvarResult, unsigned int* puArgErr) {
-    (void)pThis; (void)pEntry; (void)pvarResult; (void)puArgErr;
-}
+// Standard property reads are implemented in CCmdTargetDispatch.cpp.
 
 // CCmdTarget::GetThisCommandMap() -- retail mfc140u 0x1de8f0 (see
 // GetCommandMap, with which it is ICF-folded).
@@ -1262,26 +1102,7 @@ extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAP
 //     return DISPID_UNKNOWN;
 // The synthesised DISPID is exactly the (depth << 16 | 1-based index) encoding
 // GetDispEntry decodes on its fast path.
-// Symbol: ?MemberIDFromName@CCmdTarget@@KAJPEBUAFX_DISPMAP@@PEB_W@Z
-extern "C" long MS_ABI impl__MemberIDFromName_CCmdTarget__KAJPEBUAFX_DISPMAP__PEB_W_Z(const void* pDispMap, const wchar_t* lpszName) {
-    const AFX_DISPMAP* pMap = static_cast<const AFX_DISPMAP*>(pDispMap);
-    if (!lpszName) return -1;
-    for (unsigned int nInherit = 0; pMap != nullptr; ++nInherit) {
-        const unsigned int nCount = impl__GetEntryCount_CCmdTarget__KAIPEBUAFX_DISPMAP___Z(pMap);
-        for (unsigned int i = 0; i < nCount; ++i) {
-            const AFX_DISPMAP_ENTRY* e = pMap->lpEntries + i;
-            if (e->vt == 0xfff) continue;              // VT_MFCVALUE
-            if (::CompareStringW(0x7f /*LOCALE_INVARIANT*/, NORM_IGNORECASE,
-                                 e->lpszName, -1, lpszName, -1) != CSTR_EQUAL)
-                continue;
-            if (e->lDispID != -1) return e->lDispID;
-            return static_cast<long>((static_cast<unsigned long>(nInherit & 0xffffu) << 16) |
-                                     static_cast<unsigned short>(i + 1));
-        }
-        pMap = pMap->pfnGetBaseMap ? pMap->pfnGetBaseMap() : nullptr;
-    }
-    return -1;  // DISPID_UNKNOWN
-}
+
 
 // CCmdTarget::OnCreateAggregates() -- retail mfc140u resolves this export (by
 // ordinal) to 0x3a60, the image-wide `mov $0x1,%eax ; ret` shared by every
@@ -1629,93 +1450,4 @@ extern "C" void MS_ABI impl__SetNotSupported_CCmdTarget__QEAAXXZ(CCmdTarget* pTh
     impl__AfxThrowOleDispatchException__YAXGII_Z(0xf18d, 0xf18d, (UINT)-1);
 }
 
-// CCmdTarget::SetStandardProp(const AFX_DISPMAP_ENTRY* pEntry,
-//     DISPPARAMS* pDispParams, UINT* puArgErr)
-// -- retail mfc140u 0x24f900 (reached by export ordinal), transcribed:
-//   HRESULT hr = S_OK;  VARIANT va = {0};                ; memset 0x18
-//   VARIANT* pArg = &pDispParams->rgvarg[0];
-//   if (pEntry->vt != VT_VARIANT && pArg->vt != pEntry->vt) {   ; vt at +0x18
-//       hr = VariantChangeType(&va, pArg, 0, pEntry->vt);       ; OLEAUT32 #12
-//       if (FAILED(hr)) { *puArgErr = 0; return hr; }
-//       pArg = &va;
-//   }
-//   void* pProp = (BYTE*)this + pEntry->nPropOffset;             ; +0x30
-//   switch (pEntry->vt) {
-//   VT_I1, VT_UI1:                       1-byte copy
-//   VT_I2, VT_UI2:                       2-byte copy
-//   VT_I4, VT_R4, VT_ERROR, VT_UI4:      4-byte copy
-//   VT_R8, VT_CY, VT_DATE, VT_I8, VT_UI8:8-byte copy
-//   VT_BOOL:     *(BOOL*)pProp = (V_BOOL(pArg) != 0);
-//   VT_BSTR:     AfxBSTR2CString((CString*)pProp, V_BSTR(pArg));    ; 0x24b2b0
-//   VT_DISPATCH, VT_UNKNOWN:
-//                if (pArg->punkVal) pArg->punkVal->AddRef();         ; slot 1
-//                release the old pointer and NULL it                  ; 0x26ccc4
-//                *(LPUNKNOWN*)pProp = pArg->punkVal;
-//   VT_VARIANT:  if (VariantCopy((VARIANT*)pProp, pArg) != 0) *puArgErr = 0;  ; #10, hr kept
-//   default:     hr = DISP_E_BADVARTYPE; *puArgErr = 0;
-//   }
-//   VariantClear(&va);                                           ; OLEAUT32 #9
-//   if (SUCCEEDED(hr) && pEntry->pfnSet != NULL) {               ; +0x28
-//       AFX_MAINTAIN_STATE2 _ctlState(m_pModuleState);           ; this+0x38, 0x133170
-//       (this->*pfnSet)();
-//   }
-//   return hr;
-// The callback still needs an owning-module-state guard; native state storage
-// is available, but this callback path has not been updated yet.
-// Symbol: ?SetStandardProp@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@PEAUtagDISPPARAMS@@PEAI@Z
-extern "C" long MS_ABI impl__SetStandardProp_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntryV, DISPPARAMS* pDispParams, unsigned int* puArgErr) {
-    const AFX_DISPMAP_ENTRY* pEntry = static_cast<const AFX_DISPMAP_ENTRY*>(pEntryV);
-    HRESULT hr = S_OK;
-    VARIANT va;
-    std::memset(&va, 0, sizeof(va));          // AfxVariantInit
-    VARIANT* pArg = &pDispParams->rgvarg[0];
-    if (pEntry->vt != VT_VARIANT && pArg->vt != pEntry->vt) {
-        hr = ::VariantChangeType(&va, pArg, 0, pEntry->vt);
-        if (FAILED(hr)) {
-            *puArgErr = 0;
-            return hr;
-        }
-        pArg = &va;
-    }
-
-    unsigned char* pProp = reinterpret_cast<unsigned char*>(pThis) + pEntry->nPropOffset;
-    const unsigned char* pVal = reinterpret_cast<const unsigned char*>(pArg) + 8;
-    switch (pEntry->vt) {
-    case VT_I1: case VT_UI1:
-        std::memcpy(pProp, pVal, 1); break;
-    case VT_I2: case VT_UI2:
-        std::memcpy(pProp, pVal, 2); break;
-    case VT_I4: case VT_R4: case VT_ERROR: case VT_UI4:
-        std::memcpy(pProp, pVal, 4); break;
-    case VT_R8: case VT_CY: case VT_DATE: case VT_I8: case VT_UI8:
-        std::memcpy(pProp, pVal, 8); break;
-    case VT_BOOL:
-        *reinterpret_cast<BOOL*>(pProp) = (pArg->boolVal != 0) ? TRUE : FALSE; break;
-    case VT_BSTR:
-        impl__AfxBSTR2CString__YAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEA_W_Z(
-            reinterpret_cast<CString*>(pProp), pArg->bstrVal);
-        break;
-    case VT_DISPATCH:
-    case VT_UNKNOWN: {
-        IUnknown* pNew = pArg->punkVal;
-        if (pNew != nullptr) pNew->AddRef();
-        IUnknown*& rOld = *reinterpret_cast<IUnknown**>(pProp);
-        if (rOld != nullptr) { rOld->Release(); rOld = nullptr; }
-        rOld = pNew;
-        break;
-    }
-    case VT_VARIANT:
-        if (::VariantCopy(reinterpret_cast<VARIANT*>(pProp), pArg) != 0)
-            *puArgErr = 0;
-        break;
-    default:
-        hr = DISP_E_BADVARTYPE;
-        *puArgErr = 0;
-        break;
-    }
-    ::VariantClear(&va);
-
-    if (SUCCEEDED(hr) && pEntry->pfnSet != nullptr)
-        reinterpret_cast<void (MS_ABI*)(void*)>(pEntry->pfnSet)(pThis);
-    return hr;
-}
+// Standard property writes and module-aware callbacks live in CCmdTargetDispatch.cpp.
