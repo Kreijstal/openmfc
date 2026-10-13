@@ -21,6 +21,9 @@ extern "C" ID2D1PathGeometry* MS_ABI impl__Detach_CD2DPathGeometry__QEAAPEAUID2D
 extern "C" void MS_ABI impl___1CD2DGeometry__UEAA_XZ(void*);
 extern "C" int MS_ABI impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(void*, HWND);
 extern "C" ID2D1HwndRenderTarget* MS_ABI impl__Detach_CHwndRenderTarget__QEAAPEAUID2D1HwndRenderTarget__XZ(void*);
+extern "C" void* MS_ABI impl___0CHwndRenderTarget__QEAA_PEAUHWND_____Z(void*, void*);
+extern "C" CDCRenderTarget* MS_ABI impl___0CDCRenderTarget__QEAA_XZ(CDCRenderTarget*);
+extern "C" int MS_ABI impl__GetBitmap_CBitmapRenderTarget__QEAAHAEAVCD2DBitmap___Z(void*, void*);
 extern "C" _AFX_D2D_STATE* MS_ABI impl___0_AFX_D2D_STATE__QEAA_XZ(void*);
 extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(void*);
 extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void*, D2D1_FACTORY_TYPE, DWRITE_FACTORY_TYPE);
@@ -34,6 +37,11 @@ CDC::CDC() { std::abort(); }
 CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE AFXAPI AfxGetInstanceHandle() { std::abort(); }
+// List serialization is linked for its vtable but is outside these drawing tests.
+CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
+CArchive& CArchive::operator<<(const CObject*) { std::abort(); }
+CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
+CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
 CRuntimeClass CWinApp::classCWinApp{};
@@ -41,9 +49,6 @@ CRuntimeClass CWnd::classCWnd{};
 CRuntimeClass CFileFind::classCFileFind{};
 CRuntimeClass CDocument::classCDocument{};
 CRuntimeClass CHtmlView::classCHtmlView{};
-extern "C" void MS_ABI impl__Attach_CBitmapRenderTarget__QEAAXPEAUID2D1BitmapRenderTarget___Z(void*, void*) { std::abort(); }
-extern "C" void MS_ABI impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z(void*, void*) { std::abort(); }
-extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void*) { std::abort(); }
 
 struct TestResource {
     void* resource;
@@ -74,6 +79,15 @@ struct InlineWrapper {
     void* resource;
 };
 static_assert(offsetof(InlineWrapper, resource) == 0x18, "retail resource layout");
+extern "C" void MS_ABI impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z(void* wrapper, void* resource) {
+    static_cast<InlineWrapper*>(wrapper)->resource = resource;
+}
+extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void* wrapper) {
+    auto* bitmap = static_cast<InlineWrapper*>(wrapper);
+    void* result = bitmap->resource;
+    bitmap->resource = nullptr;
+    return result;
+}
 
 static int failures;
 static unsigned calls;
@@ -256,13 +270,13 @@ static void forwarding() {
     buffer[0] = L'A'; buffer[1] = 0; buffer[2] = L'B';
     embeddedText.ReleaseBuffer(3);
     verificationCount = 0;
-    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
         &render, &embeddedText, &rect, &brush, &formatWrapper, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_GDI_CLASSIC);
     check(lastSlot == 27 && lastText.size() == 3 && lastText[1] == 0 && lastText[2] == L'B' &&
           lastTextFormat == &nativeFormat && lastRect.bottom == 12 && lastBrush == &nativeBrush &&
           lastTextOptions == D2D1_DRAW_TEXT_OPTIONS_CLIP && lastMeasuringMode == DWRITE_MEASURING_MODE_GDI_CLASSIC &&
           verificationCount == 1 && verified[0] == &brush, "DrawText forwards length, embedded NUL, format, bounds, brush and options");
-    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
         &render, &embeddedText, rect, &brush, &formatWrapper, D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE_NATURAL);
     check(lastSlot == 27 && lastText.size() == 3 && lastRect.right == 11, "by-value DrawText rectangle overload forwards the complete rectangle");
     verificationCount = 0;
@@ -420,7 +434,7 @@ static void sharedTargetsAndGeometry() {
                                    0, 0, 64, 64, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
     check(window != nullptr, "create a native window for the HWND target");
     if (window) {
-        CRenderTarget hwndFacade;
+        CHwndRenderTarget hwndFacade;
         check(!impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(&hwndFacade, nullptr), "HWND target creation rejects a null window");
         check(impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(&hwndFacade, window), "HWND target creation produces a real render target");
         if (ID2D1RenderTarget* native = OpenMfcD2DRenderTarget(&hwndFacade)) {
@@ -556,6 +570,169 @@ static ULONG STDMETHODCALLTYPE probeRelease(ReleaseProbe* probe) {
     check(lock.owns_lock(), "resource release runs outside the render-target mutex");
     return 0;
 }
+template <typename T>
+static T nativeField(const void* object, size_t offset) {
+    T result;
+    std::memcpy(&result, static_cast<const unsigned char*>(object) + offset, sizeof(result));
+    return result;
+}
+
+struct NativeListNode { NativeListNode* next; NativeListNode* prev; CObject* data; };
+static bool nativeListEquals(const CObList& list, std::initializer_list<CObject*> expected) {
+    auto* node = nativeField<NativeListNode*>(&list, 8);
+    NativeListNode* previous = nullptr;
+    for (auto* object : expected) {
+        if (!node || node->data != object || node->prev != previous) return false;
+        previous = node;
+        node = node->next;
+    }
+    return !node && previous == nativeField<NativeListNode*>(&list, 16) &&
+        nativeField<INT_PTR>(&list, 24) == static_cast<INT_PTR>(expected.size());
+}
+
+struct ResourceEvents { int recreates = 0; int deleted = 0; };
+class RecreationProbe : public CD2DResource {
+public:
+    ResourceEvents& events;
+    RecreationProbe(CRenderTarget* parent, BOOL autoDestroy, ResourceEvents& observed)
+        : CD2DResource(parent, autoDestroy), events(observed) {}
+    ~RecreationProbe() override { ++events.deleted; }
+    HRESULT ReCreate(CRenderTarget*) override { ++events.recreates; return E_FAIL; }
+    HRESULT Create(CRenderTarget*) override { return S_OK; }
+    void Destroy() override {}
+    BOOL IsValid() const override { return TRUE; }
+};
+
+static void targetStorageAndLifetime() {
+    alignas(CRenderTarget) unsigned char rootStorage[sizeof(CRenderTarget)];
+    std::memset(rootStorage, 0xa5, sizeof(rootStorage));
+    auto* root = impl___0CRenderTarget__QEAA_XZ(reinterpret_cast<CRenderTarget*>(rootStorage));
+    check(root && root->GetRuntimeClass() == CRenderTarget::GetThisClass() &&
+          !root->GetRenderTarget() && !root->m_pTextFormatDefault && nativeListEquals(root->m_lstResources, {}) &&
+          root->m_lstResources.GetRuntimeClass() == CObList::GetThisClass() &&
+          nativeField<INT_PTR>(&root->m_lstResources, 48) == 10,
+          "exported root constructor initializes native interface, list vtable/fields and cached format in poisoned storage");
+    impl___1CRenderTarget__UEAA_XZ(root);
+    struct DestructorProbe : CRenderTarget {
+        int& calls;
+        explicit DestructorProbe(int& observed) : calls(observed) {}
+        ~DestructorProbe() override { ++calls; }
+    };
+    alignas(DestructorProbe) unsigned char probeStorage[sizeof(DestructorProbe)];
+    int destructorCalls = 0;
+    auto* probe = new(probeStorage) DestructorProbe(destructorCalls);
+    impl___1CRenderTarget__UEAA_XZ(probe);
+    check(destructorCalls == 0, "exported base destructor runs its base body without redispatching to a client-derived destructor");
+    alignas(CDCRenderTarget) unsigned char dcStorage[sizeof(CDCRenderTarget)];
+    std::memset(dcStorage, 0xa5, sizeof(dcStorage));
+    auto* dc = impl___0CDCRenderTarget__QEAA_XZ(reinterpret_cast<CDCRenderTarget*>(dcStorage));
+    check(dc && dc->GetRuntimeClass() == CDCRenderTarget::GetThisClass() &&
+          !dc->GetDCRenderTarget() && !dc->GetRenderTarget(),
+          "exported DC constructor installs its derived vtable and zeroes both native interface fields");
+    dc->~CDCRenderTarget();
+
+    struct ListObject : CObject {};
+    ListObject first, second, third, fourth;
+    CObList list;
+    auto secondPos = list.AddTail(&second);
+    list.AddHead(&first);
+    auto thirdPos = list.InsertAfter(secondPos, &third);
+    list.InsertBefore(thirdPos, &fourth);
+    check(nativeListEquals(list, {&first, &second, &fourth, &third}),
+          "list insertion exposes ABI-compatible head, tail, count and doubly linked nodes to inline clients");
+    list.RemoveAt(secondPos);
+    check(list.RemoveHead() == &first && list.RemoveTail() == &third && nativeListEquals(list, {&fourth}),
+          "list removal updates native fields and node links");
+    list.RemoveAll();
+    check(nativeListEquals(list, {}), "RemoveAll clears inline list state");
+
+    void* slots[3] = {nullptr, nullptr, reinterpret_cast<void*>(probeRelease)};
+    ReleaseProbe target{slots};
+    ResourceEvents ownedEvents, borrowedEvents;
+    CRenderTarget parent;
+    auto* owned = new RecreationProbe(&parent, TRUE, ownedEvents);
+    RecreationProbe borrowed(&parent, FALSE, borrowedEvents);
+    parent.Attach(&target);
+    parent.Attach(nullptr);
+    check(parent.GetRenderTarget() == reinterpret_cast<ID2D1RenderTarget*>(&target) &&
+          nativeListEquals(parent.m_lstResources, {owned, &borrowed}),
+          "Attach guards existing ownership and resource registration populates the native list");
+    check(parent.Destroy(FALSE) && !parent.IsValid() && target.releases == 1 &&
+          nativeListEquals(parent.m_lstResources, {owned, &borrowed}) && ownedEvents.deleted == 0,
+          "Destroy(FALSE) releases the target while retaining registered resources");
+    check(!parent.Destroy(TRUE) && ownedEvents.deleted == 1 && !borrowed.m_pParentTarget &&
+          nativeListEquals(parent.m_lstResources, {}),
+          "Destroy(TRUE) deletes owned resources and detaches borrowed resources even when the target is absent");
+}
+
+static void hwndRecreation() {
+    HWND window = CreateWindowExW(0, L"STATIC", L"OpenMFC target recreation", WS_OVERLAPPEDWINDOW,
+        0, 0, 100, 100, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    check(window != nullptr, "create a native window for constructor and recreation tests");
+    if (!window) return;
+    {
+        alignas(CHwndRenderTarget) unsigned char storage[sizeof(CHwndRenderTarget)];
+        std::memset(storage, 0xa5, sizeof(storage));
+        auto* hwnd = static_cast<CHwndRenderTarget*>(impl___0CHwndRenderTarget__QEAA_PEAUHWND_____Z(storage, window));
+        check(hwnd->GetHwndRenderTarget() && hwnd->GetRenderTarget() == hwnd->GetHwndRenderTarget() &&
+              hwnd->GetHwnd() == window && std::strcmp(hwnd->GetRuntimeClass()->m_lpszClassName, "CHwndRenderTarget") == 0,
+              "exported HWND constructor initializes the derived vtable and creates both native interface fields");
+        if (hwnd->GetHwndRenderTarget()) {
+            check(hwnd->Resize(D2D1_SIZE_U{80, 70}) &&
+                  hwnd->GetHwndRenderTarget()->GetPixelSize().width == 80 &&
+                  hwnd->GetHwndRenderTarget()->GetPixelSize().height == 70,
+                  "HWND Resize updates the actual native render target");
+            ResourceEvents events;
+            {
+                RecreationProbe resource(hwnd, FALSE, events);
+                check(nativeListEquals(hwnd->m_lstResources, {&resource}), "HWND resource is registered in its embedded list");
+                check(hwnd->ReCreate(window) && events.recreates == 1 && hwnd->GetHwnd() == window &&
+                      hwnd->GetRenderTarget() == hwnd->GetHwndRenderTarget(),
+                      "HWND recreation replaces native storage and invokes resource virtuals while ignoring child E_FAIL");
+            }
+            check(nativeListEquals(hwnd->m_lstResources, {}), "resource destruction removes its native list entry");
+            auto* native = hwnd->GetHwndRenderTarget();
+            check(hwnd->CRenderTarget::Detach() == native && !hwnd->GetRenderTarget() &&
+                  hwnd->GetHwndRenderTarget() == native,
+                  "base Detach clears only the base field, preserving the distinct derived interface field");
+            check(hwnd->Detach() == native && !hwnd->GetHwndRenderTarget(), "derived Detach transfers and clears its own field");
+            native->Release();
+        }
+        hwnd->~CHwndRenderTarget();
+    }
+    DestroyWindow(window);
+}
+
+static void compatibleBitmap(CRenderTarget& render) {
+    CBitmapRenderTarget compatible;
+    D2D1_SIZE_F desired{16, 12};
+    unsigned long long desiredBits;
+    std::memcpy(&desiredBits, &desired, sizeof(desiredBits));
+    bool created = impl__CreateCompatibleRenderTarget_CRenderTarget__QEAAHAEAVCBitmapRenderTarget__VCD2DSizeF__VCD2DSizeU__PEAUD2D1_PIXEL_FORMAT__W4D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS___Z(
+        &render, &compatible, desiredBits, 0, nullptr, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE) != FALSE;
+    check(created && compatible.GetBitmapRenderTarget() && compatible.GetRenderTarget() == compatible.GetBitmapRenderTarget() &&
+          compatible.GetBitmapRenderTarget()->GetSize().width == 16 &&
+          compatible.GetBitmapRenderTarget()->GetSize().height == 12,
+          "compatible target creation forwards desired DIP size and initializes both inline interface fields");
+    if (!created) return;
+    void* marker = &compatible;
+    InlineWrapper output{marker, true, nullptr, nullptr};
+    check(impl__GetBitmap_CBitmapRenderTarget__QEAAHAEAVCD2DBitmap___Z(&compatible, &output) && output.vfptr == marker && output.resource,
+          "GetBitmap returns an owned native bitmap in the resource field and preserves the wrapper vtable");
+    if (output.resource) {
+        auto* bitmap = static_cast<ID2D1Bitmap*>(output.resource);
+        check(bitmap->GetSize().width == 16 && bitmap->GetSize().height == 12,
+              "returned bitmap exposes the compatible target's actual dimensions");
+        bitmap->Release();
+    }
+    auto* detached = compatible.Detach();
+    check(detached && !compatible.GetBitmapRenderTarget() && !compatible.GetRenderTarget(),
+          "bitmap target Detach transfers ownership and clears both native fields");
+    if (detached) detached->Release();
+    check(!impl__GetBitmap_CBitmapRenderTarget__QEAAHAEAVCD2DBitmap___Z(&compatible, &output),
+          "GetBitmap reports failure for a detached target");
+}
+
 static void textLifetime() {
     void* slots[3] = {nullptr, nullptr, reinterpret_cast<void*>(probeRelease)};
     ReleaseProbe owned{slots}, borrowed{slots};
@@ -611,7 +788,7 @@ static void textPixels(CRenderTarget& render, ID2D1RenderTarget* target, IWICBit
     check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
           "DrawTextLayout renders glyphs identical to direct COM drawing");
     capture([&] {
-        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
             &render, &text, &bounds, &brush, &format, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
     }, actual);
     const D2D1_RECT_F nativeBounds = {2, 3, 62, 63};
@@ -622,11 +799,12 @@ static void textPixels(CRenderTarget& render, ID2D1RenderTarget* target, IWICBit
     check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
           "DrawText renders glyphs identical to direct COM drawing");
     capture([&] {
-        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
             &render, &text, &bounds, &brush, nullptr, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
     }, actual);
     auto cached = g_renderTargetState[&render].defaultTextFormat;
-    check(cached && g_renderTargetState[&render].textResources.count(cached.get()) == 0,
+    check(cached && render.m_pTextFormatDefault == cached.get() &&
+          g_renderTargetState[&render].textResources.count(cached.get()) == 0,
           "missing format creates an owned default without duplicate ownership");
     if (cached) {
         auto* defaultFormat = static_cast<CD2DTextFormat*>(cached.get());
@@ -637,7 +815,7 @@ static void textPixels(CRenderTarget& render, ID2D1RenderTarget* target, IWICBit
         check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
               "DrawText with no format renders using the system message font");
         capture([&] {
-            impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+            impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
                 &render, &text, &bounds, &brush, nullptr, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
         }, actual);
         check(g_renderTargetState[&render].defaultTextFormat == cached,
@@ -683,6 +861,7 @@ static void pixels() {
     if (SUCCEEDED(hr)) {
         CRenderTarget render;
         render.Attach(target);
+    compatibleBitmap(render);
         TestResource brush{nativeBrush, true};
         CD2DRectF rect(4, 4, 12, 12);
         CD2DPointF lineStart(4, 20), lineEnd(12, 20);
@@ -785,6 +964,8 @@ int main() {
     factoryState();
     sharedTargetsAndGeometry();
     textResources();
+    targetStorageAndLifetime();
+    hwndRecreation();
     textLifetime();
     pixels();
     impl__AfxReleaseD2DRefs__YAXXZ();

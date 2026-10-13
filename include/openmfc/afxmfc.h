@@ -1825,6 +1825,7 @@ struct CD2DColorF {
 };
 struct D2D_POINT_2F;
 struct D2D_SIZE_F;
+struct D2D_SIZE_U;
 struct D2D_RECT_F;
 struct D2D1_ELLIPSE;
 struct D2D1_ROUNDED_RECT;
@@ -1890,6 +1891,13 @@ public:
     CD2DSizeF radius;
 };
 
+struct ID2D1RenderTarget;
+struct ID2D1DCRenderTarget;
+struct ID2D1HwndRenderTarget;
+struct ID2D1BitmapRenderTarget;
+class CD2DTextFormat;
+class CD2DBitmap;
+
 class CRenderTarget : public CObject {
     DECLARE_DYNAMIC(CRenderTarget)
 public:
@@ -1900,7 +1908,7 @@ public:
     void* Detach();
     void BeginDraw();
     long EndDraw();
-    int Destroy(int bReleasing = TRUE);
+    int Destroy(int deleteResources = TRUE);
     void Clear(CD2DColorF color);
 
     void DrawLine(const CD2DPointF& p0, const CD2DPointF& p1);
@@ -1917,10 +1925,21 @@ public:
     CD2DSizeF GetSize() const;
     void GetTags(unsigned __int64* pTag1, unsigned __int64* pTag2) const;
     void SetTags(unsigned __int64 tag1, unsigned __int64 tag2);
+    void ReCreateResources();
 
-protected:
-    char _rendertarget_padding[32];
+    BOOL IsValid() const { return m_pRenderTarget != nullptr; }
+    ID2D1RenderTarget* GetRenderTarget() { return m_pRenderTarget; }
+    operator ID2D1RenderTarget*() { return m_pRenderTarget; }
+
+    // Retail x64 storage, read directly by client-inline accessors.
+    ID2D1RenderTarget* m_pRenderTarget;
+    CObList m_lstResources;
+    CD2DTextFormat* m_pTextFormatDefault;
 };
+static_assert(sizeof(CRenderTarget) == 80, "retail CRenderTarget layout");
+static_assert(offsetof(CRenderTarget, m_pRenderTarget) == 8, "render interface offset");
+static_assert(offsetof(CRenderTarget, m_lstResources) == 16, "resource list offset");
+static_assert(offsetof(CRenderTarget, m_pTextFormatDefault) == 72, "default format offset");
 
 class CDCRenderTarget : public CRenderTarget {
     DECLARE_DYNAMIC(CDCRenderTarget)
@@ -1931,7 +1950,40 @@ public:
     void* Detach();
     int Create(const void* pRenderTargetProperties);
     int BindDC(const CDC& dc, const CRect& rect);
+    ID2D1DCRenderTarget* GetDCRenderTarget() { return m_pDCRenderTarget; }
+    operator ID2D1DCRenderTarget*() { return m_pDCRenderTarget; }
+    ID2D1DCRenderTarget* m_pDCRenderTarget = nullptr;
 };
+static_assert(sizeof(CDCRenderTarget) == 88, "retail CDCRenderTarget layout");
+
+class CHwndRenderTarget : public CRenderTarget {
+public:
+    explicit CHwndRenderTarget(HWND hwnd = nullptr);
+    CRuntimeClass* GetRuntimeClass() const override;
+    void Attach(ID2D1HwndRenderTarget*);
+    ID2D1HwndRenderTarget* Detach();
+    int Create(HWND);
+    int ReCreate(HWND);
+    int Resize(const D2D_SIZE_U&);
+    ID2D1HwndRenderTarget* GetHwndRenderTarget() { return m_pHwndRenderTarget; }
+    operator ID2D1HwndRenderTarget*() { return m_pHwndRenderTarget; }
+    HWND GetHwnd() const;
+    ID2D1HwndRenderTarget* m_pHwndRenderTarget = nullptr;
+};
+static_assert(sizeof(CHwndRenderTarget) == 88, "retail CHwndRenderTarget layout");
+
+class CBitmapRenderTarget : public CRenderTarget {
+public:
+    CBitmapRenderTarget() = default;
+    CRuntimeClass* GetRuntimeClass() const override;
+    void Attach(ID2D1BitmapRenderTarget*);
+    ID2D1BitmapRenderTarget* Detach();
+    int GetBitmap(CD2DBitmap&);
+    ID2D1BitmapRenderTarget* GetBitmapRenderTarget() { return m_pBitmapRenderTarget; }
+    operator ID2D1BitmapRenderTarget*() { return m_pBitmapRenderTarget; }
+    ID2D1BitmapRenderTarget* m_pBitmapRenderTarget = nullptr;
+};
+static_assert(sizeof(CBitmapRenderTarget) == 88, "retail CBitmapRenderTarget layout");
 
 class CAnimationVariable : public CObject {
     DECLARE_DYNAMIC(CAnimationVariable)

@@ -20,21 +20,13 @@ extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void* p
 
 namespace {
 
-// Retail CRenderTarget layout (mfc140u ctor at RVA 0xd5110): vptr, then
-// ID2D1RenderTarget* m_pRenderTarget at +0x8, CObList m_lstResources at +0x10 (its
-// m_nBlockSize = 10 lands at +0x40), one more zeroed 8-byte member at +0x48, so
-// sizeof == 0x50 and CBitmapRenderTarget's first own member sits at +0x50.  Every
-// retail body below first tests m_pRenderTarget (a `mov 0x8(%rcx),%reg; test %reg,%reg`
-// pair -- %rcx in most, %r10 in CreateCompatibleRenderTarget -- or `cmpq $0x0,0x8(%rcx)`)
-// and bails when it is NULL.  This tree keeps that pointer
-// in g_renderTargetState[pThis].resource (the same slot Attach/Detach/Destroy/
-// BeginDraw/EndDraw below use), so the read goes through here.
+// Retail mfc140u ctor RVA 0xd5110 initializes the native pointer at +0x8,
+// CObList at +0x10 and cached default text format at +0x48 (sizeof 80).
+// Client-inline getters read those fields directly.
 ID2D1RenderTarget* RenderTargetOf(const CRenderTarget* pThis) {
     if (!pThis) return nullptr;
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto it = g_renderTargetState.find(pThis);
-    return it == g_renderTargetState.end() ? nullptr
-                                            : static_cast<ID2D1RenderTarget*>(it->second.resource);
+    return pThis->m_pRenderTarget;
 }
 
 // Retail CRenderTarget::VerifyResource (mfc140u RVA 0xd5540, not exported by name in the
@@ -111,6 +103,7 @@ std::shared_ptr<void> DefaultTextFormatOf(CRenderTarget* render) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto& cached = g_renderTargetState[render].defaultTextFormat;
     if (!cached) cached = format;
+    render->m_pTextFormatDefault = static_cast<CD2DTextFormat*>(cached.get());
     return cached;
 }
 
@@ -123,11 +116,14 @@ ID2D1RenderTarget* OpenMfcD2DRenderTarget(const void* self) {
 void OpenMfcRegisterD2DTextResource(CRenderTarget* parent, void* resource) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[parent].textResources.insert(resource);
+    parent->m_lstResources.AddTail(static_cast<CObject*>(resource));
 }
 void OpenMfcUnregisterD2DTextResource(CRenderTarget* parent, void* resource) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto it = g_renderTargetState.find(parent);
     if (it != g_renderTargetState.end()) it->second.textResources.erase(resource);
+    auto position = parent->m_lstResources.Find(static_cast<CObject*>(resource));
+    if (position.pNode) parent->m_lstResources.RemoveAt(position);
 }
 
 // Symbol: ?GetRuntimeClass@CRenderTarget@@UEBAPEAUCRuntimeClass@@XZ
@@ -142,53 +138,55 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRenderTarget__SAPEAUCRuntim
 // Symbol: ??0CRenderTarget@@QEAA@XZ
 extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* pThis) {
     if (!pThis) return nullptr;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    g_renderTargetState[pThis] = {};
-    return pThis;
+    return new(pThis) CRenderTarget();
 }
-// Symbol: ??1CRenderTarget@@UEAA@XZ
-extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* pThis) {
-    if (!pThis) return;
-    ID2D1RenderTarget* resource = nullptr;
-    std::shared_ptr<void> defaultTextFormat;
-    std::unordered_set<void*> textResources;
+static void DestroyOwnedResources(CRenderTarget* render) {
+    while (!render->m_lstResources.IsEmpty()) {
+        CObject* object = render->m_lstResources.RemoveHead();
+        if (!object || !object->IsKindOf(impl__GetThisClass_CD2DResource__SAPEAUCRuntimeClass__XZ())) continue;
+        auto* child = static_cast<CD2DResource*>(object);
+        // Borrowed children may outlive the target, so detach them too.
+        child->m_pParentTarget = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+            g_renderTargetState[render].textResources.erase(child);
+        }
+        if (child->m_bIsAutoDestroy) delete object;
+    }
+}
+static void DestroyRenderState(CRenderTarget* render) {
+    render->Destroy(TRUE);
+    std::shared_ptr<void> cached;
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-        auto it = g_renderTargetState.find(pThis);
+        auto it = g_renderTargetState.find(render);
         if (it != g_renderTargetState.end()) {
-            resource = static_cast<ID2D1RenderTarget*>(it->second.resource);
-            defaultTextFormat = std::move(it->second.defaultTextFormat);
-            textResources = std::move(it->second.textResources);
+            cached = std::move(it->second.defaultTextFormat);
             g_renderTargetState.erase(it);
         }
     }
-    for (void* wrapper : textResources) {
-        auto* child = static_cast<CD2DResource*>(wrapper);
-        child->m_pParentTarget = nullptr;
-        child->Destroy();
-        if (child->m_bIsAutoDestroy) delete static_cast<CObject*>(child);
-    }
-    if (resource) resource->Release();
+    render->m_pTextFormatDefault = nullptr;
+}
+// Symbol: ??1CRenderTarget@@UEAA@XZ
+extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* self) {
+    if (self) self->CRenderTarget::~CRenderTarget();
 }
 // Symbol: ?Attach@CRenderTarget@@QEAAXPEAUID2D1RenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(CRenderTarget* pThis, void* pRenderTarget) {
     if (!pThis) return;
-    ID2D1RenderTarget* old = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-        auto& state = g_renderTargetState[pThis];
-        old = static_cast<ID2D1RenderTarget*>(state.resource);
-        state.resource = pRenderTarget;
-    }
-    if (old && old != pRenderTarget) old->Release();
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    if (pThis->m_pRenderTarget) return;
+    pThis->m_pRenderTarget = static_cast<ID2D1RenderTarget*>(pRenderTarget);
+    g_renderTargetState[pThis].resource = pRenderTarget;
 }
 // Symbol: ?Detach@CRenderTarget@@QEAAPEAUID2D1RenderTarget@@XZ
 extern "C" void* MS_ABI impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(CRenderTarget* pThis) {
     if (!pThis) return nullptr;
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     auto& state = g_renderTargetState[pThis];
-    void* old = state.resource;
+    void* old = pThis->m_pRenderTarget;
     state.resource = nullptr;
+    pThis->m_pRenderTarget = nullptr;
     return old;
 }
 // Symbol: ?BeginDraw@CRenderTarget@@QEAAXXZ
@@ -199,7 +197,7 @@ extern "C" void MS_ABI impl__BeginDraw_CRenderTarget__QEAAXXZ(CRenderTarget* pTh
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
         state.drawing = true;
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
     }
     if (target) target->BeginDraw();
 }
@@ -213,7 +211,7 @@ extern "C" long MS_ABI impl__EndDraw_CRenderTarget__QEAAJXZ(CRenderTarget* pThis
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
         state.drawing = false;
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
     }
     HRESULT hr = target ? target->EndDraw(&tag1, &tag2) : E_POINTER;
     if (target) {
@@ -225,20 +223,18 @@ extern "C" long MS_ABI impl__EndDraw_CRenderTarget__QEAAJXZ(CRenderTarget* pThis
     return hr;
 }
 // Symbol: ?Destroy@CRenderTarget@@QEAAHH@Z
-extern "C" int MS_ABI impl__Destroy_CRenderTarget__QEAAHH_Z(CRenderTarget* pThis, int bReleasing) {
-    if (!pThis) return FALSE;
-    ID2D1RenderTarget* resource = nullptr;
+extern "C" int MS_ABI impl__Destroy_CRenderTarget__QEAAHH_Z(CRenderTarget* self, int deleteResources) {
+    if (!self) return FALSE;
+    if (deleteResources) DestroyOwnedResources(self);
+    ID2D1RenderTarget* resource = self->m_pRenderTarget;
+    self->m_pRenderTarget = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-        auto& state = g_renderTargetState[pThis];
-        resource = static_cast<ID2D1RenderTarget*>(state.resource);
+        auto& state = g_renderTargetState[self];
         state.resource = nullptr;
         state.drawing = false;
-        state.size = CD2DSizeF(0.0f, 0.0f);
-        state.tag1 = 0;
-        state.tag2 = 0;
     }
-    if (resource && bReleasing) resource->Release();
+    if (resource) resource->Release();
     return resource != nullptr;
 }
 // Symbol: ?Clear@CRenderTarget@@QEAAXU_D3DCOLORVALUE@@@Z
@@ -251,7 +247,7 @@ extern "C" void MS_ABI impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(CRend
         state.lastClearColor = color;
         state.clearWasCalled = true;
         state.drawCallCount += 1;
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
     }
     if (target) {
         D2D1_COLOR_F nativeColor = {color.r, color.g, color.b, color.a};
@@ -336,7 +332,7 @@ extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRo
     target->FillRoundedRectangle(&rect, brush);
 }
 // Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
-extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
     CRenderTarget* pThis, const CString* text, const CD2DRectF* rect, void* brush, void* textFormat, int drawOptions, int measuringMode) {
     ID2D1RenderTarget* target = RenderTargetOf(pThis);
     if (!target || !VerifyResourceOf(pThis, brush)) return;
@@ -355,9 +351,9 @@ extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__S
                      static_cast<DWRITE_MEASURING_MODE>(measuringMode));
 }
 // Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
-extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
     CRenderTarget* pThis, const CString* text, CD2DRectF rect, void* brush, void* textFormat, int drawOptions, int measuringMode) {
-    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
         pThis, text, &rect, brush, textFormat, drawOptions, measuringMode);
 }
 // Symbol: ?COLORREF_TO_D2DCOLOR@CRenderTarget@@SA?AU_D3DCOLORVALUE@@KH@Z
@@ -380,7 +376,7 @@ extern "C" CD2DSizeF MS_ABI impl__GetDpi_CRenderTarget__QEBA_AVCD2DSizeF__XZ(con
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
         dpi = state.dpi;
     }
     if (target) target->GetDpi(&dpi.width, &dpi.height);
@@ -395,7 +391,7 @@ extern "C" void MS_ABI impl__SetDpi_CRenderTarget__QEAAXAEBVCD2DSizeF___Z(CRende
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
         state.dpi = dpi;
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
     }
     if (target) target->SetDpi(dpi.width, dpi.height);
 }
@@ -407,7 +403,7 @@ extern "C" CD2DSizeF MS_ABI impl__GetSize_CRenderTarget__QEBA_AVCD2DSizeF__XZ(co
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
         size = state.size;
     }
     if (target) {
@@ -428,7 +424,7 @@ extern "C" void MS_ABI impl__GetTags_CRenderTarget__QEBAXPEA_K0_Z(
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         const auto& state = g_renderTargetState[pThis];
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
         if (pTag1) *pTag1 = state.tag1;
         if (pTag2) *pTag2 = state.tag2;
     }
@@ -443,16 +439,25 @@ extern "C" void MS_ABI impl__SetTags_CRenderTarget__QEAAX_K0_Z(CRenderTarget* pT
         auto& state = g_renderTargetState[pThis];
         state.tag1 = tag1;
         state.tag2 = tag2;
-        target = static_cast<ID2D1RenderTarget*>(state.resource);
+        target = pThis->m_pRenderTarget;
     }
     if (target) target->SetTags(tag1, tag2);
 }
-CRenderTarget::CRenderTarget() {
-    impl___0CRenderTarget__QEAA_XZ(this);
-    memset(_rendertarget_padding, 0, sizeof(_rendertarget_padding));
+CRenderTarget::CRenderTarget() : m_pRenderTarget(nullptr), m_lstResources(10), m_pTextFormatDefault(nullptr) {
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_renderTargetState[this] = {};
 }
 CRenderTarget::~CRenderTarget() {
-    impl___1CRenderTarget__UEAA_XZ(this);
+    DestroyRenderState(this);
+}
+void CRenderTarget::ReCreateResources() {
+    std::vector<CD2DResource*> resources;
+    for (auto position = m_lstResources.GetHeadPosition(); position.pNode; ) {
+        auto* object = m_lstResources.GetNext(position);
+        if (object && object->IsKindOf(impl__GetThisClass_CD2DResource__SAPEAUCRuntimeClass__XZ()))
+            resources.push_back(static_cast<CD2DResource*>(object));
+    }
+    for (auto* resource : resources) resource->ReCreate(this);
 }
 void CRenderTarget::Attach(void* pRenderTarget) {
     impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(this, pRenderTarget);
@@ -466,8 +471,8 @@ void CRenderTarget::BeginDraw() {
 long CRenderTarget::EndDraw() {
     return impl__EndDraw_CRenderTarget__QEAAJXZ(this);
 }
-int CRenderTarget::Destroy(int bReleasing) {
-    return impl__Destroy_CRenderTarget__QEAAHH_Z(this, bReleasing);
+int CRenderTarget::Destroy(int deleteResources) {
+    return impl__Destroy_CRenderTarget__QEAAHH_Z(this, deleteResources);
 }
 void CRenderTarget::Clear(CD2DColorF color) {
     impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(this, color);
@@ -531,13 +536,6 @@ void CRenderTarget::SetTags(unsigned __int64 tag1, unsigned __int64 tag2) {
 //   return TRUE;
 // Both CD2DSizeF and CD2DSizeU are 8-byte aggregates passed in R8/R9 by value (retail
 // reads them with movq %r8,%xmm0 / shr $0x20,%r9), modelled here as 64-bit integers.
-// Storage: this tree keeps bitmapTarget's ID2D1BitmapRenderTarget* in the
-// CBitmapRenderTarget side table (its Attach thunk) and the CRenderTarget-level pointer
-// in g_renderTargetState, so the two retail stores become those two writes.  Deviation:
-// retail hands D2D the address of m_pBitmapRenderTarget directly, so a failed create
-// leaves whatever D2D wrote there (normally NULL) in bitmapTarget; here the FAILED(hr)
-// path returns before either store, so a previously attached ID2D1BitmapRenderTarget*
-// in bitmapTarget's side table is left as it was rather than cleared.
 extern "C" int MS_ABI impl__CreateCompatibleRenderTarget_CRenderTarget__QEAAHAEAVCBitmapRenderTarget__VCD2DSizeF__VCD2DSizeU__PEAUD2D1_PIXEL_FORMAT__W4D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS___Z(
     CRenderTarget* pThis, void* pBitmapTarget, unsigned long long sizeDesiredBits,
     unsigned long long sizePixelDesiredBits, ::D2D1_PIXEL_FORMAT* pDesiredFormat, int options) {
@@ -557,18 +555,17 @@ extern "C" int MS_ABI impl__CreateCompatibleRenderTarget_CRenderTarget__QEAAHAEA
     const D2D1_SIZE_U* pPixelSize =
         (sizePixelDesired.width == 0 && sizePixelDesired.height == 0) ? nullptr : &sizePixelDesired;
 
-    ID2D1BitmapRenderTarget* created = nullptr;
+    auto* bitmapTarget = static_cast<CBitmapRenderTarget*>(pBitmapTarget);
     HRESULT hr = target->CreateCompatibleRenderTarget(
         pSize, pPixelSize, pDesiredFormat,
-        static_cast<D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS>(options), &created);
+        static_cast<D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS>(options), &bitmapTarget->m_pBitmapRenderTarget);
     if (FAILED(hr)) return FALSE;
 
-    // bitmapTarget.m_pBitmapRenderTarget = created  (retail +0x50)
-    impl__Attach_CBitmapRenderTarget__QEAAXPEAUID2D1BitmapRenderTarget___Z(pBitmapTarget, created);
-    // bitmapTarget.m_pRenderTarget = created        (retail +0x8, overwrite without Release)
+    // Retail overwrites the base pointer without releasing its previous value.
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-        g_renderTargetState[static_cast<CRenderTarget*>(pBitmapTarget)].resource = created;
+        g_renderTargetState[bitmapTarget].resource = bitmapTarget->m_pBitmapRenderTarget;
+        bitmapTarget->m_pRenderTarget = bitmapTarget->m_pBitmapRenderTarget;
     }
     return TRUE;
 }

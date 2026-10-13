@@ -1510,6 +1510,7 @@ protected: \
     void*    m_pNodeFree;   /* 0x20 */ \
     struct CPlex* m_pBlocks;/* 0x28 */ \
     INT_PTR  m_nBlockSize;  /* 0x30 */ \
+    void SyncNativeList(); \
 };
 
 #define OPENMFC_DECLARE_MAP_WRAPPER(class_name, key_type, arg_key_type, value_type, arg_value_type, base_key_type, class_decl) \

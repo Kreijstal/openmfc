@@ -17,9 +17,10 @@ FLAGS=(/nologo /EHsc /MT /std:c++17 /Gy /Gw /W0
     -I"$ROOT/include" -I"$ROOT/phase4/src")
 SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
+    phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
-    phase4/src/core/d2d/CHwndRenderTarget.cpp
+    phase4/src/core/d2d/CHwndRenderTarget.cpp phase4/src/core/d2d/CBitmapRenderTarget.cpp
     phase4/src/core/d2d/CD2DGeometry.cpp phase4/src/core/d2d/CD2DPathGeometry.cpp
     phase4/src/core/d2d/CD2DPointF.cpp phase4/src/core/d2d/CD2DSizeF.cpp
     phase4/src/core/d2d/CD2DRectF.cpp phase4/src/core/d2d/CD2DEllipse.cpp
@@ -32,7 +33,7 @@ for source in "${SOURCES[@]}"; do
 done
 # The DLL generator shortens long internal names. Check the actual generator
 # aliases, rather than trusting Symbol markers or direct-call tests alone.
-python3 - "$ROOT" "$BUILD_DIR/test_rendertarget_drawing.obj" <<'PY'
+python3 - "$ROOT" "$BUILD_DIR" <<'PY'
 import re
 import subprocess
 import sys
@@ -41,14 +42,20 @@ from pathlib import Path
 root = Path(sys.argv[1])
 sys.path.insert(0, str(root / 'tools'))
 import gen_weak_stubs
-defined = {line.split()[-1] for line in subprocess.check_output(
-    ['llvm-nm', '--defined-only', sys.argv[2]], text=True).splitlines() if line.split()}
-for name in ('CD2DTextFormat', 'CD2DTextLayout'):
+for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
+             'CDCRenderTarget', 'CHwndRenderTarget', 'CBitmapRenderTarget'):
+    obj = 'test_rendertarget_drawing' if name in (
+        'CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout') else name
+    defined = {line.split()[-1] for line in subprocess.check_output(
+        ['llvm-nm', '--defined-only', str(Path(sys.argv[2]) / (obj + '.obj'))],
+        text=True).splitlines() if line.split()}
     source = (root / 'phase4/src/core/d2d' / (name + '.cpp')).read_text()
     for symbol in re.findall(r'^// Symbol: (.+)$', source, re.M):
         alias = gen_weak_stubs.generate_stub_name(symbol)
+        if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
+            continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-print('Text resource export aliases match the DLL generator')
+print('Render target and text resource export aliases match the DLL generator')
 PY
 lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \

@@ -20,7 +20,6 @@ IMPLEMENT_DYNAMIC(CPtrArray, CObject)
 IMPLEMENT_SERIAL(CByteArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringList, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CObList, CObject, 0xFFFF)
 IMPLEMENT_DYNAMIC(CMapPtrToPtr, CObject)
 IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
 IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0xFFFF)
@@ -33,7 +32,6 @@ OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)
 OPENMFC_DEFINE_ARRAY_METHODS(CObArray, CObject*, CObject*)
 OPENMFC_DEFINE_ARRAY_METHODS(CPtrArray, void*, void*)
 OPENMFC_DEFINE_ARRAY_METHODS(CByteArray, BYTE, BYTE)
-OPENMFC_DEFINE_LIST_METHODS(CObList, CObject*, CObject*)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToPtr, void*, void*, void*, void*)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToWord, void*, void*, WORD, WORD)
 OPENMFC_DEFINE_MAP_METHODS(CMapWordToOb, WORD, WORD, CObject*, CObject*)
@@ -42,7 +40,6 @@ OPENMFC_DEFINE_MAP_METHODS(CMapWordToPtr, WORD, WORD, void*, void*)
 #undef OPENMFC_DEFINE_MAP_METHODS
 #undef OPENMFC_DEFINE_ARRAY_METHODS
 namespace openmfc { namespace detail { namespace filecore {
-std::mutex g_collectionStateMutex;
 unsigned long long EndOffset(unsigned long long pos, unsigned long long count) {
     if (count == 0) return std::numeric_limits<unsigned long long>::max();
     if (pos > std::numeric_limits<unsigned long long>::max() - count) return std::numeric_limits<unsigned long long>::max();
@@ -84,18 +81,8 @@ void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsign
         }
     }
 }
-int ClampCollectionSize(INT_PTR value) {
-    if (value <= 0) return 0;
-    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    return static_cast<int>(value);
-}
 int ClampCollectionGrow(INT_PTR value) {
     if (value < -1) return -1;
-    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    return static_cast<int>(value);
-}
-int ClampCollectionBlockSize(INT_PTR value) {
-    if (value <= 0) return 10;
     if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
     return static_cast<int>(value);
 }

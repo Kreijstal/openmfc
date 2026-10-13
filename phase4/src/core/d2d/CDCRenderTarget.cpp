@@ -10,7 +10,6 @@
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(CRenderTarget* pThis, void* pRenderTarget);
 extern "C" void* MS_ABI impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(CRenderTarget* pThis);
-extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* pThis);
 
 // Symbol: ?GetRuntimeClass@CDCRenderTarget@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDCRenderTarget__UEBAPEAUCRuntimeClass__XZ(const CDCRenderTarget* pThis) {
@@ -24,16 +23,21 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDCRenderTarget__SAPEAUCRunt
 // Symbol: ??0CDCRenderTarget@@QEAA@XZ
 extern "C" CDCRenderTarget* MS_ABI impl___0CDCRenderTarget__QEAA_XZ(CDCRenderTarget* pThis) {
     if (!pThis) return nullptr;
-    impl___0CRenderTarget__QEAA_XZ(pThis);
-    return pThis;
+    return new(pThis) CDCRenderTarget();
 }
 // Symbol: ?Attach@CDCRenderTarget@@QEAAXPEAUID2D1DCRenderTarget@@@Z
 extern "C" void MS_ABI impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(CDCRenderTarget* pThis, void* pRenderTarget) {
+    if (!pThis || pThis->m_pRenderTarget) return;
+    pThis->m_pDCRenderTarget = static_cast<ID2D1DCRenderTarget*>(pRenderTarget);
     impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(pThis, pRenderTarget);
 }
 // Symbol: ?Detach@CDCRenderTarget@@QEAAPEAUID2D1DCRenderTarget@@XZ
 extern "C" void* MS_ABI impl__Detach_CDCRenderTarget__QEAAPEAUID2D1DCRenderTarget__XZ(CDCRenderTarget* pThis) {
-    return impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(pThis);
+    if (!pThis) return nullptr;
+    auto* target = pThis->m_pDCRenderTarget;
+    pThis->m_pDCRenderTarget = nullptr;
+    impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(pThis);
+    return target;
 }
 // Symbol: ?Create@CDCRenderTarget@@QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES@@@Z
 extern "C" int MS_ABI impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(
@@ -57,16 +61,14 @@ extern "C" int MS_ABI impl__BindDC_CDCRenderTarget__QEAAHAEBVCDC__AEBVCRect___Z(
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto& state = g_renderTargetState[pThis];
-        target = static_cast<ID2D1DCRenderTarget*>(state.resource);
+        target = pThis->m_pDCRenderTarget;
         state.size = CD2DSizeF((float)(pRect->right - pRect->left), (float)(pRect->bottom - pRect->top));
     }
     if (!target) return FALSE;
     RECT rect = {pRect->left, pRect->top, pRect->right, pRect->bottom};
     return SUCCEEDED(target->BindDC(pDC->GetSafeHdc(), &rect));
 }
-CDCRenderTarget::CDCRenderTarget() {
-    impl___0CDCRenderTarget__QEAA_XZ(this);
-}
+CDCRenderTarget::CDCRenderTarget() = default;
 void CDCRenderTarget::Attach(void* pRenderTarget) {
     impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(this, pRenderTarget);
 }

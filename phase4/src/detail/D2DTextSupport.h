@@ -56,6 +56,7 @@ inline CString LayoutName(IDWriteTextLayout* layout, bool locale, UINT32 positio
 // client headers, so the BOOL, parent and interface must be stored in the object.
 // CObject's five slots are followed by ReCreate/Create/Destroy/IsValid (5..8).
 class CD2DResource : public CObject {
+    friend class CRenderTarget;
 protected:
     CD2DResource(CRenderTarget* parent, BOOL autoDestroy)
         : m_bIsAutoDestroy(autoDestroy), m_pParentTarget(parent) {

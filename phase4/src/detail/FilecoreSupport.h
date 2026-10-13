@@ -487,11 +487,17 @@ void class_name::Serialize(CArchive& ar) { \
 
 
 #define OPENMFC_DEFINE_LIST_METHODS(class_name, element_type, arg_type) \
-class_name::class_name(INT_PTR nBlockSize) { \
+class_name::class_name(INT_PTR nBlockSize) : m_pNodeHead(nullptr), m_pNodeTail(nullptr), m_nCount(0), m_pNodeFree(nullptr), m_pBlocks(nullptr), m_nBlockSize(ClampCollectionBlockSize(nBlockSize)) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
     EnsureCollectionState<class_name, ListWrapperState<element_type, arg_type>>(this, ClampCollectionBlockSize(nBlockSize)); \
 } \
  \
+void class_name::SyncNativeList() { \
+    const auto* data = FindListStorage<class_name, element_type, arg_type>(this); \
+    m_pNodeHead = data ? data->GetHeadPosition().pNode : nullptr; \
+    m_pNodeTail = data ? data->GetTailPosition().pNode : nullptr; \
+    m_nCount = data ? data->GetCount() : 0; \
+} \
 class_name::~class_name() { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
     RemoveCollectionState<class_name, ListWrapperState<element_type, arg_type>>(this); \
@@ -516,20 +522,20 @@ element_type& class_name::GetPrev(POSITION& rPosition) { std::lock_guard<std::mu
 element_type class_name::GetPrev(POSITION& rPosition) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetPrev(rPosition); } \
 element_type class_name::GetAt(POSITION position) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).GetAt(position); } \
 void class_name::SetAt(POSITION pos, arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).SetAt(pos, newElement); } \
-void class_name::RemoveAt(POSITION position) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAt(position); } \
+void class_name::RemoveAt(POSITION position) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAt(position); SyncNativeList(); } \
 typename class_name::POSITION class_name::FindIndex(INT_PTR nIndex) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->FindIndex(ClampCollectionSize(nIndex)) : POSITION(nullptr); } \
 typename class_name::POSITION class_name::Find(arg_type searchValue, POSITION startAfter) const { std::lock_guard<std::mutex> lock(g_collectionStateMutex); const auto* data = FindListStorage<class_name, element_type, arg_type>(this); return data ? data->Find(searchValue, startAfter) : POSITION(nullptr); } \
-typename class_name::POSITION class_name::AddHead(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddHead(newElement); return data.GetHeadPosition(); } \
-typename class_name::POSITION class_name::AddTail(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddTail(newElement); return data.GetTailPosition(); } \
-void class_name::AddHead(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddHead(&srcData); } \
-void class_name::AddTail(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddTail(&srcData); } \
-element_type class_name::RemoveHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).RemoveHead(); } \
-element_type class_name::RemoveTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); return EnsureListStorage<class_name, element_type, arg_type>(this).RemoveTail(); } \
+typename class_name::POSITION class_name::AddHead(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddHead(newElement); SyncNativeList(); return data.GetHeadPosition(); } \
+typename class_name::POSITION class_name::AddTail(arg_type newElement) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); data.AddTail(newElement); SyncNativeList(); return data.GetTailPosition(); } \
+void class_name::AddHead(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddHead(&srcData); SyncNativeList(); } \
+void class_name::AddTail(class_name* pNewList) { if (!pNewList || pNewList == this) return; std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); auto& srcData = EnsureListStorage<class_name, element_type, arg_type>(pNewList); data.AddTail(&srcData); SyncNativeList(); } \
+element_type class_name::RemoveHead() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto value = EnsureListStorage<class_name, element_type, arg_type>(this).RemoveHead(); SyncNativeList(); return value; } \
+element_type class_name::RemoveTail() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto value = EnsureListStorage<class_name, element_type, arg_type>(this).RemoveTail(); SyncNativeList(); return value; } \
 typename class_name::POSITION class_name::InsertBefore(POSITION position, arg_type newElement) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
     auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); \
     POSITION oldPos = position; \
-    data.InsertBefore(position, newElement); \
+    data.InsertBefore(position, newElement); SyncNativeList(); \
     if (oldPos == POSITION(nullptr)) return data.GetTailPosition(); \
     POSITION pos = data.GetHeadPosition(); \
     POSITION prev(nullptr); \
@@ -540,14 +546,14 @@ typename class_name::POSITION class_name::InsertAfter(POSITION position, arg_typ
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
     auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); \
     POSITION oldPos = position; \
-    data.InsertAfter(position, newElement); \
+    data.InsertAfter(position, newElement); SyncNativeList(); \
     if (oldPos == POSITION(nullptr)) return data.GetHeadPosition(); \
     POSITION result = oldPos; \
     data.GetNext(result); \
     return result; \
 } \
-void class_name::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAll(); } \
-void class_name::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); if (ar.IsStoring()) ar << data; else ar >> data; }
+void class_name::RemoveAll() { std::lock_guard<std::mutex> lock(g_collectionStateMutex); EnsureListStorage<class_name, element_type, arg_type>(this).RemoveAll(); SyncNativeList(); } \
+void class_name::Serialize(CArchive& ar) { std::lock_guard<std::mutex> lock(g_collectionStateMutex); auto& data = EnsureListStorage<class_name, element_type, arg_type>(this); if (ar.IsStoring()) ar << data; else ar >> data; SyncNativeList(); }
 
 
 
