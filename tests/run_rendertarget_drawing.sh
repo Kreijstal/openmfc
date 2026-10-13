@@ -18,6 +18,9 @@ FLAGS=(/nologo /EHsc /MT /std:c++17 /Gy /Gw /W0
 SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
+    phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
+    phase4/src/core/d2d/CHwndRenderTarget.cpp
+    phase4/src/core/d2d/CD2DGeometry.cpp phase4/src/core/d2d/CD2DPathGeometry.cpp
     phase4/src/core/d2d/CD2DPointF.cpp phase4/src/core/d2d/CD2DSizeF.cpp
     phase4/src/core/d2d/CD2DRectF.cpp phase4/src/core/d2d/CD2DEllipse.cpp
     phase4/src/core/d2d/CD2DRoundedRect.cpp)

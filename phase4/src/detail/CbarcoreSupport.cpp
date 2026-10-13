@@ -142,8 +142,6 @@ std::unordered_map<CTaskDialog*, TaskDialogState> g_taskDialogs;
 std::mutex g_tabbedPaneMutex;
 std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 std::unordered_map<void*, HDC> g_windowlessDCs;
-std::unordered_set<void*> g_d2dInitialized;
-thread_local _AFX_D2D_STATE g_d2dState;
 static CRuntimeClass* AFXAPI _openmfc_gb_g_classCUserException() { return &CException::classCException; }
 __attribute__((used)) CRuntimeClass g_classCUserException = {
     "CUserException", sizeof(CException), 0xFFFF, nullptr, &_openmfc_gb_g_classCUserException, nullptr, nullptr

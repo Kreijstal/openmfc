@@ -21,11 +21,8 @@
 // is 32 (m_nObjectSize of the retail CRuntimeClass, which D2D_DESC in RuntimeClasses.cpp
 // also records); derived objects (CD2DPathGeometry, 40) are larger but share +0x18.
 //
-// KNOWN HAZARD, outside this file: this tree's CD2DPathGeometry constructor does not
-// chain to the CD2DGeometry constructor below, so a CD2DPathGeometry's +0x18 is never
-// zeroed.  Retail's CD2DPathGeometry ctor (RVA 0xd6ad0, mfc140u) calls this ctor first.
-// Until CD2DPathGeometry.cpp is fixed, the base methods here -- and ~CD2DGeometry, which
-// the client's implicit ~CD2DPathGeometry calls -- will read an uninitialised +0x18.
+// CD2DPathGeometry's constructor chains here before initializing its own +0x20
+// pointer, so both inline aliases start empty.
 
 #include <cstddef>
 #include <cstring>

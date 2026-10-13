@@ -10,6 +10,21 @@
 #include <wincodec.h>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
+
+extern "C" void* MS_ABI impl___0CD2DPathGeometry__QEAA_PEAVCRenderTarget__H_Z(void*, void*, int);
+extern "C" long MS_ABI impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z(void*, void*);
+extern "C" ID2D1GeometrySink* MS_ABI impl__Open_CD2DPathGeometry__QEAAPEAUID2D1GeometrySink__XZ(void*);
+extern "C" int MS_ABI impl__GetFigureCount_CD2DPathGeometry__QEBAHXZ(const void*);
+extern "C" int MS_ABI impl__GetSegmentCount_CD2DPathGeometry__QEBAHXZ(const void*);
+extern "C" ID2D1PathGeometry* MS_ABI impl__Detach_CD2DPathGeometry__QEAAPEAUID2D1PathGeometry__XZ(void*);
+extern "C" void MS_ABI impl___1CD2DGeometry__UEAA_XZ(void*);
+extern "C" int MS_ABI impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(void*, HWND);
+extern "C" ID2D1HwndRenderTarget* MS_ABI impl__Detach_CHwndRenderTarget__QEAAPEAUID2D1HwndRenderTarget__XZ(void*);
+extern "C" _AFX_D2D_STATE* MS_ABI impl___0_AFX_D2D_STATE__QEAA_XZ(void*);
+extern "C" void MS_ABI impl___1_AFX_D2D_STATE__UEAA_XZ(void*);
+extern "C" int MS_ABI impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(void*, D2D1_FACTORY_TYPE, DWRITE_FACTORY_TYPE);
+extern "C" void MS_ABI impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(void*);
 
 // Unused GDI siblings in the shared support TU still need link definitions.
 // Abort if a drawing path unexpectedly reaches one of these test doubles.
@@ -281,6 +296,145 @@ static void forwarding() {
     impl__DrawGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
         nullptr, &geometryWrapper, &brush, 1, nullptr);
     check(calls == before && verificationCount == 0, "missing targets return before resource verification");
+}
+
+static void factoryState() {
+    _AFX_D2D_STATE& process = OpenMfcD2DState();
+    check(impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ() == &process,
+          "AfxGetD2DState returns the shared process state");
+    check(impl__InitD2D__AFX_D2D_STATE__QEAAHW4D2D1_FACTORY_TYPE__W4DWRITE_FACTORY_TYPE___Z(
+              &process, D2D1_FACTORY_TYPE_SINGLE_THREADED, DWRITE_FACTORY_TYPE_SHARED) &&
+          process.m_pDirect2dFactory && process.m_pWriteFactory && process.m_pWicFactory &&
+          process.m_bD2DInitialized && process.m_bComInitialized,
+          "InitD2D creates real Direct2D, DirectWrite and WIC factories at the retail offsets");
+    ID2D1Factory* factory = process.m_pDirect2dFactory;
+    IDWriteFactory* write = process.m_pWriteFactory;
+    check(process.InitD2D(D2D1_FACTORY_TYPE_MULTI_THREADED, DWRITE_FACTORY_TYPE_ISOLATED) &&
+          process.m_pDirect2dFactory == factory && process.m_pWriteFactory == write,
+          "repeated initialization preserves the already selected factories");
+    D2D1_MATRIX_3X2_F matrix{};
+    check(process.m_pfD2D1MakeRotateMatrix != nullptr, "load the native matrix helper");
+    if (process.m_pfD2D1MakeRotateMatrix) {
+        process.m_pfD2D1MakeRotateMatrix(90, D2D1_POINT_2F{4, 5}, &matrix);
+        check(std::fabs(matrix._11) < 0.0001f && std::fabs(matrix._12 - 1) < 0.0001f &&
+              std::fabs(matrix._21 + 1) < 0.0001f && std::fabs(matrix._31 - 9) < 0.0001f &&
+              std::fabs(matrix._32 - 1) < 0.0001f, "matrix helper preserves the MSVC point aggregate and pivot");
+    }
+    std::thread worker([&] {
+        check(impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ() == &process,
+              "the process state has the same identity on another thread");
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        check(SUCCEEDED(hr), "initialize a separate MTA test thread");
+        if (SUCCEEDED(hr)) {
+            _AFX_D2D_STATE mtaState;
+            check(!mtaState.InitD2D() && !mtaState.m_bComInitialized && !mtaState.m_bD2DInitialized &&
+                  !mtaState.m_pDirect2dFactory, "InitD2D reports the incompatible COM apartment without taking ownership");
+            mtaState.ReleaseD2DRefs();
+            HRESULT repeated = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            check(repeated == S_FALSE, "failed initialization leaves the caller's COM apartment intact");
+            if (SUCCEEDED(repeated)) CoUninitialize();
+            CoUninitialize();
+        }
+    });
+    worker.join();
+
+    alignas(_AFX_D2D_STATE) unsigned char storage[sizeof(_AFX_D2D_STATE)];
+    std::memset(storage, 0xa5, sizeof(storage));
+    auto* local = impl___0_AFX_D2D_STATE__QEAA_XZ(storage);
+    check(local == reinterpret_cast<_AFX_D2D_STATE*>(storage) && !local->m_bD2DInitialized &&
+          !local->m_bComInitialized && !local->m_pDirect2dFactory && !local->m_pfD2D1MakeRotateMatrix,
+          "exported state constructor initializes caller-provided 64-byte storage");
+    check(local->InitD2D(D2D1_FACTORY_TYPE_MULTI_THREADED, DWRITE_FACTORY_TYPE_ISOLATED) &&
+          local->m_pDirect2dFactory != factory && local->m_pWriteFactory != write,
+          "explicit factory types create an independent Direct2D and isolated DirectWrite state");
+    impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(local);
+    check(!local->m_bD2DInitialized && !local->m_bComInitialized && !local->m_pDirect2dFactory &&
+          !local->m_pWriteFactory && !local->m_pWicFactory && !local->m_hinstD2DDLL && !local->m_hinstDWriteDLL,
+          "ReleaseD2DRefs clears all owned interfaces and modules and balances COM");
+    impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(local);
+    check(local->InitD2D(), "released factory state can be initialized again");
+    impl___1_AFX_D2D_STATE__UEAA_XZ(local);
+    _AFX_D2D_STATE badFactory;
+    check(!badFactory.InitD2D(static_cast<D2D1_FACTORY_TYPE>(-1), DWRITE_FACTORY_TYPE_SHARED) &&
+          !badFactory.m_bD2DInitialized && !badFactory.m_pDirect2dFactory,
+          "invalid Direct2D factory type propagates initialization failure");
+    badFactory.ReleaseD2DRefs();
+    check(!badFactory.m_hinstD2DDLL && !badFactory.m_bComInitialized,
+          "failed factory creation releases partial module and COM ownership");
+    _AFX_D2D_STATE* heap = new _AFX_D2D_STATE();
+    check(LocalSize(heap) >= sizeof(_AFX_D2D_STATE), "state allocation uses the CNoTrackObject local heap");
+    delete heap;
+}
+
+static void sharedTargetsAndGeometry() {
+    ID2D1Factory* factory = OpenMfcD2DState().GetDirect2dFactory();
+    CDCRenderTarget dc;
+    D2D1_RENDER_TARGET_PROPERTIES properties = D2D1::RenderTargetProperties(
+        D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
+    check(dc.Create(&properties), "DC target creation uses the shared factory");
+    ID2D1RenderTarget* target = OpenMfcD2DRenderTarget(&dc);
+    if (!target) return;
+    ID2D1Factory* owner = nullptr;
+    target->GetFactory(&owner);
+    check(owner == factory, "DC render target and process state have the same factory identity");
+    if (owner) owner->Release();
+    check(!dc.Create(&properties) && OpenMfcD2DRenderTarget(&dc) == target,
+          "DC target creation rejects an already attached target without replacing it");
+
+    alignas(void*) unsigned char geometry[40] = {};
+    check(impl___0CD2DPathGeometry__QEAA_PEAVCRenderTarget__H_Z(geometry, &dc, FALSE) == geometry &&
+          impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z(geometry, &dc) == S_OK,
+          "path geometry creation initializes a real resource from the shared factory");
+    ID2D1PathGeometry* path = InlineResourceOf<ID2D1PathGeometry>(geometry);
+    if (path) {
+        ID2D1Factory* geometryOwner = nullptr;
+        path->GetFactory(&geometryOwner);
+        check(geometryOwner == factory, "path geometry and DC target share one factory");
+        if (geometryOwner) geometryOwner->Release();
+        check(impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z(geometry, nullptr) == E_FAIL &&
+              InlineResourceOf<ID2D1PathGeometry>(geometry) == path,
+              "duplicate geometry creation returns E_FAIL without losing its resource");
+        ID2D1GeometrySink* sink = impl__Open_CD2DPathGeometry__QEAAPEAUID2D1GeometrySink__XZ(geometry);
+        check(sink != nullptr, "created geometry exposes a writable native sink");
+        if (sink) {
+            sink->BeginFigure(D2D1_POINT_2F{4, 4}, D2D1_FIGURE_BEGIN_FILLED);
+            sink->AddLine(D2D1_POINT_2F{12, 4});
+            sink->AddLine(D2D1_POINT_2F{8, 12});
+            sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+            check(SUCCEEDED(sink->Close()), "close a real triangle geometry");
+            sink->Release();
+            check(impl__GetFigureCount_CD2DPathGeometry__QEBAHXZ(geometry) == 1 &&
+                  impl__GetSegmentCount_CD2DPathGeometry__QEBAHXZ(geometry) > 0,
+                  "created geometry reports its actual figures and segments");
+            float area = 0;
+            check(SUCCEEDED(path->ComputeArea(nullptr, 0.25f, &area)) && std::fabs(area - 32) < 0.001f,
+                  "created path geometry produces the expected triangle area");
+        }
+        ID2D1PathGeometry* detached = impl__Detach_CD2DPathGeometry__QEAAPEAUID2D1PathGeometry__XZ(geometry);
+        check(detached == path && !InlineResourceOf<ID2D1PathGeometry>(geometry), "geometry detach transfers its interface and clears the base alias");
+        detached->Release();
+    }
+    impl___1CD2DGeometry__UEAA_XZ(geometry);
+
+    HWND window = CreateWindowExW(0, L"STATIC", L"OpenMFC Direct2D", WS_OVERLAPPEDWINDOW,
+                                   0, 0, 64, 64, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    check(window != nullptr, "create a native window for the HWND target");
+    if (window) {
+        CRenderTarget hwndFacade;
+        check(!impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(&hwndFacade, nullptr), "HWND target creation rejects a null window");
+        check(impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(&hwndFacade, window), "HWND target creation produces a real render target");
+        if (ID2D1RenderTarget* native = OpenMfcD2DRenderTarget(&hwndFacade)) {
+            native->GetFactory(&owner);
+            check(owner == factory, "HWND and DC targets use the same factory");
+            if (owner) owner->Release();
+            check(!impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(&hwndFacade, window), "HWND target creation rejects duplicate creation");
+            ID2D1HwndRenderTarget* detached = impl__Detach_CHwndRenderTarget__QEAAPEAUID2D1HwndRenderTarget__XZ(&hwndFacade);
+            check(detached && detached->GetHwnd() == window && !OpenMfcD2DRenderTarget(&hwndFacade),
+                  "HWND target detach transfers the native window interface");
+            if (detached) detached->Release();
+        }
+        DestroyWindow(window);
+    }
 }
 
 static void textResources() {
@@ -628,9 +782,16 @@ static void pixels() {
 
 int main() {
     forwarding();
+    factoryState();
+    sharedTargetsAndGeometry();
     textResources();
     textLifetime();
     pixels();
+    impl__AfxReleaseD2DRefs__YAXXZ();
+    check(!OpenMfcD2DState().m_bD2DInitialized && !OpenMfcD2DState().m_pDirect2dFactory &&
+          !OpenMfcD2DState().m_pWriteFactory && !OpenMfcD2DState().m_pWicFactory,
+          "AfxReleaseD2DRefs releases the process-wide factories");
+    impl__AfxReleaseD2DRefs__YAXXZ();
     std::printf("%d failures\n", failures);
     return failures != 0;
 }

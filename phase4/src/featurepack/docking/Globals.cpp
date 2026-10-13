@@ -15,7 +15,3 @@ extern "C" void* MS_ABI impl__AfxGetTypeLibCache__YAPEAVCTypeLibCache__PEBU_GUID
     std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
     return GetGuidTypeLibCache(*guid);
 }
-// Symbol: ?AfxGetD2DState@@YAPEAV_AFX_D2D_STATE@@XZ
-extern "C" _AFX_D2D_STATE* MS_ABI impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ() {
-    return &g_d2dState;
-}

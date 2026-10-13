@@ -481,7 +481,7 @@ const wchar_t* const g2_rgCtlClsid[] = {
 // ControlBarCleanUp). This DLL's C++ methods exist only as extern "C" impl__
 // thunks, so the teardown paths must go through the thunk, never through the
 // class. Definitions:
-//   phase4/src/featurepack/docking/Globals.cpp   AfxGetD2DState
+//   phase4/src/core/d2d/_AFX_D2D_STATE.cpp       AfxGetD2DState
 //   phase4/src/core/d2d/_AFX_D2D_STATE.cpp       _AFX_D2D_STATE::ReleaseD2DRefs
 //   phase4/src/featurepack/toolbar/CMFCToolBarImages.cpp CMFCToolBarImages::CleanUp
 //   phase4/src/featurepack/visualmanager/CMFCVisualManager.cpp DestroyInstance
@@ -935,7 +935,6 @@ extern "C" void MS_ABI impl__AfxCancelModes__YAXPEAUHWND_____Z(void* /*struct*/*
 }
 // Symbol: ?AfxCheckError@@YAXJ@Z
 extern "C" void MS_ABI impl__AfxCheckError__YAXJ_Z(long p0) {
-    extern void AFXAPI AfxThrowOleException(LONG sc);
     const HRESULT hr = static_cast<HRESULT>(p0);
     if (FAILED(hr)) {
         if (hr == E_OUTOFMEMORY) {
@@ -3032,20 +3031,6 @@ extern "C" int MS_ABI impl__AfxRegisterThumbnailHandler__YAHPEB_W0K_Z(const wcha
                            static_cast<DWORD>((std::wcslen(pszCLSID) + 1) * sizeof(wchar_t)));
     ::RegCloseKey(hKey);
     return (lr == ERROR_SUCCESS) ? 1 : 0;
-}
-// Symbol: ?AfxReleaseD2DRefs@@YAXXZ
-extern "C" void MS_ABI impl__AfxReleaseD2DRefs__YAXXZ() {
-    // afxrendertarget.h declares this immediately after AfxGetD2DState: it is
-    // simply AfxGetD2DState()->ReleaseD2DRefs(), dropping the D2D/DWrite/WIC
-    // factory refs the process-local _AFX_D2D_STATE holds. Both halves exist
-    // here (featurepack/docking/Globals.cpp and core/d2d/_AFX_D2D_STATE.cpp),
-    // so delegate rather than duplicating the teardown -- that keeps this
-    // export and the member function in step.
-    if (void* pState = impl__AfxGetD2DState__YAPEAV_AFX_D2D_STATE__XZ()) {
-        impl__ReleaseD2DRefs__AFX_D2D_STATE__QEAAXXZ(pState);
-    }
-    // Idempotent: the member drops this state out of cbarcore's
-    // g_d2dInitialized set, and erasing an absent key is a no-op.
 }
 // Symbol: ?AfxRepositionWindow@@YAXPEAUAFX_SIZEPARENTPARAMS@@PEAUHWND__@@PEBUtagRECT@@@Z
 // AfxRepositionWindow(AFX_SIZEPARENTPARAMS* lpLayout, HWND hWnd, LPCRECT lpRect)

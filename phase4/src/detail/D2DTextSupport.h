@@ -2,7 +2,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
-#include <dwrite.h>
+#include "detail/D2DFactorySupport.h"
 #include <cstddef>
 #include <vector>
 
@@ -25,25 +25,8 @@ void OpenMfcUnregisterD2DTextResource(CRenderTarget*, void*);
 
 namespace openmfc { namespace detail { namespace d2dtext {
 
-// DirectWrite's shared factory is process-wide, matching MFC's default
-// InitD2D(0, 0). Loading dynamically keeps dwrite.dll optional until text is used.
-inline IDWriteFactory* Factory() {
-    struct SharedFactory {
-        HMODULE module = LoadLibraryW(L"dwrite.dll");
-        IDWriteFactory* factory = nullptr;
-        SharedFactory() {
-            using Create = HRESULT (WINAPI*)(DWRITE_FACTORY_TYPE, REFIID, IUnknown**);
-            auto create = module ? reinterpret_cast<Create>(GetProcAddress(module, "DWriteCreateFactory")) : nullptr;
-            if (create) create(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&factory));
-        }
-        ~SharedFactory() {
-            if (factory) factory->Release();
-            if (module) FreeLibrary(module);
-        }
-    };
-    static SharedFactory shared;
-    return shared.factory;
-}
+// Use the same process-wide factory as the exported MFC D2D state.
+inline IDWriteFactory* Factory() { return OpenMfcD2DState().GetWriteFactory(); }
 
 inline CString FormatName(IDWriteTextFormat* format, bool locale) {
     if (!format) return CString();

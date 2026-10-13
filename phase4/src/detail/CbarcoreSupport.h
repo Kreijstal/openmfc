@@ -267,19 +267,6 @@ extern std::unordered_map<void*, TabbedPaneState> g_tabbedPanes;
 namespace openmfc { namespace detail { namespace cbarcore {
 extern std::unordered_map<void*, HDC> g_windowlessDCs;
 } } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_set<void*> g_d2dInitialized;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-struct _AFX_D2D_STATE {
-    int d2dFactoryType = 0;
-    int dWriteFactoryType = 0;
-    bool initialized = false;
-};
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern thread_local _AFX_D2D_STATE g_d2dState;
-} } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
 extern __attribute__((used)) CRuntimeClass g_classCUserException;

@@ -38,6 +38,7 @@
 // GdicoreSupport.h drags in inline code referencing C++ symbols this file does not need.
 #include <windows.h>
 #include <d2d1.h>
+#include "detail/D2DFactorySupport.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -67,16 +68,9 @@ void* Base(void* pThis) { return pThis; }   // CRenderTarget is the sole, offset
 const IID kIID_ID2D1HwndRenderTarget =
     {0x2cd90698, 0x12e2, 0x11dc, {0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}};
 
-// Retail m_pRenderTarget (+0x8).  Read through the exported pair, the same
-// Detach-then-reAttach idiom core/d2d/CRenderTarget.cpp uses for brushes: after Detach
-// the slot is NULL, so the re-Attach only stores and Releases nothing.  The pair is two
-// separately locked calls, not one atomic read: another thread reading the slot between
-// them sees NULL.  Detach's operator[] also creates an empty side-table entry for a
-// pThis that had none.
+// Read the side-table pointer without detaching or changing its ownership.
 ID2D1RenderTarget* RenderTargetOf(void* pThis) {
-    void* p = impl__Detach_CRenderTarget__QEAAPEAUID2D1RenderTarget__XZ(Base(pThis));
-    if (p) impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(Base(pThis), p);
-    return static_cast<ID2D1RenderTarget*>(p);
+    return OpenMfcD2DRenderTarget(pThis);
 }
 
 // Retail m_pHwndRenderTarget (+0x50), per the model in the header comment.  The
@@ -119,7 +113,7 @@ extern "C" void MS_ABI impl__Attach_CHwndRenderTarget__QEAAXPEAUID2D1HwndRenderT
 }
 
 // Symbol: ?Create@CHwndRenderTarget@@QEAAHPEAUHWND__@@@Z
-// STUB (guards only).  Retail RVA 0xd62a0 (mfc140u):
+// Retail RVA 0xd62a0 (mfc140u):
 //   if (hWnd == NULL || m_pRenderTarget /* +0x8 */ != NULL) return FALSE;
 //   state = inlined AfxGetD2DState() -- CProcessLocalObject::GetData (RVA 0x14d100), a
 //           NULL result calls AfxThrowInvalidArgException (RVA 0x227720);
@@ -134,16 +128,23 @@ extern "C" void MS_ABI impl__Attach_CHwndRenderTarget__QEAAXPEAUID2D1HwndRenderT
 //                                                          // ID2D1Factory vtable offset 0x70, slot 14
 //   if (FAILED(hr)) return FALSE;                          // `js` to the zero path
 //   m_pRenderTarget = m_pHwndRenderTarget; return TRUE;
-// Only the two leading guards are transcribed.  This tree's _AFX_D2D_STATE
-// (detail/CbarcoreSupport.h: d2dFactoryType, dWriteFactoryType, initialized) holds no
-// ID2D1Factory and its InitD2D creates none, so the factory test always takes retail's
-// return-FALSE path; creating a private factory instead (as CDCRenderTarget::Create does)
-// was not done, because a render target from a different factory than the process-wide
-// one rejects that factory's geometries (D2DERR_WRONG_FACTORY) -- the same reasoning
-// CD2DPathGeometry::Create records.
+// Creation now uses the process-wide factory. Interface storage still follows
+// the side-table model described at the start of this file.
 extern "C" int MS_ABI impl__Create_CHwndRenderTarget__QEAAHPEAUHWND_____Z(void* pThis, HWND hWnd) {
-    if (hWnd == nullptr || RenderTargetOf(pThis) != nullptr) return FALSE;
-    return FALSE;   // no process-wide ID2D1Factory in this tree's _AFX_D2D_STATE
+    if (!pThis || hWnd == nullptr || RenderTargetOf(pThis) != nullptr) return FALSE;
+    ID2D1Factory* factory = OpenMfcD2DState().GetDirect2dFactory();
+    if (!factory) return FALSE;
+    RECT rect = {};
+    GetClientRect(hWnd, &rect);
+    D2D1_RENDER_TARGET_PROPERTIES properties = {};
+    D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProperties = {
+        hWnd, {static_cast<UINT32>(rect.right - rect.left), static_cast<UINT32>(rect.bottom - rect.top)},
+        D2D1_PRESENT_OPTIONS_NONE};
+    ID2D1HwndRenderTarget* target = nullptr;
+    HRESULT hr = factory->CreateHwndRenderTarget(&properties, &hwndProperties, &target);
+    if (FAILED(hr)) return FALSE;
+    impl__Attach_CRenderTarget__QEAAXPEAUID2D1RenderTarget___Z(pThis, target);
+    return TRUE;
 }
 
 // Symbol: ?Detach@CHwndRenderTarget@@QEAAPEAUID2D1HwndRenderTarget@@XZ
@@ -179,11 +180,9 @@ extern "C" ID2D1HwndRenderTarget* MS_ABI impl__Detach_CHwndRenderTarget__QEAAPEA
 //   }                                                      // result ignored
 //   return TRUE;
 // Transcribed up to and including the Create call.  The resource walk is NOT reproduced:
-// this tree's CRenderTarget keeps no m_lstResources (its resources live in
-// g_d2dResourceStates, core/d2d/CD2DResource.cpp, which is keyed by resource and not
-// reachable from here).  It is unreachable today because Create above always returns
-// FALSE; if Create is ever implemented, this path returns TRUE without re-creating the
-// target's resources and needs revisiting.
+// this tree's resources are still split between the generic resource side table
+// and CRenderTarget's text-resource registry. This remains incomplete: successful
+// target recreation must eventually invoke every registered resource's ReCreate.
 extern "C" int MS_ABI impl__ReCreate_CHwndRenderTarget__QEAAHPEAUHWND_____Z(void* pThis, HWND hWnd) {
     ID2D1HwndRenderTarget* pHwnd = HwndRenderTargetOf(pThis);
     if (pHwnd == nullptr) return FALSE;

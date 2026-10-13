@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <windows.h>
 #include <d2d1.h>
+#include "detail/D2DFactorySupport.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #  define MS_ABI __attribute__((ms_abi))
@@ -113,7 +114,7 @@ extern "C" void MS_ABI impl__Attach_CD2DPathGeometry__QEAAXPEAUID2D1PathGeometry
 }
 
 // Symbol: ?Create@CD2DPathGeometry@@UEAAJPEAVCRenderTarget@@@Z
-// STUB.  Retail RVA 0xd6b50 (mfc140u) ignores pRenderTarget and builds the geometry from
+// Retail RVA 0xd6b50 (mfc140u) ignores pRenderTarget and builds the geometry from
 // the process-wide Direct2D factory: an inlined AfxGetD2DState() -- a call to
 // CProcessLocalObject::GetData (RVA 0x14d100) whose NULL result branches to
 // AfxThrowInvalidArgException (RVA 0x227720), as the exported AfxGetD2DState (RVA 0xd24c0)
@@ -124,16 +125,17 @@ extern "C" void MS_ABI impl__Attach_CD2DPathGeometry__QEAAXPEAUID2D1PathGeometry
 // factory->CreatePathGeometry(&m_pPathGeometry) (ID2D1Factory vtable offset 0x50,
 // slot 10); on success it copies m_pPathGeometry into m_pGeometry (+0x18) and returns
 // S_OK, else it returns that HRESULT.
-// Not transcribed: this tree's _AFX_D2D_STATE (detail/CbarcoreSupport.h) holds no
-// ID2D1Factory and its InitD2D creates none, and a geometry made from a private factory
-// would be rejected by any render target from another factory (D2DERR_WRONG_FACTORY).
-// Returns E_FAIL, which is retail's own result when the state holds no factory -- the
-// situation this tree is always in.  (The previous placeholder returned 0, i.e. S_OK,
-// while creating nothing.)
+// All OpenMFC-created targets now share this factory, so geometries can be used
+// across those targets without D2DERR_WRONG_FACTORY.
 extern "C" long MS_ABI impl__Create_CD2DPathGeometry__UEAAJPEAVCRenderTarget___Z(void* pThis, void* pRenderTarget) {
-    (void)pThis;
     (void)pRenderTarget;
-    return E_FAIL;
+    if (!pThis) return E_FAIL;
+    ID2D1Factory* factory = OpenMfcD2DState().GetDirect2dFactory();
+    if (!factory || Self(pThis)->m_pPathGeometry) return E_FAIL;
+    HRESULT hr = factory->CreatePathGeometry(&Self(pThis)->m_pPathGeometry);
+    if (FAILED(hr)) return hr;
+    Self(pThis)->m_pGeometry = Self(pThis)->m_pPathGeometry;
+    return S_OK;
 }
 
 // Symbol: ?Destroy@CD2DPathGeometry@@UEAAXXZ

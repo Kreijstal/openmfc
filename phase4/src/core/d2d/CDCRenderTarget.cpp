@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/GdicoreSupport.h"
+#include "detail/D2DFactorySupport.h"
 
 
 // Implementations this unit calls that are defined with their own class.
@@ -38,20 +39,12 @@ extern "C" void* MS_ABI impl__Detach_CDCRenderTarget__QEAAPEAUID2D1DCRenderTarge
 extern "C" int MS_ABI impl__Create_CDCRenderTarget__QEAAHAEBUD2D1_RENDER_TARGET_PROPERTIES___Z(
     CDCRenderTarget* pThis, const void* pRenderTargetProperties) {
     if (!pThis || !pRenderTargetProperties) return FALSE;
-    using CreateFactoryFn = HRESULT (WINAPI*)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**);
-    static HMODULE module = ::LoadLibraryW(L"d2d1.dll");
-    static CreateFactoryFn createFactory = module
-        ? reinterpret_cast<CreateFactoryFn>(::GetProcAddress(module, "D2D1CreateFactory")) : nullptr;
-    if (!createFactory) return FALSE;
-
-    ID2D1Factory* factory = nullptr;
-    HRESULT hr = createFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), nullptr,
-                               reinterpret_cast<void**>(&factory));
-    if (FAILED(hr) || !factory) return FALSE;
+    if (OpenMfcD2DRenderTarget(pThis)) return FALSE;
+    ID2D1Factory* factory = OpenMfcD2DState().GetDirect2dFactory();
+    if (!factory) return FALSE;
     ID2D1DCRenderTarget* target = nullptr;
-    hr = factory->CreateDCRenderTarget(
+    HRESULT hr = factory->CreateDCRenderTarget(
         static_cast<const D2D1_RENDER_TARGET_PROPERTIES*>(pRenderTargetProperties), &target);
-    factory->Release();
     if (FAILED(hr) || !target) return FALSE;
     impl__Attach_CDCRenderTarget__QEAAXPEAUID2D1DCRenderTarget___Z(pThis, target);
     return TRUE;

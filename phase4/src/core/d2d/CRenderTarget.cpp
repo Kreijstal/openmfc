@@ -116,6 +116,10 @@ std::shared_ptr<void> DefaultTextFormatOf(CRenderTarget* render) {
 
 } // namespace
 
+ID2D1RenderTarget* OpenMfcD2DRenderTarget(const void* self) {
+    return RenderTargetOf(static_cast<const CRenderTarget*>(self));
+}
+
 void OpenMfcRegisterD2DTextResource(CRenderTarget* parent, void* resource) {
     std::lock_guard<std::mutex> lock(g_wave2StateMutex);
     g_renderTargetState[parent].textResources.insert(resource);
