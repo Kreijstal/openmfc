@@ -17,6 +17,10 @@ CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
 CArchive& CArchive::operator<<(const CObject*) { std::abort(); }
 CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
 CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
+// Command routing is outside these rendering tests.
+CCmdTarget::~CCmdTarget() = default;
+const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { std::abort(); }
+int CCmdTarget::OnCmdMsg(unsigned int,int,void*,void*) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
 CRuntimeClass CWinApp::classCWinApp{};

@@ -34,6 +34,10 @@ extern "C" void MS_ABI impl__FillRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PE
 extern "C" void MS_ABI impl__FillGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__1_Z(CRenderTarget*, void*, void*, void*);
 extern "C" void MS_ABI impl__AfxReleaseD2DRefs__YAXXZ();
 
+// Commands and notifications are outside the D2D paint integration tests.
+extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd*, WPARAM, LPARAM) { std::abort(); }
+extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(CWnd*, WPARAM, LPARAM, LRESULT*) { std::abort(); }
+
 static int failures;
 static void check(bool ok, const char* label) {
     std::printf("%s: %s\n", ok ? "PASS" : "FAIL", label);
@@ -260,12 +264,13 @@ static void ownershipAndRecreation() {
 }
 
 #include "d2d_bitmap_gradient_tests.h"
+#include "d2d_window_tests.h"
 
 int main() {
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
-    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); }
+    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); }
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

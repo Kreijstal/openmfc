@@ -100,9 +100,6 @@ extern "C" unsigned int impl__AFX_WM_CUSTOMIZETOOLBAR__3IA =
 // Symbol: ?AFX_WM_DELETETOOLBAR@@3IA
 extern "C" unsigned int impl__AFX_WM_DELETETOOLBAR__3IA =
     RegisterAfxMessage(L"AFX_WM_DELETETOOLBAR");
-// Symbol: ?AFX_WM_DRAW2D@@3IA
-extern "C" unsigned int impl__AFX_WM_DRAW2D__3IA =
-    RegisterAfxMessage(L"AFX_WM_DRAW2D");
 // Symbol: ?AFX_WM_GETDOCUMENTCOLORS@@3IA
 extern "C" unsigned int impl__AFX_WM_GETDOCUMENTCOLORS__3IA =
     RegisterAfxMessage(L"AFX_WM_GETDOCUMENTCOLORS");
@@ -166,9 +163,6 @@ extern "C" unsigned int impl__AFX_WM_POSTSETPREVIEWFRAME__3IA =
 // Symbol: ?AFX_WM_PROPERTY_CHANGED@@3IA
 extern "C" unsigned int impl__AFX_WM_PROPERTY_CHANGED__3IA =
     RegisterAfxMessage(L"AFX_WM_PROPERTY_CHANGED");
-// Symbol: ?AFX_WM_RECREATED2DRESOURCES@@3IA
-extern "C" unsigned int impl__AFX_WM_RECREATED2DRESOURCES__3IA =
-    RegisterAfxMessage(L"AFX_WM_RECREATED2DRESOURCES");
 // Symbol: ?AFX_WM_RESETCONTEXTMENU@@3IA
 extern "C" unsigned int impl__AFX_WM_RESETCONTEXTMENU__3IA =
     RegisterAfxMessage(L"AFX_WM_RESETCONTEXTMENU");

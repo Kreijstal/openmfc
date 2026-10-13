@@ -31,6 +31,8 @@
   #define MS_ABI
 #endif
 
+extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(CWnd*, UINT, WPARAM, LPARAM);
+
 // Runtime-class descriptors used by COleException::Process, defined alongside
 // the exception RTTI tables (ole_oleexception_rtti.cpp,
 // global_simple_exceptions_rtti.cpp).
@@ -796,6 +798,7 @@ extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     }
 
     HWND hWnd = pThis->m_hWnd;
+    pThis->EnableD2DSupport(FALSE);
     g_hwndMap.erase(hWnd);
     pThis->m_hWnd = nullptr;
 
@@ -831,29 +834,6 @@ extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
         }
     }
     return TRUE;
-}
-// Symbol: ?DefWindowProcW@CWnd@@MEAA_JI_K_J@Z
-extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
-    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    if (pThis && pThis->m_hWnd) {
-        return ::DefWindowProcW(pThis->m_hWnd, message, wParam, lParam);
-    }
-    return 0;
-}
-// Symbol: ?WindowProc@CWnd@@MEAA_JI_K_J@Z
-extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
-    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    if (!pThis || !pThis->m_hWnd) {
-        return 0;
-    }
-
-    LRESULT result = 0;
-    if (impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(pThis, message, wParam, lParam, &result)) {
-        return result;
-    }
-    return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(pThis, message, wParam, lParam);
 }
 // CWnd::MoveWindow
 // Symbol: ?MoveWindow@CWnd@@QEAAXHHHHH@Z
@@ -1414,27 +1394,6 @@ extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(
         *pResult = 0;
     }
     return pThis ? pThis->OnNotify(static_cast<uintptr_t>(wParam), lParam, reinterpret_cast<intptr_t*>(pResult)) : FALSE;
-}
-// Symbol: ?OnWndMsg@CWnd@@MEAAHI_K_JPEA_J@Z
-extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
-    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult) {
-    if (!pThis) {
-        return FALSE;
-    }
-    if (pResult) {
-        *pResult = 0;
-    }
-    // Objects constructed through the MSVC import library do not have a
-    // cross-compiler-compatible CWnd vtable yet.  Dispatch the base handlers
-    // directly instead of making a virtual call through an invalid vptr.
-    switch (message) {
-    case WM_COMMAND:
-        return impl__OnCommand_CWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
-    case WM_NOTIFY:
-        return impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(pThis, wParam, lParam, pResult);
-    default:
-        return FALSE;
-    }
 }
 CWnd* CWnd::FromHandle(HWND hWnd) {
     return OpenMfcAttachCWnd(hWnd);
@@ -2004,10 +1963,6 @@ HWND CWnd::Detach()
     CleanupWindowRuntimeState(this);
     return hWnd;
 }
-int CWnd::DoD2DPaint()
-{
-    return m_hWnd ? 1 : 0;
-}
 void CWnd::EnableScrollBarCtrl(int p0, int p1)
 {
     if (!m_hWnd) {
@@ -2354,7 +2309,7 @@ int CWnd::GetGestureConfig(CGestureConfig* p0)
 DWORD CWnd::GetGestureStatus(CPoint p0)
 {
     (void)p0;
-    return GetWindowRuntimeState(this).d2dSupportEnabled ? 1u : 0u;
+    return IsD2DSupportEnabled() ? 1u : 0u;
 }
 const AFX_INTERFACEMAP* CWnd::GetInterfaceMap() const
 {
@@ -2438,12 +2393,6 @@ void CWnd::GetProperty(long p0, WORD p1, void* p2) const
         return;
     }
     *reinterpret_cast<void**>(p2) = propIt->second;
-}
-CHwndRenderTarget* CWnd::GetRenderTarget()
-{
-    // CHwndRenderTarget is ABI-compatible with the render-target family in this
-    // port and shares the same runtime-slot allocation strategy as CDCRenderTarget.
-    return reinterpret_cast<CHwndRenderTarget*>(GetDCRenderTarget());
 }
 DWORD CWnd::GetStyle() const
 {
@@ -3158,20 +3107,6 @@ int CWnd::OnNcDestroy()
     }
     return 1;
 }
-void CWnd::OnPaint()
-{
-    if (!m_hWnd) {
-        return;
-    }
-    PAINTSTRUCT ps {};
-    HDC hdc = ::BeginPaint(m_hWnd, &ps);
-    if (!hdc) {
-        return;
-    }
-    HBRUSH brush = static_cast<HBRUSH>(::GetStockObject(WHITE_BRUSH));
-    ::FillRect(hdc, &ps.rcPaint, brush);
-    ::EndPaint(m_hWnd, &ps);
-}
 int CWnd::OnParentNotify(UINT p0, LONGLONG p1)
 {
     if (!m_hWnd) {
@@ -3663,29 +3598,9 @@ void CWnd::UpdateDialogControls(void* p0, int p1)
         }
     }
 }
-void CWnd::EnableD2DSupport(int p0, int p1)
-{
-    (void)p1;
-    GetWindowRuntimeState(this).d2dSupportEnabled = p0 != FALSE;
-}
 void CWnd::EnableDynamicLayout(int p0)
 {
     GetWindowRuntimeState(this).dynamicLayoutEnabled = p0 != FALSE;
-}
-CDCRenderTarget* CWnd::GetDCRenderTarget()
-{
-    auto it = g_wndRuntimeStates.find(this);
-    if (it == g_wndRuntimeStates.end() || !it->second.d2dSupportEnabled) {
-        return nullptr;
-    }
-    auto& state = GetWindowRuntimeState(this);
-    auto dcTargetIt = state.properties.find({0x4F44, 0});
-    if (dcTargetIt == state.properties.end() || !dcTargetIt->second) {
-        void*& slot = state.properties[{0x4F44, 0}];
-        slot = new CDCRenderTarget();
-        return static_cast<CDCRenderTarget*>(slot);
-    }
-    return static_cast<CDCRenderTarget*>(dcTargetIt->second);
 }
 void CWnd::InitDynamicLayout()
 {
@@ -3706,10 +3621,6 @@ void CWnd::ResizeDynamicLayout()
         return;
     }
     ::InvalidateRect(m_hWnd, nullptr, TRUE);
-}
-int CWnd::IsD2DSupportEnabled()
-{
-    return g_wndRuntimeStates[this].d2dSupportEnabled ? TRUE : FALSE;
 }
 void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int p3, int*& p4)
 {

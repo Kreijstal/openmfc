@@ -19,6 +19,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
+    phase4/src/core/window/CWndD2D.cpp phase4/src/core/runtime/D2DMessages.cpp
     phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
     phase4/src/core/d2d/CHwndRenderTarget.cpp phase4/src/core/d2d/CBitmapRenderTarget.cpp
     phase4/src/core/d2d/CD2DGeometry.cpp phase4/src/core/d2d/CD2DPathGeometry.cpp
@@ -64,6 +65,13 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
+for path, obj in (('core/window/CWndD2D.cpp', 'CWndD2D'),
+                  ('core/runtime/D2DMessages.cpp', 'D2DMessages')):
+    defined = {line.split()[-1] for line in subprocess.check_output(
+        ['llvm-nm', '--defined-only', str(Path(sys.argv[2]) / (obj + '.obj'))],
+        text=True).splitlines() if line.split()}
+    for symbol in re.findall(r'^// Symbol: (.+)$', (root / 'phase4/src' / path).read_text(), re.M):
+        assert gen_weak_stubs.generate_stub_name(symbol) in defined, 'Missing window D2D alias: ' + symbol
 print('Render target and resource export aliases match the DLL generator')
 PY
 lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF \
@@ -74,7 +82,7 @@ lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
-for source in tests/test_d2d_resources.cpp phase4/src/core/d2d/CRenderTarget.cpp \
+for source in tests/test_d2d_resources.cpp phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/d2d/CRenderTarget.cpp \
     phase4/src/core/d2d/CD2DTextFormat.cpp phase4/src/core/d2d/CD2DTextLayout.cpp; do
     object="$BUILD_DIR/$(basename "${source%.cpp}").obj"
     clang-cl "${FLAGS[@]}" /c "$ROOT/$source" /Fo"$object"

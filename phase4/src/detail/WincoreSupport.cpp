@@ -121,19 +121,11 @@ void CleanupWindowRuntimeState(CWnd* pWnd) {
     if (!pWnd) {
         return;
     }
+    // Resource destructors and COM releases may call back into window APIs.
+    pWnd->EnableD2DSupport(FALSE);
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
-    auto stateIt = g_wndRuntimeStates.find(pWnd);
-    if (stateIt != g_wndRuntimeStates.end()) {
-        auto it = stateIt->second.properties.find({0x4F44, 0});
-        if (it != stateIt->second.properties.end()) {
-            delete static_cast<CDCRenderTarget*>(it->second);
-            stateIt->second.properties.erase(it);
-        }
-        g_wndRuntimeStates.erase(stateIt);
-    }
-    if (auto* pFrameWnd = dynamic_cast<CFrameWnd*>(pWnd)) {
-        g_frameWndRuntimeStates.erase(pFrameWnd);
-    }
+    g_wndRuntimeStates.erase(pWnd);
+    if (auto* pFrameWnd = dynamic_cast<CFrameWnd*>(pWnd)) g_frameWndRuntimeStates.erase(pFrameWnd);
 }
 ITaskbarList3* AcquireTaskbarList3ForWindow(HWND hWnd) {
     if (!hWnd) {

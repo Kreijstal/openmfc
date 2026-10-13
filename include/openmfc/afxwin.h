@@ -196,6 +196,7 @@ class CPoint;
 class CRect;
 class CScrollBar;
 class CSize;
+class CRenderTarget;
 class CHwndRenderTarget;
 class CDCRenderTarget;
 class IAccessibleProxy;
@@ -594,13 +595,15 @@ public:
     DWORD m_dwStyle;             // 4 bytes - cached window style
     
     // Platform-specific padding to reach 232 bytes total
-    // On Windows/MinGW: DWORD is 4 bytes, need 144 bytes padding
-    // On Linux: DWORD typedef is 8 bytes (unsigned long), need 136 bytes padding
+    // On Windows: DWORD is 4 bytes, need 136 bytes padding before the target.
+    // With an 8-byte DWORD typedef, need 128 bytes before the target.
 #if defined(_WIN32) || defined(__MINGW32__)
-    char _cwnd_padding2[144];    
+    char _cwnd_padding2[136];
 #else
-    char _cwnd_padding2[136];    
+    char _cwnd_padding2[128];
 #endif
+    CRenderTarget* m_pRenderTarget; // retail x64 +0xE0
+
 
     // Generated CWnd methods
     // Static methods
@@ -687,6 +690,7 @@ public:
     LONGLONG DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2);
     HWND Detach();
     int DoD2DPaint();
+    void ResizeD2DRenderTarget(UINT width, UINT height);
     void EnableScrollBarCtrl(int p0, int p1);
     int EnableToolTips(int p0);
     int EnableTrackingToolTips(int p0);
@@ -806,7 +810,7 @@ public:
     HWND UnsubclassWindow();
     int UpdateData(int p0);
     void UpdateDialogControls(void* p0, int p1);
-    void EnableD2DSupport(int p0, int p1);
+    void EnableD2DSupport(int enable = TRUE, int useDCRenderTarget = FALSE);
     void EnableDynamicLayout(int p0);
     CDCRenderTarget* GetDCRenderTarget();
     void InitDynamicLayout();
@@ -2251,6 +2255,7 @@ inline CWnd::CWnd()
     , m_pfnSuper(nullptr)
     , m_nFlags(0)
     , m_dwStyle(0)
+    , m_pRenderTarget(nullptr)
 {
     // Zero padding
     memset(_cwnd_padding1, 0, sizeof(_cwnd_padding1));
@@ -2258,9 +2263,8 @@ inline CWnd::CWnd()
 }
 
 inline CWnd::~CWnd() {
-    if (m_hWnd != nullptr) {
-        DestroyWindow();
-    }
+    if (m_hWnd != nullptr) DestroyWindow();
+    if (m_pRenderTarget) EnableD2DSupport(FALSE);
 }
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
@@ -2508,6 +2512,11 @@ inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lPara
         *pResult = 0;
     }
     switch (message) {
+    case WM_PAINT:
+        return m_pRenderTarget && DoD2DPaint();
+    case WM_SIZE:
+        if (m_pRenderTarget) ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
+        return FALSE;
     case WM_COMMAND:
         return OnCommand(wParam, lParam);
     case WM_NOTIFY:

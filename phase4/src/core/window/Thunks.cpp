@@ -15,6 +15,7 @@
   #define MS_ABI
 #endif
 
+#include <winsock2.h>
 #include "openmfc/afxwin.h"
 #include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
@@ -1193,11 +1194,6 @@ extern "C" void MS_ABI impl__DeleteTempMap_CWnd__SAXXZ() {
 extern "C" HWND__* MS_ABI impl__Detach_CWnd__QEAAPEAUHWND____XZ(CWnd* pThis) {
     return (HWND__*)pThis->Detach();
 }
-// Symbol: ?DoD2DPaint@CWnd@@IEAAHXZ
-// CWnd::DoD2DPaint
-extern "C" int MS_ABI impl__DoD2DPaint_CWnd__IEAAHXZ(CWnd* pThis) {
-    return (int)pThis->DoD2DPaint();
-}
 // Symbol: ?DrawItem@CMenu@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
 // CMenu::DrawItem
 extern "C" void MS_ABI impl__DrawItem_CMenu__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CMenu* pThis, DRAWITEMSTRUCT* p0) {
@@ -1368,11 +1364,6 @@ extern "C" COleControlSiteOrWnd* MS_ABI impl__GetPrevDlgGroupItem_CWnd__QEBAPEAU
 extern "C" void MS_ABI impl__GetProperty_CWnd__QEBAXJGPEAX_Z(const CWnd* pThis, long p0, unsigned short p1, void* p2) {
     pThis->GetProperty(p0, p1, p2);
 }
-// Symbol: ?GetRenderTarget@CWnd@@QEAAPEAVCHwndRenderTarget@@XZ
-// CWnd::GetRenderTarget
-extern "C" CHwndRenderTarget* MS_ABI impl__GetRenderTarget_CWnd__QEAAPEAVCHwndRenderTarget__XZ(CWnd* pThis) {
-    return (CHwndRenderTarget*)pThis->GetRenderTarget();
-}
 // Symbol: ?GetStyle@CWnd@@QEBAKXZ
 // CWnd::GetStyle
 extern "C" unsigned long MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis) {
@@ -1427,11 +1418,6 @@ extern "C" int MS_ABI impl__HandleFloatingSysCommand_CWnd__QEAAHI_J_Z(CWnd* pThi
 // CWnd::InitControlContainer
 extern "C" int MS_ABI impl__InitControlContainer_CWnd__IEAAHH_Z(CWnd* pThis, int p0) {
     return (int)pThis->InitControlContainer(p0);
-}
-// Symbol: ?IsD2DSupportEnabled@CWnd@@QEAAHXZ
-// CWnd::IsD2DSupportEnabled
-extern "C" int MS_ABI impl__IsD2DSupportEnabled_CWnd__QEAAHXZ(CWnd* pThis) {
-    return (int)pThis->IsD2DSupportEnabled();
 }
 // Symbol: ?IsDlgButtonChecked@CWnd@@QEBAIH@Z
 // CWnd::IsDlgButtonChecked
@@ -1572,11 +1558,6 @@ extern "C" void MS_ABI impl__OnNcDestroy_CWnd__IEAAXXZ(CWnd* pThis) {
 // CWnd::OnNTCtlColor
 extern "C" __int64 MS_ABI impl__OnNTCtlColor_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
     return (__int64)pThis->OnNTCtlColor(p0, p1);
-}
-// Symbol: ?OnPaint@CWnd@@IEAAXXZ
-// CWnd::OnPaint
-extern "C" void MS_ABI impl__OnPaint_CWnd__IEAAXXZ(CWnd* pThis) {
-    pThis->OnPaint();
 }
 // Symbol: ?OnParentNotify@CWnd@@IEAAXI_J@Z
 // CWnd::OnParentNotify
@@ -1747,16 +1728,6 @@ extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z
 // Static: CWnd::WalkPreTranslateTree
 extern "C" int MS_ABI impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG___Z(HWND__* p0, MSG* p1) {
     return (int)CWnd::WalkPreTranslateTree(p0, p1);
-}
-// Symbol: ?EnableD2DSupport@CWnd@@QEAAXHH@Z
-// CWnd::EnableD2DSupport
-extern "C" void MS_ABI impl__EnableD2DSupport_CWnd__QEAAXHH_Z(CWnd* pThis, int p0, int p1) {
-    pThis->EnableD2DSupport(p0, p1);
-}
-// Symbol: ?GetDCRenderTarget@CWnd@@QEAAPEAVCDCRenderTarget@@XZ
-// CWnd::GetDCRenderTarget
-extern "C" CDCRenderTarget* MS_ABI impl__GetDCRenderTarget_CWnd__QEAAPEAVCDCRenderTarget__XZ(CWnd* pThis) {
-    return (CDCRenderTarget*)pThis->GetDCRenderTarget();
 }
 // Symbol: ?EnableDynamicLayout@CWnd@@QEAAXH@Z
 // CWnd::EnableDynamicLayout

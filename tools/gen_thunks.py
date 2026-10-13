@@ -226,6 +226,9 @@ def generate_thunks(all_exports, implemented, include_dir) -> str:
     for h in sorted(needed_headers):
         if h not in ordered:
             ordered.append(h)
+    if 'afxsock.h' in needed_headers:
+        # Windows.h would otherwise pull in the conflicting Winsock 1 header.
+        lines.append('#include <winsock2.h>')
     for hdr in ordered:
         lines.append(f'#include "openmfc/{hdr}"')
     lines.append('')
