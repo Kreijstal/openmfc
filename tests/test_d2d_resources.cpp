@@ -270,12 +270,13 @@ static void ownershipAndRecreation() {
 #include "cmdtarget_dispatch_tests.h"
 #include "cmdtarget_invoke_tests.h"
 #include "cmdtarget_event_tests.h"
+#include "cmdtarget_connection_tests.h"
 
 int main() {
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
-    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); }
+    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetConnections(); }
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

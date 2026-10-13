@@ -45,3 +45,9 @@ extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long) { std::abort(); 
 
 // Invalid event arguments exercise the framework exception path.
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { throw 19; }
+
+// Pointer-array serialization is unrelated to connection enumeration.
+CArchive& CArchive::operator<<(const void*) { std::abort(); }
+CArchive& CArchive::operator>>(void*&) { std::abort(); }
+CArchive& CArchive::operator<<(unsigned int) { std::abort(); }
+CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }

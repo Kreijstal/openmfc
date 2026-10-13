@@ -1511,7 +1511,7 @@ class COleConnPtContainer {
 public:
     COleConnPtContainer();
     ~COleConnPtContainer();
-    char _oleconnptcontainer_padding[32];
+    alignas(void*) char _oleconnptcontainer_padding[sizeof(void*)];
 };
 
 //=============================================================================

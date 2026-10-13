@@ -689,12 +689,7 @@ extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* p
 
 // EnableAutomation is implemented in CCmdTargetDispatch.cpp with a live owner-backed table.
 
-// CCmdTarget::EnableConnections -- STUB.  Retail (mfc140u 0x24c230) stores the
-// vtable at 0x18032c2e0 -- whose first slots are ?QueryInterface@
-// COleConnPtContainer@@, ?AddRef@, ?Release@ -- into m_xConnPtContainer at
-// this+0x30. Storage is available; the connection-container table remains pending.
-// Symbol: ?EnableConnections@CCmdTarget@@QEAAXXZ
-extern "C" void MS_ABI impl__EnableConnections_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
+// Connection activation is implemented in core/ole/COleConnPtContainer.cpp.
 
 // CCmdTarget::EnableTypeLib() -- retail mfc140u 0x26bf60, transcribed:
 //     AfxLockGlobals(CRIT_TYPELIBCACHE /*13*/);        ; call 0x180033540

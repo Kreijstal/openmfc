@@ -577,6 +577,7 @@ protected:
 // Template collection classes
 template<class TYPE, class ARG_TYPE = const TYPE&>
 class CArray {
+    friend class CPtrArray; // synchronizes the native pointer-array member block
 protected:
     TYPE* m_pData;
     int m_nSize;
@@ -1539,7 +1540,41 @@ public: \
 OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
 OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, DECLARE_SERIAL)
 OPENMFC_DECLARE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
-OPENMFC_DECLARE_ARRAY_WRAPPER(CPtrArray, void*, void*, DECLARE_DYNAMIC)
+class CPtrArray : public CObject {
+    DECLARE_DYNAMIC(CPtrArray)
+public:
+    CPtrArray();
+    virtual ~CPtrArray();
+    INT_PTR GetSize() const;
+    INT_PTR GetCount() const;
+    BOOL IsEmpty() const;
+    INT_PTR GetUpperBound() const;
+    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1);
+    void FreeExtra();
+    void RemoveAll();
+    void* GetAt(INT_PTR nIndex) const;
+    void SetAt(INT_PTR nIndex, void* newElement);
+    void*& ElementAt(INT_PTR nIndex);
+    const void*& ElementAt(INT_PTR nIndex) const;
+    void* operator[](INT_PTR nIndex) const;
+    void*& operator[](INT_PTR nIndex);
+    void** GetData();
+    const void** GetData() const;
+    void SetAtGrow(INT_PTR nIndex, void* newElement);
+    INT_PTR Add(void* newElement);
+    INT_PTR Append(const CPtrArray& src);
+    void Copy(const CPtrArray& src);
+    void InsertAt(INT_PTR nIndex, void* newElement, INT_PTR nCount = 1);
+    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1);
+    void InsertAt(INT_PTR nStartIndex, CPtrArray* pNewArray);
+    virtual void Serialize(CArchive& ar) override;
+    void SyncNativeArray();
+protected:
+    void** m_pData;
+    INT_PTR m_nSize;
+    INT_PTR m_nMaxSize;
+    INT_PTR m_nGrowBy;
+};
 OPENMFC_DECLARE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
 
 class CStringArray : public CObject {

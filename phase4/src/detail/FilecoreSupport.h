@@ -160,7 +160,11 @@ int ClampCollectionSize(INT_PTR value);
 } } }
 
 namespace openmfc { namespace detail { namespace filecore {
-int ClampCollectionGrow(INT_PTR value);
+inline int ClampCollectionGrow(INT_PTR value) {
+    if (value < -1) return -1;
+    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    return static_cast<int>(value);
+}
 } } }
 
 namespace openmfc { namespace detail { namespace filecore {
@@ -351,10 +355,19 @@ namespace openmfc { namespace detail { namespace filecore {
 extern CRuntimeClass g_classCWordArray;
 } } }
 
+// Pointer-array metadata must be visible to native MSVC inline accessors.
+template<class Array> inline void SyncArrayNative(Array*) {}
+inline void SyncArrayNative(CPtrArray* array) { array->SyncNativeArray(); }
+template<class Array> struct ArrayNativeSync {
+    Array* array;
+    explicit ArrayNativeSync(Array* value) : array(value) {}
+    ~ArrayNativeSync() { SyncArrayNative(array); }
+};
+
 #define OPENMFC_DEFINE_ARRAY_METHODS(class_name, element_type, arg_type) \
 class_name::class_name() { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
-    EnsureCollectionState<class_name, ArrayWrapperState<element_type, arg_type>>(this); \
+    EnsureCollectionState<class_name, ArrayWrapperState<element_type, arg_type>>(this); SyncArrayNative(this); \
 } \
  \
 class_name::~class_name() { \
@@ -382,16 +395,19 @@ INT_PTR class_name::GetUpperBound() const { \
  \
 void class_name::SetSize(INT_PTR nNewSize, INT_PTR nGrowBy) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).SetSize(ClampCollectionSize(nNewSize), ClampCollectionGrow(nGrowBy)); \
 } \
  \
 void class_name::FreeExtra() { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).FreeExtra(); \
 } \
  \
 void class_name::RemoveAll() { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).RemoveAll(); \
 } \
  \
@@ -436,16 +452,19 @@ const element_type* class_name::GetData() const { \
  \
 void class_name::SetAtGrow(INT_PTR nIndex, arg_type newElement) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).SetAtGrow(ClampCollectionSize(nIndex), newElement); \
 } \
  \
 INT_PTR class_name::Add(arg_type newElement) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     return EnsureArrayStorage<class_name, element_type, arg_type>(this).Add(newElement); \
 } \
  \
 INT_PTR class_name::Append(const class_name& src) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
     const auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(&src); \
     return data.Append(srcData); \
@@ -453,6 +472,7 @@ INT_PTR class_name::Append(const class_name& src) { \
  \
 void class_name::Copy(const class_name& src) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
     const auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(&src); \
     data.Copy(srcData); \
@@ -460,17 +480,20 @@ void class_name::Copy(const class_name& src) { \
  \
 void class_name::InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).InsertAt(ClampCollectionSize(nIndex), newElement, ClampCollectionSize(nCount)); \
 } \
  \
 void class_name::RemoveAt(INT_PTR nIndex, INT_PTR nCount) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     EnsureArrayStorage<class_name, element_type, arg_type>(this).RemoveAt(ClampCollectionSize(nIndex), ClampCollectionSize(nCount)); \
 } \
  \
 void class_name::InsertAt(INT_PTR nStartIndex, class_name* pNewArray) { \
     if (!pNewArray) return; \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
     auto& srcData = EnsureArrayStorage<class_name, element_type, arg_type>(pNewArray); \
     data.InsertAt(ClampCollectionSize(nStartIndex), &srcData); \
@@ -478,6 +501,7 @@ void class_name::InsertAt(INT_PTR nStartIndex, class_name* pNewArray) { \
  \
 void class_name::Serialize(CArchive& ar) { \
     std::lock_guard<std::mutex> lock(g_collectionStateMutex); \
+    ArrayNativeSync<class_name> sync(this); \
     auto& data = EnsureArrayStorage<class_name, element_type, arg_type>(this); \
     if (ar.IsStoring()) ar << data; else ar >> data; \
 }
@@ -912,7 +936,7 @@ struct CStdioFileAccessor : CStdioFile {
 
 
 
-extern "C" void* impl__hFileNull_CFile__2QEAXEA = (void*)INVALID_HANDLE_VALUE;
+extern "C" void* impl__hFileNull_CFile__2QEAXEA;
 
 
 

@@ -1,5 +1,7 @@
 #include "FilecoreSupport.h"
 
+extern "C" void* impl__hFileNull_CFile__2QEAXEA = (void*)INVALID_HANDLE_VALUE;
+
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToPtr__IEAAXPEAUCAssoc_1___Z(CMapPtrToPtr* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(CMapPtrToWord* /*pThis*/, void* pAssoc);
@@ -16,7 +18,6 @@ extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(C
 IMPLEMENT_DYNAMIC(CUIntArray, CObject)
 IMPLEMENT_SERIAL(CDWordArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CObArray, CObject, 0xFFFF)
-IMPLEMENT_DYNAMIC(CPtrArray, CObject)
 IMPLEMENT_SERIAL(CByteArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringList, CObject, 0xFFFF)
@@ -30,7 +31,6 @@ IMPLEMENT_DYNAMIC(CMapWordToPtr, CObject)
 OPENMFC_DEFINE_ARRAY_METHODS(CUIntArray, unsigned int, unsigned int)
 OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)
 OPENMFC_DEFINE_ARRAY_METHODS(CObArray, CObject*, CObject*)
-OPENMFC_DEFINE_ARRAY_METHODS(CPtrArray, void*, void*)
 OPENMFC_DEFINE_ARRAY_METHODS(CByteArray, BYTE, BYTE)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToPtr, void*, void*, void*, void*)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToWord, void*, void*, WORD, WORD)
@@ -80,11 +80,6 @@ void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsign
             state.ranges.emplace_back(target.second + 1, current.second);
         }
     }
-}
-int ClampCollectionGrow(INT_PTR value) {
-    if (value < -1) return -1;
-    if (value > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    return static_cast<int>(value);
 }
 CString NormalizeStringKey(const wchar_t* key) {
     return CString(key ? key : L"");

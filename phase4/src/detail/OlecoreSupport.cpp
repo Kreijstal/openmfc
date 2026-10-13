@@ -12,12 +12,7 @@ void CCmdUI_DelegatedText(CCmdUI* pThis, void (CCmdUI::*fn)(const wchar_t*), con
         (pThis->m_pOther->*fn)(text);
     }
 }
-extern "C" ULONG MS_ABI impl__AddRef_COleConnPtContainer__UEAAKXZ(
-    COleConnPtContainer* pThis
-) {
-    (void)pThis;
-    return 1;
-}
+
 HRESULT DataSourceDataObject::QueryInterface(REFIID riid, void** ppvObject) {
     if (!ppvObject) return E_POINTER;
     if (riid == IID_IUnknown || riid == IID_IDataObject) {
@@ -1320,41 +1315,10 @@ extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(
         dwDispID, DISPATCH_PROPERTYGET, vtProp, pvProp, nullptr
     );
 }
-extern "C" HRESULT MS_ABI impl__QueryInterface_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAX_Z(
-    COleConnPtContainer* pThis, REFIID riid, void** ppv
-) {
-    if (!ppv) return E_POINTER;
-    *ppv = nullptr;
-    if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IConnectionPointContainer)) {
-        *ppv = pThis;
-        impl__AddRef_COleConnPtContainer__UEAAKXZ(pThis);
-        return S_OK;
-    }
-    return E_NOINTERFACE;
-}
-extern "C" ULONG MS_ABI impl__Release_COleConnPtContainer__UEAAKXZ(
-    COleConnPtContainer* pThis
-) {
-    (void)pThis;
-    return 1;
-}
-extern "C" HRESULT MS_ABI impl__EnumConnectionPoints_COleConnPtContainer__UEAAJPEAPEAUIEnumConnectionPoints___Z(
-    COleConnPtContainer* pThis, IEnumConnectionPoints** ppEnum
-) {
-    (void)pThis;
-    if (!ppEnum) return E_POINTER;
-    *ppEnum = new EmptyEnumConnectionPoints();
-    return *ppEnum ? S_OK : E_OUTOFMEMORY;
-}
-extern "C" HRESULT MS_ABI impl__FindConnectionPoint_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAUIConnectionPoint___Z(
-    COleConnPtContainer* pThis, REFIID riid, IConnectionPoint** ppCP
-) {
-    (void)pThis;
-    (void)riid;
-    if (!ppCP) return E_POINTER;
-    *ppCP = nullptr;
-    return OLE_E_NOCONNECTION;
-}
+
+
+
+
 std::vector<DropTargetState> g_dropTargetStates;
 std::vector<DocumentState> g_documentStates;
 std::vector<ClientItemState> g_clientItemStates;
