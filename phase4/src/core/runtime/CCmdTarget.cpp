@@ -2,6 +2,7 @@
 // Sources: appcore.cpp, cbarcore.cpp
 
 #define OPENMFC_APPCORE_IMPL
+#include "detail/CommandMessageDispatch.h"
 
 #include "detail/CWinAppSupport.h"
 #include "detail/CbarcoreSupport.h"
@@ -229,133 +230,9 @@ int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,AFX_CMDHANDLERI
 int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                       AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo)
 {
-    (void)nID; (void)nCode; (void)pHandlerInfo;
-
-    // Define member function pointer types for various signatures
-    typedef void (CCmdTarget::*AFX_PMSG_v)();
-    typedef int (CCmdTarget::*AFX_PMSG_b)();
-    typedef void (CCmdTarget::*AFX_PMSG_vw)(UINT);
-    typedef void (CCmdTarget::*AFX_PMSG_vww)(UINT, UINT);
-    typedef void (CCmdTarget::*AFX_PMSG_vwww)(UINT, UINT, UINT);
-    typedef void (CCmdTarget::*AFX_PMSG_vwl)(UINT, LONG);
-    typedef LRESULT (CCmdTarget::*AFX_PMSG_lwl)(WPARAM, LPARAM);
-    typedef void (CCmdTarget::*AFX_PMSG_vb)(BOOL);
-    typedef int (CCmdTarget::*AFX_PMSG_bh)(HANDLE);
-    typedef void (CCmdTarget::*AFX_PMSG_cmdui)(void*);
-    typedef int (CCmdTarget::*AFX_PMSG_bwl)(UINT, LONG);
-    typedef void (CCmdTarget::*AFX_PMSG_vwwh)(UINT, UINT, HANDLE);
-    typedef int (CCmdTarget::*AFX_PMSG_iw)(UINT);
-    typedef int (CCmdTarget::*AFX_PMSG_iww)(UINT, UINT);
-
-    union MessageMapFunctions {
-        AFX_PMSG pfn;
-        AFX_PMSG_v pfn_v;
-        AFX_PMSG_b pfn_b;
-        AFX_PMSG_vw pfn_vw;
-        AFX_PMSG_vww pfn_vww;
-        AFX_PMSG_vwww pfn_vwww;
-        AFX_PMSG_vwl pfn_vwl;
-        AFX_PMSG_lwl pfn_lwl;
-        AFX_PMSG_vb pfn_vb;
-        AFX_PMSG_bh pfn_bh;
-        AFX_PMSG_cmdui pfn_cmdui;
-        AFX_PMSG_bwl pfn_bwl;
-        AFX_PMSG_vwwh pfn_vwwh;
-        AFX_PMSG_iw pfn_iw;
-        AFX_PMSG_iww pfn_iww;
-    };
-
-    MessageMapFunctions mmf;
-    mmf.pfn = pfn;
-
-    switch (nSig)
-    {
-    case AfxSig_vv:
-        (pTarget->*mmf.pfn_v)();
-        return TRUE;
-
-    case AfxSig_bv:
-        return (pTarget->*mmf.pfn_b)();
-
-    case AfxSig_vw:
-        (pTarget->*mmf.pfn_vw)(nID);
-        return TRUE;
-
-    case AfxSig_vww:
-        {
-            UINT* pParams = static_cast<UINT*>(pExtra);
-            (pTarget->*mmf.pfn_vww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0);
-        }
-        return TRUE;
-
-    case AfxSig_vwww:
-        {
-            UINT* pParams = static_cast<UINT*>(pExtra);
-            (pTarget->*mmf.pfn_vwww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0, pParams ? pParams[2] : 0);
-        }
-        return TRUE;
-
-    case AfxSig_vwl:
-        {
-            LONG* pParam = static_cast<LONG*>(pExtra);
-            (pTarget->*mmf.pfn_vwl)(nID, pParam ? *pParam : 0);
-        }
-        return TRUE;
-
-    case AfxSig_lwl:
-        {
-            WPARAM wParam = static_cast<WPARAM>(nID);
-            LPARAM lParam = pExtra ? *static_cast<LPARAM*>(pExtra) : 0;
-            return static_cast<int>((pTarget->*mmf.pfn_lwl)(wParam, lParam));
-        }
-
-    case AfxSig_v_b:
-    case AfxSig_vb:
-        (pTarget->*mmf.pfn_vb)(pExtra ? *static_cast<BOOL*>(pExtra) : FALSE);
-        return TRUE;
-
-    case AfxSig_bh:
-        {
-            HANDLE h = pExtra ? *static_cast<HANDLE*>(pExtra) : nullptr;
-            return (pTarget->*mmf.pfn_bh)(h);
-        }
-
-    case AfxSig_cmdui:
-        (pTarget->*mmf.pfn_cmdui)(pExtra);
-        return TRUE;
-
-    case AfxSig_bwl:
-        {
-            LONG* pParam = static_cast<LONG*>(pExtra);
-            return (pTarget->*mmf.pfn_bwl)(nID, pParam ? *pParam : 0);
-        }
-
-    case AfxSig_vwwh:
-        {
-            void** pParams = static_cast<void**>(pExtra);
-            UINT u1 = pParams ? static_cast<UINT>(reinterpret_cast<UINT_PTR>(pParams[0])) : 0;
-            UINT u2 = pParams ? static_cast<UINT>(reinterpret_cast<UINT_PTR>(pParams[1])) : 0;
-            HANDLE h = pParams ? static_cast<HANDLE>(pParams[2]) : nullptr;
-            (pTarget->*mmf.pfn_vwwh)(u1, u2, h);
-        }
-        return TRUE;
-
-    case AfxSig_iw:
-        return (pTarget->*mmf.pfn_iw)(nID);
-
-    case AfxSig_iww:
-        {
-            UINT* pParams = static_cast<UINT*>(pExtra);
-            return (pTarget->*mmf.pfn_iww)(pParams ? pParams[0] : 0, pParams ? pParams[1] : 0);
-        }
-
-    case AfxSig_vv_i:
-        (pTarget->*mmf.pfn_v)();
-        return TRUE;
-
-    default:
-        return FALSE;
-    }
+    (void)nCode;
+    void* function=nullptr;std::memcpy(&function,&pfn,sizeof(function));
+    return openmfc::detail::DispatchCommandMessage(pTarget,nID,function,pExtra,nSig,static_cast<AFX_CMDHANDLERINFO*>(pHandlerInfo));
 }
 // CCmdTarget::GetTypeLibCache() -- retail mfc140u resolves this export (by
 // ordinal) to 0x71e0, the image-wide `xor %eax,%eax ; ret` shared by every
@@ -504,56 +381,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
         return TRUE;
     }
 
-    // _AfxDispatchCmdMsg, inlined.  pfn is an 8-byte MSVC member-function
-    // pointer (single inheritance), i.e. a plain code address called with
-    // `this` in RCX.  AfxSig values are retail afxmsg_.h's enum.
-    S_Notify* pNotify = static_cast<S_Notify*>(pExtra);
-    switch (pEntry->nSig) {
-    case 0x3a:   // AfxSigCmd_v: void ()                                  -> TRUE
-        reinterpret_cast<void (MS_ABI*)(void*)>(pfn)(pThis);
-        return TRUE;
-    case 0x3b:   // AfxSigCmd_b: BOOL ()
-        return reinterpret_cast<int (MS_ABI*)(void*)>(pfn)(pThis);
-    case 0x3c:   // AfxSigCmd_RANGE: void (UINT nID)                      -> TRUE
-        reinterpret_cast<void (MS_ABI*)(void*, unsigned int)>(pfn)(pThis, nID);
-        return TRUE;
-    case 0x3d:   // AfxSigCmd_EX: BOOL (UINT nID)
-        return reinterpret_cast<int (MS_ABI*)(void*, unsigned int)>(pfn)(pThis, nID);
-    case 0x3e:   // AfxSigNotify_v: void (NMHDR*, LRESULT*)               -> TRUE
-        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
-        reinterpret_cast<void (MS_ABI*)(void*, void*, void*)>(pfn)(pThis, pNotify->pNMHDR, pNotify->pResult);
-        return TRUE;
-    case 0x3f:   // AfxSigNotify_b: BOOL (NMHDR*, LRESULT*)
-        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
-        return reinterpret_cast<int (MS_ABI*)(void*, void*, void*)>(pfn)(pThis, pNotify->pNMHDR, pNotify->pResult);
-    case 0x40:   // AfxSigNotify_RANGE: void (UINT, NMHDR*, LRESULT*)     -> TRUE
-        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
-        reinterpret_cast<void (MS_ABI*)(void*, unsigned int, void*, void*)>(pfn)(pThis, nID, pNotify->pNMHDR, pNotify->pResult);
-        return TRUE;
-    case 0x41:   // AfxSigNotify_EX: BOOL (UINT, NMHDR*, LRESULT*)
-        if (!pNotify) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
-        return reinterpret_cast<int (MS_ABI*)(void*, unsigned int, void*, void*)>(pfn)(pThis, nID, pNotify->pNMHDR, pNotify->pResult);
-    case 0x42:   // AfxSigCmdUI: void (CCmdUI*)
-    case 0x43: { // AfxSigCmdUI_RANGE: void (CCmdUI*, UINT nID)
-        if (!pExtra) { impl__AfxThrowInvalidArgException__YAXXZ(); return FALSE; }
-        S_OleCmdUI* pCmdUI = static_cast<S_OleCmdUI*>(pExtra);
-        if (pEntry->nSig == 0x42)
-            reinterpret_cast<void (MS_ABI*)(void*, void*)>(pfn)(pThis, pCmdUI);
-        else
-            reinterpret_cast<void (MS_ABI*)(void*, void*, unsigned int)>(pfn)(pThis, pCmdUI, nID);
-        // `cmp %ebp,0x2c(%rdi) ; movl $0,0x2c(%rdi) ; sete %bpl`
-        const int bResult = (pCmdUI->m_bContinueRouting == 0) ? TRUE : FALSE;
-        pCmdUI->m_bContinueRouting = FALSE;
-        return bResult;
-    }
-    case 0x44:   // AfxSigCmd_v_pv: void (void*) -- no NULL check in retail -> TRUE
-        reinterpret_cast<void (MS_ABI*)(void*, void*)>(pfn)(pThis, pExtra);
-        return TRUE;
-    case 0x45:   // AfxSigCmd_b_pv: BOOL (void*) -- no NULL check in retail
-        return reinterpret_cast<int (MS_ABI*)(void*, void*)>(pfn)(pThis, pExtra);
-    default:     // any other signature is not a command handler
-        return FALSE;
-    }
+    return openmfc::detail::DispatchCommandMessage(pThis,nID,pfn,pExtra,pEntry->nSig,nullptr);
 }
 
 // CallMemberFunc is implemented in CCmdTargetInvoke.cpp using native automation calls.

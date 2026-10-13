@@ -366,52 +366,20 @@ protected: \
     static const AFX_MSGMAP_ENTRY _messageEntries[]; \
 
 #define BEGIN_MESSAGE_MAP(theClass, baseClass) \
-    const AFX_MSGMAP* AFXAPI theClass::GetThisMessageMap() \
-    { \
-        return &theClass::messageMap; \
-    } \
-    const AFX_MSGMAP* theClass::GetMessageMap() const \
-    { \
-        return GetThisMessageMap(); \
-    } \
-    const AFX_MSGMAP theClass::messageMap = \
-    { \
-        &baseClass::GetThisMessageMap, \
-        &theClass::_messageEntries[0] \
-    }; \
-    const AFX_MSGMAP_ENTRY theClass::_messageEntries[] = \
-    { \
+    const AFX_MSGMAP* theClass::GetMessageMap() const { return GetThisMessageMap(); } \
+    const AFX_MSGMAP* AFXAPI theClass::GetThisMessageMap() { \
+        using ThisClass = theClass; \
+        using TheBaseClass = baseClass; \
+        static const AFX_MSGMAP_ENTRY entries[] = {
 
 #define END_MESSAGE_MAP() \
-        {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0 } \
-    }; \
+            {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0} \
+        }; \
+        static const AFX_MSGMAP map = { &TheBaseClass::GetThisMessageMap, entries }; \
+        return &map; \
+    }
 
-// Message map signature values
-enum AfxSig
-{
-    AfxSig_end = 0,       // [marks end of message map]
-    AfxSig_vv = 1,        // void (void)
-    AfxSig_bv = 2,        // BOOL (void)
-    AfxSig_vw = 3,        // void (UINT)
-    AfxSig_vww = 4,       // void (UINT, UINT)
-    AfxSig_vwww = 5,      // void (UINT, UINT, UINT)
-    AfxSig_vwl = 6,       // void (UINT, LONG)
-    AfxSig_lwl = 7,       // LRESULT (WPARAM, LPARAM)
-    AfxSig_v_b = 8,       // void (BOOL)
-    AfxSig_v_b_v = 8,     // alias for AfxSig_v_b
-    AfxSig_vb = 9,        // void (BOOL)
-    AfxSig_bh = 10,       // BOOL (HANDLE)
-    AfxSig_cmdui = 11,    // void (CCmdUI*)
-    AfxSig_vwp = 12,      // void (CWnd*, CPoint)
-    AfxSig_is = 13,       // int (LPTSTR)
-    AfxSig_vs = 14,       // void (LPTSTR)
-    AfxSig_bwl = 15,      // BOOL (UINT, LONG)
-    AfxSig_vwwh = 16,     // void (UINT, UINT, HANDLE)
-    AfxSig_iw = 17,       // int (UINT)
-    AfxSig_iww = 18,      // int (UINT, UINT)
-    AfxSig_v_u_p = 19,    // void (UINT, CPoint)
-    AfxSig_vv_i = 20,     // void (void) - returns int
-};
+#include "afxmsg_.h"
 
 //=============================================================================
 // CCmdTarget - base for command message handling
@@ -1971,6 +1939,36 @@ class CDC : public CObject {
 public:
     CDC();
     virtual ~CDC();
+
+    // Native slots 5..31 follow CObject's five slots.
+    virtual void SetAttribDC(HDC);
+    virtual void SetOutputDC(HDC);
+    virtual void ReleaseAttribDC();
+    virtual void ReleaseOutputDC();
+    virtual int SaveDC();
+    virtual BOOL RestoreDC(int);
+    virtual CGdiObject* SelectStockObject(int);
+    virtual CFont* SelectObject(CFont*);
+    virtual COLORREF SetBkColor(COLORREF);
+    virtual COLORREF SetTextColor(COLORREF);
+    virtual int SetMapMode(int);
+    virtual CPoint SetViewportOrg(int,int);
+    virtual CPoint OffsetViewportOrg(int,int);
+    virtual CSize SetViewportExt(int,int);
+    virtual CSize ScaleViewportExt(int,int,int,int);
+    virtual CSize SetWindowExt(int,int);
+    virtual CSize ScaleWindowExt(int,int,int,int);
+    virtual int GetClipBox(LPRECT) const;
+    virtual BOOL PtVisible(int,int) const;
+    virtual BOOL RectVisible(LPCRECT) const;
+    virtual BOOL TextOut(int,int,const wchar_t*,int = -1);
+    virtual BOOL ExtTextOut(int,int,UINT,LPCRECT,const wchar_t*,UINT,const int*);
+    virtual CSize TabbedTextOut(int,int,const wchar_t*,int,int,int*,int);
+    virtual int DrawText(const wchar_t*,int,LPRECT,UINT);
+    virtual int DrawTextEx(wchar_t*,int,LPRECT,UINT,LPDRAWTEXTPARAMS);
+    virtual BOOL GrayString(CBrush*,GRAYSTRINGPROC,LPARAM,int,int,int,int,int);
+    virtual int Escape(int,int,const char*,void*);
+
     
     // Creation/destruction
     int CreateDC(const wchar_t* lpszDriverName, const wchar_t* lpszDeviceName,
@@ -1988,22 +1986,22 @@ public:
     static int DeleteTempMap(int bAutoDeleteOnly);
     
     // Device context state
-    int SaveDC();
-    int RestoreDC(int nSavedDC);
+
+
     int ResetDC(const void* lpDevMode);
     
     // Drawing tool selection
     CGdiObject* SelectObject(CGdiObject* pObject);
     CPen* SelectObject(CPen* pPen);
     CBrush* SelectObject(CBrush* pBrush);
-    CFont* SelectObject(CFont* pFont);
+
     CBitmap* SelectObject(CBitmap* pBitmap);
     int SelectObject(CRgn* pRgn);
-    int SelectStockObject(int nIndex);
+
     
     // Drawing attributes
     unsigned long GetBkColor() const;
-    unsigned long SetBkColor(unsigned long crColor);
+
     int GetBkMode() const;
     int SetBkMode(int nBkMode);
     int GetPolyFillMode() const;
@@ -2013,16 +2011,16 @@ public:
     int GetStretchBltMode() const;
     int SetStretchBltMode(int nStretchMode);
     int GetTextColor() const;
-    unsigned long SetTextColor(unsigned long crColor);
+
     int GetMapMode() const;
-    int SetMapMode(int nMapMode);
+
     
     // Coordinate transformation
     int GetViewportOrg(CPoint* pPoint) const;
     CPoint GetViewportOrg() const;
-    CPoint SetViewportOrg(int x, int y);
+
     CPoint SetViewportOrg(const CPoint& point);
-    CPoint OffsetViewportOrg(int nWidth, int nHeight);
+
     
     int GetWindowOrg(CPoint* pPoint) const;
     CPoint GetWindowOrg() const;
@@ -2032,15 +2030,15 @@ public:
     
     int GetViewportExt(CSize* pSize) const;
     CSize GetViewportExt() const;
-    CSize SetViewportExt(int x, int y);
+
     CSize SetViewportExt(const CSize& size);
-    CSize ScaleViewportExt(int xNum, int xDenom, int yNum, int yDenom);
+
     
     int GetWindowExt(CSize* pSize) const;
     CSize GetWindowExt() const;
-    CSize SetWindowExt(int x, int y);
+
     CSize SetWindowExt(const CSize& size);
-    CSize ScaleWindowExt(int xNum, int xDenom, int yNum, int yDenom);
+
     
     // Drawing operations
     int Rectangle(int x1, int y1, int x2, int y2);
@@ -2052,14 +2050,12 @@ public:
     int DrawIcon(const POINT& point, void* hIcon);
     
     // Text operations
-    int TextOut(int x, int y, const wchar_t* lpszString, int nCount = -1);
+
     int TextOut(const CPoint& point, const wchar_t* lpszString, int nCount = -1);
-    int ExtTextOut(int x, int y, unsigned int nOptions, const RECT* lpRect,
-                   const wchar_t* lpszString, unsigned int nCount, const int* lpDxWidths);
-    int TabbedTextOut(int x, int y, const wchar_t* lpszString, int nCount,
-                      int nTabPositions, const int* lpnTabStopPositions, int nTabOrigin);
-    int DrawText(const wchar_t* lpszString, int nCount, RECT* lpRect, unsigned int nFormat);
-    int DrawTextEx(wchar_t* lpszString, int nCount, RECT* lpRect, unsigned int nFormat, void* lpDTParams);
+
+
+
+
     
     // Bitmap operations
     int BitBlt(int x, int y, int nWidth, int nHeight, CDC* pSrcDC,
@@ -2121,7 +2117,7 @@ public:
     int LPtoDP(LPSIZE lpSize) const;
     
     // Printer escape
-    int Escape(int nEscape, int nCount, const char* lpszInData, void* lpszOutData);
+
     
 public:
     HDC m_hDC;
@@ -2129,7 +2125,9 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _cdc_padding[8];
+public:
+    BOOL m_bPrinting;
+    DWORD _cdc_alignment;
 };
 
 // CClientDC - Client area device context
@@ -2581,41 +2579,9 @@ inline int CWnd::OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult) 
     return FALSE;
 }
 
-inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lParam, intptr_t* pResult) {
-    if (pResult) {
-        *pResult = 0;
-    }
-    switch (message) {
-    case WM_TOUCH:
-        if(pResult)*pResult=OnTouchMessage(wParam,lParam);else OnTouchMessage(wParam,lParam);
-        return TRUE;
-    case WM_GESTURE:
-        if(pResult)*pResult=OnGesture(wParam,lParam);else OnGesture(wParam,lParam);
-        return TRUE;
-    case 0x02cc: // WM_TABLET_QUERYSYSTEMGESTURESTATUS
-        if(pResult)*pResult=OnTabletQuerySystemGestureStatus(wParam,lParam);else OnTabletQuerySystemGestureStatus(wParam,lParam);
-        return TRUE;
-    case WM_PAINT:
-        return m_pRenderTarget && DoD2DPaint();
-    case WM_SIZE:
-        ResizeDynamicLayout();
-        if (m_pRenderTarget) ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
-        return FALSE;
-    case WM_NCDESTROY:
-        ReleaseAccessibility();
-        return FALSE;
-    case WM_GETOBJECT: {
-        LONGLONG result = OnGetObject(wParam, lParam);
-        if (pResult) *pResult = static_cast<intptr_t>(result);
-        return TRUE;
-    }
-    case WM_COMMAND:
-        return OnCommand(wParam, lParam);
-    case WM_NOTIFY:
-        return OnNotify(wParam, lParam, pResult);
-    default:
-        return 0;
-    }
+extern "C" int AFXAPI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*);
+inline int CWnd::OnWndMsg(unsigned int message,uintptr_t wParam,intptr_t lParam,intptr_t* result) {
+    return impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(this,message,wParam,lParam,result);
 }
 
 inline void CWnd::OnFinalRelease() {

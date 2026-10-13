@@ -13,6 +13,7 @@ extern "C" int MS_ABI impl__OnQueryEndSession_CDialog__IEAAHXZ(CDialog*);
 extern "C" void MS_ABI impl__OnEndSession_CDialog__IEAAXH_Z(CDialog*,BOOL);
 extern "C" long MS_ABI impl__HandleMessage_CPrintDialogEx__UEAAJPEAUHWND____I_K_JPEA_J_Z(void*,HWND,UINT,WPARAM,LPARAM,LRESULT*);
 namespace openmfc { namespace detail {
+BOOL DispatchWindowMessageMap(CWnd*,UINT,WPARAM,LPARAM,LRESULT*);
 void SetSentMessage(MSG&,HWND,UINT,WPARAM,LPARAM,bool refresh);
 template<class Fn> Fn WindowSlot(void* object,size_t index) {
     return reinterpret_cast<Fn>((*static_cast<void***>(object))[index]);

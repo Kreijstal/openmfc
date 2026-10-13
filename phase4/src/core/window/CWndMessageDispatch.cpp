@@ -1,6 +1,7 @@
 // Base window message dispatch, including Direct2D paint and resize handling.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxlayout.h"
 #include "detail/WindowMessageSupport.h"
 #include "detail/WindowInputSupport.h"
 #ifdef __GNUC__
@@ -44,8 +45,35 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
     if (!pThis) {
         return FALSE;
     }
-    if (pResult) {
-        *pResult = 0;
+    if(message==WM_COMMAND) {
+        using Command=BOOL (MS_ABI*)(void*,WPARAM,LPARAM);
+        if(!openmfc::detail::WindowSlot<Command>(pThis,63)(pThis,wParam,lParam))return FALSE;
+        if(pResult)*pResult=TRUE;return TRUE;
+    }
+    if(message==WM_NOTIFY) {
+        auto* notify=reinterpret_cast<NMHDR*>(lParam);
+        if(!notify || !notify->hwndFrom)return FALSE;
+        LRESULT result=0;using Notify=BOOL (MS_ABI*)(void*,WPARAM,LPARAM,LRESULT*);
+        if(!openmfc::detail::WindowSlot<Notify>(pThis,64)(pThis,wParam,lParam,&result))return FALSE;
+        if(pResult)*pResult=result;return TRUE;
+    }
+    if(message==WM_CREATE && pThis->m_pDynamicLayout) {
+        if(pThis->m_hWnd) {
+            pThis->m_pDynamicLayout->Create(pThis);pThis->InitDynamicLayout();
+        } else pThis->EnableDynamicLayout(FALSE);
+    }
+    if(message==WM_SIZE) {
+        using Resize=void (MS_ABI*)(void*);
+        openmfc::detail::WindowSlot<Resize>(pThis,84)(pThis);
+        if(pThis->m_pRenderTarget)pThis->ResizeD2DRenderTarget(LOWORD(lParam),HIWORD(lParam));
+    }
+    if(message==WM_PAINT && pThis->m_pRenderTarget && pThis->DoD2DPaint()) {
+        if(pResult)*pResult=TRUE;return TRUE;
+    }
+    if(openmfc::detail::DispatchWindowMessageMap(pThis,message,wParam,lParam,pResult))return TRUE;
+    if(message>=WM_CTLCOLORMSGBOX && message<=WM_CTLCOLORSTATIC) {
+        struct Color { HWND window;HDC dc;UINT type; } color{reinterpret_cast<HWND>(lParam),reinterpret_cast<HDC>(wParam),message-WM_CTLCOLORMSGBOX};
+        return openmfc::detail::DispatchWindowMessageMap(pThis,0x19,0,reinterpret_cast<LPARAM>(&color),pResult);
     }
     switch (message) {
     case WM_TOUCH:
@@ -60,12 +88,7 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
         if(pResult)*pResult=impl__OnTabletQuerySystemGestureStatus_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
         else impl__OnTabletQuerySystemGestureStatus_CWnd__IEAA_J_K_J_Z(pThis,wParam,lParam);
         return TRUE;
-    case WM_PAINT:
-        return pThis->m_pRenderTarget && pThis->DoD2DPaint();
     case WM_SIZE:
-        using Resize=void (MS_ABI*)(void*);
-        openmfc::detail::WindowSlot<Resize>(pThis,84)(pThis);
-        if (pThis->m_pRenderTarget) pThis->ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
         return FALSE;
     case WM_NCDESTROY:
         pThis->ReleaseAccessibility();
@@ -74,10 +97,6 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
         if (pResult) *pResult = static_cast<LRESULT>(pThis->OnGetObject(wParam, lParam));
         else pThis->OnGetObject(wParam, lParam);
         return TRUE;
-    case WM_COMMAND:
-        return impl__OnCommand_CWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
-    case WM_NOTIFY:
-        return impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(pThis, wParam, lParam, pResult);
     default:
         return FALSE;
     }

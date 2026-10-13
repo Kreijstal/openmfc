@@ -2,6 +2,7 @@
 #include "afxstat_.h"
 
 extern "C" void AFXAPI impl__AfxThrowInvalidArgException__YAXXZ();
+void AFXAPI AfxResetMsgCache();
 
 class CPushRoutingFrame {
 protected:

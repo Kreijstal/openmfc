@@ -214,9 +214,6 @@ extern "C" void MS_ABI impl__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pThis) {
     return pThis ? pThis->m_hWnd : nullptr;
 }
-const AFX_MSGMAP_ENTRY g_cwndEmptyMsgEntries[] = { {0,0,0,0, AfxSig_end, (AFX_PMSG)0} };
-const AFX_MSGMAP* AFXAPI gbm_CWnd_base() { return impl__GetThisMessageMap_CCmdTarget__KAPEBUAFX_MSGMAP__XZ(); }
-const AFX_MSGMAP g_cwndMessageMap = { gbm_CWnd_base, g_cwndEmptyMsgEntries };
 int CWnd_PreTranslateMessageCompat(CWnd* pThis, MSG* pMsg) {
     if (!pThis || !pMsg || !pThis->m_hWnd) {
         return FALSE;

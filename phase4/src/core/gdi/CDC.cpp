@@ -8,31 +8,7 @@
 #include "detail/CRuntimeClassSupport.h"
 
 // CDC default constructor
-// Symbol: ??0CDC@@QEAA@XZ
-// Ordinal: 438
-extern "C" CDC* MS_ABI impl___0CDC__QEAA_XZ(CDC* pThis) {
-    if (!pThis) return nullptr;
-
-    // Initialize members
-    pThis->m_hDC = nullptr;
-    pThis->m_hAttribDC = nullptr;
-    return pThis;
-}
-// CDC destructor
-// Symbol: ??1CDC@@UEAA@XZ
-// Ordinal: 1086
-//
-// NOTE: Base CDC destructor does NOT delete the DC. Derived classes (CClientDC, CPaintDC,
-// CWindowDC) handle releasing their own DCs appropriately. If a raw CDC owns a DC (e.g.,
-// from CreateCompatibleDC), the caller must explicitly call DeleteDC() before destruction.
-// This matches real MFC behavior where CDC is often used as a wrapper for DCs it doesn't own.
-extern "C" void MS_ABI impl___1CDC__UEAA_XZ(CDC* pThis) {
-    if (pThis) {
-        // Don't delete - caller is responsible for DC lifetime
-        pThis->m_hDC = nullptr;
-        pThis->m_hAttribDC = nullptr;
-    }
-}
+// Native construction and destruction are in CDCMessageSupport.cpp.
 // CDC::DeleteDC
 // Symbol: ?DeleteDC@CDC@@QEAAHXZ
 extern "C" int MS_ABI impl__DeleteDC_CDC__QEAAHXZ(CDC* pThis) {
@@ -205,81 +181,6 @@ extern "C" void MS_ABI impl__LPtoDP_CDC__QEBAXPEAUtagSIZE___Z(const CDC* pThis, 
     lpSize->cy = pt.y;
 }
 // CDC::SaveDC (virtual override, UEAA)
-// Symbol: ?SaveDC@CDC@@UEAAHXZ
-extern "C" int MS_ABI impl__SaveDC_CDC__UEAAHXZ(CDC* pThis) {
-    return impl__SaveDC_CDC__QEAAHXZ(pThis);
-}
-// CDC::RestoreDC (virtual override, UEAA)
-// Symbol: ?RestoreDC@CDC@@UEAAHH@Z
-extern "C" int MS_ABI impl__RestoreDC_CDC__UEAAHH_Z(CDC* pThis, int nSavedDC) {
-    return impl__RestoreDC_CDC__QEAAHH_Z(pThis, nSavedDC);
-}
-// CDC::SetBkColor (virtual override, UEAA)
-// Symbol: ?SetBkColor@CDC@@UEAAKK@Z
-extern "C" unsigned long MS_ABI impl__SetBkColor_CDC__UEAAKK_Z(CDC* pThis, unsigned long crColor) {
-    return impl__SetBkColor_CDC__QEAAKK_Z(pThis, crColor);
-}
-// CDC::SetTextColor (virtual override, UEAA)
-// Symbol: ?SetTextColor@CDC@@UEAAKK@Z
-extern "C" unsigned long MS_ABI impl__SetTextColor_CDC__UEAAKK_Z(CDC* pThis, unsigned long crColor) {
-    return impl__SetTextColor_CDC__QEAAKK_Z(pThis, crColor);
-}
-// CDC::SetMapMode (virtual, UEAA)
-// Symbol: ?SetMapMode@CDC@@UEAAHH@Z
-extern "C" int MS_ABI impl__SetMapMode_CDC__UEAAHH_Z(CDC* pThis, int nMapMode) {
-    if (!pThis || !pThis->m_hDC) return 0;
-    return ::SetMapMode(pThis->m_hDC, nMapMode);
-}
-// CDC::SetViewportOrg (virtual, UEAA)
-// Symbol: ?SetViewportOrg@CDC@@UEAA?AVCPoint@@HH@Z
-extern "C" CPoint MS_ABI impl__SetViewportOrg_CDC__UEAA_AVCPoint__HH_Z(CDC* pThis, int x, int y) {
-    CPoint pt(0, 0);
-    if (!pThis || !pThis->m_hDC) return pt;
-    POINT old;
-    ::GetViewportOrgEx(pThis->m_hDC, &old);
-    ::SetViewportOrgEx(pThis->m_hDC, x, y, nullptr);
-    pt.x = old.x;
-    pt.y = old.y;
-    return pt;
-}
-// CDC::SetViewportExt (virtual, UEAA)
-// Symbol: ?SetViewportExt@CDC@@UEAA?AVCSize@@HH@Z
-extern "C" CSize MS_ABI impl__SetViewportExt_CDC__UEAA_AVCSize__HH_Z(CDC* pThis, int cx, int cy) {
-    CSize sz(0, 0);
-    if (!pThis || !pThis->m_hDC) return sz;
-    SIZE old;
-    ::GetViewportExtEx(pThis->m_hDC, &old);
-    ::SetViewportExtEx(pThis->m_hDC, cx, cy, nullptr);
-    sz.cx = old.cx;
-    sz.cy = old.cy;
-    return sz;
-}
-// CDC::ScaleViewportExt (virtual, UEAA)
-// Symbol: ?ScaleViewportExt@CDC@@UEAA?AVCSize@@HHHH@Z
-extern "C" CSize MS_ABI impl__ScaleViewportExt_CDC__UEAA_AVCSize__HHHH_Z(
-    CDC* pThis, int xNum, int xDenom, int yNum, int yDenom) {
-    CSize sz(0, 0);
-    if (!pThis || !pThis->m_hDC) return sz;
-    SIZE old;
-    ::GetViewportExtEx(pThis->m_hDC, &old);
-    ::ScaleViewportExtEx(pThis->m_hDC, xNum, xDenom, yNum, yDenom, nullptr);
-    sz.cx = old.cx;
-    sz.cy = old.cy;
-    return sz;
-}
-// CDC::SetWindowExt (virtual, UEAA)
-// Symbol: ?SetWindowExt@CDC@@UEAA?AVCSize@@HH@Z
-extern "C" CSize MS_ABI impl__SetWindowExt_CDC__UEAA_AVCSize__HH_Z(CDC* pThis, int cx, int cy) {
-    CSize sz(0, 0);
-    if (!pThis || !pThis->m_hDC) return sz;
-    SIZE old;
-    ::GetWindowExtEx(pThis->m_hDC, &old);
-    ::SetWindowExtEx(pThis->m_hDC, cx, cy, nullptr);
-    sz.cx = old.cx;
-    sz.cy = old.cy;
-    return sz;
-}
-// CDC::SetWindowOrg
 // Symbol: ?SetWindowOrg@CDC@@QEAA?AVCPoint@@HH@Z
 extern "C" CPoint MS_ABI impl__SetWindowOrg_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int x, int y) {
     CPoint pt(0, 0);
@@ -292,31 +193,6 @@ extern "C" CPoint MS_ABI impl__SetWindowOrg_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis,
     return pt;
 }
 // CDC::ScaleWindowExt (virtual, UEAA)
-// Symbol: ?ScaleWindowExt@CDC@@UEAA?AVCSize@@HHHH@Z
-extern "C" CSize MS_ABI impl__ScaleWindowExt_CDC__UEAA_AVCSize__HHHH_Z(
-    CDC* pThis, int xNum, int xDenom, int yNum, int yDenom) {
-    CSize sz(0, 0);
-    if (!pThis || !pThis->m_hDC) return sz;
-    SIZE old;
-    ::GetWindowExtEx(pThis->m_hDC, &old);
-    ::ScaleWindowExtEx(pThis->m_hDC, xNum, xDenom, yNum, yDenom, nullptr);
-    sz.cx = old.cx;
-    sz.cy = old.cy;
-    return sz;
-}
-// CDC::OffsetViewportOrg (virtual, UEAA)
-// Symbol: ?OffsetViewportOrg@CDC@@UEAA?AVCPoint@@HH@Z
-extern "C" CPoint MS_ABI impl__OffsetViewportOrg_CDC__UEAA_AVCPoint__HH_Z(CDC* pThis, int nWidth, int nHeight) {
-    CPoint pt(0, 0);
-    if (!pThis || !pThis->m_hDC) return pt;
-    POINT old;
-    ::GetViewportOrgEx(pThis->m_hDC, &old);
-    ::OffsetViewportOrgEx(pThis->m_hDC, nWidth, nHeight, nullptr);
-    pt.x = old.x;
-    pt.y = old.y;
-    return pt;
-}
-// CDC::OffsetWindowOrg
 // Symbol: ?OffsetWindowOrg@CDC@@QEAA?AVCPoint@@HH@Z
 extern "C" CPoint MS_ABI impl__OffsetWindowOrg_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int nWidth, int nHeight) {
     CPoint pt(0, 0);
@@ -415,12 +291,6 @@ extern "C" unsigned long MS_ABI impl__SetMapperFlags_CDC__QEAAKK_Z(CDC* pThis, u
     return ::SetMapperFlags(pThis->m_hDC, dwFlag);
 }
 // CDC::GetClipBox (virtual, UEBA)
-// Symbol: ?GetClipBox@CDC@@UEBAHPEAUtagRECT@@@Z
-extern "C" int MS_ABI impl__GetClipBox_CDC__UEBAHPEAUtagRECT___Z(const CDC* pThis, RECT* lpRect) {
-    if (!pThis || !pThis->m_hDC || !lpRect) return ERROR;
-    return ::GetClipBox(pThis->m_hDC, lpRect);
-}
-// CDC::SelectObject(CPen*)
 // Symbol: ?SelectObject@CDC@@QEAAPEAVCPen@@PEAV2@@Z
 extern "C" CPen* MS_ABI impl__SelectObject_CDC__QEAAPEAVCPen__PEAV2__Z(CDC* pThis, CPen* pPen) {
     if (!pThis || !pThis->m_hDC || !pPen) return nullptr;
@@ -440,15 +310,6 @@ extern "C" CBrush* MS_ABI impl__SelectObject_CDC__QEAAPEAVCBrush__PEAV2__Z(CDC* 
     return (CBrush*)pOld;
 }
 // CDC::SelectObject(CFont*) (virtual, UEAA)
-// Symbol: ?SelectObject@CDC@@UEAAPEAVCFont@@PEAV2@@Z
-extern "C" CFont* MS_ABI impl__SelectObject_CDC__UEAAPEAVCFont__PEAV2__Z(CDC* pThis, CFont* pFont) {
-    if (!pThis || !pThis->m_hDC || !pFont) return nullptr;
-    HGDIOBJ hOld = ::SelectObject(pThis->m_hDC, pFont->GetSafeHandle());
-    if (!hOld) return nullptr;
-    CGdiObject* pOld = GetTempGdiObject(hOld);
-    return (CFont*)pOld;
-}
-// CDC::SelectObject(CRgn*) - returns int
 // Symbol: ?SelectObject@CDC@@QEAAHPEAVCRgn@@@Z
 extern "C" int MS_ABI impl__SelectObject_CDC__QEAAHPEAVCRgn___Z(CDC* pThis, CRgn* pRgn) {
     if (!pThis || !pThis->m_hDC || !pRgn) return ERROR;
@@ -469,15 +330,6 @@ extern "C" CPalette* MS_ABI impl__SelectPalette_CDC__QEAAPEAVCPalette__PEAV2_H_Z
     return (CPalette*)pOld;
 }
 // CDC::SelectStockObject (virtual, UEAA)
-// Symbol: ?SelectStockObject@CDC@@UEAAPEAVCGdiObject@@H@Z
-extern "C" CGdiObject* MS_ABI impl__SelectStockObject_CDC__UEAAPEAVCGdiObject__H_Z(CDC* pThis, int nIndex) {
-    if (!pThis || !pThis->m_hDC) return nullptr;
-    HGDIOBJ hNew = ::GetStockObject(nIndex);
-    if (!hNew) return nullptr;
-    HGDIOBJ hOld = ::SelectObject(pThis->m_hDC, hNew);
-    return GetTempGdiObject(hOld);
-}
-// CDC::SelectGdiObject (static, KA qualified)
 // Symbol: ?SelectGdiObject@CDC@@KAPEAVCGdiObject@@PEAUHDC__@@PEAX@Z
 extern "C" CGdiObject* MS_ABI impl__SelectGdiObject_CDC__KAPEAVCGdiObject__PEAUHDC____PEAX_Z(
     HDC hDC, HGDIOBJ hObj) {
@@ -492,30 +344,6 @@ extern "C" int MS_ABI impl__SelectClipPath_CDC__QEAAHH_Z(CDC* pThis, int nMode) 
     return ::SelectClipPath(pThis->m_hDC, nMode);
 }
 // CDC::SetAttribDC (virtual, UEAA)
-// Symbol: ?SetAttribDC@CDC@@UEAAXPEAUHDC__@@@Z
-extern "C" void MS_ABI impl__SetAttribDC_CDC__UEAAXPEAUHDC_____Z(CDC* pThis, HDC hDC) {
-    if (!pThis) return;
-    pThis->m_hAttribDC = hDC;
-}
-// CDC::SetOutputDC (virtual, UEAA)
-// Symbol: ?SetOutputDC@CDC@@UEAAXPEAUHDC__@@@Z
-extern "C" void MS_ABI impl__SetOutputDC_CDC__UEAAXPEAUHDC_____Z(CDC* pThis, HDC hDC) {
-    if (!pThis) return;
-    pThis->m_hDC = hDC;
-}
-// CDC::ReleaseAttribDC (virtual, UEAA)
-// Symbol: ?ReleaseAttribDC@CDC@@UEAAXXZ
-extern "C" void MS_ABI impl__ReleaseAttribDC_CDC__UEAAXXZ(CDC* pThis) {
-    if (!pThis) return;
-    pThis->m_hAttribDC = nullptr;
-}
-// CDC::ReleaseOutputDC (virtual, UEAA)
-// Symbol: ?ReleaseOutputDC@CDC@@UEAAXXZ
-extern "C" void MS_ABI impl__ReleaseOutputDC_CDC__UEAAXXZ(CDC* pThis) {
-    if (!pThis) return;
-    pThis->m_hDC = nullptr;
-}
-// CDC::ArcTo
 // Symbol: ?ArcTo@CDC@@QEAAHHHHHHHHH@Z
 extern "C" int MS_ABI impl__ArcTo_CDC__QEAAHHHHHHHHH_Z(
     CDC* pThis, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
@@ -678,20 +506,12 @@ extern "C" void MS_ABI impl__HIMETRICtoLP_CDC__QEBAXPEAUtagSIZE___Z(const CDC* p
 extern "C" CObject* MS_ABI impl__CreateObject_CDC__SAPEAVCObject__XZ() {
     return new CDC();
 }
-CDC::CDC() {
-    impl___0CDC__QEAA_XZ(this);
-}
-CDC::~CDC() {
-    impl___1CDC__UEAA_XZ(this);
-}
 // Symbol: ?GetRuntimeClass@CDC@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CDC__UEBAPEAUCRuntimeClass__XZ(void* pThis) {
     (void)pThis;
-    InitializeClasses();
     return &CDC::classCDC;
 }
 // Symbol: ?GetThisClass@CDC@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CDC__SAPEAUCRuntimeClass__XZ() {
-    InitializeClasses();
     return &CDC::classCDC;
 }

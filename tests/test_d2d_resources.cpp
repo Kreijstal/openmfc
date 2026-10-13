@@ -273,6 +273,7 @@ static void ownershipAndRecreation() {
 #include "window_message_context_tests.h"
 #include "window_input_tests.h"
 #include "dynamic_layout_tests.h"
+#include "window_message_map_tests.h"
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
@@ -285,6 +286,7 @@ int main() {
     lifecycle();
     if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetVerbs(); commandRouting(); windowMessageContext(); windowInput(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); frameworkBoundaryExceptions(); typeLibCache(); }
     if (SUCCEEDED(hr)) dynamicLayout();
+    if (SUCCEEDED(hr)) windowMessageMaps();
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

@@ -1,0 +1,259 @@
+#pragma once
+// Public message signatures use the native MFC 14 x64 values.
+enum AfxSig {
+    AfxSig_end = 0,
+    AfxSig_b_D_v = 1,
+    AfxSig_b_b_v = 2,
+    AfxSig_b_u_v = 3,
+    AfxSig_b_h_v = 4,
+    AfxSig_b_W_uu = 5,
+    AfxSig_b_W_COPYDATASTRUCT = 6,
+    AfxSig_b_v_HELPINFO = 7,
+    AfxSig_CTLCOLOR = 8,
+    AfxSig_CTLCOLOR_REFLECT = 9,
+    AfxSig_i_u_W_u = 10,
+    AfxSig_i_uu_v = 11,
+    AfxSig_i_W_uu = 12,
+    AfxSig_i_v_s = 13,
+    AfxSig_l_w_l = 14,
+    AfxSig_l_uu_M = 15,
+    AfxSig_v_b_h = 16,
+    AfxSig_v_h_v = 17,
+    AfxSig_v_h_h = 18,
+    AfxSig_v_v_v = 19,
+    AfxSig_v_u_v = 20,
+    AfxSig_v_up_v = 21,
+    AfxSig_v_u_u = 22,
+    AfxSig_v_uu_v = 23,
+    AfxSig_v_v_ii = 24,
+    AfxSig_v_u_uu = 25,
+    AfxSig_v_u_ii = 26,
+    AfxSig_v_u_W = 27,
+    AfxSig_i_u_v = 28,
+    AfxSig_u_u_v = 29,
+    AfxSig_b_v_v = 30,
+    AfxSig_v_w_l = 31,
+    AfxSig_MDIACTIVATE = 32,
+    AfxSig_v_D_v = 33,
+    AfxSig_v_M_v = 34,
+    AfxSig_v_M_ub = 35,
+    AfxSig_v_W_v = 36,
+    AfxSig_v_v_W = 37,
+    AfxSig_v_W_uu = 38,
+    AfxSig_v_W_p = 39,
+    AfxSig_v_W_h = 40,
+    AfxSig_C_v_v = 41,
+    AfxSig_ACTIVATE = 42,
+    AfxSig_SCROLL = 43,
+    AfxSig_SCROLL_REFLECT = 44,
+    AfxSig_v_v_s = 45,
+    AfxSig_v_u_cs = 46,
+    AfxSig_OWNERDRAW = 47,
+    AfxSig_i_i_s = 48,
+    AfxSig_u_v_p = 49,
+    AfxSig_u_v_v = 50,
+    AfxSig_v_b_NCCALCSIZEPARAMS = 51,
+    AfxSig_v_v_WINDOWPOS = 52,
+    AfxSig_v_uu_M = 53,
+    AfxSig_v_u_p = 54,
+    AfxSig_SIZING = 55,
+    AfxSig_MOUSEWHEEL = 56,
+    AfxSig_MOUSEHWHEEL = 57,
+    AfxSigCmd_v = 58,
+    AfxSigCmd_b = 59,
+    AfxSigCmd_RANGE = 60,
+    AfxSigCmd_EX = 61,
+    AfxSigNotify_v = 62,
+    AfxSigNotify_b = 63,
+    AfxSigNotify_RANGE = 64,
+    AfxSigNotify_EX = 65,
+    AfxSigCmdUI = 66,
+    AfxSigCmdUI_RANGE = 67,
+    AfxSigCmd_v_pv = 68,
+    AfxSigCmd_b_pv = 69,
+    AfxSig_l = 70,
+    AfxSig_l_p = 71,
+    AfxSig_u_W_u = 72,
+    AfxSig_v_u_M = 73,
+    AfxSig_u_u_M = 74,
+    AfxSig_u_v_MENUGETOBJECTINFO = 75,
+    AfxSig_v_M_u = 76,
+    AfxSig_v_u_LPMDINEXTMENU = 77,
+    AfxSig_APPCOMMAND = 78,
+    AfxSig_RAWINPUT = 79,
+    AfxSig_u_u_u = 80,
+    AfxSig_MOUSE_XBUTTON = 81,
+    AfxSig_MOUSE_NCXBUTTON = 82,
+    AfxSig_INPUTLANGCHANGE = 83,
+    AfxSig_v_u_hkl = 84,
+    AfxSig_INPUTDEVICECHANGE = 85,
+    AfxSig_l_D_u = 86,
+    AfxSig_i_v_S = 87,
+    AfxSig_v_F_b = 88,
+    AfxSig_h_v_v = 89,
+    AfxSig_h_b_h = 90,
+    AfxSig_b_v_ii = 91,
+    AfxSig_h_h_h = 92,
+    AfxSig_MDINext = 93,
+    AfxSig_u_u_l = 94,
+    AfxSig_bD = 1,
+    AfxSig_bb = 2,
+    AfxSig_bWww = 5,
+    AfxSig_hDWw = 8,
+    AfxSig_hDw = 9,
+    AfxSig_iwWw = 10,
+    AfxSig_iww = 11,
+    AfxSig_iWww = 12,
+    AfxSig_is = 13,
+    AfxSig_lwl = 14,
+    AfxSig_lwwM = 15,
+    AfxSig_vv = 19,
+    AfxSig_vw = 20,
+    AfxSig_vww = 22,
+    AfxSig_vww2 = 23,
+    AfxSig_vvii = 24,
+    AfxSig_vwww = 25,
+    AfxSig_vwii = 26,
+    AfxSig_vwl = 31,
+    AfxSig_vbWW = 32,
+    AfxSig_vD = 33,
+    AfxSig_vM = 34,
+    AfxSig_vMwb = 35,
+    AfxSig_vW = 36,
+    AfxSig_vWww = 38,
+    AfxSig_vWp = 39,
+    AfxSig_vWh = 40,
+    AfxSig_vwW = 27,
+    AfxSig_vwWb = 42,
+    AfxSig_vwwW = 43,
+    AfxSig_vwwx = 44,
+    AfxSig_vs = 45,
+    AfxSig_vOWNER = 47,
+    AfxSig_iis = 48,
+    AfxSig_wp = 49,
+    AfxSig_wv = 50,
+    AfxSig_vPOS = 52,
+    AfxSig_vCALC = 51,
+    AfxSig_vNMHDRpl = 62,
+    AfxSig_bNMHDRpl = 63,
+    AfxSig_vwNMHDRpl = 64,
+    AfxSig_bwNMHDRpl = 65,
+    AfxSig_bHELPINFO = 7,
+    AfxSig_vwSIZING = 55,
+    AfxSig_cmdui = 66,
+    AfxSig_cmduiw = 67,
+    AfxSig_vpv = 68,
+    AfxSig_bpv = 69,
+    AfxSig_vwwh = 53,
+    AfxSig_vwp = 54,
+    AfxSig_bw = 3,
+    AfxSig_bh = 4,
+    AfxSig_iw = 28,
+    AfxSig_ww = 29,
+    AfxSig_bv = 30,
+    AfxSig_hv = 41,
+    AfxSig_vb = 20,
+    AfxSig_vbh = 16,
+    AfxSig_vbw = 22,
+    AfxSig_vhh = 18,
+    AfxSig_vh = 17,
+    AfxSig_viSS = 31,
+    AfxSig_bwl = 14,
+    AfxSig_vwMOVING = 55,
+    AfxSig_vW2 = 37,
+    AfxSig_bWCDS = 6,
+    AfxSig_bwsp = 56,
+    AfxSig_vws = 46,
+    AfxSig_v_b = AfxSig_v_u_v,
+    AfxSig_v_b_v = AfxSig_v_u_v,
+    AfxSig_vv_i = AfxSig_v_v_v,
+};
+
+#ifndef afx_msg
+#define afx_msg
+#endif
+#ifndef CN_COMMAND
+#define CN_COMMAND 0
+#define CN_UPDATE_COMMAND_UI (-1)
+#define CN_EVENT (-2)
+#define CN_OLECOMMAND (-3)
+#endif
+#ifndef WM_REFLECT_BASE
+#define WM_REFLECT_BASE 0xbc00
+#endif
+#define OPENMFC_MAP_ENTRY(message,code,first,last,signature,function) \
+    {message,static_cast<UINT>(code),first,last,signature,(AFX_PMSG)(function)},
+#define ON_MESSAGE(message,function) OPENMFC_MAP_ENTRY(message,0,0,0,AfxSig_l_w_l,function)
+#define ON_REGISTERED_MESSAGE(message,function) OPENMFC_MAP_ENTRY(0xc000,0,0,0,reinterpret_cast<UINT_PTR>(&message),function)
+#define ON_COMMAND(id,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_COMMAND,static_cast<WORD>(id),static_cast<WORD>(id),AfxSigCmd_v,function)
+#define ON_COMMAND_RANGE(first,last,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_COMMAND,static_cast<WORD>(first),static_cast<WORD>(last),AfxSigCmd_RANGE,function)
+#define ON_COMMAND_EX(id,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_COMMAND,static_cast<WORD>(id),static_cast<WORD>(id),AfxSigCmd_EX,function)
+#define ON_COMMAND_EX_RANGE(first,last,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_COMMAND,static_cast<WORD>(first),static_cast<WORD>(last),AfxSigCmd_EX,function)
+#define ON_UPDATE_COMMAND_UI(id,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_UPDATE_COMMAND_UI,static_cast<WORD>(id),static_cast<WORD>(id),AfxSigCmdUI,function)
+#define ON_UPDATE_COMMAND_UI_RANGE(first,last,function) OPENMFC_MAP_ENTRY(WM_COMMAND,CN_UPDATE_COMMAND_UI,static_cast<WORD>(first),static_cast<WORD>(last),AfxSigCmdUI,function)
+#define ON_CONTROL(code,id,function) OPENMFC_MAP_ENTRY(WM_COMMAND,static_cast<WORD>(code),static_cast<WORD>(id),static_cast<WORD>(id),AfxSigCmd_v,function)
+#define ON_CONTROL_RANGE(code,first,last,function) OPENMFC_MAP_ENTRY(WM_COMMAND,static_cast<WORD>(code),static_cast<WORD>(first),static_cast<WORD>(last),AfxSigCmd_RANGE,function)
+#define ON_NOTIFY(code,id,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(id),static_cast<WORD>(id),AfxSigNotify_v,function)
+#define ON_NOTIFY_RANGE(code,first,last,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(first),static_cast<WORD>(last),AfxSigNotify_RANGE,function)
+#define ON_NOTIFY_EX(code,id,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(id),static_cast<WORD>(id),AfxSigNotify_EX,function)
+#define ON_NOTIFY_EX_RANGE(code,first,last,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(first),static_cast<WORD>(last),AfxSigNotify_EX,function)
+#define ON_CONTROL_REFLECT(code,function) OPENMFC_MAP_ENTRY(WM_COMMAND+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigCmd_v,function)
+#define ON_CONTROL_REFLECT_EX(code,function) OPENMFC_MAP_ENTRY(WM_COMMAND+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigCmd_b,function)
+#define ON_NOTIFY_REFLECT(code,function) OPENMFC_MAP_ENTRY(WM_NOTIFY+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigNotify_v,function)
+#define ON_NOTIFY_REFLECT_EX(code,function) OPENMFC_MAP_ENTRY(WM_NOTIFY+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigNotify_b,function)
+#define ON_WM_CREATE() OPENMFC_MAP_ENTRY(WM_CREATE,0,0,0,AfxSig_i_v_s,&ThisClass::OnCreate)
+#define ON_WM_DESTROY() OPENMFC_MAP_ENTRY(WM_DESTROY,0,0,0,AfxSig_v_v_v,&ThisClass::OnDestroy)
+#define ON_WM_NCDESTROY() OPENMFC_MAP_ENTRY(WM_NCDESTROY,0,0,0,AfxSig_v_v_v,&ThisClass::OnNcDestroy)
+#define ON_WM_SIZE() OPENMFC_MAP_ENTRY(WM_SIZE,0,0,0,AfxSig_v_u_ii,&ThisClass::OnSize)
+#define ON_WM_MOVE() OPENMFC_MAP_ENTRY(WM_MOVE,0,0,0,AfxSig_v_v_ii,&ThisClass::OnMove)
+#define ON_WM_PAINT() OPENMFC_MAP_ENTRY(WM_PAINT,0,0,0,AfxSig_v_v_v,&ThisClass::OnPaint)
+#define ON_WM_ERASEBKGND() OPENMFC_MAP_ENTRY(WM_ERASEBKGND,0,0,0,AfxSig_b_D_v,&ThisClass::OnEraseBkgnd)
+#define ON_WM_TIMER() OPENMFC_MAP_ENTRY(WM_TIMER,0,0,0,AfxSig_v_up_v,&ThisClass::OnTimer)
+#define ON_WM_ACTIVATE() OPENMFC_MAP_ENTRY(WM_ACTIVATE,0,0,0,AfxSig_ACTIVATE,&ThisClass::OnActivate)
+#define ON_WM_SETFOCUS() OPENMFC_MAP_ENTRY(WM_SETFOCUS,0,0,0,AfxSig_v_W_v,&ThisClass::OnSetFocus)
+#define ON_WM_KILLFOCUS() OPENMFC_MAP_ENTRY(WM_KILLFOCUS,0,0,0,AfxSig_v_W_v,&ThisClass::OnKillFocus)
+#define ON_WM_SETCURSOR() OPENMFC_MAP_ENTRY(WM_SETCURSOR,0,0,0,AfxSig_b_W_uu,&ThisClass::OnSetCursor)
+#define ON_WM_CLOSE() OPENMFC_MAP_ENTRY(WM_CLOSE,0,0,0,AfxSig_v_v_v,&ThisClass::OnClose)
+#define ON_WM_ENABLE() OPENMFC_MAP_ENTRY(WM_ENABLE,0,0,0,AfxSig_v_u_v,&ThisClass::OnEnable)
+#define ON_WM_SHOWWINDOW() OPENMFC_MAP_ENTRY(WM_SHOWWINDOW,0,0,0,AfxSig_v_u_u,&ThisClass::OnShowWindow)
+#define ON_WM_KEYDOWN() OPENMFC_MAP_ENTRY(WM_KEYDOWN,0,0,0,AfxSig_v_u_uu,&ThisClass::OnKeyDown)
+#define ON_WM_KEYUP() OPENMFC_MAP_ENTRY(WM_KEYUP,0,0,0,AfxSig_v_u_uu,&ThisClass::OnKeyUp)
+#define ON_WM_CHAR() OPENMFC_MAP_ENTRY(WM_CHAR,0,0,0,AfxSig_v_u_uu,&ThisClass::OnChar)
+#define ON_WM_SYSKEYDOWN() OPENMFC_MAP_ENTRY(WM_SYSKEYDOWN,0,0,0,AfxSig_v_u_uu,&ThisClass::OnSysKeyDown)
+#define ON_WM_SYSKEYUP() OPENMFC_MAP_ENTRY(WM_SYSKEYUP,0,0,0,AfxSig_v_u_uu,&ThisClass::OnSysKeyUp)
+#define ON_WM_SYSCHAR() OPENMFC_MAP_ENTRY(WM_SYSCHAR,0,0,0,AfxSig_v_u_uu,&ThisClass::OnSysChar)
+#define ON_WM_MOUSEWHEEL() OPENMFC_MAP_ENTRY(WM_MOUSEWHEEL,0,0,0,AfxSig_MOUSEWHEEL,&ThisClass::OnMouseWheel)
+#define ON_WM_MOUSEHWHEEL() OPENMFC_MAP_ENTRY(WM_MOUSEHWHEEL,0,0,0,AfxSig_MOUSEHWHEEL,&ThisClass::OnMouseHWheel)
+#define ON_WM_HSCROLL() OPENMFC_MAP_ENTRY(WM_HSCROLL,0,0,0,AfxSig_SCROLL,&ThisClass::OnHScroll)
+#define ON_WM_VSCROLL() OPENMFC_MAP_ENTRY(WM_VSCROLL,0,0,0,AfxSig_SCROLL,&ThisClass::OnVScroll)
+#define ON_WM_CONTEXTMENU() OPENMFC_MAP_ENTRY(WM_CONTEXTMENU,0,0,0,AfxSig_v_W_p,&ThisClass::OnContextMenu)
+#define ON_WM_NCHITTEST() OPENMFC_MAP_ENTRY(WM_NCHITTEST,0,0,0,AfxSig_l_p,&ThisClass::OnNcHitTest)
+#define ON_WM_NCCALCSIZE() OPENMFC_MAP_ENTRY(WM_NCCALCSIZE,0,0,0,AfxSig_v_b_NCCALCSIZEPARAMS,&ThisClass::OnNcCalcSize)
+#define ON_WM_WINDOWPOSCHANGING() OPENMFC_MAP_ENTRY(WM_WINDOWPOSCHANGING,0,0,0,AfxSig_v_v_WINDOWPOS,&ThisClass::OnWindowPosChanging)
+#define ON_WM_WINDOWPOSCHANGED() OPENMFC_MAP_ENTRY(WM_WINDOWPOSCHANGED,0,0,0,AfxSig_v_v_WINDOWPOS,&ThisClass::OnWindowPosChanged)
+#define ON_WM_COPYDATA() OPENMFC_MAP_ENTRY(WM_COPYDATA,0,0,0,AfxSig_b_W_COPYDATASTRUCT,&ThisClass::OnCopyData)
+#define ON_WM_HELPINFO() OPENMFC_MAP_ENTRY(WM_HELP,0,0,0,AfxSig_b_v_HELPINFO,&ThisClass::OnHelpInfo)
+#define ON_WM_GETDLGCODE() OPENMFC_MAP_ENTRY(WM_GETDLGCODE,0,0,0,AfxSig_u_v_v,&ThisClass::OnGetDlgCode)
+#define ON_WM_SIZING() OPENMFC_MAP_ENTRY(WM_SIZING,0,0,0,AfxSig_SIZING,&ThisClass::OnSizing)
+#define ON_WM_MOVING() OPENMFC_MAP_ENTRY(WM_MOVING,0,0,0,AfxSig_SIZING,&ThisClass::OnMoving)
+#define ON_WM_GETMINMAXINFO() OPENMFC_MAP_ENTRY(WM_GETMINMAXINFO,0,0,0,AfxSig_v_v_s,&ThisClass::OnGetMinMaxInfo)
+#define ON_WM_DROPFILES() OPENMFC_MAP_ENTRY(WM_DROPFILES,0,0,0,AfxSig_v_h_v,&ThisClass::OnDropFiles)
+#define ON_WM_APPCOMMAND() OPENMFC_MAP_ENTRY(WM_APPCOMMAND,0,0,0,AfxSig_APPCOMMAND,&ThisClass::OnAppCommand)
+#define ON_WM_INPUT() OPENMFC_MAP_ENTRY(WM_INPUT,0,0,0,AfxSig_RAWINPUT,&ThisClass::OnRawInput)
+#define ON_WM_INPUTLANGCHANGE() OPENMFC_MAP_ENTRY(WM_INPUTLANGCHANGE,0,0,0,AfxSig_INPUTLANGCHANGE,&ThisClass::OnInputLangChange)
+#define ON_WM_INPUTDEVICECHANGE() OPENMFC_MAP_ENTRY(WM_INPUT_DEVICE_CHANGE,0,0,0,AfxSig_INPUTDEVICECHANGE,&ThisClass::OnInputDeviceChange)
+#define ON_WM_CTLCOLOR() OPENMFC_MAP_ENTRY(0x19,0,0,0,AfxSig_CTLCOLOR,&ThisClass::OnCtlColor)
+#define ON_WM_MOUSEMOVE() OPENMFC_MAP_ENTRY(WM_MOUSEMOVE,0,0,0,AfxSig_v_u_p,&ThisClass::OnMouseMove)
+#define ON_WM_LBUTTONDOWN() OPENMFC_MAP_ENTRY(WM_LBUTTONDOWN,0,0,0,AfxSig_v_u_p,&ThisClass::OnLButtonDown)
+#define ON_WM_LBUTTONUP() OPENMFC_MAP_ENTRY(WM_LBUTTONUP,0,0,0,AfxSig_v_u_p,&ThisClass::OnLButtonUp)
+#define ON_WM_LBUTTONDBLCLK() OPENMFC_MAP_ENTRY(WM_LBUTTONDBLCLK,0,0,0,AfxSig_v_u_p,&ThisClass::OnLButtonDblClk)
+#define ON_WM_RBUTTONDOWN() OPENMFC_MAP_ENTRY(WM_RBUTTONDOWN,0,0,0,AfxSig_v_u_p,&ThisClass::OnRButtonDown)
+#define ON_WM_RBUTTONUP() OPENMFC_MAP_ENTRY(WM_RBUTTONUP,0,0,0,AfxSig_v_u_p,&ThisClass::OnRButtonUp)
+#define ON_WM_RBUTTONDBLCLK() OPENMFC_MAP_ENTRY(WM_RBUTTONDBLCLK,0,0,0,AfxSig_v_u_p,&ThisClass::OnRButtonDblClk)
+#define ON_WM_MBUTTONDOWN() OPENMFC_MAP_ENTRY(WM_MBUTTONDOWN,0,0,0,AfxSig_v_u_p,&ThisClass::OnMButtonDown)
+#define ON_WM_MBUTTONUP() OPENMFC_MAP_ENTRY(WM_MBUTTONUP,0,0,0,AfxSig_v_u_p,&ThisClass::OnMButtonUp)
+#define ON_WM_MBUTTONDBLCLK() OPENMFC_MAP_ENTRY(WM_MBUTTONDBLCLK,0,0,0,AfxSig_v_u_p,&ThisClass::OnMButtonDblClk)
+#define ON_WM_XBUTTONDOWN() OPENMFC_MAP_ENTRY(WM_XBUTTONDOWN,0,0,0,AfxSig_MOUSE_XBUTTON,&ThisClass::OnXButtonDown)
+#define ON_WM_XBUTTONUP() OPENMFC_MAP_ENTRY(WM_XBUTTONUP,0,0,0,AfxSig_MOUSE_XBUTTON,&ThisClass::OnXButtonUp)
+#define ON_WM_XBUTTONDBLCLK() OPENMFC_MAP_ENTRY(WM_XBUTTONDBLCLK,0,0,0,AfxSig_MOUSE_XBUTTON,&ThisClass::OnXButtonDblClk)
+#define ON_WM_CTLCOLOR_REFLECT() OPENMFC_MAP_ENTRY(WM_REFLECT_BASE+0x19,0,0,0,AfxSig_CTLCOLOR_REFLECT,&ThisClass::CtlColor)

@@ -23,6 +23,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/runtime/CCmdTargetVerbs.cpp phase4/src/core/runtime/CommandRouting.cpp phase4/src/core/runtime/_AFX_THREAD_STATE.cpp phase4/src/core/ole/CEnumOleVerb.cpp phase4/src/core/ole/CEnumArray.cpp phase4/src/core/ole/CTypeLibCache.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
+    phase4/src/core/window/CWndMessageMap.cpp phase4/src/core/window/WindowMessageMapDispatch.cpp phase4/src/core/runtime/CommandMessageDispatch.cpp phase4/src/core/gdi/CDC.cpp phase4/src/core/gdi/CDCMessageSupport.cpp
     phase4/src/core/window/CWndDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutLifetime.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp
     phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/window/CWndInput.cpp phase4/src/core/window/CWndVirtuals.cpp phase4/src/core/window/WindowMessageContext.cpp phase4/src/core/dialog/DialogMessageCallbacks.cpp phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
@@ -95,6 +96,9 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('core/window/WindowMessageContext.cpp', 'WindowMessageContext'),
                   ('core/window/CWndInput.cpp', 'CWndInput'),
                   ('core/window/CWndDynamicLayout.cpp', 'CWndDynamicLayout'),
+                  ('core/window/CWndMessageMap.cpp', 'CWndMessageMap'),
+                  ('core/window/WindowMessageMapDispatch.cpp', 'WindowMessageMapDispatch'),
+                  ('core/gdi/CDCMessageSupport.cpp', 'CDCMessageSupport'),
                   ('featurepack/controls/CMFCDynamicLayout.cpp', 'CMFCDynamicLayout'),
                   ('featurepack/controls/CMFCDynamicLayoutLifetime.cpp', 'CMFCDynamicLayoutLifetime'),
                   ('featurepack/controls/CMFCDynamicLayoutData.cpp', 'CMFCDynamicLayoutData'),

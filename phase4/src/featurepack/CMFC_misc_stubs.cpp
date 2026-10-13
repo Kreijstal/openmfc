@@ -3040,16 +3040,6 @@ extern "C" void MS_ABI impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__P
         ::SetWindowPos(hWnd, nullptr, lpRect->left, lpRect->top, cx, cy, nFlags);
     }
 }
-// Symbol: ?AfxResetMsgCache@@YAXXZ
-extern "C" void MS_ABI impl__AfxResetMsgCache__YAXXZ() {
-    // STUB. Retail AfxResetMsgCache (RVA 0x28d120, mfc140u) is one call:
-    //     memset(<module-static message-map lookup cache>, 0, 0x3000);
-    // (tail jmp through the VCRUNTIME140 memset import).
-    // Not transcribable here: grepped include/ and phase4/src for an
-    // AFX_MSG_CACHE / msgCache / cached message-map entry and found none --
-    // AfxFindMessageEntry (above in this file) walks the AFX_MSGMAP_ENTRY
-    // array on every call without memoising. There is no cache to clear.
-}
 // Symbol: ?AfxResolveShortcut@@YAHPEAVCWnd@@PEB_WPEA_WH@Z
 // Resolves a .lnk shortcut via IShellLinkW + IPersistFile::Load + Resolve.
 // This file only includes windows.h/objbase.h/ocidl.h; IShellLinkW and its

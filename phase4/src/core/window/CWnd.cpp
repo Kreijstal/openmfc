@@ -841,17 +841,6 @@ extern "C" HWND MS_ABI impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z
     }
     return hOwner;
 }
-// Symbol: ?GetThisMessageMap@CWnd@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
-}
-// The exported virtual GetMessageMap was a weak stub returning null; give it the
-// same base-chained map so a real client's CWnd routing does not null-deref.
-// Symbol: ?GetMessageMap@CWnd@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*)
-{
-    return &g_cwndMessageMap;
-}
 // Symbol: ?CreateControl@CWnd@@QEAAHAEBU_GUID@@PEB_WKAEBUtagRECT@@PEAV1@IPEAVCFile@@HPEA_W@Z
 extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHAEBU_GUID__PEB_WKAEBUtagRECT__PEAV1_IPEAVCFile__HPEA_W_Z(
     CWnd* pThis,
@@ -1358,10 +1347,6 @@ HWND CWnd::GetSafeOwner_(void* p0, void** p1)
         *p1 = hWnd;
     }
     return hWnd;
-}
-const AFX_MSGMAP* CWnd::GetThisMessageMap()
-{
-    return &g_cwndMessageMap;
 }
 int CWnd::GrayCtlColor(HDC p0, HWND p1, UINT p2, HBRUSH p3, DWORD p4)
 {

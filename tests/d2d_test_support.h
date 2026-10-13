@@ -7,8 +7,6 @@
 // Abort if a drawing path unexpectedly reaches one of these test doubles.
 CImageList::CImageList() { std::abort(); }
 CImageList::~CImageList() { std::abort(); }
-CDC::CDC() { std::abort(); }
-CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE g_d2dTestResourceModule = nullptr;
 #define g_cmdTestCurrentModule (AfxGetThreadState()->m_pModuleState)
@@ -70,10 +68,14 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRun
 // Model the recursive CRIT_TYPELIBCACHE lock used by the production lookup.
 std::recursive_mutex g_typeCacheTestMutex;
 thread_local int g_typeCacheLockDepth=0;
+std::recursive_mutex g_messageCacheTestMutex;
+thread_local int g_messageCacheLockDepth=0;
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
+    if(id==7) { g_messageCacheTestMutex.lock();++g_messageCacheLockDepth;return; }
     if(id!=13)std::abort();g_typeCacheTestMutex.lock();++g_typeCacheLockDepth;
 }
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
+    if(id==7) { if(g_messageCacheLockDepth<=0)std::abort();--g_messageCacheLockDepth;g_messageCacheTestMutex.unlock();return; }
     if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();
 }
 
@@ -133,7 +135,6 @@ extern "C" int MS_ABI impl__CheckAutoCenter_CWnd__UEAAHXZ(CWnd* pThis) { std::ab
 
 extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) { std::abort(); }
 
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*) { std::abort(); }
 
 extern "C" int MS_ABI impl__CreateControlSite_CWnd__MEAAHPEAVCOleControlContainer__PEAPEAVCOleControlSite__IAEBU_GUID___Z(
     CWnd* pThis,
@@ -200,7 +201,24 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyPage__SAPEAUCRun
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertySheet__SAPEAUCRuntimeClass__XZ() { return &g_layoutMfcSheet; }
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &g_layoutForm; }
 CWnd* g_layoutParent=nullptr;
+CWnd* (*g_messageWindowLookup)(HWND)=nullptr;
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
+    if(g_messageWindowLookup)return g_messageWindowLookup(handle);
+    if(!handle)return nullptr;
     if(g_layoutParent && g_layoutParent->m_hWnd==handle)return g_layoutParent;
     std::abort();
+}
+extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
+    return g_messageWindowLookup ? g_messageWindowLookup(handle) : nullptr;
+}
+// Menu/GDI map ownership is peripheral to window argument decoding.
+CMenu* g_messageMenu=nullptr;
+CRuntimeClass CMenu::classCMenu{};
+extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU handle) {
+    if(!handle)return nullptr;
+    if(g_messageMenu && g_messageMenu->m_hMenu==handle)return g_messageMenu;
+    std::abort();
+}
+extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ handle) {
+    return GetTempGdiObject(handle);
 }
