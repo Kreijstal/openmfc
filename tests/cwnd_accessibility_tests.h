@@ -123,9 +123,22 @@ static void nativeWindow() {
             name && wcscmp(name,L"OpenMFC accessibility")==0,
             "native accessibility returns the actual window name");
         SysFreeString(name);
-        check(impl__get_accRole_CWnd__UEAAJUtagVARIANT__PEAU2__Z(&window,&self,&role)==S_OK &&
-            role.vt==VT_I4 && role.lVal==ROLE_SYSTEM_CLIENT,
-            "native accessibility returns the client role");
+        // Standard objects specialize the role by window class. Windows uses
+        // a STATIC-specific role where Wine currently uses ROLE_SYSTEM_CLIENT.
+        constexpr IID accessibleIID = {0x618736e0, 0x3c3d, 0x11cf,
+            {0x81, 0x0c, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
+        IAccessible* reference = nullptr;
+        HRESULT referenceHR = CreateStdAccessibleObject(hwnd, OBJID_CLIENT,
+            accessibleIID, reinterpret_cast<void**>(&reference));
+        VARIANT expectedRole{};
+        if (SUCCEEDED(referenceHR) && reference)
+            referenceHR = reference->get_accRole(self, &expectedRole);
+        HRESULT roleHR = impl__get_accRole_CWnd__UEAAJUtagVARIANT__PEAU2__Z(&window,&self,&role);
+        check(reference && referenceHR == S_OK && roleHR == referenceHR &&
+            role.vt == VT_I4 && expectedRole.vt == VT_I4 && role.lVal == expectedRole.lVal,
+            "native accessibility role matches the independently created standard object");
+        VariantClear(&expectedRole); VariantClear(&role);
+        if (reference) reference->Release();
         long x=0,y=0,w=0,h=0; RECT rect{}; GetClientRect(hwnd,&rect);
         check(impl__accLocation_CWnd__UEAAJPEAJ000UtagVARIANT___Z(&window,&x,&y,&w,&h,&self)==S_OK &&
             w==rect.right && h==rect.bottom,
