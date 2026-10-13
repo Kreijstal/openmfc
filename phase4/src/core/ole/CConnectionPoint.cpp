@@ -45,6 +45,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CCmdTargetConnectionsSupport.h"
 #include "detail/CEnumConnectionsSupport.h"
+#include "detail/OleExceptionTranslationSupport.h"
 
 #include <ocidl.h>
 #include <olectl.h>
@@ -518,9 +519,10 @@ extern "C" long MS_ABI impl__EnumConnections_XConnPt_CConnectionPoint__UEAAJPEAP
     *out=nullptr;
     auto* point=CP(OuterFromConnPt(self));
     openmfc::detail::CmdTargetModuleScope module(static_cast<AFX_MODULE_STATE*>(point->m_pModuleState));
-    auto* enumerator=OpenMfcCreateConnectionEnumerator();
-    if (!enumerator) return E_OUTOFMEMORY;
+    void* enumerator=nullptr;
     try {
+        enumerator=OpenMfcCreateConnectionEnumerator();
+        if (!enumerator) return E_OUTOFMEMORY;
         if (point->m_pUnkFirstConnection) {
             CONNECTDATA connection{point->m_pUnkFirstConnection,1};
             impl__AddConnection_CEnumConnections__QEAAXPEAUtagCONNECTDATA___Z(enumerator,&connection);
@@ -536,11 +538,15 @@ extern "C" long MS_ABI impl__EnumConnections_XConnPt_CConnectionPoint__UEAAJPEAP
         }
         *out=OpenMfcConnectionEnumeratorInterface(enumerator);
         return S_OK;
+    } catch (CException* error) {
+        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+        if(enumerator)OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
+        return E_OUTOFMEMORY;
     } catch (const std::bad_alloc&) {
-        OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
+        if(enumerator)OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
         return E_OUTOFMEMORY;
     } catch (...) {
-        OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
+        if(enumerator)OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
         throw;
     }
 }

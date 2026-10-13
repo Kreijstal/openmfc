@@ -1,6 +1,7 @@
 // Native CEnumConnections: CEnumArray prefix, CONNECTDATA ownership and COM table.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CEnumConnectionsSupport.h"
+#include "detail/CEnumArrayInterfacesSupport.h"
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -67,43 +68,11 @@ HRESULT MS_ABI Query(void* self,REFIID iid,void** out) {
 }
 ULONG MS_ABI AddRef(void* self) { return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(Owner(self)); }
 ULONG MS_ABI Release(void* self) { return impl__ExternalRelease_CCmdTarget__QEAAKXZ(Owner(self)); }
-HRESULT MS_ABI Next(void* self,ULONG requested,CONNECTDATA* out,ULONG* fetched) {
-    if(fetched)*fetched=0;
-    if(requested && !out)return E_POINTER;
-    auto* owner=Owner(self);
-    openmfc::detail::CmdTargetModuleScope module(owner->m_pModuleState);
-    ULONG copied=0;
-    while(copied<requested && owner->OnNext(out+copied))++copied;
-    if(fetched)*fetched=copied;
-    return copied==requested ? S_OK : S_FALSE;
-}
-HRESULT MS_ABI Skip(void* self,ULONG requested) {
-    auto* owner=Owner(self);
-    openmfc::detail::CmdTargetModuleScope module(owner->m_pModuleState);
-    ULONG skipped=0;
-    while(skipped<requested && owner->OnSkip())++skipped;
-    return skipped==requested ? S_OK : S_FALSE;
-}
-HRESULT MS_ABI Reset(void* self) {
-    auto* owner=Owner(self);
-    openmfc::detail::CmdTargetModuleScope module(owner->m_pModuleState);
-    owner->OnReset();return S_OK;
-}
-HRESULT MS_ABI Clone(void* self,IEnumConnections** out) {
-    if(!out)return E_POINTER;
-    *out=nullptr;
-    auto* owner=Owner(self);
-    openmfc::detail::CmdTargetModuleScope module(owner->m_pModuleState);
-    auto* clone=static_cast<NativeEnumConnections*>(owner->OnClone());
-    if(!clone)return E_UNEXPECTED;
-    auto* original=owner->clonedFrom ? owner->clonedFrom : owner;
-    clone->clonedFrom=original;
-    InterlockedIncrement(&original->m_dwRef);
-    *out=Interface(clone);return S_OK;
-}
 void* const interfaceTable[]={reinterpret_cast<void*>(Query),reinterpret_cast<void*>(AddRef),
-    reinterpret_cast<void*>(Release),reinterpret_cast<void*>(Next),reinterpret_cast<void*>(Skip),
-    reinterpret_cast<void*>(Reset),reinterpret_cast<void*>(Clone)};
+    reinterpret_cast<void*>(Release),reinterpret_cast<void*>(impl__Next_XEnumVOID_CEnumArray__UEAAJKPEAXPEAK_Z),
+    reinterpret_cast<void*>(impl__Skip_XEnumVOID_CEnumArray__UEAAJK_Z),
+    reinterpret_cast<void*>(impl__Reset_XEnumVOID_CEnumArray__UEAAJXZ),
+    reinterpret_cast<void*>(impl__Clone_XEnumVOID_CEnumArray__UEAAJPEAPEAUIEnumVOID___Z)};
 }
 void* OpenMfcCreateConnectionEnumerator() { return new(std::nothrow)NativeEnumConnections; }
 IEnumConnections* OpenMfcConnectionEnumeratorInterface(void* owner) {

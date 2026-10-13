@@ -57,24 +57,15 @@
 //     those operate on OpenMFC's 32-byte CCmdTarget (placement new, and a
 //     virtual `~CCmdTarget()` through the vptr), neither of which is valid on
 //     this retail-layout object.
-//   * Exceptions.  Next, Skip and Clone run their loop/body inside MFC TRY /
-//     END_TRY: each has a C++ EH handler in its .pdata unwind info (Reset has
-//     none), and each has a continuation that no branch inside the function
-//     reaches and that reloads the saved result -- 0x25b94f, 0x25b9c8 and
-//     0x25bab4, where the catch funclet resumes.
-//     This DLL raises MFC exceptions through the MSVC runtime's
-//     _CxxThrowException, which unwinds through gcc frames without a gcc catch
-//     clause seeing it (see core/ole/CArchiveStream.cpp's header), so the
-//     catch arms are not reproduced: an exception from OnNext/OnSkip/OnClone
-//     propagates to the caller instead of being turned into a return code.
+//   * COM exception handling lives in CEnumArrayInterfaces.cpp, shared with
+//     the native connection-sink enumerator.
 //   * NULL-allocation guards, noted at OnClone and Clone.
 //
-// Known gap outside this file: OpenMFC's CCmdTarget::InternalRelease
-// (core/runtime/CCmdTarget.cpp) only decrements m_dwRef and never calls
-// OnFinalRelease, so a released enumerator is not freed.
 // =============================================================================
 
-#include "detail/ManualSmallStubImplementationsSupport.h"
+#define OPENMFC_APPCORE_IMPL
+#include "detail/CEnumArrayInterfacesSupport.h"
+#include <cstring>
 
 // Sibling thunks, declared with the signatures their mangled names describe.
 // core/runtime/AFX_MAINTAIN_STATE2.cpp -- the METHOD_PROLOGUE_EX state push.
@@ -177,22 +168,12 @@ inline Fn SlotFn(void* pObj, int slot) {
 // METHOD_PROLOGUE_EX: Next, Skip, Reset and Clone recover the owner with
 // `lea -0x68(%rcx)` and build AFX_MAINTAIN_STATE2 from owner->m_pModuleState
 // (`mov 0x38(owner),%rdx ; call 0x133170`), restoring the previous module
-// state on exit.  Reproduced through the exported AFX_MAINTAIN_STATE2 thunks;
-// the local is only the key those thunks track the push under.
+// state on exit. The shared COM entry points implement this scope directly.
 inline void* OwnerFromEnumVOID(void* pEnumVOID) {
     return static_cast<char*>(pEnumVOID) - kOff_m_xEnumVOID;
 }
 
-struct MaintainState {
-    void* m_slot[2];
-    explicit MaintainState(void* pOwner) {
-        impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
-            m_slot, Member<void*>(pOwner, kOff_m_pModuleState));
-    }
-    ~MaintainState() { impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(m_slot); }
-    MaintainState(const MaintainState&) = delete;
-    MaintainState& operator=(const MaintainState&) = delete;
-};
+
 
 extern void* const g_CEnumArray_vtbl[kClassVtblSlots];
 extern void* const g_XEnumVOID_vtbl[kXEnumVtblSlots];
@@ -352,111 +333,7 @@ extern "C" int MS_ABI impl__OnSkip_CEnumArray__MEAAHXZ(void* pThis) {
     return nCurPos < nSize ? TRUE : FALSE;
 }
 
-// CEnumArray::XEnumVOID::Clone(IEnumVOID** ppenum) -- mfc140u RVA 0x25ba50
-// (rcx = &m_xEnumVOID):
-//     pThis = this - 0x68; AFX_MAINTAIN_STATE2(pThis->m_pModuleState)
-//     *ppenum = NULL;                                ; no NULL check on ppenum
-//     sc = E_UNEXPECTED;
-//     TRY {
-//         CEnumArray* pClone = pThis->OnClone();     ; vtbl +0xc8, slot 25
-//         CEnumArray* pOwner = pThis->m_pClonedFrom ? pThis->m_pClonedFrom : pThis;
-//         pClone->m_pClonedFrom = pOwner;            ; +0x48, cmovne
-//         InterlockedIncrement(&pOwner->m_dwRef);    ; `lock incl 0x8(%rbx)`
-//         *ppenum = &pClone->m_xEnumVOID;            ; +0x68
-//         sc = S_OK;
-//     } END_TRY                                      ; continuation 0x25bab4
-//     return sc;
-// So every clone (of a clone, too) holds one reference on the ORIGINAL
-// enumerator, which owns the array; ~CEnumArray drops it.
-// Deviations: the catch arm (top note); and retail dereferences a NULL clone
-// (only possible from an OnClone override, or from a user new handler that
-// returns 0), while this returns E_UNEXPECTED -- the sc retail holds at that
-// point, and also the value retail returns when the base OnClone's allocation
-// throws CMemoryException.
-// Symbol: ?Clone@XEnumVOID@CEnumArray@@UEAAJPEAPEAUIEnumVOID@@@Z
-extern "C" long MS_ABI impl__Clone_XEnumVOID_CEnumArray__UEAAJPEAPEAUIEnumVOID___Z(void* pThis, void** ppenum) {
-    void* pOuter = OwnerFromEnumVOID(pThis);
-    MaintainState state(pOuter);
-    *ppenum = nullptr;
-    using OnCloneFn = void* (MS_ABI*)(void* pThis);
-    void* pClone = SlotFn<OnCloneFn>(pOuter, kSlot_OnClone)(pOuter);
-    if (pClone == nullptr) return E_UNEXPECTED;
-    void* pClonedFrom = Member<void*>(pOuter, kOff_m_pClonedFrom);
-    void* pOwner = pClonedFrom != nullptr ? pClonedFrom : pOuter;
-    Member<void*>(pClone, kOff_m_pClonedFrom) = pOwner;
-    ::InterlockedIncrement(&Member<LONG>(pOwner, kOff_m_dwRef));
-    *ppenum = static_cast<char*>(pClone) + kOff_m_xEnumVOID;
-    return S_OK;
-}
-
-// CEnumArray::XEnumVOID::Next(ULONG celt, void* reelt, ULONG* pceltFetched) --
-// mfc140u RVA 0x25b8d0 (rcx = &m_xEnumVOID):
-//     pThis = this - 0x68; AFX_MAINTAIN_STATE2(pThis->m_pModuleState)
-//     if (pceltFetched != NULL) *pceltFetched = 0;
-//     BYTE* pchCur = (BYTE*)reelt; ULONG celtT = celt; sc = E_UNEXPECTED;
-//     TRY {
-//         while (celtT != 0 && pThis->OnNext(pchCur)) {   ; vtbl +0xb0, slot 22
-//             pchCur += pThis->m_nSizeElem;              ; +0x40
-//             --celtT;
-//         }
-//         if (pceltFetched != NULL) *pceltFetched = celt - celtT;
-//         sc = celtT != 0 ? S_FALSE : S_OK;              ; test/setne
-//     } END_TRY                                           ; continuation 0x25b94f
-//     return sc;
-// Deviation: the catch arm (top note).
-// Symbol: ?Next@XEnumVOID@CEnumArray@@UEAAJKPEAXPEAK@Z
-extern "C" long MS_ABI impl__Next_XEnumVOID_CEnumArray__UEAAJKPEAXPEAK_Z(
-    void* pThis, unsigned long celt, void* reelt, unsigned long* pceltFetched) {
-    void* pOuter = OwnerFromEnumVOID(pThis);
-    MaintainState state(pOuter);
-    if (pceltFetched != nullptr) *pceltFetched = 0;
-    BYTE* pchCur = static_cast<BYTE*>(reelt);
-    unsigned long celtT = celt;
-    using OnNextFn = int (MS_ABI*)(void* pThis, void* pv);
-    while (celtT != 0 && SlotFn<OnNextFn>(pOuter, kSlot_OnNext)(pOuter, pchCur) != 0) {
-        pchCur += Member<unsigned long long>(pOuter, kOff_m_nSizeElem);
-        --celtT;
-    }
-    if (pceltFetched != nullptr) *pceltFetched = celt - celtT;
-    return celtT != 0 ? S_FALSE : S_OK;
-}
-
-// CEnumArray::XEnumVOID::Reset -- mfc140u RVA 0x25ba00 (rcx = &m_xEnumVOID):
-//     pThis = this - 0x68; AFX_MAINTAIN_STATE2(pThis->m_pModuleState)
-//     pThis->OnReset();                              ; vtbl +0xc0, slot 24
-//     return S_OK;
-// (no TRY here: 0x25ba00 has no exception handler in its .pdata unwind info,
-// unlike Next, Skip and Clone.)
-// Symbol: ?Reset@XEnumVOID@CEnumArray@@UEAAJXZ
-extern "C" long MS_ABI impl__Reset_XEnumVOID_CEnumArray__UEAAJXZ(void* pThis) {
-    void* pOuter = OwnerFromEnumVOID(pThis);
-    MaintainState state(pOuter);
-    using OnResetFn = void (MS_ABI*)(void* pThis);
-    SlotFn<OnResetFn>(pOuter, kSlot_OnReset)(pOuter);
-    return S_OK;
-}
-
-// CEnumArray::XEnumVOID::Skip(ULONG celt) -- mfc140u RVA 0x25b980
-// (rcx = &m_xEnumVOID):
-//     pThis = this - 0x68; AFX_MAINTAIN_STATE2(pThis->m_pModuleState)
-//     ULONG celtT = celt;
-//     TRY {
-//         while (celtT != 0 && pThis->OnSkip())      ; vtbl +0xb8, slot 23
-//             --celtT;
-//     } END_TRY                                      ; continuation 0x25b9c8
-//     return celtT != 0 ? S_FALSE : S_OK;            ; both paths
-// Deviation: the catch arm (top note).
-// Symbol: ?Skip@XEnumVOID@CEnumArray@@UEAAJK@Z
-extern "C" long MS_ABI impl__Skip_XEnumVOID_CEnumArray__UEAAJK_Z(void* pThis, unsigned long celt) {
-    void* pOuter = OwnerFromEnumVOID(pThis);
-    MaintainState state(pOuter);
-    unsigned long celtT = celt;
-    using OnSkipFn = int (MS_ABI*)(void* pThis);
-    while (celtT != 0 && SlotFn<OnSkipFn>(pOuter, kSlot_OnSkip)(pOuter) != 0) {
-        --celtT;
-    }
-    return celtT != 0 ? S_FALSE : S_OK;
-}
+// Shared COM entry points and exception handling live in CEnumArrayInterfaces.cpp.
 
 //=============================================================================
 // Vtables (retail slot order; see the top note)

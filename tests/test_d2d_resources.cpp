@@ -273,12 +273,13 @@ static void ownershipAndRecreation() {
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
+#include "framework_boundary_exception_tests.h"
 
 int main() {
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
-    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); }
+    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); frameworkBoundaryExceptions(); }
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

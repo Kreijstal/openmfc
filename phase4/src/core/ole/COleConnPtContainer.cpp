@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CCmdTargetConnectionsSupport.h"
+#include "detail/OleExceptionTranslationSupport.h"
 #include "openmfc/afxole.h"
 #include <cstring>
 #include <new>
@@ -32,7 +33,9 @@ struct PointSnapshot {
     ~PointSnapshot() { for(auto* point:points)point->Release(); }
     void Add(IConnectionPoint* point) {
         if(!point)return;
-        points.push_back(point);point->AddRef();
+        point->AddRef();
+        try { points.push_back(point); }
+        catch(...) { point->Release();throw; }
     }
 };
 class PointEnumerator final : public IEnumConnectionPoints {
@@ -79,6 +82,9 @@ public:
             for(auto* point:snapshot.points)copy.Add(point);
             *out=new(std::nothrow)PointEnumerator(std::move(copy),position);
             return *out ? S_OK : E_OUTOFMEMORY;
+        } catch(CException* error) {
+            openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+            return E_UNEXPECTED;
         } catch(const std::bad_alloc&) { return E_OUTOFMEMORY; }
     }
 };
@@ -129,6 +135,9 @@ extern "C" HRESULT MS_ABI impl__EnumConnectionPoints_COleConnPtContainer__UEAAJP
             for(auto* entry=map->pEntry;entry->piid;++entry)points.Add(MappedPoint(owner,entry->nOffset));
         *out=new(std::nothrow)PointEnumerator(std::move(points));
         return *out ? S_OK : E_OUTOFMEMORY;
+    } catch(CException* error) {
+        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+        return CONNECT_E_NOCONNECTION;
     } catch(const std::bad_alloc&) { return E_OUTOFMEMORY; }
 }
 // Symbol: ?EnableConnections@CCmdTarget@@QEAAXXZ

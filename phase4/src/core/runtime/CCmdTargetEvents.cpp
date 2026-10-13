@@ -1,5 +1,6 @@
 // Native control event-map lookup and handler invocation.
 #include "detail/CCmdTargetEventsSupport.h"
+#include "detail/OleExceptionTranslationSupport.h"
 #include <cstring>
 #include <vector>
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
@@ -89,9 +90,6 @@ extern "C" const void* MS_ABI impl__GetEventSinkEntry_CCmdTarget__IEAAPEBUAFX_EV
 // where "[idCtrl,]" is passed only when bRange.  A NULL pEvent never gets
 // here: GetEventSinkEntry throws AfxThrowInvalidArgException for it.
 // DEVIATIONS:
-//   * retail wraps the dispatch switch in TRY/CATCH_ALL (its continuation is
-//     at 0x18023712a); no catch is reproduced here, so an exception thrown by
-//     a handler propagates to the caller.
 //   * a NULL `this` returns FALSE.
 //   * ranged arguments and the returned VARIANT have scoped storage, including
 //     during exception unwinding. The arguments are shallow copies: ownership
@@ -128,6 +126,7 @@ extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMD
     int bAllow = TRUE;
     void* const pfn = pEntry->dispEntry.pfn;
 
+    try {
     switch (pEvent->m_eventKind) {
     case 0: {   // AFX_EVENT::event
         EventResult result;
@@ -189,6 +188,11 @@ extern "C" int MS_ABI impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMD
         break;
     default:
         break;
+    }
+    } catch(CException* error) {
+        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
+        HRESULT translated=FillOleDispatchExceptionInfo(static_cast<EXCEPINFO*>(pEvent->m_pExcepInfo),error);
+        hResult=FAILED(translated) ? translated : DISP_E_EXCEPTION;
     }
 
     if (hResult < 0 && pEvent->m_puArgError != nullptr && uArgError != 0xffffffffu)
