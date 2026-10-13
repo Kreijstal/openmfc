@@ -348,7 +348,7 @@ struct ListNodeSnapshot {
 
 
 namespace openmfc { namespace detail { namespace filecore {
-extern __attribute__((used)) CRuntimeClass g_classCWordArray;
+extern CRuntimeClass g_classCWordArray;
 } } }
 
 #define OPENMFC_DEFINE_ARRAY_METHODS(class_name, element_type, arg_type) \
