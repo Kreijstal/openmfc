@@ -1,7 +1,12 @@
 // Standalone MSVC ABI test of the production drawing thunks. Only sibling
 // wrapper access/verification is doubled; render-target state and drawing code
 // come from the real source. A software WIC target checks actual pixel output.
+#define impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z test_VerifyResource
 #include "../phase4/src/core/d2d/CRenderTarget.cpp"
+#undef impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z
+#include "../phase4/src/core/d2d/CD2DTextFormat.cpp"
+#include "../phase4/src/core/d2d/CD2DTextLayout.cpp"
+#include "openmfc/afxinet.h"
 #include <wincodec.h>
 #include <cstdio>
 #include <cstdlib>
@@ -14,6 +19,13 @@ CDC::CDC() { std::abort(); }
 CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE AFXAPI AfxGetInstanceHandle() { std::abort(); }
+CRuntimeClass CCmdTarget::classCCmdTarget{};
+CRuntimeClass CWinThread::classCWinThread{};
+CRuntimeClass CWinApp::classCWinApp{};
+CRuntimeClass CWnd::classCWnd{};
+CRuntimeClass CFileFind::classCFileFind{};
+CRuntimeClass CDocument::classCDocument{};
+CRuntimeClass CHtmlView::classCHtmlView{};
 extern "C" void MS_ABI impl__Attach_CBitmapRenderTarget__QEAAXPEAUID2D1BitmapRenderTarget___Z(void*, void*) { std::abort(); }
 extern "C" void MS_ABI impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z(void*, void*) { std::abort(); }
 extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void*) { std::abort(); }
@@ -24,7 +36,7 @@ struct TestResource {
 };
 static void* verified[8];
 static unsigned verificationCount;
-extern "C" int MS_ABI impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z(void*, void* wrapper) {
+extern "C" int MS_ABI test_VerifyResource(void*, void* wrapper) {
     if (verificationCount < 8) verified[verificationCount++] = wrapper;
     return wrapper && static_cast<TestResource*>(wrapper)->valid;
 }
@@ -62,6 +74,10 @@ static D2D1_RECT_F lastRect;
 static D2D1_ELLIPSE lastEllipse;
 static D2D1_ROUNDED_RECT lastRoundedRect;
 static const D2D1_LAYER_PARAMETERS* lastLayerParameters;
+static std::wstring lastText;
+static void* lastTextFormat;
+static D2D1_DRAW_TEXT_OPTIONS lastTextOptions;
+static DWRITE_MEASURING_MODE lastMeasuringMode;
 static void check(bool ok, const char* message) {
     std::printf("%s: %s\n", ok ? "PASS" : "FAIL", message);
     if (!ok) ++failures;
@@ -117,6 +133,17 @@ static void STDMETHODCALLTYPE fillMesh(void* target, ID2D1Mesh* mesh, ID2D1Brush
 static void STDMETHODCALLTYPE pushLayer(void* target, const D2D1_LAYER_PARAMETERS* parameters, ID2D1Layer* layer) {
     record(target, 40); lastLayerParameters = parameters; lastResource = layer;
 }
+static void STDMETHODCALLTYPE drawText(void* target, const wchar_t* text, UINT32 length,
+    IDWriteTextFormat* format, const D2D1_RECT_F* rect, ID2D1Brush* brush,
+    D2D1_DRAW_TEXT_OPTIONS options, DWRITE_MEASURING_MODE mode) {
+    record(target, 27); lastText.assign(text, length); lastTextFormat = format;
+    lastRect = *rect; lastBrush = brush; lastTextOptions = options; lastMeasuringMode = mode;
+}
+static void STDMETHODCALLTYPE drawLayout(void* target, D2D1_POINT_2F origin,
+    IDWriteTextLayout* layout, ID2D1Brush* brush, D2D1_DRAW_TEXT_OPTIONS options) {
+    record(target, 28); lastStart = origin; lastResource = layout;
+    lastBrush = brush; lastTextOptions = options;
+}
 static D2D1_PIXEL_FORMAT* STDMETHODCALLTYPE pixelFormat(void* target, D2D1_PIXEL_FORMAT* result) {
     record(target, 50); *result = {DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED}; return result;
 }
@@ -136,6 +163,8 @@ static void forwarding() {
     slots[22] = reinterpret_cast<void*>(geometry);
     slots[23] = reinterpret_cast<void*>(fillGeometry);
     slots[24] = reinterpret_cast<void*>(fillMesh);
+    slots[27] = reinterpret_cast<void*>(drawText);
+    slots[28] = reinterpret_cast<void*>(drawLayout);
     slots[40] = reinterpret_cast<void*>(pushLayer);
     slots[50] = reinterpret_cast<void*>(pixelFormat);
     slots[54] = reinterpret_cast<void*>(pixelSize);
@@ -204,6 +233,30 @@ static void forwarding() {
     layerWrapper.resource = nullptr;
     impl__PushLayer_CRenderTarget__QEAAXAEBUD2D1_LAYER_PARAMETERS__AEAVCD2DLayer___Z(&render, &parameters, &layerWrapper);
     check(lastSlot == 40 && lastResource == nullptr, "PushLayer accepts an unallocated layer for automatic allocation");
+    int nativeFormat, nativeLayout;
+    InlineWrapper formatWrapper{nullptr, true, nullptr, &nativeFormat};
+    InlineWrapper layoutWrapper{nullptr, true, nullptr, &nativeLayout};
+    CString embeddedText;
+    wchar_t* buffer = embeddedText.GetBuffer(3);
+    buffer[0] = L'A'; buffer[1] = 0; buffer[2] = L'B';
+    embeddedText.ReleaseBuffer(3);
+    verificationCount = 0;
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+        &render, &embeddedText, &rect, &brush, &formatWrapper, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_GDI_CLASSIC);
+    check(lastSlot == 27 && lastText.size() == 3 && lastText[1] == 0 && lastText[2] == L'B' &&
+          lastTextFormat == &nativeFormat && lastRect.bottom == 12 && lastBrush == &nativeBrush &&
+          lastTextOptions == D2D1_DRAW_TEXT_OPTIONS_CLIP && lastMeasuringMode == DWRITE_MEASURING_MODE_GDI_CLASSIC &&
+          verificationCount == 1 && verified[0] == &brush, "DrawText forwards length, embedded NUL, format, bounds, brush and options");
+    impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+        &render, &embeddedText, rect, &brush, &formatWrapper, D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE_NATURAL);
+    check(lastSlot == 27 && lastText.size() == 3 && lastRect.right == 11, "by-value DrawText rectangle overload forwards the complete rectangle");
+    verificationCount = 0;
+    impl__DrawTextLayout_CRenderTarget__QEAAXAEBVCD2DPointF__PEAVCD2DTextLayout__PEAVCD2DBrush__W4D2D1_DRAW_TEXT_OPTIONS___Z(
+        &render, &start, &layoutWrapper, &brush, D2D1_DRAW_TEXT_OPTIONS_NO_SNAP);
+    check(lastSlot == 28 && lastStart.x == start.x && lastStart.y == start.y && lastResource == &nativeLayout &&
+          lastBrush == &nativeBrush && lastTextOptions == D2D1_DRAW_TEXT_OPTIONS_NO_SNAP &&
+          verificationCount == 2 && verified[0] == &layoutWrapper && verified[1] == &brush,
+          "DrawTextLayout forwards the point aggregate and verifies layout before brush");
     D2D1_PIXEL_FORMAT format{};
     D2D1_SIZE_U size{};
     check(impl__GetPixelFormat_CRenderTarget__QEBA_AUD2D1_PIXEL_FORMAT__XZ(&render, &format) == &format &&
@@ -228,6 +281,216 @@ static void forwarding() {
     impl__DrawGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
         nullptr, &geometryWrapper, &brush, 1, nullptr);
     check(calls == before && verificationCount == 0, "missing targets return before resource verification");
+}
+
+static void textResources() {
+    CRenderTarget parent;
+    CString family(L"Arial"), locale(L"en-us"), text(L"ABCDEF");
+    CD2DSizeF size(123, 45);
+    IDWriteFactory* factory = openmfc::detail::d2dtext::Factory();
+    check(factory != nullptr, "load the shared DirectWrite factory");
+    if (!factory) return;
+    IDWriteFontCollection* collection = nullptr;
+    check(SUCCEEDED(factory->GetSystemFontCollection(&collection)), "obtain a font collection for constructor forwarding");
+    alignas(CD2DTextFormat) unsigned char formatStorage[sizeof(CD2DTextFormat)];
+    auto* format = static_cast<CD2DTextFormat*>(
+        impl___0CD2DTextFormat__QEAA_PEAVCRenderTarget__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_A___MW4DWRITE_FONT_WEIGHT__W4DWRITE_FONT_STYLE__W4DWRITE_FONT_STRETCH__1PEAUIDWriteFontCollection__H_Z(
+            formatStorage, &parent, &family, 17.5f, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_OBLIQUE,
+            DWRITE_FONT_STRETCH_CONDENSED, &locale, collection, FALSE));
+    check(format == reinterpret_cast<CD2DTextFormat*>(formatStorage) && format->m_pTextFormat &&
+          format->m_pParentTarget == &parent && format->m_bIsAutoDestroy == FALSE,
+          "exported text-format constructor returns this and initializes retail inline fields");
+    if (!format->m_pTextFormat) {
+        impl___1CD2DTextFormat__UEAA_XZ(format);
+        if (collection) collection->Release();
+        return;
+    }
+    check(format->m_pTextFormat->GetFontSize() == 17.5f && format->m_pTextFormat->GetFontWeight() == DWRITE_FONT_WEIGHT_BOLD &&
+          format->m_pTextFormat->GetFontStyle() == DWRITE_FONT_STYLE_OBLIQUE &&
+          format->m_pTextFormat->GetFontStretch() == DWRITE_FONT_STRETCH_CONDENSED,
+          "text-format constructor forwards font size, weight, style and stretch");
+    IDWriteFontCollection* actualCollection = nullptr;
+    format->m_pTextFormat->GetFontCollection(&actualCollection);
+    check(actualCollection == collection, "text-format constructor forwards the supplied font collection");
+    if (actualCollection) actualCollection->Release();
+    if (collection) collection->Release();
+
+    void* const* vtable = *reinterpret_cast<void* const* const*>(format);
+    using GetClass = CRuntimeClass* (MS_ABI*)(const void*);
+    using Valid = BOOL (MS_ABI*)(const void*);
+    using Create = HRESULT (MS_ABI*)(void*, CRenderTarget*);
+    using Destroy = void (MS_ABI*)(void*);
+    check(reinterpret_cast<GetClass>(vtable[0])(format) == impl__GetThisClass_CD2DTextFormat__SAPEAUCRuntimeClass__XZ(),
+          "text-format vtable slot zero returns its real runtime descriptor");
+    IDWriteTextFormat* beforeDestroy = format->m_pTextFormat;
+    reinterpret_cast<Destroy>(vtable[7])(format);
+    check(reinterpret_cast<Create>(vtable[5])(format, &parent) == S_OK &&
+          reinterpret_cast<Create>(vtable[6])(format, &parent) == S_OK &&
+          reinterpret_cast<Valid>(vtable[8])(format) && format->m_pTextFormat == beforeDestroy,
+          "text-format virtual resource slots preserve the device-independent format");
+
+    alignas(CString) unsigned char resultStorage[sizeof(CString)];
+    auto* result = reinterpret_cast<CString*>(resultStorage);
+    check(impl__GetFontFamilyName_CD2DTextFormat__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(format, result) == result &&
+          std::wcscmp(result->GetString(), L"Arial") == 0, "font getter honors this/result order and returns the native font family");
+    result->~CString();
+    check(impl__GetLocaleName_CD2DTextFormat__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(format, result) == result &&
+          std::wcscmp(result->GetString(), L"en-us") == 0, "locale getter honors this/result order and returns the native locale");
+    result->~CString();
+
+    alignas(CD2DTextLayout) unsigned char layoutStorage[sizeof(CD2DTextLayout)];
+    auto* layout = static_cast<CD2DTextLayout*>(
+        impl___0CD2DTextLayout__QEAA_PEAVCRenderTarget__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAVCD2DTextFormat__AEBVCD2DSizeF__H_Z(
+            layoutStorage, &parent, &text, format, &size, FALSE));
+    check(layout == reinterpret_cast<CD2DTextLayout*>(layoutStorage) && layout->m_pTextLayout &&
+          layout->m_pTextLayout->GetMaxWidth() == 123 && layout->m_pTextLayout->GetMaxHeight() == 45,
+          "exported layout constructor creates real text with the requested bounds");
+    if (layout->m_pTextLayout) {
+        check(impl__SetFontFamilyName_CD2DTextLayout__QEAAHPEB_WUDWRITE_TEXT_RANGE___Z(layout, L"Times New Roman", DWRITE_TEXT_RANGE{1, 2}),
+              "font setter accepts a by-value MSVC text range");
+        check(impl__SetLocaleName_CD2DTextLayout__QEAAHPEB_WUDWRITE_TEXT_RANGE___Z(layout, L"de-de", DWRITE_TEXT_RANGE{2, 2}),
+              "locale setter accepts a by-value MSVC text range");
+        DWRITE_TEXT_RANGE range{};
+        DWRITE_TEXT_RANGE nativeRange{};
+        wchar_t nativeName[64] = {};
+        layout->m_pTextLayout->GetFontFamilyName(1, nativeName, 64, &nativeRange);
+        impl__GetFontFamilyName_CD2DTextLayout__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEAUDWRITE_TEXT_RANGE___Z(layout, result, 1, &range);
+        check(std::wcscmp(result->GetString(), L"Times New Roman") == 0 &&
+              range.startPosition == nativeRange.startPosition && range.length == nativeRange.length && range.length > 0,
+              "font getter queries the requested position and returns the affected range");
+        result->~CString();
+        impl__GetFontFamilyName_CD2DTextLayout__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEAUDWRITE_TEXT_RANGE___Z(layout, result, 0, nullptr);
+        check(std::wcscmp(result->GetString(), L"Arial") == 0, "font changes preserve text outside the requested range");
+        result->~CString();
+        layout->m_pTextLayout->GetLocaleName(2, nativeName, 64, &nativeRange);
+        impl__GetLocaleName_CD2DTextLayout__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEAUDWRITE_TEXT_RANGE___Z(layout, result, 2, &range);
+        check(std::wcscmp(result->GetString(), L"de-de") == 0 &&
+              range.startPosition == nativeRange.startPosition && range.length == nativeRange.length && range.length > 0,
+              "locale getter queries the requested position and returns the affected range");
+        result->~CString();
+        impl__GetLocaleName_CD2DTextLayout__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__IPEAUDWRITE_TEXT_RANGE___Z(layout, result, 4, nullptr);
+        check(std::wcscmp(result->GetString(), L"en-us") == 0, "locale changes preserve text outside the requested range");
+        result->~CString();
+        check(format->m_pTextFormat == beforeDestroy, "string result construction leaves the receiver intact");
+    }
+    impl___1CD2DTextFormat__UEAA_XZ(format);
+    check(g_renderTargetState[&parent].textResources.count(format) == 0,
+          "format destructor unregisters the child from its parent");
+    if (layout->m_pTextLayout) {
+        DWRITE_TEXT_METRICS metrics{};
+        check(SUCCEEDED(layout->m_pTextLayout->GetMetrics(&metrics)) && metrics.width > 0,
+              "layout stays usable after the originating format is destroyed");
+    }
+    impl___1CD2DTextLayout__UEAA_XZ(layout);
+    check(g_renderTargetState[&parent].textResources.empty(), "layout destructor unregisters the remaining child");
+
+    CD2DTextFormat invalid(nullptr, family, -1, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+                           DWRITE_FONT_STRETCH_NORMAL, locale, nullptr, FALSE);
+    check(!invalid.IsValid(), "invalid font size leaves an initialized, invalid format");
+    CD2DTextLayout invalidLayout(nullptr, text, invalid, size, FALSE);
+    check(!invalidLayout.IsValid() && !impl__SetLocaleName_CD2DTextLayout__QEAAHPEB_WUDWRITE_TEXT_RANGE___Z(&invalidLayout, L"fr-fr", DWRITE_TEXT_RANGE{0, 1}),
+          "missing native layout reports setter failure");
+    impl__GetFontFamilyName_CD2DTextFormat__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(&invalid, result);
+    check(result->GetLength() == 0, "invalid formats return an empty font name");
+    result->~CString();
+}
+
+struct ReleaseProbe { void** vtable; unsigned releases = 0; };
+static ULONG STDMETHODCALLTYPE probeRelease(ReleaseProbe* probe) {
+    ++probe->releases;
+    std::unique_lock<std::mutex> lock(g_wave2StateMutex, std::try_to_lock);
+    check(lock.owns_lock(), "resource release runs outside the render-target mutex");
+    return 0;
+}
+static void textLifetime() {
+    void* slots[3] = {nullptr, nullptr, reinterpret_cast<void*>(probeRelease)};
+    ReleaseProbe owned{slots}, borrowed{slots};
+    CString family(L"Arial"), locale(L"en-us");
+    CD2DTextFormat* survivor = nullptr;
+    {
+        CRenderTarget parent;
+        auto* resource = new CD2DTextFormat(&parent, family, 16, DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, locale, nullptr, TRUE);
+        if (resource->m_pTextFormat) resource->m_pTextFormat->Release();
+        resource->m_pTextFormat = reinterpret_cast<IDWriteTextFormat*>(&owned);
+        survivor = new CD2DTextFormat(&parent, family, 16, DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, locale, nullptr, FALSE);
+        if (survivor->m_pTextFormat) survivor->m_pTextFormat->Release();
+        survivor->m_pTextFormat = reinterpret_cast<IDWriteTextFormat*>(&borrowed);
+    }
+    check(owned.releases == 1 && borrowed.releases == 0 && survivor->m_pParentTarget == nullptr,
+          "target destruction deletes auto-owned text resources and detaches borrowed resources");
+    delete survivor;
+    check(borrowed.releases == 1, "borrowed text resource releases its interface on its own destruction");
+}
+
+static void textPixels(CRenderTarget& render, ID2D1RenderTarget* target, IWICBitmap* bitmap, ID2D1Brush* nativeBrush) {
+    CString family(L"Arial"), locale(L"en-us"), text(L"MFC");
+    CD2DTextFormat format(&render, family, 20, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+                          DWRITE_FONT_STRETCH_NORMAL, locale, nullptr, TRUE);
+    CD2DTextLayout layout(&render, text, format, CD2DSizeF(64, 64), TRUE);
+    check(format.IsValid() && layout.IsValid(), "construct native resources for text rendering");
+    if (!format.IsValid() || !layout.IsValid()) return;
+    TestResource brush{nativeBrush, true};
+    CD2DRectF bounds(2, 3, 62, 63);
+    CD2DPointF origin(2, 3);
+    target->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+    unsigned char actual[64 * 64 * 4] = {}, reference[64 * 64 * 4] = {};
+    auto capture = [&](auto draw, unsigned char* pixels) {
+        target->BeginDraw();
+        target->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        draw();
+        check(SUCCEEDED(target->EndDraw()), "finish text drawing");
+        check(SUCCEEDED(bitmap->CopyPixels(nullptr, 64 * 4, sizeof(actual), pixels)), "read text pixels");
+    };
+    auto nonempty = [&]() {
+        for (unsigned i = 2; i < sizeof(actual); i += 4) if (actual[i] != 0) return true;
+        return false;
+    };
+    capture([&] {
+        impl__DrawTextLayout_CRenderTarget__QEAAXAEBVCD2DPointF__PEAVCD2DTextLayout__PEAVCD2DBrush__W4D2D1_DRAW_TEXT_OPTIONS___Z(
+            &render, &origin, &layout, &brush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    }, actual);
+    capture([&] {
+        target->DrawTextLayout(D2D1_POINT_2F{2, 3}, layout.m_pTextLayout, nativeBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    }, reference);
+    check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
+          "DrawTextLayout renders glyphs identical to direct COM drawing");
+    capture([&] {
+        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+            &render, &text, &bounds, &brush, &format, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+    }, actual);
+    const D2D1_RECT_F nativeBounds = {2, 3, 62, 63};
+    capture([&] {
+        target->DrawText(text.GetString(), text.GetLength(), format.m_pTextFormat, &nativeBounds,
+                         nativeBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+    }, reference);
+    check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
+          "DrawText renders glyphs identical to direct COM drawing");
+    capture([&] {
+        impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+            &render, &text, &bounds, &brush, nullptr, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+    }, actual);
+    auto cached = g_renderTargetState[&render].defaultTextFormat;
+    check(cached && g_renderTargetState[&render].textResources.count(cached.get()) == 0,
+          "missing format creates an owned default without duplicate ownership");
+    if (cached) {
+        auto* defaultFormat = static_cast<CD2DTextFormat*>(cached.get());
+        capture([&] {
+            target->DrawText(text.GetString(), text.GetLength(), defaultFormat->m_pTextFormat, &nativeBounds,
+                             nativeBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+        }, reference);
+        check(nonempty() && std::memcmp(actual, reference, sizeof(actual)) == 0,
+              "DrawText with no format renders using the system message font");
+        capture([&] {
+            impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
+                &render, &text, &bounds, &brush, nullptr, D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+        }, actual);
+        check(g_renderTargetState[&render].defaultTextFormat == cached,
+              "repeated default text drawing reuses the cached format");
+    }
+    check(g_renderTargetState[&render].size.width == 0 && g_renderTargetState[&render].size.height == 0,
+          "text drawing does not change render-target dimensions");
 }
 
 static void pixels() {
@@ -348,6 +611,7 @@ static void pixels() {
         }
         check(g_renderTargetState[&render].size.width == 0 && g_renderTargetState[&render].size.height == 0,
               "drawing no longer changes the render target's size");
+        textPixels(render, target, bitmap, nativeBrush);
         render.Detach();
     }
     if (layer) layer->Release();
@@ -364,6 +628,8 @@ static void pixels() {
 
 int main() {
     forwarding();
+    textResources();
+    textLifetime();
     pixels();
     std::printf("%d failures\n", failures);
     return failures != 0;

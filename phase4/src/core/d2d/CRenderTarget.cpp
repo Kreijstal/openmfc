@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/GdicoreSupport.h"
+#include "detail/D2DTextSupport.h"
 
 // Thunks defined with their own class that the D2D forwards below need.
 //   VerifyResource:                phase4/src/core/d2d/CD2DResource.cpp
@@ -89,8 +90,41 @@ Interface* InlineResourceOf(const void* wrapper) {
     return resource;
 }
 
+std::shared_ptr<void> DefaultTextFormatOf(CRenderTarget* render) {
+    {
+        std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+        auto cached = g_renderTargetState[render].defaultTextFormat;
+        if (cached) return cached;
+    }
+    // Retail DrawText (mfc140u 0xd57f0) caches a format built from the
+    // NONCLIENTMETRICS message font, with abs(lfHeight) as its DIP size.
+    NONCLIENTMETRICSW metrics = {};
+    metrics.cbSize = sizeof(metrics);
+    if (!SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0)) return {};
+    const LOGFONTW& font = metrics.lfMessageFont;
+    auto format = std::make_shared<CD2DTextFormat>(render, CString(font.lfFaceName),
+        static_cast<float>(std::abs(font.lfHeight)), DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, CString(), nullptr, TRUE);
+    // This cache owns its format through shared_ptr; the generic resource list
+    // must not delete the same object through a scalar deleting destructor.
+    OpenMfcUnregisterD2DTextResource(render, format.get());
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto& cached = g_renderTargetState[render].defaultTextFormat;
+    if (!cached) cached = format;
+    return cached;
+}
+
 } // namespace
 
+void OpenMfcRegisterD2DTextResource(CRenderTarget* parent, void* resource) {
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    g_renderTargetState[parent].textResources.insert(resource);
+}
+void OpenMfcUnregisterD2DTextResource(CRenderTarget* parent, void* resource) {
+    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
+    auto it = g_renderTargetState.find(parent);
+    if (it != g_renderTargetState.end()) it->second.textResources.erase(resource);
+}
 
 // Symbol: ?GetRuntimeClass@CRenderTarget@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRenderTarget__UEBAPEAUCRuntimeClass__XZ(const CRenderTarget* pThis) {
@@ -112,13 +146,23 @@ extern "C" CRenderTarget* MS_ABI impl___0CRenderTarget__QEAA_XZ(CRenderTarget* p
 extern "C" void MS_ABI impl___1CRenderTarget__UEAA_XZ(CRenderTarget* pThis) {
     if (!pThis) return;
     ID2D1RenderTarget* resource = nullptr;
+    std::shared_ptr<void> defaultTextFormat;
+    std::unordered_set<void*> textResources;
     {
         std::lock_guard<std::mutex> lock(g_wave2StateMutex);
         auto it = g_renderTargetState.find(pThis);
         if (it != g_renderTargetState.end()) {
             resource = static_cast<ID2D1RenderTarget*>(it->second.resource);
+            defaultTextFormat = std::move(it->second.defaultTextFormat);
+            textResources = std::move(it->second.textResources);
             g_renderTargetState.erase(it);
         }
+    }
+    for (void* wrapper : textResources) {
+        auto* child = static_cast<CD2DResource*>(wrapper);
+        child->m_pParentTarget = nullptr;
+        child->Destroy();
+        if (child->m_bIsAutoDestroy) delete static_cast<CObject*>(child);
     }
     if (resource) resource->Release();
 }
@@ -290,20 +334,21 @@ extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRo
 // Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
 extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
     CRenderTarget* pThis, const CString* text, const CD2DRectF* rect, void* brush, void* textFormat, int drawOptions, int measuringMode) {
-    (void)brush;
-    (void)textFormat;
-    (void)drawOptions;
-    (void)measuringMode;
-    if (!pThis) return;
-
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.lastText = text ? *text : CString();
-    state.lastTextRect = rect ? *rect : CD2DRectF();
-    if (rect) {
-        if (rect->right > state.size.width) state.size.width = rect->right;
-        if (rect->bottom > state.size.height) state.size.height = rect->bottom;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, brush)) return;
+    if (!text || !rect) return;
+    std::shared_ptr<void> defaultFormat;
+    if (!textFormat) {
+        defaultFormat = DefaultTextFormatOf(pThis);
+        textFormat = defaultFormat.get();
     }
+    IDWriteTextFormat* format = InlineResourceOf<IDWriteTextFormat>(textFormat);
+    ID2D1Brush* nativeBrush = BrushInterfaceOf(brush);
+    if (!format || !nativeBrush) return;
+    const D2D1_RECT_F bounds = {rect->left, rect->top, rect->right, rect->bottom};
+    target->DrawText(text->GetString(), static_cast<UINT32>(text->GetLength()), format,
+                     &bounds, nativeBrush, static_cast<D2D1_DRAW_TEXT_OPTIONS>(drawOptions),
+                     static_cast<DWRITE_MEASURING_MODE>(measuringMode));
 }
 // Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
 extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___VCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
@@ -590,18 +635,23 @@ extern "C" void MS_ABI impl__DrawGlyphRun_CRenderTarget__QEAAXAEBVCD2DPointF__AE
 }
 
 // Symbol: ?DrawTextLayout@CRenderTarget@@QEAAXAEBVCD2DPointF@@PEAVCD2DTextLayout@@PEAVCD2DBrush@@W4D2D1_DRAW_TEXT_OPTIONS@@@Z
-// STUB.  Retail (mfc140u RVA 0xd5a10) is:
+// Retail (mfc140u RVA 0xd5a10):
 //   if (m_pRenderTarget == NULL) return;
 //   if (!VerifyResource(pTextLayout)) return;
 //   if (!VerifyResource(pDefaultFillBrush)) return;
 //   m_pRenderTarget->DrawTextLayout(*(D2D1_POINT_2F*)&ptOrigin, pTextLayout->m_pTextLayout /* +0x18 */,
 //                                   pDefaultFillBrush->m_pBrush /* +0x18 */, options);   // slot 28
-// Not implemented: this tree's CD2DTextLayout (core/d2d/CD2DTextLayout.cpp) keeps only
-// font-family/locale strings (D2DTextState) and no IDWriteTextLayout*, so there is
-// nothing to forward.  Signature corrected from the mangled name; body intentionally empty.
+// CD2DTextLayout now creates and owns an inline IDWriteTextLayout*.
 extern "C" void MS_ABI impl__DrawTextLayout_CRenderTarget__QEAAXAEBVCD2DPointF__PEAVCD2DTextLayout__PEAVCD2DBrush__W4D2D1_DRAW_TEXT_OPTIONS___Z(
     CRenderTarget* pThis, const ::CD2DPointF* pOrigin, void* pTextLayout, void* pDefaultFillBrush, int options) {
-    (void)pThis; (void)pOrigin; (void)pTextLayout; (void)pDefaultFillBrush; (void)options;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pTextLayout) || !VerifyResourceOf(pThis, pDefaultFillBrush)) return;
+    if (!pOrigin) return;
+    IDWriteTextLayout* layout = InlineResourceOf<IDWriteTextLayout>(pTextLayout);
+    ID2D1Brush* brush = BrushInterfaceOf(pDefaultFillBrush);
+    if (!layout || !brush) return;
+    target->DrawTextLayout(D2D1_POINT_2F{pOrigin->x, pOrigin->y}, layout, brush,
+                           static_cast<D2D1_DRAW_TEXT_OPTIONS>(options));
 }
 
 // Symbol: ?FillGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@1@Z
