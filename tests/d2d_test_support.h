@@ -42,3 +42,6 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_ST
 
 // Property getter allocation/type failures use the framework exception sibling.
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long) { std::abort(); }
+
+// Invalid event arguments exercise the framework exception path.
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { throw 19; }
