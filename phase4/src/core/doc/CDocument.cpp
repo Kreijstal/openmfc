@@ -74,8 +74,8 @@ struct S_CDocumentRetailTail {             // mapped at doc+0x90
 };
 const size_t kRetailTailOffset = 0x90;
 static_assert(sizeof(CDocument) == 0x180, "OpenMFC CDocument must stay retail-sized (0x180)");
-static_assert(offsetof(CDocument, m_pNextDoc) == 0x48,
-              "OpenMFC's own CDocument members must end at +0x50, where _document_padding starts");
+static_assert(offsetof(CDocument, m_pNextDoc) == 0x68,
+              "document members end at +0x70 before the retail tail overlay");
 static_assert(sizeof(S_CDocumentRetailTail) == 0x180 - kRetailTailOffset, "overlay must end exactly at sizeof(CDocument)");
 static_assert(offsetof(S_CDocumentRetailTail, bOLELocked) + kRetailTailOffset == 0x98, "m_bOLELocked");
 static_assert(offsetof(S_CDocumentRetailTail, hWndHost) + kRetailTailOffset == 0xa0, "m_hWndHost");

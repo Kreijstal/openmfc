@@ -220,7 +220,7 @@ void ReleaseAndClear(LPMONIKER& rpmk) {
 // OpenMFC's CCmdTarget keeps m_dwRef at the same +0x08 -- pinned by the
 // static_asserts on S_CCmdTarget in core/runtime/CCmdTarget.cpp -- so the raw
 // interlocked update is reproduced exactly.
-static_assert(sizeof(CCmdTarget) == 32, "OpenMFC CCmdTarget is 32 bytes (m_dwRef at +0x08)");
+static_assert(sizeof(CCmdTarget) == 64, "native CCmdTarget storage (m_dwRef at +0x08)");
 LONG volatile* RefWord(CCmdTarget* p) {
     return reinterpret_cast<LONG volatile*>(reinterpret_cast<char*>(p) + 0x08);
 }

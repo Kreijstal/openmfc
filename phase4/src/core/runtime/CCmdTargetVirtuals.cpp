@@ -2,10 +2,14 @@
 #include "detail/CCmdTargetVirtualsSupport.h"
 #include <cstring>
 #include <cstddef>
-static_assert(sizeof(CCmdTarget)==32, "addressable base storage");
+static_assert(sizeof(CCmdTarget)==64, "native base storage");
 static_assert(offsetof(CCmdTarget,m_dwRef)==8, "native reference count");
 static_assert(offsetof(CCmdTarget,m_pOuterUnknown)==16, "controlling unknown");
 static_assert(offsetof(CCmdTarget,m_xInnerUnknown)==24, "inner unknown");
+static_assert(offsetof(CCmdTarget,m_xDispatch)==32, "embedded dispatch");
+static_assert(offsetof(CCmdTarget,m_bResultExpected)==40, "invocation result flag");
+static_assert(offsetof(CCmdTarget,m_xConnPtContainer)==48, "embedded connection container");
+static_assert(offsetof(CCmdTarget,m_pModuleState)==56, "module state");
 namespace {
 constexpr IID kIID_IUnknown = {0,0,0,{0xc0,0,0,0,0,0,0,0x46}};
 // --- CCmdTarget's own (empty) maps ------------------------------------------
@@ -213,7 +217,10 @@ extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPE
 extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis) {
     if (!pThis || !pThis->m_dwRef) return 0;
     LONG left = ::InterlockedDecrement(&pThis->m_dwRef);
-    if (!left) pThis->OnFinalRelease();
+    if (!left) {
+        openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
+        pThis->OnFinalRelease();
+    }
     return static_cast<unsigned long>(left);
 }
 
@@ -237,4 +244,13 @@ extern "C" IUnknown* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__
         pMap = pMap->pfnGetBaseMap();
     }
     return nullptr;
+}
+
+// Reads the previous invocation flag and resets it for the next call.
+// Symbol: ?IsResultExpected@CCmdTarget@@QEAAHXZ
+extern "C" int MS_ABI impl__IsResultExpected_CCmdTarget__QEAAHXZ(CCmdTarget* target) {
+    if (!target) return FALSE;
+    BOOL expected = target->m_bResultExpected;
+    target->m_bResultExpected = TRUE;
+    return expected;
 }

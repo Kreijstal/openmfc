@@ -87,3 +87,18 @@ extern "C" unsigned long MS_ABI impl__InternalQueryInterface_CCmdTarget__QEAAKPE
 extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget* pThis);
 
 extern "C" IUnknown* MS_ABI impl__QueryAggregates_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(CCmdTarget* pThis, const void* iid);
+
+extern "C" int MS_ABI impl__IsResultExpected_CCmdTarget__QEAAHXZ(CCmdTarget*);
+
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE*);
+namespace openmfc { namespace detail {
+class CmdTargetModuleScope {
+    AFX_MODULE_STATE* previous;
+public:
+    explicit CmdTargetModuleScope(AFX_MODULE_STATE* ownerState)
+        : previous(impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(ownerState)) {}
+    ~CmdTargetModuleScope() { impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(previous); }
+    CmdTargetModuleScope(const CmdTargetModuleScope&) = delete;
+    CmdTargetModuleScope& operator=(const CmdTargetModuleScope&) = delete;
+};
+}}

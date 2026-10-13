@@ -40,36 +40,13 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 //   +0x38  AFX_MODULE_STATE* m_pModuleState   InternalRelease   0x26cdb0
 //   sizeof == 0x40 (m_pModuleState is the last data member afxwin.h declares)
 //
-// OpenMFC's CCmdTarget (include/openmfc/afxwin.h) is only 32 bytes -- CObject's
-// vfptr and the addressable aggregation fields -- so ONLY m_dwRef, m_pOuterUnknown and
-// m_xInnerUnknown are addressable.  Entry points that need +0x20 or beyond are
-// either left stubbed or, in the case of InternalRelease, SetStandardProp and
-// the file-local inner-unknown Release installed by EnableAggregation,
-// implemented without the part that needs it; each one says so at its own
-// definition.  Growing
-// CCmdTarget to the retail 0x40 bytes is a header change (CWnd's
-// _cwnd_padding1[32] would have to shrink to keep m_hWnd at 64) and is NOT
-// made here.
-//
-// Two further points apply to the whole block and are repeated where they
-// bite: (1) retail reaches its own virtuals through fixed MSVC vtable slots.
-// GetInterface, GetDispEntry and GetEventSinkEntry below do not: they fall
-// back to CCmdTarget's own map and skip GetInterfaceHook.  The bodies that
-// were transcribed later -- OnCmdMsg, EnableTypeLib, OnFinalRelease,
-// QueryAggregates -- DO dispatch by retail slot index (kVs_* below), on the
-// basis that every caller of these exports passes an object with an
-// MSVC-layout vtable (client objects, and the hand-authored MSVC tables in
-// this tree); an object still carrying g++'s own vtable must not reach them.
-// (2) retail null-checks neither `this` nor its pointer arguments; most of
-// these thunks check `this` (and some their pointers) anyway, matching the
-// style of the rest of this file.  Not every comment below repeats that --
-// read the first lines of a body for its checks.  PushStackArgs and
-// SetStandardProp check nothing, as retail.
-//
-// One initialisation gap the reference-counting entry points below inherit and
-// The native base constructor initializes m_dwRef to ONE and the addressable
-// aggregation fields to NULL. Its module-state and dispatch/connection storage
-// still need the remaining 64-byte object layout.
+// CCmdTarget now carries all native fields through +0x38. CWnd no longer
+// needs surrogate base padding, and its HWND remains at +0x40. The native
+// constructor initializes the reference count, result flag, embedded interface
+// slots and owning module state. Automation and connection activation below
+// still need their actual interface implementations.
+// The native virtual prefix supports slot dispatch for the command, interface
+// and lifetime methods. Other map lookups still document their remaining gaps.
 // ===========================================================================
 
 namespace {
@@ -86,7 +63,7 @@ static_assert(offsetof(S_CCmdTarget, m_dwRef) == 0x08, "CCmdTarget::m_dwRef is a
 static_assert(offsetof(S_CCmdTarget, m_pOuterUnknown) == 0x10, "CCmdTarget::m_pOuterUnknown is at +0x10");
 static_assert(offsetof(S_CCmdTarget, m_xInnerUnknown) == 0x18, "CCmdTarget::m_xInnerUnknown is at +0x18");
 static_assert(sizeof(S_CCmdTarget) == 32, "shadow must fit inside OpenMFC's CCmdTarget");
-static_assert(sizeof(CCmdTarget) == 32, "OpenMFC CCmdTarget is 32 bytes (afxwin.h)");
+static_assert(sizeof(CCmdTarget) == 64, "native CCmdTarget storage");
 
 inline S_CCmdTarget* Shadow(void* pThis) { return static_cast<S_CCmdTarget*>(pThis); }
 
@@ -617,9 +594,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
 // the DISPPARAMS into it with PushStackArgs (0x24fdf0) and then calls the
 // AFX_DISPMAP_ENTRY's member-function pointer through hand-written thunk code.
 // GetStackSize and PushStackArgs are transcribed in this file, but the rest of
-// that machinery does not exist in OpenMFC (no m_pModuleState -- see the
-// layout note above -- and no call thunk that replays a marshalled argument
-// block), so this is left as a no-op returning S_OK-shaped 0.
+// the call thunk that replays the marshalled argument block is still missing, so this is left as a no-op returning S_OK-shaped 0.
 // Symbol: ?CallMemberFunc@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@GPEAUtagVARIANT@@PEAUtagDISPPARAMS@@PEAI@Z
 extern "C" long MS_ABI impl__CallMemberFunc_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__GPEAUtagVARIANT__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntry, unsigned short wFlags, void* pvarResult, void* pDispParams, unsigned int* puArgErr) {
     (void)pThis; (void)pEntry; (void)wFlags; (void)pvarResult; (void)pDispParams; (void)puArgErr;
@@ -713,9 +688,7 @@ unsigned long MS_ABI InnerUnknown_AddRef(void* pThis) {
 //     AFX_MAINTAIN_STATE2 _state(owner->m_pModuleState); ; owner+0x38, ctor 0x133170
 //     return owner->InternalRelease();                    ; call 0x26cdb0
 // (the destructor's restore leaves eax, InternalRelease's result, untouched).
-// DEVIATION: the module-state switch is not made -- m_pModuleState (+0x38) is
-// past the end of OpenMFC's 32-byte CCmdTarget (see the layout note at the top
-// of this file).  The InternalRelease call is made as retail makes it.
+// InternalRelease establishes the owning module context for its final callback.
 unsigned long MS_ABI InnerUnknown_Release(void* pThis) {
     return impl__InternalRelease_CCmdTarget__QEAAKXZ(
         reinterpret_cast<CCmdTarget*>(InnerUnknownOwner(pThis)));
@@ -744,16 +717,15 @@ extern "C" void MS_ABI impl__EnableAggregation_CCmdTarget__QEAAXXZ(CCmdTarget* p
 // vtable at 0x18032e450 -- whose first slots are ?QueryInterface@
 // COleDispatchImpl@@, ?AddRef@COleDispatchImpl@@, ?Release@COleDispatchImpl@@ --
 // into m_xDispatch at this+0x20.
-// +0x20 is past the end of OpenMFC's 32-byte CCmdTarget (see the layout note
-// above), so the store cannot be made without corrupting whatever the derived
-// class put there.
+// The storage is now available; the COleDispatchImpl table still needs its
+// live owner, dispatch-map and invocation behavior before activation.
 // Symbol: ?EnableAutomation@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__EnableAutomation_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
 
 // CCmdTarget::EnableConnections -- STUB.  Retail (mfc140u 0x24c230) stores the
 // vtable at 0x18032c2e0 -- whose first slots are ?QueryInterface@
 // COleConnPtContainer@@, ?AddRef@, ?Release@ -- into m_xConnPtContainer at
-// this+0x30, which is past the end of OpenMFC's 32-byte CCmdTarget.
+// this+0x30. Storage is available; the connection-container table remains pending.
 // Symbol: ?EnableConnections@CCmdTarget@@QEAAXXZ
 extern "C" void MS_ABI impl__EnableConnections_CCmdTarget__QEAAXXZ(CCmdTarget* pThis) { (void)pThis; }
 
@@ -868,10 +840,8 @@ extern "C" unsigned long MS_ABI impl__ExternalRelease_CCmdTarget__QEAAKXZ(CCmdTa
 //     lea -0x20(%rcx),%rdx ; cmove %rdx,%rax
 // i.e. "if this IDispatch is one of ours (its vptr is the COleDispatchImpl
 // vtable EnableAutomation installs),
-// back up 0x20 bytes to the owning CCmdTarget".  That identity test needs the
-// embedded m_xDispatch sub-object at this+0x20, which OpenMFC's 32-byte
-// CCmdTarget does not have (see the layout note above), so there is nothing to
-// recognise and NULL is the only honest answer.
+// back up 0x20 bytes to the owning CCmdTarget. The storage exists now, but
+// FromIDispatch still needs the installed live dispatch-table identity.
 // Symbol: ?FromIDispatch@CCmdTarget@@SAPEAV1@PEAUIDispatch@@@Z
 extern "C" void* MS_ABI impl__FromIDispatch_CCmdTarget__SAPEAV1_PEAUIDispatch___Z(void* pDispatch) {
     (void)pDispatch;
@@ -1272,28 +1242,7 @@ extern "C" long MS_ABI impl__GetTypeInfoOfGuid_CCmdTarget__QEAAJKAEBU_GUID__PEAP
 // (COleControl, mfc140u 0x1e2a70) ever refuse.
 
 
-// CCmdTarget::IsResultExpected() -- retail mfc140u 0x24fd50 is
-//     mov 0x28(%rcx),%eax ; movl $0x1,0x28(%rcx) ; ret
-// i.e. it returns m_bResultExpected and resets it to TRUE.  m_bResultExpected
-// lives at +0x28, past the end of OpenMFC's 32-byte CCmdTarget, so the flag
-// itself cannot be stored here -- but its value in this build is not unknown,
-// it is pinned:
-//   * the retail CCmdTarget constructor (mfc140u 0x1de3f0) does
-//     `mov $0x1,%ecx ... mov %ecx,0x28(%rbx)`, i.e. m_bResultExpected starts
-//     TRUE;
-//   * this very function resets it to TRUE on every read, so TRUE is also the
-//     value every call after the first one sees;
-//   * the only code that ever stores FALSE is COleDispatchImpl::Invoke, which
-//     sets it from `pvarResult != NULL` before dispatching -- and OpenMFC has
-//     no such store anywhere in the tree.
-// So TRUE is the value retail would report for every object this build can
-// construct; returning the generated 0 would be reporting a state that cannot
-// occur here.  Only the reset half of the retail body is unimplementable.
-// Symbol: ?IsResultExpected@CCmdTarget@@QEAAHXZ
-extern "C" int MS_ABI impl__IsResultExpected_CCmdTarget__QEAAHXZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return 1;
-}
+// IsResultExpected is implemented against native storage in CCmdTargetVirtuals.cpp.
 
 // CCmdTarget::MemberIDFromName(const AFX_DISPMAP* pMap, LPCOLESTR lpszName)
 // -- retail mfc140u 0x24faf0, transcribed:
@@ -1711,12 +1660,8 @@ extern "C" void MS_ABI impl__SetNotSupported_CCmdTarget__QEAAXXZ(CCmdTarget* pTh
 //       (this->*pfnSet)();
 //   }
 //   return hr;
-// DEVIATION: the AFX_MAINTAIN_STATE2 push is not made.  m_pModuleState is at
-// this+0x38, past OpenMFC's 32-byte CCmdTarget; OpenMFC's exported CCmdTarget
-// constructor (core/runtime/CtorDtorPlacement.cpp) never writes that word, so
-// even in a client object it holds whatever the allocation left there, and
-// handing it to AFX_MAINTAIN_STATE2 would install a garbage module state.
-// pfnSet is called without the push.
+// The callback still needs an owning-module-state guard; native state storage
+// is available, but this callback path has not been updated yet.
 // Symbol: ?SetStandardProp@CCmdTarget@@IEAAJPEBUAFX_DISPMAP_ENTRY@@PEAUtagDISPPARAMS@@PEAI@Z
 extern "C" long MS_ABI impl__SetStandardProp_CCmdTarget__IEAAJPEBUAFX_DISPMAP_ENTRY__PEAUtagDISPPARAMS__PEAI_Z(CCmdTarget* pThis, const void* pEntryV, DISPPARAMS* pDispParams, unsigned int* puArgErr) {
     const AFX_DISPMAP_ENTRY* pEntry = static_cast<const AFX_DISPMAP_ENTRY*>(pEntryV);

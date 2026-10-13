@@ -8,7 +8,9 @@ MSVC_VER="$(ls -1 "$MSVC_DIR/VC/Tools/MSVC" | sort -V | tail -1)"
 SDK_VER="$(ls -1 "$MSVC_DIR/Windows Kits/10/Include" | sort -V | tail -1)"
 mkdir -p "$BUILD_DIR"
 
-FLAGS=(/nologo /EHsc /MT /std:c++17 /Gy /Gw /W0
+# Export aliases have C linkage but preserve the throwing C++ MFC contract.
+# /EHsc would suppress catching/unwinding through those alias declarations.
+FLAGS=(/nologo /EHs /MT /std:c++17 /Gy /Gw /W0
     /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601
     -imsvc "$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/include"
     -imsvc "$MSVC_DIR/Windows Kits/10/Include/$SDK_VER/ucrt"

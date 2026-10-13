@@ -218,6 +218,8 @@ struct AFX_DISPMAP;
 struct AFX_CONNECTIONMAP;
 struct AFX_EVENTSINKMAP;
 class CTypeLibCache;
+class AFX_MODULE_STATE;
+extern "C" AFX_MODULE_STATE* __cdecl impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
 
 //=============================================================================
 // CException and derived classes
@@ -403,7 +405,8 @@ enum AfxSig
 class CCmdTarget : public CObject {
     DECLARE_DYNAMIC(CCmdTarget)
 public:
-    CCmdTarget() : m_dwRef(1), _cmd_alignment(0), m_pOuterUnknown(nullptr), m_xInnerUnknown(0) {}
+    CCmdTarget() : m_dwRef(1), _cmd_alignment(0), m_pOuterUnknown(nullptr), m_xInnerUnknown(0),
+        m_xDispatch(0), m_bResultExpected(TRUE), _result_alignment(0), m_xConnPtContainer(0), m_pModuleState(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()) {}
     virtual ~CCmdTarget();
 
     // Retail x64 prefix: CObject occupies slots 0..4, followed by these
@@ -435,8 +438,11 @@ public:
     DWORD _cmd_alignment;
     IUnknown* m_pOuterUnknown;        // retail +0x10
     ULONG_PTR m_xInnerUnknown;        // retail +0x18
-    // The remaining 64-byte retail object storage is addressed separately;
-    // CWnd currently reserves those bytes in its own padding.
+    ULONG_PTR m_xDispatch;           // retail +0x20
+    BOOL m_bResultExpected;          // retail +0x28
+    DWORD _result_alignment;
+    ULONG_PTR m_xConnPtContainer;    // retail +0x30
+    AFX_MODULE_STATE* m_pModuleState;// retail +0x38
 };
 
 // IMPLEMENT_DYNAMIC(CCmdTarget, CObject) moved to appcore.cpp
@@ -607,11 +613,7 @@ public:
     
 public:
     // Window handle - at offset 64 from start of CWnd
-    // Padding to ensure m_hWnd is at the right offset
-    // CCmdTarget adds: vptr (8) + CObject data (0) + CCmdTarget data (24) = 32 bytes
-    // Need 32 more bytes of padding to reach offset 64
-    char _cwnd_padding1[32];
-    
+    // The native 64-byte CCmdTarget base places m_hWnd at +0x40.
     HWND m_hWnd;
     
     // Retail x64 CWnd storage. Cached style occupies unused alignment bytes.
@@ -2290,7 +2292,6 @@ inline CWnd::CWnd()
       m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pOccDialogInfo(nullptr),
       m_pCtrlCont(nullptr), m_pCtrlSite(nullptr), m_pRenderTarget(nullptr)
 {
-    memset(_cwnd_padding1, 0, sizeof(_cwnd_padding1));
     InitializeAccessibility();
 }
 
@@ -3353,7 +3354,7 @@ public:
 
 protected:
     // Padding for ABI compatibility
-    char _document_padding[304];
+    char _document_padding[272];
 };
 
 // CView - View base class
@@ -3995,7 +3996,7 @@ public:
     
 protected:
     // Padding for ABI compatibility
-    char _doctemplate_padding[160];
+    char _doctemplate_padding[128];
 };
 
 // CSingleDocTemplate - Single document interface template

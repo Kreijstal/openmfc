@@ -142,5 +142,46 @@ static void queryAndReferences() {
         "external AddRef delegates to a controlling unknown without changing the inner count");
 }
 
+static void storageAndContext() {
+    static_assert(sizeof(CCmdTarget)==64, "full retail command-target storage");
+    static_assert(sizeof(CWnd)==232, "window storage remains ABI-sized");
+    static_assert(sizeof(CDocument)==384, "document storage remains ABI-sized");
+    static_assert(sizeof(CDocTemplate)==240, "template storage remains ABI-sized");
+    static_assert(offsetof(CWnd,m_hWnd)==64, "window handle follows the native base");
+    unsigned char ownerState[8]{}, callerState[8]{};
+    AFX_MODULE_STATE* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerState);
+    AFX_MODULE_STATE* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerState);
+    g_cmdTestCurrentModule=owner;
+    class ContextProbe : public PrefixProbe {
+    public:
+        AFX_MODULE_STATE* observed=nullptr;
+        void OnFinalRelease() override { observed=g_cmdTestCurrentModule; ++releases; }
+    } target;
+    check(target.m_pModuleState==owner && target.m_bResultExpected && !target.m_xDispatch && !target.m_xConnPtContainer,
+        "the 64-byte base constructor captures module state and initializes embedded COM storage");
+    target.m_bResultExpected=FALSE;
+    check(!impl__IsResultExpected_CCmdTarget__QEAAHXZ(&target) && target.m_bResultExpected &&
+        impl__IsResultExpected_CCmdTarget__QEAAHXZ(&target),
+        "IsResultExpected returns the actual previous flag and resets it to TRUE");
+    g_cmdTestCurrentModule=caller;
+    check(impl__InternalRelease_CCmdTarget__QEAAKXZ(&target)==0 && target.observed==owner &&
+        g_cmdTestCurrentModule==caller && target.releases==1,
+        "the final-release callback sees its owner's module state and restores the caller's state");
+    CWnd window;
+    check(window.m_pModuleState==caller && !window.m_hWnd && !window.m_pRenderTarget && !window.m_pStdObject,
+        "growing the base preserves the physical window fields and their initialization");
+    class ThrowingProbe : public PrefixProbe {
+    public:
+        void OnFinalRelease() override { throw 17; }
+    } throwing;
+    throwing.m_pModuleState=owner;
+    bool caught=false;
+    try { impl__InternalRelease_CCmdTarget__QEAAKXZ(&throwing); }
+    catch (int value) { caught=value==17; }
+    check(caught && g_cmdTestCurrentModule==caller,
+        "module context is restored when the final-release callback throws");
+    g_cmdTestCurrentModule=nullptr;
 }
-static void cmdtargetVtable() { cmdtarget_vtable_tests::nativeSlots(); cmdtarget_vtable_tests::interfaceLookup(); cmdtarget_vtable_tests::queryAndReferences(); }
+
+}
+static void cmdtargetVtable() { cmdtarget_vtable_tests::nativeSlots(); cmdtarget_vtable_tests::interfaceLookup(); cmdtarget_vtable_tests::queryAndReferences(); cmdtarget_vtable_tests::storageAndContext(); }

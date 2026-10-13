@@ -31,3 +31,11 @@ CRuntimeClass CHtmlView::classCHtmlView{};
 
 // Rendering tests never delete a target through the base final-release body.
 extern "C" void MS_ABI impl__OnFinalRelease_CCmdTarget__UEAAXXZ(CCmdTarget*) { std::abort(); }
+
+// Module switching is peripheral to rendering; these doubles model thread
+// state so the command-target tests can verify capture and balanced restore.
+thread_local AFX_MODULE_STATE* g_cmdTestCurrentModule=nullptr;
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() { return g_cmdTestCurrentModule; }
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE* state) {
+    AFX_MODULE_STATE* previous=g_cmdTestCurrentModule; g_cmdTestCurrentModule=state; return previous;
+}
