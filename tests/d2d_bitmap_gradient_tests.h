@@ -127,9 +127,11 @@ static void bitmapResources(CRenderTarget& render, IWICBitmap* image) {
         render.GetRenderTarget()->AddRef(); deferredParent.Attach(render.GetRenderTarget());
         DeleteObject(handle);
         HRESULT uploaded=deferred.Create(&deferredParent);
-        if(uploaded!=S_OK || !deferred.IsValid() || deferred.m_hBmpSrc || GetObjectW(ownedHandle,0,nullptr)!=0)
-            std::printf("HBITMAP upload hr=%08lx valid=%d source=%p old handle query=%d\n",static_cast<unsigned long>(uploaded),deferred.IsValid(),deferred.m_hBmpSrc,GetObjectW(ownedHandle,0,nullptr));
-        check(uploaded==S_OK && deferred.IsValid() && !deferred.m_hBmpSrc && GetObjectW(ownedHandle,0,nullptr)==0,
+        BITMAP object{};
+        int remaining=GetObjectW(ownedHandle,sizeof(object),&object);
+        if(uploaded!=S_OK || !deferred.IsValid() || deferred.m_hBmpSrc || remaining)
+            std::printf("HBITMAP upload hr=%08lx valid=%d source=%p old handle query=%d\n",static_cast<unsigned long>(uploaded),deferred.IsValid(),deferred.m_hBmpSrc,remaining);
+        check(uploaded==S_OK && deferred.IsValid() && !deferred.m_hBmpSrc && remaining==0,
               "deferred bitmap creation uploads its copied HBITMAP and releases the owned GDI handle");
     }
     // A borrowed bitmap brush must not retain a dangling source-wrapper pointer.
