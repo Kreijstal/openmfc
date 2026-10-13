@@ -1686,7 +1686,41 @@ public:
     virtual void Serialize(CArchive& ar) override;
 };
 
-OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToPtr, void*, void*, void*, void*, void*, DECLARE_DYNAMIC)
+struct __POSITION;
+class CMapPtrToPtr : public CObject {
+    DECLARE_DYNAMIC(CMapPtrToPtr)
+public:
+    using BASE_KEY=void*;
+    using POSITION=__POSITION*;
+    struct CAssoc {CAssoc* pNext;void* key;void* value;};
+    explicit CMapPtrToPtr(INT_PTR blockSize=10);
+    ~CMapPtrToPtr() override;
+    INT_PTR GetCount() const {return m_nCount;}
+    INT_PTR GetSize() const {return m_nCount;}
+    BOOL IsEmpty() const {return !m_nCount;}
+    BOOL Lookup(void*,void*&) const;
+    void*& operator[](void*);
+    void* const& operator[](void* key) const {return const_cast<CMapPtrToPtr*>(this)->operator[](key);}
+    void SetAt(void* key,void* value) {(*this)[key]=value;}
+    BOOL RemoveKey(void*);
+    void RemoveAll();
+    POSITION GetStartPosition() const {return m_nCount ? reinterpret_cast<POSITION>(INT_PTR(-1)) : nullptr;}
+    void GetNextAssoc(POSITION&,void*&,void*&) const;
+    UINT GetHashTableSize() const {return m_nHashTableSize;}
+    void InitHashTable(UINT,BOOL=TRUE);
+    UINT HashKey(void*) const;
+    void* GetValueAt(void* key) const {void* value=nullptr;return Lookup(key,value)?value:nullptr;}
+    CAssoc* NewAssoc();
+    void FreeAssoc(CAssoc*);
+    CAssoc* GetAssocAt(void*,UINT& bucket,UINT& hash) const;
+    CAssoc** m_pHashTable;
+    UINT m_nHashTableSize;
+    INT_PTR m_nCount;
+    CAssoc* m_pFreeList;
+    struct CPlex* m_pBlocks;
+    INT_PTR m_nBlockSize;
+};
+static_assert(sizeof(CMapPtrToPtr)==56,"native pointer map");
 OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToWord, void*, void*, WORD, WORD, void*, DECLARE_DYNAMIC)
 struct __POSITION;
 class CMapWordToOb : public CObject {

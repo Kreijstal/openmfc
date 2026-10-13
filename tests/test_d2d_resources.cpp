@@ -277,6 +277,7 @@ static void ownershipAndRecreation() {
 #include "cmdui_tests.h"
 #include "ribbon_cmdui_tests.h"
 #include "field_exchange_tests.h"
+#include "pointer_map_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -297,6 +298,7 @@ int main() {
     if (SUCCEEDED(hr)) commandUI();
     if (SUCCEEDED(hr)) ribbonCommandUI();
     if (SUCCEEDED(hr)) fieldExchange();
+    if (SUCCEEDED(hr)) pointerMap();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

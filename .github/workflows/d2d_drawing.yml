@@ -54,6 +54,9 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
+      - 'tests/pointer_map_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -210,6 +213,9 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtr.cpp'
+      - 'tests/pointer_map_tests.h'
       - 'include/openmfc/afxdb.h'
       - 'phase4/src/core/db/**'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -380,6 +386,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -525,6 +533,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -642,6 +652,8 @@ jobs:
             echo /FIshellapi.h
             echo /I"%GITHUB_WORKSPACE%/include"
             echo /I"%GITHUB_WORKSPACE%/phase4/src"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"
