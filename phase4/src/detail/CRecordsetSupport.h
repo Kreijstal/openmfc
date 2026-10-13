@@ -57,6 +57,9 @@ struct LongBinaryCompat {
 
 namespace openmfc { namespace detail { namespace crecordset {
 struct DbState {
+    HENV environment = SQL_NULL_HENV;
+    BOOL connected = FALSE;
+    BOOL readOnly = FALSE;
     CString databaseName;
     CString connectInfo;
     RETCODE lastRetCode = SQL_SUCCESS;

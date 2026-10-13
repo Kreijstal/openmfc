@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "openmfc/afxdb.h"
+#include "detail/RFXTextFixup.h"
 #include <cstdlib>
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -73,8 +74,9 @@ void RfxTextBuffer(CFieldExchange* pFX, const wchar_t* szName, CharT* value, int
             prs->SetNullFieldStatus(n);
             value[0] = 0;
         } else if (plLength) {
-            // Deviation: no m_bStripTrailingSpaces in this CDatabase (retail default FALSE), nothing stripped.
-            *plLength = static_cast<SQLLEN>(strLen(value) * sizeof(CharT));
+            if (prs->m_pDatabase->m_bStripTrailingSpaces)
+                openmfc::detail::StripTrailingTextSpaces(value);
+            *plLength = static_cast<SQLLEN>(static_cast<int>(strLen(value))) * static_cast<SQLLEN>(sizeof(CharT));
         }
         return;
     case CFieldExchange::MarkForAddNew:

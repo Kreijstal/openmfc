@@ -55,16 +55,21 @@ class CDatabase : public CObject {
 public:
     CDatabase();
     virtual ~CDatabase();
+    enum DbOpenOptions {
+        openExclusive=0x0001,openReadOnly=0x0002,useCursorLib=0x0004,
+        noOdbcDialog=0x0008,forceOdbcDialog=0x0010
+    };
 
     // Connection management
-    BOOL Open(const wchar_t* lpszDSN, BOOL bExclusive = FALSE,
+    virtual BOOL Open(const wchar_t* lpszDSN, BOOL bExclusive = FALSE,
               BOOL bReadOnly = FALSE, const wchar_t* lpszConnect = L"ODBC;",
               BOOL bUseCursorLib = TRUE);
     BOOL Open(const wchar_t* lpszDSN, int bExclusive, int bReadOnly,
               void* lpszConnect, int bUseCursorLib)
         { return Open(lpszDSN, (BOOL)bExclusive, (BOOL)bReadOnly,
                       (const wchar_t*)lpszConnect, (BOOL)bUseCursorLib); }
-    void Close();
+    virtual BOOL OpenEx(const wchar_t* lpszConnectString, DWORD options=0);
+    virtual void Close();
     BOOL IsOpen() const { return m_hdbc != SQL_NULL_HDBC; }
 
     // Operations
@@ -78,26 +83,46 @@ public:
     BOOL CanTransact() const;
     BOOL CanUpdate() const;
     CString GetConnect() const;
+    virtual void OnSetOptions(HSTMT statement);
+    virtual void BindParameters(HSTMT statement);
+    virtual BOOL Check(RETCODE code) const;
+    virtual void ThrowDBException(RETCODE code);
 
     // Connection info
-    static int GetLoginTimeout();
-    static void SetLoginTimeout(int nSeconds);
-    static int GetQueryTimeout();
-    static void SetQueryTimeout(int nSeconds);
+    int GetLoginTimeout() const;
+    void SetLoginTimeout(DWORD seconds);
+    int GetQueryTimeout() const;
+    void SetQueryTimeout(DWORD seconds);
+    DWORD GetBookmarkPersistence() const {return m_dwBookmarkAttributes;}
+    int GetCursorCommitBehavior() const {return m_nCursorCommitBehavior;}
+    int GetCursorRollbackBehavior() const {return m_nCursorRollbackBehavior;}
 
     // Low-level access
     HDBC GetHDBC() const { return m_hdbc; }
-    HENV GetHENV() const { return m_henv; }
+    HENV GetHENV() const;
 
 public:
     HDBC m_hdbc;
-    HENV m_henv;
-    BOOL m_bOpen;
-    BOOL m_bReadOnly;
+    BOOL m_bStripTrailingSpaces;
+    BOOL m_bIncRecordCountOnAdd;
+    BOOL m_bAddForUpdate;
+    wchar_t m_chIDQuoteChar;
     CString m_strConnect;
-
-protected:
-    char _cdatabase_padding[48];
+    struct ConnectionBlob { DWORD cbData; BYTE* pbData; } m_blobConnect;
+    // The public CPtrList alias is still a template with a different ABI.
+    // Construct this storage with the existing native CPtrList implementation.
+    alignas(8) BYTE m_listRecordsets[56];
+    int nRefCount;
+    BOOL m_bUpdatable;
+    BOOL m_bTransactions;
+    SWORD m_nTransactionCapable;
+    SWORD m_nCursorCommitBehavior;
+    SWORD m_nCursorRollbackBehavior;
+    DWORD m_dwUpdateOptions;
+    DWORD m_dwBookmarkAttributes;
+    DWORD m_dwLoginTimeout;
+    HSTMT m_hstmt;
+    DWORD m_dwQueryTimeout;
 };
 
 //=============================================================================

@@ -1,12 +1,10 @@
 #include "CRecordsetSupport.h"
 
-IMPLEMENT_DYNAMIC(CDatabase, CObject)
 IMPLEMENT_DYNAMIC(CRecordset, CObject)
 IMPLEMENT_DYNAMIC(CRecordView, CFormView)
 namespace openmfc { namespace detail { namespace crecordset {
 std::mutex g_recordsetStateMutex;
 std::unordered_map<const CRecordset*, CString> g_recordsetSql;
-std::unordered_map<const CDatabase*, DbState> g_databaseStates;
 std::unordered_map<const CRecordset*, RecordsetState> g_recordsetStates;
 int g_loginTimeoutSeconds = 15;
 int g_queryTimeoutSeconds = 0;

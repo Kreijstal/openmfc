@@ -18,6 +18,19 @@ template<class CH> std::vector<UINT64> exercise(Action<CH> action) {
     std::vector<UINT64> result;
     auto save=[&] {result.push_back(rs->m_pbFieldFlags[0]);result.push_back(rs->m_rgFieldInfos[0].m_nLength);
         for(int i=0;i<4;++i)result.push_back(value[i]);};
+    CDatabase database;rs->m_pDatabase=&database;
+    for(bool strip: {false,true}) {
+        database.m_bStripTrailingSpaces=strip;
+        for(const char* input: {"a b   ","   ","a \t ","a b",""}) {
+            size_t count=strlen(input);for(size_t i=0;i<=count;++i)value[i]=CH(input[i]);
+            rs->m_rgFieldInfos[0].m_nLength=999;run(CFieldExchange::Fixup);
+            size_t expected=count;if(strip)while(expected && input[expected-1]==' ')--expected;
+            check(rs->m_rgFieldInfos[0].m_nLength==SQLLEN(expected*sizeof(CH)) && value[expected]==0,
+                "raw text Fixup strips only trailing literal spaces when the database requests it");
+            result.push_back(rs->m_rgFieldInfos[0].m_nLength);for(size_t i=0;i<=expected;++i)result.push_back(value[i]);
+        }
+    }
+    write();
     resetSQL();run(CFieldExchange::BindFieldToColumn);
     check(binds==1 && checks==1 && binding.cType==cType && binding.capacity==301*sizeof(CH) && value[300]==0 && value[301]==CH('g') &&
         binding.data==value && binding.length==&rs->m_rgFieldInfos[0].m_nLength && rs->GetBoundFieldIndex(value)==1,

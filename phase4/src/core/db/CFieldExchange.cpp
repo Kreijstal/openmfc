@@ -11,6 +11,7 @@
 
 #include "detail/CRecordsetSupport.h"
 #include "detail/AtlStrTCore.h"   // openmfc_str::NilData<char>() -- the CStringA nil block
+#include "detail/RFXTextFixup.h"
 #include "openmfc/afxdao.h"       // CLongBinary: CObject vptr @0, m_hData @8, m_dwDataLength @0x10
 #include <cstddef>
 #include <cstdlib>
@@ -591,10 +592,9 @@ void RfxTextString(CFieldExchange* pFX, const wchar_t* szName, void* pString, in
             value.GetBufferSetLength(0);
             value.ReleaseBuffer();
         } else {
-            value.GetBuffer(0);
-            // Deviation: the BOOL at retail CDatabase+0x10 (m_bStripTrailingSpaces in the MFC
-            // source; the retail ctor at RVA 0x1f6b10 zeroes it) has no counterpart in this
-            // CDatabase, so the retail default -- nothing stripped -- is the only behaviour.
+            CH* buffer = value.GetBuffer(0);
+            if (prs->m_pDatabase->m_bStripTrailingSpaces)
+                openmfc::detail::StripTrailingTextSpaces(buffer);
             value.ReleaseBuffer();
             if (plLength) *plLength = static_cast<SQLLEN>(value.Length()) * static_cast<SQLLEN>(sizeof(CH));
         }

@@ -169,7 +169,9 @@ lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
-for source in tests/test_d2d_resources.cpp phase4/src/core/d2d/CRenderTarget.cpp \
+for source in tests/test_d2d_resources.cpp phase4/src/core/db/CDatabase.cpp \
+    phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp \
+    phase4/src/core/d2d/CRenderTarget.cpp \
     phase4/src/core/d2d/CD2DTextFormat.cpp phase4/src/core/d2d/CD2DTextLayout.cpp; do
     object="$BUILD_DIR/$(basename "${source%.cpp}").obj"
     clang-cl "${FLAGS[@]}" /c "$ROOT/$source" /Fo"$object"

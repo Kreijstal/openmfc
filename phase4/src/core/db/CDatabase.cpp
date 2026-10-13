@@ -4,6 +4,17 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CRecordsetSupport.h"
+#include <cstddef>
+extern "C" void* MS_ABI impl___0CPtrList__QEAA__J_Z(void*,INT_PTR);
+extern "C" void MS_ABI impl___1CPtrList__UEAA_XZ(void*);
+extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETCODE,CDatabase*,HSTMT);
+IMPLEMENT_DYNAMIC(CDatabase,CObject)
+namespace openmfc { namespace detail { namespace crecordset {
+std::unordered_map<const CDatabase*,DbState> g_databaseStates;
+} } }
+namespace {
+bool DatabaseSqlSucceeded(RETCODE code) {return code==SQL_SUCCESS || code==SQL_SUCCESS_WITH_INFO;}
+}
 
 // Symbol: ?GetRuntimeClass@CDatabase@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDatabase__UEBAPEAUCRuntimeClass__XZ(const CDatabase* pThis) {
@@ -17,36 +28,37 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDatabase__SAPEAUCRuntimeCla
 // Symbol: ?OpenEx@CDatabase@@UEAAHPEB_WK@Z
 extern "C" int MS_ABI impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(CDatabase* pThis, const wchar_t* lpszConnectString, DWORD dwOptions) {
     if (!pThis) return FALSE;
-    constexpr DWORD kOpenReadOnlyOption = 0x00000004UL;
-    const BOOL bReadOnly = (dwOptions & kOpenReadOnlyOption) ? TRUE : FALSE;
-    return pThis->Open(nullptr, FALSE, bReadOnly, lpszConnectString, TRUE);
+    const BOOL bReadOnly = (dwOptions & CDatabase::openReadOnly) ? TRUE : FALSE;
+    return pThis->Open(nullptr, FALSE, bReadOnly, lpszConnectString, (dwOptions & CDatabase::useCursorLib) ? TRUE : FALSE);
 }
 // Symbol: ?OnSetOptions@CDatabase@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnSetOptions_CDatabase__UEAAXPEAX_Z(CDatabase* pThis, void* hstmt) {
-    if (!pThis || !hstmt) return;
-    HSTMT stmt = reinterpret_cast<HSTMT>(hstmt);
-    if (stmt == SQL_NULL_HSTMT) return;
-    SQLSetStmtAttr(stmt, SQL_ATTR_QUERY_TIMEOUT,
-                   CastOdbcOptionValue(g_queryTimeoutSeconds),
-                   SQL_IS_UINTEGER);
-    SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, CastOdbcOptionValue(SQL_CURSOR_DYNAMIC), 0);
+    pThis->CDatabase::OnSetOptions(static_cast<HSTMT>(hstmt));
 }
 // Symbol: ?ReplaceBrackets@CDatabase@@QEAAXPEA_W@Z
-extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase* /*pThis*/, wchar_t* lpszSQL) {
-    if (!lpszSQL) return;
-    for (wchar_t* p = lpszSQL; *p; ++p) {
-        if (*p == L'[' || *p == L']') {
-            *p = L'"';
+extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase* pThis, wchar_t* lpszSQL) {
+    bool quoted=false;
+    wchar_t* output=lpszSQL;
+    for(wchar_t* input=lpszSQL;*input;++input,++output) {
+        wchar_t ch=*input;
+        if(ch==L'\'') {
+            if(input[1]==ch) {*output++=ch;++input;}
+            else quoted=!quoted;
+        } else if(!quoted && (ch==L'[' || ch==L']')) {
+            if(input[1]==ch)++input;
+            else ch=pThis->m_chIDQuoteChar;
         }
+        *output=ch;
     }
+    *output=0;
 }
 // Symbol: ?AllocConnect@CDatabase@@IEAAXK@Z
 extern "C" void MS_ABI impl__AllocConnect_CDatabase__IEAAXK_Z(CDatabase* pThis, unsigned long) {
     if (!pThis || pThis->m_hdbc != SQL_NULL_HDBC) return;
-    if (pThis->m_henv == SQL_NULL_HENV && SqlSucceeded(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &pThis->m_henv))) {
-        SQLSetEnvAttr(pThis->m_henv, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
+    if (g_databaseStates[pThis].environment == SQL_NULL_HENV && DatabaseSqlSucceeded(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &g_databaseStates[pThis].environment))) {
+        SQLSetEnvAttr(g_databaseStates[pThis].environment, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
     }
-    if (pThis->m_henv != SQL_NULL_HENV) SQLAllocHandle(SQL_HANDLE_DBC, pThis->m_henv, &pThis->m_hdbc);
+    if (g_databaseStates[pThis].environment != SQL_NULL_HENV) SQLAllocHandle(SQL_HANDLE_DBC, g_databaseStates[pThis].environment, &pThis->m_hdbc);
 }
 // Symbol: ?Free@CDatabase@@IEAAXXZ
 extern "C" void MS_ABI impl__Free_CDatabase__IEAAXXZ(CDatabase* pThis) {
@@ -56,22 +68,17 @@ extern "C" void MS_ABI impl__Free_CDatabase__IEAAXXZ(CDatabase* pThis) {
 extern "C" int MS_ABI impl__Connect_CDatabase__IEAAHK_Z(CDatabase* pThis, unsigned long) {
     if (!pThis) return FALSE;
     if (pThis->m_hdbc == SQL_NULL_HDBC) impl__AllocConnect_CDatabase__IEAAXK_Z(pThis, 0);
-    pThis->m_bOpen = pThis->m_hdbc != SQL_NULL_HDBC;
-    return pThis->m_bOpen;
+    g_databaseStates[pThis].connected = pThis->m_hdbc != SQL_NULL_HDBC;
+    return g_databaseStates[pThis].connected;
 }
 // Symbol: ?BindParameters@CDatabase@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__BindParameters_CDatabase__UEAAXPEAX_Z(CDatabase* pThis, void* pBind) {
-    if (!pThis || !pBind) return;
-    HSTMT hstmt = static_cast<HSTMT>(pBind);
-    if (hstmt != SQL_NULL_HSTMT) {
-        SQLFreeStmt(hstmt, SQL_RESET_PARAMS);
-    }
-    g_databaseStates[pThis].lastRetCode = SQL_SUCCESS;
+    (void)pThis;(void)pBind;
 }
 // Symbol: ?Check@CDatabase@@UEBAHF@Z
 extern "C" int MS_ABI impl__Check_CDatabase__UEBAHF_Z(const CDatabase* pThis, short retCode) {
-    if (pThis) g_databaseStates[pThis].lastRetCode = retCode;
-    return SqlSucceeded(retCode) ? TRUE : FALSE;
+    (void)pThis;
+    return retCode==SQL_SUCCESS || retCode==SQL_SUCCESS_WITH_INFO || retCode==SQL_NO_DATA;
 }
 // Symbol: ?CheckHstmt@CDatabase@@QEBAHFPEAX@Z
 extern "C" int MS_ABI impl__CheckHstmt_CDatabase__QEBAHFPEAX_Z(const CDatabase* pThis, short retCode, void*) {
@@ -95,42 +102,45 @@ extern "C" void MS_ABI impl__GetConnectInfo_CDatabase__IEAAXXZ(CDatabase* pThis)
 }
 // Symbol: ?VerifyConnect@CDatabase@@IEAAXXZ
 extern "C" void MS_ABI impl__VerifyConnect_CDatabase__IEAAXXZ(CDatabase* pThis) {
-    if (pThis && pThis->m_hdbc == SQL_NULL_HDBC) pThis->m_bOpen = FALSE;
+    if (pThis && pThis->m_hdbc == SQL_NULL_HDBC) g_databaseStates[pThis].connected = FALSE;
 }
-CDatabase::CDatabase()
-    : m_hdbc(SQL_NULL_HDBC), m_henv(SQL_NULL_HENV),
-      m_bOpen(FALSE), m_bReadOnly(FALSE) {
-    memset(_cdatabase_padding, 0, sizeof(_cdatabase_padding));
-    g_databaseStates[this] = DbState{};
+CDatabase::CDatabase() {
+    impl___0CPtrList__QEAA__J_Z(m_listRecordsets,10);
+    m_hdbc=SQL_NULL_HDBC;m_hstmt=SQL_NULL_HSTMT;
+    m_bStripTrailingSpaces=FALSE;m_bIncRecordCountOnAdd=FALSE;m_bAddForUpdate=FALSE;
+    m_bUpdatable=FALSE;m_bTransactions=FALSE;
+    m_dwLoginTimeout=15;m_dwQueryTimeout=15;m_blobConnect.pbData=nullptr;
+    g_databaseStates[this]=DbState{};
 }
 CDatabase::~CDatabase() {
     Close();
+    impl___1CPtrList__UEAA_XZ(m_listRecordsets);
     g_databaseStates.erase(this);
 }
 BOOL CDatabase::Open(const wchar_t* lpszDSN, BOOL bExclusive, BOOL bReadOnly,
                       const wchar_t* lpszConnect, BOOL bUseCursorLib) {
-    if (m_bOpen) return FALSE;
+    if (g_databaseStates[this].connected) return FALSE;
 
-    m_bReadOnly = bReadOnly;
+    g_databaseStates[this].readOnly = bReadOnly;
     (void)bExclusive;
     (void)bUseCursorLib;
 
     // Allocate environment handle
-    if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_henv) != SQL_SUCCESS) {
+    if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &g_databaseStates[this].environment) != SQL_SUCCESS) {
         return FALSE;
     }
 
-    SQLSetEnvAttr(m_henv, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
+    SQLSetEnvAttr(g_databaseStates[this].environment, SQL_ATTR_ODBC_VERSION, CastOdbcOptionValue(SQL_OV_ODBC3), 0);
 
     // Allocate connection handle
-    if (SQLAllocHandle(SQL_HANDLE_DBC, m_henv, &m_hdbc) != SQL_SUCCESS) {
-        SQLFreeHandle(SQL_HANDLE_ENV, m_henv);
-        m_henv = SQL_NULL_HENV;
+    if (SQLAllocHandle(SQL_HANDLE_DBC, g_databaseStates[this].environment, &m_hdbc) != SQL_SUCCESS) {
+        SQLFreeHandle(SQL_HANDLE_ENV, g_databaseStates[this].environment);
+        g_databaseStates[this].environment = SQL_NULL_HENV;
         return FALSE;
     }
 
     // Set read-only if specified
-    if (m_bReadOnly) {
+    if (g_databaseStates[this].readOnly) {
         SQLSetConnectAttr(m_hdbc, SQL_ATTR_ACCESS_MODE,
                          CastOdbcOptionValue(SQL_MODE_READ_ONLY), 0);
     }
@@ -154,13 +164,13 @@ BOOL CDatabase::Open(const wchar_t* lpszDSN, BOOL bExclusive, BOOL bReadOnly,
     if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
         g_databaseStates[this].lastRetCode = rc;
         SQLFreeHandle(SQL_HANDLE_DBC, m_hdbc);
-        SQLFreeHandle(SQL_HANDLE_ENV, m_henv);
+        SQLFreeHandle(SQL_HANDLE_ENV, g_databaseStates[this].environment);
         m_hdbc = SQL_NULL_HDBC;
-        m_henv = SQL_NULL_HENV;
+        g_databaseStates[this].environment = SQL_NULL_HENV;
         return FALSE;
     }
 
-    m_bOpen = TRUE;
+    g_databaseStates[this].connected = TRUE;
     g_databaseStates[this].lastRetCode = rc;
     return TRUE;
 }
@@ -170,34 +180,34 @@ void CDatabase::Close() {
         SQLFreeHandle(SQL_HANDLE_DBC, m_hdbc);
         m_hdbc = SQL_NULL_HDBC;
     }
-    if (m_henv != SQL_NULL_HENV) {
-        SQLFreeHandle(SQL_HANDLE_ENV, m_henv);
-        m_henv = SQL_NULL_HENV;
+    if (g_databaseStates[this].environment != SQL_NULL_HENV) {
+        SQLFreeHandle(SQL_HANDLE_ENV, g_databaseStates[this].environment);
+        g_databaseStates[this].environment = SQL_NULL_HENV;
     }
-    m_bOpen = FALSE;
+    g_databaseStates[this].connected = FALSE;
     g_databaseStates[this].lastRetCode = SQL_SUCCESS;
 }
 BOOL CDatabase::BeginTrans() {
-    if (!m_bOpen) return FALSE;
+    if (!g_databaseStates[this].connected) return FALSE;
     return SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
                             CastOdbcOptionValue(SQL_AUTOCOMMIT_OFF), SQL_IS_UINTEGER) == SQL_SUCCESS;
 }
 BOOL CDatabase::CommitTrans() {
-    if (!m_bOpen) return FALSE;
+    if (!g_databaseStates[this].connected) return FALSE;
     BOOL result = SQLEndTran(SQL_HANDLE_DBC, m_hdbc, SQL_COMMIT) == SQL_SUCCESS;
     SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
                      CastOdbcOptionValue(SQL_AUTOCOMMIT_ON), SQL_IS_UINTEGER);
     return result;
 }
 BOOL CDatabase::Rollback() {
-    if (!m_bOpen) return FALSE;
+    if (!g_databaseStates[this].connected) return FALSE;
     BOOL result = SQLEndTran(SQL_HANDLE_DBC, m_hdbc, SQL_ROLLBACK) == SQL_SUCCESS;
     SQLSetConnectAttr(m_hdbc, SQL_ATTR_AUTOCOMMIT,
                      CastOdbcOptionValue(SQL_AUTOCOMMIT_ON), SQL_IS_UINTEGER);
     return result;
 }
 BOOL CDatabase::ExecuteSQL(const wchar_t* lpszSQL) {
-    if (!m_bOpen || !lpszSQL) return FALSE;
+    if (!g_databaseStates[this].connected || !lpszSQL) return FALSE;
     HSTMT hstmt = SQL_NULL_HSTMT;
     if (SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &hstmt) != SQL_SUCCESS) {
         return FALSE;
@@ -211,41 +221,28 @@ void CDatabase::Cancel() {
     RETCODE rc = SQLCancel(m_hdbc);
     g_databaseStates[this].lastRetCode = rc;
 }
-BOOL CDatabase::CanTransact() const {
-    if (!m_bOpen) return FALSE;
-    SQLUINTEGER val = 0;
-    SQLGetInfo(m_hdbc, SQL_TXN_CAPABLE, &val, sizeof(val), nullptr);
-    return val != SQL_TC_NONE;
+BOOL CDatabase::CanTransact() const {return m_bTransactions;}
+BOOL CDatabase::CanUpdate() const {return m_bUpdatable;}
+CString CDatabase::GetConnect() const {return m_strConnect;}
+int CDatabase::GetLoginTimeout() const {return static_cast<int>(m_dwLoginTimeout);}
+void CDatabase::SetLoginTimeout(DWORD seconds) {m_dwLoginTimeout=seconds;}
+int CDatabase::GetQueryTimeout() const {return static_cast<int>(m_dwQueryTimeout);}
+void CDatabase::SetQueryTimeout(DWORD seconds) {m_dwQueryTimeout=seconds;}
+
+HENV CDatabase::GetHENV() const {
+    auto found=g_databaseStates.find(this);
+    return found==g_databaseStates.end()?SQL_NULL_HENV:found->second.environment;
 }
-BOOL CDatabase::CanUpdate() const {
-    if (!m_bOpen) return FALSE;
-    return !m_bReadOnly;
+BOOL CDatabase::OpenEx(const wchar_t* connect,DWORD options) {
+    return impl__OpenEx_CDatabase__UEAAHPEB_WK_Z(this,connect,options);
 }
-CString CDatabase::GetConnect() const {
-    return m_strConnect;
+void CDatabase::OnSetOptions(HSTMT statement) {
+    if(m_dwQueryTimeout!=DWORD(-1) && !Check(SQLSetStmtOption(statement,SQL_QUERY_TIMEOUT,m_dwQueryTimeout)))
+        m_dwQueryTimeout=DWORD(-1);
 }
-int CDatabase::GetLoginTimeout() {
-    return g_loginTimeoutSeconds;
-}
-void CDatabase::SetLoginTimeout(int nSeconds) {
-    g_loginTimeoutSeconds = nSeconds >= 0 ? nSeconds : 0;
-    for (auto& pair : g_databaseStates) {
-        CDatabase* database = const_cast<CDatabase*>(pair.first);
-        if (!database || database->m_hdbc == SQL_NULL_HDBC) continue;
-        SQLSetConnectAttr(database->m_hdbc, SQL_ATTR_LOGIN_TIMEOUT,
-                         CastOdbcOptionValue(g_loginTimeoutSeconds),
-                         SQL_IS_UINTEGER);
-    }
-}
-int CDatabase::GetQueryTimeout() {
-    return g_queryTimeoutSeconds;
-}
-void CDatabase::SetQueryTimeout(int nSeconds) {
-    g_queryTimeoutSeconds = nSeconds >= 0 ? nSeconds : 0;
-    for (auto& pair : g_recordsetStates) {
-        if (!pair.first || pair.first->m_hstmt == SQL_NULL_HSTMT) continue;
-        SQLSetStmtAttr(pair.first->m_hstmt, SQL_ATTR_QUERY_TIMEOUT,
-                       CastOdbcOptionValue(g_queryTimeoutSeconds),
-                       SQL_IS_UINTEGER);
-    }
-}
+void CDatabase::BindParameters(HSTMT statement) {impl__BindParameters_CDatabase__UEAAXPEAX_Z(this,statement);}
+BOOL CDatabase::Check(RETCODE code) const {return impl__Check_CDatabase__UEBAHF_Z(this,code);}
+void CDatabase::ThrowDBException(RETCODE code) {impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(code,this,m_hstmt);}
+static_assert(sizeof(CDatabase)==160,"native release CDatabase size");
+static_assert(offsetof(CDatabase,m_bStripTrailingSpaces)==16 && offsetof(CDatabase,m_strConnect)==32,"native database text-fixup fields");
+static_assert(offsetof(CDatabase,m_listRecordsets)==56 && offsetof(CDatabase,m_hstmt)==144 && offsetof(CDatabase,m_dwQueryTimeout)==152,"native database list, statement and timeout fields");
