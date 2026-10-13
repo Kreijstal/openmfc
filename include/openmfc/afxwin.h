@@ -169,6 +169,8 @@ class CWinThread;
 class CWinApp;
 class CDC;
 class CMenu; // Added forward declaration
+class CDataExchange;
+class CMFCControlContainer;
 class CMDIFrameWnd; // Forward declaration
 struct CCreateContext; // MFC create context (affects MSVC mangling)
 class CGdiObject;
@@ -547,6 +549,79 @@ public:
     CWnd();
     virtual ~CWnd();
     
+    // Native x64 CWnd slots 22..90, in SDK declaration order.
+    virtual void PreSubclassWindow();
+    virtual BOOL Create(const wchar_t*,const wchar_t*,DWORD,const RECT&,CWnd*,UINT,CCreateContext* =nullptr);
+    virtual BOOL CreateEx(DWORD,const wchar_t*,const wchar_t*,DWORD,int,int,int,int,HWND,HMENU,void* =nullptr);
+    virtual BOOL CreateEx(DWORD,const wchar_t*,const wchar_t*,DWORD,const RECT&,CWnd*,UINT,void* =nullptr);
+    virtual BOOL DestroyWindow();
+    virtual BOOL PreCreateWindow(CREATESTRUCTW&);
+    virtual void CalcWindowRect(RECT*,UINT =0);
+    virtual CMenu* GetMenu() const;
+    virtual BOOL SetMenu(CMenu*);
+    virtual INT_PTR OnToolHitTest(CPoint,TOOLINFOW*) const;
+    virtual CScrollBar* GetScrollBarCtrl(int) const;
+    virtual void WinHelpW(ULONG_PTR,UINT);
+    virtual void HtmlHelpW(ULONG_PTR,UINT);
+    virtual void WinHelpInternal(ULONG_PTR,UINT);
+    virtual BOOL ContinueModal();
+    virtual void EndModalLoop(int);
+    virtual void OnDrawIconicThumbnailOrLivePreview(CDC&,CRect,CSize,BOOL,BOOL&);
+    virtual HRESULT EnsureStdObj();
+    virtual HRESULT get_accParent(IDispatch**);
+    virtual HRESULT get_accChildCount(LONG*);
+    virtual HRESULT get_accChild(VARIANT,IDispatch**);
+    virtual HRESULT get_accName(VARIANT,BSTR*);
+    virtual HRESULT get_accValue(VARIANT,BSTR*);
+    virtual HRESULT get_accDescription(VARIANT,BSTR*);
+    virtual HRESULT get_accRole(VARIANT,VARIANT*);
+    virtual HRESULT get_accState(VARIANT,VARIANT*);
+    virtual HRESULT get_accHelp(VARIANT,BSTR*);
+    virtual HRESULT get_accHelpTopic(BSTR*,VARIANT,LONG*);
+    virtual HRESULT get_accKeyboardShortcut(VARIANT,BSTR*);
+    virtual HRESULT get_accFocus(VARIANT*);
+    virtual HRESULT get_accSelection(VARIANT*);
+    virtual HRESULT get_accDefaultAction(VARIANT,BSTR*);
+    virtual HRESULT accSelect(LONG,VARIANT);
+    virtual HRESULT accLocation(LONG*,LONG*,LONG*,LONG*,VARIANT);
+    virtual HRESULT accNavigate(LONG,VARIANT,VARIANT*);
+    virtual HRESULT accHitTest(LONG,LONG,VARIANT*);
+    virtual HRESULT accDoDefaultAction(VARIANT);
+    virtual HRESULT put_accName(VARIANT,BSTR);
+    virtual HRESULT put_accValue(VARIANT,BSTR);
+    virtual HRESULT SetProxy(IAccessibleProxy*);
+    virtual HRESULT CreateAccessibleProxy(WPARAM,LPARAM,LRESULT*);
+    virtual BOOL OnCommand(WPARAM,LPARAM);
+    virtual BOOL OnNotify(WPARAM,LPARAM,LRESULT*);
+    virtual WNDPROC* GetSuperWndProcAddr();
+    virtual void DoDataExchange(CDataExchange*);
+    virtual void BeginModalState();
+    virtual void EndModalState();
+    virtual BOOL PreTranslateMessage(MSG*);
+    virtual BOOL OnAmbientProperty(COleControlSite*,DISPID,VARIANT*);
+    virtual LRESULT WindowProc(UINT,WPARAM,LPARAM);
+    virtual BOOL OnWndMsg(UINT,WPARAM,LPARAM,LRESULT*);
+    virtual LRESULT DefWindowProcW(UINT,WPARAM,LPARAM);
+    virtual void PostNcDestroy();
+    virtual BOOL OnChildNotify(UINT,WPARAM,LPARAM,LRESULT*);
+    virtual BOOL OnTouchInputs(UINT,TOUCHINPUT*);
+    virtual BOOL OnTouchInput(CPoint,int,int,TOUCHINPUT*);
+    virtual ULONG GetGestureStatus(CPoint);
+    virtual BOOL OnGestureZoom(CPoint,LONG);
+    virtual BOOL OnGesturePan(CPoint,CPoint);
+    virtual BOOL OnGestureRotate(CPoint,double);
+    virtual BOOL OnGestureTwoFingerTap(CPoint);
+    virtual BOOL OnGesturePressAndTap(CPoint,LONG);
+    virtual void ResizeDynamicLayout();
+    virtual BOOL CheckAutoCenter();
+    virtual BOOL IsFrameWnd() const;
+    virtual BOOL CreateControlContainer(COleControlContainer**);
+    virtual BOOL CreateControlSite(COleControlContainer*,COleControlSite**,UINT,const GUID&);
+    virtual BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*);
+    virtual _AFX_OCC_DIALOG_INFO* GetOccDialogInfo();
+    void OnFinalRelease() override;
+    const AFX_MSGMAP* GetMessageMap() const override;
+
     //-------------------------------------------------------------------------
     // Window handle access
     //-------------------------------------------------------------------------
@@ -557,16 +632,9 @@ public:
     //-------------------------------------------------------------------------
     // Window creation/destruction
     //-------------------------------------------------------------------------
-    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-                        const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr);
     
-    virtual BOOL CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-                          DWORD dwStyle, int x, int y, int nWidth, int nHeight,
-                          HWND hWndParent, HMENU nIDorHMenu, void* lpParam = nullptr);
 
-    virtual int PreCreateWindow(CREATESTRUCTW& cs) { (void)cs; return TRUE; }
 
-    virtual int DestroyWindow();
     
     //-------------------------------------------------------------------------
     // Window state
@@ -616,15 +684,10 @@ public:
     //-------------------------------------------------------------------------
     // Window procedure
     //-------------------------------------------------------------------------
-    virtual intptr_t WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam);
-    virtual int OnCommand(uintptr_t wParam, intptr_t lParam);
-    virtual int OnNotify(uintptr_t wParam, intptr_t lParam, intptr_t* pResult);
     
     //-------------------------------------------------------------------------
     // Message handlers (overridable)
     //-------------------------------------------------------------------------
-    virtual int OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lParam, intptr_t* pResult);
-    virtual void OnFinalRelease();
     
     // Timer
     uintptr_t SetTimer(uintptr_t nIDEvent, unsigned int nElapse, void* lpfnTimer);
@@ -651,9 +714,9 @@ public:
     int m_nModalResult;                // +0xB8
     DWORD _cwnd_modal_alignment;
     void* m_pDropTarget;               // +0xC0
-    void* m_pOccDialogInfo;            // +0xC8
-    COleControlContainer* m_pCtrlCont;  // +0xD0
-    COleControlSite* m_pCtrlSite;       // +0xD8
+    COleControlContainer* m_pCtrlCont; // +0xC8
+    COleControlSite* m_pCtrlSite;      // +0xD0
+    CMFCControlContainer* m_pMFCCtrlContainer; // +0xD8
     CRenderTarget* m_pRenderTarget;     // +0xE0
 
     // Generated CWnd methods
@@ -675,48 +738,6 @@ public:
     static void SendMessageToDescendants(HWND p0, UINT p1, ULONGLONG p2, LONGLONG p3, int p4, int p5);
     static int WalkPreTranslateTree(HWND p0, MSG* p1);
 
-    // Virtual methods (commented out due to MSVC ABI type mismatches)
-    // See thunks_skip.txt for properly-typed stub exports
-    /*
-    virtual long accDoDefaultAction(VARIANT p0);
-    virtual long accHitTest(long p0, long p1, VARIANT* p2);
-    virtual long accLocation(long* p0, long* p1, long* p2, long* p3, VARIANT p4);
-    // virtual long accNavigate(long p0, VARIANT p1, struct IAccessible* p2);  // FIXME: ABI back-ref type
-    virtual long accSelect(long p0, VARIANT p1);
-    virtual void CalcWindowRect(RECT* p0, UINT p1);
-    virtual int CheckAutoCenter();
-    virtual int ContinueModal();
-    virtual long CreateAccessibleProxy(ULONGLONG p0, LONGLONG p1, LONGLONG* p2);
-    virtual void EndModalLoop(int p0);
-    virtual long EnsureStdObj();
-    virtual long get_accChild(VARIANT p0, IDispatch** p1);
-    virtual long get_accChildCount(long* p0);
-    virtual long get_accDefaultAction(VARIANT p0, WCHAR** p1);
-    virtual long get_accDescription(VARIANT p0, WCHAR** p1);
-    virtual long get_accFocus(VARIANT* p0);
-    virtual long get_accHelp(VARIANT p0, WCHAR** p1);
-    virtual long get_accHelpTopic(WCHAR** p0, VARIANT p1, long* p2);
-    virtual long get_accKeyboardShortcut(VARIANT p0, WCHAR** p1);
-    virtual long get_accName(VARIANT p0, WCHAR** p1);
-    virtual long get_accParent(IDispatch** p0);
-    virtual long get_accRole(VARIANT p0, VARIANT* p1);
-    virtual long get_accSelection(VARIANT* p0);
-    virtual long get_accState(VARIANT p0, VARIANT* p1);
-    virtual long get_accValue(VARIANT p0, WCHAR** p1);
-    virtual CScrollBar* GetScrollBarCtrl(int p0) const;
-    virtual void HtmlHelpW(ULONGLONG p0, UINT p1);
-    virtual int IsFrameWnd() const;
-    virtual int OnAmbientProperty(COleControlSite* p0, long p1, VARIANT* p2);
-    virtual LONGLONG OnToolHitTest(CPoint p0, TOOLINFOW* p1) const;
-    virtual void PreSubclassWindow();
-    virtual int PreTranslateMessage(MSG* p0);
-    virtual long put_accName(VARIANT p0, WCHAR* p1);
-    virtual long put_accValue(VARIANT p0, WCHAR* p1);
-    // virtual long SetProxy(struct IAccessibleProxy* p0);
-    virtual void WinHelpInternal(ULONGLONG p0, UINT p1);
-    virtual void WinHelpW(ULONGLONG p0, UINT p1);
-    */
-
     // Instance methods
     void ActivateTopParent();
     int Attach(HWND p0);
@@ -732,13 +753,11 @@ public:
     int CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const POINT* p3, const SIZE* p4, void* p5, UINT p6, CFile* p7, int p8, WCHAR* p9);
     int CreateControl(const CControlCreationInfo*& p0, DWORD p1, const POINT* p2, const SIZE* p3, void* p4, UINT p5);
     int CreateControl(const WCHAR* p0, const WCHAR* p1, DWORD p2, const RECT*& p3, void* p4, UINT p5, CFile* p6, int p7, WCHAR* p8);
-    int CreateControlContainer(COleControlContainer** p0);
     int CreateControlSite(COleControlContainer* p0, COleControlSite** p1, UINT p2, const GUID*& p3);
     int CreateDlg(const WCHAR* p0, void* p1);
     int CreateDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2);
     int CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2);
     LONGLONG Default();
-    LONGLONG DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2);
     HWND Detach();
     void InitializeAccessibility();
     void EnableActiveAccessibility() { m_bEnableActiveAccessibility = true; }
@@ -768,12 +787,10 @@ public:
     IUnknown* GetDSCCursor();
     DWORD GetExStyle() const;
     int GetGestureConfig(CGestureConfig* p0);
-    DWORD GetGestureStatus(CPoint p0);
     const AFX_INTERFACEMAP* GetInterfaceMap() const;
     // GetMessageMap is declared via DECLARE_MESSAGE_MAP (protected)
     COleControlSiteOrWnd* GetNextDlgGroupItem(void* p0) const;
     COleControlSiteOrWnd* GetNextDlgTabItem(void* p0, int p1) const;
-    _AFX_OCC_DIALOG_INFO* GetOccDialogInfo();
     COleControlSite* GetOleControlSite(UINT p0) const;
     CFrameWnd* GetParentFrame() const;
     void* GetParentOwner() const;
@@ -781,7 +798,6 @@ public:
     void GetProperty(long p0, WORD p1, void* p2) const;
     CHwndRenderTarget* GetRenderTarget();
     DWORD GetStyle() const;
-    void* GetSuperWndProcAddr();
     CFrameWnd* GetTopLevelFrame() const;
     void* GetTopLevelOwner() const;
     void* GetTopLevelParent() const;
@@ -797,7 +813,6 @@ public:
     int MessageBoxW(const WCHAR* p0, const WCHAR* p1, UINT p2);
     LONGLONG OnActivateTopLevel(ULONGLONG p0, LONGLONG p1);
     int OnCharToItem(UINT p0, CListBox* p1, UINT p2);
-    int OnChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3);
     int OnCompareItem(int p0, COMPAREITEMSTRUCT* p1);
     HBRUSH OnCtlColor(CDC* p0, void* p1, UINT p2);
     int OnDeleteItem(int p0, DELETEITEMSTRUCT* p1);
@@ -835,7 +850,6 @@ public:
     int OnVKeyToItem(UINT p0, CListBox* p1, UINT p2);
     void OnVScroll(UINT p0, UINT p1, CScrollBar* p2);
     BOOL PaintWindowlessControls(CDC* p0);
-    void PostNcDestroy();
     BOOL PreTranslateInput(MSG* p0);
     void PrepareForHelp();
     int ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3);
@@ -853,7 +867,6 @@ public:
     void SetDlgItemTextW(int p0, const WCHAR* p1);
     void* SetFocus();
     int SetGestureConfig(CGestureConfig* p0);
-    BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* p0);
     int SetProperty(long p0, WORD p1, void* p2);
     int SetScrollInfo(int p0, SCROLLINFO* p1, int p2);
     int SetScrollPos(int p0, int p1, int p2);
@@ -869,7 +882,6 @@ public:
     CDCRenderTarget* GetDCRenderTarget();
     void InitDynamicLayout();
     int LoadDynamicLayoutResource(const WCHAR* p0);
-    void ResizeDynamicLayout();
     int IsD2DSupportEnabled();
     void OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int p3, int*& p4);
 };
@@ -2310,8 +2322,8 @@ inline CWnd::CWnd()
     : m_hWnd(nullptr), m_bEnableActiveAccessibility(false), _accessibility_alignment{}, m_dwStyle(0),
       m_pStdObject(nullptr), m_pProxy(nullptr), m_xAccessible(nullptr), m_xAccessibleServer(nullptr),
       _cwnd_padding2{}, m_hWndOwner(nullptr), m_nFlags(0), _cwnd_flags_alignment(0), m_pfnSuper(nullptr),
-      m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pOccDialogInfo(nullptr),
-      m_pCtrlCont(nullptr), m_pCtrlSite(nullptr), m_pRenderTarget(nullptr)
+      m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pCtrlCont(nullptr),
+      m_pCtrlSite(nullptr), m_pMFCCtrlContainer(nullptr), m_pRenderTarget(nullptr)
 {
     InitializeAccessibility();
 }
@@ -2498,18 +2510,8 @@ inline int CWnd::PostMessageW(unsigned int message, uintptr_t wParam, intptr_t l
 }
 
 inline intptr_t CWnd::WindowProc(unsigned int message, uintptr_t wParam, intptr_t lParam) {
-    intptr_t lResult = 0;
-    if (!OnWndMsg(message, wParam, lParam, &lResult)) {
-        if (m_hWnd && m_pfnSuper) {
-            lResult = static_cast<intptr_t>(::CallWindowProcW(
-                m_pfnSuper, m_hWnd, message,
-                static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)));
-        } else if (m_hWnd) {
-            lResult = static_cast<intptr_t>(::DefWindowProcW(
-                m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)));
-        }
-    }
-    return lResult;
+    LRESULT result=0;
+    return OnWndMsg(message,wParam,lParam,&result) ? result : DefWindowProcW(message,wParam,lParam);
 }
 
 inline int CWnd::OnCommand(uintptr_t wParam, intptr_t lParam) {
@@ -3931,7 +3933,7 @@ public:
     virtual HRESULT FilterDataObject(IDataObject* pDO, IDataObject** ppDORet);
     virtual HRESULT IsExternalDispatchSafe();
     virtual HRESULT CanAccessExternal();
-    virtual HRESULT CreateControlSite(COleControlContainer* pContainer,
+    virtual BOOL CreateControlSite(COleControlContainer* pContainer,
                                        COleControlSite** ppSite, UINT nID, REFCLSID clsid);
 
     // Navigation events (virtual - override in derived class)

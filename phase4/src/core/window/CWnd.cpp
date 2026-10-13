@@ -1381,11 +1381,6 @@ void* CWnd::FromHandlePermanent(HWND p0)
     }
     return pWnd;
 }
-const MSG* CWnd::GetCurrentMessage()
-{
-    CWinThread* pThread = AfxGetThread();
-    return pThread ? &pThread->m_msgCur : nullptr;
-}
 void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
 {
     if (!p0 || p1 == 0) {
@@ -2348,9 +2343,9 @@ DWORD CWnd::GetStyle() const
     }
     return static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_STYLE));
 }
-void* CWnd::GetSuperWndProcAddr()
+WNDPROC* CWnd::GetSuperWndProcAddr()
 {
-    return reinterpret_cast<void*>(m_pfnSuper);
+    static WNDPROC super=nullptr;return &super;
 }
 CFrameWnd* CWnd::GetTopLevelFrame() const
 {

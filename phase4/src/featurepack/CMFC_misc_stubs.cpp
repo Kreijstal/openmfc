@@ -916,14 +916,7 @@ extern "C" void* MS_ABI impl__AfxBeginThread__YAPEAVCWinThread__PEAUCRuntimeClas
         p3,
         reinterpret_cast<LPSECURITY_ATTRIBUTES>(p4));
 }
-// Symbol: ?AfxCallWndProc@@YA_JPEAVCWnd@@PEAUHWND__@@I_K_J@Z
-extern "C" __int64 MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(void* /*class*/* p0, void* /*struct*/* p1, unsigned int p2, unsigned __int64 p3, __int64 p4) {
-    auto* pWnd = reinterpret_cast<CWnd*>(p0);
-    if (pWnd != nullptr) {
-        return impl__WindowProc_CWnd__MEAA_JI_K_J_Z(pWnd, p2, static_cast<WPARAM>(p3), static_cast<LPARAM>(p4));
-    }
-    return static_cast<__int64>(::DefWindowProcW(reinterpret_cast<HWND>(p1), p2, static_cast<WPARAM>(p3), static_cast<LPARAM>(p4)));
-}
+// Native dispatch and sent-message context live in WindowMessageContext.cpp.
 // Symbol: ?AfxCancelModes@@YAXPEAUHWND__@@@Z
 extern "C" void MS_ABI impl__AfxCancelModes__YAXPEAUHWND_____Z(void* /*struct*/* p0) {
     HWND hWndRcvr = reinterpret_cast<HWND>(p0);

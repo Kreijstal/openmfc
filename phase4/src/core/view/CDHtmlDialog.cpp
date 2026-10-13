@@ -864,27 +864,27 @@ HRESULT CDHtmlDialog::FilterDataObject(IDataObject* pDataObject, IDataObject** p
 }
 HRESULT CDHtmlDialog::IsExternalDispatchSafe() { return m_pExternalDispatch ? S_OK : S_FALSE; }
 HRESULT CDHtmlDialog::CanAccessExternal() { return m_pExternalDispatch ? S_OK : S_FALSE; }
-HRESULT CDHtmlDialog::CreateControlSite(COleControlContainer* pContainer,
+BOOL CDHtmlDialog::CreateControlSite(COleControlContainer* pContainer,
                                        COleControlSite** pSite,
                                        UINT nID, REFCLSID clsid) {
     if (!pSite) {
-        return E_POINTER;
+        return FALSE;
     }
     (void)clsid;
     *pSite = nullptr;
     if (!pContainer) {
-        return E_INVALIDARG;
+        return FALSE;
     }
     COleControlSite* created = pContainer->CreateSite(pContainer);
     if (!created) {
-        return E_OUTOFMEMORY;
+        return FALSE;
     }
     CWnd* containerWnd = pContainer->GetWnd();
     if (containerWnd) {
         containerWnd->AttachControlSite(created, nID);
     }
     *pSite = created;
-    return S_OK;
+    return TRUE;
 }
 void CDHtmlDialog::SetExternalDispatch(IDispatch* pDispatch) {
     if (m_pExternalDispatch) {

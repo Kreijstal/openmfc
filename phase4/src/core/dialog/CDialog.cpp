@@ -453,34 +453,7 @@ extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
     }
     return TRUE;
 }
-// CDialog::OnEndSession -- NOT implemented; left a no-op.  Retail, RVA 0x208000
-// (mfc140u; ordinal 9740), read in the byte-identical mfc140.dll copy at 0x2061b0:
-//     if (!bEnding) return;
-//     CWinApp* pApp = AfxGetModuleState()->m_pCurrentWinApp;         // +0x8
-//     if (pApp != NULL && pApp->m_pMainWnd == this                    // +0x40
-//         && (AfxGetThreadState()->m_lastSentMsg.lParam & ENDSESSION_CLOSEAPP)) {  // testb $1,0xb0
-//         CDataRecoveryHandler* pHandler = pApp->GetDataRecoveryHandler();   // vslot 65 (+0x208)
-//         if (pHandler != NULL)
-//             pHandler->SetShutdownByRestartManager(TRUE);                    // vslot 15 (+0x78)
-//     }
-// (vslot 65 is ?GetDataRecoveryHandler@CWinApp in the mfc140u CWinApp vftable;
-// vslot 15 of the CDataRecoveryHandler vftable stores edx to +0x174, the field
-// slot 14 returns -- the Get/SetShutdownByRestartManager pair by declaration
-// order.)  The whole effect is gated on the lParam of the message being
-// processed, which retail reads from the thread state's m_lastSentMsg:
-// AfxGetThreadState() is the call at 0x208025 (u RVA 0x1332a0), and +0xb0 is
-// m_lastSentMsg (+0x98) .lParam (+0x18) by the _AFX_THREAD_STATE declaration
-// in the retail afxstat_.h (offsets computed from it, x64).
-// OpenMFC's _AFX_THREAD_STATE (detail/CWinAppSupport.h) is a 0x20-byte struct
-// (two ints and three pointers; sizeof measured under this file's flags)
-// with no m_lastSentMsg, and nothing records the last sent message, so the
-// gate cannot be evaluated; with the ENDSESSION_CLOSEAPP bit clear retail also
-// does nothing, which is what this body does.
-// Symbol: ?OnEndSession@CDialog@@IEAAXH@Z
-extern "C" void MS_ABI impl__OnEndSession_CDialog__IEAAXH_Z(CDialog* pThis, BOOL bEnding) {
-    (void)pThis;
-    (void)bEnding;
-}
+// Restart-manager session callbacks live in DialogMessageCallbacks.cpp.
 // CDialog::OnHelpHitTest -- transcribed from RVA 0x208f20 (mfc140u; ordinal
 // 10077).  Retail, in full:
 //     return m_nIDHelp != 0 ? HID_BASE_RESOURCE + m_nIDHelp : 0;   // +0xe8, add $0x20000
@@ -503,29 +476,6 @@ extern "C" void MS_ABI impl__OnPaint_CDialog__IEAAXXZ(CDialog* pThis) {
     if (hdc) {
         EndPaint(pThis->m_hWnd, &ps);
     }
-}
-// CDialog::OnQueryEndSession -- NOT implemented; left returning TRUE.  Retail,
-// RVA 0x207fa0 (mfc140u; ordinal 10860), read in the byte-identical mfc140.dll
-// copy at 0x206150:
-//     CWinApp* pApp = AfxGetModuleState()->m_pCurrentWinApp;         // +0x8
-//     if (pApp != NULL && pApp->m_pMainWnd == this                    // +0x40
-//         && (AfxGetThreadState()->m_lastSentMsg.lParam & ENDSESSION_CLOSEAPP))  // testb $1,0xb0
-//         return pApp->SupportsRestartManager();                      // vslot 56 (+0x1c0)
-//     return TRUE;
-// (vslot 56: by afxwin.h declaration order the first virtual after
-// ApplicationRecoveryCallback, which is vslot 55 in the mfc140u CWinApp
-// vftable; the slot's own body at RVA 0x1c9890 (mfc140u), not named in the
-// symbol map, is `mov 0x14c(%rcx),%eax; and $1,%eax` -- consistent with
-// SupportsRestartManager returning m_dwRestartManagerSupportFlags &
-// AFX_RESTART_MANAGER_SUPPORT_RESTART.)  As in OnEndSession above, the result
-// hinges on the lParam of the message being processed, read from the thread
-// state's m_lastSentMsg, which OpenMFC's 0x20-byte _AFX_THREAD_STATE
-// (detail/CWinAppSupport.h) does not have and nothing records.  TRUE is what
-// retail returns whenever that ENDSESSION_CLOSEAPP bit is clear.
-// Symbol: ?OnQueryEndSession@CDialog@@IEAAHXZ
-extern "C" int MS_ABI impl__OnQueryEndSession_CDialog__IEAAHXZ(CDialog* pThis) {
-    (void)pThis;
-    return TRUE;
 }
 // CDialog::PostModal -- transcribed from RVA 0x208850 (mfc140u; the RVA has no
 // entry in the symbol map and was found through ordinal 11757 in the export

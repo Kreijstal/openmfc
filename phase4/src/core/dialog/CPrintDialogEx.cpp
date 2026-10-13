@@ -366,53 +366,7 @@ extern "C" __int64 MS_ABI impl__HandleInitDialog_CPrintDialogEx__QEAA_J_K_J_Z(
     return 0;
 }
 
-// Symbol: ?HandleMessage@CPrintDialogEx@@UEAAJPEAUHWND__@@I_K_JPEA_J@Z
-// Transcribed from RVA 0x219a70 (mfc140u).  `this` is the
-// IPrintDialogCallback subobject; retail recovers the dialog with
-// lea -0x130(%rcx),%rdi.  Retail order:
-//   if (m_hWnd == NULL) CWnd::Attach(hWnd);                     // call 0x28adf0
-//   pState = AfxGetThreadState() (inlined: CThreadLocalObject::GetData,
-//            call 0x14cf40, on the slot at mfc140u 0x1803c4110;
-//            AfxThrowInvalidArgException, call 0x227720, if NULL);
-//   pState->m_lastSentMsg = { hWnd, message, wParam, lParam,
-//            ::GetMessageTime(), (short)LOWORD/HIWORD(::GetMessagePos()) };
-//   BOOL bHandled = OnWndMsg(message, wParam, lParam, plResult); // vftable +0x240 (slot 72)
-//   HRESULT hr = bHandled ? S_OK : S_FALSE;
-//   if (bHandled && message == WM_NOTIFY)
-//       ::SetWindowLongPtr(::GetParent(hWnd), DWLP_MSGRESULT, *plResult);
-//   else if (message == WM_INITDIALOG && bHandled && (int)*plResult != 0)
-//       hr = S_FALSE;                                            // cmpl $0x0,(%r15)
-//   return hr;
-// Deviations: (1) the m_lastSentMsg record is omitted -- OpenMFC's
-// _AFX_THREAD_STATE (detail/CWinAppSupport.h) is a five-field struct with no
-// such member, so the GetMessageTime/GetMessagePos calls that only feed it are
-// dropped as well, and so is retail's AfxThrowInvalidArgException on a NULL
-// thread state.  (2) The slot-72 virtual OnWndMsg (slot 72 of the retail
-// CPrintDialogEx vftable is CWnd::OnWndMsg, RVA 0x28d1b0 mfc140u) is
-// devirtualised to the exported CWnd::OnWndMsg thunk, following this repo's
-// convention (see impl__OnWndMsg_CWnd in core/window/CWnd.cpp): the object's
-// vptr cannot be assumed to be an MSVC-layout vftable -- an object built by
-// OpenMFC's own C++ constructor carries a GCC vtable whose slot 72 is not
-// OnWndMsg.  In the retail headers OnWndMsg is declared only by CWnd
-// (afxwin.h:3010), not by CDialog, CCommonDialog or CPrintDialogEx, so this
-// loses only an override in a client-derived class.
-extern "C" long MS_ABI impl__HandleMessage_CPrintDialogEx__UEAAJPEAUHWND____I_K_JPEA_J_Z(
-    void* pThis, HWND hWnd, unsigned int message, unsigned __int64 wParam, __int64 lParam,
-    __int64* plResult) {
-    S_PrintDlgExView* d = FromPrintDialogCallback(pThis);
-    CWnd* pWnd = reinterpret_cast<CWnd*>(d);
-    if (d->m_hWnd == nullptr) {
-        impl__Attach_CWnd__QEAAHPEAUHWND_____Z(pWnd, hWnd);
-    }
-    const int bHandled = impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(pWnd, message, wParam, lParam, plResult);
-    long hr = bHandled ? S_OK : S_FALSE;
-    if (bHandled && message == WM_NOTIFY) {
-        ::SetWindowLongPtrW(::GetParent(hWnd), DWLP_MSGRESULT, static_cast<LONG_PTR>(*plResult));
-    } else if (message == WM_INITDIALOG && bHandled && static_cast<int>(*plResult) != 0) {
-        hr = S_FALSE;
-    }
-    return hr;
-}
+// The native print callback lives in DialogMessageCallbacks.cpp.
 
 // Symbol: ?InitDone@CPrintDialogEx@@UEAAJXZ
 // Resolves (ordinal 7677) to the folded RVA 0x3a60 (mfc140u), `mov $0x1,%eax;

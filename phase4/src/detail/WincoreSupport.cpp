@@ -1,8 +1,8 @@
 #include "WincoreSupport.h"
 
 // Implementations this unit calls that are defined with their own class.
-extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
-    CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam);
+extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
+    CWnd* pThis, HWND, UINT message, WPARAM wParam, LPARAM lParam);
 
 extern "C" void OpenMfcResetDockState(void* pState) {
     if (!pState) {
@@ -67,7 +67,7 @@ LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
     // Route to CWnd::WindowProc if we have a CWnd
     if (pWnd) {
-        LRESULT result = impl__WindowProc_CWnd__MEAA_JI_K_J_Z(pWnd, message, wParam, lParam);
+        LRESULT result = impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(pWnd,hWnd,message,wParam,lParam);
 
         // WM_NCDESTROY is the final message - clean up the wrapper
         // This must come after WindowProc since the window is still valid during the call.

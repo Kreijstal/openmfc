@@ -1279,11 +1279,6 @@ extern "C" COleControlContainer* MS_ABI impl__GetControlContainer_CWnd__QEAAPEAV
 extern "C" IUnknown* MS_ABI impl__GetControlUnknown_CWnd__QEAAPEAUIUnknown__XZ(CWnd* pThis) {
     return (IUnknown*)pThis->GetControlUnknown();
 }
-// Symbol: ?GetCurrentMessage@CWnd@@KAPEBUtagMSG@@XZ
-// Static: CWnd::GetCurrentMessage
-extern "C" const MSG* MS_ABI impl__GetCurrentMessage_CWnd__KAPEBUtagMSG__XZ() {
-    return (const MSG*)CWnd::GetCurrentMessage();
-}
 // Symbol: ?GetDlgCtrlID@CWnd@@QEBAHXZ
 // CWnd::GetDlgCtrlID
 extern "C" int MS_ABI impl__GetDlgCtrlID_CWnd__QEBAHXZ(const CWnd* pThis) {

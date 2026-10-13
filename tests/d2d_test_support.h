@@ -90,3 +90,98 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
     if(g_cmdRoutingMapHook)return g_cmdRoutingMapHook(target,id,code,extra,info);
     std::abort();
 }
+
+// Native CWnd virtuals outside drawing/message-context coverage abort on use.
+extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) { std::abort(); }
+
+extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
+    CWnd* pThis, CREATESTRUCTW& cs) { std::abort(); }
+
+extern "C" void MS_ABI impl__CalcWindowRect_CWnd__UEAAXPEAUtagRECT__I_Z(
+    CWnd* pThis, RECT* lpClientRect, unsigned int nAdjustType) { std::abort(); }
+
+extern "C" CMenu* MS_ABI impl__GetMenu_CWnd__UEBAPEAVCMenu__XZ(const CWnd* pThis) { std::abort(); }
+
+extern "C" int MS_ABI impl__SetMenu_CWnd__UEAAHPEAVCMenu___Z(CWnd* pThis, CMenu* pMenu) { std::abort(); }
+
+extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
+    const CWnd* pThis, CPoint point, TOOLINFOW* pTI) { std::abort(); }
+
+extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd* pThis, int nBar) { std::abort(); }
+
+extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned long long dwData, unsigned int nCmd) { std::abort(); }
+
+extern "C" void MS_ABI impl__HtmlHelpW_CWnd__UEAAX_KI_Z(
+    CWnd* pThis, unsigned long long data, unsigned int command) { std::abort(); }
+
+extern "C" void MS_ABI impl__WinHelpInternal_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned long long dwData, unsigned int nCmd) { std::abort(); }
+
+extern "C" int MS_ABI impl__ContinueModal_CWnd__UEAAHXZ(CWnd* pThis) { std::abort(); }
+
+extern "C" void MS_ABI impl__EndModalLoop_CWnd__UEAAXH_Z(
+    CWnd* pThis, int nResult) { std::abort(); }
+
+extern "C" void MS_ABI impl__OnDrawIconicThumbnailOrLivePreview_CWnd__UEAAXAEAVCDC__VCRect__VCSize__HAEAH_Z(
+    CWnd* pThis, CDC* pDC, CRect rc, CSize sz, int bDwmEnabled, int* bUpdateDwm) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnAmbientProperty_CWnd__UEAAHPEAVCOleControlSite__JPEAUtagVARIANT___Z(
+    CWnd* pThis, COleControlSite* pSite, long dispid, VARIANT* pVar) { std::abort(); }
+
+extern "C" int MS_ABI impl__CheckAutoCenter_CWnd__UEAAHXZ(CWnd* pThis) { std::abort(); }
+
+extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) { std::abort(); }
+
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*) { std::abort(); }
+
+extern "C" int MS_ABI impl__CreateControlSite_CWnd__MEAAHPEAVCOleControlContainer__PEAPEAVCOleControlSite__IAEBU_GUID___Z(
+    CWnd* pThis,
+    COleControlContainer* pContainer,
+    COleControlSite** ppSite,
+    unsigned int nID,
+    const GUID* pClsid) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnTouchInputs_CWnd__MEAAHIPEAUtagTOUCHINPUT___Z(
+    CWnd* pThis, unsigned int nInputs, TOUCHINPUT* pInputs) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnTouchInput_CWnd__MEAAHVCPoint__HHPEAUtagTOUCHINPUT___Z(
+    CWnd* pThis, CPoint pt, int nInputNumber, int nTouchInputs, TOUCHINPUT* pInput) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnGestureZoom_CWnd__MEAAHVCPoint__J_Z(
+    CWnd* pThis, CPoint pt, long dwFactor) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnGesturePan_CWnd__MEAAHVCPoint__0_Z(
+    CWnd* pThis, CPoint pt, CPoint pt2) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnGestureRotate_CWnd__MEAAHVCPoint__N_Z(
+    CWnd* pThis, CPoint pt, double dblRotate) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnGestureTwoFingerTap_CWnd__MEAAHVCPoint___Z(
+    CWnd* pThis, CPoint pt) { std::abort(); }
+
+extern "C" int MS_ABI impl__OnGesturePressAndTap_CWnd__MEAAHVCPoint__J_Z(
+    CWnd* pThis, CPoint pt, long dwExtraInfo) { std::abort(); }
+
+extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) { std::abort(); }
+
+DWORD CWnd::GetGestureStatus(CPoint) { std::abort(); }
+void CWnd::ResizeDynamicLayout() { std::abort(); }
+BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
+BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }
+_AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo() { std::abort(); }
+BOOL CWnd::OnChildNotify(UINT,WPARAM,LPARAM,LRESULT*) { std::abort(); }
+void CWnd::PostNcDestroy() { std::abort(); }
+WNDPROC* CWnd::GetSuperWndProcAddr() { static WNDPROC procedure=nullptr;return &procedure; }
+extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(CWnd*,UINT,WPARAM,LPARAM);
+LRESULT CWnd::DefWindowProcW(UINT message,WPARAM wparam,LPARAM lparam) {
+    return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this,message,wparam,lparam);
+}
+// Sent-message dispatch uses these peripheral framework siblings.
+LRESULT (*g_wndExceptionHandler)(CException*,const MSG*)=nullptr;
+extern "C" LRESULT MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(CException* error,const MSG* message) {
+    if(g_wndExceptionHandler)return g_wndExceptionHandler(error,message);std::abort();
+}
+extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd*,CWnd*) { std::abort(); }
+extern "C" int MS_ABI impl__Attach_CWnd__QEAAHPEAUHWND_____Z(CWnd* window,HWND hwnd) { window->m_hWnd=hwnd;return TRUE; }
+
+extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd*, WPARAM, LPARAM) { std::abort(); }
+extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(CWnd*, WPARAM, LPARAM,LRESULT*) { std::abort(); }

@@ -1,6 +1,7 @@
 // Base window message dispatch, including Direct2D paint and resize handling.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "detail/WindowMessageSupport.h"
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
 #else
@@ -14,25 +15,26 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*, UINT, WPARAM
 extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (pThis && pThis->m_hWnd) {
-        return ::DefWindowProcW(pThis->m_hWnd, message, wParam, lParam);
+    WNDPROC procedure=pThis->m_pfnSuper;
+    if(!procedure) {
+        using Getter=WNDPROC* (MS_ABI*)(void*);
+        procedure=*openmfc::detail::WindowSlot<Getter>(pThis,65)(pThis);
     }
-    return 0;
+    return procedure ? CallWindowProcW(procedure,pThis->m_hWnd,message,wParam,lParam)
+                     : ::DefWindowProcW(pThis->m_hWnd,message,wParam,lParam);
 }
 
 // Symbol: ?WindowProc@CWnd@@MEAA_JI_K_J@Z
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(
     CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (!pThis || !pThis->m_hWnd) {
-        return 0;
-    }
-
     LRESULT result = 0;
-    if (impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(pThis, message, wParam, lParam, &result)) {
+    using Handler=BOOL (MS_ABI*)(void*,UINT,WPARAM,LPARAM,LRESULT*);
+    if (openmfc::detail::WindowSlot<Handler>(pThis,72)(pThis,message,wParam,lParam,&result)) {
         return result;
     }
-    return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(pThis, message, wParam, lParam);
+    using Default=LRESULT (MS_ABI*)(void*,UINT,WPARAM,LPARAM);
+    return openmfc::detail::WindowSlot<Default>(pThis,73)(pThis,message,wParam,lParam);
 }
 
 // Symbol: ?OnWndMsg@CWnd@@MEAAHI_K_JPEA_J@Z
