@@ -591,25 +591,6 @@ void CRecordset::CancelUpdate() {
     EnsureRecordsetState(this).dirtyFields.clear();
     EnsureRecordsetState(this).nullFields.clear();
 }
-void CRecordset::SetFieldNull(void* pvField, BOOL bNull) {
-    if (!pvField) return;
-    RecordsetState& state = EnsureRecordsetState(this);
-    int index = 0;
-    auto it = state.boundFieldIndexes.find(pvField);
-    if (it == state.boundFieldIndexes.end()) {
-        index = static_cast<int>(state.boundFieldIndexes.size());
-        state.boundFieldIndexes[pvField] = index;
-    } else {
-        index = it->second;
-    }
-    unsigned long fieldIndex = static_cast<unsigned long>(index);
-    if (bNull) {
-        state.nullFields.insert(fieldIndex);
-    } else {
-        state.nullFields.erase(fieldIndex);
-    }
-    state.dirtyFields.insert(fieldIndex);
-}
 BOOL CRecordset::CanAppend() const {
     if (!m_pDatabase || !m_pDatabase->IsOpen()) return FALSE;
     return (m_dwOptions & CRecordset::readOnly) == 0;

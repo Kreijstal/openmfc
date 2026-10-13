@@ -58,6 +58,16 @@ void CRecordset::SetParamNull(int index,BOOL null) {
     if(!IsOpen())AllocStatusArrays();
     if(null)SetNullParamStatus(index);else ClearNullParamStatus(index);
 }
+void CRecordset::SetFieldNull(void* field,BOOL null) {
+    int param=field?GetBoundParamIndex(field)-1:-1;
+    if(param>=0) {if(null)SetNullParamStatus(param);else ClearNullParamStatus(param);return;}
+    if(!m_nFields)return;
+    CFieldExchange exchange(CFieldExchange::SetFieldNull,this,field);
+    exchange.m_nFieldFound=0;exchange.m_bField=null;
+    DoFieldExchange(&exchange);
+}
+// Symbol: ?SetFieldNull@CRecordset@@QEAAXPEAXH@Z
+extern "C" void MS_ABI impl__SetFieldNull_CRecordset__QEAAXPEAXH_Z(CRecordset* self,void* field,BOOL null) {self->SetFieldNull(field,null);}
 void CRecordset::SetFieldDirty(void* field,BOOL dirty) {
     int first=0,last=int(m_nFields)-1;
     if(field) {first=last=GetBoundFieldIndex(field)-1;if(first<0)return;}

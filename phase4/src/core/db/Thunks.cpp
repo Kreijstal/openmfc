@@ -1231,11 +1231,6 @@ extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, u
 extern "C" int MS_ABI impl__Rollback_CDatabase__QEAAHXZ(CDatabase* pThis) {
     return (int)pThis->Rollback();
 }
-// Symbol: ?SetFieldNull@CRecordset@@QEAAXPEAXH@Z
-// CRecordset::SetFieldNull
-extern "C" void MS_ABI impl__SetFieldNull_CRecordset__QEAAXPEAXH_Z(CRecordset* pThis, void* p0, int p1) {
-    pThis->SetFieldNull(p0, p1);
-}
 // Symbol: ?SetRowsetSize@CRecordset@@UEAAXK@Z
 // CRecordset::SetRowsetSize
 extern "C" void MS_ABI impl__SetRowsetSize_CRecordset__UEAAXK_Z(CRecordset* pThis, unsigned long p0) {

@@ -523,93 +523,6 @@ void TimestampToOleDateTime(const TIMESTAMP_STRUCT& ts, COleDateTime& value) {
 }
 
 // ---------------------------------------------------------------------------
-// The scalar RFX_* exports (Long, Int, BigInt, Byte, Bool, Single, Double and
-// Date(TIMESTAMP_STRUCT&)) are one body each in retail, all with this shape
-// (RFX_Long, mfc140u RVA 0x2008e0, is the reference; the others differ only in
-// the constants listed at each export, and RFX_Bool in its Fixup):
-//
-//   if (!pFX || !szName) AfxThrowInvalidArgException();
-//   UINT nField; if (!pFX->IsFieldType(&nField)) return;
-//   SQLLEN* plLength = pFX->m_prs->GetFieldLengthBuffer(nField - 1, pFX->m_nFieldType);
-//   switch (pFX->m_nOperation) {
-//   case Fixup:          if (*plLength == SQL_NULL_DATA) { SetNullFieldStatus(n); value = PSEUDO_NULL; } return;
-//   case MarkForAddNew:  if (value != PSEUDO_NULL) { SetDirtyFieldStatus(n); ClearNullFieldStatus(n); } return;
-//   case MarkForUpdate:  if (value != PSEUDO_NULL) ClearNullFieldStatus(n);  /* falls into default */
-//   default:             pFX->Default(szName, &value, plLength, nCFType, sizeof(value), cbPrecision); return;
-//   case SetFieldNull:   if ((m_pvField == NULL && m_nFieldType == outputColumn) || m_pvField == &value) {
-//                            if (m_bField) { SetNullFieldStatus(n); value = PSEUDO_NULL; *plLength = SQL_NULL_DATA; }
-//                            else          { ClearNullFieldStatus(n); *plLength = sizeof(value); } }  return;
-//   case AllocCache:     m_prs->m_rgFieldInfos[n].m_nDataType = <AFX_RFX_xxx>; (8/16-byte types also
-//                        allocate m_pvDataCache with operator new)  return;
-//   }
-//
-// NOT MODELLED here: SetFieldNull (needs m_pvField / m_bField, which this
-// CFieldExchange lacks -- CRecordset::SetFieldNull in this codebase edits the
-// side table directly and never issues the operation) and AllocCache (there is
-// no m_rgFieldInfos cache; AfxStoreField/AfxLoadField in
-// featurepack/CMFC_misc_stubs.cpp document the same gap).  Both return without
-// touching anything.
-// ---------------------------------------------------------------------------
-template <typename T, typename IsPseudoNull, typename SetPseudoNull, typename FixupNotNull>
-void RfxScalar(CFieldExchange* pFX, const wchar_t* szName, T* pValue, int nCFType,
-               unsigned __int64 cbPrecision, IsPseudoNull isPseudoNull, SetPseudoNull setPseudoNull,
-               FixupNotNull fixupNotNull, bool ensureRecordset) {
-    if (!pFX || !szName) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-    UINT nField = 0;
-    if (!pFX->IsFieldType(&nField)) return;
-    // RFX_Date(TIMESTAMP_STRUCT&) additionally ENSUREs m_prs and the length buffer.
-    if (ensureRecordset && !pFX->m_pRecordset) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-    SQLLEN* plLength = LengthBuffer(pFX, nField);
-    if (ensureRecordset && !plLength) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-    CRecordset* prs = pFX->m_pRecordset;
-    const unsigned long n = nField - 1;
-    switch (RfxOp(pFX)) {
-    case rfxop::Fixup:
-        if (plLength && *plLength == SQL_NULL_DATA) {
-            impl__SetNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-            setPseudoNull(*pValue);
-        } else {
-            fixupNotNull(*pValue);
-        }
-        return;
-    case rfxop::MarkForAddNew:
-        if (!isPseudoNull(*pValue)) {
-            impl__SetDirtyFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-            impl__ClearNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-        }
-        return;
-    case rfxop::MarkForUpdate:
-        if (!isPseudoNull(*pValue)) impl__ClearNullFieldStatus_CRecordset__QEAAXK_Z(prs, n);
-        break;  // retail falls into the Default call
-    case rfxop::SetFieldNull:
-    case rfxop::AllocCache:
-        return;  // not modelled, see above
-    default:
-        break;
-    }
-    impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(pFX, szName, pValue, plLength, nCFType, sizeof(T), cbPrecision);
-}
-template <typename T> void FixupKeep(T&) {}
-
-// Bit patterns retail stores for the floating-point pseudo-nulls
-// (AFX_RFX_SINGLE_PSEUDO_NULL / AFX_RFX_DOUBLE_PSEUDO_NULL == -9.123e19):
-// `movl $0xe09e4242,(%rsi)` at 0x1fe0fe inside RFX_Single (0x1fe030) and
-// `movabs $0xc413c84846922b8c,%rax` at 0x1fe2b8 inside RFX_Double (0x1fe1e0);
-// the ucomiss/ucomisd operands at rdata 0x350118 / 0x350110 hold the same values.
-float SinglePseudoNull() { const unsigned bits = 0xe09e4242u; float f; std::memcpy(&f, &bits, sizeof(f)); return f; }
-double DoublePseudoNull() { const unsigned long long bits = 0xc413c84846922b8cull; double d; std::memcpy(&d, &bits, sizeof(d)); return d; }
-
-// AFX_RFX_DATE_PSEUDO_NULL: every TIMESTAMP_STRUCT member == 99, fraction included
-// (RFX_Date(TIMESTAMP_STRUCT&) (0x201be0), the compares at 0x201d04..0x201d2f).
-bool IsTimestampPseudoNull(const TIMESTAMP_STRUCT& ts) {
-    return ts.year == 99 && ts.month == 99 && ts.day == 99 && ts.hour == 99 &&
-           ts.minute == 99 && ts.second == 99 && ts.fraction == 99;
-}
-void SetTimestampPseudoNull(TIMESTAMP_STRUCT& ts) {
-    ts.year = 99; ts.month = 99; ts.day = 99; ts.hour = 99; ts.minute = 99; ts.second = 99; ts.fraction = 99;
-}
-
-// ---------------------------------------------------------------------------
 // RFX_Text(CStringT<CH>&): one body for the CStringW export (mfc140u RVA
 // 0x1ff5c0, SQL_C_WCHAR, wcsnlen, byte lengths x2) and the CStringA export
 // (RVA 0x1ffdb0, SQL_C_CHAR, strnlen, byte lengths x1); they differ in nothing
@@ -1030,30 +943,11 @@ extern "C" void MS_ABI impl__AfxRFXBulkDefault__YAXPEAVCFieldExchange__PEB_WPEAX
     }
 }
 
-// Symbol: ?RFX_BigInt@@YAXPEAVCFieldExchange@@PEB_WAEA_J@Z
-// mfc140u RVA 0x200720.  Pseudo-null 0x4a4d4120 (as __int64), Default(..., SQL_C_SBIGINT (-25), 8, 19),
-// AllocCache: m_pvDataCache = operator new(8), m_nDataType = AFX_RFX_BIGINT (22); SetFieldNull clear -> *plLength = 8.
-extern "C" void MS_ABI impl__RFX_BigInt__YAXPEAVCFieldExchange__PEB_WAEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, __int64* value) {
-    RfxScalar<__int64>(pFX, szName, value, SQL_C_SBIGINT, 19,
-        [](const __int64& v) { return v == 0x4a4d4120LL; }, [](__int64& v) { v = 0x4a4d4120LL; }, FixupKeep<__int64>, false);
-}
-
 // Symbol: ?RFX_Binary_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_JH@Z
 // mfc140u RVA 0x203d30: alloc new BYTE[m_nRowsetSize * nMaxLength]; default AfxRFXBulkDefault(..., SQL_C_BINARY (-2), nMaxLength).
 extern "C" void MS_ABI impl__RFX_Binary_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAEPEAPEA_JH_Z(CFieldExchange* pFX, const wchar_t* szName, unsigned char** prgByteVals, __int64** prgLengths, int nMaxLength) {
     RfxBulk<unsigned char>(pFX, szName, prgByteVals, prgLengths, SQL_C_BINARY, static_cast<unsigned __int64>(nMaxLength),
                            static_cast<size_t>(nMaxLength), false, false);
-}
-
-// Symbol: ?RFX_Bool@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z
-// mfc140u RVA 0x200c20.  Pseudo-null AFX_RFX_BOOL_PSEUDO_NULL (2), Default(..., SQL_C_BIT (-7), 4, 1),
-// AllocCache m_nDataType = AFX_RFX_BOOL (1); SetFieldNull clear -> *plLength = 4.
-// Fixup differs from the other scalars (0x200da5): when the column is not null the
-// value is normalised from the single byte SQL_C_BIT wrote: value = (BYTE)value.
-extern "C" void MS_ABI impl__RFX_Bool__YAXPEAVCFieldExchange__PEB_WAEAH_Z(CFieldExchange* pFX, const wchar_t* szName, int* value) {
-    RfxScalar<int>(pFX, szName, value, SQL_C_BIT, 1,
-        [](const int& v) { return v == 2; }, [](int& v) { v = 2; },
-        [](int& v) { v = static_cast<int>(*reinterpret_cast<unsigned char*>(&v)); }, false);
 }
 
 // Symbol: ?RFX_Bool_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z
@@ -1062,27 +956,10 @@ extern "C" void MS_ABI impl__RFX_Bool_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAHP
     RfxBulk<int>(pFX, szName, prgBoolVals, prgLengths, SQL_C_LONG, 4, 1, false, false);
 }
 
-// Symbol: ?RFX_Byte@@YAXPEAVCFieldExchange@@PEB_WAEAE@Z
-// mfc140u RVA 0x200a80.  Pseudo-null AFX_RFX_BYTE_PSEUDO_NULL (255), Default(..., SQL_C_TINYINT (-6), 1, 3),
-// AllocCache m_nDataType = AFX_RFX_BYTE (2); SetFieldNull clear -> *plLength = 1.
-extern "C" void MS_ABI impl__RFX_Byte__YAXPEAVCFieldExchange__PEB_WAEAE_Z(CFieldExchange* pFX, const wchar_t* szName, unsigned char* value) {
-    RfxScalar<unsigned char>(pFX, szName, value, SQL_C_TINYINT, 3,
-        [](const unsigned char& v) { return v == 0xff; }, [](unsigned char& v) { v = 0xff; }, FixupKeep<unsigned char>, false);
-}
-
 // Symbol: ?RFX_Byte_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAEPEAPEA_J@Z
 // mfc140u RVA 0x203c50: new BYTE[m_nRowsetSize]; AfxRFXBulkDefault(..., SQL_C_TINYINT (-6), 1).
 extern "C" void MS_ABI impl__RFX_Byte_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAEPEAPEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, unsigned char** prgByteVals, __int64** prgLengths) {
     RfxBulk<unsigned char>(pFX, szName, prgByteVals, prgLengths, SQL_C_TINYINT, 1, 1, false, false);
-}
-
-// Symbol: ?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAUtagTIMESTAMP_STRUCT@@@Z
-// mfc140u RVA 0x201be0.  Also ENSUREs m_prs and plLength (0x201c1a / 0x201c3b).  Pseudo-null: all seven
-// members == 99; Default(..., SQL_C_TIMESTAMP (11), 16, 23); AllocCache: m_pvDataCache = operator new(16),
-// m_nDataType = AFX_RFX_TIMESTAMP (15); SetFieldNull clear -> *plLength = 16.
-extern "C" void MS_ABI impl__RFX_Date__YAXPEAVCFieldExchange__PEB_WAEAUtagTIMESTAMP_STRUCT___Z(CFieldExchange* pFX, const wchar_t* szName, TIMESTAMP_STRUCT* value) {
-    RfxScalar<TIMESTAMP_STRUCT>(pFX, szName, value, SQL_C_TIMESTAMP, 23, IsTimestampPseudoNull, SetTimestampPseudoNull,
-                                FixupKeep<TIMESTAMP_STRUCT>, true);
 }
 
 // Symbol: ?RFX_Date@@YAXPEAVCFieldExchange@@PEB_WAEAVCOleDateTime@ATL@@@Z
@@ -1105,42 +982,16 @@ extern "C" void MS_ABI impl__RFX_Date_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAUt
     RfxBulk<TIMESTAMP_STRUCT>(pFX, szName, prgTSVals, prgLengths, SQL_C_TIMESTAMP, sizeof(TIMESTAMP_STRUCT), 1, false, false);
 }
 
-// Symbol: ?RFX_Double@@YAXPEAVCFieldExchange@@PEB_WAEAN@Z
-// mfc140u RVA 0x1fe1e0.  Pseudo-null AFX_RFX_DOUBLE_PSEUDO_NULL (-9.123e19, compared with ucomisd so a
-// NaN never matches), Default(..., SQL_C_DOUBLE (8), 8, 22), AllocCache: m_pvDataCache = operator new(8),
-// m_nDataType = AFX_RFX_DOUBLE (7); SetFieldNull clear -> *plLength = 8.
-extern "C" void MS_ABI impl__RFX_Double__YAXPEAVCFieldExchange__PEB_WAEAN_Z(CFieldExchange* pFX, const wchar_t* szName, double* value) {
-    RfxScalar<double>(pFX, szName, value, SQL_C_DOUBLE, 22,
-        [](const double& v) { return v == DoublePseudoNull(); }, [](double& v) { v = DoublePseudoNull(); }, FixupKeep<double>, false);
-}
-
 // Symbol: ?RFX_Double_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEANPEAPEA_J@Z
 // mfc140u RVA 0x1fe4a0: all four pointers ENSUREd first; new double[m_nRowsetSize]; AfxRFXBulkDefault(..., SQL_C_DOUBLE (8), 8).
 extern "C" void MS_ABI impl__RFX_Double_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEANPEAPEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, double** prgDblVals, __int64** prgLengths) {
     RfxBulk<double>(pFX, szName, prgDblVals, prgLengths, SQL_C_DOUBLE, 8, 1, true, false);
 }
 
-// Symbol: ?RFX_Int@@YAXPEAVCFieldExchange@@PEB_WAEAH@Z
-// mfc140u RVA 0x200580.  Pseudo-null AFX_RFX_INT_PSEUDO_NULL (0x7EE4), Default(..., SQL_C_LONG (4), 4, 5),
-// AllocCache m_nDataType = AFX_RFX_INT (3); SetFieldNull clear -> *plLength = 4.
-extern "C" void MS_ABI impl__RFX_Int__YAXPEAVCFieldExchange__PEB_WAEAH_Z(CFieldExchange* pFX, const wchar_t* szName, int* value) {
-    RfxScalar<int>(pFX, szName, value, SQL_C_LONG, 5,
-        [](const int& v) { return v == 0x7ee4; }, [](int& v) { v = 0x7ee4; }, FixupKeep<int>, false);
-}
-
 // Symbol: ?RFX_Int_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAHPEAPEA_J@Z
 // mfc140u RVA 0x203a70 (folded with RFX_Long_Bulk / RFX_Bool_Bulk): new long[m_nRowsetSize]; AfxRFXBulkDefault(..., SQL_C_LONG (4), 4).
 extern "C" void MS_ABI impl__RFX_Int_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAHPEAPEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, int** prgIntVals, __int64** prgLengths) {
     RfxBulk<int>(pFX, szName, prgIntVals, prgLengths, SQL_C_LONG, 4, 1, false, false);
-}
-
-// Symbol: ?RFX_Long@@YAXPEAVCFieldExchange@@PEB_WAEAJ@Z
-// mfc140u RVA 0x2008e0 (the reference body quoted above RfxScalar).  Pseudo-null
-// AFX_RFX_LONG_PSEUDO_NULL (0x4a4d4120), Default(..., SQL_C_LONG (4), 4, 10),
-// AllocCache m_nDataType = AFX_RFX_LONG (4); SetFieldNull clear -> *plLength = 4.
-extern "C" void MS_ABI impl__RFX_Long__YAXPEAVCFieldExchange__PEB_WAEAJ_Z(CFieldExchange* pFX, const wchar_t* szName, long* value) {
-    RfxScalar<long>(pFX, szName, value, SQL_C_LONG, 10,
-        [](const long& v) { return v == 0x4a4d4120L; }, [](long& v) { v = 0x4a4d4120L; }, FixupKeep<long>, false);
 }
 
 // Symbol: ?RFX_LongBinary@@YAXPEAVCFieldExchange@@PEB_WAEAVCLongBinary@@@Z
@@ -1217,14 +1068,6 @@ extern "C" void MS_ABI impl__RFX_LongBinary__YAXPEAVCFieldExchange__PEB_WAEAVCLo
 // mfc140u RVA 0x203a70 (the reference bulk body quoted above RfxBulk): new long[m_nRowsetSize]; AfxRFXBulkDefault(..., SQL_C_LONG (4), 4).
 extern "C" void MS_ABI impl__RFX_Long_Bulk__YAXPEAVCFieldExchange__PEB_WPEAPEAJPEAPEA_J_Z(CFieldExchange* pFX, const wchar_t* szName, long** prgLongVals, __int64** prgLengths) {
     RfxBulk<long>(pFX, szName, prgLongVals, prgLengths, SQL_C_LONG, 4, 1, false, false);
-}
-
-// Symbol: ?RFX_Single@@YAXPEAVCFieldExchange@@PEB_WAEAM@Z
-// mfc140u RVA 0x1fe030.  Pseudo-null AFX_RFX_SINGLE_PSEUDO_NULL (-9.123e19f, ucomiss compare),
-// Default(..., SQL_C_FLOAT (7), 4, 13), AllocCache m_nDataType = AFX_RFX_SINGLE (6); SetFieldNull clear -> *plLength = 4.
-extern "C" void MS_ABI impl__RFX_Single__YAXPEAVCFieldExchange__PEB_WAEAM_Z(CFieldExchange* pFX, const wchar_t* szName, float* value) {
-    RfxScalar<float>(pFX, szName, value, SQL_C_FLOAT, 13,
-        [](const float& v) { return v == SinglePseudoNull(); }, [](float& v) { v = SinglePseudoNull(); }, FixupKeep<float>, false);
 }
 
 // Symbol: ?RFX_Single_Bulk@@YAXPEAVCFieldExchange@@PEB_WPEAPEAMPEAPEA_J@Z
