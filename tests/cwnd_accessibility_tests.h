@@ -194,13 +194,29 @@ static void accessibilityProxy() {
     check(firstIdentity && firstIdentity == otherIdentity,
         "IAccessible and IOleWindow have one canonical COM identity");
     if (otherIdentity) otherIdentity->Release();
+    IAccessibleProxy* cachedProxy = fixture.window.m_pProxy;
     IAccessible* another = nullptr;
-    hr = AccessibleObjectFromWindow(fixture.hwnd, OBJID_CLIENT, accessibleIID, reinterpret_cast<void**>(&another));
+    token = SendMessageW(fixture.hwnd, WM_GETOBJECT, 0, OBJID_CLIENT);
+    hr = ObjectFromLresult(token, accessibleIID, 0, reinterpret_cast<void**>(&another));
     otherIdentity = nullptr;
     if (another) another->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&otherIdentity));
-    check(SUCCEEDED(hr) && another && firstIdentity == otherIdentity,
-        "AccessibleObjectFromWindow reuses the cached proxy while clients hold references");
+    check(SUCCEEDED(hr) && another && firstIdentity == otherIdentity && fixture.window.m_pProxy == cachedProxy,
+        "repeated WM_GETOBJECT marshaling reuses the cached proxy and canonical server identity");
     if (otherIdentity) otherIdentity->Release();
+    if (another) another->Release();
+    another = nullptr;
+    // AccessibleObjectFromWindow adds a DynamicAnnotation wrapper on Windows.
+    // Its public identity can differ even though our server is still cached.
+    // See Microsoft's UIAutomationClientSideProviders Accessible.cs.
+    hr = AccessibleObjectFromWindow(fixture.hwnd, OBJID_CLIENT, accessibleIID, reinterpret_cast<void**>(&another));
+    name = nullptr;
+    HRESULT nameHR = another ? another->get_accName(self, &name) : E_FAIL;
+    check(SUCCEEDED(hr) && another && nameHR == S_OK && name && wcscmp(name,L"Native D2D window") == 0 &&
+        fixture.window.m_pProxy == cachedProxy,
+        "AccessibleObjectFromWindow retrieves a working accessible object while preserving the cached server proxy");
+    if (FAILED(hr) || FAILED(nameHR))
+        std::printf("AccessibleObjectFromWindow HRESULT=0x%08lx, name HRESULT=0x%08lx\n", hr, nameHR);
+    SysFreeString(name);
     if (another) another->Release();
     if (firstIdentity) firstIdentity->Release();
     // Exercise the proxy's IDispatch ABI, rather than calling nested exports.
