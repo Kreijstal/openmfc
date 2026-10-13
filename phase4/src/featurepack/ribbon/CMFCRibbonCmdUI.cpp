@@ -3,44 +3,66 @@
 
 #include "detail/CMFCRibbonCmdUISupport.h"
 
+// Retail x64 element fields and virtual slots are shared by mfc140/mfc140u.
+// Use the native object passed by the client: the provisional public ribbon
+// declarations do not yet model the full CMFCRibbonBaseElement ABI.
+#include <cstring>
+namespace {
+template<class T> T Read(const void* object, size_t offset) {
+    T value; std::memcpy(&value, static_cast<const char*>(object)+offset, sizeof(value)); return value;
+}
+template<class T> void Write(void* object, size_t offset, T value) {
+    std::memcpy(static_cast<char*>(object)+offset, &value, sizeof(value));
+}
+template<class T> T Virtual(void* object, size_t slot) {
+    return reinterpret_cast<T>(Read<void* const*>(object,0)[slot]);
+}
+void Redraw(S_Cmfcribboncmdui* ui) {
+    RECT rect=Read<RECT>(ui->m_pUpdated,0xc8);
+    ::RedrawWindow(Read<HWND>(ui->m_pOther,0x40), &rect, nullptr,
+                   RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+}
+using Query=BOOL (MS_ABI*)(const void*);
+using Notify=void (MS_ABI*)(void*,BOOL);
+}
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
 // Symbol: ?Enable@CMFCRibbonCmdUI@@UEAAXH@Z
 extern "C" void MS_ABI impl__Enable_CMFCRibbonCmdUI__UEAAXH_Z(void* pThis, int bOn)
 {
-    S_Cmfcribboncmdui* p = static_cast<S_Cmfcribboncmdui*>(pThis);
-    // CCmdUI::Enable core behavior: record that an explicit enable state was set,
-    // so the update machinery knows the handler took control of the item.
-    p->m_bEnableChanged = TRUE;
-    // The ribbon element itself is enabled/disabled by the ribbon update pass;
-    // there is no reachable per-element enable mutator to forward to here.
-    (void)bOn;
+    auto* ui=static_cast<S_Cmfcribboncmdui*>(pThis);
+    ui->m_bEnableChanged=TRUE;
+    const BOOL disabled=!bOn;
+    if(Virtual<Query>(ui->m_pUpdated,57)(ui->m_pUpdated)==disabled)return;
+    Write<BOOL>(ui->m_pUpdated,0x148,disabled);
+    Virtual<Notify>(ui->m_pUpdated,144)(ui->m_pUpdated,!!bOn);
+    Redraw(ui);
 }
 // Symbol: ?SetCheck@CMFCRibbonCmdUI@@UEAAXH@Z
 extern "C" void MS_ABI impl__SetCheck_CMFCRibbonCmdUI__UEAAXH_Z(void* pThis, int nCheck)
 {
-    S_Cmfcribboncmdui* p = static_cast<S_Cmfcribboncmdui*>(pThis);
-    // nCheck: 0 => off, 1 => on, 2 => indeterminate. Real MFC pushes the checked
-    // state onto the associated ribbon element; that element mutator is not part
-    // of the exported surface, so we validate and guard the target here.
-    if (p->m_pUpdated != nullptr) {
-        // no reachable element check-state setter to forward to
-        (void)nCheck;
-    }
+    auto* ui=static_cast<S_Cmfcribboncmdui*>(pThis);
+    if(Virtual<Query>(ui->m_pUpdated,58)(ui->m_pUpdated)==nCheck)return;
+    Write<BOOL>(ui->m_pUpdated,0x14c,nCheck);
+    Virtual<Notify>(ui->m_pUpdated,145)(ui->m_pUpdated,nCheck);
+    Redraw(ui);
 }
 // Symbol: ?SetRadio@CMFCRibbonCmdUI@@UEAAXH@Z
 extern "C" void MS_ABI impl__SetRadio_CMFCRibbonCmdUI__UEAAXH_Z(void* pThis, int bOn)
 {
-    // CCmdUI::SetRadio simply forwards to SetCheck with the boolean state.
-    impl__SetCheck_CMFCRibbonCmdUI__UEAAXH_Z(pThis, bOn ? 1 : 0);
+    auto* ui=static_cast<S_Cmfcribboncmdui*>(pThis);
+    Write<BOOL>(ui->m_pUpdated,0x150,bOn);
+    Virtual<Notify>(ui,1)(ui,!!bOn);
 }
 // Symbol: ?SetText@CMFCRibbonCmdUI@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetText_CMFCRibbonCmdUI__UEAAXPEB_W_Z(void* pThis, const wchar_t* lpszText)
 {
-    S_Cmfcribboncmdui* p = static_cast<S_Cmfcribboncmdui*>(pThis);
-    // Forward the new text to the associated ribbon element, which owns the
-    // displayed caption (real MFC calls m_pUpdated->SetText).
-    if (p->m_pUpdated != nullptr) {
-        impl__SetText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(p->m_pUpdated, lpszText);
-    }
+    if(!lpszText) {impl__AfxThrowInvalidArgException__YAXXZ();return;}
+    auto* ui=static_cast<S_Cmfcribboncmdui*>(pThis);
+    if(::lstrcmpW(Read<const wchar_t*>(ui->m_pUpdated,0xa0),lpszText)==0)return;
+    using SetText=void (MS_ABI*)(void*,const wchar_t*);
+    Virtual<SetText>(ui->m_pUpdated,47)(ui->m_pUpdated,lpszText);
+    Redraw(ui);
 }
 // Symbol: ??0CMFCRibbonCmdUI@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonCmdUI__QEAA_XZ(void* pThis)

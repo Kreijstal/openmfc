@@ -275,6 +275,7 @@ static void ownershipAndRecreation() {
 #include "dynamic_layout_tests.h"
 #include "window_message_map_tests.h"
 #include "cmdui_tests.h"
+#include "ribbon_cmdui_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -293,6 +294,7 @@ int main() {
     if (SUCCEEDED(hr)) dynamicLayout();
     if (SUCCEEDED(hr)) windowMessageMaps();
     if (SUCCEEDED(hr)) commandUI();
+    if (SUCCEEDED(hr)) ribbonCommandUI();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

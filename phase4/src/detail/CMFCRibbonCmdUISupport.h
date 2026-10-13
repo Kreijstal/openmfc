@@ -44,17 +44,6 @@ struct S_Cmfcribboncmdui {
 extern void* const g_CMFCRibbonCmdUI_vtbl[4];
 
 
-// The base ribbon element's SetText is a real exported virtual in the same DLL;
-// CMFCRibbonCmdUI::SetText forwards to it. Declared here (no header) so this TU
-// stays self-contained and only takes a link-time symbol reference.
-extern "C" void MS_ABI
-impl__SetText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(void* pElem, const wchar_t* lpszText);
-
-
-
-
-
-
 // ---- vtable slot wrappers (MS_ABI virtual dispatch order) ----
 namespace openmfc { namespace detail { namespace cmfcribboncmdui {
 void MS_ABI vt_Enable_Cmfcribboncmdui(void* p, int b);

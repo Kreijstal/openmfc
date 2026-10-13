@@ -29,6 +29,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/dialog/CDialogLifetime.cpp phase4/src/core/dialog/CDialogInitialization.cpp phase4/src/core/dialog/CDialogVirtuals.cpp phase4/src/core/dialog/AfxHelpEnabled.cpp
     phase4/src/core/gdi/CImageList.cpp phase4/src/core/gdi/CImageListLifetime.cpp phase4/src/core/controls/CComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBoxLifetime.cpp phase4/src/featurepack/controls/StaticData.cpp phase4/src/featurepack/toolbar/StaticData.cpp phase4/src/featurepack/toolbar/CMFCToolBarFontComboBox.cpp phase4/src/featurepack/toolbar/CMFCToolBarComboBoxButton.cpp phase4/src/featurepack/toolbar/CMFCToolBarButtonLifetime.cpp phase4/src/detail/ToolbarComboState.cpp phase4/src/core/collections/CStringList.cpp phase4/src/core/collections/CStringArray.cpp
     phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
+    phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp phase4/src/detail/CMFCRibbonCmdUISupport.cpp
     phase4/src/core/cmdui/CCmdUI.cpp phase4/src/core/cmdui/COleCmdUI.cpp phase4/src/core/cmdui/CTestCmdUI.cpp phase4/src/core/cmdui/CToolCmdUI.cpp
     phase4/src/core/window/CWndMessageMap.cpp phase4/src/core/window/WindowMessageMapDispatch.cpp phase4/src/core/runtime/CommandMessageDispatch.cpp phase4/src/core/gdi/CDC.cpp phase4/src/core/gdi/CDCMessageSupport.cpp
     phase4/src/core/window/CWndDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutLifetime.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp
@@ -81,7 +82,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/gdi/CImageListLifetime.cpp', 'CImageListLifetime'),
+for path, obj in (('featurepack/ribbon/CMFCRibbonCmdUI.cpp', 'CMFCRibbonCmdUI'),
+                  ('core/gdi/CImageListLifetime.cpp', 'CImageListLifetime'),
                   ('core/controls/CComboBox.cpp', 'CComboBox'),
                   ('featurepack/controls/CMFCFontComboBox.cpp', 'CMFCFontComboBox'),
                   ('featurepack/controls/CMFCFontComboBoxLifetime.cpp', 'CMFCFontComboBoxLifetime'),

@@ -54,6 +54,10 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp'
+      - 'phase4/src/detail/CMFCRibbonCmdUISupport.cpp'
+      - 'phase4/src/detail/CMFCRibbonCmdUISupport.h'
+      - 'tests/ribbon_cmdui_tests.h'
       - 'phase4/src/core/cmdui/CCmdUI.cpp'
       - 'phase4/src/core/cmdui/COleCmdUI.cpp'
       - 'phase4/src/core/cmdui/CTestCmdUI.cpp'
@@ -202,6 +206,10 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp'
+      - 'phase4/src/detail/CMFCRibbonCmdUISupport.cpp'
+      - 'phase4/src/detail/CMFCRibbonCmdUISupport.h'
+      - 'tests/ribbon_cmdui_tests.h'
       - 'phase4/src/core/cmdui/CCmdUI.cpp'
       - 'phase4/src/core/cmdui/COleCmdUI.cpp'
       - 'phase4/src/core/cmdui/CTestCmdUI.cpp'
@@ -364,6 +372,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/COleCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CTestCmdUI.cpp"
@@ -506,6 +516,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/COleCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CTestCmdUI.cpp"
