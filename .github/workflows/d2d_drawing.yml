@@ -1,0 +1,35 @@
+name: Direct2D drawing
+
+on:
+  push:
+    paths:
+      - 'phase4/src/core/d2d/**'
+      - 'phase4/src/detail/GdicoreSupport.*'
+      - 'include/openmfc/**'
+      - 'tests/test_rendertarget_drawing.cpp'
+      - '.github/workflows/d2d_drawing.yml'
+  pull_request:
+    paths:
+      - 'phase4/src/core/d2d/**'
+      - 'phase4/src/detail/GdicoreSupport.*'
+      - 'include/openmfc/**'
+      - 'tests/test_rendertarget_drawing.cpp'
+      - '.github/workflows/d2d_drawing.yml'
+  workflow_dispatch:
+
+jobs:
+  drawing:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build standalone drawing tests with MSVC
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          cl /nologo /EHsc /MT /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /Fe:test_rendertarget_drawing.exe "%GITHUB_WORKSPACE%/tests/test_rendertarget_drawing.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DPointF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DSizeF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRectF.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DEllipse.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DRoundedRect.cpp" /link /OPT:REF kernel32.lib user32.lib gdi32.lib ole32.lib d2d1.lib windowscodecs.lib
+      - name: Verify ABI forwarding and rendered pixels on native Windows
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: test_rendertarget_drawing.exe

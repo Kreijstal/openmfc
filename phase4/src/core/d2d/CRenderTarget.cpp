@@ -77,6 +77,18 @@ ID2D1Bitmap* BitmapInterfaceOf(void* pBitmap) {
     return static_cast<ID2D1Bitmap*>(bitmap);
 }
 
+// Geometry, mesh and layer wrappers keep their interface inline at +0x18,
+// matching the retail headers' Get()/conversion operators. Unlike brush and
+// bitmap access above, reading these wrappers does not change their state.
+template <typename Interface>
+Interface* InlineResourceOf(const void* wrapper) {
+    if (!wrapper) return nullptr;
+    Interface* resource;
+    std::memcpy(&resource, static_cast<const unsigned char*>(wrapper) + 0x18,
+                sizeof(resource));
+    return resource;
+}
+
 } // namespace
 
 
@@ -201,88 +213,79 @@ extern "C" void MS_ABI impl__Clear_CRenderTarget__QEAAXU_D3DCOLORVALUE___Z(CRend
 // Symbol: ?DrawLine@CRenderTarget@@QEAAXAEBVCD2DPointF@@0PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawLine_CRenderTarget__QEAAXAEBVCD2DPointF__0PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DPointF* p0, const CD2DPointF* p1, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    if (!pThis) return;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush)) return;
     if (!p0 || !p1) return;
-    (void)pBrush;
-    (void)strokeWidth;
-    (void)pStrokeStyle;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, std::max(p0->x, p1->x));
-    state.size.height = std::max(state.size.height, std::max(p0->y, p1->y));
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    target->DrawLine(D2D1_POINT_2F{p0->x, p0->y}, D2D1_POINT_2F{p1->x, p1->y},
+                     brush, strokeWidth, static_cast<ID2D1StrokeStyle*>(pStrokeStyle));
 }
 // Symbol: ?DrawRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    if (!pThis || !pRect) return;
-    (void)pBrush;
-    (void)strokeWidth;
-    (void)pStrokeStyle;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, std::max(pRect->left, pRect->right));
-    state.size.height = std::max(state.size.height, std::max(pRect->top, pRect->bottom));
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pRect) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_RECT_F rect = {pRect->left, pRect->top, pRect->right, pRect->bottom};
+    target->DrawRectangle(&rect, brush, strokeWidth, static_cast<ID2D1StrokeStyle*>(pStrokeStyle));
 }
 // Symbol: ?DrawEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    if (!pThis || !pEllipse) return;
-    (void)pBrush;
-    (void)strokeWidth;
-    (void)pStrokeStyle;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, pEllipse->point.x + pEllipse->radius.width);
-    state.size.height = std::max(state.size.height, pEllipse->point.y + pEllipse->radius.height);
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pEllipse) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_ELLIPSE ellipse = {{pEllipse->point.x, pEllipse->point.y},
+                                pEllipse->radius.width, pEllipse->radius.height};
+    target->DrawEllipse(&ellipse, brush, strokeWidth, static_cast<ID2D1StrokeStyle*>(pStrokeStyle));
 }
 // Symbol: ?DrawRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
 extern "C" void MS_ABI impl__DrawRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush, float strokeWidth, void* pStrokeStyle) {
-    if (!pThis || !pRect) return;
-    (void)pBrush;
-    (void)strokeWidth;
-    (void)pStrokeStyle;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, std::max(pRect->rect.left, pRect->rect.right));
-    state.size.height = std::max(state.size.height, std::max(pRect->rect.top, pRect->rect.bottom));
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pRect) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_ROUNDED_RECT rect = {{pRect->rect.left, pRect->rect.top,
+                                   pRect->rect.right, pRect->rect.bottom},
+                                  pRect->radius.width, pRect->radius.height};
+    target->DrawRoundedRectangle(&rect, brush, strokeWidth, static_cast<ID2D1StrokeStyle*>(pStrokeStyle));
 }
 // Symbol: ?FillRectangle@CRenderTarget@@QEAAXAEBVCD2DRectF@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillRectangle_CRenderTarget__QEAAXAEBVCD2DRectF__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DRectF* pRect, void* pBrush) {
-    if (!pThis || !pRect) return;
-    (void)pBrush;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, std::max(pRect->left, pRect->right));
-    state.size.height = std::max(state.size.height, std::max(pRect->top, pRect->bottom));
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pRect) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_RECT_F rect = {pRect->left, pRect->top, pRect->right, pRect->bottom};
+    target->FillRectangle(&rect, brush);
 }
 // Symbol: ?FillEllipse@CRenderTarget@@QEAAXAEBVCD2DEllipse@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillEllipse_CRenderTarget__QEAAXAEBVCD2DEllipse__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DEllipse* pEllipse, void* pBrush) {
-    if (!pThis || !pEllipse) return;
-    (void)pBrush;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, pEllipse->point.x + pEllipse->radius.width);
-    state.size.height = std::max(state.size.height, pEllipse->point.y + pEllipse->radius.height);
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pEllipse) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_ELLIPSE ellipse = {{pEllipse->point.x, pEllipse->point.y},
+                                pEllipse->radius.width, pEllipse->radius.height};
+    target->FillEllipse(&ellipse, brush);
 }
 // Symbol: ?FillRoundedRectangle@CRenderTarget@@QEAAXAEBVCD2DRoundedRect@@PEAVCD2DBrush@@@Z
 extern "C" void MS_ABI impl__FillRoundedRectangle_CRenderTarget__QEAAXAEBVCD2DRoundedRect__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, const CD2DRoundedRect* pRect, void* pBrush) {
-    if (!pThis || !pRect) return;
-    (void)pBrush;
-    std::lock_guard<std::mutex> lock(g_wave2StateMutex);
-    auto& state = g_renderTargetState[pThis];
-    state.drawCallCount += 1;
-    state.size.width = std::max(state.size.width, std::max(pRect->rect.left, pRect->rect.right));
-    state.size.height = std::max(state.size.height, std::max(pRect->rect.top, pRect->rect.bottom));
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pRect) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    const D2D1_ROUNDED_RECT rect = {{pRect->rect.left, pRect->rect.top,
+                                   pRect->rect.right, pRect->rect.bottom},
+                                  pRect->radius.width, pRect->radius.height};
+    target->FillRoundedRectangle(&rect, brush);
 }
 // Symbol: ?DrawTextW@CRenderTarget@@QEAAXAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEBVCD2DRectF@@PEAVCD2DBrush@@PEAVCD2DTextFormat@@W4D2D1_DRAW_TEXT_OPTIONS@@W4DWRITE_MEASURING_MODE@@@Z
 extern "C" void MS_ABI impl__DrawTextW_CRenderTarget__QEAAXAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEBVCD2DRectF__PEAVCD2DBrush__PEAVCD2DTextFormat__W4D2D1_DRAW_TEXT_OPTIONS__W4DWRITE_MEASURING_MODE___Z(
@@ -546,17 +549,20 @@ extern "C" void MS_ABI impl__DrawBitmap_CRenderTarget__QEAAXPEAVCD2DBitmap__AEBV
 }
 
 // Symbol: ?DrawGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@MPEAUID2D1StrokeStyle@@@Z
-// STUB.  Retail (mfc140u RVA 0xd5ca0) is:
+// Retail (mfc140u RVA 0xd5ca0):
 //   if (m_pRenderTarget == NULL) return;
 //   if (!VerifyResource(pBrush)) return;                       // only the brush is verified
 //   m_pRenderTarget->DrawGeometry(pGeometry->m_pGeometry /* +0x18 */, pBrush->m_pBrush /* +0x18 */,
 //                                 fStrokeWidth, pStrokeStyle);  // slot 22
-// Not implemented: this tree's CD2DGeometry (core/d2d/CD2DGeometry.cpp) has no storage
-// for its ID2D1Geometry* at all (Attach/Detach are empty stubs), so there is nothing
-// to forward.  Signature corrected from the mangled name; body intentionally empty.
+// CD2DGeometry::Attach now stores the interface at the retail offset +0x18.
 extern "C" void MS_ABI impl__DrawGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__MPEAUID2D1StrokeStyle___Z(
     CRenderTarget* pThis, void* pGeometry, void* pBrush, float fStrokeWidth, void* pStrokeStyle) {
-    (void)pThis; (void)pGeometry; (void)pBrush; (void)fStrokeWidth; (void)pStrokeStyle;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pGeometry) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    target->DrawGeometry(InlineResourceOf<ID2D1Geometry>(pGeometry), brush,
+                         fStrokeWidth, static_cast<ID2D1StrokeStyle*>(pStrokeStyle));
 }
 
 // Symbol: ?DrawGlyphRun@CRenderTarget@@QEAAXAEBVCD2DPointF@@AEBUDWRITE_GLYPH_RUN@@PEAVCD2DBrush@@W4DWRITE_MEASURING_MODE@@@Z
@@ -599,30 +605,38 @@ extern "C" void MS_ABI impl__DrawTextLayout_CRenderTarget__QEAAXAEBVCD2DPointF__
 }
 
 // Symbol: ?FillGeometry@CRenderTarget@@QEAAXPEAVCD2DGeometry@@PEAVCD2DBrush@@1@Z
-// STUB.  Retail (mfc140u RVA 0xd5d20) is:
+// Retail (mfc140u RVA 0xd5d20):
 //   if (m_pRenderTarget == NULL) return;
 //   if (!VerifyResource(pBrush)) return;
 //   if (pOpacityBrush != NULL) VerifyResource(pOpacityBrush);   // result NOT tested
 //   m_pRenderTarget->FillGeometry(pGeometry->m_pGeometry /* +0x18 */, pBrush->m_pBrush /* +0x18 */,
 //                                 pOpacityBrush ? pOpacityBrush->m_pBrush : NULL);   // slot 23
-// Not implemented: same reason as DrawGeometry -- CD2DGeometry has no ID2D1Geometry*
-// storage in this tree.  Signature corrected from the mangled name; body intentionally empty.
+// The optional opacity brush is verified, but retail ignores that result.
 extern "C" void MS_ABI impl__FillGeometry_CRenderTarget__QEAAXPEAVCD2DGeometry__PEAVCD2DBrush__1_Z(
     CRenderTarget* pThis, void* pGeometry, void* pBrush, void* pOpacityBrush) {
-    (void)pThis; (void)pGeometry; (void)pBrush; (void)pOpacityBrush;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pBrush) || !pGeometry) return;
+    if (pOpacityBrush) VerifyResourceOf(pThis, pOpacityBrush);
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    target->FillGeometry(InlineResourceOf<ID2D1Geometry>(pGeometry), brush,
+                         BrushInterfaceOf(pOpacityBrush));
 }
 
 // Symbol: ?FillMesh@CRenderTarget@@QEAAXPEAVCD2DMesh@@PEAVCD2DBrush@@@Z
-// STUB.  Retail (mfc140u RVA 0xd5df0) is:
+// Retail (mfc140u RVA 0xd5df0):
 //   if (m_pRenderTarget == NULL) return;
 //   if (!VerifyResource(pMesh)) return;
 //   if (!VerifyResource(pBrush)) return;
 //   m_pRenderTarget->FillMesh(pMesh->m_pMesh /* +0x18 */, pBrush->m_pBrush /* +0x18 */);   // slot 24
-// Not implemented: this tree's CD2DMesh (core/d2d/CD2DMesh.cpp) has no ID2D1Mesh*
-// storage (Attach/Detach/Create are empty stubs).  Signature corrected; body empty.
+// CD2DMesh::Attach/Create now store the interface at the retail offset +0x18.
 extern "C" void MS_ABI impl__FillMesh_CRenderTarget__QEAAXPEAVCD2DMesh__PEAVCD2DBrush___Z(
     CRenderTarget* pThis, void* pMesh, void* pBrush) {
-    (void)pThis; (void)pMesh; (void)pBrush;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !VerifyResourceOf(pThis, pMesh) || !VerifyResourceOf(pThis, pBrush)) return;
+    ID2D1Brush* brush = BrushInterfaceOf(pBrush);
+    if (!brush) return;
+    target->FillMesh(InlineResourceOf<ID2D1Mesh>(pMesh), brush);
 }
 
 // Symbol: ?FillOpacityMask@CRenderTarget@@QEAAXPEAVCD2DBitmap@@PEAVCD2DBrush@@W4D2D1_OPACITY_MASK_CONTENT@@AEBVCD2DRectF@@3@Z
@@ -683,8 +697,8 @@ extern "C" unsigned int MS_ABI impl__GetMaximumBitmapSize_CRenderTarget__QEBAIXZ
 // Symbol: ?GetPixelFormat@CRenderTarget@@QEBA?AUD2D1_PIXEL_FORMAT@@XZ
 // Transcribed from mfc140u RVA 0xd5360.  Non-static member functions return every UDT
 // through a hidden pointer under the MSVC x64 ABI, so RDX is the 8-byte result slot and
-// the D2D vcall receives that same slot in RDX (mingw's d2d1.h exposes that form as the
-// GetPixelFormat(D2D1_PIXEL_FORMAT*) overload used here):
+// the D2D vcall also uses a return slot. The SDK declares a value return;
+// the MSVC-compatible compiler supplies that hidden COM return argument:
 //   if (m_pRenderTarget == NULL) { *(UINT64*)pResult = 0; }          // mov %rcx,(%rdx) with rcx == 0
 //   else                         m_pRenderTarget->GetPixelFormat(pResult);   // slot 50
 //   return pResult;
@@ -697,7 +711,7 @@ extern "C" ::D2D1_PIXEL_FORMAT* MS_ABI impl__GetPixelFormat_CRenderTarget__QEBA_
         pResult->alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
         return pResult;
     }
-    target->GetPixelFormat(pResult);
+    *pResult = target->GetPixelFormat();
     return pResult;
 }
 
@@ -718,7 +732,7 @@ extern "C" D2D1_SIZE_U* MS_ABI impl__GetPixelSize_CRenderTarget__QEBA_AVCD2DSize
         return pResult;
     }
     D2D1_SIZE_U tmp;
-    target->GetPixelSize(&tmp);
+    tmp = target->GetPixelSize();
     pResult->width = tmp.width;
     pResult->height = tmp.height;
     return pResult;
@@ -804,15 +818,15 @@ extern "C" void MS_ABI impl__PushAxisAlignedClip_CRenderTarget__QEAAXAEBVCD2DRec
 }
 
 // Symbol: ?PushLayer@CRenderTarget@@QEAAXAEBUD2D1_LAYER_PARAMETERS@@AEAVCD2DLayer@@@Z
-// STUB.  Retail (mfc140u RVA 0xd6090) is:
+// Retail (mfc140u RVA 0xd6090):
 //   if (m_pRenderTarget) m_pRenderTarget->PushLayer(&layerParameters, layer.m_pLayer /* +0x18 */);   // slot 40
 //   (no VerifyResource on the layer)
-// Not implemented: this tree's CD2DLayer (core/d2d/CD2DLayer.cpp) has no ID2D1Layer*
-// storage (Attach/Detach/Create are empty stubs), so the layer argument cannot be
-// produced.  Signature corrected from the mangled name; body intentionally empty.
+// CD2DLayer::Attach/Create now store the interface at the retail offset +0x18.
 extern "C" void MS_ABI impl__PushLayer_CRenderTarget__QEAAXAEBUD2D1_LAYER_PARAMETERS__AEAVCD2DLayer___Z(
     CRenderTarget* pThis, const D2D1_LAYER_PARAMETERS* pLayerParameters, void* pLayer) {
-    (void)pThis; (void)pLayerParameters; (void)pLayer;
+    ID2D1RenderTarget* target = RenderTargetOf(pThis);
+    if (!target || !pLayerParameters || !pLayer) return;
+    target->PushLayer(pLayerParameters, InlineResourceOf<ID2D1Layer>(pLayer));
 }
 
 // Symbol: ?RestoreDrawingState@CRenderTarget@@QEAAXAEAUID2D1DrawingStateBlock@@@Z
