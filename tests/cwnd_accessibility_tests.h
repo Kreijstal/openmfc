@@ -171,7 +171,7 @@ static void accessibilityProxy() {
     check(!fixture.window.m_pProxy, "disabled active accessibility uses the default WM_GETOBJECT handler");
     fixture.window.EnableActiveAccessibility();
     LRESULT token = SendMessageW(fixture.hwnd, WM_GETOBJECT, 0, static_cast<LPARAM>(static_cast<DWORD>(OBJID_CLIENT)));
-    check(token != 0 && !FAILED(static_cast<HRESULT>(token)) && fixture.window.m_pProxy,
+    check(token > 0 && fixture.window.m_pProxy,
         "production WM_GETOBJECT routing marshals the active client proxy with zero WPARAM");
     IAccessible* client = nullptr;
     HRESULT hr = ObjectFromLresult(token, accessibleIID, 0, reinterpret_cast<void**>(&client));

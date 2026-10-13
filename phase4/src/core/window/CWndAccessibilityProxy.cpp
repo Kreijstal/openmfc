@@ -157,7 +157,10 @@ extern "C" long MS_ABI impl__CreateAccessibleProxy_CWnd__UEAAJ_K_JPEA_J_Z(
     // The marshaled object or client owns the remaining references. The
     // window's borrowed pointer is cleared by AccessibleProxy's destructor.
     proxy->Release();
-    return FAILED(static_cast<HRESULT>(token)) ? static_cast<HRESULT>(token) : S_OK;
+    // Successful references are positive pointer-sized LRESULT values. Do
+    // not truncate one to HRESULT before deciding whether it is an error.
+    if (token > 0) return S_OK;
+    return token < 0 ? static_cast<HRESULT>(token) : E_FAIL;
 }
 
 LONGLONG CWnd::OnGetObject(ULONGLONG wParam, LONGLONG objectID) {
