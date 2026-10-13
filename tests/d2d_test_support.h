@@ -9,7 +9,9 @@ CImageList::~CImageList() { std::abort(); }
 CDC::CDC() { std::abort(); }
 CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
-HINSTANCE AFXAPI AfxGetInstanceHandle() { std::abort(); }
+HINSTANCE g_d2dTestResourceModule = nullptr;
+HINSTANCE AFXAPI AfxGetInstanceHandle() { return GetModuleHandleW(nullptr); }
+HINSTANCE AFXAPI AfxGetResourceHandle() { return g_d2dTestResourceModule ? g_d2dTestResourceModule : GetModuleHandleW(nullptr); }
 // List serialization is linked for its vtable but is outside these drawing tests.
 CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
 CArchive& CArchive::operator<<(const CObject*) { std::abort(); }

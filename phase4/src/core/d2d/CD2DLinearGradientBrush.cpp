@@ -1,122 +1,96 @@
-// CD2DLinearGradientBrush — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
+// Linear gradients backed by native Direct2D stop collections and brushes.
+#include "detail/D2DResourceSupport.h"
+#include <cstring>
+namespace {
+D2D1_POINT_2F PointFromBits(unsigned long long bits) {
+    D2D1_POINT_2F point; std::memcpy(&point, &bits, sizeof(point)); return point;
+}
+}
+CD2DLinearGradientBrush::CD2DLinearGradientBrush(CRenderTarget* parent, const D2D1_GRADIENT_STOP* stops, UINT count,
+    D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES properties, D2D1_GAMMA gamma, D2D1_EXTEND_MODE extend,
+    const D2D1_BRUSH_PROPERTIES* props, BOOL autoDestroy)
+    : CD2DGradientBrush(parent, stops, count, gamma, extend, props, autoDestroy),
+      m_LinearGradientBrushProperties(properties), m_pLinearGradientBrush(nullptr) {}
+CD2DLinearGradientBrush::~CD2DLinearGradientBrush() { CD2DLinearGradientBrush::Destroy(); }
+HRESULT CD2DLinearGradientBrush::Create(CRenderTarget* parent) {
+    if (!parent || !parent->IsValid() || m_pBrush || !m_arGradientStops.size) return E_FAIL;
+    ID2D1GradientStopCollection* stops = nullptr;
+    HRESULT hr = parent->GetRenderTarget()->CreateGradientStopCollection(m_arGradientStops.data,
+        static_cast<UINT>(m_arGradientStops.size), m_colorInterpolationGamma, m_extendMode, &stops);
+    if (FAILED(hr)) return hr;
+    ID2D1LinearGradientBrush* brush = nullptr;
+    hr = parent->GetRenderTarget()->CreateLinearGradientBrush(&m_LinearGradientBrushProperties, m_pBrushProperties, stops, &brush);
+    if (FAILED(hr)) { stops->Release(); return hr; }
+    if (m_pGradientStops) m_pGradientStops->Release();
+    m_pGradientStops = stops; m_pLinearGradientBrush = brush; m_pBrush = brush; return hr;
+}
+void CD2DLinearGradientBrush::Destroy() { CD2DGradientBrush::Destroy(); m_pLinearGradientBrush = nullptr; }
 
-#include "detail/ManualSmallStubImplementationsSupport.h"
 
 // Symbol: ?Attach@CD2DLinearGradientBrush@@QEAAXPEAUID2D1LinearGradientBrush@@@Z
-extern "C" void MS_ABI impl__Attach_CD2DLinearGradientBrush__QEAAXPEAUID2D1LinearGradientBrush___Z(
-    void* pThis, void* pBrush) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DLinearGradientBrushState(pThis);
-    state.m_resource = pBrush;
+extern "C" void MS_ABI impl__Attach_CD2DLinearGradientBrush__QEAAXPEAUID2D1LinearGradientBrush___Z(void* self, void* brush) {
+    if (!self) return;
+    auto* object = static_cast<CD2DLinearGradientBrush*>(self);
+    object->m_pLinearGradientBrush = static_cast<ID2D1LinearGradientBrush*>(brush); object->m_pBrush = object->m_pLinearGradientBrush;
 }
+
 // Symbol: ?Create@CD2DLinearGradientBrush@@UEAAJPEAVCRenderTarget@@@Z
-extern "C" long MS_ABI impl__Create_CD2DLinearGradientBrush__UEAAJPEAVCRenderTarget___Z(
-    void* pThis, void* pRenderTarget) {
-    if (pThis == nullptr || pRenderTarget == nullptr) {
-        return static_cast<long>(E_POINTER);
-    }
-
-    auto& state = EnsureCD2DLinearGradientBrushState(pThis);
-    state.m_parentRenderTarget = pRenderTarget;
-    state.m_resource = pThis;
-    return S_OK;
+extern "C" long MS_ABI impl__Create_CD2DLinearGradientBrush__UEAAJPEAVCRenderTarget___Z(void* self, void* parent) {
+    return self ? static_cast<CD2DLinearGradientBrush*>(self)->CD2DLinearGradientBrush::Create(static_cast<CRenderTarget*>(parent)) : E_POINTER;
 }
+
 // Symbol: ?Destroy@CD2DLinearGradientBrush@@UEAAXXZ
-extern "C" void MS_ABI impl__Destroy_CD2DLinearGradientBrush__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) {
-        return;
-    }
-    std::lock_guard<std::mutex> lock(g_cd2dLinearGradientBrushStateMutex);
-    g_cd2dLinearGradientBrushStates.erase(pThis);
+extern "C" void MS_ABI impl__Destroy_CD2DLinearGradientBrush__UEAAXXZ(void* self) {
+    if (self) static_cast<CD2DLinearGradientBrush*>(self)->CD2DLinearGradientBrush::Destroy();
 }
+
 // Symbol: ?Detach@CD2DLinearGradientBrush@@QEAAPEAUID2D1LinearGradientBrush@@XZ
-extern "C" void* MS_ABI impl__Detach_CD2DLinearGradientBrush__QEAAPEAUID2D1LinearGradientBrush__XZ(void* pThis) {
-    if (pThis == nullptr) {
-        return nullptr;
-    }
-
-    std::lock_guard<std::mutex> lock(g_cd2dLinearGradientBrushStateMutex);
-    auto it = g_cd2dLinearGradientBrushStates.find(pThis);
-    if (it == g_cd2dLinearGradientBrushStates.end()) {
-        return nullptr;
-    }
-
-    void* brush = it->second.m_resource;
-    it->second.m_resource = nullptr;
-    return brush;
+extern "C" void* MS_ABI impl__Detach_CD2DLinearGradientBrush__QEAAPEAUID2D1LinearGradientBrush__XZ(void* self) {
+    if (!self) return nullptr;
+    auto* object = static_cast<CD2DLinearGradientBrush*>(self);
+    auto* brush = object->m_pLinearGradientBrush; object->m_pLinearGradientBrush = nullptr; object->m_pBrush = nullptr; return brush;
 }
+
 // Symbol: ?GetEndPoint@CD2DLinearGradientBrush@@QEBA?AVCD2DPointF@@XZ
-extern "C" ::CD2DPointF MS_ABI impl__GetEndPoint_CD2DLinearGradientBrush__QEBA_AVCD2DPointF__XZ(const void* pThis) {
-    if (pThis == nullptr) {
-        return ::CD2DPointF(0.0f, 0.0f);
-    }
-
-    CD2DLinearGradientBrushState state{};
-    if (!TryLoadCD2DLinearGradientBrushState(const_cast<void*>(pThis), state)) {
-        return ::CD2DPointF(0.0f, 0.0f);
-    }
-    return ::CD2DPointF(state.m_endPoint.x, state.m_endPoint.y);
+extern "C" void* MS_ABI impl__GetEndPoint_CD2DLinearGradientBrush__QEBA_AVCD2DPointF__XZ(const void* self, void* result) {
+    if (!self || !result) return result;
+    auto* object = static_cast<const CD2DLinearGradientBrush*>(self);
+    auto point = object->m_pLinearGradientBrush ? object->m_pLinearGradientBrush->GetEndPoint() : object->m_LinearGradientBrushProperties.endPoint;
+    std::memcpy(result, &point, sizeof(point)); return result;
 }
+
 // Symbol: ?GetStartPoint@CD2DLinearGradientBrush@@QEBA?AVCD2DPointF@@XZ
-extern "C" ::CD2DPointF MS_ABI impl__GetStartPoint_CD2DLinearGradientBrush__QEBA_AVCD2DPointF__XZ(const void* pThis) {
-    if (pThis == nullptr) {
-        return ::CD2DPointF(0.0f, 0.0f);
-    }
-
-    CD2DLinearGradientBrushState state{};
-    if (!TryLoadCD2DLinearGradientBrushState(const_cast<void*>(pThis), state)) {
-        return ::CD2DPointF(0.0f, 0.0f);
-    }
-    return ::CD2DPointF(state.m_startPoint.x, state.m_startPoint.y);
+extern "C" void* MS_ABI impl__GetStartPoint_CD2DLinearGradientBrush__QEBA_AVCD2DPointF__XZ(const void* self, void* result) {
+    if (!self || !result) return result;
+    auto* object = static_cast<const CD2DLinearGradientBrush*>(self);
+    auto point = object->m_pLinearGradientBrush ? object->m_pLinearGradientBrush->GetStartPoint() : object->m_LinearGradientBrushProperties.startPoint;
+    std::memcpy(result, &point, sizeof(point)); return result;
 }
+
 // Symbol: ?SetEndPoint@CD2DLinearGradientBrush@@QEAAXVCD2DPointF@@@Z
-extern "C" void MS_ABI impl__SetEndPoint_CD2DLinearGradientBrush__QEAAXVCD2DPointF___Z(
-    void* pThis, ::CD2DPointF endPoint) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DLinearGradientBrushState(pThis);
-    state.m_endPoint = {endPoint.x, endPoint.y};
+extern "C" void MS_ABI impl__SetEndPoint_CD2DLinearGradientBrush__QEAAXVCD2DPointF___Z(void* self, unsigned long long bits) {
+    if (!self) return;
+    auto* object = static_cast<CD2DLinearGradientBrush*>(self); auto point = PointFromBits(bits);
+    object->m_LinearGradientBrushProperties.endPoint = point;
+    if (object->m_pLinearGradientBrush) object->m_pLinearGradientBrush->SetEndPoint(point);
 }
-// Symbol: ?SetStartPoint@CD2DLinearGradientBrush@@QEAAXVCD2DPointF@@@Z
-extern "C" void MS_ABI impl__SetStartPoint_CD2DLinearGradientBrush__QEAAXVCD2DPointF___Z(
-    void* pThis, ::CD2DPointF startPoint) {
-    if (pThis == nullptr) {
-        return;
-    }
-    auto& state = EnsureCD2DLinearGradientBrushState(pThis);
-    state.m_startPoint = {startPoint.x, startPoint.y};
-}
-// Symbol: ??0CD2DLinearGradientBrush@@QEAA@PEAVCRenderTarget@@PEBUD2D1_GRADIENT_STOP@@IUD2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES@@W4D2D1_GAMMA@@W4D2D1_EXTEND_MODE@@PEAVCD2DBrushProperties@@H@Z
-extern "C" void* MS_ABI impl___0CD2DLinearGradientBrush__QEAA_PEAVCRenderTarget__PEBUD2D1_GRADIENT_STOP__IUD2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES__W4D2D1_GAMMA__W4D2D1_EXTEND_MODE__PEAVCD2DBrushProperties__H_Z(
-    void* pThis, void* pRenderTarget, void* pStops, int stopCount, void* properties,
-    int gammaMode, int extendMode, void* pBrushProps, int unusedFlags) {
-    (void)pStops;
-    (void)stopCount;
-    (void)gammaMode;
-    (void)extendMode;
-    (void)pBrushProps;
-    (void)unusedFlags;
-    if (pThis == nullptr) {
-        return nullptr;
-    }
 
-    auto& state = EnsureCD2DLinearGradientBrushState(pThis);
-    state.m_parentRenderTarget = pRenderTarget;
-    state.m_resource = pThis;
-    ApplyLinearGradientBrushProperties(state, properties);
-    if (state.m_startPoint.x == 0.0f && state.m_startPoint.y == 0.0f &&
-        state.m_endPoint.x == 0.0f && state.m_endPoint.y == 0.0f) {
-        state.m_endPoint = {1.0f, 0.0f};
-    }
-    return pThis;
+// Symbol: ?SetStartPoint@CD2DLinearGradientBrush@@QEAAXVCD2DPointF@@@Z
+extern "C" void MS_ABI impl__SetStartPoint_CD2DLinearGradientBrush__QEAAXVCD2DPointF___Z(void* self, unsigned long long bits) {
+    if (!self) return;
+    auto* object = static_cast<CD2DLinearGradientBrush*>(self); auto point = PointFromBits(bits);
+    object->m_LinearGradientBrushProperties.startPoint = point;
+    if (object->m_pLinearGradientBrush) object->m_pLinearGradientBrush->SetStartPoint(point);
 }
+
+// Symbol: ??0CD2DLinearGradientBrush@@QEAA@PEAVCRenderTarget@@PEBUD2D1_GRADIENT_STOP@@IUD2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES@@W4D2D1_GAMMA@@W4D2D1_EXTEND_MODE@@PEAVCD2DBrushProperties@@H@Z
+extern "C" void* MS_ABI impl___0CD2DLinearGradientBrush__QEAA_PEAVCRenderTarget__PEBUD2D1_GRADIENT_STOP__IUD2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES__W4D2D1_GAMMA__W4D2D1_EXTEND_MODE__PEAVCD2DBrushProperties__H_Z(void* self, void* parent, const D2D1_GRADIENT_STOP* stops, unsigned int count, const D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES* properties, int gamma, int extend, void* props, int autoDestroy) {
+    return self && properties ? new(self) CD2DLinearGradientBrush(static_cast<CRenderTarget*>(parent), stops, count,
+        *properties, static_cast<D2D1_GAMMA>(gamma), static_cast<D2D1_EXTEND_MODE>(extend),
+        static_cast<const D2D1_BRUSH_PROPERTIES*>(props), autoDestroy) : nullptr;
+}
+
 // Symbol: ??1CD2DLinearGradientBrush@@UEAA@XZ
-extern "C" void MS_ABI impl___1CD2DLinearGradientBrush__UEAA_XZ(void* pThis) {
-    if (pThis != nullptr) {
-        impl__Destroy_CD2DLinearGradientBrush__UEAAXXZ(pThis);
-    }
+extern "C" void MS_ABI impl___1CD2DLinearGradientBrush__UEAA_XZ(void* self) {
+    if (self) static_cast<CD2DLinearGradientBrush*>(self)->CD2DLinearGradientBrush::~CD2DLinearGradientBrush();
 }

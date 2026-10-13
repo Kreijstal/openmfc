@@ -24,6 +24,9 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/d2d/CD2DGeometry.cpp phase4/src/core/d2d/CD2DPathGeometry.cpp
     phase4/src/core/d2d/CD2DLayer.cpp phase4/src/core/d2d/CD2DMesh.cpp
     phase4/src/core/d2d/CD2DBrush.cpp phase4/src/core/d2d/CD2DSolidColorBrush.cpp
+    phase4/src/core/d2d/CD2DBitmap.cpp phase4/src/core/d2d/CD2DBitmapBrush.cpp
+    phase4/src/core/d2d/CD2DGradientBrush.cpp phase4/src/core/d2d/CD2DLinearGradientBrush.cpp
+    phase4/src/core/d2d/CD2DRadialGradientBrush.cpp phase4/src/core/runtime/AfxFindResourceHandle.cpp
     phase4/src/core/d2d/CD2DPointF.cpp phase4/src/core/d2d/CD2DSizeF.cpp
     phase4/src/core/d2d/CD2DRectF.cpp phase4/src/core/d2d/CD2DEllipse.cpp
     phase4/src/core/d2d/CD2DRoundedRect.cpp)
@@ -47,7 +50,9 @@ import gen_weak_stubs
 for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
              'CDCRenderTarget', 'CHwndRenderTarget', 'CBitmapRenderTarget',
              'CD2DResource', 'CD2DGeometry', 'CD2DPathGeometry',
-             'CD2DLayer', 'CD2DMesh', 'CD2DBrush', 'CD2DSolidColorBrush'):
+             'CD2DLayer', 'CD2DMesh', 'CD2DBrush', 'CD2DSolidColorBrush',
+             'CD2DBitmap', 'CD2DBitmapBrush', 'CD2DGradientBrush',
+             'CD2DLinearGradientBrush', 'CD2DRadialGradientBrush'):
     obj = 'test_rendertarget_drawing' if name in (
         'CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout') else name
     defined = {line.split()[-1] for line in subprocess.check_output(

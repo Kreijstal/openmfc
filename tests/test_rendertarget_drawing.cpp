@@ -4,7 +4,11 @@
 #define impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z test_VerifyResource
 #define impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z test_AttachBrush
 #define impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ test_DetachBrush
+#define impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z test_AttachBitmap
+#define impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ test_DetachBitmap
 #include "../phase4/src/core/d2d/CRenderTarget.cpp"
+#undef impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z
+#undef impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ
 #undef impl__VerifyResource_CRenderTarget__IEAAHPEAVCD2DResource___Z
 #undef impl__Attach_CD2DBrush__QEAAXPEAUID2D1Brush___Z
 #undef impl__Detach_CD2DBrush__QEAAPEAUID2D1Brush__XZ
@@ -64,10 +68,10 @@ struct InlineWrapper {
     void* resource;
 };
 static_assert(offsetof(InlineWrapper, resource) == 0x18, "retail resource layout");
-extern "C" void MS_ABI impl__Attach_CD2DBitmap__QEAAXPEAUID2D1Bitmap___Z(void* wrapper, void* resource) {
+extern "C" void MS_ABI test_AttachBitmap(void* wrapper, void* resource) {
     static_cast<InlineWrapper*>(wrapper)->resource = resource;
 }
-extern "C" void* MS_ABI impl__Detach_CD2DBitmap__QEAAPEAUID2D1Bitmap__XZ(void* wrapper) {
+extern "C" void* MS_ABI test_DetachBitmap(void* wrapper) {
     auto* bitmap = static_cast<InlineWrapper*>(wrapper);
     void* result = bitmap->resource;
     bitmap->resource = nullptr;

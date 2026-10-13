@@ -17,6 +17,11 @@ extern "C" long MS_ABI impl__ReCreate_CD2DResource__MEAAJPEAVCRenderTarget___Z(v
     extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_##Class##__SAPEAUCRuntimeClass__XZ();
 OPENMFC_D2D_CLASS_GETTER(CD2DResource)
 OPENMFC_D2D_CLASS_GETTER(CD2DBrush)
+OPENMFC_D2D_CLASS_GETTER(CD2DBitmap)
+OPENMFC_D2D_CLASS_GETTER(CD2DBitmapBrush)
+OPENMFC_D2D_CLASS_GETTER(CD2DGradientBrush)
+OPENMFC_D2D_CLASS_GETTER(CD2DLinearGradientBrush)
+OPENMFC_D2D_CLASS_GETTER(CD2DRadialGradientBrush)
 OPENMFC_D2D_CLASS_GETTER(CD2DSolidColorBrush)
 OPENMFC_D2D_CLASS_GETTER(CD2DGeometry)
 OPENMFC_D2D_CLASS_GETTER(CD2DPathGeometry)
@@ -123,3 +128,109 @@ public:
     ID2D1Mesh* m_pMesh;
 };
 static_assert(sizeof(CD2DMesh) == 32, "retail mesh layout");
+
+class CD2DBitmap : public CD2DResource {
+public:
+    CD2DBitmap(CRenderTarget*, BOOL);
+    CD2DBitmap(CRenderTarget*, UINT, const wchar_t*, D2D1_SIZE_U, BOOL);
+    CD2DBitmap(CRenderTarget*, const wchar_t*, D2D1_SIZE_U, BOOL);
+    CD2DBitmap(CRenderTarget*, HBITMAP, D2D1_SIZE_U, BOOL);
+    ~CD2DBitmap() override;
+    CRuntimeClass* GetRuntimeClass() const override { return impl__GetThisClass_CD2DBitmap__SAPEAUCRuntimeClass__XZ(); }
+    HRESULT Create(CRenderTarget*) override;
+    void Destroy() override;
+    BOOL IsValid() const override { return m_pBitmap != nullptr; }
+    void CommonInit();
+    ID2D1Bitmap* m_pBitmap;
+    UINT m_uiResID;
+    const wchar_t* m_lpszType;
+    CString m_strPath;
+    D2D1_SIZE_U m_sizeDest;
+    HBITMAP m_hBmpSrc;
+    BOOL m_bAutoDestroyHBMP;
+};
+static_assert(sizeof(CD2DBitmap) == 80, "retail bitmap layout");
+static_assert(offsetof(CD2DBitmap, m_pBitmap) == 24, "bitmap interface offset");
+static_assert(offsetof(CD2DBitmap, m_strPath) == 48, "bitmap path offset");
+static_assert(offsetof(CD2DBitmap, m_hBmpSrc) == 64, "source HBITMAP offset");
+
+class CD2DBitmapBrush : public CD2DBrush {
+public:
+    CD2DBitmapBrush(CRenderTarget*, const D2D1_BITMAP_BRUSH_PROPERTIES*, const D2D1_BRUSH_PROPERTIES*, BOOL);
+    CD2DBitmapBrush(CRenderTarget*, UINT, const wchar_t*, D2D1_SIZE_U,
+        const D2D1_BITMAP_BRUSH_PROPERTIES*, const D2D1_BRUSH_PROPERTIES*, BOOL);
+    CD2DBitmapBrush(CRenderTarget*, const wchar_t*, D2D1_SIZE_U,
+        const D2D1_BITMAP_BRUSH_PROPERTIES*, const D2D1_BRUSH_PROPERTIES*, BOOL);
+    ~CD2DBitmapBrush() override;
+    CRuntimeClass* GetRuntimeClass() const override { return impl__GetThisClass_CD2DBitmapBrush__SAPEAUCRuntimeClass__XZ(); }
+    HRESULT Create(CRenderTarget*) override;
+    void Destroy() override;
+    void CommonInit(const D2D1_BITMAP_BRUSH_PROPERTIES*);
+    void SetBitmap(CD2DBitmap*);
+    CD2DBitmap* m_pBitmap;
+    ID2D1BitmapBrush* m_pBitmapBrush;
+    D2D1_BITMAP_BRUSH_PROPERTIES* m_pBitmapBrushProperties;
+};
+static_assert(sizeof(CD2DBitmapBrush) == 64, "retail bitmap brush layout");
+static_assert(offsetof(CD2DBitmapBrush, m_pBitmap) == 40, "bitmap source wrapper offset");
+static_assert(offsetof(CD2DBitmapBrush, m_pBitmapBrush) == 48, "bitmap brush interface offset");
+
+// Retail CArray's x64 prefix: CObject, data, size, capacity and growth count.
+// Keep it inline so subclasses built against MFC can inspect the stop array.
+struct D2DGradientStopArray : CObject {
+    D2DGradientStopArray() = default;
+    ~D2DGradientStopArray() override;
+    void Assign(const D2D1_GRADIENT_STOP*, UINT);
+    D2D1_GRADIENT_STOP* data = nullptr;
+    INT_PTR size = 0;
+    INT_PTR capacity = 0;
+    INT_PTR growBy = 0;
+};
+static_assert(sizeof(D2DGradientStopArray) == 40, "retail gradient stop array layout");
+
+class CD2DGradientBrush : public CD2DBrush {
+public:
+    CD2DGradientBrush(CRenderTarget*, const D2D1_GRADIENT_STOP*, UINT,
+        D2D1_GAMMA, D2D1_EXTEND_MODE, const D2D1_BRUSH_PROPERTIES*, BOOL);
+    ~CD2DGradientBrush() override;
+    CRuntimeClass* GetRuntimeClass() const override { return impl__GetThisClass_CD2DGradientBrush__SAPEAUCRuntimeClass__XZ(); }
+    void Destroy() override;
+    static void* ConstructorVtable();
+    D2DGradientStopArray m_arGradientStops;
+    D2D1_GAMMA m_colorInterpolationGamma;
+    D2D1_EXTEND_MODE m_extendMode;
+    ID2D1GradientStopCollection* m_pGradientStops;
+};
+static_assert(sizeof(CD2DGradientBrush) == 96, "retail gradient brush layout");
+static_assert(offsetof(CD2DGradientBrush, m_arGradientStops) == 40, "gradient stop array offset");
+static_assert(offsetof(CD2DGradientBrush, m_pGradientStops) == 88, "gradient collection offset");
+
+class CD2DLinearGradientBrush : public CD2DGradientBrush {
+public:
+    CD2DLinearGradientBrush(CRenderTarget*, const D2D1_GRADIENT_STOP*, UINT,
+        D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES, D2D1_GAMMA, D2D1_EXTEND_MODE,
+        const D2D1_BRUSH_PROPERTIES*, BOOL);
+    ~CD2DLinearGradientBrush() override;
+    CRuntimeClass* GetRuntimeClass() const override { return impl__GetThisClass_CD2DLinearGradientBrush__SAPEAUCRuntimeClass__XZ(); }
+    HRESULT Create(CRenderTarget*) override;
+    void Destroy() override;
+    D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES m_LinearGradientBrushProperties;
+    ID2D1LinearGradientBrush* m_pLinearGradientBrush;
+};
+static_assert(sizeof(CD2DLinearGradientBrush) == 120, "retail linear gradient brush layout");
+static_assert(offsetof(CD2DLinearGradientBrush, m_pLinearGradientBrush) == 112, "linear interface offset");
+
+class CD2DRadialGradientBrush : public CD2DGradientBrush {
+public:
+    CD2DRadialGradientBrush(CRenderTarget*, const D2D1_GRADIENT_STOP*, UINT,
+        D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES, D2D1_GAMMA, D2D1_EXTEND_MODE,
+        const D2D1_BRUSH_PROPERTIES*, BOOL);
+    ~CD2DRadialGradientBrush() override;
+    CRuntimeClass* GetRuntimeClass() const override { return impl__GetThisClass_CD2DRadialGradientBrush__SAPEAUCRuntimeClass__XZ(); }
+    HRESULT Create(CRenderTarget*) override;
+    void Destroy() override;
+    D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES m_RadialGradientBrushProperties;
+    ID2D1RadialGradientBrush* m_pRadialGradientBrush;
+};
+static_assert(sizeof(CD2DRadialGradientBrush) == 128, "retail radial gradient brush layout");
+static_assert(offsetof(CD2DRadialGradientBrush, m_pRadialGradientBrush) == 120, "radial interface offset");
