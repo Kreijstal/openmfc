@@ -67,11 +67,6 @@ extern "C" void MS_ABI impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(
 extern "C" void MS_ABI impl__AfxRFXBulkDefault__YAXPEAVCFieldExchange__PEB_WPEAXPEA_JH_K_Z(
     CFieldExchange* pFX, const wchar_t* szName, void* pv, __int64* plLength, int nCFType, unsigned __int64 cbValue);
 
-// Symbol: ??0CFieldExchange@@QEAA@IPEAVCRecordset@@PEAX@Z
-extern "C" void* MS_ABI impl___0CFieldExchange__QEAA_IPEAVCRecordset__PEAX_Z(
-    void* pThis, UINT op, CRecordset* pRecordset, void* /*pMapField*/) {
-    return new(pThis) CFieldExchange((CFieldExchange::RFX_Operation)op, pRecordset);
-}
 // Symbol: ?GetLongBinarySize@CFieldExchange@@QEAA_JH@Z
 // SQLLEN CFieldExchange::GetLongBinarySize(int nField)
 // Transcribed from mfc140u RVA 0x203020:
@@ -147,70 +142,18 @@ extern "C" void MS_ABI impl__GetLongBinaryData_CFieldExchange__QEAAXHAEAVCLongBi
     LongBinaryLength(binary) = static_cast<SQLULEN>(indicator);
     if (actualSize) *actualSize = indicator;
 }
-CFieldExchange::CFieldExchange(RFX_Operation op, CRecordset* pRecordset)
-    : m_pRecordset(pRecordset), m_nOperation(op), m_nFields(0), m_nParams(0) {
-    memset(_cfieldexchange_padding, 0, sizeof(_cfieldexchange_padding));
+void CFieldExchange::Default(const wchar_t* name, void* value, SQLLEN* length,
+                             int type, SQLULEN size, SQLULEN precision) {
+    impl__Default_CFieldExchange__QEAAXPEB_WPEAXPEA_JH_K3_Z(this,name,value,length,type,size,precision);
 }
-CFieldExchange::~CFieldExchange() {}
-BOOL CFieldExchange::IsFieldType(UINT* pnField) {
-    if (!pnField) return FALSE;
-    if (m_nOperation == BindParam || m_nOperation == BindParamToField) {
-        if (*pnField == 0) {
-            *pnField = ++m_nParams;
-        }
-        return (*pnField != 0);
-    }
-    if (*pnField == 0) {
-        *pnField = ++m_nFields;
-    }
-    return (*pnField != 0);
+SQLLEN CFieldExchange::GetLongBinarySize(int field) {
+    return impl__GetLongBinarySize_CFieldExchange__QEAA_JH_Z(this,field);
 }
-void CFieldExchange::SetFieldType(UINT* pnField) {
-    if (!pnField) return;
-    if (m_nOperation == BindParam || m_nOperation == BindParamToField) {
-        if (*pnField == 0) {
-            *pnField = ++m_nParams;
-        }
-        return;
-    }
-    if (*pnField == 0) {
-        *pnField = ++m_nFields;
-    }
+void CFieldExchange::GetLongBinaryData(int field,CLongBinary& binary,SQLLEN* size) {
+    impl__GetLongBinaryData_CFieldExchange__QEAAXHAEAVCLongBinary__PEA_J_Z(this,field,&binary,size);
 }
-void CFieldExchange::Default(const wchar_t* lpszName, void* pv, __int64* pnLen,
-                              int nSQLType, unsigned __int64 nLen, void* pvPrecision) {
-    (void)lpszName; (void)nSQLType;
-    if (!m_pRecordset) return;
-
-    RecordsetState& state = EnsureRecordsetState(m_pRecordset);
-    bool isParam = (m_nOperation == BindParam || m_nOperation == BindParamToField);
-    unsigned long fieldIndex = 0;
-    if (isParam) {
-        if (m_nParams == 0) ++m_nParams;
-        fieldIndex = static_cast<unsigned long>(m_nParams - 1);
-    } else {
-        if (m_nFields == 0) ++m_nFields;
-        fieldIndex = static_cast<unsigned long>(m_nFields - 1);
-    }
-
-    if (pv) {
-        if (isParam) state.boundParamIndexes[pv] = static_cast<int>(fieldIndex);
-        else state.boundFieldIndexes[pv] = static_cast<int>(fieldIndex);
-    }
-    if (pnLen) *pnLen = static_cast<__int64>(nLen);
-    if (pvPrecision) {
-        if (nSQLType == SQL_NUMERIC || nSQLType == SQL_DECIMAL) {
-            *static_cast<__int64*>(pvPrecision) = static_cast<__int64>(nLen);
-        } else {
-            *static_cast<__int64*>(pvPrecision) = 0;
-        }
-    }
-    if (state.fieldLengths.size() <= fieldIndex) {
-        state.fieldLengths.resize(fieldIndex + 1, 0);
-    }
-    if (nLen <= static_cast<unsigned __int64>(std::numeric_limits<long long>::max())) {
-        state.fieldLengths[fieldIndex] = static_cast<SQLLEN>(nLen);
-    }
+BYTE* CFieldExchange::ReallocLongBinary(CLongBinary& binary,SQLLEN required,SQLLEN reallocation) {
+    return impl__ReallocLongBinary_CFieldExchange__QEAAPEAEAEAVCLongBinary___J1_Z(this,&binary,required,reallocation);
 }
 void CFieldExchange::SetNull(const wchar_t* lpszName) {
     if (!m_pRecordset || !lpszName) return;
@@ -235,28 +178,9 @@ void CFieldExchange::SetNull(const wchar_t* lpszName) {
 //   +0x48 HSTMT      m_hstmt
 //   +0x50/+0x58 SQLLEN m_lDefaultLB{Fetch,Realloc}Size (8-byte stores, both 0x10000)
 //   (no vptr; sizeof 0x60 by the last member)
-// The class in include/openmfc/afxdb.h has a vptr plus m_pRecordset (+8),
-// m_nOperation (+0x10), m_nFields (+0x14), m_nParams (+0x18) and 32 bytes of
-// padding (sizeof 0x40).  Everything retail keys off m_nFieldType, m_pvField,
-// m_bField, m_pstr, m_lpszSeparator, m_nParamFields or the per-exchange
-// m_hstmt is therefore either approximated (each such point is marked
-// "Deviation:") or left unmodelled and said so.  A header fix is requested.
-//
-// OPERATION NUMBERING.  The header's RFX_Operation enum does not match retail
-// (retail: BindParam=0 RebindParam=1 BindFieldToColumn=2 BindFieldForUpdate=3
-// UnbindFieldForUpdate=4 Fixup=5 MarkForAddNew=6 MarkForUpdate=7 Name=8
-// NameValue=9 Value=10 SetFieldNull=11 StoreField=12 LoadField=13 AllocCache=14
-// AllocMultiRowBuffer=15 DeleteMultiRowBuffer=16 -- every switch below was read
-// off the retail bodies; the header has Fixup=2, SetFieldNull=3, ...).  The
-// numbering is ABI-visible: client code compiled against the real afxdb.h
-// tests pFX->m_nOperation against these values, and the exported constructor
-// receives them.  The bodies below therefore switch on the RETAIL values via
-// rfxop:: and treat m_nOperation as a plain UINT.  Nothing in this DLL's own
-// CRecordset constructs a CFieldExchange or drives DoFieldExchange today, so
-// no internal caller depends on the header's numbering.  (Also ABI-visible:
-// SetFieldType(UINT) is inline in the real afxdb.h and is not exported -- a
-// client's DoFieldExchange writes m_nFieldType at +0x10, which in this
-// header's layout is m_nOperation.)
+// The public declaration now reproduces this 96-byte layout and the native
+// operation numbering. CRecordset's backing storage remains incomplete as
+// described below; RFX behavior still needs the remaining recordset work.
 //
 // Retail CRecordset members these bodies read (retail ctor at RVA 0x1f7e40;
 // offsets read off the bodies, names from the SDK afxdb.h declaration order,
@@ -312,13 +236,8 @@ enum : unsigned {
 
 inline unsigned RfxOp(const CFieldExchange* pFX) { return static_cast<unsigned>(pFX->m_nOperation); }
 
-// Retail decides field-vs-parameter from m_nFieldType (outputColumn == 0).
-// This CFieldExchange has no m_nFieldType; its IsFieldType() counts a
-// parameter for the two parameter operations and a column otherwise, so the
-// operation is the stand-in.  (Header's BindParam / BindParamToField happen to
-// be 0 / 1, the retail BindParam / RebindParam values.)
 inline bool IsParamOperation(const CFieldExchange* pFX) {
-    return RfxOp(pFX) == rfxop::BindParam || RfxOp(pFX) == rfxop::RebindParam;
+    return pFX->m_nFieldType != CFieldExchange::outputColumn;
 }
 
 inline HSTMT RecordsetHstmt(const CFieldExchange* pFX) {
@@ -1170,9 +1089,9 @@ void RfxBulk(CFieldExchange* pFX, const wchar_t* szName, T** prgVals, __int64** 
 //                             .m_nPrecision, .m_nScale, pv, 0 /*BufferLength*/, plLength); if (rc != SQL_SUCCESS) ThrowDBException(rc, m_hstmt);
 //   StoreField (0x1feaa0): AfxStoreField(*m_prs, nField, pv);   LoadField (0x1fea90): AfxLoadField(*m_prs, nField, pv, plLength);
 //   every other value: return.
-// NOT MODELLED here: MarkForUpdate (no value cache to compare against, no
-// m_pvField/m_bField), Name / NameValue / Value (no m_pstr, m_lpszSeparator,
-// m_nParamFields or per-exchange m_hstmt).  Those operations return without
+// NOT IMPLEMENTED here: MarkForUpdate (recordset value-cache work remains),
+// Name / NameValue / Value. The native CFieldExchange fields are now present,
+// but these operation branches still return without
 // touching anything.  Deviation: the BindParam direction is SQL_PARAM_INPUT and
 // its statement handle is the recordset's m_hstmt, for want of m_nFieldType
 // and fx.m_hstmt.  The maps store the 0-based index this codebase's
@@ -1270,17 +1189,10 @@ extern "C" void MS_ABI impl__RFX_BigInt__YAXPEAVCFieldExchange__PEB_WAEA_J_Z(CFi
 }
 
 // Symbol: ?RFX_Binary@@YAXPEAVCFieldExchange@@PEB_WAEAVCByteArray@@_J@Z
-// mfc140u RVA 0x200dc0.  Left a stub: the retail body reads and writes the
-// CByteArray members directly -- m_pData at +8 and m_nSize at +0x10 (e.g. the
-// Fixup store `mov %rax,0x10(%rbx)` at 0x201076 sets m_nSize = *plLength, the
-// SQLBindCol at 0x2010d2 binds m_pData) -- besides calling the exported
-// CByteArray::SetSize.  This codebase's CByteArray (OPENMFC_DECLARE_ARRAY_WRAPPER
-// in openmfc/afx.h) is a CObject with no data members; its storage is a side
-// table in detail/FilecoreSupport.h that is only reachable through C++ member
-// functions defined in core/collections/CByteArray.cpp, which the link audit
-// forbids from here.  Needs the retail CByteArray layout (vptr, m_pData @8,
-// m_nSize @0x10, m_nMaxSize @0x18, m_nGrowBy @0x20, sizeof 0x28 -- the
-// AllocCache path at 0x200e6a allocates 0x28 bytes and zeroes +8..+0x20).
+// mfc140u RVA 0x200dc0. Still pending the full native recordset field/cache
+// storage and RFX operation implementation. CByteArray and CFieldExchange now
+// provide the native layouts this body needs; their former layout blockers
+// have been removed. The binary exchange body itself remains unimplemented.
 extern "C" void MS_ABI impl__RFX_Binary__YAXPEAVCFieldExchange__PEB_WAEAVCByteArray___J_Z(void* /*class*/* p0, const wchar_t* p1, void* /*class*/* p2, __int64 p3) {
     (void)p0; (void)p1; (void)p2; (void)p3;
 }

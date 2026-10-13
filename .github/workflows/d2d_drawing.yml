@@ -54,6 +54,10 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'include/openmfc/afxdb.h'
+      - 'phase4/src/core/db/**'
+      - 'phase4/src/detail/CRecordsetSupport.*'
+      - 'tests/field_exchange_tests.h'
       - 'phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp'
       - 'phase4/src/detail/CMFCRibbonCmdUISupport.cpp'
       - 'phase4/src/detail/CMFCRibbonCmdUISupport.h'
@@ -206,6 +210,10 @@ on:
       - 'include/openmfc/afxmsg_.h'
       - 'phase4/src/detail/CommandMessageDispatch.h'
       - 'tests/window_message_map_tests.h'
+      - 'include/openmfc/afxdb.h'
+      - 'phase4/src/core/db/**'
+      - 'phase4/src/detail/CRecordsetSupport.*'
+      - 'tests/field_exchange_tests.h'
       - 'phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp'
       - 'phase4/src/detail/CMFCRibbonCmdUISupport.cpp'
       - 'phase4/src/detail/CMFCRibbonCmdUISupport.h'
@@ -372,6 +380,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CCmdUI.cpp"
@@ -516,6 +525,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/cmdui/CCmdUI.cpp"
@@ -607,6 +617,42 @@ jobs:
             echo comctl32.lib
           )
           cl @resources.rsp
+      - name: Compile affected database sources with MSVC
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          if not exist db_validation mkdir db_validation
+          pushd db_validation
+          > database.rsp (
+            echo /nologo
+            echo /c
+            echo /EHs
+            echo /MT
+            echo /std:c++17
+            echo /W0
+            echo /DUNICODE
+            echo /D_UNICODE
+            echo /DNOMINMAX
+            echo /DWIN32_LEAN_AND_MEAN
+            echo /DOPENMFC_EXPORTS
+            echo /D_WIN32_WINNT=0x0601
+            echo /FIwinsock2.h
+            echo /FIobjbase.h
+            echo /FIcommdlg.h
+            echo /FIshellapi.h
+            echo /I"%GITHUB_WORKSPACE%/include"
+            echo /I"%GITHUB_WORKSPACE%/phase4/src"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchange.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDataSourceControl.cpp"
+          )
+          cl @database.rsp
+          if errorlevel 1 exit /b 1
+          popd
       - name: Verify ABI forwarding and rendered pixels on native Windows
         shell: cmd
         working-directory: ${{ runner.temp }}

@@ -1216,11 +1216,6 @@ extern "C" int MS_ABI impl__IsFieldDirty_CRecordset__QEAAHPEAX_Z(CRecordset* pTh
 extern "C" int MS_ABI impl__IsFieldNull_CRecordset__QEAAHPEAX_Z(CRecordset* pThis, void* p0) {
     return (int)pThis->IsFieldNull(p0);
 }
-// Symbol: ?IsFieldType@CFieldExchange@@QEAAHPEAI@Z
-// CFieldExchange::IsFieldType
-extern "C" int MS_ABI impl__IsFieldType_CFieldExchange__QEAAHPEAI_Z(CFieldExchange* pThis, unsigned int* p0) {
-    return (int)pThis->IsFieldType(p0);
-}
 // Symbol: ?Move@CRecordset@@UEAAXJG@Z
 // CRecordset::Move
 extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* pThis, long p0, unsigned short p1) {

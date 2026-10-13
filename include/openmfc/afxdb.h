@@ -25,6 +25,7 @@ class CRecordset;
 class CDBException;
 class CRecordView;
 class CFieldExchange;
+class CLongBinary;
 
 //=============================================================================
 // CDBException - Database Exception
@@ -105,34 +106,40 @@ protected:
 class CFieldExchange {
 public:
     enum RFX_Operation {
-        BindParam = 0,
-        BindParamToField,
-        Fixup,
-        SetFieldNull,
-        OutputColumn,
-        MarkForAddNew,
-        MarkForUpdate,
-        AllocCache,
-        StoreField,
-        DeleteField
+        BindParam, RebindParam, BindFieldToColumn, BindFieldForUpdate,
+        UnbindFieldForUpdate, Fixup, MarkForAddNew, MarkForUpdate,
+        Name, NameValue, Value, SetFieldNull, StoreField, LoadField,
+        AllocCache, AllocMultiRowBuffer, DeleteMultiRowBuffer
     };
+    enum FieldType {
+        noFieldType=-1, outputColumn=0, param=SQL_PARAM_INPUT,
+        inputParam=param, outputParam=SQL_PARAM_OUTPUT,
+        inoutParam=SQL_PARAM_INPUT_OUTPUT
+    };
+    CFieldExchange(UINT operation, CRecordset* recordset, void* field=nullptr);
+    BOOL IsFieldType(UINT* field);
+    void SetFieldType(UINT type) {m_nFieldType=type;}
+    void Default(const wchar_t* name, void* value, SQLLEN* length,
+                 int cType, SQLULEN size, SQLULEN precision);
+    SQLLEN GetLongBinarySize(int field);
+    void GetLongBinaryData(int field, CLongBinary& binary, SQLLEN* size);
+    BYTE* ReallocLongBinary(CLongBinary& binary, SQLLEN required, SQLLEN reallocation);
+    void SetNull(const wchar_t* name);
 
-    CFieldExchange(RFX_Operation op, CRecordset* pRecordset);
-    virtual ~CFieldExchange();
-
-    BOOL IsFieldType(UINT* pnField);
-    void SetFieldType(UINT* pnField);
-    void Default(const wchar_t* lpszName, void* pv, __int64* pnLen, int nSQLType, unsigned __int64 nLen, void* pvPrecision);
-    void SetNull(const wchar_t* lpszName);
-
-public:
-    CRecordset* m_pRecordset;
-    RFX_Operation m_nOperation;
-    UINT m_nFields;
-    UINT m_nParams;
-
-protected:
-    char _cfieldexchange_padding[32];
+    UINT m_nOperation;                  // 0
+    union {CRecordset* m_prs; CRecordset* m_pRecordset;}; // 8
+    UINT m_nFieldType;                  // 16
+    UINT m_nFieldFound;                 // 20
+    CString* m_pstr;                    // 24
+    BOOL m_bField;                      // 32
+    void* m_pvField;                    // 40
+    const wchar_t* m_lpszSeparator;     // 48
+    UINT m_nFields;                     // 56
+    UINT m_nParams;                     // 60
+    UINT m_nParamFields;                // 64
+    HSTMT m_hstmt;                      // 72
+    SQLLEN m_lDefaultLBFetchSize;        // 80
+    SQLLEN m_lDefaultLBReallocSize;      // 88
 };
 
 //=============================================================================
@@ -184,6 +191,10 @@ public:
     void SetRowsetSize(DWORD dwNewRowsetSize);
     DWORD GetRowsetSize() const { return m_dwRowsetSize; }
 
+    // Native CRecordset prefix: statement@8, database@16, filter@24, sort@32.
+    HSTMT m_hstmt;
+    CDatabase* m_pDatabase;
+
     // Filtering and sorting
     CString m_strFilter;
     CString m_strSort;
@@ -212,8 +223,7 @@ public:
     void SetParamNull(int nIndex, BOOL bNull = TRUE);
 
 public:
-    HSTMT m_hstmt;
-    CDatabase* m_pDatabase;
+    // The remaining recordset fields still require their full native layout.
     BOOL m_bBOF;
     BOOL m_bEOF;
     BOOL m_bDeleted;
