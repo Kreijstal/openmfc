@@ -2,6 +2,8 @@
 // Sources: global_static_utils.cpp
 
 #include "detail/CMFCDynamicLayoutSupport.h"
+#define OPENMFC_APPCORE_IMPL
+#include "openmfc/afxlayout.h"
 #include <cstddef>
 #include <cstring>
 #include <cwchar>
@@ -9,9 +11,9 @@
 // ---------------------------------------------------------------------------
 // CMFCDynamicLayout object layout.
 //
-// The class (retail afxlayout.h:33, `class CMFCDynamicLayout : public CObject`)
-// is not declared anywhere in the OpenMFC headers (include/openmfc), so it is
-// pinned here from the retail constructor ??0CMFCDynamicLayout@@QEAA@XZ,
+// The public class in openmfc/afxlayout.h and this raw exported-function view
+// share the layout pinned from the retail constructor
+// ??0CMFCDynamicLayout@@QEAA@XZ,
 // RVA 0x768d0 (mfc140u), which stores exactly:
 //   +0x00 vfptr                     (CObject)
 //   +0x08 0                         m_pHostWnd
@@ -20,24 +22,12 @@
 //   +0x20 0  +0x28 0  +0x30 0  +0x38 0  +0x40 0    head / tail / count / free / blocks
 //   +0x48 10                        m_listWnd.m_nBlockSize
 // sizeof == 0x50, which agrees with the m_nObjectSize 80 of the CMFCDynamicLayout
-// descriptor in featurepack/controls/RuntimeClasses.cpp.  The member order
+// descriptor in CMFCDynamicLayoutLifetime.cpp. The member order
 // matches afxlayout.h (m_pHostWnd, m_MinSize, m_listWnd).
 //
-// DEPENDENCY -- NOT YET SATISFIED: OpenMFC's own ??0CMFCDynamicLayout@@QEAA@XZ
-// (featurepack/controls/Thunks.cpp) does NOT perform the stores listed above;
-// it only records pThis in a side map.  An object built through that export
-// therefore has uninitialised m_pNodeHead/m_nCount/m_pNodeFree, and AddItem,
-// Adjust and FindItem below walk whatever the allocator left there.  These
-// bodies assume the retail-faithful constructor (and a destructor that frees
-// the 0x38-byte items and the list's CPlex blocks, retail RVA 0x76960
-// (mfc140u)); that change is requested from the owner of Thunks.cpp.
-//
-// CList<T*,T*> has the CPtrList layout (vfptr, m_pNodeHead, m_pNodeTail,
-// m_nCount, m_pNodeFree, m_pBlocks, m_nBlockSize; CNode = {pNext, pPrev, data},
-// 0x18 bytes).  Retail AddItem appends through an unexported CList<>::AddTail
-// instantiation (0x180007988 in mfc140) whose NewNode carves CPlex blocks of
-// m_nBlockSize nodes of 0x18 bytes -- the same algorithm and node layout as
-// CPtrList::AddTail, so this file appends through the CPtrList::AddTail thunk.
+// Construction and destruction now live in CMFCDynamicLayoutLifetime.cpp.
+// Both the embedded CList and its CPlex nodes use these native fields; appends
+// maintain the head, tail, count and free list directly.
 //
 // AFX_DYNAMIC_LAYOUT_ITEM is forward-declared only in afxlayout.h.  Its layout
 // comes from AddItem(HWND), RVA 0x76bb0 (mfc140u): the operator new request is
@@ -95,8 +85,6 @@ static_assert(offsetof(S_CMFCDynamicLayout, m_nCount)    == 0x30, "m_listWnd.m_n
 static_assert(offsetof(S_CMFCDynamicLayout, m_nBlockSize)== 0x48, "m_listWnd.m_nBlockSize");
 static_assert(sizeof(S_CMFCDynamicLayout) == 0x50, "sizeof(CMFCDynamicLayout) == 80");
 
-// CWnd and CObject are only handled through pointers here: the OpenMFC class
-// headers are not included (they drag in C++ symbols this TU must not link).
 // Retail reads CWnd::m_hWnd at +0x40 throughout (e.g. Create, RVA 0x76a10
 // (mfc140u): `cmp %rax,0x40(%rdx)`), which is also where OpenMFC's CWnd keeps it
 // (include/openmfc/afxwin.h, "m_hWnd at offset 64").
@@ -131,16 +119,12 @@ inline int SheetInt(const void* pSheet, std::size_t off) {
 } // namespace
 
 // --- thunks this file calls (definitions verified in the files named) ------
-extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID);                   // core/window/CWnd.cpp
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);                           // core/window/CWnd.cpp
-extern "C" int   MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* pThis, int nBar);                    // core/window/CWnd.cpp
-extern "C" void  MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* lpRect);  // core/window/Thunks.cpp
-extern "C" int   MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const void* pThis, const CRuntimeClass* pClass);   // core/runtime/CObject.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyPage__SAPEAUCRuntimeClass__XZ();          // featurepack/propertygrid/RuntimeClasses.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertySheet__SAPEAUCRuntimeClass__XZ();         // featurepack/propertygrid/RuntimeClasses.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ();                 // core/view/CFormView.cpp
-extern "C" void* MS_ABI impl__AddTail_CPtrList__QEAAPEAU__POSITION__PEAX_Z(void* pThis, void* newElement); // core/collections/CPtrList.cpp
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);                                            // detail/MemcoreSupport.cpp (::operator new)
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 // --- sibling thunks in this file (signatures derived from the mangled names) -
 extern "C" int  MS_ABI impl__AddItem_CMFCDynamicLayout__QEAAHPEAUHWND____UMoveSettings_1_USizeSettings_1__Z(void* pThis, HWND hWnd, unsigned long long moveSettings, unsigned long long sizeSettings);
@@ -201,9 +185,8 @@ extern "C" int MS_ABI impl__AddItem_CMFCDynamicLayout__QEAAHIUMoveSettings_1_USi
     CWnd* pHost = DL(pThis)->m_pHostWnd;
     if (pHost == nullptr || WndHwnd(pHost) == nullptr)
         return FALSE;
-    CWnd* pWnd = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(pHost, static_cast<int>(nID));
     return impl__AddItem_CMFCDynamicLayout__QEAAHPEAUHWND____UMoveSettings_1_USizeSettings_1__Z(
-        pThis, pWnd != nullptr ? WndHwnd(pWnd) : nullptr, moveSettings, sizeSettings);
+        pThis, ::GetDlgItem(WndHwnd(pHost), static_cast<int>(nID)), moveSettings, sizeSettings);
 }
 
 // Symbol: ?AddItem@CMFCDynamicLayout@@QEAAHPEAUHWND__@@UMoveSettings@1@USizeSettings@1@@Z
@@ -215,8 +198,8 @@ extern "C" int MS_ABI impl__AddItem_CMFCDynamicLayout__QEAAHIUMoveSettings_1_USi
 //   CorrectItem(*pItem);
 //   if (PrepareItem(*pItem)) m_listWnd.AddTail(pItem);
 //   return TRUE;
-// Retail returns TRUE even when PrepareItem fails, and in that case the item is
-// neither linked nor freed (it leaks); that is reproduced as-is.
+// Retail returns TRUE even when PrepareItem fails. We also release that
+// unlinked allocation so an empty host rectangle cannot leak an item.
 // Deviations: (1) retail also calls m_pHostWnd->IsKindOf(RUNTIME_CLASS(CFormView))
 // when m_pHostWnd is non-NULL and never tests the result (eax is overwritten by
 // the next instruction); only the virtual GetRuntimeClass call inside IsKindOf
@@ -250,8 +233,20 @@ extern "C" int MS_ABI impl__AddItem_CMFCDynamicLayout__QEAAHPEAUHWND____UMoveSet
     pItem->m_size = UnpackRatio(sizeSettings);
 
     impl__CorrectItem_CMFCDynamicLayout__IEBAXAEAUAFX_DYNAMIC_LAYOUT_ITEM___Z(pThis, pItem);
-    if (impl__PrepareItem_CMFCDynamicLayout__IEBAHAEAUAFX_DYNAMIC_LAYOUT_ITEM___Z(pThis, pItem))
-        impl__AddTail_CPtrList__QEAAPEAU__POSITION__PEAX_Z(&d->list_vfptr, pItem);   // m_listWnd at +0x18
+    if (impl__PrepareItem_CMFCDynamicLayout__IEBAHAEAUAFX_DYNAMIC_LAYOUT_ITEM___Z(pThis, pItem)) {
+        if(!d->m_pNodeFree) {
+            const auto count=static_cast<size_t>(d->m_nBlockSize);
+            auto* block=static_cast<void**>(std::malloc(sizeof(void*)+count*sizeof(DynLayoutNode)));
+            if(!block) { std::free(pItem);impl__AfxThrowMemoryException__YAXXZ();return FALSE; }
+            *block=d->m_pBlocks;d->m_pBlocks=block;
+            auto* nodes=reinterpret_cast<DynLayoutNode*>(block+1);
+            for(size_t i=count;i>0;--i) { nodes[i-1].pNext=d->m_pNodeFree;d->m_pNodeFree=&nodes[i-1]; }
+        }
+        auto* node=d->m_pNodeFree;d->m_pNodeFree=node->pNext;
+        node->pNext=nullptr;node->pPrev=d->m_pNodeTail;node->data=pItem;
+        if(d->m_pNodeTail)d->m_pNodeTail->pNext=node;else d->m_pNodeHead=node;
+        d->m_pNodeTail=node;++d->m_nCount;
+    } else std::free(pItem);
     return TRUE;
 }
 
@@ -435,12 +430,10 @@ extern "C" void MS_ABI impl__GetHostWndRect_CMFCDynamicLayout__QEBAXAEAVCRect___
     ::GetClientRect(WndHwnd(d->m_pHostWnd), pRect);
 
     if (d->m_pHostWnd != nullptr &&
-        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-            d->m_pHostWnd, impl__GetThisClass_CMFCPropertyPage__SAPEAUCRuntimeClass__XZ())) {
+        d->m_pHostWnd->IsKindOf(impl__GetThisClass_CMFCPropertyPage__SAPEAUCRuntimeClass__XZ())) {
         CWnd* pSheet = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(WndHwnd(d->m_pHostWnd)));
         if (pSheet != nullptr &&
-            impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-                pSheet, impl__GetThisClass_CMFCPropertySheet__SAPEAUCRuntimeClass__XZ())) {
+            pSheet->IsKindOf(impl__GetThisClass_CMFCPropertySheet__SAPEAUCRuntimeClass__XZ())) {
             const int nLook = SheetInt(pSheet, kSheet_m_look);
             const int nNavBarWidth = (nLook == 1 || nLook == 2 || nLook == 4)
                                          ? SheetInt(pSheet, kSheet_m_nBarWidth) : 0;
@@ -454,10 +447,9 @@ extern "C" void MS_ABI impl__GetHostWndRect_CMFCDynamicLayout__QEBAXAEAVCRect___
         }
         ::OffsetRect(pRect, -pRect->left, -pRect->top);
     } else if (d->m_pHostWnd != nullptr &&
-               impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-                   d->m_pHostWnd, impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ())) {
-        const int nVert = impl__GetScrollPos_CWnd__QEBAHH_Z(d->m_pHostWnd, SB_VERT);
-        const int nHorz = impl__GetScrollPos_CWnd__QEBAHH_Z(d->m_pHostWnd, SB_HORZ);
+               d->m_pHostWnd->IsKindOf(impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ())) {
+        const int nVert = ::GetScrollPos(WndHwnd(d->m_pHostWnd), SB_VERT);
+        const int nHorz = ::GetScrollPos(WndHwnd(d->m_pHostWnd), SB_HORZ);
         pRect->bottom += nVert;
         pRect->right  += nHorz;
         ::OffsetRect(pRect, -nHorz, -nVert);
@@ -488,13 +480,13 @@ extern "C" RECT* MS_ABI impl__GetItemRect_CMFCDynamicLayout__IEBA_AVCRect__AEAUA
         return pRet;
     }
     ::GetWindowRect(pItem->m_hWnd, &rect);
-    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(d->m_pHostWnd, &rect);
+    ::MapWindowPoints(nullptr, WndHwnd(d->m_pHostWnd), reinterpret_cast<POINT*>(&rect), 2);
     *pRet = rect;
     return pRet;
 }
 
 // Symbol: ?LoadResource@CMFCDynamicLayout@@SAHPEAVCWnd@@PEAXK@Z
-// STUB.  Retail, RVA 0x773f0 (mfc140u), was disassembled:
+// Retail, RVA 0x773f0 (mfc140u):
 //   if (!pHostWnd || !pHostWnd->m_hWnd || !::IsWindow(pHostWnd->m_hWnd) || !lpResource) return FALSE;
 //   CMFCDynamicLayoutData data;  BOOL bRet = data.ReadResource(lpResource, dwSize);
 //   if (pHostWnd->m_hWnd && data has items) {
@@ -508,15 +500,13 @@ extern "C" RECT* MS_ABI impl__GetItemRect_CMFCDynamicLayout__IEBA_AVCRect__AEAUA
 //       }
 //   }
 //   free data's CPlex chain; return bRet;
-// Not implemented because it depends on CWnd infrastructure OpenMFC lacks:
-// OpenMFC's CWnd::EnableDynamicLayout (core/window/CWnd.cpp) only toggles a
-// side-table flag and never allocates a CMFCDynamicLayout, and OpenMFC's CWnd
-// has no m_pDynamicLayout at +0x98 (that range is _cwnd_padding2).  Reading
-// +0x98 and writing through it, as retail does, would dereference padding.
 extern "C" int MS_ABI impl__LoadResource_CMFCDynamicLayout__SAHPEAVCWnd__PEAXK_Z(
         CWnd* pHostWnd, void* lpResource, unsigned long dwSize) {
-    (void)pHostWnd; (void)lpResource; (void)dwSize;
-    return FALSE;
+    if(!pHostWnd || !::IsWindow(WndHwnd(pHostWnd)) || !lpResource)return FALSE;
+    CMFCDynamicLayoutData data;
+    BOOL result=data.ReadResource(lpResource,dwSize);
+    data.ApplyLayoutDataTo(pHostWnd,FALSE);
+    return result;
 }
 
 // Symbol: ?PrepareItem@CMFCDynamicLayout@@IEBAHAEAUAFX_DYNAMIC_LAYOUT_ITEM@@@Z

@@ -59,8 +59,6 @@ struct CWndRuntimeState {
     bool toolTipsEnabled = false;
     bool trackingToolTipsEnabled = false;
     bool gestureConfigEnabled = false;
-    bool dynamicLayoutEnabled = false;
-    std::wstring dynamicLayoutResource;
     std::map<std::pair<long, WORD>, void*> properties;
 };
 namespace openmfc { namespace detail { namespace wincore {

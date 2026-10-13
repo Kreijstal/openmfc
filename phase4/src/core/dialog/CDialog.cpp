@@ -623,8 +623,6 @@ int CDialog::Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd) {
 //     NULL name (retail: TRUE, nothing to run) -- every indirect dialog would
 //     EndDialog(-1) -- and otherwise SetWindowTextW's the resource NAME onto the
 //     dialog, dereferencing MAKEINTRESOURCE ids;
-//   * CWnd::LoadDynamicLayoutResource builds a std::wstring from the name, which
-//     faults on a MAKEINTRESOURCE id;
 //   * CWnd::UpdateData runs no DoDataExchange;
 //   * OpenMFC's AfxHelpEnabled tests the help-file path, while retail
 //     (0x208c70) returns FALSE with no app, and otherwise asks the current

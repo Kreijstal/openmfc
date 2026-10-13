@@ -1,4 +1,5 @@
 #include "CMFCDynamicLayoutDataSupport.h"
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 static_assert(sizeof(S_Cmfcdynamiclayoutdata) == 56, "CMFCDynamicLayoutData must be 56 bytes");
 static_assert(offsetof(S_Cmfcdynamiclayoutdata, m_pNodeHead) == 8,  "m_pNodeHead @8");
@@ -13,16 +14,16 @@ CNode* ListNewNode(S_Cmfcdynamiclayoutdata* s, CNode* pPrev, CNode* pNext) {
     if (s->m_pNodeFree == NULL) {
         const UINT n = (UINT)s->m_nBlockSize;
         CPlex* pBlock = (CPlex*)std::malloc(sizeof(CPlex) + (size_t)n * sizeof(CNode));
-        if (pBlock == NULL)
-            return NULL;
+        if (pBlock == NULL) {
+            impl__AfxThrowMemoryException__YAXXZ();return NULL;
+        }
         pBlock->pNext = s->m_pBlocks;
         s->m_pBlocks = pBlock;
 
-        CNode* pNode = (CNode*)(void*)(pBlock + 1);
-        pNode += n - 1;
-        for (UINT i = 0; i < n; ++i, --pNode) {
-            pNode->pNext = s->m_pNodeFree;
-            s->m_pNodeFree = pNode;
+        CNode* nodes = (CNode*)(void*)(pBlock + 1);
+        for (UINT i = n; i > 0; --i) {
+            nodes[i-1].pNext = s->m_pNodeFree;
+            s->m_pNodeFree = &nodes[i-1];
         }
     }
 

@@ -5,3 +5,13 @@ BEGIN
     101 "Edit verb"
     102 L"\x7de8\x96c6 verb"
 END
+
+200 AFX_DIALOG_LAYOUT
+BEGIN
+    0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 100, 100
+END
+
+NamedLayout AFX_DIALOG_LAYOUT
+BEGIN
+    0, 100, 100, 0, 0
+END

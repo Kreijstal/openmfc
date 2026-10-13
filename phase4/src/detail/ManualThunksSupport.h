@@ -46,7 +46,6 @@ namespace openmfc { namespace detail { namespace manualthunks {
 extern std::unordered_map<void*, RibbonWriteState> g_ribbonWriterState;
 } } }
 namespace openmfc { namespace detail { namespace manualthunks {
-extern std::unordered_map<void*, int> g_dynamicLayoutState;
 } } }
 namespace openmfc { namespace detail { namespace manualthunks {
 extern std::unordered_map<void*, int> g_dataSourceControlState;

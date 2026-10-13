@@ -202,6 +202,7 @@ class CSize;
 class CRenderTarget;
 class CHwndRenderTarget;
 class CDCRenderTarget;
+class CMFCDynamicLayout;
 class IAccessibleProxy;
 struct IAccessible; // Used by accNavigate
 class CControlBar;
@@ -717,7 +718,7 @@ public:
             BOOL m_bGestureInited;           // +0x88
             DWORD _gesture_pointer_alignment;
             GESTUREINFO* m_pCurrentGestureInfo; // +0x90
-            void* m_pDynamicLayout;          // +0x98
+            CMFCDynamicLayout* m_pDynamicLayout; // +0x98
         };
     };
     HWND m_hWndOwner;                  // +0xA0
@@ -892,7 +893,9 @@ public:
     int UpdateData(int p0);
     void UpdateDialogControls(void* p0, int p1);
     void EnableD2DSupport(int enable = TRUE, int useDCRenderTarget = FALSE);
-    void EnableDynamicLayout(int p0);
+    void EnableDynamicLayout(int enable = TRUE);
+    BOOL IsDynamicLayoutEnabled() const { return m_pDynamicLayout != nullptr; }
+    CMFCDynamicLayout* GetDynamicLayout() { return m_pDynamicLayout; }
     CDCRenderTarget* GetDCRenderTarget();
     void InitDynamicLayout();
     int LoadDynamicLayoutResource(const WCHAR* p0);
@@ -2347,6 +2350,7 @@ inline CWnd::~CWnd() {
     if (m_hWnd != nullptr) DestroyWindow();
     if (m_pRenderTarget) EnableD2DSupport(FALSE);
     if (m_pStdObject || m_pProxy) ReleaseAccessibility();
+    if (m_pDynamicLayout) EnableDynamicLayout(FALSE);
     std::free(m_pCurrentGestureInfo);m_pCurrentGestureInfo=nullptr;
 }
 
@@ -2594,6 +2598,7 @@ inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lPara
     case WM_PAINT:
         return m_pRenderTarget && DoD2DPaint();
     case WM_SIZE:
+        ResizeDynamicLayout();
         if (m_pRenderTarget) ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
         return FALSE;
     case WM_NCDESTROY:

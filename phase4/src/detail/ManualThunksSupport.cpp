@@ -3,7 +3,6 @@
 namespace openmfc { namespace detail { namespace manualthunks {
 std::mutex g_manualThunkStateMutex;
 std::unordered_map<void*, RibbonWriteState> g_ribbonWriterState;
-std::unordered_map<void*, int> g_dynamicLayoutState;
 std::unordered_map<void*, int> g_dataSourceControlState;
 std::wstring ManualThunkCStringText(const CString* text) {
     return text ? std::wstring(static_cast<const wchar_t*>(*text)) : std::wstring();

@@ -63,6 +63,8 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
     case WM_PAINT:
         return pThis->m_pRenderTarget && pThis->DoD2DPaint();
     case WM_SIZE:
+        using Resize=void (MS_ABI*)(void*);
+        openmfc::detail::WindowSlot<Resize>(pThis,84)(pThis);
         if (pThis->m_pRenderTarget) pThis->ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
         return FALSE;
     case WM_NCDESTROY:

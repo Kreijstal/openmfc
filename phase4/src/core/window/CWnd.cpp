@@ -3375,30 +3375,6 @@ void CWnd::UpdateDialogControls(void* p0, int p1)
         }
     }
 }
-void CWnd::EnableDynamicLayout(int p0)
-{
-    GetWindowRuntimeState(this).dynamicLayoutEnabled = p0 != FALSE;
-}
-void CWnd::InitDynamicLayout()
-{
-    GetWindowRuntimeState(this).dynamicLayoutEnabled = true;
-}
-int CWnd::LoadDynamicLayoutResource(const WCHAR* p0)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    GetWindowRuntimeState(this).dynamicLayoutResource = p0 ? p0 : L"";
-    GetWindowRuntimeState(this).dynamicLayoutEnabled = true;
-    return TRUE;
-}
-void CWnd::ResizeDynamicLayout()
-{
-    if (!m_hWnd || !g_wndRuntimeStates[this].dynamicLayoutEnabled) {
-        return;
-    }
-    ::InvalidateRect(m_hWnd, nullptr, TRUE);
-}
 void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int p3, int*& p4)
 {
     if (!m_hWnd) {

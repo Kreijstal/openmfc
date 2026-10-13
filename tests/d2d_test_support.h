@@ -78,8 +78,10 @@ extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
 }
 
 // Generic clone allocation uses the same malloc/free pair as MFC exports.
-extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t bytes) { return std::malloc(bytes); }
-extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* memory) { std::free(memory); }
+bool g_testGenericAllocationFailure=false;
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t bytes) { return g_testGenericAllocationFailure ? nullptr : std::malloc(bytes); }
+int g_testGenericFrees=0;
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* memory) { if(memory)++g_testGenericFrees;std::free(memory); }
 // Generic clone virtuals retain peripheral runtime-class and command siblings.
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CCmdTarget__UEBAPEAUCRuntimeClass__XZ(const CCmdTarget*) { return &CCmdTarget::classCCmdTarget; }
 // Command-map lookup is peripheral to the frame/view routing tests. Their
@@ -162,7 +164,6 @@ extern "C" int MS_ABI impl__OnGesturePressAndTap_CWnd__MEAAHVCPoint__J_Z(
 
 extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) { std::abort(); }
 
-void CWnd::ResizeDynamicLayout() { std::abort(); }
 BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
 BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }
 _AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo() { std::abort(); }
@@ -183,3 +184,23 @@ extern "C" int MS_ABI impl__Attach_CWnd__QEAAHPEAUHWND_____Z(CWnd* window,HWND h
 
 extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd*, WPARAM, LPARAM) { std::abort(); }
 extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(CWnd*, WPARAM, LPARAM,LRESULT*) { std::abort(); }
+
+// Runtime descriptors and handle lookup are peripheral to dynamic layout.
+// The layout storage, resource parser and all positioning remain production.
+CRuntimeClass g_layoutDialog{"CDialog",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+CRuntimeClass g_layoutSheet{"CPropertySheet",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+CRuntimeClass g_layoutPage{"CPropertyPage",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+CRuntimeClass g_layoutMfcPage{"CMFCPropertyPage",sizeof(CWnd),0xffff,nullptr,nullptr,nullptr,nullptr};
+CRuntimeClass g_layoutMfcSheet{"CMFCPropertySheet",0x71e0,0xffff,nullptr,nullptr,nullptr,nullptr};
+CRuntimeClass g_layoutForm{"CFormView",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialog__SAPEAUCRuntimeClass__XZ() { return &g_layoutDialog; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertySheet__SAPEAUCRuntimeClass__XZ() { return &g_layoutSheet; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertyPage__SAPEAUCRuntimeClass__XZ() { return &g_layoutPage; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyPage__SAPEAUCRuntimeClass__XZ() { return &g_layoutMfcPage; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertySheet__SAPEAUCRuntimeClass__XZ() { return &g_layoutMfcSheet; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &g_layoutForm; }
+CWnd* g_layoutParent=nullptr;
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
+    if(g_layoutParent && g_layoutParent->m_hWnd==handle)return g_layoutParent;
+    std::abort();
+}

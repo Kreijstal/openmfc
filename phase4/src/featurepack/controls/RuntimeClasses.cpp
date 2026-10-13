@@ -32,7 +32,6 @@ MFC_DIALOGS_CTRLS_DESC(CMFCCustomColorsPropertyPage, 1072, 0xFFFF, &CPropertyPag
 MFC_DIALOGS_CTRLS_DESC(CMFCDesktopAlertDialog, 3776, 0xFFFF, &CDialogEx::classCDialogEx);
 MFC_DIALOGS_CTRLS_DESC(CMFCDesktopAlertWnd, 6160, 0xFFFF, &CWnd::classCWnd);
 MFC_DIALOGS_CTRLS_DESC(CMFCDropDownFrame, 5488, 0x80000001, &CMiniFrameWnd::classCMiniFrameWnd);
-MFC_DIALOGS_CTRLS_DESC(CMFCDynamicLayout, 80, 0xFFFF, &CObject::classCObject);
 MFC_DIALOGS_CTRLS_DESC(CMFCEditBrowseCtrl, 336, 0xFFFF, &CEdit::classCEdit);
 MFC_DIALOGS_CTRLS_DESC(CMFCMaskedEdit, 296, 0xFFFF, &CEdit::classCEdit);
 #undef MFC_DIALOGS_CTRLS_DESC
@@ -354,11 +353,6 @@ MFC_DIALOGS_CTRLS_GETTERS(CMFCDesktopAlertWnd,
 MFC_DIALOGS_CTRLS_GETTERS(CMFCDropDownFrame,
            impl__GetThisClass_CMFCDropDownFrame__SAPEAUCRuntimeClass__XZ,
            impl__GetRuntimeClass_CMFCDropDownFrame__UEBAPEAUCRuntimeClass__XZ)
-// Symbol: ?GetThisClass@CMFCDynamicLayout@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CMFCDynamicLayout@@UEBAPEAUCRuntimeClass@@XZ
-MFC_DIALOGS_CTRLS_GETTERS(CMFCDynamicLayout,
-           impl__GetThisClass_CMFCDynamicLayout__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCDynamicLayout__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CMFCEditBrowseCtrl@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCEditBrowseCtrl@@UEBAPEAUCRuntimeClass@@XZ
 MFC_DIALOGS_CTRLS_GETTERS(CMFCEditBrowseCtrl,

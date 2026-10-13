@@ -1699,23 +1699,3 @@ extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z
 extern "C" int MS_ABI impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG___Z(HWND__* p0, MSG* p1) {
     return (int)CWnd::WalkPreTranslateTree(p0, p1);
 }
-// Symbol: ?EnableDynamicLayout@CWnd@@QEAAXH@Z
-// CWnd::EnableDynamicLayout
-extern "C" void MS_ABI impl__EnableDynamicLayout_CWnd__QEAAXH_Z(CWnd* pThis, int p0) {
-    pThis->EnableDynamicLayout(p0);
-}
-// Symbol: ?InitDynamicLayout@CWnd@@IEAAXXZ
-// CWnd::InitDynamicLayout
-extern "C" void MS_ABI impl__InitDynamicLayout_CWnd__IEAAXXZ(CWnd* pThis) {
-    pThis->InitDynamicLayout();
-}
-// Symbol: ?LoadDynamicLayoutResource@CWnd@@IEAAHPEB_W@Z
-// CWnd::LoadDynamicLayoutResource
-extern "C" int MS_ABI impl__LoadDynamicLayoutResource_CWnd__IEAAHPEB_W_Z(CWnd* pThis, const wchar_t* p0) {
-    return (int)pThis->LoadDynamicLayoutResource(p0);
-}
-// Symbol: ?ResizeDynamicLayout@CWnd@@MEAAXXZ
-// CWnd::ResizeDynamicLayout
-extern "C" void MS_ABI impl__ResizeDynamicLayout_CWnd__MEAAXXZ(CWnd* pThis) {
-    pThis->ResizeDynamicLayout();
-}

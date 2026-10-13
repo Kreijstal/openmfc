@@ -1115,18 +1115,6 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??0CMFCDynamicLayout@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CMFCDynamicLayout__QEAA_XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
-    g_dynamicLayoutState[pThis] = 0;
-    return pThis;
-}
-// Symbol: ??1CMFCDynamicLayout@@UEAA@XZ
-extern "C" void* MS_ABI impl___1CMFCDynamicLayout__UEAA_XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_manualThunkStateMutex);
-    g_dynamicLayoutState.erase(pThis);
-    return pThis;
-}
 // Symbol: ??0CMFCButton@@QEAA@XZ
 // Constructor: CMFCButton::CMFCButton
 extern "C" void* MS_ABI impl___0CMFCButton__QEAA_XZ(void* pThis) {
