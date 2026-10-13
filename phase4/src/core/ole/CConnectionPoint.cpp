@@ -5,9 +5,9 @@
 // (GetIID is pure).  Every live instance is a client-compiled subclass
 // (BEGIN_CONNECTION_PART), so the object carries the RETAIL layout and an
 // MSVC-layout vtable that the subclass constructor installed.  OpenMFC's
-// own CCmdTarget is 32 bytes (afxwin.h) and has no member for anything
-// from +0x20 up, so this file works on the object through the shadow
-// struct below.  Nothing is added to a shared header.
+// CCmdTarget carries the native 64-byte prefix. This file uses a raw view
+// of the connection-point tail so client-defined subclasses retain their
+// own native virtual tables.
 //
 // Layout, pinned from the retail bodies (all RVAs are mfc140u):
 //   +0x00  vfptr                  never written by this class (AFX_NOVTABLE)
@@ -39,22 +39,12 @@
 // puts them directly after 22 inherited CCmdTarget slots.)  Each call goes through the CFG dispatch pointer
 // 0x1802c7b30, whose target 0x2b9d30 is `jmp *%rax` -- a plain indirect call.
 //
-// m_pConnections.  Retail creates it with `new CPtrArray` inlined
-// (CreateConnectionArray 0x24b590: operator new(0x28), vftable 0x180321190)
-// and afterwards reads CPtrArray's m_pData (+0x08) and m_nSize (+0x10)
-// directly (GetNextConnection, Advise, Unadvise, the dtor), as do MSVC
-// clients that inline GetConnections()->GetSize()/GetAt().  OpenMFC's
-// CPtrArray (afx.h OPENMFC_DECLARE_ARRAY_WRAPPER) keeps its elements in a
-// side table keyed by the object address and never fills those fields, so its
-// impl__ thunks cannot be used here.  The array is therefore kept in the
-// retail field layout (S_RetailPtrArray) by this file, the approach
-// core/controlbar/CDockBar.cpp takes for m_arrBars.  DEVIATION: its vfptr is
-// stored as nullptr, not the retail CPtrArray vftable (OpenMFC has no
-// MSVC-layout CPtrArray vtable), and it is freed here directly rather than
-// through the virtual deleting destructor retail calls.  Only this file
-// allocates it, so allocation and free stay paired.
+// m_pConnections is a real native-layout CPtrArray. Its data and size fields
+// are shared by exported collection methods and native MSVC inline accessors.
 
-#include "detail/ManualSmallStubImplementationsSupport.h"
+#define OPENMFC_APPCORE_IMPL
+#include "detail/CCmdTargetConnectionsSupport.h"
+#include "detail/CEnumConnectionsSupport.h"
 
 #include <ocidl.h>
 #include <olectl.h>
@@ -169,59 +159,9 @@ inline long VQuerySinkInterface(void* p, IUnknown* pUnkSink, void** ppInterface)
     return VSlot<long (MS_ABI*)(void*, IUnknown*, void**)>(p, kVtQuerySinkInterface)(p, pUnkSink, ppInterface);
 }
 
-// --- CPtrArray::SetAtGrow / SetSize on the retail fields ---------------------
-// CPtrArray::SetSize(nNewSize, -1), mfc140u 0x1d45d0, growth branch only (the
-// only callers here grow the array by appending):
-//   if (nNewSize <= m_nMaxSize) { zero [m_nSize, nNewSize); m_nSize = nNewSize; }
-//   else { grow = m_nGrowBy ? m_nGrowBy : clamp(m_nSize / 8, 4, 1024);
-//          nNewMax = max(m_nMaxSize + grow, nNewSize);
-//          new buffer; copy m_nSize elements; zero the rest up to nNewSize;
-//          free(old) (import `free`, 0x1802c74e8); commit sizes }
-//   first allocation (m_pData == NULL): exactly nNewSize elements, zeroed.
-// Retail allocates with MFC operator new (0x27f0), which loops on malloc
-// (import 0x1802c74c8) through the new-handler at +0x50 of
-// AfxGetModuleThreadState() (0x133a20) and returns NULL when there is no
-// handler or it gives up -- whereupon retail SetSize would memset NULL.  This
-// uses malloc and the matching free, and on failure calls
-// AfxThrowMemoryException instead (DEVIATION; the throw is what MFC's
-// default new-handler is expected to do, not something read from 0x27f0).
-void RetailSetSizeGrow(S_RetailPtrArray* a, INT_PTR nNewSize) {
-    if (a->m_pData == nullptr) {
-        void** p = static_cast<void**>(std::malloc(static_cast<size_t>(nNewSize) * sizeof(void*)));
-        if (p == nullptr) { impl__AfxThrowMemoryException__YAXXZ(); return; }
-        std::memset(p, 0, static_cast<size_t>(nNewSize) * sizeof(void*));
-        a->m_pData = p;
-        a->m_nMaxSize = nNewSize;
-    } else if (nNewSize <= a->m_nMaxSize) {
-        if (nNewSize > a->m_nSize) {
-            std::memset(a->m_pData + a->m_nSize, 0,
-                        static_cast<size_t>(nNewSize - a->m_nSize) * sizeof(void*));
-        }
-    } else {
-        INT_PTR grow = a->m_nGrowBy;
-        if (grow == 0) {
-            grow = a->m_nSize / 8;
-            grow = (grow < 4) ? 4 : ((grow > 1024) ? 1024 : grow);
-        }
-        INT_PTR nNewMax = (nNewSize < a->m_nMaxSize + grow) ? a->m_nMaxSize + grow : nNewSize;
-        void** p = static_cast<void**>(std::malloc(static_cast<size_t>(nNewMax) * sizeof(void*)));
-        if (p == nullptr) { impl__AfxThrowMemoryException__YAXXZ(); return; }
-        std::memcpy(p, a->m_pData, static_cast<size_t>(a->m_nSize) * sizeof(void*));
-        std::memset(p + a->m_nSize, 0, static_cast<size_t>(nNewSize - a->m_nSize) * sizeof(void*));
-        std::free(a->m_pData);
-        a->m_pData = p;
-        a->m_nMaxSize = nNewMax;
-    }
-    a->m_nSize = nNewSize;
-}
-// CPtrArray::SetAtGrow, mfc140u 0x1d4910:
-//   if (nIndex < 0) AfxThrowInvalidArgException();      ; js -> call 0x227720
-//   if (nIndex >= m_nSize) SetSize(nIndex + 1, -1);     ; call 0x1d45d0
-//   m_pData[nIndex] = newElement;
-void RetailSetAtGrow(S_RetailPtrArray* a, INT_PTR nIndex, void* newElement) {
-    if (nIndex < 0) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
-    if (nIndex >= a->m_nSize) RetailSetSizeGrow(a, nIndex + 1);
-    a->m_pData[nIndex] = newElement;
+// The real CPtrArray publishes the fields read by native inline accessors.
+void RetailSetAtGrow(S_RetailPtrArray* array, INT_PTR index, void* value) {
+    reinterpret_cast<CPtrArray*>(array)->SetAtGrow(index,value);
 }
 // The bounds check CPtrArray::GetAt / ElementAt inline into every caller:
 // `test idx; js` and `cmp 0x10(arr),idx; jge` -> AfxThrowInvalidArgException
@@ -233,9 +173,8 @@ inline bool RetailIndexOk(const S_RetailPtrArray* a, INT_PTR nIndex) {
     }
     return true;
 }
-void RetailDeletePtrArray(S_RetailPtrArray* a) {
-    std::free(a->m_pData);
-    std::free(a);
+void RetailDeletePtrArray(S_RetailPtrArray* array) {
+    delete reinterpret_cast<CPtrArray*>(array);
 }
 
 // --- XConnPt IUnknown (not exported; entries of the XConnPt vftable) --------
@@ -256,8 +195,7 @@ unsigned long MS_ABI XConnPt_AddRef(void* pThis) {
 // XConnPt::Release, mfc140u 0x24b6d0: the same owner adjustment, then
 // ExternalRelease inlined (m_pOuterUnknown ? m_pOuterUnknown->Release()
 // : InternalRelease 0x26cdb0) -- the ExternalRelease thunk makes the same
-// split.  Note that OpenMFC's InternalRelease thunk (core/runtime/CCmdTarget.cpp)
-// documents that it does not call OnFinalRelease when the count reaches 0.
+// split, including the owner's final-release callback.
 unsigned long MS_ABI XConnPt_Release(void* pThis) {
     return impl__ExternalRelease_CCmdTarget__QEAAKXZ(OwnerOf(OuterFromConnPt(pThis)));
 }
@@ -296,9 +234,8 @@ void* const g_XConnPtVtbl[8] = {
 //     m_xConnPt.vfptr = &XConnPt::`vftable';    ; 0x18032c408 -> 0x58(%rbx)
 // CCmdTarget::CCmdTarget (0x1de3f0) is reproduced inline, as
 // featurepack/controls/CMFCBaseAccessibleObject.cpp does, rather than through
-// ??0CCmdTarget's thunk: that thunk placement-news OpenMFC's 32-byte
-// CCmdTarget (installing g++'s vtable and zeroing only +0x08..+0x1f), while
-// retail stores no vptr (AFX_NOVTABLE) and initialises up to +0x38:
+// ??0CCmdTarget's placement-construction thunk: the AFX_NOVTABLE base must
+// preserve the client's connection-point vptr while initializing the prefix:
 //     m_pModuleState = AfxGetModuleState();     ; call 0x133930, -> 0x38
 //     m_dwRef = 1;                              ; -> 0x08
 //     m_pOuterUnknown = m_xInnerUnknown = m_xDispatch = m_xConnPtContainer = 0;
@@ -344,8 +281,7 @@ extern "C" void* MS_ABI impl___0CConnectionPoint__QEAA_XZ(void* pThis) {
 // not through ??1CCmdTarget's thunk, which runs `pThis->~CCmdTarget()` -- a
 // virtual call through this object's MSVC-layout vptr (the reason
 // CMFCBaseAccessibleObject.cpp inlines it too).
-// DEVIATIONS: no exception handler is installed; the array is
-// freed directly (see the header note); the pThis guard.
+// DEVIATIONS: no exception handler is installed; the pThis guard.
 // Symbol: ??1CConnectionPoint@@UEAA@XZ
 extern "C" void MS_ABI impl___1CConnectionPoint__UEAA_XZ(void* pThis) {
     if (pThis == nullptr) return;
@@ -378,12 +314,11 @@ extern "C" void MS_ABI impl___1CConnectionPoint__UEAA_XZ(void* pThis) {
 //         pArray->Add(m_pUnkFirstConnection);   ; SetAtGrow(m_nSize, p), 0x1d4910
 //         m_pUnkFirstConnection = NULL;
 //     }
-// DEVIATIONS: vfptr stored as nullptr (header note); an allocation failure
-// with a first connection pending returns instead of dereferencing NULL.
+// The array constructor installs its real vtable and synchronized native fields.
 // Symbol: ?CreateConnectionArray@CConnectionPoint@@QEAAXXZ
 extern "C" void MS_ABI impl__CreateConnectionArray_CConnectionPoint__QEAAXXZ(void* pThis) {
     S_CConnectionPoint* p = CP(pThis);
-    S_RetailPtrArray* pArray = static_cast<S_RetailPtrArray*>(std::calloc(1, sizeof(S_RetailPtrArray)));
+    S_RetailPtrArray* pArray = reinterpret_cast<S_RetailPtrArray*>(new CPtrArray);
     p->m_pConnections = pArray;
     if (p->m_pUnkFirstConnection != nullptr) {
         if (pArray == nullptr) return;
@@ -437,10 +372,6 @@ extern "C" const void* MS_ABI impl__GetConnections_CConnectionPoint__QEAAPEBVCPt
 //         ;          : InternalQueryInterface (0x26cfe0); IID at .rdata 0x1802d9ca8
 //     return pCPC;                              ; HRESULT ignored
 // The ExternalQueryInterface thunk performs the same two-way dispatch.
-// CAVEAT: without an outer unknown it lands in OpenMFC's InternalQueryInterface,
-// whose GetInterface walks only CCmdTarget's own (empty) interface map, not the
-// client owner's map (core/runtime/CCmdTarget.cpp), so today this returns NULL
-// unless the owner is aggregated.
 // Symbol: ?GetContainer@CConnectionPoint@@UEAAPEAUIConnectionPointContainer@@XZ
 extern "C" IConnectionPointContainer* MS_ABI impl__GetContainer_CConnectionPoint__UEAAPEAUIConnectionPointContainer__XZ(void* pThis) {
     IConnectionPointContainer* pCPC = nullptr;
@@ -580,33 +511,38 @@ extern "C" long MS_ABI impl__Advise_XConnPt_CConnectionPoint__UEAAJPEAUIUnknown_
     return S_OK;
 }
 
-// CConnectionPoint::XConnPt::EnumConnections -- STUB.  Retail (mfc140u
-// 0x24bc60) is:
-//     AFX_MANAGE_STATE2(pThis->m_pModuleState);         ; call 0x133170, [rcx-0x20]
-//     CEnumConnections* pEnum = new CEnumConnections(NULL, 0);   ; new(0x78), ctor 0x24ba10
-//     if (m_pUnkFirstConnection) pEnum->AddConnection({first, 1});  ; 0x24bb50
-//     n = (int)m_pConnections->m_nSize;                ; if m_pConnections; read once
-//     for (i = 0; i < n; ) {
-//         pUnk = GetAt(i); ++i;                        ; bounds check -> 0x227720
-//         if (pUnk) pEnum->AddConnection({pUnk, i});   ; cookie = index + 1
-//     }
-//     *ppEnum = pEnum ? &pEnum->m_xEnumVOID : NULL;    ; lea 0x68(%rbx)
-//     return pEnum ? S_OK : E_OUTOFMEMORY;
-// plus an exception continuation at 0x24bd3e that reloads ppEnum/pEnum from
-// the frame, stores *ppEnum = NULL and returns by the reloaded pEnum (the catch
-// handler itself, which presumably clears that slot, was not decoded).
-// The IEnumConnections it hands out is the CEnumArray::XEnumVOID interface
-// at +0x68 of a 0x78-byte CEnumConnections.  OpenMFC's ??0CEnumConnections
-// (core/ole/CEnumConnections.cpp) is a stub that returns pThis without
-// building that object or its interface vtable, so the pointer retail returns
-// would have no vtable here.  Rather than hand out a dangling interface, the
-// stub clears *ppEnum and fails.
 // Symbol: ?EnumConnections@XConnPt@CConnectionPoint@@UEAAJPEAPEAUIEnumConnections@@@Z
 extern "C" long MS_ABI impl__EnumConnections_XConnPt_CConnectionPoint__UEAAJPEAPEAUIEnumConnections___Z(
-    void* pThis, IEnumConnections** ppEnum) {
-    (void)pThis;
-    if (ppEnum != nullptr) *ppEnum = nullptr;
-    return E_NOTIMPL;
+    void* self, IEnumConnections** out) {
+    if (!self || !out) return E_POINTER;
+    *out=nullptr;
+    auto* point=CP(OuterFromConnPt(self));
+    openmfc::detail::CmdTargetModuleScope module(static_cast<AFX_MODULE_STATE*>(point->m_pModuleState));
+    auto* enumerator=OpenMfcCreateConnectionEnumerator();
+    if (!enumerator) return E_OUTOFMEMORY;
+    try {
+        if (point->m_pUnkFirstConnection) {
+            CONNECTDATA connection{point->m_pUnkFirstConnection,1};
+            impl__AddConnection_CEnumConnections__QEAAXPEAUtagCONNECTDATA___Z(enumerator,&connection);
+        }
+        if (point->m_pConnections) {
+            INT_PTR count=point->m_pConnections->m_nSize;
+            for (INT_PTR i=0;i<count;++i) {
+                IUnknown* sink=static_cast<IUnknown*>(point->m_pConnections->m_pData[i]);
+                if (!sink) continue;
+                CONNECTDATA connection{sink,static_cast<DWORD>(i+1)};
+                impl__AddConnection_CEnumConnections__QEAAXPEAUtagCONNECTDATA___Z(enumerator,&connection);
+            }
+        }
+        *out=OpenMfcConnectionEnumeratorInterface(enumerator);
+        return S_OK;
+    } catch (const std::bad_alloc&) {
+        OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
+        return E_OUTOFMEMORY;
+    } catch (...) {
+        OpenMfcConnectionEnumeratorInterface(enumerator)->Release();
+        throw;
+    }
 }
 
 // CConnectionPoint::XConnPt::GetConnectionInterface, mfc140u 0x24b790:

@@ -51,3 +51,6 @@ CArchive& CArchive::operator<<(const void*) { std::abort(); }
 CArchive& CArchive::operator>>(void*&) { std::abort(); }
 CArchive& CArchive::operator<<(unsigned int) { std::abort(); }
 CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }
+
+// Connection-array allocation failures use the framework memory exception.
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() { throw std::bad_alloc(); }

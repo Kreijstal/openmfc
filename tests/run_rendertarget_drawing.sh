@@ -19,7 +19,7 @@ FLAGS=(/nologo /EHs /MT /std:c++17 /Gy /Gw /W0
     -I"$ROOT/include" -I"$ROOT/phase4/src")
 SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/detail/GdicoreSupport.cpp
-    phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp
+    phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/runtime/InterfaceMaps.cpp
@@ -76,6 +76,8 @@ for path, obj in (('core/runtime/CCmdTargetVirtuals.cpp', 'CCmdTargetVirtuals'),
                   ('core/runtime/CCmdTargetInvoke.cpp', 'CCmdTargetInvoke'),
                   ('core/runtime/CCmdTargetEvents.cpp', 'CCmdTargetEvents'),
                   ('core/ole/COleConnPtContainer.cpp', 'COleConnPtContainer'),
+                  ('core/ole/CConnectionPoint.cpp', 'CConnectionPoint'),
+                  ('core/ole/CEnumConnections.cpp', 'CEnumConnections'),
                   ('core/ole/COleDispatchImpl.cpp', 'COleDispatchImpl'),
                   ('core/window/CWndD2D.cpp', 'CWndD2D'),
                   ('core/window/CWndAccessibility.cpp', 'CWndAccessibility'),
