@@ -2,17 +2,6 @@
 
 IMPLEMENT_DYNAMIC(CControlBar, CWnd)
 IMPLEMENT_DYNAMIC(CDocItem, CObject)
-void CCmdUI_Delegated(CCmdUI* pThis, void (CCmdUI::*fn)(int), int arg) {
-    if (pThis && pThis->m_pOther && pThis->m_pOther != pThis) {
-        (pThis->m_pOther->*fn)(arg);
-    }
-}
-void CCmdUI_DelegatedText(CCmdUI* pThis, void (CCmdUI::*fn)(const wchar_t*), const wchar_t* text) {
-    if (pThis && pThis->m_pOther && pThis->m_pOther != pThis) {
-        (pThis->m_pOther->*fn)(text);
-    }
-}
-
 HRESULT DataSourceDataObject::QueryInterface(REFIID riid, void** ppvObject) {
     if (!ppvObject) return E_POINTER;
     if (riid == IID_IUnknown || riid == IID_IDataObject) {
@@ -263,98 +252,6 @@ MS_ABI int impl__AfxOleUnregisterTypeLib(REFGUID guid, WORD wVerMajor, WORD wVer
 }
 IMPLEMENT_DYNAMIC(COleDocObjectItem, COleClientItem)
 namespace openmfc { namespace detail { namespace olecore {
-CMenu* CCmdUI_Menu(const CCmdUI* pThis) {
-    auto* ui = reinterpret_cast<const CCmdUIShim_Olecore*>(pThis);
-    if (!ui) return nullptr;
-    if (ui->m_pSubMenu != nullptr) {
-        return ui->m_pSubMenu;
-    }
-    return ui->m_pMenu;
-}
-bool CCmdUI_IsValidMenu(const CCmdUI* pThis) {
-    auto* ui = reinterpret_cast<const CCmdUIShim_Olecore*>(pThis);
-    return ui != nullptr && CCmdUI_Menu(pThis) != nullptr && CCmdUI_Menu(pThis)->m_hMenu != nullptr;
-}
-bool CCmdUI_IdValid(UINT id) {
-    return id != 0U && id != static_cast<UINT>(-1);
-}
-bool CCmdUI_HasByPositionTarget(const CCmdUI* pThis, UINT* itemID, UINT* flags) {
-    auto* ui = reinterpret_cast<const CCmdUIShim_Olecore*>(pThis);
-    if (!ui) return false;
-    if (ui->m_nIndex > 0) {
-        *itemID = static_cast<UINT>(ui->m_nIndex);
-        *flags = MF_BYPOSITION;
-        return true;
-    }
-    if (!CCmdUI_IdValid(ui->m_nID)) {
-        return false;
-    }
-    *itemID = ui->m_nID;
-    *flags = MF_BYCOMMAND;
-    return true;
-}
-void CCmdUIEnableForMenu(CCmdUI* pThis, BOOL bOn) {
-    auto* ui = reinterpret_cast<CCmdUIShim_Olecore*>(pThis);
-    if (!ui || pThis->m_pOther) {
-        CCmdUI_Delegated(pThis, &CCmdUI::Enable, bOn);
-        return;
-    }
-
-    CMenu* pMenu = CCmdUI_Menu(pThis);
-    if (!CCmdUI_IsValidMenu(pThis)) {
-        return;
-    }
-
-    UINT itemID = 0;
-    UINT flags = MF_BYCOMMAND;
-    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
-
-    UINT state = bOn ? MF_ENABLED : (MF_DISABLED | MF_GRAYED);
-    if (CCmdUI_IsValidMenu(pThis)) {
-        ::EnableMenuItem(pMenu->m_hMenu, itemID, flags | state);
-    }
-}
-void CCmdUICheckForMenu(CCmdUI* pThis, int nCheck) {
-    auto* ui = reinterpret_cast<CCmdUIShim_Olecore*>(pThis);
-    if (!ui || pThis->m_pOther) {
-        CCmdUI_Delegated(pThis, &CCmdUI::SetCheck, nCheck);
-        return;
-    }
-
-    if (!CCmdUI_IsValidMenu(pThis)) {
-        return;
-    }
-    CMenu* pMenu = CCmdUI_Menu(pThis);
-
-    UINT itemID = 0;
-    UINT flags = MF_BYCOMMAND;
-    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
-    ::CheckMenuItem(pMenu->m_hMenu, itemID, flags | (nCheck ? MF_CHECKED : MF_UNCHECKED));
-}
-void CCmdUISetTextForMenu(CCmdUI* pThis, const wchar_t* lpszText) {
-    if (!pThis) return;
-    auto* ui = reinterpret_cast<CCmdUIShim_Olecore*>(pThis);
-    if (!ui || pThis->m_pOther) {
-        CCmdUI_DelegatedText(pThis, &CCmdUI::SetText, lpszText);
-        return;
-    }
-
-    if (!CCmdUI_IsValidMenu(pThis)) {
-        return;
-    }
-    CMenu* pMenu = CCmdUI_Menu(pThis);
-
-    UINT itemID = 0;
-    UINT flags = MF_BYCOMMAND;
-    if (!CCmdUI_HasByPositionTarget(pThis, &itemID, &flags)) return;
-
-    MENUITEMINFOW mii = {};
-    mii.cbSize = sizeof(mii);
-    mii.fMask = MIIM_TYPE | MIIM_STRING;
-    mii.dwTypeData = const_cast<wchar_t*>(lpszText ? lpszText : L"");
-    mii.cch = static_cast<UINT>(lpszText ? (wcslen(lpszText) + 1) : 0);
-    ::SetMenuItemInfoW(pMenu->m_hMenu, itemID, flags == MF_BYPOSITION, &mii);
-}
 int g_bOleInitialized = FALSE;
 int g_nOleLockCount = 0;
 BOOL g_bOleUserCtrl = FALSE;

@@ -50,3 +50,21 @@ public:
     }
 };
 static_assert(sizeof(CPushRoutingFrame)==24 && sizeof(CPushRoutingView)==24,"native routing scopes");
+
+class CTestCmdUI : public CCmdUI {
+public:
+    CTestCmdUI() : m_bEnabled(TRUE) {}
+    void Enable(BOOL enabled) override { m_bEnabled=enabled;m_bEnableChanged=TRUE; }
+    void SetCheck(int) override {}
+    void SetRadio(BOOL) override {}
+    void SetText(const wchar_t*) override {}
+    BOOL m_bEnabled;
+};
+static_assert(sizeof(CTestCmdUI)==72,"native test command UI");
+
+class CToolCmdUI : public CCmdUI {
+public:
+    void Enable(BOOL enabled) override;
+    void SetCheck(int check) override;
+    void SetText(const wchar_t*) override {}
+};

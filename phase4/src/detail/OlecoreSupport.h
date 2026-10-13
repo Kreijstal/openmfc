@@ -67,56 +67,6 @@ extern "C" HFONT MS_ABI impl__GetFontHandle_CFontHolder__QEAAPEAUHFONT____XZ(voi
 //=============================================================================
 
 
-namespace openmfc { namespace detail { namespace olecore {
-struct CCmdUIShim_Olecore {
-    void* vftable;
-    UINT m_nID;
-    CCmdUI* m_pOther;
-    int m_nIndex;
-    CMenu* m_pMenu;
-    CMenu* m_pSubMenu;
-    char _padding[8];
-};
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-CMenu* CCmdUI_Menu(const CCmdUI* pThis);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-bool CCmdUI_IsValidMenu(const CCmdUI* pThis);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-bool CCmdUI_IdValid(UINT id);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-bool CCmdUI_HasByPositionTarget(const CCmdUI* pThis, UINT* itemID, UINT* flags);
-} } }
-
-void CCmdUI_Delegated(CCmdUI* pThis, void (CCmdUI::*fn)(int), int arg);
-
-void CCmdUI_DelegatedText(CCmdUI* pThis, void (CCmdUI::*fn)(const wchar_t*), const wchar_t* text);
-
-namespace openmfc { namespace detail { namespace olecore {
-void CCmdUIEnableForMenu(CCmdUI* pThis, BOOL bOn);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-void CCmdUICheckForMenu(CCmdUI* pThis, int nCheck);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-void CCmdUISetTextForMenu(CCmdUI* pThis, const wchar_t* lpszText);
-} } }
-
-
-
-
-
-
-
 //=============================================================================
 // CControlBar exports (extern "C" MS_ABI impl_ functions)
 //=============================================================================

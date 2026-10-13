@@ -222,3 +222,8 @@ extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU h
 extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ handle) {
     return GetTempGdiObject(handle);
 }
+
+// Toolbar get/set siblings are peripheral to CToolCmdUI's state translation.
+UINT g_toolCommandStyle=0;int g_toolCommandIndex=-1;
+extern "C" UINT MS_ABI impl__GetButtonStyle_CToolBar__QEBAIH_Z(const void*,int index) { g_toolCommandIndex=index;return g_toolCommandStyle; }
+extern "C" void MS_ABI impl__SetButtonStyle_CToolBar__QEAAXHI_Z(void*,int index,UINT style) { g_toolCommandIndex=index;g_toolCommandStyle=style; }

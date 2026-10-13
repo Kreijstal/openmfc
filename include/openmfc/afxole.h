@@ -65,21 +65,6 @@ typedef DWORD OLE_APPTYPE;
 #endif
 
 // MFC OLE-related base classes not yet in our main headers
-class CCmdUI {
-public:
-    CCmdUI() : m_nID(0), m_pOther(nullptr), m_nIndex(0), m_pMenu(nullptr), m_pSubMenu(nullptr) {}
-    virtual ~CCmdUI() {}
-    virtual void Enable(BOOL bOn = TRUE);
-    virtual void SetCheck(int nCheck = 1);
-    virtual void SetText(const wchar_t* lpszText);
-    UINT m_nID;
-    CCmdUI* m_pOther;
-    int m_nIndex;
-    CMenu* m_pMenu;
-    CMenu* m_pSubMenu;
-    char _ccmdui_padding[8];
-};
-
 class CControlBar : public CWnd {
     DECLARE_DYNAMIC(CControlBar)
 public:
@@ -856,13 +841,11 @@ public:
     virtual int DoUpdate(CCmdTarget* pTarget, BOOL bDisableIfNoHandler);
 
 public:
-    OLECMD* m_pCmd;
-    ULONG m_cCmds;
-    const GUID* m_pGuid;
+    DWORD m_nCmdTextFlag;
+    DWORD _oleCmdAlignment;
     OLECMD* m_rgCmds;
-
-protected:
-    char _olecmdui_padding[16];
+    const GUID* m_pguidCmdGroup;
+    CString m_strText;
 };
 
 //=============================================================================

@@ -246,18 +246,6 @@ namespace openmfc { namespace detail { namespace cmenu {
 extern "C" int MS_ABI impl__HiliteMenuItem_CWnd__QEAAHPEAVCMenu__II_Z(CWnd* pThis, CMenu* pMenu, UINT nIDHiliteItem, UINT nHilite);
 } } }
 
-struct CCmdUIShim_Menucore {
-    void* vftable;
-    UINT m_nID;
-    CCmdUI* m_pOther;
-    int m_nIndex;
-    CMenu* m_pMenu;
-    CMenu* m_pSubMenu;
-    char _padding[8];
-};
-
-
-
 // CMenu dynamic runtime wrappers needed by exported impl__* symbols
 namespace openmfc { namespace detail { namespace cmenu {
 extern "C" CObject* MS_ABI impl__CreateObject_CMenu__SAPEAVCObject__XZ();

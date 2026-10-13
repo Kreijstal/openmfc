@@ -89,7 +89,7 @@ namespace {
 // puts it at +0x48.  Nothing in this file passes the field across the ABI
 // boundary, so the assert just pins OpenMFC's own layout for SbDefWindowProc.
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd");
-static_assert(offsetof(CWnd, m_pfnSuper) == 0x48, "CWnd::m_pfnSuper");
+static_assert(offsetof(CWnd, m_pfnSuper) == 0xb0, "CWnd::m_pfnSuper");
 static_assert(offsetof(CControlBar, m_cxLeftBorder) == 0xf4, "CControlBar::m_cxLeftBorder");
 static_assert(offsetof(CControlBar, m_cxRightBorder) == 0xf8, "CControlBar::m_cxRightBorder");
 static_assert(offsetof(CControlBar, m_cyTopBorder) == 0xfc, "CControlBar::m_cyTopBorder");

@@ -1113,29 +1113,3 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ?DoUpdate@COleCmdUI@@UEAAHPEAVCCmdTarget@@H@Z
-// COleCmdUI::DoUpdate
-extern "C" int MS_ABI impl__DoUpdate_COleCmdUI__UEAAHPEAVCCmdTarget__H_Z(COleCmdUI* pThis, CCmdTarget* p0, int p1) {
-    return (int)pThis->DoUpdate(p0, p1);
-}
-// Symbol: ?Enable@COleCmdUI@@UEAAXH@Z
-// COleCmdUI::Enable
-extern "C" void MS_ABI impl__Enable_COleCmdUI__UEAAXH_Z(COleCmdUI* pThis, int p0) {
-    pThis->Enable(p0);
-}
-// Implemented in olecore.cpp; this unit had a second, unlinked copy.
-// Symbol: ?SetCheck@CCmdUI@@UEAAXH@Z
-// Implemented in olecore.cpp; this unit had a second, unlinked copy.
-// Symbol: ?Enable@CCmdUI@@UEAAXH@Z
-// Symbol: ?SetCheck@COleCmdUI@@UEAAXH@Z
-// COleCmdUI::SetCheck
-extern "C" void MS_ABI impl__SetCheck_COleCmdUI__UEAAXH_Z(COleCmdUI* pThis, int p0) {
-    pThis->SetCheck(p0);
-}
-// Implemented in olecore.cpp; this unit had a second, unlinked copy.
-// Symbol: ?SetText@CCmdUI@@UEAAXPEB_W@Z
-// Symbol: ?SetText@COleCmdUI@@UEAAXPEB_W@Z
-// COleCmdUI::SetText
-extern "C" void MS_ABI impl__SetText_COleCmdUI__UEAAXPEB_W_Z(COleCmdUI* pThis, const wchar_t* p0) {
-    pThis->SetText(p0);
-}

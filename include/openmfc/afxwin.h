@@ -381,6 +381,29 @@ protected: \
 
 #include "afxmsg_.h"
 
+// Native command UI has four virtual callbacks and no virtual destructor.
+class CCmdUI {
+public:
+    CCmdUI();
+    virtual void Enable(BOOL enabled = TRUE);
+    virtual void SetCheck(int check = 1);
+    virtual void SetRadio(BOOL checked = TRUE);
+    virtual void SetText(const wchar_t* text);
+    void ContinueRouting() { m_bContinueRouting=TRUE; }
+    BOOL DoUpdate(CCmdTarget* target,BOOL disableIfNoHandler);
+    UINT m_nID;
+    UINT m_nIndex;
+    CMenu* m_pMenu;
+    CMenu* m_pSubMenu;
+    CWnd* m_pOther;
+    BOOL m_bEnableChanged;
+    BOOL m_bContinueRouting;
+    UINT m_nIndexMax;
+    DWORD _cmdUIAlignment;
+    CMenu* m_pParentMenu;
+};
+static_assert(sizeof(CCmdUI)==64,"native CCmdUI layout");
+
 //=============================================================================
 // CCmdTarget - base for command message handling
 //=============================================================================

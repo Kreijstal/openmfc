@@ -6,18 +6,9 @@ namespace openmfc { namespace detail { namespace cmfcribboncmdui {} } }
 using namespace openmfc::detail::cmfcribboncmdui;
 // OpenMFC real implementation of CMFCRibbonCmdUI (derives from CCmdUI).
 //
-// Layout (MSVC /d1reportSingleClassLayout, size 72):
-//   0  {vfptr}            (CCmdUI is polymorphic)
-//   8  m_nID              (CCmdUI::m_nID, UINT)
-//  12  m_nIndex           (UINT)
-//  16  m_pMenu            (CMenu*)
-//  24  m_pSubMenu         (CMenu*)
-//  32  m_pParentMenu      (CMenu*)
-//  40  m_nIndexMax        (UINT)
-//  44  m_bEnableChanged   (BOOL)
-//  48  m_bContinueRouting (BOOL)
-//  56  m_pOther           (CCmdTarget*)  [4 bytes tail padding at 52]
-//  64  m_pUpdated         (CMFCRibbonBaseElement*)  <- CMFCRibbonCmdUI member
+// Native CCmdUI prefix: ID@8, index@12, menu@16, submenu@24,
+// other window@32, enable-changed@40, continuation@44, maximum index@48,
+// parent menu@56. The updated ribbon element follows at64.
 //
 // vtable order (harvested): Enable, SetCheck, SetRadio, SetText.
 // CCmdUI has no virtual destructor, so there is no deleting-dtor slot.
@@ -39,12 +30,12 @@ struct S_Cmfcribboncmdui {
     unsigned m_nIndex;          // 12
     void*    m_pMenu;           // 16
     void*    m_pSubMenu;        // 24
-    void*    m_pParentMenu;     // 32
-    unsigned m_nIndexMax;       // 40
-    int      m_bEnableChanged;  // 44
-    int      m_bContinueRouting;// 48
-    char     _pad0[4];          // 52..55 (align m_pOther to 8)
-    void*    m_pOther;          // 56
+    void*    m_pOther;          // 32
+    int      m_bEnableChanged;  // 40
+    int      m_bContinueRouting;// 44
+    unsigned m_nIndexMax;       // 48
+    unsigned _pad0;            // 52
+    void*    m_pParentMenu;     // 56
     void*    m_pUpdated;        // 64
 };
 } } }

@@ -8,7 +8,7 @@ extern "C" void MS_ABI impl__SetText_CMFCRibbonCmdUI__UEAAXPEB_W_Z(void* pThis, 
 
 static_assert(sizeof(S_Cmfcribboncmdui) == 72, "CMFCRibbonCmdUI size must be 72");
 static_assert(offsetof(S_Cmfcribboncmdui, m_nID) == 8, "m_nID @8");
-static_assert(offsetof(S_Cmfcribboncmdui, m_bEnableChanged) == 44, "m_bEnableChanged @44");
+static_assert(offsetof(S_Cmfcribboncmdui, m_bEnableChanged) == 40, "m_bEnableChanged @40");
 static_assert(offsetof(S_Cmfcribboncmdui, m_pUpdated) == 64, "m_pUpdated @64");
 
 namespace openmfc { namespace detail { namespace cmfcribboncmdui {
