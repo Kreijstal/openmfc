@@ -69,3 +69,11 @@ extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_
         return impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(error,&scope.current);
     }
 }
+
+LONGLONG CWnd::Default() {
+    const MSG* message=GetCurrentMessage();
+    using Procedure=LRESULT (MS_ABI*)(void*,UINT,WPARAM,LPARAM);
+    return openmfc::detail::WindowSlot<Procedure>(this,73)(this,message->message,message->wParam,message->lParam);
+}
+// Symbol: ?Default@CWnd@@IEAA_JXZ
+extern "C" LONGLONG MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* self) {return self->Default();}

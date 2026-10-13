@@ -172,6 +172,7 @@ class CDC;
 class CMenu; // Added forward declaration
 class CDataExchange;
 class CMFCControlContainer;
+void OpenMfcDeleteControlContainer(CMFCControlContainer*);
 class CMDIFrameWnd; // Forward declaration
 struct CCreateContext; // MFC create context (affects MSVC mangling)
 class CGdiObject;
@@ -515,14 +516,19 @@ public:
     CWinThread(unsigned int (*pfn1)(void*), unsigned int (*pfn2)(void*)) : CWinThread() { (void)pfn1; (void)pfn2; }
     virtual ~CWinThread();
     
-    // Thread operations
+    // Native thread virtual slots 22..32.
     virtual BOOL InitInstance();
-    virtual int ExitInstance();
     virtual int Run();
-    virtual BOOL PreTranslateMessage(MSG* pMsg);
-    virtual BOOL OnIdle(LONG lCount);
-    virtual BOOL IsIdleMessage(MSG* pMsg);
-    
+    virtual BOOL PreTranslateMessage(MSG*);
+    virtual BOOL PumpMessage();
+    virtual BOOL OnIdle(LONG);
+    virtual BOOL IsIdleMessage(MSG*);
+    virtual int ExitInstance();
+    virtual LRESULT ProcessWndProcException(CException*,const MSG*);
+    virtual BOOL ProcessMessageFilter(int,MSG*);
+    virtual CWnd* GetMainWnd();
+    virtual void Delete();
+
     // Thread control
     BOOL CreateThread(DWORD dwCreateFlags = 0, UINT nStackSize = 0,
                       LPSECURITY_ATTRIBUTES lpSecurityAttrs = nullptr);
@@ -537,9 +543,8 @@ public:
     BOOL IsThreadSuspended() const;
     
     // Message pump
-    virtual BOOL PumpMessage();
-    virtual BOOL PrePumpMessage();
-    virtual BOOL PostPumpMessage();
+    BOOL PrePumpMessage();
+    BOOL PostPumpMessage();
     
     // Static thread management
     static CWinThread* GetCurrentThread();
@@ -552,9 +557,10 @@ public:
 
     // Public members for compatibility
     CWnd* m_pMainWnd;
-    DWORD m_nThreadID;
-    HANDLE m_hThread;
+    CWnd* m_pActiveWnd;
     BOOL m_bAutoDelete;
+    HANDLE m_hThread;
+    DWORD m_nThreadID;
     MSG m_msgCur;
 
 protected:
@@ -1179,30 +1185,39 @@ class CDialog : public CWnd {
     DECLARE_DYNAMIC(CDialog)
 public:
     CDialog();
-    explicit CDialog(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
-    explicit CDialog(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
-    virtual ~CDialog();
-
-    virtual intptr_t DoModal();
-    virtual BOOL Create(const wchar_t* lpszTemplateName, CWnd* pParentWnd = nullptr);
-    virtual BOOL Create(unsigned int nIDTemplate, CWnd* pParentWnd = nullptr);
-
-    virtual int OnInitDialog();
+    explicit CDialog(const wchar_t*,CWnd* = nullptr);
+    explicit CDialog(UINT,CWnd* = nullptr);
+    ~CDialog() override;
+    void Initialize();
+    virtual BOOL Create(const wchar_t*,CWnd* = nullptr);
+    virtual BOOL Create(UINT,CWnd* = nullptr);
+    virtual BOOL CreateIndirect(const DLGTEMPLATE*,CWnd* = nullptr,void* = nullptr);
+    virtual BOOL CreateIndirect(HGLOBAL,CWnd* = nullptr);
+    BOOL InitModalIndirect(const DLGTEMPLATE*,CWnd* = nullptr,void* = nullptr);
+    BOOL InitModalIndirect(HGLOBAL,CWnd* = nullptr);
+    virtual INT_PTR DoModal();
+    virtual BOOL OnInitDialog();
+    virtual void OnSetFont(CFont*);
     virtual void OnOK();
     virtual void OnCancel();
-    void EndDialog(int nResult);
-
-protected:
-    // Overridables
-    virtual void OnSetFont(CWnd* pFont);
-    
-public:
+    void EndDialog(int);
+    BOOL PreTranslateMessage(MSG*) override;
+    BOOL OnCmdMsg(UINT,int,void*,AFX_CMDHANDLERINFO*) override;
+    BOOL CheckAutoCenter() override;
+    BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) override;
+    _AFX_OCC_DIALOG_INFO* GetOccDialogInfo() override;
+    virtual void PreInitDialog();
+    UINT m_nIDHelp;
     const wchar_t* m_lpszTemplateName;
-    unsigned int m_nIDHelp;
-    
-protected:
-    char _dialog_padding[56];
+    HGLOBAL m_hDialogTemplate;
+    const DLGTEMPLATE* m_lpDialogTemplate;
+    void* m_lpDialogInit;
+    CWnd* m_pParentWnd;
+    HWND m_hWndTop;
+    BOOL m_bClosedByEndDialog;
+    _AFX_OCC_DIALOG_INFO* m_pOccDialogInfo;
 };
+static_assert(sizeof(CDialog)==304,"native dialog size");
 
 //=============================================================================
 // CDialogEx - Extended Dialog
@@ -2418,6 +2433,7 @@ inline CWnd::~CWnd() {
     if (m_pStdObject || m_pProxy) ReleaseAccessibility();
     if (m_pDynamicLayout) EnableDynamicLayout(FALSE);
     std::free(m_pCurrentGestureInfo);m_pCurrentGestureInfo=nullptr;
+    if(m_pMFCCtrlContainer)OpenMfcDeleteControlContainer(m_pMFCCtrlContainer);m_pMFCCtrlContainer=nullptr;
 }
 
 inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
@@ -4148,7 +4164,7 @@ inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
 
 // CWinThread implementations
 inline CWinThread::CWinThread()
-    : m_pMainWnd(nullptr), m_nThreadID(0), m_hThread(nullptr), 
+    : m_pMainWnd(nullptr), m_pActiveWnd(nullptr), m_nThreadID(0), m_hThread(nullptr),
       m_bAutoDelete(FALSE), m_nThreadPriority(0), m_nThreadStackSize(0),
       m_dwThreadCreateFlags(0), m_bRunning(FALSE), m_bSuspended(FALSE) {
     memset(&m_msgCur, 0, sizeof(m_msgCur));

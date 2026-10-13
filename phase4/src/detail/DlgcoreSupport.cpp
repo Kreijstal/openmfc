@@ -4,18 +4,7 @@
 extern "C" void MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W4BackgroundLocation_1_HH_Z(
     CDialogEx* pThis, HBITMAP hBitmap, int backgroundLocation, BOOL bAutoDestroy, BOOL bRepaint);
 
-IMPLEMENT_DYNAMIC(CDialog, CWnd)
 IMPLEMENT_DYNAMIC(CDialogEx, CDialog)
-extern "C" void MS_ABI impl__EndDialog_CDialog__QEAAXH_Z(CDialog* pThis, int nResult) {
-    if (pThis && pThis->m_hWnd) {
-        ::EndDialog(pThis->m_hWnd, nResult);
-    }
-}
-extern "C" int MS_ABI impl__OnInitDialog_CDialog__UEAAHXZ(CDialog* pThis) {
-    (void)pThis;
-    // Default implementation - return TRUE to set focus to first control
-    return TRUE;
-}
 INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     CDialog* pDlg = nullptr;
@@ -163,50 +152,9 @@ CPropertyPageAccess* PropertyPageAccess(CPropertyPage* pThis) {
 CPropertySheetAccess* PropertySheetAccess(CPropertySheet* pThis) {
     return static_cast<CPropertySheetAccess*>(pThis);
 }
-// Symbol: ??0CDialog@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CDialog__QEAA_XZ(CDialog* pThis) {
-    // Zero initialize the object
-    pThis->m_hWnd = nullptr;
-    pThis->m_lpszTemplateName = nullptr;
-    pThis->m_nIDHelp = 0;
-    g_dlgParents.erase(pThis);
-    return pThis;
-}
-// Symbol: ??0CDialog@@QEAA@IPEAVCWnd@@@Z
-extern "C" void* MS_ABI impl___0CDialog__QEAA_IPEAVCWnd___Z(
-    CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
-{
-    pThis->m_hWnd = nullptr;
-    pThis->m_lpszTemplateName = MAKEINTRESOURCEW(nIDTemplate);
-    pThis->m_nIDHelp = nIDTemplate;
-    g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
-    return pThis;
-}
-// Symbol: ??0CDialog@@QEAA@PEB_WPEAVCWnd@@@Z
-extern "C" void* MS_ABI impl___0CDialog__QEAA_PEB_WPEAVCWnd___Z(
-    CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
-{
-    pThis->m_hWnd = nullptr;
-    pThis->m_lpszTemplateName = lpszTemplateName;
-    pThis->m_nIDHelp = 0;
-    g_dlgParents[pThis] = pParentWnd ? pParentWnd->GetSafeHwnd() : nullptr;
-    return pThis;
-}
-// Symbol: ??1CDialog@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDialog__UEAA_XZ(CDialog* pThis) {
-    if (pThis && pThis->m_hWnd) {
-        g_dlgMap.erase(pThis->m_hWnd);
-        // Don't destroy - dialog should already be destroyed
-        pThis->m_hWnd = nullptr;
-    }
-    if (pThis) {
-        g_dlgIndirectTemplates.erase(pThis);
-        g_dlgParents.erase(pThis);
-    }
-}
+// Symbol: ?DoModal@CDialog@@UEAA_JXZ
 extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
-    auto indirectIt = g_dlgIndirectTemplates.find(pThis);
-    if (!pThis || (!pThis->m_lpszTemplateName && indirectIt == g_dlgIndirectTemplates.end())) {
+    if (!pThis || (!pThis->m_lpszTemplateName && !pThis->m_lpDialogTemplate && !pThis->m_hDialogTemplate)) {
         return -1;  // IDABORT
     }
 
@@ -216,9 +164,8 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     }
 
     // Get parent window
-    auto parentIt = g_dlgParents.find(pThis);
-    CWnd* pParent = AfxGetMainWnd();
-    HWND hWndParent = parentIt != g_dlgParents.end() ? parentIt->second : (pParent ? pParent->m_hWnd : nullptr);
+    CWnd* pParent = pThis->m_pParentWnd ? pThis->m_pParentWnd : AfxGetMainWnd();
+    HWND hWndParent = pParent ? pParent->m_hWnd : nullptr;
 
     // Store the CDialog pointer so the dialog proc can find it
     // Use a thread-local for the pending dialog
@@ -226,10 +173,10 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     s_pPendingDialog = pThis;
 
     INT_PTR nResult = 0;
-    if (indirectIt != g_dlgIndirectTemplates.end()) {
+    if (pThis->m_lpDialogTemplate || pThis->m_hDialogTemplate) {
         nResult = DialogBoxIndirectParamW(
             hInst,
-            indirectIt->second,
+            pThis->m_lpDialogTemplate ? pThis->m_lpDialogTemplate : static_cast<const DLGTEMPLATE*>(LockResource(pThis->m_hDialogTemplate)),
             hWndParent,
             AfxDlgProc,
             reinterpret_cast<LPARAM>(pThis));
@@ -245,6 +192,7 @@ extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
     s_pPendingDialog = nullptr;
     return nResult;
 }
+// Symbol: ?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
     CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
 {
@@ -256,11 +204,11 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
     }
 
     HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
-    g_dlgParents[pThis] = hWndParent;
+    pThis->m_pParentWnd=pParentWnd;
 
     // Store template name
     pThis->m_lpszTemplateName = lpszTemplateName;
-    g_dlgIndirectTemplates.erase(pThis);
+    pThis->m_lpDialogTemplate=nullptr;pThis->m_hDialogTemplate=nullptr;pThis->m_lpDialogInit=nullptr;
 
     // Create the modeless dialog
     HWND hDlg = CreateDialogParamW(
@@ -280,19 +228,12 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
 
     return TRUE;
 }
+// Symbol: ?Create@CDialog@@UEAAHIPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
 {
     return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
         pThis, MAKEINTRESOURCEW(nIDTemplate), pParentWnd);
-}
-extern "C" void MS_ABI impl__OnOK_CDialog__MEAAXXZ(CDialog* pThis) {
-    // Call stub directly to avoid needing member function implementation
-    impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDOK);
-}
-extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis) {
-    // Call stub directly to avoid needing member function implementation
-    impl__EndDialog_CDialog__QEAAXH_Z(pThis, IDCANCEL);
 }
 // Symbol: ??0CDialogEx@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {

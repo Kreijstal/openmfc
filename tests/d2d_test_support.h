@@ -61,7 +61,8 @@ CRuntimeClass CException::classCException{"CException",sizeof(CException),0xffff
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
 void CException::Dump() const { std::abort(); }
 void CException::AssertValid() const { std::abort(); }
-CWinThread* AFXAPI AfxGetThread() { return nullptr; }
+CWinThread* g_dialogHelpThread=nullptr;
+CWinThread* AFXAPI AfxGetThread() { return g_dialogHelpThread; }
 CRuntimeClass g_automationMemoryExceptionClass{"CMemoryException",sizeof(CException),0xffff,nullptr,nullptr,nullptr,nullptr};
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() { return &g_automationMemoryExceptionClass; }
 
@@ -188,13 +189,13 @@ extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(CWnd*, WPARAM, LPARA
 
 // Runtime descriptors and handle lookup are peripheral to dynamic layout.
 // The layout storage, resource parser and all positioning remain production.
-CRuntimeClass g_layoutDialog{"CDialog",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+CRuntimeClass& g_layoutDialog=CDialog::classCDialog;
 CRuntimeClass g_layoutSheet{"CPropertySheet",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
 CRuntimeClass g_layoutPage{"CPropertyPage",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
 CRuntimeClass g_layoutMfcPage{"CMFCPropertyPage",sizeof(CWnd),0xffff,nullptr,nullptr,nullptr,nullptr};
 CRuntimeClass g_layoutMfcSheet{"CMFCPropertySheet",0x71e0,0xffff,nullptr,nullptr,nullptr,nullptr};
 CRuntimeClass g_layoutForm{"CFormView",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialog__SAPEAUCRuntimeClass__XZ() { return &g_layoutDialog; }
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialog__SAPEAUCRuntimeClass__XZ() { return CDialog::GetThisClass(); }
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertySheet__SAPEAUCRuntimeClass__XZ() { return &g_layoutSheet; }
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPropertyPage__SAPEAUCRuntimeClass__XZ() { return &g_layoutPage; }
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyPage__SAPEAUCRuntimeClass__XZ() { return &g_layoutMfcPage; }
@@ -235,3 +236,31 @@ UINT g_exchangeMessageID=0,g_exchangeMessageFlags=0;
 extern "C" int MS_ABI impl__AfxMessageBox__YAHIII_Z(UINT id,UINT flags,UINT) { ++g_exchangeMessageBoxes;g_exchangeMessageID=id;g_exchangeMessageFlags=flags;return IDOK; }
 extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() { throw new CException; }
 extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException*,UINT,UINT) { std::abort(); }
+
+// Array/map serialization is peripheral to the DLGINIT storage tests.
+UINT CArchive::Read(void*,UINT) {std::abort();}
+void CArchive::Write(const void*,UINT) {std::abort();}
+CArchive& CArchive::operator<<(unsigned long) {std::abort();}
+CArchive& CArchive::operator>>(unsigned long&) {std::abort();}
+// Control subclassing is modeled at its attachment boundary; container ownership,
+// map storage and Win32 DLGINIT message delivery are all production code.
+BOOL g_containerSubclassResult=TRUE;
+extern "C" int MS_ABI impl__SubclassWindow_CWnd__QEAAHPEAUHWND_____Z(CWnd* control,HWND window) {if(g_containerSubclassResult)control->m_hWnd=window;return g_containerSubclassResult;}
+extern "C" HWND MS_ABI impl__UnsubclassWindow_CWnd__QEAAPEAUHWND____XZ(CWnd* control) {HWND window=control->m_hWnd;control->m_hWnd=nullptr;return window;}
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* object,const CRuntimeClass* type) {return object->IsKindOf(type);}
+CRuntimeClass g_containerShellClass{"CMFCShellListCtrl",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCShellListCtrl__SAPEAUCRuntimeClass__XZ() {return &g_containerShellClass;}
+
+// Dialog creation/routing helpers are outside the focused initialization tests.
+extern "C" INT_PTR MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog*) {std::abort();}
+extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(CDialog*,const wchar_t*,CWnd*) {std::abort();}
+extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(CDialog*,UINT,CWnd*) {std::abort();}
+extern "C" BOOL MS_ABI impl__CreateIndirect_CDialog__UEAAHPEAXPEAVCWnd___Z(CDialog*,HGLOBAL,CWnd*) {std::abort();}
+extern "C" BOOL MS_ABI impl__CreateIndirect_CDialog__UEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAX_Z(CDialog*,const DLGTEMPLATE*,CWnd*,void*) {std::abort();}
+extern "C" BOOL MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(CDialog*,MSG*) {std::abort();}
+extern "C" BOOL MS_ABI impl__OnCmdMsg_CDialog__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CDialog*,UINT,int,void*,AFX_CMDHANDLERINFO*) {std::abort();}
+extern "C" BOOL MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog*) {std::abort();}
+
+extern "C" void MS_ABI impl__Delete_CWinThread__UEAAXXZ(CWinThread*) {std::abort();}
+extern "C" BOOL MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread*,int,MSG*) {std::abort();}
+extern "C" LRESULT MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(CWinThread*,CException*,const MSG*) {std::abort();}

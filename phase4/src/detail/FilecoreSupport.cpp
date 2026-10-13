@@ -8,7 +8,6 @@ extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(CMap
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1___Z(CMapStringToOb* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1___Z(CMapStringToPtr* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1___Z(CMapStringToString* /*pThis*/, void* pAssoc);
-extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1___Z(CMapWordToOb* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1___Z(CMapWordToPtr* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeNode_CObList__IEAAXPEAUCNode_1___Z(CObList* /*pThis*/, void* pNode);
 extern "C" void MS_ABI impl__FreeNode_CStringList__IEAAXPEAUCNode_1___Z(CStringList* /*pThis*/, void* pNode);
@@ -17,8 +16,6 @@ extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(C
 
 IMPLEMENT_DYNAMIC(CUIntArray, CObject)
 IMPLEMENT_SERIAL(CDWordArray, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CObArray, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CByteArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringArray, CObject, 0xFFFF)
 IMPLEMENT_SERIAL(CStringList, CObject, 0xFFFF)
 IMPLEMENT_DYNAMIC(CMapPtrToPtr, CObject)
@@ -26,15 +23,11 @@ IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
 IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0xFFFF)
 IMPLEMENT_DYNAMIC(CMapStringToPtr, CObject)
 IMPLEMENT_SERIAL(CMapStringToString, CObject, 0xFFFF)
-IMPLEMENT_SERIAL(CMapWordToOb, CObject, 0xFFFF)
 IMPLEMENT_DYNAMIC(CMapWordToPtr, CObject)
 OPENMFC_DEFINE_ARRAY_METHODS(CUIntArray, unsigned int, unsigned int)
 OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)
-OPENMFC_DEFINE_ARRAY_METHODS(CObArray, CObject*, CObject*)
-OPENMFC_DEFINE_ARRAY_METHODS(CByteArray, BYTE, BYTE)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToPtr, void*, void*, void*, void*)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToWord, void*, void*, WORD, WORD)
-OPENMFC_DEFINE_MAP_METHODS(CMapWordToOb, WORD, WORD, CObject*, CObject*)
 OPENMFC_DEFINE_MAP_METHODS(CMapWordToPtr, WORD, WORD, void*, void*)
 #undef OPENMFC_DEFINE_LIST_METHODS
 #undef OPENMFC_DEFINE_MAP_METHODS
@@ -111,7 +104,6 @@ extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1__Z(CMapP
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1__Z(CMapStringToOb* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1__Z(CMapStringToPtr* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToPtr__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1__Z(CMapStringToString* pThis, void* pAssoc) { impl__FreeAssoc_CMapStringToString__IEAAXPEAVCAssoc_1___Z(pThis, pAssoc); }
-extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1__Z(CMapWordToOb* pThis, void* pAssoc) { impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
 extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1__Z(CMapWordToPtr* pThis, void* pAssoc) { impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1___Z(pThis, pAssoc); }
 void OpenStdioFile(CStdioFile* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags) {
     if (!pThis) return;

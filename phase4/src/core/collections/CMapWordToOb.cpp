@@ -20,9 +20,9 @@ extern "C" CObject** MS_ABI impl___ACMapWordToOb__QEAAAEAPEAVCObject__G_Z(CMapWo
 OPENMFC_WRAP_CREATEOBJECT(impl__CreateObject_CMapWordToOb__SAPEAVCObject__XZ, CMapWordToOb)
 #undef OPENMFC_WRAP_CREATEOBJECT
 // Symbol: ?FreeAssoc@CMapWordToOb@@IEAAXPEAUCAssoc@1@@Z
-extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1___Z(CMapWordToOb* /*pThis*/, void* pAssoc) { delete static_cast<AssocSnapshot<WORD, CObject*>*>(pAssoc); }
+extern "C" void MS_ABI impl__FreeAssoc_CMapWordToOb__IEAAXPEAUCAssoc_1__Z(CMapWordToOb* self, void* pAssoc) { self->FreeAssoc(static_cast<CMapWordToOb::CAssoc*>(pAssoc)); }
 // Symbol: ?GetAssocAt@CMapWordToOb@@IEBAPEAUCAssoc@1@GAEAI0@Z
-extern "C" void* MS_ABI impl__GetAssocAt_CMapWordToOb__IEBAPEAUCAssoc_1_GAEAI0_Z(const CMapWordToOb* pThis, unsigned short key, unsigned int& nHash, unsigned int& nHashBucket) { nHash = static_cast<unsigned int>(key >> 4); nHashBucket = pThis ? (nHash % pThis->GetHashTableSize()) : 0; CObject* value = nullptr; if (!pThis || !pThis->Lookup(key, value)) return nullptr; auto* assoc = new AssocSnapshot<WORD, CObject*>(); assoc->nHashValue = nHash; assoc->key = key; assoc->value = value; return assoc; }
+extern "C" void* MS_ABI impl__GetAssocAt_CMapWordToOb__IEBAPEAUCAssoc_1_GAEAI0_Z(const CMapWordToOb* self, WORD key,UINT& hash,UINT& bucket) {return self->GetAssocAt(key,hash,bucket);}
 // Symbol: ?GetNextAssoc@CMapWordToOb@@QEBAXAEAPEAU__POSITION@@AEAGAEAPEAVCObject@@@Z
 extern "C" void MS_ABI impl__GetNextAssoc_CMapWordToOb__QEBAXAEAPEAU__POSITION__AEAGAEAPEAVCObject___Z(const CMapWordToOb* pThis, CMapWordToOb::POSITION& pos, unsigned short& key, CObject*& value) { if (pThis) pThis->GetNextAssoc(pos, key, value); else { key = 0; value = nullptr; } }
 #define OPENMFC_WRAP_GETRUNTIMECLASS(fn_name, class_name) extern "C" CRuntimeClass* MS_ABI fn_name(const class_name* pThis) { return class_name::GetThisClass(); }
@@ -38,7 +38,7 @@ extern "C" void MS_ABI impl__InitHashTable_CMapWordToOb__QEAAXIH_Z(CMapWordToOb*
 // Symbol: ?Lookup@CMapWordToOb@@QEBAHGAEAPEAVCObject@@@Z
 extern "C" int MS_ABI impl__Lookup_CMapWordToOb__QEBAHGAEAPEAVCObject___Z(const CMapWordToOb* pThis, unsigned short key, CObject*& value) { return (pThis && pThis->Lookup(key, value)) ? 1 : 0; }
 // Symbol: ?NewAssoc@CMapWordToOb@@IEAAPEAUCAssoc@1@XZ
-extern "C" void* MS_ABI impl__NewAssoc_CMapWordToOb__IEAAPEAUCAssoc_1_XZ(CMapWordToOb* /*pThis*/) { return new AssocSnapshot<WORD, CObject*>(); }
+extern "C" void* MS_ABI impl__NewAssoc_CMapWordToOb__IEAAPEAUCAssoc_1_XZ(CMapWordToOb* self) { return self->NewAssoc(); }
 // Symbol: ?RemoveAll@CMapWordToOb@@QEAAXXZ
 extern "C" void MS_ABI impl__RemoveAll_CMapWordToOb__QEAAXXZ(CMapWordToOb* pThis) { if (pThis) pThis->RemoveAll(); }
 // Symbol: ?RemoveKey@CMapWordToOb@@QEAAHG@Z

@@ -16,3 +16,16 @@ NamedLayout AFX_DIALOG_LAYOUT
 BEGIN
     0, 100, 100, 0, 0
 END
+
+210 240
+BEGIN
+    101, 0x401, 4L, 0x6261, 0x0063,
+    102, 0x403, 4L, 0x6261, 0x0063,
+    0
+END
+
+NamedInit 240
+BEGIN
+    101, 0x180, 4L, 0x7978, 0x007a,
+    0
+END

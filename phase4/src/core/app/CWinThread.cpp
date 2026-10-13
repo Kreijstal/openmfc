@@ -65,6 +65,7 @@ extern "C" int MS_ABI impl__ExitInstance_CWinThread__UEAAHXZ(CWinThread* pThis) 
 // Ordinal: 988
 extern "C" CWinThread* MS_ABI impl___0CWinThread__QEAA_XZ(CWinThread* pThis) {
     pThis->m_pMainWnd = nullptr;
+    pThis->m_pActiveWnd = nullptr;
     pThis->m_nThreadID = 0;
     pThis->m_hThread = nullptr;
     pThis->m_bAutoDelete = TRUE;
@@ -85,6 +86,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinThread__UEBAPEAUCRunt
 extern "C" void MS_ABI impl__CommonConstruct_CWinThread__QEAAXXZ(CWinThread* pThis) {
     if (!pThis) return;
     pThis->m_pMainWnd = nullptr;
+    pThis->m_pActiveWnd = nullptr;
     pThis->m_nThreadID = 0;
     pThis->m_hThread = nullptr;
     pThis->m_bAutoDelete = TRUE;
@@ -123,10 +125,6 @@ extern "C" int MS_ABI impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG_
 extern "C" void MS_ABI impl__DispatchThreadMessage_CWinThread__IEAAXPEAUtagMSG___Z(CWinThread* pThis, MSG* msg) {
     (void)impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG___Z(pThis, msg);
 }
-// Symbol: ?GetMainWnd@CWinThread@@UEAAPEAVCWnd@@XZ
-extern "C" CWnd* MS_ABI impl__GetMainWnd_CWinThread__UEAAPEAVCWnd__XZ(CWinThread* pThis) {
-    return pThis ? pThis->m_pMainWnd : nullptr;
-}
 // Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread* pThis, int, MSG* msg) {
     return (pThis && msg && pThis->PreTranslateMessage(msg)) ? TRUE : FALSE;
@@ -139,6 +137,7 @@ extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVC
 }
 CWinThread::CWinThread() {
     m_pMainWnd = nullptr;
+    m_pActiveWnd = nullptr;
     m_nThreadID = 0;
     m_hThread = nullptr;
     m_bAutoDelete = TRUE;

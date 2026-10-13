@@ -276,6 +276,7 @@ static void ownershipAndRecreation() {
 #include "window_message_map_tests.h"
 #include "cmdui_tests.h"
 #include "data_exchange_tests.h"
+#include "dlginit_tests.h"
 #include "cmdtarget_connection_tests.h"
 #include "connection_point_sink_tests.h"
 #include "automation_exception_tests.h"
@@ -283,6 +284,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    std::setvbuf(stdout,nullptr,_IONBF,0);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
@@ -291,6 +293,7 @@ int main() {
     if (SUCCEEDED(hr)) windowMessageMaps();
     if (SUCCEEDED(hr)) commandUI();
     if (SUCCEEDED(hr)) dataExchange();
+    if (SUCCEEDED(hr)) dlgInit();
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

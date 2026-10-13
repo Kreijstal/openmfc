@@ -39,6 +39,7 @@ extern "C" int MS_ABI impl__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
 extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
     // Initialize base class (CWinThread)
     pThis->m_pMainWnd = nullptr;
+    pThis->m_pActiveWnd = nullptr;
     pThis->m_nThreadID = GetCurrentThreadId();
     pThis->m_hThread = GetCurrentThread();
     pThis->m_bAutoDelete = FALSE;  // App object should not auto-delete
@@ -704,6 +705,7 @@ extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAK
 }
 CWinApp::CWinApp(const wchar_t* lpszAppName) {
     m_pMainWnd = nullptr;
+    m_pActiveWnd = nullptr;
     m_nThreadID = ::GetCurrentThreadId();
     m_hThread = ::GetCurrentThread();
     m_bAutoDelete = FALSE;

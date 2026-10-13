@@ -1464,6 +1464,40 @@ public: \
     virtual void Serialize(CArchive& ar) override; \
 };
 
+#define OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(class_name, element_type, arg_type, class_decl) \
+class class_name : public CObject { \
+    class_decl(class_name) \
+public: \
+    using Element=element_type; \
+    class_name(); \
+    virtual ~class_name(); \
+    INT_PTR GetSize() const; \
+    INT_PTR GetCount() const; \
+    BOOL IsEmpty() const; \
+    INT_PTR GetUpperBound() const; \
+    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1); \
+    void FreeExtra(); \
+    void RemoveAll(); \
+    element_type GetAt(INT_PTR nIndex) const; \
+    void SetAt(INT_PTR nIndex, arg_type newElement); \
+    element_type& ElementAt(INT_PTR nIndex); \
+    const Element& ElementAt(INT_PTR nIndex) const; \
+    element_type operator[](INT_PTR nIndex) const; \
+    element_type& operator[](INT_PTR nIndex); \
+    element_type* GetData(); \
+    const element_type* GetData() const; \
+    void SetAtGrow(INT_PTR nIndex, arg_type newElement); \
+    INT_PTR Add(arg_type newElement); \
+    INT_PTR Append(const class_name& src); \
+    void Copy(const class_name& src); \
+    void InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount = 1); \
+    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1); \
+    void InsertAt(INT_PTR nStartIndex, class_name* pNewArray); \
+    virtual void Serialize(CArchive& ar) override; \
+    element_type* m_pData; \
+    INT_PTR m_nSize, m_nMaxSize, m_nGrowBy; \
+};
+
 #define OPENMFC_DECLARE_LIST_WRAPPER(class_name, element_type, arg_type, class_decl) \
 class class_name : public CObject { \
     class_decl(class_name) \
@@ -1539,7 +1573,7 @@ public: \
 
 OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
 OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, DECLARE_SERIAL)
-OPENMFC_DECLARE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
+OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
 class CPtrArray : public CObject {
     DECLARE_DYNAMIC(CPtrArray)
 public:
@@ -1575,7 +1609,7 @@ protected:
     INT_PTR m_nMaxSize;
     INT_PTR m_nGrowBy;
 };
-OPENMFC_DECLARE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
+OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
 
 class CStringArray : public CObject {
     DECLARE_SERIAL(CStringArray)
@@ -1654,7 +1688,41 @@ public:
 
 OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToPtr, void*, void*, void*, void*, void*, DECLARE_DYNAMIC)
 OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToWord, void*, void*, WORD, WORD, void*, DECLARE_DYNAMIC)
-OPENMFC_DECLARE_MAP_WRAPPER(CMapWordToOb, WORD, WORD, CObject*, CObject*, WORD, DECLARE_SERIAL)
+struct __POSITION;
+class CMapWordToOb : public CObject {
+    DECLARE_SERIAL(CMapWordToOb)
+public:
+    using BASE_KEY=WORD;
+    using POSITION=__POSITION*;
+    struct CAssoc { CAssoc* pNext;CObject* value;WORD key; };
+    explicit CMapWordToOb(INT_PTR blockSize=10);
+    ~CMapWordToOb() override;
+    INT_PTR GetCount() const {return m_nCount;}
+    INT_PTR GetSize() const {return m_nCount;}
+    BOOL IsEmpty() const {return !m_nCount;}
+    BOOL Lookup(WORD,CObject*&) const;
+    CObject*& operator[](WORD);
+    CObject* const& operator[](WORD) const;
+    void SetAt(WORD key,CObject* value) {(*this)[key]=value;}
+    BOOL RemoveKey(WORD);
+    void RemoveAll();
+    POSITION GetStartPosition() const;
+    void GetNextAssoc(POSITION&,WORD&,CObject*&) const;
+    UINT GetHashTableSize() const {return m_nHashTableSize;}
+    void InitHashTable(UINT,BOOL=TRUE);
+    UINT HashKey(WORD key) const {return key>>4;}
+    CAssoc* NewAssoc();
+    void FreeAssoc(CAssoc*);
+    CAssoc* GetAssocAt(WORD,UINT&,UINT&) const;
+    void Serialize(CArchive&) override;
+    CAssoc** m_pHashTable;
+    UINT m_nHashTableSize;
+    INT_PTR m_nCount;
+    CAssoc* m_pFreeList;
+    struct CPlex* m_pBlocks;
+    INT_PTR m_nBlockSize;
+};
+static_assert(sizeof(CMapWordToOb)==56,"native word/object map");
 OPENMFC_DECLARE_MAP_WRAPPER(CMapWordToPtr, WORD, WORD, void*, void*, WORD, DECLARE_DYNAMIC)
 
 // String map classes (non-template versions for ABI compatibility)
@@ -1759,6 +1827,7 @@ public:
     virtual void Serialize(CArchive& ar) override;
 };
 
+#undef OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER
 #undef OPENMFC_DECLARE_ARRAY_WRAPPER
 #undef OPENMFC_DECLARE_LIST_WRAPPER
 #undef OPENMFC_DECLARE_MAP_WRAPPER

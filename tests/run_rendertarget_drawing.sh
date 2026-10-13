@@ -24,6 +24,9 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/runtime/CCmdTargetVirtuals.cpp phase4/src/core/runtime/CCmdTargetDispatch.cpp phase4/src/core/runtime/CCmdTargetInvoke.cpp phase4/src/core/runtime/CCmdTargetEvents.cpp phase4/src/core/runtime/CCmdTargetTypeInfo.cpp phase4/src/core/runtime/CCmdTargetVerbs.cpp phase4/src/core/runtime/CommandRouting.cpp phase4/src/core/runtime/_AFX_THREAD_STATE.cpp phase4/src/core/ole/CEnumOleVerb.cpp phase4/src/core/ole/CEnumArray.cpp phase4/src/core/ole/CTypeLibCache.cpp
     phase4/src/core/ole/COleDispatchImpl.cpp phase4/src/core/ole/OleExceptionTranslation.cpp phase4/src/core/exceptions/COleDispatchException.cpp phase4/src/detail/OleOleexceptionRttiSupport.cpp phase4/src/core/runtime/InterfaceMaps.cpp
     phase4/src/core/exceptions/CExceptionVirtuals.cpp phase4/src/core/exceptions/CSimpleException.cpp phase4/src/core/exceptions/CUserException.cpp phase4/src/detail/CsimpleexceptionRttiSupport.cpp phase4/src/core/dialog/CDataExchangeLifecycle.cpp phase4/src/core/window/CWndDataExchange.cpp phase4/src/core/runtime/DdxExchange.cpp
+    phase4/src/core/collections/NativeArrayStorage.cpp phase4/src/core/collections/CByteArray.cpp phase4/src/core/collections/CObArray.cpp phase4/src/core/collections/CMapWordToObStorage.cpp phase4/src/core/collections/CMapWordToOb.cpp phase4/src/featurepack/controls/CMFCControlContainer.cpp phase4/src/core/window/CWndDlgInit.cpp
+    phase4/src/core/app/CWinThreadVirtualDispatch.cpp
+    phase4/src/core/dialog/CDialogLifetime.cpp phase4/src/core/dialog/CDialogInitialization.cpp phase4/src/core/dialog/CDialogVirtuals.cpp phase4/src/core/dialog/AfxHelpEnabled.cpp
     phase4/src/core/cmdui/CCmdUI.cpp phase4/src/core/cmdui/COleCmdUI.cpp phase4/src/core/cmdui/CTestCmdUI.cpp phase4/src/core/cmdui/CToolCmdUI.cpp
     phase4/src/core/window/CWndMessageMap.cpp phase4/src/core/window/WindowMessageMapDispatch.cpp phase4/src/core/runtime/CommandMessageDispatch.cpp phase4/src/core/gdi/CDC.cpp phase4/src/core/gdi/CDCMessageSupport.cpp
     phase4/src/core/window/CWndDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutLifetime.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp
@@ -75,7 +78,17 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/exceptions/CSimpleException.cpp', 'CSimpleException'),
+for path, obj in (('core/app/CWinThreadVirtualDispatch.cpp', 'CWinThreadVirtualDispatch'),
+                  ('core/dialog/CDialogLifetime.cpp', 'CDialogLifetime'),
+                  ('core/dialog/CDialogInitialization.cpp', 'CDialogInitialization'),
+                  ('core/dialog/CDialogVirtuals.cpp', 'CDialogVirtuals'),
+                  ('core/dialog/AfxHelpEnabled.cpp', 'AfxHelpEnabled'),
+                  ('core/collections/CByteArray.cpp', 'CByteArray'),
+                  ('core/collections/CObArray.cpp', 'CObArray'),
+                  ('core/collections/CMapWordToOb.cpp', 'CMapWordToOb'),
+                  ('featurepack/controls/CMFCControlContainer.cpp', 'CMFCControlContainer'),
+                  ('core/window/CWndDlgInit.cpp', 'CWndDlgInit'),
+                  ('core/exceptions/CSimpleException.cpp', 'CSimpleException'),
                   ('core/exceptions/CUserException.cpp', 'CUserException'),
                   ('core/dialog/CDataExchangeLifecycle.cpp', 'CDataExchangeLifecycle'),
                   ('core/window/CWndDataExchange.cpp', 'CWndDataExchange'),

@@ -1179,11 +1179,6 @@ extern "C" int MS_ABI impl__CreateDlg_CWnd__IEAAHPEB_WPEAV1__Z(CWnd* pThis, cons
 extern "C" CObject* MS_ABI impl__CreateObject_CWnd__SAPEAVCObject__XZ() {
     return (CObject*)CWnd::CreateObject();
 }
-// Symbol: ?Default@CWnd@@IEAA_JXZ
-// CWnd::Default
-extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis) {
-    return (__int64)pThis->Default();
-}
 // Symbol: ?DeleteTempMap@CWnd@@SAXXZ
 // Static: CWnd::DeleteTempMap
 extern "C" void MS_ABI impl__DeleteTempMap_CWnd__SAXXZ() {
@@ -1213,16 +1208,6 @@ extern "C" int MS_ABI impl__EnableToolTips_CWnd__QEAAHH_Z(CWnd* pThis, int p0) {
 // CWnd::EnableTrackingToolTips
 extern "C" int MS_ABI impl__EnableTrackingToolTips_CWnd__QEAAHH_Z(CWnd* pThis, int p0) {
     return (int)pThis->EnableTrackingToolTips(p0);
-}
-// Symbol: ?ExecuteDlgInit@CWnd@@QEAAHPEAX@Z
-// CWnd::ExecuteDlgInit
-extern "C" int MS_ABI impl__ExecuteDlgInit_CWnd__QEAAHPEAX_Z(CWnd* pThis, void* p0) {
-    return (int)pThis->ExecuteDlgInit(p0);
-}
-// Symbol: ?ExecuteDlgInit@CWnd@@QEAAHPEB_W@Z
-// CWnd::ExecuteDlgInit
-extern "C" int MS_ABI impl__ExecuteDlgInit_CWnd__QEAAHPEB_W_Z(CWnd* pThis, const wchar_t* p0) {
-    return (int)pThis->ExecuteDlgInit(p0);
 }
 // Symbol: ?FilterToolTipMessage@CWnd@@QEAAXPEAUtagMSG@@@Z
 // CWnd::FilterToolTipMessage
@@ -1613,11 +1598,6 @@ extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWn
 // CWnd::SendDlgItemMessageW
 extern "C" __int64 MS_ABI impl__SendDlgItemMessageW_CWnd__QEAA_JHI_K_J_Z(CWnd* pThis, int p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {
     return (__int64)pThis->SendDlgItemMessageW(p0, p1, p2, p3);
-}
-// Symbol: ?SendMessageToDescendants@CWnd@@SAXPEAUHWND__@@I_K_JHH@Z
-// Static: CWnd::SendMessageToDescendants
-extern "C" void MS_ABI impl__SendMessageToDescendants_CWnd__SAXPEAUHWND____I_K_JHH_Z(HWND__* p0, unsigned int p1, unsigned __int64 p2, __int64 p3, int p4, int p5) {
-    CWnd::SendMessageToDescendants(p0, p1, p2, p3, p4, p5);
 }
 // Symbol: ?SetDlgCtrlID@CWnd@@QEAAHH@Z
 // CWnd::SetDlgCtrlID

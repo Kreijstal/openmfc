@@ -1692,11 +1692,6 @@ extern "C" void MS_ABI impl__AfxGlobalsAddRef__YAXXZ() {
 extern "C" void MS_ABI impl__AfxGlobalsRelease__YAXXZ() {
     ::InterlockedDecrement(&g_afxGlobalsRefCount);
 }
-// Symbol: ?AfxHelpEnabled@@YAHXZ
-extern "C" int MS_ABI impl__AfxHelpEnabled__YAHXZ() {
-    CWinApp* pApp = AfxGetApp();
-    return (pApp && pApp->m_pszHelpFilePath && pApp->m_pszHelpFilePath[0]) ? TRUE : FALSE;
-}
 namespace {
 // WH_CBT filter installed by AfxHookWindowCreate below. On HCBT_CREATEWND
 // (fired just before the new HWND is shown to the app) it attaches the

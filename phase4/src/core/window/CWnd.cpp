@@ -1447,23 +1447,6 @@ int CWnd::ReflectLastMsg(HWND p0, LONGLONG* p1)
     }
     return pWnd->SendChildNotifyLastMsg(p1);
 }
-void CWnd::SendMessageToDescendants(HWND p0, UINT p1, ULONGLONG p2, LONGLONG p3, int p4, int p5)
-{
-    (void)p5;
-    if (!p0) {
-        return;
-    }
-    for (HWND hChild = ::GetWindow(p0, GW_CHILD); hChild; hChild = ::GetWindow(hChild, GW_HWNDNEXT)) {
-        if (!::IsWindow(hChild)) {
-            continue;
-        }
-        if (p4 && !::IsWindowVisible(hChild)) {
-            continue;
-        }
-        ::SendMessageW(hChild, p1, static_cast<WPARAM>(p2), static_cast<LPARAM>(p3));
-        SendMessageToDescendants(hChild, p1, p2, p3, p4, p5);
-    }
-}
 int CWnd::WalkPreTranslateTree(HWND p0, MSG* p1)
 {
     if (!p0 || !p1) {
@@ -1800,20 +1783,7 @@ int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
 {
     return CreateDlgIndirect(p0, p1, p2);
 }
-LONGLONG CWnd::Default()
-{
-    if (!m_hWnd) {
-        return 0;
-    }
-    // Re-dispatch the message currently being handled, as real MFC does via the
-    // thread's current MSG, rather than default-processing a bogus zero message.
-    const MSG* pMsg = GetCurrentMessage();
-    if (pMsg && pMsg->message != 0) {
-        return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
-            this, pMsg->message, pMsg->wParam, pMsg->lParam);
-    }
-    return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this, 0, 0, 0);
-}
+
 LONGLONG CWnd::DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2)
 {
     if (!m_hWnd) {
@@ -1862,31 +1832,6 @@ int CWnd::EnableTrackingToolTips(int p0)
         return FALSE;
     }
     GetWindowRuntimeState(this).trackingToolTipsEnabled = p0 != FALSE;
-    return TRUE;
-}
-int CWnd::ExecuteDlgInit(void* p0)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    if (!p0) {
-        return FALSE;
-    }
-    ::ShowWindow(m_hWnd, SW_SHOW);
-    ::UpdateWindow(m_hWnd);
-    return TRUE;
-}
-int CWnd::ExecuteDlgInit(const WCHAR* p0)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    if (!p0) {
-        return FALSE;
-    }
-    ::SetWindowTextW(m_hWnd, p0);
-    ::ShowWindow(m_hWnd, SW_SHOW);
-    ::UpdateWindow(m_hWnd);
     return TRUE;
 }
 void CWnd::FilterToolTipMessage(MSG* p0)
