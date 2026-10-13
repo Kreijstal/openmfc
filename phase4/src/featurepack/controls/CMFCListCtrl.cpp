@@ -1,3 +1,4 @@
+#include "openmfc/afxstat_.h"
 // CMFCListCtrl — OpenMFC implementation.
 // Sources: manual_small_stub_implementations.cpp
 
@@ -196,20 +197,8 @@ static_assert(offsetof(STYLESTRUCT, styleOld) == 0x0 && offsetof(STYLESTRUCT, st
 static_assert(CDRF_NOTIFYITEMDRAW == 0x20 && CDRF_NOTIFYSUBITEMDRAW == 0x20 && (CDRF_NEWFONT | CDRF_NOTIFYPOSTPAINT) == 0x12, "custom-draw result codes as retail writes them");
 static_assert((CDDS_ITEMPREPAINT | CDDS_SUBITEM) == 0x30001 && (CDDS_ITEMPOSTPAINT | CDDS_SUBITEM) == 0x30002, "custom-draw stages as retail compares them");
 
-// Field-for-field mirror of detail/CWinAppSupport.h's `struct _AFX_THREAD_STATE`
-// (int nTempMapLock; int nWndCreateLock; void* pModuleState; void* pWndInit;
-// void* hHookOldCbtFilter;), used only to read pWndInit in PreSubclassWindow --
-// the same mirror controls/CMFCShellListCtrl.cpp uses.  (Retail reads
-// _AFX_THREAD_STATE::m_pWndInit at +0x28; OpenMFC's struct keeps it at +0x10.)
-struct AfxThreadStateMirror {
-    int nTempMapLock;
-    int nWndCreateLock;
-    void* pModuleState;
-    void* pWndInit;
-    void* hHookOldCbtFilter;
-};
-static_assert(sizeof(AfxThreadStateMirror) == 32, "AfxThreadStateMirror: five-field _AFX_THREAD_STATE");
-static_assert(offsetof(AfxThreadStateMirror, pWndInit) == 16, "AfxThreadStateMirror::pWndInit");
+// Share native thread storage with the window-creation hooks.
+using AfxThreadStateMirror=_AFX_THREAD_STATE;
 
 inline ListCtrlLayout* L(void* p) { return static_cast<ListCtrlLayout*>(p); }
 inline const ListCtrlLayout* L(const void* p) { return static_cast<const ListCtrlLayout*>(p); }
@@ -668,14 +657,14 @@ extern "C" void MS_ABI impl__OnSysColorChange_CMFCListCtrl__IEAAXXZ(void* pThis)
 //     _AFX_THREAD_STATE* pThreadState = AfxGetThreadState();        // 0x1332a0
 //     if (pThreadState->m_pWndInit == NULL) InitList();             // +0x28; 0x77a60
 // (No call to the CWnd/CListCtrl PreSubclassWindow survives in the retail
-// body.)  OpenMFC keeps the same member as _AFX_THREAD_STATE::pWndInit (read
+// body.)  OpenMFC keeps the same member as _AFX_THREAD_STATE::m_pWndInit (read
 // through AfxThreadStateMirror above).  Retail dereferences the thread state
 // unconditionally; a NULL guard is added.
 extern "C" void MS_ABI impl__PreSubclassWindow_CMFCListCtrl__MEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     const AfxThreadStateMirror* pThreadState =
         reinterpret_cast<const AfxThreadStateMirror*>(impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ());
-    if (pThreadState == nullptr || pThreadState->pWndInit == nullptr) {
+    if (pThreadState == nullptr || pThreadState->m_pWndInit == nullptr) {
         impl__InitList_CMFCListCtrl__IEAAHXZ(pThis);
     }
 }

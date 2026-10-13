@@ -1,3 +1,4 @@
+#include "openmfc/afxstat_.h"
 // CMFCPropertyGridCtrl — OpenMFC implementation.
 // Sources: mfccore.cpp
 
@@ -197,21 +198,8 @@ struct PropertyGridWndState {
     BOOL bShowDragContext = TRUE;          // +0x604 (name inferred from its use in TrackHeader; retail ctor 1)
 };
 
-// Field-for-field mirror of detail/CWinAppSupport.h's `struct _AFX_THREAD_STATE`
-// (int nTempMapLock; int nWndCreateLock; void* pModuleState; void* pWndInit;
-// void* hHookOldCbtFilter;), used only to read pWndInit in PreSubclassWindow
-// below.  The pins record the layout this file was written against; they
-// cannot see the real header, so keep the two in step (see the note at the
-// impl__AfxGetThreadState declaration above for why it is not included).
-struct AfxThreadStateMirror {
-    int nTempMapLock;
-    int nWndCreateLock;
-    void* pModuleState;
-    void* pWndInit;
-    void* hHookOldCbtFilter;
-};
-static_assert(sizeof(AfxThreadStateMirror) == 32, "AfxThreadStateMirror: five-field _AFX_THREAD_STATE");
-static_assert(offsetof(AfxThreadStateMirror, pWndInit) == 16, "AfxThreadStateMirror::pWndInit");
+// Share native thread storage with the window-creation hooks.
+using AfxThreadStateMirror=_AFX_THREAD_STATE;
 
 // Kept as a hand-rolled singly-linked list rather than a std::unordered_map:
 // the map would pull libstdc++ rehash/throw helpers into this object that the
@@ -2327,7 +2315,7 @@ extern "C" void MS_ABI impl__OnVScroll_CMFCPropertyGridCtrl__IEAAXIIPEAVCScrollB
 // base-class call before the thread-state read:
 //     _AFX_THREAD_STATE* pThreadState = AfxGetThreadState();   // ?AfxGetThreadState@@ 0x1332a0 (mfc140u)
 //     if (pThreadState->m_pWndInit == NULL) Init();            // +0x28; grid vslot 104
-// OpenMFC keeps the same member as _AFX_THREAD_STATE::pWndInit
+// OpenMFC keeps the same member as _AFX_THREAD_STATE::m_pWndInit
 // (detail/CWinAppSupport.h; AfxHookWindowCreate / the CBT hook in
 // CMFC_misc_stubs.cpp set and clear it for the same purpose), read here
 // through AfxThreadStateMirror (see the anonymous namespace above).  Retail
@@ -2336,7 +2324,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
     if (!pThis) return;
     const AfxThreadStateMirror* pThreadState =
         reinterpret_cast<const AfxThreadStateMirror*>(impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ());
-    if (pThreadState == nullptr || pThreadState->pWndInit == nullptr) {
+    if (pThreadState == nullptr || pThreadState->m_pWndInit == nullptr) {
         impl__Init_CMFCPropertyGridCtrl__MEAAXXZ(pThis);
     }
 }

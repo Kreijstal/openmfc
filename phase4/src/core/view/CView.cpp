@@ -130,8 +130,7 @@ extern "C" int MS_ABI impl__IsSelected_CView__UEBAHPEBVCObject___Z(const CView* 
 }
 // Symbol: ?OnActivateFrame@CView@@MEAAXIPEAVCFrameWnd@@@Z
 extern "C" void MS_ABI impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(CView* pThis, unsigned int, CFrameWnd*) { if (pThis && pThis->m_hWnd) ::SetFocus(pThis->m_hWnd); }
-// Symbol: ?OnCmdMsg@CView@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
-extern "C" int MS_ABI impl__OnCmdMsg_CView__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CView* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CWnd::OnCmdMsg(id, code, extra, info) : FALSE; }
+// Native command routing lives in core/runtime/CommandRouting.cpp.
 // Symbol: ?OnCreate@CView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(CView* pThis, CREATESTRUCTW* pCreateStruct) {
     if (!pThis) {

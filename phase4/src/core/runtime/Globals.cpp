@@ -6,6 +6,7 @@
 #include "detail/AfxMessagesSupport.h"
 #include "detail/MemcoreSupport.h"
 #include "detail/RegcoreSupport.h"
+#include "openmfc/afxstat_.h"
 
 // Global residuals shard 06/12: global
 //
@@ -261,24 +262,7 @@ extern "C" int MS_ABI impl__AfxFullPath__YAHPEA_WPEB_W_Z(wchar_t* lpszPathOut,
     // Success requires the result to fit within the MAX_PATH output buffer.
     return (dwRet != 0 && dwRet < MAX_PATH) ? 1 : 0;
 }
-// Symbol: ??2CNoTrackObject@@SAPEAX_K@Z
-extern "C" void* MS_ABI impl___2CNoTrackObject__SAPEAX_K_Z(std::size_t size) {
-    if (size == 0) {
-        size = 1;
-    }
-    // Zero-init to match MFC's LMEM_ZEROINIT allocation (CNoTrackObject-derived
-    // thread state assumes cleared members). A throwing operator new must never
-    // return null, so raise on exhaustion rather than hand back nullptr.
-    void* p = std::calloc(size, 1);
-    if (!p) {
-        throw std::bad_alloc();
-    }
-    return p;
-}
-// Symbol: ??3CNoTrackObject@@SAXPEAX@Z
-extern "C" void MS_ABI impl___3CNoTrackObject__SAXPEAX_Z(void* ptr) {
-    std::free(ptr);
-}
+// Native CNoTrackObject allocation lives in _AFX_THREAD_STATE.cpp.
 // Implemented in memcore.cpp; this unit had a second, unlinked copy.
 // Symbol: ??_U@YAPEAX_K@Z
 // Symbol: ??_V@YAXPEAX@Z
@@ -527,15 +511,7 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_ST
     }
     return pState;
 }
-// Symbol: ?AfxSetModuleState@@YAPEAVAFX_MODULE_STATE@@PEAV1@@Z
-// Ordinal: 2327
-// Returns the previous module state and atomically switches the thread-local
-// current module state pointer.
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE* pNewState) {
-    AFX_MODULE_STATE* pOldState = ResolveCurrentModuleState();
-    g_pCurrentModuleState = pNewState ? pNewState : &g_moduleStateStatic;
-    return pOldState;
-}
+// Native module switching lives with the thread state in _AFX_THREAD_STATE.cpp.
 // Symbol: ?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ
 // Ordinal: 2211
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MODULE_STATE__XZ() {

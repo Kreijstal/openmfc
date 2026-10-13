@@ -102,15 +102,12 @@ int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
 HINSTANCE g_hInstance = nullptr;
 HINSTANCE g_hResource = nullptr;
 void* g_appModuleStateStorage[kOpaqueStateWordCount] = {};
-__thread _AFX_THREAD_STATE g_threadStateStorage;
+thread_local ThreadBookkeeping g_threadBookkeeping;
 extern "C" HINSTANCE MS_ABI impl__AfxGetInstanceHandleHelper__YAPEAUHINSTANCE____XZ() {
     return AfxGetInstanceHandleHelper();
 }
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetAppModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
     return AfxGetAppModuleState();
-}
-extern "C" _AFX_THREAD_STATE* MS_ABI impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ() {
-    return AfxGetThreadState();
 }
 extern "C" int MS_ABI impl__AfxWinInit__YAHPEAUHINSTANCE____0PEA_WH_Z(
     HINSTANCE hInstance,

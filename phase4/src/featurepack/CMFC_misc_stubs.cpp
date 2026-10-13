@@ -1707,17 +1707,17 @@ extern "C" int MS_ABI impl__AfxHelpEnabled__YAHXZ() {
 namespace {
 // WH_CBT filter installed by AfxHookWindowCreate below. On HCBT_CREATEWND
 // (fired just before the new HWND is shown to the app) it attaches the
-// CWnd stashed in _AFX_THREAD_STATE::pWndInit by AfxHookWindowCreate to the
+// CWnd stashed in _AFX_THREAD_STATE::m_pWndInit by AfxHookWindowCreate to the
 // freshly created HWND via CWnd::Attach, matching real MFC's
 // AfxHookWindowCreate/PreCreateWindow contract.
 LRESULT CALLBACK AfxCbtFilterHook(int nCode, WPARAM wParam, LPARAM lParam) {
     _AFX_THREAD_STATE* pState = AfxGetThreadState();
-    if (nCode == HCBT_CREATEWND && pState && pState->pWndInit) {
-        CWnd* pWnd = static_cast<CWnd*>(pState->pWndInit);
+    if (nCode == HCBT_CREATEWND && pState && pState->m_pWndInit) {
+        CWnd* pWnd = static_cast<CWnd*>(pState->m_pWndInit);
         pWnd->Attach(reinterpret_cast<HWND>(wParam));
-        pState->pWndInit = nullptr;
+        pState->m_pWndInit = nullptr;
     }
-    HHOOK hHook = pState ? reinterpret_cast<HHOOK>(pState->hHookOldCbtFilter) : nullptr;
+    HHOOK hHook = pState ? reinterpret_cast<HHOOK>(pState->m_hHookOldCbtFilter) : nullptr;
     return ::CallNextHookEx(hHook, nCode, wParam, lParam);
 }
 }
@@ -1726,12 +1726,12 @@ extern "C" void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(void* /*class*
     CWnd* pWnd = reinterpret_cast<CWnd*>(p0);
     _AFX_THREAD_STATE* pState = AfxGetThreadState();
     if (!pState || !pWnd) return;
-    if (pState->pWndInit == pWnd) return;
-    if (!pState->hHookOldCbtFilter) {
+    if (pState->m_pWndInit == pWnd) return;
+    if (!pState->m_hHookOldCbtFilter) {
         HHOOK hHook = ::SetWindowsHookExW(WH_CBT, AfxCbtFilterHook, nullptr, ::GetCurrentThreadId());
-        pState->hHookOldCbtFilter = reinterpret_cast<void*>(hHook);
+        pState->m_hHookOldCbtFilter = hHook;
     }
-    pState->pWndInit = pWnd;
+    pState->m_pWndInit = pWnd;
 }
 // Symbol: ?AfxHtmlHelp@@YAPEAUHWND__@@PEAU1@PEB_WI_K@Z
 extern "C" void* MS_ABI impl__AfxHtmlHelp__YAPEAUHWND____PEAU1_PEB_WI_K_Z(void* /*struct*/* p0, const wchar_t* p1, unsigned int p2, unsigned __int64 p3) {
@@ -1790,9 +1790,10 @@ extern "C" void MS_ABI impl__AfxInitLocalData__YAXPEAUHINSTANCE_____Z(void* /*st
     // followed by a CWinApp*), reusing the already-exported
     // impl__AfxGetModuleState accessor rather than adding new state.
     struct LocalModuleState {
+        void* vtable;
+        void* m_pCurrentWinApp;
         HINSTANCE m_hCurrentInstanceHandle;
         HINSTANCE m_hCurrentResourceHandle;
-        void*     m_pCurrentWinApp;
     };
     // AfxGetAppModuleState() is already declared (with plain C++ linkage,
     // AFXAPI calling convention) in openmfc/afxwin.h -- no new declaration
@@ -1850,8 +1851,8 @@ extern "C" void MS_ABI impl__AfxInitThread__YAXXZ() {
     // canonical thread-local state, already shared process-wide via the
     // publicly declared AfxGetThreadState().
     if (_AFX_THREAD_STATE* pState = AfxGetThreadState()) {
-        pState->nTempMapLock = 0;
-        pState->nWndCreateLock = 0;
+        g_threadBookkeeping.nTempMapLock = 0;
+        g_threadBookkeeping.nWndCreateLock = 0;
     }
 }
 // Symbol: ?AfxInternalIsIdleMessage@@YAHPEAUtagMSG@@@Z
@@ -2066,7 +2067,7 @@ extern "C" void MS_ABI impl__AfxLockTempMaps__YAXXZ() {
     // Shares _AFX_THREAD_STATE (detail/CWinAppSupport.h) with
     // AfxUnlockTempMaps below via the publicly declared AfxGetThreadState().
     if (_AFX_THREAD_STATE* pState = AfxGetThreadState()) {
-        pState->nTempMapLock++;
+        g_threadBookkeeping.nTempMapLock++;
     }
 }
 // Symbol: ?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z
@@ -3232,9 +3233,10 @@ extern "C" void MS_ABI impl__AfxTermLocalData__YAXPEAUHINSTANCE____H_Z(void* /*s
     // instance/resource handles, either unconditionally (bAll) or only if
     // they currently belong to the terminating module.
     struct LocalModuleState {
+        void* vtable;
+        void* m_pCurrentWinApp;
         HINSTANCE m_hCurrentInstanceHandle;
         HINSTANCE m_hCurrentResourceHandle;
-        void*     m_pCurrentWinApp;
     };
     // AfxGetAppModuleState() is already declared (with plain C++ linkage,
     // AFXAPI calling convention) in openmfc/afxwin.h -- no new declaration
@@ -3259,8 +3261,8 @@ extern "C" void MS_ABI impl__AfxTermThread__YAXPEAUHINSTANCE_____Z(void* /*struc
         CWnd::DeleteTempMap();
         impl__DeleteTempMap_CDC__SAXXZ();
         impl__DeleteTempMap_CGdiObject__SAXXZ();
-        pState->nTempMapLock = 0;
-        pState->nWndCreateLock = 0;
+        g_threadBookkeeping.nTempMapLock = 0;
+        g_threadBookkeeping.nWndCreateLock = 0;
     }
 }
 // Symbol: ?AfxTimeToFileTime@@YAXAEBVCTime@ATL@@PEAU_FILETIME@@@Z
@@ -3350,10 +3352,10 @@ extern "C" int MS_ABI impl__AfxUnRegisterPreviewHandler__YAHPEB_W_Z(const wchar_
 extern "C" int MS_ABI impl__AfxUnhookWindowCreate__YAHXZ() {
     _AFX_THREAD_STATE* pState = AfxGetThreadState();
     if (!pState) return FALSE;
-    pState->pWndInit = nullptr;
-    if (pState->hHookOldCbtFilter) {
-        HHOOK hHook = reinterpret_cast<HHOOK>(pState->hHookOldCbtFilter);
-        pState->hHookOldCbtFilter = nullptr;
+    pState->m_pWndInit = nullptr;
+    if (pState->m_hHookOldCbtFilter) {
+        HHOOK hHook = reinterpret_cast<HHOOK>(pState->m_hHookOldCbtFilter);
+        pState->m_hHookOldCbtFilter = nullptr;
         return ::UnhookWindowsHookEx(hHook) ? TRUE : FALSE;
     }
     return FALSE;
@@ -3374,11 +3376,11 @@ extern "C" int MS_ABI impl__AfxUnlockTempMaps__YAHH_Z(int p0) {
     // reaching zero always flushes.
     _AFX_THREAD_STATE* pState = AfxGetThreadState();
     if (!pState) return FALSE;
-    if (pState->nTempMapLock > 0) {
-        pState->nTempMapLock--;
+    if (g_threadBookkeeping.nTempMapLock > 0) {
+        g_threadBookkeeping.nTempMapLock--;
     }
     const BOOL bDeleteTemps = static_cast<BOOL>(p0);
-    if (pState->nTempMapLock == 0 || bDeleteTemps) {
+    if (g_threadBookkeeping.nTempMapLock == 0 || bDeleteTemps) {
         CWnd::DeleteTempMap();
         impl__DeleteTempMap_CDC__SAXXZ();
         impl__DeleteTempMap_CGdiObject__SAXXZ();

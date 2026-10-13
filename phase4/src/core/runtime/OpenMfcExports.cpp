@@ -65,7 +65,7 @@ extern "C" void MS_ABI impl___Serialize_CObject__UEAAXAEAVCArchive___Z(CObject* 
 extern "C" int MS_ABI impl___OnCmdMsg_CCmdTarget__UEAAHIHPEAX0_Z(
     CCmdTarget* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
     if (pThis) {
-        return pThis->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+        return pThis->OnCmdMsg(nID, nCode, pExtra, static_cast<AFX_CMDHANDLERINFO*>(pHandlerInfo));
     }
     return FALSE;
 }

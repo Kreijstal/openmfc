@@ -1,3 +1,4 @@
+#include "openmfc/afxstat_.h"
 // CMFCShellListCtrl — OpenMFC implementation.
 // Sources: manual_small_stub_implementations.cpp
 
@@ -169,19 +170,8 @@ static_assert(sizeof(ShellItemInfo) == 0x18, "AFX_SHELLITEMINFO is 24 bytes (Enu
 static_assert(offsetof(ShellItemInfo, pidlFQ) == 0x8, "AFX_SHELLITEMINFO::pidlFQ +0x8");
 static_assert(offsetof(ShellItemInfo, pidlRel) == 0x10, "AFX_SHELLITEMINFO::pidlRel +0x10");
 
-// Field-for-field mirror of detail/CWinAppSupport.h's `struct _AFX_THREAD_STATE`
-// (int nTempMapLock; int nWndCreateLock; void* pModuleState; void* pWndInit;
-// void* hHookOldCbtFilter;), used only to read pWndInit in PreSubclassWindow --
-// the same mirror featurepack/propertygrid/CMFCPropertyGridCtrl.cpp uses.
-struct AfxThreadStateMirror {
-    int nTempMapLock;
-    int nWndCreateLock;
-    void* pModuleState;
-    void* pWndInit;
-    void* hHookOldCbtFilter;
-};
-static_assert(sizeof(AfxThreadStateMirror) == 32, "AfxThreadStateMirror: five-field _AFX_THREAD_STATE");
-static_assert(offsetof(AfxThreadStateMirror, pWndInit) == 16, "AfxThreadStateMirror::pWndInit");
+// Share native thread storage with the window-creation hooks.
+using AfxThreadStateMirror=_AFX_THREAD_STATE;
 
 inline ShellListCtrlLayout* L(void* p) { return static_cast<ShellListCtrlLayout*>(p); }
 inline HWND HWndOf(const void* p) {
@@ -788,7 +778,7 @@ extern "C" int MS_ABI impl__OnCreate_CMFCShellListCtrl__IEAAHPEAUtagCREATESTRUCT
 //     CMFCListCtrl::PreSubclassWindow();                            // 0x77ac0
 //     _AFX_THREAD_STATE* pThreadState = AfxGetThreadState();        // 0x1332a0
 //     if (pThreadState->m_pWndInit == NULL) InitList();             // +0x28; 0x12bbb0
-// OpenMFC keeps the same member as _AFX_THREAD_STATE::pWndInit (read through
+// OpenMFC keeps the same member as _AFX_THREAD_STATE::m_pWndInit (read through
 // AfxThreadStateMirror above).  Retail dereferences the thread state
 // unconditionally; a NULL guard is added.
 extern "C" void MS_ABI impl__PreSubclassWindow_CMFCShellListCtrl__MEAAXXZ(void* pThis) {
@@ -796,7 +786,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCShellListCtrl__MEAAXXZ(void* 
     impl__PreSubclassWindow_CMFCListCtrl__MEAAXXZ(pThis);
     const AfxThreadStateMirror* pThreadState =
         reinterpret_cast<const AfxThreadStateMirror*>(impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ());
-    if (pThreadState == nullptr || pThreadState->pWndInit == nullptr) {
+    if (pThreadState == nullptr || pThreadState->m_pWndInit == nullptr) {
         impl__InitList_CMFCShellListCtrl__IEAAHXZ(pThis);
     }
 }

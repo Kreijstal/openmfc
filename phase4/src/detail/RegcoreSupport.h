@@ -10,6 +10,7 @@ using namespace openmfc::detail::regcore;
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "openmfc/afxstat_.h"
 #include <windows.h>
 #include <cstring>
 
@@ -121,17 +122,16 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();
 // The implementation here keeps a thread-local current state pointer and exposes
 // AfxGetStaticModuleState as a stable process-wide state object.
 
-struct AFX_MODULE_STATE {
+class AFX_MODULE_STATE : public CNoTrackObject {
+public:
+    CWinApp* m_pCurrentWinApp;
     HINSTANCE m_hCurrentInstanceHandle;
     HINSTANCE m_hCurrentResourceHandle;
-    CWinApp* m_pCurrentWinApp;
 };
+static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
 
 namespace openmfc { namespace detail { namespace regcore {
 extern AFX_MODULE_STATE g_moduleStateStatic;
-} } }
-namespace openmfc { namespace detail { namespace regcore {
-extern thread_local AFX_MODULE_STATE* g_pCurrentModuleState;
 } } }
 
 namespace openmfc { namespace detail { namespace regcore {

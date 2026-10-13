@@ -277,15 +277,11 @@ constexpr size_t kOpaqueStateWordCount = 32;
 namespace openmfc { namespace detail { namespace cwinapp {
 extern void* g_appModuleStateStorage[kOpaqueStateWordCount];
 } } }
-struct _AFX_THREAD_STATE {
-    int nTempMapLock = 0;
-    int nWndCreateLock = 0;
-    void* pModuleState = nullptr;
-    void* pWndInit = nullptr;          // CWnd pending subclass during CreateWindowEx
-    void* hHookOldCbtFilter = nullptr; // HHOOK for the WH_CBT hook
-};
+#include "openmfc/afxstat_.h"
+// These legacy counters are bookkeeping, not native _AFX_THREAD_STATE fields.
 namespace openmfc { namespace detail { namespace cwinapp {
-extern __thread _AFX_THREAD_STATE g_threadStateStorage;
+struct ThreadBookkeeping { int nTempMapLock=0,nWndCreateLock=0; };
+extern thread_local ThreadBookkeeping g_threadBookkeeping;
 } } }
 
 // AfxGetInstanceHandle implementation

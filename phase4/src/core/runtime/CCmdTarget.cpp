@@ -223,7 +223,7 @@ CCmdTarget::~CCmdTarget() {
     // Base class destructor - nothing specific to clean up
 }
 extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*);
-int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,void* pHandlerInfo) {
+int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,AFX_CMDHANDLERINFO* pHandlerInfo) {
     return impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(this,nID,nCode,pExtra,pHandlerInfo);
 }
 int PASCAL CCmdTarget::DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
@@ -801,43 +801,7 @@ extern "C" void MS_ABI impl__GetNotSupported_CCmdTarget__QEAAXXZ(CCmdTarget* pTh
     impl__AfxThrowOleDispatchException__YAXGII_Z(0xf18c, 0xf18c, (UINT)-1);
 }
 
-// CCmdTarget::GetRoutingFrame() -- STUB.  Retail (mfc140u 0x1cee30, which the
-// static GetRoutingFrame_ is ICF-folded onto) is
-//     call ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
-//     mov 0x1b8(%rax),%rax ; ret
-// i.e. it just reads _AFX_THREAD_STATE::m_pRoutingFrame.  OpenMFC's
-// _AFX_THREAD_STATE (phase4/src/detail/CWinAppSupport.h) has no such member,
-// and nothing in the tree sets one, so there is nothing to return.  See the
-// header request that goes with this file.
-// Symbol: ?GetRoutingFrame@CCmdTarget@@IEAAPEAVCFrameWnd@@XZ
-extern "C" void* MS_ABI impl__GetRoutingFrame_CCmdTarget__IEAAPEAVCFrameWnd__XZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-
-// CCmdTarget::GetRoutingFrame_() -- STUB.  ICF-folded with GetRoutingFrame in
-// the retail image (both resolve to mfc140u 0x1cee30); blocked for the same
-// reason -- _AFX_THREAD_STATE has no routing-frame member here.
-// Symbol: ?GetRoutingFrame_@CCmdTarget@@KAPEAVCFrameWnd@@XZ
-extern "C" void* MS_ABI impl__GetRoutingFrame__CCmdTarget__KAPEAVCFrameWnd__XZ() {
-    return nullptr;
-}
-
-// CCmdTarget::GetRoutingView() -- STUB.  Retail (mfc140u 0x1cee10, shared with
-// the static GetRoutingView_) reads _AFX_THREAD_STATE::m_pRoutingView at
-// thread-state offset 0x1a8.  OpenMFC's _AFX_THREAD_STATE has no such member.
-// Symbol: ?GetRoutingView@CCmdTarget@@IEAAPEAVCView@@XZ
-extern "C" void* MS_ABI impl__GetRoutingView_CCmdTarget__IEAAPEAVCView__XZ(CCmdTarget* pThis) {
-    (void)pThis;
-    return nullptr;
-}
-
-// CCmdTarget::GetRoutingView_() -- STUB.  ICF-folded with GetRoutingView
-// (mfc140u 0x1cee10); blocked for the same reason.
-// Symbol: ?GetRoutingView_@CCmdTarget@@KAPEAVCView@@XZ
-extern "C" void* MS_ABI impl__GetRoutingView__CCmdTarget__KAPEAVCView__XZ() {
-    return nullptr;
-}
+// Native routing getters live in CommandRouting.cpp.
 
 // CCmdTarget::GetStackSize(const BYTE* pbParams, VARTYPE vtResult)
 // -- retail mfc140u 0x24fd70, transcribed instruction for instruction:

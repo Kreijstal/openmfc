@@ -25,12 +25,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFrameWnd__UEBAPEAUCRunti
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX_MSGMAP__XZ() {
     return EmptyMessageMap_FrameFontExports();
 }
-// Symbol: ?OnCmdMsg@CFrameWnd@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
-// CFrameWnd::OnCmdMsg
-extern "C" int MS_ABI impl__OnCmdMsg_CFrameWnd__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
-    CFrameWnd* pThis, UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
-    return pThis ? pThis->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo) : FALSE;
-}
+// Native command routing lives in core/runtime/CommandRouting.cpp.
 // Symbol: ?OnCommand@CFrameWnd@@MEAAH_K_J@Z
 // CFrameWnd::OnCommand
 extern "C" int MS_ABI impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(CFrameWnd* pThis, WPARAM wParam, LPARAM lParam) {
@@ -747,18 +742,6 @@ void CFrameWnd::OnClose() {
         return;
     }
     DestroyWindow();
-}
-int CFrameWnd::OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) {
-    CWnd* pView = m_pViewActive ? m_pViewActive : GetActiveView();
-    if (pView && pView->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
-            return TRUE;
-    }
-
-    if (CWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
-        return TRUE;
-    }
-
-    return FALSE;
 }
 int CFrameWnd::OnCommand(unsigned __int64 wParam, __int64 lParam) {
     (void)lParam;

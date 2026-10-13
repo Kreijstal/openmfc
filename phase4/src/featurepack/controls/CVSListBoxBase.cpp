@@ -1,3 +1,4 @@
+#include "openmfc/afxstat_.h"
 // CVSListBoxBase — OpenMFC implementation.
 // Sources: dlgcommon.cpp, manual_small_stub_implementations.cpp
 
@@ -116,17 +117,8 @@ inline CWnd* VOnCreateList(void* p) {
     return reinterpret_cast<Fn>(SlotOf(p, kSlotOnCreateList))(p);
 }
 
-// _AFX_THREAD_STATE as OpenMFC lays it out (detail/CWinAppSupport.h:280):
-// retail keeps m_pWndInit at +0x28; OpenMFC keeps the same member as pWndInit at
-// +0x10.  Same mirror as featurepack/controls/CMFCShellListCtrl.cpp.
-struct AfxThreadStateMirror {
-    int nTempMapLock;
-    int nWndCreateLock;
-    void* pModuleState;
-    void* pWndInit;
-    void* hHookOldCbtFilter;
-};
-static_assert(offsetof(AfxThreadStateMirror, pWndInit) == 16, "AfxThreadStateMirror::pWndInit");
+// Share native thread storage with the window-creation hooks.
+using AfxThreadStateMirror=_AFX_THREAD_STATE;
 
 // SS_USERITEM (winuser.h) -- the style bit retail Init adds.
 constexpr unsigned long kStyleUserItem = 0xA;
@@ -346,7 +338,7 @@ extern "C" void MS_ABI impl__OnSize_CVSListBoxBase__IEAAXIHH_Z(CVSListBoxBase* p
 //     if (pThreadState->m_pWndInit == NULL)                  // retail +0x28
 //         Init();                                            // 0x1c5060
 // Retail makes no base-class PreSubclassWindow call (CWnd's is empty).  OpenMFC
-// keeps m_pWndInit as _AFX_THREAD_STATE::pWndInit (read through
+// keeps m_pWndInit as _AFX_THREAD_STATE::m_pWndInit (read through
 // AfxThreadStateMirror above).  Retail dereferences the thread state and `this`
 // unconditionally; NULL guards are added.
 // Symbol: ?PreSubclassWindow@CVSListBoxBase@@MEAAXXZ
@@ -354,7 +346,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CVSListBoxBase__MEAAXXZ(CVSListBo
     if (pThis == nullptr) return;
     const AfxThreadStateMirror* pThreadState =
         reinterpret_cast<const AfxThreadStateMirror*>(impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ());
-    if (pThreadState == nullptr || pThreadState->pWndInit == nullptr) {
+    if (pThreadState == nullptr || pThreadState->m_pWndInit == nullptr) {
         impl__Init_CVSListBoxBase__IEAAXXZ(pThis);
     }
 }

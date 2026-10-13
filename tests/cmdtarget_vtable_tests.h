@@ -28,9 +28,9 @@ public:
     PrefixProbe() { aggregateImpl.accepted=&aggregateIID; }
     void* disabled=nullptr;
     int commands=0, releases=0, hooks=0;
-    int OnCmdMsg(UINT id,int code,void* extra,void* info) override {
+    int OnCmdMsg(UINT id,int code,void* extra,AFX_CMDHANDLERINFO* info) override {
         ++commands;
-        return id==123 && code==-7 && extra==&mapped && info==&hooked ? 77 : -1;
+        return id==123 && code==-7 && extra==&mapped && static_cast<void*>(info)==&hooked ? 77 : -1;
     }
     void OnFinalRelease() override { ++releases; }
     BOOL IsInvokeAllowed(DISPID id) override { return id==17; }

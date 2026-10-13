@@ -36,10 +36,6 @@ HINSTANCE AFXAPI AfxGetInstanceHandleHelper() {
 AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState() {
     return reinterpret_cast<AFX_MODULE_STATE*>(g_appModuleStateStorage);
 }
-// Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
-_AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
-    return &g_threadStateStorage;
-}
 // AfxWinInit implementation
 // Symbol: ?AfxWinInit@@YAHPEAUHINSTANCE__@@0PEA_WH@Z
 BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,

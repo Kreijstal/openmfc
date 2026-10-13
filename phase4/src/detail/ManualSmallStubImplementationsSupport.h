@@ -630,9 +630,10 @@ void ResetCDBVariantMemory(void* pThis);
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 struct LocalAFX_MODULE_STATE {
+    void* vtable{};
+    void* m_pCurrentWinApp{};
     HINSTANCE m_hCurrentInstanceHandle{};
     HINSTANCE m_hCurrentResourceHandle{};
-    void* m_pCurrentWinApp{};
 };
 } } }
 
@@ -657,8 +658,8 @@ namespace openmfc { namespace detail { namespace manualsmallstubimplementations 
 extern std::unordered_map<void*, MaintainStateRecord> g_maintainStateMap;
 } } }
 
-extern "C" void* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(void*);
-extern "C" LocalAFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE*);
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
 extern "C" AFX_MODULE_THREAD_STATE_ManualSmallStubImplementations* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {

@@ -1,4 +1,6 @@
+#include "openmfc/afxstat_.h"
 #include "RegcoreSupport.h"
+extern CWinApp* g_pApp;
 
 thread_local wchar_t g_wndClassNames[kWndClassNameSlots][kWndClassNameLen];
 namespace openmfc { namespace detail { namespace regcore {
@@ -57,20 +59,17 @@ extern "C" void MS_ABI impl__AfxSetResourceHandle__YAXPEAUHINSTANCE____Z(HINSTAN
 }
 // AfxGetMainWnd is implemented in appcore.cpp; this unit had a second, unlinked copy.
 extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ() {
-    return AfxGetApp();
+    return ResolveCurrentModuleState()->m_pCurrentWinApp;
 }
 AFX_MODULE_STATE g_moduleStateStatic;
-thread_local AFX_MODULE_STATE* g_pCurrentModuleState = nullptr;
 AFX_MODULE_STATE* ResolveCurrentModuleState() {
-    if (!g_pCurrentModuleState) {
-        g_pCurrentModuleState = &g_moduleStateStatic;
-    }
-    return g_pCurrentModuleState;
+    AFX_MODULE_STATE* state=AfxGetThreadState()->m_pModuleState;
+    return state ? state : &g_moduleStateStatic;
 }
 void RefreshStaticModuleState() {
     g_moduleStateStatic.m_hCurrentInstanceHandle = AfxGetInstanceHandle();
     g_moduleStateStatic.m_hCurrentResourceHandle = AfxGetResourceHandle();
-    g_moduleStateStatic.m_pCurrentWinApp = AfxGetApp();
+    g_moduleStateStatic.m_pCurrentWinApp = g_pApp;
 }
 thread_local AFX_MODULE_THREAD_STATE_Regcore g_moduleThreadState;
 } } }  // namespace openmfc::detail::regcore

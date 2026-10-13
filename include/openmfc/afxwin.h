@@ -333,6 +333,10 @@ class CCmdTarget;
 #endif
 
 typedef void (AFXAPI CCmdTarget::*AFX_PMSG)(void);
+struct AFX_CMDHANDLERINFO {
+    CCmdTarget* pTarget;
+    AFX_PMSG pmf;
+};
 
 struct AFX_MSGMAP_ENTRY
 {
@@ -418,7 +422,7 @@ public:
 
     // Retail x64 prefix: CObject occupies slots 0..4, followed by these
     // methods in slots 5..21. DECLARE_MESSAGE_MAP must appear at slot 12.
-    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
+    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
     virtual void OnFinalRelease();
     virtual BOOL IsInvokeAllowed(DISPID dispid);
     virtual BOOL GetDispatchIID(IID* iid);
@@ -439,6 +443,12 @@ public:
     IUnknown* GetInterface(const void* iid);
     BOOL DoOleVerb(LONG verb,MSG* message,HWND parent,const RECT* rectangle);
     BOOL EnumOleVerbs(IEnumOLEVERB** out);
+protected:
+    CFrameWnd* GetRoutingFrame();
+    static CFrameWnd* GetRoutingFrame_();
+    CView* GetRoutingView();
+    static CView* GetRoutingView_();
+public:
 
     static int PASCAL DispatchCmdMsg(CCmdTarget* pTarget, unsigned int nID, int nCode,
                                      AFX_PMSG pfn, void* pExtra, unsigned int nSig, void* pHandlerInfo);
@@ -1029,16 +1039,18 @@ public:
     void UpdateFrameTitleForDocument(const wchar_t* lpszDocName);
 
     // Overrides from CCmdTarget
-    virtual int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
+    int OnCmdMsg(unsigned int nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo) override;
 
 public:
     static const CRect rectDefault;
-    CWnd* m_pViewActive;
-    HACCEL m_hAccelTable;
-    UINT m_nIDHelp;
-
+    char _frame_prefix[16];     // +0xe8..+0xf7
+    HACCEL m_hAccelTable;       // +0xf8
+    char _frame_middle[100];    // +0x100..+0x163
+    UINT m_nIDHelp;             // +0x164
+    char _frame_tracking[8];    // +0x168..+0x16f
+    CWnd* m_pViewActive;        // +0x170
 protected:
-    char _framewnd_padding[216]; // Padding for member variables
+    char _framewnd_padding[96]; // +0x178..+0x1d7
 };
 
 //=============================================================================
@@ -3372,6 +3384,7 @@ class CView : public CWnd {
 public:
     CView();
     virtual ~CView();
+    int OnCmdMsg(UINT id,int code,void* extra,AFX_CMDHANDLERINFO* info) override;
 
     // Document access
     virtual CDocument* GetDocument() const;
@@ -4064,7 +4077,7 @@ protected:
 // Guard against redefinition when linking with appcore.cpp
 #ifndef OPENMFC_APPCORE_IMPL
 inline CCmdTarget::~CCmdTarget() {}
-inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, void*) { return 0; }
+inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, AFX_CMDHANDLERINFO*) { return 0; }
 inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
 
 // CWinThread implementations

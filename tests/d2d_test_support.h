@@ -1,5 +1,6 @@
 #pragma once
 #include "openmfc/afxinet.h"
+#include "openmfc/afxstat_.h"
 #include <cstdlib>
 
 // Unused GDI siblings in the shared support TU still need link definitions.
@@ -10,7 +11,7 @@ CDC::CDC() { std::abort(); }
 CDC::~CDC() { std::abort(); }
 BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE g_d2dTestResourceModule = nullptr;
-extern thread_local AFX_MODULE_STATE* g_cmdTestCurrentModule;
+#define g_cmdTestCurrentModule (AfxGetThreadState()->m_pModuleState)
 HINSTANCE g_typeCacheInstance=nullptr;
 AFX_MODULE_STATE* g_typeCacheInstanceModule=nullptr;
 bool g_typeCacheForceNoInstance=false;
@@ -26,7 +27,7 @@ CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
 CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
 // Command routing is outside these rendering tests.
 CCmdTarget::~CCmdTarget() = default;
-int CCmdTarget::OnCmdMsg(unsigned int,int,void*,void*) { std::abort(); }
+int CCmdTarget::OnCmdMsg(unsigned int,int,void*,AFX_CMDHANDLERINFO*) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
 CRuntimeClass CWinApp::classCWinApp{};
@@ -38,11 +39,7 @@ CRuntimeClass CHtmlView::classCHtmlView{};
 
 // Module switching is peripheral to rendering; these doubles model thread
 // state so the command-target tests can verify capture and balanced restore.
-thread_local AFX_MODULE_STATE* g_cmdTestCurrentModule=nullptr;
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() { return g_cmdTestCurrentModule; }
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE* state) {
-    AFX_MODULE_STATE* previous=g_cmdTestCurrentModule; g_cmdTestCurrentModule=state; return previous;
-}
 
 // Property getter allocation/type failures use the framework exception sibling.
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long result) {
@@ -85,4 +82,11 @@ extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t bytes) { return std::malloc(b
 extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* memory) { std::free(memory); }
 // Generic clone virtuals retain peripheral runtime-class and command siblings.
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CCmdTarget__UEBAPEAUCRuntimeClass__XZ(const CCmdTarget*) { return &CCmdTarget::classCCmdTarget; }
-extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*) { std::abort(); }
+// Command-map lookup is peripheral to the frame/view routing tests. Their
+// callback records the real target, arguments and thread routing context.
+int (*g_cmdRoutingMapHook)(CCmdTarget*,UINT,int,void*,void*)=nullptr;
+extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
+    CCmdTarget* target,UINT id,int code,void* extra,void* info) {
+    if(g_cmdRoutingMapHook)return g_cmdRoutingMapHook(target,id,code,extra,info);
+    std::abort();
+}

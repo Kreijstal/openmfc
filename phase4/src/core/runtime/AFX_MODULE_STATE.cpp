@@ -11,7 +11,7 @@ extern "C" void* MS_ABI impl___0AFX_MODULE_STATE__QEAA_HP6A_JPEAUHWND____I_K_J_Z
         return pThis;
     }
 
-    if (const auto* current = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()) {
+    if (const auto* current = reinterpret_cast<const LocalAFX_MODULE_STATE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ())) {
         pState->m_hCurrentInstanceHandle = current->m_hCurrentInstanceHandle;
         pState->m_hCurrentResourceHandle = current->m_hCurrentResourceHandle;
         pState->m_pCurrentWinApp = current->m_pCurrentWinApp;

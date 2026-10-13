@@ -1,3 +1,4 @@
+#include "openmfc/afxstat_.h"
 // CMFCFontComboBox — OpenMFC implementation.
 // Sources: manual_small_stub_implementations.cpp
 
@@ -301,20 +302,8 @@ inline void EnsureGlobalDataInitialized() {
     }
 }
 
-// Field-for-field mirror of detail/CWinAppSupport.h's `struct _AFX_THREAD_STATE`
-// (int nTempMapLock; int nWndCreateLock; void* pModuleState; void* pWndInit;
-// void* hHookOldCbtFilter;), used only to read pWndInit in PreSubclassWindow --
-// the same mirror controls/CMFCListCtrl.cpp uses.  (Retail reads
-// _AFX_THREAD_STATE::m_pWndInit at +0x28; OpenMFC's struct keeps it at +0x10.)
-struct AfxThreadStateMirror {
-    int nTempMapLock;
-    int nWndCreateLock;
-    void* pModuleState;
-    void* pWndInit;
-    void* hHookOldCbtFilter;
-};
-static_assert(sizeof(AfxThreadStateMirror) == 32, "AfxThreadStateMirror: five-field _AFX_THREAD_STATE");
-static_assert(offsetof(AfxThreadStateMirror, pWndInit) == 16, "AfxThreadStateMirror::pWndInit");
+// Share native thread storage with the window-creation hooks.
+using AfxThreadStateMirror=_AFX_THREAD_STATE;
 
 } // namespace
 
@@ -704,7 +693,7 @@ extern "C" __int64 MS_ABI impl__OnInitControl_CMFCFontComboBox__IEAA_J_K_J_Z(
 //     _AFX_THREAD_STATE* pThreadState = AfxGetThreadState();   // 0x1332a0
 //     if (pThreadState->m_pWndInit == NULL) Init();            // +0x28; 0x61730
 // (No call to the CWnd/CComboBox PreSubclassWindow survives in the retail
-// body.)  OpenMFC keeps the same member as _AFX_THREAD_STATE::pWndInit (read
+// body.)  OpenMFC keeps the same member as _AFX_THREAD_STATE::m_pWndInit (read
 // through AfxThreadStateMirror above).  Retail dereferences the thread state
 // unconditionally; a NULL thread state is treated as "no window being
 // created", the choice controls/CMFCListCtrl.cpp makes.
@@ -712,7 +701,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCFontComboBox__MEAAXXZ(void* p
     if (pThis == nullptr) return;
     const AfxThreadStateMirror* pThreadState =
         reinterpret_cast<const AfxThreadStateMirror*>(impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ());
-    if (pThreadState == nullptr || pThreadState->pWndInit == nullptr) {
+    if (pThreadState == nullptr || pThreadState->m_pWndInit == nullptr) {
         impl__Init_CMFCFontComboBox__IEAAXXZ(pThis);
     }
 }

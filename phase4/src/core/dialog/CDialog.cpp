@@ -98,8 +98,13 @@ static_assert(offsetof(CDialog, m_nIDHelp) == 0xf0, "OpenMFC m_nIDHelp (retail: 
 static_assert(offsetof(CDialogPaddingProbe, _dialog_padding) == 0xf4 &&
               offsetof(CDialogPaddingProbe, _dialog_padding) + sizeof(CDialogPaddingProbe::_dialog_padding) == 0x12c,
               "OpenMFC CDialog::_dialog_padding is +0xf4..+0x12c; +0x12c..+0x130 is tail padding");
+#ifdef _MSC_VER
+static_assert(offsetof(CDialogExAccess, m_clrBackground) == 0x130,
+              "MSVC does not reuse the CDialog base's tail padding");
+#else
 static_assert(offsetof(CDialogExAccess, m_clrBackground) == 0x12c,
               "g++ reuses CDialog's tail padding for CDialogEx::m_clrBackground (see note above)");
+#endif
 
 inline S_CDialogRetailTail* Tail(CDialog* p) { return reinterpret_cast<S_CDialogRetailTail*>(p); }
 
@@ -165,7 +170,7 @@ bool PointsIntoThisImage(const void* p) {
 int DispatchOnCmdMsg(CCmdTarget* pTarget, UINT nID, int nCode, void* pExtra,
                      AFX_CMDHANDLERINFO* pHandlerInfo) {
     if (PointsIntoThisImage(*reinterpret_cast<void* const*>(pTarget))) {
-        return pTarget->OnCmdMsg(nID, nCode, pExtra, static_cast<void*>(pHandlerInfo));
+        return pTarget->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
     }
     return VSlot<OnCmdMsgFn>(pTarget, kVs_OnCmdMsg)(pTarget, nID, nCode, pExtra, pHandlerInfo);
 }

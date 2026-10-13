@@ -67,7 +67,7 @@ bool PointsIntoThisImage(const void* p) {
 int DispatchOnCmdMsg(CCmdTarget* pTarget, UINT nID, int nCode, void* pExtra,
                      AFX_CMDHANDLERINFO* pHandlerInfo) {
     if (PointsIntoThisImage(*reinterpret_cast<void* const*>(pTarget))) {
-        return pTarget->OnCmdMsg(nID, nCode, pExtra, static_cast<void*>(pHandlerInfo));
+        return pTarget->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
     }
     OnCmdMsgFn fn = reinterpret_cast<OnCmdMsgFn>(
         (*reinterpret_cast<void* const* const*>(pTarget))[kVs_OnCmdMsg]);

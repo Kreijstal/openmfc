@@ -610,7 +610,7 @@ void* MS_ABI enter_maintain_state(void* pThis, void* pState, bool useThreadLock)
     if (pState == nullptr) {
         pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
     }
-    info.prevModuleState = static_cast<LocalAFX_MODULE_STATE*>(impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(pState));
+    info.prevModuleState = reinterpret_cast<LocalAFX_MODULE_STATE*>(impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(reinterpret_cast<AFX_MODULE_STATE*>(pState)));
 
     if (useThreadLock) {
         if (auto* threadState = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()) {
@@ -640,7 +640,7 @@ void MS_ABI leave_maintain_state(void* pThis) {
         g_maintainStateMap.erase(it);
     }
 
-    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(info.prevModuleState);
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(reinterpret_cast<AFX_MODULE_STATE*>(info.prevModuleState));
     if (info.trackedThreadLock) {
         if (auto* threadState = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()) {
             threadState->m_nTempMapLock = info.prevThreadLock;
