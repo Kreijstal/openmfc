@@ -1,5 +1,5 @@
 #pragma once
-#include "detail/CWndAccessibilitySupport.h"
+#include "detail/CWndAccessibilityProtocol.h"
 #include <oleacc.h>
 
 namespace accessibility_tests {
@@ -154,3 +154,132 @@ static void nativeWindow() {
 }
 }
 static void windowAccessibility() { accessibility_tests::forwarding(); accessibility_tests::nativeWindow(); }
+
+static void accessibilityProxy() {
+    using namespace openmfc::detail::accessibility;
+    WindowPaintFixture fixture(false);
+    if (!fixture.hwnd) return;
+    fixture.window.EnableD2DSupport(FALSE);
+    check(fixture.window.m_xAccessible && fixture.window.m_xAccessibleServer,
+        "CWnd constructs its embedded accessibility interface vtables");
+    __int64 result = 99;
+    check(impl__CreateAccessibleProxy_CWnd__UEAAJ_K_JPEA_J_Z(&fixture.window,
+        static_cast<ULONGLONG>(OBJID_CLIENT), OBJID_WINDOW, &result) == E_FAIL && result == 0 &&
+        !fixture.window.m_pProxy && !fixture.window.m_pStdObject,
+        "proxy creation checks the LPARAM object ID before creating accessibility state");
+    SendMessageW(fixture.hwnd, WM_GETOBJECT, 0, OBJID_CLIENT);
+    check(!fixture.window.m_pProxy, "disabled active accessibility uses the default WM_GETOBJECT handler");
+    fixture.window.EnableActiveAccessibility();
+    LRESULT token = SendMessageW(fixture.hwnd, WM_GETOBJECT, 0, static_cast<LPARAM>(static_cast<DWORD>(OBJID_CLIENT)));
+    check(token != 0 && !FAILED(static_cast<HRESULT>(token)) && fixture.window.m_pProxy,
+        "production WM_GETOBJECT routing marshals the active client proxy with zero WPARAM");
+    IAccessible* client = nullptr;
+    HRESULT hr = ObjectFromLresult(token, accessibleIID, 0, reinterpret_cast<void**>(&client));
+    check(SUCCEEDED(hr) && client, "a real COM client retrieves the marshaled accessibility proxy");
+    if (!client) return;
+    VARIANT self{}; self.vt = VT_I4; self.lVal = CHILDID_SELF;
+    BSTR name = nullptr;
+    check(client->get_accName(self, &name) == S_OK && name && wcscmp(name,L"Native D2D window") == 0,
+        "the standard IAccessible proxy reaches the embedded MFC interface and actual window name");
+    SysFreeString(name);
+    IUnknown* firstIdentity = nullptr;
+    IOleWindow* oleWindow = nullptr;
+    hr = client->QueryInterface(IID_IOleWindow, reinterpret_cast<void**>(&oleWindow));
+    HWND observed = nullptr;
+    check(SUCCEEDED(hr) && oleWindow && oleWindow->GetWindow(&observed) == S_OK && observed == fixture.hwnd,
+        "proxy IOleWindow reports the actual hosted window");
+    client->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&firstIdentity));
+    IUnknown* otherIdentity = nullptr;
+    if (oleWindow) oleWindow->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&otherIdentity));
+    check(firstIdentity && firstIdentity == otherIdentity,
+        "IAccessible and IOleWindow have one canonical COM identity");
+    if (otherIdentity) otherIdentity->Release();
+    IAccessible* another = nullptr;
+    hr = AccessibleObjectFromWindow(fixture.hwnd, OBJID_CLIENT, accessibleIID, reinterpret_cast<void**>(&another));
+    otherIdentity = nullptr;
+    if (another) another->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&otherIdentity));
+    check(SUCCEEDED(hr) && another && firstIdentity == otherIdentity,
+        "AccessibleObjectFromWindow reuses the cached proxy while clients hold references");
+    if (otherIdentity) otherIdentity->Release();
+    if (another) another->Release();
+    if (firstIdentity) firstIdentity->Release();
+    // Exercise the proxy's IDispatch ABI, rather than calling nested exports.
+    wchar_t property[] = L"accName"; LPOLESTR propertyNames[] = {property}; DISPID id = 0;
+    hr = client->GetIDsOfNames(IID_NULL, propertyNames, 1, 0, &id);
+    DISPPARAMS args{&self, nullptr, 1, 0}; VARIANT value{};
+    check(hr == S_OK && id == DISPID_ACC_NAME &&
+        client->Invoke(id,IID_NULL,0,DISPATCH_PROPERTYGET,&args,&value,nullptr,nullptr) == S_OK &&
+        value.vt == VT_BSTR && value.bstrVal && wcscmp(value.bstrVal,L"Native D2D window") == 0,
+        "standard IDispatch calls reach the MFC accessibility name and invoke adapters");
+    VariantClear(&value);
+    // Destroy the owner while two client interface references remain alive.
+    check(::DestroyWindow(fixture.hwnd) && !fixture.window.m_pProxy && !fixture.window.m_pStdObject,
+        "external window destruction routes WM_NCDESTROY and disconnects borrowed proxies before releasing the standard object");
+    fixture.hwnd = nullptr;
+    long count = -1;
+    observed = reinterpret_cast<HWND>(1);
+    check(client->get_accChildCount(&count) == RPC_E_DISCONNECTED && count == -1 &&
+        oleWindow && oleWindow->GetWindow(&observed) == RPC_E_DISCONNECTED && !observed,
+        "surviving COM clients report disconnection without touching destroyed window storage");
+    if (oleWindow) oleWindow->Release();
+    client->Release();
+}
+
+static void accessibilityProxyForwarding() {
+    using namespace openmfc::detail::accessibility;
+    accessibility_tests::AccessibleProbe probe;
+    CWnd window;
+    window.m_pStdObject = &probe;
+    __int64 token = 0;
+    HRESULT hr = impl__CreateAccessibleProxy_CWnd__UEAAJ_K_JPEA_J_Z(&window,0,OBJID_CLIENT,&token);
+    IAccessible* client = nullptr;
+    if (SUCCEEDED(hr)) hr = ObjectFromLresult(static_cast<LRESULT>(token),accessibleIID,0,reinterpret_cast<void**>(&client));
+    check(SUCCEEDED(hr) && client, "create a COM proxy around an injected standard accessibility implementation");
+    if (!client) return;
+    VARIANT child{}; child.vt=VT_I4; child.lVal=17;
+    VARIANT output{}; IDispatch* dispatch=nullptr; long count=0;
+    check(client->get_accParent(&dispatch)==S_FALSE && dispatch==&probe &&
+        client->get_accChildCount(&count)==S_FALSE && count==17 &&
+        client->get_accChild(child,&dispatch)==S_FALSE && dispatch==&probe,
+        "proxy parent, count and child slots forward through the installed embedded interface");
+    using Getter=HRESULT (STDMETHODCALLTYPE IAccessible::*)(VARIANT,BSTR*);
+    Getter getters[]={&IAccessible::get_accName,&IAccessible::get_accValue,&IAccessible::get_accDescription,
+        &IAccessible::get_accHelp,&IAccessible::get_accKeyboardShortcut,&IAccessible::get_accDefaultAction};
+    for (auto getter:getters) {
+        BSTR text=nullptr;
+        check((client->*getter)(child,&text)==S_FALSE && text && wcscmp(text,L"probe")==0,
+            "proxy string slots preserve the child VARIANT, HRESULT and BSTR output");
+        SysFreeString(text);
+    }
+    BSTR file=nullptr; long topic=0;
+    check(client->get_accHelpTopic(&file,child,&topic)==S_FALSE && topic==17,
+        "proxy help topic uses the correct embedded argument order");
+    SysFreeString(file);
+    check(client->get_accRole(child,&output)==S_FALSE && output.lVal==17 &&
+        client->get_accState(child,&output)==S_FALSE && output.lVal==17 &&
+        client->get_accFocus(&output)==S_FALSE && output.lVal==17 &&
+        client->get_accSelection(&output)==S_FALSE && output.lVal==17,
+        "proxy role, state, focus and selection slots return COM variants");
+    long x=0,y=0,w=0,h=0;
+    check(client->accLocation(&x,&y,&w,&h,child)==S_FALSE && x==1 && y==2 && w==3 && h==4 &&
+        client->accSelect(9,child)==S_FALSE && client->accNavigate(9,child,&output)==S_FALSE &&
+        client->accDoDefaultAction(child)==S_FALSE,
+        "proxy action and location slots preserve all arguments");
+    check(client->accHitTest(4,5,&output)==E_FAIL && output.lVal==9 && probe.calls==19,
+        "all 19 supported proxy methods reach the correct implementation and propagate failures");
+    check(client->put_accName(child,nullptr)==E_NOTIMPL && client->put_accValue(child,nullptr)==E_NOTIMPL && probe.calls==19,
+        "the public MFC proxy rejects obsolete property setters without forwarding them");
+    void* unknown=reinterpret_cast<void*>(1);
+    check(client->QueryInterface(IID_IEnumVARIANT,&unknown)==E_NOINTERFACE && !unknown,
+        "unsupported proxy interfaces fail and clear their outputs");
+    UINT infoCount=0;
+    check(client->GetTypeInfoCount(&infoCount)==S_OK && infoCount==1,
+        "proxy IDispatch adapts the reversed MFC type-info method order");
+    ITypeInfo* info=nullptr;
+    check(client->GetTypeInfo(0,0,&info)==E_NOTIMPL,
+        "proxy preserves the MFC type-info HRESULT");
+    client->Release();
+    check(!window.m_pProxy, "releasing the final COM client clears the window's borrowed proxy pointer");
+    window.ReleaseAccessibility();
+    check(probe.releases==1, "proxy release does not consume the cached standard object's reference");
+}

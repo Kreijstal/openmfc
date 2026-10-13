@@ -15,15 +15,6 @@ constexpr IID kAccessible = {0x618736e0, 0x3c3d, 0x11cf,
     {0x81, 0x0c, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
 }
 
-void CWnd::ReleaseAccessibility() {
-    // Detach before Release: releasing a COM object can reenter the window.
-    IAccessible* object = m_pStdObject;
-    m_pStdObject = nullptr;
-    // SetProxy installs a borrowed pointer; it does not transfer ownership.
-    m_pProxy = nullptr;
-    if (object) object->Release();
-}
-
 // Symbol: ?EnsureStdObj@CWnd@@UEAAJXZ
 extern "C" long MS_ABI impl__EnsureStdObj_CWnd__UEAAJXZ(CWnd* pThis) {
     if (!pThis) return E_POINTER;

@@ -163,10 +163,8 @@ void OpenMfcDetachCWnd(HWND hWnd) {
     if (it != g_hwndMap.end()) {
         CWnd* pWnd = it->second;
         g_hwndMap.erase(it);
-        g_wndRuntimeStates.erase(pWnd);
-        if (auto* pFrameWnd = dynamic_cast<CFrameWnd*>(pWnd)) {
-            g_frameWndRuntimeStates.erase(pFrameWnd);
-        }
+        pWnd->m_hWnd = nullptr;
+        CleanupWindowRuntimeState(pWnd);
 
         auto ccIt = g_controlContainerMap.find(pWnd);
         if (ccIt != g_controlContainerMap.end()) {

@@ -1509,11 +1509,6 @@ extern "C" void MS_ABI impl__OnDrawItem_CWnd__IEAAXHPEAUtagDRAWITEMSTRUCT___Z(CW
 extern "C" void MS_ABI impl__OnEnterIdle_CWnd__IEAAXIPEAV1__Z(CWnd* pThis, unsigned int p0, void* p1) {
     pThis->OnEnterIdle(p0, p1);
 }
-// Symbol: ?OnGetObject@CWnd@@IEAA_J_K_J@Z
-// CWnd::OnGetObject
-extern "C" __int64 MS_ABI impl__OnGetObject_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
-    return (__int64)pThis->OnGetObject(p0, p1);
-}
 // Symbol: ?OnHelp@CWnd@@QEAAXXZ
 // CWnd::OnHelp
 extern "C" void MS_ABI impl__OnHelp_CWnd__QEAAXXZ(CWnd* pThis) {

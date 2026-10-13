@@ -41,9 +41,10 @@ struct WindowPaintFixture {
                 return 0;
             }
             if(message==WM_NCDESTROY) {
+                LRESULT result=impl__WindowProc_CWnd__MEAA_JI_K_J_Z(&fixture->window,message,wParam,lParam);
                 fixture->window.EnableD2DSupport(FALSE);
                 fixture->window.m_hWnd=nullptr;
-                return DefWindowProcW(hwnd,message,wParam,lParam);
+                return result;
             }
             return impl__WindowProc_CWnd__MEAA_JI_K_J_Z(&fixture->window,message,wParam,lParam);
         }

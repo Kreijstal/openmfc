@@ -271,7 +271,7 @@ int main() {
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
     lifecycle();
-    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); }
+    if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); }
     impl__AfxReleaseD2DRefs__YAXXZ();
     if (SUCCEEDED(hr)) CoUninitialize();
     std::printf("%d failures\n", failures);

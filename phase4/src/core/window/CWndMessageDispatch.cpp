@@ -53,6 +53,13 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
     case WM_SIZE:
         if (pThis->m_pRenderTarget) pThis->ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
         return FALSE;
+    case WM_NCDESTROY:
+        pThis->ReleaseAccessibility();
+        return FALSE;
+    case WM_GETOBJECT:
+        if (pResult) *pResult = static_cast<LRESULT>(pThis->OnGetObject(wParam, lParam));
+        else pThis->OnGetObject(wParam, lParam);
+        return TRUE;
     case WM_COMMAND:
         return impl__OnCommand_CWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
     case WM_NOTIFY:

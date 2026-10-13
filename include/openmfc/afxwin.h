@@ -694,6 +694,8 @@ public:
     LONGLONG Default();
     LONGLONG DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2);
     HWND Detach();
+    void InitializeAccessibility();
+    void EnableActiveAccessibility() { m_bEnableActiveAccessibility = true; }
     void ReleaseAccessibility();
     int DoD2DPaint();
     void ResizeD2DRenderTarget(UINT width, UINT height);
@@ -2264,6 +2266,7 @@ inline CWnd::CWnd()
       m_pCtrlCont(nullptr), m_pCtrlSite(nullptr), m_pRenderTarget(nullptr)
 {
     memset(_cwnd_padding1, 0, sizeof(_cwnd_padding1));
+    InitializeAccessibility();
 }
 
 inline CWnd::~CWnd() {
@@ -2519,6 +2522,14 @@ inline int CWnd::OnWndMsg(unsigned int message, uintptr_t wParam, intptr_t lPara
     case WM_SIZE:
         if (m_pRenderTarget) ResizeD2DRenderTarget(LOWORD(lParam), HIWORD(lParam));
         return FALSE;
+    case WM_NCDESTROY:
+        ReleaseAccessibility();
+        return FALSE;
+    case WM_GETOBJECT: {
+        LONGLONG result = OnGetObject(wParam, lParam);
+        if (pResult) *pResult = static_cast<intptr_t>(result);
+        return TRUE;
+    }
     case WM_COMMAND:
         return OnCommand(wParam, lParam);
     case WM_NOTIFY:
