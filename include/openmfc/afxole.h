@@ -568,7 +568,7 @@ public:
     COleDateTime& operator=(const DATE& dtSrc) { m_dt = dtSrc; m_status = DT_VALID; return *this; }
     COleDateTime& operator=(const COleDateTime& dtSrc);
 
-    char _oledatetime_padding[16];
+    char _oledatetime_padding[4];
 };
 
 //=============================================================================

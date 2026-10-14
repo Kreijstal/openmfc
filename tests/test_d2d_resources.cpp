@@ -285,6 +285,7 @@ static void ownershipAndRecreation() {
 #include "database_layout_tests.h"
 #include "database_strings_tests.h"
 #include "rfx_text_string_tests.h"
+#include "rfx_date_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -313,6 +314,7 @@ int main() {
     if (SUCCEEDED(hr)) databaseLayout();
     if (SUCCEEDED(hr)) databaseStrings();
     if (SUCCEEDED(hr)) textStringFieldExchange();
+    if (SUCCEEDED(hr)) dateFieldExchange();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

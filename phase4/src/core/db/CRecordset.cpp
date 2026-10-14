@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CRecordsetSupport.h"
+#include "detail/CRecordsetProxies.h"
 
 // Symbol: ??0CRecordset@@QEAA@PEAVCDatabase@@@Z
 extern "C" void* MS_ABI impl___0CRecordset__QEAA_PEAVCDatabase___Z(void* pThis, CDatabase* pDatabase) {
@@ -455,6 +456,7 @@ void CRecordset::Close() {
         m_hstmt = SQL_NULL_HSTMT;
     }
     m_bOpen = FALSE;
+    openmfc::detail::FreeRecordsetProxies(*this);
     if(m_rgFieldInfos)FreeDataCache();
     std::free(m_rgFieldInfos);m_rgFieldInfos=nullptr;
     std::free(m_pbFieldFlags);m_pbFieldFlags=nullptr;
