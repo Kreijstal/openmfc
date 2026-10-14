@@ -1136,11 +1136,6 @@ extern "C" void* MS_ABI impl__ToVariant_CDataSourceControl__QEAA_AVCOleVariant__
 extern "C" void* MS_ABI impl___0CDatabase__QEAA_XZ(void* pThis) {
     return new(pThis) CDatabase();
 }
-// Symbol: ??1CRecordset@@UEAA@XZ
-// Destructor: CRecordset::~CRecordset
-extern "C" void MS_ABI impl___1CRecordset__UEAA_XZ(void* pThis) {
-    ((CRecordset*)pThis)->CRecordset::~CRecordset();
-}
 // Symbol: ?AddNew@CRecordset@@UEAAXXZ
 // CRecordset::AddNew
 extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* pThis) {
@@ -1150,11 +1145,6 @@ extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* pThis) {
 // CRecordset::CancelUpdate
 extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) {
     pThis->CancelUpdate();
-}
-// Symbol: ?Close@CRecordset@@UEAAXXZ
-// CRecordset::Close
-extern "C" void MS_ABI impl__Close_CRecordset__UEAAXXZ(CRecordset* pThis) {
-    pThis->CRecordset::Close();
 }
 // Symbol: ?Delete@CRecordset@@UEAAXXZ
 // CRecordset::Delete

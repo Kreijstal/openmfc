@@ -242,6 +242,7 @@ public:
     enum EditMode {noMode=0,edit=1,addnew=2};
     void MarkForUpdate();void MarkForAddNew();
     void FreeDataCache();
+    void FreeRowset();
     void AllocStatusArrays();
     SQLLEN* GetFieldLengthBuffer(DWORD,int);
     BYTE GetFieldStatus(DWORD);

@@ -12,6 +12,8 @@ static bool emptyStatement;
 static int callbackFailure;
 using AllocationHook=SQLRETURN (SQL_API*)(SQLHDBC,SQLHSTMT*);
 static AllocationHook allocationHook=nullptr;
+using FreeHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLUSMALLINT);
+static FreeHook freeHook=nullptr;
 static HSTMT handle() {return emptyStatement?nullptr:reinterpret_cast<HSTMT>(0xbeef);}
 static Step take(Kind kind) {
     if(position>=steps.size() || steps[position].kind!=kind)std::abort();return steps[position++];
@@ -99,7 +101,10 @@ extern "C" SQLRETURN SQL_API SQLNumResultCols(SQLHSTMT statement,SQLSMALLINT* co
 }
 extern "C" SQLRETURN SQL_API SQLFetch(SQLHSTMT statement) {using namespace database_execute_test;record(Fetch,UINT_PTR(statement));return take(Fetch).code;}
 extern "C" SQLRETURN SQL_API SQLMoreResults(SQLHSTMT statement) {using namespace database_execute_test;record(More,UINT_PTR(statement));return take(More).code;}
-extern "C" SQLRETURN SQL_API SQLFreeStmt(SQLHSTMT statement,SQLUSMALLINT option) {database_execute_test::record(database_execute_test::Drop,UINT_PTR(statement),option);return SQL_ERROR;}
+extern "C" SQLRETURN SQL_API SQLFreeStmt(SQLHSTMT statement,SQLUSMALLINT option) {
+    if(database_execute_test::freeHook)return database_execute_test::freeHook(statement,option);
+    database_execute_test::record(database_execute_test::Drop,UINT_PTR(statement),option);return SQL_ERROR;
+}
 static void databaseExecute() {
     using namespace database_execute_test;
     auto previousCancel=database_lifecycle_test::cancelHook;database_lifecycle_test::cancelHook=&cancel;

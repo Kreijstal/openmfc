@@ -110,8 +110,6 @@ extern "C" void MS_ABI impl__AllocAndCacheFieldInfo_CRecordset__IEAAXXZ(CRecords
 extern "C" void MS_ABI impl__AllocDataCache_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).dataCache.resize(4096); }
 // Symbol: ?AllocRowset@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__AllocRowset_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).rowsetAllocated = true; }
-// Symbol: ?FreeRowset@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__FreeRowset_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).rowsetAllocated = false; }
 // Symbol: ?AppendFilterAndSortSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__AppendFilterAndSortSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
     if (!pThis) return;
@@ -396,11 +394,6 @@ CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
         }
     }
 }
-CRecordset::~CRecordset() {
-    Close();
-    std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
-    g_recordsetSql.erase(this);
-}
 BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     if (m_lOpen==1) return FALSE;
     if (!m_pDatabase) return FALSE;
@@ -468,28 +461,6 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     }
 
     return TRUE;
-}
-void CRecordset::Close() {
-    if(m_pDatabase) {
-        impl__AfxLockGlobals__YAXH_Z(15);
-        auto* list=reinterpret_cast<OpenMFC_CPtrList*>(m_pDatabase->m_listRecordsets);
-        if(auto* position=list->Find(this,nullptr))list->RemoveAt(position);
-        impl__AfxUnlockGlobals__YAXH_Z(15);
-    }
-    if (m_hstmt != SQL_NULL_HSTMT) {
-        SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
-        m_hstmt = SQL_NULL_HSTMT;
-    }
-    m_bOpen = FALSE;
-    openmfc::detail::FreeRecordsetProxies(*this);
-    if(m_rgFieldInfos)FreeDataCache();
-    std::free(m_rgFieldInfos);m_rgFieldInfos=nullptr;
-    std::free(m_pbFieldFlags);m_pbFieldFlags=nullptr;
-    std::free(m_pbParamFlags);m_pbParamFlags=nullptr;
-    std::free(m_plParamLength);m_plParamLength=nullptr;
-    std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
-    g_recordsetSql.erase(this);
-    g_recordsetStates.erase(this);
 }
 BOOL CRecordset::IsDeleted() const {
     return m_bDeleted;
