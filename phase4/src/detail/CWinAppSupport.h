@@ -251,7 +251,7 @@ extern CWinApp* g_pApp;
 
 // Thread-local storage for current thread (used by worker threads)
 // This is set by AfxBeginThread in synccore.cpp for worker threads
-extern __thread CWinThread* g_pCurrentThread;
+extern thread_local CWinThread* g_pCurrentThread;
 
 // AfxGetThread - returns current thread (or app for main thread)
 // C++ implementation for internal use

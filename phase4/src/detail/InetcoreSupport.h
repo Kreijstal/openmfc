@@ -146,15 +146,15 @@ CRuntimeClass* AFXAPI gb_CInternetFile();
 } } }
 
 namespace openmfc { namespace detail { namespace inetcore {
-extern __attribute__((used)) CRuntimeClass g_classCInternetFile;
+extern CRuntimeClass g_classCInternetFile;
 } } }
 
 namespace openmfc { namespace detail { namespace inetcore {
-extern __attribute__((used)) CRuntimeClass g_classCInternetException;
+extern CRuntimeClass g_classCInternetException;
 } } }
 
 namespace openmfc { namespace detail { namespace inetcore {
-extern __attribute__((used)) CRuntimeClass g_classCHttpFile;
+extern CRuntimeClass g_classCHttpFile;
 } } }
 
 

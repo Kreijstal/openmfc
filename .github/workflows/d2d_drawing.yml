@@ -74,6 +74,9 @@ on:
       - 'phase4/src/detail/DatabaseEnvironment.h'
       - 'phase4/src/detail/MfcExceptionsSupport.cpp'
       - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
+      - 'phase4/src/detail/CWinAppSupport.*'
+      - 'phase4/src/detail/SynccoreSupport.*'
+      - 'phase4/src/detail/InetcoreSupport.*'
       - 'include/openmfc/afxdao.h'
       - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
       - 'phase4/src/core/file/RuntimeClasses.cpp'
@@ -258,6 +261,9 @@ on:
       - 'phase4/src/detail/DatabaseEnvironment.h'
       - 'phase4/src/detail/MfcExceptionsSupport.cpp'
       - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
+      - 'phase4/src/detail/CWinAppSupport.*'
+      - 'phase4/src/detail/SynccoreSupport.*'
+      - 'phase4/src/detail/InetcoreSupport.*'
       - 'include/openmfc/afxdao.h'
       - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
       - 'phase4/src/core/file/RuntimeClasses.cpp'
@@ -767,6 +773,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CtorDtorPlacement.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/MfcExceptionsSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/CMFC_misc_stubs.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CWinAppSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/SynccoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/InetcoreSupport.cpp"
           )
           cl @database.rsp
           if errorlevel 1 exit /b 1

@@ -7,7 +7,7 @@ IMPLEMENT_DYNAMIC(CArchiveException, CException)
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
 CWinApp* g_pApp = nullptr;
-__thread CWinThread* g_pCurrentThread = nullptr;
+thread_local CWinThread* g_pCurrentThread = nullptr;
 CWinThread* AfxGetThread() {
     // For worker threads, return the thread-local pointer
     if (g_pCurrentThread != nullptr) {

@@ -121,7 +121,7 @@ extern "C" void* MS_ABI impl___0CSyncObject__QEAA_PEB_W_Z(void* pThis, const wch
 //=============================================================================
 
 // Thread-local storage for current CWinThread (defined in appcore.cpp)
-extern __thread CWinThread* g_pCurrentThread;
+extern thread_local CWinThread* g_pCurrentThread;
 
 // Internal thread start routine
 struct AfxThreadParams {

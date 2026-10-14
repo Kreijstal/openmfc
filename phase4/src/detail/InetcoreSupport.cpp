@@ -1,4 +1,9 @@
 #include "InetcoreSupport.h"
+#ifdef __GNUC__
+#define OPENMFC_INET_USED __attribute__((used))
+#else
+#define OPENMFC_INET_USED
+#endif
 
 IMPLEMENT_DYNAMIC(CInternetSession, CObject)
 IMPLEMENT_DYNAMIC(CInternetConnection, CObject)
@@ -131,13 +136,13 @@ void AppendGopherType(CString& locator, unsigned long gopherType) {
 CRuntimeClass* AFXAPI gb_CInternetFile() {
     return impl__GetThisClass_CStdioFile__SAPEAUCRuntimeClass__XZ();
 }
-__attribute__((used)) CRuntimeClass g_classCInternetFile = {
+OPENMFC_INET_USED CRuntimeClass g_classCInternetFile = {
     "CInternetFile", 128, 0xFFFF, nullptr, gb_CInternetFile, nullptr, nullptr
 };
-__attribute__((used)) CRuntimeClass g_classCInternetException = {
+OPENMFC_INET_USED CRuntimeClass g_classCInternetException = {
     "CInternetException", sizeof(CInternetException), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
-__attribute__((used)) CRuntimeClass g_classCHttpFile = {
+OPENMFC_INET_USED CRuntimeClass g_classCHttpFile = {
     "CHttpFile", sizeof(CHttpFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
 void openmfcConstructString(CString* pRet, const CString& value) {
