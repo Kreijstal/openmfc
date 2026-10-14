@@ -7,7 +7,7 @@ using namespace openmfc::detail::clongbinaryrtti;
 // OpenMFC: CLongBinary RTTI — GetThisClass / GetRuntimeClass.
 //
 // CLongBinary : public CObject (afxdao.h) is a simple holder for a block of
-// binary data (HGLOBAL m_hData + DWORD m_dwDataLength) used by the database
+// binary data (HGLOBAL m_hData + SQLULEN m_dwDataLength) used by the database
 // classes for long-binary columns. It is IMPLEMENT_DYNAMIC (no DYNCREATE
 // factory), so only the two RTTI getters are exported; the descriptor itself is
 // internal (not an exported symbol). The descriptor chains to CObject.

@@ -66,24 +66,6 @@
   #define MS_ABI
 #endif
 
-// CLongBinary is faithfully defined in include/openmfc/afxdao.h as a simple
-// CObject-derived data holder (HGLOBAL m_hData; DWORD m_dwDataLength;). Its
-// default constructor just initializes the CObject vtable and zeroes the two
-// members, so a placement-new is a safe, exact reproduction.
-
-// Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?GetThisClass@CLongBinary@@SAPEAUCRuntimeClass@@XZ
-// Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?GetRuntimeClass@CLongBinary@@UEBAPEAUCRuntimeClass@@XZ
-// Symbol: ??1CLongBinary@@UEAA@XZ
-extern "C" void MS_ABI impl___1CLongBinary__UEAA_XZ(CLongBinary* pThis) {
-    if (pThis) pThis->~CLongBinary();
-}
-// Symbol: ??0CLongBinary@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CLongBinary__QEAA_XZ(void* pThis) {
-    if (!pThis) return pThis;
-    return new (pThis) CLongBinary();
-}
 // Implemented in inetcore.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetThisClass@CFileFind@@SAPEAUCRuntimeClass@@XZ
 // Implemented in inetcore.cpp; this unit had a second, unlinked copy.

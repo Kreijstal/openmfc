@@ -66,6 +66,10 @@ on:
       - 'tests/rfx_text_string_tests.h'
       - 'tests/rfx_date_tests.h'
       - 'tests/rfx_bulk_tests.h'
+      - 'tests/rfx_longbinary_tests.h'
+      - 'include/openmfc/afxdao.h'
+      - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
+      - 'phase4/src/core/file/RuntimeClasses.cpp'
       - 'phase4/src/detail/CRecordsetProxies.h'
       - 'phase4/src/detail/RFXTextFixup.h'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -239,6 +243,10 @@ on:
       - 'tests/rfx_text_string_tests.h'
       - 'tests/rfx_date_tests.h'
       - 'tests/rfx_bulk_tests.h'
+      - 'tests/rfx_longbinary_tests.h'
+      - 'include/openmfc/afxdao.h'
+      - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
+      - 'phase4/src/core/file/RuntimeClasses.cpp'
       - 'phase4/src/detail/CRecordsetProxies.h'
       - 'phase4/src/detail/RFXTextFixup.h'
       - 'phase4/src/detail/CRecordsetSupport.*'
@@ -417,6 +425,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
 
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -579,6 +588,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPtrList.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CPtrListSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -709,6 +720,8 @@ jobs:
             echo /I"%GITHUB_WORKSPACE%/phase4/src"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"

@@ -82,11 +82,12 @@ struct CDaoRelationInfo {
 // CLongBinary - wrapper for HGLOBAL binary data
 //=============================================================================
 class CLongBinary : public CObject {
+    DECLARE_DYNAMIC(CLongBinary)
 public:
     CLongBinary() : m_hData(nullptr), m_dwDataLength(0) {}
     ~CLongBinary() { if (m_hData) ::GlobalFree(m_hData); }
     HGLOBAL m_hData;
-    DWORD m_dwDataLength;
+    UINT_PTR m_dwDataLength;
 };
 
 //=============================================================================
