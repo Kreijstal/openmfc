@@ -30,6 +30,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/gdi/CImageList.cpp phase4/src/core/gdi/CImageListLifetime.cpp phase4/src/core/controls/CComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBox.cpp phase4/src/featurepack/controls/CMFCFontComboBoxLifetime.cpp phase4/src/featurepack/controls/StaticData.cpp phase4/src/featurepack/toolbar/StaticData.cpp phase4/src/featurepack/toolbar/CMFCToolBarFontComboBox.cpp phase4/src/featurepack/toolbar/CMFCToolBarComboBoxButton.cpp phase4/src/featurepack/toolbar/CMFCToolBarButtonLifetime.cpp phase4/src/detail/ToolbarComboState.cpp phase4/src/core/collections/CStringList.cpp phase4/src/core/collections/CStringArray.cpp
     phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
     phase4/src/core/collections/CMapPtrToPtrStorage.cpp phase4/src/core/collections/CMapPtrToPtr.cpp
+    phase4/src/core/db/RFXTextString.cpp
     phase4/src/core/db/RFXTextBuffer.cpp
     phase4/src/core/db/RFXScalar.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
@@ -88,7 +89,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/RFXTextBuffer.cpp', 'RFXTextBuffer'),
+for path, obj in (('core/db/RFXTextString.cpp', 'RFXTextString'),
+                  ('core/db/RFXTextBuffer.cpp', 'RFXTextBuffer'),
                   ('core/db/RFXScalar.cpp', 'RFXScalar'),
                   ('core/db/RFXBinary.cpp', 'RFXBinary'),
                   ('core/db/RFXValueCache.cpp', 'RFXValueCache'),
