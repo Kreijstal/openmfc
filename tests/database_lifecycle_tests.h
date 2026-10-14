@@ -13,6 +13,8 @@ extern "C" void MS_ABI impl___1CDatabase__UEAA_XZ(CDatabase*);
 namespace database_lifecycle_test {
 using AttributeHook=SQLRETURN (SQL_API*)(SQLHDBC,SQLINTEGER,SQLPOINTER,SQLINTEGER);
 static AttributeHook attributeHook=nullptr;
+using CancelHook=SQLRETURN (SQL_API*)(SQLHSTMT);
+static CancelHook cancelHook=nullptr;
 struct API {
     decltype(&impl__AllocConnect_CDatabase__IEAAXK_Z) allocate;
     decltype(&impl__Free_CDatabase__IEAAXXZ) free;
@@ -154,7 +156,10 @@ extern "C" SQLRETURN SQL_API SQLFreeEnv(SQLHENV environment) {database_lifecycle
 extern "C" SQLRETURN SQL_API SQLTransact(SQLHENV environment,SQLHDBC connection,SQLUSMALLINT operation) {
     using namespace database_lifecycle_test;event(7,UINT_PTR(environment),INT64(UINT_PTR(connection)),operation);return transactionResult;
 }
-extern "C" SQLRETURN SQL_API SQLCancel(SQLHSTMT statement) {database_lifecycle_test::event(8,UINT_PTR(statement));return SQL_ERROR;}
+extern "C" SQLRETURN SQL_API SQLCancel(SQLHSTMT statement) {
+    if(database_lifecycle_test::cancelHook)return database_lifecycle_test::cancelHook(statement);
+    database_lifecycle_test::event(8,UINT_PTR(statement));return SQL_ERROR;
+}
 static void databaseLifecycle() {
     using namespace database_lifecycle_test;
     API local{&impl__AllocConnect_CDatabase__IEAAXK_Z,&impl__Free_CDatabase__IEAAXXZ,&impl__Close_CDatabase__UEAAXXZ,

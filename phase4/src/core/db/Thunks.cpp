@@ -1166,11 +1166,7 @@ extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* pThis) {
 extern "C" void MS_ABI impl__Edit_CRecordset__UEAAXXZ(CRecordset* pThis) {
     pThis->Edit();
 }
-// Symbol: ?ExecuteSQL@CDatabase@@QEAAXPEB_W@Z
-// CDatabase::ExecuteSQL
-extern "C" void MS_ABI impl__ExecuteSQL_CDatabase__QEAAXPEB_W_Z(CDatabase* pThis, const wchar_t* p0) {
-    pThis->ExecuteSQL(p0);
-}
+
 // Symbol: ?IsFieldDirty@CRecordset@@QEAAHPEAX@Z
 // CRecordset::IsFieldDirty
 extern "C" int MS_ABI impl__IsFieldDirty_CRecordset__QEAAHPEAX_Z(CRecordset* pThis, void* p0) {

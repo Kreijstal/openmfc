@@ -70,6 +70,7 @@ on:
       - 'tests/database_exception_tests.h'
       - 'tests/database_lifecycle_tests.h'
       - 'tests/database_connect_tests.h'
+      - 'tests/database_execute_tests.h'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -262,6 +263,7 @@ on:
       - 'tests/database_exception_tests.h'
       - 'tests/database_lifecycle_tests.h'
       - 'tests/database_connect_tests.h'
+      - 'tests/database_execute_tests.h'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -466,6 +468,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
@@ -636,6 +639,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
@@ -774,6 +778,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"

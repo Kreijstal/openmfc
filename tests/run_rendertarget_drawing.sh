@@ -32,7 +32,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/collections/CMapPtrToPtrStorage.cpp phase4/src/core/collections/CMapPtrToPtr.cpp
     phase4/src/core/db/RFXLongBinary.cpp phase4/src/core/file/CLongBinaryLifecycle.cpp
     phase4/src/core/exceptions/CDBException.cpp phase4/src/core/db/DatabaseEnvironment.cpp phase4/src/core/db/CDatabaseLifecycle.cpp
-    phase4/src/core/db/CDatabaseConnect.cpp phase4/src/core/db/CDatabaseConnectionInfo.cpp phase4/src/core/window/CWndSafeOwner.cpp
+    phase4/src/core/db/CDatabaseConnect.cpp phase4/src/core/db/CDatabaseConnectionInfo.cpp phase4/src/core/db/CDatabaseExecute.cpp phase4/src/core/window/CWndSafeOwner.cpp
     phase4/src/core/db/RFXBulk.cpp
     phase4/src/core/db/RFXDate.cpp
     phase4/src/core/db/RFXTextString.cpp
@@ -94,7 +94,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CDatabaseConnect.cpp', 'CDatabaseConnect'),
+for path, obj in (('core/db/CDatabaseExecute.cpp', 'CDatabaseExecute'),
+                  ('core/db/CDatabaseConnect.cpp', 'CDatabaseConnect'),
                   ('core/db/CDatabaseConnectionInfo.cpp', 'CDatabaseConnectionInfo'),
                   ('core/window/CWndSafeOwner.cpp', 'CWndSafeOwner'),
                   ('core/db/CDatabaseLifecycle.cpp', 'CDatabaseLifecycle'),

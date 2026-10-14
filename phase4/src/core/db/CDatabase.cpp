@@ -76,16 +76,7 @@ CDatabase::~CDatabase() {
     g_databaseStates.erase(this);
 }
 
-BOOL CDatabase::ExecuteSQL(const wchar_t* lpszSQL) {
-    if (!IsOpen() || !lpszSQL) return FALSE;
-    HSTMT hstmt = SQL_NULL_HSTMT;
-    if (SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &hstmt) != SQL_SUCCESS) {
-        return FALSE;
-    }
-    RETCODE rc = SQLExecDirectW(hstmt, (SQLWCHAR*)lpszSQL, SQL_NTS);
-    SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
-    return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);
-}
+
 BOOL CDatabase::CanTransact() const {return m_bTransactions;}
 BOOL CDatabase::CanUpdate() const {return m_bUpdatable;}
 int CDatabase::GetLoginTimeout() const {return static_cast<int>(m_dwLoginTimeout);}

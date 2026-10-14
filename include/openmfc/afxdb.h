@@ -76,7 +76,7 @@ public:
     BOOL BeginTrans();
     BOOL CommitTrans();
     BOOL Rollback();
-    BOOL ExecuteSQL(const wchar_t* lpszSQL);
+    void ExecuteSQL(const wchar_t* lpszSQL);
     void Cancel();
 
     // Direct execution
