@@ -68,6 +68,7 @@ on:
       - 'tests/rfx_bulk_tests.h'
       - 'tests/rfx_longbinary_tests.h'
       - 'tests/database_exception_tests.h'
+      - 'tests/database_lifecycle_tests.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -255,6 +256,7 @@ on:
       - 'tests/rfx_bulk_tests.h'
       - 'tests/rfx_longbinary_tests.h'
       - 'tests/database_exception_tests.h'
+      - 'tests/database_lifecycle_tests.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -453,6 +455,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -619,6 +622,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -753,6 +757,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"

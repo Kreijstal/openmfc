@@ -69,12 +69,16 @@ std::recursive_mutex g_typeCacheTestMutex;
 thread_local int g_typeCacheLockDepth=0;
 std::recursive_mutex g_messageCacheTestMutex;
 thread_local int g_messageCacheLockDepth=0;
+std::recursive_mutex g_databaseTestMutex;
+thread_local int g_databaseLockDepth=0;
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
     if(id==7) { g_messageCacheTestMutex.lock();++g_messageCacheLockDepth;return; }
+    if(id==15) {g_databaseTestMutex.lock();++g_databaseLockDepth;return;}
     if(id!=13)std::abort();g_typeCacheTestMutex.lock();++g_typeCacheLockDepth;
 }
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
     if(id==7) { if(g_messageCacheLockDepth<=0)std::abort();--g_messageCacheLockDepth;g_messageCacheTestMutex.unlock();return; }
+    if(id==15) {if(g_databaseLockDepth<=0)std::abort();--g_databaseLockDepth;g_databaseTestMutex.unlock();return;}
     if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();
 }
 

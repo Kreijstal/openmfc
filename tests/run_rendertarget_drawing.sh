@@ -31,7 +31,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
     phase4/src/core/collections/CMapPtrToPtrStorage.cpp phase4/src/core/collections/CMapPtrToPtr.cpp
     phase4/src/core/db/RFXLongBinary.cpp phase4/src/core/file/CLongBinaryLifecycle.cpp
-    phase4/src/core/exceptions/CDBException.cpp phase4/src/core/db/DatabaseEnvironment.cpp
+    phase4/src/core/exceptions/CDBException.cpp phase4/src/core/db/DatabaseEnvironment.cpp phase4/src/core/db/CDatabaseLifecycle.cpp
     phase4/src/core/db/RFXBulk.cpp
     phase4/src/core/db/RFXDate.cpp
     phase4/src/core/db/RFXTextString.cpp
@@ -93,7 +93,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/exceptions/CDBException.cpp', 'CDBException'),
+for path, obj in (('core/db/CDatabaseLifecycle.cpp', 'CDatabaseLifecycle'),
+                  ('core/exceptions/CDBException.cpp', 'CDBException'),
                   ('core/db/DatabaseEnvironment.cpp', 'DatabaseEnvironment'),
                   ('core/db/RFXLongBinary.cpp', 'RFXLongBinary'),
                   ('core/file/CLongBinaryLifecycle.cpp', 'CLongBinaryLifecycle'),

@@ -1136,50 +1136,25 @@ extern "C" void* MS_ABI impl__ToVariant_CDataSourceControl__QEAA_AVCOleVariant__
 extern "C" void* MS_ABI impl___0CDatabase__QEAA_XZ(void* pThis) {
     return new(pThis) CDatabase();
 }
-// Symbol: ??1CDatabase@@UEAA@XZ
-// Destructor: CDatabase::~CDatabase
-extern "C" void MS_ABI impl___1CDatabase__UEAA_XZ(void* pThis) {
-    ((CDatabase*)pThis)->~CDatabase();
-}
 // Symbol: ??1CRecordset@@UEAA@XZ
 // Destructor: CRecordset::~CRecordset
 extern "C" void MS_ABI impl___1CRecordset__UEAA_XZ(void* pThis) {
-    ((CRecordset*)pThis)->~CRecordset();
+    ((CRecordset*)pThis)->CRecordset::~CRecordset();
 }
 // Symbol: ?AddNew@CRecordset@@UEAAXXZ
 // CRecordset::AddNew
 extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* pThis) {
     pThis->AddNew();
 }
-// Symbol: ?BeginTrans@CDatabase@@QEAAHXZ
-// CDatabase::BeginTrans
-extern "C" int MS_ABI impl__BeginTrans_CDatabase__QEAAHXZ(CDatabase* pThis) {
-    return (int)pThis->BeginTrans();
-}
-// Symbol: ?Cancel@CDatabase@@QEAAXXZ
-// CDatabase::Cancel
-extern "C" void MS_ABI impl__Cancel_CDatabase__QEAAXXZ(CDatabase* pThis) {
-    pThis->Cancel();
-}
 // Symbol: ?CancelUpdate@CRecordset@@QEAAXXZ
 // CRecordset::CancelUpdate
 extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) {
     pThis->CancelUpdate();
 }
-// Symbol: ?Close@CDatabase@@UEAAXXZ
-// CDatabase::Close
-extern "C" void MS_ABI impl__Close_CDatabase__UEAAXXZ(CDatabase* pThis) {
-    pThis->Close();
-}
 // Symbol: ?Close@CRecordset@@UEAAXXZ
 // CRecordset::Close
 extern "C" void MS_ABI impl__Close_CRecordset__UEAAXXZ(CRecordset* pThis) {
-    pThis->Close();
-}
-// Symbol: ?CommitTrans@CDatabase@@QEAAHXZ
-// CDatabase::CommitTrans
-extern "C" int MS_ABI impl__CommitTrans_CDatabase__QEAAHXZ(CDatabase* pThis) {
-    return (int)pThis->CommitTrans();
+    pThis->CRecordset::Close();
 }
 // Symbol: ?Delete@CRecordset@@UEAAXXZ
 // CRecordset::Delete
@@ -1225,11 +1200,6 @@ extern "C" int MS_ABI impl__Open_CDatabase__UEAAHPEB_WHH0H_Z(CDatabase* pThis, c
 // CRecordset::Open
 extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, unsigned int p0, const wchar_t* p1, unsigned long p2) {
     return (int)pThis->Open(p0, p1, p2);
-}
-// Symbol: ?Rollback@CDatabase@@QEAAHXZ
-// CDatabase::Rollback
-extern "C" int MS_ABI impl__Rollback_CDatabase__QEAAHXZ(CDatabase* pThis) {
-    return (int)pThis->Rollback();
 }
 // Symbol: ?SetRowsetSize@CRecordset@@UEAAXK@Z
 // CRecordset::SetRowsetSize

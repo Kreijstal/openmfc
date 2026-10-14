@@ -5,6 +5,9 @@
 
 #include "detail/CRecordsetSupport.h"
 #include "detail/CRecordsetProxies.h"
+#include "detail/CPtrListSupport.h"
+extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int);
+extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int);
 
 // Symbol: ??0CRecordset@@QEAA@PEAVCDatabase@@@Z
 extern "C" void* MS_ABI impl___0CRecordset__QEAA_PEAVCDatabase___Z(void* pThis, CDatabase* pDatabase) {
@@ -451,6 +454,12 @@ BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
     return TRUE;
 }
 void CRecordset::Close() {
+    if(m_pDatabase) {
+        impl__AfxLockGlobals__YAXH_Z(15);
+        auto* list=reinterpret_cast<OpenMFC_CPtrList*>(m_pDatabase->m_listRecordsets);
+        if(auto* position=list->Find(this,nullptr))list->RemoveAt(position);
+        impl__AfxUnlockGlobals__YAXH_Z(15);
+    }
     if (m_hstmt != SQL_NULL_HSTMT) {
         SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
         m_hstmt = SQL_NULL_HSTMT;

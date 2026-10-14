@@ -21,6 +21,8 @@ struct Read {SQLHSTMT statement;SQLUSMALLINT field;SQLSMALLINT type;SQLLEN capac
 static std::vector<Step> script;static size_t position;
 static std::vector<Read> reads;static std::vector<Diagnostic> diagnostics;static size_t diagnosticPosition;
 static int diagCalls,fetchGrowth,reallocGrowth;
+static int derivedDestructions;
+static void* MS_ABI derivedDestructor(CLongBinary* object,UINT) {++derivedDestructions;return object;}
 static SQLLEN MS_ABI growFetch(CRecordset*,SQLLEN size) {++fetchGrowth;return size*2;}
 static SQLLEN MS_ABI growRealloc(CRecordset*,SQLLEN size) {++reallocGrowth;return size*2;}
 static std::vector<BYTE> payload(size_t size,int seed=1) {std::vector<BYTE> bytes(size);for(size_t i=0;i<size;++i)bytes[i]=BYTE(i+seed);return bytes;}
@@ -121,7 +123,10 @@ static void longBinaryFieldExchange() {
     using namespace longbinary_rfx_test;
     alignas(CLongBinary) BYTE storage[32];memset(storage,0xa5,sizeof(storage));auto* value=impl___0CLongBinary__QEAA_XZ(storage);
     check(sizeof(CLongBinary)==24 && !value->m_dwDataLength && !value->m_hData && value->GetRuntimeClass()->m_nObjectSize==24 && !strcmp(value->GetRuntimeClass()->m_lpszClassName,"CLongBinary") &&
-        *reinterpret_cast<UINT64*>(storage+24)==0xa5a5a5a5a5a5a5a5ULL,"long binary constructor exposes native layout, runtime identity and full-width zero initialization");impl___1CLongBinary__UEAA_XZ(value);
+        *reinterpret_cast<UINT64*>(storage+24)==0xa5a5a5a5a5a5a5a5ULL,"long binary constructor exposes native layout, runtime identity and full-width zero initialization");
+    void* foreignTable[5];memcpy(foreignTable,*reinterpret_cast<void***>(value),sizeof(foreignTable));foreignTable[1]=reinterpret_cast<void*>(&derivedDestructor);
+    *reinterpret_cast<void***>(value)=foreignTable;derivedDestructions=0;impl___1CLongBinary__UEAA_XZ(value);
+    check(!derivedDestructions,"long binary base destructor entry bypasses a foreign subclass deleting destructor");
     API api{&impl__RFX_LongBinary__YAXPEAVCFieldExchange__PEB_WAEAVCLongBinary___Z,&impl__GetLongBinarySize_CFieldExchange__QEAA_JH_Z,
         &impl__ReallocLongBinary_CFieldExchange__QEAAPEAEAEAVCLongBinary___J1_Z,&impl__GetLongBinaryData_CFieldExchange__QEAAXHAEAVCLongBinary__PEA_J_Z};
     auto expected=exercise(api);wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_LONGBINARY_DLL",path,1024)) {

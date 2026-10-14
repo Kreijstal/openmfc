@@ -9,6 +9,8 @@ extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETC
 extern "C" void* MS_ABI impl__AfxGetHENV__YAPEAXXZ();
 namespace database_exception_test {
 static void __cdecl invalidParameter(const wchar_t*,const wchar_t*,const wchar_t*,unsigned,uintptr_t) {}
+static int derivedDestructions;
+static void* MS_ABI derivedDestructor(CDBException* object,UINT) {++derivedDestructions;return object;}
 struct API {
     decltype(&impl___0CDBException__QEAA_F_Z) construct;
     decltype(&impl___1CDBException__UEAA_XZ) destroy;
@@ -81,7 +83,9 @@ std::vector<std::wstring> exercise(const API& api) {
     using Build=void (MS_ABI*)(CDBException*,CDatabase*,HSTMT,BOOL);
     reset({},{{L"HY000",3,L"[D] virtual"}});error->Empty();reinterpret_cast<Build>(table[8])(error,&database,statement,TRUE);
     check(error->m_strError==L"virtual\n","database diagnostic construction occupies native virtual slot eight");
-    api.destroy(error);
+    void* foreignTable[9];memcpy(foreignTable,table,sizeof(foreignTable));foreignTable[1]=reinterpret_cast<void*>(&derivedDestructor);
+    *reinterpret_cast<void***>(error)=foreignTable;derivedDestructions=0;api.destroy(error);
+    check(!derivedDestructions,"database exception base destructor entry bypasses a foreign subclass deleting destructor");
     check(*reinterpret_cast<UINT64*>(storage+40)==0xa5a5a5a5a5a5a5a5ULL,"database exception destruction preserves the caller allocation guard");
     for(RETCODE code:{RETCODE(SQL_ERROR),RETCODE(SQL_SUCCESS),RETCODE(SQL_SUCCESS_WITH_INFO),RETCODE(1000),RETCODE(1029)}) {
         reset({},{{L"HY000",3,L"[D] thrown"}});bool caught=false;

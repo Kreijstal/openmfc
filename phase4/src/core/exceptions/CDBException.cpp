@@ -88,5 +88,5 @@ extern "C" BOOL MS_ABI impl__GetErrorMessage_CDBException__UEBAHPEA_WIPEAI_Z(con
 // Symbol: ??0CDBException@@QEAA@F@Z
 extern "C" CDBException* MS_ABI impl___0CDBException__QEAA_F_Z(void* storage,RETCODE code) {return new(storage) CDBException(code);}
 // Symbol: ??1CDBException@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDBException__UEAA_XZ(CDBException* self) {self->~CDBException();}
+extern "C" void MS_ABI impl___1CDBException__UEAA_XZ(CDBException* self) {self->CDBException::~CDBException();}
 static_assert(sizeof(CDBException)==40 && offsetof(CDBException,m_nRetCode)==16 && offsetof(CDBException,m_strError)==24 && offsetof(CDBException,m_strStateNativeOrigin)==32,"native database exception layout");
