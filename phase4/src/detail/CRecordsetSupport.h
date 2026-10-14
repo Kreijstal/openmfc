@@ -142,7 +142,7 @@ void StoreSql(CRecordset* recordset, const CString& sql);
 //=============================================================================
 // CDBException
 //=============================================================================
-// No IMPLEMENT_DYNAMIC needed - CDBException doesn't derive from CObject
+// CDBException has native dynamic runtime identity through CException.
 
 //=============================================================================
 // CDatabase

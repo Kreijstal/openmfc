@@ -1463,47 +1463,6 @@ extern "C" void MS_ABI impl__AfxGetGrayBitmap__YAXAEBVCBitmap__PEAV1_K_Z(const v
     if (hDstDC != nullptr) ::DeleteDC(hDstDC);
     ::ReleaseDC(nullptr, hScreenDC);
 }
-// Symbol: ?AfxGetHENV@@YAPEAXXZ
-extern "C" void* MS_ABI impl__AfxGetHENV__YAPEAXXZ() {
-    // Lazily allocate a process-wide ODBC environment handle, mirroring real
-    // MFC's cached global HENV. sql.h/sqlext.h aren't part of this file's
-    // include set (adding them would require a new file-scope #include), so
-    // the handful of ODBC constants/prototypes needed are declared locally
-    // and odbc32.dll is resolved dynamically -- this is a real, working ODBC
-    // environment handle, just obtained without the SDK headers. Note this
-    // is a standalone environment handle: CDatabase in this codebase
-    // allocates its own private SQL_HANDLE_ENV per instance rather than
-    // calling through this function, so the two aren't currently unified.
-    static void* s_henv = nullptr;
-    static bool s_attempted = false;
-    if (!s_attempted) {
-        s_attempted = true;
-        HMODULE hOdbc = ::LoadLibraryW(L"odbc32.dll");
-        if (hOdbc != nullptr) {
-            using PFN_SQLAllocHandle = short(__stdcall*)(short, void*, void**);
-            using PFN_SQLSetEnvAttr = short(__stdcall*)(void*, long, void*, long);
-            auto pAllocHandle = reinterpret_cast<PFN_SQLAllocHandle>(
-                reinterpret_cast<void*>(::GetProcAddress(hOdbc, "SQLAllocHandle")));
-            auto pSetEnvAttr = reinterpret_cast<PFN_SQLSetEnvAttr>(
-                reinterpret_cast<void*>(::GetProcAddress(hOdbc, "SQLSetEnvAttr")));
-            if (pAllocHandle != nullptr) {
-                const short SQL_HANDLE_ENV = 1;
-                void* henv = nullptr;
-                short rc = pAllocHandle(SQL_HANDLE_ENV, nullptr, &henv);
-                if (rc >= 0 && henv != nullptr) {
-                    if (pSetEnvAttr != nullptr) {
-                        const long SQL_ATTR_ODBC_VERSION = 200;
-                        const long SQL_OV_ODBC3 = 3;
-                        pSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION,
-                                    reinterpret_cast<void*>(static_cast<intptr_t>(SQL_OV_ODBC3)), 0);
-                    }
-                    s_henv = henv;
-                }
-            }
-        }
-    }
-    return s_henv;
-}
 // Symbol: ?AfxGetInProcServer@@YAHPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__AfxGetInProcServer__YAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const wchar_t* p0, void* /*class*/* p1, void** p2, void* p3) {
     (void)p2;

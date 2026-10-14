@@ -31,21 +31,20 @@ class CLongBinary;
 // CDBException - Database Exception
 //=============================================================================
 class CDBException : public CException {
+    DECLARE_DYNAMIC(CDBException)
 public:
-    CDBException() : CException(1), m_nRetCode(0),
-        m_strErrorNativeOrigin(nullptr), m_strError(nullptr),
-        m_strStateNativeOrigin(nullptr) {}
-    CDBException(RETCODE nRetCode) : CException(1), m_nRetCode(nRetCode),
-        m_strErrorNativeOrigin(nullptr), m_strError(nullptr),
-        m_strStateNativeOrigin(nullptr) {}
+    explicit CDBException(RETCODE nRetCode=SQL_SUCCESS) : CException(TRUE), m_nRetCode(nRetCode) {}
     virtual ~CDBException() {}
+    virtual void BuildErrorString(CDatabase* database,HSTMT statement,BOOL trace=TRUE);
+    void Empty();
+    BOOL GetErrorMessage(wchar_t* output,UINT capacity,UINT* help=nullptr) const override;
 
     RETCODE m_nRetCode;
     CString m_strError;
     CString m_strStateNativeOrigin;
-    CString m_strErrorNativeOrigin;
-    char _dbexception_padding[16];
 };
+void AFXAPI AfxThrowDBException(RETCODE code,CDatabase* database,HSTMT statement);
+HENV AFXAPI AfxGetHENV();
 
 //=============================================================================
 // CDatabase - ODBC Database Connection

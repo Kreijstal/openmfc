@@ -288,6 +288,7 @@ static void ownershipAndRecreation() {
 #include "rfx_date_tests.h"
 #include "rfx_bulk_tests.h"
 #include "rfx_longbinary_tests.h"
+#include "database_exception_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -319,6 +320,7 @@ int main() {
     if (SUCCEEDED(hr)) dateFieldExchange();
     if (SUCCEEDED(hr)) bulkFieldExchange();
     if (SUCCEEDED(hr)) longBinaryFieldExchange();
+    if (SUCCEEDED(hr)) databaseExceptions();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

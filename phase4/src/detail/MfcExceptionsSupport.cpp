@@ -593,14 +593,6 @@ extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
     pEx->m_dwContext = dwContext;
     ThrowNew(pEx, &TI_CInternetException, nullptr);
 }
-// Symbol: ?AfxThrowDBException@@YAXFPEAVCDatabase@@PEAX@Z
-extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
-    short nRetCode, void* pdb, void* hstmt
-) {
-    (void)pdb; (void)hstmt; // Unused for now
-    CDBException* pEx = new CDBException(nRetCode);
-    ThrowNew(pEx, &TI_CDBException, nullptr);
-}
 extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     int nAfxDaoError, SCODE scode
 ) {

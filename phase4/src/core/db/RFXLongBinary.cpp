@@ -7,7 +7,6 @@
 #include <climits>
 #include <cwchar>
 #include <cstddef>
-#include <string>
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
 #else
@@ -25,25 +24,10 @@ SQLLEN AddSize(SQLULEN current,SQLLEN extra) {
     if(total<SQLLEN(current) || total<extra)impl__AfxThrowMemoryException__YAXXZ();
     return total;
 }
-// The fetcher only consumes BuildErrorString's state/native/origin text.
-// Read the same legacy diagnostic stream, including all records and origins.
 bool Truncated(CRecordset* recordset) {
-    if(!recordset->m_pDatabase) {impl__AfxThrowInvalidArgException__YAXXZ();return false;}
-    std::wstring diagnostics;
-    for(;;) {
-        wchar_t state[64]{},message[512]{};SQLINTEGER native=0;SQLSMALLINT length=0;
-        RETCODE code=::SQLErrorW(recordset->m_pDatabase->GetHENV(),recordset->m_pDatabase->m_hdbc,recordset->m_hstmt,
-            reinterpret_cast<SQLWCHAR*>(state),&native,reinterpret_cast<SQLWCHAR*>(message),511,&length);
-        if((code!=SQL_SUCCESS && code!=SQL_SUCCESS_WITH_INFO) || !std::wcscmp(state,L"00000"))break;
-        diagnostics+=L"State:";diagnostics+=state;wchar_t number[50];std::swprintf(number,50,L",Native:%ld,Origin:",long(native));diagnostics+=number;
-        const wchar_t* text=message;
-        while(*text==L'[') {
-            auto* end=std::wcschr(text,L']');if(!end)break;
-            diagnostics.append(text,size_t(end-text+1));text=end+1;if(*text==L' ')++text;
-        }
-        diagnostics+=L"\n";
-    }
-    return diagnostics.find(L"State:01004")!=std::wstring::npos;
+    CDBException error(SQL_SUCCESS_WITH_INFO);
+    error.BuildErrorString(recordset->m_pDatabase,recordset->m_hstmt,FALSE);
+    return error.m_strStateNativeOrigin.Find(L"State:01004")>=0;
 }
 }
 // Symbol: ?GetLongBinarySize@CFieldExchange@@QEAA_JH@Z

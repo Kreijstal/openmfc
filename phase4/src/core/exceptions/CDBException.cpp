@@ -1,97 +1,92 @@
-// CDBException — OpenMFC implementation.
-// Sources: dbcore.cpp, global_ctordtor_param.cpp
-
+// Release x64 database exceptions: mfc140u constructor 0x1f6540,
+// BuildErrorString 0x1f6680, GetErrorMessage 0x1f6a50, Empty 0x1f6ac0.
 #define OPENMFC_APPCORE_IMPL
-
-#include "detail/CRecordsetSupport.h"
-
-// Real parameterized-constructor export thunks for header-defined, publicly
-// constructible MFC classes. Each viewed-as MS_ABI thunk placement-constructs
-// the object with the real ctor body (defined in filecore/olecore/dlgcommon/
-// inetcore or inline in headers) -- NOT a stub. Completes classes that were one
-// export short of full coverage.
-#include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
-#include "openmfc/afxmfc.h"
-#include "openmfc/afxole.h"
-#include "openmfc/afxdisp.h"
 #include "openmfc/afxdb.h"
-#include "openmfc/afxinet.h"
+#include <cstddef>
+#include <cwchar>
+#include <cerrno>
+#include <memory>
 #include <new>
+#include <string>
 #ifdef __GNUC__
-  #define MS_ABI __attribute__((ms_abi))
+#define MS_ABI __attribute__((ms_abi))
 #else
-  #define MS_ABI
+#define MS_ABI
 #endif
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
+extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+IMPLEMENT_DYNAMIC(CDBException,CException)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Symbol: ?GetThisClass@CDBException@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDBException__SAPEAUCRuntimeClass__XZ() {
-    return CException::GetThisClass();
+void CDBException::Empty() {
+    m_strError.Empty();m_strStateNativeOrigin.Empty();
 }
-// Symbol: ?GetRuntimeClass@CDBException@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDBException__UEBAPEAUCRuntimeClass__XZ(const CDBException*) {
-    return CException::GetThisClass();
-}
-// Symbol: ?Empty@CDBException@@QEAAXXZ
-extern "C" void MS_ABI impl__Empty_CDBException__QEAAXXZ(CDBException* pThis) {
-    if (!pThis) return;
-    pThis->m_nRetCode = SQL_SUCCESS;
-    pThis->m_strError = L"";
-    pThis->m_strStateNativeOrigin = L"";
-    pThis->m_strErrorNativeOrigin = L"";
-}
-// Symbol: ?BuildErrorString@CDBException@@UEAAXPEAVCDatabase@@PEAXH@Z
-extern "C" void MS_ABI impl__BuildErrorString_CDBException__UEAAXPEAVCDatabase__PEAXH_Z(
-    CDBException* pThis, CDatabase* database, void* hstmt, int) {
-    if (!pThis) return;
-    SQLSMALLINT handleType = hstmt ? SQL_HANDLE_STMT : SQL_HANDLE_DBC;
-    SQLHANDLE handle = hstmt ? static_cast<SQLHANDLE>(hstmt) : (database ? static_cast<SQLHANDLE>(database->m_hdbc) : SQL_NULL_HANDLE);
-    SQLWCHAR state[16] = {};
-    SQLWCHAR message[SQL_MAX_MESSAGE_LENGTH] = {};
-    SQLINTEGER native = 0;
-    SQLSMALLINT messageLen = 0;
-    RETCODE rc = handle ? SQLGetDiagRecW(handleType, handle, 1, state, &native, message,
-                                         SQL_MAX_MESSAGE_LENGTH, &messageLen) : SQL_NO_DATA;
-    if (SqlSucceeded(rc)) {
-        pThis->m_strStateNativeOrigin = reinterpret_cast<const wchar_t*>(state);
-        pThis->m_strError = reinterpret_cast<const wchar_t*>(message);
-        wchar_t nativeText[64] = {};
-        std::swprintf(nativeText, 64, L"%ld", static_cast<long>(native));
-        pThis->m_strErrorNativeOrigin = nativeText;
-    } else if (pThis->m_strError.IsEmpty()) {
-        pThis->m_strError = L"ODBC database operation failed.";
+void CDBException::BuildErrorString(CDatabase* database,HSTMT statement,BOOL) {
+    if(!database)return;
+    // Native MFC drains SQLError's legacy stream even when both handles are
+    // null. The environment belongs to the process database state.
+    for(;;) {
+        wchar_t state[64]{},message[512]{};
+        SQLINTEGER native=0;SQLSMALLINT length=0;
+        RETCODE code=::SQLErrorW(AfxGetHENV(),database->m_hdbc,statement,
+            reinterpret_cast<SQLWCHAR*>(state),&native,reinterpret_cast<SQLWCHAR*>(message),511,&length);
+        if((code!=SQL_SUCCESS && code!=SQL_SUCCESS_WITH_INFO) || !std::wcscmp(state,L"00000"))return;
+        std::wstring summary=L"State:";summary+=state;
+        wchar_t number[50];std::swprintf(number,50,L",Native:%ld,Origin:",long(native));summary+=number;
+        const wchar_t* body=message;
+        while(*body==L'[') {
+            const wchar_t* end=std::wcschr(body,L']');if(!end)break;
+            summary.append(body,size_t(end-body+1));body=end+1;
+            if(*body==L' ')++body;
+        }
+        summary+=L"\n";
+        m_strStateNativeOrigin+=summary.c_str();m_strError+=body;m_strError+=L"\n";
     }
 }
+BOOL CDBException::GetErrorMessage(wchar_t* output,UINT capacity,UINT* help) const {
+    if(!output)return FALSE;
+    if(help)*help=0;
+    errno_t code=::wcsncpy_s(output,capacity,static_cast<const wchar_t*>(m_strError),_TRUNCATE);
+    if(code && code!=STRUNCATE) {
+        if(code==ENOMEM)impl__AfxThrowMemoryException__YAXXZ();
+        else impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+    output[capacity-1]=0;return TRUE;
+}
+void AFXAPI AfxThrowDBException(RETCODE code,CDatabase* database,HSTMT statement) {
+    auto error=std::make_unique<CDBException>(code);
+    if(code==SQL_ERROR && database)error->BuildErrorString(database,statement,TRUE);
+    else if(WORD(WORD(code)-1001)<=27) {
+        const UINT resource=UINT(int(code)+0xee98);
+        auto module=static_cast<HINSTANCE>(impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(resource));
+        const wchar_t* text=nullptr;
+        int length=module?::LoadStringW(module,resource,reinterpret_cast<wchar_t*>(&text),0):0;
+        if(length>0) {
+            std::wmemcpy(error->m_strError.GetBuffer(length),text,length);
+            error->m_strError.ReleaseBuffer(length);
+        }
+        else error->m_strError=L"MFC internal error: unable to load error string from resource.";
+    }
+    throw error.release();
+}
+// Symbol: ?AfxThrowDBException@@YAXFPEAVCDatabase@@PEAX@Z
+extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETCODE code,CDatabase* database,HSTMT statement) {
+    AfxThrowDBException(code,database,statement);
+}
+// Symbol: ?GetThisClass@CDBException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDBException__SAPEAUCRuntimeClass__XZ() {return CDBException::GetThisClass();}
+// Symbol: ?GetRuntimeClass@CDBException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDBException__UEBAPEAUCRuntimeClass__XZ(const CDBException*) {return CDBException::GetThisClass();}
+// Symbol: ?Empty@CDBException@@QEAAXXZ
+extern "C" void MS_ABI impl__Empty_CDBException__QEAAXXZ(CDBException* self) {self->Empty();}
+// Symbol: ?BuildErrorString@CDBException@@UEAAXPEAVCDatabase@@PEAXH@Z
+extern "C" void MS_ABI impl__BuildErrorString_CDBException__UEAAXPEAVCDatabase__PEAXH_Z(CDBException* self,CDatabase* database,HSTMT statement,BOOL trace) {self->CDBException::BuildErrorString(database,statement,trace);}
 // Symbol: ?GetErrorMessage@CDBException@@UEBAHPEA_WIPEAI@Z
-extern "C" int MS_ABI impl__GetErrorMessage_CDBException__UEBAHPEA_WIPEAI_Z(
-    const CDBException* pThis, wchar_t* error, unsigned int maxError, unsigned int* helpContext) {
-    if (helpContext) *helpContext = 0;
-    if (!error || maxError == 0) return FALSE;
-    const wchar_t* text = (pThis && !pThis->m_strError.IsEmpty())
-        ? static_cast<const wchar_t*>(pThis->m_strError)
-        : L"ODBC database operation failed.";
-    wcsncpy(error, text, maxError - 1);
-    error[maxError - 1] = L'\0';
-    return TRUE;
-}
+extern "C" BOOL MS_ABI impl__GetErrorMessage_CDBException__UEBAHPEA_WIPEAI_Z(const CDBException* self,wchar_t* output,UINT capacity,UINT* help) {return self->CDBException::GetErrorMessage(output,capacity,help);}
 // Symbol: ??0CDBException@@QEAA@F@Z
-extern "C" void* MS_ABI impl___0CDBException__QEAA_F_Z(void* p, short nRetCode) {
-    return new (p) CDBException(nRetCode);
-}
+extern "C" CDBException* MS_ABI impl___0CDBException__QEAA_F_Z(void* storage,RETCODE code) {return new(storage) CDBException(code);}
+// Symbol: ??1CDBException@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDBException__UEAA_XZ(CDBException* self) {self->~CDBException();}
+static_assert(sizeof(CDBException)==40 && offsetof(CDBException,m_nRetCode)==16 && offsetof(CDBException,m_strError)==24 && offsetof(CDBException,m_strStateNativeOrigin)==32,"native database exception layout");

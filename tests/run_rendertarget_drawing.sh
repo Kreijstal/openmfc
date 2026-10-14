@@ -31,6 +31,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/featurepack/controls/CTagManager.cpp phase4/src/featurepack/controls/CTagManagerProperties.cpp phase4/src/detail/CollectionsStringsSupport.cpp
     phase4/src/core/collections/CMapPtrToPtrStorage.cpp phase4/src/core/collections/CMapPtrToPtr.cpp
     phase4/src/core/db/RFXLongBinary.cpp phase4/src/core/file/CLongBinaryLifecycle.cpp
+    phase4/src/core/exceptions/CDBException.cpp phase4/src/core/db/DatabaseEnvironment.cpp
     phase4/src/core/db/RFXBulk.cpp
     phase4/src/core/db/RFXDate.cpp
     phase4/src/core/db/RFXTextString.cpp
@@ -92,7 +93,9 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/RFXLongBinary.cpp', 'RFXLongBinary'),
+for path, obj in (('core/exceptions/CDBException.cpp', 'CDBException'),
+                  ('core/db/DatabaseEnvironment.cpp', 'DatabaseEnvironment'),
+                  ('core/db/RFXLongBinary.cpp', 'RFXLongBinary'),
                   ('core/file/CLongBinaryLifecycle.cpp', 'CLongBinaryLifecycle'),
                   ('core/db/RFXBulk.cpp', 'RFXBulk'),
                   ('core/db/RFXDate.cpp', 'RFXDate'),
@@ -170,19 +173,11 @@ for path, obj in (('core/db/RFXLongBinary.cpp', 'RFXLongBinary'),
         assert gen_weak_stubs.generate_stub_name(symbol) in defined, 'Missing window D2D alias: ' + symbol
 print('Render target and resource export aliases match the DLL generator')
 PY
-# Long-binary diagnostics require the production database used by the resource
-# executable below. The forwarding executable has no database implementation.
-FORWARDING_OBJECTS=()
-for object in "${OBJECTS[@]}"; do
-    if [[ "$object" != "$BUILD_DIR/RFXLongBinary.obj" ]]; then
-        FORWARDING_OBJECTS+=("$object")
-    fi
-done
 lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF /errorlimit:0 \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
-    "${FORWARDING_OBJECTS[@]}" odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
+    "${OBJECTS[@]}" odbc32.lib comctl32.lib kernel32.lib user32.lib gdi32.lib ole32.lib oleacc.lib oleaut32.lib uuid.lib d2d1.lib windowscodecs.lib
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
@@ -198,6 +193,8 @@ done
     cd "$BUILD_DIR"
     widl --win64 -t -o typelib_cache_fixture.tlb "$ROOT/tests/typelib_cache_fixture.idl"
     llvm-rc /I "$BUILD_DIR" /fo typelib_cache_fixture.res "$ROOT/tests/typelib_cache_fixture.rc"
+    llvm-rc /fo database_exception_fixture.res "$ROOT/tests/database_exception_fixture.rc"
+    lld-link /DLL /NOENTRY /MACHINE:X64 /OUT:database_exception_fixture.dll database_exception_fixture.res
 )
 lld-link /OUT:"$BUILD_DIR/test_d2d_resources.exe" /SUBSYSTEM:CONSOLE /OPT:REF /errorlimit:0 \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \

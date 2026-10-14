@@ -67,6 +67,13 @@ on:
       - 'tests/rfx_date_tests.h'
       - 'tests/rfx_bulk_tests.h'
       - 'tests/rfx_longbinary_tests.h'
+      - 'tests/database_exception_tests.h'
+      - 'tests/database_exception_fixture.rc'
+      - 'phase4/src/core/exceptions/CDBException.cpp'
+      - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
+      - 'phase4/src/detail/DatabaseEnvironment.h'
+      - 'phase4/src/detail/MfcExceptionsSupport.cpp'
+      - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
       - 'include/openmfc/afxdao.h'
       - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
       - 'phase4/src/core/file/RuntimeClasses.cpp'
@@ -244,6 +251,13 @@ on:
       - 'tests/rfx_date_tests.h'
       - 'tests/rfx_bulk_tests.h'
       - 'tests/rfx_longbinary_tests.h'
+      - 'tests/database_exception_tests.h'
+      - 'tests/database_exception_fixture.rc'
+      - 'phase4/src/core/exceptions/CDBException.cpp'
+      - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
+      - 'phase4/src/detail/DatabaseEnvironment.h'
+      - 'phase4/src/detail/MfcExceptionsSupport.cpp'
+      - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
       - 'include/openmfc/afxdao.h'
       - 'phase4/src/core/file/CLongBinaryLifecycle.cpp'
       - 'phase4/src/core/file/RuntimeClasses.cpp'
@@ -372,6 +386,10 @@ jobs:
           if errorlevel 1 exit /b 1
           rc /nologo /fo typelib_cache_fixture.res "%GITHUB_WORKSPACE%/tests/typelib_cache_fixture.rc"
           if errorlevel 1 exit /b 1
+          rc /nologo /fo database_exception_fixture.res "%GITHUB_WORKSPACE%/tests/database_exception_fixture.rc"
+          if errorlevel 1 exit /b 1
+          link /nologo /dll /noentry /machine:x64 /out:database_exception_fixture.dll database_exception_fixture.res
+          if errorlevel 1 exit /b 1
           cl /nologo /EHs /MT /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /c "%GITHUB_WORKSPACE%/phase4/src/featurepack/controls/StaticData.cpp" /Fo:ControlStaticData.obj
           if errorlevel 1 exit /b 1
           > drawing.rsp (
@@ -426,6 +444,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
 
             echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -590,6 +611,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CPtrListSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -722,6 +745,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXLongBinary.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/file/CLongBinaryLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -739,6 +764,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDataSourceControl.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CtorDtorPlacement.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/MfcExceptionsSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/CMFC_misc_stubs.cpp"
           )
           cl @database.rsp
           if errorlevel 1 exit /b 1

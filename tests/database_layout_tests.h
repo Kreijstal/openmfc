@@ -2,10 +2,9 @@
 #include "detail/CPtrListSupport.h"
 extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase*,wchar_t*);
 namespace database_layout_test {
-static int optionCalls,checkCalls,throwCalls;
-static HSTMT optionStatement,throwStatement;
-static CDatabase* throwDatabase;
-static RETCODE optionResult,throwCode;
+static int optionCalls,checkCalls;
+static HSTMT optionStatement;
+static RETCODE optionResult;
 static SQLUSMALLINT option;
 static SQLULEN timeout;
 static bool accepted;
@@ -16,10 +15,6 @@ static BOOL MS_ABI checkOption(const CDatabase*,RETCODE code) {++checkCalls;retu
 extern "C" SQLRETURN SQL_API SQLSetStmtOption(SQLHSTMT statement,SQLUSMALLINT which,SQLULEN value) {
     using namespace database_layout_test;
     ++optionCalls;optionStatement=statement;option=which;timeout=value;return optionResult;
-}
-extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETCODE code,CDatabase* database,HSTMT statement) {
-    using namespace database_layout_test;
-    ++throwCalls;throwCode=code;throwDatabase=database;throwStatement=statement;throw int(code)+900;
 }
 namespace database_layout_test {
 using Constructor=void* (MS_ABI*)(void*);
@@ -93,11 +88,12 @@ static void databaseLayout() {
         "database Check accepts only native success, success-with-info and no-data results");
     using Bind=void (MS_ABI*)(CDatabase*,HSTMT);reinterpret_cast<Bind>(table[9])(&database,reinterpret_cast<HSTMT>(0xface));
     check(optionCalls==0,"database base BindParameters remains the native empty callback");
-    database.m_hstmt=reinterpret_cast<HSTMT>(0xcafe);int code=0;
+    database.m_hstmt=reinterpret_cast<HSTMT>(0xcafe);bool thrown=false;
     using Throw=void (MS_ABI*)(CDatabase*,RETCODE);
-    try {reinterpret_cast<Throw>(table[11])(&database,SQL_ERROR);}catch(int value){code=value;}
-    check(code==899 && throwCalls==1 && throwCode==SQL_ERROR && throwDatabase==&database && throwStatement==database.m_hstmt,
-        "database exception virtual slot forwards code, database and its native statement");database.m_hstmt=nullptr;
+    try {reinterpret_cast<Throw>(table[11])(&database,SQL_ERROR);}catch(CDBException* error) {
+        thrown=error->m_nRetCode==SQL_ERROR && !strcmp(error->GetRuntimeClass()->m_lpszClassName,"CDBException");error->Delete();
+    }
+    check(thrown,"database exception virtual slot throws the production database exception with its native code and identity");database.m_hstmt=nullptr;
     wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_DATABASE_DLL",path,1024)) {
         HMODULE module=::LoadLibraryW(path);check(module!=nullptr,"load native MFC for database layout and behavior comparison");
         if(module) {

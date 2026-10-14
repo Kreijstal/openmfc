@@ -14,7 +14,9 @@ struct API {
     decltype(&impl__GetLongBinaryData_CFieldExchange__QEAAXHAEAVCLongBinary__PEA_J_Z) fetch;
 };
 struct Step {RETCODE code;SQLLEN length;std::vector<BYTE> data;};
-struct Diagnostic {const wchar_t* state;SQLINTEGER native;const wchar_t* message;};
+struct Diagnostic {const wchar_t* state;SQLINTEGER native;const wchar_t* message;RETCODE code=SQL_SUCCESS;};
+struct DiagnosticRead {HENV environment;HDBC database;HSTMT statement;SQLSMALLINT capacity;};
+static std::vector<DiagnosticRead> diagnosticReads;
 struct Read {SQLHSTMT statement;SQLUSMALLINT field;SQLSMALLINT type;SQLLEN capacity;};
 static std::vector<Step> script;static size_t position;
 static std::vector<Read> reads;static std::vector<Diagnostic> diagnostics;static size_t diagnosticPosition;
@@ -22,7 +24,7 @@ static int diagCalls,fetchGrowth,reallocGrowth;
 static SQLLEN MS_ABI growFetch(CRecordset*,SQLLEN size) {++fetchGrowth;return size*2;}
 static SQLLEN MS_ABI growRealloc(CRecordset*,SQLLEN size) {++reallocGrowth;return size*2;}
 static std::vector<BYTE> payload(size_t size,int seed=1) {std::vector<BYTE> bytes(size);for(size_t i=0;i<size;++i)bytes[i]=BYTE(i+seed);return bytes;}
-static void reset(std::vector<Step> steps,std::vector<Diagnostic> errors={}) {script=std::move(steps);position=0;reads.clear();diagnostics=std::move(errors);diagnosticPosition=0;diagCalls=fetchGrowth=reallocGrowth=0;}
+static void reset(std::vector<Step> steps,std::vector<Diagnostic> errors={}) {script=std::move(steps);position=0;reads.clear();diagnosticReads.clear();diagnostics=std::move(errors);diagnosticPosition=0;diagCalls=fetchGrowth=reallocGrowth=0;}
 std::vector<UINT64> exercise(const API& api) {
     using namespace binary_rfx_test;
     recordset_storage_test::Fixture fixture(1,1);auto* rs=fixture.recordset;rs->AllocStatusArrays();rs->m_hstmt=reinterpret_cast<HSTMT>(0xcafe);
@@ -108,11 +110,12 @@ extern "C" SQLRETURN SQL_API SQLGetData(SQLHSTMT statement,SQLUSMALLINT field,SQ
     if(capacity>0 && output && !step.data.empty())memcpy(output,step.data.data(),std::min<size_t>(size_t(capacity),step.data.size()));
     if(step.code==SQL_SUCCESS_WITH_INFO)diagnosticPosition=0;return step.code;
 }
-extern "C" SQLRETURN SQL_API SQLErrorW(SQLHENV,SQLHDBC,SQLHSTMT,SQLWCHAR* state,SQLINTEGER* native,SQLWCHAR* message,SQLSMALLINT capacity,SQLSMALLINT* length) {
+extern "C" SQLRETURN SQL_API SQLErrorW(SQLHENV environment,SQLHDBC database,SQLHSTMT statement,SQLWCHAR* state,SQLINTEGER* native,SQLWCHAR* message,SQLSMALLINT capacity,SQLSMALLINT* length) {
     using namespace longbinary_rfx_test;++diagCalls;
+    diagnosticReads.push_back({environment,database,statement,capacity});
     if(diagnosticPosition>=diagnostics.size()) {wcscpy(reinterpret_cast<wchar_t*>(state),L"00000");*length=0;return SQL_NO_DATA;}
     const auto& row=diagnostics[diagnosticPosition++];wcscpy(reinterpret_cast<wchar_t*>(state),row.state);*native=row.native;
-    wcsncpy(reinterpret_cast<wchar_t*>(message),row.message,capacity-1);message[capacity-1]=0;*length=SQLSMALLINT(wcslen(row.message));return SQL_SUCCESS;
+    wcsncpy(reinterpret_cast<wchar_t*>(message),row.message,capacity-1);message[capacity-1]=0;*length=SQLSMALLINT(wcslen(row.message));return row.code;
 }
 static void longBinaryFieldExchange() {
     using namespace longbinary_rfx_test;

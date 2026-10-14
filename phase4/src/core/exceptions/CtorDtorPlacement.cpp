@@ -20,5 +20,3 @@
 
 // Symbol: ??0CException@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CException__QEAA_XZ(void* pThis) { return new (pThis) CException(); }
-// Symbol: ??1CDBException@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDBException__UEAA_XZ(void* pThis) { static_cast<CDBException*>(pThis)->~CDBException(); }

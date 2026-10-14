@@ -254,7 +254,7 @@ protected:
     // uninitialized memory. This explicit reserved word fills the slot so mingw has
     // no tail padding to fold into, matching the real layout. See
     // mingw-reuses-tail-padding. Never read by clients (sits in MSVC's pad slot).
-    int m_nReservedPad = 0;
+    int m_nReservedPad;
 };
 
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
