@@ -11,6 +11,8 @@ extern "C" BOOL MS_ABI impl__Rollback_CDatabase__QEAAHXZ(CDatabase*);
 extern "C" void MS_ABI impl__Cancel_CDatabase__QEAAXXZ(CDatabase*);
 extern "C" void MS_ABI impl___1CDatabase__UEAA_XZ(CDatabase*);
 namespace database_lifecycle_test {
+using AttributeHook=SQLRETURN (SQL_API*)(SQLHDBC,SQLINTEGER,SQLPOINTER,SQLINTEGER);
+static AttributeHook attributeHook=nullptr;
 struct API {
     decltype(&impl__AllocConnect_CDatabase__IEAAXK_Z) allocate;
     decltype(&impl__Free_CDatabase__IEAAXXZ) free;
@@ -142,7 +144,9 @@ extern "C" SQLRETURN SQL_API SQLAllocConnect(SQLHENV environment,SQLHDBC* connec
     using namespace database_lifecycle_test;event(2,UINT_PTR(environment),connectionResult);*connection=connectionResult==SQL_ERROR?nullptr:reinterpret_cast<HDBC>(0xdef);return connectionResult;
 }
 extern "C" SQLRETURN SQL_API SQLSetConnectAttr(SQLHDBC connection,SQLINTEGER option,SQLPOINTER value,SQLINTEGER size) {
-    using namespace database_lifecycle_test;event(3,UINT_PTR(connection),INT64(UINT_PTR(value)),option,size);return attributeResult;
+    using namespace database_lifecycle_test;
+    if(attributeHook)return attributeHook(connection,option,value,size);
+    event(3,UINT_PTR(connection),INT64(UINT_PTR(value)),option,size);return attributeResult;
 }
 extern "C" SQLRETURN SQL_API SQLDisconnect(SQLHDBC connection) {database_lifecycle_test::event(4,UINT_PTR(connection));return SQL_ERROR;}
 extern "C" SQLRETURN SQL_API SQLFreeConnect(SQLHDBC connection) {database_lifecycle_test::event(5,UINT_PTR(connection));return SQL_ERROR;}

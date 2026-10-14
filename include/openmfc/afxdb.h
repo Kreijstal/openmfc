@@ -9,6 +9,7 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+#include <wincrypt.h>
 
 //=============================================================================
 // AFX_DB_USE_DEFAULT_TYPE constant
@@ -108,7 +109,8 @@ public:
     BOOL m_bAddForUpdate;
     wchar_t m_chIDQuoteChar;
     CString m_strConnect;
-    struct ConnectionBlob { DWORD cbData; BYTE* pbData; } m_blobConnect;
+    using ConnectionBlob=DATA_BLOB;
+    ConnectionBlob m_blobConnect;
     // The public CPtrList alias is still a template with a different ABI.
     // Construct this storage with the existing native CPtrList implementation.
     alignas(8) BYTE m_listRecordsets[56];

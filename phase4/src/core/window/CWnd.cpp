@@ -815,32 +815,6 @@ extern "C" CWnd* MS_ABI impl__GetDescendantWindow_CWnd__SAPEAV1_PEAUHWND____HH_Z
     }
     return CWnd::FromHandle(hChild);
 }
-// Symbol: ?GetSafeOwner@CWnd@@SAPEAV1@PEAV1@PEAPEAUHWND__@@@Z
-extern "C" CWnd* MS_ABI impl__GetSafeOwner_CWnd__SAPEAV1_PEAV1_PEAPEAUHWND_____Z(
-    CWnd* pParent, HWND* pWndTop) {
-    HWND hOwner = pParent ? pParent->m_hWnd : nullptr;
-    if (!hOwner) {
-        CWinThread* pThread = AfxGetThread();
-        hOwner = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
-    }
-    if (pWndTop) {
-        *pWndTop = hOwner;
-    }
-    return hOwner ? CWnd::FromHandle(hOwner) : nullptr;
-}
-// Symbol: ?GetSafeOwner_@CWnd@@SAPEAUHWND__@@PEAU2@PEAPEAU2@@Z
-extern "C" HWND MS_ABI impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z(
-    HWND hParent, HWND* pWndTop) {
-    HWND hOwner = hParent;
-    if (!hOwner) {
-        CWinThread* pThread = AfxGetThread();
-        hOwner = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
-    }
-    if (pWndTop) {
-        *pWndTop = hOwner;
-    }
-    return hOwner;
-}
 // Symbol: ?CreateControl@CWnd@@QEAAHAEBU_GUID@@PEB_WKAEBUtagRECT@@PEAV1@IPEAVCFile@@HPEA_W@Z
 extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHAEBU_GUID__PEB_WKAEBUtagRECT__PEAV1_IPEAVCFile__HPEA_W_Z(
     CWnd* pThis,
@@ -1323,31 +1297,6 @@ void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
     }
     return p2 ? impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(hDesc) : CWnd::FromHandle(hDesc);
 }
-void* CWnd::GetSafeOwner(void* p0, HWND* p1)
-{
-    CWnd* pWnd = static_cast<CWnd*>(p0);
-    HWND hOwner = pWnd ? pWnd->m_hWnd : nullptr;
-    if (!hOwner) {
-        CWinThread* pThread = AfxGetThread();
-        hOwner = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
-    }
-    if (p1) {
-        *p1 = hOwner;
-    }
-    return hOwner ? CWnd::FromHandle(hOwner) : nullptr;
-}
-HWND CWnd::GetSafeOwner_(void* p0, void** p1)
-{
-    HWND hWnd = p0 ? static_cast<HWND>(p0) : nullptr;
-    if (!hWnd) {
-        CWinThread* pThread = AfxGetThread();
-        hWnd = pThread && pThread->m_pMainWnd ? pThread->m_pMainWnd->m_hWnd : nullptr;
-    }
-    if (p1) {
-        *p1 = hWnd;
-    }
-    return hWnd;
-}
 int CWnd::GrayCtlColor(HDC p0, HWND p1, UINT p2, HBRUSH p3, DWORD p4)
 {
     if (!p0 || !p1) {
@@ -1790,7 +1739,7 @@ LONGLONG CWnd::DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2)
         return 0;
     }
     if (m_pfnSuper) {
-        return reinterpret_cast<LRESULT>(::CallWindowProcW(m_pfnSuper, m_hWnd, p0, p1, p2));
+        return ::CallWindowProcW(m_pfnSuper, m_hWnd, p0, p1, p2);
     }
     return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this, p0, p1, p2);
 }

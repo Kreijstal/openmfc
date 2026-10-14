@@ -290,6 +290,7 @@ static void ownershipAndRecreation() {
 #include "rfx_longbinary_tests.h"
 #include "database_exception_tests.h"
 #include "database_lifecycle_tests.h"
+#include "database_connect_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -323,6 +324,7 @@ int main() {
     if (SUCCEEDED(hr)) longBinaryFieldExchange();
     if (SUCCEEDED(hr)) databaseExceptions();
     if (SUCCEEDED(hr)) databaseLifecycle();
+    if (SUCCEEDED(hr)) databaseConnect();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

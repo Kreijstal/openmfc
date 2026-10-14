@@ -3,6 +3,8 @@
 extern "C" CString* MS_ABI impl__GetConnect_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(const CDatabase*,CString*);
 extern "C" CString* MS_ABI impl__GetDatabaseName_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(const CDatabase*,CString*);
 namespace database_strings_test {
+using InfoHook=SQLRETURN (SQL_API*)(SQLHDBC,SQLUSMALLINT,SQLPOINTER,SQLSMALLINT,SQLSMALLINT*);
+static InfoHook infoHook=nullptr;
 using Getter=CString* (MS_ABI*)(const CDatabase*,CString*);
 struct API {Getter connect,name;};
 struct InfoCall {SQLHDBC connection;SQLUSMALLINT kind;SQLSMALLINT capacity;bool output;};
@@ -101,6 +103,7 @@ std::vector<UINT64> exercise(const API& api) {
 }
 extern "C" SQLRETURN SQL_API SQLGetInfoW(SQLHDBC connection,SQLUSMALLINT kind,SQLPOINTER output,SQLSMALLINT capacity,SQLSMALLINT* length) {
     using namespace database_strings_test;
+    if(infoHook)return infoHook(connection,kind,output,capacity,length);
     infoCalls.push_back({connection,kind,capacity,output!=nullptr});*length=reported;
     if(!output)return firstResult;
     if(capacity>=2) {

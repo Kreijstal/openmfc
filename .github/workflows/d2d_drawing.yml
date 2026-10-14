@@ -69,6 +69,10 @@ on:
       - 'tests/rfx_longbinary_tests.h'
       - 'tests/database_exception_tests.h'
       - 'tests/database_lifecycle_tests.h'
+      - 'tests/database_connect_tests.h'
+      - 'phase4/src/core/window/CWndSafeOwner.cpp'
+      - 'phase4/src/core/window/CWnd.cpp'
+      - 'phase4/src/detail/DatabaseStringBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -257,6 +261,10 @@ on:
       - 'tests/rfx_longbinary_tests.h'
       - 'tests/database_exception_tests.h'
       - 'tests/database_lifecycle_tests.h'
+      - 'tests/database_connect_tests.h'
+      - 'phase4/src/core/window/CWndSafeOwner.cpp'
+      - 'phase4/src/core/window/CWnd.cpp'
+      - 'phase4/src/detail/DatabaseStringBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -456,6 +464,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -623,6 +634,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -758,6 +772,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CDBException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/DatabaseEnvironment.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseLifecycle.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXTextString.cpp"
@@ -781,6 +798,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CWinAppSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/SynccoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/InetcoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWnd.cpp"
           )
           cl @database.rsp
           if errorlevel 1 exit /b 1
