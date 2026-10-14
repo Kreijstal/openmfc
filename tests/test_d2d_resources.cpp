@@ -292,6 +292,7 @@ static void ownershipAndRecreation() {
 #include "database_lifecycle_tests.h"
 #include "database_connect_tests.h"
 #include "database_execute_tests.h"
+#include "recordset_constructor_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
 #include "fontcombo_tests.h"
@@ -327,6 +328,7 @@ int main() {
     if (SUCCEEDED(hr)) databaseLifecycle();
     if (SUCCEEDED(hr)) databaseConnect();
     if (SUCCEEDED(hr)) databaseExecute();
+    if (SUCCEEDED(hr)) recordsetConstructor();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
     if (SUCCEEDED(hr)) fontCombo();

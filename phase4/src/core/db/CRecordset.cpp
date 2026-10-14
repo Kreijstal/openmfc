@@ -369,8 +369,8 @@ extern "C" void MS_ABI impl__VerifyDriverBehavior_CRecordset__IEAAXXZ(CRecordset
     }
 }
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
-    // Native scalar defaults and untouched fields; active-connection statement
-    // allocation and database-list registration still need lifecycle work.
+    // Release x64 construction allocates a statement for an existing connection
+    // and registers the recordset at the head of the database's list.
     m_hstmt=nullptr;m_nOpenType=snapshot;m_nDefaultType=snapshot;m_lOpen=-1;m_nEditMode=0;
     m_bUseUpdateSQL=FALSE;m_dwOptions=0;m_bUpdatable=FALSE;m_bAppendable=FALSE;m_bScrollable=FALSE;
     m_bRecordsetDb=FALSE;m_bRebindParams=FALSE;m_bLongBinaryColumns=FALSE;m_nLockMode=0;
@@ -379,6 +379,22 @@ CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
     m_lCurrentRecord=-2;m_lRecordCount=0;m_bUseODBCCursorLib=FALSE;m_nResultCols=-1;m_bCheckCacheForDirtyFields=TRUE;
     m_pbFieldFlags=nullptr;m_pbParamFlags=nullptr;m_plParamLength=nullptr;
     m_pvFieldProxy=nullptr;m_pvParamProxy=nullptr;m_nProxyFields=0;m_nProxyParams=0;m_hstmtUpdate=nullptr;
+    if(database && database->m_hdbc) {
+        RETCODE code=::SQLAllocStmt(database->m_hdbc,&m_hstmt);
+        try {
+            if(code!=SQL_SUCCESS && code!=SQL_SUCCESS_WITH_INFO && code!=SQL_NEED_DATA && code!=SQL_NO_DATA)
+                CRecordset::ThrowDBException(SQL_INVALID_HANDLE,nullptr);
+            struct RegistrationLock {
+                RegistrationLock() {impl__AfxLockGlobals__YAXH_Z(15);}
+                ~RegistrationLock() {impl__AfxUnlockGlobals__YAXH_Z(15);}
+            } lock;
+            reinterpret_cast<OpenMFC_CPtrList*>(database->m_listRecordsets)->AddHead(this);
+        } catch(CException* exception) {
+            // Native construction deletes status/registration exceptions and preserves
+            // the driver-provided handle, leaving registration incomplete.
+            exception->Delete();
+        }
+    }
 }
 CRecordset::~CRecordset() {
     Close();

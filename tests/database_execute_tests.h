@@ -10,6 +10,8 @@ static size_t position;
 static std::vector<Event> events;
 static bool emptyStatement;
 static int callbackFailure;
+using AllocationHook=SQLRETURN (SQL_API*)(SQLHDBC,SQLHSTMT*);
+static AllocationHook allocationHook=nullptr;
 static HSTMT handle() {return emptyStatement?nullptr:reinterpret_cast<HSTMT>(0xbeef);}
 static Step take(Kind kind) {
     if(position>=steps.size() || steps[position].kind!=kind)std::abort();return steps[position++];
@@ -86,7 +88,8 @@ static std::vector<Event> exercise(ExecuteSQL execute) {
 }
 }
 extern "C" SQLRETURN SQL_API SQLAllocStmt(SQLHDBC database,SQLHSTMT* statement) {
-    using namespace database_execute_test;record(Alloc,UINT_PTR(database));auto step=take(Alloc);*statement=handle();return step.code;
+    using namespace database_execute_test;if(allocationHook)return allocationHook(database,statement);
+    record(Alloc,UINT_PTR(database));auto step=take(Alloc);*statement=handle();return step.code;
 }
 extern "C" SQLRETURN SQL_API SQLExecDirectW(SQLHSTMT statement,SQLWCHAR* sql,SQLINTEGER length) {
     using namespace database_execute_test;record(Execute,UINT_PTR(statement),length,std::wcscmp(reinterpret_cast<wchar_t*>(sql),L"select fixture"));return take(Execute).code;

@@ -31,6 +31,9 @@ CRuntimeClass CWnd::classCWnd{};
 CRuntimeClass CFileFind::classCFileFind{};
 CRuntimeClass CDocument::classCDocument{};
 CRuntimeClass CHtmlView::classCHtmlView{};
+// CRecordView shares the recordset support unit; form-view creation is outside
+// these database and rendering tests.
+CRuntimeClass CFormView::classCFormView{};
 
 
 // Module switching is peripheral to rendering; these doubles model thread

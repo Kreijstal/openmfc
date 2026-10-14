@@ -40,6 +40,9 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXScalar.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
+    phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
+    phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp
+    phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp
     phase4/src/core/db/CFieldExchangeLifecycle.cpp
     phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp phase4/src/detail/CMFCRibbonCmdUISupport.cpp
     phase4/src/core/cmdui/CCmdUI.cpp phase4/src/core/cmdui/COleCmdUI.cpp phase4/src/core/cmdui/CTestCmdUI.cpp phase4/src/core/cmdui/CToolCmdUI.cpp
@@ -94,7 +97,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CDatabaseExecute.cpp', 'CDatabaseExecute'),
+for path, obj in (('core/db/CRecordset.cpp', 'CRecordset'),
+                  ('core/db/CDatabaseExecute.cpp', 'CDatabaseExecute'),
                   ('core/db/CDatabaseConnect.cpp', 'CDatabaseConnect'),
                   ('core/db/CDatabaseConnectionInfo.cpp', 'CDatabaseConnectionInfo'),
                   ('core/window/CWndSafeOwner.cpp', 'CWndSafeOwner'),
@@ -187,8 +191,7 @@ lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT
 # Link a second executable against production verification and wrapper access.
 # The forwarding test above deliberately doubles those calls for COM ABI probes.
 NATIVE_OBJECTS=("${OBJECTS[@]:1}")
-for source in tests/test_d2d_resources.cpp phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp \
-    phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp \
+for source in tests/test_d2d_resources.cpp \
     phase4/src/core/d2d/CRenderTarget.cpp \
     phase4/src/core/d2d/CD2DTextFormat.cpp phase4/src/core/d2d/CD2DTextLayout.cpp; do
     object="$BUILD_DIR/$(basename "${source%.cpp}").obj"

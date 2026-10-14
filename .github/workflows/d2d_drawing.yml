@@ -71,6 +71,7 @@ on:
       - 'tests/database_lifecycle_tests.h'
       - 'tests/database_connect_tests.h'
       - 'tests/database_execute_tests.h'
+      - 'tests/recordset_constructor_tests.h'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -264,6 +265,7 @@ on:
       - 'tests/database_lifecycle_tests.h'
       - 'tests/database_connect_tests.h'
       - 'tests/database_execute_tests.h'
+      - 'tests/recordset_constructor_tests.h'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -469,6 +471,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
@@ -479,6 +482,11 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPtrList.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CPtrListSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -640,6 +648,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
@@ -650,6 +659,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXValueCache.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCRibbonCmdUISupport.cpp"
@@ -779,6 +789,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnect.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseConnectionInfo.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseExecute.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndSafeOwner.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXBulk.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/RFXDate.cpp"
@@ -795,7 +806,6 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
-            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CRecordsetSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDataSourceControl.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CtorDtorPlacement.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/MfcExceptionsSupport.cpp"
