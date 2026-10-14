@@ -36,6 +36,7 @@ typedef int BOOL;
 #endif
 
 // MFC CStringT ABI-compatible implementation
+extern void AFXAPI AfxThrowMemoryException();
 // 
 // Layout: CStringT contains a single pointer m_pszData pointing to character data.
 // A CStringData header is stored BEFORE the character buffer in memory:
@@ -159,61 +160,34 @@ public:
 
     // Copy constructor
     CString(const CString& strSrc) {
-        CStringData* pSrcData = strSrc.GetData();
-        if (pSrcData->IsLocked()) {
-            // Locked (nil) data - share it
-            m_pszData = strSrc.m_pszData;
-        } else {
-            // Reference counted - add ref
-            pSrcData->AddRef();
-            m_pszData = strSrc.m_pszData;
-        }
+        m_pszData = CloneData(strSrc.GetData())->data();
     }
 
     // Destructor
     ~CString() {
         CStringData* pData = GetData();
         if (pData->Release()) {
-            FreeBuffer(pData);
+            pData->pStringMgr->Free(pData);
         }
     }
 
     // Assignment operator
     CString& operator=(const CString& strSrc) {
-        if (m_pszData != strSrc.m_pszData) {
-            // Release old
-            CStringData* pOldData = GetData();
-            if (pOldData->Release()) {
-                FreeBuffer(pOldData);
-            }
-            // Copy new
-            CStringData* pSrcData = strSrc.GetData();
-            if (pSrcData->IsLocked()) {
-                m_pszData = strSrc.m_pszData;
-            } else {
-                pSrcData->AddRef();
-                m_pszData = strSrc.m_pszData;
+        auto* source=strSrc.GetData();auto* old=GetData();
+        if(source!=old) {
+            if(old->IsLocked() || source->pStringMgr!=old->pStringMgr)
+                SetCopyString(strSrc.GetString(),source->nDataLength);
+            else {
+                auto* replacement=CloneData(source);
+                if(old->Release())old->pStringMgr->Free(old);
+                m_pszData=replacement->data();
             }
         }
         return *this;
     }
 
     CString& operator=(const wchar_t* psz) {
-        if (psz == nullptr || *psz == L'\0') {
-            Empty();
-        } else {
-            int nLen = static_cast<int>(wcslen(psz));
-            CStringData* pData = GetData();
-            if (pData->IsLocked() || pData->IsShared() || nLen > pData->nAllocLength) {
-                // Need new buffer
-                if (pData->Release()) {
-                    FreeBuffer(pData);
-                }
-                AllocBuffer(nLen);
-            }
-            wmemcpy(m_pszData, psz, nLen + 1);
-            GetData()->nDataLength = nLen;
-        }
+        SetCopyString(psz,psz?static_cast<int>(wcslen(psz)):0);
         return *this;
     }
 
@@ -222,11 +196,11 @@ public:
     bool IsEmpty() const { return GetData()->nDataLength == 0; }
     void Empty() {
         CStringData* pData = GetData();
-        if (pData->Release()) {
-            FreeBuffer(pData);
-        }
-        m_pszData = GetNilStringData()->data();
-        GetNilStringData()->AddRef();
+        if(!pData->nDataLength)return;
+        if(pData->IsLocked()) {pData->nDataLength=0;m_pszData[0]=L'\0';return;}
+        auto* manager=pData->pStringMgr;
+        if(pData->Release())manager->Free(pData);
+        m_pszData=manager->GetNilString()->data();
     }
 
     // Get the character buffer (read-only)
@@ -649,14 +623,50 @@ private:
     }
     
     // ... (rest of private members)
+    static CStringData* AllocateCopy(IAtlStringMgr* manager,int length) {
+        auto* data=manager->Allocate(length,sizeof(wchar_t));
+        if(!data)AfxThrowMemoryException();
+        return data;
+    }
+    static CStringData* CloneData(CStringData* data) {
+        auto* manager=data->pStringMgr->Clone();
+        if(!data->IsLocked() && manager==data->pStringMgr) {data->AddRef();return data;}
+        auto* copy=AllocateCopy(manager,data->nDataLength);
+        copy->nDataLength=data->nDataLength;
+        std::memcpy(copy->data(),data->data(),size_t(data->nDataLength+1)*sizeof(wchar_t));
+        return copy;
+    }
+    void PrepareCopy(int length) {
+        auto* data=GetData();length=length>data->nDataLength?length:data->nDataLength;
+        if(data->IsShared()) {
+            auto* copy=AllocateCopy(data->pStringMgr->Clone(),length);
+            copy->nDataLength=data->nDataLength;
+            std::memcpy(copy->data(),m_pszData,size_t(data->nDataLength+1)*sizeof(wchar_t));
+            if(data->Release())data->pStringMgr->Free(data);
+            m_pszData=copy->data();
+        }else if(length>data->nAllocLength) {
+            int capacity=data->nAllocLength;
+            int extra=capacity>1024*1024*1024?1024*1024:capacity/2;
+            int grown=int32_t(uint32_t(capacity)+uint32_t(extra));
+            auto* replacement=data->pStringMgr->Reallocate(data,length>grown?length:grown,sizeof(wchar_t));
+            if(!replacement)AfxThrowMemoryException();
+            m_pszData=replacement->data();
+        }
+    }
+    void SetCopyString(const wchar_t* source,int length) {
+        if(!length) {Empty();return;}
+        bool internal=reinterpret_cast<uintptr_t>(source)>=reinterpret_cast<uintptr_t>(m_pszData) &&
+            reinterpret_cast<uintptr_t>(source)<=reinterpret_cast<uintptr_t>(m_pszData)+size_t(GetLength())*sizeof(wchar_t);
+        size_t offset=internal?size_t(source-m_pszData):0;
+        PrepareCopy(length);if(internal)source=m_pszData+offset;
+        std::memmove(m_pszData,source,size_t(length)*sizeof(wchar_t));GetData()->nDataLength=length;m_pszData[length]=0;
+    }
     static CStringData* AllocData(int nLength) {
         // Allocate via the string manager so the buffer carries a valid pStringMgr
         // (an MSVC client releasing the last ref calls pStringMgr->Free through it).
         CStringData* pData = OpenMFC_GetStringMgr()->Allocate(nLength, sizeof(wchar_t));
         if (pData == nullptr) {
-            // Out of memory - in real MFC this throws
-            std::fprintf(stderr, "CString: out of memory\n");
-            std::abort();
+            AfxThrowMemoryException();
         }
         pData->data()[0] = L'\0';
         return pData;

@@ -191,6 +191,21 @@ static std::vector<Event> destruction(const API& api) {
         result.insert(result.end(),events.begin(),events.end());result.push_back({191,deleted,ownerDestructions,0,0,0});
         *reinterpret_cast<void***>(&database)=ownerTable;failure=0;
     }
+    for(int refs:{1,2,-1,-3}) {
+        Manager manager;
+        alignas(CRecordset) BYTE storage[448];std::memset(storage,0xa5,sizeof(storage));auto* rs=static_cast<CRecordset*>(api.construct(storage,nullptr));active=rs;
+        CString* strings[]={&rs->m_strFilter,&rs->m_strSort,&rs->m_strCursorName,&rs->m_strSQL,&rs->m_strUpdateSQL,&rs->m_strTableName,
+            &rs->m_strRequerySQL,&rs->m_strRequeryFilter,&rs->m_strRequerySort};
+        CStringData* buffers[9];
+        for(int i=0;i<9;++i) {setString(*strings[i],manager,std::wstring(size_t(i+1),L'x').c_str(),refs);buffers[i]=database_strings_test::data(*strings[i]);}
+        events.clear();api.destroy(rs);
+        check(manager.frees==(refs==2?0:9),"recordset destruction releases every string member through its manager, including locked buffers");
+        for(auto& value:events)result.push_back(value);result.push_back({192,refs,manager.frees,0,0,0});
+        // Release shared fixture ownership; reclaim locked buffers only if the
+        // implementation failed the check, keeping the failing probe leak-free.
+        if(refs==2) {for(auto* data:buffers)if(data->Release())data->pStringMgr->Free(data);}
+        else if(refs<0 && manager.frees==0) {for(auto* data:buffers)manager.Free(data);}
+    }
     return result;
 }
 }

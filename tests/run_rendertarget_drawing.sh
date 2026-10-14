@@ -40,7 +40,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXScalar.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
-    phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
+    phase4/src/core/db/CRecordsetIsOpen.cpp phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
     phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp
     phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp
     phase4/src/core/db/CFieldExchangeLifecycle.cpp
@@ -97,7 +97,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CRecordsetLifecycle.cpp', 'CRecordsetLifecycle'),
+for path, obj in (('core/db/CRecordsetIsOpen.cpp', 'CRecordsetIsOpen'),
+                  ('core/db/CRecordsetLifecycle.cpp', 'CRecordsetLifecycle'),
                   ('core/db/CRecordset.cpp', 'CRecordset'),
                   ('core/db/CDatabaseExecute.cpp', 'CDatabaseExecute'),
                   ('core/db/CDatabaseConnect.cpp', 'CDatabaseConnect'),
@@ -184,6 +185,13 @@ for path, obj in (('core/db/CRecordsetLifecycle.cpp', 'CRecordsetLifecycle'),
         assert gen_weak_stubs.generate_stub_name(symbol) in defined, 'Missing window D2D alias: ' + symbol
 print('Render target and resource export aliases match the DLL generator')
 PY
+clang-cl "${FLAGS[@]}" -imsvc "$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/atlmfc/include" /c "$ROOT/tests/native_string_fixture.cpp" /Fo"$BUILD_DIR/native_string_fixture.obj"
+lld-link /DLL /OUT:"$BUILD_DIR/native_string_fixture.dll" /IMPLIB:"$BUILD_DIR/native_string_fixture.lib" /OPT:REF \
+    "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
+    "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/atlmfc/lib/x64" \
+    "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \
+    "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/um/x64" \
+    "$BUILD_DIR/native_string_fixture.obj" kernel32.lib user32.lib advapi32.lib ole32.lib
 lld-link /OUT:"$BUILD_DIR/test_rendertarget_drawing.exe" /SUBSYSTEM:CONSOLE /OPT:REF /errorlimit:0 \
     "/LIBPATH:$MSVC_DIR/VC/Tools/MSVC/$MSVC_VER/lib/x64" \
     "/LIBPATH:$MSVC_DIR/Windows Kits/10/Lib/$SDK_VER/ucrt/x64" \

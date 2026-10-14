@@ -22,10 +22,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordset__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeClass__XZ() {
     return CRecordset::GetThisClass();
 }
-// Symbol: ?IsOpen@CRecordset@@QEBAHXZ
-extern "C" int MS_ABI impl__IsOpen_CRecordset__QEBAHXZ(const CRecordset* pThis) {
-    return (pThis && pThis->IsOpen()) ? TRUE : FALSE;
-}
 // Symbol: ?Requery@CRecordset@@UEAAHXZ
 extern "C" int MS_ABI impl__Requery_CRecordset__UEAAHXZ(CRecordset* pThis) {
     if (!pThis || !pThis->IsOpen()) return FALSE;

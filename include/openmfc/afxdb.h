@@ -214,7 +214,7 @@ public:
     virtual SQLLEN GetLBFetchSize(SQLLEN);
     virtual SQLLEN GetLBReallocSize(SQLLEN);
 
-    BOOL IsOpen() const {return m_hstmt!=SQL_NULL_HSTMT;}
+    BOOL IsOpen() const;
     BOOL IsBOF() const {return m_bBOF;}
     BOOL IsEOF() const {return m_bEOF;}
     BOOL IsDeleted() const;

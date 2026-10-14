@@ -3,6 +3,8 @@
 #include "detail/CsimpleexceptionRttiSupport.h"
 #include <cwchar>
 extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
+void AFXAPI AfxThrowMemoryException() {impl__AfxThrowMemoryException__YAXXZ();}
 CSimpleException::CSimpleException() : CSimpleException(TRUE) {}
 CSimpleException::CSimpleException(BOOL autoDelete) : CException(autoDelete),m_bAutoDelete(autoDelete),m_bInitialized(FALSE),m_bLoaded(FALSE),m_szMessage{},m_nResourceID(0) {}
 CSimpleException::~CSimpleException() = default;

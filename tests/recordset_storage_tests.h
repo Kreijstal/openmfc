@@ -68,6 +68,9 @@ struct Fixture {
     alignas(CRecordset) unsigned char storage[448]{};
     CRecordset* recordset=reinterpret_cast<CRecordset*>(storage);
     Fixture(UINT fields,UINT params) {
+        // A populated statement in these field-storage fixtures represents an
+        // already-open recordset, without an ODBC result-discovery operation.
+        recordset->m_lOpen=1;
         new(&recordset->m_mapFieldIndex) CMapPtrToPtr;
         new(&recordset->m_mapParamIndex) CMapPtrToPtr;
         recordset->m_nFields=fields;recordset->m_nParams=params;

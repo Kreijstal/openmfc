@@ -73,6 +73,9 @@ on:
       - 'tests/database_execute_tests.h'
       - 'tests/recordset_constructor_tests.h'
       - 'tests/recordset_lifecycle_tests.h'
+      - 'tests/recordset_isopen_tests.h'
+      - 'tests/cstring_ownership_tests.h'
+      - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -268,6 +271,9 @@ on:
       - 'tests/database_execute_tests.h'
       - 'tests/recordset_constructor_tests.h'
       - 'tests/recordset_lifecycle_tests.h'
+      - 'tests/recordset_isopen_tests.h'
+      - 'tests/cstring_ownership_tests.h'
+      - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
@@ -485,6 +491,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
@@ -663,6 +670,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeDefault.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
@@ -758,6 +766,7 @@ jobs:
             echo comctl32.lib
           )
           cl @resources.rsp
+          cl /nologo /LD /EHs /MT /std:c++17 /W0 /I"%VCToolsInstallDir%atlmfc\include" "%GITHUB_WORKSPACE%/tests/native_string_fixture.cpp" /link /OUT:native_string_fixture.dll /LIBPATH:"%VCToolsInstallDir%atlmfc\lib\x64" user32.lib advapi32.lib ole32.lib
       - name: Compile affected database sources with MSVC
         shell: cmd
         working-directory: ${{ runner.temp }}
@@ -808,6 +817,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
