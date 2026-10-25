@@ -7,6 +7,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstring>
+#include <new>
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
 #else
@@ -69,37 +70,54 @@ void SetString(CString& string,const wchar_t* text,int length) {
     auto* buffer=Prepare(string,length);
     if(length)std::memmove(buffer,text,size_t(length)*sizeof(wchar_t));SetLength(string,length);
 }
+CStringData* Detach(CString& string) {
+    auto* data=Data(string);auto* nil=GetNilStringData();nil->AddRef();Attach(string,nil);return data;
 }
-CString CDatabase::GetConnect() const {
-    CString result=CString::FromOwnedData(Clone(m_strConnect));
-    if(!result.IsEmpty())return result;
+CString* ConstructResult(CString* result,CStringData* data) {
+    new(result) CString();Release(Data(*result));Attach(*result,data);return result;
+}
+CStringData* ConnectionData(const CDatabase& database) {
+    // Adopt the cloned buffer directly: an unoptimized compiler may copy a
+    // value returned by an inline factory and call the manager's Clone twice.
+    auto* cloned=Clone(database.m_strConnect);
+    CString result;
+    Release(Data(result));Attach(result,cloned);
+    if(!result.IsEmpty())return Detach(result);
     DATA_BLOB decoded;
-    static_assert(sizeof(ConnectionBlob)==sizeof(DATA_BLOB),"native encrypted connection blob layout");
-    if(::CryptUnprotectData(reinterpret_cast<DATA_BLOB*>(const_cast<ConnectionBlob*>(&m_blobConnect)),nullptr,nullptr,nullptr,nullptr,0,&decoded)) {
+    static_assert(sizeof(CDatabase::ConnectionBlob)==sizeof(DATA_BLOB),"native encrypted connection blob layout");
+    if(::CryptUnprotectData(reinterpret_cast<DATA_BLOB*>(const_cast<CDatabase::ConnectionBlob*>(&database.m_blobConnect)),nullptr,nullptr,nullptr,nullptr,0,&decoded)) {
         auto* text=reinterpret_cast<const wchar_t*>(decoded.pbData);
         SetString(result,text,text?static_cast<int>(std::wcslen(text)):0);
         ::LocalFree(decoded.pbData);
     }
-    return result;
+    return Detach(result);
 }
-CString CDatabase::GetDatabaseName() const {
+CStringData* DatabaseNameData(const CDatabase& database) {
     CString result;SQLSMALLINT bytes;
-    RETCODE code=::SQLGetInfoW(m_hdbc,SQL_DATABASE_NAME,nullptr,0,&bytes);
-    if(!Check(code))return result;
+    RETCODE code=::SQLGetInfoW(database.m_hdbc,SQL_DATABASE_NAME,nullptr,0,&bytes);
+    if(!database.Check(code))return Detach(result);
     // Retail sign-extends the driver length, then uses an unsigned shift.
     int length=int(uint64_t(int64_t(bytes))>>1);
     auto* buffer=Prepare(result,length);SetLength(result,length);
     SQLSMALLINT capacity=SQLSMALLINT(uint16_t(bytes)+sizeof(wchar_t));
-    code=::SQLGetInfoW(m_hdbc,SQL_DATABASE_NAME,buffer,capacity,&bytes);
+    code=::SQLGetInfoW(database.m_hdbc,SQL_DATABASE_NAME,buffer,capacity,&bytes);
     auto* data=Data(result);int actual=0;
     while(actual<data->nAllocLength && buffer[actual])++actual;
     SetLength(result,actual);
-    if(!Check(code))Empty(result);
-    return result;
+    if(!database.Check(code))Empty(result);
+    return Detach(result);
+}
+}
+// The export adapters below construct directly in the caller's return buffer.
+CString CDatabase::GetConnect() const {
+    return CString::FromOwnedData(ConnectionData(*this));
+}
+CString CDatabase::GetDatabaseName() const {
+    return CString::FromOwnedData(DatabaseNameData(*this));
 }
 // Symbol: ?GetConnect@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" CString* MS_ABI impl__GetConnect_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-    const CDatabase* database,CString* result) {new(result) CString(database->GetConnect());return result;}
+    const CDatabase* database,CString* result) {return ConstructResult(result,ConnectionData(*database));}
 // Symbol: ?GetDatabaseName@CDatabase@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" CString* MS_ABI impl__GetDatabaseName_CDatabase__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-    const CDatabase* database,CString* result) {new(result) CString(database->GetDatabaseName());return result;}
+    const CDatabase* database,CString* result) {return ConstructResult(result,DatabaseNameData(*database));}
