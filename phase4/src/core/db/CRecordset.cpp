@@ -143,10 +143,6 @@ extern "C" unsigned int MS_ABI impl__BindParams_CRecordset__QEAAIPEAX_Z(CRecords
 }
 // Symbol: ?RebindParams@CRecordset@@QEAAXPEAX@Z
 extern "C" void MS_ABI impl__RebindParams_CRecordset__QEAAXPEAX_Z(CRecordset* pThis, void* param) { (void)impl__BindParams_CRecordset__QEAAIPEAX_Z(pThis, param); }
-// Symbol: ?CanBookmark@CRecordset@@QEBAHXZ
-extern "C" int MS_ABI impl__CanBookmark_CRecordset__QEBAHXZ(const CRecordset* pThis) { auto it = pThis ? g_recordsetStates.find(pThis) : g_recordsetStates.end(); return it != g_recordsetStates.end() && it->second.bookmarksEnabled ? TRUE : FALSE; }
-// Symbol: ?EnableBookmarks@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__EnableBookmarks_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).bookmarksEnabled = true; }
 // Symbol: ?Cancel@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__Cancel_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt != SQL_NULL_HSTMT) SQLCancel(pThis->m_hstmt); }
 // Symbol: ?CheckRowsetCurrencyStatus@CRecordset@@QEAAXGJ@Z
@@ -291,12 +287,6 @@ extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecords
         EnsureRecordsetState(pThis).lastRetCode = rc;
     }
 }
-// Symbol: ?SetConcurrencyAndCursorType@CRecordset@@IEAAXPEAXK@Z
-extern "C" void MS_ABI impl__SetConcurrencyAndCursorType_CRecordset__IEAAXPEAXK_Z(CRecordset*, void* hstmt, unsigned long options) {
-    if (!hstmt) return;
-    SQLSetStmtAttr(static_cast<HSTMT>(hstmt), SQL_ATTR_CONCURRENCY,
-                   CastOdbcOptionValue((options & CRecordset::readOnly) ? SQL_CONCUR_READ_ONLY : SQL_CONCUR_VALUES), 0);
-}
 // Symbol: ?SetLockingMode@CRecordset@@QEAAXI@Z
 extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset* pThis, unsigned int mode) { if (pThis) EnsureRecordsetState(pThis).lockingMode=mode; }
 // Symbol: ?SetRowsetCurrencyStatus@CRecordset@@UEAAXFGJ_K@Z
@@ -316,35 +306,12 @@ extern "C" void MS_ABI impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(CR
 }
 // Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
 extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short row) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, row); }
-// Symbol: ?SetUpdateMethod@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__SetUpdateMethod_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
 // Symbol: ?SkipDeletedRecords@CRecordset@@QEAAXGJPEA_KPEAF@Z
 extern "C" void MS_ABI impl__SkipDeletedRecords_CRecordset__QEAAXGJPEA_KPEAF_Z(CRecordset* pThis, unsigned short, long, unsigned long long* rowsFetched, short* status) { if (rowsFetched) *rowsFetched=pThis&&!pThis->m_bDeleted?1:0; if (status) *status=SQL_SUCCESS; }
 // Symbol: ?StoreFields@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__StoreFields_CRecordset__QEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
 extern "C" int MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* pThis) { return pThis ? pThis->Update() : FALSE; }
-// Symbol: ?VerifyCursorSupport@CRecordset@@IEAAKXZ
-extern "C" unsigned long MS_ABI impl__VerifyCursorSupport_CRecordset__IEAAKXZ(CRecordset* pThis) { return pThis && pThis->m_hstmt!=SQL_NULL_HSTMT ? 1 : 0; }
-// Symbol: ?VerifyDriverBehavior@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__VerifyDriverBehavior_CRecordset__IEAAXXZ(CRecordset* pThis) {
-    if (!pThis) return;
-    if (!pThis->m_pDatabase || !pThis->m_pDatabase->IsOpen()) return;
-    if (pThis->m_hstmt == SQL_NULL_HSTMT) return;
-
-    SQLUINTEGER supported = 0;
-    SQLSMALLINT infoLen = 0;
-    RETCODE rc = SQLGetInfo(pThis->m_pDatabase->GetHDBC(),
-                            SQL_DYNAMIC_CURSOR_ATTRIBUTES1,
-                            &supported, sizeof(supported), &infoLen);
-    EnsureRecordsetState(pThis).lastRetCode = rc;
-    if (rc == SQL_NO_DATA || rc == SQL_ERROR) {
-        rc = SQLGetInfo(pThis->m_pDatabase->GetHDBC(),
-                        SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1,
-                        &supported, sizeof(supported), &infoLen);
-        EnsureRecordsetState(pThis).lastRetCode = rc;
-    }
-}
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
     // Release x64 construction allocates a statement for an existing connection
     // and registers the recordset at the head of the database's list.
@@ -589,40 +556,6 @@ CString CRecordset::GetDefaultConnect() {
 }
 CString CRecordset::GetDefaultSQL() {
     return L"";
-}
-void CRecordset::OnSetOptions(HSTMT hstmt) {
-    if (!hstmt || hstmt == SQL_NULL_HSTMT) return;
-
-    SQLUINTEGER timeout = static_cast<SQLUINTEGER>(g_queryTimeoutSeconds);
-    SQLUINTEGER cursor = SQL_CURSOR_FORWARD_ONLY;
-    SQLUINTEGER concurrency = (m_dwOptions & CRecordset::readOnly) ? SQL_CONCUR_READ_ONLY : SQL_CONCUR_VALUES;
-
-    switch (m_nOpenType) {
-    case CRecordset::snapshot:
-        cursor = SQL_CURSOR_KEYSET_DRIVEN;
-        break;
-    case CRecordset::dynaset:
-    case CRecordset::dynamic:
-        cursor = SQL_CURSOR_DYNAMIC;
-        break;
-    case CRecordset::forwardOnly:
-    default:
-        cursor = SQL_CURSOR_FORWARD_ONLY;
-        break;
-    }
-
-    RETCODE rc = SQL_SUCCESS;
-    rc = SQLSetStmtAttr(hstmt, SQL_ATTR_QUERY_TIMEOUT,
-                        CastOdbcOptionValue(timeout),
-                        SQL_IS_UINTEGER);
-    rc = (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)
-             ? SQLSetStmtAttr(hstmt, SQL_ATTR_CURSOR_TYPE, CastOdbcOptionValue(cursor), 0)
-             : rc;
-    rc = (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)
-             ? SQLSetStmtAttr(hstmt, SQL_ATTR_CONCURRENCY, CastOdbcOptionValue(concurrency), 0)
-             : rc;
-
-    if(rc!=SQL_SUCCESS && rc!=SQL_SUCCESS_WITH_INFO)ThrowDBException(rc,hstmt);
 }
 void CRecordset::OnFieldChange(void* pvField, LONG* plLength) {
     if (!m_pDatabase || !pvField) return;

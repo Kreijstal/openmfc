@@ -1172,12 +1172,6 @@ extern "C" int MS_ABI impl__IsFieldNull_CRecordset__QEAAHPEAX_Z(CRecordset* pThi
 extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* pThis, long p0, unsigned short p1) {
     pThis->Move(p0, p1);
 }
-// Symbol: ?OnSetOptions@CRecordset@@UEAAXPEAX@Z
-// CRecordset::OnSetOptions
-extern "C" void MS_ABI impl__OnSetOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pThis, void* p0) {
-    pThis->OnSetOptions(p0);
-}
-
 // Symbol: ?Open@CRecordset@@UEAAHIPEB_WK@Z
 // CRecordset::Open
 extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, unsigned int p0, const wchar_t* p1, unsigned long p2) {
