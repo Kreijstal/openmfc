@@ -40,7 +40,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXScalar.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
-    phase4/src/core/db/CRecordsetExecute.cpp phase4/src/core/db/CRecordsetOptions.cpp phase4/src/core/db/CRecordsetStatement.cpp phase4/src/core/db/CRecordsetAllocation.cpp phase4/src/core/db/CRecordsetIsOpen.cpp phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
+    phase4/src/core/db/CRecordsetExchange.cpp phase4/src/core/db/CRecordsetExecute.cpp phase4/src/core/db/CRecordsetOptions.cpp phase4/src/core/db/CRecordsetStatement.cpp phase4/src/core/db/CRecordsetAllocation.cpp phase4/src/core/db/CRecordsetIsOpen.cpp phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
     phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp
     phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp
     phase4/src/core/db/CFieldExchangeLifecycle.cpp
@@ -97,7 +97,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CRecordsetExecute.cpp', 'CRecordsetExecute'),
+for path, obj in (('core/db/CRecordsetExchange.cpp', 'CRecordsetExchange'),
+                  ('core/db/CRecordsetExecute.cpp', 'CRecordsetExecute'),
                   ('core/db/CRecordsetOptions.cpp', 'CRecordsetOptions'),
                   ('core/db/CRecordsetStatement.cpp', 'CRecordsetStatement'),
                   ('core/db/CRecordsetAllocation.cpp', 'CRecordsetAllocation'),

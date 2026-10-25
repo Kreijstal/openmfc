@@ -107,17 +107,6 @@ extern "C" void MS_ABI impl__AppendFilterAndSortSQL_CRecordset__IEAAXXZ(CRecords
     if (!pThis->m_strSort.IsEmpty()) { sql += L" ORDER BY "; sql += pThis->m_strSort; }
     StoreSql(pThis, sql);
 }
-// Symbol: ?AppendNames@CRecordset@@QEAAIPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
-extern "C" unsigned int MS_ABI impl__AppendNames_CRecordset__QEAAIPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*, CString* sql, const wchar_t* name) { return AppendCsvName(sql, name); }
-// Symbol: ?AppendValues@CRecordset@@QEAAIPEAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
-extern "C" unsigned int MS_ABI impl__AppendValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*, void*, CString* sql, const wchar_t* value) { return AppendCsvName(sql, value ? value : L"?"); }
-// Symbol: ?AppendNamesValues@CRecordset@@QEAAIPEAXPEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
-extern "C" unsigned int MS_ABI impl__AppendNamesValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*, void*, CString* sql, const wchar_t* name) {
-    if (!sql || !name) return 0;
-    if (!sql->IsEmpty()) *sql += L", ";
-    *sql += name; *sql += L"=?";
-    return 1;
-}
 // Symbol: ?BuildSelectSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__BuildSelectSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
     if (!pThis) return;
@@ -134,15 +123,6 @@ extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThi
 extern "C" void MS_ABI impl__BindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
 // Symbol: ?UnbindFieldsForUpdate@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__UnbindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = false; }
-// Symbol: ?BindParams@CRecordset@@QEAAIPEAX@Z
-extern "C" unsigned int MS_ABI impl__BindParams_CRecordset__QEAAIPEAX_Z(CRecordset* pThis, void* param) {
-    if (!pThis || !param) return 0;
-    auto& map = EnsureRecordsetState(pThis).boundParamIndexes;
-    map[param] = static_cast<int>(map.size());
-    return static_cast<unsigned int>(map[param]);
-}
-// Symbol: ?RebindParams@CRecordset@@QEAAXPEAX@Z
-extern "C" void MS_ABI impl__RebindParams_CRecordset__QEAAXPEAX_Z(CRecordset* pThis, void* param) { (void)impl__BindParams_CRecordset__QEAAIPEAX_Z(pThis, param); }
 // Symbol: ?Cancel@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__Cancel_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt != SQL_NULL_HSTMT) SQLCancel(pThis->m_hstmt); }
 // Symbol: ?CheckRowsetCurrencyStatus@CRecordset@@QEAAXGJ@Z

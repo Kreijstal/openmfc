@@ -299,6 +299,7 @@ static void ownershipAndRecreation() {
 #include "recordset_statement_tests.h"
 #include "recordset_options_tests.h"
 #include "recordset_execute_tests.h"
+#include "recordset_exchange_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
@@ -342,6 +343,7 @@ int main() {
     if (SUCCEEDED(hr)) recordsetStatement();
     if (SUCCEEDED(hr)) recordsetOptions();
     if (SUCCEEDED(hr)) recordsetExecute();
+    if (SUCCEEDED(hr)) recordsetExchange();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();
