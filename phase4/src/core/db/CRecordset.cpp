@@ -94,12 +94,7 @@ extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLT
         return nSQLType;
     }
 }
-// Symbol: ?AllocHstmt@CRecordset@@IEAAHXZ
-extern "C" int MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset* pThis) {
-    if (!pThis || !pThis->m_pDatabase || !pThis->m_pDatabase->IsOpen()) return FALSE;
-    if (pThis->m_hstmt != SQL_NULL_HSTMT) return TRUE;
-    return SqlSucceeded(SQLAllocHandle(SQL_HANDLE_STMT, pThis->m_pDatabase->GetHDBC(), &pThis->m_hstmt)) ? TRUE : FALSE;
-}
+extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
 // Symbol: ?AppendFilterAndSortSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__AppendFilterAndSortSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
     if (!pThis) return;
@@ -321,8 +316,6 @@ extern "C" void MS_ABI impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(CR
 }
 // Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
 extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short row) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, row); }
-// Symbol: ?SetState@CRecordset@@IEAAXHPEB_WK@Z
-extern "C" void MS_ABI impl__SetState_CRecordset__IEAAXHPEB_WK_Z(CRecordset* pThis, int open, const wchar_t* sql, unsigned long options) { if (pThis) { pThis->m_bOpen=open; pThis->m_dwOptions=options; if (sql) StoreSql(pThis,CString(sql)); } }
 // Symbol: ?SetUpdateMethod@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__SetUpdateMethod_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
 // Symbol: ?SkipDeletedRecords@CRecordset@@QEAAXGJPEA_KPEAF@Z

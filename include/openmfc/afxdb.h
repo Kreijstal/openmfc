@@ -248,6 +248,8 @@ public:
     UINT BindFieldsToColumns();
     void AllocDataCache();
     void InitRecord();
+    BOOL AllocHstmt();
+    void SetState(UINT,const wchar_t*,DWORD);
     void AllocStatusArrays();
     SQLLEN* GetFieldLengthBuffer(DWORD,int);
     BYTE GetFieldStatus(DWORD);
