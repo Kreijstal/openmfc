@@ -295,6 +295,7 @@ static void ownershipAndRecreation() {
 #include "recordset_constructor_tests.h"
 #include "recordset_lifecycle_tests.h"
 #include "recordset_isopen_tests.h"
+#include "recordset_allocation_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
@@ -334,6 +335,7 @@ int main() {
     if (SUCCEEDED(hr)) recordsetConstructor();
     if (SUCCEEDED(hr)) recordsetLifecycle();
     if (SUCCEEDED(hr)) recordsetIsOpen();
+    if (SUCCEEDED(hr)) recordsetAllocation();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();

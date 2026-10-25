@@ -243,6 +243,11 @@ public:
     void MarkForUpdate();void MarkForAddNew();
     void FreeDataCache();
     void FreeRowset();
+    void AllocRowset();
+    void AllocAndCacheFieldInfo();
+    UINT BindFieldsToColumns();
+    void AllocDataCache();
+    void InitRecord();
     void AllocStatusArrays();
     SQLLEN* GetFieldLengthBuffer(DWORD,int);
     BYTE GetFieldStatus(DWORD);

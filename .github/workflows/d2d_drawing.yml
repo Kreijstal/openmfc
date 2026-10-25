@@ -74,6 +74,7 @@ on:
       - 'tests/recordset_constructor_tests.h'
       - 'tests/recordset_lifecycle_tests.h'
       - 'tests/recordset_isopen_tests.h'
+      - 'tests/recordset_allocation_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
@@ -272,6 +273,7 @@ on:
       - 'tests/recordset_constructor_tests.h'
       - 'tests/recordset_lifecycle_tests.h'
       - 'tests/recordset_isopen_tests.h'
+      - 'tests/recordset_allocation_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
@@ -492,6 +494,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
@@ -671,6 +674,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetFieldStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CFieldExchangeLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/ribbon/CMFCRibbonCmdUI.cpp"
@@ -818,6 +822,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetLifecycle.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"

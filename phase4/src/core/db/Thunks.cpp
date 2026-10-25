@@ -1183,11 +1183,6 @@ extern "C" void MS_ABI impl__OnSetOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pT
 extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, unsigned int p0, const wchar_t* p1, unsigned long p2) {
     return (int)pThis->Open(p0, p1, p2);
 }
-// Symbol: ?SetRowsetSize@CRecordset@@UEAAXK@Z
-// CRecordset::SetRowsetSize
-extern "C" void MS_ABI impl__SetRowsetSize_CRecordset__UEAAXK_Z(CRecordset* pThis, unsigned long p0) {
-    pThis->SetRowsetSize(p0);
-}
 // Symbol: ?Update@CRecordset@@UEAAHXZ
 // CRecordset::Update
 extern "C" int MS_ABI impl__Update_CRecordset__UEAAHXZ(CRecordset* pThis) {

@@ -7,6 +7,7 @@
 // Database connection writes must preserve ATL manager and locked-buffer
 // ownership. CString's convenience operators still use older simplified rules.
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long);
 namespace openmfc { namespace detail {
 class DatabaseStringBuffer {
     wchar_t** text;
@@ -30,6 +31,12 @@ class DatabaseStringBuffer {
     }
 public:
     explicit DatabaseStringBuffer(CString& value):text(reinterpret_cast<wchar_t**>(&value)) {}
+    wchar_t* get(int capacity) {prepare(capacity);return *text;}
+    void release(int length) {
+        if(length==-1) {length=0;while(length<data()->nAllocLength && (*text)[length])++length;}
+        if(length<0 || length>data()->nAllocLength) {impl__AfxThrowOleException__YAXJ_Z(E_INVALIDARG);return;}
+        data()->nDataLength=length;(*text)[length]=0;
+    }
     void empty() {
         auto* old=data();if(!old->nDataLength)return;
         if(old->IsLocked()) {old->nDataLength=0;(*text)[0]=0;return;}

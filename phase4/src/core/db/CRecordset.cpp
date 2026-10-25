@@ -100,12 +100,6 @@ extern "C" int MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset* pThis) {
     if (pThis->m_hstmt != SQL_NULL_HSTMT) return TRUE;
     return SqlSucceeded(SQLAllocHandle(SQL_HANDLE_STMT, pThis->m_pDatabase->GetHDBC(), &pThis->m_hstmt)) ? TRUE : FALSE;
 }
-// Symbol: ?AllocAndCacheFieldInfo@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__AllocAndCacheFieldInfo_CRecordset__IEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
-// Symbol: ?AllocDataCache@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__AllocDataCache_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).dataCache.resize(4096); }
-// Symbol: ?AllocRowset@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__AllocRowset_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).rowsetAllocated = true; }
 // Symbol: ?AppendFilterAndSortSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__AppendFilterAndSortSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
     if (!pThis) return;
@@ -145,8 +139,6 @@ extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThi
 extern "C" void MS_ABI impl__BindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
 // Symbol: ?UnbindFieldsForUpdate@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__UnbindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = false; }
-// Symbol: ?BindFieldsToColumns@CRecordset@@QEAAIXZ
-extern "C" unsigned int MS_ABI impl__BindFieldsToColumns_CRecordset__QEAAIXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); return pThis ? static_cast<unsigned int>(EnsureRecordsetState(pThis).fields.size()) : 0; }
 // Symbol: ?BindParams@CRecordset@@QEAAIPEAX@Z
 extern "C" unsigned int MS_ABI impl__BindParams_CRecordset__QEAAIPEAX_Z(CRecordset* pThis, void* param) {
     if (!pThis || !param) return 0;
@@ -256,8 +248,6 @@ extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldIn
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset* pThis, const wchar_t* name, OdbcFieldInfoCompat* info) { impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(pThis, static_cast<short>(FindFieldByName(pThis,name)), info); }
 // Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
 extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
-// Symbol: ?InitRecord@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__InitRecord_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) { pThis->m_bDeleted=FALSE; pThis->m_nEditMode=0; } }
 // Symbol: ?IsJoin@CRecordset@@SAHPEB_W@Z
 extern "C" int MS_ABI impl__IsJoin_CRecordset__SAHPEB_W_Z(const wchar_t* sql) { return LowerSql(sql).find(L" join ") != std::wstring::npos ? TRUE : FALSE; }
 // Symbol: ?IsRecordsetUpdatable@CRecordset@@IEAAHXZ
@@ -600,9 +590,6 @@ BOOL CRecordset::CanTransact() const {
 }
 BOOL CRecordset::CanUpdate() const {
     return m_pDatabase && !m_bDeleted && (m_dwOptions & CRecordset::readOnly) == 0;
-}
-void CRecordset::SetRowsetSize(DWORD dwNewRowsetSize) {
-    m_dwRowsetSize = dwNewRowsetSize;
 }
 CString CRecordset::GetDefaultConnect() {
     return L"ODBC;";

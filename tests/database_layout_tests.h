@@ -9,11 +9,14 @@ static SQLUSMALLINT option;
 static SQLULEN timeout;
 static bool accepted;
 static BOOL MS_ABI checkOption(const CDatabase*,RETCODE code) {++checkCalls;return accepted;}
+using OptionHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLUSMALLINT,SQLULEN);
+static OptionHook optionHook=nullptr;
 }
 // Observe the ODBC and framework exception boundaries; the database methods
 // and its constructor are the actual production implementations.
 extern "C" SQLRETURN SQL_API SQLSetStmtOption(SQLHSTMT statement,SQLUSMALLINT which,SQLULEN value) {
     using namespace database_layout_test;
+    if(optionHook)return optionHook(statement,which,value);
     ++optionCalls;optionStatement=statement;option=which;timeout=value;return optionResult;
 }
 namespace database_layout_test {
