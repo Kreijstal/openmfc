@@ -266,8 +266,6 @@ extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecords
 }
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
-// Symbol: ?PrepareAndExecute@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__PrepareAndExecute_CRecordset__IEAAXXZ(CRecordset* pThis) { if (!pThis) return; if (pThis->m_hstmt==SQL_NULL_HSTMT) impl__AllocHstmt_CRecordset__IEAAHXZ(pThis); CString sql=GetStoredSql(pThis); if (!sql.IsEmpty() && pThis->m_hstmt!=SQL_NULL_HSTMT) { SQLPrepareW(pThis->m_hstmt,(SQLWCHAR*)static_cast<const wchar_t*>(sql),SQL_NTS); SQLExecute(pThis->m_hstmt); } }
 // Symbol: ?PrepareUpdateHstmt@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__PrepareUpdateHstmt_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
 // Symbol: ?RefreshRowset@CRecordset@@QEAAXGG@Z

@@ -16,6 +16,8 @@ using FreeHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLUSMALLINT);
 static FreeHook freeHook=nullptr;
 using ColumnsHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLSMALLINT*);
 static ColumnsHook columnsHook=nullptr;
+using DirectHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLWCHAR*,SQLINTEGER);
+static DirectHook directHook=nullptr;
 static HSTMT handle() {return emptyStatement?nullptr:reinterpret_cast<HSTMT>(0xbeef);}
 static Step take(Kind kind) {
     if(position>=steps.size() || steps[position].kind!=kind)std::abort();return steps[position++];
@@ -96,6 +98,7 @@ extern "C" SQLRETURN SQL_API SQLAllocStmt(SQLHDBC database,SQLHSTMT* statement) 
     record(Alloc,UINT_PTR(database));auto step=take(Alloc);*statement=handle();return step.code;
 }
 extern "C" SQLRETURN SQL_API SQLExecDirectW(SQLHSTMT statement,SQLWCHAR* sql,SQLINTEGER length) {
+    if(database_execute_test::directHook)return database_execute_test::directHook(statement,sql,length);
     using namespace database_execute_test;record(Execute,UINT_PTR(statement),length,std::wcscmp(reinterpret_cast<wchar_t*>(sql),L"select fixture"));return take(Execute).code;
 }
 extern "C" SQLRETURN SQL_API SQLNumResultCols(SQLHSTMT statement,SQLSMALLINT* columns) {
