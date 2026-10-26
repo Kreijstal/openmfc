@@ -8,6 +8,7 @@
 #include "detail/CWndAccessibilitySupport.h"
 #include "detail/CMenuSupport.h"
 #include "detail/WincoreSupport.h"
+#include "detail/WindowHandleMapSupport.h"
 
 // Hand-written real implementations for header-defined classes that were one
 // export short of complete. Constructors placement-new into the caller-provided
@@ -429,16 +430,6 @@ extern "C" void MS_ABI impl__SetProperty_CWnd__QEAAXJGZZ(
     // containers, and the variadic value cannot be forwarded safely.
     // TODO(clean-room): transcribed partially
 }
-// CWnd::CWnd(HWND) — private constructor MFC uses internally to wrap an existing
-// window handle. Default-initializes the CWnd members (validated layout) and
-// then binds the handle, matching the observable state of the real ctor.
-// Symbol: ??0CWnd@@AEAA@PEAUHWND__@@@Z
-extern "C" void* MS_ABI impl___0CWnd__AEAA_PEAUHWND_____Z(void* pThis, HWND hWnd)
-{
-    CWnd* p = new (pThis) CWnd();
-    p->m_hWnd = hWnd;
-    return p;
-}
 // CWnd::GetMenu
 // Symbol: ?GetMenu@CWnd@@UEBAPEAVCMenu@@XZ
 // Ordinal: 5723
@@ -457,26 +448,6 @@ extern "C" int MS_ABI impl__SetMenu_CWnd__UEAAHPEAVCMenu___Z(CWnd* pThis, CMenu*
     HMENU hMenu = pMenu ? pMenu->m_hMenu : nullptr;
     return ::SetMenu(pThis->m_hWnd, hMenu);
 }
-// Symbol: ?wndBottom@CWnd@@2V1@B
-extern "C" const StaticCWndExport MS_ABI impl__wndBottom_CWnd__2V1_B = {
-    nullptr, {}, HWND_BOTTOM, {}
-};
-// Symbol: ?wndNoTopMost@CWnd@@2V1@B
-extern "C" const StaticCWndExport MS_ABI impl__wndNoTopMost_CWnd__2V1_B = {
-    nullptr, {}, HWND_NOTOPMOST, {}
-};
-// Symbol: ?wndTop@CWnd@@2V1@B
-extern "C" const StaticCWndExport MS_ABI impl__wndTop_CWnd__2V1_B = {
-    nullptr, {}, HWND_TOP, {}
-};
-// Symbol: ?wndTopMost@CWnd@@2V1@B
-extern "C" const StaticCWndExport MS_ABI impl__wndTopMost_CWnd__2V1_B = {
-    nullptr, {}, HWND_TOPMOST, {}
-};
-// Symbol: ?FromHandle@CWnd@@SAPEAV1@PEAUHWND__@@@Z
-extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd) {
-    return OpenMfcAttachCWnd(hWnd);
-}
 // Symbol: ?GetThisClass@CWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ() {
     return &CWnd::classCWnd;
@@ -493,20 +464,6 @@ extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow)
     return ::ShowWindow(pThis->m_hWnd, nCmdShow);
 }
 // CWnd::EnableWindow
-// Symbol: ?DestroyWindow@CWnd@@UEAAHXZ
-extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-
-    HWND hWnd = pThis->m_hWnd;
-    pThis->ReleaseAccessibility();
-    pThis->EnableD2DSupport(FALSE);
-    g_hwndMap.erase(hWnd);
-    pThis->m_hWnd = nullptr;
-
-    return ::DestroyWindow(hWnd);
-}
 // Symbol: ?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(
     CWnd* pThis, CREATESTRUCTW& cs)
@@ -594,11 +551,6 @@ extern "C" int MS_ABI impl__GetWindowTextLengthW_CWnd__QEBAHXZ(const CWnd* pThis
         return 0;
     }
     return ::GetWindowTextLengthW(pThis->m_hWnd);
-}
-// Symbol: ?FromHandlePermanent@CWnd@@SAPEAV1@PEAUHWND__@@@Z
-extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd) {
-    auto it = g_hwndMap.find(hWnd);
-    return it != g_hwndMap.end() ? it->second : nullptr;
 }
 // Symbol: ?GetDescendantWindow@CWnd@@SAPEAV1@PEAUHWND__@@HH@Z
 extern "C" CWnd* MS_ABI impl__GetDescendantWindow_CWnd__SAPEAV1_PEAUHWND____HH_Z(
@@ -976,9 +928,6 @@ extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(
     }
     return pThis ? pThis->OnNotify(static_cast<uintptr_t>(wParam), lParam, reinterpret_cast<intptr_t*>(pResult)) : FALSE;
 }
-CWnd* CWnd::FromHandle(HWND hWnd) {
-    return OpenMfcAttachCWnd(hWnd);
-}
 void CWnd::CancelToolTips(int p0)
 {
     bool enabled = p0 != FALSE;
@@ -993,19 +942,6 @@ void CWnd::CancelToolTips(int p0)
 CObject* CWnd::CreateObject()
 {
     return new(std::nothrow) CWnd();
-}
-void CWnd::DeleteTempMap()
-{
-    OpenMfcCleanupTempWrappers();
-}
-void* CWnd::FromHandlePermanent(HWND p0)
-{
-    auto it = g_hwndMap.find(p0);
-    CWnd* pWnd = it != g_hwndMap.end() ? it->second : nullptr;
-    if (!pWnd || g_tempWrappers.find(pWnd) != g_tempWrappers.end()) {
-        return nullptr;
-    }
-    return pWnd;
 }
 void* CWnd::GetDescendantWindow(HWND p0, int p1, int p2)
 {
@@ -1151,34 +1087,6 @@ void CWnd::ActivateTopParent()
     }
     ::SetActiveWindow(hTop);
     ::SetForegroundWindow(hTop);
-}
-int CWnd::Attach(HWND p0)
-{
-    if (!p0) {
-        return FALSE;
-    }
-
-    CWnd* existing = OpenMfcLookupCWnd(p0);
-    if (existing && existing != this) {
-        return FALSE;
-    }
-
-    if (m_hWnd == p0) {
-        g_hwndMap[p0] = this;
-        return TRUE;
-    }
-
-    if (m_hWnd) {
-        g_hwndMap.erase(m_hWnd);
-    }
-    g_tempWrappers.erase(this);
-    m_hWnd = p0;
-    g_hwndMap[p0] = this;
-    return TRUE;
-}
-void CWnd::AttachControlSite(CHandleMap* p0)
-{
-    GetWindowRuntimeState(this).properties[{0x434D, 0}] = p0;
 }
 void CWnd::AttachControlSite(COleControlSite* p0, UINT p1)
 {
@@ -1431,8 +1339,7 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
     if (!hWnd) {
         return FALSE;
     }
-    m_hWnd = hWnd;
-    g_hwndMap[hWnd] = this;
+    Attach(hWnd);
     return TRUE;
 }
 int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
@@ -1449,17 +1356,6 @@ LONGLONG CWnd::DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2)
         return ::CallWindowProcW(m_pfnSuper, m_hWnd, p0, p1, p2);
     }
     return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this, p0, p1, p2);
-}
-HWND CWnd::Detach()
-{
-    if (!m_hWnd) {
-        return nullptr;
-    }
-    HWND hWnd = m_hWnd;
-    m_hWnd = nullptr;
-    g_hwndMap.erase(hWnd);
-    CleanupWindowRuntimeState(this);
-    return hWnd;
 }
 int CWnd::EnableToolTips(int p0)
 {
@@ -2061,12 +1957,6 @@ int CWnd::OnDeleteItem(int p0, DELETEITEMSTRUCT* p1)
     }
     return 0;
 }
-void CWnd::OnDestroy()
-{
-    if (m_hWnd) {
-        CleanupWindowRuntimeState(this);
-    }
-}
 void CWnd::OnDevModeChange(void* p0, const WCHAR* p1)
 {
     if (!m_hWnd) {
@@ -2406,13 +2296,6 @@ LONGLONG CWnd::OnNTCtlColor(ULONGLONG p0, LONGLONG p1)
 
     return static_cast<LONGLONG>(reinterpret_cast<LONG_PTR>(::GetSysColorBrush(COLOR_WINDOW)));
 }
-int CWnd::OnNcDestroy()
-{
-    if (m_hWnd) {
-        CleanupWindowRuntimeState(this);
-    }
-    return 1;
-}
 int CWnd::OnParentNotify(UINT p0, LONGLONG p1)
 {
     if (!m_hWnd) {
@@ -2520,14 +2403,6 @@ BOOL CWnd::PaintWindowlessControls(CDC* p0)
         return FALSE;
     }
     return ::InvalidateRect(m_hWnd, nullptr, FALSE);
-}
-void CWnd::PostNcDestroy()
-{
-    if (m_hWnd) {
-        CleanupWindowRuntimeState(this);
-        g_hwndMap.erase(m_hWnd);
-        m_hWnd = nullptr;
-    }
 }
 BOOL CWnd::PreTranslateInput(MSG* p0)
 {
@@ -2735,9 +2610,8 @@ int CWnd::SubclassWindow(HWND p0)
         return FALSE;
     }
 
-    g_hwndMap[p0] = this;
+    Attach(p0);
     m_pfnSuper = previous;
-    m_hWnd = p0;
     ::SetWindowLongPtrW(p0, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(AfxWndProc));
     return TRUE;
 }
@@ -2752,8 +2626,7 @@ HWND CWnd::UnsubclassWindow()
         ::SetWindowLongPtrW(m_hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(m_pfnSuper));
         m_pfnSuper = nullptr;
     }
-    g_hwndMap.erase(m_hWnd);
-    m_hWnd = nullptr;
+    Detach();
     return hWnd;
 }
 void CWnd::UpdateDialogControls(void* p0, int p1)

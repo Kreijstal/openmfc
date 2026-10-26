@@ -1119,16 +1119,6 @@
 extern "C" void MS_ABI impl__ActivateTopParent_CWnd__QEAAXXZ(CWnd* pThis) {
     pThis->ActivateTopParent();
 }
-// Symbol: ?Attach@CWnd@@QEAAHPEAUHWND__@@@Z
-// CWnd::Attach
-extern "C" int MS_ABI impl__Attach_CWnd__QEAAHPEAUHWND_____Z(CWnd* pThis, HWND__* p0) {
-    return (int)pThis->Attach(p0);
-}
-// Symbol: ?AttachControlSite@CWnd@@IEAAXPEAVCHandleMap@@@Z
-// CWnd::AttachControlSite
-extern "C" void MS_ABI impl__AttachControlSite_CWnd__IEAAXPEAVCHandleMap___Z(CWnd* pThis, CHandleMap* p0) {
-    pThis->AttachControlSite(p0);
-}
 // Symbol: ?BindDefaultProperty@CWnd@@QEAAXJGPEB_WPEAV1@@Z
 // CWnd::BindDefaultProperty
 extern "C" void MS_ABI impl__BindDefaultProperty_CWnd__QEAAXJGPEB_WPEAV1__Z(CWnd* pThis, long p0, unsigned short p1, const wchar_t* p2, void* p3) {
@@ -1173,16 +1163,6 @@ extern "C" int MS_ABI impl__CreateDlg_CWnd__IEAAHPEB_WPEAV1__Z(CWnd* pThis, cons
 // Static: CWnd::CreateObject
 extern "C" CObject* MS_ABI impl__CreateObject_CWnd__SAPEAVCObject__XZ() {
     return (CObject*)CWnd::CreateObject();
-}
-// Symbol: ?DeleteTempMap@CWnd@@SAXXZ
-// Static: CWnd::DeleteTempMap
-extern "C" void MS_ABI impl__DeleteTempMap_CWnd__SAXXZ() {
-    CWnd::DeleteTempMap();
-}
-// Symbol: ?Detach@CWnd@@QEAAPEAUHWND__@@XZ
-// CWnd::Detach
-extern "C" HWND__* MS_ABI impl__Detach_CWnd__QEAAPEAUHWND____XZ(CWnd* pThis) {
-    return (HWND__*)pThis->Detach();
 }
 // Symbol: ?DrawItem@CMenu@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
 // CMenu::DrawItem
@@ -1410,11 +1390,6 @@ extern "C" HBRUSH__* MS_ABI impl__OnCtlColor_CWnd__IEAAPEAUHBRUSH____PEAVCDC__PE
 extern "C" void MS_ABI impl__OnDeleteItem_CWnd__IEAAXHPEAUtagDELETEITEMSTRUCT___Z(CWnd* pThis, int p0, DELETEITEMSTRUCT* p1) {
     pThis->OnDeleteItem(p0, p1);
 }
-// Symbol: ?OnDestroy@CWnd@@IEAAXXZ
-// CWnd::OnDestroy
-extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis) {
-    pThis->OnDestroy();
-}
 // Symbol: ?OnDisplayChange@CWnd@@IEAAXIHH@Z
 // CWnd::OnDisplayChange
 extern "C" void MS_ABI impl__OnDisplayChange_CWnd__IEAAXIHH_Z(CWnd* pThis, unsigned int p0, int p1, int p2) {
@@ -1470,11 +1445,6 @@ extern "C" void MS_ABI impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(CWnd* pTh
 extern "C" void MS_ABI impl__OnMeasureItem_CWnd__IEAAXHPEAUtagMEASUREITEMSTRUCT___Z(CWnd* pThis, int p0, MEASUREITEMSTRUCT* p1) {
     pThis->OnMeasureItem(p0, p1);
 }
-// Symbol: ?OnNcDestroy@CWnd@@IEAAXXZ
-// CWnd::OnNcDestroy
-extern "C" void MS_ABI impl__OnNcDestroy_CWnd__IEAAXXZ(CWnd* pThis) {
-    pThis->OnNcDestroy();
-}
 // Symbol: ?OnNTCtlColor@CWnd@@IEAA_J_K_J@Z
 // CWnd::OnNTCtlColor
 extern "C" __int64 MS_ABI impl__OnNTCtlColor_CWnd__IEAA_J_K_J_Z(CWnd* pThis, unsigned __int64 p0, __int64 p1) {
@@ -1514,11 +1484,6 @@ extern "C" void MS_ABI impl__OnVScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(CWnd* pTh
 // CWnd::PaintWindowlessControls
 extern "C" int MS_ABI impl__PaintWindowlessControls_CWnd__QEAAHPEAVCDC___Z(CWnd* pThis, CDC* p0) {
     return (int)pThis->PaintWindowlessControls(p0);
-}
-// Symbol: ?PostNcDestroy@CWnd@@MEAAXXZ
-// CWnd::PostNcDestroy
-extern "C" void MS_ABI impl__PostNcDestroy_CWnd__MEAAXXZ(CWnd* pThis) {
-    pThis->PostNcDestroy();
 }
 // Symbol: ?PrepareForHelp@CWnd@@QEAAXXZ
 // CWnd::PrepareForHelp

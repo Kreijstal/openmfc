@@ -44,14 +44,10 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CCmdTarget__
 // Global State
 // =============================================================================
 
-// Map HWND to CWnd* for message routing
+// Registries for higher-level window feature state.
 #include <map>
-#include <set>
 #include <mutex>
 #include <vector>
-namespace openmfc { namespace detail { namespace wincore {
-extern std::map<HWND, CWnd*> g_hwndMap;
-} } }
 namespace openmfc { namespace detail { namespace wincore {
 extern std::map<const CWnd*, COleControlContainer*> g_controlContainerMap;
 } } }
@@ -94,11 +90,6 @@ namespace openmfc { namespace detail { namespace wincore {
 extern std::map<const CDockState*, std::vector<DockBarSnapshot>> g_dockStateSnapshots;
 } } }
 
-// Track temporary CWnd wrappers allocated by OpenMfcAttachCWnd
-// These need to be deleted when the underlying window is destroyed
-namespace openmfc { namespace detail { namespace wincore {
-extern std::set<CWnd*> g_tempWrappers;
-} } }
 
 // Guards the process-wide runtime-state registries above. MFC apps may create
 // and destroy windows on several UI threads, so the map/set structural
@@ -142,17 +133,14 @@ namespace openmfc { namespace detail { namespace wincore {
 CWnd* OpenMfcLookupCWnd(HWND hWnd);
 } } }
 
-// Detach and optionally delete a CWnd wrapper when window is destroyed
-// Called from AfxWndProc on WM_NCDESTROY (the final cleanup message)
+// Compatibility helper for callers detaching a permanent window wrapper.
 namespace openmfc { namespace detail { namespace wincore {
 void OpenMfcDetachCWnd(HWND hWnd);
 } } }
 
 CWnd* OpenMfcAttachCWnd(HWND hWnd);
 
-// Cleanup stale temporary wrappers for destroyed windows
-// Called during idle processing to handle windows not using our window procedure
-// (e.g., dialog controls obtained via GetDlgItem)
+// Delete all temporary wrappers in the current module/thread HWND map.
 void OpenMfcCleanupTempWrappers();
 
 // Global app pointer (defined in appcore.cpp)
@@ -176,14 +164,6 @@ namespace openmfc { namespace detail { namespace wincore {
 extern ATOM g_atomOpenMFCClass;
 } } }
 
-namespace openmfc { namespace detail { namespace wincore {
-struct StaticCWndExport {
-    void* vptr;
-    unsigned char padToHwnd[56];
-    HWND hWnd;
-    unsigned char tail[160];
-};
-} } }
 
 
 

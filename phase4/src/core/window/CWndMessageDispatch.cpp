@@ -90,9 +90,6 @@ extern "C" int MS_ABI impl__OnWndMsg_CWnd__MEAAHI_K_JPEA_J_Z(
         return TRUE;
     case WM_SIZE:
         return FALSE;
-    case WM_NCDESTROY:
-        pThis->ReleaseAccessibility();
-        return FALSE;
     case WM_GETOBJECT:
         if (pResult) *pResult = static_cast<LRESULT>(pThis->OnGetObject(wParam, lParam));
         else pThis->OnGetObject(wParam, lParam);

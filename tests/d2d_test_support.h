@@ -1,6 +1,7 @@
 #pragma once
 #include "openmfc/afxinet.h"
 #include "openmfc/afxstat_.h"
+#include "detail/WindowHandleMapSupport.h"
 #include <cstdlib>
 
 // Unused GDI siblings in the shared support TU still need link definitions.
@@ -26,7 +27,7 @@ int CCmdTarget::OnCmdMsg(unsigned int,int,void*,AFX_CMDHANDLERINFO*) { std::abor
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 CRuntimeClass CWinThread::classCWinThread{};
 CRuntimeClass CWinApp::classCWinApp{};
-CRuntimeClass CWnd::classCWnd{};
+CRuntimeClass CWnd::classCWnd{"CWnd",sizeof(CWnd),0xffff,nullptr,&CCmdTarget::GetThisClass,nullptr,nullptr};
 CRuntimeClass CFileFind::classCFileFind{};
 CRuntimeClass CDocument::classCDocument{};
 CRuntimeClass CHtmlView::classCHtmlView{};
@@ -38,7 +39,36 @@ CRuntimeClass CSplitterWnd::classCSplitterWnd{"CSplitterWnd",sizeof(CSplitterWnd
 
 // Module switching is peripheral to rendering; these doubles model thread
 // state so the command-target tests can verify capture and balanced restore.
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() { return g_cmdTestCurrentModule; }
+thread_local AFX_MODULE_STATE* (*g_windowModuleStateHook)()=nullptr;
+extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
+    return g_windowModuleStateHook ? g_windowModuleStateHook() : g_cmdTestCurrentModule;
+}
+
+// Module/thread-state lookup is a boundary in the large rendering fixtures.
+// Keep an actual CHandleMap so windows assigned HWNDs directly by those
+// fixtures meet the native DestroyWindow precondition. Focused window tests
+// override this getter to exercise cold maps and module/thread isolation.
+extern "C" void* AFXAPI impl___0CWnd__QEAA_XZ(void*);
+extern "C" void AFXAPI impl___1CWnd__UEAA_XZ(CWnd*);
+static void AFXAPI TestConstructWindow(CObject* self) {impl___0CWnd__QEAA_XZ(self);}
+static void AFXAPI TestDestructWindow(CObject* self) {impl___1CWnd__UEAA_XZ(static_cast<CWnd*>(self));}
+static int AFXAPI TestAllocationFailure(size_t) {throw std::bad_alloc();}
+thread_local AFX_MODULE_THREAD_STATE* (*g_windowModuleThreadStateHook)()=nullptr;
+extern "C" AFX_MODULE_THREAD_STATE* AFXAPI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
+    if(g_windowModuleThreadStateHook)return g_windowModuleThreadStateHook();
+    struct Fixture {
+        alignas(8) BYTE bytes[sizeof(AFX_MODULE_THREAD_STATE)]{};
+        CHandleMap map{&CWnd::classCWnd,TestConstructWindow,TestDestructWindow,64,1};
+        Fixture() {auto* state=reinterpret_cast<AFX_MODULE_THREAD_STATE*>(bytes);state->m_pmapHWND=&map;state->m_pfnNewHandler=TestAllocationFailure;}
+    };
+    static thread_local Fixture fixture;
+    return reinterpret_cast<AFX_MODULE_THREAD_STATE*>(fixture.bytes);
+}
+extern "C" AFX_MODULE_THREAD_STATE::NewHandler AFXAPI
+impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler handler) {
+    auto* state=impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+    auto previous=state->m_pfnNewHandler;state->m_pfnNewHandler=handler;return previous;
+}
 
 // Property getter allocation/type failures use the framework exception sibling.
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long result) {
@@ -55,7 +85,13 @@ CArchive& CArchive::operator<<(unsigned int) { std::abort(); }
 CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }
 
 // Connection-array allocation failures use the framework memory exception.
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() { throw std::bad_alloc(); }
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
+#ifdef OPENMFC_TEST_WINDOW_HANDLES
+    static CException error(FALSE);throw &error;
+#else
+    throw std::bad_alloc();
+#endif
+}
 
 // Exception diagnostics and application lookup are peripheral to automation.
 CRuntimeClass CException::classCException{"CException",sizeof(CException),0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
@@ -87,9 +123,20 @@ extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
 
 // Generic clone allocation uses the same malloc/free pair as MFC exports.
 bool g_testGenericAllocationFailure=false;
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t bytes) { return g_testGenericAllocationFailure ? nullptr : std::malloc(bytes); }
+#endif
 int g_testGenericFrees=0;
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
 extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* memory) { if(memory)++g_testGenericFrees;std::free(memory); }
+#else
+void (*g_windowHandleContainerAttach)(COleControlContainer*,CWnd*,UINT)=nullptr;
+extern "C" void AFXAPI impl__AttachControlSite_COleControlContainer__QEAAXPEAVCWnd__I_Z(
+    COleControlContainer* container,CWnd* window,UINT id) {
+    if(g_windowHandleContainerAttach)g_windowHandleContainerAttach(container,window,id);
+    else std::abort();
+}
+#endif
 // Generic clone virtuals retain peripheral runtime-class and command siblings.
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CCmdTarget__UEBAPEAUCRuntimeClass__XZ(const CCmdTarget*) { return &CCmdTarget::classCCmdTarget; }
 // Command-map lookup is peripheral to the frame/view routing tests. Their
@@ -173,7 +220,6 @@ BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
 BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }
 _AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo() { std::abort(); }
 BOOL CWnd::OnChildNotify(UINT,WPARAM,LPARAM,LRESULT*) { std::abort(); }
-void CWnd::PostNcDestroy() { std::abort(); }
 WNDPROC* CWnd::GetSuperWndProcAddr() { static WNDPROC procedure=nullptr;return &procedure; }
 extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(CWnd*,UINT,WPARAM,LPARAM);
 LRESULT CWnd::DefWindowProcW(UINT message,WPARAM wparam,LPARAM lparam) {
@@ -185,7 +231,12 @@ extern "C" LRESULT MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__
     if(g_wndExceptionHandler)return g_wndExceptionHandler(error,message);std::abort();
 }
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd*,CWnd*) { std::abort(); }
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
 extern "C" int MS_ABI impl__Attach_CWnd__QEAAHPEAUHWND_____Z(CWnd* window,HWND hwnd) { window->m_hWnd=hwnd;return TRUE; }
+extern "C" HWND AFXAPI impl__Detach_CWnd__QEAAPEAUHWND____XZ(CWnd* window) {
+    HWND previous=window->m_hWnd;window->m_hWnd=nullptr;window->m_pCtrlSite=nullptr;return previous;
+}
+#endif
 
 extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd*, WPARAM, LPARAM) { std::abort(); }
 extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(CWnd*, WPARAM, LPARAM,LRESULT*) { std::abort(); }
@@ -207,6 +258,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeCla
 CWnd* g_layoutParent=nullptr;
 CWnd* (*g_messageWindowLookup)(HWND)=nullptr;
 CWnd* (*g_messagePermanentWindowLookup)(HWND)=nullptr;
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
     if(g_messageWindowLookup)return g_messageWindowLookup(handle);
     if(!handle)return nullptr;
@@ -217,6 +269,7 @@ extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(H
     if(g_messagePermanentWindowLookup)return g_messagePermanentWindowLookup(handle);
     return g_messageWindowLookup ? g_messageWindowLookup(handle) : nullptr;
 }
+#endif
 // Menu/GDI map ownership is peripheral to window argument decoding.
 CMenu* g_messageMenu=nullptr;
 CRuntimeClass CMenu::classCMenu{};
@@ -275,7 +328,6 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ(){return nullptr;}
 extern "C" BOOL MS_ABI impl__GetPrinterDeviceDefaults_CWinApp__QEAAHPEAUtagPDW___Z(CWinApp*,PRINTDLGW*){std::abort();}
 extern "C" HDC MS_ABI impl__AfxCreateDC__YAPEAUHDC____PEAX0_Z(void*,void*){std::abort();}
 extern "C" CFrameWnd* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA=nullptr;
-extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd*){}
 extern "C" BOOL MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*){std::abort();}
 CRuntimeClass g_fontTestToolbarClass{"CMFCToolBar",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ(){return &g_fontTestToolbarClass;}
@@ -292,11 +344,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntime
 extern "C" BOOL MS_ABI impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CComboBox*,DWORD,const RECT*,CWnd*,UINT){std::abort();}
 extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CWnd*,CString*){std::abort();}
 extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(CWnd*,const wchar_t*){std::abort();}
-extern "C" BOOL MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd*){std::abort();}
-extern "C" void MS_ABI impl___1CWnd__UEAA_XZ(CWnd*){std::abort();}
 extern "C" int MS_ABI impl__GetRowHeight_CMFCToolBar__UEBAHXZ(const void*){std::abort();}
 extern "C" BOOL MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd*,int){std::abort();}
-extern "C" void* MS_ABI impl___0CWnd__QEAA_XZ(void*){std::abort();}
 extern "C" DWORD MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ(){std::abort();}
 extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA=nullptr;
 extern "C" void MS_ABI impl__OnDrawComboBorder_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(void*,CDC*,CRect,BOOL,BOOL,BOOL,void*){std::abort();}

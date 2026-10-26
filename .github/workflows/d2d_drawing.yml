@@ -14,6 +14,14 @@ on:
       - 'tests/cmdtarget_vtable_tests.h'
       - 'phase4/src/core/window/CWndMessageDispatch.cpp'
       - 'phase4/src/core/runtime/D2DMessages.cpp'
+      - 'phase4/src/core/app/ThreadQuit.cpp'
+      - 'phase4/src/core/window/CWndConstruction.cpp'
+      - 'phase4/src/core/window/CWndLifetime.cpp'
+      - 'phase4/src/detail/WindowHandleMapSupport.cpp'
+      - 'phase4/src/core/collections/CHandleMap.cpp'
+      - 'phase4/src/detail/CHandleMapSupport.cpp'
+      - 'phase4/src/detail/CFixedAllocSupport.cpp'
+      - 'phase4/src/detail/WindowHandleMapSupport.h'
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetVirtuals.cpp'
       - 'phase4/src/core/runtime/CCmdTargetDispatch.cpp'
@@ -298,6 +306,14 @@ on:
       - 'tests/cmdtarget_vtable_tests.h'
       - 'phase4/src/core/window/CWndMessageDispatch.cpp'
       - 'phase4/src/core/runtime/D2DMessages.cpp'
+      - 'phase4/src/core/app/ThreadQuit.cpp'
+      - 'phase4/src/core/window/CWndConstruction.cpp'
+      - 'phase4/src/core/window/CWndLifetime.cpp'
+      - 'phase4/src/detail/WindowHandleMapSupport.cpp'
+      - 'phase4/src/core/collections/CHandleMap.cpp'
+      - 'phase4/src/detail/CHandleMapSupport.cpp'
+      - 'phase4/src/detail/CFixedAllocSupport.cpp'
+      - 'phase4/src/detail/WindowHandleMapSupport.h'
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetVirtuals.cpp'
       - 'phase4/src/core/runtime/CCmdTargetDispatch.cpp'
@@ -738,6 +754,13 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityInterfaces.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityProxy.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/D2DMessages.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/app/ThreadQuit.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndConstruction.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndLifetime.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/WindowHandleMapSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CHandleMap.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CHandleMapSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"
@@ -965,6 +988,13 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityInterfaces.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityProxy.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/D2DMessages.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/app/ThreadQuit.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndConstruction.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndLifetime.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/WindowHandleMapSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CHandleMap.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CHandleMapSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"

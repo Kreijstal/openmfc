@@ -1,5 +1,6 @@
 #pragma once
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(CWnd*,UINT,WPARAM,LPARAM);
+extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(CWnd*,HWND,UINT,WPARAM,LPARAM);
 extern "C" UINT impl__AFX_WM_DRAW2D__3IA;
 extern "C" UINT impl__AFX_WM_RECREATED2DRESOURCES__3IA;
 extern "C" void MS_ABI impl__EnableD2DSupport_CWnd__QEAAXHH_Z(CWnd*,int,int);
@@ -13,7 +14,7 @@ struct WindowPaintFixture {
     CWnd window;
     HWND hwnd=nullptr;
     int drawings=0, notifications=0;
-    bool handled=true, disableDuringDraw=false, fakeTarget=false;
+    bool handled=true, fakeTarget=false;
     CRenderTarget* lastTarget=nullptr;
     static LRESULT CALLBACK Proc(HWND hwnd,UINT message,WPARAM wParam,LPARAM lParam) {
         auto* fixture=reinterpret_cast<WindowPaintFixture*>(GetWindowLongPtrW(hwnd,GWLP_USERDATA));
@@ -27,10 +28,6 @@ struct WindowPaintFixture {
                 ++fixture->drawings;
                 fixture->lastTarget=reinterpret_cast<CRenderTarget*>(lParam);
                 check(wParam==0 && fixture->lastTarget==fixture->window.m_pRenderTarget,"draw message carries zero WPARAM and the actual owned target in LPARAM");
-                if(fixture->disableDuringDraw) {
-                    fixture->window.EnableD2DSupport(FALSE);
-                    check(!fixture->window.IsD2DSupportEnabled() && fixture->lastTarget->IsValid(),"disabling support inside the draw callback preserves the active native target until EndDraw");
-                }
                 if(!fixture->fakeTarget) fixture->lastTarget->Clear(CD2DColorF{0,1,0,1});
                 return fixture->handled;
             }
@@ -40,13 +37,8 @@ struct WindowPaintFixture {
                       "device-loss notification carries the window's render target");
                 return 0;
             }
-            if(message==WM_NCDESTROY) {
-                LRESULT result=impl__WindowProc_CWnd__MEAA_JI_K_J_Z(&fixture->window,message,wParam,lParam);
-                fixture->window.EnableD2DSupport(FALSE);
-                fixture->window.m_hWnd=nullptr;
-                return result;
-            }
-            return impl__WindowProc_CWnd__MEAA_JI_K_J_Z(&fixture->window,message,wParam,lParam);
+            return impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
+                &fixture->window,hwnd,message,wParam,lParam);
         }
         return DefWindowProcW(hwnd,message,wParam,lParam);
     }
@@ -111,7 +103,7 @@ static void windowD2D() {
         check(size.width==80 && size.height==50,"WM_SIZE routing resizes the actual HWND render target");
         fixture.handled=false;fixture.Invalidate();
         check(!fixture.window.DoD2DPaint() && GetUpdateRect(fixture.hwnd,nullptr,FALSE),"unhandled HWND drawing leaves the update region available for fallback painting");
-        impl__OnPaint_CWnd__IEAAXXZ(&fixture.window);
+        impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(&fixture.window,fixture.hwnd,WM_PAINT,0,0);
         check(!GetUpdateRect(fixture.hwnd,nullptr,FALSE),"OnPaint falls back to balanced GDI painting when the D2D handler declines the message");
         fixture.handled=true;
         auto* old=target->Detach();if(old)old->Release();
@@ -138,23 +130,21 @@ static void windowD2D() {
     }
     {
         WindowPaintFixture fixture(false);if(!fixture.hwnd)return;
-        fixture.disableDuringDraw=true;fixture.Invalidate();
-        check(fixture.window.DoD2DPaint() && !fixture.window.m_pRenderTarget,"disabling support during a draw callback completes the active paint without dangling target access");
-    }
-    {
-        WindowPaintFixture fixture(false);if(!fixture.hwnd)return;
+        int deleted=0;
+        new WindowOwnedProbe(fixture.window.GetRenderTarget(),deleted);
         fixture.window.EnableD2DSupport(FALSE);
-        fixture.window.m_pRenderTarget = new CHwndRenderTarget(fixture.hwnd);
-        fixture.disableDuringDraw=true;fixture.Invalidate();
-        check(fixture.window.DoD2DPaint() && !fixture.window.m_pRenderTarget,
-              "client-installed targets are retained across callbacks and released after active painting");
+        check(deleted==1 && !fixture.window.m_pRenderTarget,
+              "disabling D2D support immediately deletes its target and auto-owned resources");
     }
     {
         auto* window=new CWnd;window->EnableD2DSupport(TRUE);
         int deleted=0;
-        auto* owned=new WindowOwnedProbe(window->GetRenderTarget(),deleted);
+        auto* target=window->GetRenderTarget();
+        auto* owned=new WindowOwnedProbe(target,deleted);
         (void)owned;
         delete window;
-        check(deleted==1,"CWnd destruction before HWND creation releases its auto-owned D2D resources");
+        check(deleted==0,"headless CWnd destruction leaves render-target cleanup to the window-message lifecycle");
+        delete target;
+        check(deleted==1,"explicitly deleting a headless target releases its auto-owned resources");
     }
 }

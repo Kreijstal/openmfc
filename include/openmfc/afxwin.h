@@ -603,7 +603,9 @@ private:
 
 class CWnd : public CCmdTarget {
     DECLARE_DYNAMIC(CWnd)
-    
+private:
+    explicit CWnd(HWND);
+    friend struct OpenMfcCWndConstruction;
 public:
     CWnd();
     virtual ~CWnd();
@@ -914,7 +916,7 @@ public:
     void OnHelpUsing();
     void OnMeasureItem(int p0, MEASUREITEMSTRUCT* p1);
     LONGLONG OnNTCtlColor(ULONGLONG p0, LONGLONG p1);
-    int OnNcDestroy();
+    void OnNcDestroy();
     void OnPaint();
     int OnParentNotify(UINT p0, LONGLONG p1);
     void OnSetFocus(void* p0);
@@ -2442,36 +2444,21 @@ protected:
 // CWnd implementation (inline for header-only)
 //=============================================================================
 
-inline CWnd::CWnd()
-    : m_hWnd(nullptr), m_bEnableActiveAccessibility(false), _accessibility_alignment{}, m_dwStyle(0),
-      m_pStdObject(nullptr), m_pProxy(nullptr), m_xAccessible(nullptr), m_xAccessibleServer(nullptr),
-      _cwnd_padding2{}, m_hWndOwner(nullptr), m_nFlags(0), _cwnd_flags_alignment(0), m_pfnSuper(nullptr),
-      m_nModalResult(0), _cwnd_modal_alignment(0), m_pDropTarget(nullptr), m_pCtrlCont(nullptr),
-      m_pCtrlSite(nullptr), m_pMFCCtrlContainer(nullptr), m_pRenderTarget(nullptr)
-{
-    m_ptGestureFrom={-1,-1};
+extern "C" void AFXAPI OpenMfcDestroyCWndMembers(CWnd*);
+extern "C" BOOL AFXAPI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd*);
+inline CWnd::CWnd() : CWnd(nullptr) {}
+inline CWnd::CWnd(HWND handle)
+    : m_hWnd(handle), m_bEnableActiveAccessibility(false), m_pStdObject(nullptr), m_pProxy(nullptr),
+      m_hWndOwner(nullptr), m_nFlags(0), m_pfnSuper(nullptr), m_nModalResult(0),
+      m_pDropTarget(nullptr), m_pCtrlCont(nullptr), m_pCtrlSite(nullptr),
+      m_pMFCCtrlContainer(nullptr), m_pRenderTarget(nullptr) {
+    m_bIsTouchWindowRegistered=FALSE;
+    m_ptGestureFrom={-1,-1};m_ulGestureArg=0;m_bGestureInited=FALSE;
+    m_pCurrentGestureInfo=nullptr;m_pDynamicLayout=nullptr;
     InitializeAccessibility();
 }
-
-inline CWnd::~CWnd() {
-    if (m_hWnd != nullptr) DestroyWindow();
-    if (m_pRenderTarget) EnableD2DSupport(FALSE);
-    if (m_pStdObject || m_pProxy) ReleaseAccessibility();
-    if (m_pDynamicLayout) EnableDynamicLayout(FALSE);
-    std::free(m_pCurrentGestureInfo);m_pCurrentGestureInfo=nullptr;
-    if(m_pMFCCtrlContainer)OpenMfcDeleteControlContainer(m_pMFCCtrlContainer);m_pMFCCtrlContainer=nullptr;
-}
-
-inline int CWnd::DestroyWindow() {
-    if (m_hWnd == nullptr) return 0;
-    int result = ::DestroyWindow(m_hWnd) ? 1 : 0;
-    if (result) {
-        m_hWnd = nullptr;
-        ReleaseAccessibility();
-        if (m_pRenderTarget) EnableD2DSupport(FALSE);
-    }
-    return result;
-}
+inline CWnd::~CWnd() { OpenMfcDestroyCWndMembers(this); }
+inline BOOL CWnd::DestroyWindow() { return impl__DestroyWindow_CWnd__UEAAHXZ(this); }
 
 inline int CWnd::ShowWindow(int nCmdShow) {
     return m_hWnd ? ::ShowWindow(m_hWnd, nCmdShow) : 0;

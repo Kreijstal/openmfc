@@ -64,9 +64,9 @@ extern "C" CFrameWnd* MS_ABI impl___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
 // Ordinal: 1129
 extern "C" void MS_ABI impl___1CFrameWnd__UEAA_XZ(CFrameWnd* pThis) {
     if (pThis && pThis->m_hWnd) {
-        g_hwndMap.erase(pThis->m_hWnd);
-        ::DestroyWindow(pThis->m_hWnd);
-        pThis->m_hWnd = nullptr;
+        HWND handle=pThis->m_hWnd;
+        pThis->Detach();
+        ::DestroyWindow(handle);
     }
 }
 // Symbol: ?Create@CFrameWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@0KPEAUCCreateContext@@@Z
@@ -156,8 +156,7 @@ extern "C" int MS_ABI impl__Create_CFrameWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
         return FALSE;
     }
 
-    pThis->m_hWnd = hWnd;
-    g_hwndMap[hWnd] = pThis;
+    pThis->Attach(hWnd);
 
     return TRUE;
 }

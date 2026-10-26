@@ -20,18 +20,9 @@
 //     COleFrameHook* m_pNotifyHook +0x120  OnMDIActivate `mov 0x120(%rdi),%rcx`
 //     CView* m_pViewActive     +0x170   OnMDIActivate `mov 0x170(%rdi),%rsi`
 //   CMDIFrameWnd::m_hWndMDIClient +0x1d8  UpdateClientEdge `mov 0x1d8(%rbp),%rcx`
-// OpenMFC's public CMDIChildWnd declares its two members as one
-// `char _mdichild_padding[16]`; mingw folds it into CFrameWnd's tail padding
-// so it starts at 0x1d4 and ends at 0x1e4, covering both retail members
-// (asserted in the constructor at the bottom of this file).  OpenMFC's
-// CFrameWnd declares m_pViewActive at 0xe8 and m_hAccelTable at 0xf0 -- NOT
-// their retail offsets -- and OpenMFC's own CFrameWnd code reads and writes
-// those named members, so the bodies below use the named members for those
-// two (a DEVIATION from the retail offsets, called out at each use).
-// m_pNotifyHook is undeclared; retail +0x120 lies inside OpenMFC's
-// zero-initialised _framewnd_padding (0xfc..0x1d4) and nothing in OpenMFC
-// stores there (core/ole/COleFrameHook.cpp does not install the hook), so it
-// is read at the retail offset and is NULL in practice.
+// The public frame layout carries the native accelerator and active-view
+// fields. The notify-hook pointer is still represented by reserved bytes
+// inside _frame_middle (+0x100..+0x163), and is read at its native offset.
 //
 // Retail vftable slots (mfc140u CMDIChildWnd vftable at 0x18033b678, the table
 // whose slot 0 is ?GetRuntimeClass@CMDIChildWnd@@; each slot read out of it):
@@ -96,9 +87,9 @@ constexpr int kSlotOnDocActivate      = 25;    // +0x0c8 (COleFrameHook)
 
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "retail reads m_hWnd at +0x40");
 static_assert(offsetof(CMDIFrameWnd, m_hWndMDIClient) == 0x1d8, "retail CMDIFrameWnd::m_hWndMDIClient");
-static_assert(offsetof(CFrameWnd, m_nIDHelp) + sizeof(UINT) <= kOffNotifyHook &&
-              kOffNotifyHook + sizeof(void*) <= sizeof(CFrameWnd),
-              "retail CFrameWnd::m_pNotifyHook (+0x120) must lie inside OpenMFC's _framewnd_padding");
+static_assert(offsetof(CFrameWnd, _frame_middle) <= kOffNotifyHook &&
+              kOffNotifyHook + sizeof(void*) <= offsetof(CFrameWnd, m_nIDHelp),
+              "retail CFrameWnd::m_pNotifyHook (+0x120) lies in the reserved frame prefix");
 
 template <typename T>
 inline T& At(void* pObject, std::size_t off) {
@@ -537,7 +528,7 @@ int CMDIChildWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindow
     m_hWnd = (HWND)::SendMessageW(pParentWnd->m_hWndMDIClient, WM_MDICREATE, 0, (LPARAM)&mcs);
 
     if (m_hWnd) {
-        g_hwndMap[m_hWnd] = this;
+        Attach(m_hWnd);
         return TRUE;
     }
 

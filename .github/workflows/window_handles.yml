@@ -1,0 +1,41 @@
+name: Window handle and lifetime ABI
+on:
+  push:
+    paths:
+      - 'phase4/src/**'
+      - 'include/openmfc/**'
+      - 'tests/test_window_handles.cpp'
+      - 'tests/build_window_handles.py'
+      - 'tests/d2d_test_support.h'
+      - 'tests/run_rendertarget_drawing.sh'
+      - '.github/workflows/window_handles.yml'
+  pull_request:
+    paths:
+      - 'phase4/src/**'
+      - 'include/openmfc/**'
+      - 'tests/test_window_handles.cpp'
+      - 'tests/build_window_handles.py'
+      - 'tests/d2d_test_support.h'
+      - 'tests/run_rendertarget_drawing.sh'
+      - '.github/workflows/window_handles.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Window lifetime (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Build and verify window handles, callbacks and destruction
+        shell: cmd
+        run: python tests/build_window_handles.py --build "%RUNNER_TEMP%/window-lifetime" ${{ matrix.flags }}

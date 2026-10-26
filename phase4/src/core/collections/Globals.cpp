@@ -147,11 +147,6 @@ extern "C" void MS_ABI impl____SerializeElements_V__CStringT_DV__StrTraitMFC_DLL
 extern "C" const wchar_t* MS_ABI impl___B__CSimpleStringT__W_00_ATL__QEBAPEB_WXZ(const void* pThis) {
     return static_cast<const CString*>(pThis)->GetString();
 }
-// AfxPostQuitMessage(int nExitCode): thin forward to ::PostQuitMessage.
-// Symbol: ?AfxPostQuitMessage@@YAXH@Z
-extern "C" void MS_ABI impl__AfxPostQuitMessage__YAXH_Z(int nExitCode) {
-    ::PostQuitMessage(nExitCode);
-}
 // AfxSetWindowText(HWND, LPCWSTR): thin forward to ::SetWindowTextW.
 // Symbol: ?AfxSetWindowText@@YAXPEAUHWND__@@PEB_W@Z
 extern "C" void MS_ABI impl__AfxSetWindowText__YAXPEAUHWND____PEB_W_Z(

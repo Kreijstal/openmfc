@@ -1,4 +1,5 @@
 #include "WincoreSupport.h"
+#include "detail/WindowHandleMapSupport.h"
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
@@ -11,38 +12,6 @@ extern "C" void OpenMfcResetDockState(void* pState) {
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     g_dockStateSnapshots.erase(static_cast<const CDockState*>(pState));
 }
-CWnd* OpenMfcAttachCWnd(HWND hWnd) {
-    if (!hWnd) {
-        return nullptr;
-    }
-    if (CWnd* existing = OpenMfcLookupCWnd(hWnd)) {
-        return existing;
-    }
-
-    // Create a temporary wrapper - tracked for cleanup on window destruction
-    CWnd* wrapper = new CWnd();
-    wrapper->m_hWnd = hWnd;
-    g_hwndMap[hWnd] = wrapper;
-    g_tempWrappers.insert(wrapper);  // Track for deletion
-    return wrapper;
-}
-void OpenMfcCleanupTempWrappers() {
-    // Build list of stale entries (can't modify map while iterating)
-    std::vector<HWND> staleHandles;
-    for (auto& pair : g_hwndMap) {
-        // Check if the window still exists
-        if (!::IsWindow(pair.first)) {
-            staleHandles.push_back(pair.first);
-        }
-    }
-
-    // Clean up stale entries
-    for (HWND hWnd : staleHandles) {
-        OpenMfcDetachCWnd(hWnd);
-    }
-}
-static_assert(sizeof(StaticCWndExport) == sizeof(CWnd), "static CWnd export must match CWnd size");
-static_assert(offsetof(StaticCWndExport, hWnd) == 64, "static CWnd export must place HWND at CWnd::m_hWnd");
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 IMPLEMENT_DYNCREATE(CFrameWnd, CWnd)
 ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
@@ -66,12 +35,10 @@ ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 IMPLEMENT_DYNCREATE(CMDIFrameWnd, CFrameWnd)
 IMPLEMENT_DYNCREATE(CMDIChildWnd, CFrameWnd)
 namespace openmfc { namespace detail { namespace wincore {
-std::map<HWND, CWnd*> g_hwndMap;
 std::map<const CWnd*, COleControlContainer*> g_controlContainerMap;
 std::map<CWnd*, CWndRuntimeState> g_wndRuntimeStates;
 std::map<CFrameWnd*, CFrameWndRuntimeState> g_frameWndRuntimeStates;
 std::map<const CDockState*, std::vector<DockBarSnapshot>> g_dockStateSnapshots;
-std::set<CWnd*> g_tempWrappers;
 std::mutex g_wndStateMutex;
 std::map<std::wstring, std::vector<int>> g_barStateStore;
 CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd) {
@@ -112,39 +79,6 @@ ITaskbarList3* AcquireTaskbarList3ForWindow(HWND hWnd) {
 
     taskbarList->HrInit();
     return taskbarList;
-}
-CWnd* OpenMfcLookupCWnd(HWND hWnd) {
-    if (!hWnd) {
-        return nullptr;
-    }
-    auto it = g_hwndMap.find(hWnd);
-    if (it != g_hwndMap.end()) {
-        return it->second;
-    }
-    return nullptr;
-}
-void OpenMfcDetachCWnd(HWND hWnd) {
-    auto it = g_hwndMap.find(hWnd);
-    if (it != g_hwndMap.end()) {
-        CWnd* pWnd = it->second;
-        g_hwndMap.erase(it);
-        pWnd->m_hWnd = nullptr;
-        CleanupWindowRuntimeState(pWnd);
-
-        auto ccIt = g_controlContainerMap.find(pWnd);
-        if (ccIt != g_controlContainerMap.end()) {
-            delete ccIt->second;
-            g_controlContainerMap.erase(ccIt);
-        }
-
-        // Delete if this was a temporary wrapper allocated by OpenMfcAttachCWnd
-        auto tempIt = g_tempWrappers.find(pWnd);
-        if (tempIt != g_tempWrappers.end()) {
-            g_tempWrappers.erase(tempIt);
-            pWnd->m_hWnd = nullptr;  // Clear before delete to prevent double-detach
-            delete pWnd;
-        }
-    }
 }
 void CWnd_PreSubclassWindowCompat(CWnd* pThis) {
     if (!pThis) {
@@ -189,3 +123,12 @@ int CWnd_PreTranslateMessageCompat(CWnd* pThis, MSG* pMsg) {
     return ::IsDialogMessageW(pThis->m_hWnd, pMsg) ? TRUE : FALSE;
 }
 } } }  // namespace openmfc::detail::wincore
+
+CWnd* OpenMfcAttachCWnd(HWND handle) { return CWnd::FromHandle(handle); }
+void OpenMfcCleanupTempWrappers() { CWnd::DeleteTempMap(); }
+namespace openmfc { namespace detail { namespace wincore {
+CWnd* OpenMfcLookupCWnd(HWND handle) { return static_cast<CWnd*>(CWnd::FromHandlePermanent(handle)); }
+void OpenMfcDetachCWnd(HWND handle) {
+    if(auto* window=OpenMfcLookupCWnd(handle))window->Detach();
+}
+} } }

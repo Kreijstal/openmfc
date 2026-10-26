@@ -60,7 +60,7 @@
 // OpenMFC CWnd constructor registers nothing), which is the case unless (1)'s
 // direct CreateEdit happened; if it did, the msctls_updown32 window is
 // leaked and the handle-map entry CWnd::Create added for it
-// (core/window/CWnd.cpp, g_hwndMap) is left pointing into freed storage.
+// (the current module/thread's permanent HWND map) points into freed storage.
 // (3) RTTI read from slot 0 answers CMFCToolBarEditBoxButton for an object
 // built here.
 //

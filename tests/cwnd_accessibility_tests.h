@@ -100,6 +100,11 @@ static void forwarding() {
     check(!window.m_pStdObject && probe.releases==1, "accessibility cleanup detaches and releases once");
 }
 
+static LRESULT CALLBACK accessibilityProcedure(HWND hwnd,UINT message,WPARAM wparam,LPARAM lparam) {
+    auto* window=reinterpret_cast<CWnd*>(GetWindowLongPtrW(hwnd,GWLP_USERDATA));
+    return window ? impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(window,hwnd,message,wparam,lparam)
+                  : DefWindowProcW(hwnd,message,wparam,lparam);
+}
 static void nativeWindow() {
     CWnd window;
     HWND hwnd=CreateWindowExW(0,L"STATIC",L"OpenMFC accessibility",WS_OVERLAPPEDWINDOW,
@@ -108,13 +113,15 @@ static void nativeWindow() {
     if (!hwnd) return;
     window.m_hWnd=hwnd;
     window.m_nFlags=0x1234;
-    window.m_pfnSuper=DefWindowProcW;
+    SetWindowLongPtrW(hwnd,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(&window));
+    WNDPROC original=reinterpret_cast<WNDPROC>(SetWindowLongPtrW(hwnd,GWLP_WNDPROC,reinterpret_cast<LONG_PTR>(&accessibilityProcedure)));
+    window.m_pfnSuper=original;
     HRESULT hr=impl__EnsureStdObj_CWnd__UEAAJXZ(&window);
     check(SUCCEEDED(hr) && window.m_pStdObject, "EnsureStdObj creates the native Windows accessibility object");
     if (SUCCEEDED(hr) && window.m_pStdObject) {
         IAccessible* cached=window.m_pStdObject;
         check(impl__EnsureStdObj_CWnd__UEAAJXZ(&window)==S_OK && cached==window.m_pStdObject &&
-            window.m_nFlags==0x1234 && window.m_pfnSuper==DefWindowProcW,
+            window.m_nFlags==0x1234 && window.m_pfnSuper==original,
             "accessibility caching preserves native window flags and superclass procedure");
         VARIANT self{}; self.vt=VT_I4; self.lVal=CHILDID_SELF;
         VARIANT role{};
