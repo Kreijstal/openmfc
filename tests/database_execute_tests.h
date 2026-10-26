@@ -20,6 +20,7 @@ using DirectHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLWCHAR*,SQLINTEGER);
 static DirectHook directHook=nullptr;
 using FetchHook=SQLRETURN (SQL_API*)(SQLHSTMT);
 static FetchHook fetchHook=nullptr;
+static FetchHook moreHook=nullptr;
 static HSTMT handle() {return emptyStatement?nullptr:reinterpret_cast<HSTMT>(0xbeef);}
 static Step take(Kind kind) {
     if(position>=steps.size() || steps[position].kind!=kind)std::abort();return steps[position++];
@@ -108,7 +109,7 @@ extern "C" SQLRETURN SQL_API SQLNumResultCols(SQLHSTMT statement,SQLSMALLINT* co
     using namespace database_execute_test;auto step=take(Columns);record(Columns,UINT_PTR(statement),step.columns);*columns=step.columns;return step.code;
 }
 extern "C" SQLRETURN SQL_API SQLFetch(SQLHSTMT statement) {using namespace database_execute_test;if(fetchHook)return fetchHook(statement);record(Fetch,UINT_PTR(statement));return take(Fetch).code;}
-extern "C" SQLRETURN SQL_API SQLMoreResults(SQLHSTMT statement) {using namespace database_execute_test;record(More,UINT_PTR(statement));return take(More).code;}
+extern "C" SQLRETURN SQL_API SQLMoreResults(SQLHSTMT statement) {using namespace database_execute_test;if(moreHook)return moreHook(statement);record(More,UINT_PTR(statement));return take(More).code;}
 extern "C" SQLRETURN SQL_API SQLFreeStmt(SQLHSTMT statement,SQLUSMALLINT option) {
     if(database_execute_test::freeHook)return database_execute_test::freeHook(statement,option);
     database_execute_test::record(database_execute_test::Drop,UINT_PTR(statement),option);return SQL_ERROR;

@@ -1,109 +1,45 @@
-// CDBVariant — OpenMFC implementation.
-// Sources: global_cdbvariant.cpp, manual_small_stub_implementations.cpp
-
-#include "detail/ManualSmallStubImplementationsSupport.h"
-
-// OpenMFC — CDBVariant real implementation
-// Layout (MSVC /d1reportSingleClassLayout): size(24)
-//   0  {vfptr}
-//   8  m_dwType (DWORD)
-//  12  <alignment padding> (4)
-//  16  union { BOOL/uchar/short/long/float/double/pointers } (8)
-#include <windows.h>
+// Native release x64 variant construction (0x2043e0), Clear (0x204440)
+// and destruction (0x2044f0). The value union remains untouched after Clear.
+#define OPENMFC_APPCORE_IMPL
+#include "openmfc/afxwin.h"
+#include "openmfc/afxdb.h"
+#include "openmfc/afxdao.h"
 #include <cstddef>
-
+#include <new>
+#ifndef MS_ABI
 #ifdef __GNUC__
-  #define MS_ABI __attribute__((ms_abi))
+#define MS_ABI __attribute__((ms_abi))
 #else
-  #define MS_ABI
+#define MS_ABI
+#endif
 #endif
 
-// ODBC DBVT_* value-type tags (mfc afxdb-style enum).
-enum {
-    DBVT_NULL    = 0,
-    DBVT_BOOL    = 1,
-    DBVT_UCHAR   = 2,
-    DBVT_SHORT   = 3,
-    DBVT_LONG    = 4,
-    DBVT_SINGLE  = 5,
-    DBVT_DOUBLE  = 6,
-    DBVT_DATE    = 7,
-    DBVT_STRING  = 8,
-    DBVT_BINARY  = 9,
-    DBVT_ASTRING = 10,
-    DBVT_WSTRING = 11
-};
-
-
-struct S {
-    void*  vfptr;       // 0
-    DWORD  m_dwType;    // 8
-    char   _pad[4];     // 12 (alignment)
-    union {             // 16
-        int           m_boolVal;
-        unsigned char m_chVal;
-        short         m_iVal;
-        long          m_lVal;
-        float         m_fltVal;
-        double        m_dblVal;
-        void*         m_ptr;   // covers m_pdate / m_pstring / m_pbinary / m_pstringA / m_pstringW
-    };
-};
-
-static_assert(sizeof(S) == 24, "CDBVariant layout size");
-static_assert(offsetof(S, m_dwType) == 8, "m_dwType offset");
-static_assert(offsetof(S, m_ptr) == 16, "union offset");
-
-// Free any resource owned by the current value-type, then mark NULL.
-inline void ClearImpl(S* s) {
-    switch (s->m_dwType) {
-    case DBVT_DATE:    // TIMESTAMP_STRUCT*
-    case DBVT_STRING:  // CString*
-    case DBVT_BINARY:  // CLongBinary*
-    case DBVT_ASTRING: // CStringA*
-    case DBVT_WSTRING: // CStringW*
-        if (s->m_ptr) {
-            ::operator delete(s->m_ptr);
-            s->m_ptr = nullptr;
+CDBVariant::CDBVariant():m_dwType(DBVT_NULL) {}
+CDBVariant::~CDBVariant() {Clear();}
+void CDBVariant::Clear() {
+    switch(m_dwType) {
+    case DBVT_DATE:
+        ::operator delete(m_pdate);break;
+    case DBVT_STRING:case DBVT_ASTRING:case DBVT_WSTRING: {
+        // ANSI and Unicode CString objects have the same owning pointer and
+        // CStringData prefix. Release through that allocation's own manager.
+        void* string=m_pstring;
+        if(string) {
+            auto* data=reinterpret_cast<CStringData*>(*static_cast<void**>(string))-1;
+            if(::InterlockedDecrement(&data->nRefs)<=0)data->pStringMgr->Free(data);
+            ::operator delete(string);
         }
         break;
-    default:
-        break;
     }
-    s->m_dwType = DBVT_NULL;
+    case DBVT_BINARY:delete m_pbinary;break;
+    default:break;
+    }
+    m_dwType=DBVT_NULL;
 }
-
-// Vector-deleting-destructor: run the ~CDBVariant behavior, then (flag&1) free.
-void* MS_ABI vdtor(void* p, unsigned f) {
-    ClearImpl(reinterpret_cast<S*>(p));
-    if (f & 1) ::operator delete(p);
-    return p;
-}
-
-// vtable: single slot (deleting destructor), per harvested vtable order.
-void* const g_CDBVariant_vtbl[1] = {
-    reinterpret_cast<void*>(&vdtor)
-};
-
-
+static_assert(offsetof(CDBVariant,m_dwType)==8 && offsetof(CDBVariant,m_pbinary)==16,"native variant field offsets");
 // Symbol: ??0CDBVariant@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CDBVariant__QEAA_XZ(void* pThis) {
-    S* s = reinterpret_cast<S*>(pThis);
-    s->vfptr = (void*)&g_CDBVariant_vtbl[0];
-    s->m_dwType = DBVT_NULL;
-    s->m_ptr = nullptr;
-    return pThis;
-}
-
+extern "C" void* MS_ABI impl___0CDBVariant__QEAA_XZ(void* storage) {return new(storage) CDBVariant;}
 // Symbol: ??1CDBVariant@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDBVariant__UEAA_XZ(void* pThis) {
-    // ~CDBVariant frees any owned value, matching Clear().
-    ClearImpl(reinterpret_cast<S*>(pThis));
-}
-
-// manual_small_stub_implementations.cpp carried a second copy of Clear and linked
-// first, so the definition below is that one; global_cdbvariant.cpp's was dead code.
+extern "C" void MS_ABI impl___1CDBVariant__UEAA_XZ(CDBVariant* value) {value->CDBVariant::~CDBVariant();}
 // Symbol: ?Clear@CDBVariant@@QEAAXXZ
-extern "C" void MS_ABI impl__Clear_CDBVariant__QEAAXXZ(void* pThis) {
-    ResetCDBVariantMemory(pThis);
-}
+extern "C" void MS_ABI impl__Clear_CDBVariant__QEAAXXZ(CDBVariant* value) {value->Clear();}

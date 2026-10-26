@@ -22,6 +22,8 @@ static std::vector<Step> script;static size_t position;
 static std::vector<Read> reads;static std::vector<Diagnostic> diagnostics;static size_t diagnosticPosition;
 static int diagCalls,fetchGrowth,reallocGrowth;
 static int derivedDestructions;
+using DataHook=SQLRETURN(SQL_API*)(SQLHSTMT,SQLUSMALLINT,SQLSMALLINT,SQLPOINTER,SQLLEN,SQLLEN*);
+static DataHook dataHook=nullptr;
 static void* MS_ABI derivedDestructor(CLongBinary* object,UINT) {++derivedDestructions;return object;}
 static SQLLEN MS_ABI growFetch(CRecordset*,SQLLEN size) {++fetchGrowth;return size*2;}
 static SQLLEN MS_ABI growRealloc(CRecordset*,SQLLEN size) {++reallocGrowth;return size*2;}
@@ -106,6 +108,7 @@ std::vector<UINT64> exercise(const API& api) {
 }
 }
 extern "C" SQLRETURN SQL_API SQLGetData(SQLHSTMT statement,SQLUSMALLINT field,SQLSMALLINT type,SQLPOINTER output,SQLLEN capacity,SQLLEN* indicator) {
+    if(longbinary_rfx_test::dataHook)return longbinary_rfx_test::dataHook(statement,field,type,output,capacity,indicator);
     using namespace longbinary_rfx_test;
     reads.push_back({statement,field,type,capacity});if(position>=script.size())return SQL_ERROR;
     const auto& step=script[position++];*indicator=step.length;

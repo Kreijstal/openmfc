@@ -27,6 +27,25 @@ class CDBException;
 class CRecordView;
 class CFieldExchange;
 class CLongBinary;
+class CStringA;
+
+enum DBVariantType {
+    DBVT_NULL=0,DBVT_BOOL,DBVT_UCHAR,DBVT_SHORT,DBVT_LONG,DBVT_SINGLE,
+    DBVT_DOUBLE,DBVT_DATE,DBVT_STRING,DBVT_BINARY,DBVT_ASTRING,DBVT_WSTRING
+};
+class CDBVariant {
+public:
+    CDBVariant();
+    virtual ~CDBVariant();
+    void Clear();
+    DWORD m_dwType;
+    union {
+        BOOL m_boolVal;unsigned char m_chVal;short m_iVal;long m_lVal;
+        float m_fltVal;double m_dblVal;TIMESTAMP_STRUCT* m_pdate;
+        CString* m_pstring;CLongBinary* m_pbinary;CStringA* m_pstringA;CString* m_pstringW;
+    };
+};
+static_assert(sizeof(CDBVariant)==24,"native CDBVariant layout");
 
 //=============================================================================
 // CDBException - Database Exception
@@ -230,6 +249,8 @@ public:
     void Cancel();void SendLongBinaryData(HSTMT);
     void ExecuteSetPosUpdate();void ExecuteUpdateSQL();
     void BuildUpdateSQL();BOOL UpdateInsertDelete();
+    BOOL FlushResultSet();void GetBookmark(CDBVariant&);void SetBookmark(const CDBVariant&);
+    static SQLLEN GetData(CDatabase*,HSTMT,short,short,void*,SQLLEN,short);
     void ResetCursor();void RefreshRowset(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetRowsetCursorPosition(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetLockingMode(UINT);
