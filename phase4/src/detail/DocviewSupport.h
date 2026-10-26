@@ -147,7 +147,7 @@ extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView* pThis);
 extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis);
 extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(CFormView* pThis, const wchar_t* lpszTemplateName);
 extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(CFormView* pThis, unsigned int nIDTemplate);
-extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis);
+extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis) noexcept;
 extern "C" void MS_ABI impl___0CEditView__QEAA_XZ(CEditView* pThis);
 extern "C" void MS_ABI impl___1CEditView__UEAA_XZ(CEditView* pThis);
 extern "C" void MS_ABI impl___0CListView__QEAA_XZ(CListView* pThis);
@@ -653,4 +653,5 @@ extern "C" int MS_ABI impl__GetThumbnail_CDocument__UEAAHIPEAPEAUHBITMAP____PEAW
 namespace openmfc { namespace detail { namespace docview {
 CView*& NextView(CView*);
 void ForgetView(CView*);
+void CleanupFormView(CFormView*) noexcept;
 } } }

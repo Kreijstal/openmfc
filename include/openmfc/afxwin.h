@@ -216,7 +216,14 @@ class CUserException;
 class CPrintPreviewState;
 class CMiniDockFrameWnd;
 class CFrameWnd;
-struct _AFX_OCC_DIALOG_INFO;
+struct _AFX_OCC_DIALOG_INFO {
+    DLGTEMPLATE* m_pNewTemplate;
+    DLGITEMTEMPLATE** m_ppOleDlgItems;
+    unsigned m_cItems;
+    struct ItemInfo { unsigned nId;BOOL bAutoRadioButton; };
+    ItemInfo* m_pItemInfo;
+};
+static_assert(sizeof(_AFX_OCC_DIALOG_INFO)==32,"native OLE dialog metadata");
 struct AFX_INTERFACEMAP;
 struct AFX_CMDHANDLERINFO;
 struct AFX_OLECMDMAP;
@@ -3550,6 +3557,14 @@ public:
     void DoDataExchange(void*);
     void OnInitialUpdate() override;
     void OnDraw(void*) override;
+    void OnActivateFrame(UINT,CFrameWnd*) override;
+    BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) override;
+    _AFX_OCC_DIALOG_INFO* GetOccDialogInfo() override;
+    BOOL SaveFocusControl();
+    void OnSetFocus(CWnd*);
+    LRESULT HandleInitDialog(WPARAM,LPARAM);
+    int OnCreate(CREATESTRUCTW*);
+    LRESULT OnPrintClient(CDC*,UINT);
     BOOL IsInitDlgCompleted() const { return m_bInitDlgCompleted; }
     const wchar_t* m_lpszTemplateName;
     CCreateContext* m_pCreateContext;

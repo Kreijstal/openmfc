@@ -88,6 +88,10 @@ on:
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
       - 'tests/recordview_command_tests.h'
+      - 'tests/formview_dialog_tests.h'
+      - 'phase4/src/core/view/CFormViewDialog.cpp'
+      - 'phase4/src/core/view/CFormView.cpp'
+      - 'phase4/src/detail/DocviewSupport.h'
       - 'phase4/src/core/view/CRecordViewCommands.cpp'
       - 'phase4/src/core/view/CFormViewInitialization.cpp'
       - 'phase4/src/core/view/ViewMessageMaps.cpp'
@@ -305,6 +309,10 @@ on:
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
       - 'tests/recordview_command_tests.h'
+      - 'tests/formview_dialog_tests.h'
+      - 'phase4/src/core/view/CFormViewDialog.cpp'
+      - 'phase4/src/core/view/CFormView.cpp'
+      - 'phase4/src/detail/DocviewSupport.h'
       - 'phase4/src/core/view/CRecordViewCommands.cpp'
       - 'phase4/src/core/view/CFormViewInitialization.cpp'
       - 'phase4/src/core/view/ViewMessageMaps.cpp'
@@ -531,6 +539,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewDialog.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"
@@ -726,6 +735,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewDialog.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"
@@ -889,6 +899,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewDialog.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"

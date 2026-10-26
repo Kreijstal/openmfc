@@ -4,7 +4,7 @@
 #include "detail/CRecordsetSupport.h"
 extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(CFormView*,UINT);
 extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(CFormView*,const wchar_t*);
-extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView*);
+extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView*) noexcept;
 CRecordView::CRecordView(UINT id):CFormView(id) {}
 CRecordView::CRecordView(const wchar_t* name):CFormView(name) {}
 CRecordView::~CRecordView() {}

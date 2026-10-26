@@ -1,5 +1,5 @@
 // Distinct view-map identities and native base links. The base-view message
-// entries remain pending; record commands live in CRecordViewCommands.cpp.
+// entries remain pending. Form and record views provide their own maps.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #ifndef MS_ABI
@@ -28,12 +28,3 @@ const AFX_MSGMAP* CScrollView::GetThisMessageMap() {
     return &map;
 }
 const AFX_MSGMAP* CScrollView::GetMessageMap() const { return CScrollView::GetThisMessageMap(); }
-// Symbol: ?GetMessageMap@CFormView@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CFormView__MEBAPEBUAFX_MSGMAP__XZ(const CFormView*) { return CFormView::GetThisMessageMap(); }
-// Symbol: ?GetThisMessageMap@CFormView@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFormView__KAPEBUAFX_MSGMAP__XZ() { return CFormView::GetThisMessageMap(); }
-const AFX_MSGMAP* CFormView::GetThisMessageMap() {
-    static const AFX_MSGMAP map={&CScrollView::GetThisMessageMap,endEntry};
-    return &map;
-}
-const AFX_MSGMAP* CFormView::GetMessageMap() const { return CFormView::GetThisMessageMap(); }
