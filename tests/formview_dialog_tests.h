@@ -181,7 +181,10 @@ static std::vector<Event> destruction(const API& api) {
         Fixture f;if(nativeFormConstructor)nativeFormConstructor(f.view(),0);f.managerEnabled(manager);failure=failAt;errorOwner=autoDelete;errorDescription=described;
         if(owned)f.view()->m_pCreatedOccDialogInfo=f.owned();
         if(borrowed)f.view()->m_pOccDialogInfo=&externalInfo;
+        auto* ownedInfo=f.view()->m_pCreatedOccDialogInfo;
         g_formViewBaseDestructorExpected=true;int caught=invoke([&]{api.destroy(f.view());});g_formViewBaseDestructorExpected=false;
+        // Teardown frees owned metadata even when no manager callback runs.
+        if(ownedInfo && !f.view()->m_pCreatedOccDialogInfo)released=ownedInfo;
         f.save(output,0,caught);
     }
     return output;
