@@ -67,16 +67,6 @@ extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLT
 extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
 // Symbol: ?BuildUpdateSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
-// Symbol: ?BindFieldsForUpdate@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__BindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
-// Symbol: ?UnbindFieldsForUpdate@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__UnbindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = false; }
-// Symbol: ?Cancel@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__Cancel_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt != SQL_NULL_HSTMT) SQLCancel(pThis->m_hstmt); }
-// Symbol: ?ExecuteSetPosUpdate@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__ExecuteSetPosUpdate_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) pThis->Update(); }
-// Symbol: ?ExecuteUpdateSQL@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__ExecuteUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_pDatabase) { CString sql = GetStoredSql(pThis); if (!sql.IsEmpty()) pThis->m_pDatabase->ExecuteSQL(static_cast<const wchar_t*>(sql)); } }
 // Symbol: ?FlushResultSet@CRecordset@@QEAAHXZ
 extern "C" int MS_ABI impl__FlushResultSet_CRecordset__QEAAHXZ(CRecordset* pThis) { if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return FALSE; while (SQLMoreResults(pThis->m_hstmt) == SQL_SUCCESS) {} return TRUE; }
 // Symbol: ?GetBookmark@CRecordset@@QEAAXAEAVCDBVariant@@@Z
@@ -113,38 +103,8 @@ extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldIn
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset* pThis, const wchar_t* name, OdbcFieldInfoCompat* info) { impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(pThis, static_cast<short>(FindFieldByName(pThis,name)), info); }
 // Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
 extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
-// Symbol: ?OnSetUpdateOptions@CRecordset@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pThis, void* pUpdateOptions) {
-    if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return;
-    RecordsetState& state = EnsureRecordsetState(pThis);
-    state.updatePrepared = TRUE;
-    if (!pUpdateOptions) return;
-    auto options = static_cast<SQLUINTEGER*>(pUpdateOptions);
-        state.lockingMode = static_cast<unsigned int>(*options);
-    if (pThis->m_hstmt != SQL_NULL_HSTMT) {
-        SQLSetStmtAttr(pThis->m_hstmt, SQL_ATTR_CURSOR_TYPE,
-                       *options == 0 ? CastOdbcOptionValue(SQL_CURSOR_FORWARD_ONLY)
-                                     : CastOdbcOptionValue(SQL_CURSOR_STATIC),
-                       0);
-    }
-}
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
-// Symbol: ?PrepareUpdateHstmt@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__PrepareUpdateHstmt_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
-// Symbol: ?SendLongBinaryData@CRecordset@@IEAAXPEAX@Z
-extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecordset* pThis, void* pData) {
-    if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT || !pData) return;
-    LongBinaryCompat* binary = static_cast<LongBinaryCompat*>(pData);
-    if (!binary->m_hData) return;
-    void* data = ::GlobalLock(binary->m_hData);
-    if (!data) return;
-    RETCODE rc = SQLPutData(pThis->m_hstmt, data, binary->m_dwDataLength);
-    ::GlobalUnlock(binary->m_hData);
-    if (!SqlSucceeded(rc)) {
-        EnsureRecordsetState(pThis).lastRetCode = rc;
-    }
-}
 // Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
 extern "C" int MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* pThis) { return pThis ? pThis->Update() : FALSE; }
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
@@ -295,7 +255,6 @@ extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, vo
 
 
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(short,void*,void*);
-void CRecordset::OnSetUpdateOptions(HSTMT statement) {impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(this,statement);}
 void CRecordset::PreBindFields() {impl__PreBindFields_CRecordset__UEAAXXZ(this);}
 void CRecordset::ThrowDBException(RETCODE code,HSTMT statement) {
     impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(code,m_pDatabase,statement?statement:m_hstmt);

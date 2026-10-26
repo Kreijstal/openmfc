@@ -40,7 +40,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXScalar.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
-    phase4/src/core/db/CRecordsetRequery.cpp phase4/src/core/db/CRecordsetMove.cpp phase4/src/core/db/CRecordsetOpen.cpp phase4/src/core/db/CRecordsetSQL.cpp phase4/src/core/db/CRecordsetExchange.cpp phase4/src/core/db/CRecordsetExecute.cpp phase4/src/core/db/CRecordsetOptions.cpp phase4/src/core/db/CRecordsetStatement.cpp phase4/src/core/db/CRecordsetAllocation.cpp phase4/src/core/db/CRecordsetIsOpen.cpp phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
+    phase4/src/core/db/CRecordsetUpdate.cpp phase4/src/core/db/CRecordsetRequery.cpp phase4/src/core/db/CRecordsetMove.cpp phase4/src/core/db/CRecordsetOpen.cpp phase4/src/core/db/CRecordsetSQL.cpp phase4/src/core/db/CRecordsetExchange.cpp phase4/src/core/db/CRecordsetExecute.cpp phase4/src/core/db/CRecordsetOptions.cpp phase4/src/core/db/CRecordsetStatement.cpp phase4/src/core/db/CRecordsetAllocation.cpp phase4/src/core/db/CRecordsetIsOpen.cpp phase4/src/core/db/CRecordsetLifecycle.cpp phase4/src/core/db/CRecordset.cpp phase4/src/detail/CRecordsetSupport.cpp
     phase4/src/core/db/CDatabase.cpp phase4/src/core/db/CDatabaseStrings.cpp
     phase4/src/core/collections/CPtrList.cpp phase4/src/detail/CPtrListSupport.cpp
     phase4/src/core/db/CFieldExchangeLifecycle.cpp
@@ -97,7 +97,8 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/db/CRecordsetRequery.cpp', 'CRecordsetRequery'),
+for path, obj in (('core/db/CRecordsetUpdate.cpp', 'CRecordsetUpdate'),
+                  ('core/db/CRecordsetRequery.cpp', 'CRecordsetRequery'),
                   ('core/db/CRecordsetMove.cpp', 'CRecordsetMove'),
                   ('core/db/CRecordsetOpen.cpp', 'CRecordsetOpen'),
                   ('core/db/CRecordsetSQL.cpp', 'CRecordsetSQL'),

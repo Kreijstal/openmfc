@@ -83,6 +83,7 @@ on:
       - 'tests/recordset_open_tests.h'
       - 'tests/recordset_move_tests.h'
       - 'tests/recordset_cursor_tests.h'
+      - 'tests/recordset_update_tests.h'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
@@ -291,6 +292,7 @@ on:
       - 'tests/recordset_open_tests.h'
       - 'tests/recordset_move_tests.h'
       - 'tests/recordset_cursor_tests.h'
+      - 'tests/recordset_update_tests.h'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
@@ -513,6 +515,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetRequery.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetMove.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOpen.cpp"
@@ -701,6 +704,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetRequery.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetMove.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOpen.cpp"
@@ -857,6 +861,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetRequery.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetMove.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOpen.cpp"

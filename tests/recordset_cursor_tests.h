@@ -24,6 +24,8 @@ struct API {
 static bool changeHandle;
 static SQLUINTEGER supported;
 static RETCODE infoCode;
+using PositionHook=SQLRETURN(SQL_API*)(SQLHSTMT,SQLSETPOSIROW,SQLUSMALLINT,SQLUSMALLINT);
+static PositionHook positionHook=nullptr;
 static SQLRETURN SQL_API setPosition(SQLHSTMT statement,SQLSETPOSIROW row,SQLUSMALLINT operation,SQLUSMALLINT lock) {
     event(20,INT64(UINT_PTR(statement)),INT64(row),operation,lock);
     auto step=take();fill(step);
@@ -174,6 +176,7 @@ static std::vector<Event> editing(const API& functions) {
 }
 }
 extern "C" SQLRETURN SQL_API SQLSetPos(SQLHSTMT statement,SQLSETPOSIROW row,SQLUSMALLINT operation,SQLUSMALLINT lock) {
+    if(recordset_cursor_test::positionHook)return recordset_cursor_test::positionHook(statement,row,operation,lock);
     return recordset_cursor_test::setPosition(statement,row,operation,lock);
 }
 static void recordsetCursor() {
