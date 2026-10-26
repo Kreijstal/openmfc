@@ -1168,11 +1168,6 @@ extern "C" long MS_ABI impl__PrintInsideRect_CRichEditView__QEAAJPEAVCDC__AEAUta
 extern "C" long MS_ABI impl__PrintPage_CRichEditView__QEAAJPEAVCDC__JJ_Z(CRichEditView* pThis, CDC* p0, long p1, long p2) {
     return (long)pThis->PrintPage(p0, p1, p2);
 }
-// Symbol: ?ResizeParentToFit@CScrollView@@QEAAXH@Z
-// CScrollView::ResizeParentToFit
-extern "C" void MS_ABI impl__ResizeParentToFit_CScrollView__QEAAXH_Z(CScrollView* pThis, int p0) {
-    pThis->ResizeParentToFit(p0);
-}
 // Symbol: ?Serialize@CEditView@@UEAAXAEAVCArchive@@@Z
 // CEditView::Serialize
 extern "C" void MS_ABI impl__Serialize_CEditView__UEAAXAEAVCArchive___Z(CEditView* pThis, CArchive* p0) {

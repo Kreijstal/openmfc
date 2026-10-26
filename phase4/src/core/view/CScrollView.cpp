@@ -32,33 +32,3 @@ CScrollView::~CScrollView() { impl___1CScrollView__UEAA_XZ(this); }
 void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ(this); }
 void CScrollView::OnDraw(void* pDC) { impl__OnDraw_CScrollView__UEAAXPEAX_Z(this, pDC); }
 void CScrollView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
-void CScrollView::ResizeParentToFit(int bShrinkOnly) {
-    if (!m_hWnd) return;
-
-    HWND hWndParent = ::GetParent(m_hWnd);
-    if (!hWndParent) return;
-
-    // Calculate desired parent size based on scroll view content
-    SIZE sizeSb;
-    GetScrollBarSizes(sizeSb);
-
-    int nWidth = m_totalLog.cx + sizeSb.cx +
-                 ::GetSystemMetrics(SM_CXFRAME) * 2;
-    int nHeight = m_totalLog.cy + sizeSb.cy +
-                  ::GetSystemMetrics(SM_CYFRAME) * 2 +
-                  ::GetSystemMetrics(SM_CYCAPTION);
-
-    RECT rcParent;
-    ::GetWindowRect(hWndParent, &rcParent);
-    int nCurrentWidth = rcParent.right - rcParent.left;
-    int nCurrentHeight = rcParent.bottom - rcParent.top;
-
-    // Apply shrink-only constraint
-    if (bShrinkOnly) {
-        if (nWidth > nCurrentWidth) nWidth = nCurrentWidth;
-        if (nHeight > nCurrentHeight) nHeight = nCurrentHeight;
-    }
-
-    ::SetWindowPos(hWndParent, nullptr, 0, 0, nWidth, nHeight,
-                   SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-}

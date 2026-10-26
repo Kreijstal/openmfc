@@ -296,7 +296,6 @@ extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(CWnd*,const wchar
 extern "C" BOOL MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd*){std::abort();}
 extern "C" void MS_ABI impl___1CWnd__UEAA_XZ(CWnd*){std::abort();}
 extern "C" int MS_ABI impl__GetRowHeight_CMFCToolBar__UEBAHXZ(const void*){std::abort();}
-extern "C" BOOL MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(CWnd*,const CWnd*,int,int,int,int,UINT){std::abort();}
 extern "C" BOOL MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd*,int){std::abort();}
 extern "C" void* MS_ABI impl___0CWnd__QEAA_XZ(void*){std::abort();}
 extern "C" DWORD MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ(){std::abort();}

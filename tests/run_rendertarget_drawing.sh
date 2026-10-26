@@ -41,7 +41,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
     phase4/src/core/window/CWndParents.cpp phase4/src/core/window/CWndFocus.cpp phase4/src/core/view/CFormViewRouting.cpp
-    phase4/src/core/frame/CSplitterWndInfo.cpp phase4/src/core/runtime/CObjectTypeChecks.cpp phase4/src/core/view/CViewSplitterCommands.cpp phase4/src/core/frame/CSplitterWndNavigation.cpp phase4/src/core/window/CWndCoordinates.cpp phase4/src/core/window/CWndScrolling.cpp phase4/src/core/view/CScrollViewInput.cpp phase4/src/core/view/CScrollViewSizing.cpp phase4/src/core/view/CScrollViewCoordinates.cpp phase4/src/core/view/CScrollViewRendering.cpp phase4/src/core/gdi/CDCOrigins.cpp phase4/src/core/gdi/PrintBitmap.cpp phase4/src/core/gdi/CWindowDC.cpp phase4/src/core/gdi/CClientDC.cpp phase4/src/core/runtime/AuxData.cpp phase4/src/core/view/CViewScrolling.cpp
+    phase4/src/core/frame/CSplitterWndInfo.cpp phase4/src/core/runtime/CObjectTypeChecks.cpp phase4/src/core/view/CViewSplitterCommands.cpp phase4/src/core/frame/CSplitterWndNavigation.cpp phase4/src/core/window/CWndCoordinates.cpp phase4/src/core/window/CWndScrolling.cpp phase4/src/core/view/CScrollViewInput.cpp phase4/src/core/view/CScrollViewSizing.cpp phase4/src/core/view/CScrollViewCoordinates.cpp phase4/src/core/view/CScrollViewRendering.cpp phase4/src/core/view/CScrollViewParentSizing.cpp phase4/src/core/window/CWndPositioning.cpp phase4/src/core/gdi/CDCOrigins.cpp phase4/src/core/gdi/PrintBitmap.cpp phase4/src/core/gdi/CWindowDC.cpp phase4/src/core/gdi/CClientDC.cpp phase4/src/core/runtime/AuxData.cpp phase4/src/core/view/CViewScrolling.cpp
     phase4/src/core/view/CViewRendering.cpp phase4/src/core/gdi/CPaintDC.cpp phase4/src/core/gdi/CDCHandleMap.cpp
     phase4/src/core/view/CFormViewDialog.cpp
     phase4/src/core/view/CRecordViewCommands.cpp phase4/src/core/view/CFormViewInitialization.cpp phase4/src/core/view/ViewMessageMaps.cpp
@@ -112,6 +112,8 @@ for path, obj in (('core/frame/CSplitterWndInfo.cpp', 'CSplitterWndInfo'),
                   ('core/view/CScrollViewSizing.cpp', 'CScrollViewSizing'),
                   ('core/view/CScrollViewCoordinates.cpp', 'CScrollViewCoordinates'),
                   ('core/view/CScrollViewRendering.cpp', 'CScrollViewRendering'),
+                  ('core/view/CScrollViewParentSizing.cpp', 'CScrollViewParentSizing'),
+                  ('core/window/CWndPositioning.cpp', 'CWndPositioning'),
                   ('core/gdi/CDCOrigins.cpp', 'CDCOrigins'),
                   ('core/gdi/CWindowDC.cpp', 'CWindowDC'),
                   ('core/gdi/CClientDC.cpp', 'CClientDC'),

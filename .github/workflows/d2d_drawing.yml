@@ -105,6 +105,9 @@ on:
       - 'phase4/src/core/view/CScrollViewSizing.cpp'
       - 'phase4/src/core/view/CScrollViewCoordinates.cpp'
       - 'phase4/src/core/view/CScrollViewRendering.cpp'
+      - 'phase4/src/core/window/CWndPositioning.cpp'
+      - 'phase4/src/core/view/CScrollViewParentSizing.cpp'
+      - 'tests/scroll_view_parent_tests.h'
       - 'phase4/src/core/gdi/CDCOrigins.cpp'
       - 'phase4/src/core/gdi/PrintBitmap.cpp'
       - 'phase4/src/detail/PrintBitmapSupport.h'
@@ -373,6 +376,9 @@ on:
       - 'phase4/src/core/view/CScrollViewSizing.cpp'
       - 'phase4/src/core/view/CScrollViewCoordinates.cpp'
       - 'phase4/src/core/view/CScrollViewRendering.cpp'
+      - 'phase4/src/core/window/CWndPositioning.cpp'
+      - 'phase4/src/core/view/CScrollViewParentSizing.cpp'
+      - 'tests/scroll_view_parent_tests.h'
       - 'phase4/src/core/gdi/CDCOrigins.cpp'
       - 'phase4/src/core/gdi/PrintBitmap.cpp'
       - 'phase4/src/detail/PrintBitmapSupport.h'
@@ -643,6 +649,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndPositioning.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewParentSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCOrigins.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/PrintBitmap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CWindowDC.cpp"
@@ -861,6 +869,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndPositioning.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewParentSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCOrigins.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/PrintBitmap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CWindowDC.cpp"
@@ -1047,6 +1057,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndPositioning.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewParentSizing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCOrigins.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/PrintBitmap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CWindowDC.cpp"

@@ -702,16 +702,6 @@ extern "C" void MS_ABI impl__MoveWindow_CWnd__QEAAXHHHHH_Z(
         ::MoveWindow(pThis->m_hWnd, x, y, nWidth, nHeight, bRepaint);
     }
 }
-// CWnd::SetWindowPos
-// Symbol: ?SetWindowPos@CWnd@@QEAAHPEBV1@HHHHI@Z
-extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
-    CWnd* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    HWND hInsert = pWndInsertAfter ? pWndInsertAfter->m_hWnd : nullptr;
-    return ::SetWindowPos(pThis->m_hWnd, hInsert, x, y, cx, cy, nFlags);
-}
 // CWnd::SetWindowTextW
 // Symbol: ?SetWindowTextW@CWnd@@QEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(

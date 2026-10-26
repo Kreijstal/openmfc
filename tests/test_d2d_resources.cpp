@@ -318,6 +318,7 @@ static void ownershipAndRecreation() {
 #include "scroll_view_sizing_tests.h"
 #include "scroll_view_coordinate_tests.h"
 #include "scroll_view_print_tests.h"
+#include "scroll_view_parent_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -338,6 +339,11 @@ int main() {
     std::setvbuf(stdout,nullptr,_IONBF,0);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
+    wchar_t parentOnly[2];
+    if(GetEnvironmentVariableW(L"OPENMFC_SCROLL_PARENT_ONLY",parentOnly,2)) {
+        if(SUCCEEDED(hr)){scrollViewParentSizing();CoUninitialize();}
+        printf("%d failures\n",failures);return failures?1:0;
+    }
     lifecycle();
     if (SUCCEEDED(hr)) { nativeResources(); ownershipAndRecreation(); bitmapAndGradients(); windowD2D(); windowAccessibility(); accessibilityProxy(); accessibilityProxyForwarding(); cmdtargetVtable(); cmdtargetDispatch(); cmdtargetInvoke(); cmdtargetEvents(); cmdtargetVerbs(); commandRouting(); windowMessageContext(); windowInput(); cmdtargetConnections(); connectionPointSinks(); automationExceptions(); frameworkBoundaryExceptions(); typeLibCache(); }
     if (SUCCEEDED(hr)) dynamicLayout();
@@ -386,6 +392,7 @@ int main() {
     if (SUCCEEDED(hr)) scrollViewSizing();
     if (SUCCEEDED(hr)) scrollViewCoordinates();
     if (SUCCEEDED(hr)) scrollViewPrinting();
+    if (SUCCEEDED(hr)) scrollViewParentSizing();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

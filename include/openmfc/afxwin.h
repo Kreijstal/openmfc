@@ -2551,12 +2551,6 @@ inline void CWnd::MoveWindow(const struct tagRECT* lpRect, int bRepaint) {
     }
 }
 
-inline int CWnd::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags) {
-    if (!m_hWnd) return 0;
-    HWND hwndInsertAfter = pWndInsertAfter ? pWndInsertAfter->m_hWnd : nullptr;
-    return ::SetWindowPos(m_hWnd, hwndInsertAfter, x, y, cx, cy, nFlags) ? 1 : 0;
-}
-
 inline void CWnd::SetWindowTextW(const wchar_t* lpszString) {
     if (m_hWnd) {
         ::SetWindowTextW(m_hWnd, lpszString ? lpszString : L"");
