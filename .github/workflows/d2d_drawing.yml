@@ -102,6 +102,10 @@ on:
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
       - 'phase4/src/core/view/CScrollViewInput.cpp'
+      - 'phase4/src/core/view/CScrollViewSizing.cpp'
+      - 'phase4/src/core/runtime/AuxData.cpp'
+      - 'phase4/src/detail/AuxDataSupport.h'
+      - 'tests/scroll_view_sizing_tests.h'
       - 'phase4/src/core/view/CViewScrolling.cpp'
       - 'tests/scroll_view_input_tests.h'
       - 'tests/window_scrolling_tests.h'
@@ -357,6 +361,10 @@ on:
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
       - 'phase4/src/core/view/CScrollViewInput.cpp'
+      - 'phase4/src/core/view/CScrollViewSizing.cpp'
+      - 'phase4/src/core/runtime/AuxData.cpp'
+      - 'phase4/src/detail/AuxDataSupport.h'
+      - 'tests/scroll_view_sizing_tests.h'
       - 'phase4/src/core/view/CViewScrolling.cpp'
       - 'tests/scroll_view_input_tests.h'
       - 'tests/window_scrolling_tests.h'
@@ -614,6 +622,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AuxData.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
@@ -824,6 +834,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AuxData.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
@@ -1002,6 +1014,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewSizing.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AuxData.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"

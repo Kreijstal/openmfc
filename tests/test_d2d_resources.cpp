@@ -315,6 +315,7 @@ static void ownershipAndRecreation() {
 #include "splitter_command_tests.h"
 #include "window_scrolling_tests.h"
 #include "scroll_view_input_tests.h"
+#include "scroll_view_sizing_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -327,6 +328,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    if(auxDataTerminationChild())return 0;
     if(recordsetFieldNameTerminationChild())return 0;
     if(recordsetRequeryTerminationChild())return 0;
     std::setvbuf(stdout,nullptr,_IONBF,0);
@@ -377,6 +379,7 @@ int main() {
     if (SUCCEEDED(hr)) splitterCommands();
     if (SUCCEEDED(hr)) windowScrolling();
     if (SUCCEEDED(hr)) scrollViewInput();
+    if (SUCCEEDED(hr)) scrollViewSizing();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

@@ -2512,10 +2512,6 @@ inline int CWnd::IsWindowVisible() const {
     return m_hWnd ? ::IsWindowVisible(m_hWnd) : 0;
 }
 
-inline int CWnd::EnableWindow(int bEnable) {
-    return m_hWnd ? (::EnableWindow(m_hWnd, bEnable ? TRUE : FALSE) ? 1 : 0) : 0;
-}
-
 inline void CWnd::GetWindowRect(struct tagRECT* lpRect) const {
     if (lpRect) {
         if (m_hWnd) {
@@ -3521,7 +3517,14 @@ public:
     static const AFX_MSGMAP* GetThisMessageMap();
     void SetScrollSizes(int,const SIZE&,const SIZE& = {0,0},const SIZE& = {0,0});
     void GetScrollBarSizes(SIZE&);
-    void GetTrueClientSize(SIZE&,SIZE&) const;
+    BOOL GetTrueClientSize(SIZE&,SIZE&);
+    void GetDeviceScrollSizes(int&,SIZE&,SIZE&,SIZE&) const;
+    void GetScrollBarState(CSize,CSize&,CSize&,CPoint&,BOOL);
+    void ScrollToDevicePosition(POINT);
+    void UpdateBars();
+    void SetScaleToFitSize(SIZE);
+    void OnSize(UINT,int,int);
+    void CalcWindowRect(RECT*,UINT = 0) override;
     void ScrollToPosition(POINT);
     CPoint GetScrollPosition() const;
     CPoint GetDeviceScrollPosition() const;

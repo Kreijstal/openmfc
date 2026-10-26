@@ -15,6 +15,13 @@ int CWnd::IsWindowEnabled() const {
     }
     return ::IsWindowEnabled(m_hWnd);
 }
+int CWnd::EnableWindow(int enable) {
+    if(m_pCtrlSite) {
+        using Enable=BOOL (MS_ABI*)(void*,BOOL);
+        return openmfc::detail::WindowSlot<Enable>(m_pCtrlSite,44)(m_pCtrlSite,enable);
+    }
+    return ::EnableWindow(m_hWnd,enable);
+}
 DWORD CWnd::GetExStyle() const {
     if(m_pCtrlSite) {
         using Style=DWORD (MS_ABI*)(void*);
@@ -39,6 +46,8 @@ void CWnd::ScreenToClient(RECT* rectangle) const {
 extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* self) {return self->GetStyle();}
 // Symbol: ?IsWindowEnabled@CWnd@@QEBAHXZ
 extern "C" BOOL MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* self) {return self->IsWindowEnabled();}
+// Symbol: ?EnableWindow@CWnd@@QEAAHH@Z
+extern "C" BOOL MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* self,BOOL enable) {return self->EnableWindow(enable);}
 // Symbol: ?GetExStyle@CWnd@@QEBAKXZ
 extern "C" DWORD MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* self) {return self->GetExStyle();}
 // Symbol: ?ClientToScreen@CWnd@@QEBAXPEAUtagRECT@@@Z

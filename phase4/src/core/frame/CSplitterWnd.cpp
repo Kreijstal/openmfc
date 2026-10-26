@@ -125,9 +125,7 @@ constexpr unsigned kIdcVSplitBar     = 0x7905;  // AFX_IDC_VSPLITBAR
 constexpr int  kCritSplitterWnd      = 9;       // CRIT_SPLITTERWND (AfxLockGlobals argument at 0x2acfc9)
 constexpr long kAfxWndMdiFrameReg    = 4;       // AFX_WNDMDIFRAME_REG (AfxEndDeferRegisterClass argument at 0x2aa716)
 constexpr int  kCxBorder = 1, kCyBorder = 1;    // CX_BORDER / CY_BORDER
-// afxData.cxBorder2 / cyBorder2 (afxData+0x10 / +0x14).  OpenMFC's exported
-// afxData is a zero blob (featurepack/CMFC_misc_stubs.cpp); the real AUX_DATA
-// ctor sets both to CX_BORDER * 2 == 2, so the constant is used here.
+// TODO: read AUX_DATA's border cache at +0x10/+0x14 instead of these initial values.
 constexpr int  kCxBorder2 = 2, kCyBorder2 = 2;
 
 inline bool IsVBar(int ht)  { return static_cast<unsigned>(ht - kVSplitterBar1) <= 14u; }
@@ -562,7 +560,7 @@ void CSplitterWnd::RecalcLayout() {
 //     ::SetCursor(_afx_hcurLast);
 //     if (hcurToDestroy != NULL) ::DestroyCursor(hcurToDestroy);       // destroy after being set
 //     AfxUnlockGlobals(CRIT_SPLITTERWND);
-// afxData.hcurArrow is a zero slot in OpenMFC's afxData blob, so the arrow is loaded directly.
+// TODO: use AUX_DATA::hcurArrow instead of loading the shared cursor here.
 void CSplitterWnd::SetSplitCursor(int ht) {
     impl__AfxLockGlobals__YAXH_Z(kCritSplitterWnd);
     unsigned idcPrimary = 0;
@@ -691,8 +689,8 @@ extern "C" void* MS_ABI impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(
 //     }
 //     pDC->FillSolidRect(rect, afxData.clrBtnFace);
 // afxData.clr* are the cached COLOR_BTNFACE/BTNSHADOW/BTNHIGHLIGHT/WINDOWFRAME
-// (afxData+0x30/+0x34/+0x38/+0x40); OpenMFC's afxData blob is zero, so
-// ::GetSysColor is read directly.
+// (afxData+0x30/+0x34/+0x38/+0x40). TODO: consume those cached colors here
+// instead of querying ::GetSysColor directly.
 // Symbol: ?OnDrawSplitter@CSplitterWnd@@MEAAXPEAVCDC@@W4ESplitType@1@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__OnDrawSplitter_CSplitterWnd__MEAAXPEAVCDC__W4ESplitType_1_AEBVCRect___Z(CSplitterWnd* pThis, CDC* pDC, int nType, const RECT* pRect) {
     if (!pThis || !pRect) return;
@@ -1129,7 +1127,7 @@ extern "C" void MS_ABI impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(CSplit
 //     rect.InflateRect(-m_cxBorder, -m_cyBorder);
 //     if (m_bHasVScroll) rect.right  -= afxData.cxVScroll - CX_BORDER;   // (adds 1 - cxVScroll)
 //     if (m_bHasHScroll) rect.bottom -= afxData.cyHScroll - CY_BORDER;
-// afxData.cxVScroll / cyHScroll are read as ::GetSystemMetrics (OpenMFC's afxData is zero).
+// TODO: use AUX_DATA::cxVScroll/cyHScroll instead of direct system-metric queries.
 // Symbol: ?GetInsideRect@CSplitterWnd@@MEBAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__GetInsideRect_CSplitterWnd__MEBAXAEAVCRect___Z(const CSplitterWnd* pThis, RECT* pRect) {
     if (!pThis || !pRect) return;

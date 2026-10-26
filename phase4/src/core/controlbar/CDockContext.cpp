@@ -238,8 +238,8 @@ constexpr DWORD kMiniFrameExStyle = 0x00000188;
 // AUX_DATA::cxBorder2 / cyBorder2 (afxData + 0x10 / + 0x14 = 0x3c32d0 /
 // 0x3c32d4, mfc140u).  The AUX_DATA static initializer at RVA 0x2270
 // (mfc140u) stores 2 to both (`mov $0x2,%eax` at 0x22c3, stored at
-// 0x22c8/0x22ce); OpenMFC's exported afxData is a zero blob, so the retail
-// values are folded in as literals, as CDockBar.cpp does.
+// 0x22c8/0x22ce). TODO: read the restored AUX_DATA cache rather than
+// folding its initial values into these literals.
 constexpr int kCxBorder2 = 2;
 constexpr int kCyBorder2 = 2;
 

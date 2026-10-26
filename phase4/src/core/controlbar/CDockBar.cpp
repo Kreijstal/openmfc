@@ -254,9 +254,8 @@ constexpr DWORD kMFS_MOVEFRAME = 0x800;         // ModifyStyle argument at 0x221
 constexpr int   kRP_BACKGROUND = 6;             // vssym32.h REBAR part
 
 // AUX_DATA::cxBorder2 / cyBorder2 (afxData + 0x10 / + 0x14 = 0x3c32d0 /
-// 0x3c32d4, mfc140u).  Retail's AUX_DATA constructor stores 2 to both and
-// OpenMFC's exported afxData is a zero blob, so the values are folded in as
-// literals, as CControlBar.cpp does.
+// 0x3c32d4, mfc140u). The AUX_DATA constructor initializes both to 2.
+// TODO: use the restored cache instead of these initial literal values.
 constexpr int kCxBorder2 = 2;
 constexpr int kCyBorder2 = 2;
 

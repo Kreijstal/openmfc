@@ -9,37 +9,6 @@
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* pThis, RECT* rect, unsigned int adjustType);
 
-// Symbol: ?GetScrollBarSizes@CScrollView@@IEAAXAEAVCSize@@@Z
-extern "C" void MS_ABI impl__GetScrollBarSizes_CScrollView__IEAAXAEAVCSize___Z(
-    CScrollView* pThis, SIZE* pSizeSb)
-{
-    if (!pSizeSb) {
-        return;
-    }
-    if (pThis) {
-        pThis->GetScrollBarSizes(*pSizeSb);
-    } else {
-        pSizeSb->cx = 0;
-        pSizeSb->cy = 0;
-    }
-}
-// Symbol: ?GetTrueClientSize@CScrollView@@IEAAHAEAVCSize@@0@Z
-extern "C" int MS_ABI impl__GetTrueClientSize_CScrollView__IEAAHAEAVCSize__0_Z(
-    const CScrollView* pThis, SIZE* pSize, SIZE* pSizeSb)
-{
-    if (!pSize || !pSizeSb) {
-        return FALSE;
-    }
-    if (pThis) {
-        pThis->GetTrueClientSize(*pSize, *pSizeSb);
-        return TRUE;
-    }
-    pSize->cx = 0;
-    pSize->cy = 0;
-    pSizeSb->cx = 0;
-    pSizeSb->cy = 0;
-    return FALSE;
-}
 // Destructor
 // Symbol: ??1CScrollView@@UEAA@XZ
 extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView* pThis) {
@@ -52,20 +21,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollView__SAPEAUCRuntimeC
 // CScrollView residuals.
 // Symbol: ?sizeDefault@CScrollView@@2UtagSIZE@@B
 extern "C" SIZE impl__sizeDefault_CScrollView__2UtagSIZE__B = {0, 0};
-// Symbol: ?CalcWindowRect@CScrollView@@UEAAXPEAUtagRECT@@I@Z
-extern "C" void MS_ABI impl__CalcWindowRect_CScrollView__UEAAXPEAUtagRECT__I_Z(CScrollView* pThis, RECT* rect, unsigned int adjustType) { impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(pThis, rect, adjustType); }
-// Symbol: ?GetDeviceScrollSizes@CScrollView@@QEBAXAEAHAEAUtagSIZE@@11@Z
-extern "C" void MS_ABI impl__GetDeviceScrollSizes_CScrollView__QEBAXAEAHAEAUtagSIZE__11_Z(const CScrollView* pThis, int* mapMode, SIZE* total, SIZE* page, SIZE* line) { if (mapMode) *mapMode=pThis?pThis->m_nMapMode:MM_TEXT; if (total) *total=pThis?pThis->m_totalLog:SIZE{0,0}; if (page) *page=pThis?pThis->m_pageDev:SIZE{0,0}; if (line) *line=pThis?pThis->m_lineDev:SIZE{0,0}; }
-// Symbol: ?ScrollToDevicePosition@CScrollView@@IEAAXUtagPOINT@@@Z
-extern "C" void MS_ABI impl__ScrollToDevicePosition_CScrollView__IEAAXUtagPOINT___Z(CScrollView* pThis, POINT pt) { if (pThis) pThis->ScrollToPosition(pt); }
 // Symbol: ?CenterOnPoint@CScrollView@@IEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__CenterOnPoint_CScrollView__IEAAXVCPoint___Z(CScrollView* pThis, CPoint pt) { if (!pThis) return; RECT rc={}; if (pThis->m_hWnd) ::GetClientRect(pThis->m_hWnd,&rc); POINT dest={pt.x-(rc.right-rc.left)/2, pt.y-(rc.bottom-rc.top)/2}; pThis->ScrollToPosition(dest); }
-// Symbol: ?OnSize@CScrollView@@QEAAXIHH@Z
-extern "C" void MS_ABI impl__OnSize_CScrollView__QEAAXIHH_Z(CScrollView* pThis, unsigned int, int, int) { if (pThis && pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd,nullptr,TRUE); }
-// Symbol: ?UpdateBars@CScrollView@@IEAAXXZ
-extern "C" void MS_ABI impl__UpdateBars_CScrollView__IEAAXXZ(CScrollView* pThis) { if (pThis) pThis->SetScrollSizes(pThis->m_nMapMode, pThis->m_totalLog, pThis->m_pageDev, pThis->m_lineDev); }
-// Symbol: ?GetScrollBarState@CScrollView@@IEAAXVCSize@@AEAV2@1AEAVCPoint@@H@Z
-extern "C" void MS_ABI impl__GetScrollBarState_CScrollView__IEAAXVCSize__AEAV2_1AEAVCPoint__H_Z(CScrollView* pThis, CSize, CSize* needSb, CSize* range, CPoint* move, int) { if (needSb) *needSb=CSize(pThis&&pThis->m_totalLog.cx>0,pThis&&pThis->m_totalLog.cy>0); if (range) *range=CSize(pThis?pThis->m_totalLog.cx:0,pThis?pThis->m_totalLog.cy:0); if (move) *move=pThis?pThis->GetScrollPosition():CPoint(0,0); }
 // Symbol: ?HandleMButtonDown@CScrollView@@QEAA_J_K_J@Z
 extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CScrollView* pThis, uintptr_t nFlags, intptr_t point) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
@@ -76,31 +33,12 @@ extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CSc
 extern "C" void MS_ABI impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CScrollView* pThis, CDC* dc, void*) { if (dc && dc->m_hDC && pThis) ::SetMapMode(dc->m_hDC, pThis->m_nMapMode); }
 // Symbol: ?OnPrintClient@CScrollView@@QEAA_JPEAVCDC@@I@Z
 extern "C" intptr_t MS_ABI impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(CScrollView* pThis, CDC* dc, unsigned int) { if (pThis) pThis->OnDraw(dc); return TRUE; }
-// Symbol: ?SetScaleToFitSize@CScrollView@@QEAAXUtagSIZE@@@Z
-extern "C" void MS_ABI impl__SetScaleToFitSize_CScrollView__QEAAXUtagSIZE___Z(CScrollView* pThis, SIZE size) { if (pThis) pThis->SetScrollSizes(MM_TEXT, size, size, SIZE{1,1}); }
 CScrollView::CScrollView() { impl___0CScrollView__QEAA_XZ(this); }
 CScrollView::~CScrollView() { impl___1CScrollView__UEAA_XZ(this); }
 void CScrollView::SetScrollSizes(int nMapMode, const SIZE& sizeTotal, const SIZE& sizePage, const SIZE& sizeLine) { impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(this, nMapMode, &sizeTotal, &sizePage, &sizeLine); }
 void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ(this); }
 void CScrollView::OnDraw(void* pDC) { impl__OnDraw_CScrollView__UEAAXPEAX_Z(this, pDC); }
 void CScrollView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
-void CScrollView::GetScrollBarSizes(SIZE& sizeSb) {
-    sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
-    sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
-}
-void CScrollView::GetTrueClientSize(SIZE& size, SIZE& sizeSb) const {
-    if (m_hWnd) {
-        RECT rc;
-        ::GetClientRect(m_hWnd, &rc);
-        size.cx = static_cast<int>(rc.right - rc.left);
-        size.cy = static_cast<int>(rc.bottom - rc.top);
-    } else {
-        size.cx = 0;
-        size.cy = 0;
-    }
-    sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
-    sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
-}
 void CScrollView::ScrollToPosition(POINT pt) {
     if (!m_hWnd) return;
 

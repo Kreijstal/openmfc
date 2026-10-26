@@ -1189,11 +1189,6 @@ extern "C" HWND__* MS_ABI impl__Detach_CWnd__QEAAPEAUHWND____XZ(CWnd* pThis) {
 extern "C" void MS_ABI impl__DrawItem_CMenu__UEAAXPEAUtagDRAWITEMSTRUCT___Z(CMenu* pThis, DRAWITEMSTRUCT* p0) {
     pThis->DrawItem(p0);
 }
-// Symbol: ?EnableScrollBarCtrl@CWnd@@QEAAXHH@Z
-// CWnd::EnableScrollBarCtrl
-extern "C" void MS_ABI impl__EnableScrollBarCtrl_CWnd__QEAAXHH_Z(CWnd* pThis, int p0, int p1) {
-    pThis->EnableScrollBarCtrl(p0, p1);
-}
 // Symbol: ?EnableToolTips@CWnd@@QEAAHH@Z
 // CWnd::EnableToolTips
 extern "C" int MS_ABI impl__EnableToolTips_CWnd__QEAAHH_Z(CWnd* pThis, int p0) {
@@ -1580,16 +1575,6 @@ extern "C" int MS_ABI impl__SetGestureConfig_CWnd__QEAAHPEAVCGestureConfig___Z(C
 // CWnd::SetOccDialogInfo
 extern "C" int MS_ABI impl__SetOccDialogInfo_CWnd__MEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(CWnd* pThis, _AFX_OCC_DIALOG_INFO* p0) {
     return (int)pThis->SetOccDialogInfo(p0);
-}
-// Symbol: ?SetScrollInfo@CWnd@@QEAAHHPEAUtagSCROLLINFO@@H@Z
-// CWnd::SetScrollInfo
-extern "C" int MS_ABI impl__SetScrollInfo_CWnd__QEAAHHPEAUtagSCROLLINFO__H_Z(CWnd* pThis, int p0, SCROLLINFO* p1, int p2) {
-    return (int)pThis->SetScrollInfo(p0, p1, p2);
-}
-// Symbol: ?SetScrollRange@CWnd@@QEAAXHHHH@Z
-// CWnd::SetScrollRange
-extern "C" void MS_ABI impl__SetScrollRange_CWnd__QEAAXHHHH_Z(CWnd* pThis, int p0, int p1, int p2, int p3) {
-    pThis->SetScrollRange(p0, p1, p2, p3);
 }
 // Symbol: ?SetWindowPlacement@CWnd@@QEAAHPEBUtagWINDOWPLACEMENT@@@Z
 // CWnd::SetWindowPlacement

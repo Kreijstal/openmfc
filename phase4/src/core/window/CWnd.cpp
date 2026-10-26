@@ -649,13 +649,6 @@ extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow)
     return ::ShowWindow(pThis->m_hWnd, nCmdShow);
 }
 // CWnd::EnableWindow
-// Symbol: ?EnableWindow@CWnd@@QEAAHH@Z
-extern "C" int MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable) {
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    return ::EnableWindow(pThis->m_hWnd, bEnable);
-}
 // Symbol: ?DestroyWindow@CWnd@@UEAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     if (!pThis || !pThis->m_hWnd) {
@@ -1633,19 +1626,6 @@ HWND CWnd::Detach()
     g_hwndMap.erase(hWnd);
     CleanupWindowRuntimeState(this);
     return hWnd;
-}
-void CWnd::EnableScrollBarCtrl(int p0, int p1)
-{
-    if (!m_hWnd) {
-        return;
-    }
-    UINT flags = ESB_DISABLE_BOTH;
-    if (p0) {
-        flags = p1 ? ESB_ENABLE_BOTH : ESB_DISABLE_BOTH;
-    } else if (p1) {
-        flags = ESB_ENABLE_BOTH;
-    }
-    ::EnableScrollBar(m_hWnd, p0, flags);
 }
 int CWnd::EnableToolTips(int p0)
 {
@@ -2881,21 +2861,6 @@ int CWnd::SetProperty(long p0, WORD p1, void* p2)
     auto& state = GetWindowRuntimeState(this);
     state.properties[{p0, p1}] = p2;
     return TRUE;
-}
-int CWnd::SetScrollInfo(int p0, SCROLLINFO* p1, int p2)
-{
-    if (!m_hWnd || !p1) {
-        return FALSE;
-    }
-    p1->cbSize = sizeof(*p1);
-    return ::SetScrollInfo(m_hWnd, p0, p1, p2 ? TRUE : FALSE);
-}
-void CWnd::SetScrollRange(int p0, int p1, int p2, int p3)
-{
-    if (!m_hWnd) {
-        return;
-    }
-    ::SetScrollRange(m_hWnd, p0, p1, p2, p3 ? TRUE : FALSE);
 }
 int CWnd::SetWindowPlacement(const WINDOWPLACEMENT* p0)
 {

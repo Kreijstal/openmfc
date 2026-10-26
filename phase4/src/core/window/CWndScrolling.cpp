@@ -34,6 +34,33 @@ int CWnd::SetScrollPos(int bar, int position, int redraw) {
     HWND handle = ScrollHandle(this, bar);
     return ::SetScrollPos(handle, bar, position, redraw);
 }
+void CWnd::SetScrollRange(int bar, int minimum, int maximum, int redraw) {
+    HWND handle = ScrollHandle(this, bar);
+    ::SetScrollRange(handle, bar, minimum, maximum, redraw);
+}
+int CWnd::SetScrollInfo(int bar, SCROLLINFO* info, int redraw) {
+    HWND handle = m_hWnd;
+    if (bar != SB_CTL) {
+        CScrollBar* control = GetScrollBarCtrl(bar);
+        if (control) {
+            handle = control->m_hWnd;
+            bar = SB_CTL;
+        }
+    }
+    info->cbSize = sizeof(*info);
+    ::SetScrollInfo(handle, bar, info, redraw);
+    // The Win32 result is the previous position, not a success predicate.
+    return TRUE;
+}
+void CWnd::EnableScrollBarCtrl(int bar, int enable) {
+    if (bar == SB_BOTH) {
+        EnableScrollBarCtrl(SB_HORZ, enable);
+        bar = SB_VERT;
+    }
+    CScrollBar* control = GetScrollBarCtrl(bar);
+    if (control) control->EnableWindow(enable);
+    else ::ShowScrollBar(m_hWnd, bar, enable);
+}
 void CWnd::GetScrollRange(int bar, int* minimum, int* maximum) const {
     HWND handle = ScrollHandle(this, bar);
     ::GetScrollRange(handle, bar, minimum, maximum);
@@ -88,6 +115,12 @@ extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* self, i
 extern "C" int MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* self, int bar) { return self->GetScrollPos(bar); }
 // Symbol: ?SetScrollPos@CWnd@@QEAAHHHH@Z
 extern "C" int MS_ABI impl__SetScrollPos_CWnd__QEAAHHHH_Z(CWnd* self, int bar, int position, int redraw) { return self->SetScrollPos(bar, position, redraw); }
+// Symbol: ?SetScrollInfo@CWnd@@QEAAHHPEAUtagSCROLLINFO@@H@Z
+extern "C" int MS_ABI impl__SetScrollInfo_CWnd__QEAAHHPEAUtagSCROLLINFO__H_Z(CWnd* self, int bar, SCROLLINFO* info, int redraw) { return self->SetScrollInfo(bar, info, redraw); }
+// Symbol: ?SetScrollRange@CWnd@@QEAAXHHHH@Z
+extern "C" void MS_ABI impl__SetScrollRange_CWnd__QEAAXHHHH_Z(CWnd* self, int bar, int minimum, int maximum, int redraw) { self->SetScrollRange(bar, minimum, maximum, redraw); }
+// Symbol: ?EnableScrollBarCtrl@CWnd@@QEAAXHH@Z
+extern "C" void MS_ABI impl__EnableScrollBarCtrl_CWnd__QEAAXHH_Z(CWnd* self, int bar, int enable) { self->EnableScrollBarCtrl(bar, enable); }
 // Symbol: ?GetScrollRange@CWnd@@QEBAXHPEAH0@Z
 extern "C" void MS_ABI impl__GetScrollRange_CWnd__QEBAXHPEAH0_Z(const CWnd* self, int bar, int* minimum, int* maximum) { self->GetScrollRange(bar, minimum, maximum); }
 // Symbol: ?GetScrollInfo@CWnd@@QEAAHHPEAUtagSCROLLINFO@@I@Z

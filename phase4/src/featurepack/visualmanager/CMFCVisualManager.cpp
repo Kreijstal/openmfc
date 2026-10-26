@@ -1469,8 +1469,8 @@ extern "C" void MS_ABI impl__OnFillAutoHideButtonBackground_CMFCVisualManager__U
 //     CMFCToolBarImages::FillDitheredRect(pDC, r);                             // 0x16d4b0
 // The four CRuntimeClass addresses were read off the matching ?GetThisClass@
 // getters; 0x3c32c0 is ?afxData@@3UAUX_DATA@@A, so the two deflate amounts are
-// AUX_DATA::cxBorder2 / cyBorder2 (both 2 in retail -- CX_BORDER*2; OpenMFC's
-// exported afxData is a zero blob, so the constant is used).  FillDitheredRect
+// AUX_DATA::cxBorder2 / cyBorder2 (both 2 in retail -- CX_BORDER*2; this implementation
+// still uses the initial constant rather than the restored AUX_DATA cache).  FillDitheredRect
 // is `::FillRect(pDC->m_hDC, &rect, afxGlobalData+0xd0)`, the handle of the
 // CBrush at +0xc8 ("brLight"), which the color initializer at 0x6b1c0 builds as
 // a solid brush of the per-channel midpoint between field +0x28 (COLOR_BTNFACE)

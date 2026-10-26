@@ -194,8 +194,8 @@ constexpr unsigned kTbbsDisabled              = 0x40000; // TBBS_DISABLED = MAKE
 constexpr unsigned kTbbsSeparator             = 0x1;     // TBBS_SEPARATOR = TBSTYLE_SEP
 // AUX_DATA::cxBorder2 / cyBorder2 (afxData + 0x10 / + 0x14, i.e. 0x3c32d0 /
 // 0x3c32d4 in mfc140u): the AUX_DATA static initializer at RVA 0x2270
-// (mfc140u) stores 2 to both.  OpenMFC's exported afxData is a zero blob, so
-// the retail values are used as constants (same choice as CMFCVisualManager.cpp).
+// (mfc140u) stores 2 to both.  TODO: read the restored AUX_DATA cache; this path still
+// uses its initial values as constants (same choice as CMFCVisualManager.cpp).
 constexpr int kAuxDataCxBorder2               = 2;
 constexpr int kAuxDataCyBorder2               = 2;
 constexpr unsigned kIdAfxBarResToolbarImage        = 0x4212; // ID_AFXBARRES_TOOLBAR_IMAGE

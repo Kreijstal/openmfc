@@ -3542,19 +3542,6 @@ extern "C" void* MS_ABI impl___AfxFindSiteOrWnd__YAPEAUCOleControlSiteOrWnd__PEA
     }
     return pWndCtrl;
 }
-// Symbol: ?afxData@@3UAUX_DATA@@A
-// Exported data object, not a function. Real MFC `AUX_DATA` is sizeof 120 / align 8
-// (LF_STRUCTURE `AUX_DATA`, uafxcw.amd64.pdb, MSVC 14.51 atlmfc -- the struct is not in
-// any public header, so the PDB is the only type source). In the harvested mfc140 the
-// RVA gap from ?afxData (0x3bc000) to the next exported datum ?wndTop@CWnd@@2V1@B
-// (0x3bc0b0) is 176, a hard upper bound on the object; storage is sized to that bound so
-// a client writing through the export can never run past it. Zero-initialised: this repo
-// has no AUX_DATA definition, and the members the PDB does show (cxVScroll/cyHScroll/
-// cxIcon/cyIcon/cxBorder2/cyBorder2/cxPixelsPerInch/cyPixelsPerInch at 0..28, then
-// GDI brush/cursor/font/bitmap handles at 32..112) are cached system metrics and GDI
-// objects that the real ctor fills in; reproducing that would mean calling GDI/USER32
-// from a DLL-load static ctor, which is exactly what MFC documents it avoids.
-extern "C" alignas(16) unsigned char MS_ABI impl__afxData__3UAUX_DATA__A[176] = {};
 // Symbol: ?afxGlobalData@@3UAFX_GLOBAL_DATA@@A
 // Exported data object. sizeof(AFX_GLOBAL_DATA) == 720, align 8 -- agreed by three
 // independent sources: afxglobals.h (MSVC 14.51 atlmfc, measured with cl.exe), the

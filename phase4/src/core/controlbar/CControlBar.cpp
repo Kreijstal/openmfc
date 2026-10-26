@@ -155,8 +155,8 @@ constexpr int kRP_BACKGROUND  = 6;
 
 // AUX_DATA::cxBorder2 / cyBorder2 (afxData + 0x10 / + 0x14, i.e. 0x3c32d0 /
 // 0x3c32d4 in mfc140u).  The retail AUX_DATA constructor stores 2 to both (see
-// the notes in featurepack/menu/CMFCPopupMenuBar.cpp); OpenMFC's exported
-// afxData is a zero blob, so the values are folded in as literals.
+// the notes in featurepack/menu/CMFCPopupMenuBar.cpp).
+// TODO: use the restored AUX_DATA cache instead of these initial literal values.
 constexpr int kCxBorder2 = 2;
 constexpr int kCyBorder2 = 2;
 
