@@ -25,8 +25,6 @@ std::unordered_map<const CMFCRibbonBaseElement*, CSize> g_ribbonTextSizeById;
 std::unordered_map<UINT, RibbonSliderState> g_sliderStates;
 std::unordered_map<UINT, RibbonProgressState> g_progressStates;
 std::unordered_map<UINT, RibbonStatusPaneState> g_statusPaneStates;
-std::mutex g_threadSlotMutex;
-std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
 std::mutex g_typeLibCacheMutex;
 std::unordered_map<std::wstring, std::unique_ptr<TypeLibCacheHandle>> g_guidTypeLibCaches;
 std::mutex g_splitterWndMutex;

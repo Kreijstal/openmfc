@@ -1,0 +1,64 @@
+name: Thread state ABI
+on:
+  push:
+    paths:
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/AFX_MAINTAIN_STATE*.cpp'
+      - 'phase4/src/detail/CThread*Support.*'
+      - 'include/openmfc/afxstat_.h'
+      - 'tests/test_thread_state_native.cpp'
+      - 'tests/test_cthreadslotdata_logic.cpp'
+      - 'tests/thread_state_test_runtime.*'
+      - 'tests/run_thread_state.sh'
+      - '.github/workflows/thread_state.yml'
+  pull_request:
+    paths:
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/AFX_MAINTAIN_STATE*.cpp'
+      - 'phase4/src/detail/CThread*Support.*'
+      - 'include/openmfc/afxstat_.h'
+      - 'tests/test_thread_state_native.cpp'
+      - 'tests/test_cthreadslotdata_logic.cpp'
+      - 'tests/thread_state_test_runtime.*'
+      - 'tests/run_thread_state.sh'
+      - '.github/workflows/thread_state.yml'
+  workflow_dispatch:
+jobs:
+  thread-state:
+    name: Thread state (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '/O2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile thread storage and module-scope implementations
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "TLS_FLAGS=/nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /DOPENMFC_EXPORTS /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.flags }}"
+          cl %TLS_FLAGS% /c /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CThreadSlotData.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CThreadLocalObject.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/_AFX_THREAD_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AFX_MAINTAIN_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AFX_MAINTAIN_STATE2.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CThreadSlotDataSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CThreadLocalObjectSupport.cpp" "%GITHUB_WORKSPACE%/tests/thread_state_test_runtime.cpp" "%GITHUB_WORKSPACE%/tests/test_thread_state_native.cpp" "%GITHUB_WORKSPACE%/tests/test_cthreadslotdata_logic.cpp"
+          if errorlevel 1 exit /b %errorlevel%
+      - name: Link and run ABI, exception and thread ownership tests
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "TLS_OBJECTS=CThreadSlotData.obj CThreadLocalObject.obj _AFX_THREAD_STATE.obj AFX_MAINTAIN_STATE.obj AFX_MAINTAIN_STATE2.obj CThreadSlotDataSupport.obj CThreadLocalObjectSupport.obj thread_state_test_runtime.obj"
+          link /nologo /OUT:test_thread_state_native.exe /SUBSYSTEM:CONSOLE /OPT:REF %TLS_OBJECTS% test_thread_state_native.obj kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_thread_state_native.exe
+          if errorlevel 1 exit /b %errorlevel%
+          link /nologo /OUT:test_cthreadslotdata_logic.exe /SUBSYSTEM:CONSOLE /OPT:REF %TLS_OBJECTS% test_cthreadslotdata_logic.obj kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_cthreadslotdata_logic.exe
+          if errorlevel 1 exit /b %errorlevel%

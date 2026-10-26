@@ -129,20 +129,6 @@ extern std::unordered_map<UINT, RibbonStatusPaneState> g_statusPaneStates;
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
-struct ThreadSlotDataState {
-    int nextSlot = 0;
-    std::unordered_set<int> freeSlots;
-    std::unordered_map<DWORD, std::unordered_map<int, void*>> threadValues;
-};
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::mutex g_threadSlotMutex;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, ThreadSlotDataState> g_threadSlotStates;
-} } }
-
-namespace openmfc { namespace detail { namespace cbarcore {
 struct TypeLibCacheHandle {
     CTypeLibCache cache;
     GUID id{};

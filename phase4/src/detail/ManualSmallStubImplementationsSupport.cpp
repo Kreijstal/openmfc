@@ -599,54 +599,6 @@ void ResetCDBVariantMemory(void* pThis) {
     pVar->m_dwType = DBVT_NULL;
     pVar->m_ptr = nullptr;
 }
-std::mutex g_maintainStateMutex;
-std::unordered_map<void*, MaintainStateRecord> g_maintainStateMap;
-void* MS_ABI enter_maintain_state(void* pThis, void* pState, bool useThreadLock) {
-    if (pThis == nullptr) {
-        return pThis;
-    }
-
-    MaintainStateRecord info{};
-    if (pState == nullptr) {
-        pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
-    }
-    info.prevModuleState = reinterpret_cast<LocalAFX_MODULE_STATE*>(impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(reinterpret_cast<AFX_MODULE_STATE*>(pState)));
-
-    if (useThreadLock) {
-        if (auto* threadState = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()) {
-            info.trackedThreadLock = true;
-            info.prevThreadLock = threadState->m_nTempMapLock;
-            ++threadState->m_nTempMapLock;
-        }
-    }
-
-    std::lock_guard<std::mutex> lock(g_maintainStateMutex);
-    g_maintainStateMap[pThis] = info;
-    return pThis;
-}
-void MS_ABI leave_maintain_state(void* pThis) {
-    if (pThis == nullptr) {
-        return;
-    }
-
-    MaintainStateRecord info{};
-    {
-        std::lock_guard<std::mutex> lock(g_maintainStateMutex);
-        auto it = g_maintainStateMap.find(pThis);
-        if (it == g_maintainStateMap.end()) {
-            return;
-        }
-        info = it->second;
-        g_maintainStateMap.erase(it);
-    }
-
-    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(reinterpret_cast<AFX_MODULE_STATE*>(info.prevModuleState));
-    if (info.trackedThreadLock) {
-        if (auto* threadState = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()) {
-            threadState->m_nTempMapLock = info.prevThreadLock;
-        }
-    }
-}
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCToolBarColorButton__SAPEAVCObject__XZ() {
     return new (std::nothrow) CMFCToolBarColorButtonObject();
 }

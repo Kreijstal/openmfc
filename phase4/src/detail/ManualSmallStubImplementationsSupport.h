@@ -643,32 +643,11 @@ struct AFX_MODULE_THREAD_STATE_ManualSmallStubImplementations {
 };
 } } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-struct MaintainStateRecord {
-    LocalAFX_MODULE_STATE* prevModuleState = nullptr;
-    bool trackedThreadLock = false;
-    int prevThreadLock = 0;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::mutex g_maintainStateMutex;
-} } }
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::unordered_map<void*, MaintainStateRecord> g_maintainStateMap;
-} } }
-
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE*);
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
 extern "C" AFX_MODULE_THREAD_STATE_ManualSmallStubImplementations* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-void* MS_ABI enter_maintain_state(void* pThis, void* pState, bool useThreadLock);
-} } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-void MS_ABI leave_maintain_state(void* pThis);
-} } }
 
 
 

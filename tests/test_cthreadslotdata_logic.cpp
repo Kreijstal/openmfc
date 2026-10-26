@@ -1,104 +1,75 @@
-// Behavioral test for CThreadSlotData. Drives the real exported impl_
-// functions and asserts concrete outcomes around TLS-backed slot storage.
+// Windows/MSVC behavioral coverage of native TLS slot ownership.
+#include "detail/CThreadSlotDataSupport.h"
 #include <cstdio>
-#include "../phase4/src/core/runtime/CThreadSlotData.cpp"
-
-static int g_fail = 0;
-
-static void check(const char* name, bool cond) {
-    printf("[%s] %s\n", cond ? "PASS" : "FAIL", name);
-    if (!cond)
-        g_fail = 1;
+extern "C" CThreadSlotData* MS_ABI impl___0CThreadSlotData__QEAA_XZ(CThreadSlotData*);
+extern "C" void MS_ABI impl___1CThreadSlotData__QEAA_XZ(CThreadSlotData*);
+extern "C" int MS_ABI impl__AllocSlot_CThreadSlotData__QEAAHXZ(CThreadSlotData*);
+extern "C" void MS_ABI impl__FreeSlot_CThreadSlotData__QEAAXH_Z(CThreadSlotData*, int);
+extern "C" void MS_ABI impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(CThreadSlotData*, int, void*);
+extern "C" void MS_ABI
+impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(CThreadSlotData*, HINSTANCE);
+extern "C" void MS_ABI
+impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(CThreadSlotData*, HINSTANCE, BOOL);
+static int failures, deleted;
+static void check(bool result, const char* text) {
+    printf("%s: %s\n", result ? "PASS" : "FAIL", text);
+    if (!result)
+        ++failures;
 }
-
+struct Value : CNoTrackObject {
+    ~Value() override { ++deleted; }
+};
 int main() {
-    CThreadSlotData d;
-    impl___0CThreadSlotData__QEAA_XZ(&d);
-
-    check("ctor: tlsIndex valid", d.m_tlsIndex != TLS_OUT_OF_INDEXES);
-    check("ctor: rover==1", d.m_nRover == 1);
-    check("ctor: max==0", d.m_nMax == 0);
-    check("ctor: list empty", d.m_list.m_pHead == nullptr);
-
-    // Allocate three slots; they must be distinct, positive, increasing.
-    int s1 = impl__AllocSlot_CThreadSlotData__QEAAHXZ(&d);
-    int s2 = impl__AllocSlot_CThreadSlotData__QEAAHXZ(&d);
-    int s3 = impl__AllocSlot_CThreadSlotData__QEAAHXZ(&d);
-    check("AllocSlot s1>0", s1 > 0);
-    check("AllocSlot distinct", s1 != s2 && s2 != s3 && s1 != s3);
-    check("AllocSlot increasing", s2 > s1 && s3 > s2);
-
-    // SetValue / GetThreadValue round-trip on this thread.
-    int v1 = 111, v2 = 222, v3 = 333;
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s1, &v1);
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s2, &v2);
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s3, &v3);
-    check("Get s1 round-trip", d.GetThreadValue(s1) == &v1);
-    check("Get s2 round-trip", d.GetThreadValue(s2) == &v2);
-    check("Get s3 round-trip", d.GetThreadValue(s3) == &v3);
-
-    // A thread node should now exist and be linked into m_list.
-    check("thread node linked", d.m_list.m_pHead != nullptr);
-
-    // Overwrite a value.
-    int v1b = 999;
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s1, &v1b);
-    check("overwrite value", d.GetThreadValue(s1) == &v1b);
-
-    // FreeSlot clears the per-thread value.
-    impl__FreeSlot_CThreadSlotData__QEAAXH_Z(&d, s2);
-    check("FreeSlot clears value", d.GetThreadValue(s2) == nullptr);
-    check("FreeSlot leaves others", d.GetThreadValue(s1) == &v1b &&
-                                     d.GetThreadValue(s3) == &v3);
-
-    // A freed slot should be reused by the next AllocSlot.
-    int s4 = impl__AllocSlot_CThreadSlotData__QEAAHXZ(&d);
-    check("AllocSlot reuses freed", s4 == s2);
-
-    // Out-of-range / unset slot returns null.
-    check("Get unset slot null", d.GetThreadValue(9999) == nullptr);
-
-    // AssignInstance tags used slots; DeleteValues(hInst) clears matching ones.
-    HINSTANCE hMod = (HINSTANCE)0x1234;
-    impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(&d, hMod);
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s4, &v2);
-    impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(&d, hMod, 1);
-    check("DeleteValues(hInst) cleared tagged",
-          d.GetThreadValue(s1) == nullptr && d.GetThreadValue(s3) == nullptr);
-
-    // DeleteValues with null hInst (current thread) clears everything.
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s1, &v1);
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s3, &v3);
-    impl__DeleteValues_CThreadSlotData__QEAAXPEAUCThreadData__PEAUHINSTANCE_____Z(
-        &d, nullptr, nullptr);
-    check("DeleteValues(all) cleared",
-          d.GetThreadValue(s1) == nullptr && d.GetThreadValue(s3) == nullptr);
-
-    // Harder: module-scoped DeleteValues must NOT clear a slot tagged to a
-    // different module. Fresh slot allocated AFTER AssignInstance(hMod) is
-    // untagged, so tag it explicitly to a second module via AssignInstance.
-    HINSTANCE hMod2 = (HINSTANCE)0x5678;
-    int s5 = impl__AllocSlot_CThreadSlotData__QEAAHXZ(&d);
-    impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(&d, hMod2);
-    int vx = 4242;
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(&d, s5, &vx);
-    // Delete values for hMod (the first module): s5 belongs to hMod2, survives.
-    impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(&d, hMod, 1);
-    check("DeleteValues scoping spares other module", d.GetThreadValue(s5) == &vx);
-    // Now delete for hMod2: s5 must clear.
-    impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(&d, hMod2, 1);
-    check("DeleteValues clears own module", d.GetThreadValue(s5) == nullptr);
-
-    // NULL-guard: must not crash.
-    impl__AllocSlot_CThreadSlotData__QEAAHXZ(nullptr);
-    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(nullptr, 1, &v1);
-    impl__FreeSlot_CThreadSlotData__QEAAXH_Z(nullptr, 1);
-    check("null-guards survived", true);
-
-    impl___1CThreadSlotData__QEAA_XZ(&d);
-    check("dtor: list emptied", d.m_list.m_pHead == nullptr);
-    check("dtor: tls freed", d.m_tlsIndex == TLS_OUT_OF_INDEXES);
-
-    printf("RESULT: %s\n", g_fail ? "FAILURE" : "SUCCESS");
-    return g_fail;
+    alignas(8) BYTE storage[88];
+    memset(storage, 0xcd, sizeof(storage));
+    auto* slots = reinterpret_cast<CThreadSlotData*>(storage);
+    check(impl___0CThreadSlotData__QEAA_XZ(slots) == slots &&
+              slots->m_tlsIndex != TLS_OUT_OF_INDEXES && slots->m_nRover == 1 && !slots->m_nMax &&
+              slots->m_list.m_nNextOffset == 8,
+          "constructor installs native TLS storage and the thread-node link offset");
+    int first = impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots),
+        second = impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots),
+        third = impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots);
+    check(first == 1 && second == 2 && third == 3 && slots->m_nAlloc == 32,
+          "slot storage grows by 32 entries and reserves slot zero");
+    auto* a = new Value;
+    auto* b = new Value;
+    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(slots, first, a);
+    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(slots, second, b);
+    auto* node = static_cast<CThreadData*>(slots->m_list.m_pHead);
+    check(node && node->nCount == slots->m_nMax && node->pData[first] == a &&
+              slots->GetThreadValue(second) == b,
+          "thread values occupy the native 32-byte node and round-trip through Windows TLS");
+    impl__FreeSlot_CThreadSlotData__QEAAXH_Z(slots, second);
+    check(deleted == 1 && !slots->GetThreadValue(second) && slots->GetThreadValue(first) == a,
+          "FreeSlot destroys owned values and preserves other slots");
+    int next = impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots);
+    check(next == 4, "allocation prefers its free rover before scanning older holes");
+    while (slots->m_nRover < slots->m_nAlloc)
+        impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots);
+    check(impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots) == second,
+          "allocation scans and reuses a released slot after reaching the table boundary");
+    HINSTANCE one = reinterpret_cast<HINSTANCE>(UINT_PTR(0x1234)),
+              two = reinterpret_cast<HINSTANCE>(UINT_PTR(0x5678));
+    impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(slots, one);
+    int other = impl__AllocSlot_CThreadSlotData__QEAAHXZ(slots);
+    auto* c = new Value;
+    impl__AssignInstance_CThreadSlotData__QEAAXPEAUHINSTANCE_____Z(slots, two);
+    impl__SetValue_CThreadSlotData__QEAAXHPEAX_Z(slots, other, c);
+    impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(slots, one, TRUE);
+    check(deleted == 2 && !slots->GetThreadValue(first) && slots->GetThreadValue(other) == c,
+          "module-filtered deletion destroys matching values and retains foreign values");
+    impl__DeleteValues_CThreadSlotData__QEAAXPEAUHINSTANCE____H_Z(slots, two, FALSE);
+    check(deleted == 3 && !slots->m_list.m_pHead && !TlsGetValue(slots->m_tlsIndex),
+          "deleting the final value unlinks and destroys its thread node");
+    DWORD tls = slots->m_tlsIndex;
+    impl___1CThreadSlotData__QEAA_XZ(slots);
+    check(slots->m_tlsIndex == tls,
+          "destruction releases resources without rewriting native scalar fields");
+    UINT64 guard;
+    memcpy(&guard, storage + 80, 8);
+    check(guard == 0xcdcdcdcdcdcdcdcdULL,
+          "TLS operations preserve the native 80-byte object boundary");
+    printf("%d failures\n", failures);
+    return failures ? 1 : 0;
 }

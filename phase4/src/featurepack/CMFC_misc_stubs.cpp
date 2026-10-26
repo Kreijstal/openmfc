@@ -683,10 +683,7 @@ namespace {
 int g_bPerUserRegistration = 0;
 void* g_pfnNewHandler = nullptr;
 
-// Process-wide refcounts for AfxTlsAddRef/Release and
-// AfxGlobalsAddRef/Release (see their implementations below for what each
-// pair actually gates in this codebase).
-LONG g_afxTlsRefCount = 0;
+// Reference count for AfxGlobalsAddRef/Release.
 LONG g_afxGlobalsRefCount = 0;
 
 // Backing store for AfxLockGlobals/AfxUnlockGlobals: an array of
@@ -1621,7 +1618,7 @@ extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void* p0) {
 // lazy-constructs itself independently via its own guards, so there is no
 // separate one-time construction step for this refcount to gate; it still
 // tracks the ref count itself, using g_afxGlobalsRefCount (declared near
-// the top of this file, alongside g_afxTlsRefCount).
+// the top of this file).
 extern "C" void MS_ABI impl__AfxGlobalsAddRef__YAXXZ() {
     ::InterlockedIncrement(&g_afxGlobalsRefCount);
 }
@@ -1678,27 +1675,6 @@ extern "C" int MS_ABI impl__AfxInitExtensionModule__YAHAEAUAFX_EXTENSION_MODULE_
     pState->pFirstSharedClass = nullptr;
     pState->pFirstSharedFactory = nullptr;
     return 1;
-}
-// Symbol: ?AfxInitLocalData@@YAXPEAUHINSTANCE__@@@Z
-extern "C" void MS_ABI impl__AfxInitLocalData__YAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {
-    // Records this module's instance/resource handle into the current
-    // AFX_MODULE_STATE (detail/RegcoreSupport.h layout: two HINSTANCEs
-    // followed by a CWinApp*), reusing the already-exported
-    // impl__AfxGetModuleState accessor rather than adding new state.
-    struct LocalModuleState {
-        void* vtable;
-        void* m_pCurrentWinApp;
-        HINSTANCE m_hCurrentInstanceHandle;
-        HINSTANCE m_hCurrentResourceHandle;
-    };
-    // AfxGetAppModuleState() is already declared (with plain C++ linkage,
-    // AFXAPI calling convention) in openmfc/afxwin.h -- no new declaration
-    // needed.
-    auto* pState = reinterpret_cast<LocalModuleState*>(AfxGetAppModuleState());
-    if (!pState) return;
-    HINSTANCE hInstance = reinterpret_cast<HINSTANCE>(p0);
-    pState->m_hCurrentInstanceHandle = hInstance;
-    pState->m_hCurrentResourceHandle = hInstance;
 }
 // Symbol: ?AfxInitNetworkAddressControl@@YAHXZ
 extern "C" int MS_ABI impl__AfxInitNetworkAddressControl__YAHXZ() {
@@ -3047,29 +3023,6 @@ extern "C" void MS_ABI impl__AfxTermExtensionModule__YAXAEAUAFX_EXTENSION_MODULE
     pState->pFirstSharedClass = nullptr;
     pState->pFirstSharedFactory = nullptr;
 }
-// Symbol: ?AfxTermLocalData@@YAXPEAUHINSTANCE__@@H@Z
-extern "C" void MS_ABI impl__AfxTermLocalData__YAXPEAUHINSTANCE____H_Z(void* /*struct*/* p0, int p1) {
-    // Mirror of AfxInitLocalData above: clears the current AFX_MODULE_STATE's
-    // instance/resource handles, either unconditionally (bAll) or only if
-    // they currently belong to the terminating module.
-    struct LocalModuleState {
-        void* vtable;
-        void* m_pCurrentWinApp;
-        HINSTANCE m_hCurrentInstanceHandle;
-        HINSTANCE m_hCurrentResourceHandle;
-    };
-    // AfxGetAppModuleState() is already declared (with plain C++ linkage,
-    // AFXAPI calling convention) in openmfc/afxwin.h -- no new declaration
-    // needed.
-    auto* pState = reinterpret_cast<LocalModuleState*>(AfxGetAppModuleState());
-    if (!pState) return;
-    HINSTANCE hInstance = reinterpret_cast<HINSTANCE>(p0);
-    const bool bAll = p1 != 0;
-    if (bAll || pState->m_hCurrentInstanceHandle == hInstance) {
-        pState->m_hCurrentInstanceHandle = nullptr;
-        pState->m_hCurrentResourceHandle = nullptr;
-    }
-}
 // Symbol: ?AfxTermThread@@YAXPEAUHINSTANCE__@@@Z
 extern "C" void MS_ABI impl__AfxTermThread__YAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {
     // OpenMFC keeps one global app/thread model rather than tracking state
@@ -3096,25 +3049,6 @@ extern "C" void MS_ABI impl__AfxTimeToFileTime__YAXAEBVCTime_ATL__PEAU_FILETIME_
     FILETIME* pft = reinterpret_cast<FILETIME*>(p1);
     pft->dwLowDateTime = static_cast<DWORD>(ft & 0xFFFFFFFFULL);
     pft->dwHighDateTime = static_cast<DWORD>(ft >> 32);
-}
-// Symbol: ?AfxTlsAddRef@@YAXXZ
-// Real MFC gates one-time TLS-index allocation on the 0->1 transition of a
-// process-wide refcount shared with AfxTlsRelease. OpenMFC's
-// CThreadSlotDataSupport.h models per-slot-table instances (each already
-// self-managing its own TLS index), not a single module-wide TLS index tied
-// to a refcount, so there is no allocation for this transition to gate;
-// this still tracks the refcount itself via g_afxTlsRefCount.
-extern "C" void MS_ABI impl__AfxTlsAddRef__YAXXZ() {
-    ::InterlockedIncrement(&g_afxTlsRefCount);
-}
-// Symbol: ?AfxTlsRelease@@YAXXZ
-extern "C" void MS_ABI impl__AfxTlsRelease__YAXXZ() {
-    if (::InterlockedDecrement(&g_afxTlsRefCount) == 0) {
-        // Real MFC frees the module's TLS index here on the last release.
-        // As noted above, OpenMFC has no shared TLS resource tied to this
-        // counter to free, so decrementing to zero is the complete, honest
-        // behavior here -- there is nothing to tear down.
-    }
 }
 // Symbol: ?AfxTrackerTerm@@YAXXZ
 extern "C" void MS_ABI impl__AfxTrackerTerm__YAXXZ() {
