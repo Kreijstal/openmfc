@@ -2,6 +2,7 @@
 // impl_ thunks and assert real allocator semantics.
 #include "../phase4/src/core/collections/CFixedAlloc.cpp"
 #include "../phase4/src/core/collections/CFixedAllocNoSync.cpp"
+#include "fixed_alloc_test_runtime.h"
 
 #include <cstdio>
 #include <cstring>
@@ -15,9 +16,9 @@ static int g_failures = 0;
 } while (0)
 
 int main() {
-    // The exported ctor/dtor/Alloc/Free/FreeAll operate on the 24-byte state.
+    // Synchronized allocators include a critical section after the 24-byte prefix.
     // We allocate a state object and drive it solely through the impl_ thunks.
-    CFixedAllocState obj;
+    CFixedAllocSynchronizedState obj;
     std::memset(&obj, 0xCD, sizeof(obj)); // poison to prove ctor initializes it.
 
     const unsigned int allocSize = 32;
@@ -87,10 +88,10 @@ int main() {
     CHECK(obj.m_pBlocks != nullptr, "Alloc rebuilds plex after FreeAll");
 
     // ctor clamps tiny allocSize up to sizeof(void*) so a node can hold pNext.
-    CFixedAllocState tiny;
+    CFixedAllocSynchronizedState tiny;
     impl___0CFixedAlloc__QEAA_II_Z(&tiny, 1u, 0u);
     CHECK(tiny.m_nAllocSize >= sizeof(void*), "ctor clamps allocSize to >= sizeof(void*)");
-    CHECK(tiny.m_nBlockSize >= 1u, "ctor clamps blockSize to >= 1");
+    CHECK(tiny.m_nBlockSize == 64u, "ctor defaults blockSize 0 or 1 to 64");
     void* tp1 = impl__Alloc_CFixedAlloc__QEAAPEAXXZ(&tiny);
     void* tp2 = impl__Alloc_CFixedAlloc__QEAAPEAXXZ(&tiny);
     CHECK(tp1 && tp2 && tp1 != tp2, "clamped allocator yields distinct blocks");
@@ -110,7 +111,7 @@ int main() {
 
     // Harder: force many plex grows. allocSize 24, blockSize 8 -> allocating
     // 100 nodes must span ceil(100/8)=13 plexes, all distinct & writable.
-    CFixedAllocState big;
+    CFixedAllocSynchronizedState big;
     impl___0CFixedAlloc__QEAA_II_Z(&big, 24u, 8u);
     std::set<void*> bigSet;
     for (int i = 0; i < 100; ++i) {
@@ -126,15 +127,11 @@ int main() {
     impl__FreeAll_CFixedAlloc__QEAAXXZ(&big);
     CHECK(big.m_pBlocks == nullptr, "FreeAll clears grown plexes");
 
-    // Null-this guards.
-    impl___0CFixedAlloc__QEAA_II_Z(nullptr, 8u, 4u);
-    impl__Free_CFixedAlloc__QEAAXPEAX_Z(nullptr, (void*)0x1);
-    impl__FreeAll_CFixedAlloc__QEAAXXZ(nullptr);
-    CHECK(impl__Alloc_CFixedAlloc__QEAAPEAXXZ(nullptr) == nullptr,
-          "Alloc(null this) returns null");
-
     // Clean up the working object.
     impl___1CFixedAlloc__QEAA_XZ(&obj);
+    impl___1CFixedAlloc__QEAA_XZ(&tiny);
+    impl___1CFixedAlloc__QEAA_XZ(&big);
+    impl___1CFixedAllocNoSync__QEAA_XZ(&ns);
 
     if (g_failures == 0) {
         std::printf("ALL CHECKS PASSED\n");

@@ -1,0 +1,67 @@
+name: Fixed allocator ABI
+on:
+  push:
+    paths:
+      - 'phase4/src/core/collections/CFixedAlloc.cpp'
+      - 'phase4/src/core/collections/CFixedAllocNoSync.cpp'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/CPlexSupport.h'
+      - 'tests/test_fixed_alloc_native.cpp'
+      - 'tests/test_cfixedalloc_logic.cpp'
+      - 'tests/test_cplex_logic.cpp'
+      - 'tests/fixed_alloc_test_runtime.h'
+      - 'tests/run_fixed_alloc.sh'
+      - '.github/workflows/fixed_alloc.yml'
+  pull_request:
+    paths:
+      - 'phase4/src/core/collections/CFixedAlloc*.cpp'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/CPlexSupport.h'
+      - 'tests/test_fixed_alloc_native.cpp'
+      - 'tests/test_cfixedalloc_logic.cpp'
+      - 'tests/test_cplex_logic.cpp'
+      - 'tests/fixed_alloc_test_runtime.h'
+      - 'tests/run_fixed_alloc.sh'
+      - '.github/workflows/fixed_alloc.yml'
+  workflow_dispatch:
+jobs:
+  allocator:
+    name: Allocator (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '/O2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run allocator ABI, exceptions and contention tests
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "FA_FLAGS=/nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.flags }}"
+          cl %FA_FLAGS% /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/tests/test_fixed_alloc_native.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CFixedAlloc.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CFixedAllocNoSync.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPlex.cpp" /Fe:test_fixed_alloc_native.exe /link /OPT:REF kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_fixed_alloc_native.exe
+          if errorlevel 1 exit /b %errorlevel%
+      - name: Compile and run allocator behavioral regressions
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "FA_FLAGS=/nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.flags }}"
+          cl %FA_FLAGS% /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/tests/test_cfixedalloc_logic.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPlex.cpp" /Fe:test_cfixedalloc_logic.exe /link /OPT:REF kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_cfixedalloc_logic.exe
+          if errorlevel 1 exit /b %errorlevel%
+          cl %FA_FLAGS% /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/tests/test_cplex_logic.cpp" /Fe:test_cplex_logic.exe /link /OPT:REF kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_cplex_logic.exe
+          if errorlevel 1 exit /b %errorlevel%

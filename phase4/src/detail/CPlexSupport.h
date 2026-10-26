@@ -47,8 +47,8 @@ struct CPlex {
 };
 
 
-// Round/guard against multiplication overflow when computing the element area
-// size. Returns false if nMax*cbElement (or +header) would overflow size_t.
+// Checked block sizing used by collection callers. CPlex::Create itself
+// preserves the native API's wrapping arithmetic.
 namespace openmfc { namespace detail { namespace cplex {
 inline bool ComputeBlockSize(unsigned __int64 nMax,
                              unsigned __int64 cbElement,

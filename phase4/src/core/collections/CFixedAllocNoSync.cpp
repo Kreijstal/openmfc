@@ -6,8 +6,9 @@
 #include "detail/CFixedAllocSupport.h"
 
 // Symbol: ??0CFixedAllocNoSync@@QEAA@II@Z
-extern "C" void MS_ABI impl___0CFixedAllocNoSync__QEAA_II_Z(CFixedAllocState* pThis, unsigned int nAllocSize, unsigned int nBlockSize) {
+extern "C" CFixedAllocState* MS_ABI impl___0CFixedAllocNoSync__QEAA_II_Z(CFixedAllocState* pThis, unsigned int nAllocSize, unsigned int nBlockSize) {
     fa_construct(pThis, nAllocSize, nBlockSize);
+    return pThis;
 }
 // Symbol: ??1CFixedAllocNoSync@@QEAA@XZ
 extern "C" void MS_ABI impl___1CFixedAllocNoSync__QEAA_XZ(CFixedAllocState* pThis) {

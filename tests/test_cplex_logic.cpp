@@ -5,6 +5,7 @@
 // exported ABI wrappers.
 
 #include "../phase4/src/core/collections/CPlex.cpp"
+#include "fixed_alloc_test_runtime.h"
 
 #include <cstdio>
 #include <cstring>
@@ -72,20 +73,16 @@ int main() {
         static_cast<unsigned char*>(b0->data())[0] == 0x03;
     CHECK(distinct, "three blocks hold independent, non-overlapping data");
 
-    // 5. Invalid args are rejected (nMax==0, cbElement==0, null head).
+    // Zero counts/sizes raise the framework invalid-argument exception.
     CPlex* head2 = nullptr;
-    CHECK(impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&head2, 0, 16) == nullptr,
-          "Create with nMax==0 returns null");
-    CHECK(impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&head2, 4, 0) == nullptr,
-          "Create with cbElement==0 returns null");
-    CHECK(head2 == nullptr, "rejected Create leaves head untouched");
-    CHECK(impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(nullptr, 4, 16) == nullptr,
-          "Create with null head pointer returns null");
-    // Overflow guard: nMax*cbElement would wrap size_t.
-    CHECK(impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(
-              &head2, UINT64_C(0xFFFFFFFFFFFFFFFF), 2) == nullptr,
-          "Create rejects size overflow");
-    CHECK(head2 == nullptr, "head still untouched after overflow rejection");
+    bool invalidCount=false,invalidSize=false;
+    try {impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&head2,0,16);} catch(int n) {invalidCount=n==19;}
+    try {impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&head2,4,0);} catch(int n) {invalidSize=n==19;}
+    CHECK(invalidCount && invalidSize && !head2,"invalid CPlex arguments throw and leave the head untouched");
+    // Native unsigned size arithmetic wraps before adding the header.
+    CPlex* wrapped=impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&head2,UINT64_C(1)<<63,2);
+    CHECK(wrapped && head2==wrapped,"CPlex preserves native wrapping size arithmetic");
+    impl__FreeDataChain_CPlex__QEAAXXZ(head2);
 
     // 6. FreeDataChain frees the entire 3-block chain (no crash, no leak path).
     //    Build a fresh chain and free via the exported impl.
