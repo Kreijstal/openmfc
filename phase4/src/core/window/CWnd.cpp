@@ -962,13 +962,7 @@ extern "C" void MS_ABI impl__GetScrollRange_CWnd__QEBAXHPEAH0_Z(
         ::GetScrollRange(pThis->m_hWnd, nBar, pMinPos, pMaxPos);
     }
 }
-// Symbol: ?IsDialogMessageW@CWnd@@QEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
-    if (!pThis || !pThis->m_hWnd || !pMsg) {
-        return FALSE;
-    }
-    return ::IsDialogMessageW(pThis->m_hWnd, pMsg);
-}
+
 // Symbol: ?SendChildNotifyLastMsg@CWnd@@QEAAHPEA_J@Z
 extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThis, LONGLONG* pResult) {
     return pThis ? pThis->SendChildNotifyLastMsg(pResult) : FALSE;
@@ -1205,10 +1199,7 @@ extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLI
 extern "C" void MS_ABI impl__PreSubclassWindow_CWnd__UEAAXXZ(CWnd* pThis) {
     CWnd_PreSubclassWindowCompat(pThis);
 }
-// Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) {
-    return CWnd_PreTranslateMessageCompat(pThis, pMsg);
-}
+
 // Symbol: ?OnCommand@CWnd@@MEAAH_K_J@Z
 extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd* pThis, WPARAM wParam, LPARAM lParam) {
     if (!pThis) {
@@ -1422,7 +1413,8 @@ void CWnd::ActivateTopParent()
     if (!m_hWnd) {
         return;
     }
-    HWND hTop = static_cast<HWND>(GetTopLevelParent());
+    CWnd* top=GetTopLevelParent();
+    HWND hTop=top ? top->GetSafeHwnd() : nullptr;
     if (!hTop) {
         return;
     }
@@ -2107,24 +2099,8 @@ COleControlSite* CWnd::GetOleControlSite(UINT p0) const
     }
     return pContainer->FindItem(p0);
 }
-CFrameWnd* CWnd::GetParentFrame() const
-{
-    CWnd* pParent = GetParent();
-    while (pParent) {
-        if (auto* pFrame = dynamic_cast<CFrameWnd*>(pParent)) {
-            return pFrame;
-        }
-        pParent = pParent->GetParent();
-    }
-    return nullptr;
-}
-void* CWnd::GetParentOwner() const
-{
-    if (!m_hWnd) {
-        return nullptr;
-    }
-    return static_cast<void*>(GetTopLevelOwner());
-}
+
+
 COleControlSiteOrWnd* CWnd::GetPrevDlgGroupItem(void* p0) const
 {
     if (!m_hWnd) {
@@ -2163,49 +2139,9 @@ WNDPROC* CWnd::GetSuperWndProcAddr()
 {
     static WNDPROC super=nullptr;return &super;
 }
-CFrameWnd* CWnd::GetTopLevelFrame() const
-{
-    CWnd* pWnd = const_cast<CWnd*>(this)->GetTopLevelParent() ? CWnd::FromHandle(
-        static_cast<HWND>(const_cast<CWnd*>(this)->GetTopLevelParent())) : nullptr;
-    while (pWnd) {
-        CFrameWnd* pFrame = dynamic_cast<CFrameWnd*>(pWnd);
-        if (pFrame) {
-            return pFrame;
-        }
-        pWnd = pWnd->GetParent();
-    }
-    return nullptr;
-}
-void* CWnd::GetTopLevelOwner() const
-{
-    if (!m_hWnd) {
-        return nullptr;
-    }
-    HWND hOwner = ::GetWindow(m_hWnd, GW_OWNER);
-    if (!hOwner) {
-        return m_hWnd;
-    }
-    HWND hPrevOwner = hOwner;
-    while ((hPrevOwner = ::GetWindow(hPrevOwner, GW_OWNER)) != nullptr) {
-        hOwner = hPrevOwner;
-    }
-    return hOwner;
-}
-void* CWnd::GetTopLevelParent() const
-{
-    if (!m_hWnd) {
-        return nullptr;
-    }
-    CWnd* pParent = GetParent();
-    if (!pParent) {
-        return m_hWnd;
-    }
-    CWnd* pTop = pParent;
-    while (pTop && pTop->GetParent()) {
-        pTop = pTop->GetParent();
-    }
-    return pTop ? pTop->m_hWnd : m_hWnd;
-}
+
+
+
 long CWnd::GetWindowLessChildCount()
 {
     if (!m_hWnd) {
@@ -2318,17 +2254,7 @@ UINT CWnd::IsDlgButtonChecked(int p0) const
     }
     return static_cast<UINT>(::SendMessageW(hControl, BM_GETCHECK, 0, 0));
 }
-int CWnd::IsTopParentActive() const
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    HWND hWndTop = static_cast<HWND>(GetTopLevelParent());
-    if (!hWndTop) {
-        return FALSE;
-    }
-    return (::GetActiveWindow() == hWndTop || ::GetForegroundWindow() == hWndTop) ? TRUE : FALSE;
-}
+
 int CWnd::MessageBoxW(const WCHAR* p0, const WCHAR* p1, UINT p2)
 {
     return static_cast<int>(::MessageBoxW(m_hWnd, p0, p1, p2));
@@ -2941,8 +2867,8 @@ BOOL CWnd::PreTranslateInput(MSG* p0)
 // Deviations: OpenMFC objects carry no MSVC vtable, so IsFrameWnd is answered by
 // IsKindOf(RUNTIME_CLASS(CFrameWnd)) and ExitHelpMode is called through its
 // exported thunk (a client override of either is not reached).  This build's
-// GetTopLevelParent() returns the top-level ancestor HWND rather than a CWnd*,
-// so the ENSURE is applied to that handle.  This build's static
+// GetTopLevelParent() supplies the native CWnd wrapper; its window handle is
+// used for the cancellation broadcasts.  This build's static
 // CWnd::SendMessageToDescendants(HWND, ...) (defined above in this file) is
 // NOT a transcription of retail 0x28e600: retail sends through
 // FromHandlePermanent when bOnlyPerm is set and recurses when bDeep is set,
@@ -2958,7 +2884,8 @@ void CWnd::PrepareForHelp()
     ::SendMessage(m_hWnd, WM_CANCELMODE, 0, 0);
     SendMessageToDescendants(m_hWnd, WM_CANCELMODE, 0, 0, TRUE, TRUE);
 
-    HWND hWndTop = static_cast<HWND>(GetTopLevelParent());
+    CWnd* top=GetTopLevelParent();
+    HWND hWndTop=top ? top->GetSafeHwnd() : nullptr;
     if (hWndTop == nullptr) {
         impl__AfxThrowInvalidArgException__YAXXZ();
     }
@@ -3111,14 +3038,7 @@ void CWnd::SetDlgItemTextW(int p0, const WCHAR* p1)
     }
     ::SetDlgItemTextW(m_hWnd, p0, p1 ? p1 : L"");
 }
-void* CWnd::SetFocus()
-{
-    if (!m_hWnd) {
-        return nullptr;
-    }
-    HWND hWndOld = ::SetFocus(m_hWnd);
-    return hWndOld ? CWnd::FromHandle(hWndOld) : nullptr;
-}
+
 int CWnd::SetGestureConfig(CGestureConfig* p0)
 {
     if (!m_hWnd) {
@@ -3298,8 +3218,8 @@ void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int 
 // not test the path.  The app is reached through AfxGetApp() (this build's
 // AfxGetThread()-based stand-in for AfxGetModuleState()->m_pCurrentWinApp,
 // which is what the module-state shadow itself is populated from; see
-// detail/RegcoreSupport.cpp) and GetTopLevelParent() yields
-// the ancestor HWND directly (see PrepareForHelp).  The wait cursor is ended
+// detail/RegcoreSupport.cpp). GetTopLevelParent() returns the native wrapper,
+// whose window handle is used below (see PrepareForHelp).  The wait cursor is ended
 // before the ENSURE throw: retail's CWaitCursor is a stack object, so its
 // destructor runs during unwinding (that path is not visible in the linear
 // disassembly above).
@@ -3314,7 +3234,8 @@ extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned lon
     }
     impl__BeginWaitCursor_CCmdTarget__QEAAXXZ(pApp);
     pThis->PrepareForHelp();
-    HWND hWndTop = static_cast<HWND>(pThis->GetTopLevelParent());
+    CWnd* top=pThis->GetTopLevelParent();
+    HWND hWndTop=top ? top->GetSafeHwnd() : nullptr;
     if (hWndTop == nullptr) {
         impl__EndWaitCursor_CCmdTarget__QEAAXXZ(pApp);
         impl__AfxThrowInvalidArgException__YAXXZ();

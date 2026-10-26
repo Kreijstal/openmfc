@@ -857,14 +857,14 @@ public:
     COleControlSiteOrWnd* GetNextDlgTabItem(void* p0, int p1) const;
     COleControlSite* GetOleControlSite(UINT p0) const;
     CFrameWnd* GetParentFrame() const;
-    void* GetParentOwner() const;
+    CWnd* GetParentOwner() const;
     COleControlSiteOrWnd* GetPrevDlgGroupItem(void* p0) const;
     void GetProperty(long p0, WORD p1, void* p2) const;
     CHwndRenderTarget* GetRenderTarget();
     DWORD GetStyle() const;
     CFrameWnd* GetTopLevelFrame() const;
-    void* GetTopLevelOwner() const;
-    void* GetTopLevelParent() const;
+    CWnd* GetTopLevelOwner() const;
+    CWnd* GetTopLevelParent() const;
     long GetWindowLessChildCount();
     int GetWindowPlacement(WINDOWPLACEMENT* p0) const;
     long GetWindowedChildCount();
@@ -873,6 +873,7 @@ public:
     void InvokeHelper(long p0, WORD p1, void* p2, VARIANT* p3);
     UINT IsDlgButtonChecked(int p0) const;
     int IsTopParentActive() const;
+    BOOL IsDialogMessageW(MSG*);
     int IsTouchWindow() const;
     int MessageBoxW(const WCHAR* p0, const WCHAR* p1, UINT p2);
     LONGLONG OnActivateTopLevel(ULONGLONG p0, LONGLONG p1);
@@ -929,7 +930,7 @@ public:
     BOOL SetDlgCtrlID(int p0);
     void SetDlgItemInt(int p0, UINT p1, int p2);
     void SetDlgItemTextW(int p0, const WCHAR* p1);
-    void* SetFocus();
+    CWnd* SetFocus();
     int SetGestureConfig(CGestureConfig* p0);
     int SetProperty(long p0, WORD p1, void* p2);
     int SetScrollInfo(int p0, SCROLLINFO* p1, int p2);
@@ -3557,6 +3558,8 @@ public:
     void DoDataExchange(void*);
     void OnInitialUpdate() override;
     void OnDraw(void*) override;
+    BOOL PreTranslateMessage(MSG*) override;
+    void OnActivateView(BOOL,CView*,CView*) override;
     void OnActivateFrame(UINT,CFrameWnd*) override;
     BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) override;
     _AFX_OCC_DIALOG_INFO* GetOccDialogInfo() override;

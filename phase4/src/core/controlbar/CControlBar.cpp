@@ -228,12 +228,8 @@ inline HWND ParentOwnerHwnd(HWND hWnd) {
 //     HWND hWndT = m_hWnd, h;
 //     while ((h = AfxGetParentOwner(hWndT)) != NULL) hWndT = h;
 //     return CWnd::FromHandle(hWndT);
-// Kept as the HWND here (the bodies below only compare the results and pass
-// them to ::IsWindowEnabled).  DO NOT route this through the exported thunk
-// impl__GetTopLevelParent_CWnd__QEBAPEAV1_XZ (core/window/Thunks.cpp): it
-// returns CWnd::GetTopLevelParent(), which in this tree is a `void*` holding
-// the top-level HWND, not the CWnd* its mangled name promises, so reading
-// m_hWnd through its result faults.
+// Kept as an HWND here because these handlers compare handles and pass them
+// directly to IsWindowEnabled. The exported CWnd method returns a wrapper.
 inline HWND TopLevelParentHwnd(const CWnd* pWnd) {
     if (pWnd == nullptr || pWnd->m_hWnd == nullptr) return nullptr;
     HWND hTop = pWnd->m_hWnd;

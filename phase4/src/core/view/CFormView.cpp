@@ -6,8 +6,6 @@
 #include "detail/DocviewSupport.h"
 
 
-extern "C" void MS_ABI impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(CView*,int,CView*,CView*);
-
 // Symbol: ??0CFormView@@IEAA@PEB_W@Z
 extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(
     CFormView* pThis, const wchar_t* lpszTemplateName)
@@ -24,10 +22,6 @@ extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFormView__UEBAPEAUCRuntimeClass__XZ(const CFormView*) { return &CFormView::classCFormView; }
 // Symbol: ?GetThisClass@CFormView@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &CFormView::classCFormView; }
-// Symbol: ?OnActivateView@CFormView@@MEAAXHPEAVCView@@0@Z
-extern "C" void MS_ABI impl__OnActivateView_CFormView__MEAAXHPEAVCView__0_Z(CFormView* pThis, int active, CView* av, CView* dv) { impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(pThis, active, av, dv); }
-// Symbol: ?PreTranslateMessage@CFormView@@MEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__PreTranslateMessage_CFormView__MEAAHPEAUtagMSG___Z(CFormView* pThis, MSG* msg) { return pThis && pThis->m_hWnd && msg ? ::IsDialogMessageW(pThis->m_hWnd, msg) : FALSE; }
 CFormView::~CFormView() { CleanupFormView(this); }
 void CFormView::OnDraw(void* pDC) { impl__OnDraw_CFormView__UEAAXPEAX_Z(this, pDC); }
 void CFormView::DoDataExchange(void* pDX) { impl__DoDataExchange_CFormView__UEAAXPEAX_Z(this, pDX); }

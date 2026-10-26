@@ -325,7 +325,8 @@ void CFrameWnd::AddFrameWnd() {
 }
 void CFrameWnd::BeginModalState() {
     auto& state = GetFrameRuntimeState(this);
-    HWND hOwner = static_cast<HWND>(GetTopLevelOwner());
+    CWnd* owner=GetTopLevelOwner();
+    HWND hOwner=owner ? owner->GetSafeHwnd() : nullptr;
     if (!hOwner || hOwner == m_hWnd) {
         ++state.modalDepth;
         return;

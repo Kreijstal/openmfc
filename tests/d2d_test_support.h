@@ -169,7 +169,6 @@ extern "C" int MS_ABI impl__OnGestureTwoFingerTap_CWnd__MEAAHVCPoint___Z(
 extern "C" int MS_ABI impl__OnGesturePressAndTap_CWnd__MEAAHVCPoint__J_Z(
     CWnd* pThis, CPoint pt, long dwExtraInfo) { std::abort(); }
 
-extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg) { std::abort(); }
 
 BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
 BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }
@@ -208,6 +207,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertySheet__SAPEAUCRu
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &g_layoutForm; }
 CWnd* g_layoutParent=nullptr;
 CWnd* (*g_messageWindowLookup)(HWND)=nullptr;
+CWnd* (*g_messagePermanentWindowLookup)(HWND)=nullptr;
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
     if(g_messageWindowLookup)return g_messageWindowLookup(handle);
     if(!handle)return nullptr;
@@ -215,6 +215,7 @@ extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handl
     std::abort();
 }
 extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
+    if(g_messagePermanentWindowLookup)return g_messagePermanentWindowLookup(handle);
     return g_messageWindowLookup ? g_messageWindowLookup(handle) : nullptr;
 }
 // Menu/GDI map ownership is peripheral to window argument decoding.
@@ -276,8 +277,6 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ(){return nullptr;}
 extern "C" BOOL MS_ABI impl__GetPrinterDeviceDefaults_CWinApp__QEAAHPEAUtagPDW___Z(CWinApp*,PRINTDLGW*){std::abort();}
 extern "C" HDC MS_ABI impl__AfxCreateDC__YAPEAUHDC____PEAX0_Z(void*,void*){std::abort();}
 extern "C" CFrameWnd* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA=nullptr;
-extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd*){std::abort();}
-extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* window){SetFocus(window->m_hWnd);return nullptr;}
 extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd*){}
 extern "C" BOOL MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*){std::abort();}
 CRuntimeClass g_fontTestToolbarClass{"CMFCToolBar",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};

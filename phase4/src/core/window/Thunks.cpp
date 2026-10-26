@@ -1319,16 +1319,8 @@ extern "C" _AFX_OCC_DIALOG_INFO* MS_ABI impl__GetOccDialogInfo_CWnd__MEAAPEAU_AF
 extern "C" COleControlSite* MS_ABI impl__GetOleControlSite_CWnd__QEBAPEAVCOleControlSite__I_Z(const CWnd* pThis, unsigned int p0) {
     return (COleControlSite*)pThis->GetOleControlSite(p0);
 }
-// Symbol: ?GetParentFrame@CWnd@@QEBAPEAVCFrameWnd@@XZ
-// CWnd::GetParentFrame
-extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis) {
-    return (CFrameWnd*)pThis->GetParentFrame();
-}
-// Symbol: ?GetParentOwner@CWnd@@QEBAPEAV1@XZ
-// CWnd::GetParentOwner
-extern "C" void* MS_ABI impl__GetParentOwner_CWnd__QEBAPEAV1_XZ(const CWnd* pThis) {
-    return (void*)pThis->GetParentOwner();
-}
+
+
 // Symbol: ?GetPrevDlgGroupItem@CWnd@@QEBAPEAUCOleControlSiteOrWnd@@PEAU2@@Z
 // CWnd::GetPrevDlgGroupItem
 extern "C" COleControlSiteOrWnd* MS_ABI impl__GetPrevDlgGroupItem_CWnd__QEBAPEAUCOleControlSiteOrWnd__PEAU2__Z(const CWnd* pThis, void* p0) {
@@ -1349,21 +1341,9 @@ extern "C" unsigned long MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis) 
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CWnd__KAPEBUAFX_INTERFACEMAP__XZ() {
     return (const AFX_INTERFACEMAP*)CWnd::GetThisInterfaceMap();
 }
-// Symbol: ?GetTopLevelFrame@CWnd@@QEBAPEAVCFrameWnd@@XZ
-// CWnd::GetTopLevelFrame
-extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis) {
-    return (CFrameWnd*)pThis->GetTopLevelFrame();
-}
-// Symbol: ?GetTopLevelOwner@CWnd@@QEBAPEAV1@XZ
-// CWnd::GetTopLevelOwner
-extern "C" void* MS_ABI impl__GetTopLevelOwner_CWnd__QEBAPEAV1_XZ(const CWnd* pThis) {
-    return (void*)pThis->GetTopLevelOwner();
-}
-// Symbol: ?GetTopLevelParent@CWnd@@QEBAPEAV1@XZ
-// CWnd::GetTopLevelParent
-extern "C" void* MS_ABI impl__GetTopLevelParent_CWnd__QEBAPEAV1_XZ(const CWnd* pThis) {
-    return (void*)pThis->GetTopLevelParent();
-}
+
+
+
 // Symbol: ?GetWindowedChildCount@CWnd@@QEAAJXZ
 // CWnd::GetWindowedChildCount
 extern "C" long MS_ABI impl__GetWindowedChildCount_CWnd__QEAAJXZ(CWnd* pThis) {
@@ -1399,11 +1379,7 @@ extern "C" int MS_ABI impl__InitControlContainer_CWnd__IEAAHH_Z(CWnd* pThis, int
 extern "C" unsigned int MS_ABI impl__IsDlgButtonChecked_CWnd__QEBAIH_Z(const CWnd* pThis, int p0) {
     return (unsigned int)pThis->IsDlgButtonChecked(p0);
 }
-// Symbol: ?IsTopParentActive@CWnd@@QEBAHXZ
-// CWnd::IsTopParentActive
-extern "C" int MS_ABI impl__IsTopParentActive_CWnd__QEBAHXZ(const CWnd* pThis) {
-    return (int)pThis->IsTopParentActive();
-}
+
 // Symbol: ?MeasureItem@CMenu@@UEAAXPEAUtagMEASUREITEMSTRUCT@@@Z
 // CMenu::MeasureItem
 extern "C" void MS_ABI impl__MeasureItem_CMenu__UEAAXPEAUtagMEASUREITEMSTRUCT___Z(CMenu* pThis, MEASUREITEMSTRUCT* p0) {
@@ -1614,11 +1590,7 @@ extern "C" void MS_ABI impl__SetDlgItemInt_CWnd__QEAAXHIH_Z(CWnd* pThis, int p0,
 extern "C" void MS_ABI impl__SetDlgItemTextW_CWnd__QEAAXHPEB_W_Z(CWnd* pThis, int p0, const wchar_t* p1) {
     pThis->SetDlgItemTextW(p0, p1);
 }
-// Symbol: ?SetFocus@CWnd@@QEAAPEAV1@XZ
-// CWnd::SetFocus
-extern "C" void* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis) {
-    return (void*)pThis->SetFocus();
-}
+
 // Symbol: ?SetGestureConfig@CWnd@@QEAAHPEAVCGestureConfig@@@Z
 // CWnd::SetGestureConfig
 extern "C" int MS_ABI impl__SetGestureConfig_CWnd__QEAAHPEAVCGestureConfig___Z(CWnd* pThis, CGestureConfig* p0) {

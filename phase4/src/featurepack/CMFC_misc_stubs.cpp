@@ -1559,11 +1559,6 @@ extern "C" void MS_ABI impl__AfxGetModuleShortFileName__YAXPEAUHINSTANCE____AEAV
 extern "C" void* MS_ABI impl__AfxGetNewHandler__YAP6AH_K_ZXZ() {
     return g_pfnNewHandler;
 }
-// Symbol: ?AfxGetParentOwner@@YAPEAUHWND__@@PEAU1@@Z
-extern "C" void* MS_ABI impl__AfxGetParentOwner__YAPEAUHWND____PEAU1__Z(void* /*struct*/* p0) {
-    auto* pWnd = CWnd::FromHandle(reinterpret_cast<HWND>(p0));
-    return pWnd ? pWnd->GetParentOwner() : nullptr;
-}
 // Symbol: ?AfxGetPerUserRegistration@@YAHXZ
 extern "C" int MS_ABI impl__AfxGetPerUserRegistration__YAHXZ() {
     return g_bPerUserRegistration;
