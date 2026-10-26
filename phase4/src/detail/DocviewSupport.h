@@ -228,7 +228,7 @@ extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(CView* pThis, v
 extern "C" void MS_ABI impl__OnEndPrinting_CView__UEAAXPEAX0_Z(CView* pThis, void* pDC, void* pInfo);
 extern "C" void MS_ABI impl__OnActivateView_CView__UEAAXHPEAV1_0_Z(CView* pThis, int bActivate, CView* pActivateView, CView* pDeactiveView);
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CView__UEBAPEAVCFrameWnd__XZ(const CView* pThis);
-extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine);
+extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE* sizePage, const SIZE* sizeLine);
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(CScrollView* pThis, int nMapMode, const SIZE* sizeTotal, const SIZE* sizePage, const SIZE* sizeLine);
 extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* pThis);
 extern "C" void MS_ABI impl__OnDraw_CScrollView__UEAAXPEAX_Z(CScrollView* pThis, void* pDC);
@@ -442,7 +442,7 @@ extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z
 
 // Missing ABI variant with by-value first size argument and matching const refs
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(
-    CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine);
+    CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE* sizePage, const SIZE* sizeLine);
 
 // OnInitialUpdate (CScrollView override)
 extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* pThis);

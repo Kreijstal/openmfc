@@ -2235,10 +2235,13 @@ public:
     virtual ~CClientDC();
 
 public:
-    CWnd* m_pWnd;
+    HWND m_hWnd;
 
-protected:
+private:
+    struct AcquisitionState {void* vtable;HDC output;};
+    CClientDC(CWnd*,AcquisitionState);
 };
+static_assert(sizeof(CClientDC)==40 && offsetof(CClientDC,m_hWnd)==32,"native borrowed DC layout");
 
 // CPaintDC - Painting device context
 class CPaintDC : public CDC {
@@ -2261,10 +2264,13 @@ public:
     virtual ~CWindowDC();
 
 public:
-    CWnd* m_pWnd;
+    HWND m_hWnd;
 
-protected:
+private:
+    struct AcquisitionState {void* vtable;HDC output;};
+    CWindowDC(CWnd*,AcquisitionState);
 };
+static_assert(sizeof(CWindowDC)==40 && offsetof(CWindowDC,m_hWnd)==32,"native borrowed DC layout");
 
 // CMetaFileDC - Metafile device context
 class CMetaFileDC : public CDC {
@@ -3515,7 +3521,7 @@ public:
     virtual ~CScrollView();
     const AFX_MSGMAP* GetMessageMap() const override;
     static const AFX_MSGMAP* GetThisMessageMap();
-    void SetScrollSizes(int,const SIZE&,const SIZE& = {0,0},const SIZE& = {0,0});
+    void SetScrollSizes(int,SIZE,const SIZE& = {0,0},const SIZE& = {0,0});
     void GetScrollBarSizes(SIZE&);
     BOOL GetTrueClientSize(SIZE&,SIZE&);
     void GetDeviceScrollSizes(int&,SIZE&,SIZE&,SIZE&) const;
@@ -3533,7 +3539,8 @@ public:
     void OnVScroll(UINT,UINT,CScrollBar*);
     BOOL DoMouseWheel(UINT,short,CPoint);
     BOOL OnMouseWheel(UINT,short,CPoint);
-    void FillOutsideRect(void*,void*);
+    void FillOutsideRect(CDC*,CBrush*);
+    void CenterOnPoint(CPoint);
     void ResizeParentToFit(BOOL = TRUE);
     void OnDraw(void*) override;
     // These convenience overrides do not add slots to the native table.

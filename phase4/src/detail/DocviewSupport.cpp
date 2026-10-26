@@ -197,50 +197,9 @@ extern "C" void MS_ABI impl___0CScrollView__QEAA_XZ(CScrollView* pThis) {
     pThis->m_bCenter=FALSE; pThis->m_bInsideUpdate=FALSE;
 }
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(
-    CScrollView* pThis, int nMapMode, const SIZE* sizeTotal,
-    const SIZE* sizePage, const SIZE* sizeLine)
-{
-    if (!pThis) return;
-
-    pThis->m_nMapMode = nMapMode;
-    pThis->m_totalLog = *sizeTotal;
-
-    if (sizePage && (sizePage->cx > 0 || sizePage->cy > 0)) {
-        pThis->m_pageDev = *sizePage;
-    } else {
-        pThis->m_pageDev.cx = sizeTotal->cx / 10;
-        pThis->m_pageDev.cy = sizeTotal->cy / 10;
-    }
-
-    if (sizeLine && (sizeLine->cx > 0 || sizeLine->cy > 0)) {
-        pThis->m_lineDev = *sizeLine;
-    } else {
-        pThis->m_lineDev.cx = pThis->m_pageDev.cx / 10;
-        pThis->m_lineDev.cy = pThis->m_pageDev.cy / 10;
-    }
-
-    if (pThis->m_hWnd) {
-        // Update scroll bars
-        SCROLLINFO si = { sizeof(si) };
-        si.fMask = SIF_PAGE | SIF_RANGE;
-        si.nMin = 0;
-        si.nMax = sizeTotal->cx;
-        si.nPage = pThis->m_pageDev.cx;
-        ::SetScrollInfo(pThis->m_hWnd, SB_HORZ, &si, TRUE);
-
-        si.nMax = sizeTotal->cy;
-        si.nPage = pThis->m_pageDev.cy;
-        ::SetScrollInfo(pThis->m_hWnd, SB_VERT, &si, TRUE);
-    }
-}
-// Symbol: ?SetScrollSizes@CScrollView@@QEAAXHUtagSIZE@@AEBU2@1@Z
-extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__QEAAXHUtagSIZE__AEBU2_1_Z(
-    CScrollView* pThis, int nMapMode, SIZE sizeTotal, const SIZE& sizePage, const SIZE& sizeLine)
-{
-    if (!pThis) return;
-
-    impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(
-        pThis, nMapMode, &sizeTotal, &sizePage, &sizeLine);
+    CScrollView* self, int mode, const SIZE* total, const SIZE* page, const SIZE* line) {
+    const SIZE defaultSize{};
+    self->SetScrollSizes(mode,*total,page?*page:defaultSize,line?*line:defaultSize);
 }
 extern "C" void MS_ABI impl__OnInitialUpdate_CScrollView__UEAAXXZ(CScrollView* pThis) {
     if (pThis) {

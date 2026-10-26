@@ -316,6 +316,7 @@ static void ownershipAndRecreation() {
 #include "window_scrolling_tests.h"
 #include "scroll_view_input_tests.h"
 #include "scroll_view_sizing_tests.h"
+#include "scroll_view_coordinate_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -328,6 +329,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    if(borrowedDCTerminationChild())return 0;
     if(auxDataTerminationChild())return 0;
     if(recordsetFieldNameTerminationChild())return 0;
     if(recordsetRequeryTerminationChild())return 0;
@@ -380,6 +382,7 @@ int main() {
     if (SUCCEEDED(hr)) windowScrolling();
     if (SUCCEEDED(hr)) scrollViewInput();
     if (SUCCEEDED(hr)) scrollViewSizing();
+    if (SUCCEEDED(hr)) scrollViewCoordinates();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

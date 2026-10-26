@@ -236,9 +236,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CGdiObject__SAPEAVCObject__XZ() {
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetThisClass@CPalette@@SAPEAUCRuntimeClass@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?GetRuntimeClass@CClientDC@@UEBAPEAUCRuntimeClass@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?GetThisClass@CClientDC@@SAPEAUCRuntimeClass@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetRuntimeClass@CRgn@@UEBAPEAUCRuntimeClass@@XZ
@@ -250,16 +248,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRgn__UEBAPEAUCRuntimeCla
 // Symbol: ?GetThisClass@CRgn@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRgn__SAPEAUCRuntimeClass__XZ() {
     return CRgn::GetThisClass();
-}
-// Symbol: ?GetRuntimeClass@CWindowDC@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWindowDC__UEBAPEAUCRuntimeClass__XZ(
-    const CWindowDC* pThis) {
-    (void)pThis;
-    return CWindowDC::GetThisClass();
-}
-// Symbol: ?GetThisClass@CWindowDC@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWindowDC__SAPEAUCRuntimeClass__XZ() {
-    return CWindowDC::GetThisClass();
 }
 // Symbol: ?GetThisClass@CMetaFileDC@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMetaFileDC__SAPEAUCRuntimeClass__XZ() {

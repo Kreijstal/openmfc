@@ -1138,20 +1138,10 @@ extern "C" int MS_ABI impl__Create_CFormView__MEAAHPEB_W0KAEBUtagRECT__PEAVCWnd_
 extern "C" int MS_ABI impl__CreateControlSite_CDHtmlDialog__UEAAHPEAVCOleControlContainer__PEAPEAVCOleControlSite__IAEBU_GUID___Z(CDHtmlDialog* pThis, COleControlContainer* p0, COleControlSite** p1, unsigned int p2, const _GUID* p3) {
     return (int)pThis->CreateControlSite(p0, p1, p2, (*p3));
 }
-// Symbol: ?FillOutsideRect@CScrollView@@QEAAXPEAVCDC@@PEAVCBrush@@@Z
-// CScrollView::FillOutsideRect
-extern "C" void MS_ABI impl__FillOutsideRect_CScrollView__QEAAXPEAVCDC__PEAVCBrush___Z(CScrollView* pThis, CDC* p0, CBrush* p1) {
-    pThis->FillOutsideRect(p0, p1);
-}
 // Symbol: ?FindTextW@CRichEditView@@QEAAHPEB_WHHH@Z
 // CRichEditView::FindTextW
 extern "C" int MS_ABI impl__FindTextW_CRichEditView__QEAAHPEB_WHHH_Z(CRichEditView* pThis, const wchar_t* p0, int p1, int p2, int p3) {
     return (int)pThis->FindTextW(p0, p1, p2, p3);
-}
-// Symbol: ?GetScrollPosition@CScrollView@@QEBA?AVCPoint@@XZ
-// CScrollView::GetScrollPosition  [retval]
-extern "C" void MS_ABI impl__GetScrollPosition_CScrollView__QEBA_AVCPoint__XZ(const CScrollView* pThis, CPoint* __ret) {
-    *__ret = pThis->GetScrollPosition();
 }
 // Symbol: ?OnDraw@CFormView@@MEAAXPEAVCDC@@@Z
 // CFormView::OnDraw
@@ -1182,11 +1172,6 @@ extern "C" long MS_ABI impl__PrintPage_CRichEditView__QEAAJPEAVCDC__JJ_Z(CRichEd
 // CScrollView::ResizeParentToFit
 extern "C" void MS_ABI impl__ResizeParentToFit_CScrollView__QEAAXH_Z(CScrollView* pThis, int p0) {
     pThis->ResizeParentToFit(p0);
-}
-// Symbol: ?ScrollToPosition@CScrollView@@QEAAXUtagPOINT@@@Z
-// CScrollView::ScrollToPosition
-extern "C" void MS_ABI impl__ScrollToPosition_CScrollView__QEAAXUtagPOINT___Z(CScrollView* pThis, POINT p0) {
-    pThis->ScrollToPosition(p0);
 }
 // Symbol: ?Serialize@CEditView@@UEAAXAEAVCArchive@@@Z
 // CEditView::Serialize
