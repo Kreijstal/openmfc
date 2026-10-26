@@ -1,4 +1,5 @@
 #include "GdicoreSupport.h"
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CGdiObject, CObject)
 IMPLEMENT_DYNAMIC(CPen, CGdiObject)
@@ -18,7 +19,13 @@ IMPLEMENT_DYNAMIC(CAnimationVariable, CObject)
 IMPLEMENT_DYNCREATE(CImageList, CObject)
 namespace openmfc { namespace detail { namespace gdicore {
 thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
-thread_local std::unordered_map<HDC, CDC*> g_tempDCMap;
+thread_local std::unordered_map<AFX_MODULE_STATE*,DCHandleMaps> g_dcHandleMaps;
+DCHandleMaps* GetDCHandleMaps(bool create) {
+    auto* module=impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+    auto found=g_dcHandleMaps.find(module);
+    if(found!=g_dcHandleMaps.end())return &found->second;
+    return create?&g_dcHandleMaps[module]:nullptr;
+}
 CGdiObject* GetTempGdiObject(HGDIOBJ hObj) {
     if (!hObj) return nullptr;
 
@@ -43,26 +50,27 @@ void DeleteTempGdiMap() {
     g_tempGdiMap.clear();
 }
 CDC* GetTempDC(HDC hDC) {
-    if (!hDC) return nullptr;
-
-    auto it = g_tempDCMap.find(hDC);
-    if (it != g_tempDCMap.end()) {
-        return it->second;
-    }
-
-    auto* wrapper = new CDC();
-    wrapper->m_hDC = hDC;
-    wrapper->m_hAttribDC = hDC;
-    g_tempDCMap.emplace(hDC, wrapper);
-    return wrapper;
+    try {
+        auto* maps=GetDCHandleMaps(true);
+        if (!hDC) return nullptr;
+        auto owned=maps->permanent.find(hDC);
+        if(owned!=maps->permanent.end())return owned->second;
+        auto temporary=maps->temporary.find(hDC);
+        if(temporary!=maps->temporary.end())return temporary->second;
+        std::unique_ptr<CDC> wrapper(new CDC);
+        maps->temporary.emplace(hDC,wrapper.get());
+        wrapper->m_hDC=wrapper->m_hAttribDC=hDC;
+        return wrapper.release();
+    } catch(const std::bad_alloc&) {impl__AfxThrowMemoryException__YAXXZ();throw;}
 }
 void DeleteTempDCMap() {
-    for (auto& [_, dc] : g_tempDCMap) {
-        dc->m_hDC = nullptr;
-        dc->m_hAttribDC = nullptr;
-        delete dc;
+    auto* maps=GetDCHandleMaps(false);
+    if(!maps)return;
+    for(auto& entry:maps->temporary) {
+        entry.second->m_hDC=entry.second->m_hAttribDC=nullptr;
+        delete entry.second;
     }
-    g_tempDCMap.clear();
+    maps->temporary.clear();
 }
 std::unordered_map<const CRenderTarget*, CRenderTargetState> g_renderTargetState;
 std::unordered_map<const CAnimationVariable*, CAnimationVariableState> g_animationVariableState;

@@ -91,6 +91,12 @@ on:
       - 'phase4/src/detail/RegcoreSupport.h'
       - 'phase4/src/detail/RegcoreSupport.cpp'
       - 'phase4/src/core/runtime/Globals.cpp'
+      - 'tests/view_rendering_tests.h'
+      - 'phase4/src/core/view/CView.cpp'
+      - 'phase4/src/core/gdi/RuntimeClasses.cpp'
+      - 'phase4/src/core/view/CViewRendering.cpp'
+      - 'phase4/src/core/gdi/CPaintDC.cpp'
+      - 'phase4/src/core/gdi/CDCHandleMap.cpp'
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/frame/CFrameWnd.cpp'
       - 'phase4/src/core/window/Thunks.cpp'
@@ -321,6 +327,12 @@ on:
       - 'phase4/src/detail/RegcoreSupport.h'
       - 'phase4/src/detail/RegcoreSupport.cpp'
       - 'phase4/src/core/runtime/Globals.cpp'
+      - 'tests/view_rendering_tests.h'
+      - 'phase4/src/core/view/CView.cpp'
+      - 'phase4/src/core/gdi/RuntimeClasses.cpp'
+      - 'phase4/src/core/view/CViewRendering.cpp'
+      - 'phase4/src/core/gdi/CPaintDC.cpp'
+      - 'phase4/src/core/gdi/CDCHandleMap.cpp'
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/frame/CFrameWnd.cpp'
       - 'phase4/src/core/window/Thunks.cpp'
@@ -557,6 +569,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndParents.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndFocus.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewRouting.cpp"
@@ -756,6 +771,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndParents.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndFocus.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewRouting.cpp"
@@ -923,6 +941,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndParents.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndFocus.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewRouting.cpp"

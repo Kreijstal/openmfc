@@ -135,23 +135,6 @@ extern "C" void MS_ABI impl__FillSolidRect_CDC__QEAAXPEBUtagRECT__K_Z(
         lpRect->bottom - lpRect->top,
         clr);
 }
-// CDC::Attach
-// Symbol: ?Attach@CDC@@QEAAHPEAUHDC__@@@Z
-extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC_____Z(CDC* pThis, HDC hDC) {
-    if (!pThis) return FALSE;
-    pThis->m_hDC = hDC;
-    pThis->m_hAttribDC = hDC;
-    return TRUE;
-}
-// CDC::Detach
-// Symbol: ?Detach@CDC@@QEAAPEAUHDC__@@XZ
-extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC____XZ(CDC* pThis) {
-    if (!pThis) return nullptr;
-    HDC hDC = pThis->m_hDC;
-    pThis->m_hDC = nullptr;
-    pThis->m_hAttribDC = nullptr;
-    return hDC;
-}
 // CDC::FromHandle
 // Symbol: ?FromHandle@CDC@@SAPEAV1@PEAUHDC__@@@Z
 extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(HDC hDC) {

@@ -201,7 +201,7 @@ static void realFocus(const API& api) {
     DestroyWindow(parent);
 }
 static int createHook(CView* view,CREATESTRUCTW* create) {event(12,view==active,create->lpCreateParams==active->m_pCreateContext);return -2;}
-static LRESULT printHook(CView* view,CDC* dc,UINT flags) {event(13,view==active,dc==reinterpret_cast<CDC*>(UINT_PTR(0x222)),flags);return -123456789123LL;}
+static void MS_ABI printHook(CView* view,void* dc) {event(13,view==active,dc!=nullptr);}
 static void maps(const API& api) {
     const auto* map=api.map();const UINT messages[]={WM_SETFOCUS,WM_CREATE,WM_PRINTCLIENT,WM_INITDIALOG};const UINT_PTR signatures[]={36,13,86,14};bool valid=map && map->pfnGetBaseMap;
     if(valid)for(int i=0;i<4;++i){auto& entry=map->lpEntries[i];valid=valid && entry.nMessage==messages[i] && !entry.nCode && !entry.nID && !entry.nLastID && entry.nSig==signatures[i] && entry.pfn;}
@@ -235,11 +235,11 @@ static void formviewDialog() {
         check(memory && !f.view()->m_pOccDialogInfo && f.view()->m_pCreatedOccDialogInfo==old,"dialog metadata allocation failure preserves both existing ownership slots");
     }
     {
-        Fixture f;f.view()->m_pCreateContext=reinterpret_cast<CCreateContext*>(UINT_PTR(0x777));CREATESTRUCTW create{};g_formViewCreateHook=createHook;g_formViewPrintHook=printHook;
+        Fixture f;f.view()->m_pCreateContext=reinterpret_cast<CCreateContext*>(UINT_PTR(0x777));CREATESTRUCTW create{};g_formViewCreateHook=createHook;f.table[105]=reinterpret_cast<void*>(&printHook);CDC dc;
         check(impl__OnCreate_CFormView__IEAAHPEAUtagCREATESTRUCTW___Z(f.view(),&create)==-2 && create.lpCreateParams==f.view()->m_pCreateContext &&
-            impl__OnPrintClient_CFormView__IEAA_JPEAVCDC__I_Z(f.view(),reinterpret_cast<CDC*>(UINT_PTR(0x222)),0x80000001)==-123456789123LL,
-            "form create/print adapters forward the stored context, CDC, full flags and inherited return values");
-        g_formViewCreateHook=nullptr;g_formViewPrintHook=nullptr;
+            impl__OnPrintClient_CFormView__IEAA_JPEAVCDC__I_Z(f.view(),&dc,0x80000004)==0 && events.back()[0]==13,
+            "form create/print adapters forward the stored context and client drawing to their base handlers");
+        g_formViewCreateHook=nullptr;
     }
     {
         Fixture f;f.managerEnabled(false);f.view()->m_hWnd=CreateWindowExW(0,L"STATIC",L"mapped form",WS_OVERLAPPED,0,0,60,40,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);

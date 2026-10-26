@@ -2068,6 +2068,8 @@ public:
                  const wchar_t* lpszOutput, const void* lpInitData);
     int CreateCompatibleDC(CDC* pDC);
     int DeleteDC();
+    BOOL Attach(HDC);
+    HDC Detach();
     
     // Handle operations
     HDC GetSafeHdc() const { return m_hDC; }
@@ -2240,14 +2242,12 @@ class CPaintDC : public CDC {
 public:
     CPaintDC(CWnd* pWnd);
     virtual ~CPaintDC();
-
+    HWND m_hWnd;
     PAINTSTRUCT m_ps;
-
-public:
-    CWnd* m_pWnd;
-
-protected:
 };
+static_assert(offsetof(CPaintDC,m_hWnd)==0x20,"native paint window handle");
+static_assert(offsetof(CPaintDC,m_ps)==0x28,"native paint structure");
+static_assert(sizeof(CPaintDC)==0x70,"native paint DC size");
 
 // CWindowDC - Whole window device context
 class CWindowDC : public CDC {

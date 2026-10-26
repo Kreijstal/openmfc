@@ -29,7 +29,7 @@ template<class Fn> CSize Extent(CDC* dc,Fn call) {
 }
 CDC::CDC() : m_hDC(nullptr),m_hAttribDC(nullptr),m_bPrinting(FALSE) {}
 CDC::~CDC() {
-    if(m_hDC) { HDC owned=m_hDC;m_hDC=m_hAttribDC=nullptr;::DeleteDC(owned); }
+    if(m_hDC)::DeleteDC(Detach());
 }
 void CDC::SetAttribDC(HDC dc) { m_hAttribDC=dc; }
 void CDC::SetOutputDC(HDC dc) { m_hDC=dc; }
@@ -78,7 +78,7 @@ int CDC::Escape(int escape,int count,const char* input,void* output) { return ::
 // Symbol: ??0CDC@@QEAA@XZ
 extern "C" CDC* MS_ABI impl___0CDC__QEAA_XZ(CDC* self) { return new(self) CDC; }
 // Symbol: ??1CDC@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDC__UEAA_XZ(CDC* self) { self->~CDC(); }
+extern "C" void MS_ABI impl___1CDC__UEAA_XZ(CDC* self) { self->CDC::~CDC(); }
 
 // Symbol: ?SetAttribDC@CDC@@UEAAXPEAUHDC__@@@Z
 extern "C" void MS_ABI impl__SetAttribDC_CDC__UEAAXPEAUHDC_____Z(CDC* self,HDC dc) { self->CDC::SetAttribDC(dc); }

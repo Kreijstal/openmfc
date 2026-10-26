@@ -225,36 +225,6 @@ extern "C" int MS_ABI impl__OnNextPaneCmd_CView__IEAAHI_Z(CView* pThis, unsigned
     HWND parent = ::GetParent(pThis->m_hWnd);
     return parent ? static_cast<int>(::SendMessageW(parent, WM_COMMAND, commandId, 0) != 0) : FALSE;
 }
-// Symbol: ?OnPaint@CView@@IEAAXXZ
-extern "C" void MS_ABI impl__OnPaint_CView__IEAAXXZ(CView* pThis) {
-    if (!pThis || !pThis->m_hWnd) return;
-    PAINTSTRUCT ps = {};
-    HDC hdc = ::BeginPaint(pThis->m_hWnd, &ps);
-    if (hdc) {
-        CDC dc;
-        dc.m_hDC = hdc;
-        dc.m_hAttribDC = hdc;
-        pThis->OnDraw(&dc);
-    }
-    ::EndPaint(pThis->m_hWnd, &ps);
-}
-// Symbol: ?OnPrepareDC@CView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
-extern "C" void MS_ABI impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CView*, CDC* dc, void*) {
-    if (dc && dc->m_hDC) {
-        ::SetMapMode(dc->m_hDC, MM_TEXT);
-        ::SetViewportOrgEx(dc->m_hDC, 0, 0, nullptr);
-    }
-}
-// Symbol: ?OnPrint@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
-extern "C" void MS_ABI impl__OnPrint_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(CView* pThis, CDC* dc, void* info) {
-    impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(pThis, dc, info);
-    if (pThis) pThis->OnDraw(dc);
-}
-// Symbol: ?OnPrintClient@CView@@IEAA_JPEAVCDC@@I@Z
-extern "C" intptr_t MS_ABI impl__OnPrintClient_CView__IEAA_JPEAVCDC__I_Z(CView* pThis, CDC* dc, unsigned int) {
-    impl__OnPrint_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(pThis, dc, nullptr);
-    return TRUE;
-}
 // Symbol: ?OnScroll@CView@@UEAAHIIH@Z
 extern "C" int MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView* pThis, unsigned int scrollCode, unsigned int pos, int doScroll) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
@@ -358,7 +328,5 @@ BOOL CView::OnScroll(UINT code,UINT pos,BOOL scroll) { return impl__OnScroll_CVi
 BOOL CView::OnScrollBy(CSize size,BOOL scroll) { return impl__OnScrollBy_CView__UEAAHVCSize__H_Z(this,size,scroll); }
 void CView::OnDragLeave() { impl__OnDragLeave_CView__UEAAXXZ(this); }
 DWORD CView::OnDragScroll(DWORD keys,CPoint point) { return impl__OnDragScroll_CView__UEAAKKVCPoint___Z(this,keys,point); }
-void CView::OnPrepareDC(CDC* dc,void* info) { impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
 void CView::OnActivateFrame(UINT state,CFrameWnd* frame) { impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(this,state,frame); }
-void CView::OnPrint(CDC* dc,void* info) { impl__OnPrint_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
 void CView::OnEndPrintPreview(CDC* dc,void* info,POINT point,CPreviewView* preview) { impl__OnEndPrintPreview_CView__MEAAXPEAVCDC__PEAUCPrintInfo__UtagPOINT__PEAVCPreviewView___Z(this,dc,info,point,preview); }

@@ -327,14 +327,9 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void*,con
 
 // Form-view creation and print-client wrappers retain separate base-view tests.
 int (*g_formViewCreateHook)(CView*,CREATESTRUCTW*)=nullptr;
-LRESULT (*g_formViewPrintHook)(CView*,CDC*,UINT)=nullptr;
 extern "C" int MS_ABI impl__OnCreate_CView__IEAAHPEAUtagCREATESTRUCTW___Z(CView* self,CREATESTRUCTW* create) {
     if(g_formViewCreateHook)return g_formViewCreateHook(self,create);std::abort();
 }
-extern "C" LRESULT MS_ABI impl__OnPrintClient_CView__IEAA_JPEAVCDC__I_Z(CView* self,CDC* dc,UINT flags) {
-    if(g_formViewPrintHook)return g_formViewPrintHook(self,dc,flags);std::abort();
-}
-
 // Form metadata teardown tests keep the inherited scroll/view lifetime separate.
 bool g_formViewBaseDestructorExpected=false;
 extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView*) {
@@ -345,3 +340,6 @@ int (*g_formViewMessageBoxHook)(const wchar_t*,UINT,UINT)=nullptr;
 extern "C" int MS_ABI impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t* text,UINT type,UINT help) {
     if(g_formViewMessageBoxHook)return g_formViewMessageBoxHook(text,type,help);std::abort();
 }
+
+// Resource allocation failure remains peripheral to painting ownership tests.
+extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {throw 92;}

@@ -32,7 +32,11 @@ namespace openmfc { namespace detail { namespace gdicore {
 extern thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
 } } }
 namespace openmfc { namespace detail { namespace gdicore {
-extern thread_local std::unordered_map<HDC, CDC*> g_tempDCMap;
+struct DCHandleMaps {
+    std::unordered_map<HDC,CDC*> permanent;
+    std::unordered_map<HDC,CDC*> temporary;
+};
+DCHandleMaps* GetDCHandleMaps(bool create);
 } } }
 
 namespace openmfc { namespace detail { namespace gdicore {

@@ -311,6 +311,7 @@ static void ownershipAndRecreation() {
 #include "recordview_command_tests.h"
 #include "formview_dialog_tests.h"
 #include "window_form_routing_tests.h"
+#include "view_rendering_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -369,6 +370,7 @@ int main() {
     if (SUCCEEDED(hr)) recordviewCommands();
     if (SUCCEEDED(hr)) formviewDialog();
     if (SUCCEEDED(hr)) windowFormRouting();
+    if (SUCCEEDED(hr)) viewRendering();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();
