@@ -311,64 +311,70 @@ class CSplitterWnd : public CWnd {
 public:
     CSplitterWnd();
     virtual ~CSplitterWnd();
+    const AFX_MSGMAP* GetMessageMap() const override;
+    static const AFX_MSGMAP* GetThisMessageMap();
+    enum ESplitType {splitBox,splitBar,splitIntersection,splitBorder};
+    struct CRowColInfo {int nMinSize,nIdealSize,nCurSize;};
+    // Native release-x64 virtual slots 91..119.
+    virtual BOOL Create(CWnd*,int,int,SIZE,CCreateContext* = nullptr,DWORD = WS_CHILD|WS_VISIBLE,UINT = AFX_IDW_PANE_FIRST);
+    virtual BOOL CreateStatic(CWnd*,int,int,DWORD = WS_CHILD|WS_VISIBLE,UINT = AFX_IDW_PANE_FIRST);
+    virtual BOOL CreateView(int,int,CRuntimeClass*,SIZE,CCreateContext* = nullptr);
+    virtual void RecalcLayout();
+    virtual void OnDrawSplitter(CDC*,ESplitType,const CRect&);
+    virtual void OnInvertTracker(const CRect&);
+    virtual void OnDraw(CDC*);
+    virtual BOOL CreateScrollBarCtrl(DWORD,UINT);
+    virtual void DeleteView(int,int);
+    virtual BOOL SplitRow(int);
+    virtual BOOL SplitColumn(int);
+    virtual void DeleteRow(int);
+    virtual void DeleteColumn(int);
+    virtual CWnd* GetActivePane(int* = nullptr,int* = nullptr);
+    virtual void SetActivePane(int,int,CWnd* = nullptr);
+    virtual BOOL CanActivateNext(BOOL = FALSE);
+    virtual void ActivateNext(BOOL = FALSE);
+    virtual BOOL DoKeyboardSplit();
+    virtual BOOL DoScroll(CView*,UINT,BOOL = TRUE);
+    virtual BOOL DoScrollBy(CView*,CSize,BOOL = TRUE);
+    virtual int HitTest(CPoint) const;
+    virtual void GetInsideRect(CRect&) const;
+    virtual void GetHitRect(int,CRect&);
+    virtual void TrackRowSize(int,int);
+    virtual void TrackColumnSize(int,int);
+    virtual void DrawAllSplitBars(CDC*,int,int);
+    virtual void SetSplitCursor(int);
+    virtual void StartTracking(int);
+    virtual void StopTracking(BOOL);
+    BOOL OnCommand(WPARAM,LPARAM) override;
+    BOOL OnNotify(WPARAM,LPARAM,LRESULT*) override;
+    CWnd* GetPane(int,int) const;
+    int GetRowCount() const {return m_nRows;}
+    int GetColumnCount() const {return m_nCols;}
+    void GetRowInfo(int,int&,int&) const;
+    void SetRowInfo(int,int,int);
+    void GetColumnInfo(int,int&,int&) const;
+    void SetColumnInfo(int,int,int);
 
-    // Creation
-    BOOL Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols, SIZE sizeMin,
-                CCreateContext* pContext = nullptr, DWORD dwStyle = WS_CHILD | WS_VISIBLE,
-                UINT nID = AFX_IDW_PANE_FIRST);
-    BOOL CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
-                      DWORD dwStyle = WS_CHILD | WS_VISIBLE, UINT nID = AFX_IDW_PANE_FIRST);
-    BOOL CreateView(int row, int col, CRuntimeClass* pViewClass, SIZE sizeInit,
-                    CCreateContext* pContext = nullptr);
-
-    // Pane management
-    CWnd* GetPane(int row, int col) const;
-    int GetRowCount() const { return m_nRows; }
-    int GetColumnCount() const { return m_nCols; }
-    void GetRowInfo(int row, int& cyCur, int& cyMin) const;
-    void SetRowInfo(int row, int cyIdeal, int cyMin);
-    void GetColumnInfo(int col, int& cxCur, int& cxMin) const;
-    void SetColumnInfo(int col, int cxIdeal, int cxMin);
-    void RecalcLayout();
-
-    // Splitter bar
-    void SetSplitCursor(int ht);
-    int GetActivePane(int* pRow = nullptr, int* pCol = nullptr) const;
-    void SetActivePane(int row, int col, CWnd* pWnd = nullptr);
-    CWnd* GetActivePane();
-
-    // Scrolling
-    BOOL CanActivateNext(BOOL bPrev = FALSE);
-    void ActivateNext(BOOL bPrev = FALSE);
-    BOOL DoKeyboardSplit();
-
-    // Overrides
-    virtual void OnDrawSplitter(CDC* pDC, int nType, const CRect& rect);
-    virtual void OnInvertTracker(const CRect& rect);
-    virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
-
-public:
-    int m_nRows;
-    int m_nCols;
-    int m_cxSplitter;
-    int m_cySplitter;
-    int m_cxBorderShare;
-    int m_cyBorderShare;
-    int m_cxSplitterGap;
-    int m_cySplitterGap;
-    int m_nMaxRows;
-    int m_nMaxCols;
-    SIZE m_sizeMin;
-    int m_nId;
-    int m_bHasHScroll;
-    int m_bHasVScroll;
-    CWnd* m_pActivePane;
-    int m_nActiveRow;
-    int m_nActiveCol;
-
-protected:
-    char _splitterwnd_padding[72];
+    CRuntimeClass* m_pDynamicViewClass;
+    int m_nMaxRows,m_nMaxCols;
+    int m_cxSplitter,m_cySplitter,m_cxBorderShare,m_cyBorderShare;
+    int m_cxSplitterGap,m_cySplitterGap,m_cxBorder,m_cyBorder;
+    int m_nRows,m_nCols;
+    BOOL m_bHasHScroll,m_bHasVScroll;
+    CRowColInfo* m_pColInfo;
+    CRowColInfo* m_pRowInfo;
+    BOOL m_bTracking,m_bTracking2;
+    CPoint m_ptTrackOffset;
+    CRect m_rectLimit,m_rectTracker,m_rectTracker2;
+    int m_htTrack;
 };
+static_assert(sizeof(CSplitterWnd)==0x180,"native splitter size");
+static_assert(offsetof(CSplitterWnd,m_pDynamicViewClass)==0xe8,"native dynamic view class");
+static_assert(offsetof(CSplitterWnd,m_nRows)==0x118,"native splitter row count");
+static_assert(offsetof(CSplitterWnd,m_pColInfo)==0x128,"native splitter column data");
+static_assert(offsetof(CSplitterWnd,m_pRowInfo)==0x130,"native splitter row data");
+static_assert(offsetof(CSplitterWnd,m_bTracking)==0x138,"native splitter tracking state");
+static_assert(offsetof(CSplitterWnd,m_htTrack)==0x178,"native splitter tracking hit");
 
 //=============================================================================
 // CTaskDialog - Vista+ Task Dialog

@@ -1183,11 +1183,6 @@ extern "C" void MS_ABI impl__ActivateFrame_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis,
 extern "C" void MS_ABI impl__ActivateFrame_CMDIChildWnd__UEAAXH_Z(CMDIChildWnd* pThis, int p0) {
     pThis->ActivateFrame(p0);
 }
-// Symbol: ?ActivateNext@CSplitterWnd@@UEAAXH@Z
-// CSplitterWnd::ActivateNext
-extern "C" void MS_ABI impl__ActivateNext_CSplitterWnd__UEAAXH_Z(CSplitterWnd* pThis, int p0) {
-    pThis->ActivateNext(p0);
-}
 // Symbol: ?AddFrameWnd@CFrameWnd@@IEAAXXZ
 // CFrameWnd::AddFrameWnd
 extern "C" void MS_ABI impl__AddFrameWnd_CFrameWnd__IEAAXXZ(CFrameWnd* pThis) {
@@ -1202,11 +1197,6 @@ extern "C" void MS_ABI impl__BeginModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis
 // CFrameWnd::BringToTop
 extern "C" void MS_ABI impl__BringToTop_CFrameWnd__IEAAXH_Z(CFrameWnd* pThis, int p0) {
     pThis->BringToTop(p0);
-}
-// Symbol: ?CanActivateNext@CSplitterWnd@@UEAAHH@Z
-// CSplitterWnd::CanActivateNext
-extern "C" int MS_ABI impl__CanActivateNext_CSplitterWnd__UEAAHH_Z(CSplitterWnd* pThis, int p0) {
-    return (int)pThis->CanActivateNext(p0);
 }
 // Symbol: ?CanDock@CFrameWnd@@QEAAKVCRect@@KPEAPEAVCDockBar@@@Z
 // CFrameWnd::CanDock
@@ -1226,7 +1216,7 @@ extern "C" int MS_ABI impl__Create_CMDIChildWnd__UEAAHPEB_W0KAEBUtagRECT__PEAVCM
 // Symbol: ?Create@CSplitterWnd@@UEAAHPEAVCWnd@@HHUtagSIZE@@PEAUCCreateContext@@KI@Z
 // CSplitterWnd::Create
 extern "C" int MS_ABI impl__Create_CSplitterWnd__UEAAHPEAVCWnd__HHUtagSIZE__PEAUCCreateContext__KI_Z(CSplitterWnd* pThis, CWnd* p0, int p1, int p2, SIZE p3, CCreateContext* p4, unsigned long p5, unsigned int p6) {
-    return (int)pThis->Create(p0, p1, p2, p3, p4, p5, p6);
+    return (int)pThis->CSplitterWnd::Create(p0, p1, p2, p3, p4, p5, p6);
 }
 // Symbol: ?CreateClient@CMDIFrameWnd@@UEAAHPEAUtagCREATESTRUCTW@@PEAVCMenu@@@Z
 // CMDIFrameWnd::CreateClient
@@ -1241,7 +1231,7 @@ extern "C" CMiniDockFrameWnd* MS_ABI impl__CreateFloatingFrame_CFrameWnd__QEAAPE
 // Symbol: ?CreateStatic@CSplitterWnd@@UEAAHPEAVCWnd@@HHKI@Z
 // CSplitterWnd::CreateStatic
 extern "C" int MS_ABI impl__CreateStatic_CSplitterWnd__UEAAHPEAVCWnd__HHKI_Z(CSplitterWnd* pThis, CWnd* p0, int p1, int p2, unsigned long p3, unsigned int p4) {
-    return (int)pThis->CreateStatic(p0, p1, p2, p3, p4);
+    return (int)pThis->CSplitterWnd::CreateStatic(p0, p1, p2, p3, p4);
 }
 // Symbol: ?CreateView@CFrameWnd@@QEAAPEAVCWnd@@PEAUCCreateContext@@I@Z
 // CFrameWnd::CreateView
@@ -1251,7 +1241,7 @@ extern "C" CWnd* MS_ABI impl__CreateView_CFrameWnd__QEAAPEAVCWnd__PEAUCCreateCon
 // Symbol: ?CreateView@CSplitterWnd@@UEAAHHHPEAUCRuntimeClass@@UtagSIZE@@PEAUCCreateContext@@@Z
 // CSplitterWnd::CreateView
 extern "C" int MS_ABI impl__CreateView_CSplitterWnd__UEAAHHHPEAUCRuntimeClass__UtagSIZE__PEAUCCreateContext___Z(CSplitterWnd* pThis, int p0, int p1, CRuntimeClass* p2, SIZE p3, CCreateContext* p4) {
-    return (int)pThis->CreateView(p0, p1, p2, p3, p4);
+    return (int)pThis->CSplitterWnd::CreateView(p0, p1, p2, p3, p4);
 }
 // Symbol: ?DelayUpdateFrameMenu@CFrameWnd@@UEAAXPEAUHMENU__@@@Z
 // CFrameWnd::DelayUpdateFrameMenu
@@ -1277,11 +1267,6 @@ extern "C" void MS_ABI impl__DockControlBar_CFrameWnd__QEAAXPEAVCControlBar__IPE
 // CFrameWnd::DockControlBar
 extern "C" void MS_ABI impl__DockControlBar_CFrameWnd__QEAAXPEAVCControlBar__PEAVCDockBar__PEBUtagRECT___Z(CFrameWnd* pThis, CControlBar* p0, CDockBar* p1, const RECT* p2) {
     pThis->DockControlBar(p0, p1, p2);
-}
-// Symbol: ?DoKeyboardSplit@CSplitterWnd@@UEAAHXZ
-// CSplitterWnd::DoKeyboardSplit
-extern "C" int MS_ABI impl__DoKeyboardSplit_CSplitterWnd__UEAAHXZ(CSplitterWnd* pThis) {
-    return (int)pThis->DoKeyboardSplit();
 }
 // Symbol: ?EnableDocking@CFrameWnd@@QEAAXK@Z
 // CFrameWnd::EnableDocking
@@ -1322,11 +1307,6 @@ extern "C" void* MS_ABI impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ(CFrameWnd* 
 // CFrameWnd::GetActiveView
 extern "C" CView* MS_ABI impl__GetActiveView_CFrameWnd__QEBAPEAVCView__XZ(const CFrameWnd* pThis) {
     return (CView*)pThis->GetActiveView();
-}
-// Symbol: ?GetColumnInfo@CSplitterWnd@@QEBAXHAEAH0@Z
-// CSplitterWnd::GetColumnInfo
-extern "C" void MS_ABI impl__GetColumnInfo_CSplitterWnd__QEBAXHAEAH0_Z(const CSplitterWnd* pThis, int p0, int* p1, int p2) {
-    pThis->GetColumnInfo(p0, (*p1), p2);
 }
 // Symbol: ?GetControlBar@CFrameWnd@@QEAAPEAVCControlBar@@I@Z
 // CFrameWnd::GetControlBar
@@ -1381,12 +1361,7 @@ extern "C" CWnd* MS_ABI impl__GetMessageBar_CFrameWnd__UEAAPEAVCWnd__XZ(CFrameWn
 // Symbol: ?GetPane@CSplitterWnd@@QEBAPEAVCWnd@@HH@Z
 // CSplitterWnd::GetPane
 extern "C" CWnd* MS_ABI impl__GetPane_CSplitterWnd__QEBAPEAVCWnd__HH_Z(const CSplitterWnd* pThis, int p0, int p1) {
-    return (CWnd*)pThis->GetPane(p0, p1);
-}
-// Symbol: ?GetRowInfo@CSplitterWnd@@QEBAXHAEAH0@Z
-// CSplitterWnd::GetRowInfo
-extern "C" void MS_ABI impl__GetRowInfo_CSplitterWnd__QEBAXHAEAH0_Z(const CSplitterWnd* pThis, int p0, int* p1, int p2) {
-    pThis->GetRowInfo(p0, (*p1), p2);
+    return (CWnd*)pThis->CSplitterWnd::GetPane(p0, p1);
 }
 // Symbol: ?InitialUpdateFrame@CFrameWnd@@QEAAXPEAVCDocument@@H@Z
 // CFrameWnd::InitialUpdateFrame
@@ -1571,7 +1546,7 @@ extern "C" void MS_ABI impl__OnInitMenuPopup_CFrameWnd__IEAAXPEAVCMenu__IH_Z(CFr
 // Symbol: ?OnInvertTracker@CSplitterWnd@@MEAAXAEBVCRect@@@Z
 // CSplitterWnd::OnInvertTracker
 extern "C" void MS_ABI impl__OnInvertTracker_CSplitterWnd__MEAAXAEBVCRect___Z(CSplitterWnd* pThis, const CRect* p0) {
-    pThis->OnInvertTracker((*p0));
+    pThis->CSplitterWnd::OnInvertTracker((*p0));
 }
 // Symbol: ?OnMenuChar@CFrameWnd@@IEAA_JIIPEAVCMenu@@@Z
 // CFrameWnd::OnMenuChar
@@ -1696,7 +1671,7 @@ extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, 
 // Symbol: ?RecalcLayout@CSplitterWnd@@UEAAXXZ
 // CSplitterWnd::RecalcLayout
 extern "C" void MS_ABI impl__RecalcLayout_CSplitterWnd__UEAAXXZ(CSplitterWnd* pThis) {
-    pThis->RecalcLayout();
+    pThis->CSplitterWnd::RecalcLayout();
 }
 // Symbol: ?ReDockControlBar@CFrameWnd@@QEAAXPEAVCControlBar@@PEAVCDockBar@@PEBUtagRECT@@@Z
 // CFrameWnd::ReDockControlBar
@@ -1721,7 +1696,7 @@ extern "C" void MS_ABI impl__SaveBarState_CFrameWnd__QEBAXPEB_W_Z(const CFrameWn
 // Symbol: ?SetActivePane@CSplitterWnd@@UEAAXHHPEAVCWnd@@@Z
 // CSplitterWnd::SetActivePane
 extern "C" void MS_ABI impl__SetActivePane_CSplitterWnd__UEAAXHHPEAVCWnd___Z(CSplitterWnd* pThis, int p0, int p1, CWnd* p2) {
-    pThis->SetActivePane(p0, p1, p2);
+    pThis->CSplitterWnd::SetActivePane(p0, p1, p2);
 }
 // Symbol: ?SetActivePreviewView@CFrameWnd@@QEAAXPEAVCView@@@Z
 // CFrameWnd::SetActivePreviewView
@@ -1732,11 +1707,6 @@ extern "C" void MS_ABI impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z(
 // CFrameWnd::SetActiveView
 extern "C" void MS_ABI impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z(CFrameWnd* pThis, CView* p0, int p1) {
     pThis->SetActiveView(p0, p1);
-}
-// Symbol: ?SetColumnInfo@CSplitterWnd@@QEAAXHHH@Z
-// CSplitterWnd::SetColumnInfo
-extern "C" void MS_ABI impl__SetColumnInfo_CSplitterWnd__QEAAXHHH_Z(CSplitterWnd* pThis, int p0, int p1, int p2) {
-    pThis->SetColumnInfo(p0, p1, p2);
 }
 // Symbol: ?SetDockState@CFrameWnd@@QEAAXAEBVCDockState@@@Z
 // CFrameWnd::SetDockState
@@ -1788,15 +1758,10 @@ extern "C" void MS_ABI impl__SetProgressBarRange_CFrameWnd__QEAAXHH_Z(CFrameWnd*
 extern "C" void MS_ABI impl__SetProgressBarState_CFrameWnd__QEAAXW4TBPFLAG___Z(CFrameWnd* pThis, TBPFLAG p0) {
     pThis->SetProgressBarState(p0);
 }
-// Symbol: ?SetRowInfo@CSplitterWnd@@QEAAXHHH@Z
-// CSplitterWnd::SetRowInfo
-extern "C" void MS_ABI impl__SetRowInfo_CSplitterWnd__QEAAXHHH_Z(CSplitterWnd* pThis, int p0, int p1, int p2) {
-    pThis->SetRowInfo(p0, p1, p2);
-}
 // Symbol: ?SetSplitCursor@CSplitterWnd@@MEAAXH@Z
 // CSplitterWnd::SetSplitCursor
 extern "C" void MS_ABI impl__SetSplitCursor_CSplitterWnd__MEAAXH_Z(CSplitterWnd* pThis, int p0) {
-    pThis->SetSplitCursor(p0);
+    pThis->CSplitterWnd::SetSplitCursor(p0);
 }
 // Symbol: ?SetTaskbarOverlayIcon@CFrameWnd@@QEAAHIPEB_W@Z
 // CFrameWnd::SetTaskbarOverlayIcon

@@ -17,7 +17,6 @@
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
 // Symbol: ?FromName@CRuntimeClass@@SAPEAU1@PEB_W@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
-// Symbol: ?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
 // Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
@@ -130,26 +129,6 @@ extern "C" CRuntimeClass* MS_ABI impl__FromName_CRuntimeClass__SAPEAU1_PEBD_Z(
     }
 
     return nullptr;
-}
-// Symbol: ?IsDerivedFrom@CRuntimeClass@@QEBAHPEBU1@@Z
-extern "C" int MS_ABI impl__IsDerivedFrom_CRuntimeClass__QEBAHPEBU1__Z(
-    const CRuntimeClass* pThis,     // RCX = this (CRuntimeClass*)
-    const CRuntimeClass* pBaseClass // RDX = base class to check
-) {
-    if (!pThis || !pBaseClass) {
-        return FALSE;
-    }
-
-    // Walk the inheritance chain
-    const CRuntimeClass* pClass = pThis;
-    while (pClass != nullptr) {
-        if (pClass == pBaseClass) {
-            return TRUE;
-        }
-        pClass = pClass->m_pfnGetBaseClass ? pClass->m_pfnGetBaseClass() : nullptr;
-    }
-
-    return FALSE;
 }
 // Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
 extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(

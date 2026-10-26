@@ -95,22 +95,6 @@ extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* 
 extern "C" int MS_ABI impl__DoPreparePrinting_CView__QEAAHPEAUCPrintInfo___Z(CView* pThis, void* info) { return pThis ? pThis->OnPreparePrinting(info) : FALSE; }
 // Symbol: ?DoPrintPreview@CView@@QEAAHIPEAV1@PEAUCRuntimeClass@@PEAUCPrintPreviewState@@@Z
 extern "C" int MS_ABI impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(CView* pThis, unsigned int, CView* previewView, CRuntimeClass*, void*) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_HIDE); if (previewView && previewView->m_hWnd) ::ShowWindow(previewView->m_hWnd, SW_SHOW); return previewView != nullptr; }
-// Symbol: ?GetParentSplitter@CView@@SAPEAVCSplitterWnd@@PEBVCWnd@@H@Z
-extern "C" void* MS_ABI impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(const CWnd* pThis, int) {
-    const CWnd* current = pThis;
-    while (current) {
-        const CWnd* parent = current->GetParent();
-        if (!parent) break;
-        const CRuntimeClass* cls = parent->GetRuntimeClass();
-        if (cls && cls->m_lpszClassName &&
-            (std::strcmp(cls->m_lpszClassName, "CSplitterWnd") == 0 ||
-             std::strcmp(cls->m_lpszClassName, "CSplitterWndEx") == 0)) {
-            return reinterpret_cast<CSplitterWnd*>(const_cast<CWnd*>(parent));
-        }
-        current = parent;
-    }
-    return nullptr;
-}
 // Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
 extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView* pThis, int nBar) {
     if (!pThis || !pThis->m_hWnd) return nullptr;
@@ -213,18 +197,6 @@ extern "C" void MS_ABI impl__OnFilePrint_CView__IEAAXXZ(CView* pThis) { if (pThi
 extern "C" void MS_ABI impl__OnFilePrintPreview_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_SHOW); }
 // Symbol: ?OnMouseActivate@CView@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnMouseActivate_CView__IEAAHPEAVCWnd__II_Z(CView*, CWnd*, unsigned int, unsigned int) { return MA_ACTIVATE; }
-// Symbol: ?OnNextPaneCmd@CView@@IEAAHI@Z
-extern "C" int MS_ABI impl__OnNextPaneCmd_CView__IEAAHI_Z(CView* pThis, unsigned int commandId) {
-    if (!pThis || !pThis->m_hWnd) return FALSE;
-    HWND next = ::GetWindow(pThis->m_hWnd, GW_HWNDNEXT);
-    if (!next) next = ::GetWindow(pThis->m_hWnd, GW_HWNDFIRST);
-    if (next && next != pThis->m_hWnd) {
-        ::SetFocus(next);
-        return TRUE;
-    }
-    HWND parent = ::GetParent(pThis->m_hWnd);
-    return parent ? static_cast<int>(::SendMessageW(parent, WM_COMMAND, commandId, 0) != 0) : FALSE;
-}
 // Symbol: ?OnScroll@CView@@UEAAHIIH@Z
 extern "C" int MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView* pThis, unsigned int scrollCode, unsigned int pos, int doScroll) {
     if (!pThis || !pThis->m_hWnd) return FALSE;
@@ -252,26 +224,6 @@ extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(CView* pThis, CSi
         ::UpdateWindow(pThis->m_hWnd);
     }
     return TRUE;
-}
-// Symbol: ?OnSplitCmd@CView@@IEAAHI@Z
-extern "C" int MS_ABI impl__OnSplitCmd_CView__IEAAHI_Z(CView* pThis, unsigned int commandId) {
-    if (!pThis || !pThis->m_hWnd) return FALSE;
-    HWND parent = ::GetParent(pThis->m_hWnd);
-    return parent ? static_cast<int>(::SendMessageW(parent, WM_COMMAND, commandId, reinterpret_cast<LPARAM>(pThis->m_hWnd)) != 0) : FALSE;
-}
-// Symbol: ?OnUpdateNextPaneMenu@CView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateNextPaneMenu_CView__IEAAXPEAVCCmdUI___Z(CView* pThis, CCmdUI* ui) {
-    BOOL enable = FALSE;
-    if (pThis && pThis->m_hWnd) {
-        HWND next = ::GetWindow(pThis->m_hWnd, GW_HWNDNEXT);
-        HWND first = ::GetWindow(pThis->m_hWnd, GW_HWNDFIRST);
-        enable = (next && next != pThis->m_hWnd) || (first && first != pThis->m_hWnd);
-    }
-    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, enable);
-}
-// Symbol: ?OnUpdateSplitCmd@CView@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdateSplitCmd_CView__IEAAXPEAVCCmdUI___Z(CView* pThis, CCmdUI* ui) {
-    if (ui) impl__Enable_CCmdUI__UEAAXH_Z(ui, pThis && pThis->m_hWnd && ::GetParent(pThis->m_hWnd));
 }
 // Symbol: ?PostNcDestroy@CView@@MEAAXXZ
 extern "C" void MS_ABI impl__PostNcDestroy_CView__MEAAXXZ(CView* pThis) {

@@ -34,6 +34,7 @@ CRuntimeClass CHtmlView::classCHtmlView{};
 // CRecordView shares the recordset support unit; form-view creation is outside
 // these database and rendering tests.
 CRuntimeClass CFormView::classCFormView{};
+CRuntimeClass CSplitterWnd::classCSplitterWnd{"CSplitterWnd",sizeof(CSplitterWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
 
 
 // Module switching is peripheral to rendering; these doubles model thread
@@ -253,7 +254,6 @@ CArchive& CArchive::operator>>(unsigned long&) {std::abort();}
 BOOL g_containerSubclassResult=TRUE;
 extern "C" int MS_ABI impl__SubclassWindow_CWnd__QEAAHPEAUHWND_____Z(CWnd* control,HWND window) {if(g_containerSubclassResult)control->m_hWnd=window;return g_containerSubclassResult;}
 extern "C" HWND MS_ABI impl__UnsubclassWindow_CWnd__QEAAPEAUHWND____XZ(CWnd* control) {HWND window=control->m_hWnd;control->m_hWnd=nullptr;return window;}
-extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* object,const CRuntimeClass* type) {return object->IsKindOf(type);}
 CRuntimeClass g_containerShellClass{"CMFCShellListCtrl",sizeof(CWnd),0xffff,nullptr,&CWnd::GetThisClass,nullptr,nullptr};
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCShellListCtrl__SAPEAUCRuntimeClass__XZ() {return &g_containerShellClass;}
 

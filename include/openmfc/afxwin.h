@@ -3475,6 +3475,7 @@ protected:
 };
 
 class CPreviewView;
+class CSplitterWnd;
 
 // View virtuals follow the release MSVC SDK slots 91..110. Helpers such as
 // GetDocument and GetParentFrame are nonvirtual in MFC.
@@ -3487,6 +3488,7 @@ public:
     static const AFX_MSGMAP* GetThisMessageMap();
     int OnCmdMsg(UINT,int,void*,AFX_CMDHANDLERINFO*) override;
     CDocument* GetDocument() const;
+    static CSplitterWnd* GetParentSplitter(const CWnd*,BOOL = FALSE);
     virtual BOOL IsSelected(const CObject*) const;
     virtual BOOL OnScroll(UINT,UINT,BOOL = TRUE);
     virtual BOOL OnScrollBy(CSize,BOOL = TRUE);

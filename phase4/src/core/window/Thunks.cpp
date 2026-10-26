@@ -1159,11 +1159,6 @@ extern "C" void MS_ABI impl__CheckDlgButton_CWnd__QEAAXHI_Z(CWnd* pThis, int p0,
 extern "C" void MS_ABI impl__CheckRadioButton_CWnd__QEAAXHHH_Z(CWnd* pThis, int p0, int p1, int p2) {
     pThis->CheckRadioButton(p0, p1, p2);
 }
-// Symbol: ?ClientToScreen@CWnd@@QEBAXPEAUtagRECT@@@Z
-// CWnd::ClientToScreen
-extern "C" void MS_ABI impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* p0) {
-    pThis->ClientToScreen(p0);
-}
 // Symbol: ?CreateControlContainer@CWnd@@MEAAHPEAPEAVCOleControlContainer@@@Z
 // CWnd::CreateControlContainer
 extern "C" int MS_ABI impl__CreateControlContainer_CWnd__MEAAHPEAPEAVCOleControlContainer___Z(CWnd* pThis, COleControlContainer** p0) {
@@ -1283,11 +1278,6 @@ extern "C" int MS_ABI impl__GetDlgItemTextW_CWnd__QEBAHHPEA_WH_Z(const CWnd* pTh
 // CWnd::GetDSCCursor
 extern "C" IUnknown* MS_ABI impl__GetDSCCursor_CWnd__QEAAPEAUIUnknown__XZ(CWnd* pThis) {
     return (IUnknown*)pThis->GetDSCCursor();
-}
-// Symbol: ?GetExStyle@CWnd@@QEBAKXZ
-// CWnd::GetExStyle
-extern "C" unsigned long MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* pThis) {
-    return (unsigned long)pThis->GetExStyle();
 }
 // Symbol: ?GetGestureConfig@CWnd@@QEAAHPEAVCGestureConfig@@@Z
 // CWnd::GetGestureConfig

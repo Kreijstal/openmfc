@@ -18,34 +18,9 @@
 //   +0x178 int m_htTrack (+0x17c pad)
 //   CRowColInfo == { int nMinSize; int nIdealSize; int nCurSize; } (12 bytes).
 //
-// include/openmfc/afxole.h declares the same total size (0x180) but a DIFFERENT
-// member order for +0xe8..+0x137 (its m_nRows is at +0xe8, and so on) and has
-// no m_pDynamicViewClass, m_cxBorder, m_cyBorder, m_pColInfo or m_pRowInfo at
-// all.  That header is not owned by this file, so:
-//   * the named header members (m_nRows, m_nCols, m_cxSplitter, m_cySplitter,
-//     m_cxBorderShare, m_cyBorderShare, m_cxSplitterGap, m_cySplitterGap,
-//     m_nMaxRows, m_nMaxCols, m_bHasHScroll, m_bHasVScroll) are used by name at
-//     the OpenMFC offsets, because the exports in core/frame/Thunks.cpp that
-//     route through the C++ members (Create, CreateStatic, RecalcLayout, ...)
-//     already use them there;
-//   * the 72-byte _splitterwnd_padding at +0x138 is exactly retail's tracking
-//     block, so that block is kept IN PLACE at the retail offsets
-//     (SplitterTrackState below, pinned by static_asserts);
-//   * the five members with no home in the header live in a per-instance
-//     side node (SplitterExtra below), allocated with malloc so this file adds
-//     no C++ heap symbols (the per-file link audit rejects new _Z* undefineds).
-// An MSVC-compiled subclass that reads m_nRows/m_cxSplitter through the real
-// afxext.h therefore still sees the wrong offsets -- that is a header defect
-// (reported as a header request), not something this file can repair.
-// ---------------------------------------------------------------------------
-// Virtual dispatch: retail reaches its own overridables through the MSVC
-// vtable (slot numbers are noted per call: CWnd owns slots 0..90, CSplitterWnd
-// adds 91 Create .. 119 StopTracking in afxext.h declaration order).  OpenMFC
-// objects may carry either a mingw or an MSVC vtable, so -- following the
-// convention used throughout core/ (see the note in CWnd::Create,
-// core/window/CWnd.cpp) -- every such call is made directly to the exported
-// thunk / C++ member instead.  A client override of one of those virtuals is
-// consequently not reached from inside the DLL.
+// The public declaration now preserves the native field offsets and virtual
+// slots. Some handler bodies below still use qualified sibling exports; their
+// remaining deviations are documented at the call sites.
 
 #define OPENMFC_APPCORE_IMPL
 
@@ -160,14 +135,10 @@ inline bool IsHBar(int ht)  { return static_cast<unsigned>(ht - kHSplitterBar1) 
 inline bool IsIsect(int ht) { return static_cast<unsigned>(ht - kSplitterIntersection1) <= 224u; }
 
 // Retail CRowColInfo (afxext.h), 12 bytes: the +0x0/+0x4/+0x8 accesses in every body.
-struct CRowColInfo {
-    int nMinSize;
-    int nIdealSize;
-    int nCurSize;
-};
+using CRowColInfo=CSplitterWnd::CRowColInfo;
 static_assert(sizeof(CRowColInfo) == 12, "CRowColInfo is 3 ints");
 
-// Retail tracking block, kept in place in the header's 72-byte padding.
+// Native tracking fields, viewed together by the existing tracker algorithms.
 struct SplitterTrackState {
     BOOL  m_bTracking;      // +0x138
     BOOL  m_bTracking2;     // +0x13c
@@ -179,16 +150,16 @@ struct SplitterTrackState {
     int   _pad;             // +0x17c
 };
 constexpr size_t kTrackOffset = 0x138;
-static_assert(sizeof(SplitterTrackState) == 72, "tracking block is the 72-byte padding");
+static_assert(sizeof(SplitterTrackState) == 72, "native tracking block size");
 static_assert(offsetof(SplitterTrackState, m_bTracking2) == 0x13c - kTrackOffset, "m_bTracking2 @0x13c");
 static_assert(offsetof(SplitterTrackState, m_ptTrackOffset) == 0x140 - kTrackOffset, "m_ptTrackOffset @0x140");
 static_assert(offsetof(SplitterTrackState, m_rectLimit) == 0x148 - kTrackOffset, "m_rectLimit @0x148");
 static_assert(offsetof(SplitterTrackState, m_rectTracker) == 0x158 - kTrackOffset, "m_rectTracker @0x158");
 static_assert(offsetof(SplitterTrackState, m_rectTracker2) == 0x168 - kTrackOffset, "m_rectTracker2 @0x168");
 static_assert(offsetof(SplitterTrackState, m_htTrack) == 0x178 - kTrackOffset, "m_htTrack @0x178");
-// _splitterwnd_padding is protected, so it is located through its neighbours:
+// Keep the tracker view aligned with the public SDK-shaped object:
 static_assert(sizeof(CSplitterWnd) == 0x180, "CSplitterWnd is 0x180 bytes (retail)");
-static_assert(offsetof(CSplitterWnd, m_nActiveCol) + sizeof(int) == kTrackOffset, "padding starts at +0x138");
+static_assert(offsetof(CSplitterWnd,m_bTracking)==kTrackOffset,"tracking begins at +0x138");
 static_assert(sizeof(CWnd) == 0xe8, "CWnd is 0xe8 bytes (retail)");
 
 inline SplitterTrackState& Track(CSplitterWnd* p) {
@@ -198,49 +169,18 @@ inline const SplitterTrackState& Track(const CSplitterWnd* p) {
     return *reinterpret_cast<const SplitterTrackState*>(reinterpret_cast<const char*>(p) + kTrackOffset);
 }
 
-// Retail members with no home in the OpenMFC header (see file header).
+// A reference view keeps the existing algorithms bound to the native inline
+// fields, including arrays supplied directly by an SDK client.
 struct SplitterExtra {
-    SplitterExtra*       next;
-    const CSplitterWnd*  owner;
-    CRuntimeClass*       pDynamicViewClass;   // retail +0xe8
-    int                  cxBorder;            // retail +0x110 (ctor: 2)
-    int                  cyBorder;            // retail +0x114 (ctor: 2)
-    CRowColInfo*         pColInfo;            // retail +0x128 (m_nMaxCols entries)
-    CRowColInfo*         pRowInfo;            // retail +0x130 (m_nMaxRows entries)
+    CRuntimeClass*& pDynamicViewClass;
+    int& cxBorder;
+    int& cyBorder;
+    CRowColInfo*& pColInfo;
+    CRowColInfo*& pRowInfo;
 };
-std::mutex g_extraMutex;
-SplitterExtra* g_extraHead = nullptr;
-SplitterExtra g_extraFallback = {};   // handed out only if malloc fails; never linked
-
-SplitterExtra& Extra(const CSplitterWnd* p) {
-    std::lock_guard<std::mutex> lock(g_extraMutex);
-    for (SplitterExtra* n = g_extraHead; n; n = n->next) {
-        if (n->owner == p) return *n;
-    }
-    SplitterExtra* n = static_cast<SplitterExtra*>(std::malloc(sizeof(SplitterExtra)));
-    if (!n) {
-        g_extraFallback.cxBorder = g_extraFallback.cyBorder = 2;
-        return g_extraFallback;
-    }
-    std::memset(n, 0, sizeof(*n));
-    n->owner = p;
-    n->cxBorder = n->cyBorder = 2;   // retail ctor: m_cxBorder = m_cyBorder = 2
-    n->next = g_extraHead;
-    g_extraHead = n;
-    return *n;
-}
-void ReleaseExtra(const CSplitterWnd* p) {
-    std::lock_guard<std::mutex> lock(g_extraMutex);
-    for (SplitterExtra** pp = &g_extraHead; *pp; pp = &(*pp)->next) {
-        if ((*pp)->owner == p) {
-            SplitterExtra* n = *pp;
-            *pp = n->next;
-            std::free(n->pRowInfo);
-            std::free(n->pColInfo);
-            std::free(n);
-            return;
-        }
-    }
+SplitterExtra Extra(const CSplitterWnd* object) {
+    auto* p=const_cast<CSplitterWnd*>(object);
+    return {p->m_pDynamicViewClass,p->m_cxBorder,p->m_cyBorder,p->m_pColInfo,p->m_pRowInfo};
 }
 
 // Retail CCreateContext (afxwin.h), 0x28 bytes: the memset(&contextT, 0, 0x28) call at
@@ -377,31 +317,16 @@ unsigned g_idcPrimaryLast = 0;
 // +0xe8..+0x17c (+0x17c is padding and is not written); m_cxSplitter = m_cySplitter = 7; m_cxBorderShare = m_cyBorderShare = 0;
 // m_cxSplitterGap = m_cySplitterGap = 7; m_cxBorder = m_cyBorder = 2.
 CSplitterWnd::CSplitterWnd()
-    : m_nRows(0), m_nCols(0), m_cxSplitter(7), m_cySplitter(7),
-      m_cxBorderShare(0), m_cyBorderShare(0),
-      m_cxSplitterGap(7), m_cySplitterGap(7),
-      m_nMaxRows(0), m_nMaxCols(0),
-      m_nId(0), m_bHasHScroll(FALSE), m_bHasVScroll(FALSE),
-      m_pActivePane(nullptr), m_nActiveRow(0), m_nActiveCol(0) {
-    // m_sizeMin / m_nId / m_pActivePane / m_nActiveRow / m_nActiveCol are OpenMFC
-    // header inventions with no retail counterpart; they are zeroed and otherwise
-    // only m_sizeMin and m_nId are ever written (by Create).
-    m_sizeMin.cx = 0; m_sizeMin.cy = 0;
-    memset(_splitterwnd_padding, 0, sizeof(_splitterwnd_padding));   // the tracking block
-    ReleaseExtra(this);   // drop a stale node if this address was recycled without a dtor
-    SplitterExtra& x = Extra(this);   // creates the node: cxBorder = cyBorder = 2, arrays NULL
-    x.pDynamicViewClass = nullptr;
-}
-// ??1CSplitterWnd@@UEAA@XZ, RVA 0x2aa590 (mfc140u): vfptr; free(m_pRowInfo);
-// free(m_pColInfo) (operator delete[] is a jump to free in this image);
-// CWnd::~CWnd().  Retail's CWnd dtor destroys a still-attached window; OpenMFC's
-// inline CWnd::~CWnd (OPENMFC_APPCORE_IMPL) only nulls m_hWnd, so the destroy is
-// done here through the CWnd::DestroyWindow export (which also drops the
-// handle-map entry).  The side node is released AFTER the destroy so that any
-// handler run during DestroyWindow cannot re-create (and leak) it.
+    :m_pDynamicViewClass(nullptr),m_nMaxRows(0),m_nMaxCols(0),
+     m_cxSplitter(7),m_cySplitter(7),m_cxBorderShare(0),m_cyBorderShare(0),
+     m_cxSplitterGap(7),m_cySplitterGap(7),m_cxBorder(2),m_cyBorder(2),
+     m_nRows(0),m_nCols(0),m_bHasHScroll(FALSE),m_bHasVScroll(FALSE),
+     m_pColInfo(nullptr),m_pRowInfo(nullptr),m_bTracking(FALSE),m_bTracking2(FALSE),
+     m_ptTrackOffset(0,0),m_rectLimit(0,0,0,0),m_rectTracker(0,0,0,0),
+     m_rectTracker2(0,0,0,0),m_htTrack(0) {}
 CSplitterWnd::~CSplitterWnd() {
-    if (m_hWnd) impl__DestroyWindow_CWnd__UEAAHXZ(this);
-    ReleaseExtra(this);
+    std::free(m_pRowInfo);
+    std::free(m_pColInfo);
 }
 
 // ?Create@CSplitterWnd@@UEAAHPEAVCWnd@@HHUtagSIZE@@PEAUCCreateContext@@KI@Z, RVA 0x2aa5d0 (mfc140u):
@@ -418,8 +343,6 @@ BOOL CSplitterWnd::Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols,
     m_nMaxRows = nMaxRows;
     m_nMaxCols = nMaxCols;
     m_nRows = m_nCols = 1;
-    m_sizeMin = sizeMin;   // OpenMFC-only member
-    m_nId = static_cast<int>(nID);
     if (!impl__CreateCommon_CSplitterWnd__IEAAHPEAVCWnd__UtagSIZE__KI_Z(this, pParentWnd, sizeMin, dwStyle, nID))
         return FALSE;
     if (!pContext) return FALSE;
@@ -429,7 +352,7 @@ BOOL CSplitterWnd::Create(CWnd* pParentWnd, int nMaxRows, int nMaxCols,
         impl__DestroyWindow_CWnd__UEAAHXZ(this);
         return FALSE;
     }
-    SplitterExtra& x = Extra(this);
+    SplitterExtra x = Extra(this);
     if (x.pColInfo) x.pColInfo[0].nIdealSize = sizeMin.cx;
     if (x.pRowInfo) x.pRowInfo[0].nIdealSize = sizeMin.cy;
     return TRUE;
@@ -441,7 +364,6 @@ BOOL CSplitterWnd::CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
                                  DWORD dwStyle, UINT nID) {
     m_nMaxRows = m_nRows = nRows;
     m_nMaxCols = m_nCols = nCols;
-    m_nId = static_cast<int>(nID);   // OpenMFC-only member
     SIZE sizeMin = { 0, 0 };
     return impl__CreateCommon_CSplitterWnd__IEAAHPEAVCWnd__UtagSIZE__KI_Z(this, pParentWnd, sizeMin, dwStyle, nID) ? TRUE : FALSE;
 }
@@ -471,7 +393,7 @@ BOOL CSplitterWnd::CreateStatic(CWnd* pParentWnd, int nRows, int nCols,
 // (not the object's own vtable slot); a NULL pViewClass returns FALSE.
 BOOL CSplitterWnd::CreateView(int row, int col, CRuntimeClass* pViewClass,
                                SIZE sizeInit, CCreateContext* pContext) {
-    SplitterExtra& x = Extra(this);
+    SplitterExtra x = Extra(this);
     if (x.pColInfo && col >= 0 && col < m_nMaxCols) x.pColInfo[col].nIdealSize = sizeInit.cx;
     if (x.pRowInfo && row >= 0 && row < m_nMaxRows) x.pRowInfo[row].nIdealSize = sizeInit.cy;
 
@@ -505,39 +427,6 @@ BOOL CSplitterWnd::CreateView(int row, int col, CRuntimeClass* pViewClass,
 //     return GetDlgItem(IdFromRowCol(row, col));     (tail jump into CWnd::GetDlgItem)
 CWnd* CSplitterWnd::GetPane(int row, int col) const {
     return PaneAt(this, row, col);
-}
-// ?GetRowInfo@CSplitterWnd@@QEBAXHAEAH0@Z, RVA 0x2aabe0 (mfc140u):
-//     cyCur = m_pRowInfo[row].nCurSize; cyMin = m_pRowInfo[row].nMinSize;
-// DEVIATION: retail indexes m_pRowInfo unguarded; range and NULL are guarded here.
-void CSplitterWnd::GetRowInfo(int row, int& cyCur, int& cyMin) const {
-    const SplitterExtra& x = Extra(this);
-    if (!x.pRowInfo || row < 0 || row >= m_nMaxRows) { cyCur = 0; cyMin = 0; return; }
-    cyCur = x.pRowInfo[row].nCurSize;
-    cyMin = x.pRowInfo[row].nMinSize;
-}
-// ?SetRowInfo@CSplitterWnd@@QEAAXHHH@Z, RVA 0x2aac10 (mfc140u):
-//     m_pRowInfo[row].nIdealSize = cyIdeal; m_pRowInfo[row].nMinSize = cyMin;
-void CSplitterWnd::SetRowInfo(int row, int cyIdeal, int cyMin) {
-    SplitterExtra& x = Extra(this);
-    if (!x.pRowInfo || row < 0 || row >= m_nMaxRows) return;   // retail: no check
-    x.pRowInfo[row].nIdealSize = cyIdeal;
-    x.pRowInfo[row].nMinSize = cyMin;
-}
-// ?GetColumnInfo@CSplitterWnd@@QEBAXHAEAH0@Z, RVA 0x2aac30 (mfc140u):
-//     cxCur = m_pColInfo[col].nCurSize; cxMin = m_pColInfo[col].nMinSize;
-void CSplitterWnd::GetColumnInfo(int col, int& cxCur, int& cxMin) const {
-    const SplitterExtra& x = Extra(this);
-    if (!x.pColInfo || col < 0 || col >= m_nMaxCols) { cxCur = 0; cxMin = 0; return; }
-    cxCur = x.pColInfo[col].nCurSize;
-    cxMin = x.pColInfo[col].nMinSize;
-}
-// ?SetColumnInfo@CSplitterWnd@@QEAAXHHH@Z, RVA 0x2aac60 (mfc140u):
-//     m_pColInfo[col].nIdealSize = cxIdeal; m_pColInfo[col].nMinSize = cxMin;
-void CSplitterWnd::SetColumnInfo(int col, int cxIdeal, int cxMin) {
-    SplitterExtra& x = Extra(this);
-    if (!x.pColInfo || col < 0 || col >= m_nMaxCols) return;   // retail: no check
-    x.pColInfo[col].nIdealSize = cxIdeal;
-    x.pColInfo[col].nMinSize = cxMin;
 }
 // ?RecalcLayout@CSplitterWnd@@UEAAXXZ, RVA 0x2ac6d0 (mfc140u):
 //     CRect rectClient; GetClientRect(rectClient); rectClient.InflateRect(-m_cxBorder, -m_cyBorder);
@@ -586,7 +475,7 @@ void CSplitterWnd::SetColumnInfo(int col, int cxIdeal, int cxMin) {
 //     DrawAllSplitBars(NULL, rectInside.right, rectInside.bottom);           // vtable slot 116 (invalidate)
 void CSplitterWnd::RecalcLayout() {
     if (!m_hWnd) return;   // retail calls GetClientRect on m_hWnd unguarded; nothing to lay out without a window
-    SplitterExtra& x = Extra(this);
+    SplitterExtra x = Extra(this);
     if (!x.pColInfo || !x.pRowInfo) return;   // arrays exist once CreateCommon has run
 
     RECT rectClient = {};
@@ -707,16 +596,6 @@ void CSplitterWnd::SetSplitCursor(int ht) {
 // OpenMFC header oddity: retail's GetActivePane(int*, int*) returns CWnd* and is
 // exported from this file (see the thunk below).  This int-returning const
 // variant exists only in include/openmfc/afxole.h; it reports the pane index
-// (row * m_nCols + col) of the retail result, or -1.
-int CSplitterWnd::GetActivePane(int* pRow, int* pCol) const {
-    int row = -1, col = -1;
-    CWnd* pPane = static_cast<CWnd*>(impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(
-        const_cast<CSplitterWnd*>(this), &row, &col));
-    if (pRow) *pRow = row;
-    if (pCol) *pCol = col;
-    if (!pPane || row < 0 || col < 0) return -1;
-    return row * m_nCols + col;
-}
 // ?SetActivePane@CSplitterWnd@@UEAAXHHPEAVCWnd@@@Z, RVA 0x2ae040 (mfc140u):
 //     if (pWnd == NULL) pWnd = GetDlgItem(IdFromRowCol(row, col));
 //     if (pWnd->IsKindOf(RUNTIME_CLASS(CView))) {                     // unguarded deref in retail
@@ -735,82 +614,11 @@ void CSplitterWnd::SetActivePane(int row, int col, CWnd* pWnd) {
         ::SetFocus(pWnd->m_hWnd);
     }
 }
-// OpenMFC header-only overload: retail has no argument-less GetActivePane.
-CWnd* CSplitterWnd::GetActivePane() {
-    return static_cast<CWnd*>(impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(this, nullptr, nullptr));
-}
-// ?CanActivateNext@CSplitterWnd@@UEAAHH@Z, RVA 0x2adf40 (mfc140u):
-//     if (GetActivePane(NULL, NULL) == NULL) return FALSE;             // vtable slot 104
-//     return m_nRows > 1 || m_nCols > 1;
-BOOL CSplitterWnd::CanActivateNext(BOOL bPrev) {
-    (void)bPrev;   // retail ignores it too
-    if (impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(this, nullptr, nullptr) == nullptr) return FALSE;
-    return (m_nRows > 1 || m_nCols > 1) ? TRUE : FALSE;
-}
-// ?ActivateNext@CSplitterWnd@@UEAAXH@Z, RVA 0x2adf80 (mfc140u):
-//     int row, col;
-//     if (GetActivePane(&row, &col) == NULL) return;                   // vtable slot 104
-//     if (bPrev) {                                                     // prev: column first, wrapping
-//         if (--col < 0) { col = m_nCols - 1; if (--row < 0) row = m_nRows - 1; }
-//     } else {
-//         if (++col >= m_nCols) { col = 0; if (++row >= m_nRows) row = 0; }
-//     }
-//     SetActivePane(row, col, NULL);                                   // vtable slot 105
-void CSplitterWnd::ActivateNext(BOOL bPrev) {
-    int row = 0, col = 0;
-    if (impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(this, &row, &col) == nullptr) return;
-    if (bPrev) {
-        if (--col < 0) {
-            col = m_nCols - 1;
-            if (--row < 0) row = m_nRows - 1;
-        }
-    } else {
-        if (++col >= m_nCols) {
-            col = 0;
-            if (++row >= m_nRows) row = 0;
-        }
-    }
-    SetActivePane(row, col, nullptr);
-}
-// ?DoKeyboardSplit@CSplitterWnd@@UEAAHXZ, RVA 0x2ac210 (mfc140u):
-//     int ht;
-//     if (m_nRows > 1)       ht = (m_nCols > 1) ? splitterIntersection1 : vSplitterBar1;
-//     else if (m_nCols > 1)  ht = hSplitterBar1;
-//     else if (m_nMaxRows > 1) ht = (m_nMaxCols > 1) ? bothSplitterBox : vSplitterBox;
-//     else if (m_nMaxCols > 1) ht = hSplitterBox;
-//     else return FALSE;
-//     StartTracking(ht);                                                // vtable slot 118
-//     CRect rect;                                                       // then centre the cursor in the tracker
-//     rect.left = m_rectTracker.Width() / 2;  rect.top = m_rectTracker.Height() / 2;  rect.right = rect.bottom = 0;
-//     if (m_ptTrackOffset.y != 0) rect.top  = m_rectTracker.top;
-//     if (m_ptTrackOffset.x != 0) rect.left = m_bTracking2 ? m_rectTracker2.left : m_rectTracker.left;
-//     rect.OffsetRect(-m_ptTrackOffset.x, -m_ptTrackOffset.y);
-//     ClientToScreen(&rect); ::SetCursorPos(rect.left, rect.top);
-//     return TRUE;
-BOOL CSplitterWnd::DoKeyboardSplit() {
-    int ht;
-    if (m_nRows > 1)          ht = (m_nCols > 1) ? kSplitterIntersection1 : kVSplitterBar1;
-    else if (m_nCols > 1)     ht = kHSplitterBar1;
-    else if (m_nMaxRows > 1)  ht = (m_nMaxCols > 1) ? kBothSplitterBox : kVSplitterBox;
-    else if (m_nMaxCols > 1)  ht = kHSplitterBox;
-    else return FALSE;
-
-    impl__StartTracking_CSplitterWnd__MEAAXH_Z(this, ht);
-
-    const SplitterTrackState& t = Track(this);
-    RECT rect = {};
-    rect.left = (t.m_rectTracker.right - t.m_rectTracker.left) / 2;
-    rect.top  = (t.m_rectTracker.bottom - t.m_rectTracker.top) / 2;
-    if (t.m_ptTrackOffset.y != 0) rect.top = t.m_rectTracker.top;
-    if (t.m_ptTrackOffset.x != 0) rect.left = t.m_bTracking2 ? t.m_rectTracker2.left : t.m_rectTracker.left;
-    ::OffsetRect(&rect, -t.m_ptTrackOffset.x, -t.m_ptTrackOffset.y);
-    ::ClientToScreen(m_hWnd, reinterpret_cast<POINT*>(&rect));
-    ::ClientToScreen(m_hWnd, reinterpret_cast<POINT*>(&rect) + 1);
-    ::SetCursorPos(rect.left, rect.top);
-    return TRUE;
+CWnd* CSplitterWnd::GetActivePane(int* row,int* col) {
+    return static_cast<CWnd*>(impl__GetActivePane_CSplitterWnd__UEAAPEAVCWnd__PEAH0_Z(this,row,col));
 }
 // C++ face of the export defined below (no virtual dispatch; see file header).
-void CSplitterWnd::OnDrawSplitter(CDC* pDC, int nType, const CRect& rect) {
+void CSplitterWnd::OnDrawSplitter(CDC* pDC, ESplitType nType, const CRect& rect) {
     RECT rc = { rect.left, rect.top, rect.right, rect.bottom };
     impl__OnDrawSplitter_CSplitterWnd__MEAAXPEAVCDC__W4ESplitType_1_AEBVCRect___Z(this, pDC, nType, &rc);
 }
@@ -837,13 +645,7 @@ void CSplitterWnd::OnInvertTracker(const CRect& rect) {
     if (hOldBrush != nullptr) ::SelectObject(hDC, hOldBrush);
     ::ReleaseDC(m_hWnd, hDC);
 }
-// OpenMFC header invention: retail CSplitterWnd has no OnCreateClient (that is a
-// CFrameWnd overridable).  Nothing to transcribe; reports whether a window exists.
-BOOL CSplitterWnd::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext) {
-    (void)lpcs;
-    (void)pContext;
-    return m_hWnd != nullptr;
-}
+
 
 // ===========================================================================
 // Exports whose bodies live here.
@@ -944,7 +746,7 @@ extern "C" int MS_ABI impl__CreateCommon_CSplitterWnd__IEAAHPEAVCWnd__UtagSIZE__
             0, 0, 0, 0, pParentWnd->m_hWnd, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr)) {
         return FALSE;
     }
-    SplitterExtra& x = Extra(pThis);
+    SplitterExtra x = Extra(pThis);
     std::free(x.pColInfo); x.pColInfo = nullptr;
     std::free(x.pRowInfo); x.pRowInfo = nullptr;
     const int nMaxCols = pThis->m_nMaxCols > 0 ? pThis->m_nMaxCols : 0;
@@ -1210,7 +1012,7 @@ extern "C" int MS_ABI impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z
 // Symbol: ?DrawAllSplitBars@CSplitterWnd@@MEAAXPEAVCDC@@HH@Z
 extern "C" void MS_ABI impl__DrawAllSplitBars_CSplitterWnd__MEAAXPEAVCDC__HH_Z(CSplitterWnd* pThis, CDC* pDC, int cxInside, int cyInside) {
     if (!pThis || !pThis->m_hWnd) return;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     if (!x.pColInfo || !x.pRowInfo) return;
     int row, col;
     RECT rect = {};
@@ -1280,7 +1082,7 @@ extern "C" void MS_ABI impl__DrawAllSplitBars_CSplitterWnd__MEAAXPEAVCDC__HH_Z(C
 // Symbol: ?GetHitRect@CSplitterWnd@@MEAAXHAEAVCRect@@@Z
 extern "C" void MS_ABI impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(CSplitterWnd* pThis, int ht, RECT* pRectHit) {
     if (!pThis || !pRectHit) return;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     SplitterTrackState& t = Track(pThis);
     RECT rectClient = {};
     if (pThis->m_hWnd) ::GetClientRect(pThis->m_hWnd, &rectClient);
@@ -1331,7 +1133,7 @@ extern "C" void MS_ABI impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(CSplit
 // Symbol: ?GetInsideRect@CSplitterWnd@@MEBAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__GetInsideRect_CSplitterWnd__MEBAXAEAVCRect___Z(const CSplitterWnd* pThis, RECT* pRect) {
     if (!pThis || !pRect) return;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     RECT rect = {};
     if (pThis->m_hWnd) ::GetClientRect(pThis->m_hWnd, &rect);
     InflateRC(rect, -x.cxBorder, -x.cyBorder);
@@ -1409,7 +1211,7 @@ extern "C" CWnd* MS_ABI impl__GetSizingParent_CSplitterWnd__IEAAPEAVCWnd__XZ(CSp
 // Symbol: ?HitTest@CSplitterWnd@@MEBAHVCPoint@@@Z
 extern "C" int MS_ABI impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(const CSplitterWnd* pThis, long long ptPacked) {
     if (!pThis || !pThis->m_hWnd) return kNoHit;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     const POINT pt = UnpackPoint(ptPacked);
     RECT rectClient = {};
     ::GetClientRect(pThis->m_hWnd, &rectClient);
@@ -1520,7 +1322,7 @@ extern "C" void MS_ABI impl__OnDisplayChange_CSplitterWnd__IEAAXXZ(CSplitterWnd*
 // Symbol: ?OnDraw@CSplitterWnd@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CSplitterWnd__MEAAXPEAVCDC___Z(CSplitterWnd* pThis, CDC* pDC) {
     if (!pThis || !pThis->m_hWnd) return;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     RECT rectClient = {};
     ::GetClientRect(pThis->m_hWnd, &rectClient);
     InflateRC(rectClient, -x.cxBorder, -x.cyBorder);
@@ -1638,7 +1440,7 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CSplitterWnd__IEAAXIVCPoint___Z(CSp
     const int ht = impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(pThis, ptPacked);
     impl__StopTracking_CSplitterWnd__MEAAXH_Z(pThis, FALSE);
     if (!(StyleOf(pThis) & kSplsDynamicSplit)) return;
-    const SplitterExtra& x = Extra(pThis);
+    const SplitterExtra x = Extra(pThis);
     if (ht == kVSplitterBox) {
         if (x.pRowInfo) impl__SplitRow_CSplitterWnd__UEAAHH_Z(pThis, x.pRowInfo[0].nCurSize / 2);
     } else if (ht == kHSplitterBox) {
@@ -2000,7 +1802,7 @@ extern "C" void MS_ABI impl__SetScrollStyle_CSplitterWnd__QEAAXK_Z(CSplitterWnd*
 // Symbol: ?SplitRow@CSplitterWnd@@UEAAHH@Z
 extern "C" int MS_ABI impl__SplitRow_CSplitterWnd__UEAAHH_Z(CSplitterWnd* pThis, int cyBefore) {
     if (!pThis) return FALSE;
-    SplitterExtra& x = Extra(pThis);
+    SplitterExtra x = Extra(pThis);
     const int rowNew = pThis->m_nRows;
     if (!x.pRowInfo || !x.pColInfo || rowNew < 1 || rowNew >= pThis->m_nMaxRows) return FALSE;   // retail indexes m_pRowInfo[m_nRows] unguarded
     cyBefore -= x.cyBorder;
@@ -2038,7 +1840,7 @@ extern "C" int MS_ABI impl__SplitRow_CSplitterWnd__UEAAHH_Z(CSplitterWnd* pThis,
 // Symbol: ?SplitColumn@CSplitterWnd@@UEAAHH@Z
 extern "C" int MS_ABI impl__SplitColumn_CSplitterWnd__UEAAHH_Z(CSplitterWnd* pThis, int cxBefore) {
     if (!pThis) return FALSE;
-    SplitterExtra& x = Extra(pThis);
+    SplitterExtra x = Extra(pThis);
     const int colNew = pThis->m_nCols;
     if (!x.pRowInfo || !x.pColInfo || colNew < 1 || colNew >= pThis->m_nMaxCols) return FALSE;   // retail indexes m_pColInfo[m_nCols] unguarded
     cxBefore -= x.cxBorder;
@@ -2221,7 +2023,7 @@ extern "C" void MS_ABI impl__StopTracking_CSplitterWnd__MEAAXH_Z(CSplitterWnd* p
 // Symbol: ?TrackColumnSize@CSplitterWnd@@MEAAXHH@Z
 extern "C" void MS_ABI impl__TrackColumnSize_CSplitterWnd__MEAAXHH_Z(CSplitterWnd* pThis, int x, int col) {
     if (!pThis) return;
-    SplitterExtra& ex = Extra(pThis);
+    SplitterExtra ex = Extra(pThis);
     if (!ex.pColInfo || col < 0 || col + 1 >= pThis->m_nMaxCols) return;   // retail indexes m_pColInfo[col + 1] unguarded
     POINT pt = { x, 0 };
     ::ClientToScreen(pThis->m_hWnd, &pt);
@@ -2242,7 +2044,7 @@ extern "C" void MS_ABI impl__TrackColumnSize_CSplitterWnd__MEAAXHH_Z(CSplitterWn
 // Symbol: ?TrackRowSize@CSplitterWnd@@MEAAXHH@Z
 extern "C" void MS_ABI impl__TrackRowSize_CSplitterWnd__MEAAXHH_Z(CSplitterWnd* pThis, int y, int row) {
     if (!pThis) return;
-    SplitterExtra& ex = Extra(pThis);
+    SplitterExtra ex = Extra(pThis);
     if (!ex.pRowInfo || row < 0 || row + 1 >= pThis->m_nMaxRows) return;   // retail indexes m_pRowInfo[row + 1] unguarded
     POINT pt = { 0, y };
     ::ClientToScreen(pThis->m_hWnd, &pt);
@@ -2257,3 +2059,27 @@ extern "C" void MS_ABI impl__TrackRowSize_CSplitterWnd__MEAAXHH_Z(CSplitterWnd* 
         if (StyleOf(pThis) & kSplsDynamicSplit) impl__DeleteRow_CSplitterWnd__UEAAXH_Z(pThis, row + 1);
     }
 }
+
+void CSplitterWnd::OnDraw(CDC* dc) {impl__OnDraw_CSplitterWnd__MEAAXPEAVCDC___Z(this,dc);}
+BOOL CSplitterWnd::CreateScrollBarCtrl(DWORD style,UINT id) {return impl__CreateScrollBarCtrl_CSplitterWnd__UEAAHKI_Z(this,style,id);}
+void CSplitterWnd::DeleteView(int row,int col) {impl__DeleteView_CSplitterWnd__UEAAXHH_Z(this,row,col);}
+BOOL CSplitterWnd::SplitRow(int before) {return impl__SplitRow_CSplitterWnd__UEAAHH_Z(this,before);}
+BOOL CSplitterWnd::SplitColumn(int before) {return impl__SplitColumn_CSplitterWnd__UEAAHH_Z(this,before);}
+void CSplitterWnd::DeleteRow(int row) {impl__DeleteRow_CSplitterWnd__UEAAXH_Z(this,row);}
+void CSplitterWnd::DeleteColumn(int col) {impl__DeleteColumn_CSplitterWnd__UEAAXH_Z(this,col);}
+BOOL CSplitterWnd::DoScroll(CView* view,UINT code,BOOL scroll) {return impl__DoScroll_CSplitterWnd__UEAAHPEAVCView__IH_Z(this,view,code,scroll);}
+BOOL CSplitterWnd::DoScrollBy(CView* view,CSize size,BOOL scroll) {LONGLONG packed;std::memcpy(&packed,&size,sizeof(size));return impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(this,view,packed,scroll);}
+int CSplitterWnd::HitTest(CPoint point) const {LONGLONG packed;static_assert(sizeof(packed)==sizeof(point),"point ABI");std::memcpy(&packed,&point,sizeof(point));return impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(this,packed);}
+void CSplitterWnd::GetInsideRect(CRect& rect) const {impl__GetInsideRect_CSplitterWnd__MEBAXAEAVCRect___Z(this,reinterpret_cast<RECT*>(&rect));}
+void CSplitterWnd::GetHitRect(int hit,CRect& rect) {impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(this,hit,reinterpret_cast<RECT*>(&rect));}
+void CSplitterWnd::TrackRowSize(int size,int row) {impl__TrackRowSize_CSplitterWnd__MEAAXHH_Z(this,size,row);}
+void CSplitterWnd::TrackColumnSize(int size,int col) {impl__TrackColumnSize_CSplitterWnd__MEAAXHH_Z(this,size,col);}
+void CSplitterWnd::DrawAllSplitBars(CDC* dc,int width,int height) {impl__DrawAllSplitBars_CSplitterWnd__MEAAXPEAVCDC__HH_Z(this,dc,width,height);}
+void CSplitterWnd::StartTracking(int hit) {impl__StartTracking_CSplitterWnd__MEAAXH_Z(this,hit);}
+void CSplitterWnd::StopTracking(BOOL accept) {impl__StopTracking_CSplitterWnd__MEAAXH_Z(this,accept);}
+BOOL CSplitterWnd::OnCommand(WPARAM wp,LPARAM lp) {return impl__OnCommand_CSplitterWnd__MEAAH_K_J_Z(this,wp,lp);}
+BOOL CSplitterWnd::OnNotify(WPARAM wp,LPARAM lp,LRESULT* result) {return impl__OnNotify_CSplitterWnd__MEAAH_K_JPEA_J_Z(this,wp,lp,result);}
+
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CSplitterWnd__KAPEBUAFX_MSGMAP__XZ();
+const AFX_MSGMAP* CSplitterWnd::GetThisMessageMap() {return impl__GetThisMessageMap_CSplitterWnd__KAPEBUAFX_MSGMAP__XZ();}
+const AFX_MSGMAP* CSplitterWnd::GetMessageMap() const {return CSplitterWnd::GetThisMessageMap();}

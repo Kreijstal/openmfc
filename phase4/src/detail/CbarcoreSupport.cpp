@@ -85,13 +85,15 @@ void NormalizeSplitterState(CSplitterWnd* pThis) {
         state.colInfo.assign(cols, {});
     }
 
-    for (auto& row : state.rowInfo) {
-        if (row.min <= 0) row.min = pThis->m_sizeMin.cy;
-        if (row.ideal < row.min) row.ideal = row.min;
+    for (size_t i=0;i<state.rowInfo.size();++i) {
+        auto& row=state.rowInfo[i];
+        if(row.min<=0)row.min=pThis->m_pRowInfo && i<static_cast<size_t>(std::max(0,pThis->m_nMaxRows))?pThis->m_pRowInfo[i].nMinSize:0;
+        if(row.ideal<row.min)row.ideal=row.min;
     }
-    for (auto& col : state.colInfo) {
-        if (col.min <= 0) col.min = pThis->m_sizeMin.cx;
-        if (col.ideal < col.min) col.ideal = col.min;
+    for (size_t i=0;i<state.colInfo.size();++i) {
+        auto& col=state.colInfo[i];
+        if(col.min<=0)col.min=pThis->m_pColInfo && i<static_cast<size_t>(std::max(0,pThis->m_nMaxCols))?pThis->m_pColInfo[i].nMinSize:0;
+        if(col.ideal<col.min)col.ideal=col.min;
     }
 }
 std::vector<int> SplitterSizesFromInfo(int total, const std::vector<SplitterDim>& info, int fallbackMin) {

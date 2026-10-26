@@ -44,7 +44,7 @@
     static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 VIEWS_RENDERTARGET_DESC(CSplitterWnd, 384, 0xFFFF, &CWnd::classCWnd);
-VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &classCSplitterWnd);
+VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &CSplitterWnd::classCSplitterWnd);
 VIEWS_RENDERTARGET_DESC(CBaseTransition, 56, 0xFFFF, &CObject::classCObject);
 VIEWS_RENDERTARGET_DESC(CBitmapRenderTarget, 88, 0xFFFF, &CRenderTarget::classCRenderTarget);
 VIEWS_RENDERTARGET_DESC(CGopherFileFind, 72, 0xFFFF, &CFileFind::classCFileFind);
@@ -70,11 +70,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMiniFrameWnd__UEBAPEAUCR
 #define VIEWS_RENDERTARGET_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-// Symbol: ?GetThisClass@CSplitterWnd@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CSplitterWnd@@UEBAPEAUCRuntimeClass@@XZ
-VIEWS_RENDERTARGET_GETTERS(CSplitterWnd,
-           impl__GetThisClass_CSplitterWnd__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CSplitterWnd__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CSplitterWndEx@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CSplitterWndEx@@UEBAPEAUCRuntimeClass@@XZ
 VIEWS_RENDERTARGET_GETTERS(CSplitterWndEx,

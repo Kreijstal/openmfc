@@ -162,6 +162,8 @@ typedef int BOOL;
 #define FILE_ATTRIBUTE_DIRECTORY 0x00000010
 #endif
 
+void AFXAPI AfxThrowInvalidArgException();
+
 class CObject;
 class CArchive;
 class CArchiveAccess;
@@ -214,18 +216,15 @@ struct CRuntimeClass {
         return m_pfnGetBaseClass ? m_pfnGetBaseClass() : nullptr;
     }
 
-    bool IsDerivedFrom(const CRuntimeClass* pBaseClass) const {
-        const CRuntimeClass* pClassThis = this;
-        while (pClassThis != nullptr) {
-            if (pClassThis == pBaseClass) {
-                return true;
-            }
-            if (pClassThis->m_pfnGetBaseClass == nullptr) {
-                return false;  // reached a root descriptor
-            }
-            pClassThis = pClassThis->m_pfnGetBaseClass();
+    BOOL IsDerivedFrom(const CRuntimeClass* pBaseClass) const {
+        if(!this || !pBaseClass)AfxThrowInvalidArgException();
+        const CRuntimeClass* current=this;
+        while(current!=pBaseClass) {
+            auto next=current->m_pfnGetBaseClass;
+            if(!next)return FALSE;
+            current=next();
         }
-        return false;
+        return TRUE;
     }
 };
 
@@ -347,9 +346,11 @@ public:
     }
     
     // Type checking
-    bool IsKindOf(const CRuntimeClass* pClass) const {
-        CRuntimeClass* pThisClass = GetRuntimeClass();
-        return pThisClass->IsDerivedFrom(pClass);
+    BOOL IsKindOf(const CRuntimeClass* pClass) const {
+        if(!this)AfxThrowInvalidArgException();
+        CRuntimeClass* type=GetRuntimeClass();
+        if(!type)AfxThrowInvalidArgException();
+        return type->IsDerivedFrom(pClass);
     }
     
     // Serialization (stub - needs CArchive implementation)

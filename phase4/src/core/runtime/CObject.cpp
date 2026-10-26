@@ -23,58 +23,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CObject__SAPEAUCRuntimeClass
     InitializeClasses();
     return &CObject::classCObject;
 }
-// CObject::IsKindOf() - const member function
-// Checks if this object is an instance of the given class or derived from it
-//
-// =============================================================================
-// IMPORTANT: MSVC vtable layout assumption
-// =============================================================================
-// This implementation assumes MSVC-style vtable layout where vtable[0] is
-// GetRuntimeClass(). This is CORRECT because:
-//
-// 1. This function is exported with MSVC mangling and is called from MSVC code
-// 2. Objects reaching this function come from one of:
-//    a) MSVC-compiled MFC application code (native MSVC vtables)
-//    b) Our OpenMFC exception objects with patched MSVC-style vtables
-//    c) Our header-defined classes with GetRuntimeClass() declared first
-//
-// 3. Our CObject header (afx.h) declares virtual methods in MSVC order:
-//    - GetRuntimeClass() is declared BEFORE the destructor
-//    - This ensures vtable[0] = GetRuntimeClass for MinGW-compiled objects too
-//
-// This is NOT safe for pure Itanium-ABI objects where destructors come first.
-// However, such objects should never reach this MSVC-exported function.
-// =============================================================================
-// Symbol: ?IsKindOf@CObject@@QEBAHPEBUCRuntimeClass@@@Z
-extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-    const CObject* pThis,           // RCX = this pointer
-    const CRuntimeClass* pClass     // RDX = class to check against
-) {
-    if (!pThis || !pClass) {
-        return FALSE;
-    }
-
-    const CRuntimeClass* pThisClass = GetObjectRuntimeClass(pThis);
-
-    if (!pThisClass) {
-        return FALSE;
-    }
-
-    // Walk the inheritance chain
-    while (pThisClass != nullptr) {
-        if (pThisClass == pClass) {
-            return TRUE;
-        }
-        // The base link is the function pointer at +0x18; a null one means this is a root
-        // descriptor. There is deliberately no data fallback -- retail has no such field in
-        // an _AFXDLL build, which is the layout CRuntimeClass now matches.
-        pThisClass = pThisClass->m_pfnGetBaseClass
-                         ? pThisClass->m_pfnGetBaseClass()
-                         : nullptr;
-    }
-
-    return FALSE;
-}
+// Native runtime ancestry checks live in CObjectTypeChecks.cpp.
 // CObject::IsSerializable() - const member function
 // Returns TRUE if this class supports serialization
 // Symbol: ?IsSerializable@CObject@@QEBAHXZ

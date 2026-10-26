@@ -1516,23 +1516,7 @@ void CWnd::CheckRadioButton(int p0, int p1, int p2)
         ::SendMessageW(hCtrl, BM_SETCHECK, (controlId == p2) ? BST_CHECKED : BST_UNCHECKED, 0);
     }
 }
-void CWnd::ClientToScreen(RECT* p0) const
-{
-    if (!m_hWnd || !p0) {
-        return;
-    }
 
-    POINT points[2] = {
-        {p0->left, p0->top},
-        {p0->right, p0->bottom}
-    };
-    if (::MapWindowPoints(m_hWnd, HWND_DESKTOP, points, 2) != 0) {
-        p0->left = points[0].x;
-        p0->top = points[0].y;
-        p0->right = points[1].x;
-        p0->bottom = points[1].y;
-    }
-}
 int CWnd::CreateControl(const GUID*& p0, const WCHAR* p1, DWORD p2, const RECT*& p3, void* p4, UINT p5, CFile* p6, int p7, WCHAR* p8)
 {
     COleControl* control = dynamic_cast<COleControl*>(this);
@@ -2049,13 +2033,7 @@ IUnknown* CWnd::GetDSCCursor()
 {
     return GetControlUnknown();
 }
-DWORD CWnd::GetExStyle() const
-{
-    if (!m_hWnd) {
-        return 0;
-    }
-    return static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE));
-}
+
 int CWnd::GetGestureConfig(CGestureConfig* p0)
 {
     if (!m_hWnd) {

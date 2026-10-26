@@ -109,7 +109,7 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
     static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 VIEWS_RENDERTARGET_DESC(CSplitterWnd, 384, 0xFFFF, &CWnd::classCWnd);
-VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &classCSplitterWnd);
+VIEWS_RENDERTARGET_DESC(CSplitterWndEx, 384, 0xFFFF, &CSplitterWnd::classCSplitterWnd);
 VIEWS_RENDERTARGET_DESC(CBaseTransition, 56, 0xFFFF, &CObject::classCObject);
 VIEWS_RENDERTARGET_DESC(CBitmapRenderTarget, 88, 0xFFFF, &CRenderTarget::classCRenderTarget);
 VIEWS_RENDERTARGET_DESC(CGopherFileFind, 72, 0xFFFF, &CFileFind::classCFileFind);

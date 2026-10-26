@@ -41,6 +41,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
     phase4/src/core/window/CWndParents.cpp phase4/src/core/window/CWndFocus.cpp phase4/src/core/view/CFormViewRouting.cpp
+    phase4/src/core/frame/CSplitterWndInfo.cpp phase4/src/core/runtime/CObjectTypeChecks.cpp phase4/src/core/view/CViewSplitterCommands.cpp phase4/src/core/frame/CSplitterWndNavigation.cpp phase4/src/core/window/CWndCoordinates.cpp
     phase4/src/core/view/CViewRendering.cpp phase4/src/core/gdi/CPaintDC.cpp phase4/src/core/gdi/CDCHandleMap.cpp
     phase4/src/core/view/CFormViewDialog.cpp
     phase4/src/core/view/CRecordViewCommands.cpp phase4/src/core/view/CFormViewInitialization.cpp phase4/src/core/view/ViewMessageMaps.cpp
@@ -101,7 +102,12 @@ for name in ('CRenderTarget', 'CD2DTextFormat', 'CD2DTextLayout',
         if name == 'CRenderTarget' and '?VerifyResource@' in symbol:
             continue  # Only this one thunk is doubled in the forwarding test.
         assert alias in defined, 'Missing compiled export alias: ' + alias
-for path, obj in (('core/view/CViewRendering.cpp', 'CViewRendering'),
+for path, obj in (('core/frame/CSplitterWndInfo.cpp', 'CSplitterWndInfo'),
+                  ('core/runtime/CObjectTypeChecks.cpp', 'CObjectTypeChecks'),
+                  ('core/view/CViewSplitterCommands.cpp', 'CViewSplitterCommands'),
+                  ('core/frame/CSplitterWndNavigation.cpp', 'CSplitterWndNavigation'),
+                  ('core/window/CWndCoordinates.cpp', 'CWndCoordinates'),
+                  ('core/view/CViewRendering.cpp', 'CViewRendering'),
                   ('core/gdi/CPaintDC.cpp', 'CPaintDC'),
                   ('core/gdi/CDCHandleMap.cpp', 'CDCHandleMap'),
                   ('core/window/CWndParents.cpp', 'CWndParents'),
