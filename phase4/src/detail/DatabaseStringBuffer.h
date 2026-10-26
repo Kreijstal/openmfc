@@ -42,19 +42,22 @@ public:
         if(old->IsLocked()) {old->nDataLength=0;(*text)[0]=0;return;}
         auto* manager=old->pStringMgr;if(old->Release())manager->Free(old);*text=chars(manager->GetNilString());
     }
-    void set(const wchar_t* source) {
-        int length=source?int(std::wcslen(source)):0;if(!length){empty();return;}
+    void set(const wchar_t* source) {set(source,source?int(std::wcslen(source)):0);}
+    void set(const wchar_t* source,int length) {
+        if(!length){empty();return;}
         bool internal=UINT_PTR(source)>=UINT_PTR(*text) && UINT_PTR(source)<=UINT_PTR(*text)+size_t(data()->nDataLength)*sizeof(wchar_t);
         size_t offset=internal?size_t(source-*text):0;prepare(length);if(internal)source=*text+offset;
         std::memmove(*text,source,size_t(length)*sizeof(wchar_t));data()->nDataLength=length;(*text)[length]=0;
     }
-    void append(const wchar_t* source) {
-        int extra=source?int(std::wcslen(source)):0;if(!extra)return;
+    void append(const wchar_t* source) {append(source,source?int(std::wcslen(source)):0);}
+    void append(const wchar_t* source,int extra) {
+        if(extra<0){impl__AfxThrowOleException__YAXJ_Z(E_INVALIDARG);return;}
+        int length=0;while(source && length<extra && source[length])++length;extra=length;
         int old=data()->nDataLength;int total=int32_t(uint32_t(old)+uint32_t(extra));
-        if(total<old){impl__AfxThrowMemoryException__YAXXZ();return;}
+        if(total<old){impl__AfxThrowOleException__YAXJ_Z(E_INVALIDARG);return;}
         bool internal=UINT_PTR(source)>=UINT_PTR(*text) && UINT_PTR(source)<=UINT_PTR(*text)+size_t(old)*sizeof(wchar_t);
         size_t offset=internal?size_t(source-*text):0;prepare(total);if(internal)source=*text+offset;
-        std::memmove(*text+old,source,size_t(extra)*sizeof(wchar_t));data()->nDataLength=total;(*text)[total]=0;
+        if(extra)std::memmove(*text+old,source,size_t(extra)*sizeof(wchar_t));data()->nDataLength=total;(*text)[total]=0;
     }
 };
 } }

@@ -95,28 +95,6 @@ extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLT
     }
 }
 extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
-// Symbol: ?AppendFilterAndSortSQL@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__AppendFilterAndSortSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
-    if (!pThis) return;
-    RecordsetState& state = EnsureRecordsetState(pThis);
-    CString sql = state.currentSql.IsEmpty() ? pThis->GetDefaultSQL() : state.currentSql;
-    if (!pThis->m_strFilter.IsEmpty()) {
-        sql += (LowerSql(static_cast<const wchar_t*>(sql)).find(L" where ") == std::wstring::npos) ? L" WHERE " : L" AND ";
-        sql += pThis->m_strFilter;
-    }
-    if (!pThis->m_strSort.IsEmpty()) { sql += L" ORDER BY "; sql += pThis->m_strSort; }
-    StoreSql(pThis, sql);
-}
-// Symbol: ?BuildSelectSQL@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__BuildSelectSQL_CRecordset__IEAAXXZ(CRecordset* pThis) {
-    if (!pThis) return;
-    CString table = pThis->GetDefaultSQL();
-    CString sql = table;
-    if (!table.IsEmpty() && LowerSql(static_cast<const wchar_t*>(table)).find(L"select") != 0) sql = CString(L"SELECT * FROM ") + table;
-    StoreSql(pThis, sql);
-}
-// Symbol: ?BuildSQL@CRecordset@@IEAAXPEB_W@Z
-extern "C" void MS_ABI impl__BuildSQL_CRecordset__IEAAXPEB_W_Z(CRecordset* pThis, const wchar_t* sql) { if (pThis) StoreSql(pThis, CString(sql ? sql : L"")); }
 // Symbol: ?BuildUpdateSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
 // Symbol: ?BindFieldsForUpdate@CRecordset@@QEAAXXZ
@@ -161,8 +139,6 @@ extern "C" short MS_ABI impl__FetchData_CRecordset__QEAAFGJPEA_K_Z(CRecordset* p
     if (SqlSucceeded(rc) && rowsFetched) *rowsFetched = 1;
     return rc;
 }
-// Symbol: ?FindSQLToken@CRecordset@@SAPEB_WPEB_W0@Z
-extern "C" const wchar_t* MS_ABI impl__FindSQLToken_CRecordset__SAPEB_WPEB_W0_Z(const wchar_t* sql, const wchar_t* token) { if (!sql || !token) return nullptr; auto s=LowerSql(sql); auto t=LowerSql(token); auto pos=s.find(t); return pos==std::wstring::npos?nullptr:sql+pos; }
 // Symbol: ?Fixups@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__Fixups_CRecordset__QEAAXXZ(CRecordset* pThis) {
     if (!pThis) return;
@@ -189,10 +165,6 @@ extern "C" void MS_ABI impl__SetBookmark_CRecordset__QEAAXAEBVCDBVariant___Z(CRe
 extern "C" long long MS_ABI impl__GetData_CRecordset__SA_JPEAVCDatabase__PEAXFF1_JF_Z(CDatabase*, void* hstmt, short field, short cType, void* buffer, long long bufferLen, short) { if (!hstmt || !buffer || bufferLen <= 0) return SQL_ERROR; SQLLEN ind=0; RETCODE rc=SQLGetData(static_cast<HSTMT>(hstmt), static_cast<SQLUSMALLINT>(field), cType, buffer, static_cast<SQLLEN>(bufferLen), &ind); return SqlSucceeded(rc)?ind:rc; }
 // Symbol: ?GetDataBuffer@CRecordset@@SAPEAXAEAVCDBVariant@@FPEA_JF_K@Z
 extern "C" void* MS_ABI impl__GetDataBuffer_CRecordset__SAPEAXAEAVCDBVariant__FPEA_JF_K_Z(void* variant, short, long long* length, short, unsigned long) { if (length) *length = 0; return variant; }
-// Symbol: ?GetDefaultConnect@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void MS_ABI impl__GetDefaultConnect_CRecordset__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(CString* ret, CRecordset* pThis) { new (ret) CString(pThis ? pThis->GetDefaultConnect() : CString(L"ODBC;")); }
-// Symbol: ?GetDefaultSQL@CRecordset@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
-extern "C" void MS_ABI impl__GetDefaultSQL_CRecordset__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(CString* ret, CRecordset* pThis) { new (ret) CString(pThis ? pThis->GetDefaultSQL() : CString()); }
 // Symbol: ?GetFieldIndexByName@CRecordset@@QEAAFPEB_W@Z
 extern "C" short MS_ABI impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z(CRecordset* pThis, const wchar_t* name) { int i=FindFieldByName(pThis,name); return i<0?static_cast<short>(-1):static_cast<short>(i); }
 // Symbol: ?GetFieldValue@CRecordset@@QEAAXFAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
@@ -219,14 +191,6 @@ extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldIn
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset* pThis, const wchar_t* name, OdbcFieldInfoCompat* info) { impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(pThis, static_cast<short>(FindFieldByName(pThis,name)), info); }
 // Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
 extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
-// Symbol: ?IsJoin@CRecordset@@SAHPEB_W@Z
-extern "C" int MS_ABI impl__IsJoin_CRecordset__SAHPEB_W_Z(const wchar_t* sql) { return LowerSql(sql).find(L" join ") != std::wstring::npos ? TRUE : FALSE; }
-// Symbol: ?IsRecordsetUpdatable@CRecordset@@IEAAHXZ
-extern "C" int MS_ABI impl__IsRecordsetUpdatable_CRecordset__IEAAHXZ(CRecordset* pThis) { return pThis && pThis->CanUpdate() ? TRUE : FALSE; }
-// Symbol: ?IsSelectQueryUpdatable@CRecordset@@QEAAHPEB_W@Z
-extern "C" int MS_ABI impl__IsSelectQueryUpdatable_CRecordset__QEAAHPEB_W_Z(CRecordset*, const wchar_t* sql) { auto s=LowerSql(sql); return s.find(L"select")==0 && s.find(L" join ")==std::wstring::npos ? TRUE : FALSE; }
-// Symbol: ?IsSQLUpdatable@CRecordset@@QEAAHPEB_W@Z
-extern "C" int MS_ABI impl__IsSQLUpdatable_CRecordset__QEAAHPEB_W_Z(CRecordset* pThis, const wchar_t* sql) { return impl__IsSelectQueryUpdatable_CRecordset__QEAAHPEB_W_Z(pThis, sql); }
 // Symbol: ?LoadFields@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__LoadFields_CRecordset__QEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?OnSetUpdateOptions@CRecordset@@UEAAXPEAX@Z

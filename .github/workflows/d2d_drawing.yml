@@ -79,6 +79,7 @@ on:
       - 'tests/recordset_options_tests.h'
       - 'tests/recordset_execute_tests.h'
       - 'tests/recordset_exchange_tests.h'
+      - 'tests/recordset_sql_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
@@ -282,6 +283,7 @@ on:
       - 'tests/recordset_options_tests.h'
       - 'tests/recordset_execute_tests.h'
       - 'tests/recordset_exchange_tests.h'
+      - 'tests/recordset_sql_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
@@ -503,6 +505,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetSQL.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOptions.cpp"
@@ -687,6 +690,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetSQL.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOptions.cpp"
@@ -839,6 +843,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetSQL.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExchange.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetExecute.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetOptions.cpp"
