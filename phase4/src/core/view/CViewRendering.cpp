@@ -1,6 +1,7 @@
 // Release-x64 CView painting and print-client behavior.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
+#include <commdlg.h>
 
 // Symbol: ?OnPaint@CView@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CView__IEAAXXZ(CView* self) {
