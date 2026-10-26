@@ -3,6 +3,8 @@ extern "C" SQLLEN MS_ABI impl__GetData_CRecordset__SA_JPEAVCDatabase__PEAXFF1_JF
 extern "C" BOOL MS_ABI impl__FlushResultSet_CRecordset__QEAAHXZ(CRecordset*);
 extern "C" void MS_ABI impl__GetBookmark_CRecordset__QEAAXAEAVCDBVariant___Z(CRecordset*,CDBVariant*);
 extern "C" void MS_ABI impl__SetBookmark_CRecordset__QEAAXAEBVCDBVariant___Z(CRecordset*,const CDBVariant*);
+extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short);
+extern "C" SQLLEN MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short,SQLULEN);
 namespace recordset_result_test {
 using namespace recordset_move_test;
 struct ResultsAPI {
@@ -10,7 +12,21 @@ struct ResultsAPI {
     decltype(&impl__FlushResultSet_CRecordset__QEAAHXZ) more;
     decltype(&impl__GetBookmark_CRecordset__QEAAXAEAVCDBVariant___Z) get;
     decltype(&impl__SetBookmark_CRecordset__QEAAXAEBVCDBVariant___Z) set;
+    decltype(&impl__GetDefaultFieldType_CRecordset__SAFF_Z) fieldType;
+    decltype(&impl__GetTextLen_CRecordset__SA_JF_K_Z) textLength;
 };
+static std::vector<UINT64> formats(const ResultsAPI& functions) {
+    std::vector<UINT64> result;result.reserve(65536*8);
+    for(unsigned bits=0;bits<65536;++bits) {
+        short type=short(bits);result.push_back(UINT64(functions.fieldType(type)));
+        for(SQLULEN precision:{SQLULEN(0),SQLULEN(1),SQLULEN(42),SQLULEN(1ULL<<32),SQLULEN((1ULL<<63)-1),SQLULEN(1ULL<<63),SQLULEN(-1)})
+            result.push_back(UINT64(functions.textLength(type,precision)));
+    }
+    check(functions.fieldType(SQL_BIGINT)==SQL_C_WCHAR && functions.fieldType(SQL_VARCHAR)==SQL_C_CHAR &&
+        functions.textLength(SQL_INTEGER,1ULL<<40)==SQLLEN((1ULL<<40)+2),
+        "field formatting preserves native SQL type choices and 64-bit character-buffer precision");
+    return result;
+}
 struct Step {RETCODE code;SQLLEN length=4;DWORD word=0x81234567;};
 static std::vector<Step> dataSteps;
 static size_t dataPosition;
@@ -106,8 +122,9 @@ static void recordsetResults() {
     auto oldData=longbinary_rfx_test::dataHook;auto oldMore=database_execute_test::moreHook;
     longbinary_rfx_test::dataHook=&data;database_execute_test::moreHook=&more;
     ResultsAPI local{&impl__GetData_CRecordset__SA_JPEAVCDatabase__PEAXFF1_JF_Z,&impl__FlushResultSet_CRecordset__QEAAHXZ,
-        &impl__GetBookmark_CRecordset__QEAAXAEAVCDBVariant___Z,&impl__SetBookmark_CRecordset__QEAAXAEBVCDBVariant___Z};
-    auto values=retrieval(local);auto results=advancing(local);auto marks=bookmarks(local);
+        &impl__GetBookmark_CRecordset__QEAAXAEAVCDBVariant___Z,&impl__SetBookmark_CRecordset__QEAAXAEBVCDBVariant___Z,
+        &impl__GetDefaultFieldType_CRecordset__SAFF_Z,&impl__GetTextLen_CRecordset__SA_JF_K_Z};
+    auto values=retrieval(local);auto results=advancing(local);auto marks=bookmarks(local);auto formatted=formats(local);
     wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_RECORDSET_RESULTS_DLL",path,1024)) {
         auto module=::LoadLibraryW(path);check(module!=nullptr,"load native MFC for recordset retrieval and bookmark comparisons");
         if(module) {
@@ -118,12 +135,14 @@ static void recordsetResults() {
                     {0x3e90b0,reinterpret_cast<void*>(&SQLMoreResults)},{0x3e90e0,reinterpret_cast<void*>(&SQLErrorW)}};
                 for(auto& p:patches){auto** slot=reinterpret_cast<void**>(base+p.rva);p.saved=*slot;::VirtualProtect(slot,8,PAGE_READWRITE,&p.protection);*slot=p.function;}
                 ResultsAPI native{reinterpret_cast<decltype(local.data)>(base+0x1fd8e0),reinterpret_cast<decltype(local.more)>(base+0x1f91b0),
-                    reinterpret_cast<decltype(local.get)>(base+0x1f8cb0),reinterpret_cast<decltype(local.set)>(base+0x1f8d90)};
+                    reinterpret_cast<decltype(local.get)>(base+0x1f8cb0),reinterpret_cast<decltype(local.set)>(base+0x1f8d90),
+                    reinterpret_cast<decltype(local.fieldType)>(base+0x1fd4b0),reinterpret_cast<decltype(local.textLength)>(base+0x1fd880)};
                 auto compare=[&](const std::vector<Event>& actual,const std::vector<Event>& expected,const char* label){
                     if(actual!=expected)for(size_t i=0;i<std::min(actual.size(),expected.size());++i)if(actual[i]!=expected[i]){std::printf("%s mismatch %zu local:",label,i);for(auto n:expected[i])std::printf(" %lld",n);std::printf(" native:");for(auto n:actual[i])std::printf(" %lld",n);puts("");break;}check(actual==expected,label);};
                 compare(retrieval(native),values,"static GetData driver arguments, full-width indicators, asynchronous retries and exception behavior match native MFC");
                 compare(advancing(native),results,"single-result advancement, final-result currency reset, field fixup gates and failures match native MFC");
                 compare(bookmarks(native),marks,"bookmark validation, variant ownership, long-value bits, driver status and virtual movement match native MFC");
+                check(formats(native)==formatted,"default field types and text-buffer sizes match native MFC for all 65536 SQL type codes and full-width precision boundaries");
                 for(auto& p:patches){auto** slot=reinterpret_cast<void**>(base+p.rva);*slot=p.saved;DWORD ignored;::VirtualProtect(slot,8,p.protection,&ignored);}
             }
             ::FreeLibrary(module);

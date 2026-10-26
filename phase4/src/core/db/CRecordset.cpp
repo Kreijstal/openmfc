@@ -22,48 +22,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordset__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeClass__XZ() {
     return CRecordset::GetThisClass();
 }
-// Symbol: ?GetDefaultFieldType@CRecordset@@SAFF@Z
-extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLType) {
-    switch (nSQLType) {
-    case SQL_CHAR:
-    case SQL_VARCHAR:
-    case SQL_LONGVARCHAR:
-        return SQL_C_CHAR;
-    case SQL_WCHAR:
-    case SQL_WVARCHAR:
-    case SQL_WLONGVARCHAR:
-        return SQL_C_WCHAR;
-    case SQL_SMALLINT:
-        return SQL_C_SSHORT;
-    case SQL_INTEGER:
-        return SQL_C_SLONG;
-    case SQL_REAL:
-        return SQL_C_FLOAT;
-    case SQL_DOUBLE:
-    case SQL_FLOAT:
-        return SQL_C_DOUBLE;
-    case SQL_BIT:
-        return SQL_C_BIT;
-    case SQL_DECIMAL:
-    case SQL_NUMERIC:
-        return SQL_C_CHAR;
-    case SQL_TYPE_DATE:
-    case SQL_DATE:
-        return SQL_C_TYPE_DATE;
-    case SQL_TYPE_TIME:
-    case SQL_TIME:
-        return SQL_C_TYPE_TIME;
-    case SQL_TYPE_TIMESTAMP:
-    case SQL_TIMESTAMP:
-        return SQL_C_TYPE_TIMESTAMP;
-    case SQL_BINARY:
-    case SQL_VARBINARY:
-    case SQL_LONGVARBINARY:
-        return SQL_C_BINARY;
-    default:
-        return nSQLType;
-    }
-}
 extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
 // Symbol: ?GetDataBuffer@CRecordset@@SAPEAXAEAVCDBVariant@@FPEA_JF_K@Z
 extern "C" void* MS_ABI impl__GetDataBuffer_CRecordset__SAPEAXAEAVCDBVariant__FPEA_JF_K_Z(void* variant, short, long long* length, short, unsigned long) { if (length) *length = 0; return variant; }
@@ -91,8 +49,6 @@ extern "C" void MS_ABI impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatab
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(CRecordset* pThis, short index, OdbcFieldInfoCompat* info) { if (!pThis||!info) return; LoadRecordsetFields(pThis); auto& f=EnsureRecordsetState(pThis).fields; if (index>=0 && static_cast<size_t>(index)<f.size()) *info=f[index]; }
 // Symbol: ?GetODBCFieldInfo@CRecordset@@QEAAXPEB_WAEAUCODBCFieldInfo@@@Z
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset* pThis, const wchar_t* name, OdbcFieldInfoCompat* info) { impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(pThis, static_cast<short>(FindFieldByName(pThis,name)), info); }
-// Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
-extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {

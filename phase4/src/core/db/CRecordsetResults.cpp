@@ -5,6 +5,37 @@ extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETC
 extern "C" BOOL MS_ABI impl__CanBookmark_CRecordset__QEBAHXZ(const CRecordset*);
 extern "C" void MS_ABI impl__Fixups_CRecordset__QEAAXXZ(CRecordset*);
 
+// RVAs 0x1fd4b0/0x1fd880. These use the original ODBC SQL type IDs;
+// text precision and arithmetic retain their full Win64 width.
+short CRecordset::GetDefaultFieldType(short type) {
+    switch(type) {
+    case SQL_WLONGVARCHAR:case SQL_WVARCHAR:case SQL_WCHAR:
+    case SQL_BIGINT:case SQL_NUMERIC:case SQL_DECIMAL:return SQL_C_WCHAR;
+    case SQL_BIT:return SQL_C_BIT;
+    case SQL_TINYINT:return SQL_C_UTINYINT;
+    case SQL_LONGVARBINARY:case SQL_VARBINARY:case SQL_BINARY:return SQL_C_BINARY;
+    case SQL_LONGVARCHAR:case SQL_CHAR:case SQL_VARCHAR:return SQL_C_CHAR;
+    case SQL_INTEGER:return SQL_C_SLONG;
+    case SQL_SMALLINT:return SQL_C_SSHORT;
+    case SQL_FLOAT:case SQL_DOUBLE:return SQL_C_DOUBLE;
+    case SQL_REAL:return SQL_C_FLOAT;
+    case SQL_DATE:case SQL_TIME:case SQL_TIMESTAMP:return SQL_C_TIMESTAMP;
+    default:return 0;
+    }
+}
+SQLLEN CRecordset::GetTextLen(short type,SQLULEN precision) {
+    if (type==SQL_LONGVARCHAR || type==SQL_LONGVARBINARY) return 1;
+    if (type==SQL_WLONGVARCHAR) return 2;
+    ++precision;
+    if (type==SQL_NUMERIC || type==SQL_DECIMAL || type==SQL_FLOAT || type==SQL_REAL || type==SQL_DOUBLE) precision+=2;
+    else if (type==SQL_INTEGER || type==SQL_SMALLINT) ++precision;
+    return SQLLEN(precision);
+}
+// Symbol: ?GetDefaultFieldType@CRecordset@@SAFF@Z
+extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short type) {return CRecordset::GetDefaultFieldType(type);}
+// Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
+extern "C" SQLLEN MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short type,SQLULEN precision) {return CRecordset::GetTextLen(type,precision);}
+
 // RVA 0x1fd8e0. Indicator values are full-width and belong to the driver;
 // even SQL_NO_DATA is an exception on this static retrieval path.
 SQLLEN CRecordset::GetData(CDatabase* db,HSTMT statement,short field,short type,void* buffer,SQLLEN capacity,short) {
