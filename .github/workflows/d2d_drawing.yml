@@ -86,12 +86,14 @@ on:
       - 'tests/recordset_update_tests.h'
       - 'tests/database_variant_tests.h'
       - 'tests/recordset_result_tests.h'
+      - 'tests/recordset_value_tests.h'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
+      - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -297,12 +299,14 @@ on:
       - 'tests/recordset_update_tests.h'
       - 'tests/database_variant_tests.h'
       - 'tests/recordset_result_tests.h'
+      - 'tests/recordset_value_tests.h'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
+      - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
       - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
@@ -519,6 +523,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"
@@ -710,6 +715,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"
@@ -869,6 +875,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetUpdate.cpp"

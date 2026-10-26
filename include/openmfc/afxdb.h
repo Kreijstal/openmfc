@@ -252,6 +252,7 @@ public:
     BOOL FlushResultSet();void GetBookmark(CDBVariant&);void SetBookmark(const CDBVariant&);
     static SQLLEN GetData(CDatabase*,HSTMT,short,short,void*,SQLLEN,short);
     static short GetDefaultFieldType(short);static SQLLEN GetTextLen(short,SQLULEN);
+    static void* GetDataBuffer(CDBVariant&,short,SQLLEN*,short,SQLULEN);
     void ResetCursor();void RefreshRowset(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetRowsetCursorPosition(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetLockingMode(UINT);
